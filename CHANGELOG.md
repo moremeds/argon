@@ -7,6 +7,15 @@ version in lockstep (enforced by `scripts/release/version_sync_check.py`).
 
 ## [Unreleased]
 
+- Fix: `/api/health`'s freshness block now anchors `consecutive_frozen_nights`
+  on the snapshot's own newest `run_date` instead of the DB wall clock —
+  `latest_snapshot()` was the last bare `consecutive_frozen_counts()` caller
+  left behind by the autoheal-circuit-breaker fix, and its `CURRENT_DATE`
+  anchor made the reported streak (and `autoheal_circuit_broken`) shrink as
+  the clock advanced past the seeded nights (surfaced as the
+  `test_health_autoheal_circuit_broken_includes_eligible_tripped_table`
+  date-bomb in CI).
+
 - Technicals price chart gains a 缠论 (Chanlun) overlay behind a header toggle
   (next to the SMA·σ/EMA·BB segmented control, localStorage-persisted):
   笔 stroke polylines (solid confirmed / dashed provisional tail), 中枢 pivot
