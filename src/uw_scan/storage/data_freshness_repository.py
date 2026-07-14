@@ -120,7 +120,15 @@ class DataFreshnessRepository:
             cur.execute(sql)
             cols = [c.name for c in cur.description]
             rows = [dict(zip(cols, row, strict=True)) for row in cur.fetchall()]
-        streaks = self.consecutive_frozen_counts()
+            # Anchor the streak lookback on the snapshot's own newest night,
+            # not the wall clock: /api/health reports the streak AS OF the
+            # data it shows, and a CURRENT_DATE anchor silently shrinks the
+            # counted streak whenever the newest snapshot lags the clock
+            # (pinned-date tests, a paused monitor) — same date-bomb class
+            # the monitor job's call site already fixed by passing `today`.
+            cur.execute("SELECT MAX(run_date) FROM data_freshness_snapshots")
+            max_run_date = cur.fetchone()[0]
+        streaks = self.consecutive_frozen_counts(as_of=max_run_date)
         for row in rows:
             row["consecutive_frozen_nights"] = streaks.get(row["table_name"], 0)
         return rows
