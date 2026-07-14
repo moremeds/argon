@@ -10,6 +10,7 @@
 // endpoint can still move, the forming counter-leg tracks the running
 // extreme) — consumers must render them dashed/"?" and never alert off them.
 import { ema } from "@/lib/indicators";
+import { buildSegments, type SegVertex } from "@/lib/chanlunSeg";
 
 export type ChanlunBar = {
   time: string; // 'yyyy-mm-dd'
@@ -215,6 +216,9 @@ export function buildLegs(pts: readonly VertexPt[]): Leg[] {
   return legs;
 }
 
+// 中枢 — overlap of 3 consecutive strokes: [zd, zg] = [max(lo), min(hi)];
+// extends while later strokes still touch the zone, ends at the first
+// stroke fully outside. The trailing zone (never exited) stays unconfirmed.
 export function buildPivots(legs: readonly Leg[]): Pivot[] {
   const pivots: Pivot[] = [];
   let i = 0;
@@ -269,11 +273,19 @@ export function markPoints(
     points.push({ time: v.time, price: v.price, kind, confirmed: v.confirmed });
   };
   pivots.forEach((p, k) => {
+    // 3B/3S: the pullback after leaving the pivot fails to re-enter [zd, zg].
+    // The pull leg must run AGAINST the exit direction (a down pullback after
+    // an upward exit) — "fully outside" alone can also match a counter-
+    // direction leg riding above/below the zone, which would put a buy
+    // marker on a top vertex (bug surfaced by the 500-bar fixture).
     if (p.exitLeg != null) {
       const pull = legs[p.exitLeg + 1];
-      if (pull && p.exitUp && pull.lo > p.zg) mark("3B", pull.b);
-      if (pull && !p.exitUp && pull.hi < p.zd) mark("3S", pull.b);
+      if (pull && p.exitUp && !pull.up && pull.lo > p.zg) mark("3B", pull.b);
+      if (pull && !p.exitUp && pull.up && pull.hi < p.zd) mark("3S", pull.b);
     }
+    // 1B/1S: trend (two non-overlapping pivots) whose final exit leg makes a
+    // new extreme on weaker MACD area than the connecting leg between pivots
+    // (趋势背驰). The connecting leg IS the previous pivot's exit leg.
     const prev = pivots[k - 1];
     if (!prev || prev.exitLeg == null || p.exitLeg == null) return;
     const connect = legs[prev.exitLeg];
@@ -290,6 +302,8 @@ export function markPoints(
     ) {
       const first = rising ? ("1S" as const) : ("1B" as const);
       mark(first, exit.b);
+      // 2B/2S: the first retest after the reversal leg holds the 1st-class
+      // extreme (no new low after 1B / no new high after 1S).
       const retest = pts[exit.b + 2];
       if (retest && retest.kind === pts[exit.b].kind) {
         if (first === "1B" && retest.price > pts[exit.b].price) {
@@ -366,6 +380,7 @@ export function computeChanlun(bars: readonly ChanlunBar[]): ChanlunResult {
   const pivots = buildPivots(legs);
   const zhongshus = pivotsToZhongshus(pivots, legs, pts);
 
+  // 买卖点. Leg momentum = Σ|MACD hist| over the leg's raw bars (area proxy).
   const hist = macdHist(bars.map((b) => b.close));
   const legArea = (l: Leg): number => {
     let s = 0;
@@ -377,4 +392,44 @@ export function computeChanlun(bars: readonly ChanlunBar[]): ChanlunResult {
   const points = markPoints(pts, legs, pivots, legArea);
 
   return { vertices, zhongshus, points };
+}
+
+export type ChanlunFullResult = ChanlunResult & {
+  segVertices: SegVertex[];
+  segZhongshus: Zhongshu[];
+  segPoints: BuySellPoint[];
+};
+
+/** v1 result + segment-level structures. 段级 legs reuse the level-generic
+ * pivot/BSP core; MACD-area 背驰 sums over the same raw-bar histogram, just
+ * across segment spans. */
+export function computeChanlunFull(
+  bars: readonly ChanlunBar[],
+): ChanlunFullResult {
+  const daily = computeChanlun(bars);
+  const segVertices = buildSegments(daily.vertices);
+  const idxByTime = new Map(bars.map((b, i) => [b.time, i]));
+  const segPts: VertexPt[] = segVertices.map((v) => ({
+    time: v.time,
+    price: v.price,
+    kind: v.kind,
+    rawIdx: idxByTime.get(v.time) ?? 0,
+    confirmed: v.confirmed,
+  }));
+  const hist = macdHist(bars.map((b) => b.close));
+  const legArea = (l: Leg): number => {
+    let s = 0;
+    for (let r = l.rawA + 1; r <= l.rawB; r++) {
+      s += Math.abs(hist[r]);
+    }
+    return s;
+  };
+  const segLegs = buildLegs(segPts);
+  const segPivots = buildPivots(segLegs);
+  return {
+    ...daily,
+    segVertices,
+    segZhongshus: pivotsToZhongshus(segPivots, segLegs, segPts),
+    segPoints: markPoints(segPts, segLegs, segPivots, legArea),
+  };
 }

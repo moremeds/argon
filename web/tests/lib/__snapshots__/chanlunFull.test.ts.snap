@@ -2,26 +2,7 @@
 
 exports[`computeChanlun v1 output identity > is byte-stable across the v2 refactor (never run vitest -u) 1`] = `
 {
-  "points": [
-    {
-      "confirmed": true,
-      "kind": "3S",
-      "price": 193.25,
-      "time": "2025-05-07",
-    },
-    {
-      "confirmed": true,
-      "kind": "3B",
-      "price": 259.07,
-      "time": "2025-10-06",
-    },
-    {
-      "confirmed": true,
-      "kind": "3B",
-      "price": 288.62,
-      "time": "2025-12-03",
-    },
-  ],
+  "points": [],
   "vertices": [
     {
       "confirmed": true,
