@@ -7,6 +7,15 @@ version in lockstep (enforced by `scripts/release/version_sync_check.py`).
 
 ## [Unreleased]
 
+### Added
+
+- Chanlun v2 on the technicals price chart: 线段 (chan.py feature-sequence
+  port, both termination cases), 段级中枢 + 段级买卖点, pragmatic 中枢升级
+  (consecutive overlapping zones merge to level-2 envelopes), and weekly×daily
+  区间套 resonance (★ on confirmed daily 买卖点 with a confirmed weekly
+  witness). Compute stays client-side (`web/lib/chanlunSeg.ts`,
+  `computeChanlunFull`); the 中枢 primitive is reused unmodified.
+
 - Technicals price chart gains a 缠论 (Chanlun) overlay behind a header toggle
   (next to the SMA·σ/EMA·BB segmented control, localStorage-persisted):
   笔 stroke polylines (solid confirmed / dashed provisional tail), 中枢 pivot
