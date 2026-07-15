@@ -417,6 +417,13 @@ def _should_schedule_regime_live(settings: Settings) -> bool:
     return role == "all" or (role == "massive" and settings.worker_index == 0)
 
 
+def _should_schedule_chanlun_lifecycle(settings: Settings) -> bool:
+    """Single owner for the nightly chanlun lifecycle upserts. Pure DB-read +
+    apex compute (no UW spend) -> pin to massive-0, same as regime/technical live."""
+    role = settings.worker_role.lower()
+    return role == "all" or (role == "massive" and settings.worker_index == 0)
+
+
 def _worker_label(settings: Settings) -> str:
     role = settings.worker_role.lower()
     if role == "all":
@@ -1015,6 +1022,13 @@ def main() -> int:
         with _repo(settings) as repo:
             summary = technical_live_scan(repo, settings)
         logger.info("technical_live_scan_tick %s", summary)
+
+    def _chanlun_lifecycle_scan() -> None:
+        from uw_scan.worker.jobs.chanlun_lifecycle import chanlun_lifecycle_scan
+
+        with _repo(settings) as repo:
+            summary = chanlun_lifecycle_scan(repo, settings)
+        logger.info("chanlun_lifecycle_scan_tick %s", summary)
 
     def _regime_live_validation() -> None:
         from uw_scan.worker.jobs.regime_live import validate_live_close_vs_lake
@@ -1658,6 +1672,20 @@ def main() -> int:
             IntervalTrigger(minutes=settings.technical_live_scan_interval_minutes),
             id="technical_live_scan",
             name="Live technicals coverage",
+            max_instances=1,
+            coalesce=True,
+        )
+
+    if settings.chanlun_lifecycle_enabled and _should_schedule_chanlun_lifecycle(
+        settings
+    ):
+        sched.add_job(
+            _chanlun_lifecycle_scan,
+            CronTrigger(
+                hour=3, minute=10, day_of_week="tue-sat", timezone=settings.rth_tz
+            ),
+            id="chanlun_lifecycle_scan",
+            name="Chanlun daily-mark lifecycle (30m sub-level confirm)",
             max_instances=1,
             coalesce=True,
         )
