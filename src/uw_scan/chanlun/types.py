@@ -6,8 +6,8 @@ mutable dataclasses (not frozen): `merge_inclusions` and
 `merge_overlapping_zhongshus` mutate the "last" record in place, mirroring
 the TS `last.high = ...` in-place mutation style.
 
-Segment types (SegVertex, SegStats, Stroke, Elem, ChanlunFullResult) are
-added in Tasks 4-5, not here.
+Segment types (SegVertex, SegStats, Stroke, Elem) are added in Task 4 below.
+ChanlunFullResult is added in Task 5, not here.
 """
 
 from __future__ import annotations
@@ -140,3 +140,50 @@ class ChanlunResult:
     zhongshus: list[Zhongshu]
     points: list[BuySellPoint]
     divergences: list[DivergenceMark]
+
+
+@dataclass
+class SegVertex:
+    """buildSegments' public output — same shape/contract as BiVertex.
+
+    port-contract §A, chanlunSeg.ts:11-16.
+    """
+
+    time: str
+    price: float
+    kind: str  # "top" | "bottom"
+    confirmed: bool
+
+
+@dataclass
+class SegStats:
+    """Optional diagnostic counters, mutated in place if passed. port-contract §A, chanlunSeg.ts:18-22."""
+
+    case1: int = 0
+    case2Confirmed: int = 0
+    case2Provisional: int = 0
+
+
+@dataclass
+class Stroke:
+    """One 笔 recast as a segment-building primitive. port-contract §A, chanlunSeg.ts:24-30."""
+
+    idx: int
+    up: bool
+    hi: float
+    lo: float
+    sure: bool  # both endpoint vertices confirmed
+
+
+@dataclass
+class Elem:
+    """One feature-sequence element (chan.py CEigen). port-contract §A, chanlunSeg.ts:37-46."""
+
+    hi: float
+    lo: float
+    up: bool  # MERGE direction, fixed once the element is created (not per-stroke)
+    strokes: list[int]  # stroke indices folded into this element, in feed order
+    hiStroke: int  # index of the stroke that currently carries the element's hi
+    loStroke: int  # index of the stroke that currently carries the element's lo
+    lastHi: float  # most-recently-folded stroke's own hi (chan.py actual_break state)
+    lastLo: float
