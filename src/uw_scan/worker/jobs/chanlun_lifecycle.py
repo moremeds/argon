@@ -37,6 +37,7 @@ from uw_scan.chanlun.lifecycle import (
     is_promotable,
     is_stale,
     s1_confirmed,
+    session_et_date,
 )
 from uw_scan.chanlun.types import ChanlunBar
 from uw_scan.config import Settings
@@ -49,6 +50,24 @@ log = logging.getLogger(__name__)
 # 1d fetch lookback: >=1,300 sessions of headroom for the daily compute
 # pipeline (40-session anchor fallback + long-tail stroke/pivot context).
 _DAILY_LOOKBACK_DAYS = 1900
+
+
+def _filter_to_session_window(
+    bars_30m_raw: list[dict], anchor_start: date
+) -> list[dict]:
+    """Drop 30m bars whose ET session date precedes `anchor_start`.
+
+    apex's `start` param is a UTC-instant filter (date -> UTC midnight), but
+    the probe (scripts/research/chanlun_sublevel_probe.py) windows by ET
+    session date. In EST (UTC-5), a prior-session post-market bar (e.g.
+    19:30 ET the evening before anchor_start) carries a UTC timestamp that
+    already rolled onto anchor_start's UTC calendar date, so apex's raw
+    filter admits it even though its ET session is one day earlier than
+    intended -- it would otherwise leak into the head of the S1 compute
+    window. Filtering here (not by changing what we pass to `fetch`) keeps
+    the probe's exact ET-session semantics without a second apex round trip.
+    """
+    return [b for b in bars_30m_raw if session_et_date(b["time"]) >= anchor_start]
 
 
 def chanlun_lifecycle_scan(
@@ -130,6 +149,7 @@ def chanlun_lifecycle_scan(
                     bars_30m_raw = fetch(
                         t, "30m", start=anchor_start, end=None, limit=0
                     )
+                    bars_30m_raw = _filter_to_session_window(bars_30m_raw, anchor_start)
                     bars_30m = [
                         ChanlunBar(
                             time=b["time"],

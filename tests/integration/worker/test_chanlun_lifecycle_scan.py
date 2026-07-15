@@ -35,13 +35,6 @@ def _stub_fetch(ticker, timeframe, start, *, end=None, limit=0, **kw):
     return []  # no 30m -> no sublevel promotion, marks stay PENDING/NATIVE
 
 
-def _seed_watchlist(repo, ticker="AAPL"):
-    # Minimal watchlist row so list_watchlist_cards() yields the ticker. Reuse
-    # whatever the harness's card-seed helper is; if list_watchlist_cards is
-    # empty, pass ticker_filter=["AAPL"] instead (below uses ticker_filter).
-    return ticker
-
-
 def test_scan_derives_and_persists_marks(seeded_db_empty_cards):
     repo = seeded_db_empty_cards
     now = dt.datetime(2026, 7, 13, 7, 10, tzinfo=dt.timezone.utc)  # 03:10 ET
@@ -91,3 +84,77 @@ def test_scan_counts_apex_outage(seeded_db_empty_cards):
     )
     assert summary["skipped_no_bars"] == 1
     assert summary["ok"] == 0
+
+
+def test_scan_sweeps_superseded_mark_to_invalidated(seeded_db_empty_cards):
+    """A non-terminal mark present in the DB but absent from a fresh recompute
+    must be swept to invalidated/reason='superseded' (chanlun_lifecycle.py
+    ~169-192), so `current_states` never carries a stale pending/
+    confirmed_sublevel row for a mark that dropped out of the daily
+    structure."""
+    repo = seeded_db_empty_cards
+    now = dt.datetime(2026, 7, 13, 7, 10, tzinfo=dt.timezone.utc)
+    cs_repo = ChanlunSignalRepository(repo.conn, schema=repo._schema)
+
+    # Baseline scan derives the real marks from the golden AAPL fixture.
+    first = chanlun_lifecycle_scan(
+        repo,
+        Settings.from_env(),
+        ticker_filter=["AAPL"],
+        fetch_bars=_stub_fetch,
+        now=now,
+    )
+    assert first["ok"] == 1
+
+    # Seed a `pending` row for a mark key the fixture's recompute never
+    # derives (2020-01-01 predates the fixture's bar window, which starts
+    # 2024-07-12 -- see _GOLDEN["bars"][0]). Real category/kind ("vertex"/
+    # "top") so the sweep's downstream plumbing (is_promotable etc.) sees
+    # ordinary values; only the key is fake.
+    fake_extreme_date = dt.date(2020, 1, 1)
+    fake_extreme_price = 999.99
+    cs_repo.upsert_transition(
+        ticker="AAPL",
+        category="vertex",
+        kind="top",
+        extreme_date=fake_extreme_date,
+        extreme_price=fake_extreme_price,
+        state="pending",
+        reason=None,
+        as_of=dt.date(2026, 7, 12),
+        details={},
+    )
+
+    def _fake_row(states):
+        return next(
+            (
+                s
+                for s in states
+                if s["category"] == "vertex"
+                and s["kind"] == "top"
+                and s["extreme_date"] == fake_extreme_date
+                and s["extreme_price"] == fake_extreme_price
+            ),
+            None,
+        )
+
+    # Non-vacuity: the seed took effect as `pending` before the sweep runs.
+    seeded = _fake_row(cs_repo.current_states("AAPL"))
+    assert seeded is not None
+    assert seeded["state"] == "pending"
+
+    # Re-run: the fake key is absent from derived_keys on the fresh
+    # recompute, so the sweep must invalidate it with reason='superseded'.
+    second = chanlun_lifecycle_scan(
+        repo,
+        Settings.from_env(),
+        ticker_filter=["AAPL"],
+        fetch_bars=_stub_fetch,
+        now=now,
+    )
+    assert second["ok"] == 1
+
+    swept = _fake_row(cs_repo.current_states("AAPL"))
+    assert swept is not None
+    assert swept["state"] == "invalidated"
+    assert swept["reason"] == "superseded"

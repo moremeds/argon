@@ -19,7 +19,13 @@ from uw_scan.chanlun.types import BiVertex, ChanlunBar, ChanlunFullResult
 
 LN_SPLIT_THRESHOLD = math.log(1.5)
 DEFAULT_STALE_SESSIONS = 20
-DEFAULT_PROMOTABLE = frozenset({"vertex", "divergence", "3B", "3S"})
+# The four categories evaluated by the walk-forward sub-level probe
+# (docs/research/2026-07-14-chanlun-signal-lifecycle/phaseb_probe/summary.md).
+# ALL FOUR FAILED the survival gate on 2026-07-15 (~8-17% actual survival vs
+# >=70% required, both ticker-halves) -- this is NOT a shipped default and is
+# imported nowhere. `Settings.chanlun_promotable_categories` (empty string by
+# design) is the only source of truth for what the nightly job promotes.
+CANDIDATE_CATEGORIES = frozenset({"vertex", "divergence", "3B", "3S"})
 
 _ET = ZoneInfo("America/New_York")
 
