@@ -90,3 +90,17 @@ def test_fetch_bars_400_unsupported_timeframe_never_raises():
         )
 
     assert fetch_bars("AAPL", "2h", date(2021, 6, 11), client=_client(handler)) == []
+
+
+def test_fetch_bars_connect_error_never_raises():
+    def handler(request: httpx.Request) -> httpx.Response:
+        raise httpx.ConnectError("boom", request=request)
+
+    assert fetch_bars("AAPL", "30m", date(2021, 6, 11), client=_client(handler)) == []
+
+
+def test_fetch_bars_malformed_body_never_raises():
+    def handler(request: httpx.Request) -> httpx.Response:
+        return httpx.Response(200, json="nonsense")
+
+    assert fetch_bars("AAPL", "30m", date(2021, 6, 11), client=_client(handler)) == []
