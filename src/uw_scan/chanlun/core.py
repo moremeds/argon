@@ -10,6 +10,9 @@ function and must not be unified or "improved."
 
 from __future__ import annotations
 
+import datetime as dt
+import math
+
 from uw_scan.chanlun.types import (
     ChanlunBar,
     Fractal,
@@ -36,8 +39,6 @@ def ema(values: list[float], period: int) -> list[float | None]:
     alpha = 2/(period+1); one running float, seeded at the first finite
     value. Non-finite input emits None without disturbing the running state.
     """
-    import math
-
     a = 2 / (period + 1)
     e: float | None = None
     out: list[float | None] = []
@@ -255,7 +256,6 @@ def resample_weekly(bars: list[ChanlunBar]) -> list[ChanlunBar]:
     Output `time` is the LAST session's date within that calendar week, not
     the Monday grouping key (which is never emitted).
     """
-    import datetime as dt
 
     def monday(t: str) -> str:
         d = dt.date.fromisoformat(t)
