@@ -303,6 +303,29 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/stock/{ticker}/chanlun/lifecycle": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Get Stock Chanlun Lifecycle
+         * @description Current lifecycle state of every recorded chanlun mark, read-only.
+         *
+         *     Excludes marks whose current state is invalidated/stale (spec §API amended
+         *     2026-07-14); breach/superseded/split_boundary invalidations are returned.
+         */
+        get: operations["get_stock_chanlun_lifecycle_api_stock__ticker__chanlun_lifecycle_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/ohlc/{ticker}": {
         parameters: {
             query?: never;
@@ -1907,6 +1930,49 @@ export interface components {
              * @default false
              */
             requires_t1_oi_confirmation: boolean;
+        };
+        /**
+         * ChanlunLifecycleMark
+         * @description Current lifecycle state of one daily chanlun mark (mark_id + state).
+         */
+        ChanlunLifecycleMark: {
+            /** Category */
+            category: string;
+            /** Kind */
+            kind: string;
+            /**
+             * Extreme Date
+             * Format: date
+             */
+            extreme_date: string;
+            /** Extreme Price */
+            extreme_price: number;
+            /** State */
+            state: string;
+            /** Reason */
+            reason?: string | null;
+            /**
+             * First Entered At
+             * Format: date-time
+             */
+            first_entered_at: string;
+            /**
+             * As Of
+             * Format: date
+             */
+            as_of: string;
+        };
+        /**
+         * ChanlunLifecycleResponse
+         * @description Current state of every recorded mark for one ticker, excluding marks
+         *     whose current state is invalidated/stale (spec §API). Breach, superseded,
+         *     and split_boundary invalidations are included.
+         */
+        ChanlunLifecycleResponse: {
+            /** Ticker */
+            ticker: string;
+            /** Marks */
+            marks: components["schemas"]["ChanlunLifecycleMark"][];
         };
         /** ClosestLevel */
         ClosestLevel: {
@@ -9822,6 +9888,37 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content?: never;
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    get_stock_chanlun_lifecycle_api_stock__ticker__chanlun_lifecycle_get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                ticker: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ChanlunLifecycleResponse"];
+                };
             };
             /** @description Validation Error */
             422: {

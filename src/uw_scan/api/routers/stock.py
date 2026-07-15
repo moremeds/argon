@@ -15,6 +15,8 @@ from uw_scan.api.deps import get_repo, get_settings
 from uw_scan.cards.gex import classify_bias, find_flip_strike
 from uw_scan.config import Settings
 from uw_scan.models import (
+    ChanlunLifecycleMark,
+    ChanlunLifecycleResponse,
     SingleStockReport,
     StockHistoryResponse,
     StockHistoryRow,
@@ -338,3 +340,43 @@ def clear_vwap_anchor(
     TechnicalVwapAnchorRepository(repo.conn, schema=settings.db_schema).delete(
         ticker.upper()
     )
+
+
+@router.get(
+    "/stock/{ticker}/chanlun/lifecycle", response_model=ChanlunLifecycleResponse
+)
+def get_stock_chanlun_lifecycle(
+    ticker: str,
+    repo: Repository = Depends(get_repo),
+    settings: Settings = Depends(get_settings),
+) -> ChanlunLifecycleResponse:
+    """Current lifecycle state of every recorded chanlun mark, read-only.
+
+    Excludes marks whose current state is invalidated/stale (spec §API amended
+    2026-07-14); breach/superseded/split_boundary invalidations are returned.
+    """
+    from uw_scan.storage.chanlun_signal_repository import ChanlunSignalRepository
+
+    t = ticker.upper()
+    rows = ChanlunSignalRepository(repo.conn, schema=settings.db_schema).current_states(
+        t
+    )
+    # Spec §API: stale-invalidated marks are excluded; every other current
+    # state (incl. breach/superseded/split_boundary invalidations) is returned.
+    rows = [
+        r for r in rows if not (r["state"] == "invalidated" and r["reason"] == "stale")
+    ]
+    marks = [
+        ChanlunLifecycleMark(
+            category=r["category"],
+            kind=r["kind"],
+            extreme_date=r["extreme_date"],
+            extreme_price=r["extreme_price"],
+            state=r["state"],
+            reason=r["reason"],
+            first_entered_at=r["first_entered_at"],
+            as_of=r["as_of"],
+        )
+        for r in rows
+    ]
+    return ChanlunLifecycleResponse(ticker=t, marks=marks)
