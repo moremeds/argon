@@ -168,9 +168,13 @@ def replay_ticker(
     """Walk-forward prefix replay for one ticker. Mirrors the nightly job's
     per-mark decision order exactly (split > native > breach > stale > S1)."""
     traces: dict[tuple, MarkTrace] = {}
-    boundaries = find_split_boundaries(daily_raw)
     session_dates = [date.fromisoformat(b.time) for b in daily]
     for i in range(WARMUP_SESSIONS, len(daily)):
+        # Prefix-restricted split detection: only splits observable as of
+        # session i may invalidate a day-i decision. Computing this ONCE over
+        # the full series (as originally written) leaked FUTURE split
+        # knowledge into day-d decisions — reviewer-caught walk-forward defect.
+        boundaries = find_split_boundaries(daily_raw[: i + 1])
         prefix = daily[: i + 1]
         sess = session_dates[: i + 1]
         d = session_dates[i]
