@@ -38,6 +38,20 @@ def test_divergences_parity():
     )
 
 
+def test_stroke_points_parity():
+    # GOLDEN["points"] came from computeChanlunFull, which only ADDS a
+    # `resonant` flag to the v1 (pre-resonance) points — time/price/kind/
+    # confirmed match compute_chanlun's output exactly, so compare those
+    # four fields (NOT `resonant`).
+    r = compute_chanlun(bars_from_golden())
+    assert_records_equal(
+        GOLDEN["points"],
+        r.points,
+        ["time", "price", "kind", "confirmed"],
+        "points",
+    )
+
+
 def test_stroke_points_nonvacuity():
     # compute_chanlun points are the PRE-resonance v1 points; the golden `points`
     # array is the post-resonance full list (Task 5). Here only assert the v1
