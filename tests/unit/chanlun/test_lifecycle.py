@@ -54,6 +54,21 @@ def test_edge_split_boundary_wins_over_everything():
     ) == ("invalidated", "split_boundary")
 
 
+def test_edge_native_survives_breach():
+    # Native-before-breach precedence: CONFIRMED_NATIVE is terminal (spec:
+    # 100% retention, 268/268) — a later breach signal must NOT demote a
+    # natively confirmed mark. Kills the mutant that swaps the breach/native
+    # checks in evaluate_mark.
+    assert evaluate_mark(
+        mark=_M(is_native_confirmed=True),
+        split_crossed=False,
+        breach=True,
+        s1_ok=False,
+        promotable=True,
+        stale=False,
+    ) == ("confirmed_native", None)
+
+
 def test_edge_breach_demotes():
     assert evaluate_mark(
         mark=_M(),
@@ -241,6 +256,18 @@ def test_s1_session_match_uses_et_date_not_utc_date():
     mark = _M(kind="bottom", extreme_date=date(2026, 7, 1), extreme_price=100.0)
     ok, info = s1_confirmed(mark, bars_30m, tol=0.0)
     assert ok is True and info
+
+
+def test_s1_rejects_session_mismatch():
+    # Conjunct 3b regression: the 30m bottom vertex price EXACTLY matches
+    # extreme_price (tol=0.0 satisfied) and every other conjunct holds, but
+    # the v30 bar's ET session (July 1) is NOT the mark's extreme_date
+    # (July 2, one session later) -> S1 must refuse. Kills the mutant that
+    # deletes the session_et_date(...) != mark.extreme_date check.
+    bars_30m = _bars_30m(_V_LADDER, "2026-07-01T14:00:00+00:00")
+    mark = _M(kind="bottom", extreme_date=date(2026, 7, 2), extreme_price=100.0)
+    ok, info = s1_confirmed(mark, bars_30m, tol=0.0)
+    assert ok is False and info == {}
 
 
 def test_s1_condition4_later_undercut_kills_the_match():
