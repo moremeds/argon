@@ -9,6 +9,43 @@ version in lockstep (enforced by `scripts/release/version_sync_check.py`).
 
 ### Added
 
+- Chanlun Phase B: sub-level (区间套) fast-confirm signal lifecycle engine,
+  backend-only (no UI, no alert emission). Ports the web `chanlun.ts`/
+  `chanlunSeg.ts` compute to Python (`src/uw_scan/chanlun/`: types, stroke
+  core, segments, points/divergence/resonance, `compute_chanlun_full`) with
+  frozen-fixture golden parity against the TS implementation plus 12
+  regression tests for JS→Python porting traps (float/date/sort/None-vs-NaN
+  semantics). A new `sources/apex.fetch_bars` client reads 1d and 30m bars
+  from apex with an explicit `start` (apex's default-limit window silently
+  truncates history otherwise) and never raises. Migration 107 adds
+  `chanlun_signal_events` — an append-mostly per-`(ticker, category, kind,
+  extreme_date, extreme_price)` event log (`storage/chanlun_signal_repository.py`,
+  standalone, not folded into `Repository`) driving a pure lifecycle state
+  machine (`chanlun/lifecycle.py`): pending → confirmed_sublevel (S1: a
+  confirmed same-side 30m vertex lands exactly at the daily extreme, no
+  later-arriving 30m vertex beats it) → confirmed_native, with breach,
+  20-session staleness, and `|ln(open_d/close_{d-1})| > ln(1.5)`
+  split-boundary invalidation guards (S2 divergence-based sub-level confirm
+  is stubbed as an unused flag for a future iteration). A nightly
+  `chanlun_lifecycle_scan` job (03:10 ET Tue–Sat, massive-0, gated off by
+  default via `UW_SCAN_CHANLUN_LIFECYCLE_ENABLED`) walks the watchlist and
+  a new read-only `GET /api/stock/{ticker}/chanlun/lifecycle` endpoint
+  exposes current per-mark state.
+
+  The walk-forward validation probe that was to gate which categories get
+  promoted past `confirmed_sublevel` (`scripts/research/chanlun_sublevel_probe.py`,
+  10 tickers × ~5.1y of daily+30m bars, committed trace under
+  `docs/research/2026-07-14-chanlun-signal-lifecycle/phaseb_probe/`) came
+  back **negative**: all four candidate categories — vertex, divergence,
+  3B, 3S — failed the ≥70% survival gate in both ticker-halves (actual
+  7.5–17.3% survival), with the dominant failure mode being supersession by
+  a more-extreme same-side point, ~70% of the time within the very next
+  session. The shipped `chanlun_promotable_categories` default is therefore
+  **empty** — every mark records its lifecycle transitions (useful as a
+  durable event log and for the next rule-revision attempt) but none is
+  currently eligible for sub-level promotion; the S1 fast-confirm path
+  stays inert until a future rule revision clears the gates.
+
 - Chanlun v2 on the technicals price chart: 线段 (chan.py feature-sequence
   port, both termination cases), 段级中枢 + 段级买卖点, pragmatic 中枢升级
   (consecutive overlapping zones merge to level-2 envelopes), and weekly×daily
