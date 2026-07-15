@@ -208,3 +208,60 @@ def fetch_daily_bars(ticker: str, *, timeout: float = 20.0) -> list[dict]:
         )
         return []
     return bars
+
+
+def _iso(v: date | datetime) -> str:
+    return v.isoformat()
+
+
+def fetch_bars(
+    ticker: str,
+    timeframe: str,
+    start: date | datetime,
+    *,
+    end: date | datetime | None = None,
+    limit: int = 0,
+    timeout: float = 30.0,
+    client: httpx.Client | None = None,
+) -> list[dict]:
+    """Raw apex bars for one ticker/timeframe from an explicit `start`.
+
+    ALWAYS pass `start` explicitly — apex's default lookback window can return
+    count:0 for a valid ticker whose latest bar predates the default (verified,
+    phaseb_apex_bars_contract.md §2c). `limit=0` == full history from start.
+    Never-raise: returns [] on transport error, unsupported timeframe (400),
+    unknown ticker (200 + empty), or malformed body. An empty list means
+    "no data", never "success with zero" — callers must treat [] as skip.
+    """
+    url = f"{_apex_url()}/bars/{ticker.upper()}"
+    params: dict[str, object] = {
+        "timeframe": timeframe,
+        "start": _iso(start),
+        "limit": limit,
+    }
+    if end is not None:
+        params["end"] = _iso(end)
+    own = client is None
+    c = client or httpx.Client(timeout=timeout)
+    try:
+        resp = c.get(url, params=params)
+        resp.raise_for_status()
+        body = resp.json()
+        if not isinstance(body, dict):
+            return []
+        bars = body.get("bars", [])
+        if not isinstance(bars, list):
+            return []
+        return bars
+    except (httpx.HTTPError, ValueError) as exc:
+        logger.warning(
+            "apex fetch_bars failed %s %s from %s: %s",
+            ticker,
+            timeframe,
+            _iso(start),
+            repr(exc),
+        )
+        return []
+    finally:
+        if own:
+            c.close()

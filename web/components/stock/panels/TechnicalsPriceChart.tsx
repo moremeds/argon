@@ -950,7 +950,7 @@ export function TechnicalsPriceChart({
           onClick={() => setChanlunPersist(!chanlunOn)}
           aria-pressed={chanlunOn}
           data-testid="chanlun-toggle"
-          title="缠论 overlay — 笔 · 中枢 · 买卖点"
+          title="Zen overlay — 笔 · 中枢 · 买卖点"
           style={{
             fontFamily: "var(--font-mono)",
             fontSize: 10,
@@ -963,7 +963,7 @@ export function TechnicalsPriceChart({
             cursor: "pointer",
           }}
         >
-          缠论
+          Zen
         </button>
       )}
       <button
@@ -1062,7 +1062,7 @@ export function TechnicalsPriceChart({
             lineHeight: 1.55,
           }}
         >
-          缠论: gray polyline = 笔 (dashed tail = still forming), boxes = 中枢
+          Zen: gray polyline = 笔 (dashed tail = still forming), boxes = 中枢
           [ZD, ZG] (dashed border = extending), markers = 买卖点 — green
           1B/2B/3B buys, red 1S/2S/3S sells, &quot;?&quot; = provisional and may
           be erased. 1st class = trend + MACD-area 背驰; 3rd class = pullback
@@ -1135,7 +1135,7 @@ function Legend({
       {item("var(--accent-vol)", labels[1])}
       {item("var(--accent-vivid)", labels[2])}
       {showVwap && item("var(--accent-cool)", "VWAP ⚓")}
-      {showChanlun && item("var(--text-secondary)", "缠论 笔·中枢·买卖点")}
+      {showChanlun && item("var(--text-secondary)", "Zen 笔·中枢·买卖点")}
       {showChanlun && item("var(--accent-warm)", "线段·段级中枢")}
     </div>
   );

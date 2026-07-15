@@ -11,6 +11,10 @@ from ._base import (
     VannaConditionalReading,
     _UwBase,
 )
+from .chanlun import (
+    ChanlunLifecycleMark,
+    ChanlunLifecycleResponse,
+)
 from .cockpit import (
     CharmSignal,
     CockpitDealerMetrics,
@@ -262,6 +266,8 @@ __all__ = [
     "CharmRegime",
     "SkewRegime",
     "FlowFootprintLabel",
+    "ChanlunLifecycleMark",
+    "ChanlunLifecycleResponse",
     "FlowAlert",
     "IvRankRow",
     "VolStatsRow",

@@ -377,6 +377,17 @@ class Settings(BaseModel):
     technical_live_enabled: bool = False
     technical_live_scan_interval_minutes: int = 5
     technical_live_quote_max_age_seconds: int = 900
+    # Chanlun Phase B lifecycle engine (nightly 03:10 ET Tue-Sat, massive-0).
+    chanlun_lifecycle_enabled: bool = False
+    chanlun_anchor_tol: float = 0.0
+    chanlun_stale_sessions: int = 20
+    # Empty by DESIGN (2026-07-15 walk-forward probe): all 4 candidate
+    # categories (vertex/divergence/3B/3S) failed the survival gate in both
+    # ticker-halves (~8-17% actual vs >=70% required) — most sub-level-
+    # confirmed marks are superseded within 1-2 sessions rather than surviving
+    # to native confirmation. See docs/research/2026-07-14-chanlun-signal-
+    # lifecycle/phaseb_probe/summary.md for the full gate table.
+    chanlun_promotable_categories: str = ""
     # Nightly data gap healer (8pm ET, after UW quota reset). Only UW is capped.
     data_gap_healer_enabled: bool = False
     data_gap_healer_cron_et: str = (
@@ -857,6 +868,21 @@ class Settings(BaseModel):
             ),
             technical_live_quote_max_age_seconds=int(
                 os.environ.get("TECHNICAL_LIVE_QUOTE_MAX_AGE_SECONDS", "900")
+            ),
+            # All four env vars deliberately carry the UW_SCAN_ prefix (newest
+            # precedent: UW_SCAN_TECHNICAL_LIVE_ENABLED) — one convention for
+            # the whole feature, no mixed-prefix mis-sets on the mini.
+            chanlun_lifecycle_enabled=_env_bool(
+                "UW_SCAN_CHANLUN_LIFECYCLE_ENABLED", False
+            ),
+            chanlun_anchor_tol=float(
+                os.environ.get("UW_SCAN_CHANLUN_ANCHOR_TOL", "0.0")
+            ),
+            chanlun_stale_sessions=int(
+                os.environ.get("UW_SCAN_CHANLUN_STALE_SESSIONS", "20")
+            ),
+            chanlun_promotable_categories=os.environ.get(
+                "UW_SCAN_CHANLUN_PROMOTABLE_CATEGORIES", ""
             ),
             data_gap_healer_enabled=_env_bool("DATA_GAP_HEALER_ENABLED", False),
             data_gap_healer_cron_et=os.environ.get(

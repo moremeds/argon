@@ -355,6 +355,12 @@ REGISTRY: list[DatasetRegistryEntry] = [
         "provenance",
         expected_frequency="none",
     ),
+    DatasetRegistryEntry(
+        "chanlun_signal_events",
+        "operational_provenance",
+        "provenance",
+        expected_frequency="none",
+    ),
     # Ephemeral same-day UW fetch dedupe cache (#225): rows live one trading day
     # and are pruned; there is nothing to backfill or heal.
     DatasetRegistryEntry(

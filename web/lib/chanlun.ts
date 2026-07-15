@@ -176,7 +176,7 @@ function buildEndpoints(fractals: readonly Fractal[]): Fractal[] {
 
 // MACD(12,26,9) histogram over closes — the 背驰 momentum proxy. ema() seeds
 // at the first value, so every index is finite for finite input.
-function macdHist(closes: readonly number[]): number[] {
+export function macdHist(closes: readonly number[]): number[] {
   const e12 = ema(closes, 12);
   const e26 = ema(closes, 26);
   const dif = closes.map((_, i) => (e12[i] as number) - (e26[i] as number));

@@ -867,6 +867,86 @@
         "title": "ChainFlowReadRow",
         "type": "object"
       },
+      "ChanlunLifecycleMark": {
+        "description": "Current lifecycle state of one daily chanlun mark (mark_id + state).",
+        "properties": {
+          "as_of": {
+            "format": "date",
+            "title": "As Of",
+            "type": "string"
+          },
+          "category": {
+            "title": "Category",
+            "type": "string"
+          },
+          "extreme_date": {
+            "format": "date",
+            "title": "Extreme Date",
+            "type": "string"
+          },
+          "extreme_price": {
+            "title": "Extreme Price",
+            "type": "number"
+          },
+          "first_entered_at": {
+            "format": "date-time",
+            "title": "First Entered At",
+            "type": "string"
+          },
+          "kind": {
+            "title": "Kind",
+            "type": "string"
+          },
+          "reason": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Reason"
+          },
+          "state": {
+            "title": "State",
+            "type": "string"
+          }
+        },
+        "required": [
+          "category",
+          "kind",
+          "extreme_date",
+          "extreme_price",
+          "state",
+          "first_entered_at",
+          "as_of"
+        ],
+        "title": "ChanlunLifecycleMark",
+        "type": "object"
+      },
+      "ChanlunLifecycleResponse": {
+        "description": "Current state of every recorded mark for one ticker, excluding marks\nwhose current state is invalidated/stale (spec \u00a7API). Breach, superseded,\nand split_boundary invalidations are included.",
+        "properties": {
+          "marks": {
+            "items": {
+              "$ref": "#/components/schemas/ChanlunLifecycleMark"
+            },
+            "title": "Marks",
+            "type": "array"
+          },
+          "ticker": {
+            "title": "Ticker",
+            "type": "string"
+          }
+        },
+        "required": [
+          "ticker",
+          "marks"
+        ],
+        "title": "ChanlunLifecycleResponse",
+        "type": "object"
+      },
       "ClosestLevel": {
         "properties": {
           "direction": {
@@ -25594,6 +25674,49 @@
           }
         },
         "summary": "Get Stock",
+        "tags": [
+          "stock"
+        ]
+      }
+    },
+    "/api/stock/{ticker}/chanlun/lifecycle": {
+      "get": {
+        "description": "Current lifecycle state of every recorded chanlun mark, read-only.\n\nExcludes marks whose current state is invalidated/stale (spec \u00a7API amended\n2026-07-14); breach/superseded/split_boundary invalidations are returned.",
+        "operationId": "get_stock_chanlun_lifecycle_api_stock__ticker__chanlun_lifecycle_get",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "ticker",
+            "required": true,
+            "schema": {
+              "title": "Ticker",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ChanlunLifecycleResponse"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Get Stock Chanlun Lifecycle",
         "tags": [
           "stock"
         ]
