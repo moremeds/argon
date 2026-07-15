@@ -6,7 +6,7 @@ from tests.unit.chanlun.parity_helpers import (
     bars_from_golden,
 )
 from uw_scan.chanlun.core import macd_hist
-from uw_scan.chanlun.full import compute_chanlun
+from uw_scan.chanlun.full import compute_chanlun, compute_chanlun_full
 
 
 def test_macd_hist_parity():
@@ -63,3 +63,43 @@ def test_stroke_points_nonvacuity():
         v = by_time.get(p.time)
         assert v is not None
         assert v.kind == ("bottom" if p.kind.endswith("B") else "top")
+
+
+def test_full_zhongshus_parity():
+    r = compute_chanlun_full(bars_from_golden())
+    assert_records_equal(
+        GOLDEN["zhongshus"],
+        r.zhongshus,
+        ["start", "end", "zg", "zd", "confirmed", "level"],
+        "zhongshus",
+    )
+
+
+def test_full_points_parity():
+    r = compute_chanlun_full(bars_from_golden())
+    assert_records_equal(
+        GOLDEN["points"],
+        r.points,
+        ["time", "price", "kind", "confirmed", "resonant"],
+        "points",
+    )
+
+
+def test_full_segzhongshus_parity():
+    r = compute_chanlun_full(bars_from_golden())
+    assert_records_equal(
+        GOLDEN["segZhongshus"],
+        r.segZhongshus,
+        ["start", "end", "zg", "zd", "confirmed"],
+        "segZhongshus",
+    )
+
+
+def test_full_segpoints_parity():
+    r = compute_chanlun_full(bars_from_golden())
+    assert_records_equal(
+        GOLDEN["segPoints"],
+        r.segPoints,
+        ["time", "price", "kind", "confirmed"],
+        "segPoints",
+    )

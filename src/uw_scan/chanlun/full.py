@@ -1,9 +1,9 @@
-"""v1 top-level orchestration — field-for-field port of web/lib/chanlun.ts.
+"""v1/v2 top-level orchestration — field-for-field port of web/lib/chanlun.ts.
 
 Algorithm source: docs/superpowers/specs/2026-07-14-chanlun-py-port-contract.md
-(port contract) §C.5, §C.14, cited below. `compute_chanlun_full` (v2, adding
-线段/segments + resonance) is added in Task 5 — this module holds
-`compute_chanlun` ("v1": 笔/中枢/买卖点/背离) only.
+(port contract) §C.5, §C.14, §C.15, cited below. `compute_chanlun` is "v1"
+(笔/中枢/买卖点/背离); `compute_chanlun_full` is "v2", adding 线段/segments +
+weekly 区间套 resonance on top of v1.
 """
 
 from __future__ import annotations
@@ -18,12 +18,16 @@ from uw_scan.chanlun.core import (
     find_fractals,
     macd_hist,
     merge_inclusions,
+    merge_overlapping_zhongshus,
     pivots_to_zhongshus,
+    resample_weekly,
 )
-from uw_scan.chanlun.points import mark_divergences, mark_points
+from uw_scan.chanlun.points import mark_divergences, mark_points, mark_resonance
+from uw_scan.chanlun.segments import build_segments
 from uw_scan.chanlun.types import (
     BiVertex,
     ChanlunBar,
+    ChanlunFullResult,
     ChanlunResult,
     Fractal,
     Leg,
@@ -127,4 +131,51 @@ def compute_chanlun(bars: list[ChanlunBar]) -> ChanlunResult:
 
     return ChanlunResult(
         vertices=vertices, zhongshus=zhongshus, points=points, divergences=divergences
+    )
+
+
+def compute_chanlun_full(bars: list[ChanlunBar]) -> ChanlunFullResult:
+    """v2 pipeline: v1 + 线段/segments + weekly 区间套 resonance.
+
+    port-contract §C.15, chanlun.ts:537-574. `hist`/`leg_area` are recomputed
+    here (not shared with `compute_chanlun`'s internal closure, §C.11) because
+    segment legs span different raw-bar ranges than stroke legs. `points` is
+    overridden with the resonance-flagged set; `zhongshus` is overridden with
+    the merged/upgraded set; `divergences` and `vertices` pass through
+    unchanged from `daily`. `segZhongshus`/`segPoints` are NOT merged/resonance
+    -flagged — only the daily-level outputs get those treatments.
+    """
+    daily = compute_chanlun(bars)
+    seg_vertices = build_segments(daily.vertices)
+    idx_by_time = {b.time: i for i, b in enumerate(bars)}
+    seg_pts = [
+        VertexPt(
+            time=v.time,
+            price=v.price,
+            kind=v.kind,
+            rawIdx=idx_by_time.get(v.time, 0),
+            confirmed=v.confirmed,
+        )
+        for v in seg_vertices
+    ]
+
+    hist = macd_hist([b.close for b in bars])
+
+    def leg_area(leg: Leg) -> float:
+        return sum(abs(hist[r]) for r in range(leg.rawA + 1, leg.rawB + 1))
+
+    seg_legs = build_legs(seg_pts)
+    seg_pivots = build_pivots(seg_legs)
+
+    weekly = compute_chanlun(resample_weekly(bars))
+    points = mark_resonance(daily.points, weekly, bars[-1].time if bars else "")
+
+    return ChanlunFullResult(
+        vertices=daily.vertices,
+        zhongshus=merge_overlapping_zhongshus(daily.zhongshus),
+        points=points,
+        divergences=daily.divergences,
+        segVertices=seg_vertices,
+        segZhongshus=pivots_to_zhongshus(seg_pivots, seg_legs, seg_pts),
+        segPoints=mark_points(seg_pts, seg_legs, seg_pivots, leg_area),
     )

@@ -187,3 +187,19 @@ class Elem:
     loStroke: int  # index of the stroke that currently carries the element's lo
     lastHi: float  # most-recently-folded stroke's own hi (chan.py actual_break state)
     lastLo: float
+
+
+@dataclass
+class ChanlunFullResult:
+    """computeChanlunFull's return type — v1 result + segment-level structures.
+
+    port-contract §A, chanlun.ts:531-536 (`ChanlunFullResult` type alias).
+    """
+
+    vertices: list[BiVertex]
+    zhongshus: list[Zhongshu]
+    points: list[BuySellPoint]
+    divergences: list[DivergenceMark]
+    segVertices: list[SegVertex]
+    segZhongshus: list[Zhongshu]
+    segPoints: list[BuySellPoint]
