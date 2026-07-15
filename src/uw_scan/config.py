@@ -381,7 +381,13 @@ class Settings(BaseModel):
     chanlun_lifecycle_enabled: bool = False
     chanlun_anchor_tol: float = 0.0
     chanlun_stale_sessions: int = 20
-    chanlun_promotable_categories: str = "vertex,divergence,3B,3S"
+    # Empty by DESIGN (2026-07-15 walk-forward probe): all 4 candidate
+    # categories (vertex/divergence/3B/3S) failed the survival gate in both
+    # ticker-halves (~8-17% actual vs >=70% required) — most sub-level-
+    # confirmed marks are superseded within 1-2 sessions rather than surviving
+    # to native confirmation. See docs/research/2026-07-14-chanlun-signal-
+    # lifecycle/phaseb_probe/summary.md for the full gate table.
+    chanlun_promotable_categories: str = ""
     # Nightly data gap healer (8pm ET, after UW quota reset). Only UW is capped.
     data_gap_healer_enabled: bool = False
     data_gap_healer_cron_et: str = (
@@ -876,7 +882,7 @@ class Settings(BaseModel):
                 os.environ.get("UW_SCAN_CHANLUN_STALE_SESSIONS", "20")
             ),
             chanlun_promotable_categories=os.environ.get(
-                "UW_SCAN_CHANLUN_PROMOTABLE_CATEGORIES", "vertex,divergence,3B,3S"
+                "UW_SCAN_CHANLUN_PROMOTABLE_CATEGORIES", ""
             ),
             data_gap_healer_enabled=_env_bool("DATA_GAP_HEALER_ENABLED", False),
             data_gap_healer_cron_et=os.environ.get(
