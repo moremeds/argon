@@ -11,7 +11,11 @@ from datetime import date, datetime
 from psycopg import Connection
 from psycopg.types.json import Jsonb
 
-# State precedence for the current-state query (higher wins).
+# State precedence for the current-state query (higher wins). Equal-rank ties
+# (confirmed_native vs invalidated, both terminal) resolve by business time:
+# the chronologically-latest as_of wins regardless of insert order, with id as
+# the final deterministic tiebreak (rows are scanned ORDER BY as_of, id and the
+# >= comparison keeps the last equal-rank row seen).
 _STATE_RANK = {
     "pending": 0,
     "confirmed_sublevel": 1,
@@ -99,7 +103,7 @@ class ChanlunSignalRepository:
                        reason, first_entered_at, as_of
                 FROM chanlun_signal_events
                 WHERE ticker = %s
-                ORDER BY id
+                ORDER BY as_of ASC, id ASC
                 """,
                 (ticker.upper(),),
             )
