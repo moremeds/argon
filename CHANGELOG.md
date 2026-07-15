@@ -7,6 +7,9 @@ version in lockstep (enforced by `scripts/release/version_sync_check.py`).
 
 ## [Unreleased]
 
+## [0.10.7] — 2026-07-15
+
+
 ### Added
 
 - Chanlun Phase B: sub-level (区间套) fast-confirm signal lifecycle engine,
@@ -102,7 +105,6 @@ version in lockstep (enforced by `scripts/release/version_sync_check.py`).
   Stage-1 minimal deliverable = signal→alert pipeline, invariants) with the
   verified option-surface history facts (grid spans 2025-12-26→present under
   UW's ~180-day window).
-
 ## [0.10.6] — 2026-07-12
 
 - Technicals Dual MACD is now a native lightweight-charts sub-pane of the price
