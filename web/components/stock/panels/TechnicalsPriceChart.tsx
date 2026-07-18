@@ -207,7 +207,10 @@ export const VOLUME_MARKER_OPTIONS = { autoScale: false } as const;
 export function resetView(h: ChartHandles, barCount: number) {
   const ts = h.chart.timeScale();
   const width = ts.width();
-  if (width > 0 && barCount * READABLE_BAR_PX > width) {
+  if (
+    width > 0 &&
+    (barCount + RIGHT_GAP_BARS) * READABLE_BAR_PX > width
+  ) {
     ts.applyOptions({ barSpacing: READABLE_BAR_PX });
     ts.scrollToPosition(RIGHT_GAP_BARS, false);
   } else {

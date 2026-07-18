@@ -169,6 +169,16 @@ describe("technicals chart reset view", () => {
     expect(timeScale.scrollToPosition).toHaveBeenCalledWith(10, false);
   });
 
+  it("counts the right gap when enforcing readable bar spacing", () => {
+    const { handles, timeScale } = chartHandles(600);
+
+    resetView(handles, 100);
+
+    expect(timeScale.applyOptions).toHaveBeenCalledWith({ barSpacing: 6 });
+    expect(timeScale.scrollToPosition).toHaveBeenCalledWith(10, false);
+    expect(timeScale.setVisibleLogicalRange).not.toHaveBeenCalled();
+  });
+
   it("leaves ten logical bars after the latest bar for a short history", () => {
     const { handles, timeScale } = chartHandles(800);
 
