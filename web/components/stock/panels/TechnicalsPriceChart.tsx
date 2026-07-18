@@ -187,6 +187,13 @@ type ChartHandles = {
 };
 
 const READABLE_BAR_PX = 6; // min bar width before we scroll instead of squish
+const RIGHT_GAP_BARS = 10; // gap (in bar-widths) between the last bar and the price axis
+export const TECHNICALS_TIME_SCALE_OPTIONS = {
+  rightOffset: RIGHT_GAP_BARS,
+  fixLeftEdge: true,
+  fixRightEdge: false,
+  minBarSpacing: 4,
+} as const;
 
 // Hover-only below-bar labels must not participate in autoscaling. The default
 // marker behavior reserves bottom margin as soon as a label appears, which
@@ -197,14 +204,15 @@ export const VOLUME_MARKER_OPTIONS = { autoScale: false } as const;
 // readable bar width, fit it edge-to-edge. Otherwise (e.g. FULL = 5y) fitContent
 // would squish bars to ~1px — instead pin a readable bar width and scroll to the
 // newest bars, leaving the rest to scroll left.
-function resetView(h: ChartHandles, barCount: number) {
+export function resetView(h: ChartHandles, barCount: number) {
   const ts = h.chart.timeScale();
   const width = ts.width();
   if (width > 0 && barCount * READABLE_BAR_PX > width) {
     ts.applyOptions({ barSpacing: READABLE_BAR_PX });
-    ts.scrollToPosition(0, false); // newest bar at the right edge
+    ts.scrollToPosition(RIGHT_GAP_BARS, false);
   } else {
-    ts.fitContent();
+    // Fit the full short window while explicitly reserving the same right gap.
+    ts.setVisibleLogicalRange({ from: 0, to: barCount - 1 + RIGHT_GAP_BARS });
   }
 }
 
@@ -325,14 +333,11 @@ export function TechnicalsPriceChart({
       timeScale: {
         borderColor: borderDim,
         timeVisible: false,
-        // Last bar pinned to the right edge (no right-side slack). Bars keep a
-        // readable minimum width: a long window (FULL) overflows and scrolls
-        // horizontally rather than being squished to 1px — the Reset button
-        // snaps back to fit-and-latest.
-        rightOffset: 0,
-        fixLeftEdge: true,
-        fixRightEdge: true,
-        minBarSpacing: 4,
+        // Small right-side gap between the last bar and the price axis (in
+        // bar-widths). Bars keep a readable minimum width: a long window (FULL)
+        // overflows and scrolls horizontally rather than being squished to 1px
+        // — the Reset button snaps back to fit-and-latest.
+        ...TECHNICALS_TIME_SCALE_OPTIONS,
       },
       rightPriceScale: { borderColor: borderDim },
     });

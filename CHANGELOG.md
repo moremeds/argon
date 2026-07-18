@@ -7,6 +7,13 @@ version in lockstep (enforced by `scripts/release/version_sync_check.py`).
 
 ## [Unreleased]
 
+### Fixed
+
+- Technicals price charts now reserve ten bar-widths between the newest bar
+  and the right price axis on initial load and after Reset. The chart's
+  `fixRightEdge` setting had silently clamped the configured offset back to
+  zero; regression coverage now protects both short- and long-history views.
+
 ## [0.10.7] — 2026-07-15
 
 
