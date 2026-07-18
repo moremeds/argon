@@ -7,6 +7,25 @@ version in lockstep (enforced by `scripts/release/version_sync_check.py`).
 
 ## [Unreleased]
 
+### Added
+
+- Chanlun overlay trust-styling on the Technicals price chart: divergence
+  markers now reflect the trust-probe findings
+  (`docs/research/2026-07-18-chanlun-trust-silver`). Trend-aligned 顶/底背离
+  (底 above / 顶 below the chart's 200-DMA — the higher-conviction subset)
+  render at full amber; counter-trend or pre-200-DMA-warmup 背离 dim to
+  ~35%/~60%; repaint-prone base 1B/1S arrows (24–34% repaint) dim to ~40%,
+  while 2B/3B and segment-level markers are unchanged. Two pure helpers
+  (`sma`, `divergenceTrend`) in `web/lib/chanlun.ts` compute the tier from a
+  200-SMA of the chart's own closes; the marker builder in
+  `TechnicalsPriceChart.tsx` applies per-tier alpha via the existing
+  `cssVar`-suffix idiom. Client-side only — no backend, API, worker, or
+  type-gen change; no new chart primitive or toggle. A legend line explains
+  the emphasis and discloses that the 200-DMA is corporate-action-unadjusted
+  (so the trend split is unreliable for ~200 sessions after a split — the
+  known livewire `adj_close` limitation, verified 0/23 NVDA + 0/17 TSLA tier
+  flips against the plotted `SMA200` line).
+
 ### Fixed
 
 - Technicals price charts now reserve ten bar-widths between the newest bar

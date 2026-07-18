@@ -525,6 +525,47 @@ export function markResonance(
   });
 }
 
+/** Simple moving average of `closes`; out[i] = mean of the trailing `window`
+ * values, or null for the first window-1 entries. O(n) prefix-sum roll. */
+export function sma(
+  closes: readonly number[],
+  window: number,
+): (number | null)[] {
+  const out: (number | null)[] = new Array(closes.length).fill(null);
+  let run = 0;
+  for (let i = 0; i < closes.length; i++) {
+    run += closes[i];
+    if (i >= window) run -= closes[i - window];
+    if (i >= window - 1) out[i] = run / window;
+  }
+  return out;
+}
+
+/** Per divergence: is it trend-aligned? A 底背离 (bottom) is trend-aligned when
+ * its bar closes ABOVE the `window`-SMA (dip inside an uptrend); a 顶背离 (top)
+ * when it closes BELOW it. Returns true/false, or null when the SMA is not yet
+ * defined at that bar (early history) or the time is not found. The trust probe
+ * (docs/research/2026-07-18-chanlun-trust-silver) found the trend-aligned subset
+ * carries the stronger honest edge. Aligned index-for-index to `divergences`. */
+export function divergenceTrend(
+  bars: readonly ChanlunBar[],
+  divergences: readonly DivergenceMark[],
+  window = 200,
+): (boolean | null)[] {
+  const idxByTime = new Map(bars.map((b, i) => [b.time, i]));
+  const ma = sma(
+    bars.map((b) => b.close),
+    window,
+  );
+  return divergences.map((d) => {
+    const i = idxByTime.get(d.time);
+    if (i === undefined) return null;
+    const m = ma[i];
+    if (m === null) return null;
+    return d.kind === "bottom" ? bars[i].close >= m : bars[i].close < m;
+  });
+}
+
 export type ChanlunFullResult = ChanlunResult & {
   segVertices: SegVertex[];
   segZhongshus: Zhongshu[];
