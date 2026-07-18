@@ -1,4 +1,4 @@
-import { describe, expect, it } from "vitest";
+import { describe, expect, it, vi } from "vitest";
 import {
   hasOhlcv,
   toBandData,
@@ -8,7 +8,11 @@ import {
   toVolumeData,
   toVolumeMaData,
 } from "@/lib/priceChartData";
-import { VOLUME_MARKER_OPTIONS } from "@/components/stock/panels/TechnicalsPriceChart";
+import {
+  resetView,
+  TECHNICALS_TIME_SCALE_OPTIONS,
+  VOLUME_MARKER_OPTIONS,
+} from "@/components/stock/panels/TechnicalsPriceChart";
 import { SPY_BARS } from "./fixtures/spyBars";
 
 const full = {
@@ -132,6 +136,58 @@ describe("toVolumeData (extreme-highlight shading)", () => {
 describe("volume annotation scaling", () => {
   it("does not let hover labels change the volume scale", () => {
     expect(VOLUME_MARKER_OPTIONS).toEqual({ autoScale: false });
+  });
+});
+
+describe("technicals chart reset view", () => {
+  it("allows the configured right offset to extend beyond the latest bar", () => {
+    expect(TECHNICALS_TIME_SCALE_OPTIONS).toMatchObject({
+      rightOffset: 10,
+      fixRightEdge: false,
+    });
+  });
+
+  function chartHandles(width: number) {
+    const timeScale = {
+      width: vi.fn(() => width),
+      applyOptions: vi.fn(),
+      scrollToPosition: vi.fn(),
+      setVisibleLogicalRange: vi.fn(),
+    };
+    return {
+      handles: { chart: { timeScale: () => timeScale } } as never,
+      timeScale,
+    };
+  }
+
+  it("leaves ten bar-widths after the latest bar for a long history", () => {
+    const { handles, timeScale } = chartHandles(500);
+
+    resetView(handles, 100);
+
+    expect(timeScale.applyOptions).toHaveBeenCalledWith({ barSpacing: 6 });
+    expect(timeScale.scrollToPosition).toHaveBeenCalledWith(10, false);
+  });
+
+  it("counts the right gap when enforcing readable bar spacing", () => {
+    const { handles, timeScale } = chartHandles(600);
+
+    resetView(handles, 100);
+
+    expect(timeScale.applyOptions).toHaveBeenCalledWith({ barSpacing: 6 });
+    expect(timeScale.scrollToPosition).toHaveBeenCalledWith(10, false);
+    expect(timeScale.setVisibleLogicalRange).not.toHaveBeenCalled();
+  });
+
+  it("leaves ten logical bars after the latest bar for a short history", () => {
+    const { handles, timeScale } = chartHandles(800);
+
+    resetView(handles, 100);
+
+    expect(timeScale.setVisibleLogicalRange).toHaveBeenCalledWith({
+      from: 0,
+      to: 109,
+    });
   });
 });
 
