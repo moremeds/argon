@@ -9,7 +9,7 @@
 // The trailing structures are PROVISIONAL by construction (the last stroke
 // endpoint can still move, the forming counter-leg tracks the running
 // extreme) — consumers must render them dashed/"?" and never alert off them.
-import { ema } from "@/lib/indicators";
+import { ema, sma } from "@/lib/indicators";
 import { buildSegments, type SegVertex } from "@/lib/chanlunSeg";
 
 export type ChanlunBar = {
@@ -522,6 +522,31 @@ export function markResonance(
         (w) => w.side === side && p.time >= w.from && p.time <= w.to,
       );
     return hit ? { ...p, resonant: true } : p;
+  });
+}
+
+/** Per divergence: is it trend-aligned? A 底背离 (bottom) is trend-aligned when
+ * its bar closes ABOVE the `window`-SMA (dip inside an uptrend); a 顶背离 (top)
+ * when it closes BELOW it. Returns true/false, or null when the SMA is not yet
+ * defined at that bar (early history) or the time is not found. The trust probe
+ * (docs/research/2026-07-18-chanlun-trust-silver) found the trend-aligned subset
+ * carries the stronger honest edge. Aligned index-for-index to `divergences`. */
+export function divergenceTrend(
+  bars: readonly ChanlunBar[],
+  divergences: readonly DivergenceMark[],
+  window = 200,
+): (boolean | null)[] {
+  const idxByTime = new Map(bars.map((b, i) => [b.time, i]));
+  const ma = sma(
+    bars.map((b) => b.close),
+    window,
+  );
+  return divergences.map((d) => {
+    const i = idxByTime.get(d.time);
+    if (i === undefined) return null;
+    const m = ma[i];
+    if (m === null) return null;
+    return d.kind === "bottom" ? bars[i].close >= m : bars[i].close < m;
   });
 }
 

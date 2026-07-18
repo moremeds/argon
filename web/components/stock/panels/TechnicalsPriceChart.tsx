@@ -43,6 +43,7 @@ import { BandsIndicator } from "@/lib/lwc/bandsIndicator";
 import { ChanlunZhongshu } from "@/lib/lwc/chanlunZhongshu";
 import {
   computeChanlunFull,
+  divergenceTrend,
   type BuySellPoint,
   type ChanlunBar,
   type Zhongshu,
@@ -207,10 +208,7 @@ export const VOLUME_MARKER_OPTIONS = { autoScale: false } as const;
 export function resetView(h: ChartHandles, barCount: number) {
   const ts = h.chart.timeScale();
   const width = ts.width();
-  if (
-    width > 0 &&
-    (barCount + RIGHT_GAP_BARS) * READABLE_BAR_PX > width
-  ) {
+  if (width > 0 && (barCount + RIGHT_GAP_BARS) * READABLE_BAR_PX > width) {
     ts.applyOptions({ barSpacing: READABLE_BAR_PX });
     ts.scrollToPosition(RIGHT_GAP_BARS, false);
   } else {
@@ -255,15 +253,20 @@ export function TechnicalsPriceChart({
   };
   // Chanlun geometry over the FULL history (window-cut in the data pass, like
   // the other client-side indicators). Pure + deterministic, so memo on rows.
-  const chanlunGeo = useMemo(() => {
+  // Chanlun bars over FULL history (window-cut in the data pass), hoisted so the
+  // marker effect can compute divergence trend without rebuilding them.
+  const clBars = useMemo<ChanlunBar[] | null>(() => {
     if (!chanlunOn || !candleMode) return null;
-    const bars: ChanlunBar[] = full.flatMap((r) =>
+    return full.flatMap((r) =>
       r.as_of != null && r.high != null && r.low != null && r.close != null
         ? [{ time: r.as_of, high: r.high, low: r.low, close: r.close }]
         : [],
     );
-    return computeChanlunFull(bars);
   }, [full, chanlunOn, candleMode]);
+  const chanlunGeo = useMemo(
+    () => (clBars ? computeChanlunFull(clBars) : null),
+    [clBars],
+  );
 
   const containerRef = useRef<HTMLDivElement>(null);
   const readoutRef = useRef<HTMLDivElement>(null);
@@ -804,37 +807,49 @@ export function TechnicalsPriceChart({
           }));
       h.clZs.setRects(rects(chanlunGeo.zhongshus));
       h.segZs.setRects(rects(chanlunGeo.segZhongshus));
-      const marker = (p: BuySellPoint, prefix: string, size: number) => {
+      const marker = (
+        p: BuySellPoint,
+        prefix: string,
+        size: number,
+        dimFirst: boolean,
+      ) => {
         const buy = p.kind.endsWith("B");
+        const base = buy ? positive : negative;
+        const first = p.kind === "1B" || p.kind === "1S";
         return {
           time: p.time as Time,
           position: buy ? ("belowBar" as const) : ("aboveBar" as const),
           shape: buy ? ("arrowUp" as const) : ("arrowDown" as const),
-          color: buy ? positive : negative,
+          color: dimFirst && first ? `${base}66` : base, // ~40% for repaint-prone 1st points
           text: `${prefix}${p.kind}${p.confirmed ? "" : "?"}${p.resonant ? "★" : ""}`,
           size,
         };
       };
-      const divColor = cssVar("--accent-warm");
+      const divBase = cssVar("--accent-warm");
+      const divColorFor = (t: boolean | null | undefined) =>
+        t === true ? divBase : t === false ? `${divBase}59` : `${divBase}99`; // full / ~35% / ~60%
+      // Index-aligned to chanlunGeo.divergences — zip before the firstAsOf filter.
+      const divFlags = divergenceTrend(clBars!, chanlunGeo.divergences);
       h.clMarkers.setMarkers(
         [
           ...chanlunGeo.points
             .filter((p) => p.time >= firstAsOf)
-            .map((p) => marker(p, "", 1)),
+            .map((p) => marker(p, "", 1, true)),
           ...chanlunGeo.segPoints
             .filter((p) => p.time >= firstAsOf)
-            .map((p) => marker(p, "段", 2)),
+            .map((p) => marker(p, "段", 2, false)),
           ...chanlunGeo.divergences
-            .filter((d) => d.time >= firstAsOf)
-            .map((d) => ({
-              time: d.time as Time,
+            .map((mark, i) => ({ mark, trend: divFlags[i] }))
+            .filter((x) => x.mark.time >= firstAsOf)
+            .map((x) => ({
+              time: x.mark.time as Time,
               position:
-                d.kind === "top"
+                x.mark.kind === "top"
                   ? ("aboveBar" as const)
                   : ("belowBar" as const),
               shape: "circle" as const,
-              color: divColor,
-              text: `${d.kind === "top" ? "顶背离" : "底背离"}${d.confirmed ? "" : "?"}`,
+              color: divColorFor(x.trend),
+              text: `${x.mark.kind === "top" ? "顶背离" : "底背离"}${x.mark.confirmed ? "" : "?"}`,
               size: 1,
             })),
         ].sort((a, b) => String(a.time).localeCompare(String(b.time))),
@@ -871,7 +886,7 @@ export function TechnicalsPriceChart({
         volMaByTimeRef.current.get(lastRow.as_of),
       );
     }
-  }, [rows, full, ticker, candleMode, anchor, mode, chanlunGeo]);
+  }, [rows, full, ticker, candleMode, anchor, mode, chanlunGeo, clBars]);
 
   const clearAnchor = () => {
     setAnchor(null);
@@ -1079,7 +1094,13 @@ export function TechnicalsPriceChart({
           signal). Structures on the trailing edge repaint by design — decisions
           belong on confirmed marks only. Amber thick lines = 线段 (segments)
           with amber 段级中枢 boxes; 段-prefixed markers = segment-level 买卖点;
-          ★ = weekly×daily 区间套 resonance (both levels confirmed).
+          ★ = weekly×daily 区间套 resonance (both levels confirmed). Marker
+          emphasis = reliability, not entry timing: bright 顶/底背离 =
+          trend-aligned (底 above / 顶 below the 200-DMA, the higher-conviction
+          subset); faint 背离 = counter-trend or early; faint 1B/1S =
+          repaint-prone (24–34%). Not a trade signal. The 200-DMA is
+          corporate-action-unadjusted, so the trend split is unreliable for ~200
+          sessions after a stock split.
         </div>
       )}
       <MacdLegend signal={macd} />
