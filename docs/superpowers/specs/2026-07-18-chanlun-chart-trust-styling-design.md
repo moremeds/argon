@@ -29,11 +29,13 @@ client-side only, no backend, no new chart primitive, no new toggle.
 ## Scope
 
 **In:**
+
 - Emphasize trend-aligned 背离; dim counter-trend 背离.
 - Dim 1B/1S points (repaint-prone).
 - A one-line legend explaining the styling.
 
 **Out (YAGNI for v1):**
+
 - Validity-window level lines (needs a custom primitive like the 中枢 rects).
 - A separate on/off toggle for the styling (always-on when the overlay is shown).
 - Any backend / API / worker change. Any change to 笔/中枢/段 rendering.
@@ -46,7 +48,7 @@ A pure helper in `web/lib/chanlun.ts`:
 
 ```ts
 /** 200-SMA of closes; sma[i] = null until the window fills. */
-export function sma(closes: number[], window: number): (number | null)[]
+export function sma(closes: number[], window: number): (number | null)[];
 
 /** Per divergence: true if trend-aligned (底背离 above the 200-SMA / 顶背离 below),
  * false if counter-trend, null if the SMA is not yet defined at that bar. */
@@ -54,7 +56,7 @@ export function divergenceTrend(
   bars: ChanlunBar[],
   divergences: DivergenceMark[],
   window = 200,
-): (boolean | null)[]
+): (boolean | null)[];
 ```
 
 - Aligns each `DivergenceMark` to its bar by `time`; reads that bar's `close` vs the
@@ -73,13 +75,13 @@ lightweight-charts markers accept a per-marker `color` (rgba → opacity) and `s
 The marker-building block in `TechnicalsPriceChart.tsx` (~lines 807–840) branches on the
 trust tier. Opacity values are the design default; final constants live in the panel.
 
-| Mark | Color | Rationale |
-|---|---|---|
-| 背离 trend-agree | `--accent-warm`, full opacity | the marks to trust (+0.65% subset) |
-| 背离 counter-trend | `--accent-warm` @ ~0.35 alpha | weaker edge |
-| 背离 unknown (early bars) | `--accent-warm` @ ~0.6 alpha | SMA undefined, don't over-claim |
-| **1B / 1S** | positive/negative @ ~0.4 alpha | repaints 24–34% |
-| 2B/3B, 2S/3S | positive/negative, unchanged | stable once confirmed |
+| Mark                      | Color                          | Rationale                          |
+| ------------------------- | ------------------------------ | ---------------------------------- |
+| 背离 trend-agree          | `--accent-warm`, full opacity  | the marks to trust (+0.65% subset) |
+| 背离 counter-trend        | `--accent-warm` @ ~0.35 alpha  | weaker edge                        |
+| 背离 unknown (early bars) | `--accent-warm` @ ~0.6 alpha   | SMA undefined, don't over-claim    |
+| **1B / 1S**               | positive/negative @ ~0.4 alpha | repaints 24–34%                    |
+| 2B/3B, 2S/3S              | positive/negative, unchanged   | stable once confirmed              |
 
 Marker `text` stays as today (e.g. `底背离`, `1B?`); only color/opacity change.
 The existing `?` (unconfirmed) suffix is orthogonal and preserved.
@@ -151,7 +153,8 @@ correct.
 
 - **Reuse:** existing `computeChanlun`/`DivergenceMark`/`BuySellPoint`, the
   lightweight-charts marker path, `--accent-warm`/`--positive`/`--negative` tokens,
-  `ChanlunBar`.
-- **New:** `sma` + `divergenceTrend` helpers in `chanlun.ts` (+ unit test), the trust
+  `ChanlunBar`, and the shared `lib/indicators` `sma` (it already null-guards
+  non-finite windows — better than a fresh rolling mean).
+- **New:** `divergenceTrend` helper in `chanlun.ts` (+ unit test), the trust
   branch in the marker builder, the legend line.
 - **No production data surface** — no migration, API, worker, or type-gen change.

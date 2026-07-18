@@ -9,7 +9,7 @@
 // The trailing structures are PROVISIONAL by construction (the last stroke
 // endpoint can still move, the forming counter-leg tracks the running
 // extreme) — consumers must render them dashed/"?" and never alert off them.
-import { ema } from "@/lib/indicators";
+import { ema, sma } from "@/lib/indicators";
 import { buildSegments, type SegVertex } from "@/lib/chanlunSeg";
 
 export type ChanlunBar = {
@@ -523,22 +523,6 @@ export function markResonance(
       );
     return hit ? { ...p, resonant: true } : p;
   });
-}
-
-/** Simple moving average of `closes`; out[i] = mean of the trailing `window`
- * values, or null for the first window-1 entries. O(n) prefix-sum roll. */
-export function sma(
-  closes: readonly number[],
-  window: number,
-): (number | null)[] {
-  const out: (number | null)[] = new Array(closes.length).fill(null);
-  let run = 0;
-  for (let i = 0; i < closes.length; i++) {
-    run += closes[i];
-    if (i >= window) run -= closes[i - window];
-    if (i >= window - 1) out[i] = run / window;
-  }
-  return out;
 }
 
 /** Per divergence: is it trend-aligned? A 底背离 (bottom) is trend-aligned when

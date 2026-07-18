@@ -15,9 +15,10 @@ version in lockstep (enforced by `scripts/release/version_sync_check.py`).
   (底 above / 顶 below the chart's 200-DMA — the higher-conviction subset)
   render at full amber; counter-trend or pre-200-DMA-warmup 背离 dim to
   ~35%/~60%; repaint-prone base 1B/1S arrows (24–34% repaint) dim to ~40%,
-  while 2B/3B and segment-level markers are unchanged. Two pure helpers
-  (`sma`, `divergenceTrend`) in `web/lib/chanlun.ts` compute the tier from a
-  200-SMA of the chart's own closes; the marker builder in
+  while 2B/3B and segment-level markers are unchanged. A pure
+  `divergenceTrend` helper in `web/lib/chanlun.ts` (reusing the shared
+  `lib/indicators` `sma`) computes the tier from a 200-SMA of the chart's own
+  closes; the marker builder in
   `TechnicalsPriceChart.tsx` applies per-tier alpha via the existing
   `cssVar`-suffix idiom. Client-side only — no backend, API, worker, or
   type-gen change; no new chart primitive or toggle. A legend line explains
@@ -35,7 +36,6 @@ version in lockstep (enforced by `scripts/release/version_sync_check.py`).
 
 ## [0.10.7] — 2026-07-15
 
-
 ### Added
 
 - Chanlun Phase B: sub-level (区间套) fast-confirm signal lifecycle engine,
@@ -48,17 +48,15 @@ version in lockstep (enforced by `scripts/release/version_sync_check.py`).
   from apex with an explicit `start` (apex's default-limit window silently
   truncates history otherwise) and never raises. Migration 107 adds
   `chanlun_signal_events` — an append-mostly per-`(ticker, category, kind,
-  extreme_date, extreme_price)` event log (`storage/chanlun_signal_repository.py`,
+extreme_date, extreme_price)` event log (`storage/chanlun_signal_repository.py`,
   standalone, not folded into `Repository`) driving a pure lifecycle state
-  machine (`chanlun/lifecycle.py`): pending → confirmed_sublevel (S1: a
+  machine (`chanlun/lifecycle.py`): pending → confirmed*sublevel (S1: a
   confirmed same-side 30m vertex lands exactly at the daily extreme, no
   later-arriving 30m vertex beats it) → confirmed_native, with breach,
-  20-session staleness, and `|ln(open_d/close_{d-1})| > ln(1.5)`
-  split-boundary invalidation guards (S2 divergence-based sub-level confirm
-  is stubbed as an unused flag for a future iteration). A nightly
-  `chanlun_lifecycle_scan` job (03:10 ET Tue–Sat, massive-0, gated off by
-  default via `UW_SCAN_CHANLUN_LIFECYCLE_ENABLED`) walks the watchlist and
-  a new read-only `GET /api/stock/{ticker}/chanlun/lifecycle` endpoint
+  20-session staleness, and `|ln(open_d/close*{d-1})| > ln(1.5)`split-boundary invalidation guards (S2 divergence-based sub-level confirm
+is stubbed as an unused flag for a future iteration). A nightly`chanlun_lifecycle_scan`job (03:10 ET Tue–Sat, massive-0, gated off by
+default via`UW_SCAN_CHANLUN_LIFECYCLE_ENABLED`) walks the watchlist and
+a new read-only `GET /api/stock/{ticker}/chanlun/lifecycle` endpoint
   exposes current per-mark state.
 
   The walk-forward validation probe that was to gate which categories get
@@ -131,6 +129,7 @@ version in lockstep (enforced by `scripts/release/version_sync_check.py`).
   Stage-1 minimal deliverable = signal→alert pipeline, invariants) with the
   verified option-surface history facts (grid spans 2025-12-26→present under
   UW's ~180-day window).
+
 ## [0.10.6] — 2026-07-12
 
 - Technicals Dual MACD is now a native lightweight-charts sub-pane of the price
