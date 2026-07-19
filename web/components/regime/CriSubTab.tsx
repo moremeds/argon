@@ -28,6 +28,8 @@ import CardSparkline from "./primitives/CardSparkline";
 import { type CriBlock } from "@/lib/regime/useCri";
 import { useCriLive, type CriLiveResponse } from "@/lib/regime/useCriLive";
 import { useCriDaily, type CriDailyEntry } from "@/lib/regime/useCriSeries";
+import { DispersionTiles } from "./DispersionTiles";
+import { useDispersion, type DispersionData } from "@/lib/regime/useDispersion";
 
 type CriLevel = "LOW" | "ELEVATED" | "HIGH" | "CRITICAL";
 
@@ -181,12 +183,15 @@ const COR_RIGHT: ChartSeries = {
 export function CriSubTabView({
   data,
   daily,
+  dispersion,
   onSyncNow,
   syncing = false,
 }: {
   data: CriLiveResponse | null;
   /** 90d daily history rows — drives the in-card sparklines. */
   daily?: CriDailyEntry[] | null;
+  /** Descriptive correlation/dispersion context row (optional). */
+  dispersion?: DispersionData | null;
   onSyncNow?: () => void;
   syncing?: boolean;
 }) {
@@ -506,6 +511,9 @@ export function CriSubTabView({
           }
         />
 
+        {/* ── Dispersion context (COR1M %ile + VIX/COR1M ratio & z) ── */}
+        <DispersionTiles data={dispersion ?? null} />
+
         {/* ── Row 3+4: Components + Crash trigger ── */}
         <div className="regime-detail-grid">
           <div className="regime-components">
@@ -637,10 +645,12 @@ export function CriSubTabView({
 export default function CriSubTab() {
   const { data, syncing, syncNow } = useCriLive();
   const { data: daily } = useCriDaily(90);
+  const dispersion = useDispersion();
   return (
     <CriSubTabView
       data={data}
       daily={daily?.rows ?? null}
+      dispersion={dispersion}
       syncing={syncing}
       onSyncNow={syncNow}
     />

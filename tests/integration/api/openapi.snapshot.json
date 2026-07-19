@@ -3715,6 +3715,97 @@
         "title": "DiscoveryResponse",
         "type": "object"
       },
+      "DispersionResponse": {
+        "description": "Correlation/dispersion CONTEXT for the CRI view (descriptive, NOT a signal).\n\nCOR1M percentile is rank of the latest close within full 20yr history.\nVIX/COR1M ratio isolates the dispersion axis (high ratio \u27fa low correlation);\nits z-score is trailing-252 (strictly prior). See\ndocs/research/2026-07-19-dispersion-signals-eval.md \u2014 this is regime context,\nnot a validated timing signal; low correlation is NOT a warning.",
+        "properties": {
+          "as_of": {
+            "anyOf": [
+              {
+                "format": "date",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "As Of"
+          },
+          "cor1m": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Cor1M"
+          },
+          "cor1m_percentile": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Cor1M Percentile"
+          },
+          "history_start": {
+            "anyOf": [
+              {
+                "format": "date",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "History Start"
+          },
+          "n_obs": {
+            "default": 0,
+            "title": "N Obs",
+            "type": "integer"
+          },
+          "vix": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Vix"
+          },
+          "vix_cor1m_ratio": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Vix Cor1M Ratio"
+          },
+          "vix_cor1m_ratio_z": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Vix Cor1M Ratio Z"
+          }
+        },
+        "title": "DispersionResponse",
+        "type": "object"
+      },
       "DivergencePoint": {
         "properties": {
           "date": {
@@ -23152,7 +23243,7 @@
   },
   "info": {
     "title": "UW Watchlist API",
-    "version": "0.10.3"
+    "version": "0.10.8"
   },
   "openapi": "3.1.0",
   "paths": {
@@ -24676,6 +24767,28 @@
           }
         },
         "summary": "Get Dealer Regime",
+        "tags": [
+          "regime"
+        ]
+      }
+    },
+    "/api/regime/dispersion": {
+      "get": {
+        "description": "Correlation/dispersion CONTEXT for the CRI view (descriptive, not a signal).\n\nCOR1M 20yr percentile + VIX/COR1M ratio and its trailing-252 z-score. See\ndocs/research/2026-07-19-dispersion-signals-eval.md \u2014 low correlation is NOT\na warning; this is regime context only.",
+        "operationId": "get_dispersion_api_regime_dispersion_get",
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/DispersionResponse"
+                }
+              }
+            },
+            "description": "Successful Response"
+          }
+        },
+        "summary": "Get Dispersion",
         "tags": [
           "regime"
         ]

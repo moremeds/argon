@@ -5,7 +5,7 @@
 const API =
   typeof window !== "undefined"
     ? ""
-    : process.env.NEXT_INTERNAL_API_BASE ?? "http://127.0.0.1:8400";
+    : (process.env.NEXT_INTERNAL_API_BASE ?? "http://127.0.0.1:8400");
 
 export const regimeApi = {
   cri: () => `${API}/api/regime`,
@@ -36,6 +36,7 @@ export const regimeApi = {
   grg_scan: () => `${API}/api/regime/grg/scan`,
   quotes: () => `${API}/api/regime/quotes`,
   vol_backdrop: () => `${API}/api/regime/vol-backdrop`,
+  dispersion: () => `${API}/api/regime/dispersion`,
   guidance: () => `${API}/api/regime/guidance`,
   validation: () => `${API}/api/regime/validation`,
   vcgValidation: () => `${API}/api/regime/vcg-validation`,

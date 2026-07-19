@@ -38,6 +38,7 @@ from uw_scan.api.schemas import (
     CriScanResponse,
     DealerRegimeResponse,
     DealerRegimeSignal,
+    DispersionResponse,
     GammaDecayBucket,
     GexHistoryEntry,
     GexIntradayResponse,
@@ -325,6 +326,19 @@ def get_vol_backdrop(
         term_structure_state=state,
         as_of=as_of,
     )
+
+
+@router.get("/dispersion", response_model=DispersionResponse)
+def get_dispersion(
+    repo: Annotated[Repository, Depends(get_repo)],
+) -> DispersionResponse:
+    """Correlation/dispersion CONTEXT for the CRI view (descriptive, not a signal).
+
+    COR1M 20yr percentile + VIX/COR1M ratio and its trailing-252 z-score. See
+    docs/research/2026-07-19-dispersion-signals-eval.md — low correlation is NOT
+    a warning; this is regime context only."""
+    v = VolIndexRepository(repo.conn, schema=repo._schema)
+    return DispersionResponse(**v.fetch_dispersion_context())
 
 
 @router.get("/vrp-harvest", response_model=VrpHarvestResponse)
