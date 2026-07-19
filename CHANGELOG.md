@@ -15,7 +15,10 @@ version in lockstep (enforced by `scripts/release/version_sync_check.py`).
   (`VolIndexRepository.fetch_dispersion_context` — 20yr percentile computed
   server-side, so no 20yr series ships to the browser) feeds
   `web/components/regime/DispersionTiles.tsx` via a local-typed
-  `useDispersion` hook. Neutral styling, no warning framing: it is explicitly
+  `useDispersion` hook. A **two-tailed rule-based color highlighter** marks
+  regime state — amber = dispersion (low correlation / high single-stock vol),
+  red = herding (high correlation, crash-adjacent) — with a legend; it
+  deliberately does NOT paint low correlation as a warning. Still explicitly
   regime **context, not a signal**. Backed by the directional evaluation in
   `docs/research/2026-07-19-dispersion-signals-eval.md`, which **rejected** the
   "low correlation (VIXEQ/VIX high) = warning" claim (low correlation is the
