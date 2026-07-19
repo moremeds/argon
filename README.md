@@ -32,15 +32,17 @@ Any discipline fails → fix at the source, not the symptom. Full standing rules
 | ---------------------------------------- | ----------------------------------------------------- | ----------------------------------------------------- | -------------------------------------- |
 | **Watchlist Dashboard** (`/`)            | Per-ticker scan composite                             | Setup badge, IVR, GEX block, skew, positioning        | Cron `0 5-16 * * 1-5` ET + rescan      |
 | **Stock — Market Structure**             | UW spot-exposure + per-strike GEX                     | Flip, magnets, walls, acceleration zones              | Worker-driven                          |
-| **Stock — Volatility**                   | IV surface + RV + 25Δ skew                            | VRP, IV/RV regime quadrant, smile, term structure     | Worker-driven + lazy backfill          |
+| **Stock — Volatility**                   | IV surface + RV + VRP                                  | VRP, IV/RV regime quadrant, smile, term structure     | Worker-driven + lazy backfill          |
+| **Stock — Skew**                         | 25Δ risk-reversal + skew dynamics                     | Constant-maturity RR, skew term structure             | Worker-driven                          |
+| **Stock — Technicals**                   | Dual MACD + dimensionless RSI + Chanlun (缠论)         | Oscillators, 200-DMA, 笔/中枢/买卖点 overlay, live badge | Daily + on-demand + live overlay       |
 | **Stock — Flow**                         | UW flow alerts + dark prints                          | Filterable by alert type, premium, aggression         | Intraday                               |
 | **Stock — Trade Insights AI**            | Codex + Claude + DeepSeek over the stitched evidence  | 1-2w thesis with strikes, triggers, invalidation      | Provider-pinned worker queue           |
 | **Scanner** (`/scanner`)                 | DCF / Dark Pool / EIC / GEX detectors                 | Watchlist candidates + market-wide discoveries        | Intraday                               |
-| **Regime** (`/regime`)                   | CRI + VCG + SPX GEX                                   | Crash-risk / vol-curve / dealer state                 | Intraday                               |
+| **Regime** (`/regime`)                   | CRI · VCG · GEX · GRG · 5% Canary · Market Tide · Macro Short-Vol | Crash-risk, vol-curve, dealer & dispersion state      | Hourly EOD + 5-min live (CRI/VCG)      |
 | **Gold Compass** (`/gold`)               | WGC + ETF flow + COMEX + LBMA + GPR + CFTC            | 5-tier physical / ETF / miner / vol / macro posture   | EOD with replay history                |
 | **Index Cockpit** (`/cockpit/<TKR>`)     | SPX / SPY / QQQ / IWM dealer state                    | State, dealer, surface, flow-IM, VRP tabs             | Intraday + `?asof=YYYY-MM-DD` snapshots|
 | **US Rates Desk** (`/rates`)             | FRED + Cleveland Fed + TreasuryDirect + CFTC TFF      | Curve, decomposition, supply, positioning, freshness  | Daily                                  |
-| **Admin** (`/admin`)                     | Scheduler + worker health                             | Liveness, queue depth, last-run timestamps            | Live                                   |
+| **Admin / Health** (`/admin`, `/api/health`) | Scheduler + worker + data freshness              | Liveness, queue depth, freshness monitor, gap-healer  | Live + nightly audit                   |
 
 Full route inventory: [`web/app/`](web/app/) · per-surface doctrine in each `CLAUDE.md`.
 
@@ -84,6 +86,14 @@ UW_SCAN_DB_NAME=option_wizard
 UW_SCAN_DB_USER=argon_app
 UW_SCAN_DB_PASSWORD=...
 
+# Live spot feed — xenon IB realtime (primary) / massive WS (automatic fallback)
+XENON_WS_ENABLED=true                        # primary intraday spot feed (default false)
+XENON_WS_URL=ws://127.0.0.1:8765             # mini localhost; MacBook dev → ws://100.66.147.98:8765
+
+# Xenon read-only query API — single-contract IB option greeks/IV (surface canary + VRP entry)
+XENON_QUERY_API_URL=http://127.0.0.1:8321    # mini localhost; MacBook dev → http://100.66.147.98:8321
+XENON_QUERY_API_KEY=...                       # required (X-API-Key) — missing → silent UW fallback
+
 # Trade Insights AI (optional — defaults to enabled when providers are reachable)
 DEEPSEEK_API_KEY=...
 TRADE_INSIGHTS_AI_ENABLED=true               # Codex (local subprocess)
@@ -102,6 +112,8 @@ The Claude runner deliberately blocks `ANTHROPIC_API_KEY` from its subprocess en
 
 MacBook dev runs against `127.0.0.1`; pointing `dev.sh` at the Mac mini DB is refused by a tripwire unless `UW_SCAN_ALLOW_DEV_AGAINST_MINI=1` — two writers on the same queue would race via `FOR UPDATE SKIP LOCKED` and double-charge AI providers.
 
+The spot WS consumer connects to xenon's IB realtime server first and fails over to massive.com's delayed WS automatically (connect failure, IB down, or in-session tick silence); `/api/health` → `ws_consumer.active_source` names the live feed. Worker processes **freeze env at fork** — rotating any `XENON_*` or provider key requires a worker restart, not just a re-export.
+
 ## Argon Terminal
 
 Per-ticker options research surface built on **Next.js 16** with **React 19** and hand-rolled SVG charts. No chart library — gamma profiles, IV smiles, and term structures deserve honest pixels.
@@ -109,10 +121,12 @@ Per-ticker options research surface built on **Next.js 16** with **React 19** an
 **Core capabilities**
 
 - Card-grid watchlist with one-glance reads: setup badge, IVR, flow aggression dial, GEX block, skew, positioning bar
-- Per-ticker stock page with five tabs (Market Structure, Volatility, Flow, Trade Plan, Tables) over a single dealer-positioning model
+- Per-ticker stock page with six tabs (Market Structure, Volatility, Skew, Flow, Technicals, Trade Insights AI) over a single dealer-positioning model
 - IV-surface analytics: VRP panel, smile, term structure, IV/RV regime quadrant, 1y IV percentile distribution
+- **Technicals tab** — dual MACD (fast/standard), a dimensionless RSI/momentum readout, and a client-side **Chanlun (缠论)** price overlay (笔 / 中枢 / 买卖点, trust-tiered per the repaint/forward-edge probe), with a live intraday badge and on-demand compute for uncovered tickers
 - Detector pipeline (DCF / Dark Pool / EIC / GEX) with separate **watchlist candidates** and **discovered tickers** lanes from the market-wide flow-alerts feed
-- Market-wide regime indicators ported from xenon (CRI, VCG, SPX GEX with profile chart)
+- Market-wide regime cockpit (`/regime`): CRI, VCG, GEX (with profile chart), **GRG** (Gamma Rotation Gap), **5% Canary**, **Market Tide**, and a **VRP macro short-vol** sizing signal — CRI/VCG also compute live off the WS quote stream on a 5-min cadence, with dispersion context on the CRI subtab
+- **Durable option-surface capture** — a nightly full-chain IV/greeks grid (`option_surface_grid_daily`, forward-only accrual) with an IB-vs-UW IV canary, feeding VRP macro entry-capture and short-horizon vol research
 - **Gold Compass** five-tier cockpit on the gold complex (GLD / IAU / GDX / …) with `/gold/replay/<YYYY-MM-DD>` for historical days
 - Index dealer cockpit (SPX / SPY / QQQ / IWM) with `?asof=YYYY-MM-DD` historical snapshots
 - **US Rates Factor Desk** with FRED Treasury curve, Cleveland Fed 10Y decomposition, policy path, TreasuryDirect supply, CFTC TFF positioning, source freshness badges throughout
@@ -134,12 +148,12 @@ Full inventory: [`scripts/`](scripts/).
 ## Architecture
 
 ```text
-UW + massive.com + FRED + Cleveland Fed + TreasuryDirect + CFTC + WGC + LBMA + GPR
+UW + massive.com + xenon (IB WS + query) + FRED + Cleveland Fed + TreasuryDirect + CFTC + WGC + LBMA + GPR
                                     │
                                     ▼
                 Sharded APScheduler workers  (uw × 2, massive × 2,
                                     │         ai-codex × 2, ai-claude × 2,
-                                    ▼         ai-deepseek × 2, massive-ws)
+                                    ▼         ai-deepseek × 2, spot-ws: xenon→massive)
                   Postgres  option_wizard.uw_scan   (owner: argon_app)
                                     │
                                     ▼
@@ -151,12 +165,14 @@ UW + massive.com + FRED + Cleveland Fed + TreasuryDirect + CFTC + WGC + LBMA + G
 
 Thirteen dev processes, one database, one schema. Workers are the only writers; the API is read-only; UI mutations cross through `/api/jobs` and are drained by the UW workers' 1-second rescan loop. Per-ticker work uses stable shard ownership and DB claiming (`FOR UPDATE SKIP LOCKED`), so two workers never duplicate provider calls.
 
-- `src/uw_scan/worker/` — APScheduler jobs (full-scan, OHLC, spot-refresh, rescan-poll, nightly vol rollup, gold cron, trade-insights queue)
+- `src/uw_scan/worker/` — APScheduler jobs (full-scan, OHLC, spot-refresh, rescan-poll, nightly vol rollup, gold/rates cron, regime EOD + 5-min live, option-surface capture + IV canary, VRP macro entry-capture, data-freshness monitor, gap-healer, trade-insights queue) governed by a shared UW daily-budget governor
 - `src/uw_scan/api/` — FastAPI routers split by domain; OpenAPI flows to `web/lib/types.ts` via `npm run gen:types`
 - `src/uw_scan/models/` — Pydantic v2 contract models; `__init__.py` is export-only, implementations live in domain modules
-- `src/uw_scan/storage/` — repository split by domain (audit, cockpit, flow, gex, gold, jobs, scan_runs, trade_insights_ai, volatility_v2, watchlist, …); `repository.py` is assembly-only and is **never** extended with new query methods
-- `src/uw_scan/sources/` — provider clients (`uw`, `massive`, `fred`, `cleveland_fed`, `comex`, `lbma`, `wgc_*`, `cftc_cot`, `etf_holdings`, …)
-- `src/uw_scan/scanner/` — detector pipeline (DCF / Dark Pool / EIC / GEX), ranking, discovery, gates, context
+- `src/uw_scan/storage/` — repository split by domain (audit, cockpit, flow, gex, gold, jobs, scan_runs, trade_insights_ai, volatility_v2, watchlist, option_surface, data_freshness, …); `repository.py` is assembly-only and is **never** extended with new query methods
+- `src/uw_scan/sources/` — provider clients (`uw`, `massive`, `xenon_ws`, `xenon_query`, `fred`, `cleveland_fed`, `comex`, `lbma`, `wgc_*`, `cftc_cot`, `etf_holdings`, `lake`, …)
+- `src/uw_scan/scanner/` — per-ticker detector pipeline (DCF / Dark Pool / EIC / GEX), ranking, discovery, gates, context
+- `src/uw_scan/scanners/` — market-wide regime scanners (`cri`, `vcg`, `gex`, `grg`, `canary`, `market_tide`, live-quote variants)
+- `src/uw_scan/backtest/` — shared walk-forward backtest harness (OOS gates, metrics, parameter sweep) · `src/uw_scan/chanlun/` — Chanlun port + sub-level lifecycle engine
 - `web/app/` — RSC landing pages + client-island tabs for the stock detail surface
 - `web/components/` — Argon-dark UI primitives, hand-rolled SVG charts
 - `docs/superpowers/` — active specs + plans; completed work under `docs/superpowers/archive/`
@@ -166,7 +182,7 @@ Per-layer doctrine lives in `CLAUDE.md` files under `src/uw_scan/`, `web/`, and 
 
 ## Data Source Priority (strict)
 
-1. **Interactive Brokers** — live quotes when integrated
+1. **Interactive Brokers** (via xenon) — primary live intraday spot feed (WS) + single-contract option greeks/IV (read-only query API)
 2. **[Unusual Whales](https://unusualwhales.com)** — flow alerts, dark pool prints, IV surface, GEX, spot-exposure
 3. **[massive.com](https://massive.com)** — OHLC and Polygon-backed fundamentals (project tier)
 4. **FRED · Cleveland Fed · TreasuryDirect · CFTC TFF · WGC · LBMA · GPR · CME COMEX** — macro & rates & gold layers
@@ -216,12 +232,12 @@ UW / massive / FRED calls are mocked in unit tests. Live tests are marked `live`
 | Next.js 16 (`:3001`)             | Argon-dark terminal; RSC landing pages, client-island tabs                               |
 | `uw` worker × 2                  | UW scan + rescan + flow-alerts loops with stable shard ownership                         |
 | `massive` worker × 2             | Spot refresh + OHLC backfill, sharded by ticker                                          |
-| `massive-ws` consumer            | Real-time massive WebSocket → Postgres                                                   |
+| `massive-ws` consumer            | Live spot WebSocket → Postgres — xenon IB (primary) / massive.com (automatic fallback)   |
 | `ai-codex` worker × 2            | Trade Insights AI — Codex; provider-pinned row claim                                     |
 | `ai-claude` worker × 2           | Trade Insights AI — Claude; provider-pinned row claim                                    |
 | `ai-deepseek` worker × 2         | Trade Insights AI — DeepSeek; provider-pinned row claim                                  |
 
-The Mac mini (`100.66.147.98`) hosts the shared production-ish stack via `launchd`; MacBook can run fully local against `127.0.0.1` or point at the mini through a per-machine `.env.local` override. Migration design: [`docs/superpowers/specs/2026-06-01-mac-mini-stack-migration-design.md`](docs/superpowers/specs/2026-06-01-mac-mini-stack-migration-design.md).
+The Mac mini (`100.66.147.98`) hosts the shared production stack in **Docker** (`/opt/argon/compose.yml`); the engine-wide **Watchtower** auto-deploys new `:latest` images on each final tagged release (launchd retired 2026-07-08, prereleases never float `:latest`). MacBook can run fully local against `127.0.0.1` or point at the mini through a per-machine `.env.local` override. Deploy runbook: [`docs/runbooks/docker-deploy.md`](docs/runbooks/docker-deploy.md) · migration design: [`docs/superpowers/specs/2026-06-01-mac-mini-stack-migration-design.md`](docs/superpowers/specs/2026-06-01-mac-mini-stack-migration-design.md).
 
 ## Glossary
 
@@ -236,13 +252,29 @@ The Mac mini (`100.66.147.98`) hosts the shared production-ish stack via `launch
 | **EIC**                | Earnings IV Crush — vol-regime detector around scheduled earnings events.                             |
 | **CRI**                | Crash Risk Index — CTA deleveraging + COR1M composite, ported from xenon.                             |
 | **VCG**                | Vol-Curve Gauge — VIX-term + credit + skew composite.                                                 |
+| **GRG**                | Gamma Rotation Gap — z-score of (SPY gamma-z − TLT gamma-z) over a 63-session window.                 |
+| **5% Canary**          | Composite early-warning score for a ~5% SPX drawdown (tactical + structural vol + speed sub-scores). |
+| **Market Tide**        | UW market-wide net options-flow tide (call vs. put premium) surfaced as a regime subtab.             |
+| **Chanlun (缠论)**      | Price-structure overlay — 笔 (strokes) / 中枢 (pivots) / 买卖点 (buy-sell points), trust-tiered.        |
+| **Option surface grid** | Durable full-chain daily IV/greeks snapshot (`option_surface_grid_daily`), forward-only accrual.    |
 | **Watchlist candidates** | Scanner output, full detector suite, restricted to watchlist tickers.                               |
 | **Discovered tickers** | Scanner output, DCF-only, sourced from the market-wide flow-alerts feed.                              |
 | **Outcome ledger**     | Per-thesis resolution against forward closes; substrate for Bayesian prior reweighting.               |
 
 ## Status
 
-Active rework (2026-05-12 → present). The current sprint shipped the directional Trade Insights AI contract (v5.3), the outcome ledger, the US Rates Factor Desk, and the Mac mini launchd-based stack migration scaffolding. Active specs/plans live under [`docs/superpowers/`](docs/superpowers/); completed work under [`docs/superpowers/archive/`](docs/superpowers/archive/); research notes under [`docs/research/`](docs/research/).
+Active development (2026-05-12 → present); current release **v0.10.8**. Argon is the analytics/decision surface of a five-repo personal quant desk (livewire → signal-lab → apex → **argon** → xenon); full vision and the Stage-1 goal ladder live in [`CLAUDE.md`](CLAUDE.md) and [`docs/masterplan/`](docs/masterplan/).
+
+Recent milestones (since v0.7):
+
+- **Docker cutover (v0.8, 2026-07-08)** — the mini stack moved from launchd to Docker + GHCR + Watchtower auto-deploy; releases are tag-driven via `scripts/release/cut.sh`.
+- **Xenon integration** — IB realtime WS as the primary intraday spot feed (massive fallback) plus a read-only query API for single-contract IB option greeks/IV.
+- **Regime expansion** — GRG, the 5% Canary subtab, Market Tide, a VRP macro short-vol sizing signal (+ forward entry-capture), live 5-min CRI/VCG off the WS feed, and dispersion context on CRI.
+- **Technicals tab** — dual MACD + dimensionless RSI and a Chanlun (缠论) price overlay (v1 → v2 线段/段级中枢 → Phase B 区间套 lifecycle → trust-styling), with a live intraday badge.
+- **Durable option-surface capture** — a nightly full-chain IV/greeks grid with an IB-vs-UW IV canary; the grid spans 2025-12-26→present and accrues forward-only.
+- **Ops hardening** — a data-freshness monitor + gap-healer across the warm store and a shared UW daily-budget governor (live/research pools), surfaced on a fuller `/api/health`.
+
+Active specs/plans under [`docs/superpowers/`](docs/superpowers/); completed work under [`docs/superpowers/archive/`](docs/superpowers/archive/); research notes under [`docs/research/`](docs/research/); full history in [`CHANGELOG.md`](CHANGELOG.md).
 
 ---
 
