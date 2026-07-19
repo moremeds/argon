@@ -7,7 +7,22 @@ version in lockstep (enforced by `scripts/release/version_sync_check.py`).
 
 ## [Unreleased]
 
-## [0.10.8] — 2026-07-19
+### Added
+
+- Dispersion context readout on the CRI regime subtab (`/regime/cri`): a
+  descriptive tile row (COR1M 20yr percentile, VIX/COR1M ratio, trailing-252
+  ratio z-score). New read-only endpoint `GET /api/regime/dispersion`
+  (`VolIndexRepository.fetch_dispersion_context` — 20yr percentile computed
+  server-side, so no 20yr series ships to the browser) feeds
+  `web/components/regime/DispersionTiles.tsx` via a local-typed
+  `useDispersion` hook. Neutral styling, no warning framing: it is explicitly
+  regime **context, not a signal**. Backed by the directional evaluation in
+  `docs/research/2026-07-19-dispersion-signals-eval.md`, which **rejected** the
+  "low correlation (VIXEQ/VIX high) = warning" claim (low correlation is the
+  calmest forward regime — shallowest drawdowns; high correlation is the crash
+  marker already in the CRI trigger) and found the "deleverage high-beta on
+  high VIX/COR1M" claim directionally sound but statistically underpowered
+  (~5yr SPHB/SPLV). No new subtab, no new trading signal.
 
 
 ### Added

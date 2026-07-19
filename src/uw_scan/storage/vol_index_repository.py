@@ -6,10 +6,29 @@ repository.py.
 
 from __future__ import annotations
 
+import statistics
 from collections.abc import Iterable, Sequence
 from datetime import date
 
 from psycopg import Connection
+
+
+def _ratio_zscore(ratios: list[float], window: int = 252) -> float | None:
+    """Trailing-window z-score of the LATEST ratio vs the strictly-prior window.
+
+    `ratios` is ascending by date. Mirrors the research trace's strictly-trailing
+    convention (docs/research/2026-07-19-dispersion-signals-eval.md): today is
+    excluded from the mean/std it is scored against. Needs ≥30 prior points.
+    """
+    if len(ratios) < 2:
+        return None
+    latest = ratios[-1]
+    prior = ratios[-(window + 1) : -1]  # up to `window` points, excluding latest
+    if len(prior) < 30:
+        return None
+    mean = statistics.fmean(prior)
+    sd = statistics.pstdev(prior)
+    return (latest - mean) / sd if sd > 0 else None
 
 
 class VolIndexRepository:
@@ -79,6 +98,67 @@ class VolIndexRepository:
         with self._conn.cursor() as cur:
             cur.execute(sql, (symbol,))
             return {r[0] for r in cur.fetchall()}
+
+    def fetch_dispersion_context(self) -> dict:
+        """Correlation/dispersion context scalars for the CRI view (descriptive).
+
+        Returns COR1M's percentile within full 20yr history, the current
+        VIX/COR1M ratio, and its trailing-252 z-score. All-None on an empty DB.
+        Read-only. See docs/research/2026-07-19-dispersion-signals-eval.md.
+        """
+        empty = {
+            "as_of": None,
+            "cor1m": None,
+            "cor1m_percentile": None,
+            "vix": None,
+            "vix_cor1m_ratio": None,
+            "vix_cor1m_ratio_z": None,
+            "history_start": None,
+            "n_obs": 0,
+        }
+        with self._conn.cursor() as cur:
+            # Aligned VIX+COR1M closes, most-recent 300 sessions (ratio-z window).
+            cur.execute(
+                """
+                SELECT v.trade_date, v.close::float8, c.close::float8
+                  FROM vol_index_daily v
+                  JOIN vol_index_daily c
+                    ON c.symbol = 'COR1M' AND c.trade_date = v.trade_date
+                       AND c.close IS NOT NULL AND c.close > 0
+                 WHERE v.symbol = 'VIX' AND v.close IS NOT NULL
+                 ORDER BY v.trade_date DESC
+                 LIMIT 300
+                """
+            )
+            aligned = cur.fetchall()
+            if not aligned:
+                return empty
+            aligned.reverse()  # ascending
+            as_of, latest_vix, latest_cor = aligned[-1]
+            ratios = [vix / cor for _, vix, cor in aligned]
+
+            # COR1M percentile within FULL history + history span.
+            cur.execute(
+                """
+                SELECT count(*)::int, min(trade_date),
+                       avg((close <= %s)::int)::float8
+                  FROM vol_index_daily
+                 WHERE symbol = 'COR1M' AND close IS NOT NULL
+                """,
+                (latest_cor,),
+            )
+            n_obs, hist_start, pct = cur.fetchone()
+
+        return {
+            "as_of": as_of,
+            "cor1m": latest_cor,
+            "cor1m_percentile": pct,
+            "vix": latest_vix,
+            "vix_cor1m_ratio": latest_vix / latest_cor if latest_cor else None,
+            "vix_cor1m_ratio_z": _ratio_zscore(ratios),
+            "history_start": hist_start,
+            "n_obs": n_obs,
+        }
 
     def fetch_multi_history(
         self, symbols: Sequence[str], days: int

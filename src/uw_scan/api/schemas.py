@@ -364,6 +364,26 @@ class VolBackdropResponse(BaseModel):
     as_of: date | None = None
 
 
+class DispersionResponse(BaseModel):
+    """Correlation/dispersion CONTEXT for the CRI view (descriptive, NOT a signal).
+
+    COR1M percentile is rank of the latest close within full 20yr history.
+    VIX/COR1M ratio isolates the dispersion axis (high ratio ⟺ low correlation);
+    its z-score is trailing-252 (strictly prior). See
+    docs/research/2026-07-19-dispersion-signals-eval.md — this is regime context,
+    not a validated timing signal; low correlation is NOT a warning.
+    """
+
+    as_of: date | None = None
+    cor1m: float | None = None
+    cor1m_percentile: float | None = None  # 0–1, fraction of 20yr history ≤ latest
+    vix: float | None = None
+    vix_cor1m_ratio: float | None = None
+    vix_cor1m_ratio_z: float | None = None  # trailing-252
+    history_start: date | None = None
+    n_obs: int = 0
+
+
 class VrpHarvestVerdict(BaseModel):
     """One (asset_class, deviation_class) VRP harvest bucket verdict (Spec B)."""
 
