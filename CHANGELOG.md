@@ -7,6 +7,9 @@ version in lockstep (enforced by `scripts/release/version_sync_check.py`).
 
 ## [Unreleased]
 
+## [0.10.9] — 2026-07-20
+
+
 ### Added
 
 - Dispersion context readout on the CRI regime subtab (`/regime/cri`): a
@@ -26,7 +29,6 @@ version in lockstep (enforced by `scripts/release/version_sync_check.py`).
   marker already in the CRI trigger) and found the "deleverage high-beta on
   high VIX/COR1M" claim directionally sound but statistically underpowered
   (~5yr SPHB/SPLV). No new subtab, no new trading signal.
-
 ## [0.10.8] — 2026-07-19
 
 ### Added
