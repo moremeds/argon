@@ -27,6 +27,7 @@ version in lockstep (enforced by `scripts/release/version_sync_check.py`).
   high VIX/COR1M" claim directionally sound but statistically underpowered
   (~5yr SPHB/SPLV). No new subtab, no new trading signal.
 
+## [0.10.8] — 2026-07-19
 
 ### Added
 
