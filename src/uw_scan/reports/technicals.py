@@ -36,6 +36,8 @@ _METRIC_FIELDS = frozenset(
         "alignment",
         "fast_macd_hist_atr",
         "slow_macd_hist_atr",
+        "fast_macd_line_atr",
+        "fast_macd_signal_atr",
     }
 )
 

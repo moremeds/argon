@@ -4,6 +4,7 @@ from __future__ import annotations
 
 import numpy as np
 import pandas as pd
+import pytest
 
 from uw_scan.cards.technicals import dual_macd_series, dual_macd_state
 
@@ -27,6 +28,8 @@ def test_series_has_all_columns_and_is_finite_at_tail():
     assert list(out.columns) == [
         "fast_macd_hist_atr",
         "slow_macd_hist_atr",
+        "fast_macd_line_atr",
+        "fast_macd_signal_atr",
         "fast_macd_delta",
         "slow_macd_delta",
         "fast_macd_delta2",
@@ -35,6 +38,12 @@ def test_series_has_all_columns_and_is_finite_at_tail():
     ]
     assert np.isfinite(out["fast_macd_hist_atr"].iloc[-1])
     assert np.isfinite(out["slow_macd_hist_atr"].iloc[-1])
+    # The charted trio must stay self-consistent: the histogram the pane draws
+    # is exactly the gap between the two lines drawn over it.
+    tail = out.iloc[-1]
+    assert tail["fast_macd_hist_atr"] == pytest.approx(
+        tail["fast_macd_line_atr"] - tail["fast_macd_signal_atr"]
+    )
     # norms are 0..1 percentile ranks
     assert 0.0 <= out["fast_macd_norm"].iloc[-1] <= 1.0
 

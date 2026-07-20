@@ -45,6 +45,25 @@ version in lockstep (enforced by `scripts/release/version_sync_check.py`).
   edge on either side** (resistance correct in 2–3 of 6 names at every window
   tested; support's apparent edge did not survive a distance-matched placebo).
 
+- Fair value gaps behind a separate `FVG` toggle (default off): unfilled
+  three-bar imbalances drawn as amber boxes extending to the right edge, via
+  `web/lib/fvg.ts` (O(n) back-to-front fill test). Deliberately stricter than
+  the Pine original — a gap closes as soon as any later bar _enters_ the band,
+  not only when price traverses it completely, since a partially-traded band is
+  no longer untraded. Painting reuses the existing zhongshu rectangle primitive
+  rather than cloning it.
+- The fast pair's own MACD and signal lines in the dual-MACD sub-pane, drawn
+  over its histogram on the same ATR-normalized scale (the histogram is exactly
+  their difference, asserted in `tests/unit/cards/test_dual_macd.py`). The
+  histogram alone shows how wide the gap between the lines is but not where the
+  crossing sits relative to zero — the difference between a momentum turn inside
+  a trend and an outright trend flip. Two new series fields,
+  `fast_macd_line_atr` / `fast_macd_signal_atr`, computed in
+  `dual_macd_series` and carried in the `technical_daily` metrics JSONB. The
+  slow 55/89/34 pair stays histogram-only: it is structural background, and four
+  lines in a 150px pane is noise. **Existing rows need a technicals recompute**
+  before the lines appear — the new keys are absent from already-stored JSONB.
+
 ### Removed
 
 - VP BUY/SELL/touch/reject marks, before they ever shipped in a release. They
@@ -53,13 +72,6 @@ version in lockstep (enforced by `scripts/release/version_sync_check.py`).
   edge. An arrow labelled BUY that moves tomorrow and predicts nothing implies a
   signal the data does not support. The profile, POC, value area and zones stay
   as descriptive structure.
-- Fair value gaps behind a separate `FVG` toggle (default off): unfilled
-  three-bar imbalances drawn as amber boxes extending to the right edge, via
-  `web/lib/fvg.ts` (O(n) back-to-front fill test). Deliberately stricter than
-  the Pine original — a gap closes as soon as any later bar _enters_ the band,
-  not only when price traverses it completely, since a partially-traded band is
-  no longer untraded. Painting reuses the existing zhongshu rectangle primitive
-  rather than cloning it.
 
 ## [0.10.9] — 2026-07-20
 

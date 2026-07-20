@@ -16099,6 +16099,28 @@
             ],
             "title": "Fast Macd Hist Atr"
           },
+          "fast_macd_line_atr": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Fast Macd Line Atr"
+          },
+          "fast_macd_signal_atr": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Fast Macd Signal Atr"
+          },
           "high": {
             "anyOf": [
               {

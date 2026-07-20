@@ -208,6 +208,8 @@ type ChartHandles = {
   volMarkers: ISeriesMarkersPluginApi<Time> | null;
   macdSlow: ISeriesApi<"Histogram">;
   macdFast: ISeriesApi<"Histogram">;
+  macdFastLine: ISeriesApi<"Line">;
+  macdFastSignal: ISeriesApi<"Line">;
   biSolid: ISeriesApi<"Line">;
   biDashed: ISeriesApi<"Line">;
   clZs: ChanlunZhongshu;
@@ -598,7 +600,33 @@ export function TechnicalsPriceChart({
       },
       1,
     );
-    // Both MACD series share pane 1's right scale — tighten its margins.
+    // The fast pair's own MACD and signal lines, on the same scale as its
+    // histogram (the histogram IS their difference, so they belong together).
+    // The lines say where the crossing sits relative to zero; the histogram
+    // only says how wide the gap is.
+    const macdFastLine = chart.addSeries(
+      LineSeries,
+      {
+        color: cssVar("--accent-vivid"),
+        lineWidth: 2,
+        priceLineVisible: false,
+        lastValueVisible: false,
+        crosshairMarkerVisible: false,
+      },
+      1,
+    );
+    const macdFastSignal = chart.addSeries(
+      LineSeries,
+      {
+        color: cssVar("--accent-warm"),
+        lineWidth: 1,
+        priceLineVisible: false,
+        lastValueVisible: false,
+        crosshairMarkerVisible: false,
+      },
+      1,
+    );
+    // All four MACD series share pane 1's right scale — tighten its margins.
     macdFast
       .priceScale()
       .applyOptions({ scaleMargins: { top: 0.12, bottom: 0.12 } });
@@ -627,6 +655,8 @@ export function TechnicalsPriceChart({
       volMarkers,
       macdSlow,
       macdFast,
+      macdFastLine,
+      macdFastSignal,
       biSolid,
       biDashed,
       clZs,
@@ -849,6 +879,15 @@ export function TechnicalsPriceChart({
           : [],
       ),
     );
+    const macdLine = (key: "fast_macd_line_atr" | "fast_macd_signal_atr") =>
+      rows.flatMap((r) => {
+        const v = r[key];
+        return r.as_of != null && v != null
+          ? [{ time: r.as_of as Time, value: v }]
+          : [];
+      });
+    h.macdFastLine.setData(macdLine("fast_macd_line_atr"));
+    h.macdFastSignal.setData(macdLine("fast_macd_signal_atr"));
     // Chanlun overlay: geometry precomputed over `full`, cut to the window
     // here. The dashed tail restarts at the last confirmed vertex so the two
     // polylines connect.

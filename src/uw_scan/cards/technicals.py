@@ -81,6 +81,8 @@ SERIES_METRIC_COLS: tuple[str, ...] = (
     "alignment",
     "fast_macd_hist_atr",
     "slow_macd_hist_atr",
+    "fast_macd_line_atr",
+    "fast_macd_signal_atr",
     "fast_macd_delta",
     "slow_macd_delta",
     "fast_macd_delta2",
@@ -310,15 +312,23 @@ def rsi14(close: pd.Series) -> pd.Series:
     return rsi.mask((dn == 0.0) & (up > 0.0), 100.0)
 
 
-def macd_hist(
+def macd_lines(
     close: pd.Series, fast: int = 8, slow: int = 17, signal: int = 9
-) -> pd.Series:
-    """MACD histogram, Shepherd's 8/17/9 default."""
+) -> tuple[pd.Series, pd.Series]:
+    """The two MACD lines: (macd, signal). The histogram is their difference."""
     macd = (
         close.ewm(span=fast, adjust=False).mean()
         - close.ewm(span=slow, adjust=False).mean()
     )
-    return macd - macd.ewm(span=signal, adjust=False).mean()
+    return macd, macd.ewm(span=signal, adjust=False).mean()
+
+
+def macd_hist(
+    close: pd.Series, fast: int = 8, slow: int = 17, signal: int = 9
+) -> pd.Series:
+    """MACD histogram, Shepherd's 8/17/9 default."""
+    macd, sig = macd_lines(close, fast=fast, slow=slow, signal=signal)
+    return macd - sig
 
 
 def _num(v: Any) -> float:
@@ -348,7 +358,12 @@ def dual_macd_series(df: pd.DataFrame, *, slope_lookback: int = 3) -> pd.DataFra
     raw x2 multiplier."""
     close = df["close"]
     atr = atr14(df).replace(0.0, np.nan)
-    fast = macd_hist(close, fast=13, slow=21, signal=9) / atr
+    # The fast pair's own lines are kept (same ATR normalization as the
+    # histogram, so they share its axis): the histogram shows the gap's size but
+    # not where the crossing sits relative to zero, which is the difference
+    # between a momentum turn and an outright trend flip.
+    fast_line, fast_signal = macd_lines(close, fast=13, slow=21, signal=9)
+    fast = (fast_line - fast_signal) / atr
     slow = macd_hist(close, fast=55, slow=89, signal=34) / atr
     fast_delta = fast.diff(slope_lookback)
     slow_delta = slow.diff(slope_lookback)
@@ -356,6 +371,8 @@ def dual_macd_series(df: pd.DataFrame, *, slope_lookback: int = 3) -> pd.DataFra
         {
             "fast_macd_hist_atr": fast,
             "slow_macd_hist_atr": slow,
+            "fast_macd_line_atr": fast_line / atr,
+            "fast_macd_signal_atr": fast_signal / atr,
             "fast_macd_delta": fast_delta,
             "slow_macd_delta": slow_delta,
             "fast_macd_delta2": fast_delta.diff(1),
