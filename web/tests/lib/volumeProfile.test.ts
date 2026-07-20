@@ -1,5 +1,11 @@
 import { describe, expect, it } from "vitest";
-import { computeVolumeProfile, type VpBar } from "@/lib/volumeProfile";
+import {
+  computeVolumeProfile,
+  countRetests,
+  findLvnLevels,
+  findSrZones,
+  type VpBar,
+} from "@/lib/volumeProfile";
 import { SPY_BARS } from "../unit/fixtures/spyBars";
 
 const bars: VpBar[] = SPY_BARS.map((b) => ({
@@ -91,5 +97,95 @@ describe("computeVolumeProfile on real SPY daily bars", () => {
       ),
       "no volume anywhere",
     ).toBeNull();
+  });
+});
+
+describe("countRetests", () => {
+  const band = (...ranges: [number, number][]) =>
+    ranges.map(([low, high]) => ({ low, high }));
+
+  it("counts one entry per excursion, not per bar inside", () => {
+    // in, in, out, in  →  two distinct entries
+    const bars = band([99, 101], [99, 101], [90, 92], [99, 101]);
+    expect(countRetests(bars, 100, 1)).toBe(2);
+  });
+
+  it("counts nothing when price never reaches the band", () => {
+    expect(countRetests(band([90, 92], [88, 91]), 100, 1)).toBe(0);
+  });
+
+  it("counts a bar that straddles the band", () => {
+    expect(countRetests(band([80, 120]), 100, 1)).toBe(1);
+  });
+});
+
+describe("findSrZones on real SPY daily bars", () => {
+  const profile = computeVolumeProfile(bars, 60, 70)!;
+  const refPrice = bars[bars.length - 1].close;
+  const zones = findSrZones(profile, bars, refPrice);
+
+  it("classifies side by the reference price", () => {
+    for (const z of zones) {
+      if (z.side === "support") expect(z.price).toBeLessThan(refPrice);
+      else expect(z.price).toBeGreaterThanOrEqual(refPrice);
+    }
+  });
+
+  it("respects the per-side cap", () => {
+    const caps = findSrZones(profile, bars, refPrice, { maxPerSide: 2 });
+    expect(caps.filter((z) => z.side === "support").length).toBeLessThanOrEqual(
+      2,
+    );
+    expect(
+      caps.filter((z) => z.side === "resistance").length,
+    ).toBeLessThanOrEqual(2);
+  });
+
+  it("never returns overlapping bands", () => {
+    const sorted = [...zones].sort((a, b) => a.price - b.price);
+    for (let i = 1; i < sorted.length; i += 1) {
+      const gap = sorted[i].price - sorted[i - 1].price;
+      const thickness = sorted[i].halfWidth + sorted[i - 1].halfWidth;
+      expect(gap, `zones ${i - 1}/${i} overlap`).toBeGreaterThan(thickness);
+    }
+  });
+
+  it("honours the strength floor and reports strength as % of POC", () => {
+    for (const z of zones) {
+      expect(z.strength).toBeGreaterThanOrEqual(45);
+      expect(z.strength).toBeLessThanOrEqual(100);
+    }
+    const strict = findSrZones(profile, bars, refPrice, {
+      minStrengthPct: 95,
+    });
+    expect(strict.length).toBeLessThanOrEqual(zones.length);
+  });
+
+  it("counts at least one retest per zone — a shelf is where price sat", () => {
+    for (const z of zones) expect(z.touches).toBeGreaterThan(0);
+  });
+
+  it("is deterministic", () => {
+    expect(findSrZones(profile, bars, refPrice)).toEqual(zones);
+  });
+});
+
+describe("findLvnLevels", () => {
+  const profile = computeVolumeProfile(bars, 60, 70)!;
+
+  it("returns only thin bins, capped and inside the range", () => {
+    const lvns = findLvnLevels(profile, bars[bars.length - 1].close);
+    expect(lvns.length).toBeLessThanOrEqual(5);
+    for (const price of lvns) {
+      const bin = profile.bins.find((b) => b.low <= price && price <= b.high)!;
+      expect(bin.buy + bin.sell).toBeLessThan(profile.maxBinVolume * 0.25);
+      expect(price).toBeGreaterThanOrEqual(profile.bins[0].low);
+      expect(price).toBeLessThanOrEqual(profile.bins[59].high);
+    }
+  });
+
+  it("does not blow up when the reference price is off the profile", () => {
+    expect(() => findLvnLevels(profile, 1e9)).not.toThrow();
+    expect(() => findLvnLevels(profile, 0)).not.toThrow();
   });
 });

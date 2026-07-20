@@ -21,33 +21,62 @@ import type {
 } from "lightweight-charts";
 import {
   computeVolumeProfile,
+  findLvnLevels,
+  findSrZones,
+  type SrZone,
   type VolumeProfile,
   type VpBar,
 } from "@/lib/volumeProfile";
 
 export type VolumeProfileBar = VpBar & { time: Time };
 
+/** What the profile currently says — pushed to React for the stats readout. */
+export type VolumeProfileStats = {
+  poc: number;
+  vah: number;
+  val: number;
+  nearestSupport: number | null;
+  nearestResistance: number | null;
+  bias: "bullish" | "bearish" | "balanced";
+  supportCount: number;
+  resistanceCount: number;
+  lastPrice: number;
+};
+
 export interface VolumeProfileOptions {
   buyColor?: string;
   sellColor?: string;
   pocColor?: string;
+  supportColor?: string;
+  resistanceColor?: string;
+  lvnColor?: string;
+  labelColor?: string;
   bins?: number;
   valuePct?: number;
   /** Profile width as a fraction of pane width, clamped by min/max px. */
   widthFrac?: number;
   minWidthPx?: number;
   maxWidthPx?: number;
+  showZones?: boolean;
+  showLvn?: boolean;
+  onStats?: (stats: VolumeProfileStats | null) => void;
 }
 
-const defaults: Required<VolumeProfileOptions> = {
+const defaults: Required<Omit<VolumeProfileOptions, "onStats">> = {
   buyColor: "rgba(0, 137, 123, 0.85)",
   sellColor: "rgba(156, 39, 176, 0.85)",
   pocColor: "rgba(255, 167, 38, 0.9)",
+  supportColor: "rgba(38, 166, 154, 1)",
+  resistanceColor: "rgba(255, 82, 82, 1)",
+  lvnColor: "rgba(140, 140, 150, 0.75)",
+  labelColor: "rgba(240, 240, 245, 0.95)",
   bins: 60,
   valuePct: 70,
   widthFrac: 0.22,
   minWidthPx: 70,
   maxWidthPx: 240,
+  showZones: true,
+  showLvn: true,
 };
 
 type RowPx = {
@@ -58,12 +87,54 @@ type RowPx = {
   inValueArea: boolean;
 };
 
-type ViewPx = { rows: RowPx[]; pocY: number | null; pocPrice: number };
+type ZonePx = {
+  yTop: number;
+  yBottom: number;
+  support: boolean;
+  label: string;
+};
+
+type ViewPx = {
+  rows: RowPx[];
+  pocY: number | null;
+  pocPrice: number;
+  zones: ZonePx[];
+  lvnYs: number[];
+};
+
+function buildStats(
+  profile: VolumeProfile,
+  zones: readonly SrZone[],
+  lastPrice: number,
+): VolumeProfileStats {
+  const vah = profile.bins[profile.vahIdx].high;
+  const val = profile.bins[profile.valIdx].low;
+  const supports = zones.filter((z) => z.side === "support");
+  const resistances = zones.filter((z) => z.side === "resistance");
+  return {
+    poc: profile.pocPrice,
+    vah,
+    val,
+    // Nearest = the one price would reach first, so highest support / lowest
+    // resistance.
+    nearestSupport: supports.length
+      ? Math.max(...supports.map((z) => z.price))
+      : null,
+    nearestResistance: resistances.length
+      ? Math.min(...resistances.map((z) => z.price))
+      : null,
+    bias:
+      lastPrice > vah ? "bullish" : lastPrice < val ? "bearish" : "balanced",
+    supportCount: supports.length,
+    resistanceCount: resistances.length,
+    lastPrice,
+  };
+}
 
 class VolumeProfileRenderer implements IPrimitivePaneRenderer {
   constructor(
     private _view: ViewPx | null,
-    private _options: Required<VolumeProfileOptions>,
+    private _options: Required<Omit<VolumeProfileOptions, "onStats">>,
   ) {}
 
   draw() {}
@@ -83,6 +154,45 @@ class VolumeProfileRenderer implements IPrimitivePaneRenderer {
         this._options.minWidthPx,
         Math.min(this._options.maxWidthPx, right * this._options.widthFrac),
       );
+      ctx.font = "10px monospace";
+
+      // S/R bands span the full pane — they are levels in price, not in time.
+      for (const z of view.zones) {
+        const hue = z.support
+          ? this._options.supportColor
+          : this._options.resistanceColor;
+        const h = Math.max(1, z.yBottom - z.yTop);
+        ctx.globalAlpha = 0.12;
+        ctx.fillStyle = hue;
+        ctx.fillRect(0, z.yTop, right, h);
+        ctx.globalAlpha = 0.7;
+        ctx.strokeStyle = hue;
+        ctx.lineWidth = 1;
+        ctx.beginPath();
+        ctx.moveTo(0, z.yTop);
+        ctx.lineTo(right, z.yTop);
+        ctx.moveTo(0, z.yBottom);
+        ctx.lineTo(right, z.yBottom);
+        ctx.stroke();
+        // Label sits just left of the profile band so the two never collide.
+        ctx.globalAlpha = 1;
+        ctx.fillStyle = hue;
+        ctx.textAlign = "right";
+        ctx.textBaseline = "middle";
+        ctx.fillText(z.label, right - width - 6, (z.yTop + z.yBottom) / 2);
+      }
+      ctx.textAlign = "left";
+
+      ctx.globalAlpha = 0.8;
+      ctx.strokeStyle = this._options.lvnColor;
+      ctx.setLineDash([4, 4]);
+      for (const y of view.lvnYs) {
+        ctx.beginPath();
+        ctx.moveTo(0, y);
+        ctx.lineTo(right, y);
+        ctx.stroke();
+      }
+      ctx.setLineDash([]);
 
       for (const r of view.rows) {
         const h = Math.max(1, r.yBottom - r.yTop - 0.5); // hairline gap between rows
@@ -127,6 +237,8 @@ class VolumeProfilePaneView implements IPrimitivePaneView {
   private _view: ViewPx | null = null;
   private _cacheKey = "";
   private _profile: VolumeProfile | null = null;
+  private _zones: SrZone[] = [];
+  private _lvn: number[] = [];
 
   constructor(private _source: VolumeProfileIndicator) {}
 
@@ -141,17 +253,32 @@ class VolumeProfilePaneView implements IPrimitivePaneView {
     const from = String(visible.from);
     const to = String(visible.to);
     const key = `${from}|${to}|${this._source._bars.length}`;
+    // Re-bin only when the window actually moved: updateAllViews() also fires
+    // on every crosshair move, and the stats callback must not re-fire with it.
     if (key !== this._cacheKey) {
       this._cacheKey = key;
       const slice = this._source._bars.filter((b) => {
         const t = String(b.time);
         return t >= from && t <= to;
       });
-      this._profile = computeVolumeProfile(
-        slice,
-        this._source._options.bins,
-        this._source._options.valuePct,
-      );
+      const opts = this._source._options;
+      this._profile = computeVolumeProfile(slice, opts.bins, opts.valuePct);
+      const last = slice[slice.length - 1];
+      if (this._profile && last) {
+        this._zones = opts.showZones
+          ? findSrZones(this._profile, slice, last.close)
+          : [];
+        this._lvn = opts.showLvn
+          ? findLvnLevels(this._profile, last.close)
+          : [];
+        this._source._emitStats(
+          buildStats(this._profile, this._zones, last.close),
+        );
+      } else {
+        this._zones = [];
+        this._lvn = [];
+        this._source._emitStats(null);
+      }
     }
     const p = this._profile;
     if (!p) return;
@@ -170,10 +297,31 @@ class VolumeProfilePaneView implements IPrimitivePaneView {
         inValueArea: i >= p.valIdx && i <= p.vahIdx,
       });
     }
+    const zones: ZonePx[] = [];
+    for (const z of this._zones) {
+      const yTop = series.priceToCoordinate(z.price + z.halfWidth);
+      const yBottom = series.priceToCoordinate(z.price - z.halfWidth);
+      if (yTop == null || yBottom == null) continue;
+      zones.push({
+        yTop,
+        yBottom,
+        support: z.side === "support",
+        label:
+          `${z.side === "support" ? "S" : "R"} ${z.price.toFixed(2)} · ${z.strength}%` +
+          (z.touches > 1 ? ` ×${z.touches}` : ""),
+      });
+    }
+    const lvnYs = this._lvn.flatMap((price) => {
+      const y = series.priceToCoordinate(price);
+      return y == null ? [] : [y];
+    });
+
     this._view = {
       rows,
       pocY: series.priceToCoordinate(p.pocPrice),
       pocPrice: p.pocPrice,
+      zones,
+      lvnYs,
     };
   }
 
@@ -184,15 +332,28 @@ class VolumeProfilePaneView implements IPrimitivePaneView {
 
 export class VolumeProfileIndicator implements ISeriesPrimitive<Time> {
   _bars: VolumeProfileBar[] = [];
-  _options: Required<VolumeProfileOptions>;
+  _options: Required<Omit<VolumeProfileOptions, "onStats">>;
+  private _onStats?: (stats: VolumeProfileStats | null) => void;
   private _paneViews: VolumeProfilePaneView[];
   private _chart: IChartApi | undefined;
   private _series: ISeriesApi<keyof SeriesOptionsMap> | undefined;
   private _requestUpdate?: () => void;
 
-  constructor(options: VolumeProfileOptions = {}) {
+  constructor({ onStats, ...options }: VolumeProfileOptions = {}) {
     this._options = { ...defaults, ...options };
+    this._onStats = onStats;
     this._paneViews = [new VolumeProfilePaneView(this)];
+  }
+
+  /**
+   * Fired only when the visible range actually changed, so this never loops
+   * back through React on a crosshair move. Deferred a tick because
+   * updateAllViews() runs inside lightweight-charts' render pass — a synchronous
+   * setState there would be a render-phase update.
+   */
+  _emitStats(stats: VolumeProfileStats | null) {
+    const cb = this._onStats;
+    if (cb) queueMicrotask(() => cb(stats));
   }
 
   attached({ chart, series, requestUpdate }: SeriesAttachedParameter<Time>) {

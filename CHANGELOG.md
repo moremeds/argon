@@ -24,7 +24,25 @@ version in lockstep (enforced by `scripts/release/version_sync_check.py`).
   candles. Each bar spreads its volume evenly across its own high–low (daily
   OHLCV is all we have) — this is where-it-traded context, not an order book,
   and it is explicitly not a signal.
-
+- Volume-profile S/R matrix on the same `VP` toggle: high-volume nodes become
+  support/resistance bands (greedy peak-picking with proportional separation,
+  per-side caps and a strength floor), labelled with strength as a % of the POC
+  and a distinct-retest count; low-volume nodes render as gray dashed lines.
+  BUY/SELL arrows mark closes crossing the nearest zone on above-average
+  volume, with faint dots for touches and rejections that held. A stats readout
+  (`VolumeProfileStatsPanel`) shows POC/VAH/VAL, nearest S/R with zone counts,
+  and value-area bias; its numbers are pushed up from the chart primitive
+  rather than recomputed, so they always describe the bars actually drawn.
+  **The marks are annotation, not a backtest** — the levels derive from the
+  whole visible window including bars later than each mark, which the on-chart
+  copy states plainly.
+- Fair value gaps behind a separate `FVG` toggle (default off): unfilled
+  three-bar imbalances drawn as amber boxes extending to the right edge, via
+  `web/lib/fvg.ts` (O(n) back-to-front fill test). Deliberately stricter than
+  the Pine original — a gap closes as soon as any later bar _enters_ the band,
+  not only when price traverses it completely, since a partially-traded band is
+  no longer untraded. Painting reuses the existing zhongshu rectangle primitive
+  rather than cloning it.
 
 ### Added
 
@@ -45,6 +63,7 @@ version in lockstep (enforced by `scripts/release/version_sync_check.py`).
   marker already in the CRI trigger) and found the "deleverage high-beta on
   high VIX/COR1M" claim directionally sound but statistically underpowered
   (~5yr SPHB/SPLV). No new subtab, no new trading signal.
+
 ## [0.10.8] — 2026-07-19
 
 ### Added
@@ -73,6 +92,7 @@ version in lockstep (enforced by `scripts/release/version_sync_check.py`).
   and the right price axis on initial load and after Reset. The chart's
   `fixRightEdge` setting had silently clamped the configured offset back to
   zero; regression coverage now protects both short- and long-history views.
+
 ## [0.10.7] — 2026-07-15
 
 ### Added
