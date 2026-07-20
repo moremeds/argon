@@ -7,6 +7,9 @@ version in lockstep (enforced by `scripts/release/version_sync_check.py`).
 
 ## [Unreleased]
 
+## [0.10.10] — 2026-07-20
+
+
 ### Added
 
 - Volume profile on the Technicals price chart, behind a `VP` toggle beside
@@ -72,7 +75,6 @@ version in lockstep (enforced by `scripts/release/version_sync_check.py`).
   edge. An arrow labelled BUY that moves tomorrow and predicts nothing implies a
   signal the data does not support. The profile, POC, value area and zones stay
   as descriptive structure.
-
 ## [0.10.9] — 2026-07-20
 
 ### Added
