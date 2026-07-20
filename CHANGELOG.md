@@ -9,33 +9,48 @@ version in lockstep (enforced by `scripts/release/version_sync_check.py`).
 
 ### Added
 
-- Visible-range volume profile (VRVP) on the Technicals price chart, behind a
-  `VP` toggle beside `Zen` (localStorage-persisted, candle-mode only). Renders
-  against the right edge of the price pane: horizontal bars per price bin, buy
-  volume (bars that closed up) hugging the axis and sell volume stacked
-  outside, length scaled to the busiest bin. Value-area bins (70%) draw at full
-  opacity, tails dim; an amber line marks the POC. Binning math is pure and
-  unit-tested (`web/lib/volumeProfile.ts` — volume conservation, contiguous
-  bins, minimal value area, determinism, against the frozen real SPY OHLCV
-  fixture); painting is a lightweight-charts series primitive
-  (`web/lib/lwc/volumeProfile.ts`) in the mold of `chanlunZhongshu.ts`. The
-  profile re-bins to whatever range is on screen, memoized on the visible
-  range, and draws in the **background** layer so it never buries the newest
-  candles. Each bar spreads its volume evenly across its own high–low (daily
-  OHLCV is all we have) — this is where-it-traded context, not an order book,
-  and it is explicitly not a signal.
+- Volume profile on the Technicals price chart, behind a `VP` toggle beside
+  `Zen` (localStorage-persisted, candle-mode only). Renders against the right
+  edge of the price pane: horizontal bars per price bin, buy volume (bars that
+  closed up) hugging the axis and sell volume stacked outside, length scaled to
+  the busiest bin. Value-area bins (70%) draw at full opacity, tails dim; an
+  amber line marks the POC. Binning math is pure and unit-tested
+  (`web/lib/volumeProfile.ts` — volume conservation, contiguous bins, minimal
+  value area, determinism, against the frozen real SPY OHLCV fixture); painting
+  is a lightweight-charts series primitive (`web/lib/lwc/volumeProfile.ts`) in
+  the mold of `chanlunZhongshu.ts`, drawn in the **background** layer so it
+  never buries the newest candles. Each bar spreads its volume evenly across its
+  own high–low (daily OHLCV is all we have) — where-it-traded context, not an
+  order book, and explicitly not a signal.
+- **Fixed 360-session profile window**, not the visible range. Shipped as VRVP
+  first and that was wrong: panning between ~150 and ~600 visible bars moved the
+  POC by a median of **11.6 ATR** across six names, so the levels were largely a
+  function of the viewport. The window is now counted back from the newest bar
+  and fed from the unwindowed series, so pan, zoom and the 3M/1Y/FULL selector
+  all leave the levels untouched. 360 is measured, not inherited: stability keeps
+  improving out to 5 years, but by then the POC sits 35–92% below spot — steady
+  because it describes a market that no longer exists. Study:
+  `docs/research/2026-07-20-volume-profile-window-study.md`, reproduce with
+  `npx tsx scripts/research/volume_profile_window_study.mts`.
 - Volume-profile S/R matrix on the same `VP` toggle: high-volume nodes become
   support/resistance bands (greedy peak-picking with proportional separation,
   per-side caps and a strength floor), labelled with strength as a % of the POC
-  and a distinct-retest count; low-volume nodes render as gray dashed lines.
-  BUY/SELL arrows mark closes crossing the nearest zone on above-average
-  volume, with faint dots for touches and rejections that held. A stats readout
-  (`VolumeProfileStatsPanel`) shows POC/VAH/VAL, nearest S/R with zone counts,
-  and value-area bias; its numbers are pushed up from the chart primitive
-  rather than recomputed, so they always describe the bars actually drawn.
-  **The marks are annotation, not a backtest** — the levels derive from the
-  whole visible window including bars later than each mark, which the on-chart
-  copy states plainly.
+  and a distinct-retest count; low-volume nodes render as gray dashed lines. A
+  stats readout (`VolumeProfileStatsPanel`) shows POC/VAH/VAL, nearest S/R with
+  zone counts, and value-area bias; its numbers are pushed up from the chart
+  primitive rather than recomputed, so they always describe the bars actually
+  binned. Zones are descriptive only — the same study found **no forward-return
+  edge on either side** (resistance correct in 2–3 of 6 names at every window
+  tested; support's apparent edge did not survive a distance-matched placebo).
+
+### Removed
+
+- VP BUY/SELL/touch/reject marks, before they ever shipped in a release. They
+  redrew 21% of mark history per day at a 360-bar window and essentially all of
+  it on the worst 10% of days, and the levels underneath them carry no measured
+  edge. An arrow labelled BUY that moves tomorrow and predicts nothing implies a
+  signal the data does not support. The profile, POC, value area and zones stay
+  as descriptive structure.
 - Fair value gaps behind a separate `FVG` toggle (default off): unfilled
   three-bar imbalances drawn as amber boxes extending to the right edge, via
   `web/lib/fvg.ts` (O(n) back-to-front fill test). Deliberately stricter than
@@ -43,6 +58,8 @@ version in lockstep (enforced by `scripts/release/version_sync_check.py`).
   not only when price traverses it completely, since a partially-traded band is
   no longer untraded. Painting reuses the existing zhongshu rectangle primitive
   rather than cloning it.
+
+## [0.10.9] — 2026-07-20
 
 ### Added
 

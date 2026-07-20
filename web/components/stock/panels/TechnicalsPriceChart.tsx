@@ -66,8 +66,12 @@ const OVERLAY_MODE_KEY = "technicals:priceOverlayMode";
 const CHANLUN_KEY = "technicals:chanlun";
 const VOLUME_PROFILE_KEY = "technicals:volumeProfile";
 const FVG_KEY = "technicals:fvg";
-// Volume confirm for VP breakout/breakdown marks (Pine `volMaLen`).
-const VP_SIGNAL_VOL_MA = 20;
+// Sessions the volume profile covers, counted back from the newest bar. Fixed,
+// not the visible range — panning a visible-range profile moved the POC by a
+// median of 11.6 ATR. 360 keeps the levels within ~10-20% of spot; longer
+// windows are steadier but anchor to prices the market has left behind.
+// docs/research/2026-07-20-volume-profile-window-study.md
+const VP_LOOKBACK = 360;
 
 // ReorderableList.tsx pattern: lazy init + try/catch; client-only component
 // so no hydration mismatch.
@@ -212,7 +216,6 @@ type ChartHandles = {
   segDashed: ISeriesApi<"Line">;
   segZs: ChanlunZhongshu;
   vp: VolumeProfileIndicator;
-  vpMarkers: ISeriesMarkersPluginApi<Time>;
   fvg: ChanlunZhongshu;
 };
 
@@ -550,12 +553,12 @@ export function TechnicalsPriceChart({
       supportColor: cssVar("--positive"),
       resistanceColor: cssVar("--negative"),
       lvnColor: `${cssVar("--text-muted")}b3`,
+      lookback: VP_LOOKBACK,
       // setVpStats is a stable useState setter, so the once-built primitive can
       // hold it for the life of the chart.
       onStats: setVpStats,
     });
     price.attachPrimitive(vp);
-    const vpMarkers = createSeriesMarkers(price, []);
 
     // Fair value gaps are time-bounded price rectangles — exactly what the
     // zhongshu primitive already draws, so reuse it rather than clone 150 lines.
@@ -630,7 +633,6 @@ export function TechnicalsPriceChart({
       segDashed,
       segZs,
       vp,
-      vpMarkers,
       fvg,
     };
     fitKeyRef.current = ""; // force a fitContent on the first data pass
@@ -945,9 +947,13 @@ export function TechnicalsPriceChart({
     }
     // Volume profile gets the whole window; it re-bins itself to whatever slice
     // is on screen, so panning/zooming updates it without a data pass.
+    // `full`, not `rows`: the profile window is VP_LOOKBACK sessions regardless
+    // of the timeframe selector, so the levels stay put when you switch 3M/1Y/
+    // FULL. Feeding the windowed rows would silently shrink the profile to ~63
+    // bars on 3M — back in the noisy, high-churn regime the study rejected.
     h.vp.setBars(
       vpOn && candleMode
-        ? rows.flatMap((r) =>
+        ? full.flatMap((r) =>
             r.as_of != null &&
             r.open != null &&
             r.high != null &&
@@ -1023,81 +1029,6 @@ export function TechnicalsPriceChart({
     vpOn,
     fvgOn,
   ]);
-
-  // VP breakout / breakdown / touch / reject marks against the nearest zones.
-  // Own effect (not the data pass): the levels move with the visible range, so
-  // this reruns on pan/zoom without re-feeding every other series.
-  useEffect(() => {
-    const h = handlesRef.current;
-    if (!h) return;
-    if (!vpOn || !candleMode || !vpStats) {
-      h.vpMarkers.setMarkers([]);
-      return;
-    }
-    const { nearestResistance: res, nearestSupport: sup } = vpStats;
-    const positive = cssVar("--positive");
-    const negative = cssVar("--negative");
-    const volMa = volumeMa(
-      rows.map((r) => r.volume),
-      VP_SIGNAL_VOL_MA,
-    );
-    const marks: SeriesMarker<Time>[] = [];
-    for (let i = 1; i < rows.length; i += 1) {
-      const r = rows[i];
-      const prevClose = rows[i - 1].close;
-      if (r.as_of == null || r.close == null || prevClose == null) continue;
-      const time = r.as_of as Time;
-      const ma = volMa[i];
-      // Breakouts need volume behind them; touches/rejects are just reactions.
-      const volOk = r.volume != null && ma != null && r.volume > ma;
-      if (res != null && volOk && prevClose <= res && r.close > res) {
-        marks.push({
-          time,
-          position: "belowBar",
-          shape: "arrowUp",
-          color: positive,
-          text: "BUY",
-          size: 1,
-        });
-      } else if (sup != null && volOk && prevClose >= sup && r.close < sup) {
-        marks.push({
-          time,
-          position: "aboveBar",
-          shape: "arrowDown",
-          color: negative,
-          text: "SELL",
-          size: 1,
-        });
-      } else if (
-        sup != null &&
-        r.low != null &&
-        r.low <= sup &&
-        r.close > sup
-      ) {
-        marks.push({
-          time,
-          position: "belowBar",
-          shape: "circle",
-          color: `${positive}99`,
-          size: 0,
-        });
-      } else if (
-        res != null &&
-        r.high != null &&
-        r.high >= res &&
-        r.close < res
-      ) {
-        marks.push({
-          time,
-          position: "aboveBar",
-          shape: "circle",
-          color: `${negative}99`,
-          size: 0,
-        });
-      }
-    }
-    h.vpMarkers.setMarkers(marks);
-  }, [rows, vpOn, candleMode, vpStats]);
 
   const clearAnchor = () => {
     setAnchor(null);
@@ -1368,24 +1299,24 @@ export function TechnicalsPriceChart({
             lineHeight: 1.55,
           }}
         >
-          VP: volume traded at each price over the <em>visible</em> range — pan
-          or zoom and it re-bins. Green hugs the axis (bars that closed up),
-          violet stacks outside it (closed down); bar length is share of the
-          busiest price. Full-opacity rows are the 70% value area, faded rows
-          are the tails. Amber line = POC, the single most-traded price.
-          Green/red bands are high-volume shelves read as support (below spot)
-          or resistance (above), labelled with strength as a % of the POC and ×N
-          retests; gray dashed lines are low-volume nodes — prices the market
-          travelled through rather than accepted. BUY/SELL arrows mark closes
-          crossing the nearest zone on above-average volume; faint dots mark
-          touches and rejections that did not break through. Each bar spreads
-          its volume evenly across its own high–low, so this is where-it-traded,
-          not an order book. Zones are descriptive structure, not a trade
-          signal. Read the marks with care: the levels come from the whole
-          visible window, <em>including bars later than the mark itself</em>, so
-          a past arrow had information that was not available on the day it
-          points at. Change the window and the marks move. This is annotation of
-          structure, not a backtest, and nothing here has been validated.
+          VP: volume traded at each price over the last{" "}
+          <strong>{VP_LOOKBACK} sessions</strong> — a fixed window, so panning
+          and zooming never move these levels. Green hugs the axis (bars that
+          closed up), violet stacks outside it (closed down); bar length is
+          share of the busiest price. Full-opacity rows are the 70% value area,
+          faded rows are the tails. Amber line = POC, the single most-traded
+          price. Green/red bands are high-volume shelves read as support (below
+          spot) or resistance (above), labelled with strength as a % of the POC
+          and ×N retests; gray dashed lines are low-volume nodes — prices the
+          market travelled through rather than accepted. Each bar spreads its
+          volume evenly across its own high–low, so this is where-it-traded, not
+          an order book. Descriptive structure only: a 20-year test across six
+          names found <em>no</em> forward-return edge at these zones on either
+          side, so treat a shelf as context for where price has been accepted,
+          never as a reason to trade. Why 360 and not longer: stability keeps
+          improving out to 5 years, but by then the POC sits 35–92% below spot —
+          steady because it describes a market that no longer exists (
+          <code>docs/research/2026-07-20-volume-profile-window-study.md</code>).
         </div>
       )}
       {fvgOn && candleMode && (

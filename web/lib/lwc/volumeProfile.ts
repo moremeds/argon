@@ -1,12 +1,17 @@
 /**
- * Visible-range volume profile (VRVP) drawn against the right edge of the price
- * pane — horizontal bars growing leftward, buy volume hugging the axis, sell
- * volume stacked outside it. Same attach/paneViews lifecycle as
- * lib/lwc/chanlunZhongshu.ts; the binning math lives in lib/volumeProfile.ts.
+ * Volume profile drawn against the right edge of the price pane — horizontal
+ * bars growing leftward, buy volume hugging the axis, sell volume stacked
+ * outside it. Same attach/paneViews lifecycle as lib/lwc/chanlunZhongshu.ts;
+ * the binning math lives in lib/volumeProfile.ts.
  *
- * The profile is recomputed from the visible time range on every view update
- * (that's what makes it "visible range"), memoized on the range so crosshair
- * moves don't re-bin.
+ * FIXED window (the most recent `lookback` bars), NOT the visible range. This
+ * shipped as visible-range first and that was wrong: panning between ~150 and
+ * ~600 visible bars moves the POC by a median of 11.6 ATR, so the levels were
+ * substantially a function of the viewport. 360 sessions is the measured
+ * compromise — long enough that the histogram is steady, short enough that the
+ * levels stay within ~10–20% of spot instead of anchoring to prices the market
+ * has left behind (a 5-year window puts the POC 35–92% below spot).
+ * Study: docs/research/2026-07-20-volume-profile-window-study.md
  */
 import { CanvasRenderingTarget2D } from "fancy-canvas";
 import type {
@@ -53,6 +58,8 @@ export interface VolumeProfileOptions {
   labelColor?: string;
   bins?: number;
   valuePct?: number;
+  /** Sessions the profile covers, counted back from the newest bar. */
+  lookback?: number;
   /** Profile width as a fraction of pane width, clamped by min/max px. */
   widthFrac?: number;
   minWidthPx?: number;
@@ -72,6 +79,7 @@ const defaults: Required<Omit<VolumeProfileOptions, "onStats">> = {
   labelColor: "rgba(240, 240, 245, 0.95)",
   bins: 60,
   valuePct: 70,
+  lookback: 360,
   widthFrac: 0.22,
   minWidthPx: 70,
   maxWidthPx: 240,
@@ -243,25 +251,23 @@ class VolumeProfilePaneView implements IPrimitivePaneView {
   constructor(private _source: VolumeProfileIndicator) {}
 
   update() {
-    const chart = this._source.chartApi();
     const series = this._source.seriesApi();
     this._view = null;
-    if (!chart || !series) return;
-    const visible = chart.timeScale().getVisibleRange();
-    if (!visible) return;
+    if (!series) return;
 
-    const from = String(visible.from);
-    const to = String(visible.to);
-    const key = `${from}|${to}|${this._source._bars.length}`;
-    // Re-bin only when the window actually moved: updateAllViews() also fires
-    // on every crosshair move, and the stats callback must not re-fire with it.
+    const opts = this._source._options;
+    const all = this._source._bars;
+    // The most recent `lookback` sessions — independent of scroll and zoom, so
+    // panning can no longer move the levels.
+    const slice = all.length > opts.lookback ? all.slice(-opts.lookback) : all;
+    const key = slice.length
+      ? `${slice.length}|${String(slice[0].time)}|${String(slice[slice.length - 1].time)}`
+      : "empty";
+    // Re-bin only when the underlying bars actually changed: updateAllViews()
+    // fires on every crosshair move and every pan, and the stats callback must
+    // not re-fire with them.
     if (key !== this._cacheKey) {
       this._cacheKey = key;
-      const slice = this._source._bars.filter((b) => {
-        const t = String(b.time);
-        return t >= from && t <= to;
-      });
-      const opts = this._source._options;
       this._profile = computeVolumeProfile(slice, opts.bins, opts.valuePct);
       const last = slice[slice.length - 1];
       if (this._profile && last) {
