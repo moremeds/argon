@@ -48,10 +48,13 @@ class TechnicalsSeriesRow(_UwBase):
     kin_slope50: float | None = None
     kin_slope200: float | None = None
     alignment: float | None = None
-    # Dual MACD histograms (13/21/9 fast vs 55/89/34 slow), ATR-normalized.
-    # Only the two charted histograms are typed; deltas/norms stay in JSONB.
+    # Dual MACD histograms (13/21/9 fast vs 55/89/34 slow), ATR-normalized,
+    # plus the fast pair's own MACD/signal lines. Only what the chart draws is
+    # typed; deltas/norms stay in JSONB.
     fast_macd_hist_atr: float | None = None
     slow_macd_hist_atr: float | None = None
+    fast_macd_line_atr: float | None = None
+    fast_macd_signal_atr: float | None = None
 
 
 class ForwardReturnBandRow(_UwBase):

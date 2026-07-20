@@ -278,6 +278,8 @@ def test_build_technical_snapshot_full():
         "macd_hist_atr",
         "fast_macd_hist_atr",
         "slow_macd_hist_atr",
+        "fast_macd_line_atr",
+        "fast_macd_signal_atr",
         "fast_macd_delta",
         "slow_macd_delta",
         "fast_macd_delta2",

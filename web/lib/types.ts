@@ -6742,6 +6742,10 @@ export interface components {
             fast_macd_hist_atr?: number | null;
             /** Slow Macd Hist Atr */
             slow_macd_hist_atr?: number | null;
+            /** Fast Macd Line Atr */
+            fast_macd_line_atr?: number | null;
+            /** Fast Macd Signal Atr */
+            fast_macd_signal_atr?: number | null;
         };
         /**
          * TechnicalsVwapAnchor

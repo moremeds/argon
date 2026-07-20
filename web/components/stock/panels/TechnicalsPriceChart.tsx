@@ -42,6 +42,12 @@ import {
 import { BandsIndicator } from "@/lib/lwc/bandsIndicator";
 import { ChanlunZhongshu } from "@/lib/lwc/chanlunZhongshu";
 import {
+  VolumeProfileIndicator,
+  type VolumeProfileStats,
+} from "@/lib/lwc/volumeProfile";
+import { findFairValueGaps } from "@/lib/fvg";
+import { VolumeProfileStatsPanel } from "./VolumeProfileStatsPanel";
+import {
   computeChanlunFull,
   divergenceTrend,
   type BuySellPoint,
@@ -58,6 +64,14 @@ const MACD_H = 150;
 type OverlayMode = "sma" | "ema";
 const OVERLAY_MODE_KEY = "technicals:priceOverlayMode";
 const CHANLUN_KEY = "technicals:chanlun";
+const VOLUME_PROFILE_KEY = "technicals:volumeProfile";
+const FVG_KEY = "technicals:fvg";
+// Sessions the volume profile covers, counted back from the newest bar. Fixed,
+// not the visible range — panning a visible-range profile moved the POC by a
+// median of 11.6 ATR. 360 keeps the levels within ~10-20% of spot; longer
+// windows are steadier but anchor to prices the market has left behind.
+// docs/research/2026-07-20-volume-profile-window-study.md
+const VP_LOOKBACK = 360;
 
 // ReorderableList.tsx pattern: lazy init + try/catch; client-only component
 // so no hydration mismatch.
@@ -72,6 +86,22 @@ function loadOverlayMode(): OverlayMode {
 function loadChanlun(): boolean {
   try {
     return localStorage.getItem(CHANLUN_KEY) === "1";
+  } catch {
+    return false;
+  }
+}
+
+function loadVolumeProfile(): boolean {
+  try {
+    return localStorage.getItem(VOLUME_PROFILE_KEY) === "1";
+  } catch {
+    return false;
+  }
+}
+
+function loadFvg(): boolean {
+  try {
+    return localStorage.getItem(FVG_KEY) === "1";
   } catch {
     return false;
   }
@@ -178,6 +208,8 @@ type ChartHandles = {
   volMarkers: ISeriesMarkersPluginApi<Time> | null;
   macdSlow: ISeriesApi<"Histogram">;
   macdFast: ISeriesApi<"Histogram">;
+  macdFastLine: ISeriesApi<"Line">;
+  macdFastSignal: ISeriesApi<"Line">;
   biSolid: ISeriesApi<"Line">;
   biDashed: ISeriesApi<"Line">;
   clZs: ChanlunZhongshu;
@@ -185,6 +217,8 @@ type ChartHandles = {
   segSolid: ISeriesApi<"Line">;
   segDashed: ISeriesApi<"Line">;
   segZs: ChanlunZhongshu;
+  vp: VolumeProfileIndicator;
+  fvg: ChanlunZhongshu;
 };
 
 const READABLE_BAR_PX = 6; // min bar width before we scroll instead of squish
@@ -251,6 +285,27 @@ export function TechnicalsPriceChart({
       /* storage unavailable */
     }
   };
+  const [vpOn, setVpOn] = useState<boolean>(loadVolumeProfile);
+  const setVpPersist = (on: boolean) => {
+    setVpOn(on);
+    try {
+      localStorage.setItem(VOLUME_PROFILE_KEY, on ? "1" : "0");
+    } catch {
+      /* storage unavailable */
+    }
+  };
+  const [fvgOn, setFvgOn] = useState<boolean>(loadFvg);
+  const setFvgPersist = (on: boolean) => {
+    setFvgOn(on);
+    try {
+      localStorage.setItem(FVG_KEY, on ? "1" : "0");
+    } catch {
+      /* storage unavailable */
+    }
+  };
+  // Pushed up from the VP primitive whenever the visible range changes, so the
+  // readout and the signal marks always describe the bars actually drawn.
+  const [vpStats, setVpStats] = useState<VolumeProfileStats | null>(null);
   // Chanlun geometry over the FULL history (window-cut in the data pass, like
   // the other client-side indicators). Pure + deterministic, so memo on rows.
   // Chanlun bars over FULL history (window-cut in the data pass), hoisted so the
@@ -491,6 +546,35 @@ export function TechnicalsPriceChart({
     });
     price.attachPrimitive(segZs);
 
+    // Visible-range volume profile, pinned to the right edge of the price pane.
+    // Same "create always, feed empty while off" contract as the Chanlun layer.
+    const vp = new VolumeProfileIndicator({
+      buyColor: `${cssVar("--positive")}d9`,
+      sellColor: `${cssVar("--accent-vivid")}d9`,
+      pocColor: cssVar("--warning"),
+      supportColor: cssVar("--positive"),
+      resistanceColor: cssVar("--negative"),
+      // --text-secondary, not --text-muted: muted sat at the same value as the
+      // dotted grid and the LVN levels read as chart furniture.
+      lvnColor: `${cssVar("--text-secondary")}cc`,
+      lookback: VP_LOOKBACK,
+      // setVpStats is a stable useState setter, so the once-built primitive can
+      // hold it for the life of the chart.
+      onStats: setVpStats,
+    });
+    price.attachPrimitive(vp);
+
+    // Fair value gaps are time-bounded price rectangles — exactly what the
+    // zhongshu primitive already draws, so reuse it rather than clone 150 lines.
+    // Unrelated to volume: its own toggle, its own data.
+    const fvg = new ChanlunZhongshu({
+      // Faint: gaps overlap and each box runs to the right edge, so the fills
+      // compound where several stack.
+      fillColor: `${cssVar("--warning")}14`,
+      borderColor: `${cssVar("--warning")}66`,
+    });
+    price.attachPrimitive(fvg);
+
     // Dual MACD in pane index 1 (below price). Two histograms sharing one price
     // scale: the slow 55/89/34 is the structural background (accent-vol, ~50%
     // alpha) drawn first; the fast 13/21/9 is the sharp tactical bar on top, its
@@ -516,7 +600,33 @@ export function TechnicalsPriceChart({
       },
       1,
     );
-    // Both MACD series share pane 1's right scale — tighten its margins.
+    // The fast pair's own MACD and signal lines, on the same scale as its
+    // histogram (the histogram IS their difference, so they belong together).
+    // The lines say where the crossing sits relative to zero; the histogram
+    // only says how wide the gap is.
+    const macdFastLine = chart.addSeries(
+      LineSeries,
+      {
+        color: cssVar("--accent-vivid"),
+        lineWidth: 2,
+        priceLineVisible: false,
+        lastValueVisible: false,
+        crosshairMarkerVisible: false,
+      },
+      1,
+    );
+    const macdFastSignal = chart.addSeries(
+      LineSeries,
+      {
+        color: cssVar("--accent-warm"),
+        lineWidth: 1,
+        priceLineVisible: false,
+        lastValueVisible: false,
+        crosshairMarkerVisible: false,
+      },
+      1,
+    );
+    // All four MACD series share pane 1's right scale — tighten its margins.
     macdFast
       .priceScale()
       .applyOptions({ scaleMargins: { top: 0.12, bottom: 0.12 } });
@@ -545,6 +655,8 @@ export function TechnicalsPriceChart({
       volMarkers,
       macdSlow,
       macdFast,
+      macdFastLine,
+      macdFastSignal,
       biSolid,
       biDashed,
       clZs,
@@ -552,6 +664,8 @@ export function TechnicalsPriceChart({
       segSolid,
       segDashed,
       segZs,
+      vp,
+      fvg,
     };
     fitKeyRef.current = ""; // force a fitContent on the first data pass
 
@@ -765,6 +879,15 @@ export function TechnicalsPriceChart({
           : [],
       ),
     );
+    const macdLine = (key: "fast_macd_line_atr" | "fast_macd_signal_atr") =>
+      rows.flatMap((r) => {
+        const v = r[key];
+        return r.as_of != null && v != null
+          ? [{ time: r.as_of as Time, value: v }]
+          : [];
+      });
+    h.macdFastLine.setData(macdLine("fast_macd_line_atr"));
+    h.macdFastSignal.setData(macdLine("fast_macd_signal_atr"));
     // Chanlun overlay: geometry precomputed over `full`, cut to the window
     // here. The dashed tail restarts at the last confirmed vertex so the two
     // polylines connect.
@@ -863,6 +986,55 @@ export function TechnicalsPriceChart({
       h.segZs.setRects([]);
       h.clMarkers.setMarkers([]);
     }
+    // Volume profile gets the whole window; it re-bins itself to whatever slice
+    // is on screen, so panning/zooming updates it without a data pass.
+    // `full`, not `rows`: the profile window is VP_LOOKBACK sessions regardless
+    // of the timeframe selector, so the levels stay put when you switch 3M/1Y/
+    // FULL. Feeding the windowed rows would silently shrink the profile to ~63
+    // bars on 3M — back in the noisy, high-churn regime the study rejected.
+    h.vp.setBars(
+      vpOn && candleMode
+        ? full.flatMap((r) =>
+            r.as_of != null &&
+            r.open != null &&
+            r.high != null &&
+            r.low != null &&
+            r.close != null &&
+            r.volume != null
+              ? [
+                  {
+                    time: r.as_of as Time,
+                    open: r.open,
+                    high: r.high,
+                    low: r.low,
+                    close: r.close,
+                    volume: r.volume,
+                  },
+                ]
+              : [],
+          )
+        : [],
+    );
+    // Unfilled fair value gaps, drawn from the gap bar to the right edge.
+    const lastTime = rows[rows.length - 1]?.as_of;
+    if (fvgOn && candleMode && lastTime) {
+      const fvgBars = rows.flatMap((r) =>
+        r.as_of != null && r.high != null && r.low != null
+          ? [{ time: r.as_of, high: r.high, low: r.low }]
+          : [],
+      );
+      h.fvg.setRects(
+        findFairValueGaps(fvgBars).map((g) => ({
+          start: g.time as Time,
+          end: lastTime as Time,
+          zg: g.top,
+          zd: g.bottom,
+          confirmed: true, // solid border; an unfilled gap is not provisional
+        })),
+      );
+    } else {
+      h.fvg.setRects([]);
+    }
     // Fit on ticker or window-start change only — a live head append (length
     // change, same first bar) must not reset the user's zoom.
     const fitKey = `${ticker}:${candleMode}:${firstAsOf}`;
@@ -886,7 +1058,18 @@ export function TechnicalsPriceChart({
         volMaByTimeRef.current.get(lastRow.as_of),
       );
     }
-  }, [rows, full, ticker, candleMode, anchor, mode, chanlunGeo, clBars]);
+  }, [
+    rows,
+    full,
+    ticker,
+    candleMode,
+    anchor,
+    mode,
+    chanlunGeo,
+    clBars,
+    vpOn,
+    fvgOn,
+  ]);
 
   const clearAnchor = () => {
     setAnchor(null);
@@ -987,6 +1170,50 @@ export function TechnicalsPriceChart({
           }}
         >
           Zen
+        </button>
+      )}
+      {candleMode && (
+        <button
+          type="button"
+          onClick={() => setVpPersist(!vpOn)}
+          aria-pressed={vpOn}
+          data-testid="volume-profile-toggle"
+          title="Visible-range volume profile — buy/sell by price, POC"
+          style={{
+            fontFamily: "var(--font-mono)",
+            fontSize: 10,
+            letterSpacing: 1,
+            color: vpOn ? "var(--text-primary)" : "var(--text-muted)",
+            background: vpOn ? "var(--bg-panel-raised)" : "transparent",
+            border: "1px solid var(--border-dim)",
+            borderRadius: 4,
+            padding: "2px 7px",
+            cursor: "pointer",
+          }}
+        >
+          VP
+        </button>
+      )}
+      {candleMode && (
+        <button
+          type="button"
+          onClick={() => setFvgPersist(!fvgOn)}
+          aria-pressed={fvgOn}
+          data-testid="fvg-toggle"
+          title="Fair value gaps — unfilled 3-bar imbalances"
+          style={{
+            fontFamily: "var(--font-mono)",
+            fontSize: 10,
+            letterSpacing: 1,
+            color: fvgOn ? "var(--text-primary)" : "var(--text-muted)",
+            background: fvgOn ? "var(--bg-panel-raised)" : "transparent",
+            border: "1px solid var(--border-dim)",
+            borderRadius: 4,
+            padding: "2px 7px",
+            cursor: "pointer",
+          }}
+        >
+          FVG
         </button>
       )}
       <button
@@ -1101,6 +1328,53 @@ export function TechnicalsPriceChart({
           repaint-prone (24–34%). Not a trade signal. The 200-DMA is
           corporate-action-unadjusted, so the trend split is unreliable for ~200
           sessions after a stock split.
+        </div>
+      )}
+      {vpOn && candleMode && <VolumeProfileStatsPanel stats={vpStats} />}
+      {vpOn && candleMode && (
+        <div
+          style={{
+            fontSize: 11,
+            color: "var(--text-muted)",
+            marginTop: 6,
+            lineHeight: 1.55,
+          }}
+        >
+          VP: volume traded at each price over the last{" "}
+          <strong>{VP_LOOKBACK} sessions</strong> — a fixed window, so panning
+          and zooming never move these levels. Green hugs the axis (bars that
+          closed up), violet stacks outside it (closed down); bar length is
+          share of the busiest price. Full-opacity rows are the 70% value area,
+          faded rows are the tails. Amber line = POC, the single most-traded
+          price. Green/red bands are high-volume shelves read as support (below
+          spot) or resistance (above), labelled with strength as a % of the POC
+          and ×N retests; gray dashed lines are low-volume nodes — prices the
+          market travelled through rather than accepted. Each bar spreads its
+          volume evenly across its own high–low, so this is where-it-traded, not
+          an order book. Descriptive structure only: a 20-year test across six
+          names found <em>no</em> forward-return edge at these zones on either
+          side, so treat a shelf as context for where price has been accepted,
+          never as a reason to trade. Why 360 and not longer: stability keeps
+          improving out to 5 years, but by then the POC sits 35–92% below spot —
+          steady because it describes a market that no longer exists (
+          <code>docs/research/2026-07-20-volume-profile-window-study.md</code>).
+        </div>
+      )}
+      {fvgOn && candleMode && (
+        <div
+          style={{
+            fontSize: 11,
+            color: "var(--text-muted)",
+            marginTop: 6,
+            lineHeight: 1.55,
+          }}
+        >
+          FVG: amber boxes are unfilled fair value gaps — three-bar imbalances
+          where the middle bar ran far enough that the prior bar&apos;s high sat
+          below the next bar&apos;s low (or the mirror), leaving a price band
+          untraded. Only gaps no later bar has re-entered are drawn; each
+          extends to the right edge. Price action, not volume — independent of
+          the VP toggle.
         </div>
       )}
       <MacdLegend signal={macd} />

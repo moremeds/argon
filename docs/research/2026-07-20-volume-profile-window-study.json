@@ -1,0 +1,1128 @@
+{
+  "meta": {
+    "generated_for": "volume-profile window choice",
+    "source": "http://100.66.147.98:8322/bars/{ticker}?timeframe=1d&limit=5000",
+    "tickers": [
+      "SPY",
+      "QQQ",
+      "IWM",
+      "AAPL",
+      "NVDA",
+      "MSFT"
+    ],
+    "bins": 60,
+    "valuePct": 70,
+    "windows": [
+      60,
+      120,
+      250,
+      360,
+      500,
+      750,
+      1000,
+      1260,
+      2000
+    ],
+    "stride": 5,
+    "fwdSessions": 5,
+    "reproduce": "cd web && npx tsx ../scripts/research/volume_profile_window_study.mts",
+    "note": "Imports the shipped web/lib/volumeProfile.ts. All levels strictly point-in-time (bars <= t)."
+  },
+  "perTicker": {
+    "SPY": {
+      "bars": 5000,
+      "range": [
+        "2006-08-29",
+        "2026-07-17"
+      ],
+      "panSensitivity": {
+        "pocSpreadAtrMedian": 11.443190997425429,
+        "pocSpreadAtrP90": 31.171279734562233,
+        "nearestSupSpreadAtrMedian": 4.874728513700785,
+        "n": 210
+      },
+      "byWindow": {
+        "60": {
+          "churn": {
+            "pocMoveAtrMedian": 0,
+            "pocMoveAtrP90": 0.41706525347280043,
+            "markChurnMean": 0.4393152263160198,
+            "markChurnP90": 1,
+            "n": 4199
+          },
+          "efficacy": {
+            "supportRealMeanBp": 33.98833050978816,
+            "supportPlaceboMeanBp": 29.17662288246739,
+            "supportN": 476,
+            "resistanceRealMeanBp": 38.358784966344984,
+            "resistancePlaceboMeanBp": 39.65931397587564,
+            "resistanceN": 337
+          }
+        },
+        "120": {
+          "churn": {
+            "pocMoveAtrMedian": 0,
+            "pocMoveAtrP90": 0.26106788521668833,
+            "markChurnMean": 0.3495202009285586,
+            "markChurnP90": 1,
+            "n": 4199
+          },
+          "efficacy": {
+            "supportRealMeanBp": 59.107245492524655,
+            "supportPlaceboMeanBp": 35.495296823814606,
+            "supportN": 414,
+            "resistanceRealMeanBp": 26.798953278579194,
+            "resistancePlaceboMeanBp": 28.53418355205606,
+            "resistanceN": 311
+          }
+        },
+        "250": {
+          "churn": {
+            "pocMoveAtrMedian": 0,
+            "pocMoveAtrP90": 0.27990883041067094,
+            "markChurnMean": 0.2769590012782928,
+            "markChurnP90": 1,
+            "n": 4199
+          },
+          "efficacy": {
+            "supportRealMeanBp": 44.15110481641977,
+            "supportPlaceboMeanBp": 30.511857433304044,
+            "supportN": 302,
+            "resistanceRealMeanBp": 11.475516335369647,
+            "resistancePlaceboMeanBp": 17.125394343529376,
+            "resistanceN": 230
+          }
+        },
+        "360": {
+          "churn": {
+            "pocMoveAtrMedian": 0,
+            "pocMoveAtrP90": 0.2783786088153843,
+            "markChurnMean": 0.24529921994204126,
+            "markChurnP90": 1,
+            "n": 4199
+          },
+          "efficacy": {
+            "supportRealMeanBp": 57.71441505977113,
+            "supportPlaceboMeanBp": 13.130798263014112,
+            "supportN": 247,
+            "resistanceRealMeanBp": 17.62148606569864,
+            "resistancePlaceboMeanBp": 25.48244821144217,
+            "resistanceN": 190
+          }
+        },
+        "500": {
+          "churn": {
+            "pocMoveAtrMedian": 0,
+            "pocMoveAtrP90": 0.21734716882274568,
+            "markChurnMean": 0.22386638097636918,
+            "markChurnP90": 1,
+            "n": 4199
+          },
+          "efficacy": {
+            "supportRealMeanBp": 86.63990345082617,
+            "supportPlaceboMeanBp": 33.34679406672691,
+            "supportN": 206,
+            "resistanceRealMeanBp": 6.037841831406776,
+            "resistancePlaceboMeanBp": 5.328364347336424,
+            "resistanceN": 173
+          }
+        },
+        "750": {
+          "churn": {
+            "pocMoveAtrMedian": 0,
+            "pocMoveAtrP90": 0.15528058134854306,
+            "markChurnMean": 0.15901417608088553,
+            "markChurnP90": 0.8804705882352948,
+            "n": 4199
+          },
+          "efficacy": {
+            "supportRealMeanBp": 40.20298384974531,
+            "supportPlaceboMeanBp": 52.31260898039081,
+            "supportN": 138,
+            "resistanceRealMeanBp": 43.8623301932958,
+            "resistancePlaceboMeanBp": 32.20547763866417,
+            "resistanceN": 99
+          }
+        },
+        "1000": {
+          "churn": {
+            "pocMoveAtrMedian": 0,
+            "pocMoveAtrP90": 0.1402479707456412,
+            "markChurnMean": 0.10073636491029683,
+            "markChurnP90": 0.4774703557312256,
+            "n": 3999
+          },
+          "efficacy": {
+            "supportRealMeanBp": -4.345518237013398,
+            "supportPlaceboMeanBp": -37.34439520430737,
+            "supportN": 92,
+            "resistanceRealMeanBp": 12.471976993932858,
+            "resistancePlaceboMeanBp": -30.28559653944116,
+            "resistanceN": 77
+          }
+        },
+        "1260": {
+          "churn": {
+            "pocMoveAtrMedian": 0,
+            "pocMoveAtrP90": 0.17420795424421617,
+            "markChurnMean": 0.05837718000518439,
+            "markChurnP90": 0.02702702702702703,
+            "n": 3739
+          },
+          "efficacy": {
+            "supportRealMeanBp": 44.88936181972737,
+            "supportPlaceboMeanBp": 103.03134242622183,
+            "supportN": 44,
+            "resistanceRealMeanBp": 47.3447268004692,
+            "resistancePlaceboMeanBp": 17.91248506385116,
+            "resistanceN": 35
+          }
+        },
+        "2000": {
+          "churn": {
+            "pocMoveAtrMedian": 0,
+            "pocMoveAtrP90": 0.08127883381254374,
+            "markChurnMean": 0.035891174927510046,
+            "markChurnP90": 0,
+            "n": 2999
+          },
+          "efficacy": {
+            "supportRealMeanBp": 279.4237553780122,
+            "supportPlaceboMeanBp": 323.3651555259928,
+            "supportN": 3,
+            "resistanceRealMeanBp": 231.043326297633,
+            "resistancePlaceboMeanBp": 166.1088759493872,
+            "resistanceN": 4
+          }
+        }
+      }
+    },
+    "QQQ": {
+      "bars": 5000,
+      "range": [
+        "2006-08-30",
+        "2026-07-17"
+      ],
+      "panSensitivity": {
+        "pocSpreadAtrMedian": 13.47931677228567,
+        "pocSpreadAtrP90": 27.033727061481844,
+        "nearestSupSpreadAtrMedian": 4.311598154013139,
+        "n": 210
+      },
+      "byWindow": {
+        "60": {
+          "churn": {
+            "pocMoveAtrMedian": 0,
+            "pocMoveAtrP90": 0.38975139527030783,
+            "markChurnMean": 0.4414814612825343,
+            "markChurnP90": 1,
+            "n": 4199
+          },
+          "efficacy": {
+            "supportRealMeanBp": 40.9828827153787,
+            "supportPlaceboMeanBp": 35.59577466220494,
+            "supportN": 486,
+            "resistanceRealMeanBp": 43.887702885123154,
+            "resistancePlaceboMeanBp": 31.010248549001332,
+            "resistanceN": 346
+          }
+        },
+        "120": {
+          "churn": {
+            "pocMoveAtrMedian": 0,
+            "pocMoveAtrP90": 0.31109359485498933,
+            "markChurnMean": 0.35477398809159766,
+            "markChurnP90": 1,
+            "n": 4199
+          },
+          "efficacy": {
+            "supportRealMeanBp": 62.082873938094274,
+            "supportPlaceboMeanBp": 56.798228165908384,
+            "supportN": 404,
+            "resistanceRealMeanBp": 42.450214361556945,
+            "resistancePlaceboMeanBp": 40.15873589727862,
+            "resistanceN": 316
+          }
+        },
+        "250": {
+          "churn": {
+            "pocMoveAtrMedian": 0,
+            "pocMoveAtrP90": 0.23107228844669225,
+            "markChurnMean": 0.26873499284546276,
+            "markChurnP90": 1,
+            "n": 4199
+          },
+          "efficacy": {
+            "supportRealMeanBp": 52.66020176178873,
+            "supportPlaceboMeanBp": 47.288037176801275,
+            "supportN": 289,
+            "resistanceRealMeanBp": 61.19811331843511,
+            "resistancePlaceboMeanBp": 45.66218238509427,
+            "resistanceN": 241
+          }
+        },
+        "360": {
+          "churn": {
+            "pocMoveAtrMedian": 0,
+            "pocMoveAtrP90": 0.2796808505308376,
+            "markChurnMean": 0.2311148755615455,
+            "markChurnP90": 1,
+            "n": 4199
+          },
+          "efficacy": {
+            "supportRealMeanBp": 75.44876684581438,
+            "supportPlaceboMeanBp": 83.82991875132683,
+            "supportN": 241,
+            "resistanceRealMeanBp": 75.49317925570689,
+            "resistancePlaceboMeanBp": 74.12511083330484,
+            "resistanceN": 188
+          }
+        },
+        "500": {
+          "churn": {
+            "pocMoveAtrMedian": 0,
+            "pocMoveAtrP90": 0.20266187648643963,
+            "markChurnMean": 0.19816592919624063,
+            "markChurnP90": 0.9773737373737376,
+            "n": 4199
+          },
+          "efficacy": {
+            "supportRealMeanBp": 23.52510469453361,
+            "supportPlaceboMeanBp": 42.570559710001326,
+            "supportN": 180,
+            "resistanceRealMeanBp": 69.79497751349331,
+            "resistancePlaceboMeanBp": 54.01281626861084,
+            "resistanceN": 169
+          }
+        },
+        "750": {
+          "churn": {
+            "pocMoveAtrMedian": 0,
+            "pocMoveAtrP90": 0.20128092068467132,
+            "markChurnMean": 0.1655281134267911,
+            "markChurnP90": 0.875,
+            "n": 4199
+          },
+          "efficacy": {
+            "supportRealMeanBp": 49.502941636858196,
+            "supportPlaceboMeanBp": 43.589990624928866,
+            "supportN": 131,
+            "resistanceRealMeanBp": 59.490949038622865,
+            "resistancePlaceboMeanBp": 49.11699560058536,
+            "resistanceN": 107
+          }
+        },
+        "1000": {
+          "churn": {
+            "pocMoveAtrMedian": 0,
+            "pocMoveAtrP90": 0.1836703868583192,
+            "markChurnMean": 0.09993792711698408,
+            "markChurnP90": 0.45454545454545453,
+            "n": 3999
+          },
+          "efficacy": {
+            "supportRealMeanBp": 56.05161826723527,
+            "supportPlaceboMeanBp": -58.66924682599973,
+            "supportN": 61,
+            "resistanceRealMeanBp": 98.71865205650892,
+            "resistancePlaceboMeanBp": 77.90695540187346,
+            "resistanceN": 61
+          }
+        },
+        "1260": {
+          "churn": {
+            "pocMoveAtrMedian": 0,
+            "pocMoveAtrP90": 0.12473080146589816,
+            "markChurnMean": 0.06834377669028821,
+            "markChurnP90": 0.08333333333333333,
+            "n": 3739
+          },
+          "efficacy": {
+            "supportRealMeanBp": 208.73526934873263,
+            "supportPlaceboMeanBp": -6.384856491153111,
+            "supportN": 34,
+            "resistanceRealMeanBp": 119.31920156373825,
+            "resistancePlaceboMeanBp": 119.24603127601999,
+            "resistanceN": 39
+          }
+        },
+        "2000": {
+          "churn": {
+            "pocMoveAtrMedian": 0,
+            "pocMoveAtrP90": 0.06219624954470387,
+            "markChurnMean": 0.03454615276526597,
+            "markChurnP90": 0,
+            "n": 2999
+          },
+          "efficacy": {
+            "supportRealMeanBp": 74.06131103207014,
+            "supportPlaceboMeanBp": -104.83547889141373,
+            "supportN": 12,
+            "resistanceRealMeanBp": 254.42882155484128,
+            "resistancePlaceboMeanBp": 187.78064168635808,
+            "resistanceN": 15
+          }
+        }
+      }
+    },
+    "IWM": {
+      "bars": 5000,
+      "range": [
+        "2006-08-29",
+        "2026-07-17"
+      ],
+      "panSensitivity": {
+        "pocSpreadAtrMedian": 6.676255708059354,
+        "pocSpreadAtrP90": 18.866620481990996,
+        "nearestSupSpreadAtrMedian": 2.6198121048672025,
+        "n": 210
+      },
+      "byWindow": {
+        "60": {
+          "churn": {
+            "pocMoveAtrMedian": 0,
+            "pocMoveAtrP90": 0.2637198881941732,
+            "markChurnMean": 0.4408997428466036,
+            "markChurnP90": 1,
+            "n": 4199
+          },
+          "efficacy": {
+            "supportRealMeanBp": 50.27212450492724,
+            "supportPlaceboMeanBp": 38.20963969115528,
+            "supportN": 504,
+            "resistanceRealMeanBp": 46.384356953917404,
+            "resistancePlaceboMeanBp": 46.46417550863986,
+            "resistanceN": 389
+          }
+        },
+        "120": {
+          "churn": {
+            "pocMoveAtrMedian": 0,
+            "pocMoveAtrP90": 0.1899138539988464,
+            "markChurnMean": 0.34198450844447303,
+            "markChurnP90": 1,
+            "n": 4199
+          },
+          "efficacy": {
+            "supportRealMeanBp": 56.40349914198525,
+            "supportPlaceboMeanBp": 62.49213583859959,
+            "supportN": 418,
+            "resistanceRealMeanBp": 56.95549451191686,
+            "resistancePlaceboMeanBp": 49.35039331302985,
+            "resistanceN": 346
+          }
+        },
+        "250": {
+          "churn": {
+            "pocMoveAtrMedian": 0,
+            "pocMoveAtrP90": 0.14499139934578795,
+            "markChurnMean": 0.25218871127533155,
+            "markChurnP90": 1,
+            "n": 4199
+          },
+          "efficacy": {
+            "supportRealMeanBp": 49.364511911059076,
+            "supportPlaceboMeanBp": 33.12586373478405,
+            "supportN": 362,
+            "resistanceRealMeanBp": 42.85322161892849,
+            "resistancePlaceboMeanBp": 42.49711772030867,
+            "resistanceN": 292
+          }
+        },
+        "360": {
+          "churn": {
+            "pocMoveAtrMedian": 0,
+            "pocMoveAtrP90": 0.07271843610327108,
+            "markChurnMean": 0.19768499558725733,
+            "markChurnP90": 1,
+            "n": 4199
+          },
+          "efficacy": {
+            "supportRealMeanBp": 43.0946544854798,
+            "supportPlaceboMeanBp": 27.50121092034392,
+            "supportN": 314,
+            "resistanceRealMeanBp": 33.97815436612787,
+            "resistancePlaceboMeanBp": 27.891946574985337,
+            "resistanceN": 244
+          }
+        },
+        "500": {
+          "churn": {
+            "pocMoveAtrMedian": 0,
+            "pocMoveAtrP90": 0.06647169013462152,
+            "markChurnMean": 0.17888785346646627,
+            "markChurnP90": 1,
+            "n": 4199
+          },
+          "efficacy": {
+            "supportRealMeanBp": 49.52440065821433,
+            "supportPlaceboMeanBp": 44.9799826408574,
+            "supportN": 278,
+            "resistanceRealMeanBp": 27.208705011111217,
+            "resistancePlaceboMeanBp": 48.74686700007309,
+            "resistanceN": 213
+          }
+        },
+        "750": {
+          "churn": {
+            "pocMoveAtrMedian": 0,
+            "pocMoveAtrP90": 0.024079586414043553,
+            "markChurnMean": 0.13609690384433118,
+            "markChurnP90": 0.8381884944920455,
+            "n": 4199
+          },
+          "efficacy": {
+            "supportRealMeanBp": 12.9165338220001,
+            "supportPlaceboMeanBp": 74.71775682282018,
+            "supportN": 194,
+            "resistanceRealMeanBp": -1.6839431984963715,
+            "resistancePlaceboMeanBp": 25.133507199494804,
+            "resistanceN": 168
+          }
+        },
+        "1000": {
+          "churn": {
+            "pocMoveAtrMedian": 0,
+            "pocMoveAtrP90": 0,
+            "markChurnMean": 0.10724699603992587,
+            "markChurnP90": 0.5827633378932987,
+            "n": 3999
+          },
+          "efficacy": {
+            "supportRealMeanBp": 5.914800722950458,
+            "supportPlaceboMeanBp": 6.765996074354859,
+            "supportN": 139,
+            "resistanceRealMeanBp": 14.96271036312917,
+            "resistancePlaceboMeanBp": 38.44874962656299,
+            "resistanceN": 128
+          }
+        },
+        "1260": {
+          "churn": {
+            "pocMoveAtrMedian": 0,
+            "pocMoveAtrP90": 0,
+            "markChurnMean": 0.08884976614559244,
+            "markChurnP90": 0.2,
+            "n": 3739
+          },
+          "efficacy": {
+            "supportRealMeanBp": -54.173762166479946,
+            "supportPlaceboMeanBp": -68.33207031228329,
+            "supportN": 100,
+            "resistanceRealMeanBp": -6.0479296489625405,
+            "resistancePlaceboMeanBp": -1.8747150499961507,
+            "resistanceN": 87
+          }
+        },
+        "2000": {
+          "churn": {
+            "pocMoveAtrMedian": 0,
+            "pocMoveAtrP90": 0,
+            "markChurnMean": 0.048047520127761555,
+            "markChurnP90": 0,
+            "n": 2999
+          },
+          "efficacy": {
+            "supportRealMeanBp": 15.885767487662788,
+            "supportPlaceboMeanBp": 133.96596838697826,
+            "supportN": 47,
+            "resistanceRealMeanBp": 145.95220629040244,
+            "resistancePlaceboMeanBp": 68.67812004818276,
+            "resistanceN": 36
+          }
+        }
+      }
+    },
+    "AAPL": {
+      "bars": 5000,
+      "range": [
+        "2006-08-30",
+        "2026-07-17"
+      ],
+      "panSensitivity": {
+        "pocSpreadAtrMedian": 13.579106051854167,
+        "pocSpreadAtrP90": 28.01912073289541,
+        "nearestSupSpreadAtrMedian": 4.666611659161212,
+        "n": 210
+      },
+      "byWindow": {
+        "60": {
+          "churn": {
+            "pocMoveAtrMedian": 0,
+            "pocMoveAtrP90": 0.363867986421647,
+            "markChurnMean": 0.42834715329795964,
+            "markChurnP90": 1,
+            "n": 4199
+          },
+          "efficacy": {
+            "supportRealMeanBp": 25.90087576921063,
+            "supportPlaceboMeanBp": 16.962626264761603,
+            "supportN": 418,
+            "resistanceRealMeanBp": 52.905257707410584,
+            "resistancePlaceboMeanBp": 47.23065433175287,
+            "resistanceN": 398
+          }
+        },
+        "120": {
+          "churn": {
+            "pocMoveAtrMedian": 0,
+            "pocMoveAtrP90": 0.23856080886525063,
+            "markChurnMean": 0.33284188209315857,
+            "markChurnP90": 1,
+            "n": 4199
+          },
+          "efficacy": {
+            "supportRealMeanBp": 42.63346030107537,
+            "supportPlaceboMeanBp": 16.145267230924368,
+            "supportN": 361,
+            "resistanceRealMeanBp": 90.00207026336119,
+            "resistancePlaceboMeanBp": 71.88498219779288,
+            "resistanceN": 343
+          }
+        },
+        "250": {
+          "churn": {
+            "pocMoveAtrMedian": 0,
+            "pocMoveAtrP90": 0.20796259581916263,
+            "markChurnMean": 0.23998768281613475,
+            "markChurnP90": 1,
+            "n": 4199
+          },
+          "efficacy": {
+            "supportRealMeanBp": 44.68564759160224,
+            "supportPlaceboMeanBp": 14.15187375955514,
+            "supportN": 265,
+            "resistanceRealMeanBp": 75.22164299785008,
+            "resistancePlaceboMeanBp": 51.083511884101874,
+            "resistanceN": 254
+          }
+        },
+        "360": {
+          "churn": {
+            "pocMoveAtrMedian": 0,
+            "pocMoveAtrP90": 0.20652292728482669,
+            "markChurnMean": 0.20931678016996114,
+            "markChurnP90": 1,
+            "n": 4199
+          },
+          "efficacy": {
+            "supportRealMeanBp": 60.5724545175458,
+            "supportPlaceboMeanBp": 36.345002543488626,
+            "supportN": 222,
+            "resistanceRealMeanBp": 56.02721079751115,
+            "resistancePlaceboMeanBp": 30.233639454334455,
+            "resistanceN": 230
+          }
+        },
+        "500": {
+          "churn": {
+            "pocMoveAtrMedian": 0,
+            "pocMoveAtrP90": 0.15006793292355203,
+            "markChurnMean": 0.1722114651962925,
+            "markChurnP90": 0.9528138528138533,
+            "n": 4199
+          },
+          "efficacy": {
+            "supportRealMeanBp": 83.0484182706618,
+            "supportPlaceboMeanBp": 63.26852971404739,
+            "supportN": 170,
+            "resistanceRealMeanBp": 33.55163202860679,
+            "resistancePlaceboMeanBp": 21.311884621808623,
+            "resistanceN": 169
+          }
+        },
+        "750": {
+          "churn": {
+            "pocMoveAtrMedian": 0,
+            "pocMoveAtrP90": 0.1084115277939762,
+            "markChurnMean": 0.11710783845813834,
+            "markChurnP90": 0.6325358851674654,
+            "n": 4199
+          },
+          "efficacy": {
+            "supportRealMeanBp": 116.5420688584414,
+            "supportPlaceboMeanBp": 130.19254349233753,
+            "supportN": 87,
+            "resistanceRealMeanBp": 130.24274043605539,
+            "resistancePlaceboMeanBp": 81.62004843393939,
+            "resistanceN": 96
+          }
+        },
+        "1000": {
+          "churn": {
+            "pocMoveAtrMedian": 0,
+            "pocMoveAtrP90": 0.059951138170304556,
+            "markChurnMean": 0.06438113652619537,
+            "markChurnP90": 0.07692307692307693,
+            "n": 3999
+          },
+          "efficacy": {
+            "supportRealMeanBp": 329.1715524664636,
+            "supportPlaceboMeanBp": 234.79555618857225,
+            "supportN": 40,
+            "resistanceRealMeanBp": 116.3457290699455,
+            "resistancePlaceboMeanBp": 71.32289265067374,
+            "resistanceN": 29
+          }
+        },
+        "1260": {
+          "churn": {
+            "pocMoveAtrMedian": 0,
+            "pocMoveAtrP90": 0.05969615786167759,
+            "markChurnMean": 0.04054569118361711,
+            "markChurnP90": 0,
+            "n": 3739
+          },
+          "efficacy": {
+            "supportRealMeanBp": 513.7284818621023,
+            "supportPlaceboMeanBp": 290.0882571174455,
+            "supportN": 17,
+            "resistanceRealMeanBp": 228.44391798686252,
+            "resistancePlaceboMeanBp": 127.35033974417826,
+            "resistanceN": 15
+          }
+        },
+        "2000": {
+          "churn": {
+            "pocMoveAtrMedian": 0,
+            "pocMoveAtrP90": 0.028374712128323615,
+            "markChurnMean": 0.0008336112037345782,
+            "markChurnP90": 0,
+            "n": 2999
+          },
+          "efficacy": {
+            "supportRealMeanBp": null,
+            "supportPlaceboMeanBp": null,
+            "supportN": 0,
+            "resistanceRealMeanBp": null,
+            "resistancePlaceboMeanBp": null,
+            "resistanceN": 0
+          }
+        }
+      }
+    },
+    "NVDA": {
+      "bars": 5000,
+      "range": [
+        "2006-08-30",
+        "2026-07-17"
+      ],
+      "panSensitivity": {
+        "pocSpreadAtrMedian": 10.697751469212694,
+        "pocSpreadAtrP90": 22.436814060209297,
+        "nearestSupSpreadAtrMedian": 5.515999999999999,
+        "n": 210
+      },
+      "byWindow": {
+        "60": {
+          "churn": {
+            "pocMoveAtrMedian": 0,
+            "pocMoveAtrP90": 0.1897857181157938,
+            "markChurnMean": 0.37880927324099023,
+            "markChurnP90": 1,
+            "n": 4199
+          },
+          "efficacy": {
+            "supportRealMeanBp": 114.43151615074738,
+            "supportPlaceboMeanBp": 136.59440249050942,
+            "supportN": 429,
+            "resistanceRealMeanBp": 81.40022211561273,
+            "resistancePlaceboMeanBp": 9.067998196840907,
+            "resistanceN": 388
+          }
+        },
+        "120": {
+          "churn": {
+            "pocMoveAtrMedian": 0,
+            "pocMoveAtrP90": 0.15848916957092926,
+            "markChurnMean": 0.28986152762738254,
+            "markChurnP90": 1,
+            "n": 4199
+          },
+          "efficacy": {
+            "supportRealMeanBp": 185.6891399055484,
+            "supportPlaceboMeanBp": 172.89806385871793,
+            "supportN": 363,
+            "resistanceRealMeanBp": 120.88398148846274,
+            "resistancePlaceboMeanBp": 66.88647307979535,
+            "resistanceN": 302
+          }
+        },
+        "250": {
+          "churn": {
+            "pocMoveAtrMedian": 0,
+            "pocMoveAtrP90": 0.15930085087053603,
+            "markChurnMean": 0.2043008314531974,
+            "markChurnP90": 1,
+            "n": 4199
+          },
+          "efficacy": {
+            "supportRealMeanBp": 188.03616677101078,
+            "supportPlaceboMeanBp": 132.21857810849417,
+            "supportN": 234,
+            "resistanceRealMeanBp": 84.20753402258745,
+            "resistancePlaceboMeanBp": 97.63110180606482,
+            "resistanceN": 210
+          }
+        },
+        "360": {
+          "churn": {
+            "pocMoveAtrMedian": 0,
+            "pocMoveAtrP90": 0.09599356367135753,
+            "markChurnMean": 0.17340905137656,
+            "markChurnP90": 0.993043478260872,
+            "n": 4199
+          },
+          "efficacy": {
+            "supportRealMeanBp": 112.9815962287546,
+            "supportPlaceboMeanBp": 123.11427041898389,
+            "supportN": 211,
+            "resistanceRealMeanBp": 118.01487199442298,
+            "resistancePlaceboMeanBp": 145.67418938244626,
+            "resistanceN": 164
+          }
+        },
+        "500": {
+          "churn": {
+            "pocMoveAtrMedian": 0,
+            "pocMoveAtrP90": 0.05629089970393947,
+            "markChurnMean": 0.12801658095044868,
+            "markChurnP90": 0.7647058823529411,
+            "n": 4199
+          },
+          "efficacy": {
+            "supportRealMeanBp": 46.91532417728168,
+            "supportPlaceboMeanBp": 106.15462556596395,
+            "supportN": 167,
+            "resistanceRealMeanBp": 160.43784279510712,
+            "resistancePlaceboMeanBp": 49.33765347578372,
+            "resistanceN": 146
+          }
+        },
+        "750": {
+          "churn": {
+            "pocMoveAtrMedian": 0,
+            "pocMoveAtrP90": 0.023577151729395163,
+            "markChurnMean": 0.08789034016219276,
+            "markChurnP90": 0.25,
+            "n": 4199
+          },
+          "efficacy": {
+            "supportRealMeanBp": 29.918933352726505,
+            "supportPlaceboMeanBp": 67.27891944331378,
+            "supportN": 106,
+            "resistanceRealMeanBp": -58.49354987690547,
+            "resistancePlaceboMeanBp": -29.936499907809328,
+            "resistanceN": 72
+          }
+        },
+        "1000": {
+          "churn": {
+            "pocMoveAtrMedian": 0,
+            "pocMoveAtrP90": 0.010941022472586576,
+            "markChurnMean": 0.04933541566352548,
+            "markChurnP90": 0,
+            "n": 3999
+          },
+          "efficacy": {
+            "supportRealMeanBp": 80.79726197348249,
+            "supportPlaceboMeanBp": 144.365358228792,
+            "supportN": 72,
+            "resistanceRealMeanBp": 172.2843620390788,
+            "resistancePlaceboMeanBp": 283.72995341924934,
+            "resistanceN": 49
+          }
+        },
+        "1260": {
+          "churn": {
+            "pocMoveAtrMedian": 0,
+            "pocMoveAtrP90": 0.007622020298049573,
+            "markChurnMean": 0.035936296925930845,
+            "markChurnP90": 0,
+            "n": 3739
+          },
+          "efficacy": {
+            "supportRealMeanBp": 110.01866648538892,
+            "supportPlaceboMeanBp": 65.1589507942725,
+            "supportN": 28,
+            "resistanceRealMeanBp": -26.396389488598324,
+            "resistancePlaceboMeanBp": -97.30948710532464,
+            "resistanceN": 47
+          }
+        },
+        "2000": {
+          "churn": {
+            "pocMoveAtrMedian": 0,
+            "pocMoveAtrP90": 0.0035120600498976073,
+            "markChurnMean": 0.00434627634498856,
+            "markChurnP90": 0,
+            "n": 2999
+          },
+          "efficacy": {
+            "supportRealMeanBp": 72.46376811594193,
+            "supportPlaceboMeanBp": 108.69565217391289,
+            "supportN": 3,
+            "resistanceRealMeanBp": 217.39130434782578,
+            "resistancePlaceboMeanBp": 217.39130434782578,
+            "resistanceN": 2
+          }
+        }
+      }
+    },
+    "MSFT": {
+      "bars": 5000,
+      "range": [
+        "2006-08-30",
+        "2026-07-17"
+      ],
+      "panSensitivity": {
+        "pocSpreadAtrMedian": 11.839349691050039,
+        "pocSpreadAtrP90": 23.722522041391777,
+        "nearestSupSpreadAtrMedian": 4.45894667664272,
+        "n": 210
+      },
+      "byWindow": {
+        "60": {
+          "churn": {
+            "pocMoveAtrMedian": 0,
+            "pocMoveAtrP90": 0.217742683061332,
+            "markChurnMean": 0.41506318001943443,
+            "markChurnP90": 1,
+            "n": 4199
+          },
+          "efficacy": {
+            "supportRealMeanBp": 62.877513429541274,
+            "supportPlaceboMeanBp": 54.7740045397262,
+            "supportN": 451,
+            "resistanceRealMeanBp": 21.709592948700656,
+            "resistancePlaceboMeanBp": 12.329933027101893,
+            "resistanceN": 396
+          }
+        },
+        "120": {
+          "churn": {
+            "pocMoveAtrMedian": 0,
+            "pocMoveAtrP90": 0.1530987086691761,
+            "markChurnMean": 0.33125248565344184,
+            "markChurnP90": 1,
+            "n": 4199
+          },
+          "efficacy": {
+            "supportRealMeanBp": 55.87427353724632,
+            "supportPlaceboMeanBp": 84.64244477029023,
+            "supportN": 384,
+            "resistanceRealMeanBp": 25.716304035781473,
+            "resistancePlaceboMeanBp": 26.550830718445177,
+            "resistanceN": 328
+          }
+        },
+        "250": {
+          "churn": {
+            "pocMoveAtrMedian": 0,
+            "pocMoveAtrP90": 0.14160428766337155,
+            "markChurnMean": 0.24165391304980166,
+            "markChurnP90": 1,
+            "n": 4199
+          },
+          "efficacy": {
+            "supportRealMeanBp": 68.33487282902605,
+            "supportPlaceboMeanBp": 73.7917316491046,
+            "supportN": 315,
+            "resistanceRealMeanBp": -14.059111079228254,
+            "resistancePlaceboMeanBp": 43.08757957602772,
+            "resistanceN": 258
+          }
+        },
+        "360": {
+          "churn": {
+            "pocMoveAtrMedian": 0,
+            "pocMoveAtrP90": 0.11013007635617743,
+            "markChurnMean": 0.2069923561892264,
+            "markChurnP90": 1,
+            "n": 4199
+          },
+          "efficacy": {
+            "supportRealMeanBp": 53.71527622133358,
+            "supportPlaceboMeanBp": 81.47931058741759,
+            "supportN": 245,
+            "resistanceRealMeanBp": 26.336588634845924,
+            "resistancePlaceboMeanBp": 37.03535899942343,
+            "resistanceN": 196
+          }
+        },
+        "500": {
+          "churn": {
+            "pocMoveAtrMedian": 0,
+            "pocMoveAtrP90": 0.10560304563401694,
+            "markChurnMean": 0.17043767170703358,
+            "markChurnP90": 0.9757259001161441,
+            "n": 4199
+          },
+          "efficacy": {
+            "supportRealMeanBp": 61.94506200478674,
+            "supportPlaceboMeanBp": 107.84408412475072,
+            "supportN": 209,
+            "resistanceRealMeanBp": 44.75552939873383,
+            "resistancePlaceboMeanBp": 81.85846005680985,
+            "resistanceN": 179
+          }
+        },
+        "750": {
+          "churn": {
+            "pocMoveAtrMedian": 0,
+            "pocMoveAtrP90": 0.10404606640322721,
+            "markChurnMean": 0.12139514876408007,
+            "markChurnP90": 0.6470588235294118,
+            "n": 4199
+          },
+          "efficacy": {
+            "supportRealMeanBp": 91.19219561928327,
+            "supportPlaceboMeanBp": 147.22616866773916,
+            "supportN": 152,
+            "resistanceRealMeanBp": 62.94693667388834,
+            "resistancePlaceboMeanBp": 67.25591154113734,
+            "resistanceN": 132
+          }
+        },
+        "1000": {
+          "churn": {
+            "pocMoveAtrMedian": 0,
+            "pocMoveAtrP90": 0.08528609580863715,
+            "markChurnMean": 0.0947485286227772,
+            "markChurnP90": 0.42857142857142855,
+            "n": 3999
+          },
+          "efficacy": {
+            "supportRealMeanBp": 86.97272113767373,
+            "supportPlaceboMeanBp": 130.5355499494466,
+            "supportN": 93,
+            "resistanceRealMeanBp": 40.740640041382086,
+            "resistancePlaceboMeanBp": 20.863193781879705,
+            "resistanceN": 83
+          }
+        },
+        "1260": {
+          "churn": {
+            "pocMoveAtrMedian": 0,
+            "pocMoveAtrP90": 0.05249986454118865,
+            "markChurnMean": 0.05708737890568047,
+            "markChurnP90": 0.037037037037037035,
+            "n": 3739
+          },
+          "efficacy": {
+            "supportRealMeanBp": 115.94156368180303,
+            "supportPlaceboMeanBp": 114.56682770023555,
+            "supportN": 53,
+            "resistanceRealMeanBp": 84.91805191425753,
+            "resistancePlaceboMeanBp": 94.84654743832374,
+            "resistanceN": 40
+          }
+        },
+        "2000": {
+          "churn": {
+            "pocMoveAtrMedian": 0,
+            "pocMoveAtrP90": 0.020871273736042407,
+            "markChurnMean": 0.018313376641229655,
+            "markChurnP90": 0,
+            "n": 2999
+          },
+          "efficacy": {
+            "supportRealMeanBp": 64.29775861577319,
+            "supportPlaceboMeanBp": 113.07398305912523,
+            "supportN": 11,
+            "resistanceRealMeanBp": 143.460920787995,
+            "resistancePlaceboMeanBp": 34.00730019770064,
+            "resistanceN": 8
+          }
+        }
+      }
+    }
+  },
+  "aggregate": {
+    "60": {
+      "pocMoveAtrMedian": 0,
+      "markChurnMean": 0.42398600616725707,
+      "supportEdgeBpMedian": 6.745308471494418,
+      "supportEdgeTickersPositive": 5,
+      "resistanceEdgeBpMedian": 7.527131648628237,
+      "resistanceEdgeTickersNegative": 2,
+      "tickers": 6
+    },
+    "120": {
+      "pocMoveAtrMedian": 0,
+      "markChurnMean": 0.3333724321397687,
+      "supportEdgeBpMedian": 9.037860909508172,
+      "supportEdgeTickersPositive": 4,
+      "resistanceEdgeBpMedian": 4.94828983158267,
+      "resistanceEdgeTickersNegative": 2,
+      "tickers": 6
+    },
+    "250": {
+      "pocMoveAtrMedian": 0,
+      "markChurnMean": 0.24730418878637014,
+      "supportEdgeBpMedian": 14.938947779695376,
+      "supportEdgeTickersPositive": 5,
+      "resistanceEdgeBpMedian": -2.646887054769957,
+      "resistanceEdgeTickersNegative": 3,
+      "tickers": 6
+    },
+    "360": {
+      "pocMoveAtrMedian": 0,
+      "markChurnMean": 0.21063621313776526,
+      "supportEdgeBpMedian": 3.606145829811714,
+      "supportEdgeTickersPositive": 3,
+      "resistanceEdgeBpMedian": -3.2464468616707407,
+      "resistanceEdgeTickersNegative": 3,
+      "tickers": 6
+    },
+    "500": {
+      "pocMoveAtrMedian": 0,
+      "markChurnMean": 0.1785976469154751,
+      "supportEdgeBpMedian": -7.250518499055392,
+      "supportEdgeTickersPositive": 3,
+      "resistanceEdgeBpMedian": 6.474612445434259,
+      "resistanceEdgeTickersNegative": 2,
+      "tickers": 6
+    },
+    "750": {
+      "pocMoveAtrMedian": 0,
+      "markChurnMean": 0.13117208678940315,
+      "supportEdgeBpMedian": -25.505230362241708,
+      "supportEdgeTickersPositive": 1,
+      "resistanceEdgeBpMedian": 3.032489285394252,
+      "resistanceEdgeTickersNegative": 3,
+      "tickers": 6
+    },
+    "1000": {
+      "pocMoveAtrMedian": 0,
+      "markChurnMean": 0.08606439481328414,
+      "supportEdgeBpMedian": 16.073840807944784,
+      "supportEdgeTickersPositive": 3,
+      "resistanceEdgeBpMedian": 20.344571457068916,
+      "resistanceEdgeTickersNegative": 2,
+      "tickers": 6
+    },
+    "1260": {
+      "pocMoveAtrMedian": 0,
+      "markChurnMean": 0.05819001497604892,
+      "supportEdgeBpMedian": 29.509011918459883,
+      "supportEdgeTickersPositive": 5,
+      "resistanceEdgeBpMedian": 14.752706012168149,
+      "resistanceEdgeTickersNegative": 2,
+      "tickers": 6
+    },
+    "2000": {
+      "pocMoveAtrMedian": 0,
+      "markChurnMean": 0.023663018668415064,
+      "supportEdgeBpMedian": -40.086642102975794,
+      "supportEdgeTickersPositive": 1,
+      "resistanceEdgeBpMedian": 71.96113305535144,
+      "resistanceEdgeTickersNegative": 0,
+      "tickers": 6
+    }
+  },
+  "panSensitivityAggregate": {
+    "pocSpreadAtrMedian": 11.641270344237734,
+    "nearestSupSpreadAtrMedian": 4.562779167901966
+  }
+}
