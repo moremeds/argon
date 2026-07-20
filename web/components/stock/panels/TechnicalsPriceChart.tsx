@@ -41,6 +41,7 @@ import {
 } from "@/lib/indicators";
 import { BandsIndicator } from "@/lib/lwc/bandsIndicator";
 import { ChanlunZhongshu } from "@/lib/lwc/chanlunZhongshu";
+import { VolumeProfileIndicator } from "@/lib/lwc/volumeProfile";
 import {
   computeChanlunFull,
   divergenceTrend,
@@ -58,6 +59,7 @@ const MACD_H = 150;
 type OverlayMode = "sma" | "ema";
 const OVERLAY_MODE_KEY = "technicals:priceOverlayMode";
 const CHANLUN_KEY = "technicals:chanlun";
+const VOLUME_PROFILE_KEY = "technicals:volumeProfile";
 
 // ReorderableList.tsx pattern: lazy init + try/catch; client-only component
 // so no hydration mismatch.
@@ -72,6 +74,14 @@ function loadOverlayMode(): OverlayMode {
 function loadChanlun(): boolean {
   try {
     return localStorage.getItem(CHANLUN_KEY) === "1";
+  } catch {
+    return false;
+  }
+}
+
+function loadVolumeProfile(): boolean {
+  try {
+    return localStorage.getItem(VOLUME_PROFILE_KEY) === "1";
   } catch {
     return false;
   }
@@ -185,6 +195,7 @@ type ChartHandles = {
   segSolid: ISeriesApi<"Line">;
   segDashed: ISeriesApi<"Line">;
   segZs: ChanlunZhongshu;
+  vp: VolumeProfileIndicator;
 };
 
 const READABLE_BAR_PX = 6; // min bar width before we scroll instead of squish
@@ -247,6 +258,15 @@ export function TechnicalsPriceChart({
     setChanlunOn(on);
     try {
       localStorage.setItem(CHANLUN_KEY, on ? "1" : "0");
+    } catch {
+      /* storage unavailable */
+    }
+  };
+  const [vpOn, setVpOn] = useState<boolean>(loadVolumeProfile);
+  const setVpPersist = (on: boolean) => {
+    setVpOn(on);
+    try {
+      localStorage.setItem(VOLUME_PROFILE_KEY, on ? "1" : "0");
     } catch {
       /* storage unavailable */
     }
@@ -491,6 +511,15 @@ export function TechnicalsPriceChart({
     });
     price.attachPrimitive(segZs);
 
+    // Visible-range volume profile, pinned to the right edge of the price pane.
+    // Same "create always, feed empty while off" contract as the Chanlun layer.
+    const vp = new VolumeProfileIndicator({
+      buyColor: `${cssVar("--positive")}d9`,
+      sellColor: `${cssVar("--accent-vivid")}d9`,
+      pocColor: cssVar("--warning"),
+    });
+    price.attachPrimitive(vp);
+
     // Dual MACD in pane index 1 (below price). Two histograms sharing one price
     // scale: the slow 55/89/34 is the structural background (accent-vol, ~50%
     // alpha) drawn first; the fast 13/21/9 is the sharp tactical bar on top, its
@@ -552,6 +581,7 @@ export function TechnicalsPriceChart({
       segSolid,
       segDashed,
       segZs,
+      vp,
     };
     fitKeyRef.current = ""; // force a fitContent on the first data pass
 
@@ -863,6 +893,31 @@ export function TechnicalsPriceChart({
       h.segZs.setRects([]);
       h.clMarkers.setMarkers([]);
     }
+    // Volume profile gets the whole window; it re-bins itself to whatever slice
+    // is on screen, so panning/zooming updates it without a data pass.
+    h.vp.setBars(
+      vpOn && candleMode
+        ? rows.flatMap((r) =>
+            r.as_of != null &&
+            r.open != null &&
+            r.high != null &&
+            r.low != null &&
+            r.close != null &&
+            r.volume != null
+              ? [
+                  {
+                    time: r.as_of as Time,
+                    open: r.open,
+                    high: r.high,
+                    low: r.low,
+                    close: r.close,
+                    volume: r.volume,
+                  },
+                ]
+              : [],
+          )
+        : [],
+    );
     // Fit on ticker or window-start change only — a live head append (length
     // change, same first bar) must not reset the user's zoom.
     const fitKey = `${ticker}:${candleMode}:${firstAsOf}`;
@@ -886,7 +941,7 @@ export function TechnicalsPriceChart({
         volMaByTimeRef.current.get(lastRow.as_of),
       );
     }
-  }, [rows, full, ticker, candleMode, anchor, mode, chanlunGeo, clBars]);
+  }, [rows, full, ticker, candleMode, anchor, mode, chanlunGeo, clBars, vpOn]);
 
   const clearAnchor = () => {
     setAnchor(null);
@@ -987,6 +1042,28 @@ export function TechnicalsPriceChart({
           }}
         >
           Zen
+        </button>
+      )}
+      {candleMode && (
+        <button
+          type="button"
+          onClick={() => setVpPersist(!vpOn)}
+          aria-pressed={vpOn}
+          data-testid="volume-profile-toggle"
+          title="Visible-range volume profile — buy/sell by price, POC"
+          style={{
+            fontFamily: "var(--font-mono)",
+            fontSize: 10,
+            letterSpacing: 1,
+            color: vpOn ? "var(--text-primary)" : "var(--text-muted)",
+            background: vpOn ? "var(--bg-panel-raised)" : "transparent",
+            border: "1px solid var(--border-dim)",
+            borderRadius: 4,
+            padding: "2px 7px",
+            cursor: "pointer",
+          }}
+        >
+          VP
         </button>
       )}
       <button
@@ -1101,6 +1178,25 @@ export function TechnicalsPriceChart({
           repaint-prone (24–34%). Not a trade signal. The 200-DMA is
           corporate-action-unadjusted, so the trend split is unreliable for ~200
           sessions after a stock split.
+        </div>
+      )}
+      {vpOn && candleMode && (
+        <div
+          style={{
+            fontSize: 11,
+            color: "var(--text-muted)",
+            marginTop: 6,
+            lineHeight: 1.55,
+          }}
+        >
+          VP: volume traded at each price over the <em>visible</em> range — pan
+          or zoom and it re-bins. Green hugs the axis (bars that closed up),
+          violet stacks outside it (closed down); bar length is share of the
+          busiest price. Full-opacity rows are the 70% value area, faded rows
+          are the tails. Amber line = POC, the single most-traded price. Each
+          bar spreads its volume evenly across its own high–low, so this is
+          where-it-traded, not an order book — thick shelves are prior
+          acceptance, thin ones are prices the market moved through quickly.
         </div>
       )}
       <MacdLegend signal={macd} />

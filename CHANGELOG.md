@@ -7,7 +7,23 @@ version in lockstep (enforced by `scripts/release/version_sync_check.py`).
 
 ## [Unreleased]
 
-## [0.10.9] — 2026-07-20
+### Added
+
+- Visible-range volume profile (VRVP) on the Technicals price chart, behind a
+  `VP` toggle beside `Zen` (localStorage-persisted, candle-mode only). Renders
+  against the right edge of the price pane: horizontal bars per price bin, buy
+  volume (bars that closed up) hugging the axis and sell volume stacked
+  outside, length scaled to the busiest bin. Value-area bins (70%) draw at full
+  opacity, tails dim; an amber line marks the POC. Binning math is pure and
+  unit-tested (`web/lib/volumeProfile.ts` — volume conservation, contiguous
+  bins, minimal value area, determinism, against the frozen real SPY OHLCV
+  fixture); painting is a lightweight-charts series primitive
+  (`web/lib/lwc/volumeProfile.ts`) in the mold of `chanlunZhongshu.ts`. The
+  profile re-bins to whatever range is on screen, memoized on the visible
+  range, and draws in the **background** layer so it never buries the newest
+  candles. Each bar spreads its volume evenly across its own high–low (daily
+  OHLCV is all we have) — this is where-it-traded context, not an order book,
+  and it is explicitly not a signal.
 
 
 ### Added
