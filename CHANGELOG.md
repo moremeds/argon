@@ -35,7 +35,9 @@ version in lockstep (enforced by `scripts/release/version_sync_check.py`).
 - Volume-profile S/R matrix on the same `VP` toggle: high-volume nodes become
   support/resistance bands (greedy peak-picking with proportional separation,
   per-side caps and a strength floor), labelled with strength as a % of the POC
-  and a distinct-retest count; low-volume nodes render as gray dashed lines. A
+  and a distinct-retest count; low-volume nodes render as labelled
+  (`LVN <price>`) long-dashed lines, styled to read distinctly from the chart's
+  own dotted grid rather than as furniture. A
   stats readout (`VolumeProfileStatsPanel`) shows POC/VAH/VAL, nearest S/R with
   zone counts, and value-area bias; its numbers are pushed up from the chart
   primitive rather than recomputed, so they always describe the bars actually

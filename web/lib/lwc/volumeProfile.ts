@@ -107,7 +107,7 @@ type ViewPx = {
   pocY: number | null;
   pocPrice: number;
   zones: ZonePx[];
-  lvnYs: number[];
+  lvn: { y: number; price: number }[];
 };
 
 function buildStats(
@@ -191,16 +191,23 @@ class VolumeProfileRenderer implements IPrimitivePaneRenderer {
       }
       ctx.textAlign = "left";
 
-      ctx.globalAlpha = 0.8;
+      // Long dashes, not the grid's short dots — a faint 4/4 dash reads as
+      // chart furniture and the level disappears into the background.
+      ctx.globalAlpha = 0.9;
       ctx.strokeStyle = this._options.lvnColor;
-      ctx.setLineDash([4, 4]);
-      for (const y of view.lvnYs) {
+      ctx.setLineDash([10, 5]);
+      ctx.textAlign = "right";
+      ctx.textBaseline = "middle";
+      for (const l of view.lvn) {
         ctx.beginPath();
-        ctx.moveTo(0, y);
-        ctx.lineTo(right, y);
+        ctx.moveTo(0, l.y);
+        ctx.lineTo(right, l.y);
         ctx.stroke();
+        ctx.fillStyle = this._options.lvnColor;
+        ctx.fillText(`LVN ${l.price.toFixed(2)}`, right - width - 6, l.y);
       }
       ctx.setLineDash([]);
+      ctx.textAlign = "left";
 
       for (const r of view.rows) {
         const h = Math.max(1, r.yBottom - r.yTop - 0.5); // hairline gap between rows
@@ -317,9 +324,9 @@ class VolumeProfilePaneView implements IPrimitivePaneView {
           (z.touches > 1 ? ` ×${z.touches}` : ""),
       });
     }
-    const lvnYs = this._lvn.flatMap((price) => {
+    const lvn = this._lvn.flatMap((price) => {
       const y = series.priceToCoordinate(price);
-      return y == null ? [] : [y];
+      return y == null ? [] : [{ y, price }];
     });
 
     this._view = {
@@ -327,7 +334,7 @@ class VolumeProfilePaneView implements IPrimitivePaneView {
       pocY: series.priceToCoordinate(p.pocPrice),
       pocPrice: p.pocPrice,
       zones,
-      lvnYs,
+      lvn,
     };
   }
 

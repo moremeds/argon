@@ -552,7 +552,9 @@ export function TechnicalsPriceChart({
       pocColor: cssVar("--warning"),
       supportColor: cssVar("--positive"),
       resistanceColor: cssVar("--negative"),
-      lvnColor: `${cssVar("--text-muted")}b3`,
+      // --text-secondary, not --text-muted: muted sat at the same value as the
+      // dotted grid and the LVN levels read as chart furniture.
+      lvnColor: `${cssVar("--text-secondary")}cc`,
       lookback: VP_LOOKBACK,
       // setVpStats is a stable useState setter, so the once-built primitive can
       // hold it for the life of the chart.
