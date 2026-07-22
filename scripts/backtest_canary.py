@@ -26,10 +26,11 @@ import sys
 import uuid
 from dataclasses import replace
 from datetime import date
-from pathlib import Path
+from importlib.resources import files
 
 import numpy as np
 from psycopg import connect
+
 from uw_scan.cards.canary_calibration import (
     COMPOSITE_VERSION,
 )
@@ -40,8 +41,7 @@ from uw_scan.config import Settings
 
 log = logging.getLogger(__name__)
 
-REPO_ROOT = Path(__file__).resolve().parents[1]
-V2_CAL_PATH = REPO_ROOT / "docs" / "research" / "regime" / "canary-calibration-v2.json"
+V2_CAL_PATH = files("uw_scan.cards") / "data" / "canary-calibration-v2.json"
 
 TRAIN_END = date(2014, 12, 31)
 VALID_START = date(2015, 1, 1)

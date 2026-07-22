@@ -32,7 +32,7 @@ import argparse
 import logging
 from datetime import date as _date
 from decimal import Decimal
-from pathlib import Path
+from importlib.resources import files
 
 import numpy as np
 import psycopg
@@ -54,8 +54,7 @@ from uw_scan.storage.vol_index_repository import VolIndexRepository
 logging.basicConfig(level=logging.INFO, format="%(levelname)s %(message)s")
 log = logging.getLogger("canary_backfill")
 
-REPO_ROOT = Path(__file__).resolve().parents[1]
-V2_CAL_PATH = REPO_ROOT / "docs" / "research" / "regime" / "canary-calibration-v2.json"
+V2_CAL_PATH = files("uw_scan.cards") / "data" / "canary-calibration-v2.json"
 
 
 def _build_snapshot_payload(

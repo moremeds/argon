@@ -10,27 +10,16 @@ See docs/superpowers/specs/2026-05-27-canary-v2a-vol-speed-separation-design.md.
 from __future__ import annotations
 
 from datetime import date as _date
-from pathlib import Path
+from importlib.resources import files
 
 import numpy as np
 
 from uw_scan.cards import canary_scoring
 from uw_scan.cards.canary_calibration import Calibration, load_calibration
 
-V2_JSON = (
-    Path(__file__).resolve().parents[2]
-    / "docs"
-    / "research"
-    / "regime"
-    / "canary-calibration-v2.json"
-)
-V1_JSON = (
-    Path(__file__).resolve().parents[2]
-    / "docs"
-    / "research"
-    / "regime"
-    / "canary-calibration-v1.json"
-)
+_CAL_DIR = files("uw_scan.cards") / "data"
+V2_JSON = _CAL_DIR / "canary-calibration-v2.json"
+V1_JSON = _CAL_DIR / "canary-calibration-v1.json"
 
 
 def test_v2_calibration_parses_with_version_2():

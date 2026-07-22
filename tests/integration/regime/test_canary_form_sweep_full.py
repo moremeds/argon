@@ -232,8 +232,12 @@ def test_cmd_form_sweep_full_persists_4_rows_sharing_batch_id(seeded_db_empty_ca
     assert len(batch_ids) == 1, f"all 4 rows must share batch_id, got {batch_ids}"
     assert len(gen_ats) == 1, f"all 4 rows must share generated_at, got {gen_ats}"
     assert forms == {"linear", "convex", "concave", "sigmoid"}
-    assert is_winning == {"false"}, f"is_winning_form must be false for all, got {is_winning}"
-    assert run_scopes == {"research"}, f"run_scope must be research for all, got {run_scopes}"
+    assert is_winning == {"false"}, (
+        f"is_winning_form must be false for all, got {is_winning}"
+    )
+    assert run_scopes == {"research"}, (
+        f"run_scope must be research for all, got {run_scopes}"
+    )
 
 
 def test_cmd_form_sweep_full_writes_daily_rows(seeded_db_empty_cards):
@@ -293,15 +297,27 @@ def test_cmd_form_sweep_full_summary_schema(seeded_db_empty_cards):
             f"WHERE params->>'phase' = 'form_sweep_full' LIMIT 1"
         )
         summary = cur.fetchone()[0]
-    for key in ("is_winning_form", "score_form", "phase", "source",
-                "batch_id", "generated_at", "n_days", "aucs", "auc_ci95",
-                "band_distribution", "within_band_aucs", "vol_only_gap"):
+    for key in (
+        "is_winning_form",
+        "score_form",
+        "phase",
+        "source",
+        "batch_id",
+        "generated_at",
+        "n_days",
+        "aucs",
+        "auc_ci95",
+        "band_distribution",
+        "within_band_aucs",
+        "vol_only_gap",
+    ):
         assert key in summary, f"summary missing key: {key}"
     for series in ("composite", "vol_only", "speed_only"):
         assert series in summary["aucs"]
         for horizon in ("up5d_2pct", "up20d_5pct", "up60d_10pct"):
-            assert horizon in summary["aucs"][series], \
+            assert horizon in summary["aucs"][series], (
                 f"aucs.{series}.{horizon} missing"
+            )
     for band in ("NONE", "WATCH", "BUY", "STRONG_BUY"):
         assert band in summary["band_distribution"]
 
@@ -342,7 +358,8 @@ def test_cmd_form_sweep_full_prints_renderer_output(seeded_db_empty_cards, capsy
 
 
 def test_cmd_form_sweep_full_does_not_persist_when_compute_fails_mid_run(
-    seeded_db_empty_cards, monkeypatch,
+    seeded_db_empty_cards,
+    monkeypatch,
 ):
     """Compute-all-before-persist invariant (spec §4.2 / AC-13).
 
@@ -376,6 +393,7 @@ def test_cmd_form_sweep_full_does_not_persist_when_compute_fails_mid_run(
             return real_compute(*args, **kwargs)
 
         from dataclasses import replace
+
         patched_deps = replace(deps, compute_canary_series=patched_compute)
         return real_run(conn, schema=schema, deps=patched_deps)
 
@@ -402,7 +420,7 @@ def test_cmd_form_sweep_full_does_not_persist_when_compute_fails_mid_run(
 def test_form_sweep_full_cleanup_on_failure(seeded_db_empty_cards, monkeypatch):
     """Simulate a real DB failure on the 3rd form's bulk_insert_daily call.
     Assert: rollback happens and zero failed-batch rows remain afterwards."""
-    from pathlib import Path
+    from importlib.resources import files
 
     from scripts.backtest_canary import cmd_form_sweep_full
     from tests.integration.regime._canary_form_sweep_fixture import (
@@ -413,10 +431,7 @@ def test_form_sweep_full_cleanup_on_failure(seeded_db_empty_cards, monkeypatch):
 
     db_conn = seeded_db_empty_cards.conn
     db_schema = seeded_db_empty_cards._schema
-    calib_path = (
-        Path(__file__).parents[3]
-        / "docs/research/regime/canary-calibration-v1.json"
-    )
+    calib_path = files("uw_scan.cards") / "data" / "canary-calibration-v1.json"
     before_calib_bytes = calib_path.read_bytes()
     dates = seed_vol_index(db_conn, schema=db_schema, n_days=600)
     seed_canary_snapshots(db_conn, schema=db_schema, dates=dates, n_snapshots=200)
@@ -432,7 +447,9 @@ def test_form_sweep_full_cleanup_on_failure(seeded_db_empty_cards, monkeypatch):
         return real_bulk(self, run_id, rows)
 
     monkeypatch.setattr(
-        RegimeBacktestRepository, "bulk_insert_daily", fail_on_third_call,
+        RegimeBacktestRepository,
+        "bulk_insert_daily",
+        fail_on_third_call,
     )
 
     with pytest.raises(Exception):
@@ -471,23 +488,58 @@ def test_form_sweep_full_renderer_picks_latest_complete_batch(seeded_db_empty_ca
     def insert_batch(batch_id: str):
         for form in ("linear", "convex", "concave", "sigmoid"):
             run_id = repo.insert_run(
-                indicator="canary", composite_version="1",
-                start_date=date(2011, 2, 8), end_date=date(2026, 5, 21),
-                window_days=350, n_days=100,
-                params={"score_form": form, "phase": "form_sweep_full",
-                        "batch_id": batch_id},
-                summary={"is_winning_form": False, "score_form": form,
-                         "batch_id": batch_id, "phase": "form_sweep_full",
-                         "n_days": 100,
-                         "aucs": {"composite": {"up5d_2pct": 0.6, "up20d_5pct": 0.6, "up60d_10pct": 0.6},
-                                  "vol_only":  {"up5d_2pct": 0.6, "up20d_5pct": 0.6, "up60d_10pct": 0.6},
-                                  "speed_only":{"up5d_2pct": 0.5, "up20d_5pct": 0.5, "up60d_10pct": 0.5}},
-                         "band_distribution": {"NONE": 60, "WATCH": 30, "BUY": 10, "STRONG_BUY": 0},
-                         "within_band_aucs": {"NONE": {"up60d_10pct": 0.55},
-                                              "WATCH": {"up60d_10pct": 0.55},
-                                              "BUY": {"up60d_10pct": 0.45},
-                                              "STRONG_BUY": {"up60d_10pct": None}},
-                         "vol_only_gap": {"up5d_2pct": 0.0, "up20d_5pct": 0.0, "up60d_10pct": 0.0}},
+                indicator="canary",
+                composite_version="1",
+                start_date=date(2011, 2, 8),
+                end_date=date(2026, 5, 21),
+                window_days=350,
+                n_days=100,
+                params={
+                    "score_form": form,
+                    "phase": "form_sweep_full",
+                    "batch_id": batch_id,
+                },
+                summary={
+                    "is_winning_form": False,
+                    "score_form": form,
+                    "batch_id": batch_id,
+                    "phase": "form_sweep_full",
+                    "n_days": 100,
+                    "aucs": {
+                        "composite": {
+                            "up5d_2pct": 0.6,
+                            "up20d_5pct": 0.6,
+                            "up60d_10pct": 0.6,
+                        },
+                        "vol_only": {
+                            "up5d_2pct": 0.6,
+                            "up20d_5pct": 0.6,
+                            "up60d_10pct": 0.6,
+                        },
+                        "speed_only": {
+                            "up5d_2pct": 0.5,
+                            "up20d_5pct": 0.5,
+                            "up60d_10pct": 0.5,
+                        },
+                    },
+                    "band_distribution": {
+                        "NONE": 60,
+                        "WATCH": 30,
+                        "BUY": 10,
+                        "STRONG_BUY": 0,
+                    },
+                    "within_band_aucs": {
+                        "NONE": {"up60d_10pct": 0.55},
+                        "WATCH": {"up60d_10pct": 0.55},
+                        "BUY": {"up60d_10pct": 0.45},
+                        "STRONG_BUY": {"up60d_10pct": None},
+                    },
+                    "vol_only_gap": {
+                        "up5d_2pct": 0.0,
+                        "up20d_5pct": 0.0,
+                        "up60d_10pct": 0.0,
+                    },
+                },
                 run_scope="research",
             )
             repo.mark_run_completed(run_id)
@@ -514,23 +566,58 @@ def test_renderer_skips_incomplete_batch(seeded_db_empty_cards):
 
     def insert_run_for(batch_id: str, form: str, *, completed: bool = True):
         run_id = repo.insert_run(
-            indicator="canary", composite_version="1",
-            start_date=date(2011, 2, 8), end_date=date(2026, 5, 21),
-            window_days=350, n_days=100,
-            params={"score_form": form, "phase": "form_sweep_full",
-                    "batch_id": batch_id},
-            summary={"is_winning_form": False, "score_form": form,
-                     "batch_id": batch_id, "phase": "form_sweep_full",
-                     "n_days": 100,
-                     "aucs": {"composite": {"up5d_2pct": 0.6, "up20d_5pct": 0.6, "up60d_10pct": 0.6},
-                              "vol_only":  {"up5d_2pct": 0.6, "up20d_5pct": 0.6, "up60d_10pct": 0.6},
-                              "speed_only":{"up5d_2pct": 0.5, "up20d_5pct": 0.5, "up60d_10pct": 0.5}},
-                     "band_distribution": {"NONE": 60, "WATCH": 30, "BUY": 10, "STRONG_BUY": 0},
-                     "within_band_aucs": {"NONE": {"up60d_10pct": 0.55},
-                                          "WATCH": {"up60d_10pct": 0.55},
-                                          "BUY": {"up60d_10pct": 0.45},
-                                          "STRONG_BUY": {"up60d_10pct": None}},
-                     "vol_only_gap": {"up5d_2pct": 0.0, "up20d_5pct": 0.0, "up60d_10pct": 0.0}},
+            indicator="canary",
+            composite_version="1",
+            start_date=date(2011, 2, 8),
+            end_date=date(2026, 5, 21),
+            window_days=350,
+            n_days=100,
+            params={
+                "score_form": form,
+                "phase": "form_sweep_full",
+                "batch_id": batch_id,
+            },
+            summary={
+                "is_winning_form": False,
+                "score_form": form,
+                "batch_id": batch_id,
+                "phase": "form_sweep_full",
+                "n_days": 100,
+                "aucs": {
+                    "composite": {
+                        "up5d_2pct": 0.6,
+                        "up20d_5pct": 0.6,
+                        "up60d_10pct": 0.6,
+                    },
+                    "vol_only": {
+                        "up5d_2pct": 0.6,
+                        "up20d_5pct": 0.6,
+                        "up60d_10pct": 0.6,
+                    },
+                    "speed_only": {
+                        "up5d_2pct": 0.5,
+                        "up20d_5pct": 0.5,
+                        "up60d_10pct": 0.5,
+                    },
+                },
+                "band_distribution": {
+                    "NONE": 60,
+                    "WATCH": 30,
+                    "BUY": 10,
+                    "STRONG_BUY": 0,
+                },
+                "within_band_aucs": {
+                    "NONE": {"up60d_10pct": 0.55},
+                    "WATCH": {"up60d_10pct": 0.55},
+                    "BUY": {"up60d_10pct": 0.45},
+                    "STRONG_BUY": {"up60d_10pct": None},
+                },
+                "vol_only_gap": {
+                    "up5d_2pct": 0.0,
+                    "up20d_5pct": 0.0,
+                    "up60d_10pct": 0.0,
+                },
+            },
             run_scope="research",
         )
         if completed:
@@ -551,7 +638,7 @@ def test_renderer_skips_incomplete_batch(seeded_db_empty_cards):
 def test_form_sweep_full_does_not_write_calibration_file(seeded_db_empty_cards):
     """canary-calibration-v1.json byte content unchanged after run."""
     import hashlib
-    from pathlib import Path
+    from importlib.resources import files
 
     from scripts.backtest_canary import cmd_form_sweep_full
     from tests.integration.regime._canary_form_sweep_fixture import (
@@ -561,10 +648,7 @@ def test_form_sweep_full_does_not_write_calibration_file(seeded_db_empty_cards):
 
     db_conn = seeded_db_empty_cards.conn
     db_schema = seeded_db_empty_cards._schema
-    calib_path = (
-        Path(__file__).parents[3]
-        / "docs/research/regime/canary-calibration-v1.json"
-    )
+    calib_path = files("uw_scan.cards") / "data" / "canary-calibration-v1.json"
     assert calib_path.exists(), f"calibration file not found at {calib_path}"
 
     before_bytes = calib_path.read_bytes()
@@ -597,9 +681,12 @@ def test_form_sweep_full_invisible_to_oos_gate(seeded_db_empty_cards):
     db_schema = seeded_db_empty_cards._schema
     repo = RegimeBacktestRepository(db_conn, schema=db_schema)
     winning_run_id = repo.insert_run(
-        indicator="canary", composite_version="1",
-        start_date=date(2020, 1, 2), end_date=date(2026, 5, 21),
-        window_days=350, n_days=1605,
+        indicator="canary",
+        composite_version="1",
+        start_date=date(2020, 1, 2),
+        end_date=date(2026, 5, 21),
+        window_days=350,
+        n_days=1605,
         params={"score_form": "linear", "phase": "final_oos_report"},
         summary={"is_winning_form": True, "score_form": "linear"},
     )
@@ -632,9 +719,12 @@ def test_form_sweep_full_invisible_to_validation_api(seeded_db_empty_cards):
     db_schema = seeded_db_empty_cards._schema
     repo = RegimeBacktestRepository(db_conn, schema=db_schema)
     pre_winning_id = repo.insert_run(
-        indicator="canary", composite_version="1",
-        start_date=date(2020, 1, 2), end_date=date(2026, 5, 21),
-        window_days=350, n_days=1605,
+        indicator="canary",
+        composite_version="1",
+        start_date=date(2020, 1, 2),
+        end_date=date(2026, 5, 21),
+        window_days=350,
+        n_days=1605,
         params={"score_form": "linear", "phase": "final_oos_report"},
         summary={"is_winning_form": True, "score_form": "linear"},
     )
