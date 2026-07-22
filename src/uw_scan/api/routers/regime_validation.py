@@ -133,10 +133,11 @@ def _parse_guidance_md() -> list[dict[str, Any]]:
     """Split guidance.md on `---` separators; load YAML frontmatter + body."""
     try:
         text = _GUIDANCE_MD.read_text()
-    except FileNotFoundError:
+    except FileNotFoundError as exc:
         logger.error(
-            "guidance.md unreadable at %s — is it shipping as package data?",
+            "guidance.md unreadable at %s (%s) — is it shipping as package data?",
             _GUIDANCE_MD,
+            repr(exc),
         )
         return []
     chunks = [c.strip() for c in text.split("\n---\n")]
