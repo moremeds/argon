@@ -37,8 +37,13 @@ def run_vol_index_lake_sync(conn: Connection, *, root: Path | LakeRoot) -> dict:
     """
     symbols = list_vol_index_symbols(root)
     if not symbols:
-        logger.info("vol_index_lake_sync: no symbols at %s", root)
-        return {"symbols": 0, "rows": 0, "gaps_filled": 0}
+        # An empty lake is a broken mount, not "no new data". Returning a
+        # success summary here is what let the 2026-07-08 freeze look healthy
+        # for 13 days; raising records a job failure + /api/health streak.
+        raise RuntimeError(
+            f"vol_index_lake_sync: no symbols under {root} — the lake is "
+            f"mounted but empty. Check the volume and LAKE_VOL_INDEX_ROOT."
+        )
 
     repo = VolIndexRepository(conn, schema="uw_scan")
     total_rows = 0
