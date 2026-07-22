@@ -88,3 +88,16 @@ def test_drawdown_module_has_no_home_default() -> None:
 
     src = inspect.getsource(vrp_macro_drawdown._default_lake_root)
     assert "Path.home()" not in src, "home-dir fallback still inline in the consumer"
+
+
+def test_runtime_asset_guard_passes() -> None:
+    """The CI guard must be green on the tree it ships with."""
+    import subprocess
+    import sys
+
+    out = subprocess.run(
+        [sys.executable, "scripts/check_runtime_assets.py"],
+        capture_output=True,
+        text=True,
+    )
+    assert out.returncode == 0, out.stdout + out.stderr
