@@ -65,12 +65,18 @@ INDEX_SPECS: dict[str, dict] = {
 
 
 def _default_lake_root() -> pathlib.Path:
-    return pathlib.Path(
-        os.environ.get(
-            "MARKET_WAREHOUSE_LAKE",
-            str(pathlib.Path.home() / "market-warehouse" / "data-lake"),
-        )
-    )
+    # Path defaults live in config.py so there is exactly one home-dir fallback
+    # in the codebase (enforced by scripts/check_runtime_assets.py). Read the
+    # FIELD DEFAULT, not Settings.from_env(): from_env() requires
+    # UW_SCAN_API_KEY and raises without it (config.py), which would turn a
+    # path lookup into a hard dependency on a credential this function has no
+    # business needing — and would fail outright in the unit CI job.
+    from uw_scan.config import Settings  # noqa: PLC0415
+
+    env = os.environ.get("MARKET_WAREHOUSE_LAKE", "").strip()
+    if env:
+        return pathlib.Path(env)
+    return pathlib.Path(Settings.model_fields["market_warehouse_lake_root"].default)
 
 
 def _vol_index_close(repo, symbol: str, start: _date) -> dict[_date, float]:

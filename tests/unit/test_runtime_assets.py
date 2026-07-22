@@ -70,3 +70,21 @@ def test_r2_settings_are_rejected_at_worker_startup() -> None:
     )
     with pytest.raises(RuntimeError, match="R2.*retired"):
         _validate_worker_settings(with_r2)
+
+
+def test_drawdown_lake_root_honours_env(monkeypatch) -> None:
+    """Env override must survive the move of the default into Settings."""
+    from uw_scan.reports import vrp_macro_drawdown
+
+    monkeypatch.setenv("MARKET_WAREHOUSE_LAKE", "/lake")
+    assert str(vrp_macro_drawdown._default_lake_root()) == "/lake"
+
+
+def test_drawdown_module_has_no_home_default() -> None:
+    """The home-dir fallback must live in config.py, not here."""
+    import inspect
+
+    from uw_scan.reports import vrp_macro_drawdown
+
+    src = inspect.getsource(vrp_macro_drawdown._default_lake_root)
+    assert "Path.home()" not in src, "home-dir fallback still inline in the consumer"
