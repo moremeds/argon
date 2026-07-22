@@ -402,7 +402,7 @@ def test_cmd_form_sweep_full_does_not_persist_when_compute_fails_mid_run(
 def test_form_sweep_full_cleanup_on_failure(seeded_db_empty_cards, monkeypatch):
     """Simulate a real DB failure on the 3rd form's bulk_insert_daily call.
     Assert: rollback happens and zero failed-batch rows remain afterwards."""
-    from pathlib import Path
+    from importlib.resources import files
 
     from scripts.backtest_canary import cmd_form_sweep_full
     from tests.integration.regime._canary_form_sweep_fixture import (
@@ -413,10 +413,7 @@ def test_form_sweep_full_cleanup_on_failure(seeded_db_empty_cards, monkeypatch):
 
     db_conn = seeded_db_empty_cards.conn
     db_schema = seeded_db_empty_cards._schema
-    calib_path = (
-        Path(__file__).parents[3]
-        / "docs/research/regime/canary-calibration-v1.json"
-    )
+    calib_path = files("uw_scan.cards") / "data" / "canary-calibration-v1.json"
     before_calib_bytes = calib_path.read_bytes()
     dates = seed_vol_index(db_conn, schema=db_schema, n_days=600)
     seed_canary_snapshots(db_conn, schema=db_schema, dates=dates, n_snapshots=200)
@@ -551,7 +548,7 @@ def test_renderer_skips_incomplete_batch(seeded_db_empty_cards):
 def test_form_sweep_full_does_not_write_calibration_file(seeded_db_empty_cards):
     """canary-calibration-v1.json byte content unchanged after run."""
     import hashlib
-    from pathlib import Path
+    from importlib.resources import files
 
     from scripts.backtest_canary import cmd_form_sweep_full
     from tests.integration.regime._canary_form_sweep_fixture import (
@@ -561,10 +558,7 @@ def test_form_sweep_full_does_not_write_calibration_file(seeded_db_empty_cards):
 
     db_conn = seeded_db_empty_cards.conn
     db_schema = seeded_db_empty_cards._schema
-    calib_path = (
-        Path(__file__).parents[3]
-        / "docs/research/regime/canary-calibration-v1.json"
-    )
+    calib_path = files("uw_scan.cards") / "data" / "canary-calibration-v1.json"
     assert calib_path.exists(), f"calibration file not found at {calib_path}"
 
     before_bytes = calib_path.read_bytes()

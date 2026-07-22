@@ -7,18 +7,18 @@ from __future__ import annotations
 
 import json
 from dataclasses import dataclass
+from importlib.resources import files
+from importlib.resources.abc import Traversable
 from pathlib import Path
 from typing import Literal
 
 COMPOSITE_VERSION = 1
 
-# Default location — overridable for tests.
-DEFAULT_PATH = (
-    Path(__file__).resolve().parents[3]
-    / "docs"
-    / "research"
-    / "regime"
-    / f"canary-calibration-v{COMPOSITE_VERSION}.json"
+# Package data — ships inside the wheel/image. Do NOT move this back under
+# docs/: docker/app.Dockerfile does not COPY docs/, which silently broke the
+# canary for 13 days after the 2026-07-08 cutover.
+DEFAULT_PATH: Traversable = (
+    files("uw_scan.cards") / "data" / f"canary-calibration-v{COMPOSITE_VERSION}.json"
 )
 
 ScoreForm = Literal["linear", "convex", "concave", "sigmoid"]
@@ -43,7 +43,7 @@ class Calibration:
     vvix_vix_recovery: SignalThresholds
 
 
-def load_calibration(path: Path = DEFAULT_PATH) -> Calibration:
+def load_calibration(path: Traversable | Path = DEFAULT_PATH) -> Calibration:
     raw = json.loads(path.read_text())
     t = raw["thresholds"]
 

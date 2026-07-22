@@ -350,6 +350,16 @@ class Settings(BaseModel):
             "(HYG/JNK/LQD). Symbol subdirs are named symbol=<TICKER>."
         ),
     )
+    # Root of the whole market-warehouse lake (parent of bronze/silver/gold).
+    # Distinct from the two asset-class roots above, which point at specific
+    # bronze partitions. Read by reports/vrp_macro_drawdown.py.
+    market_warehouse_lake_root: Path = Field(
+        default=Path.home() / "market-warehouse" / "data-lake",
+        description=(
+            "Root of the market-warehouse parquet lake (contains bronze/). "
+            "Set MARKET_WAREHOUSE_LAKE=/lake in containers."
+        ),
+    )
     # Credit-proxy ETFs synced from the equity lake into vol_index_daily.
     # The VCG scanner reads from this list; the first entry is the default
     # proxy unless overridden by the API caller.
@@ -818,6 +828,11 @@ class Settings(BaseModel):
                 if (_lake_credit := os.environ.get("LAKE_CREDIT_ETF_ROOT", "").strip())
                 else Path.home()
                 / "market-warehouse/data-lake/bronze/asset_class=equity"
+            ),
+            market_warehouse_lake_root=(
+                Path(_mw_lake)
+                if (_mw_lake := os.environ.get("MARKET_WAREHOUSE_LAKE", "").strip())
+                else Path.home() / "market-warehouse" / "data-lake"
             ),
             credit_etf_symbols=_parse_csv_env(
                 "CREDIT_ETF_SYMBOLS", default=["HYG", "JNK", "LQD"]

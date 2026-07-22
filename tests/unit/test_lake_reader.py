@@ -6,6 +6,7 @@ from pathlib import Path
 import pyarrow as pa
 import pyarrow.parquet as pq
 import pytest
+
 from uw_scan.sources.lake import list_vol_index_symbols, read_vol_index_parquet
 
 
@@ -133,3 +134,29 @@ def test_read_does_not_require_pandas(
     assert len(rows) == 1
     assert rows[0]["trade_date"] == date(2026, 6, 9)
     assert rows[0]["close"] == pytest.approx(20.5)
+
+
+def test_missing_lake_root_raises(tmp_path: Path) -> None:
+    """A configured-but-absent root is a misconfiguration, not 'no data'.
+
+    Returning [] here is what turned the 2026-07-08 missing container mount
+    into 13 days of silent staleness instead of a first-run crash.
+    """
+    absent = tmp_path / "not-mounted"
+    with pytest.raises(FileNotFoundError, match="lake root does not exist"):
+        read_vol_index_parquet(absent, "VIX")
+    with pytest.raises(FileNotFoundError, match="lake root does not exist"):
+        list_vol_index_symbols(absent)
+
+
+def test_present_root_missing_symbol_still_returns_empty(tmp_path: Path) -> None:
+    """A symbol may legitimately not exist under a healthy root."""
+    assert read_vol_index_parquet(tmp_path, "NONEXISTENT") == []
+
+
+def test_sync_raises_on_present_but_empty_lake(tmp_path: Path) -> None:
+    """A mounted-but-empty lake is a broken mount, not 'no new rows'."""
+    from uw_scan.worker.jobs.vol_index_lake_sync import run_vol_index_lake_sync
+
+    with pytest.raises(RuntimeError, match="mounted but empty"):
+        run_vol_index_lake_sync(None, root=tmp_path)

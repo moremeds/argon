@@ -22,7 +22,7 @@ from apscheduler.triggers.interval import IntervalTrigger
 
 from uw_scan.api.client import UwClient
 from uw_scan.config import Settings
-from uw_scan.sources.lake_resolver import resolve_lake_root
+from uw_scan.sources.lake_resolver import _r2_fully_configured, resolve_lake_root
 from uw_scan.sources.ohlc import MassiveOhlcProvider
 from uw_scan.sources.uw_budget import (
     limits_from_settings,
@@ -155,13 +155,17 @@ def _research_budget_ok(settings: Settings, repo) -> bool:
     return may_spend("research", snap, limits_from_settings(settings))
 
 
-# Each regime scan tick checks the last N trading days for missing snapshots
-# and fills them. 7 days is enough to ride out a long-weekend outage on the
-# primary worker without growing the per-tick work unboundedly. Match this
-# value if you change the cron interval — too-short means missed gaps
-# linger; too-long is wasted set-membership checks per tick (cheap, but
-# pointless).
-REGIME_RECOVERY_LOOKBACK_DAYS = 7
+# Each regime scan tick checks the last N CALENDAR days for missing snapshots
+# and fills them (the scanners compute `latest - timedelta(days=N)` and then
+# intersect with the trading days actually present — see scanners/cri.py:338,
+# vcg.py:276, canary.py:322). At 30 calendar days that is ~21 trading days.
+# The window must exceed realistic TIME-TO-DETECT, not typical outage length:
+# the 2026-07-08 lake outage ran 13 days, so at the previous value of 7 the
+# 07-08..07-13 span would never have healed even after the mount was repaired
+# — leaving a permanent hole mid-series while the recent tail looked correct.
+# Per-tick cost is a set-membership check per candidate date and a scanner run
+# only for dates genuinely missing a snapshot (normally zero).
+REGIME_RECOVERY_LOOKBACK_DAYS = 30
 WorkerGroup = Literal["uw", "massive", "ai", "ai-codex", "ai-claude", "ai-deepseek"]
 WORKER_ROLES: set[str] = {
     "all",
@@ -197,6 +201,19 @@ def _validate_worker_settings(settings: Settings) -> None:
         raise RuntimeError(
             "UW_SCAN_WORKER_INDEX must be between 0 and "
             f"{settings.worker_count - 1} (got {settings.worker_index})"
+        )
+    # R2 is retired: its producer push died 2026-05-21, so resolve_lake_root
+    # would hand every lake read to a bucket frozen at that date — silently,
+    # which is exactly how the 2026-07-08 outage stayed invisible for 13 days.
+    # Reject at boot; the resolver's s3 branch stays intact for its own tests
+    # and is removed wholesale by the apex migration.
+    if _r2_fully_configured(settings):
+        raise RuntimeError(
+            "R2 lake settings are present, but R2 is retired — its producer "
+            "push has been dead since 2026-05-21 and reading it silently "
+            "serves stale data. Remove R2_ACCOUNT_ID / R2_ACCESS_KEY_ID / "
+            "R2_SECRET_ACCESS_KEY / R2_BUCKET from the environment; the "
+            "mounted local lake is the only supported source."
         )
 
 

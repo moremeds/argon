@@ -1,5 +1,13 @@
 # Regime indicators — CRI · VCG · 5% Canary (results)
 
+> **Moved 2026-07-20.** `canary-calibration-v{1,2}.json` and `guidance.md` are
+> loaded at runtime and now live in `src/uw_scan/cards/data/`. They were moved
+> out of `docs/` because `docker/app.Dockerfile` does not copy `docs/`, so they
+> vanished from the container after the 2026-07-08 Docker cutover — breaking the
+> canary and `GET /api/regime/guidance` for 12 days. Do not move them back; see
+> `docs/superpowers/specs/2026-07-20-runtime-asset-durability-design.md`.
+
+
 Final results for the three macro-regime indicators. **These are descriptive / probabilistic
 *classifiers* of market-regime stress, not tradeable strategies** — so there is **no equity
 curve or buy-and-hold P&L here**; they are scored by discrimination (**AUC**), named-crash
@@ -12,11 +20,12 @@ read is the sibling [`../vrp/`](../vrp/) short-vol study.
 > This README summarizes; the methodology docs (`cri-/vcg-/canary-methodology.md`) and
 > [`_iterations/`](./_iterations/) hold the detail and the superseded design notes.
 
-> **Why files stayed in place (not all archived):** `guidance.md` is **read live by the API**
-> (`api/routers/regime_validation.py`), `canary-calibration-v{1,2}.json` are **loaded at runtime**
-> by `cards/canary_calibration.py`, and the three `*-methodology.md` + `ground-truth-labels/*.yaml`
-> are code/PR-contract "source of truth." Only genuine discussion/next-steps/design files moved to
-> `_iterations/`.
+> **Why some files stayed in place (not all archived):** the three
+> `*-methodology.md` + `ground-truth-labels/*.yaml` are code/PR-contract "source
+> of truth." The runtime-read files that used to live here — `guidance.md` and
+> `canary-calibration-v{1,2}.json` — **moved to `src/uw_scan/cards/data/`** on
+> 2026-07-20 (see the note at the top). Only genuine discussion/next-steps/design
+> files moved to `_iterations/`.
 
 ---
 
@@ -38,7 +47,8 @@ First DB-of-record run (`run_id=1`): **4,873 daily rows**, `composite_version=3`
 **AUC dd5 = 0.6343**, **AUC dd10 = 0.6329**, **255 fired-trigger days**. Out-of-sample
 walk-forward against ~20 years of CBOE vol-complex data (`cri-validation.ipynb` §9 is the honest
 accuracy breakdown). Architecture is a fixed 4 × 25 = 100 composite; CRI level → trading posture
-is the `guidance.md` lookup the API serves.
+is the `guidance.md` lookup the API serves (now packaged at
+`src/uw_scan/cards/data/guidance.md`).
 
 ### 2.2 VCG — Vol-Credit Gap
 
@@ -113,7 +123,7 @@ leading signal — never as a standalone early warning.**
 | Canary full deep-dive | [`canary-5yr-executive-summary.md`](./canary-5yr-executive-summary.md) |
 | Closure memo + SQL cookbook | [`closure-2026-05-24.md`](./closure-2026-05-24.md) |
 | CRI OOS validation notebook | `cri-validation.ipynb` |
-| Runtime calibration (loaded by app) | `canary-calibration-v{1,2}.json` |
+| Runtime calibration (loaded by app) | `src/uw_scan/cards/data/canary-calibration-v{1,2}.json` |
 | Ground-truth crisis labels (loaded by scripts) | `ground-truth-labels/*.yaml` |
 | Superseded design notes / next-steps / source PDF | [`_iterations/`](./_iterations/) |
 | Scoring code | `src/uw_scan/cards/{cri_scorers,cri_scoring,vcg_scoring,canary_scoring,canary_calibration}.py` |

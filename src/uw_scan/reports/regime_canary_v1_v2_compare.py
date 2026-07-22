@@ -25,6 +25,7 @@ import subprocess
 import sys
 from dataclasses import dataclass
 from datetime import date as _date
+from importlib.resources import files
 from io import StringIO
 from pathlib import Path
 
@@ -34,8 +35,9 @@ from uw_scan.cards.canary_calibration import load_calibration
 from uw_scan.config import Settings
 
 REPO_ROOT = Path(__file__).resolve().parents[3]
-V1_CAL_PATH = REPO_ROOT / "docs" / "research" / "regime" / "canary-calibration-v1.json"
-V2_CAL_PATH = REPO_ROOT / "docs" / "research" / "regime" / "canary-calibration-v2.json"
+_CAL_DIR = files("uw_scan.cards") / "data"
+V1_CAL_PATH = _CAL_DIR / "canary-calibration-v1.json"
+V2_CAL_PATH = _CAL_DIR / "canary-calibration-v2.json"
 
 CANONICAL_WINDOWS = ("WF-1", "WF-2", "WF-3", "WF-4", "WF-5", "WF-6")
 CCA_EVENT_DATES = ("2011-08-08", "2015-08-24", "2018-02-05", "2020-03-09")

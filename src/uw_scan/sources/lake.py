@@ -82,12 +82,25 @@ def read_vol_index_parquet(
     return _read_s3(lr, symbol, since=since)
 
 
-# ---------- local backend (unchanged behavior) ----------
+# ---------- local backend ----------
+
+
+def _require_root(root: Path) -> None:
+    """Absent root = misconfiguration. Raise; never degrade to an empty read.
+
+    Returning [] for a missing root makes a dropped container mount
+    indistinguishable from "the upstream produced no new rows" — the exact
+    ambiguity that hid the 2026-07-08 lake outage for 13 days.
+    """
+    if not root.exists():
+        raise FileNotFoundError(
+            f"lake root does not exist: {root}. Check the container volume "
+            f"mount and LAKE_VOL_INDEX_ROOT / LAKE_CREDIT_ETF_ROOT."
+        )
 
 
 def _list_local(root: Path) -> list[str]:
-    if not root.exists():
-        return []
+    _require_root(root)
     out: list[str] = []
     for child in root.iterdir():
         if not child.is_dir():
@@ -102,6 +115,7 @@ def _list_local(root: Path) -> list[str]:
 
 
 def _read_local(root: Path, symbol: str, *, since: date | None) -> list[dict]:
+    _require_root(root)
     path = root / f"symbol={symbol}" / VOL_INDEX_FILENAME
     if not path.exists():
         return []
