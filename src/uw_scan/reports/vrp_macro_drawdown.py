@@ -92,10 +92,16 @@ def _vol_index_close(repo, symbol: str, start: _date) -> dict[_date, float]:
 def _lake_spot(
     symbol: str, lake_root: pathlib.Path, start: _date
 ) -> dict[_date, float]:
-    import pyarrow.dataset as ds
+    """Reads the explicit 1d.parquet — pointing pyarrow at the symbol
+    directory instead picks up sibling files (1d.parquet.lock, 30m/5m
+    parquet + their .lock markers) and breaks on the zero-byte lock file
+    (same class of bug as _volatility_lake_close below)."""
+    import pyarrow.parquet as pq
 
-    path = lake_root / "bronze" / "asset_class=equity" / f"symbol={symbol}"
-    table = ds.dataset(str(path)).to_table(columns=["trade_date", "close"])
+    path = (
+        lake_root / "bronze" / "asset_class=equity" / f"symbol={symbol}" / "1d.parquet"
+    )
+    table = pq.read_table(str(path), columns=["trade_date", "close"])
     dts = table.column("trade_date").to_pylist()
     cls = table.column("close").to_pylist()
     # SPY's lake parquet carries ~73% null-trade_date rows (an alternate-schema

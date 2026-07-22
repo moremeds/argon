@@ -7,6 +7,19 @@ version in lockstep (enforced by `scripts/release/version_sync_check.py`).
 
 ## [Unreleased]
 
+### Fixed
+
+- **QQQ/IWM macro short-vol signal no longer skips every run.**
+  `vrp_macro_drawdown._lake_spot` pointed pyarrow's directory-dataset reader
+  at the whole `symbol=<TICKER>` lake directory instead of the explicit
+  `1d.parquet` file. Sibling files in that directory (`1d.parquet.lock` and
+  the 30m/5m timeframe parquets + their own `.lock` markers) made pyarrow
+  choke on a zero-byte lock file with `ArrowInvalid`, silently starving
+  QQQ since 2026-06-24 and IWM since 2026-07-08 (SPX was unaffected — its
+  vol/spot both come from `vol_index_daily`, not this code path). Now reads
+  the explicit `1d.parquet`, matching the already-correct sibling pattern in
+  `_volatility_lake_close`.
+
 ## [0.10.11] — 2026-07-22
 
 
