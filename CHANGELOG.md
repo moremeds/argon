@@ -7,6 +7,9 @@ version in lockstep (enforced by `scripts/release/version_sync_check.py`).
 
 ## [Unreleased]
 
+## [0.10.12] — 2026-07-22
+
+
 ### Fixed
 
 - **QQQ/IWM macro short-vol signal no longer skips every run.**
@@ -19,7 +22,6 @@ version in lockstep (enforced by `scripts/release/version_sync_check.py`).
   vol/spot both come from `vol_index_daily`, not this code path). Now reads
   the explicit `1d.parquet`, matching the already-correct sibling pattern in
   `_volatility_lake_close`.
-
 ## [0.10.11] — 2026-07-22
 
 
