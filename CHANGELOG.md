@@ -33,6 +33,14 @@ version in lockstep (enforced by `scripts/release/version_sync_check.py`).
 - **`vrp_macro_drawdown` reads its lake root from `Settings`** instead of a bare
   `os.environ` lookup with a home-dir fallback, consolidating path defaults into
   `config.py`.
+- **Test isolation: dotenv no longer leaks across tests.**
+  `Settings.from_env()` writes `.env`/`.env.local` keys into `os.environ` with a
+  raw assignment (not `monkeypatch`), so the first test to call it leaked a
+  developer's local dotenv into every later test — e.g. a `.env` pointing
+  `XENON_QUERY_API_URL` at the mini made `test_settings_option_surface` pass in
+  isolation but fail in a full local run. An autouse `tests/conftest.py` fixture
+  now snapshots and restores `os.environ` per test. CI was never affected (no
+  `.env` in CI).
 
 ### Added
 
