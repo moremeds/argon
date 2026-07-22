@@ -69,10 +69,17 @@ indistinguishable from "no new data".
 Two separate mechanisms, neither of which could have caught this:
 
 - **`data_gap_healer`** — enabled in prod (`DATA_GAP_HEALER_ENABLED=true`,
-  nightly 20:00 ET). Its `REGISTRY` holds ~35 datasets across `options_chain`,
-  `core_watchlist`, `derived_volatility`, `uw_volatility`, `regime_marketwide`,
-  `gold_rates_macro`, `operational_provenance`. **None of `vol_index_daily`,
-  `cri_snapshots`, `vcg_snapshots`, `canary_snapshots` are registered.**
+  nightly 20:00 ET). All four tables **are** registered (`vol_index_daily` at
+  `data_gap_healer.py:501`; `cri/vcg/canary_snapshots` in the following
+  `_entries` block), but every one of them is `audit_mode="freshness_only"` —
+  a mode that tracks age and **never heals**. `vol_index_daily` is additionally
+  mis-grouped under `options_chain` with the reason string *"UW-retention/
+  event-log shaped"*, which is wrong: it is lake-sourced, not UW-sourced.
+
+  So the healer was never going to fix this. Registration was not the gap;
+  `freshness_only` is correct for a lake-sourced table (there is no fetch to
+  retry) and the classification error is cosmetic. **There is no healer change
+  worth making here** — see §5.
 
 - **`scanners/{cri,vcg,canary}.recover_recent_gaps`** — does cover these tables,
   runs hourly, and filled nothing for 13 days. It enumerates candidate dates
@@ -99,10 +106,22 @@ human:
 - `worker/jobs/data_freshness_monitor.py` only calls `logger.warning` — it never
   calls `alerts.send_alert`
 - `src/uw_scan/alerts.py` (webhook sink) exists and is unused by it
-- `OPS_ALERT_WEBHOOK_URL` is **unset** in `/opt/argon/.env`, so any job that does
-  call `send_alert` is a no-op in prod
+- `UW_SCAN_OPS_ALERT_WEBHOOK_URL` is **unset** in `/opt/argon/.env`, so `send_alert`
+  returns `False` without posting (`alerts.py`: `if not url: return False`)
 
-Detection worked. Logging worked. Delivery does not exist.
+Detection worked. Logging worked. Delivery did not.
+
+**Precise, because it bears on §4.1 H:** a delivery path *does* exist and is
+already wired — `scheduler.py:556-562` escalates to `send_alert` at 3 and 10
+consecutive failures of any job, and `/api/health` exposes `job_failures[]`
+streaks. It is one unset env var from working. But it fires on **job
+failures**, and a frozen lake produced no job failure — the sync "succeeded"
+against an empty read. Nothing in the freshness path was ever connected to it.
+
+This is recorded as fact, not as a reopening of the PR2 decision: the inline
+badge remains the chosen delivery mechanism (no secret to manage). Setting
+`UW_SCAN_OPS_ALERT_WEBHOOK_URL` would additionally light up the existing job-failure
+escalation, which item H now feeds. That remains the operator's call.
 
 ### 1.4 Environment facts that made this non-obvious
 
@@ -193,23 +212,27 @@ git mv docs/research/regime/guidance.md                 src/uw_scan/cards/data/
   guards exist to serve one hardcoded filename (`_safe_doc_path("guidance.md")`
   is the only call site) and become dead once the file is package data.
 - `reports/regime_canary_v1_v2_compare.py` — repoint `V1_CAL_PATH` / `V2_CAL_PATH`.
-- `pyproject.toml` — **this is the booby trap in this PR.** The build backend is
-  `setuptools.build_meta` and the only packaging config present is
-  `[tool.setuptools.packages.find] where = ["src"]`. There is **no
-  `[tool.setuptools.package-data]` and no `include-package-data`**, so
-  non-`.py` files under `src/` do **not** ship in the wheel by default. Moving
-  the JSON/Markdown without adding:
+- `pyproject.toml` — add, for wheel correctness:
 
   ```toml
   [tool.setuptools.package-data]
   "uw_scan.cards" = ["data/*.json", "data/*.md"]
   ```
 
-  reproduces the exact bug this PR exists to fix, one layer deeper and harder to
-  see. The container smoke in §6 is what catches it if this step is missed —
-  which is precisely why that test is non-optional.
+  **Scoped honestly:** this is *not* load-bearing for prod. `app.Dockerfile`
+  does `COPY src/ ./src/` and `uv sync`, which produces an **editable** install
+  pointing at `/app/src` — the container imports from the copied tree, never
+  from a built wheel. The existing proof is `src/uw_scan/storage/migrations/`:
+  117 `.sql` files under `src/`, loaded at runtime, working in prod today with
+  no `package-data` declaration. The moved assets would reach the container
+  with or without this block.
+
+  It is still worth two lines, because `uv build --wheel` (release artifact,
+  and any future non-editable install) *would* drop them. Task 1's wheel
+  inspection is what verifies it. **The container smoke does not** — it would
+  pass either way, since the container reads `/app/src` directly.
 - Leave a pointer in `docs/research/regime/README.md` so the research trail
-  survives the move.
+  survives the move (three stale references: lines ~15-16, ~41, ~116).
 
 Rationale for package data over a `COPY docs/` line: a `COPY` enshrines "`docs/`
 is runtime-critical", so the next person tidying a docs file takes down prod.
@@ -227,15 +250,43 @@ to forget, and it works identically in tests, CI, wheels, and containers.
 
 **H. Fail loud on an absent lake root**
 
-`sources/lake.py` — `_read_local` / `_list_local` raise when the configured
-**root** does not exist. A missing **symbol** under a present root still returns
-`[]`, since a symbol may legitimately be absent. This keeps
-`tests/unit/test_lake_reader.py:90`
-(`read_vol_index_parquet(tmp_path, "NONEXISTENT") == []`) valid, because
-`tmp_path` exists.
+Two changes, at two boundaries:
 
-Three lines, and the highest-value change in this PR: it converts this exact
-failure from 13 days of drift into a crash on the first run.
+1. `sources/lake.py` — `_read_local` / `_list_local` raise when the configured
+   **root** does not exist. A missing **symbol** under a present root still
+   returns `[]`, since a symbol may legitimately be absent. This keeps
+   `tests/unit/test_lake_reader.py:90`
+   (`read_vol_index_parquet(tmp_path, "NONEXISTENT") == []`) valid, because
+   `tmp_path` exists.
+2. `worker/jobs/vol_index_lake_sync.py` — **zero symbols is a failure, not a
+   success.** `root.exists()` cannot catch a *mounted-but-empty* lake, and
+   Docker auto-creates a missing bind-mount source, so that state is reachable
+   whenever the external `/Volumes/DATA_LAKE` is unmounted. Today the job
+   returns `{"symbols": 0, …}` and is recorded as a success — the precise shape
+   of the original bug. It now raises.
+
+   `credit_etf_lake_sync` is deliberately left alone: HYG/JNK/LQD are
+   individually optional and its per-symbol skip-with-warning is correct there.
+
+Three lines, and the highest-value change in this PR. **What it actually does —
+not a crash.** APScheduler catches job exceptions, so the raise becomes:
+
+```
+_require_root raises
+  → APScheduler EVENT_JOB_ERROR
+  → JobFailuresRepository.record_failure("vol_index_lake_sync")   [persisted]
+  → /api/health job_failures[] shows a consecutive-failure streak  [visible]
+  → send_alert() at streak 3 and 10                     [wired; no-op today]
+```
+
+That is the real improvement: today the same condition produces
+`logger.info("vol_index_lake_sync: no symbols at …")` and a **success**
+recorded against the job. After the change it produces a recorded *failure*
+with a growing streak on the health endpoint. The worker keeps running; nothing
+crash-loops.
+
+Verification therefore keys on `job_failures`, not on a container restart —
+see §7.
 
 **C. `scripts/check_runtime_assets.py` + CI wiring**
 
@@ -244,11 +295,20 @@ outside the package. Same shape and placement as the existing
 `scripts/check_no_yahoo.py` and `scripts/check_migration_prefixes.py`; add to
 `.github/workflows/ci.yml`. Catches `reports/vrp_macro_drawdown.py:71` today.
 
-**D. `vol_index_daily` → `data_gap_healer` REGISTRY** as a `freshness_only`
-entry. It cannot backfill a lake sync, but the freeze becomes a first-class
-tracked item instead of a field in a JSON blob. Per the repo's temporal-table
-rule, this requires the accompanying dataset-policy doc regeneration in the same
-PR.
+**D. ~~`vol_index_daily` → `data_gap_healer` REGISTRY~~ — DROPPED.**
+
+Written on the false premise that the table was unregistered. It is already
+there (`data_gap_healer.py:501`, `freshness_only`), so adding it would create a
+duplicate `table_name` and fail the existing
+`test_registry_table_names_are_unique`. Registering an already-registered table
+buys no detection: `freshness_only` never heals, and `data_freshness.
+MONITORED_TABLES` — which *is* what caught the freeze — already covers it.
+
+The one real defect is cosmetic: the entry sits in the `options_chain` group
+with the reason *"UW-retention/event-log shaped"*, but `vol_index_daily` is
+lake-sourced. Not worth a registry reshuffle plus a policy-doc regeneration in
+a PR with a deploy clock on it. Recorded here so the next reader does not
+rediscover it as a bug.
 
 **E. `REGIME_RECOVERY_LOOKBACK_DAYS`: 7 → 30** (`worker/scheduler.py:164`).
 A recovery window must exceed realistic **time-to-detect**, not typical outage
@@ -256,16 +316,27 @@ length. At 7 days, this incident's 07-08→07-13 span would never have healed ev
 after the mount was fixed — leaving a permanent hole in the middle of the series
 while the recent tail looked correct.
 
-**G′. Guard against silent R2 resurrection**
+**G′. Guard against silent R2 resurrection — at worker startup**
 
-`resolve_lake_root` raises if it ever resolves an s3 root. R2 is retired and its
-producer has been dead since 2026-05-21, so any s3 resolution is now by
-definition a misconfiguration.
+R2 is retired and its producer has been dead since 2026-05-21, so an `.env`
+carrying `R2_*` is by definition a misconfiguration — and one that silently
+reroutes every lake read to a bucket frozen at that date.
 
-Explicitly **not** deleting the ~150-line s3 branch: the apex migration (§5) is
-expected to delete `lake_resolver.py` and most of `lake.py` wholesale, so a
-deletion now is churn on code already scheduled to die. Three lines close the
-trap; the surgery happens once, later.
+**Revised after review.** The first draft put the raise inside
+`resolve_lake_root`. That is wrong: `tests/unit/sources/test_lake_resolver.py`
+holds 15 tests, **8 of which assert that R2 config resolves to an s3 root**, plus
+two integration suites (`test_lake_r2.py`, `test_lake_sync_r2.py`) and three
+docs. The "three-line guard" was really three lines plus retiring ten tests plus
+rewriting three docs, inside the PR that has a deploy clock on it.
+
+The check belongs at **boot**, not on every read — R2 config is a *deployment*
+mistake. `worker/scheduler.py::_validate_worker_settings` already exists for
+exactly this, has no tests to disturb, and runs before any job is scheduled.
+`resolve_lake_root` and its suite stay untouched and green, and get deleted
+wholesale by the apex migration as originally intended.
+
+Explicitly **not** deleting the ~150-line s3 branch, for the same reason as
+before: churn on code already scheduled to die.
 
 ### 4.2 PR2 — visibility (frontend only)
 
@@ -336,7 +407,7 @@ Owner: apex-side work is the operator's, tracked separately.
   bars remain frozen at 2026-07-13; CRI/VCG/canary need only dailies, so the
   regime surface is unaffected.
 - Wiring `data_freshness_monitor` to `alerts.send_alert` / setting
-  `OPS_ALERT_WEBHOOK_URL`. Considered and deliberately declined in favour of the
+  `UW_SCAN_OPS_ALERT_WEBHOOK_URL`. Considered and deliberately declined in favour of the
   inline badge — no secret to manage. Documented in §1.3 so the gap is known
   rather than forgotten.
 - Deleting the R2/s3 branch (see G′).
@@ -353,10 +424,18 @@ built artifact. Tests must target the artifact, not the source tree.
 | `test_guidance_loads_from_package` | A (regression) |
 | `test_lake_root_missing_raises` — absent root raises; absent symbol under a present root still `[]` | H |
 | `scripts/check_runtime_assets.py` self-check | C |
-| **Container smoke** — build the image, then inside it run `load_calibration()` and `GET /api/regime/guidance` | **the actual 07-08 failure** |
+| **Wheel inspection** — `uv build --wheel`, assert `cards/data/*` is in the archive | a missing `package-data` block |
+| **Container smoke** — build the image, then inside it run `load_calibration()` and `_parse_guidance_md()` | **the actual 07-08 failure** |
 
-The container smoke is the only check that reproduces the real failure mode.
-The CI guard script is the cheap proxy that runs on every push.
+Two different checks for two different failures — do not conflate them:
+
+- The **container smoke** reproduces the real 07-08 failure (asset absent from
+  the image). Because the image installs `/app/src` editable, it passes with or
+  without the `package-data` block.
+- The **wheel inspection** is the only thing that catches a missing
+  `package-data` block, which breaks release wheels, not the container.
+
+The CI guard script is the cheap proxy for both that runs on every push.
 
 ## 7. Verification
 
@@ -368,6 +447,11 @@ Additional checks:
 - `docker exec <worker> python -c "from uw_scan.cards.canary_calibration import load_calibration; load_calibration()"`
   succeeds on a **freshly pulled image** with no `docker cp`
 - `uw_scan.vol_index_daily` advances on the next `vol_index_lake_sync` tick
+  (03:15 ET) — this is the business outcome, not a proxy for it
+- `/api/health` `job_failures[]` contains **no** `vol_index_lake_sync` entry.
+  This is the falsifiable test for item H: a streak appearing there means the
+  mount is wrong and H is doing its job; the pre-change code would have shown
+  the job as *succeeding*
 - `/api/health` `freshness` shows no regime table frozen
 - PR2: Gold page renders a stale badge on the 108-day-old WGC/CB reserves panels
 
@@ -378,9 +462,19 @@ Additional checks:
   `regime_canary_v1_v2_compare.py` in the same PR. `COMPOSITE_VERSION` is part
   of the canary snapshot dedup key, so a bad move surfaces immediately as
   unfilled snapshots rather than silently wrong values.
-- **H (fail-loud) could crash a worker on a transient volume unmount.** Accepted:
-  a crash-looping worker is strictly better than 13 days of silent staleness, and
-  it is the entire point of the change.
+- **H (fail-loud) turns a transient volume unmount into a nightly job failure.**
+  `/Volumes/DATA_LAKE` is an *external* volume; if it is ever unmounted, Docker
+  will happily bind-mount an auto-created empty directory at that path, so
+  `/lake` exists but is empty. The configured roots are
+  `/lake/bronze/asset_class=…`, which do **not** exist under an empty `/lake`,
+  so `_require_root` still fires correctly — the check is load-bearing precisely
+  because it tests the *asset-class subpath*, not `/lake` itself. Consequence is
+  a recorded job failure and a health-endpoint streak, not a crash loop.
+  Accepted; that is the entire point of the change.
+- **Rollback:** every item is independently revertable, and H is the only one
+  with a behavioural blast radius. If it proves too noisy, revert the
+  `_require_root` calls alone (two lines) — the asset moves, compose mount, and
+  CI guard are inert with respect to it.
 - **E (lookback 7 → 30) increases per-tick work** for the hourly regime recovery
   scan. Bounded — it only computes for dates genuinely missing a snapshot, which
   is normally zero.
