@@ -7,6 +7,47 @@ version in lockstep (enforced by `scripts/release/version_sync_check.py`).
 
 ## [Unreleased]
 
+### Fixed
+
+- **Runtime assets now ship inside the Python package.** `docker/app.Dockerfile`
+  never copied `docs/`, so `canary-calibration-v1.json` and `guidance.md`
+  vanished in the container after the 2026-07-08 Docker cutover: every canary
+  run raised `FileNotFoundError` and `GET /api/regime/guidance` returned HTTP
+  500 for 12 days. Both files moved to `uw_scan.cards.data` and are loaded via
+  `importlib.resources`, with a `[tool.setuptools.package-data]` declaration so
+  they also ship in release wheels.
+- **`GET /api/regime/guidance` no longer degrades to an empty rule list** when
+  `guidance.md` cannot be read — a missing runtime asset is now a loud failure.
+- **A missing parquet-lake root now raises instead of returning `[]`.** The
+  containers had no lake mount, so `resolve_lake_root` fell through to a
+  Cloudflare R2 bucket whose producer died 2026-05-21. `vol_index_lake_sync`
+  read the frozen bucket, inserted nothing, and logged nothing — freezing
+  `vol_index_daily` and all EOD CRI/VCG/canary snapshots at 2026-07-07 for 13
+  days while `basis='live'` rows stayed current and masked it. A mounted-but-
+  empty lake now raises too.
+- **`docker-compose.yml` mounts the lake** at `/lake` (the real
+  `/Volumes/DATA_LAKE/...` path — `~/market-warehouse/data-lake` is a symlink
+  and colima does not mount `$HOME`), parameterized via `ARGON_LAKE_HOST_PATH`.
+- **The worker refuses to boot when retired R2 settings are present**, so a
+  stale bucket can never silently take over again.
+- **`vrp_macro_drawdown` reads its lake root from `Settings`** instead of a bare
+  `os.environ` lookup with a home-dir fallback, consolidating path defaults into
+  `config.py`.
+
+### Added
+
+- `scripts/check_runtime_assets.py` CI guard: no `Path.home()` outside
+  `config.py`, no runtime `docs/` path construction in `src/`, and no named
+  runtime asset reached through a `docs/` path in `src/` or the image-shipped
+  `scripts/`.
+- `scripts/smoke_container_assets.sh`: verifies the built image can load both
+  runtime assets — the only check that reproduces the cutover failure.
+
+### Changed
+
+- `REGIME_RECOVERY_LOOKBACK_DAYS` 7 → 30 (calendar days). A recovery window must
+  exceed time-to-detect, not typical outage length.
+
 ## [0.10.10] — 2026-07-20
 
 
