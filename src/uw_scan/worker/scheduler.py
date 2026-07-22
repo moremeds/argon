@@ -22,7 +22,7 @@ from apscheduler.triggers.interval import IntervalTrigger
 
 from uw_scan.api.client import UwClient
 from uw_scan.config import Settings
-from uw_scan.sources.lake_resolver import resolve_lake_root
+from uw_scan.sources.lake_resolver import _r2_fully_configured, resolve_lake_root
 from uw_scan.sources.ohlc import MassiveOhlcProvider
 from uw_scan.sources.uw_budget import (
     limits_from_settings,
@@ -197,6 +197,19 @@ def _validate_worker_settings(settings: Settings) -> None:
         raise RuntimeError(
             "UW_SCAN_WORKER_INDEX must be between 0 and "
             f"{settings.worker_count - 1} (got {settings.worker_index})"
+        )
+    # R2 is retired: its producer push died 2026-05-21, so resolve_lake_root
+    # would hand every lake read to a bucket frozen at that date — silently,
+    # which is exactly how the 2026-07-08 outage stayed invisible for 13 days.
+    # Reject at boot; the resolver's s3 branch stays intact for its own tests
+    # and is removed wholesale by the apex migration.
+    if _r2_fully_configured(settings):
+        raise RuntimeError(
+            "R2 lake settings are present, but R2 is retired — its producer "
+            "push has been dead since 2026-05-21 and reading it silently "
+            "serves stale data. Remove R2_ACCOUNT_ID / R2_ACCESS_KEY_ID / "
+            "R2_SECRET_ACCESS_KEY / R2_BUCKET from the environment; the "
+            "mounted local lake is the only supported source."
         )
 
 

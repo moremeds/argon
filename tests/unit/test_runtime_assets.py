@@ -46,3 +46,27 @@ def test_regime_validation_has_no_docs_path() -> None:
 
     assert not hasattr(mod, "_DOCS_REGIME"), "docs/-relative path still present"
     assert not hasattr(mod, "_safe_doc_path"), "traversal guard should be deleted"
+
+
+def test_r2_settings_are_rejected_at_worker_startup() -> None:
+    """R2 is retired; booting with its config must fail loudly, not reroute."""
+    import pytest
+    from pydantic import SecretStr
+
+    from uw_scan.config import Settings
+    from uw_scan.worker.scheduler import _validate_worker_settings
+
+    ok = Settings.model_construct(worker_role="massive", worker_count=1, worker_index=0)
+    _validate_worker_settings(ok)  # no R2 -> fine
+
+    with_r2 = Settings.model_construct(
+        worker_role="massive",
+        worker_count=1,
+        worker_index=0,
+        r2_account_id="acct",
+        r2_bucket="market-data",
+        r2_access_key_id=SecretStr("k"),
+        r2_secret_access_key=SecretStr("s"),
+    )
+    with pytest.raises(RuntimeError, match="R2.*retired"):
+        _validate_worker_settings(with_r2)
