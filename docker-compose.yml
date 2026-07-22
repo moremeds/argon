@@ -31,6 +31,16 @@ x-app-image: &app-image
 x-common: &common
   env_file: [/opt/argon/.env]
   restart: unless-stopped
+  # Parquet data lake, read-only. MUST be the real volume path, NOT
+  # ~/market-warehouse/data-lake — that is a symlink into /Volumes, and colima
+  # mounts only /Volumes/DATA_LAKE/livewire/data-lake ($HOME is NOT mounted),
+  # so the symlink path yields an empty directory inside the container. Without
+  # this mount resolve_lake_root has no local mirror, which froze
+  # vol_index_daily at 2026-07-07 for 13 days after the Docker cutover.
+  # Overridable so this file stays usable for local smoke on a host that has
+  # no /Volumes/DATA_LAKE: export ARGON_LAKE_HOST_PATH=/some/local/lake.
+  volumes:
+    - ${ARGON_LAKE_HOST_PATH:-/Volumes/DATA_LAKE/livewire/data-lake}:/lake:ro
   extra_hosts:
     - "host.docker.internal:host-gateway"
   labels:
