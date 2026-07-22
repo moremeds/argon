@@ -10,9 +10,9 @@ GET /api/regime/vcg-validation — returns the latest completed VCG backtest
   run exists at the current vcg_scoring.COMPOSITE_VERSION.
 
 GET /api/regime/guidance — returns the active regime-state guidance rule
-  selected from docs/research/regime/guidance.md based on the current CRI
-  snapshot. (guidance.md is still on disk; only the backtest artifacts moved
-  to Postgres.)
+  selected from the packaged guidance.md (uw_scan/cards/data/) based on the
+  current CRI snapshot. It moved out of docs/ on 2026-07-20 because the image
+  does not carry docs/; see the runtime-asset-durability spec.
 """
 
 from __future__ import annotations
@@ -20,7 +20,7 @@ from __future__ import annotations
 import ast
 import logging
 import operator as _op
-from pathlib import Path
+from importlib.resources import files
 from typing import Annotated, Any
 
 import yaml
@@ -57,35 +57,9 @@ logger = logging.getLogger(__name__)
 
 router = APIRouter(prefix="/regime", tags=["regime"])
 
-# src/uw_scan/api/routers/regime_validation.py
-# parents[0]=routers  [1]=api  [2]=uw_scan  [3]=src → .parent = repo root
-_DOCS_REGIME = (
-    Path(__file__).resolve().parents[3].parent / "docs" / "research" / "regime"
-).resolve()
-
-
-def _safe_doc_path(filename: str) -> Path:
-    """Resolve docs/research/regime/<filename> with four guards.
-
-    1. No directory components in `filename`.
-    2. The literal path must NOT be a symlink (check BEFORE resolve —
-       resolve follows links and erases the symlink-ness).
-    3. Resolved target stays within `_DOCS_REGIME` (defense in depth).
-    4. Resolved target is a regular file.
-    """
-    if "/" in filename or filename.startswith("."):
-        raise HTTPException(400, f"invalid filename: {filename!r}")
-    raw = _DOCS_REGIME / filename
-    if raw.is_symlink():
-        raise HTTPException(404, f"{filename}: not a regular file (symlink)")
-    if not raw.exists():
-        raise HTTPException(404, f"{filename}: not found")
-    candidate = raw.resolve()
-    if not candidate.is_relative_to(_DOCS_REGIME):
-        raise HTTPException(400, "path escapes docs/research/regime/")
-    if not candidate.is_file():
-        raise HTTPException(404, f"{filename}: not a regular file")
-    return candidate
+# Package data — ships inside the wheel/image. See
+# docs/superpowers/specs/2026-07-20-runtime-asset-durability-design.md.
+_GUIDANCE_MD = files("uw_scan.cards") / "data" / "guidance.md"
 
 
 # ── AST-whitelist evaluator (security boundary) ──────────────────────
@@ -158,12 +132,13 @@ def _evaluate_condition(expr: str, ctx: dict[str, Any]) -> bool:
 def _parse_guidance_md() -> list[dict[str, Any]]:
     """Split guidance.md on `---` separators; load YAML frontmatter + body."""
     try:
-        path = _safe_doc_path("guidance.md")
-    except HTTPException as exc:
-        if exc.status_code == 404:
-            return []
-        raise
-    text = path.read_text()
+        text = _GUIDANCE_MD.read_text()
+    except FileNotFoundError:
+        logger.error(
+            "guidance.md unreadable at %s — is it shipping as package data?",
+            _GUIDANCE_MD,
+        )
+        return []
     chunks = [c.strip() for c in text.split("\n---\n")]
     if chunks and chunks[0].startswith("---"):
         chunks[0] = chunks[0].lstrip("-").strip()

@@ -70,7 +70,9 @@ def test_guidance_404_when_no_snapshot(client, monkeypatch) -> None:
 def test_guidance_500_when_guidance_md_missing(client, monkeypatch, tmp_path) -> None:
     from uw_scan.api.routers import regime_validation
 
-    monkeypatch.setattr(regime_validation, "_DOCS_REGIME", tmp_path.resolve())
+    # tmp_path/guidance.md does not exist -> _parse_guidance_md returns []
+    # -> the endpoint raises HTTPException(500, "guidance.md missing ...").
+    monkeypatch.setattr(regime_validation, "_GUIDANCE_MD", tmp_path / "guidance.md")
     monkeypatch.setattr(
         CriSnapshotRepository, "fetch_latest", lambda self: _calm_snapshot()
     )
@@ -91,7 +93,7 @@ def test_guidance_skips_malformed_rule_and_falls_through(
         "---\nstate: low_neutral\ncondition: \"level == 'LOW'\"\nposture: neutral\n---\n"
         "body for low_neutral\n"
     )
-    monkeypatch.setattr(regime_validation, "_DOCS_REGIME", tmp_path.resolve())
+    monkeypatch.setattr(regime_validation, "_GUIDANCE_MD", tmp_path / "guidance.md")
     monkeypatch.setattr(
         CriSnapshotRepository, "fetch_latest", lambda self: _calm_snapshot()
     )
