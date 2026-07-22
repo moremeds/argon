@@ -113,12 +113,18 @@ def test_run_sync_incremental_refreshes_tail(
     assert rows[0]["close"] == pytest.approx(17.9)
 
 
-def test_run_sync_empty_root_is_noop(tmp_path: Path, seeded_db_empty_cards) -> None:
-    summary = run_vol_index_lake_sync(
-        seeded_db_empty_cards.conn,
-        root=tmp_path,
-    )
-    assert summary == {"symbols": 0, "rows": 0, "gaps_filled": 0}
+def test_run_sync_empty_root_raises(tmp_path: Path, seeded_db_empty_cards) -> None:
+    """A mounted-but-empty lake is a broken mount, not a legitimate no-op.
+
+    Before 2026-07-20 this returned {symbols: 0, ...} and was recorded as a job
+    success — the exact behaviour that let the 2026-07-08 lake freeze look
+    healthy for 13 days. It now raises so the scheduler records a job failure.
+    """
+    with pytest.raises(RuntimeError, match="mounted but empty"):
+        run_vol_index_lake_sync(
+            seeded_db_empty_cards.conn,
+            root=tmp_path,
+        )
 
 
 def test_run_sync_fills_middle_gap(tmp_path: Path, seeded_db_empty_cards) -> None:
