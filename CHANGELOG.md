@@ -7,6 +7,9 @@ version in lockstep (enforced by `scripts/release/version_sync_check.py`).
 
 ## [Unreleased]
 
+## [0.10.11] — 2026-07-22
+
+
 ### Fixed
 
 - **Runtime assets now ship inside the Python package.** `docker/app.Dockerfile`
@@ -55,7 +58,6 @@ version in lockstep (enforced by `scripts/release/version_sync_check.py`).
 
 - `REGIME_RECOVERY_LOOKBACK_DAYS` 7 → 30 (calendar days). A recovery window must
   exceed time-to-detect, not typical outage length.
-
 ## [0.10.10] — 2026-07-20
 
 
