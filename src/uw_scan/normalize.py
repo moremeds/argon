@@ -12,16 +12,21 @@ from typing import Any
 
 from .models import (
     BulkScreenerRow,
+    DarkLitPrint,
     DarkPoolPrint,
     EtfInfo,
     EtfInOutflowRow,
     FlowAlert,
+    FtdRow,
+    GexLevelsRow,
     GreekExposureByExpiryRow,
     GreekExposureRow,
+    GreekFlowRow,
     GreeksRow,
     InterpolatedIvRow,
     IvRankRow,
     MaxPainRow,
+    NetPremTickRow,
     OiChangeRow,
     OiPerStrikeRow,
     OptionContractIntradayBucket,
@@ -32,7 +37,11 @@ from .models import (
     SkewRow,
     SpotExposureRow,
     TermStructureRow,
+    VolAnomalyRow,
+    VolCharacterRow,
     VolStatsRow,
+    VolumesByExchangeRow,
+    VolVrpRow,
 )
 
 
@@ -407,3 +416,105 @@ def to_decimal(value: object) -> Decimal | None:
     if isinstance(value, Decimal):
         return value
     return Decimal(str(value))
+
+
+# --------------------------------------------------------------------------- #
+# UW historical-alpha normalizers. These parse the real (verified) payload
+# shapes for the gex-levels / volatility / flow / short datasets. gex-levels is
+# a single `data` object; anomaly/character are `data:{history,latest}`; every
+# other endpoint is a plain `data:[...]` list. Merge/align across endpoints
+# happens in worker/jobs/uw_alpha_capture.py, not here.
+# --------------------------------------------------------------------------- #
+def normalize_gex_levels(
+    payload: dict, ticker: str, market_date: date
+) -> GexLevelsRow | None:
+    data = payload.get("data", payload)
+    if not isinstance(data, dict) or not data:
+        return None
+    return GexLevelsRow(
+        ticker=ticker.upper(),
+        market_date=market_date,
+        call_wall=data.get("call_wall"),
+        put_wall=data.get("put_wall"),
+        gamma_flip=data.get("gamma_flip"),
+        gamma_magnet=data.get("gamma_magnet"),
+        spot=data.get("spot") or data.get("price"),
+    )
+
+
+def _history_rows(payload: dict) -> list[dict]:
+    """`data:{history:[...], latest:{...}}` -> flat rows (latest deduped by date)."""
+    data = payload.get("data", payload)
+    if not isinstance(data, dict):
+        return []
+    rows = [r for r in (data.get("history") or []) if isinstance(r, dict)]
+    latest = data.get("latest")
+    if isinstance(latest, dict) and latest.get("date"):
+        if not any(r.get("date") == latest["date"] for r in rows):
+            rows.append(latest)
+    return rows
+
+
+def normalize_vol_anomaly(payload: dict) -> list[VolAnomalyRow]:
+    return [VolAnomalyRow(**r) for r in _history_rows(payload) if r.get("date")]
+
+
+def normalize_vol_character(payload: dict) -> list[VolCharacterRow]:
+    return [VolCharacterRow(**r) for r in _history_rows(payload) if r.get("date")]
+
+
+def normalize_vol_vrp(payload: dict) -> list[VolVrpRow]:
+    # VRP is a plain `data:[...]` trailing series, NOT the {history,latest}
+    # wrapper used by anomaly/character.
+    return [VolVrpRow(**r) for r in _data_list(payload) if r.get("date")]
+
+
+def normalize_net_prem_ticks(payload: dict) -> list[NetPremTickRow]:
+    # timestamp key is `tape_time`; the model's `ts` is required.
+    out: list[NetPremTickRow] = []
+    for r in _data_list(payload):
+        if not r.get("tape_time"):
+            continue
+        row = dict(r)
+        row["ts"] = row.pop("tape_time")
+        out.append(NetPremTickRow(**row))
+    return out
+
+
+def normalize_greek_flow(payload: dict) -> list[GreekFlowRow]:
+    # timestamp key is `timestamp`; the model's `ts` is required.
+    out: list[GreekFlowRow] = []
+    for r in _data_list(payload):
+        if not r.get("timestamp"):
+            continue
+        row = dict(r)
+        row["ts"] = row.pop("timestamp")
+        out.append(GreekFlowRow(**row))
+    return out
+
+
+def normalize_dark_lit(payload: dict) -> list[DarkLitPrint]:
+    # Serves both darkpool and lit-flow (identical row shape). The `source`
+    # column is tagged by the capture layer, not carried on the model.
+    out: list[DarkLitPrint] = []
+    for r in _data_list(payload):
+        if not r.get("tracking_id"):
+            continue
+        row = dict(r)
+        row["tracking_id"] = str(row["tracking_id"])  # payload int; column is TEXT
+        # payload sends sale_cond_codes as a scalar string (or None); the column
+        # is TEXT[] -> wrap a scalar into a single-element list.
+        scc = row.get("sale_cond_codes")
+        if isinstance(scc, str):
+            row["sale_cond_codes"] = [scc]
+        out.append(DarkLitPrint(**row))
+    return out
+
+
+def normalize_ftds(payload: dict) -> list[FtdRow]:
+    return [FtdRow(**r) for r in _data_list(payload) if r.get("date")]
+
+
+def normalize_volumes_by_exchange(payload: dict) -> list[VolumesByExchangeRow]:
+    # One row per exchange; per-date aggregation happens in the capture layer.
+    return [VolumesByExchangeRow(**r) for r in _data_list(payload) if r.get("date")]
