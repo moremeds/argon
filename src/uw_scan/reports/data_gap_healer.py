@@ -168,6 +168,46 @@ REGISTRY: list[DatasetRegistryEntry] = [
         retention_days=1,
         reason="UW aggregate returns the current snapshot only; past dates -> no_data",
     ),
+    # --- UW historical alpha (migration 108) ---
+    # retention_days is descriptive-only — the scanner keys on row EXISTENCE, not
+    # nullness, so a VRP-only row counts as covered. A permanently-unhealable old
+    # date is re-attempted each nightly run (same as greek_exposure_daily); add a
+    # Caveat, not a retention_days, if that ever proves noisy.
+    DatasetRegistryEntry(
+        "uw_gex_levels_daily",
+        "options_chain",
+        "strict_ticker_date",
+        ticker_col="ticker",
+        provider="uw",
+        granularity="per_ticker_date",
+        healer_adapter="gex_levels",
+        source_system="uw",
+        retention_days=None,
+    ),
+    DatasetRegistryEntry(
+        "uw_volatility_signal_daily",
+        "options_chain",
+        "strict_ticker_date",
+        ticker_col="ticker",
+        provider="uw",
+        granularity="per_ticker_date",
+        healer_adapter="volatility_signal",
+        source_system="uw",
+        retention_days=None,
+        reason="VRP serves full YTD; anomaly/character ~16 recent sessions -> old dates fill VRP only",
+    ),
+    DatasetRegistryEntry(
+        "uw_short_pressure_daily",
+        "options_chain",
+        "strict_ticker_date",
+        ticker_col="ticker",
+        provider="uw",
+        granularity="per_ticker_date",
+        healer_adapter="short_pressure",
+        source_system="uw",
+        retention_days=None,
+        reason="interest-float is current-snapshot; ftds/volumes carry history",
+    ),
     DatasetRegistryEntry(
         "flow_alerts_daily_rollup",
         "options_chain",
@@ -499,6 +539,10 @@ REGISTRY.extend(
             "option_intraday_buckets",
             "index_ohlc_daily",
             "vol_index_daily",
+            # migration-108 event logs: append-only, no (ticker,date) uniqueness
+            # to audit-heal — freshness-monitored, backfilled via uw_alpha_catchup.
+            "uw_dark_lit_flow_prints",
+            "uw_intraday_option_flow_bars",
         ],
         "options_chain",
         "freshness_only",

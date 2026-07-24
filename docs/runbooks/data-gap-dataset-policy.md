@@ -6,7 +6,7 @@ Generated from `REGISTRY` in `src/uw_scan/reports/data_gap_healer.py` (one sourc
 uv run python -c "from uw_scan.reports.data_gap_healer import render_dataset_policy_markdown as r; open('docs/runbooks/data-gap-dataset-policy.md','w').write(r())"
 ```
 
-**122 datasets** across 9 groups.
+**127 datasets** across 9 groups.
 
 ## core_watchlist
 
@@ -102,7 +102,12 @@ uv run python -c "from uw_scan.reports.data_gap_healer import render_dataset_pol
 | pcr_history | freshness_only | none | none |  | equity_session | UW-retention/event-log shaped; freshness-monitored, no auto-backfill |
 | risk_reversal_skew_history | freshness_only | none | none |  | equity_session | UW-retention/event-log shaped; freshness-monitored, no auto-backfill |
 | short_interest_snapshots | freshness_only | none | none |  | equity_session | UW-retention/event-log shaped; freshness-monitored, no auto-backfill |
+| uw_dark_lit_flow_prints | freshness_only | none | none |  | equity_session | UW-retention/event-log shaped; freshness-monitored, no auto-backfill |
+| uw_gex_levels_daily | strict_ticker_date | uw | per_ticker_date | gex_levels | equity_session |  |
+| uw_intraday_option_flow_bars | freshness_only | none | none |  | equity_session | UW-retention/event-log shaped; freshness-monitored, no auto-backfill |
 | uw_positioning | freshness_only | none | none |  | equity_session | UW-retention/event-log shaped; freshness-monitored, no auto-backfill |
+| uw_short_pressure_daily | strict_ticker_date | uw | per_ticker_date | short_pressure | equity_session | interest-float is current-snapshot; ftds/volumes carry history |
+| uw_volatility_signal_daily | strict_ticker_date | uw | per_ticker_date | volatility_signal | equity_session | VRP serves full YTD; anomaly/character ~16 recent sessions -> old dates fill VRP only |
 | vol_index_daily | freshness_only | none | none |  | equity_session | UW-retention/event-log shaped; freshness-monitored, no auto-backfill |
 
 ## regime_marketwide
