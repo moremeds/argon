@@ -1,4 +1,4 @@
--- 095_uw_historical_alpha_tables.sql
+-- 108_uw_historical_alpha_tables.sql
 -- Durable UW historical alpha datasets for 1-3 week US-stock swing research.
 -- Idempotent. Tables are intentionally independent of scan_runs so research
 -- history is not cascade-deleted with transient scanner runs.
