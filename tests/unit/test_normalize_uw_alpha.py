@@ -28,6 +28,19 @@ def test_normalize_gex_levels_empty_returns_none():
     )
 
 
+def test_normalize_gex_levels_all_none_levels_returns_none():
+    # a dataless session (e.g. a date with no gex snapshot) returns all-None levels
+    payload = {
+        "data": {
+            "call_wall": None,
+            "put_wall": None,
+            "gamma_flip": None,
+            "gamma_magnet": None,
+        }
+    }
+    assert normalize.normalize_gex_levels(payload, "AAPL", date(2026, 6, 20)) is None
+
+
 def test_normalize_vol_anomaly_history_wrapper():
     rows = normalize.normalize_vol_anomaly(_load("volatility_anomaly_aapl.json"))
     assert rows

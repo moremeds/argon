@@ -17,16 +17,21 @@ from ..api.client import UwClient, UwHTTPError
 from ..api.endpoints import EndpointSlug, build_path
 from ..models import (
     BulkScreenerRow,
+    DarkLitPrint,
     DarkPoolPrint,
     EtfInfo,
     EtfInOutflowRow,
     FlowAlert,
+    FtdRow,
+    GexLevelsRow,
     GreekExposureByExpiryRow,
     GreekExposureRow,
+    GreekFlowRow,
     GreeksRow,
     InterpolatedIvRow,
     IvRankRow,
     MaxPainRow,
+    NetPremTickRow,
     OiChangeRow,
     OiPerStrikeRow,
     OptionContractIntradayBucket,
@@ -37,7 +42,11 @@ from ..models import (
     SkewRow,
     SpotExposureRow,
     TermStructureRow,
+    VolAnomalyRow,
+    VolCharacterRow,
     VolStatsRow,
+    VolumesByExchangeRow,
+    VolVrpRow,
 )
 from ..storage.repository import Repository
 from ..storage.uw_fetch_memo import UwFetchMemoRepository
@@ -811,3 +820,189 @@ def fetch_top_net_impact(
                 f"top-net-impact: malformed row {r!r}"
             ) from exc
     return out
+
+
+# --------------------------------------------------------------------------- #
+# UW historical-alpha fetchers. gex-levels / volatility / net-prem / greek-flow
+# honor ?date= (as-of); interest-float / ftds / volumes-by-exchange ignore it and
+# return full/rolling history (the capture layer selects the as-of row). Not
+# memoized — past-date history is not a slow-moving same-day snapshot.
+# --------------------------------------------------------------------------- #
+def _date_params(market_date: date | None, **extra: Any) -> dict[str, Any] | None:
+    params: dict[str, Any] = dict(extra)
+    if market_date is not None:
+        params["date"] = market_date.isoformat()
+    return params or None
+
+
+def fetch_gex_levels(
+    client: UwClient,
+    repo: Repository,
+    run_id: int,
+    ticker: str,
+    market_date: date | None = None,
+) -> GexLevelsRow | None:
+    body = _fetch_json(
+        client,
+        repo,
+        run_id,
+        EndpointSlug.GEX_LEVELS,
+        ticker,
+        params=_date_params(market_date),
+    )
+    md = market_date or datetime.now(_ET).date()
+    return normalize.normalize_gex_levels(body, ticker, md)
+
+
+def fetch_volatility_anomaly(
+    client: UwClient,
+    repo: Repository,
+    run_id: int,
+    ticker: str,
+    market_date: date | None = None,
+) -> list[VolAnomalyRow]:
+    body = _fetch_json(
+        client,
+        repo,
+        run_id,
+        EndpointSlug.VOLATILITY_ANOMALY,
+        ticker,
+        params=_date_params(market_date),
+    )
+    return normalize.normalize_vol_anomaly(body)
+
+
+def fetch_volatility_character(
+    client: UwClient,
+    repo: Repository,
+    run_id: int,
+    ticker: str,
+    market_date: date | None = None,
+) -> list[VolCharacterRow]:
+    body = _fetch_json(
+        client,
+        repo,
+        run_id,
+        EndpointSlug.VOLATILITY_CHARACTER,
+        ticker,
+        params=_date_params(market_date),
+    )
+    return normalize.normalize_vol_character(body)
+
+
+def fetch_volatility_vrp(
+    client: UwClient,
+    repo: Repository,
+    run_id: int,
+    ticker: str,
+    market_date: date | None = None,
+) -> list[VolVrpRow]:
+    body = _fetch_json(
+        client,
+        repo,
+        run_id,
+        EndpointSlug.VOLATILITY_VRP,
+        ticker,
+        params=_date_params(market_date),
+    )
+    return normalize.normalize_vol_vrp(body)
+
+
+def fetch_net_prem_ticks(
+    client: UwClient,
+    repo: Repository,
+    run_id: int,
+    ticker: str,
+    market_date: date | None = None,
+    limit: int = 500,
+) -> list[NetPremTickRow]:
+    body = _fetch_json(
+        client,
+        repo,
+        run_id,
+        EndpointSlug.NET_PREM_TICKS,
+        ticker,
+        params=_date_params(market_date, limit=limit),
+    )
+    return normalize.normalize_net_prem_ticks(body)
+
+
+def fetch_greek_flow(
+    client: UwClient,
+    repo: Repository,
+    run_id: int,
+    ticker: str,
+    market_date: date | None = None,
+) -> list[GreekFlowRow]:
+    body = _fetch_json(
+        client,
+        repo,
+        run_id,
+        EndpointSlug.GREEK_FLOW,
+        ticker,
+        params=_date_params(market_date),
+    )
+    return normalize.normalize_greek_flow(body)
+
+
+def fetch_lit_flow(
+    client: UwClient,
+    repo: Repository,
+    run_id: int,
+    ticker: str,
+    market_date: date | None = None,
+    limit: int = 500,
+) -> list[DarkLitPrint]:
+    body = _fetch_json(
+        client,
+        repo,
+        run_id,
+        EndpointSlug.LIT_FLOW,
+        ticker,
+        params=_date_params(market_date, limit=limit),
+    )
+    return normalize.normalize_dark_lit(body)
+
+
+def fetch_darkpool_prints(
+    client: UwClient,
+    repo: Repository,
+    run_id: int,
+    ticker: str,
+    market_date: date | None = None,
+    limit: int = 500,
+) -> list[DarkLitPrint]:
+    # New fetcher: the existing fetch_darkpool_ticker sends neither date nor limit,
+    # so it can't backfill history. Same DARKPOOL_TICKER slug, with selectors.
+    body = _fetch_json(
+        client,
+        repo,
+        run_id,
+        EndpointSlug.DARKPOOL_TICKER,
+        ticker,
+        params=_date_params(market_date, limit=limit),
+    )
+    return normalize.normalize_dark_lit(body)
+
+
+def fetch_ftds(
+    client: UwClient,
+    repo: Repository,
+    run_id: int,
+    ticker: str,
+) -> list[FtdRow]:
+    # ?date= is ignored; returns full FTD history. The capture selects the row.
+    body = _fetch_json(client, repo, run_id, EndpointSlug.FTDS, ticker)
+    return normalize.normalize_ftds(body)
+
+
+def fetch_volumes_by_exchange(
+    client: UwClient,
+    repo: Repository,
+    run_id: int,
+    ticker: str,
+) -> list[VolumesByExchangeRow]:
+    # ?date= is ignored; returns a rolling per-exchange window. The capture
+    # aggregates the rows for the target date.
+    body = _fetch_json(client, repo, run_id, EndpointSlug.VOLUMES_BY_EXCHANGE, ticker)
+    return normalize.normalize_volumes_by_exchange(body)

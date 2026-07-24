@@ -431,6 +431,13 @@ def normalize_gex_levels(
     data = payload.get("data", payload)
     if not isinstance(data, dict) or not data:
         return None
+    # A dataless session returns a dict of all-None levels (e.g. a date with no
+    # gex snapshot). Treat that as no-data so heal doesn't write a hollow row.
+    if all(
+        data.get(k) is None
+        for k in ("call_wall", "put_wall", "gamma_flip", "gamma_magnet")
+    ):
+        return None
     return GexLevelsRow(
         ticker=ticker.upper(),
         market_date=market_date,
