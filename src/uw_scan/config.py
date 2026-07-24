@@ -387,6 +387,8 @@ class Settings(BaseModel):
     technical_live_enabled: bool = False
     technical_live_scan_interval_minutes: int = 5
     technical_live_quote_max_age_seconds: int = 900
+    # UW historical-alpha nightly capture (5 datasets, uw-0). Master kill switch.
+    uw_alpha_capture_enabled: bool = False
     # Chanlun Phase B lifecycle engine (nightly 03:10 ET Tue-Sat, massive-0).
     chanlun_lifecycle_enabled: bool = False
     chanlun_anchor_tol: float = 0.0
@@ -887,6 +889,9 @@ class Settings(BaseModel):
             # All four env vars deliberately carry the UW_SCAN_ prefix (newest
             # precedent: UW_SCAN_TECHNICAL_LIVE_ENABLED) — one convention for
             # the whole feature, no mixed-prefix mis-sets on the mini.
+            uw_alpha_capture_enabled=_env_bool(
+                "UW_SCAN_UW_ALPHA_CAPTURE_ENABLED", False
+            ),
             chanlun_lifecycle_enabled=_env_bool(
                 "UW_SCAN_CHANLUN_LIFECYCLE_ENABLED", False
             ),

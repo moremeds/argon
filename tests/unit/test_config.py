@@ -9,6 +9,20 @@ def test_trade_insights_ai_default_timeout_matches_deep_prompt_budget():
     assert settings.trade_insights_ai_timeout_seconds == 300.0
 
 
+def test_uw_alpha_capture_flag_default_off():
+    assert Settings(api_key="dummy").uw_alpha_capture_enabled is False
+
+
+def test_uw_alpha_capture_flag_reads_env(tmp_path, monkeypatch):
+    monkeypatch.delenv("UW_SCAN_API_KEY", raising=False)
+    monkeypatch.delenv("UW_SCAN_UW_ALPHA_CAPTURE_ENABLED", raising=False)
+    env_path = tmp_path / ".env"
+    env_path.write_text(
+        "UW_SCAN_API_KEY=dummy-uw\nUW_SCAN_UW_ALPHA_CAPTURE_ENABLED=1\n"
+    )
+    assert Settings.from_env(env_path=env_path).uw_alpha_capture_enabled is True
+
+
 def test_from_env_loads_optional_fred_api_key(tmp_path, monkeypatch):
     monkeypatch.delenv("UW_SCAN_API_KEY", raising=False)
     monkeypatch.delenv("FRED_API_KEY", raising=False)
