@@ -45,6 +45,17 @@ class EndpointSlug(StrEnum):
     EARNINGS = "earnings"
     MARKET_TIDE = "market_tide"
     TOP_NET_IMPACT = "top_net_impact"
+    # UW historical-alpha datasets (real but absent from the curated UW reference;
+    # see docs/superpowers/specs/2026-07-24-uw-historical-alpha-capture-healing-design.md §12)
+    GEX_LEVELS = "gex_levels"
+    VOLATILITY_ANOMALY = "volatility_anomaly"
+    VOLATILITY_CHARACTER = "volatility_character"
+    VOLATILITY_VRP = "volatility_vrp"
+    NET_PREM_TICKS = "net_prem_ticks"
+    GREEK_FLOW = "greek_flow"
+    LIT_FLOW = "lit_flow"
+    FTDS = "ftds"
+    VOLUMES_BY_EXCHANGE = "volumes_by_exchange"
 
 
 @dataclass(frozen=True)
@@ -186,6 +197,39 @@ REGISTRY: dict[EndpointSlug, Endpoint] = {
     EndpointSlug.TOP_NET_IMPACT: Endpoint(
         EndpointSlug.TOP_NET_IMPACT,
         "/api/market/top-net-impact",
+        (),
+    ),
+    # UW historical-alpha datasets. `date`/`limit` are optional selectors -> ().
+    # LIT_FLOW is top-level (/api/lit-flow/{ticker}), NOT under /api/stock/.
+    EndpointSlug.GEX_LEVELS: Endpoint(
+        EndpointSlug.GEX_LEVELS, "/api/stock/{ticker}/gex-levels", ()
+    ),
+    EndpointSlug.VOLATILITY_ANOMALY: Endpoint(
+        EndpointSlug.VOLATILITY_ANOMALY, "/api/stock/{ticker}/volatility/anomaly", ()
+    ),
+    EndpointSlug.VOLATILITY_CHARACTER: Endpoint(
+        EndpointSlug.VOLATILITY_CHARACTER,
+        "/api/stock/{ticker}/volatility/character",
+        (),
+    ),
+    EndpointSlug.VOLATILITY_VRP: Endpoint(
+        EndpointSlug.VOLATILITY_VRP,
+        "/api/stock/{ticker}/volatility/variance-risk-premium",
+        (),
+    ),
+    EndpointSlug.NET_PREM_TICKS: Endpoint(
+        EndpointSlug.NET_PREM_TICKS, "/api/stock/{ticker}/net-prem-ticks", ()
+    ),
+    EndpointSlug.GREEK_FLOW: Endpoint(
+        EndpointSlug.GREEK_FLOW, "/api/stock/{ticker}/greek-flow", ()
+    ),
+    EndpointSlug.LIT_FLOW: Endpoint(
+        EndpointSlug.LIT_FLOW, "/api/lit-flow/{ticker}", ()
+    ),
+    EndpointSlug.FTDS: Endpoint(EndpointSlug.FTDS, "/api/shorts/{ticker}/ftds", ()),
+    EndpointSlug.VOLUMES_BY_EXCHANGE: Endpoint(
+        EndpointSlug.VOLUMES_BY_EXCHANGE,
+        "/api/shorts/{ticker}/volumes-by-exchange",
         (),
     ),
 }
