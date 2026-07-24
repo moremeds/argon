@@ -62,6 +62,7 @@ _DARK_LIT_COLS = (
     "market_date",
     "price",
     "size",
+    "volume",
     "premium",
     "market_center",
     "nbbo_bid",
@@ -127,7 +128,11 @@ class UwHistoricalAlphaRepository:
         sql = f"INSERT INTO {table} ({collist}) VALUES ({values}) {conflict}"
         with self._conn.cursor() as cur:
             cur.executemany(sql, params)
-        return len(params)
+            # rows ACTUALLY written — for the DO-NOTHING event logs this is
+            # < len(params) when keys collide (dupe prints / idempotent re-run),
+            # so len(params) would over-report. rowcount is honest for both
+            # DO UPDATE (every keyed row affected) and DO NOTHING.
+            return cur.rowcount
 
     @staticmethod
     def _row(cols: Sequence[str], r: dict) -> dict:
@@ -184,7 +189,9 @@ class UwHistoricalAlphaRepository:
             "uw_dark_lit_flow_prints",
             _DARK_LIT_COLS,
             params,
-            ("source", "tracking_id"),
+            # tracking_id is an order id (not unique per print); volume is the
+            # cumulative-volume discriminator that makes each child fill unique.
+            ("source", "tracking_id", "executed_at", "price", "size", "volume"),
             update=False,
         )
 

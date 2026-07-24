@@ -70,9 +70,13 @@ class DarkLitPrint(_UwBase):
     # ONE model for both source='darkpool' and source='lit_flow'. NOT the existing
     # DarkPoolPrint — its sale_cond_codes is a scalar str, but this table's column
     # is TEXT[] (codex #8). All migration-108 columns are modeled (no silent loss).
-    tracking_id: str
+    tracking_id: str  # UW ORDER-level id, NOT unique per print (child fills share it)
     ticker: str
     executed_at: datetime
+    # volume = cumulative session volume at print time; the monotonic discriminator
+    # that separates distinct child fills sharing a tracking_id. Part of the PK — a
+    # tracking-id-only key silently collapsed 95% of lit prints (verified 2026-07-24).
+    volume: int | None = None
     price: Decimal | None = None
     size: int | None = None
     premium: Decimal | None = None

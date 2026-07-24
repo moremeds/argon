@@ -65,14 +65,21 @@ CREATE TABLE IF NOT EXISTS uw_intraday_option_flow_bars (
 CREATE INDEX IF NOT EXISTS ix_uw_intraday_flow_date
     ON uw_intraday_option_flow_bars (market_date DESC, ticker, source);
 
+-- UW's tracking_id is an ORDER id, not a per-print id: distinct child fills
+-- (different price/size/second) share it. Keying on (source, tracking_id) alone
+-- silently collapsed ~95% of lit prints and ~7% of darkpool prints (verified
+-- 2026-07-24). volume = cumulative session volume at print time; the monotonic
+-- discriminator that makes each fill unique. PK columns are auto-NOT-NULL, so a
+-- null price/size/volume from UW raises loudly rather than dropping the print.
 CREATE TABLE IF NOT EXISTS uw_dark_lit_flow_prints (
     source              TEXT NOT NULL,
     tracking_id         TEXT NOT NULL,
     ticker              TEXT NOT NULL,
     executed_at         TIMESTAMPTZ NOT NULL,
     market_date         DATE NOT NULL,
-    price               NUMERIC,
-    size                BIGINT,
+    price               NUMERIC NOT NULL,
+    size                BIGINT NOT NULL,
+    volume              BIGINT NOT NULL,
     premium             NUMERIC,
     market_center       TEXT,
     nbbo_bid            NUMERIC,
@@ -83,7 +90,7 @@ CREATE TABLE IF NOT EXISTS uw_dark_lit_flow_prints (
     trade_code          TEXT,
     raw_jsonb           JSONB,
     fetched_at          TIMESTAMPTZ NOT NULL DEFAULT now(),
-    PRIMARY KEY (source, tracking_id)
+    PRIMARY KEY (source, tracking_id, executed_at, price, size, volume)
 );
 
 CREATE INDEX IF NOT EXISTS ix_uw_dark_lit_date_ticker

@@ -75,9 +75,13 @@ def test_upsert_short_pressure(seeded_db_empty_cards):
         assert str(cur.fetchone()[0]) == "6502"
 
 
-def test_insert_dark_lit_prints_ignores_dupe(seeded_db_empty_cards):
+def test_insert_dark_lit_prints_keeps_fills_sharing_tracking_id(seeded_db_empty_cards):
+    # Regression guard: UW's tracking_id is an ORDER id, not a per-print id. Two
+    # distinct child fills of the same order share tracking_id but differ in
+    # price/size/volume -> both MUST land (a tracking_id-only key dropped 95% of
+    # lit prints, verified 2026-07-24). volume is the discriminator in the PK.
     r = _repo(seeded_db_empty_cards)
-    p = {
+    p1 = {
         "source": "darkpool",
         "tracking_id": "T1",
         "ticker": "AAPL",
@@ -85,18 +89,17 @@ def test_insert_dark_lit_prints_ignores_dupe(seeded_db_empty_cards):
         "market_date": date(2026, 6, 30),
         "price": "201",
         "size": 100,
+        "volume": 5_000_000,
         "sale_cond_codes": ["prior_reference_price"],
         "raw_jsonb": {},
     }
-    assert r.insert_dark_lit_prints([p]) == 1
-    assert r.insert_dark_lit_prints([p]) == 1  # returns len(rows); DO NOTHING
+    # same order (tracking_id), same second/price/size, later cumulative volume:
+    p2 = {**p1, "size": 50, "volume": 5_000_880}
+    assert r.insert_dark_lit_prints([p1, p2]) == 2  # both fills kept
+    assert r.insert_dark_lit_prints([p1]) == 0  # rowcount, not len(params): DO NOTHING
     with seeded_db_empty_cards.conn.cursor() as cur:
-        cur.execute(
-            "SELECT count(*), max(sale_cond_codes) FROM uw_scan.uw_dark_lit_flow_prints"
-        )
-        cnt, scc = cur.fetchone()
-    assert cnt == 1  # only one physical row
-    assert scc == ["prior_reference_price"]
+        cur.execute("SELECT count(*) FROM uw_scan.uw_dark_lit_flow_prints")
+        assert cur.fetchone()[0] == 2  # two distinct fills, not one collapsed row
 
 
 def test_insert_intraday_flow_bars_dedupe_by_source(seeded_db_empty_cards):
@@ -112,7 +115,7 @@ def test_insert_intraday_flow_bars_dedupe_by_source(seeded_db_empty_cards):
     net = {**base, "source": "net_prem_ticks", "net_call_premium": "1000"}
     greek = {**base, "source": "greek_flow", "dir_delta_flow": "5"}
     assert r.insert_intraday_flow_bars([net, greek]) == 2
-    assert r.insert_intraday_flow_bars([net]) == 1  # DO NOTHING on same PK
+    assert r.insert_intraday_flow_bars([net]) == 0  # rowcount: DO NOTHING writes 0
     with seeded_db_empty_cards.conn.cursor() as cur:
         cur.execute("SELECT count(*) FROM uw_scan.uw_intraday_option_flow_bars")
         assert cur.fetchone()[0] == 2  # two sources at same ts = two rows
