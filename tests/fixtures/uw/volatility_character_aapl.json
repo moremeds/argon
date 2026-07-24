@@ -1,0 +1,109 @@
+{
+  "data": {
+    "history": [
+      {
+        "date": "2026-06-09",
+        "character": "moderate",
+        "half_life_days": "28.57737724761596",
+        "hurst_rv": "0.6165104303471921"
+      },
+      {
+        "date": "2026-06-10",
+        "character": "moderate",
+        "half_life_days": "28.57905846173845",
+        "hurst_rv": "0.6165104303471921"
+      },
+      {
+        "date": "2026-06-11",
+        "character": "moderate",
+        "half_life_days": "32.29055119702524",
+        "hurst_rv": "0.632879689666552"
+      },
+      {
+        "date": "2026-06-12",
+        "character": "moderate",
+        "half_life_days": "32.162105538657656",
+        "hurst_rv": "0.6290558683818274"
+      },
+      {
+        "date": "2026-06-15",
+        "character": "moderate",
+        "half_life_days": "31.979021352834305",
+        "hurst_rv": "0.6104524699009942"
+      },
+      {
+        "date": "2026-06-16",
+        "character": "moderate",
+        "half_life_days": "31.98387258042098",
+        "hurst_rv": "0.6104524699009942"
+      },
+      {
+        "date": "2026-06-17",
+        "character": "moderate",
+        "half_life_days": "31.99049584358772",
+        "hurst_rv": "0.6104524699009942"
+      },
+      {
+        "date": "2026-06-18",
+        "character": "moderate",
+        "half_life_days": "31.87588859085531",
+        "hurst_rv": "0.6107453277610204"
+      },
+      {
+        "date": "2026-06-22",
+        "character": "moderate",
+        "half_life_days": "31.45698641999863",
+        "hurst_rv": "0.637928797155766"
+      },
+      {
+        "date": "2026-06-23",
+        "character": "moderate",
+        "half_life_days": "31.454724461656713",
+        "hurst_rv": "0.637928797155766"
+      },
+      {
+        "date": "2026-06-24",
+        "character": "moderate",
+        "half_life_days": "31.438912107938144",
+        "hurst_rv": "0.637928797155766"
+      },
+      {
+        "date": "2026-06-25",
+        "character": "moderate",
+        "half_life_days": "31.75288996240503",
+        "hurst_rv": "0.6306592379462345"
+      },
+      {
+        "date": "2026-06-26",
+        "character": "moderate",
+        "half_life_days": "31.927939684737744",
+        "hurst_rv": "0.6276404934482713"
+      },
+      {
+        "date": "2026-06-29",
+        "character": "moderate",
+        "half_life_days": "31.69574191823872",
+        "hurst_rv": "0.6240453211579653"
+      },
+      {
+        "date": "2026-06-30",
+        "character": "moderate",
+        "half_life_days": "32.131200973716886",
+        "hurst_rv": "0.6240453211579653"
+      }
+    ],
+    "latest": {
+      "date": "2026-06-30",
+      "character": "moderate",
+      "ticker": "AAPL",
+      "updated_at": "2026-06-30T23:30:02.974764Z",
+      "half_life_days": "32.131200973716886",
+      "hurst_rv": "0.6240453211579653",
+      "entropy_negative": "0.017796138533660022",
+      "sample_size": 501,
+      "ar1_b": "0.9786586181720122",
+      "entropy_conditional": "0.98220386146634",
+      "entropy_samples": 497
+    }
+  }
+}
