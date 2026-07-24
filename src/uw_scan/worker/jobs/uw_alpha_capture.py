@@ -316,12 +316,14 @@ def _run_capture(
     client: UwClient,
     settings: Settings,
     ticker_filter: Callable[[str], bool] | None,
+    market_date: date | None = None,
 ) -> dict[str, int]:
     if not repo.try_advisory_lock(lock_key):
         logger.info("%s: lock held; skipping this tick", name)
         return {"tickers": 0, "rows": 0, "errors": 0}
     alpha = UwHistoricalAlphaRepository(repo.conn, schema=settings.db_schema)
-    market_date = datetime.now(ZoneInfo(settings.rth_tz)).date()
+    if market_date is None:
+        market_date = datetime.now(ZoneInfo(settings.rth_tz)).date()
     tickers_done = rows_written = errors = 0
     try:
         for card in repo.list_watchlist_cards():
@@ -353,6 +355,7 @@ def gex_levels_capture(
     settings: Settings,
     ticker_filter: Callable[[str], bool] | None = None,
     lock_key: int = GEX_LEVELS_CAPTURE_LOCK,
+    market_date: date | None = None,
 ) -> dict[str, int]:
     return _run_capture(
         "uw_alpha_gex_capture",
@@ -362,6 +365,7 @@ def gex_levels_capture(
         client=client,
         settings=settings,
         ticker_filter=ticker_filter,
+        market_date=market_date,
     )
 
 
@@ -372,6 +376,7 @@ def volatility_signal_capture(
     settings: Settings,
     ticker_filter: Callable[[str], bool] | None = None,
     lock_key: int = VOLATILITY_CAPTURE_LOCK,
+    market_date: date | None = None,
 ) -> dict[str, int]:
     return _run_capture(
         "uw_alpha_volatility_capture",
@@ -381,6 +386,7 @@ def volatility_signal_capture(
         client=client,
         settings=settings,
         ticker_filter=ticker_filter,
+        market_date=market_date,
     )
 
 
@@ -391,6 +397,7 @@ def short_pressure_capture(
     settings: Settings,
     ticker_filter: Callable[[str], bool] | None = None,
     lock_key: int = SHORT_PRESSURE_CAPTURE_LOCK,
+    market_date: date | None = None,
 ) -> dict[str, int]:
     return _run_capture(
         "uw_alpha_short_pressure_capture",
@@ -400,6 +407,7 @@ def short_pressure_capture(
         client=client,
         settings=settings,
         ticker_filter=ticker_filter,
+        market_date=market_date,
     )
 
 
@@ -410,6 +418,7 @@ def intraday_flow_capture(
     settings: Settings,
     ticker_filter: Callable[[str], bool] | None = None,
     lock_key: int = INTRADAY_FLOW_CAPTURE_LOCK,
+    market_date: date | None = None,
 ) -> dict[str, int]:
     return _run_capture(
         "uw_alpha_intraday_flow_capture",
@@ -419,6 +428,7 @@ def intraday_flow_capture(
         client=client,
         settings=settings,
         ticker_filter=ticker_filter,
+        market_date=market_date,
     )
 
 
@@ -429,6 +439,7 @@ def dark_lit_capture(
     settings: Settings,
     ticker_filter: Callable[[str], bool] | None = None,
     lock_key: int = DARK_LIT_CAPTURE_LOCK,
+    market_date: date | None = None,
 ) -> dict[str, int]:
     return _run_capture(
         "uw_alpha_dark_lit_capture",
@@ -438,4 +449,5 @@ def dark_lit_capture(
         client=client,
         settings=settings,
         ticker_filter=ticker_filter,
+        market_date=market_date,
     )
