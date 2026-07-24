@@ -1006,3 +1006,21 @@ def fetch_volumes_by_exchange(
     # aggregates the rows for the target date.
     body = _fetch_json(client, repo, run_id, EndpointSlug.VOLUMES_BY_EXCHANGE, ticker)
     return normalize.normalize_volumes_by_exchange(body)
+
+
+def fetch_short_interest_history(
+    client: UwClient,
+    repo: Repository,
+    run_id: int,
+    ticker: str,
+) -> list[dict]:
+    """Full dated interest-float history (raw dicts, most-recent-first).
+
+    Distinct from fetch_short_interest_float, which returns only the LATEST
+    snapshot: the short-pressure capture selects the as-of row for the target
+    market_date (the endpoint ignores ?date= and always returns full history),
+    so stamping an old date with the latest short interest is avoided.
+    """
+    body = _fetch_json(client, repo, run_id, EndpointSlug.SHORT_INTEREST_FLOAT, ticker)
+    rows = body.get("data")
+    return [r for r in rows if isinstance(r, dict)] if isinstance(rows, list) else []
