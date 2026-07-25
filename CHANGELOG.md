@@ -7,6 +7,9 @@ version in lockstep (enforced by `scripts/release/version_sync_check.py`).
 
 ## [Unreleased]
 
+## [0.10.13] — 2026-07-25
+
+
 ### Added
 
 - **UW historical-alpha datasets** (`uw_gex_levels_daily`,
@@ -25,7 +28,6 @@ version in lockstep (enforced by `scripts/release/version_sync_check.py`).
   size, volume)`: UW's `tracking_id` is an **order** id shared by distinct child
   fills, so a `tracking_id`-only key silently collapsed ~95% of lit prints and
   ~7% of darkpool prints. `volume` (cumulative session volume) is the discriminator.
-
 ## [0.10.12] — 2026-07-22
 
 
