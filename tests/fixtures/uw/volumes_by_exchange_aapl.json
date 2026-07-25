@@ -1,0 +1,5004 @@
+{
+  "data": [
+    {
+      "id": "143d2550-0188-4c4b-96da-8113e7a4cad3",
+      "date": "2026-07-23",
+      "symbol": "AAPL",
+      "created_at": "2026-07-24T06:10:36Z",
+      "total_volume": 13979096,
+      "market_center": "B,Q,N",
+      "short_volume": 7093110,
+      "exchange_name": "FINRA CNMS"
+    },
+    {
+      "id": "fb0dcae6-4834-44eb-a895-3e03b6f87579",
+      "date": "2026-07-22",
+      "symbol": "AAPL",
+      "created_at": "2026-07-24T06:10:37Z",
+      "total_volume": 10641234,
+      "market_center": "B,Q,N",
+      "short_volume": 4659051,
+      "exchange_name": "FINRA CNMS"
+    },
+    {
+      "id": "b84fb4f6-31fc-4712-9bec-f02033c1b149",
+      "date": "2026-07-21",
+      "symbol": "AAPL",
+      "created_at": "2026-07-24T06:10:38Z",
+      "total_volume": 13420442,
+      "market_center": "B,Q,N",
+      "short_volume": 6680774,
+      "exchange_name": "FINRA CNMS"
+    },
+    {
+      "id": "249778ec-a8d6-4409-a4c2-c09fc730e0db",
+      "date": "2026-07-20",
+      "symbol": "AAPL",
+      "created_at": "2026-07-24T06:10:38Z",
+      "total_volume": 19435528,
+      "market_center": "B,Q,N",
+      "short_volume": 8784359,
+      "exchange_name": "FINRA CNMS"
+    },
+    {
+      "id": "a64d4dec-3919-49f4-8c90-14cc2b032ed3",
+      "date": "2026-07-17",
+      "symbol": "AAPL",
+      "created_at": "2026-07-24T06:10:39Z",
+      "total_volume": 21366305,
+      "market_center": "B,Q,N",
+      "short_volume": 12153538,
+      "exchange_name": "FINRA CNMS"
+    },
+    {
+      "id": "c4be24df-621d-4612-8be2-270c0a2256fc",
+      "date": "2026-07-16",
+      "symbol": "AAPL",
+      "created_at": "2026-07-24T06:10:40Z",
+      "total_volume": 24947629,
+      "market_center": "B,Q,N",
+      "short_volume": 14354953,
+      "exchange_name": "FINRA CNMS"
+    },
+    {
+      "id": "f59f1747-e17e-4b45-9eb5-6d2083a62f23",
+      "date": "2026-07-15",
+      "symbol": "AAPL",
+      "created_at": "2026-07-24T06:10:40Z",
+      "total_volume": 22885472,
+      "market_center": "B,Q,N",
+      "short_volume": 12298806,
+      "exchange_name": "FINRA CNMS"
+    },
+    {
+      "id": "47621048-b171-4943-9ef6-62c609c9dd9e",
+      "date": "2026-07-14",
+      "symbol": "AAPL",
+      "created_at": "2026-07-24T06:10:41Z",
+      "total_volume": 11075580,
+      "market_center": "B,Q,N",
+      "short_volume": 5672968,
+      "exchange_name": "FINRA CNMS"
+    },
+    {
+      "id": "e001921e-0582-4903-bd72-77460e982bef",
+      "date": "2026-07-13",
+      "symbol": "AAPL",
+      "created_at": "2026-07-23T06:10:57Z",
+      "total_volume": 15387236,
+      "market_center": "B,Q,N",
+      "short_volume": 6225638,
+      "exchange_name": "FINRA CNMS"
+    },
+    {
+      "id": "988138c2-f1d3-4beb-8be6-f7477ca644de",
+      "date": "2026-07-10",
+      "symbol": "AAPL",
+      "created_at": "2026-07-22T06:11:25Z",
+      "total_volume": 11292672,
+      "market_center": "B,Q,N",
+      "short_volume": 5513839,
+      "exchange_name": "FINRA CNMS"
+    },
+    {
+      "id": "5e5311ba-25e1-4f1d-971e-1741981d690a",
+      "date": "2026-07-09",
+      "symbol": "AAPL",
+      "created_at": "2026-07-21T06:11:13Z",
+      "total_volume": 12714815,
+      "market_center": "B,Q,N",
+      "short_volume": 6728810,
+      "exchange_name": "FINRA CNMS"
+    },
+    {
+      "id": "b1a5fd61-d9b3-4873-a75b-b81f342105f3",
+      "date": "2026-07-08",
+      "symbol": "AAPL",
+      "created_at": "2026-07-20T06:10:54Z",
+      "total_volume": 14915896,
+      "market_center": "B,Q,N",
+      "short_volume": 7670218,
+      "exchange_name": "FINRA CNMS"
+    },
+    {
+      "id": "15859f90-f7d3-4b49-b1ae-1621e07fdbf8",
+      "date": "2026-07-07",
+      "symbol": "AAPL",
+      "created_at": "2026-07-17T06:11:05Z",
+      "total_volume": 13792980,
+      "market_center": "B,Q,N",
+      "short_volume": 6548115,
+      "exchange_name": "FINRA CNMS"
+    },
+    {
+      "id": "ac647279-a97c-4eef-b47f-99557cca9081",
+      "date": "2026-07-06",
+      "symbol": "AAPL",
+      "created_at": "2026-07-16T06:11:06Z",
+      "total_volume": 16007981,
+      "market_center": "B,Q,N",
+      "short_volume": 7320203,
+      "exchange_name": "FINRA CNMS"
+    },
+    {
+      "id": "4ca7d14b-e6ee-4fd7-8493-67c3bc08d2e9",
+      "date": "2026-07-02",
+      "symbol": "AAPL",
+      "created_at": "2026-07-15T06:10:57Z",
+      "total_volume": 25887108,
+      "market_center": "B,Q,N",
+      "short_volume": 12031979,
+      "exchange_name": "FINRA CNMS"
+    },
+    {
+      "id": "0e8a07fd-1ad2-482d-8782-8566c8161330",
+      "date": "2026-07-01",
+      "symbol": "AAPL",
+      "created_at": "2026-07-14T06:11:04Z",
+      "total_volume": 17287901,
+      "market_center": "B,Q,N",
+      "short_volume": 6591520,
+      "exchange_name": "FINRA CNMS"
+    },
+    {
+      "id": "5586ce24-2acd-4372-a492-2998a8997f42",
+      "date": "2026-06-30",
+      "symbol": "AAPL",
+      "created_at": "2026-07-13T06:10:49Z",
+      "total_volume": 17075262,
+      "market_center": "B,Q,N",
+      "short_volume": 7546181,
+      "exchange_name": "FINRA CNMS"
+    },
+    {
+      "id": "9fc36553-73a5-40c9-9cd4-e64da4a861d7",
+      "date": "2026-06-29",
+      "symbol": "AAPL",
+      "created_at": "2026-07-10T06:11:04Z",
+      "total_volume": 21463740,
+      "market_center": "B,Q,N",
+      "short_volume": 7997753,
+      "exchange_name": "FINRA CNMS"
+    },
+    {
+      "id": "5402328d-b044-4bd9-b59c-4926c09ffb31",
+      "date": "2026-06-26",
+      "symbol": "AAPL",
+      "created_at": "2026-07-09T07:28:58Z",
+      "total_volume": 37203326,
+      "market_center": "B,Q,N",
+      "short_volume": 14477740,
+      "exchange_name": "FINRA CNMS"
+    },
+    {
+      "id": "2d45e0b1-e9cd-4ec5-a1fc-d12c6d616050",
+      "date": "2026-06-25",
+      "symbol": "AAPL",
+      "created_at": "2026-07-08T12:09:50Z",
+      "total_volume": 40408500,
+      "market_center": "B,Q,N",
+      "short_volume": 14942636,
+      "exchange_name": "FINRA CNMS"
+    },
+    {
+      "id": "616f6837-bae9-4968-918e-a35e11c781b7",
+      "date": "2026-06-23",
+      "symbol": "AAPL",
+      "created_at": "2026-06-24T06:10:37Z",
+      "total_volume": 14682363,
+      "market_center": "B,Q,N",
+      "short_volume": 6749884,
+      "exchange_name": "FINRA CNMS"
+    },
+    {
+      "id": "d2c520aa-859f-4ef0-ba50-a164db0d29e0",
+      "date": "2026-06-22",
+      "symbol": "AAPL",
+      "created_at": "2026-06-24T06:10:38Z",
+      "total_volume": 12984085,
+      "market_center": "B,Q,N",
+      "short_volume": 6279625,
+      "exchange_name": "FINRA CNMS"
+    },
+    {
+      "id": "0bfebb6d-8b8f-4d3c-bbc8-dc537a7492a5",
+      "date": "2026-06-18",
+      "symbol": "AAPL",
+      "created_at": "2026-06-24T06:10:39Z",
+      "total_volume": 17268081,
+      "market_center": "B,Q,N",
+      "short_volume": 7470977,
+      "exchange_name": "FINRA CNMS"
+    },
+    {
+      "id": "2e14911c-5670-4eb7-9996-3766ca13479d",
+      "date": "2026-06-17",
+      "symbol": "AAPL",
+      "created_at": "2026-06-24T06:10:39Z",
+      "total_volume": 12152726,
+      "market_center": "B,Q,N",
+      "short_volume": 6607669,
+      "exchange_name": "FINRA CNMS"
+    },
+    {
+      "id": "6f7a72c3-8d32-450f-bdae-4f467cef729c",
+      "date": "2026-06-16",
+      "symbol": "AAPL",
+      "created_at": "2026-06-24T06:10:40Z",
+      "total_volume": 12926062,
+      "market_center": "B,Q,N",
+      "short_volume": 5841836,
+      "exchange_name": "FINRA CNMS"
+    },
+    {
+      "id": "ccaa32b7-f21b-468b-9014-8de421d50ad9",
+      "date": "2026-06-15",
+      "symbol": "AAPL",
+      "created_at": "2026-06-24T06:10:41Z",
+      "total_volume": 13557231,
+      "market_center": "B,Q,N",
+      "short_volume": 5556486,
+      "exchange_name": "FINRA CNMS"
+    },
+    {
+      "id": "30b0d6e3-a752-4899-92aa-b86c59f40735",
+      "date": "2026-06-12",
+      "symbol": "AAPL",
+      "created_at": "2026-06-24T06:10:42Z",
+      "total_volume": 13157910,
+      "market_center": "B,Q,N",
+      "short_volume": 6659467,
+      "exchange_name": "FINRA CNMS"
+    },
+    {
+      "id": "fb2cdbd6-1152-4451-8408-7e7bed71071c",
+      "date": "2026-06-11",
+      "symbol": "AAPL",
+      "created_at": "2026-06-24T06:10:42Z",
+      "total_volume": 13382061,
+      "market_center": "B,Q,N",
+      "short_volume": 7012953,
+      "exchange_name": "FINRA CNMS"
+    },
+    {
+      "id": "f155a0a8-d816-4ad3-a075-76b1da0a4410",
+      "date": "2026-06-10",
+      "symbol": "AAPL",
+      "created_at": "2026-06-23T06:10:36Z",
+      "total_volume": 19750312,
+      "market_center": "B,Q,N",
+      "short_volume": 8575408,
+      "exchange_name": "FINRA CNMS"
+    },
+    {
+      "id": "7b7c25be-c309-494c-bc4a-ab88da4d586f",
+      "date": "2026-06-09",
+      "symbol": "AAPL",
+      "created_at": "2026-06-22T06:10:29Z",
+      "total_volume": 27309318,
+      "market_center": "B,Q,N",
+      "short_volume": 9481011,
+      "exchange_name": "FINRA CNMS"
+    },
+    {
+      "id": "015d6280-e1df-47f4-8edc-4033f236013a",
+      "date": "2026-06-08",
+      "symbol": "AAPL",
+      "created_at": "2026-06-18T06:10:40Z",
+      "total_volume": 29325274,
+      "market_center": "B,Q,N",
+      "short_volume": 13632253,
+      "exchange_name": "FINRA CNMS"
+    },
+    {
+      "id": "2f22514e-b9a9-413b-a3e0-5d7792d72fe0",
+      "date": "2026-06-05",
+      "symbol": "AAPL",
+      "created_at": "2026-06-17T06:10:43Z",
+      "total_volume": 19370709,
+      "market_center": "B,Q,N",
+      "short_volume": 9396876,
+      "exchange_name": "FINRA CNMS"
+    },
+    {
+      "id": "09e63eec-99fa-4b35-9206-cb9b1f240078",
+      "date": "2026-06-04",
+      "symbol": "AAPL",
+      "created_at": "2026-06-16T06:10:43Z",
+      "total_volume": 11286075,
+      "market_center": "B,Q,N",
+      "short_volume": 6139980,
+      "exchange_name": "FINRA CNMS"
+    },
+    {
+      "id": "f3f56f7a-a216-41b5-99b6-341db5714eb7",
+      "date": "2026-06-03",
+      "symbol": "AAPL",
+      "created_at": "2026-06-15T06:10:38Z",
+      "total_volume": 15222938,
+      "market_center": "B,Q,N",
+      "short_volume": 6854745,
+      "exchange_name": "FINRA CNMS"
+    },
+    {
+      "id": "30c3d2a4-427b-4b64-95ac-e2efa2601e0f",
+      "date": "2026-06-02",
+      "symbol": "AAPL",
+      "created_at": "2026-06-12T06:10:40Z",
+      "total_volume": 15168320,
+      "market_center": "B,Q,N",
+      "short_volume": 7083521,
+      "exchange_name": "FINRA CNMS"
+    },
+    {
+      "id": "22bf3506-b070-4011-b707-965f95b169ba",
+      "date": "2026-06-01",
+      "symbol": "AAPL",
+      "created_at": "2026-06-11T06:10:47Z",
+      "total_volume": 14775657,
+      "market_center": "B,Q,N",
+      "short_volume": 5832228,
+      "exchange_name": "FINRA CNMS"
+    },
+    {
+      "id": "967c142d-1bfb-404d-aa0d-589dbed081d3",
+      "date": "2026-05-29",
+      "symbol": "AAPL",
+      "created_at": "2026-06-10T06:10:47Z",
+      "total_volume": 14864822,
+      "market_center": "B,Q,N",
+      "short_volume": 6083612,
+      "exchange_name": "FINRA CNMS"
+    },
+    {
+      "id": "6d64663d-0e9f-48fb-896f-df522412f6d2",
+      "date": "2026-05-28",
+      "symbol": "AAPL",
+      "created_at": "2026-06-09T06:10:46Z",
+      "total_volume": 15018623,
+      "market_center": "B,Q,N",
+      "short_volume": 5530909,
+      "exchange_name": "FINRA CNMS"
+    },
+    {
+      "id": "ce74f4bc-62d3-4749-ab6f-3216ee1fd64c",
+      "date": "2026-05-27",
+      "symbol": "AAPL",
+      "created_at": "2026-06-08T06:10:37Z",
+      "total_volume": 20717490,
+      "market_center": "B,Q,N",
+      "short_volume": 11705767,
+      "exchange_name": "FINRA CNMS"
+    },
+    {
+      "id": "592468f2-936b-4268-88ce-b2b5f142da72",
+      "date": "2026-05-26",
+      "symbol": "AAPL",
+      "created_at": "2026-06-05T06:10:41Z",
+      "total_volume": 13174731,
+      "market_center": "B,Q,N",
+      "short_volume": 4775159,
+      "exchange_name": "FINRA CNMS"
+    },
+    {
+      "id": "1b81bad1-7360-48ad-9e2d-91dd5e7d8c20",
+      "date": "2026-05-22",
+      "symbol": "AAPL",
+      "created_at": "2026-06-04T06:10:40Z",
+      "total_volume": 15322158,
+      "market_center": "B,Q,N",
+      "short_volume": 7859585,
+      "exchange_name": "FINRA CNMS"
+    },
+    {
+      "id": "37008f31-49e0-4d20-8563-64694b2b2d36",
+      "date": "2026-05-21",
+      "symbol": "AAPL",
+      "created_at": "2026-06-03T06:10:41Z",
+      "total_volume": 11020225,
+      "market_center": "B,Q,N",
+      "short_volume": 5388400,
+      "exchange_name": "FINRA CNMS"
+    },
+    {
+      "id": "5618540f-7407-43bb-9074-3c27baaa1115",
+      "date": "2026-05-20",
+      "symbol": "AAPL",
+      "created_at": "2026-06-02T06:10:42Z",
+      "total_volume": 12124878,
+      "market_center": "B,Q,N",
+      "short_volume": 3750645,
+      "exchange_name": "FINRA CNMS"
+    },
+    {
+      "id": "f2b68021-9c46-41c4-9d44-18d7188ab380",
+      "date": "2026-05-19",
+      "symbol": "AAPL",
+      "created_at": "2026-06-01T06:11:01Z",
+      "total_volume": 12816897,
+      "market_center": "B,Q,N",
+      "short_volume": 6146647,
+      "exchange_name": "FINRA CNMS"
+    },
+    {
+      "id": "5a45498b-0489-4239-812b-cba3d32a46ed",
+      "date": "2026-05-18",
+      "symbol": "AAPL",
+      "created_at": "2026-05-29T06:10:47Z",
+      "total_volume": 9691579,
+      "market_center": "B,Q,N",
+      "short_volume": 3040885,
+      "exchange_name": "FINRA CNMS"
+    },
+    {
+      "id": "6b641cad-ec22-4d0c-98d1-df2d93bcd469",
+      "date": "2026-05-15",
+      "symbol": "AAPL",
+      "created_at": "2026-05-28T06:10:36Z",
+      "total_volume": 16275822,
+      "market_center": "B,Q,N",
+      "short_volume": 8714049,
+      "exchange_name": "FINRA CNMS"
+    },
+    {
+      "id": "38540d8c-152c-4f7b-bfb1-936bc946ef1d",
+      "date": "2026-05-14",
+      "symbol": "AAPL",
+      "created_at": "2026-05-27T06:10:47Z",
+      "total_volume": 11236715,
+      "market_center": "B,Q,N",
+      "short_volume": 5656409,
+      "exchange_name": "FINRA CNMS"
+    },
+    {
+      "id": "cb0ca371-4dc6-4ade-9bf3-131fcb246161",
+      "date": "2026-05-13",
+      "symbol": "AAPL",
+      "created_at": "2026-05-26T06:10:47Z",
+      "total_volume": 15138828,
+      "market_center": "B,Q,N",
+      "short_volume": 6499446,
+      "exchange_name": "FINRA CNMS"
+    },
+    {
+      "id": "8cbbbee0-01e1-4c1c-87d9-561be79f0624",
+      "date": "2026-05-12",
+      "symbol": "AAPL",
+      "created_at": "2026-05-22T06:10:32Z",
+      "total_volume": 12686929,
+      "market_center": "B,Q,N",
+      "short_volume": 5617140,
+      "exchange_name": "FINRA CNMS"
+    },
+    {
+      "id": "f5585240-2d83-4ea0-82e2-9131b0e4256c",
+      "date": "2026-05-11",
+      "symbol": "AAPL",
+      "created_at": "2026-05-21T06:11:01Z",
+      "total_volume": 14702317,
+      "market_center": "B,Q,N",
+      "short_volume": 6971404,
+      "exchange_name": "FINRA CNMS"
+    },
+    {
+      "id": "13f0a6b8-a482-4821-b531-07aa1ff491e5",
+      "date": "2026-05-08",
+      "symbol": "AAPL",
+      "created_at": "2026-05-20T06:10:50Z",
+      "total_volume": 16547023,
+      "market_center": "B,Q,N",
+      "short_volume": 4490978,
+      "exchange_name": "FINRA CNMS"
+    },
+    {
+      "id": "dbd5fb1b-112a-427e-9cd4-94afbc38f6f2",
+      "date": "2026-05-07",
+      "symbol": "AAPL",
+      "created_at": "2026-05-19T06:10:55Z",
+      "total_volume": 15929698,
+      "market_center": "B,Q,N",
+      "short_volume": 5521464,
+      "exchange_name": "FINRA CNMS"
+    },
+    {
+      "id": "6eafe08d-4452-477f-a48f-971225af5820",
+      "date": "2026-05-06",
+      "symbol": "AAPL",
+      "created_at": "2026-05-18T06:10:37Z",
+      "total_volume": 16880370,
+      "market_center": "B,Q,N",
+      "short_volume": 6400515,
+      "exchange_name": "FINRA CNMS"
+    },
+    {
+      "id": "2b950506-e896-4e97-859a-1e1844ec4426",
+      "date": "2026-05-05",
+      "symbol": "AAPL",
+      "created_at": "2026-05-15T06:11:00Z",
+      "total_volume": 16174802,
+      "market_center": "B,Q,N",
+      "short_volume": 6751959,
+      "exchange_name": "FINRA CNMS"
+    },
+    {
+      "id": "cbb3c50d-0604-4088-9709-c3785066da26",
+      "date": "2026-05-04",
+      "symbol": "AAPL",
+      "created_at": "2026-05-14T06:11:07Z",
+      "total_volume": 15647870,
+      "market_center": "B,Q,N",
+      "short_volume": 6238407,
+      "exchange_name": "FINRA CNMS"
+    },
+    {
+      "id": "1699c5c5-7cc1-401a-94a3-eb08e45beac3",
+      "date": "2026-05-01",
+      "symbol": "AAPL",
+      "created_at": "2026-05-13T06:11:01Z",
+      "total_volume": 30255815,
+      "market_center": "B,Q,N",
+      "short_volume": 13892537,
+      "exchange_name": "FINRA CNMS"
+    },
+    {
+      "id": "41a1c411-ddc4-42de-9913-4e4a4a1cc224",
+      "date": "2026-04-30",
+      "symbol": "AAPL",
+      "created_at": "2026-05-12T06:10:57Z",
+      "total_volume": 20742751,
+      "market_center": "B,Q,N",
+      "short_volume": 9052282,
+      "exchange_name": "FINRA CNMS"
+    },
+    {
+      "id": "a987a3b7-3795-4075-b1e9-7a90743a0d59",
+      "date": "2026-04-29",
+      "symbol": "AAPL",
+      "created_at": "2026-05-11T06:10:47Z",
+      "total_volume": 8853030,
+      "market_center": "B,Q,N",
+      "short_volume": 3786170,
+      "exchange_name": "FINRA CNMS"
+    },
+    {
+      "id": "169763e1-c95b-4511-ac81-458f207e7651",
+      "date": "2026-04-28",
+      "symbol": "AAPL",
+      "created_at": "2026-05-08T06:11:17Z",
+      "total_volume": 12585541,
+      "market_center": "B,Q,N",
+      "short_volume": 4942050,
+      "exchange_name": "FINRA CNMS"
+    },
+    {
+      "id": "dc75511c-7eb1-43fe-b196-de09232f9ada",
+      "date": "2026-04-27",
+      "symbol": "AAPL",
+      "created_at": "2026-05-07T06:11:09Z",
+      "total_volume": 12570956,
+      "market_center": "B,Q,N",
+      "short_volume": 5524562,
+      "exchange_name": "FINRA CNMS"
+    },
+    {
+      "id": "7a7700c4-40ae-4a80-ab45-2bb82e29ca41",
+      "date": "2026-04-24",
+      "symbol": "AAPL",
+      "created_at": "2026-05-06T06:11:10Z",
+      "total_volume": 11283323,
+      "market_center": "B,Q,N",
+      "short_volume": 5101036,
+      "exchange_name": "FINRA CNMS"
+    },
+    {
+      "id": "62aec2d7-c575-4b93-9977-d81e64044e11",
+      "date": "2026-04-23",
+      "symbol": "AAPL",
+      "created_at": "2026-05-05T14:44:13Z",
+      "total_volume": 9808746,
+      "market_center": "B,Q,N",
+      "short_volume": 4864652,
+      "exchange_name": "FINRA CNMS"
+    },
+    {
+      "id": "6da016ad-03a0-46bc-a5a4-52f179e7f0f4",
+      "date": "2026-04-22",
+      "symbol": "AAPL",
+      "created_at": "2026-05-05T14:44:12Z",
+      "total_volume": 16013332,
+      "market_center": "B,Q,N",
+      "short_volume": 7552612,
+      "exchange_name": "FINRA CNMS"
+    },
+    {
+      "id": "6b6911d1-e2ae-448c-8c46-adab83ba8829",
+      "date": "2026-04-21",
+      "symbol": "AAPL",
+      "created_at": "2026-05-05T14:44:11Z",
+      "total_volume": 21174307,
+      "market_center": "B,Q,N",
+      "short_volume": 9627443,
+      "exchange_name": "FINRA CNMS"
+    },
+    {
+      "id": "e7275715-2d31-4cb9-a0d5-bafb2faf72fb",
+      "date": "2026-04-20",
+      "symbol": "AAPL",
+      "created_at": "2026-05-05T14:44:11Z",
+      "total_volume": 13001545,
+      "market_center": "B,Q,N",
+      "short_volume": 5260935,
+      "exchange_name": "FINRA CNMS"
+    },
+    {
+      "id": "81386657-62a4-442a-8596-60cc19177f38",
+      "date": "2026-04-17",
+      "symbol": "AAPL",
+      "created_at": "2026-05-05T14:44:10Z",
+      "total_volume": 20322725,
+      "market_center": "B,Q,N",
+      "short_volume": 11896972,
+      "exchange_name": "FINRA CNMS"
+    },
+    {
+      "id": "0132385e-2b7e-444e-956e-216aa76576eb",
+      "date": "2026-04-16",
+      "symbol": "AAPL",
+      "created_at": "2026-05-05T14:44:09Z",
+      "total_volume": 15101745,
+      "market_center": "B,Q,N",
+      "short_volume": 7463449,
+      "exchange_name": "FINRA CNMS"
+    },
+    {
+      "id": "8e91ca00-49ff-416b-8dc8-aca7d9d045b7",
+      "date": "2026-04-15",
+      "symbol": "AAPL",
+      "created_at": "2026-05-05T14:44:08Z",
+      "total_volume": 16965606,
+      "market_center": "B,Q,N",
+      "short_volume": 8194471,
+      "exchange_name": "FINRA CNMS"
+    },
+    {
+      "id": "19a96002-1a21-4a15-8113-3e30ab1efb96",
+      "date": "2026-04-14",
+      "symbol": "AAPL",
+      "created_at": "2026-05-05T14:44:07Z",
+      "total_volume": 15818240,
+      "market_center": "B,Q,N",
+      "short_volume": 7818973,
+      "exchange_name": "FINRA CNMS"
+    },
+    {
+      "id": "863562ff-cf97-44ae-8c7b-416d323e0832",
+      "date": "2026-04-13",
+      "symbol": "AAPL",
+      "created_at": "2026-05-05T14:44:06Z",
+      "total_volume": 11928364,
+      "market_center": "B,Q,N",
+      "short_volume": 6193502,
+      "exchange_name": "FINRA CNMS"
+    },
+    {
+      "id": "262d73a3-0008-4ef5-9d8c-552bd038ba4f",
+      "date": "2026-04-10",
+      "symbol": "AAPL",
+      "created_at": "2026-05-05T14:44:05Z",
+      "total_volume": 9521331,
+      "market_center": "B,Q,N",
+      "short_volume": 5099691,
+      "exchange_name": "FINRA CNMS"
+    },
+    {
+      "id": "4f818907-788a-428f-a28d-b2861f834dcd",
+      "date": "2026-04-09",
+      "symbol": "AAPL",
+      "created_at": "2026-05-05T14:44:05Z",
+      "total_volume": 9963297,
+      "market_center": "B,Q,N",
+      "short_volume": 5096493,
+      "exchange_name": "FINRA CNMS"
+    },
+    {
+      "id": "42fc89fe-aa67-4cb3-91c1-8084f340bbfb",
+      "date": "2026-04-08",
+      "symbol": "AAPL",
+      "created_at": "2026-05-05T14:44:04Z",
+      "total_volume": 13816070,
+      "market_center": "B,Q,N",
+      "short_volume": 7001137,
+      "exchange_name": "FINRA CNMS"
+    },
+    {
+      "id": "749705b2-2f49-4552-85eb-cc745ccd0e04",
+      "date": "2026-04-07",
+      "symbol": "AAPL",
+      "created_at": "2026-05-05T14:44:03Z",
+      "total_volume": 25631781,
+      "market_center": "B,Q,N",
+      "short_volume": 15090335,
+      "exchange_name": "FINRA CNMS"
+    },
+    {
+      "id": "00010a37-be6f-4abd-83d7-14f752fb39fc",
+      "date": "2026-04-06",
+      "symbol": "AAPL",
+      "created_at": "2026-05-05T14:44:02Z",
+      "total_volume": 11086332,
+      "market_center": "B,Q,N",
+      "short_volume": 5994617,
+      "exchange_name": "FINRA CNMS"
+    },
+    {
+      "id": "d52a363c-c084-4fdc-a681-44fb838df0f4",
+      "date": "2026-04-02",
+      "symbol": "AAPL",
+      "created_at": "2026-05-05T14:44:01Z",
+      "total_volume": 8889314,
+      "market_center": "B,Q,N",
+      "short_volume": 4870896,
+      "exchange_name": "FINRA CNMS"
+    },
+    {
+      "id": "d42da8f5-2022-41f0-b30c-43c463692577",
+      "date": "2026-04-01",
+      "symbol": "AAPL",
+      "created_at": "2026-05-05T14:44:00Z",
+      "total_volume": 11406144,
+      "market_center": "B,Q,N",
+      "short_volume": 6512544,
+      "exchange_name": "FINRA CNMS"
+    },
+    {
+      "id": "59dbc79b-3bfb-4278-a088-4a7d88d399ad",
+      "date": "2026-03-31",
+      "symbol": "AAPL",
+      "created_at": "2026-05-05T14:43:59Z",
+      "total_volume": 13377730,
+      "market_center": "B,Q,N",
+      "short_volume": 7239431,
+      "exchange_name": "FINRA CNMS"
+    },
+    {
+      "id": "2c0245c7-f204-419b-a369-3936762ba1cc",
+      "date": "2026-03-30",
+      "symbol": "AAPL",
+      "created_at": "2026-05-05T14:43:59Z",
+      "total_volume": 10469982,
+      "market_center": "B,Q,N",
+      "short_volume": 4798297,
+      "exchange_name": "FINRA CNMS"
+    },
+    {
+      "id": "fa1f1997-3d2c-41e8-a647-c01f6942b2ac",
+      "date": "2026-03-27",
+      "symbol": "AAPL",
+      "created_at": "2026-05-05T14:43:58Z",
+      "total_volume": 14581568,
+      "market_center": "B,Q,N",
+      "short_volume": 7583222,
+      "exchange_name": "FINRA CNMS"
+    },
+    {
+      "id": "6178ea81-4d8c-440e-b400-59c4e189c9ca",
+      "date": "2026-03-26",
+      "symbol": "AAPL",
+      "created_at": "2026-05-05T14:43:57Z",
+      "total_volume": 13431643,
+      "market_center": "B,Q,N",
+      "short_volume": 6882269,
+      "exchange_name": "FINRA CNMS"
+    },
+    {
+      "id": "85621f83-3d7a-4e71-b5af-dce0889ca3d2",
+      "date": "2026-03-25",
+      "symbol": "AAPL",
+      "created_at": "2026-05-05T14:43:56Z",
+      "total_volume": 8695552,
+      "market_center": "B,Q,N",
+      "short_volume": 4368042,
+      "exchange_name": "FINRA CNMS"
+    },
+    {
+      "id": "1618dcd8-a3f8-49d5-bdf7-8f83d1118db2",
+      "date": "2026-03-24",
+      "symbol": "AAPL",
+      "created_at": "2026-05-05T14:43:55Z",
+      "total_volume": 9710061,
+      "market_center": "B,Q,N",
+      "short_volume": 4225378,
+      "exchange_name": "FINRA CNMS"
+    },
+    {
+      "id": "97b7272b-96ad-4a49-b359-2ebe1039f758",
+      "date": "2026-03-23",
+      "symbol": "AAPL",
+      "created_at": "2026-05-05T14:43:55Z",
+      "total_volume": 11054066,
+      "market_center": "B,Q,N",
+      "short_volume": 4572916,
+      "exchange_name": "FINRA CNMS"
+    },
+    {
+      "id": "625b385c-e8a8-4309-8862-1cab3109ebdc",
+      "date": "2026-03-20",
+      "symbol": "AAPL",
+      "created_at": "2026-05-05T14:43:54Z",
+      "total_volume": 13829426,
+      "market_center": "B,Q,N",
+      "short_volume": 5318224,
+      "exchange_name": "FINRA CNMS"
+    },
+    {
+      "id": "a7a0df70-e86a-4831-8ec3-7aff8500db0e",
+      "date": "2026-03-19",
+      "symbol": "AAPL",
+      "created_at": "2026-05-05T14:43:53Z",
+      "total_volume": 10908801,
+      "market_center": "B,Q,N",
+      "short_volume": 3735415,
+      "exchange_name": "FINRA CNMS"
+    },
+    {
+      "id": "30169803-6162-497c-aaf4-5800d3a9a281",
+      "date": "2026-03-18",
+      "symbol": "AAPL",
+      "created_at": "2026-05-05T14:43:52Z",
+      "total_volume": 9892646,
+      "market_center": "B,Q,N",
+      "short_volume": 3695073,
+      "exchange_name": "FINRA CNMS"
+    },
+    {
+      "id": "7f0f8431-14d1-4d6d-9056-d63bcc5dee50",
+      "date": "2026-03-17",
+      "symbol": "AAPL",
+      "created_at": "2026-05-05T14:43:51Z",
+      "total_volume": 8336452,
+      "market_center": "B,Q,N",
+      "short_volume": 3041647,
+      "exchange_name": "FINRA CNMS"
+    },
+    {
+      "id": "85228bd3-f91b-4ffb-9dbf-aed94b3059a0",
+      "date": "2026-03-16",
+      "symbol": "AAPL",
+      "created_at": "2026-05-05T14:43:51Z",
+      "total_volume": 10626726,
+      "market_center": "B,Q,N",
+      "short_volume": 2666070,
+      "exchange_name": "FINRA CNMS"
+    },
+    {
+      "id": "e9a2435a-703c-42af-9560-c142d8f05f86",
+      "date": "2026-03-13",
+      "symbol": "AAPL",
+      "created_at": "2026-05-05T14:43:49Z",
+      "total_volume": 12546043,
+      "market_center": "B,Q,N",
+      "short_volume": 3864846,
+      "exchange_name": "FINRA CNMS"
+    },
+    {
+      "id": "7232f658-0724-4cb7-8e46-e62162d6319f",
+      "date": "2026-03-12",
+      "symbol": "AAPL",
+      "created_at": "2026-05-05T14:43:49Z",
+      "total_volume": 12047782,
+      "market_center": "B,Q,N",
+      "short_volume": 6074081,
+      "exchange_name": "FINRA CNMS"
+    },
+    {
+      "id": "3ae7a27b-2f91-404f-aad5-ee3cc72b3456",
+      "date": "2026-03-11",
+      "symbol": "AAPL",
+      "created_at": "2026-05-05T14:43:48Z",
+      "total_volume": 7471743,
+      "market_center": "B,Q,N",
+      "short_volume": 3214614,
+      "exchange_name": "FINRA CNMS"
+    },
+    {
+      "id": "27911e92-3ca5-44a1-afb6-a004f4eca3c6",
+      "date": "2026-03-10",
+      "symbol": "AAPL",
+      "created_at": "2026-05-05T14:43:47Z",
+      "total_volume": 9431198,
+      "market_center": "B,Q,N",
+      "short_volume": 4082106,
+      "exchange_name": "FINRA CNMS"
+    },
+    {
+      "id": "02fb8985-087d-403e-87a9-80d5f2d27bb2",
+      "date": "2026-03-09",
+      "symbol": "AAPL",
+      "created_at": "2026-05-05T14:43:47Z",
+      "total_volume": 11925537,
+      "market_center": "B,Q,N",
+      "short_volume": 4040406,
+      "exchange_name": "FINRA CNMS"
+    },
+    {
+      "id": "b52281f9-3db5-4445-a75b-0b203d417080",
+      "date": "2026-03-06",
+      "symbol": "AAPL",
+      "created_at": "2026-05-05T14:43:46Z",
+      "total_volume": 11099787,
+      "market_center": "B,Q,N",
+      "short_volume": 4204856,
+      "exchange_name": "FINRA CNMS"
+    },
+    {
+      "id": "6a8af6af-d599-4a9e-b804-f4882e436684",
+      "date": "2026-03-05",
+      "symbol": "AAPL",
+      "created_at": "2026-05-05T14:43:45Z",
+      "total_volume": 14488448,
+      "market_center": "B,Q,N",
+      "short_volume": 4915153,
+      "exchange_name": "FINRA CNMS"
+    },
+    {
+      "id": "68c2e1de-ab77-416e-9657-489c7c4f0442",
+      "date": "2026-03-04",
+      "symbol": "AAPL",
+      "created_at": "2026-05-05T14:43:45Z",
+      "total_volume": 10768208,
+      "market_center": "B,Q,N",
+      "short_volume": 3491034,
+      "exchange_name": "FINRA CNMS"
+    },
+    {
+      "id": "a198b216-b93b-4994-8b59-d4501bac4994",
+      "date": "2026-03-03",
+      "symbol": "AAPL",
+      "created_at": "2026-05-05T14:43:44Z",
+      "total_volume": 11675147,
+      "market_center": "B,Q,N",
+      "short_volume": 4543936,
+      "exchange_name": "FINRA CNMS"
+    },
+    {
+      "id": "137d9f2a-dd17-47b0-926a-3b163f35cddf",
+      "date": "2026-03-02",
+      "symbol": "AAPL",
+      "created_at": "2026-05-05T14:43:43Z",
+      "total_volume": 11822769,
+      "market_center": "B,Q,N",
+      "short_volume": 4577865,
+      "exchange_name": "FINRA CNMS"
+    },
+    {
+      "id": "10dc0e83-321e-410e-a72f-ab270f9a4e61",
+      "date": "2026-02-27",
+      "symbol": "AAPL",
+      "created_at": "2026-05-05T14:43:42Z",
+      "total_volume": 15332390,
+      "market_center": "B,Q,N",
+      "short_volume": 6126941,
+      "exchange_name": "FINRA CNMS"
+    },
+    {
+      "id": "527aeecc-9dd4-41e1-bd42-35e0c98aea55",
+      "date": "2026-02-26",
+      "symbol": "AAPL",
+      "created_at": "2026-05-05T14:43:41Z",
+      "total_volume": 9736621,
+      "market_center": "B,Q,N",
+      "short_volume": 4516644,
+      "exchange_name": "FINRA CNMS"
+    },
+    {
+      "id": "5905fe2e-523a-408c-9cc1-5c1999737c1b",
+      "date": "2026-02-25",
+      "symbol": "AAPL",
+      "created_at": "2026-05-05T14:43:41Z",
+      "total_volume": 10868536,
+      "market_center": "B,Q,N",
+      "short_volume": 5900131,
+      "exchange_name": "FINRA CNMS"
+    },
+    {
+      "id": "0efe0f13-3e97-4685-8302-168084296a6d",
+      "date": "2026-02-24",
+      "symbol": "AAPL",
+      "created_at": "2026-05-05T14:43:40Z",
+      "total_volume": 15952303,
+      "market_center": "B,Q,N",
+      "short_volume": 8596690,
+      "exchange_name": "FINRA CNMS"
+    },
+    {
+      "id": "04b85827-89e2-4d59-9f85-a3eb10fd71e2",
+      "date": "2026-02-23",
+      "symbol": "AAPL",
+      "created_at": "2026-05-05T14:43:39Z",
+      "total_volume": 13850151,
+      "market_center": "B,Q,N",
+      "short_volume": 6323044,
+      "exchange_name": "FINRA CNMS"
+    },
+    {
+      "id": "ad729ed3-fed7-420c-876f-d8a628ab3af9",
+      "date": "2026-02-20",
+      "symbol": "AAPL",
+      "created_at": "2026-05-05T14:43:37Z",
+      "total_volume": 12142420,
+      "market_center": "B,Q,N",
+      "short_volume": 4440067,
+      "exchange_name": "FINRA CNMS"
+    },
+    {
+      "id": "452455b1-e759-4a7f-ab57-09231c07ad2a",
+      "date": "2026-02-19",
+      "symbol": "AAPL",
+      "created_at": "2026-02-23T12:30:08Z",
+      "total_volume": 9873974,
+      "market_center": "B,Q,N",
+      "short_volume": 3310853,
+      "exchange_name": "FINRA CNMS"
+    },
+    {
+      "id": "488814a6-568c-4bb2-a58a-741dd58e40d6",
+      "date": "2026-02-18",
+      "symbol": "AAPL",
+      "created_at": "2026-02-20T12:30:09Z",
+      "total_volume": 10209709,
+      "market_center": "B,Q,N",
+      "short_volume": 4053954,
+      "exchange_name": "FINRA CNMS"
+    },
+    {
+      "id": "b8901ed8-a00a-48eb-81dc-803b75e9c006",
+      "date": "2026-02-17",
+      "symbol": "AAPL",
+      "created_at": "2026-02-19T12:30:07Z",
+      "total_volume": 19474422,
+      "market_center": "B,Q,N",
+      "short_volume": 6863919,
+      "exchange_name": "FINRA CNMS"
+    },
+    {
+      "id": "338abfe5-0dbe-4d92-9cc5-e1d431691328",
+      "date": "2026-02-13",
+      "symbol": "AAPL",
+      "created_at": "2026-02-18T12:30:08Z",
+      "total_volume": 18023888,
+      "market_center": "B,Q,N",
+      "short_volume": 5531077,
+      "exchange_name": "FINRA CNMS"
+    },
+    {
+      "id": "aa9dbeaf-c9ac-4fa3-b560-1fb175c55829",
+      "date": "2026-02-12",
+      "symbol": "AAPL",
+      "created_at": "2026-02-17T12:30:06Z",
+      "total_volume": 23533612,
+      "market_center": "B,Q,N",
+      "short_volume": 10373452,
+      "exchange_name": "FINRA CNMS"
+    },
+    {
+      "id": "6b972e81-d92e-456d-b497-6606bed8e2dd",
+      "date": "2026-02-11",
+      "symbol": "AAPL",
+      "created_at": "2026-02-13T12:30:08Z",
+      "total_volume": 16019426,
+      "market_center": "B,Q,N",
+      "short_volume": 8418405,
+      "exchange_name": "FINRA CNMS"
+    },
+    {
+      "id": "b54542b8-900b-473a-b0e9-ac770f87eae3",
+      "date": "2026-02-10",
+      "symbol": "AAPL",
+      "created_at": "2026-02-12T12:30:09Z",
+      "total_volume": 9828993,
+      "market_center": "B,Q,N",
+      "short_volume": 4674597,
+      "exchange_name": "FINRA CNMS"
+    },
+    {
+      "id": "3a541183-62c2-44f5-8015-e6860780bbe5",
+      "date": "2026-02-09",
+      "symbol": "AAPL",
+      "created_at": "2026-02-11T12:30:10Z",
+      "total_volume": 14516574,
+      "market_center": "B,Q,N",
+      "short_volume": 5871621,
+      "exchange_name": "FINRA CNMS"
+    },
+    {
+      "id": "942498a5-595b-4749-ad4e-c166a38cd370",
+      "date": "2026-02-06",
+      "symbol": "AAPL",
+      "created_at": "2026-02-10T12:30:07Z",
+      "total_volume": 19500939,
+      "market_center": "B,Q,N",
+      "short_volume": 10156855,
+      "exchange_name": "FINRA CNMS"
+    },
+    {
+      "id": "2c367f94-ceaf-4fe3-a2db-e5d5e7961294",
+      "date": "2026-02-05",
+      "symbol": "AAPL",
+      "created_at": "2026-02-09T12:30:06Z",
+      "total_volume": 13018510,
+      "market_center": "B,Q,N",
+      "short_volume": 6830545,
+      "exchange_name": "FINRA CNMS"
+    },
+    {
+      "id": "43b09dc4-6a66-447e-bdfc-8f648b097ced",
+      "date": "2026-02-04",
+      "symbol": "AAPL",
+      "created_at": "2026-02-06T12:30:10Z",
+      "total_volume": 31011558,
+      "market_center": "B,Q,N",
+      "short_volume": 16997641,
+      "exchange_name": "FINRA CNMS"
+    },
+    {
+      "id": "bd4af375-9ab4-4bdd-90bb-de238a072da1",
+      "date": "2026-02-03",
+      "symbol": "AAPL",
+      "created_at": "2026-02-05T12:30:08Z",
+      "total_volume": 22942889,
+      "market_center": "B,Q,N",
+      "short_volume": 10342628,
+      "exchange_name": "FINRA CNMS"
+    },
+    {
+      "id": "89260843-c705-44a3-a227-b63f46e32d5d",
+      "date": "2026-02-02",
+      "symbol": "AAPL",
+      "created_at": "2026-02-04T12:30:06Z",
+      "total_volume": 25716379,
+      "market_center": "B,Q,N",
+      "short_volume": 9770013,
+      "exchange_name": "FINRA CNMS"
+    },
+    {
+      "id": "8b8e8820-df6f-4b73-a3e5-444bd39657ca",
+      "date": "2026-01-30",
+      "symbol": "AAPL",
+      "created_at": "2026-02-03T12:30:10Z",
+      "total_volume": 29842368,
+      "market_center": "B,Q,N",
+      "short_volume": 14123367,
+      "exchange_name": "FINRA CNMS"
+    },
+    {
+      "id": "c07a7bc0-b801-406f-9ce3-5a1e6c474676",
+      "date": "2026-01-29",
+      "symbol": "AAPL",
+      "created_at": "2026-02-02T12:30:07Z",
+      "total_volume": 18330389,
+      "market_center": "B,Q,N",
+      "short_volume": 7291520,
+      "exchange_name": "FINRA CNMS"
+    },
+    {
+      "id": "7e92b4e7-51bc-4288-80e2-f173fd3acf35",
+      "date": "2026-01-28",
+      "symbol": "AAPL",
+      "created_at": "2026-01-30T12:30:05Z",
+      "total_volume": 12962890,
+      "market_center": "B,Q,N",
+      "short_volume": 4353874,
+      "exchange_name": "FINRA CNMS"
+    },
+    {
+      "id": "24854c8b-2ea1-43ef-ac35-a442bff844d5",
+      "date": "2026-01-27",
+      "symbol": "AAPL",
+      "created_at": "2026-01-29T12:30:08Z",
+      "total_volume": 16135223,
+      "market_center": "B,Q,N",
+      "short_volume": 5551791,
+      "exchange_name": "FINRA CNMS"
+    },
+    {
+      "id": "7e8026c8-876f-4f72-9da9-feccac9d5332",
+      "date": "2026-01-26",
+      "symbol": "AAPL",
+      "created_at": "2026-01-28T12:30:06Z",
+      "total_volume": 18836081,
+      "market_center": "B,Q,N",
+      "short_volume": 6674862,
+      "exchange_name": "FINRA CNMS"
+    },
+    {
+      "id": "6b3542cd-531d-4c90-8595-71ae9a390e53",
+      "date": "2026-01-23",
+      "symbol": "AAPL",
+      "created_at": "2026-01-27T12:30:08Z",
+      "total_volume": 14198543,
+      "market_center": "B,Q,N",
+      "short_volume": 4725072,
+      "exchange_name": "FINRA CNMS"
+    },
+    {
+      "id": "7686a926-c24f-462e-bf95-bdd8e3abad7b",
+      "date": "2026-01-22",
+      "symbol": "AAPL",
+      "created_at": "2026-01-26T12:30:06Z",
+      "total_volume": 13602166,
+      "market_center": "B,Q,N",
+      "short_volume": 4676504,
+      "exchange_name": "FINRA CNMS"
+    },
+    {
+      "id": "0947eff4-f555-4f62-ba6c-92c2bfc9b446",
+      "date": "2026-01-21",
+      "symbol": "AAPL",
+      "created_at": "2026-01-23T12:30:08Z",
+      "total_volume": 19860315,
+      "market_center": "B,Q,N",
+      "short_volume": 6116882,
+      "exchange_name": "FINRA CNMS"
+    },
+    {
+      "id": "890210d0-36d2-4f06-b8da-56c00cf58e22",
+      "date": "2026-01-20",
+      "symbol": "AAPL",
+      "created_at": "2026-01-22T12:30:06Z",
+      "total_volume": 22890081,
+      "market_center": "B,Q,N",
+      "short_volume": 6685147,
+      "exchange_name": "FINRA CNMS"
+    },
+    {
+      "id": "f8f3c560-8d70-4422-9c6d-cd902e1613be",
+      "date": "2026-01-16",
+      "symbol": "AAPL",
+      "created_at": "2026-01-21T12:30:07Z",
+      "total_volume": 15976462,
+      "market_center": "B,Q,N",
+      "short_volume": 4191773,
+      "exchange_name": "FINRA CNMS"
+    },
+    {
+      "id": "fb6824bf-4b70-44c9-be74-b9300c7d83e6",
+      "date": "2026-01-15",
+      "symbol": "AAPL",
+      "created_at": "2026-01-20T12:30:07Z",
+      "total_volume": 12258196,
+      "market_center": "B,Q,N",
+      "short_volume": 3467918,
+      "exchange_name": "FINRA CNMS"
+    },
+    {
+      "id": "14a0f0d1-cf75-42bb-9523-6556d6ed0cf9",
+      "date": "2026-01-14",
+      "symbol": "AAPL",
+      "created_at": "2026-01-16T12:30:06Z",
+      "total_volume": 11927832,
+      "market_center": "B,Q,N",
+      "short_volume": 3390293,
+      "exchange_name": "FINRA CNMS"
+    },
+    {
+      "id": "f2c9e244-05c4-4272-a78a-8aed6a834e0e",
+      "date": "2026-01-13",
+      "symbol": "AAPL",
+      "created_at": "2026-01-15T12:30:06Z",
+      "total_volume": 14430712,
+      "market_center": "B,Q,N",
+      "short_volume": 5330735,
+      "exchange_name": "FINRA CNMS"
+    },
+    {
+      "id": "9a647b7d-eeb0-4582-8158-f1dad3f15d65",
+      "date": "2026-01-12",
+      "symbol": "AAPL",
+      "created_at": "2026-01-14T12:30:07Z",
+      "total_volume": 14496482,
+      "market_center": "B,Q,N",
+      "short_volume": 4931597,
+      "exchange_name": "FINRA CNMS"
+    },
+    {
+      "id": "c8779785-03ee-4153-b891-8a4274108d58",
+      "date": "2026-01-09",
+      "symbol": "AAPL",
+      "created_at": "2026-01-13T12:30:05Z",
+      "total_volume": 15579149,
+      "market_center": "B,Q,N",
+      "short_volume": 5055317,
+      "exchange_name": "FINRA CNMS"
+    },
+    {
+      "id": "5637af3d-1169-4ede-a5c1-1b494a065730",
+      "date": "2026-01-08",
+      "symbol": "AAPL",
+      "created_at": "2026-01-12T12:30:06Z",
+      "total_volume": 19398456,
+      "market_center": "B,Q,N",
+      "short_volume": 4985336,
+      "exchange_name": "FINRA CNMS"
+    },
+    {
+      "id": "f26bcf50-ac84-4405-8455-e30412903455",
+      "date": "2026-01-07",
+      "symbol": "AAPL",
+      "created_at": "2026-01-09T12:30:06Z",
+      "total_volume": 18624068,
+      "market_center": "B,Q,N",
+      "short_volume": 4822124,
+      "exchange_name": "FINRA CNMS"
+    },
+    {
+      "id": "ff38b37d-e7e3-4b99-b718-4b5155a0744f",
+      "date": "2026-01-06",
+      "symbol": "AAPL",
+      "created_at": "2026-01-08T12:30:06Z",
+      "total_volume": 18442863,
+      "market_center": "B,Q,N",
+      "short_volume": 5159846,
+      "exchange_name": "FINRA CNMS"
+    },
+    {
+      "id": "c3469041-6519-41fa-8e29-e51168590982",
+      "date": "2026-01-05",
+      "symbol": "AAPL",
+      "created_at": "2026-01-07T12:30:08Z",
+      "total_volume": 15585213,
+      "market_center": "B,Q,N",
+      "short_volume": 5046560,
+      "exchange_name": "FINRA CNMS"
+    },
+    {
+      "id": "085b3091-0cb9-46cd-8030-f4be2db2c83c",
+      "date": "2026-01-02",
+      "symbol": "AAPL",
+      "created_at": "2026-01-06T12:30:07Z",
+      "total_volume": 14218440,
+      "market_center": "B,Q,N",
+      "short_volume": 4392467,
+      "exchange_name": "FINRA CNMS"
+    },
+    {
+      "id": "cf04c073-0f56-48d1-b4a6-e8bf27cc14f7",
+      "date": "2025-12-31",
+      "symbol": "AAPL",
+      "created_at": "2026-01-05T12:30:06Z",
+      "total_volume": 7595949,
+      "market_center": "B,Q,N",
+      "short_volume": 2429403,
+      "exchange_name": "FINRA CNMS"
+    },
+    {
+      "id": "f39726de-e7d1-4773-8aab-0261ab69ca4f",
+      "date": "2025-12-30",
+      "symbol": "AAPL",
+      "created_at": "2026-01-02T12:30:08Z",
+      "total_volume": 7435241,
+      "market_center": "B,Q,N",
+      "short_volume": 2157509,
+      "exchange_name": "FINRA CNMS"
+    },
+    {
+      "id": "2cc34190-0bf0-4c30-b0d6-db8d11aa7bd4",
+      "date": "2025-12-29",
+      "symbol": "AAPL",
+      "created_at": "2025-12-31T12:30:05Z",
+      "total_volume": 6852213,
+      "market_center": "B,Q,N",
+      "short_volume": 2221533,
+      "exchange_name": "FINRA CNMS"
+    },
+    {
+      "id": "2bb63a97-d36d-4311-a0bc-d6152b1c9123",
+      "date": "2025-12-26",
+      "symbol": "AAPL",
+      "created_at": "2025-12-30T12:30:06Z",
+      "total_volume": 6896691,
+      "market_center": "B,Q,N",
+      "short_volume": 2113861,
+      "exchange_name": "FINRA CNMS"
+    },
+    {
+      "id": "d51a56e5-4f9a-4f5f-9a4b-4e7c783544e3",
+      "date": "2025-12-24",
+      "symbol": "AAPL",
+      "created_at": "2025-12-29T12:30:08Z",
+      "total_volume": 7213936,
+      "market_center": "B,Q,N",
+      "short_volume": 2766671,
+      "exchange_name": "FINRA CNMS"
+    },
+    {
+      "id": "8bd69293-4e20-4f04-9a6b-cd1ea8997b6b",
+      "date": "2025-12-23",
+      "symbol": "AAPL",
+      "created_at": "2025-12-26T12:30:06Z",
+      "total_volume": 10000163,
+      "market_center": "B,Q,N",
+      "short_volume": 2424905,
+      "exchange_name": "FINRA CNMS"
+    },
+    {
+      "id": "8d2dff48-236f-41cf-a4ce-b55cdd7e6bf3",
+      "date": "2025-12-22",
+      "symbol": "AAPL",
+      "created_at": "2025-12-24T12:30:05Z",
+      "total_volume": 12057002,
+      "market_center": "B,Q,N",
+      "short_volume": 3442423,
+      "exchange_name": "FINRA CNMS"
+    },
+    {
+      "id": "0b385d49-f750-482f-9c06-9914eacd8cbb",
+      "date": "2025-12-19",
+      "symbol": "AAPL",
+      "created_at": "2025-12-23T12:30:05Z",
+      "total_volume": 22451362,
+      "market_center": "B,Q,N",
+      "short_volume": 10268878,
+      "exchange_name": "FINRA CNMS"
+    },
+    {
+      "id": "bf42818d-ae9c-4bc6-a58a-9349692c989a",
+      "date": "2025-12-18",
+      "symbol": "AAPL",
+      "created_at": "2025-12-22T12:30:06Z",
+      "total_volume": 17634238,
+      "market_center": "B,Q,N",
+      "short_volume": 5484902,
+      "exchange_name": "FINRA CNMS"
+    },
+    {
+      "id": "1fb53a1f-3347-45f6-b97a-5c9a8c7e07dc",
+      "date": "2025-12-17",
+      "symbol": "AAPL",
+      "created_at": "2025-12-19T12:30:08Z",
+      "total_volume": 11745065,
+      "market_center": "B,Q,N",
+      "short_volume": 3882510,
+      "exchange_name": "FINRA CNMS"
+    },
+    {
+      "id": "ae9c08f2-c27f-4151-8f50-851675177813",
+      "date": "2025-12-16",
+      "symbol": "AAPL",
+      "created_at": "2025-12-18T12:30:08Z",
+      "total_volume": 10613653,
+      "market_center": "B,Q,N",
+      "short_volume": 3852907,
+      "exchange_name": "FINRA CNMS"
+    },
+    {
+      "id": "c2fcfecb-858f-40ab-a975-025908982ce1",
+      "date": "2025-12-15",
+      "symbol": "AAPL",
+      "created_at": "2025-12-17T12:30:07Z",
+      "total_volume": 13859059,
+      "market_center": "B,Q,N",
+      "short_volume": 5761382,
+      "exchange_name": "FINRA CNMS"
+    },
+    {
+      "id": "28c7c2b1-b034-4415-a92e-4cef2f07ebd5",
+      "date": "2025-12-12",
+      "symbol": "AAPL",
+      "created_at": "2025-12-16T12:30:07Z",
+      "total_volume": 11895262,
+      "market_center": "B,Q,N",
+      "short_volume": 4934126,
+      "exchange_name": "FINRA CNMS"
+    },
+    {
+      "id": "5356be82-16e3-457a-bc94-49754190350c",
+      "date": "2025-12-11",
+      "symbol": "AAPL",
+      "created_at": "2025-12-15T12:30:07Z",
+      "total_volume": 11656313,
+      "market_center": "B,Q,N",
+      "short_volume": 6051487,
+      "exchange_name": "FINRA CNMS"
+    },
+    {
+      "id": "b7e8a0eb-6472-4d3e-9d55-fa5d12625d87",
+      "date": "2025-12-10",
+      "symbol": "AAPL",
+      "created_at": "2025-12-12T12:30:05Z",
+      "total_volume": 9192664,
+      "market_center": "B,Q,N",
+      "short_volume": 4055227,
+      "exchange_name": "FINRA CNMS"
+    },
+    {
+      "id": "1e5b30b6-2236-4dab-b5ac-4974019e5df3",
+      "date": "2025-12-09",
+      "symbol": "AAPL",
+      "created_at": "2025-12-11T12:30:06Z",
+      "total_volume": 10654895,
+      "market_center": "B,Q,N",
+      "short_volume": 3743646,
+      "exchange_name": "FINRA CNMS"
+    },
+    {
+      "id": "b6f51a3b-4a01-4a7e-8447-90114a856f52",
+      "date": "2025-12-08",
+      "symbol": "AAPL",
+      "created_at": "2025-12-10T12:30:04Z",
+      "total_volume": 12235498,
+      "market_center": "B,Q,N",
+      "short_volume": 5970260,
+      "exchange_name": "FINRA CNMS"
+    },
+    {
+      "id": "33af4114-f8ee-4268-954e-7b3a5674d061",
+      "date": "2025-12-05",
+      "symbol": "AAPL",
+      "created_at": "2025-12-09T12:30:04Z",
+      "total_volume": 13118222,
+      "market_center": "B,Q,N",
+      "short_volume": 5981932,
+      "exchange_name": "FINRA CNMS"
+    },
+    {
+      "id": "55307b9b-57cd-4626-97e1-31a7c1d90fa1",
+      "date": "2025-12-04",
+      "symbol": "AAPL",
+      "created_at": "2025-12-08T12:30:05Z",
+      "total_volume": 14306370,
+      "market_center": "B,Q,N",
+      "short_volume": 4908963,
+      "exchange_name": "FINRA CNMS"
+    },
+    {
+      "id": "e6c40eac-622b-4901-9c83-1affd1290344",
+      "date": "2025-12-03",
+      "symbol": "AAPL",
+      "created_at": "2025-12-05T12:30:07Z",
+      "total_volume": 14446878,
+      "market_center": "B,Q,N",
+      "short_volume": 7946352,
+      "exchange_name": "FINRA CNMS"
+    },
+    {
+      "id": "39f6a7f1-f1df-4850-9a6b-50dfb8491b31",
+      "date": "2025-12-02",
+      "symbol": "AAPL",
+      "created_at": "2025-12-04T12:30:08Z",
+      "total_volume": 17528569,
+      "market_center": "B,Q,N",
+      "short_volume": 8744083,
+      "exchange_name": "FINRA CNMS"
+    },
+    {
+      "id": "66d40232-53ae-4899-b629-6148dfa2df74",
+      "date": "2025-12-01",
+      "symbol": "AAPL",
+      "created_at": "2025-12-03T12:30:08Z",
+      "total_volume": 14053549,
+      "market_center": "B,Q,N",
+      "short_volume": 7155306,
+      "exchange_name": "FINRA CNMS"
+    },
+    {
+      "id": "c263d0c4-4dd8-444a-9464-a139ef56380d",
+      "date": "2025-11-28",
+      "symbol": "AAPL",
+      "created_at": "2025-12-02T12:30:06Z",
+      "total_volume": 8436662,
+      "market_center": "B,Q,N",
+      "short_volume": 4319533,
+      "exchange_name": "FINRA CNMS"
+    },
+    {
+      "id": "67e93066-8cad-429a-afd5-5896f2726578",
+      "date": "2025-11-26",
+      "symbol": "AAPL",
+      "created_at": "2025-12-01T12:30:07Z",
+      "total_volume": 10388835,
+      "market_center": "B,Q,N",
+      "short_volume": 5356811,
+      "exchange_name": "FINRA CNMS"
+    },
+    {
+      "id": "6d89a09f-7ac0-4989-81bf-016570e4b86a",
+      "date": "2025-11-25",
+      "symbol": "AAPL",
+      "created_at": "2025-11-28T12:30:05Z",
+      "total_volume": 13720541,
+      "market_center": "B,Q,N",
+      "short_volume": 6398140,
+      "exchange_name": "FINRA CNMS"
+    },
+    {
+      "id": "b247acd6-f49a-439f-8d3d-507616f88fdb",
+      "date": "2025-11-24",
+      "symbol": "AAPL",
+      "created_at": "2025-11-26T12:30:08Z",
+      "total_volume": 15818109,
+      "market_center": "B,Q,N",
+      "short_volume": 6943466,
+      "exchange_name": "FINRA CNMS"
+    },
+    {
+      "id": "d464f93a-eeb8-4420-8fa8-04b6b02ecf34",
+      "date": "2025-11-21",
+      "symbol": "AAPL",
+      "created_at": "2025-11-25T12:30:06Z",
+      "total_volume": 16575268,
+      "market_center": "B,Q,N",
+      "short_volume": 5918239,
+      "exchange_name": "FINRA CNMS"
+    },
+    {
+      "id": "42a9c22f-d2d8-49e3-81bc-268f7cdb4773",
+      "date": "2025-11-20",
+      "symbol": "AAPL",
+      "created_at": "2025-11-24T12:30:06Z",
+      "total_volume": 14550342,
+      "market_center": "B,Q,N",
+      "short_volume": 5294399,
+      "exchange_name": "FINRA CNMS"
+    },
+    {
+      "id": "7c9bc7f7-3b58-46a0-9604-99a089a0f757",
+      "date": "2025-11-19",
+      "symbol": "AAPL",
+      "created_at": "2025-11-21T12:30:10Z",
+      "total_volume": 11593810,
+      "market_center": "B,Q,N",
+      "short_volume": 3395128,
+      "exchange_name": "FINRA CNMS"
+    },
+    {
+      "id": "fc6e3683-20db-4280-a444-cf27325cad82",
+      "date": "2025-11-18",
+      "symbol": "AAPL",
+      "created_at": "2025-11-20T12:30:08Z",
+      "total_volume": 14142616,
+      "market_center": "B,Q,N",
+      "short_volume": 3996333,
+      "exchange_name": "FINRA CNMS"
+    },
+    {
+      "id": "c1ade014-8b53-4fbc-9ed1-d048ce880686",
+      "date": "2025-11-17",
+      "symbol": "AAPL",
+      "created_at": "2025-11-19T12:30:09Z",
+      "total_volume": 13001245,
+      "market_center": "B,Q,N",
+      "short_volume": 4870996,
+      "exchange_name": "FINRA CNMS"
+    },
+    {
+      "id": "aa3fd7e4-4272-40aa-88ea-5ae3d430817a",
+      "date": "2025-11-14",
+      "symbol": "AAPL",
+      "created_at": "2025-11-18T12:30:08Z",
+      "total_volume": 14991557,
+      "market_center": "B,Q,N",
+      "short_volume": 5242208,
+      "exchange_name": "FINRA CNMS"
+    },
+    {
+      "id": "0ebe10cc-4f2a-415b-8924-f5b83a5b99bb",
+      "date": "2025-11-13",
+      "symbol": "AAPL",
+      "created_at": "2025-11-17T12:30:06Z",
+      "total_volume": 14360752,
+      "market_center": "B,Q,N",
+      "short_volume": 6619888,
+      "exchange_name": "FINRA CNMS"
+    },
+    {
+      "id": "7e111387-d02a-4213-8c24-83d236e3c778",
+      "date": "2025-11-12",
+      "symbol": "AAPL",
+      "created_at": "2025-11-14T12:30:06Z",
+      "total_volume": 12703356,
+      "market_center": "B,Q,N",
+      "short_volume": 4401208,
+      "exchange_name": "FINRA CNMS"
+    },
+    {
+      "id": "1cc4f17d-f6fa-48e4-8577-681d6874bc4c",
+      "date": "2025-11-11",
+      "symbol": "AAPL",
+      "created_at": "2025-11-13T12:30:08Z",
+      "total_volume": 16906995,
+      "market_center": "B,Q,N",
+      "short_volume": 6799932,
+      "exchange_name": "FINRA CNMS"
+    },
+    {
+      "id": "c73dbff5-ba07-457d-9e55-e6926340f602",
+      "date": "2025-11-10",
+      "symbol": "AAPL",
+      "created_at": "2025-11-12T12:30:05Z",
+      "total_volume": 14376530,
+      "market_center": "B,Q,N",
+      "short_volume": 6518648,
+      "exchange_name": "FINRA CNMS"
+    },
+    {
+      "id": "584e5b9a-e77a-40f5-9bc7-e935ba59a869",
+      "date": "2025-11-07",
+      "symbol": "AAPL",
+      "created_at": "2025-11-11T12:30:09Z",
+      "total_volume": 16566297,
+      "market_center": "B,Q,N",
+      "short_volume": 6428947,
+      "exchange_name": "FINRA CNMS"
+    },
+    {
+      "id": "e6bb6b92-cb2f-447e-b6bb-775ec09abbfe",
+      "date": "2025-11-06",
+      "symbol": "AAPL",
+      "created_at": "2025-11-10T12:30:06Z",
+      "total_volume": 15811565,
+      "market_center": "B,Q,N",
+      "short_volume": 7508573,
+      "exchange_name": "FINRA CNMS"
+    },
+    {
+      "id": "9670bb01-2c20-4ba9-84d8-0e791322f2b7",
+      "date": "2025-11-05",
+      "symbol": "AAPL",
+      "created_at": "2025-11-07T12:30:09Z",
+      "total_volume": 12246651,
+      "market_center": "B,Q,N",
+      "short_volume": 5121567,
+      "exchange_name": "FINRA CNMS"
+    },
+    {
+      "id": "179242e5-6614-44bf-b6d2-5ecbc3cc907f",
+      "date": "2025-11-04",
+      "symbol": "AAPL",
+      "created_at": "2025-11-06T12:30:07Z",
+      "total_volume": 15108868,
+      "market_center": "B,Q,N",
+      "short_volume": 7608649,
+      "exchange_name": "FINRA CNMS"
+    },
+    {
+      "id": "9120496c-5c48-4d99-8ac7-14ce4cef6cc0",
+      "date": "2025-11-03",
+      "symbol": "AAPL",
+      "created_at": "2025-11-05T12:30:06Z",
+      "total_volume": 16918574,
+      "market_center": "B,Q,N",
+      "short_volume": 8651135,
+      "exchange_name": "FINRA CNMS"
+    },
+    {
+      "id": "2f08560b-4b08-43b5-b423-ad1f40db1a66",
+      "date": "2025-10-31",
+      "symbol": "AAPL",
+      "created_at": "2025-11-04T12:30:12Z",
+      "total_volume": 26366143,
+      "market_center": "B,Q,N",
+      "short_volume": 14390454,
+      "exchange_name": "FINRA CNMS"
+    },
+    {
+      "id": "8752a652-e93c-40e6-ae98-c31c13d16d1e",
+      "date": "2025-10-30",
+      "symbol": "AAPL",
+      "created_at": "2025-11-03T12:30:10Z",
+      "total_volume": 20223062,
+      "market_center": "B,Q,N",
+      "short_volume": 10780410,
+      "exchange_name": "FINRA CNMS"
+    },
+    {
+      "id": "004d0cf2-70fb-4135-bee8-6591f8ba6353",
+      "date": "2025-10-29",
+      "symbol": "AAPL",
+      "created_at": "2025-10-31T12:30:11Z",
+      "total_volume": 17578390,
+      "market_center": "B,Q,N",
+      "short_volume": 9802641,
+      "exchange_name": "FINRA CNMS"
+    },
+    {
+      "id": "39e30475-350b-429f-9fc3-1affdb71443b",
+      "date": "2025-10-28",
+      "symbol": "AAPL",
+      "created_at": "2025-10-30T12:30:11Z",
+      "total_volume": 16651892,
+      "market_center": "B,Q,N",
+      "short_volume": 9800169,
+      "exchange_name": "FINRA CNMS"
+    },
+    {
+      "id": "b1455acc-7275-45b3-bf8b-a32bf38714cb",
+      "date": "2025-10-27",
+      "symbol": "AAPL",
+      "created_at": "2025-10-29T12:30:11Z",
+      "total_volume": 15155771,
+      "market_center": "B,Q,N",
+      "short_volume": 7326447,
+      "exchange_name": "FINRA CNMS"
+    },
+    {
+      "id": "5933c1a4-152a-4043-b5bd-f7e613c64f41",
+      "date": "2025-10-24",
+      "symbol": "AAPL",
+      "created_at": "2025-10-28T12:30:10Z",
+      "total_volume": 13697725,
+      "market_center": "B,Q,N",
+      "short_volume": 6709112,
+      "exchange_name": "FINRA CNMS"
+    },
+    {
+      "id": "a2f481f2-1637-4306-8649-5971b248c169",
+      "date": "2025-10-23",
+      "symbol": "AAPL",
+      "created_at": "2025-10-27T12:30:09Z",
+      "total_volume": 10584096,
+      "market_center": "B,Q,N",
+      "short_volume": 3059419,
+      "exchange_name": "FINRA CNMS"
+    },
+    {
+      "id": "0808bd22-18cc-4658-91cb-c4bee426f8cf",
+      "date": "2025-10-22",
+      "symbol": "AAPL",
+      "created_at": "2025-10-24T12:30:11Z",
+      "total_volume": 15868953,
+      "market_center": "B,Q,N",
+      "short_volume": 6960189,
+      "exchange_name": "FINRA CNMS"
+    },
+    {
+      "id": "6110c434-be18-4082-9a01-dd75360dbaf7",
+      "date": "2025-10-21",
+      "symbol": "AAPL",
+      "created_at": "2025-10-23T12:30:11Z",
+      "total_volume": 19597053,
+      "market_center": "B,Q,N",
+      "short_volume": 9801022,
+      "exchange_name": "FINRA CNMS"
+    },
+    {
+      "id": "d825cde4-b037-449e-8256-2242b912ec21",
+      "date": "2025-10-20",
+      "symbol": "AAPL",
+      "created_at": "2025-10-22T12:30:10Z",
+      "total_volume": 35139387,
+      "market_center": "B,Q,N",
+      "short_volume": 16591704,
+      "exchange_name": "FINRA CNMS"
+    },
+    {
+      "id": "e1db044a-b55e-4905-bba0-22441fa518f1",
+      "date": "2025-10-17",
+      "symbol": "AAPL",
+      "created_at": "2025-10-21T12:30:17Z",
+      "total_volume": 17617168,
+      "market_center": "B,Q,N",
+      "short_volume": 7857807,
+      "exchange_name": "FINRA CNMS"
+    },
+    {
+      "id": "db24040a-e708-48b5-b2b5-13763cb7f87f",
+      "date": "2025-10-16",
+      "symbol": "AAPL",
+      "created_at": "2025-10-20T12:30:07Z",
+      "total_volume": 13924544,
+      "market_center": "B,Q,N",
+      "short_volume": 5028555,
+      "exchange_name": "FINRA CNMS"
+    },
+    {
+      "id": "24894f85-ea38-495e-9a7d-86004b7ddff1",
+      "date": "2025-10-15",
+      "symbol": "AAPL",
+      "created_at": "2025-10-17T12:30:11Z",
+      "total_volume": 10576019,
+      "market_center": "B,Q,N",
+      "short_volume": 4215112,
+      "exchange_name": "FINRA CNMS"
+    },
+    {
+      "id": "87e0f1eb-d98f-44b6-a168-a6a0cd7bcb18",
+      "date": "2025-10-14",
+      "symbol": "AAPL",
+      "created_at": "2025-10-16T12:30:11Z",
+      "total_volume": 11161970,
+      "market_center": "B,Q,N",
+      "short_volume": 4720923,
+      "exchange_name": "FINRA CNMS"
+    },
+    {
+      "id": "7b2a34dc-ffd9-4f03-a16d-9a9e3f607c5e",
+      "date": "2025-10-13",
+      "symbol": "AAPL",
+      "created_at": "2025-10-15T12:30:10Z",
+      "total_volume": 11719195,
+      "market_center": "B,Q,N",
+      "short_volume": 4500349,
+      "exchange_name": "FINRA CNMS"
+    },
+    {
+      "id": "58946127-bf17-4a06-8498-7b2fb9458df5",
+      "date": "2025-10-10",
+      "symbol": "AAPL",
+      "created_at": "2025-10-14T12:30:11Z",
+      "total_volume": 21003729,
+      "market_center": "B,Q,N",
+      "short_volume": 8143963,
+      "exchange_name": "FINRA CNMS"
+    },
+    {
+      "id": "ddfb35d0-34b7-4cc6-b764-2ee1c03ba768",
+      "date": "2025-10-09",
+      "symbol": "AAPL",
+      "created_at": "2025-10-13T12:30:09Z",
+      "total_volume": 12547383,
+      "market_center": "B,Q,N",
+      "short_volume": 6564578,
+      "exchange_name": "FINRA CNMS"
+    },
+    {
+      "id": "4b7b8612-7bbe-46fd-9438-c30f38da4b60",
+      "date": "2025-10-08",
+      "symbol": "AAPL",
+      "created_at": "2025-10-10T12:30:10Z",
+      "total_volume": 11621067,
+      "market_center": "B,Q,N",
+      "short_volume": 5410900,
+      "exchange_name": "FINRA CNMS"
+    },
+    {
+      "id": "6a019eda-2a37-4ba7-8e11-959492af9568",
+      "date": "2025-10-07",
+      "symbol": "AAPL",
+      "created_at": "2025-10-09T12:30:11Z",
+      "total_volume": 10077905,
+      "market_center": "B,Q,N",
+      "short_volume": 3454188,
+      "exchange_name": "FINRA CNMS"
+    },
+    {
+      "id": "ac846028-7c91-4e8a-b8a3-49ad02fdf6ba",
+      "date": "2025-10-06",
+      "symbol": "AAPL",
+      "created_at": "2025-10-08T12:30:11Z",
+      "total_volume": 14468558,
+      "market_center": "B,Q,N",
+      "short_volume": 6181975,
+      "exchange_name": "FINRA CNMS"
+    },
+    {
+      "id": "7d2d90e9-4b34-43a7-a3a3-795f9a0d4fa1",
+      "date": "2025-10-03",
+      "symbol": "AAPL",
+      "created_at": "2025-10-07T12:30:10Z",
+      "total_volume": 16543291,
+      "market_center": "B,Q,N",
+      "short_volume": 7222553,
+      "exchange_name": "FINRA CNMS"
+    },
+    {
+      "id": "d4445899-3eb4-4867-b0ca-e6744c66a1de",
+      "date": "2025-10-02",
+      "symbol": "AAPL",
+      "created_at": "2025-10-06T12:30:08Z",
+      "total_volume": 15279901,
+      "market_center": "B,Q,N",
+      "short_volume": 5824278,
+      "exchange_name": "FINRA CNMS"
+    },
+    {
+      "id": "4ce87bbf-d661-4a55-9b39-a71bc5407c43",
+      "date": "2025-10-01",
+      "symbol": "AAPL",
+      "created_at": "2025-10-03T12:30:11Z",
+      "total_volume": 14004273,
+      "market_center": "B,Q,N",
+      "short_volume": 4516309,
+      "exchange_name": "FINRA CNMS"
+    },
+    {
+      "id": "f185b24d-0ebe-4ec7-8eb0-acb9e3ecf2dc",
+      "date": "2025-09-30",
+      "symbol": "AAPL",
+      "created_at": "2025-10-02T12:30:11Z",
+      "total_volume": 11312579,
+      "market_center": "B,Q,N",
+      "short_volume": 3313525,
+      "exchange_name": "FINRA CNMS"
+    },
+    {
+      "id": "9d59a158-5d7b-4fe6-a04b-a9f921314df4",
+      "date": "2025-09-29",
+      "symbol": "AAPL",
+      "created_at": "2025-10-01T12:30:13Z",
+      "total_volume": 13399896,
+      "market_center": "B,Q,N",
+      "short_volume": 4376086,
+      "exchange_name": "FINRA CNMS"
+    },
+    {
+      "id": "6ef0a5da-c1da-40ce-aa6c-90f1fd8266a7",
+      "date": "2025-09-26",
+      "symbol": "AAPL",
+      "created_at": "2025-09-30T12:30:11Z",
+      "total_volume": 16692247,
+      "market_center": "B,Q,N",
+      "short_volume": 9830500,
+      "exchange_name": "FINRA CNMS"
+    },
+    {
+      "id": "1c8e1da7-69eb-44a7-a19a-c90c5cda3bd0",
+      "date": "2025-09-25",
+      "symbol": "AAPL",
+      "created_at": "2025-09-29T08:30:11Z",
+      "total_volume": 20597258,
+      "market_center": "B,Q,N",
+      "short_volume": 10610472,
+      "exchange_name": "FINRA CNMS"
+    },
+    {
+      "id": "4d2ff97f-d68b-46a3-8189-435e0dd8c671",
+      "date": "2025-09-24",
+      "symbol": "AAPL",
+      "created_at": "2025-09-26T12:30:11Z",
+      "total_volume": 13178314,
+      "market_center": "B,Q,N",
+      "short_volume": 5652777,
+      "exchange_name": "FINRA CNMS"
+    },
+    {
+      "id": "b560964a-97fe-49ca-9e54-825d9e8aab75",
+      "date": "2025-09-23",
+      "symbol": "AAPL",
+      "created_at": "2025-09-25T12:30:12Z",
+      "total_volume": 22204122,
+      "market_center": "B,Q,N",
+      "short_volume": 11722945,
+      "exchange_name": "FINRA CNMS"
+    },
+    {
+      "id": "5304676c-115c-457f-88e6-5e7deb09c3b3",
+      "date": "2025-09-22",
+      "symbol": "AAPL",
+      "created_at": "2025-09-24T12:30:12Z",
+      "total_volume": 38394175,
+      "market_center": "B,Q,N",
+      "short_volume": 20893506,
+      "exchange_name": "FINRA CNMS"
+    },
+    {
+      "id": "826463c6-3676-4a0b-91a3-621f8c277dd7",
+      "date": "2025-09-19",
+      "symbol": "AAPL",
+      "created_at": "2025-09-23T12:30:11Z",
+      "total_volume": 35726549,
+      "market_center": "B,Q,N",
+      "short_volume": 18438111,
+      "exchange_name": "FINRA CNMS"
+    },
+    {
+      "id": "a68abf29-1cd2-460a-a441-0a22cecb8b1e",
+      "date": "2025-09-18",
+      "symbol": "AAPL",
+      "created_at": "2025-09-22T12:30:08Z",
+      "total_volume": 14918680,
+      "market_center": "B,Q,N",
+      "short_volume": 7051456,
+      "exchange_name": "FINRA CNMS"
+    },
+    {
+      "id": "11ff2f13-17ef-48d5-8577-b23654fb2d6e",
+      "date": "2025-09-17",
+      "symbol": "AAPL",
+      "created_at": "2025-09-19T08:30:11Z",
+      "total_volume": 15088635,
+      "market_center": "B,Q,N",
+      "short_volume": 6164544,
+      "exchange_name": "FINRA CNMS"
+    },
+    {
+      "id": "f1a6806d-8760-48b7-a1b1-8d1929f90cba",
+      "date": "2025-09-16",
+      "symbol": "AAPL",
+      "created_at": "2025-09-18T12:30:11Z",
+      "total_volume": 20533074,
+      "market_center": "B,Q,N",
+      "short_volume": 11306477,
+      "exchange_name": "FINRA CNMS"
+    },
+    {
+      "id": "02345347-d82f-40fe-8488-5da606433201",
+      "date": "2025-09-15",
+      "symbol": "AAPL",
+      "created_at": "2025-09-17T12:30:11Z",
+      "total_volume": 16177618,
+      "market_center": "B,Q,N",
+      "short_volume": 8569619,
+      "exchange_name": "FINRA CNMS"
+    },
+    {
+      "id": "10b4e8e6-0af6-4091-b136-3029b70d9350",
+      "date": "2025-09-12",
+      "symbol": "AAPL",
+      "created_at": "2025-09-16T12:30:12Z",
+      "total_volume": 19376690,
+      "market_center": "B,Q,N",
+      "short_volume": 11055139,
+      "exchange_name": "FINRA CNMS"
+    },
+    {
+      "id": "256a3afb-970d-4b5d-80c7-94ffd3cd11c9",
+      "date": "2025-09-11",
+      "symbol": "AAPL",
+      "created_at": "2025-09-15T12:30:10Z",
+      "total_volume": 18771601,
+      "market_center": "B,Q,N",
+      "short_volume": 8789279,
+      "exchange_name": "FINRA CNMS"
+    },
+    {
+      "id": "bd5811a3-291d-45af-824b-4fcd53f7b79f",
+      "date": "2025-09-10",
+      "symbol": "AAPL",
+      "created_at": "2025-09-12T12:30:11Z",
+      "total_volume": 33083012,
+      "market_center": "B,Q,N",
+      "short_volume": 13418179,
+      "exchange_name": "FINRA CNMS"
+    },
+    {
+      "id": "20460ca0-a1d4-4db7-8197-3cae24225c83",
+      "date": "2025-09-09",
+      "symbol": "AAPL",
+      "created_at": "2025-09-11T12:30:11Z",
+      "total_volume": 29935244,
+      "market_center": "B,Q,N",
+      "short_volume": 18435351,
+      "exchange_name": "FINRA CNMS"
+    },
+    {
+      "id": "c07aade4-a923-4b28-b6ca-739ae9033861",
+      "date": "2025-09-08",
+      "symbol": "AAPL",
+      "created_at": "2025-09-10T12:30:10Z",
+      "total_volume": 18246724,
+      "market_center": "B,Q,N",
+      "short_volume": 10848460,
+      "exchange_name": "FINRA CNMS"
+    },
+    {
+      "id": "3528706a-02be-4ac7-b7d0-345d0cd3b515",
+      "date": "2025-09-05",
+      "symbol": "AAPL",
+      "created_at": "2025-09-09T12:30:11Z",
+      "total_volume": 17064227,
+      "market_center": "B,Q,N",
+      "short_volume": 9867139,
+      "exchange_name": "FINRA CNMS"
+    },
+    {
+      "id": "33c0fbf7-2287-4117-8e97-9d98a25e71fe",
+      "date": "2025-09-04",
+      "symbol": "AAPL",
+      "created_at": "2025-09-08T12:30:08Z",
+      "total_volume": 17707758,
+      "market_center": "B,Q,N",
+      "short_volume": 10926323,
+      "exchange_name": "FINRA CNMS"
+    },
+    {
+      "id": "4898ddf3-a835-4547-a548-7b57a07ee530",
+      "date": "2025-09-03",
+      "symbol": "AAPL",
+      "created_at": "2025-09-05T12:30:11Z",
+      "total_volume": 25837511,
+      "market_center": "B,Q,N",
+      "short_volume": 15724376,
+      "exchange_name": "FINRA CNMS"
+    },
+    {
+      "id": "3eaf0742-6139-4602-bc8c-3e9ff2bd930e",
+      "date": "2025-09-02",
+      "symbol": "AAPL",
+      "created_at": "2025-09-04T08:30:11Z",
+      "total_volume": 13778831,
+      "market_center": "B,Q,N",
+      "short_volume": 7380492,
+      "exchange_name": "FINRA CNMS"
+    },
+    {
+      "id": "97dcd4d9-9d58-477c-bdab-e290ed68d0bd",
+      "date": "2025-08-29",
+      "symbol": "AAPL",
+      "created_at": "2025-09-03T12:30:11Z",
+      "total_volume": 12828015,
+      "market_center": "B,Q,N",
+      "short_volume": 6054966,
+      "exchange_name": "FINRA CNMS"
+    },
+    {
+      "id": "f6d9e4ac-6374-4dbd-9d62-e1d15564efaf",
+      "date": "2025-08-28",
+      "symbol": "AAPL",
+      "created_at": "2025-09-02T12:30:09Z",
+      "total_volume": 12610185,
+      "market_center": "B,Q,N",
+      "short_volume": 6031116,
+      "exchange_name": "FINRA CNMS"
+    },
+    {
+      "id": "72900022-6353-4815-8f5c-83f0234c4f58",
+      "date": "2025-08-27",
+      "symbol": "AAPL",
+      "created_at": "2025-08-29T12:30:11Z",
+      "total_volume": 11257133,
+      "market_center": "B,Q,N",
+      "short_volume": 6264090,
+      "exchange_name": "FINRA CNMS"
+    },
+    {
+      "id": "17fa33d8-dbd6-4692-83e9-516fd16fa8aa",
+      "date": "2025-08-26",
+      "symbol": "AAPL",
+      "created_at": "2025-08-28T12:30:05Z",
+      "total_volume": 13726784,
+      "market_center": "B,Q,N",
+      "short_volume": 7694159,
+      "exchange_name": "FINRA CNMS"
+    },
+    {
+      "id": "af8f98bc-d19b-4cb8-a3fc-4a81de548fee",
+      "date": "2025-08-25",
+      "symbol": "AAPL",
+      "created_at": "2025-08-27T12:30:11Z",
+      "total_volume": 12112295,
+      "market_center": "B,Q,N",
+      "short_volume": 5937865,
+      "exchange_name": "FINRA CNMS"
+    },
+    {
+      "id": "00b8c904-9150-4203-ae1a-5302f1560b14",
+      "date": "2025-08-22",
+      "symbol": "AAPL",
+      "created_at": "2025-08-26T12:30:12Z",
+      "total_volume": 14461835,
+      "market_center": "B,Q,N",
+      "short_volume": 7722938,
+      "exchange_name": "FINRA CNMS"
+    },
+    {
+      "id": "96c83042-93be-4974-a64a-06a59c7a94f4",
+      "date": "2025-08-21",
+      "symbol": "AAPL",
+      "created_at": "2025-08-25T12:30:09Z",
+      "total_volume": 11072358,
+      "market_center": "B,Q,N",
+      "short_volume": 6414229,
+      "exchange_name": "FINRA CNMS"
+    },
+    {
+      "id": "6adbcdd1-8486-48b8-b5ce-96a3614885d8",
+      "date": "2025-08-20",
+      "symbol": "AAPL",
+      "created_at": "2025-08-22T12:30:10Z",
+      "total_volume": 14158238,
+      "market_center": "B,Q,N",
+      "short_volume": 6741790,
+      "exchange_name": "FINRA CNMS"
+    },
+    {
+      "id": "237e8faf-b86c-47fc-b0e3-43ed498d0d92",
+      "date": "2025-08-19",
+      "symbol": "AAPL",
+      "created_at": "2025-08-21T12:30:12Z",
+      "total_volume": 14412236,
+      "market_center": "B,Q,N",
+      "short_volume": 8018750,
+      "exchange_name": "FINRA CNMS"
+    },
+    {
+      "id": "2576d3e8-d1e2-4e1b-a80f-00f9141e3c4c",
+      "date": "2025-08-18",
+      "symbol": "AAPL",
+      "created_at": "2025-08-20T12:30:12Z",
+      "total_volume": 14598886,
+      "market_center": "B,Q,N",
+      "short_volume": 8955369,
+      "exchange_name": "FINRA CNMS"
+    },
+    {
+      "id": "f58a1407-621b-4813-9d67-7fc4b667cdbc",
+      "date": "2025-08-15",
+      "symbol": "AAPL",
+      "created_at": "2025-08-19T12:30:12Z",
+      "total_volume": 17065876,
+      "market_center": "B,Q,N",
+      "short_volume": 8938856,
+      "exchange_name": "FINRA CNMS"
+    },
+    {
+      "id": "f8bb60f4-2d2e-46be-9d0b-af901e5f62bf",
+      "date": "2025-08-14",
+      "symbol": "AAPL",
+      "created_at": "2025-08-18T12:30:12Z",
+      "total_volume": 18553771,
+      "market_center": "B,Q,N",
+      "short_volume": 10656060,
+      "exchange_name": "FINRA CNMS"
+    },
+    {
+      "id": "48c8a284-bb87-40b7-8c11-31d6c72fba0a",
+      "date": "2025-08-13",
+      "symbol": "AAPL",
+      "created_at": "2025-08-15T12:30:12Z",
+      "total_volume": 27974305,
+      "market_center": "B,Q,N",
+      "short_volume": 16507529,
+      "exchange_name": "FINRA CNMS"
+    },
+    {
+      "id": "c2adc47b-7a1d-4b5f-a67d-1bc341264685",
+      "date": "2025-08-12",
+      "symbol": "AAPL",
+      "created_at": "2025-08-14T12:30:11Z",
+      "total_volume": 20364499,
+      "market_center": "B,Q,N",
+      "short_volume": 8959959,
+      "exchange_name": "FINRA CNMS"
+    },
+    {
+      "id": "286e9ad5-9a15-4daa-a27c-5871a0afa503",
+      "date": "2025-08-11",
+      "symbol": "AAPL",
+      "created_at": "2025-08-13T12:30:11Z",
+      "total_volume": 26184402,
+      "market_center": "B,Q,N",
+      "short_volume": 12844330,
+      "exchange_name": "FINRA CNMS"
+    },
+    {
+      "id": "a7319e0c-6fbd-4f9f-9382-173d02b19870",
+      "date": "2025-08-08",
+      "symbol": "AAPL",
+      "created_at": "2025-08-12T12:30:10Z",
+      "total_volume": 51511727,
+      "market_center": "B,Q,N",
+      "short_volume": 31326857,
+      "exchange_name": "FINRA CNMS"
+    },
+    {
+      "id": "1b29ef26-8a84-44fb-bff8-acecafcd04f2",
+      "date": "2025-08-07",
+      "symbol": "AAPL",
+      "created_at": "2025-08-11T12:30:09Z",
+      "total_volume": 36633981,
+      "market_center": "B,Q,N",
+      "short_volume": 18573769,
+      "exchange_name": "FINRA CNMS"
+    },
+    {
+      "id": "2c772562-69d1-4d20-a5bf-b1d59d16e565",
+      "date": "2025-08-06",
+      "symbol": "AAPL",
+      "created_at": "2025-08-08T12:30:11Z",
+      "total_volume": 41433172,
+      "market_center": "B,Q,N",
+      "short_volume": 15305563,
+      "exchange_name": "FINRA CNMS"
+    },
+    {
+      "id": "25918f27-e8c7-4dba-b6d1-add7adf131ff",
+      "date": "2025-08-05",
+      "symbol": "AAPL",
+      "created_at": "2025-08-07T12:30:11Z",
+      "total_volume": 17187488,
+      "market_center": "B,Q,N",
+      "short_volume": 6315872,
+      "exchange_name": "FINRA CNMS"
+    },
+    {
+      "id": "30b83621-2dd6-4349-8e7b-d1c4d0727f43",
+      "date": "2025-08-04",
+      "symbol": "AAPL",
+      "created_at": "2025-08-06T12:30:11Z",
+      "total_volume": 27249539,
+      "market_center": "B,Q,N",
+      "short_volume": 12948236,
+      "exchange_name": "FINRA CNMS"
+    },
+    {
+      "id": "baf4a085-2d77-466d-92e6-590079f03bb4",
+      "date": "2025-08-01",
+      "symbol": "AAPL",
+      "created_at": "2025-08-05T12:30:11Z",
+      "total_volume": 40008723,
+      "market_center": "B,Q,N",
+      "short_volume": 23296470,
+      "exchange_name": "FINRA CNMS"
+    },
+    {
+      "id": "ae82a1c5-cf2d-4302-8469-38f56938fff8",
+      "date": "2025-07-31",
+      "symbol": "AAPL",
+      "created_at": "2025-08-04T12:30:10Z",
+      "total_volume": 21912711,
+      "market_center": "B,Q,N",
+      "short_volume": 11959953,
+      "exchange_name": "FINRA CNMS"
+    },
+    {
+      "id": "d17314b7-4254-43fd-97eb-ab20010c5e10",
+      "date": "2025-07-30",
+      "symbol": "AAPL",
+      "created_at": "2025-08-01T12:30:12Z",
+      "total_volume": 15022232,
+      "market_center": "B,Q,N",
+      "short_volume": 7345575,
+      "exchange_name": "FINRA CNMS"
+    },
+    {
+      "id": "99f6758c-9701-473f-a367-d266718a9e5f",
+      "date": "2025-07-29",
+      "symbol": "AAPL",
+      "created_at": "2025-07-31T12:30:08Z",
+      "total_volume": 18368211,
+      "market_center": "B,Q,N",
+      "short_volume": 8483536,
+      "exchange_name": "FINRA CNMS"
+    },
+    {
+      "id": "5a81b8b0-9633-4d29-9a71-9245690c7c6c",
+      "date": "2025-07-28",
+      "symbol": "AAPL",
+      "created_at": "2025-07-30T12:30:12Z",
+      "total_volume": 14274831,
+      "market_center": "B,Q,N",
+      "short_volume": 5642765,
+      "exchange_name": "FINRA CNMS"
+    },
+    {
+      "id": "1834fb33-8c5e-4b15-8c1d-502d13aaf006",
+      "date": "2025-07-25",
+      "symbol": "AAPL",
+      "created_at": "2025-07-29T12:30:11Z",
+      "total_volume": 13572725,
+      "market_center": "B,Q,N",
+      "short_volume": 5800724,
+      "exchange_name": "FINRA CNMS"
+    },
+    {
+      "id": "4c4e8766-bd61-4ca0-a375-26a1ad108624",
+      "date": "2025-07-24",
+      "symbol": "AAPL",
+      "created_at": "2025-07-28T12:30:09Z",
+      "total_volume": 15224558,
+      "market_center": "B,Q,N",
+      "short_volume": 6543184,
+      "exchange_name": "FINRA CNMS"
+    },
+    {
+      "id": "b8139211-7b4c-4c24-aecd-385466fbb163",
+      "date": "2025-07-23",
+      "symbol": "AAPL",
+      "created_at": "2025-07-25T12:30:13Z",
+      "total_volume": 17035047,
+      "market_center": "B,Q,N",
+      "short_volume": 7849778,
+      "exchange_name": "FINRA CNMS"
+    },
+    {
+      "id": "573b236b-e1f7-4b17-8374-6cb827f72ab3",
+      "date": "2025-07-22",
+      "symbol": "AAPL",
+      "created_at": "2025-07-24T12:30:12Z",
+      "total_volume": 16844894,
+      "market_center": "B,Q,N",
+      "short_volume": 7380835,
+      "exchange_name": "FINRA CNMS"
+    },
+    {
+      "id": "eefb06f0-ff58-49e5-8a2f-a62600b90a99",
+      "date": "2025-07-21",
+      "symbol": "AAPL",
+      "created_at": "2025-07-23T12:30:11Z",
+      "total_volume": 19777027,
+      "market_center": "B,Q,N",
+      "short_volume": 8124752,
+      "exchange_name": "FINRA CNMS"
+    },
+    {
+      "id": "4a591635-faf4-4f24-a838-b63cafb3bfab",
+      "date": "2025-07-18",
+      "symbol": "AAPL",
+      "created_at": "2025-07-22T12:30:11Z",
+      "total_volume": 13629680,
+      "market_center": "B,Q,N",
+      "short_volume": 6866603,
+      "exchange_name": "FINRA CNMS"
+    },
+    {
+      "id": "a3a503af-c4e4-4a27-bbb0-7e4af79b55d9",
+      "date": "2025-07-17",
+      "symbol": "AAPL",
+      "created_at": "2025-07-21T12:30:10Z",
+      "total_volume": 16986423,
+      "market_center": "B,Q,N",
+      "short_volume": 7216038,
+      "exchange_name": "FINRA CNMS"
+    },
+    {
+      "id": "45a21a37-3781-461b-b72d-06e3945e13fd",
+      "date": "2025-07-16",
+      "symbol": "AAPL",
+      "created_at": "2025-07-18T12:30:11Z",
+      "total_volume": 15573956,
+      "market_center": "B,Q,N",
+      "short_volume": 7292000,
+      "exchange_name": "FINRA CNMS"
+    },
+    {
+      "id": "e1e8002e-d0f4-4e95-aeb0-f28241c299d2",
+      "date": "2025-07-15",
+      "symbol": "AAPL",
+      "created_at": "2025-07-17T12:30:11Z",
+      "total_volume": 15536283,
+      "market_center": "B,Q,N",
+      "short_volume": 6230555,
+      "exchange_name": "FINRA CNMS"
+    },
+    {
+      "id": "df73a989-78cc-466f-8397-d1c1904efc05",
+      "date": "2025-07-14",
+      "symbol": "AAPL",
+      "created_at": "2025-07-16T12:30:13Z",
+      "total_volume": 14740251,
+      "market_center": "B,Q,N",
+      "short_volume": 6406492,
+      "exchange_name": "FINRA CNMS"
+    },
+    {
+      "id": "6d69f572-bace-49ad-a042-ed5e0a652895",
+      "date": "2025-07-11",
+      "symbol": "AAPL",
+      "created_at": "2025-07-15T12:30:12Z",
+      "total_volume": 13230197,
+      "market_center": "B,Q,N",
+      "short_volume": 6305018,
+      "exchange_name": "FINRA CNMS"
+    },
+    {
+      "id": "9fb403d5-9fd5-4e35-b80d-4455a05eb835",
+      "date": "2025-07-10",
+      "symbol": "AAPL",
+      "created_at": "2025-07-14T12:30:10Z",
+      "total_volume": 9735570,
+      "market_center": "B,Q,N",
+      "short_volume": 4618529,
+      "exchange_name": "FINRA CNMS"
+    },
+    {
+      "id": "e1f5f849-9b17-4c2a-8ab8-144ae9e8dfae",
+      "date": "2025-07-09",
+      "symbol": "AAPL",
+      "created_at": "2025-07-11T12:30:11Z",
+      "total_volume": 20676903,
+      "market_center": "B,Q,N",
+      "short_volume": 10213977,
+      "exchange_name": "FINRA CNMS"
+    },
+    {
+      "id": "a276ce28-d010-4af7-bb8f-9fb83f76f560",
+      "date": "2025-07-08",
+      "symbol": "AAPL",
+      "created_at": "2025-07-10T12:30:12Z",
+      "total_volume": 15834210,
+      "market_center": "B,Q,N",
+      "short_volume": 8494739,
+      "exchange_name": "FINRA CNMS"
+    },
+    {
+      "id": "9ed99f14-342b-4947-a417-c33dac4213af",
+      "date": "2025-07-07",
+      "symbol": "AAPL",
+      "created_at": "2025-07-09T12:30:13Z",
+      "total_volume": 18983027,
+      "market_center": "B,Q,N",
+      "short_volume": 10440168,
+      "exchange_name": "FINRA CNMS"
+    },
+    {
+      "id": "d612395d-f67e-460d-b746-ac6edf7bec98",
+      "date": "2025-07-03",
+      "symbol": "AAPL",
+      "created_at": "2025-07-08T12:30:12Z",
+      "total_volume": 14098503,
+      "market_center": "B,Q,N",
+      "short_volume": 6045375,
+      "exchange_name": "FINRA CNMS"
+    },
+    {
+      "id": "c12c4578-8400-4919-9bf9-c6125dcdcd67",
+      "date": "2025-07-02",
+      "symbol": "AAPL",
+      "created_at": "2025-07-07T12:30:10Z",
+      "total_volume": 29563502,
+      "market_center": "B,Q,N",
+      "short_volume": 13493251,
+      "exchange_name": "FINRA CNMS"
+    },
+    {
+      "id": "f1040e33-ce42-4913-b354-2ae569597848",
+      "date": "2025-07-01",
+      "symbol": "AAPL",
+      "created_at": "2025-07-03T12:30:12Z",
+      "total_volume": 32336879,
+      "market_center": "B,Q,N",
+      "short_volume": 12839590,
+      "exchange_name": "FINRA CNMS"
+    },
+    {
+      "id": "88202d56-30e5-48a0-a215-2f7d1bf65ac7",
+      "date": "2025-06-30",
+      "symbol": "AAPL",
+      "created_at": "2025-07-02T12:30:13Z",
+      "total_volume": 35169358,
+      "market_center": "B,Q,N",
+      "short_volume": 14130403,
+      "exchange_name": "FINRA CNMS"
+    },
+    {
+      "id": "a91fb748-5bbd-4eed-b40d-b1c99837095e",
+      "date": "2025-06-27",
+      "symbol": "AAPL",
+      "created_at": "2025-07-01T12:30:12Z",
+      "total_volume": 18949874,
+      "market_center": "B,Q,N",
+      "short_volume": 5860787,
+      "exchange_name": "FINRA CNMS"
+    },
+    {
+      "id": "0f77599c-441c-4d08-a85d-02b0ebde7622",
+      "date": "2025-06-26",
+      "symbol": "AAPL",
+      "created_at": "2025-06-30T12:30:09Z",
+      "total_volume": 20371129,
+      "market_center": "B,Q,N",
+      "short_volume": 5544411,
+      "exchange_name": "FINRA CNMS"
+    },
+    {
+      "id": "4a1a0579-1375-40dc-a015-c4c13be649aa",
+      "date": "2025-06-25",
+      "symbol": "AAPL",
+      "created_at": "2025-06-27T12:30:11Z",
+      "total_volume": 15316364,
+      "market_center": "B,Q,N",
+      "short_volume": 4310484,
+      "exchange_name": "FINRA CNMS"
+    },
+    {
+      "id": "be789dd3-2779-406e-a87a-061a7146908b",
+      "date": "2025-06-24",
+      "symbol": "AAPL",
+      "created_at": "2025-06-26T12:30:11Z",
+      "total_volume": 21706616,
+      "market_center": "B,Q,N",
+      "short_volume": 5573644,
+      "exchange_name": "FINRA CNMS"
+    },
+    {
+      "id": "09285258-99f7-4604-adb8-462e86c88522",
+      "date": "2025-06-23",
+      "symbol": "AAPL",
+      "created_at": "2025-06-25T12:30:12Z",
+      "total_volume": 17910380,
+      "market_center": "B,Q,N",
+      "short_volume": 6093020,
+      "exchange_name": "FINRA CNMS"
+    },
+    {
+      "id": "f51d5234-ece7-47f8-ab97-34f17fc2de36",
+      "date": "2025-06-20",
+      "symbol": "AAPL",
+      "created_at": "2025-06-24T12:30:12Z",
+      "total_volume": 24081472,
+      "market_center": "B,Q,N",
+      "short_volume": 8554391,
+      "exchange_name": "FINRA CNMS"
+    },
+    {
+      "id": "8f4243da-fc53-40b5-b1df-60b9840b7260",
+      "date": "2025-06-18",
+      "symbol": "AAPL",
+      "created_at": "2025-06-23T12:30:11Z",
+      "total_volume": 15081457,
+      "market_center": "B,Q,N",
+      "short_volume": 5185546,
+      "exchange_name": "FINRA CNMS"
+    },
+    {
+      "id": "522da79d-2f94-46f5-9c59-75efaebc94bf",
+      "date": "2025-06-17",
+      "symbol": "AAPL",
+      "created_at": "2025-06-20T12:30:12Z",
+      "total_volume": 14858313,
+      "market_center": "B,Q,N",
+      "short_volume": 4601149,
+      "exchange_name": "FINRA CNMS"
+    },
+    {
+      "id": "cc0edbef-471e-46b6-ba28-4b11a84695ec",
+      "date": "2025-06-16",
+      "symbol": "AAPL",
+      "created_at": "2025-06-18T12:30:12Z",
+      "total_volume": 16017856,
+      "market_center": "B,Q,N",
+      "short_volume": 5252739,
+      "exchange_name": "FINRA CNMS"
+    },
+    {
+      "id": "1a073191-ac26-4c40-a589-5a5df02ab3c5",
+      "date": "2025-06-13",
+      "symbol": "AAPL",
+      "created_at": "2025-06-17T12:30:12Z",
+      "total_volume": 20068825,
+      "market_center": "B,Q,N",
+      "short_volume": 7089693,
+      "exchange_name": "FINRA CNMS"
+    },
+    {
+      "id": "2ab1d818-007b-4074-a29a-c8920d0ec43a",
+      "date": "2025-06-12",
+      "symbol": "AAPL",
+      "created_at": "2025-06-16T12:30:08Z",
+      "total_volume": 16943140,
+      "market_center": "B,Q,N",
+      "short_volume": 6717397,
+      "exchange_name": "FINRA CNMS"
+    },
+    {
+      "id": "8819cf5b-a8e3-4c69-9c68-5a77c4c656f0",
+      "date": "2025-06-11",
+      "symbol": "AAPL",
+      "created_at": "2025-06-12T20:30:05Z",
+      "total_volume": 26874831,
+      "market_center": "B,Q,N",
+      "short_volume": 9922198,
+      "exchange_name": "FINRA CNMS"
+    },
+    {
+      "id": "7cc124f4-c02c-4379-8713-2fbf326a1e2f",
+      "date": "2025-06-10",
+      "symbol": "AAPL",
+      "created_at": "2025-06-12T12:30:13Z",
+      "total_volume": 21577706,
+      "market_center": "B,Q,N",
+      "short_volume": 7413989,
+      "exchange_name": "FINRA CNMS"
+    },
+    {
+      "id": "235a8eea-cb4f-4811-a167-3b81da5b7d47",
+      "date": "2025-06-09",
+      "symbol": "AAPL",
+      "created_at": "2025-06-11T12:30:12Z",
+      "total_volume": 29746821,
+      "market_center": "B,Q,N",
+      "short_volume": 15075014,
+      "exchange_name": "FINRA CNMS"
+    },
+    {
+      "id": "b832b293-ad91-4f41-8df8-7471ad94d302",
+      "date": "2025-06-06",
+      "symbol": "AAPL",
+      "created_at": "2025-06-10T12:30:11Z",
+      "total_volume": 16943964,
+      "market_center": "B,Q,N",
+      "short_volume": 5849344,
+      "exchange_name": "FINRA CNMS"
+    },
+    {
+      "id": "5546333f-8c05-4e46-8fd5-fb259dd79032",
+      "date": "2025-06-05",
+      "symbol": "AAPL",
+      "created_at": "2025-06-09T12:30:11Z",
+      "total_volume": 17159069,
+      "market_center": "B,Q,N",
+      "short_volume": 6691056,
+      "exchange_name": "FINRA CNMS"
+    },
+    {
+      "id": "cedbde33-2104-4930-8778-fd999afb1844",
+      "date": "2025-06-04",
+      "symbol": "AAPL",
+      "created_at": "2025-06-06T12:32:58Z",
+      "total_volume": 16648751,
+      "market_center": "B,Q,N",
+      "short_volume": 8601966,
+      "exchange_name": "FINRA CNMS"
+    },
+    {
+      "id": "075f30ed-ca14-4880-b342-9826f02e852f",
+      "date": "2025-06-03",
+      "symbol": "AAPL",
+      "created_at": "2025-06-05T12:30:12Z",
+      "total_volume": 14784388,
+      "market_center": "B,Q,N",
+      "short_volume": 5341200,
+      "exchange_name": "FINRA CNMS"
+    },
+    {
+      "id": "dd6a37e7-a314-4fa9-9a98-3e73832e4004",
+      "date": "2025-06-02",
+      "symbol": "AAPL",
+      "created_at": "2025-06-04T12:30:13Z",
+      "total_volume": 11951376,
+      "market_center": "B,Q,N",
+      "short_volume": 5867361,
+      "exchange_name": "FINRA CNMS"
+    },
+    {
+      "id": "eed617d5-92ea-4016-993b-b17dda999eb8",
+      "date": "2025-05-30",
+      "symbol": "AAPL",
+      "created_at": "2025-06-03T12:30:11Z",
+      "total_volume": 14295404,
+      "market_center": "B,Q,N",
+      "short_volume": 5734230,
+      "exchange_name": "FINRA CNMS"
+    },
+    {
+      "id": "b46a7a92-b55c-4f77-95e3-c0ec0b500d21",
+      "date": "2025-05-29",
+      "symbol": "AAPL",
+      "created_at": "2025-06-02T12:30:08Z",
+      "total_volume": 19293713,
+      "market_center": "B,Q,N",
+      "short_volume": 7544000,
+      "exchange_name": "FINRA CNMS"
+    },
+    {
+      "id": "db9a9b98-3d12-489f-b618-cc2229628d2a",
+      "date": "2025-05-28",
+      "symbol": "AAPL",
+      "created_at": "2025-05-30T12:30:13Z",
+      "total_volume": 14529864,
+      "market_center": "B,Q,N",
+      "short_volume": 5314669,
+      "exchange_name": "FINRA CNMS"
+    },
+    {
+      "id": "b004cc59-eeda-4643-8f73-079b55ef32b4",
+      "date": "2025-05-27",
+      "symbol": "AAPL",
+      "created_at": "2025-05-29T12:30:13Z",
+      "total_volume": 19573763,
+      "market_center": "B,Q,N",
+      "short_volume": 6243370,
+      "exchange_name": "FINRA CNMS"
+    },
+    {
+      "id": "39836e50-1856-4a34-9163-edd6bd1fb1dd",
+      "date": "2025-05-23",
+      "symbol": "AAPL",
+      "created_at": "2025-05-28T12:30:12Z",
+      "total_volume": 29865312,
+      "market_center": "B,Q,N",
+      "short_volume": 13268092,
+      "exchange_name": "FINRA CNMS"
+    },
+    {
+      "id": "d9908923-3253-4f7d-8aca-13919de23ade",
+      "date": "2025-05-22",
+      "symbol": "AAPL",
+      "created_at": "2025-05-27T12:30:10Z",
+      "total_volume": 17072645,
+      "market_center": "B,Q,N",
+      "short_volume": 6763814,
+      "exchange_name": "FINRA CNMS"
+    },
+    {
+      "id": "d76ea4d5-a06c-4201-83e7-ec7e8c4c1fde",
+      "date": "2025-05-21",
+      "symbol": "AAPL",
+      "created_at": "2025-05-23T12:30:12Z",
+      "total_volume": 22573094,
+      "market_center": "B,Q,N",
+      "short_volume": 10813462,
+      "exchange_name": "FINRA CNMS"
+    },
+    {
+      "id": "5f4c2617-2a25-4d2a-ac4e-563d9546e6f8",
+      "date": "2025-05-20",
+      "symbol": "AAPL",
+      "created_at": "2025-05-22T12:30:12Z",
+      "total_volume": 16795033,
+      "market_center": "B,Q,N",
+      "short_volume": 6508804,
+      "exchange_name": "FINRA CNMS"
+    },
+    {
+      "id": "87e911a9-f2ef-43d6-97f4-dd08646c808c",
+      "date": "2025-05-19",
+      "symbol": "AAPL",
+      "created_at": "2025-05-21T12:30:13Z",
+      "total_volume": 15500832,
+      "market_center": "B,Q,N",
+      "short_volume": 6681105,
+      "exchange_name": "FINRA CNMS"
+    },
+    {
+      "id": "af7f6a4f-c308-4ce8-abd5-196040e3148f",
+      "date": "2025-05-16",
+      "symbol": "AAPL",
+      "created_at": "2025-05-20T12:30:11Z",
+      "total_volume": 14652819,
+      "market_center": "B,Q,N",
+      "short_volume": 8330935,
+      "exchange_name": "FINRA CNMS"
+    },
+    {
+      "id": "b2aeb5ca-1dac-4c4e-8b86-a008ab9d74c4",
+      "date": "2025-05-15",
+      "symbol": "AAPL",
+      "created_at": "2025-05-19T12:30:09Z",
+      "total_volume": 15996977,
+      "market_center": "B,Q,N",
+      "short_volume": 6498913,
+      "exchange_name": "FINRA CNMS"
+    },
+    {
+      "id": "ce331c31-2a05-43c2-8486-db7ef97d52f9",
+      "date": "2025-05-14",
+      "symbol": "AAPL",
+      "created_at": "2025-05-16T12:30:12Z",
+      "total_volume": 17075968,
+      "market_center": "B,Q,N",
+      "short_volume": 6577208,
+      "exchange_name": "FINRA CNMS"
+    },
+    {
+      "id": "a2634d92-b595-4d82-8ea1-65e13a88c7fe",
+      "date": "2025-05-13",
+      "symbol": "AAPL",
+      "created_at": "2025-05-15T12:30:12Z",
+      "total_volume": 19184967,
+      "market_center": "B,Q,N",
+      "short_volume": 6997569,
+      "exchange_name": "FINRA CNMS"
+    },
+    {
+      "id": "7cdc5f9e-b298-483e-9997-3d2c9282c1d0",
+      "date": "2025-05-12",
+      "symbol": "AAPL",
+      "created_at": "2025-05-14T12:30:10Z",
+      "total_volume": 24736057,
+      "market_center": "B,Q,N",
+      "short_volume": 8742750,
+      "exchange_name": "FINRA CNMS"
+    },
+    {
+      "id": "3fabe9fa-e45e-4938-be95-27934e99c30e",
+      "date": "2025-05-09",
+      "symbol": "AAPL",
+      "created_at": "2025-05-13T12:30:12Z",
+      "total_volume": 14012226,
+      "market_center": "B,Q,N",
+      "short_volume": 4202342,
+      "exchange_name": "FINRA CNMS"
+    },
+    {
+      "id": "ecf2856a-8f65-45d7-a9e4-cf4d29012fcb",
+      "date": "2025-05-08",
+      "symbol": "AAPL",
+      "created_at": "2025-05-12T12:30:11Z",
+      "total_volume": 18073238,
+      "market_center": "B,Q,N",
+      "short_volume": 7345409,
+      "exchange_name": "FINRA CNMS"
+    },
+    {
+      "id": "273f81e3-26c8-4f4c-84d8-a41bddc9aab1",
+      "date": "2025-05-07",
+      "symbol": "AAPL",
+      "created_at": "2025-05-09T12:30:12Z",
+      "total_volume": 24113675,
+      "market_center": "B,Q,N",
+      "short_volume": 11512842,
+      "exchange_name": "FINRA CNMS"
+    },
+    {
+      "id": "fd8e81eb-e324-4a5f-adfa-eaffa18e2e43",
+      "date": "2025-05-06",
+      "symbol": "AAPL",
+      "created_at": "2025-05-08T12:30:11Z",
+      "total_volume": 17551206,
+      "market_center": "B,Q,N",
+      "short_volume": 7531928,
+      "exchange_name": "FINRA CNMS"
+    },
+    {
+      "id": "349aee84-811c-4337-a6ca-4360638baae7",
+      "date": "2025-05-05",
+      "symbol": "AAPL",
+      "created_at": "2025-05-07T12:30:13Z",
+      "total_volume": 26020027,
+      "market_center": "B,Q,N",
+      "short_volume": 11420199,
+      "exchange_name": "FINRA CNMS"
+    },
+    {
+      "id": "db2c54d5-6aab-497f-851a-2e0fcf4784ce",
+      "date": "2025-05-02",
+      "symbol": "AAPL",
+      "created_at": "2025-05-06T12:30:11Z",
+      "total_volume": 37585758,
+      "market_center": "B,Q,N",
+      "short_volume": 17373698,
+      "exchange_name": "FINRA CNMS"
+    },
+    {
+      "id": "f2b0716a-00cd-4207-9466-ba36849fac1a",
+      "date": "2025-05-01",
+      "symbol": "AAPL",
+      "created_at": "2025-05-05T12:30:10Z",
+      "total_volume": 18829742,
+      "market_center": "B,Q,N",
+      "short_volume": 10796240,
+      "exchange_name": "FINRA CNMS"
+    },
+    {
+      "id": "9670b047-b2e2-4ccc-841a-e4bb33810825",
+      "date": "2025-04-30",
+      "symbol": "AAPL",
+      "created_at": "2025-05-02T12:30:12Z",
+      "total_volume": 13959683,
+      "market_center": "B,Q,N",
+      "short_volume": 7632785,
+      "exchange_name": "FINRA CNMS"
+    },
+    {
+      "id": "19e6e0e7-2eb3-43d1-8bfa-1a7df9c12968",
+      "date": "2025-04-29",
+      "symbol": "AAPL",
+      "created_at": "2025-05-01T12:30:12Z",
+      "total_volume": 10747925,
+      "market_center": "B,Q,N",
+      "short_volume": 4628626,
+      "exchange_name": "FINRA CNMS"
+    },
+    {
+      "id": "579f4800-7ba8-44b2-87ab-79ebcd26e1f1",
+      "date": "2025-04-28",
+      "symbol": "AAPL",
+      "created_at": "2025-04-30T12:30:12Z",
+      "total_volume": 12788901,
+      "market_center": "B,Q,N",
+      "short_volume": 5700623,
+      "exchange_name": "FINRA CNMS"
+    },
+    {
+      "id": "aea8c96c-5be3-49a3-8401-a858b605b50e",
+      "date": "2025-04-25",
+      "symbol": "AAPL",
+      "created_at": "2025-04-29T12:30:12Z",
+      "total_volume": 14042928,
+      "market_center": "B,Q,N",
+      "short_volume": 6951340,
+      "exchange_name": "FINRA CNMS"
+    },
+    {
+      "id": "52f9fe66-ab1c-4b54-9bc7-23f7a3d019f7",
+      "date": "2025-04-24",
+      "symbol": "AAPL",
+      "created_at": "2025-04-28T12:30:10Z",
+      "total_volume": 15763547,
+      "market_center": "B,Q,N",
+      "short_volume": 6975703,
+      "exchange_name": "FINRA CNMS"
+    },
+    {
+      "id": "f9b73546-815e-476c-bb68-3c721aab5222",
+      "date": "2025-04-23",
+      "symbol": "AAPL",
+      "created_at": "2025-04-25T12:30:12Z",
+      "total_volume": 19985087,
+      "market_center": "B,Q,N",
+      "short_volume": 9349798,
+      "exchange_name": "FINRA CNMS"
+    },
+    {
+      "id": "4e8f4a27-c6fa-422b-acb2-c1321eae99fb",
+      "date": "2025-04-22",
+      "symbol": "AAPL",
+      "created_at": "2025-04-24T12:30:12Z",
+      "total_volume": 19409715,
+      "market_center": "B,Q,N",
+      "short_volume": 6591166,
+      "exchange_name": "FINRA CNMS"
+    },
+    {
+      "id": "bb147d55-efd8-4b8f-abba-a2b194db2352",
+      "date": "2025-04-21",
+      "symbol": "AAPL",
+      "created_at": "2025-04-23T12:30:11Z",
+      "total_volume": 15217714,
+      "market_center": "B,Q,N",
+      "short_volume": 5440436,
+      "exchange_name": "FINRA CNMS"
+    },
+    {
+      "id": "b40e323c-8165-4a10-bc5e-743f52036f2a",
+      "date": "2025-04-17",
+      "symbol": "AAPL",
+      "created_at": "2025-04-22T12:30:11Z",
+      "total_volume": 17444202,
+      "market_center": "B,Q,N",
+      "short_volume": 5656947,
+      "exchange_name": "FINRA CNMS"
+    },
+    {
+      "id": "582b9101-6fe1-4ced-b2a4-de09ba6b7bc8",
+      "date": "2025-04-16",
+      "symbol": "AAPL",
+      "created_at": "2025-04-21T12:30:08Z",
+      "total_volume": 22741550,
+      "market_center": "B,Q,N",
+      "short_volume": 7803336,
+      "exchange_name": "FINRA CNMS"
+    },
+    {
+      "id": "bdfd7f0f-4695-4341-aa91-ee392ddd54b2",
+      "date": "2025-04-15",
+      "symbol": "AAPL",
+      "created_at": "2025-04-17T12:30:12Z",
+      "total_volume": 18891158,
+      "market_center": "B,Q,N",
+      "short_volume": 8904477,
+      "exchange_name": "FINRA CNMS"
+    },
+    {
+      "id": "e7f1d2f9-eda1-49c5-9b63-2f6d28be0cd1",
+      "date": "2025-04-14",
+      "symbol": "AAPL",
+      "created_at": "2025-04-16T12:30:13Z",
+      "total_volume": 45238063,
+      "market_center": "B,Q,N",
+      "short_volume": 20561712,
+      "exchange_name": "FINRA CNMS"
+    },
+    {
+      "id": "2b0725ba-e511-45e2-bee0-4e369b7628b3",
+      "date": "2025-04-11",
+      "symbol": "AAPL",
+      "created_at": "2025-04-15T12:30:11Z",
+      "total_volume": 34303407,
+      "market_center": "B,Q,N",
+      "short_volume": 13026846,
+      "exchange_name": "FINRA CNMS"
+    },
+    {
+      "id": "00085011-c7a3-41f2-b6ce-0818bd7bd320",
+      "date": "2025-04-10",
+      "symbol": "AAPL",
+      "created_at": "2025-04-14T12:30:11Z",
+      "total_volume": 46882833,
+      "market_center": "B,Q,N",
+      "short_volume": 22552722,
+      "exchange_name": "FINRA CNMS"
+    },
+    {
+      "id": "643e2caf-4f0d-4d2d-b490-f9b2ca2e9558",
+      "date": "2025-04-09",
+      "symbol": "AAPL",
+      "created_at": "2025-04-11T12:30:12Z",
+      "total_volume": 69067546,
+      "market_center": "B,Q,N",
+      "short_volume": 23815422,
+      "exchange_name": "FINRA CNMS"
+    },
+    {
+      "id": "89a5bdbc-a56a-4ecb-8993-8e1fbdacbb18",
+      "date": "2025-04-08",
+      "symbol": "AAPL",
+      "created_at": "2025-04-10T12:30:13Z",
+      "total_volume": 47627241,
+      "market_center": "B,Q,N",
+      "short_volume": 14750027,
+      "exchange_name": "FINRA CNMS"
+    },
+    {
+      "id": "52bb74d2-3492-46a6-8940-c4ac1dbc6d6b",
+      "date": "2025-04-07",
+      "symbol": "AAPL",
+      "created_at": "2025-04-09T12:30:12Z",
+      "total_volume": 57226654,
+      "market_center": "B,Q,N",
+      "short_volume": 14919778,
+      "exchange_name": "FINRA CNMS"
+    },
+    {
+      "id": "e9d47894-62be-471d-9478-69997cd44a7b",
+      "date": "2025-04-04",
+      "symbol": "AAPL",
+      "created_at": "2025-04-08T12:30:14Z",
+      "total_volume": 44755713,
+      "market_center": "B,Q,N",
+      "short_volume": 11531189,
+      "exchange_name": "FINRA CNMS"
+    },
+    {
+      "id": "da8d2f99-8d9e-469b-b418-9608d896abac",
+      "date": "2025-04-03",
+      "symbol": "AAPL",
+      "created_at": "2025-04-07T12:31:22Z",
+      "total_volume": 40753426,
+      "market_center": "B,Q,N",
+      "short_volume": 22525423,
+      "exchange_name": "FINRA CNMS"
+    },
+    {
+      "id": "2faeb80f-d51f-418f-8230-bd8a1fef5972",
+      "date": "2025-04-02",
+      "symbol": "AAPL",
+      "created_at": "2025-04-04T12:30:14Z",
+      "total_volume": 10702659,
+      "market_center": "B,Q,N",
+      "short_volume": 5830413,
+      "exchange_name": "FINRA CNMS"
+    },
+    {
+      "id": "8530d92a-4e1f-4164-abc1-9249e3eb9627",
+      "date": "2025-04-01",
+      "symbol": "AAPL",
+      "created_at": "2025-04-03T12:30:12Z",
+      "total_volume": 12299366,
+      "market_center": "B,Q,N",
+      "short_volume": 6475593,
+      "exchange_name": "FINRA CNMS"
+    },
+    {
+      "id": "69ec7c07-6c87-49bc-99b1-31fce21ca188",
+      "date": "2025-03-31",
+      "symbol": "AAPL",
+      "created_at": "2025-04-02T12:30:12Z",
+      "total_volume": 18153144,
+      "market_center": "B,Q,N",
+      "short_volume": 7548808,
+      "exchange_name": "FINRA CNMS"
+    },
+    {
+      "id": "545d8aee-1a23-42e9-ab6c-63ea6bad0edf",
+      "date": "2025-03-28",
+      "symbol": "AAPL",
+      "created_at": "2025-04-01T12:30:16Z",
+      "total_volume": 12713248,
+      "market_center": "B,Q,N",
+      "short_volume": 7175064,
+      "exchange_name": "FINRA CNMS"
+    },
+    {
+      "id": "22afc019-122a-4f7a-99f2-ed563f7d6e42",
+      "date": "2025-03-27",
+      "symbol": "AAPL",
+      "created_at": "2025-03-31T12:30:15Z",
+      "total_volume": 13939040,
+      "market_center": "B,Q,N",
+      "short_volume": 7940060,
+      "exchange_name": "FINRA CNMS"
+    },
+    {
+      "id": "276d75c2-6c49-4a15-b30f-7965801676da",
+      "date": "2025-03-26",
+      "symbol": "AAPL",
+      "created_at": "2025-03-28T12:30:16Z",
+      "total_volume": 12357375,
+      "market_center": "B,Q,N",
+      "short_volume": 5577779,
+      "exchange_name": "FINRA CNMS"
+    },
+    {
+      "id": "846afd4b-ac8f-4d1e-a2d6-71c8b2e92591",
+      "date": "2025-03-25",
+      "symbol": "AAPL",
+      "created_at": "2025-03-27T12:30:12Z",
+      "total_volume": 12689654,
+      "market_center": "B,Q,N",
+      "short_volume": 7194871,
+      "exchange_name": "FINRA CNMS"
+    },
+    {
+      "id": "a85ad740-2b01-4014-bdd6-2c58624471a6",
+      "date": "2025-03-24",
+      "symbol": "AAPL",
+      "created_at": "2025-03-26T12:30:13Z",
+      "total_volume": 14889045,
+      "market_center": "B,Q,N",
+      "short_volume": 6409096,
+      "exchange_name": "FINRA CNMS"
+    },
+    {
+      "id": "9438f25c-6111-4d43-8a9e-518499da9cef",
+      "date": "2025-03-21",
+      "symbol": "AAPL",
+      "created_at": "2025-03-25T12:30:12Z",
+      "total_volume": 21698771,
+      "market_center": "B,Q,N",
+      "short_volume": 9404106,
+      "exchange_name": "FINRA CNMS"
+    },
+    {
+      "id": "5bc39fc2-89b8-4b4a-9766-17718e8cf73d",
+      "date": "2025-03-20",
+      "symbol": "AAPL",
+      "created_at": "2025-03-24T12:30:11Z",
+      "total_volume": 15144776,
+      "market_center": "B,Q,N",
+      "short_volume": 6453710,
+      "exchange_name": "FINRA CNMS"
+    },
+    {
+      "id": "8f2a164d-65da-4fce-8823-2a53bc4719db",
+      "date": "2025-03-19",
+      "symbol": "AAPL",
+      "created_at": "2025-03-21T12:30:13Z",
+      "total_volume": 17684321,
+      "market_center": "B,Q,N",
+      "short_volume": 8186462,
+      "exchange_name": "FINRA CNMS"
+    },
+    {
+      "id": "054262f6-267e-4666-9d34-ad1c8a9a36e6",
+      "date": "2025-03-18",
+      "symbol": "AAPL",
+      "created_at": "2025-03-20T12:30:12Z",
+      "total_volume": 14580343,
+      "market_center": "B,Q,N",
+      "short_volume": 6584862,
+      "exchange_name": "FINRA CNMS"
+    },
+    {
+      "id": "85b798a8-bbf8-4b4c-9210-ede1f9626ff9",
+      "date": "2025-03-17",
+      "symbol": "AAPL",
+      "created_at": "2025-03-19T12:30:12Z",
+      "total_volume": 17161409,
+      "market_center": "B,Q,N",
+      "short_volume": 6108949,
+      "exchange_name": "FINRA CNMS"
+    },
+    {
+      "id": "deb049a5-ef15-4f62-9b01-71ba4a395619",
+      "date": "2025-03-14",
+      "symbol": "AAPL",
+      "created_at": "2025-03-18T12:30:12Z",
+      "total_volume": 22001201,
+      "market_center": "B,Q,N",
+      "short_volume": 10368773,
+      "exchange_name": "FINRA CNMS"
+    },
+    {
+      "id": "b3a570a5-1ab8-4a24-ac03-d8764fd2f9a4",
+      "date": "2025-03-13",
+      "symbol": "AAPL",
+      "created_at": "2025-03-17T12:30:10Z",
+      "total_volume": 23971466,
+      "market_center": "B,Q,N",
+      "short_volume": 10229913,
+      "exchange_name": "FINRA CNMS"
+    },
+    {
+      "id": "7382678d-a2df-4687-9280-26c45d85c749",
+      "date": "2025-03-12",
+      "symbol": "AAPL",
+      "created_at": "2025-03-14T12:30:11Z",
+      "total_volume": 23901741,
+      "market_center": "B,Q,N",
+      "short_volume": 11767907,
+      "exchange_name": "FINRA CNMS"
+    },
+    {
+      "id": "ae5273a5-26ee-4942-95b1-7e89f8c015da",
+      "date": "2025-03-11",
+      "symbol": "AAPL",
+      "created_at": "2025-03-13T12:30:13Z",
+      "total_volume": 25615034,
+      "market_center": "B,Q,N",
+      "short_volume": 12734224,
+      "exchange_name": "FINRA CNMS"
+    },
+    {
+      "id": "d8068c97-5193-462b-801d-00c3bba0c8e9",
+      "date": "2025-03-10",
+      "symbol": "AAPL",
+      "created_at": "2025-03-12T12:30:14Z",
+      "total_volume": 24225446,
+      "market_center": "B,Q,N",
+      "short_volume": 13350125,
+      "exchange_name": "FINRA CNMS"
+    },
+    {
+      "id": "f3321c4d-adb5-4aad-a19b-31b03edb3784",
+      "date": "2025-03-07",
+      "symbol": "AAPL",
+      "created_at": "2025-03-11T12:30:13Z",
+      "total_volume": 16447932,
+      "market_center": "B,Q,N",
+      "short_volume": 9228251,
+      "exchange_name": "FINRA CNMS"
+    },
+    {
+      "id": "a9cee647-f69e-466b-b6eb-725e8cc4c971",
+      "date": "2025-03-06",
+      "symbol": "AAPL",
+      "created_at": "2025-03-10T12:30:11Z",
+      "total_volume": 14447376,
+      "market_center": "B,Q,N",
+      "short_volume": 8017084,
+      "exchange_name": "FINRA CNMS"
+    },
+    {
+      "id": "23fc8dca-32e7-40e8-85c6-05d051b05681",
+      "date": "2025-03-05",
+      "symbol": "AAPL",
+      "created_at": "2025-03-07T12:36:39Z",
+      "total_volume": 15749832,
+      "market_center": "B,Q,N",
+      "short_volume": 8807599,
+      "exchange_name": "FINRA CNMS"
+    },
+    {
+      "id": "d5abc3ef-af42-4e0f-b4ba-ebb4b26eda2a",
+      "date": "2025-03-04",
+      "symbol": "AAPL",
+      "created_at": "2025-03-06T12:37:36Z",
+      "total_volume": 17312277,
+      "market_center": "B,Q,N",
+      "short_volume": 8986327,
+      "exchange_name": "FINRA CNMS"
+    },
+    {
+      "id": "3e4df8c7-f09d-4b3c-ad6f-c94d49e989c6",
+      "date": "2025-03-03",
+      "symbol": "AAPL",
+      "created_at": "2025-03-05T12:30:12Z",
+      "total_volume": 14340794,
+      "market_center": "B,Q,N",
+      "short_volume": 7798890,
+      "exchange_name": "FINRA CNMS"
+    },
+    {
+      "id": "307f7ca9-95a2-4f0f-beb9-6863149d9acc",
+      "date": "2025-02-28",
+      "symbol": "AAPL",
+      "created_at": "2025-03-04T12:30:12Z",
+      "total_volume": 12944592,
+      "market_center": "B,Q,N",
+      "short_volume": 6971790,
+      "exchange_name": "FINRA CNMS"
+    },
+    {
+      "id": "4f8a3e3e-2947-459e-9c0f-815d0b88f008",
+      "date": "2025-02-27",
+      "symbol": "AAPL",
+      "created_at": "2025-03-03T12:30:09Z",
+      "total_volume": 12372658,
+      "market_center": "B,Q,N",
+      "short_volume": 7180403,
+      "exchange_name": "FINRA CNMS"
+    },
+    {
+      "id": "cab9f2bf-5d63-4efd-9726-1a4f931ae1eb",
+      "date": "2025-02-26",
+      "symbol": "AAPL",
+      "created_at": "2025-02-28T12:30:13Z",
+      "total_volume": 16092458,
+      "market_center": "B,Q,N",
+      "short_volume": 8689669,
+      "exchange_name": "FINRA CNMS"
+    },
+    {
+      "id": "d16437f0-2c15-435c-882a-44ca44325127",
+      "date": "2025-02-25",
+      "symbol": "AAPL",
+      "created_at": "2025-02-27T12:30:14Z",
+      "total_volume": 16873481,
+      "market_center": "B,Q,N",
+      "short_volume": 9243719,
+      "exchange_name": "FINRA CNMS"
+    },
+    {
+      "id": "fae6a310-a395-46a7-b7c1-9e9e3cf735d1",
+      "date": "2025-02-24",
+      "symbol": "AAPL",
+      "created_at": "2025-02-26T12:30:12Z",
+      "total_volume": 17462132,
+      "market_center": "B,Q,N",
+      "short_volume": 9717621,
+      "exchange_name": "FINRA CNMS"
+    },
+    {
+      "id": "0635a695-7971-48c5-9a89-25c39ceb3f24",
+      "date": "2025-02-21",
+      "symbol": "AAPL",
+      "created_at": "2025-02-25T12:30:13Z",
+      "total_volume": 17082735,
+      "market_center": "B,Q,N",
+      "short_volume": 9260601,
+      "exchange_name": "FINRA CNMS"
+    },
+    {
+      "id": "98735bf4-4030-4abd-aadc-343494a38d17",
+      "date": "2025-02-20",
+      "symbol": "AAPL",
+      "created_at": "2025-02-24T12:30:11Z",
+      "total_volume": 11266230,
+      "market_center": "B,Q,N",
+      "short_volume": 5582384,
+      "exchange_name": "FINRA CNMS"
+    },
+    {
+      "id": "a3089b82-c823-4ce0-9388-61af67f8ff42",
+      "date": "2025-02-19",
+      "symbol": "AAPL",
+      "created_at": "2025-02-21T12:30:13Z",
+      "total_volume": 11334891,
+      "market_center": "B,Q,N",
+      "short_volume": 5535800,
+      "exchange_name": "FINRA CNMS"
+    },
+    {
+      "id": "9cfc2f92-023d-4e0b-abc6-bea506b4187c",
+      "date": "2025-02-18",
+      "symbol": "AAPL",
+      "created_at": "2025-02-20T12:30:12Z",
+      "total_volume": 12383127,
+      "market_center": "B,Q,N",
+      "short_volume": 6317513,
+      "exchange_name": "FINRA CNMS"
+    },
+    {
+      "id": "81667c99-87ad-42fd-ba42-afda27fd1f38",
+      "date": "2025-02-14",
+      "symbol": "AAPL",
+      "created_at": "2025-02-19T12:30:11Z",
+      "total_volume": 14377648,
+      "market_center": "B,Q,N",
+      "short_volume": 6290269,
+      "exchange_name": "FINRA CNMS"
+    },
+    {
+      "id": "c67a2852-8953-47e2-ad0a-e2d2a62a9f47",
+      "date": "2025-02-13",
+      "symbol": "AAPL",
+      "created_at": "2025-02-18T12:30:08Z",
+      "total_volume": 17069670,
+      "market_center": "B,Q,N",
+      "short_volume": 7977483,
+      "exchange_name": "FINRA CNMS"
+    },
+    {
+      "id": "d07e7a5f-a085-4b6f-81b2-d6f71060ce61",
+      "date": "2025-02-12",
+      "symbol": "AAPL",
+      "created_at": "2025-02-14T12:30:12Z",
+      "total_volume": 14335811,
+      "market_center": "B,Q,N",
+      "short_volume": 6532509,
+      "exchange_name": "FINRA CNMS"
+    },
+    {
+      "id": "aa89f18e-683f-4f01-abd5-d692e5ba77bc",
+      "date": "2025-02-11",
+      "symbol": "AAPL",
+      "created_at": "2025-02-13T12:30:12Z",
+      "total_volume": 19559382,
+      "market_center": "B,Q,N",
+      "short_volume": 8541906,
+      "exchange_name": "FINRA CNMS"
+    },
+    {
+      "id": "f3d6497a-9efb-465b-bf07-e14216316510",
+      "date": "2025-02-10",
+      "symbol": "AAPL",
+      "created_at": "2025-02-12T12:30:11Z",
+      "total_volume": 10689295,
+      "market_center": "B,Q,N",
+      "short_volume": 3867116,
+      "exchange_name": "FINRA CNMS"
+    },
+    {
+      "id": "91aa3482-1f96-4478-9530-dae21e1d9e95",
+      "date": "2025-02-07",
+      "symbol": "AAPL",
+      "created_at": "2025-02-11T13:45:18Z",
+      "total_volume": 14102418,
+      "market_center": "B,Q,N",
+      "short_volume": 6518196,
+      "exchange_name": "FINRA CNMS"
+    },
+    {
+      "id": "dc9339a4-3d11-4558-86fd-53f8c5ea4fae",
+      "date": "2025-02-06",
+      "symbol": "AAPL",
+      "created_at": "2025-02-10T12:30:10Z",
+      "total_volume": 11404690,
+      "market_center": "B,Q,N",
+      "short_volume": 4082695,
+      "exchange_name": "FINRA CNMS"
+    },
+    {
+      "id": "973763dc-1fd1-40fc-904f-4ccc8728c174",
+      "date": "2025-02-05",
+      "symbol": "AAPL",
+      "created_at": "2025-02-07T12:30:12Z",
+      "total_volume": 13406234,
+      "market_center": "B,Q,N",
+      "short_volume": 5528701,
+      "exchange_name": "FINRA CNMS"
+    },
+    {
+      "id": "65bf382c-4a30-470b-b38e-273c2b68d51f",
+      "date": "2025-02-04",
+      "symbol": "AAPL",
+      "created_at": "2025-02-06T12:30:11Z",
+      "total_volume": 14941479,
+      "market_center": "B,Q,N",
+      "short_volume": 5748191,
+      "exchange_name": "FINRA CNMS"
+    },
+    {
+      "id": "613aef47-4723-4942-a4b4-fd5136915d99",
+      "date": "2025-02-03",
+      "symbol": "AAPL",
+      "created_at": "2025-02-05T12:30:12Z",
+      "total_volume": 26249119,
+      "market_center": "B,Q,N",
+      "short_volume": 10289433,
+      "exchange_name": "FINRA CNMS"
+    },
+    {
+      "id": "edb41d8c-1b99-4959-b1bd-cc28490c1a6b",
+      "date": "2025-01-31",
+      "symbol": "AAPL",
+      "created_at": "2025-02-04T12:30:12Z",
+      "total_volume": 37277863,
+      "market_center": "B,Q,N",
+      "short_volume": 17853902,
+      "exchange_name": "FINRA CNMS"
+    },
+    {
+      "id": "35158327-0ef7-48ff-9ae0-783f1bfcf7e2",
+      "date": "2025-01-30",
+      "symbol": "AAPL",
+      "created_at": "2025-02-03T12:30:10Z",
+      "total_volume": 16322076,
+      "market_center": "B,Q,N",
+      "short_volume": 7439764,
+      "exchange_name": "FINRA CNMS"
+    },
+    {
+      "id": "50eaa27a-e454-47d9-b1a9-ffb15adb0fd9",
+      "date": "2025-01-29",
+      "symbol": "AAPL",
+      "created_at": "2025-01-31T12:30:12Z",
+      "total_volume": 17552506,
+      "market_center": "B,Q,N",
+      "short_volume": 9313139,
+      "exchange_name": "FINRA CNMS"
+    },
+    {
+      "id": "0d0d8afb-c023-41b7-8b34-b408ebe8f23c",
+      "date": "2025-01-28",
+      "symbol": "AAPL",
+      "created_at": "2025-01-30T12:30:12Z",
+      "total_volume": 27320435,
+      "market_center": "B,Q,N",
+      "short_volume": 16636247,
+      "exchange_name": "FINRA CNMS"
+    },
+    {
+      "id": "4ea911c4-8646-459d-b1fc-a69e72e39954",
+      "date": "2025-01-27",
+      "symbol": "AAPL",
+      "created_at": "2025-01-29T12:30:12Z",
+      "total_volume": 30782451,
+      "market_center": "B,Q,N",
+      "short_volume": 11580217,
+      "exchange_name": "FINRA CNMS"
+    },
+    {
+      "id": "3009ab25-625d-4118-9bbe-25d4fd3cbf55",
+      "date": "2025-01-24",
+      "symbol": "AAPL",
+      "created_at": "2025-01-28T12:30:11Z",
+      "total_volume": 20037225,
+      "market_center": "B,Q,N",
+      "short_volume": 6265784,
+      "exchange_name": "FINRA CNMS"
+    },
+    {
+      "id": "98a9598c-74eb-48e0-880c-cd4586b6810e",
+      "date": "2025-01-23",
+      "symbol": "AAPL",
+      "created_at": "2025-01-27T12:30:10Z",
+      "total_volume": 24354658,
+      "market_center": "B,Q,N",
+      "short_volume": 10718796,
+      "exchange_name": "FINRA CNMS"
+    },
+    {
+      "id": "258f435f-7cdb-465c-bd57-9b33bf8c6dec",
+      "date": "2025-01-22",
+      "symbol": "AAPL",
+      "created_at": "2025-01-24T12:30:14Z",
+      "total_volume": 23224936,
+      "market_center": "B,Q,N",
+      "short_volume": 7603950,
+      "exchange_name": "FINRA CNMS"
+    },
+    {
+      "id": "74e240f9-e9eb-449e-b2fe-7aa93629e7a0",
+      "date": "2025-01-21",
+      "symbol": "AAPL",
+      "created_at": "2025-01-23T12:30:11Z",
+      "total_volume": 37270371,
+      "market_center": "B,Q,N",
+      "short_volume": 16289328,
+      "exchange_name": "FINRA CNMS"
+    },
+    {
+      "id": "07134851-ffed-4aa7-90f9-b1f9abf6a027",
+      "date": "2025-01-17",
+      "symbol": "AAPL",
+      "created_at": "2025-01-22T12:30:12Z",
+      "total_volume": 23707026,
+      "market_center": "B,Q,N",
+      "short_volume": 10030165,
+      "exchange_name": "FINRA CNMS"
+    },
+    {
+      "id": "e09c934e-80c4-4a89-b949-a98f42933777",
+      "date": "2025-01-16",
+      "symbol": "AAPL",
+      "created_at": "2025-01-21T12:30:09Z",
+      "total_volume": 29854736,
+      "market_center": "B,Q,N",
+      "short_volume": 14287104,
+      "exchange_name": "FINRA CNMS"
+    },
+    {
+      "id": "9b030a09-7beb-41d6-81ee-a78690d68e70",
+      "date": "2025-01-15",
+      "symbol": "AAPL",
+      "created_at": "2025-01-17T12:30:12Z",
+      "total_volume": 11920584,
+      "market_center": "B,Q,N",
+      "short_volume": 4484002,
+      "exchange_name": "FINRA CNMS"
+    },
+    {
+      "id": "89c19881-b33e-44ee-8c1c-23a9754e6725",
+      "date": "2025-01-14",
+      "symbol": "AAPL",
+      "created_at": "2025-01-16T12:30:11Z",
+      "total_volume": 11759610,
+      "market_center": "B,Q,N",
+      "short_volume": 4142678,
+      "exchange_name": "FINRA CNMS"
+    },
+    {
+      "id": "92dbd31e-2169-45f5-8bbb-1826d84ac82c",
+      "date": "2025-01-13",
+      "symbol": "AAPL",
+      "created_at": "2025-01-15T12:30:11Z",
+      "total_volume": 16370756,
+      "market_center": "B,Q,N",
+      "short_volume": 5782079,
+      "exchange_name": "FINRA CNMS"
+    },
+    {
+      "id": "c3af1c15-6da2-4c18-a472-5df33e28e886",
+      "date": "2025-01-10",
+      "symbol": "AAPL",
+      "created_at": "2025-01-14T12:30:12Z",
+      "total_volume": 20268997,
+      "market_center": "B,Q,N",
+      "short_volume": 10337722,
+      "exchange_name": "FINRA CNMS"
+    },
+    {
+      "id": "524f786d-3d25-4303-944f-bfafa66ef091",
+      "date": "2025-01-08",
+      "symbol": "AAPL",
+      "created_at": "2025-01-13T12:30:09Z",
+      "total_volume": 11990945,
+      "market_center": "B,Q,N",
+      "short_volume": 5195206,
+      "exchange_name": "FINRA CNMS"
+    },
+    {
+      "id": "ded9b8a4-ecfa-465d-91f9-66a56dc48920",
+      "date": "2025-01-07",
+      "symbol": "AAPL",
+      "created_at": "2025-01-10T12:30:11Z",
+      "total_volume": 13307765,
+      "market_center": "B,Q,N",
+      "short_volume": 6567191,
+      "exchange_name": "FINRA CNMS"
+    },
+    {
+      "id": "ce4a5155-cc54-4098-851e-24a7ee0ca3a7",
+      "date": "2025-01-06",
+      "symbol": "AAPL",
+      "created_at": "2025-01-08T12:30:12Z",
+      "total_volume": 14269140,
+      "market_center": "B,Q,N",
+      "short_volume": 7488684,
+      "exchange_name": "FINRA CNMS"
+    },
+    {
+      "id": "bedc294f-8609-4909-ba52-cbb5697cdd3b",
+      "date": "2025-01-03",
+      "symbol": "AAPL",
+      "created_at": "2025-01-07T12:30:11Z",
+      "total_volume": 14712243,
+      "market_center": "B,Q,N",
+      "short_volume": 5580044,
+      "exchange_name": "FINRA CNMS"
+    },
+    {
+      "id": "279e34a9-edaa-4054-a761-5c70aa65a781",
+      "date": "2025-01-02",
+      "symbol": "AAPL",
+      "created_at": "2025-01-06T12:30:12Z",
+      "total_volume": 22651137,
+      "market_center": "B,Q,N",
+      "short_volume": 11000653,
+      "exchange_name": "FINRA CNMS"
+    },
+    {
+      "id": "519d3b2a-6c84-4776-9185-a5eb1fb60605",
+      "date": "2024-12-31",
+      "symbol": "AAPL",
+      "created_at": "2025-01-03T12:30:11Z",
+      "total_volume": 11250398,
+      "market_center": "B,Q,N",
+      "short_volume": 5227904,
+      "exchange_name": "FINRA CNMS"
+    },
+    {
+      "id": "bf5847da-873e-4baf-91c2-950ed2577d31",
+      "date": "2024-12-30",
+      "symbol": "AAPL",
+      "created_at": "2025-01-02T12:30:09Z",
+      "total_volume": 10811850,
+      "market_center": "B,Q,N",
+      "short_volume": 5805773,
+      "exchange_name": "FINRA CNMS"
+    },
+    {
+      "id": "1cad94a1-657b-489e-9299-249e1fa1978e",
+      "date": "2024-12-27",
+      "symbol": "AAPL",
+      "created_at": "2024-12-31T12:30:11Z",
+      "total_volume": 12945086,
+      "market_center": "B,Q,N",
+      "short_volume": 8168750,
+      "exchange_name": "FINRA CNMS"
+    },
+    {
+      "id": "46479bcb-448a-433b-894d-13959f646ec2",
+      "date": "2024-12-26",
+      "symbol": "AAPL",
+      "created_at": "2024-12-30T12:30:10Z",
+      "total_volume": 10949988,
+      "market_center": "B,Q,N",
+      "short_volume": 6431370,
+      "exchange_name": "FINRA CNMS"
+    },
+    {
+      "id": "48f76122-0a23-43ec-8792-78037da93315",
+      "date": "2024-12-24",
+      "symbol": "AAPL",
+      "created_at": "2024-12-27T12:30:11Z",
+      "total_volume": 10159886,
+      "market_center": "B,Q,N",
+      "short_volume": 4789509,
+      "exchange_name": "FINRA CNMS"
+    },
+    {
+      "id": "dee981e3-cc8c-4dc9-a0c5-609498a295c6",
+      "date": "2024-12-23",
+      "symbol": "AAPL",
+      "created_at": "2024-12-26T12:30:10Z",
+      "total_volume": 11611423,
+      "market_center": "B,Q,N",
+      "short_volume": 6593560,
+      "exchange_name": "FINRA CNMS"
+    },
+    {
+      "id": "eb088b01-acaf-46d5-b621-361c2b2c55e5",
+      "date": "2024-12-20",
+      "symbol": "AAPL",
+      "created_at": "2024-12-24T12:30:13Z",
+      "total_volume": 22123472,
+      "market_center": "B,Q,N",
+      "short_volume": 13215085,
+      "exchange_name": "FINRA CNMS"
+    },
+    {
+      "id": "28109ee8-f91f-44f6-9b75-3cc6b2720c77",
+      "date": "2024-12-19",
+      "symbol": "AAPL",
+      "created_at": "2024-12-23T12:30:10Z",
+      "total_volume": 15430487,
+      "market_center": "B,Q,N",
+      "short_volume": 9783361,
+      "exchange_name": "FINRA CNMS"
+    },
+    {
+      "id": "e584804f-da44-4d4b-aa71-ce39c2d1edda",
+      "date": "2024-12-18",
+      "symbol": "AAPL",
+      "created_at": "2024-12-20T12:30:11Z",
+      "total_volume": 17056027,
+      "market_center": "B,Q,N",
+      "short_volume": 9529160,
+      "exchange_name": "FINRA CNMS"
+    },
+    {
+      "id": "b22ce825-8bd1-4ba1-8763-476b5a560c57",
+      "date": "2024-12-17",
+      "symbol": "AAPL",
+      "created_at": "2024-12-19T12:30:12Z",
+      "total_volume": 12876708,
+      "market_center": "B,Q,N",
+      "short_volume": 6052914,
+      "exchange_name": "FINRA CNMS"
+    },
+    {
+      "id": "43385ee1-557d-4f20-bc0b-7a69a6d0ea5d",
+      "date": "2024-12-16",
+      "symbol": "AAPL",
+      "created_at": "2024-12-18T12:30:11Z",
+      "total_volume": 13063841,
+      "market_center": "B,Q,N",
+      "short_volume": 6649052,
+      "exchange_name": "FINRA CNMS"
+    },
+    {
+      "id": "34b05074-38f8-4459-b3f8-475e41e0b575",
+      "date": "2024-12-13",
+      "symbol": "AAPL",
+      "created_at": "2024-12-17T12:30:11Z",
+      "total_volume": 11260019,
+      "market_center": "B,Q,N",
+      "short_volume": 5363711,
+      "exchange_name": "FINRA CNMS"
+    },
+    {
+      "id": "04aef731-eff7-4b41-9571-c5f04ea7ebb6",
+      "date": "2024-12-12",
+      "symbol": "AAPL",
+      "created_at": "2024-12-16T12:30:09Z",
+      "total_volume": 11679507,
+      "market_center": "B,Q,N",
+      "short_volume": 6443493,
+      "exchange_name": "FINRA CNMS"
+    },
+    {
+      "id": "be50f837-fbfa-4c20-9f2f-bc3996eb8492",
+      "date": "2024-12-11",
+      "symbol": "AAPL",
+      "created_at": "2024-12-13T12:30:13Z",
+      "total_volume": 13739357,
+      "market_center": "B,Q,N",
+      "short_volume": 7078870,
+      "exchange_name": "FINRA CNMS"
+    },
+    {
+      "id": "56bab9cd-df46-41d7-9b98-0e07ebae69b0",
+      "date": "2024-12-10",
+      "symbol": "AAPL",
+      "created_at": "2024-12-12T12:30:13Z",
+      "total_volume": 11496745,
+      "market_center": "B,Q,N",
+      "short_volume": 5850398,
+      "exchange_name": "FINRA CNMS"
+    },
+    {
+      "id": "39c9b966-6595-486d-a6ed-9f607118d677",
+      "date": "2024-12-09",
+      "symbol": "AAPL",
+      "created_at": "2024-12-11T12:30:12Z",
+      "total_volume": 13795416,
+      "market_center": "B,Q,N",
+      "short_volume": 7850533,
+      "exchange_name": "FINRA CNMS"
+    },
+    {
+      "id": "3e6b303a-4c63-4144-a591-f0294309e799",
+      "date": "2024-12-06",
+      "symbol": "AAPL",
+      "created_at": "2024-12-10T12:30:12Z",
+      "total_volume": 11365356,
+      "market_center": "B,Q,N",
+      "short_volume": 5734542,
+      "exchange_name": "FINRA CNMS"
+    },
+    {
+      "id": "56c3d2cc-d09f-4951-804c-33b6a23ffdce",
+      "date": "2024-12-05",
+      "symbol": "AAPL",
+      "created_at": "2024-12-09T12:30:10Z",
+      "total_volume": 13440411,
+      "market_center": "B,Q,N",
+      "short_volume": 7149444,
+      "exchange_name": "FINRA CNMS"
+    },
+    {
+      "id": "58df8b7b-fb31-43bc-b587-85620bb6265f",
+      "date": "2024-12-04",
+      "symbol": "AAPL",
+      "created_at": "2024-12-06T12:30:11Z",
+      "total_volume": 15926015,
+      "market_center": "B,Q,N",
+      "short_volume": 9650614,
+      "exchange_name": "FINRA CNMS"
+    },
+    {
+      "id": "31d66d52-8a53-405a-8d1e-eaf76a50a218",
+      "date": "2024-12-03",
+      "symbol": "AAPL",
+      "created_at": "2024-12-05T12:30:11Z",
+      "total_volume": 12551375,
+      "market_center": "B,Q,N",
+      "short_volume": 6500092,
+      "exchange_name": "FINRA CNMS"
+    },
+    {
+      "id": "3a34836e-e57b-4a99-bde9-20694d04d086",
+      "date": "2024-12-02",
+      "symbol": "AAPL",
+      "created_at": "2024-12-04T12:35:31Z",
+      "total_volume": 12835457,
+      "market_center": "B,Q,N",
+      "short_volume": 6312742,
+      "exchange_name": "FINRA CNMS"
+    },
+    {
+      "id": "4daa6e12-8c63-4a4f-959b-bdc3a82eed38",
+      "date": "2024-11-29",
+      "symbol": "AAPL",
+      "created_at": "2024-12-03T12:30:12Z",
+      "total_volume": 11201010,
+      "market_center": "B,Q,N",
+      "short_volume": 5026105,
+      "exchange_name": "FINRA CNMS"
+    },
+    {
+      "id": "47a1d6bc-0bfc-4bad-9c74-054e912fde39",
+      "date": "2024-11-27",
+      "symbol": "AAPL",
+      "created_at": "2024-12-02T12:30:10Z",
+      "total_volume": 9310938,
+      "market_center": "B,Q,N",
+      "short_volume": 5061765,
+      "exchange_name": "FINRA CNMS"
+    },
+    {
+      "id": "99a844e4-c694-420e-a353-da6dee58fb25",
+      "date": "2024-11-26",
+      "symbol": "AAPL",
+      "created_at": "2024-11-29T12:30:12Z",
+      "total_volume": 13793303,
+      "market_center": "B,Q,N",
+      "short_volume": 7330627,
+      "exchange_name": "FINRA CNMS"
+    },
+    {
+      "id": "8462638c-dc26-4075-9632-326b0967a75f",
+      "date": "2024-11-25",
+      "symbol": "AAPL",
+      "created_at": "2024-11-27T12:30:13Z",
+      "total_volume": 14092431,
+      "market_center": "B,Q,N",
+      "short_volume": 6922845,
+      "exchange_name": "FINRA CNMS"
+    },
+    {
+      "id": "e243bd77-ba0c-4639-9491-9e374656a084",
+      "date": "2024-11-22",
+      "symbol": "AAPL",
+      "created_at": "2024-11-26T12:30:12Z",
+      "total_volume": 12352802,
+      "market_center": "B,Q,N",
+      "short_volume": 4854930,
+      "exchange_name": "FINRA CNMS"
+    },
+    {
+      "id": "edf2b21a-e7a4-42cd-96ec-48ece77125ee",
+      "date": "2024-11-21",
+      "symbol": "AAPL",
+      "created_at": "2024-11-25T12:30:10Z",
+      "total_volume": 13926077,
+      "market_center": "B,Q,N",
+      "short_volume": 7003574,
+      "exchange_name": "FINRA CNMS"
+    },
+    {
+      "id": "53052dc1-7403-45c1-8c30-e53e3938dc7f",
+      "date": "2024-11-20",
+      "symbol": "AAPL",
+      "created_at": "2024-11-22T12:30:11Z",
+      "total_volume": 9989890,
+      "market_center": "B,Q,N",
+      "short_volume": 5252511,
+      "exchange_name": "FINRA CNMS"
+    },
+    {
+      "id": "6405fe8e-5661-4709-817a-a662293c1400",
+      "date": "2024-11-19",
+      "symbol": "AAPL",
+      "created_at": "2024-11-21T12:30:12Z",
+      "total_volume": 11522212,
+      "market_center": "B,Q,N",
+      "short_volume": 5582092,
+      "exchange_name": "FINRA CNMS"
+    },
+    {
+      "id": "92146541-280a-49c5-97c1-543486a8a385",
+      "date": "2024-11-18",
+      "symbol": "AAPL",
+      "created_at": "2024-11-20T12:30:12Z",
+      "total_volume": 12751181,
+      "market_center": "B,Q,N",
+      "short_volume": 6380311,
+      "exchange_name": "FINRA CNMS"
+    },
+    {
+      "id": "4f83fa03-eb99-4f54-9c14-25f226b707ac",
+      "date": "2024-11-15",
+      "symbol": "AAPL",
+      "created_at": "2024-11-19T12:30:12Z",
+      "total_volume": 14341850,
+      "market_center": "B,Q,N",
+      "short_volume": 5954279,
+      "exchange_name": "FINRA CNMS"
+    },
+    {
+      "id": "01f0c37b-993e-4867-b531-c6d2878c4c16",
+      "date": "2024-11-14",
+      "symbol": "AAPL",
+      "created_at": "2024-11-18T12:30:13Z",
+      "total_volume": 13932833,
+      "market_center": "B,Q,N",
+      "short_volume": 5112306,
+      "exchange_name": "FINRA CNMS"
+    },
+    {
+      "id": "f198efdb-47ce-4de2-a012-6b188a3b0de4",
+      "date": "2024-11-13",
+      "symbol": "AAPL",
+      "created_at": "2024-11-15T12:30:14Z",
+      "total_volume": 12071037,
+      "market_center": "B,Q,N",
+      "short_volume": 4332550,
+      "exchange_name": "FINRA CNMS"
+    },
+    {
+      "id": "96d2f035-7ad2-46c8-a440-e09faa6ceadf",
+      "date": "2024-11-12",
+      "symbol": "AAPL",
+      "created_at": "2024-11-14T12:30:17Z",
+      "total_volume": 12784358,
+      "market_center": "B,Q,N",
+      "short_volume": 3511185,
+      "exchange_name": "FINRA CNMS"
+    },
+    {
+      "id": "f71fdd75-7613-4e08-914c-72bb37760dce",
+      "date": "2024-11-11",
+      "symbol": "AAPL",
+      "created_at": "2024-11-13T12:30:14Z",
+      "total_volume": 16065909,
+      "market_center": "B,Q,N",
+      "short_volume": 5562159,
+      "exchange_name": "FINRA CNMS"
+    },
+    {
+      "id": "0b0b76a2-38b1-4817-9067-9c479605ce5d",
+      "date": "2024-11-08",
+      "symbol": "AAPL",
+      "created_at": "2024-11-12T12:30:12Z",
+      "total_volume": 13476791,
+      "market_center": "B,Q,N",
+      "short_volume": 5605436,
+      "exchange_name": "FINRA CNMS"
+    },
+    {
+      "id": "65210126-2ff0-4922-8e3c-72d15f04ee8a",
+      "date": "2024-11-07",
+      "symbol": "AAPL",
+      "created_at": "2024-11-11T12:30:13Z",
+      "total_volume": 14432557,
+      "market_center": "B,Q,N",
+      "short_volume": 5000599,
+      "exchange_name": "FINRA CNMS"
+    },
+    {
+      "id": "e8e2c61a-bd84-484e-ac71-89a525349aa0",
+      "date": "2024-11-06",
+      "symbol": "AAPL",
+      "created_at": "2024-11-08T12:30:19Z",
+      "total_volume": 18374522,
+      "market_center": "B,Q,N",
+      "short_volume": 5162030,
+      "exchange_name": "FINRA CNMS"
+    },
+    {
+      "id": "ebd3b76a-0d2f-4a61-a0aa-7ad27cb19294",
+      "date": "2024-11-05",
+      "symbol": "AAPL",
+      "created_at": "2024-11-07T12:30:16Z",
+      "total_volume": 9732412,
+      "market_center": "B,Q,N",
+      "short_volume": 3402689,
+      "exchange_name": "FINRA CNMS"
+    },
+    {
+      "id": "b856afb8-03ba-4490-ba30-0e0f65435617",
+      "date": "2024-11-04",
+      "symbol": "AAPL",
+      "created_at": "2024-11-06T12:30:14Z",
+      "total_volume": 15240875,
+      "market_center": "B,Q,N",
+      "short_volume": 5555422,
+      "exchange_name": "FINRA CNMS"
+    },
+    {
+      "id": "6c58ad3a-3d25-4f96-bc5b-72442f7c0b4e",
+      "date": "2024-11-01",
+      "symbol": "AAPL",
+      "created_at": "2024-11-05T12:30:15Z",
+      "total_volume": 25591691,
+      "market_center": "B,Q,N",
+      "short_volume": 12551066,
+      "exchange_name": "FINRA CNMS"
+    },
+    {
+      "id": "b2bd9308-d9bc-4d7e-bd84-50c90970c5a4",
+      "date": "2024-10-31",
+      "symbol": "AAPL",
+      "created_at": "2024-11-04T12:30:11Z",
+      "total_volume": 17509153,
+      "market_center": "B,Q,N",
+      "short_volume": 6440706,
+      "exchange_name": "FINRA CNMS"
+    },
+    {
+      "id": "14d484fc-6d6a-4f76-b519-bfaf6bf900e8",
+      "date": "2024-10-30",
+      "symbol": "AAPL",
+      "created_at": "2024-11-01T12:30:12Z",
+      "total_volume": 14688358,
+      "market_center": "B,Q,N",
+      "short_volume": 4702847,
+      "exchange_name": "FINRA CNMS"
+    },
+    {
+      "id": "9352c056-be5a-4c5b-b969-85dbe05146ca",
+      "date": "2024-10-29",
+      "symbol": "AAPL",
+      "created_at": "2024-10-31T12:30:14Z",
+      "total_volume": 11522570,
+      "market_center": "B,Q,N",
+      "short_volume": 4536129,
+      "exchange_name": "FINRA CNMS"
+    },
+    {
+      "id": "6803bffd-50d9-4279-8901-3c4b3941d0f5",
+      "date": "2024-10-28",
+      "symbol": "AAPL",
+      "created_at": "2024-10-30T12:30:14Z",
+      "total_volume": 10658373,
+      "market_center": "B,Q,N",
+      "short_volume": 4071081,
+      "exchange_name": "FINRA CNMS"
+    },
+    {
+      "id": "688c5937-7dea-40e0-b21b-5d43b0ae373f",
+      "date": "2024-10-25",
+      "symbol": "AAPL",
+      "created_at": "2024-10-29T12:30:13Z",
+      "total_volume": 11879807,
+      "market_center": "B,Q,N",
+      "short_volume": 7220888,
+      "exchange_name": "FINRA CNMS"
+    },
+    {
+      "id": "ec70f484-566c-471f-a99c-6a3763d0a804",
+      "date": "2024-10-24",
+      "symbol": "AAPL",
+      "created_at": "2024-10-28T12:30:11Z",
+      "total_volume": 10696737,
+      "market_center": "B,Q,N",
+      "short_volume": 4410340,
+      "exchange_name": "FINRA CNMS"
+    },
+    {
+      "id": "d5aaba02-a2b2-4509-9433-29b77cac7377",
+      "date": "2024-10-23",
+      "symbol": "AAPL",
+      "created_at": "2024-10-25T12:30:13Z",
+      "total_volume": 20110863,
+      "market_center": "B,Q,N",
+      "short_volume": 12554846,
+      "exchange_name": "FINRA CNMS"
+    },
+    {
+      "id": "3287cc3d-a437-4410-b762-36f93fa222d0",
+      "date": "2024-10-22",
+      "symbol": "AAPL",
+      "created_at": "2024-10-24T12:30:13Z",
+      "total_volume": 13413816,
+      "market_center": "B,Q,N",
+      "short_volume": 8247711,
+      "exchange_name": "FINRA CNMS"
+    },
+    {
+      "id": "9dd88e8c-e1c6-4080-812f-d9e2f5c8e23e",
+      "date": "2024-10-21",
+      "symbol": "AAPL",
+      "created_at": "2024-10-23T12:30:14Z",
+      "total_volume": 13492420,
+      "market_center": "B,Q,N",
+      "short_volume": 7620258,
+      "exchange_name": "FINRA CNMS"
+    },
+    {
+      "id": "fa3e83f5-93d1-4f65-9785-ad86e03e5823",
+      "date": "2024-10-18",
+      "symbol": "AAPL",
+      "created_at": "2024-10-22T12:30:14Z",
+      "total_volume": 15997455,
+      "market_center": "B,Q,N",
+      "short_volume": 7611905,
+      "exchange_name": "FINRA CNMS"
+    },
+    {
+      "id": "8dcd8522-15c1-424b-b4f6-3ddf8839a247",
+      "date": "2024-10-17",
+      "symbol": "AAPL",
+      "created_at": "2024-10-21T12:30:11Z",
+      "total_volume": 10034052,
+      "market_center": "B,Q,N",
+      "short_volume": 5387119,
+      "exchange_name": "FINRA CNMS"
+    },
+    {
+      "id": "b0bb9469-1c02-4c0c-9815-38d997ff9366",
+      "date": "2024-10-16",
+      "symbol": "AAPL",
+      "created_at": "2024-10-18T12:30:13Z",
+      "total_volume": 12068049,
+      "market_center": "B,Q,N",
+      "short_volume": 6058939,
+      "exchange_name": "FINRA CNMS"
+    },
+    {
+      "id": "155f8ee0-c3ab-4e2f-b9cc-0d4d04aae243",
+      "date": "2024-10-15",
+      "symbol": "AAPL",
+      "created_at": "2024-10-17T12:30:13Z",
+      "total_volume": 21582441,
+      "market_center": "B,Q,N",
+      "short_volume": 11426791,
+      "exchange_name": "FINRA CNMS"
+    },
+    {
+      "id": "1391811c-cb1a-4bfb-8e9b-4d71af975182",
+      "date": "2024-10-14",
+      "symbol": "AAPL",
+      "created_at": "2024-10-16T12:30:14Z",
+      "total_volume": 12346284,
+      "market_center": "B,Q,N",
+      "short_volume": 6830855,
+      "exchange_name": "FINRA CNMS"
+    },
+    {
+      "id": "3309ca87-dcbc-49cd-94e9-5915c5768a7d",
+      "date": "2024-10-11",
+      "symbol": "AAPL",
+      "created_at": "2024-10-15T12:30:16Z",
+      "total_volume": 11271404,
+      "market_center": "B,Q,N",
+      "short_volume": 5786186,
+      "exchange_name": "FINRA CNMS"
+    },
+    {
+      "id": "d399c7c6-81c8-44ee-8264-11f666b120b0",
+      "date": "2024-10-10",
+      "symbol": "AAPL",
+      "created_at": "2024-10-14T12:30:13Z",
+      "total_volume": 9124920,
+      "market_center": "B,Q,N",
+      "short_volume": 4906580,
+      "exchange_name": "FINRA CNMS"
+    },
+    {
+      "id": "da50a902-f9a2-45d4-b635-4ec59cbb4021",
+      "date": "2024-10-09",
+      "symbol": "AAPL",
+      "created_at": "2024-10-11T12:30:08Z",
+      "total_volume": 12510771,
+      "market_center": "B,Q,N",
+      "short_volume": 7166169,
+      "exchange_name": "FINRA CNMS"
+    },
+    {
+      "id": "392b259a-1888-4d1d-868d-8c10b9f0ef91",
+      "date": "2024-10-08",
+      "symbol": "AAPL",
+      "created_at": "2024-10-10T12:30:15Z",
+      "total_volume": 11330495,
+      "market_center": "B,Q,N",
+      "short_volume": 5375725,
+      "exchange_name": "FINRA CNMS"
+    },
+    {
+      "id": "fa15eaff-8c4a-4c32-8fe9-8c4fb1ff94b7",
+      "date": "2024-10-07",
+      "symbol": "AAPL",
+      "created_at": "2024-10-09T12:30:14Z",
+      "total_volume": 12705612,
+      "market_center": "B,Q,N",
+      "short_volume": 6704886,
+      "exchange_name": "FINRA CNMS"
+    },
+    {
+      "id": "d8d72722-9cea-48be-9de1-fae289ffcfe1",
+      "date": "2024-10-04",
+      "symbol": "AAPL",
+      "created_at": "2024-10-08T12:30:13Z",
+      "total_volume": 12677007,
+      "market_center": "B,Q,N",
+      "short_volume": 6834023,
+      "exchange_name": "FINRA CNMS"
+    },
+    {
+      "id": "a21a1997-8ff2-4962-bfa3-9629a72bb622",
+      "date": "2024-10-03",
+      "symbol": "AAPL",
+      "created_at": "2024-10-07T12:30:13Z",
+      "total_volume": 12964060,
+      "market_center": "B,Q,N",
+      "short_volume": 6239653,
+      "exchange_name": "FINRA CNMS"
+    },
+    {
+      "id": "ef5c4fb8-64dd-4520-95b0-48d68ea1ebcb",
+      "date": "2024-10-02",
+      "symbol": "AAPL",
+      "created_at": "2024-10-04T12:30:09Z",
+      "total_volume": 14296437,
+      "market_center": "B,Q,N",
+      "short_volume": 8441237,
+      "exchange_name": "FINRA CNMS"
+    },
+    {
+      "id": "213e6e42-f3cd-4347-b181-b6ad30e9c989",
+      "date": "2024-10-01",
+      "symbol": "AAPL",
+      "created_at": "2024-10-03T12:30:14Z",
+      "total_volume": 21289363,
+      "market_center": "B,Q,N",
+      "short_volume": 12149329,
+      "exchange_name": "FINRA CNMS"
+    },
+    {
+      "id": "bdcaed95-ef21-4b66-ba23-f7b5512b4b49",
+      "date": "2024-09-30",
+      "symbol": "AAPL",
+      "created_at": "2024-10-02T12:30:15Z",
+      "total_volume": 16679800,
+      "market_center": "B,Q,N",
+      "short_volume": 8869455,
+      "exchange_name": "FINRA CNMS"
+    },
+    {
+      "id": "b6df67c0-7027-45c2-930c-d8cfbe5b3860",
+      "date": "2024-09-27",
+      "symbol": "AAPL",
+      "created_at": "2024-10-01T12:30:15Z",
+      "total_volume": 11688422,
+      "market_center": "B,Q,N",
+      "short_volume": 6481678,
+      "exchange_name": "FINRA CNMS"
+    },
+    {
+      "id": "d13773fe-a110-4f95-8b80-e01df399f671",
+      "date": "2024-09-26",
+      "symbol": "AAPL",
+      "created_at": "2024-09-30T12:30:12Z",
+      "total_volume": 11808885,
+      "market_center": "B,Q,N",
+      "short_volume": 6816654,
+      "exchange_name": "FINRA CNMS"
+    },
+    {
+      "id": "ccd37f1c-c6c7-4b8a-aa68-6c7409946c2c",
+      "date": "2024-09-25",
+      "symbol": "AAPL",
+      "created_at": "2024-09-27T12:30:16Z",
+      "total_volume": 14523526,
+      "market_center": "B,Q,N",
+      "short_volume": 8412673,
+      "exchange_name": "FINRA CNMS"
+    },
+    {
+      "id": "d7b1ebec-5aa9-4913-911d-e78a34a31b7e",
+      "date": "2024-09-24",
+      "symbol": "AAPL",
+      "created_at": "2024-09-26T12:30:14Z",
+      "total_volume": 11979758,
+      "market_center": "B,Q,N",
+      "short_volume": 7310559,
+      "exchange_name": "FINRA CNMS"
+    },
+    {
+      "id": "430b40da-201f-4d9d-b8c4-26d44e694715",
+      "date": "2024-09-23",
+      "symbol": "AAPL",
+      "created_at": "2024-09-25T12:30:14Z",
+      "total_volume": 19358989,
+      "market_center": "B,Q,N",
+      "short_volume": 11406118,
+      "exchange_name": "FINRA CNMS"
+    },
+    {
+      "id": "8642f98d-9d6c-4d73-9eca-7915407746c8",
+      "date": "2024-09-20",
+      "symbol": "AAPL",
+      "created_at": "2024-09-24T12:30:14Z",
+      "total_volume": 43397829,
+      "market_center": "B,Q,N",
+      "short_volume": 27140958,
+      "exchange_name": "FINRA CNMS"
+    },
+    {
+      "id": "fb799781-eea2-4101-8f2a-50ca20e150c1",
+      "date": "2024-09-19",
+      "symbol": "AAPL",
+      "created_at": "2024-09-23T12:30:13Z",
+      "total_volume": 25401238,
+      "market_center": "B,Q,N",
+      "short_volume": 9076671,
+      "exchange_name": "FINRA CNMS"
+    },
+    {
+      "id": "d1642c4c-9ee7-44d3-ad33-1d4a5ce3512d",
+      "date": "2024-09-18",
+      "symbol": "AAPL",
+      "created_at": "2024-09-20T12:30:14Z",
+      "total_volume": 21799172,
+      "market_center": "B,Q,N",
+      "short_volume": 8793716,
+      "exchange_name": "FINRA CNMS"
+    },
+    {
+      "id": "6ef3c05e-f55d-47d1-a21f-0e57eb63ea56",
+      "date": "2024-09-17",
+      "symbol": "AAPL",
+      "created_at": "2024-09-19T12:30:17Z",
+      "total_volume": 17721646,
+      "market_center": "B,Q,N",
+      "short_volume": 6861974,
+      "exchange_name": "FINRA CNMS"
+    },
+    {
+      "id": "c69d5b92-500d-41b7-a1e3-9149ae9da771",
+      "date": "2024-09-16",
+      "symbol": "AAPL",
+      "created_at": "2024-09-18T12:30:15Z",
+      "total_volume": 24927862,
+      "market_center": "B,Q,N",
+      "short_volume": 8560183,
+      "exchange_name": "FINRA CNMS"
+    },
+    {
+      "id": "5ed23959-47d8-4bb8-813a-a3f0f4a89147",
+      "date": "2024-09-13",
+      "symbol": "AAPL",
+      "created_at": "2024-09-17T12:30:16Z",
+      "total_volume": 12763591,
+      "market_center": "B,Q,N",
+      "short_volume": 5613438,
+      "exchange_name": "FINRA CNMS"
+    },
+    {
+      "id": "69dd0c7f-f3f9-4cad-bd31-8ee7dc3c8adf",
+      "date": "2024-09-12",
+      "symbol": "AAPL",
+      "created_at": "2024-09-16T12:30:13Z",
+      "total_volume": 13078665,
+      "market_center": "B,Q,N",
+      "short_volume": 6015928,
+      "exchange_name": "FINRA CNMS"
+    },
+    {
+      "id": "6c69dd0e-1c6a-48f3-ba97-8aa3939ce43f",
+      "date": "2024-09-11",
+      "symbol": "AAPL",
+      "created_at": "2024-09-13T12:30:13Z",
+      "total_volume": 14530758,
+      "market_center": "B,Q,N",
+      "short_volume": 6766917,
+      "exchange_name": "FINRA CNMS"
+    },
+    {
+      "id": "e5d784c3-c1b5-4b71-bedd-27f42f0f9c7c",
+      "date": "2024-09-10",
+      "symbol": "AAPL",
+      "created_at": "2024-09-12T12:30:10Z",
+      "total_volume": 21645255,
+      "market_center": "B,Q,N",
+      "short_volume": 11857317,
+      "exchange_name": "FINRA CNMS"
+    },
+    {
+      "id": "bee9eaab-6022-49ba-ac80-4fd25f3a26a2",
+      "date": "2024-09-09",
+      "symbol": "AAPL",
+      "created_at": "2024-09-11T12:30:07Z",
+      "total_volume": 29434548,
+      "market_center": "B,Q,N",
+      "short_volume": 16292674,
+      "exchange_name": "FINRA CNMS"
+    },
+    {
+      "id": "252b4266-7ad8-4013-8465-d7bef973a61a",
+      "date": "2024-09-06",
+      "symbol": "AAPL",
+      "created_at": "2024-09-10T12:30:14Z",
+      "total_volume": 17731031,
+      "market_center": "B,Q,N",
+      "short_volume": 8678103,
+      "exchange_name": "FINRA CNMS"
+    },
+    {
+      "id": "5b2b15e7-95d3-429f-b45c-1014d1ee10d5",
+      "date": "2024-09-05",
+      "symbol": "AAPL",
+      "created_at": "2024-09-09T12:30:09Z",
+      "total_volume": 13462774,
+      "market_center": "B,Q,N",
+      "short_volume": 6157872,
+      "exchange_name": "FINRA CNMS"
+    },
+    {
+      "id": "c1b576c6-0a91-4df7-9813-35877d9b0e9e",
+      "date": "2024-09-04",
+      "symbol": "AAPL",
+      "created_at": "2024-09-06T12:30:17Z",
+      "total_volume": 16678989,
+      "market_center": "B,Q,N",
+      "short_volume": 7182068,
+      "exchange_name": "FINRA CNMS"
+    },
+    {
+      "id": "ce5c3d60-dc09-4234-9605-3e65432a6cb9",
+      "date": "2024-09-03",
+      "symbol": "AAPL",
+      "created_at": "2024-09-05T12:30:08Z",
+      "total_volume": 16426385,
+      "market_center": "B,Q,N",
+      "short_volume": 6845281,
+      "exchange_name": "FINRA CNMS"
+    },
+    {
+      "id": "4ce3fb68-0c7e-42f6-8982-b78cb5158e68",
+      "date": "2024-08-30",
+      "symbol": "AAPL",
+      "created_at": "2024-09-04T12:30:06Z",
+      "total_volume": 14558680,
+      "market_center": "B,Q,N",
+      "short_volume": 6901978,
+      "exchange_name": "FINRA CNMS"
+    },
+    {
+      "id": "62d9c55d-1364-47a3-9546-aa9796fdabb0",
+      "date": "2024-08-29",
+      "symbol": "AAPL",
+      "created_at": "2024-09-03T12:30:11Z",
+      "total_volume": 19406076,
+      "market_center": "B,Q,N",
+      "short_volume": 8161954,
+      "exchange_name": "FINRA CNMS"
+    },
+    {
+      "id": "e144d3bc-c3b8-4a15-813d-f7364bb51d9f",
+      "date": "2024-08-28",
+      "symbol": "AAPL",
+      "created_at": "2024-08-30T12:30:06Z",
+      "total_volume": 14028201,
+      "market_center": "B,Q,N",
+      "short_volume": 6947996,
+      "exchange_name": "FINRA CNMS"
+    },
+    {
+      "id": "a4dae27c-e83d-4e43-9e76-4bd0f356f3e0",
+      "date": "2024-08-27",
+      "symbol": "AAPL",
+      "created_at": "2024-08-29T12:30:07Z",
+      "total_volume": 12341658,
+      "market_center": "B,Q,N",
+      "short_volume": 6109364,
+      "exchange_name": "FINRA CNMS"
+    },
+    {
+      "id": "e6e91df3-ce8a-4668-8f66-0ed08d32978a",
+      "date": "2024-08-26",
+      "symbol": "AAPL",
+      "created_at": "2024-08-28T12:30:06Z",
+      "total_volume": 11395636,
+      "market_center": "B,Q,N",
+      "short_volume": 5290733,
+      "exchange_name": "FINRA CNMS"
+    },
+    {
+      "id": "9cb91ef9-9c94-499b-abc2-268e48ea5d10",
+      "date": "2024-08-23",
+      "symbol": "AAPL",
+      "created_at": "2024-08-27T12:30:14Z",
+      "total_volume": 12919728,
+      "market_center": "B,Q,N",
+      "short_volume": 6131795,
+      "exchange_name": "FINRA CNMS"
+    },
+    {
+      "id": "3976ec08-9aa1-4b65-9adf-dc60d0965b75",
+      "date": "2024-08-22",
+      "symbol": "AAPL",
+      "created_at": "2024-08-26T12:30:11Z",
+      "total_volume": 12498194,
+      "market_center": "B,Q,N",
+      "short_volume": 5724070,
+      "exchange_name": "FINRA CNMS"
+    },
+    {
+      "id": "01e74988-4053-4aa7-a5a5-34b9d287bc64",
+      "date": "2024-08-21",
+      "symbol": "AAPL",
+      "created_at": "2024-08-23T12:30:06Z",
+      "total_volume": 12263255,
+      "market_center": "B,Q,N",
+      "short_volume": 5695430,
+      "exchange_name": "FINRA CNMS"
+    },
+    {
+      "id": "2bf0f8e2-45a7-4015-b2e0-0db6b1e0ed99",
+      "date": "2024-08-20",
+      "symbol": "AAPL",
+      "created_at": "2024-08-22T12:30:10Z",
+      "total_volume": 11434955,
+      "market_center": "B,Q,N",
+      "short_volume": 5502734,
+      "exchange_name": "FINRA CNMS"
+    },
+    {
+      "id": "84540cd9-b468-4527-b730-f4d774a13b98",
+      "date": "2024-08-19",
+      "symbol": "AAPL",
+      "created_at": "2024-08-21T12:30:06Z",
+      "total_volume": 13713087,
+      "market_center": "B,Q,N",
+      "short_volume": 5891348,
+      "exchange_name": "FINRA CNMS"
+    },
+    {
+      "id": "bca63018-521b-4272-bb8f-c71ceccd1817",
+      "date": "2024-08-16",
+      "symbol": "AAPL",
+      "created_at": "2024-08-20T12:30:15Z",
+      "total_volume": 12892942,
+      "market_center": "B,Q,N",
+      "short_volume": 6330768,
+      "exchange_name": "FINRA CNMS"
+    },
+    {
+      "id": "9b6808b4-3fd7-4620-8572-423bbe0ec3c0",
+      "date": "2024-08-15",
+      "symbol": "AAPL",
+      "created_at": "2024-08-19T12:30:13Z",
+      "total_volume": 14991961,
+      "market_center": "B,Q,N",
+      "short_volume": 6397205,
+      "exchange_name": "FINRA CNMS"
+    },
+    {
+      "id": "9400a478-fdc5-4cc9-8cc4-0ccb014e8157",
+      "date": "2024-08-14",
+      "symbol": "AAPL",
+      "created_at": "2024-08-16T12:30:15Z",
+      "total_volume": 14045791,
+      "market_center": "B,Q,N",
+      "short_volume": 5410561,
+      "exchange_name": "FINRA CNMS"
+    },
+    {
+      "id": "753a1667-c6dc-4084-9f9b-6babe7bec51c",
+      "date": "2024-08-13",
+      "symbol": "AAPL",
+      "created_at": "2024-08-15T12:30:07Z",
+      "total_volume": 14839661,
+      "market_center": "B,Q,N",
+      "short_volume": 5924281,
+      "exchange_name": "FINRA CNMS"
+    },
+    {
+      "id": "275b14a0-82ba-4410-a154-e4eaa44a72f7",
+      "date": "2024-08-12",
+      "symbol": "AAPL",
+      "created_at": "2024-08-14T12:30:14Z",
+      "total_volume": 15747703,
+      "market_center": "B,Q,N",
+      "short_volume": 7421413,
+      "exchange_name": "FINRA CNMS"
+    },
+    {
+      "id": "d38e833b-2bb9-4cc2-8c12-b7227234120f",
+      "date": "2024-08-09",
+      "symbol": "AAPL",
+      "created_at": "2024-08-13T12:30:07Z",
+      "total_volume": 15889218,
+      "market_center": "B,Q,N",
+      "short_volume": 7337074,
+      "exchange_name": "FINRA CNMS"
+    },
+    {
+      "id": "34e4650c-a7cb-4f00-a813-eeacb04ea078",
+      "date": "2024-08-08",
+      "symbol": "AAPL",
+      "created_at": "2024-08-12T12:30:09Z",
+      "total_volume": 16798361,
+      "market_center": "B,Q,N",
+      "short_volume": 7827540,
+      "exchange_name": "FINRA CNMS"
+    },
+    {
+      "id": "ffa800a2-2572-45ae-8631-17f174379bfa",
+      "date": "2024-08-07",
+      "symbol": "AAPL",
+      "created_at": "2024-08-09T12:30:11Z",
+      "total_volume": 22739473,
+      "market_center": "B,Q,N",
+      "short_volume": 11458724,
+      "exchange_name": "FINRA CNMS"
+    },
+    {
+      "id": "24ce3086-9feb-43c5-8f17-0ae26e328245",
+      "date": "2024-08-06",
+      "symbol": "AAPL",
+      "created_at": "2024-08-08T12:30:15Z",
+      "total_volume": 23807285,
+      "market_center": "B,Q,N",
+      "short_volume": 8925696,
+      "exchange_name": "FINRA CNMS"
+    },
+    {
+      "id": "89a9a238-8d4e-407c-af75-076d171b3eef",
+      "date": "2024-08-05",
+      "symbol": "AAPL",
+      "created_at": "2024-08-07T12:30:07Z",
+      "total_volume": 38525649,
+      "market_center": "B,Q,N",
+      "short_volume": 15686507,
+      "exchange_name": "FINRA CNMS"
+    },
+    {
+      "id": "e018e3b8-40b1-4cf2-97f7-6d8f907764f9",
+      "date": "2024-08-02",
+      "symbol": "AAPL",
+      "created_at": "2024-08-06T12:30:12Z",
+      "total_volume": 37364141,
+      "market_center": "B,Q,N",
+      "short_volume": 17602620,
+      "exchange_name": "FINRA CNMS"
+    },
+    {
+      "id": "53507dc6-6288-440a-a450-0cc80749ae8b",
+      "date": "2024-08-01",
+      "symbol": "AAPL",
+      "created_at": "2024-08-05T12:30:09Z",
+      "total_volume": 19705742,
+      "market_center": "B,Q,N",
+      "short_volume": 8211675,
+      "exchange_name": "FINRA CNMS"
+    },
+    {
+      "id": "f8cf1ba7-6b5e-4a17-9efa-4359faeed702",
+      "date": "2024-07-31",
+      "symbol": "AAPL",
+      "created_at": "2024-08-02T12:30:07Z",
+      "total_volume": 14225244,
+      "market_center": "B,Q,N",
+      "short_volume": 5934940,
+      "exchange_name": "FINRA CNMS"
+    },
+    {
+      "id": "9675fe93-8193-4eff-af89-c75dff393ea1",
+      "date": "2024-07-30",
+      "symbol": "AAPL",
+      "created_at": "2024-08-01T12:30:14Z",
+      "total_volume": 14747418,
+      "market_center": "B,Q,N",
+      "short_volume": 5787054,
+      "exchange_name": "FINRA CNMS"
+    },
+    {
+      "id": "95bfbd04-00df-46ea-9c95-dea2d2ef3e9f",
+      "date": "2024-07-29",
+      "symbol": "AAPL",
+      "created_at": "2024-07-31T12:30:07Z",
+      "total_volume": 14807833,
+      "market_center": "B,Q,N",
+      "short_volume": 5678487,
+      "exchange_name": "FINRA CNMS"
+    },
+    {
+      "id": "f331eafa-c770-4f45-8c08-7e579ae13490",
+      "date": "2024-07-26",
+      "symbol": "AAPL",
+      "created_at": "2024-07-30T12:30:13Z",
+      "total_volume": 15149579,
+      "market_center": "B,Q,N",
+      "short_volume": 4921540,
+      "exchange_name": "FINRA CNMS"
+    },
+    {
+      "id": "9ace5853-4870-4dea-88f2-608783e97318",
+      "date": "2024-07-25",
+      "symbol": "AAPL",
+      "created_at": "2024-07-29T12:30:06Z",
+      "total_volume": 17764795,
+      "market_center": "B,Q,N",
+      "short_volume": 5872907,
+      "exchange_name": "FINRA CNMS"
+    },
+    {
+      "id": "9ca391fb-1f26-4334-96c9-de4a080eff7b",
+      "date": "2024-07-24",
+      "symbol": "AAPL",
+      "created_at": "2024-07-26T12:30:11Z",
+      "total_volume": 20380505,
+      "market_center": "B,Q,N",
+      "short_volume": 7263342,
+      "exchange_name": "FINRA CNMS"
+    }
+  ]
+}

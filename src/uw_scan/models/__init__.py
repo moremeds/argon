@@ -220,6 +220,17 @@ from .trade_insights_ai import (
     TradeInsightAiTriggerEvidence,
     TradeInsightAiVrpAssessment,
 )
+from .uw_alpha import (
+    DarkLitPrint,
+    FtdRow,
+    GexLevelsRow,
+    GreekFlowRow,
+    NetPremTickRow,
+    VolAnomalyRow,
+    VolCharacterRow,
+    VolumesByExchangeRow,
+    VolVrpRow,
+)
 from .volatility import (
     DivergencePoint,
     InterpolatedIvRow,
@@ -480,4 +491,14 @@ __all__ = [
     "PositioningSnapshot",
     "PositioningScreenerRow",
     "PositioningScreenerResponse",
+    # UW historical-alpha datasets
+    "DarkLitPrint",
+    "FtdRow",
+    "GexLevelsRow",
+    "GreekFlowRow",
+    "NetPremTickRow",
+    "VolAnomalyRow",
+    "VolCharacterRow",
+    "VolumesByExchangeRow",
+    "VolVrpRow",
 ]

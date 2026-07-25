@@ -294,6 +294,19 @@ def _should_schedule_option_surface_capture(settings: Settings) -> bool:
     return role == "all" or (role == "uw" and settings.worker_index == 0)
 
 
+def _should_schedule_uw_alpha_capture(settings: Settings) -> bool:
+    """Pin the 5 UW historical-alpha nightly captures to uw-0 (or 'all').
+
+    Each wrapper is advisory-locked for single-flight, but pinning avoids
+    scheduling them on every uw-worker index — same rationale as the option
+    surface capture above. Gated by the master capture flag.
+    """
+    if not settings.uw_alpha_capture_enabled:
+        return False
+    role = settings.worker_role.lower()
+    return role == "all" or (role == "uw" and settings.worker_index == 0)
+
+
 def _should_schedule_market_tide_capture(settings: Settings) -> bool:
     """Exactly one process owns the 5-min market-tide capture.
 
@@ -862,6 +875,20 @@ def main() -> int:
                     greek_exposure_daily_refresh(
                         repo=repo, client=uw, settings=settings
                     )
+
+    def _make_uw_alpha_capture(wrapper, job_name: str):
+        # UW historical-alpha nightly capture (5 datasets). Each wrapper is
+        # advisory-locked for single-flight; env freezes at fork, so the flag is
+        # read at scheduler build time via _should_schedule_uw_alpha_capture.
+        def _job() -> None:
+            with _external_api_recorder(settings) as recorder:
+                with _uw_client(
+                    settings, telemetry_recorder=recorder, job_name=job_name
+                ) as uw:
+                    with _repo(settings) as repo:
+                        wrapper(repo=repo, client=uw, settings=settings)
+
+        return _job
 
     def _data_freshness_monitor() -> None:
         # Per-table data-date freshness audit (#prevention) — DB-only, zero UW.
@@ -1501,6 +1528,44 @@ def main() -> int:
                 max_instances=1,
                 coalesce=True,
             )
+            # UW historical-alpha nightly capture (5 datasets) — pinned to uw-0,
+            # gated by UW_SCAN_UW_ALPHA_CAPTURE_ENABLED. Staggered 18:35-18:55 ET,
+            # after the 18:30 greek refresh, before the 20:00 healer / 21:00
+            # freshness monitor. NOT budget-gated (durable data near the reset).
+            if _should_schedule_uw_alpha_capture(settings):
+                from uw_scan.worker.jobs.uw_alpha_capture import (
+                    dark_lit_capture,
+                    gex_levels_capture,
+                    intraday_flow_capture,
+                    short_pressure_capture,
+                    volatility_signal_capture,
+                )
+
+                for wrapper, hhmm, jid in [
+                    (gex_levels_capture, "35 18", "uw_alpha_gex_capture"),
+                    (volatility_signal_capture, "40 18", "uw_alpha_volatility_capture"),
+                    (
+                        short_pressure_capture,
+                        "45 18",
+                        "uw_alpha_short_pressure_capture",
+                    ),
+                    (
+                        intraday_flow_capture,
+                        "50 18",
+                        "uw_alpha_intraday_flow_capture",
+                    ),
+                    (dark_lit_capture, "55 18", "uw_alpha_dark_lit_capture"),
+                ]:
+                    sched.add_job(
+                        _make_uw_alpha_capture(wrapper, jid),
+                        CronTrigger.from_crontab(
+                            f"{hhmm} * * 0-4", timezone=settings.rth_tz
+                        ),
+                        id=jid,
+                        name=f"UW alpha capture: {jid}",
+                        max_instances=1,
+                        coalesce=True,
+                    )
             # Data-date freshness monitor (#prevention) — DB-only audit at
             # 21:00 ET, after all nightly writers have run, so it sees the
             # freshest data each day.

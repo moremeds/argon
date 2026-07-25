@@ -89,3 +89,46 @@ def test_discovery_scan_absent_on_non_primary_uw(monkeypatch):
         SCANNER_DISCOVER_SCAN_ENABLED="true",
     )
     assert "discovery_scan" not in ids
+
+
+_UW_ALPHA_JOB_IDS = {
+    "uw_alpha_gex_capture",
+    "uw_alpha_volatility_capture",
+    "uw_alpha_short_pressure_capture",
+    "uw_alpha_intraday_flow_capture",
+    "uw_alpha_dark_lit_capture",
+}
+
+
+def test_uw_alpha_capture_registered_on_primary_uw_when_enabled(monkeypatch):
+    ids = _registered_job_ids(
+        monkeypatch,
+        UW_SCAN_WORKER_ROLE="uw",
+        UW_SCAN_WORKER_INDEX="0",
+        UW_SCAN_WORKER_COUNT="1",
+        UW_SCAN_UW_ALPHA_CAPTURE_ENABLED="true",
+    )
+    assert _UW_ALPHA_JOB_IDS <= ids  # all five register
+
+
+def test_uw_alpha_capture_absent_when_disabled(monkeypatch):
+    ids = _registered_job_ids(
+        monkeypatch,
+        UW_SCAN_WORKER_ROLE="uw",
+        UW_SCAN_WORKER_INDEX="0",
+        UW_SCAN_WORKER_COUNT="1",
+        UW_SCAN_UW_ALPHA_CAPTURE_ENABLED="false",
+    )
+    assert not (_UW_ALPHA_JOB_IDS & ids)  # none register
+    assert "full_scan_0" in ids  # harness sanity: sibling uw job still wires
+
+
+def test_uw_alpha_capture_absent_on_non_primary_uw(monkeypatch):
+    ids = _registered_job_ids(
+        monkeypatch,
+        UW_SCAN_WORKER_ROLE="uw",
+        UW_SCAN_WORKER_INDEX="1",
+        UW_SCAN_WORKER_COUNT="2",
+        UW_SCAN_UW_ALPHA_CAPTURE_ENABLED="true",
+    )
+    assert not (_UW_ALPHA_JOB_IDS & ids)  # pinned to uw-0 only

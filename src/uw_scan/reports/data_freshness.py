@@ -157,6 +157,15 @@ MONITORED_TABLES: list[MonitoredTable] = [
     MonitoredTable("max_pain_by_expiry", "watchlist", None),
     MonitoredTable("oi_change_events", "watchlist", None),  # ticker-less
     MonitoredTable("exposures_summary", "watchlist", None),
+    # --- UW historical alpha (migration 108): 3 daily + 2 event-log tables,
+    # all keyed on market_date; nightly capture 18:35-18:55 ET, gated by
+    # UW_SCAN_UW_ALPHA_CAPTURE_ENABLED. Registered in the healer REGISTRY too,
+    # but that does NOT enroll them here — MONITORED_TABLES is a separate list.
+    MonitoredTable("uw_gex_levels_daily", "watchlist", None),
+    MonitoredTable("uw_volatility_signal_daily", "watchlist", None),
+    MonitoredTable("uw_short_pressure_daily", "watchlist", None),
+    MonitoredTable("uw_dark_lit_flow_prints", "watchlist", None),
+    MonitoredTable("uw_intraday_option_flow_bars", "watchlist", None),
     # --- Tier 3: regime scanner outputs (hourly :20/:25 scans). These run
     # over a small fixed index set, not the full watchlist -- verified stable
     # across a 14-day window against real prod data before picking each set.

@@ -1,0 +1,115 @@
+{
+  "data": {
+    "history": [
+      {
+        "date": "2026-06-09",
+        "direction": "short_vol",
+        "score": "25.485241212290692"
+      },
+      {
+        "date": "2026-06-10",
+        "direction": "short_vol",
+        "score": "49.955898673863224"
+      },
+      {
+        "date": "2026-06-11",
+        "direction": "short_vol",
+        "score": "25.002339158486528"
+      },
+      {
+        "date": "2026-06-12",
+        "direction": "short_vol",
+        "score": "48.69810826391689"
+      },
+      {
+        "date": "2026-06-15",
+        "direction": "short_vol",
+        "score": "27.23783831885351"
+      },
+      {
+        "date": "2026-06-16",
+        "direction": "short_vol",
+        "score": "27.662821210579825"
+      },
+      {
+        "date": "2026-06-17",
+        "direction": "short_vol",
+        "score": "25.95084733772256"
+      },
+      {
+        "date": "2026-06-18",
+        "direction": "short_vol",
+        "score": "26.673258239040642"
+      },
+      {
+        "date": "2026-06-22",
+        "direction": "short_vol",
+        "score": "50.73631049991882"
+      },
+      {
+        "date": "2026-06-23",
+        "direction": "neutral",
+        "score": "-23.736237287727967"
+      },
+      {
+        "date": "2026-06-24",
+        "direction": "neutral",
+        "score": "2.1854235400391624"
+      },
+      {
+        "date": "2026-06-25",
+        "direction": "neutral",
+        "score": "-11.471782291506338"
+      },
+      {
+        "date": "2026-06-26",
+        "direction": "short_vol",
+        "score": "27.24994489960829"
+      },
+      {
+        "date": "2026-06-29",
+        "direction": "neutral",
+        "score": "16.98141683210724"
+      },
+      {
+        "date": "2026-06-30",
+        "direction": "neutral",
+        "score": "-18.210698183266043"
+      }
+    ],
+    "latest": {
+      "date": "2026-06-30",
+      "ticker": "AAPL",
+      "components": {
+        "iv_percentile": {
+          "raw": 78.8,
+          "value": 0.5759999999999998
+        },
+        "regime_score": {
+          "crash_probability": 0.0,
+          "raw": -0.05434929324039481,
+          "value": -0.05434929324039481
+        },
+        "skew_percentile": {
+          "percentile": 0.18253968253968253,
+          "raw": -0.012490133175618081,
+          "value": -0.6349206349206349
+        },
+        "vov_percentile": {
+          "raw": 4.23582295988935,
+          "value": 0.5
+        },
+        "vrp_z": {
+          "mean": 0.031510702190316875,
+          "raw": -0.117485,
+          "std": 0.055971542548333184,
+          "value": -0.887330093154954
+        }
+      },
+      "direction": "neutral",
+      "updated_at": "2026-06-30T23:15:08.462662Z",
+      "score": "-18.210698183266043",
+      "sample_size": 5
+    }
+  }
+}

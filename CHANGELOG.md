@@ -7,6 +7,25 @@ version in lockstep (enforced by `scripts/release/version_sync_check.py`).
 
 ## [Unreleased]
 
+### Added
+
+- **UW historical-alpha datasets** (`uw_gex_levels_daily`,
+  `uw_volatility_signal_daily`, `uw_short_pressure_daily`,
+  `uw_intraday_option_flow_bars`, `uw_dark_lit_flow_prints`) now have the full
+  Argon lifecycle: fetchers + normalizers + storage, **recurring nightly capture**
+  (5 jobs on uw-0 at 18:35–18:55 ET, gated by `UW_SCAN_UW_ALPHA_CAPTURE_ENABLED`,
+  default off), **`data_gap_healer` self-healing** for the 3 daily tables +
+  **freshness monitoring** for all 5, and a **resumable catch-up CLI**
+  (`scripts/backfill/uw_alpha_catchup.py`) plus a one-shot runner
+  (`scripts/backfill/uw_alpha_capture_once.py`). Migration 108. The four
+  gex/volatility endpoints (`gex-levels`, `volatility/{anomaly,character,
+  variance-risk-premium}`) are real but were absent from the curated UW docs;
+  their `?date=` as-of behaviour was verified empirically before wiring.
+- The event logs key each print on `(source, tracking_id, executed_at, price,
+  size, volume)`: UW's `tracking_id` is an **order** id shared by distinct child
+  fills, so a `tracking_id`-only key silently collapsed ~95% of lit prints and
+  ~7% of darkpool prints. `volume` (cumulative session volume) is the discriminator.
+
 ## [0.10.12] — 2026-07-22
 
 

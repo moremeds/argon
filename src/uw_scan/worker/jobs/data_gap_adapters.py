@@ -162,6 +162,49 @@ def _run_greek_exposure(ctx: HealContext, ticker: str, market_date: date) -> int
     return 0
 
 
+def _uw_alpha_repo(ctx: HealContext):
+    from uw_scan.storage.uw_historical_alpha_repository import (
+        UwHistoricalAlphaRepository,
+    )
+
+    return UwHistoricalAlphaRepository(ctx.repo.conn, schema=ctx.schema)
+
+
+def _run_gex_levels(ctx: HealContext, ticker: str, market_date: date) -> int:
+    from uw_scan.worker.jobs.uw_alpha_capture import capture_gex_levels_for
+
+    # No commit here: the heal write stays in ctx.repo.conn's tx and is flushed
+    # atomically with the item status by mark_item_healed (see _run_option_surface).
+    run_id = ctx.repo.insert_scan_run(ticker, notes="data_gap_healer:gex_levels")
+    n = capture_gex_levels_for(
+        ctx.uw_client(), ctx.repo, _uw_alpha_repo(ctx), run_id, ticker, market_date
+    )
+    ctx.repo.finish_scan_run(run_id, status="ok")
+    return n
+
+
+def _run_volatility_signal(ctx: HealContext, ticker: str, market_date: date) -> int:
+    from uw_scan.worker.jobs.uw_alpha_capture import capture_volatility_signal_for
+
+    run_id = ctx.repo.insert_scan_run(ticker, notes="data_gap_healer:volatility_signal")
+    n = capture_volatility_signal_for(
+        ctx.uw_client(), ctx.repo, _uw_alpha_repo(ctx), run_id, ticker, market_date
+    )
+    ctx.repo.finish_scan_run(run_id, status="ok")
+    return n
+
+
+def _run_short_pressure(ctx: HealContext, ticker: str, market_date: date) -> int:
+    from uw_scan.worker.jobs.uw_alpha_capture import capture_short_pressure_for
+
+    run_id = ctx.repo.insert_scan_run(ticker, notes="data_gap_healer:short_pressure")
+    n = capture_short_pressure_for(
+        ctx.uw_client(), ctx.repo, _uw_alpha_repo(ctx), run_id, ticker, market_date
+    )
+    ctx.repo.finish_scan_run(run_id, status="ok")
+    return n
+
+
 def _run_vol_rollup(ctx: HealContext) -> int:
     from uw_scan.worker.volatility_jobs import nightly_vol_analytics_rollup
 
@@ -272,6 +315,23 @@ HEAL_SPECS: dict[str, HealSpec] = {
         "per_ticker_date",
         _run_greek_exposure,
         est_per_item=1,
+    ),
+    "gex_levels": HealSpec(
+        "gex_levels", "uw", "per_ticker_date", _run_gex_levels, est_per_item=1
+    ),
+    "volatility_signal": HealSpec(
+        "volatility_signal",
+        "uw",
+        "per_ticker_date",
+        _run_volatility_signal,
+        est_per_item=3,  # anomaly + character + vrp
+    ),
+    "short_pressure": HealSpec(
+        "short_pressure",
+        "uw",
+        "per_ticker_date",
+        _run_short_pressure,
+        est_per_item=3,  # interest-float + ftds + volumes-by-exchange
     ),
     "vol_analytics_rollup": HealSpec(
         "vol_analytics_rollup", "db", "run_once", _run_vol_rollup, est_per_item=0
