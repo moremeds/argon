@@ -68,7 +68,8 @@ def _dec(value) -> Decimal | None:
         return None
     try:
         return Decimal(str(value))
-    except (InvalidOperation, ValueError):
+    except (InvalidOperation, ValueError) as exc:
+        logger.debug("coercion skipped: %s", repr(exc))
         return None
 
 
