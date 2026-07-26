@@ -21,6 +21,19 @@ version in lockstep (enforced by `scripts/release/version_sync_check.py`).
   https://x.com/bitfool1/status/2079479920162734401 — its third leg (NTM P/E)
   is not sourceable on our tier and is replaced by the IV-rank spread.
 
+  **Known limitations, both tracked and not yet fixed.** The price leg reads
+  `close` off UW's `in-outflow` response, so a flow outage becomes a price
+  outage: UW silently stopped serving SOXX/IGV/IAU on 2026-05-15 (SOXX/IGV
+  resumed 2026-07-01), and because the return window is row-indexed rather than
+  calendar-anchored, SOXX's 63-row window spanned 135 calendar days against 92
+  for the clean SPDRs — printing a false `CROWDED` badge (41st percentile via
+  gap-free `daily_ohlc`, not the 77th it showed). The panel is therefore
+  **descriptive only**: an empirical study over 16,706 sector-days
+  (`docs/research/2026-07-26-sector-crowding-lifecycle.md`) found no stable
+  forward-return threshold on the best-powered leg — the apparent `CLIMAX`
+  signal is `+1.16`/63% in 2021–23 and `−1.94`/29% in 2024–26 — so no part of
+  this is a timing surface.
+
 ### Fixed
 
 - **ETF AUM unit normalization.** UW returns `aum` in billions for the 12 SPDR
