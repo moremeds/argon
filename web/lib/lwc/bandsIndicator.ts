@@ -10,6 +10,10 @@
  * - Times converted to epoch seconds for the autoscale binary search
  *   (upstream assumed numeric times; ours are 'yyyy-mm-dd' strings).
  * - Empty-data guards added (upstream crashed on points[0]).
+ * - Gap-aware rendering: upstream always connected every point in the array.
+ *   A `BandPoint` with upper/lower omitted now breaks the polyline into a new
+ *   segment instead of drawing a straight line across a hole in the data
+ *   (warm-up, or a bar with missing OHLC) — see `contiguousValidRuns`.
  */
 import { CanvasRenderingTarget2D } from "fancy-canvas";
 import type {
@@ -26,11 +30,12 @@ import type {
   Time,
 } from "lightweight-charts";
 
-export interface BandPoint {
-  time: Time; // same representation as the attached series' data ('yyyy-mm-dd')
-  upper: number;
-  lower: number;
-}
+// A point with upper/lower omitted is a gap (mirrors lightweight-charts'
+// LineData | WhitespaceData convention) — it breaks the polyline instead of
+// connecting straight across a hole in the underlying data.
+export type BandPoint =
+  | { time: Time; upper: number; lower: number }
+  | { time: Time; upper?: undefined; lower?: undefined };
 
 export interface BandsIndicatorOptions {
   lineColor?: string;
@@ -105,7 +110,9 @@ interface UpperLowerData {
   lower: number;
 }
 
-class UpperLowerInRange<T extends UpperLowerData> {
+// Gap points (upper/lower undefined) are skipped, not treated as 0 — a gap
+// contributes nothing to the visible price range.
+class UpperLowerInRange<T extends { upper?: number; lower?: number }> {
   private _arr: T[];
   private _chunkSize: number;
   private _cache: Map<string, UpperLowerData>;
@@ -154,7 +161,11 @@ class UpperLowerInRange<T extends UpperLowerData> {
     return result;
   }
 
-  private _check(item: UpperLowerData, state: UpperLowerData) {
+  private _check(
+    item: { upper?: number; lower?: number },
+    state: UpperLowerData,
+  ) {
+    if (item.lower == null || item.upper == null) return;
     if (item.lower < state.lower) state.lower = item.lower;
     if (item.upper > state.upper) state.upper = item.upper;
   }
@@ -197,13 +208,36 @@ abstract class PluginBase implements ISeriesPrimitive<Time> {
 
 interface BandRendererData {
   x: Coordinate | number;
-  upper: Coordinate | number;
-  lower: Coordinate | number;
+  upper: Coordinate | number | null;
+  lower: Coordinate | number | null;
 }
 
 interface BandViewData {
   data: BandRendererData[];
   options: Required<BandsIndicatorOptions>;
+}
+
+// Maximal [start, end] index ranges (inclusive) where upper is non-null.
+// A run needs >= 2 points to draw a region; isolated single-point runs are
+// dropped by callers, same as the original whole-array `length < 2` guard.
+// Pulled out of drawBackground so the gap-segmentation logic is unit-testable
+// without a canvas.
+export function contiguousValidRuns(
+  points: readonly { upper: unknown }[],
+): Array<[number, number]> {
+  const runs: Array<[number, number]> = [];
+  let i = 0;
+  while (i < points.length) {
+    if (points[i].upper == null) {
+      i++;
+      continue;
+    }
+    let j = i;
+    while (j + 1 < points.length && points[j + 1].upper != null) j++;
+    if (j > i) runs.push([i, j]);
+    i = j + 1;
+  }
+  return runs;
 }
 
 class BandsIndicatorPaneRenderer implements IPrimitivePaneRenderer {
@@ -214,7 +248,10 @@ class BandsIndicatorPaneRenderer implements IPrimitivePaneRenderer {
   draw() {}
   drawBackground(target: CanvasRenderingTarget2D) {
     const points: BandRendererData[] = this._viewData.data;
-    if (points.length < 2) return; // adaptation: upstream crashed on empty data
+    // A gap point (null upper/lower) breaks the polyline into segments
+    // instead of connecting straight across a hole in the underlying data.
+    const runs = contiguousValidRuns(points);
+    if (runs.length === 0) return; // adaptation: upstream crashed on empty data
     target.useBitmapCoordinateSpace((scope) => {
       const ctx = scope.context;
       ctx.scale(scope.horizontalPixelRatio, scope.verticalPixelRatio);
@@ -224,21 +261,24 @@ class BandsIndicatorPaneRenderer implements IPrimitivePaneRenderer {
       ctx.beginPath();
       const region = new Path2D();
       const lines = new Path2D();
-      region.moveTo(points[0].x, points[0].upper);
-      lines.moveTo(points[0].x, points[0].upper);
-      for (const point of points) {
-        region.lineTo(point.x, point.upper);
-        lines.lineTo(point.x, point.upper);
+      for (const [i, j] of runs) {
+        const upperAt = (k: number) => points[k].upper as number;
+        const lowerAt = (k: number) => points[k].lower as number;
+        region.moveTo(points[i].x, upperAt(i));
+        lines.moveTo(points[i].x, upperAt(i));
+        for (let k = i; k <= j; k++) {
+          region.lineTo(points[k].x, upperAt(k));
+          lines.lineTo(points[k].x, upperAt(k));
+        }
+        region.lineTo(points[j].x, lowerAt(j));
+        lines.moveTo(points[j].x, lowerAt(j));
+        for (let k = j - 1; k >= i; k--) {
+          region.lineTo(points[k].x, lowerAt(k));
+          lines.lineTo(points[k].x, lowerAt(k));
+        }
+        region.lineTo(points[i].x, upperAt(i));
+        region.closePath();
       }
-      const end = points.length - 1;
-      region.lineTo(points[end].x, points[end].lower);
-      lines.moveTo(points[end].x, points[end].lower);
-      for (let i = points.length - 2; i >= 0; i--) {
-        region.lineTo(points[i].x, points[i].lower);
-        lines.lineTo(points[i].x, points[i].lower);
-      }
-      region.lineTo(points[0].x, points[0].upper);
-      region.closePath();
       ctx.stroke(lines);
       ctx.fillStyle = this._viewData.options.fillColor;
       ctx.fill(region);
@@ -260,8 +300,10 @@ class BandsIndicatorPaneView implements IPrimitivePaneView {
     const timeScale = this._source.chart.timeScale();
     this._data.data = this._source._bandsData.map((d) => ({
       x: timeScale.timeToCoordinate(d.time) ?? -100,
-      upper: series.priceToCoordinate(d.upper) ?? -100,
-      lower: series.priceToCoordinate(d.lower) ?? -100,
+      upper:
+        d.upper != null ? (series.priceToCoordinate(d.upper) ?? -100) : null,
+      lower:
+        d.lower != null ? (series.priceToCoordinate(d.lower) ?? -100) : null,
     }));
   }
 

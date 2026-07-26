@@ -158,19 +158,18 @@ export function toAtrBandData(
     rows.map((r) => r.close),
     period,
   );
-  const out: BandPoint[] = [];
-  rows.forEach((r, i) => {
+  // One entry per row, always — a gap (warm-up or a broken bar) is an
+  // explicit whitespace point, not an omission, so the renderer can break
+  // the polyline there instead of connecting straight across the hole.
+  return rows.map((r, i) => {
     const m = r.sma20;
     const v = a[i];
+    const t = r.as_of as Time;
     if (m != null && v != null && v > 0) {
-      out.push({
-        time: r.as_of as Time,
-        upper: m + mult * v,
-        lower: m - mult * v,
-      });
+      return { time: t, upper: m + mult * v, lower: m - mult * v };
     }
+    return { time: t };
   });
-  return out;
 }
 
 export function toEmaLineData(
@@ -198,15 +197,15 @@ export function toBollingerBandData(
     period,
     mult,
   );
-  const out: BandPoint[] = [];
-  rows.forEach((r, i) => {
+  // One entry per row, always — see toAtrBandData's gap-point rationale.
+  return rows.map((r, i) => {
     const u = bb.upper[i];
     const l = bb.lower[i];
-    if (u != null && l != null && u > l) {
-      out.push({ time: r.as_of as Time, upper: u, lower: l });
-    }
+    const t = r.as_of as Time;
+    return u != null && l != null && u > l
+      ? { time: t, upper: u, lower: l }
+      : { time: t };
   });
-  return out;
 }
 
 export function toVolumeMaData(

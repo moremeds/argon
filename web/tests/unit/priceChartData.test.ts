@@ -70,7 +70,7 @@ describe("priceChartData", () => {
     expect(c).toEqual({ time: "2026-07-07" }); // no volume -> whitespace
   });
 
-  it("toAtrBandData: sma20 ±2·ATR14, nothing before the 14-bar warm-up", () => {
+  it("toAtrBandData: sma20 ±2·ATR14, one entry per row, warm-up as gap points", () => {
     // constant H/L/C -> every true range is 2, so ATR14 = 2 from bar 13 on.
     const bars = Array.from({ length: 15 }, (_, i) => ({
       as_of: `d${i}`,
@@ -80,12 +80,16 @@ describe("priceChartData", () => {
       sma20: 100,
     }));
     const out = toAtrBandData(bars as never[]);
-    expect(out).toEqual([
-      { time: "d13", upper: 104, lower: 96 },
-      { time: "d14", upper: 104, lower: 96 },
-    ]);
-    // missing H/L breaks the chain -> no band at all in a short window
-    expect(toAtrBandData(bars.slice(0, 13) as never[])).toEqual([]);
+    expect(out).toHaveLength(15); // never omits a row, even during warm-up
+    expect(out.slice(0, 13)).toEqual(
+      Array.from({ length: 13 }, (_, i) => ({ time: `d${i}` })),
+    );
+    expect(out[13]).toEqual({ time: "d13", upper: 104, lower: 96 });
+    expect(out[14]).toEqual({ time: "d14", upper: 104, lower: 96 });
+    // too short to ever finish warm-up -> every entry is a gap point
+    expect(toAtrBandData(bars.slice(0, 13) as never[])).toEqual(
+      Array.from({ length: 13 }, (_, i) => ({ time: `d${i}` })),
+    );
   });
 });
 
@@ -205,18 +209,23 @@ describe("toEmaLineData / toBollingerBandData / toVolumeMaData", () => {
     const last = out[out.length - 1] as { value?: number };
     expect(last.value).toBeCloseTo(750.2677023210776, 8);
   });
-  it("bollinger emits only converged points with frozen bounds at the tail", () => {
+  it("bollinger emits a gap point per warm-up bar, converged bounds at the tail", () => {
     const bb = toBollingerBandData(rows);
-    expect(bb.length).toBe(SPY_BARS.length - 19); // first 19 bars warmup
-    expect(bb[bb.length - 1].upper).toBeCloseTo(758.1623930384142, 6);
-    expect(bb[bb.length - 1].lower).toBeCloseTo(729.4606069615859, 6);
+    expect(bb).toHaveLength(SPY_BARS.length); // one entry per row, never omitted
+    const warmup = bb.slice(0, 19); // first 19 bars warmup
+    expect(warmup.every((p) => !("upper" in p))).toBe(true);
+    const last = bb[bb.length - 1] as { upper: number; lower: number };
+    expect(last.upper).toBeCloseTo(758.1623930384142, 6);
+    expect(last.lower).toBeCloseTo(729.4606069615859, 6);
   });
-  it("skips degenerate zero-width Bollinger points", () => {
+  it("degenerate zero-width Bollinger points render as gaps, not omitted rows", () => {
     const rows = Array.from({ length: 20 }, (_, i) => ({
       as_of: `2026-01-${String(i + 1).padStart(2, "0")}`,
       close: 100,
     }));
-    expect(toBollingerBandData(rows)).toEqual([]);
+    const out = toBollingerBandData(rows);
+    expect(out).toHaveLength(20);
+    expect(out.every((p) => !("upper" in p))).toBe(true);
   });
   it("volume MA50 last point matches the frozen pandas value", () => {
     const out = toVolumeMaData(rows, 50);
