@@ -17,6 +17,7 @@ version in lockstep (enforced by `scripts/release/version_sync_check.py`).
 
 ## [0.10.13] — 2026-07-25
 
+
 ### Added
 
 - **UW historical-alpha datasets** (`uw_gex_levels_daily`,
@@ -29,14 +30,14 @@ version in lockstep (enforced by `scripts/release/version_sync_check.py`).
   (`scripts/backfill/uw_alpha_catchup.py`) plus a one-shot runner
   (`scripts/backfill/uw_alpha_capture_once.py`). Migration 108. The four
   gex/volatility endpoints (`gex-levels`, `volatility/{anomaly,character,
-variance-risk-premium}`) are real but were absent from the curated UW docs;
+  variance-risk-premium}`) are real but were absent from the curated UW docs;
   their `?date=` as-of behaviour was verified empirically before wiring.
 - The event logs key each print on `(source, tracking_id, executed_at, price,
-size, volume)`: UW's `tracking_id` is an **order** id shared by distinct child
+  size, volume)`: UW's `tracking_id` is an **order** id shared by distinct child
   fills, so a `tracking_id`-only key silently collapsed ~95% of lit prints and
   ~7% of darkpool prints. `volume` (cumulative session volume) is the discriminator.
-
 ## [0.10.12] — 2026-07-22
+
 
 ### Fixed
 
@@ -50,8 +51,8 @@ size, volume)`: UW's `tracking_id` is an **order** id shared by distinct child
   vol/spot both come from `vol_index_daily`, not this code path). Now reads
   the explicit `1d.parquet`, matching the already-correct sibling pattern in
   `_volatility_lake_close`.
-
 ## [0.10.11] — 2026-07-22
+
 
 ### Fixed
 
@@ -101,8 +102,8 @@ size, volume)`: UW's `tracking_id` is an **order** id shared by distinct child
 
 - `REGIME_RECOVERY_LOOKBACK_DAYS` 7 → 30 (calendar days). A recovery window must
   exceed time-to-detect, not typical outage length.
-
 ## [0.10.10] — 2026-07-20
+
 
 ### Added
 
@@ -169,7 +170,6 @@ size, volume)`: UW's `tracking_id` is an **order** id shared by distinct child
   edge. An arrow labelled BUY that moves tomorrow and predicts nothing implies a
   signal the data does not support. The profile, POC, value area and zones stay
   as descriptive structure.
-
 ## [0.10.9] — 2026-07-20
 
 ### Added

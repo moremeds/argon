@@ -1,5 +1,6 @@
 import { describe, expect, it } from "vitest";
 import {
+  atr,
   bollinger,
   ema,
   fmtVolCompact,
@@ -72,6 +73,38 @@ describe("bollinger", () => {
   });
 });
 
+describe("atr", () => {
+  it("seeds with the SMA of the first N true ranges, then Wilder-smooths varying TRs", () => {
+    // period=3, hand-computed true ranges (see PR review notes):
+    // tr = [2, 3, 1, 4] -> seed avg at i2 = (2+3+1)/3 = 2
+    // i3: prev = (2*2 + 4)/3 = 8/3 -- only a varying TR can catch a smoothing bug;
+    // a constant-TR fixture can't distinguish the seed average from the recursion.
+    const highs = [10, 12, 11, 14];
+    const lows = [8, 9, 10, 10];
+    const closesLocal = [9, 11, 10, 13];
+    const out = atr(highs, lows, closesLocal, 3);
+    expect(out[0]).toBeNull();
+    expect(out[1]).toBeNull();
+    expect(out[2]).toBeCloseTo(2, 10);
+    expect(out[3]).toBeCloseTo(8 / 3, 10);
+  });
+
+  it("breaks the chain on a missing bar and reseeds from scratch after it", () => {
+    // bar 4 is fully missing (H/L/C null) -> breaks the chain AND leaves bar 5
+    // with no valid prior close, so its TR is a plain h-l, not a true range.
+    const highs = [10, 12, 11, 14, null, 10, 10, 13];
+    const lows = [8, 9, 10, 10, null, 9, 8, 10];
+    const closesLocal = [9, 11, 10, 13, null, 9.5, 9, 12];
+    const out = atr(highs, lows, closesLocal, 3);
+    expect(out[3]).toBeCloseTo(8 / 3, 10); // seeded chain before the gap
+    expect(out[4]).toBeNull(); // the gap itself
+    expect(out[5]).toBeNull(); // reseeding, 1/3 TRs collected post-gap
+    expect(out[6]).toBeNull(); // reseeding, 2/3 TRs collected post-gap
+    // reseeded TRs post-gap: i5 tr=h-l=1 (no valid prior close), i6 tr=2, i7 tr=4
+    expect(out[7]).toBeCloseTo((1 + 2 + 4) / 3, 10);
+  });
+});
+
 describe("prevCloseUp", () => {
   it("colors by previous close, falling back to open on the first bar", () => {
     const up = prevCloseUp(SPY_BARS);
@@ -134,7 +167,9 @@ describe("lowVolMarkers", () => {
     50,
   );
   it("no bar is 25% below MA50 on this fixture", () => {
-    expect(lowVolMarkers(SPY_BARS, ma, { thresholdPct: -25, color: "#888" })).toEqual([]);
+    expect(
+      lowVolMarkers(SPY_BARS, ma, { thresholdPct: -25, color: "#888" }),
+    ).toEqual([]);
   });
   it("fires at -20% and labels the rounded deficit", () => {
     const m = lowVolMarkers(SPY_BARS, ma, { thresholdPct: -20, color: "#888" });
