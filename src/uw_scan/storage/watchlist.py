@@ -2,7 +2,8 @@
 
 from __future__ import annotations
 
-from datetime import datetime
+from collections.abc import Sequence
+from datetime import datetime, timedelta
 from decimal import Decimal
 from typing import Any
 
@@ -559,6 +560,38 @@ class _WatchlistMixin:
             for row in all_rows
         ]
         return cards, summary
+
+    def fetch_iv_ranks(
+        self, tickers: Sequence[str], *, max_age: timedelta | None = None
+    ) -> dict[str, float]:
+        """iv_rank per ticker from the warm store. Tickers with no card, a
+        NULL iv_rank, or a card older than `max_age` are omitted rather than
+        returned as None -- the caller treats absence as 'no premium leg'.
+
+        The freshness bound matters: watchlist_card is a warm store that is
+        only refreshed when a ticker actually scans. A ticker that drops out of
+        the scan (the SPX 17-day silent gap in 2026-05 is the precedent) keeps
+        its last iv_rank forever, and an unbounded read would score the premium
+        leg on a month-old number while every other leg is current.
+        """
+        wanted = [t.upper() for t in tickers]
+        if not wanted:
+            return {}
+        clauses = ["ticker = ANY(%s)", "iv_rank IS NOT NULL"]
+        params: list[Any] = [wanted]
+        if max_age is not None:
+            clauses.append("scanned_at >= NOW() - %s")
+            params.append(max_age)
+        with self._conn.cursor() as cur:
+            cur.execute(
+                f"""
+                SELECT ticker, iv_rank
+                FROM {self._schema}.watchlist_card
+                WHERE {" AND ".join(clauses)}
+                """,
+                params,
+            )
+            return {row[0]: float(row[1]) for row in cur.fetchall()}
 
     # daily_ohlc / intraday_quote / pcr_history methods moved to _MarketDataMixin
 
