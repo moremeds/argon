@@ -26,16 +26,21 @@ economically right answer rather than a sign flip.
 
 VERDICT (run 2026-07-26, SOXX): NOT implementable on the current FMP plan.
 
-  1. SYMBOL WHITELIST. /analyst-estimates is entitled per-symbol, not per-plan:
+  1. SYMBOL UNIVERSE. The account's symbol coverage is an 87-name sample:
      26 of 30 SOXX constituents return HTTP 402 "This value set for 'symbol' is
      not available under your current subscription". Only AMD, NVDA, INTC, TSM
      resolve -> 26.59% of the fund's 99.90% weight. XLK's top ten fares better
      (6/10, 42.80% of its 59.24%) but is still short.
-     The gaps are NOT random: in XLK, MU / AVGO / AMAT / LRCX are blocked while
-     NVDA / AAPL / MSFT / AMD / INTC / CSCO pass -- the blocked cohort is semis
-     and semicap, systematically the highest-multiple names. Dropping them
-     biases an aggregate P/E DOWNWARD, by a sector-dependent amount that also
-     drifts over time. Worse than no number.
+     The gate is ACCOUNT-WIDE on the symbol, not specific to estimates -- see
+     fmp_tier_probe.py: AVGO/MU/AMAT are 402 on income-statement, ratios, quote,
+     historical-price-eod, earnings and grades as well; only profile and
+     shares-float survive. FMP's pricing matrix labels the Basic column
+     "Symbol Limited to AAPL, TSLA, AMZN and 84 more".
+     The survivors are therefore an unrepresentative mega-cap slice of the fund,
+     so the aggregate is biased, not just thin. Worse than no number.
+     (An earlier draft blamed FMP for singling out high-multiple semis. Wrong:
+     the 87 sample names skew mega-cap, so what read as a sector pattern was
+     SOXX being mostly non-mega-cap. Conclusion holds, mechanism did not.)
 
   2. CURRENCY, WITH NO FIELD TO DETECT IT. Estimates arrive in the issuer's
      REPORTING currency while prices are USD. TSM returns

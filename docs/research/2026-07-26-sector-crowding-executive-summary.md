@@ -189,19 +189,24 @@ the level is buildable: interpolate NTM from FY1/FY2, 1 call per ticker against 
 revise on analyst action rather than daily). Building it end-to-end for SOXX proved
 otherwise — two blockers invisible to endpoint-level probing:
 
-**① `analyst-estimates` is entitled per *symbol*, not per plan.** 26 of 30 SOXX
-constituents return **402** `"This value set for 'symbol' is not available under your
-current subscription"`. Only AMD, NVDA, INTC and TSM resolve — **26.59% of the fund's
-99.90% weight**. XLK's top ten reaches 6/10, covering 42.80% of its 59.24%.
+**① The account's symbol universe is an 87-name sample.** 26 of 30 SOXX constituents
+return **402** `"This value set for 'symbol' is not available under your current
+subscription"`. Only AMD, NVDA, INTC and TSM resolve — **26.59% of the fund's 99.90%
+weight**. XLK's top ten reaches 6/10, covering 42.80% of its 59.24%.
 
-The gaps are **not random**. In XLK, MU / AVGO / AMAT / LRCX are blocked while
-NVDA / AAPL / MSFT / AMD / INTC / CSCO pass — the blocked cohort is semis and semicap,
-systematically the highest-multiple names. Renormalising over the survivors therefore
-biases the aggregate P/E **downward** by a sector-dependent amount that drifts with
-leadership. Worse: the bias *anti-correlates with the signal* — a semis-led melt-up is
-exactly when the missing names dominate the true aggregate, so the indicator would read
-calmest precisely when the thing it measures is happening. That is a confidently wrong
-number, not a noisy one.
+The restriction is **account-wide on the symbol, not specific to estimates**: a follow-up
+probe crossing blocked names against every endpoint either repo calls found AVGO / MU /
+AMAT return 402 on `income-statement`, `ratios`, `quote`, `historical-price-eod`,
+`earnings` and `grades` too — only `profile` and `shares-float` survive. FMP's own
+pricing matrix states the ceiling outright, labelling the Basic column
+`Symbol Limited to AAPL, TSLA, AMZN and 84 more`. See
+`2026-07-26-fmp-starter-tier-evaluation.md`.
+
+So the surviving 26.59% is an **unrepresentative mega-cap sample of the fund**, and an
+aggregate built on it is biased rather than merely noisy. (An earlier draft explained the
+gap as FMP singling out the high-multiple semis/semicap cohort. That was wrong — the
+87 sample names skew mega-cap, so what looked like a sector pattern was SOXX simply being
+mostly non-mega-cap. The bias conclusion stands; the mechanism was a sampling artifact.)
 
 **② Estimates arrive in reporting currency, with no field to detect it.** TSM returns
 `epsAvg=323.34` and `revenueAvg=3.81e12` — TWD (its USD revenue is ~1.2e11) — divided
@@ -212,8 +217,15 @@ mis-united; fixing it needs an FX rate *and* the ADR-to-ordinary ratio from else
 The SOXX aggregate printed **3.61**, which is how ② surfaced at all.
 
 **Single-name NTM P/E for a whitelisted ticker does work today** — NVDA came out clean
-at 19.03 (price 206.84, NTM EPS 10.87). Only the ETF-level aggregate is blocked. ① is a
-402, so an FMP upgrade would buy it; ② needs a second source regardless.
+at 19.03 (price 206.84, NTM EPS 10.87). Only the ETF-level aggregate is blocked.
+
+① is a 402, so it is buyable, and the price is now known: FMP's **Starter tier at
+$22/mo** replaces the 87-symbol sample with all US exchanges and lifts the rate ceiling
+from 250/day to 300/min. ② and ③ are not for sale at any tier — ② is a schema gap (no
+currency field exists in the response) and ③ is an I/B/E/S / Refinitiv / FactSet product.
+So **money clears one of the three blockers.** Full tier analysis, including a
+currently-live silent-empty universe bug it would also fix in apex:
+`2026-07-26-fmp-starter-tier-evaluation.md`.
 
 **Three traps.** ① FMP's `limit` truncates from the **furthest-out** year:
 `limit=3` returns FY2029–2031 and silently omits the years NTM needs, as a clean 200.
@@ -292,10 +304,12 @@ any panel.
 | `docs/research/2026-07-26-sector-crowding-lifecycle.md` / `.json` | §4 empirical study, full 16,706-row panel |
 | `docs/research/2026-07-26-ntm-pe-sourcing-probe.md` | §5 three-vendor entitlement probe |
 | `docs/research/2026-07-26-ntm-pe-feasibility.json` | §5 end-to-end SOXX build: per-constituent HTTP code, weight, price, NTM EPS |
+| `docs/research/2026-07-26-fmp-starter-tier-evaluation.md` / `-fmp-tier-probe.json` | Whether $22/mo FMP Starter is worth buying: 17 endpoints × 4 symbols, tier ladder, apex impact |
 | `scripts/research/sector_crowding_probe.py` | Reproduces the original probe |
 | `scripts/research/sector_crowding_lifecycle.py` | Reproduces §4 |
 | `scripts/research/ntm_pe_sourcing_probe.py` | Reproduces §5's entitlement probe (~7 FMP calls) |
 | `scripts/research/ntm_pe_feasibility.py` | Reproduces §5's SOXX build (1 UW + 1 massive + 1 FMP call per constituent) |
+| `scripts/research/fmp_tier_probe.py` | Reproduces the tier evaluation (~77 FMP calls, budget-capped) |
 | `docs/superpowers/plans/2026-07-26-sector-crowding-panel.md` | Implementation plan (reviewed SHIP, executed) |
 
 ```bash

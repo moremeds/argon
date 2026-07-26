@@ -8,8 +8,10 @@ and FMP · **Verdict: the NTM level, yes. The NTM history, no.**
 > (`scripts/research/ntm_pe_feasibility.py`, results in
 > `2026-07-26-ntm-pe-feasibility.json`) showed it is not: FMP entitles
 > `/analyst-estimates` **per symbol**, so 26 of 30 SOXX constituents are 402 and only
-> 26.59% of fund weight resolves — and the blocked names are systematically the
-> high-multiple semis cohort, biasing the aggregate downward. Estimates also arrive in
+> 26.59% of fund weight resolves — and the gate is account-wide on the symbol rather
+> than specific to estimates (`fmp_tier_probe.py`: FMP's pricing matrix labels the Basic
+> column `Symbol Limited to AAPL, TSLA, AMZN and 84 more`), so the survivors are an
+> unrepresentative mega-cap slice and the aggregate is biased. Estimates also arrive in
 > issuer reporting currency with **no currency field** (TSM: TWD EPS 323.34 against a
 > USD ADR → P/E 0.65). Everything below about *history* stands unchanged; read the
 > "level is buildable" conclusion as refuted. Single-name NTM P/E for a whitelisted
