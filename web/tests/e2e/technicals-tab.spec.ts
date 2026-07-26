@@ -33,7 +33,7 @@ test("overlay toggle flips SMA/EMA legend without console errors", async ({
   await expect(toggle).toBeVisible();
   await toggle.click();
   await expect(page.getByText("EMA5", { exact: true })).toBeVisible();
-  await page.getByRole("button", { name: "SMA·σ" }).click();
+  await page.getByRole("button", { name: "SMA·ATR" }).click();
   await expect(page.getByText("EMA5", { exact: true })).not.toBeVisible();
   expect(consoleErrors.get(page)).toHaveLength(0);
 });

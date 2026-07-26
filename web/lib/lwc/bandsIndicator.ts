@@ -6,7 +6,7 @@
  * Adaptations for argon:
  * - Upstream computed a demo ±10% envelope from the attached series' own
  *   data; this version renders EXPLICIT band values fed via setBandData()
- *   (the ±1.5σ envelope recovered from the stored z-score).
+ *   (an ATR or Bollinger envelope, depending on overlay mode).
  * - Times converted to epoch seconds for the autoscale binary search
  *   (upstream assumed numeric times; ours are 'yyyy-mm-dd' strings).
  * - Empty-data guards added (upstream crashed on points[0]).

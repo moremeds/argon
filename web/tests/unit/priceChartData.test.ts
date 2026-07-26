@@ -1,7 +1,7 @@
 import { describe, expect, it, vi } from "vitest";
 import {
   hasOhlcv,
-  toBandData,
+  toAtrBandData,
   toBollingerBandData,
   toCandleData,
   toEmaLineData,
@@ -70,15 +70,22 @@ describe("priceChartData", () => {
     expect(c).toEqual({ time: "2026-07-07" }); // no volume -> whitespace
   });
 
-  it("toBandData recovers the ±1.5σ envelope from stored z (half = 1.5·(c−m)/z)", () => {
-    const r = { as_of: "2026-07-06", close: 110, sma200: 100, z: 2 };
-    // sigma = (c-m)/z = 5 -> half = 7.5
-    expect(toBandData([r] as never[])).toEqual([
-      { time: "2026-07-06", upper: 107.5, lower: 92.5 },
+  it("toAtrBandData: sma20 ±2·ATR14, nothing before the 14-bar warm-up", () => {
+    // constant H/L/C -> every true range is 2, so ATR14 = 2 from bar 13 on.
+    const bars = Array.from({ length: 15 }, (_, i) => ({
+      as_of: `d${i}`,
+      high: 10,
+      low: 8,
+      close: 9,
+      sma20: 100,
+    }));
+    const out = toAtrBandData(bars as never[]);
+    expect(out).toEqual([
+      { time: "d13", upper: 104, lower: 96 },
+      { time: "d14", upper: 104, lower: 96 },
     ]);
-    expect(
-      toBandData([{ as_of: "x", close: 110, sma200: 100, z: 0 }] as never[]),
-    ).toEqual([]);
+    // missing H/L breaks the chain -> no band at all in a short window
+    expect(toAtrBandData(bars.slice(0, 13) as never[])).toEqual([]);
   });
 });
 

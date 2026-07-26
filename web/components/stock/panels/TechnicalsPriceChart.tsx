@@ -23,7 +23,7 @@ import { fmtDecimal } from "@/lib/formatters";
 import { anchoredVwap } from "@/lib/vwap";
 import {
   hasOhlcv,
-  toBandData,
+  toAtrBandData,
   toBollingerBandData,
   toCandleData,
   toCloseLineData,
@@ -843,7 +843,8 @@ export function TechnicalsPriceChart({
       h.mas.fast.setData(toSmaLineData(rows, "sma20"));
       h.mas.mid.setData(toSmaLineData(rows, "sma50"));
       h.mas.slow.setData(toSmaLineData(rows, "sma200"));
-      h.bands.setBandData(toBandData(rows));
+      // ATR needs a 14-bar warm-up, so compute on full history and cut.
+      h.bands.setBandData(cut(toAtrBandData(full)));
     } else {
       h.mas.fast.setData(cut(toEmaLineData(full, 5)));
       h.mas.mid.setData(cut(toEmaLineData(full, 20)));
@@ -1124,7 +1125,7 @@ export function TechnicalsPriceChart({
       >
         {(
           [
-            ["sma", "SMA·σ"],
+            ["sma", "SMA·ATR"],
             ["ema", "EMA·BB"],
           ] as const
         ).map(([m, label]) => (
@@ -1247,7 +1248,7 @@ export function TechnicalsPriceChart({
 
   const title =
     mode === "sma"
-      ? "Price, Moving Averages & ±1.5σ Band"
+      ? "Price, Moving Averages & ATR Band (SMA20 ±2·ATR14)"
       : "Price, EMAs & Bollinger Bands";
 
   if (rows.length < 2) {
