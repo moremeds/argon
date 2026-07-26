@@ -22,6 +22,8 @@ from uw_scan.storage.repository import Repository
 @pytest.fixture
 def repo(seeded_db_empty_cards) -> Repository:
     return seeded_db_empty_cards
+
+
 class _StubClient:
     """Stand-in for UwClient. _get_or_fetch_etf_aum only passes it through to
     uw_sources.fetch_etf_info, which is monkeypatched in each test."""
@@ -56,23 +58,23 @@ def test_get_or_fetch_etf_aum_fetches_and_upserts_on_miss(
 
     def _fake_fetch(*args: Any, **kwargs: Any) -> _StubEtfInfo:
         call_count["n"] += 1
-        return _StubEtfInfo(aum=Decimal("123"))
+        return _StubEtfInfo(aum=Decimal("465904858198"))  # QQQ, 2026-07-24 probe
 
     monkeypatch.setattr("uw_scan.pipeline.uw_sources.fetch_etf_info", _fake_fetch)
 
     out = _get_or_fetch_etf_aum(ticker="QQQ", repo=repo, client=_StubClient(), run_id=1)
-    assert out == Decimal("123")
+    assert out == Decimal("465904858198")
     assert call_count["n"] == 1
 
     # Verify upsert landed.
     cached = repo.get_recent_etf_aum("QQQ", max_age=timedelta(days=7))
-    assert cached == Decimal("123")
+    assert cached == Decimal("465904858198")
 
     # Second call within TTL must NOT increment counter.
     out2 = _get_or_fetch_etf_aum(
         ticker="QQQ", repo=repo, client=_StubClient(), run_id=1
     )
-    assert out2 == Decimal("123")
+    assert out2 == Decimal("465904858198")
     assert call_count["n"] == 1
 
 

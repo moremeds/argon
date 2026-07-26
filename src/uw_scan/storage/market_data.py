@@ -10,6 +10,30 @@ import psycopg
 
 from .rows import DailyOhlcRow, IntradayQuoteRow, PcrHistoryRow
 
+# UW's /api/etfs/{ticker}/info returns `aum` in BILLIONS for the 12 SPDR sector
+# ETFs (XLK -> 180.775642) and in RAW DOLLARS for everything else
+# (SOXX -> 45064294868). Both used to land unconverted in etf_aum_cache, making
+# any flow/AUM ratio wrong by 1e9 for the SPDRs. The watchlist card reads its
+# `aum` from scan_runs.aggregates / the raw etf_info payload, NOT from this
+# cache -- that path is still unnormalized and is not fixed here.
+#
+# ponytail: a genuine sub-$1M-AUM ETF would be mis-scaled by this heuristic.
+# None exist in SECTOR_CROWDING_TICKERS (funds that small get liquidated), and
+# the real gap is enormous -- largest billions value seen is SPY at 743, the
+# smallest dollar value is IGV at 1.4e10. If UW ever publishes a unit field,
+# switch to it and delete this.
+AUM_BILLIONS_THRESHOLD = Decimal("1e6")
+
+
+def normalize_etf_aum(raw: Decimal | float | int | None) -> Decimal | None:
+    """Coerce UW's mixed-unit ETF AUM to raw dollars. Idempotent."""
+    if raw is None:
+        return None
+    value = raw if isinstance(raw, Decimal) else Decimal(str(raw))
+    if value <= 0:
+        return value
+    return value * Decimal("1e9") if value < AUM_BILLIONS_THRESHOLD else value
+
 
 class _MarketDataMixin:
     _conn: psycopg.Connection
@@ -212,7 +236,7 @@ class _MarketDataMixin:
                 (ticker, max_age),
             )
             row = cur.fetchone()
-        return row[0] if row else None
+        return normalize_etf_aum(row[0]) if row else None
 
     def upsert_etf_aum(self, ticker: str, aum: Decimal) -> None:
         ticker = ticker.upper()
@@ -224,6 +248,6 @@ class _MarketDataMixin:
                 ON CONFLICT (ticker) DO UPDATE
                   SET aum = EXCLUDED.aum, fetched_at = EXCLUDED.fetched_at
                 """,
-                (ticker, aum),
+                (ticker, normalize_etf_aum(aum)),
             )
         self._conn.commit()

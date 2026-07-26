@@ -28,6 +28,7 @@ from .reports.trade_insights import (
 )
 from .scanner.pipeline import run_detectors as run_scanner_detectors
 from .sources import uw as uw_sources
+from .storage.market_data import normalize_etf_aum
 from .storage.provider_usage import ExternalApiRequestRecorder
 from .storage.repository import Repository
 from .storage.signals_repository import SignalsRepository
@@ -99,7 +100,9 @@ def _get_or_fetch_etf_aum(
     aum = etf_info.aum
     if aum is not None:
         repo.upsert_etf_aum(ticker, aum)
-    return aum
+    # upsert_etf_aum normalizes on write; normalize here too so the cache-miss
+    # return matches the cache-hit return. Idempotent, so double-calling is safe.
+    return normalize_etf_aum(aum)
 
 
 def _next_friday(today: _date) -> _date:
