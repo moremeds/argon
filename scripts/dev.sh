@@ -86,12 +86,19 @@ COUNTS="UW_SCAN_UW_WORKER_COUNT=2 UW_SCAN_MASSIVE_WORKER_COUNT=2 $AI_COUNTS"
 # remote xenon (e.g. the mini) via XENON_WS_URL in .env.local.
 WS="MASSIVE_WS_ENABLED=true XENON_WS_ENABLED=${XENON_WS_ENABLED:-true}"
 
+# Ports are overridable so a second stack can run beside an already-bound one
+# (e.g. WEB_PORT=3002 API_PORT=8402 bash scripts/dev.sh). The web process reaches
+# FastAPI through NEXT_INTERNAL_API_BASE, so it has to move with API_PORT.
+WEB_PORT="${WEB_PORT:-3001}"
+API_PORT="${API_PORT:-8400}"
+API_BASE="${NEXT_INTERNAL_API_BASE:-http://127.0.0.1:$API_PORT}"
+
 # Base stack (always): web, API, 2x uw, 2x massive.
 names=(next api uw-0 uw-1 massive-0 massive-1)
 colors=(cyan green yellow magenta blue white)
 cmds=(
-  "cd web && npx next dev --port 3001 --webpack"
-  "sleep 15 && $COUNTS $WS uv run uvicorn uw_scan.api.server:app --host 127.0.0.1 --port 8400 --reload --reload-dir src"
+  "cd web && NEXT_INTERNAL_API_BASE=$API_BASE npx next dev --port $WEB_PORT --webpack"
+  "sleep 15 && $COUNTS $WS uv run uvicorn uw_scan.api.server:app --host 127.0.0.1 --port $API_PORT --reload --reload-dir src"
   "sleep 20 && $COUNTS $WS UW_SCAN_WORKER_ROLE=uw UW_SCAN_WORKER_INDEX=0 UW_SCAN_WORKER_COUNT=2 uv run python -m uw_scan.worker.scheduler"
   "sleep 22 && $COUNTS $WS UW_SCAN_WORKER_ROLE=uw UW_SCAN_WORKER_INDEX=1 UW_SCAN_WORKER_COUNT=2 uv run python -m uw_scan.worker.scheduler"
   "sleep 24 && $COUNTS $WS UW_SCAN_WORKER_ROLE=massive UW_SCAN_WORKER_INDEX=0 UW_SCAN_WORKER_COUNT=2 uv run python -m uw_scan.worker.scheduler"

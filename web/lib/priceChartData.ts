@@ -8,6 +8,7 @@ import type {
 import type { TechnicalsResponse } from "@/lib/api";
 import type { BandPoint } from "@/lib/lwc/bandsIndicator";
 import {
+  atr,
   bollinger,
   ema,
   lowestInWindow,
@@ -144,20 +145,31 @@ export function toVolumeData(
   });
 }
 
-// ±1.5σ envelope recovered from stored z exactly as the retired SVG pane did:
-// half = 1.5 * (close - sma200) / z, where z = (close - sma200) / sigma.
-export function toBandData(rows: readonly SeriesRow[]): BandPoint[] {
-  const out: BandPoint[] = [];
-  for (const r of rows) {
-    const c = r.close;
-    const m = r.sma200;
-    const z = r.z;
-    if (c != null && m != null && z != null && z !== 0 && Number.isFinite(z)) {
-      const half = 1.5 * ((c - m) / z);
-      out.push({ time: r.as_of as Time, upper: m + half, lower: m - half });
+// Keltner-style ATR envelope: sma20 ± mult · ATR(period). Replaces the old
+// ±1.5σ-around-sma200 band, which was a slow-moving cloud price rarely touched.
+export function toAtrBandData(
+  rows: readonly SeriesRow[],
+  period = 14,
+  mult = 2,
+): BandPoint[] {
+  const a = atr(
+    rows.map((r) => r.high),
+    rows.map((r) => r.low),
+    rows.map((r) => r.close),
+    period,
+  );
+  // One entry per row, always — a gap (warm-up or a broken bar) is an
+  // explicit whitespace point, not an omission, so the renderer can break
+  // the polyline there instead of connecting straight across the hole.
+  return rows.map((r, i) => {
+    const m = r.sma20;
+    const v = a[i];
+    const t = r.as_of as Time;
+    if (m != null && v != null && v > 0) {
+      return { time: t, upper: m + mult * v, lower: m - mult * v };
     }
-  }
-  return out;
+    return { time: t };
+  });
 }
 
 export function toEmaLineData(
@@ -185,15 +197,15 @@ export function toBollingerBandData(
     period,
     mult,
   );
-  const out: BandPoint[] = [];
-  rows.forEach((r, i) => {
+  // One entry per row, always — see toAtrBandData's gap-point rationale.
+  return rows.map((r, i) => {
     const u = bb.upper[i];
     const l = bb.lower[i];
-    if (u != null && l != null && u > l) {
-      out.push({ time: r.as_of as Time, upper: u, lower: l });
-    }
+    const t = r.as_of as Time;
+    return u != null && l != null && u > l
+      ? { time: t, upper: u, lower: l }
+      : { time: t };
   });
-  return out;
 }
 
 export function toVolumeMaData(

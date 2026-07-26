@@ -100,11 +100,52 @@ export function bollinger(
   return { upper, lower };
 }
 
+/** Wilder ATR: seeded with the SMA of the first `period` true ranges, then
+ * smoothed by ((prev·(n−1)) + tr)/n. A bar with missing H/L/C breaks the chain —
+ * output is null there and the seed restarts.
+ * ponytail: chain restart, not interpolation; a data hole should show as a gap. */
+export function atr(
+  highs: readonly (number | null | undefined)[],
+  lows: readonly (number | null | undefined)[],
+  closes: readonly (number | null | undefined)[],
+  period = 14,
+): (number | null)[] {
+  const out: (number | null)[] = new Array(closes.length).fill(null);
+  let seedSum = 0;
+  let seedCount = 0;
+  let prev: number | null = null;
+  for (let i = 0; i < closes.length; i++) {
+    const h = highs[i];
+    const l = lows[i];
+    const c = closes[i];
+    const pc = closes[i - 1];
+    if (!fin(h) || !fin(l) || !fin(c)) {
+      seedSum = 0;
+      seedCount = 0;
+      prev = null;
+      continue;
+    }
+    const tr = fin(pc)
+      ? Math.max(h - l, Math.abs(h - pc), Math.abs(l - pc))
+      : h - l;
+    if (prev == null) {
+      seedSum += tr;
+      seedCount++;
+      if (seedCount === period) {
+        prev = seedSum / period;
+        out[i] = prev;
+      }
+    } else {
+      prev = (prev * (period - 1) + tr) / period;
+      out[i] = prev;
+    }
+  }
+  return out;
+}
+
 /** MarketSmith prevC coloring: up = close >= previous close; the first bar
  * (or a null prev close) falls back to close >= open; null close → null. */
-export function prevCloseUp(
-  rows: readonly IndicatorBar[],
-): (boolean | null)[] {
+export function prevCloseUp(rows: readonly IndicatorBar[]): (boolean | null)[] {
   return rows.map((r, i) => {
     if (!fin(r.close)) return null;
     const prev = i > 0 ? rows[i - 1].close : null;
