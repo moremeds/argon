@@ -111,7 +111,8 @@ export function atr(
   period = 14,
 ): (number | null)[] {
   const out: (number | null)[] = new Array(closes.length).fill(null);
-  let seed: number[] = [];
+  let seedSum = 0;
+  let seedCount = 0;
   let prev: number | null = null;
   for (let i = 0; i < closes.length; i++) {
     const h = highs[i];
@@ -119,7 +120,8 @@ export function atr(
     const c = closes[i];
     const pc = closes[i - 1];
     if (!fin(h) || !fin(l) || !fin(c)) {
-      seed = [];
+      seedSum = 0;
+      seedCount = 0;
       prev = null;
       continue;
     }
@@ -127,9 +129,10 @@ export function atr(
       ? Math.max(h - l, Math.abs(h - pc), Math.abs(l - pc))
       : h - l;
     if (prev == null) {
-      seed.push(tr);
-      if (seed.length === period) {
-        prev = seed.reduce((a, b) => a + b, 0) / period;
+      seedSum += tr;
+      seedCount++;
+      if (seedCount === period) {
+        prev = seedSum / period;
         out[i] = prev;
       }
     } else {
