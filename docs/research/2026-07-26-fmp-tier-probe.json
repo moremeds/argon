@@ -1,0 +1,614 @@
+{
+  "calls_spent": 77,
+  "results": [
+    {
+      "endpoint": "profile",
+      "category": "profile+reference",
+      "symbol": "NVDA",
+      "http": 200,
+      "rows": 1,
+      "error": ""
+    },
+    {
+      "endpoint": "shares-float",
+      "category": "profile+reference",
+      "symbol": "NVDA",
+      "http": 200,
+      "rows": 1,
+      "error": ""
+    },
+    {
+      "endpoint": "income-statement",
+      "category": "annual fundamentals",
+      "symbol": "NVDA",
+      "http": 200,
+      "rows": 2,
+      "error": ""
+    },
+    {
+      "endpoint": "balance-sheet",
+      "category": "annual fundamentals",
+      "symbol": "NVDA",
+      "http": 200,
+      "rows": 2,
+      "error": ""
+    },
+    {
+      "endpoint": "ratios",
+      "category": "annual fundamentals",
+      "symbol": "NVDA",
+      "http": 200,
+      "rows": 2,
+      "error": ""
+    },
+    {
+      "endpoint": "key-metrics",
+      "category": "annual fundamentals",
+      "symbol": "NVDA",
+      "http": 200,
+      "rows": 2,
+      "error": ""
+    },
+    {
+      "endpoint": "income-stmt QUARTER",
+      "category": "quarterly (higher tier?)",
+      "symbol": "NVDA",
+      "http": 200,
+      "rows": 2,
+      "error": ""
+    },
+    {
+      "endpoint": "hist-price-eod/full",
+      "category": "historical prices",
+      "symbol": "NVDA",
+      "http": 200,
+      "rows": 1254,
+      "error": ""
+    },
+    {
+      "endpoint": "historical-chart 1day",
+      "category": "historical prices",
+      "symbol": "NVDA",
+      "http": 404,
+      "rows": 0,
+      "error": ""
+    },
+    {
+      "endpoint": "quote",
+      "category": "historical prices",
+      "symbol": "NVDA",
+      "http": 200,
+      "rows": 1,
+      "error": ""
+    },
+    {
+      "endpoint": "news/stock",
+      "category": "news",
+      "symbol": "NVDA",
+      "http": 402,
+      "rows": 0,
+      "error": "Restricted Endpoint: This endpoint is not available under your current subscription please visit our subscript"
+    },
+    {
+      "endpoint": "analyst-estimates",
+      "category": "ANALYST ESTIMATES",
+      "symbol": "NVDA",
+      "http": 200,
+      "rows": 10,
+      "error": ""
+    },
+    {
+      "endpoint": "price-target-summary",
+      "category": "analyst (gated?)",
+      "symbol": "NVDA",
+      "http": 200,
+      "rows": 1,
+      "error": ""
+    },
+    {
+      "endpoint": "grades",
+      "category": "analyst (apex uses)",
+      "symbol": "NVDA",
+      "http": 200,
+      "rows": 1131,
+      "error": ""
+    },
+    {
+      "endpoint": "earnings",
+      "category": "earnings (apex uses)",
+      "symbol": "NVDA",
+      "http": 200,
+      "rows": 2,
+      "error": ""
+    },
+    {
+      "endpoint": "etf/holdings",
+      "category": "ETF holdings (known 402)",
+      "symbol": "NVDA",
+      "http": 402,
+      "rows": 0,
+      "error": "Restricted Endpoint: This endpoint is not available under your current subscription please visit our subscript"
+    },
+    {
+      "endpoint": "institutional-ownership",
+      "category": "13F (gated?)",
+      "symbol": "NVDA",
+      "http": 402,
+      "rows": 0,
+      "error": "Restricted Endpoint: This endpoint is not available under your current subscription please visit our subscript"
+    },
+    {
+      "endpoint": "profile",
+      "category": "profile+reference",
+      "symbol": "AVGO",
+      "http": 200,
+      "rows": 1,
+      "error": ""
+    },
+    {
+      "endpoint": "shares-float",
+      "category": "profile+reference",
+      "symbol": "AVGO",
+      "http": 200,
+      "rows": 1,
+      "error": ""
+    },
+    {
+      "endpoint": "income-statement",
+      "category": "annual fundamentals",
+      "symbol": "AVGO",
+      "http": 402,
+      "rows": 0,
+      "error": "Premium Query Parameter: 'Special Endpoint : This value set for 'symbol' is not available under your current s"
+    },
+    {
+      "endpoint": "balance-sheet",
+      "category": "annual fundamentals",
+      "symbol": "AVGO",
+      "http": 402,
+      "rows": 0,
+      "error": "Premium Query Parameter: 'Special Endpoint : This value set for 'symbol' is not available under your current s"
+    },
+    {
+      "endpoint": "ratios",
+      "category": "annual fundamentals",
+      "symbol": "AVGO",
+      "http": 402,
+      "rows": 0,
+      "error": "Premium Query Parameter: 'Special Endpoint : This value set for 'symbol' is not available under your current s"
+    },
+    {
+      "endpoint": "key-metrics",
+      "category": "annual fundamentals",
+      "symbol": "AVGO",
+      "http": 402,
+      "rows": 0,
+      "error": "Premium Query Parameter: 'Special Endpoint : This value set for 'symbol' is not available under your current s"
+    },
+    {
+      "endpoint": "income-stmt QUARTER",
+      "category": "quarterly (higher tier?)",
+      "symbol": "AVGO",
+      "http": 402,
+      "rows": 0,
+      "error": "Premium Query Parameter: 'Special Endpoint : This value set for 'symbol' is not available under your current s"
+    },
+    {
+      "endpoint": "hist-price-eod/full",
+      "category": "historical prices",
+      "symbol": "AVGO",
+      "http": 402,
+      "rows": 0,
+      "error": "Premium Query Parameter: 'Special Endpoint : This value set for 'symbol' is not available under your current s"
+    },
+    {
+      "endpoint": "historical-chart 1day",
+      "category": "historical prices",
+      "symbol": "AVGO",
+      "http": 404,
+      "rows": 0,
+      "error": ""
+    },
+    {
+      "endpoint": "quote",
+      "category": "historical prices",
+      "symbol": "AVGO",
+      "http": 402,
+      "rows": 0,
+      "error": "Premium Query Parameter: 'Special Endpoint : This value set for 'symbol' is not available under your current s"
+    },
+    {
+      "endpoint": "news/stock",
+      "category": "news",
+      "symbol": "AVGO",
+      "http": 402,
+      "rows": 0,
+      "error": "Restricted Endpoint: This endpoint is not available under your current subscription please visit our subscript"
+    },
+    {
+      "endpoint": "analyst-estimates",
+      "category": "ANALYST ESTIMATES",
+      "symbol": "AVGO",
+      "http": 402,
+      "rows": 0,
+      "error": "Premium Query Parameter: 'Special Endpoint : This value set for 'symbol' is not available under your current s"
+    },
+    {
+      "endpoint": "price-target-summary",
+      "category": "analyst (gated?)",
+      "symbol": "AVGO",
+      "http": 402,
+      "rows": 0,
+      "error": "Premium Query Parameter: 'Special Endpoint : This value set for 'symbol' is not available under your current s"
+    },
+    {
+      "endpoint": "grades",
+      "category": "analyst (apex uses)",
+      "symbol": "AVGO",
+      "http": 402,
+      "rows": 0,
+      "error": "Premium Query Parameter: 'Special Endpoint : This value set for 'symbol' is not available under your current s"
+    },
+    {
+      "endpoint": "earnings",
+      "category": "earnings (apex uses)",
+      "symbol": "AVGO",
+      "http": 402,
+      "rows": 0,
+      "error": "Premium Query Parameter: 'Special Endpoint : This value set for 'symbol' is not available under your current s"
+    },
+    {
+      "endpoint": "etf/holdings",
+      "category": "ETF holdings (known 402)",
+      "symbol": "AVGO",
+      "http": 402,
+      "rows": 0,
+      "error": "Restricted Endpoint: This endpoint is not available under your current subscription please visit our subscript"
+    },
+    {
+      "endpoint": "institutional-ownership",
+      "category": "13F (gated?)",
+      "symbol": "AVGO",
+      "http": 402,
+      "rows": 0,
+      "error": "Restricted Endpoint: This endpoint is not available under your current subscription please visit our subscript"
+    },
+    {
+      "endpoint": "profile",
+      "category": "profile+reference",
+      "symbol": "MU",
+      "http": 200,
+      "rows": 1,
+      "error": ""
+    },
+    {
+      "endpoint": "shares-float",
+      "category": "profile+reference",
+      "symbol": "MU",
+      "http": 200,
+      "rows": 1,
+      "error": ""
+    },
+    {
+      "endpoint": "income-statement",
+      "category": "annual fundamentals",
+      "symbol": "MU",
+      "http": 402,
+      "rows": 0,
+      "error": "Premium Query Parameter: 'Special Endpoint : This value set for 'symbol' is not available under your current s"
+    },
+    {
+      "endpoint": "balance-sheet",
+      "category": "annual fundamentals",
+      "symbol": "MU",
+      "http": 402,
+      "rows": 0,
+      "error": "Premium Query Parameter: 'Special Endpoint : This value set for 'symbol' is not available under your current s"
+    },
+    {
+      "endpoint": "ratios",
+      "category": "annual fundamentals",
+      "symbol": "MU",
+      "http": 402,
+      "rows": 0,
+      "error": "Premium Query Parameter: 'Special Endpoint : This value set for 'symbol' is not available under your current s"
+    },
+    {
+      "endpoint": "key-metrics",
+      "category": "annual fundamentals",
+      "symbol": "MU",
+      "http": 402,
+      "rows": 0,
+      "error": "Premium Query Parameter: 'Special Endpoint : This value set for 'symbol' is not available under your current s"
+    },
+    {
+      "endpoint": "income-stmt QUARTER",
+      "category": "quarterly (higher tier?)",
+      "symbol": "MU",
+      "http": 402,
+      "rows": 0,
+      "error": "Premium Query Parameter: 'Special Endpoint : This value set for 'symbol' is not available under your current s"
+    },
+    {
+      "endpoint": "hist-price-eod/full",
+      "category": "historical prices",
+      "symbol": "MU",
+      "http": 402,
+      "rows": 0,
+      "error": "Premium Query Parameter: 'Special Endpoint : This value set for 'symbol' is not available under your current s"
+    },
+    {
+      "endpoint": "historical-chart 1day",
+      "category": "historical prices",
+      "symbol": "MU",
+      "http": 404,
+      "rows": 0,
+      "error": ""
+    },
+    {
+      "endpoint": "quote",
+      "category": "historical prices",
+      "symbol": "MU",
+      "http": 402,
+      "rows": 0,
+      "error": "Premium Query Parameter: 'Special Endpoint : This value set for 'symbol' is not available under your current s"
+    },
+    {
+      "endpoint": "news/stock",
+      "category": "news",
+      "symbol": "MU",
+      "http": 402,
+      "rows": 0,
+      "error": "Restricted Endpoint: This endpoint is not available under your current subscription please visit our subscript"
+    },
+    {
+      "endpoint": "analyst-estimates",
+      "category": "ANALYST ESTIMATES",
+      "symbol": "MU",
+      "http": 402,
+      "rows": 0,
+      "error": "Premium Query Parameter: 'Special Endpoint : This value set for 'symbol' is not available under your current s"
+    },
+    {
+      "endpoint": "price-target-summary",
+      "category": "analyst (gated?)",
+      "symbol": "MU",
+      "http": 402,
+      "rows": 0,
+      "error": "Premium Query Parameter: 'Special Endpoint : This value set for 'symbol' is not available under your current s"
+    },
+    {
+      "endpoint": "grades",
+      "category": "analyst (apex uses)",
+      "symbol": "MU",
+      "http": 402,
+      "rows": 0,
+      "error": "Premium Query Parameter: 'Special Endpoint : This value set for 'symbol' is not available under your current s"
+    },
+    {
+      "endpoint": "earnings",
+      "category": "earnings (apex uses)",
+      "symbol": "MU",
+      "http": 402,
+      "rows": 0,
+      "error": "Premium Query Parameter: 'Special Endpoint : This value set for 'symbol' is not available under your current s"
+    },
+    {
+      "endpoint": "etf/holdings",
+      "category": "ETF holdings (known 402)",
+      "symbol": "MU",
+      "http": 402,
+      "rows": 0,
+      "error": "Restricted Endpoint: This endpoint is not available under your current subscription please visit our subscript"
+    },
+    {
+      "endpoint": "institutional-ownership",
+      "category": "13F (gated?)",
+      "symbol": "MU",
+      "http": 402,
+      "rows": 0,
+      "error": "Restricted Endpoint: This endpoint is not available under your current subscription please visit our subscript"
+    },
+    {
+      "endpoint": "profile",
+      "category": "profile+reference",
+      "symbol": "AMAT",
+      "http": 200,
+      "rows": 1,
+      "error": ""
+    },
+    {
+      "endpoint": "shares-float",
+      "category": "profile+reference",
+      "symbol": "AMAT",
+      "http": 200,
+      "rows": 1,
+      "error": ""
+    },
+    {
+      "endpoint": "income-statement",
+      "category": "annual fundamentals",
+      "symbol": "AMAT",
+      "http": 402,
+      "rows": 0,
+      "error": "Premium Query Parameter: 'Special Endpoint : This value set for 'symbol' is not available under your current s"
+    },
+    {
+      "endpoint": "balance-sheet",
+      "category": "annual fundamentals",
+      "symbol": "AMAT",
+      "http": 402,
+      "rows": 0,
+      "error": "Premium Query Parameter: 'Special Endpoint : This value set for 'symbol' is not available under your current s"
+    },
+    {
+      "endpoint": "ratios",
+      "category": "annual fundamentals",
+      "symbol": "AMAT",
+      "http": 402,
+      "rows": 0,
+      "error": "Premium Query Parameter: 'Special Endpoint : This value set for 'symbol' is not available under your current s"
+    },
+    {
+      "endpoint": "key-metrics",
+      "category": "annual fundamentals",
+      "symbol": "AMAT",
+      "http": 402,
+      "rows": 0,
+      "error": "Premium Query Parameter: 'Special Endpoint : This value set for 'symbol' is not available under your current s"
+    },
+    {
+      "endpoint": "income-stmt QUARTER",
+      "category": "quarterly (higher tier?)",
+      "symbol": "AMAT",
+      "http": 402,
+      "rows": 0,
+      "error": "Premium Query Parameter: 'Special Endpoint : This value set for 'symbol' is not available under your current s"
+    },
+    {
+      "endpoint": "hist-price-eod/full",
+      "category": "historical prices",
+      "symbol": "AMAT",
+      "http": 402,
+      "rows": 0,
+      "error": "Premium Query Parameter: 'Special Endpoint : This value set for 'symbol' is not available under your current s"
+    },
+    {
+      "endpoint": "historical-chart 1day",
+      "category": "historical prices",
+      "symbol": "AMAT",
+      "http": 404,
+      "rows": 0,
+      "error": ""
+    },
+    {
+      "endpoint": "quote",
+      "category": "historical prices",
+      "symbol": "AMAT",
+      "http": 402,
+      "rows": 0,
+      "error": "Premium Query Parameter: 'Special Endpoint : This value set for 'symbol' is not available under your current s"
+    },
+    {
+      "endpoint": "news/stock",
+      "category": "news",
+      "symbol": "AMAT",
+      "http": 402,
+      "rows": 0,
+      "error": "Restricted Endpoint: This endpoint is not available under your current subscription please visit our subscript"
+    },
+    {
+      "endpoint": "analyst-estimates",
+      "category": "ANALYST ESTIMATES",
+      "symbol": "AMAT",
+      "http": 402,
+      "rows": 0,
+      "error": "Premium Query Parameter: 'Special Endpoint : This value set for 'symbol' is not available under your current s"
+    },
+    {
+      "endpoint": "price-target-summary",
+      "category": "analyst (gated?)",
+      "symbol": "AMAT",
+      "http": 402,
+      "rows": 0,
+      "error": "Premium Query Parameter: 'Special Endpoint : This value set for 'symbol' is not available under your current s"
+    },
+    {
+      "endpoint": "grades",
+      "category": "analyst (apex uses)",
+      "symbol": "AMAT",
+      "http": 402,
+      "rows": 0,
+      "error": "Premium Query Parameter: 'Special Endpoint : This value set for 'symbol' is not available under your current s"
+    },
+    {
+      "endpoint": "earnings",
+      "category": "earnings (apex uses)",
+      "symbol": "AMAT",
+      "http": 402,
+      "rows": 0,
+      "error": "Premium Query Parameter: 'Special Endpoint : This value set for 'symbol' is not available under your current s"
+    },
+    {
+      "endpoint": "etf/holdings",
+      "category": "ETF holdings (known 402)",
+      "symbol": "AMAT",
+      "http": 402,
+      "rows": 0,
+      "error": "Restricted Endpoint: This endpoint is not available under your current subscription please visit our subscript"
+    },
+    {
+      "endpoint": "institutional-ownership",
+      "category": "13F (gated?)",
+      "symbol": "AMAT",
+      "http": 402,
+      "rows": 0,
+      "error": "Restricted Endpoint: This endpoint is not available under your current subscription please visit our subscript"
+    },
+    {
+      "endpoint": "sp500-constituent",
+      "category": "index constituents",
+      "symbol": null,
+      "http": 402,
+      "rows": 0,
+      "error": "Restricted Endpoint: This endpoint is not available under your current subscription please visit our subscript"
+    },
+    {
+      "endpoint": "nasdaq-constituent",
+      "category": "index constituents",
+      "symbol": null,
+      "http": 402,
+      "rows": 0,
+      "error": "Restricted Endpoint: This endpoint is not available under your current subscription please visit our subscript"
+    },
+    {
+      "endpoint": "hist sp500-constituent",
+      "category": "index constituents",
+      "symbol": null,
+      "http": 404,
+      "rows": 0,
+      "error": ""
+    },
+    {
+      "endpoint": "shares-float-all",
+      "category": "bulk (gated?)",
+      "symbol": null,
+      "http": 200,
+      "rows": 2,
+      "error": ""
+    },
+    {
+      "endpoint": "company-screener",
+      "category": "screener",
+      "symbol": null,
+      "http": 402,
+      "rows": 0,
+      "error": "Restricted Endpoint: This endpoint is not available under your current subscription please visit our subscript"
+    },
+    {
+      "endpoint": "earnings-calendar",
+      "category": "calendar",
+      "symbol": null,
+      "http": 200,
+      "rows": 79,
+      "error": ""
+    },
+    {
+      "endpoint": "income-statement depth",
+      "category": "history depth",
+      "symbol": "NVDA",
+      "http": 402,
+      "rows": 0,
+      "error": "Premium Query Parameter: 'Special Parameters : The values for 'limit' must be between 0 and 5 based on your cu"
+    },
+    {
+      "endpoint": "hist-price-eod/full depth",
+      "category": "history depth",
+      "symbol": "NVDA",
+      "http": 200,
+      "rows": 1254,
+      "error": "",
+      "span": "2021-07-27..2026-07-24"
+    }
+  ]
+}

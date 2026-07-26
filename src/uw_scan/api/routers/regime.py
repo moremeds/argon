@@ -17,6 +17,12 @@ from uw_scan.api.models.canary import (
     CanaryLatestResponse,
     CanaryValidationResponse,
 )
+from uw_scan.api.models.sector_crowding import (
+    SectorCrowdingLeg,
+    SectorCrowdingResponse,
+    SectorCrowdingRow,
+    SectorCrowdingSeriesPoint,
+)
 from uw_scan.api.models.vrp_macro_entry import (
     VrpMacroEntryCaptureResponse,
     VrpMacroEntryLeg,
@@ -339,6 +345,53 @@ def get_dispersion(
     a warning; this is regime context only."""
     v = VolIndexRepository(repo.conn, schema=repo._schema)
     return DispersionResponse(**v.fetch_dispersion_context())
+
+
+@router.get("/sector-crowding", response_model=SectorCrowdingResponse)
+def get_sector_crowding(
+    repo: Annotated[Repository, Depends(get_repo)],
+) -> SectorCrowdingResponse:
+    """Sector-ETF crowding ranking (板块拥挤度).
+
+    Three conjunctive legs -- relative return as a self-percentile, 1M
+    flow/AUM on published bands, iv_rank spread vs SPY. STATE is the weakest
+    leg's band; `binding_leg` names which leg is holding it down. Read-only,
+    computed in-process over etf_flows_daily + etf_aum_cache + watchlist_card
+    (all persisted by the 18:45 ET sector_crowding_capture job)."""
+    from uw_scan.reports.sector_crowding import BENCHMARK, build_sector_crowding
+
+    as_of, rows = build_sector_crowding(repo=repo)
+
+    def _leg(leg) -> SectorCrowdingLeg:
+        return SectorCrowdingLeg(
+            name=leg.name, raw=leg.raw, score=leg.score, band=leg.band
+        )
+
+    return SectorCrowdingResponse(
+        as_of=as_of,
+        benchmark=BENCHMARK,
+        rows=[
+            SectorCrowdingRow(
+                ticker=r.ticker,
+                price=_leg(r.price),
+                flow=_leg(r.flow),
+                premium=_leg(r.premium),
+                score=r.score,
+                state=r.state,
+                binding_leg=r.binding_leg,
+                series=[
+                    SectorCrowdingSeriesPoint(
+                        obs_date=p.obs_date,
+                        etf_cum_return=p.etf_cum_return,
+                        bench_cum_return=p.bench_cum_return,
+                        flow_aum_pct=p.flow_aum_pct,
+                    )
+                    for p in r.series
+                ],
+            )
+            for r in rows
+        ],
+    )
 
 
 @router.get("/vrp-harvest", response_model=VrpHarvestResponse)

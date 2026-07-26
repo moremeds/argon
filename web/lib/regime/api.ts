@@ -37,6 +37,7 @@ export const regimeApi = {
   quotes: () => `${API}/api/regime/quotes`,
   vol_backdrop: () => `${API}/api/regime/vol-backdrop`,
   dispersion: () => `${API}/api/regime/dispersion`,
+  sector_crowding: () => `${API}/api/regime/sector-crowding`,
   guidance: () => `${API}/api/regime/guidance`,
   validation: () => `${API}/api/regime/validation`,
   vcgValidation: () => `${API}/api/regime/vcg-validation`,

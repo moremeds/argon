@@ -62,6 +62,7 @@ from uw_scan.worker.jobs.pipeline_benchmark import pipeline_benchmark_snapshot_j
 from uw_scan.worker.jobs.positioning_jobs import positioning_refresh_once
 from uw_scan.worker.jobs.rates_jobs import rates_fred_ingest_job
 from uw_scan.worker.jobs.rescan_loop import rescan_tick
+from uw_scan.worker.jobs.sector_crowding_capture import sector_crowding_capture
 from uw_scan.worker.jobs.skew_analytics import (
     nightly_skew_analytics_rollup,
     skew_markout_refresh,
@@ -901,6 +902,16 @@ def main() -> int:
                 today=datetime.now(ZoneInfo(settings.rth_tz)).date(),
             )
 
+    def _sector_crowding_capture() -> None:
+        with _external_api_recorder(settings) as recorder:
+            with _uw_client(
+                settings,
+                telemetry_recorder=recorder,
+                job_name="sector_crowding_capture",
+            ) as uw:
+                with _repo(settings) as repo:
+                    sector_crowding_capture(repo=repo, client=uw, settings=settings)
+
     def _cockpit_daily_snapshot() -> None:
         with _external_api_recorder(settings) as recorder:
             with _uw_client(
@@ -1525,6 +1536,22 @@ def main() -> int:
                 CronTrigger.from_crontab("30 18 * * 0-4", timezone=settings.rth_tz),
                 id="greek_exposure_daily_refresh",
                 name="Single-name greek_exposure_daily refresh (#179)",
+                max_instances=1,
+                coalesce=True,
+            )
+            # 18:45 ET — after UW has published the session's ETF flow and
+            # after the 18:30 single-name GEX refresh (uw group, above), before
+            # the 19:00 option-surface capture (uw group). skew_markout_refresh
+            # also fires at 18:45 but lives in the MASSIVE group, i.e. a
+            # different worker process — not a conflict, do not "fix" it by
+            # moving this job.
+            # "0-4" is Mon-Fri: APScheduler's day_of_week is 0=Monday, NOT
+            # cron's 0=Sunday, and every other evening job here uses 0-4.
+            sched.add_job(
+                _sector_crowding_capture,
+                CronTrigger.from_crontab("45 18 * * 0-4", timezone=settings.rth_tz),
+                id="sector_crowding_capture",
+                name="Sector crowding ETF flow capture",
                 max_instances=1,
                 coalesce=True,
             )

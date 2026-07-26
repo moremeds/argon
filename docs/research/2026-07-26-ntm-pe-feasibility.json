@@ -1,0 +1,272 @@
+{
+  "etf": "SOXX",
+  "as_of": "2026-07-26",
+  "ntm_pe": 3.60976203459118,
+  "weight_covered_pct": 26.59,
+  "weight_total_pct": 99.89999999999999,
+  "missing": [
+    "ADI",
+    "ALAB",
+    "AMAT",
+    "ARM",
+    "ASML",
+    "ASX",
+    "AVGO",
+    "CRDO",
+    "ENTG",
+    "KLAC",
+    "LRCX",
+    "MCHP",
+    "MPWR",
+    "MRVL",
+    "MTSI",
+    "MU",
+    "NVMI",
+    "NXPI",
+    "ON",
+    "QCOM",
+    "RMBS",
+    "STM",
+    "SWKS",
+    "TER",
+    "TXN",
+    "UMC"
+  ],
+  "fmp_calls": 30,
+  "constituents": {
+    "ADI": {
+      "weight": 3.84,
+      "price": 371.86,
+      "ntm_eps": null,
+      "http": 402,
+      "reason": "only 0 future FY rows"
+    },
+    "ALAB": {
+      "weight": 2.38,
+      "price": 291.58,
+      "ntm_eps": null,
+      "http": 402,
+      "reason": "only 0 future FY rows"
+    },
+    "AMAT": {
+      "weight": 5.22,
+      "price": 536.25,
+      "ntm_eps": null,
+      "http": 402,
+      "reason": "only 0 future FY rows"
+    },
+    "AMD": {
+      "weight": 8.74,
+      "price": 521.95,
+      "ntm_eps": 11.079714684931506,
+      "http": 200,
+      "fy1_end": "2026-12-27",
+      "fy1_eps": 7.50323,
+      "fy2_end": "2027-12-27",
+      "fy2_eps": 13.69004,
+      "weight_fy1": 0.4219,
+      "analysts_fy1": 30,
+      "ntm_pe": 47.11
+    },
+    "ARM": {
+      "weight": 0.73,
+      "price": 260.01,
+      "ntm_eps": null,
+      "http": 402,
+      "reason": "only 0 future FY rows"
+    },
+    "ASML": {
+      "weight": 2.43,
+      "price": 1757.09,
+      "ntm_eps": null,
+      "http": 402,
+      "reason": "only 0 future FY rows"
+    },
+    "ASX": {
+      "weight": 1.24,
+      "price": 36.84,
+      "ntm_eps": null,
+      "http": 402,
+      "reason": "only 0 future FY rows"
+    },
+    "AVGO": {
+      "weight": 7.34,
+      "price": 381.92,
+      "ntm_eps": null,
+      "http": 402,
+      "reason": "only 0 future FY rows"
+    },
+    "CRDO": {
+      "weight": 2.03,
+      "price": 213.15,
+      "ntm_eps": null,
+      "http": 402,
+      "reason": "only 0 future FY rows"
+    },
+    "ENTG": {
+      "weight": 1.07,
+      "price": 129.15,
+      "ntm_eps": null,
+      "http": 402,
+      "reason": "only 0 future FY rows"
+    },
+    "INTC": {
+      "weight": 5.28,
+      "price": 92.32,
+      "ntm_eps": 1.7691710410958903,
+      "http": 200,
+      "fy1_end": "2026-12-27",
+      "fy1_eps": 1.45407,
+      "fy2_end": "2027-12-27",
+      "fy2_eps": 1.99915,
+      "weight_fy1": 0.4219,
+      "analysts_fy1": 20,
+      "ntm_pe": 52.18
+    },
+    "KLAC": {
+      "weight": 4.76,
+      "price": 210.52,
+      "ntm_eps": null,
+      "http": 402,
+      "reason": "only 0 future FY rows"
+    },
+    "LRCX": {
+      "weight": 4.2,
+      "price": 305.21,
+      "ntm_eps": null,
+      "http": 402,
+      "reason": "only 0 future FY rows"
+    },
+    "MCHP": {
+      "weight": 2.25,
+      "price": 78.86,
+      "ntm_eps": null,
+      "http": 402,
+      "reason": "only 0 future FY rows"
+    },
+    "MPWR": {
+      "weight": 3.44,
+      "price": 1333.81,
+      "ntm_eps": null,
+      "http": 402,
+      "reason": "only 0 future FY rows"
+    },
+    "MRVL": {
+      "weight": 4.27,
+      "price": 194.23,
+      "ntm_eps": null,
+      "http": 402,
+      "reason": "only 0 future FY rows"
+    },
+    "MTSI": {
+      "weight": 1.01,
+      "price": 266.99,
+      "ntm_eps": null,
+      "http": 402,
+      "reason": "only 0 future FY rows"
+    },
+    "MU": {
+      "weight": 8.52,
+      "price": 920.95,
+      "ntm_eps": null,
+      "http": 402,
+      "reason": "only 0 future FY rows"
+    },
+    "NVDA": {
+      "weight": 8.26,
+      "price": 206.84,
+      "ntm_eps": 10.8715658630137,
+      "http": 200,
+      "fy1_end": "2027-01-25",
+      "fy1_eps": 9.00092,
+      "fy2_end": "2028-01-25",
+      "fy2_eps": 12.75249,
+      "weight_fy1": 0.5014,
+      "analysts_fy1": 33,
+      "ntm_pe": 19.03
+    },
+    "NVMI": {
+      "weight": 0.75,
+      "price": 437.98,
+      "ntm_eps": null,
+      "http": 402,
+      "reason": "only 0 future FY rows"
+    },
+    "NXPI": {
+      "weight": 3.61,
+      "price": 269.24,
+      "ntm_eps": null,
+      "http": 402,
+      "reason": "only 0 future FY rows"
+    },
+    "ON": {
+      "weight": 1.83,
+      "price": 86.81,
+      "ntm_eps": null,
+      "http": 402,
+      "reason": "only 0 future FY rows"
+    },
+    "QCOM": {
+      "weight": 2.85,
+      "price": 166.97,
+      "ntm_eps": null,
+      "http": 402,
+      "reason": "only 0 future FY rows"
+    },
+    "RMBS": {
+      "weight": 0.58,
+      "price": 96.01,
+      "ntm_eps": null,
+      "http": 402,
+      "reason": "only 0 future FY rows"
+    },
+    "STM": {
+      "weight": 0.66,
+      "price": 51.54,
+      "ntm_eps": null,
+      "http": 402,
+      "reason": "only 0 future FY rows"
+    },
+    "SWKS": {
+      "weight": 0.47,
+      "price": 60.21,
+      "ntm_eps": null,
+      "http": 402,
+      "reason": "only 0 future FY rows"
+    },
+    "TER": {
+      "weight": 3.02,
+      "price": 349.92,
+      "ntm_eps": null,
+      "http": 402,
+      "reason": "only 0 future FY rows"
+    },
+    "TSM": {
+      "weight": 4.31,
+      "price": 403.41,
+      "ntm_eps": 621.9886690684931,
+      "http": 200,
+      "fy1_end": "2026-12-31",
+      "fy1_eps": 531.08619,
+      "fy2_end": "2027-12-31",
+      "fy2_eps": 691.37317,
+      "weight_fy1": 0.4329,
+      "analysts_fy1": 10,
+      "ntm_pe": 0.65
+    },
+    "TXN": {
+      "weight": 3.9,
+      "price": 279.58,
+      "ntm_eps": null,
+      "http": 402,
+      "reason": "only 0 future FY rows"
+    },
+    "UMC": {
+      "weight": 0.91,
+      "price": 19.48,
+      "ntm_eps": null,
+      "http": 402,
+      "reason": "only 0 future FY rows"
+    }
+  }
+}

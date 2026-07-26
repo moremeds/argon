@@ -3,8 +3,10 @@
 import { Activity } from "lucide-react";
 import { MarketState } from "@/lib/regime/useMarketHours";
 import { useMarketTide } from "@/lib/regime/useMarketTide";
+import { useSectorCrowding } from "@/lib/regime/useSectorCrowding";
 import { useTopNetImpact } from "@/lib/regime/useTopNetImpact";
 import InfoTooltip from "./InfoTooltip";
+import { SectorCrowdingPanel } from "./SectorCrowdingPanel";
 import { MarketTideChart } from "./MarketTideChart";
 import { MarketTideDailyChart } from "./MarketTideDailyChart";
 import { TideSentimentBanner } from "./TideSentimentBanner";
@@ -24,6 +26,7 @@ const GUIDE =
 export default function MarketTideSubTab({ marketState }: Props) {
   const { data, loading, error, lastSync } = useMarketTide(marketState ?? null);
   const { data: tni } = useTopNetImpact(marketState ?? null);
+  const { data: crowding } = useSectorCrowding(marketState ?? null);
   const spotTicker = data?.spot_ticker ?? "SPY";
 
   // The latest captured session is "today" once the market opens (the worker
@@ -104,6 +107,7 @@ export default function MarketTideSubTab({ marketState }: Props) {
             {priorData && priorData.sessions.length > 0 && (
               <MarketTideChart data={priorData} />
             )}
+            <SectorCrowdingPanel data={crowding} />
           </>
         )}
       </div>

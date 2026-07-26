@@ -7,6 +7,44 @@ version in lockstep (enforced by `scripts/release/version_sync_check.py`).
 
 ## [Unreleased]
 
+### Added
+
+- **Sector crowding panel** on the `/regime` Market Tide tab — ranks 14 sector
+  ETFs on three conjunctive legs (3M relative return as a self-percentile, 1M
+  flow/AUM on published bands, iv_rank spread vs SPY), with a drill-down to
+  total-return and flow/AUM charts. State is the weakest present leg's band,
+  so every leg must fire for a row to read as crowded (two legs minimum, else
+  the row is unscored), and the binding leg is named. New
+  nightly `sector_crowding_capture` job at 18:45 ET extends the existing
+  `etf_flows_daily` capture to the sector universe; the score is computed at
+  read time, so there is no new table. Framework adapted from
+  https://x.com/bitfool1/status/2079479920162734401 — its third leg (NTM P/E)
+  is not sourceable on our tier and is replaced by the IV-rank spread.
+
+  **Known limitations, both tracked and not yet fixed.** The price leg reads
+  `close` off UW's `in-outflow` response, so a flow outage becomes a price
+  outage: UW silently stopped serving SOXX/IGV/IAU on 2026-05-15 (SOXX/IGV
+  resumed 2026-07-01), and because the return window is row-indexed rather than
+  calendar-anchored, SOXX's 63-row window spanned 135 calendar days against 92
+  for the clean SPDRs — printing a false `CROWDED` badge (41st percentile via
+  gap-free `daily_ohlc`, not the 77th it showed). The panel is therefore
+  **descriptive only**: an empirical study over 16,706 sector-days
+  (`docs/research/2026-07-26-sector-crowding-lifecycle.md`) found no stable
+  forward-return threshold on the best-powered leg — the apparent `CLIMAX`
+  signal is `+1.16`/63% in 2021–23 and `−1.94`/29% in 2024–26 — so no part of
+  this is a timing surface.
+
+### Fixed
+
+- **ETF AUM unit normalization.** UW returns `aum` in billions for the 12 SPDR
+  sector ETFs and raw dollars for everything else; both landed unconverted in
+  `etf_aum_cache`, making every flow/AUM ratio 1e9 too small for the SPDRs.
+  Normalized on read as well as write, which repairs the existing rows with no
+  backfill, and on the `pipeline` cache-miss return so hit and miss agree.
+  Known and untouched: the watchlist card's `aum` comes from
+  `scan_runs.aggregates` / the raw `etf_info` payload rather than this cache,
+  so `CardGrid.sizeValue()` still mis-sorts the SPDR sector ETFs.
+
 ## [0.10.13] — 2026-07-25
 
 

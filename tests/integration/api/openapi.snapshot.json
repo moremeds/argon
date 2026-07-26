@@ -14043,6 +14043,208 @@
         "title": "ScannerSignalHit",
         "type": "object"
       },
+      "SectorCrowdingLeg": {
+        "properties": {
+          "band": {
+            "anyOf": [
+              {
+                "enum": [
+                  "CROWDED",
+                  "WARM",
+                  "NORMAL",
+                  "COLD"
+                ],
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Band"
+          },
+          "name": {
+            "enum": [
+              "price",
+              "flow",
+              "premium"
+            ],
+            "title": "Name",
+            "type": "string"
+          },
+          "raw": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Raw"
+          },
+          "score": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Score"
+          }
+        },
+        "required": [
+          "name"
+        ],
+        "title": "SectorCrowdingLeg",
+        "type": "object"
+      },
+      "SectorCrowdingResponse": {
+        "properties": {
+          "as_of": {
+            "anyOf": [
+              {
+                "format": "date",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "As Of"
+          },
+          "benchmark": {
+            "title": "Benchmark",
+            "type": "string"
+          },
+          "rows": {
+            "default": [],
+            "items": {
+              "$ref": "#/components/schemas/SectorCrowdingRow"
+            },
+            "title": "Rows",
+            "type": "array"
+          }
+        },
+        "required": [
+          "benchmark"
+        ],
+        "title": "SectorCrowdingResponse",
+        "type": "object"
+      },
+      "SectorCrowdingRow": {
+        "properties": {
+          "binding_leg": {
+            "anyOf": [
+              {
+                "enum": [
+                  "price",
+                  "flow",
+                  "premium"
+                ],
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Binding Leg"
+          },
+          "flow": {
+            "$ref": "#/components/schemas/SectorCrowdingLeg"
+          },
+          "premium": {
+            "$ref": "#/components/schemas/SectorCrowdingLeg"
+          },
+          "price": {
+            "$ref": "#/components/schemas/SectorCrowdingLeg"
+          },
+          "score": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Score"
+          },
+          "series": {
+            "default": [],
+            "items": {
+              "$ref": "#/components/schemas/SectorCrowdingSeriesPoint"
+            },
+            "title": "Series",
+            "type": "array"
+          },
+          "state": {
+            "anyOf": [
+              {
+                "enum": [
+                  "CROWDED",
+                  "WARM",
+                  "NORMAL",
+                  "COLD"
+                ],
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "State"
+          },
+          "ticker": {
+            "title": "Ticker",
+            "type": "string"
+          }
+        },
+        "required": [
+          "ticker",
+          "price",
+          "flow",
+          "premium"
+        ],
+        "title": "SectorCrowdingRow",
+        "type": "object"
+      },
+      "SectorCrowdingSeriesPoint": {
+        "properties": {
+          "bench_cum_return": {
+            "title": "Bench Cum Return",
+            "type": "number"
+          },
+          "etf_cum_return": {
+            "title": "Etf Cum Return",
+            "type": "number"
+          },
+          "flow_aum_pct": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Flow Aum Pct"
+          },
+          "obs_date": {
+            "format": "date",
+            "title": "Obs Date",
+            "type": "string"
+          }
+        },
+        "required": [
+          "obs_date",
+          "etf_cum_return",
+          "bench_cum_return"
+        ],
+        "title": "SectorCrowdingSeriesPoint",
+        "type": "object"
+      },
       "SetupBlock": {
         "properties": {
           "direction": {
@@ -25121,6 +25323,28 @@
           }
         },
         "summary": "Trigger Cri Scan",
+        "tags": [
+          "regime"
+        ]
+      }
+    },
+    "/api/regime/sector-crowding": {
+      "get": {
+        "description": "Sector-ETF crowding ranking (\u677f\u5757\u62e5\u6324\u5ea6).\n\nThree conjunctive legs -- relative return as a self-percentile, 1M\nflow/AUM on published bands, iv_rank spread vs SPY. STATE is the weakest\nleg's band; `binding_leg` names which leg is holding it down. Read-only,\ncomputed in-process over etf_flows_daily + etf_aum_cache + watchlist_card\n(all persisted by the 18:45 ET sector_crowding_capture job).",
+        "operationId": "get_sector_crowding_api_regime_sector_crowding_get",
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/SectorCrowdingResponse"
+                }
+              }
+            },
+            "description": "Successful Response"
+          }
+        },
+        "summary": "Get Sector Crowding",
         "tags": [
           "regime"
         ]
