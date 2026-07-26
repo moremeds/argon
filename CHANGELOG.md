@@ -7,6 +7,9 @@ version in lockstep (enforced by `scripts/release/version_sync_check.py`).
 
 ## [Unreleased]
 
+## [0.10.14] — 2026-07-26
+
+
 ### Changed
 
 - **Technicals price pane, SMA mode:** the `±1.5σ around SMA200` envelope is
@@ -18,7 +21,6 @@ version in lockstep (enforced by `scripts/release/version_sync_check.py`).
   instead of drawing a straight line across a warm-up window or a bar with
   missing OHLC — the custom canvas primitive previously connected every point
   in its array unconditionally. Applies to both SMA·ATR and EMA·BB bands.
-
 ## [0.10.13] — 2026-07-25
 
 ### Added
