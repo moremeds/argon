@@ -16,6 +16,9 @@ from psycopg import Connection
 from psycopg import sql as psql
 
 from uw_scan.reports.data_gap_healer import REGISTRY as _GAP_HEALER_REGISTRY
+from uw_scan.reports.sector_crowding import (
+    SECTOR_CROWDING_TICKERS as _SECTOR_CROWDING_TICKERS,
+)
 
 # Preference order for the data-date column, most specific first. The monitor
 # auto-detects which one a table actually has (avoids hardcoding a wrong name).
@@ -108,7 +111,10 @@ MONITORED_TABLES: list[MonitoredTable] = [
     MonitoredTable(
         "etf_flows_daily",
         "subset",
-        frozenset({"GLD", "IAU", "GLDM"}),  # gold_jobs.GOLD_ETF_FLOW_TICKERS
+        # gold_jobs.GOLD_ETF_FLOW_TICKERS + sector_crowding.SECTOR_CROWDING_TICKERS
+        # + its SPY benchmark. Both jobs write this table; scoping to only the
+        # gold three would leave a frozen sector capture invisible.
+        frozenset({"GLD", "IAU", "GLDM"} | set(_SECTOR_CROWDING_TICKERS) | {"SPY"}),
     ),
     MonitoredTable(
         "wgc_etf_monthly",
