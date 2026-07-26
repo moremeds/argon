@@ -5912,6 +5912,33 @@ export interface components {
             freshness: "live" | "stale" | "unavailable";
         };
         /** SetupBlock */
+        SectorCrowdingLeg: {
+            name: "price" | "flow" | "premium";
+            raw?: number | null;
+            score?: number | null;
+            band?: "CROWDED" | "WARM" | "NORMAL" | "COLD" | null;
+        };
+        SectorCrowdingResponse: {
+            as_of?: string | null;
+            benchmark: string;
+            rows?: components["schemas"]["SectorCrowdingRow"][];
+        };
+        SectorCrowdingRow: {
+            ticker: string;
+            price: components["schemas"]["SectorCrowdingLeg"];
+            flow: components["schemas"]["SectorCrowdingLeg"];
+            premium: components["schemas"]["SectorCrowdingLeg"];
+            score?: number | null;
+            state?: "CROWDED" | "WARM" | "NORMAL" | "COLD" | null;
+            binding_leg?: "price" | "flow" | "premium" | null;
+            series?: components["schemas"]["SectorCrowdingSeriesPoint"][];
+        };
+        SectorCrowdingSeriesPoint: {
+            obs_date: string;
+            etf_cum_return: number;
+            bench_cum_return: number;
+            flow_aum_pct?: number | null;
+        };
         SetupBlock: {
             /** Type */
             type?: string | null;
