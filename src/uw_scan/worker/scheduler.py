@@ -68,7 +68,10 @@ from uw_scan.worker.jobs.skew_analytics import (
 )
 from uw_scan.worker.jobs.skew_swing_greeks import skew_swing_greeks_refresh
 from uw_scan.worker.jobs.technical_daily_refresh import technical_daily_refresh
-from uw_scan.worker.jobs.theta_harvester import theta_harvester_scan
+from uw_scan.worker.jobs.theta_harvester import (
+    theta_harvester_markout,
+    theta_harvester_scan,
+)
 from uw_scan.worker.jobs.trade_insight_outcome_backfill import (
     trade_insight_outcome_backfill_once,
 )
@@ -759,6 +762,10 @@ def main() -> int:
         with _repo(settings) as repo:
             theta_harvester_scan(repo=repo, settings=settings)
 
+    def _theta_harvester_markout() -> None:
+        with _repo(settings) as repo:
+            theta_harvester_markout(repo=repo, settings=settings)
+
     def _technical_daily_refresh() -> None:
         with _repo(settings) as repo:
             technical_daily_refresh(repo=repo, settings=settings)
@@ -1390,6 +1397,16 @@ def main() -> int:
                     CronTrigger.from_crontab("45 19 * * 0-4", timezone=settings.rth_tz),
                     id="theta_harvester_scan",
                     name="Theta Harvester short-strangle scan",
+                    max_instances=1,
+                    coalesce=True,
+                )
+                # Markout at 19:55 ET — 10 min after the scan, so the same
+                # session's grid is available for any horizon coming due today.
+                sched.add_job(
+                    _theta_harvester_markout,
+                    CronTrigger.from_crontab("55 19 * * 0-4", timezone=settings.rth_tz),
+                    id="theta_harvester_markout",
+                    name="Theta Harvester forward markout",
                     max_instances=1,
                     coalesce=True,
                 )

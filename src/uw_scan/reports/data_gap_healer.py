@@ -508,7 +508,11 @@ REGISTRY.extend(
             ticker_col="ticker",
             expected_frequency="event",
             provider="db",
-            granularity="run_once_lookback",
+            # "none", not "run_once_lookback": granularity names how the healer
+            # DISPATCHES, and there is no adapter here -- healing is a manual
+            # backfill-script run. Claiming a granularity without an adapter
+            # trips test_healable_entries_name_an_adapter_others_do_not_dispatch.
+            granularity="none",
             healer_adapter=None,
             source_system="derived",
             reason=(
@@ -525,7 +529,7 @@ REGISTRY.extend(
             ticker_col="ticker",
             expected_frequency="event",
             provider="db",
-            granularity="run_once",
+            granularity="none",  # no adapter -> no dispatch; see above
             healer_adapter=None,
             source_system="derived",
             reason=(

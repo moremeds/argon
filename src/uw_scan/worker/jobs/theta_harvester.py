@@ -116,3 +116,16 @@ def theta_harvester_scan(
         "candidates_written": written,
         "harvest_count": harvest,
     }
+
+
+def theta_harvester_markout(*, repo: Repository, settings: Settings) -> dict[str, Any]:
+    """Re-mark existing candidates. Pure compute over the warm store; idempotent.
+
+    This job only SCORES rows that already exist — it never creates candidates.
+    After a wipe, or on first deploy, run
+    scripts/backfill/theta_harvester_backfill.py or reads stay empty for weeks.
+    """
+    from uw_scan.reports.theta_harvester_markout import run_theta_markout
+
+    th = ThetaHarvesterRepository(repo.conn, schema=settings.db_schema)
+    return run_theta_markout(repo=th)

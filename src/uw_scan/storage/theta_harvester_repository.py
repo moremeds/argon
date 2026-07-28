@@ -4,14 +4,15 @@ Standalone repository (not a Repository mixin) — new persistence domains get
 their own module from method one; repository.py is not extended.
 
 Every loader reads Postgres only. The scanner's ranking path makes zero UW
-calls: option_surface_grid_daily supplies the chain, exposures_by_expiry_strike
-the dealer GEX, daily_ohlc the price history, iv_rank_history the current IV.
+calls: option_surface_grid_daily supplies both the chain AND the ATM IV,
+exposures_by_expiry_strike the dealer GEX, daily_ohlc the price history and the
+terminal settlement close. Deliberately NOT iv_rank_history — see load_atm_iv.
 """
 
 from __future__ import annotations
 
 from collections.abc import Sequence
-from datetime import date
+from datetime import date, timedelta
 from typing import Any
 
 import psycopg
@@ -345,3 +346,199 @@ class ThetaHarvesterRepository:
         """
         with self._conn.cursor(row_factory=dict_row) as cur:
             return cur.execute(sql, (target, limit)).fetchall()
+
+    # --------------------------------------------------------------- markouts
+
+    _MARKOUT_COLUMNS: tuple[str, ...] = (
+        "ticker",
+        "as_of",
+        "horizon_days",
+        "mark_date",
+        "spot",
+        "put_iv",
+        "call_iv",
+        "put_mark",
+        "call_mark",
+        "position_value",
+        "pnl",
+        "pnl_pct_of_credit",
+        "breached",
+        "expired",
+    )
+
+    def load_candidates_needing_marks(
+        self, horizons: Sequence[int]
+    ) -> list[dict[str, Any]]:
+        """Candidates whose first horizon has come due and which are not yet
+        settled. Re-scoring a partially-marked row is wasted work but not wrong
+        — the upsert is idempotent.
+
+        Completion is defined by the presence of the TERMINAL (horizon -1) row,
+        NOT by a count of horizons. A 7-DTE candidate can never collect all
+        four intermediate horizons — three of them fall past expiry, where no
+        grid row exists — so a count-based predicate would re-scan it every
+        night forever and the pending set would grow without bound.
+
+        ponytail: unbounded SELECT that re-marks rows already written. A
+        candidate stays pending until its expiry passes, so steady state is
+        roughly (max DTE 45) x (watchlist size) rows re-queried nightly and
+        upserted to identical values. Idempotent, and a few minutes of work.
+        Add a LIMIT and a resume cursor only if the job overruns the 10-minute
+        gap before the next cron.
+        """
+        sql = f"""
+            SELECT c.ticker, c.as_of, c.expiry, c.put_strike, c.call_strike,
+                   c.entry_credit_theo, c.risk_free_rate
+              FROM {self._schema}.theta_harvester_candidates c
+             WHERE c.as_of + %s <= CURRENT_DATE
+               AND NOT EXISTS (
+                   SELECT 1 FROM {self._schema}.theta_harvester_markouts m
+                    WHERE m.ticker = c.ticker
+                      AND m.as_of = c.as_of
+                      AND m.horizon_days = -1
+               )
+             ORDER BY c.as_of DESC
+        """
+        with self._conn.cursor(row_factory=dict_row) as cur:
+            return cur.execute(sql, (min(horizons),)).fetchall()
+
+    def load_marks_for(
+        self,
+        ticker: str,
+        expiry: date,
+        put_strike: float,
+        call_strike: float,
+        mark_date: date,
+        *,
+        max_snap_days: int = 7,
+    ) -> dict[str, Any] | None:
+        """Grid IV for both strikes on the first session at or after mark_date.
+
+        Snapping forward covers weekends and missed captures: a T+5 landing on
+        a Saturday marks at the next session that has data. The snap is bounded
+        by `max_snap_days` — an unbounded snap would silently mark a T+5
+        against a session weeks later if the ticker dropped out of the surface,
+        which is a different market, not a late mark.
+
+        Returns the resolved `market_date` so the caller dates the row and
+        computes dte_remaining from the session actually priced, never from the
+        requested calendar date.
+        """
+        # Pick the earliest session in the window that ALREADY SATISFIES every
+        # requirement (both strikes present, both IVs non-null, still before
+        # expiry) — not merely the earliest session where the ticker has any
+        # row at all. Filtering after choosing the date returns None whenever
+        # the first session happens to be missing one strike, even though a
+        # later session inside the cap has both. That is avoidable, non-random
+        # censoring, and it correlates with exactly the illiquid names whose
+        # marks matter most.
+        sql = f"""
+            SELECT
+                g.market_date,
+                MAX(g.underlying_spot) AS spot,
+                MAX(g.put_iv)  FILTER (WHERE g.strike = %s) AS put_iv,
+                MAX(g.call_iv) FILTER (WHERE g.strike = %s) AS call_iv
+              FROM {self._schema}.option_surface_grid_daily g
+             WHERE g.ticker = %s
+               AND g.expiry = %s
+               AND g.strike IN (%s, %s)
+               AND g.market_date >= %s
+               AND g.market_date <= %s
+               AND g.market_date < %s
+             GROUP BY g.market_date
+            HAVING MAX(g.put_iv)  FILTER (WHERE g.strike = %s) IS NOT NULL
+               AND MAX(g.call_iv) FILTER (WHERE g.strike = %s) IS NOT NULL
+               AND MAX(g.underlying_spot) IS NOT NULL
+             ORDER BY g.market_date ASC
+             LIMIT 1
+        """
+        horizon_cap = mark_date + timedelta(days=max_snap_days)
+        with self._conn.cursor(row_factory=dict_row) as cur:
+            row = cur.execute(
+                sql,
+                (
+                    put_strike,
+                    call_strike,
+                    ticker,
+                    expiry,
+                    put_strike,
+                    call_strike,
+                    mark_date,
+                    horizon_cap,
+                    expiry,
+                    put_strike,
+                    call_strike,
+                ),
+            ).fetchone()
+        if not row or row["spot"] is None:
+            return None
+        if row["put_iv"] is None or row["call_iv"] is None:
+            return None
+        return row
+
+    def load_settlement_close(
+        self, ticker: str, expiry: date
+    ) -> tuple[date, float] | None:
+        """(settlement_date, close) — the last session at or BEFORE expiry.
+
+        Used for the terminal at-expiry mark: by expiry the contract has left
+        option_surface_grid_daily, so settlement intrinsic must come from
+        daily_ohlc.
+
+        Resolves BACKWARD, never forward. Snapping forward would settle a
+        Friday option at Monday's close whenever expiry falls on a holiday or
+        the bar is missing — information that did not exist at expiry, and a
+        direct lookahead into the tail the terminal row exists to measure.
+        Returns the resolved date so the row records the session actually
+        used rather than the nominal expiry.
+
+        Returns None when expiry has not been reached (no bar at or before it
+        within the lookback), which correctly leaves the candidate pending.
+        """
+        sql = f"""
+            SELECT date, close FROM {self._schema}.daily_ohlc
+             WHERE ticker = %s AND date <= %s AND date >= %s
+               AND close IS NOT NULL
+             ORDER BY date DESC LIMIT 1
+        """
+        row = self._conn.execute(
+            sql, (ticker, expiry, expiry - timedelta(days=7))
+        ).fetchone()
+        if not row or row[1] is None:
+            return None
+        return row[0], float(row[1])
+
+    def has_session_after(self, ticker: str, on: date) -> bool:
+        """Is there OHLC strictly after `on`? Guards the terminal mark.
+
+        load_settlement_close resolves backward, so on a date that has simply
+        not been reached it would happily return the most recent bar and settle
+        the option early. Requiring a later session proves expiry is genuinely
+        in the past before settling.
+        """
+        sql = f"""
+            SELECT 1 FROM {self._schema}.daily_ohlc
+             WHERE ticker = %s AND date > %s LIMIT 1
+        """
+        return self._conn.execute(sql, (ticker, on)).fetchone() is not None
+
+    def upsert_markouts(self, rows: Sequence[dict[str, Any]]) -> int:
+        if not rows:
+            return 0
+        cols = ", ".join(self._MARKOUT_COLUMNS)
+        placeholders = ", ".join(["%s"] * len(self._MARKOUT_COLUMNS))
+        updates = ", ".join(
+            f"{c} = EXCLUDED.{c}"
+            for c in self._MARKOUT_COLUMNS
+            if c not in ("ticker", "as_of", "horizon_days")
+        )
+        sql = f"""
+            INSERT INTO {self._schema}.theta_harvester_markouts ({cols})
+            VALUES ({placeholders})
+            ON CONFLICT (ticker, as_of, horizon_days) DO UPDATE SET {updates}
+        """
+        params = [tuple(r[c] for c in self._MARKOUT_COLUMNS) for r in rows]
+        with self._conn.cursor() as cur:
+            cur.executemany(sql, params)
+        self._conn.commit()
+        return len(rows)
