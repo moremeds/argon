@@ -118,3 +118,50 @@ describe("arming threshold rules", () => {
     for (const v of ys) expect(ys).toContain(2 * mid - v);
   });
 });
+
+describe("calm-core band", () => {
+  // Regression, and the reason it exists: the arming rules above shipped once
+  // in a state where typecheck, lint and the whole suite stayed green while
+  // ZERO rules rendered (the filter compared objects, not numbers). A band is
+  // one element with no text, so nothing else in the DOM would notice its
+  // absence. Assert it is present, centred on zero, and symmetric.
+  const rows = Array.from({ length: 40 }, (_, i) =>
+    row(`2026-01-${String((i % 28) + 1).padStart(2, "0")}`, (i % 7) - 3),
+  );
+
+  it("draws one band straddling the zero line", () => {
+    const { container } = render(
+      createElement(VcgZScoreHistoryChart, { rows }),
+    );
+    const band = container.querySelector('rect[fill="var(--positive)"]');
+    expect(band).not.toBeNull();
+
+    const top = Number(band!.getAttribute("y"));
+    const height = Number(band!.getAttribute("height"));
+    expect(height).toBeGreaterThan(0);
+
+    // The zero gridline is the dashed border-dim rule; the band must be
+    // centred on it, which is what makes it read as "|z| < 0.75" rather than
+    // an arbitrary stripe.
+    const zeroLine = container.querySelector(
+      'line[stroke="var(--border-dim)"][stroke-dasharray="4 4"]',
+    );
+    expect(zeroLine).not.toBeNull();
+    const zeroY = Number(zeroLine!.getAttribute("y1"));
+    expect(top + height / 2).toBeCloseTo(zeroY, 6);
+  });
+
+  it("is narrower than the ±2.0 arming rules it must not swamp", () => {
+    const { container } = render(
+      createElement(VcgZScoreHistoryChart, { rows }),
+    );
+    const band = container.querySelector('rect[fill="var(--positive)"]')!;
+    const height = Number(band.getAttribute("height"));
+    const dashed = Array.from(
+      container.querySelectorAll('line[stroke-dasharray="2 5"]'),
+    ).map((n) => Number(n.getAttribute("y1")));
+    // Distance between the mirrored ±2.0 rules — the band spans ±0.75, so it
+    // must be comfortably inside them.
+    expect(height).toBeLessThan(Math.max(...dashed) - Math.min(...dashed));
+  });
+});

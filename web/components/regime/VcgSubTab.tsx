@@ -293,7 +293,12 @@ export function VcgSubTabView({
             <div className="section-title">
               <Zap size={14} />
               VCG Signal
-              <InfoTooltip text="Volatility-Credit Gap: detects divergence between the vol complex (VIX/VVIX) and credit markets (HYG/JNK/LQD). Signals: RISK_OFF (tier 1–2), EDR (early divergence), BOUNCE (counter-signal), NORMAL." />
+              {/* The empirical caveat rides the tooltip because the state names
+                  don't carry it: "RISK-OFF" is positioning vocabulary, and a
+                  reader will take it as an instruction to cut equity. Tested
+                  2007–2026 (n=4,758), armed days match baseline SPX returns —
+                  see docs/research/2026-07-29-vcg-spx-forward-returns.md. */}
+              <InfoTooltip text="Volatility-Credit Gap: detects divergence between the vol complex (VIX/VVIX) and credit markets (HYG/JNK/LQD). Signals: RISK_OFF (tier 1–2), EDR (early divergence), BOUNCE (counter-signal), NORMAL. These describe coincident vol/credit stress — they do NOT predict SPX direction (2007–2026, n=4,758: armed days match baseline returns). Elevated |z| does associate with higher forward realised volatility." />
             </div>
             <div
               style={{
