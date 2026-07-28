@@ -62,19 +62,32 @@ class VolIndexRepository:
         self._conn.commit()
         return len(rows)
 
-    def fetch_history(self, symbol: str, days: int) -> list[dict]:
-        """Return up to `days` most-recent rows for symbol, ascending."""
+    def fetch_history(
+        self, symbol: str, days: int, *, as_of: date | None = None
+    ) -> list[dict]:
+        """Return up to `days` most-recent rows for symbol, ascending.
+
+        `as_of` caps the window at that trade_date, so the LIMIT applies to the
+        `days` bars ending on `as_of` rather than the `days` bars ending today.
+
+        This cap MUST be pushed into SQL. Fetching the most-recent rows and
+        filtering to `<= as_of` afterwards silently returns nothing once
+        `as_of` is more than `days` bars back — the historical-scan path then
+        reports "thin data" and skips, so a deep backfill looks like it ran
+        while filling nothing. `as_of=None` keeps the original behaviour.
+        """
         sql = """
             SELECT symbol, trade_date,
                    open::float8, high::float8, low::float8,
                    close::float8, adj_close::float8, volume
               FROM vol_index_daily
              WHERE symbol = %s
+               AND (%s::date IS NULL OR trade_date <= %s::date)
              ORDER BY trade_date DESC
              LIMIT %s
         """
         with self._conn.cursor() as cur:
-            cur.execute(sql, (symbol, days))
+            cur.execute(sql, (symbol, as_of, as_of, days))
             cols = [c.name for c in cur.description]
             rows = [dict(zip(cols, r, strict=True)) for r in cur.fetchall()]
         rows.reverse()

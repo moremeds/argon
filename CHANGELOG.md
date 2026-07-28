@@ -7,6 +7,35 @@ version in lockstep (enforced by `scripts/release/version_sync_check.py`).
 
 ## [Unreleased]
 
+### Added
+
+- **VCG z-score history chart** on `/regime` → VCG — signed bars plus a monotone
+  curve over the trailing window, with 1M/3M/6M/1Y range buttons and the
+  ±2.0 / ±2.5 arming thresholds drawn as rules. It plots `vcg` directly, which
+  *is already* the trailing 63-session z-score of the model residual, so the
+  panel labels that definition rather than re-normalising an already-normalised
+  series.
+- **`pathFromPointsSmooth`** (`web/lib/svgChart.ts`) — Fritsch–Carlson monotone
+  cubic interpolation. Deliberately not Catmull–Rom: on `[0, 0, 2, 0, 0]` a
+  Catmull–Rom spline dips below zero either side of the spike, drawing a sign
+  flip that is not in the data. On a signed regime chart that is a fabricated
+  reading; the monotone limiter clamps tangents to the neighbouring samples'
+  range at no visual cost.
+- **`scripts/backfill/vcg_snapshot_backfill.py`** — scores `vcg_snapshots`
+  (`basis='eod'`) across the full aligned lake history. VCG needs no external
+  API (VIX/VVIX/credit-proxy all come from `vol_index_daily`), so the whole
+  history backfills at zero UW cost. Depth is bounded by the shortest input:
+  HYG starts 2007-04-11 and scoring needs 94 aligned bars of warmup.
+
+### Fixed
+
+- **`VolIndexRepository.fetch_history` now caps `as_of` in SQL** instead of
+  filtering after the fact. Fetching the most-recent `days` rows and *then*
+  dropping everything after `as_of` returns an empty series whenever `as_of` is
+  more than `days` bars back — so historical VCG scans silently reported "thin
+  data" and skipped, and a deep backfill looked like it ran while filling
+  nothing. This is what capped backfills at ~600 sessions.
+
 ## [0.10.15] — 2026-07-28
 
 
