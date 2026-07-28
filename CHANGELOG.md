@@ -7,6 +7,9 @@ version in lockstep (enforced by `scripts/release/version_sync_check.py`).
 
 ## [Unreleased]
 
+## [0.10.16] — 2026-07-29
+
+
 ### Added
 
 - **VCG z-score history chart** on `/regime` → VCG — signed bars plus a monotone
@@ -41,7 +44,6 @@ version in lockstep (enforced by `scripts/release/version_sync_check.py`).
   had the identical copy-pasted bug — dormant only because their sole `as_of`
   caller (`recover_recent_gaps`) stays inside the `days * 2` fudge buffer.
   Regression tests cover all three and fail against the old code.
-
 ## [0.10.15] — 2026-07-28
 
 
