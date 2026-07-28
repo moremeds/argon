@@ -52,6 +52,28 @@ const ARM_LEVELS = [
   { z: 2.5, color: "var(--fault)" },
 ];
 
+/** The calm core — the half of this chart that carries validated information.
+ *
+ *  ARM_LEVELS above are what the scanner *fires* on, and they are the weaker
+ *  end of the evidence: the tails carry no directional signal (max |t| vs the
+ *  rest of the sample = 1.10 across 30 cells) and their forward-vol lift is
+ *  crisis-driven — dramatic means, but a median lift of only +2.1pt.
+ *
+ *  |z| < 0.75 is the opposite case. Fourteen independent expanding training
+ *  windows each selected exactly this threshold, it beat a trailing-252 VIX
+ *  filter 4/4 on the VRP macro book, and it is near-orthogonal to VIX by
+ *  construction (rho = -0.030 — `vcg` is already an OLS residual). Without
+ *  this band the chart is visually loudest precisely where the evidence is
+ *  thinnest and silent where it is strongest.
+ *
+ *  Drawn as a band rather than a rule because it is a standing condition, not
+ *  an event, and behind the bars so it never competes with the data.
+ *  Deliberately NOT labelled as a trading threshold: it validated on 20-day
+ *  holds and reverses on 0.25delta/30d, so the honest claim is "below-baseline
+ *  forward vol", not "enter here".
+ *  See docs/research/2026-07-29-vcg-vs-vix-walkforward.md. */
+const CALM_BAND = 0.75;
+
 export type VcgZPoint = { date: string; z: number };
 
 /**
@@ -160,7 +182,11 @@ export default function VcgZScoreHistoryChart({
       <div className="section-header">
         <div className="section-title">
           VCG Z-Score History
-          <InfoTooltip text="Trailing 63-session z-score of the VIX/VVIX→credit OLS residual (Z_WINDOW=63). This is the same value the scanner triggers on: |z| ≥ 2.0 arms the signal, ≥ 2.5 escalates to RISK_OFF." />
+          {/* Both ends get named, because the chart now draws both and they
+              carry very different evidential weight. Saying only what the
+              scanner fires on would leave the shaded band unexplained — and
+              would keep implying the tails are the informative part. */}
+          <InfoTooltip text="Trailing 63-session z-score of the VIX/VVIX→credit OLS residual (Z_WINDOW=63). This is the same value the scanner triggers on: |z| ≥ 2.0 arms the signal, ≥ 2.5 escalates to RISK_OFF — those mark coincident vol/credit stress and do NOT predict SPX direction. The shaded ±0.75 calm core is the better-evidenced half: it marks below-baseline forward realised volatility, was independently selected by 14 walk-forward training windows, and is near-orthogonal to VIX (ρ = −0.03). It is a short-vol permission condition on ~20-day holds, not an entry trigger." />
         </div>
         {latest && (
           <div style={{ textAlign: "right" }}>
@@ -248,6 +274,16 @@ export default function VcgZScoreHistoryChart({
           style={{ fontFamily: "var(--font-mono)", fontSize: 11 }}
         >
           <title>{`VCG z-score, last ${series.length} sessions`}</title>
+
+          {/* Calm core, first so everything else paints over it. */}
+          <rect
+            x={PAD.left}
+            y={y(CALM_BAND)}
+            width={PLOT_W}
+            height={y(-CALM_BAND) - y(CALM_BAND)}
+            fill="var(--positive)"
+            opacity={0.07}
+          />
 
           {Y_TICKS.filter((t) => Math.abs(t) <= bound).map((t) => (
             <g key={t}>

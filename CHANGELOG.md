@@ -7,7 +7,36 @@ version in lockstep (enforced by `scripts/release/version_sync_check.py`).
 
 ## [Unreleased]
 
+### Added
+
+- **Calm-core band on the VCG z-score history chart** — `|z| < 0.75` shaded
+  behind the bars. The chart previously drew only the ±2.0 / ±2.5 arming rules,
+  which is the *weaker* end of the evidence: the tails carry no directional
+  signal (max |t| vs rest = 1.10 over 30 cells) and their forward-vol lift is
+  crisis-driven, with a median of just +2.1pt. The calm core is the half that
+  survived walk-forward, so the chart was loudest exactly where the evidence is
+  thinnest and silent where it is strongest. Drawn as a band, not a rule — it
+  is a standing condition, not an event — and labelled as a short-vol
+  *permission condition on ~20-day holds*, not an entry trigger, because it
+  reverses on 0.25Δ/30d. Regression-tested for presence, zero-centring, and
+  being narrower than the ±2.0 rules; the test was confirmed to fail with the
+  band removed.
+
 ### Research
+
+- **Is the VCG calm gate just a VIX filter?**
+  (`docs/research/2026-07-29-vcg-vs-vix-walkforward.md`,
+  `scripts/research/vrp_vcg_vs_vix_walkforward.py`) — **no**, and the reason is
+  structural: `vcg` is already an OLS residual of credit on the vol complex, so
+  it is near-orthogonal to the VIX level by construction (**ρ = −0.030**;
+  per-fold OLS slope −0.002…−0.004). Regressing VIX out changes the result by
+  0.01 Sharpe.
+  - A trailing-252 VIX-percentile filter **does** work (beats `gate0` 3/4) but
+    is beaten by the calm gate **4/4** — and wins its Sharpe by abstaining:
+    76 trades vs 126, annual ROR **0.83 vs 1.31**. Sharpe rewards not losing,
+    and not trading is the cheapest way not to lose.
+  - Same harness, same folds, same universe across arms; VIX percentile ranked
+    strictly *prior* to each entry date so the cheap rival gets no look-ahead.
 
 - **Walk-forward validation of the VCG calm gate**
   (`docs/research/2026-07-29-vrp-vcg-calm-gate-walkforward.md`,
