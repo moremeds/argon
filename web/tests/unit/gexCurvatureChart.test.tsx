@@ -22,21 +22,19 @@ const wide = [
 ];
 
 describe("GexCurvatureChart", () => {
-  it("renders the flip rule from the explicit prop when no strike is tagged", () => {
-    // The flip is an interpolated zero-crossing: 97.5 is not a listed strike,
-    // so a tag-match-only implementation would silently drop the rule.
-    render(<GexCurvatureChart profile={wide} spot={100} flipStrike={97.5} />);
-    expect(screen.getByText(/FLIP 97.5/)).not.toBeNull();
-  });
-
-  it("prefers the explicit flip prop over a tagged bucket", () => {
+  it("renders the flip rule from the tagged bucket", () => {
     const tagged = [
       ...wide.slice(0, 2),
       b(100, 1_000, "GEX FLIP"),
       ...wide.slice(3),
     ];
-    render(<GexCurvatureChart profile={tagged} spot={100} flipStrike={97.5} />);
-    expect(screen.getByText(/FLIP 97.5/)).not.toBeNull();
+    render(<GexCurvatureChart profile={tagged} spot={100} />);
+    expect(screen.getByText(/FLIP 100/)).not.toBeNull();
+  });
+
+  it("omits the flip rule when nothing is tagged", () => {
+    render(<GexCurvatureChart profile={wide} spot={100} />);
+    expect(screen.queryByText(/FLIP/)).toBeNull();
   });
 
   it("survives the profile shrinking under a stale hover index", () => {

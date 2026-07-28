@@ -9,30 +9,25 @@ version in lockstep (enforced by `scripts/release/version_sync_check.py`).
 
 ### Changed
 
-- **GEX profile is now a curvature field** on both `/regime` → GEX and the
-  stock Market Structure tab. The horizontal divergent bar list is replaced by
-  a strike-on-x line/area chart, filled and split at zero (teal above =
-  stabilizing, magenta below = destabilizing), with spot and GEX-flip vertical
-  rules and triangle markers for PUT/CALL WALL, ACCEL, and MAGNET strikes. A
-  hover crosshair drives a `STRIKE / NET GEX / CURVATURE` readout that defaults
-  to the strike nearest spot.
+- **GEX profile is now a curvature field** on `/regime` → GEX. The horizontal
+  divergent bar list is replaced by a strike-on-x line/area chart, filled and
+  split at zero (teal above = stabilizing, magenta below = destabilizing), with
+  spot and GEX-flip vertical rules and triangle markers for PUT/CALL WALL,
+  ACCEL, and MAGNET strikes. A hover crosshair drives a
+  `STRIKE / NET GEX / CURVATURE` readout that defaults to the strike nearest
+  spot. **The stock Market Structure tab keeps its existing bar profile** — the
+  bar form reads better per-ticker, where the question is "which strikes carry
+  gamma" rather than "what shape is the field".
 - **New signal — curvature** (`curvatureField`): the discrete second derivative
   of net GEX with respect to strike, computed client-side on the non-uniform
   strike grid (`2(h₂f₋₁ − (h₁+h₂)f₀ + h₁f₊₁)/(h₁h₂(h₁+h₂))`) and scaled by
   `h̄²/max|f|` so it is dimensionless and comparable across tickers. It reads
   where the gamma field bends — how fast dealer hedging pressure changes per
   point of spot.
-- **Single-name profiles use an adaptive strike window.** Index gamma spreads
-  across the full ±15% span, but single-name/ETF gamma concentrates within
-  ~1–2% of spot, which rendered as a dead flat line with one spike. The stock
-  path now grows the window outward from spot until it holds 98% of total
-  |GEX|, clamped to [2%, 15%]. The old `MIN_ABS_GEX` row filter is gone — it
-  was safe for independent bar rows but would put fake kinks in a continuous
-  line.
-- **Chart extracted to `web/components/shared/GexCurvatureChart.tsx`**, shared
-  by the regime and stock surfaces. The stock panel is now a thin data adapter
-  (`buildStockGexProfile`); its bar-grid and overlay-line machinery, plus the
-  dead `uwGexRowsToBuckets` helper (zero callers), are deleted.
+- **Chart moved to `web/components/shared/GexCurvatureChart.tsx`** (git-moved
+  from `components/regime/`, so history is preserved). The dead
+  `uwGexRowsToBuckets` helper it carried — zero callers since the UW Analyze
+  page it was extracted for — is deleted.
 
 ## [0.10.14] — 2026-07-26
 

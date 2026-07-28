@@ -69,14 +69,6 @@ export function curvatureField(buckets: GexBucket[]): (number | null)[] {
 export type GexCurvatureChartProps = {
   profile: GexBucket[];
   spot: number;
-  /**
-   * GEX-flip level for the dashed rule. Optional because the regime feed tags
-   * a real bucket `GEX FLIP`, but the flip is an interpolated zero-crossing —
-   * on the stock path it routinely falls BETWEEN listed strikes, so an
-   * exact-strike tag match would silently drop the rule. An explicit value
-   * wins over the tag when both are present.
-   */
-  flipStrike?: number | null;
 };
 
 const W = 1000;
@@ -98,7 +90,6 @@ const TAG_MARKER: Record<string, { color: string; label: string }> = {
 export default function GexCurvatureChart({
   profile,
   spot,
-  flipStrike: flipStrikeProp,
 }: GexCurvatureChartProps) {
   const [hoverIdx, setHoverIdx] = useState<number | null>(null);
   // SVG ids are document-global: two charts on one page would otherwise
@@ -121,9 +112,7 @@ export default function GexCurvatureChart({
     const y = linearScale([-maxAbs, maxAbs], [PAD.top + PLOT_H, PAD.top]);
     const points: Point[] = buckets.map((b) => [x(b.strike), y(b.net_gex)]);
     const flipStrike =
-      flipStrikeProp ??
-      buckets.find((b) => b.tag === "GEX FLIP")?.strike ??
-      null;
+      buckets.find((b) => b.tag === "GEX FLIP")?.strike ?? null;
 
     return {
       buckets,
@@ -135,7 +124,7 @@ export default function GexCurvatureChart({
       curvature: curvatureField(buckets),
       flipStrike,
     };
-  }, [profile, flipStrikeProp]);
+  }, [profile]);
 
   if (!chart) {
     return (
