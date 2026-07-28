@@ -35,16 +35,20 @@ def scan_ticker(repo: Any, ticker: str, as_of: date) -> ThetaCandidate | None:
         return None
     hv60 = realized_vol(closes, 60)
 
-    iv = repo.load_iv(ticker, as_of)
-    if iv is None or iv <= 0:
-        return None
-
     spot = repo.load_spot(ticker, as_of)
     if spot is None or spot <= 0:
         return None
 
     structure = select_short_strangle(repo.load_chain(ticker, as_of), spot, as_of)
     if structure is None:
+        return None
+
+    # ATM IV is read AFTER the structure is chosen, at that structure's own
+    # expiry — so the IV and the traded legs always describe the same session
+    # and the same tenor. Reading it first (from iv_rank_history) is what let
+    # a May IV be compared against July realised vol for 85 of 114 tickers.
+    iv = repo.load_atm_iv(ticker, as_of, structure.expiry)
+    if iv is None or iv <= 0:
         return None
 
     ranged = range_metrics(closes, hv20)

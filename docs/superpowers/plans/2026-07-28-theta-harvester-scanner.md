@@ -37,7 +37,8 @@ These do not change what gets built; they constrain what the output may be read 
 - **Directional support is thinner than the gates imply.** The IV-vs-RV gate's *direction* has real single-name evidence (Goyal & Saretto, "Cross-section of option returns and volatility", *JFE* 94:310–326, 2009 — though they use a 12-month realised-vol lookback, not radon's 20-day). The specific thresholds (5 vol points, 1.10 ratio, 0.35 range score, score ≥ 70) have **no published basis** and are ported as a baseline to be measured, not as validated parameters. Do not cite tastytrade win-rate statistics, SqueezeMetrics, or "CBOE Options Institute" figures anywhere in this feature — none of them survived source verification.
 - **The score artifact is fixed, and the fix is itself a hypothesis.** Radon's score gave 40 of 100 points to terms that are constant once the critical gates pass (`dealer_support` +20 and `theta_positive` +15 are themselves critical gates; `gamma_controlled` +5 is implied by a delta-balanced short strangle), and its vol term saturated at 10 vol points of IV-RV, which rich-vol names routinely clear. So the "100-point" score really discriminated over ~55 points, and the vol edge — the one component with published directional support — was often pinned at its cap. `ScoreWeights` scores only the three varying components (vol 55 / delta 25 / range 20) and saturates the vol term at 15 vol points — p90 of the measured edge distribution, not a guess. **This is an improvement in construction, not a validated calibration.** Task 12 sweeps it against `RADON_WEIGHTS` and against an unconditional baseline; if neither beats the baseline OOS, the honest conclusion is that the score adds nothing and the feature stays a diagnostic.
 - **Weight provenance is persisted.** `theta_harvester_candidates.weights_version` records which `ScoreWeights` produced the stored `score`, so a weight change does not silently make historical rows incomparable. The raw components are stored too, so any row can be re-scored under any weights without a rescan.
-- **Three persisted-but-unconsumed fields are intentional.** `hv60` and `vega` are computed and stored but appear in no gate or score term, and `iv` is the ATM reading from `iv_rank_history` while the traded legs sit at ~16Δ where skew makes put IV materially higher. All three are recorded so the first markout read can answer "was the 20-day lookback wrong", "did vol expansion or spot drift do the damage", and "does ATM IV misstate this structure's edge" without a re-backfill. **None may be quietly wired into a gate during implementation** — that would change the signal being measured mid-experiment. They are diagnostics, not inputs.
+- **IV comes from the grid, not `iv_rank_history`.** Changed 2026-07-29 after the first real scan run. `iv_rank_history` holds only **4 tickers per session** — on `option_wizard` as well as local — and the natural `market_date <= as_of ORDER BY DESC LIMIT 1` lookup silently returns a months-old reading for everything else: of the 114 grid tickers on 2026-07-24, **3 had same-day IV, 85 were stale by more than a week, and 26 had never been captured**. May IV against July realised vol, no error, no log line. `load_atm_iv` reads the nearest-to-spot strike on the SAME `(market_date, expiry)` the legs came from — 114/114 coverage, staleness structurally impossible — and cross-checks to 0.20592 vs `iv_rank_history`'s 0.208 on IWM, the one ticker where both exist. Real-run effect: candidates written went 88 → 109 and all three verdicts appear.
+- **Two persisted-but-unconsumed fields are intentional.** `hv60` and `vega` are computed and stored but appear in no gate or score term. Note the ATM-vs-16Δ tenor caveat still applies: `iv` is the ATM reading while the traded legs sit at ~16Δ where skew makes put IV materially higher. All three are recorded so the first markout read can answer "was the 20-day lookback wrong", "did vol expansion or spot drift do the damage", and "does ATM IV misstate this structure's edge" without a re-backfill. **None may be quietly wired into a gate during implementation** — that would change the signal being measured mid-experiment. They are diagnostics, not inputs.
 
 ## Data Sources (verified 2026-07-28 against `option_wizard_local`)
 
@@ -1258,7 +1259,7 @@ git commit -m "feat(theta): gates, 100-point score and Black-Scholes entry mark"
   - `load_chain(ticker: str, as_of: date) -> list[OptionLeg]` — legs carry argon's stored LONG-contract greeks; `select_short_strangle` negates them
   - `load_gex_rows(ticker: str, as_of: date) -> list[dict[str, Any]]`
   - `load_closes(ticker: str, as_of: date, lookback: int = 90) -> list[float]`
-  - `load_iv(ticker: str, as_of: date) -> float | None`
+  - `load_atm_iv(ticker: str, as_of: date, expiry: date) -> float | None`
   - `load_spot(ticker: str, as_of: date) -> float | None`
   - `latest_surface_date() -> date | None`
   - `active_tickers() -> list[str]`
@@ -1538,15 +1539,22 @@ class ThetaHarvesterRepository:
         rows = self._conn.execute(sql, (ticker, as_of, lookback)).fetchall()
         return [float(r[0]) for r in rows]
 
-    def load_iv(self, ticker: str, as_of: date) -> float | None:
-        """Current IV as a decimal. iv_rank_history.volatility is stored as a
-        decimal already; values above 3.0 are treated as percent and rescaled."""
-        sql = f"""
-            SELECT volatility FROM {self._schema}.iv_rank_history
-             WHERE ticker = %s AND market_date <= %s AND volatility IS NOT NULL
-             ORDER BY market_date DESC LIMIT 1
+    def load_atm_iv(self, ticker: str, as_of: date, expiry: date) -> float | None:
+        """ATM IV from the SAME grid session and expiry the legs come from.
+
+        NOT from iv_rank_history — see the module docstring rationale and the
+        coverage note in Interpretation constraints.
         """
-        row = self._conn.execute(sql, (ticker, as_of)).fetchone()
+        sql = f"""
+            SELECT (call_iv + put_iv) / 2.0
+              FROM {self._schema}.option_surface_grid_daily
+             WHERE ticker = %s AND market_date = %s AND expiry = %s
+               AND call_iv IS NOT NULL AND put_iv IS NOT NULL
+               AND underlying_spot > 0
+             ORDER BY abs(strike - underlying_spot)
+             LIMIT 1
+        """
+        row = self._conn.execute(sql, (ticker, as_of, expiry)).fetchone()
         if not row or row[0] is None:
             return None
         iv = float(row[0])
@@ -1809,16 +1817,19 @@ def scan_ticker(repo: Any, ticker: str, as_of: date) -> ThetaCandidate | None:
         return None
     hv60 = realized_vol(closes, 60)
 
-    iv = repo.load_iv(ticker, as_of)
-    if iv is None or iv <= 0:
-        return None
-
     spot = repo.load_spot(ticker, as_of)
     if spot is None or spot <= 0:
         return None
 
     structure = select_short_strangle(repo.load_chain(ticker, as_of), spot, as_of)
     if structure is None:
+        return None
+
+    # ATM IV is read AFTER the structure is chosen, at that structure's own
+    # expiry — so the IV and the traded legs always describe the same session
+    # and the same tenor.
+    iv = repo.load_atm_iv(ticker, as_of, structure.expiry)
+    if iv is None or iv <= 0:
         return None
 
     ranged = range_metrics(closes, hv20)

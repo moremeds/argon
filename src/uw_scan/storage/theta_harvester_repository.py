@@ -181,15 +181,39 @@ class ThetaHarvesterRepository:
         rows = self._conn.execute(sql, (ticker, as_of, lookback)).fetchall()
         return [float(r[0]) for r in rows]
 
-    def load_iv(self, ticker: str, as_of: date) -> float | None:
-        """Current IV as a decimal. iv_rank_history.volatility is stored as a
-        decimal already; values above 3.0 are treated as percent and rescaled."""
-        sql = f"""
-            SELECT volatility FROM {self._schema}.iv_rank_history
-             WHERE ticker = %s AND market_date <= %s AND volatility IS NOT NULL
-             ORDER BY market_date DESC LIMIT 1
+    def load_atm_iv(self, ticker: str, as_of: date, expiry: date) -> float | None:
+        """ATM IV from the SAME grid session and expiry the legs come from.
+
+        NOT from iv_rank_history. That table carries only 4 tickers per session
+        (verified on both option_wizard and option_wizard_local, 2026-07-29), and
+        the obvious `market_date <= as_of ORDER BY DESC LIMIT 1` lookup silently
+        returns a MONTHS-old reading for everything else: of the 114 grid tickers
+        on 2026-07-24, 3 had same-day IV, 85 were stale by more than a week, and
+        26 had never been captured at all. That comparison — May's IV against
+        July's realised vol — passes every type check and quietly destroys the
+        one gate with published empirical support.
+
+        The grid has full coverage (114/114 on the same session) and is the same
+        surface the legs are priced from, so the IV and the structure can never
+        disagree about which session they describe. Cross-checked on IWM
+        2026-07-24, the one ticker where both sources exist: grid 0.2059 vs
+        iv_rank_history 0.208.
+
+        ponytail: nearest strike, not an interpolation across the two straddling
+        strikes. Grid strike spacing is $1 on liquid names, so the error is well
+        inside the IV gate's 5-vol-point threshold. Interpolate only if a markout
+        shows the ATM reading is the binding constraint.
         """
-        row = self._conn.execute(sql, (ticker, as_of)).fetchone()
+        sql = f"""
+            SELECT (call_iv + put_iv) / 2.0
+              FROM {self._schema}.option_surface_grid_daily
+             WHERE ticker = %s AND market_date = %s AND expiry = %s
+               AND call_iv IS NOT NULL AND put_iv IS NOT NULL
+               AND underlying_spot > 0
+             ORDER BY abs(strike - underlying_spot)
+             LIMIT 1
+        """
+        row = self._conn.execute(sql, (ticker, as_of, expiry)).fetchone()
         if not row or row[0] is None:
             return None
         iv = float(row[0])

@@ -176,3 +176,40 @@ def _replace_structure(candidate, structure):
     import dataclasses
 
     return dataclasses.replace(candidate, structure=structure)
+
+
+def test_atm_iv_comes_from_the_grid_session_not_a_stale_iv_rank_row(
+    seeded_db_empty_cards,
+):
+    """The IV must be pinned to the requested session, never carried forward.
+
+    iv_rank_history covers only 4 tickers per session, so the natural
+    `market_date <= as_of ORDER BY DESC` lookup returned a months-old reading
+    for 85 of 114 grid tickers on 2026-07-24 — May IV compared against July
+    realised vol, with no error and no log line. load_atm_iv reads the grid at
+    an exact (market_date, expiry), so a session with no capture returns None
+    (a skipped ticker) rather than a stale number that looks fine.
+    """
+    conn = seeded_db_empty_cards.conn
+    repo = ThetaHarvesterRepository(conn, "uw_scan")
+    # Real IWM 2026-07-24 rows: spot 291.44, nearest strike 291 -> (call+put)/2.
+    for strike, call_iv, put_iv in (
+        (272.0, 0.286910000244214, 0.251489543772415),
+        (291.0, 0.216271148592203, 0.195577289932588),
+        (306.0, 0.172509740706994, 0.148603775785557),
+    ):
+        conn.execute(
+            "INSERT INTO uw_scan.option_surface_grid_daily "
+            "(ticker, market_date, expiry, strike, call_iv, put_iv, underlying_spot) "
+            "VALUES (%s,%s,%s,%s,%s,%s,%s)",
+            ("IWM", _AS_OF, _EXP, strike, call_iv, put_iv, _SPOT),
+        )
+    conn.commit()
+
+    # Nearest strike to spot 291.44 is 291 -> (0.216271149 + 0.195577290) / 2.
+    assert repo.load_atm_iv("IWM", _AS_OF, _EXP) == pytest.approx(
+        0.2059242192623955, rel=1e-12
+    )
+    # A session with no capture yields None, not a carried-forward value.
+    assert repo.load_atm_iv("IWM", date(2026, 7, 23), _EXP) is None
+    assert repo.load_atm_iv("NVDA", _AS_OF, _EXP) is None
