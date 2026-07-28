@@ -207,9 +207,112 @@ def test_atm_iv_comes_from_the_grid_session_not_a_stale_iv_rank_row(
     conn.commit()
 
     # Nearest strike to spot 291.44 is 291 -> (0.216271149 + 0.195577290) / 2.
-    assert repo.load_atm_iv("IWM", _AS_OF, _EXP) == pytest.approx(
+    assert repo.load_atm_iv("IWM", _AS_OF, _EXP, _SPOT) == pytest.approx(
         0.2059242192623955, rel=1e-12
     )
     # A session with no capture yields None, not a carried-forward value.
-    assert repo.load_atm_iv("IWM", date(2026, 7, 23), _EXP) is None
-    assert repo.load_atm_iv("NVDA", _AS_OF, _EXP) is None
+    assert repo.load_atm_iv("IWM", date(2026, 7, 23), _EXP, _SPOT) is None
+    assert repo.load_atm_iv("NVDA", _AS_OF, _EXP, _SPOT) is None
+
+
+def _grid_row(conn, ticker, market_date, strike, spot):
+    conn.execute(
+        "INSERT INTO uw_scan.option_surface_grid_daily "
+        "(ticker, market_date, expiry, strike, call_iv, put_iv, underlying_spot) "
+        "VALUES (%s,%s,%s,%s,0.2,0.2,%s)",
+        (ticker, market_date, _EXP, strike, spot),
+    )
+
+
+def test_load_spot_falls_back_to_the_close_when_the_grid_spot_is_null(
+    seeded_db_empty_cards,
+):
+    """Grid spot first; daily_ohlc close when the column is NULL.
+
+    underlying_spot is 0% populated before 2026-06 on option_wizard. Without the
+    fallback every pre-June session returns None and the ticker is skipped.
+    """
+    conn = seeded_db_empty_cards.conn
+    repo = ThetaHarvesterRepository(conn, "uw_scan")
+    for strike in (272.0, 291.0, 306.0):
+        _grid_row(conn, "IWM", _AS_OF, strike, None)
+    conn.execute(
+        "INSERT INTO uw_scan.daily_ohlc (ticker, date, close, source) "
+        "VALUES (%s,%s,%s,'massive.com')",
+        ("IWM", _AS_OF, _SPOT),
+    )
+    conn.commit()
+
+    assert repo.load_spot("IWM", _AS_OF) == pytest.approx(_SPOT)
+
+
+def test_load_spot_prefers_the_grid_spot_over_the_close(seeded_db_empty_cards):
+    """When both exist the grid wins — it is the scale the strikes are quoted on."""
+    conn = seeded_db_empty_cards.conn
+    repo = ThetaHarvesterRepository(conn, "uw_scan")
+    for strike in (272.0, 291.0, 306.0):
+        _grid_row(conn, "IWM", _AS_OF, strike, 290.0)
+    conn.execute(
+        "INSERT INTO uw_scan.daily_ohlc (ticker, date, close, source) "
+        "VALUES (%s,%s,%s,'massive.com')",
+        ("IWM", _AS_OF, _SPOT),
+    )
+    conn.commit()
+
+    assert repo.load_spot("IWM", _AS_OF) == pytest.approx(290.0)
+
+
+def test_load_spot_rejects_a_split_adjusted_close_against_unadjusted_strikes(
+    seeded_db_empty_cards,
+):
+    """The adjusted/unadjusted seam must yield None, never a rescaled candidate.
+
+    daily_ohlc is back-adjusted; option_surface_grid_daily is as-traded. After
+    KORU's 20-for-1 its close reads ~$21 while its strikes still spanned
+    125..1900, so pairing them puts every leg absurdly far OTM and makes the
+    greeks meaningless. Measured on option_wizard this affects 174 of 16373
+    ticker-sessions across KLAC, KORU and CRWD. A scale-mismatched candidate is
+    not a worse row — it is a fabricated one, so it is dropped.
+    """
+    conn = seeded_db_empty_cards.conn
+    repo = ThetaHarvesterRepository(conn, "uw_scan")
+    for strike in (125.0, 725.0, 1900.0):  # real KORU pre-split strike range
+        _grid_row(conn, "KORU", _AS_OF, strike, None)
+    conn.execute(  # real back-adjusted KORU close for 2026-07-13
+        "INSERT INTO uw_scan.daily_ohlc (ticker, date, close, source) "
+        "VALUES (%s,%s,%s,'massive.com')",
+        ("KORU", _AS_OF, 20.9595),
+    )
+    conn.commit()
+
+    assert repo.load_spot("KORU", _AS_OF) is None
+
+
+def test_atm_iv_resolves_when_the_grid_has_no_underlying_spot(
+    seeded_db_empty_cards,
+):
+    """Pre-2026-06 grid rows carry a NULL underlying_spot; the IV must still resolve.
+
+    This is the regression for the second of the two NULL-spot dependencies.
+    While load_atm_iv ordered by `abs(strike - underlying_spot)`, every session
+    before 2026-06 matched nothing and the ticker was silently skipped — the
+    replay produced zero candidates for five of seven months and looked like an
+    absent signal rather than an absent column.
+    """
+    conn = seeded_db_empty_cards.conn
+    repo = ThetaHarvesterRepository(conn, "uw_scan")
+    for strike, call_iv, put_iv in (
+        (272.0, 0.286910000244214, 0.251489543772415),
+        (291.0, 0.216271148592203, 0.195577289932588),
+    ):
+        conn.execute(
+            "INSERT INTO uw_scan.option_surface_grid_daily "
+            "(ticker, market_date, expiry, strike, call_iv, put_iv, underlying_spot) "
+            "VALUES (%s,%s,%s,%s,%s,%s,NULL)",
+            ("IWM", _AS_OF, _EXP, strike, call_iv, put_iv),
+        )
+    conn.commit()
+
+    assert repo.load_atm_iv("IWM", _AS_OF, _EXP, _SPOT) == pytest.approx(
+        0.2059242192623955, rel=1e-12
+    )

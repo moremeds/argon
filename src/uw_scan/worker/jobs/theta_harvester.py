@@ -47,7 +47,7 @@ def scan_ticker(repo: Any, ticker: str, as_of: date) -> ThetaCandidate | None:
     # expiry — so the IV and the traded legs always describe the same session
     # and the same tenor. Reading it first (from iv_rank_history) is what let
     # a May IV be compared against July realised vol for 85 of 114 tickers.
-    iv = repo.load_atm_iv(ticker, as_of, structure.expiry)
+    iv = repo.load_atm_iv(ticker, as_of, structure.expiry, spot)
     if iv is None or iv <= 0:
         return None
 

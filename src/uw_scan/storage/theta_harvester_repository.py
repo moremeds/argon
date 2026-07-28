@@ -143,13 +143,51 @@ class ThetaHarvesterRepository:
         return row[0] if row else None
 
     def load_spot(self, ticker: str, as_of: date) -> float | None:
-        sql = f"""
-            SELECT underlying_spot FROM {self._schema}.option_surface_grid_daily
-             WHERE ticker = %s AND market_date = %s AND underlying_spot IS NOT NULL
-             LIMIT 1
+        """Session spot on the SAME price scale as the chain's strikes.
+
+        Grid `underlying_spot` first, `daily_ohlc.close` second. The fallback is
+        not a nicety: the column is NULL for every session before 2026-06 (added
+        by a later migration and never backfilled — 0% populated Dec–May, 13.8%
+        in June, 97.3% in July, measured on option_wizard 2026-07-29). Without
+        it the replay silently produces zero candidates for five of seven months,
+        which reads as "no signal" rather than "no spot".
+
+        The two sources are NOT interchangeable. `daily_ohlc` is back-adjusted;
+        the option grid is as-traded. A ticker that splits mid-window therefore
+        has a rescaled OHLC history against unrescaled strikes — KORU's 20-for-1
+        put its close at ~$21 while its strikes still spanned 125..1900. Pairing
+        those makes every leg absurdly far OTM and the greeks meaningless.
+
+        Hence the strike-range guard: a spot outside the session's own strike
+        range is rejected rather than returned. On option_wizard it removes 174
+        of 16373 ticker-sessions (1.1%) across exactly three names — KLAC, KORU,
+        CRWD — and catches the seam regardless of which source supplied the spot.
+        Rejecting is right: a scale-mismatched candidate is not a worse row, it
+        is a fabricated one.
         """
-        row = self._conn.execute(sql, (ticker, as_of)).fetchone()
-        return float(row[0]) if row and row[0] is not None else None
+        sql = f"""
+            WITH k AS (
+                SELECT MIN(strike) AS lo, MAX(strike) AS hi,
+                       MAX(underlying_spot) AS grid_spot
+                  FROM {self._schema}.option_surface_grid_daily
+                 WHERE ticker = %(t)s AND market_date = %(d)s
+            )
+            SELECT COALESCE(
+                       k.grid_spot,
+                       (SELECT close FROM {self._schema}.daily_ohlc
+                         WHERE ticker = %(t)s AND date = %(d)s AND close > 0
+                         LIMIT 1)
+                   ) AS spot,
+                   k.lo, k.hi
+              FROM k
+        """
+        row = self._conn.execute(sql, {"t": ticker, "d": as_of}).fetchone()
+        if not row or row[0] is None or row[1] is None:
+            return None
+        spot, lo, hi = float(row[0]), float(row[1]), float(row[2])
+        if spot <= 0 or not (lo <= spot <= hi):
+            return None
+        return spot
 
     def load_gex_rows(self, ticker: str, as_of: date) -> list[dict[str, Any]]:
         """Per-strike GEX, aggregated across expiries for that session.
@@ -182,7 +220,9 @@ class ThetaHarvesterRepository:
         rows = self._conn.execute(sql, (ticker, as_of, lookback)).fetchall()
         return [float(r[0]) for r in rows]
 
-    def load_atm_iv(self, ticker: str, as_of: date, expiry: date) -> float | None:
+    def load_atm_iv(
+        self, ticker: str, as_of: date, expiry: date, spot: float
+    ) -> float | None:
         """ATM IV from the SAME grid session and expiry the legs come from.
 
         NOT from iv_rank_history. That table carries only 4 tickers per session
@@ -200,6 +240,14 @@ class ThetaHarvesterRepository:
         2026-07-24, the one ticker where both sources exist: grid 0.2059 vs
         iv_rank_history 0.208.
 
+        `spot` is passed in rather than read from the row's own `underlying_spot`
+        because that column is NULL for every pre-2026-06 session (see
+        load_spot). Ordering by `abs(strike - underlying_spot)` therefore matched
+        nothing on historical dates and this returned None for five of seven
+        months — the second of the two NULL-spot dependencies that between them
+        made the whole replay produce zero rows. Taking the caller's spot also
+        guarantees the IV, the legs and the moneyness all reference one number.
+
         ponytail: nearest strike, not an interpolation across the two straddling
         strikes. Grid strike spacing is $1 on liquid names, so the error is well
         inside the IV gate's 5-vol-point threshold. Interpolate only if a markout
@@ -210,11 +258,10 @@ class ThetaHarvesterRepository:
               FROM {self._schema}.option_surface_grid_daily
              WHERE ticker = %s AND market_date = %s AND expiry = %s
                AND call_iv IS NOT NULL AND put_iv IS NOT NULL
-               AND underlying_spot > 0
-             ORDER BY abs(strike - underlying_spot)
+             ORDER BY abs(strike - %s)
              LIMIT 1
         """
-        row = self._conn.execute(sql, (ticker, as_of, expiry)).fetchone()
+        row = self._conn.execute(sql, (ticker, as_of, expiry, spot)).fetchone()
         if not row or row[0] is None:
             return None
         iv = float(row[0])

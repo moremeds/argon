@@ -539,7 +539,10 @@ class _StubRepo:
     def load_gex_rows(self, ticker, as_of):
         return self._gex
 
-    def load_atm_iv(self, ticker, as_of, expiry):
+    def load_atm_iv(self, ticker, as_of, expiry, spot):
+        # spot is asserted, not ignored: passing it is what keeps the IV, the
+        # legs and the moneyness on one number after the NULL-underlying_spot fix.
+        assert spot == self._spot
         return self._iv
 
     def load_spot(self, ticker, as_of):
