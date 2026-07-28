@@ -155,9 +155,9 @@ export default function GexCurvatureChart({
         : best,
     0,
   );
-  // hoverIdx is state and the profile is re-polled underneath it (regime GEX
-  // every 60s, the live-spot splice more often, and the stock window resizes
-  // as spot moves). A shrunk bucket list would leave the index dangling and
+  // hoverIdx is state and the profile is re-polled underneath it (every 60s,
+  // 5min in extended hours — see useGex). A scan returning fewer strikes than
+  // the one the pointer landed on would leave the index dangling, and
   // points[hoverIdx][0] would throw — clamp on read, don't trust the state.
   const safeHoverIdx =
     hoverIdx != null && hoverIdx < buckets.length ? hoverIdx : null;
