@@ -7,6 +7,9 @@ version in lockstep (enforced by `scripts/release/version_sync_check.py`).
 
 ## [Unreleased]
 
+## [0.10.15] — 2026-07-28
+
+
 ### Changed
 
 - **GEX profile is now a curvature field** on `/regime` → GEX. The horizontal
@@ -28,7 +31,6 @@ version in lockstep (enforced by `scripts/release/version_sync_check.py`).
   from `components/regime/`, so history is preserved). The dead
   `uwGexRowsToBuckets` helper it carried — zero callers since the UW Analyze
   page it was extracted for — is deleted.
-
 ## [0.10.14] — 2026-07-26
 
 
