@@ -57,12 +57,14 @@ def _load_vol_series(
     When ``as_of`` is set, the lookback is capped at ``trade_date <= as_of``
     so the historical-recovery path can re-aim the scanner at a previous
     day without changing the rest of the orchestration.
+
+    The cap is pushed into SQL — see VolIndexRepository.fetch_history. Selecting
+    the most-recent rows and filtering to ``<= as_of`` afterwards anchors the
+    fetch window to today while anchoring the filter to ``as_of``; once ``as_of``
+    is further back than the window, every row is filtered out and the caller
+    sees an empty series rather than an error.
     """
-    fetch_days = days * 2 if as_of is not None else days
-    rows = vol_repo.fetch_history(symbol, days=fetch_days)
-    if as_of is not None:
-        rows = [r for r in rows if r["trade_date"] <= as_of]
-        rows = rows[-days:]
+    rows = vol_repo.fetch_history(symbol, days=days, as_of=as_of)
     return {
         r["trade_date"]: float(r["close"]) for r in rows if r.get("close") is not None
     }

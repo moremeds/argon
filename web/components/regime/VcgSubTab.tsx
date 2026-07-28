@@ -16,6 +16,7 @@ import VcgStressHistorySection from "./vcg/VcgStressHistorySection";
 import { type VcgSignal } from "@/lib/regime/useVcg";
 import { useVcgLive, type VcgLiveResponse } from "@/lib/regime/useVcgLive";
 import { useVcgDaily, type VcgDailyEntry } from "@/lib/regime/useVcgSeries";
+import VcgZScoreHistoryChart from "./vcg/VcgZScoreHistoryChart";
 import VcgSeriesGrids from "./vcg/VcgSeriesGrids";
 import CardSparkline from "./primitives/CardSparkline";
 import {
@@ -266,10 +267,13 @@ export function VcgSubTabView({
   const lastSync = data.scan_time;
   const history = data.history ?? [];
 
-  // 90d daily series for in-card sparklines (oldest → newest).
+  // Full fetched window (oldest → newest) — the z-score history chart ranges
+  // over all of it. The in-card sparklines stay at their documented 90d, so
+  // widening the fetch for the chart doesn't silently restyle them.
   const dailyRows = daily ?? [];
+  const sparkRows = dailyRows.slice(-90);
   const dseries = (k: keyof VcgDailyEntry): (number | null)[] =>
-    dailyRows.map((r) => {
+    sparkRows.map((r) => {
       const v = r[k];
       return typeof v === "number" && Number.isFinite(v) ? v : null;
     });
@@ -836,6 +840,12 @@ export function VcgSubTabView({
           </div>
         </div>
 
+        {/* ── Z-score history (bars + monotone curve, range-selectable) ── */}
+        <VcgZScoreHistoryChart
+          rows={dailyRows}
+          interpretation={interpretationLabel(sig.interpretation)}
+        />
+
         {/* ── Intraday small-multiples grid (basis='live' rows) ── */}
         <VcgSeriesGrids />
 
@@ -854,7 +864,9 @@ export function VcgSubTabView({
 
 export default function VcgSubTab() {
   const { data, syncing, syncNow } = useVcgLive();
-  const { data: daily } = useVcgDaily(90);
+  // 365 = the API's `days` ceiling. Feeds the z-score chart's 6M/ALL ranges;
+  // the sparklines slice back to 90 downstream.
+  const { data: daily } = useVcgDaily(365);
   return (
     <VcgSubTabView
       data={data}

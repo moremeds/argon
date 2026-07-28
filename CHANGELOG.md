@@ -7,6 +7,41 @@ version in lockstep (enforced by `scripts/release/version_sync_check.py`).
 
 ## [Unreleased]
 
+### Added
+
+- **VCG z-score history chart** on `/regime` → VCG — signed bars plus a monotone
+  curve over the trailing window, with 1M/3M/6M/1Y range buttons and the
+  ±2.0 / ±2.5 arming thresholds drawn as rules. It plots `vcg` directly, which
+  *is already* the trailing 63-session z-score of the model residual, so the
+  panel labels that definition rather than re-normalising an already-normalised
+  series.
+- **`pathFromPointsSmooth`** (`web/lib/svgChart.ts`) — Fritsch–Carlson monotone
+  cubic interpolation. Deliberately not Catmull–Rom: on `[0, 0, 2, 0, 0]` a
+  Catmull–Rom spline dips below zero either side of the spike, drawing a sign
+  flip that is not in the data. On a signed regime chart that is a fabricated
+  reading; the monotone limiter clamps tangents to the neighbouring samples'
+  range at no visual cost.
+- **`scripts/backfill/vcg_snapshot_backfill.py`** — scores `vcg_snapshots`
+  (`basis='eod'`) across the full aligned lake history. VCG needs no external
+  API (VIX/VVIX/credit-proxy all come from `vol_index_daily`), so the whole
+  history backfills at zero UW cost. Depth is bounded by the shortest input:
+  HYG starts 2007-04-11 and scoring needs 94 aligned bars of warmup.
+
+### Fixed
+
+- **`VolIndexRepository.fetch_history` now caps `as_of` in SQL** instead of
+  filtering after the fact, and **all three scanners that consume it — VCG, CRI,
+  and canary — are fixed together.** Each selected the most-recent `days` (or
+  `days * 2`) rows and only then dropped everything after `as_of`, which anchors
+  the fetch window to *today* while anchoring the filter to *`as_of`*. Once
+  `as_of` is further back than the window, every row is filtered out and the
+  caller gets an empty series rather than an error: the scan reports "thin data"
+  and skips, so a deep historical backfill runs to completion and writes
+  nothing. This is what capped VCG backfills at ~600 sessions. CRI and canary
+  had the identical copy-pasted bug — dormant only because their sole `as_of`
+  caller (`recover_recent_gaps`) stays inside the `days * 2` fudge buffer.
+  Regression tests cover all three and fail against the old code.
+
 ## [0.10.15] — 2026-07-28
 
 

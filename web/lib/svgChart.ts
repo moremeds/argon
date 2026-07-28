@@ -66,6 +66,65 @@ export function pathFromNullablePoints(
   return out.trimEnd();
 }
 
+/**
+ * Smooth path through `points` using a Fritsch–Carlson **monotone** cubic.
+ *
+ * Deliberately NOT Catmull-Rom. A Catmull-Rom spline overshoots: on the series
+ * [0, 0, 2, 0, 0] it swings visibly below zero on both sides of the spike,
+ * drawing a negative excursion that is not in the data. On a signed regime
+ * chart that is a fabricated sign flip — the reader sees the series cross zero
+ * when it never did. The monotone variant clamps tangents so the curve stays
+ * within the range of its neighbouring samples, which costs nothing visually.
+ *
+ * Points must be sorted ascending by x. Fewer than 3 points falls back to a
+ * straight polyline (a spline through 2 points is just the segment anyway).
+ */
+export function pathFromPointsSmooth(points: Point[]): string {
+  const n = points.length;
+  if (n < 3) return pathFromPoints(points);
+
+  // Secant slopes between consecutive points.
+  const dx: number[] = [];
+  const delta: number[] = [];
+  for (let i = 0; i < n - 1; i++) {
+    const h = points[i + 1][0] - points[i][0];
+    dx.push(h);
+    delta.push(h === 0 ? 0 : (points[i + 1][1] - points[i][1]) / h);
+  }
+
+  // Initial tangents: one-sided at the ends, averaged in the interior.
+  const m: number[] = new Array(n);
+  m[0] = delta[0];
+  m[n - 1] = delta[n - 2];
+  for (let i = 1; i < n - 1; i++) m[i] = (delta[i - 1] + delta[i]) / 2;
+
+  // Fritsch–Carlson limiter — this is the step that prevents overshoot.
+  for (let i = 0; i < n - 1; i++) {
+    if (delta[i] === 0) {
+      m[i] = 0;
+      m[i + 1] = 0;
+      continue;
+    }
+    const a = m[i] / delta[i];
+    const b = m[i + 1] / delta[i];
+    const s = a * a + b * b;
+    if (s > 9) {
+      const t = 3 / Math.sqrt(s);
+      m[i] = t * a * delta[i];
+      m[i + 1] = t * b * delta[i];
+    }
+  }
+
+  let d = `M${points[0][0]},${points[0][1]}`;
+  for (let i = 0; i < n - 1; i++) {
+    const h = dx[i] / 3;
+    const [x0, y0] = points[i];
+    const [x1, y1] = points[i + 1];
+    d += ` C${x0 + h},${y0 + m[i] * h} ${x1 - h},${y1 - m[i + 1] * h} ${x1},${y1}`;
+  }
+  return d;
+}
+
 export function niceTicks(min: number, max: number, count = 5): number[] {
   if (!isFinite(min) || !isFinite(max) || min === max) return [min];
   // Heckbert nice-number rounding: snap the raw step to 1/2/5/10 × 10^k.
