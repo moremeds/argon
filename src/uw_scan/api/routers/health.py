@@ -44,7 +44,11 @@ class HealthResponse(BaseModel):
     scheduler_heartbeat_lag_seconds: float | None = None
     scheduler_heartbeat_name: str | None = None
     rescan_heartbeat_lag_seconds: float | None = None
-    spot_refresh_heartbeat_lag_seconds: float | None = None
+    # No spot_refresh_heartbeat_lag_seconds: the spot_refresh job was deleted in
+    # Phase 7 (the WS consumer is the sole intraday spot writer). Nothing has
+    # written that heartbeat since, so the field could only ever report "time
+    # since the retired job last ran" — ~68 days and climbing by 2026-07. Live
+    # spot health is spot_quote_lag_seconds plus the ws_consumer block.
     spot_quote_lag_seconds: float | None = None
     latest_spot_quote_at: datetime | None = None
     latest_spot_quote_fetched_at: datetime | None = None
@@ -468,12 +472,6 @@ def health(
         if rescan_heartbeat is not None
         else None
     )
-    spot_refresh_heartbeat = repo.get_heartbeat("spot_refresh")
-    spot_refresh_heartbeat_lag = (
-        (now_utc - spot_refresh_heartbeat).total_seconds()
-        if spot_refresh_heartbeat is not None
-        else None
-    )
     latest_spot_quote_at = None
     latest_spot_quote_fetched_at = None
     spot_quote_lag = None
@@ -581,7 +579,6 @@ def health(
         "scheduler_heartbeat_lag_seconds": scheduler_heartbeat_lag,
         "scheduler_heartbeat_name": scheduler_heartbeat_name,
         "rescan_heartbeat_lag_seconds": rescan_heartbeat_lag,
-        "spot_refresh_heartbeat_lag_seconds": spot_refresh_heartbeat_lag,
         "spot_quote_lag_seconds": spot_quote_lag,
         "latest_spot_quote_at": latest_spot_quote_at,
         "latest_spot_quote_fetched_at": latest_spot_quote_fetched_at,

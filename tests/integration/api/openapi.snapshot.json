@@ -8061,17 +8061,6 @@
             ],
             "title": "Spot Quote Lag Seconds"
           },
-          "spot_refresh_heartbeat_lag_seconds": {
-            "anyOf": [
-              {
-                "type": "number"
-              },
-              {
-                "type": "null"
-              }
-            ],
-            "title": "Spot Refresh Heartbeat Lag Seconds"
-          },
           "throughput_window_minutes": {
             "default": 0.0,
             "title": "Throughput Window Minutes",

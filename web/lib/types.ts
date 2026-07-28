@@ -4079,7 +4079,6 @@ export interface components {
             /** Rescan Heartbeat Lag Seconds */
             rescan_heartbeat_lag_seconds?: number | null;
             /** Spot Refresh Heartbeat Lag Seconds */
-            spot_refresh_heartbeat_lag_seconds?: number | null;
             /** Spot Quote Lag Seconds */
             spot_quote_lag_seconds?: number | null;
             /** Latest Spot Quote At */
