@@ -30,11 +30,17 @@ version in lockstep (enforced by `scripts/release/version_sync_check.py`).
 ### Fixed
 
 - **`VolIndexRepository.fetch_history` now caps `as_of` in SQL** instead of
-  filtering after the fact. Fetching the most-recent `days` rows and *then*
-  dropping everything after `as_of` returns an empty series whenever `as_of` is
-  more than `days` bars back — so historical VCG scans silently reported "thin
-  data" and skipped, and a deep backfill looked like it ran while filling
-  nothing. This is what capped backfills at ~600 sessions.
+  filtering after the fact, and **all three scanners that consume it — VCG, CRI,
+  and canary — are fixed together.** Each selected the most-recent `days` (or
+  `days * 2`) rows and only then dropped everything after `as_of`, which anchors
+  the fetch window to *today* while anchoring the filter to *`as_of`*. Once
+  `as_of` is further back than the window, every row is filtered out and the
+  caller gets an empty series rather than an error: the scan reports "thin data"
+  and skips, so a deep historical backfill runs to completion and writes
+  nothing. This is what capped VCG backfills at ~600 sessions. CRI and canary
+  had the identical copy-pasted bug — dormant only because their sole `as_of`
+  caller (`recover_recent_gaps`) stays inside the `days * 2` fudge buffer.
+  Regression tests cover all three and fail against the old code.
 
 ## [0.10.15] — 2026-07-28
 
