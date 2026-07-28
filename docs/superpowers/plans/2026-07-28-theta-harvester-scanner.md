@@ -1216,7 +1216,7 @@ def build_candidate(
         trend_20d_pct=trend_20d_pct,
         range_score=range_score,
         dealer=dealer,
-        score=round(score, 2),
+        score=score,
         weights_version=weights.version,
         verdict=verdict,
         gates=gates,
@@ -1658,7 +1658,10 @@ class ThetaHarvesterRepository:
 - [ ] **Step 4: Run test to verify it passes**
 
 Run: `uv run pytest tests/integration/test_theta_harvester_repository.py -v`
-Expected: all 5 PASS.
+Expected: all 7 PASS (the 5 listed above plus the two identity-purge tests:
+`test_identity_change_purges_stale_markouts` and
+`test_identical_rescan_keeps_existing_markouts` — the purge is the whole
+reason `upsert_candidates` is not a plain ON CONFLICT, so it needs a test).
 
 On a MacBook the integration DB needs forced-local env — if it errors on connection, export `UW_SCAN_DB_HOST=127.0.0.1`, `UW_SCAN_DB_USER=$(whoami)`, `TEST_DB_NAME=option_wizard_test` in the shell first (shell env wins over `.env.local`).
 
