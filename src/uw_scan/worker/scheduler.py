@@ -68,6 +68,7 @@ from uw_scan.worker.jobs.skew_analytics import (
 )
 from uw_scan.worker.jobs.skew_swing_greeks import skew_swing_greeks_refresh
 from uw_scan.worker.jobs.technical_daily_refresh import technical_daily_refresh
+from uw_scan.worker.jobs.theta_harvester import theta_harvester_scan
 from uw_scan.worker.jobs.trade_insight_outcome_backfill import (
     trade_insight_outcome_backfill_once,
 )
@@ -754,6 +755,10 @@ def main() -> int:
         with _repo(settings) as repo:
             vrp_markout_refresh(repo=repo)
 
+    def _theta_harvester_scan() -> None:
+        with _repo(settings) as repo:
+            theta_harvester_scan(repo=repo, settings=settings)
+
     def _technical_daily_refresh() -> None:
         with _repo(settings) as repo:
             technical_daily_refresh(repo=repo, settings=settings)
@@ -1376,6 +1381,18 @@ def main() -> int:
                 max_instances=1,
                 coalesce=True,
             )
+            # Theta Harvester at 19:45 ET — after option_surface_capture (19:00)
+            # and its IV canary (19:30) have landed the session's grid. Pure
+            # warm-store compute: zero UW budget, so massive-0 is the right home.
+            if settings.theta_harvester_enabled:
+                sched.add_job(
+                    _theta_harvester_scan,
+                    CronTrigger.from_crontab("45 19 * * 0-4", timezone=settings.rth_tz),
+                    id="theta_harvester_scan",
+                    name="Theta Harvester short-strangle scan",
+                    max_instances=1,
+                    coalesce=True,
+                )
             # Technicals daily refresh at 18:40 ET — after apex's own EOD sync and
             # before the 18:50 vrp_markout job. apex bars cost no UW budget, so
             # massive-0 is the right single-flight home. Idempotent; flag-gated.

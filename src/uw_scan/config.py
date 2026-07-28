@@ -387,6 +387,9 @@ class Settings(BaseModel):
     technical_live_enabled: bool = False
     technical_live_scan_interval_minutes: int = 5
     technical_live_quote_max_age_seconds: int = 900
+    # Theta Harvester short-strangle scan (nightly 19:45 ET, massive-0).
+    # Zero UW budget — pure warm-store compute.
+    theta_harvester_enabled: bool = True
     # UW historical-alpha nightly capture (5 datasets, uw-0). Master kill switch.
     uw_alpha_capture_enabled: bool = False
     # Chanlun Phase B lifecycle engine (nightly 03:10 ET Tue-Sat, massive-0).
@@ -889,6 +892,7 @@ class Settings(BaseModel):
             # All four env vars deliberately carry the UW_SCAN_ prefix (newest
             # precedent: UW_SCAN_TECHNICAL_LIVE_ENABLED) — one convention for
             # the whole feature, no mixed-prefix mis-sets on the mini.
+            theta_harvester_enabled=_env_bool("UW_SCAN_THETA_HARVESTER_ENABLED", True),
             uw_alpha_capture_enabled=_env_bool(
                 "UW_SCAN_UW_ALPHA_CAPTURE_ENABLED", False
             ),

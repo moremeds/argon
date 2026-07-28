@@ -20,6 +20,7 @@ from uw_scan.scanners.theta_harvester import (
     realized_vol,
     select_short_strangle,
 )
+from uw_scan.worker.jobs.theta_harvester import scan_ticker
 
 
 def test_realized_vol_matches_hand_computed_annualised_sigma():
@@ -399,3 +400,100 @@ def test_entry_credit_is_the_sum_of_both_black_scholes_leg_marks():
 def test_score_is_bounded_to_one_hundred():
     c = _candidate(iv=2.0, hv20=0.10, range_score=1.0)
     assert c.score <= 100.0
+
+
+# The REAL IWM 90-close series ending 2026-07-24, read from
+# uw_scan.daily_ohlc. This is what makes _HV20/_HV60/_TREND_21D/_RANGE_SCORE
+# above reproducible: realized_vol(_CLOSES, 20) == _HV20 exactly.
+_CLOSES = [
+    250.05, 246.02, 247.63, 242.22, 247.45, 248.78, 251.82, 247.44, 243.1,
+    239.61, 248.0, 249.56, 251.29, 252.36, 252.91, 260.47, 261.96, 261.3,
+    265.07, 268.72, 269.39, 269.95, 275.78, 277.35, 274.51, 276.48, 275.52,
+    276.65, 277.14, 273.91, 272.08, 277.97, 279.28, 277.88, 282.56, 286.8,
+    282.26, 284.17, 285.33, 282.57, 282.67, 284.45, 277.6, 275.97, 273.0,
+    279.87, 282.49, 285.12, 290.51, 290.37, 292.03, 290.43, 288.98, 291.66,
+    287.67, 292.01, 281.65, 284.11, 285.02, 282.05, 290.41, 292.95, 294.64,
+    292.08, 289.88, 295.59, 298.18, 295.32, 296.69, 298.91, 299.83, 298.97,
+    300.45, 299.32, 297.58, 298.9, 296.19, 293.48, 297.24, 295.99, 293.48,
+    294.51, 295.77, 295.59, 294.04, 292.31, 296.54, 293.79, 292.09, 291.17,
+]
+
+
+def test_frozen_closes_reproduce_the_frozen_vol_fixtures():
+    # Pins the provenance chain: if this fails, the _HV20/_RANGE_SCORE
+    # constants above no longer describe the price series they came from.
+    assert realized_vol(_CLOSES, 20) == pytest.approx(_HV20, rel=1e-12)
+    assert realized_vol(_CLOSES, 60) == pytest.approx(_HV60, rel=1e-12)
+    trend, score = range_metrics(_CLOSES, _HV20)
+    assert trend == pytest.approx(_TREND_21D, rel=1e-12)
+    assert score == pytest.approx(_RANGE_SCORE, rel=1e-12)
+
+
+class _StubRepo:
+    """In-memory stand-in for ThetaHarvesterRepository — the frozen real IWM
+    2026-07-24 capture. No network, no DB, and no invented prices: the closes,
+    chain legs, spot and IV are all the real readings for that session.
+    """
+
+    def __init__(self, *, closes=None, chain=None, gex=None, iv=_IV, spot=_SPOT):
+        self._closes = _CLOSES if closes is None else closes
+        # LONG-convention legs, as load_chain returns them. theta must be <= 0
+        # here — the selector negates.
+        self._chain = [_PUT_16D, _CALL_16D] if chain is None else chain
+        self._gex = (
+            [
+                {"strike": 272.0, "call_gex": 4.0e8, "put_gex": -1.0e8},
+                {"strike": 306.0, "call_gex": 3.0e8, "put_gex": -1.0e8},
+            ]
+            if gex is None
+            else gex
+        )
+        self._iv, self._spot = iv, spot
+
+    def load_closes(self, ticker, as_of, lookback=90):
+        return self._closes
+
+    def load_chain(self, ticker, as_of):
+        return self._chain
+
+    def load_gex_rows(self, ticker, as_of):
+        return self._gex
+
+    def load_iv(self, ticker, as_of):
+        return self._iv
+
+    def load_spot(self, ticker, as_of):
+        return self._spot
+
+
+def test_scan_ticker_produces_a_candidate_from_warm_store_rows():
+    out = scan_ticker(_StubRepo(), "IWM", _AS_OF)
+    assert out is not None
+    assert out.ticker == "IWM"
+    assert out.structure.put.strike == 272.0
+    # End-to-end on real data: the scan reproduces the Task 4 score exactly.
+    assert out.score == pytest.approx(70.879602930724, rel=1e-9)
+    assert out.verdict == "THETA_HARVEST"
+
+
+def test_scan_ticker_returns_none_without_enough_price_history():
+    # HV20 needs 21 closes; 10 is not enough and a partial window would
+    # understate vol and loosen the IV-edge gate.
+    assert scan_ticker(_StubRepo(closes=_CLOSES[:10]), "IWM", _AS_OF) is None
+
+
+def test_scan_ticker_returns_none_when_the_chain_is_empty():
+    assert scan_ticker(_StubRepo(chain=[]), "IWM", _AS_OF) is None
+
+
+def test_scan_ticker_returns_none_without_an_iv_reading():
+    assert scan_ticker(_StubRepo(iv=None), "IWM", _AS_OF) is None
+
+
+def test_scan_ticker_still_scores_when_gex_is_missing():
+    # No dealer data must not kill the row — it fails one gate and lands on
+    # the watchlist, which is information, unlike a dropped ticker.
+    out = scan_ticker(_StubRepo(gex=[]), "IWM", _AS_OF)
+    assert out is not None
+    assert out.dealer.label == "UNKNOWN"
+    assert out.gates["dealer_support"] is False
