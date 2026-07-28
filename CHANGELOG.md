@@ -7,6 +7,26 @@ version in lockstep (enforced by `scripts/release/version_sync_check.py`).
 
 ## [Unreleased]
 
+### Research
+
+- **Walk-forward validation of the VCG calm gate**
+  (`docs/research/2026-07-29-vrp-vcg-calm-gate-walkforward.md`,
+  `scripts/research/vrp_vcg_calm_gate_walkforward.py`) — clears the bar the
+  in-sample probe set for itself: the |z| threshold is re-fit from scratch on
+  each expanding training window, then scored on the year that follows. Over
+  14 OOS folds (2013–2026) the refit gate beats always-on **4/4** and `gate0`
+  **3/4**, cutting maxDD by a mean 1.73× max-loss. It **reverses on 0.25Δ/30d**
+  (1.07 vs 1.39), so the structural config is load-bearing and it is still not
+  wired in.
+  - Every one of the 14 windows independently picked |z| < 0.75 — a value the
+    earlier probe never tested. That **supersedes the in-sample "the threshold
+    is unstable" finding**, which was an artifact of comparing two hand-cut
+    eras; the older doc now carries a note to that effect.
+  - The per-window catastrophic-degradation gate fails **0/4 for every arm,
+    including ungated always-on**, so on this book it is describing short vol
+    as an asset class (2018Q1, 2020Q1) rather than indicting the candidate.
+    Recorded rather than reported as a gate failure.
+
 ### Changed
 
 - **The VCG signal tooltip now states what the signal does _not_ do.** State

@@ -354,10 +354,18 @@ def main() -> int:
         "conjunction with `vrp_z`, which means it is a conditioning variable, "
         "not a signal.",
         "",
-        "**5. The threshold is unstable.** |z| < 1 and |z| < 2 rank differently "
-        "across eras — in 2017→now the weaker veto is *better* (1.06 vs 1.03), in "
-        "2007–2016 it is much worse (0.48 vs 0.79). A parameter whose ordering "
-        "flips between halves has not been identified, it has been fitted.",
+        "**5. The threshold looks unstable here.** |z| < 1 and |z| < 2 rank "
+        "differently across eras — in 2017→now the weaker veto is *better* (1.06 "
+        "vs 1.03), in 2007–2016 it is much worse (0.48 vs 0.79). A parameter "
+        "whose ordering flips between halves has not been identified, it has "
+        "been fitted.",
+        "",
+        "> **Superseded on this point.** "
+        "`2026-07-29-vrp-vcg-calm-gate-walkforward.md` re-fits the threshold "
+        "from scratch on 14 expanding training windows and every one picks "
+        "0.75 — a value this probe never tested. The instability above is an "
+        "artifact of comparing two hand-cut eras at two hand-picked thresholds, "
+        "not a property of the parameter. The rest of this verdict stands.",
         "",
         "### What would make this deployable",
         "",
