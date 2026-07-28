@@ -2533,13 +2533,16 @@ existing candidate rows — without this backfill the markout table stays empty
 for weeks and every read looks like "no signal" rather than "no data". The
 skew engine shipped with exactly this gap; do not repeat it.
 
-Coverage floor is the intersection of option_surface_grid_daily and
-exposures_by_expiry_strike. As of 2026-07-28 that is 2026-05-11 (the GEX
-table), NOT the IV grid's 2026-01-02 — the dealer-support gate binds.
+Coverage floor is option_surface_grid_daily ALONE (2025-12-26 on the mini),
+NOT its intersection with exposures_by_expiry_strike. Requiring GEX would drop
+the replay from 116 usable entry sessions to 24, because the strike-level GEX
+feed only starts 2026-05 — and the dealer gate is non-critical by default
+precisely so that history is not discarded for an unvalidated gate. Sessions
+without GEX still score, with dealer_support='UNKNOWN'.
 
 Reproduce:
     uv run python scripts/backfill/theta_harvester_backfill.py \
-        --start 2026-05-11 --end 2026-07-24
+        --start 2025-12-26 --end 2026-07-27
 """
 
 from __future__ import annotations
@@ -2702,17 +2705,22 @@ s = Settings.from_env()
 with psycopg.connect(s.db_dsn()) as c:
     print(c.execute('''
       select k.verdict, m.horizon_days, count(*) n,
-             round(avg(m.pnl_pct_of_credit),2) mean_pnl,
-             round(percentile_cont(0.05) within group (order by m.pnl_pct_of_credit)::numeric,2) p05,
-             round(min(m.pnl_pct_of_credit),2) worst
+             round(avg(m.pnl / k.underlying_spot * 100), 3) mean_pct_spot,
+             round(avg(k.entry_credit_theo), 2) avg_credit,
+             round(min(m.pnl / k.underlying_spot * 100), 2) worst_pct_spot
         from uw_scan.theta_harvester_markouts m
         join uw_scan.theta_harvester_candidates k
           on k.ticker=m.ticker and k.as_of=m.as_of
+       where k.underlying_spot > 0
        group by 1,2 order by 2,1
     ''').fetchall())
 "
 ```
-Expected: a table you can read as "does `THETA_HARVEST` beat the other verdicts at the same horizon". Record the output in the PR description. **A positive mean on the harvest rows alone is not evidence** — short vol is positive-expectancy in most windows. Report `p05` and `worst` alongside every mean: a strategy whose worst trade is −8× the median credit is a different animal from one whose worst is −1.5×, at the same mean. With ~55 sessions and 30-day horizons the effective N is roughly two non-overlapping windows, so treat every number here as directional only.
+Expected: a table you can read as "does `THETA_HARVEST` beat the other verdicts at the same horizon". Record the output in the PR description. **A positive mean on the harvest rows alone is not evidence** — short vol is positive-expectancy in most windows; the comparison against the other verdicts is the whole point. Report `worst_pct_spot` alongside every mean: a strategy whose worst trade is −6% of spot is a different animal from one whose worst is −1.5%, at the same mean.
+
+**Normalise by SPOT, never by credit.** This query originally divided by `entry_credit_theo` and that inverted the entire conclusion — measured 2026-07-29 on the local replay, credit-normalised P&L ranked `DIRECTIONAL_DISGUISE` (6.6) above `THETA_HARVEST` (3.9) at T+5, while spot-normalised ranked `THETA_HARVEST` (0.234) above `DIRECTIONAL_DISGUISE` (0.210). The cause is visible in `avg_credit`: disguise rows average 12.31 against harvest's 9.12, because a high-|delta| structure sits closer to the money and collects more premium. Dividing by credit therefore penalises exactly the rows the gates are trying to select. It is the same reason Task 12's sweep normalises by spot.
+
+Effective N is the binding constraint on everything in this table — treat it as directional only, and read Task 12's cross-sectional IC for the number that actually decides anything.
 
 - [ ] **Step 5: Commit**
 
