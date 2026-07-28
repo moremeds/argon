@@ -13,7 +13,10 @@ type PanelView = "status" | "benchmark";
 const HEALTH_FETCH_TIMEOUT_MS = 8000;
 const HEALTH_FAILURE_LIMIT = 3;
 const HEARTBEAT_HEALTHY_LAG_S = 5;
-const SPOT_REFRESH_HEALTHY_LAG_S = 660;
+// Massive workers beat on the daily OHLC cadence, not the 5s worker tick, so
+// they get their own generous threshold. (Was SPOT_REFRESH_HEALTHY_LAG_S, back
+// when the retired spot_refresh job set the cadence.)
+const MASSIVE_HEALTHY_LAG_S = 660;
 const RECORD_WINDOW_HOURS = 8;
 const RECORD_MIN_COVERAGE = 0.9;
 const COLLAPSED_STORAGE_KEY = "uw_health_collapsed";
@@ -108,7 +111,7 @@ function workerGroupStatus(workers: WorkerHealth[]): {
   const online = workers.filter((worker) => {
     const healthyLag =
       worker.role === "massive"
-        ? SPOT_REFRESH_HEALTHY_LAG_S
+        ? MASSIVE_HEALTHY_LAG_S
         : HEARTBEAT_HEALTHY_LAG_S;
     return heartbeatStatus(worker.lag_seconds, healthyLag).label === "ONLINE";
   }).length;
@@ -459,10 +462,6 @@ export function HealthPanel() {
       : { label: "ONLINE", color: "var(--positive)" };
   const schedulerStatus = heartbeatStatus(h?.scheduler_heartbeat_lag_seconds);
   const rescanStatus = heartbeatStatus(h?.rescan_heartbeat_lag_seconds);
-  const spotRefreshStatus = heartbeatStatus(
-    h?.spot_refresh_heartbeat_lag_seconds,
-    SPOT_REFRESH_HEALTHY_LAG_S,
-  );
   const workerRows = h?.workers ?? [];
   const uwWorkers = workerRows.filter((worker) => worker.role === "uw");
   const massiveWorkers = workerRows.filter(
@@ -496,14 +495,7 @@ export function HealthPanel() {
           recordsStatus,
           wsStatus,
         ]
-      : [
-          apiStatus,
-          schedulerStatus,
-          rescanStatus,
-          spotRefreshStatus,
-          recordsStatus,
-          wsStatus,
-        ],
+      : [apiStatus, schedulerStatus, rescanStatus, recordsStatus, wsStatus],
   );
 
   const toggle = () => {
@@ -617,11 +609,11 @@ export function HealthPanel() {
                 </>
               ) : (
                 <>
+                  {/* No Massive Worker row in this fallback: its only source
+                      was the spot_refresh heartbeat, retired in Phase 7. With
+                      zero worker rows there is nothing left to report, and a
+                      permanently-red row is worse than an absent one. */}
                   <StatusRow label="UW Worker" status={rescanStatus} />
-                  <StatusRow
-                    label="Massive Worker"
-                    status={spotRefreshStatus}
-                  />
                 </>
               )}
               <StatusRow label="Query Coverage" status={recordsStatus} />

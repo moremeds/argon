@@ -80,8 +80,7 @@ def test_health_reports_rescan_heartbeat_separately(client, seeded_db_empty_card
     assert body["rescan_heartbeat_lag_seconds"] < 5
 
 
-def test_health_reports_spot_refresh_and_quote_freshness(client, seeded_db_empty_cards):
-    seeded_db_empty_cards.upsert_heartbeat("spot_refresh")
+def test_health_reports_quote_freshness(client, seeded_db_empty_cards):
     seeded_db_empty_cards.upsert_intraday_quote(
         "AAPL",
         Decimal("298.40"),
@@ -92,8 +91,11 @@ def test_health_reports_spot_refresh_and_quote_freshness(client, seeded_db_empty
 
     assert r.status_code == 200
     body = r.json()
-    assert body["spot_refresh_heartbeat_lag_seconds"] is not None
-    assert body["spot_refresh_heartbeat_lag_seconds"] < 5
+    # The spot_refresh job was deleted in Phase 7, so nothing writes that
+    # heartbeat; the field it fed reported "time since the retired job last
+    # ran" and grew without bound. Assert it stays gone — a resurrected field
+    # would be a lie again, not a feature.
+    assert "spot_refresh_heartbeat_lag_seconds" not in body
     assert body["spot_quote_lag_seconds"] is not None
     assert body["spot_quote_lag_seconds"] < 5
     assert body["latest_spot_quote_at"] is not None

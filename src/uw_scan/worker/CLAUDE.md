@@ -14,8 +14,9 @@ Set `UW_SCAN_WORKER_ROLE=uw|massive|ai|all`, `UW_SCAN_WORKER_INDEX`, and
 `UW_SCAN_WORKER_COUNT` to split provider work across processes.
 
 - `uw` workers run `full_scan`, `rescan_tick`, and `flow_data_refresh`.
-- `massive` workers run `spot_refresh`, `ohlc_pull`, and primary-worker-only
-  volatility OHLC/rollup jobs.
+- `massive` workers run `ohlc_pull` and primary-worker-only volatility
+  OHLC/rollup jobs. (`spot_refresh` was deleted in Phase 7 — the WS consumer
+  is the sole intraday spot writer.)
 - `ai` workers run only `trade_insights_ai_tick` (gated on
   `TRADE_INSIGHTS_AI_ENABLED=true`). The tick claims rows via
   `FOR UPDATE SKIP LOCKED`, so multiple `ai` workers safely process distinct
