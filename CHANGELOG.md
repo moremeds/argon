@@ -7,6 +7,9 @@ version in lockstep (enforced by `scripts/release/version_sync_check.py`).
 
 ## [Unreleased]
 
+## [0.10.17] — 2026-07-29
+
+
 ### Removed
 
 - **`spot_refresh_heartbeat_lag_seconds`** dropped from `/api/health`. The
@@ -19,7 +22,6 @@ version in lockstep (enforced by `scripts/release/version_sync_check.py`).
   spot health remains `spot_quote_lag_seconds` + the `ws_consumer` block, both
   sub-second on the mini. **API contract change** — `types.ts` and the OpenAPI
   snapshot updated surgically alongside.
-
 ## [0.10.16] — 2026-07-29
 
 ### Added
