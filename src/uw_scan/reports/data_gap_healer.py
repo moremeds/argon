@@ -491,6 +491,52 @@ REGISTRY.extend(
     )
 )
 
+# Theta Harvester (migration 109). Spelled out rather than folded into the
+# _entries list above so the heal instructions survive next to the entry.
+REGISTRY.extend(
+    [
+        DatasetRegistryEntry(
+            "theta_harvester_candidates",
+            "research_artifact",
+            # research_artifact, NOT strict_ticker_date. strict_ticker_date sets
+            # the denominator to (eligible watchlist tickers x sessions), but
+            # candidates only exist for tickers that clear the thin-input checks
+            # -- so it would report a large, permanent, UNHEALABLE gap
+            # (healer_adapter is None) on every audit forever.
+            "research_artifact",
+            date_col="as_of",
+            ticker_col="ticker",
+            expected_frequency="event",
+            provider="db",
+            granularity="run_once_lookback",
+            healer_adapter=None,
+            source_system="derived",
+            reason=(
+                "Derived from option_surface_grid_daily; heal by re-running "
+                "scripts/backfill/theta_harvester_backfill.py. Rows are absent "
+                "by design for tickers with thin price history or no chain."
+            ),
+        ),
+        DatasetRegistryEntry(
+            "theta_harvester_markouts",
+            "research_artifact",
+            "research_artifact",
+            date_col="as_of",
+            ticker_col="ticker",
+            expected_frequency="event",
+            provider="db",
+            granularity="run_once",
+            healer_adapter=None,
+            source_system="derived",
+            reason=(
+                "Forward re-marks accrue as sessions pass; a missing horizon is "
+                "not-yet-reached rather than a gap. Written by the nightly "
+                "theta_harvester_markout job."
+            ),
+        ),
+    ]
+)
+
 REGISTRY.extend(
     _entries(
         [
