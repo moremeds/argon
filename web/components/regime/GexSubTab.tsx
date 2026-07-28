@@ -13,7 +13,7 @@ import { useGexIntraday } from "@/lib/regime/useGexIntraday";
 import { MarketState } from "@/lib/regime/useMarketHours";
 import { quoteIsFresh, useRegimeQuotes } from "@/lib/regime/useRegimeQuotes";
 import InfoTooltip from "./InfoTooltip";
-import GexProfileChart from "./GexProfileChart";
+import GexCurvatureChart from "@/components/shared/GexCurvatureChart";
 import { HistoryChart } from "./HistoryChart";
 import MacroShortVolCard from "./MacroShortVolCard";
 import MacroShortVolEntryGuidance from "./MacroShortVolEntryGuidance";
@@ -551,7 +551,7 @@ export default function GexSubTab({ marketState }: GexSubTabProps) {
         <MacroShortVolEntryGuidance />
 
         {/* ── GEX Profile Chart ── */}
-        <GexProfileChart profile={liveProfile} spot={displaySpot} />
+        <GexCurvatureChart profile={liveProfile} spot={displaySpot} />
 
         {/* ── 5-Session Intraday Chart (spot / flip / net_gex / iv30d) ── */}
         <GexIntradayChart data={intraday} ticker={data.ticker} />
