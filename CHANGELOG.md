@@ -9,21 +9,6 @@ version in lockstep (enforced by `scripts/release/version_sync_check.py`).
 
 ## [0.10.17] — 2026-07-29
 
-
-### Removed
-
-- **`spot_refresh_heartbeat_lag_seconds`** dropped from `/api/health`. The
-  `spot_refresh` job was deleted in Phase 7 — the WS consumer became the sole
-  intraday spot writer — but the health endpoint kept reading its heartbeat, so
-  the field reported time-since-the-retired-job-last-ran: ~68 days and climbing
-  by 2026-07. The `HealthPanel` "Massive Worker" fallback row it fed is gone
-  too; that branch only renders when there are zero worker rows, so in any real
-  deploy `workerGroupStatus(massiveWorkers)` was already the live signal. Live
-  spot health remains `spot_quote_lag_seconds` + the `ws_consumer` block, both
-  sub-second on the mini. **API contract change** — `types.ts` and the OpenAPI
-  snapshot updated surgically alongside.
-## [0.10.16] — 2026-07-29
-
 ### Added
 
 - **Calm-core band on the VCG z-score history chart** — `|z| < 0.75` shaded
@@ -38,6 +23,29 @@ version in lockstep (enforced by `scripts/release/version_sync_check.py`).
   reverses on 0.25Δ/30d. Regression-tested for presence, zero-centring, and
   being narrower than the ±2.0 rules; the test was confirmed to fail with the
   band removed.
+
+### Changed
+
+- **The VCG signal tooltip now states what the signal does _not_ do.** State
+  names like `RISK-OFF` are positioning vocabulary and read as an instruction to
+  cut equity; tested over 2007–2026 (n=4,758) armed days match baseline SPX
+  returns. The tooltip now says the states describe coincident vol/credit stress
+  and do not predict direction, while noting that elevated |z| does associate
+  with higher forward realised vol. Copy only — no change to the cascade, the
+  stored `interpretation` values, or the API.
+
+### Removed
+
+- **`spot_refresh_heartbeat_lag_seconds`** dropped from `/api/health`. The
+  `spot_refresh` job was deleted in Phase 7 — the WS consumer became the sole
+  intraday spot writer — but the health endpoint kept reading its heartbeat, so
+  the field reported time-since-the-retired-job-last-ran: ~68 days and climbing
+  by 2026-07. The `HealthPanel` "Massive Worker" fallback row it fed is gone
+  too; that branch only renders when there are zero worker rows, so in any real
+  deploy `workerGroupStatus(massiveWorkers)` was already the live signal. Live
+  spot health remains `spot_quote_lag_seconds` + the `ws_consumer` block, both
+  sub-second on the mini. **API contract change** — `types.ts` and the OpenAPI
+  snapshot updated surgically alongside.
 
 ### Research
 
@@ -72,19 +80,6 @@ version in lockstep (enforced by `scripts/release/version_sync_check.py`).
     including ungated always-on**, so on this book it is describing short vol
     as an asset class (2018Q1, 2020Q1) rather than indicting the candidate.
     Recorded rather than reported as a gate failure.
-
-### Changed
-
-- **The VCG signal tooltip now states what the signal does _not_ do.** State
-  names like `RISK-OFF` are positioning vocabulary and read as an instruction to
-  cut equity; tested over 2007–2026 (n=4,758) armed days match baseline SPX
-  returns. The tooltip now says the states describe coincident vol/credit stress
-  and do not predict direction, while noting that elevated |z| does associate
-  with higher forward realised vol. Copy only — no change to the cascade, the
-  stored `interpretation` values, or the API.
-
-### Research
-
 - **`docs/research/2026-07-29-vcg-spx-forward-returns.md`** — VCG z vs forward
   SPX over 4,758 sessions. Direction is dead: across 30 rule×horizon cells the
   largest |t vs rest| is 1.10, and armed days track baseline in both era halves.
@@ -100,6 +95,8 @@ version in lockstep (enforced by `scripts/release/version_sync_check.py`).
   **Verdict: promising, not proven — not wired in.** Deployment would require
   the walk-forward harness with the threshold re-fit per training window. Repro:
   `scripts/research/vrp_vcg_calm_gate_probe.py`.
+
+## [0.10.16] — 2026-07-29
 
 ### Added
 
