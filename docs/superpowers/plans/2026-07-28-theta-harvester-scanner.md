@@ -31,6 +31,7 @@ These do not change what gets built; they constrain what the output may be read 
 
 - **A positive markout is the null hypothesis, not a finding.** Short vol has positive expectancy in the large majority of windows — the premium is compensation for negative skew (Lempérière et al., *Risk Premia: Asymmetric Tail Risks and Excess Returns*, arXiv:1409.7720). The comparison that carries information is **`THETA_HARVEST` rows vs. the non-harvest rows in the same table**, not harvest rows vs. zero. This control arm is free: `theta_harvester_candidates` is keyed `(ticker, as_of)` with no verdict filter, so `WATCHLIST` and `DIRECTIONAL_DISGUISE` rows are persisted and marked out identically. Task 6 must NOT filter to harvest-only before upsert, and Task 8's verification must slice by verdict. **Task 12 turns this into an actual measurement**: its `unconditional` config takes every row and is the number every weighted config must beat.
 - **Effective N is far below the row count.** Daily candidates on one ticker with 30-day horizons overlap ~30-fold, and 100+ tickers of short vol share one market factor. Measured on the mini (`option_wizard`) on 2026-07-29: `option_surface_grid_daily` holds **145 sessions, 2025-12-26 → 2026-07-27**, of which **116 are early enough for a 45-DTE cycle to have completed** (`market_date <= 2026-06-12`). With ~21 trading days per non-overlapping 30-day hold that is roughly **5–6 independent windows**, all inside one macro regime. Requiring `dealer_gate_critical` collapses this to **24 sessions / 2 037 (ticker, session) pairs**, because `exposures_by_expiry_strike` only begins 2026-05 — that ratio, not a prior, is why the dealer gate defaults to non-critical. Any Sharpe or t-stat on the naive row count is wrong by an order of magnitude. Report effective N alongside every aggregate.
+- **So the PRIMARY metric is cross-sectional, not time-series.** A portfolio Sharpe over ~5 windows cannot distinguish this signal from luck, and it is measuring the wrong thing anyway: the score's job is to rank *which of today's 109 tickers* is the best short strangle, not to decide whether to be short vol at all. Ranking **within** a session differences out the market-wide short-vol factor — the very thing that makes a positive markout the null hypothesis — so a positive cross-sectional IC cannot be explained by "short vol pays". It also raises the observation count from ~5 independent windows to ~116 sessions. Portfolio Sharpe stays in the output as a secondary, explicitly underpowered number; **the IC is what the go/no-go reads.**
 - **The markout is a model P&L, not a tradable one.** Both ends price off grid IV, so the bias is constant in time and mostly cancels — but the absolute level omits the round-trip spread on two wing legs, which is not small on single names. It answers "does the signal separate winners from losers", never "this is what you would have made".
 - **The entry mark is same-close, which is a lookahead.** `option_surface_capture` runs at 19:00 ET on session T; the scan runs at 19:45 ET and both *selects* and *prices* the entry from that same T close. So the signal consumes T's completed close, IV surface, GEX and realised vol, then assumes entry at that same close — an oracle mark no one could have transacted at. **This is a deliberate v1 simplification, and it means the output is a diagnostic, not a strategy return.** It biases results optimistically by an unknown amount: the gates select on information that is mechanically correlated with the entry price. The clean fix is to separate `signal_as_of` (T) from `entry_date` (first eligible T+1 surface) and price entry off T+1 — a schema and job change, deferred to a follow-up commit **on this branch** rather than a second PR. Until that lands, no number from this feature may be described as a strategy return, a Sharpe, or an expected credit. Say "diagnostic P&L, same-close entry" every time.
 - **`credit_ib` must never be aggregated.** It exists only for the top-8 a human looked at, so any statistic over it is selection-biased. It is a per-row slippage sanity check, nothing else.
@@ -3586,6 +3587,19 @@ Interpretation constraints. Three named configs are always in the grid:
 | `radon` | `RADON_WEIGHTS` -- radon's shipped weights and its critical dealer gate. |
 | `default` | `DEFAULT_WEIGHTS` -- the reweight this plan proposes. |
 
+**Two metrics, and only one of them decides anything.**
+
+`session_ic` is the **primary**: the per-session Spearman rank correlation
+between score and terminal P&L, averaged over sessions, with a t-stat on the
+session series. It answers "does a higher score identify a better strangle
+*that day*". Because it ranks within a session, the market-wide short-vol
+factor cancels -- so unlike a raw markout, a positive IC is NOT the null
+hypothesis. It has ~116 observations rather than ~5.
+
+`sharpe` is **secondary and underpowered by construction** (~5 independent
+30-day windows inside one regime). It is reported so the magnitude is visible,
+never as the go/no-go. Do not promote anything on it.
+
 **If `default` does not beat `unconditional` out-of-sample, the score adds
 nothing and that is the finding.** Write it in the notes and leave the feature
 as a diagnostic. Do not re-sweep until the finding is disliked less.
@@ -3609,6 +3623,7 @@ from uw_scan.scanners.theta_harvester import DEFAULT_WEIGHTS, RADON_WEIGHTS
 from scripts.research.theta_harvester_weight_sweep import (
     Row,
     build_grid,
+    cross_sectional_ic,
     evaluate_config,
     selected_rows,
 )
@@ -3661,6 +3676,33 @@ def test_empty_selection_returns_metrics_not_an_exception():
     assert out["metrics"]["sharpe"] is None
 
 
+def test_ic_is_positive_when_score_orders_outcomes_correctly():
+    # Higher edge -> higher score -> better outcome, within one session.
+    rows = [_row(float(e), 0.0, 0.5, float(e) / 1000.0) for e in range(5, 25)]
+    out = cross_sectional_ic(rows, config={"kind": "weights", **DEFAULT_WEIGHTS.__dict__})
+    assert out["session_ic"] == pytest.approx(1.0)
+    assert out["ic_sessions"] == 1
+
+
+def test_ic_is_negative_when_the_score_is_backwards():
+    rows = [_row(float(e), 0.0, 0.5, -float(e) / 1000.0) for e in range(5, 25)]
+    out = cross_sectional_ic(rows, config={"kind": "weights", **DEFAULT_WEIGHTS.__dict__})
+    assert out["session_ic"] == pytest.approx(-1.0)
+
+
+def test_ic_is_none_for_the_unconditional_control():
+    # The control arm has no score, therefore no ordering hypothesis to test.
+    rows = [_row(float(e), 0.0, 0.5, 0.01) for e in range(5, 25)]
+    out = cross_sectional_ic(rows, config={"kind": "unconditional"})
+    assert out["session_ic"] is None
+
+
+def test_ic_needs_at_least_three_sessions():
+    rows = [_row(float(e), 0.0, 0.5, float(e) / 1000.0) for e in range(5, 25)]
+    out = cross_sectional_ic(rows, config={"kind": "weights", **DEFAULT_WEIGHTS.__dict__})
+    assert out["ic_t_stat"] is None  # 1 session -> no dispersion estimate
+
+
 def test_grid_always_contains_the_three_named_configs():
     kinds = {c.get("name") for c in build_grid()}
     assert {"unconditional", "radon", "default"} <= kinds
@@ -3697,6 +3739,7 @@ from __future__ import annotations
 
 import itertools
 import logging
+import math
 import subprocess
 from dataclasses import dataclass
 from datetime import date
@@ -3810,12 +3853,101 @@ def selected_rows(rows: list[Row], *, config: dict) -> list[Row]:
     return out
 
 
+def _spearman(xs: list[float], ys: list[float]) -> float | None:
+    """Rank correlation, no scipy. None when either side has no dispersion."""
+    n = len(xs)
+    if n < 5:
+        return None
+
+    def ranks(vs: list[float]) -> list[float]:
+        order = sorted(range(n), key=lambda i: vs[i])
+        out = [0.0] * n
+        i = 0
+        while i < n:  # average ranks within ties
+            j = i
+            while j + 1 < n and vs[order[j + 1]] == vs[order[i]]:
+                j += 1
+            avg = (i + j) / 2.0 + 1.0
+            for k in range(i, j + 1):
+                out[order[k]] = avg
+            i = j + 1
+        return out
+
+    rx, ry = ranks(xs), ranks(ys)
+    mx, my = sum(rx) / n, sum(ry) / n
+    num = sum((a - mx) * (b - my) for a, b in zip(rx, ry, strict=True))
+    dx = math.sqrt(sum((a - mx) ** 2 for a in rx))
+    dy = math.sqrt(sum((b - my) ** 2 for b in ry))
+    if dx == 0 or dy == 0:
+        return None
+    return num / (dx * dy)
+
+
+def cross_sectional_ic(rows: list[Row], *, config: dict) -> dict:
+    """Per-session Spearman(score, terminal P&L), averaged over sessions.
+
+    THE PRIMARY METRIC. Scores every row that clears the CONSTRUCTION gates
+    (delta band, positive theta) -- deliberately NOT the threshold, because a
+    threshold turns a ranking question into a selection question and throws
+    away the bottom of the cross-section, which is exactly the part that tells
+    you whether the score orders anything.
+
+    Ranking within a session cancels the market-wide short-vol factor, so a
+    positive IC here is a real ordering claim rather than a restatement of
+    "short vol pays".
+    """
+    if config["kind"] == "unconditional":
+        # No score to rank by -- the control arm has no ordering hypothesis.
+        return {"session_ic": None, "ic_t_stat": None, "ic_sessions": 0}
+    w = ScoreWeights(**{k: config[k] for k in ScoreWeights.__dataclass_fields__})
+
+    by_session: dict[date, list[Row]] = {}
+    for r in rows:
+        if abs(r.net_delta) > NEAR_ZERO_DELTA or not r.theta_positive:
+            continue
+        if w.dealer_gate_critical and r.dealer_support != "SUPPORT":
+            continue
+        by_session.setdefault(r.as_of, []).append(r)
+
+    ics: list[float] = []
+    for session_rows in by_session.values():
+        scores = [
+            score_from_components(
+                iv_rv_edge=r.iv_rv_edge,
+                net_delta=r.net_delta,
+                range_score=r.range_score,
+                weights=w,
+            )
+            for r in session_rows
+        ]
+        ic = _spearman(scores, [r.ret for r in session_rows])
+        if ic is not None:
+            ics.append(ic)
+
+    if len(ics) < 3:
+        return {"session_ic": None, "ic_t_stat": None, "ic_sessions": len(ics)}
+    mean = sum(ics) / len(ics)
+    var = sum((v - mean) ** 2 for v in ics) / (len(ics) - 1)
+    sd = math.sqrt(var)
+    # Sessions overlap (a 30-day hold spans ~21 of them), so this t-stat is
+    # still optimistic -- it is a screen, not a p-value. Treat |t| < 2 as noise
+    # and |t| >= 2 as "worth a real overlapping-window correction".
+    t = mean / (sd / math.sqrt(len(ics))) if sd > 0 else None
+    return {"session_ic": mean, "ic_t_stat": t, "ic_sessions": len(ics)}
+
+
 def evaluate_config(rows: list[Row], *, config: dict) -> dict:
     kept = selected_rows(rows, config=config)
+    ic = cross_sectional_ic(rows, config=config)
     if not kept:
         return {
             "n_trades": 0,
-            "metrics": {"sharpe": None, "effective_n_months": 0, "mean_ret": None},
+            "metrics": {
+                "sharpe": None,
+                "effective_n_months": 0,
+                "mean_ret": None,
+                **ic,
+            },
             "gates": None,
         }
 
@@ -3840,6 +3972,7 @@ def evaluate_config(rows: list[Row], *, config: dict) -> dict:
             "effective_n_months": len(monthly),
             "mean_ret": sum(ordered) / len(ordered),
             "n_tickers": len({r.ticker for r in kept}),
+            **ic,  # primary metric; `sharpe` above is the underpowered one
         },
         # Holdout on the month series. Thresholds are 0.0 -- the bar is only
         # "is the mean still positive out of sample", because with ~6 months
@@ -3901,8 +4034,9 @@ def main() -> None:
         if r:
             m = r["metrics"]
             log.info(
-                "%-14s sharpe=%s mean=%s months=%s trades=%s",
-                key, m.get("sharpe"), m.get("mean_ret"),
+                "%-14s IC=%s t=%s sessions=%s | sharpe=%s months=%s trades=%s",
+                key, m.get("session_ic"), m.get("ic_t_stat"),
+                m.get("ic_sessions"), m.get("sharpe"),
                 m.get("effective_n_months"), r.get("n_trades"),
             )
     log.info("run_id=%s ok=%s error=%s", out["run_id"], out["n_ok"], out["n_error"])
@@ -3915,7 +4049,7 @@ if __name__ == "__main__":
 - [ ] **Step 4: Run test to verify it passes**
 
 Run: `uv run pytest tests/unit/test_theta_harvester_sweep.py -v`
-Expected: all 6 PASS.
+Expected: all 10 PASS.
 
 - [ ] **Step 5: Run the sweep for real**
 
@@ -3930,8 +4064,10 @@ SELECT config->>'name', n_trades, metrics->>'sharpe', metrics->>'effective_n_mon
  WHERE run_id = <run_id> AND config->>'name' IS NOT NULL;
 ```
 
-**Do not skip this step and do not paraphrase the result.** Write the three
-headline numbers, the effective N, and the honest verdict into
+**Do not skip this step and do not paraphrase the result.** The go/no-go reads
+`session_ic` and its t-stat, NOT `sharpe`. A |t| under 2 is noise and the
+honest write-up says so. Write the IC, the t-stat, the session count, the
+secondary Sharpe, and the verdict into
 `docs/research/2026-07-28-theta-harvester-weight-sweep.md`, including the case
 where `default` loses to `unconditional`. A sweep whose result is not written
 down did not happen.
