@@ -16,7 +16,7 @@
 - **Markout basis is `entry_credit_theo`** (Black-Scholes from grid IV), never `credit_ib`. Entry and marks must both come from `option_surface_grid_daily` or every P&L carries a constant bid-ask bias that reads as alpha.
 - **Radon's structural constants are ported verbatim:** `MIN_DTE=7`, `MAX_DTE=45`, `TARGET_DELTA=0.16`, `NEAR_ZERO_DELTA=0.10`, `RISK_FREE_RATE=0.045`, `TRADING_DAYS=252`. **Its score weights are NOT** — see `ScoreWeights` in Task 4. Radon's 25/25/20/15/10/5 survives as the named `RADON_WEIGHTS` sweep point so the reweight is measured, not asserted.
 - **The score is a pure function of three persisted columns.** `score_from_components(iv_rv_edge, net_delta, range_score, weights)` — nothing else feeds it. That is what makes Task 12's sweep a single pass over `theta_harvester_candidates` with zero rescans and zero UW/IB calls. Any change that makes the score depend on something not stored raw on the row breaks the tuning loop and must be rejected.
-- **No synthetic market data in tests.** Fixtures are real tickers at real captured prices, frozen with an as-of date. No network at test runtime. No placeholder symbols, no round-number prices. **The frozen capture is IWM, session 2026-07-24, expiry 2026-08-21**, read out of `option_wizard_local` on 2026-07-28 and pasted verbatim into the Task 3 test header with its source query. IWM is used rather than the obvious AAPL because it is the one watchlist name that session whose real IV (0.208) actually exceeds its realised vol (HV20 0.1108) — AAPL's real IV was 0.2292 against HV20 0.2969 and **fails** the IV gate, so an AAPL happy-path fixture could only be built by inventing prices. AAPL's real readings are used instead for the negative (cheap-vol) case. **Narrow carve-out:** the `dealer_support` and `realized_vol` unit tests use constructed numbers, because they assert pure arithmetic (does a cumulative sum cross zero; does a log-return std annualise correctly) where no market claim is made. That is the only exemption; anything asserting a price, greek, gate or verdict uses the frozen real capture.
+- **No synthetic market data in tests.** Fixtures are real tickers at real captured prices, frozen with an as-of date. No network at test runtime. No placeholder symbols, no round-number prices. **The frozen capture is IWM, session 2026-07-24, expiry 2026-08-21**, read out of `option_wizard_local` on 2026-07-28 and pasted verbatim into the Task 3 test header with its source query. IWM is used because it is the one watchlist name that session whose real IV (0.208) actually exceeds its realised vol (HV20 0.1108). The cheap-vol negative case uses a **different real session** — QQQ 2026-07-21, IV 0.241 vs HV20 0.2557 (edge −1.47, ratio 0.943) — because no ticker on 2026-07-24 failed the IV gate. Every fixture takes all of its readings from ONE session; pairing one date's IV with another date's realised vol is a fixture that never existed. **Narrow carve-out:** the `dealer_support` and `realized_vol` unit tests use constructed numbers, because they assert pure arithmetic (does a cumulative sum cross zero; does a log-return std annualise correctly) where no market claim is made. That is the only exemption; anything asserting a price, greek, gate or verdict uses the frozen real capture.
 - **Module size budget** — target <500 lines per Python file.
 - **New `(ticker, as_of)` tables require** a `DatasetRegistryEntry` in `reports/data_gap_healer.py` plus a regenerated `docs/runbooks/data-gap-dataset-policy.md`, in this same PR.
 - **Generated files are alphabetically frozen** — `web/lib/types.ts` and the OpenAPI snapshot get surgical additions, never a full regen.
@@ -608,8 +608,9 @@ from uw_scan.scanners.theta_harvester import (
 # IWM was chosen because it is the one watchlist name on that session whose
 # real IV actually exceeds its realised vol (edge +9.72 vol points) — i.e. the
 # only ticker for which the gates genuinely pass on real data. AAPL, the
-# obvious choice, had IV 0.2292 vs HV20 0.2969 and FAILS the IV gate; a fixture
-# built on it could only reach THETA_HARVEST by inventing prices.
+# only ticker for which the gates genuinely pass on real data. The cheap-vol
+# negative case uses a different real session (QQQ 2026-07-21), because no
+# ticker on 2026-07-24 failed the IV gate.
 # ---------------------------------------------------------------------------
 _AS_OF = date(2026, 7, 24)
 _EXP = date(2026, 8, 21)  # 28 DTE — closest to radon's 30-day preference
@@ -945,10 +946,15 @@ def test_cheap_vol_is_a_disguise_not_a_watchlist_entry():
     # IV under RV: no edge to harvest. Radon routes this to DIRECTIONAL_DISGUISE
     # via the iv_gate branch even when delta is clean.
     #
-    # These are the REAL AAPL readings for the same 2026-07-24 session
-    # (iv_rank_history.volatility 0.2292 against HV20 0.296877) — AAPL genuinely
-    # failed this gate that day, so the negative case needs no invented numbers.
-    c = _candidate(iv=0.2292, hv20=0.296877, hv60=0.288133)
+    # REAL QQQ readings for session 2026-07-21, read from option_wizard on
+    # 2026-07-29: iv_rank_history.volatility 0.241 against HV20 0.25568 — QQQ
+    # genuinely failed this gate that day (edge -1.47 vol points, ratio 0.943).
+    # A single real session supplies all three readings; pairing one date's IV
+    # with another date's realised vol would be a fixture that never existed.
+    # (AAPL's 0.2292 is real but dated 2026-05-20, and against ITS OWN HV20 of
+    # 0.19159 the ratio is 1.196 -- it PASSES the gate. It cannot be the
+    # negative case.)
+    c = _candidate(iv=0.241, hv20=0.25567671527495894, hv60=0.2479297744543768)
     assert c.iv_rv_edge < 0
     assert c.gates["iv_rich_vs_rv"] is False
     assert c.verdict == "DIRECTIONAL_DISGUISE"

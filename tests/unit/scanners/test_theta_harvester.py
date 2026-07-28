@@ -8,9 +8,13 @@ from datetime import date
 import pytest
 
 from uw_scan.scanners.theta_harvester import (
+    DEFAULT_WEIGHTS,
+    RADON_WEIGHTS,
     DealerSupport,
     OptionLeg,
     Strangle,
+    ThetaCandidate,
+    build_candidate,
     dealer_support,
     range_metrics,
     realized_vol,
@@ -120,9 +124,9 @@ def test_dealer_support_unknown_without_rows():
 #
 # IWM was chosen because it is the one watchlist name on that session whose
 # real IV actually exceeds its realised vol (edge +9.72 vol points) — i.e. the
-# only ticker for which the gates genuinely pass on real data. AAPL, the
-# obvious choice, had IV 0.2292 vs HV20 0.2969 and FAILS the IV gate; a fixture
-# built on it could only reach THETA_HARVEST by inventing prices.
+# only ticker for which the gates genuinely pass on real data. The cheap-vol
+# negative case uses a different real session (QQQ 2026-07-21), because no
+# ticker on 2026-07-24 failed the IV gate.
 # ---------------------------------------------------------------------------
 _AS_OF = date(2026, 7, 24)
 _EXP = date(2026, 8, 21)  # 28 DTE — closest to radon's 30-day preference
@@ -272,3 +276,126 @@ def test_select_short_strangle_breaks_ties_deterministically():
         reverse.put.strike,
         reverse.call.strike,
     )
+
+
+def _structure(**over):
+    """Build through select_short_strangle so the sign convention cannot drift.
+
+    Hand-constructing Strangle(...) here is what let the original draft ship a
+    short-convention fixture (theta=+0.08) against a long-convention selector:
+    the tests passed and production produced zero THETA_HARVEST rows. Always
+    derive from the frozen real legs via the selector, then override only the
+    field a given test is actually exercising.
+    """
+    base = select_short_strangle([_PUT_16D, _CALL_16D], spot=_SPOT, as_of=_AS_OF)
+    assert base is not None and base.theta > 0 and base.gamma < 0
+    return dataclasses.replace(base, **over) if over else base
+
+
+def _candidate(**over):
+    """The real IWM 2026-07-24 candidate. Every gate passes on real data."""
+    kwargs = dict(
+        ticker="IWM",
+        as_of=_AS_OF,
+        structure=_structure(),
+        spot=_SPOT,
+        iv=_IV,
+        hv20=_HV20,
+        hv60=_HV60,
+        trend_20d_pct=_TREND_21D,
+        range_score=_RANGE_SCORE,
+        # Real IWM net GEX on 2026-07-24 is positive with the flip below spot.
+        dealer=DealerSupport("SUPPORT", 5.0e8, 280.0),
+    )
+    kwargs.update(over)
+    return build_candidate(**kwargs)
+
+
+def test_all_gates_passing_yields_theta_harvest_verdict():
+    # Real IWM 2026-07-24 clears all six gates on real data.
+    c = _candidate()
+    assert isinstance(c, ThetaCandidate)
+    assert all(c.gates.values())
+    # 55 * (9.7212/15) + 25 * (1 - 0.0018275/0.10) + 20 * 0.534602
+    assert c.score == pytest.approx(70.879602930724, rel=1e-9)
+    # Deliberately marginal: IWM's edge is ~p85, not top-decile, so a
+    # genuinely rich-but-not-extreme name clears the default bar by 0.88.
+    # If a weight change moves this, the test SHOULD fail loudly.
+    assert c.verdict == "THETA_HARVEST"
+
+
+def test_directional_book_is_called_out_as_disguise():
+    # |net delta| above 0.20 means this is a directional bet wearing a
+    # strangle's clothes, regardless of how rich the vol is.
+    c = _candidate(structure=_structure(net_delta=0.35))
+    assert c.gates["delta_near_zero"] is False
+    assert c.verdict == "DIRECTIONAL_DISGUISE"
+
+
+def test_cheap_vol_is_a_disguise_not_a_watchlist_entry():
+    # IV under RV: no edge to harvest. Radon routes this to DIRECTIONAL_DISGUISE
+    # via the iv_gate branch even when delta is clean.
+    #
+    # REAL QQQ readings for session 2026-07-21, read from option_wizard on
+    # 2026-07-29: iv_rank_history.volatility 0.241 against HV20 0.25568 — QQQ
+    # genuinely failed this gate that day (edge -1.47 vol points, ratio 0.943),
+    # so the negative case needs no invented numbers. A single real session is
+    # used for all three readings; pairing one date's IV with another date's
+    # realised vol would be a fixture that never existed.
+    c = _candidate(iv=0.241, hv20=0.25567671527495894, hv60=0.2479297744543768)
+    assert c.iv_rv_edge < 0
+    assert c.gates["iv_rich_vs_rv"] is False
+    assert c.verdict == "DIRECTIONAL_DISGUISE"
+
+
+def test_dealer_support_is_recorded_but_not_critical_by_default():
+    # DEFAULT_WEIGHTS.dealer_gate_critical is False, so short-gamma dealers
+    # are RECORDED and still harvest-eligible. This is the deliberate change
+    # that keeps 116 backtestable sessions instead of 24.
+    c = _candidate(dealer=DealerSupport("NO_SUPPORT", -3.0e8, None))
+    assert c.gates["dealer_support"] is False
+    assert c.verdict == "THETA_HARVEST"
+
+
+def test_dealer_gate_becomes_critical_under_radon_weights():
+    c = _candidate(
+        dealer=DealerSupport("NO_SUPPORT", -3.0e8, None), weights=RADON_WEIGHTS
+    )
+    assert c.gates["dealer_support"] is False
+    assert c.verdict == "WATCHLIST"
+
+
+def test_radon_weights_reproduce_the_original_score():
+    # Radon's published number for this row is 94.19. Its formula carried a
+    # constant +40 once the critical gates passed; ours drops it. The two
+    # must therefore differ by exactly 40 -- if they don't, the reweight
+    # changed something other than the constant, which is a bug.
+    c = _candidate(weights=RADON_WEIGHTS)
+    assert c.score == pytest.approx(54.192171263918, rel=1e-9)
+    assert c.score + 40.0 == pytest.approx(94.192171263918, rel=1e-9)
+    assert c.verdict == "THETA_HARVEST"  # 54.19 >= threshold 30
+
+
+def test_weights_version_is_stamped_on_the_candidate():
+    assert _candidate().weights_version == DEFAULT_WEIGHTS.version
+    assert _candidate(weights=RADON_WEIGHTS).weights_version == RADON_WEIGHTS.version
+    assert DEFAULT_WEIGHTS.version != RADON_WEIGHTS.version
+
+
+def test_iv_edge_and_ratio_are_reported_in_vol_points():
+    c = _candidate()
+    # Real IWM: IV 0.208 vs HV20 0.11079 -> +9.72 vol points, ratio 1.877.
+    assert c.iv_rv_edge == pytest.approx((_IV - _HV20) * 100.0)
+    assert c.iv_rv_edge == pytest.approx(9.7212090846368, rel=1e-9)
+    assert c.iv_rv_ratio == pytest.approx(_IV / _HV20)
+
+
+def test_entry_credit_is_the_sum_of_both_black_scholes_leg_marks():
+    c = _candidate()
+    assert c.entry_credit_theo == pytest.approx(c.put_mark + c.call_mark)
+    assert c.put_mark > 0 and c.call_mark > 0
+
+
+def test_score_is_bounded_to_one_hundred():
+    c = _candidate(iv=2.0, hv20=0.10, range_score=1.0)
+    assert c.score <= 100.0

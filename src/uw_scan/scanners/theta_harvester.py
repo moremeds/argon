@@ -22,6 +22,8 @@ from collections.abc import Mapping, Sequence
 from dataclasses import dataclass
 from datetime import date
 
+from uw_scan.reports.vrp_structure import bs_price
+
 MIN_DTE = 7
 MAX_DTE = 45
 TARGET_DELTA = 0.16
@@ -240,3 +242,205 @@ def select_short_strangle(
                     vega=vega,
                 )
     return best
+
+
+@dataclass(frozen=True)
+class ScoreWeights:
+    """The entire tunable surface. Every field is swept by the weight sweep.
+
+    Radon's 100-point score was 25 delta / 25 vol / 20 dealer / 15 theta /
+    10 range / 5 gamma. Three of those six are CONSTANT once the critical
+    gates pass: `dealer_support` is itself a critical gate, `theta > 0` is a
+    critical gate, and `gamma < 0` is implied by a delta-balanced short
+    strangle. 40 of 100 points therefore never discriminate between eligible
+    candidates. We score only the three components that actually vary and
+    keep the rest as gates -- gates gate, scores score.
+
+    `edge_saturation_pts` matters more than the weight. Radon's
+    `min(25, edge * 2.5)` maxes out at 10 vol points of IV-RV. Measured on
+    the mini 2026-07-29 over the 1 090 (ticker, session) pairs that have both
+    a grid capture and an `iv_rank_history` reading, `(IV - HV20) * 100` is
+    distributed p50 2.14 / p75 6.53 / p90 14.34 / p95 19.16 / p99 36.13, and
+    32.7% clear the `edge >= 5` gate. Radon's cap therefore sat at ~p85 and
+    pinned the term for the whole top decile. The default saturates at 15 --
+    p90 rounded -- so "full vol credit" means top-decile richness.
+
+    `dealer_gate_critical` defaults False. Radon had it True, but the
+    strike-level GEX feed (`exposures_by_expiry_strike`) only starts
+    2026-05, while the IV grid starts 2025-12-26. Requiring it collapses
+    the backtestable entry universe from 116 sessions to 24 -- and the dealer-
+    gamma-support premise has no peer-reviewed support to justify that cost.
+    It is swept as a parameter rather than decided by assertion.
+    """
+
+    vol_edge: float = 55.0
+    delta_neutrality: float = 25.0
+    range_bound: float = 20.0
+    edge_saturation_pts: float = 15.0
+    threshold: float = 70.0
+    dealer_gate_critical: bool = False
+
+    @property
+    def version(self) -> str:
+        """Stable provenance tag persisted on every candidate row."""
+        return (
+            f"v{self.vol_edge:g}/{self.delta_neutrality:g}/{self.range_bound:g}"
+            f"@{self.edge_saturation_pts:g}t{self.threshold:g}"
+            f"{'d' if self.dealer_gate_critical else ''}"
+        )
+
+
+DEFAULT_WEIGHTS = ScoreWeights()
+
+# Radon's original, kept as a named sweep point so "did the reweight help?"
+# is a question the sweep answers rather than one this module asserts.
+#
+# Threshold is 30, not radon's 70, and that is not a change in strictness:
+# radon's 70 was measured on a scale carrying a constant +40 (dealer 20 +
+# theta 15 + gamma 5, all implied once the critical gates pass). Dropping the
+# constant shifts every score down by exactly 40, so 70 - 40 = 30 is the
+# SAME cut. `test_radon_weights_reproduce_the_original_score` pins the
+# identity on the real IWM fixture: 54.192171 + 40 == 94.192171, which is the
+# number radon's formula produces for that row.
+RADON_WEIGHTS = ScoreWeights(
+    vol_edge=25.0,
+    delta_neutrality=25.0,
+    range_bound=10.0,
+    edge_saturation_pts=10.0,
+    threshold=30.0,
+    dealer_gate_critical=True,
+)
+
+
+def score_from_components(
+    *,
+    iv_rv_edge: float,
+    net_delta: float,
+    range_score: float,
+    weights: ScoreWeights = DEFAULT_WEIGHTS,
+) -> float:
+    """Pure function of three persisted columns -- that is the whole point.
+
+    `theta_harvester_candidates` stores `iv_rv_edge`, `net_delta` and
+    `range_score` raw, so any weight vector can be re-scored over the full
+    backfill with a single pass and NO rescan. The stored `score` column is
+    a display convenience; this function is the truth.
+    """
+    vol_c = min(1.0, max(0.0, iv_rv_edge / weights.edge_saturation_pts))
+    delta_c = max(0.0, 1.0 - abs(net_delta) / NEAR_ZERO_DELTA)
+    range_c = min(1.0, max(0.0, range_score))
+    return (
+        weights.vol_edge * vol_c
+        + weights.delta_neutrality * delta_c
+        + weights.range_bound * range_c
+    )
+
+
+@dataclass(frozen=True)
+class ThetaCandidate:
+    ticker: str
+    as_of: date
+    structure: Strangle
+    spot: float
+    iv: float
+    hv20: float
+    hv60: float | None
+    iv_rv_edge: float
+    iv_rv_ratio: float
+    trend_20d_pct: float
+    range_score: float
+    dealer: DealerSupport
+    score: float
+    weights_version: str
+    verdict: str
+    gates: dict[str, bool]
+    put_mark: float
+    call_mark: float
+    entry_credit_theo: float
+    risk_free_rate: float  # the rate the marks were priced at, carried so the
+    # markout re-prices at the SAME rate it entered at
+
+
+def build_candidate(
+    *,
+    ticker: str,
+    as_of: date,
+    structure: Strangle,
+    spot: float,
+    iv: float,
+    hv20: float,
+    hv60: float | None,
+    trend_20d_pct: float,
+    range_score: float,
+    dealer: DealerSupport,
+    r: float = RISK_FREE_RATE,
+    weights: ScoreWeights = DEFAULT_WEIGHTS,
+) -> ThetaCandidate:
+    """Apply the gates and score, and mark the entry.
+
+    entry_credit_theo prices BOTH legs off the same grid IV the markout job
+    will re-read. Mixing an IB NBBO entry with grid-IV marks would bake a
+    constant bid-ask bias into every forward P&L.
+    """
+    iv_rv_edge = (iv - hv20) * 100.0
+    iv_rv_ratio = (iv / hv20) if hv20 > 0 else 0.0
+
+    gates = {
+        "delta_near_zero": abs(structure.net_delta) <= NEAR_ZERO_DELTA,
+        "iv_rich_vs_rv": iv_rv_edge >= 5.0 or iv_rv_ratio >= 1.10,
+        "dealer_support": dealer.label == "SUPPORT",
+        "theta_positive": structure.theta > 0,
+        "gamma_controlled": structure.gamma < 0 and abs(structure.net_delta) <= 0.20,
+        "range_bound": range_score >= 0.35,
+    }
+
+    score = score_from_components(
+        iv_rv_edge=iv_rv_edge,
+        net_delta=structure.net_delta,
+        range_score=range_score,
+        weights=weights,
+    )
+
+    critical = (
+        gates["delta_near_zero"]
+        and gates["iv_rich_vs_rv"]
+        and gates["theta_positive"]
+        and (gates["dealer_support"] or not weights.dealer_gate_critical)
+    )
+    if critical and score >= weights.threshold:
+        verdict = "THETA_HARVEST"
+    elif abs(structure.net_delta) > 0.20 or not gates["iv_rich_vs_rv"]:
+        verdict = "DIRECTIONAL_DISGUISE"
+    else:
+        verdict = "WATCHLIST"
+
+    t_years = max(structure.dte, 0) / 365.0
+    put_mark = bs_price(
+        spot, structure.put.strike, t_years, r, structure.put.iv, is_call=False
+    )
+    call_mark = bs_price(
+        spot, structure.call.strike, t_years, r, structure.call.iv, is_call=True
+    )
+
+    return ThetaCandidate(
+        ticker=ticker,
+        as_of=as_of,
+        structure=structure,
+        spot=spot,
+        iv=iv,
+        hv20=hv20,
+        hv60=hv60,
+        iv_rv_edge=iv_rv_edge,
+        iv_rv_ratio=iv_rv_ratio,
+        trend_20d_pct=trend_20d_pct,
+        range_score=range_score,
+        dealer=dealer,
+        score=score,
+        weights_version=weights.version,
+        verdict=verdict,
+        gates=gates,
+        put_mark=put_mark,
+        call_mark=call_mark,
+        entry_credit_theo=put_mark + call_mark,
+        risk_free_rate=r,
+    )
