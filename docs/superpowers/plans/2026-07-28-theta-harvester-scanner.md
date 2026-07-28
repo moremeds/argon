@@ -615,10 +615,10 @@ _AS_OF = date(2026, 7, 24)
 _EXP = date(2026, 8, 21)  # 28 DTE — closest to radon's 30-day preference
 _SPOT = 291.44            # option_surface_grid_daily.underlying_spot
 _IV = 0.208               # iv_rank_history.volatility
-_HV20 = 0.110787909153632
-_HV60 = 0.185963130865730
-_TREND_21D = -1.860527823654312
-_RANGE_SCORE = 0.534602106806286
+_HV20 = 0.1107879091536324
+_HV60 = 0.18596313086572983
+_TREND_21D = -1.8605278236543121
+_RANGE_SCORE = 0.5346021068062862
 
 # The real ~16-delta wings — the pair radon's selector targets.
 _PUT_16D = OptionLeg(_EXP, 272.0, "P", 0.251489543772415, -0.154573982720319,
@@ -627,9 +627,9 @@ _CALL_16D = OptionLeg(_EXP, 306.0, "C", 0.172509740706994, 0.156401472783266,
                       -0.0595290822132382, 0.0172246813925854, 0.193372401778545)
 # The real ~30-delta pair, used to prove the selector prefers the 16-delta one.
 _PUT_30D = OptionLeg(_EXP, 284.0, "P", 0.218730053018397, -0.327454819434478,
-                     -0.172054168405732, 0.0125453473402546, 0.320868498381108)
+                     -0.113677825209739, 0.0204601161742457, 0.291236782959359)
 _CALL_30D = OptionLeg(_EXP, 300.0, "C", 0.187568622934882, 0.293516725982416,
-                      -0.167975344821897, 0.0133013488667489, 0.326455319848325)
+                      -0.0929495970921554, 0.0227497373480449, 0.277693841589617)
 
 
 def _leg(strike, right, delta, *, expiry=_EXP, theta=-0.0595290822132382):
@@ -836,7 +836,7 @@ def select_short_strangle(
             # different structure on a rescan and invalidate its own markouts.
             # Break ties deterministically on the contract identity itself.
             key = (score, call.expiry, put.strike, call.strike)
-            if best is None or key < best_key:
+            if best_key is None or key < best_key:
                 best_key = key
                 best = Strangle(
                     expiry=call.expiry,

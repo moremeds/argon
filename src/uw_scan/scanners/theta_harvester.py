@@ -20,6 +20,7 @@ from __future__ import annotations
 import math
 from collections.abc import Mapping, Sequence
 from dataclasses import dataclass
+from datetime import date
 
 MIN_DTE = 7
 MAX_DTE = 45
@@ -131,3 +132,111 @@ def dealer_support(
     else:
         label = "NO_SUPPORT" if crossed_negative else "SUPPORT"
     return DealerSupport(label=label, net_gex=total, gex_flip=flip)
+
+
+@dataclass(frozen=True)
+class OptionLeg:
+    expiry: date
+    strike: float
+    right: str  # "C" | "P"
+    iv: float
+    delta: float
+    theta: float
+    gamma: float
+    vega: float
+
+
+@dataclass(frozen=True)
+class Strangle:
+    """A SHORT strangle. Greeks are POSITION-signed, not contract-signed.
+
+    OptionLeg carries argon's stored convention (long contract: theta <= 0,
+    gamma >= 0, vega >= 0 — verified against option_surface_grid_daily). Being
+    short flips all of them, so for a healthy candidate:
+        theta > 0  (decay accrues to us)
+        gamma < 0  (we are short convexity)
+        vega  < 0  (we are short vol)
+    Radon's gates are written against these position signs; passing the raw
+    long-contract greeks through would make `theta > 0` unsatisfiable and
+    render the THETA_HARVEST verdict unreachable.
+    """
+
+    expiry: date
+    dte: int
+    put: OptionLeg
+    call: OptionLeg
+    net_delta: float
+    theta: float
+    gamma: float
+    vega: float
+
+
+def select_short_strangle(
+    legs: Sequence[OptionLeg],
+    spot: float,
+    as_of: date,
+    *,
+    min_dte: int = MIN_DTE,
+    max_dte: int = MAX_DTE,
+) -> Strangle | None:
+    """Cheapest-scoring OTM short strangle within the DTE window.
+
+    Radon's selection score, verbatim: delta neutrality dominates, each leg is
+    pulled toward TARGET_DELTA, ~30 DTE is mildly preferred, and a
+    non-positive-theta pair is heavily penalised. Lower is better.
+
+    `legs` carry argon's stored LONG-contract greeks; the returned Strangle
+    carries SHORT-position greeks. The negation happens here, at the single
+    boundary between storage convention and radon's gate convention.
+    """
+    calls: list[OptionLeg] = []
+    puts: list[OptionLeg] = []
+    for leg in legs:
+        dte = (leg.expiry - as_of).days
+        if not (min_dte <= dte <= max_dte):
+            continue
+        mag = abs(leg.delta)
+        if not (0.05 <= mag <= 0.35):
+            continue
+        if leg.right == "C" and leg.strike > spot:
+            calls.append(leg)
+        elif leg.right == "P" and leg.strike < spot:
+            puts.append(leg)
+
+    best: Strangle | None = None
+    best_key: tuple[float, date, float, float] | None = None
+    for call in calls:
+        for put in puts:
+            if call.expiry != put.expiry:
+                continue
+            dte = (call.expiry - as_of).days
+            # Negate: legs are long-contract, the position is short.
+            net_delta = -(call.delta + put.delta)
+            theta = -(call.theta + put.theta)
+            gamma = -(call.gamma + put.gamma)
+            vega = -(call.vega + put.vega)
+            score = (
+                abs(net_delta) * 100
+                + abs(abs(call.delta) - TARGET_DELTA) * 20
+                + abs(abs(put.delta) - TARGET_DELTA) * 20
+                + abs(dte - 30) / 10
+                + (0 if theta > 0 else 20)
+            )
+            # Strict `<` alone leaves ties resolved by row arrival order, which
+            # Postgres does not guarantee — the same session could pick a
+            # different structure on a rescan and invalidate its own markouts.
+            # Break ties deterministically on the contract identity itself.
+            key = (score, call.expiry, put.strike, call.strike)
+            if best_key is None or key < best_key:
+                best_key = key
+                best = Strangle(
+                    expiry=call.expiry,
+                    dte=dte,
+                    put=put,
+                    call=call,
+                    net_delta=net_delta,
+                    theta=theta,
+                    gamma=gamma,
+                    vega=vega,
+                )
+    return best
