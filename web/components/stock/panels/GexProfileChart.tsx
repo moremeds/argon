@@ -12,6 +12,13 @@ const MAX_WINDOW_PCT = 0.15;
 const MASS_COVERAGE = 0.98;
 /** Never clip tighter than this, or a single dominant strike collapses the plot. */
 const MIN_WINDOW_PCT = 0.02;
+/**
+ * Below this many surviving strikes the focused window is useless — the
+ * curvature stencil needs 3 points and the chart needs 2 to draw a line at
+ * all. Reachable on low-priced tickers, where ±2% of a $5 spot spans less
+ * than one $1 strike increment. Fall back to the full candidate set.
+ */
+const MIN_STRIKES = 5;
 
 /**
  * Aggregate the per-expiry strike curve into one net-GEX value per strike,
@@ -38,7 +45,7 @@ export function buildStockGexProfile(
   levels: Report["market_structure_levels"],
 ): GexBucket[] {
   const perStrike = new Map<number, number>();
-  for (const b of curve) {
+  for (const b of curve ?? []) {
     const s = toNum(b.strike);
     const g = toNum(b.net_gex);
     if (s == null || g == null) continue;
@@ -49,55 +56,62 @@ export function buildStockGexProfile(
   const putWall = levels?.put_wall ? toNum(levels.put_wall.strike) : null;
   const flip = levels?.gex_flip ? toNum(levels.gex_flip.strike) : null;
 
-  // Widest allowed candidate set, then shrink to the gamma-carrying span.
+  // Everything is decided on ABSOLUTE distance from spot, never on a
+  // percentage round-trip. Deriving a radius from a strike, converting it to
+  // a percent, then rebuilding a bound as spot*(1±pct) loses the boundary to
+  // floating point: for spot=10 and a dominant strike at 10.33, the rebuilt
+  // bound is 10.329999999999998 and the window that was computed to hold 98%
+  // of the gamma ends up holding 1% — it drops the very strike that set it.
+  const maxRadius = spot * MAX_WINDOW_PCT;
   const candidates = Array.from(perStrike.entries())
-    .filter(
-      ([s]) =>
-        s >= spot * (1 - MAX_WINDOW_PCT) && s <= spot * (1 + MAX_WINDOW_PCT),
-    )
+    .filter(([s]) => Math.abs(s - spot) <= maxRadius)
     .sort((a, b) => a[0] - b[0]);
 
   const totalMass = candidates.reduce((acc, [, g]) => acc + Math.abs(g), 0);
-  let windowPct = MAX_WINDOW_PCT;
+  let radius = maxRadius;
   if (totalMass > 0) {
-    // Sort by distance from spot and take strikes until MASS_COVERAGE is met;
-    // the last one taken sets the radius.
+    // Walk outward from spot until MASS_COVERAGE is met; the last strike
+    // taken sets the radius, and is itself kept (the filter is inclusive).
     const byDistance = [...candidates].sort(
       (a, b) => Math.abs(a[0] - spot) - Math.abs(b[0] - spot),
     );
     let acc = 0;
-    let radius = 0;
+    let reached = 0;
     for (const [s, g] of byDistance) {
       acc += Math.abs(g);
-      radius = Math.abs(s - spot);
+      reached = Math.abs(s - spot);
       if (acc >= totalMass * MASS_COVERAGE) break;
     }
-    windowPct = Math.min(
-      MAX_WINDOW_PCT,
-      Math.max(MIN_WINDOW_PCT, radius / spot),
-    );
+    radius = Math.min(maxRadius, Math.max(spot * MIN_WINDOW_PCT, reached));
   }
 
-  const lo = spot * (1 - windowPct);
-  const hi = spot * (1 + windowPct);
+  const clipped = candidates.filter(([s]) => Math.abs(s - spot) <= radius);
+  // Focusing must never leave too little to draw — see MIN_STRIKES. Widen to
+  // the nearest-to-spot MIN_STRIKES rather than snapping back to the full
+  // ±MAX_WINDOW_PCT set, so the view stays as tight as the data allows.
+  const rendered =
+    clipped.length >= MIN_STRIKES
+      ? clipped
+      : [...candidates]
+          .sort((a, b) => Math.abs(a[0] - spot) - Math.abs(b[0] - spot))
+          .slice(0, MIN_STRIKES)
+          .sort((a, b) => a[0] - b[0]);
 
-  return candidates
-    .filter(([s]) => s >= lo && s <= hi)
-    .map(([strike, net_gex]) => ({
-      strike,
-      call_gex: 0,
-      put_gex: 0,
-      net_gex,
-      pct_from_spot: ((strike - spot) / spot) * 100,
-      tag:
-        strike === flip
-          ? "GEX FLIP"
-          : strike === callWall
-            ? "CALL WALL"
-            : strike === putWall
-              ? "PUT WALL"
-              : null,
-    }));
+  return rendered.map(([strike, net_gex]) => ({
+    strike,
+    call_gex: 0,
+    put_gex: 0,
+    net_gex,
+    pct_from_spot: ((strike - spot) / spot) * 100,
+    tag:
+      strike === flip
+        ? "GEX FLIP"
+        : strike === callWall
+          ? "CALL WALL"
+          : strike === putWall
+            ? "PUT WALL"
+            : null,
+  }));
 }
 
 export function GexProfileChart({ report }: { report: Report }) {
@@ -127,6 +141,12 @@ export function GexProfileChart({ report }: { report: Report }) {
     report.market_structure_levels,
   );
 
+  // The flip is an interpolated zero-crossing and often falls between listed
+  // strikes, so pass it explicitly rather than relying on a strike-tag match.
+  const flip = report.market_structure_levels?.gex_flip
+    ? toNum(report.market_structure_levels.gex_flip.strike)
+    : null;
+
   // GexCurvatureChart brings its own panel chrome — no wrapper box here.
-  return <GexCurvatureChart profile={profile} spot={spot} />;
+  return <GexCurvatureChart profile={profile} spot={spot} flipStrike={flip} />;
 }

@@ -12,7 +12,7 @@
  * pressure changes per point of spot. Surfaced in the hover readout.
  */
 
-import { useMemo, useState } from "react";
+import { useId, useMemo, useState } from "react";
 import type { GexBucket } from "@/lib/regime/useGex";
 import { linearScale, pathFromPoints, type Point } from "@/lib/svgChart";
 
@@ -69,6 +69,14 @@ export function curvatureField(buckets: GexBucket[]): (number | null)[] {
 export type GexCurvatureChartProps = {
   profile: GexBucket[];
   spot: number;
+  /**
+   * GEX-flip level for the dashed rule. Optional because the regime feed tags
+   * a real bucket `GEX FLIP`, but the flip is an interpolated zero-crossing —
+   * on the stock path it routinely falls BETWEEN listed strikes, so an
+   * exact-strike tag match would silently drop the rule. An explicit value
+   * wins over the tag when both are present.
+   */
+  flipStrike?: number | null;
 };
 
 const W = 1000;
@@ -77,27 +85,25 @@ const PAD = { top: 56, right: 20, bottom: 64, left: 72 };
 const PLOT_W = W - PAD.left - PAD.right;
 const PLOT_H = H - PAD.top - PAD.bottom;
 
-const TAG_STYLE: Record<string, { color: string; up: boolean }> = {
-  "MAX MAGNET": { color: "var(--signal-core)", up: true },
-  "SECOND MAGNET": { color: "var(--signal-core)", up: true },
-  "MAX ACCELERATOR": { color: "var(--fault)", up: true },
-  "PUT WALL": { color: "var(--fault)", up: true },
-  "CALL WALL": { color: "var(--signal-core)", up: true },
-};
-
-const TAG_LABEL: Record<string, string> = {
-  "MAX MAGNET": "MAGNET",
-  "SECOND MAGNET": "MAGNET 2",
-  "MAX ACCELERATOR": "ACCEL",
-  "PUT WALL": "PUT WALL",
-  "CALL WALL": "CALL WALL",
+/** Marker colour + short label per tagged strike. One map, not two parallel
+ *  ones — a new tag can't be added to the colours and forgotten in the labels. */
+const TAG_MARKER: Record<string, { color: string; label: string }> = {
+  "MAX MAGNET": { color: "var(--signal-core)", label: "MAGNET" },
+  "SECOND MAGNET": { color: "var(--signal-core)", label: "MAGNET 2" },
+  "MAX ACCELERATOR": { color: "var(--fault)", label: "ACCEL" },
+  "PUT WALL": { color: "var(--fault)", label: "PUT WALL" },
+  "CALL WALL": { color: "var(--signal-core)", label: "CALL WALL" },
 };
 
 export default function GexCurvatureChart({
   profile,
   spot,
+  flipStrike: flipStrikeProp,
 }: GexCurvatureChartProps) {
   const [hoverIdx, setHoverIdx] = useState<number | null>(null);
+  // SVG ids are document-global: two charts on one page would otherwise
+  // share (and fight over) the same clip paths.
+  const uid = useId();
 
   const chart = useMemo(() => {
     // Drop the synthetic SPOT pseudo-row (net_gex 0) — it is a marker, not
@@ -115,7 +121,9 @@ export default function GexCurvatureChart({
     const y = linearScale([-maxAbs, maxAbs], [PAD.top + PLOT_H, PAD.top]);
     const points: Point[] = buckets.map((b) => [x(b.strike), y(b.net_gex)]);
     const flipStrike =
-      buckets.find((b) => b.tag === "GEX FLIP")?.strike ?? null;
+      flipStrikeProp ??
+      buckets.find((b) => b.tag === "GEX FLIP")?.strike ??
+      null;
 
     return {
       buckets,
@@ -127,7 +135,7 @@ export default function GexCurvatureChart({
       curvature: curvatureField(buckets),
       flipStrike,
     };
-  }, [profile]);
+  }, [profile, flipStrikeProp]);
 
   if (!chart) {
     return (
@@ -158,11 +166,23 @@ export default function GexCurvatureChart({
         : best,
     0,
   );
-  const readIdx = hoverIdx ?? spotIdx;
+  // hoverIdx is state and the profile is re-polled underneath it (regime GEX
+  // every 60s, the live-spot splice more often, and the stock window resizes
+  // as spot moves). A shrunk bucket list would leave the index dangling and
+  // points[hoverIdx][0] would throw — clamp on read, don't trust the state.
+  const safeHoverIdx =
+    hoverIdx != null && hoverIdx < buckets.length ? hoverIdx : null;
+  const readIdx = safeHoverIdx ?? spotIdx;
   const read = buckets[readIdx];
 
   const areaPath = `${pathFromPoints(points)} L${points[points.length - 1][0]},${zeroY} L${points[0][0]},${zeroY} Z`;
-  const spotX = x(spot);
+  // Spot/flip can sit outside the rendered strike span (the regime feed
+  // splices a live spot independent of the profile's strike grid). linearScale
+  // extrapolates, so clamp to the plot: the rule parks on the edge it exceeded
+  // rather than being drawn outside the axes. The label still states the value.
+  const clampX = (v: number) =>
+    Math.min(PAD.left + PLOT_W, Math.max(PAD.left, x(v)));
+  const spotX = clampX(spot);
 
   function onMove(e: React.MouseEvent<SVGSVGElement>) {
     const rect = e.currentTarget.getBoundingClientRect();
@@ -188,13 +208,21 @@ export default function GexCurvatureChart({
         <span className="gex-chart-title">
           GEX Profile &mdash; curvature field by strike
         </span>
-        <span className="gex-chart-legend">
-          <span style={{ color: "var(--signal-core)" }}>
-            &#9632; Positive curvature (stabilizing)
-          </span>{" "}
-          <span style={{ color: "var(--fault)" }}>
-            &#9632; Negative curvature (destabilizing)
-          </span>
+        {/* The fill is keyed on the sign of NET GEX, not on curvature —
+            labelling it "curvature" would misstate what the colour means
+            to a trader. Curvature is the separate readout below. */}
+        {/* Hue rides the swatch only; the words wear a text token. The
+            teal/magenta pair separates by just ΔE 7.3 under deuteranopia, so
+            colour is never the sole channel here — the zero rule splits the
+            fill by position and the readout carries a signed value. */}
+        <span
+          className="gex-chart-legend"
+          style={{ color: "var(--text-secondary)" }}
+        >
+          <span style={{ color: "var(--signal-core)" }}>&#9632;</span> Positive
+          GEX (stabilizing){" "}
+          <span style={{ color: "var(--fault)" }}>&#9632;</span> Negative GEX
+          (destabilizing)
         </span>
       </div>
 
@@ -229,9 +257,7 @@ export default function GexCurvatureChart({
         <span>
           CURVATURE{" "}
           <span style={{ color: "var(--text-primary)" }}>
-            {curvature[readIdx] != null
-              ? curvature[readIdx]!.toFixed(2)
-              : "---"}
+            {curvature[readIdx]?.toFixed(2) ?? "---"}
           </span>
         </span>
       </div>
@@ -248,10 +274,10 @@ export default function GexCurvatureChart({
 
         {/* Split fill: clip the single area path to above/below the zero line */}
         <defs>
-          <clipPath id="gex-above">
+          <clipPath id={`gex-above-${uid}`}>
             <rect x={0} y={PAD.top} width={W} height={zeroY - PAD.top} />
           </clipPath>
-          <clipPath id="gex-below">
+          <clipPath id={`gex-below-${uid}`}>
             <rect x={0} y={zeroY} width={W} height={PAD.top + PLOT_H - zeroY} />
           </clipPath>
         </defs>
@@ -259,13 +285,13 @@ export default function GexCurvatureChart({
           d={areaPath}
           fill="var(--signal-core)"
           opacity={0.28}
-          clipPath="url(#gex-above)"
+          clipPath={`url(#gex-above-${uid})`}
         />
         <path
           d={areaPath}
           fill="var(--fault)"
           opacity={0.35}
-          clipPath="url(#gex-below)"
+          clipPath={`url(#gex-below-${uid})`}
         />
 
         {/* Axis: zero rule + symmetric extremes */}
@@ -335,9 +361,9 @@ export default function GexCurvatureChart({
         {flipStrike != null && (
           <>
             <line
-              x1={x(flipStrike)}
+              x1={clampX(flipStrike)}
               y1={PAD.top}
-              x2={x(flipStrike)}
+              x2={clampX(flipStrike)}
               y2={PAD.top + PLOT_H}
               stroke="var(--warning)"
               strokeWidth={1.5}
@@ -346,12 +372,12 @@ export default function GexCurvatureChart({
             {/* Own row above SPOT — the two rules sit close by construction */}
             <text
               x={
-                x(flipStrike) +
-                (x(flipStrike) > PAD.left + PLOT_W - 120 ? -8 : 8)
+                clampX(flipStrike) +
+                (clampX(flipStrike) > PAD.left + PLOT_W - 120 ? -8 : 8)
               }
               y={PAD.top - 28}
               textAnchor={
-                x(flipStrike) > PAD.left + PLOT_W - 120 ? "end" : "start"
+                clampX(flipStrike) > PAD.left + PLOT_W - 120 ? "end" : "start"
               }
               fill="var(--warning)"
               fontSize={12}
@@ -367,8 +393,8 @@ export default function GexCurvatureChart({
         {(() => {
           let row = 0;
           return buckets.map((b, i) => {
-            const style = b.tag ? TAG_STYLE[b.tag] : undefined;
-            if (!style) return null;
+            const marker = b.tag ? TAG_MARKER[b.tag] : undefined;
+            if (!marker) return null;
             const cx = x(b.strike);
             const base = PAD.top + PLOT_H;
             const labelY = base + (row++ % 2 === 0 ? 30 : 44);
@@ -376,18 +402,18 @@ export default function GexCurvatureChart({
               <g key={`tag-${b.strike}-${i}`}>
                 <polygon
                   points={`${cx},${base + 2} ${cx - 6},${base + 14} ${cx + 6},${base + 14}`}
-                  fill={style.color}
+                  fill={marker.color}
                   opacity={0.85}
                 />
                 <text
                   x={cx}
                   y={labelY}
                   textAnchor="middle"
-                  fill={style.color}
+                  fill={marker.color}
                   fontSize={10}
                   letterSpacing="0.08em"
                 >
-                  {TAG_LABEL[b.tag!] ?? b.tag}
+                  {marker.label}
                 </text>
               </g>
             );
@@ -395,11 +421,11 @@ export default function GexCurvatureChart({
         })()}
 
         {/* Hover crosshair */}
-        {hoverIdx != null && (
+        {safeHoverIdx != null && (
           <line
-            x1={points[hoverIdx][0]}
+            x1={points[safeHoverIdx][0]}
             y1={PAD.top}
-            x2={points[hoverIdx][0]}
+            x2={points[safeHoverIdx][0]}
             y2={PAD.top + PLOT_H}
             stroke="var(--text-muted)"
             strokeWidth={1}
