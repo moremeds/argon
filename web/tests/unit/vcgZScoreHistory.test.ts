@@ -1,6 +1,10 @@
+import { render } from "@testing-library/react";
+import { createElement } from "react";
 import { describe, expect, it } from "vitest";
 
-import { selectZSeries } from "@/components/regime/vcg/VcgZScoreHistoryChart";
+import VcgZScoreHistoryChart, {
+  selectZSeries,
+} from "@/components/regime/vcg/VcgZScoreHistoryChart";
 import { pathFromPointsSmooth, type Point } from "@/lib/svgChart";
 
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -86,5 +90,31 @@ describe("pathFromPointsSmooth", () => {
         [1, 1],
       ]),
     ).toBe("M0,0 L1,1");
+  });
+});
+
+describe("arming threshold rules", () => {
+  // Regression: the chart's tooltip states that |z| >= 2.0 arms and >= 2.5
+  // escalates, and the y-axis is deliberately pinned to +/-3 so both fit. The
+  // rules themselves were never drawn, so the reader was told about two levels
+  // they couldn't see — and 2.5 isn't one of the integer gridlines at all.
+  const rows = Array.from({ length: 40 }, (_, i) =>
+    row(`2026-01-${String((i % 28) + 1).padStart(2, "0")}`, (i % 7) - 3),
+  );
+
+  it("draws both levels, mirrored above and below zero", () => {
+    const { container } = render(
+      createElement(VcgZScoreHistoryChart, { rows }),
+    );
+    const dashed = Array.from(
+      container.querySelectorAll('line[stroke-dasharray="2 5"]'),
+    );
+    // 2.0 and 2.5, each mirrored to +/- => 4 rules.
+    expect(dashed).toHaveLength(4);
+
+    const ys = dashed.map((n) => Number(n.getAttribute("y1")));
+    // Symmetric about the zero line: every rule has a partner.
+    const mid = ys.reduce((a, b) => a + b, 0) / ys.length;
+    for (const v of ys) expect(ys).toContain(2 * mid - v);
   });
 });

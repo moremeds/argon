@@ -46,6 +46,12 @@ const PLOT_H = H - PAD.top - PAD.bottom;
 /** The scanner's own trigger levels — the reason the axis is pinned to ±3. */
 const Y_TICKS = [3, 2, 1, 0, -1, -2, -3];
 
+/** The scanner's own trigger levels, drawn as rules (mirrored to ±). */
+const ARM_LEVELS = [
+  { z: 2.0, color: "var(--warning)" },
+  { z: 2.5, color: "var(--fault)" },
+];
+
 export type VcgZPoint = { date: string; z: number };
 
 /**
@@ -265,6 +271,26 @@ export default function VcgZScoreHistoryChart({
               </text>
             </g>
           ))}
+
+          {/* The two levels the scanner actually fires on. Without these the
+              tooltip tells you |z| ≥ 2.0 arms and ≥ 2.5 escalates, and the
+              chart gives you no way to see whether today is near either — the
+              integer gridlines above are axis furniture, and 2.5 isn't among
+              them at all. Warning below RISK_OFF, matching the badge colours. */}
+          {ARM_LEVELS.filter(({ z }) => z <= bound).flatMap(({ z, color }) =>
+            [z, -z].map((v) => (
+              <line
+                key={`arm-${v}`}
+                x1={PAD.left}
+                y1={y(v)}
+                x2={PAD.left + PLOT_W}
+                y2={y(v)}
+                stroke={color}
+                strokeDasharray="2 5"
+                opacity={0.55}
+              />
+            )),
+          )}
 
           {/* Bars: the actual per-session values. The curve is a reading aid. */}
           {series.map((p, i) => (
