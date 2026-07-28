@@ -35,6 +35,46 @@ TERMINAL_HORIZON = -1
 # many calendar days the horizon is left unscored instead.
 MAX_SNAP_DAYS = 7
 
+# Settlement comes from daily_ohlc, which is back-adjusted; the strikes come
+# from the as-traded grid. A split BETWEEN entry and expiry therefore settles a
+# raw-scale position against a rescaled close — KORU's 20-for-1 would book the
+# put as 20x in-the-money and record a catastrophic loss that never happened.
+# The entry-side strike-range guard in load_spot cannot see this: at entry the
+# two sources still agreed.
+#
+# A 4x move inside a <=45-day window is a split signature, not a market move,
+# for the liquid names in this universe. Bias is stated rather than hidden: on
+# the rare occasion a real 4x move is dropped, it would have been a large LOSS,
+# so this trims the left tail and is optimistic. It is logged, never silent.
+MAX_SETTLEMENT_MOVE = 4.0
+
+
+def _settlement_scale_ok(
+    ticker: str, expiry: date, *, entry_spot: float, settle_close: float
+) -> bool:
+    """False when settlement and entry are on different price scales.
+
+    See MAX_SETTLEMENT_MOVE. Returns True (scores the row) whenever the inputs
+    are unusable for the comparison rather than guessing, because a missing
+    entry spot is a different problem from a split.
+    """
+    if entry_spot <= 0 or settle_close <= 0:
+        return True
+    ratio = settle_close / entry_spot
+    if 1.0 / MAX_SETTLEMENT_MOVE <= ratio <= MAX_SETTLEMENT_MOVE:
+        return True
+    log.warning(
+        "theta markout: dropping terminal mark for %s exp=%s — settlement close "
+        "%.4f is %.1fx the entry spot %.4f, which is a corporate-action scale "
+        "break rather than a market move",
+        ticker,
+        expiry,
+        settle_close,
+        ratio,
+        entry_spot,
+    )
+    return False
+
 
 def mark_position(
     *,
@@ -166,6 +206,13 @@ def run_theta_markout(*, repo: Any) -> dict[str, Any]:
             if repo.has_session_after(cand["ticker"], expiry)
             else None
         )
+        if settle is not None and not _settlement_scale_ok(
+            cand["ticker"],
+            expiry,
+            entry_spot=float(cand["underlying_spot"]),
+            settle_close=settle[1],
+        ):
+            settle = None
         if settle is not None:
             settle_date, spot = settle
             rows.append(

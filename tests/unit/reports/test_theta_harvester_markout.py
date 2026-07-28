@@ -1,10 +1,14 @@
 """Forward re-marking of Theta Harvester strangles. Pure compute, no DB."""
 
+from datetime import date
+
 import pytest
+
 from uw_scan.reports.theta_harvester_markout import (
     HORIZONS,
     MAX_SNAP_DAYS,
     TERMINAL_HORIZON,
+    _settlement_scale_ok,
     mark_position,
 )
 
@@ -104,3 +108,29 @@ def test_vol_expansion_raises_the_cost_to_close():
         r=0.045,
     )
     assert panic > calm
+
+
+def test_settlement_scale_guard_rejects_a_split_seam():
+    """A split between entry and expiry must not book a fabricated loss.
+
+    Real KORU numbers: entered around the as-traded $407 scale, settled against
+    a back-adjusted $20.96 close. Booking that as intrinsic would record the
+    short put ~20x in the money — a catastrophic loss that never occurred.
+    """
+    assert not _settlement_scale_ok(
+        "KORU", date(2026, 7, 17), entry_spot=407.0, settle_close=20.9595
+    )
+
+
+def test_settlement_scale_guard_allows_a_violent_but_real_move():
+    # -35% in a month is a genuine market move and must still settle.
+    assert _settlement_scale_ok(
+        "IWM", date(2026, 8, 21), entry_spot=291.44, settle_close=189.44
+    )
+
+
+def test_settlement_scale_guard_defers_when_the_entry_spot_is_unusable():
+    # A missing entry spot is a different defect; do not silently drop the row.
+    assert _settlement_scale_ok(
+        "IWM", date(2026, 8, 21), entry_spot=0.0, settle_close=189.44
+    )
