@@ -7223,12 +7223,13 @@ tr {
   display: flex;
   align-items: center;
   gap: 8px;
-  padding: 12px 20px;
+  /* Matches .ticker-tab's metrics — the same tab strip appears on the stock and
+     regime pages, so only the active colour differs here, never the scale. */
+  padding: 10px 16px;
   font-family: var(--font-mono);
-  font-size: 12px;
-  font-weight: 500;
+  font-size: 11px;
   text-transform: uppercase;
-  letter-spacing: 0.08em;
+  letter-spacing: 0.05em;
   color: var(--text-muted);
   background: transparent;
   border: none;
@@ -7245,7 +7246,7 @@ tr {
   background: rgba(5, 173, 152, 0.06);
 }
 .scanner-tab-badge {
-  font-size: 10px;
+  font-size: 9px;
   line-height: 1;
   padding: 3px 6px;
   border-radius: 3px;
@@ -7273,9 +7274,9 @@ tr {
 .theta-panel-bar {
   display: flex;
   align-items: center;
-  gap: 16px;
+  gap: 14px;
   flex-wrap: wrap;
-  padding: 14px 18px;
+  padding: 12px 14px;
   border-bottom: 1px solid var(--border-dim);
 }
 .theta-panel-title {
@@ -7283,15 +7284,15 @@ tr {
   align-items: center;
   gap: 8px;
   font-family: var(--font-mono);
-  font-size: 15px;
-  letter-spacing: 0.08em;
+  font-size: 12px;
+  letter-spacing: 0.05em;
   text-transform: uppercase;
   color: var(--text-primary);
   white-space: nowrap;
 }
 .theta-clock {
   font-family: var(--font-mono);
-  font-size: 12px;
+  font-size: 10px;
   color: var(--text-muted);
   letter-spacing: 0.08em;
   padding-bottom: 6px;
@@ -7301,37 +7302,37 @@ tr {
 }
 .theta-count {
   font-family: var(--font-mono);
-  font-size: 12px;
+  font-size: 10px;
   letter-spacing: 0.08em;
   color: var(--accent-bg);
   border: 1px solid var(--accent-bg);
   border-radius: 3px;
-  padding: 7px 14px;
+  padding: 5px 10px;
   white-space: nowrap;
 }
 .theta-field {
   display: flex;
   align-items: center;
-  gap: 8px;
+  gap: 6px;
   font-family: var(--font-mono);
-  font-size: 11px;
+  font-size: 9px;
   letter-spacing: 0.08em;
   text-transform: uppercase;
   color: var(--text-muted);
 }
 .theta-input {
   font-family: var(--font-mono);
-  font-size: 12px;
+  font-size: 11px;
   color: var(--text-primary);
   background: transparent;
   border: 1px solid var(--border-dim);
   border-radius: 3px;
-  padding: 6px 8px;
-  width: 56px;
+  padding: 4px 6px;
+  width: 52px;
   text-align: center;
 }
 .theta-input--ticker {
-  width: 150px;
+  width: 128px;
   text-align: left;
 }
 .theta-input:focus {
@@ -7341,16 +7342,16 @@ tr {
 .theta-action {
   display: flex;
   align-items: center;
-  gap: 8px;
+  gap: 6px;
   font-family: var(--font-mono);
-  font-size: 12px;
+  font-size: 10px;
   letter-spacing: 0.08em;
   text-transform: uppercase;
   color: var(--accent-bg);
   background: transparent;
   border: 1px solid var(--accent-bg);
   border-radius: 3px;
-  padding: 7px 14px;
+  padding: 5px 10px;
   cursor: pointer;
   transition: background 150ms ease-in-out;
   white-space: nowrap;
@@ -7366,16 +7367,16 @@ tr {
   width: 100%;
   border-collapse: collapse;
   font-family: var(--font-mono);
-  font-size: 13px;
+  font-size: 11px;
 }
 .theta-table th {
-  font-size: 11px;
+  font-size: 9px;
   font-weight: 500;
   letter-spacing: 0.1em;
   text-transform: uppercase;
   color: var(--text-muted);
   text-align: right;
-  padding: 14px 12px;
+  padding: 8px 10px;
   border-bottom: 1px solid var(--border-dim);
   white-space: nowrap;
 }
@@ -7384,7 +7385,7 @@ tr {
   text-align: left;
 }
 .theta-table td {
-  padding: 14px 12px;
+  padding: 8px 10px;
   text-align: right;
   color: var(--text-primary);
   border-bottom: 1px solid var(--border-dim);
@@ -7404,12 +7405,12 @@ tr {
 .theta-chips {
   display: flex;
   flex-wrap: wrap;
-  gap: 5px;
-  margin-top: 6px;
-  max-width: 230px;
+  gap: 4px;
+  margin-top: 5px;
+  max-width: 200px;
 }
 .theta-chip {
-  font-size: 10px;
+  font-size: 9px;
   letter-spacing: 0.06em;
   padding: 2px 6px;
   border-radius: 3px;
@@ -7421,9 +7422,9 @@ tr {
   color: var(--text-muted);
 }
 .theta-status {
-  font-size: 11px;
+  font-size: 10px;
   letter-spacing: 0.06em;
-  padding: 4px 10px;
+  padding: 3px 8px;
   border-radius: 3px;
   border: 1px solid var(--border-dim);
   color: var(--text-muted);
@@ -7435,12 +7436,12 @@ tr {
 }
 .theta-subtle {
   color: var(--text-muted);
-  font-size: 11px;
+  font-size: 10px;
 }
 .theta-empty {
-  padding: 32px;
+  padding: 28px;
   text-align: center;
   font-family: var(--font-mono);
-  font-size: 12px;
+  font-size: 11px;
   color: var(--text-muted);
 }

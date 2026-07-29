@@ -193,19 +193,42 @@ export default function ThetaSubTab({
           padding: "8px 12px",
           marginBottom: 12,
           fontFamily: "var(--font-mono)",
-          fontSize: 12,
+          fontSize: 11,
           lineHeight: 1.6,
         }}
       >
-        RESEARCH MEASUREMENT ONLY — naked short strangle, undefined risk on both
-        sides. Not an Argon trade proposal, not sized, not executable. Credits
-        shown are model marks or IB midpoints, not fills.
-        <br />
-        The score <strong>ranks</strong> candidates within a session (IC +0.075,
-        145 sessions) but the set it selects is <strong>not profitable</strong>{" "}
-        on its own — no demonstrated edge after costs. Held-to-expiry short
-        strangles LOST money over the measured window. See{" "}
-        <code>docs/research/2026-07-28-theta-harvester-weight-sweep.md</code>.
+        <div style={{ letterSpacing: "0.05em" }}>
+          RESEARCH ONLY — NOT AN ARGON TRADE PROPOSAL{" "}
+          <span
+            title={
+              "Measured 2025-12-26 → 2026-07-27, 145 sessions, 16,134 candidates.\n\n" +
+              "The ranking works: cross-sectional IC +0.075 (t 6.35) — higher-scored candidates did do better than lower-scored ones.\n\n" +
+              "The trades still lose: held to expiry, the selected set was negative, and so was the control arm of every candidate with no score applied (monthly mean -0.8%, Sharpe -1.67). Ordering a losing set does not make it a winning one.\n\n" +
+              "Full sweep and method: docs/research/2026-07-28-theta-harvester-weight-sweep.md"
+            }
+            style={{ cursor: "help", color: "var(--text-muted)" }}
+          >
+            (?)
+          </span>
+        </div>
+        {/* Tailwind's preflight resets `list-style: none` globally, so the
+            markers have to be asked for explicitly or the bullets render as
+            three unlabelled lines. */}
+        <ul style={{ margin: "6px 0 0", paddingLeft: 18, listStyle: "disc" }}>
+          <li>
+            These are naked short strangles — <strong>undefined risk</strong> on
+            both sides. A big move either way has no capped loss.
+          </li>
+          <li>
+            Nothing here is sized or executable. Credits are model marks or IB
+            midpoints, not fills.
+          </li>
+          <li>
+            The score <strong>ranks</strong> candidates well within a session,
+            but the ones it picks still lost money held to expiry —{" "}
+            <strong>no demonstrated edge</strong> after costs.
+          </li>
+        </ul>
       </div>
 
       <div className="theta-panel">

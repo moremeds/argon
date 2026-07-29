@@ -7,6 +7,48 @@ version in lockstep (enforced by `scripts/release/version_sync_check.py`).
 
 ## [Unreleased]
 
+### Added
+
+- **Theta Harvester short-strangle scanner** (radon port) as a third `/scanner`
+  sub-tab, alongside the existing detector flow — which becomes the **Flow
+  Signals** tab, with **Discover** split out as its own tab. Ranks 16-delta
+  short strangles off the persisted warm store (`option_surface_grid_daily` +
+  `greeks_by_expiry_strike` + OHLC) at **zero UW cost**; IB quoting is
+  view-only, capped at 8 contracts, and advisory-locked. Migration `109` adds
+  `theta_harvester_candidates` + `theta_harvester_markouts` (both registered
+  with the gap healer + freshness monitor). Nightly scan 19:45 ET and markout
+  19:55 ET on uw-0, gated `UW_SCAN_THETA_HARVESTER_ENABLED` (default on — the
+  job only reads the warm store and writes its own two tables). API:
+  `GET /scanner/theta-harvester`, `POST …/rescan`, `POST …/quote`.
+- **Backfill + weight sweep tooling** —
+  `scripts/backfill/theta_harvester_backfill.py` (145 sessions,
+  2025-12-26 → 2026-07-27: 16,134 candidates / 23,721 marks) and
+  `scripts/research/theta_harvester_weight_sweep.py` (291 configs, cross-
+  sectional IC as the primary metric, plus an unconditional control arm).
+
+  **The verdict is negative and the UI says so.** The score *orders*
+  (IC +0.075, t 6.35) but the set it selects does not pay, and the control arm
+  — every candidate, no score — lost money too (monthly mean −0.8%,
+  Sharpe −1.67). This ships as a **research artifact, not a trade surface**:
+  the structure is a naked short strangle, which violates Argon's
+  defined-risk-only rule, and the sub-tab carries a permanent banner saying
+  both. Full method and tables:
+  `docs/research/2026-07-28-theta-harvester-weight-sweep.md`.
+
+### Fixed
+
+- **Session spot resolution when `option_surface_grid_daily.underlying_spot` is
+  NULL** — the column is unpopulated before 2026-06 (0% Dec–May, 13.8% June,
+  97.3% July), and two loaders depended on it, so five of the seven backfilled
+  months silently produced zero candidates. Spot now falls back to the OHLC
+  close and ATM IV is selected against the resolved spot rather than the NULL
+  column.
+- **Corporate-action scale breaks between the back-adjusted `daily_ohlc` and
+  the as-traded surface grid** now drop the affected rows instead of pricing
+  against a mismatched scale — a 20-for-1 split put one ticker's adjusted close
+  at ~$21 while its strikes still spanned 125–1900. Guarded at entry (strike-
+  range containment) and at settlement (`MAX_SETTLEMENT_MOVE`).
+
 ## [0.10.14] — 2026-07-26
 
 
