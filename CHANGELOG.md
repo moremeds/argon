@@ -7,6 +7,9 @@ version in lockstep (enforced by `scripts/release/version_sync_check.py`).
 
 ## [Unreleased]
 
+## [0.10.18] — 2026-07-29
+
+
 ### Added
 
 - **`option_surface_research_catchup` — the cohort's history fills itself** —
@@ -116,7 +119,6 @@ version in lockstep (enforced by `scripts/release/version_sync_check.py`).
   against a mismatched scale — a 20-for-1 split put one ticker's adjusted close
   at ~$21 while its strikes still spanned 125–1900. Guarded at entry (strike-
   range containment) and at settlement (`MAX_SETTLEMENT_MOVE`).
-
 ## [0.10.17] — 2026-07-29
 
 ### Added
