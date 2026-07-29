@@ -18,12 +18,23 @@ RESEARCH_UNIVERSE for why both filters are required.
     uv run python scripts/research/option_surface_research_backfill.py --seed-only
     uv run python scripts/research/option_surface_research_backfill.py
 
+RUNNING THIS BY HAND IS USUALLY UNNECESSARY
+-------------------------------------------
+`option_surface_research_catchup` (03:20 ET) does the same fill automatically, a
+bounded batch per night, and stops when the window is complete. This script is
+the manual lever: seeding a new cohort, or filling the window in one sitting
+rather than over ~6 nights. Both share the same core, so they cannot drift.
+
 WHY NOT JUST ADD THEM TO THE WATCHLIST
 --------------------------------------
 `watchlist` membership enlists a ticker in every per-ticker scheduled job, so 37
-names would permanently raise the DAILY UW burn — for a one-off study. The cohort
-lives in `uw_scan.research_universe` instead (migration 110) and only this script
-iterates it.
+names would permanently raise the DAILY UW burn — roughly +32% on a ~114-name
+watchlist — to buy a one-time backfill. It would also hand the cohort to the data
+gap healer, whose denominator is "watchlist tickers x sessions" and which fetches
+the FULL chain every session: ~78,600 calls against ~7,950 here. The healer is
+right to do that — its job is a complete dataset, not a sampled study. The cohort
+lives in `uw_scan.research_universe` (migration 110) precisely so research
+sampling cannot silently promote itself to production completeness.
 
 COST
 ----
@@ -68,14 +79,19 @@ from __future__ import annotations
 import argparse
 import logging
 from datetime import date as _date
-from datetime import timedelta
 
 import psycopg
 
 from uw_scan.api.client import UwClient
 from uw_scan.config import Settings
 from uw_scan.storage.repository import Repository
-from uw_scan.worker.jobs.option_surface_capture import _build_ticker_rows
+from uw_scan.worker.jobs.option_surface_research_catchup import (
+    CALLS_PER_TICKER_SESSION,
+    MAX_DTE,
+    fill_pairs,
+    missing_pairs,
+    weekly_sessions,
+)
 
 log = logging.getLogger("surface_research_backfill")
 
@@ -86,15 +102,6 @@ SOURCE = (
     "top 5 per sector by OI, deduped against the watchlist"
 )
 SELECTED_ON = _date(2026, 7, 29)
-
-# UW serves ~180 calendar days of history. Anything older cannot be backfilled at
-# any price, which is why the nightly capture matters.
-UW_HISTORY_DAYS = 180
-MAX_DTE = 60
-
-# Measured on the existing grid: 1 greek_exposure_by_expiry call plus one greeks
-# call per expiry, ~7.6 expiries per ticker-session at <=60 DTE.
-CALLS_PER_TICKER_SESSION = 8.6
 
 # SELECTION — why both filters, and why neither alone works.
 #
@@ -179,105 +186,6 @@ def seed_cohort(conn: psycopg.Connection, schema: str) -> int:
     return len(RESEARCH_UNIVERSE)
 
 
-def weekly_sessions(*, today: _date, weekday: int = 2) -> list[_date]:
-    """Weekly sample dates inside UW's history window, oldest first.
-
-    Wednesday by default: far enough from both weekend edges that a market
-    holiday rarely lands on it, so the sample stays evenly spaced rather than
-    clustering around the dates that happened to be open.
-    """
-    earliest = today - timedelta(days=UW_HISTORY_DAYS)
-    d = today - timedelta(days=1)
-    while d.weekday() != weekday:
-        d -= timedelta(days=1)
-    out: list[_date] = []
-    while d >= earliest:
-        out.append(d)
-        d -= timedelta(days=7)
-    out.reverse()
-    return out
-
-
-def backfill(
-    *,
-    repo: Repository,
-    client: UwClient,
-    sessions: list[_date],
-    tickers: list[str],
-    max_calls: int | None,
-    max_dte: int | None = MAX_DTE,
-) -> int:
-    """Backfill, stopping cleanly once ~`max_calls` UW requests have been spent.
-
-    The budget is tracked PER RUN, estimated at CALLS_PER_TICKER_SESSION per
-    ticker fetched, rather than read from `client.rate_limit.daily_count`.
-    That counter is populated from UW response headers, so it is None until the
-    first successful response and unreliable across error paths — a guard keyed
-    on it either never fires or fires on the first request depending on where the
-    account counter already sits. Measured 2026-07-29: the account was at
-    109,089/120,000 by midday, so a guard that silently no-ops here is the
-    difference between a research job and an outage of the live pool.
-
-    Approximate by construction (the real cost is 1 + n_expiries, unknown until
-    fetched), so it is a bound rather than a meter — deliberately erring toward
-    stopping early.
-    """
-    written = 0
-    spent = 0.0
-    for market_date in sessions:
-        date_iso = market_date.isoformat()
-        with repo.conn.cursor() as cur:
-            cur.execute(
-                f"SELECT ticker FROM {repo._schema}.option_surface_grid_daily "
-                "WHERE market_date=%s GROUP BY ticker",
-                (market_date,),
-            )
-            done = {r[0].upper() for r in cur.fetchall()}
-        todo = [t for t in tickers if t.upper() not in done]
-        if not todo:
-            log.info(
-                "%s: already captured for all %d cohort tickers", date_iso, len(tickers)
-            )
-            continue
-        log.info("%s: %d/%d tickers to fetch", date_iso, len(todo), len(tickers))
-        for ticker in todo:
-            if max_calls is not None and spent >= max_calls:
-                log.warning(
-                    "run budget reached (~%.0f of %d calls) — stopping cleanly at "
-                    "%s. Re-run to resume; already-captured tickers are skipped.",
-                    spent,
-                    max_calls,
-                    date_iso,
-                )
-                return written
-            spent += CALLS_PER_TICKER_SESSION
-            run_id = None
-            try:
-                run_id = repo.insert_scan_run(
-                    ticker, notes="option_surface_research_backfill"
-                )
-                rows = _build_ticker_rows(
-                    client=client,
-                    repo=repo,
-                    run_id=run_id,
-                    ticker=ticker,
-                    market_date=market_date,
-                    date_iso=date_iso,
-                    max_dte=max_dte,
-                )
-                # spot=None deliberately — see KNOWN GAP in the module docstring.
-                n = repo.upsert_option_surface_grid(ticker, market_date, None, rows)
-                repo.finish_scan_run(run_id, status="ok")
-                repo.conn.commit()
-                written += n
-            except Exception as exc:  # noqa: BLE001 — one bad ticker must not kill the run
-                repo.conn.rollback()
-                log.warning("%s/%s skipped: %s", date_iso, ticker, repr(exc))
-                if run_id is not None:
-                    repo.finish_scan_run(run_id, status="failed")
-    return written
-
-
 def main() -> int:
     logging.basicConfig(level=logging.INFO, format="%(asctime)s %(message)s")
     p = argparse.ArgumentParser()
@@ -310,16 +218,23 @@ def main() -> int:
         if args.max_sessions is not None:
             sessions = sessions[: args.max_sessions]
         tickers = [t for t, _, _, _ in RESEARCH_UNIVERSE]
-        est = len(sessions) * len(tickers) * CALLS_PER_TICKER_SESSION
+
+        repo = Repository(conn, schema=settings.db_schema)
+        pending = missing_pairs(repo=repo, sessions=sessions, tickers=tickers)
         log.info(
-            "%d sessions x %d tickers, <=%s DTE — est. ~%.0f UW calls",
+            "%d sessions x %d tickers, <=%s DTE — %d pairs missing, "
+            "est. ~%.0f UW calls (budget %d)",
             len(sessions),
             len(tickers),
             args.max_dte,
-            est,
+            len(pending),
+            len(pending) * CALLS_PER_TICKER_SESSION,
+            args.max_calls,
         )
+        if not pending:
+            log.info("nothing to backfill — history already complete")
+            return 0
 
-        repo = Repository(conn, schema=settings.db_schema)
         # api_key is a SecretStr and the FIRST positional arg. Passing `settings`
         # here type-checks fine and fails at the wire: the whole Settings object
         # stringifies into the Authorization header and UW answers 431 for every
@@ -329,15 +244,15 @@ def main() -> int:
             base_url=settings.base_url,
             timeout=settings.request_timeout_seconds,
         )
-        written = backfill(
+        written, done = fill_pairs(
             repo=repo,
             client=client,
-            sessions=sessions,
-            tickers=tickers,
+            pairs=pending,
             max_calls=args.max_calls,
             max_dte=args.max_dte,
+            notes="option_surface_research_backfill",
         )
-    log.info("wrote %d surface-grid rows", written)
+    log.info("filled %d/%d pairs -> %d surface-grid rows", done, len(pending), written)
     return 0
 
 

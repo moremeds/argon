@@ -386,6 +386,13 @@ class Settings(BaseModel):
     # un-seeded deployment spends nothing.
     option_surface_research_capture_enabled: bool = True
     option_surface_research_cohort: str = "liquid_sector_balanced_v1"
+    # Nightly catch-up that fills the cohort's *history* (the capture above only
+    # writes tonight). Self-terminating: once the ~180-day window is complete it
+    # finds no gaps and spends nothing, so it needs no switching off. The cap is
+    # per night — ~7,950 calls of work at 1,500/night finishes in ~6 nights while
+    # staying well inside the 30k research pool.
+    option_surface_research_catchup_enabled: bool = True
+    option_surface_research_catchup_max_calls: int = 1500
     # Nightly technicals refresh (apex daily bars -> technical_daily, massive-0 18:40 ET).
     technicals_refresh_enabled: bool = True
     # Live technicals coverage (WS-spot splice -> technical_live cache, massive-0).
@@ -886,6 +893,12 @@ class Settings(BaseModel):
             ),
             option_surface_research_cohort=os.environ.get(
                 "OPTION_SURFACE_RESEARCH_COHORT", "liquid_sector_balanced_v1"
+            ),
+            option_surface_research_catchup_enabled=_env_bool(
+                "OPTION_SURFACE_RESEARCH_CATCHUP_ENABLED", True
+            ),
+            option_surface_research_catchup_max_calls=int(
+                os.environ.get("OPTION_SURFACE_RESEARCH_CATCHUP_MAX_CALLS", "1500")
             ),
             option_surface_iv_canary_warn_threshold=float(
                 os.environ.get("OPTION_SURFACE_IV_CANARY_WARN_THRESHOLD", "0.02")

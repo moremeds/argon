@@ -9,6 +9,31 @@ version in lockstep (enforced by `scripts/release/version_sync_check.py`).
 
 ### Added
 
+- **`option_surface_research_catchup` — the cohort's history fills itself** —
+  new job at **03:20 ET weekdays on uw-0**. The 19:10 capture only writes
+  *tonight*; a freshly-seeded cohort therefore starts with an empty past while
+  UW's ~180-day window decays out from under it at a day per day. This walks that
+  window and fills what is missing, ≤`OPTION_SURFACE_RESEARCH_CATCHUP_MAX_CALLS`
+  (default 1500) per night — ~6 nights for the 37-name cohort — then finds no
+  gaps and spends nothing forever after. Resumable by construction: it recomputes
+  the missing set each run, so stopping early is free. Runs post-20:00-ET reset
+  against a fresh counter and **is** gated on `_research_budget_ok`, unlike the
+  durable evening captures: a deferred catch-up batch is still fetchable
+  tomorrow, an uncaptured night never is. Gated
+  `OPTION_SURFACE_RESEARCH_CATCHUP_ENABLED` (default on; self-gates on an empty
+  cohort). `scripts/research/option_surface_research_backfill.py` now shares the
+  same core (`weekly_sessions` / `missing_pairs` / `fill_pairs`) rather than
+  keeping its own copy, so the manual and scheduled paths cannot drift.
+
+  **Why not just add the cohort to the watchlist,** which would get the existing
+  data-gap healer to backfill it with no new code: the healer's denominator is
+  "watchlist tickers × sessions" and it fetches the **full chain every session**
+  (~17 calls/ticker-session), against this job's weekly ≤60-DTE sample (~8.6) —
+  **~78,600 calls versus ~7,950**. Watchlist membership would also enlist all 37
+  names in every per-ticker job permanently, ~+32% daily burn on a ~114-name
+  watchlist, to buy a one-time fill. The healer is right to be exhaustive; that
+  is its job. The cohort table exists so research sampling cannot silently
+  promote itself to production completeness.
 - **Research ticker cohorts + nightly capture for them** — migration `110` adds
   `uw_scan.research_universe` (cohort / ticker / sector / marketcap / option_oi,
   point-in-time tagged). Deliberately **not** the watchlist: watchlist membership
