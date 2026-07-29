@@ -16524,6 +16524,381 @@
         "title": "TermStructureExpiryRow",
         "type": "object"
       },
+      "ThetaHarvesterCandidate": {
+        "properties": {
+          "as_of": {
+            "format": "date",
+            "title": "As Of",
+            "type": "string"
+          },
+          "call_strike": {
+            "title": "Call Strike",
+            "type": "number"
+          },
+          "credit_ib": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Credit Ib"
+          },
+          "credit_quoted_at": {
+            "anyOf": [
+              {
+                "format": "date-time",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Credit Quoted At"
+          },
+          "credit_source": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Credit Source"
+          },
+          "dealer_support": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Dealer Support"
+          },
+          "dte": {
+            "title": "Dte",
+            "type": "integer"
+          },
+          "entry_credit_theo": {
+            "title": "Entry Credit Theo",
+            "type": "number"
+          },
+          "expiry": {
+            "format": "date",
+            "title": "Expiry",
+            "type": "string"
+          },
+          "gamma": {
+            "title": "Gamma",
+            "type": "number"
+          },
+          "gate_dealer_support": {
+            "title": "Gate Dealer Support",
+            "type": "boolean"
+          },
+          "gate_delta_near_zero": {
+            "title": "Gate Delta Near Zero",
+            "type": "boolean"
+          },
+          "gate_gamma_controlled": {
+            "title": "Gate Gamma Controlled",
+            "type": "boolean"
+          },
+          "gate_iv_rich_vs_rv": {
+            "title": "Gate Iv Rich Vs Rv",
+            "type": "boolean"
+          },
+          "gate_range_bound": {
+            "title": "Gate Range Bound",
+            "type": "boolean"
+          },
+          "gate_theta_positive": {
+            "title": "Gate Theta Positive",
+            "type": "boolean"
+          },
+          "gex_flip": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Gex Flip"
+          },
+          "hv20": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Hv20"
+          },
+          "hv60": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Hv60"
+          },
+          "iv": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Iv"
+          },
+          "iv_rv_edge": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Iv Rv Edge"
+          },
+          "iv_rv_ratio": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Iv Rv Ratio"
+          },
+          "net_delta": {
+            "title": "Net Delta",
+            "type": "number"
+          },
+          "net_gex": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Net Gex"
+          },
+          "put_strike": {
+            "title": "Put Strike",
+            "type": "number"
+          },
+          "range_score": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Range Score"
+          },
+          "score": {
+            "title": "Score",
+            "type": "number"
+          },
+          "theta": {
+            "title": "Theta",
+            "type": "number"
+          },
+          "ticker": {
+            "title": "Ticker",
+            "type": "string"
+          },
+          "trend_20d_pct": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Trend 20D Pct"
+          },
+          "underlying_spot": {
+            "title": "Underlying Spot",
+            "type": "number"
+          },
+          "vega": {
+            "title": "Vega",
+            "type": "number"
+          },
+          "verdict": {
+            "title": "Verdict",
+            "type": "string"
+          },
+          "weights_version": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Weights Version"
+          }
+        },
+        "required": [
+          "ticker",
+          "as_of",
+          "expiry",
+          "dte",
+          "put_strike",
+          "call_strike",
+          "underlying_spot",
+          "entry_credit_theo",
+          "net_delta",
+          "theta",
+          "gamma",
+          "vega",
+          "score",
+          "verdict",
+          "gate_delta_near_zero",
+          "gate_iv_rich_vs_rv",
+          "gate_dealer_support",
+          "gate_theta_positive",
+          "gate_gamma_controlled",
+          "gate_range_bound"
+        ],
+        "title": "ThetaHarvesterCandidate",
+        "type": "object"
+      },
+      "ThetaHarvesterQuoteResult": {
+        "properties": {
+          "failed": {
+            "title": "Failed",
+            "type": "integer"
+          },
+          "quoted": {
+            "title": "Quoted",
+            "type": "integer"
+          }
+        },
+        "required": [
+          "quoted",
+          "failed"
+        ],
+        "title": "ThetaHarvesterQuoteResult",
+        "type": "object"
+      },
+      "ThetaHarvesterResponse": {
+        "properties": {
+          "as_of": {
+            "anyOf": [
+              {
+                "format": "date",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "As Of"
+          },
+          "candidates": {
+            "items": {
+              "$ref": "#/components/schemas/ThetaHarvesterCandidate"
+            },
+            "title": "Candidates",
+            "type": "array"
+          },
+          "generated_at": {
+            "format": "date-time",
+            "title": "Generated At",
+            "type": "string"
+          }
+        },
+        "required": [
+          "as_of",
+          "generated_at",
+          "candidates"
+        ],
+        "title": "ThetaHarvesterResponse",
+        "type": "object"
+      },
+      "ThetaHarvesterScanResult": {
+        "properties": {
+          "as_of": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "As Of"
+          },
+          "candidates_written": {
+            "title": "Candidates Written",
+            "type": "integer"
+          },
+          "harvest_count": {
+            "title": "Harvest Count",
+            "type": "integer"
+          },
+          "tickers_scanned": {
+            "title": "Tickers Scanned",
+            "type": "integer"
+          }
+        },
+        "required": [
+          "tickers_scanned",
+          "candidates_written",
+          "harvest_count"
+        ],
+        "title": "ThetaHarvesterScanResult",
+        "type": "object"
+      },
+      "ThetaQuoteRequest": {
+        "properties": {
+          "as_of": {
+            "anyOf": [
+              {
+                "format": "date",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "As Of"
+          },
+          "limit": {
+            "default": 8,
+            "title": "Limit",
+            "type": "integer"
+          }
+        },
+        "title": "ThetaQuoteRequest",
+        "type": "object"
+      },
       "TopNetImpactResponse": {
         "description": "Top tickers by net option premium for one session (regime Market Tide\ntab, beside the daily chart). Rows sorted by net_premium DESC.",
         "properties": {
@@ -25766,6 +26141,143 @@
           }
         },
         "summary": "Get Scanner Discover",
+        "tags": [
+          "scanner",
+          "scanner"
+        ]
+      }
+    },
+    "/api/scanner/theta-harvester": {
+      "get": {
+        "description": "Read persisted candidates. Pure warm-store read \u2014 no UW call, no IB call.\n\nRESEARCH ARTIFACT. These are naked short strangles, which argon's standing\n\"defined-risk only / no naked shorts\" rule forbids trading. The rows exist\nto measure whether the score orders anything; the sweep says it ranks but\ndoes not by itself pay (docs/research/2026-07-28-theta-harvester-weight-sweep.md).\nThe UI must keep saying so.",
+        "operationId": "theta_harvester_api_scanner_theta_harvester_get",
+        "parameters": [
+          {
+            "in": "query",
+            "name": "as_of",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "format": "date",
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "As Of"
+            }
+          },
+          {
+            "in": "query",
+            "name": "limit",
+            "required": false,
+            "schema": {
+              "default": 100,
+              "maximum": 500,
+              "minimum": 1,
+              "title": "Limit",
+              "type": "integer"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ThetaHarvesterResponse"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Theta Harvester",
+        "tags": [
+          "scanner",
+          "scanner"
+        ]
+      }
+    },
+    "/api/scanner/theta-harvester/quote": {
+      "post": {
+        "description": "Fetch live IB NBBO for the top-N candidates' legs, serially.\n\nNever called from a scheduled job. Each leg spawns an IB snapshot\nsubprocess (~2-5s) and consumes one of the shared ~100-line market-data\nlines, so this is bounded at _QUOTE_MAX candidates and single-flighted.\n\nThe quote NEVER becomes the markout basis \u2014 it lands in credit_ib, beside\nthe untouched entry_credit_theo. A basis that exists for quoted rows and\nnot for the rest would make the panel incomparable with itself.",
+        "operationId": "theta_harvester_quote_api_scanner_theta_harvester_quote_post",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "anyOf": [
+                  {
+                    "$ref": "#/components/schemas/ThetaQuoteRequest"
+                  },
+                  {
+                    "type": "null"
+                  }
+                ],
+                "title": "Payload"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ThetaHarvesterQuoteResult"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Theta Harvester Quote",
+        "tags": [
+          "scanner",
+          "scanner"
+        ]
+      }
+    },
+    "/api/scanner/theta-harvester/rescan": {
+      "post": {
+        "description": "Recompute candidates synchronously.\n\nA deliberate write on an otherwise read-only router \u2014 the same exception\nalready made for POST /stock/{ticker}/technicals/refresh. Safe inline\nbecause the ranking path is pure warm-store SQL with no network call.\n\nSingle-flight per api/CLAUDE.md: without the lock two clicks race two full\nwatchlist sweeps writing the same (ticker, as_of) rows.",
+        "operationId": "theta_harvester_rescan_api_scanner_theta_harvester_rescan_post",
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ThetaHarvesterScanResult"
+                }
+              }
+            },
+            "description": "Successful Response"
+          }
+        },
+        "summary": "Theta Harvester Rescan",
         "tags": [
           "scanner",
           "scanner"
