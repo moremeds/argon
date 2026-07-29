@@ -16892,6 +16892,7 @@
           },
           "limit": {
             "default": 8,
+            "minimum": 1.0,
             "title": "Limit",
             "type": "integer"
           }

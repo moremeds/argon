@@ -202,7 +202,7 @@ export default function ThetaSubTab({
           <span
             title={
               "Measured 2025-12-26 → 2026-07-27, 145 sessions, 16,134 candidates.\n\n" +
-              "The ranking works: cross-sectional IC +0.075 (t 6.35) — higher-scored candidates did do better than lower-scored ones.\n\n" +
+              "In-sample only: cross-sectional IC +0.075 (t 6.35) — within the measured window, higher-scored candidates did do better than lower-scored ones. This IC is computed over the same sample the 291 weight configs were chosen on, and was never walk-forward validated, so it is a description of that window rather than a claim about the next one.\n\n" +
               "The trades still lose: held to expiry, the selected set was negative, and so was the control arm of every candidate with no score applied (monthly mean -0.8%, Sharpe -1.67). Ordering a losing set does not make it a winning one.\n\n" +
               "Full sweep and method: docs/research/2026-07-28-theta-harvester-weight-sweep.md"
             }
@@ -224,9 +224,10 @@ export default function ThetaSubTab({
             midpoints, not fills.
           </li>
           <li>
-            The score <strong>ranks</strong> candidates well within a session,
-            but the ones it picks still lost money held to expiry —{" "}
-            <strong>no demonstrated edge</strong> after costs.
+            Over the measured window the score <strong>ranked</strong>{" "}
+            candidates within a session — in-sample, never walk-forward
+            validated — and the ones it picked still lost money held to expiry.{" "}
+            <strong>No demonstrated edge</strong> after costs.
           </li>
         </ul>
       </div>

@@ -435,7 +435,12 @@ class ThetaHarvesterRepository:
         """
         sql = f"""
             SELECT c.ticker, c.as_of, c.expiry, c.put_strike, c.call_strike,
-                   c.entry_credit_theo, c.risk_free_rate
+                   c.entry_credit_theo, c.risk_free_rate,
+                   -- The terminal mark's corporate-action guard compares this
+                   -- against the settlement close. Omitting it does not degrade
+                   -- the guard, it raises KeyError on the first candidate to
+                   -- reach expiry and takes the whole markout job down with it.
+                   c.underlying_spot
               FROM {self._schema}.theta_harvester_candidates c
              WHERE c.as_of + %s <= CURRENT_DATE
                AND NOT EXISTS (

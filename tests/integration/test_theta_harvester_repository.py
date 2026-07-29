@@ -4,6 +4,7 @@ from datetime import date
 
 import pytest
 
+from uw_scan.reports.theta_harvester_markout import run_theta_markout
 from uw_scan.scanners.theta_harvester import (
     DealerSupport,
     OptionLeg,
@@ -316,3 +317,49 @@ def test_atm_iv_resolves_when_the_grid_has_no_underlying_spot(
     assert repo.load_atm_iv("IWM", _AS_OF, _EXP, _SPOT) == pytest.approx(
         0.2059242192623955, rel=1e-12
     )
+
+
+def test_terminal_mark_lands_through_the_real_pending_query(seeded_db_empty_cards):
+    """run_theta_markout end-to-end over the REAL repository, not a hand-written dict.
+
+    The corporate-action guard reads `underlying_spot` off the pending-candidate
+    row, but `load_candidates_needing_marks` did not SELECT that column. Every
+    unit test around the guard called it directly with a dict the test itself
+    built, so the column gap was invisible: the guard was correct and the row
+    feeding it was short one key. In production the first candidate to reach
+    expiry raised KeyError inside the loop, and because `rows` is only flushed
+    after the loop, that took down the intermediate marks for the whole night
+    too — the terminal row, which is the only observation of a short strangle's
+    real risk, could never be written at all.
+
+    This test exists at the seam the unit tests cannot see: real SQL -> real
+    dict -> run_theta_markout.
+    """
+    conn = seeded_db_empty_cards.conn
+    repo = ThetaHarvesterRepository(conn, "uw_scan")
+    repo.upsert_candidates([_candidate()])
+
+    # Settlement bar at expiry, plus a later session so has_session_after
+    # proves expiry is genuinely in the past.
+    for d, close in ((_EXP, 300.0), (date(2026, 8, 24), 301.0)):
+        conn.execute(
+            "INSERT INTO uw_scan.daily_ohlc (ticker, date, close, source) "
+            "VALUES (%s,%s,%s,'massive.com')",
+            ("IWM", d, close),
+        )
+    conn.commit()
+
+    result = run_theta_markout(repo=repo)
+
+    assert result["marks_written"] >= 1
+    row = conn.execute(
+        "SELECT mark_date, spot, expired, put_mark, call_mark FROM "
+        "uw_scan.theta_harvester_markouts WHERE ticker='IWM' AND horizon_days=-1"
+    ).fetchone()
+    assert row is not None, "terminal mark was never written"
+    assert row[0] == _EXP and float(row[1]) == pytest.approx(300.0)
+    assert row[2] is True
+    # Settlement is pure intrinsic: 300 sits between the 272 put and 306 call,
+    # so both legs expire worthless and the full credit is kept.
+    assert float(row[3]) == pytest.approx(0.0)
+    assert float(row[4]) == pytest.approx(0.0)

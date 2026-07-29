@@ -14,7 +14,7 @@ from decimal import Decimal
 from typing import Any
 
 from fastapi import APIRouter, Depends, HTTPException, Query
-from pydantic import BaseModel
+from pydantic import BaseModel, Field
 
 from uw_scan.api.deps import get_repo, get_settings
 from uw_scan.api.models.scanner import (
@@ -326,8 +326,29 @@ _QUOTE_MAX = 8
 _QUOTE_TIMEOUT_S = 4.0
 
 
+def _release(repo: Repository, lock_sql: str) -> None:
+    """Release a session advisory lock, even from an aborted transaction.
+
+    These are SESSION-scoped locks, which a ROLLBACK does not release. If the
+    body failed mid-write the transaction is aborted, so the bare unlock would
+    itself error with InFailedSqlTransaction and propagate out of `finally` —
+    leaving the lock held on a connection that api/deps.py then rolls back and
+    returns to the pool. Every later scan or quote 409s until that physical
+    connection is recycled. Rolling back FIRST clears the aborted state so the
+    unlock can actually run.
+    """
+    try:
+        repo.conn.rollback()
+        with repo.conn.cursor() as cur:
+            cur.execute(f"SELECT pg_advisory_unlock({lock_sql})")
+    except Exception as exc:  # never mask the original failure
+        logger.warning("theta lock release failed: %r", exc)
+
+
 class ThetaQuoteRequest(BaseModel):
-    limit: int = _QUOTE_MAX
+    # ge=1: a negative limit reaches read_candidates as a bare SQL LIMIT and
+    # 500s on a driver error rather than being rejected at the boundary.
+    limit: int = Field(default=_QUOTE_MAX, ge=1)
     as_of: _date | None = None
 
 
@@ -382,8 +403,7 @@ def theta_harvester_rescan(
             **theta_harvester_scan(repo=repo, settings=settings)
         )
     finally:
-        with repo.conn.cursor() as cur:
-            cur.execute(f"SELECT pg_advisory_unlock({_THETA_SCAN_LOCK_SQL})")
+        _release(repo, _THETA_SCAN_LOCK_SQL)
 
 
 @router.post("/theta-harvester/quote", response_model=ThetaHarvesterQuoteResult)
@@ -443,6 +463,7 @@ def theta_harvester_quote(
                     expiry=expiry,
                     strike=strike,
                     right=right,
+                    timeout_s=_QUOTE_TIMEOUT_S,
                 )
                 if not leg or leg.get("bid") is None or leg.get("ask") is None:
                     mids = []
@@ -460,5 +481,4 @@ def theta_harvester_quote(
         # fetch_ib_option_quote never raises, but set_ib_credit can fail on a DB
         # error and a leaked session lock would block every later quote until
         # the connection is recycled.
-        with repo.conn.cursor() as cur:
-            cur.execute(f"SELECT pg_advisory_unlock({_THETA_QUOTE_LOCK_SQL})")
+        _release(repo, _THETA_QUOTE_LOCK_SQL)

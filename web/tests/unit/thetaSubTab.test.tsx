@@ -43,7 +43,13 @@ describe("research-only warning", () => {
     // exactly the misreading the whole measurement exercise was meant to avoid.
     render(<ThetaSubTab />);
     const warn = screen.getByTestId("theta-research-warning");
-    expect(warn.textContent).toMatch(/ranks/i);
+    // Past tense on purpose. The IC was computed over the same sample the 291
+    // weight configs were selected on and never walk-forward validated, so the
+    // banner may describe what happened in that window but must not promise
+    // that the score ranks anything going forward.
+    expect(warn.textContent).toMatch(/ranked/i);
+    expect(warn.textContent).toMatch(/in-sample/i);
+    expect(warn.textContent).not.toMatch(/\branks\b/i);
     expect(warn.textContent).toMatch(
       /does not.*profitab|no demonstrated edge/i,
     );

@@ -46,6 +46,17 @@ MAX_SNAP_DAYS = 7
 # for the liquid names in this universe. Bias is stated rather than hidden: on
 # the rare occasion a real 4x move is dropped, it would have been a large LOSS,
 # so this trims the left tail and is optimistic. It is logged, never silent.
+#
+# KNOWN GAP — this is a magnitude heuristic standing in for data argon already
+# has. `uw_scan.corporate_actions` records the exact (ticker, event_date,
+# split_ratio), and joining it would classify splits exactly instead of
+# inferring them from the move size. The heuristic cannot see a 2:1 or 3:1
+# split at all: those settle an as-traded strike against a back-adjusted close
+# and book a large FABRICATED LOSS that this guard passes through. Because the
+# published verdict is "loses money held to expiry", any such row manufactures
+# the very conclusion the measurement reports — the bias runs pessimistic here,
+# opposite to the optimistic direction claimed for the >4x drops. Replace with
+# a corporate_actions join before the numbers are quoted again.
 MAX_SETTLEMENT_MOVE = 4.0
 
 
@@ -61,7 +72,10 @@ def _settlement_scale_ok(
     if entry_spot <= 0 or settle_close <= 0:
         return True
     ratio = settle_close / entry_spot
-    if 1.0 / MAX_SETTLEMENT_MOVE <= ratio <= MAX_SETTLEMENT_MOVE:
+    # Strict, not inclusive. An exact 4:1 split lands on ratio == 0.25 and an
+    # inclusive bound admits it — CRWD's 2026-07-02 4:1 is exactly that case,
+    # so the one split this threshold was chosen to sit above slipped under it.
+    if 1.0 / MAX_SETTLEMENT_MOVE < ratio < MAX_SETTLEMENT_MOVE:
         return True
     log.warning(
         "theta markout: dropping terminal mark for %s exp=%s — settlement close "
