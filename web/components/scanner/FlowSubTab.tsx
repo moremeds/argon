@@ -55,19 +55,24 @@ export default async function FlowSubTab({
 
   return (
     <div>
+      {/* Filters and scan controls share one row — two stacked rows of chrome
+          pushed the first candidate card below the fold. */}
       <header
         style={{
           display: "flex",
-          justifyContent: "flex-end",
+          justifyContent: "space-between",
           alignItems: "center",
-          gap: 12,
+          gap: 16,
           marginBottom: 16,
+          flexWrap: "wrap",
         }}
       >
-        <QueueProgress queue={queue} />
-        <ScanAllButton />
+        <ScannerFilters />
+        <div style={{ display: "flex", alignItems: "center", gap: 12 }}>
+          <QueueProgress queue={queue} />
+          <ScanAllButton />
+        </div>
       </header>
-      <ScannerFilters />
       {data.candidates.length === 0 ? (
         <div
           style={{

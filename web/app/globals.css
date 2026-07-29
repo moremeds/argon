@@ -7256,3 +7256,191 @@ tr {
   border-color: var(--accent-bg);
   color: var(--accent-bg);
 }
+
+/* Theta Harvester panel — thin-framed table with an inline control bar. */
+.theta-panel {
+  border: 1px solid var(--border-dim);
+  border-radius: 4px;
+  background: var(--bg-panel);
+  overflow: hidden;
+}
+/* The table is wider than the panel on narrow viewports; without this the
+   panel's overflow:hidden (which is what keeps the rounded corners) silently
+   clips the STATUS column instead of letting it scroll. */
+.theta-scroll {
+  overflow-x: auto;
+}
+.theta-panel-bar {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  flex-wrap: wrap;
+  padding: 14px 18px;
+  border-bottom: 1px solid var(--border-dim);
+}
+.theta-panel-title {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-family: var(--font-mono);
+  font-size: 15px;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--text-primary);
+  white-space: nowrap;
+}
+.theta-clock {
+  font-family: var(--font-mono);
+  font-size: 12px;
+  color: var(--text-muted);
+  letter-spacing: 0.08em;
+  padding-bottom: 6px;
+  border-bottom: 1px solid var(--border-dim);
+  min-width: 84px;
+  text-align: center;
+}
+.theta-count {
+  font-family: var(--font-mono);
+  font-size: 12px;
+  letter-spacing: 0.08em;
+  color: var(--accent-bg);
+  border: 1px solid var(--accent-bg);
+  border-radius: 3px;
+  padding: 7px 14px;
+  white-space: nowrap;
+}
+.theta-field {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-family: var(--font-mono);
+  font-size: 11px;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--text-muted);
+}
+.theta-input {
+  font-family: var(--font-mono);
+  font-size: 12px;
+  color: var(--text-primary);
+  background: transparent;
+  border: 1px solid var(--border-dim);
+  border-radius: 3px;
+  padding: 6px 8px;
+  width: 56px;
+  text-align: center;
+}
+.theta-input--ticker {
+  width: 150px;
+  text-align: left;
+}
+.theta-input:focus {
+  outline: none;
+  border-color: var(--accent-bg);
+}
+.theta-action {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-family: var(--font-mono);
+  font-size: 12px;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--accent-bg);
+  background: transparent;
+  border: 1px solid var(--accent-bg);
+  border-radius: 3px;
+  padding: 7px 14px;
+  cursor: pointer;
+  transition: background 150ms ease-in-out;
+  white-space: nowrap;
+}
+.theta-action:hover:not(:disabled) {
+  background: rgba(5, 173, 152, 0.1);
+}
+.theta-action:disabled {
+  opacity: 0.45;
+  cursor: not-allowed;
+}
+.theta-table {
+  width: 100%;
+  border-collapse: collapse;
+  font-family: var(--font-mono);
+  font-size: 13px;
+}
+.theta-table th {
+  font-size: 11px;
+  font-weight: 500;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  color: var(--text-muted);
+  text-align: right;
+  padding: 14px 12px;
+  border-bottom: 1px solid var(--border-dim);
+  white-space: nowrap;
+}
+.theta-table th:nth-child(1),
+.theta-table th:nth-child(2) {
+  text-align: left;
+}
+.theta-table td {
+  padding: 14px 12px;
+  text-align: right;
+  color: var(--text-primary);
+  border-bottom: 1px solid var(--border-dim);
+  vertical-align: middle;
+  white-space: nowrap;
+}
+.theta-table td:nth-child(1),
+.theta-table td:nth-child(2) {
+  text-align: left;
+}
+.theta-table tbody tr:last-child td {
+  border-bottom: none;
+}
+.theta-table tbody tr:hover td {
+  background: rgba(255, 255, 255, 0.015);
+}
+.theta-chips {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 5px;
+  margin-top: 6px;
+  max-width: 230px;
+}
+.theta-chip {
+  font-size: 10px;
+  letter-spacing: 0.06em;
+  padding: 2px 6px;
+  border-radius: 3px;
+  border: 1px solid var(--accent-bg);
+  color: var(--accent-bg);
+}
+.theta-chip--off {
+  border-color: var(--border-dim);
+  color: var(--text-muted);
+}
+.theta-status {
+  font-size: 11px;
+  letter-spacing: 0.06em;
+  padding: 4px 10px;
+  border-radius: 3px;
+  border: 1px solid var(--border-dim);
+  color: var(--text-muted);
+  white-space: nowrap;
+}
+.theta-status--harvest {
+  border-color: var(--accent-bg);
+  color: var(--accent-bg);
+}
+.theta-subtle {
+  color: var(--text-muted);
+  font-size: 11px;
+}
+.theta-empty {
+  padding: 32px;
+  text-align: center;
+  font-family: var(--font-mono);
+  font-size: 12px;
+  color: var(--text-muted);
+}

@@ -3,6 +3,7 @@ import { describe, expect, it, vi } from "vitest";
 import ThetaSubTab, {
   formatCredit,
   formatDelta,
+  formatTheta,
   verdictLabel,
 } from "@/components/scanner/theta/ThetaSubTab";
 
@@ -64,15 +65,27 @@ describe("formatCredit", () => {
 });
 
 describe("formatDelta", () => {
-  it("normalises a negative that rounds to zero", () => {
-    // Seen live: AVGO's net delta rendered as "-0.000", which reads as a
-    // formatting bug on the one column that means "this is flat".
-    expect(formatDelta(-0.0001)).toBe("0.000");
-    expect(formatDelta(-0)).toBe("0.000");
+  it("renders position delta in share equivalents", () => {
+    expect(formatDelta(0.007)).toBe("+0.7 sh");
+    expect(formatDelta(-0.004)).toBe("-0.4 sh");
   });
 
-  it("keeps a real sign", () => {
-    expect(formatDelta(-0.042)).toBe("-0.042");
-    expect(formatDelta(0.042)).toBe("0.042");
+  it("normalises a negative that rounds to zero", () => {
+    // Seen live: AVGO rendered "-0.0 sh", which reads as a formatting bug on
+    // the one column that means "this is flat".
+    expect(formatDelta(-0.0001)).toBe("0.0 sh");
+    expect(formatDelta(-0)).toBe("0.0 sh");
+  });
+});
+
+describe("formatTheta", () => {
+  it("scales per-share theta to a per-contract daily figure", () => {
+    expect(formatTheta(0.4643)).toBe("+46.43/day");
+  });
+
+  it("does not fake a plus sign on a negative theta", () => {
+    // A negative here means the short position is PAYING decay, which the
+    // gates are supposed to exclude — it must be visibly negative.
+    expect(formatTheta(-0.01)).toBe("-1.00/day");
   });
 });

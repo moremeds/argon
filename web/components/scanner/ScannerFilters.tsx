@@ -27,7 +27,7 @@ export function ScannerFilters() {
   };
 
   return (
-    <div style={{ marginBottom: 16 }}>
+    <div style={{ display: "flex", alignItems: "center", gap: 16 }}>
       <label
         style={checkboxStyle}
         title="Show only tickers with 2+ distinct signals"
