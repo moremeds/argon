@@ -322,3 +322,34 @@ def test_run_falls_back_to_spy_when_spx_alignment_too_thin(
     assert row_id is not None
     snap = CriSnapshotRepository(conn, schema=repo._schema).fetch_latest()
     assert snap["spx_source"] == "SPY"
+
+
+def test_load_vol_series_honours_an_as_of_far_outside_the_recent_window(
+    seeded_db_empty_cards,
+) -> None:
+    """`as_of` must be pushed into SQL, not applied after a recent-rows LIMIT.
+
+    Regression: `_load_vol_series` fetched the most-recent `days * 2` rows and
+    only then filtered them to `<= as_of`. That anchors the fetch window to
+    today while anchoring the filter to `as_of` — so any `as_of` further back
+    than the window drops every row and yields an EMPTY series. The caller sees
+    thin data and skips, which makes a deep historical backfill report success
+    while writing nothing. Canary carried the identical copy-pasted bug.
+    """
+    repo = seeded_db_empty_cards
+    vol_repo = VolIndexRepository(repo.conn, schema=repo._schema)
+
+    start = date(2026, 1, 1)
+    _seed_vol(vol_repo, "VIX", [16.0 + i * 0.01 for i in range(400)], start=start)
+
+    # 200 bars back — comfortably outside the old `days * 2` fudge buffer.
+    as_of = start + timedelta(days=200)
+    series = cri_scanner._load_vol_series(vol_repo, "VIX", 100, as_of=as_of)
+
+    assert len(series) == 100, "empty/short series is the bug this guards"
+    assert max(series) == as_of
+    assert all(d <= as_of for d in series)
+
+    # The uncapped path is unchanged: still the most-recent rows.
+    latest = cri_scanner._load_vol_series(vol_repo, "VIX", 100)
+    assert max(latest) == start + timedelta(days=399)

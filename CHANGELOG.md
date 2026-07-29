@@ -49,8 +49,156 @@ version in lockstep (enforced by `scripts/release/version_sync_check.py`).
   at ~$21 while its strikes still spanned 125–1900. Guarded at entry (strike-
   range containment) and at settlement (`MAX_SETTLEMENT_MOVE`).
 
-## [0.10.14] — 2026-07-26
+## [0.10.17] — 2026-07-29
 
+### Added
+
+- **Calm-core band on the VCG z-score history chart** — `|z| < 0.75` shaded
+  behind the bars. The chart previously drew only the ±2.0 / ±2.5 arming rules,
+  which is the *weaker* end of the evidence: the tails carry no directional
+  signal (max |t| vs rest = 1.10 over 30 cells) and their forward-vol lift is
+  crisis-driven, with a median of just +2.1pt. The calm core is the half that
+  survived walk-forward, so the chart was loudest exactly where the evidence is
+  thinnest and silent where it is strongest. Drawn as a band, not a rule — it
+  is a standing condition, not an event — and labelled as a short-vol
+  *permission condition on ~20-day holds*, not an entry trigger, because it
+  reverses on 0.25Δ/30d. Regression-tested for presence, zero-centring, and
+  being narrower than the ±2.0 rules; the test was confirmed to fail with the
+  band removed.
+
+### Changed
+
+- **The VCG signal tooltip now states what the signal does _not_ do.** State
+  names like `RISK-OFF` are positioning vocabulary and read as an instruction to
+  cut equity; tested over 2007–2026 (n=4,758) armed days match baseline SPX
+  returns. The tooltip now says the states describe coincident vol/credit stress
+  and do not predict direction, while noting that elevated |z| does associate
+  with higher forward realised vol. Copy only — no change to the cascade, the
+  stored `interpretation` values, or the API.
+
+### Removed
+
+- **`spot_refresh_heartbeat_lag_seconds`** dropped from `/api/health`. The
+  `spot_refresh` job was deleted in Phase 7 — the WS consumer became the sole
+  intraday spot writer — but the health endpoint kept reading its heartbeat, so
+  the field reported time-since-the-retired-job-last-ran: ~68 days and climbing
+  by 2026-07. The `HealthPanel` "Massive Worker" fallback row it fed is gone
+  too; that branch only renders when there are zero worker rows, so in any real
+  deploy `workerGroupStatus(massiveWorkers)` was already the live signal. Live
+  spot health remains `spot_quote_lag_seconds` + the `ws_consumer` block, both
+  sub-second on the mini. **API contract change** — `types.ts` and the OpenAPI
+  snapshot updated surgically alongside.
+
+### Research
+
+- **Is the VCG calm gate just a VIX filter?**
+  (`docs/research/2026-07-29-vcg-vs-vix-walkforward.md`,
+  `scripts/research/vrp_vcg_vs_vix_walkforward.py`) — **no**, and the reason is
+  structural: `vcg` is already an OLS residual of credit on the vol complex, so
+  it is near-orthogonal to the VIX level by construction (**ρ = −0.030**;
+  per-fold OLS slope −0.002…−0.004). Regressing VIX out changes the result by
+  0.01 Sharpe.
+  - A trailing-252 VIX-percentile filter **does** work (beats `gate0` 3/4) but
+    is beaten by the calm gate **4/4** — and wins its Sharpe by abstaining:
+    76 trades vs 126, annual ROR **0.83 vs 1.31**. Sharpe rewards not losing,
+    and not trading is the cheapest way not to lose.
+  - Same harness, same folds, same universe across arms; VIX percentile ranked
+    strictly *prior* to each entry date so the cheap rival gets no look-ahead.
+
+- **Walk-forward validation of the VCG calm gate**
+  (`docs/research/2026-07-29-vrp-vcg-calm-gate-walkforward.md`,
+  `scripts/research/vrp_vcg_calm_gate_walkforward.py`) — clears the bar the
+  in-sample probe set for itself: the |z| threshold is re-fit from scratch on
+  each expanding training window, then scored on the year that follows. Over
+  14 OOS folds (2013–2026) the refit gate beats always-on **4/4** and `gate0`
+  **3/4**, cutting maxDD by a mean 1.73× max-loss. It **reverses on 0.25Δ/30d**
+  (1.07 vs 1.39), so the structural config is load-bearing and it is still not
+  wired in.
+  - Every one of the 14 windows independently picked |z| < 0.75 — a value the
+    earlier probe never tested. That **supersedes the in-sample "the threshold
+    is unstable" finding**, which was an artifact of comparing two hand-cut
+    eras; the older doc now carries a note to that effect.
+  - The per-window catastrophic-degradation gate fails **0/4 for every arm,
+    including ungated always-on**, so on this book it is describing short vol
+    as an asset class (2018Q1, 2020Q1) rather than indicting the candidate.
+    Recorded rather than reported as a gate failure.
+- **`docs/research/2026-07-29-vcg-spx-forward-returns.md`** — VCG z vs forward
+  SPX over 4,758 sessions. Direction is dead: across 30 rule×horizon cells the
+  largest |t vs rest| is 1.10, and armed days track baseline in both era halves.
+  Forward _volatility_ does separate, most robustly in the calm core
+  (|z| < 1, n=3,486, t = −2.72 vs rest). Repro:
+  `scripts/research/vcg_spx_forward_returns.py`.
+- **`docs/research/2026-07-29-vrp-vcg-calm-gate.md`** — does the calm core
+  improve the VRP macro short-vol book? Reuses the committed sweep's P&L
+  machinery, varying only the sizing function. `gate0_and_calm` beats `gate0`
+  in 4/4 grid cells and cuts maxDD by ~1.5× max-loss, but beats plain always-on
+  by only +0.03…+0.39 Sharpe and _loses_ outright in the 2007–2016 half; VCG
+  alone is not a gate, and the |z| threshold's ranking flips between eras.
+  **Verdict: promising, not proven — not wired in.** Deployment would require
+  the walk-forward harness with the threshold re-fit per training window. Repro:
+  `scripts/research/vrp_vcg_calm_gate_probe.py`.
+
+## [0.10.16] — 2026-07-29
+
+### Added
+
+- **VCG z-score history chart** on `/regime` → VCG — signed bars plus a monotone
+  curve over the trailing window, with 1M/3M/6M/1Y range buttons and the
+  ±2.0 / ±2.5 arming thresholds drawn as rules. It plots `vcg` directly, which
+  _is already_ the trailing 63-session z-score of the model residual, so the
+  panel labels that definition rather than re-normalising an already-normalised
+  series.
+- **`pathFromPointsSmooth`** (`web/lib/svgChart.ts`) — Fritsch–Carlson monotone
+  cubic interpolation. Deliberately not Catmull–Rom: on `[0, 0, 2, 0, 0]` a
+  Catmull–Rom spline dips below zero either side of the spike, drawing a sign
+  flip that is not in the data. On a signed regime chart that is a fabricated
+  reading; the monotone limiter clamps tangents to the neighbouring samples'
+  range at no visual cost.
+- **`scripts/backfill/vcg_snapshot_backfill.py`** — scores `vcg_snapshots`
+  (`basis='eod'`) across the full aligned lake history. VCG needs no external
+  API (VIX/VVIX/credit-proxy all come from `vol_index_daily`), so the whole
+  history backfills at zero UW cost. Depth is bounded by the shortest input:
+  HYG starts 2007-04-11 and scoring needs 94 aligned bars of warmup.
+
+### Fixed
+
+- **`VolIndexRepository.fetch_history` now caps `as_of` in SQL** instead of
+  filtering after the fact, and **all three scanners that consume it — VCG, CRI,
+  and canary — are fixed together.** Each selected the most-recent `days` (or
+  `days * 2`) rows and only then dropped everything after `as_of`, which anchors
+  the fetch window to _today_ while anchoring the filter to _`as_of`_. Once
+  `as_of` is further back than the window, every row is filtered out and the
+  caller gets an empty series rather than an error: the scan reports "thin data"
+  and skips, so a deep historical backfill runs to completion and writes
+  nothing. This is what capped VCG backfills at ~600 sessions. CRI and canary
+  had the identical copy-pasted bug — dormant only because their sole `as_of`
+  caller (`recover_recent_gaps`) stays inside the `days * 2` fudge buffer.
+  Regression tests cover all three and fail against the old code.
+## [0.10.15] — 2026-07-28
+
+### Changed
+
+- **GEX profile is now a curvature field** on `/regime` → GEX. The horizontal
+  divergent bar list is replaced by a strike-on-x line/area chart, filled and
+  split at zero (teal above = stabilizing, magenta below = destabilizing), with
+  spot and GEX-flip vertical rules and triangle markers for PUT/CALL WALL,
+  ACCEL, and MAGNET strikes. A hover crosshair drives a
+  `STRIKE / NET GEX / CURVATURE` readout that defaults to the strike nearest
+  spot. **The stock Market Structure tab keeps its existing bar profile** — the
+  bar form reads better per-ticker, where the question is "which strikes carry
+  gamma" rather than "what shape is the field".
+- **New signal — curvature** (`curvatureField`): the discrete second derivative
+  of net GEX with respect to strike, computed client-side on the non-uniform
+  strike grid (`2(h₂f₋₁ − (h₁+h₂)f₀ + h₁f₊₁)/(h₁h₂(h₁+h₂))`) and scaled by
+  `h̄²/max|f|` so it is dimensionless and comparable across tickers. It reads
+  where the gamma field bends — how fast dealer hedging pressure changes per
+  point of spot.
+- **Chart moved to `web/components/shared/GexCurvatureChart.tsx`** (git-moved
+  from `components/regime/`, so history is preserved). The dead
+  `uwGexRowsToBuckets` helper it carried — zero callers since the UW Analyze
+  page it was extracted for — is deleted.
+
+## [0.10.14] — 2026-07-26
 
 ### Changed
 
@@ -63,6 +211,7 @@ version in lockstep (enforced by `scripts/release/version_sync_check.py`).
   instead of drawing a straight line across a warm-up window or a bar with
   missing OHLC — the custom canvas primitive previously connected every point
   in its array unconditionally. Applies to both SMA·ATR and EMA·BB bands.
+
 ## [0.10.13] — 2026-07-25
 
 ### Added
