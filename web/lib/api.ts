@@ -91,6 +91,15 @@ type CockpitFlowImResponse = Json<"/api/cockpit/{ticker}/flow-im", "get">;
 type CockpitVrpResponse = Json<"/api/cockpit/{ticker}/vrp", "get">;
 type ScannerResponse = Json<"/api/scanner", "get">;
 type ScannerDiscoverResponse = Json<"/api/scanner/discover", "get">;
+type ThetaHarvesterResponse = Json<"/api/scanner/theta-harvester", "get">;
+type ThetaHarvesterScanResult = Json<
+  "/api/scanner/theta-harvester/rescan",
+  "post"
+>;
+type ThetaHarvesterQuoteResult = Json<
+  "/api/scanner/theta-harvester/quote",
+  "post"
+>;
 type RegimeGexResponse = Json<"/api/regime/gex", "get">;
 type RegimeDealerResponse = Json<"/api/regime/dealer", "get">;
 type RegimeVcgResponse = Json<"/api/regime/vcg", "get">;
@@ -220,6 +229,25 @@ export const api = {
   },
   scannerDiscover: (limit = 20): Promise<ScannerDiscoverResponse> =>
     _fetch<ScannerDiscoverResponse>(`/api/scanner/discover?limit=${limit}`),
+  thetaHarvester: (
+    params: URLSearchParams = new URLSearchParams(),
+  ): Promise<ThetaHarvesterResponse> => {
+    const q = params.toString();
+    return _fetch<ThetaHarvesterResponse>(
+      `/api/scanner/theta-harvester${q ? `?${q}` : ""}`,
+    );
+  },
+  thetaHarvesterRescan: (): Promise<ThetaHarvesterScanResult> =>
+    _fetch<ThetaHarvesterScanResult>("/api/scanner/theta-harvester/rescan", {
+      method: "POST",
+      body: JSON.stringify({}),
+    }),
+  // Bounded server-side at 8; a larger limit is REJECTED, not truncated.
+  thetaHarvesterQuote: (limit: number): Promise<ThetaHarvesterQuoteResult> =>
+    _fetch<ThetaHarvesterQuoteResult>("/api/scanner/theta-harvester/quote", {
+      method: "POST",
+      body: JSON.stringify({ limit }),
+    }),
   positioning: (ticker: string): Promise<PositioningSnapshot> =>
     _fetch<PositioningSnapshot>(`/api/positioning/${ticker}`),
   positioningScreener: (): Promise<PositioningScreenerResponse> =>

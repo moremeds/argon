@@ -66,12 +66,11 @@ function groupDiscoveredByBias(
   return groups;
 }
 
-export default async function ScannerPage({
-  searchParams,
+export default async function FlowSubTab({
+  params,
 }: {
-  searchParams: Promise<{ [key: string]: string | string[] | undefined }>;
+  params: Record<string, string | string[] | undefined>;
 }) {
-  const params = await searchParams;
   const qs = new URLSearchParams();
   if (params.type_f_only === "true") qs.set("type_f_only", "true");
   if (params.tier_1_only === "true") qs.set("tier_1_only", "true");
@@ -93,28 +92,18 @@ export default async function ScannerPage({
   const nowMs = Number.isFinite(generatedAtMs) ? generatedAtMs : 0;
 
   return (
-    <div style={{ padding: 24, maxWidth: 1600, margin: "0 auto" }}>
+    <div>
       <header
         style={{
           display: "flex",
-          justifyContent: "space-between",
-          alignItems: "baseline",
+          justifyContent: "flex-end",
+          alignItems: "center",
+          gap: 12,
           marginBottom: 16,
         }}
       >
-        <h1
-          style={{
-            fontFamily: "var(--font-mono)",
-            fontSize: 24,
-            letterSpacing: 1,
-          }}
-        >
-          SCANNER
-        </h1>
-        <div style={{ display: "flex", alignItems: "center", gap: 12 }}>
-          <QueueProgress queue={queue} />
-          <ScanAllButton />
-        </div>
+        <QueueProgress queue={queue} />
+        <ScanAllButton />
       </header>
       <ScannerFilters />
       {discover && discover.candidates.length > 0 ? (
