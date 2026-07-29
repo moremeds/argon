@@ -420,6 +420,19 @@ REGISTRY: list[DatasetRegistryEntry] = [
         expected_frequency="none",
         reason="live per-job failure-streak state; scheduler-maintained, nothing to backfill/heal",
     ),
+    # Research cohort membership (migration 110). Caught by the temporal-table
+    # heuristic only because `selected_on` is a date column, but there is no
+    # series here: one row per (cohort, ticker) recording when that ticker was
+    # selected. The cohort's actual time series is option_surface_grid_daily,
+    # which is registered above and healed on its own terms.
+    DatasetRegistryEntry(
+        "research_universe",
+        "operational_provenance",
+        "excluded",
+        ticker_col="ticker",
+        expected_frequency="none",
+        reason="cohort membership, not a time series; selected_on is a point-in-time tag, not a cadence",
+    ),
 ]
 
 
@@ -489,6 +502,56 @@ REGISTRY.extend(
         "research_artifact",
         expected_frequency="event",
     )
+)
+
+# Theta Harvester (migration 109). Spelled out rather than folded into the
+# _entries list above so the heal instructions survive next to the entry.
+REGISTRY.extend(
+    [
+        DatasetRegistryEntry(
+            "theta_harvester_candidates",
+            "research_artifact",
+            # research_artifact, NOT strict_ticker_date. strict_ticker_date sets
+            # the denominator to (eligible watchlist tickers x sessions), but
+            # candidates only exist for tickers that clear the thin-input checks
+            # -- so it would report a large, permanent, UNHEALABLE gap
+            # (healer_adapter is None) on every audit forever.
+            "research_artifact",
+            date_col="as_of",
+            ticker_col="ticker",
+            expected_frequency="event",
+            provider="db",
+            # "none", not "run_once_lookback": granularity names how the healer
+            # DISPATCHES, and there is no adapter here -- healing is a manual
+            # backfill-script run. Claiming a granularity without an adapter
+            # trips test_healable_entries_name_an_adapter_others_do_not_dispatch.
+            granularity="none",
+            healer_adapter=None,
+            source_system="derived",
+            reason=(
+                "Derived from option_surface_grid_daily; heal by re-running "
+                "scripts/backfill/theta_harvester_backfill.py. Rows are absent "
+                "by design for tickers with thin price history or no chain."
+            ),
+        ),
+        DatasetRegistryEntry(
+            "theta_harvester_markouts",
+            "research_artifact",
+            "research_artifact",
+            date_col="as_of",
+            ticker_col="ticker",
+            expected_frequency="event",
+            provider="db",
+            granularity="none",  # no adapter -> no dispatch; see above
+            healer_adapter=None,
+            source_system="derived",
+            reason=(
+                "Forward re-marks accrue as sessions pass; a missing horizon is "
+                "not-yet-reached rather than a gap. Written by the nightly "
+                "theta_harvester_markout job."
+            ),
+        ),
+    ]
 )
 
 REGISTRY.extend(

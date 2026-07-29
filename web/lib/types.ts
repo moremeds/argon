@@ -848,6 +848,30 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/regime/dispersion": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Get Dispersion
+         * @description Correlation/dispersion CONTEXT for the CRI view (descriptive, not a signal).
+         *
+         *     COR1M 20yr percentile + VIX/COR1M ratio and its trailing-252 z-score. See
+         *     docs/research/2026-07-19-dispersion-signals-eval.md — low correlation is NOT
+         *     a warning; this is regime context only.
+         */
+        get: operations["get_dispersion_api_regime_dispersion_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/regime/vrp-harvest": {
         parameters: {
             query?: never;
@@ -1484,6 +1508,87 @@ export interface paths {
         get: operations["get_scanner_discover_api_scanner_discover_get"];
         put?: never;
         post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/scanner/theta-harvester": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Theta Harvester
+         * @description Read persisted candidates. Pure warm-store read — no UW call, no IB call.
+         *
+         *     RESEARCH ARTIFACT. These are naked short strangles, which argon's standing
+         *     "defined-risk only / no naked shorts" rule forbids trading. The rows exist
+         *     to measure whether the score orders anything; the sweep says it ranks but
+         *     does not by itself pay (docs/research/2026-07-28-theta-harvester-weight-sweep.md).
+         *     The UI must keep saying so.
+         */
+        get: operations["theta_harvester_api_scanner_theta_harvester_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/scanner/theta-harvester/rescan": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Theta Harvester Rescan
+         * @description Recompute candidates synchronously.
+         *
+         *     A deliberate write on an otherwise read-only router — the same exception
+         *     already made for POST /stock/{ticker}/technicals/refresh. Safe inline
+         *     because the ranking path is pure warm-store SQL with no network call.
+         *
+         *     Single-flight per api/CLAUDE.md: without the lock two clicks race two full
+         *     watchlist sweeps writing the same (ticker, as_of) rows.
+         */
+        post: operations["theta_harvester_rescan_api_scanner_theta_harvester_rescan_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/scanner/theta-harvester/quote": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Theta Harvester Quote
+         * @description Fetch live IB NBBO for the top-N candidates' legs, serially.
+         *
+         *     Never called from a scheduled job. Each leg spawns an IB snapshot
+         *     subprocess (~2-5s) and consumes one of the shared ~100-line market-data
+         *     lines, so this is bounded at _QUOTE_MAX candidates and single-flighted.
+         *
+         *     The quote NEVER becomes the markout basis — it lands in credit_ib, beside
+         *     the untouched entry_credit_theo. A basis that exists for quoted rows and
+         *     not for the rest would make the panel incomparable with itself.
+         */
+        post: operations["theta_harvester_quote_api_scanner_theta_harvester_quote_post"];
         delete?: never;
         options?: never;
         head?: never;
@@ -2814,6 +2919,37 @@ export interface components {
              * @default 0
              */
             earnings_unknown_dropped: number;
+        };
+        /**
+         * DispersionResponse
+         * @description Correlation/dispersion CONTEXT for the CRI view (descriptive, NOT a signal).
+         *
+         *     COR1M percentile is rank of the latest close within full 20yr history.
+         *     VIX/COR1M ratio isolates the dispersion axis (high ratio ⟺ low correlation);
+         *     its z-score is trailing-252 (strictly prior). See
+         *     docs/research/2026-07-19-dispersion-signals-eval.md — this is regime context,
+         *     not a validated timing signal; low correlation is NOT a warning.
+         */
+        DispersionResponse: {
+            /** As Of */
+            as_of?: string | null;
+            /** Cor1M */
+            cor1m?: number | null;
+            /** Cor1M Percentile */
+            cor1m_percentile?: number | null;
+            /** Vix */
+            vix?: number | null;
+            /** Vix Cor1M Ratio */
+            vix_cor1m_ratio?: number | null;
+            /** Vix Cor1M Ratio Z */
+            vix_cor1m_ratio_z?: number | null;
+            /** History Start */
+            history_start?: string | null;
+            /**
+             * N Obs
+             * @default 0
+             */
+            n_obs: number;
         };
         /** DivergencePoint */
         DivergencePoint: {
@@ -6806,6 +6942,123 @@ export interface components {
             strikes: {
                 [key: string]: string;
             };
+        };
+        /** ThetaHarvesterCandidate */
+        ThetaHarvesterCandidate: {
+            /** Ticker */
+            ticker: string;
+            /**
+             * As Of
+             * Format: date
+             */
+            as_of: string;
+            /**
+             * Expiry
+             * Format: date
+             */
+            expiry: string;
+            /** Dte */
+            dte: number;
+            /** Put Strike */
+            put_strike: number;
+            /** Call Strike */
+            call_strike: number;
+            /** Underlying Spot */
+            underlying_spot: number;
+            /** Entry Credit Theo */
+            entry_credit_theo: number;
+            /** Credit Ib */
+            credit_ib?: number | null;
+            /** Credit Quoted At */
+            credit_quoted_at?: string | null;
+            /** Credit Source */
+            credit_source?: string | null;
+            /** Net Delta */
+            net_delta: number;
+            /** Theta */
+            theta: number;
+            /** Gamma */
+            gamma: number;
+            /** Vega */
+            vega: number;
+            /** Score */
+            score: number;
+            /** Verdict */
+            verdict: string;
+            /** Weights Version */
+            weights_version?: string | null;
+            /** Iv */
+            iv?: number | null;
+            /** Hv20 */
+            hv20?: number | null;
+            /** Hv60 */
+            hv60?: number | null;
+            /** Iv Rv Edge */
+            iv_rv_edge?: number | null;
+            /** Iv Rv Ratio */
+            iv_rv_ratio?: number | null;
+            /** Trend 20D Pct */
+            trend_20d_pct?: number | null;
+            /** Range Score */
+            range_score?: number | null;
+            /** Dealer Support */
+            dealer_support?: string | null;
+            /** Net Gex */
+            net_gex?: number | null;
+            /** Gex Flip */
+            gex_flip?: number | null;
+            /** Gate Delta Near Zero */
+            gate_delta_near_zero: boolean;
+            /** Gate Iv Rich Vs Rv */
+            gate_iv_rich_vs_rv: boolean;
+            /** Gate Dealer Support */
+            gate_dealer_support: boolean;
+            /** Gate Theta Positive */
+            gate_theta_positive: boolean;
+            /** Gate Gamma Controlled */
+            gate_gamma_controlled: boolean;
+            /** Gate Range Bound */
+            gate_range_bound: boolean;
+        };
+        /** ThetaHarvesterQuoteResult */
+        ThetaHarvesterQuoteResult: {
+            /** Quoted */
+            quoted: number;
+            /** Failed */
+            failed: number;
+        };
+        /** ThetaHarvesterResponse */
+        ThetaHarvesterResponse: {
+            /** As Of */
+            as_of: string | null;
+            /**
+             * Generated At
+             * Format: date-time
+             */
+            generated_at: string;
+            /** Candidates */
+            candidates: components["schemas"]["ThetaHarvesterCandidate"][];
+        };
+        /** ThetaHarvesterScanResult */
+        ThetaHarvesterScanResult: {
+            /** As Of */
+            as_of?: string | null;
+            /** Tickers Scanned */
+            tickers_scanned: number;
+            /** Candidates Written */
+            candidates_written: number;
+            /** Harvest Count */
+            harvest_count: number;
+        };
+        /** ThetaQuoteRequest */
+        ThetaQuoteRequest: {
+            /**
+             * Limit
+             * @default 8
+             */
+            limit: number;
+            /** As Of */
+            as_of?: string | null;
         };
         /**
          * TopNetImpactResponse
@@ -10806,6 +11059,26 @@ export interface operations {
             };
         };
     };
+    get_dispersion_api_regime_dispersion_get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["DispersionResponse"];
+                };
+            };
+        };
+    };
     get_vrp_harvest_api_regime_vrp_harvest_get: {
         parameters: {
             query?: never;
@@ -11618,6 +11891,91 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["DiscoveryResponse"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    theta_harvester_api_scanner_theta_harvester_get: {
+        parameters: {
+            query?: {
+                as_of?: string | null;
+                limit?: number;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ThetaHarvesterResponse"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    theta_harvester_rescan_api_scanner_theta_harvester_rescan_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ThetaHarvesterScanResult"];
+                };
+            };
+        };
+    };
+    theta_harvester_quote_api_scanner_theta_harvester_quote_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: {
+            content: {
+                "application/json": components["schemas"]["ThetaQuoteRequest"] | null;
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ThetaHarvesterQuoteResult"];
                 };
             };
             /** @description Validation Error */

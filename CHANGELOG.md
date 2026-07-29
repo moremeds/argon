@@ -7,6 +7,91 @@ version in lockstep (enforced by `scripts/release/version_sync_check.py`).
 
 ## [Unreleased]
 
+### Added
+
+- **Research ticker cohorts + nightly capture for them** — migration `110` adds
+  `uw_scan.research_universe` (cohort / ticker / sector / marketcap / option_oi,
+  point-in-time tagged). Deliberately **not** the watchlist: watchlist membership
+  enlists a ticker in every per-ticker job and permanently raises daily UW burn,
+  whereas a research cohort only needs to be iterable by its own capture and
+  groupable by its tags in analysis SQL. New job
+  `option_surface_research_capture` runs **19:10 ET weekdays on uw-0**, between
+  the watchlist capture (19:00) and the IV canary (19:30) — sequential because
+  both loops are UW `/greeks`-bound against a shared per-minute ceiling. Full
+  chain, no DTE cap: `option_surface_grid_daily` accrues **forward only** and UW
+  serves ~180 days, so an expiry not captured tonight is unrecoverable. ~680
+  calls/night (~0.6% of the 120k budget). Gated
+  `OPTION_SURFACE_RESEARCH_CAPTURE_ENABLED` (default on — the job **self-gates on
+  the cohort being seeded**, so an un-seeded deployment spends nothing) and
+  `OPTION_SURFACE_RESEARCH_COHORT`. Also adds an optional `max_dte` to
+  `_build_ticker_rows` (default `None` = unchanged behaviour).
+- **`liquid_sector_balanced_v1` cohort + historical backfill** —
+  `scripts/research/option_surface_research_backfill.py` seeds 37 names across 10
+  sectors and backfills them weekly over UW's ~180-day window (~7,950 calls;
+  weekly because 30-day holds make consecutive daily entries ~95% overlapping).
+  Selection required **both** marketcap ≥ $30B **and** option OI ≥ 200k: ranking
+  by market cap alone produced untradeable chains (EQIX 18k OI vs a 657k
+  watchlist median), while ranking by OI alone returned retail/meme names. Exists
+  to answer a bias found in the loss-anatomy study — the watchlist is AI/semi
+  heavy, and 79% of the measured strangle loss came from 31% of trades all
+  expressing that one theme, with the remaining 54% of trades flat.
+- **Theta Harvester short-strangle scanner** (radon port) as a third `/scanner`
+  sub-tab, alongside the existing detector flow — which becomes the **Flow
+  Signals** tab, with **Discover** split out as its own tab. Ranks 16-delta
+  short strangles off the persisted warm store (`option_surface_grid_daily` +
+  `greeks_by_expiry_strike` + OHLC) at **zero UW cost**; IB quoting is
+  view-only, capped at 8 contracts, and advisory-locked. Migration `109` adds
+  `theta_harvester_candidates` + `theta_harvester_markouts` (both registered
+  with the gap healer + freshness monitor). Nightly scan 19:45 ET and markout
+  19:55 ET on uw-0, gated `UW_SCAN_THETA_HARVESTER_ENABLED` (default on — the
+  job only reads the warm store and writes its own two tables). API:
+  `GET /scanner/theta-harvester`, `POST …/rescan`, `POST …/quote`.
+- **Backfill + weight sweep tooling** —
+  `scripts/backfill/theta_harvester_backfill.py` (145 sessions,
+  2025-12-26 → 2026-07-27: 16,134 candidates / 23,721 marks) and
+  `scripts/research/theta_harvester_weight_sweep.py` (291 configs, cross-
+  sectional IC as the primary metric, plus an unconditional control arm).
+
+  **The verdict is negative and the UI says so.** The score *orders*
+  (IC +0.075, t 6.35) but the set it selects does not pay, and the control arm
+  — every candidate, no score — lost money too (monthly mean −0.8%,
+  Sharpe −1.67). This ships as a **research artifact, not a trade surface**:
+  the structure is a naked short strangle, which violates Argon's
+  defined-risk-only rule, and the sub-tab carries a permanent banner saying
+  both. Full method and tables:
+  `docs/research/2026-07-28-theta-harvester-weight-sweep.md`.
+- **Loss anatomy + a matched condor-vs-strangle sweep** —
+  `docs/research/2026-07-29-theta-harvester-loss-anatomy.md` and
+  `scripts/research/theta_harvester_condor_sweep.py` /
+  `docs/research/2026-07-29-theta-harvester-condor-vs-strangle.md`. Together
+  they replace the aggregate "it lost money" verdict with a mechanism: the
+  entire loss sits in the `>+30%` underlying-move bucket, it is the **call leg
+  alone**, and 79% of it comes from the AI/semi complex (31% of trades) while
+  the remaining 54% of trades are flat. On the standing-rule conflict, the
+  condor sweep prices the fix rather than asserting it — matched samples at
+  three wing widths with real wing costs from the grid put the cost of
+  defined-risk compliance at **6–15 bp of spot per trade**; the verdict is
+  *don't adopt the condor for P&L, do adopt it for defined risk*. The sweep
+  script enforces four anti-trap rules in code (matched samples, Sharpe carries
+  its standard error, the sample window is a reported metric, small predeclared
+  grid) so radon's "Sharpe 2.23 over 3 months with a negative IC" trap cannot
+  recur silently, and aborts if its recomputed P&L disagrees with the stored
+  markout by more than 0.01.
+
+### Fixed
+
+- **Session spot resolution when `option_surface_grid_daily.underlying_spot` is
+  NULL** — the column is unpopulated before 2026-06 (0% Dec–May, 13.8% June,
+  97.3% July), and two loaders depended on it, so five of the seven backfilled
+  months silently produced zero candidates. Spot now falls back to the OHLC
+  close and ATM IV is selected against the resolved spot rather than the NULL
+  column.
+- **Corporate-action scale breaks between the back-adjusted `daily_ohlc` and
+  the as-traded surface grid** now drop the affected rows instead of pricing
+  against a mismatched scale — a 20-for-1 split put one ticker's adjusted close
+  at ~$21 while its strikes still spanned 125–1900. Guarded at entry (strike-
+  range containment) and at settlement (`MAX_SETTLEMENT_MOVE`).
+
 ## [0.10.17] — 2026-07-29
 
 ### Added

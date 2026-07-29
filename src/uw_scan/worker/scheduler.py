@@ -58,6 +58,9 @@ from uw_scan.worker.jobs.option_intraday_jobs import (
 )
 from uw_scan.worker.jobs.option_surface_capture import option_surface_capture
 from uw_scan.worker.jobs.option_surface_iv_canary import option_surface_iv_canary
+from uw_scan.worker.jobs.option_surface_research_capture import (
+    option_surface_research_capture,
+)
 from uw_scan.worker.jobs.pipeline_benchmark import pipeline_benchmark_snapshot_job
 from uw_scan.worker.jobs.positioning_jobs import positioning_refresh_once
 from uw_scan.worker.jobs.rates_jobs import rates_fred_ingest_job
@@ -68,6 +71,10 @@ from uw_scan.worker.jobs.skew_analytics import (
 )
 from uw_scan.worker.jobs.skew_swing_greeks import skew_swing_greeks_refresh
 from uw_scan.worker.jobs.technical_daily_refresh import technical_daily_refresh
+from uw_scan.worker.jobs.theta_harvester import (
+    theta_harvester_markout,
+    theta_harvester_scan,
+)
 from uw_scan.worker.jobs.trade_insight_outcome_backfill import (
     trade_insight_outcome_backfill_once,
 )
@@ -754,6 +761,14 @@ def main() -> int:
         with _repo(settings) as repo:
             vrp_markout_refresh(repo=repo)
 
+    def _theta_harvester_scan() -> None:
+        with _repo(settings) as repo:
+            theta_harvester_scan(repo=repo, settings=settings)
+
+    def _theta_harvester_markout() -> None:
+        with _repo(settings) as repo:
+            theta_harvester_markout(repo=repo, settings=settings)
+
     def _technical_daily_refresh() -> None:
         with _repo(settings) as repo:
             technical_daily_refresh(repo=repo, settings=settings)
@@ -932,6 +947,24 @@ def main() -> int:
                         client=uw,
                         today=market_date,
                         backfill_days=settings.option_surface_backfill_days,
+                    )
+
+    def _option_surface_research_capture() -> None:
+        if not settings.option_surface_research_capture_enabled:
+            return
+        market_date = datetime.now(ZoneInfo(settings.rth_tz)).date()
+        with _external_api_recorder(settings) as recorder:
+            with _uw_client(
+                settings,
+                telemetry_recorder=recorder,
+                job_name="option_surface_research_capture",
+            ) as uw:
+                with _repo(settings) as repo:
+                    option_surface_research_capture(
+                        repo=repo,
+                        client=uw,
+                        cohort=settings.option_surface_research_cohort,
+                        today=market_date,
                     )
 
     def _option_surface_iv_canary() -> None:
@@ -1376,6 +1409,28 @@ def main() -> int:
                 max_instances=1,
                 coalesce=True,
             )
+            # Theta Harvester at 19:45 ET — after option_surface_capture (19:00)
+            # and its IV canary (19:30) have landed the session's grid. Pure
+            # warm-store compute: zero UW budget, so massive-0 is the right home.
+            if settings.theta_harvester_enabled:
+                sched.add_job(
+                    _theta_harvester_scan,
+                    CronTrigger.from_crontab("45 19 * * 0-4", timezone=settings.rth_tz),
+                    id="theta_harvester_scan",
+                    name="Theta Harvester short-strangle scan",
+                    max_instances=1,
+                    coalesce=True,
+                )
+                # Markout at 19:55 ET — 10 min after the scan, so the same
+                # session's grid is available for any horizon coming due today.
+                sched.add_job(
+                    _theta_harvester_markout,
+                    CronTrigger.from_crontab("55 19 * * 0-4", timezone=settings.rth_tz),
+                    id="theta_harvester_markout",
+                    name="Theta Harvester forward markout",
+                    max_instances=1,
+                    coalesce=True,
+                )
             # Technicals daily refresh at 18:40 ET — after apex's own EOD sync and
             # before the 18:50 vrp_markout job. apex bars cost no UW budget, so
             # massive-0 is the right single-flight home. Idempotent; flag-gated.
@@ -1608,6 +1663,19 @@ def main() -> int:
                     CronTrigger.from_crontab("0 19 * * 0-4", timezone=settings.rth_tz),
                     id="option_surface_capture",
                     name="Option surface full-chain capture",
+                    max_instances=1,
+                    coalesce=True,
+                )
+                # 19:10, between the watchlist capture (19:00) and the IV canary
+                # (19:30). Sequential rather than concurrent: both loops are UW
+                # /greeks-bound against a shared per-minute ceiling, and
+                # overlapping them is how you turn two comfortable jobs into two
+                # throttled ones.
+                sched.add_job(
+                    _option_surface_research_capture,
+                    CronTrigger.from_crontab("10 19 * * 0-4", timezone=settings.rth_tz),
+                    id="option_surface_research_capture",
+                    name="Option surface capture (research cohort)",
                     max_instances=1,
                     coalesce=True,
                 )

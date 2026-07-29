@@ -381,12 +381,20 @@ class Settings(BaseModel):
     option_surface_backfill_days: int = 4
     option_surface_iv_canary_enabled: bool = True
     option_surface_iv_canary_warn_threshold: float = 0.02
+    # Nightly full-chain capture for a research cohort (uw_scan.research_universe).
+    # Default-on is safe: the job self-gates on the cohort being seeded, so an
+    # un-seeded deployment spends nothing.
+    option_surface_research_capture_enabled: bool = True
+    option_surface_research_cohort: str = "liquid_sector_balanced_v1"
     # Nightly technicals refresh (apex daily bars -> technical_daily, massive-0 18:40 ET).
     technicals_refresh_enabled: bool = True
     # Live technicals coverage (WS-spot splice -> technical_live cache, massive-0).
     technical_live_enabled: bool = False
     technical_live_scan_interval_minutes: int = 5
     technical_live_quote_max_age_seconds: int = 900
+    # Theta Harvester short-strangle scan (nightly 19:45 ET, massive-0).
+    # Zero UW budget — pure warm-store compute.
+    theta_harvester_enabled: bool = True
     # UW historical-alpha nightly capture (5 datasets, uw-0). Master kill switch.
     uw_alpha_capture_enabled: bool = False
     # Chanlun Phase B lifecycle engine (nightly 03:10 ET Tue-Sat, massive-0).
@@ -873,6 +881,12 @@ class Settings(BaseModel):
             option_surface_iv_canary_enabled=_env_bool(
                 "OPTION_SURFACE_IV_CANARY_ENABLED", True
             ),
+            option_surface_research_capture_enabled=_env_bool(
+                "OPTION_SURFACE_RESEARCH_CAPTURE_ENABLED", True
+            ),
+            option_surface_research_cohort=os.environ.get(
+                "OPTION_SURFACE_RESEARCH_COHORT", "liquid_sector_balanced_v1"
+            ),
             option_surface_iv_canary_warn_threshold=float(
                 os.environ.get("OPTION_SURFACE_IV_CANARY_WARN_THRESHOLD", "0.02")
             ),
@@ -889,6 +903,7 @@ class Settings(BaseModel):
             # All four env vars deliberately carry the UW_SCAN_ prefix (newest
             # precedent: UW_SCAN_TECHNICAL_LIVE_ENABLED) — one convention for
             # the whole feature, no mixed-prefix mis-sets on the mini.
+            theta_harvester_enabled=_env_bool("UW_SCAN_THETA_HARVESTER_ENABLED", True),
             uw_alpha_capture_enabled=_env_bool(
                 "UW_SCAN_UW_ALPHA_CAPTURE_ENABLED", False
             ),

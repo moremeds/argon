@@ -6,7 +6,7 @@ Generated from `REGISTRY` in `src/uw_scan/reports/data_gap_healer.py` (one sourc
 uv run python -c "from uw_scan.reports.data_gap_healer import render_dataset_policy_markdown as r; open('docs/runbooks/data-gap-dataset-policy.md','w').write(r())"
 ```
 
-**127 datasets** across 9 groups.
+**130 datasets** across 9 groups.
 
 ## core_watchlist
 
@@ -65,6 +65,7 @@ uv run python -c "from uw_scan.reports.data_gap_healer import render_dataset_pol
 | jobs | provenance | none | none |  | none |  |
 | pipeline_benchmark_snapshots | provenance | none | none |  | none |  |
 | raw_payloads | provenance | none | none |  | none |  |
+| research_universe | excluded | none | none |  | none | cohort membership, not a time series; selected_on is a point-in-time tag, not a cadence |
 | scan_runs | provenance | none | none |  | none |  |
 | uw_fetch_memo | excluded | none | none |  | none | ephemeral same-day fetch dedupe cache; pruned daily, nothing to backfill/heal |
 | volatility_backfill_status | provenance | none | none |  | none |  |
@@ -138,6 +139,8 @@ uv run python -c "from uw_scan.reports.data_gap_healer import render_dataset_pol
 | skew_directional_verdicts | research_artifact | none | none |  | event |  |
 | skew_rv_reversion_verdicts | research_artifact | none | none |  | event |  |
 | skew_swing_greeks | research_artifact | none | none |  | event |  |
+| theta_harvester_candidates | research_artifact | db | none |  | event | Derived from option_surface_grid_daily; heal by re-running scripts/backfill/theta_harvester_backfill.py. Rows are absent by design for tickers with thin price history or no chain. |
+| theta_harvester_markouts | research_artifact | db | none |  | event | Forward re-marks accrue as sessions pass; a missing horizon is not-yet-reached rather than a gap. Written by the nightly theta_harvester_markout job. |
 | vanna_signals | research_artifact | none | none |  | event |  |
 | vrp_30d_settlements | research_artifact | none | none |  | event |  |
 | vrp_backtest_results | research_artifact | none | none |  | event |  |

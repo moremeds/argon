@@ -31,12 +31,22 @@ def _build_ticker_rows(
     ticker: str,
     market_date: _date,
     date_iso: str | None,
+    max_dte: int | None = None,
 ) -> list[dict]:
-    """Fetch full-chain greeks for one ticker on market_date. date_iso=None → today."""
+    """Fetch full-chain greeks for one ticker on market_date. date_iso=None → today.
+
+    `max_dte` caps how far out the term structure is fetched. Cost here is one UW
+    call PER EXPIRY (~17 per ticker-session unclipped, ~7.6 at 60 DTE), so the cap
+    is the main lever on the price of a wide backfill. Default None = no cap, which
+    is what the nightly capture wants: the archive is forward-only and an expiry
+    not captured tonight is gone for good.
+    """
     gex_by_expiry = fetch_greek_exposure_by_expiry(
         client, repo, run_id, ticker, date=date_iso
     )
     expiries = sorted({r.expiry for r in gex_by_expiry if r.expiry >= market_date})
+    if max_dte is not None:
+        expiries = [e for e in expiries if (e - market_date).days <= max_dte]
     rows: list[dict] = []
     for expiry in expiries:
         for r in fetch_greeks(
