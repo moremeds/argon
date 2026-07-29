@@ -61,6 +61,9 @@ from uw_scan.worker.jobs.option_surface_iv_canary import option_surface_iv_canar
 from uw_scan.worker.jobs.option_surface_research_capture import (
     option_surface_research_capture,
 )
+from uw_scan.worker.jobs.option_surface_research_catchup import (
+    option_surface_research_catchup,
+)
 from uw_scan.worker.jobs.pipeline_benchmark import pipeline_benchmark_snapshot_job
 from uw_scan.worker.jobs.positioning_jobs import positioning_refresh_once
 from uw_scan.worker.jobs.rates_jobs import rates_fred_ingest_job
@@ -967,6 +970,36 @@ def main() -> int:
                         today=market_date,
                     )
 
+    def _option_surface_research_catchup() -> None:
+        if not settings.option_surface_research_catchup_enabled:
+            return
+        market_date = datetime.now(ZoneInfo(settings.rth_tz)).date()
+        with _external_api_recorder(settings) as recorder:
+            with _uw_client(
+                settings,
+                telemetry_recorder=recorder,
+                job_name="option_surface_research_catchup",
+            ) as uw:
+                with _repo(settings) as repo:
+                    # Gated, unlike the 19:00/19:10 durable captures. Those are
+                    # unrecoverable if skipped, so they take priority; this one is
+                    # pure catch-up over a window that is still fetchable
+                    # tomorrow, and it is the bulkiest research spender of the
+                    # night. Deferring a batch costs one day of latency.
+                    if not _research_budget_ok(settings, repo):
+                        logger.info(
+                            "option_surface_research_catchup skipped: research UW "
+                            "budget exhausted"
+                        )
+                        return
+                    option_surface_research_catchup(
+                        repo=repo,
+                        client=uw,
+                        cohort=settings.option_surface_research_cohort,
+                        today=market_date,
+                        max_calls=settings.option_surface_research_catchup_max_calls,
+                    )
+
     def _option_surface_iv_canary() -> None:
         if not settings.option_surface_iv_canary_enabled:
             return
@@ -1676,6 +1709,24 @@ def main() -> int:
                     CronTrigger.from_crontab("10 19 * * 0-4", timezone=settings.rth_tz),
                     id="option_surface_research_capture",
                     name="Option surface capture (research cohort)",
+                    max_instances=1,
+                    coalesce=True,
+                )
+                # 03:20 ET, not in the 19:00-19:30 capture block. The account
+                # counter resets at 20:00 ET, so this runs against a fresh budget
+                # and cannot eat the evening's durable captures.
+                #
+                # Mon-Fri (APScheduler Monday=0) purely to match the house
+                # convention — unlike the captures, this job has no session
+                # dependency at all. It fills weekly sample dates from up to 180
+                # days back, and weekly_sessions() already excludes today, so
+                # which weekday it runs on changes nothing but how soon it
+                # finishes.
+                sched.add_job(
+                    _option_surface_research_catchup,
+                    CronTrigger.from_crontab("20 3 * * 0-4", timezone=settings.rth_tz),
+                    id="option_surface_research_catchup",
+                    name="Option surface catch-up (research cohort history)",
                     max_instances=1,
                     coalesce=True,
                 )
