@@ -58,6 +58,9 @@ from uw_scan.worker.jobs.option_intraday_jobs import (
 )
 from uw_scan.worker.jobs.option_surface_capture import option_surface_capture
 from uw_scan.worker.jobs.option_surface_iv_canary import option_surface_iv_canary
+from uw_scan.worker.jobs.option_surface_research_capture import (
+    option_surface_research_capture,
+)
 from uw_scan.worker.jobs.pipeline_benchmark import pipeline_benchmark_snapshot_job
 from uw_scan.worker.jobs.positioning_jobs import positioning_refresh_once
 from uw_scan.worker.jobs.rates_jobs import rates_fred_ingest_job
@@ -946,6 +949,24 @@ def main() -> int:
                         backfill_days=settings.option_surface_backfill_days,
                     )
 
+    def _option_surface_research_capture() -> None:
+        if not settings.option_surface_research_capture_enabled:
+            return
+        market_date = datetime.now(ZoneInfo(settings.rth_tz)).date()
+        with _external_api_recorder(settings) as recorder:
+            with _uw_client(
+                settings,
+                telemetry_recorder=recorder,
+                job_name="option_surface_research_capture",
+            ) as uw:
+                with _repo(settings) as repo:
+                    option_surface_research_capture(
+                        repo=repo,
+                        client=uw,
+                        cohort=settings.option_surface_research_cohort,
+                        today=market_date,
+                    )
+
     def _option_surface_iv_canary() -> None:
         if not settings.option_surface_iv_canary_enabled:
             return
@@ -1642,6 +1663,19 @@ def main() -> int:
                     CronTrigger.from_crontab("0 19 * * 0-4", timezone=settings.rth_tz),
                     id="option_surface_capture",
                     name="Option surface full-chain capture",
+                    max_instances=1,
+                    coalesce=True,
+                )
+                # 19:10, between the watchlist capture (19:00) and the IV canary
+                # (19:30). Sequential rather than concurrent: both loops are UW
+                # /greeks-bound against a shared per-minute ceiling, and
+                # overlapping them is how you turn two comfortable jobs into two
+                # throttled ones.
+                sched.add_job(
+                    _option_surface_research_capture,
+                    CronTrigger.from_crontab("10 19 * * 0-4", timezone=settings.rth_tz),
+                    id="option_surface_research_capture",
+                    name="Option surface capture (research cohort)",
                     max_instances=1,
                     coalesce=True,
                 )

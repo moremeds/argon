@@ -9,6 +9,32 @@ version in lockstep (enforced by `scripts/release/version_sync_check.py`).
 
 ### Added
 
+- **Research ticker cohorts + nightly capture for them** — migration `110` adds
+  `uw_scan.research_universe` (cohort / ticker / sector / marketcap / option_oi,
+  point-in-time tagged). Deliberately **not** the watchlist: watchlist membership
+  enlists a ticker in every per-ticker job and permanently raises daily UW burn,
+  whereas a research cohort only needs to be iterable by its own capture and
+  groupable by its tags in analysis SQL. New job
+  `option_surface_research_capture` runs **19:10 ET weekdays on uw-0**, between
+  the watchlist capture (19:00) and the IV canary (19:30) — sequential because
+  both loops are UW `/greeks`-bound against a shared per-minute ceiling. Full
+  chain, no DTE cap: `option_surface_grid_daily` accrues **forward only** and UW
+  serves ~180 days, so an expiry not captured tonight is unrecoverable. ~680
+  calls/night (~0.6% of the 120k budget). Gated
+  `OPTION_SURFACE_RESEARCH_CAPTURE_ENABLED` (default on — the job **self-gates on
+  the cohort being seeded**, so an un-seeded deployment spends nothing) and
+  `OPTION_SURFACE_RESEARCH_COHORT`. Also adds an optional `max_dte` to
+  `_build_ticker_rows` (default `None` = unchanged behaviour).
+- **`liquid_sector_balanced_v1` cohort + historical backfill** —
+  `scripts/research/option_surface_research_backfill.py` seeds 37 names across 10
+  sectors and backfills them weekly over UW's ~180-day window (~7,950 calls;
+  weekly because 30-day holds make consecutive daily entries ~95% overlapping).
+  Selection required **both** marketcap ≥ $30B **and** option OI ≥ 200k: ranking
+  by market cap alone produced untradeable chains (EQIX 18k OI vs a 657k
+  watchlist median), while ranking by OI alone returned retail/meme names. Exists
+  to answer a bias found in the loss-anatomy study — the watchlist is AI/semi
+  heavy, and 79% of the measured strangle loss came from 31% of trades all
+  expressing that one theme, with the remaining 54% of trades flat.
 - **Theta Harvester short-strangle scanner** (radon port) as a third `/scanner`
   sub-tab, alongside the existing detector flow — which becomes the **Flow
   Signals** tab, with **Discover** split out as its own tab. Ranks 16-delta

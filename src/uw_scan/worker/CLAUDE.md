@@ -63,6 +63,7 @@ Set `UW_SCAN_WORKER_ROLE=uw|massive|ai|all`, `UW_SCAN_WORKER_INDEX`, and
 | `daily_spy_ohlc_refresh` | cron | `30 16 * * 0-4` |
 | `nightly_vol_analytics_rollup` | cron | `0 18 * * 0-4` |
 | `option_surface_capture` | cron | `0 19 * * 0-4` (uw-0; full-chain UW /greeks → durable grid) |
+| `option_surface_research_capture` | cron | `10 19 * * 0-4` (uw-0; full-chain capture for the `research_universe` cohort — NOT the watchlist. Sequential with the 19:00 capture: both are UW `/greeks`-bound on a shared per-minute ceiling. Self-gates to a no-op on an empty cohort) |
 | `option_surface_iv_canary` | cron | `30 19 * * 0-4` (uw-0; ATM IB-vs-UW IV diff, WARN on drift) |
 | `vrp_markout_refresh` | cron | `50 18 * * 0-4` (massive-0; VRP harvest verdicts over vrp_daily) |
 | `corporate_actions_refresh` | cron | `35 17 * * 0-4` (massive-0; split/dividend history for exact-RV adjustment) |
