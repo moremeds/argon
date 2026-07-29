@@ -60,6 +60,23 @@ version in lockstep (enforced by `scripts/release/version_sync_check.py`).
   defined-risk-only rule, and the sub-tab carries a permanent banner saying
   both. Full method and tables:
   `docs/research/2026-07-28-theta-harvester-weight-sweep.md`.
+- **Loss anatomy + a matched condor-vs-strangle sweep** —
+  `docs/research/2026-07-29-theta-harvester-loss-anatomy.md` and
+  `scripts/research/theta_harvester_condor_sweep.py` /
+  `docs/research/2026-07-29-theta-harvester-condor-vs-strangle.md`. Together
+  they replace the aggregate "it lost money" verdict with a mechanism: the
+  entire loss sits in the `>+30%` underlying-move bucket, it is the **call leg
+  alone**, and 79% of it comes from the AI/semi complex (31% of trades) while
+  the remaining 54% of trades are flat. On the standing-rule conflict, the
+  condor sweep prices the fix rather than asserting it — matched samples at
+  three wing widths with real wing costs from the grid put the cost of
+  defined-risk compliance at **6–15 bp of spot per trade**; the verdict is
+  *don't adopt the condor for P&L, do adopt it for defined risk*. The sweep
+  script enforces four anti-trap rules in code (matched samples, Sharpe carries
+  its standard error, the sample window is a reported metric, small predeclared
+  grid) so radon's "Sharpe 2.23 over 3 months with a negative IC" trap cannot
+  recur silently, and aborts if its recomputed P&L disagrees with the stored
+  markout by more than 0.01.
 
 ### Fixed
 
