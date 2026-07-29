@@ -342,7 +342,7 @@ def _release(repo: Repository, lock_sql: str) -> None:
         with repo.conn.cursor() as cur:
             cur.execute(f"SELECT pg_advisory_unlock({lock_sql})")
     except Exception as exc:  # never mask the original failure
-        logger.warning("theta lock release failed: %r", exc)
+        logger.warning("theta lock release failed: %s", repr(exc))
 
 
 class ThetaQuoteRequest(BaseModel):

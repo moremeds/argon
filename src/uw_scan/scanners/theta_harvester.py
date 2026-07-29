@@ -17,12 +17,15 @@ Pure compute: no DB, no I/O, no network. The repository layer feeds it rows.
 
 from __future__ import annotations
 
+import logging
 import math
 from collections.abc import Mapping, Sequence
 from dataclasses import dataclass
 from datetime import date
 
 from uw_scan.reports.vrp_structure import bs_price
+
+log = logging.getLogger(__name__)
 
 MIN_DTE = 7
 MAX_DTE = 45
@@ -102,7 +105,11 @@ def dealer_support(
     for row in gex_rows:
         try:
             strike = float(row["strike"])  # type: ignore[arg-type]
-        except (KeyError, TypeError, ValueError):
+        except (KeyError, TypeError, ValueError) as exc:
+            # A malformed strike drops one rung of the ladder, which shifts the
+            # cumulative-GEX flip. Silent skipping would move the flip without
+            # leaving a trace, so log rather than swallow.
+            log.debug("dealer_support: unusable strike in gex row: %s", repr(exc))
             continue
         call = float(row.get("call_gex") or 0.0)  # type: ignore[union-attr]
         put = float(row.get("put_gex") or 0.0)  # type: ignore[union-attr]
