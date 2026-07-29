@@ -420,6 +420,19 @@ REGISTRY: list[DatasetRegistryEntry] = [
         expected_frequency="none",
         reason="live per-job failure-streak state; scheduler-maintained, nothing to backfill/heal",
     ),
+    # Research cohort membership (migration 110). Caught by the temporal-table
+    # heuristic only because `selected_on` is a date column, but there is no
+    # series here: one row per (cohort, ticker) recording when that ticker was
+    # selected. The cohort's actual time series is option_surface_grid_daily,
+    # which is registered above and healed on its own terms.
+    DatasetRegistryEntry(
+        "research_universe",
+        "operational_provenance",
+        "excluded",
+        ticker_col="ticker",
+        expected_frequency="none",
+        reason="cohort membership, not a time series; selected_on is a point-in-time tag, not a cadence",
+    ),
 ]
 
 
