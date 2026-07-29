@@ -1,5 +1,7 @@
+import DiscoverSubTab from "@/components/scanner/DiscoverSubTab";
 import FlowSubTab from "@/components/scanner/FlowSubTab";
 import ScannerPanel from "@/components/scanner/ScannerPanel";
+import { api } from "@/lib/api";
 
 export const dynamic = "force-dynamic";
 
@@ -8,7 +10,7 @@ export const metadata = {
   description: "Flow scanner and Theta Harvester short-strangle candidates",
 };
 
-const VALID_TABS = new Set(["flow", "theta"]);
+const VALID_TABS = new Set(["flow", "discover", "theta"]);
 
 export default async function ScannerPage({
   params,
@@ -21,6 +23,23 @@ export default async function ScannerPage({
   const query = await searchParams;
   const first = tab?.[0];
   const initialTab = first && VALID_TABS.has(first) ? first : "flow";
+
+  const qs = new URLSearchParams();
+  if (query.type_f_only === "true") qs.set("type_f_only", "true");
+  if (query.tier_1_only === "true") qs.set("tier_1_only", "true");
+  if (typeof query.sector === "string") qs.set("sector", query.sector);
+
+  // The route owns every fetch. Tab switching is pushState (no RSC round-trip),
+  // so all slots are rendered up front regardless of which tab is active —
+  // fetching inside each sub-tab would run the same requests AND still leave
+  // the route unable to label the badges.
+  const [data, queue, discover, theta] = await Promise.all([
+    api.scanner(qs),
+    api.queueSummary().catch(() => undefined),
+    api.scannerDiscover(20).catch(() => undefined),
+    api.thetaHarvester().catch(() => undefined),
+  ]);
+
   return (
     <div style={{ padding: 24, maxWidth: 1600, margin: "0 auto" }}>
       <header style={{ marginBottom: 16 }}>
@@ -36,7 +55,14 @@ export default async function ScannerPage({
       </header>
       <ScannerPanel
         initialTab={initialTab}
-        flowContent={<FlowSubTab params={query} />}
+        counts={{
+          flow: data.candidates.length,
+          discover: discover?.candidates.length,
+          theta: theta?.candidates.length,
+        }}
+        theta={theta}
+        flowContent={<FlowSubTab data={data} queue={queue} />}
+        discoverContent={<DiscoverSubTab discover={discover} />}
       />
     </div>
   );

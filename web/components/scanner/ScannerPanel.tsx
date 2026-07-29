@@ -3,10 +3,11 @@
 import { useEffect, useState } from "react";
 import ThetaSubTab from "./theta/ThetaSubTab";
 
-type ScannerTab = "flow" | "theta";
+type ScannerTab = "flow" | "discover" | "theta";
 
 const TABS: { id: ScannerTab; label: string }[] = [
-  { id: "flow", label: "Flow" },
+  { id: "flow", label: "Flow Signals" },
+  { id: "discover", label: "Discover" },
   { id: "theta", label: "Theta Harvester" },
 ];
 
@@ -18,10 +19,18 @@ function coerce(tab: string | undefined): ScannerTab {
 
 export default function ScannerPanel({
   initialTab,
+  counts,
+  theta,
   flowContent,
+  discoverContent,
 }: {
   initialTab?: string;
+  // Counts come from the server so every badge is correct on first paint,
+  // including for tabs that have not been opened yet.
+  counts?: Partial<Record<ScannerTab, number>>;
+  theta?: React.ComponentProps<typeof ThetaSubTab>["initial"];
   flowContent?: React.ReactNode;
+  discoverContent?: React.ReactNode;
 }) {
   // Mirrors RegimePanel: local state renders instantly, the URL is kept in sync
   // via pushState + a popstate listener so deep-links and back/forward both work
@@ -50,25 +59,31 @@ export default function ScannerPanel({
 
   return (
     <div data-testid="scanner-panel">
-      <div
-        className="ticker-tabs"
-        style={{ marginBottom: 16, flexWrap: "wrap" }}
-        data-testid="scanner-tabs"
-      >
-        {TABS.map((t) => (
-          <button
-            key={t.id}
-            type="button"
-            className={activeTab === t.id ? "active" : ""}
-            onClick={() => selectTab(t.id)}
-          >
-            {t.label}
-          </button>
-        ))}
+      <div className="scanner-tabs" data-testid="scanner-tabs">
+        {TABS.map((t) => {
+          const count = counts?.[t.id];
+          return (
+            <button
+              key={t.id}
+              type="button"
+              className={`scanner-tab ${activeTab === t.id ? "active" : ""}`}
+              onClick={() => selectTab(t.id)}
+            >
+              {t.label}
+              {count != null ? (
+                <span className="scanner-tab-badge">{count}</span>
+              ) : null}
+            </button>
+          );
+        })}
       </div>
-      {/* flowContent arrives as an already-rendered server slot — FlowSubTab is
-          an async server component and cannot be imported into a client one. */}
-      {activeTab === "flow" ? flowContent : <ThetaSubTab />}
+      <div style={{ paddingTop: 16 }}>
+        {/* Flow and Discover arrive as already-rendered server slots — they are
+            async server components and cannot be imported into a client one. */}
+        {activeTab === "flow" ? flowContent : null}
+        {activeTab === "discover" ? discoverContent : null}
+        {activeTab === "theta" ? <ThetaSubTab initial={theta} /> : null}
+      </div>
     </div>
   );
 }

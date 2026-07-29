@@ -2,6 +2,7 @@ import { render, screen } from "@testing-library/react";
 import { describe, expect, it, vi } from "vitest";
 import ThetaSubTab, {
   formatCredit,
+  formatDelta,
   verdictLabel,
 } from "@/components/scanner/theta/ThetaSubTab";
 
@@ -59,5 +60,19 @@ describe("formatCredit", () => {
 
   it("renders an em dash when there is no mark at all", () => {
     expect(formatCredit(null, null)).toBe("—");
+  });
+});
+
+describe("formatDelta", () => {
+  it("normalises a negative that rounds to zero", () => {
+    // Seen live: AVGO's net delta rendered as "-0.000", which reads as a
+    // formatting bug on the one column that means "this is flat".
+    expect(formatDelta(-0.0001)).toBe("0.000");
+    expect(formatDelta(-0)).toBe("0.000");
+  });
+
+  it("keeps a real sign", () => {
+    expect(formatDelta(-0.042)).toBe("-0.042");
+    expect(formatDelta(0.042)).toBe("0.042");
   });
 });

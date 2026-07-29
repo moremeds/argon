@@ -8,7 +8,6 @@ export function ScannerFilters() {
   const params = useSearchParams();
   const typeFOnly = params.get("type_f_only") === "true";
   const tier1Only = params.get("tier_1_only") === "true";
-  const hideDiscovered = params.get("hide_discovered") === "true";
 
   function toggle(key: string, value: boolean) {
     const next = new URLSearchParams(params.toString());
@@ -54,19 +53,6 @@ export function ScannerFilters() {
           style={{ marginRight: 6 }}
         />
         High-conviction only
-      </label>
-      <label
-        style={checkboxStyle}
-        title="Hide the DISCOVERED section (tickers outside your watchlist with strong flow)"
-      >
-        <input
-          key={`hide-disc-${hideDiscovered}`}
-          type="checkbox"
-          defaultChecked={hideDiscovered}
-          onChange={(e) => toggle("hide_discovered", e.target.checked)}
-          style={{ marginRight: 6 }}
-        />
-        Hide discovered
       </label>
     </div>
   );

@@ -7211,3 +7211,48 @@ tr {
   color: var(--text-primary);
   white-space: pre-wrap;
 }
+
+/* Scanner sub-tabs — teal active state with an optional count badge.
+   Distinct from .ticker-tab (which uses --text-primary): the scanner strip is
+   a top-level section switch, so it reads as an accent rather than as chrome. */
+.scanner-tabs {
+  display: flex;
+  border-bottom: 1px solid var(--border-dim);
+}
+.scanner-tab {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 12px 20px;
+  font-family: var(--font-mono);
+  font-size: 12px;
+  font-weight: 500;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  color: var(--text-muted);
+  background: transparent;
+  border: none;
+  border-bottom: 2px solid transparent;
+  cursor: pointer;
+  transition: all 150ms ease-in-out;
+}
+.scanner-tab:hover {
+  color: var(--text-primary);
+}
+.scanner-tab.active {
+  color: var(--accent-bg);
+  border-bottom-color: var(--accent-bg);
+  background: rgba(5, 173, 152, 0.06);
+}
+.scanner-tab-badge {
+  font-size: 10px;
+  line-height: 1;
+  padding: 3px 6px;
+  border-radius: 3px;
+  border: 1px solid var(--border-dim);
+  color: var(--text-muted);
+}
+.scanner-tab.active .scanner-tab-badge {
+  border-color: var(--accent-bg);
+  color: var(--accent-bg);
+}

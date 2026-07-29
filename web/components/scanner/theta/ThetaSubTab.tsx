@@ -1,6 +1,6 @@
 "use client";
 
-import { useCallback, useEffect, useState } from "react";
+import { useCallback, useState } from "react";
 import { api } from "@/lib/api";
 import type { components } from "@/lib/types";
 
@@ -13,6 +13,13 @@ export function verdictLabel(verdict: string): string {
   if (verdict === "DIRECTIONAL_DISGUISE") return "DIRECTIONAL";
   if (verdict === "WATCHLIST") return "WATCH";
   return verdict;
+}
+
+export function formatDelta(d: number): string {
+  // toFixed keeps the sign of a negative that rounds to zero, so a delta of
+  // -0.0001 renders as "-0.000" — which reads as a formatting bug on the one
+  // column whose whole point is "this is flat". Adding 0 normalises -0 to 0.
+  return (Number(d.toFixed(3)) + 0).toFixed(3);
 }
 
 export function formatCredit(
@@ -34,9 +41,16 @@ const GATE_KEYS: { key: keyof Candidate; label: string }[] = [
   { key: "gate_theta_positive", label: "THETA" },
 ];
 
-export default function ThetaSubTab() {
-  const [rows, setRows] = useState<Candidate[]>([]);
-  const [asOf, setAsOf] = useState<string | null>(null);
+export default function ThetaSubTab({
+  initial,
+}: {
+  // Server-rendered by the route, which already fetches this for the tab badge.
+  // Seeding from it removes both the fetch-on-mount (a setState inside an
+  // effect, which the lint rule rejects) and the duplicate request.
+  initial?: { as_of: string | null; candidates: Candidate[] };
+}) {
+  const [rows, setRows] = useState<Candidate[]>(initial?.candidates ?? []);
+  const [asOf, setAsOf] = useState<string | null>(initial?.as_of ?? null);
   const [busy, setBusy] = useState<"" | "scan" | "quote">("");
   const [error, setError] = useState<string | null>(null);
 
@@ -50,10 +64,6 @@ export default function ThetaSubTab() {
       setError(e instanceof Error ? e.message : "load failed");
     }
   }, []);
-
-  useEffect(() => {
-    void load();
-  }, [load]);
 
   async function rescan() {
     setBusy("scan");
@@ -178,7 +188,7 @@ export default function ThetaSubTab() {
               </td>
               <td>{c.score.toFixed(0)}</td>
               <td>{(c.theta * 100).toFixed(2)}</td>
-              <td>{c.net_delta.toFixed(3)}</td>
+              <td>{formatDelta(c.net_delta)}</td>
               <td>
                 {c.iv_rv_edge != null ? `${c.iv_rv_edge.toFixed(1)}pt` : "—"}
               </td>
