@@ -70,6 +70,10 @@ where = ["src"]
 
 [tool.setuptools.package-data]
 "uw_scan.cards" = ["data/*.json", "data/*.md"]
+# The frozen v13 research panel is read at RUNTIME (density/forecast.py hashes it and
+# checks the DB series against it before publishing a cone), so it must ship in the
+# wheel — without it the container refuses every run on the digest check.
+"uw_scan.density" = ["data/*.parquet"]
 
 [tool.pytest.ini_options]
 testpaths = ["tests"]

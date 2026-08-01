@@ -55,10 +55,10 @@ def spx_density_forecast_job(repo: Repository, settings: Settings) -> dict[str, 
     try:
         result = compute_forecast(bars)
     except PanelMismatchError as exc:
-        log.error("spx_density_forecast: REFUSING to publish — %s", exc)
+        log.error("spx_density_forecast: REFUSING to publish — %s", repr(exc))
         return {"settled": settled, "issued": 0, "error": "panel_mismatch"}
     except SeriesTooShortError as exc:
-        log.warning("spx_density_forecast: %s", exc)
+        log.warning("spx_density_forecast: %s", repr(exc))
         return {"settled": settled, "issued": 0, "skipped": "too_short"}
 
     issued = sdr.upsert_rows(result_to_db_rows(result, origin="prospective"))
