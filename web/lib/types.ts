@@ -893,6 +893,48 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/regime/spx-density": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Get Spx Density
+         * @description Latest issued SPX density cone (display-only, v13 PASS). Renders the most recent
+         *     row with its as_of — never interpolates a missing day.
+         */
+        get: operations["get_spx_density_api_regime_spx_density_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/regime/spx-density/issued": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Get Spx Density Issued
+         * @description The previously-issued cones (strip) + the cumulative 80%-band hit-rate tally,
+         *     split prospective vs reconstructed (the latter is in-sample by construction).
+         */
+        get: operations["get_spx_density_issued_api_regime_spx_density_issued_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/regime/vrp-macro-signal": {
         parameters: {
             query?: never;
@@ -4214,7 +4256,6 @@ export interface components {
             scheduler_heartbeat_name?: string | null;
             /** Rescan Heartbeat Lag Seconds */
             rescan_heartbeat_lag_seconds?: number | null;
-            /** Spot Refresh Heartbeat Lag Seconds */
             /** Spot Quote Lag Seconds */
             spot_quote_lag_seconds?: number | null;
             /** Latest Spot Quote At */
@@ -6590,6 +6631,119 @@ export interface components {
             source_b_call_iv?: string | null;
             /** Iv Diff */
             iv_diff?: string | null;
+        };
+        /**
+         * SpxDensityForecast
+         * @description One issued cone: five horizon rows anchored on a single trade date.
+         */
+        SpxDensityForecast: {
+            /**
+             * As Of
+             * Format: date
+             */
+            as_of: string;
+            /** Anchor Close */
+            anchor_close: number;
+            /** Origin */
+            origin: string;
+            /** Fallback Used */
+            fallback_used: boolean;
+            /** Params */
+            params?: {
+                [key: string]: number;
+            } | null;
+            /** Rows */
+            rows: components["schemas"]["SpxDensityHorizon"][];
+        };
+        /** SpxDensityHitRate */
+        SpxDensityHitRate: {
+            /** Origin */
+            origin: string;
+            /** Inside */
+            inside: number;
+            /** Total */
+            total: number;
+        };
+        /**
+         * SpxDensityHorizon
+         * @description One horizon row of a cone: quantiles, the EWMA baseline, and its outcome.
+         */
+        SpxDensityHorizon: {
+            /** H */
+            h: number;
+            /**
+             * Target Date
+             * Format: date
+             */
+            target_date: string;
+            /** Scored Horizon */
+            scored_horizon: boolean;
+            /** Q05 */
+            q05: number;
+            /** Q10 */
+            q10: number;
+            /** Q25 */
+            q25: number;
+            /** Q50 */
+            q50: number;
+            /** Q75 */
+            q75: number;
+            /** Q90 */
+            q90: number;
+            /** Q95 */
+            q95: number;
+            /** Baseline Q05 */
+            baseline_q05: number;
+            /** Baseline Q10 */
+            baseline_q10: number;
+            /** Baseline Q25 */
+            baseline_q25: number;
+            /** Baseline Q50 */
+            baseline_q50: number;
+            /** Baseline Q75 */
+            baseline_q75: number;
+            /** Baseline Q90 */
+            baseline_q90: number;
+            /** Baseline Q95 */
+            baseline_q95: number;
+            /** Band80 Width */
+            band80_width: number;
+            /** Baseline Band80 Width */
+            baseline_band80_width: number;
+            /** Width Ratio */
+            width_ratio: number;
+            /** Realised Return */
+            realised_return?: number | null;
+            /** Inside Band80 */
+            inside_band80?: boolean | null;
+        };
+        /** SpxDensityIssuedResponse */
+        SpxDensityIssuedResponse: {
+            /** Forecasts */
+            forecasts?: components["schemas"]["SpxDensityForecast"][];
+            /** Hit Rates */
+            hit_rates?: components["schemas"]["SpxDensityHitRate"][];
+        };
+        /** SpxDensityLatestResponse */
+        SpxDensityLatestResponse: {
+            forecast?: components["schemas"]["SpxDensityForecast"] | null;
+            /** Recent Path */
+            recent_path?: components["schemas"]["SpxDensityPathPoint"][];
+            /**
+             * Disclaimer
+             * @default Display-only fan chart (v13 PASS). Not a trading signal; the median is not a direction call; the band is not claimed tighter than EWMA.
+             */
+            disclaimer: string;
+        };
+        /** SpxDensityPathPoint */
+        SpxDensityPathPoint: {
+            /**
+             * Date
+             * Format: date
+             */
+            date: string;
+            /** Close */
+            close: number;
         };
         /** StockHistoryResponse */
         StockHistoryResponse: {
@@ -11095,6 +11249,57 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["VrpHarvestResponse"];
+                };
+            };
+        };
+    };
+    get_spx_density_api_regime_spx_density_get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["SpxDensityLatestResponse"];
+                };
+            };
+        };
+    };
+    get_spx_density_issued_api_regime_spx_density_issued_get: {
+        parameters: {
+            query?: {
+                limit?: number;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["SpxDensityIssuedResponse"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
                 };
             };
         };

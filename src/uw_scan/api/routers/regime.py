@@ -72,6 +72,14 @@ from uw_scan.cards.canary_calibration import (
 )
 from uw_scan.cards.dealer_regime import compute_dealer_regime, gather_inputs
 from uw_scan.config import Settings
+from uw_scan.models.spx_density import (
+    SpxDensityForecast,
+    SpxDensityHitRate,
+    SpxDensityHorizon,
+    SpxDensityIssuedResponse,
+    SpxDensityLatestResponse,
+    SpxDensityPathPoint,
+)
 from uw_scan.reports.vrp_macro_signal import (
     WINNER,
     current_macro_signal,
@@ -88,6 +96,7 @@ from uw_scan.storage.greek_exposure_repository import GreekExposureDailyReposito
 from uw_scan.storage.grg_snapshot_repository import GrgSnapshotRepository
 from uw_scan.storage.regime_backtest_repository import RegimeBacktestRepository
 from uw_scan.storage.repository import Repository
+from uw_scan.storage.spx_density_repository import SpxDensityRepository
 from uw_scan.storage.vcg_snapshot_repository import VcgSnapshotRepository
 from uw_scan.storage.vol_index_repository import VolIndexRepository
 from uw_scan.worker.jobs.vrp_macro_entry import capture_entry_now
@@ -349,6 +358,91 @@ def get_vrp_harvest(
     store written by the nightly vrp_markout job."""
     rows = repo.fetch_vrp_harvest_verdicts()
     return VrpHarvestResponse(verdicts=[VrpHarvestVerdict(**r) for r in rows])
+
+
+_SPX_DENSITY_QCOLS = (
+    "q05",
+    "q10",
+    "q25",
+    "q50",
+    "q75",
+    "q90",
+    "q95",
+    "baseline_q05",
+    "baseline_q10",
+    "baseline_q25",
+    "baseline_q50",
+    "baseline_q75",
+    "baseline_q90",
+    "baseline_q95",
+)
+
+
+def _spx_density_forecast_model(as_of, rows) -> SpxDensityForecast:
+    head = rows[0]
+    return SpxDensityForecast(
+        as_of=as_of,
+        anchor_close=float(head["anchor_close"]),
+        origin=head["origin"],
+        fallback_used=head["fallback_used"],
+        params=head["params_jsonb"],
+        rows=[
+            SpxDensityHorizon(
+                h=r["h"],
+                target_date=r["target_date"],
+                scored_horizon=r["scored_horizon"],
+                band80_width=float(r["band80_width"]),
+                baseline_band80_width=float(r["baseline_band80_width"]),
+                width_ratio=float(r["width_ratio"]),
+                realised_return=(
+                    None
+                    if r["realised_return"] is None
+                    else float(r["realised_return"])
+                ),
+                inside_band80=r["inside_band80"],
+                **{c: float(r[c]) for c in _SPX_DENSITY_QCOLS},
+            )
+            for r in rows
+        ],
+    )
+
+
+@router.get("/spx-density", response_model=SpxDensityLatestResponse)
+def get_spx_density(
+    repo: Annotated[Repository, Depends(get_repo)],
+) -> SpxDensityLatestResponse:
+    """Latest issued SPX density cone (display-only, v13 PASS). Renders the most recent
+    row with its as_of — never interpolates a missing day."""
+    sdr = SpxDensityRepository(repo.conn, schema=repo._schema)
+    as_of = sdr.latest_as_of()
+    if as_of is None:
+        return SpxDensityLatestResponse()
+    rows = sdr.fetch_forecast(as_of)
+    recent = sdr.fetch_spx_recent(45)
+    return SpxDensityLatestResponse(
+        forecast=_spx_density_forecast_model(as_of, rows),
+        recent_path=[
+            SpxDensityPathPoint(date=r["trade_date"], close=float(r["close"]))
+            for r in recent
+        ],
+    )
+
+
+@router.get("/spx-density/issued", response_model=SpxDensityIssuedResponse)
+def get_spx_density_issued(
+    repo: Annotated[Repository, Depends(get_repo)],
+    limit: int = Query(5, ge=1, le=20),
+) -> SpxDensityIssuedResponse:
+    """The previously-issued cones (strip) + the cumulative 80%-band hit-rate tally,
+    split prospective vs reconstructed (the latter is in-sample by construction)."""
+    sdr = SpxDensityRepository(repo.conn, schema=repo._schema)
+    as_ofs = sdr.fetch_recent_as_ofs(limit + 1)[1:]  # skip the latest — headline panel
+    return SpxDensityIssuedResponse(
+        forecasts=[
+            _spx_density_forecast_model(a, sdr.fetch_forecast(a)) for a in as_ofs
+        ],
+        hit_rates=[SpxDensityHitRate(**t) for t in sdr.hit_rate_tally()],
+    )
 
 
 @router.get("/vrp-macro-signal", response_model=VrpMacroSignalResponse)

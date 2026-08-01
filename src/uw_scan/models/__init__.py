@@ -134,6 +134,14 @@ from .skew import (
     SkewStructureDetail,
     SkewStructureLeg,
 )
+from .spx_density import (
+    SpxDensityForecast,
+    SpxDensityHitRate,
+    SpxDensityHorizon,
+    SpxDensityIssuedResponse,
+    SpxDensityLatestResponse,
+    SpxDensityPathPoint,
+)
 from .stock import (
     MarketStructure,
     SingleStockReport,
@@ -382,6 +390,12 @@ __all__ = [
     "SkewReadBullet",
     "SkewRead",
     "SkewAnalysisResponse",
+    "SpxDensityHorizon",
+    "SpxDensityForecast",
+    "SpxDensityPathPoint",
+    "SpxDensityHitRate",
+    "SpxDensityLatestResponse",
+    "SpxDensityIssuedResponse",
     "InsightBadge",
     "TradeInsightsHeader",
     "SourceReconciliationRow",
