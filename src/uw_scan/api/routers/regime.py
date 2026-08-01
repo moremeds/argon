@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import logging
+from dataclasses import asdict
 from datetime import datetime, timezone
 from typing import Annotated
 from zoneinfo import ZoneInfo
@@ -73,13 +74,16 @@ from uw_scan.cards.canary_calibration import (
 from uw_scan.cards.dealer_regime import compute_dealer_regime, gather_inputs
 from uw_scan.config import Settings
 from uw_scan.models.spx_density import (
+    SpxDensityBins,
     SpxDensityForecast,
     SpxDensityHitRate,
     SpxDensityHorizon,
     SpxDensityIssuedResponse,
     SpxDensityLatestResponse,
     SpxDensityPathPoint,
+    SpxGammaLevels,
 )
+from uw_scan.reports.gamma_levels import resolve_levels
 from uw_scan.reports.vrp_macro_signal import (
     WINNER,
     current_macro_signal,
@@ -400,6 +404,11 @@ def _spx_density_forecast_model(as_of, rows) -> SpxDensityForecast:
                     else float(r["realised_return"])
                 ),
                 inside_band80=r["inside_band80"],
+                density=(
+                    SpxDensityBins(**r["density_bins_jsonb"])
+                    if r.get("density_bins_jsonb")
+                    else None
+                ),
                 **{c: float(r[c]) for c in _SPX_DENSITY_QCOLS},
             )
             for r in rows
@@ -419,12 +428,24 @@ def get_spx_density(
         return SpxDensityLatestResponse()
     rows = sdr.fetch_forecast(as_of)
     recent = sdr.fetch_spx_recent(45)
+    levels = resolve_levels(
+        uw_row=sdr.fetch_uw_gamma_levels(as_of),
+        gex_row=sdr.fetch_gex_snapshot_levels(as_of),
+        fallback_spot=float(rows[0]["anchor_close"]) if rows else None,
+    )
     return SpxDensityLatestResponse(
         forecast=_spx_density_forecast_model(as_of, rows),
         recent_path=[
-            SpxDensityPathPoint(date=r["trade_date"], close=float(r["close"]))
+            SpxDensityPathPoint(
+                date=r["trade_date"],
+                close=float(r["close"]),
+                open=_f(r.get("open")),
+                high=_f(r.get("high")),
+                low=_f(r.get("low")),
+            )
             for r in recent
         ],
+        gamma_levels=SpxGammaLevels(**asdict(levels)),
     )
 
 

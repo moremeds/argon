@@ -29,10 +29,12 @@ beforeEach(() => {
 });
 
 describe("RegimePanel", () => {
-  it("renders sub-tab buttons with full names, Market Tide active by default", () => {
+  it("renders sub-tab buttons with full names, Market Compass active by default", () => {
     render(<RegimePanel />);
+    // Renamed from "Market Tide" when the tab grew the SPX density cone: the tab now
+    // holds a forward distribution alongside the flow. The id stays "tide".
     expect(screen.getByTestId("regime-tab-tide").textContent).toBe(
-      "Market Tide",
+      "Market Compass",
     );
     expect(screen.getByTestId("regime-tab-cri").textContent).toBe(
       "Crash Risk Index",

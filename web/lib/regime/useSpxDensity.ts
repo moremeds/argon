@@ -3,6 +3,39 @@
 import { regimeApi } from "./api";
 import { useSyncHook, type UseSyncReturn } from "./useSyncHook";
 
+/** Histogram of the Monte-Carlo draws behind one horizon, in cumulative simple-return
+ *  units. Bin i spans [lo + i*w, lo + (i+1)*w) where w = (hi - lo) / n_bins. */
+export type SpxDensityBins = {
+  lo: number;
+  hi: number;
+  n_bins: number;
+  counts: number[];
+  total: number;
+  clipped: number;
+};
+
+/** open/high/low are null for close-only sessions — the chart drops those from the
+ *  candle series rather than synthesising a bar. */
+export type SpxPathPoint = {
+  date: string;
+  close: number;
+  open: number | null;
+  high: number | null;
+  low: number | null;
+};
+
+/** Dealer levels for the overlay. A level that failed the API's side-guard (call wall
+ *  at or below spot, put wall at or above) arrives as null and is named in `dropped`. */
+export type SpxGammaLevels = {
+  as_of: string | null;
+  spot: number | null;
+  call_wall: number | null;
+  put_wall: number | null;
+  gamma_flip: number | null;
+  source: string | null;
+  dropped: string[];
+};
+
 export type SpxDensityHorizon = {
   h: number;
   target_date: string;
@@ -26,6 +59,8 @@ export type SpxDensityHorizon = {
   width_ratio: number;
   realised_return: number | null;
   inside_band80: boolean | null;
+  // null for cones issued before migration 112 — chart falls back to bands only
+  density: SpxDensityBins | null;
 };
 
 export type SpxDensityForecast = {
@@ -45,7 +80,8 @@ export type SpxDensityHitRate = {
 
 export type SpxDensityLatest = {
   forecast: SpxDensityForecast | null;
-  recent_path: { date: string; close: number }[];
+  recent_path: SpxPathPoint[];
+  gamma_levels: SpxGammaLevels;
   disclaimer: string;
 };
 

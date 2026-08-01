@@ -163,3 +163,56 @@ def test_result_to_db_rows_shape() -> None:
     assert rows[0]["origin"] == "reconstructed"
     assert rows[0]["as_of"] == date(2026, 7, 29)
     assert rows[0]["provenance_jsonb"]["cone_seed"] == result.seed
+
+
+def test_density_bins_conserve_every_draw() -> None:
+    """Nothing is silently dropped: in-range counts + clipped == the full M draws."""
+    result = compute_forecast(_bars())
+    assert len(result.rows) == 5
+    for row in result.rows:
+        bins = row["density_bins_jsonb"]
+        assert bins is not None, f"h={row['h']} lost its draws"
+        assert bins["n_bins"] == fc.DENSITY_BINS
+        assert len(bins["counts"]) == fc.DENSITY_BINS
+        assert bins["total"] == 10000
+        assert sum(bins["counts"]) + bins["clipped"] == bins["total"]
+        assert bins["lo"] < bins["hi"]
+
+
+def test_density_bins_describe_the_same_distribution_as_the_quantiles() -> None:
+    """The load-bearing check. The histogram and q05..q95 must come from ONE set of draws;
+    if a refactor ever histogrammed a re-simulation (different seed, or worse a different
+    arm) the numbers would still look plausible in isolation. So: integrate the histogram
+    up to each published quantile and confirm the mass landing there is the quantile's own
+    probability. Tolerance is bin granularity, not model noise."""
+    result = compute_forecast(_bars())
+    for row in result.rows:
+        bins = row["density_bins_jsonb"]
+        lo, hi, counts = bins["lo"], bins["hi"], bins["counts"]
+        width = (hi - lo) / bins["n_bins"]
+        for qname, p in (("q10", 0.10), ("q50", 0.50), ("q90", 0.90)):
+            cut = row[qname]
+            # Interpolated histogram CDF at `cut`: whole bins below it, plus the
+            # covered fraction of the bin the quantile falls inside. Counting only
+            # whole bins would undercount by up to a full bin's mass, which near a
+            # peaked median is several percent — a property of the ruler, not the data.
+            pos = (cut - lo) / width
+            whole = max(0, min(int(pos), bins["n_bins"]))
+            mass = sum(counts[:whole])
+            if whole < bins["n_bins"]:
+                mass += (pos - whole) * counts[whole]
+            mass /= bins["total"]
+            assert abs(mass - p) < 0.01, (
+                f"h={row['h']} {qname}: histogram puts {mass:.3f} of the mass below "
+                f"{cut:.5f}, but that quantile claims {p:.2f} — bins and quantiles "
+                f"are not from the same draws"
+            )
+
+
+def test_density_bins_survive_the_fallback_arm(monkeypatch) -> None:
+    """The EWMA fallback keeps analytic quantiles but seeded samples; the chart must not
+    lose its density profile on a night the GJR fit fails."""
+    monkeypatch.setattr(fc, "_fit", lambda spec, hist: (None, 3))
+    result = compute_forecast(_bars())
+    assert result.fallback_used is True
+    assert all(row["density_bins_jsonb"] is not None for row in result.rows)

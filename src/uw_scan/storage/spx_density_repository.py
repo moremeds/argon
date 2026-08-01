@@ -40,6 +40,7 @@ _COLUMNS = (
     "fallback_used",
     "origin",
     "provenance_jsonb",
+    "density_bins_jsonb",
 )
 
 
@@ -68,6 +69,8 @@ class SpxDensityRepository:
                 Jsonb(r["params_jsonb"]) if r.get("params_jsonb") is not None else None
             )
             p["provenance_jsonb"] = Jsonb(r.get("provenance_jsonb") or {})
+            bins = r.get("density_bins_jsonb")
+            p["density_bins_jsonb"] = Jsonb(bins) if bins is not None else None
             params.append(p)
         with self._conn.cursor() as cur:
             cur.executemany(sql, params)
@@ -159,9 +162,47 @@ class SpxDensityRepository:
             cur.execute(sql, (after, limit))
             return [(r[0], r[1]) for r in cur.fetchall()]
 
-    def fetch_spx_recent(self, n: int) -> list[dict[str, Any]]:
+    def fetch_uw_gamma_levels(self, on_or_before: date) -> dict[str, Any] | None:
+        """UW's own SPX dealer levels — the primary source for the chart overlay.
+        Most recent session at or before `on_or_before`, so a stale capture degrades to
+        an older (labelled) level rather than to nothing."""
         sql = f"""
-            SELECT trade_date, close::float8 AS close
+            SELECT market_date, call_wall::float8 AS call_wall,
+                   put_wall::float8 AS put_wall, gamma_flip::float8 AS gamma_flip,
+                   spot::float8 AS spot
+            FROM {self._schema}.uw_gex_levels_daily
+            WHERE ticker = 'SPX' AND market_date <= %s
+            ORDER BY market_date DESC LIMIT 1
+        """
+        with self._conn.cursor(row_factory=dict_row) as cur:
+            return cur.execute(sql, (on_or_before,)).fetchone()
+
+    def fetch_gex_snapshot_levels(self, on_or_before: date) -> dict[str, Any] | None:
+        """Fallback: the last intraday GEX snapshot of the most recent covered session.
+        Column names are aliased to match the UW row so the resolver sees one shape."""
+        sql = f"""
+            SELECT data_date,
+                   level_call_wall_strike::float8 AS call_wall,
+                   level_put_wall_strike::float8  AS put_wall,
+                   level_gex_flip_strike::float8  AS gamma_flip,
+                   spot::float8 AS spot
+            FROM {self._schema}.gex_snapshots
+            WHERE ticker = 'SPX' AND data_date IS NOT NULL AND data_date <= %s
+            ORDER BY data_date DESC, scanned_at DESC LIMIT 1
+        """
+        with self._conn.cursor(row_factory=dict_row) as cur:
+            return cur.execute(sql, (on_or_before,)).fetchone()
+
+    def fetch_spx_recent(self, n: int) -> list[dict[str, Any]]:
+        """Recent SPX bars for the chart. open/high/low are nullable in vol_index_daily
+        (close-only rows exist), so the candlestick renderer must tolerate NULLs — it
+        drops those sessions from the candle series rather than inventing a bar."""
+        sql = f"""
+            SELECT trade_date,
+                   open::float8  AS open,
+                   high::float8  AS high,
+                   low::float8   AS low,
+                   close::float8 AS close
             FROM {self._schema}.vol_index_daily
             WHERE symbol = 'SPX' ORDER BY trade_date DESC LIMIT %s
         """

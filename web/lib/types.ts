@@ -6633,6 +6633,29 @@ export interface components {
             iv_diff?: string | null;
         };
         /**
+         * SpxDensityBins
+         * @description Histogram of the Monte-Carlo draws behind one horizon, in cumulative simple-return
+         *     units (the same units as q05..q95). Bin i spans
+         *     [lo + i*(hi-lo)/n_bins, lo + (i+1)*(hi-lo)/n_bins).
+         *
+         *     `lo`/`hi` are the 0.5th/99.5th percentile of the draws, not the min/max, so one tail
+         *     path cannot squash the body; `clipped` is how many draws fell outside.
+         */
+        SpxDensityBins: {
+            /** Lo */
+            lo: number;
+            /** Hi */
+            hi: number;
+            /** N Bins */
+            n_bins: number;
+            /** Counts */
+            counts: number[];
+            /** Total */
+            total: number;
+            /** Clipped */
+            clipped: number;
+        };
+        /**
          * SpxDensityForecast
          * @description One issued cone: five horizon rows anchored on a single trade date.
          */
@@ -6716,6 +6739,7 @@ export interface components {
             realised_return?: number | null;
             /** Inside Band80 */
             inside_band80?: boolean | null;
+            density?: components["schemas"]["SpxDensityBins"] | null;
         };
         /** SpxDensityIssuedResponse */
         SpxDensityIssuedResponse: {
@@ -6729,13 +6753,19 @@ export interface components {
             forecast?: components["schemas"]["SpxDensityForecast"] | null;
             /** Recent Path */
             recent_path?: components["schemas"]["SpxDensityPathPoint"][];
+            gamma_levels?: components["schemas"]["SpxGammaLevels"];
             /**
              * Disclaimer
              * @default Display-only fan chart (v13 PASS). Not a trading signal; the median is not a direction call; the band is not claimed tighter than EWMA.
              */
             disclaimer: string;
         };
-        /** SpxDensityPathPoint */
+        /**
+         * SpxDensityPathPoint
+         * @description One SPX session. open/high/low are nullable: vol_index_daily carries close-only
+         *     rows, and the chart drops those sessions from the candle series rather than
+         *     manufacturing a bar out of the close.
+         */
         SpxDensityPathPoint: {
             /**
              * Date
@@ -6744,6 +6774,34 @@ export interface components {
             date: string;
             /** Close */
             close: number;
+            /** Open */
+            open?: number | null;
+            /** High */
+            high?: number | null;
+            /** Low */
+            low?: number | null;
+        };
+        /**
+         * SpxGammaLevels
+         * @description Dealer levels for the chart overlay. Any field may be None — a level that failed
+         *     the side-guard is omitted and named in `dropped`, never drawn on the wrong side of
+         *     spot. See reports/gamma_levels.py for why the guard exists.
+         */
+        SpxGammaLevels: {
+            /** As Of */
+            as_of?: string | null;
+            /** Spot */
+            spot?: number | null;
+            /** Call Wall */
+            call_wall?: number | null;
+            /** Put Wall */
+            put_wall?: number | null;
+            /** Gamma Flip */
+            gamma_flip?: number | null;
+            /** Source */
+            source?: string | null;
+            /** Dropped */
+            dropped?: string[];
         };
         /** StockHistoryResponse */
         StockHistoryResponse: {

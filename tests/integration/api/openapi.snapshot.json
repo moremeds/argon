@@ -15266,6 +15266,48 @@
         "title": "SourceReconciliationRow",
         "type": "object"
       },
+      "SpxDensityBins": {
+        "description": "Histogram of the Monte-Carlo draws behind one horizon, in cumulative simple-return\nunits (the same units as q05..q95). Bin i spans\n[lo + i*(hi-lo)/n_bins, lo + (i+1)*(hi-lo)/n_bins).\n\n`lo`/`hi` are the 0.5th/99.5th percentile of the draws, not the min/max, so one tail\npath cannot squash the body; `clipped` is how many draws fell outside.",
+        "properties": {
+          "clipped": {
+            "title": "Clipped",
+            "type": "integer"
+          },
+          "counts": {
+            "items": {
+              "type": "integer"
+            },
+            "title": "Counts",
+            "type": "array"
+          },
+          "hi": {
+            "title": "Hi",
+            "type": "number"
+          },
+          "lo": {
+            "title": "Lo",
+            "type": "number"
+          },
+          "n_bins": {
+            "title": "N Bins",
+            "type": "integer"
+          },
+          "total": {
+            "title": "Total",
+            "type": "integer"
+          }
+        },
+        "required": [
+          "lo",
+          "hi",
+          "n_bins",
+          "counts",
+          "total",
+          "clipped"
+        ],
+        "title": "SpxDensityBins",
+        "type": "object"
+      },
       "SpxDensityForecast": {
         "description": "One issued cone: five horizon rows anchored on a single trade date.",
         "properties": {
@@ -15379,6 +15421,16 @@
           "baseline_q95": {
             "title": "Baseline Q95",
             "type": "number"
+          },
+          "density": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/SpxDensityBins"
+              },
+              {
+                "type": "null"
+              }
+            ]
           },
           "h": {
             "title": "H",
@@ -15510,6 +15562,9 @@
               }
             ]
           },
+          "gamma_levels": {
+            "$ref": "#/components/schemas/SpxGammaLevels"
+          },
           "recent_path": {
             "items": {
               "$ref": "#/components/schemas/SpxDensityPathPoint"
@@ -15522,6 +15577,7 @@
         "type": "object"
       },
       "SpxDensityPathPoint": {
+        "description": "One SPX session. open/high/low are nullable: vol_index_daily carries close-only\nrows, and the chart drops those sessions from the candle series rather than\nmanufacturing a bar out of the close.",
         "properties": {
           "close": {
             "title": "Close",
@@ -15531,6 +15587,39 @@
             "format": "date",
             "title": "Date",
             "type": "string"
+          },
+          "high": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "High"
+          },
+          "low": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Low"
+          },
+          "open": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Open"
           }
         },
         "required": [
@@ -15538,6 +15627,87 @@
           "close"
         ],
         "title": "SpxDensityPathPoint",
+        "type": "object"
+      },
+      "SpxGammaLevels": {
+        "description": "Dealer levels for the chart overlay. Any field may be None \u2014 a level that failed\nthe side-guard is omitted and named in `dropped`, never drawn on the wrong side of\nspot. See reports/gamma_levels.py for why the guard exists.",
+        "properties": {
+          "as_of": {
+            "anyOf": [
+              {
+                "format": "date",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "As Of"
+          },
+          "call_wall": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Call Wall"
+          },
+          "dropped": {
+            "items": {
+              "type": "string"
+            },
+            "title": "Dropped",
+            "type": "array"
+          },
+          "gamma_flip": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Gamma Flip"
+          },
+          "put_wall": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Put Wall"
+          },
+          "source": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Source"
+          },
+          "spot": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Spot"
+          }
+        },
+        "title": "SpxGammaLevels",
         "type": "object"
       },
       "StockHistoryResponse": {
@@ -23904,7 +24074,7 @@
   },
   "info": {
     "title": "UW Watchlist API",
-    "version": "0.10.8"
+    "version": "0.10.18"
   },
   "openapi": "3.1.0",
   "paths": {

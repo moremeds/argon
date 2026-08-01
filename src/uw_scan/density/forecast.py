@@ -48,6 +48,12 @@ from uw_scan.density.fit import ARMS, _fit
 
 ARM = "G"  # the v13-validated arm; frozen
 
+DENSITY_BINS = 64
+# Clip the histogram axis to this percentile span. With M=10,000 draws a single tail path
+# can stretch a min/max range far enough to squash the body of the distribution into a
+# handful of bins; the excluded draws are counted, never silently dropped.
+DENSITY_CLIP = (0.005, 0.995)
+
 
 class PanelMismatchError(RuntimeError):
     """DB series disagrees with the frozen panel — publishing would silently change the model."""
@@ -96,6 +102,31 @@ def _forward_weekdays(anchor: date, n: int) -> list[date]:
         if d.weekday() < 5:
             out.append(d)
     return out
+
+
+def _density_bins(draws: np.ndarray) -> dict[str, Any] | None:
+    """Histogram one horizon's Monte-Carlo draws, in cumulative simple-return units.
+
+    Read-out only: these are the SAME draws `cone.cum_return_q` was taken from, so this
+    adds no model surface and cannot move a quantile. Returns None when the draws are
+    unusable (degenerate range), which the chart treats as "bands only".
+    """
+    d = np.asarray(draws, dtype=float)
+    d = d[np.isfinite(d)]
+    if d.size == 0:
+        return None
+    lo, hi = (float(x) for x in np.quantile(d, DENSITY_CLIP))
+    if not np.isfinite(lo) or not np.isfinite(hi) or hi <= lo:
+        return None
+    counts, _ = np.histogram(d, bins=DENSITY_BINS, range=(lo, hi))
+    return {
+        "lo": lo,
+        "hi": hi,
+        "n_bins": DENSITY_BINS,
+        "counts": [int(c) for c in counts],
+        "total": int(d.size),
+        "clipped": int(d.size) - int(counts.sum()),
+    }
 
 
 def compute_forecast(
@@ -209,6 +240,12 @@ def compute_forecast(
         row["band80_width"] = float(cq[hi] - cq[lo])
         row["baseline_band80_width"] = float(bq[hi] - bq[lo])
         row["width_ratio"] = float((cq[hi] - cq[lo]) / (bq[hi] - bq[lo]))
+        # Index samples by horizon VALUE, matching Cone.at()'s contract — arms whose
+        # horizons are non-contiguous would break a bare h-1.
+        row["density_bins_jsonb"] = None
+        if cone.samples is not None:
+            j = int(np.where(cone.horizons == h)[0][0])
+            row["density_bins_jsonb"] = _density_bins(cone.samples[j])
         rows.append(row)
 
     params_j: dict[str, float] | None = None

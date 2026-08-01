@@ -1,55 +1,48 @@
 "use client";
 
-import {
-  useSpxDensity,
-  type SpxDensityHorizon,
-} from "@/lib/regime/useSpxDensity";
-import {
-  finiteDomain,
-  linearScale,
-  niceTicks,
-  pathFromBand,
-  pathFromPoints,
-  type Point,
-} from "@/lib/svgChart";
+import { useState } from "react";
+import { useSpxDensity } from "@/lib/regime/useSpxDensity";
+import DensityConeChart, { type ConeView } from "./DensityConeChart";
 
-const WIDTH = 880;
-const HEIGHT = 330;
-const PAD = { top: 18, right: 66, bottom: 30, left: 52 };
-// Sessions of realised context drawn to the left of the anchor. Kept short on
-// purpose: the cone is the subject, and at 20 it was squeezed into ~20% of the
-// width. 10 gives the forward fan ~35% while still showing where price came from.
-const RECENT_N = 10;
+// Sessions of realised context drawn to the left of the cone.
+//
+// This number IS the candle width. lightweight-charts derives bar width from bar
+// spacing, and the pane is fixed (no pan/zoom) and full-bleed, so fewer sessions =
+// proportionally fatter candles: at 14 they render ~80px wide, as solid blocks with
+// stubby wicks. 26 lands at ~35px spacing, which is the normal candle proportion.
+const RECENT_N = 26;
 
-const COLORS = {
-  band: "var(--accent-vol, #7c6cf0)",
-  median: "var(--text-muted)",
-  realised: "var(--accent-warm, #F5A623)",
-  baseline: "var(--text-secondary, #94a3b8)",
-  grid: "rgba(148,163,184,0.08)",
-  muted: "var(--text-muted)",
-  warning: "var(--warning, #f59e0b)",
-};
+const MUTED = "var(--text-muted)";
 
-// (loKey, hiKey, fillOpacity) — outermost first so inner bands paint on top
-const BANDS: Array<[keyof SpxDensityHorizon, keyof SpxDensityHorizon, number]> =
-  [
-    ["q05", "q95", 0.1],
-    ["q10", "q90", 0.18],
-    ["q25", "q75", 0.3],
-  ];
+const px = (anchor: number, cumReturn: number) =>
+  (anchor * (1 + cumReturn)).toLocaleString("en-US", {
+    maximumFractionDigits: 0,
+  });
 
-const pct = (v: number) => `${(v * 100).toFixed(1)}%`;
+// Spans are OUR persisted quantiles. Deliberately not relabelled to the more familiar
+// 95/68/50 of a Gaussian ±2σ/±1σ chart: v13 publishes q05..q95, and calling a 90%
+// interval "95% confidence" would overstate the coverage the model was validated at.
+const BAND_LEGEND: Array<[string, number]> = [
+  ["50% (q25–q75)", 0.3],
+  ["80% (q10–q90)", 0.18],
+  ["90% (q05–q95)", 0.1],
+];
+
+const VIEWS: Array<[ConeView, string]> = [
+  ["fan", "1–5 day fan"],
+  ["focused", "Next session"],
+];
 
 export default function DensityConePanel() {
   const { data, loading, error } = useSpxDensity();
+  const [view, setView] = useState<ConeView>("fan");
   const f = data?.forecast ?? null;
 
   if (loading && !data) {
     return (
       <div
         data-testid="spx-density-panel"
-        style={{ color: "var(--text-muted)", fontSize: 12 }}
+        style={{ color: MUTED, fontSize: 12 }}
       >
         Loading density cone…
       </div>
@@ -59,7 +52,7 @@ export default function DensityConePanel() {
     return (
       <div
         data-testid="spx-density-panel"
-        style={{ color: "var(--text-muted)", fontSize: 12 }}
+        style={{ color: MUTED, fontSize: 12 }}
       >
         {error
           ? `Density cone unavailable: ${error}`
@@ -68,33 +61,11 @@ export default function DensityConePanel() {
     );
   }
 
-  const anchor = f.anchor_close;
   const rows = f.rows;
   const recent = (data?.recent_path ?? []).slice(-RECENT_N);
-  const nRec = Math.max(recent.length, 2);
-
-  // x in session units: realised path at -(n-1)..0 (0 = anchor), horizons at 1..5
-  const xScale = linearScale([-(nRec - 1), 5.4], [PAD.left, WIDTH - PAD.right]);
-  const values: number[] = [0];
-  for (const r of rows) {
-    values.push(r.q05, r.q95, r.baseline_q05, r.baseline_q95);
-    if (r.realised_return != null) values.push(r.realised_return);
-  }
-  for (const p of recent) values.push(p.close / anchor - 1);
-  const dom = finiteDomain(values);
-  const lo = dom ? dom.lo * 1.08 : -0.05;
-  const hi = dom ? dom.hi * 1.08 : 0.05;
-  const yScale = linearScale([lo, hi], [HEIGHT - PAD.bottom, PAD.top]);
-
-  const conePts = (key: keyof SpxDensityHorizon): Point[] => [
-    [xScale(0), yScale(0)],
-    ...rows.map((r, i) => [xScale(i + 1), yScale(r[key] as number)] as Point),
-  ];
-  const realisedPts: Point[] = recent.map((p, i) => [
-    xScale(i - (recent.length - 1)),
-    yScale(p.close / anchor - 1),
-  ]);
-  const yTicks = niceTicks(lo, hi, 5);
+  const levels = data?.gamma_levels ?? null;
+  const closeOnly = recent.filter((p) => p.open == null).length;
+  const head = rows[0];
 
   return (
     <div className="section" data-testid="spx-density-panel">
@@ -105,11 +76,11 @@ export default function DensityConePanel() {
             style={{
               fontFamily: "var(--font-mono)",
               fontSize: 10,
-              color: COLORS.muted,
+              color: MUTED,
               marginLeft: 8,
             }}
           >
-            anchor {f.as_of} · {anchor.toFixed(2)} · GJR arm G/normal
+            anchor {f.as_of} · {f.anchor_close.toFixed(2)} · GJR arm G/normal
             {f.origin === "reconstructed" ? " · RECONSTRUCTED" : ""}
           </span>
           {f.fallback_used && (
@@ -117,7 +88,7 @@ export default function DensityConePanel() {
               style={{
                 fontFamily: "var(--font-mono)",
                 fontSize: 10,
-                color: COLORS.warning,
+                color: "var(--warning, #f59e0b)",
                 marginLeft: 8,
               }}
             >
@@ -125,116 +96,126 @@ export default function DensityConePanel() {
             </span>
           )}
         </div>
-        <span
-          style={{
-            fontFamily: "var(--font-mono)",
-            fontSize: 10,
-            color: COLORS.muted,
-          }}
-        >
-          DISPLAY ONLY · NOT A TRADING SIGNAL
+        <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
+          <div
+            style={{ display: "flex", gap: 4 }}
+            data-testid="cone-view-toggle"
+          >
+            {VIEWS.map(([id, label]) => (
+              <button
+                key={id}
+                type="button"
+                onClick={() => setView(id)}
+                aria-pressed={view === id}
+                style={{
+                  fontFamily: "var(--font-mono)",
+                  fontSize: 10,
+                  letterSpacing: 0.5,
+                  textTransform: "uppercase",
+                  padding: "3px 8px",
+                  cursor: "pointer",
+                  background:
+                    view === id ? "var(--accent-bg, #1f2937)" : "transparent",
+                  color: view === id ? "var(--text-primary)" : MUTED,
+                  border: "1px solid var(--border-dim)",
+                  borderRadius: 3,
+                }}
+              >
+                {label}
+              </button>
+            ))}
+          </div>
+          <span
+            style={{
+              fontFamily: "var(--font-mono)",
+              fontSize: 10,
+              color: MUTED,
+            }}
+          >
+            DISPLAY ONLY · NOT A TRADING SIGNAL
+          </span>
+        </div>
+      </div>
+
+      <DensityConeChart
+        forecast={f}
+        recentPath={recent}
+        gammaLevels={levels}
+        view={view}
+      />
+
+      <div
+        data-testid="cone-band-legend"
+        style={{
+          display: "flex",
+          gap: 14,
+          flexWrap: "wrap",
+          alignItems: "center",
+          fontFamily: "var(--font-mono)",
+          fontSize: 10,
+          color: MUTED,
+          marginTop: 4,
+        }}
+      >
+        {BAND_LEGEND.map(([label, opacity]) => (
+          <span
+            key={label}
+            style={{ display: "inline-flex", alignItems: "center", gap: 5 }}
+          >
+            <span
+              style={{
+                width: 16,
+                height: 9,
+                background: "var(--accent-vol, #7c6cf0)",
+                opacity,
+                border: "1px solid var(--border-dim)",
+              }}
+            />
+            {label}
+          </span>
+        ))}
+        <span style={{ display: "inline-flex", alignItems: "center", gap: 5 }}>
+          <span
+            style={{ width: 16, borderTop: `1px dotted ${MUTED}`, height: 1 }}
+          />
+          median (not a forecast)
         </span>
       </div>
-      <svg
-        role="img"
-        aria-label="SPX 1-5 trading-day conditional density cone, cumulative return"
-        viewBox={`0 0 ${WIDTH} ${HEIGHT}`}
-        preserveAspectRatio="none"
-        style={{ width: "100%", display: "block" }}
-      >
-        {yTicks.map((t) => (
-          <g key={`y${t}`}>
-            <line
-              x1={PAD.left}
-              x2={WIDTH - PAD.right}
-              y1={yScale(t)}
-              y2={yScale(t)}
-              stroke={COLORS.grid}
-            />
-            <text
-              x={PAD.left - 6}
-              y={yScale(t) + 3}
-              textAnchor="end"
-              fontSize={10}
-              fontFamily="var(--font-mono)"
-              fill={COLORS.muted}
-            >
-              {pct(t)}
-            </text>
-          </g>
-        ))}
-        {[1, 2, 3, 4, 5].map((h) => (
-          <text
-            key={`x${h}`}
-            x={xScale(h)}
-            y={HEIGHT - PAD.bottom + 14}
-            textAnchor="middle"
-            fontSize={10}
-            fontFamily="var(--font-mono)"
-            fill={COLORS.muted}
-          >
-            H{h}
-            {h === 4 ? "*" : ""}
-          </text>
-        ))}
-        {BANDS.map(([blo, bhi, op]) => (
-          <path
-            key={`${blo}`}
-            d={pathFromBand(conePts(bhi), conePts(blo))}
-            fill={COLORS.band}
-            fillOpacity={op}
-          />
-        ))}
-        {/* EWMA baseline: thin outline only, never filled — a reference, not a forecast */}
-        <path
-          d={pathFromPoints(conePts("baseline_q10"))}
-          fill="none"
-          stroke={COLORS.baseline}
-          strokeDasharray="6 4"
-          opacity={0.6}
-        />
-        <path
-          d={pathFromPoints(conePts("baseline_q90"))}
-          fill="none"
-          stroke={COLORS.baseline}
-          strokeDasharray="6 4"
-          opacity={0.6}
-        />
-        {/* p50: dotted, deliberately faint — NOT a direction call */}
-        <path
-          d={pathFromPoints(conePts("q50"))}
-          fill="none"
-          stroke={COLORS.median}
-          strokeDasharray="2 4"
-        />
-        {realisedPts.length >= 2 && (
-          <path
-            d={pathFromPoints(realisedPts)}
-            fill="none"
-            stroke={COLORS.realised}
-            strokeWidth={1.5}
-          />
-        )}
-        <circle cx={xScale(0)} cy={yScale(0)} r={3} fill={COLORS.realised} />
-      </svg>
+
       <div
         style={{
           fontFamily: "var(--font-mono)",
           fontSize: 10,
-          color: COLORS.muted,
+          color: MUTED,
           display: "flex",
           gap: 14,
           flexWrap: "wrap",
+          marginTop: 6,
         }}
       >
-        <span>80% band: {rows.map((r) => pct(r.band80_width)).join(" ")}</span>
-        <span>
-          vs EWMA ×: {rows.map((r) => r.width_ratio.toFixed(2)).join(" ")}
-        </span>
-        <span>
-          p50 is not a direction call · H4* drawn but unscored by v13 · EWMA
-          λ=0.94 outline
-        </span>
+        {view === "focused" && head && (
+          <span data-testid="cone-focused-summary">
+            {head.target_date} · proj high {px(f.anchor_close, head.q95)} ·
+            median {px(f.anchor_close, head.q50)} · proj low{" "}
+            {px(f.anchor_close, head.q05)}
+            {head.density ? "" : " · no density bins for this cone"}
+          </span>
+        )}
+        {/* Exception-only notes. The running commentary that used to live here (band
+            widths, EWMA ratios, the level source, the p50 caveat) was removed as
+            clutter; these two stay because they report a DEGRADED render — silence
+            would otherwise read as a complete chart. */}
+        {closeOnly > 0 && (
+          <span data-testid="cone-ohlc-note">
+            {closeOnly} session{closeOnly === 1 ? "" : "s"} close-only — no
+            candle drawn
+          </span>
+        )}
+        {levels && levels.dropped.length > 0 && (
+          <span data-testid="cone-levels-note">
+            {levels.dropped.join("/")} not drawn — wrong side of spot
+          </span>
+        )}
       </div>
     </div>
   );

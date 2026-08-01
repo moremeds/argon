@@ -35,6 +35,16 @@ def main() -> int:
     ap = argparse.ArgumentParser()
     ap.add_argument("--sessions", type=int, default=60)
     ap.add_argument("--dry-run", action="store_true")
+    ap.add_argument(
+        "--force",
+        action="store_true",
+        help=(
+            "Recompute sessions that already have rows. Needed after a migration adds "
+            "a column derived from the same run (e.g. 112's density_bins_jsonb left "
+            "every existing row NULL). Deterministic: seed_for(i) is panel-index "
+            "arithmetic, so a recompute reproduces the identical cone."
+        ),
+    )
     args = ap.parse_args()
 
     settings = Settings.from_env()
@@ -47,7 +57,9 @@ def main() -> int:
             )
             return 1
 
-        existing = set(sdr.fetch_recent_as_ofs(args.sessions + 10))
+        existing = (
+            set() if args.force else set(sdr.fetch_recent_as_ofs(args.sessions + 10))
+        )
         # candidates: the last N session dates, excluding the freshest (that one is the
         # nightly job's prospective anchor, never the backfill's)
         candidates = [d for d, _ in bars[-(args.sessions + 1) : -1]]

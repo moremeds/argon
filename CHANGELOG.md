@@ -62,6 +62,56 @@ version in lockstep (enforced by `scripts/release/version_sync_check.py`).
   panel row 0, so the index (and therefore the seed) is unchanged. The
   "shorter than the panel" refusal is scoped to live runs, where a short series
   means a stale mirror rather than a deliberate rewind.
+- **The cone renders on lightweight-charts, with candles and two views.** The
+  hand-rolled SVG is replaced by `components/regime/DensityConeChart.tsx` — the
+  second documented exception to the no-chart-library rule (after the Technicals
+  price pane), taken because the panel needs a real dated x-axis, OHLC
+  candlesticks, and price-line overlays that `lib/svgChart.ts` does not provide.
+  It reuses the vendored `lib/lwc/bandsIndicator.ts` for the cone and adds
+  `lib/lwc/densityProfile.ts`, a small primitive that draws the simulated
+  distribution as a filled silhouette. **1–5 day fan** (default) shows the
+  widening cone against the EWMA baseline; **Next session** shows the incoming
+  session alone as nested probability blocks plus its density. The frame is fixed
+  — scroll and zoom are off — so the window is a composition rather than
+  something to navigate. Legend labels quote the **actual** persisted spans
+  (90% = q05–q95, 80% = q10–q90, 50% = q25–q75) and are deliberately not
+  relabelled to the more familiar 95/68/50 of a Gaussian chart, which would claim
+  coverage v13 never validated.
+- **Per-horizon simulated density is now persisted** (migration `112`,
+  `spx_density_forecast.density_bins_jsonb`): a 64-bin histogram of the same
+  10,000 Monte-Carlo draws the quantiles come from, taken straight off
+  `Cone.samples`, which the vendored code already carried for signal-lab's own
+  CRPS/PIT metrics. Purely additive read-out — it cannot move a quantile, and the
+  parity gate is untouched. A test integrates the histogram up to each published
+  quantile and asserts the mass landing there matches that quantile's
+  probability, so a future refactor cannot quietly histogram a _different_
+  simulation. Nullable: cones issued before `112` render bands only.
+  `spx_density_backfill.py --force` repopulates existing rows.
+- **Dealer levels on the chart, with a side-guard** — call wall, put wall and
+  gamma flip drawn as price lines, resolved by `reports/gamma_levels.py` from
+  `uw_gex_levels_daily` (UW's own, primary) falling back to `gex_snapshots`.
+  Argon's own wall computation (`cards/gex.py`) takes a plain argmax over all
+  strikes with **no constraint that the call wall sit above spot**; on SPX
+  2026-07-23…07-28 that produced `call_wall == put_wall == 7000` against a 7,383
+  spot. A "resistance" line below spot is a false statement, not a weak one, so a
+  wall on the wrong side of spot is dropped and named in `dropped` rather than
+  drawn. Gamma flip is exempt — it legitimately sits either side. The root cause
+  in `cards/gex.py` is left alone here on purpose: it feeds the GEX tab, the
+  cockpit, `dealer_regime` and the AI prompt payloads, so changing its numbers is
+  a far wider blast radius than a chart overlay.
+- `GET /api/regime/spx-density` now returns OHLC on `recent_path` (nullable —
+  `vol_index_daily` carries close-only rows, and those sessions are dropped from
+  the candle series rather than having a bar manufactured from the close), plus
+  `gamma_levels` and per-horizon `density`.
+
+### Changed
+
+- **Regime tab `Market Tide` renamed `Market Compass`**, and the density cone now
+  leads the tab ahead of the tide charts. The tab id stays `tide`, so
+  `/regime/tide` deep links keep working. The cone also moved out of the market
+  tide section body: it had been nested inside that section's loading branch, so
+  an unrelated slow tide fetch blanked it, and the "Market Tide" heading claimed
+  a panel that is not market tide.
 
 ## [0.10.18] — 2026-07-29
 

@@ -32,5 +32,5 @@ components/
   - `iv_rank` and `iv_rank_1y` are 0–100 → `fmtDecimal(v, 0)` directly
   - `iv_percentile_30d` is 0–1 → multiply by 100 before `fmtDecimal(v, 0)`
   - `vrp` / `skew_25d` are signed decimals → `fmtSigned`
-- **No charting library.** Hand-rolled SVG using `lib/svgChart.ts` helpers. **One documented exception (2026-07-10):** the Technicals price pane (`panels/TechnicalsPriceChart.tsx`) uses `lightweight-charts` (tiny imperative canvas lib) for candles/zoom/crosshair; do not extend it to other panels without a spec.
+- **No charting library.** Hand-rolled SVG using `lib/svgChart.ts` helpers. **Two documented exceptions** using `lightweight-charts` (tiny imperative canvas lib) for candles/zoom/crosshair: (2026-07-10) the Technicals price pane (`panels/TechnicalsPriceChart.tsx`); (2026-08-02) the SPX density cone (`regime/DensityConeChart.tsx`, primitives in `lib/lwc/densityProfile.ts` + the shared `bandsIndicator.ts`). Do not extend it to further panels without a spec.
 - **Accessibility:** `role="img"` on chart SVGs, meaningful `<title>` where the tile encodes signed info.
