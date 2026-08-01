@@ -7,7 +7,12 @@ import DensityConePanel from "@/components/regime/DensityConePanel";
 // lightweight-charts drives a real canvas through fancy-canvas, which calls
 // window.matchMedia — absent in jsdom. Same approach the existing LWC pane takes
 // (see technicalsTabAutofill.test.tsx): stub the chart, test the panel around it.
-// The chart itself is covered by the Playwright e2e spec against a real browser.
+//
+// The canvas itself is exercised by tests/e2e/regime-density.spec.ts — but note that
+// spec is NOT a CI gate: CI runs `test:e2e:technicals`, whose config matches only
+// technicals-tab.spec.ts. It runs under `npm run test:e2e` against a live stack. So
+// rendering regressions inside the chart are caught by review and local runs, not by
+// the pipeline; don't read the mock here as "covered elsewhere in CI".
 vi.mock("@/components/regime/DensityConeChart", () => ({
   default: ({ view }: { view: string }) => (
     <div data-testid="spx-density-chart" data-view={view} />
