@@ -4,6 +4,8 @@ import { Activity } from "lucide-react";
 import { MarketState } from "@/lib/regime/useMarketHours";
 import { useMarketTide } from "@/lib/regime/useMarketTide";
 import { useTopNetImpact } from "@/lib/regime/useTopNetImpact";
+import DensityConePanel from "./DensityConePanel";
+import DensityConeStrip from "./DensityConeStrip";
 import InfoTooltip from "./InfoTooltip";
 import { MarketTideChart } from "./MarketTideChart";
 import { MarketTideDailyChart } from "./MarketTideDailyChart";
@@ -104,6 +106,8 @@ export default function MarketTideSubTab({ marketState }: Props) {
             {priorData && priorData.sessions.length > 0 && (
               <MarketTideChart data={priorData} />
             )}
+            <DensityConePanel />
+            <DensityConeStrip />
           </>
         )}
       </div>
