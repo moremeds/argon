@@ -103,39 +103,45 @@ def compute_forecast(
 ) -> ForecastResult:
     """bars: full SPX (trade_date, close) ascending, starting at PANEL_FIRST_DATE.
 
-    Agreement rail over the ENTIRE panel window: positional date equality pins the index
-    frame (seed_for is panel-index arithmetic), close equality pins the values. Either
-    failing -> PanelMismatchError, never a cone.
+    Agreement rail over the panel window: positional date equality pins the index frame
+    (seed_for is panel-index arithmetic), close equality pins the values. Either failing
+    -> PanelMismatchError, never a cone.
+
+    `as_of` truncates the series to reconstruct what the model would have issued that
+    night. Truncating INSIDE the panel window is legitimate and is what v13's own
+    backtest did: the prefix still starts at panel row 0, so index i remains the correct
+    panel index for that date and seed_for(i) is unchanged. The rail then runs over the
+    overlap. The "shorter than the panel" refusal applies only to a live run (as_of=None),
+    where a short series means a stale mirror, not a deliberate rewind.
     """
     panel = load_frozen_panel()
     p_dates = [d.date() for d in pd.to_datetime(panel["trade_date"])]
     p_closes = panel["close"].to_numpy(dtype=float)
     n = len(panel)
 
-    if len(bars) < n:
+    b_dates = [b[0] for b in bars]
+    closes_all = np.array([b[1] for b in bars], dtype=float)
+    if as_of is not None:
+        keep = sum(1 for d in b_dates if d <= as_of)
+        b_dates, closes_all = b_dates[:keep], closes_all[:keep]
+    elif len(bars) < n:
         raise PanelMismatchError(
             f"db series has {len(bars)} rows, frozen panel has {n}"
         )
-    b_dates = [b[0] for b in bars]
-    if b_dates[:n] != p_dates:
-        k = next(j for j in range(n) if b_dates[j] != p_dates[j])
+
+    # Compare over whatever part of the panel window the (possibly truncated) series
+    # covers — a prefix anchored at panel row 0 pins the index frame just as well.
+    m = min(len(b_dates), n)
+    if b_dates[:m] != p_dates[:m]:
+        k = next(j for j in range(m) if b_dates[j] != p_dates[j])
         raise PanelMismatchError(
             f"date misalignment at panel index {k}: db {b_dates[k]} != panel {p_dates[k]}"
         )
-    closes_all = np.array([b[1] for b in bars], dtype=float)
-    delta = float(np.abs(closes_all[:n] - p_closes).max())
+    delta = float(np.abs(closes_all[:m] - p_closes[:m]).max()) if m else 0.0
     if delta > 0:
         raise PanelMismatchError(
             f"close disagreement over the panel window: max abs {delta}"
         )
-
-    if as_of is not None:
-        keep = sum(1 for d in b_dates if d <= as_of)
-        if keep < n:
-            raise PanelMismatchError(
-                f"as_of {as_of} predates the frozen panel end {p_dates[-1]}"
-            )
-        b_dates, closes_all = b_dates[:keep], closes_all[:keep]
 
     # v13 §4.2 frame: ret = close.pct_change(); r = ret[1:] (drop the NaN row 0).
     # pct_change is a/b - 1, NOT diff/b — the two differ in float and parity pins this.

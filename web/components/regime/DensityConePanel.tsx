@@ -16,7 +16,10 @@ import {
 const WIDTH = 880;
 const HEIGHT = 330;
 const PAD = { top: 18, right: 66, bottom: 30, left: 52 };
-const RECENT_N = 20;
+// Sessions of realised context drawn to the left of the anchor. Kept short on
+// purpose: the cone is the subject, and at 20 it was squeezed into ~20% of the
+// width. 10 gives the forward fan ~35% while still showing where price came from.
+const RECENT_N = 10;
 
 const COLORS = {
   band: "var(--accent-vol, #7c6cf0)",

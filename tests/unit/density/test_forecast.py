@@ -11,6 +11,7 @@ import pandas as pd
 import pytest
 
 import uw_scan.density.forecast as fc
+from uw_scan.density.constants import seed_for
 from uw_scan.density.forecast import (
     PanelMismatchError,
     compute_forecast,
@@ -112,6 +113,29 @@ def test_as_of_truncation_moves_anchor_and_seed() -> None:
     assert result.as_of == date(2026, 7, 29)
     # one fewer return than the committed run -> seed one lower
     assert result.seed == GOLDEN["model"]["cone_seed"] - 1
+
+
+def test_as_of_inside_the_panel_keeps_the_true_panel_index_seed() -> None:
+    """Reconstructing a date INSIDE the frozen panel is what the backfill does, and is
+    what v13's own backtest did. The seed must be that date's real panel-index seed —
+    if truncation shifted the frame, every bootstrap draw would silently differ."""
+    bars = _bars()
+    target = bars[-400][0]  # ~400 sessions back, well inside the panel window
+    result = compute_forecast(bars, as_of=target)
+    assert result.as_of == target
+    # index into r (returns drop row 0), computed independently of compute_forecast
+    expected_i = bars.index((target, dict(bars)[target])) - 1
+    assert result.provenance["series_index"] == expected_i
+    assert result.seed == seed_for(expected_i)
+    # and the golden anchor's own seed is unchanged by the rewind path existing
+    assert seed_for(GOLDEN["anchor"]["series_index"]) == GOLDEN["model"]["cone_seed"]
+
+
+def test_live_run_still_refuses_a_short_series() -> None:
+    """The stale-mirror guard must survive the as_of relaxation: with as_of=None a
+    series shorter than the panel is a truncated feed, not a deliberate rewind."""
+    with pytest.raises(PanelMismatchError, match="rows"):
+        compute_forecast(_bars()[:4000])
 
 
 def test_fit_failure_is_labelled_fallback(monkeypatch) -> None:
