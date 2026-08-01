@@ -33,6 +33,43 @@ const VIEWS: Array<[ConeView, string]> = [
   ["focused", "Next session"],
 ];
 
+// Panel chrome. `.section` / `.section-header` / `.section-body` is the repo-wide
+// container contract (globals.css) — the same one GexSubTab uses, which is why the
+// body padding is repeated here rather than inherited: `.section-body` ships with
+// `padding: 0` and each panel opts in (`.gex-panel .section-body { padding: 16px }`).
+function Shell({
+  meta,
+  header,
+  children,
+}: {
+  meta?: React.ReactNode;
+  header?: React.ReactNode;
+  children: React.ReactNode;
+}) {
+  return (
+    <div className="section" data-testid="spx-density-panel">
+      <div className="section-header">
+        <div className="section-title">
+          SPX 1–5D Density Cone
+          {meta}
+        </div>
+        {header}
+      </div>
+      <div
+        className="section-body"
+        style={{
+          padding: 16,
+          display: "flex",
+          flexDirection: "column",
+          gap: 10,
+        }}
+      >
+        {children}
+      </div>
+    </div>
+  );
+}
+
 export default function DensityConePanel() {
   const { data, loading, error } = useSpxDensity();
   const [view, setView] = useState<ConeView>("fan");
@@ -40,24 +77,22 @@ export default function DensityConePanel() {
 
   if (loading && !data) {
     return (
-      <div
-        data-testid="spx-density-panel"
-        style={{ color: MUTED, fontSize: 12 }}
-      >
-        Loading density cone…
-      </div>
+      <Shell>
+        <span style={{ color: MUTED, fontSize: 12 }}>
+          Loading density cone…
+        </span>
+      </Shell>
     );
   }
   if (error || !f) {
     return (
-      <div
-        data-testid="spx-density-panel"
-        style={{ color: MUTED, fontSize: 12 }}
-      >
-        {error
-          ? `Density cone unavailable: ${error}`
-          : "No density forecast issued yet."}
-      </div>
+      <Shell>
+        <span style={{ color: MUTED, fontSize: 12 }}>
+          {error
+            ? `Density cone unavailable: ${error}`
+            : "No density forecast issued yet."}
+        </span>
+      </Shell>
     );
   }
 
@@ -68,10 +103,9 @@ export default function DensityConePanel() {
   const head = rows[0];
 
   return (
-    <div className="section" data-testid="spx-density-panel">
-      <div className="section-header">
-        <div className="section-title">
-          SPX 1–5D Density Cone
+    <Shell
+      meta={
+        <>
           <span
             style={{
               fontFamily: "var(--font-mono)",
@@ -95,7 +129,9 @@ export default function DensityConePanel() {
               EWMA FALLBACK — GJR fit unavailable
             </span>
           )}
-        </div>
+        </>
+      }
+      header={
         <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
           <div
             style={{ display: "flex", gap: 4 }}
@@ -135,8 +171,8 @@ export default function DensityConePanel() {
             DISPLAY ONLY · NOT A TRADING SIGNAL
           </span>
         </div>
-      </div>
-
+      }
+    >
       <DensityConeChart
         forecast={f}
         recentPath={recent}
@@ -154,7 +190,6 @@ export default function DensityConePanel() {
           fontFamily: "var(--font-mono)",
           fontSize: 10,
           color: MUTED,
-          marginTop: 4,
         }}
       >
         {BAND_LEGEND.map(([label, opacity]) => (
@@ -190,7 +225,6 @@ export default function DensityConePanel() {
           display: "flex",
           gap: 14,
           flexWrap: "wrap",
-          marginTop: 6,
         }}
       >
         {view === "focused" && head && (
@@ -217,6 +251,6 @@ export default function DensityConePanel() {
           </span>
         )}
       </div>
-    </div>
+    </Shell>
   );
 }
