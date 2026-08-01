@@ -169,3 +169,18 @@ export function finiteDomain(
   if (count < 2) return null;
   return { lo, hi, count };
 }
+
+/**
+ * Filled band between two edges sharing x positions: upper drawn forward, lower
+ * reversed, closed into one polygon. No existing chart draws a two-edge band —
+ * added for the SPX density cone's nested quantile bands.
+ */
+export function pathFromBand(upper: Point[], lower: Point[]): string {
+  if (upper.length < 2 || lower.length < 2) return "";
+  const fwd = upper.map(([x, y], i) => `${i === 0 ? "M" : "L"}${x},${y}`).join(" ");
+  const back = [...lower]
+    .reverse()
+    .map(([x, y]) => `L${x},${y}`)
+    .join(" ");
+  return `${fwd} ${back} Z`;
+}
