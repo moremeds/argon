@@ -98,7 +98,14 @@ export default function DensityConeChart({
         // is needed to keep the content in place.
         rightOffset: view === "focused" ? 3 : 2,
       },
-      rightPriceScale: { borderColor: borderDim },
+      rightPriceScale: {
+        borderColor: borderDim,
+        // Headroom above and below the data. Without it lightweight-charts crops
+        // hard to the min/max, which makes candle bodies fill most of the pane and
+        // forces awkward gridline steps. ~14% each way leaves the price series
+        // sitting compactly in the middle with round-number gridlines.
+        scaleMargins: { top: 0.14, bottom: 0.14 },
+      },
       // Fixed frame: the window is a deliberate composition (14 sessions of context
       // + the 5-day cone), not something to navigate. Interaction is limited to the
       // crosshair.
