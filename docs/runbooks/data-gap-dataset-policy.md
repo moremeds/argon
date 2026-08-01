@@ -6,7 +6,7 @@ Generated from `REGISTRY` in `src/uw_scan/reports/data_gap_healer.py` (one sourc
 uv run python -c "from uw_scan.reports.data_gap_healer import render_dataset_policy_markdown as r; open('docs/runbooks/data-gap-dataset-policy.md','w').write(r())"
 ```
 
-**130 datasets** across 9 groups.
+**131 datasets** across 9 groups.
 
 ## core_watchlist
 
@@ -122,6 +122,7 @@ uv run python -c "from uw_scan.reports.data_gap_healer import render_dataset_pol
 | market_tide_sentiment_daily | strict_session | db | run_once_lookback | market_tide_sentiment | equity_session |  |
 | market_tide_snapshots | strict_session | none | none |  | equity_session | UW market-tide is current-session; historical heal TODO (audit-only) |
 | matrix_state_snapshots | freshness_only | none | none |  | equity_session | regime scanner output; re-derive needs historical inputs (audit-only) |
+| spx_density_forecast | research_artifact | db | none |  | equity_session | Display-only v13 density cone shadow log. Prospective rows are forward-in-time only; historical fill is origin='reconstructed' via scripts/backfill/spx_density_backfill.py. |
 | top_net_impact_snapshots | strict_session | none | none |  | equity_session | UW historical endpoint may return only current session; heal TODO |
 | vcg_snapshots | freshness_only | none | none |  | equity_session | regime scanner output; re-derive needs historical inputs (audit-only) |
 

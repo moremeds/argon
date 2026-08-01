@@ -322,6 +322,26 @@ REGISTRY: list[DatasetRegistryEntry] = [
         source_system="derived",
     ),
     DatasetRegistryEntry(
+        "spx_density_forecast",
+        "regime_marketwide",
+        # research_artifact, not strict_session: a prospective forecast for a past
+        # date cannot be healed retroactively BY DEFINITION -- a healed row would be
+        # origin='reconstructed', which the backfill script owns explicitly.
+        "research_artifact",
+        date_col="as_of",
+        ticker_col=None,
+        expected_frequency="equity_session",
+        provider="db",
+        granularity="none",
+        healer_adapter=None,
+        source_system="derived",
+        reason=(
+            "Display-only v13 density cone shadow log. Prospective rows are "
+            "forward-in-time only; historical fill is origin='reconstructed' via "
+            "scripts/backfill/spx_density_backfill.py."
+        ),
+    ),
+    DatasetRegistryEntry(
         "market_tide_snapshots",
         "regime_marketwide",
         "strict_session",
