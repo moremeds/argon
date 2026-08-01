@@ -31,6 +31,19 @@ postgres = [
   "psycopg[binary,pool]>=3.2",
 ]
 
+[tool.ruff.format]
+# Vendored VERBATIM from signal-lab (v13 density model) — bodies must stay
+# byte-identical to source; the golden parity test pins behaviour. Never format.
+# force-exclude makes the exclusion hold even when a hook passes the path explicitly.
+exclude = [
+  "src/uw_scan/density/constants.py",
+  "src/uw_scan/density/cone.py",
+  "src/uw_scan/density/fit.py",
+]
+
+[tool.ruff]
+force-exclude = true
+
 [dependency-groups]
 dev = [
   "pytest>=8.2",
