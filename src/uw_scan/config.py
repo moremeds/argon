@@ -404,6 +404,9 @@ class Settings(BaseModel):
     theta_harvester_enabled: bool = True
     # UW historical-alpha nightly capture (5 datasets, uw-0). Master kill switch.
     uw_alpha_capture_enabled: bool = False
+    # SPX 1-5d density cone (nightly 03:30 ET, massive-0). Display-only v13 port —
+    # zero UW/IB spend; reads vol_index_daily only.
+    spx_density_enabled: bool = False
     # Chanlun Phase B lifecycle engine (nightly 03:10 ET Tue-Sat, massive-0).
     chanlun_lifecycle_enabled: bool = False
     chanlun_anchor_tol: float = 0.0
@@ -920,6 +923,7 @@ class Settings(BaseModel):
             uw_alpha_capture_enabled=_env_bool(
                 "UW_SCAN_UW_ALPHA_CAPTURE_ENABLED", False
             ),
+            spx_density_enabled=_env_bool("UW_SCAN_SPX_DENSITY_ENABLED", False),
             chanlun_lifecycle_enabled=_env_bool(
                 "UW_SCAN_CHANLUN_LIFECYCLE_ENABLED", False
             ),
