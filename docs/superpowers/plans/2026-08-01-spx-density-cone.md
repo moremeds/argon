@@ -15,6 +15,38 @@
 
 **Recommended executor models** (orchestrator dispatches per task): Tasks 2, 3, 4, 6 are fidelity-critical → **opus**. All other tasks are mechanical pattern-following → **sonnet**. The orchestrator (Fable) reviews every task's diff before the next task starts, with special scrutiny on any diff touching `src/uw_scan/density/`.
 
+## Amendments during execution (2026-08-01)
+
+The plan below is kept as written; these five points are where reality overrode it. Read
+them before following any instruction they touch.
+
+1. **Constraint 2 / Task 4 — `== 0.0` throughout is not achievable.** It holds on the
+   platform the golden was produced on (macOS/arm64: worst delta still exactly 0.0) but not
+   on CI's Linux/x86-64, where a different BLAS lands the iterative GJR maximum-likelihood
+   fit on a marginally different stationary point (`omega` 1.1e-7 relative; the analytic
+   EWMA path 1 ULP). The gate now asserts **exactly** on everything discrete (panel index,
+   derived seed, `n_returns`, dates, labels, quantile row shape — where silent drift is
+   actually dangerous) and **bounds the float chain at 1e-6 relative**, printing the worst
+   observed delta each run. Spec §3.4 amended to match.
+2. **Task 6 — the `as_of` rail was too strict.** It refused any `as_of` inside the frozen
+   panel window, making the reconstructed backfill impossible (only the 4 sessions after
+   the panel's end qualified, so `--sessions 60` could never work). `seed_for(i)` is
+   panel-index arithmetic, so a rewind still yields that date's correct index — exactly what
+   v13's own backtest did. The rail now validates over the overlap; the shorter-than-panel
+   refusal is scoped to live runs, where it still catches a stale mirror.
+3. **Task 7 — cron is `tue-sat`, not daily** (chanlun's precedent), so Friday's close is
+   issued Saturday morning rather than waiting until Monday.
+4. **Task 9 — `web/lib/types.ts` full regen is correct**, contrary to the plan's surgical
+   procedure. The committed file was already in openapi-typescript 7.13.0 declaration order;
+   regen produced 206 additions and one deletion (an orphaned doc comment left by an earlier
+   hand-splice — evidence that surgical editing of generated files rots them).
+5. **Packaging + lint** — `[tool.setuptools.package-data]` needed a `uw_scan.density`
+   entry for the runtime panel (Docker copies `src/` so the deploy path was unaffected, but
+   a wheel install would have omitted it), `ruff format` needs `force-exclude = true` to
+   stay off the vendored modules, and the three vendored files are exempted by name in
+   `scripts/_lint_except.py` (Guardrail 2) because their bare `except Exception:` handlers
+   are frozen v13 behaviour.
+
 ## Global Constraints
 
 Every task's requirements implicitly include all of these.
