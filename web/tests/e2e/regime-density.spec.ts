@@ -25,8 +25,13 @@ test.describe("Regime Market Compass — SPX density cone", () => {
     await expect(panel).toBeVisible();
     const order = await tide.evaluate((root) => {
       const kids = Array.from(root.children);
-      return kids.findIndex((k) =>
-        k.querySelector('[data-testid="spx-density-panel"]'),
+      // matches() as well as querySelector(): the panel's own root carries the
+      // testid, and querySelector only searches DESCENDANTS, so a child that IS
+      // the target returns null and the index comes back -1.
+      return kids.findIndex(
+        (k) =>
+          k.matches('[data-testid="spx-density-panel"]') ||
+          k.querySelector('[data-testid="spx-density-panel"]'),
       );
     });
     expect(order).toBe(0);
