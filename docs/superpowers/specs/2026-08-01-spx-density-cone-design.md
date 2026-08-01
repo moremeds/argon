@@ -147,7 +147,7 @@ Two rails, both already present in `_forward_cone.py`:
    NUMERIC(14,4)` round-trip: SPX closes carry ≤2 decimals so the conversion is lossless today,
    and if that ever stops being true the check fires instead of the cone quietly shifting.
 
-### 3.4 The gate: a zero-tolerance golden parity test in CI
+### 3.4 The gate: a golden parity test in CI
 
 Behavioural, not textual — it tests what the code *does*, so an edit to a vendored line fails
 even if it looks harmless.
@@ -158,11 +158,29 @@ The fixture is reproducible **offline, with no lake and no network**: the commit
 `src/uw_scan/density/data/panel.parquet` — the runtime agreement rail needs it too; tests
 read the same file) plus those four rows reconstruct the exact 4,240-return input.
 
-Assertions, all `== 0.0`, never a tolerance:
+Assertions come in two classes (**amended 2026-08-01 during implementation** — the original
+spec said `== 0.0` throughout, which turned out to be unachievable across architectures):
+
+Exact, no tolerance ever — all bit-reproducible on any machine, and this is where the
+silent-drift risk actually lives:
 
 - `sha256(panel.parquet) == "bd95c2ab96610b49…"`
+- the panel index, the seed derived from it, `n_returns`
+- every `target_date`, `scored_horizon`, and the quantile row's shape/ordering
+
+Bounded at 1e-6 relative (`tests/unit/density/_parity.py`) — the float chain:
+
 - fitted params equal `forecast.json`'s `model.params`
 - `cum_return_q` equals `forecast.json`'s, every horizon × every quantile
+
+Why not exact: the fit is an iterative MLE, so a different BLAS lands on a marginally
+different stationary point. The golden was produced on macOS/arm64, where these still match
+bit-for-bit (verified: worst delta 0.0); on Linux/x86-64 CI, `omega` differs by 1.1e-7
+relative and the analytic EWMA path by one ULP. A structural port error — wrong variance lag,
+percent-vs-log, a different quantile method, a mis-derived seed — moves results by ≥1e-3, so
+the bound still catches every realistic vendoring mistake by three-plus orders of magnitude.
+Each run prints the worst observed relative delta so drift toward the bound is visible in CI
+output rather than only when it finally breaks.
 
 Three fixtures so all branches are covered: the GJR path, the EWMA fallback path (params forced
 `None`), and a short-history degraded case (`pool < min_pool + H`).
@@ -319,7 +337,7 @@ looks right is the failure mode this whole design is built against.
 
 | Level | Test |
 |---|---|
-| **Parity (the gate)** | `tests/unit/density/test_parity_golden.py` — 3 fixtures, `== 0.0` assertions, offline |
+| **Parity (the gate)** | `tests/unit/density/test_parity_golden.py` — 3 fixtures, exact on index/seed/dates + 1e-6 relative on the float chain (§3.4), offline |
 | Unit | series anchoring at 2009-09-18; agreement check rejects a 1-tick disagreement; `select_attempt` tie-breaks to lowest grid index; fallback labelling |
 | Integration | repository round-trip; job writes expected `(as_of, h)` rows; realised-fill pass sets `inside_band80` correctly |
 | Web unit | vitest on band-path geometry and the hit-rate tally splitting prospective vs reconstructed |

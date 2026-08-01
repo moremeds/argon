@@ -11,6 +11,7 @@ import pandas as pd
 import pytest
 
 import uw_scan.density.forecast as fc
+from tests.unit.density._parity import Drift
 from uw_scan.density.constants import seed_for
 from uw_scan.density.forecast import (
     PanelMismatchError,
@@ -51,40 +52,49 @@ def _bars() -> list[tuple[date, float]]:
     return bars
 
 
-def test_orchestrator_reproduces_committed_run_bit_identically() -> None:
+def test_orchestrator_reproduces_committed_run() -> None:
+    """Same two-class contract as test_parity_golden (see its module docstring):
+    discrete things exactly, the float chain inside REL_TOL — the golden was fitted on
+    macOS/arm64 and CI runs Linux/x86-64, where the MLE converges a hair differently."""
     result = compute_forecast(_bars())
+    # EXACT — dates, the index frame, the seed, the labels. These carry the drift risk
+    # and are reproducible bit-for-bit anywhere.
     assert result.as_of == date.fromisoformat(GOLDEN["anchor"]["date"])
-    assert result.anchor_close == GOLDEN["anchor"]["close"]
+    assert result.anchor_close == GOLDEN["anchor"]["close"]  # passthrough, not computed
     assert result.provenance["series_index"] == GOLDEN["anchor"]["series_index"]
+    assert result.provenance["n_returns"] == GOLDEN["anchor"]["n_returns"]
     assert result.seed == GOLDEN["model"]["cone_seed"]
     assert result.fallback_used is False
+
+    drift = Drift()
     for k, v in GOLDEN["model"]["params"].items():
-        assert result.params[k] - v == 0.0
-    assert (
-        result.params["persistence"]
-        - (
-            GOLDEN["model"]["params"]["alpha"]
-            + GOLDEN["model"]["params"]["gamma"] / 2.0
-            + GOLDEN["model"]["params"]["beta"]
-        )
-        == 0.0
+        drift.check(result.params[k], v, f"param {k}")
+    drift.check(
+        result.params["persistence"],
+        GOLDEN["model"]["params"]["alpha"]
+        + GOLDEN["model"]["params"]["gamma"] / 2.0
+        + GOLDEN["model"]["params"]["beta"],
+        "persistence",
     )
     for row, grow in zip(result.rows, GOLDEN["forecast"], strict=True):
         assert row["h"] == grow["h"]
         assert row["scored_horizon"] == grow["scored_horizon"]
         assert row["target_date"] == date.fromisoformat(grow["date"])
         for qs, col in QKEY.items():
-            assert row[col] - grow["cum_return_q"][qs] == 0.0
-        assert row["band80_width"] - grow["band80_width_return"] == 0.0
-        assert row["width_ratio"] - grow["width_ratio_vs_baseline"] == 0.0
+            drift.check(row[col], grow["cum_return_q"][qs], f"h{row['h']} {col}")
+        drift.check(row["band80_width"], grow["band80_width_return"], "band80_width")
+        drift.check(row["width_ratio"], grow["width_ratio_vs_baseline"], "width_ratio")
         # the arm-A EWMA baseline itself, not just the ratio derived from it
-        assert (
-            row["baseline_band80_width"] - grow["baseline_band80_width_return"] == 0.0
+        drift.check(
+            row["baseline_band80_width"],
+            grow["baseline_band80_width_return"],
+            "baseline_band80_width",
         )
         # golden stores the baseline as prices; reconstruct to pin every baseline quantile
         for qs, col in QKEY.items():
             want = grow["baseline_price_q"][qs] / GOLDEN["anchor"]["close"] - 1.0
-            assert abs(row[f"baseline_{col}"] - want) < 1e-12
+            drift.check(row[f"baseline_{col}"], want, f"h{row['h']} baseline_{col}")
+    drift.report("orchestrator vs committed 2026-08-01 run")
 
 
 def test_close_disagreement_refuses() -> None:

@@ -17,12 +17,19 @@ version in lockstep (enforced by `scripts/release/version_sync_check.py`).
   multi-start estimator, the arm registry) is vendored **byte-identical** from
   signal-lab @ `0f893513` into `src/uw_scan/density/`; `arch` is pinned to exactly
   `8.0.0` and `ruff format` is `force-exclude`d from those three modules so no
-  tool can rewrite a vendored line. Fidelity is enforced by a **zero-tolerance
-  golden parity test** in CI (`tests/unit/density/test_parity_golden.py`): it
-  replays the committed 2026-07-30 forward run offline — `panel.parquet` plus the
-  four post-panel bars recorded in the artifact reconstruct the exact
-  4,240-return input — and asserts every fitted parameter and all 35 cone
-  quantiles differ by `== 0.0`, never a tolerance. The EWMA fallback branch is
+  tool can rewrite a vendored line. Fidelity is enforced by a **golden parity
+  test** in CI (`tests/unit/density/test_parity_golden.py`): it replays the
+  committed 2026-07-30 forward run offline — `panel.parquet` plus the four
+  post-panel bars recorded in the artifact reconstruct the exact 4,240-return
+  input. The panel index, the seed derived from it, the digest, and every date and
+  label are asserted **exactly**; the float chain is bounded at 1e-6 relative.
+  That split is deliberate: the fitted parameters reproduce bit-identically on the
+  platform the research ran on (macOS/arm64) but not across architectures — on
+  Linux/x86-64 the iterative maximum-likelihood fit converges to a marginally
+  different stationary point (1.1e-7 relative on `omega`; 1 ULP on the analytic
+  EWMA path). The bound sits six-plus orders of magnitude below any structural
+  port error, and each run prints the worst observed delta so creep is visible.
+  The EWMA fallback branch is
   pinned against a fixture generated from signal-lab's _unvendored_ source, so a
   vendoring error cannot self-certify.
 - Nightly two-pass job at **03:30 ET Tue–Sat on massive-0** (after
