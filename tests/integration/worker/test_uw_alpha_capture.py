@@ -163,3 +163,31 @@ def test_gex_levels_capture_wrapper_real_path(
             (target,),
         )
         assert cur.fetchone()[0] == 1
+
+
+def test_gex_levels_capture_covers_offwatchlist_index(
+    seeded_db_empty_cards, _migrated_settings
+):
+    """SPX is swept even though it is not a watchlist ticker.
+
+    This is the whole point of `extra_tickers`: the density cone reads UW's precomputed
+    dealer levels for SPX, and a watchlist-only sweep left that table with zero SPX rows
+    while /api/health still reported 100% coverage (coverage is scoped to the watchlist).
+    """
+    repo = seeded_db_empty_cards
+    active = {c.ticker.upper() for c in repo.list_watchlist_cards()}
+    assert "SPX" not in active, "fixture regressed — SPX must be off-watchlist here"
+    assert "SPX" in _migrated_settings.gex_scan_tickers
+
+    summary = gex_levels_capture(
+        repo=repo,
+        client=_FakeUwClient(),
+        settings=_migrated_settings,
+        ticker_filter=lambda t: t == "SPX",
+    )
+    assert summary == {"tickers": 1, "rows": 1, "errors": 0}
+    with repo.conn.cursor() as cur:
+        cur.execute(
+            "SELECT count(*) FROM uw_scan.uw_gex_levels_daily WHERE ticker='SPX'"
+        )
+        assert cur.fetchone()[0] == 1

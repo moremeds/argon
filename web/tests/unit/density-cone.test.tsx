@@ -156,7 +156,30 @@ describe("DensityConePanel", () => {
     render(<DensityConePanel />);
     const note = await screen.findByTestId("cone-levels-note");
     expect(note.textContent).toContain("call_wall");
-    expect(note.textContent).toContain("wrong side of spot");
+    // Wording is deliberately cause-agnostic: `dropped` is fed by two different guards
+    // (wrong-side walls, far-from-spot gamma flip), so it states the outcome only.
+    expect(note.textContent).toContain("implausible vs spot");
+  });
+
+  it("discloses a gamma flip dropped for distance, not just walls", async () => {
+    // UW returned gamma_flip 8156.26 against a ~7490 spot — ~9% out. The API-side
+    // distance guard nulls it and names it; the panel must say so rather than simply
+    // rendering one fewer line.
+    (globalThis.fetch as ReturnType<typeof vi.fn>).mockResolvedValue({
+      ok: true,
+      json: async () => ({
+        ...LATEST,
+        gamma_levels: {
+          ...LATEST.gamma_levels,
+          gamma_flip: null,
+          dropped: ["gamma_flip"],
+        },
+      }),
+    });
+    render(<DensityConePanel />);
+    const note = await screen.findByTestId("cone-levels-note");
+    expect(note.textContent).toContain("gamma_flip");
+    expect(note.textContent).toContain("implausible vs spot");
   });
 
   it("counts close-only sessions instead of drawing invented candles", async () => {

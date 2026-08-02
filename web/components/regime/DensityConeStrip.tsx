@@ -16,7 +16,7 @@ const H = 110;
 const PAD = { top: 8, right: 8, bottom: 16, left: 8 };
 
 const COLORS = {
-  band: "var(--accent-vol, #7c6cf0)",
+  band: "var(--positive, #05ad98)",
   realised: "var(--accent-warm, #F5A623)",
   muted: "var(--text-muted)",
   good: "var(--positive, #22c55e)",
@@ -135,10 +135,27 @@ export default function DensityConeStrip() {
     return r ? `${r.inside}/${r.total}` : "0/0";
   };
 
+  // Same `.section` chrome as the GEX panel and the cone above it — the strip used to
+  // sit bare on the page background, which read as chart debris rather than a panel.
   return (
-    <div data-testid="spx-density-strip">
+    <div className="section" data-testid="spx-density-strip">
+      <div className="section-header">
+        <div className="section-title">Recent Cones vs Realised</div>
+        <span
+          style={{
+            fontFamily: "var(--font-mono)",
+            fontSize: 10,
+            color: COLORS.muted,
+          }}
+        >
+          80%-band hit rate (scored horizons) · prospective {fmt("prospective")}{" "}
+          · reconstructed {fmt("reconstructed")} (in-sample)
+        </span>
+      </div>
       <div
+        className="section-body"
         style={{
+          padding: 16,
           display: "grid",
           gridTemplateColumns: "repeat(auto-fit, minmax(150px, 1fr))",
           gap: 10,
@@ -147,17 +164,6 @@ export default function DensityConeStrip() {
         {forecasts.map((f) => (
           <MiniCone key={f.as_of} f={f} />
         ))}
-      </div>
-      <div
-        style={{
-          fontFamily: "var(--font-mono)",
-          fontSize: 10,
-          color: COLORS.muted,
-          marginTop: 6,
-        }}
-      >
-        80%-band hit rate (scored horizons) · prospective {fmt("prospective")} ·
-        reconstructed {fmt("reconstructed")} (in-sample)
       </div>
     </div>
   );

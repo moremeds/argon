@@ -22,7 +22,12 @@ import type {
 
 export type ConeView = "fan" | "focused";
 
-const HEIGHT = 360;
+// Height of the next-session view. The fan scales OFF this — see paneHeight.
+const BASE_HEIGHT = 360;
+// Ceiling for the fan. A cone whose h=5 tails blow out (a vol shock) would otherwise
+// demand a pane taller than the viewport; past this the fan does compress, which is
+// the right failure — an unscrollable chart is worse than an uneven candle scale.
+const MAX_HEIGHT = 620;
 
 // Outermost first so the inner, denser bands paint on top.
 const BANDS: Array<[keyof SpxDensityHorizon, keyof SpxDensityHorizon, number]> =
@@ -44,6 +49,46 @@ function cssVar(name: string, fallback: string): string {
  *  a correct chronological compare, which the whitespace filter below relies on. */
 const asTime = (d: string) => d as unknown as Time;
 
+/**
+ * Both views must render at the same price-range-per-pixel, or the fan's wider span
+ * squashes the identical candles it shares with the next-session view and the two
+ * pictures stop being comparable. The pane height is the only free variable that does
+ * not cost information: locking the fan to the near range would crop the h=5 90% band,
+ * which is the one thing the fan exists to show.
+ *
+ * scaleMargins is identical across views, so the ratio of DATA spans is the ratio of
+ * visible spans — no need to ask lightweight-charts what it autoscaled to.
+ */
+function paneHeight(
+  view: ConeView,
+  forecast: SpxDensityForecast,
+  recentPath: SpxPathPoint[],
+): number {
+  if (view === "focused") return BASE_HEIGHT;
+  const anchor = forecast.anchor_close;
+  const candles: number[] = [anchor];
+  for (const p of recentPath) {
+    candles.push(p.close);
+    if (p.high != null) candles.push(p.high);
+    if (p.low != null) candles.push(p.low);
+  }
+  // Price lines (dealer levels) are excluded on purpose: lightweight-charts does not
+  // autoscale to them either, so counting them here would overstate the span.
+  const span = (rows: SpxDensityHorizon[], withBaseline: boolean) => {
+    const v = [...candles];
+    for (const r of rows) {
+      v.push(anchor * (1 + r.q05), anchor * (1 + r.q95));
+      if (withBaseline)
+        v.push(anchor * (1 + r.baseline_q10), anchor * (1 + r.baseline_q90));
+    }
+    return Math.max(...v) - Math.min(...v);
+  };
+  const near = span(forecast.rows.slice(0, 1), false);
+  const full = span(forecast.rows, true);
+  if (!(near > 0) || !(full > near)) return BASE_HEIGHT;
+  return Math.min(MAX_HEIGHT, Math.round(BASE_HEIGHT * (full / near)));
+}
+
 function DensityConeChart({
   forecast,
   recentPath,
@@ -56,6 +101,7 @@ function DensityConeChart({
   view: ConeView;
 }) {
   const hostRef = useRef<HTMLDivElement>(null);
+  const height = paneHeight(view, forecast, recentPath);
 
   useEffect(() => {
     const el = hostRef.current;
@@ -65,11 +111,11 @@ function DensityConeChart({
     const borderDim = cssVar("--border-dim", "rgba(148,163,184,0.18)");
     const positive = cssVar("--positive", "#26a69a");
     const negative = cssVar("--negative", "#ef5350");
-    const bandBase = cssVar("--accent-vol", "#7c6cf0");
+    const bandBase = cssVar("--positive", "#05ad98");
 
     const chart = createChart(el, {
       autoSize: true,
-      height: HEIGHT,
+      height,
       layout: {
         background: { type: ColorType.Solid, color: "transparent" },
         textColor: muted,
@@ -89,13 +135,13 @@ function DensityConeChart({
       timeScale: {
         borderColor: borderDim,
         timeVisible: false,
-        // Blank bar-widths reserved right of the last point. Focused needs enough to
-        // hold the density silhouette; the fan just ungluess the h=5 edge from the
-        // price axis. NOT combined with fixRightEdge — that pins the last bar to the
-        // frame and silently cancels this offset, which left the profile with zero
-        // room and nothing drawn. Scroll/scale are already disabled, so no pinning
-        // is needed to keep the content in place.
-        rightOffset: view === "focused" ? 3 : 2,
+        // Blank bar-widths reserved right of the last point. Focused reserves the strip
+        // the density silhouette occupies; the fan reserves nothing — its h=5 edge IS
+        // the subject and any gap there just reads as dead space. NOT combined with
+        // fixRightEdge — that pins the last bar to the frame and silently cancels this
+        // offset, which left the profile with zero room and nothing drawn. Scroll/scale
+        // are already disabled, so no pinning is needed to keep the content in place.
+        rightOffset: view === "focused" ? 3 : 0,
       },
       rightPriceScale: {
         borderColor: borderDim,
@@ -155,10 +201,6 @@ function DensityConeChart({
     // for why a stale or duplicated target date must not reach the axis.
     const drawRows = drawableRows(coneRows, lastBarDate);
     const futureDates = drawRows.map((r) => r.target_date);
-    // The density silhouette hangs off the h=1 target date and grows into the blank
-    // space `rightOffset` reserves — so it is anchored to the date it describes, and
-    // no fictitious sessions are added to the axis to make room for it.
-    const profileAnchor = futureDates[futureDates.length - 1];
 
     const bars = recentPath.map((p) =>
       useCandles && p.open != null && p.high != null && p.low != null
@@ -233,23 +275,68 @@ function DensityConeChart({
           ]);
           primitives.push(block);
         }
-      }
 
-      if (head?.density && profileAnchor) {
-        const profile = new DensityProfile({
-          upColor: withAlpha(negative, 0.45),
-          downColor: withAlpha(positive, 0.45),
-          lineColor: withAlpha(muted, 0.7),
-          maxWidthPx: 115,
-          style: "curve",
+        // Flat baseline flush against the price axis, silhouette bulging LEFT into the
+        // pane — the volume-profile idiom. Hanging it off the h=1 date and growing
+        // right instead put the fat part of the distribution in the corner and left a
+        // dead gap against the axis.
+        if (head.density) {
+          const profile = new DensityProfile({
+            upColor: withAlpha(negative, 0.45),
+            downColor: withAlpha(positive, 0.45),
+            lineColor: withAlpha(muted, 0.7),
+            maxWidthPx: 115,
+            style: "curve",
+            anchor: "pane-right",
+            direction: "left",
+          });
+          series.attachPrimitive(profile);
+          profile.setProfile({
+            time: asTime(head.target_date), // ignored under anchor: "pane-right"
+            bars: densityBarsFromBins(head.density, anchor),
+            splitPrice: anchor,
+          });
+          primitives.push(profile);
+        }
+
+        // The two numbers the next-session view is read for, drawn as levels rather
+        // than left to the caption underneath. Deliberately not the median: the dotted
+        // p50 series already crosses the pane, and a third axis label collides with
+        // CALL WALL / γ FLIP, which are the levels that actually constrain a trade.
+        for (const [ret, color, title] of [
+          [head.q95, negative, "PROJ HIGH"],
+          [head.q05, positive, "PROJ LOW"],
+        ] as Array<[number, string, string]>) {
+          series.createPriceLine({
+            price: price(ret),
+            color,
+            lineWidth: 1,
+            lineStyle: LineStyle.Dashed,
+            axisLabelVisible: true,
+            title,
+          });
+        }
+
+        // Marks where the cone is issued FROM. Light, not black as in the reference
+        // shot: on this theme a black dot disappears whenever the close sits on a wick
+        // instead of a candle body.
+        const closeDot = chart.addSeries(LineSeries, {
+          color: cssVar("--text-primary", "#e2e8f0"),
+          lineVisible: false,
+          pointMarkersVisible: true,
+          pointMarkersRadius: 4,
+          priceLineVisible: false,
+          lastValueVisible: false,
+          crosshairMarkerVisible: false,
         });
-        series.attachPrimitive(profile);
-        profile.setProfile({
-          time: asTime(profileAnchor),
-          bars: densityBarsFromBins(head.density, anchor),
-          splitPrice: anchor,
-        });
-        primitives.push(profile);
+        closeDot.setData([
+          {
+            time: asTime(lastBarDate),
+            value: recentPath.length
+              ? recentPath[recentPath.length - 1].close
+              : anchor,
+          },
+        ] as never);
       }
     }
 
@@ -320,13 +407,13 @@ function DensityConeChart({
       for (const p of primitives) series.detachPrimitive(p);
       chart.remove();
     };
-  }, [forecast, recentPath, gammaLevels, view]);
+  }, [forecast, recentPath, gammaLevels, view, height]);
 
   return (
     <div
       ref={hostRef}
       data-testid="spx-density-chart"
-      style={{ width: "100%", height: HEIGHT }}
+      style={{ width: "100%", height }}
     />
   );
 }

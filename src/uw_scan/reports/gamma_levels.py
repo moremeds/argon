@@ -19,8 +19,11 @@ signal, it is a false one. So:
   * Either way a side-guard runs: a call wall at or below spot, or a put wall at or above
     spot, is DROPPED and named in `dropped`. A missing line is honest; a wrong one is not.
 
-Gamma flip is exempt from the guard — it legitimately sits on either side of spot (that is
-what makes it the flip), and its observed values track spot closely.
+Gamma flip is exempt from the SIDE guard — it legitimately sits on either side of spot,
+that is what makes it the flip. That left it with no guard at all, which turned out to
+matter: UW's `/gex-levels` returns `gamma_flip` null on most SPX sessions and, when it
+does resolve, a value 8-9% above spot. So it gets a DISTANCE guard instead — see
+`apply_flip_guard`.
 
 Not fixing cards/gex.py here on purpose: it feeds the GEX tab, the cockpit, dealer_regime
 and the AI prompt payloads, so changing its numbers is a far wider blast radius than a
@@ -39,6 +42,21 @@ from decimal import Decimal
 # would happily draw levels from a session months old, and the side-guard would not catch
 # it because those walls are consistent with THAT session's spot, not today's.
 LEVELS_MAX_AGE_DAYS = 7
+
+# How far from spot a gamma flip may sit and still be drawn, as a fraction of spot.
+#
+# 5% is a JUDGEMENT CALL, not a derived threshold. It was picked to keep everything that
+# behaves like a near-spot zero-gamma crossing (argon's own snapshots sit well inside 2%)
+# while rejecting what UW returns for SPX. Probed 2026-08-02 over eight sessions,
+# `/api/stock/SPX/gex-levels` gave gamma_flip null on six and 8109.8 / 8156.26 on the
+# other two — both ~8-9% above a ~7450-7490 spot, both non-round where every other field
+# in the same payload is a listed strike (7500 / 7300 / 6910). A fractional value that
+# far out is a root-find extrapolating past the traded strike range, not a crossing; it
+# also contradicts UW's own regime badge on the same screen, which read positive gamma
+# ("dampening") and so implies a flip at or below spot.
+#
+# Widen it if a legitimate flip is ever observed outside — but require the evidence.
+FLIP_MAX_DISTANCE_PCT = 0.05
 
 
 @dataclass(frozen=True)
@@ -83,6 +101,26 @@ def apply_side_guard(
     return call_wall, put_wall, dropped
 
 
+def apply_flip_guard(
+    *,
+    spot: float | None,
+    gamma_flip: float | None,
+) -> tuple[float | None, list[str]]:
+    """Drop a gamma flip too far from spot to be a credible zero-gamma crossing.
+
+    Distance, not side, is the discriminator here — see FLIP_MAX_DISTANCE_PCT for the
+    observations that set the threshold. With no spot there is nothing to measure
+    against, so the flip goes, same as the walls do.
+    """
+    if gamma_flip is None:
+        return None, []
+    if spot is None or spot <= 0:
+        return None, ["gamma_flip"]
+    if abs(gamma_flip - spot) / spot > FLIP_MAX_DISTANCE_PCT:
+        return None, ["gamma_flip"]
+    return gamma_flip, []
+
+
 def resolve_levels(
     *,
     uw_row: dict | None,
@@ -110,14 +148,17 @@ def resolve_levels(
         call_wall=_f(row.get("call_wall")),
         put_wall=_f(row.get("put_wall")),
     )
+    gamma_flip, flip_dropped = apply_flip_guard(
+        spot=spot, gamma_flip=_f(row.get("gamma_flip"))
+    )
     return GammaLevels(
         as_of=row.get("market_date") or row.get("data_date"),
         spot=spot,
         call_wall=call_wall,
         put_wall=put_wall,
-        gamma_flip=_f(row.get("gamma_flip")),
+        gamma_flip=gamma_flip,
         source=source,
-        dropped=dropped,
+        dropped=dropped + flip_dropped,
     )
 
 
