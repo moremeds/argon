@@ -193,6 +193,14 @@ MONITORED_TABLES: list[MonitoredTable] = [
         None,
         date_col_override="auction_date",
     ),
+    # SPX density cone (migration 111): nightly 03:30 ET issue, gated
+    # UW_SCAN_SPX_DENSITY_ENABLED. Ticker-less (SPX only, keyed as_of+h).
+    MonitoredTable(
+        "spx_density_forecast",
+        "watchlist",  # ticker-less
+        None,
+        date_col_override="as_of",
+    ),
     MonitoredTable("gold_posture_daily", "watchlist", None),  # ticker-less
     MonitoredTable(
         "uw_gold_options_daily",

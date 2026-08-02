@@ -44,6 +44,9 @@ export const regimeApi = {
   canaryHistory: (days: number) =>
     `${API}/api/regime/canary/history?days=${days}`,
   canaryValidation: () => `${API}/api/regime/canary/validation`,
+  spx_density: () => `${API}/api/regime/spx-density`,
+  spx_density_issued: (limit: number = 5) =>
+    `${API}/api/regime/spx-density/issued?limit=${limit}`,
   vrp_macro_signal: () => `${API}/api/regime/vrp-macro-signal`,
   vrp_macro_signal_live: () => `${API}/api/regime/vrp-macro-signal/live`,
   vrp_macro_entry_preview: () =>

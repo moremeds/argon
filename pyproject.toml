@@ -23,12 +23,26 @@ dependencies = [
   "pyyaml>=6.0",
   "websockets>=12.0",
   "scipy>=1.17.1",
+  "arch==8.0.0",
 ]
 
 [project.optional-dependencies]
 postgres = [
   "psycopg[binary,pool]>=3.2",
 ]
+
+[tool.ruff.format]
+# Vendored VERBATIM from signal-lab (v13 density model) — bodies must stay
+# byte-identical to source; the golden parity test pins behaviour. Never format.
+# force-exclude makes the exclusion hold even when a hook passes the path explicitly.
+exclude = [
+  "src/uw_scan/density/constants.py",
+  "src/uw_scan/density/cone.py",
+  "src/uw_scan/density/fit.py",
+]
+
+[tool.ruff]
+force-exclude = true
 
 [dependency-groups]
 dev = [
@@ -56,6 +70,10 @@ where = ["src"]
 
 [tool.setuptools.package-data]
 "uw_scan.cards" = ["data/*.json", "data/*.md"]
+# The frozen v13 research panel is read at RUNTIME (density/forecast.py hashes it and
+# checks the DB series against it before publishing a cone), so it must ship in the
+# wheel — without it the container refuses every run on the digest check.
+"uw_scan.density" = ["data/*.parquet"]
 
 [tool.pytest.ini_options]
 testpaths = ["tests"]

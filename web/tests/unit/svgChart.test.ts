@@ -3,6 +3,7 @@ import {
   finiteDomain,
   linearScale,
   niceTicks,
+  pathFromBand,
   pathFromNullablePoints,
   pathFromPoints,
 } from "@/lib/svgChart";
@@ -148,5 +149,36 @@ describe("svgChart helpers", () => {
       expect((out.match(/M/g) ?? []).length).toBe(1);
       expect((out.match(/L/g) ?? []).length).toBe(2);
     });
+  });
+});
+
+describe("pathFromBand", () => {
+  it("closes upper-forward + lower-reversed into one polygon", () => {
+    const d = pathFromBand(
+      [
+        [0, 10],
+        [10, 5],
+        [20, 0],
+      ],
+      [
+        [0, 10],
+        [10, 15],
+        [20, 20],
+      ],
+    );
+    expect(d).toBe("M0,10 L10,5 L20,0 L20,20 L10,15 L0,10 Z");
+  });
+
+  it("returns empty string when either edge is degenerate", () => {
+    expect(
+      pathFromBand(
+        [[0, 0]],
+        [
+          [0, 0],
+          [1, 1],
+        ],
+      ),
+    ).toBe("");
+    expect(pathFromBand([], [])).toBe("");
   });
 });

@@ -20,7 +20,9 @@ type RegimeTab =
   | "validation";
 
 const TABS: { id: RegimeTab; label: string }[] = [
-  { id: "tide", label: "Market Tide" },
+  // Label only — the id stays "tide" so existing /regime/tide deep links, the default
+  // tab fallback in coerce(), and the e2e specs keep working.
+  { id: "tide", label: "Market Compass" },
   { id: "gex", label: "Gamma Exposure" },
   { id: "cri", label: "Crash Risk Index" },
   { id: "vcg", label: "Volatility-Credit Gap" },

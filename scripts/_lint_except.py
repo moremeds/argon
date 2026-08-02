@@ -13,6 +13,28 @@ import ast
 import sys
 from pathlib import Path
 
+#: Verbatim-vendored numeric modules (the signal-lab v13 SPX density port). Their bodies
+#: are byte-identical to signal-lab @ 0f893513 by design — see the header of
+#: src/uw_scan/density/cone.py — so the two bare `except Exception:` handlers inside the v8
+#: estimator (`_attempt`, `fit_gjr`) cannot be given logging without making argon's copy a
+#: different estimator from the one v13 validated. Both are deliberate: returning a rejected
+#: `Attempt`/None is how a failed fit routes to the labelled `degraded` fallback, and the
+#: research records the rejection through its channel field rather than through a log line.
+#: Behaviour is pinned instead by the zero-tolerance golden parity test
+#: (tests/unit/density/test_parity_golden.py), which is a stronger guarantee than this rule.
+#: Listed file by file, never as a directory glob — a new non-vendored module under
+#: density/ must still be checked.
+_VENDORED_EXEMPT = (
+    "uw_scan/density/constants.py",
+    "uw_scan/density/cone.py",
+    "uw_scan/density/fit.py",
+)
+
+
+def _is_vendored(path: Path) -> bool:
+    posix = path.as_posix()
+    return any(posix.endswith(suffix) for suffix in _VENDORED_EXEMPT)
+
 
 def _names_in_node(node: ast.AST) -> set[str]:
     out: set[str] = set()
@@ -77,6 +99,8 @@ def main(argv: list[str]) -> int:
             print(f"skip (not found): {p}", file=sys.stderr)
             continue
         for py in p.rglob("*.py"):
+            if _is_vendored(py):
+                continue
             all_errors.extend(lint_file(py))
 
     if all_errors:

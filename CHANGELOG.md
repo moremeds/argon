@@ -7,14 +7,143 @@ version in lockstep (enforced by `scripts/release/version_sync_check.py`).
 
 ## [Unreleased]
 
-## [0.10.18] — 2026-07-29
+### Added
 
+- **SPX 1–5 day conditional density cone on Regime → Market Compass** — signal-lab's
+  v13 GJR-GARCH(1,1,1) short-horizon density model (run
+  `2026-08-01-spx-density-v13`, verdict **PASS**) ported into argon as a
+  **display-only** fan chart plus a prospective shadow log. The numeric core
+  (~370 lines: constants, the standardised-residual block-bootstrap cone, the v8
+  multi-start estimator, the arm registry) is vendored **byte-identical** from
+  signal-lab @ `0f893513` into `src/uw_scan/density/`; `arch` is pinned to exactly
+  `8.0.0` and `ruff format` is `force-exclude`d from those three modules so no
+  tool can rewrite a vendored line. Fidelity is enforced by a **golden parity
+  test** in CI (`tests/unit/density/test_parity_golden.py`): it replays the
+  committed 2026-07-30 forward run offline — `panel.parquet` plus the four
+  post-panel bars recorded in the artifact reconstruct the exact 4,240-return
+  input. The panel index, the seed derived from it, the digest, and every date and
+  label are asserted **exactly**; the float chain is bounded at 1e-6 relative.
+  That split is deliberate: the fitted parameters reproduce bit-identically on the
+  platform the research ran on (macOS/arm64) but not across architectures — on
+  Linux/x86-64 the iterative maximum-likelihood fit converges to a marginally
+  different stationary point (1.1e-7 relative on `omega`; 1 ULP on the analytic
+  EWMA path). The bound sits six-plus orders of magnitude below any structural
+  port error, and each run prints the worst observed delta so creep is visible.
+  The EWMA fallback branch is
+  pinned against a fixture generated from signal-lab's _unvendored_ source, so a
+  vendoring error cannot self-certify.
+- Nightly two-pass job at **03:30 ET Tue–Sat on massive-0** (after
+  `vol_index_lake_sync` at 03:15): pass 1 settles any row whose H-th subsequent
+  trading day has closed, pass 2 issues today's cone — settle-first, so an issue
+  failure never blocks outcome recording. Zero UW/IB spend; reads
+  `vol_index_daily` only. Gated `UW_SCAN_SPX_DENSITY_ENABLED`, **default off**.
+- New table `uw_scan.spx_density_forecast` (migration `111`), enrolled in both the
+  freshness monitor and the gap-healer registry. Read-only routes
+  `GET /api/regime/spx-density` and `/spx-density/issued`, rendering a headline
+  cone plus a 5-up strip of previously issued cones with IN/OUT badges and
+  80%-band hit-rate tallies split prospective vs reconstructed (the latter is
+  in-sample by construction and is labelled as such).
+- **The panel-index alignment rail** — `seed_for(i)` is arithmetic on the frozen
+  panel's index, and argon's SPX history starts in 1975 versus the panel's
+  2009-09-18, so feeding the full series would silently change every seed and
+  every bootstrap draw with no error. `compute_forecast` anchors at
+  `PANEL_FIRST_DATE` and requires positional **date** equality _and_ exact close
+  equality across the whole panel window before it will publish; either failing
+  raises `PanelMismatchError` and the job records `error: panel_mismatch` rather
+  than drawing a cone.
+- Committed research trace `docs/research/spx-density-cone/refit_staleness.json`
+  (reproduce: `uv run python scripts/research/spx_density_refit_staleness.py`):
+  63-day-old parameters move the 80% band by at most **0.77 bp** on a 240–510 bp
+  band, so the daily refit is a cheap convenience rather than a requirement.
+- Backfill `scripts/backfill/spx_density_backfill.py --sessions N` seeds
+  `origin='reconstructed'` history through the same `compute_forecast` path. The
+  rail validates over the overlap rather than demanding the full panel window, so
+  an `as_of` _inside_ the panel is a legitimate rewind — the prefix still starts at
+  panel row 0, so the index (and therefore the seed) is unchanged. The
+  "shorter than the panel" refusal is scoped to live runs, where a short series
+  means a stale mirror rather than a deliberate rewind.
+- **The cone renders on lightweight-charts, with candles and two views.** The
+  hand-rolled SVG is replaced by `components/regime/DensityConeChart.tsx` — the
+  second documented exception to the no-chart-library rule (after the Technicals
+  price pane), taken because the panel needs a real dated x-axis, OHLC
+  candlesticks, and price-line overlays that `lib/svgChart.ts` does not provide.
+  It reuses the vendored `lib/lwc/bandsIndicator.ts` for the cone and adds
+  `lib/lwc/densityProfile.ts`, a small primitive that draws the simulated
+  distribution as a filled silhouette. **1–5 day fan** (default) shows the
+  widening cone against the EWMA baseline; **Next session** shows the incoming
+  session alone as nested probability blocks plus its density. The frame is fixed
+  — scroll and zoom are off — so the window is a composition rather than
+  something to navigate. Legend labels quote the **actual** persisted spans
+  (90% = q05–q95, 80% = q10–q90, 50% = q25–q75) and are deliberately not
+  relabelled to the more familiar 95/68/50 of a Gaussian chart, which would claim
+  coverage v13 never validated.
+- **Per-horizon simulated density is now persisted** (migration `112`,
+  `spx_density_forecast.density_bins_jsonb`): a 64-bin histogram of the same
+  10,000 Monte-Carlo draws the quantiles come from, taken straight off
+  `Cone.samples`, which the vendored code already carried for signal-lab's own
+  CRPS/PIT metrics. Purely additive read-out — it cannot move a quantile, and the
+  parity gate is untouched. A test integrates the histogram up to each published
+  quantile and asserts the mass landing there matches that quantile's
+  probability, so a future refactor cannot quietly histogram a _different_
+  simulation. Nullable: cones issued before `112` render bands only.
+  `spx_density_backfill.py --force` repopulates existing rows.
+- **Dealer levels on the chart, with a side-guard** — call wall, put wall and
+  gamma flip drawn as price lines, resolved by `reports/gamma_levels.py` from
+  `uw_gex_levels_daily` (UW's own, primary) falling back to `gex_snapshots`.
+  Argon's own wall computation (`cards/gex.py`) takes a plain argmax over all
+  strikes with **no constraint that the call wall sit above spot**; on SPX
+  2026-07-23…07-28 that produced `call_wall == put_wall == 7000` against a 7,383
+  spot. A "resistance" line below spot is a false statement, not a weak one, so a
+  wall on the wrong side of spot is dropped and named in `dropped` rather than
+  drawn. Gamma flip is exempt — it legitimately sits either side. The root cause
+  in `cards/gex.py` is left alone here on purpose: it feeds the GEX tab, the
+  cockpit, `dealer_regime` and the AI prompt payloads, so changing its numbers is
+  a far wider blast radius than a chart overlay.
+- `GET /api/regime/spx-density` now returns OHLC on `recent_path` (nullable —
+  `vol_index_daily` carries close-only rows, and those sessions are dropped from
+  the candle series rather than having a bar manufactured from the close), plus
+  `gamma_levels` and per-horizon `density`.
+- **Four bounds the review pass added, each closing a way the panel could state
+  something it had not checked.** (1) `vol_index_daily.close` is nullable, and a
+  NULL arrives as NaN — which would sail straight *through* the alignment rail,
+  because the max disagreement becomes NaN and `NaN > 0` is `False`. A series
+  with a hole in it would have passed the "exact agreement" check that a
+  one-cent error fails, then been fitted under the same index and seed as a
+  different model. Non-finite closes are now rejected before the rail runs.
+  (2) Dealer levels carry `LEVELS_MAX_AGE_DAYS = 7` and the side-guard now
+  measures against the price the chart is actually drawn at, not the level row's
+  own spot — an unbounded `market_date <= as_of` lookback would happily draw
+  walls from a session months old, and the guard would not catch them because
+  they are consistent with *that* session's spot. (3) The backfill refuses to
+  touch any session the nightly job issued prospectively, even under `--force`:
+  `upsert_rows` updates `origin` on conflict, so a recompute would relabel a
+  genuinely out-of-sample cone as reconstructed and quietly inflate the only
+  honest hit-rate number on the page. (4) Cone horizons at or before the last
+  real bar are dropped rather than drawn over sessions whose outcome is already
+  known, which also removes the duplicate `target_date` the settle pass can
+  produce when a holiday falls inside the window — lightweight-charts asserts
+  strictly ascending times only in its *development* bundle, so in production a
+  duplicate renders a degenerate series instead of failing loudly.
+
+### Changed
+
+- **Regime tab `Market Tide` renamed `Market Compass`**, and the density cone now
+  leads the tab ahead of the tide charts. The tab id stays `tide`, so
+  `/regime/tide` deep links keep working. The cone also moved out of the market
+  tide section body: it had been nested inside that section's loading branch, so
+  an unrelated slow tide fetch blanked it, and the "Market Tide" heading claimed
+  a panel that is not market tide. It now carries its own
+  `.section` / `.section-header` / `.section-body` chrome, matching the Gamma
+  Exposure tab — the body padding is repeated on the panel rather than inherited
+  because `.section-body` ships `padding: 0` and each panel opts in.
+
+## [0.10.18] — 2026-07-29
 
 ### Added
 
 - **`option_surface_research_catchup` — the cohort's history fills itself** —
   new job at **03:20 ET weekdays on uw-0**. The 19:10 capture only writes
-  *tonight*; a freshly-seeded cohort therefore starts with an empty past while
+  _tonight_; a freshly-seeded cohort therefore starts with an empty past while
   UW's ~180-day window decays out from under it at a day per day. This walks that
   window and fills what is missing, ≤`OPTION_SURFACE_RESEARCH_CATCHUP_MAX_CALLS`
   (default 1500) per night — ~6 nights for the 37-name cohort — then finds no
@@ -37,6 +166,7 @@ version in lockstep (enforced by `scripts/release/version_sync_check.py`).
   watchlist, to buy a one-time fill. The healer is right to be exhaustive; that
   is its job. The cohort table exists so research sampling cannot silently
   promote itself to production completeness.
+
 - **Research ticker cohorts + nightly capture for them** — migration `110` adds
   `uw_scan.research_universe` (cohort / ticker / sector / marketcap / option_oi,
   point-in-time tagged). Deliberately **not** the watchlist: watchlist membership
@@ -80,7 +210,7 @@ version in lockstep (enforced by `scripts/release/version_sync_check.py`).
   `scripts/research/theta_harvester_weight_sweep.py` (291 configs, cross-
   sectional IC as the primary metric, plus an unconditional control arm).
 
-  **The verdict is negative and the UI says so.** The score *orders*
+  **The verdict is negative and the UI says so.** The score _orders_
   (IC +0.075, t 6.35) but the set it selects does not pay, and the control arm
   — every candidate, no score — lost money too (monthly mean −0.8%,
   Sharpe −1.67). This ships as a **research artifact, not a trade surface**:
@@ -88,6 +218,7 @@ version in lockstep (enforced by `scripts/release/version_sync_check.py`).
   defined-risk-only rule, and the sub-tab carries a permanent banner saying
   both. Full method and tables:
   `docs/research/2026-07-28-theta-harvester-weight-sweep.md`.
+
 - **Loss anatomy + a matched condor-vs-strangle sweep** —
   `docs/research/2026-07-29-theta-harvester-loss-anatomy.md` and
   `scripts/research/theta_harvester_condor_sweep.py` /
@@ -99,7 +230,7 @@ version in lockstep (enforced by `scripts/release/version_sync_check.py`).
   condor sweep prices the fix rather than asserting it — matched samples at
   three wing widths with real wing costs from the grid put the cost of
   defined-risk compliance at **6–15 bp of spot per trade**; the verdict is
-  *don't adopt the condor for P&L, do adopt it for defined risk*. The sweep
+  _don't adopt the condor for P&L, do adopt it for defined risk_. The sweep
   script enforces four anti-trap rules in code (matched samples, Sharpe carries
   its standard error, the sample window is a reported metric, small predeclared
   grid) so radon's "Sharpe 2.23 over 3 months with a negative IC" trap cannot
@@ -119,19 +250,20 @@ version in lockstep (enforced by `scripts/release/version_sync_check.py`).
   against a mismatched scale — a 20-for-1 split put one ticker's adjusted close
   at ~$21 while its strikes still spanned 125–1900. Guarded at entry (strike-
   range containment) and at settlement (`MAX_SETTLEMENT_MOVE`).
+
 ## [0.10.17] — 2026-07-29
 
 ### Added
 
 - **Calm-core band on the VCG z-score history chart** — `|z| < 0.75` shaded
   behind the bars. The chart previously drew only the ±2.0 / ±2.5 arming rules,
-  which is the *weaker* end of the evidence: the tails carry no directional
+  which is the _weaker_ end of the evidence: the tails carry no directional
   signal (max |t| vs rest = 1.10 over 30 cells) and their forward-vol lift is
   crisis-driven, with a median of just +2.1pt. The calm core is the half that
   survived walk-forward, so the chart was loudest exactly where the evidence is
   thinnest and silent where it is strongest. Drawn as a band, not a rule — it
   is a standing condition, not an event — and labelled as a short-vol
-  *permission condition on ~20-day holds*, not an entry trigger, because it
+  _permission condition on ~20-day holds_, not an entry trigger, because it
   reverses on 0.25Δ/30d. Regression-tested for presence, zero-centring, and
   being narrower than the ±2.0 rules; the test was confirmed to fail with the
   band removed.
@@ -173,7 +305,7 @@ version in lockstep (enforced by `scripts/release/version_sync_check.py`).
     76 trades vs 126, annual ROR **0.83 vs 1.31**. Sharpe rewards not losing,
     and not trading is the cheapest way not to lose.
   - Same harness, same folds, same universe across arms; VIX percentile ranked
-    strictly *prior* to each entry date so the cheap rival gets no look-ahead.
+    strictly _prior_ to each entry date so the cheap rival gets no look-ahead.
 
 - **Walk-forward validation of the VCG calm gate**
   (`docs/research/2026-07-29-vrp-vcg-calm-gate-walkforward.md`,
@@ -244,6 +376,7 @@ version in lockstep (enforced by `scripts/release/version_sync_check.py`).
   had the identical copy-pasted bug — dormant only because their sole `as_of`
   caller (`recover_recent_gaps`) stays inside the `days * 2` fudge buffer.
   Regression tests cover all three and fail against the old code.
+
 ## [0.10.15] — 2026-07-28
 
 ### Changed

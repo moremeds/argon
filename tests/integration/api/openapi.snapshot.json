@@ -15266,6 +15266,450 @@
         "title": "SourceReconciliationRow",
         "type": "object"
       },
+      "SpxDensityBins": {
+        "description": "Histogram of the Monte-Carlo draws behind one horizon, in cumulative simple-return\nunits (the same units as q05..q95). Bin i spans\n[lo + i*(hi-lo)/n_bins, lo + (i+1)*(hi-lo)/n_bins).\n\n`lo`/`hi` are the 0.5th/99.5th percentile of the draws, not the min/max, so one tail\npath cannot squash the body; `clipped` is how many draws fell outside.",
+        "properties": {
+          "clipped": {
+            "title": "Clipped",
+            "type": "integer"
+          },
+          "counts": {
+            "items": {
+              "type": "integer"
+            },
+            "title": "Counts",
+            "type": "array"
+          },
+          "hi": {
+            "title": "Hi",
+            "type": "number"
+          },
+          "lo": {
+            "title": "Lo",
+            "type": "number"
+          },
+          "n_bins": {
+            "title": "N Bins",
+            "type": "integer"
+          },
+          "total": {
+            "title": "Total",
+            "type": "integer"
+          }
+        },
+        "required": [
+          "lo",
+          "hi",
+          "n_bins",
+          "counts",
+          "total",
+          "clipped"
+        ],
+        "title": "SpxDensityBins",
+        "type": "object"
+      },
+      "SpxDensityForecast": {
+        "description": "One issued cone: five horizon rows anchored on a single trade date.",
+        "properties": {
+          "anchor_close": {
+            "title": "Anchor Close",
+            "type": "number"
+          },
+          "as_of": {
+            "format": "date",
+            "title": "As Of",
+            "type": "string"
+          },
+          "fallback_used": {
+            "title": "Fallback Used",
+            "type": "boolean"
+          },
+          "origin": {
+            "title": "Origin",
+            "type": "string"
+          },
+          "params": {
+            "anyOf": [
+              {
+                "additionalProperties": {
+                  "type": "number"
+                },
+                "type": "object"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Params"
+          },
+          "rows": {
+            "items": {
+              "$ref": "#/components/schemas/SpxDensityHorizon"
+            },
+            "title": "Rows",
+            "type": "array"
+          }
+        },
+        "required": [
+          "as_of",
+          "anchor_close",
+          "origin",
+          "fallback_used",
+          "rows"
+        ],
+        "title": "SpxDensityForecast",
+        "type": "object"
+      },
+      "SpxDensityHitRate": {
+        "properties": {
+          "inside": {
+            "title": "Inside",
+            "type": "integer"
+          },
+          "origin": {
+            "title": "Origin",
+            "type": "string"
+          },
+          "total": {
+            "title": "Total",
+            "type": "integer"
+          }
+        },
+        "required": [
+          "origin",
+          "inside",
+          "total"
+        ],
+        "title": "SpxDensityHitRate",
+        "type": "object"
+      },
+      "SpxDensityHorizon": {
+        "description": "One horizon row of a cone: quantiles, the EWMA baseline, and its outcome.",
+        "properties": {
+          "band80_width": {
+            "title": "Band80 Width",
+            "type": "number"
+          },
+          "baseline_band80_width": {
+            "title": "Baseline Band80 Width",
+            "type": "number"
+          },
+          "baseline_q05": {
+            "title": "Baseline Q05",
+            "type": "number"
+          },
+          "baseline_q10": {
+            "title": "Baseline Q10",
+            "type": "number"
+          },
+          "baseline_q25": {
+            "title": "Baseline Q25",
+            "type": "number"
+          },
+          "baseline_q50": {
+            "title": "Baseline Q50",
+            "type": "number"
+          },
+          "baseline_q75": {
+            "title": "Baseline Q75",
+            "type": "number"
+          },
+          "baseline_q90": {
+            "title": "Baseline Q90",
+            "type": "number"
+          },
+          "baseline_q95": {
+            "title": "Baseline Q95",
+            "type": "number"
+          },
+          "density": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/SpxDensityBins"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "h": {
+            "title": "H",
+            "type": "integer"
+          },
+          "inside_band80": {
+            "anyOf": [
+              {
+                "type": "boolean"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Inside Band80"
+          },
+          "q05": {
+            "title": "Q05",
+            "type": "number"
+          },
+          "q10": {
+            "title": "Q10",
+            "type": "number"
+          },
+          "q25": {
+            "title": "Q25",
+            "type": "number"
+          },
+          "q50": {
+            "title": "Q50",
+            "type": "number"
+          },
+          "q75": {
+            "title": "Q75",
+            "type": "number"
+          },
+          "q90": {
+            "title": "Q90",
+            "type": "number"
+          },
+          "q95": {
+            "title": "Q95",
+            "type": "number"
+          },
+          "realised_return": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Realised Return"
+          },
+          "scored_horizon": {
+            "title": "Scored Horizon",
+            "type": "boolean"
+          },
+          "target_date": {
+            "format": "date",
+            "title": "Target Date",
+            "type": "string"
+          },
+          "width_ratio": {
+            "title": "Width Ratio",
+            "type": "number"
+          }
+        },
+        "required": [
+          "h",
+          "target_date",
+          "scored_horizon",
+          "q05",
+          "q10",
+          "q25",
+          "q50",
+          "q75",
+          "q90",
+          "q95",
+          "baseline_q05",
+          "baseline_q10",
+          "baseline_q25",
+          "baseline_q50",
+          "baseline_q75",
+          "baseline_q90",
+          "baseline_q95",
+          "band80_width",
+          "baseline_band80_width",
+          "width_ratio"
+        ],
+        "title": "SpxDensityHorizon",
+        "type": "object"
+      },
+      "SpxDensityIssuedResponse": {
+        "properties": {
+          "forecasts": {
+            "items": {
+              "$ref": "#/components/schemas/SpxDensityForecast"
+            },
+            "title": "Forecasts",
+            "type": "array"
+          },
+          "hit_rates": {
+            "items": {
+              "$ref": "#/components/schemas/SpxDensityHitRate"
+            },
+            "title": "Hit Rates",
+            "type": "array"
+          }
+        },
+        "title": "SpxDensityIssuedResponse",
+        "type": "object"
+      },
+      "SpxDensityLatestResponse": {
+        "properties": {
+          "disclaimer": {
+            "default": "Display-only fan chart (v13 PASS). Not a trading signal; the median is not a direction call; the band is not claimed tighter than EWMA.",
+            "title": "Disclaimer",
+            "type": "string"
+          },
+          "forecast": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/SpxDensityForecast"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "gamma_levels": {
+            "$ref": "#/components/schemas/SpxGammaLevels"
+          },
+          "recent_path": {
+            "items": {
+              "$ref": "#/components/schemas/SpxDensityPathPoint"
+            },
+            "title": "Recent Path",
+            "type": "array"
+          }
+        },
+        "title": "SpxDensityLatestResponse",
+        "type": "object"
+      },
+      "SpxDensityPathPoint": {
+        "description": "One SPX session. open/high/low are nullable: vol_index_daily carries close-only\nrows, and the chart drops those sessions from the candle series rather than\nmanufacturing a bar out of the close.",
+        "properties": {
+          "close": {
+            "title": "Close",
+            "type": "number"
+          },
+          "date": {
+            "format": "date",
+            "title": "Date",
+            "type": "string"
+          },
+          "high": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "High"
+          },
+          "low": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Low"
+          },
+          "open": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Open"
+          }
+        },
+        "required": [
+          "date",
+          "close"
+        ],
+        "title": "SpxDensityPathPoint",
+        "type": "object"
+      },
+      "SpxGammaLevels": {
+        "description": "Dealer levels for the chart overlay. Any field may be None \u2014 a level that failed\nthe side-guard is omitted and named in `dropped`, never drawn on the wrong side of\nspot. See reports/gamma_levels.py for why the guard exists.",
+        "properties": {
+          "as_of": {
+            "anyOf": [
+              {
+                "format": "date",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "As Of"
+          },
+          "call_wall": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Call Wall"
+          },
+          "dropped": {
+            "items": {
+              "type": "string"
+            },
+            "title": "Dropped",
+            "type": "array"
+          },
+          "gamma_flip": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Gamma Flip"
+          },
+          "put_wall": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Put Wall"
+          },
+          "source": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Source"
+          },
+          "spot": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Spot"
+          }
+        },
+        "title": "SpxGammaLevels",
+        "type": "object"
+      },
       "StockHistoryResponse": {
         "properties": {
           "rows": {
@@ -23630,7 +24074,7 @@
   },
   "info": {
     "title": "UW Watchlist API",
-    "version": "0.10.8"
+    "version": "0.10.18"
   },
   "openapi": "3.1.0",
   "paths": {
@@ -25486,6 +25930,74 @@
           }
         },
         "summary": "Trigger Cri Scan",
+        "tags": [
+          "regime"
+        ]
+      }
+    },
+    "/api/regime/spx-density": {
+      "get": {
+        "description": "Latest issued SPX density cone (display-only, v13 PASS). Renders the most recent\nrow with its as_of \u2014 never interpolates a missing day.",
+        "operationId": "get_spx_density_api_regime_spx_density_get",
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/SpxDensityLatestResponse"
+                }
+              }
+            },
+            "description": "Successful Response"
+          }
+        },
+        "summary": "Get Spx Density",
+        "tags": [
+          "regime"
+        ]
+      }
+    },
+    "/api/regime/spx-density/issued": {
+      "get": {
+        "description": "The previously-issued cones (strip) + the cumulative 80%-band hit-rate tally,\nsplit prospective vs reconstructed (the latter is in-sample by construction).",
+        "operationId": "get_spx_density_issued_api_regime_spx_density_issued_get",
+        "parameters": [
+          {
+            "in": "query",
+            "name": "limit",
+            "required": false,
+            "schema": {
+              "default": 5,
+              "maximum": 20,
+              "minimum": 1,
+              "title": "Limit",
+              "type": "integer"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/SpxDensityIssuedResponse"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Get Spx Density Issued",
         "tags": [
           "regime"
         ]

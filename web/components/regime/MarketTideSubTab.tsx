@@ -4,6 +4,8 @@ import { Activity } from "lucide-react";
 import { MarketState } from "@/lib/regime/useMarketHours";
 import { useMarketTide } from "@/lib/regime/useMarketTide";
 import { useTopNetImpact } from "@/lib/regime/useTopNetImpact";
+import DensityConePanel from "./DensityConePanel";
+import DensityConeStrip from "./DensityConeStrip";
 import InfoTooltip from "./InfoTooltip";
 import { MarketTideChart } from "./MarketTideChart";
 import { MarketTideDailyChart } from "./MarketTideDailyChart";
@@ -35,77 +37,91 @@ export default function MarketTideSubTab({ marketState }: Props) {
   const priorData = data ? { ...data, sessions: sessions.slice(0, -1) } : null;
 
   return (
-    <div className="section" data-testid="market-tide-subtab">
-      <div className="section-header">
-        <div className="section-title">
-          <Activity size={14} />
-          Market Tide{latest ? ` — ${latest.date}` : ""}
-          <InfoTooltip
-            text={GUIDE}
-            triggerTestId="market-tide-section-tooltip-trigger"
-            contentTestId="market-tide-section-tooltip-content"
-          />
-        </div>
-        {lastSync && (
-          <span
-            style={{
-              fontFamily: "var(--font-mono)",
-              fontSize: 10,
-              color: "var(--text-muted)",
-            }}
-          >
-            {new Date(lastSync).toLocaleTimeString()}
-          </span>
-        )}
-      </div>
+    <div
+      data-testid="market-tide-subtab"
+      style={{ display: "flex", flexDirection: "column", gap: 16 }}
+    >
+      {/* The cone leads the tab, in its own section and on its own hook. It used to sit
+          inside market tide's section body AND inside its loading branch, so an
+          unrelated slow fetch blanked it and the "Market Tide" heading claimed it. */}
+      <DensityConePanel />
+      <DensityConeStrip />
 
-      <div
-        className="section-body"
-        style={{ display: "flex", flexDirection: "column", gap: 16 }}
-      >
-        {error && (
-          <div data-testid="market-tide-error" style={{ fontSize: 11 }}>
-            <span style={{ color: "var(--negative)" }}>
-              Failed to load market tide:
-            </span>{" "}
-            <span style={{ color: "var(--text-muted)" }}>{error}</span>
+      <div className="section">
+        <div className="section-header">
+          <div className="section-title">
+            <Activity size={14} />
+            Market Tide{latest ? ` — ${latest.date}` : ""}
+            <InfoTooltip
+              text={GUIDE}
+              triggerTestId="market-tide-section-tooltip-trigger"
+              contentTestId="market-tide-section-tooltip-content"
+            />
           </div>
-        )}
-
-        {loading && !data ? (
-          <div
-            data-testid="market-tide-loading"
-            style={{
-              padding: 24,
-              textAlign: "center",
-              color: "var(--text-muted)",
-              fontFamily: "var(--font-mono)",
-              fontSize: 11,
-            }}
-          >
-            Loading market tide…
-          </div>
-        ) : (
-          <>
-            <TideSentimentBanner sentiment={data?.sentiment ?? null} />
-            {/* Daily tide (image-6 layout) on the left, Top Net Impact on the
-                right. minmax(0,…) keeps both columns from overflowing. */}
-            <div
+          {lastSync && (
+            <span
               style={{
-                display: "grid",
-                gridTemplateColumns: "minmax(0, 1.6fr) minmax(0, 1fr)",
-                gap: 16,
-                alignItems: "stretch",
+                fontFamily: "var(--font-mono)",
+                fontSize: 10,
+                color: "var(--text-muted)",
               }}
             >
-              <MarketTideDailyChart session={latest} spotTicker={spotTicker} />
-              <TopNetImpactChart data={tni} />
+              {new Date(lastSync).toLocaleTimeString()}
+            </span>
+          )}
+        </div>
+
+        <div
+          className="section-body"
+          style={{ display: "flex", flexDirection: "column", gap: 16 }}
+        >
+          {error && (
+            <div data-testid="market-tide-error" style={{ fontSize: 11 }}>
+              <span style={{ color: "var(--negative)" }}>
+                Failed to load market tide:
+              </span>{" "}
+              <span style={{ color: "var(--text-muted)" }}>{error}</span>
             </div>
-            {priorData && priorData.sessions.length > 0 && (
-              <MarketTideChart data={priorData} />
-            )}
-          </>
-        )}
+          )}
+
+          {loading && !data ? (
+            <div
+              data-testid="market-tide-loading"
+              style={{
+                padding: 24,
+                textAlign: "center",
+                color: "var(--text-muted)",
+                fontFamily: "var(--font-mono)",
+                fontSize: 11,
+              }}
+            >
+              Loading market tide…
+            </div>
+          ) : (
+            <>
+              <TideSentimentBanner sentiment={data?.sentiment ?? null} />
+              {/* Daily tide (image-6 layout) on the left, Top Net Impact on the
+                right. minmax(0,…) keeps both columns from overflowing. */}
+              <div
+                style={{
+                  display: "grid",
+                  gridTemplateColumns: "minmax(0, 1.6fr) minmax(0, 1fr)",
+                  gap: 16,
+                  alignItems: "stretch",
+                }}
+              >
+                <MarketTideDailyChart
+                  session={latest}
+                  spotTicker={spotTicker}
+                />
+                <TopNetImpactChart data={tni} />
+              </div>
+              {priorData && priorData.sessions.length > 0 && (
+                <MarketTideChart data={priorData} />
+              )}
+            </>
+          )}
+        </div>
       </div>
     </div>
   );

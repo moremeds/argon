@@ -764,6 +764,13 @@ def main() -> int:
         with _repo(settings) as repo:
             vrp_markout_refresh(repo=repo)
 
+    def _spx_density_forecast() -> None:
+        from uw_scan.worker.jobs.spx_density_forecast import spx_density_forecast_job
+
+        with _repo(settings) as repo:
+            summary = spx_density_forecast_job(repo, settings)
+        logger.info("spx_density_forecast_tick %s", summary)
+
     def _theta_harvester_scan() -> None:
         with _repo(settings) as repo:
             theta_harvester_scan(repo=repo, settings=settings)
@@ -1442,6 +1449,24 @@ def main() -> int:
                 max_instances=1,
                 coalesce=True,
             )
+            # SPX 1-5d density cone at 03:30 ET — AFTER vol_index_lake_sync (03:15)
+            # so the anchor is the freshest lake close. Zero UW/IB spend; the job
+            # self-gates (skips issue when no new SPX bar landed). tue-sat so
+            # Friday's close is issued Saturday morning, not the following Monday.
+            if settings.spx_density_enabled:
+                sched.add_job(
+                    _spx_density_forecast,
+                    CronTrigger(
+                        hour=3,
+                        minute=30,
+                        day_of_week="tue-sat",
+                        timezone=settings.rth_tz,
+                    ),
+                    id="spx_density_forecast",
+                    name="SPX 1-5d density cone (v13 GJR-GARCH, display-only)",
+                    max_instances=1,
+                    coalesce=True,
+                )
             # Theta Harvester at 19:45 ET — after option_surface_capture (19:00)
             # and its IV canary (19:30) have landed the session's grid. Pure
             # warm-store compute: zero UW budget, so massive-0 is the right home.
