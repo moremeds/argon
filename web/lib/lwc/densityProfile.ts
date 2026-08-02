@@ -41,6 +41,11 @@ export interface DensityProfileOptions {
   maxWidthPx?: number;
   /** Grow to the right of the anchor date (default) or to the left. */
   direction?: "right" | "left";
+  /** Where the flat baseline sits: on the profile's own `time` (default), or flush
+   *  against the right price axis regardless of date — the TradingView volume-profile
+   *  idiom, which reads as "this is the distribution", not "this happens on that bar".
+   *  With "pane-right" the `time` field is ignored. */
+  anchor?: "time" | "pane-right";
   /** "curve" draws one filled silhouette through the bin tops (the reference look);
    *  "bars" draws each bin as a discrete rectangle. */
   style?: "curve" | "bars";
@@ -52,6 +57,7 @@ const defaults: Required<DensityProfileOptions> = {
   downColor: "rgba(38, 166, 154, 0.55)",
   maxWidthPx: 90,
   direction: "right",
+  anchor: "time",
   style: "curve",
   lineColor: "rgba(226, 232, 240, 0.55)",
 };
@@ -142,12 +148,17 @@ class DensityProfilePaneView implements IPrimitivePaneView {
     const data = this._source._data;
     if (!chart || !series || !data || data.bars.length === 0) return;
 
-    const x0 = chart.timeScale().timeToCoordinate(data.time);
+    const opts = this._source._options;
+    // timeScale().width() is the drawing area in media coords — i.e. exactly where the
+    // price axis starts — so "pane-right" needs no ResizeObserver of its own.
+    const x0 =
+      opts.anchor === "pane-right"
+        ? chart.timeScale().width()
+        : chart.timeScale().timeToCoordinate(data.time);
     if (x0 == null) return; // profile date scrolled off-screen
 
     const peak = Math.max(...data.bars.map((b) => b.weight));
     if (!(peak > 0)) return;
-    const opts = this._source._options;
 
     for (const b of data.bars) {
       const yTop = series.priceToCoordinate(b.upper);

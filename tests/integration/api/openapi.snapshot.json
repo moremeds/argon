@@ -15630,7 +15630,7 @@
         "type": "object"
       },
       "SpxGammaLevels": {
-        "description": "Dealer levels for the chart overlay. Any field may be None \u2014 a level that failed\nthe side-guard is omitted and named in `dropped`, never drawn on the wrong side of\nspot. See reports/gamma_levels.py for why the guard exists.",
+        "description": "Dealer levels for the chart overlay. Any field may be None \u2014 a level that failed\na guard is omitted and named in `dropped`: walls on the wrong side of spot, a gamma\nflip too far from spot to be a credible crossing. See reports/gamma_levels.py.",
         "properties": {
           "as_of": {
             "anyOf": [

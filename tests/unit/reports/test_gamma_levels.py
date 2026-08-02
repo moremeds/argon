@@ -9,7 +9,13 @@ from __future__ import annotations
 from datetime import date
 from decimal import Decimal
 
-from uw_scan.reports.gamma_levels import apply_side_guard, resolve_levels
+import pytest
+
+from uw_scan.reports.gamma_levels import (
+    apply_flip_guard,
+    apply_side_guard,
+    resolve_levels,
+)
 
 
 def test_wall_below_spot_is_dropped_not_drawn() -> None:
@@ -84,8 +90,66 @@ def test_falls_back_to_snapshot_and_still_guards() -> None:
     assert levels.source == "gex_snapshots"
     assert levels.call_wall is None
     assert levels.dropped == ["call_wall"]
-    # gamma flip is exempt from the guard and survives above spot
+    # gamma flip is exempt from the SIDE guard: 7525 is above spot 7383 and survives,
+    # because 1.9% away is a credible crossing. Distance is the only thing that kills it.
     assert levels.gamma_flip == 7525.0
+    assert levels.empty is False
+
+
+# --------------------------------------------------------------------------- #
+# Distance guard on the gamma flip.
+# --------------------------------------------------------------------------- #
+@pytest.mark.parametrize("flip", [8109.8, 8156.26])
+def test_real_uw_far_flip_is_dropped(flip: float) -> None:
+    """The two values UW's /gex-levels actually returned for SPX (2026-07-20 and
+    2026-07-31, probed 2026-08-02) against that week's ~7490 spot. Both land ~8-9% out —
+    a root-find past the traded strike range, not a zero-gamma crossing."""
+    kept, dropped = apply_flip_guard(spot=7489.72, gamma_flip=flip)
+    assert kept is None
+    assert dropped == ["gamma_flip"]
+
+
+def test_near_spot_flip_on_either_side_survives() -> None:
+    """Side is NOT the discriminator — a flip above spot is still a legitimate flip."""
+    assert apply_flip_guard(spot=7489.72, gamma_flip=7475.0) == (7475.0, [])
+    assert apply_flip_guard(spot=7489.72, gamma_flip=7600.0) == (7600.0, [])
+
+
+def test_flip_guard_boundary_is_inclusive() -> None:
+    """Exactly at the threshold is kept; a hair beyond is dropped."""
+    spot = 1000.0
+    assert apply_flip_guard(spot=spot, gamma_flip=1050.0) == (1050.0, [])
+    assert apply_flip_guard(spot=spot, gamma_flip=1050.01) == (None, ["gamma_flip"])
+
+
+def test_absent_flip_is_not_reported_as_dropped() -> None:
+    """UW returns null on most SPX sessions. Nothing was suppressed, so `dropped` must
+    stay empty — otherwise the chart prints a 'not drawn' note about a level that was
+    never offered."""
+    assert apply_flip_guard(spot=7489.72, gamma_flip=None) == (None, [])
+
+
+def test_no_spot_means_no_flip() -> None:
+    assert apply_flip_guard(spot=None, gamma_flip=7475.0) == (None, ["gamma_flip"])
+
+
+def test_far_flip_is_dropped_end_to_end_and_walls_survive() -> None:
+    """The exact shape of the SPX row once the capture fix lands: UW's walls are good,
+    its flip is not. The overlay must keep the walls and lose only the flip."""
+    levels = resolve_levels(
+        uw_row={
+            "market_date": date(2026, 7, 31),
+            "call_wall": 7500.0,
+            "put_wall": 7485.0,
+            "gamma_flip": 8156.26,
+            "spot": None,
+        },
+        gex_row=None,
+        chart_spot=7489.72,
+    )
+    assert (levels.call_wall, levels.put_wall) == (7500.0, 7485.0)
+    assert levels.gamma_flip is None
+    assert levels.dropped == ["gamma_flip"]
     assert levels.empty is False
 
 

@@ -209,7 +209,7 @@ export default function DensityConePanel() {
               style={{
                 width: 16,
                 height: 9,
-                background: "var(--accent-vol, #7c6cf0)",
+                background: "var(--positive, #05ad98)",
                 opacity,
                 border: "1px solid var(--border-dim)",
               }}
@@ -261,7 +261,9 @@ export default function DensityConePanel() {
         )}
         {levels && levels.dropped.length > 0 && (
           <span data-testid="cone-levels-note">
-            {levels.dropped.join("/")} not drawn — wrong side of spot
+            {/* Two guards feed `dropped` now (wrong-side walls, far-from-spot gamma
+                flip), so the note states the outcome rather than naming one cause. */}
+            {levels.dropped.join("/")} not drawn — implausible vs spot
           </span>
         )}
       </div>

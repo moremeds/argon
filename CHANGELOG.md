@@ -7,8 +7,53 @@ version in lockstep (enforced by `scripts/release/version_sync_check.py`).
 
 ## [Unreleased]
 
-## [0.11.0] — 2026-08-02
+### Fixed
 
+- **Gamma flip is now distance-guarded, not drawn unconditionally** — `gamma_levels.py`
+  exempted `gamma_flip` from the side-guard on purpose (it legitimately sits either side
+  of spot), which left it with _no_ guard. Probing UW's `/gex-levels` for SPX over eight
+  sessions on 2026-08-02 returned `gamma_flip` null on six and 8109.8 / 8156.26 on the
+  other two — both ~8–9% above a ~7450–7490 spot, both non-round where every sibling
+  field is a listed strike, and both contradicting UW's own positive-gamma ("dampening")
+  regime badge on the same screen. `apply_flip_guard` now drops a flip further than
+  `FLIP_MAX_DISTANCE_PCT` (5%, a judgement call — see the constant) from spot and names
+  it in `dropped`. A flip that was never offered is not reported as dropped. The chart's
+  disclosure note changes from "wrong side of spot" to the cause-agnostic "implausible vs
+  spot", since two different guards now feed `dropped`.
+
+- **SPX dealer levels on the density cone were fabricated by argon, not sourced from
+  UW** — `gex_levels_capture` swept only the active watchlist, and SPX is deliberately
+  _not_ a watchlist ticker (a slot there costs a full per-ticker UW burn). So
+  `uw_gex_levels_daily` held 114 tickers / 79k rows / **zero SPX**, `fetch_uw_gamma_levels`
+  returned None, and `resolve_levels` fell through to the `gex_snapshots` fallback —
+  argon's own unconstrained argmax, which `reports/gamma_levels.py` documents as
+  untrustworthy. Measured 2026-08-02 at spot 7489.72: the chart drew put wall **7000**
+  and γ flip **7475** where UW reports **7485** and **8156.26**. Two of the three overlay
+  lines were wrong. The capture now sweeps the watchlist ∪ `settings.gex_scan_tickers`
+  (the index scope the intraday GEX scanner already maintains), which adds exactly one
+  name — SPX — for +1 UW call/night. The other four alpha captures stay watchlist-only.
+  Nothing flagged this because `/api/health` freshness scopes coverage to the _active_
+  watchlist, so an off-watchlist ticker reads as 100% covered; that blind spot is
+  unchanged and is worth a separate look.
+
+### Changed
+
+- **SPX density cone readability pass (Regime → Market Compass)** — six display-only
+  tweaks, no change to the model, the API, or any persisted value:
+  - the recon strip now sits in a `.section` container with its own header, matching
+    the Gamma Exposure panel chrome instead of floating on the page background;
+  - the next-session density silhouette is anchored flush to the right price axis and
+    grows leftward (volume-profile idiom) rather than hanging off the h=1 date;
+  - the 1–5 day fan renders at the same price-range-per-pixel as the next-session
+    view by growing its pane (capped at 620 px), so the shared candles are the same
+    size in both — previously the fan squashed them into the same 360 px;
+  - the fan's `rightOffset` drops 2 → 0, closing the dead gap at the right axis;
+  - the next-session view gains dashed PROJ HIGH / PROJ LOW levels with axis labels
+    and a dot on the anchor close;
+  - the cone bands move off `--accent-vol` purple onto `--positive` teal (chart,
+    legend swatches, and mini-cone strip).
+
+## [0.11.0] — 2026-08-02
 
 ### Added
 
@@ -108,7 +153,7 @@ version in lockstep (enforced by `scripts/release/version_sync_check.py`).
   `gamma_levels` and per-horizon `density`.
 - **Four bounds the review pass added, each closing a way the panel could state
   something it had not checked.** (1) `vol_index_daily.close` is nullable, and a
-  NULL arrives as NaN — which would sail straight *through* the alignment rail,
+  NULL arrives as NaN — which would sail straight _through_ the alignment rail,
   because the max disagreement becomes NaN and `NaN > 0` is `False`. A series
   with a hole in it would have passed the "exact agreement" check that a
   one-cent error fails, then been fitted under the same index and seed as a
@@ -117,7 +162,7 @@ version in lockstep (enforced by `scripts/release/version_sync_check.py`).
   measures against the price the chart is actually drawn at, not the level row's
   own spot — an unbounded `market_date <= as_of` lookback would happily draw
   walls from a session months old, and the guard would not catch them because
-  they are consistent with *that* session's spot. (3) The backfill refuses to
+  they are consistent with _that_ session's spot. (3) The backfill refuses to
   touch any session the nightly job issued prospectively, even under `--force`:
   `upsert_rows` updates `origin` on conflict, so a recompute would relabel a
   genuinely out-of-sample cone as reconstructed and quietly inflate the only
@@ -125,7 +170,7 @@ version in lockstep (enforced by `scripts/release/version_sync_check.py`).
   real bar are dropped rather than drawn over sessions whose outcome is already
   known, which also removes the duplicate `target_date` the settle pass can
   produce when a holiday falls inside the window — lightweight-charts asserts
-  strictly ascending times only in its *development* bundle, so in production a
+  strictly ascending times only in its _development_ bundle, so in production a
   duplicate renders a degenerate series instead of failing loudly.
 
 ### Changed
@@ -139,6 +184,7 @@ version in lockstep (enforced by `scripts/release/version_sync_check.py`).
   `.section` / `.section-header` / `.section-body` chrome, matching the Gamma
   Exposure tab — the body padding is repeated on the panel rather than inherited
   because `.section-body` ships `padding: 0` and each panel opts in.
+
 ## [0.10.18] — 2026-07-29
 
 ### Added

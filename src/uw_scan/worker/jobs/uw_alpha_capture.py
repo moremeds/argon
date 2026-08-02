@@ -308,6 +308,34 @@ _CaptureFn = Callable[
 ]
 
 
+def _sweep_tickers(repo: Repository, extra: Sequence[str]) -> list[str]:
+    """Active watchlist first, then any `extra` names not already on it.
+
+    The watchlist is the default scope for every capture, but it is NOT the whole
+    universe argon tracks. Index symbols — SPX above all — are swept every couple of
+    minutes by the GEX scanner from `settings.gex_scan_tickers` and never appear on the
+    watchlist at all. A watchlist-only sweep therefore left `uw_gex_levels_daily` with
+    zero SPX rows (verified on the mini: 114 tickers, 79k rows, no SPX), which made
+    `SpxDensityRepository.fetch_uw_gamma_levels` return None and silently dropped the
+    density cone's dealer overlay onto the `gex_snapshots` fallback — argon's own
+    unconstrained argmax, which reports/gamma_levels.py documents as untrustworthy.
+
+    Nothing flagged it: `/api/health` freshness scopes coverage to the ACTIVE watchlist,
+    so a ticker that is off the list reads as 100% covered.
+
+    Dedup is order-preserving so the watchlist keeps priority if the UW budget governor
+    cuts the sweep short.
+    """
+    seen: set[str] = set()
+    out: list[str] = []
+    for name in [c.ticker for c in repo.list_watchlist_cards()] + list(extra):
+        t = name.upper()
+        if t not in seen:
+            seen.add(t)
+            out.append(t)
+    return out
+
+
 def _run_capture(
     name: str,
     capture_fn: _CaptureFn,
@@ -318,6 +346,7 @@ def _run_capture(
     settings: Settings,
     ticker_filter: Callable[[str], bool] | None,
     market_date: date | None = None,
+    extra_tickers: Sequence[str] = (),
 ) -> dict[str, int]:
     if not repo.try_advisory_lock(lock_key):
         logger.info("%s: lock held; skipping this tick", name)
@@ -327,8 +356,7 @@ def _run_capture(
         market_date = datetime.now(ZoneInfo(settings.rth_tz)).date()
     tickers_done = rows_written = errors = 0
     try:
-        for card in repo.list_watchlist_cards():
-            ticker = card.ticker.upper()
+        for ticker in _sweep_tickers(repo, extra_tickers):
             if ticker_filter is not None and not ticker_filter(ticker):
                 continue
             run_id = repo.insert_scan_run(ticker, notes=name)
@@ -358,6 +386,13 @@ def gex_levels_capture(
     lock_key: int = GEX_LEVELS_CAPTURE_LOCK,
     market_date: date | None = None,
 ) -> dict[str, int]:
+    # Only this capture widens past the watchlist. UW's precomputed dealer levels are
+    # the density cone's primary wall source, and the cone is drawn on SPX — an index
+    # that is deliberately NOT a watchlist ticker (a slot there costs a full per-ticker
+    # UW burn). `gex_scan_tickers` is the index scope argon already maintains for the
+    # intraday GEX scanner; reusing it adds exactly one name (SPX) to this sweep, i.e.
+    # +1 UW call/night. The other four alpha captures stay watchlist-only on purpose —
+    # nothing reads them for an off-watchlist symbol.
     return _run_capture(
         "uw_alpha_gex_capture",
         capture_gex_levels_for,
@@ -367,6 +402,7 @@ def gex_levels_capture(
         settings=settings,
         ticker_filter=ticker_filter,
         market_date=market_date,
+        extra_tickers=settings.gex_scan_tickers,
     )
 
 

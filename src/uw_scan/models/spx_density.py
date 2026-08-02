@@ -84,8 +84,8 @@ class SpxDensityPathPoint(_UwBase):
 
 class SpxGammaLevels(_UwBase):
     """Dealer levels for the chart overlay. Any field may be None — a level that failed
-    the side-guard is omitted and named in `dropped`, never drawn on the wrong side of
-    spot. See reports/gamma_levels.py for why the guard exists."""
+    a guard is omitted and named in `dropped`: walls on the wrong side of spot, a gamma
+    flip too far from spot to be a credible crossing. See reports/gamma_levels.py."""
 
     as_of: date | None = None
     spot: float | None = None
