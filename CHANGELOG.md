@@ -7,6 +7,9 @@ version in lockstep (enforced by `scripts/release/version_sync_check.py`).
 
 ## [Unreleased]
 
+## [0.11.1] — 2026-08-02
+
+
 ### Fixed
 
 - **Gamma flip is now distance-guarded, not drawn unconditionally** — `gamma_levels.py`
@@ -52,7 +55,6 @@ version in lockstep (enforced by `scripts/release/version_sync_check.py`).
     and a dot on the anchor close;
   - the cone bands move off `--accent-vol` purple onto `--positive` teal (chart,
     legend swatches, and mini-cone strip).
-
 ## [0.11.0] — 2026-08-02
 
 ### Added
