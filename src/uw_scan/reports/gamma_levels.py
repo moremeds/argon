@@ -33,6 +33,13 @@ from dataclasses import dataclass, field
 from datetime import date
 from decimal import Decimal
 
+# How far back a level row may be and still be drawn. The capture is daily, so this
+# absorbs a long weekend plus a couple of missed nights and no more. Beyond it the walls
+# describe a market that has since moved: an unbounded `market_date <= as_of` lookback
+# would happily draw levels from a session months old, and the side-guard would not catch
+# it because those walls are consistent with THAT session's spot, not today's.
+LEVELS_MAX_AGE_DAYS = 7
+
 
 @dataclass(frozen=True)
 class GammaLevels:
@@ -80,12 +87,16 @@ def resolve_levels(
     *,
     uw_row: dict | None,
     gex_row: dict | None,
-    fallback_spot: float | None = None,
+    chart_spot: float | None = None,
 ) -> GammaLevels:
     """UW daily levels first, else the day's last gex_snapshot, else empty.
 
-    `fallback_spot` (normally the cone's anchor close) is used when the chosen row carries
-    no spot of its own — without a spot the side-guard cannot run at all.
+    `chart_spot` is the price the chart is actually drawn at (for the cone, its anchor
+    close) and is the guard's reference when given. The level row's own spot is only used
+    when the caller has none: a wall is judged by whether it sits on the right side of the
+    price the reader sees, not of a spot from the session the level was captured in. The
+    two coincide on a same-day row and diverge exactly when the row is stale — which is
+    the case worth getting right.
     """
     row, source = (
         (uw_row, "uw_gex_levels_daily") if uw_row else (gex_row, "gex_snapshots")
@@ -93,9 +104,7 @@ def resolve_levels(
     if not row:
         return GammaLevels()
 
-    spot = _f(row.get("spot"))
-    if spot is None:
-        spot = fallback_spot
+    spot = chart_spot if chart_spot is not None else _f(row.get("spot"))
     call_wall, put_wall, dropped = apply_side_guard(
         spot=spot,
         call_wall=_f(row.get("call_wall")),

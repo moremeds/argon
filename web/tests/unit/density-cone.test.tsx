@@ -164,4 +164,43 @@ describe("DensityConePanel", () => {
     const note = await screen.findByTestId("cone-ohlc-note");
     expect(note.textContent).toMatch(/1 session close-only/);
   });
+
+  it("says nothing about staleness when the cone is level with the tape", async () => {
+    render(<DensityConePanel />);
+    await screen.findByTestId("spx-density-panel");
+    expect(screen.queryByTestId("cone-stale-note")).toBeNull();
+  });
+
+  it("discloses when the tape has run past the cone", async () => {
+    // The lake sync keeps adding bars whether or not the nightly cone job ran. Those
+    // extra sessions must not be handed to the chart — a fan drawn over bars whose
+    // outcome is already known reads as a forecast of the past.
+    (globalThis.fetch as ReturnType<typeof vi.fn>).mockResolvedValue({
+      ok: true,
+      json: async () => ({
+        ...LATEST,
+        recent_path: [
+          ...LATEST.recent_path,
+          {
+            date: "2026-07-31",
+            close: 7455.2,
+            open: 7440,
+            high: 7460,
+            low: 7435,
+          },
+          {
+            date: "2026-08-03",
+            close: 7461.8,
+            open: 7456,
+            high: 7470,
+            low: 7450,
+          },
+        ],
+      }),
+    });
+    render(<DensityConePanel />);
+    const note = await screen.findByTestId("cone-stale-note");
+    expect(note.textContent).toMatch(/2 sessions behind the tape/);
+    expect(note.textContent).toContain("2026-07-30");
+  });
 });

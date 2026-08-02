@@ -83,7 +83,7 @@ from uw_scan.models.spx_density import (
     SpxDensityPathPoint,
     SpxGammaLevels,
 )
-from uw_scan.reports.gamma_levels import resolve_levels
+from uw_scan.reports.gamma_levels import LEVELS_MAX_AGE_DAYS, resolve_levels
 from uw_scan.reports.vrp_macro_signal import (
     WINNER,
     current_macro_signal,
@@ -428,10 +428,13 @@ def get_spx_density(
         return SpxDensityLatestResponse()
     rows = sdr.fetch_forecast(as_of)
     recent = sdr.fetch_spx_recent(45)
+    # Levels are guarded against the cone's anchor close — the price the chart is drawn
+    # at — and only read from a window ending at the same session, so neither a stale
+    # capture nor a wrong-side wall can reach the overlay.
     levels = resolve_levels(
-        uw_row=sdr.fetch_uw_gamma_levels(as_of),
-        gex_row=sdr.fetch_gex_snapshot_levels(as_of),
-        fallback_spot=float(rows[0]["anchor_close"]) if rows else None,
+        uw_row=sdr.fetch_uw_gamma_levels(as_of, max_age_days=LEVELS_MAX_AGE_DAYS),
+        gex_row=sdr.fetch_gex_snapshot_levels(as_of, max_age_days=LEVELS_MAX_AGE_DAYS),
+        chart_spot=float(rows[0]["anchor_close"]),
     )
     return SpxDensityLatestResponse(
         forecast=_spx_density_forecast_model(as_of, rows),

@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useRef } from "react";
+import { memo, useEffect, useRef } from "react";
 import {
   CandlestickSeries,
   ColorType,
@@ -8,10 +8,10 @@ import {
   CrosshairMode,
   LineSeries,
   LineStyle,
-  type IChartApi,
   type Time,
 } from "lightweight-charts";
 import { BandsIndicator } from "@/lib/lwc/bandsIndicator";
+import { drawableRows } from "@/lib/regime/coneRows";
 import { DensityProfile, densityBarsFromBins } from "@/lib/lwc/densityProfile";
 import type {
   SpxDensityForecast,
@@ -44,7 +44,7 @@ function cssVar(name: string, fallback: string): string {
  *  a correct chronological compare, which the whitespace filter below relies on. */
 const asTime = (d: string) => d as unknown as Time;
 
-export default function DensityConeChart({
+function DensityConeChart({
   forecast,
   recentPath,
   gammaLevels,
@@ -56,7 +56,6 @@ export default function DensityConeChart({
   view: ConeView;
 }) {
   const hostRef = useRef<HTMLDivElement>(null);
-  const chartRef = useRef<IChartApi | null>(null);
 
   useEffect(() => {
     const el = hostRef.current;
@@ -112,7 +111,6 @@ export default function DensityConeChart({
       handleScroll: false,
       handleScale: false,
     });
-    chartRef.current = chart;
 
     const anchor = forecast.anchor_close;
     const price = (cumReturn: number) => anchor * (1 + cumReturn);
@@ -153,12 +151,10 @@ export default function DensityConeChart({
     const lastBarDate = recentPath.length
       ? recentPath[recentPath.length - 1].date
       : forecast.as_of;
-    // Forward dates must exist on the time scale before anything can be drawn at
-    // them. Only strictly-future ones — a stale cone's target dates can otherwise
-    // collide with real bars, and duplicate times make setData throw.
-    const futureDates = coneRows
-      .map((r) => r.target_date)
-      .filter((d) => d > lastBarDate);
+    // Filtered once, here; every series below draws from the survivors. See drawableRows
+    // for why a stale or duplicated target date must not reach the axis.
+    const drawRows = drawableRows(coneRows, lastBarDate);
+    const futureDates = drawRows.map((r) => r.target_date);
     // The density silhouette hangs off the h=1 target date and grows into the blank
     // space `rightOffset` reserves — so it is anchored to the date it describes, and
     // no fictitious sessions are added to the axis to make room for it.
@@ -190,7 +186,7 @@ export default function DensityConeChart({
       hiKey: keyof SpxDensityHorizon,
     ) => [
       { time: asTime(forecast.as_of), upper: anchor, lower: anchor },
-      ...coneRows.map((r) => ({
+      ...drawRows.map((r) => ({
         time: asTime(r.target_date),
         upper: price(r[hiKey] as number),
         lower: price(r[loKey] as number),
@@ -212,26 +208,31 @@ export default function DensityConeChart({
       // Focused: nested probability BLOCKS for the single incoming session, not a
       // widening wedge — over one horizon the interval has constant width, and
       // drawing it as a cone would imply a multi-day spread the model never issued.
-      const head = forecast.rows[0];
-      for (const [loKey, hiKey, opacity] of BANDS) {
-        const block = new BandsIndicator({
-          lineColor: "transparent",
-          fillColor: withAlpha(bandBase, opacity),
-        });
-        series.attachPrimitive(block);
-        block.setBandData([
-          {
-            time: asTime(forecast.as_of),
-            upper: price(head[hiKey] as number),
-            lower: price(head[loKey] as number),
-          },
-          {
-            time: asTime(head.target_date),
-            upper: price(head[hiKey] as number),
-            lower: price(head[loKey] as number),
-          },
-        ]);
-        primitives.push(block);
+      // drawRows, not forecast.rows[0]: if the incoming session's date is already behind
+      // the tape there is nothing legitimate to draw at, and the blocks would land on a
+      // bar whose outcome is known.
+      const head = drawRows[0];
+      if (head) {
+        for (const [loKey, hiKey, opacity] of BANDS) {
+          const block = new BandsIndicator({
+            lineColor: "transparent",
+            fillColor: withAlpha(bandBase, opacity),
+          });
+          series.attachPrimitive(block);
+          block.setBandData([
+            {
+              time: asTime(forecast.as_of),
+              upper: price(head[hiKey] as number),
+              lower: price(head[loKey] as number),
+            },
+            {
+              time: asTime(head.target_date),
+              upper: price(head[hiKey] as number),
+              lower: price(head[loKey] as number),
+            },
+          ]);
+          primitives.push(block);
+        }
       }
 
       if (head?.density && profileAnchor) {
@@ -264,7 +265,7 @@ export default function DensityConeChart({
     });
     median.setData([
       { time: asTime(forecast.as_of), value: anchor },
-      ...coneRows.map((r) => ({
+      ...drawRows.map((r) => ({
         time: asTime(r.target_date),
         value: price(r.q50),
       })),
@@ -318,7 +319,6 @@ export default function DensityConeChart({
     return () => {
       for (const p of primitives) series.detachPrimitive(p);
       chart.remove();
-      chartRef.current = null;
     };
   }, [forecast, recentPath, gammaLevels, view]);
 
@@ -330,6 +330,20 @@ export default function DensityConeChart({
     />
   );
 }
+
+/**
+ * The effect below builds the chart from scratch and `chart.remove()`s it on cleanup, so
+ * every re-render with new prop IDENTITY costs a full teardown and a visible flash. The
+ * panel's poll (`useSyncHook`) calls `setData(json)` unconditionally every 5 minutes, and
+ * a fresh JSON parse is never identity-equal — so without this guard an idle page rebuilt
+ * the chart twelve times an hour to draw the exact same picture. Comparing the serialised
+ * props is honest about what actually matters (the values) and the payload is ~30 bars
+ * plus 5 rows, small enough that stringify is cheaper than one wasted rebuild.
+ */
+export default memo(
+  DensityConeChart,
+  (a, b) => JSON.stringify(a) === JSON.stringify(b),
+);
 
 /** CSS vars in this theme are hex; rgb()/rgba() inputs are passed through with their
  *  own alpha replaced. Anything else is returned untouched rather than mangled. */

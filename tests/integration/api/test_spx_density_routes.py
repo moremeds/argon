@@ -170,6 +170,32 @@ def test_uw_levels_win_and_density_bins_round_trip(client, seeded_db_empty_cards
     assert body["forecast"]["rows"][0]["density"] == density
 
 
+def test_a_stale_level_capture_is_not_drawn_at_all(client, seeded_db_empty_cards):
+    """If the levels capture stops, the chart must lose its dealer lines rather than
+    keep the last ones it saw. The row below is internally consistent (call wall above
+    ITS spot), so the side-guard alone would pass it through — only the bounded lookback
+    stops walls from a session seven weeks gone being drawn against today's price."""
+    repo = seeded_db_empty_cards
+    sdr = SpxDensityRepository(repo.conn, schema=repo._schema)
+    _seed_cone(sdr, as_of=date(2026, 7, 28), anchor_close=7383.0)
+    with repo.conn.cursor() as cur:
+        cur.execute(
+            """INSERT INTO uw_scan.uw_gex_levels_daily
+               (ticker, market_date, call_wall, put_wall, gamma_flip, spot)
+               VALUES ('SPX', %s, 6200, 6000, 6100, 6150)""",
+            (date(2026, 6, 5),),
+        )
+    repo.conn.commit()
+
+    levels = client.get("/api/regime/spx-density").json()["gamma_levels"]
+    assert levels["source"] is None
+    assert (levels["call_wall"], levels["put_wall"], levels["gamma_flip"]) == (
+        None,
+        None,
+        None,
+    )
+
+
 def test_missing_density_bins_stay_null(client, seeded_db_empty_cards):
     """Cones issued before migration 112 must still render — bands only, no crash."""
     repo = seeded_db_empty_cards

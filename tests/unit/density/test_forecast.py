@@ -105,6 +105,35 @@ def test_close_disagreement_refuses() -> None:
         compute_forecast(bars)
 
 
+def test_a_null_close_refuses_instead_of_slipping_past_the_rail() -> None:
+    """vol_index_daily.close is NUMERIC with no NOT NULL, so a hole in the series is a
+    schema-legal state. It arrives as None and numpy makes it NaN — and NaN would defeat
+    the rail rather than trip it, because the max disagreement becomes NaN and `NaN > 0`
+    is False. Without an explicit check the run would proceed to fit a series with a hole
+    in it under the correct panel seed: same model, different numbers, no error."""
+    bars = _bars()
+    d0, _ = bars[100]
+    bars[100] = (d0, float("nan"))
+    with pytest.raises(PanelMismatchError, match="non-finite"):
+        compute_forecast(bars)
+
+
+def test_provenance_reports_the_overlap_that_was_actually_checked() -> None:
+    """A rewound run compares fewer days than the panel holds and has no bars beyond it.
+    Claiming the full panel length — or a negative count of fresh bars — would make the
+    persisted audit trace overstate the verification that ran."""
+    bars = _bars()
+    target = bars[-400][0]
+    prov = compute_forecast(bars, as_of=target).provenance
+    assert prov["overlap_days_checked"] < len(load_frozen_panel())
+    assert prov["fresh_bars_beyond_panel"] == 0
+
+    # the live run still reports the whole panel window and its post-panel bars
+    live = compute_forecast(bars).provenance
+    assert live["overlap_days_checked"] == len(load_frozen_panel())
+    assert live["fresh_bars_beyond_panel"] > 0
+
+
 def test_date_misalignment_refuses() -> None:
     bars = _bars()
     del bars[50]  # a missing session shifts every later index -> different seed

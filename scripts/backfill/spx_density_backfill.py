@@ -14,6 +14,8 @@ from __future__ import annotations
 
 import argparse
 import logging
+from datetime import date
+from typing import AbstractSet, Sequence
 
 import psycopg
 
@@ -31,6 +33,24 @@ logging.basicConfig(level=logging.INFO, format="%(message)s")
 log = logging.getLogger("spx_density_backfill")
 
 
+def select_sessions(
+    candidates: Sequence[date],
+    *,
+    existing: AbstractSet[date],
+    prospective: AbstractSet[date],
+) -> list[date]:
+    """Which candidate sessions this backfill may write.
+
+    `existing` is empty under --force, which is the point of the flag: recompute rows we
+    already have. `prospective` is NOT, ever. upsert_rows updates `origin` on conflict, so
+    recomputing a session the nightly job issued forward would rewrite it to
+    'reconstructed' and move a genuinely out-of-sample cone into the in-sample tally —
+    quietly inflating the only honest hit-rate number on the page. A row the model
+    published forward is not something a backfill may relabel.
+    """
+    return [d for d in candidates if d not in existing and d not in prospective]
+
+
 def main() -> int:
     ap = argparse.ArgumentParser()
     ap.add_argument("--sessions", type=int, default=60)
@@ -42,7 +62,8 @@ def main() -> int:
             "Recompute sessions that already have rows. Needed after a migration adds "
             "a column derived from the same run (e.g. 112's density_bins_jsonb left "
             "every existing row NULL). Deterministic: seed_for(i) is panel-index "
-            "arithmetic, so a recompute reproduces the identical cone."
+            "arithmetic, so a recompute reproduces the identical cone. Sessions the "
+            "nightly job issued prospectively are skipped even under --force."
         ),
     )
     args = ap.parse_args()
@@ -60,14 +81,16 @@ def main() -> int:
         existing = (
             set() if args.force else set(sdr.fetch_recent_as_ofs(args.sessions + 10))
         )
+        prospective = sdr.fetch_as_ofs_with_origin("prospective")
         # candidates: the last N session dates, excluding the freshest (that one is the
         # nightly job's prospective anchor, never the backfill's)
         candidates = [d for d, _ in bars[-(args.sessions + 1) : -1]]
-        wrote = skipped = 0
-        for as_of in candidates:
-            if as_of in existing:
-                skipped += 1
-                continue
+        writable = select_sessions(
+            candidates, existing=existing, prospective=prospective
+        )
+        skipped = len(candidates) - len(writable)
+        wrote = 0
+        for as_of in writable:
             try:
                 result = compute_forecast(bars, as_of=as_of)
             except PanelMismatchError as exc:

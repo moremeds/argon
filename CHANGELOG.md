@@ -9,7 +9,7 @@ version in lockstep (enforced by `scripts/release/version_sync_check.py`).
 
 ### Added
 
-- **SPX 1–5 day conditional density cone on Regime → Market Tide** — signal-lab's
+- **SPX 1–5 day conditional density cone on Regime → Market Compass** — signal-lab's
   v13 GJR-GARCH(1,1,1) short-horizon density model (run
   `2026-08-01-spx-density-v13`, verdict **PASS**) ported into argon as a
   **display-only** fan chart plus a prospective shadow log. The numeric core
@@ -103,6 +103,27 @@ version in lockstep (enforced by `scripts/release/version_sync_check.py`).
   `vol_index_daily` carries close-only rows, and those sessions are dropped from
   the candle series rather than having a bar manufactured from the close), plus
   `gamma_levels` and per-horizon `density`.
+- **Four bounds the review pass added, each closing a way the panel could state
+  something it had not checked.** (1) `vol_index_daily.close` is nullable, and a
+  NULL arrives as NaN — which would sail straight *through* the alignment rail,
+  because the max disagreement becomes NaN and `NaN > 0` is `False`. A series
+  with a hole in it would have passed the "exact agreement" check that a
+  one-cent error fails, then been fitted under the same index and seed as a
+  different model. Non-finite closes are now rejected before the rail runs.
+  (2) Dealer levels carry `LEVELS_MAX_AGE_DAYS = 7` and the side-guard now
+  measures against the price the chart is actually drawn at, not the level row's
+  own spot — an unbounded `market_date <= as_of` lookback would happily draw
+  walls from a session months old, and the guard would not catch them because
+  they are consistent with *that* session's spot. (3) The backfill refuses to
+  touch any session the nightly job issued prospectively, even under `--force`:
+  `upsert_rows` updates `origin` on conflict, so a recompute would relabel a
+  genuinely out-of-sample cone as reconstructed and quietly inflate the only
+  honest hit-rate number on the page. (4) Cone horizons at or before the last
+  real bar are dropped rather than drawn over sessions whose outcome is already
+  known, which also removes the duplicate `target_date` the settle pass can
+  produce when a holiday falls inside the window — lightweight-charts asserts
+  strictly ascending times only in its *development* bundle, so in production a
+  duplicate renders a degenerate series instead of failing loudly.
 
 ### Changed
 
@@ -111,7 +132,10 @@ version in lockstep (enforced by `scripts/release/version_sync_check.py`).
   `/regime/tide` deep links keep working. The cone also moved out of the market
   tide section body: it had been nested inside that section's loading branch, so
   an unrelated slow tide fetch blanked it, and the "Market Tide" heading claimed
-  a panel that is not market tide.
+  a panel that is not market tide. It now carries its own
+  `.section` / `.section-header` / `.section-body` chrome, matching the Gamma
+  Exposure tab — the body padding is repeated on the panel rather than inherited
+  because `.section-body` ships `padding: 0` and each panel opts in.
 
 ## [0.10.18] — 2026-07-29
 

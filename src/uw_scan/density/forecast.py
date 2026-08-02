@@ -160,6 +160,17 @@ def compute_forecast(
             f"db series has {len(bars)} rows, frozen panel has {n}"
         )
 
+    # A NULL close (vol_index_daily.close is NUMERIC with no NOT NULL) arrives as None and
+    # numpy turns it into NaN. That has to be rejected BEFORE the rail, because NaN would
+    # sail straight through it: the max disagreement becomes NaN, and `NaN > 0` is False,
+    # so a series with a hole in it would pass the "exact agreement" check and go on to be
+    # fitted — same panel index, same seed, quietly different model. Fail closed instead.
+    bad = [d for d, c in zip(b_dates, closes_all) if not np.isfinite(c)]
+    if bad:
+        raise PanelMismatchError(
+            f"{len(bad)} non-finite SPX close(s) in the series, first at {bad[0]}"
+        )
+
     # Compare over whatever part of the panel window the (possibly truncated) series
     # covers — a prefix anchored at panel row 0 pins the index frame just as well.
     m = min(len(b_dates), n)
@@ -261,9 +272,13 @@ def compute_forecast(
         "series_index": i,
         "n_returns": int(hist.size),
         "cone_seed": cone_seed,
-        "overlap_days_checked": n,
+        # What was ACTUALLY checked, not what a full-length series would have checked.
+        # A reconstructed run rewound inside the panel compares m < n days and has no
+        # bars beyond the panel at all — reporting `n` and a negative count would make
+        # the durable audit trace read as a stronger verification than the one that ran.
+        "overlap_days_checked": m,
         "max_abs_close_disagreement": delta,
-        "fresh_bars_beyond_panel": len(b_dates) - n,
+        "fresh_bars_beyond_panel": max(0, len(b_dates) - n),
         "anchor_date": str(anchor_date),
     }
     return ForecastResult(

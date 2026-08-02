@@ -126,7 +126,31 @@ def test_anchor_close_substitutes_for_a_missing_spot() -> None:
             "spot": None,
         },
         gex_row=None,
-        fallback_spot=7383.0,
+        chart_spot=7383.0,
     )
     assert levels.spot == 7383.0
     assert (levels.call_wall, levels.put_wall) == (7500.0, 7300.0)
+
+
+def test_guard_uses_the_chart_price_not_the_rows_own_spot() -> None:
+    """The level row is internally consistent — call wall 100 above ITS spot — but the
+    market has since moved above the wall. Judged against the row's own spot both walls
+    survive and the chart draws 'resistance' underneath price, which is the false line
+    this module exists to prevent. Judged against the price actually plotted, the call
+    wall goes."""
+    row = {
+        "market_date": date(2026, 7, 22),
+        "call_wall": 7500.0,
+        "put_wall": 7300.0,
+        "gamma_flip": 7450.0,
+        "spot": 7400.0,
+    }
+    stale = resolve_levels(uw_row=row, gex_row=None, chart_spot=7600.0)
+    assert stale.call_wall is None
+    assert stale.dropped == ["call_wall"]
+    assert stale.spot == 7600.0
+
+    # Same row, chart drawn where it was captured: nothing is dropped.
+    same_day = resolve_levels(uw_row=row, gex_row=None, chart_spot=7400.0)
+    assert same_day.call_wall == 7500.0
+    assert same_day.dropped == []

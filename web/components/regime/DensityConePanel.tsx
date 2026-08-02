@@ -97,7 +97,15 @@ export default function DensityConePanel() {
   }
 
   const rows = f.rows;
-  const recent = (data?.recent_path ?? []).slice(-RECENT_N);
+  // History stops at the cone's anchor. The bars keep arriving from the lake sync whether
+  // or not the nightly cone job ran, so an unclipped path would draw the forecast on top
+  // of sessions that have already happened — a fan over known outcomes reads as a
+  // prediction of the past. `stalledBars` counts what was cut so the gap is stated, not
+  // just hidden.
+  const path = data?.recent_path ?? [];
+  const upToAnchor = path.filter((p) => p.date <= f.as_of);
+  const stalledBars = path.length - upToAnchor.length;
+  const recent = upToAnchor.slice(-RECENT_N);
   const levels = data?.gamma_levels ?? null;
   const closeOnly = recent.filter((p) => p.open == null).length;
   const head = rows[0];
@@ -239,6 +247,12 @@ export default function DensityConePanel() {
             widths, EWMA ratios, the level source, the p50 caveat) was removed as
             clutter; these two stay because they report a DEGRADED render — silence
             would otherwise read as a complete chart. */}
+        {stalledBars > 0 && (
+          <span data-testid="cone-stale-note">
+            cone is {stalledBars} session{stalledBars === 1 ? "" : "s"} behind
+            the tape — no cone issued since {f.as_of}
+          </span>
+        )}
         {closeOnly > 0 && (
           <span data-testid="cone-ohlc-note">
             {closeOnly} session{closeOnly === 1 ? "" : "s"} close-only — no

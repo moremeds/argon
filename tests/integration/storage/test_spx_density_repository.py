@@ -83,3 +83,26 @@ def test_hit_rate_tally_splits_origin_and_scored(seeded_db_empty_cards):
         "inside": 0,
         "total": 4,
     }
+
+
+def test_prospective_as_ofs_are_identifiable_so_a_backfill_cannot_relabel_them(
+    seeded_db_empty_cards,
+):
+    """`origin` decides which hit-rate tally a cone lands in — out-of-sample or
+    in-sample — and upsert_rows overwrites it on conflict. The backfill therefore has to
+    be able to ask which sessions the nightly job already published forward, or a
+    `--force` recompute would silently move real prospective results into the
+    reconstructed column."""
+    repo = seeded_db_empty_cards
+    sdr = SpxDensityRepository(repo.conn, schema=repo._schema)
+    sdr.upsert_rows([_row(h) for h in range(1, 6)])  # prospective, 2026-07-30
+    sdr.upsert_rows(
+        [
+            {**_row(h, as_of=date(2026, 7, 29)), "origin": "reconstructed"}
+            for h in range(1, 6)
+        ]
+    )
+
+    assert sdr.fetch_as_ofs_with_origin("prospective") == {date(2026, 7, 30)}
+    assert sdr.fetch_as_ofs_with_origin("reconstructed") == {date(2026, 7, 29)}
+    assert sdr.fetch_as_ofs_with_origin("nonexistent") == set()
