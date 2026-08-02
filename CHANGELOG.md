@@ -7,6 +7,9 @@ version in lockstep (enforced by `scripts/release/version_sync_check.py`).
 
 ## [Unreleased]
 
+## [0.11.0] — 2026-08-02
+
+
 ### Added
 
 - **SPX 1–5 day conditional density cone on Regime → Market Compass** — signal-lab's
@@ -136,7 +139,6 @@ version in lockstep (enforced by `scripts/release/version_sync_check.py`).
   `.section` / `.section-header` / `.section-body` chrome, matching the Gamma
   Exposure tab — the body padding is repeated on the panel rather than inherited
   because `.section-body` ships `padding: 0` and each panel opts in.
-
 ## [0.10.18] — 2026-07-29
 
 ### Added
