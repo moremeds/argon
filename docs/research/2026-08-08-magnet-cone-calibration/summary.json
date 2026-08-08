@@ -1,0 +1,97 @@
+{
+  "spec": "docs/superpowers/specs/2026-08-08-technicals-magnet-view-design.md",
+  "git_sha": "10927c4b6045b623e5d3adac111d8789513cb332",
+  "source_db": "100.66.147.98/option_wizard",
+  "reproduce_cmd": "uv run python scripts/research/magnet_cone_calibration.py --host 100.66.147.98 --dbname option_wizard --user argon_app --out docs/research/2026-08-08-magnet-cone-calibration",
+  "generated_for_date": "2026-08-09",
+  "horizons": [
+    5,
+    10
+  ],
+  "horizons_withheld": {
+    "21": "~14 independent windows per ticker \u2014 no power"
+  },
+  "min_obs": 100,
+  "n_excluded_ticker_horizons": 22,
+  "excluded_ticker_horizons": [
+    "BA@10",
+    "BA@5",
+    "BKSY@5",
+    "DAL@10",
+    "DAL@5",
+    "ELV@5",
+    "FN@5",
+    "JNK@5",
+    "KLAC@10",
+    "KLAC@5",
+    "KORU@10",
+    "KORU@5",
+    "MRK@10",
+    "MRK@5",
+    "NOV@5",
+    "SPCX@10",
+    "SPCX@5",
+    "T@10",
+    "T@5",
+    "VZ@10",
+    "VZ@5",
+    "XLRE@5"
+  ],
+  "n_obs": 32215,
+  "n_tickers": 119,
+  "date_range": [
+    "2025-12-26",
+    "2026-07-31"
+  ],
+  "g2_oos_calibration": {
+    "5": {
+      "status": "ok",
+      "k_train": 1.200493667585074,
+      "n_train": 9688,
+      "n_test": 6459,
+      "train_end": "2026-05-06",
+      "oos_cov_1.0_raw": 0.699953553181607,
+      "oos_cov_1.0_calibrated": 0.7894410899520049,
+      "oos_cov_1.0_nominal": 0.6826894921370859,
+      "oos_cov_1.0_improved": false,
+      "oos_cov_1.96_raw": 0.959900913454095,
+      "oos_cov_1.96_calibrated": 0.9829694999225886,
+      "oos_cov_1.96_nominal": 0.950004209703559,
+      "oos_cov_1.96_improved": false,
+      "g2_pass": false
+    },
+    "10": {
+      "status": "ok",
+      "k_train": 1.4372622865676365,
+      "n_train": 9641,
+      "n_test": 6427,
+      "train_end": "2026-05-01",
+      "oos_cov_1.0_raw": 0.7512058503189668,
+      "oos_cov_1.0_calibrated": 0.8957522950054457,
+      "oos_cov_1.0_nominal": 0.6826894921370859,
+      "oos_cov_1.0_improved": false,
+      "oos_cov_1.96_raw": 0.9710595923447954,
+      "oos_cov_1.96_calibrated": 0.9947098179555003,
+      "oos_cov_1.96_nominal": 0.950004209703559,
+      "oos_cov_1.96_improved": false,
+      "g2_pass": false
+    }
+  },
+  "g3_per_ticker_dispersion": {
+    "5": {
+      "n_tickers": 105,
+      "per_ticker_k_std": 0.2981867521031,
+      "pooled_k_ci_width": 0.4440855606871501,
+      "pooled_k": 1.1156967255715873,
+      "per_ticker_table_justified": false
+    },
+    "10": {
+      "n_tickers": 111,
+      "per_ticker_k_std": 0.3093600502125903,
+      "pooled_k_ci_width": 0.7433282243946348,
+      "pooled_k": 1.252608231326839,
+      "per_ticker_table_justified": false
+    }
+  },
+  "note": "mean(z) is an equity-risk-premium diagnostic and is NEVER applied. CIs are panel block bootstrap (resample dates, keep every ticker); no closed-form p-value is valid here. KS runs on non-overlapping subsamples only. Per-SECTOR pooling from spec 3.2 is omitted: no verified sector column exists and inventing one would be fabrication."
+}

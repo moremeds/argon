@@ -112,29 +112,83 @@ def load_as_traded_spot(
     return spot
 
 
-def load_expiry_iv_curve(
-    conn, ticker: str, as_of: date, spot: float, schema: str = "uw_scan"
-) -> list[tuple[int, float]]:
-    """[(dte, atm_iv), ...] ascending, one point per listed expiry.
+def load_all_session_spots(
+    conn, ticker: str, schema: str = "uw_scan"
+) -> dict[date, float]:
+    """{market_date: as-traded spot} for EVERY session, in one round trip.
 
-    Fetched ONCE per (ticker, session) and reused for every horizon. The per
-    horizon query this replaces re-scanned the same grid partition for each of
-    5d and 10d, doubling ~18k round trips for identical rows.
+    Bulk by design. The per-session equivalent issues one query per session per
+    ticker — ~23k round trips across the watchlist, which at a 141 ms Tailscale
+    RTT is about 90 minutes of pure latency. Same guards as load_as_traded_spot:
+    grid spot first, daily_ohlc close as fallback (the column is NULL for every
+    session before 2026-06), and a spot outside the session's own strike range is
+    dropped rather than returned.
     """
     sql = f"""
-        SELECT DISTINCT ON (expiry)
-               expiry, (call_iv + put_iv) / 2.0 AS iv
-          FROM {schema}.option_surface_grid_daily
-         WHERE ticker = %(t)s AND market_date = %(d)s
-           AND call_iv IS NOT NULL AND put_iv IS NOT NULL
-           AND expiry > %(d)s
-         ORDER BY expiry, abs(strike - %(s)s)
+        WITH k AS (
+            SELECT market_date,
+                   MIN(strike) AS lo,
+                   MAX(strike) AS hi,
+                   MAX(underlying_spot) AS grid_spot
+              FROM {schema}.option_surface_grid_daily
+             WHERE ticker = %(t)s
+             GROUP BY market_date
+        )
+        SELECT k.market_date,
+               COALESCE(k.grid_spot, o.close) AS spot,
+               k.lo, k.hi
+          FROM k
+          LEFT JOIN {schema}.daily_ohlc o
+                 ON o.ticker = %(t)s AND o.date = k.market_date AND o.close > 0
     """
-    rows = conn.execute(sql, {"t": ticker, "d": as_of, "s": spot}).fetchall()
-    pts = [
-        (int((r[0] - as_of).days), normalize_iv(r[1])) for r in rows if r[1] is not None
-    ]
-    return sorted((d, iv) for d, iv in pts if d > 0 and iv > 0)
+    out: dict[date, float] = {}
+    for md, spot, lo, hi in conn.execute(sql, {"t": ticker}).fetchall():
+        if spot is None or lo is None or hi is None:
+            continue
+        s, lo_f, hi_f = float(spot), float(lo), float(hi)
+        if lo_f <= s <= hi_f:
+            out[md] = s
+    return out
+
+
+def load_all_expiry_iv_curves(
+    conn, ticker: str, spots: dict[date, float], schema: str = "uw_scan"
+) -> dict[date, list[tuple[int, float]]]:
+    """{market_date: [(dte, atm_iv), ...]} for every session, in one round trip.
+
+    The ATM strike is chosen per session against that session's own spot, which
+    is passed in as a VALUES list rather than re-derived — the caller already
+    applied the strike-range guard, and re-deriving here would risk the two
+    disagreeing about which spot a session had.
+    """
+    if not spots:
+        return {}
+    values = ", ".join("(%s::date, %s::numeric)" for _ in spots)
+    params: list = []
+    for d, s in spots.items():
+        params.extend([d, s])
+    sql = f"""
+        WITH s(market_date, spot) AS (VALUES {values})
+        SELECT DISTINCT ON (g.market_date, g.expiry)
+               g.market_date, g.expiry, (g.call_iv + g.put_iv) / 2.0 AS iv
+          FROM {schema}.option_surface_grid_daily g
+          JOIN s ON s.market_date = g.market_date
+         WHERE g.ticker = %s
+           AND g.call_iv IS NOT NULL AND g.put_iv IS NOT NULL
+           AND g.expiry > g.market_date
+         ORDER BY g.market_date, g.expiry, abs(g.strike - s.spot)
+    """
+    curves: dict[date, list[tuple[int, float]]] = {}
+    for md, expiry, iv in conn.execute(sql, [*params, ticker]).fetchall():
+        if iv is None:
+            continue
+        dte = int((expiry - md).days)
+        v = normalize_iv(iv)
+        if dte > 0 and v > 0:
+            curves.setdefault(md, []).append((dte, v))
+    for md in curves:
+        curves[md].sort()
+    return curves
 
 
 def atm_iv_at_horizon(curve: list[tuple[int, float]], target_dte: int) -> float | None:
