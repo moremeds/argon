@@ -757,7 +757,7 @@ wrong verdict that looks right.
 - [ ] **Step 4: Run tests to verify they pass**
 
 Run: `uv run pytest tests/unit/test_magnet_calibration.py -v`
-Expected: PASS (18 passed)
+Expected: PASS (17 passed)
 
 - [ ] **Step 5: Commit**
 
