@@ -530,32 +530,21 @@ def last_pivot_index(df: pd.DataFrame, *, k: float = 3.0) -> int:
 
     Pivot = a swing extreme that later reverses by >= k * ATR(14). Falls back
     to len-126 when no pivot confirms (young or drift-only series).
+
+    Thin wrapper over cards.magnets.all_pivots — the detection loop lives there
+    because the magnet view needs the whole pivot list (and each pivot's
+    confirmation bar), not just the last index. Behaviour is unchanged;
+    tests/unit/test_magnets_pivots.py guards that against a frozen copy.
     """
-    close = df["close"].to_numpy(dtype=float)
-    atr = atr14(df).to_numpy(dtype=float)
-    n = len(close)
+    from uw_scan.cards.magnets import all_pivots  # local: magnets imports atr14
+
+    n = len(df)
     if n < 30:
         return 0
-    pivots: list[int] = []
-    direction = 1 if close[min(20, n - 1)] >= close[0] else -1
-    ext_i = 0
-    for i in range(1, n):
-        thr = k * atr[i] if math.isfinite(atr[i]) and atr[i] > 0 else math.inf
-        if direction == 1:
-            if close[i] >= close[ext_i]:
-                ext_i = i
-            elif close[ext_i] - close[i] >= thr:
-                pivots.append(ext_i)
-                direction, ext_i = -1, i
-        else:
-            if close[i] <= close[ext_i]:
-                ext_i = i
-            elif close[i] - close[ext_i] >= thr:
-                pivots.append(ext_i)
-                direction, ext_i = 1, i
+    pivots = all_pivots(df, k=k)
     if not pivots:
         return max(0, n - 126)
-    return pivots[-1]
+    return pivots[-1].index
 
 
 def fit_sigmoid(closes: np.ndarray) -> dict:
