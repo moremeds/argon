@@ -488,19 +488,23 @@ git commit -m "feat(research): cone calibration math with scale-only fit"
 **Interfaces:**
 - Consumes: `scale_estimates`, `coverage` from Task 2.
 - Produces:
-  - `moving_block_bootstrap(values: np.ndarray, statistic: Callable[[np.ndarray], float], *, block: int, n_boot: int, seed: int) -> dict` — keys `point`, `lo`, `hi`, `n_boot`, `block`
+  - `moving_block_bootstrap(values: np.ndarray, statistic: Callable[[np.ndarray], float], *, block: int, n_boot: int, seed: int) -> dict` — keys `point`, `lo`, `hi`, `n_boot`, `block`. **Single time series only.**
+  - `panel_block_bootstrap(dates: Sequence, values: np.ndarray, statistic, *, block: int, n_boot: int, seed: int) -> dict` — keys as above plus `n_dates`. **Required for anything pooled across tickers** — see its docstring for why the single-series version silently narrows the CI and corrupts G3.
   - `nonoverlapping_subsample(values: np.ndarray, step: int, offset: int = 0) -> np.ndarray`
 
 - [ ] **Step 1: Write the failing tests**
 
 ```python
 # append to tests/unit/test_magnet_calibration.py
+import math
+
 import numpy as np
 import pytest
 
 from uw_scan.reports.magnet_calibration import (
     moving_block_bootstrap,
     nonoverlapping_subsample,
+    panel_block_bootstrap,
 )
 
 
@@ -540,6 +544,71 @@ def test_bootstrap_ci_is_wider_for_longer_blocks():
 def test_bootstrap_rejects_block_longer_than_sample():
     with pytest.raises(ValueError):
         moving_block_bootstrap(np.arange(5.0), np.mean, block=10, n_boot=10, seed=1)
+
+
+def _panel(n_dates: int, n_tickers: int, rho: float, seed: int):
+    """z-panel where every ticker shares a same-day common factor of strength rho
+    and every ticker has the SAME true scale. Any per-ticker dispersion measured
+    on this is estimation noise, by construction."""
+    rng = np.random.default_rng(seed)
+    common = rng.standard_normal(n_dates)
+    dates, vals = [], []
+    for _ in range(n_tickers):
+        idio = rng.standard_normal(n_dates)
+        z = math.sqrt(rho) * common + math.sqrt(1 - rho) * idio
+        dates.extend(range(n_dates))
+        vals.extend(z.tolist())
+    return np.array(dates), np.array(vals)
+
+
+def _k(a: np.ndarray) -> float:
+    return float(np.std(a, ddof=1))
+
+
+def test_panel_bootstrap_matches_naive_when_tickers_are_independent():
+    dates, vals = _panel(161, 40, rho=0.0, seed=42)
+    naive = moving_block_bootstrap(vals, _k, block=5, n_boot=400, seed=7)
+    panel = panel_block_bootstrap(dates, vals, _k, block=5, n_boot=400, seed=7)
+    nw, pw = naive["hi"] - naive["lo"], panel["hi"] - panel["lo"]
+    assert pw == pytest.approx(nw, rel=0.35)
+
+
+def test_panel_bootstrap_is_much_wider_under_cross_sectional_correlation():
+    """The G3 guard. Measured ratios: 2.99x at rho=0.3, 6.10x at rho=0.6,
+    9.33x at rho=0.9. If this ever collapses toward 1.0, the panel bootstrap has
+    stopped preserving the common factor and G3 is corrupt again."""
+    dates, vals = _panel(161, 114, rho=0.6, seed=42)
+    naive = moving_block_bootstrap(vals, _k, block=5, n_boot=400, seed=7)
+    panel = panel_block_bootstrap(dates, vals, _k, block=5, n_boot=400, seed=7)
+    assert (panel["hi"] - panel["lo"]) > 3.0 * (naive["hi"] - naive["lo"])
+
+
+def test_naive_bootstrap_would_pass_G3_on_a_panel_with_no_real_dispersion():
+    """Regression test for the actual bug, stated as the decision it corrupts.
+
+    Every ticker here has the same true k. G3 must say 'pooled constant'. The
+    naive CI is ~6x too narrow and flips that to 'build a per-ticker table'.
+    """
+    dates, vals = _panel(161, 114, rho=0.6, seed=42)
+    per_ticker_k = [_k(vals[dates == d]) for d in range(0)] or [
+        _k(vals[i * 161 : (i + 1) * 161]) for i in range(114)
+    ]
+    dispersion = float(np.std(per_ticker_k, ddof=1))
+
+    naive_w = (lambda b: b["hi"] - b["lo"])(
+        moving_block_bootstrap(vals, _k, block=5, n_boot=400, seed=7)
+    )
+    panel_w = (lambda b: b["hi"] - b["lo"])(
+        panel_block_bootstrap(dates, vals, _k, block=5, n_boot=400, seed=7)
+    )
+    assert dispersion > naive_w, "the naive CI is narrow enough to fire G3 wrongly"
+    assert dispersion < panel_w, "the panel CI must correctly suppress G3 here"
+
+
+def test_panel_bootstrap_rejects_block_longer_than_the_date_axis():
+    dates, vals = _panel(4, 10, rho=0.0, seed=1)
+    with pytest.raises(ValueError):
+        panel_block_bootstrap(dates, vals, _k, block=10, n_boot=10, seed=1)
 ```
 
 - [ ] **Step 2: Run tests to verify they fail**
@@ -551,7 +620,7 @@ Expected: FAIL — `ImportError: cannot import name 'moving_block_bootstrap'`
 
 ```python
 # append to src/uw_scan/reports/magnet_calibration.py
-from collections.abc import Callable
+from collections.abc import Callable, Sequence
 
 
 def nonoverlapping_subsample(
@@ -602,12 +671,93 @@ def moving_block_bootstrap(
         "n_boot": int(n_boot),
         "block": int(block),
     }
+
+
+def panel_block_bootstrap(
+    dates: Sequence,
+    values: np.ndarray,
+    statistic: Callable[[np.ndarray], float],
+    *,
+    block: int,
+    n_boot: int,
+    seed: int,
+) -> dict:
+    """Block bootstrap over a PANEL — resample blocks of DATES, keep every ticker.
+
+    Use this, NOT moving_block_bootstrap, for any statistic pooled across tickers.
+
+    moving_block_bootstrap treats its input as ONE time series. Handed a flattened
+    (date x ticker) panel it resamples blocks that straddle ticker boundaries,
+    which shuffles observations from different tickers together and implicitly
+    asserts they are independent on a given day. They are not: this watchlist is
+    concentrated in AI/semis and shares a common volatility factor.
+
+    The consequence is not academic. Destroying cross-sectional correlation
+    understates the variance of the pooled estimator, so the CI comes out too
+    narrow — and G3 compares per-ticker dispersion AGAINST that CI width. A CI
+    that is too narrow makes `dispersion > width` easier to satisfy, so G3 would
+    call for a per-ticker table and a refit job on a statistical artifact.
+
+    Resampling whole dates preserves both dependencies: serial (blocks are
+    contiguous in time) and cross-sectional (a sampled date brings all of its
+    tickers along).
+    """
+    arr = np.asarray(values, dtype=float)
+    d = np.asarray(dates)
+    keep = np.isfinite(arr)
+    arr, d = arr[keep], d[keep]
+    if arr.size == 0:
+        return {"point": float("nan"), "lo": float("nan"), "hi": float("nan"),
+                "n_boot": int(n_boot), "block": int(block), "n_dates": 0}
+
+    uniq = np.unique(d)
+    by_date = {u: arr[d == u] for u in uniq}
+    n_dates = len(uniq)
+    if block <= 0:
+        raise ValueError(f"block must be positive, got {block}")
+    if n_dates < block:
+        raise ValueError(f"panel has {n_dates} dates, shorter than block {block}")
+
+    rng = np.random.default_rng(seed)
+    n_blocks = int(math.ceil(n_dates / block))
+    starts_hi = n_dates - block + 1
+    stats = np.empty(n_boot, dtype=float)
+    for i in range(n_boot):
+        starts = rng.integers(0, starts_hi, size=n_blocks)
+        picked = np.concatenate([uniq[s : s + block] for s in starts])[:n_dates]
+        sample = np.concatenate([by_date[u] for u in picked])
+        stats[i] = float(statistic(sample))
+    lo, hi = np.percentile(stats, [2.5, 97.5])
+    return {
+        "point": float(statistic(arr)),
+        "lo": float(lo),
+        "hi": float(hi),
+        "n_boot": int(n_boot),
+        "block": int(block),
+        "n_dates": int(n_dates),
+    }
 ```
+
+**Measured evidence this matters** (synthetic panel, 161 dates × 114 tickers, every
+ticker sharing one true scale). Pooled `k` CI width, naive vs panel:
+
+| ρ (same-day common factor) | naive width | panel width | ratio |
+|---|---|---|---|
+| 0.0 | 0.02151 | 0.02173 | 1.01× |
+| 0.3 | 0.02133 | 0.06371 | 2.99× |
+| **0.6** (realistic for this watchlist) | 0.02008 | 0.12256 | **6.10×** |
+| 0.9 | 0.02006 | 0.18725 | 9.33× |
+
+At ρ = 0.6, per-ticker dispersion measures 0.03644 — which **exceeds the naive CI
+width (0.02008) and so fires G3**, recommending a per-ticker table and a refit
+job — on a panel where every ticker has identical true `k` by construction. The
+panel CI (0.12256) correctly suppresses it. This is the exact failure mode of a
+wrong verdict that looks right.
 
 - [ ] **Step 4: Run tests to verify they pass**
 
 Run: `uv run pytest tests/unit/test_magnet_calibration.py -v`
-Expected: PASS (13 passed)
+Expected: PASS (18 passed)
 
 - [ ] **Step 5: Commit**
 
@@ -661,11 +811,14 @@ import numpy as np
 import pandas as pd
 import psycopg
 
+from scipy.stats import kstest
+
 from uw_scan.backtest.splitters import time_ordered_holdout
 from uw_scan.reports.magnet_calibration import (
     NOMINAL_COVERAGE,
     coverage,
-    moving_block_bootstrap,
+    nonoverlapping_subsample,
+    panel_block_bootstrap,
     pit,
     scale_estimates,
 )
@@ -748,18 +901,49 @@ def observations(conn, ticker: str, schema: str) -> list[dict]:
     return out
 
 
-def summarise(z: np.ndarray, horizon: int, label: str) -> dict:
+def summarise(sub: pd.DataFrame, horizon: int, label: str) -> dict:
+    """One row of calibration diagnostics.
+
+    Uses panel_block_bootstrap for EVERY scope, pooled and per-ticker alike.
+
+    There is deliberately no "which bootstrap?" switch here. For a single ticker
+    the panel version degenerates exactly to the moving-block version — one
+    observation per date means resampling blocks of dates IS resampling blocks of
+    the series — so the pooled-vs-per-ticker distinction buys nothing and costs a
+    decision that, made wrongly, silently narrows the CI by ~6x and flips G3.
+    Removing the footgun beats documenting it.
+    """
+    z = sub["z"].to_numpy(dtype=float)
     est = scale_estimates(z)
     row = {"scope": label, "horizon": horizon, **est}
     for level, nominal in NOMINAL_COVERAGE.items():
         row[f"cov_{level}"] = coverage(z, level)
         row[f"cov_{level}_nominal"] = nominal
+
+    # PIT + KS (spec §3.2). The KS test runs ONLY on a non-overlapping subsample:
+    # at h=5 consecutive rows share 4 of 5 days, and a KS p-value on overlapping
+    # data is not merely imprecise, it is meaningless.
+    u_indep = pit(nonoverlapping_subsample(z, step=horizon))
+    if u_indep.size >= 20:
+        ks = kstest(u_indep, "uniform")
+        row["pit_ks_stat"] = float(ks.statistic)
+        row["pit_ks_p"] = float(ks.pvalue)
+        row["pit_ks_n_indep"] = int(u_indep.size)
+    else:
+        row["pit_ks_stat"] = row["pit_ks_p"] = float("nan")
+        row["pit_ks_n_indep"] = int(u_indep.size)
+
     if z.size >= max(MIN_OBS, horizon * 2):
+        def k_stat(a: np.ndarray) -> float:
+            return float(np.std(a, ddof=1))
+
         # Block = horizon: the exact span two consecutive observations share.
-        boot = moving_block_bootstrap(
-            z, lambda a: float(np.std(a, ddof=1)), block=horizon, n_boot=1000, seed=20260808
+        boot = panel_block_bootstrap(
+            sub["as_of"].to_numpy(), z, k_stat,
+            block=horizon, n_boot=1000, seed=20260808,
         )
         row["k_ci_lo"], row["k_ci_hi"] = boot["lo"], boot["hi"]
+        row["ci_n_dates"] = boot.get("n_dates")
     else:
         row["k_ci_lo"] = row["k_ci_hi"] = float("nan")
     return row
@@ -830,11 +1014,11 @@ def main() -> None:
     summaries: list[dict] = []
     for h in HORIZONS:
         sub = per_obs[per_obs["horizon"] == h]
-        summaries.append(summarise(sub["z"].to_numpy(dtype=float), h, "pooled"))
+        summaries.append(summarise(sub, h, "pooled"))
         for tkr, grp in sub.groupby("ticker"):
             if len(grp) < MIN_OBS:
                 continue
-            summaries.append(summarise(grp["z"].to_numpy(dtype=float), h, f"ticker:{tkr}"))
+            summaries.append(summarise(grp, h, f"ticker:{tkr}"))
 
     by_ticker = pd.DataFrame(summaries)
     by_ticker.to_csv(out_dir / "by_ticker.csv", index=False)
@@ -937,19 +1121,42 @@ git commit -m "feat(research): E1 cone calibration runner with full trace persis
 **Interfaces:**
 - Consumes: `uw_scan.cards.technicals.atr14`.
 - Produces:
-  - `Pivot` — `NamedTuple(index: int, kind: str, price: float)`, `kind` in `{"top", "bottom"}`
+  - `Pivot` — `NamedTuple(index: int, kind: str, price: float, confirmed_index: int)`, `kind` in `{"top", "bottom"}`
   - `all_pivots(df: pd.DataFrame, k: float = 3.0) -> list[Pivot]`
+
+**`confirmed_index` is not optional decoration — it is the lookahead guard.** A
+pivot at bar `index` is only *discovered* at bar `confirmed_index`, when price
+has reversed by `k × ATR`. Measured lag on synthetic zigzags: **3–25 bars, at
+prices 8.2%–13.9% above the pivot low**. Task 7 enters at `confirmed_index + 1`.
+
+The bias this removes was **measured, not assumed** — and it runs opposite to the
+intuitive direction. On 1517 legs over driftless GBM (no geometric edge by
+construction, so any gap is pure bias):
+
+| Entry | hit | stop | neither | hit ex-ambiguous |
+|---|---|---|---|---|
+| `index + 1` (buggy) | 0.217 | **0.657** | 0.126 | **0.2174** |
+| `confirmed_index + 1` (correct) | 0.383 | 0.424 | 0.193 | **0.3830** |
+
+Entering at the pivot bar puts the entry price essentially *on* the support
+barrier — `down = b.price` is the pivot low itself — so almost any downtick stops
+it out instantly, giving a 65.7% stop rate. The bug therefore **deflates** the hit
+rate by 16.6pt and would have biased G1 toward a spurious **FAIL**, killing the
+0.618 framing on an artifact rather than blessing it. Either direction invalidates
+the research; do not assume which way an unguarded lookahead will push a result.
 
 - [ ] **Step 1: Write the failing tests**
 
 ```python
 # tests/unit/test_magnets_pivots.py
+import math
+
 import numpy as np
 import pandas as pd
 import pytest
 
 from uw_scan.cards.magnets import Pivot, all_pivots
-from uw_scan.cards.technicals import last_pivot_index
+from uw_scan.cards.technicals import atr14, last_pivot_index
 
 
 def _frame(closes: list[float]) -> pd.DataFrame:
@@ -968,6 +1175,42 @@ def _zigzag(n_legs: int, amplitude: float, leg_len: int) -> list[float]:
         out.extend(np.linspace(out[-1], target, leg_len)[1:].tolist())
         up = not up
     return out
+
+
+def _legacy_last_pivot_index(df: pd.DataFrame, k: float = 3.0) -> int:
+    """FROZEN copy of cards/technicals.py::last_pivot_index as it stood at
+    commit ebd0393, before the all_pivots extraction.
+
+    Do not "simplify" this to call the real function — that makes the
+    equivalence test circular and it would pass even if the refactor silently
+    changed behaviour for every caller. This copy is the reference; if it ever
+    disagrees with the shipped wrapper, the shipped wrapper is what changed.
+    """
+    close = df["close"].to_numpy(dtype=float)
+    atr = atr14(df).to_numpy(dtype=float)
+    n = len(close)
+    if n < 30:
+        return 0
+    pivots: list[int] = []
+    direction = 1 if close[min(20, n - 1)] >= close[0] else -1
+    ext_i = 0
+    for i in range(1, n):
+        thr = k * atr[i] if math.isfinite(atr[i]) and atr[i] > 0 else math.inf
+        if direction == 1:
+            if close[i] >= close[ext_i]:
+                ext_i = i
+            elif close[ext_i] - close[i] >= thr:
+                pivots.append(ext_i)
+                direction, ext_i = -1, i
+        else:
+            if close[i] <= close[ext_i]:
+                ext_i = i
+            elif close[i] - close[ext_i] >= thr:
+                pivots.append(ext_i)
+                direction, ext_i = 1, i
+    if not pivots:
+        return max(0, n - 126)
+    return pivots[-1]
 
 
 def test_pivots_alternate_top_and_bottom():
@@ -1013,8 +1256,43 @@ def test_last_pivot_index_is_unchanged_by_the_refactor():
 
 
 def test_pivot_is_a_named_tuple_with_stable_field_order():
-    p = Pivot(3, "top", 101.5)
-    assert (p.index, p.kind, p.price) == (3, "top", 101.5)
+    p = Pivot(3, "top", 101.5, 7)
+    assert (p.index, p.kind, p.price, p.confirmed_index) == (3, "top", 101.5, 7)
+
+
+def test_confirmation_always_lags_the_pivot_bar():
+    """The lookahead guard. If this ever fails, every forward test is invalid."""
+    df = _frame(_zigzag(8, 0.25, 10))
+    pivots = all_pivots(df, k=3.0)
+    assert pivots, "fixture must produce pivots or the guard proves nothing"
+    for p in pivots:
+        assert p.confirmed_index > p.index
+
+
+def test_confirmation_price_differs_materially_from_the_pivot_price():
+    """Quantifies WHY confirmed_index exists: entering at the pivot bar buys a
+    low that was not knowable. Measured lag is 3-25 bars, 8-14% of price."""
+    df = _frame(_zigzag(8, 0.25, 10))
+    close = df["close"]
+    gaps = [
+        abs(close.iloc[p.confirmed_index] / p.price - 1.0)
+        for p in all_pivots(df, k=3.0)
+    ]
+    assert max(gaps) > 0.05
+
+
+def test_wrapper_matches_the_legacy_last_pivot_index_exactly():
+    """Equivalence against the SHIPPED function, not against all_pivots — the
+    latter would be circular and would pass even if both were wrong together."""
+    for closes in (
+        _zigzag(6, 0.30, 12),
+        _zigzag(8, 0.25, 10),
+        _zigzag(3, 0.10, 40),
+        np.linspace(100.0, 300.0, 200).tolist(),
+        [100.0] * 10,
+    ):
+        df = _frame(closes)
+        assert last_pivot_index(df) == _legacy_last_pivot_index(df)
 ```
 
 - [ ] **Step 2: Run tests to verify they fail**
@@ -1048,9 +1326,12 @@ from uw_scan.cards.technicals import atr14
 
 
 class Pivot(NamedTuple):
-    index: int
-    kind: str    # "top" | "bottom"
-    price: float
+    index: int            # bar the extreme occurred on
+    kind: str             # "top" | "bottom"
+    price: float          # close at `index`
+    confirmed_index: int  # bar the reversal threshold was crossed — the FIRST bar
+                          # on which this pivot was knowable. Never backtest from
+                          # `index`; measured lag is 3-25 bars and 8-14% of price.
 
 
 def all_pivots(df: pd.DataFrame, k: float = 3.0) -> list[Pivot]:
@@ -1059,6 +1340,10 @@ def all_pivots(df: pd.DataFrame, k: float = 3.0) -> list[Pivot]:
     A pivot is a swing extreme that LATER reverses by >= k * ATR(14). Confirmation
     is retrospective by construction, so the newest extreme is never a pivot until
     price has moved away from it — that lag is the price of not repainting.
+
+    Each pivot therefore carries TWO indices. `index` is where the extreme sits on
+    the chart; `confirmed_index` is where a live system would first have known
+    about it. Drawing uses `index`; any forward test MUST use `confirmed_index`.
     """
     if len(df) < 30:
         return []
@@ -1074,13 +1359,13 @@ def all_pivots(df: pd.DataFrame, k: float = 3.0) -> list[Pivot]:
             if close[i] >= close[ext_i]:
                 ext_i = i
             elif close[ext_i] - close[i] >= thr:
-                pivots.append(Pivot(ext_i, "top", float(close[ext_i])))
+                pivots.append(Pivot(ext_i, "top", float(close[ext_i]), i))
                 direction, ext_i = -1, i
         else:
             if close[i] <= close[ext_i]:
                 ext_i = i
             elif close[i] - close[ext_i] >= thr:
-                pivots.append(Pivot(ext_i, "bottom", float(close[ext_i])))
+                pivots.append(Pivot(ext_i, "bottom", float(close[ext_i]), i))
                 direction, ext_i = 1, i
     return pivots
 ```
@@ -1119,7 +1404,7 @@ Run:
 uv run pytest tests/unit/test_magnets_pivots.py -v
 uv run pytest tests/ -k technical -v
 ```
-Expected: new file 7 passed; existing technicals tests unchanged and passing.
+Expected: new file 10 passed; existing technicals tests unchanged and passing.
 
 - [ ] **Step 6: Commit**
 
@@ -1143,6 +1428,7 @@ git commit -m "feat: extract all_pivots, last_pivot_index becomes a wrapper"
   - `measured_move(resistance: float, support: float, ratio: float = 0.618) -> tuple[float, float]` → `(stretch, down)`
   - `first_passage(highs, lows, up: float, down: float, max_bars: int) -> str` → `"hit" | "stop" | "ambiguous" | "neither"`
   - `bootstrap_null_hit_rate(returns, start_price, up, down, max_bars, *, block: int, n_paths: int, seed: int) -> dict` — keys `hit`, `stop`, `ambiguous`, `neither`
+  - `clustered_bootstrap_edge(legs: Sequence[dict], *, n_boot: int, seed: int, alpha: float) -> dict` — keys `point`, `lo`, `hi`, `n`, `n_clusters`, `alpha`
 
 - [ ] **Step 1: Write the failing tests**
 
@@ -1153,6 +1439,7 @@ import pytest
 
 from uw_scan.reports.magnet_passage import (
     bootstrap_null_hit_rate,
+    clustered_bootstrap_edge,
     first_passage,
     measured_move,
 )
@@ -1236,6 +1523,76 @@ def test_bootstrap_null_hits_more_often_with_positive_drift():
         bootstrap_null_hit_rate(drift, 100.0, **kw)["hit"]
         > bootstrap_null_hit_rate(flat, 100.0, **kw)["hit"]
     )
+
+
+def _legs(n_tickers: int, per_ticker: int, edge: float, seed: int) -> list[dict]:
+    """Legs whose outcome-minus-null has mean `edge`, correlated WITHIN a ticker.
+
+    Ticker biases are CENTRED before use. Drawing 40 biases from N(0, 0.25) and
+    calling the result "no edge" is wrong: their sample mean has SE ~= 0.04, so a
+    typical seed yields a real edge of a couple of points and a correct CI will
+    rightly exclude zero. Centring makes the fixture's edge exactly `edge`, so a
+    coverage test measures the estimator rather than the draw.
+    """
+    rng = np.random.default_rng(seed)
+    biases = rng.normal(0.0, 0.25, n_tickers)
+    biases = biases - biases.mean()
+    out = []
+    for t in range(n_tickers):
+        for _ in range(per_ticker):
+            p = min(max(0.5 + edge + float(biases[t]), 0.01), 0.99)
+            hit = rng.random() < p
+            out.append(
+                {
+                    "ticker": f"T{t}",
+                    "outcome": "hit" if hit else "stop",
+                    "null_hit": 0.5,
+                }
+            )
+    return out
+
+
+def test_clustered_edge_drops_ambiguous_and_null_less_legs():
+    legs = [
+        {"ticker": "A", "outcome": "hit", "null_hit": 0.4},
+        {"ticker": "A", "outcome": "ambiguous", "null_hit": 0.4},
+        {"ticker": "B", "outcome": "stop", "null_hit": float("nan")},
+        {"ticker": "B", "outcome": "stop", "null_hit": 0.4},
+    ]
+    out = clustered_bootstrap_edge(legs, n_boot=200, seed=1, alpha=0.05)
+    assert out["n"] == 2  # ambiguous and NaN-null legs excluded
+    assert out["n_clusters"] == 2
+
+
+def test_clustered_ci_covers_zero_when_there_is_no_edge():
+    out = clustered_bootstrap_edge(
+        _legs(40, 20, edge=0.0, seed=3), n_boot=800, seed=5, alpha=0.01
+    )
+    assert out["lo"] < 0.0 < out["hi"]
+
+
+def test_clustered_ci_is_wider_than_ignoring_ticker_clusters():
+    """The G1 guard. Legs within a ticker overlap and share a common shift;
+    resampling legs instead of tickers would shrink this interval by ~sqrt(n)."""
+    legs = _legs(40, 20, edge=0.0, seed=3)
+    clustered = clustered_bootstrap_edge(legs, n_boot=800, seed=5, alpha=0.05)
+
+    vals = np.array(
+        [(1.0 if r["outcome"] == "hit" else 0.0) - r["null_hit"] for r in legs]
+    )
+    rng = np.random.default_rng(5)
+    naive = np.array(
+        [float(np.mean(rng.choice(vals, size=vals.size, replace=True))) for _ in range(800)]
+    )
+    naive_w = float(np.percentile(naive, 97.5) - np.percentile(naive, 2.5))
+    assert (clustered["hi"] - clustered["lo"]) > 1.5 * naive_w
+
+
+def test_clustered_edge_returns_nan_when_every_leg_is_ambiguous():
+    legs = [{"ticker": "A", "outcome": "ambiguous", "null_hit": 0.5}]
+    out = clustered_bootstrap_edge(legs, n_boot=100, seed=1, alpha=0.05)
+    assert out["n"] == 0
+    assert out["point"] != out["point"]  # NaN, so G1 cannot silently pass
 ```
 
 - [ ] **Step 2: Run tests to verify they fail**
@@ -1332,12 +1689,64 @@ def bootstrap_null_hit_rate(
         path = start_price * np.exp(np.cumsum(path_rets))
         counts[first_passage(path, path, up, down, max_bars)] += 1
     return {kind: n / n_paths for kind, n in counts.items()}
+
+
+def clustered_bootstrap_edge(
+    legs: Sequence[dict], *, n_boot: int, seed: int, alpha: float
+) -> dict:
+    """CI on mean(outcome - null_hit), resampling TICKERS not legs.
+
+    Two dependencies make a naive per-leg CI far too narrow:
+
+      1. Legs from one ticker OVERLAP. A leg's 60-bar forward window can contain
+         the next leg's entry, so their outcomes share price path.
+      2. Tickers share a common market factor, and this watchlist is concentrated
+         in AI/semis.
+
+    Resampling whole tickers (a cluster bootstrap) keeps both dependencies intact.
+    Resampling legs would treat 20 correlated legs as 20 independent observations
+    and shrink the interval by roughly sqrt(20).
+
+    `alpha` is the two-sided level AFTER multiplicity adjustment. E2 sweeps five
+    k_atr values and reports the best, so an unadjusted 0.05 would fire on noise
+    the large majority of the time — see the G1 note in the runner.
+    """
+    decided = [r for r in legs if r["outcome"] != "ambiguous" and r.get("null_hit") == r.get("null_hit")]
+    if not decided:
+        return {"point": float("nan"), "lo": float("nan"), "hi": float("nan"), "n": 0, "n_clusters": 0}
+
+    by_ticker: dict[str, list[float]] = {}
+    for r in decided:
+        by_ticker.setdefault(r["ticker"], []).append(
+            (1.0 if r["outcome"] == "hit" else 0.0) - r["null_hit"]
+        )
+    keys = list(by_ticker)
+    point = float(np.mean([v for vals in by_ticker.values() for v in vals]))
+    if len(keys) < 2:
+        return {"point": point, "lo": float("nan"), "hi": float("nan"),
+                "n": len(decided), "n_clusters": len(keys)}
+
+    rng = np.random.default_rng(seed)
+    stats = np.empty(n_boot, dtype=float)
+    for i in range(n_boot):
+        picked = rng.integers(0, len(keys), size=len(keys))
+        vals = [v for j in picked for v in by_ticker[keys[j]]]
+        stats[i] = float(np.mean(vals))
+    lo, hi = np.percentile(stats, [100 * alpha / 2, 100 * (1 - alpha / 2)])
+    return {
+        "point": point,
+        "lo": float(lo),
+        "hi": float(hi),
+        "n": len(decided),
+        "n_clusters": len(keys),
+        "alpha": alpha,
+    }
 ```
 
 - [ ] **Step 4: Run tests to verify they pass**
 
 Run: `uv run pytest tests/unit/test_magnet_passage.py -v`
-Expected: PASS (11 passed)
+Expected: PASS (15 passed)
 
 - [ ] **Step 5: Commit**
 
@@ -1382,6 +1791,7 @@ from __future__ import annotations
 import argparse
 import json
 import subprocess
+import zlib
 from pathlib import Path
 
 import numpy as np
@@ -1392,7 +1802,12 @@ from uw_scan.backtest.splitters import time_ordered_holdout
 from uw_scan.backtest.sweep import run_sweep
 from uw_scan.cards.magnets import all_pivots
 from uw_scan.reports.magnet_data import load_adjusted_closes
-from uw_scan.reports.magnet_passage import bootstrap_null_hit_rate, first_passage, measured_move
+from uw_scan.reports.magnet_passage import (
+    bootstrap_null_hit_rate,
+    clustered_bootstrap_edge,
+    first_passage,
+    measured_move,
+)
 from uw_scan.storage.backtest_repository import BacktestRepository
 
 K_GRID = (2.0, 2.5, 3.0, 3.5, 4.0)
@@ -1426,9 +1841,17 @@ def rising_legs(df: pd.DataFrame, k: float) -> list[dict]:
         if a.price <= b.price:
             continue
         stretch, down_level = measured_move(a.price, b.price)
-        # Entry is the bar AFTER the bottom pivot confirms, never the pivot bar
-        # itself — the pivot is only knowable in hindsight.
-        entry = b.index + 1
+        # LOOKAHEAD GUARD. Entry is the bar after the pivot is CONFIRMED, not the
+        # bar after the pivot itself. b.index is the low; b.confirmed_index is the
+        # first bar anyone could have known it was a low — measured 3-25 bars and
+        # 8-14% of price later.
+        #
+        # Using b.index + 1 does NOT flatter the result, it wrecks it: entry then
+        # sits on top of the support barrier (down = b.price), so nearly any
+        # downtick stops out immediately — 65.7% stop rate vs 42.4%, and a hit
+        # rate 16.6pt LOWER, measured on 1517 driftless-GBM legs. It would fail
+        # G1 on an artifact. An unguarded lookahead can bias either direction.
+        entry = b.confirmed_index + 1
         if entry >= len(df):
             continue
         outcome = first_passage(
@@ -1438,6 +1861,9 @@ def rising_legs(df: pd.DataFrame, k: float) -> list[dict]:
             {
                 "entry_index": entry,
                 "entry_date": df["date"].iloc[entry],
+                "entry_price": float(df["close"].iloc[entry]),
+                "pivot_index": b.index,
+                "confirm_lag_bars": b.confirmed_index - b.index,
                 "resistance": a.price,
                 "support": b.price,
                 "stretch": stretch,
@@ -1480,20 +1906,39 @@ def main() -> None:
                     row["ticker"] = t
                     row["k_atr"] = k
                 legs.extend(tl)
-                if tl:
-                    rets = np.diff(np.log(df["close"].to_numpy(dtype=float)))
-                    for row in tl:
-                        null = bootstrap_null_hit_rate(
-                            rets,
-                            float(df["close"].iloc[row["entry_index"]]),
-                            up=row["stretch"],
-                            down=row["support"],
-                            max_bars=MAX_BARS,
-                            block=NULL_BLOCK,
-                            n_paths=N_NULL_PATHS,
-                            seed=20260808,
-                        )
-                        null_hits.append(null["hit"])
+                closes = df["close"].to_numpy(dtype=float)
+                for row in tl:
+                    entry = row["entry_index"]
+                    # SECOND LOOKAHEAD GUARD. The null resamples the ticker's own
+                    # returns, so it must only see returns available AT ENTRY.
+                    # Bootstrapping the full series lets the benchmark draw from
+                    # the very window it is meant to be a benchmark for.
+                    past = np.diff(np.log(closes[: entry + 1]))
+                    if past.size < NULL_BLOCK:
+                        row["null_hit"] = float("nan")
+                        continue
+                    null = bootstrap_null_hit_rate(
+                        past,
+                        row["entry_price"],
+                        up=row["stretch"],
+                        down=row["support"],
+                        max_bars=MAX_BARS,
+                        block=NULL_BLOCK,
+                        n_paths=N_NULL_PATHS,
+                        # Per-leg seed, not a global constant. One shared seed
+                        # draws the SAME block-start sequence for every leg, so
+                        # the null errors are perfectly correlated across legs and
+                        # averaging them removes far less noise than the leg count
+                        # suggests. Deterministic, but decorrelated.
+                        #
+                        # crc32, NOT hash(): Python string hashing is randomised
+                        # per process unless PYTHONHASHSEED is pinned, so hash()
+                        # here would make the run unreproducible while looking
+                        # perfectly deterministic in any single session.
+                        seed=20260808 + zlib.crc32(f"{t}:{entry}".encode()),
+                    )
+                    row["null_hit"] = null["hit"]
+                    null_hits.append(null["hit"])
             all_rows.extend(legs)
             if not legs:
                 return {"metrics": {"n_legs": 0}, "gates": {"g1_beats_null": False}, "n_trades": 0}
@@ -1504,29 +1949,69 @@ def main() -> None:
             def share(rows: list[dict], kind: str) -> float:
                 return sum(1 for r in rows if r["outcome"] == kind) / len(rows) if rows else float("nan")
 
+            def hit_ex_ambiguous(rows: list[dict]) -> float:
+                """Hit rate with same-bar double-touches removed from BOTH sides.
+
+                The null runs on synthetic closes with no intrabar range, so it can
+                never return "ambiguous". Comparing an observed hit rate that carries
+                ambiguous mass in its denominator against a null that does not would
+                understate the edge by exactly the ambiguous share. Compare like for
+                like: drop ambiguous legs from the observed denominator.
+                """
+                decided = [r for r in rows if r["outcome"] != "ambiguous"]
+                if not decided:
+                    return float("nan")
+                return sum(1 for r in decided if r["outcome"] == "hit") / len(decided)
+
+            # Each leg against ITS OWN null, then averaged. Averaging the two
+            # separately would let legs with no null (too little history) silently
+            # shift the comparison.
+            paired = [r for r in legs if r.get("null_hit") == r.get("null_hit")]
+            oos_paired = [r for r in holdout if r.get("null_hit") == r.get("null_hit")]
+
+            def paired_edge(rows: list[dict]) -> float:
+                decided = [r for r in rows if r["outcome"] != "ambiguous"]
+                if not decided:
+                    return float("nan")
+                return float(
+                    np.mean([(1.0 if r["outcome"] == "hit" else 0.0) - r["null_hit"] for r in decided])
+                )
+
             metrics = {
                 "n_legs": len(legs),
                 "hit": share(legs, "hit"),
                 "stop": share(legs, "stop"),
                 "ambiguous": share(legs, "ambiguous"),
                 "neither": share(legs, "neither"),
+                "hit_ex_ambiguous": hit_ex_ambiguous(legs),
+                "median_confirm_lag_bars": float(np.median([r["confirm_lag_bars"] for r in legs])),
                 "null_hit_mean": float(np.mean(null_hits)) if null_hits else float("nan"),
-                "edge_vs_null": (
-                    share(legs, "hit") - float(np.mean(null_hits)) if null_hits else float("nan")
-                ),
+                "edge_vs_null": paired_edge(paired),
                 "oos_n_legs": len(holdout),
-                "oos_hit": share(holdout, "hit"),
-                "oos_edge_vs_null": (
-                    share(holdout, "hit") - float(np.mean(null_hits))
-                    if null_hits and holdout
-                    else float("nan")
-                ),
+                "oos_hit_ex_ambiguous": hit_ex_ambiguous(holdout),
+                "oos_edge_vs_null": paired_edge(oos_paired),
             }
+            # G1 MULTIPLICITY. The sweep tries len(K_GRID) thresholds and reports
+            # the best. Testing "is the best config's point estimate > 0" at an
+            # unadjusted level passes 70-97% of the time when the TRUE edge is
+            # exactly zero (measured; the range spans config correlation 0.8 down
+            # to 0.0). A point estimate is not a gate. G1 therefore requires the
+            # LOWER BOUND of a ticker-clustered bootstrap CI to clear zero, at a
+            # Bonferroni-adjusted level.
+            alpha = 0.05 / len(K_GRID)
+            ci = clustered_bootstrap_edge(
+                oos_paired, n_boot=2000, seed=20260808, alpha=alpha
+            )
+            metrics["oos_edge_ci_lo"] = ci["lo"]
+            metrics["oos_edge_ci_hi"] = ci["hi"]
+            metrics["oos_edge_n_clusters"] = ci["n_clusters"]
+            metrics["alpha_adjusted"] = alpha
+
             gates = {
-                "g1_beats_null": bool(
-                    metrics["oos_edge_vs_null"] == metrics["oos_edge_vs_null"]  # not NaN
-                    and metrics["oos_edge_vs_null"] > 0.0
-                )
+                # NaN != NaN, so this also rejects an unmeasurable edge.
+                "g1_beats_null": bool(ci["lo"] == ci["lo"] and ci["lo"] > 0.0),
+                "g1_oos_legs_sufficient": bool(ci["n"] >= 30),
+                "g1_enough_clusters": bool(ci["n_clusters"] >= 10),
             }
             return {"metrics": metrics, "gates": gates, "n_trades": len(legs)}
 
@@ -1631,31 +2116,50 @@ surface accrues; it is forward-only and cannot be backfilled.
 
 ## E1 — cone calibration
 
-| Horizon | cov@1σ (nominal 68.3%) | cov@1.96σ (nominal 95.0%) | k (std) | k (MAD) | k 95% CI (block bootstrap) | mean(z) diagnostic |
+| Horizon | cov@1σ (nominal 68.3%) | cov@1.96σ (nominal 95.0%) | k (std) | k (MAD) | k 95% CI (**panel** bootstrap) | PIT KS p (non-overlapping, n=<>) | mean(z) diagnostic |
+|---|---|---|---|---|---|---|---|
+| 5d | <> | <> | <> | <> | <> | <> | <> |
+| 10d | <> | <> | <> | <> | <> | <> | <> |
+
+OOS calibration (fit k on the front window, apply to the tail):
+
+| Horizon | k_train | n train | n test | cov@1σ raw → calibrated | cov@1.96σ raw → calibrated | G2 |
 |---|---|---|---|---|---|---|
-| 5d | <> | <> | <> | <> | <> | <> |
-| 10d | <> | <> | <> | <> | <> | <> |
+| 5d | <> | <> | <> | <> → <> | <> → <> | PASS/FAIL |
+| 10d | <> | <> | <> | <> → <> | <> → <> | PASS/FAIL |
 
 ## E2 — 0.618 first passage
 
-| k_atr | n legs | hit | stop | ambiguous | neither | null hit | edge vs null | OOS edge |
-|---|---|---|---|---|---|---|---|---|
-| 2.0 | | | | | | | | |
-| 2.5 | | | | | | | | |
-| 3.0 | | | | | | | | |
-| 3.5 | | | | | | | | |
-| 4.0 | | | | | | | | |
+Entries at `confirmed_index + 1`. `edge_vs_null` is paired per leg; the CI is a
+**ticker-clustered** bootstrap at α = 0.05/5 = 0.01 (Bonferroni over the sweep).
+
+| k_atr | n legs | median lag | hit | stop | ambig | neither | hit ex-ambig | null hit | edge | **OOS edge [CI lo, hi]** | clusters |
+|---|---|---|---|---|---|---|---|---|---|---|---|
+| 2.0 | | | | | | | | | | | |
+| 2.5 | | | | | | | | | | | |
+| 3.0 | | | | | | | | | | | |
+| 3.5 | | | | | | | | | | | |
+| 4.0 | | | | | | | | | | | |
+
+Raw `hit` is a diagnostic only — this geometry returns 38.3% on driftless GBM
+with no edge by construction. Read the CI on `edge`, nothing else.
 
 ## Gate rulings
 
-- **G1 — some k_atr beats the drift-matched null OOS:** PASS / FAIL — <one line>
+- **G1 — some k_atr's OOS clustered-bootstrap CI lower bound clears zero, with ≥30 decided OOS legs and ≥10 ticker clusters:** PASS / FAIL — <one line>
+  - A point estimate `> 0` is NOT sufficient and must not be used: sweeping five
+    configs and reporting the best passes on a true edge of exactly zero 70–97%
+    of the time.
   - If FAIL: STRETCH/DOWN ship as unlabelled geometry, role text becomes
     "0.618 extension (no measured edge)", the read drops its target sentences,
     and the "+30.7%" headline framing is dropped.
 - **G2 — calibrated cone reaches nominal coverage OOS:** 5d PASS/FAIL, 10d PASS/FAIL
   - Any FAIL: that horizon is withheld from the view.
-- **G3 — per-ticker k dispersion exceeds pooled OOS error:** PASS / FAIL
+- **G3 — per-ticker k dispersion exceeds the pooled PANEL-bootstrap CI width:** PASS / FAIL
   - If FAIL: one pooled constant k = <value> ships. No table, no refit job.
+  - The CI must come from `panel_block_bootstrap`. A single-series bootstrap on
+    pooled data measured ~6x too narrow at a common-factor strength of 0.6 and
+    fires G3 on a panel where every ticker shares one true k.
 
 ## Chosen production parameters
 
@@ -1670,6 +2174,10 @@ surface accrues; it is forward-only and cannot be backfilled.
 - Any earnings conditioning. ATM IV widens into a print and the cone widens with
   it; no earnings flag is surfaced.
 - Regime stability of k. It is fit once and frozen, with no staleness monitor.
+- Execution cost was not profiled. E1 issues roughly 36,700 IV queries and E2
+  runs on the order of 10^8 Python-level bar steps in its null; if the run proves
+  impractical, vectorise `first_passage` over paths before reducing `n_paths` —
+  cutting paths widens every null and weakens G1.
 ```
 
 - [ ] **Step 2: Verify every placeholder is filled**

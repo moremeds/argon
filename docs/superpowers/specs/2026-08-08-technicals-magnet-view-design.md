@@ -176,10 +176,31 @@ For `k_atr ∈ {2.0, 2.5, 3.0, 3.5, 4.0}` (reversal threshold in ATR(14) units):
 from each confirmed rising leg, does price touch `R + 0.618·(R−S)` before losing
 `S`, within 60 trading days? Outcomes: **hit / stop / neither**.
 
-Scored against a **drift-matched null** — the same two barriers, simulated with
-the ticker's own drift and realised volatility. Without that null the hit rate is
-uninterpretable: a rising leg has upward drift baked into its definition, so a
-high raw hit rate is expected under no edge at all.
+Outcomes carry a fourth bucket, **ambiguous**: a single bar spanning both
+barriers, where intrabar order is unknowable from daily data. It is reported
+separately and never folded into hit or stop — assigning it either way silently
+biases the result in whichever direction was guessed.
+
+Scored against a **matched null** — the same two barriers, driven by a
+**moving-block bootstrap of the ticker's own returns** up to the entry bar. Block
+resampling preserves drift, volatility, fat tails and autocorrelation without
+estimating any of them parametrically, which sidesteps the same drift-estimation
+problem that §3.2 rules out: a GBM null would need a drift estimate, and 161 days
+cannot supply one.
+
+Without that null the hit rate is uninterpretable — and not merely in theory.
+Running this exact geometry over **driftless GBM, data with no geometric edge by
+construction, still yields a 38.3% hit rate** across 1517 legs. The barriers are
+asymmetric (`up` is the far stretch target, `down` the nearer support), so a
+headline like "38% of 0.618 targets get hit" would describe the barrier shape and
+nothing else. **Only `edge_vs_null` is interpretable.** The raw hit rate is a
+diagnostic column, never the verdict.
+
+Entries are taken at the bar after a pivot is **confirmed**, never at the pivot
+bar. Confirmation lags the extreme by 3–25 bars and 8–14% of price; entering at
+the pivot bar puts the entry on top of the support barrier and drove the measured
+stop rate to 65.7% vs 42.4%, deflating the hit rate by 16.6pt. An unguarded
+lookahead here biases toward spurious FAILURE, not success.
 
 This sweep also selects the `k_atr` used in production — by measured first-passage
 performance, not by eye.
@@ -199,9 +220,9 @@ crossed with every metric, not the headline — is durable before the process ex
 
 | Gate                                                                | Outcome if failed                                                                                                                                                                        |
 | ------------------------------------------------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| **G1** — some `k_atr` beats the drift-matched null OOS              | STRETCH/DOWN ship as unlabelled geometry; role text becomes "0.618 extension (no measured edge)"; the read drops its target sentences; the `+30.7%` headline framing is dropped entirely |
+| **G1** — some `k_atr` beats the matched null OOS on `edge_vs_null`, with ≥30 decided OOS legs | STRETCH/DOWN ship as unlabelled geometry; role text becomes "0.618 extension (no measured edge)"; the read drops its target sentences; the `+30.7%` headline framing is dropped entirely |
 | **G2** — calibrated cone reaches nominal coverage OOS at 5d and 10d | that horizon is withheld from the view                                                                                                                                                   |
-| **G3** — per-ticker `k` dispersion exceeds OOS error                | pooled constant ships instead; no table, no refit job                                                                                                                                    |
+| **G3** — per-ticker `k` dispersion exceeds the pooled CI width, where that CI comes from a **panel** block bootstrap (resampling dates, keeping every ticker) | pooled constant ships instead; no table, no refit job |
 
 **G1 failing does not cancel the view.** Support/resistance, the magnet profile,
 and the cone stand on their own; only the measured-move framing changes.
@@ -369,7 +390,15 @@ which jsdom does not provide, and the component dies there.
 2. **Cross-sectional correlation inflates apparent power.** Pooling 114 watchlist
    tickers does not give 114× the sample; they share a volatility factor, and the
    watchlist is concentrated in AI/semis. Effective `n` is materially lower than
-   nominal, and block bootstrapping across tickers is the honest treatment.
+   nominal.
+
+   This is handled, not merely noted. Any statistic pooled across tickers uses a
+   **panel** block bootstrap (resample dates, keep every ticker on a sampled
+   date); E2's edge uses a **ticker-clustered** bootstrap. Using a single-series
+   bootstrap on pooled data was measured to understate the CI by **6.1× at a
+   common-factor strength of 0.6**, which alone flips G3 from "pooled constant"
+   to "build a per-ticker table" on a panel where every ticker shares one true
+   `k`. The dependence structure is the finding, not a caveat about it.
 3. **The 0.618 constant is unexamined folklore.** E2 tests it but does not test
    alternatives (0.5, 1.0, 1.618). If E2 shows edge, whether 0.618 specifically is
    load-bearing remains unknown and is out of scope here.
