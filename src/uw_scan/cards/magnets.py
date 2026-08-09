@@ -194,3 +194,77 @@ def cone(
                 }
             )
     return out
+
+
+def build_read(levels: dict, bands: list[dict]) -> list[str]:
+    """Deterministic description of what is drawn. Describes, never predicts.
+
+    G1 measured the 0.618 extension against a matched null at five ZigZag
+    thresholds — 938 legs at the loosest, 226 at the tightest, overlapping
+    samples of the same history, NOT 2,547 independent legs — and found no
+    edge: every OOS ticker-clustered CI spans zero. So this states geometry
+    and states the options-implied band, and where they disagree it says so —
+    it never asserts price will reach a level.
+    """
+    last, state = levels["last"], levels["leg_state"]
+    lines = [
+        f"Leg is {state}: support {levels['support']:.2f}, "
+        f"resistance {levels['resistance']:.2f}, last {last:.2f}.",
+        f"0.618 extension sits at {levels['stretch']:.2f} up / "
+        f"{levels['down']:.2f} down — geometry only, no measured edge.",
+    ]
+    if levels.get("sma20") is not None:
+        side = "above" if last >= levels["sma20"] else "below"
+        lines.append(f"Price is {side} SMA20 ({levels['sma20']:.2f}).")
+
+    if not bands:
+        lines.append("No options surface for this session — cone not drawn.")
+        return lines
+
+    # WHICH band the read quotes is a decision, not a max(). `bands` spans three
+    # horizons x two sigmas, so max(key=band_sigma) would silently return the
+    # FIRST 1.96 entry — the 5d one — because max keeps the earliest tie. Pick
+    # 10d explicitly, on ONE ground: it matches the 1-2 week swing horizon the
+    # rest of the desk reasons in. It is NOT the best-calibrated horizon — 5d is
+    # (95.09% vs a 95% nominal, against 10d's 94.66%). Fall back 10 -> 5 -> 21.
+    quoted = next(
+        (
+            b
+            for h in (10, 5, 21)
+            for b in bands
+            if b["horizon"] == h and b["band_sigma"] == max(CONE_BANDS)
+        ),
+        None,
+    )
+    if quoted is None:
+        # Unreachable while every horizon emits every band in CONE_BANDS. Kept
+        # because the read must not raise if that invariant is ever edited.
+        lines.append("Cone drawn, but no band at the quoted width.")
+        return lines
+    widest = quoted
+    # Rounded to whole points and quoted WITH its interval: the estimate's own CI
+    # is 2.4-11.4pt wide, so a one-decimal figure would imply precision the
+    # measurement does not have.
+    lines.append(
+        f"Options price a {widest['horizon']}d range of "
+        f"{widest['lower']:.2f}-{widest['upper']:.2f} — that band held "
+        f"{widest['measured_confidence']:.0%} of past moves "
+        f"({widest['measured_ci_lo']:.0%}-{widest['measured_ci_hi']:.0%}, "
+        f"{widest['measured_n_dates']} sessions)."
+    )
+    outside = []
+    if levels["stretch"] > widest["upper"]:
+        outside.append("upside")
+    if levels["down"] < widest["lower"]:
+        outside.append("downside")
+    if outside:
+        # Deliberately NOT "the market is not pricing a move that far": the band
+        # is a 1.96-sigma CENTRAL interval that historically held ~93-95% of
+        # moves, so 5-7% of the distribution lives outside it. Saying the move is
+        # unpriced would be a false statement about the options market.
+        lines.append(
+            f"The 0.618 {' and '.join(outside)} extension sits outside that "
+            "central band — reaching it needs a move in the tail the options "
+            "surface prices as uncommon, not one it rules out."
+        )
+    return lines
