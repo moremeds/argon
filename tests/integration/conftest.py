@@ -22,7 +22,7 @@ from __future__ import annotations
 import io
 import os
 from collections.abc import Iterator
-from datetime import datetime, timedelta, timezone
+from datetime import date, datetime, timedelta, timezone
 from decimal import Decimal
 from pathlib import Path
 from typing import Any
@@ -483,6 +483,69 @@ def seed_vcg_backtest_run(seeded_db_empty_cards) -> int:
     )
     rb.mark_run_completed(run_id)
     return run_id
+
+
+@pytest.fixture
+def seeded_db_with_aapl_magnets(
+    seeded_db_empty_cards, _migrated_settings: Settings
+) -> Repository:
+    """Real frozen AAPL OHLC + one grid session, enough for the magnets route.
+
+    45 real sessions containing a confirmed two-pivot swing, plus the ATM strike
+    of every expiry captured on 2026-08-07 so `atm_iv_at_horizon` resolves at
+    5d/10d/21d. Values frozen from the mini 2026-08-09; no network at test time.
+    """
+    from tests.fixtures.aapl_daily import ROWS
+
+    repo = seeded_db_empty_cards
+    for d, o, h, low, c, v in ROWS:
+        repo.upsert_daily_ohlc(
+            ticker="AAPL",
+            date=date.fromisoformat(d),
+            open=Decimal(str(o)),
+            high=Decimal(str(h)),
+            low=Decimal(str(low)),
+            close=Decimal(str(c)),
+            volume=v,
+            source="massive.com",
+        )
+    # (expiry, strike, call_iv, put_iv) at spot 313.196 on market_date 2026-08-07.
+    grid = [
+        ("2026-08-10", 312.5, 0.152276812549349, 0.166385201913912),
+        ("2026-08-12", 312.5, 0.213907233632553, 0.219063329403123),
+        ("2026-08-14", 312.5, 0.230149308917646, 0.224059844224928),
+        ("2026-08-17", 312.5, 0.214363939578810, 0.210516029229766),
+        ("2026-08-19", 312.5, 0.227821059594149, 0.220946765536718),
+        ("2026-08-21", 312.5, 0.238583052423656, 0.228134013289602),
+        ("2026-08-28", 315.0, 0.239786341911712, 0.222899290501027),
+        ("2026-09-04", 315.0, 0.246726028227753, 0.224161187448352),
+    ]
+    # `Repository` exposes `.conn` (a property on _BaseMixin) but NOT `.schema` —
+    # only the private `_schema`. Take it from settings, the same way
+    # `routers/health.py:387` does.
+    schema = _migrated_settings.db_schema
+    with repo.conn.cursor() as cur:
+        for expiry, strike, civ, piv in grid:
+            cur.execute(
+                f"""
+                INSERT INTO {schema}.option_surface_grid_daily
+                    (ticker, market_date, expiry, strike, underlying_spot,
+                     call_iv, put_iv, source)
+                VALUES (%s, %s, %s, %s, %s, %s, %s, 'uw_greeks')
+                ON CONFLICT DO NOTHING
+                """,
+                (
+                    "AAPL",
+                    date(2026, 8, 7),
+                    date.fromisoformat(expiry),
+                    Decimal(str(strike)),
+                    Decimal("313.196"),
+                    Decimal(str(civ)),
+                    Decimal(str(piv)),
+                ),
+            )
+    repo.conn.commit()
+    return repo
 
 
 @pytest.fixture

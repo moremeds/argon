@@ -9,14 +9,22 @@ from collections import OrderedDict
 from datetime import date as _date
 from decimal import Decimal
 
-from fastapi import APIRouter, Depends, HTTPException
+from fastapi import APIRouter, Depends, HTTPException, Query
 
 from uw_scan.api.deps import get_repo, get_settings
 from uw_scan.cards.gex import classify_bias, find_flip_strike
+from uw_scan.cards.magnets import (
+    CONE_HORIZONS,
+    all_pivots,
+    build_read,
+    cone,
+    magnet_levels,
+)
 from uw_scan.config import Settings
 from uw_scan.models import (
     ChanlunLifecycleMark,
     ChanlunLifecycleResponse,
+    MagnetsResponse,
     SingleStockReport,
     StockHistoryResponse,
     StockHistoryRow,
@@ -26,6 +34,13 @@ from uw_scan.models import (
     TechnicalsVwapAnchor,
     VwapAnchorRequest,
     VwapPoint,
+)
+from uw_scan.reports.magnet_data import (
+    atm_iv_at_horizon,
+    load_adjusted_closes,
+    load_all_expiry_iv_curves,
+    load_all_session_spots,
+    trim_to_clean_segment,
 )
 from uw_scan.reports.single_stock import assemble_single_stock_report
 from uw_scan.reports.technicals import assemble_technicals
@@ -380,3 +395,103 @@ def get_stock_chanlun_lifecycle(
         for r in rows
     ]
     return ChanlunLifecycleResponse(ticker=t, marks=marks)
+
+
+_MAGNET_CANDLE_WINDOW = 180
+
+
+@router.get("/stock/{ticker}/magnets", response_model=MagnetsResponse)
+def get_magnets(
+    ticker: str,
+    k_atr: float = Query(3.0, gt=0.0, le=20.0),
+    repo: Repository = Depends(get_repo),
+    settings: Settings = Depends(get_settings),
+) -> MagnetsResponse:
+    """Magnet levels + options-implied cone. Read-only.
+
+    k_atr defaults to 3.0 only because that is the existing last_pivot_index
+    default — G1 failed, so no threshold was selected on merit. It stays a query
+    param so the sweep's other rungs stay inspectable from the UI without a
+    redeploy; nothing writes it. It is BOUNDED because it is user input at a
+    trust boundary: k_atr <= 0 makes the reversal threshold zero, every bar
+    becomes a pivot, and the response grows to one entry per bar.
+
+    Uses `repo.conn` + `settings.db_schema`, the pattern this codebase already
+    uses when a router needs a raw connection (see `routers/health.py:387`);
+    the magnet_data loaders take a connection, not a Repository.
+    """
+    ticker = ticker.upper()
+    conn, schema = repo.conn, settings.db_schema
+
+    raw = trim_to_clean_segment(load_adjusted_closes(conn, ticker, schema))
+    # Drop incomplete bars ONCE, up front, so every consumer sees one frame.
+    #
+    # Two reasons this cannot be a candles-only filter. (1) NaN is not JSON —
+    # daily_ohlc.open/high/low are nullable DOUBLE PRECISION, load_adjusted_closes
+    # coerces NULL to NaN, Pydantic accepts NaN and FastAPI's encoder then raises
+    # "Out of range float values are not JSON compliant". (2) `all_pivots` calls
+    # `atr14`, which reads high/low/prev-close — a NaN high makes ATR NaN, the
+    # detector's `math.isfinite` guard sets the threshold to inf, and the pivot
+    # silently never confirms. Filtering only the drawn candles would leave the
+    # geometry computed on a different set of rows than the chart displays.
+    px = raw[raw[["open", "high", "low", "close"]].notna().all(axis=1)].reset_index(
+        drop=True
+    )
+    if px.empty:
+        raise HTTPException(status_code=404, detail=f"no price history for {ticker}")
+
+    as_of = px["date"].iloc[-1]
+    spot = float(px["close"].iloc[-1])
+
+    # Only six grid sessions are needed: `as_of` for the cone and the fifth one
+    # back for the IV delta. `load_all_expiry_iv_curves` interpolates a VALUES
+    # list one row per session passed in, so handing it every session builds a
+    # ~180-row VALUES join against the full chain to use two of them.
+    spots = load_all_session_spots(conn, ticker, schema)
+    sessions = sorted(d for d in spots if d <= as_of)
+    wanted = {d: spots[d] for d in sessions[-6:]}
+    curves = load_all_expiry_iv_curves(conn, ticker, wanted, schema)
+
+    curve = curves.get(as_of, [])
+    # Same target_dte mapping the calibration used: h trading days -> h*7/5
+    # calendar days. Drift here and the measured-confidence labels stop
+    # describing the drawn band.
+    ivs = {h: atm_iv_at_horizon(curve, max(1, round(h * 7 / 5))) for h in CONE_HORIZONS}
+
+    iv30 = atm_iv_at_horizon(curve, 30)
+    iv30_prior = (
+        atm_iv_at_horizon(curves.get(sessions[-6], []), 30)
+        if len(sessions) >= 6
+        else None
+    )
+
+    levels = magnet_levels(px, k=k_atr)
+    bands = cone(spot, ivs)
+    window = px.tail(_MAGNET_CANDLE_WINDOW).reset_index(drop=True)
+    # Pivot indices are positions in `px`; the chart indexes into `candles`.
+    # Rebase BY DATE rather than by subtracting `len(px) - len(window)`. The
+    # subtraction happens to be correct today because `window` is a plain tail of
+    # `px`, but it silently becomes wrong the moment anything else filters rows
+    # between the two — which is exactly the bug the up-front NaN filter above
+    # was introduced to avoid. A pivot older than the window is omitted, not
+    # clamped: a clamped marker points at a bar the pivot did not occur on.
+    window_pos = {d: i for i, d in enumerate(window["date"])}
+    px_dates = px["date"].tolist()
+    pivots = [
+        {"index": window_pos[px_dates[p.index]], "kind": p.kind, "price": p.price}
+        for p in all_pivots(px, k=k_atr)
+        if px_dates[p.index] in window_pos
+    ]
+    return MagnetsResponse(
+        ticker=ticker,
+        as_of=as_of,
+        levels=levels,
+        bands=bands,
+        pivots=pivots,
+        read=build_read(levels, bands) if levels else [],
+        candles=window.to_dict("records"),
+        atm_iv_30d=iv30,
+        atm_iv_30d_chg_5d=(
+            iv30 - iv30_prior if iv30 is not None and iv30_prior is not None else None
+        ),
+    )

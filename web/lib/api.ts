@@ -58,6 +58,7 @@ type VolatilitySeriesResponse = Json<
   "get"
 >;
 type SkewAnalysisResponse = Json<"/api/stock/{ticker}/skew", "get">;
+export type MagnetsResponse = Json<"/api/stock/{ticker}/magnets", "get">;
 type TechnicalsResponse = Json<"/api/stock/{ticker}/technicals", "get">;
 export type TechnicalsLiveResponse = Json<
   "/api/stock/{ticker}/technicals/live",
@@ -148,6 +149,8 @@ export const api = {
     _fetch<VolatilitySeriesResponse>(`/api/stock/${ticker}/volatility/series`),
   skewAnalysis: (ticker: string): Promise<SkewAnalysisResponse> =>
     _fetch<SkewAnalysisResponse>(`/api/stock/${ticker}/skew`),
+  magnets: (ticker: string): Promise<MagnetsResponse> =>
+    _fetch<MagnetsResponse>(`/api/stock/${ticker}/magnets`),
   technicals: (ticker: string): Promise<TechnicalsResponse> =>
     _fetch<TechnicalsResponse>(`/api/stock/${ticker}/technicals`),
   technicalsLive: (ticker: string): Promise<TechnicalsLiveResponse> =>

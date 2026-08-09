@@ -66,6 +66,13 @@ from .greeks import (
     GreeksRow,
     SpotExposureRow,
 )
+from .magnets import (
+    MagnetCandle,
+    MagnetConeBand,
+    MagnetLevels,
+    MagnetPivot,
+    MagnetsResponse,
+)
 from .matrix import MatrixSourceFreshness, MatrixState, SetupClassification
 from .options import (
     MaxPainRow,
@@ -315,6 +322,11 @@ __all__ = [
     "FlowSnapshot",
     "VRPAssessment",
     "SetupClassification",
+    "MagnetCandle",
+    "MagnetConeBand",
+    "MagnetLevels",
+    "MagnetPivot",
+    "MagnetsResponse",
     "MatrixState",
     "MatrixSourceFreshness",
     "CockpitStateResponse",
