@@ -7,6 +7,9 @@ version in lockstep (enforced by `scripts/release/version_sync_check.py`).
 
 ## [Unreleased]
 
+## [0.11.4] — 2026-08-10
+
+
 ### Added
 
 - **Many-to-many industry-chain membership for the watchlist.** New table
@@ -48,7 +51,6 @@ version in lockstep (enforced by `scripts/release/version_sync_check.py`).
   the pools being able to over-allocate against it. Measured weekday burn
   before the adds was live ~38.4k / research ~24.9k, i.e. research sat at 83% of
   its ceiling while live used 48% of its own.
-
 ## [0.11.3] — 2026-08-09
 
 
