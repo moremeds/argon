@@ -222,8 +222,14 @@ single bar spanned both.
   all inside the CI, and the 5d/10d sign is conservative. Shipping `k = 1.0`
   rather than the fitted 0.9748 keeps the drawn band a pure restatement of the
   option market's own price, with the measured error disclosed.
-- **21d:** ships **only with its wider band** — every 21d error is in the narrow
-  direction, so draw at the empirical multiplier (1.011σ / 2.139σ), not 1.0/1.96.
+- **21d:** every 21d error is in the narrow direction, so this called for drawing
+  at the empirical multiplier (1.011σ / 2.139σ) rather than 1.0/1.96.
+  **Superseded at build time** (`cards/magnets.py:CONE_BANDS`, rationale in
+  place): 21d draws 1.0/1.96 like the other two horizons and closes the gap in
+  the *label* instead — the band is annotated with the 93.31% it actually held,
+  never 95%. Same protection against under-reading risk, and all three horizons
+  stay a pure restatement of the option price with no per-horizon fitted
+  adjustment. Recorded rather than quietly changed.
 - **99% band:** do not draw from the closed form at any horizon.
 - `k_atr` = **n/a — G1 failed.** `k_atr = 3.0` stays the drawing default only
   because it is the existing `last_pivot_index` default.

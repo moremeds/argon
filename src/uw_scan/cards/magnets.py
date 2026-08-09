@@ -108,6 +108,19 @@ def magnet_levels(df: pd.DataFrame, k: float = 3.0) -> dict | None:
 
 TRADING_DAYS = 252
 CONE_HORIZONS = (5, 10, 21)
+
+# Every horizon draws the SAME two multipliers, 21d included — a deliberate
+# departure from VERDICT.md's "21d ships only with its wider band (1.011 /
+# 2.139)", recorded here because changing a pre-registered parameter silently is
+# the failure mode the whole Phase-1 exercise existed to prevent.
+#
+# The verdict's concern was that 21d errs narrow: 1.96 sigma held 93.31% there,
+# not 95%. Widening the DRAWING to 2.139 is one way to close that gap; the other
+# is to draw the market's own band and label it with what it actually held. This
+# ships the second. A reader is told "93%", never "95%", so nobody under-reads
+# the risk — and all three horizons stay a pure restatement of the option price
+# rather than one horizon carrying a fitted adjustment the other two do not.
+# Re-visit if 21d ever becomes a sizing input rather than a context band.
 CONE_BANDS = (1.0, 1.96)
 
 # Measured 2026-08-09 on 47,034 observations / 119 tickers, 2025-12-26..2026-07-31.
