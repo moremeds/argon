@@ -31,6 +31,7 @@ function sma(values: number[], n: number): (number | null)[] {
 
 export default function MagnetChart({ data }: { data: MagnetsResponse }) {
   const host = useRef<HTMLDivElement>(null);
+  const divider = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
     if (!host.current || data.candles.length === 0) return;
@@ -163,11 +164,102 @@ export default function MagnetChart({ data }: { data: MagnetsResponse }) {
       }
     }
 
+    // BB(20,2sigma) on the candle series — same primitive as the level zones.
+    const closes20 = data.candles.map((c) => c.close);
+    const bb = new BandsIndicator({
+      lineColor: "transparent",
+      fillColor: "rgba(196,181,253,0.10)",
+      lineWidth: 1,
+    });
+    price.attachPrimitive(bb);
+    bb.setBandData(
+      data.candles.map((c, i) => {
+        // BandPoint allows {time} with no upper/lower — that is how the first 19
+        // bars are represented, and contiguousValidRuns splits the fill on those
+        // gaps rather than interpolating across the warm-up.
+        if (i < 19) return { time: c.date as Time };
+        const w = closes20.slice(i - 19, i + 1);
+        const m = w.reduce((a, x) => a + x, 0) / 20;
+        const sd = Math.sqrt(w.reduce((a, x) => a + (x - m) ** 2, 0) / 20);
+        return { time: c.date as Time, upper: m + 2 * sd, lower: m - 2 * sd };
+      }),
+    );
+
+    // The options-implied cone: twelve short segments radiating from the last
+    // bar (3 horizons x 2 sigmas x upper/lower). Plain LineSeries, the shape
+    // DensityConeChart.tsx:355-380 already uses — no primitive needed.
+    const lastBar = data.candles[data.candles.length - 1]!;
+    // Horizon in CALENDAR days so the right-edge distance is proportional to what
+    // the band means. Same h*7/5 mapping the calibration used for target_dte.
+    const future = (tradingDays: number) => {
+      const d = new Date(`${lastBar.date}T00:00:00Z`);
+      d.setUTCDate(d.getUTCDate() + Math.round((tradingDays * 7) / 5));
+      return d.toISOString().slice(0, 10) as Time;
+    };
+
+    for (const b of data.bands) {
+      const t = future(b.horizon);
+      for (const edge of [b.upper, b.lower]) {
+        const s = chart.addSeries(LineSeries, {
+          // 1.96σ is the quoted band, so it is the more visible one.
+          color: b.band_sigma === 1.96 ? "#38bdf8cc" : "#38bdf866",
+          lineWidth: 1,
+          lineStyle: LineStyle.Solid,
+          priceLineVisible: false,
+          lastValueVisible: false,
+          crosshairMarkerVisible: false,
+        });
+        s.setData([
+          { time: lastBar.date as Time, value: lastBar.close },
+          { time: t, value: edge },
+        ]);
+      }
+    }
+
+    // Divider caption at the last bar: it is what makes the right edge legible
+    // as projection rather than data. Plain absolutely-positioned DOM, not a
+    // chart primitive — it is a static caption, and a primitive for it would be
+    // the same mistake as the scenarioPaths.ts this plan already cut.
+    //
+    // It reads "options-implied", not the spec's "scenarios": the scenario paths
+    // were cut (spec §1.2 replaces the fan with the cone), so the only thing
+    // right of this line is the cone. Naming it "scenarios" would label
+    // something that is not drawn.
+    const placeDivider = () => {
+      const x = chart.timeScale().timeToCoordinate(lastBar.date as Time);
+      if (x == null || !divider.current) return;
+      divider.current.style.left = `${x}px`;
+      divider.current.style.visibility = "visible";
+    };
+    chart.timeScale().subscribeVisibleTimeRangeChange(placeDivider);
     chart.timeScale().fitContent();
-    return () => chart.remove();
+    placeDivider();
+    return () => {
+      chart.timeScale().unsubscribeVisibleTimeRangeChange(placeDivider);
+      chart.remove();
+    };
   }, [data]);
 
   return (
-    <div data-testid="magnet-chart" ref={host} style={{ width: "100%" }} />
+    <div style={{ position: "relative", width: "100%" }}>
+      <div data-testid="magnet-chart" ref={host} style={{ width: "100%" }} />
+      <div
+        ref={divider}
+        style={{
+          position: "absolute",
+          top: 4,
+          transform: "translateX(-50%)",
+          visibility: "hidden",
+          pointerEvents: "none",
+          whiteSpace: "nowrap",
+          fontFamily: "var(--font-mono)",
+          fontSize: 10,
+          letterSpacing: 0.5,
+          opacity: 0.55,
+        }}
+      >
+        history ← | → options-implied
+      </div>
+    </div>
   );
 }
