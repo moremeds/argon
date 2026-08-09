@@ -3,6 +3,7 @@
 import { useEffect, useState } from "react";
 
 import { api, type MagnetsResponse, type TechnicalsResponse } from "@/lib/api";
+import MagnetChart from "./MagnetChart";
 import MagnetRead from "./MagnetRead";
 import MagnetTable from "./MagnetTable";
 
@@ -107,7 +108,10 @@ export default function MagnetSubTab({
   ];
 
   return (
-    <div style={{ display: "flex", flexDirection: "column", gap: 12 }}>
+    <div
+      data-testid="magnet-subtab"
+      style={{ display: "flex", flexDirection: "column", gap: 12 }}
+    >
       <div>
         <div style={{ fontSize: 20, fontWeight: 800, color: "#4ade80" }}>
           {data.ticker} · {state.toUpperCase()}
@@ -130,19 +134,7 @@ export default function MagnetSubTab({
         </div>
       </div>
 
-      {/* Task 6 replaces this line with <MagnetChart data={data} />. Left as a
-          placeholder so THIS task typechecks on its own — importing a component
-          the next task creates makes Step 7's `npm run typecheck` fail. */}
-      <div
-        style={{
-          height: 420,
-          opacity: 0.4,
-          fontFamily: "var(--font-mono)",
-          fontSize: 11,
-        }}
-      >
-        chart pending (Task 6)
-      </div>
+      <MagnetChart data={data} />
 
       {/* Spec §5.1 item 3: four tiles, label left / headline + delta right.
           "na" is rendered literally when a source is missing — never a zero or a
