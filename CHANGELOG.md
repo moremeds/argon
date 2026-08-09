@@ -7,6 +7,32 @@ version in lockstep (enforced by `scripts/release/version_sync_check.py`).
 
 ## [Unreleased]
 
+### Added
+
+- **Preserved three research traces that existed only on one disk (research).**
+  No runtime change — docs and standalone scripts, nothing in `uw_scan` imports
+  them.
+  **GARCH as the VRP realized-vol leg — tested, REJECTED.** GARCH beats `rv21` on
+  QLIKE/RMSE but carries a **+2.46 vol-point structural level bias** whose sign
+  tracks the regime (corr with annual realized vol **−0.85**). Since
+  `vrp = iv − rv` that bias lands on the traded quantity and inverts the timing:
+  over the IV window SPX's true realized premium was **+3.14** vol points, `rv21`
+  measured **+2.87**, and GARCH would have measured **+0.14** — "no premium, do
+  not sell" across a period that paid 3.1 points, shutting off the SPX bull put
+  spread that currently works. EWMA(0.94) is the one shippable alternative
+  (MAE −7.4%) and is **not** shipped here.
+  **Regime flip-rate probe** — measures whether CRI/VCG states chatter enough to
+  justify a debouncer *before* building one. EOD is quiet (CRI 3.5 flips/mo, VCG
+  2.2); live intraday is not (VCG 45.3 flips/mo, 22% whipsaw).
+  **Adaptive-EMA catalog** — 7 causal smoothers transcribed from a source article
+  that claimed 17; the unimplemented 10 are listed by name under
+  `NOT_IMPLEMENTED` rather than invented. Three of the source's own snippets used
+  full-sample or backfilled statistics while asserting causality, so every filter
+  here is re-derived strictly causal.
+  Also preserves the **sector-crowding panel plan**, whose blocking prerequisite
+  (mixed-unit `aum` normalization, wrong by 1e9 for the 12 SPDR sector ETFs) is
+  recorded so it is not rediscovered.
+
 ## [0.11.2] — 2026-08-09
 
 
