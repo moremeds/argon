@@ -262,7 +262,12 @@ describe("AddTickerDialog", () => {
     fireEvent.click(screen.getByRole("button", { name: /sector beta/i }));
 
     expect(screen.getByText("Index")).not.toBeNull();
-    expect(screen.getByText("AI/Tech")).not.toBeNull();
+    // The old single "AI/Tech" bucket is now the five AI layers, so the
+    // dialog inherits the finer grouping for free.
+    expect(screen.getByText("Chip")).not.toBeNull();
+    expect(screen.getByText("Cloud")).not.toBeNull();
+    expect(screen.getByText("DC")).not.toBeNull();
+    expect(screen.getByText("App")).not.toBeNull();
     expect(screen.getByText("Thematic")).not.toBeNull();
     expect(screen.getByText("Defensive")).not.toBeNull();
     expect(screen.getByRole("option", { name: "Beta" })).not.toBeNull();

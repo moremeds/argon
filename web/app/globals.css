@@ -7445,3 +7445,22 @@ tr {
   font-size: 11px;
   color: var(--text-muted);
 }
+
+/* Watchlist filter bar — hover/focus only. Inline styles in FilterBar.tsx own
+   the resting and active appearance; these are the states inline styles can't
+   express. */
+.wl-rail-btn:hover {
+  color: var(--text-secondary);
+}
+.wl-rail-btn[aria-pressed="true"]:hover {
+  color: var(--accent-bg);
+}
+.wl-rail-btn:focus-visible,
+.wl-chip:focus-visible {
+  outline: 2px solid var(--text-primary);
+  outline-offset: 2px;
+}
+.wl-chip[data-active="false"]:hover {
+  border-color: var(--text-muted);
+  color: var(--text-primary);
+}
