@@ -1,18 +1,21 @@
 "use client";
 import { useState, type CSSProperties } from "react";
 import { usePathname, useRouter, useSearchParams } from "next/navigation";
-import { SECTOR_ROWS } from "./sectorGroups";
+import {
+  SECTOR_GROUPS,
+  groupForSector,
+  type SectorGroup,
+} from "./sectorGroups";
 
 const SETUPS = ["All", "C-bull", "C-bear", "F-MULTI", "NEUTRAL"];
 
-const rowLabelStyle: CSSProperties = {
+const monoLabelStyle: CSSProperties = {
   fontSize: 10,
   fontFamily: "var(--font-mono)",
   color: "var(--text-muted)",
   letterSpacing: 1,
   textTransform: "uppercase",
-  alignSelf: "center",
-  minWidth: 56,
+  whiteSpace: "nowrap",
 };
 
 function SetupFormulaPopover() {
@@ -53,7 +56,7 @@ function SetupFormulaPopover() {
           style={{
             position: "absolute",
             top: 20,
-            left: 0,
+            right: 0,
             zIndex: 20,
             width: 520,
             background: "var(--bg-panel)",
@@ -99,6 +102,16 @@ export function FilterBar({
   const pathname = usePathname();
   const params = useSearchParams();
 
+  const sector = current.sector;
+  const filteredGroup = groupForSector(sector);
+  // `null` means "follow the URL". A rail click pins the row open so you can
+  // browse a layer's chains without filtering to one of them first.
+  const [pinnedKey, setPinnedKey] = useState<string | null>(null);
+  const openGroup =
+    SECTOR_GROUPS.find((g) => g.key === pinnedKey) ??
+    filteredGroup ??
+    SECTOR_GROUPS[0];
+
   const setParam = (key: string, value: string | null) => {
     const q = new URLSearchParams(params.toString());
     if (value === null || value === "All") q.delete(key);
@@ -109,6 +122,8 @@ export function FilterBar({
   const chip = (label: string, active: boolean, onClick: () => void) => (
     <button
       key={label}
+      className="wl-chip"
+      data-active={active}
       onClick={onClick}
       style={{
         padding: "4px 10px",
@@ -125,50 +140,137 @@ export function FilterBar({
     </button>
   );
 
+  const railButton = (
+    key: string,
+    label: string,
+    title: string,
+    holdsFilter: boolean,
+    isOpen: boolean,
+    onClick: () => void,
+  ) => (
+    <button
+      key={key}
+      className="wl-rail-btn"
+      title={title}
+      aria-pressed={holdsFilter}
+      onClick={onClick}
+      style={{
+        padding: "6px 11px",
+        fontSize: 11,
+        fontFamily: "var(--font-mono)",
+        letterSpacing: 1,
+        textTransform: "uppercase",
+        // Two independent states, two independent channels: colour says
+        // "the active filter lives in here", the underline says "this is the
+        // chain row you're looking at". They coincide often but not always.
+        color: holdsFilter ? "var(--accent-bg)" : "var(--text-muted)",
+        fontWeight: holdsFilter ? 600 : 400,
+        background: "transparent",
+        border: 0,
+        borderBottom: `2px solid ${isOpen ? "var(--accent-bg)" : "transparent"}`,
+        cursor: "pointer",
+        whiteSpace: "nowrap",
+      }}
+    >
+      {label}
+    </button>
+  );
+
+  const onRailClick = (g: SectorGroup) => {
+    if (g.leaf) {
+      setPinnedKey(g.key);
+      setParam("sector", sector === g.items[0] ? null : g.items[0]);
+      return;
+    }
+    setPinnedKey(g.key);
+  };
+
   return (
     <div
       style={{
-        display: "flex",
-        flexDirection: "column",
-        gap: 6,
         marginBottom: 16,
+        borderBottom: "1px solid var(--border-dim)",
       }}
     >
-      {SECTOR_ROWS.map((row) => (
-        <div
-          key={row.label}
-          style={{ display: "flex", gap: 8, alignItems: "flex-start" }}
-        >
-          <span style={rowLabelStyle}>{row.label}</span>
-          <div style={{ display: "flex", gap: 4, flexWrap: "wrap", flex: 1 }}>
-            {row.items.map((s) =>
-              chip(s, (current.sector ?? "All") === s, () =>
-                setParam("sector", s === "All" ? null : s),
-              ),
-            )}
-          </div>
-        </div>
-      ))}
+      {/* Row 1 — group rail. Fixed height regardless of how many chains exist. */}
+      <div style={{ display: "flex", alignItems: "center", flexWrap: "wrap" }}>
+        {railButton("all", "All", "No sector filter", !sector, false, () =>
+          setParam("sector", null),
+        )}
+        {SECTOR_GROUPS.map((g, i) => {
+          const prev = SECTOR_GROUPS[i - 1];
+          const newCluster = i === 0 || prev.cluster !== g.cluster;
+          return [
+            newCluster ? (
+              <span
+                key={`div-${g.key}`}
+                aria-hidden
+                style={{
+                  width: 1,
+                  alignSelf: "stretch",
+                  margin: "6px 8px",
+                  background: "var(--border-dim)",
+                }}
+              />
+            ) : null,
+            railButton(
+              g.key,
+              g.label,
+              g.full,
+              filteredGroup?.key === g.key,
+              openGroup.key === g.key,
+              () => onRailClick(g),
+            ),
+          ];
+        })}
+      </div>
+
+      {/* Row 2 — chains of the open group (left) + setup (right). Setup lives
+          here so the row is never empty and the bar never changes height. */}
       <div
         style={{
           display: "flex",
-          gap: 8,
-          alignItems: "flex-start",
-          marginTop: 4,
+          alignItems: "center",
+          justifyContent: "space-between",
+          gap: 16,
+          flexWrap: "wrap",
+          padding: "8px 0 10px",
         }}
       >
-        <span
+        <div
           style={{
-            ...rowLabelStyle,
-            display: "inline-flex",
+            display: "flex",
             alignItems: "center",
-            gap: 5,
+            gap: 8,
+            flexWrap: "wrap",
           }}
         >
-          <span>Setup</span>
-          <SetupFormulaPopover />
-        </span>
-        <div style={{ display: "flex", gap: 4, flexWrap: "wrap", flex: 1 }}>
+          <span style={monoLabelStyle}>{openGroup.full}</span>
+          {openGroup.items.map((s) =>
+            chip(s, sector === s, () =>
+              setParam("sector", sector === s ? null : s),
+            ),
+          )}
+        </div>
+        <div
+          style={{
+            display: "flex",
+            alignItems: "center",
+            gap: 8,
+            flexWrap: "wrap",
+          }}
+        >
+          <span
+            style={{
+              ...monoLabelStyle,
+              display: "inline-flex",
+              alignItems: "center",
+              gap: 5,
+            }}
+          >
+            <span>Setup</span>
+            <SetupFormulaPopover />
+          </span>
           {SETUPS.map((s) =>
             chip(s, (current.setup ?? "All") === s, () =>
               setParam("setup", s === "All" ? null : s),

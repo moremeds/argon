@@ -1,0 +1,27 @@
+layer,layer_cn,chain,n_have,have_tickers
+L1,芯片与系统层,Computer/GPU,3,AMD ARM NVDA
+L1,芯片与系统层,Semi-Logic/ASIC,5,ARM AVGO MRVL QCOM TXN
+L1,芯片与系统层,Foundry,3,INTC TSEM TSM
+L1,芯片与系统层,Semi-Cap/EDA,8,AMAT ARM ASML CDNS KLAC LRCX SNPS TER
+L1,芯片与系统层,Memory/Storage,3,MU SNDK WDC
+L1,芯片与系统层,Analog/Power-Semi,0,
+L2,云与数据平台层,Cloud/Hyperscaler,5,AMZN GOOGL IBM MSFT ORCL
+L2,云与数据平台层,AI-Cloud/NeoCloud,4,CRWV HUT IREN NBIS
+L2,云与数据平台层,Data-Platform,2,PLTR SNOW
+L2,云与数据平台层,Cybersecurity,3,CRWD NET PANW
+L3,数据中心基础设施层,Networking/Optical,9,AAOI ALAB ANET COHR CRDO FN GLW LITE NOK
+L3,数据中心基础设施层,Power/Electrical,0,
+L3,数据中心基础设施层,Generation/Nuclear,2,BE OKLO
+L3,数据中心基础设施层,Cooling/Thermal,0,
+L3,数据中心基础设施层,DC-REIT/Colo,0,
+L3,数据中心基础设施层,EPC/Construction,0,
+L4,应用与终端层,Software/SaaS,1,CRM
+L4,应用与终端层,AI-App/Consumer-Net,1,APP
+L4,应用与终端层,Robotics/Automation,1,ISRG
+L4,应用与终端层,Healthcare-AI/LS-Tools,0,
+L4,应用与终端层,Devices/Endpoint,2,AAPL TSLA
+X,跨层标签,M7,7,AAPL AMZN GOOGL META MSFT NVDA TSLA
+L5,模型与工具层,Foundation-Model-Proxy,5,AMZN GOOGL META MSFT NVDA
+L5,模型与工具层,AI-Native-Software,0,
+L5,模型与工具层,DevTools/Observability,0,
+L5,模型与工具层,IT-Services/Integration,0,

@@ -22,7 +22,7 @@ version in lockstep (enforced by `scripts/release/version_sync_check.py`).
   spread that currently works. EWMA(0.94) is the one shippable alternative
   (MAE −7.4%) and is **not** shipped here.
   **Regime flip-rate probe** — measures whether CRI/VCG states chatter enough to
-  justify a debouncer *before* building one. EOD is quiet (CRI 3.5 flips/mo, VCG
+  justify a debouncer _before_ building one. EOD is quiet (CRI 3.5 flips/mo, VCG
   2.2); live intraday is not (VCG 45.3 flips/mo, 22% whipsaw).
   **Adaptive-EMA catalog** — 7 causal smoothers transcribed from a source article
   that claimed 17; the unimplemented 10 are listed by name under
@@ -32,9 +32,44 @@ version in lockstep (enforced by `scripts/release/version_sync_check.py`).
   Also preserves the **sector-crowding panel plan**, whose blocking prerequisite
   (mixed-unit `aum` normalization, wrong by 1e9 for the 12 SPDR sector ETFs) is
   recorded so it is not rediscovered.
+- **Industry-chain taxonomy candidate screen (research).**
+  `scripts/research/watchlist_chain_candidates.py` +
+  `docs/research/2026-08-09-watchlist-industry-chains/` map the AI industrial
+  chain onto 5 layers / 25 chains and screen candidates against the UW stock
+  screener (`/api/screener/stocks`) rather than from recall — which killed four
+  names that would otherwise have been recommended. Selection keys on **option
+  activity, not market cap**: cap is a $2B junk floor only, because a $10B floor
+  would delete most of AI-Cloud/NeoCloud and all of AI-Native-Software, the
+  chains the taxonomy exists to reach. Membership is deliberately many-to-many
+  (ARM sits in three chains); UW bills per distinct ticker, so extra memberships
+  cost nothing. Result: 110 memberships over 96 distinct tickers, of which 45 are
+  new (**+10.8k UW calls/day**, research pool ~27.0k/30k). **Research artifact —
+  no watchlist rows are added by this PR.**
+
+### Changed
+
+- **Watchlist filter bar rebuilt as a two-row layer rail (web).** The old bar
+  rendered one chip row per sector group, so its height grew with the tag count —
+  20 tags already cost 5 rows, and the industry-chain taxonomy above would push
+  it to ~10. It is now a fixed **two rows at any tag count**: a group rail
+  (`ALL │ INDEX M7 │ CHIP CLOUD DC APP │ THEMATIC DEFENSIVE`) over a contextual
+  chain row. Rail order leads with Index & Macro and M7 — the top-of-session read
+  — before drilling into a chain. Colour and underline are independent channels:
+  colour marks the group holding the active filter, the underline marks the chain
+  row on screen, so you can browse one layer while filtered on another. Clicking a
+  layer opens its chains **without** applying a filter; `M7` is a leaf and filters
+  directly. `Setup` moved into row 2's right side, which keeps that row non-empty
+  so the bar never changes height and the grid below never jumps.
+  `SECTOR_ROWS` became `SECTOR_GROUPS` (`SECTOR_ROWS` is still derived), so
+  `AddTickerDialog` picks up the finer grouping with no change. No API, schema, or
+  contract change — `?sector=` still carries a single tag.
+  The **Model & Tooling** layer is deliberately absent from the rail: its
+  best-covered chain (`Foundation-Model-Proxy`) is 5/5 already on the watchlist
+  but tagged `M7`, and `watchlist.sector` is a single column, so the button would
+  filter to an empty grid despite the data being present. It lands with the chain
+  migration.
 
 ## [0.11.2] — 2026-08-09
-
 
 ### Added
 
@@ -139,6 +174,7 @@ version in lockstep (enforced by `scripts/release/version_sync_check.py`).
 - **Corporate-action and calendar-gap guards for `daily_ohlc`-derived research**
   (`reports/magnet_data.py`). Unadjusted splits (CRWD 4:1, KORU 20:1) and a ticker
   reuse (SPCX) were inflating `std(z)` to 1.116 with excess kurtosis 361.
+
 ## [0.11.1] — 2026-08-02
 
 ### Fixed

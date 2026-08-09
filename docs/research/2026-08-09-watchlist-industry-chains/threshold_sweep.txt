@@ -1,0 +1,32 @@
+  mcap      OI  act/day |    n  +calls/d  research pool
+------------------------------------------------------------
+    5B    100k     3000 |   64     15.4k          28.8k
+    5B    100k     8000 |   50     12.0k          27.4k
+    5B    100k    15000 |   32      7.7k          25.7k
+    5B    200k     3000 |   41      9.8k          26.6k
+    5B    200k     8000 |   40      9.6k          26.5k
+    5B    200k    15000 |   31      7.4k          25.6k
+   10B    100k     3000 |   52     12.5k          27.6k
+   10B    100k     8000 |   40      9.6k          26.5k
+   10B    100k    15000 |   23      5.5k          24.8k
+   10B    200k     3000 |   30      7.2k          25.5k
+   10B    200k     8000 |   30      7.2k          25.5k
+   10B    200k    15000 |   22      5.3k          24.8k
+   20B    100k     3000 |   44     10.6k          26.9k
+   20B    100k     8000 |   35      8.4k          26.0k
+   20B    100k    15000 |   21      5.0k          24.7k
+   20B    200k     3000 |   27      6.5k          25.2k
+   20B    200k     8000 |   27      6.5k          25.2k
+   20B    200k    15000 |   20      4.8k          24.6k
+
+
+ACTIVITY-FIRST profiles (cap = junk floor only)
+
+profile                              n  +calls/d  research
+P1 cap>=2B OI>=100k act>=3k         69     16.6k     29.3k
+P2 cap>=2B OI>=200k act>=5k         45     10.8k     27.0k
+P3 cap>=2B OI>=250k act>=10k        37      8.9k     26.2k
+P4 cap>=3B OI>=300k act>=15k        30      7.2k     25.5k
+
+P2 members (45):
+  SMCI WULF NOW BABA CIFR DELL APLD SNAP CORZ CLSK SOUN BTDR ADBE SHOP RDDT CSCO SMR TTD PATH HPE VRT RBLX VST ON STX GLXY U TEM HPQ CCJ MCHP GEV DDOG ZS S ACN PINS MDB UMC ZM UEC INFY CEG ABNB DASH
