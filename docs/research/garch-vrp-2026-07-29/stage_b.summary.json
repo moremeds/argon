@@ -1,0 +1,68 @@
+{
+  "n_obs": 21606,
+  "n_tickers": 96,
+  "date_range": [
+    "2025-05-12",
+    "2026-04-16"
+  ],
+  "z_window": 20,
+  "alias": {
+    "SPX": "SPY"
+  },
+  "mean_iv": 0.4267689067851523,
+  "mean_rv_fwd": 0.41157652188915694,
+  "mean_y_vol_pts": 1.5192384895995381,
+  "rv21": {
+    "xs_ic": {
+      "mean_ic": 0.0513949461731789,
+      "n_dates": 214,
+      "n_blocks": 11,
+      "ci_lo": -0.013624055931551866,
+      "ci_hi": 0.0849839232969231,
+      "p_le_zero": 0.0728
+    },
+    "quintile": {
+      "mean_spread_vol_pts": 1.0765528258468593,
+      "n_dates": 214
+    },
+    "mean_vrp_vol_pts": 2.542073757822867
+  },
+  "garch": {
+    "xs_ic": {
+      "mean_ic": 0.06142677313311058,
+      "n_dates": 214,
+      "n_blocks": 11,
+      "ci_lo": -0.035125502153637966,
+      "ci_hi": 0.09257604644533864,
+      "p_le_zero": 0.1334
+    },
+    "quintile": {
+      "mean_spread_vol_pts": 0.9933027629748512,
+      "n_dates": 214
+    },
+    "mean_vrp_vol_pts": -0.9120535793835909
+  },
+  "ewma": {
+    "xs_ic": {
+      "mean_ic": 0.053495455657459744,
+      "n_dates": 214,
+      "n_blocks": 11,
+      "ci_lo": -0.020951078037137055,
+      "ci_hi": 0.08591297239422736,
+      "p_le_zero": 0.0978
+    },
+    "quintile": {
+      "mean_spread_vol_pts": 0.8463889963845941,
+      "n_dates": 214
+    },
+    "mean_vrp_vol_pts": 1.084728287151576
+  },
+  "ic_delta_garch_minus_rv21": {
+    "mean_ic": 0.010031826959931689,
+    "n_dates": 214,
+    "n_blocks": 11,
+    "ci_lo": -0.04277525526538131,
+    "ci_hi": 0.03877273569249057,
+    "p_le_zero": 0.5178
+  }
+}
