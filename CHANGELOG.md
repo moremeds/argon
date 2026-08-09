@@ -7,6 +7,26 @@ version in lockstep (enforced by `scripts/release/version_sync_check.py`).
 
 ## [Unreleased]
 
+### Added
+
+- **Technicals "Magnet View" sub-tab** — reference-style chart with ZigZag pivots,
+  five magnet levels, and an options-implied cone at 5/10/21d whose bands are
+  labelled with measured (not nominal) confidence **and its 95% interval**. The
+  0.618 extension renders as unlabelled geometry: it was tested against a matched
+  null at five ZigZag thresholds (938 legs at the loosest) and showed no edge, so
+  nothing on the view asserts price will reach it. Three deliberate deviations from
+  the reference: pivot markers are filled arrows (lightweight-charts v5 has no
+  hollow-triangle shape), the decorative scenario fan is replaced by the cone
+  rather than drawn alongside it, and the right-edge divider therefore reads
+  `history ← | → options-implied` rather than naming scenarios that are not drawn.
+  Research: `docs/research/2026-08-08-magnet-cone-calibration/VERDICT.md`.
+
+### Fixed
+
+- **Corporate-action and calendar-gap guards for `daily_ohlc`-derived research**
+  (`reports/magnet_data.py`). Unadjusted splits (CRWD 4:1, KORU 20:1) and a ticker
+  reuse (SPCX) were inflating `std(z)` to 1.116 with excess kurtosis 361.
+
 ## [0.11.1] — 2026-08-02
 
 
