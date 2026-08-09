@@ -1,4 +1,4 @@
-import { api, type WatchlistResponse } from "./api";
+import { api, type WatchlistChainInfo, type WatchlistResponse } from "./api";
 
 const emptyWatchlist: WatchlistResponse = {
   scanned_at_min: null,
@@ -15,13 +15,35 @@ const emptyWatchlist: WatchlistResponse = {
   tickers: [],
 };
 
-export async function loadDashboardData(
-  qs: URLSearchParams,
-): Promise<{ data: WatchlistResponse; apiUnavailable: boolean }> {
+export async function loadDashboardData(qs: URLSearchParams): Promise<{
+  data: WatchlistResponse;
+  chains: WatchlistChainInfo[];
+  apiUnavailable: boolean;
+}> {
+  // The rail is chrome; the grid is the page. A failing /watchlist/chains must
+  // degrade to an unfiltered grid, never blank the dashboard — so its failure
+  // is swallowed independently rather than sharing the outer try.
+  const chainsPromise = (async () => {
+    try {
+      return (await api.watchlistChains())?.chains ?? [];
+    } catch {
+      return [];
+    }
+  })();
+
   try {
-    const data = await api.watchlist(qs);
-    return { data, apiUnavailable: false };
+    // Both in one pass: fetching the rail client-side would flash an empty
+    // filter bar on every navigation.
+    const [data, chains] = await Promise.all([
+      api.watchlist(qs),
+      chainsPromise,
+    ]);
+    return { data, chains, apiUnavailable: false };
   } catch {
-    return { data: emptyWatchlist, apiUnavailable: true };
+    return {
+      data: emptyWatchlist,
+      chains: await chainsPromise,
+      apiUnavailable: true,
+    };
   }
 }

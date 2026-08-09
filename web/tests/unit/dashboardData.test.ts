@@ -6,6 +6,7 @@ import { api } from "@/lib/api";
 vi.mock("@/lib/api", () => ({
   api: {
     watchlist: vi.fn(),
+    watchlistChains: vi.fn(),
   },
 }));
 

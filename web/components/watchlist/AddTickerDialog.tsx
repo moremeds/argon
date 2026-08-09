@@ -3,14 +3,17 @@ import { useRef, useState } from "react";
 import { useRouter } from "next/navigation";
 import { Check, ChevronDown } from "lucide-react";
 import { api } from "@/lib/api";
-import { SECTOR_ROWS, WATCHLIST_SECTORS } from "./sectorGroups";
+import { sectorRowsFromChains } from "./sectorGroups";
+import type { WatchlistChainInfo } from "@/lib/api";
 
 function SectorMenu({
   value,
   onChange,
+  rows,
 }: {
   value: string;
   onChange: (sector: string) => void;
+  rows: { label: string; items: string[] }[];
 }) {
   const [open, setOpen] = useState(false);
 
@@ -65,7 +68,7 @@ function SectorMenu({
             boxShadow: "0 18px 40px rgba(0, 0, 0, 0.45)",
           }}
         >
-          {SECTOR_ROWS.map((row) => {
+          {rows.map((row) => {
             const sectors = row.items.filter((item) => item !== "All");
             if (sectors.length === 0) return null;
 
@@ -131,11 +134,19 @@ function SectorMenu({
   );
 }
 
-export function AddTickerDialog() {
+export function AddTickerDialog({
+  chains = [],
+}: {
+  // The dialog still writes the single `watchlist.sector` column, so it needs
+  // the chain list as a flat picker. Passed in rather than fetched so the
+  // header does not fire a second request on every dashboard render.
+  chains?: WatchlistChainInfo[];
+}) {
+  const rows = sectorRowsFromChains(chains);
   const ref = useRef<HTMLDialogElement>(null);
   const router = useRouter();
   const [ticker, setTicker] = useState("");
-  const [sector, setSector] = useState(WATCHLIST_SECTORS[0]);
+  const [sector, setSector] = useState("");
   const [notes, setNotes] = useState("");
 
   const submit = async (e: React.FormEvent) => {
@@ -187,7 +198,7 @@ export function AddTickerDialog() {
             onChange={(e) => setTicker(e.target.value)}
             className="uw-dialog-field"
           />
-          <SectorMenu value={sector} onChange={setSector} />
+          <SectorMenu rows={rows} value={sector} onChange={setSector} />
           <input
             placeholder="notes (optional)"
             value={notes}

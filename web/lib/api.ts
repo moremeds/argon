@@ -39,6 +39,11 @@ type Json<
 type WatchlistResponse = Json<"/api/watchlist", "get">;
 type QueueSummaryResponse = Json<"/api/watchlist/queue", "get">;
 type WatchlistSpotsResponse = Json<"/api/watchlist/spots", "get">;
+type WatchlistChainsResponse = Json<"/api/watchlist/chains", "get">;
+// One rail row. Derived from the response rather than the component schema so
+// it cannot drift from what the endpoint actually returns.
+// NonNullable: `chains` has a server-side default so OpenAPI marks it optional.
+type WatchlistChainInfo = NonNullable<WatchlistChainsResponse["chains"]>[number];
 type SingleStockReport = Json<"/api/stock/{ticker}", "get">;
 type StockHistoryResponse = Json<"/api/stock/{ticker}/history", "get">;
 type JobStatus = Json<"/api/jobs/{job_id}", "get">;
@@ -141,6 +146,8 @@ export const api = {
     _fetch<QueueSummaryResponse>(`/api/watchlist/queue`),
   watchlistSpots: (): Promise<WatchlistSpotsResponse> =>
     _fetch<WatchlistSpotsResponse>(`/api/watchlist/spots`),
+  watchlistChains: (): Promise<WatchlistChainsResponse> =>
+    _fetch<WatchlistChainsResponse>(`/api/watchlist/chains`),
   stock: (ticker: string): Promise<SingleStockReport> =>
     _fetch<SingleStockReport>(`/api/stock/${ticker}`),
   stockHistory: (ticker: string): Promise<StockHistoryResponse> =>
@@ -389,5 +396,7 @@ export type {
   TechnicalsResponse,
   TradeInsightsResponse,
   VolatilitySeriesResponse,
+  WatchlistChainInfo,
+  WatchlistChainsResponse,
   WatchlistResponse,
 };

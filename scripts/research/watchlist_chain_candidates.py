@@ -30,229 +30,25 @@ from pathlib import Path
 from uw_scan.api.client import UwClient
 from uw_scan.api.endpoints import EndpointSlug
 from uw_scan.config import Settings
+from uw_scan.watchlist_taxonomy import AI, LAYERS
 
-# layer_id -> (chinese, english, {chain: [tickers]})
+# TAXONOMY moved to uw_scan.watchlist_taxonomy when the chain join table needed
+# it — app code must not import from scripts/. Rebuilt here in this script's
+# legacy (id, name, chains) shape so the renderers below stay untouched. One
+# definition, three consumers: this screener, the membership seeder, the API.
 TAXONOMY: dict[str, tuple[str, str, dict[str, list[str]]]] = {
-    "L1": (
-        "芯片与系统层",
-        "Chip & System",
-        {
-            # ARM is here, in Semi-Logic/ASIC, and in Semi-Cap/EDA: its driver is
-            # AI compute architecture, it licenses design IP like SNPS/CDNS, and
-            # it still trades with the merchant-chip cohort. Three chains, one
-            # ticker, one scan cost.
-            "Computer/GPU": ["NVDA", "AMD", "ARM", "SMCI", "DELL", "HPE", "HPQ"],
-            "Semi-Logic/ASIC": [
-                "AVGO",
-                "MRVL",
-                "ARM",
-                "QCOM",
-                "TXN",
-                "NXPI",
-                "MCHP",
-                "SWKS",
-                "QRVO",
-                "LSCC",
-                "RMBS",
-                "ALGM",
-                "SLAB",
-            ],
-            "Foundry": ["TSM", "INTC", "TSEM", "GFS", "UMC", "ASX"],
-            "Semi-Cap/EDA": [
-                "ARM",
-                "ASML",
-                "AMAT",
-                "LRCX",
-                "KLAC",
-                "TER",
-                "SNPS",
-                "CDNS",
-                "ONTO",
-                "ACLS",
-                "AEIS",
-                "ICHR",
-                "UCTT",
-                "COHU",
-                "FORM",
-                "NVMI",
-                "CAMT",
-                "VECO",
-                "AMKR",
-            ],
-            "Memory/Storage": ["MU", "SNDK", "WDC", "STX", "NTAP", "PSTG"],
-            "Analog/Power-Semi": ["ADI", "MPWR", "ON", "VSH", "DIOD", "POWI"],
-        },
-    ),
-    "L2": (
-        "云与数据平台层",
-        "Cloud & Data Platform",
-        {
-            "Cloud/Hyperscaler": ["MSFT", "AMZN", "GOOGL", "ORCL", "IBM", "BABA"],
-            "AI-Cloud/NeoCloud": [
-                "CRWV",
-                "NBIS",
-                "IREN",
-                "HUT",
-                "CIFR",
-                "APLD",
-                "WULF",
-                "CORZ",
-                "GLXY",
-                "BTDR",
-                "CLSK",
-            ],
-            "Data-Platform": [
-                "SNOW",
-                "PLTR",
-                "MDB",
-                "CFLT",
-                "ESTC",
-                "DDOG",
-                "TDC",
-                "DOCN",
-            ],
-            "Cybersecurity": [
-                "CRWD",
-                "PANW",
-                "NET",
-                "ZS",
-                "S",
-                "FTNT",
-                "OKTA",
-                "CYBR",
-                "TENB",
-                "QLYS",
-                "RPD",
-                "VRNS",
-                "CHKP",
-            ],
-        },
-    ),
-    "L3": (
-        "数据中心基础设施层",
-        "Datacenter Infrastructure",
-        {
-            "Networking/Optical": [
-                "ANET",
-                "CRDO",
-                "ALAB",
-                "COHR",
-                "LITE",
-                "FN",
-                "AAOI",
-                "GLW",
-                "NOK",
-                "CIEN",
-                "CSCO",
-                "JNPR",
-                "EXTR",
-                "APH",
-                "TEL",
-            ],
-            "Power/Electrical": [
-                "VRT",
-                "ETN",
-                "PWR",
-                "GEV",
-                "POWL",
-                "HUBB",
-                "NVT",
-                "ATKR",
-                "AYI",
-            ],
-            "Generation/Nuclear": [
-                "OKLO",
-                "BE",
-                "CEG",
-                "VST",
-                "TLN",
-                "NRG",
-                "SMR",
-                "LEU",
-                "NNE",
-                "CCJ",
-                "UEC",
-                "PEG",
-                "SO",
-                "D",
-            ],
-            "Cooling/Thermal": ["MOD", "SPXC", "AAON", "CARR", "JCI", "TT", "LII"],
-            "DC-REIT/Colo": ["EQIX", "DLR", "IRM", "AMT"],
-            "EPC/Construction": ["MTZ", "DY", "EME", "FIX", "IESC", "STRL", "ACM", "J"],
-        },
-    ),
-    "L4": (
-        "应用与终端层",
-        "Application & Endpoint",
-        {
-            "Software/SaaS": [
-                "CRM",
-                "NOW",
-                "ADBE",
-                "INTU",
-                "WDAY",
-                "TEAM",
-                "HUBS",
-                "VEEV",
-                "ZM",
-                "DOCU",
-                "TWLO",
-                "SHOP",
-            ],
-            "AI-App/Consumer-Net": [
-                "APP",
-                "TTD",
-                "RDDT",
-                "SPOT",
-                "DASH",
-                "ABNB",
-                "U",
-                "RBLX",
-                "PINS",
-                "SNAP",
-            ],
-            "Robotics/Automation": ["SYM", "ROK", "EMR", "HON", "ISRG", "OSIS", "ZBRA"],
-            "Healthcare-AI/LS-Tools": ["TEM", "RXRX", "DNA", "ILMN", "TMO", "A", "DHR"],
-            "Devices/Endpoint": ["AAPL", "TSLA", "SONY", "GRMN", "LOGI"],
-        },
-    ),
-    # Cross-cutting lenses. Membership deliberately overlaps the layers — NVDA is
-    # in L1 Computer/GPU AND here. A ticker costs UW budget once no matter how
-    # many chains list it, so lenses are free; only distinct tickers are billed.
-    "X": (
-        "跨层标签",
-        "Cross-cutting",
-        {
-            "M7": ["AAPL", "MSFT", "GOOGL", "AMZN", "META", "NVDA", "TSLA"],
-        },
-    ),
-    "L5": (
-        "模型与工具层",
-        "Model & Tooling",
-        {
-            "Foundation-Model-Proxy": ["MSFT", "GOOGL", "META", "AMZN", "NVDA"],
-            "AI-Native-Software": ["AI", "SOUN", "BBAI", "INOD", "PATH", "CXAI"],
-            "DevTools/Observability": ["GTLB", "DDOG", "FROG", "PD", "DT"],
-            "IT-Services/Integration": [
-                "ACN",
-                "EPAM",
-                "GLOB",
-                "CTSH",
-                "INFY",
-                "WIT",
-                "DXC",
-            ],
-        },
-    ),
+    layer.key: (layer.name, layer.name, {c: list(t) for c, t in layer.chains.items()})
+    for layer in LAYERS
+    if layer.focus == AI
 }
 
-# The watchlist covers four focus areas. The 5-layer 五层蛋糕 model is the shape of
-# ONE of them (AI 产业链) — it is not the whole watchlist and the other three are
-# not leftovers. Mirrors the existing rows in web/components/watchlist/sectorGroups.ts.
+# The watchlist covers four focus areas. The 5-layer model is the shape of ONE
+# of them (the AI industrial chain) — not the whole watchlist, and the other
+# three are not leftovers.
 OTHER_FOCUS: dict[str, tuple[str, list[str]]] = {
-    "大盘与宏观": ("Index & Macro", ["Beta", "Sector-ETF", "Credit", "Macro"]),
-    "主题": ("Thematic", ["Crypto", "Fintech", "Space"]),
-    "防御": ("Defensive", ["Healthcare", "Energy", "Banks", "Consumer"]),
+    layer.name: (layer.name, list(layer.chains))
+    for layer in LAYERS
+    if layer.focus != AI
 }
 
 FIELDS = (
@@ -578,8 +374,8 @@ def render_doc(
     out: list[str] = [
         "# Watchlist extension — 五层蛋糕 industry-chain candidates",
         "",
-        "Generated, do not hand-edit the tables — edit `TAXONOMY` in",
-        "`scripts/research/watchlist_chain_candidates.py` and re-run:",
+        "Generated, do not hand-edit the tables — edit `LAYERS` in",
+        "`src/uw_scan/watchlist_taxonomy.py` and re-run:",
         "",
         "```",
         "UW_SCAN_ALLOW_DB_MISMATCH=1 uv run python \\",

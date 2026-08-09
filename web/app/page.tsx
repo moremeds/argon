@@ -1,5 +1,9 @@
 import { CardGrid } from "@/components/watchlist/CardGrid";
 import { FilterBar } from "@/components/watchlist/FilterBar";
+import {
+  buildSectorGroups,
+  chainCounts,
+} from "@/components/watchlist/sectorGroups";
 import { AddTickerDialog } from "@/components/watchlist/AddTickerDialog";
 import { QueueProgress } from "@/components/shared/QueueProgress";
 import { ScanAllButton } from "@/components/shared/ScanAllButton";
@@ -17,9 +21,11 @@ export default async function DashboardPage({
   const sp = await searchParams;
   const qs = new URLSearchParams();
   if (sp.sector) qs.set("sector", sp.sector);
+  if (sp.chain) qs.set("chain", sp.chain);
   if (sp.setup) qs.set("setup", sp.setup);
   if (sp.fresh) qs.set("fresh_within_minutes", sp.fresh);
-  const { data, apiUnavailable } = await loadDashboardData(qs);
+  const { data, chains, apiUnavailable } = await loadDashboardData(qs);
+  const groups = buildSectorGroups(chains);
 
   return (
     <div style={{ padding: 24, maxWidth: 1600, margin: "0 auto" }}>
@@ -43,7 +49,7 @@ export default async function DashboardPage({
         <div style={{ display: "flex", alignItems: "center", gap: 12 }}>
           <QueueProgress queue={data.queue} />
           <ScanAllButton />
-          <AddTickerDialog />
+          <AddTickerDialog chains={chains} />
         </div>
       </header>
       {apiUnavailable && (
@@ -62,7 +68,7 @@ export default async function DashboardPage({
           ready.
         </div>
       )}
-      <FilterBar current={sp} />
+      <FilterBar current={sp} groups={groups} counts={chainCounts(chains)} />
       <CardGrid data={data} />
     </div>
   );

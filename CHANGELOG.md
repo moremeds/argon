@@ -7,6 +7,48 @@ version in lockstep (enforced by `scripts/release/version_sync_check.py`).
 
 ## [Unreleased]
 
+### Added
+
+- **Many-to-many industry-chain membership for the watchlist.** New table
+  `uw_scan.watchlist_chain` (migration `113`) plus
+  `src/uw_scan/watchlist_taxonomy.py` as the single source of truth for the
+  9-layer / 38-chain taxonomy. `watchlist.sector` is unchanged and keeps its
+  job — it is still the ticker's one PRIMARY tag and decides which section a
+  card renders under; the join table carries the full membership set that
+  FILTERING selects on. Both exist because a single column cannot express the
+  taxonomy: NVDA is genuinely in `Computer/GPU`, `M7` *and*
+  `Foundation-Model-Proxy`, ARM is in three L1 chains, IBM is in both
+  `Cloud/Hyperscaler` and `Quantum`. The visible symptom was
+  `Foundation-Model-Proxy` reading as **empty** on the dashboard while all five
+  of its members sat on the page tagged `M7` — the whole Model & Tooling layer
+  was unreachable. Keeping `sector` as the display tag is what stops a naive
+  many-to-many render from drawing NVDA's card three times and ARM's three
+  times (~114 tickers becoming ~150 cards for the same names).
+- **`GET /api/watchlist/chains`** — every chain with its layer and live member
+  count. `GET /api/watchlist` gains a `chain=` filter that selects on
+  membership, so a ticker in several chains matches each of them, and
+  `WatchlistCard` gains a `chains: list[str]` field.
+- **59 tickers added to the watchlist**, screened market-wide by option
+  liquidity rather than hand-listed. This is what surfaced `FRMI` (968k OI) and
+  `KEEL` (1,076k OI) for `DC-REIT/Colo`, a chain that had read as empty only
+  because the hand-authored list was EQIX/DLR/IRM/AMT.
+
+### Changed
+
+- **The watchlist filter rail is served, not hardcoded.** `sectorGroups.ts` now
+  holds only rail ordering and short labels and builds itself from
+  `/api/watchlist/chains`; copying 38 chain names into TypeScript would have
+  recreated exactly the drift the taxonomy module exists to remove. Chains with
+  zero members are dropped — a rail button that filters to an empty grid is
+  worse than one that is not there. Filtering moved from `?sector=` to
+  `?chain=`.
+- **UW pool ceilings rebalanced** (mini `.env`): live `80000` → `60000`,
+  research `30000` → `45000`. The two now sum to `UW_TOTAL_DAILY_GUARD`
+  (105000), so the account-wide guard stays the binding constraint instead of
+  the pools being able to over-allocate against it. Measured weekday burn
+  before the adds was live ~38.4k / research ~24.9k, i.e. research sat at 83% of
+  its ceiling while live used 48% of its own.
+
 ## [0.11.3] — 2026-08-09
 
 

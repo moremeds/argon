@@ -57,7 +57,14 @@ class QueueStatus(BaseModel):
 
 class WatchlistCard(BaseModel):
     ticker: str
+    # The single PRIMARY tag. Still decides which one section a card renders
+    # under, which is why it survives alongside `chains` — grouping the grid by a
+    # multi-valued field would draw NVDA's card once per chain.
     sector: str
+    # Every chain this ticker belongs to (uw_scan.watchlist_chain). Filtering
+    # selects on this; grouping does not. Defaults to [] so a response built
+    # before the join table is seeded stays valid.
+    chains: list[str] = Field(default_factory=list)
     pinned: bool
     hot: bool = False
     sort_rank: int
@@ -81,6 +88,26 @@ class WatchlistCard(BaseModel):
     skew: SkewBlock
     positioning: PositioningBlock
     queue: QueueStatus | None = None
+
+
+class WatchlistChainInfo(BaseModel):
+    """One row of the filter rail, served rather than duplicated in TypeScript.
+
+    The taxonomy lives in `uw_scan.watchlist_taxonomy`; hand-copying 38 chains
+    into the frontend would reintroduce exactly the drift that module exists to
+    prevent. `count` is live membership, so the UI can hide a chain that would
+    filter to an empty grid instead of guessing.
+    """
+
+    layer: str
+    layer_name: str
+    focus: str
+    chain: str
+    count: int = 0
+
+
+class WatchlistChainsResponse(BaseModel):
+    chains: list[WatchlistChainInfo] = Field(default_factory=list)
 
 
 class QueueSummary(BaseModel):
@@ -165,6 +192,8 @@ _preserve_api_module(
     PositioningBlock,
     QueueStatus,
     WatchlistCard,
+    WatchlistChainInfo,
+    WatchlistChainsResponse,
     QueueSummary,
     WatchlistResponse,
     WatchlistMutation,

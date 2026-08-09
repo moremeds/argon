@@ -1,11 +1,7 @@
 "use client";
 import { useState, type CSSProperties } from "react";
 import { usePathname, useRouter, useSearchParams } from "next/navigation";
-import {
-  SECTOR_GROUPS,
-  groupForSector,
-  type SectorGroup,
-} from "./sectorGroups";
+import { groupForChain, type SectorGroup } from "./sectorGroups";
 
 const SETUPS = ["All", "C-bull", "C-bear", "F-MULTI", "NEUTRAL"];
 
@@ -95,22 +91,26 @@ function SetupFormulaPopover() {
 
 export function FilterBar({
   current,
+  groups,
+  counts,
 }: {
   current: Record<string, string | undefined>;
+  // Built server-side from /api/watchlist/chains — the rail is data, not a
+  // hardcoded list, so it cannot drift from uw_scan.watchlist_taxonomy.
+  groups: SectorGroup[];
+  counts?: Record<string, number>;
 }) {
   const router = useRouter();
   const pathname = usePathname();
   const params = useSearchParams();
 
-  const sector = current.sector;
-  const filteredGroup = groupForSector(sector);
+  const chain = current.chain;
+  const filteredGroup = groupForChain(groups, chain);
   // `null` means "follow the URL". A rail click pins the row open so you can
   // browse a layer's chains without filtering to one of them first.
   const [pinnedKey, setPinnedKey] = useState<string | null>(null);
   const openGroup =
-    SECTOR_GROUPS.find((g) => g.key === pinnedKey) ??
-    filteredGroup ??
-    SECTOR_GROUPS[0];
+    groups.find((g) => g.key === pinnedKey) ?? filteredGroup ?? groups[0];
 
   const setParam = (key: string, value: string | null) => {
     const q = new URLSearchParams(params.toString());
@@ -119,9 +119,14 @@ export function FilterBar({
     router.push(`${pathname}?${q.toString()}`);
   };
 
-  const chip = (label: string, active: boolean, onClick: () => void) => (
+  const chip = (
+    label: string,
+    active: boolean,
+    onClick: () => void,
+    key?: string,
+  ) => (
     <button
-      key={label}
+      key={key ?? label}
       className="wl-chip"
       data-active={active}
       onClick={onClick}
@@ -134,6 +139,10 @@ export function FilterBar({
         border: `1px solid ${active ? "var(--accent-bg)" : "var(--border-dim)"}`,
         borderRadius: 3,
         cursor: "pointer",
+        // Chain names plus a count are long enough to wrap inside the chip,
+        // which doubles the chip height and defeats the fixed-height row.
+        whiteSpace: "nowrap",
+        flexShrink: 0,
       }}
     >
       {label}
@@ -179,11 +188,13 @@ export function FilterBar({
   const onRailClick = (g: SectorGroup) => {
     if (g.leaf) {
       setPinnedKey(g.key);
-      setParam("sector", sector === g.items[0] ? null : g.items[0]);
+      setParam("chain", chain === g.items[0] ? null : g.items[0]);
       return;
     }
     setPinnedKey(g.key);
   };
+
+  if (!openGroup) return null;
 
   return (
     <div
@@ -194,11 +205,11 @@ export function FilterBar({
     >
       {/* Row 1 — group rail. Fixed height regardless of how many chains exist. */}
       <div style={{ display: "flex", alignItems: "center", flexWrap: "wrap" }}>
-        {railButton("all", "All", "No sector filter", !sector, false, () =>
-          setParam("sector", null),
+        {railButton("all", "All", "No chain filter", !chain, false, () =>
+          setParam("chain", null),
         )}
-        {SECTOR_GROUPS.map((g, i) => {
-          const prev = SECTOR_GROUPS[i - 1];
+        {groups.map((g, i) => {
+          const prev = groups[i - 1];
           const newCluster = i === 0 || prev.cluster !== g.cluster;
           return [
             newCluster ? (
@@ -233,7 +244,11 @@ export function FilterBar({
           alignItems: "center",
           justifyContent: "space-between",
           gap: 16,
-          flexWrap: "wrap",
+          // nowrap, not wrap: chain names are long (Foundation-Model-Proxy,
+          // IT-Services/Integration) and wrapping pushed Setup onto a third
+          // row, which is exactly the fixed-height property this layout exists
+          // to guarantee. The chain strip scrolls instead.
+          flexWrap: "nowrap",
           padding: "8px 0 10px",
         }}
       >
@@ -242,13 +257,21 @@ export function FilterBar({
             display: "flex",
             alignItems: "center",
             gap: 8,
-            flexWrap: "wrap",
+            flexWrap: "nowrap",
+            overflowX: "auto",
+            // Without minWidth:0 a flex item refuses to shrink below its
+            // content width, so overflowX never engages.
+            minWidth: 0,
+            scrollbarWidth: "thin",
           }}
         >
           <span style={monoLabelStyle}>{openGroup.full}</span>
           {openGroup.items.map((s) =>
-            chip(s, sector === s, () =>
-              setParam("sector", sector === s ? null : s),
+            chip(
+              counts?.[s] ? `${s} ${counts[s]}` : s,
+              chain === s,
+              () => setParam("chain", chain === s ? null : s),
+              s,
             ),
           )}
         </div>
@@ -258,6 +281,9 @@ export function FilterBar({
             alignItems: "center",
             gap: 8,
             flexWrap: "wrap",
+            // Setup never shrinks or scrolls away — the chain strip absorbs the
+            // overflow instead, so this stays reachable at any width.
+            flexShrink: 0,
           }}
         >
           <span

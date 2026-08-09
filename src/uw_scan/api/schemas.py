@@ -42,6 +42,8 @@ from .models.watchlist import (
 )
 from .models.watchlist import (
     WatchlistCard as WatchlistCard,
+    WatchlistChainInfo as WatchlistChainInfo,
+    WatchlistChainsResponse as WatchlistChainsResponse,
 )
 from .models.watchlist import (
     WatchlistMutation as WatchlistMutation,
