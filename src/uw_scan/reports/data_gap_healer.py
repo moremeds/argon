@@ -453,6 +453,21 @@ REGISTRY: list[DatasetRegistryEntry] = [
         expected_frequency="none",
         reason="cohort membership, not a time series; selected_on is a point-in-time tag, not a cadence",
     ),
+    # Industry-chain membership (migration 113). Same shape as research_universe
+    # above: a dimension, not a series. One row per (ticker, chain); `added_at`
+    # is an audit stamp of when the membership was seeded, not an observation
+    # date, so there is no cadence to be late for and no date to backfill. It is
+    # caught by the temporal-table heuristic purely on the `%_at` column-name
+    # match. The chains' actual time series are the per-ticker tables the
+    # members already appear in, each registered on its own terms.
+    DatasetRegistryEntry(
+        "watchlist_chain",
+        "operational_provenance",
+        "excluded",
+        ticker_col="ticker",
+        expected_frequency="none",
+        reason="chain membership, not a time series; added_at is a seed stamp, not a cadence",
+    ),
 ]
 
 
