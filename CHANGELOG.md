@@ -7,6 +7,9 @@ version in lockstep (enforced by `scripts/release/version_sync_check.py`).
 
 ## [Unreleased]
 
+## [0.11.2] — 2026-08-09
+
+
 ### Added
 
 - **SVI residual net-of-cost verdict — the trade dies _before_ the cost line, not at
@@ -110,7 +113,6 @@ version in lockstep (enforced by `scripts/release/version_sync_check.py`).
 - **Corporate-action and calendar-gap guards for `daily_ohlc`-derived research**
   (`reports/magnet_data.py`). Unadjusted splits (CRWD 4:1, KORU 20:1) and a ticker
   reuse (SPCX) were inflating `std(z)` to 1.116 with excess kurtosis 361.
-
 ## [0.11.1] — 2026-08-02
 
 ### Fixed
