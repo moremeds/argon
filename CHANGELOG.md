@@ -20,6 +20,13 @@ version in lockstep (enforced by `scripts/release/version_sync_check.py`).
   rather than drawn alongside it, and the right-edge divider therefore reads
   `history ← | → options-implied` rather than naming scenarios that are not drawn.
   Research: `docs/research/2026-08-08-magnet-cone-calibration/VERDICT.md`.
+- **`dots` render mode for the volume profile** (`lib/lwc/volumeProfile.ts`) — the
+  magnet view's jittered dot cloud, with the last 15 sessions in gold. `VpBin`
+  gains a `recent` field for that subset. The mode defaults to `"bars"`, so the
+  Price view's profile is unchanged; it also gains an `anchor` option, and the
+  magnet view anchors **left** because its right edge belongs to the cone.
+  Jitter is a deterministic sin-hash of (bin, dot) — never `Math.random`, so the
+  cloud does not shimmer on pan or re-render.
 
 ### Fixed
 
