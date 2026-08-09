@@ -66,6 +66,19 @@ export interface VolumeProfileOptions {
   maxWidthPx?: number;
   showZones?: boolean;
   showLvn?: boolean;
+  /** "bars" (default) paints the existing histogram byte-for-byte. "dots" is
+   *  the magnet-view cloud (spec §5.2). Defaulted so every existing caller —
+   *  the Price view's volume-profile toggle — is untouched by this option
+   *  existing at all. */
+  mode?: "bars" | "dots";
+  /** Reference price for the dots mode's red-above / green-below split. */
+  spot?: number;
+  /** Which edge the profile grows from. "right" (default) is the Price view's
+   *  existing behaviour. The magnet view anchors LEFT because its right edge is
+   *  the projection zone — a right-anchored profile paints the dot cloud
+   *  straight over the options-implied cone, i.e. decoration on top of the one
+   *  thing on the chart that carries a measurement. */
+  anchor?: "left" | "right";
   onStats?: (stats: VolumeProfileStats | null) => void;
 }
 
@@ -85,6 +98,9 @@ const defaults: Required<Omit<VolumeProfileOptions, "onStats">> = {
   maxWidthPx: 240,
   showZones: true,
   showLvn: true,
+  mode: "bars",
+  spot: NaN, // no reference price → the dots mode falls back to the POC
+  anchor: "right",
 };
 
 type RowPx = {
@@ -93,7 +109,19 @@ type RowPx = {
   buyFrac: number; // 0..1 of the profile width
   sellFrac: number;
   inValueArea: boolean;
+  recentFrac: number; // 0..1, share of this bin's volume from the last 15 bars
+  midPrice: number; // bin centre — the dots mode colours by side of spot
 };
+
+/** Deterministic jitter in [0,1). Seeded from (bin, dot) so the cloud does not
+ *  shimmer on re-render or pan. Never Math.random.
+ *
+ *  ponytail: sin-hash, the standard shader trick. Not cryptographic and it does
+ *  not need to be — it needs to be stable and to decorrelate adjacent bins. */
+export function binJitter(bin: number, dot: number): number {
+  const x = Math.sin(bin * 127.1 + dot * 311.7) * 43758.5453;
+  return x - Math.floor(x);
+}
 
 type ZonePx = {
   yTop: number;
@@ -209,25 +237,32 @@ class VolumeProfileRenderer implements IPrimitivePaneRenderer {
       ctx.setLineDash([]);
       ctx.textAlign = "left";
 
-      for (const r of view.rows) {
-        const h = Math.max(1, r.yBottom - r.yTop - 0.5); // hairline gap between rows
-        const buyLen = r.buyFrac * width;
-        const sellLen = r.sellFrac * width;
-        if (buyLen + sellLen < 0.5) continue;
-        // Outside the value area the bins are context, not levels — dim them.
-        ctx.globalAlpha = r.inValueArea ? 1 : 0.4;
-        if (buyLen > 0) {
-          ctx.fillStyle = this._options.buyColor;
-          ctx.fillRect(right - buyLen, r.yTop, buyLen, h);
-        }
-        if (sellLen > 0) {
-          ctx.fillStyle = this._options.sellColor;
-          ctx.fillRect(right - buyLen - sellLen, r.yTop, sellLen, h);
+      if (this._options.mode === "dots") {
+        this._drawDots(ctx, view, right, width);
+      } else {
+        for (const r of view.rows) {
+          const h = Math.max(1, r.yBottom - r.yTop - 0.5); // hairline gap between rows
+          const buyLen = r.buyFrac * width;
+          const sellLen = r.sellFrac * width;
+          if (buyLen + sellLen < 0.5) continue;
+          // Outside the value area the bins are context, not levels — dim them.
+          ctx.globalAlpha = r.inValueArea ? 1 : 0.4;
+          if (buyLen > 0) {
+            ctx.fillStyle = this._options.buyColor;
+            ctx.fillRect(right - buyLen, r.yTop, buyLen, h);
+          }
+          if (sellLen > 0) {
+            ctx.fillStyle = this._options.sellColor;
+            ctx.fillRect(right - buyLen - sellLen, r.yTop, sellLen, h);
+          }
         }
       }
 
       ctx.globalAlpha = 1;
-      if (view.pocY != null) {
+      // Dots mode draws its own ★ POC marker at the anchor side; running this
+      // block too printed a second POC label on the opposite edge with a rule
+      // through the projection zone.
+      if (view.pocY != null && this._options.mode !== "dots") {
         ctx.strokeStyle = this._options.pocColor;
         ctx.lineWidth = 1;
         ctx.beginPath();
@@ -245,6 +280,78 @@ class VolumeProfileRenderer implements IPrimitivePaneRenderer {
       }
       ctx.restore();
     });
+  }
+
+  /** Spec §5.2's magnet profile: one dot per volume quantum, jittered
+   *  deterministically inside its bin, red above spot / green below, with the
+   *  last-15-session share overpainted in gold and a smooth envelope through
+   *  the outermost dot of each bin. */
+  private _drawDots(
+    ctx: CanvasRenderingContext2D,
+    view: ViewPx,
+    right: number,
+    width: number,
+  ): void {
+    const o = this._options;
+    const ref = Number.isFinite(o.spot) ? o.spot : view.pocPrice;
+    const MAX_DOTS = 26; // dots in the fullest bin — the POC
+    const envelope: { x: number; y: number }[] = [];
+    // `right` is the pane's right edge; a left-anchored profile starts at 0 and
+    // grows the other way. `dir` is the only thing that differs.
+    const originX = o.anchor === "left" ? 0 : right;
+    const dir = o.anchor === "left" ? 1 : -1;
+
+    for (let i = 0; i < view.rows.length; i += 1) {
+      const r = view.rows[i];
+      const frac = r.buyFrac + r.sellFrac;
+      const n = Math.round(frac * MAX_DOTS);
+      if (n <= 0) continue;
+      // Gold covers the recent SHARE of this bin, so a bin that is 40% recent
+      // shows 40% gold dots — not a flat count that would over-report thin bins.
+      const goldCount = Math.round((r.recentFrac / Math.max(frac, 1e-9)) * n);
+      const yMid = (r.yTop + r.yBottom) / 2;
+      const h = Math.max(1, r.yBottom - r.yTop);
+      const base = r.midPrice >= ref ? o.resistanceColor : o.supportColor;
+      let far = originX;
+      for (let d = 0; d < n; d += 1) {
+        // Dots march away from the anchor one slot per quantum, jittered within
+        // the slot so the cloud does not read as a stripe.
+        const slot = ((d + binJitter(i, d)) / MAX_DOTS) * width;
+        const x = originX + dir * slot;
+        const y = yMid + (binJitter(i, d + 97) - 0.5) * h;
+        ctx.globalAlpha = r.inValueArea ? 0.95 : 0.45;
+        ctx.fillStyle = d < goldCount ? o.pocColor : base;
+        ctx.beginPath();
+        ctx.arc(x, y, 1.6, 0, Math.PI * 2);
+        ctx.fill();
+        if (dir * x > dir * far) far = x;
+      }
+      envelope.push({ x: far, y: yMid });
+    }
+
+    ctx.globalAlpha = 0.5;
+    ctx.strokeStyle = o.labelColor;
+    ctx.lineWidth = 1;
+    ctx.beginPath();
+    envelope.forEach((p, i) =>
+      i ? ctx.lineTo(p.x, p.y) : ctx.moveTo(p.x, p.y),
+    );
+    ctx.stroke();
+
+    if (view.pocY != null) {
+      ctx.globalAlpha = 1;
+      ctx.fillStyle = o.pocColor;
+      ctx.font = "11px monospace";
+      // The label sits just outside the cloud, on whichever side it grew to.
+      ctx.textAlign = o.anchor === "left" ? "left" : "right";
+      ctx.textBaseline = "middle";
+      ctx.fillText(
+        `★ ${view.pocPrice.toFixed(2)}`,
+        o.anchor === "left" ? width + 6 : right - width - 6,
+        view.pocY,
+      );
+      ctx.textAlign = "left";
+    }
   }
 }
 
@@ -308,6 +415,8 @@ class VolumeProfilePaneView implements IPrimitivePaneView {
         buyFrac: b.buy / p.maxBinVolume,
         sellFrac: b.sell / p.maxBinVolume,
         inValueArea: i >= p.valIdx && i <= p.vahIdx,
+        recentFrac: b.recent / p.maxBinVolume,
+        midPrice: (b.low + b.high) / 2,
       });
     }
     const zones: ZonePx[] = [];

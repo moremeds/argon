@@ -23,7 +23,10 @@ export type VpBin = {
   high: number;
   buy: number;
   sell: number;
+  recent: number; // buy+sell from the last RECENT_BARS bars only
 };
+
+export const RECENT_BARS = 15; // spec §5.2: "gold = last 15d"
 
 export type VolumeProfile = {
   bins: VpBin[]; // ascending price, contiguous, always `binCount` long
@@ -52,16 +55,28 @@ export function computeVolumeProfile(
 
   const buy = new Array<number>(binCount).fill(0);
   const sell = new Array<number>(binCount).fill(0);
+  // Recency accumulates inside the SAME loop, against the SAME lo/binSize. A
+  // second pass that re-derived bin boundaries from the recent bars' own
+  // min/max would bin them differently and drop the gold dots into shelves the
+  // bars never traded in — invisible except by eye, hence the sum invariant in
+  // the tests.
+  const recent = new Array<number>(binCount).fill(0);
+  const recentFrom = bars.length - RECENT_BARS;
   const clampBin = (p: number) =>
     Math.max(0, Math.min(binCount - 1, Math.floor((p - lo) / binSize)));
 
-  for (const b of bars) {
+  for (let bi = 0; bi < bars.length; bi += 1) {
+    const b = bars[bi];
     if (!(b.volume > 0)) continue;
     const loBin = clampBin(b.low);
     const hiBin = clampBin(b.high);
     const share = b.volume / (hiBin - loBin + 1);
     const target = b.close >= b.open ? buy : sell;
-    for (let i = loBin; i <= hiBin; i += 1) target[i] += share;
+    const isRecent = bi >= recentFrom;
+    for (let i = loBin; i <= hiBin; i += 1) {
+      target[i] += share;
+      if (isRecent) recent[i] += share;
+    }
   }
 
   const total = buy.map((v, i) => v + sell[i]);
@@ -96,6 +111,7 @@ export function computeVolumeProfile(
       high: lo + (i + 1) * binSize,
       buy: buy[i],
       sell: sell[i],
+      recent: recent[i],
     })),
     pocIdx,
     valIdx,

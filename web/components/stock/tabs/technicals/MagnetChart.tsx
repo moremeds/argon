@@ -14,6 +14,7 @@ import {
 
 import type { MagnetsResponse } from "@/lib/api";
 import { BandsIndicator } from "@/lib/lwc/bandsIndicator";
+import { VolumeProfileIndicator } from "@/lib/lwc/volumeProfile";
 import { MAGNET_COLORS } from "./MagnetTable";
 
 const BAND_HALF_WIDTH = 0.0025; // 0.25% of the level — a zone, not a hairline
@@ -177,6 +178,33 @@ export default function MagnetChart({ data }: { data: MagnetsResponse }) {
         ]);
       }
     }
+
+    // Spec §5.2's magnet profile — the same VolumeProfileIndicator the Price
+    // view uses, in its new "dots" mode. Zones and LVN lines are off: this view
+    // already carries five labelled levels and adding the profile's own S/R
+    // bands would put two disagreeing level systems on one axis.
+    const vp = new VolumeProfileIndicator({
+      mode: "dots",
+      spot: data.levels?.last ?? data.candles[data.candles.length - 1]!.close,
+      showZones: false,
+      showLvn: false,
+      // LEFT, not the Price view's right: the right edge is the projection zone
+      // and a right-anchored cloud paints straight over the cone.
+      anchor: "left",
+      lookback: data.candles.length,
+      widthFrac: 0.16,
+    });
+    price.attachPrimitive(vp);
+    vp.setBars(
+      data.candles.map((c) => ({
+        time: c.date as Time,
+        open: c.open,
+        high: c.high,
+        low: c.low,
+        close: c.close,
+        volume: c.volume ?? 0,
+      })),
+    );
 
     // BB(20,2sigma) on the candle series — same primitive as the level zones.
     const closes20 = data.candles.map((c) => c.close);

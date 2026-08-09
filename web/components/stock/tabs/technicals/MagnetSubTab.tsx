@@ -120,6 +120,12 @@ export default function MagnetSubTab({
           style={{ fontFamily: "var(--font-mono)", fontSize: 11, opacity: 0.6 }}
         >
           {[
+            // as_of is shown because this sub-tab sources `daily_ohlc` while the
+            // rest of the Technicals tab sources `technical_daily`. The two can
+            // and do diverge (13 sessions apart on the local dev DB), and an
+            // unlabelled date silently disagreeing with the KPI strip above it
+            // is worse than a stale one you can see.
+            data.as_of,
             state,
             rsi != null ? `RSI ${rsi.toFixed(1)}` : null,
             data.levels
