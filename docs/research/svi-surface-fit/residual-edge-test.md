@@ -8,6 +8,37 @@ edge?**
 mean-reverting signal — but the realizable edge is ~$0.18 per contract, smaller than a
 single option commission.** It is a market-maker's edge (earn the spread), not ours.
 
+> ### ⚠️ CORRECTION 2026-08-08 — the "$0.18 per contract" figure is wrong by 100×
+>
+> The verdict sentence above and §2 compare a **per-share** vega-dollar edge against a
+> **per-contract** commission. `0.833` is vega per SHARE per vol point — confirmed
+> against the grid's own value for that exact contract (`option_surface_grid_daily`,
+> SPY 2026-07-02, expiry 2026-07-31, K=745 → `call_vega` = **0.8372**). A SPY option
+> controls 100 shares, so the realizable edge is:
+>
+> `0.217 vp × $0.833/share/vp × 100 shares = $18.08 per contract` — **not $0.18.**
+>
+> Against a commission of $0.15–0.65 *per contract per side*, "smaller than one
+> commission" does not hold; commissions are ~7% of the gross edge, not 200% of it.
+>
+> **What is unaffected:** every VOL-POINT statement in this file. The spread conversion
+> (`$0.05 / $0.833 = 0.06 vp`) is per-share on both sides, so it is unit-consistent and
+> correct, as is `spread 0.06 vp < edge 0.217 vp` for SPY and the QQQ dead-on-spread
+> read. Test 1 (reversion) is untouched — it never leaves vol-point space.
+>
+> **What this does NOT establish:** that the trade is live. The bullet below correctly
+> notes that no-naked-shorts forces ≥2 legs, but that cost was asserted, never computed.
+> The follow-on (`svi_residual_net_of_cost.py`, `net_of_cost_sweep.csv`) prices the
+> actual defined-risk vertical with the multiplier explicit and solves for the
+> break-even spread, and `svi_residual_spread_anchor.py` supplies real IB NBBO spreads
+> to compare it against. Read that before treating this question as closed.
+>
+> **Sample-independence caveat (same date):** the "262k contract-date pairs" of Test 1
+> come from ~780 ticker-days. Strikes in one smile share a fit and all strikes on a date
+> share one market move, so the pairs are heavily cross-correlated. The 0.217 vp point
+> estimate stands; its precision is far lower than n=262k implies. The DTE 5–120 filter
+> does prevent pairs from being spliced across capture gaps.
+
 ## Three tests (the three I said an edge needs)
 
 ### 1. Residual-reversion (DB-only, 3,518 smiles, 262k contract-date pairs, liquid names)
@@ -60,6 +91,13 @@ The decider is **dollars, not vol points**. Realized edge 0.217 vp × SPY vega \
 **\$0.18 per contract, gross**. IB options commission is **~\$0.15–0.65 per contract per
 side** — the edge is smaller than *one* commission, before spread. A 0.2-vol-point
 mispricing on a liquid option is worth pennies; per-contract taker costs are the same pennies.
+
+> **⚠️ Corrected 2026-08-08 — see the block at the top of this file.** `0.833` is vega
+> **per share**; ×100 shares/contract the gross edge is **\$18.08 per contract**, so the
+> commission comparison in this paragraph is off by 100×. The vol-point column in the
+> table above is unit-consistent and stands. Real IB NBBO measured since (SPX, n=7,646,
+> 2026-06-25→08-07): median spread **0.072 vp**, near-money **0.066 vp**, wings
+> **0.080 vp** — the 0.06 vp SPY observation here is consistent with that distribution.
 
 - **SPY** — spread (0.06 vp) < edge (0.22 vp), the one tempting case — but killed by
   commissions (\$0.18 edge vs ≥\$0.30 round-trip commission) and by the no-naked-shorts rule:

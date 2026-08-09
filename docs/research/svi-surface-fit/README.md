@@ -8,6 +8,14 @@ that the fitted-vs-marked residual is a trustworthy mispricing signal?
 > signal) yet the realizable, after-cost edge is ~\$0.18/contract — smaller than one
 > option commission. A market-maker's edge, not a taker's. This gate is a green light to
 > *understand* the surface, not to build a trade.
+>
+> **2026-08-08 — verdict upheld, reasoning replaced.** The "\$0.18/contract" figure above
+> is wrong by 100× (per-share vega compared against a per-contract commission; correct
+> value \$18.08). See [`net-of-cost-verdict.md`](./net-of-cost-verdict.md), which builds
+> the actual defined-risk vertical over 43,261 trades: the trade dies *before* the cost
+> line — the faithful structure loses money gross at zero assumed spread, and the pairing
+> variant that appears profitable earns it from delta, not from vol. Costs were never the
+> binding constraint. The fit-feasibility findings on this page are unaffected.
 
 **Verdict: PASS (liquid names) / gate on liquidity.** On the six liquid underliers the
 raw-SVI fit is sub-half-a-vol-point (RMSE p50 **0.47**, p90 **0.81**, max **1.02** vol

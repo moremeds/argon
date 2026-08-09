@@ -7,6 +7,42 @@ version in lockstep (enforced by `scripts/release/version_sync_check.py`).
 
 ## [Unreleased]
 
+### Added
+
+- **SVI residual net-of-cost verdict — the trade dies _before_ the cost line, not at
+  it (research).** `residual-edge-test.md` (#219) closed the surface-mispricing question
+  with "~\$0.18/contract, smaller than one commission" — a **100× unit error**: a
+  per-share vega multiplied by a vol-point edge, then compared against a _per-contract_
+  commission. Correct figure is **\$18.08**. Confirmed both by reproducing their
+  arithmetic and by reading the grid's actual `call_vega` for the same SPY contract
+  (0.8372). The verdict was right by accident, which is worth nothing — it would have
+  flipped the moment anyone re-ran the sum.
+  `scripts/research/svi_residual_net_of_cost.py` builds the position the original test
+  never built: a defined-risk vertical, two hedge-selection variants, **43,261 trades**
+  over 6 liquid names, 2025-12-26 → 2026-08-07, zero UW/IB calls. The faithful
+  "fade-the-mispricing" structure is **negative gross in 8 of 9 configs at zero assumed
+  spread** (hit rate 0.41–0.45) — no cost assumption clears it. The residual-paired
+  variant looks profitable (+\$52.49/spread) but its **vol-only component is −\$50.76**;
+  the profit is delta, harvested from median-width-20 spreads over a rising tape.
+  Restricted to _credit_ spreads where theta is a tailwind it is still −\$15.30
+  (n=13,056), so it is convergence failing, not decay. Verdict **unchanged — do not build
+  the residual→signal layer** — but its reasoning is replaced: costs were never the
+  binding constraint.
+  `scripts/research/svi_residual_spread_anchor.py` measures the real spread from banked
+  IB NBBO (`vrp_macro_entry_quote`): SPX median **0.072 vol pts**, near-money 0.066 —
+  confirming the original test's 0.06 vp figure. Its vol-point work was sound; only the
+  dollar paragraph was wrong. Historical per-strike spreads are otherwise unrecoverable
+  (the grid carries no bid/ask, UW 403s past ~30 days), which is why the deliverable is a
+  break-even curve rather than a point Sharpe.
+  `CONTRACT_MULTIPLIER = 100` is now a named constant pinned by test, alongside a
+  regression test for the capital-normalization bug found mid-build (normalizing by
+  `max_loss` let a cents-sized debit spread post a four-figure return and invert Sharpe
+  against its own dollar P&L). Audited for blast radius: the shipped VRP modules
+  (`vrp_capital_account.py`, `vrp_robustness.py`) already apply the multiplier correctly
+  — the error never left the research doc. Docs:
+  `docs/research/svi-surface-fit/net-of-cost-verdict.md`, with correction annotations on
+  `residual-edge-test.md` and `README.md`.
+
 ## [0.11.1] — 2026-08-02
 
 
