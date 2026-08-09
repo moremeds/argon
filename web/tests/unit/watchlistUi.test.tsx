@@ -250,38 +250,35 @@ describe("QueueProgress", () => {
 });
 
 describe("AddTickerDialog", () => {
-  it("uses the current dashboard sector grouping in the sector menu", () => {
+  // The dialog is now prop-driven: the chain list comes from
+  // /api/watchlist/chains via the page, not from a hardcoded module.
+  const CHAINS = [
+    { layer: "IDX", layer_name: "Index & Macro", focus: "Index & Macro", chain: "Beta", count: 4 },
+    { layer: "X", layer_name: "Cross-cutting", focus: "AI", chain: "M7", count: 7 },
+    { layer: "L2", layer_name: "Cloud & Data Platform", focus: "AI", chain: "AI-Cloud/NeoCloud", count: 11 },
+    { layer: "L3", layer_name: "Datacenter Infrastructure", focus: "AI", chain: "Power/Electrical", count: 2 },
+    { layer: "DEF", layer_name: "Defensive", focus: "Defensive", chain: "Healthcare", count: 7 },
+  ];
+
+  it("groups the sector menu by layer from the served chain list", () => {
     installDialogPolyfill();
-    render(<AddTickerDialog />);
+    render(<AddTickerDialog chains={CHAINS} />);
 
     fireEvent.click(screen.getByRole("button", { name: /\+ ticker/i }));
-
     expect(screen.queryByRole("combobox")).toBeNull();
-    expect(screen.getByRole("button", { name: /sector beta/i })).not.toBeNull();
 
-    fireEvent.click(screen.getByRole("button", { name: /sector beta/i }));
+    fireEvent.click(screen.getByRole("button", { name: /sector/i }));
 
-    expect(screen.getByText("Index")).not.toBeNull();
-    // The old single "AI/Tech" bucket is now the five AI layers, so the
-    // dialog inherits the finer grouping for free.
-    expect(screen.getByText("Chip")).not.toBeNull();
-    expect(screen.getByText("Cloud")).not.toBeNull();
-    expect(screen.getByText("DC")).not.toBeNull();
-    expect(screen.getByText("App")).not.toBeNull();
-    expect(screen.getByText("Thematic")).not.toBeNull();
-    expect(screen.getByText("Defensive")).not.toBeNull();
+    // Headings are layer names, and options are chain names.
+    expect(screen.getByText("Index & Macro")).not.toBeNull();
+    expect(screen.getByText("Cloud & Data Platform")).not.toBeNull();
     expect(screen.getByRole("option", { name: "Beta" })).not.toBeNull();
-    expect(screen.getByRole("option", { name: "M7" })).not.toBeNull();
-    expect(screen.getByRole("option", { name: "NeoCloud" })).not.toBeNull();
-    expect(screen.getByRole("option", { name: "Power" })).not.toBeNull();
-    expect(screen.getByRole("option", { name: "Healthcare" })).not.toBeNull();
+    expect(screen.getByRole("option", { name: "AI-Cloud/NeoCloud" })).not.toBeNull();
     expect(screen.queryByRole("option", { name: "Technology" })).toBeNull();
-    expect(screen.queryByRole("option", { name: "All" })).toBeNull();
 
-    fireEvent.click(screen.getByRole("option", { name: "Power" }));
-
+    fireEvent.click(screen.getByRole("option", { name: "Power/Electrical" }));
     expect(
-      screen.getByRole("button", { name: /sector power/i }),
+      screen.getByRole("button", { name: /power\/electrical/i }),
     ).not.toBeNull();
     expect(screen.queryByRole("listbox")).toBeNull();
   });

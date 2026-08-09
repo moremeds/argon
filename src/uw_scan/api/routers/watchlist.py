@@ -16,6 +16,8 @@ from uw_scan.api.schemas import (
     SetupBlock,
     SkewBlock,
     WatchlistCard,
+    WatchlistChainInfo,
+    WatchlistChainsResponse,
     WatchlistMutation,
     WatchlistPatch,
     WatchlistResponse,
@@ -24,11 +26,15 @@ from uw_scan.api.schemas import (
 )
 from uw_scan.config import Settings
 from uw_scan.storage.repository import Repository, WatchlistCardRow
+from uw_scan.storage.watchlist_chain import WatchlistChainRepository
+from uw_scan.watchlist_taxonomy import LAYERS
 
 router = APIRouter()
 
 
-def _card_to_response(row: WatchlistCardRow) -> WatchlistCard:
+def _card_to_response(
+    row: WatchlistCardRow, chains: list[str] | None = None
+) -> WatchlistCard:
     """Map a joined watchlist_card + watchlist row to the API shape."""
     queue = None
     if row.active_job_id is not None:
@@ -42,6 +48,7 @@ def _card_to_response(row: WatchlistCardRow) -> WatchlistCard:
     return WatchlistCard(
         ticker=row.ticker,
         sector=row.sector,
+        chains=chains or [],
         pinned=row.pinned,
         hot=bool(row.hot),
         sort_rank=row.sort_rank,
@@ -83,6 +90,11 @@ def _card_to_response(row: WatchlistCardRow) -> WatchlistCard:
 @router.get("/watchlist", response_model=WatchlistResponse)
 def get_watchlist(
     sector: str | None = Query(None),
+    chain: str | None = Query(
+        None,
+        description="Industry chain (uw_scan.watchlist_chain). Selects on "
+        "many-to-many membership, so a ticker in several chains matches each.",
+    ),
     setup: str | None = Query(
         None,
         description="e.g. 'C-bull', 'C-bear', 'F-MULTI', 'NEUTRAL'",
@@ -92,6 +104,11 @@ def get_watchlist(
     settings: Settings = Depends(get_settings),
 ) -> WatchlistResponse:
     rows, queue = repo.list_watchlist_cards_with_queue_summary()
+    # One query for the whole payload; per-card lookups would be ~170 round
+    # trips to render a single dashboard.
+    chains_by_ticker = WatchlistChainRepository(
+        repo.conn, schema=repo._schema
+    ).chains_by_ticker()
     cutoff = (
         datetime.now(timezone.utc) - timedelta(minutes=fresh_within_minutes)
         if fresh_within_minutes
@@ -112,6 +129,8 @@ def get_watchlist(
     for r in rows:
         if sector and r.sector != sector:
             continue
+        if chain and chain not in chains_by_ticker.get(r.ticker, ()):
+            continue
         # `scanned_at` is None for tickers that haven't been scanned yet
         # (LEFT JOIN from watchlist). A fresh-within filter naturally
         # excludes them; an unfiltered request keeps them as placeholders.
@@ -126,7 +145,7 @@ def get_watchlist(
                     continue
                 if setup_dir and r.setup_direction != setup_dir:
                     continue
-        out.append(_card_to_response(r))
+        out.append(_card_to_response(r, chains_by_ticker.get(r.ticker)))
 
     scanned_times = [c.scanned_at for c in out if c.scanned_at is not None]
     # Hot-slots meter reflects ALL flagged tickers (pre sector/setup filter) so
@@ -185,6 +204,34 @@ def get_watchlist_spots(
                 spot_source=source,
             )
             for (ticker, spot, quoted_at, source) in repo.list_watchlist_spots()
+        ]
+    )
+
+
+@router.get("/watchlist/chains", response_model=WatchlistChainsResponse)
+def get_watchlist_chains(
+    repo: Repository = Depends(get_repo),
+) -> WatchlistChainsResponse:
+    """The filter rail: every chain, its layer, and live member count.
+
+    Declared order is preserved from the taxonomy module — the rail leads with
+    Index & Macro and M7 deliberately, so alphabetising here would silently
+    undo that.
+    """
+    counts = WatchlistChainRepository(
+        repo.conn, schema=repo._schema
+    ).counts_by_chain()
+    return WatchlistChainsResponse(
+        chains=[
+            WatchlistChainInfo(
+                layer=layer.key,
+                layer_name=layer.name,
+                focus=layer.focus,
+                chain=chain,
+                count=counts.get(chain, 0),
+            )
+            for layer in LAYERS
+            for chain in layer.chains
         ]
     )
 

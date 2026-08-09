@@ -122,6 +122,30 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/watchlist/chains": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Get Watchlist Chains
+         * @description The filter rail: every chain, its layer, and live member count.
+         *
+         *     Declared order is preserved from the taxonomy module — the rail leads with
+         *     Index & Macro and M7 deliberately, so alphabetising here would silently
+         *     undo that.
+         */
+        get: operations["get_watchlist_chains_api_watchlist_chains_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/watchlist/{ticker}": {
         parameters: {
             query?: never;
@@ -9757,6 +9781,8 @@ export interface components {
             ticker: string;
             /** Sector */
             sector: string;
+            /** Chains */
+            chains?: string[];
             /** Pinned */
             pinned: boolean;
             /**
@@ -9790,6 +9816,35 @@ export interface components {
             skew: components["schemas"]["SkewBlock"];
             positioning: components["schemas"]["PositioningBlock"];
             queue?: components["schemas"]["QueueStatus"] | null;
+        };
+        /**
+         * WatchlistChainInfo
+         * @description One row of the filter rail, served rather than duplicated in TypeScript.
+         *
+         *     The taxonomy lives in `uw_scan.watchlist_taxonomy`; hand-copying 38 chains
+         *     into the frontend would reintroduce exactly the drift that module exists to
+         *     prevent. `count` is live membership, so the UI can hide a chain that would
+         *     filter to an empty grid instead of guessing.
+         */
+        WatchlistChainInfo: {
+            /** Layer */
+            layer: string;
+            /** Layer Name */
+            layer_name: string;
+            /** Focus */
+            focus: string;
+            /** Chain */
+            chain: string;
+            /**
+             * Count
+             * @default 0
+             */
+            count: number;
+        };
+        /** WatchlistChainsResponse */
+        WatchlistChainsResponse: {
+            /** Chains */
+            chains?: components["schemas"]["WatchlistChainInfo"][];
         };
         /** WatchlistMutation */
         WatchlistMutation: {
@@ -10051,6 +10106,8 @@ export interface operations {
         parameters: {
             query?: {
                 sector?: string | null;
+                /** @description Industry chain (uw_scan.watchlist_chain). Selects on many-to-many membership, so a ticker in several chains matches each. */
+                chain?: string | null;
                 /** @description e.g. 'C-bull', 'C-bear', 'F-MULTI', 'NEUTRAL' */
                 setup?: string | null;
                 fresh_within_minutes?: number | null;
@@ -10152,6 +10209,26 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["WatchlistSpotsResponse"];
+                };
+            };
+        };
+    };
+    get_watchlist_chains_api_watchlist_chains_get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["WatchlistChainsResponse"];
                 };
             };
         };

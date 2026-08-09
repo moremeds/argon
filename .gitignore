@@ -44,3 +44,6 @@ ohlc_cache.pkl
 
 # setuptools build tree (uv build / python -m build)
 build/
+
+# graphify knowledge-graph output — generated, machine-local
+graphify-out/

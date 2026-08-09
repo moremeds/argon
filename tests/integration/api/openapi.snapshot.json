@@ -23728,6 +23728,13 @@
             ],
             "title": "Aum"
           },
+          "chains": {
+            "items": {
+              "type": "string"
+            },
+            "title": "Chains",
+            "type": "array"
+          },
           "gamma": {
             "$ref": "#/components/schemas/GammaBlock"
           },
@@ -23870,6 +23877,53 @@
           "positioning"
         ],
         "title": "WatchlistCard",
+        "type": "object"
+      },
+      "WatchlistChainInfo": {
+        "description": "One row of the filter rail, served rather than duplicated in TypeScript.\n\nThe taxonomy lives in `uw_scan.watchlist_taxonomy`; hand-copying 38 chains\ninto the frontend would reintroduce exactly the drift that module exists to\nprevent. `count` is live membership, so the UI can hide a chain that would\nfilter to an empty grid instead of guessing.",
+        "properties": {
+          "chain": {
+            "title": "Chain",
+            "type": "string"
+          },
+          "count": {
+            "default": 0,
+            "title": "Count",
+            "type": "integer"
+          },
+          "focus": {
+            "title": "Focus",
+            "type": "string"
+          },
+          "layer": {
+            "title": "Layer",
+            "type": "string"
+          },
+          "layer_name": {
+            "title": "Layer Name",
+            "type": "string"
+          }
+        },
+        "required": [
+          "layer",
+          "layer_name",
+          "focus",
+          "chain"
+        ],
+        "title": "WatchlistChainInfo",
+        "type": "object"
+      },
+      "WatchlistChainsResponse": {
+        "properties": {
+          "chains": {
+            "items": {
+              "$ref": "#/components/schemas/WatchlistChainInfo"
+            },
+            "title": "Chains",
+            "type": "array"
+          }
+        },
+        "title": "WatchlistChainsResponse",
         "type": "object"
       },
       "WatchlistMutation": {
@@ -24363,7 +24417,7 @@
   },
   "info": {
     "title": "UW Watchlist API",
-    "version": "0.11.1"
+    "version": "0.11.3"
   },
   "openapi": "3.1.0",
   "paths": {
@@ -28133,6 +28187,24 @@
             }
           },
           {
+            "description": "Industry chain (uw_scan.watchlist_chain). Selects on many-to-many membership, so a ticker in several chains matches each.",
+            "in": "query",
+            "name": "chain",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "description": "Industry chain (uw_scan.watchlist_chain). Selects on many-to-many membership, so a ticker in several chains matches each.",
+              "title": "Chain"
+            }
+          },
+          {
             "description": "e.g. 'C-bull', 'C-bear', 'F-MULTI', 'NEUTRAL'",
             "in": "query",
             "name": "setup",
@@ -28232,6 +28304,28 @@
           }
         },
         "summary": "Post Watchlist",
+        "tags": [
+          "watchlist"
+        ]
+      }
+    },
+    "/api/watchlist/chains": {
+      "get": {
+        "description": "The filter rail: every chain, its layer, and live member count.\n\nDeclared order is preserved from the taxonomy module \u2014 the rail leads with\nIndex & Macro and M7 deliberately, so alphabetising here would silently\nundo that.",
+        "operationId": "get_watchlist_chains_api_watchlist_chains_get",
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/WatchlistChainsResponse"
+                }
+              }
+            },
+            "description": "Successful Response"
+          }
+        },
+        "summary": "Get Watchlist Chains",
         "tags": [
           "watchlist"
         ]

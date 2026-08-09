@@ -28,6 +28,9 @@ Reproduce:
 from __future__ import annotations
 
 import argparse
+import contextlib
+import socket
+import subprocess
 import sys
 import time
 from dataclasses import dataclass
@@ -36,9 +39,15 @@ import psycopg
 
 SCHEMA = "uw_scan"
 
+# The mini's Postgres requires a password over the network but trusts local
+# connections, so we forward a port over SSH and connect through it. The
+# credential never leaves the mini and nothing lands in ~/.pgpass here.
+SSH_HOST = "macmini"  # ~/.ssh/config: moremeds@100.66.147.98
+TUNNEL_PORT = 15432
+
 SRC = {
-    "host": "100.66.147.98",
-    "port": 5432,
+    "host": "127.0.0.1",
+    "port": TUNNEL_PORT,
     "dbname": "option_wizard",
     "user": "argon_app",
 }
@@ -47,7 +56,63 @@ DST = {
     "port": 5432,
     "dbname": "option_wizard_local",
     "user": "chenxi",
+    # Startup option, not a SET: a SET inside a transaction is reverted by
+    # the per-table rollback, silently re-enabling FK checks mid-run.
+    "options": "-c session_replication_role=replica",
 }
+
+
+@contextlib.contextmanager
+def ssh_tunnel():
+    """Forward the mini's Postgres to TUNNEL_PORT for the life of the sync.
+
+    ExitOnForwardFailure matters: without it ssh reports success while the
+    forward silently failed, and the sync would then connect to whatever else
+    happens to be on that port.
+    """
+    # Pre-flight: if something already listens here, ssh fails to bind but the
+    # connect-poll below would happily succeed against THAT tunnel — pointing the
+    # sync at an unknown database. Refuse instead of silently inheriting it.
+    with socket.socket() as probe:
+        if probe.connect_ex(("127.0.0.1", TUNNEL_PORT)) == 0:
+            sys.exit(
+                f"port {TUNNEL_PORT} is already in use — a stale tunnel is likely "
+                f"still running. Kill it, then re-run:\n"
+                f"  lsof -ti :{TUNNEL_PORT} | xargs kill"
+            )
+
+    proc = subprocess.Popen(
+        [
+            "ssh",
+            "-N",
+            "-o",
+            "ExitOnForwardFailure=yes",
+            "-o",
+            "BatchMode=yes",
+            "-L",
+            f"{TUNNEL_PORT}:localhost:5432",
+            SSH_HOST,
+        ]
+    )
+    try:
+        for _ in range(40):  # ~10s for the forward to come up
+            if proc.poll() is not None:
+                sys.exit(
+                    f"ssh tunnel to {SSH_HOST} exited early (rc={proc.returncode})"
+                )
+            try:
+                psycopg.connect(**SRC, connect_timeout=2).close()
+                break
+            except psycopg.OperationalError:
+                time.sleep(0.25)
+        else:
+            sys.exit(f"ssh tunnel to {SSH_HOST} never became usable")
+        yield
+    finally:
+        proc.terminate()
+        with contextlib.suppress(subprocess.TimeoutExpired):
+            proc.wait(timeout=5)
+
 
 # raw_payloads is 61% of a 30-day slice (5.1 GB of 8.4 GB) and nothing in the
 # dashboard reads it — it is the raw UW response archive kept for replay/audit.
@@ -60,6 +125,7 @@ DEFAULT_EXCLUDE = {"raw_payloads"}
 # dates; fall back to write time only when there is nothing better.
 DATE_COL_PREFERENCE = (
     "market_date",
+    "date",
     "trade_date",
     "snapshot_date",
     "data_date",
@@ -129,23 +195,26 @@ def est_rows(conn: psycopg.Connection, table: str) -> int:
 
 
 def cutoff_date(conn: psycopg.Connection, days: int) -> str:
-    """The Nth most recent distinct market_date — real trading days, not calendar.
+    """The Nth most recent distinct trading day.
 
-    Counting calendar days would silently under-deliver across holidays; asking
-    the data which days exist is exact and costs one indexed scan.
+    Counting calendar days would silently under-deliver across holidays, so we
+    ask the data which days exist. The source is vol_index_daily rather than
+    option_surface_grid_daily: the grid has ~17.8M rows and no index that
+    serves DISTINCT, so `SELECT DISTINCT market_date ... LIMIT 20` full-scans
+    and sorts it — measured 29.8s for a bare max() and worse for the DISTINCT.
+    vol_index_daily carries the same trading calendar in 0.5s and returns an
+    identical cutoff.
     """
     with conn.cursor() as cur:
         cur.execute(
-            f"SELECT DISTINCT market_date FROM {SCHEMA}.option_surface_grid_daily "
-            "ORDER BY market_date DESC LIMIT %s",
+            f"SELECT min(d) FROM (SELECT DISTINCT trade_date AS d "
+            f"FROM {SCHEMA}.vol_index_daily ORDER BY trade_date DESC LIMIT %s) x",
             (days,),
         )
-        rows = cur.fetchall()
-    if not rows:
-        sys.exit(
-            "could not determine cutoff: option_surface_grid_daily is empty on the source"
-        )
-    return rows[-1][0].isoformat()
+        row = cur.fetchone()
+    if not row or row[0] is None:
+        sys.exit("could not determine cutoff: vol_index_daily is empty on the source")
+    return row[0].isoformat()
 
 
 def build_plans(src_cols, dst_cols, exclude: set[str]) -> tuple[list[Plan], list[str]]:
@@ -192,6 +261,38 @@ def sync_table(
         where = ""
         mode = "full"
 
+    # Stage into a temp table, then INSERT ... ON CONFLICT DO NOTHING.
+    #
+    # Copying straight into the target looks cheaper but is wrong: tables with a
+    # surrogate `id` primary key (backtest_sweep_results, jobs, scan_runs) hold
+    # LOCAL rows whose ids collide with the mini's, and the window-DELETE cannot
+    # clear them because they sit outside the window. That is a UniqueViolation
+    # mid-COPY, which then aborts the shared source transaction and takes every
+    # remaining table down with it. Staging costs one extra local write and makes
+    # the whole run insensitive to id collisions.
+    tmp = f"sync_stage_{plan.table}"[:63]
+    src_sql = f"COPY (SELECT {collist} FROM {SCHEMA}.{plan.table} {where}) TO STDOUT (FORMAT binary)"
+
+    with dst.cursor() as dcur:
+        dcur.execute(f'DROP TABLE IF EXISTS pg_temp."{tmp}"')
+        # `AS SELECT ... WITH NO DATA` clones the column types without dragging
+        # NOT NULL/defaults across — a staging table must accept exactly the
+        # subset of columns we copy, nothing more.
+        dcur.execute(
+            f'CREATE TEMP TABLE "{tmp}" AS '
+            f"SELECT {collist} FROM {SCHEMA}.{plan.table} WITH NO DATA"
+        )
+
+    with src.cursor() as scur, dst.cursor() as dcur:
+        with scur.copy(
+            src_sql, {"cutoff": cutoff} if plan.date_col else None
+        ) as reader:
+            with dcur.copy(
+                f'COPY "{tmp}" ({collist}) FROM STDIN (FORMAT binary)'
+            ) as writer:
+                for block in reader:
+                    writer.write(block)
+
     with dst.cursor() as dcur:
         if plan.date_col:
             dcur.execute(
@@ -199,20 +300,13 @@ def sync_table(
                 (cutoff,),
             )
         else:
-            dcur.execute(f"TRUNCATE {SCHEMA}.{plan.table}")
-
-    src_sql = f"COPY (SELECT {collist} FROM {SCHEMA}.{plan.table} {where}) TO STDOUT (FORMAT binary)"
-    dst_sql = f"COPY {SCHEMA}.{plan.table} ({collist}) FROM STDIN (FORMAT binary)"
-
-    rows = 0
-    with src.cursor() as scur, dst.cursor() as dcur:
-        with scur.copy(
-            src_sql, {"cutoff": cutoff} if plan.date_col else None
-        ) as reader:
-            with dcur.copy(dst_sql) as writer:
-                for block in reader:
-                    writer.write(block)
+            dcur.execute(f"DELETE FROM {SCHEMA}.{plan.table}")
+        dcur.execute(
+            f"INSERT INTO {SCHEMA}.{plan.table} ({collist}) "
+            f'SELECT {collist} FROM "{tmp}" ON CONFLICT DO NOTHING'
+        )
         rows = dcur.rowcount if dcur.rowcount and dcur.rowcount > 0 else 0
+        dcur.execute(f'DROP TABLE IF EXISTS pg_temp."{tmp}"')
     return (rows, mode)
 
 
@@ -235,10 +329,12 @@ def main() -> int:
     guard_destination()
     exclude = set() if args.include_raw_payloads else set(DEFAULT_EXCLUDE)
 
-    print(f"source: {SRC['user']}@{SRC['host']}/{SRC['dbname']} (read-only)")
+    print(
+        f"source: {SRC['user']}@{SSH_HOST}/{SRC['dbname']} via ssh tunnel (read-only)"
+    )
     print(f"dest:   {DST['user']}@{DST['host']}/{DST['dbname']}")
 
-    with psycopg.connect(**SRC) as src, psycopg.connect(**DST) as dst:
+    with ssh_tunnel(), psycopg.connect(**SRC) as src, psycopg.connect(**DST) as dst:
         src.read_only = True  # belt-and-braces: the mini must never be written
         cutoff = cutoff_date(src, args.days)
         print(f"cutoff: {cutoff}  ({args.days} most recent market days)\n")
@@ -264,6 +360,8 @@ def main() -> int:
                 rows, mode = sync_table(src, dst, p, cutoff, src_cols, dst_cols)
             except Exception as exc:  # noqa: BLE001 — one bad table must not abort the sync
                 dst.rollback()
+                src.rollback()  # the failed COPY aborted the SOURCE txn too;
+                # without this, every remaining table dies with InFailedSqlTransaction
                 print(f"  {p.table:<40} FAILED: {exc!r}")
                 continue
             dst.commit()
