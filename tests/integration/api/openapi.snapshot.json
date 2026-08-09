@@ -8537,6 +8537,295 @@
         "title": "JobStatus",
         "type": "object"
       },
+      "MagnetCandle": {
+        "properties": {
+          "close": {
+            "title": "Close",
+            "type": "number"
+          },
+          "date": {
+            "format": "date",
+            "title": "Date",
+            "type": "string"
+          },
+          "high": {
+            "title": "High",
+            "type": "number"
+          },
+          "low": {
+            "title": "Low",
+            "type": "number"
+          },
+          "open": {
+            "title": "Open",
+            "type": "number"
+          },
+          "volume": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Volume"
+          }
+        },
+        "required": [
+          "date",
+          "open",
+          "high",
+          "low",
+          "close",
+          "volume"
+        ],
+        "title": "MagnetCandle",
+        "type": "object"
+      },
+      "MagnetConeBand": {
+        "properties": {
+          "band_sigma": {
+            "title": "Band Sigma",
+            "type": "number"
+          },
+          "horizon": {
+            "title": "Horizon",
+            "type": "integer"
+          },
+          "lower": {
+            "title": "Lower",
+            "type": "number"
+          },
+          "measured_ci_hi": {
+            "title": "Measured Ci Hi",
+            "type": "number"
+          },
+          "measured_ci_lo": {
+            "title": "Measured Ci Lo",
+            "type": "number"
+          },
+          "measured_confidence": {
+            "title": "Measured Confidence",
+            "type": "number"
+          },
+          "measured_n_dates": {
+            "title": "Measured N Dates",
+            "type": "integer"
+          },
+          "upper": {
+            "title": "Upper",
+            "type": "number"
+          }
+        },
+        "required": [
+          "horizon",
+          "band_sigma",
+          "measured_confidence",
+          "measured_ci_lo",
+          "measured_ci_hi",
+          "measured_n_dates",
+          "upper",
+          "lower"
+        ],
+        "title": "MagnetConeBand",
+        "type": "object"
+      },
+      "MagnetIvPoint": {
+        "description": "One captured ATM-30d IV reading. Sessions with no captured surface are\nabsent from the series rather than carried forward \u2014 see the route.",
+        "properties": {
+          "date": {
+            "format": "date",
+            "title": "Date",
+            "type": "string"
+          },
+          "iv": {
+            "title": "Iv",
+            "type": "number"
+          }
+        },
+        "required": [
+          "date",
+          "iv"
+        ],
+        "title": "MagnetIvPoint",
+        "type": "object"
+      },
+      "MagnetLevels": {
+        "properties": {
+          "down": {
+            "title": "Down",
+            "type": "number"
+          },
+          "last": {
+            "title": "Last",
+            "type": "number"
+          },
+          "leg_state": {
+            "title": "Leg State",
+            "type": "string"
+          },
+          "pivot_a": {
+            "$ref": "#/components/schemas/MagnetPivot"
+          },
+          "pivot_b": {
+            "$ref": "#/components/schemas/MagnetPivot"
+          },
+          "resistance": {
+            "title": "Resistance",
+            "type": "number"
+          },
+          "sma20": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Sma20"
+          },
+          "stretch": {
+            "title": "Stretch",
+            "type": "number"
+          },
+          "support": {
+            "title": "Support",
+            "type": "number"
+          }
+        },
+        "required": [
+          "resistance",
+          "support",
+          "stretch",
+          "down",
+          "sma20",
+          "last",
+          "leg_state",
+          "pivot_a",
+          "pivot_b"
+        ],
+        "title": "MagnetLevels",
+        "type": "object"
+      },
+      "MagnetPivot": {
+        "properties": {
+          "index": {
+            "title": "Index",
+            "type": "integer"
+          },
+          "kind": {
+            "title": "Kind",
+            "type": "string"
+          },
+          "price": {
+            "title": "Price",
+            "type": "number"
+          }
+        },
+        "required": [
+          "index",
+          "kind",
+          "price"
+        ],
+        "title": "MagnetPivot",
+        "type": "object"
+      },
+      "MagnetsResponse": {
+        "properties": {
+          "as_of": {
+            "format": "date",
+            "title": "As Of",
+            "type": "string"
+          },
+          "atm_iv_30d": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Atm Iv 30D"
+          },
+          "atm_iv_30d_chg_5d": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Atm Iv 30D Chg 5D"
+          },
+          "atm_iv_30d_series": {
+            "default": [],
+            "items": {
+              "$ref": "#/components/schemas/MagnetIvPoint"
+            },
+            "title": "Atm Iv 30D Series",
+            "type": "array"
+          },
+          "bands": {
+            "items": {
+              "$ref": "#/components/schemas/MagnetConeBand"
+            },
+            "title": "Bands",
+            "type": "array"
+          },
+          "candles": {
+            "items": {
+              "$ref": "#/components/schemas/MagnetCandle"
+            },
+            "title": "Candles",
+            "type": "array"
+          },
+          "levels": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/MagnetLevels"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "pivots": {
+            "items": {
+              "$ref": "#/components/schemas/MagnetPivot"
+            },
+            "title": "Pivots",
+            "type": "array"
+          },
+          "read": {
+            "items": {
+              "type": "string"
+            },
+            "title": "Read",
+            "type": "array"
+          },
+          "ticker": {
+            "title": "Ticker",
+            "type": "string"
+          }
+        },
+        "required": [
+          "ticker",
+          "as_of",
+          "levels",
+          "bands",
+          "pivots",
+          "read",
+          "candles",
+          "atm_iv_30d",
+          "atm_iv_30d_chg_5d"
+        ],
+        "title": "MagnetsResponse",
+        "type": "object"
+      },
       "MarketAggregates": {
         "description": "Per-ticker aggregate fields sourced from the bulk-screener endpoint.\n\nPopulated by pipeline.run_single_stock alongside the existing per-section\nsub-models. Feeds the watchlist card POSITIONING and SKEW blocks.",
         "properties": {
@@ -24074,7 +24363,7 @@
   },
   "info": {
     "title": "UW Watchlist API",
-    "version": "0.10.18"
+    "version": "0.11.1"
   },
   "openapi": "3.1.0",
   "paths": {
@@ -26909,6 +27198,61 @@
           }
         },
         "summary": "Get Stock History",
+        "tags": [
+          "stock"
+        ]
+      }
+    },
+    "/api/stock/{ticker}/magnets": {
+      "get": {
+        "description": "Magnet levels + options-implied cone. Read-only.\n\nk_atr defaults to 3.0 only because that is the existing last_pivot_index\ndefault \u2014 G1 failed, so no threshold was selected on merit. It stays a query\nparam so the sweep's other rungs stay inspectable from the UI without a\nredeploy; nothing writes it. It is BOUNDED because it is user input at a\ntrust boundary: k_atr <= 0 makes the reversal threshold zero, every bar\nbecomes a pivot, and the response grows to one entry per bar.\n\nUses `repo.conn` + `settings.db_schema`, the pattern this codebase already\nuses when a router needs a raw connection (see `routers/health.py:387`);\nthe magnet_data loaders take a connection, not a Repository.",
+        "operationId": "get_magnets_api_stock__ticker__magnets_get",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "ticker",
+            "required": true,
+            "schema": {
+              "title": "Ticker",
+              "type": "string"
+            }
+          },
+          {
+            "in": "query",
+            "name": "k_atr",
+            "required": false,
+            "schema": {
+              "default": 3.0,
+              "exclusiveMinimum": 0.0,
+              "maximum": 20.0,
+              "title": "K Atr",
+              "type": "number"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MagnetsResponse"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Get Magnets",
         "tags": [
           "stock"
         ]

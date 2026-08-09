@@ -2,7 +2,7 @@ import { defineConfig } from "@playwright/test";
 
 export default defineConfig({
   testDir: "./tests/e2e",
-  testMatch: "technicals-tab.spec.ts",
+  testMatch: /(technicals-tab|magnet-view)\.spec\.ts/,
   timeout: 30_000,
   use: {
     baseURL: "http://127.0.0.1:13001",

@@ -4,8 +4,10 @@ import {
   countRetests,
   findLvnLevels,
   findSrZones,
+  RECENT_BARS,
   type VpBar,
 } from "@/lib/volumeProfile";
+import { binJitter } from "@/lib/lwc/volumeProfile";
 import { SPY_BARS } from "../unit/fixtures/spyBars";
 
 const bars: VpBar[] = SPY_BARS.map((b) => ({
@@ -187,5 +189,47 @@ describe("findLvnLevels", () => {
   it("does not blow up when the reference price is off the profile", () => {
     expect(() => findLvnLevels(profile, 1e9)).not.toThrow();
     expect(() => findLvnLevels(profile, 0)).not.toThrow();
+  });
+});
+
+describe("binJitter", () => {
+  it("is deterministic for a given bin and dot index", () => {
+    expect(binJitter(7, 3)).toBe(binJitter(7, 3));
+  });
+
+  it("differs across bins so the cloud does not look striped", () => {
+    expect(binJitter(7, 3)).not.toBe(binJitter(8, 3));
+  });
+
+  it("differs across dots within a bin", () => {
+    expect(binJitter(7, 3)).not.toBe(binJitter(7, 4));
+  });
+
+  it("stays within the unit interval", () => {
+    for (let b = 0; b < 50; b++)
+      for (let d = 0; d < 10; d++) {
+        expect(binJitter(b, d)).toBeGreaterThanOrEqual(0);
+        expect(binJitter(b, d)).toBeLessThan(1);
+      }
+  });
+});
+
+describe("VpBin.recent", () => {
+  const profile = computeVolumeProfile(bars, 60, 70)!;
+
+  it("never exceeds the bin's own total", () => {
+    for (const b of profile.bins) {
+      expect(b.recent).toBeLessThanOrEqual(b.buy + b.sell + 1e-6);
+    }
+  });
+
+  it("sums to exactly the last RECENT_BARS bars' volume", () => {
+    // The invariant that catches a misaligned second aggregation: if the recent
+    // slice were binned against its own min/max instead of the full window's,
+    // the dots would land in shelves those bars never traded in — invisible
+    // except by eye, but the total would still have to move.
+    const expected = bars.slice(-RECENT_BARS).reduce((a, b) => a + b.volume, 0);
+    const got = profile.bins.reduce((a, b) => a + b.recent, 0);
+    expect(got).toBeCloseTo(expected, 3);
   });
 });

@@ -43,8 +43,75 @@ version in lockstep (enforced by `scripts/release/version_sync_check.py`).
   `docs/research/svi-surface-fit/net-of-cost-verdict.md`, with correction annotations on
   `residual-edge-test.md` and `README.md`.
 
-## [0.11.1] — 2026-08-02
+- **Technicals "Magnet View" sub-tab** — reference-style chart with ZigZag pivots,
+  five magnet levels, and an options-implied cone at 5/10/21d whose bands are
+  labelled with measured (not nominal) confidence **and its 95% interval**. The
+  0.618 extension renders as unlabelled geometry: it was tested against a matched
+  null at five ZigZag thresholds (938 legs at the loosest) and showed no edge, so
+  nothing on the view asserts price will reach it. Three deliberate deviations from
+  the reference: pivot markers are filled arrows (lightweight-charts v5 has no
+  hollow-triangle shape), the decorative scenario fan is replaced by the cone
+  rather than drawn alongside it, and the right-edge divider therefore reads
+  `history ← | → options-implied` rather than naming scenarios that are not drawn.
+  Research: `docs/research/2026-08-08-magnet-cone-calibration/VERDICT.md`.
+- **`dots` render mode for the volume profile** (`lib/lwc/volumeProfile.ts`) — the
+  magnet view's jittered dot cloud, with the last 15 sessions in gold. `VpBin`
+  gains a `recent` field for that subset. The mode defaults to `"bars"`, so the
+  Price view's profile is unchanged. The cloud matches the reference's geometry:
+  it sits in the **right-edge projection zone** beside the cone (translucent, so
+  both read), every row grows **rightward from a flat left base** so the tips fan
+  right, and the ★ POC label sits just past the longest tip. `anchor` therefore
+  chooses only WHERE the band sits, never which way the dots run.
+  A new `edgeGutterPx` (default 0) holds space clear at the anchor edge; the
+  magnet view sets 150 because lightweight-charts pins `createPriceLine({title})`
+  labels INSIDE the pane at its right edge, and without the gutter the tips and
+  the ★ chip render underneath `RESISTANCE`/`SUPPORT` and vanish outright.
+  `widthFrac` is 0.085 for this view — the reference's own proportion; at the
+  previous 0.16 the gutter-shifted band reached back over a month of candles.
+  Jitter is a deterministic sin-hash of (bin, dot) — never `Math.random`, so the
+  cloud does not shimmer on pan or re-render.
+- **Per-tile charts under the magnet view** — VOLUME (direction-coloured bars over
+  a dashed 20d MA), RSI 14 (line over fixed 0–100 with the 30/70 regime zones),
+  MOMENTUM (fast MACD histogram as a signed area to zero, slow 55/89/34 dashed
+  behind it, with a `v %/d · a %/d²` kinematics caption — spec §1.1 layer 6,
+  descriptive only: no ACCEL/DECEL verdict is printed because that would need
+  thresholds the reference never validated), and ATM IV (filled level chart).
+  Hand-rolled SVG; math extracted to `lib/magnetTiles.ts` and unit-tested for the
+  degenerate cases that render as _nothing_ rather than throwing (NaN in an SVG
+  `d`, zero-width domain, `Math.pow` of a negative base).
+- **`MagnetsResponse.atm_iv_30d_series`** — ATM 30d IV per captured session, from
+  the same `atm_iv_at_horizon(curve, 30)` that produces the headline `atm_iv_30d`,
+  so the tile's line and its number cannot disagree. The route now loads 90 grid
+  sessions instead of 6; measured on the dev DB (NVDA) that is 14.2 ms vs 7.0 ms —
+  the chain scan dominates, not the VALUES join the old comment feared. Sessions
+  with no captured surface are **omitted**, never carried forward: a flat segment
+  across a capture gap would read as "IV held steady".
 
+### Changed
+
+- **Magnet view adopts the house panel chrome** — the chart, levels table, and THE
+  READ now sit in `AnalyticalSeriesPanel` frames matching the Price view, with a
+  crosshair OHLC readout in the same format. Candles moved to the shared
+  `--positive`/`--negative` tokens; the five **level** colours stay on the
+  reference palette per spec §5.1, where hue identifies a level's role. The panel
+  subtitle now names the source table and date (`daily_ohlc · YYYY-MM-DD`), which
+  is a stronger disclosure than the bare date it replaces — this sub-tab reads
+  `daily_ohlc` while the rest of the tab reads `technical_daily`, and the two
+  diverge.
+
+### Fixed
+
+- **`history ← | → options-implied` divider now lands on the last bar.** It was a
+  single centred string, so the split fell on the string's midpoint rather than the
+  `|` glyph — 33 px left of the bar, because `history ← ` is 10 characters and
+  ` → options-implied` is 18. It is now a zero-width marker with a caption hung off
+  each edge, so the gap itself is what `timeToCoordinate` positions.
+
+- **Corporate-action and calendar-gap guards for `daily_ohlc`-derived research**
+  (`reports/magnet_data.py`). Unadjusted splits (CRWD 4:1, KORU 20:1) and a ticker
+  reuse (SPCX) were inflating `std(z)` to 1.116 with excess kurtosis 361.
+
+## [0.11.1] — 2026-08-02
 
 ### Fixed
 
@@ -91,6 +158,7 @@ version in lockstep (enforced by `scripts/release/version_sync_check.py`).
     and a dot on the anchor close;
   - the cone bands move off `--accent-vol` purple onto `--positive` teal (chart,
     legend swatches, and mini-cone strip).
+
 ## [0.11.0] — 2026-08-02
 
 ### Added

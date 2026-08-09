@@ -8,6 +8,7 @@ import {
 } from "@/lib/api";
 import { TechnicalsKpiStrip } from "../panels/TechnicalsKpiStrip";
 import { TechnicalsPriceChart } from "../panels/TechnicalsPriceChart";
+import MagnetSubTab from "./technicals/MagnetSubTab";
 import { TechnicalsEmptyState } from "../panels/TechnicalsEmptyState";
 import {
   TechnicalsKinematicsChart,
@@ -313,6 +314,8 @@ export function mergeLiveHead(
   return { ...data, as_of: nextAsOf, series, detail, header };
 }
 
+const SUB_VIEW_KEY = "technicals:view";
+
 export function TechnicalsTab({ ticker }: { ticker: string }) {
   const [state, setState] = useState<State>({
     ticker,
@@ -321,6 +324,27 @@ export function TechnicalsTab({ ticker }: { ticker: string }) {
   });
   const [live, setLive] = useState<TechnicalsLiveResponse | null>(null);
   const [timeframe, setTimeframe] = useState<Timeframe>("1y");
+  const [subView, setSubView] = useState<"chart" | "magnet">(() => {
+    if (typeof window === "undefined") return "chart";
+    // READ is guarded too, not just the write: localStorage access itself throws
+    // when storage is disabled, which would take the whole tab down on mount.
+    // TechnicalsPriceChart.tsx:76 guards both sides for the same reason.
+    try {
+      return localStorage.getItem(SUB_VIEW_KEY) === "magnet"
+        ? "magnet"
+        : "chart";
+    } catch {
+      return "chart";
+    }
+  });
+  const selectSubView = (v: "chart" | "magnet") => {
+    setSubView(v);
+    try {
+      localStorage.setItem(SUB_VIEW_KEY, v);
+    } catch {
+      /* private mode — the toggle still works, it just does not persist */
+    }
+  };
 
   useEffect(() => {
     let cancelled = false;
@@ -453,11 +477,45 @@ export function TechnicalsTab({ ticker }: { ticker: string }) {
       />
       {/* Pinned anchor: timeframe selector sits next to the date; the whole
           stack below re-ranges to it. */}
-      <TechnicalsPriceChart
-        data={view}
-        fullRows={data.series ?? []}
-        control={<TimeframeSelect value={timeframe} onChange={setTimeframe} />}
-      />
+      <>
+        <div
+          data-testid="magnet-view-toggle"
+          style={{
+            display: "flex",
+            gap: 6,
+            fontFamily: "var(--font-mono)",
+            fontSize: 11,
+          }}
+        >
+          {(["chart", "magnet"] as const).map((v) => (
+            <button
+              key={v}
+              onClick={() => selectSubView(v)}
+              style={{
+                padding: "2px 8px",
+                cursor: "pointer",
+                opacity: subView === v ? 1 : 0.5,
+                border: "1px solid rgba(255,255,255,0.15)",
+                background: "transparent",
+                color: "inherit",
+              }}
+            >
+              {v === "chart" ? "PRICE" : "MAGNET VIEW"}
+            </button>
+          ))}
+        </div>
+        {subView === "chart" ? (
+          <TechnicalsPriceChart
+            data={view}
+            fullRows={data.series ?? []}
+            control={
+              <TimeframeSelect value={timeframe} onChange={setTimeframe} />
+            }
+          />
+        ) : (
+          <MagnetSubTab ticker={data.ticker} technicals={data} />
+        )}
+      </>
       {/* Aligned stack: oscillators share the anchor's date axis. Drag any row
           to reorder. MACD is no longer here — it's a sub-pane of the price
           chart above; reconcileOrder drops the stale "macd" id from any saved

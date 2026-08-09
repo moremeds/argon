@@ -326,6 +326,37 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/stock/{ticker}/magnets": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Get Magnets
+         * @description Magnet levels + options-implied cone. Read-only.
+         *
+         *     k_atr defaults to 3.0 only because that is the existing last_pivot_index
+         *     default — G1 failed, so no threshold was selected on merit. It stays a query
+         *     param so the sweep's other rungs stay inspectable from the UI without a
+         *     redeploy; nothing writes it. It is BOUNDED because it is user input at a
+         *     trust boundary: k_atr <= 0 makes the reversal threshold zero, every bar
+         *     becomes a pivot, and the response grows to one entry per bar.
+         *
+         *     Uses `repo.conn` + `settings.db_schema`, the pattern this codebase already
+         *     uses when a router needs a raw connection (see `routers/health.py:387`);
+         *     the magnet_data loaders take a connection, not a Repository.
+         */
+        get: operations["get_magnets_api_stock__ticker__magnets_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/ohlc/{ticker}": {
         parameters: {
             query?: never;
@@ -4460,6 +4491,113 @@ export interface components {
             started_at?: string | null;
             /** Finished At */
             finished_at?: string | null;
+        };
+        /** MagnetCandle */
+        MagnetCandle: {
+            /**
+             * Date
+             * Format: date
+             */
+            date: string;
+            /** Open */
+            open: number;
+            /** High */
+            high: number;
+            /** Low */
+            low: number;
+            /** Close */
+            close: number;
+            /** Volume */
+            volume: number | null;
+        };
+        /** MagnetConeBand */
+        MagnetConeBand: {
+            /** Horizon */
+            horizon: number;
+            /** Band Sigma */
+            band_sigma: number;
+            /** Measured Confidence */
+            measured_confidence: number;
+            /** Measured Ci Lo */
+            measured_ci_lo: number;
+            /** Measured Ci Hi */
+            measured_ci_hi: number;
+            /** Measured N Dates */
+            measured_n_dates: number;
+            /** Upper */
+            upper: number;
+            /** Lower */
+            lower: number;
+        };
+        /**
+         * MagnetIvPoint
+         * @description One captured ATM-30d IV reading. Sessions with no captured surface are
+         *     absent from the series rather than carried forward — see the route.
+         */
+        MagnetIvPoint: {
+            /**
+             * Date
+             * Format: date
+             */
+            date: string;
+            /** Iv */
+            iv: number;
+        };
+        /** MagnetLevels */
+        MagnetLevels: {
+            /** Resistance */
+            resistance: number;
+            /** Support */
+            support: number;
+            /** Stretch */
+            stretch: number;
+            /** Down */
+            down: number;
+            /** Sma20 */
+            sma20: number | null;
+            /** Last */
+            last: number;
+            /** Leg State */
+            leg_state: string;
+            pivot_a: components["schemas"]["MagnetPivot"];
+            pivot_b: components["schemas"]["MagnetPivot"];
+        };
+        /** MagnetPivot */
+        MagnetPivot: {
+            /** Index */
+            index: number;
+            /** Kind */
+            kind: string;
+            /** Price */
+            price: number;
+        };
+        /** MagnetsResponse */
+        MagnetsResponse: {
+            /** Ticker */
+            ticker: string;
+            /**
+             * As Of
+             * Format: date
+             */
+            as_of: string;
+            levels: components["schemas"]["MagnetLevels"] | null;
+            /** Bands */
+            bands: components["schemas"]["MagnetConeBand"][];
+            /** Pivots */
+            pivots: components["schemas"]["MagnetPivot"][];
+            /** Read */
+            read: string[];
+            /** Candles */
+            candles: components["schemas"]["MagnetCandle"][];
+            /** Atm Iv 30D */
+            atm_iv_30d: number | null;
+            /** Atm Iv 30D Chg 5D */
+            atm_iv_30d_chg_5d: number | null;
+            /**
+             * Atm Iv 30D Series
+             * @default []
+             */
+            atm_iv_30d_series: components["schemas"]["MagnetIvPoint"][];
         };
         /**
          * MarketAggregates
@@ -10386,6 +10524,39 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["ChanlunLifecycleResponse"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    get_magnets_api_stock__ticker__magnets_get: {
+        parameters: {
+            query?: {
+                k_atr?: number;
+            };
+            header?: never;
+            path: {
+                ticker: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["MagnetsResponse"];
                 };
             };
             /** @description Validation Error */
