@@ -47,12 +47,19 @@ export default function MagnetChart({ data }: { data: MagnetsResponse }) {
       timeScale: { borderVisible: false, rightOffset: 24 },
     });
 
+    // Every series' automatic last-value axis label is suppressed throughout
+    // this chart. The five level price-lines own the right axis; leaving the
+    // defaults on adds a bare SMA20 tag and prints the last close TWICE more
+    // (candles + ZigZag), which collides with the explicit LAST label and puts
+    // three unlabelled numbers on an axis whose whole job is naming levels.
     const price = chart.addSeries(CandlestickSeries, {
       upColor: "#4ade80",
       downColor: "#fb7185",
       borderVisible: false,
       wickUpColor: "#4ade80",
       wickDownColor: "#fb7185",
+      lastValueVisible: false,
+      priceLineVisible: false,
     });
     price.setData(
       data.candles.map((c) => ({
@@ -65,7 +72,12 @@ export default function MagnetChart({ data }: { data: MagnetsResponse }) {
     );
 
     const closes = data.candles.map((c) => c.close);
-    const ma = chart.addSeries(LineSeries, { color: "#c4b5fd", lineWidth: 2 });
+    const ma = chart.addSeries(LineSeries, {
+      color: "#c4b5fd",
+      lineWidth: 2,
+      lastValueVisible: false,
+      priceLineVisible: false,
+    });
     ma.setData(
       sma(closes, 20)
         .map((v, i) =>
@@ -82,6 +94,8 @@ export default function MagnetChart({ data }: { data: MagnetsResponse }) {
         lineWidth: 2,
         lineStyle: LineStyle.Dashed,
         crosshairMarkerVisible: false,
+        lastValueVisible: false,
+        priceLineVisible: false,
       });
       const last = data.candles[data.candles.length - 1]!;
       zig.setData([
