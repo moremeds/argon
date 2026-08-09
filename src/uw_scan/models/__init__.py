@@ -69,6 +69,7 @@ from .greeks import (
 from .magnets import (
     MagnetCandle,
     MagnetConeBand,
+    MagnetIvPoint,
     MagnetLevels,
     MagnetPivot,
     MagnetsResponse,
@@ -324,6 +325,7 @@ __all__ = [
     "SetupClassification",
     "MagnetCandle",
     "MagnetConeBand",
+    "MagnetIvPoint",
     "MagnetLevels",
     "MagnetPivot",
     "MagnetsResponse",

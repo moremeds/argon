@@ -2,17 +2,8 @@
 
 export default function MagnetRead({ read }: { read: string[] }) {
   return (
+    // No heading here — the enclosing AnalyticalSeriesPanel titles this block.
     <div style={{ fontFamily: "var(--font-mono)", fontSize: 12 }}>
-      <div
-        style={{
-          fontWeight: 700,
-          letterSpacing: 1,
-          marginBottom: 6,
-          opacity: 0.8,
-        }}
-      >
-        THE READ
-      </div>
       <ul style={{ margin: 0, paddingLeft: 16, lineHeight: 1.6 }}>
         {read.map((line) => (
           <li key={line}>{line}</li>

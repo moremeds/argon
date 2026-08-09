@@ -8631,6 +8631,26 @@
         "title": "MagnetConeBand",
         "type": "object"
       },
+      "MagnetIvPoint": {
+        "description": "One captured ATM-30d IV reading. Sessions with no captured surface are\nabsent from the series rather than carried forward \u2014 see the route.",
+        "properties": {
+          "date": {
+            "format": "date",
+            "title": "Date",
+            "type": "string"
+          },
+          "iv": {
+            "title": "Iv",
+            "type": "number"
+          }
+        },
+        "required": [
+          "date",
+          "iv"
+        ],
+        "title": "MagnetIvPoint",
+        "type": "object"
+      },
       "MagnetLevels": {
         "properties": {
           "down": {
@@ -8740,6 +8760,14 @@
               }
             ],
             "title": "Atm Iv 30D Chg 5D"
+          },
+          "atm_iv_30d_series": {
+            "default": [],
+            "items": {
+              "$ref": "#/components/schemas/MagnetIvPoint"
+            },
+            "title": "Atm Iv 30D Series",
+            "type": "array"
           },
           "bands": {
             "items": {

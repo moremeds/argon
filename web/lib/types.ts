@@ -4529,6 +4529,20 @@ export interface components {
             /** Lower */
             lower: number;
         };
+        /**
+         * MagnetIvPoint
+         * @description One captured ATM-30d IV reading. Sessions with no captured surface are
+         *     absent from the series rather than carried forward — see the route.
+         */
+        MagnetIvPoint: {
+            /**
+             * Date
+             * Format: date
+             */
+            date: string;
+            /** Iv */
+            iv: number;
+        };
         /** MagnetLevels */
         MagnetLevels: {
             /** Resistance */
@@ -4579,6 +4593,11 @@ export interface components {
             atm_iv_30d: number | null;
             /** Atm Iv 30D Chg 5D */
             atm_iv_30d_chg_5d: number | null;
+            /**
+             * Atm Iv 30D Series
+             * @default []
+             */
+            atm_iv_30d_series: components["schemas"]["MagnetIvPoint"][];
         };
         /**
          * MarketAggregates

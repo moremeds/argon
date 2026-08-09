@@ -48,6 +48,14 @@ class MagnetCandle(_UwBase):
     volume: float | None
 
 
+class MagnetIvPoint(_UwBase):
+    """One captured ATM-30d IV reading. Sessions with no captured surface are
+    absent from the series rather than carried forward — see the route."""
+
+    date: date
+    iv: float
+
+
 class MagnetsResponse(_UwBase):
     ticker: str
     as_of: date
@@ -58,6 +66,9 @@ class MagnetsResponse(_UwBase):
     candles: list[MagnetCandle]
     atm_iv_30d: float | None
     atm_iv_30d_chg_5d: float | None
+    # Defaulted so the field is additive: every existing constructor call and
+    # every stored fixture stays valid without touching it.
+    atm_iv_30d_series: list[MagnetIvPoint] = []
 
 
 # Preserve __module__ = "uw_scan.models" so OpenAPI component names don't drift
@@ -66,5 +77,6 @@ _preserve_public_module(
     MagnetLevels,
     MagnetConeBand,
     MagnetCandle,
+    MagnetIvPoint,
     MagnetsResponse,
 )

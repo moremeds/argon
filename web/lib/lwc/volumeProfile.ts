@@ -74,11 +74,21 @@ export interface VolumeProfileOptions {
   /** Reference price for the dots mode's red-above / green-below split. */
   spot?: number;
   /** Which edge the profile grows from. "right" (default) is the Price view's
-   *  existing behaviour. The magnet view anchors LEFT because its right edge is
-   *  the projection zone — a right-anchored profile paints the dot cloud
-   *  straight over the options-implied cone, i.e. decoration on top of the one
-   *  thing on the chart that carries a measurement. */
+   *  existing behaviour and also the magnet view's — the reference draws its
+   *  magnet profile in the right-edge projection zone, overlapping the forward
+   *  paths on purpose. Kept configurable because the overlap only reads if the
+   *  cloud stays translucent and under the forward series; a variant that wants
+   *  the profile clear of the projection can anchor LEFT instead. */
   anchor?: "left" | "right";
+  /** Pixels held clear at the anchor edge, INSIDE which nothing is drawn.
+   *
+   *  Exists because a host chart may draw its own furniture inside the pane at
+   *  that edge — lightweight-charts renders `createPriceLine({title})` as a pane
+   *  label pinned to the right of the plot area, not on the price scale. Without
+   *  a gutter the profile's tips and its ★ label render underneath those titles
+   *  and simply vanish. The caller sets this because only the caller knows what
+   *  it attached. Default 0: the Price view draws no such labels. */
+  edgeGutterPx?: number;
   onStats?: (stats: VolumeProfileStats | null) => void;
 }
 
@@ -101,6 +111,7 @@ const defaults: Required<Omit<VolumeProfileOptions, "onStats">> = {
   mode: "bars",
   spot: NaN, // no reference price → the dots mode falls back to the POC
   anchor: "right",
+  edgeGutterPx: 0,
 };
 
 type RowPx = {
@@ -296,10 +307,14 @@ class VolumeProfileRenderer implements IPrimitivePaneRenderer {
     const ref = Number.isFinite(o.spot) ? o.spot : view.pocPrice;
     const MAX_DOTS = 26; // dots in the fullest bin — the POC
     const envelope: { x: number; y: number }[] = [];
-    // `right` is the pane's right edge; a left-anchored profile starts at 0 and
-    // grows the other way. `dir` is the only thing that differs.
-    const originX = o.anchor === "left" ? 0 : right;
-    const dir = o.anchor === "left" ? 1 : -1;
+    // `anchor` chooses WHERE the profile band sits, not which way the dots run.
+    // Every row always grows RIGHTWARD from a common left base, so the cloud has
+    // a flat left edge and tips fanning right — the reference's orientation, and
+    // the one that makes the envelope read as a distribution's right tail rather
+    // than a wall. Mirroring it (dir = -1) put the flat base against the price
+    // scale and the tips pointing back into the candles.
+    const gutter = Math.max(0, o.edgeGutterPx);
+    const originX = o.anchor === "left" ? gutter : right - width - gutter;
 
     for (let i = 0; i < view.rows.length; i += 1) {
       const r = view.rows[i];
@@ -314,17 +329,17 @@ class VolumeProfileRenderer implements IPrimitivePaneRenderer {
       const base = r.midPrice >= ref ? o.resistanceColor : o.supportColor;
       let far = originX;
       for (let d = 0; d < n; d += 1) {
-        // Dots march away from the anchor one slot per quantum, jittered within
-        // the slot so the cloud does not read as a stripe.
+        // Dots march right one slot per quantum, jittered within the slot so
+        // the cloud does not read as a stripe.
         const slot = ((d + binJitter(i, d)) / MAX_DOTS) * width;
-        const x = originX + dir * slot;
+        const x = originX + slot;
         const y = yMid + (binJitter(i, d + 97) - 0.5) * h;
         ctx.globalAlpha = r.inValueArea ? 0.95 : 0.45;
         ctx.fillStyle = d < goldCount ? o.pocColor : base;
         ctx.beginPath();
         ctx.arc(x, y, 1.6, 0, Math.PI * 2);
         ctx.fill();
-        if (dir * x > dir * far) far = x;
+        if (x > far) far = x;
       }
       envelope.push({ x: far, y: yMid });
     }
@@ -339,18 +354,21 @@ class VolumeProfileRenderer implements IPrimitivePaneRenderer {
     ctx.stroke();
 
     if (view.pocY != null) {
+      // Just past the POC row's TIP — the rightmost point of the whole cloud,
+      // since the POC is by definition the widest row. That is the reference's
+      // placement, and it only fits because `edgeGutterPx` held the space clear.
+      const text = `★ ${view.pocPrice.toFixed(2)}`;
+      ctx.font = "11px monospace";
+      const tw = ctx.measureText(text).width;
+      const x = originX + width + 6;
+      ctx.globalAlpha = 0.82;
+      ctx.fillStyle = "rgba(10, 14, 20, 1)";
+      ctx.fillRect(x - 3, view.pocY - 8, tw + 6, 16);
       ctx.globalAlpha = 1;
       ctx.fillStyle = o.pocColor;
-      ctx.font = "11px monospace";
-      // The label sits just outside the cloud, on whichever side it grew to.
-      ctx.textAlign = o.anchor === "left" ? "left" : "right";
-      ctx.textBaseline = "middle";
-      ctx.fillText(
-        `★ ${view.pocPrice.toFixed(2)}`,
-        o.anchor === "left" ? width + 6 : right - width - 6,
-        view.pocY,
-      );
       ctx.textAlign = "left";
+      ctx.textBaseline = "middle";
+      ctx.fillText(text, x, view.pocY);
     }
   }
 }

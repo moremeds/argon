@@ -33,6 +33,7 @@ PUBLIC_MODEL_EXPORTS = [
     "SetupClassification",
     "MagnetCandle",
     "MagnetConeBand",
+    "MagnetIvPoint",
     "MagnetLevels",
     "MagnetPivot",
     "MagnetsResponse",

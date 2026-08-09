@@ -87,6 +87,25 @@ const magnets = {
   })),
   atm_iv_30d: 0.1541218069096199,
   atm_iv_30d_chg_5d: null,
+  // Real SPY ATM-30d IV read from option_surface_grid_daily via the same
+  // atm_iv_at_horizon(curve, 30) the route uses — the July run of sessions,
+  // frozen. The last point is 0.1541218069096199, i.e. exactly `atm_iv_30d`
+  // above; that identity is the check that the tile's line and its headline
+  // are the same measurement rather than two sources that happen to agree.
+  atm_iv_30d_series: [
+    { date: "2026-07-01", iv: 0.1398718896688505 },
+    { date: "2026-07-02", iv: 0.13485649826642962 },
+    { date: "2026-07-06", iv: 0.13129215069693848 },
+    { date: "2026-07-07", iv: 0.1365744354613239 },
+    { date: "2026-07-10", iv: 0.127278738315477 },
+    { date: "2026-07-13", iv: 0.13404377156972114 },
+    { date: "2026-07-14", iv: 0.13275158656240701 },
+    { date: "2026-07-20", iv: 0.1564805527057961 },
+    { date: "2026-07-21", iv: 0.14127215452805034 },
+    { date: "2026-07-22", iv: 0.1445032020162115 },
+    { date: "2026-07-23", iv: 0.15721393265944827 },
+    { date: "2026-07-24", iv: 0.1541218069096199 },
+  ],
 };
 
 function json(res, body, status = 200) {

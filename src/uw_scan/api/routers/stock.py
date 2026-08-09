@@ -398,6 +398,10 @@ def get_stock_chanlun_lifecycle(
 
 
 _MAGNET_CANDLE_WINDOW = 180
+# Sessions of grid history pulled for the ATM IV line. Matches the tile
+# sparklines' 90-session window; the surface capture only accrues forward from
+# 2025-12-26, so early tickers legitimately return fewer points.
+_MAGNET_IV_SESSIONS = 90
 
 
 @router.get("/stock/{ticker}/magnets", response_model=MagnetsResponse)
@@ -443,13 +447,17 @@ def get_magnets(
     as_of = px["date"].iloc[-1]
     spot = float(px["close"].iloc[-1])
 
-    # Only six grid sessions are needed: `as_of` for the cone and the fifth one
-    # back for the IV delta. `load_all_expiry_iv_curves` interpolates a VALUES
-    # list one row per session passed in, so handing it every session builds a
-    # ~180-row VALUES join against the full chain to use two of them.
+    # The cone needs `as_of`; the IV delta needs the fifth session back; the ATM
+    # IV tile needs a line. Bounded at _MAGNET_IV_SESSIONS rather than "every
+    # session" because `load_all_expiry_iv_curves` interpolates a VALUES list one
+    # row per session against the full chain — unbounded, that grows with capture
+    # history forever. Measured on the dev DB (NVDA): 7.0 ms at 6 sessions,
+    # 14.2 ms at 90, 13.2 ms at 130 — the join is not the cost, the chain scan
+    # is, so the extra sessions are close to free.
+    #   uv run python -c "...load_all_expiry_iv_curves timing..." (scratch, not committed)
     spots = load_all_session_spots(conn, ticker, schema)
     sessions = sorted(d for d in spots if d <= as_of)
-    wanted = {d: spots[d] for d in sessions[-6:]}
+    wanted = {d: spots[d] for d in sessions[-_MAGNET_IV_SESSIONS:]}
     curves = load_all_expiry_iv_curves(conn, ticker, wanted, schema)
 
     curve = curves.get(as_of, [])
@@ -482,6 +490,14 @@ def get_magnets(
         for p in all_pivots(px, k=k_atr)
         if px_dates[p.index] in window_pos
     ]
+    # One IV point per session that HAS a curve — sessions with no captured
+    # surface are omitted, not carried forward. A flat segment across a capture
+    # gap would draw as "IV held steady", which is a claim the data does not make.
+    iv_series = [
+        {"date": d, "iv": v}
+        for d in sorted(curves)
+        if (v := atm_iv_at_horizon(curves[d], 30)) is not None
+    ]
     return MagnetsResponse(
         ticker=ticker,
         as_of=as_of,
@@ -494,4 +510,5 @@ def get_magnets(
         atm_iv_30d_chg_5d=(
             iv30 - iv30_prior if iv30 is not None and iv30_prior is not None else None
         ),
+        atm_iv_30d_series=iv_series,
     )

@@ -13,11 +13,33 @@ import {
 } from "lightweight-charts";
 
 import type { MagnetsResponse } from "@/lib/api";
+import { fmtVolCompact } from "@/lib/indicators";
 import { BandsIndicator } from "@/lib/lwc/bandsIndicator";
 import { VolumeProfileIndicator } from "@/lib/lwc/volumeProfile";
 import { MAGNET_COLORS } from "./MagnetTable";
 
 const BAND_HALF_WIDTH = 0.0025; // 0.25% of the level — a zone, not a hairline
+
+// Canvas needs concrete colors — resolve the Argon tokens at mount. Third local
+// copy (TechnicalsPriceChart.tsx:111, DensityConeChart.tsx:40); left local
+// because those two disagree on the signature and unifying them would touch two
+// verified charts for no behaviour change.
+function cssVar(name: string, fallback: string): string {
+  const v = getComputedStyle(document.documentElement)
+    .getPropertyValue(name)
+    .trim();
+  return v || fallback;
+}
+
+// Same shape as the Price view's readout (TechnicalsPriceChart.tsx:162) so the
+// two panes read identically under the crosshair.
+function readoutLine(c: MagnetsResponse["candles"][number]): string {
+  const f = (x: number) => x.toFixed(2);
+  return (
+    `${c.date}  O ${f(c.open)} H ${f(c.high)} L ${f(c.low)} C ${f(c.close)}` +
+    (c.volume != null ? `  V ${fmtVolCompact(c.volume)}` : "")
+  );
+}
 
 function sma(values: number[], n: number): (number | null)[] {
   const out: (number | null)[] = [];
@@ -33,6 +55,7 @@ function sma(values: number[], n: number): (number | null)[] {
 export default function MagnetChart({ data }: { data: MagnetsResponse }) {
   const host = useRef<HTMLDivElement>(null);
   const divider = useRef<HTMLDivElement>(null);
+  const readout = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
     if (!host.current || data.candles.length === 0) return;
@@ -53,12 +76,20 @@ export default function MagnetChart({ data }: { data: MagnetsResponse }) {
     // defaults on adds a bare SMA20 tag and prints the last close TWICE more
     // (candles + ZigZag), which collides with the explicit LAST label and puts
     // three unlabelled numbers on an axis whose whole job is naming levels.
+    // Candles use the shared --positive/--negative tokens, NOT the reference's
+    // own greens. Spec §5.1 keeps the reference palette where colour is
+    // load-bearing — the five level lines, whose hue is how you identify a
+    // level's role without reading the table. A candle's direction is already
+    // unambiguous from its shape, so nothing is lost by matching the Price
+    // view, and a second green on the same page was the visible seam.
+    const positive = cssVar("--positive", "#4ade80");
+    const negative = cssVar("--negative", "#fb7185");
     const price = chart.addSeries(CandlestickSeries, {
-      upColor: "#4ade80",
-      downColor: "#fb7185",
+      upColor: positive,
+      downColor: negative,
       borderVisible: false,
-      wickUpColor: "#4ade80",
-      wickDownColor: "#fb7185",
+      wickUpColor: positive,
+      wickDownColor: negative,
       lastValueVisible: false,
       priceLineVisible: false,
     });
@@ -188,11 +219,24 @@ export default function MagnetChart({ data }: { data: MagnetsResponse }) {
       spot: data.levels?.last ?? data.candles[data.candles.length - 1]!.close,
       showZones: false,
       showLvn: false,
-      // LEFT, not the Price view's right: the right edge is the projection zone
-      // and a right-anchored cloud paints straight over the cone.
-      anchor: "left",
+      // RIGHT, matching the reference: the cloud belongs in the projection zone,
+      // beside the cone, not off in the price history. The two do overlap —
+      // that is the reference's own layout, and it works because the cloud is
+      // translucent and the primitive draws UNDER the cone's series.
+      anchor: "right",
+      // Room for the five createPriceLine titles (widest: "RESISTANCE"), which
+      // lightweight-charts pins INSIDE the pane at its right edge, plus the ★
+      // POC label that now sits at the cloud's tip. Without it the tips and the
+      // label render under those titles and disappear — which is exactly what
+      // happened when the profile first moved to this edge.
+      edgeGutterPx: 150,
       lookback: data.candles.length,
-      widthFrac: 0.16,
+      // ~8.5% of the pane, matching the reference's own proportion (its cloud is
+      // ~150px of a ~1750px plot). The earlier 0.16 was twice that, and once the
+      // gutter pushed the band inward a double-width cloud reached back over the
+      // final month of candles instead of sitting in the projection zone.
+      widthFrac: 0.085,
+      minWidthPx: 60,
     });
     price.attachPrimitive(vp);
     vp.setBars(
@@ -267,6 +311,12 @@ export default function MagnetChart({ data }: { data: MagnetsResponse }) {
     // were cut (spec §1.2 replaces the fan with the cone), so the only thing
     // right of this line is the cone. Naming it "scenarios" would label
     // something that is not drawn.
+    // The wrapper is a ZERO-WIDTH marker parked exactly on the last bar; the two
+    // captions hang off its edges. The obvious version — one centred string
+    // reading "history ← | → options-implied" — puts the `|` glyph 33px left of
+    // the bar, because the string's midpoint is not the divider's midpoint
+    // ("history ← " is 10 chars, " → options-implied" is 18). Centring the box
+    // centres the wrong thing.
     const placeDivider = () => {
       const x = chart.timeScale().timeToCoordinate(lastBar.date as Time);
       if (x == null || !divider.current) return;
@@ -274,10 +324,26 @@ export default function MagnetChart({ data }: { data: MagnetsResponse }) {
       divider.current.style.visibility = "visible";
     };
     chart.timeScale().subscribeVisibleTimeRangeChange(placeDivider);
+
+    // Crosshair readout, direct DOM write (TechnicalsPriceChart.tsx:696 does the
+    // same) — routing per-pixel mouse moves through setState would re-render the
+    // whole sub-tab on every frame.
+    const byTime = new Map(data.candles.map((c) => [c.date, c]));
+    const onCrosshair = (param: { time?: Time }) => {
+      if (!readout.current) return;
+      const hit = param.time == null ? null : byTime.get(String(param.time));
+      readout.current.textContent = hit
+        ? readoutLine(hit)
+        : readoutLine(lastBar);
+    };
+    chart.subscribeCrosshairMove(onCrosshair);
+    if (readout.current) readout.current.textContent = readoutLine(lastBar);
+
     chart.timeScale().fitContent();
     placeDivider();
     return () => {
       chart.timeScale().unsubscribeVisibleTimeRangeChange(placeDivider);
+      chart.unsubscribeCrosshairMove(onCrosshair);
       chart.remove();
     };
   }, [data]);
@@ -286,21 +352,54 @@ export default function MagnetChart({ data }: { data: MagnetsResponse }) {
     <div style={{ position: "relative", width: "100%" }}>
       <div data-testid="magnet-chart" ref={host} style={{ width: "100%" }} />
       <div
-        ref={divider}
+        ref={readout}
+        data-testid="magnet-readout"
         style={{
           position: "absolute",
           top: 4,
-          transform: "translateX(-50%)",
+          left: 8,
+          right: 8,
+          fontFamily: "var(--font-mono)",
+          fontSize: 10,
+          color: "var(--text-secondary)",
+          pointerEvents: "none",
+          whiteSpace: "normal",
+          overflowWrap: "anywhere",
+        }}
+      />
+      {/* Zero-width marker sitting exactly on the last bar. Each caption is
+          absolutely positioned off one edge, so the GAP between them — not the
+          midpoint of a string — is what lands on the bar. */}
+      <div
+        ref={divider}
+        data-testid="magnet-divider"
+        style={{
+          position: "absolute",
+          top: 22,
+          width: 0,
           visibility: "hidden",
           pointerEvents: "none",
-          whiteSpace: "nowrap",
           fontFamily: "var(--font-mono)",
           fontSize: 10,
           letterSpacing: 0.5,
-          opacity: 0.55,
+          color: "var(--text-muted)",
         }}
       >
-        history ← | → options-implied
+        <span style={{ position: "absolute", right: 7, whiteSpace: "nowrap" }}>
+          history ←
+        </span>
+        <span
+          aria-hidden
+          style={{
+            position: "absolute",
+            top: -6,
+            bottom: -6,
+            borderLeft: "1px solid var(--border-dim)",
+          }}
+        />
+        <span style={{ position: "absolute", left: 7, whiteSpace: "nowrap" }}>
+          → options-implied
+        </span>
       </div>
     </div>
   );
