@@ -7,6 +7,9 @@ version in lockstep (enforced by `scripts/release/version_sync_check.py`).
 
 ## [Unreleased]
 
+## [0.11.3] — 2026-08-09
+
+
 ### Added
 
 - **Preserved three research traces that existed only on one disk (research).**
@@ -68,7 +71,6 @@ version in lockstep (enforced by `scripts/release/version_sync_check.py`).
   but tagged `M7`, and `watchlist.sector` is a single column, so the button would
   filter to an empty grid despite the data being present. It lands with the chain
   migration.
-
 ## [0.11.2] — 2026-08-09
 
 ### Added
