@@ -30,7 +30,7 @@ from pathlib import Path
 import numpy as np
 import pandas as pd
 import psycopg
-from scipy.stats import kstest
+from scipy.stats import kstest, norm
 
 from uw_scan.backtest.splitters import time_ordered_holdout
 from uw_scan.reports.magnet_calibration import (
@@ -43,15 +43,74 @@ from uw_scan.reports.magnet_calibration import (
 )
 from uw_scan.reports.magnet_data import (
     atm_iv_at_horizon,
+    find_price_discontinuities,
     load_adjusted_closes,
     load_all_expiry_iv_curves,
     load_all_session_spots,
 )
 
-HORIZONS = (5, 10)  # 21 withheld: ~14 independent windows, no power
+HORIZONS = (5, 10, 21)  # 21 reports with a CI wide enough to read honestly
 MIN_OBS = 100  # spec §3.2 — below this, k is noise carrying full weight
 TRADING_DAYS = 252
 CAL_PER_TRADING_DAY = 7 / 5  # trading-day horizon -> calendar DTE target
+
+
+# Band multipliers the view could plausibly draw. Includes the textbook 1/1.96
+# and the one-sided-decile 1.28/1.645 so the UI can label whichever it picks.
+BAND_LEVELS = (0.5, 1.0, 1.28, 1.5, 1.645, 1.96, 2.0, 2.5)
+CONF_TARGETS = (0.50, 0.6827, 0.80, 0.90, 0.9500, 0.99)
+
+
+def confidence_curve(sub: pd.DataFrame, h: int, seed: int = 20260809) -> list[dict]:
+    """Measured confidence per band, and the band that delivers a target confidence.
+
+    Answers the question in both directions, because the UI needs both: "if I draw
+    at 1.96 sigma, what does it actually contain?" and "what do I draw to contain
+    95%?". Nominal assumes the lognormal the cone is built from; measured is the
+    realised sample.
+
+    The CI resamples blocks of DATES (panel bootstrap), keeping every ticker on a
+    sampled date. Windows overlap by h days and the watchlist shares a volatility
+    factor, so a per-observation interval would be far too narrow.
+    """
+    z = sub["z"].to_numpy(dtype=float)
+    dates = sub["as_of"].to_numpy()
+    az = np.abs(z[np.isfinite(z)])
+    rows: list[dict] = []
+    for lvl in BAND_LEVELS:
+        ci = panel_block_bootstrap(
+            dates,
+            (np.abs(z) < lvl).astype(float),
+            lambda a: float(np.mean(a)),
+            block=max(5, h),
+            n_boot=400,
+            seed=seed + int(lvl * 100),
+        )
+        rows.append(
+            {
+                "horizon": h,
+                "band_sigma": lvl,
+                "nominal_confidence": float(2.0 * norm.cdf(lvl) - 1.0),
+                "measured_confidence": ci["point"],
+                "ci_lo": ci["lo"],
+                "ci_hi": ci["hi"],
+                "n_dates": ci["n_dates"],
+            }
+        )
+    for target in CONF_TARGETS:
+        rows.append(
+            {
+                "horizon": h,
+                "band_sigma": None,
+                "nominal_confidence": target,
+                "measured_confidence": None,
+                "sigma_for_target_nominal": float(norm.ppf(0.5 + target / 2.0)),
+                "sigma_for_target_measured": (
+                    float(np.quantile(az, target)) if az.size else float("nan")
+                ),
+            }
+        )
+    return rows
 
 
 def git_sha() -> str:
@@ -81,19 +140,39 @@ def grid_tickers(conn, schema: str) -> list[str]:
     return [r[0] for r in conn.execute(sql).fetchall()]
 
 
-def observations(conn, ticker: str, schema: str) -> list[dict]:
+def observations(conn, ticker: str, schema: str, tally: dict) -> list[dict]:
     """One row per (session, horizon) with a usable IV and a forward close.
 
     THREE round trips per ticker, not three per ticker-session. Over a 141 ms
     Tailscale link the per-session shape was ~46k round trips (~90 min of pure
     latency) and was abandoned mid-run for exactly that reason.
+
+    Windows spanning an unadjusted corporate action are DROPPED. daily_ohlc is
+    not reliably back-adjusted, and a 4:1 split reads as a -75% five-day return.
+    Three such events (CRWD, KORU, SPCX) drove std(z) to 1.116 against a MAD of
+    0.913 and an excess kurtosis of 361 — which the first run of this script
+    misread as a fat-tailed shape mismatch that no scale factor could fix. It was
+    three bad rows. `tally` records what was dropped so the count reaches the
+    summary instead of vanishing.
     """
     px = load_adjusted_closes(conn, ticker, schema)
     if px.empty:
         return []
     px = px.reset_index(drop=True)
     close = px["close"].to_numpy(dtype=float)
-    idx_of = {d: i for i, d in enumerate(px["date"])}
+    bar_dates = px["date"].tolist()
+    idx_of = {d: i for i, d in enumerate(bar_dates)}
+
+    # Prefix-sum of jump bars: window (i, j] is contaminated iff cum[j] > cum[i].
+    jumps = find_price_discontinuities(px)
+    is_jump = np.zeros(len(close), dtype=np.int64)
+    for d in jumps:
+        k = idx_of.get(d)
+        if k is not None:
+            is_jump[k] = 1
+    cum = np.cumsum(is_jump)
+    if jumps:
+        tally.setdefault("tickers", {})[ticker] = sorted(str(d) for d in jumps)
 
     spots = load_all_session_spots(conn, ticker, schema)
     if not spots:
@@ -111,6 +190,25 @@ def observations(conn, ticker: str, schema: str) -> list[dict]:
         for h in HORIZONS:
             j = i + h
             if j >= len(close):
+                continue
+            # CALENDAR-SPAN GUARD. j = i + h is POSITIONAL: it assumes row i+h is
+            # h trading days after row i. When a ticker has missing sessions that
+            # is false, and the h-day return silently becomes a multi-month one
+            # while still being scaled by sigma*sqrt(h/252).
+            #
+            # SPCX is the live case. The ticker belonged to a SPAC ETF at ~$21.9
+            # (5 sparse sessions, options from 2025-12), was reused, and relisted
+            # 2026-06-12 at $150 on 522M shares. Positional indexing paired the
+            # ETF's 28% IV with the +113% relisting gap: z = 53.9, single-handedly
+            # ~16% of the pooled variance that the first run fit k on.
+            #
+            # Measured across all 151 grid tickers this fires on SPCX alone (15
+            # observations) — narrow today, but it is the next IPO's bug too.
+            if (bar_dates[j] - bar_dates[i]).days > h * CAL_PER_TRADING_DAY + 10:
+                tally["dropped_gap"] = tally.get("dropped_gap", 0) + 1
+                continue
+            if cum[j] > cum[i]:
+                tally["dropped_split"] = tally.get("dropped_split", 0) + 1
                 continue
             target_dte = max(1, round(h * CAL_PER_TRADING_DAY))
             sigma = atm_iv_at_horizon(curve, target_dte)
@@ -236,6 +334,7 @@ def main() -> None:
     out_dir.mkdir(parents=True, exist_ok=True)
 
     rows: list[dict] = []
+    tally: dict = {}
     with psycopg.connect(
         host=args.host,
         dbname=args.dbname,
@@ -246,9 +345,14 @@ def main() -> None:
         tickers = grid_tickers(conn, args.schema)
         print(f"tickers in grid: {len(tickers)}")
         for n, t in enumerate(tickers, 1):
-            rows.extend(observations(conn, t, args.schema))
+            rows.extend(observations(conn, t, args.schema, tally))
             if n % 25 == 0:
                 print(f"  {n}/{len(tickers)} tickers, {len(rows)} obs")
+    print(
+        f"dropped: {tally.get('dropped_split', 0)} split-spanning, "
+        f"{tally.get('dropped_gap', 0)} calendar-gap. "
+        f"splits seen: {tally.get('tickers', {})}"
+    )
 
     if not rows:
         raise SystemExit("no observations — check connection and grid coverage")
@@ -270,6 +374,14 @@ def main() -> None:
 
     by_ticker = pd.DataFrame(summaries)
     by_ticker.to_csv(out_dir / "by_ticker.csv", index=False)
+
+    curve = [
+        r
+        for h in HORIZONS
+        if not per_obs[per_obs["horizon"] == h].empty
+        for r in confidence_curve(per_obs[per_obs["horizon"] == h], h)
+    ]
+    pd.DataFrame(curve).to_csv(out_dir / "confidence_curve.csv", index=False)
 
     excluded = sorted(
         {
@@ -316,7 +428,18 @@ def main() -> None:
         ),
         "generated_for_date": str(date.today()),
         "horizons": list(HORIZONS),
-        "horizons_withheld": {"21": "~14 independent windows per ticker — no power"},
+        "data_quality_drops": {
+            "split_spanning_windows": tally.get("dropped_split", 0),
+            "calendar_gap_windows": tally.get("dropped_gap", 0),
+            "split_dates_by_ticker": tally.get("tickers", {}),
+            "note": (
+                "daily_ohlc is not reliably back-adjusted (livewire adj_close) and "
+                "positional i+h indexing assumed contiguous sessions. Both guards "
+                "added 2026-08-09 after the first run misread the resulting "
+                "std(z)=1.116 / MAD(z)=0.913 split as a distributional shape "
+                "mismatch."
+            ),
+        },
         "min_obs": MIN_OBS,
         "n_excluded_ticker_horizons": len(excluded),
         "excluded_ticker_horizons": excluded,

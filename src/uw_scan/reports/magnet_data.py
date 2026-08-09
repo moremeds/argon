@@ -2,8 +2,14 @@
 
 Two price scales exist and must never be mixed:
 
-    uw_scan.daily_ohlc              back-adjusted  -> use for RETURNS
+    uw_scan.daily_ohlc              back-adjusted* -> use for RETURNS
     option_surface_grid_daily       as-traded      -> use for STRIKE selection
+
+*Unreliably. The table is the back-adjusted series in intent, but the livewire
+`adj_close` problem lets raw corporate actions through — CRWD's 4:1 and KORU's
+20:1 both sit unadjusted in it. Treat "back-adjusted" as the contract, not as a
+guarantee, and run returns through `find_price_discontinuities` /
+`trim_to_clean_segment` below before trusting them.
 
 A ticker that split mid-window has a rescaled OHLC history against unrescaled
 strikes; KORU's 20-for-1 put its close at ~$21 while its strikes still spanned
@@ -20,6 +26,7 @@ from __future__ import annotations
 import math
 from datetime import date
 
+import numpy as np
 import pandas as pd
 
 # Grid sessions store IV as either a decimal or a percent. Same threshold as
@@ -54,6 +61,64 @@ def interp_atm_iv(
     if w <= 0:
         raise ValueError(f"interpolated total variance non-positive: {w}")
     return math.sqrt(w / target_dte)
+
+
+# A one-session move of 2x or more is a corporate action, not a trade.
+#
+# Measured 2026-08-09 over all 151 grid tickers: single-day |log return| lands at
+# 2.9501 (KORU 20:1), 1.9910 (SPCX 7.3x) and 1.3957 (CRWD 4:1), then nothing at
+# all until 0.5428. ln(2) sits inside that 2.6x gap, so the cut is read off the
+# data rather than picked. Everything below it is a real move and stays: KORU and
+# SOXL are 3x leveraged ETFs, SNPS -36% (2025-09-10) and ORCL +36% (2025-09-10)
+# are genuine sessions.
+#
+# These leak in because daily_ohlc is not reliably back-adjusted — the livewire
+# adj_close problem. Three tickers set std(z)=1.1157 against MAD(z)=0.9129 and an
+# excess kurtosis of 361; filtered (together with the E1 runner's calendar-span
+# guard), the same 5d sample gives std 0.9748 / MAD 0.9126 and kurtosis 0.85.
+SPLIT_LOG_RETURN = math.log(2.0)
+
+
+def find_price_discontinuities(
+    df: pd.DataFrame, threshold: float = SPLIT_LOG_RETURN
+) -> set[date]:
+    """Sessions whose one-day log return implies a corporate action.
+
+    Returns the date the jump lands ON, so a forward window (t, t+h] is
+    contaminated exactly when it contains one of these dates.
+
+    Deliberately surgical: the caller drops the affected windows, not the whole
+    ticker. Dropping every ticker that ever shows a large move discards 19.8% of
+    the sample (23 of 119 tickers) to remove 0.2% of it.
+    """
+    if len(df) < 2:
+        return set()
+    px = df["close"].to_numpy(dtype=float)
+    with np.errstate(divide="ignore", invalid="ignore"):
+        r = np.diff(np.log(px))
+    # A NaN close yields a NaN return, which compares False here and is therefore
+    # never flagged. That is the safe direction: the observation is unusable and
+    # gets dropped downstream on its own rather than being called a split.
+    dates = df["date"].tolist()
+    return {dates[i + 1] for i in np.flatnonzero(np.abs(r) > threshold)}
+
+
+def trim_to_clean_segment(
+    df: pd.DataFrame, threshold: float = SPLIT_LOG_RETURN
+) -> pd.DataFrame:
+    """History from the last corporate action forward, reindexed from 0.
+
+    For path-dependent work (ATR-ZigZag pivots, first-passage barriers) dropping
+    individual windows is not enough: a fake 75% gap manufactures a pivot, and
+    every leg built from it is wrong. The pre-action history has to go.
+
+    Starts AT the jump bar, not after it — that bar's own OHLC is already on the
+    new scale, only the return INTO it is fabricated.
+    """
+    jumps = find_price_discontinuities(df, threshold)
+    if not jumps:
+        return df
+    return df[df["date"] >= max(jumps)].reset_index(drop=True)
 
 
 def load_adjusted_closes(conn, ticker: str, schema: str = "uw_scan") -> pd.DataFrame:

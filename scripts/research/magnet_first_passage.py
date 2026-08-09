@@ -36,7 +36,7 @@ from magnet_cone_calibration import resolve_password  # noqa: E402
 from uw_scan.backtest.splitters import time_ordered_holdout
 from uw_scan.backtest.sweep import run_sweep
 from uw_scan.cards.magnets import all_pivots
-from uw_scan.reports.magnet_data import load_adjusted_closes
+from uw_scan.reports.magnet_data import load_adjusted_closes, trim_to_clean_segment
 from uw_scan.reports.magnet_passage import (
     bootstrap_null_hit_rate,
     clustered_bootstrap_edge,
@@ -141,11 +141,20 @@ def main() -> None:
             ).fetchall()
         ]
         prices: dict[str, pd.DataFrame] = {}
+        trimmed: dict[str, int] = {}
         for t in tickers:
             df = load_adjusted_closes(read_conn, t, args.schema)
-            if len(df) >= MIN_BARS:
-                prices[t] = df
+            # daily_ohlc is not reliably back-adjusted. An unadjusted 4:1 split is
+            # a -75% bar, which manufactures an ATR-ZigZag pivot and a barrier
+            # touch out of nothing — both are path-dependent, so dropping the
+            # single window is not enough and the pre-split history has to go.
+            clean = trim_to_clean_segment(df)
+            if len(clean) < len(df):
+                trimmed[t] = len(df) - len(clean)
+            if len(clean) >= MIN_BARS:
+                prices[t] = clean
     print(f"tickers with >={MIN_BARS} bars: {len(prices)} of {len(tickers)}")
+    print(f"trimmed at a corporate action: {trimmed}")
 
     all_rows: list[dict] = []
 
