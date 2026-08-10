@@ -91,7 +91,13 @@ Buildable, mostly from parts argon already owns. Two findings gate it.
   open connection**. The test is the second bug.
 
 Nightly since migration 066, logging `"fundamentals_refresh refreshed %d tickers"` while rolling
-everything back. **`massive_fundamentals` is empty or stale in production.**
+everything back.
+
+**The production table is stale, not empty** — corrected 2026-08-10 from a live mini query:
+**669 rows across 86 tickers, latest `fetched_at` 2026-06-01**, latest period 2026-05-03. Those rows
+arrived through some other historical or manual path; the scheduled job has contributed nothing. The
+first draft said "empty or stale", and the distinction turns out to matter enormously — see the P0
+exit criterion in §9, which the row count would have satisfied *without the bug being fixed*.
 
 Blast radius is narrow: `ohlc_pull` writes through `market_data.py` (4 commits, safe).
 `fundamentals_jobs` is the confirmed case. Other `_repo()` consumers were not individually
@@ -115,17 +121,35 @@ traced — worth a follow-up audit, out of scope here.
 stock page. The target column is **`analyst_target_avg`** (`065_uw_positioning.sql:26`), not
 `target_avg`.
 
-**Source roles are now explicit** (reversal of the first draft's A4):
+**Source roles, with a fallback chain — massive is not universal.** Live probe of the core 25
+(2026-08-10) found `/vX` current coverage for **23 of 25**. **TSM and ASML return zero rows from
+`/vX` and `/v2` alike** — independently reconfirmed here.
 
-| Window | Source | Role |
+**The root cause is one this spec already documented elsewhere and failed to connect.** §3.3 records
+that the upstream tier files **20-F, not 10-K** (TSM: 6-K ×741, 20-F ×15, zero 10-Ks). massive's
+financials are derived from domestic SEC XBRL, so foreign private issuers are simply absent. One
+structural fact — foreign-issuer filing status — breaks *both* the named-edge graph and the
+statements backbone. Any name reachable only via 20-F should be assumed thin at every provider until
+probed, not just at EDGAR.
+
+| Precedence | Source | Role |
 |---|---|---|
-| 2009 → present | massive `/vX` | **backbone**; the only source that may back a "current" figure |
-| 1997 → 2008 | massive `/v2` | one-time legacy backfill; frozen, never refreshed |
-| 2009 → 2020 | both | **overlap zone** — reconcile and persist disagreements, never silently prefer one |
-| any | UW statements (94q) | independent cross-check, not the backbone |
+| 1 | massive `/vX` | **backbone** for current figures — 23/25 of the core |
+| 2 | UW statements (94q) | **fallback when `/vX` is absent**, not merely a cross-check (revises A4) |
+| 3 | SEC XBRL `companyconcept` | last resort; reaches 20-F filers massive cannot |
+| — | explicit `na` | when all three fail. A covered-looking card over an uncovered name is the worst outcome |
+| history | massive `/v2` | 1997–2008 tail **where it exists** — availability is ticker-relative, not universal |
+| overlap | `/vX` ∩ `/v2` | reconcile and persist disagreements, never silently prefer one |
+
+Coverage expectations are **per ticker**, never global: "history reaches 1997" is a claim about NVDA,
+not about the core 25, and the card must render each name's real span.
+
+**Quarter identity uses `/vX.end_date` = `/v2.reportPeriod`**, never `calendarDate` — the latter
+diverges for non-calendar fiscal issuers such as NVDA and AMD, which would silently mismatch quarters
+in the overlap zone.
 
 The overlap zone is not incidental: it is the only place field-name parity between the two endpoints
-can be validated, and it is what makes the 1997–2008 tail trustworthy enough to score against.
+can be validated, and it is what makes the pre-2009 tail trustworthy enough to score against.
 
 **Gated (Advanced+/Premium, unavailable):** forward analyst estimates, earnings-call transcripts,
 company profile, IPO calendar, UW dividends/splits, macro series.
@@ -181,7 +205,7 @@ Note the convergence: the blueprint author independently landed on a per-company
 | A1 | **Own queue** `fundamental_narrative_analyses` — stage 5, phase P5. **Not** a lane on `trade_insight_ai_analyses` | The first draft claimed this lane was "verified live" on the strength of `analysis_kind` existing (migration `067`) and per-row dispatch at `trade_insights_ai.py:142`. Both are true and both are irrelevant: `017:9` makes `snapshot_id` `NOT NULL REFERENCES trade_insight_snapshots ON DELETE CASCADE` and `run_id` `NOT NULL`, so a fundamental row has no legal parent; dispatch is binary `is_blast`, so `'fundamental'` would silently run the trade prompt; `TradeInsightAiOutcome` demands scenario cards / VRP / preferred expression; and `fetch_unscored_analyses` filters only `status='succeeded'`, so every fundamental row would enter the trade outcome ledger. **The cost of this reversal is real** — the new queue re-pays the SKIP-LOCKED claim logic, heartbeats, per-provider workers and polling hook that A1 originally existed to avoid. That is the price of domain isolation, not an oversight; do not "simplify" it back |
 | A2 | New pure-compute package **`src/uw_scan/fundamentals/`** | Follows `theta_harvester/` / `chanlun/` precedent. Not `reports/` — those are read-time reshapes; these are nightly persisted computations |
 | A3 | New API router **`api/routers/fundamental.py`** | `routers/trade_insights.py` is already ~600 lines; module-size budget |
-| A4 | **massive `/vX`** for the statements backbone; `/v2` for the 1997–2008 tail only; **UW `fundamental-breakdown`** for segments | Reversed after review. argon's own probe records `/v2` frozen at 2020-Q1 and `/vX` live to 2026 — the first draft picked the dead endpoint for its field count and would have rendered FY2020 as current. The IB→UW→FMP→massive rule is scoped to *live quotes/greeks*; massive remains the fundamentals source. UW's 94q statements are the cross-check, and the 2009–2020 overlap is where field parity is proven |
+| A4 | **massive `/vX` → UW statements → SEC XBRL → explicit `na`**, a fallback chain rather than a single backbone; `/v2` for the pre-2009 tail where it exists; **UW `fundamental-breakdown`** for segments | Reversed twice. First draft picked `/v2` for its field count — argon's probe records it frozen at 2020-Q1, so a "current" card would have shown FY2020. Then a live core-25 probe found `/vX` covers only 23/25: TSM and ASML return zero rows from both endpoints because they are 20-F filers and massive derives from domestic XBRL. UW is therefore a **fallback**, not a cross-check. The IB→UW→FMP→massive priority rule is scoped to *live quotes/greeks* and does not govern here |
 | A10 | **Immutable point-in-time observations** for statements, segments and filings; canonical views derived on top | User ruling. Two sources that disagree by six years (A4) make reconciliation mandatory regardless, and PIT is most of the same work. Retrofitting it after rows exist means rebuilding history that was never captured — restatements overwrite the evidence an old `inputs_hash` was computed from |
 | A11 | **On-demand refresh enqueues a persisted run**, returns `202` — never a synchronous router write | The technicals precedent (`stock.py:285`) is deliberately bounded and says to promote it once work becomes async or batched. This stage calls massive, UW and SEC and writes many tables; a synchronous handler leaves partial state with no retry record. argon's rule is mutations route through `/jobs` |
 | A12 | **Own worker role `ai-fundamental`** for the narrative queue | argon already pins roles per lane (`ai-codex`, `ai-claude`, `ai-deepseek`). A shared worker polling two queues needs fair-polling and independent heartbeats to avoid one lane starving the other; a separate role gets that for free and lets the fundamental lane be scaled or disabled without touching trade insights |
@@ -227,11 +251,17 @@ assume.
 
 Each in its own `storage/<domain>.py`. Never extend `repository.py`.
 
-Three tiers, and the separation is the point: **observations are immutable, canonical views are
-derived, outputs are versioned.** Nothing is ever updated in place.
+Three tiers, and the separation is the point: **observation payloads are immutable, canonical views
+are derived, outputs are versioned.**
 
-**Tier 1 — immutable source observations (A10).** One row per thing a provider actually said, at the
-time it said it. Never updated, never deleted; a restatement is a new row.
+Precise immutability contract, because "nothing is ever updated" was overstated: **the payload and
+its identity columns are immutable; sighting metadata (`last_seen_at`) is mutable.** An unchanged
+refresh updates one timestamp and writes no new fact. If that distinction ever becomes load-bearing
+for audit, sightings move to their own append-only table — but not before, since a row per unchanged
+poll is a lot of rows to prove nothing changed.
+
+**Tier 1 — immutable source observations (A10).** One row per thing a provider actually said. A
+restatement is a new row; the old one is never altered or deleted.
 
 | Table | Key columns | Registry |
 |---|---|---|
@@ -243,9 +273,15 @@ time it said it. Never updated, never deleted; a restatement is a new row.
 **Identity is content, not fetch time.** The previous draft keyed observations on `observed_at`,
 which is when *we* fetched — so every unchanged refresh would have inserted another row, directly
 contradicting P1b's own idempotence gate. Dedupe is on `content_hash` over the normalized payload:
-an unchanged refresh bumps `last_seen_at` and writes nothing; a restatement hashes differently and
-becomes a new immutable observation. `provider_record_id` is stored when the provider supplies one,
-because a stable upstream ID beats a hash we computed.
+an unchanged refresh bumps `last_seen_at` and writes **no new fact row**; a restatement hashes
+differently and becomes a new immutable observation. `provider_record_id` is stored when the provider
+supplies one, because a stable upstream ID beats a hash we computed.
+
+`content_hash` is computed over a **normalized** payload with an explicit exclusion list — provider
+response envelopes carry request IDs and generation timestamps that differ on every call, and hashing
+those would make every refresh look like a restatement. The normalization rule is committed with the
+field map in P1a, and the period key is `end_date` (`/vX`) ≡ `reportPeriod` (`/v2`), never
+`calendarDate`.
 
 `first_observed_at` is when we first saw it; `filing_published_at` is when the world could have known
 it. Point-in-time queries filter on the latter — that is what stops look-ahead in a future sweep.
@@ -271,7 +307,8 @@ collides and the second result is lost.
 
 | Table | Key columns | Registry |
 |---|---|---|
-| `fundamental_runs` | PK `run_id`; `ticker`, `mode ∈ {refresh_external_facts, recompute_from_cached_facts}`, per-stage status/timing, `rows_written`, `error`, `attempt` | run ledger — dimension, exempt |
+| `fundamental_runs` | PK `run_id`; `ticker`, `mode ∈ {refresh_external_facts, recompute_from_cached_facts}`, `status`, per-stage status/timing, `rows_written`, `error`, `attempt`. **Partial unique index on `(ticker) WHERE status IN ('queued','running')`** | run ledger — dimension, exempt |
+| `fundamental_run_outputs` | PK `(run_id, output_kind)`; `result_id`, `reused BOOLEAN` — the bridge from a run to the rows it produced *or reused* | run ledger — dimension, exempt |
 | `valuation_anchors` | PK `result_id`; **UNIQUE `(ticker, as_of, engine_version, inputs_hash)`**; `company_type`, `method`, 5 anchors, base/bear/bull × 1y/3y, `confidence`, `confidence_reasons_jsonb`, `inputs_jsonb`, `inputs_hash`, `source_obs_ids`, `run_id` | temporal → **DatasetRegistryEntry** |
 | `fundamental_scores` | PK `result_id`; **UNIQUE `(ticker, as_of, engine_version, inputs_hash)`**; one column per subscore, composite, `inputs_hash`, `source_obs_ids`, `run_id` | temporal → **DatasetRegistryEntry** |
 | `customer_concentration` | PK `(ticker, fiscal_period, filing_form, filing_accession)`; `top_customer_pct`, `customers_over_10pct`, `none_over_10pct`, `magnitude_basis`, `filing_date`, `excerpt` | event-temporal → **DatasetRegistryEntry** |
@@ -282,9 +319,16 @@ collides and the second result is lost.
 `source_obs_ids` is what makes I2 real: it records the exact tier-1 rows a computation consumed, so
 an old `inputs_hash` can be reconstructed even after later restatements arrive.
 
-**The current-result view resolves on both axes**: active `engine_version` (from the pointer below)
-*and* the latest successful `run_id` for that ticker and date. Latest engine version alone is not
-enough — it does not disambiguate two same-day input sets.
+**The current-result view resolves through `fundamental_run_outputs`, not through a `run_id` column
+on the result.** An identical rerun is supposed to produce one logical output (T4), which means the
+second run *reuses* the first run's immutable row. If the result carried a single `run_id`, that row
+would still be stamped with run 1, so a view joining "latest successful run" to its outputs would
+find nothing for run 2 and the current result would vanish — while updating the stamp would mutate
+history. The bridge resolves both: run 2 gets its own association row with `reused = true`, pointing
+at the same `result_id`.
+
+Resolution is then: active `engine_version` (from the pointer below) → latest successful run for that
+ticker and date → its associated `result_id`.
 
 **Method versioning — immutable versions plus a singleton pointer.** A `BOOLEAN active` column with
 a partial unique index guarantees *at most* one active version, not exactly one: a failed activation
@@ -295,7 +339,13 @@ foreign key from a one-row table makes zero unrepresentable.
 |---|---|
 | `fundamental_method_versions` | PK `engine_version`; `code_version`, `param_hash`, `created_at`, `note`. **No `active` flag** |
 | `fundamental_method_params` | PK `(engine_version, param_key)`; `param_value NUMERIC`. **Immutable** — retuning inserts a new version, never edits rows |
-| `fundamental_method_state` | `singleton_id INT PRIMARY KEY DEFAULT 1 CHECK (singleton_id = 1)`; `active_engine_version TEXT NOT NULL REFERENCES fundamental_method_versions` |
+| `fundamental_method_state` | `singleton_id INT PRIMARY KEY DEFAULT 1 CHECK (singleton_id = 1)`; `active_engine_version TEXT NOT NULL REFERENCES fundamental_method_versions`. **Seeded by migration; a `BEFORE DELETE` trigger raises** |
+
+`CHECK (singleton_id = 1)` constrains the row's *value*, not its *existence* — it happily permits
+`DELETE`, which would leave zero active versions and every computation silently method-less. The
+NOT NULL FK removes the null case; the delete trigger removes the empty case; and stage 2 raises
+loudly rather than defaulting if the pointer cannot be read. Three mechanisms because "exactly one"
+needs both bounds enforced, and the first draft claimed it with only one.
 
 Activation is one atomic `UPDATE` of the pointer. `engine_version` is derived
 `{code_version}:{param_hash[:8]}` and written once at version creation. An "active version" view
@@ -580,8 +630,34 @@ filing writes duplicates that look like new disclosures. `extractor_version` is 
 deliberately excluded from the uniqueness key: a better extractor finding the same sentence must
 recognise it, not re-file it.
 
+**But hash identity alone cannot retract.** If extractor v1 emits a false META edge and v2 correctly
+emits *nothing*, there is no new row to supersede the false one — absence cannot overwrite presence,
+so a known-wrong edge stays current forever. Fixing duplicate-on-improve created
+cannot-retract-on-improve; both need the same missing concept, **the extraction run**:
+
+```sql
+CREATE TABLE IF NOT EXISTS uw_scan.filing_extraction_runs (
+    extraction_run_id  BIGINT GENERATED ALWAYS AS IDENTITY PRIMARY KEY,
+    filing_accession   TEXT NOT NULL,
+    extractor_version  TEXT NOT NULL,
+    status             TEXT NOT NULL CHECK (status IN ('running','succeeded','failed')),
+    fact_count         INT,
+    started_at         TIMESTAMPTZ NOT NULL DEFAULT now(),
+    finished_at        TIMESTAMPTZ,
+    UNIQUE (filing_accession, extractor_version)
+);
+```
+
+Each observation carries its `extraction_run_id`. **The current projection reads only the latest
+*succeeded* run per accession**, so a re-extraction that finds nothing retracts by omission while
+every earlier run stays queryable for audit. A failed run never becomes current, so a crashed
+extraction cannot silently empty a filing's facts.
+
+The same rule governs `customer_concentration`. Retraction is a projection concern, never a `DELETE`.
+
 **Current-relationship projection** — a view, not a table:
-`fundamental_edge_current` takes the newest observation per `(src_ticker, dst_ticker, edge_type)` and
+`fundamental_edge_current` reads observations **from the latest succeeded `filing_extraction_run` per
+accession only**, then takes the newest surviving one per `(src_ticker, dst_ticker, edge_type)` and
 derives `status` from filing recency (`active` / `stale` after absence from the newest same-form
 filing / `retired` past 400 days). Nothing is mutated to compute it; the full observation history
 stays queryable, which is what "audit trail" was supposed to mean.
@@ -611,7 +687,7 @@ stays queryable, which is what "audit trail" was supposed to mean.
 | User-Agent | SEC-required contact email, from config; requests without it are refused |
 | rate limit | SEC's published ceiling is 10 req/s; the client throttles below it and is the only path to `sec.gov` |
 | retry | bounded exponential backoff on 429/5xx, capped attempts, failures recorded on the `fundamental_runs` row rather than raised into the UI |
-| cache | filings are immutable once accepted — cache by accession on disk and never re-fetch the same document |
+| cache | filings are immutable once accepted — cache by accession in **`sec_filing_documents`** (§4.4) and never re-fetch the same document. Not container disk: the only compose volume is the lake at `:ro` |
 
 **Discovery gate before build.** P4 starts with a read-only probe over the core 25 that reports
 concentration-row yield and named-edge yield. If the ledger's `trend` arrays come back flat and
@@ -743,11 +819,12 @@ artifact and the renderer was never owed.
 no new persisted table, no second scoring path. One engine, two renderings.
 
 **Every aggregate needs a stated basis.** A cell median is meaningless across mixed engine versions
-or stale `as_of` values, so G2 fixes three rules before it aggregates: a common `as_of` (the latest
+or stale `as_of` values, so G2 fixes four rules before it aggregates: a common `as_of` (the latest
 date on which the cell's members share the active `engine_version`), rows on superseded versions are
-excluded rather than mixed, and the **coverage denominator is the cell's full membership** — not the
-subset that happens to have rows. A cell where 2 of 6 names are analysed shows the 2-name aggregate
-*and* says 2/6.
+excluded rather than mixed, the **coverage denominator is the cell's full membership** — not the
+subset that happens to have rows — and **a cell whose members share no common date/version renders
+`unavailable`**, never a silently mixed number. A cell where 2 of 6 names are analysed shows the
+2-name aggregate *and* says 2/6.
 
 ## 9. Phases
 
@@ -758,7 +835,7 @@ stops moving.
 
 | Phase | Ships | Gate | Verification |
 |---|---|---|---|
-| **P0** | Commit-bug fix + a test asserting through a **freshly opened connection** | Own PR — independent prod data-loss bug, deploys ahead of feature work | Mini's `massive_fundamentals` row count > 0 after a real scheduler run; rollback-path regression |
+| **P0** | Commit-bug fix + a test asserting through a **freshly opened connection** | Own PR — independent prod data-loss bug, deploys ahead of feature work | **Freshness delta, not row count**: record a ticker's `fetched_at` before the run, invoke the *real scheduled function*, then assert from a **new connection** that its `fetched_at` advanced past the run start. Plus a rollback-path regression |
 | **P1a** | **Data-contract spike** (no schema): reconcile `/vX`, `/v2`, UW statements and the filed 10-K on representative tickers; commit the exact field map | The first draft chose a frozen endpoint for its field count. No ingestion is designed until the sources are measured, not read about | An overlap-zone quarter agrees across `/vX` and `/v2` field-for-field, or the disagreement is documented with a resolution rule |
 | **P1b** | Immutable observation tables + canonical views + backfill/incremental modes; registry entries | Scoring over 8 shallow quarters is the weakest possible imitation | `/vX` reaches 2026 and `/v2` fills 1997–2008; re-ingest is idempotent; a simulated restatement adds a row without destroying its predecessor; FY2026 segment revenue matches the filed 10-K to the dollar |
 | **P2** | Method appendix (worked examples) · method version tables · ANCHOR then SCORE · confidence downgrades · `fundamental_runs` + enqueued refresh endpoint | The method must be fixated before anything renders it | 3 hand-checked tickers reproduce hand-computed anchors from the appendix; recompute with unchanged inputs is idempotent; **flipping one ticker's `company_type` changes `inputs_hash` and yields new anchors**; a new method version coexists with the old on the same date; exactly one version is active |
@@ -829,6 +906,14 @@ is a required test, not a suggestion.
 | T11 | Container replaced | cached filings survive (Postgres, not container disk) |
 | T12 | Provider disabled | card renders stages 1–4 fully; narrative block marked absent |
 | T13 | Cell members hold mixed engine versions | aggregate uses the shared active version; coverage fraction shown |
+| T14 | Cell members share **no** common date/version | cell renders **unavailable**, never a silently mixed aggregate |
+| T15 | Extractor v1 emits a false edge, v2 emits nothing for that filing | edge disappears from the current projection; v1's observation still queryable |
+| T16 | Extraction run crashes mid-filing | the failed run never becomes current; the prior succeeded run still projects |
+| T17 | `DELETE` the method state row | **rejected** by trigger; worker startup also fails loudly if the pointer is unreadable |
+| T18 | Identical rerun, then query the current view via the second run | resolves to the same `result_id` through a `reused = true` association |
+| T19 | TSM / ASML (no massive coverage) | falls back to UW, then SEC XBRL, then renders explicit `na` — never a blank that reads as zero |
+| T20 | Non-calendar fiscal issuer (NVDA, AMD) in the overlap zone | quarters match on `end_date` ≡ `reportPeriod`; `calendarDate` is never used as the key |
+| T21 | Provider envelope changes (request id / timestamp) with identical financials | `content_hash` unchanged → no new observation |
 
 Gates before merge: `uv run pytest`, ruff, `scripts/check_no_yahoo.py`, and under `web/`
 `npm run typecheck && npm run test && npm run lint && npm run build`, plus Playwright coverage of the
@@ -881,9 +966,15 @@ the active method is a NOT NULL singleton pointer, not a boolean flag; both run 
 anchors and scores; P5 gates on P4 *resolved*, not shipped; filings cache in Postgres; narrative gets
 its own `ai-fundamental` worker role (A12).
 
+Round 3 (live-probed): P0's gate is a freshness delta, not a row count — production already holds
+669 rows, so the old gate passed without the bug being fixed; massive covers only 23/25 of the core,
+so A4 becomes a fallback chain; the method pointer needs a delete trigger, not just a `CHECK`;
+identical reruns resolve through `fundamental_run_outputs`; active runs are enforced by a partial
+unique index; extraction runs make retraction possible; immutability is payload-scoped.
+
 **One review recommendation was rejected on evidence.** Round 2 proposed R2 for raw filing storage.
-R2 is retired: CHANGELOG records "the worker refuses to boot when retired R2 settings are present",
-added after a dead R2 bucket froze `vol_index_daily` for 13 days. Following it would have prevented
-the worker from starting. `CLAUDE.md` still carries the stale "R2 lake is primary" line, which is the
-likely source of the suggestion — **that line should be corrected in a separate PR**, since it will
-keep misleading readers.
+R2 is retired and configuring it is a **boot failure** — verified in runtime code at
+`worker/scheduler.py:215`, added after a dead R2 bucket froze `vol_index_daily` for 13 days.
+`CLAUDE.md` still carries the stale "R2 lake is primary" line, which is the likely source of the
+suggestion — **that line should be corrected in a separate PR**, since it will keep misleading
+readers and has now done so at least once.
