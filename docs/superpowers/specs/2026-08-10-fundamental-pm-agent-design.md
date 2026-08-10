@@ -157,7 +157,7 @@ matrix rather than a claim. The failure modes, recorded so they are not repeated
 **A zero must be distinguished from an error, and a count from a filtered count, before either
 becomes evidence.** Anything probing a provider persists the status code alongside the count.
 
-**A plausible common cause, flagged as inference.** §3.3 records that the upstream tier files
+**A plausible common cause, flagged as inference.** §3.4 records that the upstream tier files
 **20-F, not 10-K** (TSM: 6-K ×741, 20-F ×15, zero 10-Ks), and the two names missing from `/vX` are
 exactly the two foreign private issuers in the core 25. `[INFERRED, MED]` — the correlation is
 measured; the provider's actual derivation path is **not**, and "massive builds `/vX` from domestic
@@ -237,7 +237,84 @@ not a backlog item.
 **Budget:** live ceiling 80k, research 30k, account guard 105k. Current burn ≈45.5k/day
 (173 × ~263). ≈60k/day headroom; segment pulls for a 25-name core are noise against it.
 
-### 3.3 The edge-graph reality (measured, 2026-08-10)
+### 3.3 What the fields actually say (measured, 2026-08-11)
+
+Coverage (§3.2) answers *which tickers have data*. This answers *whether the data is usable*, which
+turned out to be a different question. Probe:
+`scripts/research/fundamental_field_contract.py`; artifacts
+`docs/research/2026-08-10-fundamental-source-coverage/field{_contract.json,-contract.md}`. 272 rows
+— every covered ticker's most recent 12 quarters — plus a 5-ticker `/vX` ∩ `/v2` reconciliation.
+
+**F-A. `/vX` emits impossible values on current data, at rates too high to ignore.**
+
+| Check | Hits | Rate | Worst example |
+|---|---:|---:|---|
+| `liabilities < 0` | 14/272 | **5.1%** | GOOGL @ 2026-03-31 = **−478,746,000,000** |
+| diluted shares < 1M for a revenue-reporting filer | 41/272 | **15.1%** | NVDA @ 2026-01-25 = **−28,000,000 shares** |
+| `liabilities + equity ≠ liabilities_and_equity` (>0.5%) | 11/272 | **4.0%** | AMZN @ 2025-06-30, off by −682bn |
+
+These are not edge names: GOOGL, AMZN, META and NVDA are all in the list, in their most recent
+quarters. A leverage ratio on GOOGL Q1-2026 would carry a negative numerator; an EPS on NVDA
+Q4-FY2026 would divide by a negative share count and flip sign. This is the single strongest
+argument in the spec for the INGEST validation gate (§5.1) — without it the pipeline's failure mode
+is a confident wrong number with full provenance attached, which §3.2 already names as worse than
+no number. I have **not** established the mechanism and will not guess at one; the rates are the
+finding.
+
+**F-B. Field coverage across the cohort is not universal, so subscore availability is per-ticker.**
+Of 73 distinct `/vX` fields, these mapped ones have holes:
+
+| Canonical | `/vX` coverage | Missing for |
+|---|---:|---|
+| `sga_expense` | **48%** | AMZN, ANET, APP, CEG, CRWD, GOOGL, META, MSFT, NOW, ORCL, PLTR, SMCI |
+| `long_term_debt` | **65%** | AMAT, AMD, ANET, CRWD, GEV, ORCL, PLTR, SMCI |
+| `intangible_assets` | **65%** | ANET, APP, CEG, CRWD, MSFT, ORCL, PLTR, SMCI |
+| `inventory` / `fixed_assets` | 78% | APP, CRWD, META, NOW, PLTR / APP, GEV, GOOGL, META, MU |
+| `rnd_expense` | 83% | AMZN, CEG, VRT, VST |
+| `gross_profit` / `cost_of_revenue` | 87% | CEG, ORCL, VST |
+
+Universal (100%): revenue, operating income, net income, assets, equity, liabilities, current
+assets/liabilities, OCF, ICF, share counts, EPS.
+
+**A composite that silently drops a missing subscore ranks names on different evidence and calls the
+result comparable.** R&D intensity is a core AI-chain metric and AMZN does not report it here; gross
+margin is undefined for CEG, ORCL and VST. So §5.2's composite must either renormalize over the
+present subscores *and record which were absent*, or abstain — never quietly average what is left.
+
+**F-C. `/vX` does not emit fields the method needs at all**: `capitalExpenditure`, `freeCashFlow`,
+total `debt`, `debtCurrent`, `cashAndEquivalents`, D&A, share-based comp, EBITDA, interest expense.
+`/v2` has all of them and is frozen at 2020-Q1, so current values need UW, SEC XBRL, or derivation.
+
+Two consequences for the **existing** `sources/massive_fundamentals.py`, which the new pipeline must
+not inherit: it maps `total_debt ← long_term_debt` (omits current debt, and is `na` for 8 of 23
+names) and computes `fcf = OCF + ICF`. **That is not free cash flow** — investing cash flow includes
+securities purchases and acquisitions, so the figure is neither FCF nor anything else with a name.
+Fixing the old M5 path is out of scope here; reproducing it in the new one is not acceptable.
+
+**F-D. `content_hash` exclusion list is `["request_id"]` — measured, not assumed.** Two identical
+`/vX` calls differ in exactly that one envelope key; the `results` rows are byte-identical. `next_url`
+varies only with request params, not between identical calls. `/v2`'s envelope is `{"status": "OK"}`
+with nothing volatile.
+
+**F-E. Overlap disagreements are real but mostly mine.** On the most recent common period, 21–26 of
+30 mapped fields match exactly. The disagreements split two ways, and the distinction is the useful
+part: **semantic mismatches in my map** (`/vX intangible_assets` excludes goodwill while `/v2
+goodwillAndIntangibleAssets` includes it; `/vX operating_expenses` is total costs where `/v2
+operatingExpenses` excludes COGS; `fixed_assets` vs `propertyPlantEquipmentNet` disagrees for all
+five tickers, which is the signature of a mapping error rather than a data defect) versus **`/vX`
+data defects** (the negative-liability and bad-share-count rows from F-A). A systematic
+same-direction gap across every ticker is a map bug; a scattered impossible value is a data bug.
+Before P1b's map is frozen, each F-E field needs a decided rule; `field_contract.json` holds the
+per-field evidence.
+
+**F-F. The ADR ratio is now measured, with a stated expiry.** `/v2` carries `shareFactor`: **TSM =
+0.2** (1 ADS = 5 ordinary shares) and **ASML = 1**, with `foreignCurrencyUSDExchangeRate` 30.2 TWD
+and 0.89 EUR. TSM's local-currency revenue divided by that rate reproduces `revenuesUSD` to within
+0.001%, so the mechanism is confirmed rather than merely present. But `/v2` is frozen at 2020-Q1 —
+this is a **starting value to re-verify, not a live feed**. It closes the §3.2 "unsourced" flag only
+for the historical window.
+
+### 3.4 The edge-graph reality (measured, 2026-08-10)
 
 Live EDGAR full-text probes. Controls pass (`"CoWoS"` → 10 hits, all NVDA 10-Ks).
 
@@ -344,6 +421,13 @@ restatement is a new row; the old one is never altered or deleted.
 | `fundamental_segment_obs` | PK `obs_id`; **UNIQUE `(source, ticker, period_end, dimension, segment_name, content_hash)`**; revenue, `filing_accession`, `first_observed_at`, `last_seen_at` | event-temporal → **DatasetRegistryEntry** |
 | `fundamental_edge_obs` | see §6 — PK `obs_id`, UNIQUE on `(filing_accession, fact_hash)` | event-temporal → **DatasetRegistryEntry** |
 | `sec_filing_documents` | PK `filing_accession`; `ticker`, `form`, `filing_date`, `filing_published_at`, `document` (compressed `BYTEA`), `fetched_at` | dimension, exempt |
+| `fundamental_obs_violations` | PK `violation_id`; **UNIQUE `(obs_id, check_name)`**; `obs_id` → `fundamental_statement_obs`, `check_name`, `field`, `observed_value`, `detail_jsonb`, `detected_at` | event-temporal → **DatasetRegistryEntry** |
+
+`fundamental_obs_violations` is what makes §5.1's gate auditable. Keyed on `(obs_id, check_name)`, so
+re-running INGEST over an unchanged observation is idempotent, and a restatement that fixes a bad
+figure gets a *new* `obs_id` with no violation rather than an edit to the old verdict — the record
+that the provider once served a negative liability survives the correction. §3.3 measured the rates
+this table will carry: ~5% negative liabilities, ~15% implausible share counts.
 
 **Identity is content, not fetch time.** The previous draft keyed observations on `observed_at`,
 which is when *we* fetched — so every unchanged refresh would have inserted another row, directly
@@ -462,6 +546,7 @@ selects where the run *starts*, never which stages it may skip in the middle:
 
 ```
 1 INGEST   source observations, immutable   → *_obs tables (§4.4)
+             + per-row validation verdict   → fundamental_obs_violations
 2 DERIVE   TTM, growth, margins, ratios     → pure functions, no I/O
 3 ANCHOR   company-type-routed valuation    → valuation_anchors
 4 SCORE    subscores → composite            → fundamental_scores
@@ -470,6 +555,18 @@ selects where the run *starts*, never which stages it may skip in the middle:
 refresh_external_facts        : 1 → 2 → 3 → 4 → (5 if requested)
 recompute_from_cached_facts   :     2 → 3 → 4 → (5 if requested)
 ```
+
+**INGEST validates, and a violation is a stored fact, not a log line** (measured — §3.3). The
+provider emits values that cannot be true of any company, so a stage that only stores what it is
+handed would pass a negative liability into a leverage ratio. INGEST therefore writes two things per
+row: the immutable observation, and a verdict. The observation is stored *either way* — quarantining
+the raw payload would destroy the evidence that the provider is wrong — but a field failing its check
+is marked unusable, and every downstream stage treats it as `na` rather than as a number.
+
+The checks are cheap and absolute: no negative `assets`/`liabilities`, no share count below
+`1_000_000` for a revenue-reporting filer, and `liabilities + equity = liabilities_and_equity` within
+0.5%. They test identities, not plausibility ranges — a rule that fires on "unusual" would need
+retuning per company and would be a judgement call; these are arithmetic.
 
 A refresh that stopped at stage 1 would hand the user new facts and stale numbers — the opposite of
 what "refresh" means. Both modes always land on fresh anchors and scores; only NARRATE is optional,
@@ -923,7 +1020,7 @@ Unanalysed cells render hatched rather than blank. A map that silently drops unc
 misrepresents coverage as completeness.
 
 **Node-link graph: deferred behind a kill criterion.** Build it only if P4's named-edge yield comes
-back materially above the handful measured in §3.3. If it does not, the matrix was always the correct
+back materially above the handful measured in §3.4. If it does not, the matrix was always the correct
 artifact and the renderer was never owed.
 
 **Aggregation.** All rollups are computed **read-time from S1 rows** (`reports/industry_graph.py`) —
@@ -947,7 +1044,7 @@ stops moving.
 | Phase | Ships | Gate | Verification |
 |---|---|---|---|
 | **P0** | Commit-bug fix + a test asserting through a **freshly opened connection**. Commit **per successful ticker**, rolling back only the failing ticker's transaction | Own PR — independent prod data-loss bug, deploys ahead of feature work | **Freshness delta, not row count**: record a ticker's `fetched_at` before the run, invoke the *real scheduled function*, then assert from a **new connection** that its `fetched_at` advanced past the run start. Plus a regression proving one ticker's DB error does not discard the tickers already processed |
-| **P1a** | **Data-contract spike** (no schema). ✅ **coverage matrix DONE** — `docs/research/2026-08-10-fundamental-source-coverage/` + `scripts/research/fundamental_source_coverage.py`. Remaining: the exact `/vX`→column field map, the `content_hash` normalization/exclusion rule, and a `/vX`∩`/v2` overlap reconciliation on one quarter. ✅ **FX sourced** — the mini lake's `asset_class=fx` partition holds USDTWD + EURUSD dailies back to 2003/2004 (§3.2), so translation is a `lake_resolver` registration when the fallback lands, not research. The **currency / XBRL-unit / ADR-ratio** contract still **defers with the UW/SEC fallback** (all 23 covered tickers are USD-only); the **ADR ratio remains genuinely unsourced** | The first draft chose a frozen endpoint for its field count; the second mis-probed `/v2` and read 404s as absence; the third shared a limit across endpoints and 400'd `/vX` for all 25. No ingestion is designed until every source is measured per ticker, not read about | ✅ every core ticker's real span and state recorded, reproducibly; the FX series that a foreign-issuer fallback would need are located and their span verified. Still open: an overlap-zone quarter agrees across `/vX` and `/v2` field-for-field (or the disagreement has a resolution rule); the field map is committed |
+| **P1a** | **Data-contract spike** (no schema). ✅ **coverage matrix DONE** — `docs/research/2026-08-10-fundamental-source-coverage/` + `scripts/research/fundamental_source_coverage.py`. ✅ **DONE** — two probes, both reproducible: `fundamental_source_coverage.py` (which tickers have data) and `fundamental_field_contract.py` (whether the data is usable). Delivered the 30-field `/vX`→canonical map, the measured `content_hash` exclusion list, the `/vX`∩`/v2` reconciliation, the FX source, and the ADR ratio (§3.2, §3.3) | The first draft chose a frozen endpoint for its field count; the second mis-probed `/v2` and read 404s as absence; the third shared a limit across endpoints and 400'd `/vX` for all 25. No ingestion is designed until every source is measured per ticker, not read about | ✅ span and state per core ticker; field map committed with measured per-ticker coverage; exclusion list measured as exactly `["request_id"]`; overlap reconciled with disagreements classified map-bug vs data-bug; FX series located and spanned; ADR ratio measured (TSM 0.2). **The probe also changed the design**: `/vX` emits impossible values at ~5%/~15% on current data, which is why §5.1 now has an INGEST validation gate and §4.4 a `fundamental_obs_violations` table |
 | **P1b** | Immutable observation tables + canonical views + backfill/incremental modes; registry entries | Scoring over 8 shallow quarters is the weakest possible imitation | Each core ticker reaches **its own** measured span (NVDA current via `/vX`; TSM/ASML history via `/v2` with the 2020→present gap rendered, not hidden); re-ingest is idempotent; a simulated restatement adds a row without destroying its predecessor; segment revenue matches the filed **10-K or 20-F** after unit normalization |
 | **P2** | Method appendix (worked examples) · method version tables · ANCHOR then SCORE · confidence downgrades · `fundamental_runs` + enqueued refresh endpoint | The method must be fixated before anything renders it | 3 hand-checked tickers reproduce hand-computed anchors from the appendix; recompute with unchanged inputs is idempotent; **flipping one ticker's `company_type` changes `inputs_hash` and yields new anchors**; a new method version coexists with the old on the same date; exactly one version is active |
 | **P3** | The card's deterministic blocks (§7) — subscores, anchor band, confidence reasons, coverage, provenance drill-down; API models + `gen:types` + tab/route wiring; loading/stale/error states | — | Every rendered number resolves to a persisted row; the coverage block lists a real `na`; a stale-version row renders as stale rather than current |
@@ -1029,7 +1126,13 @@ is a required test, not a suggestion.
 | T19 | TSM / ASML (no **current** `/vX` coverage; TSM additionally has no quarterly `/v2` rows) | falls back to UW, then SEC XBRL, then renders explicit `na` — never a blank that reads as zero |
 | T20c | A `/v2` count taken without `type=Q` | the coverage matrix records the **quarterly** count; an unfiltered total never stands in for it |
 | T20 | Non-calendar fiscal issuer (NVDA, AMD) in the overlap zone | quarters match on `end_date` ≡ `reportPeriod`; `calendarDate` is never used as the key |
-| T21 | Provider envelope changes (request id / timestamp) with identical financials | `content_hash` unchanged → no new observation |
+| T21 | Provider envelope changes (request id / timestamp) with identical financials | `content_hash` unchanged → no new observation. Exclusion list is exactly `["request_id"]` (§3.3 F-D) |
+| T22 | `/vX` row with `liabilities < 0` — use GOOGL 2026-03-31, real and measured | observation is **stored**, a `fundamental_obs_violations` row is written, and every leverage ratio downstream is `na` — never a negative-numerator number |
+| T22b | `/vX` row with a negative diluted share count — NVDA 2026-01-25, `−28,000,000` | no per-share figure is computed; EPS/anchors are `na` with the violation as the stated reason |
+| T22c | `liabilities + equity ≠ liabilities_and_equity` beyond 0.5% — AMZN 2025-06-30 | flagged; the balance-sheet-derived subscores abstain rather than rank on it |
+| T22d | INGEST re-runs over an unchanged violating observation | no duplicate violation row (`UNIQUE (obs_id, check_name)`); a restatement that fixes it creates a new `obs_id` with no violation, and the original verdict survives |
+| T23 | A ticker missing a mapped field entirely — `sga_expense` for MSFT, `gross_profit` for CEG (§3.3 F-B) | the subscore is `na`, the composite records **which** subscores were absent, and two tickers scored on different field sets are never presented as directly comparable |
+| T24 | The composite is computed for CEG (no gross margin) and NVDA (all fields) | either explicit renormalization with the absent set recorded, or abstention — a silent average over present subscores fails this test |
 
 Gates before merge: `uv run pytest`, ruff, `scripts/check_no_yahoo.py`, and under `web/`
 `npm run typecheck && npm run test && npm run lint && npm run build`, plus Playwright coverage of the

@@ -1,0 +1,2585 @@
+{
+  "probed_at": "2026-08-11",
+  "reproduce": "MASSIVE_API_KEY=... uv run python scripts/research/fundamental_field_contract.py",
+  "rel_tol": 0.005,
+  "field_map": [
+    {
+      "canonical": "revenue",
+      "vx_group": "income_statement",
+      "vx_field": "revenues",
+      "v2_key": "revenues"
+    },
+    {
+      "canonical": "cost_of_revenue",
+      "vx_group": "income_statement",
+      "vx_field": "cost_of_revenue",
+      "v2_key": "costOfRevenue"
+    },
+    {
+      "canonical": "gross_profit",
+      "vx_group": "income_statement",
+      "vx_field": "gross_profit",
+      "v2_key": "grossProfit"
+    },
+    {
+      "canonical": "operating_income",
+      "vx_group": "income_statement",
+      "vx_field": "operating_income_loss",
+      "v2_key": "operatingIncome"
+    },
+    {
+      "canonical": "operating_expenses",
+      "vx_group": "income_statement",
+      "vx_field": "operating_expenses",
+      "v2_key": "operatingExpenses"
+    },
+    {
+      "canonical": "pretax_income",
+      "vx_group": "income_statement",
+      "vx_field": "income_loss_from_continuing_operations_before_tax",
+      "v2_key": "earningsBeforeTax"
+    },
+    {
+      "canonical": "income_tax",
+      "vx_group": "income_statement",
+      "vx_field": "income_tax_expense_benefit",
+      "v2_key": "incomeTaxExpense"
+    },
+    {
+      "canonical": "net_income",
+      "vx_group": "income_statement",
+      "vx_field": "net_income_loss",
+      "v2_key": "netIncome"
+    },
+    {
+      "canonical": "rnd_expense",
+      "vx_group": "income_statement",
+      "vx_field": "research_and_development",
+      "v2_key": "researchAndDevelopmentExpense"
+    },
+    {
+      "canonical": "sga_expense",
+      "vx_group": "income_statement",
+      "vx_field": "selling_general_and_administrative_expenses",
+      "v2_key": "sellingGeneralAndAdministrativeExpense"
+    },
+    {
+      "canonical": "eps_diluted",
+      "vx_group": "income_statement",
+      "vx_field": "diluted_earnings_per_share",
+      "v2_key": "earningsPerDilutedShare"
+    },
+    {
+      "canonical": "eps_basic",
+      "vx_group": "income_statement",
+      "vx_field": "basic_earnings_per_share",
+      "v2_key": "earningsPerBasicShare"
+    },
+    {
+      "canonical": "diluted_shares",
+      "vx_group": "income_statement",
+      "vx_field": "diluted_average_shares",
+      "v2_key": "weightedAverageSharesDiluted"
+    },
+    {
+      "canonical": "basic_shares",
+      "vx_group": "income_statement",
+      "vx_field": "basic_average_shares",
+      "v2_key": "weightedAverageShares"
+    },
+    {
+      "canonical": "total_assets",
+      "vx_group": "balance_sheet",
+      "vx_field": "assets",
+      "v2_key": "assets"
+    },
+    {
+      "canonical": "current_assets",
+      "vx_group": "balance_sheet",
+      "vx_field": "current_assets",
+      "v2_key": "assetsCurrent"
+    },
+    {
+      "canonical": "noncurrent_assets",
+      "vx_group": "balance_sheet",
+      "vx_field": "noncurrent_assets",
+      "v2_key": "assetsNonCurrent"
+    },
+    {
+      "canonical": "total_liabilities",
+      "vx_group": "balance_sheet",
+      "vx_field": "liabilities",
+      "v2_key": "totalLiabilities"
+    },
+    {
+      "canonical": "current_liabilities",
+      "vx_group": "balance_sheet",
+      "vx_field": "current_liabilities",
+      "v2_key": "currentLiabilities"
+    },
+    {
+      "canonical": "noncurrent_liabilities",
+      "vx_group": "balance_sheet",
+      "vx_field": "noncurrent_liabilities",
+      "v2_key": "liabilitiesNonCurrent"
+    },
+    {
+      "canonical": "equity",
+      "vx_group": "balance_sheet",
+      "vx_field": "equity",
+      "v2_key": "shareholdersEquity"
+    },
+    {
+      "canonical": "inventory",
+      "vx_group": "balance_sheet",
+      "vx_field": "inventory",
+      "v2_key": "inventory"
+    },
+    {
+      "canonical": "accounts_payable",
+      "vx_group": "balance_sheet",
+      "vx_field": "accounts_payable",
+      "v2_key": "tradeAndNonTradePayables"
+    },
+    {
+      "canonical": "long_term_debt",
+      "vx_group": "balance_sheet",
+      "vx_field": "long_term_debt",
+      "v2_key": "debtNonCurrent"
+    },
+    {
+      "canonical": "fixed_assets",
+      "vx_group": "balance_sheet",
+      "vx_field": "fixed_assets",
+      "v2_key": "propertyPlantEquipmentNet"
+    },
+    {
+      "canonical": "intangible_assets",
+      "vx_group": "balance_sheet",
+      "vx_field": "intangible_assets",
+      "v2_key": "goodwillAndIntangibleAssets"
+    },
+    {
+      "canonical": "ocf",
+      "vx_group": "cash_flow_statement",
+      "vx_field": "net_cash_flow_from_operating_activities",
+      "v2_key": "netCashFlowFromOperations"
+    },
+    {
+      "canonical": "icf",
+      "vx_group": "cash_flow_statement",
+      "vx_field": "net_cash_flow_from_investing_activities",
+      "v2_key": "netCashFlowFromInvesting"
+    },
+    {
+      "canonical": "financing_cf",
+      "vx_group": "cash_flow_statement",
+      "vx_field": "net_cash_flow_from_financing_activities",
+      "v2_key": "netCashFlowFromFinancing"
+    },
+    {
+      "canonical": "net_cash_flow",
+      "vx_group": "cash_flow_statement",
+      "vx_field": "net_cash_flow",
+      "v2_key": "netCashFlow"
+    }
+  ],
+  "vx_missing_but_needed": {
+    "capital_expenditure": "capitalExpenditure",
+    "free_cash_flow": "freeCashFlow",
+    "total_debt": "debt",
+    "current_debt": "debtCurrent",
+    "cash_and_equivalents": "cashAndEquivalents",
+    "depreciation_amortization": "depreciationAmortizationAndAccretion",
+    "share_based_compensation": "shareBasedCompensation",
+    "ebitda": "earningsBeforeInterestTaxesDepreciationAmortization",
+    "deferred_revenue": "deferredRevenue",
+    "interest_expense": "interestExpense"
+  },
+  "inventory": {
+    "tickers_probed": [
+      "NVDA",
+      "AMD",
+      "AVGO",
+      "MRVL",
+      "AMAT",
+      "MU",
+      "MSFT",
+      "GOOGL",
+      "AMZN",
+      "META",
+      "ORCL",
+      "ANET",
+      "VRT",
+      "ETN",
+      "GEV",
+      "CEG",
+      "VST",
+      "DELL",
+      "SMCI",
+      "PLTR",
+      "CRWD",
+      "NOW",
+      "APP"
+    ],
+    "fields": {
+      "balance_sheet.accounts_payable": {
+        "present_in": 21,
+        "of": 23,
+        "coverage": 0.913,
+        "unit": "USD",
+        "label": "Accounts Payable",
+        "missing_for": [
+          "GEV",
+          "MU"
+        ]
+      },
+      "balance_sheet.accounts_receivable": {
+        "present_in": 3,
+        "of": 23,
+        "coverage": 0.13,
+        "unit": "USD",
+        "label": "Accounts Receivable",
+        "missing_for": [
+          "AMAT",
+          "AMD",
+          "AMZN",
+          "ANET",
+          "APP",
+          "AVGO",
+          "CEG",
+          "CRWD",
+          "DELL",
+          "GOOGL",
+          "META",
+          "MRVL",
+          "MSFT",
+          "NOW",
+          "NVDA",
+          "ORCL",
+          "PLTR",
+          "SMCI",
+          "VRT",
+          "VST"
+        ]
+      },
+      "balance_sheet.assets": {
+        "present_in": 23,
+        "of": 23,
+        "coverage": 1.0,
+        "unit": "USD",
+        "label": "Assets",
+        "missing_for": []
+      },
+      "balance_sheet.cash": {
+        "present_in": 2,
+        "of": 23,
+        "coverage": 0.087,
+        "unit": "USD",
+        "label": "Cash",
+        "missing_for": [
+          "AMAT",
+          "AMD",
+          "AMZN",
+          "ANET",
+          "APP",
+          "AVGO",
+          "CEG",
+          "CRWD",
+          "DELL",
+          "ETN",
+          "GEV",
+          "META",
+          "MRVL",
+          "MU",
+          "NOW",
+          "NVDA",
+          "ORCL",
+          "PLTR",
+          "SMCI",
+          "VRT",
+          "VST"
+        ]
+      },
+      "balance_sheet.commitments_and_contingencies": {
+        "present_in": 1,
+        "of": 23,
+        "coverage": 0.043,
+        "unit": "USD",
+        "label": "Commitments and Contingencies",
+        "missing_for": [
+          "AMAT",
+          "AMD",
+          "AMZN",
+          "ANET",
+          "APP",
+          "AVGO",
+          "CEG",
+          "CRWD",
+          "DELL",
+          "ETN",
+          "GEV",
+          "GOOGL",
+          "META",
+          "MRVL",
+          "MSFT",
+          "MU",
+          "NOW",
+          "ORCL",
+          "PLTR",
+          "SMCI",
+          "VRT",
+          "VST"
+        ]
+      },
+      "balance_sheet.current_assets": {
+        "present_in": 23,
+        "of": 23,
+        "coverage": 1.0,
+        "unit": "USD",
+        "label": "Current Assets",
+        "missing_for": []
+      },
+      "balance_sheet.current_liabilities": {
+        "present_in": 23,
+        "of": 23,
+        "coverage": 1.0,
+        "unit": "USD",
+        "label": "Current Liabilities",
+        "missing_for": []
+      },
+      "balance_sheet.equity": {
+        "present_in": 23,
+        "of": 23,
+        "coverage": 1.0,
+        "unit": "USD",
+        "label": "Equity",
+        "missing_for": []
+      },
+      "balance_sheet.equity_attributable_to_noncontrolling_interest": {
+        "present_in": 23,
+        "of": 23,
+        "coverage": 1.0,
+        "unit": "USD",
+        "label": "Equity Attributable To Noncontrolling Interest",
+        "missing_for": []
+      },
+      "balance_sheet.equity_attributable_to_parent": {
+        "present_in": 23,
+        "of": 23,
+        "coverage": 1.0,
+        "unit": "USD",
+        "label": "Equity Attributable To Parent",
+        "missing_for": []
+      },
+      "balance_sheet.fixed_assets": {
+        "present_in": 18,
+        "of": 23,
+        "coverage": 0.783,
+        "unit": "USD",
+        "label": "Fixed Assets",
+        "missing_for": [
+          "APP",
+          "GEV",
+          "GOOGL",
+          "META",
+          "MU"
+        ]
+      },
+      "balance_sheet.intangible_assets": {
+        "present_in": 15,
+        "of": 23,
+        "coverage": 0.652,
+        "unit": "USD",
+        "label": "Intangible Assets",
+        "missing_for": [
+          "ANET",
+          "APP",
+          "CEG",
+          "CRWD",
+          "MSFT",
+          "ORCL",
+          "PLTR",
+          "SMCI"
+        ]
+      },
+      "balance_sheet.inventory": {
+        "present_in": 18,
+        "of": 23,
+        "coverage": 0.783,
+        "unit": "USD",
+        "label": "Inventory",
+        "missing_for": [
+          "APP",
+          "CRWD",
+          "META",
+          "NOW",
+          "PLTR"
+        ]
+      },
+      "balance_sheet.liabilities": {
+        "present_in": 23,
+        "of": 23,
+        "coverage": 1.0,
+        "unit": "USD",
+        "label": "Liabilities",
+        "missing_for": []
+      },
+      "balance_sheet.liabilities_and_equity": {
+        "present_in": 23,
+        "of": 23,
+        "coverage": 1.0,
+        "unit": "USD",
+        "label": "Liabilities And Equity",
+        "missing_for": []
+      },
+      "balance_sheet.long_term_debt": {
+        "present_in": 15,
+        "of": 23,
+        "coverage": 0.652,
+        "unit": "USD",
+        "label": "Long-term Debt",
+        "missing_for": [
+          "AMAT",
+          "AMD",
+          "ANET",
+          "CRWD",
+          "GEV",
+          "ORCL",
+          "PLTR",
+          "SMCI"
+        ]
+      },
+      "balance_sheet.noncurrent_assets": {
+        "present_in": 23,
+        "of": 23,
+        "coverage": 1.0,
+        "unit": "USD",
+        "label": "Noncurrent Assets",
+        "missing_for": []
+      },
+      "balance_sheet.noncurrent_liabilities": {
+        "present_in": 23,
+        "of": 23,
+        "coverage": 1.0,
+        "unit": "USD",
+        "label": "Noncurrent Liabilities",
+        "missing_for": []
+      },
+      "balance_sheet.noncurrent_prepaid_expenses": {
+        "present_in": 1,
+        "of": 23,
+        "coverage": 0.043,
+        "unit": "USD",
+        "label": "Non-current Prepaid Expenses",
+        "missing_for": [
+          "AMAT",
+          "AMD",
+          "AMZN",
+          "ANET",
+          "APP",
+          "AVGO",
+          "CEG",
+          "CRWD",
+          "DELL",
+          "ETN",
+          "GEV",
+          "GOOGL",
+          "META",
+          "MSFT",
+          "MU",
+          "NOW",
+          "NVDA",
+          "ORCL",
+          "PLTR",
+          "SMCI",
+          "VRT",
+          "VST"
+        ]
+      },
+      "balance_sheet.other_current_assets": {
+        "present_in": 19,
+        "of": 23,
+        "coverage": 0.826,
+        "unit": "USD",
+        "label": "Other Current Assets",
+        "missing_for": [
+          "APP",
+          "META",
+          "NOW",
+          "PLTR"
+        ]
+      },
+      "balance_sheet.other_current_liabilities": {
+        "present_in": 23,
+        "of": 23,
+        "coverage": 1.0,
+        "unit": "USD",
+        "label": "Other Current Liabilities",
+        "missing_for": []
+      },
+      "balance_sheet.other_noncurrent_assets": {
+        "present_in": 22,
+        "of": 23,
+        "coverage": 0.957,
+        "unit": "USD",
+        "label": "Other Non-current Assets",
+        "missing_for": [
+          "APP"
+        ]
+      },
+      "balance_sheet.other_noncurrent_liabilities": {
+        "present_in": 15,
+        "of": 23,
+        "coverage": 0.652,
+        "unit": "USD",
+        "label": "Other Non-current Liabilities",
+        "missing_for": [
+          "AMAT",
+          "AMD",
+          "ANET",
+          "CRWD",
+          "GEV",
+          "ORCL",
+          "PLTR",
+          "SMCI"
+        ]
+      },
+      "balance_sheet.prepaid_expenses": {
+        "present_in": 3,
+        "of": 23,
+        "coverage": 0.13,
+        "unit": "USD",
+        "label": "Prepaid Expenses",
+        "missing_for": [
+          "AMAT",
+          "AMD",
+          "AMZN",
+          "ANET",
+          "APP",
+          "CEG",
+          "ETN",
+          "GEV",
+          "GOOGL",
+          "META",
+          "MRVL",
+          "MSFT",
+          "MU",
+          "NOW",
+          "NVDA",
+          "ORCL",
+          "PLTR",
+          "SMCI",
+          "VRT",
+          "VST"
+        ]
+      },
+      "balance_sheet.wages": {
+        "present_in": 18,
+        "of": 23,
+        "coverage": 0.783,
+        "unit": "USD",
+        "label": "Wages",
+        "missing_for": [
+          "ANET",
+          "APP",
+          "CEG",
+          "DELL",
+          "VST"
+        ]
+      },
+      "cash_flow_statement.exchange_gains_losses": {
+        "present_in": 11,
+        "of": 23,
+        "coverage": 0.478,
+        "unit": "USD",
+        "label": "Exchange Gains/Losses",
+        "missing_for": [
+          "AMAT",
+          "AMD",
+          "AMZN",
+          "AVGO",
+          "CEG",
+          "DELL",
+          "GEV",
+          "MRVL",
+          "MSFT",
+          "NVDA",
+          "ORCL",
+          "VST"
+        ]
+      },
+      "cash_flow_statement.net_cash_flow": {
+        "present_in": 23,
+        "of": 23,
+        "coverage": 1.0,
+        "unit": "USD",
+        "label": "Net Cash Flow",
+        "missing_for": []
+      },
+      "cash_flow_statement.net_cash_flow_continuing": {
+        "present_in": 23,
+        "of": 23,
+        "coverage": 1.0,
+        "unit": "USD",
+        "label": "Net Cash Flow, Continuing",
+        "missing_for": []
+      },
+      "cash_flow_statement.net_cash_flow_discontinued": {
+        "present_in": 1,
+        "of": 23,
+        "coverage": 0.043,
+        "unit": "USD",
+        "label": "Net Cash Flow, Discontinued",
+        "missing_for": [
+          "AMAT",
+          "AMZN",
+          "ANET",
+          "APP",
+          "AVGO",
+          "CEG",
+          "CRWD",
+          "DELL",
+          "ETN",
+          "GEV",
+          "GOOGL",
+          "META",
+          "MRVL",
+          "MSFT",
+          "MU",
+          "NOW",
+          "NVDA",
+          "ORCL",
+          "PLTR",
+          "SMCI",
+          "VRT",
+          "VST"
+        ]
+      },
+      "cash_flow_statement.net_cash_flow_from_financing_activities": {
+        "present_in": 23,
+        "of": 23,
+        "coverage": 1.0,
+        "unit": "USD",
+        "label": "Net Cash Flow From Financing Activities",
+        "missing_for": []
+      },
+      "cash_flow_statement.net_cash_flow_from_financing_activities_continuing": {
+        "present_in": 23,
+        "of": 23,
+        "coverage": 1.0,
+        "unit": "USD",
+        "label": "Net Cash Flow From Financing Activities, Continuing",
+        "missing_for": []
+      },
+      "cash_flow_statement.net_cash_flow_from_investing_activities": {
+        "present_in": 23,
+        "of": 23,
+        "coverage": 1.0,
+        "unit": "USD",
+        "label": "Net Cash Flow From Investing Activities",
+        "missing_for": []
+      },
+      "cash_flow_statement.net_cash_flow_from_investing_activities_continuing": {
+        "present_in": 23,
+        "of": 23,
+        "coverage": 1.0,
+        "unit": "USD",
+        "label": "Net Cash Flow From Investing Activities, Continuing",
+        "missing_for": []
+      },
+      "cash_flow_statement.net_cash_flow_from_investing_activities_discontinued": {
+        "present_in": 1,
+        "of": 23,
+        "coverage": 0.043,
+        "unit": "USD",
+        "label": "Net Cash Flow From Investing Activities, Discontinued",
+        "missing_for": [
+          "AMAT",
+          "AMZN",
+          "ANET",
+          "APP",
+          "AVGO",
+          "CEG",
+          "CRWD",
+          "DELL",
+          "ETN",
+          "GEV",
+          "GOOGL",
+          "META",
+          "MRVL",
+          "MSFT",
+          "MU",
+          "NOW",
+          "NVDA",
+          "ORCL",
+          "PLTR",
+          "SMCI",
+          "VRT",
+          "VST"
+        ]
+      },
+      "cash_flow_statement.net_cash_flow_from_operating_activities": {
+        "present_in": 23,
+        "of": 23,
+        "coverage": 1.0,
+        "unit": "USD",
+        "label": "Net Cash Flow From Operating Activities",
+        "missing_for": []
+      },
+      "cash_flow_statement.net_cash_flow_from_operating_activities_continuing": {
+        "present_in": 23,
+        "of": 23,
+        "coverage": 1.0,
+        "unit": "USD",
+        "label": "Net Cash Flow From Operating Activities, Continuing",
+        "missing_for": []
+      },
+      "cash_flow_statement.net_cash_flow_from_operating_activities_discontinued": {
+        "present_in": 1,
+        "of": 23,
+        "coverage": 0.043,
+        "unit": "USD",
+        "label": "Net Cash Flow From Operating Activities, Discontinued",
+        "missing_for": [
+          "AMAT",
+          "AMZN",
+          "ANET",
+          "APP",
+          "AVGO",
+          "CEG",
+          "CRWD",
+          "DELL",
+          "ETN",
+          "GEV",
+          "GOOGL",
+          "META",
+          "MRVL",
+          "MSFT",
+          "MU",
+          "NOW",
+          "NVDA",
+          "ORCL",
+          "PLTR",
+          "SMCI",
+          "VRT",
+          "VST"
+        ]
+      },
+      "comprehensive_income.comprehensive_income_loss": {
+        "present_in": 23,
+        "of": 23,
+        "coverage": 1.0,
+        "unit": "USD",
+        "label": "Comprehensive Income/Loss",
+        "missing_for": []
+      },
+      "comprehensive_income.comprehensive_income_loss_attributable_to_noncontrolling_interest": {
+        "present_in": 23,
+        "of": 23,
+        "coverage": 1.0,
+        "unit": "USD",
+        "label": "Comprehensive Income/Loss Attributable To Noncontrolling Interest",
+        "missing_for": []
+      },
+      "comprehensive_income.comprehensive_income_loss_attributable_to_parent": {
+        "present_in": 23,
+        "of": 23,
+        "coverage": 1.0,
+        "unit": "USD",
+        "label": "Comprehensive Income/Loss Attributable To Parent",
+        "missing_for": []
+      },
+      "comprehensive_income.other_comprehensive_income_loss": {
+        "present_in": 23,
+        "of": 23,
+        "coverage": 1.0,
+        "unit": "USD",
+        "label": "Other Comprehensive Income/Loss",
+        "missing_for": []
+      },
+      "comprehensive_income.other_comprehensive_income_loss_attributable_to_parent": {
+        "present_in": 13,
+        "of": 23,
+        "coverage": 0.565,
+        "unit": "USD",
+        "label": "Other Comprehensive Income/Loss Attributable To Parent",
+        "missing_for": [
+          "AMD",
+          "AMZN",
+          "AVGO",
+          "CEG",
+          "CRWD",
+          "GEV",
+          "MRVL",
+          "MU",
+          "NOW",
+          "VST"
+        ]
+      },
+      "income_statement.basic_average_shares": {
+        "present_in": 23,
+        "of": 23,
+        "coverage": 1.0,
+        "unit": "shares",
+        "label": "Basic Average Shares",
+        "missing_for": []
+      },
+      "income_statement.basic_earnings_per_share": {
+        "present_in": 23,
+        "of": 23,
+        "coverage": 1.0,
+        "unit": "USD / shares",
+        "label": "Basic Earnings Per Share",
+        "missing_for": []
+      },
+      "income_statement.benefits_costs_expenses": {
+        "present_in": 23,
+        "of": 23,
+        "coverage": 1.0,
+        "unit": "USD",
+        "label": "Benefits Costs and Expenses",
+        "missing_for": []
+      },
+      "income_statement.common_stock_dividends": {
+        "present_in": 5,
+        "of": 23,
+        "coverage": 0.217,
+        "unit": "USD / shares",
+        "label": "Common Stock Dividends",
+        "missing_for": [
+          "AMAT",
+          "AMD",
+          "AMZN",
+          "ANET",
+          "APP",
+          "CEG",
+          "CRWD",
+          "DELL",
+          "ETN",
+          "GEV",
+          "GOOGL",
+          "META",
+          "MSFT",
+          "NOW",
+          "NVDA",
+          "PLTR",
+          "SMCI",
+          "VRT"
+        ]
+      },
+      "income_statement.cost_of_revenue": {
+        "present_in": 20,
+        "of": 23,
+        "coverage": 0.87,
+        "unit": "USD",
+        "label": "Cost Of Revenue",
+        "missing_for": [
+          "CEG",
+          "ORCL",
+          "VST"
+        ]
+      },
+      "income_statement.costs_and_expenses": {
+        "present_in": 23,
+        "of": 23,
+        "coverage": 1.0,
+        "unit": "USD",
+        "label": "Costs And Expenses",
+        "missing_for": []
+      },
+      "income_statement.depreciation_and_amortization": {
+        "present_in": 1,
+        "of": 23,
+        "coverage": 0.043,
+        "unit": "USD",
+        "label": "Depreciation and Amortization",
+        "missing_for": [
+          "AMD",
+          "AMZN",
+          "ANET",
+          "APP",
+          "AVGO",
+          "CEG",
+          "CRWD",
+          "DELL",
+          "ETN",
+          "GEV",
+          "GOOGL",
+          "META",
+          "MRVL",
+          "MSFT",
+          "MU",
+          "NOW",
+          "NVDA",
+          "ORCL",
+          "PLTR",
+          "SMCI",
+          "VRT",
+          "VST"
+        ]
+      },
+      "income_statement.diluted_average_shares": {
+        "present_in": 23,
+        "of": 23,
+        "coverage": 1.0,
+        "unit": "shares",
+        "label": "Diluted Average Shares",
+        "missing_for": []
+      },
+      "income_statement.diluted_earnings_per_share": {
+        "present_in": 23,
+        "of": 23,
+        "coverage": 1.0,
+        "unit": "USD / shares",
+        "label": "Diluted Earnings Per Share",
+        "missing_for": []
+      },
+      "income_statement.gross_profit": {
+        "present_in": 20,
+        "of": 23,
+        "coverage": 0.87,
+        "unit": "USD",
+        "label": "Gross Profit",
+        "missing_for": [
+          "CEG",
+          "ORCL",
+          "VST"
+        ]
+      },
+      "income_statement.income_loss_before_equity_method_investments": {
+        "present_in": 6,
+        "of": 23,
+        "coverage": 0.261,
+        "unit": "USD",
+        "label": "Income/Loss Before Equity Method Investments",
+        "missing_for": [
+          "AMAT",
+          "ANET",
+          "APP",
+          "AVGO",
+          "CRWD",
+          "DELL",
+          "ETN",
+          "GOOGL",
+          "META",
+          "MRVL",
+          "MSFT",
+          "NOW",
+          "NVDA",
+          "ORCL",
+          "PLTR",
+          "VRT",
+          "VST"
+        ]
+      },
+      "income_statement.income_loss_from_continuing_operations_after_tax": {
+        "present_in": 23,
+        "of": 23,
+        "coverage": 1.0,
+        "unit": "USD",
+        "label": "Income/Loss From Continuing Operations After Tax",
+        "missing_for": []
+      },
+      "income_statement.income_loss_from_continuing_operations_before_tax": {
+        "present_in": 23,
+        "of": 23,
+        "coverage": 1.0,
+        "unit": "USD",
+        "label": "Income/Loss From Continuing Operations Before Tax",
+        "missing_for": []
+      },
+      "income_statement.income_loss_from_discontinued_operations_net_of_tax": {
+        "present_in": 3,
+        "of": 23,
+        "coverage": 0.13,
+        "unit": "USD",
+        "label": "Income/Loss From Discontinued Operations Net Of Tax",
+        "missing_for": [
+          "AMAT",
+          "AMZN",
+          "ANET",
+          "CEG",
+          "CRWD",
+          "DELL",
+          "ETN",
+          "GEV",
+          "GOOGL",
+          "META",
+          "MRVL",
+          "MSFT",
+          "MU",
+          "NOW",
+          "NVDA",
+          "ORCL",
+          "PLTR",
+          "SMCI",
+          "VRT",
+          "VST"
+        ]
+      },
+      "income_statement.income_loss_from_equity_method_investments": {
+        "present_in": 6,
+        "of": 23,
+        "coverage": 0.261,
+        "unit": "USD",
+        "label": "Income/Loss From Equity Method Investments",
+        "missing_for": [
+          "AMAT",
+          "ANET",
+          "APP",
+          "AVGO",
+          "CRWD",
+          "DELL",
+          "ETN",
+          "GOOGL",
+          "META",
+          "MRVL",
+          "MSFT",
+          "NOW",
+          "NVDA",
+          "ORCL",
+          "PLTR",
+          "VRT",
+          "VST"
+        ]
+      },
+      "income_statement.income_tax_expense_benefit": {
+        "present_in": 23,
+        "of": 23,
+        "coverage": 1.0,
+        "unit": "USD",
+        "label": "Income Tax Expense/Benefit",
+        "missing_for": []
+      },
+      "income_statement.income_tax_expense_benefit_deferred": {
+        "present_in": 8,
+        "of": 23,
+        "coverage": 0.348,
+        "unit": "USD",
+        "label": "Income Tax Expense/Benefit, Deferred",
+        "missing_for": [
+          "AMAT",
+          "AMD",
+          "APP",
+          "AVGO",
+          "CEG",
+          "DELL",
+          "ETN",
+          "GEV",
+          "GOOGL",
+          "MU",
+          "NOW",
+          "PLTR",
+          "SMCI",
+          "VRT",
+          "VST"
+        ]
+      },
+      "income_statement.interest_expense_operating": {
+        "present_in": 4,
+        "of": 23,
+        "coverage": 0.174,
+        "unit": "USD",
+        "label": "Interest Expense, Operating",
+        "missing_for": [
+          "AMAT",
+          "AMZN",
+          "ANET",
+          "APP",
+          "CEG",
+          "CRWD",
+          "DELL",
+          "ETN",
+          "GEV",
+          "GOOGL",
+          "META",
+          "MRVL",
+          "MSFT",
+          "MU",
+          "NOW",
+          "NVDA",
+          "PLTR",
+          "SMCI",
+          "VST"
+        ]
+      },
+      "income_statement.net_income_loss": {
+        "present_in": 23,
+        "of": 23,
+        "coverage": 1.0,
+        "unit": "USD",
+        "label": "Net Income/Loss",
+        "missing_for": []
+      },
+      "income_statement.net_income_loss_attributable_to_noncontrolling_interest": {
+        "present_in": 23,
+        "of": 23,
+        "coverage": 1.0,
+        "unit": "USD",
+        "label": "Net Income/Loss Attributable To Noncontrolling Interest",
+        "missing_for": []
+      },
+      "income_statement.net_income_loss_attributable_to_parent": {
+        "present_in": 23,
+        "of": 23,
+        "coverage": 1.0,
+        "unit": "USD",
+        "label": "Net Income/Loss Attributable To Parent",
+        "missing_for": []
+      },
+      "income_statement.net_income_loss_available_to_common_stockholders_basic": {
+        "present_in": 23,
+        "of": 23,
+        "coverage": 1.0,
+        "unit": "USD",
+        "label": "Net Income/Loss Available To Common Stockholders, Basic",
+        "missing_for": []
+      },
+      "income_statement.nonoperating_income_loss": {
+        "present_in": 11,
+        "of": 23,
+        "coverage": 0.478,
+        "unit": "USD",
+        "label": "Nonoperating Income/Loss",
+        "missing_for": [
+          "AMAT",
+          "AMD",
+          "AVGO",
+          "CRWD",
+          "ETN",
+          "GEV",
+          "MU",
+          "NOW",
+          "ORCL",
+          "PLTR",
+          "VRT",
+          "VST"
+        ]
+      },
+      "income_statement.operating_expenses": {
+        "present_in": 23,
+        "of": 23,
+        "coverage": 1.0,
+        "unit": "USD",
+        "label": "Operating Expenses",
+        "missing_for": []
+      },
+      "income_statement.operating_income_loss": {
+        "present_in": 23,
+        "of": 23,
+        "coverage": 1.0,
+        "unit": "USD",
+        "label": "Operating Income/Loss",
+        "missing_for": []
+      },
+      "income_statement.other_operating_expenses": {
+        "present_in": 19,
+        "of": 23,
+        "coverage": 0.826,
+        "unit": "USD",
+        "label": "Other Operating Expenses",
+        "missing_for": [
+          "AMZN",
+          "CEG",
+          "DELL",
+          "NVDA"
+        ]
+      },
+      "income_statement.participating_securities_distributed_and_undistributed_earnings_loss_basic": {
+        "present_in": 23,
+        "of": 23,
+        "coverage": 1.0,
+        "unit": "USD",
+        "label": "Participating Securities, Distributed And Undistributed Earnings/Loss, Basic",
+        "missing_for": []
+      },
+      "income_statement.preferred_stock_dividends_and_other_adjustments": {
+        "present_in": 23,
+        "of": 23,
+        "coverage": 1.0,
+        "unit": "USD",
+        "label": "Preferred Stock Dividends And Other Adjustments",
+        "missing_for": []
+      },
+      "income_statement.research_and_development": {
+        "present_in": 19,
+        "of": 23,
+        "coverage": 0.826,
+        "unit": "USD",
+        "label": "Research and Development",
+        "missing_for": [
+          "AMZN",
+          "CEG",
+          "VRT",
+          "VST"
+        ]
+      },
+      "income_statement.revenues": {
+        "present_in": 23,
+        "of": 23,
+        "coverage": 1.0,
+        "unit": "USD",
+        "label": "Revenues",
+        "missing_for": []
+      },
+      "income_statement.selling_general_and_administrative_expenses": {
+        "present_in": 11,
+        "of": 23,
+        "coverage": 0.478,
+        "unit": "USD",
+        "label": "Selling, General, and Administrative Expenses",
+        "missing_for": [
+          "AMZN",
+          "ANET",
+          "APP",
+          "CEG",
+          "CRWD",
+          "GOOGL",
+          "META",
+          "MSFT",
+          "NOW",
+          "ORCL",
+          "PLTR",
+          "SMCI"
+        ]
+      }
+    }
+  },
+  "overlap_reconciliation": {
+    "NVDA": {
+      "period": "2020-01-26",
+      "n_common_periods": 37,
+      "overlap_span": [
+        "2011-01-30",
+        "2020-01-26"
+      ],
+      "fields": {
+        "revenue": {
+          "vX": 3105000000.0,
+          "v2": 3105000000.0,
+          "verdict": "exact"
+        },
+        "cost_of_revenue": {
+          "vX": 1090000000.0,
+          "v2": 1090000000.0,
+          "verdict": "exact"
+        },
+        "gross_profit": {
+          "vX": 2015000000.0,
+          "v2": 2015000000.0,
+          "verdict": "exact"
+        },
+        "operating_income": {
+          "vX": 990000000.0,
+          "v2": 990000000.0,
+          "verdict": "exact"
+        },
+        "operating_expenses": {
+          "vX": 1025000000.0,
+          "v2": 1025000000.0,
+          "verdict": "exact"
+        },
+        "pretax_income": {
+          "vX": 3105000000.0,
+          "v2": 1016000000.0,
+          "rel_diff": 0.672786,
+          "verdict": "DISAGREE"
+        },
+        "income_tax": {
+          "vX": 65000000.0,
+          "v2": 65000000.0,
+          "verdict": "exact"
+        },
+        "net_income": {
+          "vX": 950000000.0,
+          "v2": 951000000.0,
+          "rel_diff": 0.001052,
+          "verdict": "within_tol"
+        },
+        "rnd_expense": {
+          "vX": 738000000.0,
+          "v2": 738000000.0,
+          "verdict": "exact"
+        },
+        "sga_expense": {
+          "vX": 287000000.0,
+          "v2": 287000000.0,
+          "verdict": "exact"
+        },
+        "eps_diluted": {
+          "vX": 1.53,
+          "v2": 1.53,
+          "verdict": "exact"
+        },
+        "eps_basic": {
+          "vX": 1.55,
+          "v2": 1.56,
+          "rel_diff": 0.00641,
+          "verdict": "DISAGREE"
+        },
+        "diluted_shares": {
+          "vX": 1000000.0,
+          "v2": 621000000.0,
+          "rel_diff": 0.99839,
+          "verdict": "DISAGREE"
+        },
+        "basic_shares": {
+          "vX": 0.0,
+          "v2": 609000000.0,
+          "rel_diff": 1.0,
+          "verdict": "DISAGREE"
+        },
+        "total_assets": {
+          "vX": 17315000000.0,
+          "v2": 17315000000.0,
+          "verdict": "exact"
+        },
+        "current_assets": {
+          "vX": 13690000000.0,
+          "v2": 13690000000.0,
+          "verdict": "exact"
+        },
+        "noncurrent_assets": {
+          "vX": 3625000000.0,
+          "v2": 3625000000.0,
+          "verdict": "exact"
+        },
+        "total_liabilities": {
+          "vX": 5111000000.0,
+          "v2": 5111000000.0,
+          "verdict": "exact"
+        },
+        "current_liabilities": {
+          "vX": 1784000000.0,
+          "v2": 1784000000.0,
+          "verdict": "exact"
+        },
+        "noncurrent_liabilities": {
+          "vX": 3327000000.0,
+          "v2": 3327000000.0,
+          "verdict": "exact"
+        },
+        "equity": {
+          "vX": 12204000000.0,
+          "v2": 12204000000.0,
+          "verdict": "exact"
+        },
+        "inventory": {
+          "vX": 979000000.0,
+          "v2": 979000000.0,
+          "verdict": "exact"
+        },
+        "accounts_payable": {
+          "vX": 687000000.0,
+          "v2": 687000000.0,
+          "verdict": "exact"
+        },
+        "long_term_debt": {
+          "vX": 1991000000.0,
+          "v2": 2552000000.0,
+          "rel_diff": 0.219828,
+          "verdict": "DISAGREE"
+        },
+        "fixed_assets": {
+          "vX": 1674000000.0,
+          "v2": 2292000000.0,
+          "rel_diff": 0.269634,
+          "verdict": "DISAGREE"
+        },
+        "intangible_assets": {
+          "vX": 49000000.0,
+          "v2": 667000000.0,
+          "rel_diff": 0.926537,
+          "verdict": "DISAGREE"
+        },
+        "ocf": {
+          "vX": 1465000000.0,
+          "v2": 1465000000.0,
+          "verdict": "exact"
+        },
+        "icf": {
+          "vX": -151000000.0,
+          "v2": -151000000.0,
+          "verdict": "exact"
+        },
+        "financing_cf": {
+          "vX": -183000000.0,
+          "v2": -183000000.0,
+          "verdict": "exact"
+        },
+        "net_cash_flow": {
+          "vX": 1131000000.0,
+          "v2": 1131000000.0,
+          "verdict": "exact"
+        }
+      },
+      "summary": {
+        "exact": 22,
+        "within_tol": 1,
+        "DISAGREE": 7,
+        "missing_one_side": 0
+      }
+    },
+    "AMD": {
+      "period": "2020-03-28",
+      "n_common_periods": 39,
+      "overlap_span": [
+        "2010-06-26",
+        "2020-03-28"
+      ],
+      "fields": {
+        "revenue": {
+          "vX": 1786000000.0,
+          "v2": 1786000000.0,
+          "verdict": "exact"
+        },
+        "cost_of_revenue": {
+          "vX": 968000000.0,
+          "v2": 968000000.0,
+          "verdict": "exact"
+        },
+        "gross_profit": {
+          "vX": 818000000.0,
+          "v2": 818000000.0,
+          "verdict": "exact"
+        },
+        "operating_income": {
+          "vX": 177000000.0,
+          "v2": 177000000.0,
+          "verdict": "exact"
+        },
+        "operating_expenses": {
+          "vX": 641000000.0,
+          "v2": 641000000.0,
+          "verdict": "exact"
+        },
+        "pretax_income": {
+          "vX": 168000000.0,
+          "v2": 168000000.0,
+          "verdict": "exact"
+        },
+        "income_tax": {
+          "vX": 6000000.0,
+          "v2": 6000000.0,
+          "verdict": "exact"
+        },
+        "net_income": {
+          "vX": 162000000.0,
+          "v2": 162000000.0,
+          "verdict": "exact"
+        },
+        "rnd_expense": {
+          "vX": 442000000.0,
+          "v2": 442000000.0,
+          "verdict": "exact"
+        },
+        "sga_expense": {
+          "vX": 199000000.0,
+          "v2": 199000000.0,
+          "verdict": "exact"
+        },
+        "eps_diluted": {
+          "vX": 0.14,
+          "v2": 0.14,
+          "verdict": "exact"
+        },
+        "eps_basic": {
+          "vX": 0.14,
+          "v2": 0.14,
+          "verdict": "exact"
+        },
+        "diluted_shares": {
+          "vX": 1224000000.0,
+          "v2": 1224000000.0,
+          "verdict": "exact"
+        },
+        "basic_shares": {
+          "vX": 1170000000.0,
+          "v2": 1170000000.0,
+          "verdict": "exact"
+        },
+        "total_assets": {
+          "vX": 5864000000.0,
+          "v2": 5864000000.0,
+          "verdict": "exact"
+        },
+        "current_assets": {
+          "vX": 4390000000.0,
+          "v2": 4390000000.0,
+          "verdict": "exact"
+        },
+        "noncurrent_assets": {
+          "vX": 1474000000.0,
+          "v2": 1474000000.0,
+          "verdict": "exact"
+        },
+        "total_liabilities": {
+          "vX": 2827000000.0,
+          "v2": 2827000000.0,
+          "verdict": "exact"
+        },
+        "current_liabilities": {
+          "vX": 1985000000.0,
+          "v2": 1985000000.0,
+          "verdict": "exact"
+        },
+        "noncurrent_liabilities": {
+          "vX": 842000000.0,
+          "v2": 842000000.0,
+          "verdict": "exact"
+        },
+        "equity": {
+          "vX": 3037000000.0,
+          "v2": 3037000000.0,
+          "verdict": "exact"
+        },
+        "inventory": {
+          "vX": 1056000000.0,
+          "v2": 1056000000.0,
+          "verdict": "exact"
+        },
+        "accounts_payable": {
+          "vX": 653000000.0,
+          "v2": 840000000.0,
+          "rel_diff": 0.222619,
+          "verdict": "DISAGREE"
+        },
+        "long_term_debt": {
+          "vX": null,
+          "v2": 699000000.0,
+          "verdict": "missing_one_side"
+        },
+        "fixed_assets": {
+          "vX": 540000000.0,
+          "v2": 761000000.0,
+          "rel_diff": 0.290407,
+          "verdict": "DISAGREE"
+        },
+        "intangible_assets": {
+          "vX": null,
+          "v2": 289000000.0,
+          "verdict": "missing_one_side"
+        },
+        "ocf": {
+          "vX": -65000000.0,
+          "v2": -65000000.0,
+          "verdict": "exact"
+        },
+        "icf": {
+          "vX": -73000000.0,
+          "v2": -73000000.0,
+          "verdict": "exact"
+        },
+        "financing_cf": {
+          "vX": 2000000.0,
+          "v2": 2000000.0,
+          "verdict": "exact"
+        },
+        "net_cash_flow": {
+          "vX": -136000000.0,
+          "v2": -136000000.0,
+          "verdict": "exact"
+        }
+      },
+      "summary": {
+        "exact": 26,
+        "within_tol": 0,
+        "DISAGREE": 2,
+        "missing_one_side": 2
+      }
+    },
+    "MSFT": {
+      "period": "2020-03-31",
+      "n_common_periods": 41,
+      "overlap_span": [
+        "2009-09-30",
+        "2020-03-31"
+      ],
+      "fields": {
+        "revenue": {
+          "vX": 35021000000.0,
+          "v2": 35021000000.0,
+          "verdict": "exact"
+        },
+        "cost_of_revenue": {
+          "vX": 10975000000.0,
+          "v2": 10975000000.0,
+          "verdict": "exact"
+        },
+        "gross_profit": {
+          "vX": 24046000000.0,
+          "v2": 24046000000.0,
+          "verdict": "exact"
+        },
+        "operating_income": {
+          "vX": 12975000000.0,
+          "v2": 12975000000.0,
+          "verdict": "exact"
+        },
+        "operating_expenses": {
+          "vX": 11071000000.0,
+          "v2": 11071000000.0,
+          "verdict": "exact"
+        },
+        "pretax_income": {
+          "vX": 12843000000.0,
+          "v2": 12843000000.0,
+          "verdict": "exact"
+        },
+        "income_tax": {
+          "vX": 2091000000.0,
+          "v2": 2091000000.0,
+          "verdict": "exact"
+        },
+        "net_income": {
+          "vX": 10752000000.0,
+          "v2": 10752000000.0,
+          "verdict": "exact"
+        },
+        "rnd_expense": {
+          "vX": 4887000000.0,
+          "v2": 4887000000.0,
+          "verdict": "exact"
+        },
+        "sga_expense": {
+          "vX": null,
+          "v2": 6184000000.0,
+          "verdict": "missing_one_side"
+        },
+        "eps_diluted": {
+          "vX": 1.4,
+          "v2": 1.4,
+          "verdict": "exact"
+        },
+        "eps_basic": {
+          "vX": 1.41,
+          "v2": 1.41,
+          "verdict": "exact"
+        },
+        "diluted_shares": {
+          "vX": 7675000000.0,
+          "v2": 7675000000.0,
+          "verdict": "exact"
+        },
+        "basic_shares": {
+          "vX": 7602000000.0,
+          "v2": 7602000000.0,
+          "verdict": "exact"
+        },
+        "total_assets": {
+          "vX": 285449000000.0,
+          "v2": 285449000000.0,
+          "verdict": "exact"
+        },
+        "current_assets": {
+          "vX": 170505000000.0,
+          "v2": 170505000000.0,
+          "verdict": "exact"
+        },
+        "noncurrent_assets": {
+          "vX": 114944000000.0,
+          "v2": 114944000000.0,
+          "verdict": "exact"
+        },
+        "total_liabilities": {
+          "vX": 170948000000.0,
+          "v2": 170948000000.0,
+          "verdict": "exact"
+        },
+        "current_liabilities": {
+          "vX": 58707000000.0,
+          "v2": 58707000000.0,
+          "verdict": "exact"
+        },
+        "noncurrent_liabilities": {
+          "vX": 112241000000.0,
+          "v2": 112241000000.0,
+          "verdict": "exact"
+        },
+        "equity": {
+          "vX": 114501000000.0,
+          "v2": 114501000000.0,
+          "verdict": "exact"
+        },
+        "inventory": {
+          "vX": 1644000000.0,
+          "v2": 1644000000.0,
+          "verdict": "exact"
+        },
+        "accounts_payable": {
+          "vX": 9246000000.0,
+          "v2": 9246000000.0,
+          "verdict": "exact"
+        },
+        "long_term_debt": {
+          "vX": 66610000000.0,
+          "v2": 70110000000.0,
+          "rel_diff": 0.049922,
+          "verdict": "DISAGREE"
+        },
+        "fixed_assets": {
+          "vX": 41221000000.0,
+          "v2": 49669000000.0,
+          "rel_diff": 0.170086,
+          "verdict": "DISAGREE"
+        },
+        "intangible_assets": {
+          "vX": null,
+          "v2": 48919000000.0,
+          "verdict": "missing_one_side"
+        },
+        "ocf": {
+          "vX": 17504000000.0,
+          "v2": 17504000000.0,
+          "verdict": "exact"
+        },
+        "icf": {
+          "vX": 51000000.0,
+          "v2": 51000000.0,
+          "verdict": "exact"
+        },
+        "financing_cf": {
+          "vX": -14645000000.0,
+          "v2": -14645000000.0,
+          "verdict": "exact"
+        },
+        "net_cash_flow": {
+          "vX": 2846000000.0,
+          "v2": 2846000000.0,
+          "verdict": "exact"
+        }
+      },
+      "summary": {
+        "exact": 26,
+        "within_tol": 0,
+        "DISAGREE": 2,
+        "missing_one_side": 2
+      }
+    },
+    "AMZN": {
+      "period": "2020-03-31",
+      "n_common_periods": 43,
+      "overlap_span": [
+        "2009-06-30",
+        "2020-03-31"
+      ],
+      "fields": {
+        "revenue": {
+          "vX": 75452000000.0,
+          "v2": 75452000000.0,
+          "verdict": "exact"
+        },
+        "cost_of_revenue": {
+          "vX": 44257000000.0,
+          "v2": 44257000000.0,
+          "verdict": "exact"
+        },
+        "gross_profit": {
+          "vX": 31195000000.0,
+          "v2": 31195000000.0,
+          "verdict": "exact"
+        },
+        "operating_income": {
+          "vX": 3989000000.0,
+          "v2": 3989000000.0,
+          "verdict": "exact"
+        },
+        "operating_expenses": {
+          "vX": 71463000000.0,
+          "v2": 27206000000.0,
+          "rel_diff": 0.619299,
+          "verdict": "DISAGREE"
+        },
+        "pretax_income": {
+          "vX": 3383000000.0,
+          "v2": 3279000000.0,
+          "rel_diff": 0.030742,
+          "verdict": "DISAGREE"
+        },
+        "income_tax": {
+          "vX": 744000000.0,
+          "v2": 744000000.0,
+          "verdict": "exact"
+        },
+        "net_income": {
+          "vX": 2535000000.0,
+          "v2": 2535000000.0,
+          "verdict": "exact"
+        },
+        "rnd_expense": {
+          "vX": null,
+          "v2": 9325000000.0,
+          "verdict": "missing_one_side"
+        },
+        "sga_expense": {
+          "vX": null,
+          "v2": 6280000000.0,
+          "verdict": "missing_one_side"
+        },
+        "eps_diluted": {
+          "vX": 5.01,
+          "v2": 5.01,
+          "verdict": "exact"
+        },
+        "eps_basic": {
+          "vX": 5.09,
+          "v2": 5.09,
+          "verdict": "exact"
+        },
+        "diluted_shares": {
+          "vX": 506000000.0,
+          "v2": 506000000.0,
+          "verdict": "exact"
+        },
+        "basic_shares": {
+          "vX": 498000000.0,
+          "v2": 498000000.0,
+          "verdict": "exact"
+        },
+        "total_assets": {
+          "vX": 221238000000.0,
+          "v2": 221238000000.0,
+          "verdict": "exact"
+        },
+        "current_assets": {
+          "vX": 85985000000.0,
+          "v2": 85985000000.0,
+          "verdict": "exact"
+        },
+        "noncurrent_assets": {
+          "vX": 135253000000.0,
+          "v2": 135253000000.0,
+          "verdict": "exact"
+        },
+        "total_liabilities": {
+          "vX": -65272000000.0,
+          "v2": 155966000000.0,
+          "rel_diff": 1.418501,
+          "verdict": "DISAGREE"
+        },
+        "current_liabilities": {
+          "vX": 79711000000.0,
+          "v2": 79711000000.0,
+          "verdict": "exact"
+        },
+        "noncurrent_liabilities": {
+          "vX": 0.0,
+          "v2": 76255000000.0,
+          "rel_diff": 1.0,
+          "verdict": "DISAGREE"
+        },
+        "equity": {
+          "vX": 65272000000.0,
+          "v2": 65272000000.0,
+          "verdict": "exact"
+        },
+        "inventory": {
+          "vX": 18857000000.0,
+          "v2": 18857000000.0,
+          "verdict": "exact"
+        },
+        "accounts_payable": {
+          "vX": 40056000000.0,
+          "v2": 40056000000.0,
+          "verdict": "exact"
+        },
+        "long_term_debt": {
+          "vX": 24849000000.0,
+          "v2": 63737000000.0,
+          "rel_diff": 0.610132,
+          "verdict": "DISAGREE"
+        },
+        "fixed_assets": {
+          "vX": 77779000000.0,
+          "v2": 104058000000.0,
+          "rel_diff": 0.252542,
+          "verdict": "DISAGREE"
+        },
+        "intangible_assets": {
+          "vX": null,
+          "v2": 14739000000.0,
+          "verdict": "missing_one_side"
+        },
+        "ocf": {
+          "vX": 3064000000.0,
+          "v2": 3064000000.0,
+          "verdict": "exact"
+        },
+        "icf": {
+          "vX": -8894000000.0,
+          "v2": -8894000000.0,
+          "verdict": "exact"
+        },
+        "financing_cf": {
+          "vX": -2591000000.0,
+          "v2": -2591000000.0,
+          "verdict": "exact"
+        },
+        "net_cash_flow": {
+          "vX": -8905000000.0,
+          "v2": -8905000000.0,
+          "verdict": "exact"
+        }
+      },
+      "summary": {
+        "exact": 21,
+        "within_tol": 0,
+        "DISAGREE": 6,
+        "missing_one_side": 3
+      }
+    },
+    "ETN": {
+      "period": "2020-03-31",
+      "n_common_periods": 43,
+      "overlap_span": [
+        "2009-06-30",
+        "2020-03-31"
+      ],
+      "fields": {
+        "revenue": {
+          "vX": 4789000000.0,
+          "v2": 4789000000.0,
+          "verdict": "exact"
+        },
+        "cost_of_revenue": {
+          "vX": 3302000000.0,
+          "v2": 3302000000.0,
+          "verdict": "exact"
+        },
+        "gross_profit": {
+          "vX": 1487000000.0,
+          "v2": 1487000000.0,
+          "verdict": "exact"
+        },
+        "operating_income": {
+          "vX": 621000000.0,
+          "v2": 469000000.0,
+          "rel_diff": 0.244767,
+          "verdict": "DISAGREE"
+        },
+        "operating_expenses": {
+          "vX": 866000000.0,
+          "v2": 1018000000.0,
+          "rel_diff": 0.149312,
+          "verdict": "DISAGREE"
+        },
+        "pretax_income": {
+          "vX": 621000000.0,
+          "v2": 621000000.0,
+          "verdict": "exact"
+        },
+        "income_tax": {
+          "vX": 183000000.0,
+          "v2": 183000000.0,
+          "verdict": "exact"
+        },
+        "net_income": {
+          "vX": 438000000.0,
+          "v2": 438000000.0,
+          "verdict": "exact"
+        },
+        "rnd_expense": {
+          "vX": 153000000.0,
+          "v2": 153000000.0,
+          "verdict": "exact"
+        },
+        "sga_expense": {
+          "vX": 865000000.0,
+          "v2": 865000000.0,
+          "verdict": "exact"
+        },
+        "eps_diluted": {
+          "vX": 1.07,
+          "v2": 1.07,
+          "verdict": "exact"
+        },
+        "eps_basic": {
+          "vX": 1.07,
+          "v2": 1.07,
+          "verdict": "exact"
+        },
+        "diluted_shares": {
+          "vX": 411100000.0,
+          "v2": 411100000.0,
+          "verdict": "exact"
+        },
+        "basic_shares": {
+          "vX": 409300000.0,
+          "v2": 409300000.0,
+          "verdict": "exact"
+        },
+        "total_assets": {
+          "vX": 30845000000.0,
+          "v2": 30845000000.0,
+          "verdict": "exact"
+        },
+        "current_assets": {
+          "vX": 8670000000.0,
+          "v2": 8670000000.0,
+          "verdict": "exact"
+        },
+        "noncurrent_assets": {
+          "vX": 22175000000.0,
+          "v2": 22175000000.0,
+          "verdict": "exact"
+        },
+        "total_liabilities": {
+          "vX": -14288000000.0,
+          "v2": 16557000000.0,
+          "rel_diff": 1.862958,
+          "verdict": "DISAGREE"
+        },
+        "current_liabilities": {
+          "vX": 4944000000.0,
+          "v2": 4944000000.0,
+          "verdict": "exact"
+        },
+        "noncurrent_liabilities": {
+          "vX": 11613000000.0,
+          "v2": 11613000000.0,
+          "verdict": "exact"
+        },
+        "equity": {
+          "vX": 14288000000.0,
+          "v2": 14245000000.0,
+          "rel_diff": 0.00301,
+          "verdict": "within_tol"
+        },
+        "inventory": {
+          "vX": 2346000000.0,
+          "v2": 2346000000.0,
+          "verdict": "exact"
+        },
+        "accounts_payable": {
+          "vX": 1785000000.0,
+          "v2": 1785000000.0,
+          "verdict": "exact"
+        },
+        "long_term_debt": {
+          "vX": null,
+          "v2": 8176000000.0,
+          "verdict": "missing_one_side"
+        },
+        "fixed_assets": {
+          "vX": 2939000000.0,
+          "v2": 3373000000.0,
+          "rel_diff": 0.128669,
+          "verdict": "DISAGREE"
+        },
+        "intangible_assets": {
+          "vX": 4319000000.0,
+          "v2": 16716000000.0,
+          "rel_diff": 0.741625,
+          "verdict": "DISAGREE"
+        },
+        "ocf": {
+          "vX": 323000000.0,
+          "v2": 323000000.0,
+          "verdict": "exact"
+        },
+        "icf": {
+          "vX": 1100000000.0,
+          "v2": 1100000000.0,
+          "verdict": "exact"
+        },
+        "financing_cf": {
+          "vX": -1530000000.0,
+          "v2": -1530000000.0,
+          "verdict": "exact"
+        },
+        "net_cash_flow": {
+          "vX": -130000000.0,
+          "v2": -131000000.0,
+          "rel_diff": 0.007634,
+          "verdict": "DISAGREE"
+        }
+      },
+      "summary": {
+        "exact": 22,
+        "within_tol": 1,
+        "DISAGREE": 6,
+        "missing_one_side": 1
+      }
+    }
+  },
+  "envelope_variance": {
+    "envelope_keys_that_vary": [
+      "request_id"
+    ],
+    "row_keys_that_vary": [],
+    "results_identical": true,
+    "exclusion_list": [
+      "request_id"
+    ]
+  },
+  "adr_fx": {
+    "NVDA": {
+      "http_status": 200,
+      "as_of": "2020-01-26",
+      "share_factor": 1,
+      "fx_rate": 1,
+      "revenues_local": 3105000000,
+      "revenues_usd": 3105000000
+    },
+    "AMD": {
+      "http_status": 200,
+      "as_of": "2020-03-28",
+      "share_factor": 1,
+      "fx_rate": 1,
+      "revenues_local": 7245000000,
+      "revenues_usd": 7245000000
+    },
+    "AVGO": {
+      "http_status": 200,
+      "as_of": "2020-02-02",
+      "share_factor": 1,
+      "fx_rate": 1,
+      "revenues_local": 5858000000,
+      "revenues_usd": 5858000000
+    },
+    "MRVL": {
+      "http_status": 200,
+      "as_of": "2020-02-01",
+      "share_factor": 1,
+      "fx_rate": 1,
+      "revenues_local": 2699161000,
+      "revenues_usd": 2699161000
+    },
+    "TSM": {
+      "http_status": 200,
+      "as_of": "2019-12-31",
+      "share_factor": 0.2,
+      "fx_rate": 30.2,
+      "revenues_local": 1069985400000,
+      "revenues_usd": 35429980133
+    },
+    "ASML": {
+      "http_status": 200,
+      "as_of": "2019-12-31",
+      "share_factor": 1,
+      "fx_rate": 0.89,
+      "revenues_local": 11820000000,
+      "revenues_usd": 13280898876
+    },
+    "AMAT": {
+      "http_status": 200,
+      "as_of": "2019-10-27",
+      "share_factor": 1,
+      "fx_rate": 1,
+      "revenues_local": 14608000000,
+      "revenues_usd": 14608000000
+    },
+    "MU": {
+      "http_status": 200,
+      "as_of": "2020-02-27",
+      "share_factor": 1,
+      "fx_rate": 1,
+      "revenues_local": 4797000000,
+      "revenues_usd": 4797000000
+    },
+    "MSFT": {
+      "http_status": 200,
+      "as_of": "2020-03-31",
+      "share_factor": 1,
+      "fx_rate": 1,
+      "revenues_local": 138699000000,
+      "revenues_usd": 138699000000
+    },
+    "GOOGL": {
+      "http_status": 200,
+      "as_of": "2020-03-31",
+      "share_factor": 1,
+      "fx_rate": 1,
+      "revenues_local": 41159000000,
+      "revenues_usd": 41159000000
+    },
+    "AMZN": {
+      "http_status": 200,
+      "as_of": "2020-03-31",
+      "share_factor": 1,
+      "fx_rate": 1,
+      "revenues_local": 75452000000,
+      "revenues_usd": 75452000000
+    },
+    "META": {
+      "http_status": 200,
+      "rows": 0
+    },
+    "ORCL": {
+      "http_status": 200,
+      "as_of": "2020-02-29",
+      "share_factor": 1,
+      "fx_rate": 1,
+      "revenues_local": 9796000000,
+      "revenues_usd": 9796000000
+    },
+    "ANET": {
+      "http_status": 200,
+      "as_of": "2019-12-31",
+      "share_factor": 1,
+      "fx_rate": 1,
+      "revenues_local": 552546000,
+      "revenues_usd": 552546000
+    },
+    "VRT": {
+      "http_status": 200,
+      "as_of": "2019-12-31",
+      "share_factor": 1,
+      "fx_rate": 1,
+      "revenues_local": 0,
+      "revenues_usd": 0
+    },
+    "ETN": {
+      "http_status": 200,
+      "as_of": "2020-03-31",
+      "share_factor": 1,
+      "fx_rate": 1,
+      "revenues_local": 4789000000,
+      "revenues_usd": 4789000000
+    },
+    "GEV": {
+      "http_status": 200,
+      "rows": 0
+    },
+    "CEG": {
+      "http_status": 200,
+      "as_of": "2011-12-31",
+      "share_factor": 1,
+      "fx_rate": 1,
+      "revenues_local": 13758200000,
+      "revenues_usd": 13758200000
+    },
+    "VST": {
+      "http_status": 200,
+      "as_of": "2019-12-31",
+      "share_factor": 1,
+      "fx_rate": 1,
+      "revenues_local": 11809000000,
+      "revenues_usd": 11809000000
+    },
+    "DELL": {
+      "http_status": 200,
+      "as_of": "2020-01-31",
+      "share_factor": 1,
+      "fx_rate": 1,
+      "revenues_local": 92154000000,
+      "revenues_usd": 92154000000
+    },
+    "SMCI": {
+      "http_status": 200,
+      "as_of": "2019-06-30",
+      "share_factor": 1,
+      "fx_rate": 1,
+      "revenues_local": 3500360000,
+      "revenues_usd": 3500360000
+    },
+    "PLTR": {
+      "http_status": 200,
+      "rows": 0
+    },
+    "CRWD": {
+      "http_status": 200,
+      "as_of": "2020-01-31",
+      "share_factor": 1,
+      "fx_rate": 1,
+      "revenues_local": 481413000,
+      "revenues_usd": 481413000
+    },
+    "NOW": {
+      "http_status": 200,
+      "as_of": "2020-03-31",
+      "share_factor": 1,
+      "fx_rate": 1,
+      "revenues_local": 3717851000,
+      "revenues_usd": 3717851000
+    },
+    "APP": {
+      "http_status": 200,
+      "rows": 0
+    }
+  },
+  "identity_violations": {
+    "rows_checked": 272,
+    "quarters_per_ticker": 12,
+    "findings": {
+      "negative_liabilities": [
+        [
+          "GOOGL@2026-03-31",
+          -478746000000.0
+        ],
+        [
+          "AMZN@2026-03-31",
+          -441914000000.0
+        ],
+        [
+          "AMZN@2025-06-30",
+          -333775000000.0
+        ],
+        [
+          "AMZN@2025-03-31",
+          -305867000000.0
+        ],
+        [
+          "AMZN@2024-06-30",
+          -236447000000.0
+        ],
+        [
+          "AMZN@2024-03-31",
+          -216661000000.0
+        ],
+        [
+          "META@2026-03-31",
+          -243681000000.0
+        ],
+        [
+          "VRT@2024-06-30",
+          -1537500000.0
+        ],
+        [
+          "ETN@2026-03-31",
+          -19765000000.0
+        ],
+        [
+          "ETN@2025-06-30",
+          -18647000000.0
+        ],
+        [
+          "ETN@2025-03-31",
+          -18547000000.0
+        ],
+        [
+          "ETN@2024-06-30",
+          -19254000000.0
+        ],
+        [
+          "ETN@2024-03-31",
+          -19326000000.0
+        ],
+        [
+          "ETN@2023-06-30",
+          -17988000000.0
+        ]
+      ],
+      "negative_assets": [],
+      "implausible_share_count": [
+        [
+          "NVDA@2026-01-25",
+          -28000000.0
+        ],
+        [
+          "NVDA@2024-01-28",
+          0.0
+        ],
+        [
+          "AMD@2024-12-28",
+          -1000000.0
+        ],
+        [
+          "AMD@2023-12-30",
+          0.0
+        ],
+        [
+          "AVGO@2023-10-29",
+          0.0
+        ],
+        [
+          "MRVL@2026-01-31",
+          -200000.0
+        ],
+        [
+          "MRVL@2023-01-28",
+          900000.0
+        ],
+        [
+          "AMAT@2025-10-26",
+          -3000000.0
+        ],
+        [
+          "AMAT@2024-10-27",
+          -1000000.0
+        ],
+        [
+          "AMAT@2023-10-29",
+          -1000000.0
+        ],
+        [
+          "MSFT@2026-06-30",
+          -4000000.0
+        ],
+        [
+          "MSFT@2025-06-30",
+          -1000000.0
+        ],
+        [
+          "MSFT@2023-06-30",
+          -2000000.0
+        ],
+        [
+          "GOOGL@2026-03-31",
+          -35000000.0
+        ],
+        [
+          "GOOGL@2025-12-31",
+          0.0
+        ],
+        [
+          "GOOGL@2024-12-31",
+          -33000000.0
+        ],
+        [
+          "AMZN@2026-03-31",
+          -14000000.0
+        ],
+        [
+          "META@2026-03-31",
+          -1000000.0
+        ],
+        [
+          "META@2025-12-31",
+          -4000000.0
+        ],
+        [
+          "META@2024-12-31",
+          -1000000.0
+        ],
+        [
+          "ORCL@2026-05-31",
+          0.0
+        ],
+        [
+          "ANET@2025-12-31",
+          0.0
+        ],
+        [
+          "ANET@2023-12-31",
+          571000.0
+        ],
+        [
+          "VRT@2025-12-31",
+          394922.0
+        ],
+        [
+          "VRT@2024-12-31",
+          218829.0
+        ],
+        [
+          "ETN@2025-12-31",
+          -500000.0
+        ],
+        [
+          "ETN@2023-12-31",
+          200000.0
+        ],
+        [
+          "GEV@2025-12-31",
+          -1000000.0
+        ],
+        [
+          "CEG@2025-12-31",
+          0.0
+        ],
+        [
+          "CEG@2024-12-31",
+          -1000000.0
+        ],
+        [
+          "CEG@2023-12-31",
+          -1000000.0
+        ],
+        [
+          "VST@2025-12-31",
+          -647550.0
+        ],
+        [
+          "VST@2024-12-31",
+          -1238877.0
+        ],
+        [
+          "VST@2023-12-31",
+          -3909248.0
+        ],
+        [
+          "DELL@2024-02-02",
+          -2000000.0
+        ],
+        [
+          "SMCI@2023-06-30",
+          174000.0
+        ],
+        [
+          "CRWD@2026-01-31",
+          671000.0
+        ],
+        [
+          "NOW@2024-12-31",
+          419000.0
+        ],
+        [
+          "NOW@2023-12-31",
+          397000.0
+        ],
+        [
+          "APP@2025-12-31",
+          -698000.0
+        ],
+        [
+          "APP@2023-12-31",
+          -5670267.0
+        ]
+      ],
+      "identity_break": [
+        [
+          "AMZN@2025-06-30",
+          -682170000000
+        ],
+        [
+          "AMZN@2025-03-31",
+          -643256000000
+        ],
+        [
+          "AMZN@2024-06-30",
+          -554818000000
+        ],
+        [
+          "AMZN@2024-03-31",
+          -530969000000
+        ],
+        [
+          "ETN@2026-03-31",
+          -55085000000
+        ],
+        [
+          "ETN@2025-06-30",
+          -40507000000
+        ],
+        [
+          "ETN@2025-03-31",
+          -39206000000
+        ],
+        [
+          "ETN@2024-06-30",
+          -39381000000
+        ],
+        [
+          "ETN@2024-03-31",
+          -38535000000
+        ],
+        [
+          "ETN@2023-06-30",
+          -36772000000
+        ],
+        [
+          "VST@2024-09-30",
+          -3198000000
+        ]
+      ]
+    },
+    "rates": {
+      "negative_liabilities": 0.0515,
+      "negative_assets": 0.0,
+      "implausible_share_count": 0.1507,
+      "identity_break": 0.0404
+    }
+  }
+}
