@@ -122,8 +122,20 @@ stock page. The target column is **`analyst_target_avg`** (`065_uw_positioning.s
 `target_avg`.
 
 **Source roles, with a fallback chain — massive is not universal.** Live probe of the core 25
-(2026-08-10) found `/vX` current coverage for **23 of 25**. **TSM and ASML return zero rows from
-`/vX` and `/v2` alike** — independently reconfirmed here.
+(2026-08-10) found `/vX` current coverage for **23 of 25**:
+
+| Ticker | `/vX` (current) | `/v2` (history) | Gap |
+|---|---|---|---|
+| TSM | **0 rows** (HTTP 200, empty `results`) | 76 rows, 2000-12-31 → 2019-12-31 | **2020 → present** |
+| ASML | **0 rows** (HTTP 200, empty `results`) | 391 rows, 2000-12-31 → 2019-12-31 | **2020 → present** |
+| NVDA (control) | current to 2026-04-26 | 5 rows, ends 2020-01-26 | none |
+
+The gap is **current data, not history**. Two earlier readings of this were wrong in opposite
+directions — one claimed both endpoints were empty for both names, the other that only TSM lacked
+`/v2`. Root cause of the bad measurement, recorded so P1a does not repeat it: **`/v2` takes the
+ticker in the URL path** (`/v2/reference/financials/{ticker}`) while **`/vX` takes it as a query
+parameter**. Querying `/v2` in `/vX` form returns **404**, which a naive row-count probe reads as
+"no coverage". A zero must be distinguished from an error before it becomes evidence.
 
 **The root cause is one this spec already documented elsewhere and failed to connect.** §3.3 records
 that the upstream tier files **20-F, not 10-K** (TSM: 6-K ×741, 20-F ×15, zero 10-Ks). massive's
@@ -138,8 +150,16 @@ probed, not just at EDGAR.
 | 2 | UW statements (94q) | **fallback when `/vX` is absent**, not merely a cross-check (revises A4) |
 | 3 | SEC XBRL `companyconcept` | last resort; reaches 20-F filers massive cannot |
 | — | explicit `na` | when all three fail. A covered-looking card over an uncovered name is the worst outcome |
-| history | massive `/v2` | 1997–2008 tail **where it exists** — availability is ticker-relative, not universal |
+| history | massive `/v2` | pre-2020 tail **where it exists** — availability and span are ticker-relative, not universal |
 | overlap | `/vX` ∩ `/v2` | reconcile and persist disagreements, never silently prefer one |
+
+**Foreign issuers emit `na` for anchors in v1 — units before valuation.** TSM reports in TWD and
+ASML in EUR, and both trade in the US as ADRs whose ratio to ordinary shares is not 1:1. A fallback
+that returns statement values without a currency, XBRL-unit, FX-date and ADR-ratio contract would
+divide a TWD revenue figure by a USD market cap and produce an anchor wrong by an order of
+magnitude — silently, and with full provenance attached, which is worse than no anchor. Until P1a
+proves normalized USD/ADR-equivalent inputs, foreign-issuer names render `na` with the reason
+stated. Their statements and history still ingest; only the valuation stage abstains.
 
 Coverage expectations are **per ticker**, never global: "history reaches 1997" is a claim about NVDA,
 not about the core 25, and the card must render each name's real span.
@@ -296,7 +316,8 @@ infrastructure.
 
 **Tier 2 — canonical views, derived not stored.** `fundamental_statement_current` resolves the
 newest non-superseded observation per `(ticker, period_end, period_type)` under a documented source
-precedence (`/vX` wins inside 2009+; `/v2` supplies 1997–2008; UW breaks ties only as cross-check).
+precedence (the §3.2 chain: `/vX` for current, **UW then SEC XBRL where `/vX` is absent**, `/v2` for
+the pre-2020 tail where it exists, explicit `na` when all fail).
 Overlap-zone disagreements are surfaced, never silently resolved: a materialized
 `fundamental_source_discrepancies` row records both values and the delta.
 
@@ -308,7 +329,7 @@ collides and the second result is lost.
 | Table | Key columns | Registry |
 |---|---|---|
 | `fundamental_runs` | PK `run_id`; `ticker`, `mode ∈ {refresh_external_facts, recompute_from_cached_facts}`, `status`, per-stage status/timing, `rows_written`, `error`, `attempt`. **Partial unique index on `(ticker) WHERE status IN ('queued','running')`** | run ledger — dimension, exempt |
-| `fundamental_run_outputs` | PK `(run_id, output_kind)`; `result_id`, `reused BOOLEAN` — the bridge from a run to the rows it produced *or reused* | run ledger — dimension, exempt |
+| `fundamental_run_outputs` | PK `run_id`; **`anchor_result_id REFERENCES valuation_anchors`**, **`score_result_id REFERENCES fundamental_scores`**, `reused BOOLEAN` — one row per run, typed columns so both links are real foreign keys | run ledger — dimension, exempt |
 | `valuation_anchors` | PK `result_id`; **UNIQUE `(ticker, as_of, engine_version, inputs_hash)`**; `company_type`, `method`, 5 anchors, base/bear/bull × 1y/3y, `confidence`, `confidence_reasons_jsonb`, `inputs_jsonb`, `inputs_hash`, `source_obs_ids`, `run_id` | temporal → **DatasetRegistryEntry** |
 | `fundamental_scores` | PK `result_id`; **UNIQUE `(ticker, as_of, engine_version, inputs_hash)`**; one column per subscore, composite, `inputs_hash`, `source_obs_ids`, `run_id` | temporal → **DatasetRegistryEntry** |
 | `customer_concentration` | PK `(ticker, fiscal_period, filing_form, filing_accession)`; `top_customer_pct`, `customers_over_10pct`, `none_over_10pct`, `magnitude_basis`, `filing_date`, `excerpt` | event-temporal → **DatasetRegistryEntry** |
@@ -325,7 +346,9 @@ second run *reuses* the first run's immutable row. If the result carried a singl
 would still be stamped with run 1, so a view joining "latest successful run" to its outputs would
 find nothing for run 2 and the current result would vanish — while updating the stamp would mutate
 history. The bridge resolves both: run 2 gets its own association row with `reused = true`, pointing
-at the same `result_id`.
+at the same `result_id`. The bridge uses **typed columns** (`anchor_result_id`, `score_result_id`)
+rather than one polymorphic `result_id` — a single column pointing at either table can carry no
+enforceable foreign key, which is how dangling references get in.
 
 Resolution is then: active `engine_version` (from the pointer below) → latest successful run for that
 ticker and date → its associated `result_id`.
@@ -648,16 +671,36 @@ CREATE TABLE IF NOT EXISTS uw_scan.filing_extraction_runs (
 );
 ```
 
-Each observation carries its `extraction_run_id`. **The current projection reads only the latest
-*succeeded* run per accession**, so a re-extraction that finds nothing retracts by omission while
-every earlier run stays queryable for audit. A failed run never becomes current, so a crashed
-extraction cannot silently empty a filing's facts.
+**Ownership is not membership** — and getting that wrong retracts valid facts. If each observation
+carried a single `extraction_run_id`, then for v1 emitting `{A, B}` and v2 correctly emitting `{A}`:
+A already exists (deduped by `fact_hash`) still stamped with v1, so v2 owns nothing, and a
+"latest-run's observations" projection drops **both** facts. The valid one dies with the false one.
+
+Facts and sightings are separate relations:
+
+```sql
+CREATE TABLE IF NOT EXISTS uw_scan.filing_extraction_run_facts (
+    extraction_run_id  BIGINT NOT NULL REFERENCES uw_scan.filing_extraction_runs,
+    obs_id             BIGINT NOT NULL REFERENCES uw_scan.fundamental_edge_obs,
+    PRIMARY KEY (extraction_run_id, obs_id)
+);
+```
+
+The fact row stays deduplicated and immutable; each run records **which facts it saw**. **The current
+projection is the latest *succeeded* run's membership set** — so v2 re-asserts A and simply omits B,
+retracting the false edge while the true one survives, and v1's full result stays queryable for
+audit. A failed run never becomes current, so a crashed extraction cannot empty a filing.
 
 The same rule governs `customer_concentration`. Retraction is a projection concern, never a `DELETE`.
 
+This is the third form of one problem. `fact_seq` duplicated facts when the extractor improved;
+`fact_hash` alone could not retract; run *ownership* retracted too much. Each fix was locally correct
+and structurally incomplete because the missing concept was never the key — it was that **"what the
+fact is" and "who saw it" are different relations**, and any single table conflates them.
+
 **Current-relationship projection** — a view, not a table:
-`fundamental_edge_current` reads observations **from the latest succeeded `filing_extraction_run` per
-accession only**, then takes the newest surviving one per `(src_ticker, dst_ticker, edge_type)` and
+`fundamental_edge_current` reads the **membership set of the latest succeeded `filing_extraction_run`
+per accession**, then takes the newest surviving one per `(src_ticker, dst_ticker, edge_type)` and
 derives `status` from filing recency (`active` / `stale` after absence from the newest same-form
 filing / `retired` past 400 days). Nothing is mutated to compute it; the full observation history
 stays queryable, which is what "audit trail" was supposed to mean.
@@ -835,9 +878,9 @@ stops moving.
 
 | Phase | Ships | Gate | Verification |
 |---|---|---|---|
-| **P0** | Commit-bug fix + a test asserting through a **freshly opened connection** | Own PR — independent prod data-loss bug, deploys ahead of feature work | **Freshness delta, not row count**: record a ticker's `fetched_at` before the run, invoke the *real scheduled function*, then assert from a **new connection** that its `fetched_at` advanced past the run start. Plus a rollback-path regression |
-| **P1a** | **Data-contract spike** (no schema): reconcile `/vX`, `/v2`, UW statements and the filed 10-K on representative tickers; commit the exact field map | The first draft chose a frozen endpoint for its field count. No ingestion is designed until the sources are measured, not read about | An overlap-zone quarter agrees across `/vX` and `/v2` field-for-field, or the disagreement is documented with a resolution rule |
-| **P1b** | Immutable observation tables + canonical views + backfill/incremental modes; registry entries | Scoring over 8 shallow quarters is the weakest possible imitation | `/vX` reaches 2026 and `/v2` fills 1997–2008; re-ingest is idempotent; a simulated restatement adds a row without destroying its predecessor; FY2026 segment revenue matches the filed 10-K to the dollar |
+| **P0** | Commit-bug fix + a test asserting through a **freshly opened connection**. Commit **per successful ticker**, rolling back only the failing ticker's transaction | Own PR — independent prod data-loss bug, deploys ahead of feature work | **Freshness delta, not row count**: record a ticker's `fetched_at` before the run, invoke the *real scheduled function*, then assert from a **new connection** that its `fetched_at` advanced past the run start. Plus a regression proving one ticker's DB error does not discard the tickers already processed |
+| **P1a** | **Data-contract spike** (no schema): a committed **25-ticker coverage matrix** reconciling `/vX`, `/v2`, UW statements and the filed **10-K or 20-F**; the exact field map; the `content_hash` normalization/exclusion rule; and the **currency / XBRL-unit / FX-date / ADR-ratio** contract | The first draft chose a frozen endpoint for its field count; the second mis-probed `/v2` and read 404s as absence. No ingestion is designed until every source is measured per ticker, not read about | An overlap-zone quarter agrees across `/vX` and `/v2` field-for-field (or the disagreement has a resolution rule); every core ticker's real span is recorded; TSM/ASML reported currency and ADR ratio are captured, or foreign-issuer anchors are confirmed `na` |
+| **P1b** | Immutable observation tables + canonical views + backfill/incremental modes; registry entries | Scoring over 8 shallow quarters is the weakest possible imitation | Each core ticker reaches **its own** measured span (NVDA current via `/vX`; TSM/ASML history via `/v2` with the 2020→present gap rendered, not hidden); re-ingest is idempotent; a simulated restatement adds a row without destroying its predecessor; segment revenue matches the filed **10-K or 20-F** after unit normalization |
 | **P2** | Method appendix (worked examples) · method version tables · ANCHOR then SCORE · confidence downgrades · `fundamental_runs` + enqueued refresh endpoint | The method must be fixated before anything renders it | 3 hand-checked tickers reproduce hand-computed anchors from the appendix; recompute with unchanged inputs is idempotent; **flipping one ticker's `company_type` changes `inputs_hash` and yields new anchors**; a new method version coexists with the old on the same date; exactly one version is active |
 | **P3** | The card's deterministic blocks (§7) — subscores, anchor band, confidence reasons, coverage, provenance drill-down; API models + `gen:types` + tab/route wiring; loading/stale/error states | — | Every rendered number resolves to a persisted row; the coverage block lists a real `na`; a stale-version row renders as stale rather than current |
 | **P4** | Discovery gate → concentration ledger + sparse edge observations (§6); `edgartools` dependency added | After the card; the concentration block ships empty in P3 | Gate reports real yield before build; NVDA yields a concentration row with a real accession and multi-year trend; ANET→META exists as the reference `asc280_named` edge; TSM yields a 20-F-sourced row; re-processing a filing writes no duplicate |
@@ -908,8 +951,12 @@ is a required test, not a suggestion.
 | T13 | Cell members hold mixed engine versions | aggregate uses the shared active version; coverage fraction shown |
 | T14 | Cell members share **no** common date/version | cell renders **unavailable**, never a silently mixed aggregate |
 | T15 | Extractor v1 emits a false edge, v2 emits nothing for that filing | edge disappears from the current projection; v1's observation still queryable |
+| T15b | **v1 emits `{A, B}`, v2 emits `{A}`** | A **survives**, B retracts. The load-bearing case — a naive latest-run projection drops both |
+| T15c | v2 emits `{A, B}` identically to v1 | no duplicate fact rows; both runs have membership for the same `obs_id`s |
+| T19b | Foreign issuer (TSM/ASML) reaches the anchor stage in v1 | anchors render **`na` with reason**, never a number derived from unnormalized TWD/EUR |
+| T20b | `/v2` queried in `/vX` query-param form | probe treats **HTTP 404 as an error, not as zero coverage** |
 | T16 | Extraction run crashes mid-filing | the failed run never becomes current; the prior succeeded run still projects |
-| T17 | `DELETE` the method state row | **rejected** by trigger; worker startup also fails loudly if the pointer is unreadable |
+| T17 | `DELETE` the method state row | **rejected by the `BEFORE DELETE` trigger**; worker startup also fails loudly if the pointer is unreadable |
 | T18 | Identical rerun, then query the current view via the second run | resolves to the same `result_id` through a `reused = true` association |
 | T19 | TSM / ASML (no massive coverage) | falls back to UW, then SEC XBRL, then renders explicit `na` — never a blank that reads as zero |
 | T20 | Non-calendar fiscal issuer (NVDA, AMD) in the overlap zone | quarters match on `end_date` ≡ `reportPeriod`; `calendarDate` is never used as the key |
