@@ -124,27 +124,38 @@ stock page. The target column is **`analyst_target_avg`** (`065_uw_positioning.s
 **Source roles, with a fallback chain — massive is not universal.** Live probe of the core 25
 (2026-08-10) found `/vX` current coverage for **23 of 25**:
 
-**The pipeline is quarterly, so quarterly counts are the number that matters.** An unfiltered `/v2`
-row count mixes annual, quarterly and trailing rows and materially overstates usable coverage.
-Probed `limit=1000`, with and without `type=Q`:
+**MEASURED — full core-25 matrix committed** at
+`docs/research/2026-08-10-fundamental-source-coverage/` (probe:
+`scripts/research/fundamental_source_coverage.py`). Quarterly counts only; the pipeline is quarterly
+and an unfiltered `/v2` count mixes annual/trailing rows and overstates usable coverage.
 
-| Ticker | `/vX` current | `/v2` **quarterly** | `/v2` all types | Usable state |
-|---|---|---|---|---|
-| TSM | **0 rows** (200, empty `results`) | **0 rows** | 76 (annual / trailing only) | **no usable massive history at all** |
-| ASML | **0 rows** (200, empty `results`) | 93 · 2002-06-30 → 2019-12-31 | 391 | history only; **no current** |
-| NVDA (control) | current to 2026-04-26 | 88 · 1998-10-25 → 2020-01-26 | 405 | covered |
+| State | Meaning | Tickers |
+|---|---|---|
+| `covered` | current `/vX` quarterly data | **23 of 25** |
+| `history_only` | no current data; `/v2` quarterly history exists | **ASML** — 93 rows to 2019-12-31 |
+| `annual_only` | **unusable by a quarterly pipeline** | **TSM** — `/vX` 0, `/v2` quarterly 0, 76 annual/trailing |
 
-So the gap is **not uniform**: ASML needs a fallback for 2020→present, while TSM needs one for
-*everything* — its 76 rows are annual/trailing and the quarterly pipeline cannot consume them.
+The gap is **not uniform**: ASML needs a fallback for 2020→present; TSM needs one for *everything*.
+`/vX` depth also varies **8–69 quarters** (GEV 8, META 16, PLTR 25, GOOGL 38), so "history reaches
+199x" is a per-ticker claim and never a universal one — this is what "ticker-relative" means
+operationally. META/GEV/PLTR/APP show zero `/v2` rows, consistent with the FB→META rename, a 2024
+spinoff and post-freeze IPOs; flagged for P1a follow-up rather than assumed.
 
-**Three successive readings of this endpoint were wrong**, which is why P1a exists and why its
-output is a committed coverage matrix rather than a claim. The failure modes, recorded so they are
-not repeated: (1) **`/v2` takes the ticker in the URL path** (`/v2/reference/financials/{ticker}`)
-while **`/vX` takes it as a query parameter** — querying `/v2` in `/vX` form returns **404**, which
-a naive row-count probe reads as "no coverage"; (2) an unfiltered count is not a quarterly count;
-(3) probe limits must be identical across tickers or the comparison is meaningless (an earlier run
-reported NVDA at 5 rows against ASML's 391). **A zero must be distinguished from an error, and a
-count from a filtered count, before either becomes evidence.**
+**Four successive readings of this endpoint were wrong**, which is why P1a's output is a committed
+matrix rather than a claim. The failure modes, recorded so they are not repeated:
+
+1. **`/v2` takes the ticker in the URL path** (`/v2/reference/financials/{ticker}`) while **`/vX`
+   takes it as a query parameter** — querying `/v2` in `/vX` form returns **404**, read as "no
+   coverage".
+2. An unfiltered count is not a quarterly count.
+3. Probe limits must be constant across tickers (an earlier run reported NVDA at 5 rows against
+   ASML's 391).
+4. **Limits are per-endpoint**: `/vX` rejects `limit>100` with **HTTP 400** while `/v2` accepts 1000.
+   A shared `limit=1000` 400s `/vX` for all 25 names — which a bare row-count probe records as "no
+   current coverage anywhere". The committed probe caught this only because it persists HTTP status.
+
+**A zero must be distinguished from an error, and a count from a filtered count, before either
+becomes evidence.** Anything probing a provider persists the status code alongside the count.
 
 **A plausible common cause, flagged as inference.** §3.3 records that the upstream tier files
 **20-F, not 10-K** (TSM: 6-K ×741, 20-F ×15, zero 10-Ks), and the two names missing from `/vX` are
@@ -166,13 +177,22 @@ rule to design around yet.
 | history | massive `/v2` | pre-2020 tail **where it exists** — availability and span are ticker-relative, not universal |
 | overlap | `/vX` ∩ `/v2` | reconcile and persist disagreements, never silently prefer one |
 
-**Foreign issuers emit `na` for anchors in v1 — units before valuation.** TSM reports in TWD and
-ASML in EUR, and both trade in the US as ADRs whose ratio to ordinary shares is not 1:1. A fallback
-that returns statement values without a currency, XBRL-unit, FX-date and ADR-ratio contract would
-divide a TWD revenue figure by a USD market cap and produce an anchor wrong by an order of
-magnitude — silently, and with full provenance attached, which is worse than no anchor. Until P1a
-proves normalized USD/ADR-equivalent inputs, foreign-issuer names render `na` with the reason
-stated. Their statements and history still ingest; only the valuation stage abstains.
+**Foreign issuers emit `na` for anchors in v1 — units before valuation.** A fallback returning
+statement values without a currency, XBRL-unit, FX-date and ADR-ratio contract would divide a
+non-USD revenue figure by a USD market cap and produce an anchor wrong by an order of magnitude —
+silently, and with full provenance attached, which is worse than no anchor. Foreign-issuer names
+render `na` with the reason stated; their statements still ingest, only valuation abstains.
+
+**The measured coverage narrows this sharply.** Every one of the 23 `covered` tickers reports XBRL
+units `USD` and `USD / shares` — **there is no non-USD unit anywhere in the set argon will actually
+ingest.** The FX/ADR contract is therefore *not* a P1b prerequisite; it is owed only if and when the
+UW/SEC fallback is built for TSM and ASML, which are precisely the two names without `/vX` data. The
+currency work defers with the fallback, and `na` is the whole of v1's obligation.
+
+When that fallback is built, `/v2` already answers part of it: it exposes USD-normalized variants
+(`revenuesUSD`, `debtUSD`, `shareholdersEquityUSD`, …) plus `foreignCurrencyUSDExchangeRate`. That
+covers the historical window; the current window still needs UW or SEC XBRL units resolved
+explicitly.
 
 Coverage expectations are **per ticker**, never global: "history reaches 1997" is a claim about NVDA,
 not about the core 25, and the card must render each name's real span.
@@ -892,7 +912,7 @@ stops moving.
 | Phase | Ships | Gate | Verification |
 |---|---|---|---|
 | **P0** | Commit-bug fix + a test asserting through a **freshly opened connection**. Commit **per successful ticker**, rolling back only the failing ticker's transaction | Own PR — independent prod data-loss bug, deploys ahead of feature work | **Freshness delta, not row count**: record a ticker's `fetched_at` before the run, invoke the *real scheduled function*, then assert from a **new connection** that its `fetched_at` advanced past the run start. Plus a regression proving one ticker's DB error does not discard the tickers already processed |
-| **P1a** | **Data-contract spike** (no schema): a committed **25-ticker coverage matrix** reconciling `/vX`, `/v2`, UW statements and the filed **10-K or 20-F**; the exact field map; the `content_hash` normalization/exclusion rule; and the **currency / XBRL-unit / FX-date / ADR-ratio** contract | The first draft chose a frozen endpoint for its field count; the second mis-probed `/v2` and read 404s as absence. No ingestion is designed until every source is measured per ticker, not read about | An overlap-zone quarter agrees across `/vX` and `/v2` field-for-field (or the disagreement has a resolution rule); every core ticker's real span is recorded; TSM/ASML reported currency and ADR ratio are captured, or foreign-issuer anchors are confirmed `na` |
+| **P1a** | **Data-contract spike** (no schema). ✅ **coverage matrix DONE** — `docs/research/2026-08-10-fundamental-source-coverage/` + `scripts/research/fundamental_source_coverage.py`. Remaining: the exact `/vX`→column field map, the `content_hash` normalization/exclusion rule, and a `/vX`∩`/v2` overlap reconciliation on one quarter. The **currency / XBRL-unit / FX-date / ADR-ratio** contract is **deferred with the UW/SEC fallback** — all 23 covered tickers are USD-only (§3.2) | The first draft chose a frozen endpoint for its field count; the second mis-probed `/v2` and read 404s as absence; the third shared a limit across endpoints and 400'd `/vX` for all 25. No ingestion is designed until every source is measured per ticker, not read about | ✅ every core ticker's real span and state recorded, reproducibly. Still open: an overlap-zone quarter agrees across `/vX` and `/v2` field-for-field (or the disagreement has a resolution rule); the field map is committed |
 | **P1b** | Immutable observation tables + canonical views + backfill/incremental modes; registry entries | Scoring over 8 shallow quarters is the weakest possible imitation | Each core ticker reaches **its own** measured span (NVDA current via `/vX`; TSM/ASML history via `/v2` with the 2020→present gap rendered, not hidden); re-ingest is idempotent; a simulated restatement adds a row without destroying its predecessor; segment revenue matches the filed **10-K or 20-F** after unit normalization |
 | **P2** | Method appendix (worked examples) · method version tables · ANCHOR then SCORE · confidence downgrades · `fundamental_runs` + enqueued refresh endpoint | The method must be fixated before anything renders it | 3 hand-checked tickers reproduce hand-computed anchors from the appendix; recompute with unchanged inputs is idempotent; **flipping one ticker's `company_type` changes `inputs_hash` and yields new anchors**; a new method version coexists with the old on the same date; exactly one version is active |
 | **P3** | The card's deterministic blocks (§7) — subscores, anchor band, confidence reasons, coverage, provenance drill-down; API models + `gen:types` + tab/route wiring; loading/stale/error states | — | Every rendered number resolves to a persisted row; the coverage block lists a real `na`; a stale-version row renders as stale rather than current |
