@@ -217,6 +217,10 @@ def _render_markdown(results: dict[str, Any]) -> str:
         " three earlier readings of these endpoints were wrong for exactly those"
         " two reasons.",
         "",
+        "This file is REGENERATED on every run. Hand-written findings live in"
+        " `fx-and-corporate-actions.md` (mini-lake FX series, ADR-ratio gap,"
+        " observation-model precedent) — put narrative there, not here.",
+        "",
         "## Summary",
         "",
         "| State | Meaning | Tickers |",

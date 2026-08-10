@@ -10,6 +10,8 @@ MASSIVE_API_KEY=... uv run python scripts/research/fundamental_source_coverage.p
 
 Every count below is a **quarterly** count taken at a constant per-endpoint limit (`/vX` 100 — it 400s above that; `/v2` 1000), and an HTTP error is recorded as `null` rather than `0` — three earlier readings of these endpoints were wrong for exactly those two reasons.
 
+This file is REGENERATED on every run. Hand-written findings live in `fx-and-corporate-actions.md` (mini-lake FX series, ADR-ratio gap, observation-model precedent) — put narrative there, not here.
+
 ## Summary
 
 | State | Meaning | Tickers |

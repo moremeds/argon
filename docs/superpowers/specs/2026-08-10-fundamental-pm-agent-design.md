@@ -189,10 +189,32 @@ ingest.** The FX/ADR contract is therefore *not* a P1b prerequisite; it is owed 
 UW/SEC fallback is built for TSM and ASML, which are precisely the two names without `/vX` data. The
 currency work defers with the fallback, and `na` is the whole of v1's obligation.
 
-When that fallback is built, `/v2` already answers part of it: it exposes USD-normalized variants
-(`revenuesUSD`, `debtUSD`, `shareholdersEquityUSD`, …) plus `foreignCurrencyUSDExchangeRate`. That
-covers the historical window; the current window still needs UW or SEC XBRL units resolved
-explicitly.
+**Deferred, but no longer unsourced — the rate series already exist locally.** The mini's
+market-warehouse lake carries a daily `asset_class=fx` partition holding **USDTWD** (TSM's reporting
+currency) and **EURUSD** (ASML's), spanning 2004-03-24 and 2003-12-01 respectively through
+2026-08-10, in the same `trade_date/open/high/low/close/adj_close` schema
+`sources/lake.read_vol_index_parquet` already reads. So when the foreign-issuer fallback is built,
+translation is a **resolver registration, not a research task**: add `"fx"` to
+`lake_resolver._ASSET_CLASS_TO_LOCAL_ATTR` and `_ASSET_CLASS_CANARY` (`USDTWD` or `EURUSD` — both
+have the required 20-year depth) plus the matching settings attribute. Cost is zero API calls.
+
+Two corollaries the probe settled:
+
+- **FX was never the blocker for TSM/ASML.** The lake is a *price* lake — `raw/massive` holds only
+  `us_stocks_sip` day/minute aggregates, no fundamentals. TSM stays `annual_only` and ASML
+  `history_only` regardless. What the lake removes is the *translation* unknown, not the
+  *statement* gap.
+- **The dividend leg needs no translation at all.** `asset_class=corporate_action` already carries
+  TSM and ASML events with `currency = USD` — ADR dividends are paid in USD at source.
+
+The **ADR ratio** stays genuinely open: it is not in the lake, not in the FX series, and not derivable
+from the split events (TSM's are fractional stock dividends, e.g. `1 → 1.014995`). It must be sourced
+and pinned per ticker before any per-share anchor is computed for a foreign issuer.
+
+`/v2` answers a further part for the historical window: it exposes USD-normalized variants
+(`revenuesUSD`, `debtUSD`, `shareholdersEquityUSD`, …) plus `foreignCurrencyUSDExchangeRate`. The
+current window still needs UW or SEC XBRL units resolved explicitly — the lake supplies the rate, not
+the unit tag.
 
 Coverage expectations are **per ticker**, never global: "history reaches 1997" is a claim about NVDA,
 not about the core 25, and the card must render each name's real span.
@@ -338,6 +360,19 @@ field map in P1a, and the period key is `end_date` (`/vX`) ≡ `reportPeriod` (`
 
 `first_observed_at` is when we first saw it; `filing_published_at` is when the world could have known
 it. Point-in-time queries filter on the latter — that is what stops look-ahead in a future sweep.
+
+**This is not a new pattern in the stack — align with the one already shipped.** The lake's
+`bronze/asset_class=corporate_action/symbol=<T>/events.parquet` implements the same idea in
+production today, with columns `action_id`, `provider`, `provider_event_id`, `event_revision`,
+`supersedes_action_id`, `status`, `fetched_at`, `payload_hash`. The mapping is near one-to-one:
+`payload_hash` ≡ `content_hash`, `provider_event_id` ≡ `provider_record_id`, `fetched_at` ≡
+`last_seen_at`. Prefer those names where they fit, and treat any divergence as something to justify.
+
+The one place this spec must go further is **multi-fact extraction runs** (§6). Corporate actions are
+one event per row, so `supersedes_action_id` + `status` suffice. An extraction run emits a *set* of
+facts, which is why retraction there needs the `filing_extraction_run_facts` membership table rather
+than a per-row supersession pointer — a run that re-emits `{A}` after `{A, B}` must retract `B`
+without touching `A`, and a scalar pointer cannot express that.
 
 **Filing documents live in Postgres, not on disk** (F-6). The pipeline caches by accession because
 filings are immutable once accepted, but the only volume in `docker-compose.yml` is the lake at
@@ -912,7 +947,7 @@ stops moving.
 | Phase | Ships | Gate | Verification |
 |---|---|---|---|
 | **P0** | Commit-bug fix + a test asserting through a **freshly opened connection**. Commit **per successful ticker**, rolling back only the failing ticker's transaction | Own PR — independent prod data-loss bug, deploys ahead of feature work | **Freshness delta, not row count**: record a ticker's `fetched_at` before the run, invoke the *real scheduled function*, then assert from a **new connection** that its `fetched_at` advanced past the run start. Plus a regression proving one ticker's DB error does not discard the tickers already processed |
-| **P1a** | **Data-contract spike** (no schema). ✅ **coverage matrix DONE** — `docs/research/2026-08-10-fundamental-source-coverage/` + `scripts/research/fundamental_source_coverage.py`. Remaining: the exact `/vX`→column field map, the `content_hash` normalization/exclusion rule, and a `/vX`∩`/v2` overlap reconciliation on one quarter. The **currency / XBRL-unit / FX-date / ADR-ratio** contract is **deferred with the UW/SEC fallback** — all 23 covered tickers are USD-only (§3.2) | The first draft chose a frozen endpoint for its field count; the second mis-probed `/v2` and read 404s as absence; the third shared a limit across endpoints and 400'd `/vX` for all 25. No ingestion is designed until every source is measured per ticker, not read about | ✅ every core ticker's real span and state recorded, reproducibly. Still open: an overlap-zone quarter agrees across `/vX` and `/v2` field-for-field (or the disagreement has a resolution rule); the field map is committed |
+| **P1a** | **Data-contract spike** (no schema). ✅ **coverage matrix DONE** — `docs/research/2026-08-10-fundamental-source-coverage/` + `scripts/research/fundamental_source_coverage.py`. Remaining: the exact `/vX`→column field map, the `content_hash` normalization/exclusion rule, and a `/vX`∩`/v2` overlap reconciliation on one quarter. ✅ **FX sourced** — the mini lake's `asset_class=fx` partition holds USDTWD + EURUSD dailies back to 2003/2004 (§3.2), so translation is a `lake_resolver` registration when the fallback lands, not research. The **currency / XBRL-unit / ADR-ratio** contract still **defers with the UW/SEC fallback** (all 23 covered tickers are USD-only); the **ADR ratio remains genuinely unsourced** | The first draft chose a frozen endpoint for its field count; the second mis-probed `/v2` and read 404s as absence; the third shared a limit across endpoints and 400'd `/vX` for all 25. No ingestion is designed until every source is measured per ticker, not read about | ✅ every core ticker's real span and state recorded, reproducibly; the FX series that a foreign-issuer fallback would need are located and their span verified. Still open: an overlap-zone quarter agrees across `/vX` and `/v2` field-for-field (or the disagreement has a resolution rule); the field map is committed |
 | **P1b** | Immutable observation tables + canonical views + backfill/incremental modes; registry entries | Scoring over 8 shallow quarters is the weakest possible imitation | Each core ticker reaches **its own** measured span (NVDA current via `/vX`; TSM/ASML history via `/v2` with the 2020→present gap rendered, not hidden); re-ingest is idempotent; a simulated restatement adds a row without destroying its predecessor; segment revenue matches the filed **10-K or 20-F** after unit normalization |
 | **P2** | Method appendix (worked examples) · method version tables · ANCHOR then SCORE · confidence downgrades · `fundamental_runs` + enqueued refresh endpoint | The method must be fixated before anything renders it | 3 hand-checked tickers reproduce hand-computed anchors from the appendix; recompute with unchanged inputs is idempotent; **flipping one ticker's `company_type` changes `inputs_hash` and yields new anchors**; a new method version coexists with the old on the same date; exactly one version is active |
 | **P3** | The card's deterministic blocks (§7) — subscores, anchor band, confidence reasons, coverage, provenance drill-down; API models + `gen:types` + tab/route wiring; loading/stale/error states | — | Every rendered number resolves to a persisted row; the coverage block lists a real `na`; a stale-version row renders as stale rather than current |
