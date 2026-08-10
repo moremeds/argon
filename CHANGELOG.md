@@ -615,6 +615,29 @@ version in lockstep (enforced by `scripts/release/version_sync_check.py`).
   That is UW reporting equity parent-only, excluding non-controlling interest.
   A check there would mark half the universe broken while its data is fine.
 
+### Fixed
+
+- **Dead duplicate method on `Repository`.** `_VrpTradingMixin` carried its own
+  copy of `fetch_distinct_vrp_tickers`, but `_CorporateActionsMixin` sits at MRO
+  position 3 versus 31, so all 11 callers resolved to the corporate-actions
+  version and the trading copy never ran. Both bodies issued identical SQL, so
+  nothing was broken — but any future edit to the losing copy would have been a
+  silent no-op. Removed the dead copy and added
+  `tests/unit/storage/test_repository_mixin_collisions.py`, which fails if any
+  two of the ~34 mixins ever define the same name again.
+
+### Changed
+
+- **Stock-history rollup builder deduplicated** into
+  `src/uw_scan/reports/stock_history.py`. `api/routers/stock.py` and
+  `api/routers/trade_insights.py` each carried a byte-identical `_build_curve`
+  plus history-row loop, which meant the `net_dex=None` placeholder had to be
+  fixed in two places. Both routers now call one
+  `build_stock_history_response()`; responses are unchanged. Also corrects the
+  stale `stock.py:75` file/line citation in
+  `docs/research/six-dimension-matrix/08-implementation-gaps.md` (that line has
+  been the report cache since well before this change).
+
 ## [0.11.4] — 2026-08-10
 
 

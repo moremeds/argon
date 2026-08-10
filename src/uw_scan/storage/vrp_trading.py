@@ -59,13 +59,8 @@ class _VrpTradingMixin:
             (as_of,),
         )
 
-    def fetch_distinct_vrp_tickers(self) -> list[str]:
-        # convenience mirror of vrp_markout._all_vrp_tickers for the trading layer
-        with self._conn.cursor() as cur:
-            cur.execute(
-                f"SELECT DISTINCT ticker FROM {self._schema}.vrp_daily ORDER BY ticker"
-            )
-            return [r[0] for r in cur.fetchall()]
+    # fetch_distinct_vrp_tickers lives on _CorporateActionsMixin — it sits
+    # earlier in Repository's MRO, so the copy that used to live here was dead.
 
     # ── backtest ─────────────────────────────────────────────────────────────
     def clear_vrp_backtest_results(self) -> None:
