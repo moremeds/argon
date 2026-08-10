@@ -7,6 +7,34 @@ version in lockstep (enforced by `scripts/release/version_sync_check.py`).
 
 ## [Unreleased]
 
+### Fixed
+
+- **`fundamentals_refresh` has never persisted a row — it silently rolled back
+  every night.** `_repo()` (`worker/scheduler.py`) opens a psycopg connection
+  with the default `autocommit=False` and closes it in `finally` without
+  committing, and neither `worker/jobs/fundamentals_jobs.py` nor
+  `storage/fundamentals.py` called `.commit()` — so every upsert was discarded
+  on close while the job logged `"fundamentals_refresh refreshed %d tickers"`
+  and reported success. The sibling `positioning_refresh_once` survives only
+  because `insert_scan_run` / `finish_scan_run` commit internally on the same
+  connection; fundamentals had no such accident. Live on the mini,
+  `massive_fundamentals` holds 669 rows across 86 tickers with a latest
+  `fetched_at` of **2026-06-01** — those arrived through some other historical
+  path, and the scheduled job has contributed nothing since migration `066`.
+  The job now commits **per successful ticker**, and rolls back on failure:
+  Postgres aborts the entire transaction on any error, so without the rollback
+  one bad ticker made every *subsequent* ticker fail with
+  `InFailedSqlTransaction`. That second bug was latent behind the first — with
+  nothing ever committing, a cascade had nothing to lose.
+- **The integration test could not have caught it.** It asserted on the job's
+  own still-open connection, which sees uncommitted rows, so it passed against
+  a job that persisted nothing. Assertions now read through a **separately
+  opened connection**, and the new coverage is a *freshness delta* rather than
+  a row count — a count gate would have passed on production's pre-existing 669
+  rows without the bug being fixed. Both halves of the fix are verified
+  load-bearing: removing the commit fails the fresh-connection test, and
+  removing the rollback fails the cascade test with `InFailedSqlTransaction`.
+
 ## [0.11.4] — 2026-08-10
 
 

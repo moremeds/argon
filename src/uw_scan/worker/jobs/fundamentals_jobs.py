@@ -109,8 +109,17 @@ def fundamentals_refresh_once(
                     ),
                     raw_jsonb=r.get("raw"),
                 )
+            # Commit per ticker. _repo() hands us a non-autocommit connection and
+            # closes it without committing, so without this every upsert above was
+            # discarded on close — the job logged success nightly and persisted
+            # nothing. Per-ticker (not once at the end) so one ticker's failure
+            # cannot discard the tickers already done.
+            repo.conn.commit()
             completed += 1
         except Exception as exc:  # noqa: BLE001
+            # Postgres aborts the whole transaction on any error, so without this
+            # rollback every *subsequent* ticker's upsert would fail too.
+            repo.conn.rollback()
             logger.exception(
                 "fundamentals_refresh failed for %s: %s", w.ticker, repr(exc)
             )

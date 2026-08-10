@@ -1,11 +1,30 @@
-"""Integration test for fundamentals_refresh_once — real repo + fake provider."""
+"""Integration test for fundamentals_refresh_once — real repo + fake provider.
+
+Persistence assertions go through a **separate connection** (`_fetched_at`). The
+job's own connection is non-autocommit, so reading back on it proves only that
+the statements ran — which is exactly how the job shipped for months while
+committing nothing.
+"""
 
 from __future__ import annotations
 
-from datetime import date
+from datetime import date, datetime
 from decimal import Decimal
 
+import psycopg
+
 from uw_scan.worker.jobs.fundamentals_jobs import fundamentals_refresh_once
+
+
+def _fetched_at(settings, ticker: str) -> datetime | None:
+    """Read `fetched_at` over a NEW connection — sees only committed rows."""
+    with psycopg.connect(settings.db_dsn()) as conn, conn.cursor() as cur:
+        cur.execute(
+            "SELECT max(fetched_at) FROM uw_scan.massive_fundamentals "
+            "WHERE ticker = %s",
+            (ticker.upper(),),
+        )
+        return cur.fetchone()[0]
 
 
 class _FakeProvider:
@@ -121,6 +140,72 @@ def test_job_idempotent_on_rerun(seeded_db_empty_cards):
             (target.upper(),),
         )
         assert cur.fetchone()[0] == 5  # still 5, not 10
+
+
+def test_job_commits_visible_from_a_fresh_connection(
+    seeded_db_empty_cards, _migrated_settings
+):
+    """The regression that matters: rows must survive the job's connection.
+
+    A row-count gate would not catch this — production already held 669 rows
+    from another path while the scheduled job committed nothing. Assert that a
+    *freshness delta* crosses the transaction boundary.
+    """
+    repo = seeded_db_empty_cards
+    target = _first_active_ticker(repo)
+    shard = lambda t: t == target  # noqa: E731
+    assert _fetched_at(_migrated_settings, target) is None
+
+    assert fundamentals_refresh_once(repo, _FakeProvider(), ticker_filter=shard) == 1
+    first = _fetched_at(_migrated_settings, target)
+    assert first is not None, "job did not commit — rows died with the connection"
+
+    # `fetched_at=now()` on conflict, so a rerun that commits must ADVANCE it.
+    # Compared against the previous DB value rather than a Python timestamp:
+    # Postgres now() is transaction_timestamp(), pinned to the transaction's
+    # first statement, so it can legitimately predate a wall clock sampled here.
+    assert fundamentals_refresh_once(repo, _FakeProvider(), ticker_filter=shard) == 1
+    second = _fetched_at(_migrated_settings, target)
+    assert second > first
+
+
+def test_one_ticker_failure_keeps_earlier_tickers(
+    seeded_db_empty_cards, _migrated_settings
+):
+    """One ticker's DB error must not discard the tickers already processed."""
+
+    class _FailsOnSecond(_FakeProvider):
+        def __init__(self) -> None:
+            self.seen: list[str] = []
+
+        def fetch_financials(self, ticker, *, timeframe="quarterly", limit=8):
+            self.seen.append(ticker)
+            rows = super().fetch_financials(ticker, limit=limit)
+            if len(self.seen) == 2:
+                # Must fail SERVER-side, inside the upsert, so the transaction
+                # is left aborted — that is the state the rollback clears.
+                # `total_assets` is chosen deliberately: it is passed straight
+                # through to the numeric column and never enters a Python
+                # computation, so the bad value survives to the DB. Corrupting
+                # `revenue` instead raises TypeError in the margin division
+                # before any statement is sent, which tests nothing.
+                rows[0] = {**rows[0], "total_assets": "not-a-number"}
+            return rows
+
+    repo = seeded_db_empty_cards
+    tickers = [w.ticker for w in repo.list_active_watchlist()][:3]
+    assert len(tickers) == 3
+
+    provider = _FailsOnSecond()
+    completed = fundamentals_refresh_once(
+        repo, provider, ticker_filter=lambda t: t in tickers
+    )
+
+    # the failing ticker is skipped, the other two persist
+    assert completed == 2
+    assert _fetched_at(_migrated_settings, provider.seen[0]) is not None
+    assert _fetched_at(_migrated_settings, provider.seen[1]) is None
+    assert _fetched_at(_migrated_settings, provider.seen[2]) is not None
 
 
 def test_job_no_provider_is_noop(seeded_db_empty_cards):
