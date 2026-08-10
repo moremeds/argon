@@ -124,25 +124,38 @@ stock page. The target column is **`analyst_target_avg`** (`065_uw_positioning.s
 **Source roles, with a fallback chain — massive is not universal.** Live probe of the core 25
 (2026-08-10) found `/vX` current coverage for **23 of 25**:
 
-| Ticker | `/vX` (current) | `/v2` (history) | Gap |
-|---|---|---|---|
-| TSM | **0 rows** (HTTP 200, empty `results`) | 76 rows, 2000-12-31 → 2019-12-31 | **2020 → present** |
-| ASML | **0 rows** (HTTP 200, empty `results`) | 391 rows, 2000-12-31 → 2019-12-31 | **2020 → present** |
-| NVDA (control) | current to 2026-04-26 | 5 rows, ends 2020-01-26 | none |
+**The pipeline is quarterly, so quarterly counts are the number that matters.** An unfiltered `/v2`
+row count mixes annual, quarterly and trailing rows and materially overstates usable coverage.
+Probed `limit=1000`, with and without `type=Q`:
 
-The gap is **current data, not history**. Two earlier readings of this were wrong in opposite
-directions — one claimed both endpoints were empty for both names, the other that only TSM lacked
-`/v2`. Root cause of the bad measurement, recorded so P1a does not repeat it: **`/v2` takes the
-ticker in the URL path** (`/v2/reference/financials/{ticker}`) while **`/vX` takes it as a query
-parameter**. Querying `/v2` in `/vX` form returns **404**, which a naive row-count probe reads as
-"no coverage". A zero must be distinguished from an error before it becomes evidence.
+| Ticker | `/vX` current | `/v2` **quarterly** | `/v2` all types | Usable state |
+|---|---|---|---|---|
+| TSM | **0 rows** (200, empty `results`) | **0 rows** | 76 (annual / trailing only) | **no usable massive history at all** |
+| ASML | **0 rows** (200, empty `results`) | 93 · 2002-06-30 → 2019-12-31 | 391 | history only; **no current** |
+| NVDA (control) | current to 2026-04-26 | 88 · 1998-10-25 → 2020-01-26 | 405 | covered |
 
-**The root cause is one this spec already documented elsewhere and failed to connect.** §3.3 records
-that the upstream tier files **20-F, not 10-K** (TSM: 6-K ×741, 20-F ×15, zero 10-Ks). massive's
-financials are derived from domestic SEC XBRL, so foreign private issuers are simply absent. One
-structural fact — foreign-issuer filing status — breaks *both* the named-edge graph and the
-statements backbone. Any name reachable only via 20-F should be assumed thin at every provider until
-probed, not just at EDGAR.
+So the gap is **not uniform**: ASML needs a fallback for 2020→present, while TSM needs one for
+*everything* — its 76 rows are annual/trailing and the quarterly pipeline cannot consume them.
+
+**Three successive readings of this endpoint were wrong**, which is why P1a exists and why its
+output is a committed coverage matrix rather than a claim. The failure modes, recorded so they are
+not repeated: (1) **`/v2` takes the ticker in the URL path** (`/v2/reference/financials/{ticker}`)
+while **`/vX` takes it as a query parameter** — querying `/v2` in `/vX` form returns **404**, which
+a naive row-count probe reads as "no coverage"; (2) an unfiltered count is not a quarterly count;
+(3) probe limits must be identical across tickers or the comparison is meaningless (an earlier run
+reported NVDA at 5 rows against ASML's 391). **A zero must be distinguished from an error, and a
+count from a filtered count, before either becomes evidence.**
+
+**A plausible common cause, flagged as inference.** §3.3 records that the upstream tier files
+**20-F, not 10-K** (TSM: 6-K ×741, 20-F ×15, zero 10-Ks), and the two names missing from `/vX` are
+exactly the two foreign private issuers in the core 25. `[INFERRED, MED]` — the correlation is
+measured; the provider's actual derivation path is **not**, and "massive builds `/vX` from domestic
+XBRL" remains an unverified explanation that P1a must confirm or discard. What is established is
+narrower and sufficient to design against: **these two tickers lack current `/vX` coverage.** If the
+inference does hold, one structural fact — foreign-issuer filing status — breaks both the named-edge
+graph and the statements backbone, and any name reachable only via 20-F should be assumed thin at
+every provider until probed, not just at EDGAR. Treat that as a hypothesis to test in P1a, not a
+rule to design around yet.
 
 | Precedence | Source | Role |
 |---|---|---|
@@ -169,7 +182,7 @@ diverges for non-calendar fiscal issuers such as NVDA and AMD, which would silen
 in the overlap zone.
 
 The overlap zone is not incidental: it is the only place field-name parity between the two endpoints
-can be validated, and it is what makes the pre-2009 tail trustworthy enough to score against.
+can be validated, and it is what makes the pre-2020 tail trustworthy enough to score against.
 
 **Gated (Advanced+/Premium, unavailable):** forward analyst estimates, earnings-call transcripts,
 company profile, IPO calendar, UW dividends/splits, macro series.
@@ -225,7 +238,7 @@ Note the convergence: the blueprint author independently landed on a per-company
 | A1 | **Own queue** `fundamental_narrative_analyses` — stage 5, phase P5. **Not** a lane on `trade_insight_ai_analyses` | The first draft claimed this lane was "verified live" on the strength of `analysis_kind` existing (migration `067`) and per-row dispatch at `trade_insights_ai.py:142`. Both are true and both are irrelevant: `017:9` makes `snapshot_id` `NOT NULL REFERENCES trade_insight_snapshots ON DELETE CASCADE` and `run_id` `NOT NULL`, so a fundamental row has no legal parent; dispatch is binary `is_blast`, so `'fundamental'` would silently run the trade prompt; `TradeInsightAiOutcome` demands scenario cards / VRP / preferred expression; and `fetch_unscored_analyses` filters only `status='succeeded'`, so every fundamental row would enter the trade outcome ledger. **The cost of this reversal is real** — the new queue re-pays the SKIP-LOCKED claim logic, heartbeats, per-provider workers and polling hook that A1 originally existed to avoid. That is the price of domain isolation, not an oversight; do not "simplify" it back |
 | A2 | New pure-compute package **`src/uw_scan/fundamentals/`** | Follows `theta_harvester/` / `chanlun/` precedent. Not `reports/` — those are read-time reshapes; these are nightly persisted computations |
 | A3 | New API router **`api/routers/fundamental.py`** | `routers/trade_insights.py` is already ~600 lines; module-size budget |
-| A4 | **massive `/vX` → UW statements → SEC XBRL → explicit `na`**, a fallback chain rather than a single backbone; `/v2` for the pre-2009 tail where it exists; **UW `fundamental-breakdown`** for segments | Reversed twice. First draft picked `/v2` for its field count — argon's probe records it frozen at 2020-Q1, so a "current" card would have shown FY2020. Then a live core-25 probe found `/vX` covers only 23/25: TSM and ASML return zero rows from both endpoints because they are 20-F filers and massive derives from domestic XBRL. UW is therefore a **fallback**, not a cross-check. The IB→UW→FMP→massive priority rule is scoped to *live quotes/greeks* and does not govern here |
+| A4 | **massive `/vX` → UW statements → SEC XBRL → explicit `na`**, a fallback chain rather than a single backbone; `/v2` for the pre-2020 quarterly tail where it exists; **UW `fundamental-breakdown`** for segments | Reversed twice. First draft picked `/v2` for its field count — argon's probe records it frozen at 2020-Q1, so a "current" card would have shown FY2020. Then a live core-25 probe found `/vX` covers only 23/25: **TSM and ASML have no current `/vX` coverage** — ASML retains quarterly `/v2` history to 2019, TSM has *no quarterly `/v2` rows at all* (its 76 rows are annual/trailing, which the quarterly pipeline cannot consume). Both are foreign private issuers, which is a measured correlation but `[INFERRED]` as a cause — P1a confirms or discards it. UW is therefore a **fallback**, not a cross-check. The IB→UW→FMP→massive priority rule is scoped to *live quotes/greeks* and does not govern here |
 | A10 | **Immutable point-in-time observations** for statements, segments and filings; canonical views derived on top | User ruling. Two sources that disagree by six years (A4) make reconciliation mandatory regardless, and PIT is most of the same work. Retrofitting it after rows exist means rebuilding history that was never captured — restatements overwrite the evidence an old `inputs_hash` was computed from |
 | A11 | **On-demand refresh enqueues a persisted run**, returns `202` — never a synchronous router write | The technicals precedent (`stock.py:285`) is deliberately bounded and says to promote it once work becomes async or batched. This stage calls massive, UW and SEC and writes many tables; a synchronous handler leaves partial state with no retry record. argon's rule is mutations route through `/jobs` |
 | A12 | **Own worker role `ai-fundamental`** for the narrative queue | argon already pins roles per lane (`ai-codex`, `ai-claude`, `ai-deepseek`). A shared worker polling two queues needs fair-polling and independent heartbeats to avoid one lane starving the other; a separate role gets that for free and lets the fundamental lane be scaled or disabled without touching trade insights |
@@ -508,7 +521,7 @@ appendix** carrying, for every subscore and every company type, the exact transf
 worked example reproducible by hand. Until that exists the method is named, not fixated — the
 review's F-1, and it stands.
 
-Field-level mapping onto massive `/vX` (and `/v2` for the pre-2009 tail) is the P1 data-contract
+Field-level mapping onto massive `/vX` (and `/v2` for the pre-2020 quarterly tail) is the P1 data-contract
 spike's job and is deliberately not guessed here.
 
 ### 5.3 Company-type routing — a second axis, and its invalidation cascade
@@ -958,7 +971,8 @@ is a required test, not a suggestion.
 | T16 | Extraction run crashes mid-filing | the failed run never becomes current; the prior succeeded run still projects |
 | T17 | `DELETE` the method state row | **rejected by the `BEFORE DELETE` trigger**; worker startup also fails loudly if the pointer is unreadable |
 | T18 | Identical rerun, then query the current view via the second run | resolves to the same `result_id` through a `reused = true` association |
-| T19 | TSM / ASML (no massive coverage) | falls back to UW, then SEC XBRL, then renders explicit `na` — never a blank that reads as zero |
+| T19 | TSM / ASML (no **current** `/vX` coverage; TSM additionally has no quarterly `/v2` rows) | falls back to UW, then SEC XBRL, then renders explicit `na` — never a blank that reads as zero |
+| T20c | A `/v2` count taken without `type=Q` | the coverage matrix records the **quarterly** count; an unfiltered total never stands in for it |
 | T20 | Non-calendar fiscal issuer (NVDA, AMD) in the overlap zone | quarters match on `end_date` ≡ `reportPeriod`; `calendarDate` is never used as the key |
 | T21 | Provider envelope changes (request id / timestamp) with identical financials | `content_hash` unchanged → no new observation |
 
