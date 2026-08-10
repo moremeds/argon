@@ -2,21 +2,15 @@
 
 from __future__ import annotations
 
-from datetime import date as _date
 from datetime import datetime
-from decimal import Decimal
 from typing import Any, Literal
 from uuid import UUID
 
 from fastapi import APIRouter, Depends, HTTPException, Query, status
 
 from uw_scan.api.deps import get_repo, get_settings
-from uw_scan.cards.gex import classify_bias, find_flip_strike
 from uw_scan.config import Settings
 from uw_scan.models import (
-    StockHistoryResponse,
-    StockHistoryRow,
-    StrikeGexBucket,
     TradeInsightAiAnalysisEnqueueResponse,
     TradeInsightAiAnalysisRequest,
     TradeInsightAiAnalysisResponse,
@@ -28,6 +22,7 @@ from uw_scan.models import (
     TradeInsightsResponse,
 )
 from uw_scan.reports.single_stock import assemble_single_stock_report
+from uw_scan.reports.stock_history import build_stock_history_response
 from uw_scan.reports.trade_blast import (
     PROMPT_VERSION as BLAST_PROMPT_VERSION,
 )
@@ -51,49 +46,6 @@ from uw_scan.reports.volatility_series import assemble_volatility_series
 from uw_scan.storage.repository import Repository
 
 router = APIRouter()
-
-
-def _dec(v: object) -> Decimal | None:
-    if v is None:
-        return None
-    return Decimal(str(v))
-
-
-def _build_curve(raw: list[dict]) -> list[StrikeGexBucket]:
-    return [
-        StrikeGexBucket(
-            strike=Decimal(str(row["strike"])),
-            expiry=_date.fromisoformat(str(row["expiry"])),
-            net_gex=_dec(row.get("net_gex")),
-            call_gex=_dec(row.get("call_gex")),
-            put_gex=_dec(row.get("put_gex")),
-        )
-        for row in raw
-    ]
-
-
-def _build_stock_history_response(
-    ticker: str, repo: Repository
-) -> StockHistoryResponse:
-    rows: list[StockHistoryRow] = []
-    for r in repo.fetch_stock_history_rollup(ticker, limit=30):
-        curve = _build_curve(r["strike_gex_curve"] or [])
-        net_gex = sum((b.net_gex for b in curve if b.net_gex is not None), Decimal("0"))
-        flip = find_flip_strike(curve)
-        spot = _dec(r.get("spot"))
-        rows.append(
-            StockHistoryRow(
-                market_date=r["market_date"],
-                spot=spot,
-                gex_flip=flip,
-                net_gex=net_gex if curve else None,
-                net_dex=None,
-                iv30d=_dec(r.get("iv30d")),
-                pcr_vol=_dec(r.get("pcr_vol")),
-                bias=classify_bias(spot, flip, net_gex if curve else None),
-            )
-        )
-    return StockHistoryResponse(ticker=ticker, rows=rows)
 
 
 _BLAST_MACRO_SERIES: tuple[str, ...] = (
@@ -334,7 +286,7 @@ def post_trade_insights_ai_analysis(
         repo,
     )
     stock_report = assemble_single_stock_report(t, run_id, repo)
-    stock_history = _build_stock_history_response(t, repo)
+    stock_history = build_stock_history_response(t, repo)
     backfill_status = (repo.get_volatility_backfill_status(t) or {}).get(
         "status"
     ) or "ready"

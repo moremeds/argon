@@ -35,7 +35,7 @@ Legend: ✅ = production-ready; ⚠️ = partial / proxy / missing classifier; �
 | Persistence | `uw_scan.greeks_by_expiry_strike.call_vanna/put_vanna` (per-contract), `uw_scan.exposures_by_expiry_strike.call_vanna/put_vanna` (aggregated) | ✅ |
 | Repository read | None — `fetch_vanna_*_for_ticker` does not exist | ❌ |
 | Report assembler | No assembler reads vanna | ❌ |
-| API router | No router exposes vanna; `net_dex`/`net_dex_*` hardcoded `None` at `src/uw_scan/api/routers/stock.py:75` (DEX is also unsurfaced) | ❌ |
+| API router | No router exposes vanna; `net_dex` hardcoded `None` in `src/uw_scan/reports/stock_history.py::build_stock_history_response` — the single builder behind both `/api/stock/{T}/history` and the Trade Insights payload (DEX is also unsurfaced) | ❌ |
 | UI | No component | ❌ |
 | Conditional reading classifier | None — the 4 conditional readings from [`01-vanna.md`](01-vanna.md) §2 require joining vanna with flow color + dealer net-gamma + IV direction | ❌ |
 | AI blacklist | `src/uw_scan/reports/trade_insights_ai.py:965` rejects `"vanna"` in source paths | (block) |

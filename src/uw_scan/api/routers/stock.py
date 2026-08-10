@@ -6,13 +6,10 @@ import os
 import threading
 import time
 from collections import OrderedDict
-from datetime import date as _date
-from decimal import Decimal
 
 from fastapi import APIRouter, Depends, HTTPException, Query
 
 from uw_scan.api.deps import get_repo, get_settings
-from uw_scan.cards.gex import classify_bias, find_flip_strike
 from uw_scan.cards.magnets import (
     CONE_HORIZONS,
     all_pivots,
@@ -29,8 +26,6 @@ from uw_scan.models import (
     MagnetsResponse,
     SingleStockReport,
     StockHistoryResponse,
-    StockHistoryRow,
-    StrikeGexBucket,
     TechnicalsLiveResponse,
     TechnicalsResponse,
     TechnicalsVwapAnchor,
@@ -45,6 +40,7 @@ from uw_scan.reports.magnet_data import (
     trim_to_clean_segment,
 )
 from uw_scan.reports.single_stock import assemble_single_stock_report
+from uw_scan.reports.stock_history import build_stock_history_response
 from uw_scan.reports.technicals import assemble_technicals
 from uw_scan.storage.repository import Repository
 
@@ -123,25 +119,6 @@ def _assemble_cached(ticker: str, run_id: int, repo: Repository) -> SingleStockR
     return report.model_copy(deep=True)
 
 
-def _dec(v: object) -> Decimal | None:
-    if v is None:
-        return None
-    return Decimal(str(v))
-
-
-def _build_curve(raw: list[dict]) -> list[StrikeGexBucket]:
-    return [
-        StrikeGexBucket(
-            strike=Decimal(str(row["strike"])),
-            expiry=_date.fromisoformat(row["expiry"]),
-            net_gex=_dec(row.get("net_gex")),
-            call_gex=_dec(row.get("call_gex")),
-            put_gex=_dec(row.get("put_gex")),
-        )
-        for row in raw
-    ]
-
-
 @router.get("/stock/{ticker}", response_model=SingleStockReport)
 def get_stock(ticker: str, repo: Repository = Depends(get_repo)) -> SingleStockReport:
     t = ticker.upper()
@@ -160,27 +137,7 @@ def get_stock_history(
     One row per trading day, sorted newest-first. Today's row may have
     spot=None if the post-close OHLC pull hasn't fired yet.
     """
-    t = ticker.upper()
-    raw_rows = repo.fetch_stock_history_rollup(t, limit=30)
-    rows: list[StockHistoryRow] = []
-    for r in raw_rows:
-        curve = _build_curve(r["strike_gex_curve"] or [])
-        net_gex = sum((b.net_gex for b in curve if b.net_gex is not None), Decimal("0"))
-        flip = find_flip_strike(curve)
-        spot = _dec(r.get("spot"))
-        rows.append(
-            StockHistoryRow(
-                market_date=r["market_date"],
-                spot=spot,
-                gex_flip=flip,
-                net_gex=net_gex if curve else None,
-                net_dex=None,
-                iv30d=_dec(r.get("iv30d")),
-                pcr_vol=_dec(r.get("pcr_vol")),
-                bias=classify_bias(spot, flip, net_gex if curve else None),
-            )
-        )
-    return StockHistoryResponse(ticker=t, rows=rows)
+    return build_stock_history_response(ticker.upper(), repo)
 
 
 @router.get("/stock/{ticker}/runs")
