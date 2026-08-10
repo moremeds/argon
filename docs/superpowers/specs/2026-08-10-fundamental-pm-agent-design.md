@@ -1,6 +1,15 @@
 # Fundamental analysis method — design
 
-*Status: ACCEPTED, awaiting implementation plan · 2026-08-10 · branch `feat/fundamental-pm-agent`*
+*Status: DRAFT — revised after review · 2026-08-10 · branch `feat/fundamental-pm-agent`*
+
+> **Revision note (2026-08-10).** A review found two hard errors in the first draft, both verified
+> against source before acceptance: the narrative lane cannot use `trade_insight_ai_analyses`
+> (`snapshot_id` is `NOT NULL` with a cascade to `trade_insight_snapshots`, so a fundamental row has
+> no legal parent), and massive `/v2` is **frozen at 2020-Q1** per argon's own probe — using it as the
+> backbone would have rendered FY2020 financials as current. Both decisions are reversed below.
+> Point-in-time observation storage is **mandatory in v1** (user ruling), not deferred.
+
+---
 
 ## 1. Goal
 
@@ -60,7 +69,7 @@ over a 188-name universe. argon's `watchlist_taxonomy.py` is already the same sh
 | Technical score inside the fundamental composite | Violates his own display-only principle; argon's technicals are deeper |
 | 4-tier universe, PDF reports, Social Monitor, ClickHouse, FMP subscription | argon has equivalents or better; Postgres is law here |
 | His options module | argon's is materially better |
-| 预期差 as *estimate* gap | Forward estimates are Advanced+-gated. Ship the **price-target** gap (`uw_positioning.target_avg` vs anchors); never fake the estimate gap |
+| 预期差 as *estimate* gap | Forward estimates are Advanced+-gated. Ship the **price-target** gap (`uw_positioning.analyst_target_avg` vs anchors); never fake the estimate gap |
 | 供应链瓶颈分 as a hand-assigned score | Replaced by the **measured** ASC 280 concentration metric — same shape, real provenance |
 
 He has **no backtest, no hit-rate, no P&L**, and says so. This is a research organizer, not
@@ -94,7 +103,8 @@ traced — worth a follow-up audit, out of scope here.
 
 | Source | Content | Integrated? |
 |---|---|---|
-| massive `/v2/reference/financials` | **103 fields, quarters back to 1997** | No — argon uses `/vX` (55 fields), persists ~13, `limit=8` |
+| massive `/vX/reference/financials` | **current production endpoint** — quarters 2009-06-27 → 2026-03-28, live | Partially — argon persists ~13 fields, `limit=8`. The endpoint is right; the depth is not |
+| massive `/v2/reference/financials` | 103 pre-computed fields, quarters 1997-09-30 → **2020-03-31, frozen** | No — and it must never be the current-data backbone |
 | UW `/stock/{t}/income-statements`, `/balance-sheets`, `/cash-flows` | 94 quarters each | No |
 | UW `/stock/{t}/fundamental-breakdown` → `rev_breakdown` | **revenue by product AND geography** | No |
 | UW `/stock/{t}/info` | sector, marketcap, beta, issue_type | No |
@@ -102,7 +112,20 @@ traced — worth a follow-up audit, out of scope here.
 
 **Already shipped and reusable:** `uw_positioning` (analyst targets/ratings, insider net flow,
 13F aggregates, short interest, earnings reactions) — daily, correctly committed, live on the
-stock page.
+stock page. The target column is **`analyst_target_avg`** (`065_uw_positioning.sql:26`), not
+`target_avg`.
+
+**Source roles are now explicit** (reversal of the first draft's A4):
+
+| Window | Source | Role |
+|---|---|---|
+| 2009 → present | massive `/vX` | **backbone**; the only source that may back a "current" figure |
+| 1997 → 2008 | massive `/v2` | one-time legacy backfill; frozen, never refreshed |
+| 2009 → 2020 | both | **overlap zone** — reconcile and persist disagreements, never silently prefer one |
+| any | UW statements (94q) | independent cross-check, not the backbone |
+
+The overlap zone is not incidental: it is the only place field-name parity between the two endpoints
+can be validated, and it is what makes the 1997–2008 tail trustworthy enough to score against.
 
 **Gated (Advanced+/Premium, unavailable):** forward analyst estimates, earnings-call transcripts,
 company profile, IPO calendar, UW dividends/splits, macro series.
@@ -155,10 +178,12 @@ Note the convergence: the blueprint author independently landed on a per-company
 
 | # | Decision | Rationale |
 |---|---|---|
-| A1 | **Third lane** `analysis_kind='fundamental'` on the existing `trade_insights_ai` queue — stage 5, phase P5 | Verified live: migration `067`, per-row dispatch at `trade_insights_ai.py:142`. A separate queue would duplicate SKIP-LOCKED claim logic, heartbeats, per-provider workers and the UI polling hook for no gain |
+| A1 | **Own queue** `fundamental_narrative_analyses` — stage 5, phase P5. **Not** a lane on `trade_insight_ai_analyses` | The first draft claimed this lane was "verified live" on the strength of `analysis_kind` existing (migration `067`) and per-row dispatch at `trade_insights_ai.py:142`. Both are true and both are irrelevant: `017:9` makes `snapshot_id` `NOT NULL REFERENCES trade_insight_snapshots ON DELETE CASCADE` and `run_id` `NOT NULL`, so a fundamental row has no legal parent; dispatch is binary `is_blast`, so `'fundamental'` would silently run the trade prompt; `TradeInsightAiOutcome` demands scenario cards / VRP / preferred expression; and `fetch_unscored_analyses` filters only `status='succeeded'`, so every fundamental row would enter the trade outcome ledger. **The cost of this reversal is real** — the new queue re-pays the SKIP-LOCKED claim logic, heartbeats, per-provider workers and polling hook that A1 originally existed to avoid. That is the price of domain isolation, not an oversight; do not "simplify" it back |
 | A2 | New pure-compute package **`src/uw_scan/fundamentals/`** | Follows `theta_harvester/` / `chanlun/` precedent. Not `reports/` — those are read-time reshapes; these are nightly persisted computations |
 | A3 | New API router **`api/routers/fundamental.py`** | `routers/trade_insights.py` is already ~600 lines; module-size budget |
-| A4 | **massive `/v2`** for the statements backbone, **UW `fundamental-breakdown`** for segments | The IB→UW→FMP→massive rule is scoped to *live quotes/greeks*; massive is already the fundamentals source. Preserves UW headroom. UW 94q statements become the cross-check |
+| A4 | **massive `/vX`** for the statements backbone; `/v2` for the 1997–2008 tail only; **UW `fundamental-breakdown`** for segments | Reversed after review. argon's own probe records `/v2` frozen at 2020-Q1 and `/vX` live to 2026 — the first draft picked the dead endpoint for its field count and would have rendered FY2020 as current. The IB→UW→FMP→massive rule is scoped to *live quotes/greeks*; massive remains the fundamentals source. UW's 94q statements are the cross-check, and the 2009–2020 overlap is where field parity is proven |
+| A10 | **Immutable point-in-time observations** for statements, segments and filings; canonical views derived on top | User ruling. Two sources that disagree by six years (A4) make reconciliation mandatory regardless, and PIT is most of the same work. Retrofitting it after rows exist means rebuilding history that was never captured — restatements overwrite the evidence an old `inputs_hash` was computed from |
+| A11 | **On-demand refresh enqueues a persisted run**, returns `202` — never a synchronous router write | The technicals precedent (`stock.py:285`) is deliberately bounded and says to promote it once work becomes async or batched. This stage calls massive, UW and SEC and writes many tables; a synchronous handler leaves partial state with no retry record. argon's rule is mutations route through `/jobs` |
 | A5 | **`fundamental_company_type`** persisted separately, seeded from sector+chain, hand-overridable | `watchlist_chain` is many-to-many — a ticker in 3 chains has no unique layer. Valuation methods must not silently flip when taxonomy is edited |
 | A6 | **DeepSeek only** for stage 5 | `docker-compose.yml:10` — "AI Codex/Claude are OFF"; only `worker-ai-deepseek-0/1` are deployed. Codex/Claude runners are subprocess CLIs reading macOS keychain OAuth; there is no keychain in a container. DeepSeek is in-process `httpx` + bearer token |
 | A7 | **Core 25** universe in v1 (§4.3) | Every valuation anchor stays hand-verifiable while the method is still being fixated |
@@ -201,21 +226,55 @@ assume.
 
 Each in its own `storage/<domain>.py`. Never extend `repository.py`.
 
+Three tiers, and the separation is the point: **observations are immutable, canonical views are
+derived, outputs are versioned.** Nothing is ever updated in place.
+
+**Tier 1 — immutable source observations (A10).** One row per thing a provider actually said, at the
+time it said it. Never updated, never deleted; a restatement is a new row.
+
 | Table | Key columns | Registry |
 |---|---|---|
-| `fundamental_statements` | PK `(ticker, period_end, period_type)`; ~40 wide columns + `raw_jsonb` (full 103-field payload), `source` | temporal → **DatasetRegistryEntry** |
-| `fundamental_segments` | PK `(ticker, period_end, dimension, segment_name)`; `dimension ∈ {product, geography}`, revenue, `source` | temporal → **DatasetRegistryEntry** |
-| `fundamental_score_daily` | PK `(ticker, as_of)`; one column per subscore, composite, `engine_version`, `inputs_hash` | temporal → **DatasetRegistryEntry** |
-| `valuation_anchors_daily` | PK `(ticker, as_of)`; `company_type`, `method`, the 5 anchors, base/bear/bull × 1y/3y, `confidence`, `confidence_reasons_jsonb`, `inputs_jsonb`, `engine_version` | temporal → **DatasetRegistryEntry** |
-| `customer_concentration` | PK `(ticker, fiscal_period, filing_form)`; `top_customer_pct`, `customers_over_10pct`, `none_over_10pct`, `magnitude_basis`, `filing_accession`, `filing_date`, `excerpt` | event-temporal → **DatasetRegistryEntry** |
-| `fundamental_edges` | see §6 | event-temporal → **DatasetRegistryEntry** |
-| `fundamental_audit_results` | PK `(analysis_id, claim_seq)`; `claim_text`, `extracted_value`, `backing_source`, `backing_value`, `verdict ∈ {pass,warn,fail,unverifiable}`, `stage ∈ {deterministic,model}` | keyed by analysis — dimension, exempt |
-| `fundamental_company_type` | PK `(ticker)`; `company_type`, `source ∈ {rule,manual}`, `set_at` | dimension, exempt |
-| `fundamental_method_params` | PK `(param_set, param_key)`; `param_value NUMERIC`, `active BOOLEAN`, `note`, `updated_at`. Holds §5.2 weights + §5.4 thresholds. Seeded `param_set='v1_prior'` | dimension, exempt |
+| `fundamental_statement_obs` | PK `(source, ticker, period_end, period_type, observed_at)`; `filing_accession`, `filing_published_at`, `raw_jsonb`, `field_map_version` | event-temporal → **DatasetRegistryEntry** |
+| `fundamental_segment_obs` | PK `(source, ticker, period_end, dimension, segment_name, observed_at)`; revenue, `filing_accession` | event-temporal → **DatasetRegistryEntry** |
+| `fundamental_edge_obs` | see §6 — keyed by `(filing_accession, fact_seq)` | event-temporal → **DatasetRegistryEntry** |
 
-Exactly one `param_set` carries `active=true` — enforced by a partial unique index, not by
-convention. Two active sets would make `engine_version` ambiguous and every downstream row
-unattributable.
+`observed_at` is when *we* fetched it; `filing_published_at` is when the world could have known it.
+Point-in-time queries filter on the latter — that is what stops look-ahead in a future sweep.
+
+**Tier 2 — canonical views, derived not stored.** `fundamental_statement_current` resolves the
+newest non-superseded observation per `(ticker, period_end, period_type)` under a documented source
+precedence (`/vX` wins inside 2009+; `/v2` supplies 1997–2008; UW breaks ties only as cross-check).
+Overlap-zone disagreements are surfaced, never silently resolved: a materialized
+`fundamental_source_discrepancies` row records both values and the delta.
+
+**Tier 3 — versioned outputs.** Keyed to include the engine version so two versions can coexist on
+one date (F-4 fix — the first draft's `(ticker, as_of)` PK made the promised append-not-mutate
+history physically impossible).
+
+| Table | Key columns | Registry |
+|---|---|---|
+| `fundamental_runs` | PK `run_id`; `ticker`, `mode ∈ {refresh_external,recompute}`, per-stage status/timing, `rows_written`, `error`, `attempt` | run ledger — dimension, exempt |
+| `valuation_anchors` | PK `(ticker, as_of, engine_version)`; `company_type`, `method`, 5 anchors, base/bear/bull × 1y/3y, `confidence`, `confidence_reasons_jsonb`, `inputs_jsonb`, `source_obs_ids`, `run_id` | temporal → **DatasetRegistryEntry** |
+| `fundamental_scores` | PK `(ticker, as_of, engine_version)`; one column per subscore, composite, `inputs_hash`, `source_obs_ids`, `run_id` | temporal → **DatasetRegistryEntry** |
+| `customer_concentration` | PK `(ticker, fiscal_period, filing_form, filing_accession)`; `top_customer_pct`, `customers_over_10pct`, `none_over_10pct`, `magnitude_basis`, `filing_date`, `excerpt` | event-temporal → **DatasetRegistryEntry** |
+| `fundamental_narrative_analyses` | own queue (A1) — PK `analysis_id`; `ticker`, `run_id`, `provider`, `prompt_version`, `prompt_text`, `prompt_payload_jsonb`, `output_schema_jsonb`, `status`, `outcome_jsonb`, `markdown`, timings. **No `snapshot_id`** | keyed by analysis — dimension, exempt |
+| `fundamental_audit_results` | PK `(analysis_id, claim_seq)`; `claim_text`, `extracted_value`, `backing_source`, `backing_value`, `verdict ∈ {pass,warn,fail,unverifiable}`, `stage ∈ {deterministic,model}` | dimension, exempt |
+| `fundamental_company_type` | PK `(ticker, effective_from)`; `company_type`, `source ∈ {rule,manual}` — historised, because it is an `inputs_hash` input | dimension, exempt |
+
+`source_obs_ids` is what makes I2 real: it records the exact tier-1 rows a computation consumed, so
+an old `inputs_hash` can be reconstructed even after later restatements arrive.
+
+**Method versioning — header plus children (F-4).** A row-per-parameter table cannot express
+"exactly one active set" with a partial unique index, because many rows share a set:
+
+| Table | Key columns |
+|---|---|
+| `fundamental_method_versions` | PK `engine_version`; `code_version`, `param_hash`, `created_at`, `note`, `active BOOLEAN`. Partial unique index on `(active) WHERE active` → exactly one |
+| `fundamental_method_params` | PK `(engine_version, param_key)`; `param_value NUMERIC`. **Immutable** — retuning inserts a new version, never edits rows |
+
+Activation is a single transactional flip on the header. `engine_version` is derived
+`{code_version}:{param_hash[:8]}` and written once at version creation. A "latest valid version"
+view backs S1 and S2 so neither surface has to reimplement the resolution rule.
 
 Registry entries and the regenerated data-gap policy doc ride the **same PR** as each table.
 
@@ -235,12 +294,17 @@ method has been broken.
 Five stages. Every ticker, every run, no exceptions:
 
 ```
-1 INGEST   raw statements + segments        → fundamental_statements, fundamental_segments
+1 INGEST   source observations, immutable   → *_observations tables (§4.4)
 2 DERIVE   TTM, growth, margins, ratios     → pure functions, no I/O
-3 SCORE    subscores → composite            → fundamental_score_daily
-4 ANCHOR   company-type-routed valuation    → valuation_anchors_daily
-5 NARRATE  DeepSeek prose over 3+4, audited → trade_insight_ai_analyses + fundamental_audit_results
+3 ANCHOR   company-type-routed valuation    → valuation_anchors
+4 SCORE    subscores → composite            → fundamental_scores
+5 NARRATE  DeepSeek prose over 3+4, audited → fundamental_narrative_analyses + fundamental_audit_results
 ```
+
+**ANCHOR precedes SCORE.** The first draft ran SCORE at 3 and ANCHOR at 4 while the
+`valuation_position` subscore consumed the anchors — a cycle that no ordering *within* a stage could
+resolve. Anchors are computed from derived fundamentals only and never read the composite back, so
+the dependency is a straight line: `DERIVE → ANCHOR → SCORE`.
 
 Stages 1–4 are deterministic and reproducible from `inputs_hash`. Stage 5 is a **provider call
 inside a job**, not an agent: it is triggered by cron or by request, never by its own judgement, and
@@ -251,13 +315,26 @@ Stage 5 degrades cleanly. If DeepSeek is unavailable, disabled, or its output fa
 card renders stages 1–4 with the narrative block marked absent. **The deterministic surfaces never
 depend on the model.**
 
-**Trigger: ad-hoc first, cron later** (user ruling, 2026-08-10). v1 runs the whole pipeline
-on-demand per ticker from a button on the card, following the shipped
-`POST /stock/{ticker}/technicals/refresh` "Compute now" precedent — an explicit, deliberate write on
-an otherwise read-only router. A nightly job over the whole universe is added only once the method
-has stopped moving; scheduling an unstable method just fills tables with rows carrying dead
-`engine_version`s. The job function takes a `ticker_filter` from day one so the cron, when it comes,
-is a scheduler entry and not a rewrite.
+**Trigger: ad-hoc first, cron later** (user ruling, 2026-08-10). No nightly job until the method
+stops moving — scheduling an unstable method just fills tables with rows carrying dead
+`engine_version`s. Job functions take a `ticker_filter` from day one so the cron, when it comes, is a
+scheduler entry and not a rewrite.
+
+**Ad-hoc means enqueued, not synchronous** (A11). `POST /fundamental/{ticker}/refresh` writes a
+`fundamental_runs` row and returns `202`; a worker executes the stages and updates per-stage status.
+The technicals "Compute now" precedent is a *shape* precedent, not a licence — that handler is
+bounded to one cached-data recompute, and `stock.py:285` says to promote it the moment work becomes
+async or batched. This pipeline calls massive, UW and SEC and writes across a dozen tables.
+
+Two modes, deliberately separate:
+
+| Mode | Does | Costs |
+|---|---|---|
+| `refresh_external_facts` | stage 1 — pull and persist new observations | provider quota, latency, rate limits |
+| `recompute_from_cached_facts` | stages 2–4 over existing observations | nothing external; safe to run on every parameter change |
+
+Splitting them is what makes a weight change cheap: retuning re-runs stage 2–4 across the universe
+without touching a provider. Conflating them would put an API bill behind every parameter edit.
 
 Invariants, in force at every stage:
 
@@ -294,26 +371,33 @@ Three reasons, in order of weight:
 | `balance_sheet` | net debt / EBITDA, interest coverage, current ratio | lower leverage better | 0.15 |
 | `valuation_position` | spot vs `observe_low..observe_high` band from stage 4 | cheaper better | 0.15 |
 | `concentration_risk` | top-customer %, its multi-year trend (§6) | lower better | 0.10 |
-| `expectations_gap` | our 1Y anchor vs `uw_positioning.target_avg`, insider net, short interest | wider positive gap better | 0.05 |
+| `expectations_gap` | our 1Y anchor vs `uw_positioning.analyst_target_avg`, insider net, short interest | wider positive gap better | 0.05 |
 
-Seeded by migration as `param_set='v1_prior'`, `active=true`. The table also holds the §5.4
-downgrade thresholds — anything a future sweep might want to move.
+Seeded as version `v1_prior` (header + child rows, §4.4). Parameter rows are **immutable**: retuning
+creates a new `engine_version` and flips the header pointer. The set also holds the §5.4 downgrade
+thresholds — anything a future sweep might want to move.
 
-**Mutable parameters force `engine_version` to be derived, not hand-written.** It is
-`{code_version}:{param_hash[:8]}`, where `param_hash` covers the active parameter set. A hand-bumped
-version would let someone edit a weight while the version stayed put, silently destroying
-comparability across `fundamental_score_daily` rows — the exact question §5.6 exists to answer.
+**Parameters as data force `engine_version` to be derived, not hand-written.** It is
+`{code_version}:{param_hash[:8]}`, computed once at version creation. A hand-bumped version would let
+someone change a weight while the version stayed put, silently destroying comparability across
+`fundamental_scores` rows — the exact question §5.6 exists to answer.
 
-Ordering constraint: `valuation_position` consumes stage 4, so within stage 3 it is computed
-**last**, and stage 4 must never read the composite back. The dependency is one-directional or the
-score becomes self-referential.
+`valuation_position` consumes stage 3 (ANCHOR) and is computed in stage 4 (SCORE). ANCHOR must never
+read the composite back; the dependency is a straight line or the score becomes self-referential.
 
-`concentration_risk` returns `na` until S2 P4 lands; `na` subscores are dropped and the remaining
+`concentration_risk` returns `na` until S1 P4 lands; `na` subscores are dropped and the remaining
 weights renormalize. Renormalization, not zero-fill — a zero would read as "no concentration risk",
 which is a fabricated fact.
 
-Field-level mapping onto massive `/v2`'s 103 columns is P1's job and is deliberately not guessed
-here.
+**This table is a rubric, not an implementation.** Direction and weight do not determine a score:
+normalization, winsorization, breakpoints, lookback windows and the spot-date rule are all still
+free, and two conforming implementations would disagree. **P2 does not exit without a method
+appendix** carrying, for every subscore and every company type, the exact transformation and a
+worked example reproducible by hand. Until that exists the method is named, not fixated — the
+review's F-1, and it stands.
+
+Field-level mapping onto massive `/vX` (and `/v2` for the pre-2009 tail) is the P1 data-contract
+spike's job and is deliberately not guessed here.
 
 ### 5.3 Company-type routing — a second axis, and its invalidation cascade
 
@@ -406,7 +490,7 @@ The payoff. To add each thing, touch only the listed seam:
 
 ### 5.6 Versioning and comparability
 
-`engine_version` is stamped on `fundamental_score_daily` and `valuation_anchors_daily`, and bumps
+`engine_version` is stamped on `fundamental_scores` and `valuation_anchors`, and bumps
 on **any** change to weights, rubric, routing, or a method. `inputs_hash` covers the derived inputs.
 Together they answer the only question that matters when the method evolves: *did this score move
 because the company changed, or because I changed the method?*
@@ -419,9 +503,15 @@ be charted on the same axis only with the version break marked.
 An anonymous-counterparty disclosure is a **concentration row, not an edge**. `dst_ticker` is
 `NOT NULL` on edges; the `curated` tier does not exist.
 
+**Edges are observations, not relationships** (F-7 fix). The first draft made
+`(src_ticker, dst_ticker, edge_type)` unique *and* promised "never DELETE — audit trail". Those
+contradict: a later filing restating the same relationship would have had to overwrite the accession,
+excerpt and magnitude that justified the earlier one. One filing fact = one immutable row.
+
 ```sql
-CREATE TABLE IF NOT EXISTS uw_scan.fundamental_edges (
-    edge_id            BIGINT GENERATED ALWAYS AS IDENTITY PRIMARY KEY,
+CREATE TABLE IF NOT EXISTS uw_scan.fundamental_edge_obs (
+    filing_accession   TEXT NOT NULL,             -- lock enforced: no accession, no row
+    fact_seq           INT  NOT NULL,             -- nth extracted fact within the filing
     src_ticker         TEXT NOT NULL,             -- the FILER making the disclosure
     dst_ticker         TEXT NOT NULL,
     edge_type          TEXT NOT NULL CHECK (edge_type IN
@@ -432,21 +522,24 @@ CREATE TABLE IF NOT EXISTS uw_scan.fundamental_edges (
     magnitude_basis    TEXT,
     identity_inference TEXT,
     filing_form        TEXT NOT NULL,             -- '10-K' | '20-F'
-    filing_accession   TEXT NOT NULL,             -- lock enforced: no accession, no row
     filing_date        DATE NOT NULL,
+    filing_published_at TIMESTAMPTZ NOT NULL,     -- PIT boundary (A10)
     fiscal_period      TEXT,
     excerpt            TEXT NOT NULL,
-    first_seen_at      TIMESTAMPTZ NOT NULL DEFAULT now(),
-    last_confirmed_at  TIMESTAMPTZ NOT NULL DEFAULT now(),
-    status             TEXT NOT NULL DEFAULT 'active'
-                         CHECK (status IN ('active','stale','retired')),
+    observed_at        TIMESTAMPTZ NOT NULL DEFAULT now(),
     CONSTRAINT inferred_needs_basis CHECK
       (trust_tier <> 'asc280_inferred' OR identity_inference IS NOT NULL),
-    UNIQUE (src_ticker, dst_ticker, edge_type)
+    PRIMARY KEY (filing_accession, fact_seq)
 );
 ```
 
-**Pipeline** — one weekly pass, `edge_graph_refresh`:
+**Current-relationship projection** — a view, not a table:
+`fundamental_edge_current` takes the newest observation per `(src_ticker, dst_ticker, edge_type)` and
+derives `status` from filing recency (`active` / `stale` after absence from the newest same-form
+filing / `retired` past 400 days). Nothing is mutated to compute it; the full observation history
+stays queryable, which is what "audit trail" was supposed to mean.
+
+**Pipeline** — one pass per run, `edge_graph_refresh`:
 
 1. Per core ticker, `edgartools` pulls the newest **10-K or 20-F** (form chosen from
    `data.sec.gov` submissions). Section-scoped scan (Item 1 / 1A / 7 + concentration-of-credit-risk
@@ -459,13 +552,24 @@ CREATE TABLE IF NOT EXISTS uw_scan.fundamental_edges (
    this batch job* to locate ambiguous sentences — that is not the deferred live agent of §10, and
    it never authors a row the gate did not verify. If regex recall proves adequate at P4, the LLM
    step is not built at all.
-4. Refresh/expire: re-found in a newer filing → bump `last_confirmed_at`. Absent from the newest
-   same-form filing → `stale`. Stale > 400 days → `retired`. **Never DELETE** — audit trail.
+4. Re-processing a filing is idempotent by `(filing_accession, fact_seq)`. Nothing expires by
+   mutation; recency is resolved in the view. **No row is ever updated or deleted.**
 
-**Ops (runbook line):** every `sec.gov` / `efts.sec.gov` call **must bypass the local proxy** —
-`httpx(trust_env=False)`. Through `127.0.0.1:7897` the TLS handshake fails outright (curl exit 35,
-HTTP 000); DNS resolves fine. This mirrors the documented massive-WS `proxy=None` rule. The
-SEC-required `User-Agent` header (contact email) is mandatory.
+**Ops — all mandatory before P4 writes a row:**
+
+| Requirement | Detail |
+|---|---|
+| dependency | **`edgartools` is not in `pyproject.toml`** — adding it (with a pinned version) is a P4 task, not an assumption |
+| proxy bypass | every `sec.gov` / `efts.sec.gov` call uses `httpx(trust_env=False)`. Through `127.0.0.1:7897` the TLS handshake fails outright (curl exit 35, HTTP 000) while DNS resolves fine — mirrors the documented massive-WS `proxy=None` rule |
+| User-Agent | SEC-required contact email, from config; requests without it are refused |
+| rate limit | SEC's published ceiling is 10 req/s; the client throttles below it and is the only path to `sec.gov` |
+| retry | bounded exponential backoff on 429/5xx, capped attempts, failures recorded on the `fundamental_runs` row rather than raised into the UI |
+| cache | filings are immutable once accepted — cache by accession on disk and never re-fetch the same document |
+
+**Discovery gate before build.** P4 starts with a read-only probe over the core 25 that reports
+concentration-row yield and named-edge yield. If the ledger's `trend` arrays come back flat and
+uninformative, P4 is cut rather than extended (Risk 2), and the node-link graph question (§8)
+resolves itself.
 
 **Prompt payload block:**
 
@@ -501,14 +605,14 @@ and it renders *below* the numbers, never in place of them.
 
 | Block | Content | Source |
 |---|---|---|
-| composite + subscores | seven bars, each with its inputs on hover | `fundamental_score_daily` |
-| anchor band | spot marked against `buy_below / observe_low / observe_mid / observe_high / risk_above`; base/bear/bull × 1y/3y | `valuation_anchors_daily` |
-| method + confidence | `company_type`, method name, `confidence` and **every reason** | `valuation_anchors_daily.confidence_reasons_jsonb` |
-| target gap | our 1Y anchor vs `uw_positioning.target_avg`, as a number | join on the shipped `uw_positioning` |
+| composite + subscores | seven bars, each with its inputs on hover | `fundamental_scores` |
+| anchor band | spot marked against `buy_below / observe_low / observe_mid / observe_high / risk_above`; base/bear/bull × 1y/3y | `valuation_anchors` |
+| method + confidence | `company_type`, method name, `confidence` and **every reason** | `valuation_anchors.confidence_reasons_jsonb` |
+| target gap | our 1Y anchor vs `uw_positioning.analyst_target_avg`, as a number | join on the shipped `uw_positioning` |
 | concentration | top-customer %, multi-year trend, filing citation | `customer_concentration` (P4) |
 | coverage | what is `na` and why — the explicit absence list | `na` propagation from I4 |
 | provenance | `engine_version`, `inputs_hash`, `as_of` per block | every persisted row |
-| **narrative** | `headline` · `thesis` · `price_view` · `target_gap` · `bear_case` · numeric `invalidation` · `monitorables` · `evidence_ledger` · mandatory `unknowns` | stage 5, DeepSeek — Pydantic → `model_json_schema()` → strict function-calling, matching `TradeInsightAiOutcome` |
+| **narrative** | `headline` · `thesis` · `price_view` · `target_gap` · `bear_case` · numeric `invalidation` · `monitorables` · `evidence_ledger` · mandatory `unknowns` | stage 5 — a **`FundamentalNarrativeOutcome`** Pydantic model → `model_json_schema()` → DeepSeek strict function-calling. Borrows the *mechanism* of `TradeInsightAiOutcome`, never its schema: that model demands scenario cards, VRP assessment and preferred expression, none of which a fundamental analysis has |
 | audit verdicts | per-claim `pass / warn / fail / unverifiable` | `fundamental_audit_results` |
 
 The narrative block carries its audit state visibly. A `fail` verdict suppresses the offending claim
@@ -576,7 +680,7 @@ computed from S1's engines:
 
 | Encoding | Source | Reads as |
 |---|---|---|
-| cell fill | median `fundamental_score_daily.composite` | research priority (§5 I5 — a sort key, not a forecast) |
+| cell fill | median `fundamental_scores.composite` | research priority (§5 I5 — a sort key, not a forecast) |
 | cell texture | share of names rich vs cheap in the band | is this pocket stretched |
 | corner mark | mean `customer_concentration.top_customer_pct` + trend | revenue-concentration risk |
 | hatched | no S1 rows yet, or all `confidence = low` | not analysed / not trustworthy |
@@ -591,31 +695,37 @@ artifact and the renderer was never owed.
 **Aggregation.** All rollups are computed **read-time from S1 rows** (`reports/industry_graph.py`) —
 no new persisted table, no second scoring path. One engine, two renderings.
 
+**Every aggregate needs a stated basis.** A cell median is meaningless across mixed engine versions
+or stale `as_of` values, so G2 fixes three rules before it aggregates: a common `as_of` (the latest
+date on which the cell's members share the active `engine_version`), rows on superseded versions are
+excluded rather than mixed, and the **coverage denominator is the cell's full membership** — not the
+subset that happens to have rows. A cell where 2 of 6 names are analysed shows the 2-name aggregate
+*and* says 2/6.
+
 ## 9. Phases
 
-Two tracks plus a deferred one. S1 P0–P2 gate everything; S2 G1 is independent and can run in
-parallel from day one; the loop harness (§10) starts only after both surfaces are trusted.
-
-Every phase is **ad-hoc triggered** (§5.1). No cron is added until the method stops moving.
+Two tracks plus a deferred one. Every phase is **ad-hoc triggered** (§5.1); no cron until the method
+stops moving.
 
 ### S1 — fundamental card
 
 | Phase | Ships | Gate | Verification |
 |---|---|---|---|
-| **P0** | Commit-bug fix + a test asserting on a **fresh connection** | Own PR — independent prod data-loss bug, deploys ahead of feature work | Mini's `massive_fundamentals` row count > 0 after a manual run |
-| **P1** | massive `/v2` migration (103 fields, full history) + UW segment revenue; registry entries | Scoring over 8 shallow quarters is the weakest possible imitation | NVDA quarters reach the 1990s; FY2026 segment revenue matches the filed 10-K to the dollar |
-| **P2** | `fundamental_score_daily` + `valuation_anchors_daily`; `fundamental_method_params` seeded; company-type routing; confidence downgrades; on-demand refresh endpoint | The method must be fixated before anything renders it | 3 hand-checked tickers reproduce hand-computed anchors; re-run with unchanged inputs is idempotent; **flipping one ticker's `company_type` changes `inputs_hash` and produces new anchors**; editing a weight row moves `engine_version` for every ticker |
-| **P3** | The card's deterministic blocks (§7) — subscores, anchor band, confidence reasons, coverage, provenance | — | Every rendered number resolves to a persisted row; the coverage block lists a real `na` |
-| **P4** | Concentration ledger + sparse edge overlay (§6) | After the card; the concentration block ships empty in P3 | NVDA yields a concentration row with a real accession and multi-year trend; ANET→META exists as the reference `asc280_named` edge; TSM yields a 20-F-sourced row proving the corpus extension |
-| **P5** | Stage 5 narrative — `analysis_kind='fundamental'`, DeepSeek, evidence ledger, staged numeric audit | Needs P3 (numbers to constrain it) and P4 (concentration facts worth citing) | Real worker-path smoke: enqueue from the card → worker claims → narrative renders with audit verdicts persisted; **disabling the provider leaves the card fully usable** |
+| **P0** | Commit-bug fix + a test asserting through a **freshly opened connection** | Own PR — independent prod data-loss bug, deploys ahead of feature work | Mini's `massive_fundamentals` row count > 0 after a real scheduler run; rollback-path regression |
+| **P1a** | **Data-contract spike** (no schema): reconcile `/vX`, `/v2`, UW statements and the filed 10-K on representative tickers; commit the exact field map | The first draft chose a frozen endpoint for its field count. No ingestion is designed until the sources are measured, not read about | An overlap-zone quarter agrees across `/vX` and `/v2` field-for-field, or the disagreement is documented with a resolution rule |
+| **P1b** | Immutable observation tables + canonical views + backfill/incremental modes; registry entries | Scoring over 8 shallow quarters is the weakest possible imitation | `/vX` reaches 2026 and `/v2` fills 1997–2008; re-ingest is idempotent; a simulated restatement adds a row without destroying its predecessor; FY2026 segment revenue matches the filed 10-K to the dollar |
+| **P2** | Method appendix (worked examples) · method version tables · ANCHOR then SCORE · confidence downgrades · `fundamental_runs` + enqueued refresh endpoint | The method must be fixated before anything renders it | 3 hand-checked tickers reproduce hand-computed anchors from the appendix; recompute with unchanged inputs is idempotent; **flipping one ticker's `company_type` changes `inputs_hash` and yields new anchors**; a new method version coexists with the old on the same date; exactly one version is active |
+| **P3** | The card's deterministic blocks (§7) — subscores, anchor band, confidence reasons, coverage, provenance drill-down; API models + `gen:types` + tab/route wiring; loading/stale/error states | — | Every rendered number resolves to a persisted row; the coverage block lists a real `na`; a stale-version row renders as stale rather than current |
+| **P4** | Discovery gate → concentration ledger + sparse edge observations (§6); `edgartools` dependency added | After the card; the concentration block ships empty in P3 | Gate reports real yield before build; NVDA yields a concentration row with a real accession and multi-year trend; ANET→META exists as the reference `asc280_named` edge; TSM yields a 20-F-sourced row; re-processing a filing writes no duplicate |
+| **P5** | Stage 5 narrative — **`fundamental_narrative_analyses`** queue, DeepSeek, evidence ledger, staged numeric audit | Needs P3 (numbers to constrain it) and P4 (concentration facts worth citing) | Real worker-path smoke: enqueue → worker claims → narrative renders with audit verdicts persisted; an audit `fail` suppresses the claim; **disabling the provider leaves the card fully usable**; `fetch_unscored_analyses` returns zero fundamental rows |
 
 ### S2 — `/industry_graph`
 
 | Phase | Ships | Gate | Verification |
 |---|---|---|---|
-| **G1** | Layer × chain matrix from `watchlist_chain`, cells empty, drill-down to ticker list → S1 | none — skeleton exists, runs parallel to S1 P0–P2 | Cell membership matches `watchlist_chain ∩ active watchlist`; the 10 multi-chain tickers appear in each of their cells |
-| **G2** | Cell encodings from S1 + read-time rollups | needs S1 P2 | A cell's fill equals the median of its members' `fundamental_score_daily`; uncovered cells hatch, never blank |
-| **G3** | Concentration corner marks | needs S1 P4 | Every mark traces to `customer_concentration` rows with real accessions |
+| **G1** | Layer × chain matrix from `watchlist_chain`, drill-down to ticker list → S1. **Built and tested in parallel from day one; route stays unreleased** | Publishing an empty matrix would ship the "colouring book with no colours" this spec rejects, duplicating the shipped chain filter | Cell membership matches `watchlist_chain ∩ active watchlist`; the 10 multi-chain tickers appear in each of their cells; route is not reachable in the nav |
+| **G2** | Cell encodings from S1 + read-time rollups + the common-version/coverage rules above. **Route released here** | needs S1 P2 | A cell's fill equals the median of its members' `fundamental_scores` at a shared `engine_version`; partial cells show their coverage fraction; uncovered cells hatch, never blank |
+| **G3** | Concentration corner marks + row pivot (layer ⇄ company_type) | needs S1 P4 | Every mark traces to `fundamental_edge_obs` / `customer_concentration` rows with real accessions; trend selection rule is explicit and reproducible |
 
 **Deferred:** ranked long/short book, congress/13F enrichment, true estimate gap (blocked on gated
 tier), cross-chain flow/weight sizing, node-link graph (kill criterion above).
@@ -653,13 +763,12 @@ problem into stage-1 work.
 
 ## 11. Risks
 
-1. **The method is fixated on unvalidated priors.** The §5.2 weights have no backtest behind them
-   and the spec says so. Holding them in `fundamental_method_params` makes them sweepable and
-   `engine_version` makes a revision auditable; neither makes the current values right. Do not let
-   the composite acquire authority it has not earned.
-   Inherited from the blueprint, which also ships no backtest, hit-rate or P&L. The composite is a
-   **sort key** and must be labelled research priority on every surface — argon's own theta-harvester
-   precedent is correct ordering with a losing selection.
+1. **The method is fixated on unvalidated priors.** The §5.2 weights have no backtest behind them and
+   the spec says so. Versioned parameter rows make them sweepable and make a revision auditable;
+   neither makes the current values right. Inherited from the blueprint, which also ships no
+   backtest, hit-rate or P&L. The composite is a **sort key** and must be labelled research priority
+   on every surface — argon's own theta-harvester precedent is correct ordering with a losing
+   selection.
 2. **The concentration ledger is decorative rather than decision-useful.** MED confidence it
    earns its place. The `trend` array is the specific bet; if concentration trends turn out flat
    and uninformative across the core 25, P4 should be cut rather than extended.
@@ -676,9 +785,22 @@ problem into stage-1 work.
 
 ## 12. Open items
 
-- Confirm massive has no segment-revenue endpoint before P1 locks segments to UW
-  (`[INFERRED]` from the capability audit's silence — MED-HIGH, needs a 2-minute live probe).
+All provider claims below are repository snapshots, not live probes. **P1a re-measures every one of
+them before any schema is designed** — the `/v2`-frozen error came from trusting exactly this kind of
+second-hand reading.
+
+- Confirm massive has no segment-revenue endpoint before segments lock to UW (`[INFERRED]` from the
+  capability audit's silence — MED-HIGH).
 - The UW capability audit is dated 2026-05-15 (~3 months stale). The live MCP surface exposes
-  `get_income_statement_screener` / `get_earnings_screener` names absent from local docs —
-  re-probe before assuming either availability or gating.
+  `get_income_statement_screener` / `get_earnings_screener` names absent from local docs — re-probe
+  before assuming either availability or gating.
+- Confirm `/vX`'s actual field set. The 103-field count belongs to the frozen `/v2`; what `/vX`
+  exposes is unmeasured here, and the subscore rubric assumes ordinary statement lines rather than
+  pre-computed ratios.
 - Audit the other `_repo()` consumers for the same no-commit pattern (out of scope here).
+
+**Resolved by the 2026-08-10 review** — recorded so they are not re-opened: narrative queue is
+domain-isolated, not a lane (A1); `/vX` is the backbone (A4); PIT observations are mandatory (A10);
+refresh enqueues rather than writes synchronously (A11); ANCHOR precedes SCORE (§5.1); outputs are
+keyed by `engine_version` (§4.4); edges are immutable per-filing observations (§6); G1 releases with
+G2 (§9).
