@@ -1,4 +1,4 @@
-# VERDICT — the ranked composite does not work; ship the descriptive card
+# VERDICT — the composite is untestable at this universe size; ship the descriptive card
 
 *2026-08-11 · hand-written, not regenerated · numbers in `results.md` / `validation.json` ·
 reproduce: `UW_SCAN_API_KEY=... uv run python scripts/research/fundamental_signal_validation.py`*
@@ -111,8 +111,9 @@ Three further limits, all recorded rather than worked around:
    worthless — it was not measured at all — but because at this universe size it cannot be
    validated, and shipping an unvalidatable ordering is the specific thing to avoid.
 2. **Ship the descriptive card** — per-subscore values, trends, and absences, presented as context
-   beside the options surface. That was option 2 of three; it now has evidence behind it rather than
-   a sample-size argument.
+   beside the options surface. Note this is still the *original* sample-size argument, not a new
+   empirical one: the validation was meant to replace that reasoning with evidence and instead
+   demonstrated why the evidence cannot be obtained here.
 3. **Fix or drop the two inverted directions.** §5.2 asserts "higher better" for `op_margin` and
    `asset_turnover` as declared priors. The data contradicts both. Since the inversion is best
    explained as a regime artifact, the honest move is to **drop the direction claim** and render the
@@ -130,4 +131,6 @@ Three further limits, all recorded rather than worked around:
   precede its own drawdown? That question is untouched here and is not survivorship-contaminated in
   the same way, because each name is compared against itself.
 
-The third is cheap and is the obvious next test if anyone wants to keep pulling this thread.
+The time-series test is cheap and is the obvious next probe if anyone wants to keep pulling this
+thread — but note it answers a *different* question (does a name deteriorate before it falls?) and
+cannot rescue the cross-sectional ranking, which needs breadth or nothing.
