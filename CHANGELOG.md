@@ -39,7 +39,14 @@ version in lockstep (enforced by `scripts/release/version_sync_check.py`).
   the stated reason that no quarterly NCI exists at any source.
 - Handoff for the data lake:
   `docs/masterplan/2026-08-11-fundamental-data-brief-for-livewire.md`. Method
-  spec rewritten to revision 3 against the measured source set.
+  spec rewritten to revision 3 against the measured source set, then to
+  **revision 4** against the validation result: §13's "the method has never been
+  validated" closed, the `profitability` direction claim withdrawn, the composite
+  barred from ordering any core-25 surface (invariant I5 tightened, S2's cell
+  ramp included), the harness entry gate rewritten from a test that could not
+  fail, and acceptance tests T25–T27 added. Mac mini down as of 2026-08-11 —
+  §13 records what that blocks (P1b ingest, real-worker smoke tests) and what it
+  does not (research on the wide universe, field maps, the method appendix).
 - **The fundamental composite orders forward returns at 245 names and is
   indistinguishable from noise at 25.** Method tested before P1b built any
   ingest. `scripts/research/fundamental_universe_breadth_probe.py` measured the

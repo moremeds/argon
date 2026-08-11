@@ -1,6 +1,64 @@
 # Fundamental analysis method — design
 
-*Status: DRAFT — rev 3, rewritten against the measured source set · 2026-08-11 · branch `chore/fundamental-source-contract-spike`*
+*Status: DRAFT — rev 4, method validated and one product decision reversed · 2026-08-11 · branch `chore/fundamental-source-contract-spike`*
+
+> ## Revision 4 (2026-08-11) — the method works, on a universe this spec does not have
+>
+> §13's "the method has never been validated" is **closed**. It was tested before P1b built any
+> ingest, and the answer split cleanly by universe width.
+>
+> | 2q forward return, quarterly rebalance | AI cohort (25) | Wide (245) |
+> |---|---:|---:|
+> | median cross-section | 18 | **241** |
+> | per-quarter IC σ | 0.307 | **0.108** |
+> | composite mean rank IC | 0.024 | **0.059** |
+> | t-stat | 0.68 | **4.84** |
+> | hit rate | 51.9% | **71.8%** |
+>
+> Same code, same seven features, same 20-year span; only breadth differs. **The single most
+> defensible figure is IC 0.039 (t 2.67)** — measured on observations carrying a real `filing_date`,
+> so no 45-day point-in-time fallback and no look-ahead. It survives both pre-chosen robustness
+> checks and decays across eras (0.072 → 0.047).
+>
+> **What this changes:**
+>
+> 1. **§5.2's rubric stops being "unvalidated priors."** Four of seven subscore inputs now have a
+>    measured direction and magnitude. The weights remain unswept — ordering is validated, the
+>    *weighting* is not.
+> 2. **The composite must not be a sort key at core-25 width** (§4.3, §5.2, §7, §8, §12). This
+>    reverses I5. At 18-name cross-sections the ordering is indistinguishable from noise at any
+>    history length — not because the method fails, but because breadth, not history, is the binding
+>    constraint. S2's cell fill (median composite over a `(layer, chain)` cell) aggregates *fewer*
+>    names still and is the sharpest case.
+> 3. **Two direction claims are withdrawn.** `op_margin` (IC −0.024, t −2.56) and `gross_margin`
+>    (−0.022, t −2.02) are **inverted** on the powered test. The likely cause is that nothing here
+>    controls for valuation — high-margin firms are usually richly priced — but that is a hypothesis,
+>    not a finding.
+> 4. **This is not claimed as alpha.** Profitability, low investment and low leverage are the
+>    documented quality factors, so recovering them evidences a correct pipeline, not an edge.
+> 5. **Survivorship is unfixable from these sources** and is now a stated limit rather than a
+>    caveat: ATVI, XLNX, TWTR, SIVB, FRC and VMW are absent from the lake **and** return HTTP 200
+>    with an empty array from UW. Breadth buys power; it cannot buy back the names that failed.
+>
+> **A published finding in revision 3's lineage was a bug, and the failure mode is worth carrying.**
+> The validation panel keyed cross-sections on `fiscal_date_ending`. Filers do not share a fiscal
+> calendar (NVDA ends 01-31, MSFT 12-31, AAPL 12-28), so period-end keying shattered each
+> cross-section into thin slices that the minimum-width filter then dropped **silently** — median
+> width 23 of 245. It never errored; it returned a confident, well-formatted, wrong number, and had
+> already produced a quotable result (cohort `asset_turnover`, t −4.30) with a plausible economic
+> story attached. Corrected: **t −0.49**. Re-keyed on the knowledge-date quarter — the correct
+> construction regardless, since a rank IC only means something among names whose information was
+> public at the same time — median width 241.
+>
+> Verdict, robustness table and limits:
+> `docs/research/2026-08-11-fundamental-signal-validation/VERDICT.md`. Reproduce with
+> `scripts/research/fundamental_universe_breadth_probe.py` then
+> `fundamental_signal_validation.py [--wide]`.
+>
+> **Operational note (2026-08-11): the Mac mini is down, recovery time unknown.** Nothing in this
+> revision depended on it — the validation ran off the local lake mirror plus the UW API. P1b's
+> ingest target is the mini's Postgres, so P1b is blocked on recovery; P1a's remaining desk work
+> (field maps, method appendix, spec edits) is not. See §13.
 
 > ## Revision 3 (2026-08-11) — the backbone changed, and most of the method got easier
 >
@@ -36,8 +94,9 @@
 > Reproduce with the four probes under `scripts/research/fundamental_*`, `uw_fundamentals_probe.py`,
 > `sec_xbrl_gapfill_probe.py`.
 >
-> **Still open, and not fixed by any of this:** the method has never been validated. Everything
-> measured so far is about *inputs*. See §13.
+> ~~**Still open, and not fixed by any of this:** the method has never been validated. Everything
+> measured so far is about *inputs*.~~ **Closed by revision 4** — validated, with the outcome
+> depending on universe width. See §13.
 
 > **Revision 2 (2026-08-10).** A review found two hard errors in the first draft, both verified
 > against source before acceptance: the narrative lane cannot use `trade_insight_ai_analyses`
@@ -474,6 +533,17 @@ shows captures silently skip anything off the active list. Any name here that is
 watchlist either gets added or is dropped from the core before P1. Verify at build time; do not
 assume.
 
+**This universe is the right scope for the card and the wrong scope for a ranking, and the two
+must not be conflated** (rev 4). Cross-sectional rank noise runs σ ≈ `1/√(N−1)` per period. At the
+realised 18-name median cross-section that is σ ≈ 0.24, so even 78 quarters leave a detection floor
+around \|IC\| 0.07 — above any realistic factor. Measured directly: composite IC 0.024, t 0.68 here
+against 0.059, t 4.84 at 245 names.
+
+The consequence is structural, not a data problem: **no amount of additional history fixes it,**
+because noise falls as `1/√N` in names but only `1/√T` in periods, and these 25 names are one
+correlated trade besides. Per-ticker subscores, trends and absences are fully supported at this
+width — an ordering across them is not. §5.2, §7 and §8 carry the specific restrictions.
+
 ### 4.4 Storage
 
 Each in its own `storage/<domain>.py`. Never extend `repository.py`.
@@ -704,10 +774,16 @@ Invariants:
 | I2 | Stages 2–4 are pure: same inputs → same outputs | `inputs_hash` equality on re-run. **`inputs_hash` covers `company_type` and the active parameter set**, not only the financial inputs — see §5.3 |
 | I3 | Every stage persists before returning | argon standing rule; CI-visible via row counts |
 | I4 | Any stage may emit `na`; a missing input never becomes a fabricated one | absence propagates to `unknowns` + downgrades `confidence` |
-| I5 | The composite is a **sort key**, never a return forecast | labelled "research priority" on every surface |
+| I5 | The composite is a **sort key**, never a return forecast — and **not even a sort key at core-25 width** (rev 4) | labelled "research priority" on every surface; no core-25 surface orders by it |
 
 I5 is not cosmetic. argon's theta-harvester ordered correctly (IC +0.075) and still selected a
 losing set. A composite that is allowed to read as a forecast will be traded as one.
+
+**Rev 4 tightened I5 rather than relaxing it, despite the validation coming back positive.** The
+ordering is real at 245 names (IC 0.039–0.059) and unmeasurable at 25 (0.024, t 0.68), so on *this*
+universe the composite is a display value: per-ticker subscores, trends and absences, no ranking.
+The theta-harvester precedent is the reason the positive result does not loosen anything — correct
+ordering and a losing selected set are compatible, and that was measured on a *powered* test.
 
 ### 5.2 Subscore rubric — parameters live in Postgres
 
@@ -716,8 +792,9 @@ Seven subscores, each `0–100`, each computed from a named input set, each inde
 **Weights are rows in `fundamental_method_params`, not constants in code** (user ruling, 2026-08-10).
 Three reasons, in order of weight:
 
-1. They are **unvalidated priors** — no backtest sits behind the seed values below, and the spec must
-   not pretend otherwise. Data that is known to be provisional does not belong in a deploy artifact.
+1. They are **unswept** — rev 4 validated the *ordering* the composite produces, not the weights
+   that produce it. No sweep sits behind the seed values below, and the spec must not pretend
+   otherwise. Data known to be provisional does not belong in a deploy artifact.
 2. argon already owns a sweep harness (`backtest/` + `backtest_sweep_runs` / `_results`). Weights as
    rows means a named `param_set` is directly sweepable, with the full trace persisted, the day
    there is enough history to sweep against. Weights as constants means a code branch per trial.
@@ -727,12 +804,42 @@ Three reasons, in order of weight:
 | Subscore | Inputs (derived at stage 2) | Direction | seed weight | sourced? |
 |---|---|---|---:|---|
 | `growth` | revenue TTM YoY, 2-quarter YoY acceleration | higher better | 0.20 | ✅ UW 100% |
-| `profitability` | gross + operating margin, level and 4-quarter trend | higher better | 0.20 | ⚠️ gross margin `na` for CEG, ORCL, VST |
+| `profitability` | gross + operating margin, level and 4-quarter trend | **no direction claimed** (rev 4 — both inverted) | 0.20 | ⚠️ gross margin `na` for CEG, ORCL, VST |
 | `capital_efficiency` | FCF conversion, return on invested capital | higher better | 0.15 | ✅ UW `capital_expenditures` 100% |
 | `balance_sheet` | net debt / EBITDA, interest coverage, current ratio | lower leverage better | 0.15 | ✅ UW cash + debt + EBITDA + interest, 100%; NCI from SEC XBRL |
 | `valuation_position` | spot vs `observe_low..observe_high` band from stage 3 | cheaper better | 0.15 | ✅ |
 | `concentration_risk` | **largest reported segment share of revenue + largest single-country share, and each one's multi-year trend** (§6) | lower better | 0.10 | ✅ UW `rev_breakdown`, 24/25 — **TSM is the sole `na`** |
 | `expectations_gap` | our 1Y anchor vs `uw_positioning.analyst_target_avg`, insider net, short interest | wider positive gap better | 0.05 | ✅ existing UW positioning |
+
+**Measured directions (rev 4).** Each rubric direction above was a declared prior. **Four of the
+seven subscores** now have a measured counterpart — 2q forward return, 245 names, 78 quarters,
+knowledge-date buckets. `roe` is listed because it was tested, though no rubric row names it:
+
+| Rubric input | proxy tested | IC | t | verdict |
+|---|---|---:|---:|---|
+| `balance_sheet` (net debt / EBITDA) | `neg_net_debt_ebitda` | 0.0888 | 6.21 | ✅ direction confirmed |
+| `capital_efficiency` (asset productivity) | `asset_turnover` | 0.0813 | 7.10 | ✅ confirmed |
+| `capital_efficiency` (FCF conversion) | `fcf_margin` | 0.0379 | 3.64 | ✅ confirmed |
+| — | `roe` | 0.0262 | 2.09 | weak |
+| `growth` (revenue TTM YoY) | `rev_growth` | 0.0228 | 1.72 | not significant |
+| `profitability` (gross margin) | `gross_margin` | **−0.0223** | −2.02 | ❌ **inverted** |
+| `profitability` (operating margin) | `op_margin` | **−0.0244** | −2.56 | ❌ **inverted** |
+
+**The two profitability directions are withdrawn, not flipped.** Inverting them would claim an edge
+from a result that most likely reflects a *missing* dimension: nothing here controls for valuation,
+and high-margin firms are usually richly priced, so a margin ranking is partly an expensiveness
+ranking. Render the levels and trends; make no good/bad claim until a valuation control is tested.
+`valuation_position`, `concentration_risk` and `expectations_gap` were not tested at all — they draw
+on inputs the validation harness does not compute.
+
+**The composite is not a sort key at core-25 width, which reverses I5 for this universe.** Validated
+IC is 0.039–0.059 at 245 names and 0.024 (t 0.68) at 25 — see §4.3 for why history cannot fix that.
+Two consequences bind here: `fundamental_scores.composite` is computed and stored as before, but no
+core-25 surface may **order** tickers by it, and §8's cell fill (median composite over a
+`(layer, chain)` cell) is the sharpest case, since a cell holds fewer names than the cohort. A
+ranked surface becomes legitimate the moment one spans 200+ names — leading with 0.039, 2q horizon,
+quarterly rebalance. Tests T23/T24 already forbid ranking across *unequal subscore sets*; this is the
+stricter, separate constraint that cohort width forbids ranking even across equal ones.
 
 **Every input above was unsourceable when this rubric was first written, and most now are.** §5.2's
 first draft named `FCF conversion`, `net debt / EBITDA` and `interest coverage` against a backbone
@@ -1043,6 +1150,12 @@ as "no dependencies".
 Every numeric element traces to a persisted row. The narrative block is the only generated content,
 and it renders *below* the numbers, never in place of them.
 
+**This card is the surface rev 4 supports, and it needs no changes.** Every block below is
+*per-ticker* — a name's own subscores, its own anchor band, its own coverage — so none of it depends
+on the cross-sectional ordering that cohort width cannot sustain (§4.3). The constraint bites only
+where two tickers are placed in an order: no sorted list, no leaderboard, no rank column, and no
+comparative colour ramp (§8). Displaying a composite value is fine; sorting by it is not.
+
 | Block | Content | Source |
 |---|---|---|
 | composite + subscores | seven bars, each with its inputs on hover | `fundamental_scores` |
@@ -1120,10 +1233,23 @@ computed from S1's engines:
 
 | Encoding | Source | Reads as |
 |---|---|---|
-| cell fill | median `fundamental_scores.composite` | research priority (§5 I5 — a sort key, not a forecast) |
+| cell fill | median `fundamental_scores.composite` — **⚠️ see below** | research priority (§5 I5 — a sort key, not a forecast) |
 | cell texture | share of names rich vs cheap in the band | is this pocket stretched |
 | corner mark | mean `customer_concentration.top_customer_pct` + trend | revenue-concentration risk |
 | hatched | no S1 rows yet, or all `confidence = low` | not analysed / not trustworthy |
+
+**⚠️ Cell fill is the sharpest case of the rev-4 width constraint and G2 must not ship it as a
+comparative encoding.** A `(layer, chain)` cell holds a handful of names out of a 25-name universe,
+so its median composite is an ordering over a cross-section far thinner than the one already
+measured at IC 0.024, t 0.68. A colour ramp across cells reads as "this pocket is better", which is
+precisely the claim the data does not support at this width — and a ramp is more persuasive than a
+number, so it fails more quietly.
+
+Two options, and G2 picks one **before** the encoding is built: fill by a **coverage or
+data-quality** measure (share of names fully scored, share `confidence = high`) — honest, useful,
+and what §12 risk 3 is really asking about; or keep the composite fill and render it **unranked** —
+one neutral colour per analysed cell, value on hover only. Restore the comparative ramp when a
+surface spans 200+ names (§4.3), not before.
 
 Unanalysed cells render hatched rather than blank. A map that silently drops uncovered names
 misrepresents coverage as completeness.
@@ -1196,9 +1322,17 @@ human action — consistent with argon's invariant that every mutating agent act
 gate.
 
 **Entry gate — do not start before all three hold:** S1 P4 is **resolved** (shipped or killed) and
-S2 G2 is live; the composite has been inspected against outcomes for at least one quarter; and the
-per-subscore `na` rate is known, so coverage can be stated honestly rather than plausibly. A killed
-P4 satisfies the first condition — gates depend on decisions being made, not on features existing.
+S2 G2 is live; ~~the composite has been inspected against outcomes for at least one quarter~~
+**the composite has a measured out-of-sample record on the universe the harness will act over**
+(rev 4); and the per-subscore `na` rate is known, so coverage can be stated honestly rather than
+plausibly. A killed P4 satisfies the first condition — gates depend on decisions being made, not on
+features existing.
+
+The middle condition was rewritten because "inspected against outcomes for one quarter" is a test
+that cannot fail: one quarter at 18 names is a single rank correlation with σ ≈ 0.24, which is noise
+whatever it returns. The replacement is deliberately harder — and on the core 25 it is currently
+**unsatisfiable**, which is the honest state of affairs and the correct blocker for a harness that
+would act on the ordering.
 
 This is argon goal-ladder **Stage 2** (self-tending desk). Scoping it here would import a stage-2
 problem into stage-1 work.
@@ -1247,6 +1381,9 @@ is a required test, not a suggestion.
 | T22d | INGEST re-runs over an unchanged violating observation | no duplicate violation row (`UNIQUE (obs_id, check_name)`); a restatement that fixes it creates a new `obs_id` with no violation, and the original verdict survives |
 | T23 | A ticker missing a mapped field entirely — `sga_expense` for MSFT, `gross_profit` for CEG (§3.3 F-B) | the subscore is `na`, the composite records **which** subscores were absent, and two tickers scored on different field sets are never presented as directly comparable |
 | T24 | The composite is computed for CEG (no gross margin) and NVDA (all fields) | either explicit renormalization with the absent set recorded, or abstention — a silent average over present subscores fails this test |
+| T25 | Any core-25 surface returns more than one ticker **ordered by** `composite` — API response, table column, or S2 colour ramp | **fails** (rev 4). Composite is display-only at cohort width; ordering is permitted only where the cross-section spans 200+ names. T23/T24 forbid ranking across *unequal* subscore sets; T25 forbids it across equal ones too |
+| T26 | `profitability` renders for a ticker | levels and trends only, with **no good/bad direction** — both its inputs measured inverted (§5.2). A green/red verdict on margin fails |
+| T27 | A cross-section is scored and its realised width is well below the universe size | the width is **recorded next to the result**, not silently dropped. The rev-4 bucketing bug discarded ~90% of every cross-section without erroring and returned a confident wrong number; the guard is one comparison |
 
 Gates before merge: `uv run pytest`, ruff, `scripts/check_no_yahoo.py`, and under `web/`
 `npm run typecheck && npm run test && npm run lint && npm run build`, plus Playwright coverage of the
@@ -1254,12 +1391,21 @@ card drill-down and provider-down paths.
 
 ## 12. Risks
 
-1. **The method is fixated on unvalidated priors.** The §5.2 weights have no backtest behind them and
-   the spec says so. Versioned parameter rows make them sweepable and make a revision auditable;
-   neither makes the current values right. Inherited from the blueprint, which also ships no
-   backtest, hit-rate or P&L. The composite is a **sort key** and must be labelled research priority
-   on every surface — argon's own theta-harvester precedent is correct ordering with a losing
-   selection.
+1. **The weights are unswept, and the validated result belongs to a universe this spec does not
+   have.** Rev 4 downgraded this risk without clearing it. What is measured: the composite orders
+   forward returns at 245 names (IC 0.039 on the leak-free subset, t 2.67). What is not: the §5.2
+   *weights*, which no sweep has touched — validating an ordering is not validating the arithmetic
+   that produced it. Versioned parameter rows make them sweepable and a revision auditable; neither
+   makes the current values right. **The live risk is now misapplication rather than ignorance** —
+   a number validated at 245 names, displayed on a 25-name page, reads as though it carries its
+   validation with it. It does not (§4.3). The composite stays a research-priority label, never
+   ordered at cohort width; argon's own theta-harvester precedent is correct ordering with a losing
+   selection, measured on a *powered* test.
+
+   Two limits ride along and neither is fixable here. **Survivorship**: both sources carry live
+   tickers only, so every result describes companies that survived to 2026. **Costs**: no
+   transaction costs, capacity, borrow or turnover limit was modelled, and that gap is where most
+   IC-positive methods die.
 2. **The concentration ledger is decorative rather than decision-useful.** MED confidence it
    earns its place. The `trend` array is the specific bet; if concentration trends turn out flat
    and uninformative across the core 25, P4 should be cut rather than extended.
@@ -1276,16 +1422,49 @@ card drill-down and provider-down paths.
 
 ## 13. Open items
 
-**The one that matters: the method has never been validated.** Every measurement in P1a is about
-*inputs* — coverage, integrity, field maps. Nothing has tested whether the composite's output
-predicts anything. Corrected sample-size figures (UW, not massive): all 25 tickers coexist for **14
-quarters**, ≥20 of 25 for **53 quarters** (~13 years, spanning 2015–16, 2018, COVID, 2022 and the AI
-boom). That is enough history for a **time-series** test of whether deteriorating fundamental
-quality precedes drawdowns. It is *not* enough cross-sectional breadth — 20 highly correlated
-AI/semi/cloud names carry perhaps 2–4 effective independent bets — to validate a **ranked** composite.
-An earlier draft put the figure at 8 quarters and concluded no validation was possible; that was
-computed on massive's thinner coverage and was too pessimistic. Which of the two tests to run, and
-whether to ship a ranked composite at all, is an open decision.
+**~~The one that matters: the method has never been validated.~~ CLOSED (rev 4).** Tested before
+P1b built any ingest: the composite orders forward returns at 245 names (2q IC 0.059, t 4.84; 0.039,
+t 2.67 on the leak-free subset) and is indistinguishable from noise at 25 (0.024, t 0.68). Breadth,
+not history, was the binding constraint — per-quarter IC σ falls 0.307 → 0.108. The decision this
+item left open is therefore **settled against a ranked composite on this universe** and for the
+descriptive card, on measured grounds rather than assumed ones. Full result and limits:
+`docs/research/2026-08-11-fundamental-signal-validation/VERDICT.md`.
+
+**Opened by that closure — the new top item: nothing controls for valuation.** `gross_margin` and
+`op_margin` both came back inverted on the powered test. The hypothesis is that a margin ranking is
+partly an expensiveness ranking, but no price ratio was tested, so the rubric currently withholds a
+direction on the entire `profitability` subscore (0.20 seed weight — the joint-largest). Testing one
+valuation control against the same harness is cheap, reuses `quarterly_ics()`, and would either
+restore the direction or confirm the withdrawal.
+
+**Also open, in order:**
+
+- **The time-series test was never run** and still answers a different question — does a name's own
+  fundamental deterioration precede its own drawdown? It is not survivorship-contaminated the same
+  way, since each name is compared against itself, and it is the one test that *would* apply at
+  core-25 width. It cannot rescue cross-sectional ranking, which needs breadth or nothing.
+- **A non-survivorship universe is not constructible from current sources.** ATVI, XLNX, TWTR, SIVB,
+  FRC and VMW are absent from the lake and return HTTP 200 with an empty array from UW. This one is
+  fixed by money (CRSP, Sharadar), not method — worth pricing before any further validation work,
+  since every result carries the caveat until then.
+- **The §5.2 weights remain unswept.** `backtest_sweep_runs` / `_results` and the wide universe now
+  both exist, so this is schedulable rather than blocked.
+
+**Operational, 2026-08-11: the Mac mini is down, recovery time unknown.** It hosts the `option_wizard`
+Postgres that P1b ingests into and the full lake copy. What that blocks and what it does not:
+
+| Work | Blocked? |
+|---|---|
+| P1b ingest, migrations, storage tests | **yes** — the write target is down |
+| Any smoke test on the real worker path (standing rule) | **yes** |
+| Further validation / research on the wide universe | no — ran entirely off the local lake mirror + UW API |
+| Field maps, method appendix (§5.2's P2 exit gate), spec work | no |
+| The valuation-control test above | no |
+
+The local mirror is 2.5–4 months stale (most recent bar 2026-04-14 to 2026-05-29) and holds 653
+symbols, which was sufficient here and will not be for anything needing current data. **Do not
+start P1b against `option_wizard_local` as a substitute** — the three-tier isolation rule exists to
+stop exactly that, and a local-only ingest would have to be redone.
 
 
 All provider claims below are repository snapshots, not live probes. **P1a re-measures every one of
