@@ -10,25 +10,29 @@ argon is building a fundamental analytics layer over 25 AI-supply-chain names. T
 
 **The headline: Unusual Whales, which we already pay for, is a materially better fundamentals source than massive — and nobody in the stack had checked.**
 
-|  | UW | massive `/vX` |
-|---|---|---|
-| Tickers covered (of 25) | **25** | 23 |
-| Ticker-quarters | **1,673** | 1,092 |
-| History starts | **2005–2006** | 2009–2010 |
-| Negative liabilities | **0.2%** | 5.1% |
-| Impossible share counts | **0.0%** | 15.1% |
-| Currency tagging | **explicit per row** | per-leaf XBRL unit |
-| Capex, EBITDA, D&A, cash, total debt, SBC | **100% of cohort** | **absent entirely** |
+|  | UW | massive `/vX` | Winner |
+|---|---|---|---|
+| Tickers covered (of 25) | **25** | 23 | UW |
+| Ticker-quarters | **1,673** | 1,092 | UW |
+| History starts | **2005–2006** | 2009–2010 | UW |
+| Negative liabilities | **0.2%** | 5.1% | UW |
+| Impossible share counts | **0.0%** | 15.1% | UW |
+| Currency tagging | **explicit per row** | per-leaf XBRL unit | UW |
+| Capex, EBITDA, D&A, cash, total debt, SBC | **100% of cohort** | **absent entirely** | UW |
+| Segment revenue | **24/25 tickers, 4,330 rows** | absent | UW |
+| `filing_date` present (point-in-time) | 45.2% | **74.5%** | **massive** |
 
-The two names massive cannot cover — TSM and ASML — return 83 quarterly rows each from UW, through 2026-06-30, tagged `TWD` and `EUR`. Where both sources have data they agree: 16/16 fields exact for NVDA, MSFT, AMAT, MU, AVGO.
+**UW is not better on everything — it loses on point-in-time**, and by enough to matter. Use both: the union of the two `filing_date` columns is the best PIT coverage available.
+
+The two names massive cannot cover — TSM and ASML — return 83 quarterly rows each from UW, through 2026-06-30, and they are **complete rows, not thin ones**: 8/8 non-null across revenue, margins, EBITDA, D&A, R&D, assets, liabilities, equity, cash, debt, share count, operating cash flow and capex. Where both sources have data they agree: 16/16 fields exact for NVDA, MSFT, AMAT, MU, AVGO.
 
 **Three things livewire should take away:**
 
-1. **Ingest UW fundamentals as a new bronze asset class.** It is strictly better than the alternative on every axis measured, and it is already inside our existing subscription and budget.
+1. **Ingest UW fundamentals as a new bronze asset class.** It wins on eight of nine axes measured, and it is already inside our existing subscription and budget. Keep massive alongside it — for its `filing_date` column and as a drift cross-check, not for its statements.
 2. **An integrity gate is not optional.** massive `/vX` serves GOOGL a **−478,746,000,000** liability and NVDA a **−28,000,000** share count in their most recent quarters. Any lake that stores what it is handed will propagate those. The checks are arithmetic, not judgement, and are specified in §5.3.
-3. **Point-in-time needs a second call.** The statement endpoints carry only `fiscal_date_ending` — the period end, not the publication date. `filing_date` + `accession_no` live on a *different* endpoint. Without joining them, nothing built on this lake is backtestable.
+3. **Point-in-time needs both sources.** UW's statement endpoints carry only `fiscal_date_ending` — the period end, not the publication date. `filing_date` lives on a *different* UW endpoint and joins for only **45.2%** of quarters; massive carries it inline for **74.5%**. Take the union. Without it nothing built on this lake is backtestable, and a row ingested without a publication date can never be given one.
 
-**One correction to argon's own spec, made here rather than buried:** the spec states that segment/KPI disclosure is "absent at any tier from every provider." That is wrong. UW returns 287 revenue-breakdown rows for NVDA with XBRL dimensional axes — Data Center $75.2B, Hyperscale $37.9B, and a geographic split — for the most recent quarter. See §3.3.4.
+**One correction to argon's own spec, made here rather than buried:** the spec states that segment/KPI disclosure is "absent at any tier from every provider." That is wrong. UW returns segment revenue with real XBRL dimensional axes for **24 of the 25 tickers — 4,330 rows**. NVDA's most recent quarter resolves to Data Center $75.2B, Hyperscale $37.9B, plus a geographic split. See §3.3.4.
 
 ---
 
@@ -38,42 +42,52 @@ A per-ticker fundamental card plus an industry-chain screen for 25 AI-supply-cha
 
 ---
 
-## 2. The requirement, ranked
+## 2. The requirement, in four tiers
 
-Ranked by what blocks the most downstream work, not by ease.
+Tiered by consequence of absence, not by effort. The tier boundary that matters most is the first one: **must-have items are those whose absence makes the output silently wrong, not merely thinner.**
 
-### P0 — required for anything to render
+### MUST HAVE — without these there is no product, or the numbers lie
 
-| # | Need | Best source | Status |
-|---|---|---|---|
-| R1 | Quarterly income statement, balance sheet, cash flow, 25 tickers | UW statements | ✅ available, unbuilt |
-| R2 | Explicit reporting currency per row | UW `reported_currency` | ✅ available |
-| R3 | Publication timestamp (`filing_date`) for PIT | UW `fundamental-breakdown` | ✅ available, **separate call** |
-| R4 | Integrity gate on ingest | our own code | ❌ must be built |
-| R5 | Share count (diluted + outstanding) | UW `common_stock_shares_outstanding` | ✅ 100% cohort |
-
-### P1 — required for the method to be more than a scorecard
-
-| # | Need | Best source | Status |
-|---|---|---|---|
-| R6 | Capex, D&A, SBC → real FCF | UW `cash-flows` | ✅ 100% cohort |
-| R7 | Cash + all debt tiers → net debt, EV | UW `balance-sheets` | ✅ 100% cohort (`current_debt` null — see §6.2) |
-| R8 | EBITDA / EBIT | UW `income-statements` | ✅ 100% cohort |
-| R9 | Segment + geographic revenue | UW `fundamental-breakdown.rev_breakdown` | ✅ available, **undocumented in our stack** |
-| R10 | FX daily for TWD, EUR | **livewire lake, already present** | ✅ 21 FX symbols, 2003→present |
-| R11 | ADR share factor | massive `/v2 shareFactor` | ⚠️ frozen at 2020-Q1 |
-
-### P2 — wanted, unavailable, do not design around
-
-| # | Need | Status |
+| Item | Source | Why non-negotiable |
 |---|---|---|
-| R12 | Forward analyst estimates | ❌ UW Advanced+ tier |
-| R13 | Earnings-call transcripts | ❌ UW Advanced+ tier |
-| R14 | Named customer/supplier graph | ❌ **does not exist in filings** — measured, §3.4 |
-| R15 | Noncontrolling interest | ❌ not in UW schema; ~14% of rows need it |
-| R16 | Backlog, bookings, forward guidance | ❌ no structured source at any tier |
+| `fiscal_date_ending` + `report_type` | UW | conflating a quarterly row with an annual one is silent corruption, not a gap |
+| `reported_currency` | UW | mixing TWD and USD in one column is the worst failure mode available here |
+| Revenue, gross profit, operating income, net income | UW, 100% cohort | |
+| Total assets, total liabilities, equity | UW, 100% cohort | |
+| Operating cash flow | UW, 100% cohort | |
+| Shares outstanding | UW, 100% cohort | gates every per-share figure |
+| **Integrity gate** (§5.3) | build it | the alternative source ships 15.1% impossible share counts |
+| FX daily — TWD, EUR | **livewire lake, already present** | |
+| `filing_date` **captured**, not necessarily used | union of UW 45.2% + massive 74.5% | **cheap now, impossible to reconstruct later** |
 
----
+That last row is the one that gets skipped. Whether the desk *uses* point-in-time is a decision for later; whether it *can ever* use it is decided at ingest. A historical row ingested without its publication date can never have one added.
+
+### BETTER TO HAVE — materially widens what can be computed
+
+| Item | Source | What it unlocks |
+|---|---|---|
+| `capital_expenditures` | UW, 100% | real free cash flow instead of the fake `OCF + ICF` argon computes today |
+| Cash + `short_long_term_debt_total` | UW, 100% | net debt, enterprise value, any leverage anchor |
+| EBITDA / EBIT | UW, 100% | EV/EBITDA — the standard anchor for roughly half this cohort |
+| Depreciation & amortization | UW, 100% | |
+| Segment revenue | UW, **24/25 tickers** | the AI-chain thesis *is* a segment story — Data Center vs Gaming is the whole question |
+| Noncontrolling interest | ❌ **SEC XBRL, unprobed** | without it, 6 tickers' equity ratios are wrong and must render `na` (§6.1) |
+
+### NICE TO HAVE — real value, nothing breaks without it
+
+Geographic revenue (a concentration proxy, and the closest available substitute for the customer graph that does not exist); stock-based compensation (~96%); goodwill and intangibles split (96%); working-capital detail — inventory, receivables, payables; `accession_no` (free SEC linkage for any later filing-text work); ADR `shareFactor` (affects exactly one ticker).
+
+### OKAY TO OMIT — do not spend effort here
+
+| Item | Why it is safe to skip |
+|---|---|
+| Forward analyst estimates | UW Advanced+ tier — and the method is descriptive by design; adding these would change what it is |
+| Earnings-call transcripts | UW Advanced+ tier |
+| Named customer / supplier graph | **measured as nonexistent** — 0 hits against a passing control (§3.4) |
+| Backlog, bookings, forward guidance | no structured source at any tier |
+| Comprehensive income | low analytical value for this method |
+| `continent` / `rewards` revenue groups | redundant with `country` and `product` |
+| **massive `/v2` historical tail** | UW reaches 2005–2006; `/v2` is frozen at 2020-Q1. Its tail is now **entirely redundant** — see §4 |
 
 ## 3. Channels explored — the complete record
 
@@ -148,7 +162,9 @@ Statement endpoints have **no filing date**. `fundamental-breakdown.general` has
  "formtype": "10-Q", "report_period_end_date": "2026-04-26"}
 ```
 
-Join on `fiscal_date_ending` ≡ `report_period_end_date`. **Coverage is 68 rows vs 82 quarterly for NVDA — the join is incomplete and livewire must record which periods have no publication date rather than defaulting them.**
+Join on `fiscal_date_ending` ≡ `report_period_end_date`. **Across the full cohort the join lands on only 757 of 1,674 quarters — 45.2%.** NVDA's 68-of-82 (83%) is unrepresentative; do not generalize from it, as this brief's first draft did.
+
+massive `/vX` carries `filing_date` inline on **74.5%** of its rows (and `acceptance_datetime` on 23.4%). **Take the union of both sources.** Whatever remains unmatched must be recorded as unknown, never defaulted to the period end.
 
 `accession_no` is a free SEC linkage for any future filing-text work.
 
@@ -202,15 +218,17 @@ No `FMP_API_KEY` in the environment. Listed third in argon's source priority but
 
 ```
 1  UW statements          backbone. 25/25, 2005→present, currency-tagged, cleanest
-2  massive /vX            cross-check only. Its disagreements are how we detect UW drift
+2  massive /vX            filing_date (74.5%, beats UW) + drift cross-check. Not its statements
 3  SEC XBRL companyfacts  gap filler (NCI, anything UW nulls). Free. UNPROBED
-4  massive /v2            historical tail + ADR shareFactor only. Frozen 2020-Q1
+4  massive /v2            ADR shareFactor ONLY. Tail redundant - UW reaches 2005
 —  explicit `na`          when all fail. A covered-looking row over an uncovered name is the worst outcome
 ```
 
 This **inverts** what argon's spec currently says (massive `/vX` as backbone, UW as fallback). The spec will be corrected; livewire should build to this ordering.
 
-Keeping massive as a live cross-check is deliberate, not redundant: two independent sources on the same quarter is the only mechanism that catches silent vendor drift. It already earned its keep — the disagreements are what exposed `/vX`'s defects.
+Keeping massive as a live cross-check is deliberate, not redundant. It earns its tier-2 place twice over: two independent sources on the same quarter is the only mechanism that catches silent vendor drift — the disagreements are what exposed `/vX`'s defects in the first place — and **its `filing_date` column beats UW's, 74.5% against 45.2%.** Ingest massive for its metadata and its dissent, not for its statements.
+
+Note what displaced `/v2`: once UW was found reaching back to 2005–2006, a source that had been ranked for its historical tail collapsed to a single field lookup (`shareFactor`, one ticker). **Re-check precedence whenever a backbone changes** — tiers assigned against the old backbone do not survive it.
 
 ---
 
@@ -270,9 +288,29 @@ These test identities, not plausibility ranges. A rule that fires on "unusual" n
 
 `fiscal_date_ending` is when the quarter *ended*. `filing_date` is when the world could have known. **Any backtest filters on the latter.** Since the join is incomplete (68/82 for NVDA), livewire must expose which periods lack a publication date so consumers can exclude them rather than silently treat them as known-at-period-end.
 
-### 5.5 FX — a registration, not a project
+### 5.5 FX — a registration, not a project, but use two rates
 
-The rates are already in the lake (§3.6). What is missing is only the resolver wiring. Translation math: `local ÷ rate = USD`, verified against `/v2`'s own USD variants to 0.001%.
+The rates are already in the lake (§3.6); only the resolver wiring is missing. **TSM reporting in TWD and ASML in EUR is not a blocker** — it is a translation step with the inputs already on disk.
+
+**It is not one rate, though.** Under ASC 830 / IAS 21, flows translate at the **period average** and stocks at the **period-end close**:
+
+| Statement | Rate |
+|---|---|
+| Income statement, cash flow | average of daily closes across the fiscal quarter |
+| Balance sheet | close on `fiscal_date_ending` |
+| Equity | historical rate — out of scope; use the closing rate and flag it |
+
+The difference is not academic. Measured on USDTWD over the last eight quarters:
+
+| | |
+|---|---:|
+| Mean \|average − closing\| | **1.51%** |
+| Max | **5.35%** (Q2 2025) |
+| Intra-quarter range, Q2 2025 | **15.4%** |
+
+Translating TSM's Q2-2025 revenue at the closing rate misstates it by 5.35% — larger than most of the margin differences the analysis exists to detect. Daily lake data supports both rates, so this costs nothing beyond specifying it.
+
+Sanity check available: massive `/v2`'s own `revenuesUSD` reproduces to 0.001% when local revenue is divided by its `foreignCurrencyUSDExchangeRate`, for the pre-2020 window.
 
 ### 5.6 Cadence
 
@@ -292,9 +330,11 @@ Fundamentals change ~4×/year per ticker. **Weekly is ample**; daily is waste. U
 
 The probe measures non-null rates precisely because a schema key is not data. Worth one call to SEC XBRL to see whether it's recoverable, since net-debt calculations want the current tranche.
 
-### 6.3 Does the segment breakdown generalize beyond NVDA?
+### 6.3 ~~Does the segment breakdown generalize?~~ — ANSWERED: yes
 
-287 rows for NVDA is excellent. **Not yet measured for the other 24.** If coverage is broad this deserves its own parquet and its own analysis surface; if it's NVDA-only it's a curiosity. One probe answers it.
+Measured across the cohort: **24 of 25 tickers, 4,330 rows.** VST 753, GOOGL 366, AMZN 348, NVDA 287, MSFT 280, META 258. Only **TSM returns zero** — a foreign private issuer filing 20-F, with no US XBRL segment tagging. CRWD is thin at 6.
+
+This is broad enough to deserve its own parquet and its own analysis surface. It moves from open question to **BETTER TO HAVE** in §2.
 
 ### 6.4 ADR share factor needs a live source
 
@@ -356,11 +396,25 @@ Artifacts, all committed under `docs/research/2026-08-10-fundamental-source-cove
 | Order | Work | Why first |
 |---|---|---|
 | 1 | Probe SEC XBRL `companyfacts` for NCI + `current_debt` (§6.1, §6.2) | free, unblocks 14% of rows, decides whether XBRL is tier-3 or tier-1 |
-| 2 | Probe segment coverage across all 25 (§6.3) | one call per ticker; decides whether §3.3.4 is a feature or a footnote |
+| 2 | ~~Probe segment coverage~~ **DONE** — 24/25, 4,330 rows (§6.3) | answered while writing this brief; it is a feature, so it gets a parquet in step 3 |
 | 3 | `asset_class=fundamentals` bronze + UW ingest (§5.1, §5.2) | the actual build |
 | 4 | Integrity gate (§5.3) | must land **with** the ingest, not after |
 | 5 | PIT join + missing-publication-date reporting (§5.4) | without it nothing is backtestable |
 | 6 | Register `asset_class=fx` in the resolver (§5.5) | small, unblocks foreign issuers |
 | 7 | massive cross-check as a standing job (§6.6) | drift detection, not urgent |
 
-Steps 1 and 2 are probes, cost nothing, and either of them could change step 3's schema. **Do them before building.**
+Step 1 is a probe, costs nothing, and **could change step 3's schema** — do it before building. Step 2 is already done and its answer is folded into §5.1.
+
+---
+
+## 10. Revision note
+
+This brief was reviewed against its own sources on 2026-08-11 after first publication. Three claims changed:
+
+| Claim as first written | Corrected |
+|---|---|
+| UW is "strictly better on every axis measured" | **False.** massive carries `filing_date` on 74.5% of rows against UW's 45.2%. UW wins 8 of 9 axes, not 9 |
+| PIT join coverage ~83% | **45.2% across the cohort.** The 83% was NVDA's, generalized to 25 names — the exact error this brief warns about in §3.1 |
+| "Does segment data generalize?" — open | **Answered: 24/25 tickers, 4,330 rows.** Only TSM (20-F filer) returns zero |
+
+A fourth point was clarified rather than corrected: TSM reporting in TWD and ASML in EUR is **not** a coverage problem — the FX series are already in the lake. What it needs is the two-rate translation specified in §5.5.
