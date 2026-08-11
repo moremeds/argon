@@ -1,8 +1,45 @@
 # Fundamental analysis method — design
 
-*Status: DRAFT — revised after review · 2026-08-10 · branch `feat/fundamental-pm-agent`*
+*Status: DRAFT — rev 3, rewritten against the measured source set · 2026-08-11 · branch `chore/fundamental-source-contract-spike`*
 
-> **Revision note (2026-08-10).** A review found two hard errors in the first draft, both verified
+> ## Revision 3 (2026-08-11) — the backbone changed, and most of the method got easier
+>
+> P1a's probes found that **Unusual Whales — already paid for, already integrated — is a better
+> fundamentals source than massive on almost every axis.** Nobody had checked, because an old note
+> that UW's `companies/*` family returns 403 had been generalized to the `stock/*` statement routes,
+> which are 200. Sections 3.2, 4.4, 5.2 and the acceptance tests are rewritten against it.
+>
+> | | UW | massive `/vX` |
+> |---|---|---|
+> | Tickers covered (of 25) | **25** | 23 |
+> | Ticker-quarters | **1,673** | 1,092 |
+> | Impossible share counts | **0.0%** | 15.1% |
+> | Capex, EBITDA, D&A, cash, debt, interest | **100%** | **absent entirely** |
+> | `filing_date` | 45.2% | **74.5%** |
+>
+> **What this changes in the method:**
+>
+> 1. **§5.2's rubric stops being aspirational.** It named FCF conversion, net debt/EBITDA and
+>    interest coverage against a backbone that emits none of the required fields. All are now real
+>    columns at 100% cohort coverage. The rubric was right; the source was wrong.
+> 2. **`concentration_risk` becomes buildable** — not as customer concentration, which §3.4 measured
+>    as nonexistent in filings, but as **segment and geographic revenue concentration** from UW's
+>    `rev_breakdown` (24/25 tickers, 4,330 XBRL-dimensional rows).
+> 3. **The blanket foreign-issuer `na` is lifted.** ASML computes fully; only TSM's
+>    equity-denominated ratios stay `na`, for one stated reason — no quarterly noncontrolling
+>    interest exists at any source, since a 20-F filer files no 10-Qs.
+> 4. **INGEST gains a validation gate** (§5.1) and `fundamental_obs_violations` (§4.4). This is the
+>    one change that came from bad news: `/vX` emits impossible values — a **−478bn** liability for
+>    GOOGL, a **−28,000,000** share count for NVDA — in their most recent quarters.
+>
+> Full evidence and the livewire handoff: `docs/masterplan/2026-08-11-fundamental-data-brief-for-livewire.md`.
+> Reproduce with the four probes under `scripts/research/fundamental_*`, `uw_fundamentals_probe.py`,
+> `sec_xbrl_gapfill_probe.py`.
+>
+> **Still open, and not fixed by any of this:** the method has never been validated. Everything
+> measured so far is about *inputs*. See §13.
+
+> **Revision 2 (2026-08-10).** A review found two hard errors in the first draft, both verified
 > against source before acceptance: the narrative lane cannot use `trade_insight_ai_analyses`
 > (`snapshot_id` is `NOT NULL` with a cascade to `trade_insight_snapshots`, so a fundamental row has
 > no legal parent), and massive `/v2` is **frozen at 2020-Q1** per argon's own probe — using it as the
@@ -168,20 +205,58 @@ graph and the statements backbone, and any name reachable only via 20-F should b
 every provider until probed, not just at EDGAR. Treat that as a hypothesis to test in P1a, not a
 rule to design around yet.
 
+> **⚠ REVISED 2026-08-11 — the precedence below is the THIRD version and inverts the second.**
+> A4 originally made massive `/v2` the backbone (wrong — frozen at 2020-Q1), then massive `/vX`
+> (wrong — UW is better on almost every axis and nobody had checked). The table below is measured;
+> see §3.3 and `docs/masterplan/2026-08-11-fundamental-data-brief-for-livewire.md`.
+
 | Precedence | Source | Role |
 |---|---|---|
-| 1 | massive `/vX` | **backbone** for current figures — 23/25 of the core |
-| 2 | UW statements (94q) | **fallback when `/vX` is absent**, not merely a cross-check (revises A4) |
-| 3 | SEC XBRL `companyconcept` | last resort; reaches 20-F filers massive cannot |
-| — | explicit `na` | when all three fail. A covered-looking card over an uncovered name is the worst outcome |
-| history | massive `/v2` | pre-2020 tail **where it exists** — availability and span are ticker-relative, not universal |
-| overlap | `/vX` ∩ `/v2` | reconcile and persist disagreements, never silently prefer one |
+| 1 | **UW statements** | **backbone.** 25/25 of the core, 1,673 ticker-quarters, 2005–2026, explicit `reported_currency`, and it carries every field `/vX` omits |
+| 2 | massive `/vX` | **`filing_date` (74.5%, beats UW's 45.2%) + drift cross-check.** Ingested for its metadata and its dissent, *not* for its statements |
+| 3 | SEC XBRL `companyconcept` | **gap filler, and now load-bearing** — the only source of noncontrolling interest and `current_debt`. Free, keyless, authoritative. Try `us-gaap` **and** `ifrs-full` |
+| 4 | massive `/v2` | ADR `shareFactor` only. Its historical tail is redundant — UW reaches further back |
+| — | explicit `na` | when all fail. A covered-looking card over an uncovered name is the worst outcome |
 
-**Foreign issuers emit `na` for anchors in v1 — units before valuation.** A fallback returning
-statement values without a currency, XBRL-unit, FX-date and ADR-ratio contract would divide a
-non-USD revenue figure by a USD market cap and produce an anchor wrong by an order of magnitude —
-silently, and with full provenance attached, which is worse than no anchor. Foreign-issuer names
-render `na` with the reason stated; their statements still ingest, only valuation abstains.
+**Why UW displaced massive** (measured over the core 25, all reproducible):
+
+| | UW | massive `/vX` |
+|---|---|---|
+| Tickers covered | **25** | 23 |
+| Ticker-quarters | **1,673** | 1,092 |
+| Negative liabilities | **0.2%** | 5.1% |
+| Impossible share counts | **0.0%** | 15.1% |
+| Capex, EBITDA, D&A, cash, total debt, SBC, interest expense | **100% of cohort** | **absent entirely** |
+| Segment + geographic revenue | **24/25, 4,330 rows** | absent |
+| `filing_date` | 45.2% | **74.5%** |
+
+The last row is the one axis massive wins, and it is why massive stays at tier 2 rather than being
+dropped. Keeping two independent sources is also the only mechanism that catches silent vendor
+drift — massive's disagreements are what exposed `/vX`'s own defects in the first place.
+
+**Foreign issuers are now sourceable, and the `na` narrows to one named case.** The original ruling
+— all foreign issuers emit `na` for anchors — was correct given what was then known, but it was a
+statement about *our* gaps, not theirs. Every gap has since been closed:
+
+| Was missing | Now |
+|---|---|
+| Quarterly statements for TSM/ASML | UW, 83 quarters each, 8/8 non-null on every critical field |
+| Reporting currency | UW `reported_currency` — TSM `TWD`, ASML `EUR`, explicit per row |
+| FX rate | livewire lake `asset_class=fx` — USDTWD and EURUSD daily, back to 2003/2004 |
+| ADR ratio | massive `/v2 shareFactor` — TSM `0.2` (1 ADS = 5 ordinary), ASML `1` |
+| Noncontrolling interest | SEC XBRL — `ifrs-full` for 20-F filers, `us-gaap` for domestic |
+
+**Translation uses two rates, not one** (ASC 830 / IAS 21): flows at the fiscal-quarter **average**
+of daily closes, stocks at the **close on `fiscal_date_ending`**. Measured on USDTWD, the two differ
+by **1.51% on average and 5.35% at worst** over the last eight quarters, against a Q2-2025
+intra-quarter range of 15.4%. A single spot rate is therefore not a simplification, it is an error
+larger than the margin differences the method exists to detect.
+
+**The one surviving `na` is TSM's equity-based ratios.** SEC XBRL has its noncontrolling interest
+only under `ifrs-full`, annually, through 2024 — a 20-F filer does not file 10-Qs. No quarterly NCI
+exists at any source, so TSM's `A = L + E_parent + NCI` cannot be closed per quarter and every
+equity-denominated ratio for TSM renders `na` **with that reason stated**. ASML is unaffected (its
+UW rows balance).
 
 **The measured coverage narrows this sharply.** Every one of the 23 `covered` tickers reports XBRL
 units `USD` and `USD / shares` — **there is no non-USD unit anywhere in the set argon will actually
@@ -422,6 +497,15 @@ restatement is a new row; the old one is never altered or deleted.
 | `fundamental_edge_obs` | see §6 — PK `obs_id`, UNIQUE on `(filing_accession, fact_hash)` | event-temporal → **DatasetRegistryEntry** |
 | `sec_filing_documents` | PK `filing_accession`; `ticker`, `form`, `filing_date`, `filing_published_at`, `document` (compressed `BYTEA`), `fetched_at` | dimension, exempt |
 | `fundamental_obs_violations` | PK `violation_id`; **UNIQUE `(obs_id, check_name)`**; `obs_id` → `fundamental_statement_obs`, `check_name`, `field`, `observed_value`, `detail_jsonb`, `detected_at` | event-temporal → **DatasetRegistryEntry** |
+| `fundamental_segment_revenue_obs` | PK `obs_id`; **UNIQUE `(source, ticker, period_end, rev_group, members_key, content_hash)`**; `axis`, `members_jsonb`, `value`, `first_observed_at`, `last_seen_at` | event-temporal → **DatasetRegistryEntry** |
+
+`fundamental_segment_revenue_obs` is new in the 2026-08-11 revision and exists because UW's
+`rev_breakdown` turned out to cover 24/25 tickers with 4,330 XBRL-dimensional rows (§3.3). It is a
+**separate table, not columns on the statement observation**, because the grain differs: one
+statement row per (ticker, period), but many segment rows per (ticker, period) with an open-ended
+member set that changes when a filer re-segments. `members_key` is the canonicalized member tuple —
+a re-segmentation produces new keys rather than silently overwriting the old series, which is the
+same reason §6 needs a membership table rather than a supersession pointer.
 
 `fundamental_obs_violations` is what makes §5.1's gate auditable. Keyed on `(obs_id, check_name)`, so
 re-running INGEST over an unchanged observation is idempotent, and a restatement that fixes a bad
@@ -640,15 +724,30 @@ Three reasons, in order of weight:
 3. Retuning becomes a new immutable method version plus a pointer flip — no deploy, and the old
    version's outputs stay valid and comparable rather than being silently reinterpreted.
 
-| Subscore | Inputs (derived at stage 2) | Direction | seed weight |
-|---|---|---|---:|
-| `growth` | revenue TTM YoY, 2-quarter YoY acceleration | higher better | 0.20 |
-| `profitability` | gross + operating margin, level and 4-quarter trend | higher better | 0.20 |
-| `capital_efficiency` | FCF conversion, return on invested capital | higher better | 0.15 |
-| `balance_sheet` | net debt / EBITDA, interest coverage, current ratio | lower leverage better | 0.15 |
-| `valuation_position` | spot vs `observe_low..observe_high` band from stage 4 | cheaper better | 0.15 |
-| `concentration_risk` | top-customer %, its multi-year trend (§6) | lower better | 0.10 |
-| `expectations_gap` | our 1Y anchor vs `uw_positioning.analyst_target_avg`, insider net, short interest | wider positive gap better | 0.05 |
+| Subscore | Inputs (derived at stage 2) | Direction | seed weight | sourced? |
+|---|---|---|---:|---|
+| `growth` | revenue TTM YoY, 2-quarter YoY acceleration | higher better | 0.20 | ✅ UW 100% |
+| `profitability` | gross + operating margin, level and 4-quarter trend | higher better | 0.20 | ⚠️ gross margin `na` for CEG, ORCL, VST |
+| `capital_efficiency` | FCF conversion, return on invested capital | higher better | 0.15 | ✅ UW `capital_expenditures` 100% |
+| `balance_sheet` | net debt / EBITDA, interest coverage, current ratio | lower leverage better | 0.15 | ✅ UW cash + debt + EBITDA + interest, 100%; NCI from SEC XBRL |
+| `valuation_position` | spot vs `observe_low..observe_high` band from stage 3 | cheaper better | 0.15 | ✅ |
+| `concentration_risk` | **largest reported segment share of revenue + largest single-country share, and each one's multi-year trend** (§6) | lower better | 0.10 | ✅ UW `rev_breakdown`, 24/25 — **TSM is the sole `na`** |
+| `expectations_gap` | our 1Y anchor vs `uw_positioning.analyst_target_avg`, insider net, short interest | wider positive gap better | 0.05 | ✅ existing UW positioning |
+
+**Every input above was unsourceable when this rubric was first written, and most now are.** §5.2's
+first draft named `FCF conversion`, `net debt / EBITDA` and `interest coverage` against a backbone
+(massive `/vX`) that emits **no capex, no cash, no total debt, no EBITDA and no interest expense** —
+the rubric was aspirational and the spec did not say so. Under the UW backbone all five are real
+columns at 100% cohort coverage. The rubric did not need weakening; the source did.
+
+**`concentration_risk` is redefined, and this is a real change, not a rename.** The original input —
+top-*customer* percentage — rests on the named-customer edge graph that §3.4 measured as
+nonexistent in filings (0 hits against a passing control). It would have returned `na` forever.
+UW's `rev_breakdown` supplies the closest honest substitute: **segment concentration** (NVDA's Data
+Center at $75.2B of a $75.2B+$7.1B split is a concentration fact) and **geographic concentration**
+(US $63.8B, Taiwan $12.0B). Both are XBRL-dimensional and auditable. Neither is customer
+concentration, and the card must not label it as such — it measures *revenue concentration by
+disclosed dimension*, which is a weaker but true claim.
 
 Seeded as version `v1_prior` (header + child rows, §4.4). Parameter rows are **immutable**: retuning
 creates a new `engine_version` and flips the header pointer. The set also holds the §5.4 downgrade
@@ -662,9 +761,16 @@ someone change a weight while the version stayed put, silently destroying compar
 `valuation_position` consumes stage 3 (ANCHOR) and is computed in stage 4 (SCORE). ANCHOR must never
 read the composite back; the dependency is a straight line or the score becomes self-referential.
 
-`concentration_risk` returns `na` until S1 P4 lands; `na` subscores are dropped and the remaining
-weights renormalize. Renormalization, not zero-fill — a zero would read as "no concentration risk",
-which is a fabricated fact.
+`na` subscores are dropped and the remaining weights renormalize. Renormalization, not zero-fill —
+a zero would read as "no concentration risk", which is a fabricated fact.
+
+**Renormalization is necessary but not sufficient, and §3.3 F-B is why.** Field coverage across the
+cohort is not universal: gross margin is absent for CEG, ORCL and VST; segment data for TSM. So two
+tickers can be scored on *different subscore sets* and then presented in one ranked list as though
+comparable. Renormalizing makes the arithmetic valid; it does not make the comparison valid.
+**Every `fundamental_scores` row therefore records which subscores were absent, and any surface that
+ranks two tickers must show that they were scored on the same set — or not rank them.** Tests T23
+and T24.
 
 **This table is a rubric, not an implementation.** Direction and weight do not determine a score:
 normalization, winsorization, breakpoints, lookback windows and the spot-date rule are all still
@@ -673,8 +779,11 @@ appendix** carrying, for every subscore and every company type, the exact transf
 worked example reproducible by hand. Until that exists the method is named, not fixated — the
 review's F-1, and it stands.
 
-Field-level mapping onto massive `/vX` (and `/v2` for the pre-2020 quarterly tail) is the P1 data-contract
-spike's job and is deliberately not guessed here.
+Field-level mapping is **done**, not deferred: `docs/research/2026-08-10-fundamental-source-coverage/`
+carries the committed `/vX`→canonical map, the UW field inventory with per-ticker non-null rates,
+and the `/vX`∩`/v2` reconciliation. The UW→canonical map is P1b's first deliverable and inherits
+that method — measure the non-null rate per ticker, never trust the schema. `current_debt` is the
+cautionary case: UW ships the column and it is null for all 25.
 
 ### 5.3 Company-type routing — a second axis, and its invalidation cascade
 
@@ -1044,8 +1153,8 @@ stops moving.
 | Phase | Ships | Gate | Verification |
 |---|---|---|---|
 | **P0** | Commit-bug fix + a test asserting through a **freshly opened connection**. Commit **per successful ticker**, rolling back only the failing ticker's transaction | Own PR — independent prod data-loss bug, deploys ahead of feature work | **Freshness delta, not row count**: record a ticker's `fetched_at` before the run, invoke the *real scheduled function*, then assert from a **new connection** that its `fetched_at` advanced past the run start. Plus a regression proving one ticker's DB error does not discard the tickers already processed |
-| **P1a** | **Data-contract spike** (no schema). ✅ **coverage matrix DONE** — `docs/research/2026-08-10-fundamental-source-coverage/` + `scripts/research/fundamental_source_coverage.py`. ✅ **DONE** — two probes, both reproducible: `fundamental_source_coverage.py` (which tickers have data) and `fundamental_field_contract.py` (whether the data is usable). Delivered the 30-field `/vX`→canonical map, the measured `content_hash` exclusion list, the `/vX`∩`/v2` reconciliation, the FX source, and the ADR ratio (§3.2, §3.3) | The first draft chose a frozen endpoint for its field count; the second mis-probed `/v2` and read 404s as absence; the third shared a limit across endpoints and 400'd `/vX` for all 25. No ingestion is designed until every source is measured per ticker, not read about | ✅ span and state per core ticker; field map committed with measured per-ticker coverage; exclusion list measured as exactly `["request_id"]`; overlap reconciled with disagreements classified map-bug vs data-bug; FX series located and spanned; ADR ratio measured (TSM 0.2). **The probe also changed the design**: `/vX` emits impossible values at ~5%/~15% on current data, which is why §5.1 now has an INGEST validation gate and §4.4 a `fundamental_obs_violations` table |
-| **P1b** | Immutable observation tables + canonical views + backfill/incremental modes; registry entries | Scoring over 8 shallow quarters is the weakest possible imitation | Each core ticker reaches **its own** measured span (NVDA current via `/vX`; TSM/ASML history via `/v2` with the 2020→present gap rendered, not hidden); re-ingest is idempotent; a simulated restatement adds a row without destroying its predecessor; segment revenue matches the filed **10-K or 20-F** after unit normalization |
+| **P1a** | ✅ **DONE** — four reproducible probes under `scripts/research/`: `fundamental_source_coverage.py` (which tickers have data), `fundamental_field_contract.py` (whether it is usable), `uw_fundamentals_probe.py` (the head-to-head that changed the backbone), `sec_xbrl_gapfill_probe.py` (NCI + current debt). Artifacts in `docs/research/2026-08-10-fundamental-source-coverage/` | Three earlier readings of these endpoints were wrong from URL *shape* alone — ticker-in-path vs query, singular vs plural, a shared limit that 400s one endpoint. Each returned a clean integer, not an error. No ingestion is designed until every source is measured per ticker | ✅ span/state per ticker per source; canonical field map with measured non-null rates; `content_hash` exclusion list measured as exactly `["request_id"]`; FX series located and spanned; ADR ratio measured; NCI/current-debt recovered from SEC XBRL for every US filer. **The probes changed the design three times**: the backbone moved to UW, INGEST gained a validation gate, and `concentration_risk` became buildable |
+| **P1b** | UW-backbone ingest → immutable observation tables + canonical views + backfill/incremental modes; registry entries. Adds `fundamental_segment_revenue_obs` and the SEC XBRL gap-fill leg | Scoring over shallow quarters is the weakest possible imitation | Each core ticker reaches **its own** measured span (all 25 from the UW backbone, 1,673 ticker-quarters, 2005→present); re-ingest is idempotent; a simulated restatement adds a row without destroying its predecessor; segment revenue matches the filed **10-K or 20-F** after unit normalization; TSM's equity ratios render `na` with the NCI reason, not blank |
 | **P2** | Method appendix (worked examples) · method version tables · ANCHOR then SCORE · confidence downgrades · `fundamental_runs` + enqueued refresh endpoint | The method must be fixated before anything renders it | 3 hand-checked tickers reproduce hand-computed anchors from the appendix; recompute with unchanged inputs is idempotent; **flipping one ticker's `company_type` changes `inputs_hash` and yields new anchors**; a new method version coexists with the old on the same date; exactly one version is active |
 | **P3** | The card's deterministic blocks (§7) — subscores, anchor band, confidence reasons, coverage, provenance drill-down; API models + `gen:types` + tab/route wiring; loading/stale/error states | — | Every rendered number resolves to a persisted row; the coverage block lists a real `na`; a stale-version row renders as stale rather than current |
 | **P4** | Discovery gate → concentration ledger + sparse edge observations (§6); `edgartools` dependency added | After the card; the concentration block ships empty in P3 | Gate reports real yield before build; NVDA yields a concentration row with a real accession and multi-year trend; ANET→META exists as the reference `asc280_named` edge; TSM yields a 20-F-sourced row; re-processing a filing writes no duplicate |
@@ -1118,12 +1227,17 @@ is a required test, not a suggestion.
 | T15 | Extractor v1 emits a false edge, v2 emits nothing for that filing | edge disappears from the current projection; v1's observation still queryable |
 | T15b | **v1 emits `{A, B}`, v2 emits `{A}`** | A **survives**, B retracts. The load-bearing case — a naive latest-run projection drops both |
 | T15c | v2 emits `{A, B}` identically to v1 | no duplicate fact rows; both runs have membership for the same `obs_id`s |
-| T19b | Foreign issuer (TSM/ASML) reaches the anchor stage in v1 | anchors render **`na` with reason**, never a number derived from unnormalized TWD/EUR |
+| T19b | ASML reaches the anchor stage | anchors **compute**, from UW statements translated at the two-rate rule (avg for flows, close for stocks) — no longer `na` |
+| T19c | TSM reaches the anchor stage | revenue/margin anchors compute; **equity-denominated ratios render `na`** because no quarterly NCI exists at any source (§3.2). The reason is shown, not blank |
+| T19d | A non-USD statement is translated with a single spot rate | fails — flows must use the fiscal-quarter average, stocks the period-end close. On USDTWD Q2-2025 the two differ by 5.35% |
 | T20b | `/v2` queried in `/vX` query-param form | probe treats **HTTP 404 as an error, not as zero coverage** |
+| T20d | UW statement route queried in the singular (`/income-statement`) | 404 `Route not found` is treated as an **error**, never as "not on our tier" — this exact mistake hid the better backbone for months |
+| T20e | SEC XBRL queried for TSM under `us-gaap` only | 404 is not recorded as absence; `ifrs-full` must be tried before any foreign filer is called uncovered |
+| T20f | Any sec.gov request made through the inherited system proxy | client sets `proxy=None`/`trust_env=False`; otherwise every connect dies with `SSL: UNEXPECTED_EOF_WHILE_READING` and reads as an outage |
 | T16 | Extraction run crashes mid-filing | the failed run never becomes current; the prior succeeded run still projects |
 | T17 | `DELETE` the method state row | **rejected by the `BEFORE DELETE` trigger**; worker startup also fails loudly if the pointer is unreadable |
 | T18 | Identical rerun, then query the current view via the second run | resolves to the same `result_id` through a `reused = true` association |
-| T19 | TSM / ASML (no **current** `/vX` coverage; TSM additionally has no quarterly `/v2` rows) | falls back to UW, then SEC XBRL, then renders explicit `na` — never a blank that reads as zero |
+| T19 | TSM / ASML (no massive `/vX` coverage at all) | resolved from the **UW backbone**, which covers both at 83 quarters — the fallback chain is not even exercised. A blank that reads as zero still fails |
 | T20c | A `/v2` count taken without `type=Q` | the coverage matrix records the **quarterly** count; an unfiltered total never stands in for it |
 | T20 | Non-calendar fiscal issuer (NVDA, AMD) in the overlap zone | quarters match on `end_date` ≡ `reportPeriod`; `calendarDate` is never used as the key |
 | T21 | Provider envelope changes (request id / timestamp) with identical financials | `content_hash` unchanged → no new observation. Exclusion list is exactly `["request_id"]` (§3.3 F-D) |
@@ -1161,6 +1275,18 @@ card drill-down and provider-down paths.
    iteration, ship the card without the narrative — that was a complete product at P4.
 
 ## 13. Open items
+
+**The one that matters: the method has never been validated.** Every measurement in P1a is about
+*inputs* — coverage, integrity, field maps. Nothing has tested whether the composite's output
+predicts anything. Corrected sample-size figures (UW, not massive): all 25 tickers coexist for **14
+quarters**, ≥20 of 25 for **53 quarters** (~13 years, spanning 2015–16, 2018, COVID, 2022 and the AI
+boom). That is enough history for a **time-series** test of whether deteriorating fundamental
+quality precedes drawdowns. It is *not* enough cross-sectional breadth — 20 highly correlated
+AI/semi/cloud names carry perhaps 2–4 effective independent bets — to validate a **ranked** composite.
+An earlier draft put the figure at 8 quarters and concluded no validation was possible; that was
+computed on massive's thinner coverage and was too pessimistic. Which of the two tests to run, and
+whether to ship a ranked composite at all, is an open decision.
+
 
 All provider claims below are repository snapshots, not live probes. **P1a re-measures every one of
 them before any schema is designed** — the `/v2`-frozen error came from trusting exactly this kind of
