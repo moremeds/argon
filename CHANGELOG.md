@@ -40,6 +40,44 @@ version in lockstep (enforced by `scripts/release/version_sync_check.py`).
 - Handoff for the data lake:
   `docs/masterplan/2026-08-11-fundamental-data-brief-for-livewire.md`. Method
   spec rewritten to revision 3 against the measured source set.
+- **The fundamental composite orders forward returns at 245 names and is
+  indistinguishable from noise at 25.** Method tested before P1b built any
+  ingest. `scripts/research/fundamental_universe_breadth_probe.py` measured the
+  achievable universe — 245 names carrying both deep lake price history and
+  >= 40 quarters of UW statements, every candidate probed rather than sampled
+  and extrapolated. `fundamental_signal_validation.py --wide` then ran the same
+  code over it: **2q composite rank IC 0.059, t 4.84, hit rate 71.8% over 78
+  quarters**, against IC 0.024, t 0.68 on the 25-name AI cohort. The single
+  most defensible figure is the **0.039 (t 2.67)** measured on observations
+  carrying a real `filing_date`, with no point-in-time fallback and therefore no
+  look-ahead. Effect present in both halves of the sample and decaying
+  (0.072 -> 0.047). Verdict, robustness table and limits:
+  `docs/research/2026-08-11-fundamental-signal-validation/VERDICT.md`.
+- **Consequence for the product: do not put a sortable composite score on a
+  25-name page.** The ordering is validated on a universe argon does not have;
+  at watchlist width the cross-section is too thin to measure at any history
+  length. The descriptive card stands, now for a measured reason. This is not
+  claimed as alpha — profitability, low investment and low leverage are the
+  documented quality factors, so recovering them evidences a correct pipeline,
+  not an edge. Survivorship is unfixable from these sources: ATVI/XLNX/TWTR/
+  SIVB/FRC/VMW are absent from the lake and return HTTP 200 with an empty array
+  from UW.
+
+### Fixed (research tooling)
+
+- **The validation panel was keyed on `fiscal_date_ending`, which silently
+  discarded ~90% of every cross-section.** Filers do not share a fiscal calendar
+  (NVDA ends 01-31, MSFT 12-31, AAPL 12-28), so period-end keying shattered one
+  economic cross-section into many thin ones, each then dropped by
+  `MIN_CROSS_SECTION` without a word: 268 "periods" at a **median width of 23**
+  out of 245 available names. Re-keyed on the **knowledge-date quarter** — the
+  correct construction regardless, since a rank IC is only meaningful among
+  names whose information was public at the same time — the same data gives 97
+  buckets at a median width of **241**. The bug did not error; it returned a
+  confident, well-formatted, wrong number, and it had already produced one
+  published finding (cohort `asset_turnover` at t −4.30, which falls to t −0.49
+  once corrected) complete with a plausible economic story. A one-line guard now
+  warns when the realised median width falls under half the universe.
 
 ### Fixed
 

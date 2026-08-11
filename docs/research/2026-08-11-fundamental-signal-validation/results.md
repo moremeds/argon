@@ -6,13 +6,13 @@
 UW_SCAN_API_KEY=... uv run python scripts/research/fundamental_signal_validation.py
 ```
 
-> **25 highly correlated AI/semi/cloud names; effective breadth is ~2-4 independent bets. A negative result is informative; a positive one is NOT evidence of tradability.**
+> **25 highly correlated AI/semi/cloud names; effective breadth is ~2-4 independent bets. Detection floor |IC| ~0.072 against a realistic factor of 0.02-0.05, so this run is underpowered by construction and cannot support any conclusion about the composite.**
 
 ## Coverage
 
 - 22 tickers with prices; missing VRT, VST, NOW
-- 80 usable quarters of 242 spanning 2005-12-31 .. 2025-09-30
-- 874 observations, 460 with a real `filing_date` (rest lagged 45d from period end)
+- 80 usable quarters of 81 spanning 2006Q1 .. 2025Q4
+- 1414 observations, 573 with a real `filing_date` (rest lagged 45d from period end)
 
 ## Results
 
@@ -22,24 +22,24 @@ Rank IC of each signal against forward return, averaged across quarters. The t-s
 
 | Signal | mean IC | t-stat | hit rate | quarters |
 |---|---:|---:|---:|---:|
-| **composite** | **-0.0132** | **-0.335** | 0.468 | 77 |
-| `asset_turnover` | -0.1552 | -4.299 | 0.273 | 77 |
-| `fcf_margin` | -0.0144 | -0.404 | 0.507 | 75 |
-| `gross_margin` | 0.0011 | 0.031 | 0.475 | 80 |
-| `neg_net_debt_ebitda` | 0.0384 | 0.888 | 0.589 | 56 |
-| `op_margin` | -0.0725 | -2.136 | 0.388 | 80 |
-| `rev_growth` | 0.0244 | 0.691 | 0.534 | 73 |
-| `roe` | -0.0368 | -0.977 | 0.459 | 74 |
+| **composite** | **-0.0077** | **-0.228** | 0.455 | 77 |
+| `asset_turnover` | -0.0143 | -0.486 | 0.481 | 77 |
+| `fcf_margin` | -0.0301 | -1.058 | 0.455 | 77 |
+| `gross_margin` | -0.0177 | -0.62 | 0.4 | 80 |
+| `neg_net_debt_ebitda` | 0.0612 | 1.899 | 0.532 | 77 |
+| `op_margin` | -0.0492 | -1.709 | 0.375 | 80 |
+| `rev_growth` | -0.0008 | -0.024 | 0.548 | 73 |
+| `roe` | -0.0188 | -0.614 | 0.494 | 77 |
 
 ### 2q forward return
 
 | Signal | mean IC | t-stat | hit rate | quarters |
 |---|---:|---:|---:|---:|
-| **composite** | **-0.0089** | **-0.206** | 0.487 | 76 |
-| `asset_turnover` | -0.0862 | -2.336 | 0.342 | 76 |
-| `fcf_margin` | -0.0025 | -0.063 | 0.514 | 74 |
-| `gross_margin` | -0.0068 | -0.193 | 0.506 | 79 |
-| `neg_net_debt_ebitda` | 0.0192 | 0.467 | 0.491 | 55 |
-| `op_margin` | -0.1076 | -3.058 | 0.38 | 79 |
-| `rev_growth` | 0.0423 | 1.073 | 0.597 | 72 |
-| `roe` | -0.0428 | -1.182 | 0.411 | 73 |
+| **composite** | **0.0238** | **0.679** | 0.519 | 77 |
+| `asset_turnover` | 0.0339 | 1.096 | 0.532 | 77 |
+| `fcf_margin` | -0.0117 | -0.372 | 0.519 | 77 |
+| `gross_margin` | -0.0107 | -0.386 | 0.425 | 80 |
+| `neg_net_debt_ebitda` | 0.0734 | 2.241 | 0.605 | 76 |
+| `op_margin` | -0.0296 | -1.064 | 0.45 | 80 |
+| `rev_growth` | 0.0293 | 0.901 | 0.603 | 73 |
+| `roe` | 0.0048 | 0.147 | 0.468 | 77 |

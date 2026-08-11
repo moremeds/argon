@@ -1,136 +1,173 @@
-# VERDICT — the composite is untestable at this universe size; ship the descriptive card
+# VERDICT — the composite orders returns at 245 names and is noise at 25
 
-*2026-08-11 · hand-written, not regenerated · numbers in `results.md` / `validation.json` ·
-reproduce: `UW_SCAN_API_KEY=... uv run python scripts/research/fundamental_signal_validation.py`*
+*2026-08-11 · hand-written, not regenerated · numbers in `results{,_wide}.md` /
+`validation{,_wide}.json` · reproduce:*
 
-Run **before** P1b built any ingest, on the reasoning that the whole dataset sits behind ~100 API
-calls and it is cheaper to test a method than to build storage for one that may not work.
+```bash
+UW_SCAN_API_KEY=... uv run python scripts/research/fundamental_universe_breadth_probe.py
+UW_SCAN_API_KEY=... uv run python scripts/research/fundamental_signal_validation.py
+UW_SCAN_API_KEY=... uv run python scripts/research/fundamental_signal_validation.py --wide
+```
 
-## The headline — corrected 2026-08-11, after a power calculation
+Run **before** P1b built any ingest, on the reasoning that the whole dataset sits
+behind ~1,000 API calls and it is cheaper to test a method than to build storage
+for one that may not work. That reasoning held: this file has now been rewritten
+twice on evidence, at no cost in shipped code.
 
-**This test was underpowered. It cannot tell you whether the composite works.**
+## Revision history — this file has been wrong twice, in opposite directions
 
-| Horizon | mean IC | t-stat | hit rate | quarters |
-|---|---:|---:|---:|---:|
-| 1 quarter | −0.0132 | −0.34 | 46.8% | 77 |
-| 2 quarters | −0.0089 | −0.21 | 48.7% | 76 |
+| Rev | Claim | Why it was wrong |
+|---|---|---|
+| 1 | "The ranked composite has no predictive content." | Never asked what the test could detect. Its floor was \|IC\| 0.072; a real factor is 0.02–0.05. |
+| 2 | "Untestable at this universe size; and `asset_turnover` is significantly inverted (t −4.30)." | The size point was right and is now resolved. The inversion was a **bucketing bug**, not a finding. |
+| 3 | *this file* | — |
 
-The first version of this file read that as "no predictive content." That was wrong, and the error
-was not reading the numbers — it was never asking what the test could have detected.
+Both earlier errors shared one shape: a number was read correctly and the
+inference drawn from it was too strong.
 
-Per-quarter IC noise here is σ ≈ 0.35, driven almost entirely by cross-section width (Spearman on
-n names has σ ≈ `1/√(n−1)`; the median cross-section is 11). With 77 quarters the standard error of
-the mean is 0.039, so **the smallest |IC| this test could have called significant is 0.079.**
+## The headline
 
-A realistic good equity factor runs IC 0.02–0.05. Detecting one here would require:
+**At 245 names the fundamental composite orders forward returns. At the 25-name
+AI cohort it does not, and cannot — the cross-section is too thin to measure.**
 
-| True IC | Quarters needed | |
-|---:|---:|---|
-| 0.02 | 1,194 | 298 years |
-| 0.03 | 531 | 133 years |
-| 0.05 | 191 | 48 years |
-| 0.08 | 75 | 19 years |
+| | AI cohort (25) | Wide (245) |
+|---|---:|---:|
+| median cross-section | 18 | **241** |
+| per-quarter IC σ | 0.307 | **0.108** |
+| 2q composite mean IC | 0.0238 | **0.0590** |
+| 2q t-stat | 0.68 | **4.84** |
+| 2q hit rate | 51.9% | **71.8%** |
+| 1q composite IC / t | −0.0077 / −0.23 | 0.0404 / 3.28 |
 
-So a true IC of 0.03 and a true IC of 0.00 both produce roughly what was observed. **The correct
-statement is "untestable at this universe size", not "does not work."**
+Same code, same features, same horizons, same 20-year span. The only change is
+breadth — and breadth is what the power calculation said was the binding
+constraint. It was.
 
-What the result *does* establish:
+### The most defensible single number is 0.039, not 0.059
 
-1. **No spectacular signal.** Anything above IC ≈ 0.08 would have surfaced. Nothing did.
-2. **The instrument is not blind** — `asset_turnover` cleared the floor at |t| = 4.3, so the test can
-   see large effects. Its threshold is just very high.
-3. **The recommendation is unchanged, but the reason reverts.** Do not ship a ranked composite —
-   because it cannot be validated at this universe size, which was the original breadth argument.
-   The validation did not replace that argument; it confirmed there is no escaping it.
+Restricted to observations carrying a **real** `filing_date` (no 45-day
+fallback, so no possibility of scoring on data before it was public):
 
-### Breadth is worth far more than history
+**2q composite IC 0.0391, t 2.672, over 66 quarters.**
 
-| Names/quarter | σ per quarter | Quarters to detect IC = 0.03 | Years |
-|---:|---:|---:|---:|
-| **11 (this cohort)** | 0.316 | 444 | **111** |
-| 25 | 0.204 | 185 | 46 |
-| 50 | 0.143 | 91 | 23 |
-| 100 | 0.101 | 45 | 11 |
-| **200** | 0.071 | 22 | **5.6** |
-| 500 | 0.045 | 9 | 2.2 |
+Lead with that one. The full-sample 0.059 is inflated by whatever leakage the
+fallback introduces, and a 34% attenuation is roughly what you would expect if
+part — not all — of the headline came from timing optimism.
 
-Noise falls as `1/√N` in names but only as `1/√T` in quarters — and breadth can be bought today,
-while quarters accrue at four per year. **Widening the universe to ~200 names is not the expensive
-option; it is the only option under which this question is answerable at all.**
+## The bucketing bug, which is the methodological lesson here
 
-## The more interesting result: two components are significantly inverted
+The panel was keyed on `fiscal_date_ending`. Filers do not share a fiscal
+calendar: NVDA's quarter ends 01-31, MSFT's 12-31, AAPL's 12-28. Keying on the
+raw period end shatters one economic cross-section into many thin ones, each of
+which then fails `MIN_CROSS_SECTION` and is dropped **silently**.
 
-| Signal | 1q IC | t | 2q IC | t | spec direction |
-|---|---:|---:|---:|---:|---|
-| `asset_turnover` | **−0.155** | **−4.30** | −0.086 | −2.34 | higher better |
-| `op_margin` | −0.073 | −2.14 | **−0.108** | **−3.06** | higher better |
-| `rev_growth` | +0.024 | 0.69 | +0.042 | 1.07 | higher better |
-| `neg_net_debt_ebitda` | +0.038 | 0.89 | +0.019 | 0.47 | higher better |
-| `gross_margin` | +0.001 | 0.03 | −0.007 | −0.19 | higher better |
-| `roe` | −0.037 | −0.98 | −0.043 | −1.18 | higher better |
-| `fcf_margin` | −0.014 | −0.40 | −0.003 | −0.06 | higher better |
+Measured on the wide universe: 268 "periods" with a median width of **23** out
+of 245 available names. Re-keyed on the **knowledge-date quarter** — which is
+the correct construction anyway, since a rank IC is only meaningful among names
+whose information was available at the same time — the same data yields 97
+buckets at a median width of **241**.
 
-Two of §5.2's declared directions are **backwards** over this window, and not marginally so. The
-composite reads as null partly because inverted components cancel against flat ones.
+What it cost: revision 2's most quotable finding. `asset_turnover` at
+1q IC −0.155, t −4.30 became −0.014, t −0.49. I attached a coherent economic
+story to it ("the companies investing beat the companies harvesting — a clean
+description of the AI capex buildout") and even flagged that its coherence was
+suspicious. It was. The cause was more mundane than the caveat I wrote:
+comparing NVDA's January quarter against MSFT's December quarter and calling the
+result a cross-section.
 
-**The economic story is coherent, which is exactly why it should be distrusted.** Low asset turnover
-means a large asset base relative to revenue — the names building fabs and data centres. Low
-operating margin means room to expand rather than margin already harvested. Over 2013–2025 in this
-cohort, *the companies investing beat the companies harvesting.* That is a clean description of the
-AI capex buildout.
+**A silent drop is worse than a crash.** The bug did not error; it quietly
+discarded ~90% of the cross-section and returned a confident, well-formatted,
+wrong number. The guard that would have caught it — assert the realised
+cross-section width against the universe size — costs one line.
 
-It is also a **regime description, not an edge**. It says what happened in the sample; it gives no
-reason to expect the same in the next regime, and a capex cycle that turns would reverse it. Under
-the spec's own post-hoc test — would the frame have predicted this without knowing the outcome? —
-the answer is no.
+## Robustness — both checks the result had to survive
 
-## Why even the negative results are contaminated
+Chosen before seeing them, as the two ways a positive result here is most likely
+fake. Neither can prove the effect; both could have killed it.
 
-**The universe is survivorship-selected.** These 25 names were chosen because they are *today's* AI
-supply chain. Testing what predicted their 2013–2025 returns asks which characteristics preceded
-success among companies already known to have succeeded. NVDA in 2010 was not obviously going to be
-NVDA in 2026, but the sample assumes it. This inflates any relationship between "was investing
-heavily" and "went up", because the names that invested heavily *and failed* are not in the cohort.
+| 2q composite | IC | t | quarters |
+|---|---:|---:|---:|
+| full sample | 0.0590 | 4.84 | 78 |
+| **real `filing_date` only** (no PIT fallback) | **0.0391** | **2.67** | 66 |
+| first half (≤2015) | 0.0719 | 4.36 | 38 |
+| second half (≥2016) | 0.0468 | 2.61 | 40 |
 
-Three further limits, all recorded rather than worked around:
+Survives both. Present in both eras, and **decaying** — 0.072 → 0.047.
 
-- **Cross-section is thin**: median 11 names per quarter (min 8, max 14), not 25 — the deep-history
-  names carry the early quarters.
-- **Quarterly ICs are not independent.** The t-stats treat 77 quarters as 77 observations; in one
-  correlated industry with overlapping TTM windows they are worth materially fewer. Read t = −4.3 as
-  "clearly not zero", not as a precise confidence level.
-- **PIT is partial**: 460 of 874 observations carry a real `filing_date`; the rest are lagged 45 days
-  from period end. The lag errs late, so it cannot manufacture signal, but it blurs timing.
-- **3 of 25 tickers have no price data** locally (VRT, VST, NOW) and PLTR's history is truncated —
-  the local lake mirror is incomplete and ~3 months stale. The mini holds the full copy and was
-  unreachable during this run.
+The same table on the 25-name cohort flips sign between halves (+0.145 then
+−0.088) and goes negative on the filing-date subset (−0.038). That is what noise
+looks like, and it is the correct reading of the cohort run.
 
-## What this changes
+## Per-component, 2q, wide
 
-1. **Do not ship a ranked composite or a sortable score.** Not because the ranking was measured as
-   worthless — it was not measured at all — but because at this universe size it cannot be
-   validated, and shipping an unvalidatable ordering is the specific thing to avoid.
-2. **Ship the descriptive card** — per-subscore values, trends, and absences, presented as context
-   beside the options surface. Note this is still the *original* sample-size argument, not a new
-   empirical one: the validation was meant to replace that reasoning with evidence and instead
-   demonstrated why the evidence cannot be obtained here.
-3. **Fix or drop the two inverted directions.** §5.2 asserts "higher better" for `op_margin` and
-   `asset_turnover` as declared priors. The data contradicts both. Since the inversion is best
-   explained as a regime artifact, the honest move is to **drop the direction claim** and render the
-   levels and trends without a good/bad verdict — not to flip the sign and claim an edge.
-4. **P1b remains worth building** for the descriptive surface. Nothing here argues against ingesting
-   the data; it argues against ranking on it.
+| Signal | IC | t | reading |
+|---|---:|---:|---|
+| `neg_net_debt_ebitda` | 0.0888 | 6.21 | low leverage predicts higher returns |
+| `asset_turnover` | 0.0813 | 7.10 | capital efficiency |
+| `fcf_margin` | 0.0379 | 3.64 | cash conversion |
+| `roe` | 0.0262 | 2.09 | weak |
+| `rev_growth` | 0.0228 | 1.72 | not significant |
+| `gross_margin` | −0.0223 | −2.02 | **inverted** |
+| `op_margin` | −0.0244 | −2.56 | **inverted** |
+
+The two margin signals are still inverted, now on a well-powered test rather
+than a broken one. The likely reason is that nothing here controls for
+**valuation**: high-margin firms are usually richly priced, so a margin ranking
+is partly an expensiveness ranking. That is a hypothesis, not a finding — no
+price ratio was tested.
+
+## What this is NOT
+
+1. **Not novel alpha.** Profitability, low investment and low leverage are the
+   documented quality factors (Novy-Marx; Fama-French 5F). Recovering them is
+   evidence the **pipeline is correct**, not that an edge was discovered. The
+   decay from 0.072 to 0.047 is consistent with a known, crowded factor.
+2. **Not survivorship-free, and this cannot be fixed.** Both sources carry live
+   tickers only — ATVI, XLNX, TWTR, SIVB, FRC and VMW are absent from the lake
+   **and** return HTTP 200 with an empty array from UW. Widening buys power; it
+   cannot buy back the names that failed. One mild reassurance: survivorship
+   should bias the leverage result *negative* (levered names that survived
+   recovered strongly), and it came out positive.
+3. **Not a strategy.** No transaction costs, no capacity, no borrow, no
+   shorting constraints, no turnover limit. An IC of 0.04 is an ordering, and
+   the distance from ordering to net-of-cost P&L is where most of these die.
+4. **Not independent observations.** 2q windows overlap across adjacent
+   quarters, so t = 4.84 overstates confidence. Read it as "clearly not zero",
+   not as a p-value.
+5. **Prices are split-adjusted** — verified against NVDA's 4:1 and 10:1 and
+   AAPL's 4:1 (continuous ratios, no cliffs). Dividend adjustment was *not*
+   verified; the stack review's "livewire `adj_close`" blocker may concern that
+   narrower claim.
+
+## What this changes for argon
+
+The awkward part: **the signal works on a universe argon does not have.** The
+watchlist is ~173 names heavily concentrated in AI/semis, and the fundamental
+agent's cohort is 25 of them. On that cross-section the composite is
+indistinguishable from noise — not because the method fails, but because 18
+correlated names cannot produce a measurable ranking at any history length.
+
+1. **Ship the descriptive card for the AI cohort** — per-subscore values,
+   trends and absences, presented beside the options surface. Unchanged
+   recommendation, but now for a *measured* reason rather than an assumed one:
+   at cohort width the ordering is unmeasurable.
+2. **Do not put a sortable composite score on a 25-name page.** It would be a
+   validated-elsewhere number applied where its validation does not hold.
+3. **A ranked composite becomes legitimate the moment the surface is broad.**
+   If a screen ever covers 200+ names, the ranking has a real basis — leading
+   with 0.039, 2q horizon, quarterly rebalance.
+4. **Drop the direction claims on `op_margin` and `gross_margin`** in §5.2, or
+   test them against a valuation control first. Both are inverted on the
+   powered test.
+5. **P1b remains worth building.** Nothing here argues against ingesting the
+   data.
 
 ## What would change the verdict
 
-- **Breadth, first and above all**: ~200 names turns a 111-year test into a 5.6-year one. Nothing
-  else on this list moves the needle comparably, and it is available immediately.
-- A **non-survivorship universe** — the AI chain as it looked at each point in time, including names
-  that dropped out. Needed for the result to mean anything once it is measurable.
-- A **time-series** framing instead of cross-sectional: does a name's own fundamental deterioration
-  precede its own drawdown? That question is untouched here and is not survivorship-contaminated in
-  the same way, because each name is compared against itself.
-
-The time-series test is cheap and is the obvious next probe if anyone wants to keep pulling this
-thread — but note it answers a *different* question (does a name deteriorate before it falls?) and
-cannot rescue the cross-sectional ranking, which needs breadth or nothing.
+- **A valuation control.** The inverted margins point at a missing price
+  dimension; adding one would test whether the composite survives it.
+- **A non-survivorship universe.** Not constructible from UW or the lake.
+  Requires a source carrying delisted tickers (CRSP, Sharadar) — the one gap
+  that money, not method, fixes.
+- **Costs and turnover.** The first thing that would move this from "orders
+  returns" toward "is worth trading".

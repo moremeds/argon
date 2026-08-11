@@ -8,14 +8,33 @@ Deliberately run BEFORE P1b builds the ingest pipeline. The whole dataset is
 build storage for a method that may not work. P1b is a week of schema, ingest,
 integrity gate, PIT join and backfill — all wasted if the answer here is no.
 
-WHAT THIS CAN AND CANNOT SHOW
------------------------------
-The cohort is 25 highly correlated AI/semi/cloud names. Effective breadth is
-maybe 2-4 independent bets, not 25, so:
+TWO UNIVERSES — `--wide` IS THE ONE THAT CAN ANSWER THE QUESTION
+----------------------------------------------------------------
+Default: the 25-name AI cohort. `--wide`: 245 names with deep price history and
+>=40 quarters of UW statements (see fundamental_universe_breadth_probe.py).
 
-  * a NEGATIVE result is informative — it kills a ranked composite cheaply;
-  * a POSITIVE result is NOT evidence of tradability and must not be reported as
-    such. With this breadth, a flattering mean IC is what noise looks like.
+The cohort run is underpowered BY CONSTRUCTION, which the first run of this
+script established the hard way. Per-quarter IC noise runs sigma ~ 1/sqrt(N-1);
+at the cohort's median 11 names that is 0.32, so over 77 quarters the smallest
+detectable |IC| is 0.072 — while a realistic equity factor runs 0.02-0.05. A
+true IC of 0.03 and a true IC of zero produce indistinguishable output. The
+honest reading of the cohort run is therefore "untestable", NOT "does not work",
+and the original conclusion had to be retracted on exactly this point.
+
+At N=245 the floor drops to 0.018 and 18 quarters suffice; we have ~52.
+
+  * a NEGATIVE result on `--wide` is informative — it bounds the effect below
+    ~0.018 and kills a ranked composite on evidence;
+  * a POSITIVE result is evidence the ordering is real, but still NOT evidence
+    of tradability: no costs, no capacity, no shorting constraints here.
+  * ANY result on the default cohort is uninformative about effects under 0.072.
+
+SURVIVORSHIP IS NOT FIXED BY WIDENING
+-------------------------------------
+Both sources carry live tickers only — ATVI, XLNX, TWTR, SIVB, FRC and VMW are
+absent from the lake and return HTTP 200 with an empty array from UW. Breadth
+buys statistical power; it cannot buy back the names that failed. Every result
+here describes companies that survived to 2026.
 
 Reported alongside every IC: the number of quarters, the cross-section width per
 quarter, and a t-stat computed on the quarterly IC series (which is the honest
@@ -32,9 +51,11 @@ into every observation and manufacture a signal.
 Reproduce:
 
     UW_SCAN_API_KEY=... uv run python scripts/research/fundamental_signal_validation.py
+    UW_SCAN_API_KEY=... uv run python scripts/research/fundamental_signal_validation.py --wide
 
-Writes `validation.json` + `results.md` under
-`docs/research/2026-08-11-fundamental-signal-validation/`. The hand-written
+Writes `validation{,_wide}.json` + `results{,_wide}.md` under
+`docs/research/2026-08-11-fundamental-signal-validation/`. The two runs never
+overwrite each other — they are meant to be read side by side. The hand-written
 interpretation lives in `VERDICT.md`, which this script must never overwrite.
 """
 
@@ -55,8 +76,19 @@ import pyarrow.parquet as pq
 
 OUT_DIR = Path("docs/research/2026-08-11-fundamental-signal-validation")
 COVERAGE = Path("docs/research/2026-08-10-fundamental-source-coverage/coverage.json")
-CACHE = OUT_DIR / "_uw_cache.json"
+BREADTH = OUT_DIR / "universe_breadth.json"
 LAKE = Path.home() / "market-warehouse/data-lake/bronze/asset_class=equity"
+
+# `--wide` runs the same method over the 245-name universe from
+# fundamental_universe_breadth_probe.py instead of the 25-name AI cohort. The
+# cohort run is underpowered by construction (detection floor |IC| ~ 0.072
+# against a realistic factor of 0.02-0.05); the wide run's floor is ~0.018.
+#
+# Separate cache AND separate outputs, deliberately: the two runs must be
+# comparable side by side, so neither may overwrite the other.
+WIDE = "--wide" in sys.argv
+SUFFIX = "_wide" if WIDE else ""
+CACHE = OUT_DIR / f"_uw_cache{SUFFIX}.json"
 
 UW_BASE = "https://api.unusualwhales.com"
 STATEMENTS = ("income-statements", "balance-sheets", "cash-flows")
@@ -304,6 +336,57 @@ def zscore(vals: dict[str, float]) -> dict[str, float]:
     return {k: ((x - mu) / sd if sd else 0.0) for k, x in vals.items()}
 
 
+def quarterly_ics(
+    panel: dict[str, dict[str, dict[str, Any]]],
+    buckets: list[str],
+    horizon: str,
+    keep: Any = None,
+) -> tuple[dict[str, list[float]], list[float]]:
+    """Quarterly rank-IC series: (per-feature, composite).
+
+    `keep(bucket, ticker, row) -> bool` subsets the panel. Every robustness
+    check routes through this one implementation on purpose — a robustness
+    check that reimplements the metric tests the reimplementation, not the
+    claim.
+    """
+    per_feature: dict[str, list[float]] = defaultdict(list)
+    composite: list[float] = []
+    for p in buckets:
+        rows = panel[p]
+        if keep is not None:
+            rows = {t: d for t, d in rows.items() if keep(p, t, d)}
+        rets = {
+            t: d["fwd"][horizon]
+            for t, d in rows.items()
+            if d["fwd"][horizon] is not None
+        }
+        if len(rets) < MIN_CROSS_SECTION:
+            continue
+        zs: dict[str, dict[str, float]] = {}
+        for feat in FEATURES:
+            vals = {
+                t: rows[t]["features"][feat]
+                for t in rets
+                if rows[t]["features"].get(feat) is not None
+            }
+            if len(vals) >= MIN_CROSS_SECTION:
+                ic = spearman([vals[t] for t in vals], [rets[t] for t in vals])
+                if ic is not None:
+                    per_feature[feat].append(ic)
+                zs[feat] = zscore(vals)
+        # composite = mean of available z-scores, renormalized by presence
+        comp = {}
+        for t in rets:
+            got = [zs[f][t] for f in zs if t in zs[f]]
+            if len(got) >= 4:  # refuse to score a name on <4 of 7 features
+                comp[t] = sum(got) / len(got)
+        if len(comp) >= MIN_CROSS_SECTION:
+            ic = spearman([comp[t] for t in comp], [rets[t] for t in comp])
+            if ic is not None:
+                composite.append(ic)
+    return per_feature, composite
+
+
 def summarize(ics: list[float]) -> dict[str, Any]:
     """Mean IC with a t-stat on the QUARTERLY series.
 
@@ -330,7 +413,20 @@ def main() -> int:
     if not key:
         print("UW_SCAN_API_KEY is not set", file=sys.stderr)
         return 2
-    tickers = list(json.loads(COVERAGE.read_text())["tickers"])
+    if WIDE:
+        if not BREADTH.exists():
+            print(
+                f"{BREADTH} missing — run fundamental_universe_breadth_probe.py first",
+                file=sys.stderr,
+            )
+            return 2
+        breadth = json.loads(BREADTH.read_text())
+        gate = breadth["gates"]["min_quarters"]
+        tickers = sorted(
+            r["ticker"] for r in breadth["names"] if (r.get("quarters") or 0) >= gate
+        )
+    else:
+        tickers = list(json.loads(COVERAGE.read_text())["tickers"])
 
     print(f"== fetching UW statements for {len(tickers)} tickers")
     OUT_DIR.mkdir(parents=True, exist_ok=True)
@@ -345,7 +441,20 @@ def main() -> int:
 
     feats = build_features(uw)
 
-    # (period -> ticker -> feature/return), the cross-sections we score within
+    # (bucket -> ticker -> feature/return), the cross-sections we score within.
+    #
+    # Bucket on the KNOWLEDGE-DATE quarter, NOT on `fiscal_date_ending`. Filers
+    # do not share a fiscal calendar — NVDA's quarter ends 01-31, MSFT's 12-31,
+    # AAPL's 12-28 — so keying on the raw period end shatters one economic
+    # cross-section into many thin ones, each of which then fails
+    # MIN_CROSS_SECTION and is dropped without a word. Measured on the 245-name
+    # universe, period-end keying gave 268 "periods" with a MEDIAN WIDTH OF 23
+    # against a max of 206: most of the purchased breadth was being discarded,
+    # and a thin cross-section reads as "no signal".
+    #
+    # Knowledge-date bucketing is also the more correct construction. A rank IC
+    # is only meaningful among names whose information was available at the same
+    # time — which is what the knowledge date, and nothing else, encodes.
     panel: dict[str, dict[str, dict[str, Any]]] = defaultdict(dict)
     for t, pf in feats.items():
         if t not in prices:
@@ -355,9 +464,16 @@ def main() -> int:
             fwd = {h: forward_return(prices[t], know, d) for h, d in HORIZONS.items()}
             if all(v is None for v in fwd.values()):
                 continue
-            panel[period][t] = {
+            bucket = f"{know.year}Q{(know.month - 1) // 3 + 1}"
+            # A late 10-K and an on-time 10-Q can both land in one bucket. One
+            # name gets one vote per cross-section; keep the fresher period.
+            prior = panel[bucket].get(t)
+            if prior and prior["period"] >= period:
+                continue
+            panel[bucket][t] = {
                 "features": row,
                 "fwd": fwd,
+                "period": period,
                 "knowledge_date": know.isoformat(),
                 "had_filing_date": period in uw[t]["filing_dates"],
             }
@@ -374,6 +490,16 @@ def main() -> int:
             f"{sorted(widths)[len(widths) // 2]} max {max(widths)}"
         )
         print(f"   span: {usable[0]} .. {usable[-1]}")
+        # The bucketing bug this guard exists for did not crash — it silently
+        # dropped ~90% of the cross-section (median width 23 of 245 available)
+        # and returned a confident, well-formatted, wrong number. A realised
+        # width far below the universe is the symptom; nothing else surfaces it.
+        med = sorted(widths)[len(widths) // 2]
+        if med < 0.5 * len(tickers):
+            print(
+                f"   !! median width {med} is under half the {len(tickers)}-name "
+                "universe — cross-sections are being fragmented, not measured"
+            )
     pit = [d for p in usable for d in panel[p].values()]
     print(
         f"   observations: {len(pit)}, of which {sum(1 for d in pit if d['had_filing_date'])} "
@@ -383,39 +509,7 @@ def main() -> int:
     # per-feature and composite IC, per horizon
     results: dict[str, Any] = {}
     for horizon in HORIZONS:
-        per_feature: dict[str, list[float]] = defaultdict(list)
-        composite: list[float] = []
-        for p in usable:
-            rows = panel[p]
-            rets = {
-                t: d["fwd"][horizon]
-                for t, d in rows.items()
-                if d["fwd"][horizon] is not None
-            }
-            if len(rets) < MIN_CROSS_SECTION:
-                continue
-            zs: dict[str, dict[str, float]] = {}
-            for feat in FEATURES:
-                vals = {
-                    t: rows[t]["features"][feat]
-                    for t in rets
-                    if rows[t]["features"].get(feat) is not None
-                }
-                if len(vals) >= MIN_CROSS_SECTION:
-                    ic = spearman([vals[t] for t in vals], [rets[t] for t in vals])
-                    if ic is not None:
-                        per_feature[feat].append(ic)
-                    zs[feat] = zscore(vals)
-            # composite = mean of available z-scores, renormalized by presence
-            comp = {}
-            for t in rets:
-                got = [zs[f][t] for f in zs if t in zs[f]]
-                if len(got) >= 4:  # refuse to score a name on <4 of 7 features
-                    comp[t] = sum(got) / len(got)
-            if len(comp) >= MIN_CROSS_SECTION:
-                ic = spearman([comp[t] for t in comp], [rets[t] for t in comp])
-                if ic is not None:
-                    composite.append(ic)
+        per_feature, composite = quarterly_ics(panel, usable, horizon)
         results[horizon] = {
             "composite": summarize(composite),
             "per_feature": {f: summarize(v) for f, v in sorted(per_feature.items())},
@@ -432,16 +526,54 @@ def main() -> int:
                 f"n {s['n_quarters']}"
             )
 
+    # ---- robustness: the two ways a positive result here is most likely fake --
+    #
+    # 1. PIT LEAKAGE. Roughly 45% of observations have no real `filing_date` and
+    #    fall back to period_end + 45d. That fallback errs EARLY for any filer
+    #    that took longer — and scoring on data before it was public is the
+    #    classic way to manufacture an IC out of nothing. If the effect is real
+    #    it must survive on the filing_date-only subset, which has no fallback.
+    # 2. ONE-REGIME ARTIFACT. An effect present in only half the sample
+    #    describes an era, not a relationship. The cohort run's `asset_turnover`
+    #    result was exactly this, and flipped sign once the universe widened.
+    #
+    # Neither check can prove the result; both can kill it.
+    print("\n== robustness (2q composite)")
+    checks: dict[str, Any] = {
+        "full sample": None,
+        "real filing_date only": lambda p, t, d: d["had_filing_date"],
+        "first half (<=2015)": lambda p, t, d: p <= "2015Q4",
+        "second half (>=2016)": lambda p, t, d: p >= "2016Q1",
+    }
+    robustness: dict[str, Any] = {}
+    for label, keep in checks.items():
+        _, ics = quarterly_ics(panel, usable, "2q", keep)
+        robustness[label] = summarize(ics)
+        s = robustness[label]
+        print(
+            f"   {label:24} IC {str(s['mean_ic']):>8}  t {str(s['t_stat']):>7}  "
+            f"n {s['n_quarters']}"
+        )
+
     payload = {
         "probed_at": "2026-08-11",
         "reproduce": (
             "UW_SCAN_API_KEY=... uv run python "
             "scripts/research/fundamental_signal_validation.py"
+            + (" --wide" if WIDE else "")
         ),
+        "universe": "wide-245" if WIDE else "ai-cohort-25",
+        "robustness_2q": robustness,
         "caveat": (
-            "25 highly correlated AI/semi/cloud names; effective breadth is ~2-4 "
-            "independent bets. A negative result is informative; a positive one is "
-            "NOT evidence of tradability."
+            "Survivorship-selected: both the lake and UW carry live tickers only "
+            "(ATVI/XLNX/TWTR/SIVB/FRC/VMW return zero rows), so these are "
+            "companies that survived to 2026. No costs, capacity or shorting "
+            "constraints are modelled — an IC is not a strategy."
+            if WIDE
+            else "25 highly correlated AI/semi/cloud names; effective breadth is "
+            "~2-4 independent bets. Detection floor |IC| ~0.072 against a "
+            "realistic factor of 0.02-0.05, so this run is underpowered by "
+            "construction and cannot support any conclusion about the composite."
         ),
         "config": {
             "horizons_trading_days": HORIZONS,
@@ -462,9 +594,11 @@ def main() -> int:
         },
         "results": results,
     }
-    (OUT_DIR / "validation.json").write_text(json.dumps(payload, indent=2) + "\n")
-    (OUT_DIR / "results.md").write_text(_render(payload))
-    print(f"\nwrote {OUT_DIR}/validation.json and results.md")
+    (OUT_DIR / f"validation{SUFFIX}.json").write_text(
+        json.dumps(payload, indent=2) + "\n"
+    )
+    (OUT_DIR / f"results{SUFFIX}.md").write_text(_render(payload))
+    print(f"\nwrote {OUT_DIR}/validation{SUFFIX}.json and results{SUFFIX}.md")
     return 0
 
 
