@@ -162,10 +162,63 @@ correlated names cannot produce a measurable ranking at any history length.
 5. **P1b remains worth building.** Nothing here argues against ingesting the
    data.
 
+## Follow-up: the valuation control — hypothesis rejected
+
+Rev 4 withdrew the direction claim on `profitability` and offered a reason: nothing
+in the harness controls for valuation, and high-margin firms are usually richly
+priced, so a margin ranking might be an expensiveness ranking in disguise. That
+was a story with no test behind it. `fundamental_valuation_control.py` is the
+test — market cap from **raw** close × as-reported shares (never `adj_close`,
+which would mix reference frames across every split), ratios formed as yields so
+the ranking stays monotone through zero earnings, and a rank-based partial
+correlation reusing the same `spearman`.
+
+**The hypothesis fails.** 2q, 245 names, 80 quarters:
+
+| | uncontrolled | \| `earnings_yield` | \| `book_to_price` | \| `fcf_yield` |
+|---|---:|---:|---:|---:|
+| `gross_margin` | −0.0194 | −0.0180 | −0.0271 | −0.0144 |
+| `op_margin` | −0.0270 | −0.0231 | −0.0306 | −0.0298 |
+
+`op_margin` barely moves under any control — and against `book_to_price` both
+margins get *stronger*, not weaker. Expensiveness does not explain the
+inversion. **Keep withholding the direction on `profitability`, now for the
+stronger reason: the inversion is real and unexplained.**
+
+### The finding that matters more: value is inverted here too
+
+| Signal | IC | t |
+|---|---:|---:|
+| `fcf_yield` | +0.0285 | 2.84 |
+| `earnings_yield` | −0.0194 | −1.43 |
+| `book_to_price` | **−0.0365** | **−2.32** |
+
+Cheap-on-book predicted *lower* returns over 2005–2026. That is the documented
+post-GFC value drawdown, not a discovery — and note survivorship should have
+biased this *toward* value (cheap names that went bankrupt are excluded), so the
+true effect was likely worse than measured.
+
+**This qualifies the headline result more than the margin question does.** The
+signals that worked — low leverage, high asset turnover, FCF yield — are exactly
+the quality/growth profile that led one long regime, while the signals that
+failed are the value profile that lagged it. The earlier robustness split
+(2005–2015 vs 2016–2026, both positive) is therefore weaker evidence than it
+appeared: **both halves sit inside the same regime.** A genuine out-of-regime
+test needs a period where value led, which this 245-name survivor universe does
+not contain.
+
+Treat the composite as measured-in-one-regime until that is tested. It does not
+retract the result; it bounds what the result covers.
+
 ## What would change the verdict
 
-- **A valuation control.** The inverted margins point at a missing price
-  dimension; adding one would test whether the composite survives it.
+- ~~**A valuation control.**~~ **Done — hypothesis rejected** (above). The
+  margins stay inverted; the incidental finding that value itself is inverted is
+  the more consequential one.
+- **An out-of-regime window.** Now the top item. Every quarter measured here
+  sits in one quality-led, value-lagging regime, so "present in both halves"
+  does not establish regime-independence. Needs a period where value led —
+  pre-2005 data, or a universe that is not 245 US large-cap survivors.
 - **A non-survivorship universe.** Not constructible from UW or the lake.
   Requires a source carrying delisted tickers (CRSP, Sharadar) — the one gap
   that money, not method, fixes.

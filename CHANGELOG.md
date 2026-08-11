@@ -70,6 +70,27 @@ version in lockstep (enforced by `scripts/release/version_sync_check.py`).
   SIVB/FRC/VMW are absent from the lake and return HTTP 200 with an empty array
   from UW.
 
+- **Valuation control: the margin inversion is not expensiveness in disguise.**
+  Rev 4 withdrew the `profitability` direction on a hypothesis — high-margin
+  firms are usually richly priced, so a margin ranking might be a valuation
+  ranking. `scripts/research/fundamental_valuation_control.py` tested it and
+  **rejected it**: `op_margin`'s partial rank IC against three price ratios is
+  −0.0231 / −0.0306 / −0.0298 versus −0.0270 uncontrolled, and against
+  `book_to_price` both margins get *stronger*. Market cap is built from **raw
+  `close` × as-reported shares** — `adj_close` is retroactively split-adjusted
+  and would mix reference frames across every split. Ratios are yields
+  (fundamental/price), so ranking stays monotone through zero earnings.
+- **The incidental finding is the bigger one: value is inverted over this
+  window.** `book_to_price` IC −0.0365 (t −2.32), `earnings_yield` −0.0194;
+  only `fcf_yield` works (+0.0285, t 2.84). That is the documented post-GFC
+  value drawdown, and it means the signals that worked are one regime's profile.
+  **The earlier two-halves robustness check is therefore weaker evidence than it
+  read — both halves sit inside the same quality-led regime.** Nothing is
+  retracted; the claim's coverage is bounded, and "measured in one regime" is
+  now risk 1's third standing limit alongside survivorship and uncosted returns.
+  §5.2's `valuation_position` prior ("cheaper better") is flagged as
+  contradicted for B/P and E/P.
+
 ### Fixed (research tooling)
 
 - **The validation panel was keyed on `fiscal_date_ending`, which silently
