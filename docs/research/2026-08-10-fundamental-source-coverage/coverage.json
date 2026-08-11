@@ -1,0 +1,625 @@
+{
+  "probed_at": "2026-08-10",
+  "vx_limit": 100,
+  "v2_limit": 1000,
+  "reproduce": "MASSIVE_API_KEY=... uv run python scripts/research/fundamental_source_coverage.py",
+  "tickers": {
+    "NVDA": {
+      "vX": {
+        "http_status": 200,
+        "quarterly_rows": 64,
+        "first_period": "2010-04-29",
+        "last_period": "2026-04-26",
+        "units": [
+          "USD",
+          "USD / shares",
+          "shares"
+        ],
+        "cik": "0001045810"
+      },
+      "v2": {
+        "quarterly_http_status": 200,
+        "quarterly_rows": 88,
+        "first_period": "1998-10-25",
+        "last_period": "2020-01-26",
+        "has_usd_variants": true,
+        "fx_rate_present": true,
+        "fx_rate_sample": 1,
+        "all_types_http_status": 200,
+        "all_types_rows": 405
+      },
+      "state": "covered"
+    },
+    "AMD": {
+      "vX": {
+        "http_status": 200,
+        "quarterly_rows": 65,
+        "first_period": "2010-03-25",
+        "last_period": "2026-06-27",
+        "units": [
+          "USD",
+          "USD / shares",
+          "shares"
+        ],
+        "cik": "0000002488"
+      },
+      "v2": {
+        "quarterly_http_status": 200,
+        "quarterly_rows": 93,
+        "first_period": "1997-12-28",
+        "last_period": "2020-03-28",
+        "has_usd_variants": true,
+        "fx_rate_present": true,
+        "fx_rate_sample": 1,
+        "all_types_http_status": 200,
+        "all_types_rows": 425
+      },
+      "state": "covered"
+    },
+    "AVGO": {
+      "vX": {
+        "http_status": 200,
+        "quarterly_rows": 61,
+        "first_period": "2011-01-30",
+        "last_period": "2026-05-03",
+        "units": [
+          "USD",
+          "USD / shares",
+          "shares"
+        ],
+        "cik": "0001730168"
+      },
+      "v2": {
+        "quarterly_http_status": 200,
+        "quarterly_rows": 43,
+        "first_period": "2009-08-02",
+        "last_period": "2020-02-02",
+        "has_usd_variants": true,
+        "fx_rate_present": true,
+        "fx_rate_sample": 1,
+        "all_types_http_status": 200,
+        "all_types_rows": 205
+      },
+      "state": "covered"
+    },
+    "MRVL": {
+      "vX": {
+        "http_status": 200,
+        "quarterly_rows": 66,
+        "first_period": "2009-08-01",
+        "last_period": "2026-05-02",
+        "units": [
+          "USD",
+          "USD / shares",
+          "shares"
+        ],
+        "cik": "0001835632"
+      },
+      "v2": {
+        "quarterly_http_status": 200,
+        "quarterly_rows": 76,
+        "first_period": "2000-04-30",
+        "last_period": "2020-02-01",
+        "has_usd_variants": true,
+        "fx_rate_present": true,
+        "fx_rate_sample": 1,
+        "all_types_http_status": 200,
+        "all_types_rows": 366
+      },
+      "state": "covered"
+    },
+    "TSM": {
+      "vX": {
+        "http_status": 200,
+        "quarterly_rows": 0,
+        "first_period": null,
+        "last_period": null,
+        "units": [],
+        "cik": null
+      },
+      "v2": {
+        "quarterly_http_status": 200,
+        "quarterly_rows": 0,
+        "all_types_http_status": 200,
+        "all_types_rows": 76
+      },
+      "state": "annual_only"
+    },
+    "ASML": {
+      "vX": {
+        "http_status": 200,
+        "quarterly_rows": 0,
+        "first_period": null,
+        "last_period": null,
+        "units": [],
+        "cik": null
+      },
+      "v2": {
+        "quarterly_http_status": 200,
+        "quarterly_rows": 93,
+        "first_period": "2002-06-30",
+        "last_period": "2019-12-31",
+        "has_usd_variants": true,
+        "fx_rate_present": true,
+        "fx_rate_sample": 0.9,
+        "all_types_http_status": 200,
+        "all_types_rows": 391
+      },
+      "state": "history_only"
+    },
+    "AMAT": {
+      "vX": {
+        "http_status": 200,
+        "quarterly_rows": 67,
+        "first_period": "2009-07-26",
+        "last_period": "2026-04-26",
+        "units": [
+          "USD",
+          "USD / shares",
+          "shares"
+        ],
+        "cik": "0000006951"
+      },
+      "v2": {
+        "quarterly_http_status": 200,
+        "quarterly_rows": 91,
+        "first_period": "1997-10-26",
+        "last_period": "2020-01-26",
+        "has_usd_variants": true,
+        "fx_rate_present": true,
+        "fx_rate_sample": 1,
+        "all_types_http_status": 200,
+        "all_types_rows": 419
+      },
+      "state": "covered"
+    },
+    "MU": {
+      "vX": {
+        "http_status": 200,
+        "quarterly_rows": 63,
+        "first_period": "2010-12-02",
+        "last_period": "2026-05-28",
+        "units": [
+          "USD",
+          "USD / shares",
+          "shares"
+        ],
+        "cik": "0000723125"
+      },
+      "v2": {
+        "quarterly_http_status": 200,
+        "quarterly_rows": 90,
+        "first_period": "1997-11-27",
+        "last_period": "2020-02-27",
+        "has_usd_variants": true,
+        "fx_rate_present": true,
+        "fx_rate_sample": 1,
+        "all_types_http_status": 200,
+        "all_types_rows": 415
+      },
+      "state": "covered"
+    },
+    "MSFT": {
+      "vX": {
+        "http_status": 200,
+        "quarterly_rows": 66,
+        "first_period": "2009-09-30",
+        "last_period": "2026-06-30",
+        "units": [
+          "USD",
+          "USD / shares",
+          "shares"
+        ],
+        "cik": "0000789019"
+      },
+      "v2": {
+        "quarterly_http_status": 200,
+        "quarterly_rows": 108,
+        "first_period": "1993-12-31",
+        "last_period": "2020-03-31",
+        "has_usd_variants": true,
+        "fx_rate_present": true,
+        "fx_rate_sample": 1,
+        "all_types_http_status": 200,
+        "all_types_rows": 491
+      },
+      "state": "covered"
+    },
+    "GOOGL": {
+      "vX": {
+        "http_status": 200,
+        "quarterly_rows": 38,
+        "first_period": "2017-03-31",
+        "last_period": "2026-06-30",
+        "units": [
+          "USD",
+          "USD / shares",
+          "shares"
+        ],
+        "cik": "0001652044"
+      },
+      "v2": {
+        "quarterly_http_status": 200,
+        "quarterly_rows": 72,
+        "first_period": "2004-03-31",
+        "last_period": "2020-03-31",
+        "has_usd_variants": true,
+        "fx_rate_present": true,
+        "fx_rate_sample": 1,
+        "all_types_http_status": 200,
+        "all_types_rows": 320
+      },
+      "state": "covered"
+    },
+    "AMZN": {
+      "vX": {
+        "http_status": 200,
+        "quarterly_rows": 69,
+        "first_period": "2009-03-30",
+        "last_period": "2026-06-30",
+        "units": [
+          "USD",
+          "USD / shares",
+          "shares"
+        ],
+        "cik": "0001018724"
+      },
+      "v2": {
+        "quarterly_http_status": 200,
+        "quarterly_rows": 93,
+        "first_period": "1997-03-31",
+        "last_period": "2020-03-31",
+        "has_usd_variants": true,
+        "fx_rate_present": true,
+        "fx_rate_sample": 1,
+        "all_types_http_status": 200,
+        "all_types_rows": 430
+      },
+      "state": "covered"
+    },
+    "META": {
+      "vX": {
+        "http_status": 200,
+        "quarterly_rows": 16,
+        "first_period": "2022-06-30",
+        "last_period": "2026-06-30",
+        "units": [
+          "USD",
+          "USD / shares",
+          "shares"
+        ],
+        "cik": "0001326801"
+      },
+      "v2": {
+        "quarterly_http_status": 200,
+        "quarterly_rows": 0,
+        "all_types_http_status": 200,
+        "all_types_rows": 0
+      },
+      "state": "covered"
+    },
+    "ORCL": {
+      "vX": {
+        "http_status": 200,
+        "quarterly_rows": 63,
+        "first_period": "2009-08-31",
+        "last_period": "2026-05-31",
+        "units": [
+          "USD",
+          "USD / shares",
+          "shares"
+        ],
+        "cik": "0001341439"
+      },
+      "v2": {
+        "quarterly_http_status": 200,
+        "quarterly_rows": 107,
+        "first_period": "1993-11-30",
+        "last_period": "2020-02-29",
+        "has_usd_variants": true,
+        "fx_rate_present": true,
+        "fx_rate_sample": 1,
+        "all_types_http_status": 200,
+        "all_types_rows": 489
+      },
+      "state": "covered"
+    },
+    "ANET": {
+      "vX": {
+        "http_status": 200,
+        "quarterly_rows": 49,
+        "first_period": "2014-03-30",
+        "last_period": "2026-06-30",
+        "units": [
+          "USD",
+          "USD / shares",
+          "shares"
+        ],
+        "cik": "0001596532"
+      },
+      "v2": {
+        "quarterly_http_status": 200,
+        "quarterly_rows": 24,
+        "first_period": "2014-03-31",
+        "last_period": "2019-12-31",
+        "has_usd_variants": true,
+        "fx_rate_present": true,
+        "fx_rate_sample": 1,
+        "all_types_http_status": 200,
+        "all_types_rows": 124
+      },
+      "state": "covered"
+    },
+    "VRT": {
+      "vX": {
+        "http_status": 200,
+        "quarterly_rows": 26,
+        "first_period": "2020-03-31",
+        "last_period": "2026-06-30",
+        "units": [
+          "USD",
+          "USD / shares",
+          "shares"
+        ],
+        "cik": "0001674101"
+      },
+      "v2": {
+        "quarterly_http_status": 200,
+        "quarterly_rows": 8,
+        "first_period": "2018-03-31",
+        "last_period": "2019-12-31",
+        "has_usd_variants": true,
+        "fx_rate_present": true,
+        "fx_rate_sample": 1,
+        "all_types_http_status": 200,
+        "all_types_rows": 48
+      },
+      "state": "covered"
+    },
+    "ETN": {
+      "vX": {
+        "http_status": 200,
+        "quarterly_rows": 68,
+        "first_period": "2009-03-30",
+        "last_period": "2026-06-30",
+        "units": [
+          "USD",
+          "USD / shares",
+          "shares"
+        ],
+        "cik": "0001551182"
+      },
+      "v2": {
+        "quarterly_http_status": 200,
+        "quarterly_rows": 92,
+        "first_period": "1997-12-31",
+        "last_period": "2020-03-31",
+        "has_usd_variants": true,
+        "fx_rate_present": true,
+        "fx_rate_sample": 1,
+        "all_types_http_status": 200,
+        "all_types_rows": 423
+      },
+      "state": "covered"
+    },
+    "GEV": {
+      "vX": {
+        "http_status": 200,
+        "quarterly_rows": 8,
+        "first_period": "2024-06-30",
+        "last_period": "2026-06-30",
+        "units": [
+          "USD",
+          "USD / shares",
+          "shares"
+        ],
+        "cik": "0001996810"
+      },
+      "v2": {
+        "quarterly_http_status": 200,
+        "quarterly_rows": 0,
+        "all_types_http_status": 200,
+        "all_types_rows": 0
+      },
+      "state": "covered"
+    },
+    "CEG": {
+      "vX": {
+        "http_status": 200,
+        "quarterly_rows": 27,
+        "first_period": "2009-03-30",
+        "last_period": "2026-06-30",
+        "units": [
+          "USD",
+          "USD / shares",
+          "shares"
+        ],
+        "cik": "0001868275"
+      },
+      "v2": {
+        "quarterly_http_status": 200,
+        "quarterly_rows": 53,
+        "first_period": "1999-03-31",
+        "last_period": "2011-12-31",
+        "has_usd_variants": true,
+        "fx_rate_present": true,
+        "fx_rate_sample": 1,
+        "all_types_http_status": 200,
+        "all_types_rows": 247
+      },
+      "state": "covered"
+    },
+    "VST": {
+      "vX": {
+        "http_status": 200,
+        "quarterly_rows": 35,
+        "first_period": "2017-06-30",
+        "last_period": "2026-03-31",
+        "units": [
+          "USD",
+          "USD / shares",
+          "shares"
+        ],
+        "cik": "0001692819"
+      },
+      "v2": {
+        "quarterly_http_status": 200,
+        "quarterly_rows": 15,
+        "first_period": "2016-09-30",
+        "last_period": "2019-12-31",
+        "has_usd_variants": true,
+        "fx_rate_present": true,
+        "fx_rate_sample": 1,
+        "all_types_http_status": 200,
+        "all_types_rows": 68
+      },
+      "state": "covered"
+    },
+    "DELL": {
+      "vX": {
+        "http_status": 200,
+        "quarterly_rows": 44,
+        "first_period": "2009-10-30",
+        "last_period": "2026-05-01",
+        "units": [
+          "USD",
+          "USD / shares",
+          "shares"
+        ],
+        "cik": "0001571996"
+      },
+      "v2": {
+        "quarterly_http_status": 200,
+        "quarterly_rows": 16,
+        "first_period": "2016-04-29",
+        "last_period": "2020-01-31",
+        "has_usd_variants": true,
+        "fx_rate_present": true,
+        "fx_rate_sample": 1,
+        "all_types_http_status": 200,
+        "all_types_rows": 83
+      },
+      "state": "covered"
+    },
+    "SMCI": {
+      "vX": {
+        "http_status": 200,
+        "quarterly_rows": 48,
+        "first_period": "2011-09-30",
+        "last_period": "2026-03-31",
+        "units": [
+          "USD",
+          "USD / shares",
+          "shares"
+        ],
+        "cik": "0001375365"
+      },
+      "v2": {
+        "quarterly_http_status": 200,
+        "quarterly_rows": 48,
+        "first_period": "2006-12-31",
+        "last_period": "2019-12-31",
+        "has_usd_variants": true,
+        "fx_rate_present": true,
+        "fx_rate_sample": 1,
+        "all_types_http_status": 200,
+        "all_types_rows": 240
+      },
+      "state": "covered"
+    },
+    "PLTR": {
+      "vX": {
+        "http_status": 200,
+        "quarterly_rows": 25,
+        "first_period": "2020-06-30",
+        "last_period": "2026-06-30",
+        "units": [
+          "USD",
+          "USD / shares",
+          "shares"
+        ],
+        "cik": "0001321655"
+      },
+      "v2": {
+        "quarterly_http_status": 200,
+        "quarterly_rows": 0,
+        "all_types_http_status": 200,
+        "all_types_rows": 0
+      },
+      "state": "covered"
+    },
+    "CRWD": {
+      "vX": {
+        "http_status": 200,
+        "quarterly_rows": 27,
+        "first_period": "2019-07-31",
+        "last_period": "2026-04-30",
+        "units": [
+          "USD",
+          "USD / shares",
+          "shares"
+        ],
+        "cik": "0001535527"
+      },
+      "v2": {
+        "quarterly_http_status": 200,
+        "quarterly_rows": 5,
+        "first_period": "2019-01-31",
+        "last_period": "2020-01-31",
+        "has_usd_variants": true,
+        "fx_rate_present": true,
+        "fx_rate_sample": 1,
+        "all_types_http_status": 200,
+        "all_types_rows": 35
+      },
+      "state": "covered"
+    },
+    "NOW": {
+      "vX": {
+        "http_status": 200,
+        "quarterly_rows": 59,
+        "first_period": "2009-09-30",
+        "last_period": "2026-06-30",
+        "units": [
+          "USD",
+          "USD / shares",
+          "shares"
+        ],
+        "cik": "0001373715"
+      },
+      "v2": {
+        "quarterly_http_status": 200,
+        "quarterly_rows": 34,
+        "first_period": "2012-03-31",
+        "last_period": "2020-03-31",
+        "has_usd_variants": true,
+        "fx_rate_present": true,
+        "fx_rate_sample": 1,
+        "all_types_http_status": 200,
+        "all_types_rows": 164
+      },
+      "state": "covered"
+    },
+    "APP": {
+      "vX": {
+        "http_status": 200,
+        "quarterly_rows": 38,
+        "first_period": "2011-03-30",
+        "last_period": "2026-06-30",
+        "units": [
+          "USD",
+          "USD / shares",
+          "shares"
+        ],
+        "cik": "0001751008"
+      },
+      "v2": {
+        "quarterly_http_status": 200,
+        "quarterly_rows": 0,
+        "all_types_http_status": 200,
+        "all_types_rows": 0
+      },
+      "state": "covered"
+    }
+  }
+}

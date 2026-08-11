@@ -1,0 +1,490 @@
+{
+  "probed_at": "2026-08-11",
+  "reproduce": "uv run python scripts/research/sec_xbrl_gapfill_probe.py",
+  "concepts_tried": {
+    "noncontrolling_interest": [
+      [
+        "us-gaap",
+        "MinorityInterest"
+      ],
+      [
+        "us-gaap",
+        "StockholdersEquityIncludingPortionAttributableToNoncontrollingInterest"
+      ],
+      [
+        "ifrs-full",
+        "NoncontrollingInterests"
+      ]
+    ],
+    "current_debt": [
+      [
+        "us-gaap",
+        "DebtCurrent"
+      ],
+      [
+        "us-gaap",
+        "LongTermDebtCurrent"
+      ],
+      [
+        "us-gaap",
+        "ShortTermBorrowings"
+      ],
+      [
+        "ifrs-full",
+        "CurrentPortionOfLongtermBorrowings"
+      ]
+    ],
+    "_control_assets": [
+      [
+        "us-gaap",
+        "Assets"
+      ],
+      [
+        "ifrs-full",
+        "Assets"
+      ]
+    ]
+  },
+  "nci_tickers": [
+    "MU",
+    "CEG",
+    "ORCL",
+    "TSM",
+    "DELL",
+    "AMD"
+  ],
+  "controls": [
+    "NVDA",
+    "MSFT"
+  ],
+  "results": {
+    "MU": {
+      "cik": "0000723125",
+      "noncontrolling_interest": {
+        "concept": "MinorityInterest",
+        "taxonomy": "us-gaap",
+        "http_status": 200,
+        "forms": [
+          "10-K",
+          "10-Q"
+        ],
+        "quarterly_capable": true,
+        "unit_keys": [
+          "USD"
+        ],
+        "fact_count": 86,
+        "filing_facts": 82,
+        "first_period": "2009-09-03",
+        "last_period": "2020-09-03",
+        "latest_value": 0
+      },
+      "current_debt": {
+        "concept": "DebtCurrent",
+        "taxonomy": "us-gaap",
+        "http_status": 200,
+        "forms": [
+          "10-K",
+          "10-Q"
+        ],
+        "quarterly_capable": true,
+        "unit_keys": [
+          "USD"
+        ],
+        "fact_count": 108,
+        "filing_facts": 104,
+        "first_period": "2012-08-30",
+        "last_period": "2026-05-28",
+        "latest_value": 582000000
+      },
+      "_control_assets": {
+        "concept": "Assets",
+        "taxonomy": "us-gaap",
+        "http_status": 200,
+        "forms": [
+          "10-K",
+          "10-Q"
+        ],
+        "quarterly_capable": true,
+        "unit_keys": [
+          "USD"
+        ],
+        "fact_count": 132,
+        "filing_facts": 128,
+        "first_period": "2009-09-03",
+        "last_period": "2026-05-28",
+        "latest_value": 134112000000
+      }
+    },
+    "CEG": {
+      "cik": "0001868275",
+      "noncontrolling_interest": {
+        "concept": "MinorityInterest",
+        "taxonomy": "us-gaap",
+        "http_status": 200,
+        "forms": [
+          "10-K",
+          "10-Q"
+        ],
+        "quarterly_capable": true,
+        "unit_keys": [
+          "USD"
+        ],
+        "fact_count": 36,
+        "filing_facts": 36,
+        "first_period": "2021-12-31",
+        "last_period": "2026-06-30",
+        "latest_value": 345000000
+      },
+      "current_debt": {
+        "concept": "LongTermDebtCurrent",
+        "taxonomy": "us-gaap",
+        "http_status": 200,
+        "forms": [
+          "10-K",
+          "10-Q"
+        ],
+        "quarterly_capable": true,
+        "unit_keys": [
+          "USD"
+        ],
+        "fact_count": 12,
+        "filing_facts": 12,
+        "first_period": "2021-12-31",
+        "last_period": "2026-06-30",
+        "latest_value": 363000000
+      },
+      "_control_assets": {
+        "concept": "Assets",
+        "taxonomy": "us-gaap",
+        "http_status": 200,
+        "forms": [
+          "10-K",
+          "10-Q"
+        ],
+        "quarterly_capable": true,
+        "unit_keys": [
+          "USD"
+        ],
+        "fact_count": 36,
+        "filing_facts": 36,
+        "first_period": "2021-12-31",
+        "last_period": "2026-06-30",
+        "latest_value": 98253000000
+      }
+    },
+    "ORCL": {
+      "cik": "0001341439",
+      "noncontrolling_interest": {
+        "concept": "MinorityInterest",
+        "taxonomy": "us-gaap",
+        "http_status": 200,
+        "forms": [
+          "10-K",
+          "10-Q"
+        ],
+        "quarterly_capable": true,
+        "unit_keys": [
+          "USD"
+        ],
+        "fact_count": 136,
+        "filing_facts": 134,
+        "first_period": "2009-05-31",
+        "last_period": "2026-05-31",
+        "latest_value": 548000000
+      },
+      "current_debt": {
+        "concept": "DebtCurrent",
+        "taxonomy": "us-gaap",
+        "http_status": 200,
+        "forms": [
+          "10-K",
+          "10-Q"
+        ],
+        "quarterly_capable": true,
+        "unit_keys": [
+          "USD"
+        ],
+        "fact_count": 66,
+        "filing_facts": 66,
+        "first_period": "2011-05-31",
+        "last_period": "2026-05-31",
+        "latest_value": 7199000000
+      },
+      "_control_assets": {
+        "concept": "Assets",
+        "taxonomy": "us-gaap",
+        "http_status": 200,
+        "forms": [
+          "10-K",
+          "10-Q"
+        ],
+        "quarterly_capable": true,
+        "unit_keys": [
+          "USD"
+        ],
+        "fact_count": 136,
+        "filing_facts": 134,
+        "first_period": "2009-05-31",
+        "last_period": "2026-05-31",
+        "latest_value": 261759000000
+      }
+    },
+    "TSM": {
+      "cik": "0001046179",
+      "noncontrolling_interest": {
+        "concept": "NoncontrollingInterests",
+        "taxonomy": "ifrs-full",
+        "http_status": 200,
+        "forms": [
+          "20-F"
+        ],
+        "quarterly_capable": false,
+        "unit_keys": [
+          "TWD",
+          "USD"
+        ],
+        "fact_count": 9,
+        "filing_facts": 8,
+        "first_period": "2017-12-31",
+        "last_period": "2024-12-31",
+        "latest_value": 1067600000
+      },
+      "current_debt": {
+        "concept": "CurrentPortionOfLongtermBorrowings",
+        "taxonomy": "ifrs-full",
+        "http_status": 200,
+        "forms": [
+          "20-F"
+        ],
+        "quarterly_capable": false,
+        "unit_keys": [
+          "TWD",
+          "USD"
+        ],
+        "fact_count": 8,
+        "filing_facts": 8,
+        "first_period": "2017-12-31",
+        "last_period": "2024-12-31",
+        "latest_value": 1825500000
+      },
+      "_control_assets": {
+        "concept": "Assets",
+        "taxonomy": "ifrs-full",
+        "http_status": 200,
+        "forms": [
+          "20-F"
+        ],
+        "quarterly_capable": false,
+        "unit_keys": [
+          "TWD",
+          "USD"
+        ],
+        "fact_count": 9,
+        "filing_facts": 8,
+        "first_period": "2017-12-31",
+        "last_period": "2024-12-31",
+        "latest_value": 204079400000
+      }
+    },
+    "DELL": {
+      "cik": "0001571996",
+      "noncontrolling_interest": {
+        "concept": "MinorityInterest",
+        "taxonomy": "us-gaap",
+        "http_status": 200,
+        "forms": [
+          "10-K",
+          "10-Q"
+        ],
+        "quarterly_capable": true,
+        "unit_keys": [
+          "USD"
+        ],
+        "fact_count": 80,
+        "filing_facts": 78,
+        "first_period": "2016-01-29",
+        "last_period": "2026-01-30",
+        "latest_value": 0
+      },
+      "current_debt": {
+        "concept": "DebtCurrent",
+        "taxonomy": "us-gaap",
+        "http_status": 200,
+        "forms": [
+          "10-K",
+          "10-Q"
+        ],
+        "quarterly_capable": true,
+        "unit_keys": [
+          "USD"
+        ],
+        "fact_count": 84,
+        "filing_facts": 82,
+        "first_period": "2016-01-29",
+        "last_period": "2026-05-01",
+        "latest_value": 7550000000
+      },
+      "_control_assets": {
+        "concept": "Assets",
+        "taxonomy": "us-gaap",
+        "http_status": 200,
+        "forms": [
+          "10-K",
+          "10-Q"
+        ],
+        "quarterly_capable": true,
+        "unit_keys": [
+          "USD"
+        ],
+        "fact_count": 84,
+        "filing_facts": 82,
+        "first_period": "2016-01-29",
+        "last_period": "2026-05-01",
+        "latest_value": 114913000000
+      }
+    },
+    "AMD": {
+      "cik": "0000002488",
+      "noncontrolling_interest": {
+        "concept": "MinorityInterest",
+        "taxonomy": "us-gaap",
+        "http_status": 200,
+        "forms": [
+          "10-K",
+          "10-Q"
+        ],
+        "quarterly_capable": true,
+        "unit_keys": [
+          "USD"
+        ],
+        "fact_count": 6,
+        "filing_facts": 6,
+        "first_period": "2008-12-27",
+        "last_period": "2011-12-31",
+        "latest_value": 0
+      },
+      "current_debt": {
+        "concept": "DebtCurrent",
+        "taxonomy": "us-gaap",
+        "http_status": 200,
+        "forms": [
+          "10-K",
+          "10-Q"
+        ],
+        "quarterly_capable": true,
+        "unit_keys": [
+          "USD"
+        ],
+        "fact_count": 20,
+        "filing_facts": 20,
+        "first_period": "2016-12-31",
+        "last_period": "2019-12-28",
+        "latest_value": 0
+      },
+      "_control_assets": {
+        "concept": "Assets",
+        "taxonomy": "us-gaap",
+        "http_status": 200,
+        "forms": [
+          "10-K",
+          "10-Q"
+        ],
+        "quarterly_capable": true,
+        "unit_keys": [
+          "USD"
+        ],
+        "fact_count": 130,
+        "filing_facts": 130,
+        "first_period": "2009-12-26",
+        "last_period": "2026-06-27",
+        "latest_value": 84464000000
+      }
+    },
+    "NVDA": {
+      "cik": "0001045810",
+      "noncontrolling_interest": {
+        "concept": null,
+        "found": false
+      },
+      "current_debt": {
+        "concept": "DebtCurrent",
+        "taxonomy": "us-gaap",
+        "http_status": 200,
+        "forms": [
+          "10-K",
+          "10-Q"
+        ],
+        "quarterly_capable": true,
+        "unit_keys": [
+          "USD"
+        ],
+        "fact_count": 40,
+        "filing_facts": 40,
+        "first_period": "2020-01-26",
+        "last_period": "2026-04-26",
+        "latest_value": 1000000000
+      },
+      "_control_assets": {
+        "concept": "Assets",
+        "taxonomy": "us-gaap",
+        "http_status": 200,
+        "forms": [
+          "10-K",
+          "10-Q"
+        ],
+        "quarterly_capable": true,
+        "unit_keys": [
+          "USD"
+        ],
+        "fact_count": 136,
+        "filing_facts": 136,
+        "first_period": "2009-01-25",
+        "last_period": "2026-04-26",
+        "latest_value": 259474000000
+      }
+    },
+    "MSFT": {
+      "cik": "0000789019",
+      "noncontrolling_interest": {
+        "concept": null,
+        "found": false
+      },
+      "current_debt": {
+        "concept": "LongTermDebtCurrent",
+        "taxonomy": "us-gaap",
+        "http_status": 200,
+        "forms": [
+          "10-K",
+          "10-Q"
+        ],
+        "quarterly_capable": true,
+        "unit_keys": [
+          "USD"
+        ],
+        "fact_count": 116,
+        "filing_facts": 110,
+        "first_period": "2012-06-30",
+        "last_period": "2026-06-30",
+        "latest_value": 9227000000
+      },
+      "_control_assets": {
+        "concept": "Assets",
+        "taxonomy": "us-gaap",
+        "http_status": 200,
+        "forms": [
+          "10-K",
+          "10-Q"
+        ],
+        "quarterly_capable": true,
+        "unit_keys": [
+          "USD"
+        ],
+        "fact_count": 142,
+        "filing_facts": 134,
+        "first_period": "2009-06-30",
+        "last_period": "2026-06-30",
+        "latest_value": 758376000000
+      }
+    }
+  }
+}

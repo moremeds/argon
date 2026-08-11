@@ -1,0 +1,2688 @@
+{
+  "probed_at": "2026-08-11",
+  "reproduce": "UW_SCAN_API_KEY=... uv run python scripts/research/fundamental_universe_breadth_probe.py",
+  "gates": {
+    "min_bars": 2500,
+    "max_start": "2013-01-01",
+    "min_quarters": 40
+  },
+  "lake_candidates": 263,
+  "usable": 245,
+  "http_errors": 0,
+  "delisted_controls": {
+    "ATVI": {
+      "http_status": 200,
+      "quarters": 0,
+      "first_period": null,
+      "last_period": null,
+      "in_lake": false
+    },
+    "XLNX": {
+      "http_status": 200,
+      "quarters": 0,
+      "first_period": null,
+      "last_period": null,
+      "in_lake": false
+    },
+    "TWTR": {
+      "http_status": 200,
+      "quarters": 0,
+      "first_period": null,
+      "last_period": null,
+      "in_lake": false
+    },
+    "SIVB": {
+      "http_status": 200,
+      "quarters": 0,
+      "first_period": null,
+      "last_period": null,
+      "in_lake": false
+    },
+    "FRC": {
+      "http_status": 200,
+      "quarters": 0,
+      "first_period": null,
+      "last_period": null,
+      "in_lake": false
+    },
+    "VMW": {
+      "http_status": 200,
+      "quarters": 0,
+      "first_period": null,
+      "last_period": null,
+      "in_lake": false
+    }
+  },
+  "names": [
+    {
+      "ticker": "A",
+      "bars": 6655,
+      "first_bar": "1999-11-18",
+      "last_bar": "2026-05-15",
+      "http_status": 200,
+      "quarters": 102,
+      "first_period": "2006-01-31",
+      "last_period": "2026-04-30"
+    },
+    {
+      "ticker": "AAP",
+      "bars": 6149,
+      "first_bar": "2001-11-29",
+      "last_bar": "2026-05-15",
+      "http_status": 200,
+      "quarters": 102,
+      "first_period": "2005-12-31",
+      "last_period": "2026-03-31"
+    },
+    {
+      "ticker": "AAPL",
+      "bars": 11447,
+      "first_bar": "1980-12-12",
+      "last_bar": "2026-05-15",
+      "http_status": 200,
+      "quarters": 103,
+      "first_period": "2005-12-31",
+      "last_period": "2026-06-30"
+    },
+    {
+      "ticker": "AAT",
+      "bars": 3856,
+      "first_bar": "2011-01-14",
+      "last_bar": "2026-05-15",
+      "http_status": 200,
+      "quarters": 88,
+      "first_period": "2007-12-31",
+      "last_period": "2026-06-30"
+    },
+    {
+      "ticker": "ABBV",
+      "bars": 3355,
+      "first_bar": "2012-12-10",
+      "last_bar": "2026-04-14",
+      "http_status": 200,
+      "quarters": 80,
+      "first_period": "2009-12-31",
+      "last_period": "2026-06-30"
+    },
+    {
+      "ticker": "ABCB",
+      "bars": 7606,
+      "first_bar": "1994-05-19",
+      "last_bar": "2026-05-15",
+      "http_status": 200,
+      "quarters": 103,
+      "first_period": "2005-12-31",
+      "last_period": "2026-06-30"
+    },
+    {
+      "ticker": "ABEO",
+      "bars": 3469,
+      "first_bar": "2012-07-23",
+      "last_bar": "2026-05-15",
+      "http_status": 200,
+      "quarters": 104,
+      "first_period": "2005-09-30",
+      "last_period": "2026-03-31"
+    },
+    {
+      "ticker": "ABG",
+      "bars": 5575,
+      "first_bar": "2002-03-14",
+      "last_bar": "2026-05-15",
+      "http_status": 200,
+      "quarters": 103,
+      "first_period": "2005-12-31",
+      "last_period": "2026-06-30"
+    },
+    {
+      "ticker": "ABM",
+      "bars": 3821,
+      "first_bar": "1980-03-17",
+      "last_bar": "2026-05-29",
+      "http_status": 200,
+      "quarters": 103,
+      "first_period": "2005-10-31",
+      "last_period": "2026-04-30"
+    },
+    {
+      "ticker": "ABR",
+      "bars": 3265,
+      "first_bar": "2004-06-04",
+      "last_bar": "2026-05-29",
+      "http_status": 200,
+      "quarters": 103,
+      "first_period": "2005-12-31",
+      "last_period": "2026-06-30"
+    },
+    {
+      "ticker": "ABT",
+      "bars": 4034,
+      "first_bar": "1980-04-17",
+      "last_bar": "2026-04-14",
+      "http_status": 200,
+      "quarters": 103,
+      "first_period": "2005-12-31",
+      "last_period": "2026-06-30"
+    },
+    {
+      "ticker": "ABUS",
+      "bars": 3259,
+      "first_bar": "2011-06-03",
+      "last_bar": "2026-05-29",
+      "http_status": 200,
+      "quarters": 104,
+      "first_period": "2005-09-30",
+      "last_period": "2026-03-31"
+    },
+    {
+      "ticker": "ACAD",
+      "bars": 2770,
+      "first_bar": "2004-05-27",
+      "last_bar": "2026-05-29",
+      "http_status": 200,
+      "quarters": 103,
+      "first_period": "2005-12-31",
+      "last_period": "2026-06-30"
+    },
+    {
+      "ticker": "ACCO",
+      "bars": 3016,
+      "first_bar": "2009-06-04",
+      "last_bar": "2026-05-29",
+      "http_status": 200,
+      "quarters": 103,
+      "first_period": "2005-12-31",
+      "last_period": "2026-06-30"
+    },
+    {
+      "ticker": "ACGL",
+      "bars": 7671,
+      "first_bar": "1995-09-14",
+      "last_bar": "2026-05-15",
+      "http_status": 200,
+      "quarters": 103,
+      "first_period": "2005-12-31",
+      "last_period": "2026-06-30"
+    },
+    {
+      "ticker": "ACH",
+      "bars": 4528,
+      "first_bar": "1980-03-17",
+      "last_bar": "2023-05-31",
+      "http_status": 200,
+      "quarters": 102,
+      "first_period": "2005-12-31",
+      "last_period": "2026-03-31"
+    },
+    {
+      "ticker": "ACIW",
+      "bars": 4276,
+      "first_bar": "2008-06-04",
+      "last_bar": "2026-05-29",
+      "http_status": 200,
+      "quarters": 103,
+      "first_period": "2005-12-31",
+      "last_period": "2026-06-30"
+    },
+    {
+      "ticker": "ACLS",
+      "bars": 3245,
+      "first_bar": "2000-07-11",
+      "last_bar": "2026-05-29",
+      "http_status": 200,
+      "quarters": 103,
+      "first_period": "2005-12-31",
+      "last_period": "2026-06-30"
+    },
+    {
+      "ticker": "ACN",
+      "bars": 4029,
+      "first_bar": "2002-04-12",
+      "last_bar": "2026-04-14",
+      "http_status": 200,
+      "quarters": 103,
+      "first_period": "2005-11-30",
+      "last_period": "2026-05-31"
+    },
+    {
+      "ticker": "ACNB",
+      "bars": 3246,
+      "first_bar": "2011-06-03",
+      "last_bar": "2026-05-29",
+      "http_status": 200,
+      "quarters": 0,
+      "first_period": null,
+      "last_period": null
+    },
+    {
+      "ticker": "ACNT",
+      "bars": 4831,
+      "first_bar": "1981-06-11",
+      "last_bar": "2026-05-29",
+      "http_status": 200,
+      "quarters": 103,
+      "first_period": "2005-12-31",
+      "last_period": "2026-06-30"
+    },
+    {
+      "ticker": "ACR",
+      "bars": 2594,
+      "first_bar": "2006-02-07",
+      "last_bar": "2026-05-29",
+      "http_status": 200,
+      "quarters": 0,
+      "first_period": null,
+      "last_period": null
+    },
+    {
+      "ticker": "ACRE",
+      "bars": 3039,
+      "first_bar": "2012-04-26",
+      "last_bar": "2026-05-29",
+      "http_status": 200,
+      "quarters": 72,
+      "first_period": "2012-03-31",
+      "last_period": "2026-06-30"
+    },
+    {
+      "ticker": "ACTG",
+      "bars": 2513,
+      "first_bar": "2007-06-05",
+      "last_bar": "2026-05-29",
+      "http_status": 200,
+      "quarters": 105,
+      "first_period": "2005-09-30",
+      "last_period": "2026-06-30"
+    },
+    {
+      "ticker": "ACU",
+      "bars": 4290,
+      "first_bar": "1981-06-12",
+      "last_bar": "2026-05-29",
+      "http_status": 200,
+      "quarters": 0,
+      "first_period": null,
+      "last_period": null
+    },
+    {
+      "ticker": "ADBE",
+      "bars": 9742,
+      "first_bar": "1986-08-13",
+      "last_bar": "2026-04-14",
+      "http_status": 200,
+      "quarters": 103,
+      "first_period": "2005-11-30",
+      "last_period": "2026-05-31"
+    },
+    {
+      "ticker": "ADI",
+      "bars": 3551,
+      "first_bar": "2012-04-02",
+      "last_bar": "2026-05-15",
+      "http_status": 200,
+      "quarters": 102,
+      "first_period": "2006-01-31",
+      "last_period": "2026-04-30"
+    },
+    {
+      "ticker": "ADM",
+      "bars": 11622,
+      "first_bar": "1980-03-17",
+      "last_bar": "2026-05-15",
+      "http_status": 200,
+      "quarters": 103,
+      "first_period": "2005-12-31",
+      "last_period": "2026-06-30"
+    },
+    {
+      "ticker": "ADP",
+      "bars": 4396,
+      "first_bar": "2008-10-21",
+      "last_bar": "2026-04-14",
+      "http_status": 200,
+      "quarters": 104,
+      "first_period": "2005-12-31",
+      "last_period": "2026-06-30"
+    },
+    {
+      "ticker": "ADSK",
+      "bars": 10039,
+      "first_bar": "1985-06-28",
+      "last_bar": "2026-05-15",
+      "http_status": 200,
+      "quarters": 102,
+      "first_period": "2006-01-31",
+      "last_period": "2026-04-30"
+    },
+    {
+      "ticker": "AEE",
+      "bars": 7128,
+      "first_bar": "1998-01-02",
+      "last_bar": "2026-05-15",
+      "http_status": 200,
+      "quarters": 103,
+      "first_period": "2005-12-31",
+      "last_period": "2026-06-30"
+    },
+    {
+      "ticker": "AEHR",
+      "bars": 6707,
+      "first_bar": "1997-08-15",
+      "last_bar": "2026-04-14",
+      "http_status": 200,
+      "quarters": 104,
+      "first_period": "2005-11-30",
+      "last_period": "2026-05-31"
+    },
+    {
+      "ticker": "AEO",
+      "bars": 4556,
+      "first_bar": "2007-03-08",
+      "last_bar": "2026-04-14",
+      "http_status": 200,
+      "quarters": 102,
+      "first_period": "2006-01-31",
+      "last_period": "2026-04-30"
+    },
+    {
+      "ticker": "AEP",
+      "bars": 11634,
+      "first_bar": "1980-03-17",
+      "last_bar": "2026-05-15",
+      "http_status": 200,
+      "quarters": 103,
+      "first_period": "2005-12-31",
+      "last_period": "2026-06-30"
+    },
+    {
+      "ticker": "AES",
+      "bars": 3780,
+      "first_bar": "1992-04-14",
+      "last_bar": "2026-04-14",
+      "http_status": 200,
+      "quarters": 103,
+      "first_period": "2005-12-31",
+      "last_period": "2026-06-30"
+    },
+    {
+      "ticker": "AFL",
+      "bars": 11369,
+      "first_bar": "1980-03-17",
+      "last_bar": "2026-05-15",
+      "http_status": 200,
+      "quarters": 103,
+      "first_period": "2005-12-31",
+      "last_period": "2026-06-30"
+    },
+    {
+      "ticker": "AIG",
+      "bars": 11133,
+      "first_bar": "1980-03-17",
+      "last_bar": "2026-05-15",
+      "http_status": 200,
+      "quarters": 103,
+      "first_period": "2005-12-31",
+      "last_period": "2026-06-30"
+    },
+    {
+      "ticker": "AIZ",
+      "bars": 5579,
+      "first_bar": "2004-02-05",
+      "last_bar": "2026-05-15",
+      "http_status": 200,
+      "quarters": 103,
+      "first_period": "2005-12-31",
+      "last_period": "2026-06-30"
+    },
+    {
+      "ticker": "AJG",
+      "bars": 10186,
+      "first_bar": "1984-06-20",
+      "last_bar": "2026-05-15",
+      "http_status": 200,
+      "quarters": 103,
+      "first_period": "2005-12-31",
+      "last_period": "2026-06-30"
+    },
+    {
+      "ticker": "AKAM",
+      "bars": 6672,
+      "first_bar": "1999-10-29",
+      "last_bar": "2026-05-15",
+      "http_status": 200,
+      "quarters": 103,
+      "first_period": "2005-12-31",
+      "last_period": "2026-06-30"
+    },
+    {
+      "ticker": "ALB",
+      "bars": 8103,
+      "first_bar": "1994-02-22",
+      "last_bar": "2026-05-15",
+      "http_status": 200,
+      "quarters": 103,
+      "first_period": "2005-12-31",
+      "last_period": "2026-06-30"
+    },
+    {
+      "ticker": "ALGN",
+      "bars": 6360,
+      "first_bar": "2001-01-26",
+      "last_bar": "2026-05-15",
+      "http_status": 200,
+      "quarters": 103,
+      "first_period": "2005-12-31",
+      "last_period": "2026-06-30"
+    },
+    {
+      "ticker": "ALL",
+      "bars": 8286,
+      "first_bar": "1993-06-03",
+      "last_bar": "2026-05-15",
+      "http_status": 200,
+      "quarters": 103,
+      "first_period": "2005-12-31",
+      "last_period": "2026-06-30"
+    },
+    {
+      "ticker": "ALNY",
+      "bars": 5524,
+      "first_bar": "2004-05-28",
+      "last_bar": "2026-05-15",
+      "http_status": 200,
+      "quarters": 103,
+      "first_period": "2005-12-31",
+      "last_period": "2026-06-30"
+    },
+    {
+      "ticker": "AMAT",
+      "bars": 11360,
+      "first_bar": "1980-03-17",
+      "last_bar": "2026-04-14",
+      "http_status": 200,
+      "quarters": 102,
+      "first_period": "2006-01-31",
+      "last_period": "2026-04-30"
+    },
+    {
+      "ticker": "AME",
+      "bars": 11621,
+      "first_bar": "1980-03-17",
+      "last_bar": "2026-05-15",
+      "http_status": 200,
+      "quarters": 103,
+      "first_period": "2005-12-31",
+      "last_period": "2026-06-30"
+    },
+    {
+      "ticker": "AMGN",
+      "bars": 10801,
+      "first_bar": "1983-06-17",
+      "last_bar": "2026-05-15",
+      "http_status": 200,
+      "quarters": 103,
+      "first_period": "2005-12-31",
+      "last_period": "2026-06-30"
+    },
+    {
+      "ticker": "AMP",
+      "bars": 5196,
+      "first_bar": "2005-09-15",
+      "last_bar": "2026-05-15",
+      "http_status": 200,
+      "quarters": 103,
+      "first_period": "2005-12-31",
+      "last_period": "2026-06-30"
+    },
+    {
+      "ticker": "AMT",
+      "bars": 3525,
+      "first_bar": "1998-04-13",
+      "last_bar": "2026-04-14",
+      "http_status": 200,
+      "quarters": 103,
+      "first_period": "2005-12-31",
+      "last_period": "2026-06-30"
+    },
+    {
+      "ticker": "AMZN",
+      "bars": 7274,
+      "first_bar": "1997-05-15",
+      "last_bar": "2026-04-14",
+      "http_status": 200,
+      "quarters": 103,
+      "first_period": "2005-12-31",
+      "last_period": "2026-06-30"
+    },
+    {
+      "ticker": "ANGO",
+      "bars": 5504,
+      "first_bar": "2004-05-27",
+      "last_bar": "2026-04-14",
+      "http_status": 200,
+      "quarters": 104,
+      "first_period": "2005-11-30",
+      "last_period": "2026-05-31"
+    },
+    {
+      "ticker": "AON",
+      "bars": 11581,
+      "first_bar": "1980-06-02",
+      "last_bar": "2026-05-15",
+      "http_status": 200,
+      "quarters": 103,
+      "first_period": "2005-12-31",
+      "last_period": "2026-06-30"
+    },
+    {
+      "ticker": "AOS",
+      "bars": 10574,
+      "first_bar": "1983-09-30",
+      "last_bar": "2026-05-15",
+      "http_status": 200,
+      "quarters": 103,
+      "first_period": "2005-12-31",
+      "last_period": "2026-06-30"
+    },
+    {
+      "ticker": "APA",
+      "bars": 3544,
+      "first_bar": "1980-03-17",
+      "last_bar": "2026-04-14",
+      "http_status": 200,
+      "quarters": 103,
+      "first_period": "2005-12-31",
+      "last_period": "2026-06-30"
+    },
+    {
+      "ticker": "APD",
+      "bars": 11621,
+      "first_bar": "1980-03-17",
+      "last_bar": "2026-05-15",
+      "http_status": 200,
+      "quarters": 103,
+      "first_period": "2005-12-31",
+      "last_period": "2026-06-30"
+    },
+    {
+      "ticker": "APH",
+      "bars": 4031,
+      "first_bar": "1992-04-14",
+      "last_bar": "2026-04-14",
+      "http_status": 200,
+      "quarters": 103,
+      "first_period": "2005-12-31",
+      "last_period": "2026-06-30"
+    },
+    {
+      "ticker": "APLD",
+      "bars": 3579,
+      "first_bar": "2009-12-10",
+      "last_bar": "2026-04-14",
+      "http_status": 200,
+      "quarters": 68,
+      "first_period": "2001-08-31",
+      "last_period": "2026-05-31"
+    },
+    {
+      "ticker": "APTV",
+      "bars": 3643,
+      "first_bar": "2011-11-17",
+      "last_bar": "2026-05-15",
+      "http_status": 200,
+      "quarters": 103,
+      "first_period": "2005-12-31",
+      "last_period": "2026-06-30"
+    },
+    {
+      "ticker": "ARE",
+      "bars": 7279,
+      "first_bar": "1997-05-28",
+      "last_bar": "2026-05-15",
+      "http_status": 200,
+      "quarters": 103,
+      "first_period": "2005-12-31",
+      "last_period": "2026-06-30"
+    },
+    {
+      "ticker": "ASML",
+      "bars": 7823,
+      "first_bar": "1995-03-15",
+      "last_bar": "2026-04-14",
+      "http_status": 200,
+      "quarters": 103,
+      "first_period": "2005-12-31",
+      "last_period": "2026-06-30"
+    },
+    {
+      "ticker": "ATO",
+      "bars": 10660,
+      "first_bar": "1983-12-28",
+      "last_bar": "2026-05-15",
+      "http_status": 200,
+      "quarters": 103,
+      "first_period": "2005-12-31",
+      "last_period": "2026-06-30"
+    },
+    {
+      "ticker": "AVB",
+      "bars": 7838,
+      "first_bar": "1994-03-11",
+      "last_bar": "2026-05-15",
+      "http_status": 200,
+      "quarters": 103,
+      "first_period": "2005-12-31",
+      "last_period": "2026-06-30"
+    },
+    {
+      "ticker": "AVY",
+      "bars": 11618,
+      "first_bar": "1980-03-17",
+      "last_bar": "2026-05-15",
+      "http_status": 200,
+      "quarters": 103,
+      "first_period": "2005-12-31",
+      "last_period": "2026-06-30"
+    },
+    {
+      "ticker": "AWK",
+      "bars": 4545,
+      "first_bar": "2008-04-23",
+      "last_bar": "2026-05-15",
+      "http_status": 200,
+      "quarters": 103,
+      "first_period": "2005-12-31",
+      "last_period": "2026-06-30"
+    },
+    {
+      "ticker": "AXON",
+      "bars": 6272,
+      "first_bar": "2001-06-07",
+      "last_bar": "2026-05-15",
+      "http_status": 200,
+      "quarters": 103,
+      "first_period": "2005-12-31",
+      "last_period": "2026-06-30"
+    },
+    {
+      "ticker": "AXP",
+      "bars": 7610,
+      "first_bar": "1980-03-17",
+      "last_bar": "2026-05-29",
+      "http_status": 200,
+      "quarters": 103,
+      "first_period": "2005-12-31",
+      "last_period": "2026-06-30"
+    },
+    {
+      "ticker": "AZO",
+      "bars": 6594,
+      "first_bar": "1991-04-02",
+      "last_bar": "2026-05-29",
+      "http_status": 200,
+      "quarters": 102,
+      "first_period": "2006-02-28",
+      "last_period": "2026-05-31"
+    },
+    {
+      "ticker": "BA",
+      "bars": 11612,
+      "first_bar": "1980-03-17",
+      "last_bar": "2026-04-14",
+      "http_status": 200,
+      "quarters": 103,
+      "first_period": "2005-12-31",
+      "last_period": "2026-06-30"
+    },
+    {
+      "ticker": "BAC",
+      "bars": 11663,
+      "first_bar": "1980-01-02",
+      "last_bar": "2026-04-14",
+      "http_status": 200,
+      "quarters": 103,
+      "first_period": "2005-12-31",
+      "last_period": "2026-06-30"
+    },
+    {
+      "ticker": "BALL",
+      "bars": 5788,
+      "first_bar": "1980-06-11",
+      "last_bar": "2026-05-29",
+      "http_status": 200,
+      "quarters": 103,
+      "first_period": "2005-12-31",
+      "last_period": "2026-06-30"
+    },
+    {
+      "ticker": "BAX",
+      "bars": 3801,
+      "first_bar": "1980-03-17",
+      "last_bar": "2026-04-14",
+      "http_status": 200,
+      "quarters": 103,
+      "first_period": "2005-12-31",
+      "last_period": "2026-06-30"
+    },
+    {
+      "ticker": "BBY",
+      "bars": 6796,
+      "first_bar": "1985-06-10",
+      "last_bar": "2026-05-29",
+      "http_status": 200,
+      "quarters": 102,
+      "first_period": "2005-04-30",
+      "last_period": "2026-04-30"
+    },
+    {
+      "ticker": "BCRX",
+      "bars": 7823,
+      "first_bar": "1994-03-04",
+      "last_bar": "2026-04-14",
+      "http_status": 200,
+      "quarters": 103,
+      "first_period": "2005-12-31",
+      "last_period": "2026-06-30"
+    },
+    {
+      "ticker": "BDX",
+      "bars": 6861,
+      "first_bar": "1980-03-17",
+      "last_bar": "2026-05-29",
+      "http_status": 200,
+      "quarters": 103,
+      "first_period": "2005-12-31",
+      "last_period": "2026-06-30"
+    },
+    {
+      "ticker": "BELFA",
+      "bars": 10350,
+      "first_bar": "1983-12-06",
+      "last_bar": "2026-04-14",
+      "http_status": 200,
+      "quarters": 0,
+      "first_period": null,
+      "last_period": null
+    },
+    {
+      "ticker": "BELFB",
+      "bars": 6984,
+      "first_bar": "1998-07-10",
+      "last_bar": "2026-04-14",
+      "http_status": 200,
+      "quarters": 103,
+      "first_period": "2005-12-31",
+      "last_period": "2026-06-30"
+    },
+    {
+      "ticker": "BEN",
+      "bars": 4787,
+      "first_bar": "1985-06-10",
+      "last_bar": "2026-05-29",
+      "http_status": 200,
+      "quarters": 103,
+      "first_period": "2005-12-31",
+      "last_period": "2026-06-30"
+    },
+    {
+      "ticker": "BIIB",
+      "bars": 4527,
+      "first_bar": "1993-06-08",
+      "last_bar": "2026-05-29",
+      "http_status": 200,
+      "quarters": 103,
+      "first_period": "2005-12-31",
+      "last_period": "2026-06-30"
+    },
+    {
+      "ticker": "BKNG",
+      "bars": 6803,
+      "first_bar": "1999-03-30",
+      "last_bar": "2026-04-14",
+      "http_status": 200,
+      "quarters": 103,
+      "first_period": "2005-12-31",
+      "last_period": "2026-06-30"
+    },
+    {
+      "ticker": "BKTI",
+      "bars": 10758,
+      "first_bar": "1980-03-18",
+      "last_bar": "2026-04-14",
+      "http_status": 200,
+      "quarters": 0,
+      "first_period": null,
+      "last_period": null
+    },
+    {
+      "ticker": "BLK",
+      "bars": 6693,
+      "first_bar": "1999-10-04",
+      "last_bar": "2026-05-15",
+      "http_status": 200,
+      "quarters": 103,
+      "first_period": "2005-12-31",
+      "last_period": "2026-06-30"
+    },
+    {
+      "ticker": "BMY",
+      "bars": 4051,
+      "first_bar": "1980-03-17",
+      "last_bar": "2026-04-14",
+      "http_status": 200,
+      "quarters": 103,
+      "first_period": "2005-12-31",
+      "last_period": "2026-06-30"
+    },
+    {
+      "ticker": "BR",
+      "bars": 3319,
+      "first_bar": "2007-03-22",
+      "last_bar": "2026-05-29",
+      "http_status": 200,
+      "quarters": 104,
+      "first_period": "2005-12-31",
+      "last_period": "2026-06-30"
+    },
+    {
+      "ticker": "BRO",
+      "bars": 5266,
+      "first_bar": "1981-02-11",
+      "last_bar": "2026-05-29",
+      "http_status": 200,
+      "quarters": 103,
+      "first_period": "2005-12-31",
+      "last_period": "2026-06-30"
+    },
+    {
+      "ticker": "BSET",
+      "bars": 11583,
+      "first_bar": "1980-03-17",
+      "last_bar": "2026-04-14",
+      "http_status": 200,
+      "quarters": 0,
+      "first_period": null,
+      "last_period": null
+    },
+    {
+      "ticker": "BSX",
+      "bars": 5032,
+      "first_bar": "1994-04-14",
+      "last_bar": "2026-04-14",
+      "http_status": 200,
+      "quarters": 103,
+      "first_period": "2005-12-31",
+      "last_period": "2026-06-30"
+    },
+    {
+      "ticker": "BXP",
+      "bars": 3765,
+      "first_bar": "1997-06-18",
+      "last_bar": "2026-05-29",
+      "http_status": 200,
+      "quarters": 103,
+      "first_period": "2005-12-31",
+      "last_period": "2026-06-30"
+    },
+    {
+      "ticker": "CAH",
+      "bars": 5473,
+      "first_bar": "1983-08-04",
+      "last_bar": "2026-05-29",
+      "http_status": 200,
+      "quarters": 102,
+      "first_period": "2005-12-31",
+      "last_period": "2026-03-31"
+    },
+    {
+      "ticker": "CB",
+      "bars": 3823,
+      "first_bar": "1993-03-25",
+      "last_bar": "2026-05-29",
+      "http_status": 200,
+      "quarters": 103,
+      "first_period": "2005-12-31",
+      "last_period": "2026-06-30"
+    },
+    {
+      "ticker": "CBRE",
+      "bars": 3766,
+      "first_bar": "2004-06-10",
+      "last_bar": "2026-05-29",
+      "http_status": 200,
+      "quarters": 103,
+      "first_period": "2005-12-31",
+      "last_period": "2026-06-30"
+    },
+    {
+      "ticker": "CBZ",
+      "bars": 7499,
+      "first_bar": "1996-06-24",
+      "last_bar": "2026-04-14",
+      "http_status": 200,
+      "quarters": 103,
+      "first_period": "2005-12-31",
+      "last_period": "2026-06-30"
+    },
+    {
+      "ticker": "CCEP",
+      "bars": 9689,
+      "first_bar": "1986-11-24",
+      "last_bar": "2026-05-15",
+      "http_status": 200,
+      "quarters": 102,
+      "first_period": "2004-09-30",
+      "last_period": "2026-06-30"
+    },
+    {
+      "ticker": "CCOI",
+      "bars": 6069,
+      "first_bar": "2002-02-05",
+      "last_bar": "2026-04-14",
+      "http_status": 200,
+      "quarters": 103,
+      "first_period": "2005-12-31",
+      "last_period": "2026-06-30"
+    },
+    {
+      "ticker": "CDE",
+      "bars": 11584,
+      "first_bar": "1980-03-17",
+      "last_bar": "2026-04-14",
+      "http_status": 200,
+      "quarters": 103,
+      "first_period": "2005-12-31",
+      "last_period": "2026-06-30"
+    },
+    {
+      "ticker": "CDNS",
+      "bars": 9796,
+      "first_bar": "1987-06-10",
+      "last_bar": "2026-05-15",
+      "http_status": 200,
+      "quarters": 103,
+      "first_period": "2005-12-31",
+      "last_period": "2026-06-30"
+    },
+    {
+      "ticker": "CHD",
+      "bars": 4997,
+      "first_bar": "1981-06-11",
+      "last_bar": "2026-05-29",
+      "http_status": 200,
+      "quarters": 103,
+      "first_period": "2005-12-31",
+      "last_period": "2026-06-30"
+    },
+    {
+      "ticker": "CHRW",
+      "bars": 4272,
+      "first_bar": "1999-06-07",
+      "last_bar": "2026-05-29",
+      "http_status": 200,
+      "quarters": 103,
+      "first_period": "2005-12-31",
+      "last_period": "2026-06-30"
+    },
+    {
+      "ticker": "CHTR",
+      "bars": 3919,
+      "first_bar": "2010-09-14",
+      "last_bar": "2026-04-14",
+      "http_status": 200,
+      "quarters": 103,
+      "first_period": "2005-12-31",
+      "last_period": "2026-06-30"
+    },
+    {
+      "ticker": "CI",
+      "bars": 3519,
+      "first_bar": "2003-06-06",
+      "last_bar": "2026-05-29",
+      "http_status": 200,
+      "quarters": 103,
+      "first_period": "2005-12-31",
+      "last_period": "2026-06-30"
+    },
+    {
+      "ticker": "CINF",
+      "bars": 5341,
+      "first_bar": "1980-03-17",
+      "last_bar": "2025-05-30",
+      "http_status": 200,
+      "quarters": 103,
+      "first_period": "2005-12-31",
+      "last_period": "2026-06-30"
+    },
+    {
+      "ticker": "CL",
+      "bars": 5792,
+      "first_bar": "1980-06-11",
+      "last_bar": "2026-05-29",
+      "http_status": 200,
+      "quarters": 103,
+      "first_period": "2005-12-31",
+      "last_period": "2026-06-30"
+    },
+    {
+      "ticker": "CLDX",
+      "bars": 4410,
+      "first_bar": "2008-10-01",
+      "last_bar": "2026-04-14",
+      "http_status": 200,
+      "quarters": 103,
+      "first_period": "2005-12-31",
+      "last_period": "2026-06-30"
+    },
+    {
+      "ticker": "CLX",
+      "bars": 4528,
+      "first_bar": "1987-06-10",
+      "last_bar": "2026-05-29",
+      "http_status": 200,
+      "quarters": 104,
+      "first_period": "2005-12-31",
+      "last_period": "2026-06-30"
+    },
+    {
+      "ticker": "CMCSA",
+      "bars": 11606,
+      "first_bar": "1980-03-17",
+      "last_bar": "2026-04-14",
+      "http_status": 200,
+      "quarters": 103,
+      "first_period": "2005-12-31",
+      "last_period": "2026-06-30"
+    },
+    {
+      "ticker": "CMI",
+      "bars": 4277,
+      "first_bar": "1982-06-11",
+      "last_bar": "2026-05-29",
+      "http_status": 200,
+      "quarters": 103,
+      "first_period": "2005-12-31",
+      "last_period": "2026-06-30"
+    },
+    {
+      "ticker": "CMS",
+      "bars": 3841,
+      "first_bar": "1980-03-17",
+      "last_bar": "2023-05-31",
+      "http_status": 200,
+      "quarters": 103,
+      "first_period": "2005-12-31",
+      "last_period": "2026-06-30"
+    },
+    {
+      "ticker": "CNC",
+      "bars": 3263,
+      "first_bar": "2006-06-05",
+      "last_bar": "2026-05-29",
+      "http_status": 200,
+      "quarters": 103,
+      "first_period": "2005-12-31",
+      "last_period": "2026-06-30"
+    },
+    {
+      "ticker": "COF",
+      "bars": 3268,
+      "first_bar": "1995-06-08",
+      "last_bar": "2026-05-29",
+      "http_status": 200,
+      "quarters": 103,
+      "first_period": "2005-12-31",
+      "last_period": "2026-06-30"
+    },
+    {
+      "ticker": "COHR",
+      "bars": 9352,
+      "first_bar": "1987-10-02",
+      "last_bar": "2026-04-14",
+      "http_status": 200,
+      "quarters": 111,
+      "first_period": "2005-12-31",
+      "last_period": "2026-03-31"
+    },
+    {
+      "ticker": "COST",
+      "bars": 8125,
+      "first_bar": "1994-01-03",
+      "last_bar": "2026-04-14",
+      "http_status": 200,
+      "quarters": 102,
+      "first_period": "2006-02-28",
+      "last_period": "2026-05-31"
+    },
+    {
+      "ticker": "CPRT",
+      "bars": 8063,
+      "first_bar": "1994-03-17",
+      "last_bar": "2026-04-14",
+      "http_status": 200,
+      "quarters": 102,
+      "first_period": "2006-01-31",
+      "last_period": "2026-04-30"
+    },
+    {
+      "ticker": "CRGY",
+      "bars": 6538,
+      "first_bar": "1994-04-04",
+      "last_bar": "2026-04-14",
+      "http_status": 200,
+      "quarters": 34,
+      "first_period": "2018-12-31",
+      "last_period": "2026-06-30"
+    },
+    {
+      "ticker": "CRL",
+      "bars": 3772,
+      "first_bar": "2003-06-06",
+      "last_bar": "2026-05-29",
+      "http_status": 200,
+      "quarters": 103,
+      "first_period": "2005-12-31",
+      "last_period": "2026-06-30"
+    },
+    {
+      "ticker": "CRM",
+      "bars": 5486,
+      "first_bar": "2004-06-23",
+      "last_bar": "2026-04-14",
+      "http_status": 200,
+      "quarters": 102,
+      "first_period": "2006-01-31",
+      "last_period": "2026-04-30"
+    },
+    {
+      "ticker": "CRS",
+      "bars": 11634,
+      "first_bar": "1980-03-17",
+      "last_bar": "2026-05-15",
+      "http_status": 200,
+      "quarters": 104,
+      "first_period": "2005-12-31",
+      "last_period": "2026-06-30"
+    },
+    {
+      "ticker": "CSCO",
+      "bars": 9105,
+      "first_bar": "1990-02-16",
+      "last_bar": "2026-04-14",
+      "http_status": 200,
+      "quarters": 102,
+      "first_period": "2006-01-31",
+      "last_period": "2026-04-30"
+    },
+    {
+      "ticker": "CSGP",
+      "bars": 6999,
+      "first_bar": "1998-07-01",
+      "last_bar": "2026-05-15",
+      "http_status": 200,
+      "quarters": 103,
+      "first_period": "2005-12-31",
+      "last_period": "2026-06-30"
+    },
+    {
+      "ticker": "CSR",
+      "bars": 3348,
+      "first_bar": "2012-12-18",
+      "last_bar": "2026-04-14",
+      "http_status": 200,
+      "quarters": 103,
+      "first_period": "2003-12-31",
+      "last_period": "2026-06-30"
+    },
+    {
+      "ticker": "CTAS",
+      "bars": 10710,
+      "first_bar": "1983-08-19",
+      "last_bar": "2026-05-15",
+      "http_status": 200,
+      "quarters": 104,
+      "first_period": "2005-11-30",
+      "last_period": "2026-05-31"
+    },
+    {
+      "ticker": "CTSH",
+      "bars": 7015,
+      "first_bar": "1998-06-19",
+      "last_bar": "2026-05-15",
+      "http_status": 200,
+      "quarters": 103,
+      "first_period": "2005-12-31",
+      "last_period": "2026-06-30"
+    },
+    {
+      "ticker": "CVS",
+      "bars": 4031,
+      "first_bar": "1981-06-11",
+      "last_bar": "2022-05-31",
+      "http_status": 200,
+      "quarters": 103,
+      "first_period": "2005-12-31",
+      "last_period": "2026-06-30"
+    },
+    {
+      "ticker": "CVX",
+      "bars": 11612,
+      "first_bar": "1980-03-17",
+      "last_bar": "2026-04-14",
+      "http_status": 200,
+      "quarters": 103,
+      "first_period": "2005-12-31",
+      "last_period": "2026-06-30"
+    },
+    {
+      "ticker": "CWST",
+      "bars": 6906,
+      "first_bar": "1997-10-29",
+      "last_bar": "2026-04-14",
+      "http_status": 200,
+      "quarters": 103,
+      "first_period": "2005-12-31",
+      "last_period": "2026-06-30"
+    },
+    {
+      "ticker": "CXW",
+      "bars": 7093,
+      "first_bar": "1995-12-15",
+      "last_bar": "2026-04-14",
+      "http_status": 200,
+      "quarters": 103,
+      "first_period": "2005-12-31",
+      "last_period": "2026-06-30"
+    },
+    {
+      "ticker": "D",
+      "bars": 5537,
+      "first_bar": "1980-06-11",
+      "last_bar": "2026-05-29",
+      "http_status": 200,
+      "quarters": 103,
+      "first_period": "2005-12-31",
+      "last_period": "2026-06-30"
+    },
+    {
+      "ticker": "DAL",
+      "bars": 4751,
+      "first_bar": "2007-04-26",
+      "last_bar": "2026-04-14",
+      "http_status": 200,
+      "quarters": 103,
+      "first_period": "2005-12-31",
+      "last_period": "2026-06-30"
+    },
+    {
+      "ticker": "DE",
+      "bars": 4594,
+      "first_bar": "1980-03-17",
+      "last_bar": "2026-05-29",
+      "http_status": 200,
+      "quarters": 102,
+      "first_period": "2006-01-31",
+      "last_period": "2026-04-30"
+    },
+    {
+      "ticker": "DECK",
+      "bars": 3510,
+      "first_bar": "1996-06-07",
+      "last_bar": "2026-05-29",
+      "http_status": 200,
+      "quarters": 104,
+      "first_period": "2005-12-31",
+      "last_period": "2026-06-30"
+    },
+    {
+      "ticker": "DG",
+      "bars": 3155,
+      "first_bar": "2009-11-13",
+      "last_bar": "2026-05-29",
+      "http_status": 200,
+      "quarters": 104,
+      "first_period": "2005-10-31",
+      "last_period": "2026-04-30"
+    },
+    {
+      "ticker": "DGX",
+      "bars": 3517,
+      "first_bar": "1997-06-06",
+      "last_bar": "2026-05-29",
+      "http_status": 200,
+      "quarters": 103,
+      "first_period": "2005-12-31",
+      "last_period": "2026-06-30"
+    },
+    {
+      "ticker": "DHI",
+      "bars": 3269,
+      "first_bar": "1992-06-05",
+      "last_bar": "2026-05-29",
+      "http_status": 200,
+      "quarters": 103,
+      "first_period": "2005-12-31",
+      "last_period": "2026-06-30"
+    },
+    {
+      "ticker": "DHR",
+      "bars": 4275,
+      "first_bar": "1980-03-17",
+      "last_bar": "2026-05-29",
+      "http_status": 200,
+      "quarters": 103,
+      "first_period": "2005-12-31",
+      "last_period": "2026-06-30"
+    },
+    {
+      "ticker": "DHT",
+      "bars": 5155,
+      "first_bar": "2005-10-13",
+      "last_bar": "2026-04-14",
+      "http_status": 200,
+      "quarters": 103,
+      "first_period": "2005-12-31",
+      "last_period": "2026-06-30"
+    },
+    {
+      "ticker": "DIA",
+      "bars": 7100,
+      "first_bar": "1998-01-20",
+      "last_bar": "2026-04-14",
+      "http_status": 200,
+      "quarters": 0,
+      "first_period": null,
+      "last_period": null
+    },
+    {
+      "ticker": "DIS",
+      "bars": 11634,
+      "first_bar": "1980-03-17",
+      "last_bar": "2026-05-15",
+      "http_status": 200,
+      "quarters": 103,
+      "first_period": "2005-12-31",
+      "last_period": "2026-06-30"
+    },
+    {
+      "ticker": "DJCO",
+      "bars": 6202,
+      "first_bar": "1986-06-11",
+      "last_bar": "2026-04-14",
+      "http_status": 200,
+      "quarters": 102,
+      "first_period": "2005-12-31",
+      "last_period": "2026-03-31"
+    },
+    {
+      "ticker": "DLR",
+      "bars": 3670,
+      "first_bar": "2004-10-29",
+      "last_bar": "2026-05-29",
+      "http_status": 200,
+      "quarters": 103,
+      "first_period": "2005-12-31",
+      "last_period": "2026-06-30"
+    },
+    {
+      "ticker": "DLTR",
+      "bars": 2765,
+      "first_bar": "2000-06-06",
+      "last_bar": "2026-05-29",
+      "http_status": 200,
+      "quarters": 104,
+      "first_period": "2005-10-31",
+      "last_period": "2026-04-30"
+    },
+    {
+      "ticker": "DMRC",
+      "bars": 4398,
+      "first_bar": "2008-10-17",
+      "last_bar": "2026-04-14",
+      "http_status": 200,
+      "quarters": 98,
+      "first_period": "2006-12-31",
+      "last_period": "2026-03-31"
+    },
+    {
+      "ticker": "DOV",
+      "bars": 4272,
+      "first_bar": "1985-06-10",
+      "last_bar": "2026-05-29",
+      "http_status": 200,
+      "quarters": 103,
+      "first_period": "2005-12-31",
+      "last_period": "2026-06-30"
+    },
+    {
+      "ticker": "DRI",
+      "bars": 4294,
+      "first_bar": "1995-05-09",
+      "last_bar": "2026-05-29",
+      "http_status": 200,
+      "quarters": 104,
+      "first_period": "2005-11-30",
+      "last_period": "2026-05-31"
+    },
+    {
+      "ticker": "DTE",
+      "bars": 6103,
+      "first_bar": "1980-03-17",
+      "last_bar": "2025-05-30",
+      "http_status": 200,
+      "quarters": 103,
+      "first_period": "2005-12-31",
+      "last_period": "2026-06-30"
+    },
+    {
+      "ticker": "DUK",
+      "bars": 3518,
+      "first_bar": "2006-06-05",
+      "last_bar": "2026-05-29",
+      "http_status": 200,
+      "quarters": 103,
+      "first_period": "2005-12-31",
+      "last_period": "2026-06-30"
+    },
+    {
+      "ticker": "DVA",
+      "bars": 5286,
+      "first_bar": "1996-06-07",
+      "last_bar": "2026-05-29",
+      "http_status": 200,
+      "quarters": 103,
+      "first_period": "2005-12-31",
+      "last_period": "2026-06-30"
+    },
+    {
+      "ticker": "DXCM",
+      "bars": 5303,
+      "first_bar": "2005-04-14",
+      "last_bar": "2026-05-15",
+      "http_status": 200,
+      "quarters": 103,
+      "first_period": "2005-12-31",
+      "last_period": "2026-06-30"
+    },
+    {
+      "ticker": "EA",
+      "bars": 8971,
+      "first_bar": "1989-09-20",
+      "last_bar": "2026-05-15",
+      "http_status": 200,
+      "quarters": 104,
+      "first_period": "2005-12-31",
+      "last_period": "2026-06-30"
+    },
+    {
+      "ticker": "EBAY",
+      "bars": 4196,
+      "first_bar": "1998-09-24",
+      "last_bar": "2026-05-29",
+      "http_status": 200,
+      "quarters": 103,
+      "first_period": "2005-12-31",
+      "last_period": "2026-06-30"
+    },
+    {
+      "ticker": "ECL",
+      "bars": 4026,
+      "first_bar": "1982-06-11",
+      "last_bar": "2026-05-29",
+      "http_status": 200,
+      "quarters": 103,
+      "first_period": "2005-12-31",
+      "last_period": "2026-06-30"
+    },
+    {
+      "ticker": "ED",
+      "bars": 5541,
+      "first_bar": "1981-06-11",
+      "last_bar": "2026-05-29",
+      "http_status": 200,
+      "quarters": 103,
+      "first_period": "2005-12-31",
+      "last_period": "2026-06-30"
+    },
+    {
+      "ticker": "EFX",
+      "bars": 4841,
+      "first_bar": "1980-03-17",
+      "last_bar": "2026-05-29",
+      "http_status": 200,
+      "quarters": 103,
+      "first_period": "2005-12-31",
+      "last_period": "2026-06-30"
+    },
+    {
+      "ticker": "EIX",
+      "bars": 5344,
+      "first_bar": "1980-03-17",
+      "last_bar": "2026-05-29",
+      "http_status": 200,
+      "quarters": 103,
+      "first_period": "2005-12-31",
+      "last_period": "2026-06-30"
+    },
+    {
+      "ticker": "EME",
+      "bars": 3757,
+      "first_bar": "1996-06-07",
+      "last_bar": "2026-05-29",
+      "http_status": 200,
+      "quarters": 103,
+      "first_period": "2005-12-31",
+      "last_period": "2026-06-30"
+    },
+    {
+      "ticker": "EMR",
+      "bars": 4779,
+      "first_bar": "1982-06-11",
+      "last_bar": "2026-05-29",
+      "http_status": 200,
+      "quarters": 103,
+      "first_period": "2005-12-31",
+      "last_period": "2026-06-30"
+    },
+    {
+      "ticker": "EOG",
+      "bars": 3017,
+      "first_bar": "1993-06-08",
+      "last_bar": "2026-05-29",
+      "http_status": 200,
+      "quarters": 103,
+      "first_period": "2005-12-31",
+      "last_period": "2026-06-30"
+    },
+    {
+      "ticker": "EQIX",
+      "bars": 2717,
+      "first_bar": "2000-08-11",
+      "last_bar": "2026-05-29",
+      "http_status": 200,
+      "quarters": 103,
+      "first_period": "2005-12-31",
+      "last_period": "2026-06-30"
+    },
+    {
+      "ticker": "EQR",
+      "bars": 4522,
+      "first_bar": "1994-06-08",
+      "last_bar": "2026-05-29",
+      "http_status": 200,
+      "quarters": 103,
+      "first_period": "2005-12-31",
+      "last_period": "2026-06-30"
+    },
+    {
+      "ticker": "ERIE",
+      "bars": 3772,
+      "first_bar": "2003-06-06",
+      "last_bar": "2026-05-29",
+      "http_status": 200,
+      "quarters": 103,
+      "first_period": "2005-12-31",
+      "last_period": "2026-06-30"
+    },
+    {
+      "ticker": "ES",
+      "bars": 6544,
+      "first_bar": "1986-06-10",
+      "last_bar": "2026-05-29",
+      "http_status": 200,
+      "quarters": 103,
+      "first_period": "2005-12-31",
+      "last_period": "2026-06-30"
+    },
+    {
+      "ticker": "ESE",
+      "bars": 8943,
+      "first_bar": "1990-10-01",
+      "last_bar": "2026-04-14",
+      "http_status": 200,
+      "quarters": 103,
+      "first_period": "2005-12-31",
+      "last_period": "2026-06-30"
+    },
+    {
+      "ticker": "ETN",
+      "bars": 4593,
+      "first_bar": "1980-03-17",
+      "last_bar": "2026-05-29",
+      "http_status": 200,
+      "quarters": 103,
+      "first_period": "2005-12-31",
+      "last_period": "2026-06-30"
+    },
+    {
+      "ticker": "ETR",
+      "bars": 4276,
+      "first_bar": "1982-06-11",
+      "last_bar": "2026-05-29",
+      "http_status": 200,
+      "quarters": 103,
+      "first_period": "2005-12-31",
+      "last_period": "2026-06-30"
+    },
+    {
+      "ticker": "EW",
+      "bars": 3574,
+      "first_bar": "2000-03-27",
+      "last_bar": "2023-05-31",
+      "http_status": 200,
+      "quarters": 103,
+      "first_period": "2005-12-31",
+      "last_period": "2026-06-30"
+    },
+    {
+      "ticker": "EXC",
+      "bars": 11610,
+      "first_bar": "1980-03-17",
+      "last_bar": "2026-04-14",
+      "http_status": 200,
+      "quarters": 103,
+      "first_period": "2005-12-31",
+      "last_period": "2026-06-30"
+    },
+    {
+      "ticker": "EXPD",
+      "bars": 3746,
+      "first_bar": "1985-06-11",
+      "last_bar": "2026-05-29",
+      "http_status": 200,
+      "quarters": 103,
+      "first_period": "2005-12-31",
+      "last_period": "2026-06-30"
+    },
+    {
+      "ticker": "EXR",
+      "bars": 3518,
+      "first_bar": "2005-06-03",
+      "last_bar": "2026-05-29",
+      "http_status": 200,
+      "quarters": 103,
+      "first_period": "2005-12-31",
+      "last_period": "2026-06-30"
+    },
+    {
+      "ticker": "FANG",
+      "bars": 3416,
+      "first_bar": "2012-10-12",
+      "last_bar": "2026-05-15",
+      "http_status": 200,
+      "quarters": 81,
+      "first_period": "2009-12-31",
+      "last_period": "2026-06-30"
+    },
+    {
+      "ticker": "FAST",
+      "bars": 9725,
+      "first_bar": "1987-08-20",
+      "last_bar": "2026-04-14",
+      "http_status": 200,
+      "quarters": 103,
+      "first_period": "2005-12-31",
+      "last_period": "2026-06-30"
+    },
+    {
+      "ticker": "FC",
+      "bars": 8523,
+      "first_bar": "1992-06-03",
+      "last_bar": "2026-04-14",
+      "http_status": 200,
+      "quarters": 103,
+      "first_period": "2005-11-30",
+      "last_period": "2026-05-31"
+    },
+    {
+      "ticker": "FDS",
+      "bars": 4503,
+      "first_bar": "1996-06-28",
+      "last_bar": "2026-05-29",
+      "http_status": 200,
+      "quarters": 103,
+      "first_period": "2005-11-30",
+      "last_period": "2026-05-31"
+    },
+    {
+      "ticker": "FDX",
+      "bars": 4785,
+      "first_bar": "1980-06-11",
+      "last_bar": "2026-05-29",
+      "http_status": 200,
+      "quarters": 104,
+      "first_period": "2005-11-30",
+      "last_period": "2026-05-31"
+    },
+    {
+      "ticker": "FE",
+      "bars": 3518,
+      "first_bar": "2002-06-06",
+      "last_bar": "2026-05-29",
+      "http_status": 200,
+      "quarters": 103,
+      "first_period": "2005-12-31",
+      "last_period": "2026-06-30"
+    },
+    {
+      "ticker": "FEIM",
+      "bars": 11085,
+      "first_bar": "1980-06-18",
+      "last_bar": "2026-04-14",
+      "http_status": 200,
+      "quarters": 104,
+      "first_period": "2005-10-31",
+      "last_period": "2026-04-30"
+    },
+    {
+      "ticker": "FIS",
+      "bars": 3757,
+      "first_bar": "2001-06-20",
+      "last_bar": "2026-05-29",
+      "http_status": 200,
+      "quarters": 103,
+      "first_period": "2005-12-31",
+      "last_period": "2026-06-30"
+    },
+    {
+      "ticker": "FISV",
+      "bars": 3954,
+      "first_bar": "1986-09-25",
+      "last_bar": "2025-05-30",
+      "http_status": 200,
+      "quarters": 103,
+      "first_period": "2005-12-31",
+      "last_period": "2026-06-30"
+    },
+    {
+      "ticker": "FIX",
+      "bars": 4524,
+      "first_bar": "1998-06-05",
+      "last_bar": "2026-05-29",
+      "http_status": 200,
+      "quarters": 103,
+      "first_period": "2005-12-31",
+      "last_period": "2026-06-30"
+    },
+    {
+      "ticker": "FLG",
+      "bars": 8141,
+      "first_bar": "1993-11-23",
+      "last_bar": "2026-04-14",
+      "http_status": 200,
+      "quarters": 103,
+      "first_period": "2005-12-31",
+      "last_period": "2026-06-30"
+    },
+    {
+      "ticker": "FN",
+      "bars": 3974,
+      "first_bar": "2010-06-25",
+      "last_bar": "2026-04-14",
+      "http_status": 200,
+      "quarters": 100,
+      "first_period": "2006-06-30",
+      "last_period": "2026-03-31"
+    },
+    {
+      "ticker": "FRT",
+      "bars": 5081,
+      "first_bar": "1980-03-17",
+      "last_bar": "2026-05-29",
+      "http_status": 200,
+      "quarters": 103,
+      "first_period": "2005-12-31",
+      "last_period": "2026-06-30"
+    },
+    {
+      "ticker": "FSLR",
+      "bars": 2646,
+      "first_bar": "2006-11-17",
+      "last_bar": "2026-05-29",
+      "http_status": 200,
+      "quarters": 103,
+      "first_period": "2005-12-31",
+      "last_period": "2026-06-30"
+    },
+    {
+      "ticker": "FTNT",
+      "bars": 4147,
+      "first_bar": "2009-11-18",
+      "last_bar": "2026-05-15",
+      "http_status": 200,
+      "quarters": 98,
+      "first_period": "2006-12-31",
+      "last_period": "2026-06-30"
+    },
+    {
+      "ticker": "GD",
+      "bars": 4779,
+      "first_bar": "1985-06-10",
+      "last_bar": "2026-05-29",
+      "http_status": 200,
+      "quarters": 103,
+      "first_period": "2005-12-31",
+      "last_period": "2026-06-30"
+    },
+    {
+      "ticker": "GE",
+      "bars": 3835,
+      "first_bar": "1980-03-17",
+      "last_bar": "2026-05-29",
+      "http_status": 200,
+      "quarters": 103,
+      "first_period": "2005-12-31",
+      "last_period": "2026-06-30"
+    },
+    {
+      "ticker": "GILD",
+      "bars": 8376,
+      "first_bar": "1992-01-22",
+      "last_bar": "2026-05-15",
+      "http_status": 200,
+      "quarters": 103,
+      "first_period": "2005-12-31",
+      "last_period": "2026-06-30"
+    },
+    {
+      "ticker": "GLD",
+      "bars": 5404,
+      "first_bar": "2004-11-18",
+      "last_bar": "2026-05-15",
+      "http_status": 200,
+      "quarters": 0,
+      "first_period": null,
+      "last_period": null
+    },
+    {
+      "ticker": "GLW",
+      "bars": 11634,
+      "first_bar": "1980-03-17",
+      "last_bar": "2026-05-15",
+      "http_status": 200,
+      "quarters": 103,
+      "first_period": "2005-12-31",
+      "last_period": "2026-06-30"
+    },
+    {
+      "ticker": "GOOGL",
+      "bars": 5471,
+      "first_bar": "2004-08-19",
+      "last_bar": "2026-05-15",
+      "http_status": 200,
+      "quarters": 103,
+      "first_period": "2005-12-31",
+      "last_period": "2026-06-30"
+    },
+    {
+      "ticker": "GS",
+      "bars": 6799,
+      "first_bar": "1999-05-04",
+      "last_bar": "2026-05-15",
+      "http_status": 200,
+      "quarters": 103,
+      "first_period": "2005-12-31",
+      "last_period": "2026-06-30"
+    },
+    {
+      "ticker": "HD",
+      "bars": 11247,
+      "first_bar": "1981-09-22",
+      "last_bar": "2026-05-15",
+      "http_status": 200,
+      "quarters": 102,
+      "first_period": "2006-01-31",
+      "last_period": "2026-04-30"
+    },
+    {
+      "ticker": "HON",
+      "bars": 11128,
+      "first_bar": "1980-03-17",
+      "last_bar": "2026-05-15",
+      "http_status": 200,
+      "quarters": 103,
+      "first_period": "2005-12-31",
+      "last_period": "2026-06-30"
+    },
+    {
+      "ticker": "HYG",
+      "bars": 4805,
+      "first_bar": "2007-04-11",
+      "last_bar": "2026-05-15",
+      "http_status": 200,
+      "quarters": 0,
+      "first_period": null,
+      "last_period": null
+    },
+    {
+      "ticker": "IDXX",
+      "bars": 8780,
+      "first_bar": "1991-06-21",
+      "last_bar": "2026-05-15",
+      "http_status": 200,
+      "quarters": 103,
+      "first_period": "2005-12-31",
+      "last_period": "2026-06-30"
+    },
+    {
+      "ticker": "INSM",
+      "bars": 8851,
+      "first_bar": "1991-02-15",
+      "last_bar": "2026-05-15",
+      "http_status": 200,
+      "quarters": 103,
+      "first_period": "2005-12-31",
+      "last_period": "2026-06-30"
+    },
+    {
+      "ticker": "INTC",
+      "bars": 11637,
+      "first_bar": "1980-03-17",
+      "last_bar": "2026-05-15",
+      "http_status": 200,
+      "quarters": 103,
+      "first_period": "2005-12-31",
+      "last_period": "2026-06-30"
+    },
+    {
+      "ticker": "INTU",
+      "bars": 8345,
+      "first_bar": "1993-03-12",
+      "last_bar": "2026-05-15",
+      "http_status": 200,
+      "quarters": 102,
+      "first_period": "2006-01-31",
+      "last_period": "2026-04-30"
+    },
+    {
+      "ticker": "ISRG",
+      "bars": 6517,
+      "first_bar": "2000-06-13",
+      "last_bar": "2026-05-15",
+      "http_status": 200,
+      "quarters": 103,
+      "first_period": "2005-12-31",
+      "last_period": "2026-06-30"
+    },
+    {
+      "ticker": "IWM",
+      "bars": 6525,
+      "first_bar": "2000-05-26",
+      "last_bar": "2026-05-15",
+      "http_status": 200,
+      "quarters": 0,
+      "first_period": null,
+      "last_period": null
+    },
+    {
+      "ticker": "JNJ",
+      "bars": 11633,
+      "first_bar": "1980-03-17",
+      "last_bar": "2026-05-15",
+      "http_status": 200,
+      "quarters": 103,
+      "first_period": "2005-12-31",
+      "last_period": "2026-06-30"
+    },
+    {
+      "ticker": "JNK",
+      "bars": 4640,
+      "first_bar": "2007-12-04",
+      "last_bar": "2026-05-15",
+      "http_status": 200,
+      "quarters": 0,
+      "first_period": null,
+      "last_period": null
+    },
+    {
+      "ticker": "JPM",
+      "bars": 11634,
+      "first_bar": "1980-03-17",
+      "last_bar": "2026-05-15",
+      "http_status": 200,
+      "quarters": 103,
+      "first_period": "2005-12-31",
+      "last_period": "2026-06-30"
+    },
+    {
+      "ticker": "KDP",
+      "bars": 4291,
+      "first_bar": "2008-04-28",
+      "last_bar": "2026-05-15",
+      "http_status": 200,
+      "quarters": 102,
+      "first_period": "2005-12-31",
+      "last_period": "2026-03-31"
+    },
+    {
+      "ticker": "KLAC",
+      "bars": 11219,
+      "first_bar": "1980-10-08",
+      "last_bar": "2026-05-15",
+      "http_status": 200,
+      "quarters": 104,
+      "first_period": "2005-12-31",
+      "last_period": "2026-06-30"
+    },
+    {
+      "ticker": "KO",
+      "bars": 11634,
+      "first_bar": "1980-03-17",
+      "last_bar": "2026-05-15",
+      "http_status": 200,
+      "quarters": 103,
+      "first_period": "2005-12-31",
+      "last_period": "2026-06-30"
+    },
+    {
+      "ticker": "LLY",
+      "bars": 11632,
+      "first_bar": "1980-03-17",
+      "last_bar": "2026-05-15",
+      "http_status": 200,
+      "quarters": 103,
+      "first_period": "2005-12-31",
+      "last_period": "2026-06-30"
+    },
+    {
+      "ticker": "LMT",
+      "bars": 7842,
+      "first_bar": "1995-03-16",
+      "last_bar": "2026-05-15",
+      "http_status": 200,
+      "quarters": 103,
+      "first_period": "2005-12-31",
+      "last_period": "2026-06-30"
+    },
+    {
+      "ticker": "LQD",
+      "bars": 5956,
+      "first_bar": "2002-07-26",
+      "last_bar": "2026-05-15",
+      "http_status": 200,
+      "quarters": 0,
+      "first_period": null,
+      "last_period": null
+    },
+    {
+      "ticker": "LRCX",
+      "bars": 10591,
+      "first_bar": "1984-05-04",
+      "last_bar": "2026-05-15",
+      "http_status": 200,
+      "quarters": 104,
+      "first_period": "2005-12-31",
+      "last_period": "2026-06-30"
+    },
+    {
+      "ticker": "MCD",
+      "bars": 11634,
+      "first_bar": "1980-03-17",
+      "last_bar": "2026-05-15",
+      "http_status": 200,
+      "quarters": 103,
+      "first_period": "2005-12-31",
+      "last_period": "2026-06-30"
+    },
+    {
+      "ticker": "MCHP",
+      "bars": 8340,
+      "first_bar": "1993-03-19",
+      "last_bar": "2026-05-15",
+      "http_status": 200,
+      "quarters": 104,
+      "first_period": "2005-12-31",
+      "last_period": "2026-06-30"
+    },
+    {
+      "ticker": "MDLZ",
+      "bars": 6266,
+      "first_bar": "2001-06-13",
+      "last_bar": "2026-05-15",
+      "http_status": 200,
+      "quarters": 103,
+      "first_period": "2005-12-31",
+      "last_period": "2026-06-30"
+    },
+    {
+      "ticker": "MELI",
+      "bars": 4721,
+      "first_bar": "2007-08-10",
+      "last_bar": "2026-05-15",
+      "http_status": 200,
+      "quarters": 103,
+      "first_period": "2005-12-31",
+      "last_period": "2026-06-30"
+    },
+    {
+      "ticker": "META",
+      "bars": 3518,
+      "first_bar": "2012-05-18",
+      "last_bar": "2026-05-15",
+      "http_status": 200,
+      "quarters": 85,
+      "first_period": "2007-12-31",
+      "last_period": "2026-06-30"
+    },
+    {
+      "ticker": "MPWR",
+      "bars": 5402,
+      "first_bar": "2004-11-19",
+      "last_bar": "2026-05-15",
+      "http_status": 200,
+      "quarters": 103,
+      "first_period": "2005-12-31",
+      "last_period": "2026-06-30"
+    },
+    {
+      "ticker": "MRK",
+      "bars": 11634,
+      "first_bar": "1980-03-17",
+      "last_bar": "2026-05-15",
+      "http_status": 200,
+      "quarters": 103,
+      "first_period": "2005-12-31",
+      "last_period": "2026-06-30"
+    },
+    {
+      "ticker": "MRVL",
+      "bars": 6511,
+      "first_bar": "2000-06-27",
+      "last_bar": "2026-05-15",
+      "http_status": 200,
+      "quarters": 102,
+      "first_period": "2006-01-31",
+      "last_period": "2026-04-30"
+    },
+    {
+      "ticker": "MS",
+      "bars": 8362,
+      "first_bar": "1993-02-23",
+      "last_bar": "2026-05-15",
+      "http_status": 200,
+      "quarters": 103,
+      "first_period": "2005-12-31",
+      "last_period": "2026-06-30"
+    },
+    {
+      "ticker": "MSFT",
+      "bars": 10123,
+      "first_bar": "1986-03-13",
+      "last_bar": "2026-05-15",
+      "http_status": 200,
+      "quarters": 104,
+      "first_period": "2005-12-31",
+      "last_period": "2026-06-30"
+    },
+    {
+      "ticker": "MSTR",
+      "bars": 7027,
+      "first_bar": "1998-06-11",
+      "last_bar": "2026-05-15",
+      "http_status": 200,
+      "quarters": 103,
+      "first_period": "2005-12-31",
+      "last_period": "2026-06-30"
+    },
+    {
+      "ticker": "MU",
+      "bars": 4119,
+      "first_bar": "2009-12-30",
+      "last_bar": "2026-05-15",
+      "http_status": 200,
+      "quarters": 103,
+      "first_period": "2005-11-30",
+      "last_period": "2026-05-31"
+    },
+    {
+      "ticker": "NBIS",
+      "bars": 3767,
+      "first_bar": "2011-05-24",
+      "last_bar": "2026-05-15",
+      "http_status": 200,
+      "quarters": 82,
+      "first_period": "2009-12-31",
+      "last_period": "2026-03-31"
+    },
+    {
+      "ticker": "NFLX",
+      "bars": 6032,
+      "first_bar": "2002-05-23",
+      "last_bar": "2026-05-15",
+      "http_status": 200,
+      "quarters": 103,
+      "first_period": "2005-12-31",
+      "last_period": "2026-06-30"
+    },
+    {
+      "ticker": "NKE",
+      "bars": 11454,
+      "first_bar": "1980-12-02",
+      "last_bar": "2026-05-15",
+      "http_status": 200,
+      "quarters": 104,
+      "first_period": "2005-11-30",
+      "last_period": "2026-05-31"
+    },
+    {
+      "ticker": "NOK",
+      "bars": 8020,
+      "first_bar": "1994-07-01",
+      "last_bar": "2026-05-15",
+      "http_status": 200,
+      "quarters": 103,
+      "first_period": "2005-12-31",
+      "last_period": "2026-06-30"
+    },
+    {
+      "ticker": "NVDA",
+      "bars": 6849,
+      "first_bar": "1999-01-22",
+      "last_bar": "2026-04-14",
+      "http_status": 200,
+      "quarters": 102,
+      "first_period": "2006-01-31",
+      "last_period": "2026-04-30"
+    },
+    {
+      "ticker": "NXPI",
+      "bars": 3968,
+      "first_bar": "2010-08-06",
+      "last_bar": "2026-05-15",
+      "http_status": 200,
+      "quarters": 89,
+      "first_period": "2008-12-31",
+      "last_period": "2026-06-30"
+    },
+    {
+      "ticker": "ORCL",
+      "bars": 10124,
+      "first_bar": "1986-03-12",
+      "last_bar": "2026-05-15",
+      "http_status": 200,
+      "quarters": 104,
+      "first_period": "2005-11-30",
+      "last_period": "2026-05-31"
+    },
+    {
+      "ticker": "ORLY",
+      "bars": 8321,
+      "first_bar": "1993-04-23",
+      "last_bar": "2026-05-15",
+      "http_status": 200,
+      "quarters": 103,
+      "first_period": "2005-12-31",
+      "last_period": "2026-06-30"
+    },
+    {
+      "ticker": "OXY",
+      "bars": 11634,
+      "first_bar": "1980-03-17",
+      "last_bar": "2026-05-15",
+      "http_status": 200,
+      "quarters": 103,
+      "first_period": "2005-12-31",
+      "last_period": "2026-06-30"
+    },
+    {
+      "ticker": "PANW",
+      "bars": 3475,
+      "first_bar": "2012-07-20",
+      "last_bar": "2026-05-15",
+      "http_status": 200,
+      "quarters": 81,
+      "first_period": "2009-07-31",
+      "last_period": "2026-04-30"
+    },
+    {
+      "ticker": "PAYX",
+      "bars": 10748,
+      "first_bar": "1983-08-26",
+      "last_bar": "2026-05-15",
+      "http_status": 200,
+      "quarters": 104,
+      "first_period": "2005-11-30",
+      "last_period": "2026-05-31"
+    },
+    {
+      "ticker": "PCAR",
+      "bars": 11115,
+      "first_bar": "1980-03-17",
+      "last_bar": "2026-05-15",
+      "http_status": 200,
+      "quarters": 103,
+      "first_period": "2005-12-31",
+      "last_period": "2026-06-30"
+    },
+    {
+      "ticker": "PFE",
+      "bars": 11634,
+      "first_bar": "1980-03-17",
+      "last_bar": "2026-05-15",
+      "http_status": 200,
+      "quarters": 103,
+      "first_period": "2005-12-31",
+      "last_period": "2026-06-30"
+    },
+    {
+      "ticker": "QCOM",
+      "bars": 8667,
+      "first_bar": "1991-12-13",
+      "last_bar": "2026-05-15",
+      "http_status": 200,
+      "quarters": 103,
+      "first_period": "2005-12-31",
+      "last_period": "2026-06-30"
+    },
+    {
+      "ticker": "QQQ",
+      "bars": 6839,
+      "first_bar": "1999-03-10",
+      "last_bar": "2026-05-15",
+      "http_status": 200,
+      "quarters": 0,
+      "first_period": null,
+      "last_period": null
+    },
+    {
+      "ticker": "REGN",
+      "bars": 8837,
+      "first_bar": "1991-04-02",
+      "last_bar": "2026-05-15",
+      "http_status": 200,
+      "quarters": 103,
+      "first_period": "2005-12-31",
+      "last_period": "2026-06-30"
+    },
+    {
+      "ticker": "RIOT",
+      "bars": 3370,
+      "first_bar": "2012-12-20",
+      "last_bar": "2026-05-15",
+      "http_status": 200,
+      "quarters": 102,
+      "first_period": "2005-12-31",
+      "last_period": "2026-03-31"
+    },
+    {
+      "ticker": "ROP",
+      "bars": 8368,
+      "first_bar": "1992-02-13",
+      "last_bar": "2026-05-15",
+      "http_status": 200,
+      "quarters": 103,
+      "first_period": "2005-12-31",
+      "last_period": "2026-06-30"
+    },
+    {
+      "ticker": "ROST",
+      "bars": 10009,
+      "first_bar": "1985-08-08",
+      "last_bar": "2026-05-15",
+      "http_status": 200,
+      "quarters": 102,
+      "first_period": "2006-01-31",
+      "last_period": "2026-04-30"
+    },
+    {
+      "ticker": "RTX",
+      "bars": 11634,
+      "first_bar": "1980-03-17",
+      "last_bar": "2026-05-15",
+      "http_status": 200,
+      "quarters": 103,
+      "first_period": "2005-12-31",
+      "last_period": "2026-06-30"
+    },
+    {
+      "ticker": "SBUX",
+      "bars": 8532,
+      "first_bar": "1992-06-26",
+      "last_bar": "2026-05-15",
+      "http_status": 200,
+      "quarters": 103,
+      "first_period": "2005-12-31",
+      "last_period": "2026-06-30"
+    },
+    {
+      "ticker": "SMCI",
+      "bars": 4814,
+      "first_bar": "2007-03-29",
+      "last_bar": "2026-05-15",
+      "http_status": 200,
+      "quarters": 102,
+      "first_period": "2005-12-31",
+      "last_period": "2026-03-31"
+    },
+    {
+      "ticker": "SMH",
+      "bars": 3620,
+      "first_bar": "2011-12-21",
+      "last_bar": "2026-05-15",
+      "http_status": 200,
+      "quarters": 0,
+      "first_period": null,
+      "last_period": null
+    },
+    {
+      "ticker": "SNPS",
+      "bars": 8608,
+      "first_bar": "1992-02-26",
+      "last_bar": "2026-05-15",
+      "http_status": 200,
+      "quarters": 102,
+      "first_period": "2006-01-31",
+      "last_period": "2026-04-30"
+    },
+    {
+      "ticker": "SPY",
+      "bars": 8379,
+      "first_bar": "1993-01-29",
+      "last_bar": "2026-05-15",
+      "http_status": 200,
+      "quarters": 0,
+      "first_period": null,
+      "last_period": null
+    },
+    {
+      "ticker": "STX",
+      "bars": 5609,
+      "first_bar": "2004-01-23",
+      "last_bar": "2026-05-15",
+      "http_status": 200,
+      "quarters": 104,
+      "first_period": "2005-12-31",
+      "last_period": "2026-06-30"
+    },
+    {
+      "ticker": "T",
+      "bars": 10703,
+      "first_bar": "1983-11-21",
+      "last_bar": "2026-05-15",
+      "http_status": 200,
+      "quarters": 103,
+      "first_period": "2005-12-31",
+      "last_period": "2026-06-30"
+    },
+    {
+      "ticker": "TGT",
+      "bars": 11633,
+      "first_bar": "1980-03-17",
+      "last_bar": "2026-05-15",
+      "http_status": 200,
+      "quarters": 102,
+      "first_period": "2006-01-31",
+      "last_period": "2026-04-30"
+    },
+    {
+      "ticker": "TMUS",
+      "bars": 4029,
+      "first_bar": "2007-04-19",
+      "last_bar": "2026-05-15",
+      "http_status": 200,
+      "quarters": 103,
+      "first_period": "2005-12-31",
+      "last_period": "2026-06-30"
+    },
+    {
+      "ticker": "TRI",
+      "bars": 5767,
+      "first_bar": "2002-06-12",
+      "last_bar": "2026-05-15",
+      "http_status": 200,
+      "quarters": 103,
+      "first_period": "2005-12-31",
+      "last_period": "2026-06-30"
+    },
+    {
+      "ticker": "TSEM",
+      "bars": 7938,
+      "first_bar": "1994-10-26",
+      "last_bar": "2026-05-15",
+      "http_status": 200,
+      "quarters": 103,
+      "first_period": "2005-12-31",
+      "last_period": "2026-06-30"
+    },
+    {
+      "ticker": "TSLA",
+      "bars": 3995,
+      "first_bar": "2010-06-29",
+      "last_bar": "2026-05-15",
+      "http_status": 200,
+      "quarters": 95,
+      "first_period": "2006-12-31",
+      "last_period": "2026-06-30"
+    },
+    {
+      "ticker": "TSM",
+      "bars": 7193,
+      "first_bar": "1997-10-08",
+      "last_bar": "2026-05-15",
+      "http_status": 200,
+      "quarters": 103,
+      "first_period": "2005-12-31",
+      "last_period": "2026-06-30"
+    },
+    {
+      "ticker": "TTWO",
+      "bars": 7291,
+      "first_bar": "1997-04-15",
+      "last_bar": "2026-05-15",
+      "http_status": 200,
+      "quarters": 104,
+      "first_period": "2005-12-31",
+      "last_period": "2026-06-30"
+    },
+    {
+      "ticker": "TXN",
+      "bars": 3613,
+      "first_bar": "2012-01-03",
+      "last_bar": "2026-05-15",
+      "http_status": 200,
+      "quarters": 103,
+      "first_period": "2005-12-31",
+      "last_period": "2026-06-30"
+    },
+    {
+      "ticker": "VRSK",
+      "bars": 4177,
+      "first_bar": "2009-10-07",
+      "last_bar": "2026-05-15",
+      "http_status": 200,
+      "quarters": 96,
+      "first_period": "2007-06-30",
+      "last_period": "2026-06-30"
+    },
+    {
+      "ticker": "VRTX",
+      "bars": 8755,
+      "first_bar": "1991-07-24",
+      "last_bar": "2026-05-15",
+      "http_status": 200,
+      "quarters": 103,
+      "first_period": "2005-12-31",
+      "last_period": "2026-06-30"
+    },
+    {
+      "ticker": "VZ",
+      "bars": 10700,
+      "first_bar": "1983-11-21",
+      "last_bar": "2026-05-15",
+      "http_status": 200,
+      "quarters": 103,
+      "first_period": "2005-12-31",
+      "last_period": "2026-06-30"
+    },
+    {
+      "ticker": "WBD",
+      "bars": 4364,
+      "first_bar": "2005-07-21",
+      "last_bar": "2026-05-15",
+      "http_status": 200,
+      "quarters": 103,
+      "first_period": "2005-12-31",
+      "last_period": "2026-06-30"
+    },
+    {
+      "ticker": "WDC",
+      "bars": 3509,
+      "first_bar": "2012-06-01",
+      "last_bar": "2026-05-15",
+      "http_status": 200,
+      "quarters": 104,
+      "first_period": "2005-12-31",
+      "last_period": "2026-06-30"
+    },
+    {
+      "ticker": "WFC",
+      "bars": 11634,
+      "first_bar": "1980-03-17",
+      "last_bar": "2026-05-15",
+      "http_status": 200,
+      "quarters": 103,
+      "first_period": "2005-12-31",
+      "last_period": "2026-06-30"
+    },
+    {
+      "ticker": "WMT",
+      "bars": 11635,
+      "first_bar": "1980-03-17",
+      "last_bar": "2026-05-15",
+      "http_status": 200,
+      "quarters": 102,
+      "first_period": "2006-01-31",
+      "last_period": "2026-04-30"
+    },
+    {
+      "ticker": "XLE",
+      "bars": 6889,
+      "first_bar": "1998-12-22",
+      "last_bar": "2026-05-15",
+      "http_status": 200,
+      "quarters": 0,
+      "first_period": null,
+      "last_period": null
+    },
+    {
+      "ticker": "XLF",
+      "bars": 6889,
+      "first_bar": "1998-12-22",
+      "last_bar": "2026-05-15",
+      "http_status": 200,
+      "quarters": 0,
+      "first_period": null,
+      "last_period": null
+    },
+    {
+      "ticker": "XOM",
+      "bars": 11635,
+      "first_bar": "1980-03-17",
+      "last_bar": "2026-05-15",
+      "http_status": 200,
+      "quarters": 103,
+      "first_period": "2005-12-31",
+      "last_period": "2026-06-30"
+    }
+  ]
+}

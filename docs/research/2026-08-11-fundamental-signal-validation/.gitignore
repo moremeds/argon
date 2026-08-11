@@ -1,0 +1,3 @@
+# Raw UW API caches — regenerable from the reproduce command, and the wide one
+# is 75 MB. Glob, not two literals: the next universe adds another suffix.
+_uw_cache*.json

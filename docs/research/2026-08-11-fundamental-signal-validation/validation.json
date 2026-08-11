@@ -1,0 +1,214 @@
+{
+  "probed_at": "2026-08-11",
+  "reproduce": "UW_SCAN_API_KEY=... uv run python scripts/research/fundamental_signal_validation.py",
+  "universe": "ai-cohort-25",
+  "robustness_2q": {
+    "full sample": {
+      "n_quarters": 77,
+      "mean_ic": 0.0238,
+      "ic_stdev": 0.3072,
+      "t_stat": 0.679,
+      "hit_rate": 0.519
+    },
+    "real filing_date only": {
+      "n_quarters": 37,
+      "mean_ic": -0.0375,
+      "ic_stdev": 0.3316,
+      "t_stat": -0.688,
+      "hit_rate": 0.514
+    },
+    "first half (<=2015)": {
+      "n_quarters": 37,
+      "mean_ic": 0.1445,
+      "ic_stdev": 0.3186,
+      "t_stat": 2.758,
+      "hit_rate": 0.676
+    },
+    "second half (>=2016)": {
+      "n_quarters": 40,
+      "mean_ic": -0.0879,
+      "ic_stdev": 0.2523,
+      "t_stat": -2.203,
+      "hit_rate": 0.375
+    }
+  },
+  "caveat": "25 highly correlated AI/semi/cloud names; effective breadth is ~2-4 independent bets. Detection floor |IC| ~0.072 against a realistic factor of 0.02-0.05, so this run is underpowered by construction and cannot support any conclusion about the composite.",
+  "config": {
+    "horizons_trading_days": {
+      "1q": 63,
+      "2q": 126
+    },
+    "fallback_lag_days": 45,
+    "min_cross_section": 8,
+    "features": [
+      "rev_growth",
+      "gross_margin",
+      "op_margin",
+      "fcf_margin",
+      "roe",
+      "neg_net_debt_ebitda",
+      "asset_turnover"
+    ]
+  },
+  "coverage": {
+    "tickers_with_prices": [
+      "AMAT",
+      "AMD",
+      "AMZN",
+      "ANET",
+      "APP",
+      "ASML",
+      "AVGO",
+      "CEG",
+      "CRWD",
+      "DELL",
+      "ETN",
+      "GEV",
+      "GOOGL",
+      "META",
+      "MRVL",
+      "MSFT",
+      "MU",
+      "NVDA",
+      "ORCL",
+      "PLTR",
+      "SMCI",
+      "TSM"
+    ],
+    "tickers_missing_prices": [
+      "VRT",
+      "VST",
+      "NOW"
+    ],
+    "periods_total": 81,
+    "periods_usable": 80,
+    "span": [
+      "2006Q1",
+      "2025Q4"
+    ],
+    "observations": 1414,
+    "observations_with_real_filing_date": 573
+  },
+  "results": {
+    "1q": {
+      "composite": {
+        "n_quarters": 77,
+        "mean_ic": -0.0077,
+        "ic_stdev": 0.2977,
+        "t_stat": -0.228,
+        "hit_rate": 0.455
+      },
+      "per_feature": {
+        "asset_turnover": {
+          "n_quarters": 77,
+          "mean_ic": -0.0143,
+          "ic_stdev": 0.2585,
+          "t_stat": -0.486,
+          "hit_rate": 0.481
+        },
+        "fcf_margin": {
+          "n_quarters": 77,
+          "mean_ic": -0.0301,
+          "ic_stdev": 0.25,
+          "t_stat": -1.058,
+          "hit_rate": 0.455
+        },
+        "gross_margin": {
+          "n_quarters": 80,
+          "mean_ic": -0.0177,
+          "ic_stdev": 0.256,
+          "t_stat": -0.62,
+          "hit_rate": 0.4
+        },
+        "neg_net_debt_ebitda": {
+          "n_quarters": 77,
+          "mean_ic": 0.0612,
+          "ic_stdev": 0.2826,
+          "t_stat": 1.899,
+          "hit_rate": 0.532
+        },
+        "op_margin": {
+          "n_quarters": 80,
+          "mean_ic": -0.0492,
+          "ic_stdev": 0.2577,
+          "t_stat": -1.709,
+          "hit_rate": 0.375
+        },
+        "rev_growth": {
+          "n_quarters": 73,
+          "mean_ic": -0.0008,
+          "ic_stdev": 0.2842,
+          "t_stat": -0.024,
+          "hit_rate": 0.548
+        },
+        "roe": {
+          "n_quarters": 77,
+          "mean_ic": -0.0188,
+          "ic_stdev": 0.2682,
+          "t_stat": -0.614,
+          "hit_rate": 0.494
+        }
+      }
+    },
+    "2q": {
+      "composite": {
+        "n_quarters": 77,
+        "mean_ic": 0.0238,
+        "ic_stdev": 0.3072,
+        "t_stat": 0.679,
+        "hit_rate": 0.519
+      },
+      "per_feature": {
+        "asset_turnover": {
+          "n_quarters": 77,
+          "mean_ic": 0.0339,
+          "ic_stdev": 0.2715,
+          "t_stat": 1.096,
+          "hit_rate": 0.532
+        },
+        "fcf_margin": {
+          "n_quarters": 77,
+          "mean_ic": -0.0117,
+          "ic_stdev": 0.2756,
+          "t_stat": -0.372,
+          "hit_rate": 0.519
+        },
+        "gross_margin": {
+          "n_quarters": 80,
+          "mean_ic": -0.0107,
+          "ic_stdev": 0.2469,
+          "t_stat": -0.386,
+          "hit_rate": 0.425
+        },
+        "neg_net_debt_ebitda": {
+          "n_quarters": 76,
+          "mean_ic": 0.0734,
+          "ic_stdev": 0.2857,
+          "t_stat": 2.241,
+          "hit_rate": 0.605
+        },
+        "op_margin": {
+          "n_quarters": 80,
+          "mean_ic": -0.0296,
+          "ic_stdev": 0.2491,
+          "t_stat": -1.064,
+          "hit_rate": 0.45
+        },
+        "rev_growth": {
+          "n_quarters": 73,
+          "mean_ic": 0.0293,
+          "ic_stdev": 0.278,
+          "t_stat": 0.901,
+          "hit_rate": 0.603
+        },
+        "roe": {
+          "n_quarters": 77,
+          "mean_ic": 0.0048,
+          "ic_stdev": 0.2863,
+          "t_stat": 0.147,
+          "hit_rate": 0.468
+        }
+      }
+    }
+  }
+}
