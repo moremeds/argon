@@ -7,6 +7,40 @@ version in lockstep (enforced by `scripts/release/version_sync_check.py`).
 
 ## [Unreleased]
 
+### Research
+
+- **Fundamental source contract measured; the planned backbone was the wrong
+  one.** Four reproducible probes under `scripts/research/`
+  (`fundamental_source_coverage.py`, `fundamental_field_contract.py`,
+  `uw_fundamentals_probe.py`, `sec_xbrl_gapfill_probe.py`) with artifacts in
+  `docs/research/2026-08-10-fundamental-source-coverage/`. **Unusual Whales —
+  already paid for and already integrated — beats massive on eight of nine
+  measured axes**: 25/25 tickers vs 23, 1,673 ticker-quarters vs 1,092, history
+  from 2005 vs 2009/2010, 0.0% vs 15.1% impossible share counts, and 100%
+  cohort coverage of capex/EBITDA/D&A/cash/total-debt/interest, none of which
+  massive `/vX` emits at all. It was never checked because an old note that UW's
+  `companies/*` family 403s had been generalized to the `stock/*` statement
+  routes, which are 200. massive stays as tier 2 for the one axis it wins —
+  `filing_date` on 74.5% of rows against UW's 45.2% — and as a drift
+  cross-check.
+- **massive `/vX` emits values that cannot be true, on current data**: GOOGL
+  2026-03-31 carries a **−478,746,000,000** liability, NVDA 2026-01-25 a
+  **−28,000,000** share count; 5.1% negative liabilities and 15.1% impossible
+  share counts across 272 recent rows. The design gained an INGEST validation
+  gate and a `fundamental_obs_violations` table in response.
+- **Two spec claims falsified.** Segment/KPI disclosure is *not* "absent at any
+  tier" — UW returns XBRL-dimensional segment and geographic revenue for 24/25
+  tickers (4,330 rows), which makes the `concentration_risk` subscore buildable
+  after the named-customer graph was measured as nonexistent. And foreign
+  issuers no longer need a blanket `na`: TSM/ASML have 83 quarterly rows each
+  from UW, FX dailies were already in the livewire lake, and SEC XBRL supplies
+  the missing noncontrolling interest (`us-gaap` for domestic filers,
+  `ifrs-full` for 20-F). Only TSM's equity-denominated ratios remain `na`, for
+  the stated reason that no quarterly NCI exists at any source.
+- Handoff for the data lake:
+  `docs/masterplan/2026-08-11-fundamental-data-brief-for-livewire.md`. Method
+  spec rewritten to revision 3 against the measured source set.
+
 ### Fixed
 
 - **`fundamentals_refresh` has never persisted a row — it silently rolled back
