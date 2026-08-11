@@ -6,18 +6,57 @@ reproduce: `UW_SCAN_API_KEY=... uv run python scripts/research/fundamental_signa
 Run **before** P1b built any ingest, on the reasoning that the whole dataset sits behind ~100 API
 calls and it is cheaper to test a method than to build storage for one that may not work.
 
-## The headline
+## The headline — corrected 2026-08-11, after a power calculation
 
-**The §5.2 composite has no predictive content in this cohort.**
+**This test was underpowered. It cannot tell you whether the composite works.**
 
 | Horizon | mean IC | t-stat | hit rate | quarters |
 |---|---:|---:|---:|---:|
-| 1 quarter | **−0.0132** | −0.34 | 46.8% | 77 |
-| 2 quarters | **−0.0089** | −0.21 | 48.7% | 76 |
+| 1 quarter | −0.0132 | −0.34 | 46.8% | 77 |
+| 2 quarters | −0.0089 | −0.21 | 48.7% | 76 |
 
-A hit rate below 50% and a t-stat inside ±0.4 is not a weak signal — it is the absence of one. **Do
-not ship a ranked composite.** That was already the recommendation on breadth grounds; it is now
-measured rather than argued.
+The first version of this file read that as "no predictive content." That was wrong, and the error
+was not reading the numbers — it was never asking what the test could have detected.
+
+Per-quarter IC noise here is σ ≈ 0.35, driven almost entirely by cross-section width (Spearman on
+n names has σ ≈ `1/√(n−1)`; the median cross-section is 11). With 77 quarters the standard error of
+the mean is 0.039, so **the smallest |IC| this test could have called significant is 0.079.**
+
+A realistic good equity factor runs IC 0.02–0.05. Detecting one here would require:
+
+| True IC | Quarters needed | |
+|---:|---:|---|
+| 0.02 | 1,194 | 298 years |
+| 0.03 | 531 | 133 years |
+| 0.05 | 191 | 48 years |
+| 0.08 | 75 | 19 years |
+
+So a true IC of 0.03 and a true IC of 0.00 both produce roughly what was observed. **The correct
+statement is "untestable at this universe size", not "does not work."**
+
+What the result *does* establish:
+
+1. **No spectacular signal.** Anything above IC ≈ 0.08 would have surfaced. Nothing did.
+2. **The instrument is not blind** — `asset_turnover` cleared the floor at |t| = 4.3, so the test can
+   see large effects. Its threshold is just very high.
+3. **The recommendation is unchanged, but the reason reverts.** Do not ship a ranked composite —
+   because it cannot be validated at this universe size, which was the original breadth argument.
+   The validation did not replace that argument; it confirmed there is no escaping it.
+
+### Breadth is worth far more than history
+
+| Names/quarter | σ per quarter | Quarters to detect IC = 0.03 | Years |
+|---:|---:|---:|---:|
+| **11 (this cohort)** | 0.316 | 444 | **111** |
+| 25 | 0.204 | 185 | 46 |
+| 50 | 0.143 | 91 | 23 |
+| 100 | 0.101 | 45 | 11 |
+| **200** | 0.071 | 22 | **5.6** |
+| 500 | 0.045 | 9 | 2.2 |
+
+Noise falls as `1/√N` in names but only as `1/√T` in quarters — and breadth can be bought today,
+while quarters accrue at four per year. **Widening the universe to ~200 names is not the expensive
+option; it is the only option under which this question is answerable at all.**
 
 ## The more interesting result: two components are significantly inverted
 
@@ -68,8 +107,9 @@ Three further limits, all recorded rather than worked around:
 
 ## What this changes
 
-1. **Do not ship a ranked composite or a sortable score.** No evidence supports ordering these names
-   against each other on fundamentals.
+1. **Do not ship a ranked composite or a sortable score.** Not because the ranking was measured as
+   worthless — it was not measured at all — but because at this universe size it cannot be
+   validated, and shipping an unvalidatable ordering is the specific thing to avoid.
 2. **Ship the descriptive card** — per-subscore values, trends, and absences, presented as context
    beside the options surface. That was option 2 of three; it now has evidence behind it rather than
    a sample-size argument.
@@ -82,9 +122,10 @@ Three further limits, all recorded rather than worked around:
 
 ## What would change the verdict
 
+- **Breadth, first and above all**: ~200 names turns a 111-year test into a 5.6-year one. Nothing
+  else on this list moves the needle comparably, and it is available immediately.
 - A **non-survivorship universe** — the AI chain as it looked at each point in time, including names
-  that dropped out. This is the single biggest fix and it is not cheap.
-- **Breadth**: 200+ names across sectors, where cross-sectional rank has something to work with.
+  that dropped out. Needed for the result to mean anything once it is measurable.
 - A **time-series** framing instead of cross-sectional: does a name's own fundamental deterioration
   precede its own drawdown? That question is untouched here and is not survivorship-contaminated in
   the same way, because each name is compared against itself.
