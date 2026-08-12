@@ -1243,6 +1243,29 @@ comparative colour ramp (§8). Displaying a composite value is fine; sorting by 
 | **narrative** | `headline` · `thesis` · `price_view` · `target_gap` · `bear_case` · numeric `invalidation` · `monitorables` · `evidence_ledger` · mandatory `unknowns` | stage 5 — a **`FundamentalNarrativeOutcome`** Pydantic model → `model_json_schema()` → DeepSeek strict function-calling. Borrows the *mechanism* of `TradeInsightAiOutcome`, never its schema: that model demands scenario cards, VRP assessment and preferred expression, none of which a fundamental analysis has |
 | audit verdicts | per-claim `pass / warn / fail / unverifiable` | `fundamental_audit_results` |
 
+**Subscore trends are descriptive, never predictive** (rev 6, measured 2026-08-12). The time-series
+test asked the question this card is built on — does a name's own fundamental deterioration precede
+its own drawdown — and the answer is **no**, at a horizon the card would speak to. Market-neutral
+within-ticker IC is ~0.00 (`change|ret_2q_dm`: **−0.0000, t −0.00**), every market-neutral test
+fails Benjamini-Hochberg across the 16 run, and all eight are **powered** to 0.018–0.023 against the
+0.039 the same composite produces cross-sectionally. The effect is absent, not unproven. Verdict:
+`docs/research/2026-08-12-fundamental-timeseries-test/VERDICT.md`.
+
+Three consequences bind this card:
+
+- **"Gross margin has fallen four quarters running" stays** — a true, citable, auditable fact about
+  the business, and exactly what a per-ticker analyst surface exists to show.
+- **No price consequence may be drawn from it.** No trend arrow implying underperformance, no
+  invalidation level derived from a subscore trajectory, no "fundamentals rolling over → expect
+  weakness". That inference was tested and is not there.
+- **The stage-5 schema must forbid it explicitly and the deterministic auditor must fail it.** A
+  model handed falling subscores will reach for "and so the stock should underperform" unprompted,
+  because that is the shape of the prose it was trained on. Left to the prompt alone this leaks.
+
+Note what this does *not* touch: §8's ranked screen rests on cross-sectional evidence, which this
+test does not address. The composite **ranks names against each other and does not time one against
+itself** — the same number supports only the first claim, so the scope travels with it.
+
 The narrative block carries its audit state visibly. A `fail` verdict suppresses the offending claim
 rather than the whole block, and says so — silent suppression would make the audit unfalsifiable to
 the reader.

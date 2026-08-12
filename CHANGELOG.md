@@ -135,6 +135,40 @@ version in lockstep (enforced by `scripts/release/version_sync_check.py`).
   load-bearing: removing the commit fails the fresh-connection test, and
   removing the rollback fails the cascade test with `InFailedSqlTransaction`.
 
+### Research
+
+- **A name's own fundamental deterioration does NOT precede its own drawdown —
+  a powered null, and it closes the question the card is built on.**
+  `scripts/research/fundamental_timeseries_test.py`, 250 tickers, 16,857
+  within-ticker observations read from the new `fundamental_statement_obs` panel.
+  Market-neutral within-ticker IC is ~0.00 (`change|ret_2q_dm`: **−0.0000,
+  t −0.00**). All 16 hypotheses carry Benjamini-Hochberg and Bonferroni
+  corrections computed in the script and persisted in the artifact; **every
+  market-neutral test fails, and every survivor is a raw, market-contaminated
+  one**. `level|dd_1q_dm` (t 2.34) is precisely the ~1 false positive 16 tests
+  are expected to produce and does not survive. Verdict:
+  `docs/research/2026-08-12-fundamental-timeseries-test/VERDICT.md`.
+- **The null is powered, which is what makes it usable.** All eight
+  market-neutral detection floors sit at 0.018–0.023 against the **0.039** the
+  same composite produces cross-sectionally — so an effect of the size that
+  demonstrably exists *across* names would have been found *within* one. Absent,
+  not unproven. (Revision 1 of the cross-sectional verdict declared a null
+  without asking what its test could detect and was wrong; this does not repeat
+  it.)
+- **The raw result that looks like a finding is the market.** `level|ret_2q`
+  reads IC −0.0396, t −3.41 and survives Bonferroni — then collapses to −0.0047,
+  t −0.41 once the knowledge-quarter mean is removed. An 88% reduction: the whole
+  effect is panel-wide late-cycle fundamentals, nothing that distinguishes one
+  name from another. Its t-stat is also not trustworthy on its own terms, since
+  250 tickers exposed to one macro path are not 250 independent observations.
+- **Product consequence (spec §7 rev 6): subscore trends are descriptive, never
+  predictive.** "Gross margin has fallen four quarters running" stays as a
+  citable fact; no price consequence may be drawn from it, and the stage-5 schema
+  must forbid the claim with the deterministic auditor failing it — a model handed
+  falling subscores reaches for "and so the stock should underperform" unprompted.
+  §8's ranked screen is untouched: **the composite ranks names against each other
+  and does not time one against itself.**
+
 ### Added
 
 - **Fundamental tier-1 ingest — immutable point-in-time statement observations**
