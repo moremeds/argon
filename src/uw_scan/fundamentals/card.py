@@ -32,6 +32,7 @@ from uw_scan.fundamentals.features import (
     FEATURE_UNITS,
     FEATURES,
 )
+from uw_scan.fundamentals.valuation import LEVEL_ORDER
 
 
 def _num(value: Any) -> float | None:
@@ -144,6 +145,7 @@ def build_card(
     engine_version: str,
     history: dict[str, Any] | None = None,
     percentiles: dict[str, Any] | None = None,
+    anchors: dict[str, Any] | None = None,
 ) -> dict[str, Any]:
     """One score row + its input violations -> the card payload.
 
@@ -191,6 +193,10 @@ def build_card(
         "series_dates": (history or {}).get("dates") or [],
         "panel_size": (percentiles or {}).get("panel_size") or 0,
         "subscores": subscores,
+        # Reshaped, not passed through: the storage row carries jsonb column
+        # names and `spot_percentile` as a Decimal, and the contract should not
+        # inherit either. Absent when the name is unrouted or has no band.
+        "anchors": _anchor_block(anchors),
         "coverage": {
             # Straight from the persisted column rather than recomputed: this is
             # what the composite was actually scored on, and a recomputation here
@@ -212,4 +218,28 @@ def build_card(
             "filing_date_known": bool(row["filing_date_known"]),
             "source_obs_count": len(row.get("source_obs_ids") or []),
         },
+    }
+
+
+def _anchor_block(row: dict[str, Any] | None) -> dict[str, Any] | None:
+    """Storage row -> the `FundamentalAnchors` shape, or None.
+
+    None rather than an empty band when the name has no row: an empty band would
+    read as "we looked and have no view", which is a claim about the company.
+    A REFUSED band is a different thing and does arrive here — all five levels
+    null with `confidence_reasons` populated — because that refusal is a fact
+    about our coverage and the card is required to state it.
+    """
+    if row is None:
+        return None
+    return {
+        "company_type": row["company_type"],
+        "method": row["method"],
+        **{level: _num(row.get(level)) for level in LEVEL_ORDER},
+        "spot": _num(row.get("spot")),
+        "spot_percentile": _num(row.get("spot_percentile")),
+        "history_quarters": int(row["history_quarters"]),
+        "confidence": row["confidence"],
+        "confidence_reasons": row.get("confidence_reasons_jsonb") or [],
+        "as_of": row["as_of"],
     }

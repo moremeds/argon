@@ -4605,9 +4605,139 @@
         "title": "ForwardReturnBandRow",
         "type": "object"
       },
-      "FundamentalCardResponse": {
-        "description": "The deterministic blocks of \u00a77. The valuation anchor, narrative and audit\nblocks are absent rather than empty \u2014 they need stages 3-5.",
+      "FundamentalAnchors": {
+        "description": "A price band from this name's OWN valuation history (spec \u00a75.3, stage 3).\n\nEach level is the price at which this company's valuation yield would sit at\na stated percentile of its own past: `buy_below` at the 80th (cheap),\n`risk_above` at the 20th. Ascending in price, enforced by a schema CHECK.\n\nMeasured basis (2026-08-12): `sales_to_ev` carries a market-neutral 2q IC of\n+0.0744 (t 5.77) within-ticker, rising to +0.0826 when a pure-reversal\ncontrol is held constant.\n\nOWN-HISTORY, NEVER CROSS-SECTIONAL \u2014 the distinction is the whole result.\nRanking a name against OTHER names on value is INVERTED in this universe\n(`book_to_price` IC -0.0365, t -2.32), so a peer-ranked `buy_below` would\npoint at the half of the panel that then underperforms.\n\nNot a forecast, and no scenario grid: \u00a77's base/bear/bull x 1y/3y needs a\nvalidated growth model and there is none.",
         "properties": {
+          "as_of": {
+            "format": "date",
+            "title": "As Of",
+            "type": "string"
+          },
+          "buy_below": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Buy Below"
+          },
+          "company_type": {
+            "title": "Company Type",
+            "type": "string"
+          },
+          "confidence": {
+            "title": "Confidence",
+            "type": "string"
+          },
+          "confidence_reasons": {
+            "default": [],
+            "items": {
+              "type": "string"
+            },
+            "title": "Confidence Reasons",
+            "type": "array"
+          },
+          "history_quarters": {
+            "title": "History Quarters",
+            "type": "integer"
+          },
+          "method": {
+            "title": "Method",
+            "type": "string"
+          },
+          "observe_high": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Observe High"
+          },
+          "observe_low": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Observe Low"
+          },
+          "observe_mid": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Observe Mid"
+          },
+          "risk_above": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Risk Above"
+          },
+          "spot": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Spot"
+          },
+          "spot_percentile": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Spot Percentile"
+          }
+        },
+        "required": [
+          "company_type",
+          "method",
+          "history_quarters",
+          "confidence",
+          "as_of"
+        ],
+        "title": "FundamentalAnchors",
+        "type": "object"
+      },
+      "FundamentalCardResponse": {
+        "description": "The deterministic blocks of \u00a77. The narrative and audit blocks are absent\nrather than empty \u2014 they need stages 4-5.",
+        "properties": {
+          "anchors": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/FundamentalAnchors"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
           "composite": {
             "anyOf": [
               {

@@ -862,6 +862,38 @@ REGISTRY.extend(
             ),
         ),
         DatasetRegistryEntry(
+            "valuation_anchors",
+            "fundamentals",
+            # freshness_only, same reasoning as fundamental_scores: the grain is
+            # (ticker x knowledge QUARTER) over a universe that is not the
+            # watchlist, so a session-based denominator would invent gaps that no
+            # filing will ever fill.
+            "freshness_only",
+            date_col="as_of",
+            ticker_col="ticker",
+            expected_frequency="event",
+            provider="db",
+            granularity="none",
+            healer_adapter=None,
+            source_system="derived",
+            reason=(
+                "derived from fundamental_statement_obs + fundamental_company_type; "
+                "re-run worker/jobs/fundamental_scoring.py to heal (zero API cost)"
+            ),
+        ),
+        DatasetRegistryEntry(
+            "fundamental_company_type",
+            "fundamentals",
+            "excluded",
+            date_col="updated_at",
+            ticker_col="ticker",
+            expected_frequency="none",
+            reason=(
+                "hand-maintainable routing table, not a time series — a missing "
+                "row means the name is unrouted, which the card states explicitly"
+            ),
+        ),
+        DatasetRegistryEntry(
             "fundamental_method_versions",
             "fundamentals",
             "excluded",

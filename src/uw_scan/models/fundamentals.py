@@ -75,9 +75,52 @@ class FundamentalProvenance(_UwBase):
     source_obs_count: int
 
 
+class FundamentalAnchors(_UwBase):
+    """A price band from this name's OWN valuation history (spec §5.3, stage 3).
+
+    Each level is the price at which this company's valuation yield would sit at
+    a stated percentile of its own past: `buy_below` at the 80th (cheap),
+    `risk_above` at the 20th. Ascending in price, enforced by a schema CHECK.
+
+    Measured basis (2026-08-12): `sales_to_ev` carries a market-neutral 2q IC of
+    +0.0744 (t 5.77) within-ticker, rising to +0.0826 when a pure-reversal
+    control is held constant.
+
+    OWN-HISTORY, NEVER CROSS-SECTIONAL — the distinction is the whole result.
+    Ranking a name against OTHER names on value is INVERTED in this universe
+    (`book_to_price` IC -0.0365, t -2.32), so a peer-ranked `buy_below` would
+    point at the half of the panel that then underperforms.
+
+    Not a forecast, and no scenario grid: §7's base/bear/bull x 1y/3y needs a
+    validated growth model and there is none.
+    """
+
+    company_type: str
+    # The yield the band was built from: sales_to_ev | fcf_yield | ebitda_to_ev.
+    method: str
+    # Null where the yield inversion diverges or lands below zero after net debt.
+    # A null level is unknown, not zero, and must not be drawn as a boundary.
+    buy_below: float | None = None
+    observe_low: float | None = None
+    observe_mid: float | None = None
+    observe_high: float | None = None
+    risk_above: float | None = None
+    # Spot at compute time, and where it sat in this name's own yield history.
+    # High = cheap versus its own past, because every method is a yield.
+    spot: float | None = None
+    spot_percentile: float | None = None
+    history_quarters: int
+    confidence: str
+    # Every reason, never collapsed to the badge. "medium because the filing is
+    # 180 days old" is actionable; "medium" is not. Non-empty with all levels
+    # null means the band was REFUSED, and the reason says why.
+    confidence_reasons: list[str] = []
+    as_of: date
+
+
 class FundamentalCardResponse(_UwBase):
-    """The deterministic blocks of §7. The valuation anchor, narrative and audit
-    blocks are absent rather than empty — they need stages 3-5."""
+    """The deterministic blocks of §7. The narrative and audit blocks are absent
+    rather than empty — they need stages 4-5."""
 
     ticker: str
     # A cross-sectional z-mean under the active method. Valid as a SORT KEY only
@@ -92,6 +135,10 @@ class FundamentalCardResponse(_UwBase):
     # Names in the knowledge-quarter panel the percentiles were computed against.
     panel_size: int = 0
     subscores: list[FundamentalSubscore]
+    # Absent when the name is unrouted (no company_type) or has no band row yet.
+    # Absent, never an empty band: an empty band would assert "no view", which is
+    # a claim about the company rather than about our coverage.
+    anchors: FundamentalAnchors | None = None
     coverage: FundamentalCoverage
     provenance: FundamentalProvenance
 
@@ -101,5 +148,6 @@ _preserve_public_module(
     FundamentalSubscore,
     FundamentalCoverage,
     FundamentalProvenance,
+    FundamentalAnchors,
     FundamentalCardResponse,
 )

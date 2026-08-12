@@ -3,6 +3,7 @@ import { useEffect, useState } from "react";
 import type { components } from "@/lib/types";
 import { api } from "@/lib/api";
 import { fmtDecimal, fmtPct } from "@/lib/formatters";
+import { FundamentalAnchorBand } from "../panels/FundamentalAnchorBand";
 import { FundamentalSparkline } from "../panels/FundamentalSparkline";
 
 type Card = components["schemas"]["FundamentalCardResponse"];
@@ -221,12 +222,37 @@ export function FundamentalsTab({ ticker }: { ticker: string }) {
         >
           Cross-sectional z-mean of the seven measured features, against a panel
           of {card.panel_size} names. A sort key across the wide tier only —{" "}
-          <strong>not</strong>{" "}
-          an expected return. Fundamental change does not
+          <strong>not</strong> an expected return. Fundamental change does not
           precede this name&rsquo;s own drawdown (measured 2026-08-12); read
           every trajectory here as description, never as a price call.
         </div>
       </div>
+
+      {/* Above the subscores on purpose. The band is the one block carrying a
+          measured within-ticker claim (+0.0744, t 5.77); the subscore
+          trajectories below it are descriptive only, so the ordering matches
+          what each block is entitled to assert. */}
+      {card.anchors ? (
+        <div style={panelStyle} data-testid="fundamentals-anchors">
+          <FundamentalAnchorBand a={card.anchors} />
+        </div>
+      ) : (
+        <div style={panelStyle} data-testid="fundamentals-anchors-absent">
+          <div style={labelStyle}>VALUATION BAND</div>
+          <div
+            style={{
+              fontSize: 12,
+              color: "var(--text-muted)",
+              marginTop: 8,
+              lineHeight: 1.5,
+            }}
+          >
+            No band for this name — it has no <code>company_type</code>, so no
+            valuation method is routed to it. That is a gap in our coverage, not
+            a judgement about the company.
+          </div>
+        </div>
+      )}
 
       <div
         style={{

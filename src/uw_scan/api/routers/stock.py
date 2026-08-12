@@ -420,6 +420,7 @@ def get_stock_fundamentals(
         build_history,
         build_percentiles,
     )
+    from uw_scan.storage.fundamental_anchors import FundamentalAnchorsRepository
     from uw_scan.storage.fundamental_obs import FundamentalObsRepository
     from uw_scan.storage.fundamental_scores import FundamentalScoresRepository
 
@@ -446,6 +447,13 @@ def get_stock_fundamentals(
     )
     by_obs = obs.violations_by_obs(obs_ids)
 
+    # Scoped to the SAME engine_version as the subscores. A band computed under a
+    # retired method rendering beside live subscores would look current, with
+    # nothing on screen to say the two came from different methods.
+    anchors = FundamentalAnchorsRepository(conn, schema=schema).latest_for_ticker(
+        t, engine
+    )
+
     return FundamentalCardResponse.model_validate(
         build_card(
             ticker=t,
@@ -454,6 +462,7 @@ def get_stock_fundamentals(
             engine_version=engine,
             history=build_history(series, by_obs),
             percentiles=build_percentiles(cross, by_obs, t),
+            anchors=anchors,
         )
     )
 

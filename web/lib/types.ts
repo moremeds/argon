@@ -3284,9 +3284,63 @@ export interface components {
             win_rate: number;
         };
         /**
+         * FundamentalAnchors
+         * @description A price band from this name's OWN valuation history (spec §5.3, stage 3).
+         *
+         *     Each level is the price at which this company's valuation yield would sit at
+         *     a stated percentile of its own past: `buy_below` at the 80th (cheap),
+         *     `risk_above` at the 20th. Ascending in price, enforced by a schema CHECK.
+         *
+         *     Measured basis (2026-08-12): `sales_to_ev` carries a market-neutral 2q IC of
+         *     +0.0744 (t 5.77) within-ticker, rising to +0.0826 when a pure-reversal
+         *     control is held constant.
+         *
+         *     OWN-HISTORY, NEVER CROSS-SECTIONAL — the distinction is the whole result.
+         *     Ranking a name against OTHER names on value is INVERTED in this universe
+         *     (`book_to_price` IC -0.0365, t -2.32), so a peer-ranked `buy_below` would
+         *     point at the half of the panel that then underperforms.
+         *
+         *     Not a forecast, and no scenario grid: §7's base/bear/bull x 1y/3y needs a
+         *     validated growth model and there is none.
+         */
+        FundamentalAnchors: {
+            /** Company Type */
+            company_type: string;
+            /** Method */
+            method: string;
+            /** Buy Below */
+            buy_below?: number | null;
+            /** Observe Low */
+            observe_low?: number | null;
+            /** Observe Mid */
+            observe_mid?: number | null;
+            /** Observe High */
+            observe_high?: number | null;
+            /** Risk Above */
+            risk_above?: number | null;
+            /** Spot */
+            spot?: number | null;
+            /** Spot Percentile */
+            spot_percentile?: number | null;
+            /** History Quarters */
+            history_quarters: number;
+            /** Confidence */
+            confidence: string;
+            /**
+             * Confidence Reasons
+             * @default []
+             */
+            confidence_reasons: string[];
+            /**
+             * As Of
+             * Format: date
+             */
+            as_of: string;
+        };
+        /**
          * FundamentalCardResponse
-         * @description The deterministic blocks of §7. The valuation anchor, narrative and audit
-         *     blocks are absent rather than empty — they need stages 3-5.
+         * @description The deterministic blocks of §7. The narrative and audit blocks are absent
+         *     rather than empty — they need stages 4-5.
          */
         FundamentalCardResponse: {
             /** Ticker */
@@ -3311,6 +3365,7 @@ export interface components {
             panel_size: number;
             /** Subscores */
             subscores: components["schemas"]["FundamentalSubscore"][];
+            anchors?: components["schemas"]["FundamentalAnchors"] | null;
             coverage: components["schemas"]["FundamentalCoverage"];
             provenance: components["schemas"]["FundamentalProvenance"];
         };

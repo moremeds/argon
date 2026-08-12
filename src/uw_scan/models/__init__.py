@@ -38,6 +38,7 @@ from .flow import (
     ShortDataRow,
 )
 from .fundamentals import (
+    FundamentalAnchors,
     FundamentalCardResponse,
     FundamentalCoverage,
     FundamentalPercentile,
@@ -330,6 +331,7 @@ __all__ = [
     "FlowSnapshot",
     "VRPAssessment",
     "SetupClassification",
+    "FundamentalAnchors",
     "FundamentalCardResponse",
     "FundamentalCoverage",
     "FundamentalPercentile",

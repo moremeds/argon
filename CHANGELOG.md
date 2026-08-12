@@ -107,7 +107,49 @@ version in lockstep (enforced by `scripts/release/version_sync_check.py`).
   once corrected) complete with a plausible economic story. A one-line guard now
   warns when the realised median width falls under half the universe.
 
+### Added
+
+- **Valuation anchor band on the fundamental card (stage 3).** Migration `116`
+  adds `valuation_anchors` + `fundamental_company_type`;
+  `fundamentals/valuation.py` is the pure compute,
+  `storage/fundamental_anchors.py` the persistence,
+  `worker/jobs/fundamental_anchors.py` the job (plus sector-driven company-type
+  seeding), and `web/.../FundamentalAnchorBand.tsx` the surface. Each level is
+  the **price at which this company's valuation yield would sit at a stated
+  percentile of its own past** — `buy_below` at the 80th, `risk_above` at the
+  20th — with spot marked against it. 51 of 257 names band today; the rest are
+  unrouted, which the card states as a coverage gap rather than a verdict.
+- **`company_type` selects which yield, and nothing else.** A deliberate
+  narrowing of spec §5.3, which describes richer per-type methods
+  (peak/trough margin normalization, Rule-of-40 banding) written before any of
+  it was measured. What is measured is the plain own-history percentile of a
+  plain yield, so the routing keeps §5.3's anchor-basis column
+  (`chips_cyclical`/`software_growth`/`high_risk_growth` → `sales_to_ev`,
+  `platform_scale` → `fcf_yield`, `power_infra` → `ebitda_to_ev`) and drops the
+  modelling layer on top. §7's base/bear/bull × 1y/3y grid is **not built**: it
+  needs a validated growth model and there is none.
+- **The band ascends in price, enforced in Postgres.** A `CHECK` constraint, not
+  just a builder invariant — an out-of-order band is not a bad number, it is an
+  inverted recommendation, so it is unrepresentable rather than merely
+  unproduced. NULL levels compare to NULL and pass: an absent level is unknown,
+  not disordered, and renders as a dash rather than a boundary at zero.
+
 ### Fixed
+
+- **A currency mismatch produced a confident, plausible, wrong valuation band.**
+  Enterprise value adds a market cap to a balance-sheet figure, and for a
+  foreign issuer those are in different currencies: TSM files in TWD while its
+  ADR trades in USD, so on 2026-08-12 it carried revenue 4.45e12 (NT$) against a
+  2.10e12 (US$) market cap and an enterprise value of **−5.5e10** — while
+  printing five levels that looked like ordinary share prices ($443–574).
+  Nothing on screen would have said so. `build_anchors` now refuses any
+  EV-denominated band whose enterprise value is non-positive at the current
+  price, which catches any unit or currency mismatch without needing an FX table
+  or a list of foreign filers, and states the reason on the card. Caught by an
+  invariant, not by inspection: TSM was the only banded name whose spot
+  placement came back null, because that path was guarded and the band was not.
+  Both are guarded now, and the invariant — a band implies a spot placement —
+  holds across all 51.
 
 - **`fundamentals_refresh` has never persisted a row — it silently rolled back
   every night.** `_repo()` (`worker/scheduler.py`) opens a psycopg connection

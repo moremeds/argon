@@ -14,6 +14,8 @@ from __future__ import annotations
 
 from datetime import date
 
+import pytest
+
 from uw_scan.fundamentals.features import FEATURES
 from uw_scan.fundamentals.statements import (
     FIELD_MAP_VERSION,
@@ -21,6 +23,8 @@ from uw_scan.fundamentals.statements import (
     content_hash,
     normalize,
 )
+from uw_scan.fundamentals.valuation import LEVEL_ORDER
+from uw_scan.storage.fundamental_anchors import FundamentalAnchorsRepository
 from uw_scan.storage.fundamental_obs import FundamentalObsRepository
 from uw_scan.storage.fundamental_scores import FundamentalScoresRepository
 
@@ -168,6 +172,127 @@ def test_no_active_method_version_is_503_not_404(client, seeded_db_empty_cards):
     assert resp.status_code == 503
 
 
+def test_the_anchor_band_joins_on_the_active_engine_version(
+    client, seeded_db_empty_cards
+):
+    """The band and the subscores must come from ONE method version.
+
+    Covers the query, not the math: a band computed under a retired engine
+    rendering beside live subscores would look current, and nothing on the card
+    would say the two halves disagree.
+    """
+    _seed(seeded_db_empty_cards, with_violation=False)
+    anchors = FundamentalAnchorsRepository(
+        seeded_db_empty_cards.conn, schema=seeded_db_empty_cards._schema
+    )
+    anchors.assign("CEG", "power_infra")
+    # The retired band is scaled wholesale rather than given a single odd level:
+    # the schema CHECK rejects a descending band, so a "different" row has to be
+    # a valid band that is merely a different one.
+    for engine, band in (
+        (ENGINE, (196.4, 220.0, 250.9, 275.0, 300.9)),
+        ("retired-v0:zzzzzzzz", (900.0, 950.0, 999.0, 1050.0, 1100.0)),
+    ):
+        if engine != ENGINE:
+            FundamentalScoresRepository(
+                seeded_db_empty_cards.conn, schema=seeded_db_empty_cards._schema
+            ).register_version(
+                engine_version=engine,
+                code_version="retired-v0",
+                param_hash="zzzzzzzz",
+                params=dict.fromkeys(FEATURES, 1.0),
+                note="retired",
+            )
+        anchors.insert_anchors(
+            [
+                {
+                    "ticker": "CEG",
+                    "as_of": date(2026, 8, 14),
+                    "engine_version": engine,
+                    "inputs_hash": f"h-{engine}",
+                    "company_type": "power_infra",
+                    "method": "ebitda_to_ev",
+                    **dict(zip(LEVEL_ORDER, band)),
+                    "spot": 296.6,
+                    "spot_percentile": 0.32,
+                    "history_quarters": 19,
+                    "confidence": "medium",
+                    "confidence_reasons_jsonb": ["19 quarters of history"],
+                    "inputs_jsonb": {"numerator": "ebitda"},
+                    "source_obs_ids": [],
+                }
+            ]
+        )
+
+    band = client.get("/api/stock/CEG/fundamentals").json()["anchors"]
+    assert band["observe_mid"] == 250.9, "must not pick up the retired version"
+    assert band["method"] == "ebitda_to_ev"
+    assert band["confidence_reasons"] == ["19 quarters of history"]
+
+
+def test_a_name_with_no_company_type_has_no_band_rather_than_an_empty_one(
+    client, seeded_db_empty_cards
+):
+    """An empty band would assert "we looked and have no view", which is a claim
+    about the company. Absent says it is a gap in our routing."""
+    _seed(seeded_db_empty_cards, with_violation=False)
+    assert client.get("/api/stock/CEG/fundamentals").json()["anchors"] is None
+
+
+def test_a_manual_company_type_survives_a_reseed(client, seeded_db_empty_cards):
+    """The seeding heuristic is sector+chain — a starting point, not a verdict.
+    A nightly pass that undid every hand correction would make the override
+    useless, which is the whole reason `source` is recorded."""
+    _seed(seeded_db_empty_cards, with_violation=False)
+    repo = FundamentalAnchorsRepository(
+        seeded_db_empty_cards.conn, schema=seeded_db_empty_cards._schema
+    )
+    repo.assign("CEG", "power_infra", source="manual")
+    assert repo.assign("CEG", "chips_cyclical", source="seeded") is False
+    assert repo.company_type("CEG") == "power_infra"
+    # ... unless the caller explicitly asks to override.
+    assert repo.assign("CEG", "chips_cyclical", overwrite_manual=True) is True
+    assert repo.company_type("CEG") == "chips_cyclical"
+
+
+def test_the_schema_refuses_a_band_that_descends(client, seeded_db_empty_cards):
+    """Enforced in Postgres and not only in the builder: an inverted band tells
+    the reader to buy high, so it must be unrepresentable rather than merely
+    unproduced."""
+    import psycopg
+
+    _seed(seeded_db_empty_cards, with_violation=False)
+    repo = FundamentalAnchorsRepository(
+        seeded_db_empty_cards.conn, schema=seeded_db_empty_cards._schema
+    )
+    with pytest.raises(psycopg.errors.CheckViolation):
+        repo.insert_anchors(
+            [
+                {
+                    "ticker": "CEG",
+                    "as_of": date(2026, 8, 14),
+                    "engine_version": ENGINE,
+                    "inputs_hash": "bad",
+                    "company_type": "power_infra",
+                    "method": "ebitda_to_ev",
+                    "buy_below": 400.0,  # above risk_above
+                    "observe_low": 220.0,
+                    "observe_mid": 250.0,
+                    "observe_high": 275.0,
+                    "risk_above": 300.0,
+                    "spot": 296.6,
+                    "spot_percentile": 0.32,
+                    "history_quarters": 19,
+                    "confidence": "medium",
+                    "confidence_reasons_jsonb": [],
+                    "inputs_jsonb": {},
+                    "source_obs_ids": [],
+                }
+            ]
+        )
+    seeded_db_empty_cards.conn.rollback()
+
+
 def test_the_trajectory_comes_back_with_a_gap_at_the_flagged_quarter(
     client, seeded_db_empty_cards
 ):
@@ -216,4 +341,3 @@ def test_the_trajectory_comes_back_with_a_gap_at_the_flagged_quarter(
         0.5,
         0.5,
     ]
-
