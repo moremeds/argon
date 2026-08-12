@@ -49,6 +49,16 @@ version in lockstep (enforced by `scripts/release/version_sync_check.py`).
 
 ### Fixed
 
+- **The valuation band's labels did not line up with its own scale.** The rail
+  placed ticks by VALUE while the five level labels underneath were an evenly
+  spaced grid, so the two disagreed on **all 233 live bands** — median 20,
+  maximum 80 percentage points of panel width. AAPL printed "buy below 247.1"
+  under a position the rail read as ~253. Labels now sit at their own value,
+  staggered across two rows (measured: all five in one row leaves 90 of 233
+  with neighbours under 7pp apart; staggering lifts the median gap from 8.6pp
+  to 24.3pp and leaves 3 under 4pp), and the duplicate grid is gone. The gaps
+  between levels now carry information — AAPL's three cheap levels bunch at
+  247/256/263 with a gap before 299.5/305.3, which the even grid hid.
 - **A band with a missing END is refused instead of drawn** — the hole in the
   2026-08-12 width guard, which read `if lo and hi` and so skipped the check
   entirely when a level did not invert. JPM rendered `observe_mid` at **11.3

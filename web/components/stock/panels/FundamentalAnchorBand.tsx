@@ -10,6 +10,22 @@ const LEVELS = [
   ["risk_above", "risk above"],
 ] as const;
 
+/**
+ * Which of two stacked label rows each level is drawn in.
+ *
+ * Labels sit at their VALUE position on the rail, so they crowd wherever the
+ * band's levels crowd — and these levels are percentiles of one distribution,
+ * so they routinely bunch at one end. AAPL 2026-05-15 is typical: 247.1 / 256.3
+ * / 263.2 then a gap then 299.5 / 305.3.
+ *
+ * Measured over the 233 live bands, as a share of panel width: all five in one
+ * row leaves **90 of 233** with neighbours under 7pp apart. Alternating two rows
+ * lifts the median neighbour gap from 8.6pp to 24.3pp and leaves 3 under 4pp.
+ * Adjacent levels always land in different rows, so only every-other-level pairs
+ * can collide at all.
+ */
+const LABEL_ROW = [0, 1, 0, 1, 0] as const;
+
 const METHOD_LABEL: Record<string, string> = {
   sales_to_ev: "revenue / enterprise value",
   ebitda_to_ev: "EBITDA / enterprise value",
@@ -27,9 +43,16 @@ const money = (v: number) =>
  * - **A refusal renders, and says why.** All five levels null with reasons
  *   populated is a REFUSED band, not a missing one — TSM's statements are in TWD
  *   against a USD ADR quote, and stating that is more useful than an empty box.
- * - **A null level is a gap, never a boundary.** It is drawn as a dash in the
- *   ladder and skipped by the rail, because rendering it as 0 would place a
- *   "buy below $0" on screen.
+ * - **Every label sits at its own value on the rail.** It did not until
+ *   2026-08-12: the rail placed ticks by value while the labels underneath were
+ *   an evenly-spaced five-column grid, so the two disagreed on **all 233 live
+ *   bands**, by a median of 20 and a maximum of 80 percentage points of panel
+ *   width. AAPL printed "buy below 247.1" under a position the rail read as
+ *   ~253. A scale whose labels do not match its marks is not a scale.
+ * - **A null level is skipped, never drawn as a boundary.** Rendering it as 0
+ *   would place "buy below $0" on screen. The backend now refuses a band whose
+ *   end will not invert, so this should be unreachable from the API — it stays
+ *   because a component must not draw a number nobody computed.
  * - **No red/green ramp across the band.** The levels are locational, not a
  *   recommendation strength, and the one measured claim is a 2q rank IC — not
  *   an entry signal. Spot gets the only accent on the rail.
@@ -85,37 +108,16 @@ export function FundamentalAnchorBand({ a }: { a: Anchors }) {
     <section style={{ marginTop: 20 }}>
       <Header a={a} />
 
-      <div style={{ position: "relative", height: 46, marginBottom: 6 }}>
-        <div
-          style={{
-            position: "absolute",
-            top: 20,
-            left: 0,
-            right: 0,
-            height: 2,
-            background: "var(--border-dim)",
-          }}
-        />
-        {known.map((p) => (
-          <div
-            key={p.key}
-            style={{
-              position: "absolute",
-              left: `${pos(p.value)}%`,
-              top: 14,
-              width: 1,
-              height: 14,
-              background: "var(--text-muted)",
-            }}
-            title={`${p.label} ${money(p.value)}`}
-          />
-        ))}
+      {/* One axis. Spot and its stem sit ABOVE the rail; every level's tick and
+          its label sit BELOW, both placed by the same `pos()`. Nothing here is
+          evenly spaced — the gaps between levels are the information. */}
+      <div style={{ position: "relative", height: 96, marginBottom: 4 }}>
         {spot != null ? (
           <div
             style={{
               position: "absolute",
               left: `${pos(spot)}%`,
-              top: 4,
+              top: 0,
               transform: "translateX(-50%)",
               display: "flex",
               flexDirection: "column",
@@ -142,26 +144,63 @@ export function FundamentalAnchorBand({ a }: { a: Anchors }) {
             />
           </div>
         ) : null}
+
+        <div
+          style={{
+            position: "absolute",
+            top: 36,
+            left: 0,
+            right: 0,
+            height: 2,
+            background: "var(--border-dim)",
+          }}
+        />
+
+        {known.map((p) => {
+          const row = LABEL_ROW[LEVELS.findIndex(([k]) => k === p.key)] ?? 0;
+          return (
+            <div key={p.key}>
+              {/* Tick hangs BELOW the rail so it cannot be mistaken for, or
+                  hidden behind, the spot stem above it — AAPL's spot (300.2)
+                  and observe_high (299.5) land 0.7pp apart. */}
+              <div
+                style={{
+                  position: "absolute",
+                  left: `${pos(p.value)}%`,
+                  top: 36,
+                  width: 1,
+                  height: row === 0 ? 6 : 24,
+                  background: "var(--border-dim)",
+                }}
+              />
+              <div
+                style={{
+                  position: "absolute",
+                  left: `${pos(p.value)}%`,
+                  top: row === 0 ? 44 : 62,
+                  transform: "translateX(-50%)",
+                  textAlign: "center",
+                  whiteSpace: "nowrap",
+                }}
+                title={`${p.label} ${money(p.value)}`}
+              >
+                <div style={{ fontFamily: "var(--font-mono)", fontSize: 11 }}>
+                  {money(p.value)}
+                </div>
+                <div style={{ color: "var(--text-muted)", fontSize: 9 }}>
+                  {p.label}
+                </div>
+              </div>
+            </div>
+          );
+        })}
       </div>
 
-      <div
-        style={{
-          display: "grid",
-          gridTemplateColumns: "repeat(5, 1fr)",
-          gap: 6,
-          fontFamily: "var(--font-mono)",
-          fontSize: 11,
-        }}
-      >
-        {points.map((p) => (
-          <div key={p.key} style={{ textAlign: "center" }}>
-            <div style={{ color: "var(--text-muted)", fontSize: 9 }}>
-              {p.label}
-            </div>
-            <div>{p.value == null ? "—" : money(p.value)}</div>
-          </div>
-        ))}
-      </div>
+      {/* No second row of values. The five-column grid that used to live here
+          was an evenly-spaced restatement of numbers the rail already carries at
+          their true positions, and being adjacent to a value-scaled axis it read
+          as that axis's labels. Removing it is the fix; the rail above is now
+          the single place a level's price and its position are stated. */}
 
       {a.confidence_reasons.length > 0 ? (
         <ul

@@ -74,11 +74,66 @@ describe("FundamentalAnchorBand", () => {
     );
   });
 
-  it("draws a null level as a dash, never as a zero", () => {
-    // "buy below 0.00" would be a boundary the data does not support.
+  it("omits a null level entirely, never drawing it as a zero", () => {
+    // "buy below 0.00" would be a boundary the data does not support. The level
+    // is now simply absent from the axis rather than shown as a dash in a
+    // separate table — that table was removed, see the alignment test below.
     render(<FundamentalAnchorBand a={band({ buy_below: null })} />);
-    expect(screen.getByText("—")).toBeTruthy();
     expect(screen.queryByText("0.00")).toBeNull();
+    expect(screen.queryByText("255.4")).toBeNull();
+    expect(screen.queryByText("buy below")).toBeNull();
+    // The remaining four still render.
+    expect(screen.getByText("349.1")).toBeTruthy();
+  });
+
+  it("places every label at the same position as its own tick", () => {
+    // THE regression test. The rail placed ticks by value while the labels below
+    // were an evenly-spaced five-column grid, so on all 233 live bands the two
+    // disagreed — median 20, max 80 percentage points of panel width. AAPL
+    // printed "buy below 247.1" under a spot the rail read as ~253.
+    //
+    // Asserting label-left == tick-left is what makes the axis an axis; a test
+    // that only checked "the number appears somewhere" passed throughout the bug.
+    const { container } = render(<FundamentalAnchorBand a={band()} />);
+    const positioned = Array.from(container.querySelectorAll("div")).filter(
+      (d) => (d as HTMLElement).style.left !== "",
+    ) as HTMLElement[];
+
+    for (const [, label] of [
+      ["buy_below", "buy below"],
+      ["observe_low", "observe low"],
+      ["observe_mid", "observe mid"],
+      ["observe_high", "observe high"],
+      ["risk_above", "risk above"],
+    ] as const) {
+      const text = positioned.find((d) => d.textContent?.endsWith(label));
+      expect(text, `label block for ${label}`).toBeTruthy();
+      // Its tick carries the identical left; find a zero-text sibling matching it.
+      const tick = positioned.find(
+        (d) => d.textContent === "" && d.style.left === text!.style.left,
+      );
+      expect(
+        tick,
+        `tick aligned with ${label} at ${text!.style.left}`,
+      ).toBeTruthy();
+    }
+  });
+
+  it("spaces labels by value, not evenly — the gaps carry the information", () => {
+    // CRM's levels bunch: 255.4 / 264.0 / 291.1 / 312.7 / 349.1. An even layout
+    // would put them at 10/30/50/70/90% and imply a uniform spread the data does
+    // not have. buy_below and observe_low are 8.7 apart out of a 178-wide rail
+    // span (spot 171.3 sets the low end), so they must sit close together.
+    const { container } = render(<FundamentalAnchorBand a={band()} />);
+    const lefts = (
+      Array.from(container.querySelectorAll("div")) as HTMLElement[]
+    )
+      .filter((d) => d.style.left !== "" && d.textContent !== "")
+      .map((d) => parseFloat(d.style.left))
+      .sort((x, y) => x - y);
+    const gaps = lefts.slice(1).map((v, i) => v - lefts[i]);
+    expect(Math.min(...gaps)).toBeLessThan(10);
+    expect(Math.max(...gaps)).toBeGreaterThan(15);
   });
 
   it("renders a refusal with its reason instead of an empty band", () => {
