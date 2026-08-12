@@ -143,6 +143,58 @@ class FundamentalCardResponse(_UwBase):
     provenance: FundamentalProvenance
 
 
+class FundamentalComponentSeries(_UwBase):
+    """One plotted series on a card's back.
+
+    `role` separates the figures the ratio is COMPUTED FROM from those merely
+    shown alongside it. Only `input` series participate in the reconciliation
+    invariant, so a renderer must not blend the two into one visual class.
+    """
+
+    key: str
+    label: str
+    # "input" | "context"
+    role: str
+    # "currency" | "ratio" | "turns"
+    unit: str
+    values: list[float | None]
+
+
+class FundamentalFeatureDetail(_UwBase):
+    """One feature's components and the ratio they produce.
+
+    `basis` is stated per feature because it is not uniform: `gross_margin` and
+    `op_margin` are quarterly, the rest are TTM or mix a TTM flow with a
+    point-in-time balance. An unlabelled shared axis would invite a comparison
+    none of them support.
+    """
+
+    feature: str
+    # "ttm" | "quarterly" | "mixed"
+    basis: str
+    unit: str
+    series: list[FundamentalComponentSeries]
+    # Oldest-first, aligned to `period_ends`. Null where an input was absent —
+    # never 0, which is a figure rather than an absence.
+    ratio: list[float | None]
+
+
+class FundamentalStatementsResponse(_UwBase):
+    """The back-side payload for one ticker.
+
+    Components are resolved server-side and the client performs no ratio math.
+    A client-side re-derivation would be a second copy of `build_features`, and
+    the two would drift until the back silently contradicted the front.
+    """
+
+    ticker: str
+    period_ends: list[str]
+    # Per the filer. TSM files TWD against a USD ADR quote, so an unlabelled
+    # axis is the same defect that produced a negative enterprise value here.
+    reported_currency: str | None
+    features: list[FundamentalFeatureDetail]
+
+
 _preserve_public_module(
     FundamentalPercentile,
     FundamentalSubscore,
@@ -150,4 +202,7 @@ _preserve_public_module(
     FundamentalProvenance,
     FundamentalAnchors,
     FundamentalCardResponse,
+    FundamentalComponentSeries,
+    FundamentalFeatureDetail,
+    FundamentalStatementsResponse,
 )

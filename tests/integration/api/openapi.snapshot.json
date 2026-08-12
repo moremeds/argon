@@ -4815,6 +4815,50 @@
         "title": "FundamentalCardResponse",
         "type": "object"
       },
+      "FundamentalComponentSeries": {
+        "description": "One plotted series on a card's back.\n\n`role` separates the figures the ratio is COMPUTED FROM from those merely\nshown alongside it. Only `input` series participate in the reconciliation\ninvariant, so a renderer must not blend the two into one visual class.",
+        "properties": {
+          "key": {
+            "title": "Key",
+            "type": "string"
+          },
+          "label": {
+            "title": "Label",
+            "type": "string"
+          },
+          "role": {
+            "title": "Role",
+            "type": "string"
+          },
+          "unit": {
+            "title": "Unit",
+            "type": "string"
+          },
+          "values": {
+            "items": {
+              "anyOf": [
+                {
+                  "type": "number"
+                },
+                {
+                  "type": "null"
+                }
+              ]
+            },
+            "title": "Values",
+            "type": "array"
+          }
+        },
+        "required": [
+          "key",
+          "label",
+          "role",
+          "unit",
+          "values"
+        ],
+        "title": "FundamentalComponentSeries",
+        "type": "object"
+      },
       "FundamentalCoverage": {
         "description": "The explicit absence list. Mandatory, not a footer.\n\n`missing` and `suppressed` are kept apart on purpose: \"never reported\" and\n\"reported and not believed\" are different facts about a company.",
         "properties": {
@@ -4848,6 +4892,53 @@
           "suppressed"
         ],
         "title": "FundamentalCoverage",
+        "type": "object"
+      },
+      "FundamentalFeatureDetail": {
+        "description": "One feature's components and the ratio they produce.\n\n`basis` is stated per feature because it is not uniform: `gross_margin` and\n`op_margin` are quarterly, the rest are TTM or mix a TTM flow with a\npoint-in-time balance. An unlabelled shared axis would invite a comparison\nnone of them support.",
+        "properties": {
+          "basis": {
+            "title": "Basis",
+            "type": "string"
+          },
+          "feature": {
+            "title": "Feature",
+            "type": "string"
+          },
+          "ratio": {
+            "items": {
+              "anyOf": [
+                {
+                  "type": "number"
+                },
+                {
+                  "type": "null"
+                }
+              ]
+            },
+            "title": "Ratio",
+            "type": "array"
+          },
+          "series": {
+            "items": {
+              "$ref": "#/components/schemas/FundamentalComponentSeries"
+            },
+            "title": "Series",
+            "type": "array"
+          },
+          "unit": {
+            "title": "Unit",
+            "type": "string"
+          }
+        },
+        "required": [
+          "feature",
+          "basis",
+          "unit",
+          "series",
+          "ratio"
+        ],
+        "title": "FundamentalFeatureDetail",
         "type": "object"
       },
       "FundamentalPercentile": {
@@ -4913,6 +5004,48 @@
           "source_obs_count"
         ],
         "title": "FundamentalProvenance",
+        "type": "object"
+      },
+      "FundamentalStatementsResponse": {
+        "description": "The back-side payload for one ticker.\n\nComponents are resolved server-side and the client performs no ratio math.\nA client-side re-derivation would be a second copy of `build_features`, and\nthe two would drift until the back silently contradicted the front.",
+        "properties": {
+          "features": {
+            "items": {
+              "$ref": "#/components/schemas/FundamentalFeatureDetail"
+            },
+            "title": "Features",
+            "type": "array"
+          },
+          "period_ends": {
+            "items": {
+              "type": "string"
+            },
+            "title": "Period Ends",
+            "type": "array"
+          },
+          "reported_currency": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Reported Currency"
+          },
+          "ticker": {
+            "title": "Ticker",
+            "type": "string"
+          }
+        },
+        "required": [
+          "ticker",
+          "period_ends",
+          "reported_currency",
+          "features"
+        ],
+        "title": "FundamentalStatementsResponse",
         "type": "object"
       },
       "FundamentalSubscore": {
@@ -27650,6 +27783,61 @@
           }
         },
         "summary": "Get Stock Fundamentals",
+        "tags": [
+          "stock"
+        ]
+      }
+    },
+    "/api/stock/{ticker}/fundamentals/statements": {
+      "get": {
+        "description": "Per-feature input components behind the card's ratios.\n\nServed separately from the card rather than folded into it, so the card's\nown contract and its OpenAPI snapshot stay untouched and the two payloads\ncan evolve independently.\n\nReads through `statement_panel`, the same path the scoring job uses, so\n\"which observation is current\" cannot diverge between the front of a card\nand its back.\n\n404 here means \"no statements ingested\", which is deliberately NOT the card\nendpoint's condition (\"no score row\"). The two can legitimately disagree \u2014\na name can hold statements and no score yet \u2014 and withholding real figures\nbecause a different table lags would be the dishonest answer.",
+        "operationId": "get_stock_fundamental_statements_api_stock__ticker__fundamentals_statements_get",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "ticker",
+            "required": true,
+            "schema": {
+              "title": "Ticker",
+              "type": "string"
+            }
+          },
+          {
+            "in": "query",
+            "name": "quarters",
+            "required": false,
+            "schema": {
+              "default": 20,
+              "maximum": 40,
+              "minimum": 1,
+              "title": "Quarters",
+              "type": "integer"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/FundamentalStatementsResponse"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Get Stock Fundamental Statements",
         "tags": [
           "stock"
         ]

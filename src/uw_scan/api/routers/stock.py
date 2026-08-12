@@ -25,6 +25,7 @@ from uw_scan.models import (
     ChanlunLifecycleMark,
     ChanlunLifecycleResponse,
     FundamentalCardResponse,
+    FundamentalStatementsResponse,
     MagnetsResponse,
     SingleStockReport,
     StockHistoryResponse,
@@ -465,6 +466,45 @@ def get_stock_fundamentals(
             anchors=anchors,
         )
     )
+
+
+@router.get(
+    "/stock/{ticker}/fundamentals/statements",
+    response_model=FundamentalStatementsResponse,
+)
+def get_stock_fundamental_statements(
+    ticker: str,
+    quarters: int = Query(20, ge=1, le=40),
+    repo: Repository = Depends(get_repo),
+    settings: Settings = Depends(get_settings),
+) -> FundamentalStatementsResponse:
+    """Per-feature input components behind the card's ratios.
+
+    Served separately from the card rather than folded into it, so the card's
+    own contract and its OpenAPI snapshot stay untouched and the two payloads
+    can evolve independently.
+
+    Reads through `statement_panel`, the same path the scoring job uses, so
+    "which observation is current" cannot diverge between the front of a card
+    and its back.
+
+    404 here means "no statements ingested", which is deliberately NOT the card
+    endpoint's condition ("no score row"). The two can legitimately disagree —
+    a name can hold statements and no score yet — and withholding real figures
+    because a different table lags would be the dishonest answer.
+    """
+    from uw_scan.fundamentals.features import build_feature_details
+    from uw_scan.storage.fundamental_obs import FundamentalObsRepository
+
+    t = ticker.upper()
+    obs = FundamentalObsRepository(repo.conn, schema=settings.db_schema)
+    panel = obs.statement_panel([t])
+    entry = panel.get(t)
+    if not entry or not entry["income-statements"]:
+        raise HTTPException(status_code=404, detail=f"no statements for {t}")
+
+    detail = build_feature_details(entry, quarters=quarters)
+    return FundamentalStatementsResponse(ticker=t, **detail)
 
 
 _MAGNET_CANDLE_WINDOW = 180

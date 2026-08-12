@@ -40,9 +40,12 @@ from .flow import (
 from .fundamentals import (
     FundamentalAnchors,
     FundamentalCardResponse,
+    FundamentalComponentSeries,
     FundamentalCoverage,
+    FundamentalFeatureDetail,
     FundamentalPercentile,
     FundamentalProvenance,
+    FundamentalStatementsResponse,
     FundamentalSubscore,
 )
 from .gold import (
@@ -351,9 +354,12 @@ __all__ = [
     "SetupClassification",
     "FundamentalAnchors",
     "FundamentalCardResponse",
+    "FundamentalComponentSeries",
     "FundamentalCoverage",
+    "FundamentalFeatureDetail",
     "FundamentalPercentile",
     "FundamentalProvenance",
+    "FundamentalStatementsResponse",
     "FundamentalSubscore",
     "MagnetCandle",
     "MagnetConeBand",
