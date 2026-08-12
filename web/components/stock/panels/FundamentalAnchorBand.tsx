@@ -218,16 +218,17 @@ function Header({ a }: { a: Anchors }) {
           <>
             {"Cheaper than "}
             <strong>{`${Math.round(pct * 100)}%`}</strong>
-            {` of this company’s own history on ${
+            {` of this company’s last ${a.history_quarters} quarters on ${
               METHOD_LABEL[a.method] ?? a.method
             }. `}
           </>
         ) : null}
         {"Levels are percentiles of its "}
         <strong>own</strong>
-        {" past, not a ranking against other companies — measured " +
-          "within-ticker, where ranking names against each other on value " +
-          "is inverted."}
+        {" recent range, not a ranking against other companies — measured " +
+          "within-ticker, where ranking names against each other on value is " +
+          "inverted. A trailing window, because these multiples re-rate: a " +
+          "full-history percentile is a price from a regime that has gone."}
       </p>
     </>
   );

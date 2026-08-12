@@ -150,6 +150,23 @@ version in lockstep (enforced by `scripts/release/version_sync_check.py`).
   placement came back null, because that path was guarded and the band was not.
   Both are guarded now, and the invariant — a band implies a spot placement —
   holds across all 51.
+- **The band's price levels were unreachable, and the fix is a measured trailing
+  window.** Shipped on the expanding window the verdict measured, ASML's
+  `buy_below` landed at **255.7 against a spot of 1518** — a sixth of the price,
+  a level it would not see in a 2008-scale crisis. Two unrelated causes:
+  **non-stationarity** (ASML's `sales_to_ev` median fell 5.5x from its oldest
+  quarter-quartile to its newest, NVDA's `fcf_yield` 2.8x, so a full-history
+  percentile is a price from a regime that has gone) and **sign-crossing**
+  (TSLA's free cash flow was negative in 36 of 65 quarters, so most percentiles
+  of its `fcf_yield` sit at or below zero and have no price inversion — its band
+  rendered 2 of 5 levels). The underlying error was interpretive: the IC
+  validated an ORDERING, and the band inverted it into absolute PRICE levels,
+  which no rank statistic licenses. Re-running the probe across (expanding, 40q,
+  20q, 12q) keeps the effect at every width — `sales_to_ev` 0.0744 (t 5.77) /
+  0.0642 / **0.0604 (t 5.45)** / 0.0639 — so the expanding window was never
+  load-bearing. **20 quarters ships**: TSLA's negative-FCF quarters fall out
+  entirely (0 of 20) and every band lands within reach of spot. Trace and the
+  full revision: `docs/research/2026-08-12-fundamental-valuation-timeseries/VERDICT.md`.
 - **The quiet half of the same bug: three filers banded from unconverted
   foreign-currency statements.** The EV guard above only catches the
   catastrophic case. ASML's ~16% EUR gap produced a full band at
@@ -173,10 +190,18 @@ version in lockstep (enforced by `scripts/release/version_sync_check.py`).
   JSON null — measured on AMZN, APLD, OXY, VST, WDC. A newest-first currency walk
   stops on that sentinel, which had reclassified NBIS (genuinely RUB on its real
   rows) as a domestic filer. Sentinels are skipped rather than accepted.
-- **Known gap, stated on the card rather than papered over:** the lake carries
-  `USDEUR` only, so TSM (TWD) is refused with a reason naming the missing
-  `USDTWD` series. FRED `DEXTAUS` is the obvious source and is unreachable from
-  the dev sandbox, so it is left as a livewire ask rather than guessed at.
+- **`fx` registered as a lake asset class** (`lake_fx_root` setting +
+  `lake_resolver._ASSET_CLASS_TO_LOCAL_ATTR`/`_ASSET_CLASS_CANARY`), closing R10
+  from the livewire brief. The FX root is now configured rather than derived by
+  string surgery on the equity root. Canary is `USDEUR`, not `USDTWD`: it is the
+  pair present in every mirror measured so far, and a canary that only exists on
+  the mini would report a healthy lake as broken everywhere else.
+- **TSM's refusal is a thin dev mirror, not a missing source.** The mini's lake
+  already carries `USDTWD` (5,395 rows from 2004-03-24, current to 2026-08-10 —
+  §3.6 of the livewire brief); the MacBook mirror has only `USDEUR`, which is why
+  it refuses locally. No FRED dependency and no livewire ask: TSM bands wherever
+  the full mirror is present, and where it is not, the card names the missing
+  series instead of showing a number.
 
 - **`fundamentals_refresh` has never persisted a row — it silently rolled back
   every night.** `_repo()` (`worker/scheduler.py`) opens a psycopg connection

@@ -6,16 +6,20 @@ the self-check.
 WHAT AN ANCHOR IS HERE
 ----------------------
 Each level is the PRICE at which this company's valuation yield would sit at a
-stated percentile of its own history:
+stated percentile of its own RECENT history — the trailing `WINDOW_QUARTERS`:
 
     yield        = fundamental / EV,     EV = price * shares + net_debt
     EV_at_target = fundamental / target_yield
     price        = (EV_at_target - net_debt) / shares
 
 High yield means cheap, so the percentiles run downward through the band:
-`buy_below` is the 80th percentile of the name's own yield history (cheap),
+`buy_below` is the 80th percentile of the name's own yield window (cheap),
 `risk_above` the 20th (expensive). The levels are therefore monotone in price by
 construction, and `_self_check` asserts it rather than trusting it.
+
+The window is trailing, not the full history, and that is load-bearing rather
+than a tuning choice — see `WINDOW_QUARTERS` for the two failures it fixes and
+the probe that says the signal survives it.
 
 THIS IS A DELIBERATE NARROWING OF SPEC §5.3, AND THE REASON IS THE MEASUREMENT
 ------------------------------------------------------------------------------
@@ -93,14 +97,38 @@ TYPE_YIELD: dict[str, str] = {
 #: and skipping that step misprices every levered name by exactly its net debt.
 EV_DENOMINATED = frozenset({"sales_to_ev", "ebitda_to_ev"})
 
-#: Quarters of a name's own history required before a percentile means anything.
+#: TRAILING quarters the percentiles are drawn from. Five years.
+#:
+#: Not the full history, and the reason is measured. Valuation multiples in this
+#: universe are strongly non-stationary: ASML's `sales_to_ev` median fell from
+#: 0.5089 in its oldest quarter-quartile to 0.0926 in its newest — a 5.5x
+#: structural re-rating — and NVDA's `fcf_yield` 2.8x. A full-history 80th
+#: percentile is therefore a multiple from a regime that has gone, and inverting
+#: it put ASML's `buy_below` at 255.7 against a spot of 1518: not a conservative
+#: level but an unreachable one, which is no information at all.
+#:
+#: It also fixes a second, unrelated break. TSLA's free cash flow was negative in
+#: 36 of its 65 quarters, so most full-history percentiles of `fcf_yield` sit at
+#: or below zero and have NO price inversion — its band rendered with three of
+#: five levels missing. Across the trailing 20 quarters, 0 of 20 are negative.
+#:
+#: The window is measured, not assumed. Re-running the validation probe over
+#: (expanding, 40q, 20q, 12q) keeps the effect at every width — `sales_to_ev`
+#: goes 0.0744 (t 5.77) / 0.0642 / 0.0604 (t 5.45) / 0.0639 — so a trailing
+#: window costs little signal and buys a reachable band. 20 over 12 because a
+#: percentile wants points to resolve: 12 gives a slightly higher t and a much
+#: coarser distribution.
+#: Trace: docs/research/2026-08-12-fundamental-valuation-timeseries/.
+WINDOW_QUARTERS = 20
+
+#: Quarters required WITHIN the window before a percentile means anything.
 #: Matches the research harness's warmup exactly — a band computed off fewer
 #: points would be a band the measurement never covered.
 MIN_HISTORY = 12
 
-#: Below this the band is emitted with `confidence='low'`. The signal was measured
-#: on names carrying 24+ observations.
-THIN_HISTORY = 24
+#: Below this the band is emitted with `confidence='medium'`. With a 20-quarter
+#: window a full history is 20, so this flags names that cannot fill it.
+THIN_HISTORY = 20
 
 #: A filing older than this makes the numerator stale relative to the price the
 #: band is being compared against.
@@ -242,13 +270,21 @@ def build_anchors(
         return _no_anchor(
             ticker, company_type, method, [f"{method} numerator is not positive"]
         )
-    clean = sorted(v for v in history if v is not None and math.isfinite(v))
+    # Take the trailing window BEFORE sorting: `history` arrives oldest-first, so
+    # slicing after the sort would keep the twenty largest yields rather than the
+    # twenty most recent, silently building the band from a name's cheapest era.
+    recent = [v for v in history if v is not None and math.isfinite(v)]
+    window = recent[-WINDOW_QUARTERS:]
+    clean = sorted(window)
     if len(clean) < MIN_HISTORY:
         return _no_anchor(
             ticker,
             company_type,
             method,
-            [f"only {len(clean)} quarters of own history, need {MIN_HISTORY}"],
+            [
+                f"only {len(clean)} of the last {WINDOW_QUARTERS} quarters are "
+                f"usable, need {MIN_HISTORY}"
+            ],
         )
 
     ev_based = method in EV_DENOMINATED
@@ -292,7 +328,8 @@ def build_anchors(
 
     if len(clean) < THIN_HISTORY:
         reasons.append(
-            f"{len(clean)} quarters of history, below the {THIN_HISTORY} the signal was measured on"
+            f"only {len(clean)} usable quarters in the trailing "
+            f"{WINDOW_QUARTERS}-quarter window"
         )
     if knowledge_age_days is not None and knowledge_age_days > STALE_DAYS:
         reasons.append(
@@ -376,9 +413,37 @@ def _self_check() -> None:
     assert out["confidence"] == "high", out
     assert out["method"] == "sales_to_ev"
 
-    # buy_below sits at the 80th percentile of the yield history.
-    y80 = percentile(hist, 0.80)
+    # buy_below sits at the 80th percentile of the TRAILING WINDOW, not of the
+    # full history — and `hist` ascends, so the two differ by a lot here.
+    y80 = percentile(hist[-WINDOW_QUARTERS:], 0.80)
     assert abs(a["buy_below"] - (1000.0 / y80) / 100.0) < 1e-9
+    assert out["history_quarters"] == WINDOW_QUARTERS
+
+    # The window is the MOST RECENT quarters, not the largest values. Slicing
+    # after the sort would build the band from the name's cheapest era whenever
+    # its multiple had re-rated, which is the failure this window exists to fix.
+    falling = list(reversed(hist))  # richest first, cheapest last
+    fell = build_anchors(
+        ticker="AAA",
+        company_type="chips_cyclical",
+        history=falling,
+        fundamental=1000.0,
+        net_debt=0.0,
+        shares=100.0,
+        spot=50.0,
+        knowledge_age_days=30,
+    )
+    assert fell["anchors"]["buy_below"] != a["buy_below"], (
+        "reversing the series must change the band, or the slice is order-blind"
+    )
+    # `percentile` takes an ASCENDING list, and this slice is descending.
+    assert (
+        abs(
+            fell["anchors"]["buy_below"]
+            - (1000.0 / percentile(sorted(falling[-WINDOW_QUARTERS:]), 0.80)) / 100.0
+        )
+        < 1e-9
+    )
 
     # Net debt shifts an EV-denominated band DOWN by exactly net_debt/shares.
     lev = build_anchors(
@@ -435,7 +500,7 @@ def _self_check() -> None:
 
     # Every refusal path names itself rather than returning an empty band.
     for kwargs, want in (
-        ({"history": hist[:5]}, "own history"),
+        ({"history": hist[:5]}, "quarters are usable"),
         ({"fundamental": -10.0}, "not positive"),
         ({"suppressed": True}, "data-quality"),
         ({"company_type": "nonsense"}, "unknown company_type"),

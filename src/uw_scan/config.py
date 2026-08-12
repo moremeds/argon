@@ -350,6 +350,17 @@ class Settings(BaseModel):
             "(HYG/JNK/LQD). Symbol subdirs are named symbol=<TICKER>."
         ),
     )
+    # Parquet lake root for FX dailies. Same layout as the vol-index lake;
+    # `USD<CCY>` holds <CCY> per one USD. Used to translate foreign filers'
+    # statements before any valuation anchor is computed — see
+    # `fundamentals/fx.py` for why an unconverted band is worse than no band.
+    lake_fx_root: Path = Field(
+        default=Path.home() / "market-warehouse/data-lake/bronze/asset_class=fx",
+        description=(
+            "Local parquet lake root for FX daily rates. Symbol subdirs are "
+            "named symbol=USD<CCY> and hold <CCY> per one USD."
+        ),
+    )
     # Root of the whole market-warehouse lake (parent of bronze/silver/gold).
     # Distinct from the two asset-class roots above, which point at specific
     # bronze partitions. Read by reports/vrp_macro_drawdown.py.

@@ -107,6 +107,49 @@ SIGNALS = {
 #: say what survives in each valuation signal once it is held constant.
 CONTROL = "neg_past_ret"
 
+#: Standardization windows to compare, in quarters. `None` is the EXPANDING
+#: window the 2026-08-12 verdict measured.
+#:
+#: WHY THIS IS NOW ASKED. The expanding window validated an ORDERING, and the
+#: anchor band then inverted its percentiles into PRICE levels — a step the IC
+#: never licensed. Measured on the same panel: ASML's `sales_to_ev` median fell
+#: from 0.5089 in its oldest quarter-quartile to 0.0926 in its newest, a 5.5x
+#: structural re-rating, so the full-history 80th percentile (0.4414) is a
+#: 2006-era multiple. Inverted to a price it puts `buy_below` at roughly a sixth
+#: of spot — a level the stock would not reach in a 2008-scale crisis, which is
+#: not a conservative band but an empty one. NVDA shows the same at 2.8x.
+#:
+#: The question this run answers: does a trailing window keep the IC? If it does,
+#: the band can be rebuilt on a reachable range with the signal still measured.
+#: If it does not, the price levels come off the card and only the percentile
+#: stays.
+WINDOWS = (None, 40, 20, 12)
+
+
+def rolling_z(values, window):
+    """Z-score each point against the trailing `window` observations.
+
+    `window=None` delegates to the expanding version the verdict was measured
+    with, so the two paths cannot drift apart.
+    """
+    if window is None:
+        return T.expanding_z(values)
+    out = []
+    seen = []
+    for v in values:
+        if v is None:
+            out.append(None)
+            continue
+        seen.append(v)
+        tail = seen[-window:]
+        if len(tail) < T.MIN_HISTORY:
+            out.append(None)
+            continue
+        mu = sum(tail) / len(tail)
+        sd = (sum((x - mu) ** 2 for x in tail) / len(tail)) ** 0.5
+        out.append(((v - mu) / sd) if sd else 0.0)
+    return out
+
 
 def trailing_return(px: list, know, horizon: int) -> float | None:
     """Return over the `horizon` sessions ENDING at the knowledge date.
@@ -196,7 +239,14 @@ def main() -> int:
         # (each point is scaled by a different running sd), so leaving the
         # control raw would compare two differently-shaped signals.
         raw_past = [trailing_return(adj[t], know, T.HORIZONS["2q"]) for _, know in keep]
-        zs = {s: T.expanding_z([r[s] for r in raw_vals]) for s in SIGNALS}
+        # One z-series per (signal, window). The window is the thing under test:
+        # the expanding one validated an ORDERING that the anchor band then
+        # inverted into price levels it never licensed.
+        zs = {
+            f"{s}|w{w}": rolling_z([r[s] for r in raw_vals], w)
+            for s in SIGNALS
+            for w in WINDOWS
+        }
         zs[CONTROL] = T.expanding_z([(-r if r is not None else None) for r in raw_past])
 
         obs: list[dict[str, Any]] = []
@@ -205,9 +255,9 @@ def main() -> int:
                 "know": know,
                 "bucket": f"{know.year}Q{(know.month - 1) // 3 + 1}",
             }
-            for s in (*SIGNALS, CONTROL):
-                entry[s] = zs[s][j]
-            if all(entry[s] is None for s in SIGNALS):
+            for key in zs:
+                entry[key] = zs[key][j]
+            if all(entry[f"{s}|w{WINDOWS[0]}"] is None for s in SIGNALS):
                 continue
             for h, days in T.HORIZONS.items():
                 ret, dd = T.forward_outcomes(adj[t], know, days)
@@ -242,7 +292,8 @@ def main() -> int:
 
     print("4. per-ticker time-series IC ...", flush=True)
     results: dict[str, Any] = {}
-    for signal in (*SIGNALS, CONTROL):
+    signal_keys = [f"{s}|w{w}" for s in SIGNALS for w in WINDOWS] + [CONTROL]
+    for signal in signal_keys:
         for h in T.HORIZONS:
             for outcome in (f"ret_{h}", f"ret_{h}_dm", f"dd_{h}", f"dd_{h}_dm"):
                 ics = []
@@ -264,7 +315,7 @@ def main() -> int:
 
     print("5. partial IC, holding reversal constant ...", flush=True)
     partials: dict[str, Any] = {}
-    for signal in SIGNALS:
+    for signal in [f"{s}|w{w}" for s in SIGNALS for w in WINDOWS]:
         for outcome in ("ret_2q_dm", "ret_2q"):
             ics = []
             for obs in rows.values():
@@ -312,20 +363,20 @@ def main() -> int:
     (OUT_DIR / "results.md").write_text(_render(payload))
     print(f"\nwrote {OUT_DIR}/valuation_timeseries.json + results.md")
 
-    print("\n== de-marketed 2q forward return — raw IC vs IC holding reversal fixed")
-    for signal in (*SIGNALS, CONTROL):
-        r = results.get(f"{signal}|ret_2q_dm")
-        if not r:
-            continue
-        pt = partials.get(f"{signal}|ret_2q_dm")
-        tail = (
-            f"   partial {pt['mean_ic']:+.4f} (t {pt['t_stat']})"
-            if pt
-            else "   <- the control itself"
-        )
-        print(
-            f"   {signal:<16} IC {r['mean_ic']:+.4f} (t {r['t_stat']}){tail}",
-        )
+    print("\n== de-marketed 2q IC by standardization window")
+    header = "   signal".ljust(20) + "".join(
+        f"{'expanding' if w is None else str(w) + 'q':>18}" for w in WINDOWS
+    )
+    print(header)
+    for s in SIGNALS:
+        cells = ""
+        for w in WINDOWS:
+            r = results.get(f"{s}|w{w}|ret_2q_dm")
+            cells += f"{r['mean_ic']:+.4f} (t{r['t_stat']:>5}) " if r else f"{'na':>18}"
+        print(f"   {s:<17}{cells}")
+    ctrl = results.get(f"{CONTROL}|ret_2q_dm")
+    if ctrl:
+        print(f"\n   {CONTROL} (control): {ctrl['mean_ic']:+.4f} (t {ctrl['t_stat']})")
     return 0
 
 

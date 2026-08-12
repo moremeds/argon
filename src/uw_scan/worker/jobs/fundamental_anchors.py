@@ -302,7 +302,7 @@ def fundamental_anchors(
     schema: str = "uw_scan",
     tickers: list[str] | None = None,
     as_of: date | None = None,
-    fx_root: Path | None = None,
+    fx_root: Path,
 ) -> dict[str, int]:
     """Compute and persist anchor bands. Returns counters, never raises per ticker."""
     obs = FundamentalObsRepository(conn, schema=schema)
@@ -326,7 +326,7 @@ def fundamental_anchors(
         for t in universe
     }
     fx_series = {
-        c: load_fx(fx_root or lake_root.parent / "asset_class=fx", c)
+        c: load_fx(fx_root, c)
         for c in {
             v
             for per_ccy in currencies.values()

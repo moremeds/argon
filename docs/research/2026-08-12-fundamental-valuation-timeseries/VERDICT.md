@@ -113,6 +113,46 @@ worth reading — it is not a pipeline that manufactures findings.
    spot marked against it. It is not a backtested rule, has no sizing, and no
    position exists behind it.
 
+## Revision, 2026-08-12: the window, and what the IC did NOT license
+
+The band shipped on the EXPANDING window this verdict measured, and the levels
+it produced were unusable. ASML's `buy_below` landed at **255.7 against a spot of
+1518** — a sixth of the price, a level it would not reach in a 2008-scale crisis.
+That is not a conservative band, it is an empty one.
+
+**The error was mine in interpretation, not in the measurement.** This test
+validated an ORDERING: within a ticker, the yield's rank against its own history
+sorts forward returns. The anchor band then inverted those percentiles into
+absolute PRICE levels, which the IC never licensed — the same shape as the
+already-recorded lesson that a rank IC measures the typical name while a book
+earns the mean.
+
+Two things broke, and they are unrelated:
+
+| failure | measured | affected |
+|---|---|---|
+| **non-stationarity** — multiples re-rate, so a full-history percentile is a price from a regime that has gone | ASML `sales_to_ev` median 0.5089 (oldest quarter-quartile) → 0.0926 (newest), **5.5x**; NVDA `fcf_yield` 2.8x | every name that re-rated |
+| **sign-crossing** — a fundamental that was negative has percentiles at or below zero, which have no price inversion | TSLA free cash flow negative in **36 of 65** quarters; its band rendered 2 of 5 levels | loss-making history |
+
+**A trailing window fixes both, and the signal survives it.** Re-running this
+probe across (expanding, 40q, 20q, 12q):
+
+| signal | expanding | 40q | 20q | 12q |
+|---|---:|---:|---:|---:|
+| `sales_to_ev` | +0.0744 (t 5.77) | +0.0642 (t 5.04) | **+0.0604 (t 5.45)** | +0.0639 (t 6.19) |
+| `fcf_yield` | +0.0457 (t 3.64) | +0.0406 | +0.0324 | +0.0419 |
+| `ebitda_to_ev` | +0.0446 (t 3.41) | +0.0302 | +0.0239 | +0.0414 |
+
+The effect holds at every width, so the expanding window was never load-bearing.
+**20 quarters shipped**: 12 carries a marginally higher t but resolves a
+percentile across only 12 points. At 20q, TSLA's negative-FCF quarters fall out
+entirely (0 of 20), ASML's `buy_below` moves 255.7 → **1028.1**, and every band
+lands within reach of spot.
+
+Recorded because the failure is instructive: every number in the broken band was
+correctly computed, and it was still useless. Reachability is a property a
+validated IC does not confer, and nothing in this document promised it.
+
 ## What this unblocks
 
 The ANCHOR stage (`valuation_anchors`, spec §5.3) proceeds, and its five levels

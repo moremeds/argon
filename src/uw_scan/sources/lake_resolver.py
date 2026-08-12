@@ -35,6 +35,7 @@ logger = logging.getLogger(__name__)
 _ASSET_CLASS_TO_LOCAL_ATTR: dict[str, str] = {
     "volatility": "lake_vol_index_root",
     "equity": "lake_credit_etf_root",
+    "fx": "lake_fx_root",
 }
 
 # Canary symbol per asset_class — read its `max(trade_date)` to probe lake
@@ -44,6 +45,10 @@ _ASSET_CLASS_TO_LOCAL_ATTR: dict[str, str] = {
 _ASSET_CLASS_CANARY: dict[str, str] = {
     "volatility": "VIX",
     "equity": "SPY",
+    # USDEUR rather than USDTWD: it is the pair present in every mirror measured
+    # so far, including the thin MacBook one. A canary that only exists on the
+    # mini reports a healthy lake as broken everywhere else.
+    "fx": "USDEUR",
 }
 
 
@@ -116,9 +121,7 @@ def resolve_lake_root(settings: Settings, *, asset_class: str) -> LakeRoot:
 
     r2_latest = _probe_max_trade_date(r2_root, asset_class)
     local_latest = _probe_max_trade_date(local_root, asset_class)
-    if local_latest is not None and (
-        r2_latest is None or local_latest > r2_latest
-    ):
+    if local_latest is not None and (r2_latest is None or local_latest > r2_latest):
         logger.warning(
             "lake resolver: local mirror ahead of R2 for asset_class=%s "
             "(local=%s, r2=%s) — using local. Repair producer→R2 push to "

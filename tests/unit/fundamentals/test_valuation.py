@@ -18,6 +18,7 @@ import pytest
 
 from uw_scan.fundamentals.valuation import (
     LEVEL_ORDER,
+    WINDOW_QUARTERS,
     METHOD_NUMERATOR,
     MIN_HISTORY,
     TYPE_YIELD,
@@ -55,11 +56,24 @@ def test_the_band_ascends_in_price():
     assert prices == sorted(prices)
 
 
-def test_buy_below_is_the_80th_percentile_of_the_names_own_yields():
-    """The whole method in one assertion: the level is the price at which this
-    company's own yield would sit at the 80th percentile of its own past."""
-    expected = (1000.0 / percentile(HISTORY, 0.80)) / 100.0
+def test_buy_below_is_the_80th_percentile_of_the_trailing_window():
+    """The whole method in one assertion — and the window is why it is not the
+    full history: multiples here re-rate structurally, so a full-history 80th
+    percentile is a multiple from a regime that has gone."""
+    expected = (1000.0 / percentile(HISTORY[-WINDOW_QUARTERS:], 0.80)) / 100.0
     assert _band()["anchors"]["buy_below"] == pytest.approx(expected)
+    # ... and demonstrably NOT the full-history percentile, which this fixture
+    # makes a very different number.
+    full = (1000.0 / percentile(HISTORY, 0.80)) / 100.0
+    assert _band()["anchors"]["buy_below"] != pytest.approx(full)
+
+
+def test_the_window_is_the_most_recent_quarters_not_the_largest_values():
+    """Slicing after the sort would build the band from a name's cheapest era
+    whenever its multiple had re-rated — the exact failure the window fixes."""
+    rising = _band()["anchors"]["buy_below"]
+    falling = _band(history=list(reversed(HISTORY)))["anchors"]["buy_below"]
+    assert rising != pytest.approx(falling)
 
 
 def test_net_debt_shifts_an_ev_band_and_leaves_a_market_cap_band_alone():
@@ -108,7 +122,7 @@ def test_a_level_that_cannot_be_inverted_is_a_gap_not_a_zero():
 @pytest.mark.parametrize(
     ("kwargs", "expected"),
     [
-        ({"history": HISTORY[: MIN_HISTORY - 1]}, "own history"),
+        ({"history": HISTORY[: MIN_HISTORY - 1]}, "quarters are usable"),
         ({"fundamental": -10.0}, "not positive"),
         ({"suppressed": True}, "data-quality"),
         ({"company_type": "nonsense"}, "unknown company_type"),
