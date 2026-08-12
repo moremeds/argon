@@ -13,6 +13,19 @@ vi.mock("@/lib/api", () => ({
       if (nextError) throw nextError;
       return nextCard;
     },
+    // Mount-time fetch for the card backs. Returns an empty payload: these
+    // tests are about the FRONTS, and a null-ish statements payload is a state
+    // the tab must render cleanly anyway.
+    //
+    // Without this key the tab's mount fetch throws `is not a function`, the
+    // component's catch swallows it, and all 15 tests below keep passing while
+    // silently exercising the failure path.
+    fundamentalStatements: async () => ({
+      ticker: "CEG",
+      period_ends: [],
+      reported_currency: null,
+      features: [],
+    }),
   },
 }));
 

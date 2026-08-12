@@ -7464,3 +7464,22 @@ tr {
   border-color: var(--text-muted);
   color: var(--text-primary);
 }
+
+/* The back replaces the front on flip. The rotation is decoration; the state
+   change is not, so it must not depend on the animation running — hence the
+   no-preference guard rather than a reduce override. */
+@media (prefers-reduced-motion: no-preference) {
+  [data-testid^="subscore-back-"] {
+    animation: card-flip-in 180ms ease-out;
+  }
+}
+@keyframes card-flip-in {
+  from {
+    transform: rotateY(-12deg);
+    opacity: 0;
+  }
+  to {
+    transform: none;
+    opacity: 1;
+  }
+}

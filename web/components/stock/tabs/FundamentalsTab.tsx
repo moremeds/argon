@@ -4,9 +4,11 @@ import type { components } from "@/lib/types";
 import { api } from "@/lib/api";
 import { fmtDecimal, fmtPct } from "@/lib/formatters";
 import { FundamentalAnchorBand } from "../panels/FundamentalAnchorBand";
+import { FundamentalCardBack } from "../panels/FundamentalCardBack";
 import { FundamentalSparkline } from "../panels/FundamentalSparkline";
 
 type Card = components["schemas"]["FundamentalCardResponse"];
+type Statements = components["schemas"]["FundamentalStatementsResponse"];
 type Subscore = components["schemas"]["FundamentalSubscore"];
 type Pct = components["schemas"]["FundamentalPercentile"];
 
@@ -62,12 +64,80 @@ function formatValue(s: Subscore): string {
   return s.unit === "ratio" ? fmtPct(s.value, 1) : `${fmtDecimal(s.value, 2)}x`;
 }
 
-function SubscoreTile({ s, dates }: { s: Subscore; dates: string[] }) {
+/** The back before its data arrives — or after the fetch failed.
+ *
+ * These are different states and must read differently. A failed fetch left
+ * showing "Loading…" claims progress that will never arrive, and the reader
+ * waits instead of reloading. */
+function BackPlaceholder({
+  failed,
+  onClose,
+}: {
+  failed: boolean;
+  onClose: () => void;
+}) {
+  return (
+    <div style={{ fontSize: 11, color: "var(--text-muted)" }}>
+      {failed ? (
+        <>
+          <strong style={{ color: "var(--warning)" }}>
+            Components unavailable.
+          </strong>{" "}
+          The statement history did not load. The ratio on the front of the card
+          is unaffected.
+        </>
+      ) : (
+        "Loading components…"
+      )}
+      <button
+        type="button"
+        onClick={onClose}
+        aria-label="Close details"
+        style={{
+          background: "none",
+          border: "1px solid var(--border-dim)",
+          borderRadius: 3,
+          color: "var(--text-muted)",
+          cursor: "pointer",
+          fontSize: 10,
+          marginLeft: 8,
+          padding: "2px 8px",
+        }}
+      >
+        close
+      </button>
+    </div>
+  );
+}
+
+function SubscoreTile({
+  s,
+  dates,
+  onOpen,
+}: {
+  s: Subscore;
+  dates: string[];
+  onOpen: () => void;
+}) {
   const suppressed = s.suppressed_by.length > 0;
   const series = s.series ?? [];
   return (
-    <div
-      style={{ ...panelStyle, padding: 12 }}
+    // A native button, not a div with handlers: Enter, Space, focus order and
+    // the right role all come for free, and reimplementing them is how they get
+    // missed. `font`/`color`/`textAlign` undo the UA button defaults so the tile
+    // still looks like its neighbours.
+    <button
+      type="button"
+      onClick={onOpen}
+      style={{
+        ...panelStyle,
+        padding: 12,
+        textAlign: "left",
+        cursor: "pointer",
+        font: "inherit",
+        color: "inherit",
+        width: "100%",
+      }}
       data-testid={`subscore-${s.feature}`}
     >
       <div
@@ -117,13 +187,30 @@ function SubscoreTile({ s, dates }: { s: Subscore; dates: string[] }) {
             : "no direction claimed"}
         </div>
       )}
-    </div>
+    </button>
   );
 }
 
 export function FundamentalsTab({ ticker }: { ticker: string }) {
   const [card, setCard] = useState<Card | null>(null);
   const [error, setError] = useState<string | null>(null);
+  // All three carry the ticker they belong to, and the render derives from
+  // that rather than from a reset in an effect. Two reasons, both load-bearing:
+  // effects run AFTER render, so a reset leaves one frame showing the previous
+  // ticker's components under the new ticker's header — a wrong chart that
+  // looks right; and resetting state inside an effect is what
+  // `react-hooks/set-state-in-effect` flags. Deriving makes the stale frame
+  // unrepresentable instead of merely brief.
+  const [openFeature, setOpenFeature] = useState<{
+    ticker: string;
+    feature: string;
+  } | null>(null);
+  const [statements, setStatements] = useState<Statements | null>(null);
+  const [failedTicker, setFailedTicker] = useState<string | null>(null);
+
+  const stmts = statements?.ticker === ticker ? statements : null;
+  const open = openFeature?.ticker === ticker ? openFeature.feature : null;
+  const statementsFailed = failedTicker === ticker;
 
   useEffect(() => {
     let live = true;
@@ -141,6 +228,37 @@ export function FundamentalsTab({ ticker }: { ticker: string }) {
       live = false;
     };
   }, [ticker]);
+
+  // Fetched on mount, not deferred to the first flip: the eighth card's
+  // headline comes from this payload, so deferring would leave that card
+  // showing an em dash until the reader happened to open some OTHER card.
+  useEffect(() => {
+    let live = true;
+    void (async () => {
+      try {
+        const s = await api.fundamentalStatements(ticker);
+        if (live) setStatements(s);
+      } catch {
+        // A missing back is not a broken card: the front still states every
+        // ratio. But it must render as UNAVAILABLE, not as loading — leaving
+        // `statements` null with no failure flag spins "Loading components…"
+        // forever, which claims progress that will never come.
+        if (live) setFailedTicker(ticker);
+      }
+    })();
+    return () => {
+      live = false;
+    };
+  }, [ticker]);
+
+  useEffect(() => {
+    if (open == null) return;
+    const onKey = (e: KeyboardEvent) => {
+      if (e.key === "Escape") setOpenFeature(null);
+    };
+    document.addEventListener("keydown", onKey);
+    return () => document.removeEventListener("keydown", onKey);
+  }, [open]);
 
   if (error) {
     return (
@@ -261,9 +379,41 @@ export function FundamentalsTab({ ticker }: { ticker: string }) {
           gap: 12,
         }}
       >
-        {card.subscores.map((s) => (
-          <SubscoreTile key={s.feature} s={s} dates={dates} />
-        ))}
+        {card.subscores.map((s) => {
+          const detail = stmts?.features.find((f) => f.feature === s.feature);
+          if (open === s.feature) {
+            return (
+              <div
+                key={s.feature}
+                style={{ ...panelStyle, padding: 12, gridColumn: "1 / -1" }}
+                data-testid={`subscore-back-${s.feature}`}
+              >
+                {detail && stmts ? (
+                  <FundamentalCardBack
+                    detail={detail}
+                    periods={stmts.period_ends}
+                    currency={stmts.reported_currency}
+                    label={LABELS[s.feature] ?? s.feature}
+                    onClose={() => setOpenFeature(null)}
+                  />
+                ) : (
+                  <BackPlaceholder
+                    failed={statementsFailed}
+                    onClose={() => setOpenFeature(null)}
+                  />
+                )}
+              </div>
+            );
+          }
+          return (
+            <SubscoreTile
+              key={s.feature}
+              s={s}
+              dates={dates}
+              onOpen={() => setOpenFeature({ ticker, feature: s.feature })}
+            />
+          );
+        })}
       </div>
 
       <div style={panelStyle} data-testid="fundamentals-coverage">
