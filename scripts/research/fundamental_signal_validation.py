@@ -336,6 +336,22 @@ def zscore(vals: dict[str, float]) -> dict[str, float]:
     return {k: ((x - mu) / sd if sd else 0.0) for k, x in vals.items()}
 
 
+def composite_scores(zs: dict[str, dict[str, float]], tickers: Any) -> dict[str, float]:
+    """Composite = mean of available z-scores, renormalized by presence.
+
+    Extracted so the cost/turnover study scores names with THIS implementation
+    rather than a copy of it. A portfolio built on a subtly different composite
+    would be costing a different signal than the one validated, and the
+    difference would be invisible in both sets of numbers.
+    """
+    comp: dict[str, float] = {}
+    for t in tickers:
+        got = [zs[f][t] for f in zs if t in zs[f]]
+        if len(got) >= 4:  # refuse to score a name on <4 of 7 features
+            comp[t] = sum(got) / len(got)
+    return comp
+
+
 def quarterly_ics(
     panel: dict[str, dict[str, dict[str, Any]]],
     buckets: list[str],
@@ -374,12 +390,7 @@ def quarterly_ics(
                 if ic is not None:
                     per_feature[feat].append(ic)
                 zs[feat] = zscore(vals)
-        # composite = mean of available z-scores, renormalized by presence
-        comp = {}
-        for t in rets:
-            got = [zs[f][t] for f in zs if t in zs[f]]
-            if len(got) >= 4:  # refuse to score a name on <4 of 7 features
-                comp[t] = sum(got) / len(got)
+        comp = composite_scores(zs, rets)
         if len(comp) >= MIN_CROSS_SECTION:
             ic = spearman([comp[t] for t in comp], [rets[t] for t in comp])
             if ic is not None:

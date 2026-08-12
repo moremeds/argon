@@ -545,6 +545,23 @@ core-25 width", and the way to satisfy it is to rank at 245, not to delete ranki
 that is a legitimate sort key at 245 and an illegitimate one at 25 is one number with two
 scopes — the scope travels with it (§7, §8), rather than the feature being removed from both.
 
+**What "ships" means, bounded by measurement (rev 6, 2026-08-12).** The ranking ships as a
+**research and triage surface**, never as a strategy. The cost/turnover study formed the actual
+portfolio and found **no gross alpha to erode at any slice** — top 10% quarterly alpha −0.0007
+(t −0.09), top 33% +0.0006 (t +0.16), and the top-minus-bottom spread *negative* at every width.
+Costs never enter the argument because there is nothing for them to consume.
+
+The reconciliation is the finding: mean return-rank climbs across deciles 0–8 (0.475 → 0.526) and
+median return climbs with it (+0.0145 → +0.0409), but **mean return does not** — the worst-ranked
+decile carries the highest mean (+0.0601) alongside the lowest median (+0.0145), because severe
+right-tail skew sits precisely in the names the composite ranks worst. A rank IC measures the typical
+name; an equal-weighted book earns the mean. They were never the same quantity.
+
+So: no sizing, no "expected return" language, no turnover budget, and no framing of §8's screen as a
+portfolio construction input. Ordering names by structural quality for a human to then look at is the
+job it is validated for. Verdict:
+`docs/research/2026-08-12-fundamental-cost-turnover/VERDICT.md`.
+
 The cost is honest and bounded: ~3 UW calls per ticker per refresh, so a full ranked-tier refresh is
 ~735 calls against a 120k/day budget. Statements are quarterly, so this is a weekly job, not a daily
 one. Nothing about stage 1–2 requires the name to be on the watchlist — UW statement endpoints are

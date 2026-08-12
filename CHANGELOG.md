@@ -137,6 +137,32 @@ version in lockstep (enforced by `scripts/release/version_sync_check.py`).
 
 ### Research
 
+- **The 245-name ranking earns nothing, and transaction costs are not why.**
+  `scripts/research/fundamental_cost_turnover.py` forms the actual quarterly
+  portfolio. Gross quarterly alpha before any cost: top 10% **−0.0007** (t −0.09),
+  top 20% +0.0007 (t +0.15), top 33% +0.0006 (t +0.16); every |t| ≤ 1.06 and the
+  top-minus-bottom spread is **negative** at all three widths. The break-even-cost
+  column is arithmetic on a zero numerator and must not be quoted. Verdict:
+  `docs/research/2026-08-12-fundamental-cost-turnover/VERDICT.md`.
+- **Why a t = 3.09 ordering pays zero — the decile profile reconciles it.** Mean
+  return-rank climbs 0.475 → 0.526 across deciles 0–8 and median return climbs
+  with it (+0.0145 → +0.0409), but mean return does not: the **worst**-ranked
+  decile carries the **highest** mean (+0.0601) with the **lowest** median
+  (+0.0145). Severe right-tail skew sits exactly where the composite ranks worst.
+  A rank IC measures the typical name; an equal-weighted book earns the mean.
+  This also kills the obvious salvage — "avoid the bottom decile" discards the
+  biggest winners with the worst losers.
+- **The decile-9 reversal is recorded, not acted on.** Deciles 7–8 carry the best
+  return-rank and decile 9 falls back; picking them after seeing ten deciles is
+  data snooping, so it is flagged as needing a pre-committed test with a stated
+  mechanism rather than turned into a recommendation.
+- **Consequence (spec §4.3 rev 6): the ranked screen ships as a triage surface,
+  never a strategy.** No sizing, no expected-return language, no turnover budget,
+  not a portfolio-construction input.
+- `composite_scores` extracted from `fundamental_signal_validation` so the cost
+  study scores names with the **same** implementation the IC was produced with;
+  verified behaviour-preserving by re-running the wide validation and confirming
+  `validation_wide.json` is byte-identical.
 - **A name's own fundamental deterioration does NOT precede its own drawdown —
   a powered null, and it closes the question the card is built on.**
   `scripts/research/fundamental_timeseries_test.py`, 250 tickers, 16,857
