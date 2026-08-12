@@ -14,6 +14,11 @@ import psycopg
 from uw_scan.macro_evidence import macro_observation_content_hash
 from uw_scan.models.macro import MacroSourceArtifact
 from uw_scan.sources.fed_sep import FedSepProvider, SepRelease, parse_sep_release
+from uw_scan.sources.fed_funds_futures_path import (
+    FedFundsFuturesPathProvider,
+    FedFundsFuturesSnapshot,
+    parse_fed_funds_futures_snapshot,
+)
 from uw_scan.sources.fomc_statement import (
     FomcStatementProvider,
     FomcStatementRelease,
@@ -150,6 +155,41 @@ def macro_sme_ingest_job(
         )
     except Exception as exc:
         return _record_failure(dsn, "new_york_fed_sme", seen_at, exc)
+
+
+def macro_market_implied_ingest_job(
+    *,
+    dsn: str,
+    current_target_range: str | None,
+    provider_factory: Callable[[], _ContextProvider] = FedFundsFuturesPathProvider,
+    observed_at: datetime | None = None,
+    max_attempts: int = 3,
+    backoff_base_seconds: float = 1.0,
+    sleep_fn: Callable[[float], None] = time.sleep,
+) -> MacroPolicyIngestResult:
+    seen_at = observed_at or datetime.now(UTC)
+    try:
+        bundle = _fetch_with_retry(
+            lambda provider: provider.fetch_bundle(retrieved_at=seen_at),
+            provider_factory=provider_factory,
+            max_attempts=max_attempts,
+            backoff_base_seconds=backoff_base_seconds,
+            sleep_fn=sleep_fn,
+        )
+        return _persist_release_bundles(
+            dsn=dsn,
+            source="frenzy_capital",
+            bundles=[bundle],
+            artifacts_for=lambda item: (item.artifact,),
+            primary_for=lambda item: item.artifact,
+            parser=lambda item: parse_fed_funds_futures_snapshot(
+                item, current_target_range=current_target_range
+            ),
+            row_builder=_market_observation,
+            seen_at=seen_at,
+        )
+    except Exception as exc:
+        return _record_failure(dsn, "frenzy_capital", seen_at, exc)
 
 
 def _fetch_with_retry(
@@ -417,6 +457,46 @@ def _sme_observation(
         series_id="POLICY_PATH_DEALER_EXPECTATIONS",
         period_end=release.response_due_date,
         published_at=release.published_at,
+        available_at=artifact.available_at,
+        value=value,
+    )
+
+
+def _market_observation(
+    release: FedFundsFuturesSnapshot,
+    artifact_id: int,
+    artifact: MacroSourceArtifact,
+) -> dict[str, Any]:
+    points = []
+    for point in release.points:
+        assert point.implied_rate is not None
+        probabilities = point.probabilities or {}
+        points.append(
+            {
+                "horizon": point.label,
+                "horizon_date": point.meeting_date.isoformat(),
+                "rate_percent": _decimal_text(point.implied_rate),
+                "probability_distribution": [
+                    {
+                        "label": label,
+                        "probability_percent": _decimal_text(probability * 100),
+                    }
+                    for label, probability in sorted(probabilities.items())
+                ],
+            }
+        )
+    value = {
+        "kind": "market_implied",
+        "delay_status": release.delay_status,
+        "delay_minutes": release.delay_minutes,
+        "points": points,
+    }
+    return _observation_base(
+        artifact_id=artifact_id,
+        artifact=artifact,
+        series_id="POLICY_PATH_MARKET_IMPLIED",
+        period_end=artifact.available_at.date(),
+        published_at=None,
         available_at=artifact.available_at,
         value=value,
     )

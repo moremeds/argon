@@ -17,17 +17,21 @@ def _path(
     *,
     rate: Decimal,
     source: str,
+    source_kind: str = "official",
     cost_class: str = "free_official",
     delay_minutes: int | None = None,
+    delay_status: str = "not_applicable",
 ) -> PolicyPath:
     return PolicyPath(
         kind=kind,
         source=source,
+        source_kind=source_kind,
         source_record_id=f"{source}:2026-06",
         published_at=datetime(2026, 6, 17, 18, tzinfo=UTC),
         available_at=datetime(2026, 6, 17, 18, tzinfo=UTC),
         cost_class=cost_class,
         delay_minutes=delay_minutes,
+        delay_status=delay_status,
         points=[
             PolicyPathPoint(
                 horizon="2026",
@@ -90,32 +94,88 @@ def test_removing_one_path_does_not_mutate_another() -> None:
     assert without_dealer.dealer_expectations.path is None
 
 
-def test_market_shadow_requires_explicit_cost_and_delay_labels() -> None:
+def test_market_shadow_requires_explicit_cost_and_honest_delay_label() -> None:
     with pytest.raises(ValueError, match="free_third_party_shadow"):
         _path(
             "market_implied",
             rate=Decimal("3.5"),
             source="Frenzy Capital Fed Watch",
+            source_kind="third_party_shadow",
         )
 
-    with pytest.raises(ValueError, match="delay_minutes"):
+    with pytest.raises(ValueError, match="delay_status"):
         _path(
             "market_implied",
             rate=Decimal("3.5"),
             source="Frenzy Capital Fed Watch",
+            source_kind="third_party_shadow",
             cost_class="free_third_party_shadow",
         )
+
+    unknown_delay = _path(
+        "market_implied",
+        rate=Decimal("3.5"),
+        source="Frenzy Capital Fed Watch",
+        source_kind="third_party_shadow",
+        cost_class="free_third_party_shadow",
+        delay_status="unknown",
+    )
+    assert unknown_delay.delay_minutes is None
 
     shadow = _path(
         "market_implied",
         rate=Decimal("3.5"),
         source="Frenzy Capital Fed Watch",
+        source_kind="third_party_shadow",
         cost_class="free_third_party_shadow",
         delay_minutes=15,
+        delay_status="known",
     )
     comparison = assemble_policy_paths([shadow], as_of=AS_OF)
     assert comparison.market_implied.path is shadow
     assert comparison.market_implied.path.delay_minutes == 15
+
+    with pytest.raises(ValueError, match="known delay"):
+        _path(
+            "market_implied",
+            rate=Decimal("3.5"),
+            source="Frenzy Capital Fed Watch",
+            source_kind="third_party_shadow",
+            cost_class="free_third_party_shadow",
+            delay_minutes=15,
+            delay_status="unknown",
+        )
+
+
+def test_market_shadow_contract_uses_typed_provenance_not_provider_name() -> None:
+    alias = _path(
+        "market_implied",
+        rate=Decimal("3.5"),
+        source="replacement_market_feed",
+        source_kind="third_party_shadow",
+        cost_class="free_third_party_shadow",
+        delay_status="unknown",
+    )
+    assert alias.source_kind == "third_party_shadow"
+
+    with pytest.raises(ValueError, match="market_implied source_kind"):
+        _path(
+            "market_implied",
+            rate=Decimal("3.5"),
+            source="untyped_market_feed",
+            source_kind="official",
+            cost_class="free_official",
+        )
+
+    with pytest.raises(ValueError, match="third_party_shadow"):
+        _path(
+            "committee_projection",
+            rate=Decimal("3.5"),
+            source="replacement_market_feed",
+            source_kind="third_party_shadow",
+            cost_class="free_third_party_shadow",
+            delay_status="unknown",
+        )
 
 
 def test_assembler_rejects_path_not_available_as_of() -> None:

@@ -40,6 +40,7 @@ MacroFrequency = Literal[
 PolicyPathKind = Literal[
     "actual", "committee_projection", "dealer_expectations", "market_implied"
 ]
+PolicyPathDelayStatus = Literal["known", "unknown", "not_applicable"]
 
 
 class MacroSourceArtifact(_UwBase):
@@ -199,25 +200,46 @@ class PolicyPathPoint(_UwBase):
 class PolicyPath(_UwBase):
     kind: PolicyPathKind
     source: str
+    source_kind: MacroSourceKind
     source_record_id: str
     published_at: AwareDatetime | None = None
     available_at: AwareDatetime
     cost_class: MacroCostClass
+    delay_status: PolicyPathDelayStatus = "not_applicable"
     delay_minutes: int | None = None
     points: list[PolicyPathPoint]
     evidence_refs: list[MacroEvidenceRef] = Field(default_factory=list)
 
     @model_validator(mode="after")
-    def _validate_shadow_contract(self) -> "PolicyPath":
-        if "frenzy" in self.source.lower():
-            if self.kind != "market_implied":
-                raise ValueError("Frenzy evidence must be market_implied")
+    def _validate_source_contract(self) -> "PolicyPath":
+        if self.kind == "market_implied":
+            if self.source_kind != "third_party_shadow":
+                raise ValueError(
+                    "market_implied source_kind must be third_party_shadow"
+                )
             if self.cost_class != "free_third_party_shadow":
                 raise ValueError(
-                    "Frenzy evidence requires free_third_party_shadow cost_class"
+                    "third_party_shadow evidence requires "
+                    "free_third_party_shadow cost_class"
                 )
-            if self.delay_minutes is None or self.delay_minutes < 0:
-                raise ValueError("Frenzy evidence requires nonnegative delay_minutes")
+            if self.delay_status == "not_applicable":
+                raise ValueError(
+                    "third_party_shadow evidence requires explicit delay_status"
+                )
+            if self.delay_status == "known" and (
+                self.delay_minutes is None or self.delay_minutes < 0
+            ):
+                raise ValueError(
+                    "third_party_shadow evidence with known delay requires minutes"
+                )
+            if self.delay_status == "unknown" and self.delay_minutes is not None:
+                raise ValueError(
+                    "third_party_shadow evidence cannot attach minutes to unknown delay"
+                )
+        elif self.source_kind == "third_party_shadow":
+            raise ValueError("third_party_shadow evidence must be market_implied")
+        elif self.delay_status != "not_applicable" or self.delay_minutes is not None:
+            raise ValueError("delay labels only apply to market_implied paths")
         if not self.points:
             raise ValueError("policy path requires at least one point")
         return self

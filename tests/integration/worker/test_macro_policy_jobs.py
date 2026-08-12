@@ -12,10 +12,12 @@ from uw_scan.config import Settings
 from uw_scan.macro.policy_report import build_policy_comparison
 from uw_scan.sources.fed_sep import SepSourceBundle
 from uw_scan.sources.fomc_statement import FomcStatementBundle
+from uw_scan.sources.fed_funds_futures_path import FedFundsFuturesSourceBundle
 from uw_scan.sources.nyfed_sme import SmeSourceBundle
 from uw_scan.storage.repository import Repository
 from uw_scan.worker.jobs.macro_policy_jobs import (
     macro_fomc_statement_ingest_job,
+    macro_market_implied_ingest_job,
     macro_sep_ingest_job,
     macro_sme_ingest_job,
 )
@@ -133,6 +135,36 @@ class _SmeProvider:
                 "2026/jun-2026-sme-results.pdf"
             ),
             report_bytes=(FIXTURES / "nyfed_sme_2026_06.pdf").read_bytes(),
+            retrieved_at=retrieved_at,
+        )
+
+
+class _MarketProvider:
+    def __enter__(self):
+        return self
+
+    def __exit__(self, *_exc):
+        return None
+
+    def fetch_bundle(self, *, retrieved_at):
+        raw = b"""
+        <script>window.__SSR_DATA__ = {
+          "current_effr": 3.67,
+          "current_rate": 3.75,
+          "meetings": [{
+            "meeting_date": "2026-09-16",
+            "post_rate": 3.42,
+            "probabilities": {
+              "cut_25": 0.70, "cut_gt25": 0.10, "hold": 0.20,
+              "hike_25": 0.0, "hike_gt25": 0.0
+            }
+          }],
+          "next_meeting": "2026-09-16"
+        };</script>
+        """
+        return FedFundsFuturesSourceBundle.from_bytes(
+            source_url="https://www.frenzycap.com/fedwatch",
+            raw_bytes=raw,
             retrieved_at=retrieved_at,
         )
 
@@ -300,3 +332,41 @@ def test_unpublished_sme_rerun_keeps_first_retrieval_as_availability(
             preferred_sources=["new_york_fed_sme"],
         )
         assert row["available_at"] == OBSERVED_AT
+
+
+def test_market_shadow_persists_exact_html_unknown_delay_and_distribution(
+    seeded_db_empty_cards,
+) -> None:
+    settings = _settings()
+
+    result = macro_market_implied_ingest_job(
+        dsn=settings.db_dsn(),
+        provider_factory=_MarketProvider,
+        current_target_range="3.50-3.75%",
+        observed_at=OBSERVED_AT,
+    )
+
+    assert result.status == "ok"
+    assert result.artifacts_seen == 1
+    assert result.observations_seen == 1
+    with psycopg.connect(settings.db_dsn()) as conn:
+        repo = Repository(conn, schema="uw_scan")
+        comparison = build_policy_comparison(repo, as_of=OBSERVED_AT)
+        market = comparison.market_implied.path
+        assert market is not None
+        assert market.source == "frenzy_capital"
+        assert market.cost_class == "free_third_party_shadow"
+        assert market.delay_status == "unknown"
+        assert market.delay_minutes is None
+        assert market.points[0].rate_percent == Decimal("3.42")
+        buckets = market.points[0].probability_distribution
+        assert sum(bucket.probability_percent for bucket in buckets) == Decimal("100")
+        assert {bucket.label for bucket in buckets} == {
+            "Cut 25 bp",
+            "Cut 50 bp",
+            "Hold",
+            "Hike 25 bp",
+            "Hike 50 bp",
+        }
+        artifact = repo.fetch_macro_artifact(market.evidence_refs[0].artifact_id)
+        assert artifact["raw_bytes"].startswith(b"\n        <script>")

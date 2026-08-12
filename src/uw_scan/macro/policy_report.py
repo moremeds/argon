@@ -95,10 +95,12 @@ def _path_from_observation(
     return PolicyPath(
         kind=contract.kind,
         source=row["source"],
+        source_kind=row["source_kind"],
         source_record_id=row["source_record_id"],
         published_at=row["published_at"],
         available_at=row["available_at"],
         cost_class=row["cost_class"],
+        delay_status=value.get("delay_status", "not_applicable"),
         delay_minutes=value.get("delay_minutes"),
         points=[PolicyPathPoint.model_validate(point) for point in raw_points],
         evidence_refs=[evidence],

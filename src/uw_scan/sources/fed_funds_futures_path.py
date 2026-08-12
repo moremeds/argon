@@ -19,12 +19,24 @@ from typing import Literal
 
 import httpx
 
+from uw_scan.macro_evidence import macro_artifact_content_identity
+from uw_scan.models.macro import MacroSourceArtifact
+from uw_scan.normalize import NormalizationError
 from uw_scan.storage.provider_usage import ExternalApiRequestEvent
 from uw_scan.storage.repository import status_family_for
 
 logger = logging.getLogger(__name__)
 
 PathStance = Literal["CUT", "HOLD", "HIKE", "UNKNOWN"]
+PARSER_VERSION = "frenzy_fedwatch.v1"
+SOURCE = "frenzy_capital"
+_PROBABILITY_LABELS = {
+    "cut_gt25": "Cut 50 bp",
+    "cut_25": "Cut 25 bp",
+    "hold": "Hold",
+    "hike_25": "Hike 25 bp",
+    "hike_gt25": "Hike 50 bp",
+}
 
 
 @dataclass(frozen=True)
@@ -35,6 +47,7 @@ class FedFundsFuturesPathPoint:
     stance: PathStance
     target_range: str | None
     implied_rate: Decimal | None = None
+    probabilities: dict[str, Decimal] | None = None
     source: str = "Frenzy Capital Fed Watch"
 
     def to_payload(self) -> dict[str, object]:
@@ -46,7 +59,55 @@ class FedFundsFuturesPathPoint:
             "target_range": self.target_range,
             "source": self.source,
             "status": "ok",
+            "implied_rate": self.implied_rate,
+            "probabilities": self.probabilities,
         }
+
+
+@dataclass(frozen=True)
+class FedFundsFuturesSourceBundle:
+    artifact: MacroSourceArtifact
+
+    @classmethod
+    def from_bytes(
+        cls,
+        *,
+        source_url: str,
+        raw_bytes: bytes,
+        retrieved_at: datetime,
+    ) -> "FedFundsFuturesSourceBundle":
+        content_hash, content_length = macro_artifact_content_identity(
+            raw_bytes=raw_bytes
+        )
+        return cls(
+            artifact=MacroSourceArtifact(
+                source=SOURCE,
+                source_kind="third_party_shadow",
+                source_record_id=f"frenzy-fedwatch:{content_hash}",
+                source_url=source_url,
+                published_at=None,
+                available_at=retrieved_at,
+                retrieved_at=retrieved_at,
+                last_seen_at=retrieved_at,
+                content_hash=content_hash,
+                parser_version=PARSER_VERSION,
+                quality_status="partial",
+                cost_class="free_third_party_shadow",
+                media_type="text/html",
+                content_length=content_length,
+                raw_bytes=raw_bytes,
+            )
+        )
+
+
+@dataclass(frozen=True)
+class FedFundsFuturesSnapshot:
+    source_url: str
+    source_record_id: str
+    available_at: datetime
+    delay_status: Literal["unknown"]
+    delay_minutes: None
+    points: tuple[FedFundsFuturesPathPoint, ...]
 
 
 RecordHook = Callable[["FedFundsFuturesPathProvider", ExternalApiRequestEvent], None]
@@ -83,31 +144,23 @@ class FedFundsFuturesPathProvider:
     def fetch_latest_path(
         self, *, current_target_range: str | None
     ) -> list[FedFundsFuturesPathPoint]:
+        bundle = self.fetch_bundle(retrieved_at=datetime.now(UTC))
+        return list(
+            parse_fed_funds_futures_snapshot(
+                bundle, current_target_range=current_target_range
+            ).points
+        )
+
+    def fetch_bundle(
+        self, *, retrieved_at: datetime | None = None
+    ) -> FedFundsFuturesSourceBundle:
         response = self._get()
         response.raise_for_status()
-        current_range = _target_range(current_target_range)
-        rows = _FrenzyFedWatchParser().parse(response.text)
-        if not rows:
-            raise ValueError("Frenzy Fed Watch payload did not contain meeting rows")
-        out: list[FedFundsFuturesPathPoint] = []
-        for row in rows:
-            best = _best_probability_bucket(row.probabilities)
-            if best is None:
-                continue
-            stance, step_bps = _stance_and_step(best[0])
-            out.append(
-                FedFundsFuturesPathPoint(
-                    meeting_date=row.meeting_date,
-                    label=f"{row.meeting_date.month}/{row.meeting_date.day}",
-                    probability=round(float(best[1] * Decimal(100)), 1),
-                    stance=stance,
-                    target_range=_shift_target_range(current_range, step_bps),
-                    implied_rate=row.implied_rate,
-                )
-            )
-        if not out:
-            raise ValueError("Frenzy Fed Watch payload did not contain probabilities")
-        return out
+        return FedFundsFuturesSourceBundle.from_bytes(
+            source_url=str(response.request.url),
+            raw_bytes=response.content,
+            retrieved_at=retrieved_at or datetime.now(UTC),
+        )
 
     def _get(self) -> httpx.Response:
         started_at = datetime.now(UTC)
@@ -176,7 +229,7 @@ class FedFundsFuturesPathProvider:
 class _ParsedPathRow:
     meeting_date: date
     implied_rate: Decimal | None
-    probabilities: dict[str, Decimal]
+    raw_probabilities: dict[str, object]
 
 
 class _FrenzyFedWatchParser:
@@ -189,55 +242,141 @@ class _FrenzyFedWatchParser:
         try:
             payload = json.loads(match.group(1))
         except json.JSONDecodeError as exc:
-            raise ValueError("Frenzy Fed Watch SSR payload is not valid JSON") from exc
+            raise NormalizationError(
+                "Frenzy Fed Watch SSR payload is not valid JSON"
+            ) from exc
 
+        raw_meetings = payload.get("meetings")
+        if not isinstance(raw_meetings, list):
+            raise NormalizationError("Frenzy meetings must be a list")
         rows: list[_ParsedPathRow] = []
-        for item in payload.get("meetings", []):
+        for index, item in enumerate(raw_meetings):
             if not isinstance(item, dict):
-                continue
-            row = _row_from_frenzy_meeting(item)
-            if row is not None:
-                rows.append(row)
+                raise NormalizationError(f"Frenzy meeting {index} must be an object")
+            rows.append(_row_from_frenzy_meeting(item, index=index))
         return rows
 
 
-def _row_from_frenzy_meeting(item: dict[str, object]) -> _ParsedPathRow | None:
-    raw_meeting = item.get("meeting_date")
-    if not isinstance(raw_meeting, str):
-        return None
+def parse_fed_funds_futures_snapshot(
+    bundle: FedFundsFuturesSourceBundle,
+    *,
+    current_target_range: str | None,
+) -> FedFundsFuturesSnapshot:
+    raw = bundle.artifact.raw_bytes
+    if raw is None:
+        raise NormalizationError("Frenzy artifact is missing raw HTML bytes")
     try:
-        meeting_date = date.fromisoformat(raw_meeting)
-    except ValueError as exc:
-        logger.debug("skipping Frenzy meeting with invalid date: %s", repr(exc))
-        return None
-
-    raw_probabilities = item.get("probabilities")
-    if not isinstance(raw_probabilities, dict):
-        return None
-    probabilities = {
-        label: probability
-        for label, probability in (
-            (_probability_label(key), _parse_decimal(value))
-            for key, value in raw_probabilities.items()
+        html = raw.decode("utf-8")
+    except UnicodeDecodeError as exc:
+        raise NormalizationError("Frenzy HTML is not valid UTF-8") from exc
+    rows = _FrenzyFedWatchParser().parse(html)
+    if not rows:
+        raise NormalizationError(
+            "Frenzy Fed Watch payload did not contain meeting rows"
         )
-        if label is not None and probability is not None
-    }
-    return _ParsedPathRow(
-        meeting_date=meeting_date,
-        implied_rate=_parse_decimal(item.get("post_rate")),
-        probabilities=probabilities,
+    current_range = _target_range(current_target_range)
+    out: list[FedFundsFuturesPathPoint] = []
+    for row in rows:
+        probabilities = _validate_probability_distribution(
+            row.raw_probabilities,
+            meeting_date=row.meeting_date,
+        )
+        best = _best_probability_bucket(probabilities)
+        if best is None:
+            raise NormalizationError(
+                f"Frenzy {row.meeting_date} probability distribution is empty"
+            )
+        if row.implied_rate is None or not row.implied_rate.is_finite():
+            raise NormalizationError(
+                f"Frenzy {row.meeting_date} implied rate must be finite"
+            )
+        total = sum(probabilities.values(), Decimal(0))
+        if not Decimal("0.999") <= total <= Decimal("1.001"):
+            raise NormalizationError(
+                f"Frenzy {row.meeting_date} probability total {total} != 1"
+            )
+        stance, step_bps = _stance_and_step(best[0])
+        out.append(
+            FedFundsFuturesPathPoint(
+                meeting_date=row.meeting_date,
+                label=f"{row.meeting_date.month}/{row.meeting_date.day}",
+                probability=round(float(best[1] * Decimal(100)), 1),
+                stance=stance,
+                target_range=_shift_target_range(current_range, step_bps),
+                implied_rate=row.implied_rate,
+                probabilities=probabilities,
+            )
+        )
+    if not out:
+        raise NormalizationError(
+            "Frenzy Fed Watch payload did not contain complete probability rows"
+        )
+    return FedFundsFuturesSnapshot(
+        source_url=bundle.artifact.source_url or "",
+        source_record_id=bundle.artifact.source_record_id,
+        available_at=bundle.artifact.available_at,
+        delay_status="unknown",
+        delay_minutes=None,
+        points=tuple(out),
     )
 
 
-def _probability_label(key: object) -> str | None:
-    labels = {
-        "cut_gt25": "Cut 50 bp",
-        "cut_25": "Cut 25 bp",
-        "hold": "Hold",
-        "hike_25": "Hike 25 bp",
-        "hike_gt25": "Hike 50 bp",
-    }
-    return labels.get(key)
+def _row_from_frenzy_meeting(
+    item: dict[str, object],
+    *,
+    index: int,
+) -> _ParsedPathRow:
+    raw_meeting = item.get("meeting_date")
+    if not isinstance(raw_meeting, str):
+        raise NormalizationError(f"Frenzy meeting {index} is missing meeting_date")
+    try:
+        meeting_date = date.fromisoformat(raw_meeting)
+    except ValueError as exc:
+        raise NormalizationError(
+            f"Frenzy meeting {index} has invalid meeting_date"
+        ) from exc
+
+    raw_probabilities = item.get("probabilities")
+    if not isinstance(raw_probabilities, dict):
+        raise NormalizationError(
+            f"Frenzy {meeting_date} probabilities must be an object"
+        )
+    return _ParsedPathRow(
+        meeting_date=meeting_date,
+        implied_rate=_parse_decimal(item.get("post_rate")),
+        raw_probabilities=raw_probabilities,
+    )
+
+
+def _validate_probability_distribution(
+    raw: dict[str, object],
+    *,
+    meeting_date: date,
+) -> dict[str, Decimal]:
+    keys = set(raw)
+    expected = set(_PROBABILITY_LABELS)
+    if keys != expected:
+        missing = sorted(expected - keys)
+        unknown = sorted(keys - expected)
+        raise NormalizationError(
+            f"Frenzy {meeting_date} probability keys changed; "
+            f"missing={missing}, unknown={unknown}"
+        )
+    probabilities: dict[str, Decimal] = {}
+    for key, label in _PROBABILITY_LABELS.items():
+        probability = _parse_decimal(raw[key])
+        if (
+            probability is None
+            or not probability.is_finite()
+            or probability < 0
+            or probability > 1
+        ):
+            raise NormalizationError(
+                f"Frenzy {meeting_date} {key} probability must be finite "
+                "and between 0 and 1"
+            )
+        probabilities[label] = probability
+    return probabilities
 
 
 def _parse_decimal(raw: object) -> Decimal | None:

@@ -23,6 +23,7 @@ def _insert_path(
     source_kind: str = "official",
     cost_class: str = "free_official",
     delay_minutes: int | None = None,
+    delay_status: str = "not_applicable",
 ) -> None:
     record_id = f"{source}:2026-06:primary"
     raw_json = {"source": source, "release": "2026-06"}
@@ -45,6 +46,7 @@ def _insert_path(
     )
     value = {
         "kind": kind,
+        "delay_status": delay_status,
         "delay_minutes": delay_minutes,
         "points": [
             {
@@ -143,6 +145,7 @@ def test_market_shadow_never_substitutes_for_missing_official_paths(
         source_kind="third_party_shadow",
         cost_class="free_third_party_shadow",
         delay_minutes=15,
+        delay_status="known",
     )
 
     response = client.get("/api/macro/policy", params={"as_of": "2026-06-18"})
@@ -150,7 +153,9 @@ def test_market_shadow_never_substitutes_for_missing_official_paths(
     assert response.status_code == 200
     body = response.json()
     assert body["market_implied"]["path"]["source"] == "frenzy_capital"
+    assert body["market_implied"]["path"]["source_kind"] == "third_party_shadow"
     assert body["market_implied"]["path"]["delay_minutes"] == 15
+    assert body["market_implied"]["path"]["delay_status"] == "known"
     assert body["actual"]["path"] is None
     assert body["committee_projection"]["path"] is None
     assert body["dealer_expectations"]["path"] is None

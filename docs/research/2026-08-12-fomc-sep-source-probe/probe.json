@@ -1,0 +1,204 @@
+{
+  "generated_at": "2026-08-12T14:58:22.764966+00:00",
+  "interpretation": {
+    "market_shadow_delay_policy": "unknown because the publisher supplies no timestamp or delay field",
+    "market_shadow_is_official": false,
+    "official_jobs_depend_on_frenzy": false,
+    "sep_participant_identity_inferred": false,
+    "sme_panel": "Dealer",
+    "sme_published_at_policy": "null unless publisher supplies a reliable results timestamp; available_at is first retrieval"
+  },
+  "schema_version": 1,
+  "sources": {
+    "federal_reserve_fomc": {
+      "accessible_artifact": {
+        "available_at": "2026-07-29T14:00:00-04:00",
+        "content_hash": "ba49bbfdb4911035b90fa075c0950e3ed6dc34fd92823765788f8cfc96cce73f",
+        "content_length": 81213,
+        "cost_class": "free_official",
+        "media_type": "text/html",
+        "parser_version": "fomc_statement.v1",
+        "published_at": "2026-07-29T14:00:00-04:00",
+        "source_record_id": "fomc-statement:2026-07-29:html",
+        "source_url": "https://www.federalreserve.gov/newsevents/pressreleases/monetary20260729a.htm"
+      },
+      "action": "Hold",
+      "discovered_release_count": 5,
+      "http_statuses": [
+        200,
+        200,
+        200,
+        200,
+        200,
+        200,
+        200,
+        200,
+        200,
+        200,
+        200
+      ],
+      "parse_error": null,
+      "primary_artifact": {
+        "available_at": "2026-07-29T14:00:00-04:00",
+        "content_hash": "825cfed5e0956055d46ea3bf4d09f3939d79890fa0b3ade78bbf3957d7264522",
+        "content_length": 171262,
+        "cost_class": "free_official",
+        "media_type": "application/pdf",
+        "parser_version": "fomc_statement.v1",
+        "published_at": "2026-07-29T14:00:00-04:00",
+        "source_record_id": "fomc-statement:2026-07-29:pdf",
+        "source_url": "https://www.federalreserve.gov/monetarypolicy/files/monetary20260729a1.pdf"
+      },
+      "published_at": "2026-07-29T14:00:00-04:00",
+      "row_count": 1,
+      "selected_meeting_date": "2026-07-29",
+      "state": "ok",
+      "target_range_lower_percent": "3.5",
+      "target_range_upper_percent": "3.75",
+      "vote_split": "9-3"
+    },
+    "federal_reserve_sep": {
+      "accessible_artifact": {
+        "available_at": "2026-06-17T14:00:00-04:00",
+        "content_hash": "e3c9d5180684f46930cf4e9d47941576ee86820cbca00f72ff6be1733bd30a21",
+        "content_length": 232840,
+        "cost_class": "free_official",
+        "media_type": "text/html",
+        "parser_version": "fed_sep.v1",
+        "published_at": "2026-06-17T14:00:00-04:00",
+        "source_record_id": "fed-sep:2026-06-17:html",
+        "source_url": "https://www.federalreserve.gov/monetarypolicy/fomcprojtabl20260617.htm"
+      },
+      "discovered_release_count": 2,
+      "http_statuses": [
+        200,
+        200,
+        200,
+        200,
+        200
+      ],
+      "parse_error": null,
+      "policy_horizon_count": 4,
+      "policy_horizons": [
+        {
+          "distinct_dot_values": 5,
+          "horizon": "2026",
+          "participant_total": 18,
+          "published_median_percent": "3.8"
+        },
+        {
+          "distinct_dot_values": 7,
+          "horizon": "2027",
+          "participant_total": 18,
+          "published_median_percent": "3.6"
+        },
+        {
+          "distinct_dot_values": 5,
+          "horizon": "2028",
+          "participant_total": 17,
+          "published_median_percent": "3.4"
+        },
+        {
+          "distinct_dot_values": 9,
+          "horizon": "Longer run",
+          "participant_total": 18,
+          "published_median_percent": "3.1"
+        }
+      ],
+      "primary_artifact": {
+        "available_at": "2026-06-17T14:00:00-04:00",
+        "content_hash": "a517887623520922a782e0cd01fb38d4469bed951f63d2588efb99f72deddde3",
+        "content_length": 1216132,
+        "cost_class": "free_official",
+        "media_type": "application/pdf",
+        "parser_version": "fed_sep.v1",
+        "published_at": "2026-06-17T14:00:00-04:00",
+        "source_record_id": "fed-sep:2026-06-17:pdf",
+        "source_url": "https://www.federalreserve.gov/monetarypolicy/files/fomcprojtabl20260617.pdf"
+      },
+      "projection_row_count": 19,
+      "published_at": "2026-06-17T14:00:00-04:00",
+      "row_count": 4,
+      "selected_meeting_date": "2026-06-17",
+      "state": "ok"
+    },
+    "frenzy_capital": {
+      "artifact": {
+        "available_at": "2026-08-12T14:58:22.764966+00:00",
+        "content_hash": "1f2d0ee5af9f42406216e3f2291ee68795e67905e1d0999938c18ac3666014d8",
+        "content_length": 105270,
+        "cost_class": "free_third_party_shadow",
+        "media_type": "text/html",
+        "parser_version": "frenzy_fedwatch.v1",
+        "published_at": null,
+        "source_record_id": "frenzy-fedwatch:1f2d0ee5af9f42406216e3f2291ee68795e67905e1d0999938c18ac3666014d8",
+        "source_url": "https://www.frenzycap.com/fedwatch"
+      },
+      "available_at": "2026-08-12T14:58:22.764966+00:00",
+      "delay_minutes": null,
+      "delay_status": "unknown",
+      "first_meeting_date": "2026-09-16",
+      "http_statuses": [
+        200
+      ],
+      "last_meeting_date": "2026-12-09",
+      "parse_error": null,
+      "path_point_count": 3,
+      "probability_totals_percent": [
+        "100.0000",
+        "100.0000",
+        "100.00"
+      ],
+      "published_at": null,
+      "publisher_class": "third_party_shadow",
+      "row_count": 3,
+      "state": "ok"
+    },
+    "new_york_fed_sme": {
+      "available_at": "2026-08-12T14:58:22.764966+00:00",
+      "data_artifact": {
+        "available_at": "2026-08-12T14:58:22.764966+00:00",
+        "content_hash": "d0cf390537a631ba32990aba2bf0229dd5c92a9a18b7e95fd2c1119eeb5e5ecb",
+        "content_length": 253265,
+        "cost_class": "free_official",
+        "media_type": "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+        "parser_version": "nyfed_sme.v1",
+        "published_at": null,
+        "source_record_id": "nyfed-sme:2026-06:xlsx",
+        "source_url": "https://www.newyorkfed.org/medialibrary/media/markets/survey/2026/jun-2026-data.xlsx"
+      },
+      "http_statuses": [
+        200,
+        200,
+        200
+      ],
+      "panel_type": "Dealer",
+      "parse_error": null,
+      "path_point_count": 16,
+      "probability_distribution_count": 5,
+      "published_at": null,
+      "questionnaire_release_date": "2026-06-03",
+      "report_artifact": {
+        "available_at": "2026-08-12T14:58:22.764966+00:00",
+        "content_hash": "48c2846ac5ee6f54611fef925499476e31dab5ea2d4f7b8669b64a6b32a920a6",
+        "content_length": 305404,
+        "cost_class": "free_official",
+        "media_type": "application/pdf",
+        "parser_version": "nyfed_sme.v1",
+        "published_at": null,
+        "source_record_id": "nyfed-sme:2026-06:pdf",
+        "source_url": "https://www.newyorkfed.org/medialibrary/media/markets/survey/2026/jun-2026-sme-results.pdf"
+      },
+      "respondent_counts": [
+        21,
+        22,
+        26
+      ],
+      "response_due_date": "2026-06-08",
+      "row_count": 16,
+      "selected_survey_month": "2026-06-01",
+      "state": "ok"
+    }
+  },
+  "year": 2026
+}

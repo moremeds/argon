@@ -287,6 +287,16 @@ version in lockstep (enforced by `scripts/release/version_sync_check.py`).
   outside test databases. A read-only `option_wizard_local` inventory covers all 19 legacy
   rates/gold relations and records the adapter sequence for inflation → policy/rates → USD → gold,
   including future evidence-first Rates, Gold, unified Macro, and Fundamental PM context surfaces.
+- **Free policy-evidence ingestion with four paths that never get averaged together.** Official
+  Federal Reserve statements preserve decisions, target ranges, dissent, and vote splits; official
+  SEP releases preserve anonymous participant distributions and published medians without inferring
+  a Chair-specific dot; and the New York Fed Survey of Market Expectations preserves its Primary
+  Dealer path and distributions from the structured workbook. `GET /api/macro/policy` returns
+  actual, committee-projection, dealer-expectations, and market-implied paths independently with
+  evidence references, release/availability times, missing reasons, freshness, and contradictions.
+  The free Frenzy Capital futures view is retained byte-for-byte as an optional third-party shadow:
+  it is disabled by default, cannot satisfy an official path, and reports `delay_status=unknown`
+  because its publisher supplies neither a publication timestamp nor a delay contract.
 
 ### Changed
 

@@ -5553,6 +5553,11 @@ export interface components {
             kind: "actual" | "committee_projection" | "dealer_expectations" | "market_implied";
             /** Source */
             source: string;
+            /**
+             * Source Kind
+             * @enum {string}
+             */
+            source_kind: "official" | "first_party_publisher" | "entitled_provider" | "third_party_shadow" | "mock" | "static" | "demo";
             /** Source Record Id */
             source_record_id: string;
             /** Published At */
@@ -5567,6 +5572,12 @@ export interface components {
              * @enum {string}
              */
             cost_class: "free_official" | "free_publisher" | "already_entitled" | "free_third_party_shadow" | "paid_authorized";
+            /**
+             * Delay Status
+             * @default not_applicable
+             * @enum {string}
+             */
+            delay_status: "known" | "unknown" | "not_applicable";
             /** Delay Minutes */
             delay_minutes?: number | null;
             /** Points */

@@ -201,6 +201,7 @@ class Settings(BaseModel):
     macro_fomc_ingest_enabled: bool = False
     macro_sep_ingest_enabled: bool = False
     macro_sme_ingest_enabled: bool = False
+    macro_market_shadow_ingest_enabled: bool = False
     # WGC Goldhub authenticated downloads. Keep secrets in environment only.
     wgc_goldhub_cookie: SecretStr | None = None
     wgc_etf_flows_workbook_path: str = ""
@@ -677,6 +678,9 @@ class Settings(BaseModel):
             ),
             macro_sme_ingest_enabled=_env_bool(
                 "UW_SCAN_MACRO_SME_INGEST_ENABLED", False
+            ),
+            macro_market_shadow_ingest_enabled=_env_bool(
+                "UW_SCAN_MACRO_MARKET_SHADOW_INGEST_ENABLED", False
             ),
             wgc_goldhub_cookie=(
                 SecretStr(_wgc_cookie)

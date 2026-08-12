@@ -23,6 +23,7 @@ from apscheduler.triggers.interval import IntervalTrigger
 from uw_scan.api.client import UwClient
 from uw_scan.config import Settings
 from uw_scan.sources.lake_resolver import _r2_fully_configured, resolve_lake_root
+from uw_scan.sources.fed_funds_futures_path import FedFundsFuturesPathProvider
 from uw_scan.sources.ohlc import MassiveOhlcProvider
 from uw_scan.sources.uw_budget import (
     limits_from_settings,
@@ -55,6 +56,7 @@ from uw_scan.worker.jobs.gold_jobs import (
 from uw_scan.worker.jobs.ohlc_pull import ohlc_pull_once
 from uw_scan.worker.jobs.macro_policy_jobs import (
     macro_fomc_statement_ingest_job,
+    macro_market_implied_ingest_job,
     macro_sep_ingest_job,
     macro_sme_ingest_job,
 )
@@ -1422,6 +1424,15 @@ def main() -> int:
     def _macro_sme_ingest() -> None:
         macro_sme_ingest_job(dsn=settings.db_dsn())
 
+    def _macro_market_shadow_ingest() -> None:
+        macro_market_implied_ingest_job(
+            dsn=settings.db_dsn(),
+            current_target_range=None,
+            provider_factory=lambda: FedFundsFuturesPathProvider(
+                base_url=settings.rates_policy_path_url
+            ),
+        )
+
     def _pipeline_benchmark_snapshot() -> None:
         pipeline_benchmark_snapshot_job(settings)
 
@@ -2225,6 +2236,15 @@ def main() -> int:
                     CronTrigger.from_crontab("10 19 * * *", timezone=settings.rth_tz),
                     id="macro_sme_ingest",
                     name="Macro: NY Fed dealer expectations",
+                    max_instances=1,
+                    coalesce=True,
+                )
+            if settings.macro_market_shadow_ingest_enabled:
+                sched.add_job(
+                    _macro_market_shadow_ingest,
+                    CronTrigger.from_crontab("15 19 * * *", timezone=settings.rth_tz),
+                    id="macro_market_shadow_ingest",
+                    name="Macro: delayed third-party market policy shadow",
                     max_instances=1,
                     coalesce=True,
                 )
