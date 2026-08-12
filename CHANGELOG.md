@@ -7,7 +7,84 @@ version in lockstep (enforced by `scripts/release/version_sync_check.py`).
 
 ## [Unreleased]
 
+### Added
+
+- **The fundamental lane now runs on a schedule.** `fundamental_refresh`
+  (`worker/jobs/fundamental_refresh.py`, nightly 18:20 ET, massive-0, gated
+  `UW_SCAN_FUNDAMENTAL_REFRESH_ENABLED`, default on) chains routing → subscores
+  → anchor bands. Until this existed **nothing called `fundamental_scoring` or
+  `fundamental_anchors` outside tests** — the card showed whatever a hand-run had
+  last written and would have gone quietly stale. Zero UW/IB spend: Postgres plus
+  the local parquet mirror only. It deliberately does not ingest statements;
+  `scripts/backfill/fundamental_ingest_backfill.py` remains the manual path for
+  new filings.
+
+### Changed
+
+- **Valuation bands reach 233 of 257 names, up from 43.** Routing previously
+  seeded only from `watchlist.sector`, and the gap was never a mapping one:
+  **174 of the 257 ranked names carry no sector anywhere in the database**
+  (`watchlist` is the only source; `flow_events` adds no name it lacks,
+  `research_universe` shares none), and the five-type taxonomy is an
+  AI-supply-chain one with no honest bucket for a bank or a hospital even where
+  a sector is known. Unrouted names now take an explicit `unclassified` route to
+  `sales_to_ev` — the pooled-universe result the probe actually measured (+0.0744
+  over all 247 scored tickers, the strongest of the five yields) — capped at
+  `confidence: medium` and stating on the card that the method was not chosen for
+  the business. No name is forced into one of the five real types on a guess.
+- **`spot_percentile` is stated as a rank, not a percentage.** It is a count over
+  `history_quarters` observations, so on the shipped 20-quarter window it takes
+  21 values with 5-point steps; "cheaper than 100%" read as a bound rather than
+  as "at or past the cheapest reading in the window". Now "Cheaper than 16 of its
+  last 20 quarters", with words at both ends.
+
+### Fixed
+
+- **A band with a missing END is refused instead of drawn** — the hole in the
+  2026-08-12 width guard, which read `if lo and hi` and so skipped the check
+  entirely when a level did not invert. JPM rendered `observe_mid` at **11.3
+  against a spot of 297.8** with `buy_below` blank: a bank's funding sits in
+  `short_long_term_debt_total`, so net debt exceeds the enterprise value its own
+  cheapest multiple implies. An interior gap is unreachable (price is monotone in
+  the target yield, so any failure takes an end first), and the now-dead
+  "levels not invertible" branch was removed rather than left as apparent
+  coverage.
+- **Anchor rows were hashing the wrong thing entirely.** They reused
+  `scoring.inputs_hash`, which reads the seven scoring FEATURES *by name* — a
+  band has none of them — so every row reduced to a function of `company_type`
+  and `engine` and its actual inputs were never in its identity. Measured: a run
+  computed 233 bands and wrote **0**, keeping the wrong JPM row alive under
+  `ON CONFLICT DO NOTHING`. New `valuation.anchor_inputs_hash` covers the band's
+  own inputs, its routing, the thresholds, and an `ANCHOR_RULES_REV` — so a rule
+  change appends the correction instead of colliding with what it corrects. The
+  job now also WARNs when it computes rows and writes none.
+- `docs/research/2026-08-12-fundamental-valuation-timeseries/results.md`
+  regenerated `na` for every signal: the window sweep changed the result keys to
+  `<signal>|w<window>|<outcome>` and the table's lookup was not updated, so a doc
+  that regenerates on every run had silently lost its own result set while
+  `VERDICT.md` quoted the numbers from the JSON. The headline window is now
+  labelled explicitly.
+
 ### Research
+
+- **The concentration ledger (spec §6 `concentration_risk`) is blocked on data
+  structure, and nothing was built.** Verdict + reproducible probe:
+  `docs/research/2026-08-12-fundamental-segment-computability/`,
+  `scripts/research/fundamental_segment_computability_probe.py`. §896 marked it
+  available on a coverage check — rows come back for 24/25 — but **coverage is
+  not computability**. Requiring a breakdown's single-member rows to sum to its
+  own consolidated total (the same two-derivations cross-check that caught the
+  TSM currency bug) yields **8 of 25 on segment and 0 of 25 on geography**.
+  UW's `rev_breakdown` is one flat list per ticker mixing several XBRL axes with
+  no level marker: NVDA files `DataCenter` 75.25e9 alongside its own children
+  `Hyperscale` + `AIClouds` = exactly 75.25e9 on the same axis, so "largest
+  segment share" is 92% or 46% depending on nesting depth; AVGO has two axes that
+  each sum correctly and disagree (76% vs 68%); 23 of 25 have no total at all
+  inside `country`/`continent`, and MSFT's "countries" are a US/non-US pair
+  leaving 48% unallocated. The values also alternate quarterly/annual by filing
+  form with no `formtype` on the row. Unblocking needs SEC XBRL presentation
+  hierarchy or a curated per-ticker axis pin; there is no accrual pressure, since
+  the data is filing-derived back to 2020.
 
 - **Fundamental source contract measured; the planned backbone was the wrong
   one.** Four reproducible probes under `scripts/research/`
@@ -30,8 +107,11 @@ version in lockstep (enforced by `scripts/release/version_sync_check.py`).
   gate and a `fundamental_obs_violations` table in response.
 - **Two spec claims falsified.** Segment/KPI disclosure is *not* "absent at any
   tier" — UW returns XBRL-dimensional segment and geographic revenue for 24/25
-  tickers (4,330 rows), which makes the `concentration_risk` subscore buildable
-  after the named-customer graph was measured as nonexistent. And foreign
+  tickers (4,330 rows), after the named-customer graph was measured as
+  nonexistent. **Superseded on the product claim**: those rows exist but do not
+  yield a share for most of the cohort — 8/25 on segment, 0/25 on geography — so
+  `concentration_risk` is not buildable from them. See the computability verdict
+  under Research above. And foreign
   issuers no longer need a blanket `na`: TSM/ASML have 83 quarterly rows each
   from UW, FX dailies were already in the livewire lake, and SEC XBRL supplies
   the missing noncontrolling interest (`us-gaap` for domestic filers,

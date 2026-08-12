@@ -40,11 +40,12 @@ from uw_scan.fundamentals.fx import (
     convert,
     load_fx,
 )
-from uw_scan.fundamentals.scoring import inputs_hash
 from uw_scan.fundamentals.valuation import (
     LEVEL_ORDER,
     METHOD_NUMERATOR,
     TYPE_YIELD,
+    UNCLASSIFIED,
+    anchor_inputs_hash,
     build_anchors,
     quarter_inputs,
     yield_at,
@@ -205,10 +206,13 @@ def _history(
 #: without a row each. Longest prefix wins, so a specific rule can override a
 #: general one.
 #:
-#: Deliberately partial. A sector with no rule leaves the ticker UNROUTED, which
-#: the card reports as an explicit absence — that is a better failure than a
-#: catch-all bucket, because a wrong company_type produces a confident band built
-#: from the wrong yield, and nothing on screen would say so.
+#: Deliberately partial. A sector with no rule falls through to `UNCLASSIFIED`,
+#: which routes to the pooled-universe yield and SAYS SO on the card. What must
+#: never happen is a name being forced into one of the five real types on a
+#: guess: that produces a confident band built from the wrong yield with nothing
+#: on screen to say the type was invented. Consumer, Healthcare, Banks, Defense
+#: and Airlines all sit here — they are real sectors that this AI-supply-chain
+#: taxonomy has no honest bucket for.
 SECTOR_TO_TYPE: dict[str, str] = {
     "Semi": "chips_cyclical",
     "Foundry": "chips_cyclical",
@@ -234,34 +238,47 @@ SECTOR_TO_TYPE: dict[str, str] = {
 def seed_company_types(
     conn: psycopg.Connection, *, schema: str = "uw_scan"
 ) -> dict[str, int]:
-    """Route tickers from the watchlist sector taxonomy. Hand edits survive.
+    """Route every universe ticker: by sector where one exists, else the default.
 
     Idempotent and safe to re-run: `assign` refuses to overwrite a row marked
-    `manual`, so the seeding pass never undoes a correction.
+    `manual`, so the seeding pass never undoes a correction. It also lets a real
+    sector match REPLACE a previous default, which is the direction that matters
+    — a name that acquires a sector should stop being unclassified.
+
+    The default is not a convenience. Measured 2026-08-12, only 83 of the 257
+    ranked names carry a sector anywhere in this database (`watchlist` is the
+    sole source; `flow_events` adds no name the watchlist lacks, and
+    `research_universe` shares none). Without it, two thirds of the universe
+    render an empty valuation block forever — not because the band cannot be
+    computed for them, but because nothing has classified them.
     """
     repo = FundamentalAnchorsRepository(conn, schema=schema)
     with conn.cursor() as cur:
         cur.execute(
-            # DISTINCT because fundamental_universe carries one row per TIER — a
-            # plain join visits a core+ranked ticker twice and reports routing
-            # counts that do not match the number of tickers routed.
-            f"""SELECT DISTINCT w.ticker, w.sector
-                  FROM {schema}.watchlist w
-                  JOIN {schema}.fundamental_universe f ON f.ticker = w.ticker
-                 WHERE w.sector IS NOT NULL"""
+            # LEFT JOIN, not JOIN: the point is to reach the names with no
+            # watchlist row at all. DISTINCT because fundamental_universe carries
+            # one row per TIER — a plain join visits a core+ranked ticker twice
+            # and reports routing counts that do not match the tickers routed.
+            f"""SELECT DISTINCT f.ticker, w.sector
+                  FROM {schema}.fundamental_universe f
+                  LEFT JOIN {schema}.watchlist w ON w.ticker = f.ticker
+                 WHERE f.removed_at IS NULL"""
         )
         pairs = cur.fetchall()
 
-    counters = {"seen": len(pairs), "routed": 0, "changed": 0, "unmatched": 0}
+    counters = {"seen": len(pairs), "routed": 0, "changed": 0, "defaulted": 0}
     for ticker, sector in pairs:
-        matches = [k for k in SECTOR_TO_TYPE if sector.startswith(k)]
-        if not matches:
-            counters["unmatched"] += 1
-            continue
-        best = max(matches, key=len)
-        counters["routed"] += 1
+        matches = [k for k in SECTOR_TO_TYPE if sector and sector.startswith(k)]
+        if matches:
+            best = max(matches, key=len)
+            company_type, note = SECTOR_TO_TYPE[best], f"sector={sector}"
+            counters["routed"] += 1
+        else:
+            company_type = UNCLASSIFIED
+            note = f"no rule for sector={sector!r}" if sector else "no sector on file"
+            counters["defaulted"] += 1
         counters["changed"] += repo.assign(
-            ticker, SECTOR_TO_TYPE[best], source="seeded", note=f"sector={sector}"
+            ticker, company_type, source="seeded", note=note
         )
     log.info("company_type seeding: %s", counters)
     return counters
@@ -283,8 +300,13 @@ def _refusal_row(
         "ticker": ticker,
         "as_of": as_of,
         "engine_version": engine,
-        "inputs_hash": inputs_hash(
-            features={}, company_type=company_type, engine=engine
+        "inputs_hash": anchor_inputs_hash(
+            company_type=company_type,
+            engine=engine,
+            fundamental=None,
+            net_debt=None,
+            shares=None,
+            history_n=0,
         ),
         "company_type": company_type,
         "method": method,
@@ -442,18 +464,17 @@ def fundamental_anchors(
                 "ticker": ticker,
                 "as_of": as_of or spot_date,
                 "engine_version": engine,
-                # company_type is inside the hash (via scoring.inputs_hash), so a
-                # routing change produces a genuinely new band rather than
-                # colliding with the old one and being silently dropped.
-                "inputs_hash": inputs_hash(
-                    features={
-                        "fundamental": latest.get(METHOD_NUMERATOR[method]),
-                        "net_debt": latest.get("net_debt"),
-                        "shares": latest.get("shares"),
-                        "history_n": float(len(hist)),
-                    },
+                # The band's OWN inputs, its routing and the rules that produced
+                # it — see anchor_inputs_hash for why scoring.inputs_hash cannot
+                # be reused here (it hashes the seven scoring features by name,
+                # which a band has none of).
+                "inputs_hash": anchor_inputs_hash(
                     company_type=company_type,
                     engine=engine,
+                    fundamental=latest.get(METHOD_NUMERATOR[method]),
+                    net_debt=latest.get("net_debt"),
+                    shares=latest.get("shares"),
+                    history_n=len(hist),
                 ),
                 "company_type": company_type,
                 "method": method,
@@ -477,6 +498,21 @@ def fundamental_anchors(
         )
 
     counters["written"] = anchors_repo.insert_anchors(rows)
+
+    # A run that computed bands and stored none of them is not a quiet no-op, it
+    # is the identity key failing to notice that the answer changed — which is
+    # exactly how the anchor hash bug hid: 233 bands computed, 0 written, and the
+    # only symptom was a card showing yesterday's wrong JPM band. A same-day
+    # re-run over genuinely unchanged inputs writes 0 too, so this is a WARN and
+    # not an error, but it must never pass silently.
+    if rows and counters["written"] == 0:
+        log.warning(
+            "anchors: %d rows computed and 0 written — every row collided on "
+            "(ticker, as_of, engine_version, inputs_hash). Expected only when "
+            "re-running over unchanged inputs; otherwise the hash is not seeing "
+            "an input or rule that changed",
+            len(rows),
+        )
 
     # Fires on the SHARE, not on any one name. A handful of names whose own
     # history cannot anchor a price is expected; a third of the book reading that

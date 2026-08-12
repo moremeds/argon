@@ -771,6 +771,12 @@ def main() -> int:
             summary = spx_density_forecast_job(repo, settings)
         logger.info("spx_density_forecast_tick %s", summary)
 
+    def _fundamental_refresh() -> None:
+        from uw_scan.worker.jobs.fundamental_refresh import fundamental_refresh
+
+        with _repo(settings) as repo:
+            fundamental_refresh(conn=repo.conn, settings=settings)
+
     def _theta_harvester_scan() -> None:
         with _repo(settings) as repo:
             theta_harvester_scan(repo=repo, settings=settings)
@@ -1498,6 +1504,22 @@ def main() -> int:
                     CronTrigger.from_crontab("40 18 * * 0-4", timezone=settings.rth_tz),
                     id="technical_daily_refresh",
                     name="Technicals daily refresh (apex bars -> technical_daily)",
+                    max_instances=1,
+                    coalesce=True,
+                )
+            # Fundamental lane recompute at 18:20 ET — after the 17:30 OHLC pull
+            # so the closes the band is marked against are today's, and before
+            # the 18:30+ block so it does not queue behind them. Routing ->
+            # subscores -> anchor bands, all warm-store + local-lake compute:
+            # zero UW/IB spend, which is why it sits on massive-0. Runs nightly
+            # even with no new filing, because spot moves daily and
+            # valuation_anchors.as_of is the compute date.
+            if settings.fundamental_refresh_enabled:
+                sched.add_job(
+                    _fundamental_refresh,
+                    CronTrigger.from_crontab("20 18 * * 0-4", timezone=settings.rth_tz),
+                    id="fundamental_refresh",
+                    name="Fundamental routing + subscores + valuation anchors",
                     max_instances=1,
                     coalesce=True,
                 )

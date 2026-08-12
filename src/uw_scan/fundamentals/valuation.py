@@ -63,6 +63,8 @@ band is reintroducing a measured-negative signal under a measured-positive name.
 
 from __future__ import annotations
 
+import hashlib
+import json
 import math
 from typing import Any
 
@@ -82,6 +84,24 @@ LEVELS: dict[str, float] = {
 #: order `_self_check` and the storage CHECK constraint both enforce.
 LEVEL_ORDER = ("buy_below", "observe_low", "observe_mid", "observe_high", "risk_above")
 
+#: The route for a name nothing has classified. NOT a sixth company type — it is
+#: the absence of one, and it is spelled out on the card rather than hidden.
+#:
+#: It exists because the classification input does not: 174 of the 257 names in
+#: the ranked universe have no sector in this database at all, and the five types
+#: above are an AI-supply-chain taxonomy with no bucket for a bank or a hospital
+#: even where a sector is known. Leaving those names unrouted showed nothing to a
+#: reader; routing them through an invented type would show a confident band built
+#: from a guess.
+#:
+#: What licenses the default is that the measurement was never per-type. The probe
+#: pooled all 247 scored tickers of THIS universe and found `sales_to_ev` at
+#: +0.0744 — the strongest of the five yields, and stronger than either
+#: type-specific route below. So an unclassified name gets the yield the evidence
+#: actually covers, and `build_anchors` caps its confidence at `medium` and says
+#: which assumption it is standing on.
+UNCLASSIFIED = "unclassified"
+
 #: `company_type` -> the yield its band is built from. Values are the measured
 #: signals; the comment on each is its market-neutral 2q IC.
 TYPE_YIELD: dict[str, str] = {
@@ -90,6 +110,10 @@ TYPE_YIELD: dict[str, str] = {
     "high_risk_growth": "sales_to_ev",
     "platform_scale": "fcf_yield",  # +0.0457 (t 3.64)
     "power_infra": "ebitda_to_ev",  # +0.0446 (t 3.41)
+    # Pooled-universe default. Same yield as the three types above, for the
+    # reason stated on UNCLASSIFIED: it is the pooled result, not a claim that
+    # this name resembles a semiconductor company.
+    UNCLASSIFIED: "sales_to_ev",
 }
 
 #: Yields denominated in enterprise value rather than market cap. The distinction
@@ -148,6 +172,66 @@ STALE_DAYS = 140
 #: with 72x between its ends. 4.0 sits in the empty part of the distribution:
 #: it refuses 7 of 50 and touches nothing between 2.5x and 5x except DIS.
 MAX_BAND_WIDTH = 4.0
+
+
+#: Bumped whenever a STRUCTURAL rule changes — a guard added or removed, a level
+#: redefined. Threshold moves do not need it: the constants above are hashed
+#: directly, so changing one already produces a new identity.
+#:
+#: rev 2: refuse a band with a missing end (`buy_below` / `risk_above` not
+#: invertible). rev 1: the original five-level construction.
+ANCHOR_RULES_REV = 2
+
+
+def anchor_inputs_hash(
+    *,
+    company_type: str,
+    engine: str,
+    fundamental: float | None,
+    net_debt: float | None,
+    shares: float | None,
+    history_n: int,
+) -> str:
+    """Identity of ONE band: its inputs, its routing, and the rules that made it.
+
+    Anchors cannot reuse `scoring.inputs_hash`. That function hashes the seven
+    scoring FEATURES by name, and a band's inputs are none of them — so every
+    anchor row was hashing an all-null feature map and reducing to a function of
+    `company_type` and `engine` alone. Measured 2026-08-12: a run that computed
+    233 bands wrote 0 rows, because the identity could not see that the numbers
+    had changed. That is the silent-and-confident failure the schema comment
+    claims this key prevents, sitting inside the key itself.
+    METHOD RULES ARE PART OF THE IDENTITY, and that is the second half of the
+    bug. The same inputs under a NEW rule are a different result — the
+    missing-end guard turns JPM from a three-level band into a refusal without
+    touching a single input — and `ON CONFLICT DO NOTHING` would drop the
+    correction and keep the wrong row. Hashing the thresholds and the rules
+    revision means a rule change appends the corrected row instead.
+    """
+    payload = {
+        "company_type": company_type,
+        "engine": engine,
+        "inputs": {
+            k: (None if v is None else f"{float(v):.10g}")
+            for k, v in (
+                ("fundamental", fundamental),
+                ("net_debt", net_debt),
+                ("shares", shares),
+                ("history_n", history_n),
+            )
+        },
+        "rules": {
+            "rev": ANCHOR_RULES_REV,
+            "levels": LEVELS,
+            "window": WINDOW_QUARTERS,
+            "min_history": MIN_HISTORY,
+            "thin_history": THIN_HISTORY,
+            "stale_days": STALE_DAYS,
+            "max_band_width": MAX_BAND_WIDTH,
+        },
+    }
+    blob = json.dumps(payload, sort_keys=True, separators=(",", ":"))
+    return hashlib.sha256(blob.encode()).hexdigest()
 
 
 def quarter_inputs(
@@ -350,15 +434,43 @@ def build_anchors(
         reasons.append(
             f"latest filing is {knowledge_age_days} days old, so the numerator lags the price"
         )
-    if any(v is None for v in anchors.values()):
-        missing = sorted(k for k, v in anchors.items() if v is None)
-        reasons.append(f"levels not invertible at this net debt: {', '.join(missing)}")
+    # No per-level "not invertible" reason, because an INTERIOR gap cannot occur.
+    # Price falls monotonically as the target yield rises, and the five targets
+    # are ordered percentiles of one sorted window, so the levels are ordered in
+    # price. Whichever failure bites — a non-positive target yield, or net debt
+    # above the implied enterprise value — it takes an END first and works
+    # inward. Any missing level therefore implies a missing end, which the guard
+    # below refuses outright. A branch describing an unreachable state reads as
+    # handled coverage and is worse than its absence.
 
-    # Width is a property of the BAND, not of any level, so it is checked here
-    # rather than by a consumer — a caller that renders the levels one at a time
-    # has no place to notice that their ends are 72x apart.
+    # A BAND MUST HAVE BOTH ENDS, and this check is what the width guard below
+    # was silently missing: it reads `if lo and hi`, so a band with no cheap end
+    # skipped the width test entirely and rendered whatever was left.
+    #
+    # JPM on 2026-08-12 is the case. Its `buy_below` did not invert — a bank's
+    # funding sits in `short_long_term_debt_total`, so net debt exceeds the
+    # enterprise value its own cheapest multiple implies and the price goes
+    # negative — while `observe_mid` came out at 11.3 against a spot of 297.8.
+    # Three of five levels, one of them at 4% of the price, and nothing on screen
+    # said the band had no bottom.
+    #
+    # Refuse rather than draw. An interior gap is a gap; a missing END is a band
+    # whose extent is unknown, and extent is the only thing a band asserts.
     lo, hi = anchors["buy_below"], anchors["risk_above"]
-    if lo and hi and lo > 0 and hi / lo > MAX_BAND_WIDTH:
+    if lo is None or hi is None:
+        end = "cheap" if lo is None else "expensive"
+        return _no_anchor(
+            ticker,
+            company_type,
+            method,
+            [
+                f"the {end} end of the band has no price at this net debt, so the "
+                "band has no extent — usually a company whose debt dominates its "
+                "enterprise value, where the equity is too thin a slice for the "
+                "inversion to be stable"
+            ],
+        )
+    if lo > 0 and hi / lo > MAX_BAND_WIDTH:
         return _no_anchor(
             ticker,
             company_type,
@@ -383,6 +495,16 @@ def build_anchors(
         knowledge_age_days is not None and knowledge_age_days > STALE_DAYS
     ):
         confidence = "medium"
+    if company_type == UNCLASSIFIED:
+        # Never `high`. The band's math is the measured one, but the choice of
+        # WHICH yield rests on a pooled average rather than on anything known
+        # about this company — and the reader has no other way to tell.
+        confidence = "medium"
+        reasons.append(
+            "no sector on file for this name, so the band uses the "
+            "pooled-universe default (revenue / enterprise value) rather than a "
+            "method chosen for its business"
+        )
     if company_type == "high_risk_growth":
         # §5.3 makes this downgrade mandatory for the type, independent of data
         # quality: the band is genuinely wide and must be stated as wide.
@@ -527,6 +649,47 @@ def _self_check() -> None:
         cheap["spot_percentile"],
         rich["spot_percentile"],
     )
+
+    # An unclassified name bands on the pooled default and NEVER reads `high`.
+    unc = build_anchors(
+        ticker="AAA",
+        company_type=UNCLASSIFIED,
+        history=hist,
+        fundamental=1000.0,
+        net_debt=0.0,
+        shares=100.0,
+        spot=50.0,
+        knowledge_age_days=30,
+    )
+    assert unc["method"] == "sales_to_ev", unc
+    assert unc["anchors"]["buy_below"] == a["buy_below"], "same math, same band"
+    assert unc["confidence"] == "medium", unc
+    assert any("pooled-universe default" in r for r in unc["confidence_reasons"])
+
+    # The identity of a band covers its inputs AND the rules that made it. The
+    # shipped bug was the opposite: anchor rows hashed `scoring.inputs_hash`,
+    # which reads the seven scoring FEATURES by name, so a band — which has none
+    # of them — reduced to a function of company_type and engine, and a corrected
+    # result collided with the wrong row it was meant to replace.
+    base_hash = dict(
+        company_type="chips_cyclical",
+        engine="v1_equal",
+        fundamental=1000.0,
+        net_debt=0.0,
+        shares=100.0,
+        history_n=20,
+    )
+    h = anchor_inputs_hash(**base_hash)
+    assert h == anchor_inputs_hash(**base_hash), "must be deterministic"
+    for field, other in (
+        ("fundamental", 1001.0),
+        ("net_debt", 1.0),
+        ("shares", 101.0),
+        ("history_n", 19),
+        ("company_type", UNCLASSIFIED),
+        ("engine", "v2"),
+    ):
+        assert anchor_inputs_hash(**{**base_hash, field: other}) != h, field
 
     # Every refusal path names itself rather than returning an empty band.
     for kwargs, want in (

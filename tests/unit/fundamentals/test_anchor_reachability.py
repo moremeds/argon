@@ -81,3 +81,58 @@ def test_spot_versus_midpoint_would_not_have_caught_asml():
 def test_the_windowed_asml_band_passes():
     """Same name, same day, trailing 20 quarters: 1431.5 / 1028.1 = 1.39x."""
     assert 1431.5 / 1028.1 < MAX_BAND_WIDTH
+
+
+def test_a_band_missing_its_cheap_end_is_refused_not_drawn():
+    """JPM's real 2026-08-12 shape, and the hole in the width guard.
+
+    A bank's funding sits in `short_long_term_debt_total`, so net debt exceeds
+    the enterprise value its own cheapest multiple implies and `buy_below` does
+    not invert. The width guard reads `if lo and hi`, so a band with no cheap end
+    skipped it entirely: JPM rendered three of five levels with `observe_mid` at
+    11.3 against a spot of 297.8 — 4% of the price — and nothing said the band
+    had no bottom.
+
+    A missing INTERIOR level is a gap. A missing END is a band with no extent,
+    and extent is the only thing a band asserts.
+    """
+    out = _band(TIGHT, net_debt=1e6, shares=100.0, fundamental=1000.0)
+    assert out["anchors"] is None
+    assert any("no price at this net debt" in r for r in out["confidence_reasons"])
+    assert any("cheap end" in r for r in out["confidence_reasons"])
+
+
+def test_the_rules_are_part_of_a_band_identity():
+    """The corrective run must not collide with the row it corrects.
+
+    Measured: after the missing-end guard was added, a run computed 233 bands and
+    wrote 0. Every refusal carried the same `(ticker, as_of, engine_version,
+    inputs_hash)` as the wrong band already stored, so `ON CONFLICT DO NOTHING`
+    kept the wrong one. Hashing the rule revision is what makes a rule change
+    append the correction.
+    """
+    from uw_scan.fundamentals import valuation as V
+
+    args = dict(
+        company_type="chips_cyclical",
+        engine="v1_equal",
+        fundamental=1000.0,
+        net_debt=0.0,
+        shares=100.0,
+        history_n=20,
+    )
+    before = V.anchor_inputs_hash(**args)
+    original = V.ANCHOR_RULES_REV
+    try:
+        V.ANCHOR_RULES_REV = original + 1
+        assert V.anchor_inputs_hash(**args) != before
+    finally:
+        V.ANCHOR_RULES_REV = original
+    assert V.anchor_inputs_hash(**args) == before
+
+    original_width = V.MAX_BAND_WIDTH
+    try:
+        V.MAX_BAND_WIDTH = original_width + 1
+        assert V.anchor_inputs_hash(**args) != before, "thresholds count too"
+    finally:
+        V.MAX_BAND_WIDTH = original_width

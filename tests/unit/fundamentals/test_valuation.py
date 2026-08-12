@@ -18,10 +18,10 @@ import pytest
 
 from uw_scan.fundamentals.valuation import (
     LEVEL_ORDER,
-    WINDOW_QUARTERS,
     METHOD_NUMERATOR,
     MIN_HISTORY,
     TYPE_YIELD,
+    WINDOW_QUARTERS,
     build_anchors,
     percentile,
     price_at_yield,
@@ -111,12 +111,23 @@ def test_a_market_cap_method_is_not_refused_by_net_cash():
     assert out["anchors"] is not None
 
 
-def test_a_level_that_cannot_be_inverted_is_a_gap_not_a_zero():
+def test_a_level_that_cannot_be_inverted_takes_the_whole_band_with_it():
     """Net debt above the implied enterprise value drives the cheap end below
-    zero. Rendering that as 0 would put "buy below $0" on the card."""
+    zero, and that is fatal to the band rather than a gap inside it.
+
+    This test asserted the opposite until 2026-08-12, when a real bank showed
+    what the gap looked like on screen: JPM rendered `observe_mid` at 11.3
+    against a spot of 297.8 with `buy_below` blank. The level was correctly
+    withheld — rendering it as 0 would say "buy below $0" — but withholding an
+    END leaves a band with no extent, and extent is the only claim a band makes.
+
+    An interior gap is unreachable, which is why there is no separate case for
+    one: price falls monotonically as the target yield rises and the five targets
+    are ordered percentiles of one window, so any failure takes an end first.
+    """
     out = _band(net_debt=1e6)
-    assert out["anchors"]["buy_below"] is None
-    assert any("not invertible" in r for r in out["confidence_reasons"])
+    assert out["anchors"] is None
+    assert any("no price at this net debt" in r for r in out["confidence_reasons"])
 
 
 @pytest.mark.parametrize(

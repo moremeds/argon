@@ -78,6 +78,12 @@ import fundamental_valuation_control as VC  # noqa: E402
 
 V = T.V
 
+# The window the SHIPPED band uses — read from the module rather than repeated,
+# so this doc can never quote a width the product no longer computes.
+from uw_scan.fundamentals.valuation import (  # noqa: E402
+    WINDOW_QUARTERS as SHIPPED_WINDOW,
+)
+
 OUT_DIR = Path("docs/research/2026-08-12-fundamental-valuation-timeseries")
 
 #: Every signal is a yield, so HIGH = CHEAP for all of them and the anchor band
@@ -399,12 +405,21 @@ def _render(p: dict[str, Any]) -> str:
         "`buy_below` needs a **positive** IC. Lead with the `_dm` (de-marketed)",
         "columns — the raw ones share a macro driver and their t-stats are inflated.",
         "",
+        f"Headline window: **{'expanding' if WINDOWS[0] is None else str(WINDOWS[0]) + ' quarters'}** "
+        f"(the full sweep is below; the SHIPPED band uses {SHIPPED_WINDOW} quarters).",
+        "",
         "| signal | maps to | 2q IC (dm) | t | holding reversal | t | tickers |",
         "|---|---|---:|---:|---:|---:|---:|",
     ]
+    # Signal results are keyed `<signal>|w<window>|<outcome>`; the control has no
+    # window because it carries no fundamental to z-score. Omitting the window
+    # here is how this table silently rendered `na` for every signal while the
+    # JSON held the numbers and VERDICT.md quoted them — a regenerated doc that
+    # loses its own result set is the same data loss as never writing it.
+    head_w = f"w{WINDOWS[0]}"
     for s, desc in p["signals"].items():
-        r2 = p["results"].get(f"{s}|ret_2q_dm", {})
-        pt = p["partial_holding_reversal"].get(f"{s}|ret_2q_dm", {})
+        r2 = p["results"].get(f"{s}|{head_w}|ret_2q_dm", {})
+        pt = p["partial_holding_reversal"].get(f"{s}|{head_w}|ret_2q_dm", {})
         out.append(
             f"| `{s}` | {desc} | {r2.get('mean_ic', 'na')} | {r2.get('t_stat', 'na')} "
             f"| {pt.get('mean_ic', 'na')} | {pt.get('t_stat', 'na')} "

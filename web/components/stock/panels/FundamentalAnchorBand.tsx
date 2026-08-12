@@ -181,6 +181,24 @@ export function FundamentalAnchorBand({ a }: { a: Anchors }) {
   );
 }
 
+/**
+ * Where spot sits, said as a RANK rather than a percentage.
+ *
+ * The percentile is exact but its resolution is not: it is a count over
+ * `history_quarters` observations, so with a 20-quarter window it can only take
+ * 21 values and every step is 5 points. "Cheaper than 95%" implies a precision
+ * twenty observations cannot carry, and at the top it printed "cheaper than
+ * 100%" — which reads as a bound rather than as what it is, the cheapest reading
+ * in the window and possibly well past it. Naming the sample size fixes both,
+ * and the ends get words instead of a number that has run out of room.
+ */
+export function rankPhrase(pct: number, quarters: number): string {
+  const n = Math.round(pct * quarters);
+  if (n >= quarters) return `Cheaper than any of its last ${quarters} quarters`;
+  if (n <= 0) return `Richer than any of its last ${quarters} quarters`;
+  return `Cheaper than ${n} of its last ${quarters} quarters`;
+}
+
 function Header({ a }: { a: Anchors }) {
   const pct = a.spot_percentile;
   return (
@@ -216,11 +234,8 @@ function Header({ a }: { a: Anchors }) {
       >
         {pct != null ? (
           <>
-            {"Cheaper than "}
-            <strong>{`${Math.round(pct * 100)}%`}</strong>
-            {` of this company’s last ${a.history_quarters} quarters on ${
-              METHOD_LABEL[a.method] ?? a.method
-            }. `}
+            <strong>{rankPhrase(pct, a.history_quarters)}</strong>
+            {` on ${METHOD_LABEL[a.method] ?? a.method}. `}
           </>
         ) : null}
         {"Levels are percentiles of its "}
