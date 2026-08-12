@@ -210,9 +210,17 @@ export function FundamentalsTab({ ticker }: { ticker: string }) {
         {card.subscores.map((s) => {
           const detail = stmts?.features.find((f) => f.feature === s.feature);
           if (open === s.feature) {
+            const label = LABELS[s.feature] ?? s.feature;
             return (
-              <div
+              // The card itself flips back — same element, same gesture, no
+              // separate close control to hunt for. `aria-label` is required:
+              // without it the accessible name becomes the entire chart,
+              // legend and footnote read aloud as one string.
+              <button
                 key={s.feature}
+                type="button"
+                onClick={() => setOpenFeature(null)}
+                aria-label={`Hide ${label} components`}
                 style={backPanelStyle}
                 data-testid={`subscore-back-${s.feature}`}
               >
@@ -221,16 +229,12 @@ export function FundamentalsTab({ ticker }: { ticker: string }) {
                     detail={detail}
                     periods={stmts.period_ends}
                     currency={stmts.reported_currency}
-                    label={LABELS[s.feature] ?? s.feature}
-                    onClose={() => setOpenFeature(null)}
+                    label={label}
                   />
                 ) : (
-                  <FundamentalBackPlaceholder
-                    failed={statementsFailed}
-                    onClose={() => setOpenFeature(null)}
-                  />
+                  <FundamentalBackPlaceholder failed={statementsFailed} />
                 )}
-              </div>
+              </button>
             );
           }
           return (
@@ -249,9 +253,7 @@ export function FundamentalsTab({ ticker }: { ticker: string }) {
           currency={stmts?.reported_currency ?? null}
           open={open === "revenue_earnings"}
           failed={statementsFailed}
-          onOpen={() =>
-            setOpenFeature({ ticker, feature: "revenue_earnings" })
-          }
+          onOpen={() => setOpenFeature({ ticker, feature: "revenue_earnings" })}
           onClose={() => setOpenFeature(null)}
         />
       </div>

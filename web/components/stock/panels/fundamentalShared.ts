@@ -48,9 +48,13 @@ export const tileButtonStyle: React.CSSProperties = {
 };
 
 /** The wrapper an opened back renders into: full grid row, so 20 quarterly
- *  bars get a readable width instead of a 260px column. */
+ *  bars get a readable width instead of a 260px column.
+ *
+ *  Built on `tileButtonStyle`, not `panelStyle`, because the back is itself a
+ *  `<button>` — clicking the card flips it back. That is also why the back
+ *  carries no `close` control: HTML forbids a button inside a button, and a
+ *  div-with-onClick standing in for one would drop Enter, Space and focus. */
 export const backPanelStyle: React.CSSProperties = {
-  ...panelStyle,
-  padding: 12,
+  ...tileButtonStyle,
   gridColumn: "1 / -1",
 };

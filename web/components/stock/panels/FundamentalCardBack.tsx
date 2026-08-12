@@ -26,13 +26,11 @@ export function FundamentalCardBack({
   periods,
   currency,
   label,
-  onClose,
 }: {
   detail: Detail;
   periods: string[];
   currency: string | null;
   label: string;
-  onClose: () => void;
 }) {
   const inputs = detail.series.filter((s) => s.role === "input");
   const context = detail.series.filter((s) => s.role === "context");
@@ -57,22 +55,14 @@ export function FundamentalCardBack({
         >
           {label} · components
         </span>
-        <button
-          type="button"
-          onClick={onClose}
-          aria-label="Close details"
-          style={{
-            background: "none",
-            border: "1px solid var(--border-dim)",
-            borderRadius: 3,
-            color: "var(--text-muted)",
-            cursor: "pointer",
-            fontSize: 10,
-            padding: "2px 8px",
-          }}
+        {/* A hint, not a control — the whole card is the control. Without this
+            the way back is undiscoverable, since nothing on the flipped card
+            looks clickable. */}
+        <span
+          style={{ fontSize: 10, color: "var(--text-muted)", opacity: 0.7 }}
         >
-          close
-        </button>
+          click to flip back
+        </span>
       </div>
 
       <div

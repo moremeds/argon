@@ -1,5 +1,5 @@
 import { render, screen } from "@testing-library/react";
-import { describe, expect, it, vi } from "vitest";
+import { describe, expect, it } from "vitest";
 import { FundamentalCardBack } from "@/components/stock/panels/FundamentalCardBack";
 
 const PERIODS = [
@@ -40,7 +40,6 @@ const props = {
   periods: PERIODS,
   currency: "USD",
   label: "Gross margin",
-  onClose: () => {},
 };
 
 describe("FundamentalCardBack", () => {
@@ -89,10 +88,13 @@ describe("FundamentalCardBack", () => {
     ).toBe("var(--accent-bg)");
   });
 
-  it("closes on the close control", async () => {
-    const onClose = vi.fn();
-    render(<FundamentalCardBack {...props} onClose={onClose} />);
-    screen.getByRole("button", { name: /close/i }).click();
-    expect(onClose).toHaveBeenCalled();
+  it("renders no control of its own — the card it sits in is the control", () => {
+    // The wrapper is a <button>, so anything interactive in here would be a
+    // button inside a button: invalid HTML, and browsers recover from it by
+    // reparenting the DOM, which silently breaks the layout. The way back is a
+    // hint, not a control.
+    render(<FundamentalCardBack {...props} />);
+    expect(screen.queryByRole("button")).toBeNull();
+    expect(screen.getByText(/click to flip back/i)).toBeTruthy();
   });
 });

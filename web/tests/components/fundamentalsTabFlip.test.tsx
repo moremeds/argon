@@ -122,6 +122,29 @@ describe("FundamentalsTab flip", () => {
     expect((tile as HTMLButtonElement).disabled).toBe(false);
   });
 
+  it("flips back when the open card is clicked again", async () => {
+    // The gesture that opens it closes it — one toggle, not an open control
+    // plus a separate close control.
+    render(<FundamentalsTab ticker="NVDA" />);
+    fireEvent.click(await screen.findByTestId("subscore-gross_margin"));
+    const back = await screen.findByTestId("subscore-back-gross_margin");
+    fireEvent.click(back);
+    await waitFor(() =>
+      expect(screen.getByTestId("subscore-gross_margin")).toBeTruthy(),
+    );
+    expect(screen.queryByTestId("subscore-back-gross_margin")).toBeNull();
+  });
+
+  it("gives the open card an accessible name that is not the whole chart", async () => {
+    render(<FundamentalsTab ticker="NVDA" />);
+    fireEvent.click(await screen.findByTestId("subscore-gross_margin"));
+    const back = await screen.findByTestId("subscore-back-gross_margin");
+    expect(back.tagName).toBe("BUTTON");
+    expect(back.getAttribute("aria-label")).toBe(
+      "Hide Gross margin components",
+    );
+  });
+
   it("closes on Escape", async () => {
     render(<FundamentalsTab ticker="NVDA" />);
     fireEvent.click(await screen.findByTestId("subscore-gross_margin"));

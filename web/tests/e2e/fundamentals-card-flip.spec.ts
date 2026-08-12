@@ -18,8 +18,10 @@ test("a fundamental card flips to its own components", async ({ page }) => {
   await expect(back.getByText(/USD/)).toBeVisible();
   await expect(tile).toBeHidden();
 
-  await back.getByRole("button", { name: /close/i }).click();
+  // Clicking the card again is the way back — the same gesture that opened it.
+  await back.click();
   await expect(page.getByTestId("subscore-gross_margin")).toBeVisible();
+  await expect(back).toBeHidden();
 });
 
 test("the tile opens on Enter and closes on Escape", async ({ page }) => {

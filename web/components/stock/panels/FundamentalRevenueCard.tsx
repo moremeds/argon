@@ -50,19 +50,24 @@ export function FundamentalRevenueCard({
 }) {
   if (open) {
     return (
-      <div style={backPanelStyle} data-testid="subscore-back-revenue_earnings">
+      <button
+        type="button"
+        onClick={onClose}
+        aria-label="Hide revenue & earnings components"
+        style={backPanelStyle}
+        data-testid="subscore-back-revenue_earnings"
+      >
         {detail ? (
           <FundamentalCardBack
             detail={detail}
             periods={periods}
             currency={currency}
             label="Revenue & earnings"
-            onClose={onClose}
           />
         ) : (
-          <FundamentalBackPlaceholder failed={failed} onClose={onClose} />
+          <FundamentalBackPlaceholder failed={failed} />
         )}
-      </div>
+      </button>
     );
   }
 

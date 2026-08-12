@@ -13,7 +13,8 @@ version in lockstep (enforced by `scripts/release/version_sync_check.py`).
   Fundamentals tab expands it to a 20-quarter chart of the components its ratio
   was computed from — `gross_profit` against `total_revenue` for gross margin,
   operating cash flow against capex for FCF margin, and so on — served by a new
-  `GET /stock/{ticker}/fundamentals/statements`. The components are resolved
+  `GET /stock/{ticker}/fundamentals/statements`. Clicking the expanded card flips
+  it back; there is no separate close control. The components are resolved
   server-side in `build_feature_details`, beside `build_features` and sharing its
   helpers, so the back cannot drift from the front; a test asserts the plotted
   line equals the plotted input bars for every feature. Each back states its own
