@@ -67,6 +67,7 @@ version in lockstep (enforced by `scripts/release/version_sync_check.py`).
   own inputs, its routing, the thresholds, and an `ANCHOR_RULES_REV` — so a rule
   change appends the correction instead of colliding with what it corrects. The
   job now also WARNs when it computes rows and writes none.
+- **Four `_self_check()` functions in `uw_scan/fundamentals/` were never run by CI** (`fx`, `scoring`, `statements`, `valuation`) — they executed only when a human typed the module. `valuation`'s carries the only assertions that an `unclassified` name bands at `medium` on the pooled default and that `anchor_inputs_hash` responds to each of its six inputs, so the coverage for two of the fixes above was itself unenforced. `tests/unit/fundamentals/test_self_checks_run.py` discovers them by introspection and runs each, so a fifth is covered the day it lands.
 - `docs/research/2026-08-12-fundamental-valuation-timeseries/results.md`
   regenerated `na` for every signal: the window sweep changed the result keys to
   `<signal>|w<window>|<outcome>` and the table's lookup was not updated, so a doc
