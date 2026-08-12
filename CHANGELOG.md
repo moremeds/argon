@@ -9,6 +9,24 @@ version in lockstep (enforced by `scripts/release/version_sync_check.py`).
 
 ### Added
 
+- **Fundamental cards flip to the figures behind them.** Clicking any card on the
+  Fundamentals tab expands it to a 20-quarter chart of the components its ratio
+  was computed from — `gross_profit` against `total_revenue` for gross margin,
+  operating cash flow against capex for FCF margin, and so on — served by a new
+  `GET /stock/{ticker}/fundamentals/statements`. The components are resolved
+  server-side in `build_feature_details`, beside `build_features` and sharing its
+  helpers, so the back cannot drift from the front; a test asserts the plotted
+  line equals the plotted input bars for every feature. Each back states its own
+  **basis** (`gross_margin` and `op_margin` are quarterly where the rest are TTM,
+  and three ratios divide a TTM flow by a point-in-time balance) and its
+  **reported currency**, since TSM files TWD against a USD quote. The three
+  features with no validated direction keep a neutral line — the front's rule
+  holds on the back.
+- **An eighth, descriptive card: revenue & earnings.** TTM revenue, net income and
+  free cash flow. It enters no composite and carries no percentile, and says
+  `descriptive · not scored` where a subscore tile states its direction — the
+  seven around it are a validated set and a tile that looked identical would be
+  read as an eighth measured feature. It also squares the grid to 8.
 - **The fundamental lane now runs on a schedule.** `fundamental_refresh`
   (`worker/jobs/fundamental_refresh.py`, nightly 18:20 ET, massive-0, gated
   `UW_SCAN_FUNDAMENTAL_REFRESH_ENABLED`, default on) chains routing → subscores
