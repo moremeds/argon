@@ -194,6 +194,33 @@ version in lockstep (enforced by `scripts/release/version_sync_check.py`).
   falling subscores reaches for "and so the stock should underperform" unprompted.
   §8's ranked screen is untouched: **the composite ranks names against each other
   and does not time one against itself.**
+- **A name's own VALUATION does time that name, where its own quality does not —
+  and it survives the control that should have killed it.**
+  `scripts/research/fundamental_valuation_timeseries.py`, 247 tickers, 17,005
+  observations through the same harness that returned the null above. All five
+  own-history valuation yields carry a positive market-neutral IC at 2q;
+  `sales_to_ev` leads at **+0.0744 (t 5.77)**, hit rate 0.683 — the basis three
+  of the five §5.3 company types already route through. Verdict:
+  `docs/research/2026-08-12-fundamental-valuation-timeseries/VERDICT.md`.
+- **The reversal control failed to explain it, in three separate ways.** Every
+  signal is fundamental/price with a quarterly numerator over a daily
+  denominator, so most within-ticker variation in a "valuation" score is price
+  variation — short-horizon reversal was the default explanation, not a remote
+  risk. A pure negated-trailing-return signal pushed through the identical
+  pipeline earns a real but smaller **+0.0353 (t 2.60)**; holding it constant
+  makes every valuation signal **stronger** (`sales_to_ev` → +0.0826, t 7.28;
+  `book_to_price` → +0.0551 from +0.0356); and reversal does not predict drawdown
+  at all (**+0.0014, t 0.10**) while every valuation signal does. Two signals
+  that were the same thing relabelled would not diverge on a second outcome.
+- **Product consequence: the anchor band may be prescriptive, the subscores may
+  not.** `buy_below` has measured support at the horizon the card speaks to, so
+  the five §5.3 levels keep their prescriptive names — but the band is an
+  **own-history percentile, never a cross-sectional one**. The cross-sectional
+  value inversion (`book_to_price` IC −0.0365) still stands; the same word names
+  two different quantities with opposite signs. Standing limits carried:
+  survivorship (delisted names absent by construction, biasing "cheap precedes
+  strength" upward), ticker-level t-stats optimistic, uncosted, and not a
+  strategy — this licenses a band on a card, not a rule with sizing behind it.
 
 ### Fixed
 

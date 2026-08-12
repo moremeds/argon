@@ -1,0 +1,429 @@
+{
+  "anchor_band_needs": "positive IC \u2014 every signal is a yield, so high = cheap",
+  "control": "neg_past_ret",
+  "partial_holding_reversal": {
+    "book_to_price|ret_2q": {
+      "hit_rate": 0.753,
+      "ic_stdev": 0.1918,
+      "mean_ic": 0.126,
+      "n_tickers": 247,
+      "t_stat": 10.322
+    },
+    "book_to_price|ret_2q_dm": {
+      "hit_rate": 0.579,
+      "ic_stdev": 0.175,
+      "mean_ic": 0.0551,
+      "n_tickers": 247,
+      "t_stat": 4.947
+    },
+    "earnings_yield|ret_2q": {
+      "hit_rate": 0.591,
+      "ic_stdev": 0.1907,
+      "mean_ic": 0.0401,
+      "n_tickers": 247,
+      "t_stat": 3.307
+    },
+    "earnings_yield|ret_2q_dm": {
+      "hit_rate": 0.611,
+      "ic_stdev": 0.1895,
+      "mean_ic": 0.0407,
+      "n_tickers": 247,
+      "t_stat": 3.378
+    },
+    "ebitda_to_ev|ret_2q": {
+      "hit_rate": 0.626,
+      "ic_stdev": 0.1902,
+      "mean_ic": 0.0573,
+      "n_tickers": 246,
+      "t_stat": 4.722
+    },
+    "ebitda_to_ev|ret_2q_dm": {
+      "hit_rate": 0.622,
+      "ic_stdev": 0.1849,
+      "mean_ic": 0.0566,
+      "n_tickers": 246,
+      "t_stat": 4.802
+    },
+    "fcf_yield|ret_2q": {
+      "hit_rate": 0.68,
+      "ic_stdev": 0.2007,
+      "mean_ic": 0.0766,
+      "n_tickers": 247,
+      "t_stat": 5.997
+    },
+    "fcf_yield|ret_2q_dm": {
+      "hit_rate": 0.623,
+      "ic_stdev": 0.1934,
+      "mean_ic": 0.0514,
+      "n_tickers": 247,
+      "t_stat": 4.179
+    },
+    "sales_to_ev|ret_2q": {
+      "hit_rate": 0.707,
+      "ic_stdev": 0.1878,
+      "mean_ic": 0.099,
+      "n_tickers": 246,
+      "t_stat": 8.266
+    },
+    "sales_to_ev|ret_2q_dm": {
+      "hit_rate": 0.675,
+      "ic_stdev": 0.178,
+      "mean_ic": 0.0826,
+      "n_tickers": 246,
+      "t_stat": 7.28
+    }
+  },
+  "question": "within one ticker, does its own valuation vs its own history precede its own forward return?",
+  "results": {
+    "book_to_price|dd_1q": {
+      "hit_rate": 0.506,
+      "ic_stdev": 0.1884,
+      "mean_ic": 0.0078,
+      "n_tickers": 247,
+      "t_stat": 0.648
+    },
+    "book_to_price|dd_1q_dm": {
+      "hit_rate": 0.53,
+      "ic_stdev": 0.1985,
+      "mean_ic": 0.0132,
+      "n_tickers": 247,
+      "t_stat": 1.045
+    },
+    "book_to_price|dd_2q": {
+      "hit_rate": 0.567,
+      "ic_stdev": 0.1966,
+      "mean_ic": 0.0352,
+      "n_tickers": 247,
+      "t_stat": 2.815
+    },
+    "book_to_price|dd_2q_dm": {
+      "hit_rate": 0.559,
+      "ic_stdev": 0.2087,
+      "mean_ic": 0.0247,
+      "n_tickers": 247,
+      "t_stat": 1.859
+    },
+    "book_to_price|ret_1q": {
+      "hit_rate": 0.717,
+      "ic_stdev": 0.169,
+      "mean_ic": 0.0716,
+      "n_tickers": 247,
+      "t_stat": 6.659
+    },
+    "book_to_price|ret_1q_dm": {
+      "hit_rate": 0.567,
+      "ic_stdev": 0.1611,
+      "mean_ic": 0.0244,
+      "n_tickers": 247,
+      "t_stat": 2.382
+    },
+    "book_to_price|ret_2q": {
+      "hit_rate": 0.733,
+      "ic_stdev": 0.2163,
+      "mean_ic": 0.1087,
+      "n_tickers": 247,
+      "t_stat": 7.902
+    },
+    "book_to_price|ret_2q_dm": {
+      "hit_rate": 0.555,
+      "ic_stdev": 0.1978,
+      "mean_ic": 0.0356,
+      "n_tickers": 247,
+      "t_stat": 2.828
+    },
+    "earnings_yield|dd_1q": {
+      "hit_rate": 0.611,
+      "ic_stdev": 0.1855,
+      "mean_ic": 0.0351,
+      "n_tickers": 247,
+      "t_stat": 2.977
+    },
+    "earnings_yield|dd_1q_dm": {
+      "hit_rate": 0.611,
+      "ic_stdev": 0.1856,
+      "mean_ic": 0.045,
+      "n_tickers": 247,
+      "t_stat": 3.813
+    },
+    "earnings_yield|dd_2q": {
+      "hit_rate": 0.599,
+      "ic_stdev": 0.1855,
+      "mean_ic": 0.0418,
+      "n_tickers": 247,
+      "t_stat": 3.539
+    },
+    "earnings_yield|dd_2q_dm": {
+      "hit_rate": 0.607,
+      "ic_stdev": 0.1942,
+      "mean_ic": 0.0443,
+      "n_tickers": 247,
+      "t_stat": 3.587
+    },
+    "earnings_yield|ret_1q": {
+      "hit_rate": 0.611,
+      "ic_stdev": 0.1763,
+      "mean_ic": 0.0364,
+      "n_tickers": 247,
+      "t_stat": 3.243
+    },
+    "earnings_yield|ret_1q_dm": {
+      "hit_rate": 0.591,
+      "ic_stdev": 0.17,
+      "mean_ic": 0.0371,
+      "n_tickers": 247,
+      "t_stat": 3.434
+    },
+    "earnings_yield|ret_2q": {
+      "hit_rate": 0.595,
+      "ic_stdev": 0.2078,
+      "mean_ic": 0.0297,
+      "n_tickers": 247,
+      "t_stat": 2.247
+    },
+    "earnings_yield|ret_2q_dm": {
+      "hit_rate": 0.591,
+      "ic_stdev": 0.2019,
+      "mean_ic": 0.0329,
+      "n_tickers": 247,
+      "t_stat": 2.56
+    },
+    "ebitda_to_ev|dd_1q": {
+      "hit_rate": 0.622,
+      "ic_stdev": 0.1893,
+      "mean_ic": 0.0447,
+      "n_tickers": 246,
+      "t_stat": 3.704
+    },
+    "ebitda_to_ev|dd_1q_dm": {
+      "hit_rate": 0.598,
+      "ic_stdev": 0.1888,
+      "mean_ic": 0.0401,
+      "n_tickers": 246,
+      "t_stat": 3.333
+    },
+    "ebitda_to_ev|dd_2q": {
+      "hit_rate": 0.659,
+      "ic_stdev": 0.1866,
+      "mean_ic": 0.0564,
+      "n_tickers": 246,
+      "t_stat": 4.738
+    },
+    "ebitda_to_ev|dd_2q_dm": {
+      "hit_rate": 0.642,
+      "ic_stdev": 0.1896,
+      "mean_ic": 0.043,
+      "n_tickers": 246,
+      "t_stat": 3.557
+    },
+    "ebitda_to_ev|ret_1q": {
+      "hit_rate": 0.606,
+      "ic_stdev": 0.1744,
+      "mean_ic": 0.0389,
+      "n_tickers": 246,
+      "t_stat": 3.503
+    },
+    "ebitda_to_ev|ret_1q_dm": {
+      "hit_rate": 0.618,
+      "ic_stdev": 0.1663,
+      "mean_ic": 0.0395,
+      "n_tickers": 246,
+      "t_stat": 3.728
+    },
+    "ebitda_to_ev|ret_2q": {
+      "hit_rate": 0.593,
+      "ic_stdev": 0.2126,
+      "mean_ic": 0.0408,
+      "n_tickers": 246,
+      "t_stat": 3.008
+    },
+    "ebitda_to_ev|ret_2q_dm": {
+      "hit_rate": 0.606,
+      "ic_stdev": 0.2051,
+      "mean_ic": 0.0446,
+      "n_tickers": 246,
+      "t_stat": 3.41
+    },
+    "fcf_yield|dd_1q": {
+      "hit_rate": 0.648,
+      "ic_stdev": 0.1743,
+      "mean_ic": 0.0568,
+      "n_tickers": 247,
+      "t_stat": 5.122
+    },
+    "fcf_yield|dd_1q_dm": {
+      "hit_rate": 0.607,
+      "ic_stdev": 0.1825,
+      "mean_ic": 0.0476,
+      "n_tickers": 247,
+      "t_stat": 4.1
+    },
+    "fcf_yield|dd_2q": {
+      "hit_rate": 0.648,
+      "ic_stdev": 0.1888,
+      "mean_ic": 0.0693,
+      "n_tickers": 247,
+      "t_stat": 5.766
+    },
+    "fcf_yield|dd_2q_dm": {
+      "hit_rate": 0.607,
+      "ic_stdev": 0.1916,
+      "mean_ic": 0.0522,
+      "n_tickers": 247,
+      "t_stat": 4.286
+    },
+    "fcf_yield|ret_1q": {
+      "hit_rate": 0.652,
+      "ic_stdev": 0.1712,
+      "mean_ic": 0.0511,
+      "n_tickers": 247,
+      "t_stat": 4.696
+    },
+    "fcf_yield|ret_1q_dm": {
+      "hit_rate": 0.611,
+      "ic_stdev": 0.1634,
+      "mean_ic": 0.0374,
+      "n_tickers": 247,
+      "t_stat": 3.597
+    },
+    "fcf_yield|ret_2q": {
+      "hit_rate": 0.648,
+      "ic_stdev": 0.2063,
+      "mean_ic": 0.0665,
+      "n_tickers": 247,
+      "t_stat": 5.063
+    },
+    "fcf_yield|ret_2q_dm": {
+      "hit_rate": 0.603,
+      "ic_stdev": 0.1973,
+      "mean_ic": 0.0457,
+      "n_tickers": 247,
+      "t_stat": 3.643
+    },
+    "neg_past_ret|dd_1q": {
+      "hit_rate": 0.304,
+      "ic_stdev": 0.2016,
+      "mean_ic": -0.0789,
+      "n_tickers": 247,
+      "t_stat": -6.152
+    },
+    "neg_past_ret|dd_1q_dm": {
+      "hit_rate": 0.421,
+      "ic_stdev": 0.1995,
+      "mean_ic": -0.0208,
+      "n_tickers": 247,
+      "t_stat": -1.642
+    },
+    "neg_past_ret|dd_2q": {
+      "hit_rate": 0.344,
+      "ic_stdev": 0.2041,
+      "mean_ic": -0.0545,
+      "n_tickers": 247,
+      "t_stat": -4.196
+    },
+    "neg_past_ret|dd_2q_dm": {
+      "hit_rate": 0.47,
+      "ic_stdev": 0.2116,
+      "mean_ic": 0.0014,
+      "n_tickers": 247,
+      "t_stat": 0.104
+    },
+    "neg_past_ret|ret_1q": {
+      "hit_rate": 0.563,
+      "ic_stdev": 0.1883,
+      "mean_ic": 0.0389,
+      "n_tickers": 247,
+      "t_stat": 3.25
+    },
+    "neg_past_ret|ret_1q_dm": {
+      "hit_rate": 0.595,
+      "ic_stdev": 0.1853,
+      "mean_ic": 0.039,
+      "n_tickers": 247,
+      "t_stat": 3.306
+    },
+    "neg_past_ret|ret_2q": {
+      "hit_rate": 0.656,
+      "ic_stdev": 0.2174,
+      "mean_ic": 0.0544,
+      "n_tickers": 247,
+      "t_stat": 3.933
+    },
+    "neg_past_ret|ret_2q_dm": {
+      "hit_rate": 0.587,
+      "ic_stdev": 0.2133,
+      "mean_ic": 0.0353,
+      "n_tickers": 247,
+      "t_stat": 2.598
+    },
+    "sales_to_ev|dd_1q": {
+      "hit_rate": 0.573,
+      "ic_stdev": 0.1819,
+      "mean_ic": 0.0274,
+      "n_tickers": 246,
+      "t_stat": 2.363
+    },
+    "sales_to_ev|dd_1q_dm": {
+      "hit_rate": 0.602,
+      "ic_stdev": 0.19,
+      "mean_ic": 0.0303,
+      "n_tickers": 246,
+      "t_stat": 2.504
+    },
+    "sales_to_ev|dd_2q": {
+      "hit_rate": 0.659,
+      "ic_stdev": 0.1898,
+      "mean_ic": 0.0529,
+      "n_tickers": 246,
+      "t_stat": 4.37
+    },
+    "sales_to_ev|dd_2q_dm": {
+      "hit_rate": 0.614,
+      "ic_stdev": 0.2013,
+      "mean_ic": 0.0466,
+      "n_tickers": 246,
+      "t_stat": 3.63
+    },
+    "sales_to_ev|ret_1q": {
+      "hit_rate": 0.683,
+      "ic_stdev": 0.1667,
+      "mean_ic": 0.064,
+      "n_tickers": 246,
+      "t_stat": 6.018
+    },
+    "sales_to_ev|ret_1q_dm": {
+      "hit_rate": 0.667,
+      "ic_stdev": 0.1625,
+      "mean_ic": 0.0527,
+      "n_tickers": 246,
+      "t_stat": 5.087
+    },
+    "sales_to_ev|ret_2q": {
+      "hit_rate": 0.687,
+      "ic_stdev": 0.2124,
+      "mean_ic": 0.0852,
+      "n_tickers": 246,
+      "t_stat": 6.29
+    },
+    "sales_to_ev|ret_2q_dm": {
+      "hit_rate": 0.683,
+      "ic_stdev": 0.2021,
+      "mean_ic": 0.0744,
+      "n_tickers": 246,
+      "t_stat": 5.773
+    }
+  },
+  "signals": {
+    "book_to_price": "generic book anchor; measured INVERTED cross-sectionally",
+    "earnings_yield": "generic P/E anchor; measured INVERTED cross-sectionally",
+    "ebitda_to_ev": "power_infra \u2014 EV/EBITDA",
+    "fcf_yield": "platform_scale \u2014 FCF multiple",
+    "sales_to_ev": "chips_cyclical / software_growth / high_risk_growth \u2014 EV/Sales"
+  },
+  "universe": {
+    "min_history_before_z": 12,
+    "min_obs_per_ticker": 24,
+    "observations": 17005,
+    "tickers_loaded": 257,
+    "tickers_scored": 247
+  }
+}
