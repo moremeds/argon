@@ -355,3 +355,31 @@ def test_currency_is_reported_not_assumed():
 def test_quarters_limit_takes_the_most_recent():
     out = build_feature_details(PANEL["NVDA"], quarters=2)
     assert out["period_ends"] == ["2026-01-31", "2026-04-30"]
+
+
+def test_revenue_earnings_is_descriptive_and_carries_no_ratio():
+    """The eighth card enters no score, so it has no ratio to reconcile. It must
+    still be a first-class entry rather than something the UI assembles by hand,
+    or its TTM sums would be a second implementation of `_ttm`."""
+    out = build_feature_details(PANEL["NVDA"], quarters=20)
+    detail = next(f for f in out["features"] if f["feature"] == "revenue_earnings")
+    assert detail["basis"] == "ttm"
+    assert detail["unit"] == "currency"
+    assert all(r is None for r in detail["ratio"])
+    assert {s["key"] for s in detail["series"]} == {
+        "total_revenue_ttm",
+        "net_income_ttm",
+        "fcf_ttm",
+    }
+    # Real NVDA TTM revenue over the last four frozen quarters.
+    rev = next(s for s in detail["series"] if s["key"] == "total_revenue_ttm")
+    assert rev["values"][-1] == pytest.approx(
+        46743000000 + 57006000000 + 68127000000 + 81615000000
+    )
+    assert rev["values"][0] is None  # fewer than four quarters available
+
+
+def test_revenue_earnings_is_not_in_feature_inputs():
+    """It must never join the scored set: the composite's measured verdicts cover
+    exactly the seven in FEATURE_INPUTS."""
+    assert "revenue_earnings" not in FEATURE_INPUTS

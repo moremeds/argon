@@ -2,194 +2,22 @@
 import { useEffect, useState } from "react";
 import type { components } from "@/lib/types";
 import { api } from "@/lib/api";
-import { fmtDecimal, fmtPct } from "@/lib/formatters";
+import { fmtDecimal } from "@/lib/formatters";
 import { FundamentalAnchorBand } from "../panels/FundamentalAnchorBand";
+import { FundamentalBackPlaceholder } from "../panels/FundamentalBackPlaceholder";
 import { FundamentalCardBack } from "../panels/FundamentalCardBack";
+import { FundamentalRevenueCard } from "../panels/FundamentalRevenueCard";
 import { FundamentalSparkline } from "../panels/FundamentalSparkline";
+import { SubscoreTile, PercentileTag } from "../panels/FundamentalSubscoreTile";
+import {
+  LABELS,
+  backPanelStyle,
+  labelStyle,
+  panelStyle,
+} from "../panels/fundamentalShared";
 
 type Card = components["schemas"]["FundamentalCardResponse"];
 type Statements = components["schemas"]["FundamentalStatementsResponse"];
-type Subscore = components["schemas"]["FundamentalSubscore"];
-type Pct = components["schemas"]["FundamentalPercentile"];
-
-const LABELS: Record<string, string> = {
-  rev_growth: "Revenue growth",
-  gross_margin: "Gross margin",
-  op_margin: "Operating margin",
-  fcf_margin: "FCF margin",
-  roe: "Return on equity",
-  neg_net_debt_ebitda: "Net cash / EBITDA",
-  asset_turnover: "Asset turnover",
-};
-
-const panelStyle: React.CSSProperties = {
-  background: "var(--bg-panel)",
-  border: "1px solid var(--border-dim)",
-  borderRadius: 4,
-  padding: 16,
-  fontFamily: "var(--font-mono)",
-  minWidth: 0,
-};
-
-const labelStyle: React.CSSProperties = {
-  fontSize: 10,
-  letterSpacing: 1.5,
-  textTransform: "uppercase",
-  color: "var(--text-muted)",
-};
-
-/** 0.913 -> "91st". Rounded to a whole percentile: the third decimal of a rank
- *  among 253 names is noise, and printing it would imply precision we lack. */
-function ordinal(p: number): string {
-  const n = Math.round(p * 100);
-  const rem100 = n % 100;
-  if (rem100 >= 11 && rem100 <= 13) return `${n}th`;
-  return `${n}${["th", "st", "nd", "rd"][n % 10] ?? "th"}`;
-}
-
-function PercentileTag({ pct }: { pct: Pct | null | undefined }) {
-  if (!pct) return null;
-  return (
-    // No colour ramp. A percentile locates the name in its panel; it is not a
-    // quality score and not an expected return (zero gross alpha measured
-    // 2026-08-12), so painting it green would assert something untrue.
-    <span style={{ ...labelStyle, fontSize: 9, letterSpacing: 0.5 }}>
-      {ordinal(pct.percentile)} of {pct.n}
-    </span>
-  );
-}
-
-function formatValue(s: Subscore): string {
-  if (s.value == null) return "na";
-  return s.unit === "ratio" ? fmtPct(s.value, 1) : `${fmtDecimal(s.value, 2)}x`;
-}
-
-/** The back before its data arrives — or after the fetch failed.
- *
- * These are different states and must read differently. A failed fetch left
- * showing "Loading…" claims progress that will never arrive, and the reader
- * waits instead of reloading. */
-function BackPlaceholder({
-  failed,
-  onClose,
-}: {
-  failed: boolean;
-  onClose: () => void;
-}) {
-  return (
-    <div style={{ fontSize: 11, color: "var(--text-muted)" }}>
-      {failed ? (
-        <>
-          <strong style={{ color: "var(--warning)" }}>
-            Components unavailable.
-          </strong>{" "}
-          The statement history did not load. The ratio on the front of the card
-          is unaffected.
-        </>
-      ) : (
-        "Loading components…"
-      )}
-      <button
-        type="button"
-        onClick={onClose}
-        aria-label="Close details"
-        style={{
-          background: "none",
-          border: "1px solid var(--border-dim)",
-          borderRadius: 3,
-          color: "var(--text-muted)",
-          cursor: "pointer",
-          fontSize: 10,
-          marginLeft: 8,
-          padding: "2px 8px",
-        }}
-      >
-        close
-      </button>
-    </div>
-  );
-}
-
-function SubscoreTile({
-  s,
-  dates,
-  onOpen,
-}: {
-  s: Subscore;
-  dates: string[];
-  onOpen: () => void;
-}) {
-  const suppressed = s.suppressed_by.length > 0;
-  const series = s.series ?? [];
-  return (
-    // A native button, not a div with handlers: Enter, Space, focus order and
-    // the right role all come for free, and reimplementing them is how they get
-    // missed. `font`/`color`/`textAlign` undo the UA button defaults so the tile
-    // still looks like its neighbours.
-    <button
-      type="button"
-      onClick={onOpen}
-      style={{
-        ...panelStyle,
-        padding: 12,
-        textAlign: "left",
-        cursor: "pointer",
-        font: "inherit",
-        color: "inherit",
-        width: "100%",
-      }}
-      data-testid={`subscore-${s.feature}`}
-    >
-      <div
-        style={{
-          display: "flex",
-          justifyContent: "space-between",
-          alignItems: "baseline",
-          gap: 8,
-        }}
-      >
-        <span style={labelStyle}>{LABELS[s.feature] ?? s.feature}</span>
-        <PercentileTag pct={s.percentile} />
-      </div>
-      <div
-        style={{
-          fontSize: 22,
-          fontWeight: 700,
-          color: s.value == null ? "var(--text-muted)" : "var(--text-primary)",
-          margin: "6px 0",
-        }}
-      >
-        {formatValue(s)}
-      </div>
-      {series.length ? (
-        <FundamentalSparkline
-          values={series}
-          dates={dates}
-          label={LABELS[s.feature] ?? s.feature}
-          stroke="var(--text-secondary)"
-        />
-      ) : null}
-      {suppressed ? (
-        <div
-          style={{
-            fontSize: 10,
-            color: "var(--warning)",
-            lineHeight: 1.4,
-            marginTop: 6,
-          }}
-        >
-          suppressed · {s.suppressed_by.join(", ")}
-        </div>
-      ) : (
-        <div style={{ fontSize: 10, color: "var(--text-muted)", marginTop: 6 }}>
-          {s.direction === "higher_better"
-            ? "higher better"
-            : "no direction claimed"}
-        </div>
-      )}
-    </button>
-  );
-}
 
 export function FundamentalsTab({ ticker }: { ticker: string }) {
   const [card, setCard] = useState<Card | null>(null);
@@ -385,7 +213,7 @@ export function FundamentalsTab({ ticker }: { ticker: string }) {
             return (
               <div
                 key={s.feature}
-                style={{ ...panelStyle, padding: 12, gridColumn: "1 / -1" }}
+                style={backPanelStyle}
                 data-testid={`subscore-back-${s.feature}`}
               >
                 {detail && stmts ? (
@@ -397,7 +225,7 @@ export function FundamentalsTab({ ticker }: { ticker: string }) {
                     onClose={() => setOpenFeature(null)}
                   />
                 ) : (
-                  <BackPlaceholder
+                  <FundamentalBackPlaceholder
                     failed={statementsFailed}
                     onClose={() => setOpenFeature(null)}
                   />
@@ -414,6 +242,18 @@ export function FundamentalsTab({ ticker }: { ticker: string }) {
             />
           );
         })}
+
+        <FundamentalRevenueCard
+          detail={stmts?.features.find((f) => f.feature === "revenue_earnings")}
+          periods={stmts?.period_ends ?? []}
+          currency={stmts?.reported_currency ?? null}
+          open={open === "revenue_earnings"}
+          failed={statementsFailed}
+          onOpen={() =>
+            setOpenFeature({ ticker, feature: "revenue_earnings" })
+          }
+          onClose={() => setOpenFeature(null)}
+        />
       </div>
 
       <div style={panelStyle} data-testid="fundamentals-coverage">

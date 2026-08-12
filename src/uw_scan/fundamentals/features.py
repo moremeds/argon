@@ -332,6 +332,49 @@ def build_feature_details(uw: Mapping[str, Any], quarters: int = 20) -> dict[str
             }
         )
 
+    # The eighth card. Descriptive: it enters no composite and has no ratio, so
+    # `ratio` is all-None rather than absent — one shape for every entry keeps
+    # the client from special-casing it.
+    def _ttm_series(src: dict, field: str) -> list[float | None]:
+        return [_ttm(src, all_periods, offset + i, field) for i in range(len(keep))]
+
+    ocf = _ttm_series(cf, "operating_cashflow")
+    capex = _ttm_series(cf, "capital_expenditures")
+    features.append(
+        {
+            "feature": "revenue_earnings",
+            "basis": "ttm",
+            "unit": "currency",
+            "series": [
+                {
+                    "key": "total_revenue_ttm",
+                    "label": "revenue TTM",
+                    "role": "input",
+                    "unit": "currency",
+                    "values": _ttm_series(inc, "total_revenue"),
+                },
+                {
+                    "key": "net_income_ttm",
+                    "label": "net income TTM",
+                    "role": "input",
+                    "unit": "currency",
+                    "values": _ttm_series(inc, "net_income"),
+                },
+                {
+                    "key": "fcf_ttm",
+                    "label": "free cash flow TTM",
+                    "role": "input",
+                    "unit": "currency",
+                    "values": [
+                        None if o is None or c is None else o - abs(c)
+                        for o, c in zip(ocf, capex, strict=True)
+                    ],
+                },
+            ],
+            "ratio": [None] * len(keep),
+        }
+    )
+
     return {
         "period_ends": list(keep),
         "reported_currency": currency,
