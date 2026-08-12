@@ -6,7 +6,7 @@ from datetime import date
 from decimal import Decimal
 from typing import Any, Literal
 
-from pydantic import AwareDatetime, field_validator, model_validator
+from pydantic import AwareDatetime, Field, field_validator, model_validator
 
 from uw_scan.macro_evidence import (
     macro_artifact_content_identity,
@@ -36,6 +36,9 @@ MacroCostClass = Literal[
 ]
 MacroFrequency = Literal[
     "daily", "weekly", "monthly", "quarterly", "annual", "event", "irregular"
+]
+PolicyPathKind = Literal[
+    "actual", "committee_projection", "dealer_expectations", "market_implied"
 ]
 
 
@@ -158,6 +161,104 @@ class MacroEvidenceRef(_UwBase):
         return _validate_sha256(value)
 
 
+class PolicyPathProbabilityBucket(_UwBase):
+    label: str
+    lower_bound_percent: Decimal | None = None
+    upper_bound_percent: Decimal | None = None
+    probability_percent: Decimal
+
+
+class PolicyPathParticipantPoint(_UwBase):
+    rate_percent: Decimal
+    participant_count: int
+
+
+class PolicyPathPoint(_UwBase):
+    horizon: str
+    horizon_date: date | None = None
+    rate_percent: Decimal
+    target_range_lower_percent: Decimal | None = None
+    target_range_upper_percent: Decimal | None = None
+    action: str | None = None
+    vote_split: str | None = None
+    central_tendency_lower_percent: Decimal | None = None
+    central_tendency_upper_percent: Decimal | None = None
+    range_lower_percent: Decimal | None = None
+    range_upper_percent: Decimal | None = None
+    p25_percent: Decimal | None = None
+    p75_percent: Decimal | None = None
+    respondent_count: int | None = None
+    participant_distribution: list[PolicyPathParticipantPoint] = Field(
+        default_factory=list
+    )
+    probability_distribution: list[PolicyPathProbabilityBucket] = Field(
+        default_factory=list
+    )
+
+
+class PolicyPath(_UwBase):
+    kind: PolicyPathKind
+    source: str
+    source_record_id: str
+    published_at: AwareDatetime | None = None
+    available_at: AwareDatetime
+    cost_class: MacroCostClass
+    delay_minutes: int | None = None
+    points: list[PolicyPathPoint]
+    evidence_refs: list[MacroEvidenceRef] = Field(default_factory=list)
+
+    @model_validator(mode="after")
+    def _validate_shadow_contract(self) -> "PolicyPath":
+        if "frenzy" in self.source.lower():
+            if self.kind != "market_implied":
+                raise ValueError("Frenzy evidence must be market_implied")
+            if self.cost_class != "free_third_party_shadow":
+                raise ValueError(
+                    "Frenzy evidence requires free_third_party_shadow cost_class"
+                )
+            if self.delay_minutes is None or self.delay_minutes < 0:
+                raise ValueError("Frenzy evidence requires nonnegative delay_minutes")
+        if not self.points:
+            raise ValueError("policy path requires at least one point")
+        return self
+
+
+class PolicySourceFreshness(_UwBase):
+    source: str
+    status: Literal["ok", "degraded", "missing"]
+    last_attempt_at: AwareDatetime | None = None
+    last_success_at: AwareDatetime | None = None
+    consecutive_failures: int = 0
+    error_type: str | None = None
+    error_message: str | None = None
+
+
+class PolicyPathSlot(_UwBase):
+    kind: PolicyPathKind
+    path: PolicyPath | None = None
+    missing_reason: str | None = None
+    freshness: PolicySourceFreshness
+
+    @model_validator(mode="after")
+    def _path_or_reason(self) -> "PolicyPathSlot":
+        if (self.path is None) == (self.missing_reason is None):
+            raise ValueError(
+                "policy path slot requires exactly one path or missing_reason"
+            )
+        if self.path is not None and self.path.kind != self.kind:
+            raise ValueError("policy path slot kind does not match path")
+        return self
+
+
+class PolicyComparison(_UwBase):
+    as_of: AwareDatetime
+    actual: PolicyPathSlot
+    committee_projection: PolicyPathSlot
+    dealer_expectations: PolicyPathSlot
+    market_implied: PolicyPathSlot
+    contradictions: list[str] = Field(default_factory=list)
+
+
 def _validate_sha256(value: str) -> str:
     if len(value) != 64 or any(char not in "0123456789abcdef" for char in value):
         raise ValueError("content_hash must be lowercase SHA-256 hex")
@@ -168,4 +269,11 @@ _preserve_public_module(
     MacroSourceArtifact,
     MacroObservation,
     MacroEvidenceRef,
+    PolicyPathProbabilityBucket,
+    PolicyPathParticipantPoint,
+    PolicyPathPoint,
+    PolicyPath,
+    PolicySourceFreshness,
+    PolicyPathSlot,
+    PolicyComparison,
 )

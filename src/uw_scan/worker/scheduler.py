@@ -53,6 +53,11 @@ from uw_scan.worker.jobs.gold_jobs import (
     gold_wgc_cb_ingest_job,
 )
 from uw_scan.worker.jobs.ohlc_pull import ohlc_pull_once
+from uw_scan.worker.jobs.macro_policy_jobs import (
+    macro_fomc_statement_ingest_job,
+    macro_sep_ingest_job,
+    macro_sme_ingest_job,
+)
 from uw_scan.worker.jobs.option_intraday_jobs import (
     refresh_intraday_for_top_oi_movers,
 )
@@ -277,6 +282,12 @@ def _is_primary_worker(settings: Settings) -> bool:
 def _should_schedule_rates_fred_ingest(settings: Settings) -> bool:
     role = settings.worker_role.lower()
     return role == "all" or (role == "uw" and settings.worker_index == 0)
+
+
+def _should_schedule_macro_policy_ingest(settings: Settings) -> bool:
+    """One network/data worker owns free official macro evidence polling."""
+    role = settings.worker_role.lower()
+    return role == "all" or (role == "massive" and settings.worker_index == 0)
 
 
 def _should_schedule_pipeline_benchmark(settings: Settings) -> bool:
@@ -1402,6 +1413,15 @@ def main() -> int:
     def _rates_fred_ingest() -> None:
         _run_rates_fred_ingest(settings)
 
+    def _macro_fomc_ingest() -> None:
+        macro_fomc_statement_ingest_job(dsn=settings.db_dsn())
+
+    def _macro_sep_ingest() -> None:
+        macro_sep_ingest_job(dsn=settings.db_dsn())
+
+    def _macro_sme_ingest() -> None:
+        macro_sme_ingest_job(dsn=settings.db_dsn())
+
     def _pipeline_benchmark_snapshot() -> None:
         pipeline_benchmark_snapshot_job(settings)
 
@@ -2180,6 +2200,34 @@ def main() -> int:
                 max_instances=1,
                 coalesce=True,
             )
+        if _should_schedule_macro_policy_ingest(settings):
+            if settings.macro_fomc_ingest_enabled:
+                sched.add_job(
+                    _macro_fomc_ingest,
+                    CronTrigger.from_crontab("0 19 * * *", timezone=settings.rth_tz),
+                    id="macro_fomc_ingest",
+                    name="Macro: official FOMC statement evidence",
+                    max_instances=1,
+                    coalesce=True,
+                )
+            if settings.macro_sep_ingest_enabled:
+                sched.add_job(
+                    _macro_sep_ingest,
+                    CronTrigger.from_crontab("5 19 * * *", timezone=settings.rth_tz),
+                    id="macro_sep_ingest",
+                    name="Macro: official SEP evidence",
+                    max_instances=1,
+                    coalesce=True,
+                )
+            if settings.macro_sme_ingest_enabled:
+                sched.add_job(
+                    _macro_sme_ingest,
+                    CronTrigger.from_crontab("10 19 * * *", timezone=settings.rth_tz),
+                    id="macro_sme_ingest",
+                    name="Macro: NY Fed dealer expectations",
+                    max_instances=1,
+                    coalesce=True,
+                )
         sched.add_job(
             _gold_gpr_ingest,
             CronTrigger.from_crontab("0 20 * * 0-4", timezone=settings.rth_tz),

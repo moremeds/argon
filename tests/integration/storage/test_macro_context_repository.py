@@ -629,3 +629,48 @@ def test_nonproduction_source_predicate_rejects_local_database(
             ("mock", "option_wizard_test_gw0"),
         )
         assert cur.fetchone() == (True,)
+
+
+def test_latest_macro_observation_as_of_hides_sep_until_release(
+    repo: Repository,
+) -> None:
+    released_at = datetime(2026, 6, 17, 18, tzinfo=UTC)
+    artifact_id = _insert_artifact(
+        repo,
+        source="FED_SEP",
+        source_record_id="fed-sep:2026-06-17",
+        available_at=released_at,
+        retrieved_at=datetime(2026, 6, 17, 18, 1, tzinfo=UTC),
+        raw_json={"horizon": "2026", "median": "3.8"},
+    )
+    row = _observation(
+        artifact_id,
+        source="FED_SEP",
+        source_record_id="fed-sep:2026-06-17",
+        available_at=released_at,
+        value=Decimal("3.8"),
+        domain="policy_rates",
+        series_id="POLICY_COMMITTEE_PROJECTION",
+    )
+    row["period_end"] = date(2026, 12, 31)
+    row["content_hash"] = macro_observation_content_hash(row)
+    repo.insert_macro_observations(
+        [row],
+        seen_at=datetime(2026, 6, 17, 18, 1, tzinfo=UTC),
+    )
+
+    before = repo.fetch_latest_macro_observation_as_of(
+        "POLICY_COMMITTEE_PROJECTION",
+        datetime(2026, 6, 17, 17, 59, 59, tzinfo=UTC),
+        preferred_sources=["FED_SEP"],
+    )
+    after = repo.fetch_latest_macro_observation_as_of(
+        "POLICY_COMMITTEE_PROJECTION",
+        datetime(2026, 6, 17, 18, tzinfo=UTC),
+        preferred_sources=["FED_SEP"],
+    )
+
+    assert before is None
+    assert after is not None
+    assert after["value_numeric"] == Decimal("3.8")
+    assert after["source_url"] == "https://example.test/release"

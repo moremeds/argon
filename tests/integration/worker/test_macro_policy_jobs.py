@@ -1,0 +1,302 @@
+from __future__ import annotations
+
+import os
+from datetime import UTC, date, datetime
+from decimal import Decimal
+from pathlib import Path
+
+import psycopg
+import pytest
+
+from uw_scan.config import Settings
+from uw_scan.macro.policy_report import build_policy_comparison
+from uw_scan.sources.fed_sep import SepSourceBundle
+from uw_scan.sources.fomc_statement import FomcStatementBundle
+from uw_scan.sources.nyfed_sme import SmeSourceBundle
+from uw_scan.storage.repository import Repository
+from uw_scan.worker.jobs.macro_policy_jobs import (
+    macro_fomc_statement_ingest_job,
+    macro_sep_ingest_job,
+    macro_sme_ingest_job,
+)
+
+
+FIXTURES = Path(__file__).parents[2] / "fixtures" / "macro"
+OBSERVED_AT = datetime(2026, 8, 12, 12, tzinfo=UTC)
+
+
+def _settings() -> Settings:
+    test_db = os.environ.get("UW_SCAN_TEST_DB_NAME")
+    if not test_db:
+        pytest.fail("UW_SCAN_TEST_DB_NAME is not set", pytrace=False)
+    os.environ.setdefault("UW_SCAN_API_KEY", "test-dummy-not-used")
+    return Settings.from_env().model_copy(update={"db_name": test_db})
+
+
+class _StatementProvider:
+    def __enter__(self):
+        return self
+
+    def __exit__(self, *_exc):
+        return None
+
+    def fetch_bundles(self, *, years, retrieved_at):
+        assert 2026 in years
+        return [
+            FomcStatementBundle.from_bytes(
+                meeting_date=date(2026, 6, 17),
+                accessible_url=(
+                    "https://www.federalreserve.gov/newsevents/pressreleases/"
+                    "monetary20260617a.htm"
+                ),
+                accessible_bytes=(
+                    FIXTURES / "fomc_statement_2026_06.html"
+                ).read_bytes(),
+                pdf_url=(
+                    "https://www.federalreserve.gov/monetarypolicy/files/"
+                    "monetary20260617a1.pdf"
+                ),
+                pdf_bytes=(FIXTURES / "fomc_statement_2026_06.pdf").read_bytes(),
+                retrieved_at=retrieved_at,
+            )
+        ]
+
+
+class _SepProvider:
+    pdf_suffix = b""
+
+    def __enter__(self):
+        return self
+
+    def __exit__(self, *_exc):
+        return None
+
+    def fetch_bundles(self, *, years, retrieved_at):
+        assert 2026 in years
+        return [
+            SepSourceBundle.from_bytes(
+                meeting_date=date(2026, 6, 17),
+                accessible_url=(
+                    "https://www.federalreserve.gov/monetarypolicy/"
+                    "fomcprojtabl20260617.htm"
+                ),
+                accessible_bytes=(FIXTURES / "fed_sep_2026_06.html").read_bytes(),
+                pdf_url=(
+                    "https://www.federalreserve.gov/monetarypolicy/files/"
+                    "fomcprojtabl20260617.pdf"
+                ),
+                pdf_bytes=(FIXTURES / "fed_sep_2026_06.pdf").read_bytes()
+                + self.pdf_suffix,
+                retrieved_at=retrieved_at,
+            )
+        ]
+
+
+class _ChangedSepProvider(_SepProvider):
+    pdf_suffix = b"publisher-correction"
+
+
+class _MalformedSepProvider(_SepProvider):
+    def fetch_bundles(self, *, years, retrieved_at):
+        bundle = super().fetch_bundles(years=years, retrieved_at=retrieved_at)[0]
+        return [
+            SepSourceBundle.from_bytes(
+                meeting_date=bundle.meeting_date,
+                accessible_url=bundle.accessible_artifact.source_url or "",
+                accessible_bytes=(
+                    b"<p>For release at 2:00 p.m., EDT, June 17, 2026</p>"
+                ),
+                pdf_url=bundle.primary_artifact.source_url or "",
+                pdf_bytes=bundle.primary_artifact.raw_bytes or b"",
+                retrieved_at=retrieved_at,
+            )
+        ]
+
+
+class _SmeProvider:
+    def __enter__(self):
+        return self
+
+    def __exit__(self, *_exc):
+        return None
+
+    def fetch_latest_bundle(self, *, retrieved_at):
+        return SmeSourceBundle.from_bytes(
+            survey_month=date(2026, 6, 1),
+            data_url=(
+                "https://www.newyorkfed.org/medialibrary/media/markets/survey/"
+                "2026/jun-2026-data.xlsx"
+            ),
+            data_bytes=(FIXTURES / "nyfed_sme_2026_06.xlsx").read_bytes(),
+            report_url=(
+                "https://www.newyorkfed.org/medialibrary/media/markets/survey/"
+                "2026/jun-2026-sme-results.pdf"
+            ),
+            report_bytes=(FIXTURES / "nyfed_sme_2026_06.pdf").read_bytes(),
+            retrieved_at=retrieved_at,
+        )
+
+
+def _counts(settings: Settings) -> tuple[int, int]:
+    with psycopg.connect(settings.db_dsn()) as conn:
+        return (
+            conn.execute(
+                "SELECT count(*) FROM uw_scan.macro_source_artifacts"
+            ).fetchone()[0],
+            conn.execute(
+                "SELECT count(*) FROM uw_scan.macro_observations"
+            ).fetchone()[0],
+        )
+
+
+def test_independent_jobs_persist_exact_artifacts_and_typed_paths(
+    seeded_db_empty_cards,
+) -> None:
+    settings = _settings()
+
+    statement = macro_fomc_statement_ingest_job(
+        dsn=settings.db_dsn(),
+        provider_factory=_StatementProvider,
+        observed_at=OBSERVED_AT,
+    )
+    sep = macro_sep_ingest_job(
+        dsn=settings.db_dsn(),
+        provider_factory=_SepProvider,
+        observed_at=OBSERVED_AT,
+    )
+    sme = macro_sme_ingest_job(
+        dsn=settings.db_dsn(),
+        provider_factory=_SmeProvider,
+        observed_at=OBSERVED_AT,
+    )
+
+    assert (statement.status, sep.status, sme.status) == ("ok", "ok", "ok")
+    assert _counts(settings) == (6, 3)
+    with psycopg.connect(settings.db_dsn()) as conn:
+        repo = Repository(conn, schema="uw_scan")
+        actual = repo.fetch_latest_macro_observation_as_of(
+            "POLICY_PATH_ACTUAL",
+            OBSERVED_AT,
+            preferred_sources=["federal_reserve_fomc"],
+        )
+        committee = repo.fetch_latest_macro_observation_as_of(
+            "POLICY_PATH_COMMITTEE_PROJECTION",
+            OBSERVED_AT,
+            preferred_sources=["federal_reserve_sep"],
+        )
+        dealer = repo.fetch_latest_macro_observation_as_of(
+            "POLICY_PATH_DEALER_EXPECTATIONS",
+            OBSERVED_AT,
+            preferred_sources=["new_york_fed_sme"],
+        )
+        assert actual["value_jsonb"]["kind"] == "actual"
+        assert actual["value_jsonb"]["points"][0]["rate_percent"] == "3.625"
+        assert committee["value_jsonb"]["points"][0]["participant_distribution"]
+        assert dealer["value_jsonb"]["points"][0]["median"] == "3.63"
+        comparison = build_policy_comparison(repo, as_of=OBSERVED_AT)
+        actual_point = comparison.actual.path.points[0]
+        assert actual_point.action == "Hold"
+        assert actual_point.vote_split == "12-0"
+        assert actual_point.target_range_lower_percent == Decimal("3.5")
+        assert actual_point.target_range_upper_percent == Decimal("3.75")
+        committee_2026 = next(
+            point
+            for point in comparison.committee_projection.path.points
+            if point.horizon == "2026"
+        )
+        assert sum(
+            point.participant_count
+            for point in committee_2026.participant_distribution
+        ) == 18
+        dealer_june = next(
+            point
+            for point in comparison.dealer_expectations.path.points
+            if point.horizon_date == date(2026, 6, 17)
+        )
+        assert dealer_june.respondent_count == 26
+        assert comparison.market_implied.path is None
+
+
+def test_unchanged_rerun_is_one_fact_and_changed_bytes_create_new_vintage(
+    seeded_db_empty_cards,
+) -> None:
+    settings = _settings()
+    for _ in range(2):
+        result = macro_sep_ingest_job(
+            dsn=settings.db_dsn(),
+            provider_factory=_SepProvider,
+            observed_at=OBSERVED_AT,
+        )
+        assert result.status == "ok"
+    assert _counts(settings) == (2, 1)
+
+    changed = macro_sep_ingest_job(
+        dsn=settings.db_dsn(),
+        provider_factory=_ChangedSepProvider,
+        observed_at=OBSERVED_AT.replace(hour=13),
+    )
+    assert changed.status == "ok"
+    assert _counts(settings) == (3, 2)
+
+
+def test_parser_drift_retains_artifacts_and_degrades_only_failed_source(
+    seeded_db_empty_cards,
+) -> None:
+    settings = _settings()
+    actual = macro_fomc_statement_ingest_job(
+        dsn=settings.db_dsn(),
+        provider_factory=_StatementProvider,
+        observed_at=OBSERVED_AT,
+    )
+    failed = macro_sep_ingest_job(
+        dsn=settings.db_dsn(),
+        provider_factory=_MalformedSepProvider,
+        observed_at=OBSERVED_AT,
+    )
+
+    assert actual.status == "ok"
+    assert failed.status == "degraded"
+    assert failed.artifacts_seen == 2
+    assert failed.observations_seen == 0
+    assert _counts(settings) == (4, 1)
+    with psycopg.connect(settings.db_dsn()) as conn:
+        repo = Repository(conn, schema="uw_scan")
+        actual_row = repo.fetch_latest_macro_observation_as_of(
+            "POLICY_PATH_ACTUAL",
+            OBSERVED_AT,
+            preferred_sources=["federal_reserve_fomc"],
+        )
+        actual_status = repo.fetch_macro_source_status("federal_reserve_fomc")
+        sep_status = repo.fetch_macro_source_status("federal_reserve_sep")
+        assert actual_row is not None
+        assert actual_status["status"] == "ok"
+        assert sep_status["status"] == "degraded"
+        assert sep_status["consecutive_failures"] == 1
+        assert "NormalizationError" in sep_status["error_type"]
+
+
+def test_unpublished_sme_rerun_keeps_first_retrieval_as_availability(
+    seeded_db_empty_cards,
+) -> None:
+    settings = _settings()
+    first = macro_sme_ingest_job(
+        dsn=settings.db_dsn(),
+        provider_factory=_SmeProvider,
+        observed_at=OBSERVED_AT,
+    )
+    second = macro_sme_ingest_job(
+        dsn=settings.db_dsn(),
+        provider_factory=_SmeProvider,
+        observed_at=OBSERVED_AT.replace(hour=13),
+    )
+
+    assert (first.status, second.status) == ("ok", "ok")
+    assert _counts(settings) == (2, 1)
+    with psycopg.connect(settings.db_dsn()) as conn:
+        repo = Repository(conn, schema="uw_scan")
+        row = repo.fetch_latest_macro_observation_as_of(
+            "POLICY_PATH_DEALER_EXPECTATIONS",
+            OBSERVED_AT.replace(hour=14),
+            preferred_sources=["new_york_fed_sme"],
+        )
+        assert row["available_at"] == OBSERVED_AT

@@ -85,8 +85,16 @@ class _MacroContextMixin:
                     IS NOT DISTINCT FROM EXCLUDED.source_url
                   AND {self._schema}.macro_source_artifacts.published_at
                     IS NOT DISTINCT FROM EXCLUDED.published_at
-                  AND {self._schema}.macro_source_artifacts.available_at
-                    IS NOT DISTINCT FROM EXCLUDED.available_at
+                  AND (
+                    {self._schema}.macro_source_artifacts.available_at
+                      IS NOT DISTINCT FROM EXCLUDED.available_at
+                    OR (
+                      {self._schema}.macro_source_artifacts.published_at IS NULL
+                      AND EXCLUDED.published_at IS NULL
+                      AND {self._schema}.macro_source_artifacts.available_at
+                        <= EXCLUDED.available_at
+                    )
+                  )
                   AND {self._schema}.macro_source_artifacts.parser_version
                     IS NOT DISTINCT FROM EXCLUDED.parser_version
                   AND {self._schema}.macro_source_artifacts.quality_status
@@ -132,6 +140,18 @@ class _MacroContextMixin:
                 f"({source}, {source_record_id}, {content_hash})"
             )
         return int(row[0])
+
+    def fetch_macro_artifact(self, artifact_id: int) -> dict[str, Any] | None:
+        with self._conn.cursor(row_factory=dict_row) as cur:
+            cur.execute(
+                f"""
+                SELECT *
+                FROM {self._schema}.macro_source_artifacts
+                WHERE artifact_id = %s
+                """,
+                (artifact_id,),
+            )
+            return cur.fetchone()
 
     def insert_macro_observations(
         self,
@@ -305,6 +325,36 @@ class _MacroContextMixin:
             )
             return list(cur.fetchall())
 
+    def fetch_latest_macro_observation_as_of(
+        self,
+        series_id: str,
+        as_of: datetime,
+        *,
+        preferred_sources: Sequence[str],
+    ) -> dict[str, Any] | None:
+        _require_aware("as_of", as_of)
+        rank_sql, rank_params = _source_rank_sql(preferred_sources)
+        with self._conn.cursor(row_factory=dict_row) as cur:
+            cur.execute(
+                f"""
+                SELECT o.*, a.source_url, a.source_kind, a.media_type
+                FROM {self._schema}.macro_observations o
+                JOIN {self._schema}.macro_source_artifacts a
+                  ON a.artifact_id = o.artifact_id
+                WHERE o.series_id = %s
+                  AND o.available_at <= %s
+                  AND o.quality_status IN ('valid', 'partial')
+                  AND a.available_at <= %s
+                  AND a.quality_status IN ('valid', 'partial')
+                ORDER BY {rank_sql}, o.available_at DESC,
+                         o.period_end DESC, o.first_observed_at DESC,
+                         o.obs_id DESC
+                LIMIT 1
+                """,
+                (series_id, as_of, as_of, *rank_params),
+            )
+            return cur.fetchone()
+
     def fetch_macro_observation_history(
         self,
         series_id: str,
@@ -324,6 +374,93 @@ class _MacroContextMixin:
                 (series_id, period_end),
             )
             return list(cur.fetchall())
+
+    def upsert_macro_source_status(
+        self,
+        source: str,
+        *,
+        status: str,
+        attempted_at: datetime,
+        error_type: str | None = None,
+        error_message: str | None = None,
+    ) -> None:
+        _require_aware("attempted_at", attempted_at)
+        if status not in {"ok", "degraded"}:
+            raise ValueError("macro source status must be ok or degraded")
+        if status == "ok" and (error_type is not None or error_message is not None):
+            raise ValueError("successful macro source status cannot carry an error")
+        if status == "degraded" and not error_type:
+            raise ValueError("degraded macro source status requires error_type")
+        safe_type = error_type[:200] if error_type is not None else None
+        safe_message = error_message[:1000] if error_message is not None else None
+        with self._conn.cursor() as cur:
+            cur.execute(
+                f"""
+                INSERT INTO {self._schema}.macro_source_status (
+                  source, status, last_attempt_at, last_success_at,
+                  consecutive_failures, error_type, error_message, updated_at
+                )
+                VALUES (
+                  %s, %s, %s,
+                  CASE WHEN %s = 'ok' THEN %s ELSE NULL END,
+                  CASE WHEN %s = 'ok' THEN 0 ELSE 1 END,
+                  %s, %s, %s
+                )
+                ON CONFLICT (source) DO UPDATE SET
+                  status = EXCLUDED.status,
+                  last_attempt_at = EXCLUDED.last_attempt_at,
+                  last_success_at = CASE
+                    WHEN EXCLUDED.status = 'ok' THEN EXCLUDED.last_attempt_at
+                    ELSE {self._schema}.macro_source_status.last_success_at
+                  END,
+                  consecutive_failures = CASE
+                    WHEN EXCLUDED.status = 'ok' THEN 0
+                    ELSE {self._schema}.macro_source_status.consecutive_failures + 1
+                  END,
+                  error_type = EXCLUDED.error_type,
+                  error_message = EXCLUDED.error_message,
+                  updated_at = EXCLUDED.updated_at
+                """,
+                (
+                    source,
+                    status,
+                    attempted_at,
+                    status,
+                    attempted_at,
+                    status,
+                    safe_type,
+                    safe_message,
+                    attempted_at,
+                ),
+            )
+
+    def fetch_macro_source_status(self, source: str) -> dict[str, Any] | None:
+        with self._conn.cursor(row_factory=dict_row) as cur:
+            cur.execute(
+                f"""
+                SELECT *
+                FROM {self._schema}.macro_source_status
+                WHERE source = %s
+                """,
+                (source,),
+            )
+            return cur.fetchone()
+
+    def fetch_macro_source_statuses(
+        self, sources: Sequence[str]
+    ) -> dict[str, dict[str, Any]]:
+        if not sources:
+            return {}
+        with self._conn.cursor(row_factory=dict_row) as cur:
+            cur.execute(
+                f"""
+                SELECT *
+                FROM {self._schema}.macro_source_status
+                WHERE source = ANY(%s)
+                """,
+                (list(sources),),
+            )
+            return {row["source"]: row for row in cur.fetchall()}
 
 
 def _source_rank_sql(preferred_sources: Sequence[str]) -> tuple[str, list[str]]:
