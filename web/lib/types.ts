@@ -350,6 +350,67 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/stock/{ticker}/fundamentals": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Get Stock Fundamentals
+         * @description The deterministic blocks of the §7 fundamental card for one name.
+         *
+         *     Subscores, coverage and provenance only — the valuation anchor, narrative and
+         *     audit blocks need stages 3-5 and are absent from the contract rather than
+         *     served empty.
+         *
+         *     404 and 503 are deliberately distinct: "this name has no score" and "no method
+         *     version is active" are different problems, and collapsing them would hide a
+         *     stack-wide outage behind a per-ticker empty state.
+         */
+        get: operations["get_stock_fundamentals_api_stock__ticker__fundamentals_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/stock/{ticker}/fundamentals/statements": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Get Stock Fundamental Statements
+         * @description Per-feature input components behind the card's ratios.
+         *
+         *     Served separately from the card rather than folded into it, so the card's
+         *     own contract and its OpenAPI snapshot stay untouched and the two payloads
+         *     can evolve independently.
+         *
+         *     Reads through `statement_panel`, the same path the scoring job uses, so
+         *     "which observation is current" cannot diverge between the front of a card
+         *     and its back.
+         *
+         *     404 here means "no statements ingested", which is deliberately NOT the card
+         *     endpoint's condition ("no score row"). The two can legitimately disagree —
+         *     a name can hold statements and no score yet — and withholding real figures
+         *     because a different table lags would be the dishonest answer.
+         */
+        get: operations["get_stock_fundamental_statements_api_stock__ticker__fundamentals_statements_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/stock/{ticker}/magnets": {
         parameters: {
             query?: never;
@@ -3254,6 +3315,236 @@ export interface components {
             median: number;
             /** Win Rate */
             win_rate: number;
+        };
+        /**
+         * FundamentalAnchors
+         * @description A price band from this name's OWN valuation history (spec §5.3, stage 3).
+         *
+         *     Each level is the price at which this company's valuation yield would sit at
+         *     a stated percentile of its own past: `buy_below` at the 80th (cheap),
+         *     `risk_above` at the 20th. Ascending in price, enforced by a schema CHECK.
+         *
+         *     Measured basis (2026-08-12): `sales_to_ev` carries a market-neutral 2q IC of
+         *     +0.0744 (t 5.77) within-ticker, rising to +0.0826 when a pure-reversal
+         *     control is held constant.
+         *
+         *     OWN-HISTORY, NEVER CROSS-SECTIONAL — the distinction is the whole result.
+         *     Ranking a name against OTHER names on value is INVERTED in this universe
+         *     (`book_to_price` IC -0.0365, t -2.32), so a peer-ranked `buy_below` would
+         *     point at the half of the panel that then underperforms.
+         *
+         *     Not a forecast, and no scenario grid: §7's base/bear/bull x 1y/3y needs a
+         *     validated growth model and there is none.
+         */
+        FundamentalAnchors: {
+            /** Company Type */
+            company_type: string;
+            /** Method */
+            method: string;
+            /** Buy Below */
+            buy_below?: number | null;
+            /** Observe Low */
+            observe_low?: number | null;
+            /** Observe Mid */
+            observe_mid?: number | null;
+            /** Observe High */
+            observe_high?: number | null;
+            /** Risk Above */
+            risk_above?: number | null;
+            /** Spot */
+            spot?: number | null;
+            /** Spot Percentile */
+            spot_percentile?: number | null;
+            /** History Quarters */
+            history_quarters: number;
+            /** Confidence */
+            confidence: string;
+            /**
+             * Confidence Reasons
+             * @default []
+             */
+            confidence_reasons: string[];
+            /**
+             * As Of
+             * Format: date
+             */
+            as_of: string;
+        };
+        /**
+         * FundamentalCardResponse
+         * @description The deterministic blocks of §7. The narrative and audit blocks are absent
+         *     rather than empty — they need stages 4-5.
+         */
+        FundamentalCardResponse: {
+            /** Ticker */
+            ticker: string;
+            /** Composite */
+            composite: number | null;
+            /**
+             * Composite Series
+             * @default []
+             */
+            composite_series: (number | null)[];
+            composite_percentile?: components["schemas"]["FundamentalPercentile"] | null;
+            /**
+             * Series Dates
+             * @default []
+             */
+            series_dates: string[];
+            /**
+             * Panel Size
+             * @default 0
+             */
+            panel_size: number;
+            /** Subscores */
+            subscores: components["schemas"]["FundamentalSubscore"][];
+            anchors?: components["schemas"]["FundamentalAnchors"] | null;
+            coverage: components["schemas"]["FundamentalCoverage"];
+            provenance: components["schemas"]["FundamentalProvenance"];
+        };
+        /**
+         * FundamentalComponentSeries
+         * @description One plotted series on a card's back.
+         *
+         *     `role` separates the figures the ratio is COMPUTED FROM from those merely
+         *     shown alongside it. Only `input` series participate in the reconciliation
+         *     invariant, so a renderer must not blend the two into one visual class.
+         */
+        FundamentalComponentSeries: {
+            /** Key */
+            key: string;
+            /** Label */
+            label: string;
+            /** Role */
+            role: string;
+            /** Unit */
+            unit: string;
+            /** Values */
+            values: (number | null)[];
+        };
+        /**
+         * FundamentalCoverage
+         * @description The explicit absence list. Mandatory, not a footer.
+         *
+         *     `missing` and `suppressed` are kept apart on purpose: "never reported" and
+         *     "reported and not believed" are different facts about a company.
+         */
+        FundamentalCoverage: {
+            /** Features Present */
+            features_present: number;
+            /** Features Total */
+            features_total: number;
+            /** Missing */
+            missing: string[];
+            /** Suppressed */
+            suppressed: string[];
+        };
+        /**
+         * FundamentalFeatureDetail
+         * @description One feature's components and the ratio they produce.
+         *
+         *     `basis` is stated per feature because it is not uniform: `gross_margin` and
+         *     `op_margin` are quarterly, the rest are TTM or mix a TTM flow with a
+         *     point-in-time balance. An unlabelled shared axis would invite a comparison
+         *     none of them support.
+         */
+        FundamentalFeatureDetail: {
+            /** Feature */
+            feature: string;
+            /** Basis */
+            basis: string;
+            /** Unit */
+            unit: string;
+            /** Series */
+            series: components["schemas"]["FundamentalComponentSeries"][];
+            /** Ratio */
+            ratio: (number | null)[];
+        };
+        /**
+         * FundamentalPercentile
+         * @description Where a value sits in its knowledge-quarter panel.
+         *
+         *     Locational only. Not a quality score and not an expected return — the
+         *     2026-08-12 cost study measured zero gross alpha from this composite at every
+         *     slice. `n` is stated per feature because it differs: a name missing `roe` is
+         *     absent from that panel while present in the others, and a percentile whose
+         *     denominator is unnamed is not a fact.
+         */
+        FundamentalPercentile: {
+            /** Percentile */
+            percentile: number;
+            /** N */
+            n: number;
+        };
+        /** FundamentalProvenance */
+        FundamentalProvenance: {
+            /** Engine Version */
+            engine_version: string;
+            /** Inputs Hash */
+            inputs_hash: string;
+            /**
+             * As Of
+             * Format: date
+             */
+            as_of: string;
+            /**
+             * Period End
+             * Format: date
+             */
+            period_end: string;
+            /**
+             * Knowledge Date
+             * Format: date
+             */
+            knowledge_date: string;
+            /** Filing Date Known */
+            filing_date_known: boolean;
+            /** Source Obs Count */
+            source_obs_count: number;
+        };
+        /**
+         * FundamentalStatementsResponse
+         * @description The back-side payload for one ticker.
+         *
+         *     Components are resolved server-side and the client performs no ratio math.
+         *     A client-side re-derivation would be a second copy of `build_features`, and
+         *     the two would drift until the back silently contradicted the front.
+         */
+        FundamentalStatementsResponse: {
+            /** Ticker */
+            ticker: string;
+            /** Period Ends */
+            period_ends: string[];
+            /** Reported Currency */
+            reported_currency: string | null;
+            /** Features */
+            features: components["schemas"]["FundamentalFeatureDetail"][];
+        };
+        /**
+         * FundamentalSubscore
+         * @description One of the seven measured features.
+         *
+         *     `value` is the RAW level (a ratio or a multiple), never a 0-100 rank — a rank
+         *     is only meaningful against a stated cross-section, and this endpoint speaks
+         *     about one name.
+         */
+        FundamentalSubscore: {
+            /** Feature */
+            feature: string;
+            /** Value */
+            value: number | null;
+            /** Unit */
+            unit: string;
+            /** Direction */
+            direction: string | null;
+            /** Suppressed By */
+            suppressed_by: string[];
+            /**
+             * Series
+             * @default []
+             */
+            series: (number | null)[];
+            percentile?: components["schemas"]["FundamentalPercentile"] | null;
         };
         /** GammaBlock */
         GammaBlock: {
@@ -10601,6 +10892,72 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["ChanlunLifecycleResponse"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    get_stock_fundamentals_api_stock__ticker__fundamentals_get: {
+        parameters: {
+            query?: {
+                quarters?: number;
+            };
+            header?: never;
+            path: {
+                ticker: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["FundamentalCardResponse"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    get_stock_fundamental_statements_api_stock__ticker__fundamentals_statements_get: {
+        parameters: {
+            query?: {
+                quarters?: number;
+            };
+            header?: never;
+            path: {
+                ticker: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["FundamentalStatementsResponse"];
                 };
             };
             /** @description Validation Error */

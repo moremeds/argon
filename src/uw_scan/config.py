@@ -350,6 +350,17 @@ class Settings(BaseModel):
             "(HYG/JNK/LQD). Symbol subdirs are named symbol=<TICKER>."
         ),
     )
+    # Parquet lake root for FX dailies. Same layout as the vol-index lake;
+    # `USD<CCY>` holds <CCY> per one USD. Used to translate foreign filers'
+    # statements before any valuation anchor is computed — see
+    # `fundamentals/fx.py` for why an unconverted band is worse than no band.
+    lake_fx_root: Path = Field(
+        default=Path.home() / "market-warehouse/data-lake/bronze/asset_class=fx",
+        description=(
+            "Local parquet lake root for FX daily rates. Symbol subdirs are "
+            "named symbol=USD<CCY> and hold <CCY> per one USD."
+        ),
+    )
     # Root of the whole market-warehouse lake (parent of bronze/silver/gold).
     # Distinct from the two asset-class roots above, which point at specific
     # bronze partitions. Read by reports/vrp_macro_drawdown.py.
@@ -409,6 +420,11 @@ class Settings(BaseModel):
     spx_density_enabled: bool = False
     # Chanlun Phase B lifecycle engine (nightly 03:10 ET Tue-Sat, massive-0).
     chanlun_lifecycle_enabled: bool = False
+    # Fundamental lane recompute — routing + subscores + valuation anchors
+    # (nightly 18:20 ET, massive-0). Zero UW/IB spend: Postgres + local parquet
+    # only. Default ON because the alternative is a card that silently stops
+    # updating, which is how it behaved before the job existed.
+    fundamental_refresh_enabled: bool = True
     chanlun_anchor_tol: float = 0.0
     chanlun_stale_sessions: int = 20
     # Empty by DESIGN (2026-07-15 walk-forward probe): all 4 candidate
@@ -926,6 +942,9 @@ class Settings(BaseModel):
             spx_density_enabled=_env_bool("UW_SCAN_SPX_DENSITY_ENABLED", False),
             chanlun_lifecycle_enabled=_env_bool(
                 "UW_SCAN_CHANLUN_LIFECYCLE_ENABLED", False
+            ),
+            fundamental_refresh_enabled=_env_bool(
+                "UW_SCAN_FUNDAMENTAL_REFRESH_ENABLED", True
             ),
             chanlun_anchor_tol=float(
                 os.environ.get("UW_SCAN_CHANLUN_ANCHOR_TOL", "0.0")

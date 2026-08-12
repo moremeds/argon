@@ -43,7 +43,9 @@ type WatchlistChainsResponse = Json<"/api/watchlist/chains", "get">;
 // One rail row. Derived from the response rather than the component schema so
 // it cannot drift from what the endpoint actually returns.
 // NonNullable: `chains` has a server-side default so OpenAPI marks it optional.
-type WatchlistChainInfo = NonNullable<WatchlistChainsResponse["chains"]>[number];
+type WatchlistChainInfo = NonNullable<
+  WatchlistChainsResponse["chains"]
+>[number];
 type SingleStockReport = Json<"/api/stock/{ticker}", "get">;
 type StockHistoryResponse = Json<"/api/stock/{ticker}/history", "get">;
 type JobStatus = Json<"/api/jobs/{job_id}", "get">;
@@ -158,6 +160,15 @@ export const api = {
     _fetch<SkewAnalysisResponse>(`/api/stock/${ticker}/skew`),
   magnets: (ticker: string): Promise<MagnetsResponse> =>
     _fetch<MagnetsResponse>(`/api/stock/${ticker}/magnets`),
+  fundamentals: (
+    ticker: string,
+  ): Promise<components["schemas"]["FundamentalCardResponse"]> =>
+    _fetch(`/api/stock/${ticker}/fundamentals`),
+  fundamentalStatements: (
+    ticker: string,
+    quarters = 20,
+  ): Promise<components["schemas"]["FundamentalStatementsResponse"]> =>
+    _fetch(`/api/stock/${ticker}/fundamentals/statements?quarters=${quarters}`),
   technicals: (ticker: string): Promise<TechnicalsResponse> =>
     _fetch<TechnicalsResponse>(`/api/stock/${ticker}/technicals`),
   technicalsLive: (ticker: string): Promise<TechnicalsLiveResponse> =>

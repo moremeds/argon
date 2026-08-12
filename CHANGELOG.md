@@ -9,6 +9,34 @@ version in lockstep (enforced by `scripts/release/version_sync_check.py`).
 
 ### Added
 
+- **Fundamental cards flip to the figures behind them.** Clicking any card on the
+  Fundamentals tab expands it to a 20-quarter chart of the components its ratio
+  was computed from — `gross_profit` against `total_revenue` for gross margin,
+  operating cash flow against capex for FCF margin, and so on — served by a new
+  `GET /stock/{ticker}/fundamentals/statements`. Clicking the expanded card flips
+  it back; there is no separate close control. The components are resolved
+  server-side in `build_feature_details`, beside `build_features` and sharing its
+  helpers, so the back cannot drift from the front; a test asserts the plotted
+  line equals the plotted input bars for every feature. Each back states its own
+  **basis** (`gross_margin` and `op_margin` are quarterly where the rest are TTM,
+  and three ratios divide a TTM flow by a point-in-time balance) and its
+  **reported currency**, since TSM files TWD against a USD quote. The three
+  features with no validated direction keep a neutral line — the front's rule
+  holds on the back.
+- **An eighth, descriptive card: revenue & earnings.** TTM revenue, net income and
+  free cash flow. It enters no composite and carries no percentile, and says
+  `descriptive · not scored` where a subscore tile states its direction — the
+  seven around it are a validated set and a tile that looked identical would be
+  read as an eighth measured feature. It also squares the grid to 8.
+- **The fundamental lane now runs on a schedule.** `fundamental_refresh`
+  (`worker/jobs/fundamental_refresh.py`, nightly 18:20 ET, massive-0, gated
+  `UW_SCAN_FUNDAMENTAL_REFRESH_ENABLED`, default on) chains routing → subscores
+  → anchor bands. Until this existed **nothing called `fundamental_scoring` or
+  `fundamental_anchors` outside tests** — the card showed whatever a hand-run had
+  last written and would have gone quietly stale. Zero UW/IB spend: Postgres plus
+  the local parquet mirror only. It deliberately does not ingest statements;
+  `scripts/backfill/fundamental_ingest_backfill.py` remains the manual path for
+  new filings.
 - **Immutable point-in-time macro evidence contract and top-down program plan.** New
   `macro_source_artifacts` and `macro_observations` tables preserve exact source payloads,
   revisions, source disagreement, publication/availability semantics, quality, and cost class
@@ -19,7 +47,83 @@ version in lockstep (enforced by `scripts/release/version_sync_check.py`).
   rates/gold relations and records the adapter sequence for inflation → policy/rates → USD → gold,
   including future evidence-first Rates, Gold, unified Macro, and Fundamental PM context surfaces.
 
+### Changed
+
+- **Valuation bands reach 233 of 257 names, up from 43.** Routing previously
+  seeded only from `watchlist.sector`, and the gap was never a mapping one:
+  **174 of the 257 ranked names carry no sector anywhere in the database**
+  (`watchlist` is the only source; `flow_events` adds no name it lacks,
+  `research_universe` shares none), and the five-type taxonomy is an
+  AI-supply-chain one with no honest bucket for a bank or a hospital even where
+  a sector is known. Unrouted names now take an explicit `unclassified` route to
+  `sales_to_ev` — the pooled-universe result the probe actually measured (+0.0744
+  over all 247 scored tickers, the strongest of the five yields) — capped at
+  `confidence: medium` and stating on the card that the method was not chosen for
+  the business. No name is forced into one of the five real types on a guess.
+- **`spot_percentile` is stated as a rank, not a percentage.** It is a count over
+  `history_quarters` observations, so on the shipped 20-quarter window it takes
+  21 values with 5-point steps; "cheaper than 100%" read as a bound rather than
+  as "at or past the cheapest reading in the window". Now "Cheaper than 16 of its
+  last 20 quarters", with words at both ends.
+
+### Fixed
+
+- **The valuation band's labels did not line up with its own scale.** The rail
+  placed ticks by VALUE while the five level labels underneath were an evenly
+  spaced grid, so the two disagreed on **all 233 live bands** — median 20,
+  maximum 80 percentage points of panel width. AAPL printed "buy below 247.1"
+  under a position the rail read as ~253. Labels now sit at their own value,
+  staggered across two rows (measured: all five in one row leaves 90 of 233
+  with neighbours under 7pp apart; staggering lifts the median gap from 8.6pp
+  to 24.3pp and leaves 3 under 4pp), and the duplicate grid is gone. The gaps
+  between levels now carry information — AAPL's three cheap levels bunch at
+  247/256/263 with a gap before 299.5/305.3, which the even grid hid.
+- **A band with a missing END is refused instead of drawn** — the hole in the
+  2026-08-12 width guard, which read `if lo and hi` and so skipped the check
+  entirely when a level did not invert. JPM rendered `observe_mid` at **11.3
+  against a spot of 297.8** with `buy_below` blank: a bank's funding sits in
+  `short_long_term_debt_total`, so net debt exceeds the enterprise value its own
+  cheapest multiple implies. An interior gap is unreachable (price is monotone in
+  the target yield, so any failure takes an end first), and the now-dead
+  "levels not invertible" branch was removed rather than left as apparent
+  coverage.
+- **Anchor rows were hashing the wrong thing entirely.** They reused
+  `scoring.inputs_hash`, which reads the seven scoring FEATURES *by name* — a
+  band has none of them — so every row reduced to a function of `company_type`
+  and `engine` and its actual inputs were never in its identity. Measured: a run
+  computed 233 bands and wrote **0**, keeping the wrong JPM row alive under
+  `ON CONFLICT DO NOTHING`. New `valuation.anchor_inputs_hash` covers the band's
+  own inputs, its routing, the thresholds, and an `ANCHOR_RULES_REV` — so a rule
+  change appends the correction instead of colliding with what it corrects. The
+  job now also WARNs when it computes rows and writes none.
+- **Four `_self_check()` functions in `uw_scan/fundamentals/` were never run by CI** (`fx`, `scoring`, `statements`, `valuation`) — they executed only when a human typed the module. `valuation`'s carries the only assertions that an `unclassified` name bands at `medium` on the pooled default and that `anchor_inputs_hash` responds to each of its six inputs, so the coverage for two of the fixes above was itself unenforced. `tests/unit/fundamentals/test_self_checks_run.py` discovers them by introspection and runs each, so a fifth is covered the day it lands.
+- `docs/research/2026-08-12-fundamental-valuation-timeseries/results.md`
+  regenerated `na` for every signal: the window sweep changed the result keys to
+  `<signal>|w<window>|<outcome>` and the table's lookup was not updated, so a doc
+  that regenerates on every run had silently lost its own result set while
+  `VERDICT.md` quoted the numbers from the JSON. The headline window is now
+  labelled explicitly.
+
 ### Research
+
+- **The concentration ledger (spec §6 `concentration_risk`) is blocked on data
+  structure, and nothing was built.** Verdict + reproducible probe:
+  `docs/research/2026-08-12-fundamental-segment-computability/`,
+  `scripts/research/fundamental_segment_computability_probe.py`. §896 marked it
+  available on a coverage check — rows come back for 24/25 — but **coverage is
+  not computability**. Requiring a breakdown's single-member rows to sum to its
+  own consolidated total (the same two-derivations cross-check that caught the
+  TSM currency bug) yields **8 of 25 on segment and 0 of 25 on geography**.
+  UW's `rev_breakdown` is one flat list per ticker mixing several XBRL axes with
+  no level marker: NVDA files `DataCenter` 75.25e9 alongside its own children
+  `Hyperscale` + `AIClouds` = exactly 75.25e9 on the same axis, so "largest
+  segment share" is 92% or 46% depending on nesting depth; AVGO has two axes that
+  each sum correctly and disagree (76% vs 68%); 23 of 25 have no total at all
+  inside `country`/`continent`, and MSFT's "countries" are a US/non-US pair
+  leaving 48% unallocated. The values also alternate quarterly/annual by filing
+  form with no `formtype` on the row. Unblocking needs SEC XBRL presentation
+  hierarchy or a curated per-ticker axis pin; there is no accrual pressure, since
+  the data is filing-derived back to 2020.
 
 - **Fundamental source contract measured; the planned backbone was the wrong
   one.** Four reproducible probes under `scripts/research/`
@@ -42,8 +146,11 @@ version in lockstep (enforced by `scripts/release/version_sync_check.py`).
   gate and a `fundamental_obs_violations` table in response.
 - **Two spec claims falsified.** Segment/KPI disclosure is *not* "absent at any
   tier" — UW returns XBRL-dimensional segment and geographic revenue for 24/25
-  tickers (4,330 rows), which makes the `concentration_risk` subscore buildable
-  after the named-customer graph was measured as nonexistent. And foreign
+  tickers (4,330 rows), after the named-customer graph was measured as
+  nonexistent. **Superseded on the product claim**: those rows exist but do not
+  yield a share for most of the cohort — 8/25 on segment, 0/25 on geography — so
+  `concentration_risk` is not buildable from them. See the computability verdict
+  under Research above. And foreign
   issuers no longer need a blanket `na`: TSM/ASML have 83 quarterly rows each
   from UW, FX dailies were already in the livewire lake, and SEC XBRL supplies
   the missing noncontrolling interest (`us-gaap` for domestic filers,
@@ -119,7 +226,116 @@ version in lockstep (enforced by `scripts/release/version_sync_check.py`).
   once corrected) complete with a plausible economic story. A one-line guard now
   warns when the realised median width falls under half the universe.
 
+### Added
+
+- **Valuation anchor band on the fundamental card (stage 3).** Migration `118`
+  adds `valuation_anchors` + `fundamental_company_type`;
+  `fundamentals/valuation.py` is the pure compute,
+  `storage/fundamental_anchors.py` the persistence,
+  `worker/jobs/fundamental_anchors.py` the job (plus sector-driven company-type
+  seeding), and `web/.../FundamentalAnchorBand.tsx` the surface. Each level is
+  the **price at which this company's valuation yield would sit at a stated
+  percentile of its own past** — `buy_below` at the 80th, `risk_above` at the
+  20th — with spot marked against it. 51 of 257 names band today; the rest are
+  unrouted, which the card states as a coverage gap rather than a verdict.
+- **`company_type` selects which yield, and nothing else.** A deliberate
+  narrowing of spec §5.3, which describes richer per-type methods
+  (peak/trough margin normalization, Rule-of-40 banding) written before any of
+  it was measured. What is measured is the plain own-history percentile of a
+  plain yield, so the routing keeps §5.3's anchor-basis column
+  (`chips_cyclical`/`software_growth`/`high_risk_growth` → `sales_to_ev`,
+  `platform_scale` → `fcf_yield`, `power_infra` → `ebitda_to_ev`) and drops the
+  modelling layer on top. §7's base/bear/bull × 1y/3y grid is **not built**: it
+  needs a validated growth model and there is none.
+- **The band ascends in price, enforced in Postgres.** A `CHECK` constraint, not
+  just a builder invariant — an out-of-order band is not a bad number, it is an
+  inverted recommendation, so it is unrepresentable rather than merely
+  unproduced. NULL levels compare to NULL and pass: an absent level is unknown,
+  not disordered, and renders as a dash rather than a boundary at zero.
+
 ### Fixed
+
+- **A currency mismatch produced a confident, plausible, wrong valuation band.**
+  Enterprise value adds a market cap to a balance-sheet figure, and for a
+  foreign issuer those are in different currencies: TSM files in TWD while its
+  ADR trades in USD, so on 2026-08-12 it carried revenue 4.45e12 (NT$) against a
+  2.10e12 (US$) market cap and an enterprise value of **−5.5e10** — while
+  printing five levels that looked like ordinary share prices ($443–574).
+  Nothing on screen would have said so. `build_anchors` now refuses any
+  EV-denominated band whose enterprise value is non-positive at the current
+  price, which catches any unit or currency mismatch without needing an FX table
+  or a list of foreign filers, and states the reason on the card. Caught by an
+  invariant, not by inspection: TSM was the only banded name whose spot
+  placement came back null, because that path was guarded and the band was not.
+  Both are guarded now, and the invariant — a band implies a spot placement —
+  holds across all 51.
+- **The band's price levels were unreachable, and the fix is a measured trailing
+  window.** Shipped on the expanding window the verdict measured, ASML's
+  `buy_below` landed at **255.7 against a spot of 1518** — a sixth of the price,
+  a level it would not see in a 2008-scale crisis. Two unrelated causes:
+  **non-stationarity** (ASML's `sales_to_ev` median fell 5.5x from its oldest
+  quarter-quartile to its newest, NVDA's `fcf_yield` 2.8x, so a full-history
+  percentile is a price from a regime that has gone) and **sign-crossing**
+  (TSLA's free cash flow was negative in 36 of 65 quarters, so most percentiles
+  of its `fcf_yield` sit at or below zero and have no price inversion — its band
+  rendered 2 of 5 levels). The underlying error was interpretive: the IC
+  validated an ORDERING, and the band inverted it into absolute PRICE levels,
+  which no rank statistic licenses. Re-running the probe across (expanding, 40q,
+  20q, 12q) keeps the effect at every width — `sales_to_ev` 0.0744 (t 5.77) /
+  0.0642 / **0.0604 (t 5.45)** / 0.0639 — so the expanding window was never
+  load-bearing. **20 quarters ships**: TSLA's negative-FCF quarters fall out
+  entirely (0 of 20) and every band lands within reach of spot. Trace and the
+  full revision: `docs/research/2026-08-12-fundamental-valuation-timeseries/VERDICT.md`.
+- **A band whose ends are far apart is now refused, with its width stated.**
+  The trailing window fixed the systematic case and left a tail it could not:
+  NBIS still spanned **72x** between `buy_below` and `risk_above`, MSTR 47x,
+  APLD 17x. Those are names whose own five-year range straddles a business
+  transformation, so the honest answer is that their history cannot anchor a
+  price — not a band with 72x between its ends. `MAX_BAND_WIDTH = 4.0` sits in
+  the empty part of the measured distribution (median width **1.73x**; the
+  refused tail is 5x and above), and refuses 10 of 53 attempted bands. Widest
+  surviving band: 3.02x. The job warns when the refusal share passes 30%, which
+  would mean the window is wrong rather than the names being unusual.
+- **The first version of that guard could not fail on the case that motivated
+  it.** Keying on spot-versus-midpoint looked reasonable and passed ASML's broken
+  band silently: 1518.3 / 699.8 is 2.17x, inside any sane bound. What was wrong
+  was the 4.35x between the band's own ends. Recorded as a test, because a metric
+  that cannot fire on its motivating example is not a guard.
+- **The quiet half of the same bug: three filers banded from unconverted
+  foreign-currency statements.** The EV guard above only catches the
+  catastrophic case. ASML's ~16% EUR gap produced a full band at
+  `confidence: high` — indistinguishable on screen from a correct one — and NOK
+  the same. Nor is the error a constant that cancels inside a percentile: USDEUR
+  ran 0.747→0.859 over 2005–2026, so an unconverted history is distorted by a
+  factor that *moves*, reshaping the distribution the band's percentiles are
+  drawn from rather than sliding it. New `fundamentals/fx.py` translates each
+  figure at its own statement's rate under the **two-rate rule** (flows at the
+  window average, stocks at the close), sourcing dailies from the lake's
+  `asset_class=fx`. ASML's `buy_below` moves 293.15 → 255.71. A filer whose
+  statements cannot be translated is now **refused**, never banded unconverted.
+- **Reporting currency is per STATEMENT, not per filer.** Measured on NBIS
+  2026-03-31: income and balance report USD while the cash-flow statement
+  reports RUB, in the same quarter. A per-ticker model reads whichever statement
+  comes first and applies it to figures never denominated in it. Blocking is
+  scoped to the statements a method actually reads, so NBIS's RUB cash-flow
+  statement does not cost it a `sales_to_ev` band it can be priced from
+  correctly.
+- **UW serializes a missing currency as the literal string `"None"`**, not as
+  JSON null — measured on AMZN, APLD, OXY, VST, WDC. A newest-first currency walk
+  stops on that sentinel, which had reclassified NBIS (genuinely RUB on its real
+  rows) as a domestic filer. Sentinels are skipped rather than accepted.
+- **`fx` registered as a lake asset class** (`lake_fx_root` setting +
+  `lake_resolver._ASSET_CLASS_TO_LOCAL_ATTR`/`_ASSET_CLASS_CANARY`), closing R10
+  from the livewire brief. The FX root is now configured rather than derived by
+  string surgery on the equity root. Canary is `USDEUR`, not `USDTWD`: it is the
+  pair present in every mirror measured so far, and a canary that only exists on
+  the mini would report a healthy lake as broken everywhere else.
+- **TSM's refusal is a thin dev mirror, not a missing source.** The mini's lake
+  already carries `USDTWD` (5,395 rows from 2004-03-24, current to 2026-08-10 —
+  §3.6 of the livewire brief); the MacBook mirror has only `USDEUR`, which is why
+  it refuses locally. No FRED dependency and no livewire ask: TSM bands wherever
+  the full mirror is present, and where it is not, the card names the missing
+  series instead of showing a number.
 
 - **`fundamentals_refresh` has never persisted a row — it silently rolled back
   every night.** `_repo()` (`worker/scheduler.py`) opens a psycopg connection
@@ -146,6 +362,258 @@ version in lockstep (enforced by `scripts/release/version_sync_check.py`).
   rows without the bug being fixed. Both halves of the fix are verified
   load-bearing: removing the commit fails the fresh-connection test, and
   removing the rollback fails the cascade test with `InFailedSqlTransaction`.
+
+### Research
+
+- **The 245-name ranking earns nothing, and transaction costs are not why.**
+  `scripts/research/fundamental_cost_turnover.py` forms the actual quarterly
+  portfolio. Gross quarterly alpha before any cost: top 10% **−0.0007** (t −0.09),
+  top 20% +0.0007 (t +0.15), top 33% +0.0006 (t +0.16); every |t| ≤ 1.06 and the
+  top-minus-bottom spread is **negative** at all three widths. The break-even-cost
+  column is arithmetic on a zero numerator and must not be quoted. Verdict:
+  `docs/research/2026-08-12-fundamental-cost-turnover/VERDICT.md`.
+- **Why a t = 3.09 ordering pays zero — the decile profile reconciles it.** Mean
+  return-rank climbs 0.475 → 0.526 across deciles 0–8 and median return climbs
+  with it (+0.0145 → +0.0409), but mean return does not: the **worst**-ranked
+  decile carries the **highest** mean (+0.0601) with the **lowest** median
+  (+0.0145). Severe right-tail skew sits exactly where the composite ranks worst.
+  A rank IC measures the typical name; an equal-weighted book earns the mean.
+  This also kills the obvious salvage — "avoid the bottom decile" discards the
+  biggest winners with the worst losers.
+- **The decile-9 reversal is recorded, not acted on.** Deciles 7–8 carry the best
+  return-rank and decile 9 falls back; picking them after seeing ten deciles is
+  data snooping, so it is flagged as needing a pre-committed test with a stated
+  mechanism rather than turned into a recommendation.
+- **Consequence (spec §4.3 rev 6): the ranked screen ships as a triage surface,
+  never a strategy.** No sizing, no expected-return language, no turnover budget,
+  not a portfolio-construction input.
+- `composite_scores` extracted from `fundamental_signal_validation` so the cost
+  study scores names with the **same** implementation the IC was produced with;
+  verified behaviour-preserving by re-running the wide validation and confirming
+  `validation_wide.json` is byte-identical.
+- **A name's own fundamental deterioration does NOT precede its own drawdown —
+  a powered null, and it closes the question the card is built on.**
+  `scripts/research/fundamental_timeseries_test.py`, 250 tickers, 16,857
+  within-ticker observations read from the new `fundamental_statement_obs` panel.
+  Market-neutral within-ticker IC is ~0.00 (`change|ret_2q_dm`: **−0.0000,
+  t −0.00**). All 16 hypotheses carry Benjamini-Hochberg and Bonferroni
+  corrections computed in the script and persisted in the artifact; **every
+  market-neutral test fails, and every survivor is a raw, market-contaminated
+  one**. `level|dd_1q_dm` (t 2.34) is precisely the ~1 false positive 16 tests
+  are expected to produce and does not survive. Verdict:
+  `docs/research/2026-08-12-fundamental-timeseries-test/VERDICT.md`.
+- **The null is powered, which is what makes it usable.** All eight
+  market-neutral detection floors sit at 0.018–0.023 against the **0.039** the
+  same composite produces cross-sectionally — so an effect of the size that
+  demonstrably exists *across* names would have been found *within* one. Absent,
+  not unproven. (Revision 1 of the cross-sectional verdict declared a null
+  without asking what its test could detect and was wrong; this does not repeat
+  it.)
+- **The raw result that looks like a finding is the market.** `level|ret_2q`
+  reads IC −0.0396, t −3.41 and survives Bonferroni — then collapses to −0.0047,
+  t −0.41 once the knowledge-quarter mean is removed. An 88% reduction: the whole
+  effect is panel-wide late-cycle fundamentals, nothing that distinguishes one
+  name from another. Its t-stat is also not trustworthy on its own terms, since
+  250 tickers exposed to one macro path are not 250 independent observations.
+- **Product consequence (spec §7 rev 6): subscore trends are descriptive, never
+  predictive.** "Gross margin has fallen four quarters running" stays as a
+  citable fact; no price consequence may be drawn from it, and the stage-5 schema
+  must forbid the claim with the deterministic auditor failing it — a model handed
+  falling subscores reaches for "and so the stock should underperform" unprompted.
+  §8's ranked screen is untouched: **the composite ranks names against each other
+  and does not time one against itself.**
+- **A name's own VALUATION does time that name, where its own quality does not —
+  and it survives the control that should have killed it.**
+  `scripts/research/fundamental_valuation_timeseries.py`, 247 tickers, 17,005
+  observations through the same harness that returned the null above. All five
+  own-history valuation yields carry a positive market-neutral IC at 2q;
+  `sales_to_ev` leads at **+0.0744 (t 5.77)**, hit rate 0.683 — the basis three
+  of the five §5.3 company types already route through. Verdict:
+  `docs/research/2026-08-12-fundamental-valuation-timeseries/VERDICT.md`.
+- **The reversal control failed to explain it, in three separate ways.** Every
+  signal is fundamental/price with a quarterly numerator over a daily
+  denominator, so most within-ticker variation in a "valuation" score is price
+  variation — short-horizon reversal was the default explanation, not a remote
+  risk. A pure negated-trailing-return signal pushed through the identical
+  pipeline earns a real but smaller **+0.0353 (t 2.60)**; holding it constant
+  makes every valuation signal **stronger** (`sales_to_ev` → +0.0826, t 7.28;
+  `book_to_price` → +0.0551 from +0.0356); and reversal does not predict drawdown
+  at all (**+0.0014, t 0.10**) while every valuation signal does. Two signals
+  that were the same thing relabelled would not diverge on a second outcome.
+- **Product consequence: the anchor band may be prescriptive, the subscores may
+  not.** `buy_below` has measured support at the horizon the card speaks to, so
+  the five §5.3 levels keep their prescriptive names — but the band is an
+  **own-history percentile, never a cross-sectional one**. The cross-sectional
+  value inversion (`book_to_price` IC −0.0365) still stands; the same word names
+  two different quantities with opposite signs. Standing limits carried:
+  survivorship (delisted names absent by construction, biasing "cheap precedes
+  strength" upward), ticker-level t-stats optimistic, uncosted, and not a
+  strategy — this licenses a band on a card, not a rule with sizing behind it.
+
+### Fixed
+
+- **The card would have rendered a false 100% gross margin.** UW echoes
+  `total_revenue` into `gross_profit` on some rows while still reporting a
+  positive `cost_of_revenue` — CEG 2026-06-30 serves revenue 7,506m, cost 6,276m
+  and gross_profit 7,506m, where the prior quarter is internally consistent
+  (11,122 − 6,352 = 4,770). Measured: **580 rows across 46 tickers**, ~2.8% of
+  income rows, concentrated in insurers and utilities (AFL 70, AIG 62). New
+  `gross_profit_equals_revenue_despite_costs` check; 574 recorded (the 6-row gap
+  is `revenue == 0` rows, degenerate rather than inconsistent).
+- **The raw feature is deliberately NOT nulled.** Editing `features.py` would
+  change the validated math and break reproducibility of every published result,
+  so the value stays as computed and the *display* layer suppresses it via
+  `violated_fields()`, joined through `fundamental_scores.source_obs_ids`.
+  Verified end to end: CEG renders `na`, NVDA still renders 74.9%.
+- `recheck_violations()` replays checks over stored immutable payloads, because a
+  check added after rows land otherwise only ever sees future ingests.
+- **`record_violations` was overstating what it wrote** — it returned
+  `len(violations)` while its SQL is `ON CONFLICT DO NOTHING`, so a replay
+  reported writes it never made. Now counts `RETURNING` rows. Caught by the
+  idempotence test written for the replay path; a backfill would otherwise have
+  reported healthy progress while writing nothing.
+
+### Added
+
+- **The card plots, and every series is a claim with evidence under it.** Each of
+  the seven features gets its own trajectory (40 quarters by default, `?quarters=`
+  1–120) plus its percentile in the knowledge-quarter panel; the composite gets a
+  larger chart of the same window. New `series_for_ticker` / `cross_section` /
+  `violations_by_obs` reads, `build_history` / `build_percentiles` compute, and a
+  hand-rolled `FundamentalSparkline` (no chart library — repo rule).
+  All 257 names carry ≥8 quarters and 256 carry ≥20, so this needed no new ingest.
+- **Every trajectory carries its own date axis**, not just the composite. The
+  axis moved inside `FundamentalSparkline` so all eight charts share one
+  implementation and cannot drift apart, and it labels the ends of the plotted
+  WINDOW rather than of each feature's drawn line — a series whose opening
+  quarters are suppressed starts inboard of the left edge and still reads on the
+  same window as its siblings.
+- **A quarter we do not believe is drawn as a GAP, never bridged.** A flagged
+  input becomes `null` *in place* — the line breaks and a dashed rule marks it —
+  because dropping the point would shift every later quarter left and misdate the
+  series, and interpolating across it would produce a smooth, confident, wrong
+  chart. CEG's `gross_margin` breaks at exactly the echoed quarter (1 null of 40)
+  while its `op_margin` is intact.
+- **Disbelieved values are removed from the comparison panel, not just from the
+  subject.** Otherwise every name would be ranked against the ~46 tickers whose
+  `gross_margin` reads exactly 1.0 for the reason the card refuses to display.
+  A suppressed subject therefore has no percentile at all, and `n` is stated per
+  feature because it differs (NVDA: 253 / 239 / 252) — a percentile whose
+  denominator is unnamed is not a fact.
+- **Deliberately NOT copied from the reference financials browser: the
+  "Fundamentals Checklist" of QoQ/YoY arrows.** Scoring "6 positive / 1 negative"
+  requires a direction for every line item, and our own validation measured
+  `gross_margin` and `op_margin` **inverted** while `roe` is named by no rubric
+  row. The most copyable element on that page is the one we are forbidden to
+  copy. Same reason there is no red/green ramp on any chart here.
+- **Fundamental card — the deterministic blocks of spec §7, on a new stock tab.**
+  `GET /api/stock/{ticker}/fundamentals` + `models/fundamentals.py` +
+  `fundamentals/card.py` (pure assembly) + `web/components/stock/tabs/FundamentalsTab.tsx`.
+  Three of §7's nine blocks have backing data at stage 2 — subscores/composite,
+  coverage, and provenance — and the other six are **absent from the contract
+  rather than served empty**, since an empty block reads as "no data for this
+  name" instead of "not built yet". Anchors, narrative and audit verdicts need
+  stages 3-5.
+- **A flagged provider field now suppresses exactly the derived features that
+  consume it**, via a new `FEATURE_INPUTS` map and `violated_fields()` joined
+  through `fundamental_scores.source_obs_ids`. CEG's `gross_margin` renders `na`
+  while its `op_margin` survives intact — blanking the whole income statement
+  over one bad field would be as wrong as showing it. The stored feature value is
+  **never edited**: changing `features.py` would change validated math and break
+  the reproducibility of every published result, so suppression happens at the
+  read and the raw value stays as computed.
+- **The card claims no direction for three of the seven features.**
+  `gross_margin` and `op_margin` measured *inverted* in the 2026-08-12 validation
+  and `roe` is named by no rubric row, so `direction` is carried per feature in
+  the API contract and is `null` for those three. It rides with the data rather
+  than living in the UI, where a colour ramp could silently reassert a direction
+  the research refused. No red/green scale and no bars: both encode a comparison,
+  and a per-ticker card has no cross-section to compare against.
+- Coverage reports "not reported" and "reported but not believed" as **separate**
+  lists — different facts about a company — and the card dates itself by
+  `knowledge_date`, never the `as_of` cross-section bucket.
+- **Stage-2 fundamental scoring — subscores, composite, and method versioning**
+  (migration `117`). `fundamental_method_versions` / `_params` / `_state` plus
+  `fundamental_scores`, keyed `(ticker, as_of, engine_version, inputs_hash)`.
+  New `fundamentals/scoring.py`, `storage/fundamental_scores.py`,
+  `worker/jobs/fundamental_scoring.py`, `scripts/seed_fundamental_method.py`.
+  Local run: **84 cross-sections, 20,552 scores, 257 names**, idempotent on
+  re-run (0 inserted). Median cross-section width **249 of 257** — the
+  knowledge-quarter keying holds, against the median of 23 the old
+  fiscal-period bug produced.
+- **All validated math moved into `src/uw_scan/fundamentals/`** — feature
+  derivation, `zscore` and `composite_scores` now live in production and the
+  research scripts import them, so the shipped composite *is* the validated one
+  rather than a copy that can drift. Verified by re-running the wide validation
+  after each move and confirming `validation_wide.json` byte-identical (three
+  times).
+- **"Exactly one active method version" is enforced by three mechanisms**, because
+  `CHECK (singleton_id = 1)` constrains the row's *value*, not its *existence* — it
+  permits `DELETE`, which would leave every computation method-less. A NOT NULL FK
+  removes the null case, the CHECK pins identity, and a `BEFORE DELETE` trigger
+  removes the empty case. Verified live: the delete raises.
+- `inputs_hash` covers `company_type` and the engine version, not just the
+  financial figures — otherwise a type flip yields new scores under an unchanged
+  hash and the stale row survives, indistinguishable from the fresh one. It also
+  distinguishes a missing input from a reported zero.
+- **Observed, not fixed: the composite's extremes are denominator artifacts.**
+  The ranking's ends are dominated by small biotechs and REITs (ALGN +4.25,
+  CLDX −5.22) where a tiny EBITDA or asset base makes a ratio explode. This is
+  the likely mechanism behind "extremes sort volatility, not quality".
+  Winsorizing would fix it *and* would make the shipped composite a different,
+  unvalidated one — so it is documented rather than silently changed.
+
+- **Fundamental tier-1 ingest — immutable point-in-time statement observations**
+  (migration `114`). New `uw_scan.fundamentals` pure-compute package
+  (`statements.py`: normalization, `content_hash`, integrity checks), storage
+  domain `storage/fundamental_obs.py`, job `worker/jobs/fundamental_ingest.py`,
+  seeder `scripts/seed_fundamental_universe.py`, runner
+  `scripts/backfill/fundamental_ingest_backfill.py`, and four UW statement
+  endpoints registered in `api/endpoints.py`. An unchanged refetch bumps
+  `last_seen_at` and writes no fact; a restatement lands beside the original and
+  never overwrites it. Verified against the live API: a second run of the same
+  three tickers reported **0 inserted / 744 unchanged**.
+- **`content_hash` excludes provider ingest timestamps, and this is load-bearing.**
+  Every UW statement row carries `inserted_at` / `updated_at`, both of which move
+  on provider re-ingest with no reported figure changing. Hashing them would turn
+  every refresh into a phantom restatement — 60,292 rows of them per pass.
+  Replayed over the full cached corpus: 60,292 rows, **zero identity collisions**.
+- **Two-tier fundamental universe, so the ranked composite ships rather than being
+  dropped** (spec §4.3 rev 5). `core` (25 names) sizes the hand-verified valuation
+  and narrative stages; `ranked` (257) sizes statement ingest and scoring — the
+  width at which rev 4 measured the composite (IC 0.039 leak-free, t 2.67). Rev 4
+  concluded the product should drop the ranking; the measurement actually named a
+  threshold argon can meet, so the ordering is **scoped** to the wide tier instead.
+  Tier keys deliberately carry no count: the 245 came from local lake price depth,
+  which statement ingest never reads.
+- `core ⊂ ranked` is verified rather than assumed, and the check paid off — **12 of
+  25 core names are absent from the validated panel** (AMD, ANET, APP, AVGO, CEG,
+  CRWD, DELL, GEV, NOW, PLTR, VRT, VST). None were rejected on fundamentals: the
+  lake mirror starts late for them (AMD 2015-01-02, AVGO 2016-02-02) against a
+  `first_bar <= 2013-01-01` gate, though AMD has traded since 1972. Seeded, and
+  flagged per row as outside the validated panel.
+
+### Fixed (spec accuracy)
+
+- **The violation rates in spec §4.4 were massive's, not UW's.** §3.3 measured
+  ~5% negative liabilities and ~15% impossible share counts against massive
+  `/vX`; the backbone then moved to UW, where §3.2's own probe records 0.0% on
+  that axis, but the table description kept the old numbers. Replayed over 20,093
+  real UW balance rows: both fire on **zero**. What actually fires is
+  `implausible_share_count` (83 rows) and `accounting_identity_reversed` (61).
+- **Registering the zero-rate checks anyway paid off on the first live run.**
+  `negative_total_liabilities` measured 0.0% on the validated panel, was kept as
+  a tripwire, and then caught four rows the panel could not have shown: DELL
+  2014/2015 (−4.01bn, −2.90bn) and PLTR 2019/2020 (−508m, −147m) — all **pre-IPO
+  periods** for names outside the panel (DELL private from 2013, PLTR listed
+  2020). The panel measurement was scoped, not wrong; a check retired for
+  measuring zero would have passed these silently.
+- **`assets > liabilities + equity` is deliberately not a check**, documented
+  because it looks like one. It fires on 14.4% of rows, but 2,815 of 2,876
+  failures run in that single direction and cluster per filer — 121 of 245
+  tickers fail on nearly every row and 124 on none, led by DIS, AES, CMI, BXP.
+  That is UW reporting equity parent-only, excluding non-controlling interest.
+  A check there would mark half the universe broken while its data is fine.
 
 ## [0.11.4] — 2026-08-10
 

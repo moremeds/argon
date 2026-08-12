@@ -24,6 +24,8 @@ from uw_scan.config import Settings
 from uw_scan.models import (
     ChanlunLifecycleMark,
     ChanlunLifecycleResponse,
+    FundamentalCardResponse,
+    FundamentalStatementsResponse,
     MagnetsResponse,
     SingleStockReport,
     StockHistoryResponse,
@@ -395,6 +397,114 @@ def get_stock_chanlun_lifecycle(
         for r in rows
     ]
     return ChanlunLifecycleResponse(ticker=t, marks=marks)
+
+
+@router.get("/stock/{ticker}/fundamentals", response_model=FundamentalCardResponse)
+def get_stock_fundamentals(
+    ticker: str,
+    quarters: int = Query(40, ge=1, le=120),
+    repo: Repository = Depends(get_repo),
+    settings: Settings = Depends(get_settings),
+) -> FundamentalCardResponse:
+    """The deterministic blocks of the §7 fundamental card for one name.
+
+    Subscores, coverage and provenance only — the valuation anchor, narrative and
+    audit blocks need stages 3-5 and are absent from the contract rather than
+    served empty.
+
+    404 and 503 are deliberately distinct: "this name has no score" and "no method
+    version is active" are different problems, and collapsing them would hide a
+    stack-wide outage behind a per-ticker empty state.
+    """
+    from uw_scan.fundamentals.card import (
+        build_card,
+        build_history,
+        build_percentiles,
+    )
+    from uw_scan.storage.fundamental_anchors import FundamentalAnchorsRepository
+    from uw_scan.storage.fundamental_obs import FundamentalObsRepository
+    from uw_scan.storage.fundamental_scores import FundamentalScoresRepository
+
+    t = ticker.upper()
+    conn, schema = repo.conn, settings.db_schema
+    scores = FundamentalScoresRepository(conn, schema=schema)
+    engine = scores.active_version()
+    if engine is None:
+        raise HTTPException(
+            status_code=503, detail="no active fundamental method version"
+        )
+    row = scores.latest_for_ticker(t, engine)
+    if row is None:
+        raise HTTPException(status_code=404, detail=f"no fundamental score for {t}")
+    obs = FundamentalObsRepository(conn, schema=schema)
+    violated = obs.violated_fields(row.get("source_obs_ids") or [])
+
+    series = scores.series_for_ticker(t, engine, limit=quarters)
+    cross = scores.cross_section(row["as_of"], engine)
+    # One violation query covering the trajectory AND the comparison panel. Per
+    # row it would be ~290 round-trips for a single card.
+    obs_ids = sorted(
+        {i for r in (*series, *cross) for i in (r.get("source_obs_ids") or [])}
+    )
+    by_obs = obs.violations_by_obs(obs_ids)
+
+    # Scoped to the SAME engine_version as the subscores. A band computed under a
+    # retired method rendering beside live subscores would look current, with
+    # nothing on screen to say the two came from different methods.
+    anchors = FundamentalAnchorsRepository(conn, schema=schema).latest_for_ticker(
+        t, engine
+    )
+
+    return FundamentalCardResponse.model_validate(
+        build_card(
+            ticker=t,
+            row=row,
+            violated=violated,
+            engine_version=engine,
+            history=build_history(series, by_obs),
+            percentiles=build_percentiles(cross, by_obs, t),
+            anchors=anchors,
+        )
+    )
+
+
+@router.get(
+    "/stock/{ticker}/fundamentals/statements",
+    response_model=FundamentalStatementsResponse,
+)
+def get_stock_fundamental_statements(
+    ticker: str,
+    quarters: int = Query(20, ge=1, le=40),
+    repo: Repository = Depends(get_repo),
+    settings: Settings = Depends(get_settings),
+) -> FundamentalStatementsResponse:
+    """Per-feature input components behind the card's ratios.
+
+    Served separately from the card rather than folded into it, so the card's
+    own contract and its OpenAPI snapshot stay untouched and the two payloads
+    can evolve independently.
+
+    Reads through `statement_panel`, the same path the scoring job uses, so
+    "which observation is current" cannot diverge between the front of a card
+    and its back.
+
+    404 here means "no statements ingested", which is deliberately NOT the card
+    endpoint's condition ("no score row"). The two can legitimately disagree —
+    a name can hold statements and no score yet — and withholding real figures
+    because a different table lags would be the dishonest answer.
+    """
+    from uw_scan.fundamentals.features import build_feature_details
+    from uw_scan.storage.fundamental_obs import FundamentalObsRepository
+
+    t = ticker.upper()
+    obs = FundamentalObsRepository(repo.conn, schema=settings.db_schema)
+    panel = obs.statement_panel([t])
+    entry = panel.get(t)
+    if not entry or not entry["income-statements"]:
+        raise HTTPException(status_code=404, detail=f"no statements for {t}")
+
+    detail = build_feature_details(entry, quarters=quarters)
+    return FundamentalStatementsResponse(ticker=t, **detail)
 
 
 _MAGNET_CANDLE_WINDOW = 180

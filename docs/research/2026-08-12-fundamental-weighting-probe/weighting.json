@@ -1,0 +1,74 @@
+{
+ "constructions": {
+  "equal_7": {
+   "rev_growth": 1.0,
+   "gross_margin": 1.0,
+   "op_margin": 1.0,
+   "fcf_margin": 1.0,
+   "roe": 1.0,
+   "neg_net_debt_ebitda": 1.0,
+   "asset_turnover": 1.0
+  },
+  "rubric": {
+   "rev_growth": 0.2,
+   "gross_margin": 0.1,
+   "op_margin": 0.1,
+   "fcf_margin": 0.075,
+   "asset_turnover": 0.075,
+   "neg_net_debt_ebitda": 0.15,
+   "roe": 0.0
+  },
+  "no_margins": {
+   "rev_growth": 1.0,
+   "fcf_margin": 1.0,
+   "roe": 1.0,
+   "neg_net_debt_ebitda": 1.0,
+   "asset_turnover": 1.0
+  }
+ },
+ "note": "no_margins is POST-HOC \u2014 components were dropped after seeing their realised sign. Diagnostic only; not a shippable candidate without an out-of-sample test.",
+ "reproduce": "uv run python scripts/research/fundamental_weighting_probe.py",
+ "results": {
+  "equal_7": {
+   "1q": {
+    "n_quarters": 79,
+    "mean_ic": 0.0376,
+    "ic_stdev": 0.1081,
+    "t_stat": 3.09,
+    "hit_rate": 0.646
+   }
+  },
+  "rubric": {
+   "1q": {
+    "n_quarters": 79,
+    "mean_ic": 0.0491,
+    "ic_stdev": 0.1062,
+    "t_stat": 4.109,
+    "hit_rate": 0.696
+   }
+  },
+  "no_margins": {
+   "1q": {
+    "n_quarters": 78,
+    "mean_ic": 0.0552,
+    "ic_stdev": 0.0989,
+    "t_stat": 4.932,
+    "hit_rate": 0.705
+   }
+  }
+ },
+ "paired_vs_baseline": {
+  "rubric_vs_equal_7": {
+   "n": 79,
+   "mean_diff": 0.011512187803200498,
+   "t_stat": 1.792016226772705,
+   "win_rate": 0.569620253164557
+  },
+  "no_margins_vs_equal_7": {
+   "n": 78,
+   "mean_diff": 0.012578264292686207,
+   "t_stat": 2.5233040860257288,
+   "win_rate": 0.5769230769230769
+  }
+ }
+}

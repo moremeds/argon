@@ -6,7 +6,7 @@ Generated from `REGISTRY` in `src/uw_scan/reports/data_gap_healer.py` (one sourc
 uv run python -c "from uw_scan.reports.data_gap_healer import render_dataset_policy_markdown as r; open('docs/runbooks/data-gap-dataset-policy.md','w').write(r())"
 ```
 
-**134 datasets** across 10 groups.
+**143 datasets** across 11 groups.
 
 ## core_watchlist
 
@@ -24,6 +24,20 @@ uv run python -c "from uw_scan.reports.data_gap_healer import render_dataset_pol
 | stock_analytics_daily | strict_ticker_date | db | run_once | vol_analytics_rollup | equity_session |  |
 | technical_daily | freshness_only | none | none |  | equity_session | full series recomputed nightly from apex bars; no per-date heal |
 | vrp_daily | strict_ticker_date | db | run_once | vol_analytics_rollup | equity_session |  |
+
+## fundamentals
+
+| table | audit_mode | provider | granularity | adapter | freq | reason |
+|---|---|---|---|---|---|---|
+| fundamental_company_type | excluded | none | none |  | none | hand-maintainable routing table, not a time series — a missing row means the name is unrouted, which the card states explicitly |
+| fundamental_method_params | excluded | none | none |  | none | immutable parameter rows keyed by engine_version |
+| fundamental_method_state | excluded | none | none |  | none | singleton pointer to the active method version |
+| fundamental_method_versions | excluded | none | none |  | none | immutable method registry, not a time series |
+| fundamental_obs_violations | provenance | none | none |  | event |  |
+| fundamental_scores | freshness_only | db | none |  | event | derived from fundamental_statement_obs; re-run worker/jobs/fundamental_scoring.py to heal (zero API cost) |
+| fundamental_statement_obs | freshness_only | uw | none |  | event | quarterly filings over the fundamental universe, not the watchlist; re-run scripts/backfill/fundamental_ingest_backfill.py to heal (insert-or-touch, safe to repeat) |
+| fundamental_universe | excluded | none | none |  | none | seeded membership list, not a time series; scripts/seed_fundamental_universe.py is the source of truth |
+| valuation_anchors | freshness_only | db | none |  | event | derived from fundamental_statement_obs + fundamental_company_type; re-run worker/jobs/fundamental_scoring.py to heal (zero API cost) |
 
 ## gold_rates_macro
 

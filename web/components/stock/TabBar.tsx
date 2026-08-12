@@ -8,6 +8,7 @@ const TABS = [
   ["volatility", "Volatility"],
   ["skew", "Skew"],
   ["flow", "Flow"],
+  ["fundamentals", "Fundamentals"],
   ["trade-insights", "Trade Insights"],
   ["trade-plan", "Trade Plan"],
 ] as const;

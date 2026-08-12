@@ -1,0 +1,664 @@
+{
+ "by_ticker": {
+  "AMAT": {
+   "by_group": {
+    "continent": {
+     "detail": "no untagged consolidated row",
+     "verdict": "no_total"
+    },
+    "country": {
+     "detail": "no untagged consolidated row",
+     "verdict": "no_total"
+    },
+    "product": {
+     "detail": "leaf sums / total by axis: {'srt:ConsolidationItemsAxis': 0.035}",
+     "verdict": "no_axis_sums_to_total"
+    },
+    "rewards": {
+     "detail": "no single-member single-axis rows",
+     "verdict": "no_leaves"
+    }
+   },
+   "groups": [
+    "continent",
+    "country",
+    "product",
+    "rewards"
+   ],
+   "period": "2026-04-26"
+  },
+  "AMD": {
+   "by_group": {
+    "continent": {
+     "detail": "no untagged consolidated row",
+     "verdict": "no_total"
+    },
+    "country": {
+     "detail": "no untagged consolidated row",
+     "verdict": "no_total"
+    },
+    "product": {
+     "detail": "no single-member single-axis rows",
+     "verdict": "no_leaves"
+    },
+    "rewards": {
+     "detail": "no untagged consolidated row",
+     "verdict": "no_total"
+    }
+   },
+   "groups": [
+    "continent",
+    "country",
+    "product",
+    "rewards"
+   ],
+   "period": "2026-06-27"
+  },
+  "AMZN": {
+   "by_group": {
+    "continent": {
+     "detail": "no untagged consolidated row",
+     "verdict": "no_total"
+    },
+    "country": {
+     "detail": "no untagged consolidated row",
+     "verdict": "no_total"
+    },
+    "product": {
+     "detail": "leaf sums / total by axis: {'srt:ProductOrServiceAxis': 2.0, 'us-gaap:StatementBusinessSegmentsAxis': 0.211}",
+     "verdict": "no_axis_sums_to_total"
+    }
+   },
+   "groups": [
+    "continent",
+    "country",
+    "product"
+   ],
+   "period": "2026-06-30"
+  },
+  "ANET": {
+   "by_group": {
+    "continent": {
+     "detail": "no untagged consolidated row",
+     "verdict": "no_total"
+    },
+    "country": {
+     "detail": "no untagged consolidated row",
+     "verdict": "no_total"
+    },
+    "product": {
+     "axis": "srt:ProductOrServiceAxis",
+     "largest_member": "us-gaap:ProductMember",
+     "largest_share": 0.8582,
+     "members": 2,
+     "verdict": "computable"
+    },
+    "rewards": {
+     "detail": "no untagged consolidated row",
+     "verdict": "no_total"
+    }
+   },
+   "groups": [
+    "continent",
+    "country",
+    "product",
+    "rewards"
+   ],
+   "period": "2026-06-30"
+  },
+  "APP": {
+   "by_group": {
+    "country": {
+     "detail": "no untagged consolidated row",
+     "verdict": "no_total"
+    },
+    "product": {
+     "axis": "us-gaap:StatementBusinessSegmentsAxis",
+     "largest_member": "app:ReportableSegmentMember",
+     "largest_share": 1.0,
+     "members": 1,
+     "verdict": "computable"
+    }
+   },
+   "groups": [
+    "country",
+    "product"
+   ],
+   "period": "2026-06-30"
+  },
+  "ASML": {
+   "by_group": {
+    "continent": {
+     "detail": "no untagged consolidated row",
+     "verdict": "no_total"
+    },
+    "country": {
+     "detail": "no untagged consolidated row",
+     "verdict": "no_total"
+    },
+    "locations": {
+     "detail": "no single-member single-axis rows",
+     "verdict": "no_leaves"
+    },
+    "product": {
+     "detail": "leaf sums / total by axis: {'srt:ProductOrServiceAxis': 1.749}",
+     "verdict": "no_axis_sums_to_total"
+    },
+    "rewards": {
+     "detail": "no single-member single-axis rows",
+     "verdict": "no_leaves"
+    }
+   },
+   "groups": [
+    "continent",
+    "country",
+    "locations",
+    "product",
+    "rewards"
+   ],
+   "period": "2025-12-31"
+  },
+  "AVGO": {
+   "by_group": {
+    "continent": {
+     "detail": "no untagged consolidated row",
+     "verdict": "no_total"
+    },
+    "country": {
+     "detail": "no untagged consolidated row",
+     "verdict": "no_total"
+    },
+    "product": {
+     "axes": {
+      "srt:ProductOrServiceAxis": {
+       "largest_member": "us-gaap:ProductMember",
+       "largest_share": 0.7613,
+       "members": 2
+      },
+      "us-gaap:StatementBusinessSegmentsAxis": {
+       "largest_member": "avgo:SemiconductorSolutionsMember",
+       "largest_share": 0.6765,
+       "members": 2
+      }
+     },
+     "detail": "2 axes each sum to the total",
+     "verdict": "ambiguous_axis"
+    },
+    "rewards": {
+     "detail": "no untagged consolidated row",
+     "verdict": "no_total"
+    }
+   },
+   "groups": [
+    "continent",
+    "country",
+    "product",
+    "rewards"
+   ],
+   "period": "2026-05-03"
+  },
+  "CEG": {
+   "by_group": {
+    "continent": {
+     "detail": "no untagged consolidated row",
+     "verdict": "no_total"
+    },
+    "country": {
+     "detail": "no untagged consolidated row",
+     "verdict": "no_total"
+    },
+    "product": {
+     "detail": "leaf sums / total by axis: {'srt:ProductOrServiceAxis': 0.779}",
+     "verdict": "no_axis_sums_to_total"
+    }
+   },
+   "groups": [
+    "continent",
+    "country",
+    "product"
+   ],
+   "period": "2026-06-30"
+  },
+  "CRWD": {
+   "by_group": {
+    "rewards": {
+     "detail": "no single-member single-axis rows",
+     "verdict": "no_leaves"
+    }
+   },
+   "groups": [
+    "rewards"
+   ],
+   "period": "2026-04-30"
+  },
+  "DELL": {
+   "by_group": {
+    "country": {
+     "detail": "no untagged consolidated row",
+     "verdict": "no_total"
+    },
+    "product": {
+     "axis": "srt:ProductOrServiceAxis",
+     "largest_member": "us-gaap:ProductMember",
+     "largest_share": 0.8691,
+     "members": 2,
+     "verdict": "computable"
+    },
+    "rewards": {
+     "detail": "no untagged consolidated row",
+     "verdict": "no_total"
+    }
+   },
+   "groups": [
+    "country",
+    "product",
+    "rewards"
+   ],
+   "period": "2026-05-01"
+  },
+  "ETN": {
+   "by_group": {
+    "continent": {
+     "detail": "no untagged consolidated row",
+     "verdict": "no_total"
+    },
+    "country": {
+     "detail": "no untagged consolidated row",
+     "verdict": "no_total"
+    },
+    "locations": {
+     "detail": "consolidated total is not positive",
+     "verdict": "no_total"
+    },
+    "product": {
+     "axis": "srt:ConsolidationItemsAxis",
+     "largest_member": "us-gaap:OperatingSegmentsMember",
+     "largest_share": 1.0,
+     "members": 1,
+     "verdict": "computable"
+    }
+   },
+   "groups": [
+    "continent",
+    "country",
+    "locations",
+    "product"
+   ],
+   "period": "2026-06-30"
+  },
+  "GEV": {
+   "by_group": {
+    "continent": {
+     "detail": "no untagged consolidated row",
+     "verdict": "no_total"
+    },
+    "country": {
+     "detail": "no untagged consolidated row",
+     "verdict": "no_total"
+    },
+    "product": {
+     "axes": {
+      "srt:ConsolidationItemsAxis": {
+       "largest_member": "gev:OperatingSegmentsExcludingIntersegmentEliminationMember",
+       "largest_share": 1.0033,
+       "members": 3
+      },
+      "srt:ProductOrServiceAxis": {
+       "largest_member": "us-gaap:ProductMember",
+       "largest_share": 0.5817,
+       "members": 2
+      }
+     },
+     "detail": "2 axes each sum to the total",
+     "verdict": "ambiguous_axis"
+    }
+   },
+   "groups": [
+    "continent",
+    "country",
+    "product"
+   ],
+   "period": "2026-06-30"
+  },
+  "GOOGL": {
+   "by_group": {
+    "continent": {
+     "detail": "no untagged consolidated row",
+     "verdict": "no_total"
+    },
+    "country": {
+     "detail": "no untagged consolidated row",
+     "verdict": "no_total"
+    },
+    "product": {
+     "detail": "leaf sums / total by axis: {'us-gaap:StatementBusinessSegmentsAxis': 0.792}",
+     "verdict": "no_axis_sums_to_total"
+    },
+    "rewards": {
+     "detail": "no single-member single-axis rows",
+     "verdict": "no_leaves"
+    }
+   },
+   "groups": [
+    "continent",
+    "country",
+    "product",
+    "rewards"
+   ],
+   "period": "2026-06-30"
+  },
+  "META": {
+   "by_group": {
+    "continent": {
+     "detail": "no untagged consolidated row",
+     "verdict": "no_total"
+    },
+    "country": {
+     "detail": "no untagged consolidated row",
+     "verdict": "no_total"
+    },
+    "product": {
+     "axis": "us-gaap:StatementBusinessSegmentsAxis",
+     "largest_member": "meta:FamilyOfAppsMember",
+     "largest_share": 0.9929,
+     "members": 2,
+     "verdict": "computable"
+    },
+    "rewards": {
+     "detail": "no untagged consolidated row",
+     "verdict": "no_total"
+    }
+   },
+   "groups": [
+    "continent",
+    "country",
+    "product",
+    "rewards"
+   ],
+   "period": "2026-06-30"
+  },
+  "MRVL": {
+   "by_group": {
+    "continent": {
+     "detail": "no untagged consolidated row",
+     "verdict": "no_total"
+    },
+    "country": {
+     "detail": "no untagged consolidated row",
+     "verdict": "no_total"
+    },
+    "product": {
+     "axes": {
+      "srt:ProductOrServiceAxis": {
+       "largest_member": "mrvl:DataCenterMember",
+       "largest_share": 0.758,
+       "members": 2
+      },
+      "us-gaap:StatementBusinessSegmentsAxis": {
+       "largest_member": "mrvl:ReportableSegmentMember",
+       "largest_share": 1.0,
+       "members": 1
+      }
+     },
+     "detail": "2 axes each sum to the total",
+     "verdict": "ambiguous_axis"
+    },
+    "rewards": {
+     "detail": "no single-member single-axis rows",
+     "verdict": "no_leaves"
+    }
+   },
+   "groups": [
+    "continent",
+    "country",
+    "product",
+    "rewards"
+   ],
+   "period": "2026-05-02"
+  },
+  "MSFT": {
+   "by_group": {
+    "country": {
+     "detail": "no untagged consolidated row",
+     "verdict": "no_total"
+    },
+    "product": {
+     "detail": "leaf sums / total by axis: {'srt:ProductOrServiceAxis': 1.187}",
+     "verdict": "no_axis_sums_to_total"
+    }
+   },
+   "groups": [
+    "country",
+    "product"
+   ],
+   "period": "2026-06-30"
+  },
+  "MU": {
+   "by_group": {
+    "continent": {
+     "detail": "no untagged consolidated row",
+     "verdict": "no_total"
+    },
+    "country": {
+     "detail": "no untagged consolidated row",
+     "verdict": "no_total"
+    },
+    "product": {
+     "axis": "srt:ProductOrServiceAxis",
+     "largest_member": "mu:DRAMProductsMember",
+     "largest_share": 0.7557,
+     "members": 3,
+     "verdict": "computable"
+    },
+    "rewards": {
+     "detail": "no single-member single-axis rows",
+     "verdict": "no_leaves"
+    }
+   },
+   "groups": [
+    "continent",
+    "country",
+    "product",
+    "rewards"
+   ],
+   "period": "2026-05-28"
+  },
+  "NOW": {
+   "by_group": {
+    "continent": {
+     "detail": "no untagged consolidated row",
+     "verdict": "no_total"
+    },
+    "country": {
+     "detail": "no untagged consolidated row",
+     "verdict": "no_total"
+    },
+    "product": {
+     "axis": "srt:ProductOrServiceAxis",
+     "largest_member": "us-gaap:LicenseAndServiceMember",
+     "largest_share": 0.9724,
+     "members": 2,
+     "verdict": "computable"
+    },
+    "rewards": {
+     "detail": "no single-member single-axis rows",
+     "verdict": "no_leaves"
+    }
+   },
+   "groups": [
+    "continent",
+    "country",
+    "product",
+    "rewards"
+   ],
+   "period": "2026-06-30"
+  },
+  "NVDA": {
+   "by_group": {
+    "continent": {
+     "detail": "no untagged consolidated row",
+     "verdict": "no_total"
+    },
+    "country": {
+     "detail": "no untagged consolidated row",
+     "verdict": "no_total"
+    },
+    "product": {
+     "detail": "leaf sums / total by axis: {'srt:ProductOrServiceAxis': 1.922}",
+     "verdict": "no_axis_sums_to_total"
+    },
+    "rewards": {
+     "detail": "no single-member single-axis rows",
+     "verdict": "no_leaves"
+    }
+   },
+   "groups": [
+    "continent",
+    "country",
+    "product",
+    "rewards"
+   ],
+   "period": "2026-04-26"
+  },
+  "ORCL": {
+   "by_group": {
+    "continent": {
+     "detail": "no untagged consolidated row",
+     "verdict": "no_total"
+    },
+    "country": {
+     "detail": "no untagged consolidated row",
+     "verdict": "no_total"
+    },
+    "product": {
+     "axis": "srt:ConsolidationItemsAxis",
+     "largest_member": "us-gaap:OperatingSegmentsMember",
+     "largest_share": 1.0,
+     "members": 1,
+     "verdict": "computable"
+    }
+   },
+   "groups": [
+    "continent",
+    "country",
+    "product"
+   ],
+   "period": "2026-05-31"
+  },
+  "PLTR": {
+   "by_group": {
+    "continent": {
+     "detail": "no untagged consolidated row",
+     "verdict": "no_total"
+    },
+    "country": {
+     "detail": "no untagged consolidated row",
+     "verdict": "no_total"
+    },
+    "product": {
+     "detail": "no single-member single-axis rows",
+     "verdict": "no_leaves"
+    },
+    "rewards": {
+     "detail": "no single-member single-axis rows",
+     "verdict": "no_leaves"
+    }
+   },
+   "groups": [
+    "continent",
+    "country",
+    "product",
+    "rewards"
+   ],
+   "period": "2026-06-30"
+  },
+  "SMCI": {
+   "by_group": {
+    "continent": {
+     "detail": "no untagged consolidated row",
+     "verdict": "no_total"
+    },
+    "country": {
+     "detail": "no untagged consolidated row",
+     "verdict": "no_total"
+    },
+    "product": {
+     "detail": "leaf sums / total by axis: {'srt:ProductOrServiceAxis': 0.024}",
+     "verdict": "no_axis_sums_to_total"
+    },
+    "rewards": {
+     "detail": "no single-member single-axis rows",
+     "verdict": "no_leaves"
+    }
+   },
+   "groups": [
+    "continent",
+    "country",
+    "product",
+    "rewards"
+   ],
+   "period": "2026-03-31"
+  },
+  "TSM": {
+   "error": "no rev_breakdown rows"
+  },
+  "VRT": {
+   "by_group": {
+    "continent": {
+     "detail": "no untagged consolidated row",
+     "verdict": "no_total"
+    },
+    "country": {
+     "detail": "no untagged consolidated row",
+     "verdict": "no_total"
+    },
+    "product": {
+     "detail": "leaf sums / total by axis: {'srt:ConsolidationItemsAxis': 1.275, 'us-gaap:StatementBusinessSegmentsAxis': 0.148, 'srt:ProductOrServiceAxis': 2.0}",
+     "verdict": "no_axis_sums_to_total"
+    }
+   },
+   "groups": [
+    "continent",
+    "country",
+    "product"
+   ],
+   "period": "2026-06-30"
+  },
+  "VST": {
+   "by_group": {
+    "country": {
+     "detail": "no untagged consolidated row",
+     "verdict": "no_total"
+    },
+    "product": {
+     "detail": "leaf sums / total by axis: {'srt:ProductOrServiceAxis': 0.825, 'srt:ConsolidationItemsAxis': -0.925}",
+     "verdict": "no_axis_sums_to_total"
+    }
+   },
+   "groups": [
+    "country",
+    "product"
+   ],
+   "period": "2026-06-30"
+  }
+ },
+ "probe": "UW /fundamental-breakdown rev_breakdown computability",
+ "reproduce": "uv run python scripts/research/fundamental_segment_computability_probe.py",
+ "summary": {
+  "geography_like": {
+   "absent": 1,
+   "no_rows": 1,
+   "no_total": 23
+  },
+  "segment_like": {
+   "absent": 1,
+   "ambiguous_axis": 3,
+   "computable": 8,
+   "no_axis_sums_to_total": 10,
+   "no_leaves": 2,
+   "no_rows": 1
+  },
+  "tickers": 25,
+  "tolerance": 0.02
+ }
+}
