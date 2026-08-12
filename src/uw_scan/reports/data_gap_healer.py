@@ -470,6 +470,17 @@ REGISTRY: list[DatasetRegistryEntry] = [
         source_system="multi-source",
     ),
     DatasetRegistryEntry(
+        "macro_source_status",
+        "macro_evidence",
+        "operational_state",
+        expected_frequency="liveness",
+        source_system="multi-source",
+        reason=(
+            "current per-source ingestion health; not immutable release history and "
+            "not backfillable"
+        ),
+    ),
+    DatasetRegistryEntry(
         "ws_consumer_state",
         "operational_provenance",
         "operational_state",

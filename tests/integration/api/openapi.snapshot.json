@@ -9056,6 +9056,120 @@
         "title": "JobStatus",
         "type": "object"
       },
+      "MacroEvidenceRef": {
+        "properties": {
+          "artifact_id": {
+            "title": "Artifact Id",
+            "type": "integer"
+          },
+          "available_at": {
+            "format": "date-time",
+            "title": "Available At",
+            "type": "string"
+          },
+          "content_hash": {
+            "title": "Content Hash",
+            "type": "string"
+          },
+          "cost_class": {
+            "enum": [
+              "free_official",
+              "free_publisher",
+              "already_entitled",
+              "free_third_party_shadow",
+              "paid_authorized"
+            ],
+            "title": "Cost Class",
+            "type": "string"
+          },
+          "domain": {
+            "enum": [
+              "inflation",
+              "policy_rates",
+              "usd",
+              "gold",
+              "cross_domain"
+            ],
+            "title": "Domain",
+            "type": "string"
+          },
+          "first_observed_at": {
+            "format": "date-time",
+            "title": "First Observed At",
+            "type": "string"
+          },
+          "obs_id": {
+            "title": "Obs Id",
+            "type": "integer"
+          },
+          "parser_version": {
+            "title": "Parser Version",
+            "type": "string"
+          },
+          "period_end": {
+            "format": "date",
+            "title": "Period End",
+            "type": "string"
+          },
+          "published_at": {
+            "anyOf": [
+              {
+                "format": "date-time",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Published At"
+          },
+          "quality_status": {
+            "enum": [
+              "valid",
+              "invalid",
+              "partial",
+              "quarantined"
+            ],
+            "title": "Quality Status",
+            "type": "string"
+          },
+          "source": {
+            "title": "Source",
+            "type": "string"
+          },
+          "source_record_id": {
+            "title": "Source Record Id",
+            "type": "string"
+          },
+          "source_url": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Source Url"
+          }
+        },
+        "required": [
+          "obs_id",
+          "artifact_id",
+          "domain",
+          "source",
+          "source_record_id",
+          "period_end",
+          "available_at",
+          "first_observed_at",
+          "content_hash",
+          "parser_version",
+          "quality_status",
+          "cost_class"
+        ],
+        "title": "MacroEvidenceRef",
+        "type": "object"
+      },
       "MagnetCandle": {
         "properties": {
           "close": {
@@ -11427,6 +11541,506 @@
           "date"
         ],
         "title": "OptionsDailyRow",
+        "type": "object"
+      },
+      "PolicyComparison": {
+        "properties": {
+          "actual": {
+            "$ref": "#/components/schemas/PolicyPathSlot"
+          },
+          "as_of": {
+            "format": "date-time",
+            "title": "As Of",
+            "type": "string"
+          },
+          "committee_projection": {
+            "$ref": "#/components/schemas/PolicyPathSlot"
+          },
+          "contradictions": {
+            "items": {
+              "type": "string"
+            },
+            "title": "Contradictions",
+            "type": "array"
+          },
+          "dealer_expectations": {
+            "$ref": "#/components/schemas/PolicyPathSlot"
+          },
+          "market_implied": {
+            "$ref": "#/components/schemas/PolicyPathSlot"
+          }
+        },
+        "required": [
+          "as_of",
+          "actual",
+          "committee_projection",
+          "dealer_expectations",
+          "market_implied"
+        ],
+        "title": "PolicyComparison",
+        "type": "object"
+      },
+      "PolicyPath": {
+        "properties": {
+          "available_at": {
+            "format": "date-time",
+            "title": "Available At",
+            "type": "string"
+          },
+          "cost_class": {
+            "enum": [
+              "free_official",
+              "free_publisher",
+              "already_entitled",
+              "free_third_party_shadow",
+              "paid_authorized"
+            ],
+            "title": "Cost Class",
+            "type": "string"
+          },
+          "delay_minutes": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Delay Minutes"
+          },
+          "delay_status": {
+            "default": "not_applicable",
+            "enum": [
+              "known",
+              "unknown",
+              "not_applicable"
+            ],
+            "title": "Delay Status",
+            "type": "string"
+          },
+          "evidence_refs": {
+            "items": {
+              "$ref": "#/components/schemas/MacroEvidenceRef"
+            },
+            "title": "Evidence Refs",
+            "type": "array"
+          },
+          "kind": {
+            "enum": [
+              "actual",
+              "committee_projection",
+              "dealer_expectations",
+              "market_implied"
+            ],
+            "title": "Kind",
+            "type": "string"
+          },
+          "points": {
+            "items": {
+              "$ref": "#/components/schemas/PolicyPathPoint"
+            },
+            "title": "Points",
+            "type": "array"
+          },
+          "published_at": {
+            "anyOf": [
+              {
+                "format": "date-time",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Published At"
+          },
+          "source": {
+            "title": "Source",
+            "type": "string"
+          },
+          "source_kind": {
+            "enum": [
+              "official",
+              "first_party_publisher",
+              "entitled_provider",
+              "third_party_shadow",
+              "mock",
+              "static",
+              "demo"
+            ],
+            "title": "Source Kind",
+            "type": "string"
+          },
+          "source_record_id": {
+            "title": "Source Record Id",
+            "type": "string"
+          }
+        },
+        "required": [
+          "kind",
+          "source",
+          "source_kind",
+          "source_record_id",
+          "available_at",
+          "cost_class",
+          "points"
+        ],
+        "title": "PolicyPath",
+        "type": "object"
+      },
+      "PolicyPathParticipantPoint": {
+        "properties": {
+          "participant_count": {
+            "title": "Participant Count",
+            "type": "integer"
+          },
+          "rate_percent": {
+            "pattern": "^(?!^[-+.]*$)[+-]?0*\\d*\\.?\\d*$",
+            "title": "Rate Percent",
+            "type": "string"
+          }
+        },
+        "required": [
+          "rate_percent",
+          "participant_count"
+        ],
+        "title": "PolicyPathParticipantPoint",
+        "type": "object"
+      },
+      "PolicyPathPoint": {
+        "properties": {
+          "action": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Action"
+          },
+          "central_tendency_lower_percent": {
+            "anyOf": [
+              {
+                "pattern": "^(?!^[-+.]*$)[+-]?0*\\d*\\.?\\d*$",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Central Tendency Lower Percent"
+          },
+          "central_tendency_upper_percent": {
+            "anyOf": [
+              {
+                "pattern": "^(?!^[-+.]*$)[+-]?0*\\d*\\.?\\d*$",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Central Tendency Upper Percent"
+          },
+          "horizon": {
+            "title": "Horizon",
+            "type": "string"
+          },
+          "horizon_date": {
+            "anyOf": [
+              {
+                "format": "date",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Horizon Date"
+          },
+          "p25_percent": {
+            "anyOf": [
+              {
+                "pattern": "^(?!^[-+.]*$)[+-]?0*\\d*\\.?\\d*$",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "P25 Percent"
+          },
+          "p75_percent": {
+            "anyOf": [
+              {
+                "pattern": "^(?!^[-+.]*$)[+-]?0*\\d*\\.?\\d*$",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "P75 Percent"
+          },
+          "participant_distribution": {
+            "items": {
+              "$ref": "#/components/schemas/PolicyPathParticipantPoint"
+            },
+            "title": "Participant Distribution",
+            "type": "array"
+          },
+          "probability_distribution": {
+            "items": {
+              "$ref": "#/components/schemas/PolicyPathProbabilityBucket"
+            },
+            "title": "Probability Distribution",
+            "type": "array"
+          },
+          "range_lower_percent": {
+            "anyOf": [
+              {
+                "pattern": "^(?!^[-+.]*$)[+-]?0*\\d*\\.?\\d*$",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Range Lower Percent"
+          },
+          "range_upper_percent": {
+            "anyOf": [
+              {
+                "pattern": "^(?!^[-+.]*$)[+-]?0*\\d*\\.?\\d*$",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Range Upper Percent"
+          },
+          "rate_percent": {
+            "pattern": "^(?!^[-+.]*$)[+-]?0*\\d*\\.?\\d*$",
+            "title": "Rate Percent",
+            "type": "string"
+          },
+          "respondent_count": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Respondent Count"
+          },
+          "target_range_lower_percent": {
+            "anyOf": [
+              {
+                "pattern": "^(?!^[-+.]*$)[+-]?0*\\d*\\.?\\d*$",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Target Range Lower Percent"
+          },
+          "target_range_upper_percent": {
+            "anyOf": [
+              {
+                "pattern": "^(?!^[-+.]*$)[+-]?0*\\d*\\.?\\d*$",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Target Range Upper Percent"
+          },
+          "vote_split": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Vote Split"
+          }
+        },
+        "required": [
+          "horizon",
+          "rate_percent"
+        ],
+        "title": "PolicyPathPoint",
+        "type": "object"
+      },
+      "PolicyPathProbabilityBucket": {
+        "properties": {
+          "label": {
+            "title": "Label",
+            "type": "string"
+          },
+          "lower_bound_percent": {
+            "anyOf": [
+              {
+                "pattern": "^(?!^[-+.]*$)[+-]?0*\\d*\\.?\\d*$",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Lower Bound Percent"
+          },
+          "probability_percent": {
+            "pattern": "^(?!^[-+.]*$)[+-]?0*\\d*\\.?\\d*$",
+            "title": "Probability Percent",
+            "type": "string"
+          },
+          "upper_bound_percent": {
+            "anyOf": [
+              {
+                "pattern": "^(?!^[-+.]*$)[+-]?0*\\d*\\.?\\d*$",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Upper Bound Percent"
+          }
+        },
+        "required": [
+          "label",
+          "probability_percent"
+        ],
+        "title": "PolicyPathProbabilityBucket",
+        "type": "object"
+      },
+      "PolicyPathSlot": {
+        "properties": {
+          "freshness": {
+            "$ref": "#/components/schemas/PolicySourceFreshness"
+          },
+          "kind": {
+            "enum": [
+              "actual",
+              "committee_projection",
+              "dealer_expectations",
+              "market_implied"
+            ],
+            "title": "Kind",
+            "type": "string"
+          },
+          "missing_reason": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Missing Reason"
+          },
+          "path": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/PolicyPath"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          }
+        },
+        "required": [
+          "kind",
+          "freshness"
+        ],
+        "title": "PolicyPathSlot",
+        "type": "object"
+      },
+      "PolicySourceFreshness": {
+        "properties": {
+          "consecutive_failures": {
+            "default": 0,
+            "title": "Consecutive Failures",
+            "type": "integer"
+          },
+          "error_message": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Error Message"
+          },
+          "error_type": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Error Type"
+          },
+          "last_attempt_at": {
+            "anyOf": [
+              {
+                "format": "date-time",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Last Attempt At"
+          },
+          "last_success_at": {
+            "anyOf": [
+              {
+                "format": "date-time",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Last Success At"
+          },
+          "source": {
+            "title": "Source",
+            "type": "string"
+          },
+          "status": {
+            "enum": [
+              "ok",
+              "degraded",
+              "missing"
+            ],
+            "title": "Status",
+            "type": "string"
+          }
+        },
+        "required": [
+          "source",
+          "status"
+        ],
+        "title": "PolicySourceFreshness",
         "type": "object"
       },
       "PositioningBlock": {
@@ -25648,6 +26262,59 @@
         "summary": "Get Job",
         "tags": [
           "jobs"
+        ]
+      }
+    },
+    "/api/macro/policy": {
+      "get": {
+        "operationId": "macro_policy_api_macro_policy_get",
+        "parameters": [
+          {
+            "description": "UTC calendar date; replay includes evidence available by day-end.",
+            "in": "query",
+            "name": "as_of",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "format": "date",
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "description": "UTC calendar date; replay includes evidence available by day-end.",
+              "title": "As Of"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/PolicyComparison"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Macro Policy",
+        "tags": [
+          "macro",
+          "macro"
         ]
       }
     },
