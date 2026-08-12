@@ -195,6 +195,29 @@ version in lockstep (enforced by `scripts/release/version_sync_check.py`).
   §8's ranked screen is untouched: **the composite ranks names against each other
   and does not time one against itself.**
 
+### Fixed
+
+- **The card would have rendered a false 100% gross margin.** UW echoes
+  `total_revenue` into `gross_profit` on some rows while still reporting a
+  positive `cost_of_revenue` — CEG 2026-06-30 serves revenue 7,506m, cost 6,276m
+  and gross_profit 7,506m, where the prior quarter is internally consistent
+  (11,122 − 6,352 = 4,770). Measured: **580 rows across 46 tickers**, ~2.8% of
+  income rows, concentrated in insurers and utilities (AFL 70, AIG 62). New
+  `gross_profit_equals_revenue_despite_costs` check; 574 recorded (the 6-row gap
+  is `revenue == 0` rows, degenerate rather than inconsistent).
+- **The raw feature is deliberately NOT nulled.** Editing `features.py` would
+  change the validated math and break reproducibility of every published result,
+  so the value stays as computed and the *display* layer suppresses it via
+  `violated_fields()`, joined through `fundamental_scores.source_obs_ids`.
+  Verified end to end: CEG renders `na`, NVDA still renders 74.9%.
+- `recheck_violations()` replays checks over stored immutable payloads, because a
+  check added after rows land otherwise only ever sees future ingests.
+- **`record_violations` was overstating what it wrote** — it returned
+  `len(violations)` while its SQL is `ON CONFLICT DO NOTHING`, so a replay
+  reported writes it never made. Now counts `RETURNING` rows. Caught by the
+  idempotence test written for the replay path; a backfill would otherwise have
+  reported healthy progress while writing nothing.
+
 ### Added
 
 - **Stage-2 fundamental scoring — subscores, composite, and method versioning**

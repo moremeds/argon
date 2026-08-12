@@ -155,30 +155,89 @@ class FundamentalObsRepository:
         """
         if not violations:
             return 0
+        # RETURNING + one multi-row INSERT, so the count is what was actually
+        # written. Returning len(violations) would overstate on every replay,
+        # since ON CONFLICT DO NOTHING inserts nothing — and a counter that
+        # overstates is worse than none: a backfill would report healthy progress
+        # while writing zero rows.
+        values = ", ".join(["(%s, %s, %s, %s, %s)"] * len(violations))
+        params: list[Any] = []
+        for v in violations:
+            params += [
+                obs_id,
+                v.check_name,
+                v.field,
+                v.observed_value,
+                Jsonb(v.detail) if v.detail else None,
+            ]
         sql = f"""
             INSERT INTO {self._schema}.fundamental_obs_violations
                         (obs_id, check_name, field, observed_value, detail_jsonb)
-                 VALUES (%s, %s, %s, %s, %s)
+                 VALUES {values}
             ON CONFLICT (obs_id, check_name) DO NOTHING
+              RETURNING violation_id
         """
         with self.conn.cursor() as cur:
-            cur.executemany(
-                sql,
-                [
-                    (
-                        obs_id,
-                        v.check_name,
-                        v.field,
-                        v.observed_value,
-                        Jsonb(v.detail) if v.detail else None,
-                    )
-                    for v in violations
-                ],
-            )
+            cur.execute(sql, params)
+            written = len(cur.fetchall())
         self.conn.commit()
-        return len(violations)
+        return written
 
     # ---------------- reads ----------------
+
+    def violated_fields(self, obs_ids: Sequence[int]) -> dict[str, list[str]]:
+        """field -> check names, for the observations a result was computed from.
+
+        This is how a rendering surface refuses to show a figure we do not
+        believe. The alternative — nulling the value in `features.py` — would
+        change the validated math and break the reproducibility of every
+        published result, so the raw feature stays as computed and the DISPLAY
+        layer suppresses it. Research reproducibility and an honest card are both
+        preserved; only one of them would survive editing the feature.
+        """
+        if not obs_ids:
+            return {}
+        sql = f"""
+            SELECT field, check_name
+              FROM {self._schema}.fundamental_obs_violations
+             WHERE obs_id = ANY(%s) AND field IS NOT NULL
+        """
+        out: dict[str, list[str]] = {}
+        with self.conn.cursor() as cur:
+            cur.execute(sql, (list(obs_ids),))
+            for field, check in cur.fetchall():
+                out.setdefault(field, []).append(check)
+        return out
+
+    def recheck_violations(self, batch: int = 5000) -> tuple[int, int]:
+        """Re-run the integrity checks over every stored payload. (scanned, new).
+
+        Needed because checks are added AFTER rows land — the payloads are
+        immutable, so a new check must be applied retroactively or it only ever
+        sees future ingests. Idempotent: `(obs_id, check_name)` already handles
+        re-recording.
+        """
+        from uw_scan.fundamentals.statements import check_violations
+
+        scanned = new = 0
+        offset = 0
+        while True:
+            with self.conn.cursor() as cur:
+                cur.execute(
+                    f"""SELECT obs_id, statement, raw_jsonb
+                          FROM {self._schema}.fundamental_statement_obs
+                         ORDER BY obs_id LIMIT %s OFFSET %s""",
+                    (batch, offset),
+                )
+                rows = cur.fetchall()
+            if not rows:
+                return (scanned, new)
+            for obs_id, statement, payload in rows:
+                scanned += 1
+                violations = check_violations(statement, payload)
+                if violations:
+                    new += self.record_violations(obs_id, violations)
+            offset += batch
 
     def statement_panel(
         self, tickers: Sequence[str] | None = None, period_type: str = "quarterly"

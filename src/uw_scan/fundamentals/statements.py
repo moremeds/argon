@@ -121,6 +121,9 @@ def check_violations(statement: str, payload: Mapping[str, Any]) -> list[Violati
     current 245-name cache and are kept anyway, so that their absence stays
     *observed* rather than assumed the day a new source is added.
 
+    Income statements carry one check (`gross_profit_equals_revenue_despite_costs`);
+    the rest are balance-sheet checks.
+
     Deliberately NOT a check: `total_assets > total_liabilities +
     total_shareholder_equity`. That fires on 14.4% of cached balance rows, but
     2,815 of the 2,876 failures are in that one direction and they cluster
@@ -130,6 +133,40 @@ def check_violations(statement: str, payload: Mapping[str, Any]) -> list[Violati
     by construction. Flagging it would mark half the universe broken while it is
     fine. The reverse direction cannot be explained that way, so that IS checked.
     """
+    if statement == "income":
+        # UW sometimes echoes total_revenue into gross_profit while still
+        # reporting a positive cost_of_revenue — CEG 2026-06-30 serves revenue
+        # 7,506m, cost 6,276m and gross_profit 7,506m, when the prior quarter is
+        # internally consistent (11,122 - 6,352 = 4,770). Measured: 580 rows
+        # across 46 tickers, ~2.8% of income rows, concentrated in insurers and
+        # utilities (AFL 70, AIG 62).
+        #
+        # It matters because the derived gross_margin becomes exactly 1.0, and a
+        # card rendering "100.0% gross margin" for an insurer is a false statement
+        # about a real company, not a rounding artifact.
+        revenue = _dec(payload, "total_revenue")
+        gross = _dec(payload, "gross_profit")
+        cost = _dec(payload, "cost_of_revenue")
+        if (
+            None not in (revenue, gross, cost)
+            and cost > 0
+            and revenue
+            and gross == revenue
+        ):
+            return [
+                Violation(
+                    "gross_profit_equals_revenue_despite_costs",
+                    "gross_profit",
+                    gross,
+                    {
+                        "cost_of_revenue": str(cost),
+                        "implied_gross_profit": str(revenue - cost),
+                        "note": "derived gross_margin is 1.0 and must render as na",
+                    },
+                )
+            ]
+        return []
+
     if statement != "balance":
         return []
 

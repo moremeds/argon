@@ -149,6 +149,67 @@ def test_violations_on_empty_list_writes_nothing(seeded_db_empty_cards):
     assert _repo(seeded_db_empty_cards).record_violations(1, []) == 0
 
 
+def test_recheck_applies_a_newly_added_check_retroactively(seeded_db_empty_cards):
+    """Payloads are immutable, so a check added after rows land only ever sees
+    future ingests unless it is replayed. This is how the gross-profit check
+    reached the 580 rows already stored."""
+    repo = _repo(seeded_db_empty_cards)
+    bad = {
+        "ticker": "CEG",
+        "fiscal_date_ending": "2026-06-30",
+        "report_type": "quarterly",
+        "total_revenue": "7506000000",
+        "cost_of_revenue": "6276000000",
+        "gross_profit": "7506000000",
+    }
+    payload = normalize(bad)
+    row = _row(NVDA_BALANCE) | {
+        "ticker": "CEG",
+        "statement": "income",
+        "content_hash": content_hash(payload),
+        "raw_jsonb": payload,
+    }
+    repo.record_statements([row])
+
+    scanned, new = repo.recheck_violations()
+    assert scanned >= 1 and new == 1
+    # Idempotent: replaying finds nothing further to record.
+    assert repo.recheck_violations()[1] == 0
+
+
+def test_violated_fields_lets_the_card_suppress_a_bad_figure(seeded_db_empty_cards):
+    repo = _repo(seeded_db_empty_cards)
+    bad = {
+        "ticker": "CEG",
+        "fiscal_date_ending": "2026-06-30",
+        "report_type": "quarterly",
+        "total_revenue": "7506000000",
+        "cost_of_revenue": "6276000000",
+        "gross_profit": "7506000000",
+    }
+    payload = normalize(bad)
+    row = _row(NVDA_BALANCE) | {
+        "ticker": "CEG",
+        "statement": "income",
+        "content_hash": content_hash(payload),
+        "raw_jsonb": payload,
+    }
+    repo.record_statements([row])
+    repo.recheck_violations()
+    obs_id = repo.obs_id(**{k: row[k] for k in _KEY})
+    assert repo.violated_fields([obs_id]) == {
+        "gross_profit": ["gross_profit_equals_revenue_despite_costs"]
+    }
+
+
+def test_violated_fields_is_empty_for_clean_observations(seeded_db_empty_cards):
+    repo = _repo(seeded_db_empty_cards)
+    row = _row(NVDA_BALANCE)
+    repo.record_statements([row])
+    assert repo.violated_fields([repo.obs_id(**{k: row[k] for k in _KEY})]) == {}
+    assert repo.violated_fields([]) == {}
+
+
 def test_violation_detail_is_optional(seeded_db_empty_cards):
     """`Violation.detail` defaults to None (it cannot use a default_factory —
     the dataclass has a field literally named `field`), so the writer must

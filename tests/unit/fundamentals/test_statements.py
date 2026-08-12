@@ -125,6 +125,61 @@ def test_implausible_share_count_is_flagged():
     assert names == {"implausible_share_count"}
 
 
+# CEG's real 2026-06-30 income statement as UW serves it: gross_profit echoes
+# total_revenue while cost_of_revenue is populated, so the derived gross margin is
+# exactly 1.0. 580 rows across 46 tickers carry this shape.
+CEG_INCOME_BAD = {
+    "ticker": "CEG",
+    "fiscal_date_ending": "2026-06-30",
+    "report_type": "quarterly",
+    "total_revenue": "7506000000",
+    "cost_of_revenue": "6276000000",
+    "gross_profit": "7506000000",
+}
+
+# CEG's prior quarter, internally consistent: 11,122 - 6,352 = 4,770.
+CEG_INCOME_GOOD = {
+    "ticker": "CEG",
+    "fiscal_date_ending": "2026-03-31",
+    "report_type": "quarterly",
+    "total_revenue": "11122000000",
+    "cost_of_revenue": "6352000000",
+    "gross_profit": "4770000000",
+}
+
+
+def test_gross_profit_echoing_revenue_is_flagged():
+    """A card rendering '100.0% gross margin' for a utility states something false
+    about a real company. The value is kept as computed and the violation is what
+    lets the display layer suppress it."""
+    names = {
+        v.check_name for v in check_violations("income", normalize(CEG_INCOME_BAD))
+    }
+    assert names == {"gross_profit_equals_revenue_despite_costs"}
+
+
+def test_consistent_gross_profit_is_not_flagged():
+    assert check_violations("income", normalize(CEG_INCOME_GOOD)) == []
+
+
+def test_zero_cost_of_revenue_is_not_flagged():
+    """A genuine no-COGS filer reports gross_profit == revenue with cost 0. That
+    is a definition, not an inconsistency, and must not be flagged."""
+    row = dict(CEG_INCOME_BAD, cost_of_revenue="0")
+    assert check_violations("income", normalize(row)) == []
+
+
+def test_zero_revenue_is_not_flagged():
+    """gross_profit == revenue == 0 is degenerate, not evidence of corruption."""
+    row = dict(CEG_INCOME_BAD, total_revenue="0", gross_profit="0")
+    assert check_violations("income", normalize(row)) == []
+
+
+def test_missing_cost_of_revenue_is_not_flagged():
+    row = {k: v for k, v in CEG_INCOME_BAD.items() if k != "cost_of_revenue"}
+    assert check_violations("income", normalize(row)) == []
+
+
 def test_balance_checks_do_not_run_on_other_statements():
     """The income statement has no `total_liabilities`; running balance checks
     against it would produce violations on a shape that cannot have them."""
