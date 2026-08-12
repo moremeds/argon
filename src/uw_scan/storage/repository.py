@@ -33,6 +33,7 @@ from .gold_etf import _GoldEtfMixin
 from .health import _HealthMixin
 from .jobs import _JobsMixin
 from .market_data import _MarketDataMixin
+from .macro_context import _MacroContextMixin
 from .matrix_state import _MatrixStateMixin
 from .option_surface import _OptionSurfaceMixin
 from .options import _OptionsMixin
@@ -118,6 +119,7 @@ class Repository(
     _HealthMixin,
     _JobsMixin,
     _MarketDataMixin,
+    _MacroContextMixin,
     _MatrixStateMixin,
     _OptionSurfaceMixin,
     _OptionsMixin,

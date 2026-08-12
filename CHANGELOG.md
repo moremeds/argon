@@ -18,6 +18,15 @@ version in lockstep (enforced by `scripts/release/version_sync_check.py`).
   the local parquet mirror only. It deliberately does not ingest statements;
   `scripts/backfill/fundamental_ingest_backfill.py` remains the manual path for
   new filings.
+- **Immutable point-in-time macro evidence contract and top-down program plan.** New
+  `macro_source_artifacts` and `macro_observations` tables preserve exact source payloads,
+  revisions, source disagreement, publication/availability semantics, quality, and cost class
+  without changing the existing rates or Gold Compass read paths. Python and PostgreSQL recompute
+  artifact/observation content identities, enforce artifact time/quality bounds, and reject direct
+  historical rewrites, ambiguous timestamps, empty source precedence, and mock/static/demo sources
+  outside test databases. A read-only `option_wizard_local` inventory covers all 19 legacy
+  rates/gold relations and records the adapter sequence for inflation → policy/rates → USD → gold,
+  including future evidence-first Rates, Gold, unified Macro, and Fundamental PM context surfaces.
 
 ### Changed
 

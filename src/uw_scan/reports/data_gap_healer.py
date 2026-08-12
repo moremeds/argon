@@ -378,6 +378,23 @@ REGISTRY: list[DatasetRegistryEntry] = [
         "provenance",
         expected_frequency="none",
     ),
+    # Immutable macro evidence substrate (migration 115). These rows preserve
+    # exact source payloads and publication-time observations for PIT replay;
+    # gap healing must never rewrite or synthesize their history.
+    DatasetRegistryEntry(
+        "macro_source_artifacts",
+        "macro_evidence",
+        "provenance",
+        expected_frequency="none",
+        source_system="multi-source",
+    ),
+    DatasetRegistryEntry(
+        "macro_observations",
+        "macro_evidence",
+        "provenance",
+        expected_frequency="none",
+        source_system="multi-source",
+    ),
     DatasetRegistryEntry(
         "ws_consumer_state",
         "operational_provenance",

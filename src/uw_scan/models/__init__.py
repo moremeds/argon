@@ -82,6 +82,16 @@ from .magnets import (
     MagnetPivot,
     MagnetsResponse,
 )
+from .macro import (
+    MacroCostClass,
+    MacroDomain,
+    MacroEvidenceRef,
+    MacroFrequency,
+    MacroObservation,
+    MacroQualityStatus,
+    MacroSourceArtifact,
+    MacroSourceKind,
+)
 from .matrix import MatrixSourceFreshness, MatrixState, SetupClassification
 from .options import (
     MaxPainRow,
@@ -303,6 +313,14 @@ __all__ = [
     "CharmRegime",
     "SkewRegime",
     "FlowFootprintLabel",
+    "MacroDomain",
+    "MacroSourceKind",
+    "MacroQualityStatus",
+    "MacroCostClass",
+    "MacroFrequency",
+    "MacroSourceArtifact",
+    "MacroObservation",
+    "MacroEvidenceRef",
     "ChanlunLifecycleMark",
     "ChanlunLifecycleResponse",
     "FlowAlert",
