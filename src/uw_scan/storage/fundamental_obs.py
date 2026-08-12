@@ -180,6 +180,61 @@ class FundamentalObsRepository:
 
     # ---------------- reads ----------------
 
+    def statement_panel(
+        self, tickers: Sequence[str] | None = None, period_type: str = "quarterly"
+    ) -> dict[str, dict[str, Any]]:
+        """Tier-1 rows reshaped into the dict `fundamentals.features` consumes.
+
+        Newest observation wins per (ticker, period, statement): a restatement is
+        a new immutable row, so "current" is the highest `obs_id` and never an
+        edit to an older one.
+
+        Production owns this shape so the research scripts and the scoring job
+        read the panel through one implementation — the same reason the feature
+        and composite math moved into `uw_scan.fundamentals`.
+        """
+        where = ["period_type = %s"]
+        params: list[Any] = [period_type]
+        if tickers is not None:
+            where.append("ticker = ANY(%s)")
+            params.append(list(tickers))
+        sql = f"""
+            SELECT DISTINCT ON (ticker, period_end, statement)
+                   ticker, period_end, statement, raw_jsonb, filing_published_at,
+                   obs_id
+              FROM {self._schema}.fundamental_statement_obs
+             WHERE {" AND ".join(where)}
+             ORDER BY ticker, period_end, statement, obs_id DESC
+        """
+        keys = {
+            "income": "income-statements",
+            "balance": "balance-sheets",
+            "cash_flow": "cash-flows",
+        }
+        out: dict[str, dict[str, Any]] = {}
+        with self.conn.cursor() as cur:
+            cur.execute(sql, params)
+            for ticker, period_end, statement, raw, filed, obs_id in cur.fetchall():
+                key = keys.get(statement)
+                if key is None:
+                    continue
+                per = out.setdefault(
+                    ticker,
+                    {
+                        "income-statements": {},
+                        "balance-sheets": {},
+                        "cash-flows": {},
+                        "filing_dates": {},
+                        "obs_ids": {},
+                    },
+                )
+                period = period_end.isoformat()
+                per[key][period] = raw
+                per["obs_ids"].setdefault(period, []).append(obs_id)
+                if filed:
+                    per["filing_dates"][period] = filed.isoformat()
+        return out
+
     def coverage(self, tier: str) -> list[dict[str, Any]]:
         """Per-ticker ingest coverage for the tier — what actually landed.
 

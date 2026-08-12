@@ -197,6 +197,37 @@ version in lockstep (enforced by `scripts/release/version_sync_check.py`).
 
 ### Added
 
+- **Stage-2 fundamental scoring — subscores, composite, and method versioning**
+  (migration `115`). `fundamental_method_versions` / `_params` / `_state` plus
+  `fundamental_scores`, keyed `(ticker, as_of, engine_version, inputs_hash)`.
+  New `fundamentals/scoring.py`, `storage/fundamental_scores.py`,
+  `worker/jobs/fundamental_scoring.py`, `scripts/seed_fundamental_method.py`.
+  Local run: **84 cross-sections, 20,552 scores, 257 names**, idempotent on
+  re-run (0 inserted). Median cross-section width **249 of 257** — the
+  knowledge-quarter keying holds, against the median of 23 the old
+  fiscal-period bug produced.
+- **All validated math moved into `src/uw_scan/fundamentals/`** — feature
+  derivation, `zscore` and `composite_scores` now live in production and the
+  research scripts import them, so the shipped composite *is* the validated one
+  rather than a copy that can drift. Verified by re-running the wide validation
+  after each move and confirming `validation_wide.json` byte-identical (three
+  times).
+- **"Exactly one active method version" is enforced by three mechanisms**, because
+  `CHECK (singleton_id = 1)` constrains the row's *value*, not its *existence* — it
+  permits `DELETE`, which would leave every computation method-less. A NOT NULL FK
+  removes the null case, the CHECK pins identity, and a `BEFORE DELETE` trigger
+  removes the empty case. Verified live: the delete raises.
+- `inputs_hash` covers `company_type` and the engine version, not just the
+  financial figures — otherwise a type flip yields new scores under an unchanged
+  hash and the stale row survives, indistinguishable from the fresh one. It also
+  distinguishes a missing input from a reported zero.
+- **Observed, not fixed: the composite's extremes are denominator artifacts.**
+  The ranking's ends are dominated by small biotechs and REITs (ALGN +4.25,
+  CLDX −5.22) where a tiny EBITDA or asset base makes a ratio explode. This is
+  the likely mechanism behind "extremes sort volatility, not quality".
+  Winsorizing would fix it *and* would make the shipped composite a different,
+  unvalidated one — so it is documented rather than silently changed.
+
 - **Fundamental tier-1 ingest — immutable point-in-time statement observations**
   (migration `114`). New `uw_scan.fundamentals` pure-compute package
   (`statements.py`: normalization, `content_hash`, integrity checks), storage

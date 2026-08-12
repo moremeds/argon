@@ -839,6 +839,56 @@ REGISTRY.extend(
             source_system="derived",
         ),
         DatasetRegistryEntry(
+            "fundamental_scores",
+            "fundamentals",
+            # freshness_only for the same reason as the observations it derives
+            # from: the grain is (ticker x knowledge QUARTER) over a universe that
+            # is not the watchlist, so a session-based strict denominator would
+            # invent a gap no filing will ever fill.
+            "freshness_only",
+            date_col="as_of",
+            ticker_col="ticker",
+            expected_frequency="event",
+            provider="db",
+            # Healing is re-running the scoring job, which is idempotent on
+            # (ticker, as_of, engine_version, inputs_hash) and costs zero API
+            # calls — it reads the tier-1 panel, never a provider.
+            granularity="none",
+            healer_adapter=None,
+            source_system="derived",
+            reason=(
+                "derived from fundamental_statement_obs; re-run "
+                "worker/jobs/fundamental_scoring.py to heal (zero API cost)"
+            ),
+        ),
+        DatasetRegistryEntry(
+            "fundamental_method_versions",
+            "fundamentals",
+            "excluded",
+            date_col="created_at",
+            ticker_col=None,
+            expected_frequency="none",
+            reason="immutable method registry, not a time series",
+        ),
+        DatasetRegistryEntry(
+            "fundamental_method_params",
+            "fundamentals",
+            "excluded",
+            date_col=None,
+            ticker_col=None,
+            expected_frequency="none",
+            reason="immutable parameter rows keyed by engine_version",
+        ),
+        DatasetRegistryEntry(
+            "fundamental_method_state",
+            "fundamentals",
+            "excluded",
+            date_col="activated_at",
+            ticker_col=None,
+            expected_frequency="none",
+            reason="singleton pointer to the active method version",
+        ),
+        DatasetRegistryEntry(
             "fundamental_universe",
             "fundamentals",
             "excluded",

@@ -93,9 +93,6 @@ CACHE = OUT_DIR / f"_uw_cache{SUFFIX}.json"
 UW_BASE = "https://api.unusualwhales.com"
 STATEMENTS = ("income-statements", "balance-sheets", "cash-flows")
 
-# Conservative: US filers must file a 10-Q within 40-45 days of quarter end.
-# Erring LATE cannot manufacture signal; erring early would.
-FALLBACK_LAG_DAYS = 45
 
 # Forward windows in trading days.
 HORIZONS = {"1q": 63, "2q": 126}
@@ -188,91 +185,31 @@ def load_prices(tickers: list[str]) -> dict[str, list[tuple[date, float]]]:
 # ---------- derive ----------
 
 
-def _f(row: dict | None, key: str) -> float | None:
-    if not row:
-        return None
-    v = row.get(key)
-    if v in (None, ""):
-        return None
-    try:
-        return float(v)
-    except (TypeError, ValueError):
-        return None
+# Feature derivation lives in `uw_scan.fundamentals.features` so production and
+# research cannot drift. Re-exported here because this module's public surface is
+# what the other research scripts import.
+from uw_scan.fundamentals.scoring import (  # noqa: E402
+    composite_scores,
+    zscore,
+)
+from uw_scan.fundamentals.features import (  # noqa: E402
+    FALLBACK_LAG_DAYS,
+    FEATURES,
+    _f,
+    _ttm,
+    build_features,
+)
 
+__all_features__ = (
+    FEATURES,
+    build_features,
+    _f,
+    _ttm,
+    FALLBACK_LAG_DAYS,
+    zscore,
+    composite_scores,
+)
 
-def _ttm(series: dict[str, dict], periods: list[str], i: int, key: str) -> float | None:
-    """Trailing four quarters. None unless all four are present — a 3-quarter
-    'TTM' silently understates by ~25% and would be indistinguishable from a
-    genuine decline."""
-    if i < 3:
-        return None
-    vals = [_f(series.get(p), key) for p in periods[i - 3 : i + 1]]
-    return sum(vals) if all(v is not None for v in vals) else None
-
-
-def build_features(uw: dict[str, Any]) -> dict[str, dict[str, dict[str, float | None]]]:
-    """Per ticker, per period: the raw inputs behind §5.2's subscores."""
-    feats: dict[str, dict[str, dict[str, float | None]]] = {}
-    for t, per in uw.items():
-        inc, bs, cf = per["income-statements"], per["balance-sheets"], per["cash-flows"]
-        periods = sorted(inc)
-        pf: dict[str, dict[str, float | None]] = {}
-        for i, p in enumerate(periods):
-            rev_ttm = _ttm(inc, periods, i, "total_revenue")
-            rev_ttm_prev = (
-                _ttm(inc, periods, i - 4, "total_revenue") if i >= 7 else None
-            )
-            ocf_ttm = _ttm(cf, periods, i, "operating_cashflow")
-            capex_ttm = _ttm(cf, periods, i, "capital_expenditures")
-            ebitda_ttm = _ttm(inc, periods, i, "ebitda")
-            ni_ttm = _ttm(inc, periods, i, "net_income")
-            b = bs.get(p)
-
-            gp, rev_q = _f(inc.get(p), "gross_profit"), _f(inc.get(p), "total_revenue")
-            oi = _f(inc.get(p), "operating_income")
-            cash, debt = (
-                _f(b, "cash_and_cash_equivalents"),
-                _f(b, "short_long_term_debt_total"),
-            )
-            equity, assets = _f(b, "total_shareholder_equity"), _f(b, "total_assets")
-
-            fcf = (
-                (ocf_ttm - abs(capex_ttm)) if None not in (ocf_ttm, capex_ttm) else None
-            )
-            pf[p] = {
-                # growth
-                "rev_growth": (rev_ttm / rev_ttm_prev - 1)
-                if rev_ttm and rev_ttm_prev and rev_ttm_prev > 0
-                else None,
-                # profitability
-                "gross_margin": (gp / rev_q) if gp is not None and rev_q else None,
-                "op_margin": (oi / rev_q) if oi is not None and rev_q else None,
-                # capital efficiency
-                "fcf_margin": (fcf / rev_ttm) if fcf is not None and rev_ttm else None,
-                "roe": (ni_ttm / equity)
-                if ni_ttm is not None and equity and equity > 0
-                else None,
-                # balance sheet (sign flipped so higher is always better)
-                "neg_net_debt_ebitda": (-((debt - cash) / ebitda_ttm))
-                if None not in (debt, cash, ebitda_ttm)
-                and ebitda_ttm
-                and ebitda_ttm > 0
-                else None,
-                "asset_turnover": (rev_ttm / assets) if rev_ttm and assets else None,
-            }
-        feats[t] = pf
-    return feats
-
-
-FEATURES = [
-    "rev_growth",
-    "gross_margin",
-    "op_margin",
-    "fcf_margin",
-    "roe",
-    "neg_net_debt_ebitda",
-    "asset_turnover",
-]
 
 
 def knowledge_date(uw: dict, t: str, period: str) -> date:
@@ -326,30 +263,6 @@ def spearman(xs: list[float], ys: list[float]) -> float | None:
     num = sum((a - mx) * (b - my) for a, b in zip(rx, ry))
     den = math.sqrt(sum((a - mx) ** 2 for a in rx) * sum((b - my) ** 2 for b in ry))
     return (num / den) if den else None
-
-
-def zscore(vals: dict[str, float]) -> dict[str, float]:
-    v = list(vals.values())
-    n = len(v)
-    mu = sum(v) / n
-    sd = math.sqrt(sum((x - mu) ** 2 for x in v) / n) if n > 1 else 0.0
-    return {k: ((x - mu) / sd if sd else 0.0) for k, x in vals.items()}
-
-
-def composite_scores(zs: dict[str, dict[str, float]], tickers: Any) -> dict[str, float]:
-    """Composite = mean of available z-scores, renormalized by presence.
-
-    Extracted so the cost/turnover study scores names with THIS implementation
-    rather than a copy of it. A portfolio built on a subtly different composite
-    would be costing a different signal than the one validated, and the
-    difference would be invisible in both sets of numbers.
-    """
-    comp: dict[str, float] = {}
-    for t in tickers:
-        got = [zs[f][t] for f in zs if t in zs[f]]
-        if len(got) >= 4:  # refuse to score a name on <4 of 7 features
-            comp[t] = sum(got) / len(got)
-    return comp
 
 
 def quarterly_ics(
