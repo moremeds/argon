@@ -221,6 +221,10 @@ def decile_profile(panel: dict[str, dict[str, Any]]) -> list[dict[str, Any]]:
         r = sorted(dec[d]["ret"])
         if not r:
             continue
+
+        def q(p: float, r: list[float] = r) -> float:
+            return r[int(p * (len(r) - 1))]
+
         out.append(
             {
                 "decile": d,
@@ -228,6 +232,17 @@ def decile_profile(panel: dict[str, dict[str, Any]]) -> list[dict[str, Any]]:
                 "mean_return": sum(r) / len(r),
                 "median_return": r[len(r) // 2],
                 "mean_return_rank": sum(dec[d]["rank"]) / len(dec[d]["rank"]),
+                # The full distribution, because mean and median together still
+                # hide the thing that decides whether this signal is usable: both
+                # ENDS of the ranking are fatter-tailed than its middle, which
+                # makes the extremes a volatility sort rather than a quality one.
+                "p5": q(0.05),
+                "p10": q(0.10),
+                "p25": q(0.25),
+                "p75": q(0.75),
+                "p90": q(0.90),
+                "share_loss_over_20pct": sum(1 for x in r if x < -0.20) / len(r),
+                "share_gain_over_30pct": sum(1 for x in r if x > 0.30) / len(r),
             }
         )
     return out
@@ -336,6 +351,19 @@ def main() -> int:
         lines.append(
             f"| {d['decile']} | {d['mean_return']:+.4f} | {d['median_return']:+.4f} "
             f"| {d['mean_return_rank']:.3f} | {d['n']:,} |"
+        )
+    lines += [
+        "",
+        "### Full distribution — both ends of the ranking are fatter-tailed",
+        "",
+        "| decile | p5 | p10 | median | p90 | loss > 20% | gain > 30% |",
+        "|---:|---:|---:|---:|---:|---:|---:|",
+    ]
+    for d in payload["decile_profile"]:
+        lines.append(
+            f"| {d['decile']} | {d['p5']:+.3f} | {d['p10']:+.3f} | "
+            f"{d['median_return']:+.3f} | {d['p90']:+.3f} | "
+            f"{d['share_loss_over_20pct']:.1%} | {d['share_gain_over_30pct']:.1%} |"
         )
     lines += [
         "",

@@ -76,6 +76,36 @@ This also kills the obvious salvage. "Just avoid the bottom decile" removes the
 biggest winners along with the worst losers — the bottom decile is where the
 right tail lives.
 
+## At its extremes the composite sorts VOLATILITY, not quality
+
+The full distribution says something the mean/median pair alone does not:
+
+| decile | p5 | p10 | median | p90 | loss > 20% | gain > 30% |
+|---:|---:|---:|---:|---:|---:|---:|
+| 0 (worst) | **−0.322** | −0.219 | +0.015 | **+0.305** | **10.7%** | **10.2%** |
+| 1–8 | −0.182…−0.208 | −0.119…−0.144 | +0.022…+0.041 | +0.187…+0.243 | 4.2–5.5% | 4.3–6.4% |
+| 9 (best) | **−0.244** | **−0.180** | +0.025 | +0.246 | **8.3%** | 7.2% |
+
+**Both ends are fatter-tailed than the middle.** Decile 0 is not a set of bad
+outcomes — it is a set of *wide* ones, with 10.7% catastrophic losses and 10.2%
+big winners against ~4.5%/5% in the middle. Decile 9 is milder but the same
+shape: an 8.3% rate of >20% losses, roughly double deciles 4–5, and a p10 of
+−0.180 that is worse than every decile from 1 to 8.
+
+The mechanism is not mysterious. The composite's worst names score badly on
+leverage, margins and asset turnover — which is a description of distressed,
+high-beta companies. Ranking them last ranks them *risky*, and risk pays both
+ways. Some of the ordering is a risk sort wearing a quality label.
+
+**This kills a hypothesis that was about to be attractive.** A signal that ranks
+medians without ranking means looks tailor-made for short-premium structures,
+where the right tail pays nothing and the left tail is the whole risk — an
+appealing fit for an options desk. The data refuses it: the top decile has
+**double** the >20%-loss rate of the middle deciles. If anything, deciles 4–6 are
+the low-variance region (p10 −0.119 to −0.131, 4.2–5.2% big losses). Selling
+premium against the top of this ranking would be selling against a fatter left
+tail, not a thinner one. Recorded because the story was compelling and wrong.
+
 ## The decile-9 reversal is flagged, not used
 
 Deciles 7–8 carry the best return-rank (0.526, 0.522) and decile 9 falls back to
