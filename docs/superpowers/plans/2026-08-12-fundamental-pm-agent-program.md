@@ -52,15 +52,17 @@ The work remains aligned with Argon's goal ladder:
 
 ## 2. Current state and evidence boundary
 
-Snapshot at the plan baseline, commit `d912d5d` on 2026-08-12:
+The plan branch started from commit `d912d5d`. Repository and PR state below was rechecked on
+2026-08-12; later status changes must be recorded rather than inferred from this snapshot.
 
 | Area | State | Evidence / constraint |
 |---|---|---|
 | P0 persistence bug | **landed** | PR #328 fixed `fundamentals_refresh` transaction behavior |
 | P1a provider/data probes | **landed** | PR #329 committed coverage, field-contract, UW, and SEC probes |
 | Fundamental method validation | **landed** | PR #329 found the composite informative at broad width but noise at core-25 width |
-| Valuation-control follow-up | **parallel research branch** | `research/fundamental-valuation-control`; not part of this plan branch baseline |
-| P1b PIT ingest | **not started** | no immutable fundamental observation tables or canonical views yet |
+| Valuation-control follow-up | **landed** | PR #330 merged with all checks passing; research evidence only, no production scoring capability |
+| Core-25 own-history test | **planned / unblocked** | test whether a name's own deterioration precedes its own drawdown; not a cross-sectional rank test |
+| P1b PIT ingest | **not started / blocked** | M0.2 remains a design gate; data-dependent execution also awaits the mini at this snapshot |
 | P2 valuation/score runtime | **not started** | only design and research artifacts exist |
 | P3 fundamental card | **not started** | no production API or UI surface yet |
 | P4 concentration/edge work | **not started** | must begin with a discovery gate |
@@ -75,11 +77,31 @@ The current broad-universe validation supports a descriptive product, not an unr
 - the core-25 AI cohort is too narrow for defensible cross-sectional ranking;
 - survivorship bias remains because current sources do not carry a complete delisted universe;
 - the study has not modeled turnover, costs, capacity, or borrow;
-- the valuation-control branch indicates that simple value directions are metric- and regime-specific;
+- margin inversion survives controls for earnings yield, book-to-price, and FCF yield, so the tested
+  expensiveness explanation is rejected and profitability direction remains withheld;
+- in the survivor-only 2005–2026 sample, book-to-price IC was `-0.0365` (`t=-2.32`), earnings yield
+  IC was `-0.0194`, and FCF yield IC was `+0.0285` (`t=2.84`); a generic
+  `valuation_position = cheaper is better` prior is contradicted;
+- the 2005–2015 and 2016–2026 split does not establish regime independence: both halves occupy the
+  same broad quality/growth-led, value-lagging window, so the evidence is explicitly “measured in one
+  regime”;
+- survivorship may have biased the observed value result toward zero or toward value, but the size of
+  that effect is unmeasured until active-plus-delisted validation exists;
 - historical estimate revisions have not been tested with a true PIT consensus dataset.
 
 No later phase may silently strengthen those statements. Stronger claims require their own recorded
 evidence and gate.
+
+Operational boundary at this snapshot:
+
+- the Mac mini is unavailable and hosts both the `option_wizard` P1b write target and the full lake
+  copy, so P1b migrations, ingest, and real-worker smoke are blocked;
+- `option_wizard_local` is not a substitute write target for P1b; doing so would violate the intended
+  environment contract and create work that must be repeated;
+- the local mirror plus UW API are sufficient for the historical core-25 M0.3 test, but the mirror's
+  stale endpoint makes it unsuitable for claims requiring current data;
+- provider-sensitive and data-current tasks resume only after the target environment is restored and
+  rechecked. A stale historical research run must never be presented as current production coverage.
 
 ## 3. Non-negotiable invariants
 
@@ -284,6 +306,9 @@ Two aggregates, if retained, must stay distinct:
 - `valuation_position` is **metric-specific / direction withheld** until the actual anchor-position
   method is validated; book-to-price, earnings yield, and FCF yield cannot be treated as one empirical
   signal;
+- no runtime schema, seed, fixture, or UI color may encode a default `cheaper_is_better` direction;
+  every valuation submetric must name its ratio, direction state, evidence version, and applicable
+  universe/regime;
 - technicals remain a separate block and do not enter the fundamental composite;
 - a score calculated over missing subdimensions records the absent set and the renormalization or
   abstention rule;
@@ -311,6 +336,29 @@ Failure of this gate does not block descriptive reports.
 The valuation-control research is a factor-control experiment, not the production valuation engine.
 The production engine has four layers.
 
+#### Valuation-control measurement contract
+
+PR #330 makes the following rules load-bearing for any reproduction or successor research:
+
+| Measurement | Required construction | Failure prevented |
+|---|---|---|
+| equity market cap | raw point-in-time `close` × as-reported shares | combining retroactively split-adjusted price with then-current shares |
+| value ratios | economic numerator ÷ raw market cap, expressed as yields | P/E changing sign through zero earnings and making a loss-maker appear cheapest |
+| rank association | the validation harness's shared Spearman implementation | control and headline results using different rank math |
+| partial rank IC | same implementation plus mandatory `--self-check` | a residualization or sign error silently reversing the verdict |
+
+The accepted control result for two-quarter forward return, 245 names, and 80 quarters is:
+
+| Signal | Uncontrolled | controlling earnings yield | controlling book-to-price | controlling FCF yield |
+|---|---:|---:|---:|---:|
+| gross margin | -0.0194 | -0.0180 | -0.0271 | -0.0144 |
+| operating margin | -0.0270 | -0.0231 | -0.0306 | -0.0298 |
+
+These values reject the stated “margin inversion is an expensiveness proxy” hypothesis. They do not
+validate a production valuation formula, establish causality, or authorize a profitability direction.
+Successor research must preserve the exact raw-price/share reference frame or declare itself a new,
+non-comparable experiment.
+
 #### D1. Normalized inputs
 
 - TTM and normalized revenue, EPS, EBITDA, EBIT, and FCF;
@@ -318,6 +366,7 @@ The production engine has four layers.
 - segment economics and company-specific KPIs;
 - reporting currency, translation rules, and ADR ratio;
 - current spot and corporate-action reference frame;
+- raw price and as-reported share reference frame for historical market-cap/yield research;
 - comparable-company observations under a versioned peer set;
 - current analyst targets as an external cross-check;
 - PIT analyst estimates only when a licensed PIT dataset is present.
@@ -591,16 +640,19 @@ policy.
 
 #### PR M0.1 — valuation-control research
 
-Scope:
+Status: **merged in PR #330** on 2026-08-12; all reported CI checks passed. This closes the control
+hypothesis, not the production valuation method.
 
-- merge the bounded valuation-control experiment and full artifacts;
+Delivered scope:
+
+- bounded valuation-control experiment and full artifacts;
 - record that controlling for tested valuation ratios does not explain margin inversion;
 - mark profitability direction as withheld;
 - mark valuation direction as metric-specific/withheld rather than generic cheaper-is-better;
 - record single-regime, survivorship, and no-cost limitations;
 - no application code.
 
-Exit checks:
+Closed checks:
 
 - self-check passes;
 - artifact regenerates deterministically from the stated command;
@@ -627,7 +679,55 @@ Exit checks:
 - the primary spec contains no stale claim that already-landed or parallel research is production
   capability.
 
-**M0 gate:** P1b is blocked until M0.2 is merged. Other research may continue.
+#### Research M0.3 — core-25 own-history deterioration test
+
+Status: **planned / unblocked**. This is the next research task that can proceed without the mini. It
+does not reopen the failed core-25 cross-sectional ranking claim.
+
+Question:
+
+> After information becomes public, does deterioration relative to a company's own history precede
+> that same company's subsequent drawdown or weak return?
+
+Preregister before running:
+
+- core-25 membership snapshot and inclusion rules;
+- knowledge-date construction and minimum history per company;
+- primary deterioration feature, transformation, lookback, threshold, and direction; profitability
+  and book/earnings value directions remain excluded unless separately justified;
+- primary outcome fixed as forward maximum drawdown; two-quarter forward total return is a secondary
+  outcome and must not replace the primary after results are seen;
+- overlap handling, missingness rules, winsorization, benchmark/market adjustment, and corporate
+  action reference frame;
+- primary statistical test, block length or clustered inference, multiple-testing policy, and fixed
+  kill thresholds;
+- expanding or walk-forward holdout dates; no full-sample threshold tuning.
+
+Required analysis:
+
+1. express each approved input as a within-company change or own-history percentile, never as a
+   contemporaneous cross-company rank;
+2. form deterioration events only from facts available by the knowledge date;
+3. compare each company's post-event outcome with its own non-event baseline and a matched market or
+   industry state;
+4. estimate pooled results with company effects and time-aware/clustered uncertainty, then show each
+   company's contribution so one name cannot dominate the verdict;
+5. run expanding-window or walk-forward evaluation and sensitivity around the preregistered threshold,
+   lookback, and horizon;
+6. persist every event, configuration, metric, exclusion, and holdout result with the exact reproduce
+   command and `--self-check` output.
+
+Exit decision:
+
+- **pass:** a stable, held-out own-history effect may seed a separately labeled deterioration/risk
+  monitor and numeric invalidation condition;
+- **fail or mixed:** keep own-history changes descriptive and record the direction as withheld;
+- either verdict does **not** unlock a cross-company composite, buy/sell ranking, or recommendation;
+- later active-plus-delisted work in M9.B must quantify whether sample selection changes this result.
+
+**M0 gate:** P1b is blocked until M0.2 is merged and the required environment is available. M0.3 may
+run in parallel and gates only a directional own-history deterioration signal, not M1 or the
+descriptive M3 product.
 
 ### M1 — immutable PIT fundamentals backbone
 
@@ -967,7 +1067,8 @@ product.
 - construct the historical universe by knowledge date;
 - include delisting returns;
 - rerun score dimensions and composite;
-- test time-series deterioration separately;
+- repeat M0.3's own-history deterioration test under the active-plus-delisted membership contract and
+  measure the survivor-only delta;
 - measure turnover, liquidity, transaction-cost assumptions, and regime stability;
 - update ranking permission from evidence.
 
@@ -1018,6 +1119,10 @@ M6 + M7
 M9 optional datasets/research run alongside M1–M8
   ├── never block descriptive M3/M4/M7
   └── do gate stronger ranking, recommendation, and revision claims
+
+M0.3 core-25 own-history research
+  └── gates only a directional deterioration/risk monitor
+      (never blocks descriptive M1/M3 and never unlocks cross-company ranking)
 ```
 
 M4 can begin its schema/matrix skeleton alongside M2, but the route cannot ship comparative
@@ -1030,6 +1135,7 @@ M6, but M8 requires both the report ledger and the narrative/audit boundary.
 | Gate | Required evidence | Unlocks |
 |---|---|---|
 | G0 — spec consistent | one source policy, compatible acceptance tests, research limits recorded | P1b implementation |
+| G0T — own-history direction supported | preregistered PIT events, time-aware inference, held-out stability, full trace | deterioration/risk monitor only |
 | G1 — data trustworthy | PIT replay, restatement preservation, violation handling, measured coverage | deterministic engine |
 | G2 — method fixed | worked examples, version/hash identity, abstention and confidence rules | UI rendering |
 | G3 — deterministic product | worker-path smoke, provenance drill-down, stale/partial behavior | narrative and reports |
@@ -1050,7 +1156,7 @@ into the child PRs already listed; no PR inherits the milestone size as one unit
 
 | Milestone | Size | Primary risk driver | Lower-risk release shape |
 |---|---:|---|---|
-| M0 method/spec | S | encoding contradictory research conclusions | docs/research only, no runtime changes |
+| M0 method/spec | S/M | encoding contradictory research conclusions or overreading own-history evidence | docs/research only, no runtime changes |
 | M1 PIT data | L | immutable identity, backfill, source disagreement, foreign issuers | additive tables → backfill → verify → canonical views |
 | M2 valuation/score | L | method ambiguity and false comparability | pure derivations → anchors → dimensions/runs |
 | M3 company card | M | stale/partial state and provenance trust | hidden tab/flag, deterministic only |
@@ -1116,6 +1222,12 @@ fresh browser request; in-process success alone is not evidence of durable state
 - persist every configuration and metric, not only the headline;
 - keep exact reproduce command and data/version manifest;
 - verify realized cross-section width and knowledge-time bucketing;
+- test raw-close × as-reported-shares construction across split events and forbid adjusted-close/raw-
+  shares mixtures;
+- define valuation research as yields across zero and negative numerators; do not substitute P/E;
+- run the shared Spearman/partial-correlation self-check before accepting any directional verdict;
+- distinguish broad-sample cross-sectional evidence from core-25 own-history evidence and label the
+  2005–2026 result as single-regime;
 - separate factor ordering, investment strategy, and live utility claims.
 
 ### Storage and compute
