@@ -150,6 +150,33 @@ version in lockstep (enforced by `scripts/release/version_sync_check.py`).
   placement came back null, because that path was guarded and the band was not.
   Both are guarded now, and the invariant — a band implies a spot placement —
   holds across all 51.
+- **The quiet half of the same bug: three filers banded from unconverted
+  foreign-currency statements.** The EV guard above only catches the
+  catastrophic case. ASML's ~16% EUR gap produced a full band at
+  `confidence: high` — indistinguishable on screen from a correct one — and NOK
+  the same. Nor is the error a constant that cancels inside a percentile: USDEUR
+  ran 0.747→0.859 over 2005–2026, so an unconverted history is distorted by a
+  factor that *moves*, reshaping the distribution the band's percentiles are
+  drawn from rather than sliding it. New `fundamentals/fx.py` translates each
+  figure at its own statement's rate under the **two-rate rule** (flows at the
+  window average, stocks at the close), sourcing dailies from the lake's
+  `asset_class=fx`. ASML's `buy_below` moves 293.15 → 255.71. A filer whose
+  statements cannot be translated is now **refused**, never banded unconverted.
+- **Reporting currency is per STATEMENT, not per filer.** Measured on NBIS
+  2026-03-31: income and balance report USD while the cash-flow statement
+  reports RUB, in the same quarter. A per-ticker model reads whichever statement
+  comes first and applies it to figures never denominated in it. Blocking is
+  scoped to the statements a method actually reads, so NBIS's RUB cash-flow
+  statement does not cost it a `sales_to_ev` band it can be priced from
+  correctly.
+- **UW serializes a missing currency as the literal string `"None"`**, not as
+  JSON null — measured on AMZN, APLD, OXY, VST, WDC. A newest-first currency walk
+  stops on that sentinel, which had reclassified NBIS (genuinely RUB on its real
+  rows) as a domestic filer. Sentinels are skipped rather than accepted.
+- **Known gap, stated on the card rather than papered over:** the lake carries
+  `USDEUR` only, so TSM (TWD) is refused with a reason naming the missing
+  `USDTWD` series. FRED `DEXTAUS` is the obvious source and is unreachable from
+  the dev sandbox, so it is left as a livewire ask rather than guessed at.
 
 - **`fundamentals_refresh` has never persisted a row — it silently rolled back
   every night.** `_repo()` (`worker/scheduler.py`) opens a psycopg connection
