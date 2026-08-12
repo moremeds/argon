@@ -8,6 +8,7 @@ import { FlowTab } from "@/components/stock/tabs/FlowTab";
 import { TradeInsightsTab } from "@/components/stock/tabs/TradeInsightsTab";
 import { FrameworkTab } from "@/components/stock/tabs/FrameworkTab";
 import { TechnicalsTab } from "@/components/stock/tabs/TechnicalsTab";
+import { FundamentalsTab } from "@/components/stock/tabs/FundamentalsTab";
 import { isStockReportNotReadyError } from "@/lib/stockNotReady";
 
 const REPORT_TABS = {
@@ -30,6 +31,11 @@ export default async function TabPage({
   }
   if (tab === "trade-insights") {
     return <TradeInsightsTab ticker={ticker} />;
+  }
+  // Own client island: reads /api/stock/{ticker}/fundamentals, which is scoped to
+  // the tier-1 universe and unrelated to the options report.
+  if (tab === "fundamentals") {
+    return <FundamentalsTab key={ticker} ticker={ticker} />;
   }
   // The deterministic TradePlanTab was retired in the trade-framework-view
   // work — `trade-plan` now renders the AI-driven FrameworkTab client island

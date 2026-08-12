@@ -145,6 +145,9 @@ class FundamentalScoresRepository:
             *FEATURES,
             "features_present",
             "inputs_hash",
+            # The card joins these into `violated_fields` to decide which
+            # subscores it is entitled to render.
+            "source_obs_ids",
         ]
         with self.conn.cursor() as cur:
             cur.execute(

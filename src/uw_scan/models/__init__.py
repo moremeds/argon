@@ -37,6 +37,12 @@ from .flow import (
     FlowSnapshot,
     ShortDataRow,
 )
+from .fundamentals import (
+    FundamentalCardResponse,
+    FundamentalCoverage,
+    FundamentalProvenance,
+    FundamentalSubscore,
+)
 from .gold import (
     GoldCbCountryHistory,
     GoldCorrelationBand,
@@ -323,6 +329,10 @@ __all__ = [
     "FlowSnapshot",
     "VRPAssessment",
     "SetupClassification",
+    "FundamentalCardResponse",
+    "FundamentalCoverage",
+    "FundamentalProvenance",
+    "FundamentalSubscore",
     "MagnetCandle",
     "MagnetConeBand",
     "MagnetIvPoint",

@@ -24,6 +24,7 @@ from uw_scan.config import Settings
 from uw_scan.models import (
     ChanlunLifecycleMark,
     ChanlunLifecycleResponse,
+    FundamentalCardResponse,
     MagnetsResponse,
     SingleStockReport,
     StockHistoryResponse,
@@ -395,6 +396,45 @@ def get_stock_chanlun_lifecycle(
         for r in rows
     ]
     return ChanlunLifecycleResponse(ticker=t, marks=marks)
+
+
+@router.get("/stock/{ticker}/fundamentals", response_model=FundamentalCardResponse)
+def get_stock_fundamentals(
+    ticker: str,
+    repo: Repository = Depends(get_repo),
+    settings: Settings = Depends(get_settings),
+) -> FundamentalCardResponse:
+    """The deterministic blocks of the §7 fundamental card for one name.
+
+    Subscores, coverage and provenance only — the valuation anchor, narrative and
+    audit blocks need stages 3-5 and are absent from the contract rather than
+    served empty.
+
+    404 and 503 are deliberately distinct: "this name has no score" and "no method
+    version is active" are different problems, and collapsing them would hide a
+    stack-wide outage behind a per-ticker empty state.
+    """
+    from uw_scan.fundamentals.card import build_card
+    from uw_scan.storage.fundamental_obs import FundamentalObsRepository
+    from uw_scan.storage.fundamental_scores import FundamentalScoresRepository
+
+    t = ticker.upper()
+    conn, schema = repo.conn, settings.db_schema
+    scores = FundamentalScoresRepository(conn, schema=schema)
+    engine = scores.active_version()
+    if engine is None:
+        raise HTTPException(
+            status_code=503, detail="no active fundamental method version"
+        )
+    row = scores.latest_for_ticker(t, engine)
+    if row is None:
+        raise HTTPException(status_code=404, detail=f"no fundamental score for {t}")
+    violated = FundamentalObsRepository(conn, schema=schema).violated_fields(
+        row.get("source_obs_ids") or []
+    )
+    return FundamentalCardResponse.model_validate(
+        build_card(ticker=t, row=row, violated=violated, engine_version=engine)
+    )
 
 
 _MAGNET_CANDLE_WINDOW = 180

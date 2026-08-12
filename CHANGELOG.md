@@ -220,6 +220,32 @@ version in lockstep (enforced by `scripts/release/version_sync_check.py`).
 
 ### Added
 
+- **Fundamental card — the deterministic blocks of spec §7, on a new stock tab.**
+  `GET /api/stock/{ticker}/fundamentals` + `models/fundamentals.py` +
+  `fundamentals/card.py` (pure assembly) + `web/components/stock/tabs/FundamentalsTab.tsx`.
+  Three of §7's nine blocks have backing data at stage 2 — subscores/composite,
+  coverage, and provenance — and the other six are **absent from the contract
+  rather than served empty**, since an empty block reads as "no data for this
+  name" instead of "not built yet". Anchors, narrative and audit verdicts need
+  stages 3-5.
+- **A flagged provider field now suppresses exactly the derived features that
+  consume it**, via a new `FEATURE_INPUTS` map and `violated_fields()` joined
+  through `fundamental_scores.source_obs_ids`. CEG's `gross_margin` renders `na`
+  while its `op_margin` survives intact — blanking the whole income statement
+  over one bad field would be as wrong as showing it. The stored feature value is
+  **never edited**: changing `features.py` would change validated math and break
+  the reproducibility of every published result, so suppression happens at the
+  read and the raw value stays as computed.
+- **The card claims no direction for three of the seven features.**
+  `gross_margin` and `op_margin` measured *inverted* in the 2026-08-12 validation
+  and `roe` is named by no rubric row, so `direction` is carried per feature in
+  the API contract and is `null` for those three. It rides with the data rather
+  than living in the UI, where a colour ramp could silently reassert a direction
+  the research refused. No red/green scale and no bars: both encode a comparison,
+  and a per-ticker card has no cross-section to compare against.
+- Coverage reports "not reported" and "reported but not believed" as **separate**
+  lists — different facts about a company — and the card dates itself by
+  `knowledge_date`, never the `as_of` cross-section bucket.
 - **Stage-2 fundamental scoring — subscores, composite, and method versioning**
   (migration `115`). `fundamental_method_versions` / `_params` / `_state` plus
   `fundamental_scores`, keyed `(ticker, as_of, engine_version, inputs_hash)`.

@@ -350,6 +350,34 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/stock/{ticker}/fundamentals": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Get Stock Fundamentals
+         * @description The deterministic blocks of the §7 fundamental card for one name.
+         *
+         *     Subscores, coverage and provenance only — the valuation anchor, narrative and
+         *     audit blocks need stages 3-5 and are absent from the contract rather than
+         *     served empty.
+         *
+         *     404 and 503 are deliberately distinct: "this name has no score" and "no method
+         *     version is active" are different problems, and collapsing them would hide a
+         *     stack-wide outage behind a per-ticker empty state.
+         */
+        get: operations["get_stock_fundamentals_api_stock__ticker__fundamentals_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/stock/{ticker}/magnets": {
         parameters: {
             query?: never;
@@ -3254,6 +3282,84 @@ export interface components {
             median: number;
             /** Win Rate */
             win_rate: number;
+        };
+        /**
+         * FundamentalCardResponse
+         * @description The deterministic blocks of §7. The valuation anchor, narrative and audit
+         *     blocks are absent rather than empty — they need stages 3-5.
+         */
+        FundamentalCardResponse: {
+            /** Ticker */
+            ticker: string;
+            /** Composite */
+            composite: number | null;
+            /** Subscores */
+            subscores: components["schemas"]["FundamentalSubscore"][];
+            coverage: components["schemas"]["FundamentalCoverage"];
+            provenance: components["schemas"]["FundamentalProvenance"];
+        };
+        /**
+         * FundamentalCoverage
+         * @description The explicit absence list. Mandatory, not a footer.
+         *
+         *     `missing` and `suppressed` are kept apart on purpose: "never reported" and
+         *     "reported and not believed" are different facts about a company.
+         */
+        FundamentalCoverage: {
+            /** Features Present */
+            features_present: number;
+            /** Features Total */
+            features_total: number;
+            /** Missing */
+            missing: string[];
+            /** Suppressed */
+            suppressed: string[];
+        };
+        /** FundamentalProvenance */
+        FundamentalProvenance: {
+            /** Engine Version */
+            engine_version: string;
+            /** Inputs Hash */
+            inputs_hash: string;
+            /**
+             * As Of
+             * Format: date
+             */
+            as_of: string;
+            /**
+             * Period End
+             * Format: date
+             */
+            period_end: string;
+            /**
+             * Knowledge Date
+             * Format: date
+             */
+            knowledge_date: string;
+            /** Filing Date Known */
+            filing_date_known: boolean;
+            /** Source Obs Count */
+            source_obs_count: number;
+        };
+        /**
+         * FundamentalSubscore
+         * @description One of the seven measured features.
+         *
+         *     `value` is the RAW level (a ratio or a multiple), never a 0-100 rank — a rank
+         *     is only meaningful against a stated cross-section, and this endpoint speaks
+         *     about one name.
+         */
+        FundamentalSubscore: {
+            /** Feature */
+            feature: string;
+            /** Value */
+            value: number | null;
+            /** Unit */
+            unit: string;
+            /** Direction */
+            direction: string | null;
+            /** Suppressed By */
+            suppressed_by: string[];
         };
         /** GammaBlock */
         GammaBlock: {
@@ -10601,6 +10707,37 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["ChanlunLifecycleResponse"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    get_stock_fundamentals_api_stock__ticker__fundamentals_get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                ticker: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["FundamentalCardResponse"];
                 };
             };
             /** @description Validation Error */

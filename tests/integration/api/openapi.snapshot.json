@@ -4605,6 +4605,180 @@
         "title": "ForwardReturnBandRow",
         "type": "object"
       },
+      "FundamentalCardResponse": {
+        "description": "The deterministic blocks of \u00a77. The valuation anchor, narrative and audit\nblocks are absent rather than empty \u2014 they need stages 3-5.",
+        "properties": {
+          "composite": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Composite"
+          },
+          "coverage": {
+            "$ref": "#/components/schemas/FundamentalCoverage"
+          },
+          "provenance": {
+            "$ref": "#/components/schemas/FundamentalProvenance"
+          },
+          "subscores": {
+            "items": {
+              "$ref": "#/components/schemas/FundamentalSubscore"
+            },
+            "title": "Subscores",
+            "type": "array"
+          },
+          "ticker": {
+            "title": "Ticker",
+            "type": "string"
+          }
+        },
+        "required": [
+          "ticker",
+          "composite",
+          "subscores",
+          "coverage",
+          "provenance"
+        ],
+        "title": "FundamentalCardResponse",
+        "type": "object"
+      },
+      "FundamentalCoverage": {
+        "description": "The explicit absence list. Mandatory, not a footer.\n\n`missing` and `suppressed` are kept apart on purpose: \"never reported\" and\n\"reported and not believed\" are different facts about a company.",
+        "properties": {
+          "features_present": {
+            "title": "Features Present",
+            "type": "integer"
+          },
+          "features_total": {
+            "title": "Features Total",
+            "type": "integer"
+          },
+          "missing": {
+            "items": {
+              "type": "string"
+            },
+            "title": "Missing",
+            "type": "array"
+          },
+          "suppressed": {
+            "items": {
+              "type": "string"
+            },
+            "title": "Suppressed",
+            "type": "array"
+          }
+        },
+        "required": [
+          "features_present",
+          "features_total",
+          "missing",
+          "suppressed"
+        ],
+        "title": "FundamentalCoverage",
+        "type": "object"
+      },
+      "FundamentalProvenance": {
+        "properties": {
+          "as_of": {
+            "format": "date",
+            "title": "As Of",
+            "type": "string"
+          },
+          "engine_version": {
+            "title": "Engine Version",
+            "type": "string"
+          },
+          "filing_date_known": {
+            "title": "Filing Date Known",
+            "type": "boolean"
+          },
+          "inputs_hash": {
+            "title": "Inputs Hash",
+            "type": "string"
+          },
+          "knowledge_date": {
+            "format": "date",
+            "title": "Knowledge Date",
+            "type": "string"
+          },
+          "period_end": {
+            "format": "date",
+            "title": "Period End",
+            "type": "string"
+          },
+          "source_obs_count": {
+            "title": "Source Obs Count",
+            "type": "integer"
+          }
+        },
+        "required": [
+          "engine_version",
+          "inputs_hash",
+          "as_of",
+          "period_end",
+          "knowledge_date",
+          "filing_date_known",
+          "source_obs_count"
+        ],
+        "title": "FundamentalProvenance",
+        "type": "object"
+      },
+      "FundamentalSubscore": {
+        "description": "One of the seven measured features.\n\n`value` is the RAW level (a ratio or a multiple), never a 0-100 rank \u2014 a rank\nis only meaningful against a stated cross-section, and this endpoint speaks\nabout one name.",
+        "properties": {
+          "direction": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Direction"
+          },
+          "feature": {
+            "title": "Feature",
+            "type": "string"
+          },
+          "suppressed_by": {
+            "items": {
+              "type": "string"
+            },
+            "title": "Suppressed By",
+            "type": "array"
+          },
+          "unit": {
+            "title": "Unit",
+            "type": "string"
+          },
+          "value": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Value"
+          }
+        },
+        "required": [
+          "feature",
+          "value",
+          "unit",
+          "direction",
+          "suppressed_by"
+        ],
+        "title": "FundamentalSubscore",
+        "type": "object"
+      },
       "GammaBlock": {
         "properties": {
           "expiring_date": {
@@ -24417,7 +24591,7 @@
   },
   "info": {
     "title": "UW Watchlist API",
-    "version": "0.11.3"
+    "version": "0.11.4"
   },
   "openapi": "3.1.0",
   "paths": {
@@ -27209,6 +27383,49 @@
           }
         },
         "summary": "Get Stock Chanlun Lifecycle",
+        "tags": [
+          "stock"
+        ]
+      }
+    },
+    "/api/stock/{ticker}/fundamentals": {
+      "get": {
+        "description": "The deterministic blocks of the \u00a77 fundamental card for one name.\n\nSubscores, coverage and provenance only \u2014 the valuation anchor, narrative and\naudit blocks need stages 3-5 and are absent from the contract rather than\nserved empty.\n\n404 and 503 are deliberately distinct: \"this name has no score\" and \"no method\nversion is active\" are different problems, and collapsing them would hide a\nstack-wide outage behind a per-ticker empty state.",
+        "operationId": "get_stock_fundamentals_api_stock__ticker__fundamentals_get",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "ticker",
+            "required": true,
+            "schema": {
+              "title": "Ticker",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/FundamentalCardResponse"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Get Stock Fundamentals",
         "tags": [
           "stock"
         ]
