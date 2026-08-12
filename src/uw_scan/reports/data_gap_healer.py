@@ -794,6 +794,67 @@ REGISTRY.extend(
     )
 )
 
+# Fundamentals tier-1 observations (migration 114). Spelled out rather than
+# folded into an _entries list so the reasoning survives beside each entry.
+REGISTRY.extend(
+    [
+        DatasetRegistryEntry(
+            "fundamental_statement_obs",
+            "fundamentals",
+            # freshness_only, NOT strict_ticker_date. The strict denominator is
+            # (eligible watchlist tickers x SESSIONS); this table's grain is
+            # (ticker x fiscal QUARTER) over a universe that is deliberately not
+            # the watchlist, so a strict audit would invent a ~250x gap that no
+            # filing will ever fill.
+            "freshness_only",
+            date_col="period_end",
+            ticker_col="ticker",
+            # A statement row appears when a filing appears. There is no daily
+            # expectation to be behind on.
+            expected_frequency="event",
+            provider="uw",
+            # No adapter: healing is re-running the ingest job, which is
+            # idempotent by content hash and cheap enough to run whole.
+            granularity="none",
+            healer_adapter=None,
+            source_system="uw",
+            retention_days=None,
+            reason=(
+                "quarterly filings over the fundamental universe, not the "
+                "watchlist; re-run scripts/backfill/fundamental_ingest_backfill.py "
+                "to heal (insert-or-touch, safe to repeat)"
+            ),
+        ),
+        DatasetRegistryEntry(
+            "fundamental_obs_violations",
+            "fundamentals",
+            # A verdict about an immutable payload. It is never backfilled on its
+            # own: it is re-derived when its parent observation is re-ingested.
+            "provenance",
+            date_col="detected_at",
+            ticker_col=None,
+            expected_frequency="event",
+            provider="none",
+            granularity="none",
+            source_system="derived",
+        ),
+        DatasetRegistryEntry(
+            "fundamental_universe",
+            "fundamentals",
+            "excluded",
+            date_col=None,
+            ticker_col="ticker",
+            expected_frequency="none",
+            provider="none",
+            granularity="none",
+            reason=(
+                "seeded membership list, not a time series; "
+                "scripts/seed_fundamental_universe.py is the source of truth"
+            ),
+        ),
+    ]
+)
+
 
 def registered_table_names(registry: list[DatasetRegistryEntry]) -> set[str]:
     return {e.table_name for e in registry}

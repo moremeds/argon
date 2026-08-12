@@ -135,6 +135,60 @@ version in lockstep (enforced by `scripts/release/version_sync_check.py`).
   load-bearing: removing the commit fails the fresh-connection test, and
   removing the rollback fails the cascade test with `InFailedSqlTransaction`.
 
+### Added
+
+- **Fundamental tier-1 ingest — immutable point-in-time statement observations**
+  (migration `114`). New `uw_scan.fundamentals` pure-compute package
+  (`statements.py`: normalization, `content_hash`, integrity checks), storage
+  domain `storage/fundamental_obs.py`, job `worker/jobs/fundamental_ingest.py`,
+  seeder `scripts/seed_fundamental_universe.py`, runner
+  `scripts/backfill/fundamental_ingest_backfill.py`, and four UW statement
+  endpoints registered in `api/endpoints.py`. An unchanged refetch bumps
+  `last_seen_at` and writes no fact; a restatement lands beside the original and
+  never overwrites it. Verified against the live API: a second run of the same
+  three tickers reported **0 inserted / 744 unchanged**.
+- **`content_hash` excludes provider ingest timestamps, and this is load-bearing.**
+  Every UW statement row carries `inserted_at` / `updated_at`, both of which move
+  on provider re-ingest with no reported figure changing. Hashing them would turn
+  every refresh into a phantom restatement — 60,292 rows of them per pass.
+  Replayed over the full cached corpus: 60,292 rows, **zero identity collisions**.
+- **Two-tier fundamental universe, so the ranked composite ships rather than being
+  dropped** (spec §4.3 rev 5). `core` (25 names) sizes the hand-verified valuation
+  and narrative stages; `ranked` (257) sizes statement ingest and scoring — the
+  width at which rev 4 measured the composite (IC 0.039 leak-free, t 2.67). Rev 4
+  concluded the product should drop the ranking; the measurement actually named a
+  threshold argon can meet, so the ordering is **scoped** to the wide tier instead.
+  Tier keys deliberately carry no count: the 245 came from local lake price depth,
+  which statement ingest never reads.
+- `core ⊂ ranked` is verified rather than assumed, and the check paid off — **12 of
+  25 core names are absent from the validated panel** (AMD, ANET, APP, AVGO, CEG,
+  CRWD, DELL, GEV, NOW, PLTR, VRT, VST). None were rejected on fundamentals: the
+  lake mirror starts late for them (AMD 2015-01-02, AVGO 2016-02-02) against a
+  `first_bar <= 2013-01-01` gate, though AMD has traded since 1972. Seeded, and
+  flagged per row as outside the validated panel.
+
+### Fixed (spec accuracy)
+
+- **The violation rates in spec §4.4 were massive's, not UW's.** §3.3 measured
+  ~5% negative liabilities and ~15% impossible share counts against massive
+  `/vX`; the backbone then moved to UW, where §3.2's own probe records 0.0% on
+  that axis, but the table description kept the old numbers. Replayed over 20,093
+  real UW balance rows: both fire on **zero**. What actually fires is
+  `implausible_share_count` (83 rows) and `accounting_identity_reversed` (61).
+- **Registering the zero-rate checks anyway paid off on the first live run.**
+  `negative_total_liabilities` measured 0.0% on the validated panel, was kept as
+  a tripwire, and then caught four rows the panel could not have shown: DELL
+  2014/2015 (−4.01bn, −2.90bn) and PLTR 2019/2020 (−508m, −147m) — all **pre-IPO
+  periods** for names outside the panel (DELL private from 2013, PLTR listed
+  2020). The panel measurement was scoped, not wrong; a check retired for
+  measuring zero would have passed these silently.
+- **`assets > liabilities + equity` is deliberately not a check**, documented
+  because it looks like one. It fires on 14.4% of rows, but 2,815 of 2,876
+  failures run in that single direction and cluster per filer — 121 of 245
+  tickers fail on nearly every row and 124 on none, led by DIS, AES, CMI, BXP.
+  That is UW reporting equity parent-only, excluding non-controlling interest.
+  A check there would mark half the universe broken while its data is fine.
+
 ## [0.11.4] — 2026-08-10
 
 

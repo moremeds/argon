@@ -515,7 +515,42 @@ Note the convergence: the blueprint author independently landed on a per-company
 S2's chain/layer rollups are a **read-time reshape of S1 rows**, so by A2's own seam they live in
 `reports/industry_graph.py` (~150 lines), not in this package. No second scoring path exists.
 
-### 4.3 Core 25 universe (v1)
+### 4.3 Universe — two tiers, split by stage (rev 5)
+
+**The universe is not one list, and rev 4 was wrong to treat it as one.** Rev 4 measured that a
+ranking needs breadth, then concluded the *product* should drop the ranking. That is backwards: the
+measurement named a threshold — 200+ names — and argon can meet it. The universe therefore splits
+by pipeline stage, each tier sized by what its stage actually needs.
+
+| Tier | Names | Stages | Why this width |
+|---|---:|---|---|
+| **`core`** | 25 | 3 valuation anchors · 4 audit · 5 narrative | A7 — every anchor stays hand-verifiable while the method is being fixated. Anchors are the expensive, judgement-heavy stage; 245 of them cannot be checked by a person |
+| **`ranked`** | 257 | 1 statement ingest · 2 subscores + composite | 245 are the panel rev 4 measured the composite on (IC 0.039 leak-free, t 2.67), plus 12 core names for containment. Stages 1–2 are mechanical and scale with API calls, not attention |
+
+**Tier keys carry no count**, and the reason is a measured trap rather than style. The 245 came
+from the breadth probe's *local lake price depth* gate, which existed only to compute forward
+returns during validation — statement ingest never reads the lake. So the number moves the moment
+the mirror deepens, and a key named `ranked_245` would then be a lie in the primary key of a
+seeded table. Membership carries a per-row `reason` recording whether a name sits inside the
+validated panel; that is where the distinction belongs.
+
+`core ⊂ ranked` is **not** assumed — and the check earns its keep immediately: **12 of the 25 core
+names are absent from the probe's candidate set** (AMD, ANET, APP, AVGO, CEG, CRWD, DELL, GEV, NOW,
+PLTR, VRT, VST). None were rejected on their fundamentals. The lake mirror simply starts late for
+them — AMD 2015-01-02, AVGO 2016-02-02, ANET 2014-06-06 — against a `first_bar <= 2013-01-01` gate,
+though AMD has traded since 1972. They are seeded, and flagged as outside the validated panel.
+
+**This is what keeps the ranked composite in the product.** §5.2's restriction is "do not rank at
+core-25 width", and the way to satisfy it is to rank at 245, not to delete ranking. A composite
+that is a legitimate sort key at 245 and an illegitimate one at 25 is one number with two
+scopes — the scope travels with it (§7, §8), rather than the feature being removed from both.
+
+The cost is honest and bounded: ~3 UW calls per ticker per refresh, so a full ranked-tier refresh is
+~735 calls against a 120k/day budget. Statements are quarterly, so this is a weekly job, not a daily
+one. Nothing about stage 1–2 requires the name to be on the watchlist — UW statement endpoints are
+per-ticker REST, not watchlist-gated captures — so the ranked tier costs no per-ticker scan burn.
+
+#### The core 25 (v1)
 
 Spans every taxonomy layer L1–L5 so chain context is meaningful from day one. Stored as a
 `fundamental_universe` flag rather than a new tier scheme — argon already has watchlist + `hot`
@@ -528,21 +563,27 @@ Spans every taxonomy layer L1–L5 so chain context is meaningful from day one. 
 | L3 Datacenter Infra | ANET VRT ETN GEV CEG VST |
 | L4/L5 App & Model | DELL SMCI PLTR CRWD NOW APP |
 
-**Membership must intersect the active watchlist** (`removed_at IS NULL`) — the SPX precedent
+**Core membership must intersect the active watchlist** (`removed_at IS NULL`) — the SPX precedent
 shows captures silently skip anything off the active list. Any name here that is not on the
 watchlist either gets added or is dropped from the core before P1. Verify at build time; do not
-assume.
+assume. **This constraint is core-only.** The ranked tier reads per-ticker REST endpoints that no
+capture job gates, so watchlist membership is irrelevant there and requiring it would drag 245
+names into every scheduled per-ticker job for no benefit.
 
-**This universe is the right scope for the card and the wrong scope for a ranking, and the two
-must not be conflated** (rev 4). Cross-sectional rank noise runs σ ≈ `1/√(N−1)` per period. At the
-realised 18-name median cross-section that is σ ≈ 0.24, so even 78 quarters leave a detection floor
-around \|IC\| 0.07 — above any realistic factor. Measured directly: composite IC 0.024, t 0.68 here
-against 0.059, t 4.84 at 245 names.
+**The core is the right scope for the card and the wrong scope for a ranking** (rev 4).
+Cross-sectional rank noise runs σ ≈ `1/√(N−1)` per period. At the realised 18-name median
+cross-section that is σ ≈ 0.24, so even 78 quarters leave a detection floor around \|IC\| 0.07 —
+above any realistic factor. Measured directly: composite IC 0.024, t 0.68 here against 0.059,
+t 4.84 at 245 names.
 
 The consequence is structural, not a data problem: **no amount of additional history fixes it,**
 because noise falls as `1/√N` in names but only `1/√T` in periods, and these 25 names are one
 correlated trade besides. Per-ticker subscores, trends and absences are fully supported at this
-width — an ordering across them is not. §5.2, §7 and §8 carry the specific restrictions.
+width — an ordering across them is not.
+
+**Which is why the ranked tier exists rather than the ranking being dropped.** The same
+restriction, stated as a scope instead of a prohibition: order at 245, display at 25. §5.2, §7 and
+§8 carry the specific rules, and each now names *which tier* it constrains.
 
 ### 4.4 Storage
 
@@ -580,8 +621,35 @@ same reason §6 needs a membership table rather than a supersession pointer.
 `fundamental_obs_violations` is what makes §5.1's gate auditable. Keyed on `(obs_id, check_name)`, so
 re-running INGEST over an unchanged observation is idempotent, and a restatement that fixes a bad
 figure gets a *new* `obs_id` with no violation rather than an edit to the old verdict — the record
-that the provider once served a negative liability survives the correction. §3.3 measured the rates
-this table will carry: ~5% negative liabilities, ~15% implausible share counts.
+that the provider once served a negative liability survives the correction.
+
+**The rates this table will carry are NOT §3.3's** (rev 5, measured). §3.3's ~5% negative
+liabilities and ~15% impossible share counts are **massive `/vX`'s** failure rates, and the backbone
+moved to UW after they were written — §3.2 records UW at 0.0% on that same share-count axis. Measured
+twice: over the 20,093 cached balance rows of the 245-name validated panel, and over the full live
+`ranked` ingest of 62,134 rows across 257 tickers.
+
+| check | 245-name panel | live 257 ingest | basis |
+|---|---:|---:|---|
+| `implausible_share_count` (< 1e6 shares) | 83 | 83 | 0.1th percentile of real counts is 15,393; nothing is ≤ 0 |
+| `accounting_identity_reversed` (A < L+E by >1%) | 61 | 62 | cannot be explained by NCI — see below |
+| `negative_total_liabilities` | 0 | **4** | massive-era check, kept as a tripwire — and it fired |
+| `negative_total_assets` | 0 | 0 | massive-era check, kept as a tripwire |
+
+**Keeping the zero-rate checks registered paid off on the first live run.** `negative_total_liabilities`
+measured 0.0% on the validated panel and then caught four rows: DELL 2014-04-30 and 2015-04-30
+(−4.01bn, −2.90bn) and PLTR 2019-03-31 and 2020-03-31 (−508m, −147m). All four are **pre-IPO periods**
+for names absent from the panel — DELL was private from 2013, PLTR listed in 2020 — so the panel
+measurement was not wrong, it was scoped. A check retired for measuring zero would have let these
+through silently, which is the argument for registering tripwires rather than only live checks.
+
+**`assets > liabilities + equity` is deliberately not a check.** It fires on 14.4% of rows, but 2,815
+of the 2,876 failures run in that one direction and cluster *per filer* — 121 of 245 tickers fail on
+nearly every row while 124 fail on none, led by DIS, AES, CMI and BXP. That is the signature of UW
+reporting `total_shareholder_equity` parent-only, excluding non-controlling interest, not of bad data.
+A check there would flag half the universe as broken while its data is fine. The reverse direction has
+no such explanation, so that one is checked. Anyone later adding an accounting-identity assertion
+should read this paragraph first.
 
 **Identity is content, not fetch time.** The previous draft keyed observations on `observed_at`,
 which is when *we* fetched — so every unchanged refresh would have inserted another row, directly
@@ -1476,16 +1544,32 @@ Postgres that P1b ingests into and the full lake copy. What that blocks and what
 
 | Work | Blocked? |
 |---|---|
-| P1b ingest, migrations, storage tests | **yes** — the write target is down |
+| P1b tier-1 ingest, migration `114`, storage tests | **no — revised 2026-08-12, see below** |
+| P1b stages that consume a *captured* series | yes — the write target is down |
 | Any smoke test on the real worker path (standing rule) | **yes** |
 | Further validation / research on the wide universe | no — ran entirely off the local lake mirror + UW API |
 | Field maps, method appendix (§5.2's P2 exit gate), spec work | no |
 | The valuation-control test above | no |
 
 The local mirror is 2.5–4 months stale (most recent bar 2026-04-14 to 2026-05-29) and holds 653
-symbols, which was sufficient here and will not be for anything needing current data. **Do not
-start P1b against `option_wizard_local` as a substitute** — the three-tier isolation rule exists to
-stop exactly that, and a local-only ingest would have to be redone.
+symbols, which was sufficient here and will not be for anything needing current data.
+
+**Revised 2026-08-12 — the earlier blanket "do not start P1b against `option_wizard_local`" was
+over-broad, and the distinction it missed is the one that matters.** That warning generalised from
+the surface captures, where it is correct: `option_surface_grid_daily` accrues forward-only under
+UW's ~180-day window, so a night captured only locally is a night the prodlike DB can never
+reconstruct. **Statement ingest has the opposite shape.** UW serves the full history on every call —
+NVDA returns 82 quarters back to 2005 — so re-running against `option_wizard` reproduces every row
+byte-identically, by content hash. Nothing is lost and nothing must be redone.
+
+The honest residual: `first_observed_at` would record the mini run's date rather than the local
+one's. That column is provenance, not point-in-time input — PIT queries filter on
+`filing_published_at` (§4.4) — so no analytical result changes. It is a real difference, recorded
+rather than waved away.
+
+The rule to carry forward is therefore **not** "local is forbidden" but *"local is forbidden for
+anything that accrues"*. Ingest that re-derives from a full-history source is safe to develop
+locally; capture that races an expiring window is not.
 
 
 All provider claims below are repository snapshots, not live probes. **P1a re-measures every one of

@@ -6,7 +6,7 @@ Generated from `REGISTRY` in `src/uw_scan/reports/data_gap_healer.py` (one sourc
 uv run python -c "from uw_scan.reports.data_gap_healer import render_dataset_policy_markdown as r; open('docs/runbooks/data-gap-dataset-policy.md','w').write(r())"
 ```
 
-**132 datasets** across 9 groups.
+**135 datasets** across 10 groups.
 
 ## core_watchlist
 
@@ -24,6 +24,14 @@ uv run python -c "from uw_scan.reports.data_gap_healer import render_dataset_pol
 | stock_analytics_daily | strict_ticker_date | db | run_once | vol_analytics_rollup | equity_session |  |
 | technical_daily | freshness_only | none | none |  | equity_session | full series recomputed nightly from apex bars; no per-date heal |
 | vrp_daily | strict_ticker_date | db | run_once | vol_analytics_rollup | equity_session |  |
+
+## fundamentals
+
+| table | audit_mode | provider | granularity | adapter | freq | reason |
+|---|---|---|---|---|---|---|
+| fundamental_obs_violations | provenance | none | none |  | event |  |
+| fundamental_statement_obs | freshness_only | uw | none |  | event | quarterly filings over the fundamental universe, not the watchlist; re-run scripts/backfill/fundamental_ingest_backfill.py to heal (insert-or-touch, safe to repeat) |
+| fundamental_universe | excluded | none | none |  | none | seeded membership list, not a time series; scripts/seed_fundamental_universe.py is the source of truth |
 
 ## gold_rates_macro
 

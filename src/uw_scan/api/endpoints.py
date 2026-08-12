@@ -56,6 +56,13 @@ class EndpointSlug(StrEnum):
     LIT_FLOW = "lit_flow"
     FTDS = "ftds"
     VOLUMES_BY_EXCHANGE = "volumes_by_exchange"
+    # Fundamental statements. `fundamental-breakdown` is the only source of real
+    # filing dates; without it the pipeline must fall back to period_end + a lag,
+    # which errs EARLY for late filers and manufactures look-ahead.
+    INCOME_STATEMENTS = "income_statements"
+    BALANCE_SHEETS = "balance_sheets"
+    CASH_FLOWS = "cash_flows"
+    FUNDAMENTAL_BREAKDOWN = "fundamental_breakdown"
 
 
 @dataclass(frozen=True)
@@ -230,6 +237,20 @@ REGISTRY: dict[EndpointSlug, Endpoint] = {
     EndpointSlug.VOLUMES_BY_EXCHANGE: Endpoint(
         EndpointSlug.VOLUMES_BY_EXCHANGE,
         "/api/shorts/{ticker}/volumes-by-exchange",
+        (),
+    ),
+    EndpointSlug.INCOME_STATEMENTS: Endpoint(
+        EndpointSlug.INCOME_STATEMENTS, "/api/stock/{ticker}/income-statements", ()
+    ),
+    EndpointSlug.BALANCE_SHEETS: Endpoint(
+        EndpointSlug.BALANCE_SHEETS, "/api/stock/{ticker}/balance-sheets", ()
+    ),
+    EndpointSlug.CASH_FLOWS: Endpoint(
+        EndpointSlug.CASH_FLOWS, "/api/stock/{ticker}/cash-flows", ()
+    ),
+    EndpointSlug.FUNDAMENTAL_BREAKDOWN: Endpoint(
+        EndpointSlug.FUNDAMENTAL_BREAKDOWN,
+        "/api/stock/{ticker}/fundamental-breakdown",
         (),
     ),
 }
