@@ -401,6 +401,7 @@ def get_stock_chanlun_lifecycle(
 @router.get("/stock/{ticker}/fundamentals", response_model=FundamentalCardResponse)
 def get_stock_fundamentals(
     ticker: str,
+    quarters: int = Query(40, ge=1, le=120),
     repo: Repository = Depends(get_repo),
     settings: Settings = Depends(get_settings),
 ) -> FundamentalCardResponse:
@@ -414,7 +415,11 @@ def get_stock_fundamentals(
     version is active" are different problems, and collapsing them would hide a
     stack-wide outage behind a per-ticker empty state.
     """
-    from uw_scan.fundamentals.card import build_card
+    from uw_scan.fundamentals.card import (
+        build_card,
+        build_history,
+        build_percentiles,
+    )
     from uw_scan.storage.fundamental_obs import FundamentalObsRepository
     from uw_scan.storage.fundamental_scores import FundamentalScoresRepository
 
@@ -429,11 +434,27 @@ def get_stock_fundamentals(
     row = scores.latest_for_ticker(t, engine)
     if row is None:
         raise HTTPException(status_code=404, detail=f"no fundamental score for {t}")
-    violated = FundamentalObsRepository(conn, schema=schema).violated_fields(
-        row.get("source_obs_ids") or []
+    obs = FundamentalObsRepository(conn, schema=schema)
+    violated = obs.violated_fields(row.get("source_obs_ids") or [])
+
+    series = scores.series_for_ticker(t, engine, limit=quarters)
+    cross = scores.cross_section(row["as_of"], engine)
+    # One violation query covering the trajectory AND the comparison panel. Per
+    # row it would be ~290 round-trips for a single card.
+    obs_ids = sorted(
+        {i for r in (*series, *cross) for i in (r.get("source_obs_ids") or [])}
     )
+    by_obs = obs.violations_by_obs(obs_ids)
+
     return FundamentalCardResponse.model_validate(
-        build_card(ticker=t, row=row, violated=violated, engine_version=engine)
+        build_card(
+            ticker=t,
+            row=row,
+            violated=violated,
+            engine_version=engine,
+            history=build_history(series, by_obs),
+            percentiles=build_percentiles(cross, by_obs, t),
+        )
     )
 
 

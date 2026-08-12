@@ -40,6 +40,7 @@ from .flow import (
 from .fundamentals import (
     FundamentalCardResponse,
     FundamentalCoverage,
+    FundamentalPercentile,
     FundamentalProvenance,
     FundamentalSubscore,
 )
@@ -331,6 +332,7 @@ __all__ = [
     "SetupClassification",
     "FundamentalCardResponse",
     "FundamentalCoverage",
+    "FundamentalPercentile",
     "FundamentalProvenance",
     "FundamentalSubscore",
     "MagnetCandle",

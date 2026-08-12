@@ -4619,11 +4619,49 @@
             ],
             "title": "Composite"
           },
+          "composite_percentile": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/FundamentalPercentile"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "composite_series": {
+            "default": [],
+            "items": {
+              "anyOf": [
+                {
+                  "type": "number"
+                },
+                {
+                  "type": "null"
+                }
+              ]
+            },
+            "title": "Composite Series",
+            "type": "array"
+          },
           "coverage": {
             "$ref": "#/components/schemas/FundamentalCoverage"
           },
+          "panel_size": {
+            "default": 0,
+            "title": "Panel Size",
+            "type": "integer"
+          },
           "provenance": {
             "$ref": "#/components/schemas/FundamentalProvenance"
+          },
+          "series_dates": {
+            "default": [],
+            "items": {
+              "type": "string"
+            },
+            "title": "Series Dates",
+            "type": "array"
           },
           "subscores": {
             "items": {
@@ -4680,6 +4718,25 @@
           "suppressed"
         ],
         "title": "FundamentalCoverage",
+        "type": "object"
+      },
+      "FundamentalPercentile": {
+        "description": "Where a value sits in its knowledge-quarter panel.\n\nLocational only. Not a quality score and not an expected return \u2014 the\n2026-08-12 cost study measured zero gross alpha from this composite at every\nslice. `n` is stated per feature because it differs: a name missing `roe` is\nabsent from that panel while present in the others, and a percentile whose\ndenominator is unnamed is not a fact.",
+        "properties": {
+          "n": {
+            "title": "N",
+            "type": "integer"
+          },
+          "percentile": {
+            "title": "Percentile",
+            "type": "number"
+          }
+        },
+        "required": [
+          "percentile",
+          "n"
+        ],
+        "title": "FundamentalPercentile",
         "type": "object"
       },
       "FundamentalProvenance": {
@@ -4745,6 +4802,31 @@
           "feature": {
             "title": "Feature",
             "type": "string"
+          },
+          "percentile": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/FundamentalPercentile"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "series": {
+            "default": [],
+            "items": {
+              "anyOf": [
+                {
+                  "type": "number"
+                },
+                {
+                  "type": "null"
+                }
+              ]
+            },
+            "title": "Series",
+            "type": "array"
           },
           "suppressed_by": {
             "items": {
@@ -27400,6 +27482,18 @@
             "schema": {
               "title": "Ticker",
               "type": "string"
+            }
+          },
+          {
+            "in": "query",
+            "name": "quarters",
+            "required": false,
+            "schema": {
+              "default": 40,
+              "maximum": 120,
+              "minimum": 1,
+              "title": "Quarters",
+              "type": "integer"
             }
           }
         ],

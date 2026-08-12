@@ -166,3 +166,54 @@ def test_no_active_method_version_is_503_not_404(client, seeded_db_empty_cards):
     outage, and collapsing it into the per-ticker empty state would hide it."""
     resp = client.get("/api/stock/NVDA/fundamentals")
     assert resp.status_code == 503
+
+
+def test_the_trajectory_comes_back_with_a_gap_at_the_flagged_quarter(
+    client, seeded_db_empty_cards
+):
+    """Exercises `series_for_ticker` + `violations_by_obs` against real rows.
+
+    The unit tests cover the reshaping; this covers the two queries feeding it,
+    which is where a wrong ORDER BY would silently plot the oldest quarters.
+    """
+    scores = FundamentalScoresRepository(
+        seeded_db_empty_cards.conn, schema=seeded_db_empty_cards._schema
+    )
+    _seed(seeded_db_empty_cards, with_violation=True)
+    # Two clean earlier quarters beside the flagged one already seeded.
+    scores.insert_scores(
+        [
+            {
+                "ticker": "CEG",
+                "as_of": as_of,
+                "engine_version": ENGINE,
+                "inputs_hash": f"h-{as_of}",
+                "period_end": as_of,
+                "knowledge_date": as_of,
+                "filing_date_known": True,
+                "composite": 0.1,
+                **dict.fromkeys(FEATURES, 0.5),
+                "gross_margin": gm,
+                "features_present": 7,
+                "source_obs_ids": [],
+            }
+            for as_of, gm in (
+                (date(2026, 2, 24), 0.1554),
+                (date(2026, 5, 11), 0.4289),
+            )
+        ]
+    )
+
+    body = client.get("/api/stock/CEG/fundamentals?quarters=10").json()
+    gm = {s["feature"]: s for s in body["subscores"]}["gross_margin"]
+
+    # Oldest first, and the flagged quarter is the newest — a DESC-ordered
+    # response would put the gap first.
+    assert body["series_dates"] == ["2026-02-24", "2026-05-11", "2026-08-14"]
+    assert gm["series"] == [0.1554, 0.4289, None]
+    assert {s["feature"]: s for s in body["subscores"]}["op_margin"]["series"] == [
+        0.5,
+        0.5,
+        0.5,
+    ]
+

@@ -3293,6 +3293,22 @@ export interface components {
             ticker: string;
             /** Composite */
             composite: number | null;
+            /**
+             * Composite Series
+             * @default []
+             */
+            composite_series: (number | null)[];
+            composite_percentile?: components["schemas"]["FundamentalPercentile"] | null;
+            /**
+             * Series Dates
+             * @default []
+             */
+            series_dates: string[];
+            /**
+             * Panel Size
+             * @default 0
+             */
+            panel_size: number;
             /** Subscores */
             subscores: components["schemas"]["FundamentalSubscore"][];
             coverage: components["schemas"]["FundamentalCoverage"];
@@ -3314,6 +3330,22 @@ export interface components {
             missing: string[];
             /** Suppressed */
             suppressed: string[];
+        };
+        /**
+         * FundamentalPercentile
+         * @description Where a value sits in its knowledge-quarter panel.
+         *
+         *     Locational only. Not a quality score and not an expected return — the
+         *     2026-08-12 cost study measured zero gross alpha from this composite at every
+         *     slice. `n` is stated per feature because it differs: a name missing `roe` is
+         *     absent from that panel while present in the others, and a percentile whose
+         *     denominator is unnamed is not a fact.
+         */
+        FundamentalPercentile: {
+            /** Percentile */
+            percentile: number;
+            /** N */
+            n: number;
         };
         /** FundamentalProvenance */
         FundamentalProvenance: {
@@ -3360,6 +3392,12 @@ export interface components {
             direction: string | null;
             /** Suppressed By */
             suppressed_by: string[];
+            /**
+             * Series
+             * @default []
+             */
+            series: (number | null)[];
+            percentile?: components["schemas"]["FundamentalPercentile"] | null;
         };
         /** GammaBlock */
         GammaBlock: {
@@ -10722,7 +10760,9 @@ export interface operations {
     };
     get_stock_fundamentals_api_stock__ticker__fundamentals_get: {
         parameters: {
-            query?: never;
+            query?: {
+                quarters?: number;
+            };
             header?: never;
             path: {
                 ticker: string;

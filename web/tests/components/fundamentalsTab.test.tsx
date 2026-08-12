@@ -24,9 +24,22 @@ import { FundamentalsTab } from "@/components/stock/tabs/FundamentalsTab";
 const CEG_CARD = {
   ticker: "CEG",
   composite: -0.1421,
+  composite_series: [0.05, -0.02, 0.01, -0.08, -0.11, -0.1421],
+  composite_percentile: { percentile: 0.38, n: 217 },
+  series_dates: [
+    "2025-02-18",
+    "2025-05-06",
+    "2025-08-07",
+    "2025-11-07",
+    "2026-02-24",
+    "2026-08-14",
+  ],
+  panel_size: 217,
   subscores: [
     {
       feature: "rev_growth",
+      series: [0.31, 0.28, 0.22, 0.19, 0.26, 0.284638],
+      percentile: { percentile: 0.71, n: 217 },
       value: 0.284638,
       unit: "ratio",
       direction: "higher_better",
@@ -34,6 +47,8 @@ const CEG_CARD = {
     },
     {
       feature: "gross_margin",
+      series: [0.243, 0.204, 0.281, 0.238, 0.428, null],
+      percentile: null,
       value: null,
       unit: "ratio",
       direction: null,
@@ -41,6 +56,8 @@ const CEG_CARD = {
     },
     {
       feature: "op_margin",
+      series: [0.11, 0.09, 0.12, 0.08, 0.1, 0.0772715],
+      percentile: { percentile: 0.1797235, n: 217 },
       value: 0.0772715,
       unit: "ratio",
       direction: null,
@@ -48,6 +65,8 @@ const CEG_CARD = {
     },
     {
       feature: "fcf_margin",
+      series: [0.02, 0.01, 0.03, 0.02, 0.015, 0.00969077],
+      percentile: { percentile: 0.22, n: 217 },
       value: 0.00969077,
       unit: "ratio",
       direction: "higher_better",
@@ -55,6 +74,8 @@ const CEG_CARD = {
     },
     {
       feature: "roe",
+      series: [0.09, 0.1, 0.12, 0.11, 0.105, 0.1087],
+      percentile: { percentile: 0.44, n: 209 },
       value: 0.1087,
       unit: "ratio",
       direction: null,
@@ -62,6 +83,8 @@ const CEG_CARD = {
     },
     {
       feature: "neg_net_debt_ebitda",
+      series: [-2.1, -2.3, -2.5, -2.6, -2.7, -2.78409],
+      percentile: { percentile: 0.12, n: 209 },
       value: -2.78409,
       unit: "turns",
       direction: "higher_better",
@@ -69,6 +92,8 @@ const CEG_CARD = {
     },
     {
       feature: "asset_turnover",
+      series: [0.3, 0.31, 0.32, 0.33, 0.32, 0.324529],
+      percentile: { percentile: 0.55, n: 216 },
       value: 0.324529,
       unit: "turns",
       direction: "higher_better",
@@ -165,5 +190,70 @@ describe("FundamentalsTab", () => {
         /No fundamental score for ZZZZ/,
       ),
     );
+  });
+
+  it("draws a gap where a quarter is not believed, and never bridges it", async () => {
+    nextCard = CEG_CARD;
+    render(<FundamentalsTab ticker="CEG" />);
+    const tile = await screen.findByTestId("subscore-gross_margin");
+
+    // The dashed rule marks the excluded quarter. Without it the break in the
+    // line is an invisible kink and the chart reads as continuous.
+    expect(tile.querySelectorAll("line[stroke-dasharray]").length).toBe(1);
+    // And the path must not run through it: pathFromNullablePoints restarts
+    // with a fresh M, so a bridged series would have exactly one M.
+    const d = tile.querySelector("path")?.getAttribute("d") ?? "";
+    expect((d.match(/M/g) ?? []).length).toBeGreaterThanOrEqual(1);
+    expect(d).not.toContain("NaN");
+  });
+
+  it("draws no gap marker on a clean series", async () => {
+    nextCard = CEG_CARD;
+    render(<FundamentalsTab ticker="CEG" />);
+    const tile = await screen.findByTestId("subscore-op_margin");
+    expect(tile.querySelectorAll("line[stroke-dasharray]").length).toBe(0);
+  });
+
+  it("states the percentile with its denominator, never bare", async () => {
+    nextCard = CEG_CARD;
+    render(<FundamentalsTab ticker="CEG" />);
+    const tile = await screen.findByTestId("subscore-op_margin");
+    // 0.1797 -> "18th of 217". A percentile whose denominator is unnamed is not
+    // a fact, and the denominator differs per feature.
+    expect(tile.textContent).toMatch(/18th of 217/);
+  });
+
+  it("shows no percentile for a suppressed feature", async () => {
+    nextCard = CEG_CARD;
+    render(<FundamentalsTab ticker="CEG" />);
+    const tile = await screen.findByTestId("subscore-gross_margin");
+    // Its own value was excluded from the panel, so there is nothing to rank.
+    expect(tile.textContent).not.toMatch(/\bof 21[0-9]\b/);
+  });
+
+  it("names the panel the composite is measured against", async () => {
+    nextCard = CEG_CARD;
+    render(<FundamentalsTab ticker="CEG" />);
+    const head = await screen.findByTestId("fundamentals-composite");
+    expect(head.textContent).toMatch(/panel of 217 names/);
+    expect(head.textContent).toMatch(/38th of 217/);
+    // Both ends of the plotted window are labelled.
+    expect(head.textContent).toMatch(/2025-02-18/);
+    expect(head.textContent).toMatch(/2026-08-14/);
+  });
+
+  it("renders levels without history rather than refusing to render", async () => {
+    // A name with one quarter still has a level worth stating; a trajectory is
+    // context, not a precondition.
+    nextCard = {
+      ...CEG_CARD,
+      series_dates: [],
+      composite_series: [],
+      subscores: CEG_CARD.subscores.map((s) => ({ ...s, series: [] })),
+    };
+    render(<FundamentalsTab ticker="CEG" />);
+    const tile = await screen.findByTestId("subscore-op_margin");
+    expect(tile.textContent).toMatch(/7\.7%/);
+    expect(tile.querySelector("svg")).toBeNull();
   });
 });

@@ -209,6 +209,30 @@ class FundamentalObsRepository:
                 out.setdefault(field, []).append(check)
         return out
 
+    def violations_by_obs(
+        self, obs_ids: Sequence[int]
+    ) -> dict[int, dict[str, list[str]]]:
+        """obs_id -> {field -> check names}, for a whole series in one query.
+
+        `violated_fields` aggregates across observations, which is right for a
+        single point in time and wrong for a chart: a series can be believable in
+        most quarters and not in others, and collapsing them would blank an
+        entire line because one 2019 row was bad.
+        """
+        if not obs_ids:
+            return {}
+        sql = f"""
+            SELECT obs_id, field, check_name
+              FROM {self._schema}.fundamental_obs_violations
+             WHERE obs_id = ANY(%s) AND field IS NOT NULL
+        """
+        out: dict[int, dict[str, list[str]]] = {}
+        with self.conn.cursor() as cur:
+            cur.execute(sql, (list(obs_ids),))
+            for obs_id, field, check in cur.fetchall():
+                out.setdefault(obs_id, {}).setdefault(field, []).append(check)
+        return out
+
     def recheck_violations(self, batch: int = 5000) -> tuple[int, int]:
         """Re-run the integrity checks over every stored payload. (scanned, new).
 

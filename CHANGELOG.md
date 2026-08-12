@@ -220,6 +220,31 @@ version in lockstep (enforced by `scripts/release/version_sync_check.py`).
 
 ### Added
 
+- **The card plots, and every series is a claim with evidence under it.** Each of
+  the seven features gets its own trajectory (40 quarters by default, `?quarters=`
+  1–120) plus its percentile in the knowledge-quarter panel; the composite gets a
+  larger chart of the same window. New `series_for_ticker` / `cross_section` /
+  `violations_by_obs` reads, `build_history` / `build_percentiles` compute, and a
+  hand-rolled `FundamentalSparkline` (no chart library — repo rule).
+  All 257 names carry ≥8 quarters and 256 carry ≥20, so this needed no new ingest.
+- **A quarter we do not believe is drawn as a GAP, never bridged.** A flagged
+  input becomes `null` *in place* — the line breaks and a dashed rule marks it —
+  because dropping the point would shift every later quarter left and misdate the
+  series, and interpolating across it would produce a smooth, confident, wrong
+  chart. CEG's `gross_margin` breaks at exactly the echoed quarter (1 null of 40)
+  while its `op_margin` is intact.
+- **Disbelieved values are removed from the comparison panel, not just from the
+  subject.** Otherwise every name would be ranked against the ~46 tickers whose
+  `gross_margin` reads exactly 1.0 for the reason the card refuses to display.
+  A suppressed subject therefore has no percentile at all, and `n` is stated per
+  feature because it differs (NVDA: 253 / 239 / 252) — a percentile whose
+  denominator is unnamed is not a fact.
+- **Deliberately NOT copied from the reference financials browser: the
+  "Fundamentals Checklist" of QoQ/YoY arrows.** Scoring "6 positive / 1 negative"
+  requires a direction for every line item, and our own validation measured
+  `gross_margin` and `op_margin` **inverted** while `roe` is named by no rubric
+  row. The most copyable element on that page is the one we are forbidden to
+  copy. Same reason there is no red/green ramp on any chart here.
 - **Fundamental card — the deterministic blocks of spec §7, on a new stock tab.**
   `GET /api/stock/{ticker}/fundamentals` + `models/fundamentals.py` +
   `fundamentals/card.py` (pure assembly) + `web/components/stock/tabs/FundamentalsTab.tsx`.

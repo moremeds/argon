@@ -161,6 +161,59 @@ class FundamentalScoresRepository:
             row = cur.fetchone()
             return dict(zip(cols, row)) if row else None
 
+    def series_for_ticker(
+        self, ticker: str, engine_version: str, limit: int = 40
+    ) -> list[dict[str, Any]]:
+        """One name's score history, oldest first, newest `limit` quarters.
+
+        Ordered DESC in SQL and reversed in Python so the LIMIT keeps the most
+        RECENT quarters — `ORDER BY as_of ASC LIMIT n` would silently return the
+        oldest and plot a chart that stops years ago.
+
+        `source_obs_ids` rides along so a consumer can suppress individual
+        historical points: a violation is attached to one observation, so a
+        series can be believable in most quarters and not in others. Drawing
+        through a bad point would be a smooth, confident, wrong line.
+        """
+        cols = [
+            "as_of",
+            "period_end",
+            "knowledge_date",
+            "filing_date_known",
+            "composite",
+            *FEATURES,
+            "source_obs_ids",
+        ]
+        with self.conn.cursor() as cur:
+            cur.execute(
+                f"""SELECT DISTINCT ON (as_of) {", ".join(cols)}
+                      FROM {self._schema}.fundamental_scores
+                     WHERE ticker = %s AND engine_version = %s
+                     ORDER BY as_of DESC, computed_at DESC
+                     LIMIT %s""",
+                (ticker, engine_version, limit),
+            )
+            rows = [dict(zip(cols, r)) for r in cur.fetchall()]
+        return list(reversed(rows))
+
+    def cross_section(self, as_of: Any, engine_version: str) -> list[dict[str, Any]]:
+        """Every name's features in one knowledge-quarter bucket.
+
+        The panel a percentile is computed against. Returned whole rather than
+        as a pre-computed rank so the caller states which population it used —
+        a percentile with an unnamed denominator is not a fact.
+        """
+        cols = ["ticker", "composite", *FEATURES, "source_obs_ids"]
+        with self.conn.cursor() as cur:
+            cur.execute(
+                f"""SELECT DISTINCT ON (ticker) {", ".join(cols)}
+                      FROM {self._schema}.fundamental_scores
+                     WHERE as_of = %s AND engine_version = %s
+                     ORDER BY ticker, computed_at DESC""",
+                (as_of, engine_version),
+            )
+            return [dict(zip(cols, r)) for r in cur.fetchall()]
+
     def ranking(
         self, as_of_max: Any = None, engine_version: str | None = None, limit: int = 500
     ) -> list[dict[str, Any]]:

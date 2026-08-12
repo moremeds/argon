@@ -7,6 +7,20 @@ from datetime import date
 from uw_scan.models._base import _preserve_public_module, _UwBase
 
 
+class FundamentalPercentile(_UwBase):
+    """Where a value sits in its knowledge-quarter panel.
+
+    Locational only. Not a quality score and not an expected return — the
+    2026-08-12 cost study measured zero gross alpha from this composite at every
+    slice. `n` is stated per feature because it differs: a name missing `roe` is
+    absent from that panel while present in the others, and a percentile whose
+    denominator is unnamed is not a fact.
+    """
+
+    percentile: float
+    n: int
+
+
 class FundamentalSubscore(_UwBase):
     """One of the seven measured features.
 
@@ -27,6 +41,11 @@ class FundamentalSubscore(_UwBase):
     # as `na`. The check names are carried so the suppression is inspectable
     # rather than an unexplained blank.
     suppressed_by: list[str]
+    # Oldest-first, aligned to `series_dates`. `null` marks a quarter whose input
+    # was flagged, so a renderer draws a GAP rather than interpolating through a
+    # figure we do not believe. Empty when history was not requested.
+    series: list[float | None] = []
+    percentile: FundamentalPercentile | None = None
 
 
 class FundamentalCoverage(_UwBase):
@@ -65,12 +84,20 @@ class FundamentalCardResponse(_UwBase):
     # across the wide tier, and never as an expected return: the 2026-08-12 cost
     # study measured zero gross alpha at every slice.
     composite: float | None
+    composite_series: list[float | None] = []
+    composite_percentile: FundamentalPercentile | None = None
+    # Shared x-axis for every series on the card: one knowledge_date per quarter,
+    # oldest first. One axis for all eight lines keeps them comparable.
+    series_dates: list[str] = []
+    # Names in the knowledge-quarter panel the percentiles were computed against.
+    panel_size: int = 0
     subscores: list[FundamentalSubscore]
     coverage: FundamentalCoverage
     provenance: FundamentalProvenance
 
 
 _preserve_public_module(
+    FundamentalPercentile,
     FundamentalSubscore,
     FundamentalCoverage,
     FundamentalProvenance,
