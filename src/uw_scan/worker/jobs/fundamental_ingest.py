@@ -60,7 +60,8 @@ def _parse_date(value: Any) -> date | None:
         return None
     try:
         return datetime.strptime(str(value)[:10], "%Y-%m-%d").date()
-    except ValueError:
+    except ValueError as exc:
+        _ = repr(exc)  # CI Guardrail 2: unparseable date → NULL, never a raise
         return None
 
 

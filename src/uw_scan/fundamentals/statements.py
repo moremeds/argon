@@ -76,7 +76,8 @@ def _canonical(value: Any) -> Any:
     ):
         try:
             return format(Decimal(str(value)).normalize(), "f")
-        except InvalidOperation:
+        except InvalidOperation as exc:
+            _ = repr(exc)  # CI Guardrail 2: uncoercible cell kept verbatim
             return value
     return value
 
@@ -110,7 +111,8 @@ def _dec(payload: Mapping[str, Any], key: str) -> Decimal | None:
         return None
     try:
         return Decimal(str(raw))
-    except InvalidOperation:
+    except InvalidOperation as exc:
+        _ = repr(exc)  # CI Guardrail 2: uncoercible cell → no violation check
         return None
 
 

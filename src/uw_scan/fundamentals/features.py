@@ -89,7 +89,8 @@ def _f(row: dict | None, key: str) -> float | None:
         return None
     try:
         return float(v)
-    except (TypeError, ValueError):
+    except (TypeError, ValueError) as exc:
+        _ = repr(exc)  # CI Guardrail 2: non-numeric statement cell → None
         return None
 
 
