@@ -227,6 +227,12 @@ version in lockstep (enforced by `scripts/release/version_sync_check.py`).
   `violations_by_obs` reads, `build_history` / `build_percentiles` compute, and a
   hand-rolled `FundamentalSparkline` (no chart library — repo rule).
   All 257 names carry ≥8 quarters and 256 carry ≥20, so this needed no new ingest.
+- **Every trajectory carries its own date axis**, not just the composite. The
+  axis moved inside `FundamentalSparkline` so all eight charts share one
+  implementation and cannot drift apart, and it labels the ends of the plotted
+  WINDOW rather than of each feature's drawn line — a series whose opening
+  quarters are suppressed starts inboard of the left edge and still reads on the
+  same window as its siblings.
 - **A quarter we do not believe is drawn as a GAP, never bridged.** A flagged
   input becomes `null` *in place* — the line breaks and a dashed rule marks it —
   because dropping the point would shift every later quarter left and misdate the

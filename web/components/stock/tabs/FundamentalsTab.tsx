@@ -206,25 +206,14 @@ export function FundamentalsTab({ ticker }: { ticker: string }) {
         </div>
         {compSeries.length ? (
           <div style={{ margin: "10px 0" }}>
+            {/* The date axis lives in the sparkline itself, so the composite
+                and the seven tiles cannot drift apart. */}
             <FundamentalSparkline
               values={compSeries}
               dates={dates}
               label="Composite"
               height={72}
             />
-            <div
-              style={{
-                display: "flex",
-                justifyContent: "space-between",
-                ...labelStyle,
-                fontSize: 9,
-                letterSpacing: 0.5,
-                marginTop: 4,
-              }}
-            >
-              <span>{dates[0]}</span>
-              <span>{dates[dates.length - 1]}</span>
-            </div>
           </div>
         ) : null}
         <div

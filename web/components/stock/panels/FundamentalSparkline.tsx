@@ -23,6 +23,7 @@ export function FundamentalSparkline({
   width = 220,
   height = 44,
   stroke = "var(--accent-bg)",
+  showAxis = true,
 }: {
   values: (number | null)[];
   dates: string[];
@@ -30,6 +31,7 @@ export function FundamentalSparkline({
   width?: number;
   height?: number;
   stroke?: string;
+  showAxis?: boolean;
 }) {
   const finite = values.filter(
     (v): v is number => v != null && Number.isFinite(v),
@@ -72,7 +74,28 @@ export function FundamentalSparkline({
   const last = lastIdx >= 0 ? points[lastIdx] : null;
   const crossesZero = lo < 0 && hi > 0;
 
+  const axis = showAxis ? (
+    <div
+      style={{
+        display: "flex",
+        justifyContent: "space-between",
+        fontFamily: "var(--font-mono)",
+        fontSize: 9,
+        letterSpacing: 0.5,
+        color: "var(--text-muted)",
+        marginTop: 3,
+      }}
+    >
+      {/* The ends of the plotted WINDOW, not of this feature's drawn line: a
+          series whose early quarters are suppressed starts inboard of the left
+          edge, and the axis still describes the same window as its siblings. */}
+      <span>{dates[0]}</span>
+      <span>{dates[dates.length - 1]}</span>
+    </div>
+  ) : null;
+
   return (
+    <>
     <svg
       width="100%"
       viewBox={`0 0 ${width} ${height}`}
@@ -117,5 +140,7 @@ export function FundamentalSparkline({
       />
       {last ? <circle cx={last[0]} cy={last[1]} r={2} fill={stroke} /> : null}
     </svg>
+    {axis}
+    </>
   );
 }

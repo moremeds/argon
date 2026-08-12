@@ -256,4 +256,24 @@ describe("FundamentalsTab", () => {
     expect(tile.textContent).toMatch(/7\.7%/);
     expect(tile.querySelector("svg")).toBeNull();
   });
+
+  it("dates every trajectory, not just the composite", async () => {
+    nextCard = CEG_CARD;
+    render(<FundamentalsTab ticker="CEG" />);
+    await screen.findByTestId("subscore-op_margin");
+    // The axis lives inside the sparkline, so all eight charts share one
+    // implementation and cannot drift apart. Seven tiles + the composite.
+    expect(screen.getAllByText("2025-02-18").length).toBe(8);
+    expect(screen.getAllByText("2026-08-14").length).toBe(8);
+  });
+
+  it("dates the WINDOW, so a suppressed opening quarter still reads correctly", async () => {
+    // gross_margin's newest quarter is suppressed; its line stops short of the
+    // right edge while the axis still spans the same window as its siblings.
+    nextCard = CEG_CARD;
+    render(<FundamentalsTab ticker="CEG" />);
+    const tile = await screen.findByTestId("subscore-gross_margin");
+    expect(tile.textContent).toMatch(/2025-02-18/);
+    expect(tile.textContent).toMatch(/2026-08-14/);
+  });
 });
