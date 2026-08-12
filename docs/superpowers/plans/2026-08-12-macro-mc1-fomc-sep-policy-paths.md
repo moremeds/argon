@@ -10,8 +10,8 @@ SEP and New York Fed survey adapters. Normalize all releases into MC0 artifacts/
 assemble four independent policy-path objects; the existing Frenzy path remains a delayed,
 third-party market shadow and is never labeled official.
 
-**Tech Stack:** httpx/BeautifulSoup, `pdfplumber` for NY Fed SME tables, Postgres MC0 evidence store,
-APScheduler, Pydantic v2, FastAPI.
+**Tech Stack:** httpx/BeautifulSoup, `openpyxl` for the NY Fed's official structured SME workbook,
+Postgres MC0 evidence store, APScheduler, Pydantic v2, FastAPI.
 
 ---
 
@@ -29,7 +29,8 @@ APScheduler, Pydantic v2, FastAPI.
 
 **Files:**
 - Create: `tests/fixtures/macro/fed_sep_2026_06.html`
-- Create: `tests/fixtures/macro/nyfed_sme_policy_expectations.pdf`
+- Create: `tests/fixtures/macro/nyfed_sme_2026_06.xlsx`
+- Create: `tests/fixtures/macro/nyfed_sme_2026_06.pdf`
 - Modify: `tests/unit/sources/test_fomc_calendar.py`
 - Create: `tests/unit/sources/test_fed_sep.py`
 - Create: `tests/unit/sources/test_nyfed_sme.py`
@@ -38,7 +39,8 @@ APScheduler, Pydantic v2, FastAPI.
 
 1. Pin one FOMC statement with target action and vote split.
 2. Pin one official SEP table containing the participant distribution and published medians.
-3. Pin one NY Fed SME release containing meeting-path/OIS/distribution fields.
+3. Pin one NY Fed SME structured-data release containing meeting-path/distribution fields and its
+   matching human-readable PDF.
 4. Test exact dates, units, participant-count totals, medians, source record IDs, and release times.
 5. Test malformed/missing tables raise a normalization error rather than returning an empty release.
 6. Run the three tests. Expected: new source modules are missing and tests FAIL.
@@ -79,14 +81,15 @@ SepProjection(variable, horizon, central_tendency, range, median, participant_di
 
 **Steps:**
 
-1. Add and lock `pdfplumber` as the production PDF table dependency; do not rely on a desktop-only
-   workspace package or shell executable.
-2. Discover the latest SME release from the NY Fed publisher page and persist the exact PDF bytes,
-   media type, length, and artifact hash before parsing.
-3. Extract only preregistered policy-path/distribution tables. Store page/table coordinates in
-   `source_record_id` metadata so a reviewer can reproduce extraction.
+1. Use the already-locked production `openpyxl` dependency to parse the official structured data;
+   do not add a PDF-coordinate parser to the critical data path.
+2. Discover the latest SME release from the NY Fed publisher page and retain both exact XLSX and
+   PDF bytes, media types, lengths, and artifact hashes before parsing.
+3. Extract only preregistered policy-path/distribution rows. Store workbook sheet, panel, and
+   publisher value tag in `source_record_id` metadata so a reviewer can reproduce extraction.
 4. Reject a release if expected labels, units, or table totals change.
-5. Normalize to dealer path points without translating them into SEP or market-implied semantics.
+5. Normalize the explicit `Dealer` panel to dealer path points without mixing the separate market-
+   participant panel or translating either into SEP or market-implied semantics.
 6. Run fixture tests. Expected: PASS.
 
 ### Task 4: Persist four typed policy paths

@@ -7,7 +7,9 @@ import logging
 import re
 from collections.abc import Iterable
 from dataclasses import dataclass
-from datetime import date
+from datetime import date, datetime, time
+from decimal import Decimal, InvalidOperation
+from zoneinfo import ZoneInfo
 
 import httpx
 from bs4 import BeautifulSoup
@@ -23,6 +25,13 @@ class FomcMeeting:
     action: str | None
     vote_split: str | None
     source_url: str | None
+    statement_pdf_url: str | None
+    projection_url: str | None
+    projection_pdf_url: str | None
+    source_record_id: str | None
+    published_at: datetime | None
+    target_range_lower: Decimal | None
+    target_range_upper: Decimal | None
 
     def to_payload(self) -> dict[str, object]:
         return {
@@ -57,17 +66,38 @@ class FomcCalendarProvider:
         response.raise_for_status()
         soup = BeautifulSoup(response.text, "html.parser")
         statement_urls = _statement_urls_by_date(soup, self._base_url)
-        meetings = _parse_meeting_lines(soup, years=years, statement_urls=statement_urls)
+        statement_pdf_urls = _statement_pdf_urls_by_date(soup, self._base_url)
+        projection_urls = _projection_urls_by_date(soup, self._base_url)
+        projection_pdf_urls = _projection_pdf_urls_by_date(soup, self._base_url)
+        meetings = _parse_meeting_lines(
+            soup,
+            years=years,
+            statement_urls=statement_urls,
+            statement_pdf_urls=statement_pdf_urls,
+            projection_urls=projection_urls,
+            projection_pdf_urls=projection_pdf_urls,
+        )
         enriched: list[FomcMeeting] = []
         for meeting in meetings:
             action = meeting.action
             vote_split = meeting.vote_split
+            target_range_lower = meeting.target_range_lower
+            target_range_upper = meeting.target_range_upper
+            published_at = meeting.published_at
             if meeting.source_url:
                 try:
-                    statement = self._get(meeting.source_url.replace(self._base_url, ""))
+                    statement = self._get(
+                        meeting.source_url.replace(self._base_url, "")
+                    )
                     statement.raise_for_status()
                     action = action or _infer_action(statement.text)
                     vote_split = vote_split or _infer_vote_split(statement.text)
+                    target_range = _infer_target_range(statement.text)
+                    if target_range is not None:
+                        target_range_lower, target_range_upper = target_range
+                    published_at = published_at or _infer_published_at(
+                        statement.text, meeting.end_date
+                    )
                 except httpx.HTTPError as exc:
                     logger.debug(
                         "skipping FOMC statement enrichment failure: %s", repr(exc)
@@ -80,6 +110,13 @@ class FomcCalendarProvider:
                     action=action,
                     vote_split=vote_split,
                     source_url=meeting.source_url,
+                    statement_pdf_url=meeting.statement_pdf_url,
+                    projection_url=meeting.projection_url,
+                    projection_pdf_url=meeting.projection_pdf_url,
+                    source_record_id=meeting.source_record_id,
+                    published_at=published_at,
+                    target_range_lower=target_range_lower,
+                    target_range_upper=target_range_upper,
                 )
             )
         return enriched
@@ -93,12 +130,60 @@ class FomcCalendarProvider:
 
 
 def _statement_urls_by_date(soup: BeautifulSoup, base_url: str) -> dict[date, str]:
+    return _dated_document_urls(
+        soup,
+        base_url,
+        patterns=(
+            r"fomcstatement(20\d{6})\.htm$",
+            r"/newsevents/pressreleases/monetary(20\d{6})a\.htm$",
+        ),
+    )
+
+
+def _statement_pdf_urls_by_date(soup: BeautifulSoup, base_url: str) -> dict[date, str]:
+    return _dated_document_urls(
+        soup,
+        base_url,
+        patterns=(
+            r"fomcstatement(20\d{6})\.pdf$",
+            r"/monetarypolicy/files/monetary(20\d{6})a1\.pdf$",
+        ),
+    )
+
+
+def _projection_urls_by_date(soup: BeautifulSoup, base_url: str) -> dict[date, str]:
+    return _dated_document_urls(
+        soup,
+        base_url,
+        patterns=(r"/monetarypolicy/fomcprojtabl(20\d{6})\.htm$",),
+    )
+
+
+def _projection_pdf_urls_by_date(soup: BeautifulSoup, base_url: str) -> dict[date, str]:
+    return _dated_document_urls(
+        soup,
+        base_url,
+        patterns=(r"/monetarypolicy/files/fomcprojtabl(20\d{6})\.pdf$",),
+    )
+
+
+def _dated_document_urls(
+    soup: BeautifulSoup,
+    base_url: str,
+    *,
+    patterns: tuple[str, ...],
+) -> dict[date, str]:
     out: dict[date, str] = {}
     for link in soup.find_all("a", href=True):
         href = str(link["href"])
-        if "fomcstatement" not in href:
-            continue
-        match = re.search(r"(20\d{6})", href)
+        match = next(
+            (
+                candidate
+                for pattern in patterns
+                if (candidate := re.search(pattern, href))
+            ),
+            None,
+        )
         if match is None:
             continue
         raw = match.group(1)
@@ -112,6 +197,9 @@ def _parse_meeting_lines(
     *,
     years: Iterable[int],
     statement_urls: dict[date, str],
+    statement_pdf_urls: dict[date, str],
+    projection_urls: dict[date, str],
+    projection_pdf_urls: dict[date, str],
 ) -> list[FomcMeeting]:
     wanted = set(years)
     month_lookup = {name: idx for idx, name in enumerate(calendar.month_name) if name}
@@ -150,6 +238,17 @@ def _parse_meeting_lines(
                 action=None,
                 vote_split=None,
                 source_url=statement_urls.get(end),
+                statement_pdf_url=statement_pdf_urls.get(end),
+                projection_url=projection_urls.get(end),
+                projection_pdf_url=projection_pdf_urls.get(end),
+                source_record_id=(
+                    f"fomc-statement:{end.isoformat()}"
+                    if statement_urls.get(end) is not None
+                    else None
+                ),
+                published_at=None,
+                target_range_lower=None,
+                target_range_upper=None,
             )
         )
     return out
@@ -170,6 +269,13 @@ def _infer_action(html: str) -> str | None:
 def _infer_vote_split(html: str) -> str | None:
     text = BeautifulSoup(html, "html.parser").get_text(" ")
     compact = " ".join(text.split())
+    explicit = re.search(
+        r"approved .*? by (?:a )?(\d+)\s*[\-–—]\s*(\d+)\s+vote",
+        compact,
+        flags=re.IGNORECASE,
+    )
+    if explicit is not None:
+        return f"{explicit.group(1)}-{explicit.group(2)}"
     for_match = re.search(
         r"Voting for .*? were (.*?)(?:\. Voting against|\.?$)",
         compact,
@@ -187,6 +293,60 @@ def _infer_vote_split(html: str) -> str | None:
     if for_count == 0:
         return None
     return f"{for_count}-{against_count}"
+
+
+def _infer_target_range(html: str) -> tuple[Decimal, Decimal] | None:
+    text = BeautifulSoup(html, "html.parser").get_text(" ")
+    compact = " ".join(text.lower().split())
+    match = re.search(
+        r"target range for the federal funds rate at "
+        r"(\d+(?:\.\d+)?(?:-\d+/\d+)?)\s+to\s+"
+        r"(\d+(?:\.\d+)?(?:-\d+/\d+)?)\s+percent",
+        compact,
+    )
+    if match is None:
+        return None
+    try:
+        return _mixed_decimal(match.group(1)), _mixed_decimal(match.group(2))
+    except (InvalidOperation, ValueError, ZeroDivisionError) as exc:
+        logger.debug("invalid FOMC target range: %s", repr(exc))
+        return None
+
+
+def _mixed_decimal(raw: str) -> Decimal:
+    if "-" not in raw:
+        return Decimal(raw)
+    whole, fraction = raw.split("-", 1)
+    numerator, denominator = fraction.split("/", 1)
+    return Decimal(whole) + Decimal(numerator) / Decimal(denominator)
+
+
+def _infer_published_at(html: str, meeting_date: date) -> datetime | None:
+    text = BeautifulSoup(html, "html.parser").get_text(" ")
+    compact = " ".join(text.split())
+    match = re.search(
+        r"For release at (\d{1,2}):(\d{2})\s+([ap])\.m\.,?\s+(E[DS]T)",
+        compact,
+        flags=re.IGNORECASE,
+    )
+    if match is None:
+        return None
+    hour = int(match.group(1)) % 12
+    if match.group(3).lower() == "p":
+        hour += 12
+    published = datetime.combine(
+        meeting_date,
+        time(hour=hour, minute=int(match.group(2))),
+        tzinfo=ZoneInfo("America/New_York"),
+    )
+    if published.tzname() != match.group(4).upper():
+        logger.debug(
+            "FOMC release timezone mismatch: parsed=%s declared=%s",
+            published.tzname(),
+            match.group(4).upper(),
+        )
+        return None
+    return published
 
 
 def _count_names(text: str) -> int:

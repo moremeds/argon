@@ -1,0 +1,59 @@
+{
+  "captured_on": "2026-08-12",
+  "notes": [
+    "Federal Reserve HTML contains a request-dynamic Akamai footer, so the stable official PDF is the primary immutable release artifact and accessible HTML is retained as parsing support.",
+    "New York Fed structured XLSX is the primary SME data artifact; the official results PDF is retained for human-readable cross-checking.",
+    "NY Fed survey_release_date is the questionnaire distribution date, not the results publication instant; historical PIT availability must use a reliable publisher timestamp or conservative first retrieval."
+  ],
+  "artifacts": [
+    {
+      "name": "fomc_calendar_2026.html",
+      "url": "https://www.federalreserve.gov/monetarypolicy/fomccalendars.htm",
+      "media_type": "text/html",
+      "content_length": 164431,
+      "sha256": "8d1919a8663d1a51176fe73635c6e3703df266041077f43cfa01e780f34b395a"
+    },
+    {
+      "name": "fomc_statement_2026_06.html",
+      "url": "https://www.federalreserve.gov/newsevents/pressreleases/monetary20260617a.htm",
+      "media_type": "text/html",
+      "content_length": 81083,
+      "sha256": "e40f857045fcdb7cac6184397818e830b17e76d22988b630a5b59ef659691cf8"
+    },
+    {
+      "name": "fomc_statement_2026_06.pdf",
+      "url": "https://www.federalreserve.gov/monetarypolicy/files/monetary20260617a1.pdf",
+      "media_type": "application/pdf",
+      "content_length": 229274,
+      "sha256": "13c6558e213dd433c4a0c255d5f7a25ab79992f672c9644994307afea5d7932f"
+    },
+    {
+      "name": "fed_sep_2026_06.html",
+      "url": "https://www.federalreserve.gov/monetarypolicy/fomcprojtabl20260617.htm",
+      "media_type": "text/html",
+      "content_length": 232840,
+      "sha256": "cb8e66750aa86de09773f127afb2bfd9e538c1152ee2b4344d73cc35ddec8b35"
+    },
+    {
+      "name": "fed_sep_2026_06.pdf",
+      "url": "https://www.federalreserve.gov/monetarypolicy/files/fomcprojtabl20260617.pdf",
+      "media_type": "application/pdf",
+      "content_length": 1216132,
+      "sha256": "a517887623520922a782e0cd01fb38d4469bed951f63d2588efb99f72deddde3"
+    },
+    {
+      "name": "nyfed_sme_2026_06.xlsx",
+      "url": "https://www.newyorkfed.org/medialibrary/media/markets/survey/2026/jun-2026-data.xlsx",
+      "media_type": "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+      "content_length": 253265,
+      "sha256": "d0cf390537a631ba32990aba2bf0229dd5c92a9a18b7e95fd2c1119eeb5e5ecb"
+    },
+    {
+      "name": "nyfed_sme_2026_06.pdf",
+      "url": "https://www.newyorkfed.org/medialibrary/media/markets/survey/2026/jun-2026-sme-results.pdf",
+      "media_type": "application/pdf",
+      "content_length": 305404,
+      "sha256": "48c2846ac5ee6f54611fef925499476e31dab5ea2d4f7b8669b64a6b32a920a6"
+    }
+  ]
+}
