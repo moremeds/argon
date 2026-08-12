@@ -1,0 +1,98 @@
+{
+  "probed_at": "2026-08-11",
+  "reproduce": "UW_SCAN_API_KEY=... uv run python scripts/research/fundamental_valuation_control.py",
+  "horizon": "2q",
+  "universe": 245,
+  "quarters": 80,
+  "cross_section": {
+    "min": 146,
+    "median": 239,
+    "max": 245
+  },
+  "own_ic": {
+    "book_to_price": {
+      "n_quarters": 80,
+      "mean_ic": -0.0365,
+      "ic_stdev": 0.1408,
+      "t_stat": -2.321,
+      "hit_rate": 0.388
+    },
+    "gross_margin": {
+      "n_quarters": 80,
+      "mean_ic": -0.0194,
+      "ic_stdev": 0.1008,
+      "t_stat": -1.723,
+      "hit_rate": 0.475
+    },
+    "op_margin": {
+      "n_quarters": 80,
+      "mean_ic": -0.027,
+      "ic_stdev": 0.0883,
+      "t_stat": -2.729,
+      "hit_rate": 0.4
+    },
+    "earnings_yield": {
+      "n_quarters": 77,
+      "mean_ic": -0.0194,
+      "ic_stdev": 0.1195,
+      "t_stat": -1.426,
+      "hit_rate": 0.442
+    },
+    "fcf_yield": {
+      "n_quarters": 77,
+      "mean_ic": 0.0285,
+      "ic_stdev": 0.0882,
+      "t_stat": 2.837,
+      "hit_rate": 0.623
+    }
+  },
+  "partial_ic": {
+    "gross_margin": {
+      "earnings_yield": {
+        "n_quarters": 77,
+        "mean_ic": -0.018,
+        "ic_stdev": 0.0981,
+        "t_stat": -1.611,
+        "hit_rate": 0.455
+      },
+      "book_to_price": {
+        "n_quarters": 80,
+        "mean_ic": -0.0271,
+        "ic_stdev": 0.0902,
+        "t_stat": -2.685,
+        "hit_rate": 0.412
+      },
+      "fcf_yield": {
+        "n_quarters": 77,
+        "mean_ic": -0.0144,
+        "ic_stdev": 0.1004,
+        "t_stat": -1.257,
+        "hit_rate": 0.481
+      }
+    },
+    "op_margin": {
+      "earnings_yield": {
+        "n_quarters": 77,
+        "mean_ic": -0.0231,
+        "ic_stdev": 0.0865,
+        "t_stat": -2.348,
+        "hit_rate": 0.429
+      },
+      "book_to_price": {
+        "n_quarters": 80,
+        "mean_ic": -0.0306,
+        "ic_stdev": 0.091,
+        "t_stat": -3.008,
+        "hit_rate": 0.375
+      },
+      "fcf_yield": {
+        "n_quarters": 77,
+        "mean_ic": -0.0298,
+        "ic_stdev": 0.0899,
+        "t_stat": -2.91,
+        "hit_rate": 0.403
+      }
+    }
+  },
+  "note": "Market cap uses RAW close x as-reported shares; adj_close would mix reference frames across splits. Yields are fundamental/price so the ranking stays monotone through zero earnings."
+}

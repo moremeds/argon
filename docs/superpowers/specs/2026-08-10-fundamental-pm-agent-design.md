@@ -807,7 +807,7 @@ Three reasons, in order of weight:
 | `profitability` | gross + operating margin, level and 4-quarter trend | **no direction claimed** (rev 4 — both inverted) | 0.20 | ⚠️ gross margin `na` for CEG, ORCL, VST |
 | `capital_efficiency` | FCF conversion, return on invested capital | higher better | 0.15 | ✅ UW `capital_expenditures` 100% |
 | `balance_sheet` | net debt / EBITDA, interest coverage, current ratio | lower leverage better | 0.15 | ✅ UW cash + debt + EBITDA + interest, 100%; NCI from SEC XBRL |
-| `valuation_position` | spot vs `observe_low..observe_high` band from stage 3 | cheaper better | 0.15 | ✅ |
+| `valuation_position` | spot vs `observe_low..observe_high` band from stage 3 | cheaper better — ⚠️ **contradicted** for B/P and E/P (rev 4 follow-up) | 0.15 | ✅ |
 | `concentration_risk` | **largest reported segment share of revenue + largest single-country share, and each one's multi-year trend** (§6) | lower better | 0.10 | ✅ UW `rev_breakdown`, 24/25 — **TSM is the sole `na`** |
 | `expectations_gap` | our 1Y anchor vs `uw_positioning.analyst_target_avg`, insider net, short interest | wider positive gap better | 0.05 | ✅ existing UW positioning |
 
@@ -825,12 +825,19 @@ knowledge-date buckets. `roe` is listed because it was tested, though no rubric 
 | `profitability` (gross margin) | `gross_margin` | **−0.0223** | −2.02 | ❌ **inverted** |
 | `profitability` (operating margin) | `op_margin` | **−0.0244** | −2.56 | ❌ **inverted** |
 
-**The two profitability directions are withdrawn, not flipped.** Inverting them would claim an edge
-from a result that most likely reflects a *missing* dimension: nothing here controls for valuation,
-and high-margin firms are usually richly priced, so a margin ranking is partly an expensiveness
-ranking. Render the levels and trends; make no good/bad claim until a valuation control is tested.
-`valuation_position`, `concentration_risk` and `expectations_gap` were not tested at all — they draw
-on inputs the validation harness does not compute.
+**The two profitability directions are withdrawn, not flipped — and the valuation control did not
+rescue them.** The stated hypothesis was that a margin ranking is partly an expensiveness ranking.
+It was tested (`fundamental_valuation_control.py`) and **rejected**: `op_margin`'s partial IC
+against three price ratios is −0.0231 / −0.0306 / −0.0298 versus −0.0270 uncontrolled, and against
+`book_to_price` both margins strengthen. Render levels and trends; make no good/bad claim. The
+inversion is real and unexplained, which is a firmer reason to withhold than the original guess.
+
+`valuation_position`, `concentration_risk` and `expectations_gap` remain untested — they draw on
+inputs the validation harness does not compute. One warning for `valuation_position` specifically:
+the control run measured `book_to_price` at IC **−0.0365** (t −2.32) and `earnings_yield` at
+−0.0194 over this window, so a "cheaper better" prior is **contradicted** by the only price ratios
+tested. `fcf_yield` (+0.0285, t 2.84) is the sole one that behaved. Do not seed
+`valuation_position` as "cheaper better" without deciding which ratio it means.
 
 **The composite is not a sort key at core-25 width, which reverses I5 for this universe.** Validated
 IC is 0.039–0.059 at 245 names and 0.024 (t 0.68) at 25 — see §4.3 for why history cannot fix that.
@@ -1402,10 +1409,14 @@ card drill-down and provider-down paths.
    ordered at cohort width; argon's own theta-harvester precedent is correct ordering with a losing
    selection, measured on a *powered* test.
 
-   Two limits ride along and neither is fixable here. **Survivorship**: both sources carry live
+   Three limits ride along and none is fixable here. **Survivorship**: both sources carry live
    tickers only, so every result describes companies that survived to 2026. **Costs**: no
    transaction costs, capacity, borrow or turnover limit was modelled, and that gap is where most
-   IC-positive methods die.
+   IC-positive methods die. **Single regime**: the valuation-control run found value inverted over
+   the whole window (`book_to_price` IC −0.0365), so 2005–2026 is one quality-led, value-lagging
+   period and the working signals are that period's profile. The two-halves robustness check does
+   not disprove this — both halves are inside it. Assume the composite is measured-in-one-regime
+   until a window where value led is tested.
 2. **The concentration ledger is decorative rather than decision-useful.** MED confidence it
    earns its place. The `trend` array is the specific bet; if concentration trends turn out flat
    and uninformative across the core 25, P4 should be cut rather than extended.
@@ -1430,12 +1441,22 @@ item left open is therefore **settled against a ranked composite on this univers
 descriptive card, on measured grounds rather than assumed ones. Full result and limits:
 `docs/research/2026-08-11-fundamental-signal-validation/VERDICT.md`.
 
-**Opened by that closure — the new top item: nothing controls for valuation.** `gross_margin` and
-`op_margin` both came back inverted on the powered test. The hypothesis is that a margin ranking is
-partly an expensiveness ranking, but no price ratio was tested, so the rubric currently withholds a
-direction on the entire `profitability` subscore (0.20 seed weight — the joint-largest). Testing one
-valuation control against the same harness is cheap, reuses `quarterly_ics()`, and would either
-restore the direction or confirm the withdrawal.
+**~~Opened by that closure: nothing controls for valuation.~~ TESTED — hypothesis rejected.**
+`scripts/research/fundamental_valuation_control.py` built market cap from raw close × as-reported
+shares and measured the margins' **partial** rank IC against three price ratios. `op_margin` moves
+from −0.0270 to −0.0231 / −0.0306 / −0.0298; against `book_to_price` both margins get *stronger*.
+Expensiveness does not explain the inversion, so `profitability` keeps withholding its direction —
+now because the inversion is **real and unexplained**, which is a firmer reason than the one rev 4
+gave.
+
+**Opened by *that* — the new top item: every quarter measured sits in one regime.** The control run
+also found value inverted (`book_to_price` IC −0.0365, t −2.32; `earnings_yield` −0.0194), the
+documented post-GFC value drawdown. So the signals that worked (low leverage, high asset turnover,
+FCF yield) are the quality/growth profile that led 2005–2026, and the ones that failed are the value
+profile that lagged it. **The rev-4 robustness split — 2005–2015 and 2016–2026 both positive — is
+therefore weaker evidence than it read, because both halves sit inside the same regime.** Nothing is
+retracted; what is bounded is the claim's coverage. A genuine out-of-regime test needs a window
+where value led, which a 245-name US large-cap survivor universe does not contain.
 
 **Also open, in order:**
 
