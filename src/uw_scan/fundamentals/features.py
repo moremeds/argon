@@ -15,6 +15,7 @@ composite that was validated weights all seven equally — see
 
 from __future__ import annotations
 
+from collections.abc import Mapping
 from typing import Any
 
 FEATURES = [
@@ -156,3 +157,190 @@ def build_features(uw: dict[str, Any]) -> dict[str, dict[str, dict[str, float | 
             }
         feats[t] = pf
     return feats
+
+
+# Fields worth showing that are NOT inputs to the ratio. They render dimmed and
+# labelled `context`, and are excluded from the reconciliation invariant by
+# construction — only role="input" series participate in it.
+FEATURE_CONTEXT: dict[str, tuple[str, ...]] = {
+    "gross_margin": ("cost_of_revenue",),
+    "op_margin": ("research_and_development", "selling_general_and_administrative"),
+}
+
+_LABELS: dict[str, str] = {
+    "total_revenue": "revenue",
+    "gross_profit": "gross profit",
+    "cost_of_revenue": "cost of revenue",
+    "operating_income": "operating income",
+    "research_and_development": "R&D",
+    "selling_general_and_administrative": "SG&A",
+    "operating_cashflow": "operating cash flow",
+    "capital_expenditures": "capex",
+    "net_income": "net income",
+    "total_shareholder_equity": "shareholder equity",
+    "short_long_term_debt_total": "total debt",
+    "cash_and_cash_equivalents": "cash",
+    "ebitda": "EBITDA",
+    "total_assets": "total assets",
+    "rev_ttm_prev": "revenue TTM, 4q earlier",
+}
+
+# Statement each raw field is read from, so a series resolves without guessing.
+_SOURCE: dict[str, str] = {
+    "total_revenue": "income",
+    "gross_profit": "income",
+    "cost_of_revenue": "income",
+    "operating_income": "income",
+    "research_and_development": "income",
+    "selling_general_and_administrative": "income",
+    "net_income": "income",
+    "ebitda": "income",
+    "operating_cashflow": "cash_flow",
+    "capital_expenditures": "cash_flow",
+    "total_shareholder_equity": "balance",
+    "total_assets": "balance",
+    "short_long_term_debt_total": "balance",
+    "cash_and_cash_equivalents": "balance",
+}
+
+# Fields summed over four quarters rather than read per quarter. Mirrors the
+# `_ttm(...)` calls in `build_features`; edit the two together.
+_TTM_FIELDS: dict[str, frozenset[str]] = {
+    "rev_growth": frozenset({"total_revenue"}),
+    "gross_margin": frozenset(),
+    "op_margin": frozenset(),
+    "fcf_margin": frozenset(
+        {"operating_cashflow", "capital_expenditures", "total_revenue"}
+    ),
+    "roe": frozenset({"net_income"}),
+    "neg_net_debt_ebitda": frozenset({"ebitda"}),
+    "asset_turnover": frozenset({"total_revenue"}),
+}
+
+
+def feature_basis(feature: str) -> str:
+    """ "ttm" | "quarterly" | "mixed", DERIVED rather than hand-listed.
+
+    An earlier draft carried a `FEATURE_BASIS` dict alongside `_TTM_FIELDS`. Two
+    hand-maintained maps describing one fact drift; this one cannot. Adding a
+    field to `_TTM_FIELDS` now moves the label automatically, which is the
+    behaviour you want when the arithmetic is what changed.
+    """
+    ttm = _TTM_FIELDS[feature]
+    total = len(FEATURE_INPUTS[feature])
+    if len(ttm) == total:
+        return "ttm"
+    if not ttm:
+        return "quarterly"
+    return "mixed"
+
+
+def build_feature_details(uw: Mapping[str, Any], quarters: int = 20) -> dict[str, Any]:
+    """Per feature: the component series its ratio is computed from, plus the ratio.
+
+    Serves the card's back side. Lives beside `build_features` and reuses `_f`
+    and `_ttm` deliberately — the back states the figures behind the front's
+    number, so the two must be one definition rather than two that agree today.
+
+    `uw` is ONE ticker's entry from `FundamentalObsRepository.statement_panel`.
+    """
+    inc = uw["income-statements"]
+    bs = uw["balance-sheets"]
+    cf = uw["cash-flows"]
+    by_source = {"income": inc, "balance": bs, "cash_flow": cf}
+
+    all_periods = sorted(inc)
+    keep = all_periods[-quarters:] if quarters > 0 else all_periods
+    offset = len(all_periods) - len(keep)
+
+    currency = None
+    for p in reversed(all_periods):
+        currency = _f_str(inc.get(p), "reported_currency")
+        if currency:
+            break
+
+    def value(field: str, feature: str, i_all: int) -> float | None:
+        src = by_source[_SOURCE[field]]
+        if field in _TTM_FIELDS[feature]:
+            return _ttm(src, all_periods, i_all, field)
+        return _f(src.get(all_periods[i_all]), field)
+
+    ratios = build_features({"_": uw})["_"]
+
+    features: list[dict[str, Any]] = []
+    for feature, fields in FEATURE_INPUTS.items():
+        series: list[dict[str, Any]] = []
+        for field in fields:
+            # The SAME field is quarterly under one feature and a four-quarter
+            # sum under another — `total_revenue` is per-quarter for
+            # `gross_margin` and TTM for `asset_turnover`, figures differing by
+            # ~4x. So the KEY carries the basis, not just the label: a series
+            # keyed `total_revenue` holding a TTM sum is mislabelled data, and a
+            # consumer joining on that key would be silently wrong.
+            is_ttm = field in _TTM_FIELDS[feature]
+            series.append(
+                {
+                    "key": f"{field}_ttm" if is_ttm else field,
+                    "label": _LABELS.get(field, field) + (" TTM" if is_ttm else ""),
+                    "role": "input",
+                    "unit": "currency",
+                    "values": [
+                        value(field, feature, offset + i) for i in range(len(keep))
+                    ],
+                }
+            )
+        if feature == "rev_growth":
+            # The denominator is the SAME field four quarters back, so it needs a
+            # distinct key or it would collide with the numerator's series.
+            series.append(
+                {
+                    "key": "rev_ttm_prev",
+                    "label": _LABELS["rev_ttm_prev"],
+                    "role": "input",
+                    "unit": "currency",
+                    "values": [
+                        _ttm(inc, all_periods, offset + i - 4, "total_revenue")
+                        if offset + i >= 7
+                        else None
+                        for i in range(len(keep))
+                    ],
+                }
+            )
+        for field in FEATURE_CONTEXT.get(feature, ()):
+            series.append(
+                {
+                    "key": field,
+                    "label": _LABELS.get(field, field),
+                    "role": "context",
+                    "unit": "currency",
+                    "values": [
+                        _f(
+                            by_source[_SOURCE[field]].get(all_periods[offset + i]),
+                            field,
+                        )
+                        for i in range(len(keep))
+                    ],
+                }
+            )
+        features.append(
+            {
+                "feature": feature,
+                "basis": feature_basis(feature),
+                "unit": FEATURE_UNITS[feature],
+                "series": series,
+                "ratio": [ratios[p][feature] for p in keep],
+            }
+        )
+
+    return {
+        "period_ends": list(keep),
+        "reported_currency": currency,
+        "features": features,
+    }
+
+
+def _f_str(row: dict | None, key: str) -> str | None:
+    if not row:
+        return None
+    v = row.get(key)
+    return str(v) if v not in (None, "") else None
