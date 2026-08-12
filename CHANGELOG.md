@@ -167,6 +167,21 @@ version in lockstep (enforced by `scripts/release/version_sync_check.py`).
   load-bearing. **20 quarters ships**: TSLA's negative-FCF quarters fall out
   entirely (0 of 20) and every band lands within reach of spot. Trace and the
   full revision: `docs/research/2026-08-12-fundamental-valuation-timeseries/VERDICT.md`.
+- **A band whose ends are far apart is now refused, with its width stated.**
+  The trailing window fixed the systematic case and left a tail it could not:
+  NBIS still spanned **72x** between `buy_below` and `risk_above`, MSTR 47x,
+  APLD 17x. Those are names whose own five-year range straddles a business
+  transformation, so the honest answer is that their history cannot anchor a
+  price — not a band with 72x between its ends. `MAX_BAND_WIDTH = 4.0` sits in
+  the empty part of the measured distribution (median width **1.73x**; the
+  refused tail is 5x and above), and refuses 10 of 53 attempted bands. Widest
+  surviving band: 3.02x. The job warns when the refusal share passes 30%, which
+  would mean the window is wrong rather than the names being unusual.
+- **The first version of that guard could not fail on the case that motivated
+  it.** Keying on spot-versus-midpoint looked reasonable and passed ASML's broken
+  band silently: 1518.3 / 699.8 is 2.17x, inside any sane bound. What was wrong
+  was the 4.35x between the band's own ends. Recorded as a test, because a metric
+  that cannot fire on its motivating example is not a guard.
 - **The quiet half of the same bug: three filers banded from unconverted
   foreign-currency statements.** The EV guard above only catches the
   catastrophic case. ASML's ~16% EUR gap produced a full band at

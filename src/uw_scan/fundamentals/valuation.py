@@ -134,6 +134,21 @@ THIN_HISTORY = 20
 #: band is being compared against.
 STALE_DAYS = 140
 
+#: `risk_above / buy_below` beyond this is refused rather than drawn.
+#:
+#: A band is a decision surface, and one spanning 72x is not one no matter how
+#: correctly each level was computed — which is the whole lesson of the
+#: full-history window: every number was right and the set was useless.
+#:
+#: Measured over the 50 banded names at 20 quarters: median width 1.73x, and the
+#: tail is not a smooth continuum but a different population — NBIS 72x, MSTR 47x,
+#: APLD 17x, DIS 7.0x. Those are names whose own five-year valuation range still
+#: straddles a business transformation (Yandex -> Nebius, a bitcoin treasury), so
+#: the honest answer is that their own history cannot anchor a price, not a band
+#: with 72x between its ends. 4.0 sits in the empty part of the distribution:
+#: it refuses 7 of 50 and touches nothing between 2.5x and 5x except DIS.
+MAX_BAND_WIDTH = 4.0
+
 
 def quarter_inputs(
     statements: dict[str, dict[str, Any]], periods: list[str], i: int
@@ -338,6 +353,21 @@ def build_anchors(
     if any(v is None for v in anchors.values()):
         missing = sorted(k for k, v in anchors.items() if v is None)
         reasons.append(f"levels not invertible at this net debt: {', '.join(missing)}")
+
+    # Width is a property of the BAND, not of any level, so it is checked here
+    # rather than by a consumer — a caller that renders the levels one at a time
+    # has no place to notice that their ends are 72x apart.
+    lo, hi = anchors["buy_below"], anchors["risk_above"]
+    if lo and hi and lo > 0 and hi / lo > MAX_BAND_WIDTH:
+        return _no_anchor(
+            ticker,
+            company_type,
+            method,
+            [
+                f"own {WINDOW_QUARTERS}-quarter valuation range spans "
+                f"{hi / lo:.0f}x — too unstable to anchor a price to"
+            ],
+        )
 
     # Where spot sits: computed from the CURRENT yield against the same history,
     # not by comparing spot to the levels. The two agree by construction, and

@@ -58,6 +58,10 @@ log = logging.getLogger(__name__)
 
 BAR_FILENAME = "1d.parquet"
 
+#: Share of attempted bands refused that means the METHOD is wrong rather than
+#: the names being unusual.
+REFUSAL_ALERT_SHARE = 0.30
+
 
 def load_raw_closes(
     root: Path, tickers: list[str]
@@ -473,5 +477,20 @@ def fundamental_anchors(
         )
 
     counters["written"] = anchors_repo.insert_anchors(rows)
+
+    # Fires on the SHARE, not on any one name. A handful of names whose own
+    # history cannot anchor a price is expected; a third of the book reading that
+    # way means the percentile window is wrong, which is exactly what the
+    # full-history window was before 2026-08-12 with nothing in the pipeline
+    # saying so.
+    attempted = counters["banded"] + counters["refused"]
+    if attempted and counters["refused"] / attempted > REFUSAL_ALERT_SHARE:
+        log.warning(
+            "anchors: %d/%d attempted bands refused (>%.0f%%) — check the "
+            "percentile window before trusting the ones that did render",
+            counters["refused"],
+            attempted,
+            REFUSAL_ALERT_SHARE * 100,
+        )
     log.info("anchors: %s", counters)
     return counters
