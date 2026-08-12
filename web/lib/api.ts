@@ -164,6 +164,11 @@ export const api = {
     ticker: string,
   ): Promise<components["schemas"]["FundamentalCardResponse"]> =>
     _fetch(`/api/stock/${ticker}/fundamentals`),
+  fundamentalStatements: (
+    ticker: string,
+    quarters = 20,
+  ): Promise<components["schemas"]["FundamentalStatementsResponse"]> =>
+    _fetch(`/api/stock/${ticker}/fundamentals/statements?quarters=${quarters}`),
   technicals: (ticker: string): Promise<TechnicalsResponse> =>
     _fetch<TechnicalsResponse>(`/api/stock/${ticker}/technicals`),
   technicalsLive: (ticker: string): Promise<TechnicalsLiveResponse> =>

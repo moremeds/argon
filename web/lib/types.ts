@@ -378,6 +378,39 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/stock/{ticker}/fundamentals/statements": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Get Stock Fundamental Statements
+         * @description Per-feature input components behind the card's ratios.
+         *
+         *     Served separately from the card rather than folded into it, so the card's
+         *     own contract and its OpenAPI snapshot stay untouched and the two payloads
+         *     can evolve independently.
+         *
+         *     Reads through `statement_panel`, the same path the scoring job uses, so
+         *     "which observation is current" cannot diverge between the front of a card
+         *     and its back.
+         *
+         *     404 here means "no statements ingested", which is deliberately NOT the card
+         *     endpoint's condition ("no score row"). The two can legitimately disagree —
+         *     a name can hold statements and no score yet — and withholding real figures
+         *     because a different table lags would be the dishonest answer.
+         */
+        get: operations["get_stock_fundamental_statements_api_stock__ticker__fundamentals_statements_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/stock/{ticker}/magnets": {
         parameters: {
             query?: never;
@@ -3370,6 +3403,26 @@ export interface components {
             provenance: components["schemas"]["FundamentalProvenance"];
         };
         /**
+         * FundamentalComponentSeries
+         * @description One plotted series on a card's back.
+         *
+         *     `role` separates the figures the ratio is COMPUTED FROM from those merely
+         *     shown alongside it. Only `input` series participate in the reconciliation
+         *     invariant, so a renderer must not blend the two into one visual class.
+         */
+        FundamentalComponentSeries: {
+            /** Key */
+            key: string;
+            /** Label */
+            label: string;
+            /** Role */
+            role: string;
+            /** Unit */
+            unit: string;
+            /** Values */
+            values: (number | null)[];
+        };
+        /**
          * FundamentalCoverage
          * @description The explicit absence list. Mandatory, not a footer.
          *
@@ -3385,6 +3438,27 @@ export interface components {
             missing: string[];
             /** Suppressed */
             suppressed: string[];
+        };
+        /**
+         * FundamentalFeatureDetail
+         * @description One feature's components and the ratio they produce.
+         *
+         *     `basis` is stated per feature because it is not uniform: `gross_margin` and
+         *     `op_margin` are quarterly, the rest are TTM or mix a TTM flow with a
+         *     point-in-time balance. An unlabelled shared axis would invite a comparison
+         *     none of them support.
+         */
+        FundamentalFeatureDetail: {
+            /** Feature */
+            feature: string;
+            /** Basis */
+            basis: string;
+            /** Unit */
+            unit: string;
+            /** Series */
+            series: components["schemas"]["FundamentalComponentSeries"][];
+            /** Ratio */
+            ratio: (number | null)[];
         };
         /**
          * FundamentalPercentile
@@ -3427,6 +3501,24 @@ export interface components {
             filing_date_known: boolean;
             /** Source Obs Count */
             source_obs_count: number;
+        };
+        /**
+         * FundamentalStatementsResponse
+         * @description The back-side payload for one ticker.
+         *
+         *     Components are resolved server-side and the client performs no ratio math.
+         *     A client-side re-derivation would be a second copy of `build_features`, and
+         *     the two would drift until the back silently contradicted the front.
+         */
+        FundamentalStatementsResponse: {
+            /** Ticker */
+            ticker: string;
+            /** Period Ends */
+            period_ends: string[];
+            /** Reported Currency */
+            reported_currency: string | null;
+            /** Features */
+            features: components["schemas"]["FundamentalFeatureDetail"][];
         };
         /**
          * FundamentalSubscore
@@ -10833,6 +10925,39 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["FundamentalCardResponse"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    get_stock_fundamental_statements_api_stock__ticker__fundamentals_statements_get: {
+        parameters: {
+            query?: {
+                quarters?: number;
+            };
+            header?: never;
+            path: {
+                ticker: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["FundamentalStatementsResponse"];
                 };
             };
             /** @description Validation Error */
