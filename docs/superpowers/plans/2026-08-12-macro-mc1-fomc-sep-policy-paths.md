@@ -15,6 +15,22 @@ Postgres MC0 evidence store, APScheduler, Pydantic v2, FastAPI.
 
 ---
 
+## 2026-08-13 verification correction
+
+The original Task 7 latest-release probe was not sufficient to close MC1. A real worker→DB→API run
+found FOMC and SEP parser failures, and the historical audit did not discover 2020 or parse every
+2021–2026 release. The milestone is therefore **PARTIAL**, regardless of the earlier PASS wording.
+
+The approved correction is defined in:
+
+- design: `docs/superpowers/specs/2026-08-13-macro-mc1-historical-release-durability-design.md`;
+- executable detail plan:
+  `docs/plans/2026-08-13-macro-mc1-historical-release-hardening.md`.
+
+Those documents supersede Task 7 and the exit criteria below wherever they demand the stricter
+2020-present all-release ledger, per-release failure isolation, idempotent/correction-safe
+persistence, offline replay, and true four-path worker→DB→API smoke.
+
 ## Preconditions and PR boundary
 
 - MC0/GM0 is verified and merged.

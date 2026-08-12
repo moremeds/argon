@@ -65,9 +65,14 @@ The current FOMC calendar and each official historical-year page are discovery s
 must follow only Federal Reserve links and must de-duplicate releases using stable keys:
 
 ```text
-fomc-statement:<event-date>
-fed-sep:<meeting-date>
+fomc-statement:<publisher-document-id>
+fed-sep:<publisher-document-id>
 ```
+
+For example, the March 15 emergency decision is
+`fomc-statement:monetary20200315a`, and the June SEP is
+`fed-sep:fomcprojtabl20200610`. The event/meeting date is stored separately. This avoids assuming
+that a calendar date can never contain more than one official document.
 
 Statement discovery records whether the official index presents the event as scheduled or
 unscheduled. `scheduled`/`unscheduled` is an auditable calendar classification; subjective labels
@@ -89,13 +94,40 @@ evidence ledger:
 - an unchanged rerun advances only sighting metadata and creates no duplicate fact;
 - changed bytes under the same stable release key create a new artifact revision;
 - normalized output always references the exact artifact revision from which it was derived;
-- a changed normalized meaning creates a new observation and never overwrites the predecessor.
+- a changed normalized meaning or safe availability time creates a new observation and never
+  overwrites the predecessor;
+- a raw-byte-only HTML change that parses to identical facts does not manufacture a new policy
+  observation, but the new raw artifact and its parse outcome remain auditable.
+
+Acquisition/canonicalization version and semantic parser version are separate contracts. An exact
+HTML/PDF artifact keeps the acquisition version that describes how its bytes were captured; a
+normalized observation carries the semantic parser version that interpreted those bytes. Upgrading a
+semantic parser must therefore be able to reprocess an unchanged artifact without attempting to
+mutate immutable artifact metadata. A parser-version-only change does not alter what the publisher
+knew at release time, so `available_at` remains unchanged while `first_observed_at` records when
+Argon produced the reprocessed vintage. Because the FOMC and SEP parsers read accessible HTML, their
+observations reference the HTML artifact; the sibling PDF remains preserved corroborating evidence,
+not a false claim that the PDF supplied the parsed fields.
+
+Federal Reserve HTML contains request-varying delivery/footer bytes. Exact-byte identity is retained,
+but semantic policy-observation identity is computed from normalized facts, source release key, time
+semantics, and semantic parser version—not from the artifact surrogate ID. Before assigning a later
+safe availability time, the worker compares the normalized fact payload with the prior release
+observation. Identical facts attach lineage to the existing observation; changed facts create a new
+observation available no earlier than the correction timestamp or first retrieval. A typed
+observation-artifact lineage association records every exact raw revision that reproduced that
+observation. This prevents both false policy revisions and loss of raw provenance. If an HTML
+revision changes semantic output, it necessarily creates a new observation at a safe revision
+availability time.
 
 If the publisher explicitly timestamps a correction, that time becomes the new revision's
 `available_at`. If bytes at an existing URL change without a declared correction time, the new
 revision is not backdated: its safe availability is the first retrieval time. Historical backfill can
-prove only the official artifact retrieved during the backfill; it must not invent an unobserved
-pre-correction vintage.
+use an official archived release's declared publication time for the first recovered revision, while
+`retrieved_at` and `first_observed_at` disclose that it is a retrospective reconstruction rather than
+a contemporaneous capture. It can prove only the exact current archived artifact retrieved during
+the backfill; it must not invent an unobserved pre-correction revision. Any later different hash is
+available no earlier than an explicit correction time or Argon's first retrieval of that hash.
 
 A new mutable operational table, `macro_release_ingest_status`, catalogs every discovered release
 and its latest outcome. It contains the source, release key/type, event date, scheduled flag,
@@ -118,10 +150,12 @@ The numeric parser accepts integers, decimals, simple fractions, and mixed numbe
 It rejects ambiguous or non-finite values.
 
 FOMC parsing supports explicit historical wording families for maintaining/keeping, raising, and
-lowering the target range. The result is still strict: action, lower bound, upper bound, vote split,
-and release timestamp are required; lower bound must not exceed upper bound; and the action must
-agree with the statement's explicit verb. It does not infer action from market data or from a later
-meeting.
+lowering the target range. The result is still strict: action, lower bound, upper bound, vote status,
+and release timestamp are validated; lower bound must not exceed upper bound; and the action must
+agree with the statement's explicit verb. Some official unscheduled statements, including March 23,
+2020, do not publish the regular meeting voting paragraph. Those releases remain valid with
+`vote_status=not_stated` and `vote_split=null`; a published voting paragraph is still required to
+parse exactly. The parser never invents a vote or infers action from market data or a later meeting.
 
 ## 7. SEP March wording and timestamp handling
 
@@ -158,15 +192,21 @@ the data. It never substitutes one path kind for another.
 
 ## 9. Backfill, incremental operation, and replay
 
-The first enabled run requests 2020 through the current year and builds the durable ledger. Later
-runs rediscover the window cheaply, identify unchanged hashes idempotently, and fetch/parse new or
-changed releases. The source adapters remain deterministic over exact bytes so a future parser
-version can reprocess persisted artifacts without network access.
+A resumable one-time backfill requests 2020 through the current year and builds the durable ledger.
+The daily scheduled worker fetches the current year only; it does not redownload the whole archive.
+An explicit all-history audit/revision command can be run periodically or after a parser/publisher
+change. Every path is idempotent over unchanged hashes. The source adapters remain deterministic
+over exact bytes so a future semantic parser version can reprocess persisted artifacts without
+network access.
 
 The API supports both:
 
 - latest canonical valid evidence; and
-- historical `as_of` replay using `available_at <= as_of`.
+- historical date-level `as_of` replay using the existing query; and
+- precise `as_of_ts` replay using `available_at <= as_of_ts` for intraday releases/corrections.
+
+Supplying both replay parameters is rejected. The timestamp parameter is timezone-aware and is the
+one used by correction-boundary and same-day pre/post-release tests.
 
 Once acquired, the 2020+ official record must remain readable when the Federal Reserve site or the
 network is unavailable. Offline replay is an explicit acceptance test.
