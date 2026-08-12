@@ -1,0 +1,1939 @@
+{
+  "relations": [
+    {
+      "contract": {
+        "adapter_action": "defer until free official IMF/WGC source is proven",
+        "date_column": "obs_month",
+        "dimensions": [
+          "source",
+          "bucket"
+        ],
+        "domain": "gold",
+        "downstream_consumers": [
+          "reports/gold_posture.py",
+          "api/routers/gold.py"
+        ],
+        "relation_kind": "table",
+        "revision_identity": "(country_iso3, obs_month, as_of)",
+        "risk_flags": [
+          "no live official fallback wired",
+          "local lineage points to a non-durable /tmp workbook path",
+          "estimated-vs-reported is typed but exact source artifact is absent"
+        ],
+        "source_status": "local workbook import present; scheduled WGC source remains blocked by login",
+        "timestamp_semantics": "release_date is publisher date when known; as_of is ingestion time"
+      },
+      "date_span": {
+        "max": "2026-03-31",
+        "min": "2000-03-31"
+      },
+      "dimensions": {
+        "bucket": [
+          "reserve_diversifier",
+          "strategic_accumulator",
+          "tactical_defender"
+        ],
+        "source": [
+          "file:/tmp/wgc-gold-reserves/Quarterly_gold_and_FX_Reserves_Q1_2026.xlsx"
+        ]
+      },
+      "name": "cb_gold_reserves_monthly",
+      "primary_key": [
+        "country_iso3",
+        "obs_month",
+        "as_of"
+      ],
+      "relation_kind": "table",
+      "row_count": 2827,
+      "series_profiles": []
+    },
+    {
+      "contract": {
+        "adapter_action": "dual-write CFTC rows with published_at=release timestamp",
+        "date_column": "obs_date",
+        "dimensions": [],
+        "domain": "gold",
+        "downstream_consumers": [
+          "reports/gold_posture.py",
+          "api/routers/gold.py"
+        ],
+        "relation_kind": "table",
+        "revision_identity": "(obs_date, as_of)",
+        "risk_flags": [
+          "source URL retained but exact payload bytes are not linked"
+        ],
+        "source_status": "free official CFTC",
+        "timestamp_semantics": "obs_date is Tuesday position date; release_date is Friday publication; backtests require release_date + 3 trading days"
+      },
+      "date_span": {
+        "max": "2026-08-04",
+        "min": "2025-04-15"
+      },
+      "dimensions": {},
+      "name": "cot_gold_weekly",
+      "primary_key": [
+        "obs_date",
+        "as_of"
+      ],
+      "relation_kind": "table",
+      "row_count": 2615,
+      "series_profiles": []
+    },
+    {
+      "contract": {
+        "adapter_action": "exclude from macro evidence adapters",
+        "date_column": "fetched_at",
+        "dimensions": [
+          "ticker"
+        ],
+        "domain": "gold",
+        "downstream_consumers": [
+          "storage/market_data.py",
+          "scanner pipeline"
+        ],
+        "relation_kind": "table",
+        "revision_identity": "ticker (overwriting cache)",
+        "risk_flags": [
+          "not macro evidence; historical values intentionally overwritten"
+        ],
+        "source_status": "already-entitled UW operational cache",
+        "timestamp_semantics": "fetched_at is cache refresh time, not a market observation date"
+      },
+      "date_span": {
+        "max": "2026-07-28 21:32:34.429070+08:00",
+        "min": "2026-06-11 21:35:03.858570+08:00"
+      },
+      "dimensions": {
+        "ticker": [
+          "ARKK",
+          "DIA",
+          "GLD",
+          "HYG",
+          "IGV",
+          "IWM",
+          "JNK",
+          "QQQ",
+          "SLV",
+          "SMH",
+          "SOXL",
+          "SOXX",
+          "SPY",
+          "TLT",
+          "XLB",
+          "XLC",
+          "XLE",
+          "XLF",
+          "XLI",
+          "XLK",
+          "XLP",
+          "XLRE",
+          "XLU",
+          "XLV",
+          "XLY"
+        ]
+      },
+      "name": "etf_aum_cache",
+      "primary_key": [
+        "ticker"
+      ],
+      "relation_kind": "table",
+      "row_count": 25,
+      "series_profiles": []
+    },
+    {
+      "contract": {
+        "adapter_action": "dual-write with UW artifact reference",
+        "date_column": "obs_date",
+        "dimensions": [
+          "ticker",
+          "source"
+        ],
+        "domain": "gold",
+        "downstream_consumers": [
+          "reports/gold_posture.py",
+          "api/routers/gold.py"
+        ],
+        "relation_kind": "table",
+        "revision_identity": "(ticker, obs_date, as_of)",
+        "risk_flags": [
+          "no source URL or exact payload link"
+        ],
+        "source_status": "already-entitled UW",
+        "timestamp_semantics": "obs_date is market date; as_of is ingestion time"
+      },
+      "date_span": {
+        "max": "2026-07-24",
+        "min": "2025-06-23"
+      },
+      "dimensions": {
+        "source": [
+          "UW"
+        ],
+        "ticker": [
+          "GLD",
+          "GLDM",
+          "IAU",
+          "IGV",
+          "SMH",
+          "SOXX",
+          "SPY",
+          "XLB",
+          "XLC",
+          "XLE",
+          "XLF",
+          "XLI",
+          "XLK",
+          "XLP",
+          "XLRE",
+          "XLU",
+          "XLV",
+          "XLY"
+        ]
+      },
+      "name": "etf_flows_daily",
+      "primary_key": [
+        "ticker",
+        "obs_date",
+        "as_of"
+      ],
+      "relation_kind": "table",
+      "row_count": 5247,
+      "series_profiles": []
+    },
+    {
+      "contract": {
+        "adapter_action": "dual-write issuer artifact and normalized holdings",
+        "date_column": "obs_date",
+        "dimensions": [
+          "ticker",
+          "source"
+        ],
+        "domain": "gold",
+        "downstream_consumers": [
+          "reports/gold_posture.py",
+          "api/routers/gold.py"
+        ],
+        "relation_kind": "table",
+        "revision_identity": "(ticker, obs_date, as_of)",
+        "risk_flags": [
+          "source label retained but exact issuer payload is not linked"
+        ],
+        "source_status": "free first-party fund publishers",
+        "timestamp_semantics": "obs_date is issuer observation date; as_of is ingestion time"
+      },
+      "date_span": {
+        "max": "2026-07-23",
+        "min": "2004-11-30"
+      },
+      "dimensions": {
+        "source": [
+          "SPDR",
+          "WGC"
+        ],
+        "ticker": [
+          "GLD",
+          "GLDM",
+          "IAU",
+          "PHYS"
+        ]
+      },
+      "name": "etf_holdings_daily",
+      "primary_key": [
+        "ticker",
+        "obs_date",
+        "as_of"
+      ],
+      "relation_kind": "table",
+      "row_count": 26555,
+      "series_profiles": []
+    },
+    {
+      "contract": {
+        "adapter_action": "dual-write discovered publisher file bytes",
+        "date_column": "obs_date",
+        "dimensions": [
+          "exchange"
+        ],
+        "domain": "gold",
+        "downstream_consumers": [
+          "reports/gold_posture.py",
+          "api/routers/gold.py"
+        ],
+        "relation_kind": "table",
+        "revision_identity": "(exchange, obs_date, as_of)",
+        "risk_flags": [
+          "COMEX source availability is fragile",
+          "source URL retained but workbook/report bytes are not linked"
+        ],
+        "source_status": "free publisher: LBMA live; CME endpoint fragile",
+        "timestamp_semantics": "obs_date is exchange report date; as_of is ingestion time"
+      },
+      "date_span": {
+        "max": "2026-04-01",
+        "min": "2025-05-01"
+      },
+      "dimensions": {
+        "exchange": [
+          "LBMA"
+        ]
+      },
+      "name": "exchange_inventory_daily",
+      "primary_key": [
+        "exchange",
+        "obs_date",
+        "as_of"
+      ],
+      "relation_kind": "table",
+      "row_count": 36,
+      "series_profiles": []
+    },
+    {
+      "contract": {
+        "adapter_action": "keep as legacy read model until evidence-reference parity passes",
+        "date_column": "obs_date",
+        "dimensions": [
+          "row_status",
+          "gauge_state"
+        ],
+        "domain": "gold",
+        "downstream_consumers": [
+          "api/routers/gold.py",
+          "web/app/gold",
+          "gold replay page"
+        ],
+        "relation_kind": "table",
+        "revision_identity": "(obs_date, computed_at)",
+        "risk_flags": [
+          "replay fidelity is bounded by legacy input time semantics",
+          "not an upstream source and must not be adapted as an observation"
+        ],
+        "source_status": "derived",
+        "timestamp_semantics": "obs_date is posture date; computed_at is derivation time; inputs_jsonb pins legacy input coordinates"
+      },
+      "date_span": {
+        "max": "2026-07-24",
+        "min": "2026-05-14"
+      },
+      "dimensions": {
+        "gauge_state": [
+          "partial",
+          "suspended"
+        ],
+        "row_status": [
+          "active",
+          "invalidated"
+        ]
+      },
+      "name": "gold_posture_daily",
+      "primary_key": [
+        "obs_date",
+        "computed_at"
+      ],
+      "relation_kind": "table",
+      "row_count": 115,
+      "series_profiles": []
+    },
+    {
+      "contract": {
+        "adapter_action": "map each series explicitly; never infer availability from as_of",
+        "date_column": "obs_date",
+        "dimensions": [
+          "series_id",
+          "source"
+        ],
+        "domain": "gold",
+        "downstream_consumers": [
+          "reports/gold_posture.py",
+          "api/routers/gold.py",
+          "api/routers/trade_insights.py",
+          "worker/jobs/regime_jobs.py"
+        ],
+        "relation_kind": "table",
+        "revision_identity": "(series_id, obs_date, as_of)",
+        "risk_flags": [
+          "mixed source classes share one table",
+          "no artifact hash/parser version",
+          "release_date nullable"
+        ],
+        "source_status": "mixed free official/publisher and derived series",
+        "timestamp_semantics": "release_date is optional; as_of is retrieval time and is not guaranteed to equal public availability time"
+      },
+      "date_span": {
+        "max": "2026-07-24",
+        "min": "2007-01-01"
+      },
+      "dimensions": {
+        "series_id": [
+          "ANFCI",
+          "BAMLH0A0HYM2",
+          "CBBTCUSD",
+          "DEXCHUS",
+          "DEXINUS",
+          "DEXJPUS",
+          "DFII10",
+          "DGS10",
+          "DTWEXBGS",
+          "GLD_CLOSE",
+          "GPRD",
+          "GVZCLS",
+          "NFCI",
+          "T10YIE",
+          "T5YIFR",
+          "USREC",
+          "VIXCLS"
+        ],
+        "source": [
+          "FRED",
+          "GPR",
+          "MASSIVE"
+        ]
+      },
+      "name": "macro_series_daily",
+      "primary_key": [
+        "series_id",
+        "obs_date",
+        "as_of"
+      ],
+      "relation_kind": "table",
+      "row_count": 72929,
+      "series_profiles": [
+        {
+          "date_span": {
+            "max": "2026-05-15",
+            "min": "2007-01-05"
+          },
+          "row_count": 1014,
+          "series_id": "ANFCI",
+          "sources": [
+            "FRED"
+          ]
+        },
+        {
+          "date_span": {
+            "max": "2026-06-12",
+            "min": "2023-05-16"
+          },
+          "row_count": 2985,
+          "series_id": "BAMLH0A0HYM2",
+          "sources": [
+            "FRED"
+          ]
+        },
+        {
+          "date_span": {
+            "max": "2026-05-28",
+            "min": "2021-05-18"
+          },
+          "row_count": 4468,
+          "series_id": "CBBTCUSD",
+          "sources": [
+            "FRED"
+          ]
+        },
+        {
+          "date_span": {
+            "max": "2026-05-22",
+            "min": "2021-05-18"
+          },
+          "row_count": 2872,
+          "series_id": "DEXCHUS",
+          "sources": [
+            "FRED"
+          ]
+        },
+        {
+          "date_span": {
+            "max": "2026-05-22",
+            "min": "2021-05-18"
+          },
+          "row_count": 2720,
+          "series_id": "DEXINUS",
+          "sources": [
+            "FRED"
+          ]
+        },
+        {
+          "date_span": {
+            "max": "2026-05-22",
+            "min": "2021-05-18"
+          },
+          "row_count": 2930,
+          "series_id": "DEXJPUS",
+          "sources": [
+            "FRED"
+          ]
+        },
+        {
+          "date_span": {
+            "max": "2026-05-28",
+            "min": "2021-05-18"
+          },
+          "row_count": 3103,
+          "series_id": "DFII10",
+          "sources": [
+            "FRED"
+          ]
+        },
+        {
+          "date_span": {
+            "max": "2026-05-28",
+            "min": "2021-05-18"
+          },
+          "row_count": 3103,
+          "series_id": "DGS10",
+          "sources": [
+            "FRED"
+          ]
+        },
+        {
+          "date_span": {
+            "max": "2026-05-22",
+            "min": "2021-05-18"
+          },
+          "row_count": 2960,
+          "series_id": "DTWEXBGS",
+          "sources": [
+            "FRED"
+          ]
+        },
+        {
+          "date_span": {
+            "max": "2026-07-24",
+            "min": "2025-04-14"
+          },
+          "row_count": 27201,
+          "series_id": "GLD_CLOSE",
+          "sources": [
+            "MASSIVE"
+          ]
+        },
+        {
+          "date_span": {
+            "max": "2026-07-20",
+            "min": "2021-05-18"
+          },
+          "row_count": 5956,
+          "series_id": "GPRD",
+          "sources": [
+            "GPR"
+          ]
+        },
+        {
+          "date_span": {
+            "max": "2026-05-28",
+            "min": "2021-05-18"
+          },
+          "row_count": 3107,
+          "series_id": "GVZCLS",
+          "sources": [
+            "FRED"
+          ]
+        },
+        {
+          "date_span": {
+            "max": "2026-05-15",
+            "min": "2007-01-05"
+          },
+          "row_count": 1014,
+          "series_id": "NFCI",
+          "sources": [
+            "FRED"
+          ]
+        },
+        {
+          "date_span": {
+            "max": "2026-05-28",
+            "min": "2021-05-18"
+          },
+          "row_count": 3115,
+          "series_id": "T10YIE",
+          "sources": [
+            "FRED"
+          ]
+        },
+        {
+          "date_span": {
+            "max": "2026-05-28",
+            "min": "2021-05-18"
+          },
+          "row_count": 3022,
+          "series_id": "T5YIFR",
+          "sources": [
+            "FRED"
+          ]
+        },
+        {
+          "date_span": {
+            "max": "2026-04-01",
+            "min": "2007-01-01"
+          },
+          "row_count": 232,
+          "series_id": "USREC",
+          "sources": [
+            "FRED"
+          ]
+        },
+        {
+          "date_span": {
+            "max": "2026-05-28",
+            "min": "2021-05-18"
+          },
+          "row_count": 3127,
+          "series_id": "VIXCLS",
+          "sources": [
+            "FRED"
+          ]
+        }
+      ]
+    },
+    {
+      "contract": {
+        "adapter_action": "map CPI/M2 series with official release availability",
+        "date_column": "obs_month",
+        "dimensions": [
+          "series_id",
+          "source"
+        ],
+        "domain": "cross_domain",
+        "downstream_consumers": [
+          "reports/gold_posture.py",
+          "api/routers/gold.py"
+        ],
+        "relation_kind": "table",
+        "revision_identity": "(series_id, obs_month, as_of)",
+        "risk_flags": [
+          "no artifact hash/parser version",
+          "release_date nullable"
+        ],
+        "source_status": "mixed free official FRED series",
+        "timestamp_semantics": "release_date is optional; as_of is retrieval time and not a release clock"
+      },
+      "date_span": {
+        "max": "2026-05-01",
+        "min": "2021-06-01"
+      },
+      "dimensions": {
+        "series_id": [
+          "CPIAUCSL",
+          "M2SL"
+        ],
+        "source": [
+          "FRED"
+        ]
+      },
+      "name": "macro_series_monthly",
+      "primary_key": [
+        "series_id",
+        "obs_month",
+        "as_of"
+      ],
+      "relation_kind": "table",
+      "row_count": 1680,
+      "series_profiles": [
+        {
+          "date_span": {
+            "max": "2026-05-01",
+            "min": "2021-06-01"
+          },
+          "row_count": 828,
+          "series_id": "CPIAUCSL",
+          "sources": [
+            "FRED"
+          ]
+        },
+        {
+          "date_span": {
+            "max": "2026-04-01",
+            "min": "2021-06-01"
+          },
+          "row_count": 852,
+          "series_id": "M2SL",
+          "sources": [
+            "FRED"
+          ]
+        }
+      ]
+    },
+    {
+      "contract": {
+        "adapter_action": "dual-write release-timed observations and source artifact",
+        "date_column": "obs_date",
+        "dimensions": [
+          "contract_code",
+          "tenor_bucket"
+        ],
+        "domain": "policy_rates",
+        "downstream_consumers": [
+          "rates report assembler",
+          "web rates positioning panel"
+        ],
+        "relation_kind": "table",
+        "revision_identity": "(contract_code, obs_date, as_of)",
+        "risk_flags": [
+          "exact CFTC response is not linked to normalized rows"
+        ],
+        "source_status": "free official CFTC",
+        "timestamp_semantics": "obs_date is Tuesday position date; release_date is publication date; as_of is ingestion time"
+      },
+      "date_span": {
+        "max": "2026-06-09",
+        "min": "2025-12-23"
+      },
+      "dimensions": {
+        "contract_code": [
+          "020601",
+          "020604",
+          "042601",
+          "043602",
+          "043607",
+          "04360Y",
+          "044601"
+        ],
+        "tenor_bucket": [
+          "10Y",
+          "2Y",
+          "5Y",
+          "Bond",
+          "Micro 10Y Yield",
+          "Ultra 10Y",
+          "Ultra Bond"
+        ]
+      },
+      "name": "rates_cftc_tff_weekly",
+      "primary_key": [
+        "contract_code",
+        "obs_date",
+        "as_of"
+      ],
+      "relation_kind": "table",
+      "row_count": 1356,
+      "series_profiles": []
+    },
+    {
+      "contract": {
+        "adapter_action": "dual-write official FiscalData artifact",
+        "date_column": "record_date",
+        "dimensions": [],
+        "domain": "policy_rates",
+        "downstream_consumers": [
+          "rates report assembler",
+          "web rates supply panel"
+        ],
+        "relation_kind": "table",
+        "revision_identity": "(record_date, as_of)",
+        "risk_flags": [
+          "source URL retained but response artifact is not linked"
+        ],
+        "source_status": "free official U.S. Treasury FiscalData",
+        "timestamp_semantics": "record_date is FiscalData date; as_of is ingestion time"
+      },
+      "date_span": {
+        "max": "2026-06-12",
+        "min": "2026-05-21"
+      },
+      "dimensions": {},
+      "name": "rates_fiscal_debt_daily",
+      "primary_key": [
+        "record_date",
+        "as_of"
+      ],
+      "relation_kind": "table",
+      "row_count": 6,
+      "series_profiles": []
+    },
+    {
+      "contract": {
+        "adapter_action": "highest-priority MC1 dual-write; preserve every vintage",
+        "date_column": "obs_date",
+        "dimensions": [
+          "series_id",
+          "source"
+        ],
+        "domain": "policy_rates",
+        "downstream_consumers": [
+          "rates report assembler",
+          "web rates curve/policy/plumbing panels"
+        ],
+        "relation_kind": "table",
+        "revision_identity": "(series_id, obs_date, source) overwrites revisions",
+        "risk_flags": [
+          "critical: ON CONFLICT overwrites value and vintage metadata",
+          "source precedence is implicit",
+          "no exact source artifact"
+        ],
+        "source_status": "free official FRED plus Cleveland Fed decomposition",
+        "timestamp_semantics": "FRED realtime_start/end are vintage metadata; first/last_seen are local sightings; release_date may be null"
+      },
+      "date_span": {
+        "max": "2026-06-15",
+        "min": "2025-11-24"
+      },
+      "dimensions": {
+        "series_id": [
+          "CLEVE_EXPECTED_INFLATION_10Y",
+          "CLEVE_INFLATION_RISK_PREMIUM_10Y",
+          "CLEVE_MODEL_REAL_YIELD_10Y",
+          "CLEVE_REAL_RISK_PREMIUM_10Y",
+          "DFEDTARL",
+          "DFEDTARU",
+          "DFII10",
+          "DFII20",
+          "DFII30",
+          "DFII5",
+          "DFII7",
+          "DGS1",
+          "DGS10",
+          "DGS1MO",
+          "DGS2",
+          "DGS20",
+          "DGS3",
+          "DGS30",
+          "DGS3MO",
+          "DGS5",
+          "DGS6MO",
+          "DGS7",
+          "EFFR",
+          "RRPONTSYD",
+          "SOFR",
+          "T10YIE",
+          "T5YIE",
+          "T5YIFR",
+          "WALCL",
+          "WRESBAL",
+          "WTREGEN"
+        ],
+        "source": [
+          "CLEVELAND_FED",
+          "FRED"
+        ]
+      },
+      "name": "rates_observations",
+      "primary_key": [
+        "series_id",
+        "obs_date",
+        "source"
+      ],
+      "relation_kind": "table",
+      "row_count": 3535,
+      "series_profiles": [
+        {
+          "date_span": {
+            "max": "2026-06-01",
+            "min": "2025-12-01"
+          },
+          "row_count": 7,
+          "series_id": "CLEVE_EXPECTED_INFLATION_10Y",
+          "sources": [
+            "CLEVELAND_FED"
+          ]
+        },
+        {
+          "date_span": {
+            "max": "2026-06-01",
+            "min": "2025-12-01"
+          },
+          "row_count": 7,
+          "series_id": "CLEVE_INFLATION_RISK_PREMIUM_10Y",
+          "sources": [
+            "CLEVELAND_FED"
+          ]
+        },
+        {
+          "date_span": {
+            "max": "2026-06-01",
+            "min": "2025-12-01"
+          },
+          "row_count": 7,
+          "series_id": "CLEVE_MODEL_REAL_YIELD_10Y",
+          "sources": [
+            "CLEVELAND_FED"
+          ]
+        },
+        {
+          "date_span": {
+            "max": "2026-06-01",
+            "min": "2025-12-01"
+          },
+          "row_count": 7,
+          "series_id": "CLEVE_REAL_RISK_PREMIUM_10Y",
+          "sources": [
+            "CLEVELAND_FED"
+          ]
+        },
+        {
+          "date_span": {
+            "max": "2026-06-15",
+            "min": "2025-12-18"
+          },
+          "row_count": 180,
+          "series_id": "DFEDTARL",
+          "sources": [
+            "FRED"
+          ]
+        },
+        {
+          "date_span": {
+            "max": "2026-06-15",
+            "min": "2025-12-18"
+          },
+          "row_count": 180,
+          "series_id": "DFEDTARU",
+          "sources": [
+            "FRED"
+          ]
+        },
+        {
+          "date_span": {
+            "max": "2026-06-12",
+            "min": "2025-11-24"
+          },
+          "row_count": 139,
+          "series_id": "DFII10",
+          "sources": [
+            "FRED"
+          ]
+        },
+        {
+          "date_span": {
+            "max": "2026-06-12",
+            "min": "2025-11-24"
+          },
+          "row_count": 139,
+          "series_id": "DFII20",
+          "sources": [
+            "FRED"
+          ]
+        },
+        {
+          "date_span": {
+            "max": "2026-06-12",
+            "min": "2025-11-24"
+          },
+          "row_count": 139,
+          "series_id": "DFII30",
+          "sources": [
+            "FRED"
+          ]
+        },
+        {
+          "date_span": {
+            "max": "2026-06-12",
+            "min": "2025-11-24"
+          },
+          "row_count": 139,
+          "series_id": "DFII5",
+          "sources": [
+            "FRED"
+          ]
+        },
+        {
+          "date_span": {
+            "max": "2026-06-12",
+            "min": "2025-11-24"
+          },
+          "row_count": 139,
+          "series_id": "DFII7",
+          "sources": [
+            "FRED"
+          ]
+        },
+        {
+          "date_span": {
+            "max": "2026-06-12",
+            "min": "2025-11-24"
+          },
+          "row_count": 139,
+          "series_id": "DGS1",
+          "sources": [
+            "FRED"
+          ]
+        },
+        {
+          "date_span": {
+            "max": "2026-06-12",
+            "min": "2025-11-24"
+          },
+          "row_count": 139,
+          "series_id": "DGS10",
+          "sources": [
+            "FRED"
+          ]
+        },
+        {
+          "date_span": {
+            "max": "2026-06-12",
+            "min": "2025-11-24"
+          },
+          "row_count": 139,
+          "series_id": "DGS1MO",
+          "sources": [
+            "FRED"
+          ]
+        },
+        {
+          "date_span": {
+            "max": "2026-06-12",
+            "min": "2025-11-24"
+          },
+          "row_count": 139,
+          "series_id": "DGS2",
+          "sources": [
+            "FRED"
+          ]
+        },
+        {
+          "date_span": {
+            "max": "2026-06-12",
+            "min": "2025-11-24"
+          },
+          "row_count": 139,
+          "series_id": "DGS20",
+          "sources": [
+            "FRED"
+          ]
+        },
+        {
+          "date_span": {
+            "max": "2026-06-12",
+            "min": "2025-11-24"
+          },
+          "row_count": 139,
+          "series_id": "DGS3",
+          "sources": [
+            "FRED"
+          ]
+        },
+        {
+          "date_span": {
+            "max": "2026-06-12",
+            "min": "2025-11-24"
+          },
+          "row_count": 139,
+          "series_id": "DGS30",
+          "sources": [
+            "FRED"
+          ]
+        },
+        {
+          "date_span": {
+            "max": "2026-06-12",
+            "min": "2025-11-24"
+          },
+          "row_count": 139,
+          "series_id": "DGS3MO",
+          "sources": [
+            "FRED"
+          ]
+        },
+        {
+          "date_span": {
+            "max": "2026-06-12",
+            "min": "2025-11-24"
+          },
+          "row_count": 139,
+          "series_id": "DGS5",
+          "sources": [
+            "FRED"
+          ]
+        },
+        {
+          "date_span": {
+            "max": "2026-06-12",
+            "min": "2025-11-24"
+          },
+          "row_count": 139,
+          "series_id": "DGS6MO",
+          "sources": [
+            "FRED"
+          ]
+        },
+        {
+          "date_span": {
+            "max": "2026-06-12",
+            "min": "2025-11-24"
+          },
+          "row_count": 139,
+          "series_id": "DGS7",
+          "sources": [
+            "FRED"
+          ]
+        },
+        {
+          "date_span": {
+            "max": "2026-06-12",
+            "min": "2025-11-24"
+          },
+          "row_count": 139,
+          "series_id": "EFFR",
+          "sources": [
+            "FRED"
+          ]
+        },
+        {
+          "date_span": {
+            "max": "2026-06-15",
+            "min": "2025-11-24"
+          },
+          "row_count": 139,
+          "series_id": "RRPONTSYD",
+          "sources": [
+            "FRED"
+          ]
+        },
+        {
+          "date_span": {
+            "max": "2026-06-12",
+            "min": "2025-11-24"
+          },
+          "row_count": 138,
+          "series_id": "SOFR",
+          "sources": [
+            "FRED"
+          ]
+        },
+        {
+          "date_span": {
+            "max": "2026-06-15",
+            "min": "2025-11-24"
+          },
+          "row_count": 140,
+          "series_id": "T10YIE",
+          "sources": [
+            "FRED"
+          ]
+        },
+        {
+          "date_span": {
+            "max": "2026-06-15",
+            "min": "2025-11-24"
+          },
+          "row_count": 140,
+          "series_id": "T5YIE",
+          "sources": [
+            "FRED"
+          ]
+        },
+        {
+          "date_span": {
+            "max": "2026-06-15",
+            "min": "2025-11-24"
+          },
+          "row_count": 140,
+          "series_id": "T5YIFR",
+          "sources": [
+            "FRED"
+          ]
+        },
+        {
+          "date_span": {
+            "max": "2026-06-10",
+            "min": "2025-11-26"
+          },
+          "row_count": 29,
+          "series_id": "WALCL",
+          "sources": [
+            "FRED"
+          ]
+        },
+        {
+          "date_span": {
+            "max": "2026-06-10",
+            "min": "2025-11-26"
+          },
+          "row_count": 29,
+          "series_id": "WRESBAL",
+          "sources": [
+            "FRED"
+          ]
+        },
+        {
+          "date_span": {
+            "max": "2026-06-10",
+            "min": "2025-11-26"
+          },
+          "row_count": 29,
+          "series_id": "WTREGEN",
+          "sources": [
+            "FRED"
+          ]
+        }
+      ]
+    },
+    {
+      "contract": {
+        "adapter_action": "MC1 expand to artifact-led FOMC/SEP event model",
+        "date_column": "event_date",
+        "dimensions": [
+          "source"
+        ],
+        "domain": "policy_rates",
+        "downstream_consumers": [
+          "rates report assembler",
+          "web rates event calendar"
+        ],
+        "relation_kind": "table",
+        "revision_identity": "(event_date, source) overwrites payload changes",
+        "risk_flags": [
+          "calendar only: no statements, minutes, votes, transcripts, SEP, or dot plot",
+          "payload changes overwrite history",
+          "no source artifact hash"
+        ],
+        "source_status": "free official Federal Reserve calendar",
+        "timestamp_semantics": "event_date is meeting date; first/last_seen are local sightings"
+      },
+      "date_span": {
+        "max": "2027-12-07",
+        "min": "2025-01-28"
+      },
+      "dimensions": {
+        "source": [
+          "FED_FOMC"
+        ]
+      },
+      "name": "rates_policy_events",
+      "primary_key": [
+        "event_date",
+        "source"
+      ],
+      "relation_kind": "table",
+      "row_count": 24,
+      "series_profiles": []
+    },
+    {
+      "contract": {
+        "adapter_action": "retain as labeled shadow; add official/event evidence separately",
+        "date_column": "snapshot_date",
+        "dimensions": [
+          "source"
+        ],
+        "domain": "policy_rates",
+        "downstream_consumers": [
+          "rates report assembler",
+          "web rates implied path panel"
+        ],
+        "relation_kind": "table",
+        "revision_identity": "(snapshot_date, meeting_date, source)",
+        "risk_flags": [
+          "not official Fed data",
+          "same-day corrections overwrite",
+          "no exact HTML/JSON artifact"
+        ],
+        "source_status": "free third-party delayed FedWatch shadow",
+        "timestamp_semantics": "snapshot_date is provider snapshot day; first/last_seen are local sightings"
+      },
+      "date_span": {
+        "max": "2026-06-15",
+        "min": "2026-05-24"
+      },
+      "dimensions": {
+        "source": [
+          "FED_FUNDS_FUTURES_PATH"
+        ]
+      },
+      "name": "rates_policy_path",
+      "primary_key": [
+        "snapshot_date",
+        "meeting_date",
+        "source"
+      ],
+      "relation_kind": "table",
+      "row_count": 40,
+      "series_profiles": []
+    },
+    {
+      "contract": {
+        "adapter_action": "keep authoritative until dual-read evidence parity passes",
+        "date_column": "snapshot_date",
+        "dimensions": [],
+        "domain": "policy_rates",
+        "downstream_consumers": [
+          "api/routers/rates.py",
+          "web/app/rates"
+        ],
+        "relation_kind": "table",
+        "revision_identity": "(snapshot_date, computed_at)",
+        "risk_flags": [
+          "payload embeds legacy values without normalized evidence IDs"
+        ],
+        "source_status": "derived",
+        "timestamp_semantics": "snapshot_date is page date; computed_at is derivation time"
+      },
+      "date_span": {
+        "max": "2026-06-12",
+        "min": "2026-05-19"
+      },
+      "dimensions": {},
+      "name": "rates_snapshots",
+      "primary_key": [
+        "snapshot_date",
+        "computed_at"
+      ],
+      "relation_kind": "table",
+      "row_count": 23,
+      "series_profiles": []
+    },
+    {
+      "contract": {
+        "adapter_action": "dual-write official auction artifact and observations",
+        "date_column": "auction_date",
+        "dimensions": [
+          "security_type",
+          "security_term"
+        ],
+        "domain": "policy_rates",
+        "downstream_consumers": [
+          "rates report assembler",
+          "web rates supply panel"
+        ],
+        "relation_kind": "table",
+        "revision_identity": "(cusip, auction_date, as_of)",
+        "risk_flags": [
+          "source URL retained but response artifact is not linked"
+        ],
+        "source_status": "free official TreasuryDirect",
+        "timestamp_semantics": "auction_date is official event date; as_of is ingestion time"
+      },
+      "date_span": {
+        "max": "2026-06-15",
+        "min": "2025-12-18"
+      },
+      "dimensions": {
+        "security_term": [
+          "1-Year 10-Month",
+          "1-Year 11-Month",
+          "10-Year",
+          "13-Week",
+          "17-Week",
+          "19-Year 10-Month",
+          "19-Year 11-Month",
+          "2-Year",
+          "20-Year",
+          "26-Week",
+          "27-Day",
+          "29-Year 10-Month",
+          "29-Year 11-Month",
+          "3-Year",
+          "30-Year",
+          "4-Week",
+          "4-Year 10-Month",
+          "5-Year",
+          "52-Week",
+          "6-Week",
+          "7-Year",
+          "8-Week",
+          "9-Year 10-Month",
+          "9-Year 11-Month",
+          "9-Year 8-Month"
+        ],
+        "security_type": [
+          "Bill",
+          "Bond",
+          "Note"
+        ]
+      },
+      "name": "rates_treasury_auctions",
+      "primary_key": [
+        "cusip",
+        "auction_date",
+        "as_of"
+      ],
+      "relation_kind": "table",
+      "row_count": 790,
+      "series_profiles": []
+    },
+    {
+      "contract": {
+        "adapter_action": "dual-write endpoint artifacts; keep derived snapshot separate",
+        "date_column": "obs_date",
+        "dimensions": [
+          "ticker"
+        ],
+        "domain": "gold",
+        "downstream_consumers": [
+          "reports/gold_posture.py",
+          "api/routers/gold.py"
+        ],
+        "relation_kind": "table",
+        "revision_identity": "(ticker, obs_date, as_of)",
+        "risk_flags": [
+          "composed from multiple endpoints without exact joined artifact IDs"
+        ],
+        "source_status": "already-entitled UW",
+        "timestamp_semantics": "obs_date is market date; as_of is composite fetch time"
+      },
+      "date_span": {
+        "max": "2026-07-25",
+        "min": "2026-05-17"
+      },
+      "dimensions": {
+        "ticker": [
+          "GDX",
+          "GLD",
+          "IAU"
+        ]
+      },
+      "name": "uw_gold_options_daily",
+      "primary_key": [
+        "ticker",
+        "obs_date",
+        "as_of"
+      ],
+      "relation_kind": "table",
+      "row_count": 186,
+      "series_profiles": []
+    },
+    {
+      "contract": {
+        "adapter_action": "store exact workbook bytes keyed by content hash",
+        "date_column": "obs_date",
+        "dimensions": [
+          "ticker",
+          "source"
+        ],
+        "domain": "gold",
+        "downstream_consumers": [
+          "storage/gold_etf.py",
+          "gold ETF corpus research"
+        ],
+        "relation_kind": "table",
+        "revision_identity": "(ticker, obs_date, source_url)",
+        "risk_flags": [
+          "same-URL workbook changes overwrite normalized values"
+        ],
+        "source_status": "free first-party WGC workbook",
+        "timestamp_semantics": "obs_date is workbook period; as_of is ingestion time; source_url identifies a workbook revision"
+      },
+      "date_span": {
+        "max": "2026-03-31",
+        "min": "2003-03-31"
+      },
+      "dimensions": {
+        "source": [
+          "WGC"
+        ],
+        "ticker": [
+          "0072R0 KS EQUITY",
+          "1540 JT EQUITY",
+          "159812 CH EQUITY",
+          "159830 CH EQUITY",
+          "159831 CH EQUITY",
+          "159832 CH EQUITY",
+          "159833 CH EQUITY",
+          "159834 CH EQUITY",
+          "159934 CH EQUITY",
+          "159937 CH EQUITY",
+          "2830 HK EQUITY",
+          "3081 HK EQUITY",
+          "3170 HK EQUITY",
+          "360GERG IN EQUITY",
+          "411060 KS EQUITY",
+          "4GLD GR EQUITY",
+          "518600 CH EQUITY",
+          "518660 CH EQUITY",
+          "518680 CH EQUITY",
+          "518800 CH EQUITY",
+          "518850 CH EQUITY",
+          "518860 CH EQUITY",
+          "518880 CH EQUITY",
+          "518890 CH EQUITY",
+          "83168 HK EQUITY",
+          "8PSE GR EQUITY",
+          "929",
+          "930",
+          "AAAU US EQUITY",
+          "AGOL US EQUITY",
+          "ALBIGOLD AB EQUITY",
+          "ALOGDRG IN EQUITY",
+          "ANGELONE IN EQUITY",
+          "AUCHAH SW EQUITY",
+          "AUEUAH SW EQUITY",
+          "AUUSA SW EQUITY",
+          "AUUSI SW EQUITY",
+          "AXGOLD IN EQUITY",
+          "BAGOLRG IN EQUITY",
+          "BAR US EQUITY",
+          "BARS LN EQUITY",
+          "BBNPGET IN EQUITY",
+          "BCHAY TB EQUITY",
+          "BKBGLDA SW EQUITY",
+          "BKBGLDI SW EQUITY",
+          "BKBGLDJ SW EQUITY",
+          "BMGGLDBA CN EQUITY",
+          "BSLGOLD IS EQUITY",
+          "CEF/U CN EQUITY",
+          "CGL CN EQUITY",
+          "CGL/C CN EQUITY",
+          "CHOGORG IN EQUITY",
+          "CRGETF IN EQUITY",
+          "CSGBDAH SW EQUITY",
+          "CSGBFBH SW EQUITY",
+          "CSGBQBU SW EQUITY",
+          "CSGIMAC SW EQUITY",
+          "CSGIMAH SW EQUITY",
+          "CSGIMIA SW EQUITY",
+          "CSGIMUA SW EQUITY",
+          "CSGLDC SW EQUITY",
+          "CSGLDE SW EQUITY",
+          "CSGOLD SW EQUITY",
+          "CSGQBHC SW EQUITY",
+          "CSIFGBD SW EQUITY",
+          "CSIFGEA SW EQUITY",
+          "CSIGBDH SW EQUITY",
+          "CSIGBQE SW EQUITY",
+          "CSIMIAH SW EQUITY",
+          "CSIMUAH SW EQUITY",
+          "DGOLETF IN EQUITY",
+          "EDLGOLD IN EQUITY",
+          "ETFGLD SJ EQUITY",
+          "EWG2 GR EQUITY",
+          "EWGC GR EQUITY",
+          "EWGT GR EQUITY",
+          "FGDL US EQUITY",
+          "FGLD US EQUITY",
+          "FXGD RM EQUITY",
+          "GBEES IN EQUITY",
+          "GBS LN EQUITY",
+          "GBSE IM EQUITY",
+          "GBSP LN EQUITY",
+          "GHLD AU EQUITY",
+          "GLD",
+          "GLD SJ EQUITY",
+          "GLDCO2 SW EQUITY",
+          "GLDM",
+          "GLDTR TI EQUITY",
+          "GLDW US EQUITY",
+          "GLTR US EQUITY",
+          "GOLD AU EQUITY",
+          "GOLD DU EQUITY",
+          "GOLD FP EQUITY",
+          "GOLD GR EQUITY",
+          "GOLD1 IN EQUITY",
+          "GOLD99 TB EQUITY",
+          "GOLDETF IN EQUITY",
+          "GOLDETF MK EQUITY",
+          "GOLDIETF IN EQUITY",
+          "GOLDP TI EQUITY",
+          "GRGLDRG IN EQUITY",
+          "GTU US EQUITY",
+          "GXLD AU EQUITY",
+          "HDFGOLD IN EQUITY",
+          "IAU",
+          "IAUM US EQUITY",
+          "ICPGOLD IN EQUITY",
+          "IDBIGLD IN EQUITY",
+          "IGLD GR EQUITY",
+          "IGLG LN EQUITY",
+          "IGLN LN EQUITY",
+          "JBGOCA SW EQUITY",
+          "JBGOCX SW EQUITY",
+          "JBGOEA SW EQUITY",
+          "JBGOEX SW EQUITY",
+          "JBGOGA SW EQUITY",
+          "JBGOGX SW EQUITY",
+          "JBGOUA SW EQUITY",
+          "JBGOUX SW EQUITY",
+          "KG965 TB EQUITY",
+          "KILO CN EQUITY",
+          "KILO/B CN EQUITY",
+          "KILO/U CN EQUITY",
+          "KOGOLD IN EQUITY",
+          "LGOLDAA SP EQUITY",
+          "LGOLDAH SP EQUITY",
+          "LGOLDAU SP EQUITY",
+          "LGOLDIH SP EQUITY",
+          "LGOLDMH SP EQUITY",
+          "LGOLDSA SP EQUITY",
+          "LICMFGLD IN EQUITY",
+          "MAGOLDF IN EQUITY",
+          "MILLBULL CN EQUITY",
+          "MNT CN EQUITY",
+          "MOSLGRG IN EQUITY",
+          "MOSTGLD IN EQUITY",
+          "NUGG AU EQUITY",
+          "OUNZ US EQUITY",
+          "PHAU LN EQUITY",
+          "PHPM LN EQUITY",
+          "PHYS",
+          "PICMETH SW EQUITY",
+          "PICPGHI SW EQUITY",
+          "PICPGHZ SW EQUITY",
+          "PICPGIC SW EQUITY",
+          "PICPGIE SW EQUITY",
+          "PICPGIS SW EQUITY",
+          "PICPGIU SW EQUITY",
+          "PICPGIY SW EQUITY",
+          "PICPGPC SW EQUITY",
+          "PICPGPE SW EQUITY",
+          "PICPGPH SW EQUITY",
+          "PICPGPR SW EQUITY",
+          "PICPGPS SW EQUITY",
+          "PICPGPU SW EQUITY",
+          "PICPGRC SW EQUITY",
+          "PICPGRE SW EQUITY",
+          "PICPGRU SW EQUITY",
+          "PICPGZE SW EQUITY",
+          "PICPGZU SW EQUITY",
+          "PICPRMH SW EQUITY",
+          "PIMPGJD SW EQUITY",
+          "PMGOLD AU EQUITY",
+          "QAU AU EQUITY",
+          "QTGOLD IN EQUITY",
+          "REGGOLD IN EQUITY",
+          "REGOLD IN EQUITY",
+          "RFSGDAU SW EQUITY",
+          "RFSGDHC SW EQUITY",
+          "RGLDO SW EQUITY",
+          "RGLDOH SW EQUITY",
+          "RGLDOU SW EQUITY",
+          "RGLDS SW EQUITY",
+          "RGLDSH SW EQUITY",
+          "RGRT SW EQUITY",
+          "RGRTH SW EQUITY",
+          "RGRTU SW EQUITY",
+          "RM3H GR EQUITY",
+          "RMAU LN EQUITY",
+          "RMCH SW EQUITY",
+          "RMPH LN EQUITY",
+          "SESG US EQUITY",
+          "SETFGOLD IN EQUITY",
+          "SGBS LN EQUITY",
+          "SGETS IN EQUITY",
+          "SGLD LN EQUITY",
+          "SGLDBULA CN EQUITY",
+          "SGLDBULF CN EQUITY",
+          "SGLN LN EQUITY",
+          "SGLS LN EQUITY",
+          "SGOL US EQUITY",
+          "SPAUAGR LE EQUITY",
+          "SPPG95P LE EQUITY",
+          "SPPM95P LE EQUITY",
+          "TGLD LN EQUITY",
+          "TGOLDEF IN EQUITY",
+          "TGOLDETF TB EQUITY",
+          "TMGD GR EQUITY",
+          "TWCGERG IN EQUITY",
+          "UBGDAHC SW EQUITY",
+          "UBGDAHE SW EQUITY",
+          "UBGDAHU SW EQUITY",
+          "UBGDIHC SW EQUITY",
+          "UBGDIHU SW EQUITY",
+          "UNGOERG IN EQUITY",
+          "UTIGOL IN EQUITY",
+          "VALT CN EQUITY",
+          "VALT/B CN EQUITY",
+          "VALT/U CN EQUITY",
+          "WGLD LN EQUITY",
+          "XAD1 GR EQUITY",
+          "XAD5 GR EQUITY",
+          "XGDE GR EQUITY",
+          "XGDG LN EQUITY",
+          "XGDU GR EQUITY",
+          "XGLD LN EQUITY",
+          "XGLI LN EQUITY",
+          "XGLS LN EQUITY",
+          "XGOC SW EQUITY",
+          "XOB1 GR EQUITY",
+          "XOB2 GR EQUITY",
+          "ZGLD CN EQUITY",
+          "ZGLD SW EQUITY",
+          "ZGLD/U CN EQUITY",
+          "ZGLDETF IN EQUITY",
+          "ZGLDEU SW EQUITY",
+          "ZGLDGB SW EQUITY",
+          "ZGLDHC SW EQUITY",
+          "ZGLDHE SW EQUITY",
+          "ZGLDHG SW EQUITY",
+          "ZGLDUS SW EQUITY",
+          "ZGLH CN EQUITY",
+          "ZGOL AU EQUITY"
+        ]
+      },
+      "name": "wgc_etf_monthly",
+      "primary_key": [
+        "ticker",
+        "obs_date",
+        "source_url"
+      ],
+      "relation_kind": "table",
+      "row_count": 1338260,
+      "series_profiles": []
+    },
+    {
+      "contract": {
+        "adapter_action": "replace consumers with explicit PIT source precedence after parity",
+        "date_column": "obs_date",
+        "dimensions": [
+          "ticker",
+          "source"
+        ],
+        "domain": "gold",
+        "downstream_consumers": [
+          "storage/gold_etf.py::fetch_wgc_etf_monthly"
+        ],
+        "relation_kind": "view",
+        "revision_identity": "latest workbook revision selected per (ticker, obs_date)",
+        "risk_flags": [
+          "latest-wins selection is not an as-of query"
+        ],
+        "source_status": "derived view over free first-party WGC workbooks",
+        "timestamp_semantics": "inherits wgc_etf_monthly; canonical selection is query-time"
+      },
+      "date_span": {
+        "max": "2026-03-31",
+        "min": "2003-03-31"
+      },
+      "dimensions": {
+        "source": [
+          "WGC"
+        ],
+        "ticker": [
+          "0072R0 KS EQUITY",
+          "1540 JT EQUITY",
+          "159812 CH EQUITY",
+          "159830 CH EQUITY",
+          "159831 CH EQUITY",
+          "159832 CH EQUITY",
+          "159833 CH EQUITY",
+          "159834 CH EQUITY",
+          "159934 CH EQUITY",
+          "159937 CH EQUITY",
+          "2830 HK EQUITY",
+          "3081 HK EQUITY",
+          "3170 HK EQUITY",
+          "360GERG IN EQUITY",
+          "411060 KS EQUITY",
+          "4GLD GR EQUITY",
+          "518600 CH EQUITY",
+          "518660 CH EQUITY",
+          "518680 CH EQUITY",
+          "518800 CH EQUITY",
+          "518850 CH EQUITY",
+          "518860 CH EQUITY",
+          "518880 CH EQUITY",
+          "518890 CH EQUITY",
+          "83168 HK EQUITY",
+          "8PSE GR EQUITY",
+          "929",
+          "930",
+          "AAAU US EQUITY",
+          "AGOL US EQUITY",
+          "ALBIGOLD AB EQUITY",
+          "ALOGDRG IN EQUITY",
+          "ANGELONE IN EQUITY",
+          "AUCHAH SW EQUITY",
+          "AUEUAH SW EQUITY",
+          "AUUSA SW EQUITY",
+          "AUUSI SW EQUITY",
+          "AXGOLD IN EQUITY",
+          "BAGOLRG IN EQUITY",
+          "BAR US EQUITY",
+          "BARS LN EQUITY",
+          "BBNPGET IN EQUITY",
+          "BCHAY TB EQUITY",
+          "BKBGLDA SW EQUITY",
+          "BKBGLDI SW EQUITY",
+          "BKBGLDJ SW EQUITY",
+          "BMGGLDBA CN EQUITY",
+          "BSLGOLD IS EQUITY",
+          "CEF/U CN EQUITY",
+          "CGL CN EQUITY",
+          "CGL/C CN EQUITY",
+          "CHOGORG IN EQUITY",
+          "CRGETF IN EQUITY",
+          "CSGBDAH SW EQUITY",
+          "CSGBFBH SW EQUITY",
+          "CSGBQBU SW EQUITY",
+          "CSGIMAC SW EQUITY",
+          "CSGIMAH SW EQUITY",
+          "CSGIMIA SW EQUITY",
+          "CSGIMUA SW EQUITY",
+          "CSGLDC SW EQUITY",
+          "CSGLDE SW EQUITY",
+          "CSGOLD SW EQUITY",
+          "CSGQBHC SW EQUITY",
+          "CSIFGBD SW EQUITY",
+          "CSIFGEA SW EQUITY",
+          "CSIGBDH SW EQUITY",
+          "CSIGBQE SW EQUITY",
+          "CSIMIAH SW EQUITY",
+          "CSIMUAH SW EQUITY",
+          "DGOLETF IN EQUITY",
+          "EDLGOLD IN EQUITY",
+          "ETFGLD SJ EQUITY",
+          "EWG2 GR EQUITY",
+          "EWGC GR EQUITY",
+          "EWGT GR EQUITY",
+          "FGDL US EQUITY",
+          "FGLD US EQUITY",
+          "FXGD RM EQUITY",
+          "GBEES IN EQUITY",
+          "GBS LN EQUITY",
+          "GBSE IM EQUITY",
+          "GBSP LN EQUITY",
+          "GHLD AU EQUITY",
+          "GLD",
+          "GLD SJ EQUITY",
+          "GLDCO2 SW EQUITY",
+          "GLDM",
+          "GLDTR TI EQUITY",
+          "GLDW US EQUITY",
+          "GLTR US EQUITY",
+          "GOLD AU EQUITY",
+          "GOLD DU EQUITY",
+          "GOLD FP EQUITY",
+          "GOLD GR EQUITY",
+          "GOLD1 IN EQUITY",
+          "GOLD99 TB EQUITY",
+          "GOLDETF IN EQUITY",
+          "GOLDETF MK EQUITY",
+          "GOLDIETF IN EQUITY",
+          "GOLDP TI EQUITY",
+          "GRGLDRG IN EQUITY",
+          "GTU US EQUITY",
+          "GXLD AU EQUITY",
+          "HDFGOLD IN EQUITY",
+          "IAU",
+          "IAUM US EQUITY",
+          "ICPGOLD IN EQUITY",
+          "IDBIGLD IN EQUITY",
+          "IGLD GR EQUITY",
+          "IGLG LN EQUITY",
+          "IGLN LN EQUITY",
+          "JBGOCA SW EQUITY",
+          "JBGOCX SW EQUITY",
+          "JBGOEA SW EQUITY",
+          "JBGOEX SW EQUITY",
+          "JBGOGA SW EQUITY",
+          "JBGOGX SW EQUITY",
+          "JBGOUA SW EQUITY",
+          "JBGOUX SW EQUITY",
+          "KG965 TB EQUITY",
+          "KILO CN EQUITY",
+          "KILO/B CN EQUITY",
+          "KILO/U CN EQUITY",
+          "KOGOLD IN EQUITY",
+          "LGOLDAA SP EQUITY",
+          "LGOLDAH SP EQUITY",
+          "LGOLDAU SP EQUITY",
+          "LGOLDIH SP EQUITY",
+          "LGOLDMH SP EQUITY",
+          "LGOLDSA SP EQUITY",
+          "LICMFGLD IN EQUITY",
+          "MAGOLDF IN EQUITY",
+          "MILLBULL CN EQUITY",
+          "MNT CN EQUITY",
+          "MOSLGRG IN EQUITY",
+          "MOSTGLD IN EQUITY",
+          "NUGG AU EQUITY",
+          "OUNZ US EQUITY",
+          "PHAU LN EQUITY",
+          "PHPM LN EQUITY",
+          "PHYS",
+          "PICMETH SW EQUITY",
+          "PICPGHI SW EQUITY",
+          "PICPGHZ SW EQUITY",
+          "PICPGIC SW EQUITY",
+          "PICPGIE SW EQUITY",
+          "PICPGIS SW EQUITY",
+          "PICPGIU SW EQUITY",
+          "PICPGIY SW EQUITY",
+          "PICPGPC SW EQUITY",
+          "PICPGPE SW EQUITY",
+          "PICPGPH SW EQUITY",
+          "PICPGPR SW EQUITY",
+          "PICPGPS SW EQUITY",
+          "PICPGPU SW EQUITY",
+          "PICPGRC SW EQUITY",
+          "PICPGRE SW EQUITY",
+          "PICPGRU SW EQUITY",
+          "PICPGZE SW EQUITY",
+          "PICPGZU SW EQUITY",
+          "PICPRMH SW EQUITY",
+          "PIMPGJD SW EQUITY",
+          "PMGOLD AU EQUITY",
+          "QAU AU EQUITY",
+          "QTGOLD IN EQUITY",
+          "REGGOLD IN EQUITY",
+          "REGOLD IN EQUITY",
+          "RFSGDAU SW EQUITY",
+          "RFSGDHC SW EQUITY",
+          "RGLDO SW EQUITY",
+          "RGLDOH SW EQUITY",
+          "RGLDOU SW EQUITY",
+          "RGLDS SW EQUITY",
+          "RGLDSH SW EQUITY",
+          "RGRT SW EQUITY",
+          "RGRTH SW EQUITY",
+          "RGRTU SW EQUITY",
+          "RM3H GR EQUITY",
+          "RMAU LN EQUITY",
+          "RMCH SW EQUITY",
+          "RMPH LN EQUITY",
+          "SESG US EQUITY",
+          "SETFGOLD IN EQUITY",
+          "SGBS LN EQUITY",
+          "SGETS IN EQUITY",
+          "SGLD LN EQUITY",
+          "SGLDBULA CN EQUITY",
+          "SGLDBULF CN EQUITY",
+          "SGLN LN EQUITY",
+          "SGLS LN EQUITY",
+          "SGOL US EQUITY",
+          "SPAUAGR LE EQUITY",
+          "SPPG95P LE EQUITY",
+          "SPPM95P LE EQUITY",
+          "TGLD LN EQUITY",
+          "TGOLDEF IN EQUITY",
+          "TGOLDETF TB EQUITY",
+          "TMGD GR EQUITY",
+          "TWCGERG IN EQUITY",
+          "UBGDAHC SW EQUITY",
+          "UBGDAHE SW EQUITY",
+          "UBGDAHU SW EQUITY",
+          "UBGDIHC SW EQUITY",
+          "UBGDIHU SW EQUITY",
+          "UNGOERG IN EQUITY",
+          "UTIGOL IN EQUITY",
+          "VALT CN EQUITY",
+          "VALT/B CN EQUITY",
+          "VALT/U CN EQUITY",
+          "WGLD LN EQUITY",
+          "XAD1 GR EQUITY",
+          "XAD5 GR EQUITY",
+          "XGDE GR EQUITY",
+          "XGDG LN EQUITY",
+          "XGDU GR EQUITY",
+          "XGLD LN EQUITY",
+          "XGLI LN EQUITY",
+          "XGLS LN EQUITY",
+          "XGOC SW EQUITY",
+          "XOB1 GR EQUITY",
+          "XOB2 GR EQUITY",
+          "ZGLD CN EQUITY",
+          "ZGLD SW EQUITY",
+          "ZGLD/U CN EQUITY",
+          "ZGLDETF IN EQUITY",
+          "ZGLDEU SW EQUITY",
+          "ZGLDGB SW EQUITY",
+          "ZGLDHC SW EQUITY",
+          "ZGLDHE SW EQUITY",
+          "ZGLDHG SW EQUITY",
+          "ZGLDUS SW EQUITY",
+          "ZGLH CN EQUITY",
+          "ZGOL AU EQUITY"
+        ]
+      },
+      "name": "wgc_etf_monthly_canonical",
+      "primary_key": [],
+      "relation_kind": "view",
+      "row_count": 26460,
+      "series_profiles": []
+    }
+  ],
+  "scope": {
+    "database": "option_wizard_local",
+    "external_provider_calls": 0,
+    "mode": "read_only_snapshot",
+    "schema": "uw_scan"
+  }
+}

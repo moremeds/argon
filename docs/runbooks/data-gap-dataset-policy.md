@@ -6,7 +6,7 @@ Generated from `REGISTRY` in `src/uw_scan/reports/data_gap_healer.py` (one sourc
 uv run python -c "from uw_scan.reports.data_gap_healer import render_dataset_policy_markdown as r; open('docs/runbooks/data-gap-dataset-policy.md','w').write(r())"
 ```
 
-**132 datasets** across 9 groups.
+**134 datasets** across 10 groups.
 
 ## core_watchlist
 
@@ -48,6 +48,13 @@ uv run python -c "from uw_scan.reports.data_gap_healer import render_dataset_pol
 | uw_gold_options_daily | freshness_only | uw | run_once | gold_uw_options | equity_session |  |
 | wgc_etf_monthly | freshness_only | none | none |  | monthly | source needs auth cookie / no historical API (audit-only) |
 | wgc_etf_monthly_canonical | freshness_only | none | none |  | monthly | source needs auth cookie / no historical API (audit-only) |
+
+## macro_evidence
+
+| table | audit_mode | provider | granularity | adapter | freq | reason |
+|---|---|---|---|---|---|---|
+| macro_observations | provenance | none | none |  | none |  |
+| macro_source_artifacts | provenance | none | none |  | none |  |
 
 ## operational_provenance
 
