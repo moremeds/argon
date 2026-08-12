@@ -198,7 +198,7 @@ version in lockstep (enforced by `scripts/release/version_sync_check.py`).
 
 ### Added
 
-- **Valuation anchor band on the fundamental card (stage 3).** Migration `116`
+- **Valuation anchor band on the fundamental card (stage 3).** Migration `118`
   adds `valuation_anchors` + `fundamental_company_type`;
   `fundamentals/valuation.py` is the pure compute,
   `storage/fundamental_anchors.py` the persistence,
@@ -503,7 +503,7 @@ version in lockstep (enforced by `scripts/release/version_sync_check.py`).
   lists — different facts about a company — and the card dates itself by
   `knowledge_date`, never the `as_of` cross-section bucket.
 - **Stage-2 fundamental scoring — subscores, composite, and method versioning**
-  (migration `115`). `fundamental_method_versions` / `_params` / `_state` plus
+  (migration `117`). `fundamental_method_versions` / `_params` / `_state` plus
   `fundamental_scores`, keyed `(ticker, as_of, engine_version, inputs_hash)`.
   New `fundamentals/scoring.py`, `storage/fundamental_scores.py`,
   `worker/jobs/fundamental_scoring.py`, `scripts/seed_fundamental_method.py`.

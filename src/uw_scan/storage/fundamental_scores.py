@@ -1,4 +1,4 @@
-"""Method versioning and stage-2 score outputs (migration 115).
+"""Method versioning and stage-2 score outputs (migration 117).
 
 Standalone repository. **Every writer commits** — same reason as
 `fundamental_obs.py`: the known failure in this area is a refresh that ran,

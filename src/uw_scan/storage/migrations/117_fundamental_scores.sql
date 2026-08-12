@@ -1,4 +1,4 @@
--- 115_fundamental_scores.sql — method versioning + stage-2 score outputs.
+-- 117_fundamental_scores.sql — method versioning + stage-2 score outputs.
 -- Idempotent.
 --
 -- Two ideas, and the separation is the point:

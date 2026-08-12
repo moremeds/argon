@@ -1,4 +1,4 @@
-"""Stage-2 scoring job — cross-sectional subscores and composite (migration 115).
+"""Stage-2 scoring job — cross-sectional subscores and composite (migration 117).
 
 Reads the tier-1 statement panel, forms one cross-section per KNOWLEDGE QUARTER,
 and persists a score row per (ticker, as_of) under the active method version.

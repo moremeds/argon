@@ -1,4 +1,4 @@
--- 116_valuation_anchors.sql — company-type assignment + stage-3 anchor bands.
+-- 118_valuation_anchors.sql — company-type assignment + stage-3 anchor bands.
 -- Idempotent.
 --
 -- The band is a price range derived from a name's OWN valuation history: each

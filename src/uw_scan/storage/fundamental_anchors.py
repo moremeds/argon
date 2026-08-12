@@ -1,4 +1,4 @@
-"""Company-type routing and stage-3 anchor bands (migration 116).
+"""Company-type routing and stage-3 anchor bands (migration 118).
 
 Standalone repository. **Every writer commits** — same reason as its two
 siblings: the known failure in this area is a refresh that ran, logged success
