@@ -4,12 +4,19 @@ import hashlib
 from datetime import UTC, date, datetime
 from decimal import Decimal
 from pathlib import Path
+from unittest.mock import patch
 
+import httpx
 import pytest
 from bs4 import BeautifulSoup
 
 from uw_scan.normalize import NormalizationError
-from uw_scan.sources.fomc_statement import FomcStatementBundle, parse_fomc_statement
+from uw_scan.sources.fomc_release_contracts import FomcReleaseCandidate
+from uw_scan.sources.fomc_statement import (
+    FomcStatementBundle,
+    FomcStatementProvider,
+    parse_fomc_statement,
+)
 from uw_scan.worker.jobs.macro_policy_jobs import _statement_observation
 
 
@@ -151,7 +158,9 @@ def test_statement_bundle_retains_stable_pdf_and_parses_decision() -> None:
         "13c6558e213dd433c4a0c255d5f7a25ab79992f672c9644994307afea5d7932f"
     )
     assert bundle.primary_artifact.content_length == 229_274
-    assert bundle.primary_artifact.source_record_id == ("fomc-statement:2026-06-17:pdf")
+    assert bundle.primary_artifact.source_record_id == (
+        "fomc-statement:monetary20260617a:pdf"
+    )
     assert release.action == "Hold"
     assert release.vote_split == "12-0"
     assert release.target_range_lower == Decimal("3.5")
@@ -159,6 +168,7 @@ def test_statement_bundle_retains_stable_pdf_and_parses_decision() -> None:
     assert release.published_at.isoformat() == "2026-06-17T14:00:00-04:00"
     assert release.source_url == PDF_URL
     assert release.accessible_source_url == HTML_URL
+    assert release.source_record_id == "fomc-statement:monetary20260617a"
 
 
 @pytest.mark.parametrize(
@@ -496,3 +506,151 @@ def test_statement_keeps_artifact_and_semantic_parser_versions_separate() -> Non
     assert row["parser_version"] == "fomc_statement.v2"
     assert row["value_json"]["parser_version"] == "fomc_statement.v2"
     assert row["value_json"]["points"][0]["vote_status"] == "stated"
+
+
+def test_statement_discovers_exact_2020_golden_candidates() -> None:
+    calendar = (FIXTURES / "fomc_calendar_current.html").read_bytes()
+    history = (FIXTURES / "fomc_historical_2020.html").read_bytes()
+
+    def fake_get(_provider: FomcStatementProvider, url: str) -> httpx.Response:
+        request = httpx.Request("GET", url)
+        if url.endswith("/monetarypolicy/fomccalendars.htm"):
+            return httpx.Response(200, content=calendar, request=request)
+        if url.endswith("/monetarypolicy/fomchistorical2020.htm"):
+            return httpx.Response(200, content=history, request=request)
+        if url.endswith("/newsevents/pressreleases/monetary20200323a.htm"):
+            return httpx.Response(
+                200,
+                content=(FIXTURES / "fomc_statement_2020_03_23.html").read_bytes(),
+                headers={"content-type": "text/html"},
+                request=request,
+            )
+        if url.endswith("a.htm"):
+            stem = url.rsplit("/", 1)[-1].removesuffix(".htm")
+            body = (f'<a href="/monetarypolicy/files/{stem}1.pdf">PDF</a>').encode()
+            return httpx.Response(
+                200,
+                content=body,
+                headers={"content-type": "text/html"},
+                request=request,
+            )
+        if url.endswith(".pdf"):
+            return httpx.Response(
+                200,
+                content=b"%PDF official",
+                headers={"content-type": "application/pdf"},
+                request=request,
+            )
+        return httpx.Response(404, request=request)
+
+    with patch.object(
+        FomcStatementProvider, "_get", autospec=True, side_effect=fake_get
+    ):
+        with FomcStatementProvider() as provider:
+            candidates = provider.discover_candidates(years=(2020,))
+
+    expected_classes = {
+        "fomc-statement:monetary20200129a": "scheduled_meeting",
+        "fomc-statement:monetary20200303a": "unscheduled_meeting",
+        "fomc-statement:monetary20200315a": "unscheduled_meeting",
+        "fomc-statement:monetary20200323a": "notation_vote",
+        "fomc-statement:monetary20200429a": "scheduled_meeting",
+        "fomc-statement:monetary20200610a": "scheduled_meeting",
+        "fomc-statement:monetary20200729a": "scheduled_meeting",
+        "fomc-statement:monetary20200916a": "scheduled_meeting",
+        "fomc-statement:monetary20201105a": "scheduled_meeting",
+        "fomc-statement:monetary20201216a": "scheduled_meeting",
+    }
+    assert [item.release_key for item in candidates] == sorted(expected_classes)
+    assert {item.release_key: item.event_class for item in candidates} == (
+        expected_classes
+    )
+    assert all(item.html_url and item.pdf_url for item in candidates)
+    assert all(item.discovery_error is None for item in candidates)
+    march_23 = next(
+        item
+        for item in candidates
+        if item.release_key == "fomc-statement:monetary20200323a"
+    )
+    assert march_23.pdf_url == (
+        "https://www.federalreserve.gov/newsevents/pressreleases/files/"
+        "monetary20200323a1.pdf"
+    )
+
+
+def test_statement_outcomes_isolate_transport_failure_and_keep_partial_artifact() -> (
+    None
+):
+    first = FomcReleaseCandidate(
+        release_key="fomc-statement:monetary20200129a",
+        release_type="statement",
+        event_date=date(2020, 1, 29),
+        event_class="scheduled_meeting",
+        discovery_url=(
+            "https://www.federalreserve.gov/monetarypolicy/fomchistorical2020.htm"
+        ),
+        html_url=(
+            "https://www.federalreserve.gov/newsevents/pressreleases/"
+            "monetary20200129a.htm"
+        ),
+        pdf_url=(
+            "https://www.federalreserve.gov/monetarypolicy/files/monetary20200129a1.pdf"
+        ),
+    )
+    second = FomcReleaseCandidate(
+        release_key="fomc-statement:monetary20200303a",
+        release_type="statement",
+        event_date=date(2020, 3, 3),
+        event_class="unscheduled_meeting",
+        discovery_url=first.discovery_url,
+        html_url=SOURCE_URL_BY_FIXTURE["fomc_statement_2020_03_03.html"],
+        pdf_url=(
+            "https://www.federalreserve.gov/monetarypolicy/files/monetary20200303a1.pdf"
+        ),
+    )
+
+    def fake_get(_provider: FomcStatementProvider, url: str) -> httpx.Response:
+        if url == first.html_url:
+            raise httpx.ConnectError("first release unavailable")
+        request = httpx.Request("GET", url)
+        if url == second.html_url:
+            return httpx.Response(
+                200,
+                content=(FIXTURES / "fomc_statement_2020_03_03.html").read_bytes(),
+                headers={"content-type": "text/html"},
+                request=request,
+            )
+        return httpx.Response(
+            200,
+            content=b"%PDF exact bytes",
+            headers={"content-type": "application/pdf"},
+            request=request,
+        )
+
+    with (
+        patch.object(
+            FomcStatementProvider,
+            "discover_candidates",
+            autospec=True,
+            return_value=[first, second],
+        ),
+        patch.object(
+            FomcStatementProvider, "_get", autospec=True, side_effect=fake_get
+        ),
+    ):
+        with FomcStatementProvider() as provider:
+            outcomes = provider.fetch_outcomes(
+                years=(2020,), retrieved_at=datetime(2026, 8, 13, tzinfo=UTC)
+            )
+
+    assert [outcome.candidate.release_key for outcome in outcomes] == [
+        first.release_key,
+        second.release_key,
+    ]
+    assert outcomes[0].bundle is None
+    assert len(outcomes[0].artifacts) == 1
+    assert outcomes[0].artifacts[0].raw_bytes == b"%PDF exact bytes"
+    assert outcomes[0].error_type == "ConnectError"
+    assert len(outcomes[0].error_message or "") <= 500
+    assert outcomes[1].bundle is not None
+    assert len(outcomes[1].artifacts) == 2

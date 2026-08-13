@@ -8,24 +8,20 @@ representations are retained and the HTML parser is intentionally strict.
 
 from __future__ import annotations
 
-import logging
 import re
 from dataclasses import dataclass
-from datetime import UTC, date, datetime, time
+from datetime import date, datetime, time
 from decimal import Decimal, InvalidOperation
 from typing import Final
 from zoneinfo import ZoneInfo
 
-import httpx
 from bs4 import BeautifulSoup, Tag
 
 from uw_scan.macro_evidence import macro_artifact_content_identity
 from uw_scan.models.macro import MacroSourceArtifact
 from uw_scan.normalize import NormalizationError
 
-from .fomc_calendar import _projection_pdf_urls_by_date, _projection_urls_by_date
-
-logger = logging.getLogger(__name__)
+from .fomc_release_contracts import artifact_identity
 
 PARSER_VERSION: Final = "fed_sep.v1"
 SOURCE: Final = "federal_reserve_sep"
@@ -61,6 +57,7 @@ class SepRelease:
 
 @dataclass(frozen=True)
 class SepSourceBundle:
+    release_key: str
     meeting_date: date
     primary_artifact: MacroSourceArtifact
     accessible_artifact: MacroSourceArtifact
@@ -75,10 +72,19 @@ class SepSourceBundle:
         pdf_url: str,
         pdf_bytes: bytes,
         retrieved_at: datetime,
+        release_key: str | None = None,
     ) -> "SepSourceBundle":
         published_at = _published_at(accessible_bytes, expected_date=meeting_date)
-        record_base = f"fed-sep:{meeting_date.isoformat()}"
+        inferred_stem, inferred_date = artifact_identity(
+            accessible_url,
+            release_type="sep",
+            media_type="html",
+        )
+        if inferred_date != meeting_date:
+            raise ValueError("SEP URL date does not match meeting_date")
+        record_base = release_key or f"fed-sep:{inferred_stem}"
         return cls(
+            release_key=record_base,
             meeting_date=meeting_date,
             primary_artifact=_artifact(
                 source_record_id=f"{record_base}:pdf",
@@ -97,83 +103,6 @@ class SepSourceBundle:
                 retrieved_at=retrieved_at,
             ),
         )
-
-
-class FedSepProvider:
-    BASE_URL = "https://www.federalreserve.gov"
-    CALENDAR_PATH = "/monetarypolicy/fomccalendars.htm"
-
-    def __init__(
-        self,
-        *,
-        base_url: str = BASE_URL,
-        timeout_s: float = 30.0,
-        trust_env: bool = False,
-    ):
-        self._base_url = base_url.rstrip("/")
-        self._client = httpx.Client(
-            timeout=timeout_s,
-            follow_redirects=True,
-            trust_env=trust_env,
-        )
-
-    def __enter__(self) -> "FedSepProvider":
-        return self
-
-    def __exit__(self, *_exc: object) -> None:
-        self.close()
-
-    def close(self) -> None:
-        self._client.close()
-
-    def fetch_bundles(
-        self,
-        *,
-        years: tuple[int, ...],
-        retrieved_at: datetime | None = None,
-    ) -> list[SepSourceBundle]:
-        calendar_response = self._get(self.CALENDAR_PATH)
-        calendar_response.raise_for_status()
-        soup = BeautifulSoup(calendar_response.content, "html.parser")
-        html_urls = _projection_urls_by_date(soup, self._base_url)
-        pdf_urls = _projection_pdf_urls_by_date(soup, self._base_url)
-        wanted = set(years)
-        meeting_dates = sorted(
-            meeting_date
-            for meeting_date in html_urls.keys() & pdf_urls.keys()
-            if meeting_date.year in wanted
-        )
-        if not meeting_dates:
-            raise NormalizationError(
-                "FOMC calendar did not contain paired SEP HTML/PDF links"
-            )
-
-        observed_at = retrieved_at or datetime.now(UTC)
-        bundles: list[SepSourceBundle] = []
-        for meeting_date in meeting_dates:
-            accessible_response = self._get(html_urls[meeting_date])
-            accessible_response.raise_for_status()
-            pdf_response = self._get(pdf_urls[meeting_date])
-            pdf_response.raise_for_status()
-            bundles.append(
-                SepSourceBundle.from_bytes(
-                    meeting_date=meeting_date,
-                    accessible_url=html_urls[meeting_date],
-                    accessible_bytes=accessible_response.content,
-                    pdf_url=pdf_urls[meeting_date],
-                    pdf_bytes=pdf_response.content,
-                    retrieved_at=observed_at,
-                )
-            )
-        return bundles
-
-    def _get(self, path_or_url: str) -> httpx.Response:
-        url = (
-            path_or_url
-            if path_or_url.startswith("http")
-            else f"{self._base_url}{path_or_url}"
-        )
-        return self._client.get(url)
 
 
 def parse_sep_release(bundle: SepSourceBundle) -> SepRelease:
@@ -222,7 +151,7 @@ def parse_sep_release(bundle: SepSourceBundle) -> SepRelease:
         published_at=published_at,
         source_url=bundle.primary_artifact.source_url or "",
         accessible_source_url=bundle.accessible_artifact.source_url or "",
-        source_record_id=f"fed-sep:{bundle.meeting_date.isoformat()}",
+        source_record_id=bundle.release_key,
         projections=tuple(output),
     )
 
@@ -233,7 +162,7 @@ def _artifact(
     source_url: str,
     media_type: str,
     raw_bytes: bytes,
-    published_at: datetime,
+    published_at: datetime | None,
     retrieved_at: datetime,
 ) -> MacroSourceArtifact:
     content_hash, content_length = macro_artifact_content_identity(raw_bytes=raw_bytes)
@@ -243,7 +172,7 @@ def _artifact(
         source_record_id=source_record_id,
         source_url=source_url,
         published_at=published_at,
-        available_at=published_at,
+        available_at=published_at or retrieved_at,
         retrieved_at=retrieved_at,
         last_seen_at=retrieved_at,
         content_hash=content_hash,
@@ -467,3 +396,8 @@ def _decimal(raw: str, *, context: str) -> Decimal:
     if not value.is_finite():
         raise NormalizationError(f"SEP {context} must be finite")
     return value
+
+
+# Compatibility re-export: acquisition lives in a cohesive submodule so the
+# semantic SEP parser remains below the project's module-size target.
+from .fed_sep_provider import FedSepProvider, SepFetchOutcome  # noqa: E402,F401

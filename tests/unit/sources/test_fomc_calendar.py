@@ -1,5 +1,7 @@
 from __future__ import annotations
 
+import hashlib
+import json
 from datetime import date, datetime
 from decimal import Decimal
 from pathlib import Path
@@ -10,10 +12,19 @@ import httpx
 import pytest
 
 from uw_scan.sources.fomc_calendar import FomcCalendarProvider
+from uw_scan.sources.fomc_release_contracts import (
+    FomcReleaseCandidate,
+    ReleaseDiscoveryError,
+)
+from uw_scan.sources.fomc_release_discovery import (
+    discover_current_release_candidates,
+    discover_official_release_candidates,
+)
 from uw_scan.sources.fomc_text import _infer_action, _infer_target_range
 
 
 FIXTURES = Path(__file__).parents[2] / "fixtures" / "macro"
+CURRENT_CALENDAR_URL = "https://www.federalreserve.gov/monetarypolicy/fomccalendars.htm"
 
 
 def _response(url: str, path: Path, *, status_code: int = 200) -> httpx.Response:
@@ -22,6 +33,239 @@ def _response(url: str, path: Path, *, status_code: int = 200) -> httpx.Response
         content=path.read_bytes() if status_code == 200 else b"",
         request=httpx.Request("GET", url),
     )
+
+
+@pytest.mark.parametrize(
+    "fixture_name",
+    ["fomc_calendar_current.html", "fomc_historical_2020.html"],
+)
+def test_frozen_official_discovery_fixture_matches_manifest(fixture_name: str) -> None:
+    manifest = json.loads((FIXTURES / "manifest.json").read_text())
+    metadata = next(
+        item for item in manifest["artifacts"] if item["name"] == fixture_name
+    )
+    raw = (FIXTURES / fixture_name).read_bytes()
+
+    assert metadata["url"].startswith("https://www.federalreserve.gov/")
+    assert len(raw) == metadata["content_length"]
+    assert hashlib.sha256(raw).hexdigest() == metadata["sha256"]
+
+
+def test_release_candidate_enforces_statement_and_sep_event_class_invariants() -> None:
+    with pytest.raises(ValueError, match="statement candidates require"):
+        FomcReleaseCandidate(
+            release_key="fomc-statement:monetary20200315a",
+            release_type="statement",
+            event_date=date(2020, 3, 15),
+            event_class=None,
+            discovery_url=(
+                "https://www.federalreserve.gov/monetarypolicy/fomchistorical2020.htm"
+            ),
+            html_url=None,
+            pdf_url=None,
+        )
+
+    with pytest.raises(ValueError, match="SEP candidates require"):
+        FomcReleaseCandidate(
+            release_key="fed-sep:fomcprojtabl20200610",
+            release_type="sep",
+            event_date=date(2020, 6, 10),
+            event_class="scheduled_meeting",
+            discovery_url=(
+                "https://www.federalreserve.gov/monetarypolicy/fomchistorical2020.htm"
+            ),
+            html_url=None,
+            pdf_url=None,
+        )
+
+
+def test_release_candidate_retains_incomplete_urls_but_rejects_identity_drift() -> None:
+    incomplete = FomcReleaseCandidate(
+        release_key="fomc-statement:monetary20200323a",
+        release_type="statement",
+        event_date=date(2020, 3, 23),
+        event_class="notation_vote",
+        discovery_url=(
+            "https://www.federalreserve.gov/monetarypolicy/fomchistorical2020.htm"
+        ),
+        html_url=(
+            "https://www.federalreserve.gov/newsevents/pressreleases/"
+            "monetary20200323a.htm"
+        ),
+        pdf_url=None,
+        discovery_error="missing PDF counterpart",
+    )
+    assert incomplete.pdf_url is None
+
+    with pytest.raises(ValueError, match="does not match release key and date"):
+        FomcReleaseCandidate(
+            release_key="fomc-statement:monetary20200323a",
+            release_type="statement",
+            event_date=date(2020, 3, 23),
+            event_class="notation_vote",
+            discovery_url=incomplete.discovery_url,
+            html_url=(
+                "https://www.federalreserve.gov/newsevents/pressreleases/"
+                "monetary20200315a.htm"
+            ),
+            pdf_url=None,
+        )
+
+    with pytest.raises(ValueError, match="configured Fed host"):
+        FomcReleaseCandidate(
+            release_key="fed-sep:fomcprojtabl20200610",
+            release_type="sep",
+            event_date=date(2020, 6, 10),
+            event_class=None,
+            discovery_url=incomplete.discovery_url,
+            html_url=("https://evil.example/monetarypolicy/fomcprojtabl20200610.htm"),
+            pdf_url=None,
+        )
+
+
+def test_current_discovery_uses_meeting_context_and_excludes_strategy_statement() -> (
+    None
+):
+    candidates = discover_current_release_candidates(
+        (FIXTURES / "fomc_calendar_current.html").read_bytes(),
+        discovery_url=CURRENT_CALENDAR_URL,
+        years=(2025,),
+    )
+    keys = {candidate.release_key for candidate in candidates}
+
+    assert "fomc-statement:monetary20250822a" not in keys
+    assert "fomc-statement:monetary20250730a" in keys
+
+
+def test_current_discovery_retains_missing_counterparts_and_rejects_off_host() -> None:
+    raw = b"""
+    <div class="panel panel-default"><h4>2025 FOMC Meetings</h4>
+      <div class="row fomc-meeting">
+        <div class="fomc-meeting__month"><strong>January</strong></div>
+        <div class="fomc-meeting__date">28-29</div>
+        <div><strong>Statement:</strong>
+          <a href="/newsevents/pressreleases/monetary20250129a.htm">HTML</a>
+        </div>
+      </div>
+      <div class="row fomc-meeting">
+        <div class="fomc-meeting__month"><strong>March</strong></div>
+        <div class="fomc-meeting__date">18-19*</div>
+        <div><strong>Statement:</strong>
+          <a href="https://evil.example/monetary20250319a1.pdf">PDF</a>
+          <a href="/newsevents/pressreleases/monetary20250319a.htm">HTML</a>
+        </div>
+      </div>
+      <div class="row fomc-meeting">
+        <div class="fomc-meeting__month"><strong>June</strong></div>
+        <div class="fomc-meeting__date">17-18*</div>
+        <div><strong>Projection Materials</strong>
+          <a href="/monetarypolicy/files/fomcprojtabl20250618.pdf">PDF</a>
+        </div>
+      </div>
+    </div>
+    """
+    candidates = {
+        candidate.release_key: candidate
+        for candidate in discover_current_release_candidates(
+            raw, discovery_url=CURRENT_CALENDAR_URL, years=(2025,)
+        )
+    }
+
+    january = candidates["fomc-statement:monetary20250129a"]
+    assert january.html_url is not None
+    assert january.pdf_url is None
+    assert "missing PDF" in (january.discovery_error or "")
+    march = candidates["fomc-statement:monetary20250319a"]
+    assert march.html_url is not None
+    assert march.pdf_url is None
+    assert "off-host" in (march.discovery_error or "")
+    june = candidates["fed-sep:fomcprojtabl20250618"]
+    assert june.html_url is None
+    assert june.pdf_url is not None
+    assert "missing HTML" in (june.discovery_error or "")
+
+
+def test_current_discovery_deduplicates_exact_candidates_but_rejects_conflicts() -> (
+    None
+):
+    meeting = b"""
+      <div class="row fomc-meeting">
+        <div class="fomc-meeting__month"><strong>January</strong></div>
+        <div class="fomc-meeting__date">28-29</div>
+        <div><strong>Statement:</strong>
+          <a href="/monetarypolicy/files/monetary20250129a1.pdf">PDF</a>
+          <a href="/newsevents/pressreleases/monetary20250129a.htm">HTML</a>
+        </div>
+      </div>
+    """
+    exact = (
+        b'<div class="panel panel-default"><h4>2025 FOMC Meetings</h4>'
+        + meeting
+        + meeting
+        + b"</div>"
+    )
+    assert (
+        len(
+            discover_current_release_candidates(
+                exact, discovery_url=CURRENT_CALENDAR_URL, years=(2025,)
+            )
+        )
+        == 1
+    )
+
+    missing_pdf = meeting.replace(
+        b'<a href="/monetarypolicy/files/monetary20250129a1.pdf">PDF</a>', b""
+    )
+    conflict = (
+        b'<div class="panel panel-default"><h4>2025 FOMC Meetings</h4>'
+        + meeting
+        + missing_pdf
+        + b"</div>"
+    )
+    with pytest.raises(ReleaseDiscoveryError, match="conflicting duplicate"):
+        discover_current_release_candidates(
+            conflict, discovery_url=CURRENT_CALENDAR_URL, years=(2025,)
+        )
+
+
+def test_official_discovery_does_not_request_history_for_current_covered_year() -> None:
+    current = b"""
+    <div class="panel panel-default"><h4>2025 FOMC Meetings</h4>
+      <div class="row fomc-meeting">
+        <div class="fomc-meeting__month"><strong>January</strong></div>
+        <div class="fomc-meeting__date">28-29</div>
+        <div><strong>Statement:</strong>
+          <a href="/monetarypolicy/files/monetary20250129a1.pdf">PDF</a>
+          <a href="/newsevents/pressreleases/monetary20250129a.htm">HTML</a>
+        </div>
+      </div>
+    </div>
+    """
+    requested: list[str] = []
+
+    def fake_get(url: str) -> httpx.Response:
+        requested.append(url)
+        if url == CURRENT_CALENDAR_URL:
+            return httpx.Response(
+                200,
+                content=current,
+                headers={"content-type": "text/html"},
+                request=httpx.Request("GET", url),
+            )
+        raise AssertionError(f"unexpected historical request {url}")
+
+    candidates = discover_official_release_candidates(
+        get=fake_get,
+        base_url="https://www.federalreserve.gov",
+        calendar_path="/monetarypolicy/fomccalendars.htm",
+        years=(2025,),
+        release_type="statement",
+    )
+
+    assert [item.release_key for item in candidates] == [
+        "fomc-statement:monetary20250129a"
+    ]
+    assert requested == [CURRENT_CALENDAR_URL]
 
 
 def test_fomc_calendar_extracts_current_statement_and_projection_contracts() -> None:
@@ -50,7 +294,7 @@ def test_fomc_calendar_extracts_current_statement_and_projection_contracts() -> 
     assert meeting.published_at == datetime(
         2026, 6, 17, 14, tzinfo=ZoneInfo("America/New_York")
     )
-    assert meeting.source_record_id == "fomc-statement:2026-06-17"
+    assert meeting.source_record_id == "fomc-statement:monetary20260617a"
     assert meeting.source_url == (
         "https://www.federalreserve.gov/newsevents/pressreleases/monetary20260617a.htm"
     )

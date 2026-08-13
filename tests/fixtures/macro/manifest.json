@@ -14,6 +14,22 @@
       "sha256": "8d1919a8663d1a51176fe73635c6e3703df266041077f43cfa01e780f34b395a"
     },
     {
+      "name": "fomc_calendar_current.html",
+      "url": "https://www.federalreserve.gov/monetarypolicy/fomccalendars.htm",
+      "captured_on": "2026-08-13",
+      "media_type": "text/html",
+      "content_length": 164431,
+      "sha256": "d3a91c7e33960c39e2b9967d0dc60a00b1ef5f5961b1d49b61377ca4bdcf2771"
+    },
+    {
+      "name": "fomc_historical_2020.html",
+      "url": "https://www.federalreserve.gov/monetarypolicy/fomchistorical2020.htm",
+      "captured_on": "2026-08-13",
+      "media_type": "text/html",
+      "content_length": 98511,
+      "sha256": "a8b2159e8951dda0dee3fcc200e1e3bdcfa784be15bc489158ae859d4af9caf9"
+    },
+    {
       "name": "fomc_statement_2026_06.html",
       "url": "https://www.federalreserve.gov/newsevents/pressreleases/monetary20260617a.htm",
       "media_type": "text/html",

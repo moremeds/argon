@@ -249,7 +249,7 @@ def _parse_meeting_lines(
                 projection_url=projection_urls.get(end),
                 projection_pdf_url=projection_pdf_urls.get(end),
                 source_record_id=(
-                    f"fomc-statement:{end.isoformat()}"
+                    f"fomc-statement:monetary{end:%Y%m%d}a"
                     if statement_urls.get(end) is not None
                     else None
                 ),

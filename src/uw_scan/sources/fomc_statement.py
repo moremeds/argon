@@ -7,22 +7,25 @@ cannot silently become an empty policy decision.
 
 from __future__ import annotations
 
+import logging
 from dataclasses import dataclass
 from datetime import UTC, date, datetime
 from decimal import Decimal
 from typing import Final, Literal
 
 import httpx
-from bs4 import BeautifulSoup
 
 from uw_scan.macro_evidence import macro_artifact_content_identity
 from uw_scan.models.macro import MacroSourceArtifact
 from uw_scan.normalize import NormalizationError
 
-from .fomc_calendar import (
-    _statement_pdf_urls_by_date,
-    _statement_urls_by_date,
+from .fomc_release_contracts import (
+    FomcReleaseCandidate,
+    artifact_identity,
+    bounded_release_error,
+    require_official_response,
 )
+from .fomc_release_discovery import discover_official_release_candidates
 from .fomc_text import (
     _infer_action,
     _infer_published_at,
@@ -35,6 +38,8 @@ SEMANTIC_PARSER_VERSION: Final = "fomc_statement.v2"
 # Compatibility alias for callers that imported the original acquisition version.
 PARSER_VERSION: Final = ARTIFACT_PARSER_VERSION
 SOURCE: Final = "federal_reserve_fomc"
+
+logger = logging.getLogger(__name__)
 
 
 @dataclass(frozen=True)
@@ -54,6 +59,7 @@ class FomcStatementRelease:
 
 @dataclass(frozen=True)
 class FomcStatementBundle:
+    release_key: str
     meeting_date: date
     primary_artifact: MacroSourceArtifact
     accessible_artifact: MacroSourceArtifact
@@ -68,11 +74,20 @@ class FomcStatementBundle:
         pdf_url: str,
         pdf_bytes: bytes,
         retrieved_at: datetime,
+        release_key: str | None = None,
     ) -> "FomcStatementBundle":
         html = accessible_bytes.decode("utf-8", errors="replace")
         published_at = _infer_published_at(html, meeting_date)
-        record_base = f"fomc-statement:{meeting_date.isoformat()}"
+        inferred_stem, inferred_date = artifact_identity(
+            accessible_url,
+            release_type="statement",
+            media_type="html",
+        )
+        if inferred_date != meeting_date:
+            raise ValueError("statement URL date does not match meeting_date")
+        record_base = release_key or f"fomc-statement:{inferred_stem}"
         return cls(
+            release_key=record_base,
             meeting_date=meeting_date,
             primary_artifact=_artifact(
                 source_record_id=f"{record_base}:pdf",
@@ -91,6 +106,15 @@ class FomcStatementBundle:
                 retrieved_at=retrieved_at,
             ),
         )
+
+
+@dataclass(frozen=True)
+class FomcStatementFetchOutcome:
+    candidate: FomcReleaseCandidate
+    artifacts: tuple[MacroSourceArtifact, ...]
+    bundle: FomcStatementBundle | None
+    error_type: str | None = None
+    error_message: str | None = None
 
 
 class FomcStatementProvider:
@@ -126,40 +150,138 @@ class FomcStatementProvider:
         years: tuple[int, ...],
         retrieved_at: datetime | None = None,
     ) -> list[FomcStatementBundle]:
-        calendar_response = self._get(self.CALENDAR_PATH)
-        calendar_response.raise_for_status()
-        soup = BeautifulSoup(calendar_response.content, "html.parser")
-        html_urls = _statement_urls_by_date(soup, self._base_url)
-        pdf_urls = _statement_pdf_urls_by_date(soup, self._base_url)
-        wanted = set(years)
-        meeting_dates = sorted(
-            meeting_date
-            for meeting_date in html_urls.keys() & pdf_urls.keys()
-            if meeting_date.year in wanted
-        )
-        if not meeting_dates:
+        outcomes = self.fetch_outcomes(years=years, retrieved_at=retrieved_at)
+        failures = [outcome for outcome in outcomes if outcome.bundle is None]
+        if failures:
+            first = failures[0]
             raise NormalizationError(
-                "FOMC calendar did not contain paired statement HTML/PDF links"
+                "FOMC candidate fetch failed for "
+                f"{first.candidate.release_key}: {first.error_message}"
             )
+        return [outcome.bundle for outcome in outcomes if outcome.bundle is not None]
 
+    def discover_candidates(
+        self, *, years: tuple[int, ...]
+    ) -> list[FomcReleaseCandidate]:
+        return discover_official_release_candidates(
+            get=self._get,
+            base_url=self._base_url,
+            calendar_path=self.CALENDAR_PATH,
+            years=years,
+            release_type="statement",
+        )
+
+    def fetch_outcomes(
+        self,
+        *,
+        years: tuple[int, ...],
+        retrieved_at: datetime | None = None,
+    ) -> list[FomcStatementFetchOutcome]:
+        candidates = self.discover_candidates(years=years)
+        if not candidates:
+            raise NormalizationError("FOMC discovery produced no statement candidates")
         observed_at = retrieved_at or datetime.now(UTC)
-        bundles: list[FomcStatementBundle] = []
-        for meeting_date in meeting_dates:
-            accessible_response = self._get(html_urls[meeting_date])
-            accessible_response.raise_for_status()
-            pdf_response = self._get(pdf_urls[meeting_date])
-            pdf_response.raise_for_status()
-            bundles.append(
-                FomcStatementBundle.from_bytes(
-                    meeting_date=meeting_date,
-                    accessible_url=html_urls[meeting_date],
-                    accessible_bytes=accessible_response.content,
-                    pdf_url=pdf_urls[meeting_date],
-                    pdf_bytes=pdf_response.content,
-                    retrieved_at=observed_at,
+        return [
+            self._fetch_candidate(candidate, retrieved_at=observed_at)
+            for candidate in candidates
+        ]
+
+    def _fetch_candidate(
+        self,
+        candidate: FomcReleaseCandidate,
+        *,
+        retrieved_at: datetime,
+    ) -> FomcStatementFetchOutcome:
+        html_bytes: bytes | None = None
+        pdf_bytes: bytes | None = None
+        errors: list[tuple[str, str]] = []
+        if candidate.discovery_error:
+            errors.append(("ReleaseDiscoveryError", candidate.discovery_error))
+        for media_type, url in (
+            ("html", candidate.html_url),
+            ("pdf", candidate.pdf_url),
+        ):
+            if url is None:
+                continue
+            try:
+                response = self._get(url)
+                require_official_response(
+                    response,
+                    discovery_url=candidate.discovery_url,
+                    media_type=media_type,
                 )
+                if media_type == "html":
+                    html_bytes = response.content
+                else:
+                    pdf_bytes = response.content
+            except Exception as exc:
+                logger.debug("statement candidate artifact fetch failed: %s", repr(exc))
+                errors.append(bounded_release_error(exc))
+
+        bundle: FomcStatementBundle | None = None
+        if html_bytes is not None and pdf_bytes is not None:
+            assert candidate.html_url is not None
+            assert candidate.pdf_url is not None
+            try:
+                bundle = FomcStatementBundle.from_bytes(
+                    release_key=candidate.release_key,
+                    meeting_date=candidate.event_date,
+                    accessible_url=candidate.html_url,
+                    accessible_bytes=html_bytes,
+                    pdf_url=candidate.pdf_url,
+                    pdf_bytes=pdf_bytes,
+                    retrieved_at=retrieved_at,
+                )
+            except Exception as exc:
+                logger.debug("statement candidate bundle failed: %s", repr(exc))
+                errors.append(bounded_release_error(exc))
+
+        if bundle is not None:
+            artifacts = (bundle.primary_artifact, bundle.accessible_artifact)
+        else:
+            published_at = (
+                _infer_published_at(
+                    html_bytes.decode("utf-8", errors="replace"),
+                    candidate.event_date,
+                )
+                if html_bytes is not None
+                else None
             )
-        return bundles
+            partial: list[MacroSourceArtifact] = []
+            if pdf_bytes is not None and candidate.pdf_url is not None:
+                partial.append(
+                    _artifact(
+                        source_record_id=f"{candidate.release_key}:pdf",
+                        source_url=candidate.pdf_url,
+                        media_type="application/pdf",
+                        raw_bytes=pdf_bytes,
+                        published_at=published_at,
+                        retrieved_at=retrieved_at,
+                    )
+                )
+            if html_bytes is not None and candidate.html_url is not None:
+                partial.append(
+                    _artifact(
+                        source_record_id=f"{candidate.release_key}:html",
+                        source_url=candidate.html_url,
+                        media_type="text/html",
+                        raw_bytes=html_bytes,
+                        published_at=published_at,
+                        retrieved_at=retrieved_at,
+                    )
+                )
+            artifacts = tuple(partial)
+        error_type = errors[0][0] if errors else None
+        error_message = (
+            "; ".join(message for _, message in errors)[:500] if errors else None
+        )
+        return FomcStatementFetchOutcome(
+            candidate=candidate,
+            artifacts=artifacts,
+            bundle=bundle,
+            error_type=error_type,
+            error_message=error_message,
+        )
 
     def _get(self, path_or_url: str) -> httpx.Response:
         url = (
@@ -209,7 +331,7 @@ def parse_fomc_statement(bundle: FomcStatementBundle) -> FomcStatementRelease:
         target_range_upper=target_range[1],
         source_url=bundle.primary_artifact.source_url or "",
         accessible_source_url=bundle.accessible_artifact.source_url or "",
-        source_record_id=f"fomc-statement:{bundle.meeting_date.isoformat()}",
+        source_record_id=bundle.release_key,
         parser_version=SEMANTIC_PARSER_VERSION,
     )
 
