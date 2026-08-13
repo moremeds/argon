@@ -178,6 +178,11 @@
     "production_discovered_count": 0,
     "production_parsed_count": 0,
     "production_outcome": "missed_by_discovery",
+    "event_classifications": {
+      "fomc-statement:monetary20200303a": "unscheduled_meeting",
+      "fomc-statement:monetary20200315a": "unscheduled_meeting",
+      "fomc-statement:monetary20200323a": "notation_vote"
+    },
     "statement_candidates": [
       "fomc-statement:monetary20200129a",
       "fomc-statement:monetary20200303a",

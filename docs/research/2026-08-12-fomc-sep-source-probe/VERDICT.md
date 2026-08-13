@@ -34,8 +34,8 @@ errors are recorded in [pre-hardening-audit.json](pre-hardening-audit.json).
 
 The [official 2020 FOMC history page](https://www.federalreserve.gov/monetarypolicy/fomchistorical2020.htm)
 contains 10 Statement candidates and 3 SEP candidates. The production discovery misses 2020, leaving
-all 13 currently unparsed. This includes the March 3, March 15, and March 23 unscheduled policy
-statements as well as the June, September, and December SEP releases.
+all 13 currently unparsed. This includes the March 3 and March 15 unscheduled statements and the
+March 23 notation-vote statement, as well as the June, September, and December SEP releases.
 
 ## Gates required to restore PASS
 

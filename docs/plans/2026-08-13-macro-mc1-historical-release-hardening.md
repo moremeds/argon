@@ -112,7 +112,7 @@ def test_target_range_normalizes_unicode_fraction_and_hyphen(raw, expected):
     assert _infer_target_range(raw) == expected
 ```
 
-Add full-release tests for the March 23, 2020 unscheduled directive, 2021 maintain/keep wording, the
+Add full-release tests for the March 23, 2020 notation-vote statement, 2021 maintain/keep wording, the
 first 2022 increase, and 2026 Unicode mixed numbers. Assert action, both bounds, vote status/split,
 and timestamp. March 23 must return `vote_status="not_stated"` and `vote_split=None`; any release
 that contains a voting paragraph must either parse its exact split or fail.
@@ -178,20 +178,23 @@ git commit -m "fix(macro): parse historical FOMC rate wording"
 
 **Step 1: Write failing discovery tests**
 
-Pin exact official calendar/index HTML that includes regular statements, 2020 unscheduled releases,
-and SEP links. Assert the candidate list contains stable keys and classifications:
+Pin exact official calendar/index HTML that includes regular meeting statements, 2020 unscheduled
+meeting statements, notation-vote statements, and SEP links. Assert the candidate list contains
+stable keys and classifications:
 
 ```python
-assert candidates["fomc-statement:monetary20200303a"].scheduled is False
-assert candidates["fomc-statement:monetary20200315a"].scheduled is False
-assert candidates["fomc-statement:monetary20200429a"].scheduled is True
+assert candidates["fomc-statement:monetary20200303a"].event_class == "unscheduled_meeting"
+assert candidates["fomc-statement:monetary20200315a"].event_class == "unscheduled_meeting"
+assert candidates["fomc-statement:monetary20200323a"].event_class == "notation_vote"
+assert candidates["fomc-statement:monetary20200429a"].event_class == "scheduled_meeting"
 assert "fed-sep:fomcprojtabl20200610" in candidates
 assert len({item.release_key for item in candidates.values()}) == len(candidates)
 ```
 
-The frozen 2020 official index should yield 10 links labeled `Statement` (including March 3, March
-15, and March 23 unscheduled statements) and three SEP meetings (June, September, December). Treat
-those as a historical golden coverage count, not a guess from current-calendar markup.
+The frozen 2020 official index should yield 10 links labeled `Statement` (including the March 3 and
+March 15 unscheduled meeting statements and the March 23 notation-vote statement) and three SEP
+meetings (June, September, December). Treat those as a historical golden coverage count, not a guess
+from current-calendar markup.
 
 Also assert missing HTML/PDF counterparts remain explicit candidates with a discovery error instead
 of disappearing at set intersection.
@@ -214,7 +217,7 @@ class FomcReleaseCandidate:
     release_key: str
     release_type: Literal["statement", "sep"]
     event_date: date
-    scheduled: bool | None
+    event_class: Literal["scheduled_meeting", "unscheduled_meeting", "notation_vote"] | None
     discovery_url: str
     html_url: str | None
     pdf_url: str | None
@@ -352,7 +355,9 @@ PRIMARY KEY (source, release_key),
 release_type TEXT CHECK (release_type IN ('statement', 'sep')),
 status TEXT CHECK (status IN ('discovered', 'artifact_only', 'ok', 'failed')),
 event_date DATE NOT NULL,
-scheduled BOOLEAN NULL,
+event_class TEXT NULL CHECK (
+  event_class IN ('scheduled_meeting', 'unscheduled_meeting', 'notation_vote')
+),
 discovery_url TEXT NOT NULL,
 artifact_source_record_id TEXT NULL,
 latest_artifact_id BIGINT NULL,
@@ -576,7 +581,7 @@ Default `--start-year 2020`; audit through the current year. Emit deterministic 
 {
   "release_key": "fomc-statement:monetary20200315a",
   "event_date": "2020-03-15",
-  "scheduled": false,
+  "event_class": "unscheduled_meeting",
   "state": "ok",
   "artifact_hashes": {"html": "...", "pdf": "..."},
   "parser_version": "...",

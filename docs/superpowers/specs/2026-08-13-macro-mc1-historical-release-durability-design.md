@@ -9,7 +9,8 @@ durable, point-in-time policy record from **2020-01-01 through the present**. Th
 includes the COVID emergency-policy regime and the 2022 tightening cycle. It covers:
 
 - every regular FOMC policy statement discovered from the Federal Reserve's official calendars;
-- every unscheduled or emergency policy statement discovered from official 2020+ history pages;
+- every unscheduled-meeting or notation-vote policy statement discovered from official 2020+
+  history pages;
 - every official SEP release in that window;
 - the latest official New York Fed Survey of Market Expectations dealer path; and
 - the free third-party market-implied shadow, kept visibly separate from official evidence.
@@ -74,10 +75,10 @@ For example, the March 15 emergency decision is
 `fed-sep:fomcprojtabl20200610`. The event/meeting date is stored separately. This avoids assuming
 that a calendar date can never contain more than one official document.
 
-Statement discovery records whether the official index presents the event as scheduled or
-unscheduled. `scheduled`/`unscheduled` is an auditable calendar classification; subjective labels
-such as `COVID era` or `hiking era` are downstream analysis and are not written into immutable
-official facts.
+Statement discovery records the official index's event class: `scheduled_meeting`,
+`unscheduled_meeting`, or `notation_vote`. This is an auditable publisher classification;
+subjective labels such as `COVID era` or `hiking era` are downstream analysis and are not written
+into immutable official facts.
 
 Discovery is complete only when every requested year from 2020 through the current year has been
 visited and each discovered release has an explicit per-release outcome. Missing HTML or PDF pairs
@@ -130,7 +131,7 @@ the backfill; it must not invent an unobserved pre-correction revision. Any late
 available no earlier than an explicit correction time or Argon's first retrieval of that hash.
 
 A new mutable operational table, `macro_release_ingest_status`, catalogs every discovered release
-and its latest outcome. It contains the source, release key/type, event date, scheduled flag,
+and its latest outcome. It contains the source, release key/type, event date, official event class,
 discovery URL, last artifact revision, parser version, attempt/success times, and bounded error
 details. This table is health/coverage state, not publisher evidence. It makes failed releases
 queryable without weakening the immutable artifact/observation contract.
@@ -152,8 +153,9 @@ It rejects ambiguous or non-finite values.
 FOMC parsing supports explicit historical wording families for maintaining/keeping, raising, and
 lowering the target range. The result is still strict: action, lower bound, upper bound, vote status,
 and release timestamp are validated; lower bound must not exceed upper bound; and the action must
-agree with the statement's explicit verb. Some official unscheduled statements, including March 23,
-2020, do not publish the regular meeting voting paragraph. Those releases remain valid with
+agree with the statement's explicit verb. Some official statements outside regular meetings,
+including the March 23, 2020 notation-vote statement, do not publish the regular meeting voting
+paragraph. Those releases remain valid with
 `vote_status=not_stated` and `vote_split=null`; a published voting paragraph is still required to
 parse exactly. The parser never invents a vote or infers action from market data or a later meeting.
 
