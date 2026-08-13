@@ -158,11 +158,20 @@ It rejects ambiguous or non-finite values.
 FOMC parsing supports explicit historical wording families for maintaining/keeping, raising, and
 lowering the target range. The result is still strict: action, lower bound, upper bound, vote status,
 and release timestamp are validated; lower bound must not exceed upper bound; and the action must
-agree with the statement's explicit verb. Some official statements outside regular meetings,
-including the March 23, 2020 notation-vote statement, do not publish the regular meeting voting
-paragraph. Those releases remain valid with
-`vote_status=not_stated` and `vote_split=null`; a published voting paragraph is still required to
-parse exactly. The parser never invents a vote or infers action from market data or a later meeting.
+agree with the statement's explicit verb.
+
+The March 23, 2020 notation-vote statement explicitly says `Voting (by notation) for the monetary
+policy action were ...` and lists ten voters. Its bounded monetary-policy voting clause parses as
+`vote_status="stated"` and `vote_split="10-0"`. Every semicolon-delimited entry must be a valid named
+voter; malformed or missing list content fails normalization. The parser must not fall through to
+the later `Committee voted unanimously to authorize and direct` paragraph, which records a related
+operational authorization rather than the monetary-policy vote. A mutation that removes the
+notation-vote clause while leaving that later paragraph therefore fails as missing vote evidence.
+
+An official release with no published monetary-policy voting clause may still use
+`vote_status=not_stated` and `vote_split=null`, but only after the supported regular and notation-vote
+wording families have both been ruled out. The parser never invents a vote or infers action from
+market data, an adjacent action, or a later meeting.
 
 ## 7. SEP March wording and timestamp handling
 

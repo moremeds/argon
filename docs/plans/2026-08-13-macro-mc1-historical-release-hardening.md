@@ -58,7 +58,9 @@ Expected: FAIL because the committed verdict says PASS.
 
 Write the already observed baseline into `pre-hardening-audit.json` with:
 
-- UTC generation time and reproduce command;
+- UTC generation time; record the exact reproduce command only when it was saved;
+- when a historical command or execution time was not retained, store null plus a provenance note;
+  never reconstruct or invent a command or timestamp after the fact;
 - 2026 worker results: FOMC `10/0`, SEP `4/0`, SME `2/1`, shadow `1/1`;
 - FOMC 2021–2026 coverage `45 discovered / 17 parsed / 28 failed`;
 - the official 2020 history page's 10 statement/3 SEP candidates, all 13 currently unparsed by the
@@ -114,8 +116,22 @@ def test_target_range_normalizes_unicode_fraction_and_hyphen(raw, expected):
 
 Add full-release tests for the March 23, 2020 notation-vote statement, 2021 maintain/keep wording, the
 first 2022 increase, and 2026 Unicode mixed numbers. Assert action, both bounds, vote status/split,
-and timestamp. March 23 must return `vote_status="not_stated"` and `vote_split=None`; any release
-that contains a voting paragraph must either parse its exact split or fail.
+and timestamp. March 23 must parse the official wording family `Voting (by notation) for the
+monetary policy action were ...` and return `vote_status="stated"`, `vote_split="10-0"` from its ten
+named voters. Scope extraction to that monetary-policy clause. The later `Committee voted
+unanimously to authorize and direct` paragraph concerns a related operational authorization and
+must not supply the monetary-policy vote.
+
+Add strict mutation tests for the March 23 fixture:
+
+- replace one semicolon-delimited voter with malformed non-name content and require
+  `NormalizationError` rather than silently changing the count; and
+- remove the notation-vote monetary-policy paragraph while retaining the later unanimous
+  authorization paragraph and require a missing-vote failure.
+
+Any release that contains a recognized voting paragraph must either parse its exact named split or
+fail. A notation-vote statement is not `not_stated` merely because it lacks the regular-meeting
+`Voting for ... Voting against ...` wording.
 
 **Step 2: Run the focused tests and record the expected failures**
 

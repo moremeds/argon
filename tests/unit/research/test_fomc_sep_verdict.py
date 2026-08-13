@@ -82,3 +82,84 @@ def test_plan_requires_release_type_and_event_class_consistency() -> None:
     assert "release_type = 'sep' AND event_class IS NULL" in plan
     assert "Every statement candidate has a non-null official event class" in design
     assert "SEP candidates have no statement event class" in design
+
+
+def test_pre_hardening_audit_machine_evidence_is_internally_consistent() -> None:
+    audit = json.loads(AUDIT.read_text())
+
+    assert audit["worker_results_2026"] == [
+        {
+            "source": "federal_reserve_fomc",
+            "label": "FOMC statements",
+            "artifacts_seen": 10,
+            "observations_seen": 0,
+            "status": "degraded",
+            "bounded_error": "FOMC statement missing required fields: target range",
+        },
+        {
+            "source": "federal_reserve_sep",
+            "label": "SEP",
+            "artifacts_seen": 4,
+            "observations_seen": 0,
+            "status": "degraded",
+            "bounded_error": "SEP participant count declaration is missing",
+        },
+        {
+            "source": "new_york_fed_sme",
+            "label": "NY Fed SME",
+            "artifacts_seen": 2,
+            "observations_seen": 1,
+            "status": "ok",
+            "bounded_error": None,
+        },
+        {
+            "source": "frenzy_capital",
+            "label": "Frenzy shadow",
+            "artifacts_seen": 1,
+            "observations_seen": 1,
+            "status": "ok",
+            "bounded_error": None,
+        },
+    ]
+    coverage = audit["fomc_coverage_2021_2026"]
+    failures = coverage["failed_releases"]
+    assert coverage["discovered"] == coverage["parsed"] + coverage["failed"]
+    assert coverage["failed"] == len(failures) == 28
+    assert len({item["release_key"] for item in failures}) == len(failures)
+    history = audit["official_2020_history"]
+    assert 13 == history["statement_candidate_count"] + history["sep_candidate_count"]
+    assert history["statement_candidate_count"] == len(history["statement_candidates"])
+    assert history["sep_candidate_count"] == len(history["sep_candidates"])
+    assert audit["pass_gates"]
+    assert all(value is False for value in audit["pass_gates"].values())
+
+
+def test_plan_parses_march_23_notation_vote_without_using_adjacent_vote() -> None:
+    plan = " ".join(PLAN.read_text().split())
+    design = " ".join(DESIGN.read_text().split())
+
+    assert 'vote_status="stated"' in plan
+    assert 'vote_split="10-0"' in plan
+    assert "Voting (by notation) for the monetary policy action were" in plan
+    assert "mutation" in plan
+    assert "Committee voted unanimously to authorize and direct" in plan
+    assert "must not supply the monetary-policy vote" in plan
+    assert 'vote_status="stated"' in design
+    assert 'vote_split="10-0"' in design
+    assert "March 23, 2020" in design
+    assert "including March 23, 2020" not in design
+    assert "An official release with no published monetary-policy voting clause" in design
+
+
+def test_plan_never_invents_missing_baseline_reproduce_provenance() -> None:
+    plan = " ".join(PLAN.read_text().split())
+    audit = json.loads(AUDIT.read_text())
+    boundary = audit["data_boundary"]
+
+    assert "record the exact reproduce command only when it was saved" in plan
+    assert "store null plus a provenance note" in plan
+    assert "never reconstruct or invent a command" in plan
+    assert boundary["worker_smoke_command"] is None
+    assert boundary["fomc_parser_audit_command"] is None
+    assert boundary["worker_smoke_provenance_note"]
+    assert boundary["fomc_parser_audit_provenance_note"]
