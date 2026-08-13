@@ -86,7 +86,7 @@ def _normalized_paragraphs(html: str) -> list[str]:
 
 
 def _infer_action(html: str) -> str | None:
-    decision = _extract_policy_decision(_normalized_html_text(html).lower())
+    decision = _extract_policy_decision(html)
     if decision is None:
         return None
     verb = decision[0]
@@ -99,7 +99,7 @@ def _infer_action(html: str) -> str | None:
 
 def _infer_target_range(html: str) -> tuple[Decimal, Decimal] | None:
     compact = _normalized_html_text(html).lower()
-    decision = _extract_policy_decision(compact)
+    decision = _extract_policy_decision(html)
     if decision is not None:
         lower_raw, upper_raw = decision[1], decision[2]
     else:
@@ -118,12 +118,18 @@ def _infer_target_range(html: str) -> tuple[Decimal, Decimal] | None:
         return None
 
 
-def _extract_policy_decision(text: str) -> tuple[str, str, str] | None:
-    for pattern in _DECISION_PATTERNS:
-        match = pattern.search(text)
-        if match is not None:
-            return match.group("verb"), match.group("lower"), match.group("upper")
-    return None
+def _extract_policy_decision(html: str) -> tuple[str, str, str] | None:
+    decisions: list[tuple[str, str, str]] = []
+    for paragraph in _normalized_paragraphs(html):
+        lowered = paragraph.lower()
+        for pattern in _DECISION_PATTERNS:
+            decisions.extend(
+                (match.group("verb"), match.group("lower"), match.group("upper"))
+                for match in pattern.finditer(lowered)
+            )
+    if len(decisions) > 1:
+        raise NormalizationError("FOMC statement contains multiple policy decisions")
+    return decisions[0] if decisions else None
 
 
 def _parse_numeric_token(raw: str) -> Decimal:
@@ -178,37 +184,66 @@ def _infer_vote_split(html: str) -> str | None:
 
 def _infer_vote(html: str) -> tuple[str, str] | None:
     paragraphs = _normalized_paragraphs(html)
-    for paragraph in paragraphs:
-        if paragraph.startswith("Voting (by notation) for the monetary policy action"):
+    candidates: list[tuple[str, int]] = []
+    for index, paragraph in enumerate(paragraphs):
+        lowered = paragraph.lower()
+        candidates.extend(
+            ("notation", index)
+            for _match in re.finditer(
+                r"voting \(by notation\) for the monetary policy action",
+                lowered,
+            )
+        )
+        candidates.extend(
+            ("regular", index)
+            for _match in re.finditer(
+                r"voting for the monetary policy action",
+                lowered,
+            )
+        )
+        candidates.extend(
+            ("explicit", index)
+            for _match in re.finditer(
+                r"approved the following statement for release by",
+                lowered,
+            )
+        )
+
+    if len(candidates) > 1:
+        raise NormalizationError(
+            "FOMC statement contains multiple monetary-policy votes"
+        )
+    if candidates:
+        family, index = candidates[0]
+        paragraph = paragraphs[index]
+        if family == "notation":
             if not paragraph.startswith(_NOTATION_PREFIX) or not paragraph.endswith(
                 "."
             ):
                 raise NormalizationError("FOMC malformed notation-vote paragraph")
             voters = _parse_named_voters(paragraph[len(_NOTATION_PREFIX) : -1])
             return "stated", f"{len(voters)}-0"
-
-    for index, paragraph in enumerate(paragraphs):
-        if paragraph.startswith("Voting for the monetary policy action"):
+        if family == "regular":
             return "stated", _parse_regular_vote_block(paragraphs, index)
+        return "stated", _parse_explicit_vote(paragraph)
+
     if any(_AGAINST_PREFIX.match(paragraph) for paragraph in paragraphs):
         raise NormalizationError(
             "FOMC voting-against paragraph has no voting-for block"
         )
+    return None
 
-    compact = _normalized_html_text(html)
-    explicit = re.search(
+
+def _parse_explicit_vote(paragraph: str) -> str:
+    match = re.search(
         r"the federal open market committee approved the following statement "
         r"for release by (?:a )?(\d+)\s*-\s*(\d+)\s+vote\b",
-        compact,
+        paragraph,
         flags=re.IGNORECASE,
     )
-    if explicit is not None:
-        return "stated", f"{explicit.group(1)}-{explicit.group(2)}"
-    if re.search(
-        r"approved the following statement for release by", compact, re.IGNORECASE
-    ):
+    if match is None:
         raise NormalizationError("FOMC malformed published vote split")
-    return None
+    return f"{match.group(1)}-{match.group(2)}"
 
 
 def _parse_regular_vote_block(paragraphs: list[str], index: int) -> str:
@@ -235,9 +270,14 @@ def _parse_regular_vote_block(paragraphs: list[str], index: int) -> str:
             paragraphs,
             index + (2 if against_raw is not None else 1),
         )
-    for_count = len(_parse_named_voters(for_raw))
-    against_count = len(_parse_against_voters(against_raw)) if against_raw else 0
-    return f"{for_count}-{against_count}"
+    for_voters = _parse_named_voters(for_raw)
+    against_voters = _parse_against_voters(against_raw) if against_raw else []
+    overlap = {_voter_identity(name) for name in for_voters} & {
+        _voter_identity(name) for name in against_voters
+    }
+    if overlap:
+        raise NormalizationError("FOMC voter appears on both sides of the vote")
+    return f"{len(for_voters)}-{len(against_voters)}"
 
 
 def _next_against_paragraph(paragraphs: list[str], index: int) -> str | None:
@@ -297,3 +337,9 @@ def _parse_named_voters(raw: str) -> list[str]:
     if len(set(voters)) != len(voters):
         raise NormalizationError("FOMC duplicate named voter")
     return voters
+
+
+def _voter_identity(name: str) -> str:
+    return re.sub(
+        r",\s*(?:chair|vice chair)$", "", name, flags=re.IGNORECASE
+    ).casefold()

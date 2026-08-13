@@ -265,6 +265,124 @@ def test_cross_paragraph_vote_rejects_noncontiguous_against_block() -> None:
         )
 
 
+def test_statement_rejects_second_conflicting_policy_decision() -> None:
+    raw = (FIXTURES / "fomc_statement_2026_03.html").read_bytes()
+    soup = BeautifulSoup(raw, "html.parser")
+    policy_decision = next(
+        paragraph
+        for paragraph in soup.find_all("p")
+        if "decided to maintain the target range for the federal funds rate"
+        in paragraph.get_text(" ", strip=True)
+    )
+    conflicting = soup.new_tag("p")
+    conflicting.string = (
+        "The Committee decided to raise the target range for the federal funds "
+        "rate to 4 to 4-1/4 percent."
+    )
+    policy_decision.insert_after(conflicting)
+
+    with pytest.raises(NormalizationError, match="multiple policy decisions"):
+        parse_fomc_statement(
+            _bundle(
+                meeting_date=date(2026, 3, 18),
+                accessible_url=SOURCE_URL_BY_FIXTURE["fomc_statement_2026_03.html"],
+                accessible_bytes=soup.encode("utf-8"),
+            )
+        )
+
+
+def test_statement_rejects_second_monetary_policy_vote_block() -> None:
+    raw = (FIXTURES / "fomc_statement_2026_03.html").read_bytes()
+    soup = BeautifulSoup(raw, "html.parser")
+    voting_for = next(
+        paragraph
+        for paragraph in soup.find_all("p")
+        if paragraph.get_text(" ", strip=True).startswith(
+            "Voting for the monetary policy action were"
+        )
+    )
+    voting_for.insert_after(BeautifulSoup(str(voting_for), "html.parser").p)
+
+    with pytest.raises(NormalizationError, match="multiple monetary-policy votes"):
+        parse_fomc_statement(
+            _bundle(
+                meeting_date=date(2026, 3, 18),
+                accessible_url=SOURCE_URL_BY_FIXTURE["fomc_statement_2026_03.html"],
+                accessible_bytes=soup.encode("utf-8"),
+            )
+        )
+
+
+def test_statement_rejects_second_vote_clause_in_same_paragraph() -> None:
+    raw = (FIXTURES / "fomc_statement_2026_03.html").read_bytes()
+    soup = BeautifulSoup(raw, "html.parser")
+    voting_for = next(
+        paragraph
+        for paragraph in soup.find_all("p")
+        if paragraph.get_text(" ", strip=True).startswith(
+            "Voting for the monetary policy action were"
+        )
+    )
+    duplicate_text = voting_for.get_text(" ", strip=True)
+    voting_for.append(f" {duplicate_text}")
+
+    with pytest.raises(NormalizationError, match="multiple monetary-policy votes"):
+        parse_fomc_statement(
+            _bundle(
+                meeting_date=date(2026, 3, 18),
+                accessible_url=SOURCE_URL_BY_FIXTURE["fomc_statement_2026_03.html"],
+                accessible_bytes=soup.encode("utf-8"),
+            )
+        )
+
+
+@pytest.mark.parametrize(
+    (
+        "fixture_name",
+        "meeting_date",
+        "for_name",
+        "against_name",
+        "duplicated_against_name",
+    ),
+    [
+        (
+            "fomc_statement_2026_03.html",
+            date(2026, 3, 18),
+            b"Jerome H. Powell, Chair;",
+            b"Stephen I. Miran, who",
+            b"Jerome H. Powell, who",
+        ),
+        (
+            "fomc_statement_2020_09_16.html",
+            date(2020, 9, 16),
+            b"Michelle W. Bowman;",
+            b"Robert S. Kaplan, who",
+            b"Michelle W. Bowman, who",
+        ),
+    ],
+)
+def test_regular_vote_rejects_voter_on_both_sides(
+    fixture_name: str,
+    meeting_date: date,
+    for_name: bytes,
+    against_name: bytes,
+    duplicated_against_name: bytes,
+) -> None:
+    raw = (FIXTURES / fixture_name).read_bytes()
+    assert for_name in raw
+    duplicated = raw.replace(against_name, duplicated_against_name)
+    assert duplicated != raw
+
+    with pytest.raises(NormalizationError, match="both sides"):
+        parse_fomc_statement(
+            _bundle(
+                meeting_date=meeting_date,
+                accessible_url=SOURCE_URL_BY_FIXTURE[fixture_name],
+                accessible_bytes=duplicated,
+            )
+        )
+
+
 def test_notation_vote_does_not_fall_through_to_operational_unanimous_vote() -> None:
     raw = (FIXTURES / "fomc_statement_2020_03_23.html").read_bytes()
     soup = BeautifulSoup(raw, "html.parser")
