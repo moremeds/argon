@@ -1,6 +1,8 @@
 import json
 from pathlib import Path
 
+import pytest
+
 
 VERDICT = (
     Path(__file__).resolve().parents[3]
@@ -12,6 +14,19 @@ DESIGN = (
     VERDICT.parents[2]
     / "superpowers/specs/2026-08-13-macro-mc1-historical-release-durability-design.md"
 )
+
+
+def _assert_expected_fomc_coverage(coverage: dict[str, object]) -> None:
+    failures = coverage["failed_releases"]
+    assert isinstance(failures, list)
+    assert (
+        coverage["discovered"],
+        coverage["parsed"],
+        coverage["failed"],
+    ) == (45, 17, 28)
+    assert coverage["discovered"] == coverage["parsed"] + coverage["failed"]
+    assert coverage["failed"] == len(failures) == 28
+    assert len({item["release_key"] for item in failures}) == len(failures)
 
 
 def test_verdict_stays_partial_until_all_release_and_4x4_gates_pass() -> None:
@@ -122,16 +137,22 @@ def test_pre_hardening_audit_machine_evidence_is_internally_consistent() -> None
         },
     ]
     coverage = audit["fomc_coverage_2021_2026"]
-    failures = coverage["failed_releases"]
-    assert coverage["discovered"] == coverage["parsed"] + coverage["failed"]
-    assert coverage["failed"] == len(failures) == 28
-    assert len({item["release_key"] for item in failures}) == len(failures)
+    _assert_expected_fomc_coverage(coverage)
     history = audit["official_2020_history"]
     assert 13 == history["statement_candidate_count"] + history["sep_candidate_count"]
     assert history["statement_candidate_count"] == len(history["statement_candidates"])
     assert history["sep_candidate_count"] == len(history["sep_candidates"])
     assert audit["pass_gates"]
     assert all(value is False for value in audit["pass_gates"].values())
+
+
+def test_pre_hardening_coverage_rejects_count_drift_that_still_adds_up() -> None:
+    audit = json.loads(AUDIT.read_text())
+    drifted = dict(audit["fomc_coverage_2021_2026"])
+    drifted.update(discovered=46, parsed=18, failed=28)
+
+    with pytest.raises(AssertionError):
+        _assert_expected_fomc_coverage(drifted)
 
 
 def test_plan_parses_march_23_notation_vote_without_using_adjacent_vote() -> None:
