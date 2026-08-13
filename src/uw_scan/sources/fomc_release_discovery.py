@@ -26,6 +26,11 @@ from .fomc_release_contracts import (
     require_official_response,
     url_origin,
 )
+from .fomc_release_census import (
+    census_current_release_anchors,
+    census_historical_release_anchors,
+    reconcile_anchor_census,
+)
 from .fomc_release_dom import (
     discover_current_release_candidates,
     inventory_current_release_page,
@@ -114,13 +119,23 @@ def discover_official_release_result(
                 )
             )
         else:
+            current_slots = reconcile_anchor_census(
+                current_inventory.slots,
+                census_current_release_anchors(
+                    calendar_response.content,
+                    discovery_url=calendar_url,
+                    years=requested_years,
+                    release_type=release_type,
+                    as_of_date=as_of_date,
+                ),
+            )
             page_outcomes.append(
                 FomcDiscoveryPageOutcome(
                     year=None,
                     url=calendar_url,
                     role="current_calendar",
                     status="ok",
-                    slot_outcomes=current_inventory.slots,
+                    slot_outcomes=current_slots,
                 )
             )
             candidates.extend(current_inventory.candidates)
@@ -166,13 +181,22 @@ def discover_official_release_result(
                 )
             )
             continue
+        historical_slots = reconcile_anchor_census(
+            historical_inventory.slots,
+            census_historical_release_anchors(
+                response.content,
+                discovery_url=history_url,
+                year=year,
+                release_type=release_type,
+            ),
+        )
         page_outcomes.append(
             FomcDiscoveryPageOutcome(
                 year=year,
                 url=history_url,
                 role="historical_year",
                 status="ok",
-                slot_outcomes=historical_inventory.slots,
+                slot_outcomes=historical_slots,
             )
         )
         for candidate in historical_inventory.candidates:
