@@ -80,6 +80,11 @@ Statement discovery records the official index's event class: `scheduled_meeting
 subjective labels such as `COVID era` or `hiking era` are downstream analysis and are not written
 into immutable official facts.
 
+Every statement candidate has a non-null official event class. SEP candidates have no statement
+event class and therefore store null. The candidate validator and database constraint both enforce
+this release-type/event-class invariant so incomplete or contradictory classifications cannot enter
+the operational ledger.
+
 Discovery is complete only when every requested year from 2020 through the current year has been
 visited and each discovered release has an explicit per-release outcome. Missing HTML or PDF pairs
 are release failures, not silently filtered rows. The ledger may retain a release even when fetching

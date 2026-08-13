@@ -179,9 +179,16 @@
     "production_parsed_count": 0,
     "production_outcome": "missed_by_discovery",
     "event_classifications": {
+      "fomc-statement:monetary20200129a": "scheduled_meeting",
       "fomc-statement:monetary20200303a": "unscheduled_meeting",
       "fomc-statement:monetary20200315a": "unscheduled_meeting",
-      "fomc-statement:monetary20200323a": "notation_vote"
+      "fomc-statement:monetary20200323a": "notation_vote",
+      "fomc-statement:monetary20200429a": "scheduled_meeting",
+      "fomc-statement:monetary20200610a": "scheduled_meeting",
+      "fomc-statement:monetary20200729a": "scheduled_meeting",
+      "fomc-statement:monetary20200916a": "scheduled_meeting",
+      "fomc-statement:monetary20201105a": "scheduled_meeting",
+      "fomc-statement:monetary20201216a": "scheduled_meeting"
     },
     "statement_candidates": [
       "fomc-statement:monetary20200129a",

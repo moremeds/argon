@@ -47,8 +47,35 @@ def test_2020_emergency_release_taxonomy_matches_the_official_history_page() -> 
     assert 'event_class: Literal["scheduled_meeting", "unscheduled_meeting", "notation_vote"]' in plan
     assert "March 23, 2020 notation-vote statement" in design
     assert "including March 23, 2020" not in design
-    assert audit["official_2020_history"]["event_classifications"] == {
+    history = audit["official_2020_history"]
+    expected = {
+        "fomc-statement:monetary20200129a": "scheduled_meeting",
         "fomc-statement:monetary20200303a": "unscheduled_meeting",
         "fomc-statement:monetary20200315a": "unscheduled_meeting",
         "fomc-statement:monetary20200323a": "notation_vote",
+        "fomc-statement:monetary20200429a": "scheduled_meeting",
+        "fomc-statement:monetary20200610a": "scheduled_meeting",
+        "fomc-statement:monetary20200729a": "scheduled_meeting",
+        "fomc-statement:monetary20200916a": "scheduled_meeting",
+        "fomc-statement:monetary20201105a": "scheduled_meeting",
+        "fomc-statement:monetary20201216a": "scheduled_meeting",
     }
+    assert history["event_classifications"] == expected
+    assert set(history["event_classifications"]) == set(history["statement_candidates"])
+    assert len(expected) == history["statement_candidate_count"] == 10
+
+
+def test_plan_requires_release_type_and_event_class_consistency() -> None:
+    plan = " ".join(PLAN.read_text().split())
+    design = " ".join(DESIGN.read_text().split())
+
+    assert "def __post_init__(self) -> None:" in plan
+    assert "statement candidates require a non-null event_class" in plan
+    assert "SEP candidates require event_class=None" in plan
+    assert "test_statement_candidate_rejects_null_event_class" in plan
+    assert "test_sep_candidate_rejects_non_null_event_class" in plan
+    assert "release_type TEXT NOT NULL CHECK" in plan
+    assert "release_type = 'statement' AND event_class IN" in plan
+    assert "release_type = 'sep' AND event_class IS NULL" in plan
+    assert "Every statement candidate has a non-null official event class" in design
+    assert "SEP candidates have no statement event class" in design

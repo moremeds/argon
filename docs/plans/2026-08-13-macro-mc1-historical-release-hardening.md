@@ -189,6 +189,32 @@ assert candidates["fomc-statement:monetary20200323a"].event_class == "notation_v
 assert candidates["fomc-statement:monetary20200429a"].event_class == "scheduled_meeting"
 assert "fed-sep:fomcprojtabl20200610" in candidates
 assert len({item.release_key for item in candidates.values()}) == len(candidates)
+
+
+def test_statement_candidate_rejects_null_event_class():
+    with pytest.raises(ValueError, match="statement candidates require"):
+        FomcReleaseCandidate(
+            release_key="fomc-statement:monetary20200315a",
+            release_type="statement",
+            event_date=date(2020, 3, 15),
+            event_class=None,
+            discovery_url="https://www.federalreserve.gov/history",
+            html_url=None,
+            pdf_url=None,
+        )
+
+
+def test_sep_candidate_rejects_non_null_event_class():
+    with pytest.raises(ValueError, match="SEP candidates require"):
+        FomcReleaseCandidate(
+            release_key="fed-sep:fomcprojtabl20200610",
+            release_type="sep",
+            event_date=date(2020, 6, 10),
+            event_class="scheduled_meeting",
+            discovery_url="https://www.federalreserve.gov/history",
+            html_url=None,
+            pdf_url=None,
+        )
 ```
 
 The frozen 2020 official index should yield 10 links labeled `Statement` (including the March 3 and
@@ -222,7 +248,17 @@ class FomcReleaseCandidate:
     html_url: str | None
     pdf_url: str | None
     discovery_error: str | None = None
+
+    def __post_init__(self) -> None:
+        if self.release_type == "statement" and self.event_class is None:
+            raise ValueError("statement candidates require a non-null event_class")
+        if self.release_type == "sep" and self.event_class is not None:
+            raise ValueError("SEP candidates require event_class=None")
 ```
+
+The optional type exists only because statements and SEP share the candidate contract. Runtime
+validation makes the cross-field invariant strict: statement candidates require a non-null
+`event_class`, while SEP candidates require `event_class=None`.
 
 Derive `release_key` from the canonical publisher document stem, not only the event date; keep the
 date as a separate typed field so two official documents on one date cannot collide.
@@ -352,11 +388,15 @@ Create `uw_scan.macro_release_ingest_status` with:
 
 ```sql
 PRIMARY KEY (source, release_key),
-release_type TEXT CHECK (release_type IN ('statement', 'sep')),
+release_type TEXT NOT NULL CHECK (release_type IN ('statement', 'sep')),
 status TEXT CHECK (status IN ('discovered', 'artifact_only', 'ok', 'failed')),
 event_date DATE NOT NULL,
-event_class TEXT NULL CHECK (
-  event_class IN ('scheduled_meeting', 'unscheduled_meeting', 'notation_vote')
+event_class TEXT NULL,
+CHECK (
+  (release_type = 'statement' AND event_class IN (
+    'scheduled_meeting', 'unscheduled_meeting', 'notation_vote'
+  ))
+  OR (release_type = 'sep' AND event_class IS NULL)
 ),
 discovery_url TEXT NOT NULL,
 artifact_source_record_id TEXT NULL,
