@@ -5,6 +5,7 @@ from __future__ import annotations
 import logging
 import re
 import unicodedata
+from dataclasses import dataclass
 from datetime import date, datetime, time
 from decimal import Decimal, InvalidOperation
 from zoneinfo import ZoneInfo
@@ -62,6 +63,12 @@ _ALTERNATE_ACTOR = (
 _ALTERNATE_SUFFIX = re.compile(
     rf"\.\s+{_ALTERNATE_ACTOR} voted as an alternate member at this meeting\.$"
 )
+
+
+@dataclass(frozen=True)
+class _ParsedVoters:
+    names: tuple[str, ...]
+    identities: frozenset[str]
 
 
 def _normalize_policy_text(value: str) -> str:
@@ -222,7 +229,7 @@ def _infer_vote(html: str) -> tuple[str, str] | None:
             ):
                 raise NormalizationError("FOMC malformed notation-vote paragraph")
             voters = _parse_named_voters(paragraph[len(_NOTATION_PREFIX) : -1])
-            return "stated", f"{len(voters)}-0"
+            return "stated", f"{len(voters.names)}-0"
         if family == "regular":
             return "stated", _parse_regular_vote_block(paragraphs, index)
         return "stated", _parse_explicit_vote(paragraph)
@@ -271,13 +278,14 @@ def _parse_regular_vote_block(paragraphs: list[str], index: int) -> str:
             index + (2 if against_raw is not None else 1),
         )
     for_voters = _parse_named_voters(for_raw)
-    against_voters = _parse_against_voters(against_raw) if against_raw else []
-    overlap = {_voter_identity(name) for name in for_voters} & {
-        _voter_identity(name) for name in against_voters
-    }
-    if overlap:
+    against_voters = (
+        _parse_against_voters(against_raw)
+        if against_raw
+        else _ParsedVoters((), frozenset())
+    )
+    if for_voters.identities & against_voters.identities:
         raise NormalizationError("FOMC voter appears on both sides of the vote")
-    return f"{len(for_voters)}-{len(against_voters)}"
+    return f"{len(for_voters.names)}-{len(against_voters.names)}"
 
 
 def _next_against_paragraph(paragraphs: list[str], index: int) -> str | None:
@@ -302,24 +310,22 @@ def _remove_alternate_suffix(paragraph: str) -> tuple[str, bool]:
     return paragraph, False
 
 
-def _parse_against_voters(raw: str) -> list[str]:
+def _parse_against_voters(raw: str) -> _ParsedVoters:
     voters: list[str] = []
     for clause in raw.removesuffix(".").split(";"):
         bounded = clause.strip().removeprefix("and ")
         rationale = re.search(r",\s+(?:who|each of whom)\b", bounded)
         names_only = bounded[: rationale.start()] if rationale is not None else bounded
-        normalized_names = re.sub(r",?\s+and\s+", ",", names_only)
-        for name in normalized_names.split(","):
+        normalized_names = re.sub(r",?\s+and\s+", ";", names_only)
+        for name in normalized_names.split(";"):
             candidate = name.strip()
             if _VOTER_NAME.fullmatch(candidate) is None:
                 raise NormalizationError(f"FOMC malformed named voter: {candidate!r}")
             voters.append(candidate)
-    if not voters or len(set(voters)) != len(voters):
-        raise NormalizationError("FOMC empty or duplicate named voter")
-    return voters
+    return _validated_voters(voters)
 
 
-def _parse_named_voters(raw: str) -> list[str]:
+def _parse_named_voters(raw: str) -> _ParsedVoters:
     parts = [part.strip() for part in raw.split(";")]
     if not parts or any(not part for part in parts):
         raise NormalizationError("FOMC empty named voter")
@@ -334,9 +340,14 @@ def _parse_named_voters(raw: str) -> list[str]:
         if _VOTER_NAME.fullmatch(part) is None:
             raise NormalizationError(f"FOMC malformed named voter: {part!r}")
         voters.append(part)
-    if len(set(voters)) != len(voters):
-        raise NormalizationError("FOMC duplicate named voter")
-    return voters
+    return _validated_voters(voters)
+
+
+def _validated_voters(voters: list[str]) -> _ParsedVoters:
+    identities = frozenset(_voter_identity(name) for name in voters)
+    if not voters or len(identities) != len(voters):
+        raise NormalizationError("FOMC empty or duplicate named voter")
+    return _ParsedVoters(tuple(voters), identities)
 
 
 def _voter_identity(name: str) -> str:

@@ -383,6 +383,43 @@ def test_regular_vote_rejects_voter_on_both_sides(
         )
 
 
+@pytest.mark.parametrize(
+    ("fixture_name", "meeting_date", "original", "canonical_duplicate"),
+    [
+        (
+            "fomc_statement_2026_03.html",
+            date(2026, 3, 18),
+            b"Michael S. Barr;",
+            b"Jerome H. Powell;",
+        ),
+        (
+            "fomc_statement_2025_12_10.html",
+            date(2025, 12, 10),
+            b"and Austan D. Goolsbee and Jeffrey R. Schmid, who preferred no change",
+            b"and Stephen I. Miran, Chair, who preferred no change",
+        ),
+    ],
+)
+def test_regular_vote_rejects_same_side_canonical_duplicate(
+    fixture_name: str,
+    meeting_date: date,
+    original: bytes,
+    canonical_duplicate: bytes,
+) -> None:
+    raw = (FIXTURES / fixture_name).read_bytes()
+    duplicated = raw.replace(original, canonical_duplicate)
+    assert duplicated != raw
+
+    with pytest.raises(NormalizationError, match="duplicate named voter"):
+        parse_fomc_statement(
+            _bundle(
+                meeting_date=meeting_date,
+                accessible_url=SOURCE_URL_BY_FIXTURE[fixture_name],
+                accessible_bytes=duplicated,
+            )
+        )
+
+
 def test_notation_vote_does_not_fall_through_to_operational_unanimous_vote() -> None:
     raw = (FIXTURES / "fomc_statement_2020_03_23.html").read_bytes()
     soup = BeautifulSoup(raw, "html.parser")
