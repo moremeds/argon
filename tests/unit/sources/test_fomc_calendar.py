@@ -7,8 +7,13 @@ from unittest.mock import patch
 from zoneinfo import ZoneInfo
 
 import httpx
+import pytest
 
-from uw_scan.sources.fomc_calendar import FomcCalendarProvider
+from uw_scan.sources.fomc_calendar import (
+    FomcCalendarProvider,
+    _infer_action,
+    _infer_target_range,
+)
 
 
 FIXTURES = Path(__file__).parents[2] / "fixtures" / "macro"
@@ -82,3 +87,64 @@ def test_fomc_statement_without_decision_contract_remains_explicitly_missing() -
     assert meeting.target_range_lower is None
     assert meeting.target_range_upper is None
     assert meeting.published_at is None
+
+
+@pytest.mark.parametrize(
+    ("raw", "expected"),
+    [
+        ("0 to ¼ percent", (Decimal("0"), Decimal("0.25"))),
+        ("3‑1/2 to 3‑3/4 percent", (Decimal("3.5"), Decimal("3.75"))),
+        ("4–1/4 to 4–1/2 percent", (Decimal("4.25"), Decimal("4.5"))),
+        (
+            "The Committee decided to lower the target range for the federal "
+            "funds rate by 1/2 percentage point, to 1 to 1-1/4 percent.",
+            (Decimal("1"), Decimal("1.25")),
+        ),
+    ],
+)
+def test_target_range_normalizes_historical_numeric_notation(
+    raw: str,
+    expected: tuple[Decimal, Decimal],
+) -> None:
+    assert _infer_target_range(raw) == expected
+
+
+@pytest.mark.parametrize("raw", ["1/0", "NaN", "Infinity", "3-1", "1//2", "3-1/2x"])
+def test_numeric_token_rejects_malformed_or_nonfinite_values(raw: str) -> None:
+    assert _infer_target_range(f"{raw} to 1 percent") is None
+
+
+@pytest.mark.parametrize(
+    ("raw", "expected"),
+    [
+        (
+            "The Committee decided to keep the target range for the federal "
+            "funds rate at 0 to 1/4 percent.",
+            "Hold",
+        ),
+        (
+            "The Committee decided to increase the target range for the federal "
+            "funds rate to 5 to 5-1/4 percent.",
+            "Hike",
+        ),
+        (
+            "The Committee decided to lower the target range for the federal "
+            "funds rate by 1/2 percentage point, to 1 to 1-1/4 percent.",
+            "Cut",
+        ),
+    ],
+)
+def test_action_requires_explicit_committee_rate_decision(
+    raw: str, expected: str
+) -> None:
+    assert _infer_action(raw) == expected
+
+
+def test_action_does_not_classify_unrelated_raise_or_lower_language() -> None:
+    assert (
+        _infer_action(
+            "One participant preferred to lower inflation, while staff expected "
+            "businesses to raise wages."
+        )
+        is None
+    )

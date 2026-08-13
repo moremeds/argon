@@ -320,6 +320,7 @@ def _statement_observation(
     midpoint = (release.target_range_lower + release.target_range_upper) / 2
     value = {
         "kind": "actual",
+        "parser_version": release.parser_version,
         "points": [
             {
                 "horizon": "current",
@@ -334,6 +335,7 @@ def _statement_observation(
                     release.target_range_upper
                 ),
                 "action": release.action,
+                "vote_status": release.vote_status,
                 "vote_split": release.vote_split,
             }
         ],
@@ -346,6 +348,7 @@ def _statement_observation(
         published_at=release.published_at,
         available_at=release.published_at,
         value=value,
+        parser_version=release.parser_version,
     )
 
 
@@ -511,6 +514,7 @@ def _observation_base(
     published_at: datetime | None,
     available_at: datetime,
     value: dict[str, Any],
+    parser_version: str | None = None,
 ) -> dict[str, Any]:
     return {
         "artifact_id": artifact_id,
@@ -524,7 +528,7 @@ def _observation_base(
         "source_record_id": artifact.source_record_id,
         "published_at": published_at,
         "available_at": available_at,
-        "parser_version": artifact.parser_version,
+        "parser_version": parser_version or artifact.parser_version,
         "quality_status": "partial",
         "cost_class": artifact.cost_class,
     }

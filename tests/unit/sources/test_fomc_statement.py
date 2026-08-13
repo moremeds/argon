@@ -1,10 +1,16 @@
 from __future__ import annotations
 
+import hashlib
 from datetime import UTC, date, datetime
 from decimal import Decimal
 from pathlib import Path
 
+import pytest
+from bs4 import BeautifulSoup
+
+from uw_scan.normalize import NormalizationError
 from uw_scan.sources.fomc_statement import FomcStatementBundle, parse_fomc_statement
+from uw_scan.worker.jobs.macro_policy_jobs import _statement_observation
 
 
 FIXTURES = Path(__file__).parents[2] / "fixtures" / "macro"
@@ -15,6 +21,70 @@ HTML_URL = (
 PDF_URL = (
     "https://www.federalreserve.gov/monetarypolicy/files/monetary20260617a1.pdf"
 )
+
+HISTORICAL_RELEASES = [
+    (
+        "fomc_statement_2020_03_23.html",
+        "https://www.federalreserve.gov/newsevents/pressreleases/"
+        "monetary20200323a.htm",
+        "9d79eb0ae897c4ac4cb9115636949cf8040e84584ba92c1ed9d0a1d2a3d42727",
+        date(2020, 3, 23),
+        "Hold",
+        Decimal("0"),
+        Decimal("0.25"),
+        "10-0",
+        "2020-03-23T08:00:00-04:00",
+    ),
+    (
+        "fomc_statement_2021_01.html",
+        "https://www.federalreserve.gov/newsevents/pressreleases/"
+        "monetary20210127a.htm",
+        "6ce332de5827e54b82d338013fada2116e86857a398c27aea9a0f759808743e9",
+        date(2021, 1, 27),
+        "Hold",
+        Decimal("0"),
+        Decimal("0.25"),
+        "11-0",
+        "2021-01-27T14:00:00-05:00",
+    ),
+    (
+        "fomc_statement_2022_03.html",
+        "https://www.federalreserve.gov/newsevents/pressreleases/"
+        "monetary20220316a.htm",
+        "9fb545e687e2e6fb6ded2bbf69257257f05ad8d7ec141b9fc3836bca914863f6",
+        date(2022, 3, 16),
+        "Hike",
+        Decimal("0.25"),
+        Decimal("0.5"),
+        "8-1",
+        "2022-03-16T14:00:00-04:00",
+    ),
+    (
+        "fomc_statement_2026_03.html",
+        "https://www.federalreserve.gov/newsevents/pressreleases/"
+        "monetary20260318a.htm",
+        "4167d30e1fda3eab57cabfd8f01a6b58069717cd742cd57a843fcd2a597fd5f0",
+        date(2026, 3, 18),
+        "Hold",
+        Decimal("3.5"),
+        Decimal("3.75"),
+        "11-1",
+        "2026-03-18T14:00:00-04:00",
+    ),
+]
+
+
+def _bundle(
+    *, meeting_date: date, accessible_url: str, accessible_bytes: bytes
+) -> FomcStatementBundle:
+    return FomcStatementBundle.from_bytes(
+        meeting_date=meeting_date,
+        accessible_url=accessible_url,
+        accessible_bytes=accessible_bytes,
+        pdf_url=PDF_URL,
+        pdf_bytes=(FIXTURES / "fomc_statement_2026_06.pdf").read_bytes(),
+        retrieved_at=datetime(2026, 8, 13, 12, tzinfo=UTC),
+    )
 
 
 def test_statement_bundle_retains_stable_pdf_and_parses_decision() -> None:
@@ -42,3 +112,120 @@ def test_statement_bundle_retains_stable_pdf_and_parses_decision() -> None:
     assert release.published_at.isoformat() == "2026-06-17T14:00:00-04:00"
     assert release.source_url == PDF_URL
     assert release.accessible_source_url == HTML_URL
+
+
+@pytest.mark.parametrize(
+    (
+        "fixture_name",
+        "source_url",
+        "expected_hash",
+        "meeting_date",
+        "action",
+        "lower",
+        "upper",
+        "vote_split",
+        "published_at",
+    ),
+    HISTORICAL_RELEASES,
+)
+def test_statement_parses_historical_official_format_families(
+    fixture_name: str,
+    source_url: str,
+    expected_hash: str,
+    meeting_date: date,
+    action: str,
+    lower: Decimal,
+    upper: Decimal,
+    vote_split: str,
+    published_at: str,
+) -> None:
+    raw = (FIXTURES / fixture_name).read_bytes()
+    assert hashlib.sha256(raw).hexdigest() == expected_hash
+
+    release = parse_fomc_statement(
+        _bundle(
+            meeting_date=meeting_date,
+            accessible_url=source_url,
+            accessible_bytes=raw,
+        )
+    )
+
+    assert release.action == action
+    assert release.target_range_lower == lower
+    assert release.target_range_upper == upper
+    assert release.vote_status == "stated"
+    assert release.vote_split == vote_split
+    assert release.published_at.isoformat() == published_at
+
+
+def test_notation_vote_rejects_malformed_named_voter() -> None:
+    raw = (FIXTURES / "fomc_statement_2020_03_23.html").read_bytes()
+    malformed = raw.replace(b"Michelle W. Bowman;", b"NOT A VALID VOTER 123;")
+    assert malformed != raw
+
+    with pytest.raises(NormalizationError, match="named voter"):
+        parse_fomc_statement(
+            _bundle(
+                meeting_date=date(2020, 3, 23),
+                accessible_url=HISTORICAL_RELEASES[0][1],
+                accessible_bytes=malformed,
+            )
+        )
+
+
+def test_regular_vote_rejects_unparsed_malformed_dissenter() -> None:
+    raw = (FIXTURES / "fomc_statement_2026_03.html").read_bytes()
+    malformed = raw.replace(
+        b"Stephen I. Miran, who",
+        b"Stephen I. Miran; NOT A VALID VOTER 123, who",
+    )
+    assert malformed != raw
+
+    with pytest.raises(NormalizationError, match="named voter"):
+        parse_fomc_statement(
+            _bundle(
+                meeting_date=date(2026, 3, 18),
+                accessible_url=HISTORICAL_RELEASES[-1][1],
+                accessible_bytes=malformed,
+            )
+        )
+
+
+def test_notation_vote_does_not_fall_through_to_operational_unanimous_vote() -> None:
+    raw = (FIXTURES / "fomc_statement_2020_03_23.html").read_bytes()
+    soup = BeautifulSoup(raw, "html.parser")
+    monetary_vote = next(
+        paragraph
+        for paragraph in soup.find_all("p")
+        if "Voting (by notation) for the monetary policy action were"
+        in paragraph.get_text(" ", strip=True)
+    )
+    monetary_vote.decompose()
+    mutated = soup.encode("utf-8")
+    assert b"voted unanimously to authorize and direct" in mutated
+    assert b"Voting (by notation) for the monetary policy action" not in mutated
+
+    with pytest.raises(NormalizationError, match="vote status"):
+        parse_fomc_statement(
+            _bundle(
+                meeting_date=date(2020, 3, 23),
+                accessible_url=HISTORICAL_RELEASES[0][1],
+                accessible_bytes=mutated,
+            )
+        )
+
+
+def test_statement_keeps_artifact_and_semantic_parser_versions_separate() -> None:
+    bundle = _bundle(
+        meeting_date=date(2026, 3, 18),
+        accessible_url=HISTORICAL_RELEASES[-1][1],
+        accessible_bytes=(FIXTURES / "fomc_statement_2026_03.html").read_bytes(),
+    )
+    release = parse_fomc_statement(bundle)
+    row = _statement_observation(release, 7, bundle.accessible_artifact)
+
+    assert bundle.accessible_artifact.parser_version == "fomc_statement.v1"
+    assert release.parser_version == "fomc_statement.v2"
+    assert row["parser_version"] == "fomc_statement.v2"
+    assert row["value_json"]["parser_version"] == "fomc_statement.v2"
+    assert row["value_json"]["points"][0]["vote_status"] == "stated"

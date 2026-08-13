@@ -10,7 +10,7 @@ from __future__ import annotations
 from dataclasses import dataclass
 from datetime import UTC, date, datetime
 from decimal import Decimal
-from typing import Final
+from typing import Final, Literal
 
 import httpx
 from bs4 import BeautifulSoup
@@ -23,12 +23,15 @@ from .fomc_calendar import (
     _infer_action,
     _infer_published_at,
     _infer_target_range,
-    _infer_vote_split,
+    _infer_vote,
     _statement_pdf_urls_by_date,
     _statement_urls_by_date,
 )
 
-PARSER_VERSION: Final = "fomc_statement.v1"
+ARTIFACT_PARSER_VERSION: Final = "fomc_statement.v1"
+SEMANTIC_PARSER_VERSION: Final = "fomc_statement.v2"
+# Compatibility alias for callers that imported the original acquisition version.
+PARSER_VERSION: Final = ARTIFACT_PARSER_VERSION
 SOURCE: Final = "federal_reserve_fomc"
 
 
@@ -37,12 +40,14 @@ class FomcStatementRelease:
     meeting_date: date
     published_at: datetime
     action: str
-    vote_split: str
+    vote_status: Literal["stated", "not_stated"]
+    vote_split: str | None
     target_range_lower: Decimal
     target_range_upper: Decimal
     source_url: str
     accessible_source_url: str
     source_record_id: str
+    parser_version: str
 
 
 @dataclass(frozen=True)
@@ -169,14 +174,16 @@ def parse_fomc_statement(bundle: FomcStatementBundle) -> FomcStatementRelease:
         raise NormalizationError("FOMC accessible artifact is missing raw bytes")
     html = raw.decode("utf-8", errors="replace")
     action = _infer_action(html)
-    vote_split = _infer_vote_split(html)
+    vote = _infer_vote(html)
+    vote_status = vote[0] if vote is not None else None
+    vote_split = vote[1] if vote is not None else None
     target_range = _infer_target_range(html)
     published_at = _infer_published_at(html, bundle.meeting_date)
     missing = [
         label
         for label, value in (
             ("action", action),
-            ("vote split", vote_split),
+            ("vote status", vote_status),
             ("target range", target_range),
             ("release timestamp", published_at),
         )
@@ -187,19 +194,21 @@ def parse_fomc_statement(bundle: FomcStatementBundle) -> FomcStatementRelease:
             f"FOMC statement missing required fields: {', '.join(missing)}"
         )
     assert action is not None
-    assert vote_split is not None
+    assert vote_status is not None
     assert target_range is not None
     assert published_at is not None
     return FomcStatementRelease(
         meeting_date=bundle.meeting_date,
         published_at=published_at,
         action=action,
+        vote_status=vote_status,
         vote_split=vote_split,
         target_range_lower=target_range[0],
         target_range_upper=target_range[1],
         source_url=bundle.primary_artifact.source_url or "",
         accessible_source_url=bundle.accessible_artifact.source_url or "",
         source_record_id=f"fomc-statement:{bundle.meeting_date.isoformat()}",
+        parser_version=SEMANTIC_PARSER_VERSION,
     )
 
 
@@ -224,7 +233,7 @@ def _artifact(
         retrieved_at=retrieved_at,
         last_seen_at=retrieved_at,
         content_hash=content_hash,
-        parser_version=PARSER_VERSION,
+        parser_version=ARTIFACT_PARSER_VERSION,
         quality_status="partial",
         cost_class="free_official",
         media_type=media_type,
