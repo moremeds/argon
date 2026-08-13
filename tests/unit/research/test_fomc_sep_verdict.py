@@ -74,8 +74,11 @@ def test_plan_requires_release_type_and_event_class_consistency() -> None:
     assert "SEP candidates require event_class=None" in plan
     assert "test_statement_candidate_rejects_null_event_class" in plan
     assert "test_sep_candidate_rejects_non_null_event_class" in plan
+    assert "test_migration_rejects_statement_without_event_class" in plan
+    assert "test_migration_rejects_sep_with_event_class" in plan
+    assert "tests/integration/storage/test_migrations.py" in plan
     assert "release_type TEXT NOT NULL CHECK" in plan
-    assert "release_type = 'statement' AND event_class IN" in plan
+    assert "release_type = 'statement' AND event_class IS NOT NULL" in plan
     assert "release_type = 'sep' AND event_class IS NULL" in plan
     assert "Every statement candidate has a non-null official event class" in design
     assert "SEP candidates have no statement event class" in design

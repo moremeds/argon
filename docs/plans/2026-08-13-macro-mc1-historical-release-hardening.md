@@ -358,13 +358,47 @@ git commit -m "fix(macro): parse SEP table totals and timestamps"
 - Modify: `src/uw_scan/storage/macro_context.py`
 - Modify: `docs/runbooks/data-gap-dataset-policy.md`
 - Modify: `tests/integration/storage/test_macro_context_repository.py`
-- Modify: `tests/integration/test_migrations.py`
+- Modify: `tests/integration/storage/test_migrations.py`
 
-**Step 1: Write failing repository tests**
+**Step 1: Write failing repository and migration integration tests**
 
 Test that a release can move `failed → ok → failed` while retaining `last_success_at` and
 `last_success_artifact_id`; errors are bounded; invalid state combinations fail; and two releases
 for one source remain independent. Reapply migrations and assert idempotency.
+
+In `tests/integration/storage/test_migrations.py`, exercise the migrated PostgreSQL constraint with
+real inserts. Do not satisfy this gate by inspecting the constraint text:
+
+```python
+_RELEASE_STATUS_INSERT = """
+INSERT INTO uw_scan.macro_release_ingest_status (
+  source, release_key, release_type, status, event_date, event_class,
+  discovery_url, parser_version, last_attempt_at
+) VALUES (
+  'federal_reserve_fomc', %s, %s, 'discovered', DATE '2020-03-23', %s,
+  'https://www.federalreserve.gov/monetarypolicy/fomchistorical2020.htm',
+  'migration-test', now()
+)
+"""
+
+
+def test_migration_rejects_statement_without_event_class(fresh_schema):
+    with pytest.raises(psycopg.errors.CheckViolation):
+        with fresh_schema.transaction():
+            fresh_schema.execute(
+                _RELEASE_STATUS_INSERT,
+                ("fomc-statement:monetary20200323a", "statement", None),
+            )
+
+
+def test_migration_rejects_sep_with_event_class(fresh_schema):
+    with pytest.raises(psycopg.errors.CheckViolation):
+        with fresh_schema.transaction():
+            fresh_schema.execute(
+                _RELEASE_STATUS_INSERT,
+                ("fed-sep:fomcprojtabl20200610", "sep", "scheduled_meeting"),
+            )
+```
 
 Add an evidence-identity regression: two exact HTML artifacts with different byte hashes but the
 same normalized facts/time/parser version resolve to one policy observation with two lineage links.
@@ -377,10 +411,12 @@ mirroring MC0's Python/PostgreSQL canonicalization regressions.
 **Step 2: Verify tests fail**
 
 ```bash
-uv run pytest tests/integration/storage/test_macro_context_repository.py tests/integration/test_migrations.py -q
+uv run pytest tests/integration/storage/test_macro_context_repository.py tests/integration/storage/test_migrations.py -q
 ```
 
-Expected: FAIL because the table and repository methods do not exist.
+Expected: FAIL because the table and repository methods do not exist. The two invalid-combination
+tests must fail through real PostgreSQL inserts and `CheckViolation`, not SQL-text inspection or a
+Python-only validator.
 
 **Step 3: Add the migration**
 
@@ -393,7 +429,7 @@ status TEXT CHECK (status IN ('discovered', 'artifact_only', 'ok', 'failed')),
 event_date DATE NOT NULL,
 event_class TEXT NULL,
 CHECK (
-  (release_type = 'statement' AND event_class IN (
+  (release_type = 'statement' AND event_class IS NOT NULL AND event_class IN (
     'scheduled_meeting', 'unscheduled_meeting', 'notation_vote'
   ))
   OR (release_type = 'sep' AND event_class IS NULL)
@@ -438,9 +474,9 @@ as SQL. Bound error type to 200 characters and message to 1000.
 **Step 5: Verify and commit**
 
 ```bash
-uv run pytest tests/integration/storage/test_macro_context_repository.py tests/integration/test_migrations.py -q
+uv run pytest tests/integration/storage/test_macro_context_repository.py tests/integration/storage/test_migrations.py -q
 git diff --check
-git add src/uw_scan/storage/migrations/117_macro_release_ingest_status.sql src/uw_scan/storage/macro_context.py docs/runbooks/data-gap-dataset-policy.md tests/integration/storage/test_macro_context_repository.py tests/integration/test_migrations.py
+git add src/uw_scan/storage/migrations/117_macro_release_ingest_status.sql src/uw_scan/storage/macro_context.py docs/runbooks/data-gap-dataset-policy.md tests/integration/storage/test_macro_context_repository.py tests/integration/storage/test_migrations.py
 git commit -m "feat(macro): catalog policy release outcomes"
 ```
 
