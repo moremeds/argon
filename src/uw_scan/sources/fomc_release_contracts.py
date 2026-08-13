@@ -15,6 +15,7 @@ ReleaseType = Literal["statement", "sep"]
 EventClass = Literal["scheduled_meeting", "unscheduled_meeting", "notation_vote"]
 DiscoveryPageRole = Literal["current_calendar", "historical_year"]
 DiscoveryPageStatus = Literal["ok", "not_found", "error"]
+DiscoverySlotStatus = Literal["accepted", "rejected"]
 
 _STATEMENT_KEY = re.compile(r"^fomc-statement:(monetary(20\d{6})a)$")
 _STATEMENT_HTML = re.compile(r"/(monetary(20\d{6})a)\.htm$")
@@ -31,6 +32,44 @@ class ReleaseDiscoveryError(ValueError):
 
 
 @dataclass(frozen=True)
+class FomcDiscoverySlotOutcome:
+    """One source-derived release slot accounted by identity or rejection."""
+
+    slot_id: str
+    year: int
+    release_type: ReleaseType
+    identity: str | None
+    status: DiscoverySlotStatus
+    error_type: str | None = None
+    error_message: str | None = None
+
+    def __post_init__(self) -> None:
+        if self.release_type not in ("statement", "sep"):
+            raise ValueError(f"unsupported release_type {self.release_type!r}")
+        if self.status not in ("accepted", "rejected"):
+            raise ValueError(f"unsupported slot status {self.status!r}")
+        if self.status == "accepted" and self.identity is None:
+            raise ValueError("accepted slot requires an identity")
+        if self.status == "accepted" and (
+            self.error_type is not None or self.error_message is not None
+        ):
+            raise ValueError("accepted slot cannot contain an error")
+        if self.status == "rejected" and (
+            self.error_type is None or self.error_message is None
+        ):
+            raise ValueError("rejected slot requires a bounded error")
+        if not self.slot_id or len(self.slot_id) > MAX_ERROR_LENGTH:
+            raise ValueError("slot_id exceeds bounded length")
+        if self.identity is not None and len(self.identity) > MAX_ERROR_LENGTH:
+            raise ValueError("slot identity exceeds bounded length")
+        if any(
+            value is not None and len(value) > MAX_ERROR_LENGTH
+            for value in (self.error_type, self.error_message)
+        ):
+            raise ValueError("slot outcome error exceeds bounded length")
+
+
+@dataclass(frozen=True)
 class FomcDiscoveryPageOutcome:
     """Immutable audit outcome for one bounded official discovery page."""
 
@@ -40,6 +79,7 @@ class FomcDiscoveryPageOutcome:
     status: DiscoveryPageStatus
     error_type: str | None = None
     error_message: str | None = None
+    slot_outcomes: tuple[FomcDiscoverySlotOutcome, ...] = ()
 
     def __post_init__(self) -> None:
         if self.role not in ("current_calendar", "historical_year"):
@@ -64,6 +104,35 @@ class FomcDiscoveryPageOutcome:
             for value in (self.error_type, self.error_message)
         ):
             raise ValueError("page outcome error exceeds bounded length")
+        slot_ids = tuple(outcome.slot_id for outcome in self.slot_outcomes)
+        if slot_ids != tuple(sorted(set(slot_ids))):
+            raise ValueError("page slot outcomes must be unique and sorted")
+        if self.status != "ok" and self.slot_outcomes:
+            raise ValueError("failed page outcome cannot contain slot outcomes")
+        if any(
+            outcome.year != self.year
+            for outcome in self.slot_outcomes
+            if self.role == "historical_year"
+        ):
+            raise ValueError("historical page slot year does not match page year")
+
+    @property
+    def slots_seen(self) -> int:
+        return len(self.slot_outcomes)
+
+    @property
+    def slots_accepted(self) -> int:
+        return sum(outcome.status == "accepted" for outcome in self.slot_outcomes)
+
+    @property
+    def slots_rejected(self) -> int:
+        return sum(outcome.status == "rejected" for outcome in self.slot_outcomes)
+
+    @property
+    def slot_rejections(self) -> tuple[FomcDiscoverySlotOutcome, ...]:
+        return tuple(
+            outcome for outcome in self.slot_outcomes if outcome.status == "rejected"
+        )
 
 
 @dataclass(frozen=True)

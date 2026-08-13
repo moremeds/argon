@@ -395,6 +395,7 @@ def test_official_discovery_attempts_past_history_and_records_not_found() -> Non
         calendar_path="/monetarypolicy/fomccalendars.htm",
         years=(2025,),
         release_type="statement",
+        as_of_date=date(2026, 1, 2),
     )
 
     assert [item.release_key for item in result.candidates] == [
@@ -433,6 +434,7 @@ def test_official_discovery_attempts_every_requested_past_year_only() -> None:
         calendar_path="/monetarypolicy/fomccalendars.htm",
         years=(2021, 2022, 2023, 2024, 2025, 2026),
         release_type="statement",
+        as_of_date=date(2026, 8, 13),
     )
 
     assert requested[1:] == [
@@ -476,7 +478,10 @@ def test_discovery_page_contract_is_frozen_bounded_and_deterministic() -> None:
 def test_official_discovery_adds_archive_only_unscheduled_and_notation_votes() -> None:
     current = b"""
     <div class="panel panel-default"><h4>2025 FOMC Meetings</h4>
-      <div class="row fomc-meeting"><div><strong>Statement:</strong>
+      <div class="row fomc-meeting">
+      <div class="fomc-meeting__month"><strong>January</strong></div>
+      <div class="fomc-meeting__date">28-29</div>
+      <div><strong>Statement:</strong>
         <a href="/monetarypolicy/files/monetary20250129a1.pdf">PDF</a>
         <a href="/newsevents/pressreleases/monetary20250129a.htm">HTML</a>
       </div></div>
@@ -527,6 +532,7 @@ def test_official_discovery_adds_archive_only_unscheduled_and_notation_votes() -
         calendar_path="/monetarypolicy/fomccalendars.htm",
         years=(2025,),
         release_type="statement",
+        as_of_date=date(2026, 1, 2),
     )
 
     by_key = {item.release_key: item for item in result.candidates}
@@ -541,7 +547,10 @@ def test_official_discovery_adds_archive_only_unscheduled_and_notation_votes() -
 def test_official_discovery_enriches_current_incomplete_from_history() -> None:
     current = b"""
     <div class="panel panel-default"><h4>2025 FOMC Meetings</h4>
-      <div class="row fomc-meeting"><div><strong>Statement:</strong>
+      <div class="row fomc-meeting">
+      <div class="fomc-meeting__month"><strong>January</strong></div>
+      <div class="fomc-meeting__date">28-29</div>
+      <div><strong>Statement:</strong>
         <a href="/newsevents/pressreleases/monetary20250129a.htm">HTML</a>
       </div></div>
     </div>
@@ -584,6 +593,7 @@ def test_official_discovery_enriches_current_incomplete_from_history() -> None:
         calendar_path="/monetarypolicy/fomccalendars.htm",
         years=(2025,),
         release_type="statement",
+        as_of_date=date(2026, 1, 2),
     )
 
     assert len(result.candidates) == 1
@@ -595,7 +605,10 @@ def test_official_discovery_enriches_current_incomplete_from_history() -> None:
 def test_official_discovery_rejects_current_history_event_class_conflict() -> None:
     current = b"""
     <div class="panel panel-default"><h4>2025 FOMC Meetings</h4>
-      <div class="row fomc-meeting"><div><strong>Statement:</strong>
+      <div class="row fomc-meeting">
+      <div class="fomc-meeting__month"><strong>January</strong></div>
+      <div class="fomc-meeting__date">28-29</div>
+      <div><strong>Statement:</strong>
         <a href="/newsevents/pressreleases/monetary20250129a.htm">HTML</a>
       </div></div>
     </div>
@@ -635,6 +648,7 @@ def test_official_discovery_rejects_current_history_event_class_conflict() -> No
             calendar_path="/monetarypolicy/fomccalendars.htm",
             years=(2025,),
             release_type="statement",
+            as_of_date=date(2026, 1, 2),
         )
 
 
@@ -660,6 +674,7 @@ def test_official_discovery_marks_missing_year_when_archive_fails_without_covera
         calendar_path="/monetarypolicy/fomccalendars.htm",
         years=(2024,),
         release_type="sep",
+        as_of_date=date(2026, 8, 13),
     )
 
     assert result.candidates == ()

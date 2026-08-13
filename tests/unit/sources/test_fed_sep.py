@@ -163,7 +163,9 @@ def test_sep_discovers_exact_2020_golden_candidates_from_meeting_markers() -> No
 
     with patch.object(FedSepProvider, "_get", autospec=True, side_effect=fake_get):
         with FedSepProvider() as provider:
-            candidates = provider.discover_candidates(years=(2020,))
+            candidates = provider.discover_candidates(
+                years=(2020,), as_of_date=date(2026, 8, 13)
+            )
 
     assert [item.release_key for item in candidates] == [
         "fed-sep:fomcprojtabl20200610",

@@ -294,6 +294,17 @@ acquisition reject an empty-success claim. Keep the candidate-only discovery met
 projection, do not store audit state in mutable `last_*` fields, and leave Task 8 to persist page
 outcomes.
 
+Inventory completeness is source-derived rather than a fixed annual count. For the current calendar,
+account for every elapsed non-cancelled meeting row as a Statement slot (excluding only the exact
+longer-run-strategy-only semantic label), and every elapsed `*` meeting row as an SEP slot. For a
+historical page, account for every exact `Statement` label and every
+`SEP: Individual Projections` marker. Each slot must be accepted or carry an immutable bounded
+rejection; an alternate official page may reconcile that rejection only through the same publisher
+identity. Inject the provider observation date into discovery so year traversal and elapsed-row
+selection are deterministic. The evidence boundary is explicit: page inventory cannot prove a row
+the publisher omitted from every fetched surface, but no relevant row or marker that does exist may
+be silently skipped.
+
 When current and historical surfaces produce the same key, merge only compatible identity,
 event-class, and complementary artifact URLs. Clear a stale missing-counterpart error after a valid
 counterpart enriches the candidate, but preserve real transport/off-host/validation errors.
@@ -309,6 +320,11 @@ dates by unbounded URL guessing.
 Accept the bounded official SEP HTML spelling alias `fomcprojtableYYYYMMDD.htm` and canonicalize its
 identity and release key to `fomcprojtablYYYYMMDD`. Do not accept the alias for PDF or generalize to
 other stems; configured-host and same-date checks remain mandatory.
+
+When pre-validation times out or receives a transient server failure for an already official,
+same-host, identity-coherent URL, retain the URL and bounded discovery error so the provider's
+per-candidate acquisition phase retries it. Null only absent, off-host, or identity-incoherent URLs;
+a later successful retry does not erase the earlier discovery audit.
 
 **Step 4: Make providers return per-candidate fetch outcomes**
 

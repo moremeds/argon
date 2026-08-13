@@ -4,7 +4,7 @@ from __future__ import annotations
 
 import logging
 from dataclasses import dataclass
-from datetime import UTC, datetime
+from datetime import UTC, date, datetime
 
 import httpx
 
@@ -76,17 +76,24 @@ class FedSepProvider:
         return [outcome.bundle for outcome in outcomes if outcome.bundle is not None]
 
     def discover_candidates(
-        self, *, years: tuple[int, ...]
+        self, *, years: tuple[int, ...], as_of_date: date | None = None
     ) -> list[FomcReleaseCandidate]:
-        return list(self.discover_result(years=years).candidates)
+        return list(
+            self.discover_result(
+                years=years, as_of_date=as_of_date or datetime.now(UTC).date()
+            ).candidates
+        )
 
-    def discover_result(self, *, years: tuple[int, ...]) -> FomcDiscoveryResult:
+    def discover_result(
+        self, *, years: tuple[int, ...], as_of_date: date | None = None
+    ) -> FomcDiscoveryResult:
         return discover_official_release_result(
             get=self._get,
             base_url=self._base_url,
             calendar_path=self.CALENDAR_PATH,
             years=years,
             release_type="sep",
+            as_of_date=as_of_date or datetime.now(UTC).date(),
         )
 
     def fetch_outcomes(
@@ -95,7 +102,8 @@ class FedSepProvider:
         years: tuple[int, ...],
         retrieved_at: datetime | None = None,
     ) -> list[SepFetchOutcome]:
-        discovery = self.discover_result(years=years)
+        observed_at = retrieved_at or datetime.now(UTC)
+        discovery = self.discover_result(years=years, as_of_date=observed_at.date())
         if not discovery.coverage_complete:
             missing = ", ".join(str(year) for year in discovery.missing_years)
             raise NormalizationError(
@@ -104,7 +112,6 @@ class FedSepProvider:
         candidates = discovery.candidates
         if not candidates:
             raise NormalizationError("FOMC discovery produced no SEP candidates")
-        observed_at = retrieved_at or datetime.now(UTC)
         return [
             self._fetch_candidate(candidate, retrieved_at=observed_at)
             for candidate in candidates

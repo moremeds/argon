@@ -550,7 +550,9 @@ def test_statement_discovers_exact_2020_golden_candidates() -> None:
         FomcStatementProvider, "_get", autospec=True, side_effect=fake_get
     ):
         with FomcStatementProvider() as provider:
-            candidates = provider.discover_candidates(years=(2020,))
+            candidates = provider.discover_candidates(
+                years=(2020,), as_of_date=date(2026, 8, 13)
+            )
 
     expected_classes = {
         "fomc-statement:monetary20200129a": "scheduled_meeting",

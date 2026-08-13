@@ -98,11 +98,24 @@ this release-type/event-class invariant so incomplete or contradictory classific
 the operational ledger.
 
 Discovery is complete only when the current calendar and every requested past-year URL have explicit
-page outcomes, every requested year has candidate coverage for the requested release type, and each
-candidate has an explicit per-release outcome. Compatible current/history candidates merge by
+page outcomes, every source-derived relevant release slot is either accepted or has a bounded
+rejection, every rejected slot is reconciled by the same accepted publisher identity on another
+official page, and each candidate has an explicit per-release outcome. Current Statement slots are
+elapsed, non-cancelled meeting rows; an exact longer-run-strategy-only row is not a policy-decision
+slot. Current SEP slots are elapsed rows marked by the publisher's `*` SEP convention. Historical
+slots are exact `Statement` labels or `SEP: Individual Projections` markers. The discovery clock is
+explicitly injected from the provider run's observation time, so current-vs-past traversal does not
+depend on the machine's wall-clock date. Compatible current/history candidates merge by
 release key and complementary HTML/PDF URLs; incompatible identity, classification, or competing
 non-null URLs fail explicitly. Missing HTML or PDF pairs are release failures, not silently filtered
 rows. The ledger may retain a release even when fetching or parsing it fails.
+
+This inventory proves only the completeness of publisher markup that exists on the fetched page; it
+cannot prove that the publisher omitted an entire meeting row from all official surfaces. It does
+guarantee that an existing relevant row, label, or marker is never silently skipped. Transient
+timeout/5xx failures while pre-validating an already official, identity-coherent artifact URL retain
+that URL plus a bounded discovery error so per-candidate acquisition can retry it. Only absent,
+off-host, or identity-incoherent artifact links become null.
 
 ## 5. Raw evidence and revision semantics
 
