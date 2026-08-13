@@ -1,0 +1,208 @@
+{
+  "schema_version": 1,
+  "generated_at": "2026-08-13T08:04:52Z",
+  "verdict": "partial",
+  "data_boundary": {
+    "worker_smoke": "Production worker functions against an isolated temporary PostgreSQL database; database removed after inspection.",
+    "worker_smoke_observed_at": null,
+    "worker_smoke_command": null,
+    "worker_smoke_provenance_note": "The exploratory execution time and exact temporary-DB invocation were not retained. These counts are a frozen baseline, not the final reproducible smoke artifact.",
+    "fomc_parser_audit_period": "2021-01-01/2026-12-31",
+    "fomc_parser_audit_observed_at": null,
+    "fomc_parser_audit_command": null,
+    "fomc_parser_audit_provenance_note": "The exploratory loop output was retained as counts and failed release details but not as a committed runner. The all-release probe must replace it before PASS.",
+    "official_2020_candidate_source": "https://www.federalreserve.gov/monetarypolicy/fomchistorical2020.htm",
+    "supported_reproduce_commands": [
+      "uv run pytest tests/unit/research/test_fomc_sep_verdict.py -q",
+      "uv run python scripts/research/fomc_sep_source_probe.py --self-check",
+      "uv run python scripts/research/fomc_sep_source_probe.py --year 2026 --require-shadow"
+    ]
+  },
+  "worker_results_2026": [
+    {
+      "source": "federal_reserve_fomc",
+      "label": "FOMC statements",
+      "artifacts_seen": 10,
+      "observations_seen": 0,
+      "status": "degraded",
+      "bounded_error": "FOMC statement missing required fields: target range"
+    },
+    {
+      "source": "federal_reserve_sep",
+      "label": "SEP",
+      "artifacts_seen": 4,
+      "observations_seen": 0,
+      "status": "degraded",
+      "bounded_error": "SEP participant count declaration is missing"
+    },
+    {
+      "source": "new_york_fed_sme",
+      "label": "NY Fed SME",
+      "artifacts_seen": 2,
+      "observations_seen": 1,
+      "status": "ok",
+      "bounded_error": null
+    },
+    {
+      "source": "frenzy_capital",
+      "label": "Frenzy shadow",
+      "artifacts_seen": 1,
+      "observations_seen": 1,
+      "status": "ok",
+      "bounded_error": null
+    }
+  ],
+  "fomc_coverage_2021_2026": {
+    "discovered": 45,
+    "parsed": 17,
+    "failed": 28,
+    "failed_releases": [
+      {
+        "release_key": "fomc-statement:2021-01-27",
+        "bounded_error": "FOMC statement missing required fields: action, target range"
+      },
+      {
+        "release_key": "fomc-statement:2021-03-17",
+        "bounded_error": "FOMC statement missing required fields: action, target range"
+      },
+      {
+        "release_key": "fomc-statement:2021-04-28",
+        "bounded_error": "FOMC statement missing required fields: action, target range"
+      },
+      {
+        "release_key": "fomc-statement:2021-06-16",
+        "bounded_error": "FOMC statement missing required fields: action, target range"
+      },
+      {
+        "release_key": "fomc-statement:2021-07-28",
+        "bounded_error": "FOMC statement missing required fields: action, target range"
+      },
+      {
+        "release_key": "fomc-statement:2021-09-22",
+        "bounded_error": "FOMC statement missing required fields: action, target range"
+      },
+      {
+        "release_key": "fomc-statement:2021-11-03",
+        "bounded_error": "FOMC statement missing required fields: action, target range"
+      },
+      {
+        "release_key": "fomc-statement:2021-12-15",
+        "bounded_error": "FOMC statement missing required fields: action, target range"
+      },
+      {
+        "release_key": "fomc-statement:2022-01-26",
+        "bounded_error": "FOMC statement missing required fields: target range"
+      },
+      {
+        "release_key": "fomc-statement:2022-03-16",
+        "bounded_error": "FOMC statement missing required fields: target range"
+      },
+      {
+        "release_key": "fomc-statement:2022-05-04",
+        "bounded_error": "FOMC statement missing required fields: target range"
+      },
+      {
+        "release_key": "fomc-statement:2022-06-15",
+        "bounded_error": "FOMC statement missing required fields: target range"
+      },
+      {
+        "release_key": "fomc-statement:2022-07-27",
+        "bounded_error": "FOMC statement missing required fields: target range"
+      },
+      {
+        "release_key": "fomc-statement:2022-09-21",
+        "bounded_error": "FOMC statement missing required fields: target range"
+      },
+      {
+        "release_key": "fomc-statement:2022-11-02",
+        "bounded_error": "FOMC statement missing required fields: target range"
+      },
+      {
+        "release_key": "fomc-statement:2022-12-14",
+        "bounded_error": "FOMC statement missing required fields: target range"
+      },
+      {
+        "release_key": "fomc-statement:2023-02-01",
+        "bounded_error": "FOMC statement missing required fields: target range"
+      },
+      {
+        "release_key": "fomc-statement:2023-03-22",
+        "bounded_error": "FOMC statement missing required fields: target range"
+      },
+      {
+        "release_key": "fomc-statement:2023-05-03",
+        "bounded_error": "FOMC statement missing required fields: target range"
+      },
+      {
+        "release_key": "fomc-statement:2023-07-26",
+        "bounded_error": "FOMC statement missing required fields: target range"
+      },
+      {
+        "release_key": "fomc-statement:2024-09-18",
+        "bounded_error": "FOMC statement missing required fields: target range"
+      },
+      {
+        "release_key": "fomc-statement:2024-11-07",
+        "bounded_error": "FOMC statement missing required fields: target range"
+      },
+      {
+        "release_key": "fomc-statement:2025-09-17",
+        "bounded_error": "FOMC statement missing required fields: target range"
+      },
+      {
+        "release_key": "fomc-statement:2025-10-29",
+        "bounded_error": "FOMC statement missing required fields: target range"
+      },
+      {
+        "release_key": "fomc-statement:2025-12-10",
+        "bounded_error": "FOMC statement missing required fields: target range"
+      },
+      {
+        "release_key": "fomc-statement:2026-01-28",
+        "bounded_error": "FOMC statement missing required fields: target range"
+      },
+      {
+        "release_key": "fomc-statement:2026-03-18",
+        "bounded_error": "FOMC statement missing required fields: target range"
+      },
+      {
+        "release_key": "fomc-statement:2026-04-29",
+        "bounded_error": "FOMC statement missing required fields: target range"
+      }
+    ]
+  },
+  "official_2020_history": {
+    "source_url": "https://www.federalreserve.gov/monetarypolicy/fomchistorical2020.htm",
+    "statement_candidate_count": 10,
+    "sep_candidate_count": 3,
+    "production_discovered_count": 0,
+    "production_parsed_count": 0,
+    "production_outcome": "missed_by_discovery",
+    "statement_candidates": [
+      "fomc-statement:monetary20200129a",
+      "fomc-statement:monetary20200303a",
+      "fomc-statement:monetary20200315a",
+      "fomc-statement:monetary20200323a",
+      "fomc-statement:monetary20200429a",
+      "fomc-statement:monetary20200610a",
+      "fomc-statement:monetary20200729a",
+      "fomc-statement:monetary20200916a",
+      "fomc-statement:monetary20201105a",
+      "fomc-statement:monetary20201216a"
+    ],
+    "sep_candidates": [
+      "fed-sep:fomcprojtabl20200610",
+      "fed-sep:fomcprojtabl20200916",
+      "fed-sep:fomcprojtabl20201216"
+    ],
+    "bounded_error": "Production discovery returned no 2020 releases; all 13 official candidates are currently unparsed."
+  },
+  "pass_gates": {
+    "all_discovered_2020_plus_releases_have_explicit_outcomes": false,
+    "all_complete_official_releases_parse": false,
+    "worker_db_api_four_of_four": false,
+    "per_release_failure_isolation": false,
+    "idempotency_and_revision_preservation": false,
+    "offline_persisted_replay": false
+  }
+}
