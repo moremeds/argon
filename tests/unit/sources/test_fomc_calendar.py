@@ -9,11 +9,8 @@ from zoneinfo import ZoneInfo
 import httpx
 import pytest
 
-from uw_scan.sources.fomc_calendar import (
-    FomcCalendarProvider,
-    _infer_action,
-    _infer_target_range,
-)
+from uw_scan.sources.fomc_calendar import FomcCalendarProvider
+from uw_scan.sources.fomc_text import _infer_action, _infer_target_range
 
 
 FIXTURES = Path(__file__).parents[2] / "fixtures" / "macro"

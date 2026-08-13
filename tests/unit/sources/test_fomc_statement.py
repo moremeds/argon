@@ -15,18 +15,25 @@ from uw_scan.worker.jobs.macro_policy_jobs import _statement_observation
 
 FIXTURES = Path(__file__).parents[2] / "fixtures" / "macro"
 HTML_URL = (
-    "https://www.federalreserve.gov/newsevents/pressreleases/"
-    "monetary20260617a.htm"
+    "https://www.federalreserve.gov/newsevents/pressreleases/monetary20260617a.htm"
 )
-PDF_URL = (
-    "https://www.federalreserve.gov/monetarypolicy/files/monetary20260617a1.pdf"
-)
+PDF_URL = "https://www.federalreserve.gov/monetarypolicy/files/monetary20260617a1.pdf"
 
 HISTORICAL_RELEASES = [
     (
+        "fomc_statement_2020_03_03.html",
+        "https://www.federalreserve.gov/newsevents/pressreleases/monetary20200303a.htm",
+        "f05f28d203777aa404d21a818afed1b6ee790e6edd8b2d24dcea6742a01104ff",
+        date(2020, 3, 3),
+        "Cut",
+        Decimal("1"),
+        Decimal("1.25"),
+        "10-0",
+        "2020-03-03T10:00:00-05:00",
+    ),
+    (
         "fomc_statement_2020_03_23.html",
-        "https://www.federalreserve.gov/newsevents/pressreleases/"
-        "monetary20200323a.htm",
+        "https://www.federalreserve.gov/newsevents/pressreleases/monetary20200323a.htm",
         "9d79eb0ae897c4ac4cb9115636949cf8040e84584ba92c1ed9d0a1d2a3d42727",
         date(2020, 3, 23),
         "Hold",
@@ -36,9 +43,30 @@ HISTORICAL_RELEASES = [
         "2020-03-23T08:00:00-04:00",
     ),
     (
+        "fomc_statement_2020_09_16.html",
+        "https://www.federalreserve.gov/newsevents/pressreleases/monetary20200916a.htm",
+        "4f44a30e8d21c1632c7718c7c3b0b51a048bbfbe492013a78e86981ec0c47fdc",
+        date(2020, 9, 16),
+        "Hold",
+        Decimal("0"),
+        Decimal("0.25"),
+        "8-2",
+        "2020-09-16T14:00:00-04:00",
+    ),
+    (
+        "fomc_statement_2020_11_05.html",
+        "https://www.federalreserve.gov/newsevents/pressreleases/monetary20201105a.htm",
+        "b6d8714bd4fa6d904dcde05fc8074a10dee5ed5b761521510c510f9fcb8b3158",
+        date(2020, 11, 5),
+        "Hold",
+        Decimal("0"),
+        Decimal("0.25"),
+        "10-0",
+        "2020-11-05T14:00:00-05:00",
+    ),
+    (
         "fomc_statement_2021_01.html",
-        "https://www.federalreserve.gov/newsevents/pressreleases/"
-        "monetary20210127a.htm",
+        "https://www.federalreserve.gov/newsevents/pressreleases/monetary20210127a.htm",
         "6ce332de5827e54b82d338013fada2116e86857a398c27aea9a0f759808743e9",
         date(2021, 1, 27),
         "Hold",
@@ -49,8 +77,7 @@ HISTORICAL_RELEASES = [
     ),
     (
         "fomc_statement_2022_03.html",
-        "https://www.federalreserve.gov/newsevents/pressreleases/"
-        "monetary20220316a.htm",
+        "https://www.federalreserve.gov/newsevents/pressreleases/monetary20220316a.htm",
         "9fb545e687e2e6fb6ded2bbf69257257f05ad8d7ec141b9fc3836bca914863f6",
         date(2022, 3, 16),
         "Hike",
@@ -60,9 +87,19 @@ HISTORICAL_RELEASES = [
         "2022-03-16T14:00:00-04:00",
     ),
     (
+        "fomc_statement_2025_12_10.html",
+        "https://www.federalreserve.gov/newsevents/pressreleases/monetary20251210a.htm",
+        "3ab349d951f0df5f2786ae5e00d7fbe602f06cb9d7bf8465e072774af0fc2026",
+        date(2025, 12, 10),
+        "Cut",
+        Decimal("3.5"),
+        Decimal("3.75"),
+        "9-3",
+        "2025-12-10T14:00:00-05:00",
+    ),
+    (
         "fomc_statement_2026_03.html",
-        "https://www.federalreserve.gov/newsevents/pressreleases/"
-        "monetary20260318a.htm",
+        "https://www.federalreserve.gov/newsevents/pressreleases/monetary20260318a.htm",
         "4167d30e1fda3eab57cabfd8f01a6b58069717cd742cd57a843fcd2a597fd5f0",
         date(2026, 3, 18),
         "Hold",
@@ -72,6 +109,7 @@ HISTORICAL_RELEASES = [
         "2026-03-18T14:00:00-04:00",
     ),
 ]
+SOURCE_URL_BY_FIXTURE = {row[0]: row[1] for row in HISTORICAL_RELEASES}
 
 
 def _bundle(
@@ -102,9 +140,7 @@ def test_statement_bundle_retains_stable_pdf_and_parses_decision() -> None:
         "13c6558e213dd433c4a0c255d5f7a25ab79992f672c9644994307afea5d7932f"
     )
     assert bundle.primary_artifact.content_length == 229_274
-    assert bundle.primary_artifact.source_record_id == (
-        "fomc-statement:2026-06-17:pdf"
-    )
+    assert bundle.primary_artifact.source_record_id == ("fomc-statement:2026-06-17:pdf")
     assert release.action == "Hold"
     assert release.vote_split == "12-0"
     assert release.target_range_lower == Decimal("3.5")
@@ -167,7 +203,7 @@ def test_notation_vote_rejects_malformed_named_voter() -> None:
         parse_fomc_statement(
             _bundle(
                 meeting_date=date(2020, 3, 23),
-                accessible_url=HISTORICAL_RELEASES[0][1],
+                accessible_url=SOURCE_URL_BY_FIXTURE["fomc_statement_2020_03_23.html"],
                 accessible_bytes=malformed,
             )
         )
@@ -185,7 +221,45 @@ def test_regular_vote_rejects_unparsed_malformed_dissenter() -> None:
         parse_fomc_statement(
             _bundle(
                 meeting_date=date(2026, 3, 18),
-                accessible_url=HISTORICAL_RELEASES[-1][1],
+                accessible_url=SOURCE_URL_BY_FIXTURE["fomc_statement_2026_03.html"],
+                accessible_bytes=malformed,
+            )
+        )
+
+
+def test_cross_paragraph_vote_rejects_malformed_dissenter() -> None:
+    raw = (FIXTURES / "fomc_statement_2020_09_16.html").read_bytes()
+    malformed = raw.replace(b"Robert S. Kaplan, who", b"NOT A VALID VOTER 123, who")
+    assert malformed != raw
+
+    with pytest.raises(NormalizationError, match="named voter"):
+        parse_fomc_statement(
+            _bundle(
+                meeting_date=date(2020, 9, 16),
+                accessible_url=SOURCE_URL_BY_FIXTURE["fomc_statement_2020_09_16.html"],
+                accessible_bytes=malformed,
+            )
+        )
+
+
+def test_cross_paragraph_vote_rejects_noncontiguous_against_block() -> None:
+    raw = (FIXTURES / "fomc_statement_2020_09_16.html").read_bytes()
+    soup = BeautifulSoup(raw, "html.parser")
+    against = next(
+        paragraph
+        for paragraph in soup.find_all("p")
+        if paragraph.get_text(" ", strip=True).startswith("Voting against the action")
+    )
+    intervening = soup.new_tag("p")
+    intervening.string = "Unrelated intervening paragraph."
+    against.insert_before(intervening)
+    malformed = soup.encode("utf-8")
+
+    with pytest.raises(NormalizationError, match="noncontiguous voting-against"):
+        parse_fomc_statement(
+            _bundle(
+                meeting_date=date(2020, 9, 16),
+                accessible_url=SOURCE_URL_BY_FIXTURE["fomc_statement_2020_09_16.html"],
                 accessible_bytes=malformed,
             )
         )
@@ -209,7 +283,7 @@ def test_notation_vote_does_not_fall_through_to_operational_unanimous_vote() -> 
         parse_fomc_statement(
             _bundle(
                 meeting_date=date(2020, 3, 23),
-                accessible_url=HISTORICAL_RELEASES[0][1],
+                accessible_url=SOURCE_URL_BY_FIXTURE["fomc_statement_2020_03_23.html"],
                 accessible_bytes=mutated,
             )
         )
@@ -218,7 +292,7 @@ def test_notation_vote_does_not_fall_through_to_operational_unanimous_vote() -> 
 def test_statement_keeps_artifact_and_semantic_parser_versions_separate() -> None:
     bundle = _bundle(
         meeting_date=date(2026, 3, 18),
-        accessible_url=HISTORICAL_RELEASES[-1][1],
+        accessible_url=SOURCE_URL_BY_FIXTURE["fomc_statement_2026_03.html"],
         accessible_bytes=(FIXTURES / "fomc_statement_2026_03.html").read_bytes(),
     )
     release = parse_fomc_statement(bundle)

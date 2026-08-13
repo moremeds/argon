@@ -20,12 +20,14 @@ from uw_scan.models.macro import MacroSourceArtifact
 from uw_scan.normalize import NormalizationError
 
 from .fomc_calendar import (
+    _statement_pdf_urls_by_date,
+    _statement_urls_by_date,
+)
+from .fomc_text import (
     _infer_action,
     _infer_published_at,
     _infer_target_range,
     _infer_vote,
-    _statement_pdf_urls_by_date,
-    _statement_urls_by_date,
 )
 
 ARTIFACT_PARSER_VERSION: Final = "fomc_statement.v1"
