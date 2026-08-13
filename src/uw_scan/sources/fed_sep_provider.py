@@ -13,11 +13,12 @@ from uw_scan.normalize import NormalizationError
 
 from .fed_sep import SepSourceBundle, _artifact, _published_at
 from .fomc_release_contracts import (
+    FomcDiscoveryResult,
     FomcReleaseCandidate,
     bounded_release_error,
     require_official_response,
 )
-from .fomc_release_discovery import discover_official_release_candidates
+from .fomc_release_discovery import discover_official_release_result
 
 logger = logging.getLogger(__name__)
 
@@ -77,7 +78,10 @@ class FedSepProvider:
     def discover_candidates(
         self, *, years: tuple[int, ...]
     ) -> list[FomcReleaseCandidate]:
-        return discover_official_release_candidates(
+        return list(self.discover_result(years=years).candidates)
+
+    def discover_result(self, *, years: tuple[int, ...]) -> FomcDiscoveryResult:
+        return discover_official_release_result(
             get=self._get,
             base_url=self._base_url,
             calendar_path=self.CALENDAR_PATH,
@@ -91,7 +95,13 @@ class FedSepProvider:
         years: tuple[int, ...],
         retrieved_at: datetime | None = None,
     ) -> list[SepFetchOutcome]:
-        candidates = self.discover_candidates(years=years)
+        discovery = self.discover_result(years=years)
+        if not discovery.coverage_complete:
+            missing = ", ".join(str(year) for year in discovery.missing_years)
+            raise NormalizationError(
+                f"FOMC SEP discovery coverage incomplete for years: {missing}"
+            )
+        candidates = discovery.candidates
         if not candidates:
             raise NormalizationError("FOMC discovery produced no SEP candidates")
         observed_at = retrieved_at or datetime.now(UTC)

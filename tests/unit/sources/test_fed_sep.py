@@ -11,7 +11,11 @@ from bs4 import BeautifulSoup
 
 from uw_scan.normalize import NormalizationError
 from uw_scan.sources.fed_sep import FedSepProvider, SepSourceBundle, parse_sep_release
-from uw_scan.sources.fomc_release_contracts import FomcReleaseCandidate
+from uw_scan.sources.fomc_release_contracts import (
+    FomcDiscoveryPageOutcome,
+    FomcDiscoveryResult,
+    FomcReleaseCandidate,
+)
 
 
 FIXTURES = Path(__file__).parents[2] / "fixtures" / "macro"
@@ -226,9 +230,14 @@ def test_sep_outcomes_isolate_transport_failure_and_keep_partial_artifact() -> N
     with (
         patch.object(
             FedSepProvider,
-            "discover_candidates",
+            "discover_result",
             autospec=True,
-            return_value=[first, second],
+            return_value=FomcDiscoveryResult(
+                candidates=(first, second),
+                page_outcomes=(),
+                coverage_complete=True,
+                missing_years=(),
+            ),
         ),
         patch.object(FedSepProvider, "_get", autospec=True, side_effect=fake_get),
     ):
@@ -249,3 +258,101 @@ def test_sep_outcomes_isolate_transport_failure_and_keep_partial_artifact() -> N
     assert len(outcomes[0].error_message or "") <= 500
     assert outcomes[1].bundle is not None
     assert len(outcomes[1].artifacts) == 2
+
+
+def test_sep_2022_html_alias_fetches_two_exact_artifacts_and_bundle() -> None:
+    candidate = FomcReleaseCandidate(
+        release_key="fed-sep:fomcprojtabl20220316",
+        release_type="sep",
+        event_date=date(2022, 3, 16),
+        event_class=None,
+        discovery_url=(
+            "https://www.federalreserve.gov/monetarypolicy/fomccalendars.htm"
+        ),
+        html_url=(
+            "https://www.federalreserve.gov/monetarypolicy/fomcprojtable20220316.htm"
+        ),
+        pdf_url=(
+            "https://www.federalreserve.gov/monetarypolicy/files/"
+            "fomcprojtabl20220316.pdf"
+        ),
+    )
+
+    def fake_get(_provider: FedSepProvider, url: str) -> httpx.Response:
+        request = httpx.Request("GET", url)
+        path = (
+            FIXTURES / "fed_sep_2022_03.html"
+            if url == candidate.html_url
+            else FIXTURES / "fed_sep_2022_03.pdf"
+        )
+        return httpx.Response(
+            200,
+            content=path.read_bytes(),
+            headers={
+                "content-type": (
+                    "text/html" if path.suffix == ".html" else "application/pdf"
+                )
+            },
+            request=request,
+        )
+
+    result = FomcDiscoveryResult(
+        candidates=(candidate,),
+        page_outcomes=(
+            FomcDiscoveryPageOutcome(
+                year=None,
+                url=candidate.discovery_url,
+                role="current_calendar",
+                status="ok",
+            ),
+        ),
+        coverage_complete=True,
+        missing_years=(),
+    )
+    with (
+        patch.object(
+            FedSepProvider, "discover_result", autospec=True, return_value=result
+        ),
+        patch.object(FedSepProvider, "_get", autospec=True, side_effect=fake_get),
+    ):
+        with FedSepProvider() as provider:
+            outcomes = provider.fetch_outcomes(
+                years=(2022,), retrieved_at=datetime(2026, 8, 13, tzinfo=UTC)
+            )
+
+    assert len(outcomes) == 1
+    outcome = outcomes[0]
+    assert outcome.candidate.release_key == "fed-sep:fomcprojtabl20220316"
+    assert outcome.error_type is None
+    assert outcome.bundle is not None
+    assert outcome.bundle.release_key == "fed-sep:fomcprojtabl20220316"
+    assert len(outcome.artifacts) == 2
+    assert {artifact.content_length for artifact in outcome.artifacts} == {
+        236_101,
+        1_558_349,
+    }
+
+
+def test_sep_fetch_outcomes_rejects_incomplete_discovery_coverage() -> None:
+    history_url = "https://www.federalreserve.gov/monetarypolicy/fomchistorical2024.htm"
+    result = FomcDiscoveryResult(
+        candidates=(),
+        page_outcomes=(
+            FomcDiscoveryPageOutcome(
+                year=2024,
+                url=history_url,
+                role="historical_year",
+                status="not_found",
+                error_type="HTTPStatusError",
+                error_message="404 Not Found",
+            ),
+        ),
+        coverage_complete=False,
+        missing_years=(2024,),
+    )
+    with patch.object(
+        FedSepProvider, "discover_result", autospec=True, return_value=result
+    ):
+        with FedSepProvider() as provider:
+            with pytest.raises(NormalizationError, match="incomplete.*2024"):
+                provider.fetch_outcomes(years=(2024,))

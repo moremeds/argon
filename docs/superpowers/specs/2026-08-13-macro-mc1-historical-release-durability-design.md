@@ -62,8 +62,16 @@ observation revisions. This is the selected approach.
 
 ## 4. Discovery and stable release identity
 
-The current FOMC calendar and each official historical-year page are discovery surfaces. Discovery
-must follow only Federal Reserve links and must de-duplicate releases using stable keys:
+The current FOMC calendar and the bounded historical-year URL for each requested past year are
+discovery surfaces. The historical URL is always attempted, but the Federal Reserve currently
+serves the 2020 page while some later year URLs return 404. Discovery therefore returns immutable
+page-level outcomes (`ok`, `not_found`, or `error`) alongside candidates; it never fabricates an
+archive page and never hides a failed attempt in mutable provider state. A failed historical page is
+non-fatal only when the current calendar supplies same-year, same-release-type coverage. Otherwise
+the result is explicitly coverage-incomplete and provider acquisition refuses to report empty
+success. Task 8 may persist these page outcomes as operational audit state.
+
+Discovery must follow only Federal Reserve links and must de-duplicate releases using stable keys:
 
 ```text
 fomc-statement:<publisher-document-id>
@@ -75,6 +83,10 @@ For example, the March 15 emergency decision is
 `fed-sep:fomcprojtabl20200610`. The event/meeting date is stored separately. This avoids assuming
 that a calendar date can never contain more than one official document.
 
+The one bounded SEP HTML spelling alias `fomcprojtableYYYYMMDD.htm` is accepted and canonicalized
+to the publisher identity `fomcprojtablYYYYMMDD`; PDF identity remains the canonical stem. Host and
+date coherence remain strict, and no other stem approximation is allowed.
+
 Statement discovery records the official index's event class: `scheduled_meeting`,
 `unscheduled_meeting`, or `notation_vote`. This is an auditable publisher classification;
 subjective labels such as `COVID era` or `hiking era` are downstream analysis and are not written
@@ -85,10 +97,12 @@ event class and therefore store null. The candidate validator and database const
 this release-type/event-class invariant so incomplete or contradictory classifications cannot enter
 the operational ledger.
 
-Discovery is complete only when every requested year from 2020 through the current year has been
-visited and each discovered release has an explicit per-release outcome. Missing HTML or PDF pairs
-are release failures, not silently filtered rows. The ledger may retain a release even when fetching
-or parsing it fails.
+Discovery is complete only when the current calendar and every requested past-year URL have explicit
+page outcomes, every requested year has candidate coverage for the requested release type, and each
+candidate has an explicit per-release outcome. Compatible current/history candidates merge by
+release key and complementary HTML/PDF URLs; incompatible identity, classification, or competing
+non-null URLs fail explicitly. Missing HTML or PDF pairs are release failures, not silently filtered
+rows. The ledger may retain a release even when fetching or parsing it fails.
 
 ## 5. Raw evidence and revision semantics
 

@@ -51,6 +51,22 @@
       "sha256": "cb8e66750aa86de09773f127afb2bfd9e538c1152ee2b4344d73cc35ddec8b35"
     },
     {
+      "name": "fed_sep_2022_03.html",
+      "url": "https://www.federalreserve.gov/monetarypolicy/fomcprojtable20220316.htm",
+      "captured_on": "2026-08-13",
+      "media_type": "text/html",
+      "content_length": 236101,
+      "sha256": "339e41ea04b3f35fa58a319cb2477b542dca98247fad78719995ba2986933e5b"
+    },
+    {
+      "name": "fed_sep_2022_03.pdf",
+      "url": "https://www.federalreserve.gov/monetarypolicy/files/fomcprojtabl20220316.pdf",
+      "captured_on": "2026-08-13",
+      "media_type": "application/pdf",
+      "content_length": 1558349,
+      "sha256": "4a3ff9efb51ed06c9c7794c3e4eea33320a6990a9a7133e149c4885bdd3a62d2"
+    },
+    {
       "name": "fed_sep_2026_06.pdf",
       "url": "https://www.federalreserve.gov/monetarypolicy/files/fomcprojtabl20260617.pdf",
       "media_type": "application/pdf",

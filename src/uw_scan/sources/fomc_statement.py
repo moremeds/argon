@@ -20,12 +20,13 @@ from uw_scan.models.macro import MacroSourceArtifact
 from uw_scan.normalize import NormalizationError
 
 from .fomc_release_contracts import (
+    FomcDiscoveryResult,
     FomcReleaseCandidate,
     artifact_identity,
     bounded_release_error,
     require_official_response,
 )
-from .fomc_release_discovery import discover_official_release_candidates
+from .fomc_release_discovery import discover_official_release_result
 from .fomc_text import (
     _infer_action,
     _infer_published_at,
@@ -163,7 +164,10 @@ class FomcStatementProvider:
     def discover_candidates(
         self, *, years: tuple[int, ...]
     ) -> list[FomcReleaseCandidate]:
-        return discover_official_release_candidates(
+        return list(self.discover_result(years=years).candidates)
+
+    def discover_result(self, *, years: tuple[int, ...]) -> FomcDiscoveryResult:
+        return discover_official_release_result(
             get=self._get,
             base_url=self._base_url,
             calendar_path=self.CALENDAR_PATH,
@@ -177,7 +181,13 @@ class FomcStatementProvider:
         years: tuple[int, ...],
         retrieved_at: datetime | None = None,
     ) -> list[FomcStatementFetchOutcome]:
-        candidates = self.discover_candidates(years=years)
+        discovery = self.discover_result(years=years)
+        if not discovery.coverage_complete:
+            missing = ", ".join(str(year) for year in discovery.missing_years)
+            raise NormalizationError(
+                f"FOMC statement discovery coverage incomplete for years: {missing}"
+            )
+        candidates = discovery.candidates
         if not candidates:
             raise NormalizationError("FOMC discovery produced no statement candidates")
         observed_at = retrieved_at or datetime.now(UTC)

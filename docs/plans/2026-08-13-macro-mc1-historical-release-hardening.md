@@ -285,13 +285,30 @@ scheme, and any legacy local test rows remain historical evidence rather than be
 
 Fetch the current calendar plus official historical pages for every requested past year. Restrict
 URLs to the configured Federal Reserve host, de-duplicate by release key, sort deterministically,
-and retain incomplete candidates. A historical statement index may link only its HTML page; after
+and retain incomplete candidates. "Fetch every past year" means always attempt the one bounded
+`fomchistoricalYYYY.htm` URL, not assume it exists: the known official surface serves 2020 while
+some later-year URLs return 404. Return frozen deterministic page-level outcomes (`ok`, `not_found`,
+or `error`) together with candidates. A failed archive attempt is non-fatal only when the current
+calendar supplies that year and release type; otherwise mark coverage incomplete and make provider
+acquisition reject an empty-success claim. Keep the candidate-only discovery method as a compatibility
+projection, do not store audit state in mutable `last_*` fields, and leave Task 8 to persist page
+outcomes.
+
+When current and historical surfaces produce the same key, merge only compatible identity,
+event-class, and complementary artifact URLs. Clear a stale missing-counterpart error after a valid
+counterpart enriches the candidate, but preserve real transport/off-host/validation errors.
+Conflicting non-null URLs or classifications raise an explicit discovery error. A historical
+statement index may link only its HTML page; after
 fetching that page, discover and validate the same-date official PDF link before declaring the pair
 incomplete. Historical pages sometimes identify an SEP through the official
 `SEP: Individual Projections` link without linking the accessible projection table. Use that
 meeting-scoped official marker to derive the Federal Reserve's canonical
 `fomcprojtablYYYYMMDD.{htm,pdf}` URLs, require both URLs to return official content, and never discover
 dates by unbounded URL guessing.
+
+Accept the bounded official SEP HTML spelling alias `fomcprojtableYYYYMMDD.htm` and canonicalize its
+identity and release key to `fomcprojtablYYYYMMDD`. Do not accept the alias for PDF or generalize to
+other stems; configured-host and same-date checks remain mandatory.
 
 **Step 4: Make providers return per-candidate fetch outcomes**
 

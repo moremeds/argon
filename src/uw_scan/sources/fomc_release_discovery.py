@@ -7,6 +7,7 @@ import re
 from collections.abc import Callable, Iterable
 from dataclasses import replace
 from datetime import date
+from typing import Literal
 from urllib.parse import urljoin, urlparse
 
 import httpx
@@ -15,6 +16,8 @@ from bs4 import BeautifulSoup, Tag
 from .fomc_release_contracts import (
     MAX_ERROR_LENGTH,
     EventClass,
+    FomcDiscoveryPageOutcome,
+    FomcDiscoveryResult,
     FomcReleaseCandidate,
     ReleaseDiscoveryError,
     ReleaseType,
@@ -83,45 +86,162 @@ def discover_official_release_candidates(
     years: Iterable[int],
     release_type: ReleaseType,
 ) -> list[FomcReleaseCandidate]:
-    """Traverse the current calendar plus each requested past-year index."""
+    """Compatibility projection of the audited official discovery result."""
+
+    return list(
+        discover_official_release_result(
+            get=get,
+            base_url=base_url,
+            calendar_path=calendar_path,
+            years=years,
+            release_type=release_type,
+        ).candidates
+    )
+
+
+def discover_official_release_result(
+    *,
+    get: Callable[[str], httpx.Response],
+    base_url: str,
+    calendar_path: str,
+    years: Iterable[int],
+    release_type: ReleaseType,
+) -> FomcDiscoveryResult:
+    """Discover candidates and explicitly audit every bounded index request."""
 
     requested_years = tuple(sorted(set(years)))
     calendar_url = urljoin(f"{base_url.rstrip('/')}/", calendar_path.lstrip("/"))
-    calendar_response = get(calendar_url)
-    require_official_response(
-        calendar_response, discovery_url=calendar_url, media_type="html"
-    )
-    current = discover_current_release_candidates(
-        calendar_response.content,
-        discovery_url=calendar_url,
-        years=requested_years,
-    )
-    current_covered_years = {item.event_date.year for item in current}
-    candidates = [item for item in current if item.release_type == release_type]
+    page_outcomes: list[FomcDiscoveryPageOutcome] = []
+    candidates: list[FomcReleaseCandidate] = []
+    try:
+        calendar_response = get(calendar_url)
+        require_official_response(
+            calendar_response, discovery_url=calendar_url, media_type="html"
+        )
+    except Exception as exc:
+        page_outcomes.append(
+            _page_failure_outcome(
+                exc,
+                year=None,
+                url=calendar_url,
+                role="current_calendar",
+            )
+        )
+    else:
+        try:
+            current = discover_current_release_candidates(
+                calendar_response.content,
+                discovery_url=calendar_url,
+                years=requested_years,
+            )
+        except ReleaseDiscoveryError:
+            raise
+        except Exception as exc:
+            page_outcomes.append(
+                _page_failure_outcome(
+                    exc,
+                    year=None,
+                    url=calendar_url,
+                    role="current_calendar",
+                )
+            )
+        else:
+            page_outcomes.append(
+                FomcDiscoveryPageOutcome(
+                    year=None,
+                    url=calendar_url,
+                    role="current_calendar",
+                    status="ok",
+                )
+            )
+            candidates.extend(
+                item for item in current if item.release_type == release_type
+            )
 
     for year in requested_years:
-        if year in current_covered_years or year >= date.today().year:
+        if year >= date.today().year:
             continue
         history_url = urljoin(
             f"{base_url.rstrip('/')}/",
             f"monetarypolicy/fomchistorical{year}.htm",
         )
-        response = get(history_url)
-        require_official_response(
-            response, discovery_url=history_url, media_type="html"
-        )
-        historical = _historical_candidates(
-            response.content,
-            discovery_url=history_url,
-            year=year,
-            release_type=release_type,
+        try:
+            response = get(history_url)
+            require_official_response(
+                response, discovery_url=history_url, media_type="html"
+            )
+        except Exception as exc:
+            page_outcomes.append(
+                _page_failure_outcome(
+                    exc,
+                    year=year,
+                    url=history_url,
+                    role="historical_year",
+                )
+            )
+            continue
+        try:
+            historical = _historical_candidates(
+                response.content,
+                discovery_url=history_url,
+                year=year,
+                release_type=release_type,
+            )
+        except ReleaseDiscoveryError:
+            raise
+        except Exception as exc:
+            page_outcomes.append(
+                _page_failure_outcome(
+                    exc,
+                    year=year,
+                    url=history_url,
+                    role="historical_year",
+                )
+            )
+            continue
+        page_outcomes.append(
+            FomcDiscoveryPageOutcome(
+                year=year,
+                url=history_url,
+                role="historical_year",
+                status="ok",
+            )
         )
         for candidate in historical:
             if release_type == "statement":
                 candidates.append(_complete_historical_statement(candidate, get=get))
             else:
                 candidates.append(_validate_historical_sep(candidate, get=get))
-    return deduplicate_release_candidates(candidates)
+    deduplicated = deduplicate_release_candidates(candidates)
+    covered_years = {candidate.event_date.year for candidate in deduplicated}
+    missing_years = tuple(year for year in requested_years if year not in covered_years)
+    return FomcDiscoveryResult(
+        candidates=tuple(deduplicated),
+        page_outcomes=tuple(page_outcomes),
+        coverage_complete=not missing_years,
+        missing_years=missing_years,
+    )
+
+
+def _page_failure_outcome(
+    exc: BaseException,
+    *,
+    year: int | None,
+    url: str,
+    role: Literal["current_calendar", "historical_year"],
+) -> FomcDiscoveryPageOutcome:
+    error_type, error_message = bounded_release_error(exc)
+    status: Literal["not_found", "error"] = "error"
+    if isinstance(exc, httpx.HTTPStatusError) and exc.response.status_code == 404:
+        status = "not_found"
+    return FomcDiscoveryPageOutcome(
+        year=year,
+        url=url,
+        role=role,
+        status=status,
+        error_type=error_type,
+        error_message=error_message,
+    )
 
 
 def _candidate_from_current_field(

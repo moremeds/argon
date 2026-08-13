@@ -11,7 +11,10 @@ import pytest
 from bs4 import BeautifulSoup
 
 from uw_scan.normalize import NormalizationError
-from uw_scan.sources.fomc_release_contracts import FomcReleaseCandidate
+from uw_scan.sources.fomc_release_contracts import (
+    FomcDiscoveryResult,
+    FomcReleaseCandidate,
+)
 from uw_scan.sources.fomc_statement import (
     FomcStatementBundle,
     FomcStatementProvider,
@@ -630,9 +633,14 @@ def test_statement_outcomes_isolate_transport_failure_and_keep_partial_artifact(
     with (
         patch.object(
             FomcStatementProvider,
-            "discover_candidates",
+            "discover_result",
             autospec=True,
-            return_value=[first, second],
+            return_value=FomcDiscoveryResult(
+                candidates=(first, second),
+                page_outcomes=(),
+                coverage_complete=True,
+                missing_years=(),
+            ),
         ),
         patch.object(
             FomcStatementProvider, "_get", autospec=True, side_effect=fake_get
@@ -654,3 +662,21 @@ def test_statement_outcomes_isolate_transport_failure_and_keep_partial_artifact(
     assert len(outcomes[0].error_message or "") <= 500
     assert outcomes[1].bundle is not None
     assert len(outcomes[1].artifacts) == 2
+
+
+def test_statement_fetch_outcomes_rejects_incomplete_discovery_coverage() -> None:
+    discovery = FomcDiscoveryResult(
+        candidates=(),
+        page_outcomes=(),
+        coverage_complete=False,
+        missing_years=(2024,),
+    )
+    with patch.object(
+        FomcStatementProvider,
+        "discover_result",
+        autospec=True,
+        return_value=discovery,
+    ):
+        with FomcStatementProvider() as provider:
+            with pytest.raises(NormalizationError, match="incomplete.*2024"):
+                provider.fetch_outcomes(years=(2024,))
