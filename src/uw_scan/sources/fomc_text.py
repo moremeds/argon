@@ -316,13 +316,30 @@ def _parse_against_voters(raw: str) -> _ParsedVoters:
         bounded = clause.strip().removeprefix("and ")
         rationale = re.search(r",\s+(?:who|each of whom)\b", bounded)
         names_only = bounded[: rationale.start()] if rationale is not None else bounded
-        normalized_names = re.sub(r",?\s+and\s+", ";", names_only)
-        for name in normalized_names.split(";"):
-            candidate = name.strip()
-            if _VOTER_NAME.fullmatch(candidate) is None:
-                raise NormalizationError(f"FOMC malformed named voter: {candidate!r}")
-            voters.append(candidate)
+        voters.extend(_tokenize_voter_names(names_only))
     return _validated_voters(voters)
+
+
+def _tokenize_voter_names(raw: str) -> list[str]:
+    voters: list[str] = []
+    position = 0
+    terminal_conjunction = False
+    while position < len(raw):
+        match = _VOTER_NAME.match(raw, position)
+        if match is None:
+            raise NormalizationError(f"FOMC malformed named voter: {raw[position:]!r}")
+        voters.append(match.group())
+        position = match.end()
+        if position == len(raw):
+            return voters
+        if terminal_conjunction:
+            raise NormalizationError(f"FOMC malformed named voter list: {raw!r}")
+        separator = re.match(r"(?:,\s+and\s+|\s+and\s+|,\s+)", raw[position:])
+        if separator is None:
+            raise NormalizationError(f"FOMC malformed named voter list: {raw!r}")
+        terminal_conjunction = "and" in separator.group()
+        position += separator.end()
+    raise NormalizationError(f"FOMC malformed named voter list: {raw!r}")
 
 
 def _parse_named_voters(raw: str) -> _ParsedVoters:

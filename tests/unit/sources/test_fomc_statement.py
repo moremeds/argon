@@ -108,6 +108,17 @@ HISTORICAL_RELEASES = [
         "11-1",
         "2026-03-18T14:00:00-04:00",
     ),
+    (
+        "fomc_statement_2026_04_29.html",
+        "https://www.federalreserve.gov/newsevents/pressreleases/monetary20260429a.htm",
+        "3d1a56f2096a58ba37400fccd6651c383720298544b65dd9bea02fcf99fa06ea",
+        date(2026, 4, 29),
+        "Hold",
+        Decimal("3.5"),
+        Decimal("3.75"),
+        "8-4",
+        "2026-04-29T14:00:00-04:00",
+    ),
 ]
 SOURCE_URL_BY_FIXTURE = {row[0]: row[1] for row in HISTORICAL_RELEASES}
 
@@ -416,6 +427,33 @@ def test_regular_vote_rejects_same_side_canonical_duplicate(
                 meeting_date=meeting_date,
                 accessible_url=SOURCE_URL_BY_FIXTURE[fixture_name],
                 accessible_bytes=duplicated,
+            )
+        )
+
+
+@pytest.mark.parametrize(
+    "malformed_names",
+    [
+        b"Beth M. Hammack, and, Lorie K. Logan",
+        b"Beth M. Hammack,, Neel Kashkari, and Lorie K. Logan",
+    ],
+)
+def test_regular_vote_rejects_malformed_comma_separated_dissenters(
+    malformed_names: bytes,
+) -> None:
+    raw = (FIXTURES / "fomc_statement_2026_04_29.html").read_bytes()
+    malformed = raw.replace(
+        b"Beth M. Hammack, Neel Kashkari, and Lorie K. Logan",
+        malformed_names,
+    )
+    assert malformed != raw
+
+    with pytest.raises(NormalizationError, match="named voter"):
+        parse_fomc_statement(
+            _bundle(
+                meeting_date=date(2026, 4, 29),
+                accessible_url=SOURCE_URL_BY_FIXTURE["fomc_statement_2026_04_29.html"],
+                accessible_bytes=malformed,
             )
         )
 
