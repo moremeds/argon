@@ -298,9 +298,15 @@ def self_check() -> None:
     statement = parse_fomc_statement(
         FomcStatementBundle.from_bytes(
             meeting_date=date(2026, 6, 17),
-            accessible_url="https://www.federalreserve.gov/statement.html",
+            accessible_url=(
+                "https://www.federalreserve.gov/newsevents/pressreleases/"
+                "monetary20260617a.htm"
+            ),
             accessible_bytes=(FIXTURES / "fomc_statement_2026_06.html").read_bytes(),
-            pdf_url="https://www.federalreserve.gov/statement.pdf",
+            pdf_url=(
+                "https://www.federalreserve.gov/monetarypolicy/files/"
+                "monetary20260617a1.pdf"
+            ),
             pdf_bytes=(FIXTURES / "fomc_statement_2026_06.pdf").read_bytes(),
             retrieved_at=observed_at,
         )
@@ -308,9 +314,15 @@ def self_check() -> None:
     sep = parse_sep_release(
         SepSourceBundle.from_bytes(
             meeting_date=date(2026, 6, 17),
-            accessible_url="https://www.federalreserve.gov/sep.html",
+            accessible_url=(
+                "https://www.federalreserve.gov/monetarypolicy/"
+                "fomcprojtabl20260617.htm"
+            ),
             accessible_bytes=(FIXTURES / "fed_sep_2026_06.html").read_bytes(),
-            pdf_url="https://www.federalreserve.gov/sep.pdf",
+            pdf_url=(
+                "https://www.federalreserve.gov/monetarypolicy/files/"
+                "fomcprojtabl20260617.pdf"
+            ),
             pdf_bytes=(FIXTURES / "fed_sep_2026_06.pdf").read_bytes(),
             retrieved_at=observed_at,
         )

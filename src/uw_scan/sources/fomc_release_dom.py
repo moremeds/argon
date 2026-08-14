@@ -161,6 +161,7 @@ def inventory_current_release_page(
                 discovery_url=discovery_url,
             )
         except Exception as exc:
+            logger.debug("FOMC release slot rejected: %s", repr(exc))
             slots.append(
                 _rejected_slot(
                     slot_id=slot_id,
@@ -288,6 +289,7 @@ def inventory_historical_release_page(
                     discovery_error="historical SEP canonical URLs require validation",
                 )
         except Exception as exc:
+            logger.debug("FOMC release slot rejected: %s", repr(exc))
             slots.append(
                 _rejected_slot(
                     slot_id=slot_id,
@@ -381,17 +383,22 @@ def _current_row_event_date(row: Tag, *, year: int) -> date | None:
     month_label = _label(month_node.get_text(" ", strip=True)).split("/")[-1]
     try:
         month = datetime.strptime(month_label, "%B").month
-    except ValueError:
+    except ValueError as exc:
+        logger.debug("FOMC month label is not a full month name: %s", repr(exc))
         try:
             month = datetime.strptime(month_label, "%b").month
-        except ValueError:
+        except ValueError as abbreviated_exc:
+            logger.debug(
+                "FOMC month label is not a month name: %s", repr(abbreviated_exc)
+            )
             return None
     days = re.findall(r"\d{1,2}", date_node.get_text(" ", strip=True))
     if not days:
         return None
     try:
         return date(year, month, int(days[-1]))
-    except ValueError:
+    except ValueError as exc:
+        logger.debug("FOMC meeting date is not a real calendar date: %s", repr(exc))
         return None
 
 

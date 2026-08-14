@@ -90,6 +90,7 @@ def discover_official_release_result(
             calendar_response, discovery_url=calendar_url, media_type="html"
         )
     except Exception as exc:
+        logger.debug("FOMC calendar page fetch failed: %s", repr(exc))
         page_outcomes.append(
             _page_failure_outcome(
                 exc,
@@ -110,6 +111,7 @@ def discover_official_release_result(
         except ReleaseDiscoveryError:
             raise
         except Exception as exc:
+            logger.debug("FOMC discovery page outcome failed: %s", repr(exc))
             page_outcomes.append(
                 _page_failure_outcome(
                     exc,
@@ -153,6 +155,7 @@ def discover_official_release_result(
                 response, discovery_url=history_url, media_type="html"
             )
         except Exception as exc:
+            logger.debug("FOMC discovery page outcome failed: %s", repr(exc))
             page_outcomes.append(
                 _page_failure_outcome(
                     exc,
@@ -172,6 +175,7 @@ def discover_official_release_result(
         except ReleaseDiscoveryError:
             raise
         except Exception as exc:
+            logger.debug("FOMC discovery page outcome failed: %s", repr(exc))
             page_outcomes.append(
                 _page_failure_outcome(
                     exc,

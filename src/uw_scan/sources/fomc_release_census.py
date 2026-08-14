@@ -2,6 +2,8 @@
 
 from __future__ import annotations
 
+import logging
+
 import re
 from collections.abc import Iterable
 from datetime import date
@@ -17,6 +19,8 @@ from .fomc_release_contracts import (
     date_from_raw,
     url_origin,
 )
+
+logger = logging.getLogger(__name__)
 
 _SEP_HISTORICAL_MARKER = re.compile(
     r"/FOMC(20\d{6})SEPcompilation\.pdf$", flags=re.IGNORECASE
@@ -178,7 +182,8 @@ def _canonical_identity(
             stem, event_date = artifact_identity(
                 url, release_type=release_type, media_type=media_type
             )
-        except ValueError:
+        except ValueError as exc:
+            logger.debug("census anchor is not a canonical release: %s", repr(exc))
             continue
         prefix = "fomc-statement" if release_type == "statement" else "fed-sep"
         return f"{prefix}:{stem}", event_date

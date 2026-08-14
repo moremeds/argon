@@ -2,6 +2,8 @@
 
 from __future__ import annotations
 
+import logging
+import re
 import time
 from collections.abc import Callable, Iterable
 from dataclasses import dataclass
@@ -26,6 +28,8 @@ from uw_scan.sources.fomc_statement import (
 )
 from uw_scan.sources.nyfed_sme import NyFedSmeProvider, SmeRelease, parse_sme_release
 from uw_scan.storage.repository import Repository
+
+logger = logging.getLogger(__name__)
 
 
 class _ContextProvider(Protocol):
@@ -83,6 +87,7 @@ def macro_fomc_statement_ingest_job(
             seen_at=seen_at,
         )
     except Exception as exc:
+        logger.debug("macro ingest failed for federal_reserve_fomc: %s", repr(exc))
         return _record_failure(dsn, "federal_reserve_fomc", seen_at, exc)
 
 
@@ -122,6 +127,7 @@ def macro_sep_ingest_job(
             seen_at=seen_at,
         )
     except Exception as exc:
+        logger.debug("macro ingest failed for federal_reserve_sep: %s", repr(exc))
         return _record_failure(dsn, "federal_reserve_sep", seen_at, exc)
 
 
@@ -154,6 +160,7 @@ def macro_sme_ingest_job(
             seen_at=seen_at,
         )
     except Exception as exc:
+        logger.debug("macro ingest failed for new_york_fed_sme: %s", repr(exc))
         return _record_failure(dsn, "new_york_fed_sme", seen_at, exc)
 
 
@@ -189,6 +196,7 @@ def macro_market_implied_ingest_job(
             seen_at=seen_at,
         )
     except Exception as exc:
+        logger.debug("macro ingest failed for frenzy_capital: %s", repr(exc))
         return _record_failure(dsn, "frenzy_capital", seen_at, exc)
 
 
@@ -265,6 +273,7 @@ def _persist_release_bundles(
             repo.upsert_macro_source_status(source, status="ok", attempted_at=seen_at)
             conn.commit()
         except Exception as exc:
+            logger.debug("macro observation persistence failed: %s", repr(exc))
             conn.rollback()
             error_type, error_message = _error_parts(exc)
             repo.upsert_macro_source_status(
@@ -563,10 +572,9 @@ def _error_parts(exc: Exception) -> tuple[str, str]:
 
 
 def _sep_horizon_date(horizon: str) -> str | None:
-    try:
-        return date(int(horizon), 12, 31).isoformat()
-    except ValueError:
+    if not re.fullmatch(r"\d{4}", horizon):
         return None
+    return date(int(horizon), 12, 31).isoformat()
 
 
 def _decimal_text(value: Decimal) -> str:
