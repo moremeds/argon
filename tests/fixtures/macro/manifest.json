@@ -3,7 +3,9 @@
   "notes": [
     "Federal Reserve HTML contains a request-dynamic Akamai footer, so the stable official PDF is the primary immutable release artifact and accessible HTML is retained as parsing support.",
     "New York Fed structured XLSX is the primary SME data artifact; the official results PDF is retained for human-readable cross-checking.",
-    "NY Fed survey_release_date is the questionnaire distribution date, not the results publication instant; historical PIT availability must use a reliable publisher timestamp or conservative first retrieval."
+    "NY Fed survey_release_date is the questionnaire distribution date, not the results publication instant; historical PIT availability must use a reliable publisher timestamp or conservative first retrieval.",
+    "Official SEP HTML uses two interchangeable range separators (U+2013 en dash and U+002D hyphen) while negative bounds always use U+002D, so range parsing is anchored on a strict numeric grammar rather than a dash split.",
+    "December SEP pages label the release time EDT although December is EST; the FOMC statement for the same release event declares EST, so the instant resolves in America/New_York and the publisher label disagreement is retained as parser audit metadata."
   ],
   "artifacts": [
     {
@@ -72,6 +74,86 @@
       "media_type": "application/pdf",
       "content_length": 1216132,
       "sha256": "a517887623520922a782e0cd01fb38d4469bed951f63d2588efb99f72deddde3"
+    },
+    {
+      "name": "fed_sep_2020_06.html",
+      "url": "https://www.federalreserve.gov/monetarypolicy/fomcprojtabl20200610.htm",
+      "media_type": "text/html",
+      "content_length": 114220,
+      "sha256": "fa2a18026e78a3d54edef436edf63055b9f4cc815fa7ce5a514f16337dec766d",
+      "captured_on": "2026-08-14"
+    },
+    {
+      "name": "fed_sep_2020_06.pdf",
+      "url": "https://www.federalreserve.gov/monetarypolicy/files/fomcprojtabl20200610.pdf",
+      "media_type": "application/pdf",
+      "content_length": 317494,
+      "sha256": "b5c7c56e76bc98755d4d06260659900c7f64e3e021d26548bfdad5e467d33250",
+      "captured_on": "2026-08-14"
+    },
+    {
+      "name": "fed_sep_2020_09.html",
+      "url": "https://www.federalreserve.gov/monetarypolicy/fomcprojtabl20200916.htm",
+      "media_type": "text/html",
+      "content_length": 122993,
+      "sha256": "33b70223b39946fd84ed5c28965bfb62fe7b86febe335e547298f28e26322ae4",
+      "captured_on": "2026-08-14"
+    },
+    {
+      "name": "fed_sep_2020_09.pdf",
+      "url": "https://www.federalreserve.gov/monetarypolicy/files/fomcprojtabl20200916.pdf",
+      "media_type": "application/pdf",
+      "content_length": 310654,
+      "sha256": "d26cdb38ddfb7cb179b747ff3e326937a7e3d30bb28d85a97ea9cbf391796ba9",
+      "captured_on": "2026-08-14"
+    },
+    {
+      "name": "fed_sep_2020_12.html",
+      "url": "https://www.federalreserve.gov/monetarypolicy/fomcprojtabl20201216.htm",
+      "media_type": "text/html",
+      "content_length": 268526,
+      "sha256": "d6e0320f64121461ef80c927f347192b4d8ebc03f82eafa0efbde4fcc9540b43",
+      "captured_on": "2026-08-14"
+    },
+    {
+      "name": "fed_sep_2020_12.pdf",
+      "url": "https://www.federalreserve.gov/monetarypolicy/files/fomcprojtabl20201216.pdf",
+      "media_type": "application/pdf",
+      "content_length": 1476448,
+      "sha256": "f8f43c5c0c6dc3080733bcf73132e551f031548c31f832fa06ead3e900c3a938",
+      "captured_on": "2026-08-14"
+    },
+    {
+      "name": "fed_sep_2023_03.html",
+      "url": "https://www.federalreserve.gov/monetarypolicy/fomcprojtabl20230322.htm",
+      "media_type": "text/html",
+      "content_length": 241067,
+      "sha256": "8f0db4923de20b7cbfec844105c386c80d48c5c96e8d8c230aaf183736103091",
+      "captured_on": "2026-08-14"
+    },
+    {
+      "name": "fed_sep_2023_03.pdf",
+      "url": "https://www.federalreserve.gov/monetarypolicy/files/fomcprojtabl20230322.pdf",
+      "media_type": "application/pdf",
+      "content_length": 1564741,
+      "sha256": "eafeb9cea1abbd1c16899ded75e97f77c13b6cacc0584bf0b80277a4c93fb2cb",
+      "captured_on": "2026-08-14"
+    },
+    {
+      "name": "fed_sep_2026_03.html",
+      "url": "https://www.federalreserve.gov/monetarypolicy/fomcprojtabl20260318.htm",
+      "media_type": "text/html",
+      "content_length": 229487,
+      "sha256": "0582ccec0ba53383dd4dceb91872bfae06a0180b88a19dc24c3fd809169f3655",
+      "captured_on": "2026-08-14"
+    },
+    {
+      "name": "fed_sep_2026_03.pdf",
+      "url": "https://www.federalreserve.gov/monetarypolicy/files/fomcprojtabl20260318.pdf",
+      "media_type": "application/pdf",
+      "content_length": 1339311,
+      "sha256": "2e9452c51a4b5907da952fad6f39dd25dc048161af123e09a1981f5982724f14",
+      "captured_on": "2026-08-14"
     },
     {
       "name": "nyfed_sme_2026_06.xlsx",

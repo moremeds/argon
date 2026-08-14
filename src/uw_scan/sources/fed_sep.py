@@ -4,44 +4,87 @@ The Fed's accessible HTML is the machine-readable representation, but its
 request-specific Akamai footer makes exact HTML bytes unstable.  The matching
 official PDF is therefore the primary immutable release artifact.  Both exact
 representations are retained and the HTML parser is intentionally strict.
+
+Artifact acquisition identity (``PARSER_VERSION``) and semantic parsing identity
+(``SEMANTIC_PARSER_VERSION``) are deliberately separate: reprocessing an
+unchanged artifact with an improved semantic parser must not rewrite the
+immutable metadata already recorded for those exact bytes.
 """
 
 from __future__ import annotations
 
+import logging
 import re
 from dataclasses import dataclass
 from datetime import date, datetime, time
-from decimal import Decimal, InvalidOperation
 from typing import Final
 from zoneinfo import ZoneInfo
 
-from bs4 import BeautifulSoup, Tag
+from bs4 import BeautifulSoup
 
 from uw_scan.macro_evidence import macro_artifact_content_identity
 from uw_scan.models.macro import MacroSourceArtifact
 from uw_scan.normalize import NormalizationError
 
+from .fed_sep_tables import (
+    SepDistributionPoint,
+    SepProjection,
+    find_dot_table,
+    find_summary_table,
+    parse_dot_table,
+    parse_summary_table,
+    prose_participant_totals,
+)
 from .fomc_release_contracts import artifact_identity
 
+logger = logging.getLogger(__name__)
+
 PARSER_VERSION: Final = "fed_sep.v1"
+SEMANTIC_PARSER_VERSION: Final = "fed_sep.v2"
 SOURCE: Final = "federal_reserve_sep"
 
+_EASTERN: Final = ZoneInfo("America/New_York")
+_RELEASE_TIME_RE: Final = re.compile(
+    r"For release at (\d{1,2}):(\d{2})\s+([ap])\.m\.,?\s+(E[DS]T),?\s+"
+    r"([A-Z][a-z]+ \d{1,2}, \d{4})",
+    flags=re.IGNORECASE,
+)
+
+__all__ = [
+    "PARSER_VERSION",
+    "SEMANTIC_PARSER_VERSION",
+    "SOURCE",
+    "FedSepProvider",
+    "SepDistributionPoint",
+    "SepFetchOutcome",
+    "SepProjection",
+    "SepRelease",
+    "SepReleaseTimestamp",
+    "SepSourceBundle",
+    "parse_sep_release",
+    "release_timestamp",
+]
+
 
 @dataclass(frozen=True)
-class SepDistributionPoint:
-    value: Decimal
-    participant_count: int
+class SepReleaseTimestamp:
+    """The publication instant plus the publisher's own timezone label.
 
+    December pages in the official archive declare ``EDT`` even though December
+    is ``EST``; the FOMC statement for the same release event declares ``EST``.
+    The instant is therefore resolved as the published wall clock in Eastern
+    time and the disagreement is retained as parser audit metadata.  Obeying the
+    literal label would place availability an hour early, which would leak
+    future information into point-in-time replay.
+    """
 
-@dataclass(frozen=True)
-class SepProjection:
-    variable: str
-    horizon: str
-    unit: str
-    central_tendency: tuple[Decimal, Decimal]
-    range: tuple[Decimal, Decimal]
-    median: Decimal
-    participant_distribution: tuple[SepDistributionPoint, ...] = ()
+    published_at: datetime
+    declared_timezone: str
+    calendar_timezone: str
+
+    @property
+    def label_matches_calendar(self) -> bool:
+        return self.declared_timezone == self.calendar_timezone
 
 
 @dataclass(frozen=True)
@@ -53,6 +96,13 @@ class SepRelease:
     accessible_source_url: str
     source_record_id: str
     projections: tuple[SepProjection, ...]
+    parser_version: str = SEMANTIC_PARSER_VERSION
+    declared_timezone: str = ""
+    calendar_timezone: str = ""
+
+    @property
+    def timezone_label_matches_calendar(self) -> bool:
+        return self.declared_timezone == self.calendar_timezone
 
 
 @dataclass(frozen=True)
@@ -74,7 +124,10 @@ class SepSourceBundle:
         retrieved_at: datetime,
         release_key: str | None = None,
     ) -> "SepSourceBundle":
-        published_at = _published_at(accessible_bytes, expected_date=meeting_date)
+        # Exact evidence must be preservable before the publication instant is
+        # normalized; the required timestamp check lives in parse_sep_release.
+        stamp = optional_release_timestamp(accessible_bytes, expected_date=meeting_date)
+        published_at = stamp.published_at if stamp is not None else None
         inferred_stem, inferred_date = artifact_identity(
             accessible_url,
             release_type="sep",
@@ -110,49 +163,62 @@ def parse_sep_release(bundle: SepSourceBundle) -> SepRelease:
     if raw is None:
         raise NormalizationError("SEP accessible artifact is missing raw bytes")
     soup = BeautifulSoup(raw, "html.parser")
-    summary_table = _find_table(soup, heading_prefix="Table 1.")
-    dot_table = _find_table(soup, heading_prefix="Figure 2.")
 
-    projections = _parse_summary_table(summary_table)
-    distributions = _parse_dot_table(dot_table)
-    expected_totals = _expected_participant_totals(soup, tuple(distributions))
-    for horizon, points in distributions.items():
-        actual_total = sum(point.participant_count for point in points)
-        expected_total = expected_totals[horizon]
-        if actual_total != expected_total:
-            raise NormalizationError(
-                f"SEP {horizon} participant total {actual_total} != {expected_total}"
-            )
+    projections = parse_summary_table(find_summary_table(soup))
+    distributions = parse_dot_table(find_dot_table(soup))
 
-    output: list[SepProjection] = []
-    for projection in projections:
-        output.append(
-            SepProjection(
-                variable=projection.variable,
-                horizon=projection.horizon,
-                unit=projection.unit,
-                central_tendency=projection.central_tendency,
-                range=projection.range,
-                median=projection.median,
-                participant_distribution=(
-                    distributions.get(projection.horizon, ())
-                    if projection.variable == "federal_funds_rate"
-                    else ()
-                ),
-            )
+    policy_horizons = tuple(
+        item.horizon for item in projections if item.variable == "federal_funds_rate"
+    )
+    if tuple(distributions) != policy_horizons:
+        raise NormalizationError(
+            "SEP Figure 2 horizons do not match the published policy horizons: "
+            f"{list(distributions)} != {list(policy_horizons)}"
         )
 
+    declared_totals = prose_participant_totals(
+        soup, meeting_date=bundle.meeting_date, horizons=policy_horizons
+    )
+    if declared_totals is not None:
+        for horizon, points in distributions.items():
+            actual_total = sum(point.participant_count for point in points)
+            expected_total = declared_totals[horizon]
+            if actual_total != expected_total:
+                raise NormalizationError(
+                    f"SEP {horizon} participant total {actual_total} != {expected_total}"
+                )
+
+    output = tuple(
+        SepProjection(
+            variable=projection.variable,
+            horizon=projection.horizon,
+            unit=projection.unit,
+            central_tendency=projection.central_tendency,
+            range=projection.range,
+            median=projection.median,
+            participant_distribution=(
+                distributions.get(projection.horizon, ())
+                if projection.variable == "federal_funds_rate"
+                else ()
+            ),
+        )
+        for projection in projections
+    )
     if not output:
         raise NormalizationError("SEP Table 1 produced no projections")
-    published_at = _published_at(raw, expected_date=bundle.meeting_date)
+
+    stamp = release_timestamp(raw, expected_date=bundle.meeting_date)
     return SepRelease(
-        release_date=published_at.date(),
+        release_date=stamp.published_at.date(),
         meeting_date=bundle.meeting_date,
-        published_at=published_at,
+        published_at=stamp.published_at,
         source_url=bundle.primary_artifact.source_url or "",
         accessible_source_url=bundle.accessible_artifact.source_url or "",
         source_record_id=bundle.release_key,
-        projections=tuple(output),
+        projections=output,
+        parser_version=SEMANTIC_PARSER_VERSION,
+        declared_timezone=stamp.declared_timezone,
+        calendar_timezone=stamp.calendar_timezone,
     )
 
 
@@ -185,14 +251,10 @@ def _artifact(
     )
 
 
-def _published_at(raw: bytes, *, expected_date: date) -> datetime:
+def release_timestamp(raw: bytes, *, expected_date: date) -> SepReleaseTimestamp:
+    """Resolve the publication instant, or fail closed."""
     text = " ".join(BeautifulSoup(raw, "html.parser").get_text(" ").split())
-    match = re.search(
-        r"For release at (\d{1,2}):(\d{2})\s+([ap])\.m\.,?\s+(E[DS]T),?\s+"
-        r"([A-Z][a-z]+ \d{1,2}, \d{4})",
-        text,
-        flags=re.IGNORECASE,
-    )
+    match = _RELEASE_TIME_RE.search(text)
     if match is None:
         raise NormalizationError("SEP release timestamp is missing")
     try:
@@ -209,193 +271,25 @@ def _published_at(raw: bytes, *, expected_date: date) -> datetime:
     published_at = datetime.combine(
         release_date,
         time(hour=hour, minute=int(match.group(2))),
-        tzinfo=ZoneInfo("America/New_York"),
+        tzinfo=_EASTERN,
     )
-    if published_at.tzname() != match.group(4).upper():
-        raise NormalizationError("SEP release timezone does not match New York time")
-    return published_at
-
-
-def _find_table(soup: BeautifulSoup, *, heading_prefix: str) -> Tag:
-    for table in soup.find_all("table"):
-        heading = table.find_previous(["h3", "h4", "h5", "h6"])
-        if heading is not None and heading.get_text(" ", strip=True).startswith(
-            heading_prefix
-        ):
-            return table
-    raise NormalizationError(f"SEP {heading_prefix.rstrip('.')} table is missing")
-
-
-def _parse_summary_table(table: Tag) -> tuple[SepProjection, ...]:
-    rows = [
-        [cell.get_text(" ", strip=True) for cell in row.find_all(["th", "td"])]
-        for row in table.find_all("tr")
-    ]
-    if len(rows) < 3 or len(rows[1]) != 12:
-        raise NormalizationError("SEP Table 1 headers changed")
-    horizons = tuple(rows[1][:4])
-    variable_names = {
-        "Change in real GDP": "real_gdp_growth",
-        "Unemployment rate": "unemployment_rate",
-        "PCE inflation": "pce_inflation",
-        "Core PCE inflation": "core_pce_inflation",
-        "Federal funds rate": "federal_funds_rate",
-    }
-    projections: list[SepProjection] = []
-    seen_variables: set[str] = set()
-    for row in rows[2:]:
-        if len(row) != 13:
-            continue
-        label = next(
-            (prefix for prefix in variable_names if row[0].startswith(prefix)), None
-        )
-        if label is None:
-            continue
-        variable = variable_names[label]
-        if variable in seen_variables:
-            raise NormalizationError(f"SEP Table 1 duplicate variable {variable}")
-        seen_variables.add(variable)
-        for index, horizon in enumerate(horizons):
-            median_raw = row[1 + index]
-            if not median_raw:
-                continue
-            projections.append(
-                SepProjection(
-                    variable=variable,
-                    horizon=horizon,
-                    unit="percent",
-                    median=_decimal(median_raw, context=f"{variable} {horizon} median"),
-                    central_tendency=_range(
-                        row[5 + index], context=f"{variable} {horizon} central tendency"
-                    ),
-                    range=_range(row[9 + index], context=f"{variable} {horizon} range"),
-                )
-            )
-    missing = set(variable_names.values()) - seen_variables
-    if missing:
-        raise NormalizationError(f"SEP Table 1 missing variables: {sorted(missing)}")
-    return tuple(projections)
-
-
-def _parse_dot_table(
-    table: Tag,
-) -> dict[str, tuple[SepDistributionPoint, ...]]:
-    rows = [
-        [cell.get_text(" ", strip=True) for cell in row.find_all(["th", "td"])]
-        for row in table.find_all("tr")
-    ]
-    if not rows or len(rows[0]) != 5:
-        raise NormalizationError("SEP Figure 2 headers changed")
-    horizons = tuple(rows[0][1:])
-    distributions: dict[str, list[SepDistributionPoint]] = {
-        horizon: [] for horizon in horizons
-    }
-    for row in rows[1:]:
-        if len(row) != 5:
-            raise NormalizationError("SEP Figure 2 row width changed")
-        value = _decimal(row[0], context="dot value")
-        if value * 8 != (value * 8).to_integral_value():
-            raise NormalizationError(
-                f"SEP dot value {value} is not on a 1/8-point grid"
-            )
-        for horizon, raw_count in zip(horizons, row[1:], strict=True):
-            if not raw_count:
-                continue
-            try:
-                count = int(raw_count)
-            except ValueError as exc:
-                raise NormalizationError("SEP dot count is not an integer") from exc
-            if count < 0:
-                raise NormalizationError("SEP dot count must be nonnegative")
-            distributions[horizon].append(
-                SepDistributionPoint(value=value, participant_count=count)
-            )
-    return {
-        horizon: tuple(sorted(points, key=lambda point: point.value))
-        for horizon, points in distributions.items()
-    }
-
-
-def _expected_participant_totals(
-    soup: BeautifulSoup, horizons: tuple[str, ...]
-) -> dict[str, int]:
-    text = " ".join(soup.get_text(" ").split())
-    matches = re.findall(
-        r"([A-Za-z]+|\d+) participants submitted information in conjunction with the "
-        r"[A-Z][a-z]+ \d{1,2}[–-]\d{1,2}, \d{4}, meeting",
-        text,
+    calendar_timezone = published_at.tzname() or ""
+    return SepReleaseTimestamp(
+        published_at=published_at,
+        declared_timezone=match.group(4).upper(),
+        calendar_timezone=calendar_timezone,
     )
-    if not matches:
-        raise NormalizationError("SEP participant count declaration is missing")
-    total = _integer_word(matches[-1])
-    expected = {horizon: total for horizon in horizons}
-    for missing_horizon in re.findall(
-        r"did not submit projections for (\d{4}|the longer run)",
-        text,
-        flags=re.IGNORECASE,
-    ):
-        normalized = (
-            "Longer run"
-            if missing_horizon.lower() == "the longer run"
-            else missing_horizon
-        )
-        if normalized in expected:
-            expected[normalized] -= 1
-    return expected
 
 
-def _integer_word(raw: str) -> int:
-    words = {
-        "zero": 0,
-        "one": 1,
-        "two": 2,
-        "three": 3,
-        "four": 4,
-        "five": 5,
-        "six": 6,
-        "seven": 7,
-        "eight": 8,
-        "nine": 9,
-        "ten": 10,
-        "eleven": 11,
-        "twelve": 12,
-        "thirteen": 13,
-        "fourteen": 14,
-        "fifteen": 15,
-        "sixteen": 16,
-        "seventeen": 17,
-        "eighteen": 18,
-        "nineteen": 19,
-        "twenty": 20,
-    }
+def optional_release_timestamp(
+    raw: bytes, *, expected_date: date
+) -> SepReleaseTimestamp | None:
+    """Resolve the publication instant, or ``None`` when it is not yet known."""
     try:
-        return int(raw)
-    except ValueError:
-        try:
-            return words[raw.lower()]
-        except KeyError as exc:
-            raise NormalizationError(f"unsupported participant count {raw!r}") from exc
-
-
-def _range(raw: str, *, context: str) -> tuple[Decimal, Decimal]:
-    normalized = raw.replace("–", "-").strip()
-    if not normalized:
-        raise NormalizationError(f"SEP {context} is missing")
-    parts = normalized.split("-", 1)
-    if len(parts) == 1:
-        value = _decimal(parts[0], context=context)
-        return value, value
-    return _decimal(parts[0], context=context), _decimal(parts[1], context=context)
-
-
-def _decimal(raw: str, *, context: str) -> Decimal:
-    try:
-        value = Decimal(raw.strip())
-    except (InvalidOperation, ValueError) as exc:
-        raise NormalizationError(f"SEP {context} is not numeric: {raw!r}") from exc
-    if not value.is_finite():
-        raise NormalizationError(f"SEP {context} must be finite")
-    return value
+        return release_timestamp(raw, expected_date=expected_date)
+    except NormalizationError as exc:
+        logger.debug("SEP publication instant unavailable: %s", repr(exc))
+        return None
 
 
 # Compatibility re-export: acquisition lives in a cohesive submodule so the

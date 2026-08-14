@@ -358,3 +358,230 @@ def test_sep_fetch_outcomes_rejects_incomplete_discovery_coverage() -> None:
         with FedSepProvider() as provider:
             with pytest.raises(NormalizationError, match="incomplete.*2024"):
                 provider.fetch_outcomes(years=(2024,))
+
+
+# ---------------------------------------------------------------------------
+# Historical format families (Task 4)
+#
+# Every fixture below is exact official Federal Reserve HTML pinned in
+# tests/fixtures/macro/manifest.json.  Expected values are the publisher's own
+# printed numbers, not parser output.
+# ---------------------------------------------------------------------------
+
+_HISTORICAL = {
+    "fed_sep_2020_06": (date(2020, 6, 10), "fomcprojtabl20200610"),
+    "fed_sep_2020_09": (date(2020, 9, 16), "fomcprojtabl20200916"),
+    "fed_sep_2020_12": (date(2020, 12, 16), "fomcprojtabl20201216"),
+    "fed_sep_2023_03": (date(2023, 3, 22), "fomcprojtabl20230322"),
+    "fed_sep_2026_03": (date(2026, 3, 18), "fomcprojtabl20260318"),
+}
+
+
+def _historical_bundle(
+    name: str, *, accessible_bytes: bytes | None = None
+) -> SepSourceBundle:
+    meeting_date, stem = _HISTORICAL[name]
+    return SepSourceBundle.from_bytes(
+        meeting_date=meeting_date,
+        accessible_url=(
+            f"https://www.federalreserve.gov/monetarypolicy/{stem}.htm"
+        ),
+        accessible_bytes=(
+            accessible_bytes
+            if accessible_bytes is not None
+            else (FIXTURES / f"{name}.html").read_bytes()
+        ),
+        pdf_url=(
+            f"https://www.federalreserve.gov/monetarypolicy/files/{stem}.pdf"
+        ),
+        pdf_bytes=(FIXTURES / f"{name}.pdf").read_bytes(),
+        retrieved_at=RETRIEVED_AT,
+    )
+
+
+def _policy(release, horizon: str):
+    return next(
+        item
+        for item in release.projections
+        if item.variable == "federal_funds_rate" and item.horizon == horizon
+    )
+
+
+def _horizons(release) -> list[str]:
+    return [
+        item.horizon
+        for item in release.projections
+        if item.variable == "federal_funds_rate"
+    ]
+
+
+def test_sep_parses_2020_advance_release_heading_family() -> None:
+    """June 2020 titles its summary 'Advance release of table 1 ...'."""
+    release = parse_sep_release(_historical_bundle("fed_sep_2020_06"))
+
+    assert release.meeting_date == date(2020, 6, 10)
+    assert release.published_at.isoformat() == "2020-06-10T14:00:00-04:00"
+    assert _horizons(release) == ["2020", "2021", "2022", "Longer run"]
+    assert _policy(release, "2020").median == Decimal("0.1")
+    assert _policy(release, "Longer run").median == Decimal("2.5")
+    # Published as "0.1-1.1" with an ASCII hyphen separator.
+    assert _policy(release, "2022").range == (Decimal("0.1"), Decimal("1.1"))
+    assert [
+        sum(point.participant_count for point in _policy(release, h).participant_distribution)
+        for h in ("2020", "2021", "2022", "Longer run")
+    ] == [17, 17, 17, 16]
+
+
+def test_sep_parses_five_horizon_september_release() -> None:
+    """September and December SEPs publish an extra calendar year."""
+    release = parse_sep_release(_historical_bundle("fed_sep_2020_09"))
+
+    assert _horizons(release) == ["2020", "2021", "2022", "2023", "Longer run"]
+    # September 2020 prints medians without a leading zero (".1").
+    assert _policy(release, "2020").median == Decimal("0.1")
+    assert [
+        sum(point.participant_count for point in _policy(release, h).participant_distribution)
+        for h in ("2020", "2021", "2022", "2023", "Longer run")
+    ] == [17, 17, 17, 17, 16]
+
+
+def test_sep_parses_negative_projection_bounds() -> None:
+    """Negative bounds use U+002D while the separator may be either dash."""
+    september = parse_sep_release(_historical_bundle("fed_sep_2020_09"))
+    gdp_2020 = next(
+        item
+        for item in september.projections
+        if item.variable == "real_gdp_growth" and item.horizon == "2020"
+    )
+    assert gdp_2020.central_tendency == (Decimal("-4.0"), Decimal("-3.0"))
+    assert gdp_2020.range == (Decimal("-5.5"), Decimal("1.0"))
+
+    march = parse_sep_release(_historical_bundle("fed_sep_2023_03"))
+    gdp_2023 = next(
+        item
+        for item in march.projections
+        if item.variable == "real_gdp_growth" and item.horizon == "2023"
+    )
+    assert gdp_2023.range == (Decimal("-0.2"), Decimal("1.3"))
+
+
+def test_sep_resolves_december_instant_despite_publisher_edt_label() -> None:
+    """December pages declare EDT; the true instant is 2:00 p.m. EST."""
+    release = parse_sep_release(_historical_bundle("fed_sep_2020_12"))
+
+    assert release.published_at.isoformat() == "2020-12-16T14:00:00-05:00"
+    assert release.declared_timezone == "EDT"
+    assert release.calendar_timezone == "EST"
+    assert release.timezone_label_matches_calendar is False
+
+
+def test_sep_records_agreeing_timezone_label() -> None:
+    release = parse_sep_release(_bundle())
+
+    assert release.declared_timezone == "EDT"
+    assert release.calendar_timezone == "EDT"
+    assert release.timezone_label_matches_calendar is True
+
+
+def test_sep_derives_participant_totals_from_dot_table_without_prose() -> None:
+    """24 of 25 official pages carry no prose participant declaration."""
+    raw = (FIXTURES / "fed_sep_2026_03.html").read_bytes()
+    assert b"participants submitted information" not in raw
+
+    release = parse_sep_release(_historical_bundle("fed_sep_2026_03"))
+    assert [
+        sum(point.participant_count for point in _policy(release, h).participant_distribution)
+        for h in ("2026", "2027", "2028", "Longer run")
+    ] == [19, 19, 19, 19]
+
+
+def test_sep_omits_horizons_the_publisher_left_entirely_blank() -> None:
+    """Core PCE inflation has no longer-run projection."""
+    release = parse_sep_release(_historical_bundle("fed_sep_2023_03"))
+
+    core = {
+        item.horizon
+        for item in release.projections
+        if item.variable == "core_pce_inflation"
+    }
+    assert core == {"2023", "2024", "2025"}
+
+
+def test_sep_rejects_partially_blank_projection_cells() -> None:
+    """A blank range beside a published median is a format change, not a gap."""
+    soup = BeautifulSoup(
+        (FIXTURES / "fed_sep_2023_03.html").read_bytes(), "html.parser"
+    )
+    table = next(
+        item
+        for item in soup.find_all("table")
+        if (heading := item.find_previous(["h3", "h4", "h5", "h6"])) is not None
+        and heading.get_text(" ", strip=True).startswith("Table 1.")
+    )
+    row = next(
+        item
+        for item in table.find_all("tr")
+        if item.find(["th", "td"]).get_text(" ", strip=True) == "Federal funds rate"
+    )
+    row.find_all(["th", "td"])[9].string = ""
+
+    with pytest.raises(NormalizationError, match="partially blank"):
+        parse_sep_release(
+            _historical_bundle("fed_sep_2023_03", accessible_bytes=soup.encode("utf-8"))
+        )
+
+
+def test_sep_rejects_unknown_non_empty_dot_cell() -> None:
+    soup = BeautifulSoup(
+        (FIXTURES / "fed_sep_2026_03.html").read_bytes(), "html.parser"
+    )
+    dot_table = next(
+        item
+        for item in soup.find_all("table")
+        if (heading := item.find_previous(["h3", "h4", "h5", "h6"])) is not None
+        and heading.get_text(" ", strip=True).startswith("Figure 2.")
+    )
+    dot_table.find_all("tr")[1].find_all(["th", "td"])[1].string = "n/a"
+
+    with pytest.raises(NormalizationError, match="dot count"):
+        parse_sep_release(
+            _historical_bundle("fed_sep_2026_03", accessible_bytes=soup.encode("utf-8"))
+        )
+
+
+def test_sep_requires_prose_total_to_match_this_release_meeting() -> None:
+    """June 2026 also states March's total; only its own may be enforced."""
+    raw = (FIXTURES / "fed_sep_2026_06.html").read_bytes().replace(
+        b"Eighteen participants submitted information in conjunction with the "
+        b"June 16\xe2\x80\x9317, 2026, meeting",
+        b"Seventeen participants submitted information in conjunction with the "
+        b"June 16\xe2\x80\x9317, 2026, meeting",
+    )
+    assert b"Seventeen participants" in raw
+
+    with pytest.raises(NormalizationError, match="participant total"):
+        parse_sep_release(_bundle(accessible_bytes=raw))
+
+
+def test_sep_artifact_survives_an_unparsable_publication_instant() -> None:
+    """Acquisition must persist evidence even when the instant is unknown."""
+    raw = (FIXTURES / "fed_sep_2026_03.html").read_bytes().replace(
+        b"For release at 2:00 p.m., EDT, March 18, 2026", b"For release soon"
+    )
+    bundle = _historical_bundle("fed_sep_2026_03", accessible_bytes=raw)
+
+    assert bundle.accessible_artifact.published_at is None
+    assert bundle.accessible_artifact.available_at == RETRIEVED_AT
+    assert bundle.accessible_artifact.raw_bytes == raw
+
+    with pytest.raises(NormalizationError, match="timestamp"):
+        parse_sep_release(bundle)
+
+
+def test_sep_semantic_parser_version_is_separate_from_artifact_version() -> None:
+    bundle = _historical_bundle("fed_sep_2026_03")
+    release = parse_sep_release(bundle)
+
+    assert bundle.primary_artifact.parser_version == "fed_sep.v1"
+    assert bundle.accessible_artifact.parser_version == "fed_sep.v1"
+    assert release.parser_version == "fed_sep.v2"

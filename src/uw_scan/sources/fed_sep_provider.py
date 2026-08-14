@@ -11,7 +11,7 @@ import httpx
 from uw_scan.models.macro import MacroSourceArtifact
 from uw_scan.normalize import NormalizationError
 
-from .fed_sep import SepSourceBundle, _artifact, _published_at
+from .fed_sep import SepSourceBundle, _artifact, optional_release_timestamp
 from .fomc_release_contracts import (
     FomcDiscoveryResult,
     FomcReleaseCandidate,
@@ -199,15 +199,10 @@ class FedSepProvider:
     ) -> tuple[MacroSourceArtifact, ...]:
         published_at: datetime | None = None
         if html_bytes is not None:
-            try:
-                published_at = _published_at(
-                    html_bytes, expected_date=candidate.event_date
-                )
-            except NormalizationError as exc:
-                logger.debug(
-                    "SEP partial artifact timestamp unavailable: %s", repr(exc)
-                )
-                published_at = None
+            stamp = optional_release_timestamp(
+                html_bytes, expected_date=candidate.event_date
+            )
+            published_at = stamp.published_at if stamp is not None else None
         partial: list[MacroSourceArtifact] = []
         if pdf_bytes is not None and candidate.pdf_url is not None:
             partial.append(
