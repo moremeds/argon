@@ -11,12 +11,12 @@ from bs4 import BeautifulSoup
 
 from uw_scan.normalize import NormalizationError
 from uw_scan.sources.fed_sep import FedSepProvider, SepSourceBundle, parse_sep_release
+from uw_scan.sources.fed_sep_tables import _range
 from uw_scan.sources.fomc_release_contracts import (
     FomcDiscoveryPageOutcome,
     FomcDiscoveryResult,
     FomcReleaseCandidate,
 )
-
 
 FIXTURES = Path(__file__).parents[2] / "fixtures" / "macro"
 RETRIEVED_AT = datetime(2026, 8, 12, 12, 0, tzinfo=UTC)
@@ -383,17 +383,13 @@ def _historical_bundle(
     meeting_date, stem = _HISTORICAL[name]
     return SepSourceBundle.from_bytes(
         meeting_date=meeting_date,
-        accessible_url=(
-            f"https://www.federalreserve.gov/monetarypolicy/{stem}.htm"
-        ),
+        accessible_url=(f"https://www.federalreserve.gov/monetarypolicy/{stem}.htm"),
         accessible_bytes=(
             accessible_bytes
             if accessible_bytes is not None
             else (FIXTURES / f"{name}.html").read_bytes()
         ),
-        pdf_url=(
-            f"https://www.federalreserve.gov/monetarypolicy/files/{stem}.pdf"
-        ),
+        pdf_url=(f"https://www.federalreserve.gov/monetarypolicy/files/{stem}.pdf"),
         pdf_bytes=(FIXTURES / f"{name}.pdf").read_bytes(),
         retrieved_at=RETRIEVED_AT,
     )
@@ -415,6 +411,13 @@ def _horizons(release) -> list[str]:
     ]
 
 
+def _dot_total(release, horizon: str) -> int:
+    return sum(
+        point.participant_count
+        for point in _policy(release, horizon).participant_distribution
+    )
+
+
 def test_sep_parses_2020_advance_release_heading_family() -> None:
     """June 2020 titles its summary 'Advance release of table 1 ...'."""
     release = parse_sep_release(_historical_bundle("fed_sep_2020_06"))
@@ -427,7 +430,10 @@ def test_sep_parses_2020_advance_release_heading_family() -> None:
     # Published as "0.1-1.1" with an ASCII hyphen separator.
     assert _policy(release, "2022").range == (Decimal("0.1"), Decimal("1.1"))
     assert [
-        sum(point.participant_count for point in _policy(release, h).participant_distribution)
+        sum(
+            point.participant_count
+            for point in _policy(release, h).participant_distribution
+        )
         for h in ("2020", "2021", "2022", "Longer run")
     ] == [17, 17, 17, 16]
 
@@ -440,7 +446,10 @@ def test_sep_parses_five_horizon_september_release() -> None:
     # September 2020 prints medians without a leading zero (".1").
     assert _policy(release, "2020").median == Decimal("0.1")
     assert [
-        sum(point.participant_count for point in _policy(release, h).participant_distribution)
+        sum(
+            point.participant_count
+            for point in _policy(release, h).participant_distribution
+        )
         for h in ("2020", "2021", "2022", "2023", "Longer run")
     ] == [17, 17, 17, 17, 16]
 
@@ -490,7 +499,10 @@ def test_sep_derives_participant_totals_from_dot_table_without_prose() -> None:
 
     release = parse_sep_release(_historical_bundle("fed_sep_2026_03"))
     assert [
-        sum(point.participant_count for point in _policy(release, h).participant_distribution)
+        sum(
+            point.participant_count
+            for point in _policy(release, h).participant_distribution
+        )
         for h in ("2026", "2027", "2028", "Longer run")
     ] == [19, 19, 19, 19]
 
@@ -551,11 +563,16 @@ def test_sep_rejects_unknown_non_empty_dot_cell() -> None:
 
 def test_sep_requires_prose_total_to_match_this_release_meeting() -> None:
     """June 2026 also states March's total; only its own may be enforced."""
-    raw = (FIXTURES / "fed_sep_2026_06.html").read_bytes().replace(
-        b"Eighteen participants submitted information in conjunction with the "
-        b"June 16\xe2\x80\x9317, 2026, meeting",
-        b"Seventeen participants submitted information in conjunction with the "
-        b"June 16\xe2\x80\x9317, 2026, meeting",
+    raw = (
+        (FIXTURES / "fed_sep_2026_06.html")
+        .read_bytes()
+        .replace(
+            b"Eighteen participants submitted information in conjunction with the "
+            b"June 16\xe2\x80\x9317, 2026, meeting",
+            b"Seventeen participants submitted information in conjunction with the "
+            b"June 16\xe2\x80\x9317, 2026, meeting",
+        )
+        .replace(b"one of these 18 participants", b"one of these 17 participants")
     )
     assert b"Seventeen participants" in raw
 
@@ -563,10 +580,86 @@ def test_sep_requires_prose_total_to_match_this_release_meeting() -> None:
         parse_sep_release(_bundle(accessible_bytes=raw))
 
 
+def test_sep_abstention_survives_a_sentence_break_after_the_declaration() -> None:
+    """The abstention clause is bounded by the next declaration, not by a period.
+
+    June 2026 joins the total and its abstention with a semicolon.  A publisher
+    that used a full stop instead must not silently lose the abstention and
+    report a total one participant too high.
+    """
+    raw = (
+        (FIXTURES / "fed_sep_2026_06.html")
+        .read_bytes()
+        .replace(b"meeting; one of these 18", b"meeting. One of these 18")
+    )
+    assert b"meeting. One of these 18" in raw
+
+    release = parse_sep_release(_bundle(accessible_bytes=raw))
+
+    assert release.prose_total_declared is True
+    assert _dot_total(release, "2028") == 17
+
+
+def test_sep_rejects_an_abstention_citing_another_release_total() -> None:
+    raw = (
+        (FIXTURES / "fed_sep_2026_06.html")
+        .read_bytes()
+        .replace(b"one of these 18 participants", b"one of these 19 participants")
+    )
+
+    with pytest.raises(NormalizationError, match="abstention cites 19"):
+        parse_sep_release(_bundle(accessible_bytes=raw))
+
+
+def test_sep_rejects_an_unreadable_participant_declaration() -> None:
+    """A declaration the grammar cannot read must fail, not disable the check."""
+    raw = (
+        (FIXTURES / "fed_sep_2026_06.html")
+        .read_bytes()
+        .replace(
+            b"participants submitted information in conjunction with the",
+            b"participants submitted information alongside the",
+        )
+    )
+
+    with pytest.raises(NormalizationError, match="cannot read"):
+        parse_sep_release(_bundle(accessible_bytes=raw))
+
+
+def test_sep_ignores_the_restated_prior_release_rows() -> None:
+    """Table 1 interleaves the previous SEP's values under a month heading."""
+    release = parse_sep_release(_historical_bundle("fed_sep_2026_03"))
+
+    # This page carries only the "meeting participants submitted their
+    # projections" boilerplate, which states no count, so the dot table stands
+    # alone.  June 2026 is the fixture that does declare a total.
+    assert release.prose_total_declared is False
+    # Five variables x four horizons, less core PCE's absent longer run.
+    assert len(release.projections) == 19
+
+
+def test_sep_rejects_an_unmodelled_summary_variable() -> None:
+    raw = (
+        (FIXTURES / "fed_sep_2026_03.html")
+        .read_bytes()
+        .replace(b"Unemployment rate", b"Labor underutilization rate")
+    )
+
+    with pytest.raises(NormalizationError, match="unmodelled variable"):
+        parse_sep_release(_historical_bundle("fed_sep_2026_03", accessible_bytes=raw))
+
+
+def test_sep_rejects_an_inverted_projection_interval() -> None:
+    with pytest.raises(NormalizationError, match="inverted interval"):
+        _range("2.4-1.9", context="unit test")
+
+
 def test_sep_artifact_survives_an_unparsable_publication_instant() -> None:
     """Acquisition must persist evidence even when the instant is unknown."""
-    raw = (FIXTURES / "fed_sep_2026_03.html").read_bytes().replace(
-        b"For release at 2:00 p.m., EDT, March 18, 2026", b"For release soon"
+    raw = (
+        (FIXTURES / "fed_sep_2026_03.html")
+        .read_bytes()
+        .replace(b"For release at 2:00 p.m., EDT, March 18, 2026", b"For release soon")
     )
     bundle = _historical_bundle("fed_sep_2026_03", accessible_bytes=raw)
 

@@ -1,0 +1,530 @@
+{
+  "acquired_count": 25,
+  "parsed_count": 25,
+  "release_count": 25,
+  "releases": [
+    {
+      "acquired": true,
+      "calendar_timezone": "EDT",
+      "declared_timezone": "EDT",
+      "error_message": null,
+      "error_type": null,
+      "horizons": [
+        "2020",
+        "2021",
+        "2022",
+        "Longer run"
+      ],
+      "meeting_date": "2020-06-10",
+      "parsed": true,
+      "policy_horizon_count": 4,
+      "projection_count": 19,
+      "prose_total_declared": false,
+      "published_at": "2020-06-10T14:00:00-04:00",
+      "release_key": "fed-sep:fomcprojtabl20200610"
+    },
+    {
+      "acquired": true,
+      "calendar_timezone": "EDT",
+      "declared_timezone": "EDT",
+      "error_message": null,
+      "error_type": null,
+      "horizons": [
+        "2020",
+        "2021",
+        "2022",
+        "2023",
+        "Longer run"
+      ],
+      "meeting_date": "2020-09-16",
+      "parsed": true,
+      "policy_horizon_count": 5,
+      "projection_count": 24,
+      "prose_total_declared": false,
+      "published_at": "2020-09-16T14:00:00-04:00",
+      "release_key": "fed-sep:fomcprojtabl20200916"
+    },
+    {
+      "acquired": true,
+      "calendar_timezone": "EST",
+      "declared_timezone": "EDT",
+      "error_message": null,
+      "error_type": null,
+      "horizons": [
+        "2020",
+        "2021",
+        "2022",
+        "2023",
+        "Longer run"
+      ],
+      "meeting_date": "2020-12-16",
+      "parsed": true,
+      "policy_horizon_count": 5,
+      "projection_count": 24,
+      "prose_total_declared": false,
+      "published_at": "2020-12-16T14:00:00-05:00",
+      "release_key": "fed-sep:fomcprojtabl20201216"
+    },
+    {
+      "acquired": true,
+      "calendar_timezone": "EDT",
+      "declared_timezone": "EDT",
+      "error_message": null,
+      "error_type": null,
+      "horizons": [
+        "2021",
+        "2022",
+        "2023",
+        "Longer run"
+      ],
+      "meeting_date": "2021-03-17",
+      "parsed": true,
+      "policy_horizon_count": 4,
+      "projection_count": 19,
+      "prose_total_declared": false,
+      "published_at": "2021-03-17T14:00:00-04:00",
+      "release_key": "fed-sep:fomcprojtabl20210317"
+    },
+    {
+      "acquired": true,
+      "calendar_timezone": "EDT",
+      "declared_timezone": "EDT",
+      "error_message": null,
+      "error_type": null,
+      "horizons": [
+        "2021",
+        "2022",
+        "2023",
+        "Longer run"
+      ],
+      "meeting_date": "2021-06-16",
+      "parsed": true,
+      "policy_horizon_count": 4,
+      "projection_count": 19,
+      "prose_total_declared": false,
+      "published_at": "2021-06-16T14:00:00-04:00",
+      "release_key": "fed-sep:fomcprojtabl20210616"
+    },
+    {
+      "acquired": true,
+      "calendar_timezone": "EDT",
+      "declared_timezone": "EDT",
+      "error_message": null,
+      "error_type": null,
+      "horizons": [
+        "2021",
+        "2022",
+        "2023",
+        "2024",
+        "Longer run"
+      ],
+      "meeting_date": "2021-09-22",
+      "parsed": true,
+      "policy_horizon_count": 5,
+      "projection_count": 24,
+      "prose_total_declared": false,
+      "published_at": "2021-09-22T14:00:00-04:00",
+      "release_key": "fed-sep:fomcprojtabl20210922"
+    },
+    {
+      "acquired": true,
+      "calendar_timezone": "EST",
+      "declared_timezone": "EDT",
+      "error_message": null,
+      "error_type": null,
+      "horizons": [
+        "2021",
+        "2022",
+        "2023",
+        "2024",
+        "Longer run"
+      ],
+      "meeting_date": "2021-12-15",
+      "parsed": true,
+      "policy_horizon_count": 5,
+      "projection_count": 24,
+      "prose_total_declared": false,
+      "published_at": "2021-12-15T14:00:00-05:00",
+      "release_key": "fed-sep:fomcprojtabl20211215"
+    },
+    {
+      "acquired": true,
+      "calendar_timezone": "EDT",
+      "declared_timezone": "EDT",
+      "error_message": null,
+      "error_type": null,
+      "horizons": [
+        "2022",
+        "2023",
+        "2024",
+        "Longer run"
+      ],
+      "meeting_date": "2022-03-16",
+      "parsed": true,
+      "policy_horizon_count": 4,
+      "projection_count": 19,
+      "prose_total_declared": false,
+      "published_at": "2022-03-16T14:00:00-04:00",
+      "release_key": "fed-sep:fomcprojtabl20220316"
+    },
+    {
+      "acquired": true,
+      "calendar_timezone": "EDT",
+      "declared_timezone": "EDT",
+      "error_message": null,
+      "error_type": null,
+      "horizons": [
+        "2022",
+        "2023",
+        "2024",
+        "Longer run"
+      ],
+      "meeting_date": "2022-06-15",
+      "parsed": true,
+      "policy_horizon_count": 4,
+      "projection_count": 19,
+      "prose_total_declared": false,
+      "published_at": "2022-06-15T14:00:00-04:00",
+      "release_key": "fed-sep:fomcprojtabl20220615"
+    },
+    {
+      "acquired": true,
+      "calendar_timezone": "EDT",
+      "declared_timezone": "EDT",
+      "error_message": null,
+      "error_type": null,
+      "horizons": [
+        "2022",
+        "2023",
+        "2024",
+        "2025",
+        "Longer run"
+      ],
+      "meeting_date": "2022-09-21",
+      "parsed": true,
+      "policy_horizon_count": 5,
+      "projection_count": 24,
+      "prose_total_declared": false,
+      "published_at": "2022-09-21T14:00:00-04:00",
+      "release_key": "fed-sep:fomcprojtabl20220921"
+    },
+    {
+      "acquired": true,
+      "calendar_timezone": "EST",
+      "declared_timezone": "EDT",
+      "error_message": null,
+      "error_type": null,
+      "horizons": [
+        "2022",
+        "2023",
+        "2024",
+        "2025",
+        "Longer run"
+      ],
+      "meeting_date": "2022-12-14",
+      "parsed": true,
+      "policy_horizon_count": 5,
+      "projection_count": 24,
+      "prose_total_declared": false,
+      "published_at": "2022-12-14T14:00:00-05:00",
+      "release_key": "fed-sep:fomcprojtabl20221214"
+    },
+    {
+      "acquired": true,
+      "calendar_timezone": "EDT",
+      "declared_timezone": "EDT",
+      "error_message": null,
+      "error_type": null,
+      "horizons": [
+        "2023",
+        "2024",
+        "2025",
+        "Longer run"
+      ],
+      "meeting_date": "2023-03-22",
+      "parsed": true,
+      "policy_horizon_count": 4,
+      "projection_count": 19,
+      "prose_total_declared": false,
+      "published_at": "2023-03-22T14:00:00-04:00",
+      "release_key": "fed-sep:fomcprojtabl20230322"
+    },
+    {
+      "acquired": true,
+      "calendar_timezone": "EDT",
+      "declared_timezone": "EDT",
+      "error_message": null,
+      "error_type": null,
+      "horizons": [
+        "2023",
+        "2024",
+        "2025",
+        "Longer run"
+      ],
+      "meeting_date": "2023-06-14",
+      "parsed": true,
+      "policy_horizon_count": 4,
+      "projection_count": 19,
+      "prose_total_declared": false,
+      "published_at": "2023-06-14T14:00:00-04:00",
+      "release_key": "fed-sep:fomcprojtabl20230614"
+    },
+    {
+      "acquired": true,
+      "calendar_timezone": "EDT",
+      "declared_timezone": "EDT",
+      "error_message": null,
+      "error_type": null,
+      "horizons": [
+        "2023",
+        "2024",
+        "2025",
+        "2026",
+        "Longer run"
+      ],
+      "meeting_date": "2023-09-20",
+      "parsed": true,
+      "policy_horizon_count": 5,
+      "projection_count": 24,
+      "prose_total_declared": false,
+      "published_at": "2023-09-20T14:00:00-04:00",
+      "release_key": "fed-sep:fomcprojtabl20230920"
+    },
+    {
+      "acquired": true,
+      "calendar_timezone": "EST",
+      "declared_timezone": "EST",
+      "error_message": null,
+      "error_type": null,
+      "horizons": [
+        "2023",
+        "2024",
+        "2025",
+        "2026",
+        "Longer run"
+      ],
+      "meeting_date": "2023-12-13",
+      "parsed": true,
+      "policy_horizon_count": 5,
+      "projection_count": 24,
+      "prose_total_declared": false,
+      "published_at": "2023-12-13T14:00:00-05:00",
+      "release_key": "fed-sep:fomcprojtabl20231213"
+    },
+    {
+      "acquired": true,
+      "calendar_timezone": "EDT",
+      "declared_timezone": "EDT",
+      "error_message": null,
+      "error_type": null,
+      "horizons": [
+        "2024",
+        "2025",
+        "2026",
+        "Longer run"
+      ],
+      "meeting_date": "2024-03-20",
+      "parsed": true,
+      "policy_horizon_count": 4,
+      "projection_count": 19,
+      "prose_total_declared": false,
+      "published_at": "2024-03-20T14:00:00-04:00",
+      "release_key": "fed-sep:fomcprojtabl20240320"
+    },
+    {
+      "acquired": true,
+      "calendar_timezone": "EDT",
+      "declared_timezone": "EDT",
+      "error_message": null,
+      "error_type": null,
+      "horizons": [
+        "2024",
+        "2025",
+        "2026",
+        "Longer run"
+      ],
+      "meeting_date": "2024-06-12",
+      "parsed": true,
+      "policy_horizon_count": 4,
+      "projection_count": 19,
+      "prose_total_declared": false,
+      "published_at": "2024-06-12T14:00:00-04:00",
+      "release_key": "fed-sep:fomcprojtabl20240612"
+    },
+    {
+      "acquired": true,
+      "calendar_timezone": "EDT",
+      "declared_timezone": "EDT",
+      "error_message": null,
+      "error_type": null,
+      "horizons": [
+        "2024",
+        "2025",
+        "2026",
+        "2027",
+        "Longer run"
+      ],
+      "meeting_date": "2024-09-18",
+      "parsed": true,
+      "policy_horizon_count": 5,
+      "projection_count": 24,
+      "prose_total_declared": false,
+      "published_at": "2024-09-18T14:00:00-04:00",
+      "release_key": "fed-sep:fomcprojtabl20240918"
+    },
+    {
+      "acquired": true,
+      "calendar_timezone": "EST",
+      "declared_timezone": "EDT",
+      "error_message": null,
+      "error_type": null,
+      "horizons": [
+        "2024",
+        "2025",
+        "2026",
+        "2027",
+        "Longer run"
+      ],
+      "meeting_date": "2024-12-18",
+      "parsed": true,
+      "policy_horizon_count": 5,
+      "projection_count": 24,
+      "prose_total_declared": false,
+      "published_at": "2024-12-18T14:00:00-05:00",
+      "release_key": "fed-sep:fomcprojtabl20241218"
+    },
+    {
+      "acquired": true,
+      "calendar_timezone": "EDT",
+      "declared_timezone": "EDT",
+      "error_message": null,
+      "error_type": null,
+      "horizons": [
+        "2025",
+        "2026",
+        "2027",
+        "Longer run"
+      ],
+      "meeting_date": "2025-03-19",
+      "parsed": true,
+      "policy_horizon_count": 4,
+      "projection_count": 19,
+      "prose_total_declared": false,
+      "published_at": "2025-03-19T14:00:00-04:00",
+      "release_key": "fed-sep:fomcprojtabl20250319"
+    },
+    {
+      "acquired": true,
+      "calendar_timezone": "EDT",
+      "declared_timezone": "EDT",
+      "error_message": null,
+      "error_type": null,
+      "horizons": [
+        "2025",
+        "2026",
+        "2027",
+        "Longer run"
+      ],
+      "meeting_date": "2025-06-18",
+      "parsed": true,
+      "policy_horizon_count": 4,
+      "projection_count": 19,
+      "prose_total_declared": false,
+      "published_at": "2025-06-18T14:00:00-04:00",
+      "release_key": "fed-sep:fomcprojtabl20250618"
+    },
+    {
+      "acquired": true,
+      "calendar_timezone": "EDT",
+      "declared_timezone": "EDT",
+      "error_message": null,
+      "error_type": null,
+      "horizons": [
+        "2025",
+        "2026",
+        "2027",
+        "2028",
+        "Longer run"
+      ],
+      "meeting_date": "2025-09-17",
+      "parsed": true,
+      "policy_horizon_count": 5,
+      "projection_count": 24,
+      "prose_total_declared": false,
+      "published_at": "2025-09-17T14:00:00-04:00",
+      "release_key": "fed-sep:fomcprojtabl20250917"
+    },
+    {
+      "acquired": true,
+      "calendar_timezone": "EST",
+      "declared_timezone": "EDT",
+      "error_message": null,
+      "error_type": null,
+      "horizons": [
+        "2025",
+        "2026",
+        "2027",
+        "2028",
+        "Longer run"
+      ],
+      "meeting_date": "2025-12-10",
+      "parsed": true,
+      "policy_horizon_count": 5,
+      "projection_count": 24,
+      "prose_total_declared": false,
+      "published_at": "2025-12-10T14:00:00-05:00",
+      "release_key": "fed-sep:fomcprojtabl20251210"
+    },
+    {
+      "acquired": true,
+      "calendar_timezone": "EDT",
+      "declared_timezone": "EDT",
+      "error_message": null,
+      "error_type": null,
+      "horizons": [
+        "2026",
+        "2027",
+        "2028",
+        "Longer run"
+      ],
+      "meeting_date": "2026-03-18",
+      "parsed": true,
+      "policy_horizon_count": 4,
+      "projection_count": 19,
+      "prose_total_declared": false,
+      "published_at": "2026-03-18T14:00:00-04:00",
+      "release_key": "fed-sep:fomcprojtabl20260318"
+    },
+    {
+      "acquired": true,
+      "calendar_timezone": "EDT",
+      "declared_timezone": "EDT",
+      "error_message": null,
+      "error_type": null,
+      "horizons": [
+        "2026",
+        "2027",
+        "2028",
+        "Longer run"
+      ],
+      "meeting_date": "2026-06-17",
+      "parsed": true,
+      "policy_horizon_count": 4,
+      "projection_count": 19,
+      "prose_total_declared": true,
+      "published_at": "2026-06-17T14:00:00-04:00",
+      "release_key": "fed-sep:fomcprojtabl20260617"
+    }
+  ],
+  "reproduce": "uv run python scripts/research/fed_sep_archive_sweep.py --years 2020-2026 --out docs/research/2026-08-12-fomc-sep-source-probe/sep-archive-sweep.json",
+  "swept_at": "2026-08-16T07:17:43.470900+00:00",
+  "years": [
+    2020,
+    2021,
+    2022,
+    2023,
+    2024,
+    2025,
+    2026
+  ]
+}

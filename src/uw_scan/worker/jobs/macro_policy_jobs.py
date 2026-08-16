@@ -15,12 +15,12 @@ import psycopg
 
 from uw_scan.macro_evidence import macro_observation_content_hash
 from uw_scan.models.macro import MacroSourceArtifact
-from uw_scan.sources.fed_sep import FedSepProvider, SepRelease, parse_sep_release
 from uw_scan.sources.fed_funds_futures_path import (
     FedFundsFuturesPathProvider,
     FedFundsFuturesSnapshot,
     parse_fed_funds_futures_snapshot,
 )
+from uw_scan.sources.fed_sep import FedSepProvider, SepRelease, parse_sep_release
 from uw_scan.sources.fomc_statement import (
     FomcStatementProvider,
     FomcStatementRelease,
@@ -337,12 +337,8 @@ def _statement_observation(
                 "rate_percent": _decimal_text(midpoint),
                 "target_range_lower": _decimal_text(release.target_range_lower),
                 "target_range_upper": _decimal_text(release.target_range_upper),
-                "target_range_lower_percent": _decimal_text(
-                    release.target_range_lower
-                ),
-                "target_range_upper_percent": _decimal_text(
-                    release.target_range_upper
-                ),
+                "target_range_lower_percent": _decimal_text(release.target_range_lower),
+                "target_range_upper_percent": _decimal_text(release.target_range_upper),
                 "action": release.action,
                 "vote_status": release.vote_status,
                 "vote_split": release.vote_split,
@@ -400,7 +396,15 @@ def _sep_observation(
                 ],
             }
         )
-    value = {"kind": "committee_projection", "points": points}
+    value = {
+        "kind": "committee_projection",
+        "points": points,
+        # The publisher labels some December releases EDT while the calendar is
+        # EST.  The instant is resolved in Eastern time either way; the
+        # disagreement is retained so a label drift leaves a durable trace.
+        "declared_timezone": release.declared_timezone,
+        "calendar_timezone": release.calendar_timezone,
+    }
     return _observation_base(
         artifact_id=artifact_id,
         artifact=artifact,
@@ -409,6 +413,7 @@ def _sep_observation(
         published_at=release.published_at,
         available_at=release.published_at,
         value=value,
+        parser_version=release.parser_version,
     )
 
 

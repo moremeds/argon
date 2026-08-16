@@ -236,6 +236,119 @@ def test_artifact_hash_identity_rejects_conflicting_immutable_metadata(
     assert artifact_id == _insert_artifact(repo)
 
 
+def _insert_undated_artifact(
+    repo: Repository, *, published_at: datetime | None, available_at: datetime
+) -> int:
+    """Persist evidence whose publication instant may not be known yet."""
+    actual_hash, actual_length = macro_artifact_content_identity(raw_json=RAW_CPI)
+    return repo.insert_macro_artifact(
+        source="federal_reserve_sep",
+        source_kind="official",
+        source_record_id="fed-sep:fomcprojtabl20251210:html",
+        source_url="https://example.test/fomcprojtabl20251210.htm",
+        published_at=published_at,
+        available_at=available_at,
+        retrieved_at=datetime(2025, 12, 10, 23, 5, tzinfo=UTC),
+        content_hash=actual_hash,
+        parser_version="fed_sep.v1",
+        quality_status="partial",
+        cost_class="free_official",
+        media_type="application/json",
+        content_length=actual_length,
+        raw_json=RAW_CPI,
+    )
+
+
+def test_unknown_publication_instant_is_resolvable_once(repo: Repository) -> None:
+    """An unreadable instant must not make the evidence row permanent scrap.
+
+    The bytes are persisted before parsing, so a release whose "For release at"
+    line the parser cannot read lands with published_at NULL and availability
+    falling back to our retrieval clock.  A later parser that can read it must be
+    able to correct availability onto the publisher's own instant -- otherwise the
+    row stays invisible to every point-in-time read before the backfill.
+    """
+    retrieved = datetime(2025, 12, 10, 23, 5, tzinfo=UTC)
+    artifact_id = _insert_undated_artifact(
+        repo, published_at=None, available_at=retrieved
+    )
+    stored = repo.fetch_macro_artifact(artifact_id)
+    assert stored is not None
+    assert stored["published_at"] is None
+    assert stored["available_at"] == retrieved
+
+    published = datetime(2025, 12, 10, 19, 0, tzinfo=UTC)
+    assert (
+        _insert_undated_artifact(repo, published_at=published, available_at=published)
+        == artifact_id
+    )
+    resolved = repo.fetch_macro_artifact(artifact_id)
+    assert resolved is not None
+    assert resolved["published_at"] == published
+    assert resolved["available_at"] == published
+
+
+def test_resolved_publication_instant_is_then_immutable(repo: Repository) -> None:
+    published = datetime(2025, 12, 10, 19, 0, tzinfo=UTC)
+    artifact_id = _insert_undated_artifact(
+        repo, published_at=published, available_at=published
+    )
+
+    with pytest.raises(ValueError, match="artifact identity collision"):
+        _insert_undated_artifact(
+            repo,
+            published_at=datetime(2025, 12, 10, 18, 0, tzinfo=UTC),
+            available_at=datetime(2025, 12, 10, 18, 0, tzinfo=UTC),
+        )
+
+    with pytest.raises(ValueError, match="artifact identity collision"):
+        _insert_undated_artifact(
+            repo,
+            published_at=None,
+            available_at=datetime(2025, 12, 10, 23, 5, tzinfo=UTC),
+        )
+
+    stored = repo.fetch_macro_artifact(artifact_id)
+    assert stored is not None
+    assert stored["published_at"] == published
+
+
+def test_resolution_must_carry_availability_to_the_published_instant(
+    repo: Repository,
+) -> None:
+    """Resolving the instant may not leave availability on the retrieval clock.
+
+    ``insert_macro_artifact`` normalizes availability onto the resolved instant,
+    so this guard exists for direct SQL: a hand-written UPDATE must not be able
+    to claim a publication instant while leaving the release looking unavailable
+    until our retrieval clock.
+    """
+    retrieved = datetime(2025, 12, 10, 23, 5, tzinfo=UTC)
+    artifact_id = _insert_undated_artifact(
+        repo, published_at=None, available_at=retrieved
+    )
+
+    with pytest.raises(psycopg.errors.CheckViolation, match="availability instant"):
+        with repo.conn.transaction():
+            repo.conn.execute(
+                "UPDATE uw_scan.macro_source_artifacts "
+                "SET published_at = %s WHERE artifact_id = %s",
+                (datetime(2025, 12, 10, 19, 0, tzinfo=UTC), artifact_id),
+            )
+
+    # The same UPDATE carrying availability along is the legitimate repair.
+    with repo.conn.transaction():
+        repo.conn.execute(
+            "UPDATE uw_scan.macro_source_artifacts "
+            "SET published_at = %s, available_at = %s WHERE artifact_id = %s",
+            (
+                datetime(2025, 12, 10, 19, 0, tzinfo=UTC),
+                datetime(2025, 12, 10, 19, 0, tzinfo=UTC),
+                artifact_id,
+            ),
+        )
+
+
 def test_observation_hash_identity_rejects_conflicting_immutable_value(
     repo: Repository,
 ) -> None:

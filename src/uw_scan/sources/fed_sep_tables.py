@@ -51,10 +51,20 @@ _DECLARATION_RE: Final = re.compile(
     r"([A-Z][a-z]+) (\d{1,2})[–-](\d{1,2}), (\d{4}), meeting",
 )
 _ABSTENTION_RE: Final = re.compile(
-    r"([A-Za-z]+|\d+) of these \d+ participants did not submit projections for "
+    r"([A-Za-z]+|\d+) of these (\d+) participants did not submit projections for "
     r"(\d{4}|the longer run)",
     flags=re.IGNORECASE,
 )
+#: The count declaration always reads "<count> participants submitted information".
+#: The unrelated boilerplate "meeting participants submitted their projections of the
+#: most likely outcomes" carries no count, so the fail-closed detector keys on the
+#: narrower phrase or every ordinary release would be rejected.
+_DECLARATION_HINT_RE: Final = re.compile(
+    r"participants submitted information", flags=re.IGNORECASE
+)
+#: Each variable row in Table 1 is followed by the preceding SEP's restated values,
+#: headed by that release's month rather than by the variable name.
+_PRIOR_PROJECTION_RE: Final = re.compile(r"[A-Z][a-z]+ projection\b")
 
 _INTEGER_WORDS: Final = {
     "zero": 0,
@@ -157,13 +167,26 @@ def parse_summary_table(table: Tag) -> tuple[SepProjection, ...]:
     projections: list[SepProjection] = []
     seen_variables: set[str] = set()
     for row in rows[2:]:
+        if not any(row[1:]):
+            # Section headings such as "Memo: Projected appropriate policy path"
+            # occupy a whole row and publish no projection cells.
+            continue
         if len(row) != width + 1:
+            raise NormalizationError(
+                f"SEP Table 1 row {row[0]!r} publishes {len(row)} cells, "
+                f"expected {width + 1}"
+            )
+        if _PRIOR_PROJECTION_RE.match(row[0]):
+            # Every variable is followed by the preceding SEP's restated values.
+            # Only the rows headed by the variable name belong to this release.
             continue
         label = next(
             (prefix for prefix in _VARIABLE_NAMES if row[0].startswith(prefix)), None
         )
         if label is None:
-            continue
+            raise NormalizationError(
+                f"SEP Table 1 publishes an unmodelled variable {row[0]!r}"
+            )
         variable = _VARIABLE_NAMES[label]
         if variable in seen_variables:
             raise NormalizationError(f"SEP Table 1 duplicate variable {variable}")
@@ -218,7 +241,9 @@ def parse_dot_table(table: Tag) -> dict[str, tuple[SepDistributionPoint, ...]]:
             raise NormalizationError("SEP Figure 2 row width changed")
         value = _decimal(row[0], context="dot value")
         if value * 8 != (value * 8).to_integral_value():
-            raise NormalizationError(f"SEP dot value {value} is not on a 1/8-point grid")
+            raise NormalizationError(
+                f"SEP dot value {value} is not on a 1/8-point grid"
+            )
         for horizon, raw_count in zip(horizons, row[1:], strict=True):
             if not raw_count:
                 continue
@@ -253,20 +278,33 @@ def prose_participant_totals(
     release publishes no declaration of its own.
     """
     text = " ".join(soup.get_text(" ").split())
-    for match in _DECLARATION_RE.finditer(text):
+    matches = list(_DECLARATION_RE.finditer(text))
+    for index, match in enumerate(matches):
         month, _first_day, last_day, year = match.group(2, 3, 4, 5)
         try:
             declared = datetime.strptime(
                 f"{month} {last_day}, {year}", "%B %d, %Y"
             ).date()
         except ValueError as exc:
-            raise NormalizationError("SEP participant declaration date is invalid") from exc
+            raise NormalizationError(
+                "SEP participant declaration date is invalid"
+            ) from exc
         if declared != meeting_date:
             continue
         total = _integer_word(match.group(1))
         totals = {horizon: total for horizon in horizons}
-        sentence = text[match.end() : text.find(".", match.end()) + 1]
-        for raw_count, raw_horizon in _ABSTENTION_RE.findall(sentence):
+        # Bound the abstention clauses by the next declaration rather than by the
+        # next period: the publisher joins them with either "." or ";", so a
+        # sentence slice either drops them or runs on into another release's.
+        end = matches[index + 1].start() if index + 1 < len(matches) else len(text)
+        for raw_count, raw_total, raw_horizon in _ABSTENTION_RE.findall(
+            text[match.end() : end]
+        ):
+            if _integer_word(raw_total) != total:
+                raise NormalizationError(
+                    f"SEP abstention cites {raw_total} participants but this "
+                    f"release declares {total}"
+                )
             horizon = (
                 LONGER_RUN if raw_horizon.lower() == "the longer run" else raw_horizon
             )
@@ -276,6 +314,10 @@ def prose_participant_totals(
                 )
             totals[horizon] -= _integer_word(raw_count)
         return totals
+    if _DECLARATION_HINT_RE.search(text):
+        raise NormalizationError(
+            "SEP declares a participant total this parser cannot read"
+        )
     return None
 
 
@@ -301,10 +343,13 @@ def _range(raw: str, *, context: str) -> tuple[Decimal, Decimal]:
         raise NormalizationError(f"SEP {context} is missing")
     match = _RANGE_RE.match(text)
     if match is not None:
-        return (
-            _decimal(match.group(1), context=context),
-            _decimal(match.group(2), context=context),
-        )
+        lower = _decimal(match.group(1), context=context)
+        upper = _decimal(match.group(2), context=context)
+        if lower > upper:
+            raise NormalizationError(
+                f"SEP {context} publishes an inverted interval: {raw!r}"
+            )
+        return lower, upper
     single = _SINGLE_RE.match(text)
     if single is None:
         raise NormalizationError(f"SEP {context} is not a published interval: {raw!r}")

@@ -10,9 +10,9 @@ import pytest
 
 from uw_scan.config import Settings
 from uw_scan.macro.policy_report import build_policy_comparison
+from uw_scan.sources.fed_funds_futures_path import FedFundsFuturesSourceBundle
 from uw_scan.sources.fed_sep import SepSourceBundle
 from uw_scan.sources.fomc_statement import FomcStatementBundle
-from uw_scan.sources.fed_funds_futures_path import FedFundsFuturesSourceBundle
 from uw_scan.sources.nyfed_sme import SmeSourceBundle
 from uw_scan.storage.repository import Repository
 from uw_scan.worker.jobs.macro_policy_jobs import (
@@ -21,7 +21,6 @@ from uw_scan.worker.jobs.macro_policy_jobs import (
     macro_sep_ingest_job,
     macro_sme_ingest_job,
 )
-
 
 FIXTURES = Path(__file__).parents[2] / "fixtures" / "macro"
 OBSERVED_AT = datetime(2026, 8, 12, 12, tzinfo=UTC)
@@ -175,9 +174,9 @@ def _counts(settings: Settings) -> tuple[int, int]:
             conn.execute(
                 "SELECT count(*) FROM uw_scan.macro_source_artifacts"
             ).fetchone()[0],
-            conn.execute(
-                "SELECT count(*) FROM uw_scan.macro_observations"
-            ).fetchone()[0],
+            conn.execute("SELECT count(*) FROM uw_scan.macro_observations").fetchone()[
+                0
+            ],
         )
 
 
@@ -236,10 +235,13 @@ def test_independent_jobs_persist_exact_artifacts_and_typed_paths(
             for point in comparison.committee_projection.path.points
             if point.horizon == "2026"
         )
-        assert sum(
-            point.participant_count
-            for point in committee_2026.participant_distribution
-        ) == 18
+        assert (
+            sum(
+                point.participant_count
+                for point in committee_2026.participant_distribution
+            )
+            == 18
+        )
         dealer_june = next(
             point
             for point in comparison.dealer_expectations.path.points
@@ -247,6 +249,57 @@ def test_independent_jobs_persist_exact_artifacts_and_typed_paths(
         )
         assert dealer_june.respondent_count == 26
         assert comparison.market_implied.path is None
+
+
+def test_observations_record_the_semantic_parser_that_read_them(
+    seeded_db_empty_cards,
+) -> None:
+    """A corrected reparse must be distinguishable from the row it corrects.
+
+    Acquisition and semantics version independently: the artifact records the
+    code that fetched the bytes, the observation records the code that read
+    them.  If an observation inherits the artifact's version, a reparse that
+    fixes a parsing bug lands beside the wrong row wearing the same stamp and
+    nothing tells them apart.
+    """
+    settings = _settings()
+
+    macro_fomc_statement_ingest_job(
+        dsn=settings.db_dsn(),
+        provider_factory=_StatementProvider,
+        observed_at=OBSERVED_AT,
+    )
+    macro_sep_ingest_job(
+        dsn=settings.db_dsn(),
+        provider_factory=_SepProvider,
+        observed_at=OBSERVED_AT,
+    )
+
+    with psycopg.connect(settings.db_dsn()) as conn:
+        repo = Repository(conn, schema="uw_scan")
+        actual = repo.fetch_latest_macro_observation_as_of(
+            "POLICY_PATH_ACTUAL",
+            OBSERVED_AT,
+            preferred_sources=["federal_reserve_fomc"],
+        )
+        committee = repo.fetch_latest_macro_observation_as_of(
+            "POLICY_PATH_COMMITTEE_PROJECTION",
+            OBSERVED_AT,
+            preferred_sources=["federal_reserve_sep"],
+        )
+        assert actual["parser_version"] == "fomc_statement.v2"
+        assert committee["parser_version"] == "fed_sep.v2"
+
+        artifacts = conn.execute(
+            "SELECT DISTINCT parser_version FROM uw_scan.macro_source_artifacts "
+            "WHERE source = 'federal_reserve_sep'"
+        ).fetchall()
+        assert [row[0] for row in artifacts] == ["fed_sep.v1"]
+
+        # The publisher's own timezone label is retained even when it disagrees
+        # with the calendar, so a December EDT/EST drift leaves a durable trace.
+        assert committee["value_jsonb"]["calendar_timezone"] == "EDT"
+        assert committee["value_jsonb"]["declared_timezone"] == "EDT"
 
 
 def test_unchanged_rerun_is_one_fact_and_changed_bytes_create_new_vintage(

@@ -77,14 +77,30 @@ class _MacroContextMixin:
                   last_seen_at = GREATEST(
                     {self._schema}.macro_source_artifacts.last_seen_at,
                     EXCLUDED.last_seen_at
-                  )
+                  ),
+                  -- A NULL instant is a known-unknown, not a publisher fact, so a
+                  -- later parser that can read it may resolve it exactly once.
+                  -- COALESCE keeps a resolved instant immutable thereafter.
+                  published_at = COALESCE(
+                    {self._schema}.macro_source_artifacts.published_at,
+                    EXCLUDED.published_at
+                  ),
+                  available_at = CASE
+                    WHEN {self._schema}.macro_source_artifacts.published_at IS NULL
+                      AND EXCLUDED.published_at IS NOT NULL
+                    THEN EXCLUDED.published_at
+                    ELSE {self._schema}.macro_source_artifacts.available_at
+                  END
                 WHERE
                   {self._schema}.macro_source_artifacts.source_kind
                     IS NOT DISTINCT FROM EXCLUDED.source_kind
                   AND {self._schema}.macro_source_artifacts.source_url
                     IS NOT DISTINCT FROM EXCLUDED.source_url
-                  AND {self._schema}.macro_source_artifacts.published_at
-                    IS NOT DISTINCT FROM EXCLUDED.published_at
+                  AND (
+                    {self._schema}.macro_source_artifacts.published_at
+                      IS NOT DISTINCT FROM EXCLUDED.published_at
+                    OR {self._schema}.macro_source_artifacts.published_at IS NULL
+                  )
                   AND (
                     {self._schema}.macro_source_artifacts.available_at
                       IS NOT DISTINCT FROM EXCLUDED.available_at
@@ -93,6 +109,10 @@ class _MacroContextMixin:
                       AND EXCLUDED.published_at IS NULL
                       AND {self._schema}.macro_source_artifacts.available_at
                         <= EXCLUDED.available_at
+                    )
+                    OR (
+                      {self._schema}.macro_source_artifacts.published_at IS NULL
+                      AND EXCLUDED.published_at IS NOT NULL
                     )
                   )
                   AND {self._schema}.macro_source_artifacts.parser_version

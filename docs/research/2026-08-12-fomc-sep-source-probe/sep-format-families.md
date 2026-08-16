@@ -60,10 +60,35 @@ would signal real layout drift.
 ## Verification
 
 * Offline, per family, from exact official bytes pinned in `tests/fixtures/macro/manifest.json`:
-  `uv run pytest tests/unit/sources/test_fed_sep.py -q` → 20 passed.
-* Live, read-only, all 25 official releases parsed: 25/25, every instant 14:00 Eastern, and
-  projection counts self-consistent at `5 variables × horizons − 1` (19 for four-horizon releases,
-  24 for five-horizon).
+  `uv run pytest tests/unit/sources/test_fed_sep.py -q` → 26 passed.
+* Live, read-only, all 25 official releases. Reproduce:
 
-The live all-release sweep currently has no committed runner; Task 8 builds the resumable
-production audit that emits one deterministic record per discovered release.
+  ```bash
+  uv run python scripts/research/fed_sep_archive_sweep.py \
+      --years 2020-2026 --out docs/research/2026-08-12-fomc-sep-source-probe/sep-archive-sweep.json
+  ```
+
+  The full per-release trace is committed alongside this note as
+  `sep-archive-sweep.json`; the sweep exits non-zero if any release fails to parse.
+
+Sweep of 2026-08-16 (`swept_at` 07:17:43Z), every number below read from that trace:
+
+| Census | Result |
+|---|---|
+| Releases discovered / acquired / parsed | 25 / 25 / **25** |
+| Horizon families | 13 releases × 4 horizons, 12 × 5 |
+| Projections per release | 19 (four-horizon), 24 (five-horizon) — `5 variables × horizons − 1` |
+| Publication instants | 25 of 25 at 14:00 Eastern |
+| Timezone label disagreements | 5 — 2020-12-16, 2021-12-15, 2022-12-14, 2024-12-18, 2025-12-10, each declaring `EDT` and resolving to `-05:00` |
+| Releases declaring their own participant total in prose | **1 of 25** (2026-06-17) |
+
+The last row is why the Figure 2 dot table is the primary participant count and prose is only a
+cross-check: 24 of 25 releases publish no total at all. Note that most pages *do* carry the
+unrelated boilerplate "meeting participants submitted their projections of the most likely
+outcomes", which states no count — the count declaration is the narrower "&lt;count&gt; participants
+submitted information". Keying a fail-closed detector on the loose phrase would reject 24 ordinary
+releases; keying it on the narrow phrase makes an unreadable declaration fail closed while a page
+that simply states no total returns cleanly.
+
+Task 8 still builds the resumable *production* audit that persists one record per discovered
+release; this sweep is the research-layer reproduce path for the numbers above.

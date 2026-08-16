@@ -99,6 +99,10 @@ class SepRelease:
     parser_version: str = SEMANTIC_PARSER_VERSION
     declared_timezone: str = ""
     calendar_timezone: str = ""
+    #: Whether this release stated its own participant total in prose.  Most
+    #: archive pages do not, so the Figure 2 dot table is the primary count and
+    #: the prose is an independent cross-check only when it is published.
+    prose_total_declared: bool = False
 
     @property
     def timezone_label_matches_calendar(self) -> bool:
@@ -219,6 +223,7 @@ def parse_sep_release(bundle: SepSourceBundle) -> SepRelease:
         parser_version=SEMANTIC_PARSER_VERSION,
         declared_timezone=stamp.declared_timezone,
         calendar_timezone=stamp.calendar_timezone,
+        prose_total_declared=declared_totals is not None,
     )
 
 
