@@ -194,3 +194,57 @@ Recorded honestly rather than omitted:
   verified 2026-08-16 that `run_single_stock` has no `market_date` and
   `cockpit_daily_snapshot` has no `market_date`/`ticker_filter`, returns `None`,
   and silently returns when `COCKPIT_SNAPSHOT_LOCK` is held.
+
+---
+
+## Follow-up probe: is the Aug 12–14 hole recoverable at all?
+
+Run 2026-08-16 after the measurement above. **Answer: yes — the block is code,
+not data.** Re-measured, not inherited from round 1's note.
+
+`scripts`: `docs/research/_scripts/2026-08-16-probe-uw-date-honoured.py`
+
+Response-hash differential (sha256 of the raw body, first 12 hex) for AAPL
+across three dates plus an undated control:
+
+| endpoint | 2026-08-12 | 2026-08-13 | 2026-08-14 | no date | verdict |
+|---|---|---|---|---|---|
+| `oi-per-strike` | `429caff1debb` | `133e5315f897` | `9a94573901f6` | = Aug 14 | honours `date` |
+| `max-pain` | `cfa37c28dff3` | `eded1e5f783a` | `229dcac09fe4` | = Aug 14 | honours `date` |
+| `spot-exposures` | `f3d679dc9040` | `d68d9552c059` | `9fcedd5a78d0` | = Aug 14 | honours `date` |
+| `volatility/term-structure` | `8f4a4578b00c` | `285f261aaf14` | `e9f99dd39bcf` | `2f6ab5b124c0` | honours `date` |
+| `interpolated-iv` | `2183e14ef075` | `cb3fc0a02812` | `b68e04694c04` | = Aug 14 | honours `date` |
+
+Three distinct hashes per endpoint, and the undated control equals the Aug-14
+hash — "no date" resolves to the latest session, exactly as expected. So a
+date-looped replay over these endpoints returns genuinely different history and
+is a real backfill, not a restamp.
+
+### Two ways this probe nearly returned the wrong answer
+
+Recorded because both failure modes are indistinguishable from the real answer
+at a glance, and both have bitten this repo before:
+
+1. **404 ≠ no data.** The first attempt used `/stock/{ticker}/...` and got HTTP
+   404 on every endpoint — which reads identically to "the provider has aged
+   this data out". The real paths in `api/endpoints.py` carry an `/api` prefix.
+   Take endpoint paths from the code, never from memory.
+2. **HTTP 200 with rows ≠ the date was honoured.** With paths fixed, three of
+   the four endpoints returned the *same row count* dated and undated
+   (`oi-per-strike` 127/127, `max-pain` 24/24, `term-structure` 24/24). An
+   ignored `date` param returns the current snapshot with a 200. Only the hash
+   differential separates "honours the date" from "silently served today" — and
+   that is the entire difference between a backfill and writing today's payload
+   under a past key. This is the same test that condemned `flow_events`,
+   `options_volume_daily`, `short_interest_snapshots` and `uw_positioning` as
+   genuine refusals; here it acquits.
+
+### What still blocks the heal
+
+`pipeline.run_single_stock(ticker, client, repo)` has no `market_date`
+parameter, and `full_scan_once` has no `date`. Every one of the 11 tables is
+written by that path. The data is on the provider; we have no way to ask for it.
+That plumbing is round 1 Task 4
+(`docs/superpowers/plans/2026-08-16-historical-replay-backfill.md`), unshipped —
+which is why these tables carry dated refusals in the registry rather than
+adapters, and why Task 7 of this plan is gated.
