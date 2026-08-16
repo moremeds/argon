@@ -13,8 +13,8 @@ uv run python -c "from uw_scan.reports.data_gap_healer import render_dataset_pol
 | table | audit_mode | provider | granularity | adapter | freq | reason | verified |
 |---|---|---|---|---|---|---|---|
 | daily_ohlc | strict_ticker_date | massive | per_ticker_range | daily_ohlc | equity_session |  |  |
-| intraday_quote | freshness_only | none | none |  | liveness |  |  |
-| technical_live | freshness_only | none | none |  | liveness |  |  |
+| intraday_quote | freshness_only | none | none |  | liveness | live state, not a time series: a row asserts what is true NOW and is rewritten in place. A missing row means the condition does not hold, not that history was lost — there is nothing to backfill. | 2026-08-16 |
+| technical_live | freshness_only | none | none |  | liveness | live state, not a time series: a row asserts what is true NOW and is rewritten in place. A missing row means the condition does not hold, not that history was lost — there is nothing to backfill. | 2026-08-16 |
 | technical_vwap_anchor | excluded | none | none |  | none | user-triggered anchor state; written only on click, no expected cadence |  |
 
 ## derived_volatility
@@ -34,16 +34,16 @@ uv run python -c "from uw_scan.reports.data_gap_healer import render_dataset_pol
 | fundamental_method_state | excluded | none | none |  | none | singleton pointer to the active method version |  |
 | fundamental_method_versions | excluded | none | none |  | none | immutable method registry, not a time series |  |
 | fundamental_obs_violations | provenance | none | none |  | event |  |  |
-| fundamental_scores | freshness_only | db | none |  | event | derived from fundamental_statement_obs; re-run worker/jobs/fundamental_scoring.py to heal (zero API cost) |  |
-| fundamental_statement_obs | freshness_only | uw | none |  | event | quarterly filings over the fundamental universe, not the watchlist; re-run scripts/backfill/fundamental_ingest_backfill.py to heal (insert-or-touch, safe to repeat) |  |
+| fundamental_scores | freshness_only | db | run_once | fundamental_refresh | event | derived from fundamental_statement_obs; worker/jobs/fundamental_refresh re-runs routing -> scoring -> anchors at zero provider spend. The old reason named this job and then declined to wire it. | 2026-08-16 |
+| fundamental_statement_obs | freshness_only | uw | none |  | event | quarterly filings over the fundamental universe (257 tickers), not the watchlist. Deliberately NOT wired to the healer: unlike scores/anchors this is a provider INGEST, and worker/jobs/fundamental_refresh explicitly does not ingest. Heal by running scripts/backfill/fundamental_ingest_backfill.py (insert-or-touch, safe to repeat) as a budgeted operator action, not on the nightly cron. | 2026-08-16 |
 | fundamental_universe | excluded | none | none |  | none | seeded membership list, not a time series; scripts/seed_fundamental_universe.py is the source of truth |  |
-| valuation_anchors | freshness_only | db | none |  | event | derived from fundamental_statement_obs + fundamental_company_type; re-run worker/jobs/fundamental_scoring.py to heal (zero API cost) |  |
+| valuation_anchors | freshness_only | db | run_once | fundamental_refresh | event | derived from fundamental_statement_obs + fundamental_company_type; healed by the same worker/jobs/fundamental_refresh chain as fundamental_scores (routing runs FIRST because anchors read company_type). Zero provider spend. | 2026-08-16 |
 
 ## gold_rates_macro
 
 | table | audit_mode | provider | granularity | adapter | freq | reason | verified |
 |---|---|---|---|---|---|---|---|
-| cb_gold_reserves_monthly | freshness_only | none | none |  | monthly | source needs auth cookie / no historical API (audit-only) |  |
+| cb_gold_reserves_monthly | freshness_only | none | none |  | monthly | World Gold Council source requires an interactive auth cookie and exposes no historical API; the ingest can only capture what is live at fetch time. Same failure as etf_holdings_daily. | 2026-08-16 |
 | cot_gold_weekly | freshness_only | external | run_once | gold_cot | weekly |  |  |
 | etf_aum_cache | freshness_only | none | none |  | equity_session | EXTERNAL-PROVIDER BLOCK, not a healer gap: the source requires an interactive auth cookie and exposes no historical API, so there is nothing for an adapter to call. Re-probe if a credential is ever provisioned. | 2026-08-16 |
 | etf_flows_daily | freshness_only | none | none |  | equity_session | EXTERNAL-PROVIDER BLOCK, not a healer gap: the source requires an interactive auth cookie and exposes no historical API, so there is nothing for an adapter to call. Re-probe if a credential is ever provisioned. | 2026-08-16 |
@@ -60,8 +60,8 @@ uv run python -c "from uw_scan.reports.data_gap_healer import render_dataset_pol
 | rates_snapshots | freshness_only | external | run_once_lookback | rates_fred | equity_session |  |  |
 | rates_treasury_auctions | freshness_only | external | run_once_lookback | rates_fred | weekly |  |  |
 | uw_gold_options_daily | freshness_only | uw | run_once | gold_uw_options | equity_session |  |  |
-| wgc_etf_monthly | freshness_only | none | none |  | monthly | source needs auth cookie / no historical API (audit-only) |  |
-| wgc_etf_monthly_canonical | freshness_only | none | none |  | monthly | source needs auth cookie / no historical API (audit-only) |  |
+| wgc_etf_monthly | freshness_only | none | none |  | monthly | World Gold Council source requires an interactive auth cookie and exposes no historical API; the ingest can only capture what is live at fetch time. Same failure as etf_holdings_daily. | 2026-08-16 |
+| wgc_etf_monthly_canonical | freshness_only | none | none |  | monthly | World Gold Council source requires an interactive auth cookie and exposes no historical API; the ingest can only capture what is live at fetch time. Same failure as etf_holdings_daily. | 2026-08-16 |
 
 ## macro_evidence
 
@@ -187,17 +187,17 @@ uv run python -c "from uw_scan.reports.data_gap_healer import render_dataset_pol
 
 | table | audit_mode | provider | granularity | adapter | freq | reason | verified |
 |---|---|---|---|---|---|---|---|
-| opportunity_scores | freshness_only | none | none |  | liveness |  |  |
-| scanner_candidate_snapshots | freshness_only | none | none |  | liveness |  |  |
-| signal_context_flags | freshness_only | none | none |  | liveness |  |  |
-| signal_gates | freshness_only | none | none |  | liveness |  |  |
-| signal_hits | freshness_only | none | none |  | liveness |  |  |
-| trade_insight_ai_analyses | freshness_only | none | none |  | liveness |  |  |
-| trade_insight_candidates | freshness_only | none | none |  | liveness |  |  |
-| trade_insight_outcomes | freshness_only | none | none |  | liveness |  |  |
-| trade_insight_snapshots | freshness_only | none | none |  | liveness |  |  |
-| watchlist | freshness_only | none | none |  | liveness |  |  |
-| watchlist_card | freshness_only | none | none |  | liveness |  |  |
+| opportunity_scores | freshness_only | none | none |  | liveness | live state, not a time series: a row asserts what is true NOW and is rewritten in place. A missing row means the condition does not hold, not that history was lost — there is nothing to backfill. | 2026-08-16 |
+| scanner_candidate_snapshots | freshness_only | none | none |  | equity_session | Append-only scan history (one batch per scanner run), NOT live state. Re-deriving a past scan needs the flow/GEX inputs as they stood at scan time, which the warm store overwrites — so a lost batch is genuinely unrecoverable rather than merely unwired. Freshness-monitored so a stalled scanner is still visible. | 2026-08-16 |
+| signal_context_flags | freshness_only | none | none |  | liveness | live state, not a time series: a row asserts what is true NOW and is rewritten in place. A missing row means the condition does not hold, not that history was lost — there is nothing to backfill. | 2026-08-16 |
+| signal_gates | freshness_only | none | none |  | liveness | live state, not a time series: a row asserts what is true NOW and is rewritten in place. A missing row means the condition does not hold, not that history was lost — there is nothing to backfill. | 2026-08-16 |
+| signal_hits | freshness_only | none | none |  | liveness | live state, not a time series: a row asserts what is true NOW and is rewritten in place. A missing row means the condition does not hold, not that history was lost — there is nothing to backfill. | 2026-08-16 |
+| trade_insight_ai_analyses | freshness_only | none | none |  | liveness | live state, not a time series: a row asserts what is true NOW and is rewritten in place. A missing row means the condition does not hold, not that history was lost — there is nothing to backfill. | 2026-08-16 |
+| trade_insight_candidates | freshness_only | none | none |  | liveness | live state, not a time series: a row asserts what is true NOW and is rewritten in place. A missing row means the condition does not hold, not that history was lost — there is nothing to backfill. | 2026-08-16 |
+| trade_insight_outcomes | freshness_only | none | none |  | liveness | live state, not a time series: a row asserts what is true NOW and is rewritten in place. A missing row means the condition does not hold, not that history was lost — there is nothing to backfill. | 2026-08-16 |
+| trade_insight_snapshots | freshness_only | none | none |  | liveness | live state, not a time series: a row asserts what is true NOW and is rewritten in place. A missing row means the condition does not hold, not that history was lost — there is nothing to backfill. | 2026-08-16 |
+| watchlist | freshness_only | none | none |  | liveness | live state, not a time series: a row asserts what is true NOW and is rewritten in place. A missing row means the condition does not hold, not that history was lost — there is nothing to backfill. | 2026-08-16 |
+| watchlist_card | freshness_only | none | none |  | liveness | live state, not a time series: a row asserts what is true NOW and is rewritten in place. A missing row means the condition does not hold, not that history was lost — there is nothing to backfill. | 2026-08-16 |
 
 ## uw_volatility
 

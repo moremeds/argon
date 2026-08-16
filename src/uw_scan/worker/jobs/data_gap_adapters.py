@@ -526,7 +526,35 @@ def _eventlog_heal(capture_fn):
     return _run
 
 
+
+def _run_fundamental_refresh(ctx: HealContext) -> int:
+    """Routing -> subscores -> anchor bands. Zero UW/IB spend: every stage reads
+    fundamental_statement_obs and the lake, so this heals fundamental_scores and
+    valuation_anchors without touching a provider.
+
+    It deliberately does NOT ingest — new filings come from
+    scripts/backfill/fundamental_ingest_backfill.py, which is why
+    fundamental_statement_obs keeps its own separate disposition.
+
+    Counter names verified 2026-08-16: fundamental_scoring returns `inserted`,
+    fundamental_anchors returns `written`.
+    """
+    from uw_scan.worker.jobs.fundamental_refresh import fundamental_refresh
+
+    out = fundamental_refresh(conn=ctx.repo.conn, settings=ctx.settings)
+    scoring = out.get("scoring") or {}
+    anchors = out.get("anchors") or {}
+    return int(scoring.get("inserted", 0)) + int(anchors.get("written", 0))
+
+
 HEAL_SPECS: dict[str, HealSpec] = {
+    "fundamental_refresh": HealSpec(
+        "fundamental_refresh",
+        "db",
+        "run_once",
+        _run_fundamental_refresh,
+        est_per_item=0,
+    ),
     "vol_index_lake": HealSpec(
         "vol_index_lake",
         "db",

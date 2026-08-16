@@ -32,6 +32,16 @@ AuditMode = Literal[
     "research_artifact",  # persisted backtest/research output; audit existence only
     "excluded",  # intentionally outside healer scope (reason required)
 ]
+# Audit modes that are existence-only BY DESIGN: there is no time series to
+# backfill, so "no adapter" is the correct answer rather than an undocumented
+# refusal. Everything outside this set must carry either a heal adapter or a
+# dated, measured reason — see tests/unit/reports/test_full_coverage.py.
+BY_DESIGN_AUDIT_MODES: tuple[str, ...] = (
+    "excluded",
+    "provenance",
+    "operational_state",
+    "research_artifact",
+)
 # Which budget bucket a heal spends from.
 Provider = Literal["uw", "massive", "external", "db", "none"]
 # How the heal is dispatched.
@@ -247,6 +257,13 @@ REGISTRY: list[DatasetRegistryEntry] = [
         "freshness_only",
         ticker_col="ticker",
         expected_frequency="liveness",
+        reason=(
+            "live state, not a time series: a row asserts what is true NOW "
+            "and is rewritten in place. A missing row means the condition does "
+            "not hold, not that history was lost — there is nothing to "
+            "backfill."
+        ),
+        reason_verified_on=date(2026, 8, 16),
     ),
     DatasetRegistryEntry(
         # Latest-only live-technicals cache (upsert per ticker off intraday_quote,
@@ -256,6 +273,13 @@ REGISTRY: list[DatasetRegistryEntry] = [
         "freshness_only",
         ticker_col="ticker",
         expected_frequency="liveness",
+        reason=(
+            "live state, not a time series: a row asserts what is true NOW "
+            "and is rewritten in place. A missing row means the condition does "
+            "not hold, not that history was lost — there is nothing to "
+            "backfill."
+        ),
+        reason_verified_on=date(2026, 8, 16),
     ),
     DatasetRegistryEntry(
         # User-set VWAP anchor for the Technicals price pane (one row per
@@ -404,6 +428,13 @@ REGISTRY: list[DatasetRegistryEntry] = [
         "freshness_only",
         ticker_col="ticker",
         expected_frequency="liveness",
+        reason=(
+            "live state, not a time series: a row asserts what is true NOW "
+            "and is rewritten in place. A missing row means the condition does "
+            "not hold, not that history was lost — there is nothing to "
+            "backfill."
+        ),
+        reason_verified_on=date(2026, 8, 16),
     ),
     # --- operational / provenance (audit only, never healed) ---
     DatasetRegistryEntry(
@@ -653,7 +684,6 @@ REGISTRY.extend(
             "signal_hits",
             "signal_context_flags",
             "signal_gates",
-            "scanner_candidate_snapshots",
             "trade_insight_snapshots",
             "trade_insight_candidates",
             "trade_insight_ai_analyses",
@@ -663,7 +693,41 @@ REGISTRY.extend(
         "scanner_state",
         "freshness_only",
         expected_frequency="liveness",
+        reason=(
+            "live state, not a time series: a row asserts what is true NOW and is "
+            "rewritten in place. A missing row means the condition does not hold, "
+            "not that history was lost — there is nothing to backfill."
+        ),
+        reason_verified_on=date(2026, 8, 16),
     )
+)
+
+# scanner_candidate_snapshots is NOT liveness, despite sitting in the same
+# scanner_state group. Checked 2026-08-16 rather than assumed: surrogate `id`
+# PK, an (ticker, scored_at DESC) index, and signals_repository's own docstring
+# — "Append-only (no upsert) — every run accrues a new batch so history is
+# preserved for Phase-2 markout". Production holds 7,389 rows across 23 dates.
+# Pasting the liveness reason here would have written a false statement into
+# the registry and buried a real series behind "nothing to backfill".
+REGISTRY.extend(
+    [
+        DatasetRegistryEntry(
+            "scanner_candidate_snapshots",
+            "scanner_state",
+            "freshness_only",
+            ticker_col="ticker",
+            expected_frequency="equity_session",
+            source_system="derived",
+            reason=(
+                "Append-only scan history (one batch per scanner run), NOT live "
+                "state. Re-deriving a past scan needs the flow/GEX inputs as they "
+                "stood at scan time, which the warm store overwrites — so a lost "
+                "batch is genuinely unrecoverable rather than merely unwired. "
+                "Freshness-monitored so a stalled scanner is still visible."
+            ),
+            reason_verified_on=date(2026, 8, 16),
+        ),
+    ]
 )
 
 REGISTRY.extend(
@@ -1246,7 +1310,12 @@ REGISTRY.extend(
         ["wgc_etf_monthly", "wgc_etf_monthly_canonical", "cb_gold_reserves_monthly"],
         "gold_rates_macro",
         "freshness_only",
-        reason="source needs auth cookie / no historical API (audit-only)",
+        reason=(
+            "World Gold Council source requires an interactive auth cookie and "
+            "exposes no historical API; the ingest can only capture what is live "
+            "at fetch time. Same failure as etf_holdings_daily."
+        ),
+        reason_verified_on=date(2026, 8, 16),
         expected_frequency="monthly",
     )
 )
@@ -1277,10 +1346,15 @@ REGISTRY.extend(
             source_system="uw",
             retention_days=None,
             reason=(
-                "quarterly filings over the fundamental universe, not the "
-                "watchlist; re-run scripts/backfill/fundamental_ingest_backfill.py "
-                "to heal (insert-or-touch, safe to repeat)"
+                "quarterly filings over the fundamental universe (257 tickers), "
+                "not the watchlist. Deliberately NOT wired to the healer: unlike "
+                "scores/anchors this is a provider INGEST, and "
+                "worker/jobs/fundamental_refresh explicitly does not ingest. "
+                "Heal by running scripts/backfill/fundamental_ingest_backfill.py "
+                "(insert-or-touch, safe to repeat) as a budgeted operator "
+                "action, not on the nightly cron."
             ),
+            reason_verified_on=date(2026, 8, 16),
         ),
         DatasetRegistryEntry(
             "fundamental_obs_violations",
@@ -1309,14 +1383,19 @@ REGISTRY.extend(
             provider="db",
             # Healing is re-running the scoring job, which is idempotent on
             # (ticker, as_of, engine_version, inputs_hash) and costs zero API
-            # calls — it reads the tier-1 panel, never a provider.
-            granularity="none",
-            healer_adapter=None,
+            # calls — it reads the tier-1 panel, never a provider. run_once (not
+            # per_ticker_*) because this is freshness_only, and only the
+            # run_once* channel dispatches for a non-strict dataset.
+            granularity="run_once",
+            healer_adapter="fundamental_refresh",
             source_system="derived",
             reason=(
-                "derived from fundamental_statement_obs; re-run "
-                "worker/jobs/fundamental_scoring.py to heal (zero API cost)"
+                "derived from fundamental_statement_obs; worker/jobs/"
+                "fundamental_refresh re-runs routing -> scoring -> anchors at "
+                "zero provider spend. The old reason named this job and then "
+                "declined to wire it."
             ),
+            reason_verified_on=date(2026, 8, 16),
         ),
         DatasetRegistryEntry(
             "valuation_anchors",
@@ -1330,13 +1409,16 @@ REGISTRY.extend(
             ticker_col="ticker",
             expected_frequency="event",
             provider="db",
-            granularity="none",
-            healer_adapter=None,
+            granularity="run_once",
+            healer_adapter="fundamental_refresh",
             source_system="derived",
             reason=(
                 "derived from fundamental_statement_obs + fundamental_company_type; "
-                "re-run worker/jobs/fundamental_scoring.py to heal (zero API cost)"
+                "healed by the same worker/jobs/fundamental_refresh chain as "
+                "fundamental_scores (routing runs FIRST because anchors read "
+                "company_type). Zero provider spend."
             ),
+            reason_verified_on=date(2026, 8, 16),
         ),
         DatasetRegistryEntry(
             "fundamental_company_type",

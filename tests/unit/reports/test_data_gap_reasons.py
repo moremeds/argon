@@ -8,7 +8,7 @@ probed the provider, or it is an untested assumption and says so.
 
 from __future__ import annotations
 
-from uw_scan.reports.data_gap_healer import REGISTRY
+from uw_scan.reports.data_gap_healer import BY_DESIGN_AUDIT_MODES, REGISTRY
 
 # Every table round 1 healed by hand, plus every one whose entrypoint was
 # already date-aware. None may still claim "no auto-backfill".
@@ -47,13 +47,17 @@ def test_no_proven_table_still_carries_the_stale_assumption() -> None:
 
 
 def test_every_refusal_is_dated() -> None:
-    """A provider='none' daily dataset must say WHEN the refusal was measured."""
+    """A provider='none' dataset must say WHEN the refusal was measured.
+
+    Cadence-independent on purpose: the daily scope was the coverage ledger's
+    boundary, not a statement that weekly/monthly/liveness entries may carry
+    undocumented assumptions. All 13 liveness entries had EMPTY reasons.
+    """
     undated = sorted(
         e.table_name
         for e in REGISTRY
         if e.provider == "none"
-        and e.audit_mode not in ("excluded", "provenance", "operational_state")
-        and e.expected_frequency in ("equity_session", "daily")
+        and e.audit_mode not in BY_DESIGN_AUDIT_MODES
         and e.reason_verified_on is None
     )
     assert not undated, (
