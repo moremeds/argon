@@ -228,3 +228,32 @@ Consequences, in order of importance:
 The fix has the same shape as the replay's: derive the stamp from the session the
 data belongs to, not from the host clock. It touches the live nightly path, so it
 is deliberately NOT bundled into this change.
+
+## Verification that the date is honoured on OLD sessions too
+
+The outage window is days old; the wide backfill reaches back two months, where
+"does UW still serve this date" is a fair question. AAPL `oi_by_strike`, June:
+
+| session | call OI | put OI |
+|---|---|---|
+| 2026-06-15 | 3,006,364 | 2,177,593 |
+| 2026-06-16 | 3,040,705 | 2,184,389 |
+| 2026-06-17 | 3,092,878 | 2,238,507 |
+| 2026-06-18 | 3,082,227 | 2,230,889 |
+
+Nine sessions sampled produced **nine distinct `(call_oi, put_oi)` pairs**, drifting
+day to day the way open interest actually does. A repeated payload would have
+produced one pair nine times.
+
+Provider reliability over the wide window: **1 `no_data` in ~1,660 items**. UW is
+serving two-month-old history essentially as well as last week's, so the backfill
+buys rows rather than retries.
+
+## What this run did NOT test
+
+The `data_gap_healer_no_data_caveat_after` auto-caveat never fired, and that is the
+correct behaviour on a healthy single pass — it requires three *consecutive*
+`no_data` results for the same `(dataset, ticker, date)` across separate runs. It
+therefore remains **unexercised in production**; several nightly cycles are needed
+before it can be called verified. Recorded here so a future reader does not infer
+from this document that it has been proven.
