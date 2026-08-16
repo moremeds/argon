@@ -114,6 +114,30 @@ The first three are permanent. They are refused in code
 (`uw_scan.pipeline_replay_policy`), not by convention, because all three answer
 HTTP 200 with a full and plausible row set for any date requested.
 
+## Result: the outage window is closed
+
+Measured after the replay, distinct tickers per session (all four were **0** before):
+
+| table | 08-11 | 08-12 | 08-13 | 08-14 |
+|---|---|---|---|---|
+| `oi_by_strike` | 170 | 170 | 170 | 170 |
+| `oi_change_events` | 170 | 170 | 170 | 170 |
+| `greeks_by_expiry_strike` | 170 | 170 | 170 | 170 |
+| `exposures_by_expiry_strike` | 170 | 170 | 170 | 170 |
+| `iv_term_snapshots` | 170 | 170 | 170 | 170 |
+| `interpolated_iv_snapshots` | 170 | 170 | 170 | 170 |
+| `max_pain_by_expiry` | 170 | 170 | 170 | 170 |
+| `exposures_summary` | 170 | 170 | 170 | 170 |
+| `pcr_history` | 169 | 169 | 170 | 170 |
+
+`pcr_history` at 169 on two sessions is one ticker with no `/screener/stocks` row
+for that date — a legitimate absence, recorded as `no_data`, not a miss.
+
+`option_chain_per_strike` was healed in a separate pass: the Aug runs were
+launched before its adapter existed, so their in-memory registry did not include
+it. That is worth noting as an operational fact — **a long-running heal holds the
+registry it started with**, so a dataset wired mid-run needs its own pass.
+
 ## Addendum — the outage was the smaller half
 
 A read-only audit widened to 2026-06-01..2026-08-16 (zero provider calls) reports
