@@ -52,6 +52,12 @@ class FomcStatementRelease:
     vote_split: str | None
     target_range_lower: Decimal
     target_range_upper: Decimal
+    #: Voters the statement names, in publication order.  Both tuples are empty
+    #: when the publisher states only a tally, which ``voter_names_stated``
+    #: distinguishes from a genuinely unanimous vote.
+    voted_for: tuple[str, ...]
+    voted_against: tuple[str, ...]
+    voter_names_stated: bool
     source_url: str
     accessible_source_url: str
     source_record_id: str
@@ -316,8 +322,8 @@ def parse_fomc_statement(bundle: FomcStatementBundle) -> FomcStatementRelease:
     html = raw.decode("utf-8", errors="replace")
     action = _infer_action(html)
     vote = _infer_vote(html)
-    vote_status = vote[0] if vote is not None else None
-    vote_split = vote[1] if vote is not None else None
+    vote_status = vote.status if vote is not None else None
+    vote_split = vote.split if vote is not None else None
     target_range = _infer_target_range(html)
     published_at = _infer_published_at(html, bundle.meeting_date)
     missing = [
@@ -346,6 +352,9 @@ def parse_fomc_statement(bundle: FomcStatementBundle) -> FomcStatementRelease:
         vote_split=vote_split,
         target_range_lower=target_range[0],
         target_range_upper=target_range[1],
+        voted_for=vote.voted_for if vote is not None else (),
+        voted_against=vote.voted_against if vote is not None else (),
+        voter_names_stated=vote.names_stated if vote is not None else False,
         source_url=bundle.primary_artifact.source_url or "",
         accessible_source_url=bundle.accessible_artifact.source_url or "",
         source_record_id=bundle.release_key,

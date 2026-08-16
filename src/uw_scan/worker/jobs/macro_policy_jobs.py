@@ -342,6 +342,13 @@ def _statement_observation(
                 "action": release.action,
                 "vote_status": release.vote_status,
                 "vote_split": release.vote_split,
+                # The dissent's composition carries most of the directional
+                # signal, and a tally alone cannot recover it.  Empty lists with
+                # voter_names_stated false mean the publisher named nobody --
+                # never that the vote was unanimous.
+                "voted_for": list(release.voted_for),
+                "voted_against": list(release.voted_against),
+                "voter_names_stated": release.voter_names_stated,
             }
         ],
     }

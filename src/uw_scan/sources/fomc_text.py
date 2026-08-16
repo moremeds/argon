@@ -71,6 +71,23 @@ class _ParsedVoters:
     identities: frozenset[str]
 
 
+@dataclass(frozen=True)
+class ParsedVote:
+    """A committee vote, with the voters the publisher actually named.
+
+    ``voted_for``/``voted_against`` are empty when the statement publishes only
+    a tally ("approved ... by a 9-1 vote"), which is a different fact from a
+    unanimous vote.  ``names_stated`` separates the two so a consumer can never
+    read "no dissenters named" as "no dissenters".
+    """
+
+    status: str
+    split: str
+    voted_for: tuple[str, ...] = ()
+    voted_against: tuple[str, ...] = ()
+    names_stated: bool = True
+
+
 def _normalize_policy_text(value: str) -> str:
     normalized = unicodedata.normalize("NFKC", value)
     normalized = normalized.replace("\u00a0", " ")
@@ -186,10 +203,10 @@ def _infer_published_at(html: str, meeting_date: date) -> datetime | None:
 
 def _infer_vote_split(html: str) -> str | None:
     vote = _infer_vote(html)
-    return vote[1] if vote is not None else None
+    return vote.split if vote is not None else None
 
 
-def _infer_vote(html: str) -> tuple[str, str] | None:
+def _infer_vote(html: str) -> ParsedVote | None:
     paragraphs = _normalized_paragraphs(html)
     candidates: list[tuple[str, int]] = []
     for index, paragraph in enumerate(paragraphs):
@@ -229,10 +246,18 @@ def _infer_vote(html: str) -> tuple[str, str] | None:
             ):
                 raise NormalizationError("FOMC malformed notation-vote paragraph")
             voters = _parse_named_voters(paragraph[len(_NOTATION_PREFIX) : -1])
-            return "stated", f"{len(voters.names)}-0"
+            return ParsedVote(
+                status="stated",
+                split=f"{len(voters.names)}-0",
+                voted_for=voters.names,
+            )
         if family == "regular":
-            return "stated", _parse_regular_vote_block(paragraphs, index)
-        return "stated", _parse_explicit_vote(paragraph)
+            return _parse_regular_vote_block(paragraphs, index)
+        return ParsedVote(
+            status="stated",
+            split=_parse_explicit_vote(paragraph),
+            names_stated=False,
+        )
 
     if any(_AGAINST_PREFIX.match(paragraph) for paragraph in paragraphs):
         raise NormalizationError(
@@ -253,7 +278,7 @@ def _parse_explicit_vote(paragraph: str) -> str:
     return f"{match.group(1)}-{match.group(2)}"
 
 
-def _parse_regular_vote_block(paragraphs: list[str], index: int) -> str:
+def _parse_regular_vote_block(paragraphs: list[str], index: int) -> ParsedVote:
     paragraph, alternate_removed = _remove_alternate_suffix(paragraphs[index])
     if not paragraph.startswith(_FOR_PREFIX):
         raise NormalizationError("FOMC malformed monetary-policy voting paragraph")
@@ -285,7 +310,12 @@ def _parse_regular_vote_block(paragraphs: list[str], index: int) -> str:
     )
     if for_voters.identities & against_voters.identities:
         raise NormalizationError("FOMC voter appears on both sides of the vote")
-    return f"{len(for_voters.names)}-{len(against_voters.names)}"
+    return ParsedVote(
+        status="stated",
+        split=f"{len(for_voters.names)}-{len(against_voters.names)}",
+        voted_for=for_voters.names,
+        voted_against=against_voters.names,
+    )
 
 
 def _next_against_paragraph(paragraphs: list[str], index: int) -> str | None:

@@ -22,7 +22,6 @@ from uw_scan.sources.fomc_statement import (
 )
 from uw_scan.worker.jobs.macro_policy_jobs import _statement_observation
 
-
 FIXTURES = Path(__file__).parents[2] / "fixtures" / "macro"
 HTML_URL = (
     "https://www.federalreserve.gov/newsevents/pressreleases/monetary20260617a.htm"
@@ -682,3 +681,116 @@ def test_statement_fetch_outcomes_rejects_incomplete_discovery_coverage() -> Non
         with FomcStatementProvider() as provider:
             with pytest.raises(NormalizationError, match="incomplete.*2024"):
                 provider.fetch_outcomes(years=(2024,))
+
+
+def _statement_bundle(stem: str, *, meeting_date: date) -> FomcStatementBundle:
+    """Bundle a historical statement fixture against its own official URLs."""
+    slug = f"monetary{meeting_date.strftime('%Y%m%d')}a"
+    return FomcStatementBundle.from_bytes(
+        meeting_date=meeting_date,
+        accessible_url=(
+            f"https://www.federalreserve.gov/newsevents/pressreleases/{slug}.htm"
+        ),
+        accessible_bytes=(FIXTURES / f"{stem}.html").read_bytes(),
+        pdf_url=(f"https://www.federalreserve.gov/monetarypolicy/files/{slug}.pdf"),
+        pdf_bytes=b"%PDF-1.4 placeholder",
+        retrieved_at=datetime(2026, 8, 16, 12, 0, tzinfo=UTC),
+    )
+
+
+@pytest.mark.parametrize(
+    ("stem", "meeting_date", "split", "dissenters"),
+    [
+        (
+            "fomc_statement_2020_09_16",
+            date(2020, 9, 16),
+            "8-2",
+            ("Robert S. Kaplan", "Neel Kashkari"),
+        ),
+        (
+            "fomc_statement_2022_03",
+            date(2022, 3, 16),
+            "8-1",
+            ("James Bullard",),
+        ),
+        (
+            "fomc_statement_2025_12_10",
+            date(2025, 12, 10),
+            "9-3",
+            ("Stephen I. Miran", "Austan D. Goolsbee", "Jeffrey R. Schmid"),
+        ),
+        (
+            "fomc_statement_2026_04_29",
+            date(2026, 4, 29),
+            "8-4",
+            (
+                "Stephen I. Miran",
+                "Beth M. Hammack",
+                "Neel Kashkari",
+                "Lorie K. Logan",
+            ),
+        ),
+    ],
+)
+def test_statement_retains_dissenter_identities(
+    stem: str, meeting_date: date, split: str, dissenters: tuple[str, ...]
+) -> None:
+    """A tally cannot recover who dissented, so the names must survive parsing.
+
+    The composition of a dissent carries the directional read -- four dissents
+    from hawks and four from doves are opposite facts sharing one "8-4" string.
+    """
+    release = parse_fomc_statement(_statement_bundle(stem, meeting_date=meeting_date))
+
+    assert release.vote_split == split
+    assert release.voter_names_stated is True
+    assert release.voted_against == dissenters
+    assert len(release.voted_for) == int(split.split("-")[0])
+    assert not set(release.voted_for) & set(release.voted_against)
+
+
+def test_unanimous_statement_names_every_voter_and_no_dissenter() -> None:
+    release = parse_fomc_statement(
+        _statement_bundle("fomc_statement_2021_01", meeting_date=date(2021, 1, 27))
+    )
+
+    assert release.vote_split == "11-0"
+    assert release.voter_names_stated is True
+    assert release.voted_against == ()
+    assert release.voted_for[0] == "Jerome H. Powell, Chair"
+    assert len(release.voted_for) == 11
+
+
+def test_tally_only_statement_does_not_claim_a_unanimous_roster() -> None:
+    """June 2026 publishes "by a 12-0 vote" and names nobody.
+
+    Empty dissenter list plus voter_names_stated false is a different fact from
+    a named unanimous vote, and a consumer must be able to tell them apart.
+    """
+    release = parse_fomc_statement(
+        _statement_bundle("fomc_statement_2026_06", meeting_date=date(2026, 6, 17))
+    )
+
+    assert release.vote_split == "12-0"
+    assert release.voter_names_stated is False
+    assert release.voted_for == ()
+    assert release.voted_against == ()
+
+
+def test_dissenter_identities_reach_the_persisted_observation() -> None:
+    bundle = _statement_bundle(
+        "fomc_statement_2026_04_29", meeting_date=date(2026, 4, 29)
+    )
+    release = parse_fomc_statement(bundle)
+
+    row = _statement_observation(release, 1, bundle.accessible_artifact)
+    point = row["value_json"]["points"][0]
+
+    assert point["vote_split"] == "8-4"
+    assert point["voter_names_stated"] is True
+    assert point["voted_against"] == [
+        "Stephen I. Miran",
+        "Beth M. Hammack",
+        "Neel Kashkari",
+        "Lorie K. Logan",
+    ]
