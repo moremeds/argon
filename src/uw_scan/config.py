@@ -442,6 +442,19 @@ class Settings(BaseModel):
     data_gap_healer_datasets: str = ""  # empty = all healable datasets
     data_gap_healer_start: str = "2026-01-01"
     data_gap_healer_max_uw_calls: int = 20000
+    # No single dataset may take more than this share of one night's UW cap.
+    # execute_run groups items by dataset and runs each group to completion
+    # against one shared budget, so the first big UW spender in REGISTRY drains
+    # the whole night and every dataset behind it records skipped_budget. 0.4
+    # lets a large backfill make real progress (~7 nights for a 4.2k-item
+    # surface backlog at 12k/night) without blocking everything else for the
+    # week. Set to 1.0 to restore the old drain-it-all behaviour.
+    data_gap_healer_dataset_share: float = 0.4
+    # Consecutive nightly no_data verdicts before the scope is auto-caveated.
+    # The audit is a set-difference against the real table, so a date the
+    # provider genuinely cannot serve reappears as a fresh item and is
+    # re-attempted at full cost every night, forever. 0 disables.
+    data_gap_healer_no_data_caveat_after: int = 3
     # Freshness-monitor autoheal: a same-night "second chance" trigger for a
     # table the 20:00 ET gap-healer left frozen (budget exhaustion / a
     # transient failure) -- NOT a substitute for the nightly job, which
@@ -963,6 +976,12 @@ class Settings(BaseModel):
             data_gap_healer_start=os.environ.get("DATA_GAP_HEALER_START", "2026-01-01"),
             data_gap_healer_max_uw_calls=int(
                 os.environ.get("DATA_GAP_HEALER_MAX_UW_CALLS", "20000")
+            ),
+            data_gap_healer_dataset_share=float(
+                os.environ.get("DATA_GAP_HEALER_DATASET_SHARE", "0.4")
+            ),
+            data_gap_healer_no_data_caveat_after=int(
+                os.environ.get("DATA_GAP_HEALER_NO_DATA_CAVEAT_AFTER", "3")
             ),
             data_freshness_autoheal_enabled=_env_bool(
                 "DATA_FRESHNESS_AUTOHEAL_ENABLED", False

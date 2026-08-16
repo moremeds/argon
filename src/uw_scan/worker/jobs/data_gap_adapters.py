@@ -32,6 +32,7 @@ from uw_scan.worker.jobs.uw_alpha_capture import (
 )
 from uw_scan.reports.data_gap_healer import (
     _DATE_COL_PREFERENCE,
+    Caveat,
     _TICKER_COL_PREFERENCE,
     REGISTRY,
     DatasetRegistryEntry,
@@ -44,20 +45,48 @@ _BUCKETS = ("uw", "massive", "external", "db")
 
 
 class RequestBudget:
-    """Per-provider spend tracker. Only UW is capped; the rest are unbounded."""
+    """Per-provider spend tracker. Only UW is capped; the rest are unbounded.
 
-    def __init__(self, uw_cap: int | None) -> None:
+    `dataset_share` additionally caps any SINGLE dataset at that fraction of the
+    UW cap, so one large backlog cannot drain the whole night and leave every
+    other dataset on `skipped_budget`. None/1.0 reproduces the original
+    drain-it-all behaviour exactly.
+    """
+
+    def __init__(
+        self, uw_cap: int | None, *, dataset_share: float | None = None
+    ) -> None:
         self.uw_cap = uw_cap
+        self.dataset_share = dataset_share
         self.spent: dict[str, int] = {b: 0 for b in _BUCKETS}
+        self.by_dataset: dict[str, int] = {}
+        self._current: str | None = None
+
+    def begin_dataset(self, dataset: str) -> None:
+        self._current = dataset
+        self.by_dataset.setdefault(dataset, 0)
+
+    def _slice(self) -> int | None:
+        if self.uw_cap is None or not self.dataset_share or self.dataset_share >= 1:
+            return None
+        return max(1, int(self.uw_cap * self.dataset_share))
 
     def can_spend(self, provider: str, n: int) -> bool:
-        if provider == "uw" and self.uw_cap is not None:
-            return self.spent["uw"] + n <= self.uw_cap
+        if provider != "uw" or self.uw_cap is None:
+            return True
+        if self.spent["uw"] + n > self.uw_cap:
+            return False
+        cap = self._slice()
+        if cap is not None and self._current is not None:
+            if self.by_dataset.get(self._current, 0) + n > cap:
+                return False
         return True
 
     def record(self, provider: str, n: int) -> None:
         if provider in self.spent:
             self.spent[provider] += n
+        if provider == "uw" and self._current is not None:
+            self.by_dataset[self._current] = self.by_dataset.get(self._current, 0) + n
 
     def as_dict(self) -> dict[str, int]:
         return dict(self.spent)
@@ -418,7 +447,6 @@ def _run_grg(ctx: HealContext, ticker: str | None, market_date: date) -> int:
 
     row_id = grg.run(ctx.uw_client(), ctx.repo, ctx.schema, as_of=market_date)
     return 1 if row_id is not None else 0
-
 
 
 # --- lake + UW event-log adapters -------------------------------------------
@@ -794,6 +822,27 @@ def _verify_and_mark(
             it["id"], reason=no_data_reason, actual_requests=spec.est_per_item
         )
         outcome["no_data"] += 1
+        # Only `provider_no_data` qualifies — NEVER no_adapter /
+        # unsupported_granularity / not_recomputed, which are OUR bugs, not the
+        # provider's answer. Caveating those would hide exactly the class of
+        # silent no-op this plan exists to surface.
+        after = getattr(ctx.settings, "data_gap_healer_no_data_caveat_after", 0)
+        if after and no_data_reason == "provider_no_data" and it["data_date"]:
+            prior = ctx.gap.count_recent_no_data(
+                entry.table_name, it["ticker"], it["data_date"], runs=after
+            )
+            if prior >= after:
+                ctx.gap.upsert_caveat(
+                    Caveat(
+                        dataset=entry.table_name,
+                        ticker=it["ticker"],
+                        start_date=it["data_date"],
+                        end_date=it["data_date"],
+                        reason=f"provider returned no data {prior}x consecutively",
+                        source="auto",
+                    )
+                )
+                outcome["auto_caveated"] += 1
 
 
 _DISPATCH = {
@@ -829,6 +878,9 @@ def execute_run(
 
     outcome: Counter[str] = Counter()
     for dataset, items in groups.items():
+        # Reset the per-dataset slice BEFORE the entry/spec lookups, so a
+        # dataset that falls through to no_data still gets its own budget.
+        ctx.budget.begin_dataset(dataset)
         entry = ctx.registry_by_table.get(dataset)
         spec = (
             specs.get(entry.healer_adapter) if entry and entry.healer_adapter else None

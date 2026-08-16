@@ -357,7 +357,12 @@ def _run_nightly(
         gap=gap,
         schema=settings.db_schema,
         today=today,
-        budget=RequestBudget(settings.data_gap_healer_max_uw_calls),
+        # Only the NIGHTLY job is sliced. An operator draining one dataset on
+        # purpose via the CLI should not be.
+        budget=RequestBudget(
+            settings.data_gap_healer_max_uw_calls,
+            dataset_share=settings.data_gap_healer_dataset_share,
+        ),
         settings=settings,
     )
     outcome = execute_run(ctx, run_id, datasets=datasets)

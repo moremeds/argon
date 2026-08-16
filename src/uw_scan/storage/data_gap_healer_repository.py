@@ -322,6 +322,32 @@ class DataGapHealerRepository:
 
     # --- caveats ----------------------------------------------------------
 
+    def count_recent_no_data(
+        self, dataset: str, ticker: str | None, data_date: date, *, runs: int
+    ) -> int:
+        """How many of the last `runs` runs recorded no_data for this scope.
+
+        The audit is a set-difference against the real table, so a date the
+        provider genuinely cannot serve reappears as a fresh item every night
+        and is re-attempted at full cost forever. This is how we notice.
+        """
+        with self._conn.cursor() as cur:
+            cur.execute(
+                """
+                WITH recent AS (
+                    SELECT id FROM data_gap_runs ORDER BY id DESC LIMIT %s
+                )
+                SELECT count(*)::int FROM data_gap_items i
+                 WHERE i.run_id IN (SELECT id FROM recent)
+                   AND i.dataset = %s
+                   AND i.data_date = %s
+                   AND i.status = 'no_data'
+                   AND (%s::text IS NULL OR UPPER(i.ticker) = UPPER(%s))
+                """,
+                (runs, dataset, data_date, ticker, ticker),
+            )
+            return cur.fetchone()[0]
+
     def upsert_caveat(self, cav: Caveat) -> None:
         with self._conn.cursor() as cur:
             cur.execute(
