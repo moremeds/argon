@@ -325,3 +325,44 @@ is stamped from `_date.today()` and therefore mislabels which session it describ
 The lesson for future verification: an anti-fabrication check must scope to the
 dates the replay actually wrote AND attribute by `scan_runs.notes`, because a
 provider-supplied date column will legitimately carry values inside the window.
+
+## The most valuable find: optional bookkeeping could abort the whole heal
+
+Both wide backfill runs died on their **first** `no_data` with
+
+```
+AttributeError: 'DataGapHealerRepository' object has no attribute 'count_recent_no_data'
+```
+
+taking roughly 27,000 queued items down with them. Healed counts plateaued while
+UW spend went flat — the runs looked idle rather than dead, which is how it went
+unnoticed for several minutes.
+
+Two faults, and the second is the one that matters:
+
+1. **Deploy miss.** `data_gap_healer_repository.py` was never copied to those
+   containers, so the method the caveat path calls did not exist there.
+2. **Design defect.** The call was unguarded. The auto-caveat is an
+   *optimisation* — it stops the healer re-trying a scope the provider keeps
+   refusing — and it was able to kill the actual repair work. The missing method
+   was merely today's trigger; any DB error at that point would have done the
+   same.
+
+Fix: the block catches, logs with `repr(exc)`, and continues. The item is still
+recorded as `no_data` and healing proceeds. Two tests cover it, one per failure
+point (`count_recent_no_data` raising, `upsert_caveat` raising), both reproducing
+the production failure before the fix.
+
+**The pattern to watch for.** This is the second instance in one session of
+*optional machinery given power over essential machinery*:
+
+| optional feature | what it could break | how it failed |
+|---|---|---|
+| strict-audit column resolution | the entire dataset's visibility | returned zero gaps, reading as "fully covered" |
+| no-data auto-caveat | all healing, for every dataset | raised out of the run loop |
+
+Both passed their unit tests, because unit tests exercise a feature's happy path
+rather than its blast radius on failure. Only a run against real data — where a
+provider eventually answers "no rows" — put the two on a collision course. A
+feature added to make the healer *more* robust is what made it fragile, and it had
+never once fired in production before this run.
