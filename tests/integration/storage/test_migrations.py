@@ -11,6 +11,8 @@ from __future__ import annotations
 import psycopg  # noqa: F401 — tests below reference psycopg.errors
 import pytest
 
+from uw_scan.storage.migrate_runner import MIGRATIONS_DIR
+
 
 @pytest.fixture
 def fresh_schema(seeded_db_empty_cards):
@@ -347,3 +349,104 @@ def test_trade_insight_ai_analyses_provider_queue_index_exists(fresh_schema):
             "  AND indexname = 'idx_trade_insight_ai_analyses_provider_queue'"
         )
         assert cur.fetchone() is not None
+
+
+_RELEASE_STATUS_INSERT = """
+INSERT INTO uw_scan.macro_release_ingest_status (
+  source, release_key, release_type, status, event_date, event_class,
+  discovery_url, parser_version, last_attempt_at
+) VALUES (
+  'federal_reserve_fomc', %s, %s, 'discovered', DATE '2020-03-23', %s,
+  'https://www.federalreserve.gov/monetarypolicy/fomchistorical2020.htm',
+  'migration-test', now()
+)
+"""
+
+
+def test_migration_rejects_statement_without_event_class(fresh_schema):
+    """A statement is a meeting event and must name which kind it was."""
+    with pytest.raises(psycopg.errors.CheckViolation):
+        with fresh_schema.transaction():
+            fresh_schema.execute(
+                _RELEASE_STATUS_INSERT,
+                ("fomc-statement:monetary20200323a", "statement", None),
+            )
+
+
+def test_migration_rejects_sep_with_event_class(fresh_schema):
+    """A SEP is a publication, not a meeting, so it has no meeting class."""
+    with pytest.raises(psycopg.errors.CheckViolation):
+        with fresh_schema.transaction():
+            fresh_schema.execute(
+                _RELEASE_STATUS_INSERT,
+                ("fed-sep:fomcprojtabl20200610", "sep", "scheduled_meeting"),
+            )
+
+
+def test_migration_rejects_unknown_statement_event_class(fresh_schema):
+    with pytest.raises(psycopg.errors.CheckViolation):
+        with fresh_schema.transaction():
+            fresh_schema.execute(
+                _RELEASE_STATUS_INSERT,
+                ("fomc-statement:monetary20200323a", "statement", "emergency"),
+            )
+
+
+def test_migration_requires_ok_status_to_carry_a_success(fresh_schema):
+    with pytest.raises(psycopg.errors.CheckViolation):
+        with fresh_schema.transaction():
+            fresh_schema.execute(
+                _RELEASE_STATUS_INSERT.replace("'discovered'", "'ok'"),
+                (
+                    "fomc-statement:monetary20200323a",
+                    "statement",
+                    "notation_vote",
+                ),
+            )
+
+
+def test_migration_requires_failed_status_to_carry_an_error(fresh_schema):
+    with pytest.raises(psycopg.errors.CheckViolation):
+        with fresh_schema.transaction():
+            fresh_schema.execute(
+                _RELEASE_STATUS_INSERT.replace("'discovered'", "'failed'"),
+                (
+                    "fomc-statement:monetary20200323a",
+                    "statement",
+                    "notation_vote",
+                ),
+            )
+
+
+def test_migration_is_idempotent_for_macro_release_tables(fresh_schema):
+    """Re-applying the macro migrations must be a no-op, not an error.
+
+    There is no schema_migrations table, so every file is re-executed on every
+    deploy. A non-idempotent statement here would break the migrator on the
+    mini, not just in CI.
+    """
+    for name in (
+        "119_macro_artifact_instant_resolution.sql",
+        "120_macro_release_ingest_status.sql",
+    ):
+        sql = (MIGRATIONS_DIR / name).read_text()
+        with fresh_schema.transaction():
+            fresh_schema.execute(sql)
+
+    with fresh_schema.cursor() as cur:
+        cur.execute(
+            "SELECT to_regclass('uw_scan.macro_release_ingest_status'), "
+            "to_regclass('uw_scan.macro_observation_artifacts')"
+        )
+        assert all(cur.fetchone())
+        cur.execute(
+            "SELECT count(*) FROM pg_constraint "
+            "WHERE conname = 'macro_observations_semantic_hash_format'"
+        )
+        assert cur.fetchone()[0] == 1
+        cur.execute(
+            "SELECT count(*) FROM pg_indexes "
+            "WHERE schemaname = 'uw_scan' "
+            "AND indexname = 'uq_macro_observations_semantic'"
+        )
+        assert cur.fetchone()[0] == 1

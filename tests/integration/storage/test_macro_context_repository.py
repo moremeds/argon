@@ -10,6 +10,7 @@ from psycopg.types.json import Jsonb
 from uw_scan.macro_evidence import (
     macro_artifact_content_identity,
     macro_observation_content_hash,
+    macro_policy_semantic_hash,
 )
 from uw_scan.storage.repository import Repository
 
@@ -787,3 +788,408 @@ def test_latest_macro_observation_as_of_hides_sep_until_release(
     assert after is not None
     assert after["value_numeric"] == Decimal("3.8")
     assert after["source_url"] == "https://example.test/release"
+
+
+_FOMC = "federal_reserve_fomc"
+_STATEMENT_KEY = "fomc-statement:monetary20260429a"
+_ATTEMPT_1 = datetime(2026, 4, 29, 18, 5, tzinfo=UTC)
+_ATTEMPT_2 = datetime(2026, 4, 30, 18, 5, tzinfo=UTC)
+_ATTEMPT_3 = datetime(2026, 5, 1, 18, 5, tzinfo=UTC)
+
+
+def _release_status(repo: Repository, **overrides: object) -> None:
+    kwargs: dict[str, object] = {
+        "source": _FOMC,
+        "release_key": _STATEMENT_KEY,
+        "release_type": "statement",
+        "status": "discovered",
+        "event_date": date(2026, 4, 29),
+        "event_class": "scheduled_meeting",
+        "discovery_url": "https://www.federalreserve.gov/monetarypolicy/fomccalendars.htm",
+        "parser_version": "fomc_statement.v2",
+        "last_attempt_at": _ATTEMPT_1,
+    }
+    kwargs.update(overrides)
+    repo.upsert_macro_release_status(**kwargs)  # type: ignore[arg-type]
+
+
+def _statement_artifact(repo: Repository, *, record_id: str, marker: str) -> int:
+    payload = {"release": marker}
+    content_hash, content_length = macro_artifact_content_identity(raw_json=payload)
+    return repo.insert_macro_artifact(
+        source=_FOMC,
+        source_kind="official",
+        source_record_id=record_id,
+        source_url="https://www.federalreserve.gov/newsevents/monetary20260429a.htm",
+        published_at=datetime(2026, 4, 29, 18, 0, tzinfo=UTC),
+        available_at=datetime(2026, 4, 29, 18, 0, tzinfo=UTC),
+        retrieved_at=datetime(2026, 4, 29, 18, 5, tzinfo=UTC),
+        content_hash=content_hash,
+        parser_version="fomc_statement.v1",
+        quality_status="partial",
+        cost_class="free_official",
+        media_type="application/json",
+        content_length=content_length,
+        raw_json=payload,
+    )
+
+
+def test_release_status_retains_a_past_success_through_a_later_failure(
+    repo: Repository,
+) -> None:
+    """failed -> ok -> failed must not erase that the release once ingested.
+
+    Source-level health collapses to the newest attempt, which is exactly how an
+    outage erases its own evidence. A backfill needs to know this release was
+    good on the 30th even though tonight's run broke.
+    """
+    artifact_id = _statement_artifact(
+        repo, record_id=f"{_STATEMENT_KEY}:html", marker="first"
+    )
+
+    _release_status(
+        repo, status="failed", error_type="NormalizationError", error_message="boom"
+    )
+    first = repo.fetch_macro_release_status(source=_FOMC, release_key=_STATEMENT_KEY)
+    assert first is not None
+    assert first["status"] == "failed"
+    assert first["last_success_at"] is None
+
+    _release_status(
+        repo,
+        status="ok",
+        last_attempt_at=_ATTEMPT_2,
+        artifact_source_record_id=f"{_STATEMENT_KEY}:html",
+        latest_artifact_id=artifact_id,
+        success_artifact_id=artifact_id,
+    )
+    good = repo.fetch_macro_release_status(source=_FOMC, release_key=_STATEMENT_KEY)
+    assert good is not None
+    assert good["status"] == "ok"
+    assert good["last_success_at"] == _ATTEMPT_2
+    assert good["last_success_artifact_id"] == artifact_id
+    assert good["error_type"] is None
+
+    _release_status(
+        repo,
+        status="failed",
+        last_attempt_at=_ATTEMPT_3,
+        error_type="httpx.ConnectError",
+        error_message="publisher unreachable",
+    )
+    after = repo.fetch_macro_release_status(source=_FOMC, release_key=_STATEMENT_KEY)
+    assert after is not None
+    assert after["status"] == "failed"
+    assert after["last_attempt_at"] == _ATTEMPT_3
+    # The success survives the failure.
+    assert after["last_success_at"] == _ATTEMPT_2
+    assert after["last_success_artifact_id"] == artifact_id
+
+
+def test_release_statuses_are_independent_within_one_source(repo: Repository) -> None:
+    _release_status(repo, status="discovered")
+    _release_status(
+        repo,
+        release_key="fomc-statement:monetary20260617a",
+        event_date=date(2026, 6, 17),
+        status="failed",
+        error_type="NormalizationError",
+        error_message="unreadable",
+    )
+
+    rows = repo.fetch_macro_release_statuses(sources=[_FOMC])
+    assert {row["release_key"]: row["status"] for row in rows} == {
+        _STATEMENT_KEY: "discovered",
+        "fomc-statement:monetary20260617a": "failed",
+    }
+    failed = repo.fetch_macro_release_statuses(sources=[_FOMC], statuses=["failed"])
+    assert [row["release_key"] for row in failed] == [
+        "fomc-statement:monetary20260617a"
+    ]
+
+
+def test_release_status_errors_are_bounded(repo: Repository) -> None:
+    _release_status(
+        repo,
+        status="failed",
+        error_type="E" * 500,
+        error_message="m" * 5000,
+    )
+    row = repo.fetch_macro_release_status(source=_FOMC, release_key=_STATEMENT_KEY)
+    assert row is not None
+    assert len(row["error_type"]) == 200
+    assert len(row["error_message"]) == 1000
+
+
+@pytest.mark.parametrize(
+    ("overrides", "message"),
+    [
+        ({"release_type": "sep"}, "no event_class"),
+        ({"event_class": None}, "known event_class"),
+        ({"status": "ok"}, "success_artifact_id"),
+        ({"status": "failed"}, "requires error_type"),
+        ({"status": "artifact_only"}, "latest_artifact_id"),
+        ({"status": "reticulating"}, "unknown macro release status"),
+        (
+            {"last_attempt_at": datetime(2026, 4, 29, 18, 5)},
+            "timezone-aware",
+        ),
+    ],
+)
+def test_release_status_rejects_invalid_combinations(
+    repo: Repository, overrides: dict[str, object], message: str
+) -> None:
+    with pytest.raises(ValueError, match=message):
+        _release_status(repo, **overrides)
+
+
+def test_release_status_cannot_point_at_another_sources_artifact(
+    repo: Repository,
+) -> None:
+    """The composite FK stops a surrogate id crossing a source boundary."""
+    foreign_id = _insert_artifact(repo)  # source='BLS'
+
+    with pytest.raises(psycopg.errors.ForeignKeyViolation):
+        with repo.conn.transaction():
+            _release_status(
+                repo,
+                status="artifact_only",
+                artifact_source_record_id="cpi-2026-02-12",
+                latest_artifact_id=foreign_id,
+            )
+
+
+def _policy_row(
+    artifact_id: int,
+    *,
+    record_id: str = f"{_STATEMENT_KEY}:html",
+    rate: str = "3.625",
+    **overrides: object,
+) -> dict:
+    row: dict[str, object] = {
+        "artifact_id": artifact_id,
+        "domain": "policy_rates",
+        "series_id": "POLICY_PATH_ACTUAL",
+        "period_end": date(2026, 4, 29),
+        "frequency": "event",
+        "unit": "policy_path_json",
+        "value_numeric": None,
+        "value_text": None,
+        "value_json": {"kind": "actual", "points": [{"rate_percent": rate}]},
+        "source": _FOMC,
+        # The FK ties source_record_id to ONE artifact, so it differs between the
+        # HTML and PDF of a single release; release_key is what they share.
+        "source_record_id": record_id,
+        "release_key": _STATEMENT_KEY,
+        "published_at": datetime(2026, 4, 29, 18, 0, tzinfo=UTC),
+        "available_at": datetime(2026, 4, 29, 18, 0, tzinfo=UTC),
+        "parser_version": "fomc_statement.v2",
+        "quality_status": "partial",
+        "cost_class": "free_official",
+    }
+    row.update(overrides)
+    return row
+
+
+def test_same_fact_from_different_bytes_is_one_observation_with_two_witnesses(
+    repo: Repository,
+) -> None:
+    """The publisher serves one release as several exact artifacts.
+
+    HTML and PDF of the same statement, or a cosmetic markup reissue, are
+    different bytes carrying an identical committee decision. Under the general
+    MC0 identity -- which includes artifact_id -- each would become a separate
+    observation and the policy path would show phantom vintages.
+    """
+    html_id = _statement_artifact(
+        repo, record_id=f"{_STATEMENT_KEY}:html", marker="html"
+    )
+    pdf_id = _statement_artifact(repo, record_id=f"{_STATEMENT_KEY}:pdf", marker="pdf")
+    assert html_id != pdf_id
+
+    seen = datetime(2026, 4, 29, 18, 5, tzinfo=UTC)
+    obs_id, created = repo.upsert_macro_policy_observation(
+        _policy_row(html_id), seen_at=seen
+    )
+    assert created is True
+
+    later = datetime(2026, 4, 30, 18, 5, tzinfo=UTC)
+    same_id, created_again = repo.upsert_macro_policy_observation(
+        _policy_row(pdf_id, record_id=f"{_STATEMENT_KEY}:pdf"), seen_at=later
+    )
+
+    assert same_id == obs_id
+    assert created_again is False
+    assert repo.fetch_macro_observation_artifacts(obs_id) == [
+        {"artifact_id": html_id, "relation": "parsed_from"},
+        {"artifact_id": pdf_id, "relation": "corroborates"},
+    ]
+    rows = repo.fetch_macro_observation_history("POLICY_PATH_ACTUAL", date(2026, 4, 29))
+    assert len(rows) == 1
+    assert rows[0]["last_seen_at"] == later
+
+
+def test_a_changed_fact_creates_a_second_policy_observation(repo: Repository) -> None:
+    html_id = _statement_artifact(
+        repo, record_id=f"{_STATEMENT_KEY}:html", marker="html"
+    )
+    corrected_id = _statement_artifact(
+        repo, record_id=f"{_STATEMENT_KEY}:corrected", marker="corrected"
+    )
+    seen = datetime(2026, 4, 29, 18, 5, tzinfo=UTC)
+
+    first, _ = repo.upsert_macro_policy_observation(_policy_row(html_id), seen_at=seen)
+    second, created = repo.upsert_macro_policy_observation(
+        _policy_row(
+            corrected_id, record_id=f"{_STATEMENT_KEY}:corrected", rate="3.875"
+        ),
+        seen_at=seen,
+    )
+
+    assert created is True
+    assert second != first
+    assert (
+        len(repo.fetch_macro_observation_history("POLICY_PATH_ACTUAL", date(2026, 4, 29)))
+        == 2
+    )
+
+
+def test_a_corrected_semantic_parser_creates_a_second_policy_observation(
+    repo: Repository,
+) -> None:
+    """Reparsing identical bytes with fixed code is a new fact, not the old one."""
+    html_id = _statement_artifact(
+        repo, record_id=f"{_STATEMENT_KEY}:html", marker="html"
+    )
+    seen = datetime(2026, 4, 29, 18, 5, tzinfo=UTC)
+
+    first, _ = repo.upsert_macro_policy_observation(_policy_row(html_id), seen_at=seen)
+    second, created = repo.upsert_macro_policy_observation(
+        _policy_row(html_id, parser_version="fomc_statement.v3"), seen_at=seen
+    )
+
+    assert created is True
+    assert second != first
+
+
+def test_non_policy_series_keep_their_mc0_identity(repo: Repository) -> None:
+    """Migration 120 must not change how every other macro series is identified."""
+    artifact_id = _insert_artifact(repo)
+    repo.insert_macro_observations(
+        [_observation(artifact_id)],
+        seen_at=datetime(2026, 2, 12, 13, 31, tzinfo=UTC),
+    )
+
+    rows = repo.fetch_macro_observation_history("CPI_ALL_ITEMS", date(2026, 1, 31))
+    assert len(rows) == 1
+    assert rows[0]["semantic_hash"] is None
+    assert rows[0]["content_hash"] == macro_observation_content_hash(
+        _observation(artifact_id)
+    )
+
+
+def test_database_recomputes_the_policy_semantic_hash(repo: Repository) -> None:
+    """Direct SQL must not be able to assert a false semantic identity."""
+    artifact_id = _statement_artifact(
+        repo, record_id=f"{_STATEMENT_KEY}:html", marker="html"
+    )
+    obs_id, _ = repo.upsert_macro_policy_observation(
+        _policy_row(artifact_id), seen_at=datetime(2026, 4, 29, 18, 5, tzinfo=UTC)
+    )
+
+    with pytest.raises(psycopg.errors.CheckViolation, match="semantic_hash"):
+        with repo.conn.transaction():
+            repo.conn.execute(
+                "UPDATE uw_scan.macro_observations SET semantic_hash = %s "
+                "WHERE obs_id = %s",
+                ("0" * 64, obs_id),
+            )
+
+
+def test_policy_lineage_is_immutable(repo: Repository) -> None:
+    artifact_id = _statement_artifact(
+        repo, record_id=f"{_STATEMENT_KEY}:html", marker="html"
+    )
+    obs_id, _ = repo.upsert_macro_policy_observation(
+        _policy_row(artifact_id), seen_at=datetime(2026, 4, 29, 18, 5, tzinfo=UTC)
+    )
+
+    with pytest.raises(psycopg.errors.CheckViolation, match="lineage is immutable"):
+        with repo.conn.transaction():
+            repo.conn.execute(
+                "DELETE FROM uw_scan.macro_observation_artifacts WHERE obs_id = %s",
+                (obs_id,),
+            )
+
+
+def test_policy_semantic_hash_matches_between_python_and_postgres(
+    repo: Repository,
+) -> None:
+    """Two implementations of one identity must agree byte-for-byte.
+
+    The Python side decides idempotency before the write; the SQL side is the
+    authority that direct SQL cannot bypass. If they canonicalize differently --
+    key order, non-ASCII escaping, numeric trimming -- the same fact hashes two
+    ways and the partial unique index stops preventing anything.
+    """
+    artifact_id = _statement_artifact(
+        repo, record_id=f"{_STATEMENT_KEY}:html", marker="html"
+    )
+    row = _policy_row(
+        artifact_id,
+        value_json={
+            "黄金": "x",
+            "a": 1,
+            "B": 2,
+            "nested": {"Z": 6, "é": 3},
+            "decimals": ["3.500", "-0.0", "0.25"],
+            "flags": [True, False, None],
+        },
+    )
+    obs_id, created = repo.upsert_macro_policy_observation(
+        row, seen_at=datetime(2026, 4, 29, 18, 5, tzinfo=UTC)
+    )
+    assert created is True
+
+    stored = repo.conn.execute(
+        "SELECT semantic_hash, uw_scan.macro_policy_semantic_hash("
+        "  domain, frequency, parser_version, period_end, published_at,"
+        "  release_key, series_id, source, unit,"
+        "  value_numeric, value_text, value_jsonb"
+        ") FROM uw_scan.macro_observations WHERE obs_id = %s",
+        (obs_id,),
+    ).fetchone()
+    assert stored is not None
+    python_hash, postgres_hash = stored
+    assert python_hash == postgres_hash == macro_policy_semantic_hash(row)
+
+
+def test_policy_semantic_hash_rejects_nonfinite_numeric(repo: Repository) -> None:
+    artifact_id = _statement_artifact(
+        repo, record_id=f"{_STATEMENT_KEY}:html", marker="html"
+    )
+    row = _policy_row(artifact_id, value_json=None, value_numeric=Decimal("NaN"))
+
+    with pytest.raises(ValueError, match="finite"):
+        repo.upsert_macro_policy_observation(
+            row, seen_at=datetime(2026, 4, 29, 18, 5, tzinfo=UTC)
+        )
+
+
+def test_policy_semantic_hash_ignores_the_artifact_and_availability(
+    repo: Repository,
+) -> None:
+    """The two fields that make MC0 byte-dependent must not enter this identity."""
+    base = _policy_row(1)
+    moved = {
+        **base,
+        "artifact_id": 99,
+        "available_at": datetime(2026, 5, 1, 12, 0, tzinfo=UTC),
+    }
+
+    assert macro_policy_semantic_hash(base) == macro_policy_semantic_hash(moved)
+    # ...while the general MC0 identity does change, which is why policy needs
+    # its own.
+    assert macro_observation_content_hash(base) != macro_observation_content_hash(
+        moved
+    )

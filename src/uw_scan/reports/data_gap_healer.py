@@ -481,6 +481,29 @@ REGISTRY: list[DatasetRegistryEntry] = [
         ),
     ),
     DatasetRegistryEntry(
+        "macro_release_ingest_status",
+        "macro_evidence",
+        "operational_state",
+        expected_frequency="liveness",
+        source_system="multi-source",
+        reason=(
+            "latest ingest outcome per individual release; describes our attempts, "
+            "never what the publisher said, so it is not a substitute for immutable "
+            "release evidence and must not be backfilled"
+        ),
+    ),
+    DatasetRegistryEntry(
+        "macro_observation_artifacts",
+        "macro_evidence",
+        "provenance",
+        expected_frequency="none",
+        source_system="multi-source",
+        reason=(
+            "immutable lineage linking an observation to the exact artifacts that "
+            "witness it; synthesizing a link would fabricate evidence"
+        ),
+    ),
+    DatasetRegistryEntry(
         "ws_consumer_state",
         "operational_provenance",
         "operational_state",
