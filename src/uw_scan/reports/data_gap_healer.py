@@ -1040,6 +1040,19 @@ def discover_unregistered_tables(
 # full-watchlist phantom gap for every ticker missing that bar. Limitation: the
 # window cannot extend before the reference table's earliest date (YTD scope).
 _REFERENCE_CALENDAR = ("market_tide_sentiment_daily", "data_date")
+# Second, independently-sourced witness. massive publishes SPY bars only on
+# real sessions, so unioning it cannot manufacture a weekend/holiday entry —
+# and because it is a DIFFERENT provider from UW, a UW outage cannot blind it.
+_SPINE_WITNESS = ("daily_ohlc", "date", "ticker", "SPY")
+
+
+@dataclass(frozen=True)
+class SpineHealth:
+    """How much of the expected-session spine the reference table is missing."""
+
+    ref_sessions: int
+    witness_sessions: int
+    missing_from_ref: tuple[date, ...]
 
 
 def _detect_col(
@@ -1066,26 +1079,70 @@ def _calendar_dates(
     start: date,
     end: date,
 ) -> list[date]:
-    """Trading-day calendar in [start, end] from the clean session reference.
+    """Trading-day calendar in [start, end] from two independent witnesses.
 
-    No self-union: the reference (market_tide_sentiment_daily) is the sole
-    source of expected sessions, so weekends/holidays never enter. A dataset
-    row on a non-trading day no longer manufactures a phantom calendar entry.
+    The reference (market_tide_sentiment_daily) is itself CAPTURED, so an
+    outage that stops capture also erases the evidence of the outage and every
+    dataset then audits as 100% covered for exactly the days that were lost
+    (measured 2026-08-16: 1,276 gaps reported vs 8,080 real). SPY's massive
+    OHLC is the second witness: different provider, session-only bars, and
+    already healable via the `daily_ohlc` adapter.
+
+    A phantom session (a witness bar on a non-trading day) is handled by a
+    Caveat row, not by code — see SEED_CAVEATS.
     """
     ref_tbl, ref_col = _REFERENCE_CALENDAR
+    wit_tbl, wit_col, wit_tcol, wit_ticker = _SPINE_WITNESS
     query = psql.SQL(
         """
-        SELECT DISTINCT {rcol} AS d FROM {rtbl}
-         WHERE {rcol} BETWEEN %s AND %s AND {rcol} IS NOT NULL
-         ORDER BY d
+        SELECT d FROM (
+            SELECT DISTINCT {rcol} AS d FROM {rtbl}
+             WHERE {rcol} BETWEEN %s AND %s AND {rcol} IS NOT NULL
+            UNION
+            SELECT DISTINCT {wcol} AS d FROM {wtbl}
+             WHERE {wcol} BETWEEN %s AND %s AND UPPER({wtcol}) = %s
+        ) spine ORDER BY d
         """
     ).format(
         rcol=psql.Identifier(ref_col),
         rtbl=psql.Identifier(schema, ref_tbl),
+        wcol=psql.Identifier(wit_col),
+        wtbl=psql.Identifier(schema, wit_tbl),
+        wtcol=psql.Identifier(wit_tcol),
     )
     with conn.cursor() as cur:
-        cur.execute(query, (start, end))
+        cur.execute(query, (start, end, start, end, wit_ticker))
         return [r[0] for r in cur.fetchall()]
+
+
+def spine_health(conn: Connection, schema: str, start: date, end: date) -> SpineHealth:
+    """Sessions the witness has that the reference lost — the outage signature."""
+    ref_tbl, ref_col = _REFERENCE_CALENDAR
+    wit_tbl, wit_col, wit_tcol, wit_ticker = _SPINE_WITNESS
+    with conn.cursor() as cur:
+        cur.execute(
+            psql.SQL(
+                "SELECT DISTINCT {rcol} FROM {rtbl} "
+                "WHERE {rcol} BETWEEN %s AND %s AND {rcol} IS NOT NULL"
+            ).format(
+                rcol=psql.Identifier(ref_col), rtbl=psql.Identifier(schema, ref_tbl)
+            ),
+            (start, end),
+        )
+        ref = {r[0] for r in cur.fetchall()}
+        cur.execute(
+            psql.SQL(
+                "SELECT DISTINCT {wcol} FROM {wtbl} "
+                "WHERE {wcol} BETWEEN %s AND %s AND UPPER({wtcol}) = %s"
+            ).format(
+                wcol=psql.Identifier(wit_col),
+                wtbl=psql.Identifier(schema, wit_tbl),
+                wtcol=psql.Identifier(wit_tcol),
+            ),
+            (start, end, wit_ticker),
+        )
+        wit = {r[0] for r in cur.fetchall()}
+    return SpineHealth(len(ref), len(wit), tuple(sorted(wit - ref)))
 
 
 def _missing_ticker_date_pairs(

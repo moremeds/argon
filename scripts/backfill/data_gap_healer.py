@@ -83,6 +83,33 @@ def _print_summary(args, run_id, items, per_dataset, *, header) -> None:
             )
 
 
+def _warn_if_spine_degraded(conn, schema: str, start: date, end: date) -> None:
+    """Print a loud banner when the reference calendar lost sessions.
+
+    The union in `_calendar_dates` keeps THIS audit correct, but every other
+    report that reads market_tide_sentiment_daily is still blind until the
+    reference itself is rebuilt.
+    """
+    from uw_scan.reports.data_gap_healer import _REFERENCE_CALENDAR, spine_health
+
+    health = spine_health(conn, schema, start, end)
+    if not health.missing_from_ref:
+        return
+    ref_name = _REFERENCE_CALENDAR[0]
+    print(
+        f"!! SPINE DEGRADED: {ref_name} is missing "
+        f"{len(health.missing_from_ref)} session(s) the SPY witness has: "
+        + ", ".join(d.isoformat() for d in health.missing_from_ref)
+    )
+    print(
+        "!! The union keeps this audit correct, but rebuild the reference "
+        "before trusting any OTHER report:\n"
+        "     uv run python scripts/backfill/market_tide_backfill.py "
+        "--confirm --sessions 10\n"
+        "     uv run python scripts/backfill/market_tide_sentiment_backfill.py"
+    )
+
+
 def cmd_audit(args: argparse.Namespace, settings: Settings) -> int:
     repo, gap = _open(settings)
     try:
@@ -97,6 +124,7 @@ def cmd_audit(args: argparse.Namespace, settings: Settings) -> int:
             return 1 if missing else 0
         start = _parse_date(args.start)
         end = _parse_date(args.end) if args.end else date.today()
+        _warn_if_spine_degraded(repo.conn, settings.db_schema, start, end)
         run_id, summaries, items = audit_into_run(
             repo,
             gap,
