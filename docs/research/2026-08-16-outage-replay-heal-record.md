@@ -301,3 +301,27 @@ Three dispositions, for the operator to choose:
 
 Recommendation: (2) unless Jan–May options history is wanted for research, because
 the outage repair — the thing that actually broke — is already complete.
+
+## A false positive in the verification, and why it is not one
+
+The final anti-fabrication sweep flagged `short_interest_snapshots` with 170 rows
+inside 2026-08-11..14 — a refused dataset appearing to have been written. It had
+not been. Attribution:
+
+| fact | value |
+|---|---|
+| rows dated 2026-08-14 | 170 |
+| when they were written | 2026-08-16 06:44–06:51 UTC (the Sunday live scan) |
+| heal start | ~2026-08-16 15:00 UTC |
+| rows written since heal start | **0** |
+| rows from a `pipeline_replay` scan_run | **0** |
+
+The refusal guard held. The query was simply too broad: `snapshot_at` on this table
+is **provider-supplied**, not stamped by us, so a Sunday scan legitimately writes a
+row carrying the previous Friday's snapshot date. That is honest data — and it is
+precisely the opposite of the `exposures_summary` weekend case above, where the row
+is stamped from `_date.today()` and therefore mislabels which session it describes.
+
+The lesson for future verification: an anti-fabrication check must scope to the
+dates the replay actually wrote AND attribute by `scan_runs.notes`, because a
+provider-supplied date column will legitimately carry values inside the window.
