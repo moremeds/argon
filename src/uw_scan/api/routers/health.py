@@ -288,6 +288,7 @@ def _provider_ai_health(
     repo: Repository,
     now_utc: datetime,
     provider: str,
+    enabled: bool,
     expected_count: int,
     fresh_window: timedelta,
 ) -> "TradeInsightsAiProviderHealth":
@@ -296,6 +297,15 @@ def _provider_ai_health(
     Looks up the provider-pinned heartbeat key (e.g. trade_insights_ai_tick_codex);
     falls back to the legacy key when the provider-pinned worker hasn't started
     yet. Healthiness is binary per pool — exact worker count isn't tracked yet.
+
+    A provider whose kill switch is off expects ZERO workers. The worker-count
+    setting describes pool width when the provider runs; it is not a claim that
+    the provider runs at all. Reading it unconditionally reported codex/claude as
+    0-of-2 healthy from the 2026-07-08 Docker cutover onward, because the
+    containerized deployment deliberately runs neither (only DeepSeek survives —
+    the CLI runners need subprocess + keychain OAuth) while
+    TRADE_INSIGHTS_AI_{,CLAUDE_}ENABLED=false in /opt/argon/.env already said so.
+    A health block that is permanently wrong trains the reader to ignore it.
     """
     pinned_key = f"trade_insights_ai_tick_{provider}"
     legacy_key = "trade_insights_ai_tick"
@@ -303,9 +313,10 @@ def _provider_ai_health(
     beat = heartbeats.get(pinned_key) or heartbeats.get(legacy_key)
     pool_alive = beat is not None and (now_utc - beat) < fresh_window
     depth = repo.count_queued_trade_insight_ai_analyses_by_provider(provider)
+    expected = expected_count if enabled else 0
     return TradeInsightsAiProviderHealth(
-        workers_expected=expected_count,
-        workers_healthy=expected_count if pool_alive else 0,
+        workers_expected=expected,
+        workers_healthy=expected if pool_alive else 0,
         queued_depth=depth,
         last_beat_at=beat,
     )
@@ -555,6 +566,7 @@ def health(
             repo=repo,
             now_utc=now_utc,
             provider="codex",
+            enabled=settings.trade_insights_ai_enabled,
             expected_count=settings.trade_insights_ai_codex_worker_count,
             fresh_window=ai_fresh_window,
         ),
@@ -562,6 +574,7 @@ def health(
             repo=repo,
             now_utc=now_utc,
             provider="claude",
+            enabled=settings.trade_insights_ai_claude_enabled,
             expected_count=settings.trade_insights_ai_claude_worker_count,
             fresh_window=ai_fresh_window,
         ),
@@ -569,6 +582,7 @@ def health(
             repo=repo,
             now_utc=now_utc,
             provider="deepseek",
+            enabled=settings.trade_insights_ai_deepseek_enabled,
             expected_count=settings.trade_insights_ai_deepseek_worker_count,
             fresh_window=ai_fresh_window,
         ),
