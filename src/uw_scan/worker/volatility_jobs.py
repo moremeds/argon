@@ -26,11 +26,17 @@ def daily_spy_ohlc_refresh(
     api_key: str,
     tz: str = "America/New_York",
     telemetry_recorder: ExternalApiRequestRecorder | None = None,
+    lookback_days: int = 2,
 ) -> None:
     """ET-anchored — host may live in any timezone (e.g. HKT), so date.today()
-    would compute the wrong market date around the rollover (review I8)."""
+    would compute the wrong market date around the rollover (review I8).
+
+    ``lookback_days`` defaults to the original hardcoded 2-day window, so the
+    scheduler's call is unchanged; the gap healer passes a wider one to reach
+    an older hole.
+    """
     today = datetime.now(ZoneInfo(tz)).date()
-    start = today - timedelta(days=2)
+    start = today - timedelta(days=max(2, lookback_days))
     with MassiveOhlcProvider(
         api_key=api_key,
         telemetry_recorder=telemetry_recorder,

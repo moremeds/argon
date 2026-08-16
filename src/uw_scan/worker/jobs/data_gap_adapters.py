@@ -26,6 +26,10 @@ from datetime import date
 
 from psycopg import sql as psql
 
+from uw_scan.worker.jobs.uw_alpha_capture import (
+    capture_dark_lit_for,
+    capture_intraday_flow_for,
+)
 from uw_scan.reports.data_gap_healer import (
     _DATE_COL_PREFERENCE,
     _TICKER_COL_PREFERENCE,
@@ -416,7 +420,109 @@ def _run_grg(ctx: HealContext, ticker: str | None, market_date: date) -> int:
     return 1 if row_id is not None else 0
 
 
+
+# --- lake + UW event-log adapters -------------------------------------------
+
+
+def _run_vol_index_lake(ctx: HealContext, lookback_days: int) -> int:
+    """BOTH lake syncs write vol_index_daily — a registry entry names exactly one
+    adapter, so one adapter must run both. Idempotent and full-range;
+    lookback_days is unused.
+
+    Roots come from resolve_lake_root(asset_class=...), NOT
+    settings.market_warehouse_lake_root — config.py documents that field as the
+    root of the WHOLE lake, distinct from the two asset-class roots, which point
+    at specific bronze partitions. Mirrors the scheduler's own call sites.
+    """
+    from uw_scan.sources.lake_resolver import resolve_lake_root
+    from uw_scan.worker.jobs import credit_etf_lake_sync, vol_index_lake_sync
+
+    vol = vol_index_lake_sync.run_vol_index_lake_sync(
+        ctx.repo.conn,
+        root=resolve_lake_root(ctx.settings, asset_class="volatility"),
+    )
+    credit = credit_etf_lake_sync.run_credit_etf_lake_sync(
+        ctx.repo.conn,
+        root=resolve_lake_root(ctx.settings, asset_class="equity"),
+        symbols=ctx.settings.credit_etf_symbols,
+    )
+    return int(vol.get("rows", 0)) + int(credit.get("rows", 0))
+
+
+def _run_index_ohlc(ctx: HealContext, lookback_days: int) -> int:
+    """index_ohlc_daily comes from daily_spy_ohlc_refresh, NOT the lake syncs.
+
+    Returns 0 because the writer returns None; verification is by row presence,
+    which is what _verify_covered checks anyway.
+    """
+    from uw_scan.worker.volatility_jobs import daily_spy_ohlc_refresh
+
+    if ctx.settings.massive_api_key is None:
+        raise RuntimeError("MASSIVE_API_KEY not set; index_ohlc heal unavailable")
+    daily_spy_ohlc_refresh(
+        repo=ctx.repo,
+        api_key=ctx.settings.massive_api_key.get_secret_value(),
+        lookback_days=max(2, lookback_days),
+    )
+    return 0
+
+
+def _eventlog_heal(capture_fn):
+    """Both UW event logs share one shape: (ticker, date) -> one capture call.
+
+    `scripts/backfill/uw_alpha_catchup.py` already maps dataset -> capture fn in
+    its own table; these adapters call the SAME production functions, so there
+    is still exactly one writer and the CLI needs no change.
+    """
+
+    def _run(ctx: HealContext, ticker: str, market_date: date) -> int:
+        run_id = ctx.repo.insert_scan_run(ticker, notes="data_gap_healer:eventlog")
+        try:
+            written = capture_fn(
+                ctx.uw_client(),
+                ctx.repo,
+                _uw_alpha_repo(ctx),
+                run_id,
+                ticker,
+                market_date,
+            )
+            ctx.repo.finish_scan_run(run_id, status="ok")
+            return int(written)
+        except Exception as exc:  # noqa: BLE001
+            ctx.repo.finish_scan_run(run_id, status="error")
+            logger.warning(
+                "eventlog heal failed %s %s: %s", ticker, market_date, repr(exc)
+            )
+            raise
+
+    return _run
+
+
 HEAL_SPECS: dict[str, HealSpec] = {
+    "vol_index_lake": HealSpec(
+        "vol_index_lake",
+        "db",
+        "run_once_lookback",
+        _run_vol_index_lake,
+        est_per_item=0,
+    ),
+    "index_ohlc": HealSpec(
+        "index_ohlc", "massive", "run_once_lookback", _run_index_ohlc, est_per_item=1
+    ),
+    "uw_alpha_intraday_flow": HealSpec(
+        "uw_alpha_intraday_flow",
+        "uw",
+        "per_ticker_date",
+        _eventlog_heal(capture_intraday_flow_for),
+        est_per_item=2,
+    ),
+    "uw_alpha_dark_lit": HealSpec(
+        "uw_alpha_dark_lit",
+        "uw",
+        "per_ticker_date",
+        _eventlog_heal(capture_dark_lit_for),
+        est_per_item=2,
+    ),
     "grg_as_of": HealSpec(
         "grg_as_of", "uw", "per_ticker_date", _run_grg, est_per_item=2
     ),
