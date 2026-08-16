@@ -94,7 +94,37 @@ with psycopg.connect(s.db_dsn(), connect_timeout=15) as c, c.cursor() as cur:
 Progress observed: 3 → 167 → 183 tickers. **If the ticker count is stuck and no
 process is running, just re-run step 2.**
 
-### Step 3 — refresh: routing → method version → scores → bands — NOT YET RUN
+Completed: `{'tickers': 257, 'inserted': 62164, 'touched': 0, 'violations': 724,
+'failed': 0}` — 62,164 rows, 257/257 tickers, period_end 2001-08-31 → 2026-07-31,
+~1,030 UW calls (daily counter moved 28.3k → 29.3k of 120k). The 724 violations
+are the validation gate recording rows in `fundamental_obs_violations`, not
+failures; `failed` is 0.
+
+### Step 2b — seed the method version — DONE (this step was NOT in the original plan)
+
+**`fundamental_refresh` does NOT create the method version.** The first refresh
+run failed with:
+
+```
+ERROR fundamental_scoring: no active method version —
+      seed one with scripts/seed_fundamental_method.py before scoring
+WARNING anchors: no active method version, nothing computed
+```
+
+Routing succeeded (257 seen), scoring and anchors both produced nothing. The
+missing step:
+
+```bash
+uv run python scripts/seed_fundamental_method.py            # --show to inspect
+```
+
+Registers three versions and activates one: **`v1_equal` →
+`fundamentals-v1:77aea364`** (equal weight across the seven features — the
+construction carrying the validated IC 0.039 leak-free, t 2.67). `v1_rubric` and
+`v1_no_margins` register INACTIVE so a later sweep has them in the same schema
+with no risk of one being quoted as validated.
+
+### Step 3 — refresh: routing → scores → bands — DONE
 
 ```bash
 uv run python -c "
@@ -121,7 +151,22 @@ laptop's mirror. The mini's own lake mount is unverified (no SSH).
 
 ---
 
-## 3. What to verify when it is done
+Result:
+
+```
+routing  {'seen': 257, 'routed': 57, 'changed': 257, 'defaulted': 200}
+scoring  {'buckets': 84, 'scored': 20563, 'inserted': 20563, 'skipped_thin': 15}
+anchors  {'considered': 257, 'unrouted': 0, 'no_prices': 3, 'no_fx': 1,
+          'converted': 3, 'banded': 233, 'refused': 20, 'written': 254}
+```
+
+**233 banded matches the CHANGELOG's "reaches 233 of 257 names" exactly.** 200 of
+257 route to `unclassified` because they carry no sector anywhere in the DB —
+expected, and the reason `unclassified` routes to `sales_to_ev`. `fx TWD -> 0
+observations` is the known ADR currency gap (TSM files TWD, trades USD); it
+accounts for the single `no_fx`.
+
+## 3. What to verify when it is done — VERIFIED 2026-08-16
 
 ```bash
 uv run python -c "
@@ -219,3 +264,27 @@ is how a real one went unnoticed for five days.
   geography 128/401. Computable, still **not** an edge.
 - Cluster verdict: `docs/research/2026-08-13-ai-capex-demand-ledger/CLUSTER-VERDICT.md`
 - Branch `misc/capex-demand-ledger` — research commits, **no PR opened yet**.
+
+### Measured outcome — 2026-08-16, prod
+
+| | expected | actual | |
+|---|---|---|---|
+| universe (rows / distinct) | 282 / 257 | **282 / 257** | ✅ |
+| statement rows / tickers | ~63k / 257 | **62,164 / 257** | ✅ |
+| method_versions / method_state | 3 / 1 | **3 / 1** | ✅ |
+| company_type | 257 | **257** | ✅ |
+| score rows / scored tickers | — / 257 | **20,563 / 257** | ✅ zero scoring failures |
+| valuation_anchors tickers | ~254 | **254** | ✅ matches local exactly |
+
+Both endpoints return **200**: `/api/stock/NVDA/fundamentals` (composite 0.2882,
+with `composite_series`, `composite_percentile`, `subscores`, `anchors`,
+`coverage`, `provenance`) and `/api/stock/NVDA/fundamentals/statements`.
+
+**The fundamentals card is live on prod.** The 503 is gone.
+
+Open question #3 in the lane plan — "is `valuation_anchors` accruing?" — is now
+partly answered: it was empty because **nothing had ever populated the lane**, not
+because the job was broken. The job works. Whether it *accrues daily* still needs
+one more observation: check that `count(distinct as_of)` in `valuation_anchors`
+grows by one after the mini's next 18:20 ET `fundamental_refresh`. That run also
+tests the mini's own parquet lake mount, which this laptop-side run bypassed.
