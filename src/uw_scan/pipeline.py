@@ -177,7 +177,6 @@ def run_single_stock(
         # flow_events is an append-only event log maintained by the uw-alpha
         # capture path and was never lost in the outage, so a replay would only
         # duplicate rows it already holds.
-        ticker_alerts = []
         if not replay:
             flow_alerts = uw_sources.fetch_flow_alerts(
                 client, repo, run_id, ticker, limit=FLOW_ALERT_LIMIT
@@ -471,14 +470,16 @@ def run_single_stock(
             # decision surface, so replays do not emit them.
             settings = _cached_scanner_settings()
             signals_repo = SignalsRepository(repo.conn, schema=settings.db_schema)
-            candidate = None if replay else run_scanner_detectors(
-                repo=repo,
-                signals_repo=signals_repo,
-                settings=settings,
-                run_id=run_id,
-                ticker=ticker,
-                today=_date.today(),
-            )
+            candidate = None
+            if not replay:
+                candidate = run_scanner_detectors(
+                    repo=repo,
+                    signals_repo=signals_repo,
+                    settings=settings,
+                    run_id=run_id,
+                    ticker=ticker,
+                    today=_date.today(),
+                )
             if candidate is not None:
                 logger.info(
                     "scanner: %s run_id=%d emitted candidate (type_f=%s, final=%s)",

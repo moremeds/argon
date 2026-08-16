@@ -8,10 +8,6 @@ from __future__ import annotations
 
 import logging
 from datetime import UTC, date, datetime
-
-# Alias for signatures that already bind a parameter named `date` (the UW
-# string form) and still need the datetime.date type for `market_date`.
-_date_type = date
 from decimal import Decimal, InvalidOperation
 from typing import Any
 from zoneinfo import ZoneInfo
@@ -54,6 +50,10 @@ from ..models import (
 )
 from ..storage.repository import Repository
 from ..storage.uw_fetch_memo import UwFetchMemoRepository
+
+# Alias for signatures that already bind a parameter named `date` (the UW
+# string form) and still need the datetime.date type for `market_date`.
+_date_type = date
 
 logger = logging.getLogger(__name__)
 

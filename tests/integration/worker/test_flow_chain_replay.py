@@ -9,8 +9,6 @@ from datetime import date
 from decimal import Decimal
 from unittest.mock import MagicMock
 
-import pytest
-
 from uw_scan.worker.jobs import flow_data_refresh as F
 
 
