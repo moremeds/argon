@@ -7,6 +7,9 @@ version in lockstep (enforced by `scripts/release/version_sync_check.py`).
 
 ## [Unreleased]
 
+## [0.12.0] — 2026-08-16
+
+
 ### Added
 
 - **Fundamental cards flip to the figures behind them.** Clicking any card on the
@@ -637,7 +640,6 @@ version in lockstep (enforced by `scripts/release/version_sync_check.py`).
   stale `stock.py:75` file/line citation in
   `docs/research/six-dimension-matrix/08-implementation-gaps.md` (that line has
   been the report cache since well before this change).
-
 ## [0.11.4] — 2026-08-10
 
 
