@@ -168,3 +168,39 @@ exists to repair.
 A burst of `UW HTTP 503 upstream connect error` accounted for 19 failed items
 (~1.5%). They are transient and retryable via `resume`: a follow-up window showed
 10,775 consecutive requests with zero non-200 responses.
+
+## Finding: the LIVE path mis-dates rows on non-trading days
+
+Not introduced by this work, and not fixed by it — recorded because the stress
+test surfaced it, and it is the same defect class the replay policy exists to
+prevent.
+
+`exposures_summary` and `pcr_history` are stamped `_date.today()` on the live
+path. When the nightly job runs on a weekend, UW returns the *previous session's*
+data and the row is written under the weekend date:
+
+| date | day | `exposures_summary` rows | `pcr_history` rows |
+|---|---|---|---|
+| 2026-08-16 | Sun | 2,907 | 170 |
+| 2026-06-27 | Sat | 5,691 | 103 |
+| 2026-06-20 | Sat | 5,490 | 101 |
+| 2026-06-13 | Sat | 5,643 | 99 |
+| 2026-06-06 | Sat | 5,820 | 104 |
+
+Every weekend since June carries one. Under replay these same two tables are
+stamped from the parameter, and the calendar spine yields trading days only, so
+the replay contributed **zero** weekend rows (`oi_by_strike` and
+`option_chain_per_strike` are at zero as well).
+
+Consequences, in order of importance:
+
+1. **The audit cannot see it.** The spine is trading-days-only, so weekend rows
+   sit outside every coverage denominator — invisible to `coverage_pct`, to
+   `sessions_missing`, and to the gap audit alike.
+2. **A "latest row" read gets a mis-dated duplicate.** Any consumer taking
+   `max(market_date)` from `exposures_summary` on a Sunday receives Friday's
+   numbers labelled Sunday.
+
+The fix has the same shape as the replay's: derive the stamp from the session the
+data belongs to, not from the host clock. It touches the live nightly path, so it
+is deliberately NOT bundled into this change.
