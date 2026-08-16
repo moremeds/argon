@@ -700,7 +700,6 @@ REGISTRY.extend(
     _entries(
         [
             "gex_snapshots",
-            "grg_snapshots",
             "matrix_state_snapshots",
         ],
         "regime_marketwide",
@@ -715,6 +714,30 @@ REGISTRY.extend(
 # used to heal every one of them during the Aug 11-14 outage recovery.
 REGISTRY.extend(
     [
+        DatasetRegistryEntry(
+            # strict_session, NOT freshness_only: gap items are produced only by
+            # strict_* modes and a per_ticker_date adapter is dispatched only
+            # from those items, so freshness_only would make grg_as_of dead code
+            # (see tests/unit/reports/test_no_dead_adapters.py). One marketwide
+            # row per session keyed data_date — the same shape as
+            # market_tide_snapshots / top_net_impact_snapshots.
+            "grg_snapshots",
+            "regime_marketwide",
+            "strict_session",
+            date_col="data_date",
+            ticker_col=None,
+            provider="uw",
+            granularity="per_ticker_date",
+            healer_adapter="grg_as_of",
+            source_system="uw",
+            reason=(
+                "grg.run(as_of=) truncates the 1Y SPY/TLT greek-exposure series "
+                "AND reads spot/flip/SPY-closes at that date, so past snapshots "
+                "are reconstructible rather than restamped. An as_of with fewer "
+                "than 70 aligned observations honestly returns no_data."
+            ),
+            reason_verified_on=date(2026, 8, 16),
+        ),
         DatasetRegistryEntry(
             "cri_snapshots",
             "regime_marketwide",

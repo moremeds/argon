@@ -402,7 +402,24 @@ def _run_massive_fundamentals(ctx: HealContext, lookback_days: int) -> int:
     return fundamentals_refresh_once(ctx.repo, ctx.massive_provider())
 
 
+def _run_grg(ctx: HealContext, ticker: str | None, market_date: date) -> int:
+    """Marketwide — `ticker` is None (strict_session items carry no ticker).
+
+    Returns 0 for an as_of the series cannot support: grg.run needs 70 aligned
+    observations, so an as_of near the start of the fetched 1Y window
+    legitimately has too little history. The item is then recorded as honest
+    no_data — that is the correct answer, not a window to widen.
+    """
+    from uw_scan.scanners import grg
+
+    row_id = grg.run(ctx.uw_client(), ctx.repo, ctx.schema, as_of=market_date)
+    return 1 if row_id is not None else 0
+
+
 HEAL_SPECS: dict[str, HealSpec] = {
+    "grg_as_of": HealSpec(
+        "grg_as_of", "uw", "per_ticker_date", _run_grg, est_per_item=2
+    ),
     "cri_recover": HealSpec(
         "cri_recover", "db", "run_once_lookback", _run_cri_recover, est_per_item=0
     ),
