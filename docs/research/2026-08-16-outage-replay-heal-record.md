@@ -262,3 +262,42 @@ correct behaviour on a healthy single pass — it requires three *consecutive*
 therefore remains **unexercised in production**; several nightly cycles are needed
 before it can be called verified. Recorded here so a future reader does not infer
 from this document that it has been proven.
+
+## Consequence of the promotion: an ~85-night nightly backlog
+
+`data_gap_healer_start = 2026-01-01` on the mini, so from the next nightly run the
+healer audits the ten newly-promoted datasets back to January. Two facts decide
+whether that is productive or wasteful:
+
+**UW serves the whole window.** Probed 2026-08-16, AAPL, distinct response hashes
+and plausible row counts at every depth — there is no retention cliff here:
+
+| date | `oi-per-strike` | `volatility/term-structure` |
+|---|---|---|
+| 2026-01-05 | 200, 113 rows, `5b6703f1` | 200, 20 rows, `ec486b36` |
+| 2026-03-16 | 200, 116 rows, `63d5c04e` | 200, 27 rows, `028b7451` |
+| 2026-05-15 | 200, 120 rows, `0ed27d27` | 200, 26 rows, `a9ec8909` |
+| 2026-08-11 | 200, 127 rows, `44fc8a2f` | 200, 24 rows, `a65c52cd` |
+
+**The backlog is therefore real work, and large.** Roughly 160 sessions x 170
+tickers ~ 27,000 distinct `(ticker, date)` pairs. With
+`DATA_GAP_HEALER_MAX_UW_CALLS=12000` and `dataset_share=0.4`, the first dataset
+draws a 4,800-call slice ~ 320 pairs per night (its nine siblings then ride the
+fan-in for free), so the queue drains over roughly **85 nights**.
+
+Nothing overruns — the 12,000 cap is a hard bound and the run is resumable and
+self-terminating. The cost is opportunity: the healer will consume its full
+nightly research allowance for about three months, competing with other research
+jobs for the same pool.
+
+Three dispositions, for the operator to choose:
+
+1. **Leave it.** Eight months of history accrues across ten datasets. Highest
+   research value, longest budget commitment.
+2. **Raise `DATA_GAP_HEALER_START`** (e.g. to `2026-06-01`). Drains in ~2 weeks and
+   frees the pool sooner; forgoes Jan–May history.
+3. **Lower `data_gap_healer_dataset_share`.** Slower drain, smaller nightly
+   footprint, same eventual coverage.
+
+Recommendation: (2) unless Jan–May options history is wanted for research, because
+the outage repair — the thing that actually broke — is already complete.
