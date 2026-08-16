@@ -145,21 +145,44 @@ def _run_daily_ohlc(ctx: HealContext, ticker: str, lo: date, hi: date) -> int:
     )
 
 
-def _run_greek_exposure(ctx: HealContext, ticker: str, market_date: date) -> int:
-    from uw_scan.worker.jobs.greek_exposure_daily_refresh import (
-        greek_exposure_daily_refresh,
-    )
+def _run_greek_exposure(ctx: HealContext, ticker: str, lo: date, hi: date) -> int:
+    """Heal a ticker's whole range from UW's aggregate greek-exposure series.
 
-    # UW aggregate is current-snapshot only -> heals a same-day gap; a past date
-    # verifies false and is recorded no_data (provider_no_history).
+    `lo`/`hi` are accepted for the per_ticker_range contract and intentionally
+    unused: one call returns the full series, so the upsert covers every
+    missing date at once.
+
+    Measured 2026-08-16: `/greek-exposure/{ticker}` returns the FULL ~250-row
+    date series, so PAST dates heal from the same single call — the previous
+    "current-snapshot only" comment here was wrong.
+
+    The nightly `greek_exposure_daily_refresh` job is deliberately NOT reused:
+    it skips `settings.gex_scan_tickers` (11 mega-caps + ETFs) to avoid
+    double-fetching with the regime GEX scan, which made exactly those names
+    unhealable while `skipped_index` made the skip look intentional.
+    """
+    from uw_scan.scanners.gex import fetch_aggregate_gex
+    from uw_scan.storage.greek_exposure_repository import GreekExposureDailyRepository
+
     client = ctx.uw_client()
-    greek_exposure_daily_refresh(
-        repo=ctx.repo,
-        client=client,
-        settings=ctx.settings,
-        ticker_filter=lambda t: t.upper() == ticker.upper(),
-    )
-    return 0
+    run_id = ctx.repo.insert_scan_run(ticker, notes="data_gap_healer:greek_exposure")
+    try:
+        rows = fetch_aggregate_gex(client, ctx.repo, run_id, ticker)
+        # KEY MISMATCH, verified 2026-08-16: parse_greek_exposure_history emits
+        # `date` (cards/greek_exposure_history.py) but upsert_rows does a bare
+        # r["trade_date"] (storage/greek_exposure_repository.py). Passing the
+        # parser's rows straight through raises KeyError on the first real call.
+        # Map it here — do NOT "fix" the parser, the chart read-path reads `date`.
+        rows = [{**r, "trade_date": r["date"]} for r in rows if r.get("date")]
+        written = GreekExposureDailyRepository(
+            ctx.repo.conn, schema=ctx.schema
+        ).upsert_rows(ticker, rows)
+        ctx.repo.finish_scan_run(run_id, status="ok")
+        return written
+    except Exception as exc:  # noqa: BLE001
+        ctx.repo.finish_scan_run(run_id, status="error")
+        logger.warning("gex heal failed for %s: %s", ticker, repr(exc))
+        raise
 
 
 def _uw_alpha_repo(ctx: HealContext):
@@ -312,7 +335,9 @@ HEAL_SPECS: dict[str, HealSpec] = {
     "greek_exposure_daily": HealSpec(
         "greek_exposure_daily",
         "uw",
-        "per_ticker_date",
+        # One call returns the whole ~250-row series, so per-DATE would re-fetch
+        # it once per missing day (11 tickers x 4 dates = 44 calls where 11 do).
+        "per_ticker_range",
         _run_greek_exposure,
         est_per_item=1,
     ),

@@ -105,7 +105,7 @@ uv run python -c "from uw_scan.reports.data_gap_healer import render_dataset_pol
 | exposures_summary | freshness_only | none | none |  | equity_session | UW-retention/event-log shaped; freshness-monitored, no auto-backfill |
 | flow_alerts_daily_rollup | freshness_only | none | none |  | equity_session | derived from flow_events; heal adapter is a TODO (audit-only) |
 | flow_events | freshness_only | none | none |  | equity_session | UW-retention/event-log shaped; freshness-monitored, no auto-backfill |
-| greek_exposure_daily | strict_ticker_date | uw | per_ticker_date | greek_exposure_daily | equity_session | UW aggregate returns the current snapshot only; past dates -> no_data |
+| greek_exposure_daily | strict_ticker_date | uw | per_ticker_range | greek_exposure_daily | equity_session | UW /greek-exposure/{ticker} returns the FULL ~250-row date series in one call; measured 2026-08-16, 12 calls restored 3,000 rows across 4 outage dates |
 | greeks_by_expiry_strike | freshness_only | none | none |  | equity_session | UW-retention/event-log shaped; freshness-monitored, no auto-backfill |
 | index_ohlc_daily | freshness_only | none | none |  | equity_session | UW-retention/event-log shaped; freshness-monitored, no auto-backfill |
 | interpolated_iv_snapshots | freshness_only | none | none |  | equity_session | UW-retention/event-log shaped; freshness-monitored, no auto-backfill |

@@ -162,11 +162,15 @@ REGISTRY: list[DatasetRegistryEntry] = [
         "strict_ticker_date",
         ticker_col="ticker",
         provider="uw",
-        granularity="per_ticker_date",
+        granularity="per_ticker_range",
         healer_adapter="greek_exposure_daily",
         source_system="uw",
-        retention_days=1,
-        reason="UW aggregate returns the current snapshot only; past dates -> no_data",
+        retention_days=None,
+        reason=(
+            "UW /greek-exposure/{ticker} returns the FULL ~250-row date series in "
+            "one call; measured 2026-08-16, 12 calls restored 3,000 rows across 4 "
+            "outage dates"
+        ),
     ),
     # --- UW historical alpha (migration 108) ---
     # retention_days is descriptive-only — the scanner keys on row EXISTENCE, not
