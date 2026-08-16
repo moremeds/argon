@@ -32,17 +32,20 @@ class DataFreshnessRepository:
                 "max_data_date": r.max_data_date,
                 "days_stale": r.days_stale,
                 "frozen": r.frozen,
+                "sessions_missing": r.sessions_missing,
             }
             for r in rows
         ]
         sql = """
             INSERT INTO data_freshness_snapshots
                 (run_date, table_name, date_col, scope, expected_count,
-                 covered_count, coverage_pct, max_data_date, days_stale, frozen)
+                 covered_count, coverage_pct, max_data_date, days_stale, frozen,
+                 sessions_missing)
             VALUES
                 (%(run_date)s, %(table_name)s, %(date_col)s, %(scope)s,
                  %(expected_count)s, %(covered_count)s, %(coverage_pct)s,
-                 %(max_data_date)s, %(days_stale)s, %(frozen)s)
+                 %(max_data_date)s, %(days_stale)s, %(frozen)s,
+                 %(sessions_missing)s)
             ON CONFLICT (run_date, table_name) DO UPDATE SET
                 date_col       = EXCLUDED.date_col,
                 scope          = EXCLUDED.scope,
@@ -51,7 +54,8 @@ class DataFreshnessRepository:
                 coverage_pct   = EXCLUDED.coverage_pct,
                 max_data_date  = EXCLUDED.max_data_date,
                 days_stale     = EXCLUDED.days_stale,
-                frozen         = EXCLUDED.frozen
+                frozen         = EXCLUDED.frozen,
+                sessions_missing = EXCLUDED.sessions_missing
         """
         with self._conn.cursor() as cur:
             cur.executemany(sql, params)

@@ -19,7 +19,9 @@ from typing import Any
 
 from uw_scan.config import Settings
 from uw_scan.reports.data_freshness import (
+    _COVERAGE_SESSIONS,
     _REGISTRY_BY_NAME,
+    LOW_COVERAGE_PCT,
     MONITORED_TABLES,
     FreshnessRow,
     compute_freshness,
@@ -44,7 +46,6 @@ logger = logging.getLogger(__name__)
 # instead, same as the nightly gap-healer job does.
 _GAP_ITEM_GRANULARITIES = frozenset({"per_ticker_date", "per_ticker_range"})
 
-LOW_COVERAGE_PCT = 0.5  # ponytail: half the expected scope missing = alert-worthy
 AUTOHEAL_LOOKBACK_DAYS = 14  # recent window only -- this is a retry, not a backfill
 
 
@@ -199,6 +200,19 @@ def data_freshness_monitor(
                 r.covered_count,
                 r.expected_count,
                 r.coverage_pct * 100,
+                r.max_data_date,
+            )
+        elif r.sessions_missing:
+            # The hole coverage_pct cannot see: a partial heal on the newest
+            # date pulls max_data_date forward, and the grace window then
+            # reaches back over the missing sessions to a healthy one.
+            logger.warning(
+                "data_freshness: %s UNDER-COVERED — %d of the last %d expected "
+                "sessions below %.0f%% coverage (newest data %s reads full)",
+                r.table_name,
+                r.sessions_missing,
+                _COVERAGE_SESSIONS,
+                LOW_COVERAGE_PCT * 100,
                 r.max_data_date,
             )
 
