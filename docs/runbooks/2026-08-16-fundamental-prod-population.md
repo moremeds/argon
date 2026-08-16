@@ -40,9 +40,14 @@ The card returned honest errors from working routes, not breakage:
 `/fundamentals` → 503 `"no active fundamental method version"`,
 `/fundamentals/statements` → 404 `"no statements for NVDA"`.
 
-`fundamental_method_versions` is **not seeded by migration** — it is written by
-the scoring code (`storage/fundamental_scores.py`), so it appears only once step
-3 below runs against a non-empty panel.
+`fundamental_method_versions` is **not seeded by migration, and not created by
+`fundamental_refresh` either.** The `INSERT` lives in
+`storage/fundamental_scores.py` but its only caller is
+`scripts/seed_fundamental_method.py`, which must be run by hand — see step 2b.
+Reading the INSERT and assuming the refresh would trigger it cost one wasted
+refresh run; scoring and anchors both silently produced nothing.
+
+**A fresh database therefore needs FOUR manual steps, not three.**
 
 ### How this is being run
 
