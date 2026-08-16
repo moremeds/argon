@@ -366,3 +366,31 @@ rather than its blast radius on failure. Only a run against real data — where 
 provider eventually answers "no rows" — put the two on a collision course. A
 feature added to make the healer *more* robust is what made it fragile, and it had
 never once fired in production before this run.
+
+## Final state
+
+| measure | value |
+|---|---|
+| outage window (2026-08-11..14) | **CLOSED** — 10 datasets, 170/170 tickers each |
+| items healed today | 10,262 |
+| replay `scan_runs` | 4,225 across 170 tickers |
+| failed items | 19 (transient UW 503, retryable via `resume`) |
+| UW spent | 100,946 / 120,000 — stopped by the operator guard |
+| reserve held | ~19,000 for the 23:00 UTC `option_surface_capture` (measured need 9,226) |
+
+Anti-fabrication, stated per table because the right test differs
+(`docs/research/_scripts/2026-08-16-verify-replay-no-fabrication.py`):
+
+```
+OK  options_volume_daily       rows in outage window = 0   (baseline 0)
+OK  uw_positioning             rows in outage window = 0   (baseline 0)
+OK  short_interest_snapshots   rows from a replay run = 0
+```
+
+`short_interest_snapshots` needs run-attribution rather than a date range: its
+`snapshot_at` is provider-supplied, so rows dated inside the window exist
+legitimately from the live path. Checking the window alone reports a false
+positive — it did, on the first pass.
+
+The Jun–Jul backfill remains open by design (runs 87/88, ~27,000 items). It is the
+nightly healer's work now.
