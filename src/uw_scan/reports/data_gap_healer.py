@@ -15,12 +15,15 @@ Plan: docs/superpowers/plans/2026-06-30-data-gap-healer.md
 
 from __future__ import annotations
 
+import logging
 from dataclasses import dataclass
 from datetime import date
 from typing import Literal
 
 from psycopg import Connection
 from psycopg import sql as psql
+
+logger = logging.getLogger(__name__)
 
 # How coverage is measured for a dataset.
 AuditMode = Literal[
@@ -859,6 +862,9 @@ REGISTRY.extend(
             "pcr_history",
             "options_chain",
             "strict_ticker_date",
+            # snapshot_date is NOT in _DATE_COL_PREFERENCE, so auto-detect finds
+            # nothing and the dataset silently audits as zero gaps. Explicit.
+            date_col="snapshot_date",
             provider="uw",
             granularity="per_ticker_date",
             healer_adapter="pipeline_replay",
@@ -901,6 +907,9 @@ REGISTRY.extend(
             "option_chain_per_strike",
             "options_chain",
             "strict_ticker_date",
+            # snapshot_date is NOT in _DATE_COL_PREFERENCE, so auto-detect finds
+            # nothing and the dataset silently audits as zero gaps. Explicit.
+            date_col="snapshot_date",
             provider="uw",
             granularity="per_ticker_date",
             healer_adapter="flow_chain_replay",
@@ -1756,6 +1765,20 @@ def _scan_strict_ticker_date(
     date_col = entry.date_col or _detect_col(conn, schema, table, _DATE_COL_PREFERENCE)
     tcol = entry.ticker_col or _detect_col(conn, schema, table, _TICKER_COL_PREFERENCE)
     if not date_col or not tcol:
+        # A strict dataset whose columns cannot be resolved reports zero gaps,
+        # which is indistinguishable from "fully covered" -- exactly the silent
+        # no-op this healer exists to surface. Never let it pass quietly.
+        # (pcr_history and option_chain_per_strike hit this on 2026-08-16: both
+        # key on snapshot_date, which is absent from _DATE_COL_PREFERENCE.)
+        logger.error(
+            "gap_audit: %s is %s but its columns did not resolve "
+            "(date_col=%r ticker_col=%r) — reporting ZERO gaps for it. Set "
+            "date_col/ticker_col explicitly on its DatasetRegistryEntry.",
+            table,
+            entry.audit_mode,
+            date_col,
+            tcol,
+        )
         return CoverageSummary(table, "strict_ticker_date", 0, 0, 0, ()), []
 
     calendar = _calendar_dates(conn, schema, start, end)
