@@ -7,6 +7,65 @@ version in lockstep (enforced by `scripts/release/version_sync_check.py`).
 
 ## [Unreleased]
 
+### Fixed
+
+- **The gap healer could not see the outage that mattered most.** Its
+  trading-day spine read `market_tide_sentiment_daily` alone — a *captured*
+  table, so an outage that stopped capture also deleted the dates from the
+  expected-session list and every dataset then audited as 100% covered for
+  exactly the days that were lost (measured: 1,276 gaps reported against 8,080
+  real). The spine now unions SPY's massive `daily_ohlc`: a different provider,
+  so a UW outage cannot blind it, and session-only bars, so it cannot invent a
+  weekend (confirmed on 60 days of production data — zero weekend rows). The
+  audit CLI prints a banner naming the sessions the reference lost, because the
+  union fixes that audit but not the other reports reading the reference
+  directly.
+- **A partial heal made the freshness monitor blinder, not sharper.**
+  `coverage_pct` counts tickers within `grace_days` of the table's *own* newest
+  row, so two healed tickers on the newest date pulled `max_data_date` forward
+  and the 4-day window then reached back over the hole. New `sessions_missing`
+  counts expected sessions that are genuinely under-covered. Measured on
+  production the day it shipped: **11 tables reporting `coverage_pct = 1.000`
+  and `frozen = false` while holding zero rows on three or more of the last five
+  sessions**, with the audit reporting `total_gaps = 0`. `coverage_pct` is
+  unchanged — its grace window is deliberate, and `/api/health` and the autoheal
+  circuit breaker both read it.
+- **`greek_exposure_daily` heals the 11 tickers it most needs to.** The adapter
+  delegated to a nightly job that skips `gex_scan_tickers` (AAPL, AMZN, GOOGL,
+  META, MSFT, NVDA, TSLA, SPY, QQQ, IWM, TLT) to avoid double-fetching with the
+  regime scan — so healing those selected the ticker, skipped it, returned 0,
+  and recorded `no_data`. It now writes its own rows from UW's full ~250-row
+  series, one call per ticker instead of one per missing date.
+- **GRG historical snapshots are computed, not restamped.** `grg.run(as_of=)`
+  truncates all three data inputs — the 1Y gamma series, spot/flip from
+  `gex_snapshots`, and SPY closes. Truncating only the obvious one would stamp a
+  past date on a row built from future data, which is what produced four
+  byte-identical `vrp_macro_signal_daily` rows during round 1.
+
+### Added
+
+- **Every one of the 143 registered datasets now carries a decision.** 45 daily
+  tables refused to heal on one copy-pasted sentence nobody had probed, and 13
+  liveness entries had empty reason strings. 15 adapters are now wired over
+  entrypoints that were *already* date-aware (market tide, top-net-impact,
+  CRI/VCG/canary recovery, technicals, corporate actions, fundamentals, both
+  lake syncs, both UW event logs, fundamental scores/anchors); the rest carry
+  `reason_verified_on` — the date the refusal was actually measured. CI fails on
+  an undated refusal or an undispositioned dataset.
+- **Heal adapters can no longer be silently dead.** `per_ticker_*` adapters are
+  dispatched only from gap items, which only `strict_*` audit modes produce, so
+  wiring one to a `freshness_only` dataset does nothing while the policy doc
+  shows it as covered. A test now rejects that pairing outright; the review
+  tripped over it three times.
+- **One dataset's backlog no longer starves every other.**
+  `data_gap_healer_dataset_share` (0.4) caps any single dataset's share of a
+  night's UW budget — a 4,206-item surface backlog needed ~84k calls against a
+  12k cap and blocked every other dataset for a week. And after three
+  consecutive `provider_no_data` verdicts the scope is auto-caveated, ending the
+  nightly re-attempt of dates the provider will never serve. The auto-caveat
+  fires only on the provider's answer, never on our own `no_adapter` /
+  `unsupported_granularity` bugs.
+
 ## [0.12.0] — 2026-08-16
 
 
