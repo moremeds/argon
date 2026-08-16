@@ -325,7 +325,120 @@ def _run_gold_uw_options(ctx: HealContext) -> int:
     return 0
 
 
+# --- entrypoints that were already date-aware -------------------------------
+# Every adapter below wraps a production writer that ALREADY accepts the date
+# (or already recomputes its full history). The registry refused all of them on
+# an assumption that round 1 measured false on 2026-08-16.
+
+
+def _run_cri_recover(ctx: HealContext, lookback_days: int) -> int:
+    from uw_scan.scanners import cri
+
+    out = cri.recover_recent_gaps(
+        ctx.repo.conn, ctx.schema, lookback_days=max(1, lookback_days)
+    )
+    return int(out.get("filled", 0))
+
+
+def _run_vcg_recover(ctx: HealContext, lookback_days: int) -> int:
+    from uw_scan.scanners import vcg
+
+    out = vcg.recover_recent_gaps(
+        ctx.repo.conn, ctx.schema, lookback_days=max(1, lookback_days)
+    )
+    return int(out.get("filled", 0))
+
+
+def _run_canary_recover(ctx: HealContext, lookback_days: int) -> int:
+    from uw_scan.scanners import canary
+
+    out = canary.recover_recent_gaps(
+        ctx.repo.conn, ctx.schema, lookback_days=max(1, lookback_days)
+    )
+    return int(out.get("filled", 0))
+
+
+def _run_market_tide(ctx: HealContext, ticker: str | None, market_date: date) -> int:
+    """Sessionwide dataset — `ticker` is None (strict_session items carry no
+    ticker); accepted and ignored to satisfy the per_ticker_date contract.
+
+    capture_spot=False is REQUIRED: the live spot stamp is meaningless against a
+    past bar, and writing it would be fabricated history, not a backfill.
+    """
+    from uw_scan.scanners import market_tide
+
+    return market_tide.run(
+        ctx.uw_client(), ctx.repo, trading_date=market_date, capture_spot=False
+    )
+
+
+def _run_top_net_impact(ctx: HealContext, ticker: str | None, market_date: date) -> int:
+    """Sessionwide — `ticker` is None in production. See _run_market_tide."""
+    from uw_scan.scanners import top_net_impact
+
+    return top_net_impact.run(ctx.uw_client(), ctx.repo, trading_date=market_date)
+
+
+def _run_technical_daily(ctx: HealContext, lookback_days: int) -> int:
+    """Recomputes the FULL series per ticker from apex bars, so one run heals
+    every historical hole at once — no per-date plumbing needed or wanted."""
+    from uw_scan.worker.jobs.technical_daily_refresh import technical_daily_refresh
+
+    out = technical_daily_refresh(repo=ctx.repo, settings=ctx.settings)
+    return int(out.get("ok", 0))  # {"ok","skipped_thin","failed","tickers"}
+
+
+def _run_corporate_actions(ctx: HealContext, lookback_days: int) -> int:
+    from uw_scan.worker.jobs.corporate_actions_jobs import (
+        corporate_actions_refresh_once,
+    )
+
+    return corporate_actions_refresh_once(ctx.repo, ctx.massive_provider())
+
+
+def _run_massive_fundamentals(ctx: HealContext, lookback_days: int) -> int:
+    from uw_scan.worker.jobs.fundamentals_jobs import fundamentals_refresh_once
+
+    return fundamentals_refresh_once(ctx.repo, ctx.massive_provider())
+
+
 HEAL_SPECS: dict[str, HealSpec] = {
+    "cri_recover": HealSpec(
+        "cri_recover", "db", "run_once_lookback", _run_cri_recover, est_per_item=0
+    ),
+    "vcg_recover": HealSpec(
+        "vcg_recover", "db", "run_once_lookback", _run_vcg_recover, est_per_item=0
+    ),
+    "canary_recover": HealSpec(
+        "canary_recover", "db", "run_once_lookback", _run_canary_recover, est_per_item=0
+    ),
+    "market_tide": HealSpec(
+        "market_tide", "uw", "per_ticker_date", _run_market_tide, est_per_item=1
+    ),
+    "top_net_impact": HealSpec(
+        "top_net_impact", "uw", "per_ticker_date", _run_top_net_impact, est_per_item=1
+    ),
+    "technical_daily": HealSpec(
+        "technical_daily",
+        "db",
+        "run_once_lookback",
+        _run_technical_daily,
+        est_per_item=0,
+    ),
+    "corporate_actions": HealSpec(
+        "corporate_actions",
+        "massive",
+        "run_once_lookback",
+        _run_corporate_actions,
+        est_per_item=0,
+    ),
+    "massive_fundamentals": HealSpec(
+        "massive_fundamentals",
+        "massive",
+        "run_once_lookback",
+        _run_massive_fundamentals,
+        est_per_item=0,
+    ),
     "option_surface": HealSpec(
         "option_surface", "uw", "per_ticker_date", _run_option_surface, est_per_item=20
     ),

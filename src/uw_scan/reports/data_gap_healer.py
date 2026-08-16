@@ -86,6 +86,10 @@ class DatasetRegistryEntry:
     retention_days: int | None = None  # source history limit; older -> no_data
     enabled: bool = True
     reason: str | None = None  # required when audit_mode == 'excluded'
+    # When the refusal/claim in `reason` was actually PROBED against the
+    # provider. None = untested assumption, not a measurement. The blanket
+    # "no auto-backfill" reason proved false for 13 datasets in round 1.
+    reason_verified_on: date | None = None
 
 
 @dataclass(frozen=True)
@@ -287,8 +291,18 @@ REGISTRY: list[DatasetRegistryEntry] = [
         "derived_volatility",
         "freshness_only",
         ticker_col="ticker",
+        provider="db",
+        granularity="run_once_lookback",
+        healer_adapter="technical_daily",
         source_system="derived",
-        reason="full series recomputed nightly from apex bars; no per-date heal",
+        reason=(
+            "worker/jobs/technical_daily_refresh.technical_daily_refresh "
+            "recomputes the FULL series per ticker from apex bars and upserts "
+            "idempotently, so ONE run heals every historical hole — the "
+            "'no per-date heal' note was right about the shape and wrong to "
+            "conclude no heal exists."
+        ),
+        reason_verified_on=date(2026, 8, 16),
     ),
     DatasetRegistryEntry(
         # UW /volatility/realized — full ~1y series in one call (NOT the rollup,
@@ -349,17 +363,33 @@ REGISTRY: list[DatasetRegistryEntry] = [
         "market_tide_snapshots",
         "regime_marketwide",
         "strict_session",
+        provider="uw",
+        granularity="per_ticker_date",
+        healer_adapter="market_tide",
         source_system="uw",
-        retention_days=1,
-        reason="UW market-tide is current-session; historical heal TODO (audit-only)",
+        reason=(
+            "scanners.market_tide.run already takes trading_date (and "
+            "capture_spot=False for backfill); UW served all 4 outage dates with "
+            "full 81-82 bar sessions. The previous 'current-session only' claim "
+            "was never probed. This is the audit's calendar reference — healing "
+            "it is what stops the spine going blind."
+        ),
+        reason_verified_on=date(2026, 8, 16),
     ),
     DatasetRegistryEntry(
         "top_net_impact_snapshots",
         "regime_marketwide",
         "strict_session",
+        provider="uw",
+        granularity="per_ticker_date",
+        healer_adapter="top_net_impact",
         source_system="uw",
-        retention_days=1,
-        reason="UW historical endpoint may return only current session; heal TODO",
+        reason=(
+            "scanners.top_net_impact.run already takes trading_date; UW served "
+            "40 rows/date back to 2026-01-02 (121 sessions backfilled "
+            "2026-08-16). The 'may return only current session' claim was untested."
+        ),
+        reason_verified_on=date(2026, 8, 16),
     ),
     # --- scanner / page state (freshness) ---
     DatasetRegistryEntry(
@@ -652,9 +682,6 @@ REGISTRY.extend(
             "max_pain_by_expiry",
             "short_interest_snapshots",
             "uw_positioning",
-            "massive_fundamentals",
-            "corporate_actions",
-            "iv_smile_snapshots",
             "option_intraday_buckets",
             "index_ohlc_daily",
             "vol_index_daily",
@@ -673,16 +700,119 @@ REGISTRY.extend(
     _entries(
         [
             "gex_snapshots",
-            "cri_snapshots",
-            "vcg_snapshots",
             "grg_snapshots",
             "matrix_state_snapshots",
-            "canary_snapshots",
         ],
         "regime_marketwide",
         "freshness_only",
         reason="regime scanner output; re-derive needs historical inputs (audit-only)",
     )
+)
+
+# Regime scanners that DO have a historical recovery entrypoint. The blanket
+# "re-derive needs historical inputs (audit-only)" reason above was written
+# without probing: recover_recent_gaps has existed in all three modules and was
+# used to heal every one of them during the Aug 11-14 outage recovery.
+REGISTRY.extend(
+    [
+        DatasetRegistryEntry(
+            "cri_snapshots",
+            "regime_marketwide",
+            "freshness_only",
+            provider="db",
+            granularity="run_once_lookback",
+            healer_adapter="cri_recover",
+            source_system="derived",
+            reason=(
+                "scanners.cri.recover_recent_gaps(conn, schema, lookback_days=) "
+                "re-derives missing snapshots from vol_index_daily at zero "
+                "provider cost; used to heal Aug 11-14 on 2026-08-16."
+            ),
+            reason_verified_on=date(2026, 8, 16),
+        ),
+        DatasetRegistryEntry(
+            "vcg_snapshots",
+            "regime_marketwide",
+            "freshness_only",
+            provider="db",
+            granularity="run_once_lookback",
+            healer_adapter="vcg_recover",
+            source_system="derived",
+            reason=(
+                "scanners.vcg.recover_recent_gaps(conn, schema, lookback_days=) "
+                "re-derives from vol_index_daily; same shape as CRI."
+            ),
+            reason_verified_on=date(2026, 8, 16),
+        ),
+        DatasetRegistryEntry(
+            "canary_snapshots",
+            "regime_marketwide",
+            "freshness_only",
+            provider="db",
+            granularity="run_once_lookback",
+            healer_adapter="canary_recover",
+            source_system="derived",
+            reason=(
+                "scanners.canary.recover_recent_gaps(conn, schema, "
+                "lookback_days=) re-derives from vol_index_daily. "
+                "composite_version is part of the uniqueness key, so a snapshot "
+                "from an older calibration does not count as filled."
+            ),
+            reason_verified_on=date(2026, 8, 16),
+        ),
+        DatasetRegistryEntry(
+            "massive_fundamentals",
+            "options_chain",
+            "freshness_only",
+            ticker_col="ticker",
+            provider="massive",
+            granularity="run_once_lookback",
+            healer_adapter="massive_fundamentals",
+            source_system="massive",
+            reason=(
+                "worker/jobs/fundamentals_jobs.fundamentals_refresh_once(repo, "
+                "provider) re-pulls the current statement set per watchlist "
+                "ticker and upserts idempotently."
+            ),
+            reason_verified_on=date(2026, 8, 16),
+        ),
+        DatasetRegistryEntry(
+            "corporate_actions",
+            "options_chain",
+            "freshness_only",
+            ticker_col="ticker",
+            provider="massive",
+            granularity="run_once_lookback",
+            healer_adapter="corporate_actions",
+            source_system="massive",
+            reason=(
+                "worker/jobs/corporate_actions_jobs.corporate_actions_refresh_once"
+                "(repo, provider) re-pulls the last 12 splits / 24 dividends per "
+                "ticker, so a missed run self-heals."
+            ),
+            reason_verified_on=date(2026, 8, 16),
+        ),
+        DatasetRegistryEntry(
+            "iv_smile_snapshots",
+            "options_chain",
+            "freshness_only",
+            ticker_col="ticker",
+            provider="none",
+            granularity="none",
+            healer_adapter=None,
+            source_system="derived",
+            reason=(
+                "DERIVED, not UW-retention: reports/volatility_series.py builds "
+                "it from greeks_by_expiry_strike via build_iv_smile_snapshot_rows "
+                "inside run_volatility_backfill (NOT the nightly vol rollup — "
+                "that imports only _fill_rv_from_price / persist_stock_analytics "
+                "/ persist_vrp_daily). Cascades off greeks_by_expiry_strike; "
+                "wired in Task 7. 700,540 rows, newest 2026-08-16 — live, not "
+                "legacy."
+            ),
+            reason_verified_on=date(2026, 8, 16),
+        ),
+    ]
 )
 
 # Healable macro/FRED/rates/gold — freshness audit + run_once_lookback heal.
@@ -1343,14 +1473,16 @@ def render_dataset_policy_markdown(
         lines.append(f"## {group}")
         lines.append("")
         lines.append(
-            "| table | audit_mode | provider | granularity | adapter | freq | reason |"
+            "| table | audit_mode | provider | granularity | adapter | freq | "
+            "reason | verified |"
         )
-        lines.append("|---|---|---|---|---|---|---|")
+        lines.append("|---|---|---|---|---|---|---|---|")
         for e in sorted(by_group[group], key=lambda x: x.table_name):
             lines.append(
                 f"| {e.table_name} | {e.audit_mode} | {e.provider} | "
                 f"{e.granularity} | {e.healer_adapter or ''} | "
-                f"{e.expected_frequency} | {e.reason or ''} |"
+                f"{e.expected_frequency} | {e.reason or ''} | "
+                f"{e.reason_verified_on or ''} |"
             )
         lines.append("")
     return "\n".join(lines)
