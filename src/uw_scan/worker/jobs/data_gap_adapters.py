@@ -102,6 +102,10 @@ class HealContext:
     settings: object | None = None  # uw_scan.config.Settings (real adapters only)
     registry_by_table: dict[str, DatasetRegistryEntry] = field(default_factory=dict)
     _uw: object | None = field(default=None, repr=False)
+    # (ticker, date) pairs already replayed in THIS heal run. One
+    # run_single_stock call writes ~11 tables, so the ~11 datasets wired to
+    # the replay adapter must fan in to a single UW spend per pair.
+    _replayed: set = field(default_factory=set, repr=False)
     _massive: object | None = field(default=None, repr=False)
 
     def __post_init__(self) -> None:
@@ -547,7 +551,47 @@ def _run_fundamental_refresh(ctx: HealContext) -> int:
     return int(scoring.get("inserted", 0)) + int(anchors.get("written", 0))
 
 
+def _replay_run_single_stock(ticker, client, repo, market_date=None):
+    """Seam for tests; the real callable is the production pipeline entrypoint."""
+    from uw_scan.pipeline import run_single_stock
+
+    return run_single_stock(ticker, client, repo, market_date=market_date)
+
+
+def _run_pipeline_replay(ctx: HealContext, ticker: str, market_date: date) -> int:
+    """Re-run the nightly deep scan for one past session.
+
+    ``run_single_stock(market_date=...)`` re-fetches every date-honouring UW
+    endpoint at its true date and writes ~11 tables in one pass, so this single
+    adapter is registered for all of them. Datasets whose endpoint ignores
+    ``date`` are NOT wired here — the pipeline itself refuses to write them under
+    a historical stamp (``uw_scan.pipeline_replay_policy``).
+
+    Returns 1 rather than a row count: the pipeline writes many tables and does
+    not report per-table totals, and the healer only needs "did this item get
+    covered". The verify pass re-reads the table to confirm rows actually landed,
+    so a lie here would be caught there.
+    """
+    key = (ticker.upper(), market_date)
+    if key in ctx._replayed:
+        return 1  # already healed by a sibling dataset in this run
+    _replay_run_single_stock(
+        ticker, ctx.uw_client(), ctx.repo, market_date=market_date
+    )
+    ctx._replayed.add(key)
+    return 1
+
+
 HEAL_SPECS: dict[str, HealSpec] = {
+    # --- pipeline replay: ONE run_single_stock(market_date=...) writes all nine
+    # datasets that name this adapter, so it fans in per (ticker, date) and the
+    # eight sibling items cost nothing. est_per_item=2 x 9 items = ~18 estimated
+    # against ~15 actual calls; over-estimating is the safe direction for a
+    # budget governor, which is why this is not tuned down to 15/9.
+    "pipeline_replay": HealSpec(
+        "pipeline_replay", "uw", "per_ticker_date", _run_pipeline_replay, est_per_item=2
+    ),
+
     "fundamental_refresh": HealSpec(
         "fundamental_refresh",
         "db",

@@ -742,74 +742,95 @@ REGISTRY.extend(
     )
 )
 
-# Probed 2026-08-16 (round 1): UW returns HTTP 200 WITH ROWS for past dates on
-# every endpoint below. These are blocked by missing date plumbing in
-# pipeline.run_single_stock (full_scan_once has no `date` parameter), NOT by
-# the provider — the blanket 'no auto-backfill' reason was an assumption.
-# Task 7 of the coverage-hardening plan wires the replay adapter and promotes
-# these to strict modes; until then the refusal is dated and honest.
+# Probed 2026-08-16 by response-hash differential, NOT by "HTTP 200 with rows"
+# (three endpoints answer 200 with a full row set for any date you ask and serve
+# the identical body every time — see docs/research/2026-08-16-replay-endpoint-matrix.md).
+# The nine entries below are now healed by pipeline.run_single_stock(market_date=...)
+# via the `pipeline_replay` adapter. The four that follow them stay freshness_only
+# for reasons specific to each — read them; they are not the old blanket assumption.
 REGISTRY.extend(
     [
         DatasetRegistryEntry(
             "oi_by_strike",
             "options_chain",
-            "freshness_only",
+            "strict_ticker_date",
+            provider="uw",
+            granularity="per_ticker_date",
+            healer_adapter="pipeline_replay",
             reason=(
-                "UW serves this endpoint for past dates (probed 2026-08-16, HTTP 200 with rows). Blocked only by missing date plumbing in pipeline.run_single_stock — full_scan_once takes no `date`. Not a provider refusal."
+                "Replayable: UW honours ?date= on this endpoint, proven 2026-08-16 by response-hash differential (docs/research/2026-08-16-replay-endpoint-matrix.md). Healed by pipeline.run_single_stock(market_date=...)."
             ),
             reason_verified_on=date(2026, 8, 16),
         ),
         DatasetRegistryEntry(
             "oi_change_events",
             "options_chain",
-            "freshness_only",
+            "strict_ticker_date",
+            provider="uw",
+            granularity="per_ticker_date",
+            healer_adapter="pipeline_replay",
             reason=(
-                "UW serves this endpoint for past dates (probed 2026-08-16, HTTP 200 with rows). Blocked only by missing date plumbing in pipeline.run_single_stock — full_scan_once takes no `date`. Not a provider refusal."
+                "Replayable: UW honours ?date= on this endpoint, proven 2026-08-16 by response-hash differential (docs/research/2026-08-16-replay-endpoint-matrix.md). Healed by pipeline.run_single_stock(market_date=...)."
             ),
             reason_verified_on=date(2026, 8, 16),
         ),
         DatasetRegistryEntry(
             "greeks_by_expiry_strike",
             "options_chain",
-            "freshness_only",
+            "strict_ticker_date",
+            provider="uw",
+            granularity="per_ticker_date",
+            healer_adapter="pipeline_replay",
             reason=(
-                "UW serves this endpoint for past dates (probed 2026-08-16, HTTP 200 with rows). Blocked only by missing date plumbing in pipeline.run_single_stock — full_scan_once takes no `date`. Not a provider refusal."
+                "Replayable: UW honours ?date= on this endpoint, proven 2026-08-16 by response-hash differential (docs/research/2026-08-16-replay-endpoint-matrix.md). Healed by pipeline.run_single_stock(market_date=...)."
             ),
             reason_verified_on=date(2026, 8, 16),
         ),
         DatasetRegistryEntry(
             "exposures_by_expiry_strike",
             "options_chain",
-            "freshness_only",
+            "strict_ticker_date",
+            provider="uw",
+            granularity="per_ticker_date",
+            healer_adapter="pipeline_replay",
             reason=(
-                "UW serves this endpoint for past dates (probed 2026-08-16, HTTP 200 with rows). Blocked only by missing date plumbing in pipeline.run_single_stock — full_scan_once takes no `date`. Not a provider refusal."
+                "Replayable: UW honours ?date= on this endpoint, proven 2026-08-16 by response-hash differential (docs/research/2026-08-16-replay-endpoint-matrix.md). Healed by pipeline.run_single_stock(market_date=...)."
             ),
             reason_verified_on=date(2026, 8, 16),
         ),
         DatasetRegistryEntry(
             "exposures_summary",
             "options_chain",
-            "freshness_only",
+            "strict_ticker_date",
+            provider="uw",
+            granularity="per_ticker_date",
+            healer_adapter="pipeline_replay",
             reason=(
-                "UW serves this endpoint for past dates (probed 2026-08-16, HTTP 200 with rows). Blocked only by missing date plumbing in pipeline.run_single_stock — full_scan_once takes no `date`. Not a provider refusal."
+                "Replayable: UW honours ?date= on this endpoint, proven 2026-08-16 by response-hash differential (docs/research/2026-08-16-replay-endpoint-matrix.md). Healed by pipeline.run_single_stock(market_date=...)."
             ),
             reason_verified_on=date(2026, 8, 16),
         ),
         DatasetRegistryEntry(
             "iv_term_snapshots",
             "options_chain",
-            "freshness_only",
+            "strict_ticker_date",
+            provider="uw",
+            granularity="per_ticker_date",
+            healer_adapter="pipeline_replay",
             reason=(
-                "UW serves this endpoint for past dates (probed 2026-08-16, HTTP 200 with rows). Blocked only by missing date plumbing in pipeline.run_single_stock — full_scan_once takes no `date`. Not a provider refusal."
+                "Replayable: UW honours ?date= on this endpoint, proven 2026-08-16 by response-hash differential (docs/research/2026-08-16-replay-endpoint-matrix.md). Healed by pipeline.run_single_stock(market_date=...)."
             ),
             reason_verified_on=date(2026, 8, 16),
         ),
         DatasetRegistryEntry(
             "interpolated_iv_snapshots",
             "options_chain",
-            "freshness_only",
+            "strict_ticker_date",
+            provider="uw",
+            granularity="per_ticker_date",
+            healer_adapter="pipeline_replay",
             reason=(
-                "UW serves this endpoint for past dates (probed 2026-08-16, HTTP 200 with rows). Blocked only by missing date plumbing in pipeline.run_single_stock — full_scan_once takes no `date`. Not a provider refusal."
+                "Replayable: UW honours ?date= on this endpoint, proven 2026-08-16 by response-hash differential (docs/research/2026-08-16-replay-endpoint-matrix.md). Healed by pipeline.run_single_stock(market_date=...)."
             ),
             reason_verified_on=date(2026, 8, 16),
         ),
@@ -818,25 +839,31 @@ REGISTRY.extend(
             "options_chain",
             "freshness_only",
             reason=(
-                "UW serves this endpoint for past dates (probed 2026-08-16, HTTP 200 with rows). Blocked only by missing date plumbing in pipeline.run_single_stock — full_scan_once takes no `date`. Not a provider refusal."
+                "Self-healing: /historical-risk-reversal-skew returns a ~250-row trailing SERIES, so any nightly run re-persists the whole window. Measured 2026-08-16 at 170/170 tickers for the 2026-08-11..14 outage with no intervention. No adapter needed."
             ),
             reason_verified_on=date(2026, 8, 16),
         ),
         DatasetRegistryEntry(
             "max_pain_by_expiry",
             "options_chain",
-            "freshness_only",
+            "strict_ticker_date",
+            provider="uw",
+            granularity="per_ticker_date",
+            healer_adapter="pipeline_replay",
             reason=(
-                "UW serves this endpoint for past dates (probed 2026-08-16, HTTP 200 with rows). Blocked only by missing date plumbing in pipeline.run_single_stock — full_scan_once takes no `date`. Not a provider refusal."
+                "Replayable: UW honours ?date= on this endpoint, proven 2026-08-16 by response-hash differential (docs/research/2026-08-16-replay-endpoint-matrix.md). Healed by pipeline.run_single_stock(market_date=...)."
             ),
             reason_verified_on=date(2026, 8, 16),
         ),
         DatasetRegistryEntry(
             "pcr_history",
             "options_chain",
-            "freshness_only",
+            "strict_ticker_date",
+            provider="uw",
+            granularity="per_ticker_date",
+            healer_adapter="pipeline_replay",
             reason=(
-                "UW serves this endpoint for past dates (probed 2026-08-16, HTTP 200 with rows). Blocked only by missing date plumbing in pipeline.run_single_stock — full_scan_once takes no `date`. Not a provider refusal."
+                "Replayable: UW honours ?date= on this endpoint, proven 2026-08-16 by response-hash differential (docs/research/2026-08-16-replay-endpoint-matrix.md). Healed by pipeline.run_single_stock(market_date=...)."
             ),
             reason_verified_on=date(2026, 8, 16),
         ),
@@ -845,7 +872,10 @@ REGISTRY.extend(
             "options_chain",
             "freshness_only",
             reason=(
-                "UW serves this endpoint for past dates (probed 2026-08-16, HTTP 200 with rows). Blocked only by missing date plumbing in pipeline.run_single_stock — full_scan_once takes no `date`. Not a provider refusal."
+                "Written by the replay (UW honours ?date= on /darkpool/{ticker}, "
+                "proven 2026-08-16) but keyed on executed_at: a name with no dark-pool "
+                "print on a given session is legitimately absent, so a strict "
+                "ticker-x-session audit would report phantom gaps for illiquid names."
             ),
             reason_verified_on=date(2026, 8, 16),
         ),
@@ -854,7 +884,7 @@ REGISTRY.extend(
             "options_chain",
             "freshness_only",
             reason=(
-                "UW serves this endpoint for past dates (probed 2026-08-16, HTTP 200 with rows). Blocked only by missing date plumbing in pipeline.run_single_stock — full_scan_once takes no `date`. Not a provider refusal."
+                "Written by the replay (UW honours ?date=, proven 2026-08-16) but the table has NO date column — only run_id/ticker/option_symbol — so it cannot carry a per-ticker-date audit. Freshness is the only honest measure here."
             ),
             reason_verified_on=date(2026, 8, 16),
         ),
@@ -863,7 +893,7 @@ REGISTRY.extend(
             "options_chain",
             "freshness_only",
             reason=(
-                "UW serves this endpoint for past dates (probed 2026-08-16, HTTP 200 with rows). Blocked only by missing date plumbing in pipeline.run_single_stock — full_scan_once takes no `date`. Not a provider refusal."
+                "Replayable in principle (UW honours ?date=, proven 2026-08-16) but written only for the 4 cockpit tickers by cockpit_daily_snapshot. A strict_ticker_date audit would measure it against the 170-name watchlist and invent ~166 phantom gaps per session, so it stays freshness_only."
             ),
             reason_verified_on=date(2026, 8, 16),
         ),
