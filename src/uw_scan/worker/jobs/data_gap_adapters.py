@@ -934,21 +934,38 @@ def _verify_and_mark(
         # silent no-op this plan exists to surface.
         after = getattr(ctx.settings, "data_gap_healer_no_data_caveat_after", 0)
         if after and no_data_reason == "provider_no_data" and it["data_date"]:
-            prior = ctx.gap.count_recent_no_data(
-                entry.table_name, it["ticker"], it["data_date"], runs=after
-            )
-            if prior >= after:
-                ctx.gap.upsert_caveat(
-                    Caveat(
-                        dataset=entry.table_name,
-                        ticker=it["ticker"],
-                        start_date=it["data_date"],
-                        end_date=it["data_date"],
-                        reason=f"provider returned no data {prior}x consecutively",
-                        source="auto",
-                    )
+            # The caveat is an OPTIMISATION — it stops us re-trying a scope the
+            # provider keeps refusing. It must never cost repair work. On
+            # 2026-08-16 an un-guarded call here raised AttributeError out of a
+            # heal run and killed ~27,000 queued items on their first no_data,
+            # because the deployed repository lacked count_recent_no_data. A
+            # bookkeeping nicety taking down the actual healing is never an
+            # acceptable trade, whatever the cause.
+            try:
+                prior = ctx.gap.count_recent_no_data(
+                    entry.table_name, it["ticker"], it["data_date"], runs=after
                 )
-                outcome["auto_caveated"] += 1
+                if prior >= after:
+                    ctx.gap.upsert_caveat(
+                        Caveat(
+                            dataset=entry.table_name,
+                            ticker=it["ticker"],
+                            start_date=it["data_date"],
+                            end_date=it["data_date"],
+                            reason=f"provider returned no data {prior}x consecutively",
+                            source="auto",
+                        )
+                    )
+                    outcome["auto_caveated"] += 1
+            except Exception as exc:  # noqa: BLE001 — never abort a heal for this
+                logger.warning(
+                    "auto-caveat bookkeeping failed for %s %s %s: %s "
+                    "(item still recorded; healing continues)",
+                    entry.table_name,
+                    it["ticker"],
+                    it["data_date"],
+                    repr(exc),
+                )
 
 
 _DISPATCH = {
