@@ -134,7 +134,8 @@ def test_health_autoheal_circuit_broken_excludes_table_without_healer_adapter(
     from uw_scan.reports.data_freshness import FreshnessRow
     from uw_scan.storage.data_freshness_repository import DataFreshnessRepository
 
-    # pcr_history has no healer_adapter in the gap-healer registry -- it can
+    # flow_alerts_daily_rollup has no healer_adapter in the gap-healer registry
+    # (pcr_history did until 2026-08-16, when it gained pipeline_replay) -- it can
     # never go through an autoheal retry, so a long frozen streak here is not
     # a "circuit breaker tripped" state, just a stale table.
     fr = DataFreshnessRepository(seeded_db_empty_cards.conn, schema="uw_scan")
@@ -142,7 +143,7 @@ def test_health_autoheal_circuit_broken_excludes_table_without_healer_adapter(
 
     today = date(2026, 7, 2)
     row = FreshnessRow(
-        "pcr_history", "date", "watchlist", 100, 0, 0.0, date(2026, 6, 1), 31, True
+        "flow_alerts_daily_rollup", "date", "watchlist", 100, 0, 0.0, date(2026, 6, 1), 31, True
     )
     for i in range(4):
         fr.upsert_snapshot(today - timedelta(days=i), [row])
@@ -155,8 +156,8 @@ def test_health_autoheal_circuit_broken_excludes_table_without_healer_adapter(
             data_freshness_autoheal_circuit_breaker_nights=3,
         ),
     )
-    assert "pcr_history" in response.freshness.frozen
-    assert "pcr_history" not in response.freshness.autoheal_circuit_broken
+    assert "flow_alerts_daily_rollup" in response.freshness.frozen
+    assert "flow_alerts_daily_rollup" not in response.freshness.autoheal_circuit_broken
 
 
 def test_health_autoheal_circuit_broken_excludes_when_feature_disabled(

@@ -7,7 +7,39 @@ version in lockstep (enforced by `scripts/release/version_sync_check.py`).
 
 ## [Unreleased]
 
+### Added
+
+- **The healer can replay a past trading session, so deep-scan gaps now self-heal.**
+  `pipeline.run_single_stock(market_date=...)` re-fetches every date-honouring UW
+  endpoint at its true date, and the new `pipeline_replay` heal adapter wires it
+  into the gap healer. Nine datasets moved from `freshness_only` (a dated refusal)
+  to `strict_ticker_date` (a real audit with a real repair): `oi_by_strike`,
+  `oi_change_events`, `greeks_by_expiry_strike`, `exposures_by_expiry_strike`,
+  `exposures_summary`, `iv_term_snapshots`, `interpolated_iv_snapshots`,
+  `max_pain_by_expiry`, `pcr_history`. On production this turned an audit reporting
+  `total_gaps = 0` into one reporting **6,542** — the loss was always there; the
+  healer simply had no way to express it.
+  One `run_single_stock` call writes all nine tables, so the adapter fans in per
+  `(ticker, date)`: nine sibling items cost one UW replay, not nine.
+- **Refusal to replay an undatable dataset is enforced in code**
+  (`uw_scan.pipeline_replay_policy`). Three UW endpoints —
+  `/shorts/{ticker}/data`, `/stock/{ticker}/options-volume`,
+  `/shorts/{ticker}/interest-float/v2` — answer HTTP 200 with a full, plausible
+  row set for *any* date and return a byte-identical body every time. Only a
+  response-hash differential separates "served me that session" from "served me
+  today again", so `options_volume_daily`, `short_interest_snapshots` and
+  `uw_positioning` raise rather than back-date today's numbers. Every refusal
+  records the date it was measured. Matrix and method:
+  `docs/research/2026-08-16-replay-endpoint-matrix.md`.
+
 ### Fixed
+
+- **A same-day fetch memo would have poisoned the replay in both directions.**
+  `fetch_option_contracts` and `fetch_greek_exposure_by_expiry` memoize on
+  `(ticker, endpoint, ET-today)`. Under a historical replay a memo *hit* returns
+  today's payload to be stamped with a past date, and a memo *miss* stores the
+  historical payload under today's key and corrupts the live nightly path for the
+  rest of the day. Replay now bypasses the memo entirely; the live path keeps it.
 
 - **The gap healer could not see the outage that mattered most.** Its
   trading-day spine read `market_tide_sentiment_daily` alone — a *captured*

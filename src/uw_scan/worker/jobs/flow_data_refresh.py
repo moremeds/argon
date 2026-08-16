@@ -17,7 +17,7 @@ from __future__ import annotations
 
 import logging
 from collections.abc import Callable
-from datetime import datetime
+from datetime import date, datetime
 from decimal import Decimal
 from zoneinfo import ZoneInfo
 
@@ -33,6 +33,70 @@ FLOW_REFRESH_LOCK = 91501  # mnemonic: migration 015 + slot 01
 MAX_PCT_FROM_SPOT = Decimal("0.60")
 MAX_DTE_DAYS = 365
 OPTIONS_VOLUME_LOOKBACK = 200
+
+
+def historical_close(repo: Repository, ticker: str, market_date: date) -> Decimal | None:
+    """That session's close, for replays. None when the lake never captured it.
+
+    The chain snapshot filters strikes to +/-MAX_PCT_FROM_SPOT of spot, so a
+    replay stamped with today's spot would select a different strike band than
+    the session actually traded — real numbers under a wrong selection. Callers
+    skip the ticker rather than substitute a live quote.
+    """
+    with repo.conn.cursor() as cur:
+        cur.execute(
+            f"SELECT close FROM {repo._schema}.daily_ohlc "
+            "WHERE ticker=%s AND date=%s",
+            (ticker, market_date),
+        )
+        row = cur.fetchone()
+    return row[0] if row and row[0] is not None else None
+
+
+def refresh_ticker_chain(
+    *,
+    repo: Repository,
+    client: UwClient,
+    ticker: str,
+    spot: Decimal,
+    market_date: date,
+    replay: bool = True,
+) -> int:
+    """Write one ticker's option_chain_per_strike snapshot for `market_date`.
+
+    Shared by the nightly job and the gap healer's replay adapter. Under replay
+    the options-volume timeline is deliberately NOT refreshed: UW's
+    /options-volume ignores `date` (measured 2026-08-16, byte-identical body),
+    so re-fetching it here would write today's numbers under a past stamp.
+    """
+    run_id = repo.insert_scan_run(
+        ticker, notes="flow_chain_replay" if replay else "flow_data_refresh"
+    )
+    if not replay:
+        vol_rows = fetch_options_volume_daily(
+            client, repo, run_id, ticker, limit=OPTIONS_VOLUME_LOOKBACK
+        )
+        repo.upsert_options_volume_daily(ticker, vol_rows)
+
+    contracts = fetch_option_contracts(
+        client,
+        repo,
+        run_id,
+        ticker,
+        limit=500,
+        market_date=market_date if replay else None,
+    )
+    chain_rows = aggregate_chain_per_strike(
+        contracts,
+        spot=spot,
+        max_pct_from_spot=MAX_PCT_FROM_SPOT,
+        max_dte_days=MAX_DTE_DAYS,
+        today=market_date,
+    )
+    repo.delete_option_chain_per_strike(ticker, market_date)
+    n = repo.upsert_option_chain_per_strike(ticker, market_date, chain_rows)
+    repo.finish_scan_run(run_id, status="ok")
+    return n
 
 
 def flow_data_refresh(
@@ -61,43 +125,26 @@ def flow_data_refresh(
                     "flow_data_refresh: %s skipped outside this worker shard", ticker
                 )
                 continue
-            run_id = repo.insert_scan_run(ticker, notes="flow_data_refresh")
+            spot = card.spot
+            if spot is None or Decimal(str(spot)) <= 0:
+                logger.warning(
+                    "flow_data_refresh: %s missing spot, skipping chain", ticker
+                )
+                continue
             try:
-                vol_rows = fetch_options_volume_daily(
-                    client, repo, run_id, ticker, limit=OPTIONS_VOLUME_LOOKBACK
-                )
-                n = repo.upsert_options_volume_daily(ticker, vol_rows)
-                logger.info(
-                    "flow_data_refresh: %s options_volume_daily rows=%d", ticker, n
-                )
-
-                spot = card.spot
-                if spot is None or Decimal(str(spot)) <= 0:
-                    logger.warning(
-                        "flow_data_refresh: %s missing spot, skipping chain", ticker
-                    )
-                    repo.finish_scan_run(run_id, status="ok")
-                    repo.conn.commit()
-                    continue
-
-                contracts = fetch_option_contracts(
-                    client, repo, run_id, ticker, limit=500
-                )
-                chain_rows = aggregate_chain_per_strike(
-                    contracts,
+                m = refresh_ticker_chain(
+                    repo=repo,
+                    client=client,
+                    ticker=ticker,
                     spot=Decimal(str(spot)),
-                    max_pct_from_spot=MAX_PCT_FROM_SPOT,
-                    max_dte_days=MAX_DTE_DAYS,
-                    today=market_date,
+                    market_date=market_date,
+                    replay=False,
                 )
-                repo.delete_option_chain_per_strike(ticker, market_date)
-                m = repo.upsert_option_chain_per_strike(ticker, market_date, chain_rows)
                 logger.info(
                     "flow_data_refresh: %s option_chain_per_strike rows=%d",
                     ticker,
                     m,
                 )
-                repo.finish_scan_run(run_id, status="ok")
                 repo.conn.commit()
             except Exception as exc:  # noqa: BLE001
                 # Abort the per-ticker transaction so the next ticker is not

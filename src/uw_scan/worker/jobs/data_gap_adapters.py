@@ -551,6 +551,37 @@ def _run_fundamental_refresh(ctx: HealContext) -> int:
     return int(scoring.get("inserted", 0)) + int(anchors.get("written", 0))
 
 
+def _run_flow_chain_replay(ctx: HealContext, ticker: str, market_date: date) -> int:
+    """Replay one ticker's option_chain_per_strike snapshot for a past session.
+
+    Separate from `pipeline_replay` because a different job owns this table
+    (flow_data_refresh, not run_single_stock) and it needs that session's close
+    to pick the strike band. Returns 0 when the lake has no close for the date —
+    the healer records no_data rather than substituting a live quote, which
+    would select the wrong strikes.
+    """
+    from uw_scan.worker.jobs.flow_data_refresh import (
+        historical_close,
+        refresh_ticker_chain,
+    )
+
+    spot = historical_close(ctx.repo, ticker, market_date)
+    if spot is None or spot <= 0:
+        logger.info(
+            "flow_chain_replay: %s %s has no daily_ohlc close — skipped",
+            ticker,
+            market_date.isoformat(),
+        )
+        return 0
+    return refresh_ticker_chain(
+        repo=ctx.repo,
+        client=ctx.uw_client(),
+        ticker=ticker,
+        spot=spot,
+        market_date=market_date,
+    )
+
+
 def _replay_run_single_stock(ticker, client, repo, market_date=None):
     """Seam for tests; the real callable is the production pipeline entrypoint."""
     from uw_scan.pipeline import run_single_stock
@@ -590,6 +621,9 @@ HEAL_SPECS: dict[str, HealSpec] = {
     # budget governor, which is why this is not tuned down to 15/9.
     "pipeline_replay": HealSpec(
         "pipeline_replay", "uw", "per_ticker_date", _run_pipeline_replay, est_per_item=2
+    ),
+    "flow_chain_replay": HealSpec(
+        "flow_chain_replay", "uw", "per_ticker_date", _run_flow_chain_replay, est_per_item=1
     ),
 
     "fundamental_refresh": HealSpec(

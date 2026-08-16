@@ -900,9 +900,17 @@ REGISTRY.extend(
         DatasetRegistryEntry(
             "option_chain_per_strike",
             "options_chain",
-            "freshness_only",
+            "strict_ticker_date",
+            provider="uw",
+            granularity="per_ticker_date",
+            healer_adapter="flow_chain_replay",
             reason=(
-                "UW serves this endpoint for past dates (probed 2026-08-16, HTTP 200 with rows). Blocked only by missing date plumbing in pipeline.run_single_stock — full_scan_once takes no `date`. Not a provider refusal."
+                "Replayable: UW honours ?date= on /option-contracts, proven "
+                "2026-08-16 by response-hash differential. Owned by "
+                "flow_data_refresh (not run_single_stock), and needs that "
+                "session's close to pick the +/-60% strike band — a ticker with "
+                "no daily_ohlc close for the date is skipped, not stamped with a "
+                "live quote."
             ),
             reason_verified_on=date(2026, 8, 16),
         ),
