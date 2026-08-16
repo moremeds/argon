@@ -187,6 +187,11 @@ counter resets at 00:00 UTC and the heaviest nightly job lands near 02:00 UTC
 Burning the last 20k would have manufactured exactly the kind of gap this work
 exists to repair.
 
+The reserve is sized from measurement, not instinct. `option_surface_capture` is
+`0 19 * * 0-4` in `settings.rth_tz`, i.e. 23:00 UTC — inside the pre-reset window.
+UW spend in the 22:00–23:59 UTC window on the last normal night (2026-08-10) was
+**9,226 calls** (2,453 + 6,773). A 20,000 reserve carries better than 2x headroom.
+
 ## Provider errors
 
 A burst of `UW HTTP 503 upstream connect error` accounted for 19 failed items
