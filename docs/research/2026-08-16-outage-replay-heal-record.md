@@ -113,3 +113,58 @@ design.
 The first three are permanent. They are refused in code
 (`uw_scan.pipeline_replay_policy`), not by convention, because all three answer
 HTTP 200 with a full and plausible row set for any date requested.
+
+## Addendum — the outage was the smaller half
+
+A read-only audit widened to 2026-06-01..2026-08-16 (zero provider calls) reports
+**52,750 gaps**, against 6,542 for the outage window alone:
+
+| dataset | missing | gap_days | covered |
+|---|---|---|---|
+| `uw_dark_lit_flow_prints` | 5,185 | 48 | 3,813/8,998 |
+| `option_chain_per_strike` | 4,455 | 52 | 4,543/8,998 |
+| `pcr_history` | 3,663 | 52 | 5,335/8,998 |
+| `max_pain_by_expiry` | 3,659 | 50 | 5,339/8,998 |
+| `exposures_summary` | 3,648 | 51 | 5,350/8,998 |
+| `oi_by_strike` | 3,010 | 50 | 5,988/8,998 |
+| … 12 more | | | |
+
+`pcr_history` and `option_chain_per_strike` appearing here at all is the
+confirmation that the `date_col="snapshot_date"` fix works — both reported zero
+gaps before it.
+
+**These are not phantoms, and the distinction matters before spending budget.**
+82 of the 170 active watchlist tickers were added after 2026-06-01 (56 in August),
+and `oi_by_strike` tracks that growth exactly — ~103 distinct tickers per session
+in June, 170+ by August. The instinct is to call the June shortfall a
+lifecycle artefact of measuring today's watchlist against an older calendar.
+`reconcile_watchlist_lifecycle`'s own contract says otherwise:
+
+> **added** (new or re-added): logged; the audit in the same run then finds their
+> missing history as gaps and heals it (that IS the backfill schedule).
+
+Adding a ticker to the watchlist *is* the request to backfill its history. So the
+wide window is real work — just work of a different kind from outage repair, and
+far larger than one night's budget. It is what the nightly healer will chew
+through over subsequent nights.
+
+## Budget discipline during the run
+
+The gap-healer CLI does **not** route through `sources/uw_budget`'s pool governor:
+mid-run the governor reported `live_spent=2902, research_spent=3793` while UW's own
+account counter stood at 60,810. Anything driven from the CLI must therefore have
+its ceiling set by the operator (`--max-uw-calls`) and watched externally; the
+live/research pool split will not protect the nightly captures from it.
+
+Reserve held for this run: stop at 100,000 of UW's 120,000 daily counter. The
+counter resets at 00:00 UTC and the heaviest nightly job lands near 02:00 UTC
+(22,568 calls in that hour the prior night) — i.e. *after* the reset — but
+`option_surface_capture` at 19:00 ET falls in the 23:00 UTC hour, before it.
+Burning the last 20k would have manufactured exactly the kind of gap this work
+exists to repair.
+
+## Provider errors
+
+A burst of `UW HTTP 503 upstream connect error` accounted for 19 failed items
+(~1.5%). They are transient and retryable via `resume`: a follow-up window showed
+10,775 consecutive requests with zero non-200 responses.
