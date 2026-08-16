@@ -9,6 +9,24 @@ version in lockstep (enforced by `scripts/release/version_sync_check.py`).
 
 ### Fixed
 
+- **Opening a stock page from the dashboard stalled for seconds, and the wait
+  grew with the watchlist.** Every `TickerCard` fetched its own sparkline in a
+  mount effect, so request count equalled watchlist size: at 170 tickers that
+  was 170 requests carrying 178 KB total — ~1 KB each — because the browser
+  runs only ~6 connections at a time. Measured on the deployed dashboard the
+  fan-out spanned 7.5–9.2 s, and clicking a card queued its RSC navigation
+  *behind that backlog*, which is what made the detail page feel slow while the
+  grid itself looked ready. `cache: "no-store"` replayed the whole thing on
+  every return to the dashboard, and Next's default `<Link>` prefetch added 39
+  more speculative requests on top. The fetch is now gated on an
+  `IntersectionObserver` (600 px `rootMargin`, so a scroll lands on a drawn
+  sparkline rather than a gap) and the card links opt out of prefetch. Initial
+  load drops from 114 requests to 8 on a 114-ticker grid — a continuous scroll
+  still fetches all 114 exactly once, no duplicates, none starved. Environments
+  without `IntersectionObserver` (jsdom, older browsers) keep the old
+  fetch-on-mount path. The N-per-card shape was invisible on a LAN, where the
+  same fan-out costs ~220 ms; it only bites over a high-latency link.
+
 - **`/api/health` reported codex and claude as permanently 0-of-2 healthy.** The
   per-provider AI block read `TRADE_INSIGHTS_AI_{CODEX,CLAUDE}_WORKER_COUNT`
   (default 2) as a claim that the pool runs, when it only describes pool width

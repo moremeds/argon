@@ -192,6 +192,42 @@ describe("TickerCard", () => {
 
     expect(fetchMock).not.toHaveBeenCalled();
   });
+
+  // The whole point of the gate: with 170 cards mounted, an offscreen card
+  // must stay silent. Without this the grid fires 170 requests on load and
+  // the browser's 6-connection limit turns a card click into a ~9 s wait.
+  it("defers the OHLC fetch until the card scrolls into view", async () => {
+    const urls: string[] = [];
+    const fetchMock = vi.fn((url: string): Promise<Response> => {
+      urls.push(url);
+      return Promise.resolve(new Response(JSON.stringify([]), { status: 200 }));
+    });
+    vi.stubGlobal("fetch", fetchMock);
+
+    let trigger: (() => void) | undefined;
+    vi.stubGlobal(
+      "IntersectionObserver",
+      class {
+        constructor(cb: (e: { isIntersecting: boolean }[]) => void) {
+          trigger = () => cb([{ isIntersecting: true }]);
+        }
+        observe() {}
+        disconnect() {}
+      },
+    );
+
+    render(<TickerCard card={card} />);
+
+    // Offscreen: mounted, rendered, but silent.
+    expect(fetchMock).not.toHaveBeenCalled();
+
+    // Scrolled into view → now it fetches, exactly once.
+    await act(async () => {
+      trigger!();
+    });
+    await waitFor(() => expect(fetchMock).toHaveBeenCalledTimes(1));
+    expect(urls[0]).toContain("/api/ohlc/TSLA");
+  });
 });
 
 describe("QueueProgress", () => {

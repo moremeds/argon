@@ -1,6 +1,6 @@
 "use client";
 import Link from "next/link";
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import type { components } from "@/lib/types";
 import { StockNotReadyDialog } from "@/components/stock/StockNotReadyDialog";
 import { SetupBadge } from "./SetupBadge";
@@ -39,13 +39,44 @@ export function TickerCard({ card, sparkline = [] }: Props) {
   const spot = live?.spot ?? card.spot;
   const spotQuotedAt = live?.spot_quoted_at ?? card.spot_quoted_at;
 
+  // Gate the sparkline fetch on visibility. Every card firing on mount made
+  // request count == watchlist size: at 170 tickers that was 170 requests for
+  // 178 KB, ~9 s of wall clock, because the browser only runs ~6 at a time.
+  // The grid's own click then queued behind that backlog, which is what made
+  // opening a stock page feel slow. Only ~4 cards are on screen at once.
+  const cardRef = useRef<HTMLDivElement>(null);
+  // Seeded true where there is no IntersectionObserver (jsdom, older
+  // browsers) so those fall back to the old fetch-on-mount behaviour rather
+  // than rendering a permanently empty sparkline. `visible` gates only the
+  // fetch, never markup, so seeding it differently on server and client
+  // cannot desync hydration.
+  const [visible, setVisible] = useState(
+    () => typeof IntersectionObserver === "undefined",
+  );
+  useEffect(() => {
+    if (visible) return;
+    const el = cardRef.current;
+    if (!el) return;
+    // ponytail: native IntersectionObserver, no library. rootMargin preloads
+    // one screen ahead so a scroll lands on a drawn sparkline, not a gap.
+    const io = new IntersectionObserver(
+      (entries) => {
+        if (entries.some((e) => e.isIntersecting)) setVisible(true);
+      },
+      { rootMargin: "600px" },
+    );
+    io.observe(el);
+    return () => io.disconnect();
+  }, [visible]);
+
   // Sparkline OHLC is fetched client-side (was server-side as part of the
   // dashboard RSC, paying ~800 ms per page load). Skips when (a) the prop
-  // pre-seeded data (used by unit tests), or (b) the ticker isn't scanned.
+  // pre-seeded data (used by unit tests), (b) the ticker isn't scanned, or
+  // (c) the card has never been scrolled into view.
   // Note: CardGrid uses `key={t.ticker}` so TickerCard unmounts/remounts on
   // ticker change — there is no in-place ticker swap to worry about.
   useEffect(() => {
-    if (closes.length > 0 || !card.scanned_at) return;
+    if (!visible || closes.length > 0 || !card.scanned_at) return;
     const ac = new AbortController();
     fetch(`/api/ohlc/${card.ticker}?days=30`, {
       cache: "no-store",
@@ -62,7 +93,7 @@ export function TickerCard({ card, sparkline = [] }: Props) {
         // Empty sparkline is an acceptable degraded state.
       });
     return () => ac.abort();
-  }, [card.ticker, card.scanned_at, closes.length]);
+  }, [visible, card.ticker, card.scanned_at, closes.length]);
 
   const fresh = bucketFreshness(card.scanned_at);
   const dot =
@@ -166,6 +197,7 @@ export function TickerCard({ card, sparkline = [] }: Props) {
 
   return (
     <div
+      ref={cardRef}
       style={{
         padding: 12,
         background: "var(--bg-panel)",
@@ -178,6 +210,9 @@ export function TickerCard({ card, sparkline = [] }: Props) {
       {isReady ? (
         <Link
           href={`/stock/${card.ticker}/market-structure`}
+          // 170 cards means 170 speculative RSC prefetches competing with the
+          // grid's own fetches; the detail route is one click, not a race.
+          prefetch={false}
           aria-label={`${card.ticker} detail`}
           style={{ ...linkReset, display: "block" }}
         >
