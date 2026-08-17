@@ -7,6 +7,9 @@ version in lockstep (enforced by `scripts/release/version_sync_check.py`).
 
 ## [Unreleased]
 
+## [0.12.2] — 2026-08-17
+
+
 ### Added
 
 - **The healer can replay a past trading session, so deep-scan gaps now self-heal.**
@@ -148,7 +151,6 @@ version in lockstep (enforced by `scripts/release/version_sync_check.py`).
   `gex_snapshots`, and SPY closes. Truncating only the obvious one would stamp a
   past date on a row built from future data, which is what produced four
   byte-identical `vrp_macro_signal_daily` rows during round 1.
-
 ## [0.12.1] — 2026-08-17
 
 
