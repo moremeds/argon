@@ -5606,6 +5606,8 @@ export interface components {
             target_range_upper_percent?: string | null;
             /** Action */
             action?: string | null;
+            /** Vote Status */
+            vote_status?: ("stated" | "not_stated") | null;
             /** Vote Split */
             vote_split?: string | null;
             /** Central Tendency Lower Percent */
@@ -5650,6 +5652,26 @@ export interface components {
             missing_reason?: string | null;
             freshness: components["schemas"]["PolicySourceFreshness"];
         };
+        /**
+         * PolicyReleaseFailure
+         * @description One named release whose evidence landed but whose facts did not.
+         *
+         *     Named rather than counted: an operator cannot re-run "the 3 that failed",
+         *     only a specific release key.
+         */
+        PolicyReleaseFailure: {
+            /** Release Key */
+            release_key: string;
+            /**
+             * Event Date
+             * Format: date
+             */
+            event_date: string;
+            /** Error Type */
+            error_type?: string | null;
+            /** Error Message */
+            error_message?: string | null;
+        };
         /** PolicySourceFreshness */
         PolicySourceFreshness: {
             /** Source */
@@ -5672,6 +5694,23 @@ export interface components {
             error_type?: string | null;
             /** Error Message */
             error_message?: string | null;
+            /**
+             * Releases Discovered
+             * @default 0
+             */
+            releases_discovered: number;
+            /**
+             * Releases Succeeded
+             * @default 0
+             */
+            releases_succeeded: number;
+            /**
+             * Releases Failed
+             * @default 0
+             */
+            releases_failed: number;
+            /** Release Failures */
+            release_failures?: components["schemas"]["PolicyReleaseFailure"][];
         };
         /** PositioningBlock */
         PositioningBlock: {
@@ -12921,6 +12960,8 @@ export interface operations {
             query?: {
                 /** @description UTC calendar date; replay includes evidence available by day-end. */
                 as_of?: string | null;
+                /** @description Timezone-aware instant; replay includes evidence available at or before it. Required to replay across an intraday release. */
+                as_of_ts?: string | null;
             };
             header?: never;
             path?: never;

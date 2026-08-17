@@ -181,6 +181,9 @@ class PolicyPathPoint(_UwBase):
     target_range_lower_percent: Decimal | None = None
     target_range_upper_percent: Decimal | None = None
     action: str | None = None
+    #: ``not_stated`` means the publisher printed no vote, which is a different
+    #: fact from a unanimous one.  ``None`` means the path kind has no vote.
+    vote_status: Literal["stated", "not_stated"] | None = None
     vote_split: str | None = None
     central_tendency_lower_percent: Decimal | None = None
     central_tendency_upper_percent: Decimal | None = None
@@ -245,6 +248,19 @@ class PolicyPath(_UwBase):
         return self
 
 
+class PolicyReleaseFailure(_UwBase):
+    """One named release whose evidence landed but whose facts did not.
+
+    Named rather than counted: an operator cannot re-run "the 3 that failed",
+    only a specific release key.
+    """
+
+    release_key: str
+    event_date: date
+    error_type: str | None = None
+    error_message: str | None = None
+
+
 class PolicySourceFreshness(_UwBase):
     source: str
     status: Literal["ok", "degraded", "missing"]
@@ -253,6 +269,29 @@ class PolicySourceFreshness(_UwBase):
     consecutive_failures: int = 0
     error_type: str | None = None
     error_message: str | None = None
+    #: Release coverage as of the same instant as the path itself.  A source can
+    #: be ``ok`` on its latest release and still be missing half its history, so
+    #: these counts answer a question ``status`` cannot.
+    releases_discovered: int = 0
+    releases_succeeded: int = 0
+    releases_failed: int = 0
+    release_failures: list[PolicyReleaseFailure] = Field(default_factory=list)
+
+    @model_validator(mode="after")
+    def _counts_are_consistent(self) -> "PolicySourceFreshness":
+        if min(
+            self.releases_discovered, self.releases_succeeded, self.releases_failed
+        ) < 0:
+            raise ValueError("policy release counts cannot be negative")
+        if self.releases_succeeded + self.releases_failed > self.releases_discovered:
+            raise ValueError(
+                "policy release outcomes cannot exceed the releases discovered"
+            )
+        if len(self.release_failures) > self.releases_failed:
+            raise ValueError(
+                "policy release failure details cannot exceed the failure count"
+            )
+        return self
 
 
 class PolicyPathSlot(_UwBase):
@@ -295,6 +334,7 @@ _preserve_public_module(
     PolicyPathParticipantPoint,
     PolicyPathPoint,
     PolicyPath,
+    PolicyReleaseFailure,
     PolicySourceFreshness,
     PolicyPathSlot,
     PolicyComparison,

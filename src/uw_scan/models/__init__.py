@@ -102,6 +102,7 @@ from .macro import (
     PolicyPathPoint,
     PolicyPathProbabilityBucket,
     PolicyPathSlot,
+    PolicyReleaseFailure,
     PolicySourceFreshness,
 )
 from .matrix import MatrixSourceFreshness, MatrixState, SetupClassification
@@ -339,6 +340,7 @@ __all__ = [
     "PolicyPathParticipantPoint",
     "PolicyPathPoint",
     "PolicyPath",
+    "PolicyReleaseFailure",
     "PolicySourceFreshness",
     "PolicyPathSlot",
     "PolicyComparison",

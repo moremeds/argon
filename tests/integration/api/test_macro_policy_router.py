@@ -24,7 +24,8 @@ def _insert_path(
     cost_class: str = "free_official",
     delay_minutes: int | None = None,
     delay_status: str = "not_applicable",
-) -> None:
+    point_extra: dict[str, object] | None = None,
+) -> int:
     record_id = f"{source}:2026-06:primary"
     raw_json = {"source": source, "release": "2026-06"}
     content_hash, content_length = macro_artifact_content_identity(raw_json=raw_json)
@@ -53,6 +54,7 @@ def _insert_path(
                 "horizon": "2026",
                 "horizon_date": "2026-12-31",
                 "rate_percent": "3.8",
+                **(point_extra or {}),
             }
         ],
     }
@@ -76,6 +78,7 @@ def _insert_path(
     repo.insert_macro_observations([row], seen_at=RELEASED_AT)
     repo.upsert_macro_source_status(source, status="ok", attempted_at=RELEASED_AT)
     repo.conn.commit()
+    return artifact_id
 
 
 def test_policy_api_historical_as_of_hides_future_release_and_exposes_evidence(
@@ -177,3 +180,195 @@ def test_macro_policy_openapi_preserves_named_contracts(client: TestClient) -> N
         "MacroEvidenceRef",
     ):
         assert component in schema["components"]["schemas"]
+
+
+def _record_release(
+    repo: Repository,
+    *,
+    source: str,
+    release_key: str,
+    status: str,
+    event_date: date,
+    attempted_at: datetime,
+    release_type: str = "statement",
+    event_class: str | None = "scheduled_meeting",
+    error_type: str | None = None,
+    error_message: str | None = None,
+    success_artifact_id: int | None = None,
+) -> None:
+    repo.upsert_macro_release_status(
+        source=source,
+        release_key=release_key,
+        release_type=release_type,
+        status=status,
+        event_date=event_date,
+        event_class=event_class,
+        discovery_url=f"https://official.example/{release_key}",
+        parser_version="test.policy.v1",
+        last_attempt_at=attempted_at,
+        artifact_source_record_id=(
+            f"{source}:2026-06:primary" if success_artifact_id is not None else None
+        ),
+        latest_artifact_id=success_artifact_id,
+        success_artifact_id=success_artifact_id,
+        error_type=error_type,
+        error_message=error_message,
+    )
+    repo.conn.commit()
+
+
+def test_a_failed_older_release_is_counted_without_hiding_the_valid_path(
+    seeded_db_empty_cards: Repository,
+    client: TestClient,
+) -> None:
+    """Coverage is reported beside the path, never instead of it.
+
+    A 2020 statement we cannot parse does not make the 2026 decision unknown.
+    The caller needs both facts to act: the current path is usable, and the
+    history behind it has a named hole.
+    """
+    artifact_id = _insert_path(
+        seeded_db_empty_cards,
+        kind="actual",
+        series_id="POLICY_PATH_ACTUAL",
+        source="federal_reserve_fomc",
+    )
+    _record_release(
+        seeded_db_empty_cards,
+        source="federal_reserve_fomc",
+        release_key="fomc-statement:monetary20260617a",
+        status="ok",
+        success_artifact_id=artifact_id,
+        event_date=date(2026, 6, 17),
+        attempted_at=RELEASED_AT,
+    )
+    _record_release(
+        seeded_db_empty_cards,
+        source="federal_reserve_fomc",
+        release_key="fomc-statement:monetary20200315a",
+        status="failed",
+        event_date=date(2020, 3, 15),
+        event_class="unscheduled_meeting",
+        attempted_at=RELEASED_AT,
+        error_type="uw_scan.normalize.NormalizationError",
+        error_message="unreadable target range",
+    )
+
+    response = client.get("/api/macro/policy", params={"as_of": "2026-06-18"})
+
+    assert response.status_code == 200
+    slot = response.json()["actual"]
+    assert slot["path"] is not None
+    freshness = slot["freshness"]
+    assert freshness["releases_discovered"] == 2
+    assert freshness["releases_succeeded"] == 1
+    assert freshness["releases_failed"] == 1
+    failures = freshness["release_failures"]
+    assert len(failures) == 1
+    assert failures[0]["release_key"] == "fomc-statement:monetary20200315a"
+    assert failures[0]["event_date"] == "2020-03-15"
+    assert failures[0]["error_type"].endswith("NormalizationError")
+
+
+def test_historical_replay_does_not_leak_a_later_ingest_attempt(
+    seeded_db_empty_cards: Repository,
+    client: TestClient,
+) -> None:
+    """Coverage counts are current operational state, not immutable history.
+
+    Asking what was known in June must not reveal that we tried, and failed, to
+    read a release in August.  The counts belong to the attempt clock, so an
+    attempt after ``as_of`` is simply not visible yet.
+    """
+    _insert_path(
+        seeded_db_empty_cards,
+        kind="actual",
+        series_id="POLICY_PATH_ACTUAL",
+        source="federal_reserve_fomc",
+    )
+    _record_release(
+        seeded_db_empty_cards,
+        source="federal_reserve_fomc",
+        release_key="fomc-statement:monetary20260729a",
+        status="failed",
+        event_date=date(2026, 7, 29),
+        attempted_at=datetime(2026, 8, 1, 12, tzinfo=UTC),
+        error_type="uw_scan.normalize.NormalizationError",
+        error_message="later attempt",
+    )
+
+    response = client.get("/api/macro/policy", params={"as_of": "2026-06-18"})
+
+    freshness = response.json()["actual"]["freshness"]
+    assert freshness["releases_discovered"] == 0
+    assert freshness["releases_failed"] == 0
+    assert freshness["release_failures"] == []
+
+
+def test_policy_replay_accepts_an_exact_instant(
+    seeded_db_empty_cards: Repository,
+    client: TestClient,
+) -> None:
+    """Date-level replay cannot express the minute a release became public.
+
+    The FOMC publishes at 14:00 ET.  ``as_of=<that date>`` resolves to end of
+    day, so it can never prove a strategy reading at 13:59 saw nothing.
+    """
+    _insert_path(
+        seeded_db_empty_cards,
+        kind="actual",
+        series_id="POLICY_PATH_ACTUAL",
+        source="federal_reserve_fomc",
+    )
+
+    before = client.get(
+        "/api/macro/policy", params={"as_of_ts": "2026-06-17T17:59:59Z"}
+    )
+    at = client.get("/api/macro/policy", params={"as_of_ts": "2026-06-17T18:00:00Z"})
+
+    assert before.status_code == 200
+    assert before.json()["actual"]["path"] is None
+    assert at.status_code == 200
+    assert at.json()["actual"]["path"] is not None
+
+
+def test_policy_replay_rejects_two_conflicting_clocks(client: TestClient) -> None:
+    response = client.get(
+        "/api/macro/policy",
+        params={"as_of": "2026-06-17", "as_of_ts": "2026-06-17T18:00:00Z"},
+    )
+
+    assert response.status_code == 422
+
+
+def test_policy_replay_requires_an_unambiguous_instant(client: TestClient) -> None:
+    """A naive timestamp is a timezone guess, and the guess is worth an hour."""
+    response = client.get(
+        "/api/macro/policy", params={"as_of_ts": "2026-06-17T18:00:00"}
+    )
+
+    assert response.status_code == 422
+
+
+def test_actual_path_exposes_whether_the_vote_was_published(
+    seeded_db_empty_cards: Repository,
+    client: TestClient,
+) -> None:
+    """A missing vote and an unpublished vote are different facts.
+
+    The parser already records which one it saw; dropping it at the API turns
+    "the statement did not print a vote" into "there was no vote".
+    """
+    _insert_path(
+        seeded_db_empty_cards,
+        kind="actual",
+        series_id="POLICY_PATH_ACTUAL",
+        source="federal_reserve_fomc",
+        point_extra={"vote_status": "not_stated", "vote_split": None},
+    )
+
+    response = client.get("/api/macro/policy", params={"as_of": "2026-06-18"})
+
+    point = response.json()["actual"]["path"]["points"][0]
+    assert point["vote_status"] == "not_stated"
+    assert point["vote_split"] is None

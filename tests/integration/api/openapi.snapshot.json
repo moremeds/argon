@@ -11873,6 +11873,21 @@
               }
             ],
             "title": "Vote Split"
+          },
+          "vote_status": {
+            "anyOf": [
+              {
+                "enum": [
+                  "stated",
+                  "not_stated"
+                ],
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Vote Status"
           }
         },
         "required": [
@@ -11969,6 +11984,48 @@
         "title": "PolicyPathSlot",
         "type": "object"
       },
+      "PolicyReleaseFailure": {
+        "description": "One named release whose evidence landed but whose facts did not.\n\nNamed rather than counted: an operator cannot re-run \"the 3 that failed\",\nonly a specific release key.",
+        "properties": {
+          "error_message": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Error Message"
+          },
+          "error_type": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Error Type"
+          },
+          "event_date": {
+            "format": "date",
+            "title": "Event Date",
+            "type": "string"
+          },
+          "release_key": {
+            "title": "Release Key",
+            "type": "string"
+          }
+        },
+        "required": [
+          "release_key",
+          "event_date"
+        ],
+        "title": "PolicyReleaseFailure",
+        "type": "object"
+      },
       "PolicySourceFreshness": {
         "properties": {
           "consecutive_failures": {
@@ -12021,6 +12078,28 @@
               }
             ],
             "title": "Last Success At"
+          },
+          "release_failures": {
+            "items": {
+              "$ref": "#/components/schemas/PolicyReleaseFailure"
+            },
+            "title": "Release Failures",
+            "type": "array"
+          },
+          "releases_discovered": {
+            "default": 0,
+            "title": "Releases Discovered",
+            "type": "integer"
+          },
+          "releases_failed": {
+            "default": 0,
+            "title": "Releases Failed",
+            "type": "integer"
+          },
+          "releases_succeeded": {
+            "default": 0,
+            "title": "Releases Succeeded",
+            "type": "integer"
           },
           "source": {
             "title": "Source",
@@ -25550,7 +25629,7 @@
   },
   "info": {
     "title": "UW Watchlist API",
-    "version": "0.11.4"
+    "version": "0.12.3"
   },
   "openapi": "3.1.0",
   "paths": {
@@ -26286,6 +26365,25 @@
               ],
               "description": "UTC calendar date; replay includes evidence available by day-end.",
               "title": "As Of"
+            }
+          },
+          {
+            "description": "Timezone-aware instant; replay includes evidence available at or before it. Required to replay across an intraday release.",
+            "in": "query",
+            "name": "as_of_ts",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "format": "date-time",
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "description": "Timezone-aware instant; replay includes evidence available at or before it. Required to replay across an intraday release.",
+              "title": "As Of Ts"
             }
           }
         ],
