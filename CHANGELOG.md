@@ -7,6 +7,9 @@ version in lockstep (enforced by `scripts/release/version_sync_check.py`).
 
 ## [Unreleased]
 
+## [0.12.1] — 2026-08-17
+
+
 ### Fixed
 
 - **The watchlist dashboard issued one HTTP request per ticker card on load.**
@@ -37,7 +40,6 @@ version in lockstep (enforced by `scripts/release/version_sync_check.py`).
   with prefetch left on 947 ms). The 9.2 s fan-out is real and measured on the
   deployment; that it is what makes opening a stock page feel slow remains a
   plausible mechanism, not a demonstrated one.
-
 ## [0.12.0] — 2026-08-16
 
 
