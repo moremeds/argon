@@ -9,37 +9,34 @@ version in lockstep (enforced by `scripts/release/version_sync_check.py`).
 
 ### Fixed
 
-- **Opening a stock page from the dashboard stalled for seconds, and the wait
-  grew with the watchlist.** Every `TickerCard` fetched its own sparkline in a
-  mount effect, so request count equalled watchlist size: at 170 tickers that
-  was 170 requests carrying 178 KB total — ~1 KB each — because the browser
-  runs only ~6 connections at a time. Measured on the deployed dashboard the
-  fan-out spanned 7.5–9.2 s, and clicking a card queued its RSC navigation
-  *behind that backlog*, which is what made the detail page feel slow while the
-  grid itself looked ready. `cache: "no-store"` replayed the whole thing on
-  every return to the dashboard, and Next's default `<Link>` prefetch added 39
-  more speculative requests on top. The fetch is now gated on an
-  `IntersectionObserver` (600 px `rootMargin`, so a scroll lands on a drawn
-  sparkline rather than a gap) and the card links opt out of prefetch. Initial
-  load drops from 114 requests to 8 on a 114-ticker grid — a continuous scroll
-  still fetches all 114 exactly once, no duplicates, none starved. Environments
-  without `IntersectionObserver` (jsdom, older browsers) keep the old
-  fetch-on-mount path. The N-per-card shape was invisible on a LAN, where the
-  same fan-out costs ~220 ms; it only bites over a high-latency link.
+- **The watchlist dashboard issued one HTTP request per ticker card on load.**
+  Every `TickerCard` fetched its own sparkline in a mount effect, so request
+  count equalled watchlist size. Measured on the deployed dashboard at 170
+  tickers: 170 requests carrying 178 KB total — ~1 KB each — averaging 5.4 s
+  apiece and spanning 7.5–9.2 s of wall clock, because the browser runs only
+  ~6 connections at a time. `cache: "no-store"` replayed the whole fan-out on
+  every return to the dashboard. Only ~4 cards are on screen at once, so the
+  vast majority of that work was for sparklines nobody was looking at. The
+  fetch is now gated on an `IntersectionObserver` bound to the scrolling
+  ancestor, and the card links opt out of Next's speculative RSC prefetch.
+  Verified in Chrome against a production build of a 114-ticker grid: initial
+  load drops from 114 requests to 8 and RSC prefetches from 23 to 0, while a
+  continuous scroll still fetches all 114 exactly once — no duplicates, none
+  starved. Environments without `IntersectionObserver` (jsdom, older browsers)
+  keep the previous fetch-on-mount path.
 
-- **`/api/health` reported codex and claude as permanently 0-of-2 healthy.** The
-  per-provider AI block read `TRADE_INSIGHTS_AI_{CODEX,CLAUDE}_WORKER_COUNT`
-  (default 2) as a claim that the pool runs, when it only describes pool width
-  *if* it runs. The containerized deployment runs neither by design — the CLI
-  runners need a subprocess plus keychain OAuth, so only DeepSeek survived the
-  2026-07-08 Docker cutover — and `TRADE_INSIGHTS_AI_ENABLED=false` /
-  `TRADE_INSIGHTS_AI_CLAUDE_ENABLED=false` in the mini's `.env` already said so.
-  A kill-switched provider now expects zero workers, so the block reads 0/0
-  instead of a standing red, while an *enabled* pool with no heartbeat still
-  reports unhealthy. Payload-only: the block never gated the top-level `ok`
-  (that comes from db / no-scan / missed-scans / record-coverage) and no web
-  component renders it, so nothing was masked — but a field that is wrong for
-  five weeks straight teaches the reader to skip it.
+  Two things worth recording for whoever touches this next. First, the
+  observer's `root` must be the scrolling ancestor: AppShell scrolls an inner
+  `<main overflow-y:auto>`, and `rootMargin` expands only the *root's* bounds,
+  never ancestor clip rects — with `root: null` the 600 px preload is silently
+  a no-op (a card 300 px below the fold reports `isIntersecting: false`), so
+  cards would load only once already on screen. Second, this change is
+  justified by the request reduction, not by a measured page-open speedup: a
+  controlled production A/B at 114 tickers under Slow 4G throttling found
+  click-to-content statistically unchanged (no gate 931 ms, gate 918 ms, gate
+  with prefetch left on 947 ms). The 9.2 s fan-out is real and measured on the
+  deployment; that it is what makes opening a stock page feel slow remains a
+  plausible mechanism, not a demonstrated one.
 
 ## [0.12.0] — 2026-08-16
 

@@ -205,18 +205,35 @@ describe("TickerCard", () => {
     vi.stubGlobal("fetch", fetchMock);
 
     let trigger: (() => void) | undefined;
+    let opts: { root?: Element | null; rootMargin?: string } | undefined;
     vi.stubGlobal(
       "IntersectionObserver",
       class {
-        constructor(cb: (e: { isIntersecting: boolean }[]) => void) {
+        constructor(
+          cb: (e: { isIntersecting: boolean }[]) => void,
+          o?: { root?: Element | null; rootMargin?: string },
+        ) {
           trigger = () => cb([{ isIntersecting: true }]);
+          opts = o;
         }
         observe() {}
         disconnect() {}
       },
     );
 
-    render(<TickerCard card={card} />);
+    // AppShell scrolls an inner <main overflow-y:auto>, not the document.
+    // rootMargin only expands the *root's* bounds, never ancestor clip rects,
+    // so with root:null the preload margin is silently a no-op and cards load
+    // only once already on screen. Render inside a scroller and assert the
+    // observer bound to it — this is the assertion that catches that.
+    const scroller = document.createElement("div");
+    scroller.style.overflowY = "auto";
+    document.body.appendChild(scroller);
+
+    render(<TickerCard card={card} />, { container: scroller });
+
+    expect(opts?.rootMargin).toBe("600px");
+    expect(opts?.root).toBe(scroller);
 
     // Offscreen: mounted, rendered, but silent.
     expect(fetchMock).not.toHaveBeenCalled();

@@ -24,6 +24,19 @@ import { useLiveSpot } from "./LiveSpotsProvider";
 type Card = components["schemas"]["WatchlistCard"];
 type Props = { card: Card; sparkline?: number[] };
 
+// Nearest scrolling ancestor, or null for the viewport. IntersectionObserver
+// needs this as its `root` or rootMargin means nothing (see the observer
+// below). Resolved from computed style rather than a hardcoded
+// closest("main") so this cannot silently revert to the broken no-op if the
+// shell's scroll container ever moves; today it resolves to AppShell's <main>
+// at every breakpoint.
+function scrollParent(el: HTMLElement): HTMLElement | null {
+  for (let p = el.parentElement; p; p = p.parentElement) {
+    if (/(auto|scroll)/.test(getComputedStyle(p).overflowY)) return p;
+  }
+  return null;
+}
+
 const linkReset = {
   color: "var(--text-primary)",
   textDecoration: "none",
@@ -39,17 +52,14 @@ export function TickerCard({ card, sparkline = [] }: Props) {
   const spot = live?.spot ?? card.spot;
   const spotQuotedAt = live?.spot_quoted_at ?? card.spot_quoted_at;
 
-  // Gate the sparkline fetch on visibility. Every card firing on mount made
-  // request count == watchlist size: at 170 tickers that was 170 requests for
-  // 178 KB, ~9 s of wall clock, because the browser only runs ~6 at a time.
-  // The grid's own click then queued behind that backlog, which is what made
-  // opening a stock page feel slow. Only ~4 cards are on screen at once.
+  // Gate the sparkline fetch on visibility: fetching on mount made request
+  // count == watchlist size (170 requests, ~9 s of fan-out) to draw the ~4
+  // sparklines actually on screen.
   const cardRef = useRef<HTMLDivElement>(null);
-  // Seeded true where there is no IntersectionObserver (jsdom, older
-  // browsers) so those fall back to the old fetch-on-mount behaviour rather
-  // than rendering a permanently empty sparkline. `visible` gates only the
-  // fetch, never markup, so seeding it differently on server and client
-  // cannot desync hydration.
+  // Seeded true where IntersectionObserver is absent (jsdom, older browsers)
+  // to keep the old fetch-on-mount path rather than a permanently empty
+  // sparkline. Gates only the fetch, never markup, so a different seed on
+  // server and client cannot desync hydration.
   const [visible, setVisible] = useState(
     () => typeof IntersectionObserver === "undefined",
   );
@@ -59,11 +69,15 @@ export function TickerCard({ card, sparkline = [] }: Props) {
     if (!el) return;
     // ponytail: native IntersectionObserver, no library. rootMargin preloads
     // one screen ahead so a scroll lands on a drawn sparkline, not a gap.
+    // `root` must be the scrolling ancestor: rootMargin expands the root's
+    // bounds, never ancestor clip rects, so with root:null the 600px preload
+    // is silently a no-op (verified in-browser: a card 300px below the fold
+    // reports isIntersecting false with root:null, true with the scroller).
     const io = new IntersectionObserver(
       (entries) => {
         if (entries.some((e) => e.isIntersecting)) setVisible(true);
       },
-      { rootMargin: "600px" },
+      { root: scrollParent(el), rootMargin: "600px" },
     );
     io.observe(el);
     return () => io.disconnect();
