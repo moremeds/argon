@@ -5,7 +5,9 @@ the core functions here. The nightly job (`data_gap_healer_job`) runs at 20:00 E
 (just after the UW quota reset), audits + heals strict gaps under a UW cap, then
 refreshes the re-runnable (macro/FRED/rates/gold + DB rollup) datasets, and
 writes the report artifact. Single-flight via an advisory lock; skips if a prior
-healer run is still active so it never fights a manual backfill.
+healer run is still active so it never fights a manual backfill -- but first
+reaps runs left 'running' by a killed process, which would otherwise wedge that
+skip forever (see _reap_stale_runs).
 """
 
 from __future__ import annotations
@@ -287,6 +289,61 @@ def _another_run_active(gap: DataGapHealerRepository) -> bool:
         return cur.fetchone() is not None
 
 
+# A run killed mid-flight (SSH drop, container recreate, OOM) never reaches
+# finish_run, so its row stays status='running' forever and _another_run_active
+# above skips every later nightly job -- silently, with no alert. Four such runs
+# disabled the healer for a week in 2026-08 while the flag, cron and adapters
+# were all correct. The staleness test is the run's own PROGRESS, not its age: a
+# legitimate multi-day manual backfill keeps verifying items and is never reaped,
+# while a corpse clears on the very next nightly. See
+# docs/research/2026-08-16-outage-replay-heal-record.md.
+_STALE_RUN_HOURS = 6
+
+
+def _reap_stale_runs(gap: DataGapHealerRepository) -> list[int]:
+    """Cancel execute-runs with no item progress for _STALE_RUN_HOURS, and requeue
+    the items they orphaned. The run-level twin of resume_run's requeue_running.
+
+    'cancelled', never 'complete' -- the run did not finish, and only 'running'
+    trips the active-run gate, so cancelling is enough to unwedge it.
+    """
+    reason = (
+        f"auto-cancelled by data_gap_healer_job: "
+        f"no item progress in {_STALE_RUN_HOURS}h"
+    )
+    with gap._conn.cursor() as cur:
+        cur.execute(
+            """
+            UPDATE data_gap_runs r
+               SET status = 'cancelled',
+                   finished_at = now(),
+                   summary_jsonb = r.summary_jsonb
+                                   || jsonb_build_object('cancelled_reason', %s::text)
+             WHERE r.status = 'running'
+               AND r.mode = 'execute'
+               -- heartbeat: last item driven to a verdict, else the run's own start
+               AND COALESCE(
+                     (SELECT max(i.verified_at) FROM data_gap_items i
+                       WHERE i.run_id = r.id),
+                     r.started_at
+                   ) < now() - make_interval(hours => %s)
+         RETURNING r.id
+            """,
+            (reason, _STALE_RUN_HOURS),
+        )
+        run_ids = [row[0] for row in cur.fetchall()]
+    gap._conn.commit()
+    for run_id in run_ids:
+        # Items left 'running' were never driven to a verdict, and claim_next_items
+        # skips that status -- without this they stay unhealable forever.
+        logger.warning(
+            "data_gap_healer: reaped stale run %s (requeued %d orphaned items)",
+            run_id,
+            gap.requeue_running(run_id),
+        )
+    return run_ids
+
+
 def _refresh_targets(datasets: list[str] | None) -> list[str]:
     return [
         e.table_name
@@ -300,8 +357,9 @@ def _refresh_targets(datasets: list[str] | None) -> list[str]:
 def data_gap_healer_job(
     *, settings: Settings, today: date | None = None, out_dir: Path | None = None
 ) -> dict:
-    """Nightly: audit + heal strict gaps (UW-capped) + refresh re-runnable
-    datasets, then write the report. Off unless DATA_GAP_HEALER_ENABLED."""
+    """Nightly: reap stale runs, then audit + heal strict gaps (UW-capped) +
+    refresh re-runnable datasets and write the report. Off unless
+    DATA_GAP_HEALER_ENABLED."""
     if not settings.data_gap_healer_enabled:
         return {"skipped": "disabled"}
     today = today or date.today()
@@ -316,10 +374,13 @@ def data_gap_healer_job(
             logger.info("data_gap_healer: lock held; skipping")
             return {"skipped": "locked"}
         try:
+            reaped = _reap_stale_runs(gap)
             if _another_run_active(gap):
                 logger.info("data_gap_healer: a prior run is active; skipping")
-                return {"skipped": "run_active"}
-            return _run_nightly(repo, gap, settings, today, out_dir)
+                return {"skipped": "run_active", "reaped": reaped}
+            return _run_nightly(repo, gap, settings, today, out_dir) | {
+                "reaped": reaped
+            }
         finally:
             with repo.conn.cursor() as cur:
                 cur.execute("SELECT pg_advisory_unlock(%s)", (_LOCK_KEY,))

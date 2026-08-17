@@ -7,6 +7,22 @@ version in lockstep (enforced by `scripts/release/version_sync_check.py`).
 
 ## [Unreleased]
 
+### Fixed
+
+- **A killed heal run no longer wedges the nightly healer forever.** The nightly
+  job skips itself while another `execute` run is `running`, but nothing ever
+  timed that out — a run whose process died (SSH drop, Watchtower container
+  recreate, OOM) never reaches `finish_run`, so its row stayed `running` and
+  every subsequent night returned `{"skipped": "run_active"}` silently. Four such
+  runs disabled the healer for a week in 2026-08 while the enable flag, cron,
+  adapters and migrations were all correct. The job now reaps stale runs before
+  the check: it cancels them and requeues the items they orphaned in `running`,
+  which `claim_next_items` skips and which were therefore unhealable. Staleness
+  is measured by **progress, not age** — the last item driven to a verdict — so a
+  legitimate multi-day manual backfill that keeps healing is never reaped, while
+  a corpse clears on the very next nightly run. Run-level twin of the item-level
+  recovery `resume_run` already did.
+
 ## [0.12.3] — 2026-08-17
 
 

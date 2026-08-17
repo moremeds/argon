@@ -45,6 +45,24 @@ re-runnable datasets (macro/FRED/rates/gold + DB rollups), writes the report,
 and refreshes `/api/health`. Single-flight via an advisory lock; it **skips if a
 prior healer run is still `running`** so it never fights an in-flight backfill.
 
+**Stale-run reaper.** Before that check, the job cancels any `execute` run left
+`running` with **no item verified for 6 hours** and requeues the items it
+orphaned. Without this a run whose process was killed (SSH drop, container
+recreate, OOM) never reaches `finish_run`, so its row stays `running` and the
+skip above fires every night, forever — this silently disabled the healer for a
+week in 2026-08. The staleness test is progress, not age, so a legitimate
+multi-day manual backfill that keeps healing items is never reaped. Reaped run
+ids appear in the job result as `reaped` and in the run's
+`summary_jsonb.cancelled_reason`.
+
+```sql
+-- did the reaper fire, or is something genuinely live?
+SELECT id, mode, status, started_at,
+       (SELECT max(verified_at) FROM data_gap_items i WHERE i.run_id = r.id) AS last_progress
+  FROM data_gap_runs r
+ WHERE status = 'running' AND mode = 'execute';
+```
+
 ## Manual commands
 
 ```bash
