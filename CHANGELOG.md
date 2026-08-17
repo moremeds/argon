@@ -25,14 +25,20 @@ version in lockstep (enforced by `scripts/release/version_sync_check.py`).
 
 ### Fixed
 
-- **Two watchlist tickers were typos for the ones actually intended.** `NOV` is
-  National Oilwell Varco — oil drilling equipment, UW sector Energy — and was
-  carrying a `Healthcare` tag; the intended name was `NVO` (Novo Nordisk), now
-  added. `ELV` is Elevance Health, a common stock, and was carrying a
-  `Sector-ETF` tag; the intended name was the `XLV` ETF, which was already on
-  the watchlist and correctly tagged, so `ELV` is simply removed. Net UW burn is
-  down one ticker (~263 calls/day). `SPCX` keeps `M7` by operator decision and
-  additionally gains `Space`.
+- **Two pairs of lookalike tickers had been given each other's tags.** `NOV` is
+  National Oilwell Varco — oil drilling equipment, UW sector Energy — but was
+  carrying `Healthcare`, the tag meant for `NVO` (Novo Nordisk). `ELV` is
+  Elevance Health, a common stock, but was carrying `Sector-ETF`, the tag meant
+  for the `XLV` ETF. All four names are now held, each with its own tag: NOV →
+  `Energy`, NVO → `Healthcare`, ELV → `Healthcare`, XLV → `Sector-ETF`. NVO is
+  the only addition (~263 UW calls/day); NOV and ELV keep their accumulated
+  history. A test asserts the two pairs never share a chain, which is what the
+  mix-up looked like. `SPCX` keeps `M7` by operator decision and additionally
+  gains `Space`.
+- **`ISRG` was the last active ticker whose membership came from sector
+  inheritance rather than the taxonomy.** Now enumerated in both
+  `DEF/Healthcare` and `L4/Robotics/Automation` — surgical robotics is
+  genuinely both — so no active ticker depends on the fallback path.
 
 ## [0.12.1] — 2026-08-17
 

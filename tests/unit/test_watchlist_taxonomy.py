@@ -96,15 +96,21 @@ def test_merged_legacy_tags_can_hold_a_second_chain() -> None:
     assert chains_for("SPCX") == ["M7", "Space"]
 
 
-def test_novo_nordisk_not_national_oilwell_varco() -> None:
-    """NVO is Novo Nordisk. NOV is National Oilwell Varco — oil drilling
-    equipment, UW sector Energy — and was a typo carrying a Healthcare tag.
+def test_lookalike_tickers_are_not_conflated() -> None:
+    """Two pairs that were briefly given each other's tags.
+
+    NVO is Novo Nordisk; NOV is National Oilwell Varco, oil drilling equipment
+    (UW sector Energy) — NOV had been carrying Healthcare. ELV is Elevance
+    Health, a common stock; XLV is the health-care sector ETF — ELV had been
+    carrying Sector-ETF. All four are held, each with its own tag.
     """
     assert chains_for("NVO") == ["Healthcare"]
-    assert chains_for("NOV") == []
-    # ELV (Elevance Health, a common stock) was a typo for the XLV ETF.
-    assert chains_for("ELV") == []
+    assert chains_for("NOV") == ["Energy"]
+    assert chains_for("ELV") == ["Healthcare"]
     assert chains_for("XLV") == ["Sector-ETF"]
+    # The pairs must never share a chain — that is what the mix-up looked like.
+    assert set(chains_for("NVO")) & set(chains_for("NOV")) == set()
+    assert set(chains_for("ELV")) & set(chains_for("XLV")) == set()
 
 
 def test_sector_etfs_are_not_cross_listed_into_company_chains() -> None:
