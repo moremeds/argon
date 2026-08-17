@@ -336,10 +336,25 @@ LAYERS: tuple[Layer, ...] = (
         name="Defensive",
         focus=DEFENSIVE,
         chains={
-            # NVO, not NOV: NOV is National Oilwell Varco (oil drilling
-            # equipment, UW sector Energy) and was a typo for Novo Nordisk.
-            "Healthcare": ("JNJ", "LLY", "PFE", "UNH", "HIMS", "NVO"),
-            "Energy": ("XOM", "CVX", "OXY"),
+            # NVO and NOV are different companies that were briefly conflated:
+            # NVO is Novo Nordisk, NOV is National Oilwell Varco (oil drilling
+            # equipment). Both are held; NOV belongs in Energy, below.
+            # ELV is Elevance Health, a common stock — not the XLV ETF, which
+            # carries Sector-ETF. Both are held.
+            # ISRG sits here AND in L4 Robotics/Automation: surgical robotics is
+            # genuinely both. Enumerated rather than left to sector-inheritance
+            # so no active ticker depends on the fallback.
+            "Healthcare": (
+                "JNJ",
+                "LLY",
+                "PFE",
+                "UNH",
+                "HIMS",
+                "NVO",
+                "ELV",
+                "ISRG",
+            ),
+            "Energy": ("XOM", "CVX", "OXY", "NOV"),
             "Banks": ("JPM", "BAC", "WFC", "GS", "MS", "BLK"),
             "Consumer": ("WMT", "COST", "HD", "MCD", "KO", "NKE", "SBUX", "TGT"),
         },
