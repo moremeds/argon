@@ -54,6 +54,7 @@ Trace: docs/research/2026-08-13-fundamental-concentration-axis/.
 
 from __future__ import annotations
 
+import gzip
 import json
 import os
 import sys
@@ -273,20 +274,23 @@ def main() -> None:
         summary[family] = dict(c)
 
     OUT.mkdir(parents=True, exist_ok=True)
-    (OUT / "computability.json").write_text(
-        json.dumps(
-            {
-                "probe": "concentration axis-grouped computability",
-                "reproduce": (
-                    "uv run python scripts/research/"
-                    "fundamental_concentration_axis_probe.py"
-                ),
-                "summary": summary,
-                "by_ticker": results,
-            },
-            indent=1,
-            sort_keys=True,
-        )
+    # ponytail: gzipped — the uncompressed trace is 1.1 MB, ~10x the largest
+    # research JSON on main. `gzip -dc <file> | jq` reads it in place.
+    # mtime=0 keeps re-runs byte-identical when the payload is unchanged.
+    payload = json.dumps(
+        {
+            "probe": "concentration axis-grouped computability",
+            "reproduce": (
+                "uv run python scripts/research/fundamental_concentration_axis_probe.py"
+            ),
+            "summary": summary,
+            "by_ticker": results,
+        },
+        indent=1,
+        sort_keys=True,
+    )
+    (OUT / "computability.json.gz").write_bytes(
+        gzip.compress(payload.encode(), mtime=0)
     )
     print(json.dumps(summary, indent=1))
 

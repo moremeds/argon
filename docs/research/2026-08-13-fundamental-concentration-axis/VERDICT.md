@@ -1,7 +1,9 @@
 # VERDICT — P4 was killed by a broken probe, not by the data
 
 **Reproduce:** `UW_SCAN_API_KEY=... uv run python scripts/research/fundamental_concentration_axis_probe.py`
-**Trace:** `computability.json` (401 tickers × up to 20 periods, per-period axis/level/share)
+**Trace:** `computability.json.gz` (401 tickers × up to 20 periods, per-period axis/level/share).
+Gzipped — 1.1 MB raw, ~10x the largest research JSON on `main`. Read it with
+`gzip -dc computability.json.gz | jq`; the probe writes this form directly.
 **Supersedes:** `docs/research/2026-08-12-fundamental-segment-computability/VERDICT.md` and the
 unwritten wide probe at `docs/research/2026-08-13-fundamental-segment-computability-wide/`.
 
