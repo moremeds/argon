@@ -32,7 +32,57 @@ version in lockstep (enforced by `scripts/release/version_sync_check.py`).
   records the date it was measured. Matrix and method:
   `docs/research/2026-08-16-replay-endpoint-matrix.md`.
 
+
+- **Every one of the 143 registered datasets now carries a decision.** 45 daily
+  tables refused to heal on one copy-pasted sentence nobody had probed, and 13
+  liveness entries had empty reason strings. 15 adapters are now wired over
+  entrypoints that were *already* date-aware (market tide, top-net-impact,
+  CRI/VCG/canary recovery, technicals, corporate actions, fundamentals, both
+  lake syncs, both UW event logs, fundamental scores/anchors); the rest carry
+  `reason_verified_on` — the date the refusal was actually measured. CI fails on
+  an undated refusal or an undispositioned dataset.
+- **Heal adapters can no longer be silently dead.** `per_ticker_*` adapters are
+  dispatched only from gap items, which only `strict_*` audit modes produce, so
+  wiring one to a `freshness_only` dataset does nothing while the policy doc
+  shows it as covered. A test now rejects that pairing outright; the review
+  tripped over it three times.
+- **One dataset's backlog no longer starves every other.**
+  `data_gap_healer_dataset_share` (0.4) caps any single dataset's share of a
+  night's UW budget — a 4,206-item surface backlog needed ~84k calls against a
+  12k cap and blocked every other dataset for a week. And after three
+  consecutive `provider_no_data` verdicts the scope is auto-caveated, ending the
+  nightly re-attempt of dates the provider will never serve. The auto-caveat
+  fires only on the provider's answer, never on our own `no_adapter` /
+  `unsupported_granularity` bugs.
+
+### Changed
+
+- **The chain taxonomy now names every layer's members instead of half of them
+  inheriting from `watchlist.sector`.** `IDX`, `THM` and `DEF` previously held
+  empty tuples and seeded from the legacy `sector` column, which capped those 63
+  tickers at **exactly one chain each** — `sector` is a single column — and so
+  quietly excluded them from the many-to-many the join table was built for. Two
+  concrete cases it was hiding: MARA/RIOT are bitcoin miners that pivoted to AI
+  datacenters exactly like the six peers already tagged `AI-Cloud/NeoCloud`, but
+  could only be `Crypto`; and SPCX could not be both `M7` and `Space`. Both now
+  hold both. Sector ETFs (SMH/SOXX/SOXL/IGV/MAGS) are deliberately *not*
+  cross-listed into the company chains they track — a chain answers "which
+  companies are in this value chain", and a fund tracking it is a different
+  question. `inherit_sector_memberships` still runs as the safety net for a
+  ticker the module never names; it simply has nothing left to do here.
+
 ### Fixed
+
+- **Two watchlist tickers were typos for the ones actually intended.** `NOV` is
+  National Oilwell Varco — oil drilling equipment, UW sector Energy — and was
+  carrying a `Healthcare` tag; the intended name was `NVO` (Novo Nordisk), now
+  added. `ELV` is Elevance Health, a common stock, and was carrying a
+  `Sector-ETF` tag; the intended name was the `XLV` ETF, which was already on
+  the watchlist and correctly tagged, so `ELV` is simply removed. Net UW burn is
+  down one ticker (~263 calls/day). `SPCX` keeps `M7` by operator decision and
+  additionally gains `Space`.
+
+
 
 - **A same-day fetch memo would have poisoned the replay in both directions.**
   `fetch_option_contracts` and `fetch_greek_exposure_by_expiry` memoize on
@@ -74,30 +124,39 @@ version in lockstep (enforced by `scripts/release/version_sync_check.py`).
   past date on a row built from future data, which is what produced four
   byte-identical `vrp_macro_signal_daily` rows during round 1.
 
-### Added
+## [0.12.1] — 2026-08-17
 
-- **Every one of the 143 registered datasets now carries a decision.** 45 daily
-  tables refused to heal on one copy-pasted sentence nobody had probed, and 13
-  liveness entries had empty reason strings. 15 adapters are now wired over
-  entrypoints that were *already* date-aware (market tide, top-net-impact,
-  CRI/VCG/canary recovery, technicals, corporate actions, fundamentals, both
-  lake syncs, both UW event logs, fundamental scores/anchors); the rest carry
-  `reason_verified_on` — the date the refusal was actually measured. CI fails on
-  an undated refusal or an undispositioned dataset.
-- **Heal adapters can no longer be silently dead.** `per_ticker_*` adapters are
-  dispatched only from gap items, which only `strict_*` audit modes produce, so
-  wiring one to a `freshness_only` dataset does nothing while the policy doc
-  shows it as covered. A test now rejects that pairing outright; the review
-  tripped over it three times.
-- **One dataset's backlog no longer starves every other.**
-  `data_gap_healer_dataset_share` (0.4) caps any single dataset's share of a
-  night's UW budget — a 4,206-item surface backlog needed ~84k calls against a
-  12k cap and blocked every other dataset for a week. And after three
-  consecutive `provider_no_data` verdicts the scope is auto-caveated, ending the
-  nightly re-attempt of dates the provider will never serve. The auto-caveat
-  fires only on the provider's answer, never on our own `no_adapter` /
-  `unsupported_granularity` bugs.
 
+### Fixed
+
+- **The watchlist dashboard issued one HTTP request per ticker card on load.**
+  Every `TickerCard` fetched its own sparkline in a mount effect, so request
+  count equalled watchlist size. Measured on the deployed dashboard at 170
+  tickers: 170 requests carrying 178 KB total — ~1 KB each — averaging 5.4 s
+  apiece and spanning 7.5–9.2 s of wall clock, because the browser runs only
+  ~6 connections at a time. `cache: "no-store"` replayed the whole fan-out on
+  every return to the dashboard. Only ~4 cards are on screen at once, so the
+  vast majority of that work was for sparklines nobody was looking at. The
+  fetch is now gated on an `IntersectionObserver` bound to the scrolling
+  ancestor, and the card links opt out of Next's speculative RSC prefetch.
+  Verified in Chrome against a production build of a 114-ticker grid: initial
+  load drops from 114 requests to 8 and RSC prefetches from 23 to 0, while a
+  continuous scroll still fetches all 114 exactly once — no duplicates, none
+  starved. Environments without `IntersectionObserver` (jsdom, older browsers)
+  keep the previous fetch-on-mount path.
+
+  Two things worth recording for whoever touches this next. First, the
+  observer's `root` must be the scrolling ancestor: AppShell scrolls an inner
+  `<main overflow-y:auto>`, and `rootMargin` expands only the *root's* bounds,
+  never ancestor clip rects — with `root: null` the 600 px preload is silently
+  a no-op (a card 300 px below the fold reports `isIntersecting: false`), so
+  cards would load only once already on screen. Second, this change is
+  justified by the request reduction, not by a measured page-open speedup: a
+  controlled production A/B at 114 tickers under Slow 4G throttling found
+  click-to-content statistically unchanged (no gate 931 ms, gate 918 ms, gate
+  with prefetch left on 947 ms). The 9.2 s fan-out is real and measured on the
+  deployment; that it is what makes opening a stock page feel slow remains a
+  plausible mechanism, not a demonstrated one.
 ## [0.12.0] — 2026-08-16
 
 

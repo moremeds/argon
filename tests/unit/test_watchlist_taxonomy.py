@@ -60,8 +60,58 @@ def test_foundation_model_proxy_is_fully_covered() -> None:
 
 def test_selected_adds_count_is_pinned() -> None:
     """Budget is computed from this count; a silent change moves the UW spend."""
-    assert len(SELECTED_ADDS) == 59
+    assert len(SELECTED_ADDS) == 60
 
 
 def test_case_insensitive_lookup() -> None:
     assert chains_for("nvda") == chains_for("NVDA")
+
+
+def test_no_layer_is_empty() -> None:
+    """Every chain names its members.
+
+    IDX/THM/DEF used to hold empty tuples and seed from `watchlist.sector`.
+    That capped those names at ONE chain each, because `sector` is one column —
+    silently excluding them from the many-to-many the join table exists for.
+    An empty tuple here means a chain has quietly gone back to that.
+    """
+    empty = [
+        f"{layer.key}/{chain}"
+        for layer in LAYERS
+        for chain, tickers in layer.chains.items()
+        if not tickers
+    ]
+    assert not empty
+
+
+def test_merged_legacy_tags_can_hold_a_second_chain() -> None:
+    """The point of merging the sector-inherited tags into the module.
+
+    Under sector-inheritance each of these could hold exactly one chain.
+    """
+    # Bitcoin miners that pivoted to AI datacenters: both, not either.
+    assert chains_for("MARA") == ["AI-Cloud/NeoCloud", "Crypto"]
+    assert chains_for("RIOT") == ["AI-Cloud/NeoCloud", "Crypto"]
+    # SpaceX is M7 by operator decision and Space by what it is.
+    assert chains_for("SPCX") == ["M7", "Space"]
+
+
+def test_novo_nordisk_not_national_oilwell_varco() -> None:
+    """NVO is Novo Nordisk. NOV is National Oilwell Varco — oil drilling
+    equipment, UW sector Energy — and was a typo carrying a Healthcare tag.
+    """
+    assert chains_for("NVO") == ["Healthcare"]
+    assert chains_for("NOV") == []
+    # ELV (Elevance Health, a common stock) was a typo for the XLV ETF.
+    assert chains_for("ELV") == []
+    assert chains_for("XLV") == ["Sector-ETF"]
+
+
+def test_sector_etfs_are_not_cross_listed_into_company_chains() -> None:
+    """A chain answers "which companies are in this value chain".
+
+    A fund tracking it is a different question, so SMH/SOXX/IGV/MAGS carry
+    Sector-ETF and nothing else. Deliberate — revisit only on purpose.
+    """
+    for etf in ("SMH", "SOXX", "SOXL", "IGV", "MAGS"):
+        assert chains_for(etf) == ["Sector-ETF"], etf

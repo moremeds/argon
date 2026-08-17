@@ -1,6 +1,6 @@
 "use client";
 import Link from "next/link";
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import type { components } from "@/lib/types";
 import { StockNotReadyDialog } from "@/components/stock/StockNotReadyDialog";
 import { SetupBadge } from "./SetupBadge";
@@ -24,6 +24,19 @@ import { useLiveSpot } from "./LiveSpotsProvider";
 type Card = components["schemas"]["WatchlistCard"];
 type Props = { card: Card; sparkline?: number[] };
 
+// Nearest scrolling ancestor, or null for the viewport. IntersectionObserver
+// needs this as its `root` or rootMargin means nothing (see the observer
+// below). Resolved from computed style rather than a hardcoded
+// closest("main") so this cannot silently revert to the broken no-op if the
+// shell's scroll container ever moves; today it resolves to AppShell's <main>
+// at every breakpoint.
+function scrollParent(el: HTMLElement): HTMLElement | null {
+  for (let p = el.parentElement; p; p = p.parentElement) {
+    if (/(auto|scroll)/.test(getComputedStyle(p).overflowY)) return p;
+  }
+  return null;
+}
+
 const linkReset = {
   color: "var(--text-primary)",
   textDecoration: "none",
@@ -39,13 +52,45 @@ export function TickerCard({ card, sparkline = [] }: Props) {
   const spot = live?.spot ?? card.spot;
   const spotQuotedAt = live?.spot_quoted_at ?? card.spot_quoted_at;
 
+  // Gate the sparkline fetch on visibility: fetching on mount made request
+  // count == watchlist size (170 requests, ~9 s of fan-out) to draw the ~4
+  // sparklines actually on screen.
+  const cardRef = useRef<HTMLDivElement>(null);
+  // Seeded true where IntersectionObserver is absent (jsdom, older browsers)
+  // to keep the old fetch-on-mount path rather than a permanently empty
+  // sparkline. Gates only the fetch, never markup, so a different seed on
+  // server and client cannot desync hydration.
+  const [visible, setVisible] = useState(
+    () => typeof IntersectionObserver === "undefined",
+  );
+  useEffect(() => {
+    if (visible) return;
+    const el = cardRef.current;
+    if (!el) return;
+    // ponytail: native IntersectionObserver, no library. rootMargin preloads
+    // one screen ahead so a scroll lands on a drawn sparkline, not a gap.
+    // `root` must be the scrolling ancestor: rootMargin expands the root's
+    // bounds, never ancestor clip rects, so with root:null the 600px preload
+    // is silently a no-op (verified in-browser: a card 300px below the fold
+    // reports isIntersecting false with root:null, true with the scroller).
+    const io = new IntersectionObserver(
+      (entries) => {
+        if (entries.some((e) => e.isIntersecting)) setVisible(true);
+      },
+      { root: scrollParent(el), rootMargin: "600px" },
+    );
+    io.observe(el);
+    return () => io.disconnect();
+  }, [visible]);
+
   // Sparkline OHLC is fetched client-side (was server-side as part of the
   // dashboard RSC, paying ~800 ms per page load). Skips when (a) the prop
-  // pre-seeded data (used by unit tests), or (b) the ticker isn't scanned.
+  // pre-seeded data (used by unit tests), (b) the ticker isn't scanned, or
+  // (c) the card has never been scrolled into view.
   // Note: CardGrid uses `key={t.ticker}` so TickerCard unmounts/remounts on
   // ticker change — there is no in-place ticker swap to worry about.
   useEffect(() => {
-    if (closes.length > 0 || !card.scanned_at) return;
+    if (!visible || closes.length > 0 || !card.scanned_at) return;
     const ac = new AbortController();
     fetch(`/api/ohlc/${card.ticker}?days=30`, {
       cache: "no-store",
@@ -62,7 +107,7 @@ export function TickerCard({ card, sparkline = [] }: Props) {
         // Empty sparkline is an acceptable degraded state.
       });
     return () => ac.abort();
-  }, [card.ticker, card.scanned_at, closes.length]);
+  }, [visible, card.ticker, card.scanned_at, closes.length]);
 
   const fresh = bucketFreshness(card.scanned_at);
   const dot =
@@ -166,6 +211,7 @@ export function TickerCard({ card, sparkline = [] }: Props) {
 
   return (
     <div
+      ref={cardRef}
       style={{
         padding: 12,
         background: "var(--bg-panel)",
@@ -178,6 +224,9 @@ export function TickerCard({ card, sparkline = [] }: Props) {
       {isReady ? (
         <Link
           href={`/stock/${card.ticker}/market-structure`}
+          // 170 cards means 170 speculative RSC prefetches competing with the
+          // grid's own fetches; the detail route is one click, not a race.
+          prefetch={false}
           aria-label={`${card.ticker} detail`}
           style={{ ...linkReset, display: "block" }}
         >
