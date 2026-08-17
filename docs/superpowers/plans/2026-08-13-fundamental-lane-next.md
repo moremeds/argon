@@ -80,7 +80,10 @@ uncertainty the asymmetry is decisive: capture costs ~401 UW calls per quarter a
 the same argument `CLAUDE.md` already makes for `option_surface_grid_daily`. Storing snapshots
 is itself the discriminating test: watch whether the oldest period moves.
 
-### D5. Widening the universe is worth less than it first appeared
+### D5. ~~Widening the universe is worth less than it first appeared~~ — OVERTURNED 2026-08-18
+
+**This decision was wrong, and the error was measuring the wrong host.** It is kept in full
+below rather than deleted, because the mistake is the reusable part.
 
 The scoring pipeline has **zero failures on its input** — every one of the 257 universe names
 has statements and a score; 144 tickers have statements and no membership. But the valuable
@@ -91,11 +94,40 @@ output is the valuation band, and the band needs unadjusted daily closes from th
 | the 257 universe names | **254/257** (exactly matches `valuation_anchors`' 254 tickers) |
 | the 144 excluded names | **29/144** (measured on the MacBook mirror) |
 
-So widening yields **+144 composite scores (the part that does not pay) and +29 valuation bands
+~~So widening yields **+144 composite scores (the part that does not pay) and +29 valuation bands
 (the part that does)** — 254 → 283, about +11%, not the +56% panel width the raw counts suggest.
-The real gate on the valuable half is **lake price depth**, not universe membership. The 144 are
+The real gate on the valuable half is **lake price depth**, not universe membership.~~ The 144 are
 the capex-research cohort and were never breadth-probe candidates, so their depth was never
-assessed. The mini's mirror may be deeper; apex returned 502 when probed, so this is unverified.
+assessed. ~~The mini's mirror may be deeper; apex returned 502 when probed, so this is unverified.~~
+
+**Re-measured on the mini** — the host that actually computes the bands, whose mirror holds 14,689
+equity symbol directories against the MacBook's 653. Full method and per-ticker trace:
+`docs/research/2026-08-18-fundamental-lake-depth/VERDICT.md`.
+
+| the 144 excluded names | MacBook | mini `/lake` |
+|---|---:|---:|
+| has `1d.parquet` | 29 | **141** |
+| price depth ≥ 12 quarters (`MIN_HISTORY`) | 23 | **132** |
+| price depth ≥ 20 quarters (`WINDOW_QUARTERS`) | 21 | **120** |
+| statement depth ≥ 12 quarters | 143 | 143 |
+
+So widening yields **up to +132 valuation bands, not +29** — 254 → up to 386, about **+52%**. The
+raw panel-width figure this decision dismissed was approximately right, and **the gate is universe
+membership after all, not lake depth**. PR 1 is worth roughly 4.5× what this plan credited it with.
+
+132 is an upper bound: clearing the depth gate is necessary, not sufficient, because the method also
+refuses on non-positive EV, a non-positive numerator, and a stale filing. The universe cohort
+converts at 99.2% (256 clear the gate, 254 bands exist), but that rate must not be transferred — the
+144 carry more unprofitable and negative-EV names, which is exactly what the EV guard catches. **PR 1
+must therefore report the realised band count as its verification rather than assert one up front.**
+
+Two lessons, both already paid for once in this lane:
+
+- **counting files is coverage, not computability** — the identical conflation produced the retracted
+  `0/257` concentration verdict in D1, one round earlier;
+- **name the host in any coverage number.** "Measured on the MacBook mirror" was recorded honestly
+  here and still produced a wrong decision, because the caveat was not treated as a blocker. A
+  measurement whose host makes it wrong is not a measurement with a caveat.
 
 ### D6. The alert pipeline is deprioritised — a recorded deviation
 
@@ -112,7 +144,7 @@ the master plan, recorded here deliberately rather than left implicit.
 | `scripts/seed_fundamental_universe.py` | modify — admit statement-bearing names under a stated reason | 1 |
 | `src/uw_scan/worker/scheduler.py` | modify — wire the quarterly statement ingest | 1 |
 | `src/uw_scan/config.py` | modify — ingest cron + enable flag; PR-3 capture flags | 1, 3 |
-| `src/uw_scan/storage/migrations/120_revenue_breakdown_obs.sql` | create — PIT breakdown observations | 3 |
+| `src/uw_scan/storage/migrations/122_revenue_breakdown_obs.sql` | create — PIT breakdown observations. Was `120`; renumbered 2026-08-18 because `120_freshness_sessions_missing.sql` landed on `main` and the unmerged macro branch already claims `116`/`119`/`121`. A duplicate prefix is a CI gate — re-check the next free number when PR 3 actually starts. | 3 |
 | `src/uw_scan/fundamentals/concentration.py` | create — axis grouping, level selection, annual detection | 3 |
 | `src/uw_scan/storage/fundamental_concentration.py` | create — its own storage module, not `repository.py` | 3 |
 | `src/uw_scan/worker/jobs/fundamental_concentration_capture.py` | create — quarterly capture job | 3 |
@@ -208,9 +240,12 @@ from uw_scan.worker.jobs.fundamental_refresh import fundamental_refresh
 ..."   # or the scheduler's registered job path
 ```
 
-Record **both** numbers separately — scores gained and bands gained. Per D5 the expectation is
-~+144 scores and only **~+29 bands**; a bands number far above that means the mini mirror is
-deeper than the MacBook's and D5 should be revised in this PR, not later.
+Record **both** numbers separately — scores gained and bands gained. Per the revised D5 the
+expectation is ~+144 scores and **up to +132 bands** (132 names clear the 12-quarter price gate on
+the mini; 143 clear it on statements). 132 is a ceiling, not a forecast: the method still refuses on
+non-positive EV, a non-positive numerator, and a stale filing, and this cohort is more exposed to
+those than the universe was. **The realised count measured here is the answer** — record it, and if
+it lands far below 132, the gap is the refusal rate on this cohort and belongs in D5.
 
 - [ ] **Step 7: Commit**
 
@@ -340,7 +375,7 @@ Justified by D4 (accrual optionality), scoped by D2 (descriptive only), and cons
 ### Task 1: PIT observation table
 
 **Files:**
-- Create: `src/uw_scan/storage/migrations/120_revenue_breakdown_obs.sql`
+- Create: `src/uw_scan/storage/migrations/122_revenue_breakdown_obs.sql`
 - Modify: `src/uw_scan/reports/data_gap_healer.py`
 - Test: `tests/storage/test_migrations.py`
 
@@ -476,12 +511,15 @@ share — the failure mode this lane already has a rule about. Default to refusi
 | Rebuilding the composite | It orders names and does not pay. More inputs will not change that. |
 | Chain / cluster work | Closed twice, both nulls. |
 | Alert pipeline v1 | D6 — deprioritised by user direction; recorded as a master-plan deviation. |
-| Lake backfill for the 115 price-less names | Belongs to market-warehouse, not argon. Blocked on the D5 re-measurement — apex was 502 when probed, so the mini's true depth is unknown. |
+| Lake backfill for the price-less names | Belongs to market-warehouse, not argon. The D5 re-measurement shrank this from 115 names to **3** (`CFLT`, `CYBR`, `PSTG` are absent from the mini lake entirely) plus 9 more that have a file but under 12 quarters of history. Worth reporting upstream to livewire; not argon work. |
 
 ## Open questions to resolve during execution
 
-1. **Does the mini's lake mirror hold more than the MacBook's?** Decides whether PR-1 buys ~29
-   valuation bands or many more. Measure in PR-1 Step 6; revise D5 in that PR if it differs.
+1. ~~**Does the mini's lake mirror hold more than the MacBook's?**~~ **Answered 2026-08-18: yes,
+   decisively** — 14,689 equity symbols against 653, and 132 of the 144 clear the band's depth gate
+   rather than 29. D5 is revised above; `docs/research/2026-08-18-fundamental-lake-depth/`. This was
+   listed as a PR-1 execution step, but it gates whether PR-1 is worth doing at all, so it was run
+   first. **What remains open is the refusal rate on this cohort**, which only PR-1's ingest answers.
 2. **Does UW's `rev_breakdown` window roll?** Unanswerable from one snapshot. PR-3's stored
    snapshots answer it within two runs: if the oldest period advances, it rolls, and D4's
    urgency was real.
