@@ -447,3 +447,55 @@ is a choice worth making deliberately, not by leaving a default in place:
 An independent corroboration of an earlier finding fell out of this: `exposures_summary`
 reports 28 distinct June sessions against ~22 June trading days. The excess is the
 weekend-stamping bug documented above, visible here from a completely different angle.
+
+---
+
+## 2026-08-17 — "what exactly is missing?" measured, and the 978 healed
+
+The Jan 1 – Aug 17 audit (run 91) reports **230,934 gaps**. Decomposed against
+each dataset's first-ever row and each ticker's watchlist `added_at`:
+
+| Bucket | Items | Is it loss? |
+|---|---:|---|
+| `data_date` < the table's first row ever | 142,081 | No — the table did not exist |
+| `data_date` < the ticker's `added_at` | 87,875 | No — deliberate new-member backfill (see `reconcile_watchlist_lifecycle`) |
+| **Neither** | **978** | **Yes** |
+
+Reproduce: `docs/research/_scripts/2026-08-17-classify-gap-buckets.py`.
+
+### The 978, enumerated
+
+| Dataset | Items | Dates |
+|---|---:|---|
+| `option_chain_per_strike` | 897 | 2026-05-19/20/21 (0 rows written), 05-22, 05-27, 06-11, 06-15, 06-23, 06-24, 06-29, 06-30 (partial sessions: 4–32 rows vs 100–119 normal), 07-15 |
+| `pcr_history` | 39 | 05-12 ×17, 05-15, then SPY/QQQ/IWM on 07-09/14/21/23/29, JNK 08-06/11/12 |
+| `max_pain_by_expiry` | 33 | same shape, same job |
+| `grg_snapshots` | 5 | 06-24, 08-11..14 |
+| `uw_intraday_option_flow_bars` | 3 | JNK 07-13, 07-27, 08-11 |
+| `uw_dark_lit_flow_prints` | 1 | PFE 08-07 |
+
+The recent-window figure reported the day before (569) decomposes the same way:
+560 of it is 56 tickers added **2026-08-10** missing Aug 3–7 — history from
+before they joined. The honest recent number is **9**.
+
+### Two defects this exposed
+
+**1. Partial deploy — `grg.run(as_of=)` was missing in prod.** The first heal
+attempt failed 4/4 with `TypeError: run() got an unexpected keyword argument
+'as_of'`. The parameter exists in source at `scanners/grg.py:108`; the container
+had an older copy. An md5 diff of all 16 branch-changed `src/` files against the
+container found **7 stale + 1 unapplied migration** (120). The previous session
+had `docker cp`'d only the replay-path files and declared the deploy done.
+Checking one symbol is not checking a deploy — diff every changed file.
+
+**2. The audit total is uninterpretable as shipped.** 230,934 vs 978 is a
+factor of 236. The scanner has no notion of when a dataset began, so it audits
+every table back to `--start` regardless. With `DATA_GAP_HEALER_START=2026-01-01`
+on the mini, the nightly healer re-queues those 142,081 pre-existence items every
+night. Registry `date_col` is also NULL for 18 of 23 datasets, so first-row dates
+had to be derived by hand here.
+
+Proposed minimal fix (not yet implemented): clamp each dataset's audit window to
+`max(start, first_row_date)` and surface `first_seen` + the clamped start in
+`CoverageSummary` / `per_dataset_summary`. Clamp **visibly**, never silently — a
+truncated table would otherwise report a recent first row and hide real loss.
