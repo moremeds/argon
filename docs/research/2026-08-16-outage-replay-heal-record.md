@@ -394,3 +394,56 @@ positive — it did, on the first pass.
 
 The Jun–Jul backfill remains open by design (runs 87/88, ~27,000 items). It is the
 nightly healer's work now.
+
+## "Are there more gaps?" — measured answer
+
+Three different questions hide inside that one, with three different answers.
+
+**1. The outage — CLOSED.** 2026-08-11..14, ten datasets, 170/170 tickers each.
+
+**2. The recent window — 6,542 -> 569.** Audit run #90 over 2026-08-01..17. Every
+one of the ten replay datasets has dropped off the list except `pcr_history` with
+3 (tickers with no `/screener/stocks` row). The 569 residue belongs to other
+subsystems: `uw_dark_lit_flow_prints` (281), `uw_intraday_option_flow_bars` (281),
+`grg_snapshots` (4).
+
+**3. Full history since Jan 1 — 230,934.** This number is real but almost entirely
+NOT loss. Two artefacts dominate it:
+
+*Tables that did not exist yet.* First row ever recorded, for tickers on the
+watchlist since May or earlier:
+
+| table | first row | Jan–Apr sessions present |
+|---|---|---|
+| `oi_by_strike` | 2025-01-02 | full (20/19/22/21) |
+| `iv_term_snapshots` | 2026-05-11 | 0 |
+| `max_pain_by_expiry` | 2026-05-12 | 0 |
+| `option_chain_per_strike` | 2026-05-13 | 0 |
+| `exposures_summary` | 2026-05-21 | 0 |
+
+`oi_by_strike` sits at 99.3% session coverage across all 155 sessions precisely
+because it predates the others by 16 months. The rest are at 36–43% because
+capture began mid-May; from that point their monthly session counts track trading
+days.
+
+*Tickers that were not tracked yet.* 82 of the 170 active names joined after
+2026-06-01 (56 in August). Their pre-join history was never captured.
+
+**So: nothing the desk ever recorded is missing.** What the audit reports is the
+cost of extending history backwards — legitimate work (UW serves those dates,
+correctly dated, verified by hash differential back to 2026-01-05) but an
+investment, not a repair.
+
+This sharpens the earlier recommendation. `DATA_GAP_HEALER_START=2026-01-01` asks
+the nightly healer to reconstruct history from before these tables existed. That
+is a choice worth making deliberately, not by leaving a default in place:
+
+- **Repair-only** — set it to roughly when capture began (`2026-05-11`), and the
+  queue reflects real gaps.
+- **Extend history** — leave it at January and accept a multi-month, full-budget
+  nightly backfill that manufactures history the desk never observed live. Legitimate
+  for research, but it should be an explicit decision.
+
+An independent corroboration of an earlier finding fell out of this: `exposures_summary`
+reports 28 distinct June sessions against ~22 June trading days. The excess is the
+weekend-stamping bug documented above, visible here from a completely different angle.
