@@ -1,5 +1,5 @@
 {
-  "generated_at": "2026-08-12T14:58:22.764966+00:00",
+  "generated_at": "2026-08-17T16:17:20.288296+00:00",
   "interpretation": {
     "market_shadow_delay_policy": "unknown because the publisher supplies no timestamp or delay field",
     "market_shadow_is_official": false,
@@ -8,133 +8,2695 @@
     "sme_panel": "Dealer",
     "sme_published_at_policy": "null unless publisher supplies a reliable results timestamp; available_at is first retrieval"
   },
-  "schema_version": 1,
+  "schema_version": 2,
   "sources": {
     "federal_reserve_fomc": {
-      "accessible_artifact": {
-        "available_at": "2026-07-29T14:00:00-04:00",
-        "content_hash": "ba49bbfdb4911035b90fa075c0950e3ed6dc34fd92823765788f8cfc96cce73f",
-        "content_length": 81213,
-        "cost_class": "free_official",
-        "media_type": "text/html",
-        "parser_version": "fomc_statement.v1",
-        "published_at": "2026-07-29T14:00:00-04:00",
-        "source_record_id": "fomc-statement:2026-07-29:html",
-        "source_url": "https://www.federalreserve.gov/newsevents/pressreleases/monetary20260729a.htm"
-      },
-      "action": "Hold",
-      "discovered_release_count": 5,
-      "http_statuses": [
-        200,
-        200,
-        200,
-        200,
-        200,
-        200,
-        200,
-        200,
-        200,
-        200,
-        200
-      ],
-      "parse_error": null,
-      "primary_artifact": {
-        "available_at": "2026-07-29T14:00:00-04:00",
-        "content_hash": "825cfed5e0956055d46ea3bf4d09f3939d79890fa0b3ade78bbf3957d7264522",
-        "content_length": 171262,
-        "cost_class": "free_official",
-        "media_type": "application/pdf",
-        "parser_version": "fomc_statement.v1",
-        "published_at": "2026-07-29T14:00:00-04:00",
-        "source_record_id": "fomc-statement:2026-07-29:pdf",
-        "source_url": "https://www.federalreserve.gov/monetarypolicy/files/monetary20260729a1.pdf"
-      },
-      "published_at": "2026-07-29T14:00:00-04:00",
-      "row_count": 1,
-      "selected_meeting_date": "2026-07-29",
-      "state": "ok",
-      "target_range_lower_percent": "3.5",
-      "target_range_upper_percent": "3.75",
-      "vote_split": "9-3"
-    },
-    "federal_reserve_sep": {
-      "accessible_artifact": {
-        "available_at": "2026-06-17T14:00:00-04:00",
-        "content_hash": "e3c9d5180684f46930cf4e9d47941576ee86820cbca00f72ff6be1733bd30a21",
-        "content_length": 232840,
-        "cost_class": "free_official",
-        "media_type": "text/html",
-        "parser_version": "fed_sep.v1",
-        "published_at": "2026-06-17T14:00:00-04:00",
-        "source_record_id": "fed-sep:2026-06-17:html",
-        "source_url": "https://www.federalreserve.gov/monetarypolicy/fomcprojtabl20260617.htm"
-      },
-      "discovered_release_count": 2,
-      "http_statuses": [
-        200,
-        200,
-        200,
-        200,
-        200
-      ],
-      "parse_error": null,
-      "policy_horizon_count": 4,
-      "policy_horizons": [
+      "releases": [
         {
-          "distinct_dot_values": 5,
-          "horizon": "2026",
-          "participant_total": 18,
-          "published_median_percent": "3.8"
+          "action": "Hold",
+          "artifact_hashes": {
+            "application/pdf": "7b352990fefb525fbf2580d01f63fd5137f2268ebc53883ee8a1396acb845d5f",
+            "text/html": "8235c9e75bc995f4c65d72e6dad32688443ac6116baf8bea3a09cf59b7b50370"
+          },
+          "discovery_url": "https://www.federalreserve.gov/monetarypolicy/fomchistorical2020.htm",
+          "error_message": null,
+          "error_type": null,
+          "event_class": "scheduled_meeting",
+          "event_date": "2020-01-29",
+          "meeting_date": "2020-01-29",
+          "parser_version": "fomc_statement.v1",
+          "published_at": "2020-01-29T14:00:00-05:00",
+          "release_key": "fomc-statement:monetary20200129a",
+          "release_type": "statement",
+          "row_count": 1,
+          "state": "ok",
+          "target_range_lower_percent": "1.5",
+          "target_range_upper_percent": "1.75",
+          "vote_split": "10-0",
+          "vote_status": "stated",
+          "voted_against": [],
+          "voter_names_stated": true
         },
         {
-          "distinct_dot_values": 7,
-          "horizon": "2027",
-          "participant_total": 18,
-          "published_median_percent": "3.6"
+          "action": "Cut",
+          "artifact_hashes": {
+            "application/pdf": "0391374234820ea92ea91aefaf1e8c158520715fb0285fafd2c09d00ceeb23a3",
+            "text/html": "5ea9d1c7e1b7ba17e116f7b3bc77098021917d6594bc57f1185637b8279c30e2"
+          },
+          "discovery_url": "https://www.federalreserve.gov/monetarypolicy/fomchistorical2020.htm",
+          "error_message": null,
+          "error_type": null,
+          "event_class": "unscheduled_meeting",
+          "event_date": "2020-03-03",
+          "meeting_date": "2020-03-03",
+          "parser_version": "fomc_statement.v1",
+          "published_at": "2020-03-03T10:00:00-05:00",
+          "release_key": "fomc-statement:monetary20200303a",
+          "release_type": "statement",
+          "row_count": 1,
+          "state": "ok",
+          "target_range_lower_percent": "1",
+          "target_range_upper_percent": "1.25",
+          "vote_split": "10-0",
+          "vote_status": "stated",
+          "voted_against": [],
+          "voter_names_stated": true
         },
         {
-          "distinct_dot_values": 5,
-          "horizon": "2028",
-          "participant_total": 17,
-          "published_median_percent": "3.4"
+          "action": "Cut",
+          "artifact_hashes": {
+            "application/pdf": "1f7d689a27af7e04d5cbcdcf97ab67b4af18469d6478bca6c62955d0a71694ec",
+            "text/html": "35dfb23067a46955e02f3d9611bfd31fd8da2393f6c64419432a2554fdb15985"
+          },
+          "discovery_url": "https://www.federalreserve.gov/monetarypolicy/fomchistorical2020.htm",
+          "error_message": null,
+          "error_type": null,
+          "event_class": "unscheduled_meeting",
+          "event_date": "2020-03-15",
+          "meeting_date": "2020-03-15",
+          "parser_version": "fomc_statement.v1",
+          "published_at": "2020-03-15T17:00:00-04:00",
+          "release_key": "fomc-statement:monetary20200315a",
+          "release_type": "statement",
+          "row_count": 1,
+          "state": "ok",
+          "target_range_lower_percent": "0",
+          "target_range_upper_percent": "0.25",
+          "vote_split": "9-1",
+          "vote_status": "stated",
+          "voted_against": [
+            "Loretta J. Mester"
+          ],
+          "voter_names_stated": true
         },
         {
-          "distinct_dot_values": 9,
-          "horizon": "Longer run",
-          "participant_total": 18,
-          "published_median_percent": "3.1"
+          "action": "Hold",
+          "artifact_hashes": {
+            "application/pdf": "dae2d548df628d5d9af556b26d32e7f0beb3fa7d198b22fe0612d98425cde7a4",
+            "text/html": "4a633b8a1470555d48ef1a6e8b2e4620db53f716d67d6f5233e6484cbac89c64"
+          },
+          "discovery_url": "https://www.federalreserve.gov/monetarypolicy/fomchistorical2020.htm",
+          "error_message": null,
+          "error_type": null,
+          "event_class": "notation_vote",
+          "event_date": "2020-03-23",
+          "meeting_date": "2020-03-23",
+          "parser_version": "fomc_statement.v1",
+          "published_at": "2020-03-23T08:00:00-04:00",
+          "release_key": "fomc-statement:monetary20200323a",
+          "release_type": "statement",
+          "row_count": 1,
+          "state": "ok",
+          "target_range_lower_percent": "0",
+          "target_range_upper_percent": "0.25",
+          "vote_split": "10-0",
+          "vote_status": "stated",
+          "voted_against": [],
+          "voter_names_stated": true
+        },
+        {
+          "action": "Hold",
+          "artifact_hashes": {
+            "application/pdf": "083d509f3fdb7784d8171837fc10a9a781f49912370107b78d539855792eb426",
+            "text/html": "15cf740f1b1db790b76c749a417479751d327c4dd69838493b8fe593cdc19d57"
+          },
+          "discovery_url": "https://www.federalreserve.gov/monetarypolicy/fomchistorical2020.htm",
+          "error_message": null,
+          "error_type": null,
+          "event_class": "scheduled_meeting",
+          "event_date": "2020-04-29",
+          "meeting_date": "2020-04-29",
+          "parser_version": "fomc_statement.v1",
+          "published_at": "2020-04-29T14:00:00-04:00",
+          "release_key": "fomc-statement:monetary20200429a",
+          "release_type": "statement",
+          "row_count": 1,
+          "state": "ok",
+          "target_range_lower_percent": "0",
+          "target_range_upper_percent": "0.25",
+          "vote_split": "10-0",
+          "vote_status": "stated",
+          "voted_against": [],
+          "voter_names_stated": true
+        },
+        {
+          "action": "Hold",
+          "artifact_hashes": {
+            "application/pdf": "7ae6963831825b499a82a07133755ac057a14ae5fab01ed3bfb489c620a24407",
+            "text/html": "608dbfb9c72a411284881e4c74918e5ad8ae3bd8398fc6d5b85e54550e8ace9a"
+          },
+          "discovery_url": "https://www.federalreserve.gov/monetarypolicy/fomchistorical2020.htm",
+          "error_message": null,
+          "error_type": null,
+          "event_class": "scheduled_meeting",
+          "event_date": "2020-06-10",
+          "meeting_date": "2020-06-10",
+          "parser_version": "fomc_statement.v1",
+          "published_at": "2020-06-10T14:00:00-04:00",
+          "release_key": "fomc-statement:monetary20200610a",
+          "release_type": "statement",
+          "row_count": 1,
+          "state": "ok",
+          "target_range_lower_percent": "0",
+          "target_range_upper_percent": "0.25",
+          "vote_split": "10-0",
+          "vote_status": "stated",
+          "voted_against": [],
+          "voter_names_stated": true
+        },
+        {
+          "action": "Hold",
+          "artifact_hashes": {
+            "application/pdf": "32bfee173c447622e8dc66466df57168baf214cc5332b8c4067b9bc061ec128f",
+            "text/html": "2a667236405dca777f53060b6b9f83dbf53df547d3a06373442bb575cc10a9e5"
+          },
+          "discovery_url": "https://www.federalreserve.gov/monetarypolicy/fomchistorical2020.htm",
+          "error_message": null,
+          "error_type": null,
+          "event_class": "scheduled_meeting",
+          "event_date": "2020-07-29",
+          "meeting_date": "2020-07-29",
+          "parser_version": "fomc_statement.v1",
+          "published_at": "2020-07-29T14:00:00-04:00",
+          "release_key": "fomc-statement:monetary20200729a",
+          "release_type": "statement",
+          "row_count": 1,
+          "state": "ok",
+          "target_range_lower_percent": "0",
+          "target_range_upper_percent": "0.25",
+          "vote_split": "10-0",
+          "vote_status": "stated",
+          "voted_against": [],
+          "voter_names_stated": true
+        },
+        {
+          "action": "Hold",
+          "artifact_hashes": {
+            "application/pdf": "ad326b1c99436e62ca002b666bc6b44e30aaf8e8e977beac0b8856cfa6240bcf",
+            "text/html": "86b84d851776086be11bc24c3aaf3aa298a89d54678c5142d63f2cce27ce2a90"
+          },
+          "discovery_url": "https://www.federalreserve.gov/monetarypolicy/fomchistorical2020.htm",
+          "error_message": null,
+          "error_type": null,
+          "event_class": "scheduled_meeting",
+          "event_date": "2020-09-16",
+          "meeting_date": "2020-09-16",
+          "parser_version": "fomc_statement.v1",
+          "published_at": "2020-09-16T14:00:00-04:00",
+          "release_key": "fomc-statement:monetary20200916a",
+          "release_type": "statement",
+          "row_count": 1,
+          "state": "ok",
+          "target_range_lower_percent": "0",
+          "target_range_upper_percent": "0.25",
+          "vote_split": "8-2",
+          "vote_status": "stated",
+          "voted_against": [
+            "Robert S. Kaplan",
+            "Neel Kashkari"
+          ],
+          "voter_names_stated": true
+        },
+        {
+          "action": "Hold",
+          "artifact_hashes": {
+            "application/pdf": "408f280d8c21d7dd49be993f1f54720e49ae6a0ca8078b5f6d12e321daeb4968",
+            "text/html": "6c334bb7e4e253af8bd8b51b1e8aa316c08ebd3093f346b09002270b0fe0860f"
+          },
+          "discovery_url": "https://www.federalreserve.gov/monetarypolicy/fomchistorical2020.htm",
+          "error_message": null,
+          "error_type": null,
+          "event_class": "scheduled_meeting",
+          "event_date": "2020-11-05",
+          "meeting_date": "2020-11-05",
+          "parser_version": "fomc_statement.v1",
+          "published_at": "2020-11-05T14:00:00-05:00",
+          "release_key": "fomc-statement:monetary20201105a",
+          "release_type": "statement",
+          "row_count": 1,
+          "state": "ok",
+          "target_range_lower_percent": "0",
+          "target_range_upper_percent": "0.25",
+          "vote_split": "10-0",
+          "vote_status": "stated",
+          "voted_against": [],
+          "voter_names_stated": true
+        },
+        {
+          "action": "Hold",
+          "artifact_hashes": {
+            "application/pdf": "b3ef1e3ac9c3ab75148c3065e9f2a7ebb4ab615e13ea23b057ead4cb70a29378",
+            "text/html": "80db13561ec76a46cc10aaf081c4352872b9a3b060cd11bacac96cb772958667"
+          },
+          "discovery_url": "https://www.federalreserve.gov/monetarypolicy/fomchistorical2020.htm",
+          "error_message": null,
+          "error_type": null,
+          "event_class": "scheduled_meeting",
+          "event_date": "2020-12-16",
+          "meeting_date": "2020-12-16",
+          "parser_version": "fomc_statement.v1",
+          "published_at": "2020-12-16T14:00:00-05:00",
+          "release_key": "fomc-statement:monetary20201216a",
+          "release_type": "statement",
+          "row_count": 1,
+          "state": "ok",
+          "target_range_lower_percent": "0",
+          "target_range_upper_percent": "0.25",
+          "vote_split": "10-0",
+          "vote_status": "stated",
+          "voted_against": [],
+          "voter_names_stated": true
+        },
+        {
+          "action": "Hold",
+          "artifact_hashes": {
+            "application/pdf": "df8c78e2b9ff0392706638142d81ab38920c0ff1ad273b34b9eb76ee88c1cb31",
+            "text/html": "b332fc4442992cb993645b98f0c772789e988b55d6211128748ea7ad762e5c59"
+          },
+          "discovery_url": "https://www.federalreserve.gov/monetarypolicy/fomccalendars.htm",
+          "error_message": null,
+          "error_type": null,
+          "event_class": "scheduled_meeting",
+          "event_date": "2021-01-27",
+          "meeting_date": "2021-01-27",
+          "parser_version": "fomc_statement.v1",
+          "published_at": "2021-01-27T14:00:00-05:00",
+          "release_key": "fomc-statement:monetary20210127a",
+          "release_type": "statement",
+          "row_count": 1,
+          "state": "ok",
+          "target_range_lower_percent": "0",
+          "target_range_upper_percent": "0.25",
+          "vote_split": "11-0",
+          "vote_status": "stated",
+          "voted_against": [],
+          "voter_names_stated": true
+        },
+        {
+          "action": "Hold",
+          "artifact_hashes": {
+            "application/pdf": "51bdbed7bb1f39fbbb8ec5f508d2bcccae931d6cf656f2c3bf6a237f912653c3",
+            "text/html": "9983998941a4579e04d47f5be5cbed4d2a7f6996e75ac0cfb533936eac635814"
+          },
+          "discovery_url": "https://www.federalreserve.gov/monetarypolicy/fomccalendars.htm",
+          "error_message": null,
+          "error_type": null,
+          "event_class": "scheduled_meeting",
+          "event_date": "2021-03-17",
+          "meeting_date": "2021-03-17",
+          "parser_version": "fomc_statement.v1",
+          "published_at": "2021-03-17T14:00:00-04:00",
+          "release_key": "fomc-statement:monetary20210317a",
+          "release_type": "statement",
+          "row_count": 1,
+          "state": "ok",
+          "target_range_lower_percent": "0",
+          "target_range_upper_percent": "0.25",
+          "vote_split": "11-0",
+          "vote_status": "stated",
+          "voted_against": [],
+          "voter_names_stated": true
+        },
+        {
+          "action": "Hold",
+          "artifact_hashes": {
+            "application/pdf": "03db640168d1773bdd708d145ecf0958214779879c270aa2f9fb1f80f187ccc2",
+            "text/html": "35ae49eb23697e20fa75ba9538d8f4a3c0347dea6f460872dc550a0c39a7447a"
+          },
+          "discovery_url": "https://www.federalreserve.gov/monetarypolicy/fomccalendars.htm",
+          "error_message": null,
+          "error_type": null,
+          "event_class": "scheduled_meeting",
+          "event_date": "2021-04-28",
+          "meeting_date": "2021-04-28",
+          "parser_version": "fomc_statement.v1",
+          "published_at": "2021-04-28T14:00:00-04:00",
+          "release_key": "fomc-statement:monetary20210428a",
+          "release_type": "statement",
+          "row_count": 1,
+          "state": "ok",
+          "target_range_lower_percent": "0",
+          "target_range_upper_percent": "0.25",
+          "vote_split": "11-0",
+          "vote_status": "stated",
+          "voted_against": [],
+          "voter_names_stated": true
+        },
+        {
+          "action": "Hold",
+          "artifact_hashes": {
+            "application/pdf": "39f39887577c39d3bd293f199e4e53ebe8e3934159d65e62b497b3d348057ffd",
+            "text/html": "ddb8f19ac490107a0a86b776245fac5037231d7bfe7d1ded0b359b8748865b98"
+          },
+          "discovery_url": "https://www.federalreserve.gov/monetarypolicy/fomccalendars.htm",
+          "error_message": null,
+          "error_type": null,
+          "event_class": "scheduled_meeting",
+          "event_date": "2021-06-16",
+          "meeting_date": "2021-06-16",
+          "parser_version": "fomc_statement.v1",
+          "published_at": "2021-06-16T14:00:00-04:00",
+          "release_key": "fomc-statement:monetary20210616a",
+          "release_type": "statement",
+          "row_count": 1,
+          "state": "ok",
+          "target_range_lower_percent": "0",
+          "target_range_upper_percent": "0.25",
+          "vote_split": "11-0",
+          "vote_status": "stated",
+          "voted_against": [],
+          "voter_names_stated": true
+        },
+        {
+          "action": "Hold",
+          "artifact_hashes": {
+            "application/pdf": "a42e16b2c5fa616dc7b8b71f24169b9325135cc9ba2ce3c2492e8081521a8dea",
+            "text/html": "aa0e04d2e9411a685a52f524d9a2f0dfc26a7e862ac92ecb19915810a1215fcc"
+          },
+          "discovery_url": "https://www.federalreserve.gov/monetarypolicy/fomccalendars.htm",
+          "error_message": null,
+          "error_type": null,
+          "event_class": "scheduled_meeting",
+          "event_date": "2021-07-28",
+          "meeting_date": "2021-07-28",
+          "parser_version": "fomc_statement.v1",
+          "published_at": "2021-07-28T14:00:00-04:00",
+          "release_key": "fomc-statement:monetary20210728a",
+          "release_type": "statement",
+          "row_count": 1,
+          "state": "ok",
+          "target_range_lower_percent": "0",
+          "target_range_upper_percent": "0.25",
+          "vote_split": "11-0",
+          "vote_status": "stated",
+          "voted_against": [],
+          "voter_names_stated": true
+        },
+        {
+          "action": "Hold",
+          "artifact_hashes": {
+            "application/pdf": "5f04a0bd564cb22503367079653c65c5a92dd91c3386d923037cea353129a404",
+            "text/html": "ef94bdb7a8af0ecd4d3af5f47726d3d739ad1b99f21cbabc660927f344a57f33"
+          },
+          "discovery_url": "https://www.federalreserve.gov/monetarypolicy/fomccalendars.htm",
+          "error_message": null,
+          "error_type": null,
+          "event_class": "scheduled_meeting",
+          "event_date": "2021-09-22",
+          "meeting_date": "2021-09-22",
+          "parser_version": "fomc_statement.v1",
+          "published_at": "2021-09-22T14:00:00-04:00",
+          "release_key": "fomc-statement:monetary20210922a",
+          "release_type": "statement",
+          "row_count": 1,
+          "state": "ok",
+          "target_range_lower_percent": "0",
+          "target_range_upper_percent": "0.25",
+          "vote_split": "11-0",
+          "vote_status": "stated",
+          "voted_against": [],
+          "voter_names_stated": true
+        },
+        {
+          "action": "Hold",
+          "artifact_hashes": {
+            "application/pdf": "05830ff0f00a861442a81c9fc737596a25529d5f029a38b660aae71ee2ff2d07",
+            "text/html": "0de2485bed1032f99e12e0b25da5b7f0e74707fa15bbf9e079790995c8cca7c4"
+          },
+          "discovery_url": "https://www.federalreserve.gov/monetarypolicy/fomccalendars.htm",
+          "error_message": null,
+          "error_type": null,
+          "event_class": "scheduled_meeting",
+          "event_date": "2021-11-03",
+          "meeting_date": "2021-11-03",
+          "parser_version": "fomc_statement.v1",
+          "published_at": "2021-11-03T14:00:00-04:00",
+          "release_key": "fomc-statement:monetary20211103a",
+          "release_type": "statement",
+          "row_count": 1,
+          "state": "ok",
+          "target_range_lower_percent": "0",
+          "target_range_upper_percent": "0.25",
+          "vote_split": "11-0",
+          "vote_status": "stated",
+          "voted_against": [],
+          "voter_names_stated": true
+        },
+        {
+          "action": "Hold",
+          "artifact_hashes": {
+            "application/pdf": "f26cd5c0ab7af30bbceaf0fdab6d8a35bbe77f805b6121a104e04da28209a45d",
+            "text/html": "4eb535c2f0a06f4bb50074bd1803bea185169d7c5e6f5533c34c5f82e750efd7"
+          },
+          "discovery_url": "https://www.federalreserve.gov/monetarypolicy/fomccalendars.htm",
+          "error_message": null,
+          "error_type": null,
+          "event_class": "scheduled_meeting",
+          "event_date": "2021-12-15",
+          "meeting_date": "2021-12-15",
+          "parser_version": "fomc_statement.v1",
+          "published_at": "2021-12-15T14:00:00-05:00",
+          "release_key": "fomc-statement:monetary20211215a",
+          "release_type": "statement",
+          "row_count": 1,
+          "state": "ok",
+          "target_range_lower_percent": "0",
+          "target_range_upper_percent": "0.25",
+          "vote_split": "11-0",
+          "vote_status": "stated",
+          "voted_against": [],
+          "voter_names_stated": true
+        },
+        {
+          "action": "Hold",
+          "artifact_hashes": {
+            "application/pdf": "81b6336f6325fb41d651aa93a8844a8890c40c65350da5ac82df1f5bdd6f492a",
+            "text/html": "02702591217796d886eaaa1574921c617bf0f6cf3066797014aea67dc4585ddc"
+          },
+          "discovery_url": "https://www.federalreserve.gov/monetarypolicy/fomccalendars.htm",
+          "error_message": null,
+          "error_type": null,
+          "event_class": "scheduled_meeting",
+          "event_date": "2022-01-26",
+          "meeting_date": "2022-01-26",
+          "parser_version": "fomc_statement.v1",
+          "published_at": "2022-01-26T14:00:00-05:00",
+          "release_key": "fomc-statement:monetary20220126a",
+          "release_type": "statement",
+          "row_count": 1,
+          "state": "ok",
+          "target_range_lower_percent": "0",
+          "target_range_upper_percent": "0.25",
+          "vote_split": "9-0",
+          "vote_status": "stated",
+          "voted_against": [],
+          "voter_names_stated": true
+        },
+        {
+          "action": "Hike",
+          "artifact_hashes": {
+            "application/pdf": "f856240971b770727711519a87082a3e623f14102edd26cdc3a0fe2ea143556d",
+            "text/html": "756783e76a472e801ca6b7f09350aeca76034217d0a6e04b2370c8ed67ec88e4"
+          },
+          "discovery_url": "https://www.federalreserve.gov/monetarypolicy/fomccalendars.htm",
+          "error_message": null,
+          "error_type": null,
+          "event_class": "scheduled_meeting",
+          "event_date": "2022-03-16",
+          "meeting_date": "2022-03-16",
+          "parser_version": "fomc_statement.v1",
+          "published_at": "2022-03-16T14:00:00-04:00",
+          "release_key": "fomc-statement:monetary20220316a",
+          "release_type": "statement",
+          "row_count": 1,
+          "state": "ok",
+          "target_range_lower_percent": "0.25",
+          "target_range_upper_percent": "0.5",
+          "vote_split": "8-1",
+          "vote_status": "stated",
+          "voted_against": [
+            "James Bullard"
+          ],
+          "voter_names_stated": true
+        },
+        {
+          "action": "Hike",
+          "artifact_hashes": {
+            "application/pdf": "a4ade0244cf268ccacdc46614d055620089ec9a411b24f47cea073d15e9f4b3d",
+            "text/html": "f444f2a121d1f036a41045e18213990bbf2f4c5e2ce81d0809f175f5cf7a4a78"
+          },
+          "discovery_url": "https://www.federalreserve.gov/monetarypolicy/fomccalendars.htm",
+          "error_message": null,
+          "error_type": null,
+          "event_class": "scheduled_meeting",
+          "event_date": "2022-05-04",
+          "meeting_date": "2022-05-04",
+          "parser_version": "fomc_statement.v1",
+          "published_at": "2022-05-04T14:00:00-04:00",
+          "release_key": "fomc-statement:monetary20220504a",
+          "release_type": "statement",
+          "row_count": 1,
+          "state": "ok",
+          "target_range_lower_percent": "0.75",
+          "target_range_upper_percent": "1",
+          "vote_split": "9-0",
+          "vote_status": "stated",
+          "voted_against": [],
+          "voter_names_stated": true
+        },
+        {
+          "action": "Hike",
+          "artifact_hashes": {
+            "application/pdf": "a883f6d7a6761822c48e9416fb6ee65815405e4ca6002e2a192edcb31691da65",
+            "text/html": "ddb88e6c2a03e55f0f463551e13e124da95ab09529ff14736865d6c357e91dbe"
+          },
+          "discovery_url": "https://www.federalreserve.gov/monetarypolicy/fomccalendars.htm",
+          "error_message": null,
+          "error_type": null,
+          "event_class": "scheduled_meeting",
+          "event_date": "2022-06-15",
+          "meeting_date": "2022-06-15",
+          "parser_version": "fomc_statement.v1",
+          "published_at": "2022-06-15T14:00:00-04:00",
+          "release_key": "fomc-statement:monetary20220615a",
+          "release_type": "statement",
+          "row_count": 1,
+          "state": "ok",
+          "target_range_lower_percent": "1.5",
+          "target_range_upper_percent": "1.75",
+          "vote_split": "10-1",
+          "vote_status": "stated",
+          "voted_against": [
+            "Esther L. George"
+          ],
+          "voter_names_stated": true
+        },
+        {
+          "action": "Hike",
+          "artifact_hashes": {
+            "application/pdf": "cfac7f7a513c34d6b61a1f6af3352c48b18ddff898af7f6690cd981ce5f801e1",
+            "text/html": "c7763f8e14427342fdd8f58a240e83356569a1ae670cb097bcdc1c32a86dbe9f"
+          },
+          "discovery_url": "https://www.federalreserve.gov/monetarypolicy/fomccalendars.htm",
+          "error_message": null,
+          "error_type": null,
+          "event_class": "scheduled_meeting",
+          "event_date": "2022-07-27",
+          "meeting_date": "2022-07-27",
+          "parser_version": "fomc_statement.v1",
+          "published_at": "2022-07-27T14:00:00-04:00",
+          "release_key": "fomc-statement:monetary20220727a",
+          "release_type": "statement",
+          "row_count": 1,
+          "state": "ok",
+          "target_range_lower_percent": "2.25",
+          "target_range_upper_percent": "2.5",
+          "vote_split": "12-0",
+          "vote_status": "stated",
+          "voted_against": [],
+          "voter_names_stated": true
+        },
+        {
+          "action": "Hike",
+          "artifact_hashes": {
+            "application/pdf": "a5c0bafa34c4b8aff188cbebbba144be512fb975e7a6a844015acf442c02c6c9",
+            "text/html": "47faaa46ef386497514abb3e709b584513b76885cf58155fba299589ef47b8b5"
+          },
+          "discovery_url": "https://www.federalreserve.gov/monetarypolicy/fomccalendars.htm",
+          "error_message": null,
+          "error_type": null,
+          "event_class": "scheduled_meeting",
+          "event_date": "2022-09-21",
+          "meeting_date": "2022-09-21",
+          "parser_version": "fomc_statement.v1",
+          "published_at": "2022-09-21T14:00:00-04:00",
+          "release_key": "fomc-statement:monetary20220921a",
+          "release_type": "statement",
+          "row_count": 1,
+          "state": "ok",
+          "target_range_lower_percent": "3",
+          "target_range_upper_percent": "3.25",
+          "vote_split": "12-0",
+          "vote_status": "stated",
+          "voted_against": [],
+          "voter_names_stated": true
+        },
+        {
+          "action": "Hike",
+          "artifact_hashes": {
+            "application/pdf": "3c0745c9cb654d951d22a9e73ce69bdc93b525a0ac5a749efcfbaf3331133715",
+            "text/html": "15dc44b78fbdb3b341365bc10abe7bd101897d3269504089b8db00fb8047f9fe"
+          },
+          "discovery_url": "https://www.federalreserve.gov/monetarypolicy/fomccalendars.htm",
+          "error_message": null,
+          "error_type": null,
+          "event_class": "scheduled_meeting",
+          "event_date": "2022-11-02",
+          "meeting_date": "2022-11-02",
+          "parser_version": "fomc_statement.v1",
+          "published_at": "2022-11-02T14:00:00-04:00",
+          "release_key": "fomc-statement:monetary20221102a",
+          "release_type": "statement",
+          "row_count": 1,
+          "state": "ok",
+          "target_range_lower_percent": "3.75",
+          "target_range_upper_percent": "4",
+          "vote_split": "12-0",
+          "vote_status": "stated",
+          "voted_against": [],
+          "voter_names_stated": true
+        },
+        {
+          "action": "Hike",
+          "artifact_hashes": {
+            "application/pdf": "3b5199df5abcca17c3bb8cf0e420b31e3f9e9a51cf577fd4da46ee050622b631",
+            "text/html": "eda8809b4e13c467b3f9b9a25f266d32dc8ee0bd685b80d16e4e371d55782f2d"
+          },
+          "discovery_url": "https://www.federalreserve.gov/monetarypolicy/fomccalendars.htm",
+          "error_message": null,
+          "error_type": null,
+          "event_class": "scheduled_meeting",
+          "event_date": "2022-12-14",
+          "meeting_date": "2022-12-14",
+          "parser_version": "fomc_statement.v1",
+          "published_at": "2022-12-14T14:00:00-05:00",
+          "release_key": "fomc-statement:monetary20221214a",
+          "release_type": "statement",
+          "row_count": 1,
+          "state": "ok",
+          "target_range_lower_percent": "4.25",
+          "target_range_upper_percent": "4.5",
+          "vote_split": "12-0",
+          "vote_status": "stated",
+          "voted_against": [],
+          "voter_names_stated": true
+        },
+        {
+          "action": "Hike",
+          "artifact_hashes": {
+            "application/pdf": "f6332f3880121bcbd2a235fbc83e8548a6298131264f558ccd56fd10af8b9956",
+            "text/html": "11c291c475269d18ec80866f20b6079d335f57e1bea81f2e1d0a8c65c0d7c6d5"
+          },
+          "discovery_url": "https://www.federalreserve.gov/monetarypolicy/fomccalendars.htm",
+          "error_message": null,
+          "error_type": null,
+          "event_class": "scheduled_meeting",
+          "event_date": "2023-02-01",
+          "meeting_date": "2023-02-01",
+          "parser_version": "fomc_statement.v1",
+          "published_at": "2023-02-01T14:00:00-05:00",
+          "release_key": "fomc-statement:monetary20230201a",
+          "release_type": "statement",
+          "row_count": 1,
+          "state": "ok",
+          "target_range_lower_percent": "4.5",
+          "target_range_upper_percent": "4.75",
+          "vote_split": "12-0",
+          "vote_status": "stated",
+          "voted_against": [],
+          "voter_names_stated": true
+        },
+        {
+          "action": "Hike",
+          "artifact_hashes": {
+            "application/pdf": "276b1450190013984e6ff5affdb803426f04a71bfbe20568afff412d903ece3b",
+            "text/html": "a3e6c45529430bb40b43f90310ce081db60a65467d4cbc2b21a9cb635286a482"
+          },
+          "discovery_url": "https://www.federalreserve.gov/monetarypolicy/fomccalendars.htm",
+          "error_message": null,
+          "error_type": null,
+          "event_class": "scheduled_meeting",
+          "event_date": "2023-03-22",
+          "meeting_date": "2023-03-22",
+          "parser_version": "fomc_statement.v1",
+          "published_at": "2023-03-22T14:00:00-04:00",
+          "release_key": "fomc-statement:monetary20230322a",
+          "release_type": "statement",
+          "row_count": 1,
+          "state": "ok",
+          "target_range_lower_percent": "4.75",
+          "target_range_upper_percent": "5",
+          "vote_split": "11-0",
+          "vote_status": "stated",
+          "voted_against": [],
+          "voter_names_stated": true
+        },
+        {
+          "action": "Hike",
+          "artifact_hashes": {
+            "application/pdf": "f572c4ff81ac3a14ed14a3637877009ec14028cc8a0a24b20c9e0559873515a7",
+            "text/html": "c79df084b28a82c2faf6d7f81b5bad756f19d25d584f7e4fc29d99a758f69ac9"
+          },
+          "discovery_url": "https://www.federalreserve.gov/monetarypolicy/fomccalendars.htm",
+          "error_message": null,
+          "error_type": null,
+          "event_class": "scheduled_meeting",
+          "event_date": "2023-05-03",
+          "meeting_date": "2023-05-03",
+          "parser_version": "fomc_statement.v1",
+          "published_at": "2023-05-03T14:00:00-04:00",
+          "release_key": "fomc-statement:monetary20230503a",
+          "release_type": "statement",
+          "row_count": 1,
+          "state": "ok",
+          "target_range_lower_percent": "5",
+          "target_range_upper_percent": "5.25",
+          "vote_split": "11-0",
+          "vote_status": "stated",
+          "voted_against": [],
+          "voter_names_stated": true
+        },
+        {
+          "action": "Hold",
+          "artifact_hashes": {
+            "application/pdf": "0e0124a468bbc875df0728b2082fec149db10d2c7114f7d0dc94ded6fda232b9",
+            "text/html": "fd94be4118c1bf774a9a6834258314b7936df10df7360214c257feb5168c0526"
+          },
+          "discovery_url": "https://www.federalreserve.gov/monetarypolicy/fomccalendars.htm",
+          "error_message": null,
+          "error_type": null,
+          "event_class": "scheduled_meeting",
+          "event_date": "2023-06-14",
+          "meeting_date": "2023-06-14",
+          "parser_version": "fomc_statement.v1",
+          "published_at": "2023-06-14T14:00:00-04:00",
+          "release_key": "fomc-statement:monetary20230614a",
+          "release_type": "statement",
+          "row_count": 1,
+          "state": "ok",
+          "target_range_lower_percent": "5",
+          "target_range_upper_percent": "5.25",
+          "vote_split": "11-0",
+          "vote_status": "stated",
+          "voted_against": [],
+          "voter_names_stated": true
+        },
+        {
+          "action": "Hike",
+          "artifact_hashes": {
+            "application/pdf": "663c1bc6ca3187a15399dbd7844224064e0cd665210ca47024bb3303f517ac9a",
+            "text/html": "113a47e9e0791bda397d42c9d02e4b64da7b3b717a692a36d0d884a946b56564"
+          },
+          "discovery_url": "https://www.federalreserve.gov/monetarypolicy/fomccalendars.htm",
+          "error_message": null,
+          "error_type": null,
+          "event_class": "scheduled_meeting",
+          "event_date": "2023-07-26",
+          "meeting_date": "2023-07-26",
+          "parser_version": "fomc_statement.v1",
+          "published_at": "2023-07-26T14:00:00-04:00",
+          "release_key": "fomc-statement:monetary20230726a",
+          "release_type": "statement",
+          "row_count": 1,
+          "state": "ok",
+          "target_range_lower_percent": "5.25",
+          "target_range_upper_percent": "5.5",
+          "vote_split": "11-0",
+          "vote_status": "stated",
+          "voted_against": [],
+          "voter_names_stated": true
+        },
+        {
+          "action": "Hold",
+          "artifact_hashes": {
+            "application/pdf": "258875fea372eaa3bcf24311529eb21aa440e0bf973aedbe0166e911bb002dea",
+            "text/html": "de6d6d73cdfb20bf2d35eb308370de60f56fd4f8bc3858a556114e09f810bdc4"
+          },
+          "discovery_url": "https://www.federalreserve.gov/monetarypolicy/fomccalendars.htm",
+          "error_message": null,
+          "error_type": null,
+          "event_class": "scheduled_meeting",
+          "event_date": "2023-09-20",
+          "meeting_date": "2023-09-20",
+          "parser_version": "fomc_statement.v1",
+          "published_at": "2023-09-20T14:00:00-04:00",
+          "release_key": "fomc-statement:monetary20230920a",
+          "release_type": "statement",
+          "row_count": 1,
+          "state": "ok",
+          "target_range_lower_percent": "5.25",
+          "target_range_upper_percent": "5.5",
+          "vote_split": "12-0",
+          "vote_status": "stated",
+          "voted_against": [],
+          "voter_names_stated": true
+        },
+        {
+          "action": "Hold",
+          "artifact_hashes": {
+            "application/pdf": "7de651346f83fffe1eee3371ce217e21fee76e67c963bf06ce5090d298de80a9",
+            "text/html": "1c855e9bb6e09ea16bc359c9f904195531990f2f1bb6f86f71f36f2511560241"
+          },
+          "discovery_url": "https://www.federalreserve.gov/monetarypolicy/fomccalendars.htm",
+          "error_message": null,
+          "error_type": null,
+          "event_class": "scheduled_meeting",
+          "event_date": "2023-11-01",
+          "meeting_date": "2023-11-01",
+          "parser_version": "fomc_statement.v1",
+          "published_at": "2023-11-01T14:00:00-04:00",
+          "release_key": "fomc-statement:monetary20231101a",
+          "release_type": "statement",
+          "row_count": 1,
+          "state": "ok",
+          "target_range_lower_percent": "5.25",
+          "target_range_upper_percent": "5.5",
+          "vote_split": "12-0",
+          "vote_status": "stated",
+          "voted_against": [],
+          "voter_names_stated": true
+        },
+        {
+          "action": "Hold",
+          "artifact_hashes": {
+            "application/pdf": "184b2656e813225e0489fda689e113520b2f255b9f2704adb0400421a4d797bd",
+            "text/html": "1f85d5d5a792592fb22b9573697d7180803ceb0e5d2b3180ead000346edcb460"
+          },
+          "discovery_url": "https://www.federalreserve.gov/monetarypolicy/fomccalendars.htm",
+          "error_message": null,
+          "error_type": null,
+          "event_class": "scheduled_meeting",
+          "event_date": "2023-12-13",
+          "meeting_date": "2023-12-13",
+          "parser_version": "fomc_statement.v1",
+          "published_at": "2023-12-13T14:00:00-05:00",
+          "release_key": "fomc-statement:monetary20231213a",
+          "release_type": "statement",
+          "row_count": 1,
+          "state": "ok",
+          "target_range_lower_percent": "5.25",
+          "target_range_upper_percent": "5.5",
+          "vote_split": "12-0",
+          "vote_status": "stated",
+          "voted_against": [],
+          "voter_names_stated": true
+        },
+        {
+          "action": "Hold",
+          "artifact_hashes": {
+            "application/pdf": "e5a3eb8cf61b90c23fa0e7bd87f4ef4bb38388bc11ba699ac1ef6ac0283d779b",
+            "text/html": "9390c8f0707241c031469dc4b183a42b4fcff91d72012ea4ae107984767fe141"
+          },
+          "discovery_url": "https://www.federalreserve.gov/monetarypolicy/fomccalendars.htm",
+          "error_message": null,
+          "error_type": null,
+          "event_class": "scheduled_meeting",
+          "event_date": "2024-01-31",
+          "meeting_date": "2024-01-31",
+          "parser_version": "fomc_statement.v1",
+          "published_at": "2024-01-31T14:00:00-05:00",
+          "release_key": "fomc-statement:monetary20240131a",
+          "release_type": "statement",
+          "row_count": 1,
+          "state": "ok",
+          "target_range_lower_percent": "5.25",
+          "target_range_upper_percent": "5.5",
+          "vote_split": "12-0",
+          "vote_status": "stated",
+          "voted_against": [],
+          "voter_names_stated": true
+        },
+        {
+          "action": "Hold",
+          "artifact_hashes": {
+            "application/pdf": "810ec4ef02de360d742e3f9705b653a81350337d032b582f62cbba7477e65513",
+            "text/html": "da628ce5967731a632e3919924ee0adf9d030b91d3f9d114d9fdebe78eb27b63"
+          },
+          "discovery_url": "https://www.federalreserve.gov/monetarypolicy/fomccalendars.htm",
+          "error_message": null,
+          "error_type": null,
+          "event_class": "scheduled_meeting",
+          "event_date": "2024-03-20",
+          "meeting_date": "2024-03-20",
+          "parser_version": "fomc_statement.v1",
+          "published_at": "2024-03-20T14:00:00-04:00",
+          "release_key": "fomc-statement:monetary20240320a",
+          "release_type": "statement",
+          "row_count": 1,
+          "state": "ok",
+          "target_range_lower_percent": "5.25",
+          "target_range_upper_percent": "5.5",
+          "vote_split": "12-0",
+          "vote_status": "stated",
+          "voted_against": [],
+          "voter_names_stated": true
+        },
+        {
+          "action": "Hold",
+          "artifact_hashes": {
+            "application/pdf": "fe6646ecc5c520330abf695c0011b6cf10d3e9c7502e48c4accb6d2b3e6a6a3e",
+            "text/html": "94b8a9391cfc445a69787c8de9505b2b5cdd72ce15a100d28ed0453a678958d3"
+          },
+          "discovery_url": "https://www.federalreserve.gov/monetarypolicy/fomccalendars.htm",
+          "error_message": null,
+          "error_type": null,
+          "event_class": "scheduled_meeting",
+          "event_date": "2024-05-01",
+          "meeting_date": "2024-05-01",
+          "parser_version": "fomc_statement.v1",
+          "published_at": "2024-05-01T14:00:00-04:00",
+          "release_key": "fomc-statement:monetary20240501a",
+          "release_type": "statement",
+          "row_count": 1,
+          "state": "ok",
+          "target_range_lower_percent": "5.25",
+          "target_range_upper_percent": "5.5",
+          "vote_split": "12-0",
+          "vote_status": "stated",
+          "voted_against": [],
+          "voter_names_stated": true
+        },
+        {
+          "action": "Hold",
+          "artifact_hashes": {
+            "application/pdf": "97d04acc005e8f1e4d5f7073e6f8b3ca975fad369d6f14f2f823bef165a72dde",
+            "text/html": "fa24bc720a7cf15f8d169ef554950e0b0f7937f19fb565e4f7e08eca9938ce3b"
+          },
+          "discovery_url": "https://www.federalreserve.gov/monetarypolicy/fomccalendars.htm",
+          "error_message": null,
+          "error_type": null,
+          "event_class": "scheduled_meeting",
+          "event_date": "2024-06-12",
+          "meeting_date": "2024-06-12",
+          "parser_version": "fomc_statement.v1",
+          "published_at": "2024-06-12T14:00:00-04:00",
+          "release_key": "fomc-statement:monetary20240612a",
+          "release_type": "statement",
+          "row_count": 1,
+          "state": "ok",
+          "target_range_lower_percent": "5.25",
+          "target_range_upper_percent": "5.5",
+          "vote_split": "12-0",
+          "vote_status": "stated",
+          "voted_against": [],
+          "voter_names_stated": true
+        },
+        {
+          "action": "Hold",
+          "artifact_hashes": {
+            "application/pdf": "dbf212778a5a566877f26c709489effab8bc8e09ad91984897e2676f20a2de06",
+            "text/html": "e7f88d940671eeeede33f5aff9876ae5234ce607c3c894f8704f68641b14ab5f"
+          },
+          "discovery_url": "https://www.federalreserve.gov/monetarypolicy/fomccalendars.htm",
+          "error_message": null,
+          "error_type": null,
+          "event_class": "scheduled_meeting",
+          "event_date": "2024-07-31",
+          "meeting_date": "2024-07-31",
+          "parser_version": "fomc_statement.v1",
+          "published_at": "2024-07-31T14:00:00-04:00",
+          "release_key": "fomc-statement:monetary20240731a",
+          "release_type": "statement",
+          "row_count": 1,
+          "state": "ok",
+          "target_range_lower_percent": "5.25",
+          "target_range_upper_percent": "5.5",
+          "vote_split": "12-0",
+          "vote_status": "stated",
+          "voted_against": [],
+          "voter_names_stated": true
+        },
+        {
+          "action": "Cut",
+          "artifact_hashes": {
+            "application/pdf": "415c291eb7e754b99349cd3a2b0c6561de8ef5258da9f037bbd0fc0564b22932",
+            "text/html": "488727d4cd8af71205ecff1c623f98561cda204ebb5269b1acb5bdedf8161fba"
+          },
+          "discovery_url": "https://www.federalreserve.gov/monetarypolicy/fomccalendars.htm",
+          "error_message": null,
+          "error_type": null,
+          "event_class": "scheduled_meeting",
+          "event_date": "2024-09-18",
+          "meeting_date": "2024-09-18",
+          "parser_version": "fomc_statement.v1",
+          "published_at": "2024-09-18T14:00:00-04:00",
+          "release_key": "fomc-statement:monetary20240918a",
+          "release_type": "statement",
+          "row_count": 1,
+          "state": "ok",
+          "target_range_lower_percent": "4.75",
+          "target_range_upper_percent": "5",
+          "vote_split": "11-1",
+          "vote_status": "stated",
+          "voted_against": [
+            "Michelle W. Bowman"
+          ],
+          "voter_names_stated": true
+        },
+        {
+          "action": "Cut",
+          "artifact_hashes": {
+            "application/pdf": "33b2da84c96683b7fff9f334b487baec3ebb150ffc5a0475b687544f9077640c",
+            "text/html": "bbb4eaa6ca6c675bc35867016b35ada078b8fc546f818cddf735f855e737eb4c"
+          },
+          "discovery_url": "https://www.federalreserve.gov/monetarypolicy/fomccalendars.htm",
+          "error_message": null,
+          "error_type": null,
+          "event_class": "scheduled_meeting",
+          "event_date": "2024-11-07",
+          "meeting_date": "2024-11-07",
+          "parser_version": "fomc_statement.v1",
+          "published_at": "2024-11-07T14:00:00-05:00",
+          "release_key": "fomc-statement:monetary20241107a",
+          "release_type": "statement",
+          "row_count": 1,
+          "state": "ok",
+          "target_range_lower_percent": "4.5",
+          "target_range_upper_percent": "4.75",
+          "vote_split": "12-0",
+          "vote_status": "stated",
+          "voted_against": [],
+          "voter_names_stated": true
+        },
+        {
+          "action": "Cut",
+          "artifact_hashes": {
+            "application/pdf": "9c21bc7aa2b6e8014ed3fac9d684093be0b8bf4cd61454579debc5e40b733ed0",
+            "text/html": "6ab073833563d67c256ef30ce1f2f9500510c985b63740b6294ba39947f3dd82"
+          },
+          "discovery_url": "https://www.federalreserve.gov/monetarypolicy/fomccalendars.htm",
+          "error_message": null,
+          "error_type": null,
+          "event_class": "scheduled_meeting",
+          "event_date": "2024-12-18",
+          "meeting_date": "2024-12-18",
+          "parser_version": "fomc_statement.v1",
+          "published_at": "2024-12-18T14:00:00-05:00",
+          "release_key": "fomc-statement:monetary20241218a",
+          "release_type": "statement",
+          "row_count": 1,
+          "state": "ok",
+          "target_range_lower_percent": "4.25",
+          "target_range_upper_percent": "4.5",
+          "vote_split": "11-1",
+          "vote_status": "stated",
+          "voted_against": [
+            "Beth M. Hammack"
+          ],
+          "voter_names_stated": true
+        },
+        {
+          "action": "Hold",
+          "artifact_hashes": {
+            "application/pdf": "fbb886257e82c1ef1c21b34f235dfe9435eefc902c04d53356874784d6691a21",
+            "text/html": "a2fe884fef03232ea9f0602d124ba76a728d0f27026f0bcae88d31bcfc08f803"
+          },
+          "discovery_url": "https://www.federalreserve.gov/monetarypolicy/fomccalendars.htm",
+          "error_message": null,
+          "error_type": null,
+          "event_class": "scheduled_meeting",
+          "event_date": "2025-01-29",
+          "meeting_date": "2025-01-29",
+          "parser_version": "fomc_statement.v1",
+          "published_at": "2025-01-29T14:00:00-05:00",
+          "release_key": "fomc-statement:monetary20250129a",
+          "release_type": "statement",
+          "row_count": 1,
+          "state": "ok",
+          "target_range_lower_percent": "4.25",
+          "target_range_upper_percent": "4.5",
+          "vote_split": "12-0",
+          "vote_status": "stated",
+          "voted_against": [],
+          "voter_names_stated": true
+        },
+        {
+          "action": "Hold",
+          "artifact_hashes": {
+            "application/pdf": "994bda73108026f4b59cadfea19979bc1b4e14eec750d2315e9c66142158e509",
+            "text/html": "652abbdd45cb3406ca09a460fbbd1ecedafd17d3f0798c0d3eae3d5a1fd46b37"
+          },
+          "discovery_url": "https://www.federalreserve.gov/monetarypolicy/fomccalendars.htm",
+          "error_message": null,
+          "error_type": null,
+          "event_class": "scheduled_meeting",
+          "event_date": "2025-03-19",
+          "meeting_date": "2025-03-19",
+          "parser_version": "fomc_statement.v1",
+          "published_at": "2025-03-19T14:00:00-04:00",
+          "release_key": "fomc-statement:monetary20250319a",
+          "release_type": "statement",
+          "row_count": 1,
+          "state": "ok",
+          "target_range_lower_percent": "4.25",
+          "target_range_upper_percent": "4.5",
+          "vote_split": "11-1",
+          "vote_status": "stated",
+          "voted_against": [
+            "Christopher J. Waller"
+          ],
+          "voter_names_stated": true
+        },
+        {
+          "action": "Hold",
+          "artifact_hashes": {
+            "application/pdf": "b4af4f576ea67764285a6a1a663ff145f52b7be478eeff5153c508175355505b",
+            "text/html": "b5d10cc64d95aec41803db220b94f56c96110ddff21e1c5403e7e57c3cc0d6df"
+          },
+          "discovery_url": "https://www.federalreserve.gov/monetarypolicy/fomccalendars.htm",
+          "error_message": null,
+          "error_type": null,
+          "event_class": "scheduled_meeting",
+          "event_date": "2025-05-07",
+          "meeting_date": "2025-05-07",
+          "parser_version": "fomc_statement.v1",
+          "published_at": "2025-05-07T14:00:00-04:00",
+          "release_key": "fomc-statement:monetary20250507a",
+          "release_type": "statement",
+          "row_count": 1,
+          "state": "ok",
+          "target_range_lower_percent": "4.25",
+          "target_range_upper_percent": "4.5",
+          "vote_split": "12-0",
+          "vote_status": "stated",
+          "voted_against": [],
+          "voter_names_stated": true
+        },
+        {
+          "action": "Hold",
+          "artifact_hashes": {
+            "application/pdf": "fd5214f1d93b8289609fb5ac35c12108092d4c82c7dea0804ef8b60575166b7f",
+            "text/html": "95febe3ae0dc44fda40381080639e8eeb7f9f35c9e1ae00702b9ad7cfff1d2ab"
+          },
+          "discovery_url": "https://www.federalreserve.gov/monetarypolicy/fomccalendars.htm",
+          "error_message": null,
+          "error_type": null,
+          "event_class": "scheduled_meeting",
+          "event_date": "2025-06-18",
+          "meeting_date": "2025-06-18",
+          "parser_version": "fomc_statement.v1",
+          "published_at": "2025-06-18T14:00:00-04:00",
+          "release_key": "fomc-statement:monetary20250618a",
+          "release_type": "statement",
+          "row_count": 1,
+          "state": "ok",
+          "target_range_lower_percent": "4.25",
+          "target_range_upper_percent": "4.5",
+          "vote_split": "12-0",
+          "vote_status": "stated",
+          "voted_against": [],
+          "voter_names_stated": true
+        },
+        {
+          "action": "Hold",
+          "artifact_hashes": {
+            "application/pdf": "a03d33f6c48a6e3b5d0c2cacb76c0792a517c99c6d900d0bb8f362145bc5e579",
+            "text/html": "f63548a703eb2c64f3ceea491d257471994a984fceb93a112fb4f456adf11652"
+          },
+          "discovery_url": "https://www.federalreserve.gov/monetarypolicy/fomccalendars.htm",
+          "error_message": null,
+          "error_type": null,
+          "event_class": "scheduled_meeting",
+          "event_date": "2025-07-30",
+          "meeting_date": "2025-07-30",
+          "parser_version": "fomc_statement.v1",
+          "published_at": "2025-07-30T14:00:00-04:00",
+          "release_key": "fomc-statement:monetary20250730a",
+          "release_type": "statement",
+          "row_count": 1,
+          "state": "ok",
+          "target_range_lower_percent": "4.25",
+          "target_range_upper_percent": "4.5",
+          "vote_split": "9-2",
+          "vote_status": "stated",
+          "voted_against": [
+            "Michelle W. Bowman",
+            "Christopher J. Waller"
+          ],
+          "voter_names_stated": true
+        },
+        {
+          "action": "Cut",
+          "artifact_hashes": {
+            "application/pdf": "74f7ac62620517260433296be0c7c62037ec7013987859ba2583bffb28b2b8e9",
+            "text/html": "49e7b623422399261fcc05e3531658ba1a57a2fe3b4d7123b1f6509e2b00edf6"
+          },
+          "discovery_url": "https://www.federalreserve.gov/monetarypolicy/fomccalendars.htm",
+          "error_message": null,
+          "error_type": null,
+          "event_class": "scheduled_meeting",
+          "event_date": "2025-09-17",
+          "meeting_date": "2025-09-17",
+          "parser_version": "fomc_statement.v1",
+          "published_at": "2025-09-17T14:00:00-04:00",
+          "release_key": "fomc-statement:monetary20250917a",
+          "release_type": "statement",
+          "row_count": 1,
+          "state": "ok",
+          "target_range_lower_percent": "4",
+          "target_range_upper_percent": "4.25",
+          "vote_split": "11-1",
+          "vote_status": "stated",
+          "voted_against": [
+            "Stephen I. Miran"
+          ],
+          "voter_names_stated": true
+        },
+        {
+          "action": "Cut",
+          "artifact_hashes": {
+            "application/pdf": "a7ed111aafc91558c58ff47d594b6198bf616c9ffc48b3e61da640ba939a8efe",
+            "text/html": "14329b1b88d49c3409ac7d252e7c9dd3a11c370744cce366278dc5c5b8f4fc9f"
+          },
+          "discovery_url": "https://www.federalreserve.gov/monetarypolicy/fomccalendars.htm",
+          "error_message": null,
+          "error_type": null,
+          "event_class": "scheduled_meeting",
+          "event_date": "2025-10-29",
+          "meeting_date": "2025-10-29",
+          "parser_version": "fomc_statement.v1",
+          "published_at": "2025-10-29T14:00:00-04:00",
+          "release_key": "fomc-statement:monetary20251029a",
+          "release_type": "statement",
+          "row_count": 1,
+          "state": "ok",
+          "target_range_lower_percent": "3.75",
+          "target_range_upper_percent": "4",
+          "vote_split": "10-1",
+          "vote_status": "stated",
+          "voted_against": [
+            "Stephen I. Miran"
+          ],
+          "voter_names_stated": true
+        },
+        {
+          "action": "Cut",
+          "artifact_hashes": {
+            "application/pdf": "234226e25444b3a2435f9a420064fba4d7d2a208793fe9efe74ec2b2f4328855",
+            "text/html": "aac8e91892e126d0fde2cddeaf91664d1587db985edc055893fe390d973a5278"
+          },
+          "discovery_url": "https://www.federalreserve.gov/monetarypolicy/fomccalendars.htm",
+          "error_message": null,
+          "error_type": null,
+          "event_class": "scheduled_meeting",
+          "event_date": "2025-12-10",
+          "meeting_date": "2025-12-10",
+          "parser_version": "fomc_statement.v1",
+          "published_at": "2025-12-10T14:00:00-05:00",
+          "release_key": "fomc-statement:monetary20251210a",
+          "release_type": "statement",
+          "row_count": 1,
+          "state": "ok",
+          "target_range_lower_percent": "3.5",
+          "target_range_upper_percent": "3.75",
+          "vote_split": "9-3",
+          "vote_status": "stated",
+          "voted_against": [
+            "Stephen I. Miran",
+            "Austan D. Goolsbee",
+            "Jeffrey R. Schmid"
+          ],
+          "voter_names_stated": true
+        },
+        {
+          "action": "Hold",
+          "artifact_hashes": {
+            "application/pdf": "44c72e6459887407e64cfc4a8fa49f6a8b5ce929feb6e47277ad4a1a1a99aac1",
+            "text/html": "2339c3fa3bcff259e469002dbdf425be20da57d2d0c9624a904b4e30007f3cc8"
+          },
+          "discovery_url": "https://www.federalreserve.gov/monetarypolicy/fomccalendars.htm",
+          "error_message": null,
+          "error_type": null,
+          "event_class": "scheduled_meeting",
+          "event_date": "2026-01-28",
+          "meeting_date": "2026-01-28",
+          "parser_version": "fomc_statement.v1",
+          "published_at": "2026-01-28T14:00:00-05:00",
+          "release_key": "fomc-statement:monetary20260128a",
+          "release_type": "statement",
+          "row_count": 1,
+          "state": "ok",
+          "target_range_lower_percent": "3.5",
+          "target_range_upper_percent": "3.75",
+          "vote_split": "10-2",
+          "vote_status": "stated",
+          "voted_against": [
+            "Stephen I. Miran",
+            "Christopher J. Waller"
+          ],
+          "voter_names_stated": true
+        },
+        {
+          "action": "Hold",
+          "artifact_hashes": {
+            "application/pdf": "6d0f8f1fdeab2b08dd5102c3ccc6b4f876a84a933e03d915ef5b21bae7b684d4",
+            "text/html": "65374f4bd23a57535af42cfe6519125a33bf9ab0c569549bc975762610e5c723"
+          },
+          "discovery_url": "https://www.federalreserve.gov/monetarypolicy/fomccalendars.htm",
+          "error_message": null,
+          "error_type": null,
+          "event_class": "scheduled_meeting",
+          "event_date": "2026-03-18",
+          "meeting_date": "2026-03-18",
+          "parser_version": "fomc_statement.v1",
+          "published_at": "2026-03-18T14:00:00-04:00",
+          "release_key": "fomc-statement:monetary20260318a",
+          "release_type": "statement",
+          "row_count": 1,
+          "state": "ok",
+          "target_range_lower_percent": "3.5",
+          "target_range_upper_percent": "3.75",
+          "vote_split": "11-1",
+          "vote_status": "stated",
+          "voted_against": [
+            "Stephen I. Miran"
+          ],
+          "voter_names_stated": true
+        },
+        {
+          "action": "Hold",
+          "artifact_hashes": {
+            "application/pdf": "8153654a49edfb86e62e5fd34f01cb641e01d5adfea37ef0be69528cf92c6bb8",
+            "text/html": "549a14c790d6e8c4b589cce41a65da1103f936962b408d26b852b8d9e9bf29d5"
+          },
+          "discovery_url": "https://www.federalreserve.gov/monetarypolicy/fomccalendars.htm",
+          "error_message": null,
+          "error_type": null,
+          "event_class": "scheduled_meeting",
+          "event_date": "2026-04-29",
+          "meeting_date": "2026-04-29",
+          "parser_version": "fomc_statement.v1",
+          "published_at": "2026-04-29T14:00:00-04:00",
+          "release_key": "fomc-statement:monetary20260429a",
+          "release_type": "statement",
+          "row_count": 1,
+          "state": "ok",
+          "target_range_lower_percent": "3.5",
+          "target_range_upper_percent": "3.75",
+          "vote_split": "8-4",
+          "vote_status": "stated",
+          "voted_against": [
+            "Stephen I. Miran",
+            "Beth M. Hammack",
+            "Neel Kashkari",
+            "Lorie K. Logan"
+          ],
+          "voter_names_stated": true
+        },
+        {
+          "action": "Hold",
+          "artifact_hashes": {
+            "application/pdf": "13c6558e213dd433c4a0c255d5f7a25ab79992f672c9644994307afea5d7932f",
+            "text/html": "c18830bf4d98a81e99a23c59f4895d5bae845908c75278573422e6bc196f2ff8"
+          },
+          "discovery_url": "https://www.federalreserve.gov/monetarypolicy/fomccalendars.htm",
+          "error_message": null,
+          "error_type": null,
+          "event_class": "scheduled_meeting",
+          "event_date": "2026-06-17",
+          "meeting_date": "2026-06-17",
+          "parser_version": "fomc_statement.v1",
+          "published_at": "2026-06-17T14:00:00-04:00",
+          "release_key": "fomc-statement:monetary20260617a",
+          "release_type": "statement",
+          "row_count": 1,
+          "state": "ok",
+          "target_range_lower_percent": "3.5",
+          "target_range_upper_percent": "3.75",
+          "vote_split": "12-0",
+          "vote_status": "stated",
+          "voted_against": [],
+          "voter_names_stated": false
+        },
+        {
+          "action": "Hold",
+          "artifact_hashes": {
+            "application/pdf": "825cfed5e0956055d46ea3bf4d09f3939d79890fa0b3ade78bbf3957d7264522",
+            "text/html": "0368db05d0a416e909ad04631b174e176c0cb055cb1740c9b83faacb30de26a5"
+          },
+          "discovery_url": "https://www.federalreserve.gov/monetarypolicy/fomccalendars.htm",
+          "error_message": null,
+          "error_type": null,
+          "event_class": "scheduled_meeting",
+          "event_date": "2026-07-29",
+          "meeting_date": "2026-07-29",
+          "parser_version": "fomc_statement.v1",
+          "published_at": "2026-07-29T14:00:00-04:00",
+          "release_key": "fomc-statement:monetary20260729a",
+          "release_type": "statement",
+          "row_count": 1,
+          "state": "ok",
+          "target_range_lower_percent": "3.5",
+          "target_range_upper_percent": "3.75",
+          "vote_split": "9-3",
+          "vote_status": "stated",
+          "voted_against": [],
+          "voter_names_stated": false
         }
       ],
-      "primary_artifact": {
-        "available_at": "2026-06-17T14:00:00-04:00",
-        "content_hash": "a517887623520922a782e0cd01fb38d4469bed951f63d2588efb99f72deddde3",
-        "content_length": 1216132,
-        "cost_class": "free_official",
-        "media_type": "application/pdf",
-        "parser_version": "fed_sep.v1",
-        "published_at": "2026-06-17T14:00:00-04:00",
-        "source_record_id": "fed-sep:2026-06-17:pdf",
-        "source_url": "https://www.federalreserve.gov/monetarypolicy/files/fomcprojtabl20260617.pdf"
-      },
-      "projection_row_count": 19,
-      "published_at": "2026-06-17T14:00:00-04:00",
-      "row_count": 4,
-      "selected_meeting_date": "2026-06-17",
+      "releases_discovered": 55,
+      "releases_failed": 0,
+      "releases_succeeded": 55,
+      "state": "ok"
+    },
+    "federal_reserve_sep": {
+      "releases": [
+        {
+          "artifact_hashes": {
+            "application/pdf": "b5c7c56e76bc98755d4d06260659900c7f64e3e021d26548bfdad5e467d33250",
+            "text/html": "43b37e71fd32966ee9615e1cf1309562695d8e72c8e48b6d29583d69f4fe4da7"
+          },
+          "discovery_url": "https://www.federalreserve.gov/monetarypolicy/fomchistorical2020.htm",
+          "error_message": null,
+          "error_type": null,
+          "event_class": null,
+          "event_date": "2020-06-10",
+          "meeting_date": "2020-06-10",
+          "parser_version": "fed_sep.v1",
+          "policy_horizon_count": 4,
+          "policy_horizons": [
+            {
+              "distinct_dot_values": 1,
+              "horizon": "2020",
+              "participant_total": 17,
+              "published_median_percent": "0.1"
+            },
+            {
+              "distinct_dot_values": 1,
+              "horizon": "2021",
+              "participant_total": 17,
+              "published_median_percent": "0.1"
+            },
+            {
+              "distinct_dot_values": 3,
+              "horizon": "2022",
+              "participant_total": 17,
+              "published_median_percent": "0.1"
+            },
+            {
+              "distinct_dot_values": 6,
+              "horizon": "Longer run",
+              "participant_total": 16,
+              "published_median_percent": "2.5"
+            }
+          ],
+          "projection_row_count": 19,
+          "prose_total_declared": false,
+          "published_at": "2020-06-10T14:00:00-04:00",
+          "release_key": "fed-sep:fomcprojtabl20200610",
+          "release_type": "sep",
+          "row_count": 4,
+          "state": "ok"
+        },
+        {
+          "artifact_hashes": {
+            "application/pdf": "d26cdb38ddfb7cb179b747ff3e326937a7e3d30bb28d85a97ea9cbf391796ba9",
+            "text/html": "c50d55546a13fac334a604d78a7ac47987f96d585f8f16762d39211a66284b29"
+          },
+          "discovery_url": "https://www.federalreserve.gov/monetarypolicy/fomchistorical2020.htm",
+          "error_message": null,
+          "error_type": null,
+          "event_class": null,
+          "event_date": "2020-09-16",
+          "meeting_date": "2020-09-16",
+          "parser_version": "fed_sep.v1",
+          "policy_horizon_count": 5,
+          "policy_horizons": [
+            {
+              "distinct_dot_values": 1,
+              "horizon": "2020",
+              "participant_total": 17,
+              "published_median_percent": "0.1"
+            },
+            {
+              "distinct_dot_values": 1,
+              "horizon": "2021",
+              "participant_total": 17,
+              "published_median_percent": "0.1"
+            },
+            {
+              "distinct_dot_values": 2,
+              "horizon": "2022",
+              "participant_total": 17,
+              "published_median_percent": "0.1"
+            },
+            {
+              "distinct_dot_values": 4,
+              "horizon": "2023",
+              "participant_total": 17,
+              "published_median_percent": "0.1"
+            },
+            {
+              "distinct_dot_values": 6,
+              "horizon": "Longer run",
+              "participant_total": 16,
+              "published_median_percent": "2.5"
+            }
+          ],
+          "projection_row_count": 24,
+          "prose_total_declared": false,
+          "published_at": "2020-09-16T14:00:00-04:00",
+          "release_key": "fed-sep:fomcprojtabl20200916",
+          "release_type": "sep",
+          "row_count": 5,
+          "state": "ok"
+        },
+        {
+          "artifact_hashes": {
+            "application/pdf": "f8f43c5c0c6dc3080733bcf73132e551f031548c31f832fa06ead3e900c3a938",
+            "text/html": "49be92d8def19174dd44827a3ae355c002ea7cd1655a0858ad9944cbfb8da1b4"
+          },
+          "discovery_url": "https://www.federalreserve.gov/monetarypolicy/fomchistorical2020.htm",
+          "error_message": null,
+          "error_type": null,
+          "event_class": null,
+          "event_date": "2020-12-16",
+          "meeting_date": "2020-12-16",
+          "parser_version": "fed_sep.v1",
+          "policy_horizon_count": 5,
+          "policy_horizons": [
+            {
+              "distinct_dot_values": 1,
+              "horizon": "2020",
+              "participant_total": 17,
+              "published_median_percent": "0.1"
+            },
+            {
+              "distinct_dot_values": 1,
+              "horizon": "2021",
+              "participant_total": 17,
+              "published_median_percent": "0.1"
+            },
+            {
+              "distinct_dot_values": 2,
+              "horizon": "2022",
+              "participant_total": 17,
+              "published_median_percent": "0.1"
+            },
+            {
+              "distinct_dot_values": 4,
+              "horizon": "2023",
+              "participant_total": 17,
+              "published_median_percent": "0.1"
+            },
+            {
+              "distinct_dot_values": 6,
+              "horizon": "Longer run",
+              "participant_total": 16,
+              "published_median_percent": "2.5"
+            }
+          ],
+          "projection_row_count": 24,
+          "prose_total_declared": false,
+          "published_at": "2020-12-16T14:00:00-05:00",
+          "release_key": "fed-sep:fomcprojtabl20201216",
+          "release_type": "sep",
+          "row_count": 5,
+          "state": "ok"
+        },
+        {
+          "artifact_hashes": {
+            "application/pdf": "aa1f54fd28090c48de0fc3eebe04a52d0607cef7cc025df3c6a1a833dcc516db",
+            "text/html": "cb603c15092551d3c7970e1d1348d5a4b695013346382af3b05887db55bb3e8f"
+          },
+          "discovery_url": "https://www.federalreserve.gov/monetarypolicy/fomccalendars.htm",
+          "error_message": null,
+          "error_type": null,
+          "event_class": null,
+          "event_date": "2021-03-17",
+          "meeting_date": "2021-03-17",
+          "parser_version": "fed_sep.v1",
+          "policy_horizon_count": 4,
+          "policy_horizons": [
+            {
+              "distinct_dot_values": 1,
+              "horizon": "2021",
+              "participant_total": 18,
+              "published_median_percent": "0.1"
+            },
+            {
+              "distinct_dot_values": 3,
+              "horizon": "2022",
+              "participant_total": 18,
+              "published_median_percent": "0.1"
+            },
+            {
+              "distinct_dot_values": 5,
+              "horizon": "2023",
+              "participant_total": 18,
+              "published_median_percent": "0.1"
+            },
+            {
+              "distinct_dot_values": 6,
+              "horizon": "Longer run",
+              "participant_total": 17,
+              "published_median_percent": "2.5"
+            }
+          ],
+          "projection_row_count": 19,
+          "prose_total_declared": false,
+          "published_at": "2021-03-17T14:00:00-04:00",
+          "release_key": "fed-sep:fomcprojtabl20210317",
+          "release_type": "sep",
+          "row_count": 4,
+          "state": "ok"
+        },
+        {
+          "artifact_hashes": {
+            "application/pdf": "f40aee733a9c794c551fc0f94e420028c6c964b88bce303ce3d1ae44f7c072ea",
+            "text/html": "99b334e262eaba174c156fcd03919880c2253e7aa38d352e7e9caafc3326d5f8"
+          },
+          "discovery_url": "https://www.federalreserve.gov/monetarypolicy/fomccalendars.htm",
+          "error_message": null,
+          "error_type": null,
+          "event_class": null,
+          "event_date": "2021-06-16",
+          "meeting_date": "2021-06-16",
+          "parser_version": "fed_sep.v1",
+          "policy_horizon_count": 4,
+          "policy_horizons": [
+            {
+              "distinct_dot_values": 1,
+              "horizon": "2021",
+              "participant_total": 18,
+              "published_median_percent": "0.1"
+            },
+            {
+              "distinct_dot_values": 3,
+              "horizon": "2022",
+              "participant_total": 18,
+              "published_median_percent": "0.1"
+            },
+            {
+              "distinct_dot_values": 6,
+              "horizon": "2023",
+              "participant_total": 18,
+              "published_median_percent": "0.6"
+            },
+            {
+              "distinct_dot_values": 6,
+              "horizon": "Longer run",
+              "participant_total": 17,
+              "published_median_percent": "2.5"
+            }
+          ],
+          "projection_row_count": 19,
+          "prose_total_declared": false,
+          "published_at": "2021-06-16T14:00:00-04:00",
+          "release_key": "fed-sep:fomcprojtabl20210616",
+          "release_type": "sep",
+          "row_count": 4,
+          "state": "ok"
+        },
+        {
+          "artifact_hashes": {
+            "application/pdf": "de7331bc99affd2bf4dc0b177c04d0479564f1b43d4b4b5b7de7951176e9b788",
+            "text/html": "b790dadbc6bb3904e979cd28fe1852f3a1db4307564562d0998ccc1a37af4e9f"
+          },
+          "discovery_url": "https://www.federalreserve.gov/monetarypolicy/fomccalendars.htm",
+          "error_message": null,
+          "error_type": null,
+          "event_class": null,
+          "event_date": "2021-09-22",
+          "meeting_date": "2021-09-22",
+          "parser_version": "fed_sep.v1",
+          "policy_horizon_count": 5,
+          "policy_horizons": [
+            {
+              "distinct_dot_values": 1,
+              "horizon": "2021",
+              "participant_total": 18,
+              "published_median_percent": "0.1"
+            },
+            {
+              "distinct_dot_values": 3,
+              "horizon": "2022",
+              "participant_total": 18,
+              "published_median_percent": "0.3"
+            },
+            {
+              "distinct_dot_values": 6,
+              "horizon": "2023",
+              "participant_total": 18,
+              "published_median_percent": "1.0"
+            },
+            {
+              "distinct_dot_values": 8,
+              "horizon": "2024",
+              "participant_total": 18,
+              "published_median_percent": "1.8"
+            },
+            {
+              "distinct_dot_values": 5,
+              "horizon": "Longer run",
+              "participant_total": 17,
+              "published_median_percent": "2.5"
+            }
+          ],
+          "projection_row_count": 24,
+          "prose_total_declared": false,
+          "published_at": "2021-09-22T14:00:00-04:00",
+          "release_key": "fed-sep:fomcprojtabl20210922",
+          "release_type": "sep",
+          "row_count": 5,
+          "state": "ok"
+        },
+        {
+          "artifact_hashes": {
+            "application/pdf": "a99faad60b5cbe4bc334e4f5d9a67f748234fc9fbd1128d811751ff4ea634c8d",
+            "text/html": "32665e32ffc93b78fe8d087d55bfd66798b2c10605ff13d29b14dab0a7b58e0d"
+          },
+          "discovery_url": "https://www.federalreserve.gov/monetarypolicy/fomccalendars.htm",
+          "error_message": null,
+          "error_type": null,
+          "event_class": null,
+          "event_date": "2021-12-15",
+          "meeting_date": "2021-12-15",
+          "parser_version": "fed_sep.v1",
+          "policy_horizon_count": 5,
+          "policy_horizons": [
+            {
+              "distinct_dot_values": 1,
+              "horizon": "2021",
+              "participant_total": 18,
+              "published_median_percent": "0.1"
+            },
+            {
+              "distinct_dot_values": 4,
+              "horizon": "2022",
+              "participant_total": 18,
+              "published_median_percent": "0.9"
+            },
+            {
+              "distinct_dot_values": 5,
+              "horizon": "2023",
+              "participant_total": 18,
+              "published_median_percent": "1.6"
+            },
+            {
+              "distinct_dot_values": 6,
+              "horizon": "2024",
+              "participant_total": 18,
+              "published_median_percent": "2.1"
+            },
+            {
+              "distinct_dot_values": 5,
+              "horizon": "Longer run",
+              "participant_total": 17,
+              "published_median_percent": "2.5"
+            }
+          ],
+          "projection_row_count": 24,
+          "prose_total_declared": false,
+          "published_at": "2021-12-15T14:00:00-05:00",
+          "release_key": "fed-sep:fomcprojtabl20211215",
+          "release_type": "sep",
+          "row_count": 5,
+          "state": "ok"
+        },
+        {
+          "artifact_hashes": {
+            "application/pdf": "4a3ff9efb51ed06c9c7794c3e4eea33320a6990a9a7133e149c4885bdd3a62d2",
+            "text/html": "00d27a3a62993eb4c62b2b1fa3ec7826db8fc99bcec1877a3a7beaa58e1da2c6"
+          },
+          "discovery_url": "https://www.federalreserve.gov/monetarypolicy/fomccalendars.htm",
+          "error_message": null,
+          "error_type": null,
+          "event_class": null,
+          "event_date": "2022-03-16",
+          "meeting_date": "2022-03-16",
+          "parser_version": "fed_sep.v1",
+          "policy_horizon_count": 4,
+          "policy_horizons": [
+            {
+              "distinct_dot_values": 7,
+              "horizon": "2022",
+              "participant_total": 16,
+              "published_median_percent": "1.9"
+            },
+            {
+              "distinct_dot_values": 7,
+              "horizon": "2023",
+              "participant_total": 16,
+              "published_median_percent": "2.8"
+            },
+            {
+              "distinct_dot_values": 8,
+              "horizon": "2024",
+              "participant_total": 16,
+              "published_median_percent": "2.8"
+            },
+            {
+              "distinct_dot_values": 5,
+              "horizon": "Longer run",
+              "participant_total": 15,
+              "published_median_percent": "2.4"
+            }
+          ],
+          "projection_row_count": 19,
+          "prose_total_declared": false,
+          "published_at": "2022-03-16T14:00:00-04:00",
+          "release_key": "fed-sep:fomcprojtabl20220316",
+          "release_type": "sep",
+          "row_count": 4,
+          "state": "ok"
+        },
+        {
+          "artifact_hashes": {
+            "application/pdf": "dd496b2d985d89057c0bcd4d9754f7975eb4b6eb16a690bbd8dd09f676c48789",
+            "text/html": "a63c24fc2f980102ea6dc6078c9fecf9adf12772849f7c42e744ce69c1e8b9f6"
+          },
+          "discovery_url": "https://www.federalreserve.gov/monetarypolicy/fomccalendars.htm",
+          "error_message": null,
+          "error_type": null,
+          "event_class": null,
+          "event_date": "2022-06-15",
+          "meeting_date": "2022-06-15",
+          "parser_version": "fed_sep.v1",
+          "policy_horizon_count": 4,
+          "policy_horizons": [
+            {
+              "distinct_dot_values": 4,
+              "horizon": "2022",
+              "participant_total": 18,
+              "published_median_percent": "3.4"
+            },
+            {
+              "distinct_dot_values": 6,
+              "horizon": "2023",
+              "participant_total": 18,
+              "published_median_percent": "3.8"
+            },
+            {
+              "distinct_dot_values": 8,
+              "horizon": "2024",
+              "participant_total": 18,
+              "published_median_percent": "3.4"
+            },
+            {
+              "distinct_dot_values": 5,
+              "horizon": "Longer run",
+              "participant_total": 17,
+              "published_median_percent": "2.5"
+            }
+          ],
+          "projection_row_count": 19,
+          "prose_total_declared": false,
+          "published_at": "2022-06-15T14:00:00-04:00",
+          "release_key": "fed-sep:fomcprojtabl20220615",
+          "release_type": "sep",
+          "row_count": 4,
+          "state": "ok"
+        },
+        {
+          "artifact_hashes": {
+            "application/pdf": "58571bb954f1753d5bd1dc44a80247d960ee4774e50ecadaae44e52987ec9252",
+            "text/html": "74187b97acc420be65218f26c96719f6db9523bab0a8350feb08ac08efdbc6a3"
+          },
+          "discovery_url": "https://www.federalreserve.gov/monetarypolicy/fomccalendars.htm",
+          "error_message": null,
+          "error_type": null,
+          "event_class": null,
+          "event_date": "2022-09-21",
+          "meeting_date": "2022-09-21",
+          "parser_version": "fed_sep.v1",
+          "policy_horizon_count": 5,
+          "policy_horizons": [
+            {
+              "distinct_dot_values": 4,
+              "horizon": "2022",
+              "participant_total": 19,
+              "published_median_percent": "4.4"
+            },
+            {
+              "distinct_dot_values": 4,
+              "horizon": "2023",
+              "participant_total": 19,
+              "published_median_percent": "4.6"
+            },
+            {
+              "distinct_dot_values": 9,
+              "horizon": "2024",
+              "participant_total": 19,
+              "published_median_percent": "3.9"
+            },
+            {
+              "distinct_dot_values": 7,
+              "horizon": "2025",
+              "participant_total": 19,
+              "published_median_percent": "2.9"
+            },
+            {
+              "distinct_dot_values": 5,
+              "horizon": "Longer run",
+              "participant_total": 18,
+              "published_median_percent": "2.5"
+            }
+          ],
+          "projection_row_count": 24,
+          "prose_total_declared": false,
+          "published_at": "2022-09-21T14:00:00-04:00",
+          "release_key": "fed-sep:fomcprojtabl20220921",
+          "release_type": "sep",
+          "row_count": 5,
+          "state": "ok"
+        },
+        {
+          "artifact_hashes": {
+            "application/pdf": "cbb298371c4510159979e41f6b905c275ce026c3361905346c1a78aa72e317b4",
+            "text/html": "54404d7d21b00f68e473945958ad13aa49ea0929221e4717e6233241b1f42a12"
+          },
+          "discovery_url": "https://www.federalreserve.gov/monetarypolicy/fomccalendars.htm",
+          "error_message": null,
+          "error_type": null,
+          "event_class": null,
+          "event_date": "2022-12-14",
+          "meeting_date": "2022-12-14",
+          "parser_version": "fed_sep.v1",
+          "policy_horizon_count": 5,
+          "policy_horizons": [
+            {
+              "distinct_dot_values": 1,
+              "horizon": "2022",
+              "participant_total": 19,
+              "published_median_percent": "4.4"
+            },
+            {
+              "distinct_dot_values": 4,
+              "horizon": "2023",
+              "participant_total": 19,
+              "published_median_percent": "5.1"
+            },
+            {
+              "distinct_dot_values": 8,
+              "horizon": "2024",
+              "participant_total": 19,
+              "published_median_percent": "4.1"
+            },
+            {
+              "distinct_dot_values": 10,
+              "horizon": "2025",
+              "participant_total": 19,
+              "published_median_percent": "3.1"
+            },
+            {
+              "distinct_dot_values": 6,
+              "horizon": "Longer run",
+              "participant_total": 18,
+              "published_median_percent": "2.5"
+            }
+          ],
+          "projection_row_count": 24,
+          "prose_total_declared": false,
+          "published_at": "2022-12-14T14:00:00-05:00",
+          "release_key": "fed-sep:fomcprojtabl20221214",
+          "release_type": "sep",
+          "row_count": 5,
+          "state": "ok"
+        },
+        {
+          "artifact_hashes": {
+            "application/pdf": "eafeb9cea1abbd1c16899ded75e97f77c13b6cacc0584bf0b80277a4c93fb2cb",
+            "text/html": "7b0d402ab8f57d156c96f12b459e1097ccf4e806e53ab67cfdab346166f15977"
+          },
+          "discovery_url": "https://www.federalreserve.gov/monetarypolicy/fomccalendars.htm",
+          "error_message": null,
+          "error_type": null,
+          "event_class": null,
+          "event_date": "2023-03-22",
+          "meeting_date": "2023-03-22",
+          "parser_version": "fed_sep.v1",
+          "policy_horizon_count": 4,
+          "policy_horizons": [
+            {
+              "distinct_dot_values": 5,
+              "horizon": "2023",
+              "participant_total": 18,
+              "published_median_percent": "5.1"
+            },
+            {
+              "distinct_dot_values": 9,
+              "horizon": "2024",
+              "participant_total": 18,
+              "published_median_percent": "4.3"
+            },
+            {
+              "distinct_dot_values": 10,
+              "horizon": "2025",
+              "participant_total": 18,
+              "published_median_percent": "3.1"
+            },
+            {
+              "distinct_dot_values": 7,
+              "horizon": "Longer run",
+              "participant_total": 17,
+              "published_median_percent": "2.5"
+            }
+          ],
+          "projection_row_count": 19,
+          "prose_total_declared": false,
+          "published_at": "2023-03-22T14:00:00-04:00",
+          "release_key": "fed-sep:fomcprojtabl20230322",
+          "release_type": "sep",
+          "row_count": 4,
+          "state": "ok"
+        },
+        {
+          "artifact_hashes": {
+            "application/pdf": "fd659f61c21a765d7bb2dcf05da1b0429ec977615ed4b3a46206dccc9a5b660c",
+            "text/html": "17888329d75f3396858e31d024f1909509e29f0fa1e2f370d36b6ebef4d82e83"
+          },
+          "discovery_url": "https://www.federalreserve.gov/monetarypolicy/fomccalendars.htm",
+          "error_message": null,
+          "error_type": null,
+          "event_class": null,
+          "event_date": "2023-06-14",
+          "meeting_date": "2023-06-14",
+          "parser_version": "fed_sep.v1",
+          "policy_horizon_count": 4,
+          "policy_horizons": [
+            {
+              "distinct_dot_values": 5,
+              "horizon": "2023",
+              "participant_total": 18,
+              "published_median_percent": "5.6"
+            },
+            {
+              "distinct_dot_values": 8,
+              "horizon": "2024",
+              "participant_total": 18,
+              "published_median_percent": "4.6"
+            },
+            {
+              "distinct_dot_values": 11,
+              "horizon": "2025",
+              "participant_total": 18,
+              "published_median_percent": "3.4"
+            },
+            {
+              "distinct_dot_values": 7,
+              "horizon": "Longer run",
+              "participant_total": 17,
+              "published_median_percent": "2.5"
+            }
+          ],
+          "projection_row_count": 19,
+          "prose_total_declared": false,
+          "published_at": "2023-06-14T14:00:00-04:00",
+          "release_key": "fed-sep:fomcprojtabl20230614",
+          "release_type": "sep",
+          "row_count": 4,
+          "state": "ok"
+        },
+        {
+          "artifact_hashes": {
+            "application/pdf": "8b9f0dbd12968aea6a114fb70a939d891166de598c0562f578e3420a98d38bcd",
+            "text/html": "9ccfc5f26753d44141bcd957250236cc7478ffb67835ba4d4138adc6a9a53676"
+          },
+          "discovery_url": "https://www.federalreserve.gov/monetarypolicy/fomccalendars.htm",
+          "error_message": null,
+          "error_type": null,
+          "event_class": null,
+          "event_date": "2023-09-20",
+          "meeting_date": "2023-09-20",
+          "parser_version": "fed_sep.v1",
+          "policy_horizon_count": 5,
+          "policy_horizons": [
+            {
+              "distinct_dot_values": 2,
+              "horizon": "2023",
+              "participant_total": 19,
+              "published_median_percent": "5.6"
+            },
+            {
+              "distinct_dot_values": 7,
+              "horizon": "2024",
+              "participant_total": 19,
+              "published_median_percent": "5.1"
+            },
+            {
+              "distinct_dot_values": 12,
+              "horizon": "2025",
+              "participant_total": 19,
+              "published_median_percent": "3.9"
+            },
+            {
+              "distinct_dot_values": 9,
+              "horizon": "2026",
+              "participant_total": 19,
+              "published_median_percent": "2.9"
+            },
+            {
+              "distinct_dot_values": 7,
+              "horizon": "Longer run",
+              "participant_total": 18,
+              "published_median_percent": "2.5"
+            }
+          ],
+          "projection_row_count": 24,
+          "prose_total_declared": false,
+          "published_at": "2023-09-20T14:00:00-04:00",
+          "release_key": "fed-sep:fomcprojtabl20230920",
+          "release_type": "sep",
+          "row_count": 5,
+          "state": "ok"
+        },
+        {
+          "artifact_hashes": {
+            "application/pdf": "2811d15aface9e9453c4965d8746b1f01778bf994e692b52772cc9610a9137d6",
+            "text/html": "e0356ad8497c6d8905fa7b0626516b103ff9da61a6f00ec4ad822a331d299717"
+          },
+          "discovery_url": "https://www.federalreserve.gov/monetarypolicy/fomccalendars.htm",
+          "error_message": null,
+          "error_type": null,
+          "event_class": null,
+          "event_date": "2023-12-13",
+          "meeting_date": "2023-12-13",
+          "parser_version": "fed_sep.v1",
+          "policy_horizon_count": 5,
+          "policy_horizons": [
+            {
+              "distinct_dot_values": 1,
+              "horizon": "2023",
+              "participant_total": 19,
+              "published_median_percent": "5.4"
+            },
+            {
+              "distinct_dot_values": 6,
+              "horizon": "2024",
+              "participant_total": 19,
+              "published_median_percent": "4.6"
+            },
+            {
+              "distinct_dot_values": 9,
+              "horizon": "2025",
+              "participant_total": 19,
+              "published_median_percent": "3.6"
+            },
+            {
+              "distinct_dot_values": 8,
+              "horizon": "2026",
+              "participant_total": 19,
+              "published_median_percent": "2.9"
+            },
+            {
+              "distinct_dot_values": 8,
+              "horizon": "Longer run",
+              "participant_total": 18,
+              "published_median_percent": "2.5"
+            }
+          ],
+          "projection_row_count": 24,
+          "prose_total_declared": false,
+          "published_at": "2023-12-13T14:00:00-05:00",
+          "release_key": "fed-sep:fomcprojtabl20231213",
+          "release_type": "sep",
+          "row_count": 5,
+          "state": "ok"
+        },
+        {
+          "artifact_hashes": {
+            "application/pdf": "9e6705e28948d10b54b37bbda2c94fa4eb553864aed82be5bf985f5cfe735a5a",
+            "text/html": "29ad23284236fc41579db0cfc248e99b761f3fc614beebde1fc47010e66c7a37"
+          },
+          "discovery_url": "https://www.federalreserve.gov/monetarypolicy/fomccalendars.htm",
+          "error_message": null,
+          "error_type": null,
+          "event_class": null,
+          "event_date": "2024-03-20",
+          "meeting_date": "2024-03-20",
+          "parser_version": "fed_sep.v1",
+          "policy_horizon_count": 4,
+          "policy_horizons": [
+            {
+              "distinct_dot_values": 5,
+              "horizon": "2024",
+              "participant_total": 19,
+              "published_median_percent": "4.6"
+            },
+            {
+              "distinct_dot_values": 8,
+              "horizon": "2025",
+              "participant_total": 19,
+              "published_median_percent": "3.9"
+            },
+            {
+              "distinct_dot_values": 8,
+              "horizon": "2026",
+              "participant_total": 19,
+              "published_median_percent": "3.1"
+            },
+            {
+              "distinct_dot_values": 8,
+              "horizon": "Longer run",
+              "participant_total": 18,
+              "published_median_percent": "2.6"
+            }
+          ],
+          "projection_row_count": 19,
+          "prose_total_declared": false,
+          "published_at": "2024-03-20T14:00:00-04:00",
+          "release_key": "fed-sep:fomcprojtabl20240320",
+          "release_type": "sep",
+          "row_count": 4,
+          "state": "ok"
+        },
+        {
+          "artifact_hashes": {
+            "application/pdf": "e8d3433207abc39c3064af3c9169404e8a5dde6e9ea87d44c8cc600359ad9472",
+            "text/html": "12d4afc31fc5b7073e1c92ab33f9747be974ed5949c6465a1d33c02b6a1efe82"
+          },
+          "discovery_url": "https://www.federalreserve.gov/monetarypolicy/fomccalendars.htm",
+          "error_message": null,
+          "error_type": null,
+          "event_class": null,
+          "event_date": "2024-06-12",
+          "meeting_date": "2024-06-12",
+          "parser_version": "fed_sep.v1",
+          "policy_horizon_count": 4,
+          "policy_horizons": [
+            {
+              "distinct_dot_values": 3,
+              "horizon": "2024",
+              "participant_total": 19,
+              "published_median_percent": "5.1"
+            },
+            {
+              "distinct_dot_values": 7,
+              "horizon": "2025",
+              "participant_total": 19,
+              "published_median_percent": "4.1"
+            },
+            {
+              "distinct_dot_values": 8,
+              "horizon": "2026",
+              "participant_total": 19,
+              "published_median_percent": "3.1"
+            },
+            {
+              "distinct_dot_values": 9,
+              "horizon": "Longer run",
+              "participant_total": 19,
+              "published_median_percent": "2.8"
+            }
+          ],
+          "projection_row_count": 19,
+          "prose_total_declared": false,
+          "published_at": "2024-06-12T14:00:00-04:00",
+          "release_key": "fed-sep:fomcprojtabl20240612",
+          "release_type": "sep",
+          "row_count": 4,
+          "state": "ok"
+        },
+        {
+          "artifact_hashes": {
+            "application/pdf": "fb5e0b1bbe836b8fbf11ec0086c9f5cb33c968d17073b932bdd8dfecec902e0a",
+            "text/html": "ec34560f2a86dc458dc848fd807562e3609ab208bbfa3c061f036e728a116baa"
+          },
+          "discovery_url": "https://www.federalreserve.gov/monetarypolicy/fomccalendars.htm",
+          "error_message": null,
+          "error_type": null,
+          "event_class": null,
+          "event_date": "2024-09-18",
+          "meeting_date": "2024-09-18",
+          "parser_version": "fed_sep.v1",
+          "policy_horizon_count": 5,
+          "policy_horizons": [
+            {
+              "distinct_dot_values": 4,
+              "horizon": "2024",
+              "participant_total": 19,
+              "published_median_percent": "4.4"
+            },
+            {
+              "distinct_dot_values": 6,
+              "horizon": "2025",
+              "participant_total": 19,
+              "published_median_percent": "3.4"
+            },
+            {
+              "distinct_dot_values": 7,
+              "horizon": "2026",
+              "participant_total": 19,
+              "published_median_percent": "2.9"
+            },
+            {
+              "distinct_dot_values": 7,
+              "horizon": "2027",
+              "participant_total": 19,
+              "published_median_percent": "2.9"
+            },
+            {
+              "distinct_dot_values": 11,
+              "horizon": "Longer run",
+              "participant_total": 19,
+              "published_median_percent": "2.9"
+            }
+          ],
+          "projection_row_count": 24,
+          "prose_total_declared": false,
+          "published_at": "2024-09-18T14:00:00-04:00",
+          "release_key": "fed-sep:fomcprojtabl20240918",
+          "release_type": "sep",
+          "row_count": 5,
+          "state": "ok"
+        },
+        {
+          "artifact_hashes": {
+            "application/pdf": "c7db16b2c52b18048bde11ff09721273f542b9344a40aaf3931139c35918448e",
+            "text/html": "c39c8436b67193bf192bd4ad06f6d7ba25936b15b1a39be4423ab51d668113b1"
+          },
+          "discovery_url": "https://www.federalreserve.gov/monetarypolicy/fomccalendars.htm",
+          "error_message": null,
+          "error_type": null,
+          "event_class": null,
+          "event_date": "2024-12-18",
+          "meeting_date": "2024-12-18",
+          "parser_version": "fed_sep.v1",
+          "policy_horizon_count": 5,
+          "policy_horizons": [
+            {
+              "distinct_dot_values": 2,
+              "horizon": "2024",
+              "participant_total": 19,
+              "published_median_percent": "4.4"
+            },
+            {
+              "distinct_dot_values": 6,
+              "horizon": "2025",
+              "participant_total": 19,
+              "published_median_percent": "3.9"
+            },
+            {
+              "distinct_dot_values": 7,
+              "horizon": "2026",
+              "participant_total": 19,
+              "published_median_percent": "3.4"
+            },
+            {
+              "distinct_dot_values": 8,
+              "horizon": "2027",
+              "participant_total": 19,
+              "published_median_percent": "3.1"
+            },
+            {
+              "distinct_dot_values": 12,
+              "horizon": "Longer run",
+              "participant_total": 19,
+              "published_median_percent": "3.0"
+            }
+          ],
+          "projection_row_count": 24,
+          "prose_total_declared": false,
+          "published_at": "2024-12-18T14:00:00-05:00",
+          "release_key": "fed-sep:fomcprojtabl20241218",
+          "release_type": "sep",
+          "row_count": 5,
+          "state": "ok"
+        },
+        {
+          "artifact_hashes": {
+            "application/pdf": "5adb4ec6619920f1d71b2ad8391b91b365d5183206acca0692e508bcbc8fa668",
+            "text/html": "7e1bc1c98cc472ffb7efe42b6056645d5f139f6d978da1bd29d68c9860b53a3a"
+          },
+          "discovery_url": "https://www.federalreserve.gov/monetarypolicy/fomccalendars.htm",
+          "error_message": null,
+          "error_type": null,
+          "event_class": null,
+          "event_date": "2025-03-19",
+          "meeting_date": "2025-03-19",
+          "parser_version": "fed_sep.v1",
+          "policy_horizon_count": 4,
+          "policy_horizons": [
+            {
+              "distinct_dot_values": 4,
+              "horizon": "2025",
+              "participant_total": 19,
+              "published_median_percent": "3.9"
+            },
+            {
+              "distinct_dot_values": 6,
+              "horizon": "2026",
+              "participant_total": 19,
+              "published_median_percent": "3.4"
+            },
+            {
+              "distinct_dot_values": 6,
+              "horizon": "2027",
+              "participant_total": 19,
+              "published_median_percent": "3.1"
+            },
+            {
+              "distinct_dot_values": 10,
+              "horizon": "Longer run",
+              "participant_total": 19,
+              "published_median_percent": "3.0"
+            }
+          ],
+          "projection_row_count": 19,
+          "prose_total_declared": false,
+          "published_at": "2025-03-19T14:00:00-04:00",
+          "release_key": "fed-sep:fomcprojtabl20250319",
+          "release_type": "sep",
+          "row_count": 4,
+          "state": "ok"
+        },
+        {
+          "artifact_hashes": {
+            "application/pdf": "34f9a88b438f4d8543bed71f1f02c1405e4a97ff1f4cbd18e7a2d04c73848ac1",
+            "text/html": "035e188d967f87b68e2a1a395ba03a583dbc7913f348ed0b1bec75f205ab172d"
+          },
+          "discovery_url": "https://www.federalreserve.gov/monetarypolicy/fomccalendars.htm",
+          "error_message": null,
+          "error_type": null,
+          "event_class": null,
+          "event_date": "2025-06-18",
+          "meeting_date": "2025-06-18",
+          "parser_version": "fed_sep.v1",
+          "policy_horizon_count": 4,
+          "policy_horizons": [
+            {
+              "distinct_dot_values": 4,
+              "horizon": "2025",
+              "participant_total": 19,
+              "published_median_percent": "3.9"
+            },
+            {
+              "distinct_dot_values": 7,
+              "horizon": "2026",
+              "participant_total": 19,
+              "published_median_percent": "3.6"
+            },
+            {
+              "distinct_dot_values": 6,
+              "horizon": "2027",
+              "participant_total": 19,
+              "published_median_percent": "3.4"
+            },
+            {
+              "distinct_dot_values": 10,
+              "horizon": "Longer run",
+              "participant_total": 19,
+              "published_median_percent": "3.0"
+            }
+          ],
+          "projection_row_count": 19,
+          "prose_total_declared": false,
+          "published_at": "2025-06-18T14:00:00-04:00",
+          "release_key": "fed-sep:fomcprojtabl20250618",
+          "release_type": "sep",
+          "row_count": 4,
+          "state": "ok"
+        },
+        {
+          "artifact_hashes": {
+            "application/pdf": "6863853dd6e970ed94eef5ed6d069ae23dfc6a7607f7e2c022b8afdcb6992e69",
+            "text/html": "3614863f98cd920a8fc2b9a7cf6eed1792b242a1d8ef6c985ae8fc497e8512a2"
+          },
+          "discovery_url": "https://www.federalreserve.gov/monetarypolicy/fomccalendars.htm",
+          "error_message": null,
+          "error_type": null,
+          "event_class": null,
+          "event_date": "2025-09-17",
+          "meeting_date": "2025-09-17",
+          "parser_version": "fed_sep.v1",
+          "policy_horizon_count": 5,
+          "policy_horizons": [
+            {
+              "distinct_dot_values": 5,
+              "horizon": "2025",
+              "participant_total": 19,
+              "published_median_percent": "3.6"
+            },
+            {
+              "distinct_dot_values": 6,
+              "horizon": "2026",
+              "participant_total": 19,
+              "published_median_percent": "3.4"
+            },
+            {
+              "distinct_dot_values": 7,
+              "horizon": "2027",
+              "participant_total": 19,
+              "published_median_percent": "3.1"
+            },
+            {
+              "distinct_dot_values": 7,
+              "horizon": "2028",
+              "participant_total": 19,
+              "published_median_percent": "3.1"
+            },
+            {
+              "distinct_dot_values": 11,
+              "horizon": "Longer run",
+              "participant_total": 19,
+              "published_median_percent": "3.0"
+            }
+          ],
+          "projection_row_count": 24,
+          "prose_total_declared": false,
+          "published_at": "2025-09-17T14:00:00-04:00",
+          "release_key": "fed-sep:fomcprojtabl20250917",
+          "release_type": "sep",
+          "row_count": 5,
+          "state": "ok"
+        },
+        {
+          "artifact_hashes": {
+            "application/pdf": "7f604085289cd4d586c0df42a996d77e6642efcb1c897038051d791a98a2c7dd",
+            "text/html": "a99573b29fb5aeac271f24512f6ac695301dd4e737a4e4252a02ff1e0226966c"
+          },
+          "discovery_url": "https://www.federalreserve.gov/monetarypolicy/fomccalendars.htm",
+          "error_message": null,
+          "error_type": null,
+          "event_class": null,
+          "event_date": "2025-12-10",
+          "meeting_date": "2025-12-10",
+          "parser_version": "fed_sep.v1",
+          "policy_horizon_count": 5,
+          "policy_horizons": [
+            {
+              "distinct_dot_values": 3,
+              "horizon": "2025",
+              "participant_total": 19,
+              "published_median_percent": "3.6"
+            },
+            {
+              "distinct_dot_values": 7,
+              "horizon": "2026",
+              "participant_total": 19,
+              "published_median_percent": "3.4"
+            },
+            {
+              "distinct_dot_values": 7,
+              "horizon": "2027",
+              "participant_total": 19,
+              "published_median_percent": "3.1"
+            },
+            {
+              "distinct_dot_values": 7,
+              "horizon": "2028",
+              "participant_total": 19,
+              "published_median_percent": "3.1"
+            },
+            {
+              "distinct_dot_values": 11,
+              "horizon": "Longer run",
+              "participant_total": 19,
+              "published_median_percent": "3.0"
+            }
+          ],
+          "projection_row_count": 24,
+          "prose_total_declared": false,
+          "published_at": "2025-12-10T14:00:00-05:00",
+          "release_key": "fed-sep:fomcprojtabl20251210",
+          "release_type": "sep",
+          "row_count": 5,
+          "state": "ok"
+        },
+        {
+          "artifact_hashes": {
+            "application/pdf": "2e9452c51a4b5907da952fad6f39dd25dc048161af123e09a1981f5982724f14",
+            "text/html": "5a43b6558ed0524015b27a840cc584d78c6e761c68e6a93fbdcdf1c9bf93b40d"
+          },
+          "discovery_url": "https://www.federalreserve.gov/monetarypolicy/fomccalendars.htm",
+          "error_message": null,
+          "error_type": null,
+          "event_class": null,
+          "event_date": "2026-03-18",
+          "meeting_date": "2026-03-18",
+          "parser_version": "fed_sep.v1",
+          "policy_horizon_count": 4,
+          "policy_horizons": [
+            {
+              "distinct_dot_values": 5,
+              "horizon": "2026",
+              "participant_total": 19,
+              "published_median_percent": "3.4"
+            },
+            {
+              "distinct_dot_values": 7,
+              "horizon": "2027",
+              "participant_total": 19,
+              "published_median_percent": "3.1"
+            },
+            {
+              "distinct_dot_values": 6,
+              "horizon": "2028",
+              "participant_total": 19,
+              "published_median_percent": "3.1"
+            },
+            {
+              "distinct_dot_values": 10,
+              "horizon": "Longer run",
+              "participant_total": 19,
+              "published_median_percent": "3.1"
+            }
+          ],
+          "projection_row_count": 19,
+          "prose_total_declared": false,
+          "published_at": "2026-03-18T14:00:00-04:00",
+          "release_key": "fed-sep:fomcprojtabl20260318",
+          "release_type": "sep",
+          "row_count": 4,
+          "state": "ok"
+        },
+        {
+          "artifact_hashes": {
+            "application/pdf": "a517887623520922a782e0cd01fb38d4469bed951f63d2588efb99f72deddde3",
+            "text/html": "1ffcf7e6e540bfdcc91b92583915f193536dec768d210e0edb671e0d90cbeee1"
+          },
+          "discovery_url": "https://www.federalreserve.gov/monetarypolicy/fomccalendars.htm",
+          "error_message": null,
+          "error_type": null,
+          "event_class": null,
+          "event_date": "2026-06-17",
+          "meeting_date": "2026-06-17",
+          "parser_version": "fed_sep.v1",
+          "policy_horizon_count": 4,
+          "policy_horizons": [
+            {
+              "distinct_dot_values": 5,
+              "horizon": "2026",
+              "participant_total": 18,
+              "published_median_percent": "3.8"
+            },
+            {
+              "distinct_dot_values": 7,
+              "horizon": "2027",
+              "participant_total": 18,
+              "published_median_percent": "3.6"
+            },
+            {
+              "distinct_dot_values": 5,
+              "horizon": "2028",
+              "participant_total": 17,
+              "published_median_percent": "3.4"
+            },
+            {
+              "distinct_dot_values": 9,
+              "horizon": "Longer run",
+              "participant_total": 18,
+              "published_median_percent": "3.1"
+            }
+          ],
+          "projection_row_count": 19,
+          "prose_total_declared": true,
+          "published_at": "2026-06-17T14:00:00-04:00",
+          "release_key": "fed-sep:fomcprojtabl20260617",
+          "release_type": "sep",
+          "row_count": 4,
+          "state": "ok"
+        }
+      ],
+      "releases_discovered": 25,
+      "releases_failed": 0,
+      "releases_succeeded": 25,
       "state": "ok"
     },
     "frenzy_capital": {
       "artifact": {
-        "available_at": "2026-08-12T14:58:22.764966+00:00",
-        "content_hash": "1f2d0ee5af9f42406216e3f2291ee68795e67905e1d0999938c18ac3666014d8",
-        "content_length": 105270,
+        "available_at": "2026-08-17T16:17:20.288296+00:00",
+        "content_hash": "7a25075bd42b7c63be5c8fd2798b6a84102c4d4735ce4ab48e0b9b775d58dc6e",
+        "content_length": 105263,
         "cost_class": "free_third_party_shadow",
         "media_type": "text/html",
         "parser_version": "frenzy_fedwatch.v1",
         "published_at": null,
-        "source_record_id": "frenzy-fedwatch:1f2d0ee5af9f42406216e3f2291ee68795e67905e1d0999938c18ac3666014d8",
+        "source_record_id": "frenzy-fedwatch:7a25075bd42b7c63be5c8fd2798b6a84102c4d4735ce4ab48e0b9b775d58dc6e",
         "source_url": "https://www.frenzycap.com/fedwatch"
       },
-      "available_at": "2026-08-12T14:58:22.764966+00:00",
+      "available_at": "2026-08-17T16:17:20.288296+00:00",
       "delay_minutes": null,
       "delay_status": "unknown",
       "first_meeting_date": "2026-09-16",
@@ -147,7 +2709,7 @@
       "probability_totals_percent": [
         "100.0000",
         "100.0000",
-        "100.00"
+        "100.0"
       ],
       "published_at": null,
       "publisher_class": "third_party_shadow",
@@ -155,9 +2717,9 @@
       "state": "ok"
     },
     "new_york_fed_sme": {
-      "available_at": "2026-08-12T14:58:22.764966+00:00",
+      "available_at": "2026-08-17T16:17:20.288296+00:00",
       "data_artifact": {
-        "available_at": "2026-08-12T14:58:22.764966+00:00",
+        "available_at": "2026-08-17T16:17:20.288296+00:00",
         "content_hash": "d0cf390537a631ba32990aba2bf0229dd5c92a9a18b7e95fd2c1119eeb5e5ecb",
         "content_length": 253265,
         "cost_class": "free_official",
@@ -179,7 +2741,7 @@
       "published_at": null,
       "questionnaire_release_date": "2026-06-03",
       "report_artifact": {
-        "available_at": "2026-08-12T14:58:22.764966+00:00",
+        "available_at": "2026-08-17T16:17:20.288296+00:00",
         "content_hash": "48c2846ac5ee6f54611fef925499476e31dab5ea2d4f7b8669b64a6b32a920a6",
         "content_length": 305404,
         "cost_class": "free_official",
@@ -200,5 +2762,13 @@
       "state": "ok"
     }
   },
-  "year": 2026
+  "years": [
+    2020,
+    2021,
+    2022,
+    2023,
+    2024,
+    2025,
+    2026
+  ]
 }
