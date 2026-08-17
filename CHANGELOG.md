@@ -7,6 +7,33 @@ version in lockstep (enforced by `scripts/release/version_sync_check.py`).
 
 ## [Unreleased]
 
+### Changed
+
+- **The chain taxonomy now names every layer's members instead of half of them
+  inheriting from `watchlist.sector`.** `IDX`, `THM` and `DEF` previously held
+  empty tuples and seeded from the legacy `sector` column, which capped those 63
+  tickers at **exactly one chain each** — `sector` is a single column — and so
+  quietly excluded them from the many-to-many the join table was built for. Two
+  concrete cases it was hiding: MARA/RIOT are bitcoin miners that pivoted to AI
+  datacenters exactly like the six peers already tagged `AI-Cloud/NeoCloud`, but
+  could only be `Crypto`; and SPCX could not be both `M7` and `Space`. Both now
+  hold both. Sector ETFs (SMH/SOXX/SOXL/IGV/MAGS) are deliberately *not*
+  cross-listed into the company chains they track — a chain answers "which
+  companies are in this value chain", and a fund tracking it is a different
+  question. `inherit_sector_memberships` still runs as the safety net for a
+  ticker the module never names; it simply has nothing left to do here.
+
+### Fixed
+
+- **Two watchlist tickers were typos for the ones actually intended.** `NOV` is
+  National Oilwell Varco — oil drilling equipment, UW sector Energy — and was
+  carrying a `Healthcare` tag; the intended name was `NVO` (Novo Nordisk), now
+  added. `ELV` is Elevance Health, a common stock, and was carrying a
+  `Sector-ETF` tag; the intended name was the `XLV` ETF, which was already on
+  the watchlist and correctly tagged, so `ELV` is simply removed. Net UW burn is
+  down one ticker (~263 calls/day). `SPCX` keeps `M7` by operator decision and
+  additionally gains `Space`.
+
 ## [0.12.1] — 2026-08-17
 
 
