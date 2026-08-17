@@ -7,6 +7,9 @@ version in lockstep (enforced by `scripts/release/version_sync_check.py`).
 
 ## [Unreleased]
 
+## [0.12.4] — 2026-08-18
+
+
 ### Fixed
 
 - **A finished or killed heal run no longer wedges the nightly healer forever.**
@@ -33,7 +36,6 @@ version in lockstep (enforced by `scripts/release/version_sync_check.py`).
   heal them alongside it, double-charging the provider budget. Staleness is
   measured by progress (last item driven to a verdict) rather than age, so the
   heuristic stays conservative even if that ordering is ever loosened.
-
 ## [0.12.3] — 2026-08-17
 
 
