@@ -227,7 +227,7 @@ def test_resume_requeues_orphaned_running_items(seeded_db_empty_cards):
     assert len(gap.get_run(run_id)["summary_jsonb"]["resumes"]) == 2
 
 
-def test_cli_refuses_to_race_another_heal(seeded_db_empty_cards):
+def test_cli_refuses_to_race_another_heal(seeded_db_empty_cards, _migrated_settings):
     """`execute` and `resume` now take the healer's single-flight advisory lock.
     Racing another heal would re-audit the same still-missing gaps and heal them
     twice, double-charging the provider budget -- the hazard data_freshness_monitor
@@ -237,10 +237,11 @@ def test_cli_refuses_to_race_another_heal(seeded_db_empty_cards):
     repo = seeded_db_empty_cards
     gap = DataGapHealerRepository(repo.conn, schema=repo._schema)
 
-    # a second connection stands in for the nightly job / another operator
-    info = repo.conn.info
-    dsn = f"host={info.host} port={info.port} dbname={info.dbname} user={info.user}"
-    with psycopg.connect(dsn) as holder, holder.cursor() as cur:
+    # A second connection stands in for the nightly job / another operator. Take
+    # the DSN from the fixture's own Settings -- conn.info deliberately withholds
+    # the password, so a hand-built DSN passes on a trust-auth dev box and fails
+    # against CI's password-authenticated Postgres service.
+    with psycopg.connect(_migrated_settings.db_dsn()) as holder, holder.cursor() as cur:
         cur.execute("SELECT pg_try_advisory_lock(92010)")
         assert cur.fetchone()[0] is True
 
