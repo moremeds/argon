@@ -4,6 +4,7 @@ import os
 from datetime import UTC, date, datetime
 from decimal import Decimal
 from pathlib import Path
+from types import SimpleNamespace
 
 import psycopg
 import pytest
@@ -34,6 +35,30 @@ def _settings() -> Settings:
     return Settings.from_env().model_copy(update={"db_name": test_db})
 
 
+def _outcome(candidate, bundle, *, artifacts=None, error=None):
+    """Mimic the provider fetch-outcome contract without importing four classes."""
+    return SimpleNamespace(
+        candidate=candidate,
+        bundle=bundle,
+        artifacts=artifacts
+        or ((bundle.primary_artifact, bundle.accessible_artifact) if bundle else ()),
+        error_type=error[0] if error else None,
+        error_message=error[1] if error else None,
+    )
+
+
+def _candidate(release_key, release_type, event_date, event_class=None):
+    return SimpleNamespace(
+        release_key=release_key,
+        release_type=release_type,
+        event_date=event_date,
+        event_class=event_class,
+        discovery_url=(
+            "https://www.federalreserve.gov/monetarypolicy/fomccalendars.htm"
+        ),
+    )
+
+
 class _StatementProvider:
     def __enter__(self):
         return self
@@ -41,8 +66,22 @@ class _StatementProvider:
     def __exit__(self, *_exc):
         return None
 
-    def fetch_bundles(self, *, years, retrieved_at):
+    def fetch_outcomes(self, *, years, retrieved_at):
         assert 2026 in years
+        return [
+            _outcome(
+                _candidate(
+                    "fomc-statement:monetary20260617a",
+                    "statement",
+                    date(2026, 6, 17),
+                    "scheduled_meeting",
+                ),
+                bundle,
+            )
+            for bundle in self._bundles(retrieved_at)
+        ]
+
+    def _bundles(self, retrieved_at):
         return [
             FomcStatementBundle.from_bytes(
                 meeting_date=date(2026, 6, 17),
@@ -72,8 +111,17 @@ class _SepProvider:
     def __exit__(self, *_exc):
         return None
 
-    def fetch_bundles(self, *, years, retrieved_at):
+    def fetch_outcomes(self, *, years, retrieved_at):
         assert 2026 in years
+        return [
+            _outcome(
+                _candidate("fed-sep:fomcprojtabl20260617", "sep", date(2026, 6, 17)),
+                bundle,
+            )
+            for bundle in self._bundles(retrieved_at)
+        ]
+
+    def _bundles(self, retrieved_at):
         return [
             SepSourceBundle.from_bytes(
                 meeting_date=date(2026, 6, 17),
@@ -98,8 +146,8 @@ class _ChangedSepProvider(_SepProvider):
 
 
 class _MalformedSepProvider(_SepProvider):
-    def fetch_bundles(self, *, years, retrieved_at):
-        bundle = super().fetch_bundles(years=years, retrieved_at=retrieved_at)[0]
+    def _bundles(self, retrieved_at):
+        bundle = super()._bundles(retrieved_at)[0]
         return [
             SepSourceBundle.from_bytes(
                 meeting_date=bundle.meeting_date,
@@ -302,9 +350,17 @@ def test_observations_record_the_semantic_parser_that_read_them(
         assert committee["value_jsonb"]["declared_timezone"] == "EDT"
 
 
-def test_unchanged_rerun_is_one_fact_and_changed_bytes_create_new_vintage(
+def test_unchanged_rerun_is_one_fact_and_changed_bytes_are_another_witness(
     seeded_db_empty_cards,
 ) -> None:
+    """Changed BYTES are not a changed FACT.
+
+    ``_ChangedSepProvider`` appends a byte to the PDF. That is a real new
+    artifact and must be kept as exact evidence -- but the HTML the parser reads
+    is identical and the committee's projections did not move, so it is the same
+    published fact. Counting it as a new vintage invented a policy revision the
+    Fed never issued.
+    """
     settings = _settings()
     for _ in range(2):
         result = macro_sep_ingest_job(
@@ -313,6 +369,8 @@ def test_unchanged_rerun_is_one_fact_and_changed_bytes_create_new_vintage(
             observed_at=OBSERVED_AT,
         )
         assert result.status == "ok"
+        assert result.releases_discovered == 1
+        assert result.releases_succeeded == 1
     assert _counts(settings) == (2, 1)
 
     changed = macro_sep_ingest_job(
@@ -321,7 +379,29 @@ def test_unchanged_rerun_is_one_fact_and_changed_bytes_create_new_vintage(
         observed_at=OBSERVED_AT.replace(hour=13),
     )
     assert changed.status == "ok"
-    assert _counts(settings) == (3, 2)
+    # Three artifacts, still one fact.
+    assert _counts(settings) == (3, 1)
+
+    with psycopg.connect(settings.db_dsn()) as conn:
+        repo = Repository(conn, schema="uw_scan")
+        row = repo.fetch_latest_macro_observation_as_of(
+            "POLICY_PATH_COMMITTEE_PROJECTION",
+            OBSERVED_AT.replace(hour=14),
+            preferred_sources=["federal_reserve_sep"],
+        )
+        lineage = repo.fetch_macro_observation_artifacts(row["obs_id"])
+        # The HTML the parser read, plus both PDF revisions as witnesses.
+        assert sorted(item["relation"] for item in lineage) == [
+            "corroborates",
+            "corroborates",
+            "parsed_from",
+        ]
+        parsed = [
+            item for item in lineage if item["relation"] == "parsed_from"
+        ]
+        assert len(parsed) == 1
+        artifact = repo.fetch_macro_artifact(parsed[0]["artifact_id"])
+        assert artifact["media_type"] == "text/html"
 
 
 def test_parser_drift_retains_artifacts_and_degrades_only_failed_source(
@@ -357,7 +437,19 @@ def test_parser_drift_retains_artifacts_and_degrades_only_failed_source(
         assert actual_status["status"] == "ok"
         assert sep_status["status"] == "degraded"
         assert sep_status["consecutive_failures"] == 1
-        assert "NormalizationError" in sep_status["error_type"]
+        # The source-level error is a stable aggregate; the specific parse
+        # failure and the release it belongs to live in the message and in the
+        # per-release catalog.
+        assert sep_status["error_type"] == "MacroReleaseFailures"
+        assert "NormalizationError" in sep_status["error_message"]
+        assert failed.failed_release_keys == ("fed-sep:fomcprojtabl20260617",)
+        catalog = repo.fetch_macro_release_status(
+            source="federal_reserve_sep",
+            release_key="fed-sep:fomcprojtabl20260617",
+        )
+        assert catalog["status"] == "failed"
+        assert catalog["error_type"] == "uw_scan.normalize.NormalizationError"
+        assert catalog["latest_artifact_id"] is not None
 
 
 def test_unpublished_sme_rerun_keeps_first_retrieval_as_availability(
@@ -423,3 +515,222 @@ def test_market_shadow_persists_exact_html_unknown_delay_and_distribution(
         }
         artifact = repo.fetch_macro_artifact(market.evidence_refs[0].artifact_id)
         assert artifact["raw_bytes"].startswith(b"\n        <script>")
+
+
+_2022_STATEMENT = "fomc-statement:monetary20220316a"
+_2026_STATEMENT = "fomc-statement:monetary20260617a"
+_2020_STATEMENT = "fomc-statement:monetary20200323a"
+
+
+class _MixedStatementProvider:
+    """Three releases: valid, malformed, valid -- in that order.
+
+    The malformed one sits in the middle deliberately. Under batch persistence
+    it took the release before it down as well, so ordering proves the isolation
+    rather than just the last-writer surviving.
+    """
+
+    def __enter__(self):
+        return self
+
+    def __exit__(self, *_exc):
+        return None
+
+    def fetch_outcomes(self, *, years, retrieved_at):
+        good_2020 = FomcStatementBundle.from_bytes(
+            meeting_date=date(2020, 3, 23),
+            accessible_url=(
+                "https://www.federalreserve.gov/newsevents/pressreleases/"
+                "monetary20200323a.htm"
+            ),
+            accessible_bytes=(FIXTURES / "fomc_statement_2020_03_23.html").read_bytes(),
+            pdf_url=(
+                "https://www.federalreserve.gov/monetarypolicy/files/"
+                "monetary20200323a1.pdf"
+            ),
+            pdf_bytes=b"%PDF-1.4 2020-03-23",
+            retrieved_at=retrieved_at,
+        )
+        broken = FomcStatementBundle.from_bytes(
+            meeting_date=date(2022, 3, 16),
+            accessible_url=(
+                "https://www.federalreserve.gov/newsevents/pressreleases/"
+                "monetary20220316a.htm"
+            ),
+            accessible_bytes=b"<p>Release Date: March 16, 2022</p><p>nothing</p>",
+            pdf_url=(
+                "https://www.federalreserve.gov/monetarypolicy/files/"
+                "monetary20220316a1.pdf"
+            ),
+            pdf_bytes=b"%PDF-1.4 2022-03-16",
+            retrieved_at=retrieved_at,
+        )
+        good_2026 = _StatementProvider()._bundles(retrieved_at)[0]
+        return [
+            _outcome(
+                _candidate(
+                    _2020_STATEMENT, "statement", date(2020, 3, 23), "notation_vote"
+                ),
+                good_2020,
+            ),
+            _outcome(
+                _candidate(
+                    _2022_STATEMENT, "statement", date(2022, 3, 16), "scheduled_meeting"
+                ),
+                broken,
+            ),
+            _outcome(
+                _candidate(
+                    _2026_STATEMENT, "statement", date(2026, 6, 17), "scheduled_meeting"
+                ),
+                good_2026,
+            ),
+        ]
+
+
+class _FetchOnlyStatementProvider(_StatementProvider):
+    """Discovery found the release but only one of its two files came back."""
+
+    def fetch_outcomes(self, *, years, retrieved_at):
+        bundle = self._bundles(retrieved_at)[0]
+        return [
+            _outcome(
+                _candidate(
+                    _2026_STATEMENT, "statement", date(2026, 6, 17), "scheduled_meeting"
+                ),
+                None,
+                artifacts=(bundle.accessible_artifact,),
+                error=("httpx.HTTPStatusError", "503 fetching the PDF"),
+            )
+        ]
+
+
+def test_one_bad_release_does_not_erase_the_good_ones(seeded_db_empty_cards) -> None:
+    """The bug this milestone exists for: 10 artifacts, 0 facts.
+
+    A single statement the parser could not read used to roll back every
+    observation in the same run, so a night with one publisher oddity produced
+    no policy data at all.
+    """
+    settings = _settings()
+
+    result = macro_fomc_statement_ingest_job(
+        dsn=settings.db_dsn(),
+        provider_factory=_MixedStatementProvider,
+        observed_at=OBSERVED_AT,
+        years=(2020, 2022, 2026),
+    )
+
+    assert result.status == "degraded"
+    assert result.releases_discovered == 3
+    assert result.releases_succeeded == 2
+    assert result.releases_failed == 1
+    assert result.failed_release_keys == (_2022_STATEMENT,)
+    # Every artifact survives, including the unreadable release's.
+    assert result.artifacts_seen == 6
+    assert result.observations_seen == 2
+
+    with psycopg.connect(settings.db_dsn()) as conn:
+        repo = Repository(conn, schema="uw_scan")
+        assert (
+            conn.execute(
+                "SELECT count(*) FROM uw_scan.macro_observations "
+                "WHERE series_id = 'POLICY_PATH_ACTUAL'"
+            ).fetchone()[0]
+            == 2
+        )
+        statuses = {
+            row["release_key"]: row["status"]
+            for row in repo.fetch_macro_release_statuses(
+                sources=["federal_reserve_fomc"]
+            )
+        }
+        assert statuses == {
+            _2020_STATEMENT: "ok",
+            _2022_STATEMENT: "failed",
+            _2026_STATEMENT: "ok",
+        }
+
+
+def test_release_isolation_is_idempotent_across_reruns(seeded_db_empty_cards) -> None:
+    settings = _settings()
+    for _ in range(2):
+        result = macro_fomc_statement_ingest_job(
+            dsn=settings.db_dsn(),
+            provider_factory=_MixedStatementProvider,
+            observed_at=OBSERVED_AT,
+            years=(2020, 2022, 2026),
+        )
+        assert result.releases_failed == 1
+
+    with psycopg.connect(settings.db_dsn()) as conn:
+        assert (
+            conn.execute(
+                "SELECT count(*) FROM uw_scan.macro_observations"
+            ).fetchone()[0]
+            == 2
+        )
+        assert (
+            conn.execute(
+                "SELECT count(*) FROM uw_scan.macro_source_artifacts"
+            ).fetchone()[0]
+            == 6
+        )
+
+
+def test_a_fetch_only_candidate_is_recorded_as_artifact_only(
+    seeded_db_empty_cards,
+) -> None:
+    """Evidence that arrives incomplete is kept and labelled, never silently absent."""
+    settings = _settings()
+
+    result = macro_fomc_statement_ingest_job(
+        dsn=settings.db_dsn(),
+        provider_factory=_FetchOnlyStatementProvider,
+        observed_at=OBSERVED_AT,
+    )
+
+    assert result.status == "degraded"
+    assert result.releases_failed == 1
+    assert result.artifacts_seen == 1
+    assert result.observations_seen == 0
+
+    with psycopg.connect(settings.db_dsn()) as conn:
+        repo = Repository(conn, schema="uw_scan")
+        catalog = repo.fetch_macro_release_status(
+            source="federal_reserve_fomc", release_key=_2026_STATEMENT
+        )
+        assert catalog["status"] == "artifact_only"
+        assert catalog["error_type"] == "httpx.HTTPStatusError"
+
+
+def test_observation_references_the_html_the_parser_actually_read(
+    seeded_db_empty_cards,
+) -> None:
+    """The PDF is a sibling witness, not the source of the facts."""
+    settings = _settings()
+    macro_fomc_statement_ingest_job(
+        dsn=settings.db_dsn(),
+        provider_factory=_StatementProvider,
+        observed_at=OBSERVED_AT,
+    )
+
+    with psycopg.connect(settings.db_dsn()) as conn:
+        repo = Repository(conn, schema="uw_scan")
+        row = repo.fetch_latest_macro_observation_as_of(
+            "POLICY_PATH_ACTUAL",
+            OBSERVED_AT,
+            preferred_sources=["federal_reserve_fomc"],
+        )
+        parsed = repo.fetch_macro_artifact(row["artifact_id"])
+        assert parsed["media_type"] == "text/html"
+
+        lineage = repo.fetch_macro_observation_artifacts(row["obs_id"])
+        relations = {item["relation"] for item in lineage}
+        assert relations == {"parsed_from", "corroborates"}
+        sibling = next(
+            item for item in lineage if item["relation"] == "corroborates"
+        )
+        assert repo.fetch_macro_artifact(sibling["artifact_id"])["media_type"] == (
+            "application/pdf"
+        )

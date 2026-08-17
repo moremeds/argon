@@ -38,15 +38,24 @@ class _MacroPolicyObservationMixin:
     _conn: psycopg.Connection
 
     def upsert_macro_policy_observation(
-        self, row: dict[str, Any], *, seen_at: datetime
+        self,
+        row: dict[str, Any],
+        *,
+        seen_at: datetime,
+        relation: str = "parsed_from",
     ) -> tuple[int, bool]:
         """Resolve one policy fact, returning ``(obs_id, created)``.
 
-        When the semantic identity already exists the artifact is recorded as an
-        additional witness (``corroborates``) and no second observation is
-        written.  ``created`` is False in that case, which is what a caller
-        reports as "unchanged" rather than as a new vintage.
+        When the semantic identity already exists, no second observation is
+        written and this artifact is added as another witness -- ``created`` is
+        False, which a caller reports as "unchanged" rather than as a new
+        vintage.  ``relation`` describes THIS artifact's role: the publisher may
+        reissue the same page with request-varying bytes, and the parser genuinely
+        read both, so both are ``parsed_from``.  A sibling that carries the same
+        fact without being parsed (the PDF beside the HTML) is ``corroborates``.
         """
+        if relation not in LINEAGE_RELATIONS:
+            raise ValueError(f"unknown macro lineage relation {relation!r}")
         _require_aware("seen_at", seen_at)
         _require_aware("published_at", row.get("published_at"), optional=True)
         _require_aware("available_at", row.get("available_at"))
@@ -76,7 +85,7 @@ class _MacroPolicyObservationMixin:
                         """,
                         (seen_at, obs_id),
                     )
-                    _link(cur, self._schema, obs_id, artifact_id, "corroborates")
+                    _link(cur, self._schema, obs_id, artifact_id, relation)
                     return obs_id, False
 
                 cur.execute(
@@ -130,8 +139,15 @@ class _MacroPolicyObservationMixin:
                 inserted = cur.fetchone()
                 assert inserted is not None
                 obs_id = int(inserted[0])
-                _link(cur, self._schema, obs_id, artifact_id, "parsed_from")
+                _link(cur, self._schema, obs_id, artifact_id, relation)
                 return obs_id, True
+
+    def link_macro_observation_artifact(
+        self, *, obs_id: int, artifact_id: int, relation: str
+    ) -> None:
+        """Record another artifact that witnesses an existing observation."""
+        with self._conn.cursor() as cur:
+            _link(cur, self._schema, obs_id, artifact_id, relation)
 
     def fetch_macro_observation_artifacts(self, obs_id: int) -> list[dict[str, Any]]:
         with self._conn.cursor() as cur:

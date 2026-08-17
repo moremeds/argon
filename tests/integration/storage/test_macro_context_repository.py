@@ -1014,8 +1014,12 @@ def test_same_fact_from_different_bytes_is_one_observation_with_two_witnesses(
     assert created is True
 
     later = datetime(2026, 4, 30, 18, 5, tzinfo=UTC)
+    # The PDF carries the same decision but the parser reads the HTML, so it is
+    # a corroborating witness rather than a second source of the facts.
     same_id, created_again = repo.upsert_macro_policy_observation(
-        _policy_row(pdf_id, record_id=f"{_STATEMENT_KEY}:pdf"), seen_at=later
+        _policy_row(pdf_id, record_id=f"{_STATEMENT_KEY}:pdf"),
+        seen_at=later,
+        relation="corroborates",
     )
 
     assert same_id == obs_id
