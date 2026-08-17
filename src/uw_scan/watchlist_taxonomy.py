@@ -110,6 +110,11 @@ LAYERS: tuple[Layer, ...] = (
                 "GLXY",
                 "BTDR",
                 "CLSK",
+                # Bitcoin miners that pivoted to AI/HPC datacenters, same thesis
+                # as the six above. They keep THM/Crypto too — this is the
+                # many-to-many case, not a reclassification.
+                "MARA",
+                "RIOT",
             ),
             "Data-Platform": (
                 "SNOW",
@@ -264,25 +269,63 @@ LAYERS: tuple[Layer, ...] = (
         key="X",
         name="Cross-cutting",
         focus=AI,
-        chains={"M7": ("AAPL", "MSFT", "GOOGL", "AMZN", "META", "NVDA", "TSLA")},
+        # SPCX carries M7 by operator decision (scale, not index membership) and
+        # THM/Space by what it is. Both, not either — see the join table's reason
+        # for existing.
+        chains={
+            "M7": ("AAPL", "MSFT", "GOOGL", "AMZN", "META", "NVDA", "TSLA", "SPCX")
+        },
     ),
-    # Non-AI focus areas. Their chains match the legacy `watchlist.sector` tags
-    # one-for-one, so membership seeds from the existing column rather than a
-    # ticker list here — except Quantum, which is new and therefore enumerated.
+    # Non-AI focus areas. These were previously left empty and seeded from the
+    # legacy `watchlist.sector` column, which made the taxonomy an incomplete
+    # picture: a sector-inherited name could hold exactly ONE chain, because
+    # `sector` is one column. That silently excluded them from the many-to-many
+    # the join table exists for — MARA/RIOT could not be both Crypto and
+    # NeoCloud, SPCX could not be both M7 and Space. Now enumerated here, so the
+    # module is the single source of truth for every layer.
+    #
+    # `inherit_sector_memberships` still runs and is still the safety net for a
+    # ticker the module never names — it just has nothing left to do for these.
     Layer(
         key="IDX",
         name="Index & Macro",
         focus=INDEX,
-        chains={"Beta": (), "Sector-ETF": (), "Credit": (), "Macro": ()},
+        chains={
+            "Beta": ("SPY", "QQQ", "IWM", "DIA"),
+            # Instrument-type tags, deliberately NOT cross-listed into the
+            # company chains they track: a chain answers "which companies are in
+            # this value chain", and a fund tracking it is a different question.
+            "Sector-ETF": (
+                "XLB",
+                "XLC",
+                "XLE",
+                "XLF",
+                "XLI",
+                "XLK",
+                "XLP",
+                "XLRE",
+                "XLU",
+                "XLV",
+                "XLY",
+                "SMH",
+                "SOXX",
+                "SOXL",
+                "IGV",
+                "MAGS",
+                "KORU",
+            ),
+            "Credit": ("HYG", "JNK"),
+            "Macro": ("GLD", "SLV", "TLT"),
+        },
     ),
     Layer(
         key="THM",
         name="Thematic",
         focus=THEMATIC,
         chains={
-            "Crypto": ("BMNR",),
-            "Fintech": ("PYPL",),
-            "Space": (),
+            "Crypto": ("BMNR", "COIN", "CRCL", "MARA", "MSTR", "RIOT"),
+            "Fintech": ("PYPL", "HOOD", "SOFI"),
+            "Space": ("ASTS", "BKSY", "FLY", "PL", "RKLB", "SPCX"),
             # IBM is here AND in L2 Cloud/Hyperscaler — the exact many-to-many
             # case that motivated the join table.
             "Quantum": ("IONQ", "RGTI", "IBM"),
@@ -292,7 +335,14 @@ LAYERS: tuple[Layer, ...] = (
         key="DEF",
         name="Defensive",
         focus=DEFENSIVE,
-        chains={"Healthcare": (), "Energy": (), "Banks": (), "Consumer": ()},
+        chains={
+            # NVO, not NOV: NOV is National Oilwell Varco (oil drilling
+            # equipment, UW sector Energy) and was a typo for Novo Nordisk.
+            "Healthcare": ("JNJ", "LLY", "PFE", "UNH", "HIMS", "NVO"),
+            "Energy": ("XOM", "CVX", "OXY"),
+            "Banks": ("JPM", "BAC", "WFC", "GS", "MS", "BLK"),
+            "Consumer": ("WMT", "COST", "HD", "MCD", "KO", "NKE", "SBUX", "TGT"),
+        },
     ),
 )
 
@@ -306,6 +356,7 @@ SELECTED_ADDS: frozenset[str] = frozenset(
     SNAP SOUN STX TEM TTD U UEC UMC VRT VST WULF ZM ZS
     BBAI BMNR FIG FRMI IONQ KEEL NFLX NVTS POET PYPL RGTI UBER
     CARR MTZ
+    NVO
     """.split()
 )
 
