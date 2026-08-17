@@ -52,8 +52,15 @@ The work remains aligned with Argon's goal ladder:
 
 ## 2. Current state and evidence boundary
 
-The plan branch started from commit `d912d5d`. Repository and PR state below was rechecked on
-2026-08-12; later status changes must be recorded rather than inferred from this snapshot.
+The plan branch started from commit `d912d5d`. Repository and PR state below was **rechecked on
+2026-08-18**; later status changes must be recorded rather than inferred from this snapshot.
+
+> **Snapshot correction (2026-08-18).** The rows for P1b, P2, P3, and the core-25 own-history test
+> previously read `not started` / `blocked`. They were written hours before PR #331 merged on the
+> same day and were never revisited, so this plan spent five days understating its own lane by four
+> milestones. The gate that row 6 named — "awaits the mini" — is also gone: the mini is up and its
+> `option_wizard` carries the seeded lane. Anyone reading a `not started` here should verify against
+> the repository before believing it.
 
 | Area | State | Evidence / constraint |
 |---|---|---|
@@ -61,15 +68,20 @@ The plan branch started from commit `d912d5d`. Repository and PR state below was
 | P1a provider/data probes | **landed** | PR #329 committed coverage, field-contract, UW, and SEC probes |
 | Fundamental method validation | **landed** | PR #329 found the composite informative at broad width but noise at core-25 width |
 | Valuation-control follow-up | **landed** | PR #330 merged with all checks passing; research evidence only, no production scoring capability |
-| Core-25 own-history test | **planned / unblocked** | test whether a name's own deterioration precedes its own drawdown; not a cross-sectional rank test |
-| P1b PIT ingest | **not started / blocked** | M0.2 remains a design gate; data-dependent execution also awaits the mini at this snapshot |
-| P2 valuation/score runtime | **not started** | only design and research artifacts exist |
-| P3 fundamental card | **not started** | no production API or UI surface yet |
-| P4 concentration/edge work | **not started** | must begin with a discovery gate |
+| Core-25 own-history test | **landed** | PR #331; `docs/research/2026-08-12-fundamental-{timeseries-test,valuation-timeseries}/`. Split verdict: own-history **valuation** times a name (`sales_to_ev` IC `+0.0744`, `t=5.77`, survives a reversal control); own-history **quality** does not (within-ticker market-neutral IC `-0.0000`, all 16 tests fail BH). Only the valuation half was productized, as the anchor band |
+| P1b PIT ingest | **landed** | PR #331; migration `114`, `storage/fundamental_obs.py`, `worker/jobs/fundamental_ingest.py`, `scripts/backfill/fundamental_ingest_backfill.py`. Prod `option_wizard` holds 257 universe tickers with statements |
+| P2 valuation/score runtime | **landed** | PR #331; migrations `117`/`118`, `fundamentals/{scoring,valuation}.py`, `worker/jobs/fundamental_{scoring,anchors,refresh}.py`. Prod holds 257 scores and 254 anchor bands |
+| P3 fundamental card | **landed** | PR #331; `api/routers/stock.py` `/fundamentals` + `/fundamentals/statements`, `web/components/stock/tabs/FundamentalsTab.tsx` + eight `Fundamental*` panels, flip-to-components back face |
+| P4 concentration/edge work | **discovery done; descriptive-only** | PR #335 retracted the `0/257` computability verdict as a probe artifact — re-measured segment 184/401, geography 128/401 (`docs/research/2026-08-13-fundamental-concentration-axis/`). Capture and card remain unbuilt (lane-next PR-3); the composite weight in design §896 is **withdrawn**, per lane-next D2 |
 | P5 narrative/audit queue | **not started** | current trade-insight queue is not a legal or semantic parent |
-| General industry research | **taxonomy skeleton only** | current watchlist has layer/chain membership, not a versioned exposure graph |
+| General industry research | **taxonomy skeleton only** | watchlist carries many-to-many chain membership (migration `113`), not a versioned exposure graph |
 | Versioned report object | **not started** | a narrative row is not yet a report control plane |
 | Loop harness | **deliberately deferred** | §10 of the primary design; not a missing task in the current research PR |
+
+Task-level continuation now lives in `docs/superpowers/plans/2026-08-13-fundamental-lane-next.md`
+(three PRs: panel width and freshness, an accrual verification, concentration capture). That plan is
+narrower than this one and supersedes it for the next increment; this document stays the cross-phase
+roadmap. **None of its three PRs has landed.**
 
 The current broad-universe validation supports a descriptive product, not an unrestricted ranking:
 
@@ -92,16 +104,21 @@ The current broad-universe validation supports a descriptive product, not an unr
 No later phase may silently strengthen those statements. Stronger claims require their own recorded
 evidence and gate.
 
-Operational boundary at this snapshot:
+Operational boundary, rechecked 2026-08-18:
 
-- the Mac mini is unavailable and hosts both the `option_wizard` P1b write target and the full lake
-  copy, so P1b migrations, ingest, and real-worker smoke are blocked;
-- `option_wizard_local` is not a substitute write target for P1b; doing so would violate the intended
-  environment contract and create work that must be repeated;
-- the local mirror plus UW API are sufficient for the historical core-25 M0.3 test, but the mirror's
-  stale endpoint makes it unsuitable for claims requiring current data;
-- provider-sensitive and data-current tasks resume only after the target environment is restored and
-  rechecked. A stale historical research run must never be presented as current production coverage.
+- the Mac mini is **up**. Its `option_wizard` carries the seeded lane — `fundamental_universe` 257,
+  `fundamental_statement_obs` 257 tickers, `fundamental_scores` 257, `valuation_anchors` 254 — so the
+  earlier "P1b write target unavailable" blocker is discharged, as is any record that the lane
+  shipped dark;
+- `option_wizard_local` is still not a substitute write target. It currently holds statements for
+  **401** tickers against prod's 257, because the extra 144 arrived through the capex research
+  backfill and were never promoted. A count taken locally is therefore not a production count;
+- **the two lake mirrors are not interchangeable, and the MacBook's is the partial one** — 653 equity
+  symbol directories against the mini's 14,689. Any coverage or depth number measured on the MacBook
+  understates production and must be re-measured against `/lake` before it justifies a decision. This
+  already cost one wrong conclusion; see `docs/research/2026-08-18-fundamental-lake-depth/VERDICT.md`;
+- provider-sensitive and data-current tasks must still name the host they ran on. A stale historical
+  research run must never be presented as current production coverage.
 
 ## 3. Non-negotiable invariants
 

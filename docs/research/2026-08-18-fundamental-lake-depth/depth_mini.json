@@ -1,0 +1,4035 @@
+{
+ "as_of": "2026-08-18",
+ "cohorts": {
+  "excluded": [
+   "AAOI",
+   "AAON",
+   "ABNB",
+   "ACM",
+   "AEIS",
+   "AI",
+   "ALAB",
+   "ALGM",
+   "AMKR",
+   "ARM",
+   "ASX",
+   "ATKR",
+   "AYI",
+   "BABA",
+   "BBAI",
+   "BE",
+   "BTDR",
+   "CAMT",
+   "CARR",
+   "CCJ",
+   "CFLT",
+   "CHKP",
+   "CIEN",
+   "CIFR",
+   "CLSK",
+   "COHU",
+   "CORZ",
+   "CRDO",
+   "CRWV",
+   "CXAI",
+   "CYBR",
+   "DASH",
+   "DDOG",
+   "DIOD",
+   "DNA",
+   "DOCN",
+   "DOCU",
+   "DT",
+   "DXC",
+   "DY",
+   "EPAM",
+   "ESTC",
+   "EXTR",
+   "FIG",
+   "FORM",
+   "FROG",
+   "GFS",
+   "GLOB",
+   "GLXY",
+   "GRMN",
+   "GTLB",
+   "HPE",
+   "HPQ",
+   "HUBB",
+   "HUBS",
+   "HUT",
+   "IBM",
+   "ICHR",
+   "IESC",
+   "ILMN",
+   "INFY",
+   "INOD",
+   "IREN",
+   "IRM",
+   "J",
+   "JCI",
+   "LEU",
+   "LII",
+   "LITE",
+   "LOGI",
+   "LSCC",
+   "MDB",
+   "MOD",
+   "MTZ",
+   "NET",
+   "NNE",
+   "NRG",
+   "NTAP",
+   "NVMI",
+   "NVT",
+   "NVTS",
+   "OKLO",
+   "OKTA",
+   "ON",
+   "ONTO",
+   "OSIS",
+   "PATH",
+   "PD",
+   "PEG",
+   "PINS",
+   "POET",
+   "POWI",
+   "POWL",
+   "PSTG",
+   "PWR",
+   "QLYS",
+   "QRVO",
+   "RBLX",
+   "RDDT",
+   "RMBS",
+   "ROK",
+   "RPD",
+   "RXRX",
+   "S",
+   "SHOP",
+   "SLAB",
+   "SMR",
+   "SNAP",
+   "SNDK",
+   "SNOW",
+   "SO",
+   "SONY",
+   "SOUN",
+   "SPOT",
+   "SPXC",
+   "STRL",
+   "SWKS",
+   "SYM",
+   "TDC",
+   "TEAM",
+   "TEL",
+   "TEM",
+   "TENB",
+   "TER",
+   "TLN",
+   "TMO",
+   "TT",
+   "TTD",
+   "TWLO",
+   "U",
+   "UBER",
+   "UCTT",
+   "UEC",
+   "UMC",
+   "VECO",
+   "VEEV",
+   "VRNS",
+   "VSH",
+   "WDAY",
+   "WIT",
+   "WULF",
+   "ZBRA",
+   "ZM",
+   "ZS"
+  ],
+  "stmt_quarters": {
+   "A": 82,
+   "AAOI": 62,
+   "AAON": 83,
+   "AAP": 82,
+   "AAPL": 83,
+   "AAT": 69,
+   "ABBV": 63,
+   "ABCB": 83,
+   "ABEO": 83,
+   "ABG": 83,
+   "ABM": 83,
+   "ABNB": 28,
+   "ABR": 83,
+   "ABT": 83,
+   "ABUS": 83,
+   "ACAD": 83,
+   "ACCO": 83,
+   "ACGL": 83,
+   "ACH": 82,
+   "ACIW": 83,
+   "ACLS": 83,
+   "ACM": 83,
+   "ACN": 83,
+   "ACNT": 83,
+   "ACRE": 59,
+   "ACTG": 84,
+   "ADBE": 83,
+   "ADI": 82,
+   "ADM": 83,
+   "ADP": 83,
+   "ADSK": 82,
+   "AEE": 83,
+   "AEHR": 83,
+   "AEIS": 83,
+   "AEO": 82,
+   "AEP": 83,
+   "AES": 83,
+   "AFL": 83,
+   "AI": 28,
+   "AIG": 83,
+   "AIZ": 83,
+   "AJG": 83,
+   "AKAM": 83,
+   "ALAB": 18,
+   "ALB": 83,
+   "ALGM": 30,
+   "ALGN": 83,
+   "ALL": 83,
+   "ALNY": 83,
+   "AMAT": 82,
+   "AMD": 83,
+   "AME": 83,
+   "AMGN": 83,
+   "AMKR": 83,
+   "AMP": 83,
+   "AMT": 83,
+   "AMZN": 83,
+   "ANET": 55,
+   "ANGO": 83,
+   "AON": 83,
+   "AOS": 83,
+   "APA": 83,
+   "APD": 83,
+   "APH": 83,
+   "APLD": 55,
+   "APP": 31,
+   "APTV": 84,
+   "ARE": 83,
+   "ARM": 65,
+   "ASML": 83,
+   "ASX": 84,
+   "ATKR": 57,
+   "ATO": 83,
+   "AVB": 83,
+   "AVGO": 78,
+   "AVY": 83,
+   "AWK": 86,
+   "AXON": 83,
+   "AXP": 83,
+   "AYI": 83,
+   "AZO": 82,
+   "BA": 83,
+   "BABA": 63,
+   "BAC": 83,
+   "BALL": 83,
+   "BAX": 83,
+   "BBAI": 26,
+   "BBY": 82,
+   "BCRX": 83,
+   "BDX": 83,
+   "BE": 46,
+   "BELFB": 83,
+   "BEN": 83,
+   "BIIB": 83,
+   "BKNG": 83,
+   "BLK": 83,
+   "BMY": 83,
+   "BR": 83,
+   "BRO": 83,
+   "BSX": 83,
+   "BTDR": 25,
+   "BXP": 83,
+   "CAH": 82,
+   "CAMT": 89,
+   "CARR": 30,
+   "CB": 83,
+   "CBRE": 83,
+   "CBZ": 83,
+   "CCEP": 82,
+   "CCJ": 83,
+   "CCOI": 83,
+   "CDE": 83,
+   "CDNS": 83,
+   "CEG": 56,
+   "CFLT": 24,
+   "CHD": 83,
+   "CHKP": 83,
+   "CHRW": 83,
+   "CHTR": 83,
+   "CI": 83,
+   "CIEN": 82,
+   "CIFR": 25,
+   "CINF": 83,
+   "CL": 83,
+   "CLDX": 83,
+   "CLSK": 71,
+   "CLX": 83,
+   "CMCSA": 83,
+   "CMI": 83,
+   "CMS": 83,
+   "CNC": 83,
+   "COF": 83,
+   "COHR": 82,
+   "COHU": 83,
+   "CORZ": 20,
+   "COST": 82,
+   "CPRT": 82,
+   "CRDO": 24,
+   "CRL": 83,
+   "CRM": 82,
+   "CRS": 83,
+   "CRWD": 34,
+   "CRWV": 10,
+   "CSCO": 82,
+   "CSGP": 83,
+   "CSR": 83,
+   "CTAS": 83,
+   "CTSH": 83,
+   "CVS": 83,
+   "CVX": 83,
+   "CWST": 83,
+   "CXAI": 24,
+   "CXW": 83,
+   "CYBR": 56,
+   "D": 83,
+   "DAL": 83,
+   "DASH": 30,
+   "DDOG": 34,
+   "DE": 82,
+   "DECK": 83,
+   "DELL": 53,
+   "DG": 83,
+   "DGX": 83,
+   "DHI": 83,
+   "DHR": 83,
+   "DHT": 83,
+   "DIOD": 83,
+   "DIS": 83,
+   "DJCO": 82,
+   "DLR": 83,
+   "DLTR": 83,
+   "DMRC": 78,
+   "DNA": 26,
+   "DOCN": 34,
+   "DOCU": 41,
+   "DOV": 83,
+   "DRI": 83,
+   "DT": 37,
+   "DTE": 83,
+   "DUK": 83,
+   "DVA": 83,
+   "DXC": 83,
+   "DXCM": 83,
+   "DY": 82,
+   "EA": 83,
+   "EBAY": 83,
+   "ECL": 83,
+   "ED": 83,
+   "EFX": 83,
+   "EIX": 83,
+   "EME": 83,
+   "EMR": 83,
+   "EOG": 83,
+   "EPAM": 67,
+   "EQIX": 83,
+   "EQR": 83,
+   "ERIE": 83,
+   "ES": 83,
+   "ESE": 83,
+   "ESTC": 40,
+   "ETN": 83,
+   "ETR": 83,
+   "EW": 83,
+   "EXC": 83,
+   "EXPD": 83,
+   "EXR": 83,
+   "EXTR": 83,
+   "FANG": 64,
+   "FAST": 83,
+   "FC": 83,
+   "FDS": 83,
+   "FDX": 83,
+   "FE": 83,
+   "FEIM": 83,
+   "FIG": 12,
+   "FIS": 83,
+   "FISV": 83,
+   "FIX": 83,
+   "FLG": 83,
+   "FN": 80,
+   "FORM": 83,
+   "FROG": 32,
+   "FRT": 83,
+   "FSLR": 84,
+   "FTNT": 78,
+   "GD": 83,
+   "GE": 83,
+   "GEV": 14,
+   "GFS": 26,
+   "GILD": 83,
+   "GLOB": 57,
+   "GLW": 83,
+   "GLXY": 81,
+   "GOOGL": 83,
+   "GRMN": 83,
+   "GS": 83,
+   "GTLB": 25,
+   "HD": 82,
+   "HON": 83,
+   "HPE": 51,
+   "HPQ": 82,
+   "HUBB": 83,
+   "HUBS": 54,
+   "HUT": 60,
+   "IBM": 83,
+   "ICHR": 50,
+   "IDXX": 83,
+   "IESC": 83,
+   "ILMN": 83,
+   "INFY": 83,
+   "INOD": 83,
+   "INSM": 83,
+   "INTC": 83,
+   "INTU": 82,
+   "IREN": 27,
+   "IRM": 83,
+   "ISRG": 83,
+   "J": 83,
+   "JCI": 83,
+   "JNJ": 83,
+   "JPM": 83,
+   "KDP": 83,
+   "KLAC": 83,
+   "KO": 83,
+   "LEU": 83,
+   "LII": 83,
+   "LITE": 52,
+   "LLY": 83,
+   "LMT": 83,
+   "LOGI": 83,
+   "LRCX": 83,
+   "LSCC": 83,
+   "MCD": 83,
+   "MCHP": 83,
+   "MDB": 45,
+   "MDLZ": 83,
+   "MELI": 83,
+   "META": 66,
+   "MOD": 83,
+   "MPWR": 83,
+   "MRK": 83,
+   "MRVL": 82,
+   "MS": 83,
+   "MSFT": 83,
+   "MSTR": 83,
+   "MTZ": 83,
+   "MU": 83,
+   "NBIS": 65,
+   "NET": 34,
+   "NFLX": 83,
+   "NKE": 83,
+   "NNE": 13,
+   "NOK": 83,
+   "NOW": 64,
+   "NRG": 83,
+   "NTAP": 82,
+   "NVDA": 82,
+   "NVMI": 88,
+   "NVT": 39,
+   "NVTS": 26,
+   "NXPI": 71,
+   "OKLO": 23,
+   "OKTA": 45,
+   "ON": 83,
+   "ONTO": 83,
+   "ORCL": 83,
+   "ORLY": 83,
+   "OSIS": 82,
+   "OXY": 83,
+   "PANW": 64,
+   "PATH": 25,
+   "PAYX": 83,
+   "PCAR": 83,
+   "PD": 34,
+   "PEG": 83,
+   "PFE": 83,
+   "PINS": 35,
+   "PLTR": 30,
+   "POET": 83,
+   "POWI": 83,
+   "POWL": 83,
+   "PSTG": 49,
+   "PWR": 83,
+   "QCOM": 83,
+   "QLYS": 64,
+   "QRVO": 83,
+   "RBLX": 30,
+   "RDDT": 23,
+   "REGN": 83,
+   "RIOT": 82,
+   "RMBS": 83,
+   "ROK": 83,
+   "ROP": 83,
+   "ROST": 82,
+   "RPD": 54,
+   "RTX": 83,
+   "RXRX": 26,
+   "S": 26,
+   "SBUX": 83,
+   "SHOP": 54,
+   "SLAB": 82,
+   "SMCI": 82,
+   "SMR": 23,
+   "SNAP": 46,
+   "SNDK": 13,
+   "SNOW": 46,
+   "SNPS": 82,
+   "SO": 83,
+   "SONY": 83,
+   "SOUN": 23,
+   "SPOT": 42,
+   "SPXC": 83,
+   "STRL": 83,
+   "STX": 83,
+   "SWKS": 83,
+   "SYM": 24,
+   "T": 83,
+   "TDC": 83,
+   "TEAM": 52,
+   "TEL": 82,
+   "TEM": 24,
+   "TENB": 42,
+   "TER": 83,
+   "TGT": 82,
+   "TLN": 22,
+   "TMO": 83,
+   "TMUS": 83,
+   "TRI": 83,
+   "TSEM": 83,
+   "TSLA": 75,
+   "TSM": 83,
+   "TT": 83,
+   "TTD": 50,
+   "TTWO": 83,
+   "TWLO": 50,
+   "TXN": 83,
+   "U": 30,
+   "UBER": 38,
+   "UCTT": 83,
+   "UEC": 83,
+   "UMC": 87,
+   "VECO": 83,
+   "VEEV": 58,
+   "VRNS": 58,
+   "VRSK": 77,
+   "VRT": 38,
+   "VRTX": 83,
+   "VSH": 83,
+   "VST": 87,
+   "VZ": 83,
+   "WBD": 83,
+   "WDAY": 62,
+   "WDC": 83,
+   "WFC": 83,
+   "WIT": 83,
+   "WMT": 82,
+   "WULF": 84,
+   "XOM": 83,
+   "ZBRA": 83,
+   "ZM": 33,
+   "ZS": 43
+  },
+  "universe": [
+   "A",
+   "AAP",
+   "AAPL",
+   "AAT",
+   "ABBV",
+   "ABCB",
+   "ABEO",
+   "ABG",
+   "ABM",
+   "ABR",
+   "ABT",
+   "ABUS",
+   "ACAD",
+   "ACCO",
+   "ACGL",
+   "ACH",
+   "ACIW",
+   "ACLS",
+   "ACN",
+   "ACNT",
+   "ACRE",
+   "ACTG",
+   "ADBE",
+   "ADI",
+   "ADM",
+   "ADP",
+   "ADSK",
+   "AEE",
+   "AEHR",
+   "AEO",
+   "AEP",
+   "AES",
+   "AFL",
+   "AIG",
+   "AIZ",
+   "AJG",
+   "AKAM",
+   "ALB",
+   "ALGN",
+   "ALL",
+   "ALNY",
+   "AMAT",
+   "AMD",
+   "AME",
+   "AMGN",
+   "AMP",
+   "AMT",
+   "AMZN",
+   "ANET",
+   "ANGO",
+   "AON",
+   "AOS",
+   "APA",
+   "APD",
+   "APH",
+   "APLD",
+   "APP",
+   "APTV",
+   "ARE",
+   "ASML",
+   "ATO",
+   "AVB",
+   "AVGO",
+   "AVY",
+   "AWK",
+   "AXON",
+   "AXP",
+   "AZO",
+   "BA",
+   "BAC",
+   "BALL",
+   "BAX",
+   "BBY",
+   "BCRX",
+   "BDX",
+   "BELFB",
+   "BEN",
+   "BIIB",
+   "BKNG",
+   "BLK",
+   "BMY",
+   "BR",
+   "BRO",
+   "BSX",
+   "BXP",
+   "CAH",
+   "CB",
+   "CBRE",
+   "CBZ",
+   "CCEP",
+   "CCOI",
+   "CDE",
+   "CDNS",
+   "CEG",
+   "CHD",
+   "CHRW",
+   "CHTR",
+   "CI",
+   "CINF",
+   "CL",
+   "CLDX",
+   "CLX",
+   "CMCSA",
+   "CMI",
+   "CMS",
+   "CNC",
+   "COF",
+   "COHR",
+   "COST",
+   "CPRT",
+   "CRL",
+   "CRM",
+   "CRS",
+   "CRWD",
+   "CSCO",
+   "CSGP",
+   "CSR",
+   "CTAS",
+   "CTSH",
+   "CVS",
+   "CVX",
+   "CWST",
+   "CXW",
+   "D",
+   "DAL",
+   "DE",
+   "DECK",
+   "DELL",
+   "DG",
+   "DGX",
+   "DHI",
+   "DHR",
+   "DHT",
+   "DIS",
+   "DJCO",
+   "DLR",
+   "DLTR",
+   "DMRC",
+   "DOV",
+   "DRI",
+   "DTE",
+   "DUK",
+   "DVA",
+   "DXCM",
+   "EA",
+   "EBAY",
+   "ECL",
+   "ED",
+   "EFX",
+   "EIX",
+   "EME",
+   "EMR",
+   "EOG",
+   "EQIX",
+   "EQR",
+   "ERIE",
+   "ES",
+   "ESE",
+   "ETN",
+   "ETR",
+   "EW",
+   "EXC",
+   "EXPD",
+   "EXR",
+   "FANG",
+   "FAST",
+   "FC",
+   "FDS",
+   "FDX",
+   "FE",
+   "FEIM",
+   "FIS",
+   "FISV",
+   "FIX",
+   "FLG",
+   "FN",
+   "FRT",
+   "FSLR",
+   "FTNT",
+   "GD",
+   "GE",
+   "GEV",
+   "GILD",
+   "GLW",
+   "GOOGL",
+   "GS",
+   "HD",
+   "HON",
+   "IDXX",
+   "INSM",
+   "INTC",
+   "INTU",
+   "ISRG",
+   "JNJ",
+   "JPM",
+   "KDP",
+   "KLAC",
+   "KO",
+   "LLY",
+   "LMT",
+   "LRCX",
+   "MCD",
+   "MCHP",
+   "MDLZ",
+   "MELI",
+   "META",
+   "MPWR",
+   "MRK",
+   "MRVL",
+   "MS",
+   "MSFT",
+   "MSTR",
+   "MU",
+   "NBIS",
+   "NFLX",
+   "NKE",
+   "NOK",
+   "NOW",
+   "NVDA",
+   "NXPI",
+   "ORCL",
+   "ORLY",
+   "OXY",
+   "PANW",
+   "PAYX",
+   "PCAR",
+   "PFE",
+   "PLTR",
+   "QCOM",
+   "REGN",
+   "RIOT",
+   "ROP",
+   "ROST",
+   "RTX",
+   "SBUX",
+   "SMCI",
+   "SNPS",
+   "STX",
+   "T",
+   "TGT",
+   "TMUS",
+   "TRI",
+   "TSEM",
+   "TSLA",
+   "TSM",
+   "TTWO",
+   "TXN",
+   "VRSK",
+   "VRT",
+   "VRTX",
+   "VST",
+   "VZ",
+   "WBD",
+   "WDC",
+   "WFC",
+   "WMT",
+   "XOM"
+  ]
+ },
+ "excluded": {
+  "cohort_n": 144,
+  "cutoff_12q": "2023-08-18",
+  "cutoff_20q": "2021-08-18",
+  "depth_12q": 132,
+  "depth_20q": 120,
+  "has_file": 141,
+  "per_ticker": {
+   "AAOI": {
+    "depth_12q": true,
+    "depth_20q": true,
+    "file": true,
+    "first": "2013-09-26",
+    "last": "2026-08-14",
+    "rows": 3240
+   },
+   "AAON": {
+    "depth_12q": true,
+    "depth_20q": true,
+    "file": true,
+    "first": "2021-06-11",
+    "last": "2026-08-14",
+    "rows": 1299
+   },
+   "ABNB": {
+    "depth_12q": true,
+    "depth_20q": true,
+    "file": true,
+    "first": "2020-12-10",
+    "last": "2026-08-14",
+    "rows": 1425
+   },
+   "ACM": {
+    "depth_12q": true,
+    "depth_20q": true,
+    "file": true,
+    "first": "2021-06-11",
+    "last": "2026-08-14",
+    "rows": 1299
+   },
+   "AEIS": {
+    "depth_12q": true,
+    "depth_20q": true,
+    "file": true,
+    "first": "1995-11-17",
+    "last": "2026-08-14",
+    "rows": 7734
+   },
+   "AI": {
+    "depth_12q": true,
+    "depth_20q": true,
+    "file": true,
+    "first": "2020-12-09",
+    "last": "2026-08-14",
+    "rows": 1426
+   },
+   "ALAB": {
+    "depth_12q": false,
+    "depth_20q": false,
+    "file": true,
+    "first": "2024-03-20",
+    "last": "2026-08-14",
+    "rows": 603
+   },
+   "ALGM": {
+    "depth_12q": true,
+    "depth_20q": true,
+    "file": true,
+    "first": "2021-06-11",
+    "last": "2026-08-14",
+    "rows": 1299
+   },
+   "AMKR": {
+    "depth_12q": true,
+    "depth_20q": true,
+    "file": true,
+    "first": "2021-06-11",
+    "last": "2026-08-14",
+    "rows": 1299
+   },
+   "ARM": {
+    "depth_12q": false,
+    "depth_20q": false,
+    "file": true,
+    "first": "2023-09-14",
+    "last": "2026-08-14",
+    "rows": 732
+   },
+   "ASX": {
+    "depth_12q": true,
+    "depth_20q": true,
+    "file": true,
+    "first": "2021-06-11",
+    "last": "2026-08-14",
+    "rows": 1299
+   },
+   "ATKR": {
+    "depth_12q": true,
+    "depth_20q": true,
+    "file": true,
+    "first": "2016-06-10",
+    "last": "2026-08-14",
+    "rows": 2559
+   },
+   "AYI": {
+    "depth_12q": true,
+    "depth_20q": true,
+    "file": true,
+    "first": "2021-06-11",
+    "last": "2026-08-14",
+    "rows": 1299
+   },
+   "BABA": {
+    "depth_12q": true,
+    "depth_20q": true,
+    "file": true,
+    "first": "2021-06-11",
+    "last": "2026-08-14",
+    "rows": 1299
+   },
+   "BBAI": {
+    "depth_12q": true,
+    "depth_20q": false,
+    "file": true,
+    "first": "2021-12-08",
+    "last": "2026-08-14",
+    "rows": 1175
+   },
+   "BE": {
+    "depth_12q": true,
+    "depth_20q": true,
+    "file": true,
+    "first": "2018-07-25",
+    "last": "2026-08-14",
+    "rows": 2025
+   },
+   "BTDR": {
+    "depth_12q": true,
+    "depth_20q": true,
+    "file": true,
+    "first": "2021-07-28",
+    "last": "2026-08-14",
+    "rows": 1268
+   },
+   "CAMT": {
+    "depth_12q": true,
+    "depth_20q": true,
+    "file": true,
+    "first": "2021-06-11",
+    "last": "2026-08-14",
+    "rows": 1299
+   },
+   "CARR": {
+    "depth_12q": true,
+    "depth_20q": true,
+    "file": true,
+    "first": "2020-03-19",
+    "last": "2026-08-14",
+    "rows": 1610
+   },
+   "CCJ": {
+    "depth_12q": true,
+    "depth_20q": true,
+    "file": true,
+    "first": "2021-06-11",
+    "last": "2026-08-14",
+    "rows": 1299
+   },
+   "CFLT": {
+    "file": false
+   },
+   "CHKP": {
+    "depth_12q": true,
+    "depth_20q": true,
+    "file": true,
+    "first": "2021-06-11",
+    "last": "2026-08-14",
+    "rows": 1299
+   },
+   "CIEN": {
+    "depth_12q": true,
+    "depth_20q": true,
+    "file": true,
+    "first": "1997-02-07",
+    "last": "2026-08-14",
+    "rows": 7426
+   },
+   "CIFR": {
+    "depth_12q": true,
+    "depth_20q": true,
+    "file": true,
+    "first": "2020-12-07",
+    "last": "2026-08-14",
+    "rows": 1428
+   },
+   "CLSK": {
+    "depth_12q": true,
+    "depth_20q": true,
+    "file": true,
+    "first": "2014-03-31",
+    "last": "2026-08-14",
+    "rows": 2558
+   },
+   "COHU": {
+    "depth_12q": true,
+    "depth_20q": true,
+    "file": true,
+    "first": "1980-03-17",
+    "last": "2026-08-14",
+    "rows": 11563
+   },
+   "CORZ": {
+    "depth_12q": true,
+    "depth_20q": false,
+    "file": true,
+    "first": "2022-01-20",
+    "last": "2026-08-14",
+    "rows": 881
+   },
+   "CRDO": {
+    "depth_12q": true,
+    "depth_20q": false,
+    "file": true,
+    "first": "2022-01-27",
+    "last": "2026-08-14",
+    "rows": 1141
+   },
+   "CRWV": {
+    "depth_12q": false,
+    "depth_20q": false,
+    "file": true,
+    "first": "2025-03-28",
+    "last": "2026-08-14",
+    "rows": 347
+   },
+   "CXAI": {
+    "depth_12q": true,
+    "depth_20q": false,
+    "file": true,
+    "first": "2023-03-15",
+    "last": "2026-08-14",
+    "rows": 858
+   },
+   "CYBR": {
+    "file": false
+   },
+   "DASH": {
+    "depth_12q": true,
+    "depth_20q": true,
+    "file": true,
+    "first": "2020-12-09",
+    "last": "2026-08-14",
+    "rows": 1426
+   },
+   "DDOG": {
+    "depth_12q": true,
+    "depth_20q": true,
+    "file": true,
+    "first": "2019-09-19",
+    "last": "2026-08-14",
+    "rows": 1735
+   },
+   "DIOD": {
+    "depth_12q": true,
+    "depth_20q": true,
+    "file": true,
+    "first": "1980-03-17",
+    "last": "2026-08-14",
+    "rows": 10896
+   },
+   "DNA": {
+    "depth_12q": true,
+    "depth_20q": true,
+    "file": true,
+    "first": "2021-04-19",
+    "last": "2026-08-14",
+    "rows": 1338
+   },
+   "DOCN": {
+    "depth_12q": true,
+    "depth_20q": true,
+    "file": true,
+    "first": "2021-03-24",
+    "last": "2026-08-14",
+    "rows": 1355
+   },
+   "DOCU": {
+    "depth_12q": true,
+    "depth_20q": true,
+    "file": true,
+    "first": "2021-06-11",
+    "last": "2026-08-14",
+    "rows": 1299
+   },
+   "DT": {
+    "depth_12q": true,
+    "depth_20q": true,
+    "file": true,
+    "first": "2021-06-11",
+    "last": "2026-08-14",
+    "rows": 1299
+   },
+   "DXC": {
+    "depth_12q": true,
+    "depth_20q": true,
+    "file": true,
+    "first": "2021-06-11",
+    "last": "2026-08-14",
+    "rows": 1299
+   },
+   "DY": {
+    "depth_12q": true,
+    "depth_20q": true,
+    "file": true,
+    "first": "1984-06-04",
+    "last": "2026-08-14",
+    "rows": 10407
+   },
+   "EPAM": {
+    "depth_12q": true,
+    "depth_20q": true,
+    "file": true,
+    "first": "2012-02-08",
+    "last": "2026-08-14",
+    "rows": 3650
+   },
+   "ESTC": {
+    "depth_12q": true,
+    "depth_20q": true,
+    "file": true,
+    "first": "2021-06-11",
+    "last": "2026-08-14",
+    "rows": 1299
+   },
+   "EXTR": {
+    "depth_12q": true,
+    "depth_20q": true,
+    "file": true,
+    "first": "1999-04-09",
+    "last": "2026-08-14",
+    "rows": 6881
+   },
+   "FIG": {
+    "depth_12q": true,
+    "depth_20q": false,
+    "file": true,
+    "first": "2022-05-17",
+    "last": "2026-08-14",
+    "rows": 1020
+   },
+   "FORM": {
+    "depth_12q": true,
+    "depth_20q": true,
+    "file": true,
+    "first": "2003-06-12",
+    "last": "2026-08-14",
+    "rows": 5832
+   },
+   "FROG": {
+    "depth_12q": true,
+    "depth_20q": true,
+    "file": true,
+    "first": "2021-06-11",
+    "last": "2026-08-14",
+    "rows": 1299
+   },
+   "GFS": {
+    "depth_12q": true,
+    "depth_20q": false,
+    "file": true,
+    "first": "2021-10-28",
+    "last": "2026-08-14",
+    "rows": 1203
+   },
+   "GLOB": {
+    "depth_12q": true,
+    "depth_20q": true,
+    "file": true,
+    "first": "2021-06-11",
+    "last": "2026-08-14",
+    "rows": 1299
+   },
+   "GLXY": {
+    "depth_12q": false,
+    "depth_20q": false,
+    "file": true,
+    "first": "2025-05-16",
+    "last": "2026-08-14",
+    "rows": 313
+   },
+   "GRMN": {
+    "depth_12q": true,
+    "depth_20q": true,
+    "file": true,
+    "first": "2000-12-08",
+    "last": "2026-08-14",
+    "rows": 6458
+   },
+   "GTLB": {
+    "depth_12q": true,
+    "depth_20q": false,
+    "file": true,
+    "first": "2021-10-14",
+    "last": "2026-08-14",
+    "rows": 1213
+   },
+   "HPE": {
+    "depth_12q": true,
+    "depth_20q": true,
+    "file": true,
+    "first": "2015-10-19",
+    "last": "2026-08-14",
+    "rows": 2721
+   },
+   "HPQ": {
+    "depth_12q": true,
+    "depth_20q": true,
+    "file": true,
+    "first": "1980-03-17",
+    "last": "2026-08-14",
+    "rows": 11696
+   },
+   "HUBB": {
+    "depth_12q": true,
+    "depth_20q": true,
+    "file": true,
+    "first": "1980-03-17",
+    "last": "2026-08-14",
+    "rows": 11404
+   },
+   "HUBS": {
+    "depth_12q": true,
+    "depth_20q": true,
+    "file": true,
+    "first": "2021-06-11",
+    "last": "2026-08-14",
+    "rows": 1299
+   },
+   "HUT": {
+    "depth_12q": true,
+    "depth_20q": true,
+    "file": true,
+    "first": "2021-05-26",
+    "last": "2026-08-14",
+    "rows": 1311
+   },
+   "IBM": {
+    "depth_12q": true,
+    "depth_20q": true,
+    "file": true,
+    "first": "1980-03-17",
+    "last": "2026-08-14",
+    "rows": 11696
+   },
+   "ICHR": {
+    "depth_12q": true,
+    "depth_20q": true,
+    "file": true,
+    "first": "2016-12-09",
+    "last": "2026-08-14",
+    "rows": 2432
+   },
+   "IESC": {
+    "depth_12q": true,
+    "depth_20q": true,
+    "file": true,
+    "first": "2006-05-15",
+    "last": "2026-08-14",
+    "rows": 5059
+   },
+   "ILMN": {
+    "depth_12q": true,
+    "depth_20q": true,
+    "file": true,
+    "first": "2021-06-11",
+    "last": "2026-08-14",
+    "rows": 1299
+   },
+   "INFY": {
+    "depth_12q": true,
+    "depth_20q": true,
+    "file": true,
+    "first": "2021-06-11",
+    "last": "2026-08-14",
+    "rows": 1299
+   },
+   "INOD": {
+    "depth_12q": true,
+    "depth_20q": true,
+    "file": true,
+    "first": "1993-08-10",
+    "last": "2026-08-14",
+    "rows": 8238
+   },
+   "IREN": {
+    "depth_12q": true,
+    "depth_20q": false,
+    "file": true,
+    "first": "2021-11-17",
+    "last": "2026-08-14",
+    "rows": 1189
+   },
+   "IRM": {
+    "depth_12q": true,
+    "depth_20q": true,
+    "file": true,
+    "first": "1999-04-26",
+    "last": "2026-08-14",
+    "rows": 6615
+   },
+   "J": {
+    "depth_12q": true,
+    "depth_20q": true,
+    "file": true,
+    "first": "1980-03-17",
+    "last": "2026-08-14",
+    "rows": 11618
+   },
+   "JCI": {
+    "depth_12q": true,
+    "depth_20q": true,
+    "file": true,
+    "first": "2009-03-17",
+    "last": "2026-08-14",
+    "rows": 4381
+   },
+   "LEU": {
+    "depth_12q": true,
+    "depth_20q": true,
+    "file": true,
+    "first": "1998-07-23",
+    "last": "2026-08-14",
+    "rows": 6806
+   },
+   "LII": {
+    "depth_12q": true,
+    "depth_20q": true,
+    "file": true,
+    "first": "1999-07-29",
+    "last": "2026-08-14",
+    "rows": 6801
+   },
+   "LITE": {
+    "depth_12q": true,
+    "depth_20q": true,
+    "file": true,
+    "first": "2021-05-18",
+    "last": "2026-08-14",
+    "rows": 1317
+   },
+   "LOGI": {
+    "depth_12q": true,
+    "depth_20q": true,
+    "file": true,
+    "first": "2021-06-11",
+    "last": "2026-08-14",
+    "rows": 1299
+   },
+   "LSCC": {
+    "depth_12q": true,
+    "depth_20q": true,
+    "file": true,
+    "first": "2021-06-11",
+    "last": "2026-08-14",
+    "rows": 1299
+   },
+   "MDB": {
+    "depth_12q": true,
+    "depth_20q": true,
+    "file": true,
+    "first": "2021-06-11",
+    "last": "2026-08-14",
+    "rows": 1299
+   },
+   "MOD": {
+    "depth_12q": true,
+    "depth_20q": true,
+    "file": true,
+    "first": "1982-09-20",
+    "last": "2026-08-14",
+    "rows": 6476
+   },
+   "MTZ": {
+    "depth_12q": true,
+    "depth_20q": true,
+    "file": true,
+    "first": "2021-06-11",
+    "last": "2026-08-14",
+    "rows": 1299
+   },
+   "NET": {
+    "depth_12q": true,
+    "depth_20q": true,
+    "file": true,
+    "first": "2021-05-18",
+    "last": "2026-08-14",
+    "rows": 1317
+   },
+   "NNE": {
+    "depth_12q": false,
+    "depth_20q": false,
+    "file": true,
+    "first": "2024-05-08",
+    "last": "2026-08-14",
+    "rows": 569
+   },
+   "NRG": {
+    "depth_12q": true,
+    "depth_20q": true,
+    "file": true,
+    "first": "2003-12-02",
+    "last": "2026-08-14",
+    "rows": 5708
+   },
+   "NTAP": {
+    "depth_12q": true,
+    "depth_20q": true,
+    "file": true,
+    "first": "1995-11-22",
+    "last": "2026-08-14",
+    "rows": 7731
+   },
+   "NVMI": {
+    "depth_12q": true,
+    "depth_20q": true,
+    "file": true,
+    "first": "2021-06-11",
+    "last": "2026-08-14",
+    "rows": 1299
+   },
+   "NVT": {
+    "depth_12q": true,
+    "depth_20q": true,
+    "file": true,
+    "first": "2021-06-11",
+    "last": "2026-08-14",
+    "rows": 1299
+   },
+   "NVTS": {
+    "depth_12q": true,
+    "depth_20q": true,
+    "file": true,
+    "first": "2021-01-25",
+    "last": "2026-08-14",
+    "rows": 1396
+   },
+   "OKLO": {
+    "depth_12q": true,
+    "depth_20q": true,
+    "file": true,
+    "first": "2021-07-08",
+    "last": "2026-08-14",
+    "rows": 1038
+   },
+   "OKTA": {
+    "depth_12q": true,
+    "depth_20q": true,
+    "file": true,
+    "first": "2021-06-11",
+    "last": "2026-08-14",
+    "rows": 1299
+   },
+   "ON": {
+    "depth_12q": true,
+    "depth_20q": true,
+    "file": true,
+    "first": "2000-04-28",
+    "last": "2026-08-14",
+    "rows": 6614
+   },
+   "ONTO": {
+    "depth_12q": true,
+    "depth_20q": true,
+    "file": true,
+    "first": "2021-06-11",
+    "last": "2026-08-14",
+    "rows": 1299
+   },
+   "OSIS": {
+    "depth_12q": true,
+    "depth_20q": true,
+    "file": true,
+    "first": "1997-10-02",
+    "last": "2026-08-14",
+    "rows": 4988
+   },
+   "PATH": {
+    "depth_12q": true,
+    "depth_20q": true,
+    "file": true,
+    "first": "2021-06-11",
+    "last": "2026-08-14",
+    "rows": 1299
+   },
+   "PD": {
+    "depth_12q": true,
+    "depth_20q": true,
+    "file": true,
+    "first": "2019-04-11",
+    "last": "2026-08-14",
+    "rows": 1846
+   },
+   "PEG": {
+    "depth_12q": true,
+    "depth_20q": true,
+    "file": true,
+    "first": "2004-01-23",
+    "last": "2026-08-14",
+    "rows": 5672
+   },
+   "PINS": {
+    "depth_12q": true,
+    "depth_20q": true,
+    "file": true,
+    "first": "2021-06-11",
+    "last": "2026-08-14",
+    "rows": 1299
+   },
+   "POET": {
+    "depth_12q": true,
+    "depth_20q": false,
+    "file": true,
+    "first": "2022-03-14",
+    "last": "2026-08-14",
+    "rows": 1110
+   },
+   "POWI": {
+    "depth_12q": true,
+    "depth_20q": true,
+    "file": true,
+    "first": "2007-08-13",
+    "last": "2026-08-14",
+    "rows": 4029
+   },
+   "POWL": {
+    "depth_12q": true,
+    "depth_20q": true,
+    "file": true,
+    "first": "1980-03-17",
+    "last": "2026-08-14",
+    "rows": 7594
+   },
+   "PSTG": {
+    "file": false
+   },
+   "PWR": {
+    "depth_12q": true,
+    "depth_20q": true,
+    "file": true,
+    "first": "1998-02-12",
+    "last": "2026-08-14",
+    "rows": 7168
+   },
+   "QLYS": {
+    "depth_12q": true,
+    "depth_20q": true,
+    "file": true,
+    "first": "2012-09-28",
+    "last": "2026-08-14",
+    "rows": 3488
+   },
+   "QRVO": {
+    "depth_12q": true,
+    "depth_20q": true,
+    "file": true,
+    "first": "2021-06-11",
+    "last": "2026-08-14",
+    "rows": 1299
+   },
+   "RBLX": {
+    "depth_12q": true,
+    "depth_20q": true,
+    "file": true,
+    "first": "2021-06-11",
+    "last": "2026-08-14",
+    "rows": 1299
+   },
+   "RDDT": {
+    "depth_12q": false,
+    "depth_20q": false,
+    "file": true,
+    "first": "2024-03-21",
+    "last": "2026-08-14",
+    "rows": 602
+   },
+   "RMBS": {
+    "depth_12q": true,
+    "depth_20q": true,
+    "file": true,
+    "first": "1997-05-14",
+    "last": "2026-08-14",
+    "rows": 6353
+   },
+   "ROK": {
+    "depth_12q": true,
+    "depth_20q": true,
+    "file": true,
+    "first": "1980-03-17",
+    "last": "2026-08-14",
+    "rows": 11440
+   },
+   "RPD": {
+    "depth_12q": true,
+    "depth_20q": true,
+    "file": true,
+    "first": "2015-07-17",
+    "last": "2026-08-14",
+    "rows": 2786
+   },
+   "RXRX": {
+    "depth_12q": true,
+    "depth_20q": true,
+    "file": true,
+    "first": "2021-04-16",
+    "last": "2026-08-14",
+    "rows": 1339
+   },
+   "S": {
+    "depth_12q": true,
+    "depth_20q": true,
+    "file": true,
+    "first": "2021-06-30",
+    "last": "2026-08-14",
+    "rows": 1287
+   },
+   "SHOP": {
+    "depth_12q": true,
+    "depth_20q": true,
+    "file": true,
+    "first": "2015-05-20",
+    "last": "2026-08-14",
+    "rows": 2826
+   },
+   "SLAB": {
+    "depth_12q": true,
+    "depth_20q": true,
+    "file": true,
+    "first": "2000-03-24",
+    "last": "2026-08-14",
+    "rows": 6135
+   },
+   "SMR": {
+    "depth_12q": true,
+    "depth_20q": false,
+    "file": true,
+    "first": "2022-05-03",
+    "last": "2026-08-14",
+    "rows": 1075
+   },
+   "SNAP": {
+    "depth_12q": true,
+    "depth_20q": true,
+    "file": true,
+    "first": "2021-06-11",
+    "last": "2026-08-14",
+    "rows": 1299
+   },
+   "SNDK": {
+    "depth_12q": false,
+    "depth_20q": false,
+    "file": true,
+    "first": "2025-02-13",
+    "last": "2026-08-14",
+    "rows": 377
+   },
+   "SNOW": {
+    "depth_12q": true,
+    "depth_20q": true,
+    "file": true,
+    "first": "2021-05-18",
+    "last": "2026-08-14",
+    "rows": 1317
+   },
+   "SO": {
+    "depth_12q": true,
+    "depth_20q": true,
+    "file": true,
+    "first": "1980-03-17",
+    "last": "2026-08-14",
+    "rows": 11696
+   },
+   "SONY": {
+    "depth_12q": true,
+    "depth_20q": true,
+    "file": true,
+    "first": "2021-06-11",
+    "last": "2026-08-14",
+    "rows": 1299
+   },
+   "SOUN": {
+    "depth_12q": true,
+    "depth_20q": false,
+    "file": true,
+    "first": "2022-04-28",
+    "last": "2026-08-14",
+    "rows": 1078
+   },
+   "SPOT": {
+    "depth_12q": true,
+    "depth_20q": true,
+    "file": true,
+    "first": "2021-06-11",
+    "last": "2026-08-14",
+    "rows": 1299
+   },
+   "SPXC": {
+    "depth_12q": true,
+    "depth_20q": true,
+    "file": true,
+    "first": "1980-03-17",
+    "last": "2026-08-14",
+    "rows": 9164
+   },
+   "STRL": {
+    "depth_12q": true,
+    "depth_20q": true,
+    "file": true,
+    "first": "1991-07-12",
+    "last": "2026-08-14",
+    "rows": 6173
+   },
+   "SWKS": {
+    "depth_12q": true,
+    "depth_20q": true,
+    "file": true,
+    "first": "1980-03-17",
+    "last": "2026-08-14",
+    "rows": 11622
+   },
+   "SYM": {
+    "depth_12q": true,
+    "depth_20q": false,
+    "file": true,
+    "first": "2022-06-08",
+    "last": "2026-08-14",
+    "rows": 1050
+   },
+   "TDC": {
+    "depth_12q": true,
+    "depth_20q": true,
+    "file": true,
+    "first": "2021-06-11",
+    "last": "2026-08-14",
+    "rows": 1299
+   },
+   "TEAM": {
+    "depth_12q": true,
+    "depth_20q": true,
+    "file": true,
+    "first": "2015-12-10",
+    "last": "2026-08-14",
+    "rows": 2684
+   },
+   "TEL": {
+    "depth_12q": true,
+    "depth_20q": true,
+    "file": true,
+    "first": "2007-06-14",
+    "last": "2026-08-14",
+    "rows": 4821
+   },
+   "TEM": {
+    "depth_12q": false,
+    "depth_20q": false,
+    "file": true,
+    "first": "2024-06-14",
+    "last": "2026-08-14",
+    "rows": 543
+   },
+   "TENB": {
+    "depth_12q": true,
+    "depth_20q": true,
+    "file": true,
+    "first": "2018-07-26",
+    "last": "2026-08-14",
+    "rows": 2024
+   },
+   "TER": {
+    "depth_12q": true,
+    "depth_20q": true,
+    "file": true,
+    "first": "1980-03-17",
+    "last": "2026-08-14",
+    "rows": 11696
+   },
+   "TLN": {
+    "depth_12q": false,
+    "depth_20q": false,
+    "file": true,
+    "first": "2024-07-10",
+    "last": "2026-08-14",
+    "rows": 527
+   },
+   "TMO": {
+    "depth_12q": true,
+    "depth_20q": true,
+    "file": true,
+    "first": "1980-03-17",
+    "last": "2026-08-14",
+    "rows": 11695
+   },
+   "TT": {
+    "depth_12q": true,
+    "depth_20q": true,
+    "file": true,
+    "first": "1980-03-17",
+    "last": "2026-08-14",
+    "rows": 11442
+   },
+   "TTD": {
+    "depth_12q": true,
+    "depth_20q": true,
+    "file": true,
+    "first": "2016-09-21",
+    "last": "2026-08-14",
+    "rows": 2488
+   },
+   "TWLO": {
+    "depth_12q": true,
+    "depth_20q": true,
+    "file": true,
+    "first": "2021-06-11",
+    "last": "2026-08-14",
+    "rows": 1299
+   },
+   "U": {
+    "depth_12q": true,
+    "depth_20q": true,
+    "file": true,
+    "first": "2021-06-11",
+    "last": "2026-08-14",
+    "rows": 1299
+   },
+   "UBER": {
+    "depth_12q": true,
+    "depth_20q": true,
+    "file": true,
+    "first": "2019-05-10",
+    "last": "2026-08-14",
+    "rows": 1826
+   },
+   "UCTT": {
+    "depth_12q": true,
+    "depth_20q": true,
+    "file": true,
+    "first": "2004-03-25",
+    "last": "2026-08-14",
+    "rows": 4625
+   },
+   "UEC": {
+    "depth_12q": true,
+    "depth_20q": true,
+    "file": true,
+    "first": "2007-09-28",
+    "last": "2026-08-14",
+    "rows": 4497
+   },
+   "UMC": {
+    "depth_12q": true,
+    "depth_20q": true,
+    "file": true,
+    "first": "2021-06-11",
+    "last": "2026-08-14",
+    "rows": 1299
+   },
+   "VECO": {
+    "depth_12q": true,
+    "depth_20q": true,
+    "file": true,
+    "first": "1994-11-29",
+    "last": "2026-08-14",
+    "rows": 7480
+   },
+   "VEEV": {
+    "depth_12q": true,
+    "depth_20q": true,
+    "file": true,
+    "first": "2021-06-11",
+    "last": "2026-08-14",
+    "rows": 1299
+   },
+   "VRNS": {
+    "depth_12q": true,
+    "depth_20q": true,
+    "file": true,
+    "first": "2014-02-28",
+    "last": "2026-08-14",
+    "rows": 3134
+   },
+   "VSH": {
+    "depth_12q": true,
+    "depth_20q": true,
+    "file": true,
+    "first": "1980-03-17",
+    "last": "2026-08-14",
+    "rows": 10414
+   },
+   "WDAY": {
+    "depth_12q": true,
+    "depth_20q": true,
+    "file": true,
+    "first": "2017-09-20",
+    "last": "2026-08-14",
+    "rows": 2237
+   },
+   "WIT": {
+    "depth_12q": true,
+    "depth_20q": true,
+    "file": true,
+    "first": "2021-06-11",
+    "last": "2026-08-14",
+    "rows": 1299
+   },
+   "WULF": {
+    "depth_12q": true,
+    "depth_20q": true,
+    "file": true,
+    "first": "1994-04-05",
+    "last": "2026-08-14",
+    "rows": 4259
+   },
+   "ZBRA": {
+    "depth_12q": true,
+    "depth_20q": true,
+    "file": true,
+    "first": "1991-08-15",
+    "last": "2026-08-14",
+    "rows": 8813
+   },
+   "ZM": {
+    "depth_12q": true,
+    "depth_20q": true,
+    "file": true,
+    "first": "2021-06-11",
+    "last": "2026-08-14",
+    "rows": 1299
+   },
+   "ZS": {
+    "depth_12q": true,
+    "depth_20q": true,
+    "file": true,
+    "first": "2018-03-16",
+    "last": "2026-08-14",
+    "rows": 2115
+   }
+  }
+ },
+ "excluded_stmt_depth": {
+  "ge_12q": 143,
+  "ge_20q": 139
+ },
+ "label": "mini",
+ "lake_root": "/lake/bronze/asset_class=equity",
+ "min_history": 12,
+ "probe": "fundamental lake price depth vs universe membership",
+ "universe": {
+  "cohort_n": 257,
+  "cutoff_12q": "2023-08-18",
+  "cutoff_20q": "2021-08-18",
+  "depth_12q": 256,
+  "depth_20q": 255,
+  "has_file": 257,
+  "per_ticker": {
+   "A": {
+    "depth_12q": true,
+    "depth_20q": true,
+    "file": true,
+    "first": "1999-11-18",
+    "last": "2026-08-14",
+    "rows": 6722
+   },
+   "AAP": {
+    "depth_12q": true,
+    "depth_20q": true,
+    "file": true,
+    "first": "2001-11-29",
+    "last": "2026-08-14",
+    "rows": 6214
+   },
+   "AAPL": {
+    "depth_12q": true,
+    "depth_20q": true,
+    "file": true,
+    "first": "1980-12-12",
+    "last": "2026-08-14",
+    "rows": 11509
+   },
+   "AAT": {
+    "depth_12q": true,
+    "depth_20q": true,
+    "file": true,
+    "first": "2011-01-14",
+    "last": "2026-08-14",
+    "rows": 3918
+   },
+   "ABBV": {
+    "depth_12q": true,
+    "depth_20q": true,
+    "file": true,
+    "first": "2012-12-10",
+    "last": "2026-08-14",
+    "rows": 3440
+   },
+   "ABCB": {
+    "depth_12q": true,
+    "depth_20q": true,
+    "file": true,
+    "first": "1994-05-19",
+    "last": "2026-08-14",
+    "rows": 7919
+   },
+   "ABEO": {
+    "depth_12q": true,
+    "depth_20q": true,
+    "file": true,
+    "first": "2012-07-23",
+    "last": "2026-08-14",
+    "rows": 3281
+   },
+   "ABG": {
+    "depth_12q": true,
+    "depth_20q": true,
+    "file": true,
+    "first": "2002-03-14",
+    "last": "2026-08-14",
+    "rows": 6143
+   },
+   "ABM": {
+    "depth_12q": true,
+    "depth_20q": true,
+    "file": true,
+    "first": "1980-03-17",
+    "last": "2026-08-14",
+    "rows": 11652
+   },
+   "ABR": {
+    "depth_12q": true,
+    "depth_20q": true,
+    "file": true,
+    "first": "2004-04-07",
+    "last": "2026-08-14",
+    "rows": 5623
+   },
+   "ABT": {
+    "depth_12q": true,
+    "depth_20q": true,
+    "file": true,
+    "first": "1980-03-17",
+    "last": "2026-08-14",
+    "rows": 11695
+   },
+   "ABUS": {
+    "depth_12q": true,
+    "depth_20q": true,
+    "file": true,
+    "first": "2010-11-15",
+    "last": "2026-08-14",
+    "rows": 3703
+   },
+   "ACAD": {
+    "depth_12q": true,
+    "depth_20q": true,
+    "file": true,
+    "first": "2004-05-27",
+    "last": "2026-08-14",
+    "rows": 5588
+   },
+   "ACCO": {
+    "depth_12q": true,
+    "depth_20q": true,
+    "file": true,
+    "first": "2005-08-09",
+    "last": "2026-08-14",
+    "rows": 5283
+   },
+   "ACGL": {
+    "depth_12q": true,
+    "depth_20q": true,
+    "file": true,
+    "first": "1995-09-14",
+    "last": "2026-08-14",
+    "rows": 7739
+   },
+   "ACH": {
+    "depth_12q": true,
+    "depth_20q": true,
+    "file": true,
+    "first": "1980-03-17",
+    "last": "2026-08-14",
+    "rows": 11562
+   },
+   "ACIW": {
+    "depth_12q": true,
+    "depth_20q": true,
+    "file": true,
+    "first": "2007-07-25",
+    "last": "2026-08-14",
+    "rows": 4795
+   },
+   "ACLS": {
+    "depth_12q": true,
+    "depth_20q": true,
+    "file": true,
+    "first": "2000-07-11",
+    "last": "2026-08-14",
+    "rows": 6564
+   },
+   "ACN": {
+    "depth_12q": true,
+    "depth_20q": true,
+    "file": true,
+    "first": "2001-07-19",
+    "last": "2026-08-14",
+    "rows": 6303
+   },
+   "ACNT": {
+    "depth_12q": true,
+    "depth_20q": true,
+    "file": true,
+    "first": "1980-03-17",
+    "last": "2026-08-14",
+    "rows": 10830
+   },
+   "ACRE": {
+    "depth_12q": true,
+    "depth_20q": true,
+    "file": true,
+    "first": "2012-04-26",
+    "last": "2026-08-14",
+    "rows": 3596
+   },
+   "ACTG": {
+    "depth_12q": true,
+    "depth_20q": true,
+    "file": true,
+    "first": "1995-07-10",
+    "last": "2026-08-14",
+    "rows": 7518
+   },
+   "ADBE": {
+    "depth_12q": true,
+    "depth_20q": true,
+    "file": true,
+    "first": "1986-08-13",
+    "last": "2026-08-14",
+    "rows": 10078
+   },
+   "ADI": {
+    "depth_12q": true,
+    "depth_20q": true,
+    "file": true,
+    "first": "2012-04-02",
+    "last": "2026-08-14",
+    "rows": 3613
+   },
+   "ADM": {
+    "depth_12q": true,
+    "depth_20q": true,
+    "file": true,
+    "first": "1980-03-17",
+    "last": "2026-08-14",
+    "rows": 11697
+   },
+   "ADP": {
+    "depth_12q": true,
+    "depth_20q": true,
+    "file": true,
+    "first": "2008-10-21",
+    "last": "2026-08-14",
+    "rows": 4481
+   },
+   "ADSK": {
+    "depth_12q": true,
+    "depth_20q": true,
+    "file": true,
+    "first": "1985-06-28",
+    "last": "2026-08-14",
+    "rows": 9859
+   },
+   "AEE": {
+    "depth_12q": true,
+    "depth_20q": true,
+    "file": true,
+    "first": "1998-01-02",
+    "last": "2026-08-14",
+    "rows": 7196
+   },
+   "AEHR": {
+    "depth_12q": true,
+    "depth_20q": true,
+    "file": true,
+    "first": "1997-08-15",
+    "last": "2026-08-14",
+    "rows": 7023
+   },
+   "AEO": {
+    "depth_12q": true,
+    "depth_20q": true,
+    "file": true,
+    "first": "2007-03-08",
+    "last": "2026-08-14",
+    "rows": 4891
+   },
+   "AEP": {
+    "depth_12q": true,
+    "depth_20q": true,
+    "file": true,
+    "first": "1980-03-17",
+    "last": "2026-08-14",
+    "rows": 11444
+   },
+   "AES": {
+    "depth_12q": true,
+    "depth_20q": true,
+    "file": true,
+    "first": "1991-06-26",
+    "last": "2026-08-14",
+    "rows": 8594
+   },
+   "AFL": {
+    "depth_12q": true,
+    "depth_20q": true,
+    "file": true,
+    "first": "1980-03-17",
+    "last": "2026-08-14",
+    "rows": 11445
+   },
+   "AIG": {
+    "depth_12q": true,
+    "depth_20q": true,
+    "file": true,
+    "first": "1980-03-17",
+    "last": "2026-08-14",
+    "rows": 11694
+   },
+   "AIZ": {
+    "depth_12q": true,
+    "depth_20q": true,
+    "file": true,
+    "first": "2004-02-05",
+    "last": "2026-08-14",
+    "rows": 5644
+   },
+   "AJG": {
+    "depth_12q": true,
+    "depth_20q": true,
+    "file": true,
+    "first": "1984-06-20",
+    "last": "2026-08-14",
+    "rows": 10510
+   },
+   "AKAM": {
+    "depth_12q": true,
+    "depth_20q": true,
+    "file": true,
+    "first": "1999-10-29",
+    "last": "2026-08-14",
+    "rows": 6739
+   },
+   "ALB": {
+    "depth_12q": true,
+    "depth_20q": true,
+    "file": true,
+    "first": "1994-02-22",
+    "last": "2026-08-14",
+    "rows": 8172
+   },
+   "ALGN": {
+    "depth_12q": true,
+    "depth_20q": true,
+    "file": true,
+    "first": "2001-01-26",
+    "last": "2026-08-14",
+    "rows": 6426
+   },
+   "ALL": {
+    "depth_12q": true,
+    "depth_20q": true,
+    "file": true,
+    "first": "1993-06-03",
+    "last": "2026-08-14",
+    "rows": 8102
+   },
+   "ALNY": {
+    "depth_12q": true,
+    "depth_20q": true,
+    "file": true,
+    "first": "2004-05-28",
+    "last": "2026-08-14",
+    "rows": 5589
+   },
+   "AMAT": {
+    "depth_12q": true,
+    "depth_20q": true,
+    "file": true,
+    "first": "1980-03-17",
+    "last": "2026-08-14",
+    "rows": 11699
+   },
+   "AMD": {
+    "depth_12q": true,
+    "depth_20q": true,
+    "file": true,
+    "first": "2015-01-02",
+    "last": "2026-08-14",
+    "rows": 2921
+   },
+   "AME": {
+    "depth_12q": true,
+    "depth_20q": true,
+    "file": true,
+    "first": "1980-03-17",
+    "last": "2026-08-14",
+    "rows": 9930
+   },
+   "AMGN": {
+    "depth_12q": true,
+    "depth_20q": true,
+    "file": true,
+    "first": "1983-06-17",
+    "last": "2026-08-14",
+    "rows": 10622
+   },
+   "AMP": {
+    "depth_12q": true,
+    "depth_20q": true,
+    "file": true,
+    "first": "2005-09-15",
+    "last": "2026-08-14",
+    "rows": 5010
+   },
+   "AMT": {
+    "depth_12q": true,
+    "depth_20q": true,
+    "file": true,
+    "first": "1998-02-27",
+    "last": "2026-08-14",
+    "rows": 7157
+   },
+   "AMZN": {
+    "depth_12q": true,
+    "depth_20q": true,
+    "file": true,
+    "first": "1997-05-15",
+    "last": "2026-08-14",
+    "rows": 7359
+   },
+   "ANET": {
+    "depth_12q": true,
+    "depth_20q": true,
+    "file": true,
+    "first": "2014-06-06",
+    "last": "2026-08-14",
+    "rows": 3066
+   },
+   "ANGO": {
+    "depth_12q": true,
+    "depth_20q": true,
+    "file": true,
+    "first": "2004-05-27",
+    "last": "2026-08-14",
+    "rows": 5589
+   },
+   "AON": {
+    "depth_12q": true,
+    "depth_20q": true,
+    "file": true,
+    "first": "1980-06-02",
+    "last": "2026-08-14",
+    "rows": 11392
+   },
+   "AOS": {
+    "depth_12q": true,
+    "depth_20q": true,
+    "file": true,
+    "first": "1983-09-30",
+    "last": "2026-08-14",
+    "rows": 10648
+   },
+   "APA": {
+    "depth_12q": true,
+    "depth_20q": true,
+    "file": true,
+    "first": "1980-03-17",
+    "last": "2026-08-14",
+    "rows": 11696
+   },
+   "APD": {
+    "depth_12q": true,
+    "depth_20q": true,
+    "file": true,
+    "first": "1980-03-17",
+    "last": "2026-08-14",
+    "rows": 11696
+   },
+   "APH": {
+    "depth_12q": true,
+    "depth_20q": true,
+    "file": true,
+    "first": "1991-11-08",
+    "last": "2026-08-14",
+    "rows": 8748
+   },
+   "APLD": {
+    "depth_12q": true,
+    "depth_20q": true,
+    "file": true,
+    "first": "2009-12-10",
+    "last": "2026-08-14",
+    "rows": 3664
+   },
+   "APP": {
+    "depth_12q": true,
+    "depth_20q": true,
+    "file": true,
+    "first": "2021-04-15",
+    "last": "2026-08-14",
+    "rows": 1340
+   },
+   "APTV": {
+    "depth_12q": true,
+    "depth_20q": true,
+    "file": true,
+    "first": "2011-11-17",
+    "last": "2026-08-14",
+    "rows": 3705
+   },
+   "ARE": {
+    "depth_12q": true,
+    "depth_20q": true,
+    "file": true,
+    "first": "1997-05-28",
+    "last": "2026-08-14",
+    "rows": 7347
+   },
+   "ASML": {
+    "depth_12q": true,
+    "depth_20q": true,
+    "file": true,
+    "first": "1995-03-15",
+    "last": "2026-08-14",
+    "rows": 7908
+   },
+   "ATO": {
+    "depth_12q": true,
+    "depth_20q": true,
+    "file": true,
+    "first": "1983-12-28",
+    "last": "2026-08-14",
+    "rows": 10734
+   },
+   "AVB": {
+    "depth_12q": true,
+    "depth_20q": true,
+    "file": true,
+    "first": "1994-03-11",
+    "last": "2026-08-14",
+    "rows": 8158
+   },
+   "AVGO": {
+    "depth_12q": true,
+    "depth_20q": true,
+    "file": true,
+    "first": "2016-02-02",
+    "last": "2026-08-14",
+    "rows": 2648
+   },
+   "AVY": {
+    "depth_12q": true,
+    "depth_20q": true,
+    "file": true,
+    "first": "1980-03-17",
+    "last": "2026-08-14",
+    "rows": 11693
+   },
+   "AWK": {
+    "depth_12q": true,
+    "depth_20q": true,
+    "file": true,
+    "first": "2008-04-23",
+    "last": "2026-08-14",
+    "rows": 4607
+   },
+   "AXON": {
+    "depth_12q": true,
+    "depth_20q": true,
+    "file": true,
+    "first": "2001-06-07",
+    "last": "2026-08-14",
+    "rows": 6082
+   },
+   "AXP": {
+    "depth_12q": true,
+    "depth_20q": true,
+    "file": true,
+    "first": "1980-03-17",
+    "last": "2026-08-14",
+    "rows": 11695
+   },
+   "AZO": {
+    "depth_12q": true,
+    "depth_20q": true,
+    "file": true,
+    "first": "1991-04-02",
+    "last": "2026-08-14",
+    "rows": 8905
+   },
+   "BA": {
+    "depth_12q": true,
+    "depth_20q": true,
+    "file": true,
+    "first": "1980-03-17",
+    "last": "2026-08-14",
+    "rows": 11445
+   },
+   "BAC": {
+    "depth_12q": true,
+    "depth_20q": true,
+    "file": true,
+    "first": "1980-01-02",
+    "last": "2026-08-14",
+    "rows": 11498
+   },
+   "BALL": {
+    "depth_12q": true,
+    "depth_20q": true,
+    "file": true,
+    "first": "1980-03-17",
+    "last": "2026-08-14",
+    "rows": 11442
+   },
+   "BAX": {
+    "depth_12q": true,
+    "depth_20q": true,
+    "file": true,
+    "first": "1980-03-17",
+    "last": "2026-08-14",
+    "rows": 11444
+   },
+   "BBY": {
+    "depth_12q": true,
+    "depth_20q": true,
+    "file": true,
+    "first": "1985-04-18",
+    "last": "2026-08-14",
+    "rows": 10409
+   },
+   "BCRX": {
+    "depth_12q": true,
+    "depth_20q": true,
+    "file": true,
+    "first": "1994-03-04",
+    "last": "2026-08-14",
+    "rows": 8161
+   },
+   "BDX": {
+    "depth_12q": true,
+    "depth_20q": true,
+    "file": true,
+    "first": "1980-03-17",
+    "last": "2026-08-14",
+    "rows": 11444
+   },
+   "BELFB": {
+    "depth_12q": true,
+    "depth_20q": true,
+    "file": true,
+    "first": "1998-07-10",
+    "last": "2026-08-14",
+    "rows": 7069
+   },
+   "BEN": {
+    "depth_12q": true,
+    "depth_20q": true,
+    "file": true,
+    "first": "1983-09-23",
+    "last": "2026-08-14",
+    "rows": 10759
+   },
+   "BIIB": {
+    "depth_12q": true,
+    "depth_20q": true,
+    "file": true,
+    "first": "1991-09-17",
+    "last": "2026-08-14",
+    "rows": 8789
+   },
+   "BKNG": {
+    "depth_12q": true,
+    "depth_20q": true,
+    "file": true,
+    "first": "1999-03-30",
+    "last": "2026-08-14",
+    "rows": 6888
+   },
+   "BLK": {
+    "depth_12q": true,
+    "depth_20q": true,
+    "file": true,
+    "first": "1999-10-04",
+    "last": "2026-08-14",
+    "rows": 6755
+   },
+   "BMY": {
+    "depth_12q": true,
+    "depth_20q": true,
+    "file": true,
+    "first": "1980-03-17",
+    "last": "2026-08-14",
+    "rows": 11697
+   },
+   "BR": {
+    "depth_12q": true,
+    "depth_20q": true,
+    "file": true,
+    "first": "2007-03-22",
+    "last": "2026-08-14",
+    "rows": 4629
+   },
+   "BRO": {
+    "depth_12q": true,
+    "depth_20q": true,
+    "file": true,
+    "first": "1981-02-11",
+    "last": "2026-08-14",
+    "rows": 9945
+   },
+   "BSX": {
+    "depth_12q": true,
+    "depth_20q": true,
+    "file": true,
+    "first": "1992-05-19",
+    "last": "2026-08-14",
+    "rows": 8618
+   },
+   "BXP": {
+    "depth_12q": true,
+    "depth_20q": true,
+    "file": true,
+    "first": "1997-06-18",
+    "last": "2026-08-14",
+    "rows": 7082
+   },
+   "CAH": {
+    "depth_12q": true,
+    "depth_20q": true,
+    "file": true,
+    "first": "1983-08-04",
+    "last": "2026-08-14",
+    "rows": 10784
+   },
+   "CB": {
+    "depth_12q": true,
+    "depth_20q": true,
+    "file": true,
+    "first": "1993-03-25",
+    "last": "2026-08-14",
+    "rows": 8402
+   },
+   "CBRE": {
+    "depth_12q": true,
+    "depth_20q": true,
+    "file": true,
+    "first": "2004-06-10",
+    "last": "2026-08-14",
+    "rows": 5578
+   },
+   "CBZ": {
+    "depth_12q": true,
+    "depth_20q": true,
+    "file": true,
+    "first": "1996-06-24",
+    "last": "2026-08-14",
+    "rows": 7583
+   },
+   "CCEP": {
+    "depth_12q": true,
+    "depth_20q": true,
+    "file": true,
+    "first": "1986-11-24",
+    "last": "2026-08-14",
+    "rows": 9752
+   },
+   "CCOI": {
+    "depth_12q": true,
+    "depth_20q": true,
+    "file": true,
+    "first": "2002-02-05",
+    "last": "2026-08-14",
+    "rows": 6154
+   },
+   "CDE": {
+    "depth_12q": true,
+    "depth_20q": true,
+    "file": true,
+    "first": "1980-03-17",
+    "last": "2026-08-14",
+    "rows": 11669
+   },
+   "CDNS": {
+    "depth_12q": true,
+    "depth_20q": true,
+    "file": true,
+    "first": "1987-06-10",
+    "last": "2026-08-14",
+    "rows": 9867
+   },
+   "CEG": {
+    "depth_12q": true,
+    "depth_20q": false,
+    "file": true,
+    "first": "2022-01-19",
+    "last": "2026-08-14",
+    "rows": 1147
+   },
+   "CHD": {
+    "depth_12q": true,
+    "depth_20q": true,
+    "file": true,
+    "first": "1980-03-17",
+    "last": "2026-08-14",
+    "rows": 11531
+   },
+   "CHRW": {
+    "depth_12q": true,
+    "depth_20q": true,
+    "file": true,
+    "first": "1997-10-15",
+    "last": "2026-08-14",
+    "rows": 7252
+   },
+   "CHTR": {
+    "depth_12q": true,
+    "depth_20q": true,
+    "file": true,
+    "first": "2010-09-14",
+    "last": "2026-08-14",
+    "rows": 4004
+   },
+   "CI": {
+    "depth_12q": true,
+    "depth_20q": true,
+    "file": true,
+    "first": "1982-04-01",
+    "last": "2026-08-14",
+    "rows": 11180
+   },
+   "CINF": {
+    "depth_12q": true,
+    "depth_20q": true,
+    "file": true,
+    "first": "1980-03-17",
+    "last": "2026-08-14",
+    "rows": 11434
+   },
+   "CL": {
+    "depth_12q": true,
+    "depth_20q": true,
+    "file": true,
+    "first": "1980-03-17",
+    "last": "2026-08-14",
+    "rows": 11443
+   },
+   "CLDX": {
+    "depth_12q": true,
+    "depth_20q": true,
+    "file": true,
+    "first": "2008-10-01",
+    "last": "2026-08-14",
+    "rows": 4495
+   },
+   "CLX": {
+    "depth_12q": true,
+    "depth_20q": true,
+    "file": true,
+    "first": "1980-03-17",
+    "last": "2026-08-14",
+    "rows": 11696
+   },
+   "CMCSA": {
+    "depth_12q": true,
+    "depth_20q": true,
+    "file": true,
+    "first": "1980-03-17",
+    "last": "2026-08-14",
+    "rows": 11439
+   },
+   "CMI": {
+    "depth_12q": true,
+    "depth_20q": true,
+    "file": true,
+    "first": "1980-03-17",
+    "last": "2026-08-14",
+    "rows": 11443
+   },
+   "CMS": {
+    "depth_12q": true,
+    "depth_20q": true,
+    "file": true,
+    "first": "1980-03-17",
+    "last": "2026-08-14",
+    "rows": 11697
+   },
+   "CNC": {
+    "depth_12q": true,
+    "depth_20q": true,
+    "file": true,
+    "first": "2001-12-13",
+    "last": "2026-08-14",
+    "rows": 6204
+   },
+   "COF": {
+    "depth_12q": true,
+    "depth_20q": true,
+    "file": true,
+    "first": "1994-11-16",
+    "last": "2026-08-14",
+    "rows": 7986
+   },
+   "COHR": {
+    "depth_12q": true,
+    "depth_20q": true,
+    "file": true,
+    "first": "2021-05-18",
+    "last": "2026-08-14",
+    "rows": 1316
+   },
+   "COST": {
+    "depth_12q": true,
+    "depth_20q": true,
+    "file": true,
+    "first": "1994-01-03",
+    "last": "2026-08-14",
+    "rows": 8210
+   },
+   "CPRT": {
+    "depth_12q": true,
+    "depth_20q": true,
+    "file": true,
+    "first": "1994-03-17",
+    "last": "2026-08-14",
+    "rows": 8148
+   },
+   "CRL": {
+    "depth_12q": true,
+    "depth_20q": true,
+    "file": true,
+    "first": "2000-06-23",
+    "last": "2026-08-14",
+    "rows": 6572
+   },
+   "CRM": {
+    "depth_12q": true,
+    "depth_20q": true,
+    "file": true,
+    "first": "2004-06-23",
+    "last": "2026-08-14",
+    "rows": 5571
+   },
+   "CRS": {
+    "depth_12q": true,
+    "depth_20q": true,
+    "file": true,
+    "first": "2021-05-18",
+    "last": "2026-08-14",
+    "rows": 1317
+   },
+   "CRWD": {
+    "depth_12q": true,
+    "depth_20q": true,
+    "file": true,
+    "first": "2019-06-12",
+    "last": "2026-08-14",
+    "rows": 1804
+   },
+   "CSCO": {
+    "depth_12q": true,
+    "depth_20q": true,
+    "file": true,
+    "first": "1990-02-16",
+    "last": "2026-08-14",
+    "rows": 9190
+   },
+   "CSGP": {
+    "depth_12q": true,
+    "depth_20q": true,
+    "file": true,
+    "first": "1998-07-01",
+    "last": "2026-08-14",
+    "rows": 7067
+   },
+   "CSR": {
+    "depth_12q": true,
+    "depth_20q": true,
+    "file": true,
+    "first": "2012-12-18",
+    "last": "2026-08-14",
+    "rows": 3433
+   },
+   "CTAS": {
+    "depth_12q": true,
+    "depth_20q": true,
+    "file": true,
+    "first": "1983-08-19",
+    "last": "2026-08-14",
+    "rows": 10784
+   },
+   "CTSH": {
+    "depth_12q": true,
+    "depth_20q": true,
+    "file": true,
+    "first": "1998-06-19",
+    "last": "2026-08-14",
+    "rows": 7083
+   },
+   "CVS": {
+    "depth_12q": true,
+    "depth_20q": true,
+    "file": true,
+    "first": "1980-03-17",
+    "last": "2026-08-14",
+    "rows": 11443
+   },
+   "CVX": {
+    "depth_12q": true,
+    "depth_20q": true,
+    "file": true,
+    "first": "1980-03-17",
+    "last": "2026-08-14",
+    "rows": 11697
+   },
+   "CWST": {
+    "depth_12q": true,
+    "depth_20q": true,
+    "file": true,
+    "first": "1997-10-29",
+    "last": "2026-08-14",
+    "rows": 6738
+   },
+   "CXW": {
+    "depth_12q": true,
+    "depth_20q": true,
+    "file": true,
+    "first": "1995-12-15",
+    "last": "2026-08-14",
+    "rows": 7178
+   },
+   "D": {
+    "depth_12q": true,
+    "depth_20q": true,
+    "file": true,
+    "first": "1980-03-17",
+    "last": "2026-08-14",
+    "rows": 11694
+   },
+   "DAL": {
+    "depth_12q": true,
+    "depth_20q": true,
+    "file": true,
+    "first": "2007-04-26",
+    "last": "2026-08-14",
+    "rows": 4857
+   },
+   "DE": {
+    "depth_12q": true,
+    "depth_20q": true,
+    "file": true,
+    "first": "1980-03-17",
+    "last": "2026-08-14",
+    "rows": 11697
+   },
+   "DECK": {
+    "depth_12q": true,
+    "depth_20q": true,
+    "file": true,
+    "first": "1993-10-15",
+    "last": "2026-08-14",
+    "rows": 8227
+   },
+   "DELL": {
+    "depth_12q": true,
+    "depth_20q": true,
+    "file": true,
+    "first": "2018-12-21",
+    "last": "2026-08-14",
+    "rows": 1921
+   },
+   "DG": {
+    "depth_12q": true,
+    "depth_20q": true,
+    "file": true,
+    "first": "2009-11-13",
+    "last": "2026-08-14",
+    "rows": 4212
+   },
+   "DGX": {
+    "depth_12q": true,
+    "depth_20q": true,
+    "file": true,
+    "first": "1996-12-17",
+    "last": "2026-08-14",
+    "rows": 7459
+   },
+   "DHI": {
+    "depth_12q": true,
+    "depth_20q": true,
+    "file": true,
+    "first": "1992-06-05",
+    "last": "2026-08-14",
+    "rows": 8594
+   },
+   "DHR": {
+    "depth_12q": true,
+    "depth_20q": true,
+    "file": true,
+    "first": "1980-03-17",
+    "last": "2026-08-14",
+    "rows": 11631
+   },
+   "DHT": {
+    "depth_12q": true,
+    "depth_20q": true,
+    "file": true,
+    "first": "2005-10-13",
+    "last": "2026-08-14",
+    "rows": 5240
+   },
+   "DIS": {
+    "depth_12q": true,
+    "depth_20q": true,
+    "file": true,
+    "first": "1980-03-17",
+    "last": "2026-08-14",
+    "rows": 11696
+   },
+   "DJCO": {
+    "depth_12q": true,
+    "depth_20q": true,
+    "file": true,
+    "first": "1986-06-11",
+    "last": "2026-08-14",
+    "rows": 6035
+   },
+   "DLR": {
+    "depth_12q": true,
+    "depth_20q": true,
+    "file": true,
+    "first": "2004-10-29",
+    "last": "2026-08-14",
+    "rows": 5481
+   },
+   "DLTR": {
+    "depth_12q": true,
+    "depth_20q": true,
+    "file": true,
+    "first": "1995-03-07",
+    "last": "2026-08-14",
+    "rows": 7663
+   },
+   "DMRC": {
+    "depth_12q": true,
+    "depth_20q": true,
+    "file": true,
+    "first": "2008-10-17",
+    "last": "2026-08-14",
+    "rows": 4233
+   },
+   "DOV": {
+    "depth_12q": true,
+    "depth_20q": true,
+    "file": true,
+    "first": "1980-03-17",
+    "last": "2026-08-14",
+    "rows": 11696
+   },
+   "DRI": {
+    "depth_12q": true,
+    "depth_20q": true,
+    "file": true,
+    "first": "1995-05-09",
+    "last": "2026-08-14",
+    "rows": 7866
+   },
+   "DTE": {
+    "depth_12q": true,
+    "depth_20q": true,
+    "file": true,
+    "first": "1980-03-17",
+    "last": "2026-08-14",
+    "rows": 11444
+   },
+   "DUK": {
+    "depth_12q": true,
+    "depth_20q": true,
+    "file": true,
+    "first": "2004-01-23",
+    "last": "2026-08-14",
+    "rows": 5170
+   },
+   "DVA": {
+    "depth_12q": true,
+    "depth_20q": true,
+    "file": true,
+    "first": "1995-10-31",
+    "last": "2026-08-14",
+    "rows": 7745
+   },
+   "DXCM": {
+    "depth_12q": true,
+    "depth_20q": true,
+    "file": true,
+    "first": "2005-04-14",
+    "last": "2026-08-14",
+    "rows": 5368
+   },
+   "EA": {
+    "depth_12q": true,
+    "depth_20q": true,
+    "file": true,
+    "first": "1989-09-20",
+    "last": "2026-08-04",
+    "rows": 9285
+   },
+   "EBAY": {
+    "depth_12q": true,
+    "depth_20q": true,
+    "file": true,
+    "first": "1998-09-24",
+    "last": "2026-08-14",
+    "rows": 7016
+   },
+   "ECL": {
+    "depth_12q": true,
+    "depth_20q": true,
+    "file": true,
+    "first": "1980-03-17",
+    "last": "2026-08-14",
+    "rows": 11192
+   },
+   "ED": {
+    "depth_12q": true,
+    "depth_20q": true,
+    "file": true,
+    "first": "1980-03-17",
+    "last": "2026-08-14",
+    "rows": 11193
+   },
+   "EFX": {
+    "depth_12q": true,
+    "depth_20q": true,
+    "file": true,
+    "first": "1980-03-17",
+    "last": "2026-08-14",
+    "rows": 11675
+   },
+   "EIX": {
+    "depth_12q": true,
+    "depth_20q": true,
+    "file": true,
+    "first": "1980-03-17",
+    "last": "2026-08-14",
+    "rows": 11696
+   },
+   "EME": {
+    "depth_12q": true,
+    "depth_20q": true,
+    "file": true,
+    "first": "1995-01-10",
+    "last": "2026-08-14",
+    "rows": 7842
+   },
+   "EMR": {
+    "depth_12q": true,
+    "depth_20q": true,
+    "file": true,
+    "first": "1980-03-17",
+    "last": "2026-08-14",
+    "rows": 11696
+   },
+   "EOG": {
+    "depth_12q": true,
+    "depth_20q": true,
+    "file": true,
+    "first": "1989-10-04",
+    "last": "2026-08-14",
+    "rows": 9281
+   },
+   "EQIX": {
+    "depth_12q": true,
+    "depth_20q": true,
+    "file": true,
+    "first": "2000-08-11",
+    "last": "2026-08-14",
+    "rows": 6540
+   },
+   "EQR": {
+    "depth_12q": true,
+    "depth_20q": true,
+    "file": true,
+    "first": "1993-08-12",
+    "last": "2026-08-14",
+    "rows": 8055
+   },
+   "ERIE": {
+    "depth_12q": true,
+    "depth_20q": true,
+    "file": true,
+    "first": "1995-10-02",
+    "last": "2026-08-14",
+    "rows": 7750
+   },
+   "ES": {
+    "depth_12q": true,
+    "depth_20q": true,
+    "file": true,
+    "first": "1980-03-17",
+    "last": "2026-08-14",
+    "rows": 11695
+   },
+   "ESE": {
+    "depth_12q": true,
+    "depth_20q": true,
+    "file": true,
+    "first": "1990-10-01",
+    "last": "2026-08-14",
+    "rows": 9028
+   },
+   "ETN": {
+    "depth_12q": true,
+    "depth_20q": true,
+    "file": true,
+    "first": "1980-03-17",
+    "last": "2026-08-14",
+    "rows": 11696
+   },
+   "ETR": {
+    "depth_12q": true,
+    "depth_20q": true,
+    "file": true,
+    "first": "1980-03-17",
+    "last": "2026-08-14",
+    "rows": 11697
+   },
+   "EW": {
+    "depth_12q": true,
+    "depth_20q": true,
+    "file": true,
+    "first": "2000-03-27",
+    "last": "2026-08-14",
+    "rows": 6634
+   },
+   "EXC": {
+    "depth_12q": true,
+    "depth_20q": true,
+    "file": true,
+    "first": "1980-03-17",
+    "last": "2026-08-14",
+    "rows": 11695
+   },
+   "EXPD": {
+    "depth_12q": true,
+    "depth_20q": true,
+    "file": true,
+    "first": "1984-09-26",
+    "last": "2026-08-14",
+    "rows": 10469
+   },
+   "EXR": {
+    "depth_12q": true,
+    "depth_20q": true,
+    "file": true,
+    "first": "2004-08-12",
+    "last": "2026-08-14",
+    "rows": 5536
+   },
+   "FANG": {
+    "depth_12q": true,
+    "depth_20q": true,
+    "file": true,
+    "first": "2012-10-12",
+    "last": "2026-08-14",
+    "rows": 3478
+   },
+   "FAST": {
+    "depth_12q": true,
+    "depth_20q": true,
+    "file": true,
+    "first": "1987-08-20",
+    "last": "2026-08-14",
+    "rows": 9810
+   },
+   "FC": {
+    "depth_12q": true,
+    "depth_20q": true,
+    "file": true,
+    "first": "1992-06-03",
+    "last": "2026-08-14",
+    "rows": 8608
+   },
+   "FDS": {
+    "depth_12q": true,
+    "depth_20q": true,
+    "file": true,
+    "first": "1996-06-28",
+    "last": "2026-08-14",
+    "rows": 7568
+   },
+   "FDX": {
+    "depth_12q": true,
+    "depth_20q": true,
+    "file": true,
+    "first": "1980-03-17",
+    "last": "2026-08-14",
+    "rows": 11445
+   },
+   "FE": {
+    "depth_12q": true,
+    "depth_20q": true,
+    "file": true,
+    "first": "1997-11-10",
+    "last": "2026-08-14",
+    "rows": 7232
+   },
+   "FEIM": {
+    "depth_12q": true,
+    "depth_20q": true,
+    "file": true,
+    "first": "1980-06-18",
+    "last": "2026-08-14",
+    "rows": 11170
+   },
+   "FIS": {
+    "depth_12q": true,
+    "depth_20q": true,
+    "file": true,
+    "first": "2001-06-20",
+    "last": "2026-08-14",
+    "rows": 6324
+   },
+   "FISV": {
+    "depth_12q": true,
+    "depth_20q": true,
+    "file": true,
+    "first": "1986-09-25",
+    "last": "2026-08-14",
+    "rows": 10031
+   },
+   "FIX": {
+    "depth_12q": true,
+    "depth_20q": true,
+    "file": true,
+    "first": "1997-06-27",
+    "last": "2026-08-14",
+    "rows": 7326
+   },
+   "FLG": {
+    "depth_12q": true,
+    "depth_20q": true,
+    "file": true,
+    "first": "1993-11-23",
+    "last": "2026-08-14",
+    "rows": 8226
+   },
+   "FN": {
+    "depth_12q": true,
+    "depth_20q": true,
+    "file": true,
+    "first": "2010-06-25",
+    "last": "2026-08-14",
+    "rows": 4059
+   },
+   "FRT": {
+    "depth_12q": true,
+    "depth_20q": true,
+    "file": true,
+    "first": "1980-03-17",
+    "last": "2026-08-14",
+    "rows": 11646
+   },
+   "FSLR": {
+    "depth_12q": true,
+    "depth_20q": true,
+    "file": true,
+    "first": "2006-11-17",
+    "last": "2026-08-14",
+    "rows": 4964
+   },
+   "FTNT": {
+    "depth_12q": true,
+    "depth_20q": true,
+    "file": true,
+    "first": "2009-11-18",
+    "last": "2026-08-14",
+    "rows": 4209
+   },
+   "GD": {
+    "depth_12q": true,
+    "depth_20q": true,
+    "file": true,
+    "first": "1980-03-17",
+    "last": "2026-08-14",
+    "rows": 11695
+   },
+   "GE": {
+    "depth_12q": true,
+    "depth_20q": true,
+    "file": true,
+    "first": "1980-03-17",
+    "last": "2026-08-14",
+    "rows": 11696
+   },
+   "GEV": {
+    "depth_12q": false,
+    "depth_20q": false,
+    "file": true,
+    "first": "2024-03-27",
+    "last": "2026-08-14",
+    "rows": 598
+   },
+   "GILD": {
+    "depth_12q": true,
+    "depth_20q": true,
+    "file": true,
+    "first": "1992-01-22",
+    "last": "2026-08-14",
+    "rows": 8699
+   },
+   "GLW": {
+    "depth_12q": true,
+    "depth_20q": true,
+    "file": true,
+    "first": "1980-03-17",
+    "last": "2026-08-14",
+    "rows": 11696
+   },
+   "GOOGL": {
+    "depth_12q": true,
+    "depth_20q": true,
+    "file": true,
+    "first": "2004-08-19",
+    "last": "2026-08-14",
+    "rows": 5533
+   },
+   "GS": {
+    "depth_12q": true,
+    "depth_20q": true,
+    "file": true,
+    "first": "1999-05-04",
+    "last": "2026-08-14",
+    "rows": 6861
+   },
+   "HD": {
+    "depth_12q": true,
+    "depth_20q": true,
+    "file": true,
+    "first": "1981-09-22",
+    "last": "2026-08-14",
+    "rows": 11309
+   },
+   "HON": {
+    "depth_12q": true,
+    "depth_20q": true,
+    "file": true,
+    "first": "1980-03-17",
+    "last": "2026-08-14",
+    "rows": 11441
+   },
+   "IDXX": {
+    "depth_12q": true,
+    "depth_20q": true,
+    "file": true,
+    "first": "1991-06-21",
+    "last": "2026-08-14",
+    "rows": 8851
+   },
+   "INSM": {
+    "depth_12q": true,
+    "depth_20q": true,
+    "file": true,
+    "first": "1991-02-15",
+    "last": "2026-08-14",
+    "rows": 8913
+   },
+   "INTC": {
+    "depth_12q": true,
+    "depth_20q": true,
+    "file": true,
+    "first": "1980-03-17",
+    "last": "2026-08-14",
+    "rows": 11699
+   },
+   "INTU": {
+    "depth_12q": true,
+    "depth_20q": true,
+    "file": true,
+    "first": "1993-03-12",
+    "last": "2026-08-14",
+    "rows": 8415
+   },
+   "ISRG": {
+    "depth_12q": true,
+    "depth_20q": true,
+    "file": true,
+    "first": "2000-06-13",
+    "last": "2026-08-14",
+    "rows": 6583
+   },
+   "JNJ": {
+    "depth_12q": true,
+    "depth_20q": true,
+    "file": true,
+    "first": "1980-03-17",
+    "last": "2026-08-14",
+    "rows": 11695
+   },
+   "JPM": {
+    "depth_12q": true,
+    "depth_20q": true,
+    "file": true,
+    "first": "1980-03-17",
+    "last": "2026-08-14",
+    "rows": 11696
+   },
+   "KDP": {
+    "depth_12q": true,
+    "depth_20q": true,
+    "file": true,
+    "first": "2008-04-28",
+    "last": "2026-08-14",
+    "rows": 4604
+   },
+   "KLAC": {
+    "depth_12q": true,
+    "depth_20q": true,
+    "file": true,
+    "first": "1980-10-08",
+    "last": "2026-08-14",
+    "rows": 11040
+   },
+   "KO": {
+    "depth_12q": true,
+    "depth_20q": true,
+    "file": true,
+    "first": "1980-03-17",
+    "last": "2026-08-14",
+    "rows": 11696
+   },
+   "LLY": {
+    "depth_12q": true,
+    "depth_20q": true,
+    "file": true,
+    "first": "1980-03-17",
+    "last": "2026-08-14",
+    "rows": 11442
+   },
+   "LMT": {
+    "depth_12q": true,
+    "depth_20q": true,
+    "file": true,
+    "first": "1995-03-16",
+    "last": "2026-08-14",
+    "rows": 7904
+   },
+   "LRCX": {
+    "depth_12q": true,
+    "depth_20q": true,
+    "file": true,
+    "first": "1984-05-04",
+    "last": "2026-08-14",
+    "rows": 10653
+   },
+   "MCD": {
+    "depth_12q": true,
+    "depth_20q": true,
+    "file": true,
+    "first": "1980-03-17",
+    "last": "2026-08-14",
+    "rows": 11696
+   },
+   "MCHP": {
+    "depth_12q": true,
+    "depth_20q": true,
+    "file": true,
+    "first": "1993-03-19",
+    "last": "2026-08-14",
+    "rows": 8410
+   },
+   "MDLZ": {
+    "depth_12q": true,
+    "depth_20q": true,
+    "file": true,
+    "first": "2001-06-13",
+    "last": "2026-08-14",
+    "rows": 6078
+   },
+   "MELI": {
+    "depth_12q": true,
+    "depth_20q": true,
+    "file": true,
+    "first": "2007-08-10",
+    "last": "2026-08-14",
+    "rows": 4783
+   },
+   "META": {
+    "depth_12q": true,
+    "depth_20q": true,
+    "file": true,
+    "first": "2012-05-18",
+    "last": "2026-08-14",
+    "rows": 3580
+   },
+   "MPWR": {
+    "depth_12q": true,
+    "depth_20q": true,
+    "file": true,
+    "first": "2004-11-19",
+    "last": "2026-08-14",
+    "rows": 5467
+   },
+   "MRK": {
+    "depth_12q": true,
+    "depth_20q": true,
+    "file": true,
+    "first": "1980-03-17",
+    "last": "2026-08-14",
+    "rows": 11696
+   },
+   "MRVL": {
+    "depth_12q": true,
+    "depth_20q": true,
+    "file": true,
+    "first": "2000-06-27",
+    "last": "2026-08-14",
+    "rows": 6573
+   },
+   "MS": {
+    "depth_12q": true,
+    "depth_20q": true,
+    "file": true,
+    "first": "1993-02-23",
+    "last": "2026-08-14",
+    "rows": 8424
+   },
+   "MSFT": {
+    "depth_12q": true,
+    "depth_20q": true,
+    "file": true,
+    "first": "1986-03-13",
+    "last": "2026-08-14",
+    "rows": 10185
+   },
+   "MSTR": {
+    "depth_12q": true,
+    "depth_20q": true,
+    "file": true,
+    "first": "1998-06-11",
+    "last": "2026-08-14",
+    "rows": 7089
+   },
+   "MU": {
+    "depth_12q": true,
+    "depth_20q": true,
+    "file": true,
+    "first": "2009-12-30",
+    "last": "2026-08-14",
+    "rows": 4181
+   },
+   "NBIS": {
+    "depth_12q": true,
+    "depth_20q": true,
+    "file": true,
+    "first": "2021-05-18",
+    "last": "2026-08-14",
+    "rows": 1317
+   },
+   "NFLX": {
+    "depth_12q": true,
+    "depth_20q": true,
+    "file": true,
+    "first": "2002-05-23",
+    "last": "2026-08-14",
+    "rows": 6097
+   },
+   "NKE": {
+    "depth_12q": true,
+    "depth_20q": true,
+    "file": true,
+    "first": "1980-12-02",
+    "last": "2026-08-14",
+    "rows": 11516
+   },
+   "NOK": {
+    "depth_12q": true,
+    "depth_20q": true,
+    "file": true,
+    "first": "2021-05-18",
+    "last": "2026-08-14",
+    "rows": 1317
+   },
+   "NOW": {
+    "depth_12q": true,
+    "depth_20q": true,
+    "file": true,
+    "first": "2012-06-29",
+    "last": "2026-08-14",
+    "rows": 3551
+   },
+   "NVDA": {
+    "depth_12q": true,
+    "depth_20q": true,
+    "file": true,
+    "first": "1999-01-22",
+    "last": "2026-08-14",
+    "rows": 6934
+   },
+   "NXPI": {
+    "depth_12q": true,
+    "depth_20q": true,
+    "file": true,
+    "first": "2010-08-06",
+    "last": "2026-08-14",
+    "rows": 4030
+   },
+   "ORCL": {
+    "depth_12q": true,
+    "depth_20q": true,
+    "file": true,
+    "first": "1986-03-12",
+    "last": "2026-08-14",
+    "rows": 10186
+   },
+   "ORLY": {
+    "depth_12q": true,
+    "depth_20q": true,
+    "file": true,
+    "first": "1993-04-23",
+    "last": "2026-08-14",
+    "rows": 8383
+   },
+   "OXY": {
+    "depth_12q": true,
+    "depth_20q": true,
+    "file": true,
+    "first": "1980-03-17",
+    "last": "2026-08-14",
+    "rows": 11696
+   },
+   "PANW": {
+    "depth_12q": true,
+    "depth_20q": true,
+    "file": true,
+    "first": "2012-07-20",
+    "last": "2026-08-14",
+    "rows": 3537
+   },
+   "PAYX": {
+    "depth_12q": true,
+    "depth_20q": true,
+    "file": true,
+    "first": "1983-08-26",
+    "last": "2026-08-14",
+    "rows": 10569
+   },
+   "PCAR": {
+    "depth_12q": true,
+    "depth_20q": true,
+    "file": true,
+    "first": "1980-03-17",
+    "last": "2026-08-14",
+    "rows": 11694
+   },
+   "PFE": {
+    "depth_12q": true,
+    "depth_20q": true,
+    "file": true,
+    "first": "1980-03-17",
+    "last": "2026-08-14",
+    "rows": 11696
+   },
+   "PLTR": {
+    "depth_12q": true,
+    "depth_20q": true,
+    "file": true,
+    "first": "2020-09-30",
+    "last": "2026-08-14",
+    "rows": 1475
+   },
+   "QCOM": {
+    "depth_12q": true,
+    "depth_20q": true,
+    "file": true,
+    "first": "1991-12-13",
+    "last": "2026-08-14",
+    "rows": 8729
+   },
+   "REGN": {
+    "depth_12q": true,
+    "depth_20q": true,
+    "file": true,
+    "first": "1991-04-02",
+    "last": "2026-08-14",
+    "rows": 8908
+   },
+   "RIOT": {
+    "depth_12q": true,
+    "depth_20q": true,
+    "file": true,
+    "first": "2012-12-20",
+    "last": "2026-08-14",
+    "rows": 3432
+   },
+   "ROP": {
+    "depth_12q": true,
+    "depth_20q": true,
+    "file": true,
+    "first": "1992-02-13",
+    "last": "2026-08-14",
+    "rows": 8681
+   },
+   "ROST": {
+    "depth_12q": true,
+    "depth_20q": true,
+    "file": true,
+    "first": "1985-08-08",
+    "last": "2026-08-14",
+    "rows": 10334
+   },
+   "RTX": {
+    "depth_12q": true,
+    "depth_20q": true,
+    "file": true,
+    "first": "1980-03-17",
+    "last": "2026-08-14",
+    "rows": 11696
+   },
+   "SBUX": {
+    "depth_12q": true,
+    "depth_20q": true,
+    "file": true,
+    "first": "1992-06-26",
+    "last": "2026-08-14",
+    "rows": 8342
+   },
+   "SMCI": {
+    "depth_12q": true,
+    "depth_20q": true,
+    "file": true,
+    "first": "2007-03-29",
+    "last": "2026-08-14",
+    "rows": 4876
+   },
+   "SNPS": {
+    "depth_12q": true,
+    "depth_20q": true,
+    "file": true,
+    "first": "1992-02-26",
+    "last": "2026-08-14",
+    "rows": 8679
+   },
+   "STX": {
+    "depth_12q": true,
+    "depth_20q": true,
+    "file": true,
+    "first": "2004-01-23",
+    "last": "2026-08-14",
+    "rows": 5671
+   },
+   "T": {
+    "depth_12q": true,
+    "depth_20q": true,
+    "file": true,
+    "first": "1983-11-21",
+    "last": "2026-08-14",
+    "rows": 10765
+   },
+   "TGT": {
+    "depth_12q": true,
+    "depth_20q": true,
+    "file": true,
+    "first": "1980-03-17",
+    "last": "2026-08-14",
+    "rows": 11442
+   },
+   "TMUS": {
+    "depth_12q": true,
+    "depth_20q": true,
+    "file": true,
+    "first": "2007-04-19",
+    "last": "2026-08-14",
+    "rows": 4233
+   },
+   "TRI": {
+    "depth_12q": true,
+    "depth_20q": true,
+    "file": true,
+    "first": "2002-06-12",
+    "last": "2026-08-14",
+    "rows": 6081
+   },
+   "TSEM": {
+    "depth_12q": true,
+    "depth_20q": true,
+    "file": true,
+    "first": "2021-05-18",
+    "last": "2026-08-14",
+    "rows": 1317
+   },
+   "TSLA": {
+    "depth_12q": true,
+    "depth_20q": true,
+    "file": true,
+    "first": "2010-06-29",
+    "last": "2026-08-14",
+    "rows": 4057
+   },
+   "TSM": {
+    "depth_12q": true,
+    "depth_20q": true,
+    "file": true,
+    "first": "2021-05-18",
+    "last": "2026-08-14",
+    "rows": 1317
+   },
+   "TTWO": {
+    "depth_12q": true,
+    "depth_20q": true,
+    "file": true,
+    "first": "1997-04-15",
+    "last": "2026-08-14",
+    "rows": 7359
+   },
+   "TXN": {
+    "depth_12q": true,
+    "depth_20q": true,
+    "file": true,
+    "first": "2012-01-03",
+    "last": "2026-08-14",
+    "rows": 3675
+   },
+   "VRSK": {
+    "depth_12q": true,
+    "depth_20q": true,
+    "file": true,
+    "first": "2009-10-07",
+    "last": "2026-08-14",
+    "rows": 4239
+   },
+   "VRT": {
+    "depth_12q": true,
+    "depth_20q": true,
+    "file": true,
+    "first": "2021-06-11",
+    "last": "2026-08-14",
+    "rows": 1299
+   },
+   "VRTX": {
+    "depth_12q": true,
+    "depth_20q": true,
+    "file": true,
+    "first": "1991-07-24",
+    "last": "2026-08-14",
+    "rows": 8579
+   },
+   "VST": {
+    "depth_12q": true,
+    "depth_20q": true,
+    "file": true,
+    "first": "2016-10-05",
+    "last": "2026-08-14",
+    "rows": 2478
+   },
+   "VZ": {
+    "depth_12q": true,
+    "depth_20q": true,
+    "file": true,
+    "first": "1983-11-21",
+    "last": "2026-08-14",
+    "rows": 10762
+   },
+   "WBD": {
+    "depth_12q": true,
+    "depth_20q": true,
+    "file": true,
+    "first": "2005-07-21",
+    "last": "2026-08-14",
+    "rows": 4426
+   },
+   "WDC": {
+    "depth_12q": true,
+    "depth_20q": true,
+    "file": true,
+    "first": "2012-06-01",
+    "last": "2026-08-14",
+    "rows": 3571
+   },
+   "WFC": {
+    "depth_12q": true,
+    "depth_20q": true,
+    "file": true,
+    "first": "1980-03-17",
+    "last": "2026-08-14",
+    "rows": 11696
+   },
+   "WMT": {
+    "depth_12q": true,
+    "depth_20q": true,
+    "file": true,
+    "first": "1980-03-17",
+    "last": "2026-08-14",
+    "rows": 11196
+   },
+   "XOM": {
+    "depth_12q": true,
+    "depth_20q": true,
+    "file": true,
+    "first": "1980-03-17",
+    "last": "2026-08-14",
+    "rows": 11197
+   }
+  }
+ },
+ "window_quarters": 20
+}
