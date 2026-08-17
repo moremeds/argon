@@ -27,9 +27,29 @@ from uw_scan.api.schemas import (
 from uw_scan.config import Settings
 from uw_scan.storage.repository import Repository, WatchlistCardRow
 from uw_scan.storage.watchlist_chain import WatchlistChainRepository
-from uw_scan.watchlist_taxonomy import LAYERS
+from uw_scan.watchlist_taxonomy import LAYERS, layer_chains_for, layer_for_chain
 
 router = APIRouter()
+
+
+def _sync_chains(repo: Repository, ticker: str) -> None:
+    """Keep one ticker's chain memberships true after a watchlist mutation.
+
+    Without this, adding a ticker left it in no chain at all (invisible to every
+    filter until somebody ran the seed script by hand), and changing a ticker's
+    sector left the old inherited row behind — which is how NOV kept answering
+    the Healthcare filter after it was corrected to Energy.
+    """
+    WatchlistChainRepository(repo.conn, schema=repo._schema).sync_ticker_memberships(
+        ticker, layer_chains_for(ticker), layer_for_chain()
+    )
+    # WatchlistChainRepository leaves commits to its caller (the seed script does
+    # the same). The watchlist write above has already committed, so this is a
+    # second commit rather than one transaction — a ticker can briefly hold its
+    # new sector and its old chains. Both writes are idempotent and a re-run
+    # converges, which is worth more here than reworking the commit convention
+    # every other watchlist mutation already follows.
+    repo.conn.commit()
 
 
 def _card_to_response(
@@ -218,9 +238,7 @@ def get_watchlist_chains(
     Index & Macro and M7 deliberately, so alphabetising here would silently
     undo that.
     """
-    counts = WatchlistChainRepository(
-        repo.conn, schema=repo._schema
-    ).counts_by_chain()
+    counts = WatchlistChainRepository(repo.conn, schema=repo._schema).counts_by_chain()
     return WatchlistChainsResponse(
         chains=[
             WatchlistChainInfo(
@@ -248,6 +266,7 @@ def post_watchlist(
         sort_rank=body.sort_rank,
         pinned=body.pinned,
     )
+    _sync_chains(repo, body.ticker.upper())
     return {"ok": True, "ticker": body.ticker.upper()}
 
 
@@ -270,4 +289,8 @@ def patch_watchlist(
         hot=body.hot,
         sort_rank=body.sort_rank,
     )
+    # Only a sector change can invalidate memberships. Toggling pinned/hot must
+    # not pay for a membership rewrite.
+    if body.sector is not None:
+        _sync_chains(repo, ticker.upper())
     return {"ok": True, "ticker": ticker.upper()}

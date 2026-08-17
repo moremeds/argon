@@ -386,15 +386,33 @@ def memberships() -> list[tuple[str, str, str]]:
     ]
 
 
-def chains_for(ticker: str) -> list[str]:
-    """Every chain a ticker belongs to, in layer order."""
+def layer_chains_for(ticker: str) -> list[tuple[str, str]]:
+    """(layer_key, chain) for every chain a ticker belongs to, in layer order.
+
+    The membership table stores `layer` alongside `chain`, so any caller writing
+    rows for one ticker needs both halves.
+    """
     t = ticker.upper()
     return [
-        chain
+        (layer.key, chain)
         for layer in LAYERS
         for chain, tickers in layer.chains.items()
         if t in tickers
     ]
+
+
+def chains_for(ticker: str) -> list[str]:
+    """Every chain a ticker belongs to, in layer order."""
+    return [chain for _, chain in layer_chains_for(ticker)]
+
+
+def layer_for_chain() -> dict[str, str]:
+    """chain -> layer key. For callers holding a chain name that need its layer.
+
+    Chain names are unique across layers by construction (the membership PK
+    depends on it), so this mapping is total and unambiguous.
+    """
+    return {chain: layer.key for layer in LAYERS for chain in layer.chains}
 
 
 def all_chains() -> list[tuple[str, str, str]]:

@@ -7,6 +7,28 @@ version in lockstep (enforced by `scripts/release/version_sync_check.py`).
 
 ## [Unreleased]
 
+### Fixed
+
+- **Chain memberships no longer strand a tag the data has moved on from.**
+  Inheriting a ticker's chain from `watchlist.sector` only ever *filled gaps* —
+  it never retracted — so correcting a ticker's sector left the old chain
+  asserted forever, and no re-seed could clear it. That is why `NOV` kept
+  answering the `Healthcare` filter after it was corrected to `Energy`: a
+  re-seed added `Energy` and left `Healthcare` in place, showing the name under
+  both. `inherit_sector_memberships` now retracts inherited rows the sector no
+  longer justifies before filling, scoped to `source='sector'` so taxonomy rows
+  keep their own owner.
+- **Adding a ticker, or changing its sector, now updates its chains.**
+  `POST /watchlist` wrote no membership rows at all, so a ticker added through
+  the web UI was invisible to every chain filter until somebody ran the seed
+  script by hand; `PATCH /watchlist/{ticker}` could change `sector` without
+  touching memberships, which is the mutation that stranded `NOV` and `ELV`.
+  Both paths now sync that one ticker's rows. Deliberately per-ticker rather
+  than a whole-table re-seed: memberships are rebuilt from the taxonomy the
+  *running container* shipped with, so between a merge and a release a
+  full rewrite triggered by an unrelated edit would quietly restore the old
+  taxonomy.
+
 ## [0.12.2] — 2026-08-17
 
 
