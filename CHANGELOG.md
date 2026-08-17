@@ -7,6 +7,9 @@ version in lockstep (enforced by `scripts/release/version_sync_check.py`).
 
 ## [Unreleased]
 
+## [0.12.3] — 2026-08-17
+
+
 ### Fixed
 
 - **Chain memberships no longer strand a tag the data has moved on from.**
@@ -28,7 +31,6 @@ version in lockstep (enforced by `scripts/release/version_sync_check.py`).
   *running container* shipped with, so between a merge and a release a
   full rewrite triggered by an unrelated edit would quietly restore the old
   taxonomy.
-
 ## [0.12.2] — 2026-08-17
 
 
