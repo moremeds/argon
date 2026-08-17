@@ -499,3 +499,91 @@ Proposed minimal fix (not yet implemented): clamp each dataset's audit window to
 `max(start, first_row_date)` and surface `first_seen` + the clamped start in
 `CoverageSummary` / `per_dataset_summary`. Clamp **visibly**, never silently — a
 truncated table would otherwise report a recent first row and hide real loss.
+
+---
+
+## 2026-08-17 (later) — detached execution, and a correction to the 978
+
+### The heal now runs from the mini, not from a session
+
+Two heal runs (93, 98) died mid-flight when the operator's SSH session dropped.
+Post-mortem: **they had not actually lost work.** Both had driven every planned
+item to a terminal state before the connection went; only the `finish_run` call
+was lost, leaving the rows stranded in `status='running'`. `resume_run` already
+calls `requeue_running`, so nothing was unrecoverable — but a run that reports
+`running` forever is indistinguishable from one that is genuinely stuck.
+
+Fixed by moving execution off the session entirely:
+
+| Path | Where it lives | Survives |
+|---|---|---|
+| `~/argon-heal/heal.sh` | mini host | SSH drop (nohup, reparents to PID 1) |
+| `~/argon-heal/logs/*.log` | mini host | container recreate (Watchtower pull) |
+| `uw_scan.data_gap_*` | Postgres | everything — this is the durable trace |
+
+The log deliberately lives on the **host**, not in the container: the only bind
+mount is `/lake`, so a Watchtower image pull that recreates containers would
+otherwise take the log with it. `heal.sh` re-`docker cp`s the driver on every
+invocation for the same reason.
+
+    ssh macmini 'nohup ~/argon-heal/heal.sh audit 2026-01-01 2026-08-17 \
+                   >/dev/null 2>&1 </dev/null &'
+    ssh macmini 'tail -f ~/argon-heal/latest.log'
+
+Verified detached: the supervisor shows `PPID 1`, i.e. it has been reparented to
+launchd and the SSH session is no longer in its ancestry.
+
+### The 978 was an undercount — the honest number is 585
+
+Run 91 (08:35) and run 99 (15:42) audited the identical window and disagreed.
+The cause is not drift: **run 91 ran against the old single-witness session
+spine; run 99 ran against this branch's two-witness spine**
+(`market_tide_sentiment_daily` ∪ SPY `daily_ohlc`). The self-blinding described
+above is exactly what the second witness exists to defeat, so run 99 can see
+sessions that UW never captured and run 91 structurally could not.
+
+So the movement is not "we healed 4,312 items and the count only fell by 393."
+It is two different measurements:
+
+| | run 91 (blinded spine) | run 99 (two-witness spine) |
+|---|---|---|
+| total gaps | 230,934 | 227,407 |
+| pre-table | 141,731 | 141,731 |
+| pre-membership | 87,875 | 85,091 |
+| **REAL** | **978** | **585** |
+
+The 978 figure recorded earlier in this document is superseded. It was measured
+with an instrument that could not see the sessions it was measuring.
+
+### What the 585 are
+
+    exposures_summary              573   2026-05-12..05-20
+    pcr_history                      6   scattered, 07-09..08-12
+    option_chain_per_strike          3   06-24, 06-29, 06-30
+    uw_intraday_option_flow_bars     3   JNK — expected no_data (bond ETF)
+
+`exposures_summary` dominates and is newly visible. Its shape is not an outage:
+
+    distinct tickers per market_date
+      2026-05-12  109      <- dataset birth, bulk
+      2026-05-13   86
+      2026-05-14   86
+      2026-05-15   86
+      2026-05-18    0      <- three sessions with zero rows
+      2026-05-19    0
+      2026-05-20    0
+      2026-05-21  102      <- 74 tickers first appear here; steady state
+
+This is the dataset's first ten days, before it stabilised. It is still loss by
+the audit's definition (the sessions existed, the tickers were on the watchlist,
+the rows are absent), and `pipeline_replay` can refill it at 2 UW calls/item.
+
+### Caveat on the `first_row` heuristic
+
+The loss/never-captured classifier derives each dataset's birth from a
+table-global `min(date_col)`. That is a **lower** bound per ticker: one
+early-adopter row drags the whole table's birth date back, so every other
+ticker's pre-existence window gets scored as REAL. It therefore over-reports
+loss for datasets rolled out ticker-by-ticker — which is precisely
+`exposures_summary`'s 05-12..05-20 window. Treat the REAL bucket as an upper
+bound until the clamp proposed above stores a per-ticker `first_seen`.
