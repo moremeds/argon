@@ -7,6 +7,33 @@ version in lockstep (enforced by `scripts/release/version_sync_check.py`).
 
 ## [Unreleased]
 
+### Fixed
+
+- **A finished or killed heal run no longer wedges the nightly healer forever.**
+  The nightly job skips itself while another `execute` run is `running`, and
+  nothing ever cleared that flag. Two ways in: a run whose process died (SSH
+  drop, Watchtower container recreate, OOM) never reached `finish_run`; and
+  `resume_run` — the ordinary way an operator drains a backfill — never called
+  it *at all*, so even a fully successful resume left the row `running`. Either
+  way every subsequent night returned `{"skipped": "run_active"}` silently. Four
+  such runs disabled the healer for a week in 2026-08 while the enable flag,
+  cron, adapters and migrations were all correct. `resume_run` now closes its
+  run, and the nightly job reaps rows whose process is gone — cancelling them
+  and requeuing the items they stranded in `running`, a status
+  `claim_next_items` skips and which were therefore unhealable. Both fixes in
+  one atomic statement each, so a crash mid-reap cannot orphan items in a run
+  the reaper no longer matches.
+- **Manual heals now take the healer's single-flight lock.** `execute_into_run`
+  and `resume_run` hold `pg_try_advisory_lock(92010)` — the lock the nightly job
+  and the freshness autoheal already used — and raise `HealerBusy` (CLI exit 2)
+  rather than racing. A Postgres session lock is released when the process dies,
+  which is exactly the liveness guarantee a `status='running'` row does not
+  give; without it the new reaper could cancel a *live* manual heal, and the
+  nightly would then re-audit the same still-missing gaps into a fresh run and
+  heal them alongside it, double-charging the provider budget. Staleness is
+  measured by progress (last item driven to a verdict) rather than age, so the
+  heuristic stays conservative even if that ordering is ever loosened.
+
 ## [0.12.3] — 2026-08-17
 
 

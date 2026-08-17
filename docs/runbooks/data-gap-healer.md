@@ -45,6 +45,37 @@ re-runnable datasets (macro/FRED/rates/gold + DB rollups), writes the report,
 and refreshes `/api/health`. Single-flight via an advisory lock; it **skips if a
 prior healer run is still `running`** so it never fights an in-flight backfill.
 
+Single-flight is layered, and the order matters:
+
+1. **The advisory lock (`92010`) is the liveness mechanism.** Every path that
+   spends provider budget holds it — the nightly job, the freshness autoheal, and
+   (new) `execute_into_run` / `resume_run`, so `scripts/backfill/data_gap_healer.py
+   execute|resume` now refuses with `HealerBusy` and **exit code 2** rather than
+   racing another heal. Postgres releases a session lock when the process dies, so
+   this can never go stale.
+2. **The `status='running'` row check** catches what a lock cannot: it is not
+   session-scoped, so it outlives the process that wrote it.
+3. **The stale-run reaper** clears rows whose process is gone — any `execute` run
+   with **no item verified for 6 hours** — cancelling it and requeuing the items it
+   stranded in `running` (a status `claim_next_items` skips, so they were
+   unhealable). Because step 1 already proves no live heal is running by the time
+   this executes, every row it finds is genuinely a corpse. Logs at WARNING and
+   stamps `summary_jsonb.cancelled_reason`.
+
+Without step 3, a killed run wedged the nightly job **forever** — it silently
+disabled the healer for a week in 2026-08. `resume` also closes its run now
+(`status='complete'`, appending to `summary_jsonb.resumes`); it never used to, so
+even a fully *successful* resume left a `running` row behind and wedged the same
+guard through the ordinary operator path, not just the crash path.
+
+```sql
+-- did the reaper fire, or is something genuinely live?
+SELECT id, mode, status, started_at,
+       (SELECT max(verified_at) FROM data_gap_items i WHERE i.run_id = r.id) AS last_progress
+  FROM data_gap_runs r
+ WHERE status = 'running' AND mode = 'execute';
+```
+
 ## Manual commands
 
 ```bash

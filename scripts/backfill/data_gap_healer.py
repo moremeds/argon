@@ -32,6 +32,7 @@ from uw_scan.storage.repository import Repository
 # re-exported so the importlib-loaded CLI tests can call the core directly
 from uw_scan.worker.jobs.data_gap_healer import (  # noqa: F401
     OUTPUT_DIR,
+    HealerBusy,
     audit_into_run,
     execute_into_run,
     finalize_run,
@@ -317,7 +318,15 @@ def build_parser() -> argparse.ArgumentParser:
 def main() -> int:
     args = build_parser().parse_args()  # before Settings so --help needs no env
     settings = Settings.from_env()
-    return args.func(args, settings)
+    try:
+        return args.func(args, settings)
+    except HealerBusy as exc:
+        # The nightly job, the freshness autoheal, or another operator holds the
+        # single-flight lock. Refusing is the point: racing it would re-audit the
+        # same still-missing gaps and heal them twice, double-charging the
+        # provider budget. Exit 2 so a wrapper can tell "busy" from "broken".
+        logger.error("refusing to start: %s", repr(exc))
+        return 2
 
 
 if __name__ == "__main__":

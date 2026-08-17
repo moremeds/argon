@@ -587,3 +587,132 @@ ticker's pre-existence window gets scored as REAL. It therefore over-reports
 loss for datasets rolled out ticker-by-ticker — which is precisely
 `exposures_summary`'s 05-12..05-20 window. Treat the REAL bucket as an upper
 bound until the clamp proposed above stores a per-ticker `first_seen`.
+
+---
+
+## 2026-08-17 (evening) — why the automation was actually broken
+
+v0.12.2 deployed to the mini at 17:23 HKT; the replay adapters, `grg.run(as_of=)`
+and the two-witness spine are now native (no `docker cp`). But the nightly job
+still would not have run, for a reason unrelated to any of that.
+
+### A killed manual run wedges the nightly healer forever
+
+`data_gap_healer_job` gates on `_another_run_active(gap)`:
+
+    SELECT ... FROM data_gap_runs WHERE status = 'running' AND mode = 'execute' LIMIT 1
+
+**There is no staleness timeout.** A manual `execute`/`resume` killed by an SSH
+drop or a container recreate never reaches `finish_run`, so its row stays
+`running` and every subsequent nightly job returns `{"skipped": "run_active"}` —
+silently, with no alert and no log line anyone was reading.
+
+Found on the mini: runs **78, 80, 87, 88**, stuck since 2026-08-16 23:36–00:19,
+holding **36,251** open items between them. The nightly healer had been skipping
+itself ever since. Enabled flag, cron expression, adapters and migrations were
+all correct the whole time.
+
+Cleared by requeuing each run's orphaned items to `planned` and setting the run
+to `cancelled` — not `complete`, because it did not complete, and `cancelled` is
+already in the schema's CHECK constraint while `_another_run_active` matches only
+`running`. Verified against the real predicate rather than by reading the runs
+table, which is what caught it: the first pass cancelled only run 101 and the
+gate still returned `True`, because the status view was scoped to `id >= 90`.
+
+    enabled:                 True
+    _another_run_active():   False
+    advisory lock free:      True
+    => tonight 20:00 ET fires: True
+
+This is the strongest argument yet for the healer owning its own recovery: a
+`running` run older than N hours should be auto-cancelled at job start, exactly
+as `resume_run` already auto-requeues `running` *items*. The item-level recovery
+exists; the run-level one does not.
+
+### The budget estimate is calibrated for un-scoped runs only
+
+`RequestBudget` charges `est_per_item`, never a measured call count. For
+`pipeline_replay` that estimate assumes all **nine** sibling datasets are present
+as items — the code says so:
+
+> `est_per_item=2 x 9 items = ~18 estimated against ~15 actual calls;
+> over-estimating is the safe direction for a budget governor`
+
+One `run_single_stock(market_date=...)` writes all nine tables and the other
+eight items cost nothing. So `--datasets exposures_summary` — one of the nine —
+buys the full ~15-call replay for a charge of 2.
+
+Measured: run 100 healed 823 items and reported `budget_spent uw=1646`, while
+UW's own account counter rose **+14,253** that hour, of which `full_scan`
+accounted for 2,908. Real cost ≈ 823 × ~15 ≈ 12,300.
+
+**Never dataset-scope a heal for a `pipeline_replay` dataset.** Scope by date
+window; the un-scoped nightly job is the calibrated case. And treat UW's
+`MAX(official_daily_count)` as ground truth for spend — our own telemetry showed
+~4,100 requests on a day UW counted ~32,000.
+
+### Where today ended
+
+    healed          5,882 items (runs 92-101)
+    no_data            66
+    requeued        36,251 items returned to 'planned' from the 4 wedged runs
+    UW spend        32,854 (UW's counter) against a 50,000 operator budget
+
+---
+
+## 2026-08-17 (late) — the run-level recovery now exists
+
+The gap named two paragraphs up is closed. `data_gap_healer_job` reaps stale
+`execute` runs before it consults `_another_run_active`, cancelling them and
+requeuing the items they stranded in `running`.
+
+The predicate is deliberately **progress, not age**:
+
+    COALESCE(max(item.verified_at over the run), run.started_at) < now() - 6h
+
+Age alone cannot separate a 30-hour live manual backfill from a 30-hour corpse,
+so an age threshold has to choose which failure to accept — reap live runs, or
+leave wedges standing for extra nights. The last-verified-item stamp separates
+them, which is what lets the window be short (6h) without false positives. A
+container recreate at 20:30 therefore costs one night, not two.
+
+Scope kept narrow on purpose: `mode='execute'` only, matching the gate's own
+predicate. A stuck `audit` run blocks nothing, and cancelling one mid-flight
+would be pure collateral damage.
+
+Covered by `tests/integration/worker/test_data_gap_healer_scheduler.py`:
+reaped-and-unwedged, spares-live-runs (young / still-verifying / audit-mode),
+and the job reaping before it checks the guard.
+
+### Review addendum — the reaper needed a lock under it
+
+The tribunal (Codex + Gemini, both at ~1.0 confidence) rejected the safety
+argument above. It was wrong in a specific way worth recording, because the
+mistake is easy to repeat.
+
+I checked that a reaped run's requeued items cannot be *claimed* by anyone else:
+`claim_next_items` filters on `run_id`, and the nightly job audits into a NEW run
+id, so no second process ever touches those rows. True — and irrelevant. The
+overlap is not on the item row, it is on the **underlying gap**. If the reaped run
+is actually alive and still healing gap G, the nightly's fresh audit sees G still
+missing in the warm store, writes its own item for G, and heals it a second time.
+Same gap, two runs, two provider charges.
+
+The row-based guard had been preventing exactly that. Reaping deliberately
+removes it, so reaping had to be paired with something that proves liveness. The
+codebase already had the answer, in `data_freshness_monitor`:
+
+> A bare `_another_run_active()` SELECT is check-then-act — it can't see a nightly
+> run that starts a moment later, so two `execute_into_run` callers could both
+> proceed and double-spend the same provider budget in the same window.
+
+That module takes `pg_try_advisory_lock(92010)` before healing. The CLI never did.
+Now `execute_into_run` and `resume_run` take it too, which makes the layering
+honest: **the lock is the liveness mechanism** (Postgres frees it when the process
+dies), the `status='running'` row is the durable record a lock cannot provide, and
+the reaper only ever runs once the lock is held — so every `running` row it sees
+is genuinely a corpse, not a slow worker.
+
+The general lesson: a persisted flag is not a mutex. It has no owner and no
+expiry, so it can only ever be a *record* of intent. If you need to know whether
+something is alive, ask something that dies with it.
