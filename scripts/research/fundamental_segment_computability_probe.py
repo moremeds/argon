@@ -43,6 +43,11 @@ from uw_scan.config import Settings  # noqa: E402
 
 OUT = Path("docs/research/2026-08-12-fundamental-segment-computability")
 
+#: `--universe` widens the cohort to every ingested ticker and writes HERE, so
+#: the committed core-25 verdict keeps reproducing byte-for-byte from the
+#: no-argument command its VERDICT.md names.
+WIDE_OUT = Path("docs/research/2026-08-13-fundamental-segment-computability-wide")
+
 #: The cohort the spec's availability claim was made over.
 CORE_25 = (
     "NVDA AMD AVGO MRVL TSM ASML AMAT MU MSFT GOOGL AMZN META ORCL ANET VRT "
@@ -64,6 +69,22 @@ def fetch(client: httpx.Client, ticker: str, key: str) -> list[dict[str, Any]] |
     if r.status_code != 200:
         return None
     return (r.json().get("data") or {}).get("rev_breakdown")
+
+
+def universe_tickers(settings: Settings) -> list[str]:
+    """Every ticker the statement store actually holds.
+
+    Read from `fundamental_statement_obs` rather than `fundamental_universe`:
+    membership in the universe table does not mean a filing was ever ingested,
+    and a name with no statements cannot carry a concentration row either way.
+    """
+    import psycopg
+
+    with psycopg.connect(settings.db_dsn()) as conn, conn.cursor() as cur:
+        cur.execute(
+            "SELECT DISTINCT ticker FROM uw_scan.fundamental_statement_obs ORDER BY 1"
+        )
+        return [r[0] for r in cur.fetchall()]
 
 
 def verdict_for(rows: list[dict[str, Any]], period: str, group: str) -> dict[str, Any]:
@@ -120,15 +141,21 @@ def verdict_for(rows: list[dict[str, Any]], period: str, group: str) -> dict[str
 def main() -> int:
     # SecretStr — str() on it yields "**********", which the API rejects as a
     # malformed token rather than as a wrong one. Unwrap explicitly.
-    secret = Settings.from_env().api_key
+    settings = Settings.from_env()
+    secret = settings.api_key
     key = secret.get_secret_value() if secret else os.environ.get("UW_SCAN_API_KEY")
     if not key:
         print("UW_SCAN_API_KEY not set", file=sys.stderr)
         return 1
 
+    wide = "--universe" in sys.argv
+    cohort = universe_tickers(settings) if wide else CORE_25
+    out = WIDE_OUT if wide else OUT
+    print(f"cohort: {len(cohort)} tickers -> {out}")
+
     results: dict[str, Any] = {}
     with httpx.Client() as client:
-        for t in CORE_25:
+        for t in cohort:
             rows = fetch(client, t, key)
             if not rows:
                 results[t] = {"error": "no rev_breakdown rows"}
@@ -166,7 +193,7 @@ def main() -> int:
         return c
 
     summary = {
-        "tickers": len(CORE_25),
+        "tickers": len(cohort),
         "tolerance": TOLERANCE,
         "segment_like": dict(tally(("product",))),
         "geography_like": dict(tally(("country", "continent"))),
@@ -174,14 +201,15 @@ def main() -> int:
     print("\nsegment:   ", summary["segment_like"])
     print("geography: ", summary["geography_like"])
 
-    OUT.mkdir(parents=True, exist_ok=True)
-    (OUT / "computability.json").write_text(
+    out.mkdir(parents=True, exist_ok=True)
+    (out / "computability.json").write_text(
         json.dumps(
             {
                 "probe": "UW /fundamental-breakdown rev_breakdown computability",
                 "reproduce": (
                     "uv run python scripts/research/"
                     "fundamental_segment_computability_probe.py"
+                    + (" --universe" if wide else "")
                 ),
                 "summary": summary,
                 "by_ticker": results,
@@ -191,7 +219,7 @@ def main() -> int:
         )
         + "\n"
     )
-    print(f"\nwrote {OUT / 'computability.json'}")
+    print(f"\nwrote {out / 'computability.json'}")
     return 0
 
 

@@ -1,0 +1,88 @@
+{
+ "buyers": [
+  "AMZN",
+  "APLD",
+  "BABA",
+  "BTDR",
+  "CIFR",
+  "CLSK",
+  "CORZ",
+  "CRWV",
+  "GLXY",
+  "GOOGL",
+  "HUT",
+  "IBM",
+  "IREN",
+  "MSFT",
+  "NBIS",
+  "ORCL",
+  "WULF"
+ ],
+ "capex_lag_days": 90,
+ "limitation": "massive caps daily history at ~5y on our tier, so the sample starts 2021-08 and sits entirely inside the AI capex boom. This cannot distinguish 'works' from 'worked in one expansion'.",
+ "n_suppliers": 234,
+ "portfolios": [
+  {
+   "hit_rate": 0.4,
+   "max_drawdown_pct": -77.22,
+   "mean_monthly_pct": -1.538,
+   "n_months": 35,
+   "name": "A_buyer_return_shock",
+   "quarter_gate_passed": false,
+   "sharpe_annualised": -0.786
+  },
+  {
+   "hit_rate": 0.514,
+   "max_drawdown_pct": -66.51,
+   "mean_monthly_pct": -1.439,
+   "n_months": 35,
+   "name": "B_capex_surprise_shock",
+   "quarter_gate_passed": false,
+   "sharpe_annualised": -0.733
+  },
+  {
+   "hit_rate": 0.457,
+   "max_drawdown_pct": -32.46,
+   "mean_monthly_pct": 0.378,
+   "n_months": 35,
+   "name": "CTRL_sensitivity_only",
+   "quarter_gate_passed": false,
+   "sharpe_annualised": 0.189
+  },
+  {
+   "hit_rate": 0.486,
+   "max_drawdown_pct": -20.57,
+   "mean_monthly_pct": 0.232,
+   "n_months": 35,
+   "name": "CTRL_shuffled_owners",
+   "quarter_gate_passed": false,
+   "sharpe_annualised": 0.221
+  },
+  {
+   "hit_rate": 0.647,
+   "max_drawdown_pct": -28.13,
+   "mean_monthly_pct": 0.914,
+   "n_months": 34,
+   "name": "DIAG_A_skip1",
+   "quarter_gate_passed": false,
+   "sharpe_annualised": 0.492
+  },
+  {
+   "hit_rate": 0.529,
+   "max_drawdown_pct": -47.62,
+   "mean_monthly_pct": -0.84,
+   "n_months": 34,
+   "name": "DIAG_B_skip1",
+   "quarter_gate_passed": false,
+   "sharpe_annualised": -0.452
+  }
+ ],
+ "probe": "does the capex demand ledger predict returns",
+ "reproduce": "uv run python scripts/research/capex_returns_test.py",
+ "trail_months": 18,
+ "window": {
+  "first": "2021-09",
+  "last": "2026-08",
+  "n_months": 60
+ }
+}
