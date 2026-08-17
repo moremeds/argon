@@ -403,10 +403,11 @@ git commit -m "fix(macro): parse SEP table totals and timestamps"
 ### Task 5: Persist a per-release operational catalog
 
 **Files:**
-- Create: `src/uw_scan/storage/migrations/120_macro_release_ingest_status.sql`
-  (**renumbered**: `origin/main` already ships 114/117/118 from the fundamentals
-  lane, and this branch used 119 for the artifact-instant fix from the Task 4
-  review, so 117 would trip the duplicate-prefix CI gate)
+- Create: `src/uw_scan/storage/migrations/121_macro_release_ingest_status.sql`
+  (**renumbered twice**: `origin/main` ships 114/117/118 from the fundamentals
+  lane and 120 from the freshness-sessions fix, and this branch used 119 for the
+  artifact-instant fix from the Task 4 review, so both 117 and 120 would trip the
+  duplicate-prefix CI gate)
 - Modify: `src/uw_scan/storage/macro_context.py`
 - Modify: `docs/runbooks/data-gap-dataset-policy.md`
 - Modify: `tests/integration/storage/test_macro_context_repository.py`
@@ -499,7 +500,7 @@ error_message TEXT NULL
 
 Also add `uw_scan.macro_observation_artifacts(obs_id, artifact_id, relation)` with an immutable,
 idempotent composite key and `relation IN ('parsed_from', 'corroborates')`. Add a policy-observation
-semantic hash helper and nullable `macro_observations.semantic_hash` column in migration 120. The
+semantic hash helper and nullable `macro_observations.semantic_hash` column in migration 121. The
 hash omits the volatile artifact surrogate ID but includes source, stable release key, normalized
 value, publisher release time, and semantic parser version. A partial unique index makes a
 policy semantic identity idempotent. A PostgreSQL trigger recomputes the same canonical hash so
@@ -528,7 +529,7 @@ as SQL. Bound error type to 200 characters and message to 1000.
 ```bash
 uv run pytest tests/integration/storage/test_macro_context_repository.py tests/integration/storage/test_migrations.py -q
 git diff --check
-git add src/uw_scan/storage/migrations/120_macro_release_ingest_status.sql src/uw_scan/storage/macro_release_status.py src/uw_scan/storage/macro_policy_observations.py docs/runbooks/data-gap-dataset-policy.md tests/integration/storage/test_macro_context_repository.py tests/integration/storage/test_migrations.py
+git add src/uw_scan/storage/migrations/121_macro_release_ingest_status.sql src/uw_scan/storage/macro_release_status.py src/uw_scan/storage/macro_policy_observations.py docs/runbooks/data-gap-dataset-policy.md tests/integration/storage/test_macro_context_repository.py tests/integration/storage/test_migrations.py
 git commit -m "feat(macro): catalog policy release outcomes"
 ```
 

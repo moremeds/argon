@@ -1,4 +1,4 @@
--- 120_macro_release_ingest_status.sql — per-release operational catalog,
+-- 121_macro_release_ingest_status.sql — per-release operational catalog,
 -- observation/artifact lineage, and a policy semantic identity.
 --
 -- Three separate concerns land here, all of them about telling apart facts that

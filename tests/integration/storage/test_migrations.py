@@ -427,7 +427,7 @@ def test_migration_is_idempotent_for_macro_release_tables(fresh_schema):
     """
     for name in (
         "119_macro_artifact_instant_resolution.sql",
-        "120_macro_release_ingest_status.sql",
+        "121_macro_release_ingest_status.sql",
     ):
         sql = (MIGRATIONS_DIR / name).read_text()
         with fresh_schema.transaction():
