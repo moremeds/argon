@@ -12,16 +12,22 @@ free sources separate:
 
 ## Current gate status
 
-The gate is **PARTIAL**. The original `probe.json` established one successful latest-release
-retrieval for each source contract, but it did not prove the production worker, the historical
-2020-present release set, or a persisted 4/4 API response. The measured pre-hardening worker and
-historical failures are frozen in [pre-hardening-audit.json](pre-hardening-audit.json), and the exact
-requirements for restoring PASS are in [VERDICT.md](VERDICT.md).
+The gate is **PASS**, on two committed evidence files measured 2026-08-17:
+[probe.json](probe.json) (55/55 FOMC statements and 25/25 SEP releases parse across 2020–2026, zero
+failures) and [smoke-4x4.json](smoke-4x4.json) (worker → DB → API returns 4/4 paths from persisted
+rows, 8/8 assertions, 80/80 releases `ok`). The pre-hardening baseline that produced the earlier
+PARTIAL is preserved unchanged in [pre-hardening-audit.json](pre-hardening-audit.json); the gate
+history and what the hardening changed are in [VERDICT.md](VERDICT.md).
 
-The Federal Reserve PDF remains stable primary evidence. Accessible HTML is retained separately as
-the deterministic extraction surface and may have different exact bytes after publication. The NY
-Fed workbook is the structured dealer data path, while its PDF supports human audit. The Frenzy page
-is retained byte-for-byte but is non-load-bearing: no official job or official path depends on it.
+The Federal Reserve PDF is stable primary evidence — measured across the full archive, 81 PDF records
+produced **0** multi-revision records. Accessible HTML is retained separately as the deterministic
+extraction surface and is **not** byte-stable: it is served through Cloudflare, which injects a
+per-request `__CF$cv$params` script carrying a unique ray id and timestamp, so 80 of 82 HTML records
+gained a revision on a single rerun. That churn is transport, not publisher: the facts are unchanged,
+so a re-fetched page is preserved as exact evidence and linked as another witness of the same
+observation rather than becoming a second fact. The NY Fed workbook is the structured dealer data
+path, while its PDF supports human audit. The Frenzy page is retained byte-for-byte but is
+non-load-bearing: no official job or official path depends on it.
 
 ## Reproduce the currently supported checks
 
@@ -62,10 +68,27 @@ into it, so "complete" cannot be true of it. Both commands exit non-zero if any 
 is not `ok`, and if the window produced no releases at all — a vacuous pass would hide a discovery
 outage.
 
-Run the verdict guard:
+Run the verdict guard, which checks the PASS claim against both evidence files rather than trusting
+the sentence:
 
 ```bash
 uv run pytest tests/unit/research/test_fomc_sep_verdict.py -q
+```
+
+Run the deterministic end-to-end smoke (fixture bytes, real worker/DB/API):
+
+```bash
+uv run pytest tests/integration/worker/test_macro_policy_4x4_smoke.py -q
+```
+
+Run the strict live 4/4 smoke against a database you created for the run:
+
+```bash
+createdb option_wizard_test_mc1_smoke -O argon_app
+UW_SCAN_DB_NAME=option_wizard_test_mc1_smoke UW_SCAN_ALLOW_DB_MISMATCH=1 bash scripts/migrate.sh
+UW_SCAN_TEST_DB_NAME=option_wizard_test_mc1_smoke \
+  uv run python scripts/research/macro_policy_4x4_smoke.py --require-shadow
+dropdb option_wizard_test_mc1_smoke
 ```
 
 ## Data boundary
@@ -83,8 +106,10 @@ uv run pytest tests/unit/research/test_fomc_sep_verdict.py -q
 - The historical FOMC parser boundary was 2021–2026 in the pre-hardening audit because production
   discovery returned no 2020 releases. That is closed: discovery now returns both 2020 unscheduled
   meetings (2020-03-03 and 2020-03-15) and all 55 statements parse.
-- A later hardening artifact must enumerate all discovered 2020+ releases and run the real worker →
-  DB → API path before the verdict can become PASS.
+- `smoke-4x4.json` records the command, UTC start and finish, database class (never credentials),
+  both parser-version families, source URLs, four worker results, table counts around the idempotent
+  rerun, the four API slots with their observation and artifact ids, and the correction/PIT and
+  offline assertions. Its database was created for that run and dropped afterwards.
 
 ## Interpretation rules
 

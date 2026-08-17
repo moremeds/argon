@@ -9,6 +9,8 @@ VERDICT = (
     / "docs/research/2026-08-12-fomc-sep-source-probe/VERDICT.md"
 )
 AUDIT = VERDICT.with_name("pre-hardening-audit.json")
+PROBE = VERDICT.with_name("probe.json")
+SMOKE = VERDICT.with_name("smoke-4x4.json")
 PLAN = VERDICT.parents[2] / "plans/2026-08-13-macro-mc1-historical-release-hardening.md"
 DESIGN = (
     VERDICT.parents[2]
@@ -29,10 +31,52 @@ def _assert_expected_fomc_coverage(coverage: dict[str, object]) -> None:
     assert len({item["release_key"] for item in failures}) == len(failures)
 
 
-def test_verdict_stays_partial_until_all_release_and_4x4_gates_pass() -> None:
-    text = VERDICT.read_text()
+def test_verdict_claims_only_what_the_committed_evidence_measures() -> None:
+    """PASS is a claim about two files, not a sentence someone typed.
 
-    assert "**Verdict:** PARTIAL" in text
+    The pre-hardening PARTIAL was retired by evidence; this guard makes the
+    reverse impossible -- a PASS that outruns probe.json or smoke-4x4.json fails
+    here rather than shipping.
+    """
+    text = VERDICT.read_text()
+    probe = json.loads(PROBE.read_text())
+    smoke = json.loads(SMOKE.read_text())
+
+    if "**Verdict:** PASS" not in text:
+        assert "**Verdict:** PARTIAL" in text
+        return
+
+    assert smoke["verdict"] == "PASS"
+    assert all(smoke["assertions"].values()), smoke["assertions"]
+    assert smoke["releases_not_ok"] == []
+    assert probe["years"][0] == 2020
+
+    for source in ("federal_reserve_fomc", "federal_reserve_sep"):
+        result = probe["sources"][source]
+        assert result["state"] == "ok"
+        assert result["releases_failed"] == 0
+        assert result["releases_succeeded"] == result["releases_discovered"] > 0
+        # The headline counts in the prose must be the measured ones.
+        assert (
+            f"{result['releases_discovered']}/{result['releases_succeeded']}"
+            in text.replace("**", "")
+        )
+
+    # All four slots, and the shadow never stands in for an official path.
+    assert all(slot["present"] for slot in smoke["api_slots"].values())
+    for official in ("actual", "committee_projection", "dealer_expectations"):
+        assert smoke["api_slots"][official]["source_kind"] != "third_party_shadow"
+    assert smoke["api_slots"]["market_implied"]["source_kind"] == "third_party_shadow"
+
+
+def test_verdict_preserves_the_pre_hardening_baseline_it_retired() -> None:
+    """The failure that motivated the milestone must stay legible after the fix.
+
+    Whitespace-normalized: the prose reflows when the verdict is rewritten, and a
+    line break landing inside a frozen phrase is not a lost baseline.
+    """
+    text = " ".join(VERDICT.read_text().split())
+
     assert "FOMC statements | 10 | 0" in text
     assert "SEP | 4 | 0" in text
     assert "NY Fed SME | 2 | 1" in text
@@ -41,7 +85,7 @@ def test_verdict_stays_partial_until_all_release_and_4x4_gates_pass() -> None:
     assert "10 Statement" in text
     assert "3 SEP" in text
     assert "all 13 currently unparsed" in text
-    assert "production discovery misses 2020" in text
+    assert "discovery misses 2020" in text
     assert "all discovered 2020+ releases" in text
     assert "worker → DB → API" in text
 

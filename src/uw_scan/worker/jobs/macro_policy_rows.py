@@ -60,7 +60,7 @@ def _statement_observation(
         series_id="POLICY_PATH_ACTUAL",
         period_end=release.meeting_date,
         published_at=release.published_at,
-        available_at=release.published_at,
+        available_at=_available_at(release.published_at, artifact),
         value=value,
         parser_version=release.parser_version,
     )
@@ -120,7 +120,7 @@ def _sep_observation(
         series_id="POLICY_PATH_COMMITTEE_PROJECTION",
         period_end=release.meeting_date,
         published_at=release.published_at,
-        available_at=release.published_at,
+        available_at=_available_at(release.published_at, artifact),
         value=value,
         parser_version=release.parser_version,
     )
@@ -226,6 +226,21 @@ def _market_observation(
         available_at=artifact.available_at,
         value=value,
     )
+
+
+def _available_at(
+    published_at: datetime, artifact: MacroSourceArtifact
+) -> datetime:
+    """When this fact became knowable, never earlier than its evidence.
+
+    The publisher's release instant is the right answer for the bytes first
+    served at that instant.  It is the WRONG answer for a correction: those
+    bytes appeared later, and dating the fact they carry to the original release
+    would let a replay read a number that did not exist for weeks.  The artifact
+    already carries the clamped availability of its own revision, so the later
+    of the two is the only instant both are true at.
+    """
+    return max(published_at, artifact.available_at)
 
 
 def _observation_base(

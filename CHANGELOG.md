@@ -33,9 +33,41 @@ version in lockstep (enforced by `scripts/release/version_sync_check.py`).
   120k/day budget. Pinned to uw-0 rather than every role's index-0: the job has
   no advisory lock, so a per-role pin would multiply UW spend and race the
   insert-or-touch.
+- **Durable point-in-time FOMC and SEP policy paths, 2020 to present.** Four independent policy
+  paths — the committee's actual decision, its anonymous SEP projection, the NY Fed dealer survey,
+  and an optional third-party market shadow — now persist through the production worker and serve
+  from stored rows. They stay separately keyed and are never averaged into a synthetic Fed path, and
+  an anonymous SEP dot is never attributed to the Chair. Measured live: 55/55 FOMC statements and
+  25/25 SEP releases parse across 2020–2026 with zero failures, and every pre-cutoff dissent matches
+  published history. `GET /api/macro/policy` gains per-source release coverage
+  (`releases_discovered` / `releases_succeeded` / `releases_failed` plus named failures), an exact
+  `as_of_ts` replay instant beside the existing date-level `as_of`, and `vote_status` on each path
+  point so "the statement printed no vote" stays distinct from "there was no vote". Evidence:
+  `docs/research/2026-08-12-fomc-sep-source-probe/{probe.json,smoke-4x4.json,VERDICT.md}`.
+- **Per-release ingest catalog** (`macro_release_ingest_status`) and **observation lineage**
+  (`macro_observation_artifacts`), migration 121. One release's outcome no longer hides behind a
+  source-level status, and every fact can name the exact artifacts that witness it.
+- **Resumable 2020+ policy backfill** — `scripts/backfill/macro_policy_history.py`, driving the
+  production worker entry points year by year and resuming off the release catalog. A window that
+  produced no releases exits non-zero; a vacuous pass would hide a discovery outage.
+
+### Fixed
+
+- **A corrected policy release is no longer backdated to the original release instant.** Both the
+  artifact and observation layers took the publisher's declared release time verbatim, so a reissue
+  retrieved months later claimed to have been public on the original afternoon — a look-ahead leak
+  in the dangerous direction, where a replay reads a number nobody had. A later revision now takes
+  the instant those exact bytes could first be observed, and a fact can never predate its evidence.
+- **One unreadable release no longer discards its siblings.** Policy ingest committed the whole
+  fetch as a single transaction, so a single malformed statement rolled back the batch — a real run
+  persisted 10 statement artifacts and zero facts. Each release now commits independently; the bad
+  one is recorded as failed by name and the rest survive.
+- **The source probe no longer samples one release per year.** It parsed `max(meeting_date)`, which
+  makes the observable failure rate structurally zero — the SEP parser sat at 1-of-25 while the
+  probe reported healthy. It now parses every discovered release and takes the source state as the
+  worst among them.
 
 ## [0.12.4] — 2026-08-18
-
 
 ### Fixed
 
@@ -63,6 +95,7 @@ version in lockstep (enforced by `scripts/release/version_sync_check.py`).
   heal them alongside it, double-charging the provider budget. Staleness is
   measured by progress (last item driven to a verdict) rather than age, so the
   heuristic stays conservative even if that ordering is ever loosened.
+
 ## [0.12.3] — 2026-08-17
 
 

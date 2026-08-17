@@ -3,18 +3,13 @@ from __future__ import annotations
 import os
 from datetime import UTC, date, datetime
 from decimal import Decimal
-from pathlib import Path
-from types import SimpleNamespace
 
 import psycopg
 import pytest
 
 from uw_scan.config import Settings
 from uw_scan.macro.policy_report import build_policy_comparison
-from uw_scan.sources.fed_funds_futures_path import FedFundsFuturesSourceBundle
-from uw_scan.sources.fed_sep import SepSourceBundle
 from uw_scan.sources.fomc_statement import FomcStatementBundle
-from uw_scan.sources.nyfed_sme import SmeSourceBundle
 from uw_scan.storage.repository import Repository
 from uw_scan.worker.jobs.macro_policy_jobs import (
     macro_fomc_statement_ingest_job,
@@ -23,7 +18,18 @@ from uw_scan.worker.jobs.macro_policy_jobs import (
     macro_sme_ingest_job,
 )
 
-FIXTURES = Path(__file__).parents[2] / "fixtures" / "macro"
+from ._macro_providers import (  # noqa: E402 - local helper, not a test module
+    FIXTURES,
+    _candidate,
+    _ChangedSepProvider,
+    _MalformedSepProvider,
+    _MarketProvider,
+    _outcome,
+    _SepProvider,
+    _SmeProvider,
+    _StatementProvider,
+)
+
 OBSERVED_AT = datetime(2026, 8, 12, 12, tzinfo=UTC)
 
 
@@ -33,187 +39,6 @@ def _settings() -> Settings:
         pytest.fail("UW_SCAN_TEST_DB_NAME is not set", pytrace=False)
     os.environ.setdefault("UW_SCAN_API_KEY", "test-dummy-not-used")
     return Settings.from_env().model_copy(update={"db_name": test_db})
-
-
-def _outcome(candidate, bundle, *, artifacts=None, error=None):
-    """Mimic the provider fetch-outcome contract without importing four classes."""
-    return SimpleNamespace(
-        candidate=candidate,
-        bundle=bundle,
-        artifacts=artifacts
-        or ((bundle.primary_artifact, bundle.accessible_artifact) if bundle else ()),
-        error_type=error[0] if error else None,
-        error_message=error[1] if error else None,
-    )
-
-
-def _candidate(release_key, release_type, event_date, event_class=None):
-    return SimpleNamespace(
-        release_key=release_key,
-        release_type=release_type,
-        event_date=event_date,
-        event_class=event_class,
-        discovery_url=(
-            "https://www.federalreserve.gov/monetarypolicy/fomccalendars.htm"
-        ),
-    )
-
-
-class _StatementProvider:
-    def __enter__(self):
-        return self
-
-    def __exit__(self, *_exc):
-        return None
-
-    def fetch_outcomes(self, *, years, retrieved_at):
-        assert 2026 in years
-        return [
-            _outcome(
-                _candidate(
-                    "fomc-statement:monetary20260617a",
-                    "statement",
-                    date(2026, 6, 17),
-                    "scheduled_meeting",
-                ),
-                bundle,
-            )
-            for bundle in self._bundles(retrieved_at)
-        ]
-
-    def _bundles(self, retrieved_at):
-        return [
-            FomcStatementBundle.from_bytes(
-                meeting_date=date(2026, 6, 17),
-                accessible_url=(
-                    "https://www.federalreserve.gov/newsevents/pressreleases/"
-                    "monetary20260617a.htm"
-                ),
-                accessible_bytes=(
-                    FIXTURES / "fomc_statement_2026_06.html"
-                ).read_bytes(),
-                pdf_url=(
-                    "https://www.federalreserve.gov/monetarypolicy/files/"
-                    "monetary20260617a1.pdf"
-                ),
-                pdf_bytes=(FIXTURES / "fomc_statement_2026_06.pdf").read_bytes(),
-                retrieved_at=retrieved_at,
-            )
-        ]
-
-
-class _SepProvider:
-    pdf_suffix = b""
-
-    def __enter__(self):
-        return self
-
-    def __exit__(self, *_exc):
-        return None
-
-    def fetch_outcomes(self, *, years, retrieved_at):
-        assert 2026 in years
-        return [
-            _outcome(
-                _candidate("fed-sep:fomcprojtabl20260617", "sep", date(2026, 6, 17)),
-                bundle,
-            )
-            for bundle in self._bundles(retrieved_at)
-        ]
-
-    def _bundles(self, retrieved_at):
-        return [
-            SepSourceBundle.from_bytes(
-                meeting_date=date(2026, 6, 17),
-                accessible_url=(
-                    "https://www.federalreserve.gov/monetarypolicy/"
-                    "fomcprojtabl20260617.htm"
-                ),
-                accessible_bytes=(FIXTURES / "fed_sep_2026_06.html").read_bytes(),
-                pdf_url=(
-                    "https://www.federalreserve.gov/monetarypolicy/files/"
-                    "fomcprojtabl20260617.pdf"
-                ),
-                pdf_bytes=(FIXTURES / "fed_sep_2026_06.pdf").read_bytes()
-                + self.pdf_suffix,
-                retrieved_at=retrieved_at,
-            )
-        ]
-
-
-class _ChangedSepProvider(_SepProvider):
-    pdf_suffix = b"publisher-correction"
-
-
-class _MalformedSepProvider(_SepProvider):
-    def _bundles(self, retrieved_at):
-        bundle = super()._bundles(retrieved_at)[0]
-        return [
-            SepSourceBundle.from_bytes(
-                meeting_date=bundle.meeting_date,
-                accessible_url=bundle.accessible_artifact.source_url or "",
-                accessible_bytes=(
-                    b"<p>For release at 2:00 p.m., EDT, June 17, 2026</p>"
-                ),
-                pdf_url=bundle.primary_artifact.source_url or "",
-                pdf_bytes=bundle.primary_artifact.raw_bytes or b"",
-                retrieved_at=retrieved_at,
-            )
-        ]
-
-
-class _SmeProvider:
-    def __enter__(self):
-        return self
-
-    def __exit__(self, *_exc):
-        return None
-
-    def fetch_latest_bundle(self, *, retrieved_at):
-        return SmeSourceBundle.from_bytes(
-            survey_month=date(2026, 6, 1),
-            data_url=(
-                "https://www.newyorkfed.org/medialibrary/media/markets/survey/"
-                "2026/jun-2026-data.xlsx"
-            ),
-            data_bytes=(FIXTURES / "nyfed_sme_2026_06.xlsx").read_bytes(),
-            report_url=(
-                "https://www.newyorkfed.org/medialibrary/media/markets/survey/"
-                "2026/jun-2026-sme-results.pdf"
-            ),
-            report_bytes=(FIXTURES / "nyfed_sme_2026_06.pdf").read_bytes(),
-            retrieved_at=retrieved_at,
-        )
-
-
-class _MarketProvider:
-    def __enter__(self):
-        return self
-
-    def __exit__(self, *_exc):
-        return None
-
-    def fetch_bundle(self, *, retrieved_at):
-        raw = b"""
-        <script>window.__SSR_DATA__ = {
-          "current_effr": 3.67,
-          "current_rate": 3.75,
-          "meetings": [{
-            "meeting_date": "2026-09-16",
-            "post_rate": 3.42,
-            "probabilities": {
-              "cut_25": 0.70, "cut_gt25": 0.10, "hold": 0.20,
-              "hike_25": 0.0, "hike_gt25": 0.0
-            }
-          }],
-          "next_meeting": "2026-09-16"
-        };</script>
-        """
-        return FedFundsFuturesSourceBundle.from_bytes(
-            source_url="https://www.frenzycap.com/fedwatch",
-            raw_bytes=raw,
-            retrieved_at=retrieved_at,
-        )
 
 
 def _counts(settings: Settings) -> tuple[int, int]:

@@ -54,6 +54,15 @@ class _MacroContextMixin:
         if content_length != actual_length:
             raise ValueError("artifact content_length does not match raw payload")
         with self._conn.cursor() as cur:
+            available_at = _revision_available_at(
+                cur,
+                self._schema,
+                source=source,
+                source_record_id=source_record_id,
+                content_hash=content_hash,
+                available_at=available_at,
+                retrieved_at=retrieved_at,
+            )
             cur.execute(
                 f"""
                 INSERT INTO {self._schema}.macro_source_artifacts (
@@ -494,6 +503,46 @@ def _source_rank_sql(preferred_sources: Sequence[str]) -> tuple[str, list[str]]:
     return f"CASE o.source {' '.join(clauses)} ELSE {len(clauses)} END", list(
         preferred_sources
     )
+
+
+def _revision_available_at(
+    cur: psycopg.Cursor,
+    schema: str,
+    *,
+    source: str,
+    source_record_id: str,
+    content_hash: str,
+    available_at: datetime,
+    retrieved_at: datetime,
+) -> datetime:
+    """Availability of these exact bytes, never the release's original instant.
+
+    The publisher's declared release instant is honest evidence for the FIRST
+    bytes we saw under a record.  It is not evidence for a correction: those
+    bytes did not exist at that instant, and dating them there is a look-ahead
+    leak in the dangerous direction -- a replay would read a value nobody could
+    have seen for weeks.  A later revision can only justify ``retrieved_at``.
+
+    Re-inserting bytes we already hold returns their stored instant unchanged,
+    so a rerun neither moves availability nor trips the upsert's equality guard.
+    """
+    cur.execute(
+        f"""
+        SELECT
+          max(available_at) FILTER (WHERE content_hash = %s) AS same_bytes,
+          bool_or(content_hash <> %s) AS other_bytes
+        FROM {schema}.macro_source_artifacts
+        WHERE source = %s AND source_record_id = %s
+        """,
+        (content_hash, content_hash, source, source_record_id),
+    )
+    row = cur.fetchone()
+    same_bytes, other_bytes = (row[0], row[1]) if row is not None else (None, False)
+    if same_bytes is not None:
+        return same_bytes
+    if other_bytes:
+        return max(available_at, retrieved_at)
+    return available_at
 
 
 def _require_aware(

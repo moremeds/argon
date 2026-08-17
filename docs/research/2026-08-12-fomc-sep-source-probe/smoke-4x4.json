@@ -1,0 +1,238 @@
+{
+  "api_slots": {
+    "actual": {
+      "evidence": [
+        {
+          "artifact_id": 1087,
+          "obs_id": 304,
+          "source_url": "https://www.federalreserve.gov/newsevents/pressreleases/monetary20260729a.htm"
+        }
+      ],
+      "freshness": {
+        "consecutive_failures": 0,
+        "error_message": null,
+        "error_type": null,
+        "last_attempt_at": "2026-08-18T01:19:56.767924+08:00",
+        "last_success_at": "2026-08-18T01:19:56.767924+08:00",
+        "release_failures": [],
+        "releases_discovered": 55,
+        "releases_failed": 0,
+        "releases_succeeded": 55,
+        "source": "federal_reserve_fomc",
+        "status": "ok"
+      },
+      "missing_reason": null,
+      "present": true,
+      "source": "federal_reserve_fomc",
+      "source_kind": "official"
+    },
+    "committee_projection": {
+      "evidence": [
+        {
+          "artifact_id": 1137,
+          "obs_id": 329,
+          "source_url": "https://www.federalreserve.gov/monetarypolicy/fomcprojtabl20260617.htm"
+        }
+      ],
+      "freshness": {
+        "consecutive_failures": 0,
+        "error_message": null,
+        "error_type": null,
+        "last_attempt_at": "2026-08-18T01:19:56.767924+08:00",
+        "last_success_at": "2026-08-18T01:19:56.767924+08:00",
+        "release_failures": [],
+        "releases_discovered": 25,
+        "releases_failed": 0,
+        "releases_succeeded": 25,
+        "source": "federal_reserve_sep",
+        "status": "ok"
+      },
+      "missing_reason": null,
+      "present": true,
+      "source": "federal_reserve_sep",
+      "source_kind": "official"
+    },
+    "dealer_expectations": {
+      "evidence": [
+        {
+          "artifact_id": 1138,
+          "obs_id": 330,
+          "source_url": "https://www.newyorkfed.org/medialibrary/media/markets/survey/2026/jun-2026-data.xlsx"
+        }
+      ],
+      "freshness": {
+        "consecutive_failures": 0,
+        "error_message": null,
+        "error_type": null,
+        "last_attempt_at": "2026-08-18T01:19:56.767924+08:00",
+        "last_success_at": "2026-08-18T01:19:56.767924+08:00",
+        "release_failures": [],
+        "releases_discovered": 0,
+        "releases_failed": 0,
+        "releases_succeeded": 0,
+        "source": "new_york_fed_sme",
+        "status": "ok"
+      },
+      "missing_reason": null,
+      "present": true,
+      "source": "new_york_fed_sme",
+      "source_kind": "official"
+    },
+    "market_implied": {
+      "evidence": [
+        {
+          "artifact_id": 1140,
+          "obs_id": 331,
+          "source_url": "https://www.frenzycap.com/fedwatch"
+        }
+      ],
+      "freshness": {
+        "consecutive_failures": 0,
+        "error_message": null,
+        "error_type": null,
+        "last_attempt_at": "2026-08-18T01:19:56.767924+08:00",
+        "last_success_at": "2026-08-18T01:19:56.767924+08:00",
+        "release_failures": [],
+        "releases_discovered": 0,
+        "releases_failed": 0,
+        "releases_succeeded": 0,
+        "source": "frenzy_capital",
+        "status": "ok"
+      },
+      "missing_reason": null,
+      "present": true,
+      "source": "frenzy_capital",
+      "source_kind": "third_party_shadow"
+    }
+  },
+  "assertions": {
+    "every_evidence_ref_resolves": true,
+    "four_paths_present": true,
+    "no_observation_predates_its_evidence": true,
+    "offline_read_returns_paths": true,
+    "rerun_adds_no_official_fact": true,
+    "rerun_adds_no_release_outcome": true,
+    "stable_evidence_does_not_churn": true,
+    "zero_failed_official_releases": true
+  },
+  "command": "UW_SCAN_TEST_DB_NAME=<dedicated test db> uv run python scripts/research/macro_policy_4x4_smoke.py --require-shadow",
+  "database_class": "dedicated option_wizard_test* database, dropped after run",
+  "finished_at": "2026-08-17T17:26:41.491178+00:00",
+  "offline_read": {
+    "actual": true,
+    "committee_projection": true,
+    "dealer_expectations": true,
+    "market_implied": true
+  },
+  "parser_versions": {
+    "artifact_acquisition": {
+      "federal_reserve_fomc": "fomc_statement.v1",
+      "federal_reserve_sep": "fed_sep.v1",
+      "frenzy_capital": "frenzy_fedwatch.v1",
+      "new_york_fed_sme": "nyfed_sme.v1"
+    },
+    "observation_semantic": {
+      "federal_reserve_fomc": "fomc_statement.v2",
+      "federal_reserve_sep": "fed_sep.v2",
+      "frenzy_capital": "frenzy_fedwatch.v1",
+      "new_york_fed_sme": "nyfed_sme.v1"
+    }
+  },
+  "releases_not_ok": [],
+  "schema_version": 1,
+  "source_byte_stability": {
+    "html_artifacts_after_first_run": 81,
+    "html_artifacts_after_rerun": 162,
+    "note": "Federal Reserve HTML is served through Cloudflare, which injects a per-request __CF$cv$params script carrying a unique ray id and timestamp. Identical-length, different-bytes on every fetch. The PDF carries no such injection and is byte-stable, which is why it is the primary artifact. Re-fetched HTML is preserved as exact evidence and linked as another witness of the same observation; it never creates a second fact.",
+    "stable_artifacts_after_first_run": 82,
+    "stable_artifacts_after_rerun": 82
+  },
+  "source_urls": {
+    "federal_reserve_fomc": "https://www.federalreserve.gov/monetarypolicy/files/monetary20200129a1.pdf",
+    "federal_reserve_sep": "https://www.federalreserve.gov/monetarypolicy/files/fomcprojtabl20200610.pdf",
+    "frenzy_capital": "https://www.frenzycap.com/fedwatch",
+    "new_york_fed_sme": "https://www.newyorkfed.org/medialibrary/media/markets/survey/2026/jun-2026-data.xlsx"
+  },
+  "started_at": "2026-08-17T17:19:56.751724+00:00",
+  "table_counts": {
+    "after_first_run": {
+      "macro_observation_artifacts": 163,
+      "macro_observations": 82,
+      "macro_release_ingest_status": 80,
+      "macro_source_artifacts": 163,
+      "macro_source_artifacts_stable": 82,
+      "official_observations": 81,
+      "releases_ok": 80
+    },
+    "after_idempotent_rerun": {
+      "macro_observation_artifacts": 244,
+      "macro_observations": 83,
+      "macro_release_ingest_status": 80,
+      "macro_source_artifacts": 244,
+      "macro_source_artifacts_stable": 82,
+      "official_observations": 81,
+      "releases_ok": 80
+    },
+    "before": {
+      "macro_observation_artifacts": 0,
+      "macro_observations": 0,
+      "macro_release_ingest_status": 0,
+      "macro_source_artifacts": 0,
+      "macro_source_artifacts_stable": 0,
+      "official_observations": 0,
+      "releases_ok": 0
+    }
+  },
+  "verdict": "PASS",
+  "worker_results": {
+    "federal_reserve_fomc": {
+      "artifacts_seen": 110,
+      "error_type": null,
+      "failed_release_keys": [],
+      "observations_seen": 55,
+      "releases_discovered": 55,
+      "releases_failed": 0,
+      "releases_succeeded": 55,
+      "status": "ok"
+    },
+    "federal_reserve_sep": {
+      "artifacts_seen": 50,
+      "error_type": null,
+      "failed_release_keys": [],
+      "observations_seen": 25,
+      "releases_discovered": 25,
+      "releases_failed": 0,
+      "releases_succeeded": 25,
+      "status": "ok"
+    },
+    "frenzy_capital": {
+      "artifacts_seen": 1,
+      "error_type": null,
+      "failed_release_keys": [],
+      "observations_seen": 1,
+      "releases_discovered": 1,
+      "releases_failed": 0,
+      "releases_succeeded": 1,
+      "status": "ok"
+    },
+    "new_york_fed_sme": {
+      "artifacts_seen": 2,
+      "error_type": null,
+      "failed_release_keys": [],
+      "observations_seen": 1,
+      "releases_discovered": 1,
+      "releases_failed": 0,
+      "releases_succeeded": 1,
+      "status": "ok"
+    }
+  },
+  "years": [
+    2020,
+    2021,
+    2022,
+    2023,
+    2024,
+    2025,
+    2026
+  ]
+}
