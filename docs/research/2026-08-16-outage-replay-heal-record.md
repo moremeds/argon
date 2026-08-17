@@ -683,3 +683,36 @@ would be pure collateral damage.
 Covered by `tests/integration/worker/test_data_gap_healer_scheduler.py`:
 reaped-and-unwedged, spares-live-runs (young / still-verifying / audit-mode),
 and the job reaping before it checks the guard.
+
+### Review addendum — the reaper needed a lock under it
+
+The tribunal (Codex + Gemini, both at ~1.0 confidence) rejected the safety
+argument above. It was wrong in a specific way worth recording, because the
+mistake is easy to repeat.
+
+I checked that a reaped run's requeued items cannot be *claimed* by anyone else:
+`claim_next_items` filters on `run_id`, and the nightly job audits into a NEW run
+id, so no second process ever touches those rows. True — and irrelevant. The
+overlap is not on the item row, it is on the **underlying gap**. If the reaped run
+is actually alive and still healing gap G, the nightly's fresh audit sees G still
+missing in the warm store, writes its own item for G, and heals it a second time.
+Same gap, two runs, two provider charges.
+
+The row-based guard had been preventing exactly that. Reaping deliberately
+removes it, so reaping had to be paired with something that proves liveness. The
+codebase already had the answer, in `data_freshness_monitor`:
+
+> A bare `_another_run_active()` SELECT is check-then-act — it can't see a nightly
+> run that starts a moment later, so two `execute_into_run` callers could both
+> proceed and double-spend the same provider budget in the same window.
+
+That module takes `pg_try_advisory_lock(92010)` before healing. The CLI never did.
+Now `execute_into_run` and `resume_run` take it too, which makes the layering
+honest: **the lock is the liveness mechanism** (Postgres frees it when the process
+dies), the `status='running'` row is the durable record a lock cannot provide, and
+the reaper only ever runs once the lock is held — so every `running` row it sees
+is genuinely a corpse, not a slow worker.
+
+The general lesson: a persisted flag is not a mutex. It has no owner and no
+expiry, so it can only ever be a *record* of intent. If you need to know whether
+something is alive, ask something that dies with it.

@@ -9,13 +9,18 @@ import os
 import types
 from datetime import date
 
+import psycopg
+import pytest
+
 from uw_scan.config import Settings
 from uw_scan.reports.data_gap_healer import GapItem
 from uw_scan.storage.data_gap_healer_repository import DataGapHealerRepository
 from uw_scan.worker.jobs.data_gap_healer import (
+    HealerBusy,
     _another_run_active,
     _reap_stale_runs,
     _refresh_targets,
+    _single_flight,
     data_gap_healer_job,
 )
 from uw_scan.worker.scheduler import _should_schedule_data_gap_healer
@@ -75,7 +80,7 @@ def test_run_active_guard_skips(seeded_db_empty_cards):
         mode="execute", start_date=None, end_date=None, datasets=[], status="running"
     )
     out = data_gap_healer_job(settings=_enabled_db_settings(), today=date(2026, 6, 30))
-    assert out == {"skipped": "run_active", "reaped": []}
+    assert out == {"skipped": "run_active"}
 
 
 def _killed_run(
@@ -140,6 +145,48 @@ def test_stale_run_is_reaped_and_unwedges_the_guard(seeded_db_empty_cards):
     assert _another_run_active(gap) is False
 
 
+def test_reaping_never_rolls_back_a_verdict(seeded_db_empty_cards):
+    """The property that makes the one reachable false positive harmless: a live
+    run reaped mid-flight (provider hard-down, every request burning its timeout,
+    so verified_at never advances) must keep every verdict it already reached.
+    Only 'running' rows move."""
+    repo = seeded_db_empty_cards
+    gap = DataGapHealerRepository(repo.conn, schema=repo._schema)
+    run_id = _killed_run(gap, repo.conn, started_hours_ago=48)
+    # give the run one item in each terminal-ish status alongside the 'running' one
+    gap.upsert_items(
+        run_id,
+        [
+            GapItem(
+                dataset="daily_ohlc",
+                scope_key=f"2026-06-30|{ticker}",
+                data_date=date(2026, 6, 30),
+                ticker=ticker,
+                expected_count=1,
+                covered_count=0,
+                status=status,
+            )
+            for ticker, status in (
+                ("AAPL", "healed"),
+                ("NVDA", "no_data"),
+                ("MSFT", "failed"),
+                ("AMD", "skipped_budget"),
+                ("TSLA", "planned"),
+            )
+        ],
+    )
+
+    assert _reap_stale_runs(gap) == [run_id]
+
+    counts = gap.count_items_by_status(run_id)
+    assert counts["healed"] == 1
+    assert counts["no_data"] == 1
+    assert counts["failed"] == 1
+    assert counts["skipped_budget"] == 1
+    assert counts["planned"] == 2  # the pre-existing one + the requeued 'running'
+    assert "running" not in counts
+
+
 def test_reaper_spares_live_runs(seeded_db_empty_cards):
     """Three runs the reaper must not touch: a young one, a long-running manual
     backfill that is still verifying items, and an audit-mode run (the gate only
@@ -155,6 +202,47 @@ def test_reaper_spares_live_runs(seeded_db_empty_cards):
         assert gap.get_run(run_id)["status"] == "running"
 
 
+def test_single_flight_refuses_a_second_connection(seeded_db_empty_cards):
+    """The lock is what makes the reaper safe: it is session-scoped, so Postgres
+    frees it when a process dies, and a LIVE heal therefore blocks the nightly job
+    at `{"skipped": "locked"}` before the reaper ever inspects a row. Without it a
+    live-but-idle run could be reaped and then raced by a fresh nightly run over
+    the same still-missing gaps -- double-charging the provider budget."""
+    repo = seeded_db_empty_cards
+    gap = DataGapHealerRepository(repo.conn, schema=repo._schema)
+    settings = _enabled_db_settings()
+
+    with psycopg.connect(settings.db_dsn()) as other_conn:
+        other = DataGapHealerRepository(other_conn, schema=repo._schema)
+        with _single_flight(gap):  # stands in for a live manual heal
+            with pytest.raises(HealerBusy):
+                with _single_flight(other):
+                    pass
+            # ...and the nightly job stands down entirely rather than reaping
+            out = data_gap_healer_job(settings=settings, today=date(2026, 6, 30))
+            assert out == {"skipped": "locked"}
+        # released on exit, so the next caller gets it
+        with _single_flight(other):
+            pass
+
+
+def test_single_flight_is_reentrant_on_one_connection(seeded_db_empty_cards):
+    """data_freshness_monitor takes this lock and then calls execute_into_run,
+    which takes it again on the same connection. Session locks are counted, so
+    the nested acquire must succeed and the counter must balance."""
+    repo = seeded_db_empty_cards
+    gap = DataGapHealerRepository(repo.conn, schema=repo._schema)
+    settings = _enabled_db_settings()
+
+    with _single_flight(gap):
+        with _single_flight(gap):  # nested, same session
+            pass
+    # fully released: a different connection can now take it
+    with psycopg.connect(settings.db_dsn()) as other_conn:
+        with _single_flight(DataGapHealerRepository(other_conn, schema=repo._schema)):
+            pass
+
+
 def test_job_reaps_before_it_checks_the_guard(seeded_db_empty_cards):
     """The job itself must reap, not just the helper. A genuinely live run is kept
     alongside so the job still short-circuits at the guard instead of running a
@@ -167,5 +255,6 @@ def test_job_reaps_before_it_checks_the_guard(seeded_db_empty_cards):
     )
 
     out = data_gap_healer_job(settings=_enabled_db_settings(), today=date(2026, 6, 30))
-    assert out == {"skipped": "run_active", "reaped": [stale]}
+    assert out == {"skipped": "run_active"}
+    # the durable effect is the proof the reap ran inside the job, before the gate
     assert gap.get_run(stale)["status"] == "cancelled"
