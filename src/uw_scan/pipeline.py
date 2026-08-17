@@ -144,27 +144,52 @@ def _persist_trade_insights_for_run(
 
 
 def run_single_stock(
-    ticker: str, client: UwClient, repo: Repository
+    ticker: str,
+    client: UwClient,
+    repo: Repository,
+    market_date: _date | None = None,
 ) -> SingleStockReport:
-    """Run the full S1 pipeline against UW for `ticker` and persist everything."""
+    """Run the full S1 pipeline against UW for `ticker` and persist everything.
+
+    ``market_date=None`` is the live nightly path and is unchanged. When a date
+    is supplied the pipeline REPLAYS that session, for repairing an outage:
+
+    * date-honouring fetchers receive ``date=`` (measured 2026-08-16, see
+      ``docs/research/2026-08-16-replay-endpoint-matrix.md``);
+    * every persisted stamp comes from the parameter instead of ``today()``;
+    * datasets in ``REPLAY_REFUSED`` are skipped, because their UW endpoint
+      returns the latest session whatever date you ask for — writing them would
+      stamp today's numbers as history;
+    * live decision surfaces (scanner candidates, trade insights) are skipped,
+      because back-dated rows there would pollute a surface the operator reads
+      as current.
+    """
     ticker = ticker.upper()
-    run_id = repo.insert_scan_run(ticker)
+    replay = market_date is not None
+    stamp = market_date or _date.today()
+    run_id = repo.insert_scan_run(
+        ticker, notes="pipeline_replay" if replay else None
+    )
     logger.info("started scan run %d for %s", run_id, ticker)
 
     try:
-        # 1. Flow alerts (filtered to this ticker via param)
-        flow_alerts = uw_sources.fetch_flow_alerts(
-            client, repo, run_id, ticker, limit=FLOW_ALERT_LIMIT
-        )
-        # Defensive: keep only this ticker
-        ticker_alerts = [a for a in flow_alerts if a.ticker == ticker]
-        repo.insert_flow_events(run_id, ticker, ticker_alerts)
-        repo.upsert_flow_alerts_daily_rollup(
-            run_id=run_id,
-            ticker=ticker,
-            alerts=ticker_alerts,
-            alert_limit=FLOW_ALERT_LIMIT,
-        )
+        # 1. Flow alerts (filtered to this ticker via param). Live path only:
+        # flow_events is an append-only event log maintained by the uw-alpha
+        # capture path and was never lost in the outage, so a replay would only
+        # duplicate rows it already holds.
+        if not replay:
+            flow_alerts = uw_sources.fetch_flow_alerts(
+                client, repo, run_id, ticker, limit=FLOW_ALERT_LIMIT
+            )
+            # Defensive: keep only this ticker
+            ticker_alerts = [a for a in flow_alerts if a.ticker == ticker]
+            repo.insert_flow_events(run_id, ticker, ticker_alerts)
+            repo.upsert_flow_alerts_daily_rollup(
+                run_id=run_id,
+                ticker=ticker,
+                alerts=ticker_alerts,
+                alert_limit=FLOW_ALERT_LIMIT,
+            )
 
         # 2. Vol stats (also supplies the 1y IV rank — verified empirically that
         # /volatility/stats.iv_rank == /iv-rank.iv_rank_1y to 4 decimals across
@@ -173,7 +198,9 @@ def run_single_stock(
         # SPX/SPY/QQQ/IWM where the trailing series feeds the cockpit history
         # chart; non-cockpit tickers no longer maintain iv_rank_history rows but
         # no code reads from that table for them. Saves 1 UW call per rescan.
-        vol_stats_rows = uw_sources.fetch_volatility_stats(client, repo, run_id, ticker)
+        vol_stats_rows = uw_sources.fetch_volatility_stats(
+            client, repo, run_id, ticker, market_date=market_date
+        )
         repo.upsert_volatility_stats_rows(vol_stats_rows)
 
         # 4. Realized vol (time series)
@@ -181,11 +208,15 @@ def run_single_stock(
         repo.upsert_realized_vol_rows(ticker, rv_rows)
 
         # 5. Term structure
-        term_rows = uw_sources.fetch_term_structure(client, repo, run_id, ticker)
+        term_rows = uw_sources.fetch_term_structure(
+            client, repo, run_id, ticker, market_date=market_date
+        )
         repo.insert_iv_term_rows(run_id, term_rows)
 
         # 6. Interpolated IV
-        interp_rows = uw_sources.fetch_interpolated_iv(client, repo, run_id, ticker)
+        interp_rows = uw_sources.fetch_interpolated_iv(
+            client, repo, run_id, ticker, market_date=market_date
+        )
         repo.insert_interpolated_iv_rows(run_id, ticker, interp_rows)
 
         # Pick the nearest expiry from term structure for expiry-required calls.
@@ -193,7 +224,9 @@ def run_single_stock(
         # term still listing yesterday's 0DTE as dte=0 in the post-close
         # window) — filter to expiry >= today_ET so we never write stale
         # per-strike rows.
-        today_et = _today_et()
+        # Under replay the expiry must be the one that session actually traded,
+        # not the nearest expiry as of today.
+        today_et = market_date or _today_et()
         nearest_expiry: _date | None = None
         if term_rows:
             valid_term = [r for r in term_rows if r.expiry >= today_et]
@@ -222,7 +255,7 @@ def run_single_stock(
 
         # 8. Greek exposure (strike-expiry)
         ge_rows = uw_sources.fetch_greek_exposure(
-            client, repo, run_id, ticker, expiry_str
+            client, repo, run_id, ticker, expiry_str, market_date=market_date
         )
         repo.insert_greek_exposure_rows(run_id, ticker, ge_rows)
 
@@ -250,7 +283,7 @@ def run_single_stock(
         # vanna_flip, charm pin/imbalance/flip, signal_quality).
         spot_for_derive = _safe_spot_for_derive(repo, ticker)
         agg_rows = uw_sources.fetch_greek_exposure_by_expiry(
-            client, repo, run_id, ticker
+            client, repo, run_id, ticker, market_date=market_date
         )
         if agg_rows:
             agg_summary_rows = cards_exposures.build_summary_rows_from_aggregate(
@@ -259,7 +292,7 @@ def run_single_stock(
             repo.upsert_exposures_summary(
                 run_id=run_id,
                 ticker=ticker,
-                market_date=_date.today(),
+                market_date=stamp,
                 rows=agg_summary_rows,
             )
 
@@ -272,48 +305,70 @@ def run_single_stock(
             repo.upsert_exposures_summary(
                 run_id=run_id,
                 ticker=ticker,
-                market_date=_date.today(),
+                market_date=stamp,
                 rows=strike_summary_rows,
             )
 
         # 9. Spot exposures (we already persisted in 8 via exposures table; spot row stored only as raw + audit)
-        _ = uw_sources.fetch_spot_exposures(client, repo, run_id, ticker, expiry_str)
+        _ = uw_sources.fetch_spot_exposures(
+            client, repo, run_id, ticker, expiry_str, market_date=market_date
+        )
 
         # 10. Greeks
-        greeks_rows = uw_sources.fetch_greeks(client, repo, run_id, ticker, expiry_str)
+        greeks_rows = uw_sources.fetch_greeks(
+            client,
+            repo,
+            run_id,
+            ticker,
+            expiry_str,
+            date=stamp.isoformat() if replay else None,
+        )
         repo.insert_greeks_rows(run_id, ticker, greeks_rows)
 
         # 11. OI per strike
-        oi_strike_rows = uw_sources.fetch_oi_per_strike(client, repo, run_id, ticker)
+        oi_strike_rows = uw_sources.fetch_oi_per_strike(
+            client, repo, run_id, ticker, market_date=market_date
+        )
         repo.upsert_oi_per_strike_rows(ticker, oi_strike_rows)
 
         # 12. OI change
-        oi_change_rows = uw_sources.fetch_oi_change(client, repo, run_id, ticker)
+        oi_change_rows = uw_sources.fetch_oi_change(
+            client, repo, run_id, ticker, market_date=market_date
+        )
         repo.insert_oi_change_rows(run_id, oi_change_rows)
 
         # 13. Max pain
-        max_pain_rows = uw_sources.fetch_max_pain(client, repo, run_id, ticker)
+        max_pain_rows = uw_sources.fetch_max_pain(
+            client, repo, run_id, ticker, market_date=market_date
+        )
         # market_date for max pain — use nearest_expiry as date hint isn't in row
-        market_date = _date.today()
-        repo.insert_max_pain_rows(run_id, ticker, market_date, max_pain_rows)
+        repo.insert_max_pain_rows(run_id, ticker, stamp, max_pain_rows)
 
         # 14. Option contracts (broad). The earlier re-fetch via
         # /option-contracts?option_symbol[]=... was removed because it hit the
         # same endpoint and returned the identical rows already in `contracts`
         # — see normalize.normalize_option_contracts_by_symbol ("Same shape as
         # option_contracts"). Saves 1 UW call per rescan.
-        contracts = uw_sources.fetch_option_contracts(client, repo, run_id, ticker)
+        contracts = uw_sources.fetch_option_contracts(
+            client, repo, run_id, ticker, market_date=market_date
+        )
         repo.insert_option_contract_rows(run_id, ticker, contracts)
 
         # 16. Dark pool
-        dp_rows = uw_sources.fetch_darkpool_ticker(client, repo, run_id, ticker)
+        dp_rows = uw_sources.fetch_darkpool_ticker(
+            client, repo, run_id, ticker, market_date=market_date
+        )
         repo.insert_dark_pool_rows(run_id, dp_rows)
 
-        # 17. Short data — pick latest snapshot only
-        short_rows = uw_sources.fetch_short_data(client, repo, run_id, ticker)
-        latest_short = normalize.latest_by_timestamp(short_rows)
-        if latest_short is not None:
-            repo.insert_short_interest_snapshot(run_id, latest_short)
+        # 17. Short data — pick latest snapshot only. REFUSED under replay:
+        # /api/shorts/{ticker}/data returns a byte-identical body for any `date`
+        # (measured 2026-08-16), so a replayed write would stamp today's short
+        # interest with a past date. See uw_scan.pipeline_replay_policy.
+        if not replay:
+            short_rows = uw_sources.fetch_short_data(client, repo, run_id, ticker)
+            latest_short = normalize.latest_by_timestamp(short_rows)
+            if latest_short is not None:
+                repo.insert_short_interest_snapshot(run_id, latest_short)
 
         # Assemble report
         report = assemble_single_stock_report(ticker, run_id, repo)
@@ -351,7 +406,7 @@ def run_single_stock(
 
         # 18. Per-ticker bulk-screener — feeds MarketAggregates on the report.
         screener_row = uw_sources.fetch_bulk_screener_ticker(
-            client, repo, run_id, ticker
+            client, repo, run_id, ticker, market_date=market_date
         )
         if screener_row is not None:
             etf_aum = None
@@ -389,13 +444,16 @@ def run_single_stock(
             if aggregates.pcr_oi is not None or aggregates.pcr_vol is not None:
                 repo.append_pcr_history(
                     ticker=ticker,
-                    snapshot_date=_date.today(),
+                    snapshot_date=stamp,
                     pcr_oi=aggregates.pcr_oi,
                     pcr_vol=aggregates.pcr_vol,
                 )
 
         try:
-            _persist_trade_insights_for_run(repo=repo, report=report)
+            # Live surface: a replay must not inject past-dated insights into a
+            # panel the operator reads as current.
+            if not replay:
+                _persist_trade_insights_for_run(repo=repo, report=report)
         except Exception as exc:  # noqa: BLE001 — research-log only; never block a scan
             logger.warning(
                 "trade_insights persistence failed for %s run_id=%s: %s",
@@ -408,16 +466,20 @@ def run_single_stock(
         # the warm store. Scanner failures should be visible but never block
         # the base scan from finishing.
         try:
+            # Same reasoning as trade insights: scanner candidates are a live
+            # decision surface, so replays do not emit them.
             settings = _cached_scanner_settings()
             signals_repo = SignalsRepository(repo.conn, schema=settings.db_schema)
-            candidate = run_scanner_detectors(
-                repo=repo,
-                signals_repo=signals_repo,
-                settings=settings,
-                run_id=run_id,
-                ticker=ticker,
-                today=_date.today(),
-            )
+            candidate = None
+            if not replay:
+                candidate = run_scanner_detectors(
+                    repo=repo,
+                    signals_repo=signals_repo,
+                    settings=settings,
+                    run_id=run_id,
+                    ticker=ticker,
+                    today=_date.today(),
+                )
             if candidate is not None:
                 logger.info(
                     "scanner: %s run_id=%d emitted candidate (type_f=%s, final=%s)",

@@ -36,7 +36,7 @@ def _is_market_open() -> bool:
 
 
 def _spot_flip_from_gex(
-    repo: Repository, ticker: str
+    repo: Repository, ticker: str, as_of: _date | None = None
 ) -> tuple[float | None, float | None]:
     """Spot + gamma-flip read ATOMICALLY from one ``gex_snapshots`` payload.
 
@@ -49,7 +49,7 @@ def _spot_flip_from_gex(
     ``(None, None)`` when no snapshot exists (e.g. TLT before its first GEX
     scan → flip renders ``---``, matching radon).
     """
-    raw = repo.fetch_latest_gex(ticker=ticker)
+    raw = repo.fetch_latest_gex(ticker=ticker, as_of=as_of)
     if not raw:
         return None, None
 
@@ -69,7 +69,9 @@ def _spot_flip_from_gex(
     return spot, flip
 
 
-def _spy_close_by_date(repo: Repository) -> dict[str, float]:
+def _spy_close_by_date(
+    repo: Repository, as_of: _date | None = None
+) -> dict[str, float]:
     """``{date_iso: close}`` of SPY daily closes from the warm-store ``daily_ohlc``.
 
     Used to overlay SPY's actual price on the divergence chart. The OHLC job
@@ -91,6 +93,9 @@ def _spy_close_by_date(repo: Repository) -> dict[str, float]:
             out[r.date.isoformat()] = float(r.close)
         except (TypeError, ValueError) as exc:
             log.debug("grg spy close coerce skipped %s: %s", r.date, repr(exc))
+    if as_of is not None:
+        cutoff = as_of.isoformat()
+        out = {d: c for d, c in out.items() if d <= cutoff}
     return out
 
 
@@ -100,6 +105,7 @@ def run(
     schema: str = "uw_scan",
     *,
     scan_time: str | None = None,
+    as_of: _date | None = None,
 ) -> int | None:
     """Fetch SPY/TLT greek-exposure history, compute GRG, persist a snapshot.
 
@@ -124,9 +130,24 @@ def run(
                 client, repo, run_id, "TLT", timeframe="1Y"
             )
         )
-        spy_spot, spy_flip = _spot_flip_from_gex(repo, "SPY")
-        tlt_spot, tlt_flip = _spot_flip_from_gex(repo, "TLT")
-        spy_prices = _spy_close_by_date(repo)
+        if as_of is not None:
+            # Historical replay: the 1Y fetch always returns the series through
+            # today, so a past snapshot MUST drop everything after as_of or the
+            # row is stamped with a past date and computed from future data.
+            # data_date is derived from the series tail inside run_analysis, so
+            # a forgotten filter here shows up as the WRONG data_date, not
+            # silently. The row key is `date` (NOT `trade_date`) —
+            # parse_greek_exposure_history emits `date` and grg_scoring reads
+            # r["date"]; same key mismatch as the greek_exposure_daily heal,
+            # opposite direction.
+            spy_rows = [r for r in spy_rows if r["date"] <= as_of]
+            tlt_rows = [r for r in tlt_rows if r["date"] <= as_of]
+            if not spy_rows or not tlt_rows:
+                repo.finish_scan_run(run_id, status="ok")
+                return None
+        spy_spot, spy_flip = _spot_flip_from_gex(repo, "SPY", as_of)
+        tlt_spot, tlt_flip = _spot_flip_from_gex(repo, "TLT", as_of)
+        spy_prices = _spy_close_by_date(repo, as_of)
         payload = grg_scoring.run_analysis(
             spy_rows,
             tlt_rows,

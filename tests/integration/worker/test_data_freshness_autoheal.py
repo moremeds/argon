@@ -98,11 +98,13 @@ def test_autoheal_disabled_by_default_produces_no_summary_key(seeded_db_empty_ca
 def test_autoheal_skips_table_without_healer_adapter(seeded_db_empty_cards):
     repo = seeded_db_empty_cards
     settings = _settings(repo)
-    # pcr_history is freshness_only with no healer_adapter -- nothing to retrigger.
+    # flow_alerts_daily_rollup is freshness_only with no healer_adapter --
+    # nothing to retrigger. (This used to name pcr_history, which gained the
+    # pipeline_replay adapter on 2026-08-16 and is no longer adapter-less.)
     result = _autoheal_frozen_tables(
-        repo, settings, date(2026, 7, 2), [_frozen_row("pcr_history")]
+        repo, settings, date(2026, 7, 2), [_frozen_row("flow_alerts_daily_rollup")]
     )
-    assert result["skipped_no_adapter"] == ["pcr_history"]
+    assert result["skipped_no_adapter"] == ["flow_alerts_daily_rollup"]
     assert result["healed"] == []
     assert result["circuit_broken"] == []
 

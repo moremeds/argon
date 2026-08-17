@@ -15,12 +15,15 @@ Plan: docs/superpowers/plans/2026-06-30-data-gap-healer.md
 
 from __future__ import annotations
 
+import logging
 from dataclasses import dataclass
 from datetime import date
 from typing import Literal
 
 from psycopg import Connection
 from psycopg import sql as psql
+
+logger = logging.getLogger(__name__)
 
 # How coverage is measured for a dataset.
 AuditMode = Literal[
@@ -32,6 +35,16 @@ AuditMode = Literal[
     "research_artifact",  # persisted backtest/research output; audit existence only
     "excluded",  # intentionally outside healer scope (reason required)
 ]
+# Audit modes that are existence-only BY DESIGN: there is no time series to
+# backfill, so "no adapter" is the correct answer rather than an undocumented
+# refusal. Everything outside this set must carry either a heal adapter or a
+# dated, measured reason — see tests/unit/reports/test_full_coverage.py.
+BY_DESIGN_AUDIT_MODES: tuple[str, ...] = (
+    "excluded",
+    "provenance",
+    "operational_state",
+    "research_artifact",
+)
 # Which budget bucket a heal spends from.
 Provider = Literal["uw", "massive", "external", "db", "none"]
 # How the heal is dispatched.
@@ -86,6 +99,10 @@ class DatasetRegistryEntry:
     retention_days: int | None = None  # source history limit; older -> no_data
     enabled: bool = True
     reason: str | None = None  # required when audit_mode == 'excluded'
+    # When the refusal/claim in `reason` was actually PROBED against the
+    # provider. None = untested assumption, not a measurement. The blanket
+    # "no auto-backfill" reason proved false for 13 datasets in round 1.
+    reason_verified_on: date | None = None
 
 
 @dataclass(frozen=True)
@@ -162,11 +179,15 @@ REGISTRY: list[DatasetRegistryEntry] = [
         "strict_ticker_date",
         ticker_col="ticker",
         provider="uw",
-        granularity="per_ticker_date",
+        granularity="per_ticker_range",
         healer_adapter="greek_exposure_daily",
         source_system="uw",
-        retention_days=1,
-        reason="UW aggregate returns the current snapshot only; past dates -> no_data",
+        retention_days=None,
+        reason=(
+            "UW /greek-exposure/{ticker} returns the FULL ~250-row date series in "
+            "one call; measured 2026-08-16, 12 calls restored 3,000 rows across 4 "
+            "outage dates"
+        ),
     ),
     # --- UW historical alpha (migration 108) ---
     # retention_days is descriptive-only — the scanner keys on row EXISTENCE, not
@@ -214,7 +235,13 @@ REGISTRY: list[DatasetRegistryEntry] = [
         "freshness_only",
         ticker_col="ticker",
         source_system="derived",
-        reason="derived from flow_events; heal adapter is a TODO (audit-only)",
+        reason=(
+            "Derived from flow_events, which UW cannot replay (byte-identical "
+            "bodies across `date` values, response-hash differential "
+            "2026-08-16). A derivative of an unreplayable source is itself "
+            "unreplayable — this is a MEASURED refusal, not a TODO."
+        ),
+        reason_verified_on=date(2026, 8, 16),
     ),
     # --- core market data ---
     DatasetRegistryEntry(
@@ -233,6 +260,13 @@ REGISTRY: list[DatasetRegistryEntry] = [
         "freshness_only",
         ticker_col="ticker",
         expected_frequency="liveness",
+        reason=(
+            "live state, not a time series: a row asserts what is true NOW "
+            "and is rewritten in place. A missing row means the condition does "
+            "not hold, not that history was lost — there is nothing to "
+            "backfill."
+        ),
+        reason_verified_on=date(2026, 8, 16),
     ),
     DatasetRegistryEntry(
         # Latest-only live-technicals cache (upsert per ticker off intraday_quote,
@@ -242,6 +276,13 @@ REGISTRY: list[DatasetRegistryEntry] = [
         "freshness_only",
         ticker_col="ticker",
         expected_frequency="liveness",
+        reason=(
+            "live state, not a time series: a row asserts what is true NOW "
+            "and is rewritten in place. A missing row means the condition does "
+            "not hold, not that history was lost — there is nothing to "
+            "backfill."
+        ),
+        reason_verified_on=date(2026, 8, 16),
     ),
     DatasetRegistryEntry(
         # User-set VWAP anchor for the Technicals price pane (one row per
@@ -283,8 +324,18 @@ REGISTRY: list[DatasetRegistryEntry] = [
         "derived_volatility",
         "freshness_only",
         ticker_col="ticker",
+        provider="db",
+        granularity="run_once_lookback",
+        healer_adapter="technical_daily",
         source_system="derived",
-        reason="full series recomputed nightly from apex bars; no per-date heal",
+        reason=(
+            "worker/jobs/technical_daily_refresh.technical_daily_refresh "
+            "recomputes the FULL series per ticker from apex bars and upserts "
+            "idempotently, so ONE run heals every historical hole — the "
+            "'no per-date heal' note was right about the shape and wrong to "
+            "conclude no heal exists."
+        ),
+        reason_verified_on=date(2026, 8, 16),
     ),
     DatasetRegistryEntry(
         # UW /volatility/realized — full ~1y series in one call (NOT the rollup,
@@ -345,17 +396,33 @@ REGISTRY: list[DatasetRegistryEntry] = [
         "market_tide_snapshots",
         "regime_marketwide",
         "strict_session",
+        provider="uw",
+        granularity="per_ticker_date",
+        healer_adapter="market_tide",
         source_system="uw",
-        retention_days=1,
-        reason="UW market-tide is current-session; historical heal TODO (audit-only)",
+        reason=(
+            "scanners.market_tide.run already takes trading_date (and "
+            "capture_spot=False for backfill); UW served all 4 outage dates with "
+            "full 81-82 bar sessions. The previous 'current-session only' claim "
+            "was never probed. This is the audit's calendar reference — healing "
+            "it is what stops the spine going blind."
+        ),
+        reason_verified_on=date(2026, 8, 16),
     ),
     DatasetRegistryEntry(
         "top_net_impact_snapshots",
         "regime_marketwide",
         "strict_session",
+        provider="uw",
+        granularity="per_ticker_date",
+        healer_adapter="top_net_impact",
         source_system="uw",
-        retention_days=1,
-        reason="UW historical endpoint may return only current session; heal TODO",
+        reason=(
+            "scanners.top_net_impact.run already takes trading_date; UW served "
+            "40 rows/date back to 2026-01-02 (121 sessions backfilled "
+            "2026-08-16). The 'may return only current session' claim was untested."
+        ),
+        reason_verified_on=date(2026, 8, 16),
     ),
     # --- scanner / page state (freshness) ---
     DatasetRegistryEntry(
@@ -364,6 +431,13 @@ REGISTRY: list[DatasetRegistryEntry] = [
         "freshness_only",
         ticker_col="ticker",
         expected_frequency="liveness",
+        reason=(
+            "live state, not a time series: a row asserts what is true NOW "
+            "and is rewritten in place. A missing row means the condition does "
+            "not hold, not that history was lost — there is nothing to "
+            "backfill."
+        ),
+        reason_verified_on=date(2026, 8, 16),
     ),
     # --- operational / provenance (audit only, never healed) ---
     DatasetRegistryEntry(
@@ -613,7 +687,6 @@ REGISTRY.extend(
             "signal_hits",
             "signal_context_flags",
             "signal_gates",
-            "scanner_candidate_snapshots",
             "trade_insight_snapshots",
             "trade_insight_candidates",
             "trade_insight_ai_analyses",
@@ -623,41 +696,48 @@ REGISTRY.extend(
         "scanner_state",
         "freshness_only",
         expected_frequency="liveness",
+        reason=(
+            "live state, not a time series: a row asserts what is true NOW and is "
+            "rewritten in place. A missing row means the condition does not hold, "
+            "not that history was lost — there is nothing to backfill."
+        ),
+        reason_verified_on=date(2026, 8, 16),
     )
+)
+
+# scanner_candidate_snapshots is NOT liveness, despite sitting in the same
+# scanner_state group. Checked 2026-08-16 rather than assumed: surrogate `id`
+# PK, an (ticker, scored_at DESC) index, and signals_repository's own docstring
+# — "Append-only (no upsert) — every run accrues a new batch so history is
+# preserved for Phase-2 markout". Production holds 7,389 rows across 23 dates.
+# Pasting the liveness reason here would have written a false statement into
+# the registry and buried a real series behind "nothing to backfill".
+REGISTRY.extend(
+    [
+        DatasetRegistryEntry(
+            "scanner_candidate_snapshots",
+            "scanner_state",
+            "freshness_only",
+            ticker_col="ticker",
+            expected_frequency="equity_session",
+            source_system="derived",
+            reason=(
+                "Append-only scan history (one batch per scanner run), NOT live "
+                "state. Re-deriving a past scan needs the flow/GEX inputs as they "
+                "stood at scan time, which the warm store overwrites — so a lost "
+                "batch is genuinely unrecoverable rather than merely unwired. "
+                "Freshness-monitored so a stalled scanner is still visible."
+            ),
+            reason_verified_on=date(2026, 8, 16),
+        ),
+    ]
 )
 
 REGISTRY.extend(
     _entries(
         [
-            "options_volume_daily",
-            "pcr_history",
-            "flow_events",
-            "dark_pool_events",
-            "option_contract_snapshots",
-            "option_chain_per_strike",
-            "iv_rank_history",
-            "iv_term_snapshots",
-            "interpolated_iv_snapshots",
-            "risk_reversal_skew_history",
-            "greeks_by_expiry_strike",
-            "exposures_by_expiry_strike",
-            "exposures_summary",
-            "oi_by_strike",
-            "oi_by_expiry",
-            "oi_change_events",
-            "max_pain_by_expiry",
-            "short_interest_snapshots",
-            "uw_positioning",
-            "massive_fundamentals",
-            "corporate_actions",
-            "iv_smile_snapshots",
-            "option_intraday_buckets",
-            "index_ohlc_daily",
-            "vol_index_daily",
             # migration-108 event logs: append-only, no (ticker,date) uniqueness
             # to audit-heal — freshness-monitored, backfilled via uw_alpha_catchup.
-            "uw_dark_lit_flow_prints",
-            "uw_intraday_option_flow_bars",
         ],
         "options_chain",
         "freshness_only",
@@ -665,20 +745,485 @@ REGISTRY.extend(
     )
 )
 
+# Probed 2026-08-16 by response-hash differential, NOT by "HTTP 200 with rows"
+# (three endpoints answer 200 with a full row set for any date you ask and serve
+# the identical body every time — see docs/research/2026-08-16-replay-endpoint-matrix.md).
+# The nine entries below are now healed by pipeline.run_single_stock(market_date=...)
+# via the `pipeline_replay` adapter. The four that follow them stay freshness_only
+# for reasons specific to each — read them; they are not the old blanket assumption.
 REGISTRY.extend(
-    _entries(
-        [
+    [
+        DatasetRegistryEntry(
+            "oi_by_strike",
+            "options_chain",
+            "strict_ticker_date",
+            provider="uw",
+            granularity="per_ticker_date",
+            healer_adapter="pipeline_replay",
+            reason=(
+                "Replayable: UW honours ?date= on this endpoint, proven 2026-08-16 by response-hash differential (docs/research/2026-08-16-replay-endpoint-matrix.md). Healed by pipeline.run_single_stock(market_date=...)."
+            ),
+            reason_verified_on=date(2026, 8, 16),
+        ),
+        DatasetRegistryEntry(
+            "oi_change_events",
+            "options_chain",
+            "strict_ticker_date",
+            provider="uw",
+            granularity="per_ticker_date",
+            healer_adapter="pipeline_replay",
+            reason=(
+                "Replayable: UW honours ?date= on this endpoint, proven 2026-08-16 by response-hash differential (docs/research/2026-08-16-replay-endpoint-matrix.md). Healed by pipeline.run_single_stock(market_date=...)."
+            ),
+            reason_verified_on=date(2026, 8, 16),
+        ),
+        DatasetRegistryEntry(
+            "greeks_by_expiry_strike",
+            "options_chain",
+            "strict_ticker_date",
+            provider="uw",
+            granularity="per_ticker_date",
+            healer_adapter="pipeline_replay",
+            reason=(
+                "Replayable: UW honours ?date= on this endpoint, proven 2026-08-16 by response-hash differential (docs/research/2026-08-16-replay-endpoint-matrix.md). Healed by pipeline.run_single_stock(market_date=...)."
+            ),
+            reason_verified_on=date(2026, 8, 16),
+        ),
+        DatasetRegistryEntry(
+            "exposures_by_expiry_strike",
+            "options_chain",
+            "strict_ticker_date",
+            provider="uw",
+            granularity="per_ticker_date",
+            healer_adapter="pipeline_replay",
+            reason=(
+                "Replayable: UW honours ?date= on this endpoint, proven 2026-08-16 by response-hash differential (docs/research/2026-08-16-replay-endpoint-matrix.md). Healed by pipeline.run_single_stock(market_date=...)."
+            ),
+            reason_verified_on=date(2026, 8, 16),
+        ),
+        DatasetRegistryEntry(
+            "exposures_summary",
+            "options_chain",
+            "strict_ticker_date",
+            provider="uw",
+            granularity="per_ticker_date",
+            healer_adapter="pipeline_replay",
+            reason=(
+                "Replayable: UW honours ?date= on this endpoint, proven 2026-08-16 by response-hash differential (docs/research/2026-08-16-replay-endpoint-matrix.md). Healed by pipeline.run_single_stock(market_date=...)."
+            ),
+            reason_verified_on=date(2026, 8, 16),
+        ),
+        DatasetRegistryEntry(
+            "iv_term_snapshots",
+            "options_chain",
+            "strict_ticker_date",
+            provider="uw",
+            granularity="per_ticker_date",
+            healer_adapter="pipeline_replay",
+            reason=(
+                "Replayable: UW honours ?date= on this endpoint, proven 2026-08-16 by response-hash differential (docs/research/2026-08-16-replay-endpoint-matrix.md). Healed by pipeline.run_single_stock(market_date=...)."
+            ),
+            reason_verified_on=date(2026, 8, 16),
+        ),
+        DatasetRegistryEntry(
+            "interpolated_iv_snapshots",
+            "options_chain",
+            "strict_ticker_date",
+            provider="uw",
+            granularity="per_ticker_date",
+            healer_adapter="pipeline_replay",
+            reason=(
+                "Replayable: UW honours ?date= on this endpoint, proven 2026-08-16 by response-hash differential (docs/research/2026-08-16-replay-endpoint-matrix.md). Healed by pipeline.run_single_stock(market_date=...)."
+            ),
+            reason_verified_on=date(2026, 8, 16),
+        ),
+        DatasetRegistryEntry(
+            "risk_reversal_skew_history",
+            "options_chain",
+            "freshness_only",
+            reason=(
+                "Self-healing: /historical-risk-reversal-skew returns a ~250-row trailing SERIES, so any nightly run re-persists the whole window. Measured 2026-08-16 at 170/170 tickers for the 2026-08-11..14 outage with no intervention. No adapter needed."
+            ),
+            reason_verified_on=date(2026, 8, 16),
+        ),
+        DatasetRegistryEntry(
+            "max_pain_by_expiry",
+            "options_chain",
+            "strict_ticker_date",
+            provider="uw",
+            granularity="per_ticker_date",
+            healer_adapter="pipeline_replay",
+            reason=(
+                "Replayable: UW honours ?date= on this endpoint, proven 2026-08-16 by response-hash differential (docs/research/2026-08-16-replay-endpoint-matrix.md). Healed by pipeline.run_single_stock(market_date=...)."
+            ),
+            reason_verified_on=date(2026, 8, 16),
+        ),
+        DatasetRegistryEntry(
+            "pcr_history",
+            "options_chain",
+            "strict_ticker_date",
+            # snapshot_date is NOT in _DATE_COL_PREFERENCE, so auto-detect finds
+            # nothing and the dataset silently audits as zero gaps. Explicit.
+            date_col="snapshot_date",
+            provider="uw",
+            granularity="per_ticker_date",
+            healer_adapter="pipeline_replay",
+            reason=(
+                "Replayable: UW honours ?date= on this endpoint, proven 2026-08-16 by response-hash differential (docs/research/2026-08-16-replay-endpoint-matrix.md). Healed by pipeline.run_single_stock(market_date=...)."
+            ),
+            reason_verified_on=date(2026, 8, 16),
+        ),
+        DatasetRegistryEntry(
+            "dark_pool_events",
+            "options_chain",
+            "freshness_only",
+            reason=(
+                "Written by the replay (UW honours ?date= on /darkpool/{ticker}, "
+                "proven 2026-08-16) but keyed on executed_at: a name with no dark-pool "
+                "print on a given session is legitimately absent, so a strict "
+                "ticker-x-session audit would report phantom gaps for illiquid names."
+            ),
+            reason_verified_on=date(2026, 8, 16),
+        ),
+        DatasetRegistryEntry(
+            "option_contract_snapshots",
+            "options_chain",
+            "freshness_only",
+            reason=(
+                "Written by the replay (UW honours ?date=, proven 2026-08-16) but the table has NO date column — only run_id/ticker/option_symbol — so it cannot carry a per-ticker-date audit. Freshness is the only honest measure here."
+            ),
+            reason_verified_on=date(2026, 8, 16),
+        ),
+        DatasetRegistryEntry(
+            "iv_rank_history",
+            "options_chain",
+            "freshness_only",
+            reason=(
+                "Replayable in principle (UW honours ?date=, proven 2026-08-16) but written only for the 4 cockpit tickers by cockpit_daily_snapshot. A strict_ticker_date audit would measure it against the 170-name watchlist and invent ~166 phantom gaps per session, so it stays freshness_only."
+            ),
+            reason_verified_on=date(2026, 8, 16),
+        ),
+        DatasetRegistryEntry(
+            "option_chain_per_strike",
+            "options_chain",
+            "strict_ticker_date",
+            # snapshot_date is NOT in _DATE_COL_PREFERENCE, so auto-detect finds
+            # nothing and the dataset silently audits as zero gaps. Explicit.
+            date_col="snapshot_date",
+            provider="uw",
+            granularity="per_ticker_date",
+            healer_adapter="flow_chain_replay",
+            reason=(
+                "Replayable: UW honours ?date= on /option-contracts, proven "
+                "2026-08-16 by response-hash differential. Owned by "
+                "flow_data_refresh (not run_single_stock), and needs that "
+                "session's close to pick the +/-60% strike band — a ticker with "
+                "no daily_ohlc close for the date is skipped, not stamped with a "
+                "live quote."
+            ),
+            reason_verified_on=date(2026, 8, 16),
+        ),
+        DatasetRegistryEntry(
+            "option_intraday_buckets",
+            "options_chain",
+            "freshness_only",
+            reason=(
+                "UW serves this endpoint for past dates (probed 2026-08-16, HTTP 200 with rows). Blocked only by missing date plumbing in pipeline.run_single_stock — full_scan_once takes no `date`. Not a provider refusal."
+            ),
+            reason_verified_on=date(2026, 8, 16),
+        ),
+    ]
+)
+
+# MEASURED refusals: probed by response-hash differential on 2026-08-16 — UW
+# returns byte-identical bodies across different `date` values, so a
+# date-looped replay would write today's payload under yesterday's key.
+REGISTRY.extend(
+    [
+        DatasetRegistryEntry(
+            "flow_events",
+            "options_chain",
+            "freshness_only",
+            reason=(
+                "UW returns byte-identical bodies for different `date` values (response-hash differential, 2026-08-16) — historical replay would be fabrication, not backfill"
+            ),
+            reason_verified_on=date(2026, 8, 16),
+        ),
+        DatasetRegistryEntry(
+            "options_volume_daily",
+            "options_chain",
+            "freshness_only",
+            reason=(
+                "UW returns byte-identical bodies for different `date` values (response-hash differential, 2026-08-16) — historical replay would be fabrication, not backfill"
+            ),
+            reason_verified_on=date(2026, 8, 16),
+        ),
+        DatasetRegistryEntry(
+            "short_interest_snapshots",
+            "options_chain",
+            "freshness_only",
+            reason=(
+                "UW returns byte-identical bodies for different `date` values (response-hash differential, 2026-08-16) — historical replay would be fabrication, not backfill"
+            ),
+            reason_verified_on=date(2026, 8, 16),
+        ),
+        DatasetRegistryEntry(
+            "uw_positioning",
+            "options_chain",
+            "freshness_only",
+            reason=(
+                "UW returns byte-identical bodies for different `date` values (response-hash differential, 2026-08-16) — historical replay would be fabrication, not backfill"
+            ),
+            reason_verified_on=date(2026, 8, 16),
+        ),
+    ]
+)
+
+# Wired in coverage-hardening Task 6.
+REGISTRY.extend(
+    [
+        DatasetRegistryEntry(
+            "vol_index_daily",
+            "options_chain",
+            "freshness_only",
+            provider="db",
+            granularity="run_once_lookback",
+            healer_adapter="vol_index_lake",
+            source_system="derived",
+            reason=(
+                "run_vol_index_lake_sync + run_credit_etf_lake_sync (worker/jobs/) both write this table from the market-warehouse lake at zero provider cost; used to heal Aug 11-14 on 2026-08-16."
+            ),
+            reason_verified_on=date(2026, 8, 16),
+        ),
+        DatasetRegistryEntry(
+            "index_ohlc_daily",
+            "options_chain",
+            "freshness_only",
+            provider="massive",
+            granularity="run_once_lookback",
+            healer_adapter="index_ohlc",
+            source_system="massive",
+            reason=(
+                "worker/volatility_jobs.daily_spy_ohlc_refresh writes this (NOT the lake syncs — those write vol_index_daily). Its window was hardcoded to today-2d; it now takes lookback_days so the healer can reach an older hole."
+            ),
+            reason_verified_on=date(2026, 8, 16),
+        ),
+        DatasetRegistryEntry(
+            "uw_dark_lit_flow_prints",
+            "options_chain",
+            "strict_ticker_date",
+            ticker_col="ticker",
+            provider="uw",
+            granularity="per_ticker_date",
+            healer_adapter="uw_alpha_dark_lit",
+            source_system="uw",
+            reason=(
+                "capture_dark_lit_for(client, repo, alpha_repo, run_id, ticker, market_date) already takes the date; scripts/backfill/uw_alpha_catchup.py backfill-eventlog healed all 4 outage dates on 2026-08-16. strict_ticker_date (not freshness_only) because a per_ticker_date adapter is dispatched only from gap items."
+            ),
+            reason_verified_on=date(2026, 8, 16),
+        ),
+        DatasetRegistryEntry(
+            "uw_intraday_option_flow_bars",
+            "options_chain",
+            "strict_ticker_date",
+            ticker_col="ticker",
+            provider="uw",
+            granularity="per_ticker_date",
+            healer_adapter="uw_alpha_intraday_flow",
+            source_system="uw",
+            reason=(
+                "capture_intraday_flow_for(...) already takes the date; same backfill-eventlog path as uw_dark_lit_flow_prints. Promoted to strict_ticker_date so the per_ticker_date adapter is actually dispatched."
+            ),
+            reason_verified_on=date(2026, 8, 16),
+        ),
+    ]
+)
+
+# The one genuinely dead table. freshness_only implies something monitors it;
+# measured 2026-08-16 it has 0 rows and no INSERT anywhere in the codebase.
+# A dataset with no writer cannot go stale, so monitoring it is pure noise.
+# NOTE the discipline this pair teaches: iv_smile_snapshots also has no
+# grep-able writer, yet holds 700,540 rows — it is written indirectly via
+# build_iv_smile_snapshot_rows. Check the ROW COUNT before calling a table
+# dead; never grep for a writer.
+REGISTRY.extend(
+    [
+        DatasetRegistryEntry(
+            "oi_by_expiry",
+            "options_chain",
+            "excluded",
+            reason=(
+                "no writer anywhere in the codebase and 0 rows as of 2026-08-16; the table exists but nothing populates it"
+            ),
+            reason_verified_on=date(2026, 8, 16),
+        ),
+    ]
+)
+
+REGISTRY.extend(
+    [
+        DatasetRegistryEntry(
+            # STILL UNCOVERED, and deliberately so. Unlike GRG, this is not a
+            # truncate-the-series fix: scanners/gex.py::run resolves a LIVE spot
+            # and raises without one, so historical replay needs a spot source
+            # per (ticker, date). Real work, out of scope for coverage hardening
+            # — the honest answer is a dated refusal, not a silent gap.
             "gex_snapshots",
-            "cri_snapshots",
-            "vcg_snapshots",
-            "grg_snapshots",
+            "regime_marketwide",
+            "freshness_only",
+            source_system="uw",
+            reason=(
+                "scanners.gex.run resolves a live spot and raises without one; "
+                "historical replay needs a spot source per (ticker, date). "
+                "Unlike grg.run this is not fixable by truncating a fetched "
+                "series. Tracked as follow-up work, not a provider refusal."
+            ),
+            reason_verified_on=date(2026, 8, 16),
+        ),
+        DatasetRegistryEntry(
             "matrix_state_snapshots",
+            "regime_marketwide",
+            "freshness_only",
+            source_system="derived",
+            reason=(
+                "Cockpit-derived: written by cockpit_daily_snapshot, which reads "
+                "the option-chain tables full_scan_once cannot yet replay. "
+                "Cascades off that block rather than being independently "
+                "refused; wired by coverage-hardening Task 7."
+            ),
+            reason_verified_on=date(2026, 8, 16),
+        ),
+    ]
+)
+
+# Regime scanners that DO have a historical recovery entrypoint. The blanket
+# "re-derive needs historical inputs (audit-only)" reason above was written
+# without probing: recover_recent_gaps has existed in all three modules and was
+# used to heal every one of them during the Aug 11-14 outage recovery.
+REGISTRY.extend(
+    [
+        DatasetRegistryEntry(
+            # strict_session, NOT freshness_only: gap items are produced only by
+            # strict_* modes and a per_ticker_date adapter is dispatched only
+            # from those items, so freshness_only would make grg_as_of dead code
+            # (see tests/unit/reports/test_no_dead_adapters.py). One marketwide
+            # row per session keyed data_date — the same shape as
+            # market_tide_snapshots / top_net_impact_snapshots.
+            "grg_snapshots",
+            "regime_marketwide",
+            "strict_session",
+            date_col="data_date",
+            ticker_col=None,
+            provider="uw",
+            granularity="per_ticker_date",
+            healer_adapter="grg_as_of",
+            source_system="uw",
+            reason=(
+                "grg.run(as_of=) truncates the 1Y SPY/TLT greek-exposure series "
+                "AND reads spot/flip/SPY-closes at that date, so past snapshots "
+                "are reconstructible rather than restamped. An as_of with fewer "
+                "than 70 aligned observations honestly returns no_data."
+            ),
+            reason_verified_on=date(2026, 8, 16),
+        ),
+        DatasetRegistryEntry(
+            "cri_snapshots",
+            "regime_marketwide",
+            "freshness_only",
+            provider="db",
+            granularity="run_once_lookback",
+            healer_adapter="cri_recover",
+            source_system="derived",
+            reason=(
+                "scanners.cri.recover_recent_gaps(conn, schema, lookback_days=) "
+                "re-derives missing snapshots from vol_index_daily at zero "
+                "provider cost; used to heal Aug 11-14 on 2026-08-16."
+            ),
+            reason_verified_on=date(2026, 8, 16),
+        ),
+        DatasetRegistryEntry(
+            "vcg_snapshots",
+            "regime_marketwide",
+            "freshness_only",
+            provider="db",
+            granularity="run_once_lookback",
+            healer_adapter="vcg_recover",
+            source_system="derived",
+            reason=(
+                "scanners.vcg.recover_recent_gaps(conn, schema, lookback_days=) "
+                "re-derives from vol_index_daily; same shape as CRI."
+            ),
+            reason_verified_on=date(2026, 8, 16),
+        ),
+        DatasetRegistryEntry(
             "canary_snapshots",
-        ],
-        "regime_marketwide",
-        "freshness_only",
-        reason="regime scanner output; re-derive needs historical inputs (audit-only)",
-    )
+            "regime_marketwide",
+            "freshness_only",
+            provider="db",
+            granularity="run_once_lookback",
+            healer_adapter="canary_recover",
+            source_system="derived",
+            reason=(
+                "scanners.canary.recover_recent_gaps(conn, schema, "
+                "lookback_days=) re-derives from vol_index_daily. "
+                "composite_version is part of the uniqueness key, so a snapshot "
+                "from an older calibration does not count as filled."
+            ),
+            reason_verified_on=date(2026, 8, 16),
+        ),
+        DatasetRegistryEntry(
+            "massive_fundamentals",
+            "options_chain",
+            "freshness_only",
+            ticker_col="ticker",
+            provider="massive",
+            granularity="run_once_lookback",
+            healer_adapter="massive_fundamentals",
+            source_system="massive",
+            reason=(
+                "worker/jobs/fundamentals_jobs.fundamentals_refresh_once(repo, "
+                "provider) re-pulls the current statement set per watchlist "
+                "ticker and upserts idempotently."
+            ),
+            reason_verified_on=date(2026, 8, 16),
+        ),
+        DatasetRegistryEntry(
+            "corporate_actions",
+            "options_chain",
+            "freshness_only",
+            ticker_col="ticker",
+            provider="massive",
+            granularity="run_once_lookback",
+            healer_adapter="corporate_actions",
+            source_system="massive",
+            reason=(
+                "worker/jobs/corporate_actions_jobs.corporate_actions_refresh_once"
+                "(repo, provider) re-pulls the last 12 splits / 24 dividends per "
+                "ticker, so a missed run self-heals."
+            ),
+            reason_verified_on=date(2026, 8, 16),
+        ),
+        DatasetRegistryEntry(
+            "iv_smile_snapshots",
+            "options_chain",
+            "freshness_only",
+            ticker_col="ticker",
+            provider="none",
+            granularity="none",
+            healer_adapter=None,
+            source_system="derived",
+            reason=(
+                "DERIVED, not UW-retention: reports/volatility_series.py builds "
+                "it from greeks_by_expiry_strike via build_iv_smile_snapshot_rows "
+                "inside run_volatility_backfill (NOT the nightly vol rollup — "
+                "that imports only _fill_rv_from_price / persist_stock_analytics "
+                "/ persist_vrp_daily). Cascades off greeks_by_expiry_strike; "
+                "wired in Task 7. 700,540 rows, newest 2026-08-16 — live, not "
+                "legacy."
+            ),
+            reason_verified_on=date(2026, 8, 16),
+        ),
+    ]
 )
 
 # Healable macro/FRED/rates/gold — freshness audit + run_once_lookback heal.
@@ -797,7 +1342,13 @@ REGISTRY.extend(
         ["etf_holdings_daily", "etf_flows_daily", "etf_aum_cache"],
         "gold_rates_macro",
         "freshness_only",
-        reason="source needs auth cookie / no historical API (audit-only)",
+        reason=(
+            "EXTERNAL-PROVIDER BLOCK, not a healer gap: the source requires an "
+            "interactive auth cookie and exposes no historical API, so there is "
+            "nothing for an adapter to call. Re-probe if a credential is ever "
+            "provisioned."
+        ),
+        reason_verified_on=date(2026, 8, 16),
     )
     + _entries(
         # WGC releases monthly -- previously defaulted to "equity_session",
@@ -806,7 +1357,12 @@ REGISTRY.extend(
         ["wgc_etf_monthly", "wgc_etf_monthly_canonical", "cb_gold_reserves_monthly"],
         "gold_rates_macro",
         "freshness_only",
-        reason="source needs auth cookie / no historical API (audit-only)",
+        reason=(
+            "World Gold Council source requires an interactive auth cookie and "
+            "exposes no historical API; the ingest can only capture what is live "
+            "at fetch time. Same failure as etf_holdings_daily."
+        ),
+        reason_verified_on=date(2026, 8, 16),
         expected_frequency="monthly",
     )
 )
@@ -837,10 +1393,15 @@ REGISTRY.extend(
             source_system="uw",
             retention_days=None,
             reason=(
-                "quarterly filings over the fundamental universe, not the "
-                "watchlist; re-run scripts/backfill/fundamental_ingest_backfill.py "
-                "to heal (insert-or-touch, safe to repeat)"
+                "quarterly filings over the fundamental universe (257 tickers), "
+                "not the watchlist. Deliberately NOT wired to the healer: unlike "
+                "scores/anchors this is a provider INGEST, and "
+                "worker/jobs/fundamental_refresh explicitly does not ingest. "
+                "Heal by running scripts/backfill/fundamental_ingest_backfill.py "
+                "(insert-or-touch, safe to repeat) as a budgeted operator "
+                "action, not on the nightly cron."
             ),
+            reason_verified_on=date(2026, 8, 16),
         ),
         DatasetRegistryEntry(
             "fundamental_obs_violations",
@@ -869,14 +1430,19 @@ REGISTRY.extend(
             provider="db",
             # Healing is re-running the scoring job, which is idempotent on
             # (ticker, as_of, engine_version, inputs_hash) and costs zero API
-            # calls — it reads the tier-1 panel, never a provider.
-            granularity="none",
-            healer_adapter=None,
+            # calls — it reads the tier-1 panel, never a provider. run_once (not
+            # per_ticker_*) because this is freshness_only, and only the
+            # run_once* channel dispatches for a non-strict dataset.
+            granularity="run_once",
+            healer_adapter="fundamental_refresh",
             source_system="derived",
             reason=(
-                "derived from fundamental_statement_obs; re-run "
-                "worker/jobs/fundamental_scoring.py to heal (zero API cost)"
+                "derived from fundamental_statement_obs; worker/jobs/"
+                "fundamental_refresh re-runs routing -> scoring -> anchors at "
+                "zero provider spend. The old reason named this job and then "
+                "declined to wire it."
             ),
+            reason_verified_on=date(2026, 8, 16),
         ),
         DatasetRegistryEntry(
             "valuation_anchors",
@@ -890,13 +1456,16 @@ REGISTRY.extend(
             ticker_col="ticker",
             expected_frequency="event",
             provider="db",
-            granularity="none",
-            healer_adapter=None,
+            granularity="run_once",
+            healer_adapter="fundamental_refresh",
             source_system="derived",
             reason=(
                 "derived from fundamental_statement_obs + fundamental_company_type; "
-                "re-run worker/jobs/fundamental_scoring.py to heal (zero API cost)"
+                "healed by the same worker/jobs/fundamental_refresh chain as "
+                "fundamental_scores (routing runs FIRST because anchors read "
+                "company_type). Zero provider spend."
             ),
+            reason_verified_on=date(2026, 8, 16),
         ),
         DatasetRegistryEntry(
             "fundamental_company_type",
@@ -1036,6 +1605,19 @@ def discover_unregistered_tables(
 # full-watchlist phantom gap for every ticker missing that bar. Limitation: the
 # window cannot extend before the reference table's earliest date (YTD scope).
 _REFERENCE_CALENDAR = ("market_tide_sentiment_daily", "data_date")
+# Second, independently-sourced witness. massive publishes SPY bars only on
+# real sessions, so unioning it cannot manufacture a weekend/holiday entry —
+# and because it is a DIFFERENT provider from UW, a UW outage cannot blind it.
+_SPINE_WITNESS = ("daily_ohlc", "date", "ticker", "SPY")
+
+
+@dataclass(frozen=True)
+class SpineHealth:
+    """How much of the expected-session spine the reference table is missing."""
+
+    ref_sessions: int
+    witness_sessions: int
+    missing_from_ref: tuple[date, ...]
 
 
 def _detect_col(
@@ -1062,26 +1644,70 @@ def _calendar_dates(
     start: date,
     end: date,
 ) -> list[date]:
-    """Trading-day calendar in [start, end] from the clean session reference.
+    """Trading-day calendar in [start, end] from two independent witnesses.
 
-    No self-union: the reference (market_tide_sentiment_daily) is the sole
-    source of expected sessions, so weekends/holidays never enter. A dataset
-    row on a non-trading day no longer manufactures a phantom calendar entry.
+    The reference (market_tide_sentiment_daily) is itself CAPTURED, so an
+    outage that stops capture also erases the evidence of the outage and every
+    dataset then audits as 100% covered for exactly the days that were lost
+    (measured 2026-08-16: 1,276 gaps reported vs 8,080 real). SPY's massive
+    OHLC is the second witness: different provider, session-only bars, and
+    already healable via the `daily_ohlc` adapter.
+
+    A phantom session (a witness bar on a non-trading day) is handled by a
+    Caveat row, not by code — see SEED_CAVEATS.
     """
     ref_tbl, ref_col = _REFERENCE_CALENDAR
+    wit_tbl, wit_col, wit_tcol, wit_ticker = _SPINE_WITNESS
     query = psql.SQL(
         """
-        SELECT DISTINCT {rcol} AS d FROM {rtbl}
-         WHERE {rcol} BETWEEN %s AND %s AND {rcol} IS NOT NULL
-         ORDER BY d
+        SELECT d FROM (
+            SELECT DISTINCT {rcol} AS d FROM {rtbl}
+             WHERE {rcol} BETWEEN %s AND %s AND {rcol} IS NOT NULL
+            UNION
+            SELECT DISTINCT {wcol} AS d FROM {wtbl}
+             WHERE {wcol} BETWEEN %s AND %s AND UPPER({wtcol}) = %s
+        ) spine ORDER BY d
         """
     ).format(
         rcol=psql.Identifier(ref_col),
         rtbl=psql.Identifier(schema, ref_tbl),
+        wcol=psql.Identifier(wit_col),
+        wtbl=psql.Identifier(schema, wit_tbl),
+        wtcol=psql.Identifier(wit_tcol),
     )
     with conn.cursor() as cur:
-        cur.execute(query, (start, end))
+        cur.execute(query, (start, end, start, end, wit_ticker))
         return [r[0] for r in cur.fetchall()]
+
+
+def spine_health(conn: Connection, schema: str, start: date, end: date) -> SpineHealth:
+    """Sessions the witness has that the reference lost — the outage signature."""
+    ref_tbl, ref_col = _REFERENCE_CALENDAR
+    wit_tbl, wit_col, wit_tcol, wit_ticker = _SPINE_WITNESS
+    with conn.cursor() as cur:
+        cur.execute(
+            psql.SQL(
+                "SELECT DISTINCT {rcol} FROM {rtbl} "
+                "WHERE {rcol} BETWEEN %s AND %s AND {rcol} IS NOT NULL"
+            ).format(
+                rcol=psql.Identifier(ref_col), rtbl=psql.Identifier(schema, ref_tbl)
+            ),
+            (start, end),
+        )
+        ref = {r[0] for r in cur.fetchall()}
+        cur.execute(
+            psql.SQL(
+                "SELECT DISTINCT {wcol} FROM {wtbl} "
+                "WHERE {wcol} BETWEEN %s AND %s AND UPPER({wtcol}) = %s"
+            ).format(
+                wcol=psql.Identifier(wit_col),
+                wtbl=psql.Identifier(schema, wit_tbl),
+                wtcol=psql.Identifier(wit_tcol),
+            ),
+            (start, end, wit_ticker),
+        )
+        wit = {r[0] for r in cur.fetchall()}
+    return SpineHealth(len(ref), len(wit), tuple(sorted(wit - ref)))
 
 
 def _missing_ticker_date_pairs(
@@ -1139,6 +1765,20 @@ def _scan_strict_ticker_date(
     date_col = entry.date_col or _detect_col(conn, schema, table, _DATE_COL_PREFERENCE)
     tcol = entry.ticker_col or _detect_col(conn, schema, table, _TICKER_COL_PREFERENCE)
     if not date_col or not tcol:
+        # A strict dataset whose columns cannot be resolved reports zero gaps,
+        # which is indistinguishable from "fully covered" -- exactly the silent
+        # no-op this healer exists to surface. Never let it pass quietly.
+        # (pcr_history and option_chain_per_strike hit this on 2026-08-16: both
+        # key on snapshot_date, which is absent from _DATE_COL_PREFERENCE.)
+        logger.error(
+            "gap_audit: %s is %s but its columns did not resolve "
+            "(date_col=%r ticker_col=%r) — reporting ZERO gaps for it. Set "
+            "date_col/ticker_col explicitly on its DatasetRegistryEntry.",
+            table,
+            entry.audit_mode,
+            date_col,
+            tcol,
+        )
         return CoverageSummary(table, "strict_ticker_date", 0, 0, 0, ()), []
 
     calendar = _calendar_dates(conn, schema, start, end)
@@ -1282,14 +1922,16 @@ def render_dataset_policy_markdown(
         lines.append(f"## {group}")
         lines.append("")
         lines.append(
-            "| table | audit_mode | provider | granularity | adapter | freq | reason |"
+            "| table | audit_mode | provider | granularity | adapter | freq | "
+            "reason | verified |"
         )
-        lines.append("|---|---|---|---|---|---|---|")
+        lines.append("|---|---|---|---|---|---|---|---|")
         for e in sorted(by_group[group], key=lambda x: x.table_name):
             lines.append(
                 f"| {e.table_name} | {e.audit_mode} | {e.provider} | "
                 f"{e.granularity} | {e.healer_adapter or ''} | "
-                f"{e.expected_frequency} | {e.reason or ''} |"
+                f"{e.expected_frequency} | {e.reason or ''} | "
+                f"{e.reason_verified_on or ''} |"
             )
         lines.append("")
     return "\n".join(lines)

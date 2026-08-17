@@ -51,6 +51,10 @@ from ..models import (
 from ..storage.repository import Repository
 from ..storage.uw_fetch_memo import UwFetchMemoRepository
 
+# Alias for signatures that already bind a parameter named `date` (the UW
+# string form) and still need the datetime.date type for `market_date`.
+_date_type = date
+
 logger = logging.getLogger(__name__)
 
 _ET = ZoneInfo("America/New_York")
@@ -201,9 +205,16 @@ def fetch_market_flow_alerts(
 
 
 def fetch_iv_rank(
-    client: UwClient, repo: Repository, run_id: int, ticker: str
+    client: UwClient,
+    repo: Repository,
+    run_id: int,
+    ticker: str,
+    market_date: date | None = None,
 ) -> list[IvRankRow]:
-    body = _fetch_json(client, repo, run_id, EndpointSlug.IV_RANK, ticker)
+    # market_date replays a past session; measured to be honoured 2026-08-16
+    # (docs/research/2026-08-16-replay-endpoint-matrix.md). None = live path.
+    params = {"date": market_date.isoformat()} if market_date is not None else None
+    body = _fetch_json(client, repo, run_id, EndpointSlug.IV_RANK, ticker, params=params)
     return normalize.normalize_iv_rank(body)
 
 
@@ -232,16 +243,30 @@ def fetch_realized_volatility(
 
 
 def fetch_term_structure(
-    client: UwClient, repo: Repository, run_id: int, ticker: str
+    client: UwClient,
+    repo: Repository,
+    run_id: int,
+    ticker: str,
+    market_date: date | None = None,
 ) -> list[TermStructureRow]:
-    body = _fetch_json(client, repo, run_id, EndpointSlug.TERM_STRUCTURE, ticker)
+    # market_date replays a past session; measured to be honoured 2026-08-16
+    # (docs/research/2026-08-16-replay-endpoint-matrix.md). None = live path.
+    params = {"date": market_date.isoformat()} if market_date is not None else None
+    body = _fetch_json(client, repo, run_id, EndpointSlug.TERM_STRUCTURE, ticker, params=params)
     return normalize.normalize_term_structure(body)
 
 
 def fetch_interpolated_iv(
-    client: UwClient, repo: Repository, run_id: int, ticker: str
+    client: UwClient,
+    repo: Repository,
+    run_id: int,
+    ticker: str,
+    market_date: date | None = None,
 ) -> list[InterpolatedIvRow]:
-    body = _fetch_json(client, repo, run_id, EndpointSlug.INTERPOLATED_IV, ticker)
+    # market_date replays a past session; measured to be honoured 2026-08-16
+    # (docs/research/2026-08-16-replay-endpoint-matrix.md). None = live path.
+    params = {"date": market_date.isoformat()} if market_date is not None else None
+    body = _fetch_json(client, repo, run_id, EndpointSlug.INTERPOLATED_IV, ticker, params=params)
     return normalize.normalize_interpolated_iv(body)
 
 
@@ -270,14 +295,20 @@ def fetch_greek_exposure(
     run_id: int,
     ticker: str,
     expiry: str,
+    market_date: date | None = None,
 ) -> list[GreekExposureRow]:
+    # market_date replays a past session; measured to be honoured 2026-08-16
+    # (docs/research/2026-08-16-replay-endpoint-matrix.md). None = live path.
+    params: dict[str, Any] = {"expiry": expiry}
+    if market_date is not None:
+        params["date"] = market_date.isoformat()
     body = _fetch_json(
         client,
         repo,
         run_id,
         EndpointSlug.GREEK_EXPOSURE,
         ticker,
-        params={"expiry": expiry},
+        params=params,
     )
     return normalize.normalize_greek_exposure(body)
 
@@ -290,6 +321,7 @@ def fetch_greek_exposure_by_expiry(
     date: str | None = None,
     *,
     force_refresh: bool = False,
+    market_date: _date_type | None = None,
 ) -> list[GreekExposureByExpiryRow]:
     """Fetch /api/stock/{ticker}/greek-exposure/expiry — all expiries in one call.
 
@@ -312,6 +344,21 @@ def fetch_greek_exposure_by_expiry(
             EndpointSlug.GREEK_EXPOSURE_BY_EXPIRY,
             ticker,
             params={"date": date},
+        )
+        return normalize.normalize_greek_exposure_by_expiry(body)
+    # A same-day memo and a historical replay are incompatible: the memo keys on
+    # (ticker, endpoint, ET-today), so under replay a HIT would hand back TODAY's
+    # payload to be stamped with a past date, and a MISS would store the HISTORICAL
+    # payload under today's key and poison the live nightly path. Replay therefore
+    # bypasses the memo entirely — it neither reads nor writes it.
+    if market_date is not None:
+        body = _fetch_json(
+            client,
+            repo,
+            run_id,
+            EndpointSlug.GREEK_EXPOSURE_BY_EXPIRY,
+            ticker,
+            params={"date": market_date.isoformat()},
         )
         return normalize.normalize_greek_exposure_by_expiry(body)
     body = _memoized_fetch_json(
@@ -407,14 +454,20 @@ def fetch_spot_exposures(
     run_id: int,
     ticker: str,
     expiry: str,
+    market_date: date | None = None,
 ) -> list[SpotExposureRow]:
+    # market_date replays a past session; measured to be honoured 2026-08-16
+    # (docs/research/2026-08-16-replay-endpoint-matrix.md). None = live path.
+    params: dict[str, Any] = {"expirations[]": [expiry]}
+    if market_date is not None:
+        params["date"] = market_date.isoformat()
     body = _fetch_json(
         client,
         repo,
         run_id,
         EndpointSlug.SPOT_EXPOSURES,
         ticker,
-        params={"expirations[]": [expiry]},
+        params=params,
     )
     return normalize.normalize_spot_exposures(body)
 
@@ -435,23 +488,44 @@ def fetch_greeks(
 
 
 def fetch_oi_per_strike(
-    client: UwClient, repo: Repository, run_id: int, ticker: str
+    client: UwClient,
+    repo: Repository,
+    run_id: int,
+    ticker: str,
+    market_date: date | None = None,
 ) -> list[OiPerStrikeRow]:
-    body = _fetch_json(client, repo, run_id, EndpointSlug.OI_PER_STRIKE, ticker)
+    # market_date replays a past session; measured to be honoured 2026-08-16
+    # (docs/research/2026-08-16-replay-endpoint-matrix.md). None = live path.
+    params = {"date": market_date.isoformat()} if market_date is not None else None
+    body = _fetch_json(client, repo, run_id, EndpointSlug.OI_PER_STRIKE, ticker, params=params)
     return normalize.normalize_oi_per_strike(body)
 
 
 def fetch_oi_change(
-    client: UwClient, repo: Repository, run_id: int, ticker: str
+    client: UwClient,
+    repo: Repository,
+    run_id: int,
+    ticker: str,
+    market_date: date | None = None,
 ) -> list[OiChangeRow]:
-    body = _fetch_json(client, repo, run_id, EndpointSlug.OI_CHANGE, ticker)
+    # market_date replays a past session; measured to be honoured 2026-08-16
+    # (docs/research/2026-08-16-replay-endpoint-matrix.md). None = live path.
+    params = {"date": market_date.isoformat()} if market_date is not None else None
+    body = _fetch_json(client, repo, run_id, EndpointSlug.OI_CHANGE, ticker, params=params)
     return normalize.normalize_oi_change(body)
 
 
 def fetch_max_pain(
-    client: UwClient, repo: Repository, run_id: int, ticker: str
+    client: UwClient,
+    repo: Repository,
+    run_id: int,
+    ticker: str,
+    market_date: date | None = None,
 ) -> list[MaxPainRow]:
-    body = _fetch_json(client, repo, run_id, EndpointSlug.MAX_PAIN, ticker)
+    # market_date replays a past session; measured to be honoured 2026-08-16
+    # (docs/research/2026-08-16-replay-endpoint-matrix.md). None = live path.
+    params = {"date": market_date.isoformat()} if market_date is not None else None
+    body = _fetch_json(client, repo, run_id, EndpointSlug.MAX_PAIN, ticker, params=params)
     return normalize.normalize_max_pain(body)
 
 
@@ -463,10 +537,26 @@ def fetch_option_contracts(
     limit: int = 500,
     *,
     force_refresh: bool = False,
+    market_date: date | None = None,
 ) -> list[OptionContractRow]:
     # Slow-moving ticker-level chain — same-day memoized (issue #225). Multiple
     # jobs re-fetch this identical list per day; the first spends budget, the
     # rest reuse it. `force_refresh=True` forces a fresh UW call.
+    # A same-day memo and a historical replay are incompatible: the memo keys on
+    # (ticker, endpoint, ET-today), so under replay a HIT would hand back TODAY's
+    # payload to be stamped with a past date, and a MISS would store the HISTORICAL
+    # payload under today's key and poison the live nightly path. Replay therefore
+    # bypasses the memo entirely — it neither reads nor writes it.
+    if market_date is not None:
+        body = _fetch_json(
+            client,
+            repo,
+            run_id,
+            EndpointSlug.OPTION_CONTRACTS,
+            ticker,
+            params={"limit": limit, "date": market_date.isoformat()},
+        )
+        return normalize.normalize_option_contracts(body)
     body = _memoized_fetch_json(
         client,
         repo,
@@ -568,9 +658,16 @@ def fetch_options_volume_daily(
 
 
 def fetch_darkpool_ticker(
-    client: UwClient, repo: Repository, run_id: int, ticker: str
+    client: UwClient,
+    repo: Repository,
+    run_id: int,
+    ticker: str,
+    market_date: date | None = None,
 ) -> list[DarkPoolPrint]:
-    body = _fetch_json(client, repo, run_id, EndpointSlug.DARKPOOL_TICKER, ticker)
+    # market_date replays a past session; measured to be honoured 2026-08-16
+    # (docs/research/2026-08-16-replay-endpoint-matrix.md). None = live path.
+    params = {"date": market_date.isoformat()} if market_date is not None else None
+    body = _fetch_json(client, repo, run_id, EndpointSlug.DARKPOOL_TICKER, ticker, params=params)
     return normalize.normalize_darkpool_ticker(body)
 
 
@@ -612,6 +709,7 @@ def fetch_bulk_screener_ticker(
     repo: Repository,
     run_id: int,
     ticker: str,
+    market_date: date | None = None,
 ) -> BulkScreenerRow | None:
     """Fetch one row from `/api/screener/stocks` scoped to a single ticker.
 
@@ -624,13 +722,16 @@ def fetch_bulk_screener_ticker(
     The opposite default (`is_s_p_500=false`) is just as wrong — it filters out
     S&P 500 names like AAPL/MSFT/NVDA. We want the ticker either way.
     """
+    params: dict[str, Any] = {"ticker": ticker, "limit": 1}
+    if market_date is not None:
+        params["date"] = market_date.isoformat()
     body = _fetch_json(
         client,
         repo,
         run_id,
         EndpointSlug.BULK_SCREENER_STOCKS,
         None,
-        params={"ticker": ticker, "limit": 1},
+        params=params,
     )
     rows = normalize.normalize_bulk_screener(body)
     return rows[0] if rows else None

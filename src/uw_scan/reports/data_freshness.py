@@ -10,12 +10,13 @@ This module measures the newest DATA date and scope-aware coverage instead.
 from __future__ import annotations
 
 from dataclasses import dataclass
-from datetime import date
+from datetime import date, timedelta
 
 from psycopg import Connection
 from psycopg import sql as psql
 
 from uw_scan.reports.data_gap_healer import REGISTRY as _GAP_HEALER_REGISTRY
+from uw_scan.reports.data_gap_healer import _calendar_dates
 
 # Preference order for the data-date column, most specific first. The monitor
 # auto-detects which one a table actually has (avoids hardcoding a wrong name).
@@ -51,6 +52,12 @@ _FREQUENCY_GRACE_DAYS: dict[str, int] = {
 }
 _REGISTRY_BY_NAME = {e.table_name: e for e in _GAP_HEALER_REGISTRY}
 
+# How many recent expected sessions the per-session coverage check looks at.
+_COVERAGE_SESSIONS = 5
+# Lives here (not in the monitor) so compute_freshness can use it without a
+# circular import; the monitor re-imports it.
+LOW_COVERAGE_PCT = 0.5  # ponytail: half the expected scope missing = alert-worthy
+
 
 @dataclass(frozen=True)
 class MonitoredTable:
@@ -76,6 +83,9 @@ class FreshnessRow:
     max_data_date: date | None
     days_stale: int | None
     frozen: bool
+    # Count of the last _COVERAGE_SESSIONS expected sessions whose distinct-
+    # ticker coverage is below LOW_COVERAGE_PCT. None for ticker-less tables.
+    sessions_missing: int | None = None
 
 
 # Curated allow-list. Scope marks by-design-partial tables so they don't cry
@@ -306,6 +316,11 @@ def compute_freshness(
 ) -> list[FreshnessRow]:
     out: list[FreshnessRow] = []
     active = {t.upper() for t in active_tickers}
+    # Expected sessions, resolved ONCE for the whole run (identical per table);
+    # 3x the window in calendar days so weekends/holidays still yield 5 sessions.
+    calendar_recent = _calendar_dates(
+        conn, schema, today - timedelta(days=_COVERAGE_SESSIONS * 3), today
+    )[-_COVERAGE_SESSIONS:]
     for mt in monitored:
         if mt.grace_days is not None:
             table_grace = mt.grace_days
@@ -382,6 +397,31 @@ def compute_freshness(
                 covered = cur.fetchone()[0]
 
         coverage_pct = (covered / expected_count) if expected_count else None
+
+        # Per-session coverage: the grace window above is anchored to the
+        # table's OWN newest row, so one healed ticker on the newest date drags
+        # max_data_date forward and the window then reaches back over the hole.
+        # Count expected sessions that are genuinely under-covered instead.
+        sessions_missing: int | None = None
+        if calendar_recent and expected:
+            perq = psql.SQL(
+                "SELECT s.d, COUNT(DISTINCT UPPER(a.{tcol}))::int "
+                "  FROM unnest(%s::date[]) AS s(d) "
+                "  LEFT JOIN {tbl} a "
+                "         ON a.{dcol} = s.d AND UPPER(a.{tcol}) = ANY(%s) "
+                " GROUP BY s.d"
+            ).format(
+                dcol=psql.Identifier(date_col),
+                tcol=psql.Identifier(tcol),
+                tbl=psql.Identifier(schema, mt.name),
+            )
+            with conn.cursor() as cur:
+                cur.execute(perq, (calendar_recent, list(expected)))
+                per_session = cur.fetchall()
+            sessions_missing = sum(
+                1 for _, n in per_session if n < expected_count * LOW_COVERAGE_PCT
+            )
+
         out.append(
             FreshnessRow(
                 mt.name,
@@ -393,6 +433,7 @@ def compute_freshness(
                 max_date,
                 days_stale,
                 frozen,
+                sessions_missing,
             )
         )
     return out

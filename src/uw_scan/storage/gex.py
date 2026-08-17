@@ -2,28 +2,38 @@
 
 from __future__ import annotations
 
+from datetime import date
+
 
 import psycopg
 from psycopg.types.json import Jsonb
-
 
 
 class _GexMixin:
     _conn: psycopg.Connection
     _schema: str
 
-    def fetch_latest_gex(self, *, ticker: str = "SPX") -> dict | None:
+    def fetch_latest_gex(
+        self, *, ticker: str = "SPX", as_of: date | None = None
+    ) -> dict | None:
         """Return the most recent GEX snapshot payload for ``ticker``, or None.
 
         ``scan_time`` and ``ticker`` are populated from the row when absent
         from the payload so the API response always carries them.
+
+        ``as_of`` returns the newest snapshot at or before that date, for
+        historical replay (``scanned_at`` is a timestamptz, so the bound is
+        exclusive on the NEXT day rather than ``<= as_of``, which would drop
+        every intraday snapshot on the as_of date itself).
         """
         with self._conn.cursor() as cur:
             cur.execute(
                 f"SELECT payload, scanned_at, ticker "
                 f"FROM {self._schema}.gex_snapshots "
-                f"WHERE ticker = %s ORDER BY scanned_at DESC LIMIT 1",
-                (ticker.upper(),),
+                f"WHERE ticker = %s "
+                f"  AND (%s::date IS NULL OR scanned_at < %s::date + 1) "
+                f"ORDER BY scanned_at DESC LIMIT 1",
+                (ticker.upper(), as_of, as_of),
             )
             row = cur.fetchone()
         if row is None:
@@ -178,4 +188,5 @@ class _GexMixin:
         assert row is not None
         self._conn.commit()
         return int(row[0])
+
     # ---- Gold (Phase A1) — macro series ----
