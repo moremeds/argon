@@ -112,3 +112,44 @@ def test_get_watchlist_spots_includes_unscanned_tickers(client, seeded_db_empty_
     assert placeholder["spot"] is None
     assert placeholder["spot_quoted_at"] is None
     assert placeholder["spot_source"] is None
+
+
+def _chains_of(client, ticker: str) -> list[str]:
+    body = client.get("/api/watchlist").json()
+    for card in body["tickers"]:
+        if card["ticker"] == ticker:
+            return sorted(card.get("chains") or [])
+    return []
+
+
+def test_post_watchlist_makes_the_ticker_filterable_immediately(
+    client, seeded_db_empty_cards
+):
+    """Adding a ticker used to leave it in no chain until a manual re-seed."""
+    r = client.post("/api/watchlist", json={"ticker": "NVO", "sector": "Healthcare"})
+    assert r.status_code == 201
+    assert _chains_of(client, "NVO") == ["Healthcare"]
+    assert client.get("/api/watchlist?chain=Healthcare").status_code == 200
+
+
+def test_patch_sector_moves_the_membership_with_it(client, seeded_db_empty_cards):
+    """The NOV bug end to end: correcting the sector must retract the old chain."""
+    client.post("/api/watchlist", json={"ticker": "KO", "sector": "Consumer"})
+    assert _chains_of(client, "KO") == ["Consumer"]  # enumerated by the taxonomy
+
+    # A name the taxonomy does not enumerate falls back to its sector, and that
+    # fallback has to follow the sector when it changes.
+    client.post("/api/watchlist", json={"ticker": "ZZTEST", "sector": "Healthcare"})
+    assert _chains_of(client, "ZZTEST") == ["Healthcare"]
+
+    r = client.patch("/api/watchlist/ZZTEST", json={"sector": "Energy"})
+    assert r.status_code == 200
+    assert _chains_of(client, "ZZTEST") == ["Energy"]
+
+
+def test_patch_without_sector_leaves_memberships_alone(client, seeded_db_empty_cards):
+    """Toggling pinned must not pay for — or disturb — a membership rewrite."""
+    client.post("/api/watchlist", json={"ticker": "AMD", "sector": "Computer/GPU"})
+    before = _chains_of(client, "AMD")
+    assert client.patch("/api/watchlist/AMD", json={"pinned": True}).status_code == 200
+    assert _chains_of(client, "AMD") == before

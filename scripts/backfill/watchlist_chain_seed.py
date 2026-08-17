@@ -28,13 +28,14 @@ import argparse
 import psycopg
 
 from uw_scan.storage.watchlist_chain import WatchlistChainRepository
-from uw_scan.watchlist_taxonomy import LAYERS, SELECTED_ADDS, chains_for, memberships
+from uw_scan.watchlist_taxonomy import (
+    SELECTED_ADDS,
+    chains_for,
+    layer_for_chain,
+    memberships,
+)
 
 CALLS_PER_TICKER_DAY = 240  # measured 2026-08-03..07 on the mini
-
-
-def layer_for_chain() -> dict[str, str]:
-    return {chain: layer.key for layer in LAYERS for chain in layer.chains}
 
 
 def primary_sector(ticker: str) -> str:
