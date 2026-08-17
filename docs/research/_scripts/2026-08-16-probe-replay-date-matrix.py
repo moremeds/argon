@@ -4,7 +4,9 @@ An endpoint is replay-safe ONLY if its body for date=A differs from its body for
 date=B. Identical hashes mean the param is ignored and the endpoint always serves
 the latest session -- writing that under a past market_date would be fabrication.
 """
-import hashlib, json, httpx
+import hashlib
+
+import httpx
 from uw_scan.config import Settings
 from uw_scan.api.endpoints import REGISTRY as ENDPOINTS, EndpointSlug as S
 
@@ -40,9 +42,11 @@ for slug, base in CASES:
         cb, tb = get(slug, {**base, "date": B})
         cu, tu = get(slug, dict(base))
     except Exception as e:
-        print(f"{slug:<28} ERROR {e!r}"); continue
+        print(f"{slug:<28} ERROR {e!r}")
+        continue
     if not (ca == cb == cu == 200):
-        print(f"{slug:<28} HTTP {ca}/{cb}/{cu}  -> cannot assess"); continue
+        print(f"{slug:<28} HTTP {ca}/{cb}/{cu}  -> cannot assess")
+        continue
     ha, hb, hu = (hashlib.sha256(t.encode()).hexdigest()[:10] for t in (ta, tb, tu))
     if ha != hb:
         verdict = "HONORS"

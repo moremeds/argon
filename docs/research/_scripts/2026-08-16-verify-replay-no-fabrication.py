@@ -7,7 +7,8 @@ scan), so only run-attribution answers the question there.
 """
 import psycopg
 from uw_scan.config import Settings
-s = Settings.from_env(); conn = psycopg.connect(s.db_dsn())
+s = Settings.from_env()
+conn = psycopg.connect(s.db_dsn())
 with conn.cursor() as cur:
     print("=== ANTI-FABRICATION ===")
     for t, c in [("options_volume_daily", "trade_date"), ("uw_positioning", "snapshot_date")]:
