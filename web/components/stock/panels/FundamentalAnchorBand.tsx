@@ -70,9 +70,13 @@ export function FundamentalAnchorBand({ a }: { a: Anchors }) {
   }[];
 
   if (known.length === 0) {
+    // No explainer here. `Header`'s paragraph describes how to read five levels
+    // and a spot marker, none of which exist on a refusal, and it pushed the one
+    // sentence that answers "where is the band?" below three lines of prose
+    // about a band that was never drawn. The reason leads instead.
     return (
       <section style={{ marginTop: 20 }}>
-        <Header a={a} />
+        <Header a={a} explain={false} />
         <div
           style={{
             fontSize: 12,
@@ -238,7 +242,7 @@ export function rankPhrase(pct: number, quarters: number): string {
   return `Cheaper than ${n} of its last ${quarters} quarters`;
 }
 
-function Header({ a }: { a: Anchors }) {
+function Header({ a, explain = true }: { a: Anchors; explain?: boolean }) {
   const pct = a.spot_percentile;
   return (
     <>
@@ -263,27 +267,29 @@ function Header({ a }: { a: Anchors }) {
           {a.history_quarters}q · {a.confidence} · {a.as_of}
         </span>
       </div>
-      <p
-        style={{
-          fontSize: 11,
-          color: "var(--text-muted)",
-          margin: "0 0 10px",
-          lineHeight: 1.5,
-        }}
-      >
-        {pct != null ? (
-          <>
-            <strong>{rankPhrase(pct, a.history_quarters)}</strong>
-            {` on ${METHOD_LABEL[a.method] ?? a.method}. `}
-          </>
-        ) : null}
-        {"Levels are percentiles of its "}
-        <strong>own</strong>
-        {" recent range, not a ranking against other companies — measured " +
-          "within-ticker, where ranking names against each other on value is " +
-          "inverted. A trailing window, because these multiples re-rate: a " +
-          "full-history percentile is a price from a regime that has gone."}
-      </p>
+      {explain ? (
+        <p
+          style={{
+            fontSize: 11,
+            color: "var(--text-muted)",
+            margin: "0 0 10px",
+            lineHeight: 1.5,
+          }}
+        >
+          {pct != null ? (
+            <>
+              <strong>{rankPhrase(pct, a.history_quarters)}</strong>
+              {` on ${METHOD_LABEL[a.method] ?? a.method}. `}
+            </>
+          ) : null}
+          {"Levels are percentiles of its "}
+          <strong>own</strong>
+          {" recent range, not a ranking against other companies — measured " +
+            "within-ticker, where ranking names against each other on value is " +
+            "inverted. A trailing window, because these multiples re-rate: a " +
+            "full-history percentile is a price from a regime that has gone."}
+        </p>
+      ) : null}
     </>
   );
 }

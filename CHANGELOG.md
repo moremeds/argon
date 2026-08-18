@@ -48,6 +48,48 @@ version in lockstep (enforced by `scripts/release/version_sync_check.py`).
 
 ### Fixed
 
+- **A refused valuation band no longer reports itself as having no data.**
+  `_no_anchor` hardcoded `history_quarters: 0`, so NVDA's card read `0q` beside a
+  refusal caused by twenty quarters of FCF yield spanning 17x — the data is there
+  and its spread *is* the finding, but the header sent readers hunting a data gap
+  that does not exist. A refusal now carries the window it was taken on, and
+  stays 0 only for the three gates that fire before any history is read (unknown
+  company type, suppressed or non-positive numerator). `ANCHOR_RULES_REV` goes
+  2 → 3 with it: no threshold moved, but what a refusal row *says* did, and the
+  identity key is `ON CONFLICT DO NOTHING`.
+- **The refusal reason leads the panel instead of sitting under an explainer for
+  a band that was never drawn.** The header paragraph teaches how to read five
+  levels and a spot marker; on a refusal none of them are on screen, and it
+  pushed the one sentence that answers "where is the band?" below three lines of
+  prose. It is now omitted on a refusal.
+- **A marginal width refusal no longer contradicts itself.** AVGO spans 4.04x
+  against a 4.0x limit and `:.0f` rendered "spans 4x". Precision now follows the
+  number — the coarsest that still reads above the limit — and the message names
+  the window it actually measured rather than interpolating `WINDOW_QUARTERS`
+  regardless.
+- **"too unstable to anchor a price to" is withdrawn from the width refusal**,
+  because the gate never measured instability. A band spans 17x either because
+  the yield swings — genuinely unsettled — or because it walks one way and stays
+  there, which is a window straddling two valuation regimes and the *opposite* of
+  unstable. The refusal now reports the measured shape: `valuation.yield_drift`,
+  the rank correlation of a name's own yield against time over the band's own
+  window. Of 13 names refused on width, 7 are one-way walks (GE −0.96, AVGO
+  −0.90, LRCX −0.85, MSTR −0.83 as the multiple expanded; DIS +0.81, NVDA +0.68,
+  NFLX +0.66 as the fundamental outgrew the price) and only RIOT, APLD and ACRE
+  swing. **The 4x threshold is unchanged** — the same probe shows shape does not
+  separate wide bands from narrow ones as a population (monotone share 38% vs
+  36%, Mann-Whitney on rho p=0.16), so it licenses a better sentence, not a
+  looser gate. Probe: `scripts/research/valuation_band_width_anatomy.py`.
+- **Full-watchlist survey behind all four** (`docs/research/2026-08-18-valuation-band-refusal/`,
+  reproduce with `scripts/research/valuation_band_survey.py`): of 145 operating
+  companies on the watchlist, 54 render a band, 17 are scored and refused, and
+  **74 have no statements ingested at all** — the dominant gap is coverage, not
+  the band. Those 74 are pending rather than broken: the universe widening
+  shipped in v0.12.5 and `fundamental_ingest` is monthly on the 2nd, so it does
+  not execute until 2026-09-02 unless the seed and backfill are run by hand.
+  AMZN's refusal is verified true — TTM operating cashflow 161.4B against 173.0B
+  of capex at 2026-06-30, free cash flow of −11.6B.
+
 - **`valuation_anchors.as_of` is the spot date, not the compute date**, and the
   docstring that said otherwise is corrected. The job is healthy — 2 of 2
   scheduled runs since the v0.12.0 deploy wrote rows, the last at its exact 18:20

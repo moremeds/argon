@@ -51,12 +51,20 @@ def test_a_normal_band_renders_and_is_narrow():
 def test_a_band_whose_ends_are_far_apart_is_refused_with_its_width():
     """NBIS's real shape: a 20-quarter range spanning 72x, because the window
     still straddles a business transformation. A 72x band is not a decision
-    surface no matter how correctly each level was computed."""
+    surface no matter how correctly each level was computed.
+
+    The refusal used to end "too unstable to anchor a price to". This docstring
+    is why that was withdrawn: a window that straddles a transformation is not
+    unstable, it is two regimes, and the sentence asserted a cause the gate never
+    measured. It now states the width AND the measured shape.
+    """
     wild = [0.001 * (1.6**i) for i in range(20)]
     out = _band(wild)
     assert out["anchors"] is None
-    assert any("too unstable to anchor" in r for r in out["confidence_reasons"])
-    assert any("x" in r for r in out["confidence_reasons"]), "the width is stated"
+    assert not any("too unstable" in r for r in out["confidence_reasons"])
+    (reason,) = [r for r in out["confidence_reasons"] if "spans" in r]
+    assert "x" in reason, "the width is stated"
+    assert "walking one way" in reason and "rho +1.00" in reason
 
 
 def test_the_threshold_sits_in_the_empty_part_of_the_measured_distribution():
