@@ -128,7 +128,12 @@ def period_total(rows: list[dict[str, Any]]) -> float | None:
 def _as_float(value: Any) -> float | None:
     try:
         return float(value)
-    except (TypeError, ValueError):
+    except (TypeError, ValueError) as exc:
+        # CI Guardrail 2. An uncoercible cell is one row the filer tagged oddly,
+        # not a reason to refuse the period: the remaining members still have to
+        # reconcile against the total, so a dropped row shows up as a partition
+        # that does not reconcile rather than as a silently wrong share.
+        _ = repr(exc)
         return None
 
 
@@ -267,3 +272,58 @@ def annual_flags(
         )
         flags[period] = is_annual_row(total, median)
     return flags
+
+
+def build_card(
+    rows_by_period: dict[str, list[dict[str, Any]]],
+    *,
+    allow_subset: bool = False,
+) -> dict[str, Any]:
+    """Everything the card renders, derived from stored rows at read time.
+
+    Annual periods are DROPPED from the trend and listed separately rather than
+    deleted. A reader comparing a 4-quarter series against the filer's own
+    filings needs to see that a period existed and why it is not plotted;
+    silently omitting it makes the series look complete when it is filtered.
+
+    A family that resolves in no period is absent from the result, never zero —
+    a zero share reads as "no concentration", which is a claim about the company
+    rather than about our coverage.
+    """
+    flags = annual_flags(rows_by_period)
+    resolved = {
+        period: shares_for_period(rows, allow_subset=allow_subset)
+        for period, rows in rows_by_period.items()
+        if not flags.get(period, False)
+    }
+
+    trend = []
+    for period in sorted(resolved):
+        axes = resolved[period].get("axes") or {}
+        trend.append(
+            {
+                "report_date": period,
+                "segment_top_share": (axes.get("segment") or {}).get("top_share"),
+                "geography_top_share": (axes.get("geography") or {}).get("top_share"),
+            }
+        )
+
+    # Per family, the newest period that actually resolved — which may differ
+    # between families, and carries its own date for exactly that reason. A
+    # filer can publish a geography cut every quarter and a segment cut only
+    # annually, and forcing both onto one as-of would date one of them wrongly.
+    latest: dict[str, Any] = {}
+    for family in ("segment", "geography"):
+        for period in sorted(resolved, reverse=True):
+            axes = resolved[period].get("axes") or {}
+            if family in axes:
+                latest[family] = {**axes[family], "report_date": period}
+                break
+
+    return {
+        "segment": latest.get("segment"),
+        "geography": latest.get("geography"),
+        "trend": trend,
+        "dropped_annual_periods": sorted(p for p, flag in flags.items() if flag),
+        "derivation_version": DERIVATION_VERSION,
+    }

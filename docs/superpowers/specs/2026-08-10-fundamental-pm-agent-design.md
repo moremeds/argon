@@ -893,7 +893,7 @@ Three reasons, in order of weight:
 | `capital_efficiency` | FCF conversion, return on invested capital | higher better | 0.15 | ✅ UW `capital_expenditures` 100% |
 | `balance_sheet` | net debt / EBITDA, interest coverage, current ratio | lower leverage better | 0.15 | ✅ UW cash + debt + EBITDA + interest, 100%; NCI from SEC XBRL |
 | `valuation_position` | spot vs `observe_low..observe_high` band from stage 3 | cheaper better — ⚠️ **contradicted** for B/P and E/P (rev 4 follow-up) | 0.15 | ✅ |
-| `concentration_risk` | **largest reported segment share of revenue + largest single-country share, and each one's multi-year trend** (§6) | lower better | 0.10 | ✅ UW `rev_breakdown`, 24/25 — **TSM is the sole `na`** |
+| `concentration_risk` | **largest reported segment share of revenue + largest single-country share, and each one's multi-year trend** (§6) | **no direction claimed — withdrawn from the composite 2026-08-18** | **0.00** (was 0.10) | ⚠️ measured: segment 184/401, geography 128/401 — **not** 24/25 |
 | `expectations_gap` | our 1Y anchor vs `uw_positioning.analyst_target_avg`, insider net, short interest | wider positive gap better | 0.05 | ✅ existing UW positioning |
 
 **Measured directions (rev 4).** Each rubric direction above was a declared prior. **Four of the
@@ -938,6 +938,30 @@ first draft named `FCF conversion`, `net debt / EBITDA` and `interest coverage` 
 (massive `/vX`) that emits **no capex, no cash, no total debt, no EBITDA and no interest expense** —
 the rubric was aspirational and the spec did not say so. Under the UW backbone all five are real
 columns at 100% cohort coverage. The rubric did not need weakening; the source did.
+
+**`concentration_risk` carries no weight. Corrected 2026-08-18 — the row above was wrong twice.**
+
+The `0.10` weight is **withdrawn**, and the remaining six subscores renormalize by the rule already
+stated below for `na` inputs. Two separate errors are being corrected here, and neither was a
+judgement call:
+
+- **The coverage figure was a probe artifact.** `✅ UW rev_breakdown, 24/25` counted tickers for
+  which the endpoint *returned rows*, which is presence, not computability. Re-measured after three
+  grouping bugs were fixed (denominator scoped to `rev_group`; grouping by `rev_group` instead of
+  the XBRL axis; treating `srt:ConsolidationItemsAxis` as a partition rather than a scope tag), a
+  share is actually derivable for **184 of 401** names by segment and **128 of 401** by geography.
+  The intermediate `0/257` verdict that briefly closed this ledger was the same conflation with the
+  bugs still in place. Coverage of an endpoint is not coverage of a metric.
+- **The direction is unmeasured and the level is not tradable.** `lower better` was a declared prior
+  and stayed one. Measured over 401 tickers, the top share moves a median **1.20pp per quarter**
+  against annual/quarterly basis contamination of median **2.5pp** and p90 **17.5pp** — the
+  contamination is roughly twice the signal's own step. What survives that noise is the *level*,
+  which is public, filing-lagged and near-static: a factor loading, not alpha. A returns test on an
+  8-quarter panel cannot separate the two, so none is claimed.
+
+The metric still ships, as a **descriptive card block only** — no rank, no percentile against other
+names, no composite contribution. Method and evidence:
+`src/uw_scan/fundamentals/concentration.py`, `docs/superpowers/plans/2026-08-13-fundamental-lane-next.md` D2/D3.
 
 **`concentration_risk` is redefined, and this is a real change, not a rename.** The original input —
 top-*customer* percentage — rests on the named-customer edge graph that §3.4 measured as

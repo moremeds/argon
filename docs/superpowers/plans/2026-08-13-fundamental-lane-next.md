@@ -347,7 +347,7 @@ band **accumulates in production**.
 `valuation_anchors` carries `computed_at`. Grouping by it is what separates "the job is dead"
 from "the job is healthy and `as_of` means something other than you thought".
 
-### Why the original criterion was unsatisfiable
+### DEVIATION 3 of 3 — why the original criterion was unsatisfiable
 
 This section specified: *"Healthy: `count(DISTINCT as_of)` grows by one per weekday, `max(as_of)`
 is yesterday or today."* That was taken from `fundamental_anchors.py`, whose docstring claimed
@@ -408,12 +408,27 @@ report_date, rev_group — not the derived share. The derivation rules will chan
 selection is new and unproven); the rows will not, and re-deriving from stored rows costs
 nothing while re-fetching a rolled-off quarter is impossible.
 
-- [ ] **Step 1: Write the migration** — `IF NOT EXISTS`, PK on
-      `(ticker, report_date, rev_group, axis_key, member_key, observed_at)`, plus the raw
+- [x] **Step 1: Write the migration** — `IF NOT EXISTS`, ~~PK on
+      `(ticker, report_date, rev_group, axis_key, member_key, observed_at)`~~, plus the raw
       `value` and a `content_hash`.
 
   **The content hash must exclude any vendor-side `inserted_at`/`updated_at` field** or every
   refresh registers as a phantom restatement — this exact bug shipped in the tier-1 ingest.
+
+  > **DEVIATION 1 of 3, 2026-08-18 — the specified primary key contradicts the paragraph under
+  > it.** Putting `observed_at` in the identity makes every capture a distinct row *by
+  > construction*: a monthly job would insert a full duplicate set each run, growing the table
+  > without end while asserting nothing new. That is the same defect as hashing `inserted_at`,
+  > one layer down — the paragraph forbids it in the hash and the bullet mandates it in the key.
+  >
+  > **Shipped instead:** migration 114's contract, unchanged. `UNIQUE (source, ticker,
+  > report_date, rev_group, content_hash)` with `first_observed_at` / `last_seen_at`. An
+  > unchanged refetch bumps `last_seen_at` and writes no fact; a restatement hashes differently
+  > and lands beside its predecessor.
+  >
+  > This also answers **open question 2** without the second table the plan contemplated: a
+  > period the provider stops returning simply stops having `last_seen_at` advanced, while
+  > `first_observed_at` preserves when it was first seen.
 
 - [ ] **Step 2: Add the `DatasetRegistryEntry`** and regenerate the dataset-policy doc. A new
       temporal table fails two CI gates without both, and both belong in this PR.
@@ -465,11 +480,38 @@ def test_single_member_partition_is_refused(one_member_rows):
 
 - [ ] **Step 2: Run to confirm they fail, then port the module, then confirm they pass**
 
-- [ ] **Step 3: Implement annual-row detection**
+- [x] **Step 3: Implement annual-row detection**
 
 Per D3, 89/184 segment and 52/128 geography tickers mix an annual total into the quarterly
 series, and the resulting share error is p90 **17.5pp** against a median quarterly move of
-1.20pp. A total exceeding **2.5× the ticker's own median** separates them cleanly.
+1.20pp. ~~A total exceeding **2.5× the ticker's own median** separates them cleanly.~~
+
+> **DEVIATION 2 of 3, 2026-08-18 — the global-median rule fails on real data, and fails in the
+> direction that matters.** It was measured on the 8-quarter panel D3 used, where a filer's
+> revenue barely moves. Over NVDA's real **25-period** history revenue grows **26×** (3.08B →
+> 81.6B), so the ticker's lifetime median sits among its old small quarters and a recent
+> *quarterly* total clears 2.5× it on growth alone.
+>
+> Measured on the frozen fixtures:
+>
+> | | plan's rule (global median) | shipped (median of the 4 nearest periods) |
+> |---|---:|---:|
+> | NVDA annual periods caught | 3 of 6 | **6 of 6** |
+> | NVDA false positives | 3 | **0** |
+> | AVGO | 1 of 1 | 1 of 1 |
+>
+> **The baseline has to be local**, because the question is about a filer's own consistency
+> across adjacent periods, not about its lifetime. `ANNUAL_NEIGHBOURS = 4` spans a year either
+> side without reaching the next annual row.
+>
+> Two things the corrected rule gets right that a simpler one would not. The dropped periods land
+> **exactly on each filer's fiscal year-end month** — January for NVDA, November for AVGO —
+> though the fiscal calendar is not an input. And the converse does **not** hold: AVGO's
+> `2025-11-02` (18.0B) is a real Q4 quarter in the same month as its FY2024 total (51.6B) and is
+> correctly retained. A month-based rule would confuse the two; only magnitude separates them.
+>
+> Regression tests pin both: `test_growth_alone_does_not_read_as_annual` and
+> `test_no_annual_figure_survives_into_the_trend`.
 
 Store the flag on the row; **drop annual periods from the rendered trend**. Do not silently
 delete them — a later reader needs to see they existed.
@@ -490,38 +532,57 @@ share — the failure mode this lane already has a rule about. Default to refusi
 - Create: `src/uw_scan/storage/fundamental_concentration.py`
 - Modify: `src/uw_scan/worker/scheduler.py`, `src/uw_scan/config.py`
 
-- [ ] **Step 1:** Job fetches `rev_breakdown` for every universe ticker and writes raw rows.
+- [x] **Step 1:** Job fetches `rev_breakdown` for every universe ticker and writes raw rows.
       One ticker's failure never costs the others theirs — count and skip, never raise.
-- [ ] **Step 2:** Register monthly on `uw-0`, gated `FUNDAMENTAL_CONCENTRATION_CAPTURE_ENABLED`.
-      ~401 calls/run. Monthly rather than quarterly so a rolling window cannot outrun us
-      between runs.
-- [ ] **Step 3:** Self-gate on an empty universe, matching the research-capture jobs' pattern.
-- [ ] **Step 4: Smoke the real worker path** — enqueue → worker claims → rows land → count them.
-- [ ] **Step 5:** Commit.
+- [x] **Step 2:** Register monthly on `uw-0`, gated
+      `UW_SCAN_FUNDAMENTAL_CONCENTRATION_CAPTURE_ENABLED` (default ON — a default-off accrual job
+      loses exactly what it exists to preserve). ~~~401~~ **450** calls/run after PR #347 widened
+      the universe; 449 spent on the real run. 04:10 ET on the 3rd — a day clear of the statement
+      ingest so the two monthly uw-0 jobs never share a per-minute ceiling. Monthly rather than
+      quarterly so a rolling window cannot outrun us between runs.
+- [x] **Step 3:** Self-gate on an empty universe, matching the research-capture jobs' pattern.
+- [x] **Step 4: Smoke the real worker path.** Not enqueue-based — this is a cron job, so the smoke
+      boots `scheduler.main()` with a fake `BlockingScheduler`, captures the registered closure and
+      invokes it. Everything production would build (external-api recorder, `job_name` telemetry,
+      repo connection, settings from env) is built by the scheduler, not by the harness.
+
+      Result against `option_wizard_local`: **449 names → 400 with rows, 48 publishing no
+      disaggregation, 1 transport failure** (HOOD, SSL EOF after retries) which cost only itself —
+      the per-ticker `try` doing its job on the first real run. **63,567 rows, 268 distinct
+      periods, 2019-09-30 … 2026-07-05.**
+- [x] **Step 5:** Commit.
 
 ### Task 4: Card block and the spec correction
 
 **Files:**
-- Modify: `src/uw_scan/api/routers/fundamental.py`
+- Modify: ~~`src/uw_scan/api/routers/fundamental.py`~~ — no such file; the two existing
+  fundamentals endpoints live in `src/uw_scan/api/routers/stock.py` and the third joins them
 - Create: `web/components/stock/panels/FundamentalConcentration.tsx`
 - Modify: `web/components/stock/tabs/FundamentalsTab.tsx`
 - Modify: `docs/superpowers/specs/2026-08-10-fundamental-pm-agent-design.md`
 
-- [ ] **Step 1:** Read-only endpoint returning latest share, member label, axis, and the
-      annual-filtered trend. Regenerate types: `cd web && npm run gen:types`.
-- [ ] **Step 2:** Render the **raw member string**, not a prettified country name — filers mix
+- [x] **Step 1:** Read-only endpoint returning latest share, member label, axis, and the
+      annual-filtered trend. `GET /api/stock/{ticker}/fundamentals/concentration?periods=20`.
+      Shares are derived **at read time** from stored rows — nothing persists a share, so the next
+      rule correction re-derives history instead of needing a re-fetch. Types regenerated;
+      `openapi.snapshot.json` patched surgically (187 insertions, 0 deletions).
+- [x] **Step 2:** Render the **raw member string**, not a prettified country name — filers mix
       `country:US` with custom members like `nvda:ChinaIncludingHongKongMember` and continent
       aggregates. The share is defensible; a beautified label would not be.
-- [ ] **Step 3:** Absent renders **`na`, never 0** (spec §964 — a zero reads as "no
-      concentration risk", which is a fabricated fact).
-- [ ] **Step 4:** Label the block as descriptive. No ranking, no score, no percentile against
-      other names, and **no composite contribution**.
-- [ ] **Step 5: Correct spec §896** — `concentration_risk` is not `✅ UW rev_breakdown, 24/25`.
-      Replace with the measured rates, and withdraw the 0.10 composite weight per D2.
-- [ ] **Step 6:** Vitest for the `na` path and the annual-drop path. Playwright screenshot to
-      `output/playwright/`. Remember JSX whitespace differs between esbuild and SWC — verify in
-      a browser, not only vitest.
-- [ ] **Step 7:** CHANGELOG and commit.
+- [x] **Step 3:** Absent renders **`na`, never 0** (spec §964 — a zero reads as "no
+      concentration risk", which is a fabricated fact). Applies at two levels: a family that
+      resolves in no period, and a ticker with no captured rows at all — the latter gets its own
+      panel saying so rather than being silently omitted.
+- [x] **Step 4:** Label the block as descriptive. No ranking, no score, no percentile against
+      other names, and **no composite contribution**. On screen, not only in the code comment.
+- [x] **Step 5: Correct spec §896** — `concentration_risk` is not `✅ UW rev_breakdown, 24/25`.
+      Replaced with the measured rates (segment 184/401, geography 128/401) and the 0.10 weight
+      withdrawn per D2, with both errors named: coverage-of-endpoint counted as
+      coverage-of-metric, and a declared direction that stayed unmeasured.
+- [x] **Step 6:** Vitest for the `na` path and the annual-drop path (6 tests). Playwright
+      screenshot at `output/playwright/fundamentals-concentration-nvda.png`, rendered in a real
+      browser against the captured rows — the esbuild/SWC whitespace difference is why.
+- [x] **Step 7:** CHANGELOG and commit.
 
 ---
 
@@ -543,9 +604,12 @@ share — the failure mode this lane already has a rule about. Default to refusi
    rather than 29. D5 is revised above; `docs/research/2026-08-18-fundamental-lake-depth/`. This was
    listed as a PR-1 execution step, but it gates whether PR-1 is worth doing at all, so it was run
    first. **What remains open is the refusal rate on this cohort**, which only PR-1's ingest answers.
-2. **Does UW's `rev_breakdown` window roll?** Unanswerable from one snapshot. PR-3's stored
-   snapshots answer it within two runs: if the oldest period advances, it rolls, and D4's
-   urgency was real.
+2. **Does UW's `rev_breakdown` window roll?** Still open, but the **first snapshot is now
+   taken** (2026-08-18): 63,567 rows over 400 tickers, oldest period **2019-09-30**, newest
+   **2026-07-05** — about seven years, so if it rolls it does not roll tightly. The second monthly
+   run answers it: if the oldest period advances, it rolls and D4's urgency was real. No second
+   table is needed — `last_seen_at` stops advancing for any period the provider drops (see
+   DEVIATION 1).
 3. ~~**Is `valuation_anchors` accruing on the mini?**~~ **Answered 2026-08-18: yes** — 2 of 2
    scheduled runs since the v0.12.0 deploy wrote rows, the last at its exact 18:20 ET slot. The
    check this plan specified could not have said so; see the rewritten PR 2. What remains open is

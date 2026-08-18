@@ -19,7 +19,9 @@ import pytest
 
 from uw_scan.fundamentals.concentration import (
     ANNUAL_MULTIPLE,
+    DERIVATION_VERSION,
     annual_flags,
+    build_card,
     partition,
     period_total,
     real_axis,
@@ -191,3 +193,102 @@ def test_growth_alone_does_not_read_as_annual() -> None:
     quarter = totals["2026-04-26"]
     assert quarter > ANNUAL_MULTIPLE * lifetime_median
     assert annual_flags(periods)["2026-04-26"] is False
+
+
+# --------------------------------------------------------------------------
+# The card payload
+# --------------------------------------------------------------------------
+
+
+def test_dropped_periods_land_on_the_filers_fiscal_year_end() -> None:
+    """The strongest available check that annual detection found annual figures.
+
+    Neither filer's fiscal calendar is an input to the rule — it sees only
+    totals and their neighbours. NVDA's fiscal year ends in late January and
+    AVGO's in early November, so a detector picking out annual totals must drop
+    periods in that month and no other.
+
+    The converse does NOT hold, and asserting it was wrong: the fiscal-year-end
+    month also hosts the filer's Q4 QUARTERLY figure. AVGO's 2025-11-02 (18.0B)
+    is a real quarter and is correctly retained, while 2024-11-03 (51.6B) is the
+    FY2024 total and is correctly dropped. A month-based rule would confuse the
+    two; this one separates them by magnitude, which is the only thing that
+    actually distinguishes them.
+    """
+    nvda = build_card(_periods("nvda"))
+    assert {p[5:7] for p in nvda["dropped_annual_periods"]} == {"01"}
+    assert len(nvda["dropped_annual_periods"]) == 6
+
+    avgo = build_card(_periods("avgo"))
+    assert avgo["dropped_annual_periods"] == ["2024-11-03"]
+    assert "2025-11-02" in [p["report_date"] for p in avgo["trend"]]
+
+
+def test_no_annual_figure_survives_into_the_trend() -> None:
+    """Independent of the rule's own comparison: after filtering, no period may
+    exceed its immediate predecessor by the annual multiple.
+
+    The detector compares against a four-neighbour median, so an adjacent-pair
+    check is a different measurement rather than a restatement of the rule. Real
+    maxima on the frozen fixtures: NVDA 1.88x, AVGO 1.15x — an annual total left
+    in a quarterly series lands near 4x and would fail this immediately.
+    """
+    for ticker in ("nvda", "avgo"):
+        rows = _periods(ticker)
+        kept = [p["report_date"] for p in build_card(rows)["trend"]]
+        totals = [period_total(rows[p]) for p in kept]
+        assert all(
+            after < ANNUAL_MULTIPLE * before
+            for before, after in zip(totals, totals[1:])
+        )
+
+
+def test_trend_accounts_for_every_captured_period() -> None:
+    """Filtered, never lost. A period leaves the trend only by appearing in the
+    dropped list, so a reader can reconcile the series against the filings."""
+    for ticker in ("nvda", "avgo"):
+        rows = _periods(ticker)
+        card = build_card(rows)
+        assert len(card["trend"]) + len(card["dropped_annual_periods"]) == len(rows)
+
+
+def test_trend_is_oldest_first_and_latest_matches_the_headline() -> None:
+    card = build_card(_periods("nvda"))
+    dates = [p["report_date"] for p in card["trend"]]
+    assert dates == sorted(dates)
+    assert card["trend"][-1]["segment_top_share"] == card["segment"]["top_share"]
+    assert card["segment"]["report_date"] == card["trend"][-1]["report_date"]
+
+
+def test_unresolved_family_is_null_in_the_trend_never_zero() -> None:
+    """AVGO resolves a geography cut in 5 of its 6 quarterly periods.
+
+    The sixth must carry None. A 0.0 would render as "no geographic
+    concentration", which is a fabricated fact about the company rather than a
+    statement about what the filer disclosed.
+    """
+    card = build_card(_periods("avgo"))
+    missing = [p for p in card["trend"] if p["geography_top_share"] is None]
+    assert len(missing) == 1
+    assert all(p["segment_top_share"] is not None for p in card["trend"])
+
+
+def test_a_filer_with_no_breakdown_yields_no_families() -> None:
+    """Absent, not zero, and not an exception — the common case for a filer that
+    publishes no disaggregation at all."""
+    card = build_card({"2026-04-26": [{"axis": [], "members": [], "value": 1.0}]})
+    assert card["segment"] is None
+    assert card["geography"] is None
+    assert card["trend"] == [
+        {
+            "report_date": "2026-04-26",
+            "segment_top_share": None,
+            "geography_top_share": None,
+        }
+    ]
+
+
+def test_derivation_version_travels_with_the_card() -> None:
+    """The rules are new and one has already been corrected once. A rendered
+    share that cannot say which derivation produced it is unauditable."""
+    assert build_card(_periods("nvda"))["derivation_version"] == DERIVATION_VERSION

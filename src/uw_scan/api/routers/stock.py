@@ -22,6 +22,7 @@ from uw_scan.models import (
     ChanlunLifecycleMark,
     ChanlunLifecycleResponse,
     FundamentalCardResponse,
+    FundamentalConcentrationResponse,
     FundamentalStatementsResponse,
     MagnetsResponse,
     SingleStockReport,
@@ -462,6 +463,44 @@ def get_stock_fundamental_statements(
 
     detail = build_feature_details(entry, quarters=quarters)
     return FundamentalStatementsResponse(ticker=t, **detail)
+
+
+@router.get(
+    "/stock/{ticker}/fundamentals/concentration",
+    response_model=FundamentalConcentrationResponse,
+)
+def get_stock_fundamental_concentration(
+    ticker: str,
+    periods: int = Query(20, ge=1, le=40),
+    repo: Repository = Depends(get_repo),
+    settings: Settings = Depends(get_settings),
+) -> FundamentalConcentrationResponse:
+    """Revenue concentration by reportable segment and by geography.
+
+    DESCRIPTIVE ONLY — see the response model. No rank, no percentile, no
+    contribution to any score.
+
+    Shares are derived here, at read time, from stored raw rows. Nothing
+    persists a share: the axis-selection, level-collapse and annual-detection
+    rules are new, one of them has already been corrected once against real
+    data, and a stored share would freeze whichever rules were current when the
+    row was written into a history no later correction could reach.
+
+    404 means no breakdown rows have been captured for this name — which is a
+    different condition from either fundamentals endpoint's, and the three
+    legitimately disagree: a filer can hold statements and publish no
+    disaggregation at all.
+    """
+    from uw_scan.fundamentals.concentration import build_card
+    from uw_scan.storage.fundamental_concentration import RevenueBreakdownRepository
+
+    t = ticker.upper()
+    rows = RevenueBreakdownRepository(repo.conn, schema=settings.db_schema).periods(
+        t, limit=periods
+    )
+    if not rows:
+        raise HTTPException(status_code=404, detail=f"no revenue breakdown for {t}")
+    return FundamentalConcentrationResponse(ticker=t, **build_card(rows))
 
 
 _MAGNET_CANDLE_WINDOW = 180
