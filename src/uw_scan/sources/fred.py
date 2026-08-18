@@ -151,7 +151,9 @@ class FredProvider:
                 realtime_start = date.fromisoformat(str(row["realtime_start"]).strip())
                 realtime_end = date.fromisoformat(str(row["realtime_end"]).strip())
             except (KeyError, ValueError, InvalidOperation) as exc:
-                logger.warning("fred: skip unparseable json row %r (%s)", row, repr(exc))
+                logger.warning(
+                    "fred: skip unparseable json row %r (%s)", row, repr(exc)
+                )
                 continue
             out.append(
                 FredObservation(
@@ -163,6 +165,52 @@ class FredProvider:
                 )
             )
         return out
+
+    def fetch_series_payload(
+        self,
+        series_id: str,
+        *,
+        start: date | None = None,
+        end: date | None = None,
+        realtime_start: date | None = None,
+        realtime_end: date | None = None,
+    ) -> tuple[bytes, str]:
+        """Return the exact response bytes plus the request URL.
+
+        Evidence-layer callers need the raw payload, not parsed rows: the artifact
+        hash must cover what the publisher actually sent.  ``realtime_start`` and
+        ``realtime_end`` select an ALFRED vintage window; omitting both returns only
+        the current vintage, which is the existing behaviour of
+        :meth:`fetch_observations` and is why that method alone cannot support replay.
+        """
+        if not self._api_key:
+            raise RuntimeError("FRED API key is required for JSON observations")
+        params: dict[str, Any] = {
+            "series_id": series_id,
+            "file_type": "json",
+            "api_key": self._api_key,
+        }
+        if start is not None:
+            params["observation_start"] = start.isoformat()
+        if end is not None:
+            params["observation_end"] = end.isoformat()
+        if realtime_start is not None:
+            params["realtime_start"] = realtime_start.isoformat()
+        if realtime_end is not None:
+            params["realtime_end"] = realtime_end.isoformat()
+        response = self._get_with_telemetry(
+            self._api_base_url,
+            self.API_ENDPOINT_PATH,
+            params,
+            endpoint_key=self.API_ENDPOINT_KEY,
+            path_template=self.API_ENDPOINT_PATH,
+        )
+        _raise_for_status_redacted(response, endpoint_key=self.API_ENDPOINT_KEY)
+        # The key is a query parameter, so the recorded URL must never carry it.
+        audited_url = f"{self._api_base_url}{self.API_ENDPOINT_PATH}?" + "&".join(
+            f"{key}={value}" for key, value in params.items() if key != "api_key"
+        )
+        return response.content, audited_url
 
     def _get_with_telemetry(
         self,
@@ -272,9 +320,7 @@ def _latency_ms(started_at: datetime, finished_at: datetime) -> int:
     return max(0, int((finished_at - started_at).total_seconds() * 1000))
 
 
-def _raise_for_status_redacted(
-    response: httpx.Response, *, endpoint_key: str
-) -> None:
+def _raise_for_status_redacted(response: httpx.Response, *, endpoint_key: str) -> None:
     if response.status_code < 400:
         return
     raise RuntimeError(

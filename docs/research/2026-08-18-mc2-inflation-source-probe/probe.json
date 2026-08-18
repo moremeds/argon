@@ -1,0 +1,275 @@
+{
+  "probe": "mc2_inflation_source_probe",
+  "started_at": "2026-08-18T09:56:15.299916+00:00",
+  "finished_at": "2026-08-18T09:56:21.567529+00:00",
+  "fred_api_key_present": true,
+  "sources": [
+    {
+      "name": "bls_api_contact_ua",
+      "url": "https://api.bls.gov/publicAPI/v1/timeseries/data/",
+      "user_agent": "argon-macro-probe/0.1 (personal research desk)",
+      "reachable": false,
+      "serves_vintages": false,
+      "vintage_note": "BLS returns the current value for each period; no as-of parameter exists.",
+      "http_status": 403,
+      "content_type": "text/html",
+      "content_length": 410,
+      "sha256": "f77e1ec82f8d5196de100e024eb4d215e8d9c99b7e2ae5ef7ef70b4bc1254877",
+      "body_head": "<HTML><HEAD>\n<TITLE>Access Denied</TITLE>\n</HEAD><BODY>\n<H1>Access Denied</H1>\n \nYou don't have permission to access \"http&#58;&#47;&#47;api&#46;bls&#46;gov&#47;publicAPI&#47;v1&#47;timeseries&#47;dat"
+    },
+    {
+      "name": "bls_api_browser_ua",
+      "url": "https://api.bls.gov/publicAPI/v1/timeseries/data/",
+      "user_agent": "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/140.0.0.0 Safari/537.36",
+      "reachable": false,
+      "serves_vintages": false,
+      "vintage_note": "BLS returns the current value for each period; no as-of parameter exists.",
+      "http_status": 403,
+      "content_type": "text/html",
+      "content_length": 410,
+      "sha256": "ccd1861dc78f9286d305b51e5776ee3a8690de45ae94769bc7a84ba2fe28f7b4",
+      "body_head": "<HTML><HEAD>\n<TITLE>Access Denied</TITLE>\n</HEAD><BODY>\n<H1>Access Denied</H1>\n \nYou don't have permission to access \"http&#58;&#47;&#47;api&#46;bls&#46;gov&#47;publicAPI&#47;v1&#47;timeseries&#47;dat"
+    },
+    {
+      "name": "bls_site_browser_ua",
+      "url": "https://www.bls.gov/news.release/cpi.nr0.htm",
+      "user_agent": "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/140.0.0.0 Safari/537.36",
+      "reachable": false,
+      "serves_vintages": false,
+      "vintage_note": "A news release is one vintage; the archive is not addressable by as-of date.",
+      "http_status": 403,
+      "content_type": "text/html",
+      "content_length": 405,
+      "sha256": "88ca6aff7f39e319103a532d3915a1bd4e6ff3ca374e0c0d3ebd5e8c22d31cc9",
+      "body_head": "<HTML><HEAD>\n<TITLE>Access Denied</TITLE>\n</HEAD><BODY>\n<H1>Access Denied</H1>\n \nYou don't have permission to access \"http&#58;&#47;&#47;www&#46;bls&#46;gov&#47;news&#46;release&#47;cpi&#46;nr0&#46;ht"
+    },
+    {
+      "name": "bea_api_no_credential",
+      "url": "https://apps.bea.gov/api/data",
+      "requires_credential": "UserID",
+      "credential_held": false,
+      "reachable": false,
+      "fails_silently_without_credential": true,
+      "serves_vintages": false,
+      "vintage_note": "BEA serves current NIPA values; revisions overwrite in place.",
+      "http_status": 200,
+      "content_type": "text/plain; charset=utf-8",
+      "content_length": 0,
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "body_head": ""
+    },
+    {
+      "name": "bea_site",
+      "url": "https://www.bea.gov/data/personal-consumption-expenditures-price-index",
+      "reachable": true,
+      "serves_vintages": false,
+      "vintage_note": "Landing page; the release archive is not addressable by as-of date.",
+      "last_modified": "Tue, 18 Aug 2026 08:00:15 GMT",
+      "http_status": 200,
+      "content_type": "text/html; charset=UTF-8",
+      "content_length": 42200,
+      "sha256": "1c197b0a868f7a8546b77eb6f138478bc620208f52e2bd815361f0be67e1127f",
+      "body_head": "\n<!DOCTYPE html>\n<html  lang=\"en\" dir=\"ltr\" prefix=\"content: http://purl.org/rss/1.0/modules/content/  dc: http://purl.org/dc/terms/  foaf: http://xmlns.com/foaf/0.1/  og: http://ogp.me/ns#  rdfs: htt"
+    },
+    {
+      "name": "alfred_cpi_vintages",
+      "url": "https://api.stlouisfed.org/fred/series/observations",
+      "series_id": "CPIAUCSL",
+      "reachable": true,
+      "serves_vintages": true,
+      "credential_held": true,
+      "observation_rows": 7,
+      "distinct_vintage_dates": [
+        "2026-02-13",
+        "2026-03-11",
+        "2026-04-10",
+        "2026-05-12",
+        "2026-06-10",
+        "2026-07-14",
+        "2026-08-12"
+      ],
+      "periods_with_more_than_one_vintage": [],
+      "sample_rows": [
+        {
+          "realtime_start": "2026-02-13",
+          "realtime_end": "9999-12-31",
+          "date": "2026-01-01",
+          "value": "326.588"
+        },
+        {
+          "realtime_start": "2026-03-11",
+          "realtime_end": "9999-12-31",
+          "date": "2026-02-01",
+          "value": "327.460"
+        },
+        {
+          "realtime_start": "2026-04-10",
+          "realtime_end": "9999-12-31",
+          "date": "2026-03-01",
+          "value": "330.293"
+        }
+      ],
+      "http_status": 200
+    },
+    {
+      "name": "alfred_cpi_revisions",
+      "url": "https://api.stlouisfed.org/fred/series/observations",
+      "series_id": "CPIAUCSL",
+      "reachable": true,
+      "serves_vintages": true,
+      "periods_probed": [
+        "2024-01-01",
+        "2024-02-01",
+        "2024-03-01",
+        "2024-04-01",
+        "2024-05-01",
+        "2024-06-01"
+      ],
+      "periods_whose_value_was_restated": [
+        "2024-01-01",
+        "2024-02-01",
+        "2024-03-01",
+        "2024-04-01",
+        "2024-05-01",
+        "2024-06-01"
+      ],
+      "restatements": {
+        "2024-01-01": [
+          {
+            "realtime_start": "2024-02-13",
+            "realtime_end": "2025-02-11",
+            "value": "309.685"
+          },
+          {
+            "realtime_start": "2025-02-12",
+            "realtime_end": "2026-02-12",
+            "value": "309.794"
+          },
+          {
+            "realtime_start": "2026-02-13",
+            "realtime_end": "9999-12-31",
+            "value": "309.698"
+          }
+        ],
+        "2024-02-01": [
+          {
+            "realtime_start": "2024-03-12",
+            "realtime_end": "2025-02-11",
+            "value": "311.054"
+          },
+          {
+            "realtime_start": "2025-02-12",
+            "realtime_end": "2026-02-12",
+            "value": "311.022"
+          },
+          {
+            "realtime_start": "2026-02-13",
+            "realtime_end": "9999-12-31",
+            "value": "310.967"
+          }
+        ],
+        "2024-03-01": [
+          {
+            "realtime_start": "2024-04-10",
+            "realtime_end": "2025-02-11",
+            "value": "312.230"
+          },
+          {
+            "realtime_start": "2025-02-12",
+            "realtime_end": "2026-02-12",
+            "value": "312.107"
+          },
+          {
+            "realtime_start": "2026-02-13",
+            "realtime_end": "9999-12-31",
+            "value": "312.345"
+          }
+        ],
+        "2024-04-01": [
+          {
+            "realtime_start": "2024-05-15",
+            "realtime_end": "2025-02-11",
+            "value": "313.207"
+          },
+          {
+            "realtime_start": "2025-02-12",
+            "realtime_end": "2026-02-12",
+            "value": "313.016"
+          },
+          {
+            "realtime_start": "2026-02-13",
+            "realtime_end": "9999-12-31",
+            "value": "313.023"
+          }
+        ],
+        "2024-05-01": [
+          {
+            "realtime_start": "2024-06-12",
+            "realtime_end": "2025-02-11",
+            "value": "313.225"
+          },
+          {
+            "realtime_start": "2025-02-12",
+            "realtime_end": "2026-02-12",
+            "value": "313.140"
+          },
+          {
+            "realtime_start": "2026-02-13",
+            "realtime_end": "9999-12-31",
+            "value": "313.175"
+          }
+        ],
+        "2024-06-01": [
+          {
+            "realtime_start": "2024-07-11",
+            "realtime_end": "2025-02-11",
+            "value": "313.049"
+          },
+          {
+            "realtime_start": "2025-02-12",
+            "realtime_end": "2026-02-12",
+            "value": "313.131"
+          },
+          {
+            "realtime_start": "2026-02-13",
+            "realtime_end": "9999-12-31",
+            "value": "313.044"
+          }
+        ]
+      },
+      "supersede_semantics": "each vintage carries a half-open [realtime_start, realtime_end] validity window",
+      "http_status": 200
+    },
+    {
+      "name": "fred_cpi_release_calendar",
+      "url": "https://api.stlouisfed.org/fred/release/dates",
+      "release_id": 10,
+      "reachable": true,
+      "release_dates": [
+        "2026-01-13",
+        "2026-02-13",
+        "2026-03-11",
+        "2026-04-10",
+        "2026-05-12",
+        "2026-06-10",
+        "2026-07-14",
+        "2026-08-12"
+      ],
+      "http_status": 200
+    }
+  ],
+  "summary": {
+    "unreachable": [
+      "bls_api_contact_ua",
+      "bls_api_browser_ua",
+      "bls_site_browser_ua",
+      "bea_api_no_credential"
+    ],
+    "vintage_capable": [
+      "alfred_cpi_vintages",
+      "alfred_cpi_revisions"
+    ],
+    "vintages_are_a_subset_of_published_release_dates": true,
+    "vintage_dates_not_on_the_release_calendar": []
+  }
+}
