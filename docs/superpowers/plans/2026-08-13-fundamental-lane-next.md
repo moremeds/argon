@@ -325,43 +325,66 @@ git commit -m "feat(fundamentals): schedule the monthly statement ingest"
 
 ---
 
-## PR 2 — Verify the one signal that pays is actually accumulating
+## PR 2 — ~~Verify the one signal that pays is actually accumulating~~ — RESOLVED 2026-08-18
 
-**Branch:** `chore/fundamental-anchor-accrual-check`
-
-**This may require no code.** `FundamentalAnchorBand.tsx` already exists and
-`fundamental_refresh` is scheduled and enabled by default, so the band is built and wired. What
-is unverified is whether it **accumulates in production**.
+**It is accumulating. The check this section specified could never have said so.**
 
 `sales_to_ev` own-history is the only validated signal in this lane: IC **+0.0744 (t 5.77)**,
-surviving the holding-reversal control (+0.0826, t 7.28), hit rate 0.683, and holding at +0.0604
-(t 5.45) on the trailing-20q window that non-stationarity forces. The table is designed so that
-`as_of` is the **compute date**, letting the daily record of where price sits inside its own band
-accumulate as history. Locally it holds 508 rows across 254 tickers — **2 compute days**. Local
-is expected to be sparse; the mini is what matters and could not be reached from this session.
+surviving the holding-reversal control (+0.0826, t 7.28), hit rate 0.683, holding at +0.0604
+(t 5.45) on the trailing-20q window non-stationarity forces. What was unverified was whether the
+band **accumulates in production**.
 
-- [ ] **Step 1: Measure accrual on the mini**
+### The measurement
+
+| | |
+|---|---|
+| code reached the mini | v0.12.0, 2026-08-16 (PR #331 merged 08-12; `:latest` floats only on release tags) |
+| scheduled opportunities since | 2 — Sun 08-16 and Mon 08-17, cron `20 18 * * 0-4` |
+| runs that wrote | **2 of 2** — 254 rows then 257 rows |
+| last write | **2026-08-17 18:20 EDT**, its exact slot |
+| `max(as_of)` | 2026-08-14, equal to the lake's own last close |
+
+`valuation_anchors` carries `computed_at`. Grouping by it is what separates "the job is dead"
+from "the job is healthy and `as_of` means something other than you thought".
+
+### Why the original criterion was unsatisfiable
+
+This section specified: *"Healthy: `count(DISTINCT as_of)` grows by one per weekday, `max(as_of)`
+is yesterday or today."* That was taken from `fundamental_anchors.py`, whose docstring claimed
+`as_of` **is the compute date**. The code has always set `as_of = spot_date` — the last bar in the
+ticker's price series. The docstring was wrong, and this plan copied it into a gate.
+
+The consequences were not cosmetic:
+
+- **`max(as_of)` can never be today.** The lake is EOD and livewire lands a session's close around
+  midnight New York, hours after the 18:20 ET run. A healthy Monday-evening run writes Friday.
+- **Old `as_of` values are correct, not corrupt.** A ticker whose series ends in 2022 gets 2022.
+  The 08-16 run wrote `as_of` spanning 2022-05-31…2026-05-29 because the lake was still catching
+  up from the outage; by the 08-17 run every name had advanced to 2026-08-14.
+- **The gate fires on healthy systems.** This plan called it "the highest priority item, ahead of
+  everything else". Anyone executing it would have stopped here and debugged a working job.
+
+The docstring is corrected in this PR. Keying on the clock instead would be actively wrong: a
+stale lake would mint one row per calendar day carrying an identical spot, asserting price
+observations on days when none existed.
+
+### The criterion that does work
+
+- **liveness** — `max(computed_at)` is within one scheduled slot.
+- **correctness** — `max(as_of)` equals the lake's own last close, not the wall clock.
+- **accrual** — `count(DISTINCT computed_at::date)` grows once per scheduled run.
 
 ```sql
-SELECT count(*), count(DISTINCT ticker), count(DISTINCT as_of),
-       min(as_of), max(as_of)
-FROM uw_scan.valuation_anchors;
+SELECT date(computed_at) AS run, count(*), count(DISTINCT ticker), max(as_of)
+  FROM uw_scan.valuation_anchors GROUP BY 1 ORDER BY 1 DESC LIMIT 10;
 ```
-Healthy: `count(DISTINCT as_of)` grows by one per weekday, `max(as_of)` is yesterday or today.
 
-- [ ] **Step 2: Branch on the result**
+### Still open
 
-- **Accruing** → close this PR with the query output as evidence. No code.
-- **Not accruing** → diagnose in this order, and fix in this branch: is `fundamental_refresh`
-  registered on the running worker; did the worker start before the code landed (check process
-  etime — APScheduler does not hot-reload); is `fundamental_refresh_enabled` set false in the
-  mini `.env`; is the lake mirror present in the container.
-
-- [ ] **Step 3: Confirm the band renders against a real ticker**
-
-Open `/stock/NVDA` on the mini, Fundamentals tab. Screenshot to `output/playwright/`.
-The band must show a spot percentile that **differs from the previous session's**, which is the
-only visible proof the daily accrual is real rather than one frozen row.
+Step 3 of the original section — confirm the band renders against a real ticker on the mini and
+that its spot percentile moves between sessions — is **not** answered by the query above and is
+not attempted here. It needs two consecutive lake-fresh sessions, which the outage backfill has
+only just restored.
 
 ---
 
@@ -523,5 +546,7 @@ share — the failure mode this lane already has a rule about. Default to refusi
 2. **Does UW's `rev_breakdown` window roll?** Unanswerable from one snapshot. PR-3's stored
    snapshots answer it within two runs: if the oldest period advances, it rolls, and D4's
    urgency was real.
-3. **Is `valuation_anchors` accruing on the mini?** PR-2 Step 1. If not, that is the highest
-   priority item in this plan, ahead of everything else.
+3. ~~**Is `valuation_anchors` accruing on the mini?**~~ **Answered 2026-08-18: yes** — 2 of 2
+   scheduled runs since the v0.12.0 deploy wrote rows, the last at its exact 18:20 ET slot. The
+   check this plan specified could not have said so; see the rewritten PR 2. What remains open is
+   Step 3, whether the rendered band's spot percentile actually moves between sessions.
