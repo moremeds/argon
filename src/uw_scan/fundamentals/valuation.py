@@ -178,9 +178,15 @@ MAX_BAND_WIDTH = 4.0
 #: redefined. Threshold moves do not need it: the constants above are hashed
 #: directly, so changing one already produces a new identity.
 #:
+#: rev 3: a refusal reports the window it refused ON rather than a hardcoded 0,
+#: and the width refusal describes the window's measured SHAPE instead of
+#: asserting instability it never tested for.
+#: No guard moved, but what a refusal ROW says about coverage did, and the same
+#: inputs under the old rule collide with the corrected row on the identity key —
+#: `DO NOTHING` would keep the wrong one for the rest of the day.
 #: rev 2: refuse a band with a missing end (`buy_below` / `risk_above` not
 #: invertible). rev 1: the original five-level construction.
-ANCHOR_RULES_REV = 2
+ANCHOR_RULES_REV = 3
 
 
 def anchor_inputs_hash(
@@ -384,6 +390,7 @@ def build_anchors(
                 f"only {len(clean)} of the last {WINDOW_QUARTERS} quarters are "
                 f"usable, need {MIN_HISTORY}"
             ],
+            history_quarters=len(clean),
         )
 
     ev_based = method in EV_DENOMINATED
@@ -414,6 +421,7 @@ def build_anchors(
                     "statements and the quote are most likely in different "
                     "currencies (foreign issuer / ADR)"
                 ],
+                history_quarters=len(clean),
             )
 
     anchors: dict[str, float | None] = {}
@@ -469,6 +477,7 @@ def build_anchors(
                 "enterprise value, where the equity is too thin a slice for the "
                 "inversion to be stable"
             ],
+            history_quarters=len(clean),
         )
     if lo > 0 and hi / lo > MAX_BAND_WIDTH:
         return _no_anchor(
@@ -476,9 +485,14 @@ def build_anchors(
             company_type,
             method,
             [
-                f"own {WINDOW_QUARTERS}-quarter valuation range spans "
-                f"{hi / lo:.0f}x — too unstable to anchor a price to"
+                # No "too unstable to anchor a price to". That named a CAUSE the
+                # gate never measured, and for most refused names it is the
+                # opposite of what the window does — see `yield_drift`.
+                f"own {len(clean)}-quarter valuation range spans "
+                f"{_over(hi / lo, MAX_BAND_WIDTH)}x, wider than the "
+                f"{MAX_BAND_WIDTH:.0f}x limit: {_shape(window)}"
             ],
+            history_quarters=len(clean),
         )
 
     # Where spot sits: computed from the CURRENT yield against the same history,
@@ -524,9 +538,124 @@ def build_anchors(
     }
 
 
+def yield_drift(window: list[float]) -> float:
+    """Rank correlation of a yield window against time. -1 walks down, +1 up.
+
+    The width gate cannot tell two very different shapes apart, and it states the
+    wrong one. A band spans 17x either because the yield SWINGS — no settled
+    valuation, refusing is right and "too unstable" is the true word — or because
+    it WALKS one way and stays there, which is a window straddling two regimes
+    and the opposite of unstable.
+
+    Measured over the 246-name local panel on 2026-08-18
+    (`docs/research/2026-08-18-valuation-band-refusal/WIDTH_ANATOMY.md`), both
+    shapes appear among the refused: AVGO -0.90, LRCX -0.85, MSTR -0.83 walked
+    down (the multiple expanded), NVDA +0.68 and NFLX +0.66 walked up (the
+    fundamental outgrew the price), ACRE -0.07 and APLD -0.25 genuinely swing.
+
+    This does NOT license moving the threshold, and the same probe is why: the
+    monotone share is 38% among refused names against 36% among those that pass,
+    and a Mann-Whitney on rho gives p=0.16. Shape does not separate wide bands
+    from narrow ones as a population. It separates them ONE NAME AT A TIME, which
+    is the only claim the refusal line needs to make.
+
+    TIES TAKE THE AVERAGE RANK, and skipping that is not a rounding detail. A
+    stable sort hands the earlier index the lower rank inside a tie group, which
+    manufactures an upward trend out of nothing: a perfectly alternating series
+    scored +0.57 before this, and the sentence it drives would have called that
+    window a one-way regime shift.
+
+    The index side has no ties by construction, so with the value side corrected
+    this is the Pearson correlation of the two rank vectors.
+    """
+    n = len(window)
+    if n < 2:
+        return 0.0
+    order = sorted(range(n), key=lambda i: window[i])
+    rank = [0.0] * n
+    start = 0
+    while start < n:
+        stop = start
+        while stop + 1 < n and window[order[stop + 1]] == window[order[start]]:
+            stop += 1
+        shared = (start + stop) / 2
+        for position in range(start, stop + 1):
+            rank[order[position]] = shared
+        start = stop + 1
+    mean = (n - 1) / 2
+    den = sum((i - mean) ** 2 for i in range(n))
+    if den == 0:
+        return 0.0
+    num = sum((i - mean) * (rank[i] - mean) for i in range(n))
+    spread = sum((r - mean) ** 2 for r in rank)
+    if spread == 0:
+        return 0.0
+    return num / (den * spread) ** 0.5
+
+
+#: |rho| bands for describing a yield window. Graded rather than binary on
+#: purpose: NBIS sits at -0.67 and WFC at -0.68, so a single cut at the
+#: conventional 0.7 would print "swings both ways" over two of the strongest
+#: leans in the panel. Nothing here gates anything — these words only choose how
+#: a sentence reads, and the rho is printed beside them either way.
+DRIFT_MONOTONE = 0.7
+DRIFT_LEAN = 0.4
+
+
+def _shape(window: list[float]) -> str:
+    """How the refusal describes the window it is refusing, in measured terms."""
+    rho = yield_drift(window)
+    if abs(rho) < DRIFT_LEAN:
+        return f"swinging both ways with no one-way drift (rho {rho:+.2f})"
+    direction = (
+        "the multiple expanded through it"
+        if rho < 0
+        else "the fundamental outgrew the price through it"
+    )
+    walk = "walking one way" if abs(rho) >= DRIFT_MONOTONE else "leaning one way"
+    return (
+        f"{walk} rather than swinging (rho {rho:+.2f}) — the window covers two "
+        f"valuation regimes, not one, because {direction}"
+    )
+
+
+def _over(value: float, limit: float) -> str:
+    """Format a ratio at the coarsest precision that still reads ABOVE `limit`.
+
+    A marginal refusal has to survive its own rounding. AVGO on 2026-08-18 spans
+    4.04x against a 4.0x limit, and `:.0f` rendered it "spans 4x — too unstable
+    to anchor a price to": a sentence that refutes itself, on the only line the
+    reader has to go on. One decimal fixes AVGO and breaks the next name in at
+    4.004x, so the precision follows the number rather than being guessed once.
+    """
+    for places in (1, 2, 3):
+        text = f"{value:.{places}f}"
+        if float(text) > limit:
+            return text
+    return f"{value:.3f}"
+
+
 def _no_anchor(
-    ticker: str, company_type: str, method: str | None, reasons: list[str]
+    ticker: str,
+    company_type: str,
+    method: str | None,
+    reasons: list[str],
+    *,
+    history_quarters: int = 0,
 ) -> dict[str, Any]:
+    """A refusal, carrying the window it refused ON.
+
+    `history_quarters` is the count of usable quarters behind the decision, not a
+    coverage flag, and hardcoding it to 0 made every refusal claim the opposite of
+    what happened. NVDA's band is refused because twenty quarters of FCF yield
+    span 17x — the data is there and the spread is the finding — but the card
+    header rendered "0q", which reads as "nothing ingested for this name" and
+    sends a reader to look for a data gap that does not exist.
+
+    It stays 0 only where no window was ever taken: an unknown company type, a
+    suppressed or non-positive numerator. Those refuse before any history is
+    read, and a count there would be invented.
+    """
     return {
         "ticker": ticker,
         "company_type": company_type,
@@ -534,7 +663,7 @@ def _no_anchor(
         "anchors": None,
         "spot": None,
         "spot_percentile": None,
-        "history_quarters": 0,
+        "history_quarters": history_quarters,
         "confidence": "none",
         "confidence_reasons": reasons,
     }

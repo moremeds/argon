@@ -160,6 +160,39 @@ describe("FundamentalAnchorBand", () => {
     expect(screen.queryByText("buy below")).toBeNull();
   });
 
+  it("leads a refusal with the reason, not with how to read a band", () => {
+    // NVDA's real 2026-08-14 refusal. The explainer paragraph teaches how to
+    // read five levels and a spot marker, none of which are on screen here, and
+    // it sat ABOVE the one sentence that answers "where is the band?".
+    const { container } = render(
+      <FundamentalAnchorBand
+        a={band({
+          company_type: "platform_scale",
+          method: "fcf_yield",
+          buy_below: null,
+          observe_low: null,
+          observe_mid: null,
+          observe_high: null,
+          risk_above: null,
+          spot: 225.16,
+          spot_percentile: null,
+          confidence: "none",
+          confidence_reasons: [
+            "own 20-quarter valuation range spans 17.4x, wider than the 4x limit: leaning one way rather than swinging (rho +0.68) — the window covers two valuation regimes, not one, because the fundamental outgrew the price through it",
+          ],
+        })}
+      />,
+    );
+    const text = container.textContent ?? "";
+    expect(text).toMatch(/spans 17\.4x/);
+    // The explainer is gone, not merely reordered: on a refusal it describes a
+    // drawing that does not exist.
+    expect(text).not.toMatch(/percentiles of its/);
+    // And the header still reports the window the refusal was taken on, which
+    // is the other half of the same bug — "0q" read as "nothing ingested".
+    expect(text).toMatch(/20q/);
+  });
+
   it("lists every confidence reason rather than collapsing to the badge", () => {
     const reasons = ["19 quarters of history", "filing is 400 days old"];
     const { container } = render(
