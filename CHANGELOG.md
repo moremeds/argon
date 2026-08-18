@@ -7,6 +7,9 @@ version in lockstep (enforced by `scripts/release/version_sync_check.py`).
 
 ## [Unreleased]
 
+## [0.12.6] — 2026-08-18
+
+
 ### Added
 
 - **Revenue concentration on the Fundamentals tab — where a company's revenue
@@ -98,7 +101,6 @@ version in lockstep (enforced by `scripts/release/version_sync_check.py`).
   lake lands a session's close around midnight New York, hours after the run.
   Check `max(computed_at)` for liveness and compare `max(as_of)` against the
   lake's own last close for correctness.
-
 ## [0.12.5] — 2026-08-18
 
 
