@@ -96,6 +96,21 @@ HISTORICAL_RELEASES = [
         "2022-03-16T14:00:00-04:00",
     ),
     (
+        # The two-sided dissent: Miran wanted a deeper cut, Schmid wanted none.
+        # Opposite reasons, so the Fed joined the clauses with ", and" instead
+        # of the ";" every other fixture here uses -- and a ";"-only split
+        # dropped Schmid while decrementing the tally that would have shown it.
+        "fomc_statement_2025_10_29.html",
+        "https://www.federalreserve.gov/newsevents/pressreleases/monetary20251029a.htm",
+        "f2d87d279b0a16914af2ddd5d487316155aa187f21ff51034cd6c90c3944b984",
+        date(2025, 10, 29),
+        "Cut",
+        Decimal("3.75"),
+        Decimal("4"),
+        "10-2",
+        "2025-10-29T14:00:00-04:00",
+    ),
+    (
         "fomc_statement_2025_12_10.html",
         "https://www.federalreserve.gov/newsevents/pressreleases/monetary20251210a.htm",
         "3ab349d951f0df5f2786ae5e00d7fbe602f06cb9d7bf8465e072774af0fc2026",
@@ -714,6 +729,13 @@ def _statement_bundle(stem: str, *, meeting_date: date) -> FomcStatementBundle:
             ("James Bullard",),
         ),
         (
+            # Two dissenters with opposite reasons, joined by ", and".
+            "fomc_statement_2025_10_29",
+            date(2025, 10, 29),
+            "10-2",
+            ("Stephen I. Miran", "Jeffrey R. Schmid"),
+        ),
+        (
             "fomc_statement_2025_12_10",
             date(2025, 12, 10),
             "9-3",
@@ -794,3 +816,62 @@ def test_dissenter_identities_reach_the_persisted_observation() -> None:
         "Neel Kashkari",
         "Lorie K. Logan",
     ]
+
+
+def test_a_two_sided_dissent_separated_by_a_comma_keeps_both_dissenters() -> None:
+    """2025-10-29 was 10-2: Miran wanted a deeper cut, Schmid wanted none.
+
+    Because the two wanted opposite things the statement joined their clauses
+    with ", and" instead of the usual ";", and splitting on ";" alone read the
+    whole block as one clause -- keeping the names before the first ", who" and
+    discarding Schmid along with the rationale text.  ``vote_split`` is derived
+    from the surviving names, so the release recorded 10-1 and still reported
+    ``ok``: the drop decremented the very count that would have exposed it.
+
+    Real published text, verified against
+    https://www.federalreserve.gov/newsevents/pressreleases/monetary20251029a.htm
+    """
+    raw = (FIXTURES / "fomc_statement_2025_12_10.html").read_bytes()
+    comma_form = raw.replace(
+        b"by 1/2 percentage point at this meeting; and Austan D. Goolsbee and "
+        b"Jeffrey R. Schmid, who preferred no change",
+        b"by 1/2 percentage point at this meeting, and Jeffrey R. Schmid, "
+        b"who preferred no change",
+    )
+    assert comma_form != raw
+
+    release = parse_fomc_statement(
+        _bundle(
+            meeting_date=date(2025, 12, 10),
+            accessible_url=SOURCE_URL_BY_FIXTURE["fomc_statement_2025_12_10.html"],
+            accessible_bytes=comma_form,
+        )
+    )
+
+    assert list(release.voted_against) == ["Stephen I. Miran", "Jeffrey R. Schmid"]
+    assert release.vote_split.endswith("-2")
+    assert release.voter_names_stated is True
+
+
+def test_an_unseparated_second_dissent_clause_fails_closed() -> None:
+    """A clause grammar we cannot read must raise, never drop a name.
+
+    The whole point of the comma fix is that a missing dissenter is invisible
+    downstream, so an unrecognised separator has to stop the release rather
+    than quietly return the dissenters it happened to understand.
+    """
+    raw = (FIXTURES / "fomc_statement_2025_12_10.html").read_bytes()
+    unseparated = raw.replace(
+        b"at this meeting; and Austan D. Goolsbee",
+        b"at this meeting Austan D. Goolsbee",
+    )
+    assert unseparated != raw
+
+    with pytest.raises(NormalizationError, match="separator"):
+        parse_fomc_statement(
+            _bundle(
+                meeting_date=date(2025, 12, 10),
+                accessible_url=SOURCE_URL_BY_FIXTURE["fomc_statement_2025_12_10.html"],
+                accessible_bytes=unseparated,
+            )
+        )

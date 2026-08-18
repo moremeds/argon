@@ -340,14 +340,63 @@ def _remove_alternate_suffix(paragraph: str) -> tuple[str, bool]:
     return paragraph, False
 
 
+#: Where a dissenter's names end and their reason begins.
+_RATIONALE_PREFIX = re.compile(r",\s+(?:who|each of whom)\b")
+#: The Fed separates dissent clauses with ``;``/``; and``, and — when the
+#: dissenters want opposite things — with a bare ``, and``.  Semicolon first:
+#: it never occurs inside one of these rationales, while ``, and`` can.
+_CLAUSE_SEMICOLON = re.compile(r";\s*(?:and\s+)?")
+_CLAUSE_COMMA = re.compile(r",\s+and\s+")
+
+
 def _parse_against_voters(raw: str) -> _ParsedVoters:
+    """Read every dissenter, not only the first.
+
+    Splitting on ``;`` alone read the October 2025 two-sided dissent as a single
+    clause.  That statement separated its dissenters with ``, and`` rather than
+    ``;`` because they wanted opposite things (Miran a deeper cut, Schmid no
+    cut), so everything after the first ``, who`` was discarded as rationale --
+    taking Schmid with it.  ``split`` is derived from the surviving names, so the
+    release came out self-consistently wrong at 10-1 and still reported ``ok``:
+    a dropped dissenter is invisible to a count that the drop also decremented.
+
+    Each rationale must be claimed by a non-empty group of names, or the release
+    fails closed.  Losing a dissenter quietly is the one error this parser must
+    never make -- the composition carries the signal a tally cannot recover.
+    """
+    body = raw.strip().removesuffix(".")
+    rationales = list(_RATIONALE_PREFIX.finditer(body))
+    if not rationales:
+        # No reasons given: the whole block is names.
+        return _validated_voters(_tokenize_voter_names(body.removeprefix("and ")))
+
     voters: list[str] = []
-    for clause in raw.removesuffix(".").split(";"):
-        bounded = clause.strip().removeprefix("and ")
-        rationale = re.search(r",\s+(?:who|each of whom)\b", bounded)
-        names_only = bounded[: rationale.start()] if rationale is not None else bounded
-        voters.extend(_tokenize_voter_names(names_only))
+    span_start = 0
+    for position, rationale in enumerate(rationales):
+        span = body[span_start : rationale.start()]
+        # After the first clause the span still carries the PREVIOUS dissenter's
+        # reason, which runs up to the separator that opens this one.
+        names = span if position == 0 else _names_after_separator(span)
+        parsed = _tokenize_voter_names(names.strip().removeprefix("and "))
+        if not parsed:
+            raise NormalizationError("FOMC voting-against clause names no dissenter")
+        voters.extend(parsed)
+        span_start = rationale.end()
     return _validated_voters(voters)
+
+
+def _names_after_separator(span: str) -> str:
+    """The tail of ``span`` that belongs to the next dissenter, not the last one.
+
+    Takes the FIRST separator rather than the last: a name list is itself comma
+    separated ("Hammack, Kashkari, and Logan"), so the last ``, and`` sits
+    *inside* the names and would keep only the final one.
+    """
+    for separator in (_CLAUSE_SEMICOLON, _CLAUSE_COMMA):
+        match = separator.search(span)
+        if match is not None:
+            return span[match.end() :]
+    raise NormalizationError("FOMC voting-against clauses have no separator")
 
 
 def _tokenize_voter_names(raw: str) -> list[str]:

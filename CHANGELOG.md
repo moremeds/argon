@@ -38,11 +38,14 @@ version in lockstep (enforced by `scripts/release/version_sync_check.py`).
   and an optional third-party market shadow — now persist through the production worker and serve
   from stored rows. They stay separately keyed and are never averaged into a synthetic Fed path, and
   an anonymous SEP dot is never attributed to the Chair. Measured live: 55/55 FOMC statements and
-  25/25 SEP releases parse across 2020–2026 with zero failures, and every pre-cutoff dissent matches
-  published history. `GET /api/macro/policy` gains per-source release coverage
-  (`releases_discovered` / `releases_succeeded` / `releases_failed` plus named failures), an exact
-  `as_of_ts` replay instant beside the existing date-level `as_of`, and `vote_status` on each path
-  point so "the statement printed no vote" stays distinct from "there was no vote". Evidence:
+  25/25 SEP releases parse across 2020–2026 with zero failures. Every dissent-bearing release now
+  has a roster whose named voters sum to the committee actually seated that year — the one release
+  that did not is the parser bug fixed below. `GET /api/macro/policy` gains per-source release
+  coverage (`releases_discovered` / `releases_succeeded` / `releases_failed` plus named failures),
+  an exact `as_of_ts` replay instant beside the existing date-level `as_of`, and the full vote on
+  each path point — `vote_status`, `vote_split`, `voted_for`, `voted_against`, and
+  `voter_names_stated`, so a tally printed without a roster stays distinct from a unanimous
+  committee. Evidence:
   `docs/research/2026-08-12-fomc-sep-source-probe/{probe.json,smoke-4x4.json,VERDICT.md}`.
 - **Per-release ingest catalog** (`macro_release_ingest_status`) and **observation lineage**
   (`macro_observation_artifacts`), migration 121. One release's outcome no longer hides behind a
@@ -53,6 +56,26 @@ version in lockstep (enforced by `scripts/release/version_sync_check.py`).
 
 ### Fixed
 
+- **A two-sided FOMC dissent no longer loses a dissenter.** The voting-against block was split on
+  `;`, but when dissenters want opposite things the Fed joins their clauses with `, and` instead.
+  2025-10-29 — Miran wanting a deeper cut, Schmid wanting none — therefore parsed as a single
+  clause: everything after the first `, who` was discarded as rationale, taking Schmid with it. The
+  tally is derived from the surviving names, so the release recorded **10-1 instead of 10-2** and
+  still reported `ok` — the drop decremented the very count that would have exposed it. Both
+  separators are now read, and a clause grammar we cannot parse fails the release closed rather
+  than returning the dissenters it happened to understand.
+- **Every release with bytes but no fact is now counted as a hole.** `GET /api/macro/policy` counted
+  only `failed`, so an `artifact_only` release — the parse produced nothing but the evidence landed —
+  showed up as neither a success nor a failure. "20 discovered / 17 succeeded / 0 failed" read
+  exactly like a healthy source while three releases carried no fact. The counts must now account
+  for every release discovered, which makes that limbo unconstructible rather than merely unfixed.
+- **One unreadable stored row no longer takes the other three paths down.** A shape-drifted
+  observation raised through the whole comparison and returned a 500 for all four slots. Each path
+  now degrades on its own, the read-side twin of the per-release write transaction below.
+- **A backfill window with a silent hole no longer exits zero.** The exit code read the catalog rows
+  that existed, but a year whose discovery failed writes no rows at all — so it dropped out of the
+  check that was supposed to catch it. The requested window is now the denominator, and any past
+  source-year with no releases fails the run by name.
 - **A corrected policy release is no longer backdated to the original release instant.** Both the
   artifact and observation layers took the publisher's declared release time verbatim, so a reissue
   retrieved months later claimed to have been public on the original afternoon — a look-ahead leak

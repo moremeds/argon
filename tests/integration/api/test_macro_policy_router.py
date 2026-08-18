@@ -10,7 +10,6 @@ from uw_scan.macro_evidence import (
 )
 from uw_scan.storage.repository import Repository
 
-
 RELEASED_AT = datetime(2026, 6, 17, 18, tzinfo=UTC)
 
 
@@ -195,7 +194,11 @@ def _record_release(
     error_type: str | None = None,
     error_message: str | None = None,
     success_artifact_id: int | None = None,
+    latest_artifact_id: int | None = None,
 ) -> None:
+    witness_id = (
+        latest_artifact_id if latest_artifact_id is not None else success_artifact_id
+    )
     repo.upsert_macro_release_status(
         source=source,
         release_key=release_key,
@@ -207,9 +210,9 @@ def _record_release(
         parser_version="test.policy.v1",
         last_attempt_at=attempted_at,
         artifact_source_record_id=(
-            f"{source}:2026-06:primary" if success_artifact_id is not None else None
+            f"{source}:2026-06:primary" if witness_id is not None else None
         ),
-        latest_artifact_id=success_artifact_id,
+        latest_artifact_id=witness_id,
         success_artifact_id=success_artifact_id,
         error_type=error_type,
         error_message=error_message,
@@ -372,3 +375,150 @@ def test_actual_path_exposes_whether_the_vote_was_published(
     point = response.json()["actual"]["path"]["points"][0]
     assert point["vote_status"] == "not_stated"
     assert point["vote_split"] is None
+
+
+def test_a_release_with_bytes_but_no_fact_is_not_reported_as_healthy(
+    seeded_db_empty_cards: Repository,
+    client: TestClient,
+) -> None:
+    """``artifact_only`` is a release that produced no fact, and must be counted.
+
+    The bytes landed and the parse did not, which is exactly the hole an
+    operator is looking for.  Counting only ``failed`` reported it as
+    "2 discovered / 1 succeeded / 0 failed" -- the same shape as a healthy
+    source, and the same blind spot the probe's ``max(meeting_date)`` had.
+    """
+    artifact_id = _insert_path(
+        seeded_db_empty_cards,
+        kind="actual",
+        series_id="POLICY_PATH_ACTUAL",
+        source="federal_reserve_fomc",
+    )
+    _record_release(
+        seeded_db_empty_cards,
+        source="federal_reserve_fomc",
+        release_key="fomc-statement:monetary20260617a",
+        status="ok",
+        success_artifact_id=artifact_id,
+        event_date=date(2026, 6, 17),
+        attempted_at=RELEASED_AT,
+    )
+    _record_release(
+        seeded_db_empty_cards,
+        source="federal_reserve_fomc",
+        release_key="fomc-statement:monetary20200315a",
+        status="artifact_only",
+        latest_artifact_id=artifact_id,
+        event_date=date(2020, 3, 15),
+        event_class="unscheduled_meeting",
+        error_type="IncompleteRelease",
+        error_message="produced no parsable bundle",
+        attempted_at=RELEASED_AT,
+    )
+    seeded_db_empty_cards.conn.commit()
+
+    freshness = client.get(
+        "/api/macro/policy", params={"as_of": "2026-06-18"}
+    ).json()["actual"]["freshness"]
+
+    assert freshness["releases_discovered"] == 2
+    assert freshness["releases_succeeded"] == 1
+    assert freshness["releases_failed"] == 1
+    assert [f["release_key"] for f in freshness["release_failures"]] == [
+        "fomc-statement:monetary20200315a"
+    ]
+    assert freshness["release_failures"][0]["error_type"] == "IncompleteRelease"
+
+
+def test_one_unreadable_observation_degrades_only_its_own_path(
+    seeded_db_empty_cards: Repository,
+    client: TestClient,
+) -> None:
+    """A corrupt row must not take the other three paths down with it.
+
+    This is the read-side twin of the per-release transaction fix: one bad
+    release cannot erase its siblings on write, and one bad row cannot erase
+    them on read either.
+    """
+    _insert_path(
+        seeded_db_empty_cards,
+        kind="actual",
+        series_id="POLICY_PATH_ACTUAL",
+        source="federal_reserve_fomc",
+        # A rate the point model cannot read.  Shape drift, not a missing row:
+        # the observation exists and claims to be an actual policy path.
+        point_extra={"rate_percent": "not-a-number"},
+    )
+    _insert_path(
+        seeded_db_empty_cards,
+        kind="committee_projection",
+        series_id="POLICY_PATH_COMMITTEE_PROJECTION",
+        source="federal_reserve_sep",
+    )
+
+    response = client.get("/api/macro/policy", params={"as_of": "2026-06-18"})
+
+    assert response.status_code == 200
+    body = response.json()
+    assert body["actual"]["path"] is None
+    assert "unreadable" in body["actual"]["missing_reason"]
+    assert body["committee_projection"]["path"]["points"][0]["rate_percent"] == "3.8"
+
+
+def test_the_dissent_roster_reaches_the_api_not_just_the_tally(
+    seeded_db_empty_cards: Repository,
+    client: TestClient,
+) -> None:
+    """Who dissented is the fact worth keeping; the tally cannot recover it.
+
+    Bowman's 2024-09-18 dissent is real published history.  The row builder
+    persists the roster, and the model must carry it through -- ``extra=ignore``
+    would otherwise drop it in silence.
+    """
+    _insert_path(
+        seeded_db_empty_cards,
+        kind="actual",
+        series_id="POLICY_PATH_ACTUAL",
+        source="federal_reserve_fomc",
+        point_extra={
+            "vote_status": "stated",
+            "vote_split": "11-1",
+            "voted_for": ["Powell", "Williams"],
+            "voted_against": ["Bowman"],
+            "voter_names_stated": True,
+        },
+    )
+
+    point = client.get("/api/macro/policy", params={"as_of": "2026-06-18"}).json()[
+        "actual"
+    ]["path"]["points"][0]
+
+    assert point["voted_against"] == ["Bowman"]
+    assert point["voter_names_stated"] is True
+
+
+def test_an_unnamed_dissent_is_never_served_as_a_unanimous_vote(
+    seeded_db_empty_cards: Repository,
+    client: TestClient,
+) -> None:
+    """A published 9-3 with no roster must not read as 12-0 at the API."""
+    _insert_path(
+        seeded_db_empty_cards,
+        kind="actual",
+        series_id="POLICY_PATH_ACTUAL",
+        source="federal_reserve_fomc",
+        point_extra={
+            "vote_status": "stated",
+            "vote_split": "9-3",
+            "voter_names_stated": False,
+        },
+    )
+
+    point = client.get("/api/macro/policy", params={"as_of": "2026-06-18"}).json()[
+        "actual"
+    ]["path"]["points"][0]
+
+    assert point["vote_split"] == "9-3"
+    assert point["voted_against"] == []
+    # Empty roster plus this flag is "nobody was named", never "nobody dissented".
+    assert point["voter_names_stated"] is False

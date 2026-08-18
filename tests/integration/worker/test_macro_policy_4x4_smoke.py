@@ -12,7 +12,10 @@ as new revisions, and reads that survive the network being gone.
 
 from __future__ import annotations
 
+import contextlib
 import os
+import socket
+from collections.abc import Iterator
 from datetime import UTC, datetime
 
 import psycopg
@@ -51,6 +54,35 @@ def _settings() -> Settings:
         pytest.fail("UW_SCAN_TEST_DB_NAME is not set", pytrace=False)
     os.environ.setdefault("UW_SCAN_API_KEY", "test-dummy-not-used")
     return Settings.from_env().model_copy(update={"db_name": test_db})
+
+
+_LOOPBACK = frozenset({"127.0.0.1", "::1", "localhost"})
+
+
+@contextlib.contextmanager
+def _network_severed() -> Iterator[None]:
+    """Fail any connection that leaves this machine.
+
+    Loopback stays reachable because the read path still needs Postgres.  The
+    guard sits at the socket rather than at the provider classes: durability is
+    the claim being tested, and "no provider object was constructed" does not
+    establish it -- any code path could open its own client.
+    """
+    real_connect = socket.socket.connect
+
+    def guarded(self, address, *args, **kwargs):  # type: ignore[no-untyped-def]
+        host = address[0] if isinstance(address, tuple) else None
+        if isinstance(host, str) and host not in _LOOPBACK and not host.startswith(
+            "127."
+        ):
+            raise AssertionError(f"offline read attempted a network call to {host}")
+        return real_connect(self, address, *args, **kwargs)
+
+    socket.socket.connect = guarded  # type: ignore[method-assign]
+    try:
+        yield
+    finally:
+        socket.socket.connect = real_connect  # type: ignore[method-assign]
 
 
 def _run_all(
@@ -283,18 +315,12 @@ def test_persisted_paths_stay_readable_with_every_provider_disabled(
 
     _run_all(settings)
 
-    class _DeadProvider:
-        def __enter__(self):
-            raise AssertionError("the smoke read a provider during an offline read")
-
-        def __exit__(self, *_exc):
-            return None
-
-    # Nothing on the read path may construct a provider; if it does, this raises.
-    for factory in (_DeadProvider,):
-        assert factory is _DeadProvider
-
-    body = _policy(settings, as_of_ts=OBSERVED_AT.isoformat())
+    # Sever the network for real.  Asserting that no provider object was
+    # constructed proved nothing -- a provider is not the only way to fetch --
+    # so this fails any connection that leaves the machine.  Loopback stays
+    # open because the read path must still reach Postgres.
+    with _network_severed():
+        body = _policy(settings, as_of_ts=OBSERVED_AT.isoformat())
     for slot in PATH_SLOTS:
         assert body[slot]["path"] is not None
     assert body["actual"]["path"]["points"][0]["rate_percent"] == "3.625"

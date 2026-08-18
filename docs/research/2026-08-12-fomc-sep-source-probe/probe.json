@@ -1,5 +1,5 @@
 {
-  "generated_at": "2026-08-17T16:17:20.288296+00:00",
+  "generated_at": "2026-08-18T01:25:28.096792+00:00",
   "interpretation": {
     "market_shadow_delay_policy": "unknown because the publisher supplies no timestamp or delay field",
     "market_shadow_is_official": false,
@@ -16,7 +16,7 @@
           "action": "Hold",
           "artifact_hashes": {
             "application/pdf": "7b352990fefb525fbf2580d01f63fd5137f2268ebc53883ee8a1396acb845d5f",
-            "text/html": "8235c9e75bc995f4c65d72e6dad32688443ac6116baf8bea3a09cf59b7b50370"
+            "text/html": "7ca218e86f82553add0c5191f72f49738e2cfbe5faf1c4e5a7071940afad787e"
           },
           "discovery_url": "https://www.federalreserve.gov/monetarypolicy/fomchistorical2020.htm",
           "error_message": null,
@@ -28,6 +28,7 @@
           "published_at": "2020-01-29T14:00:00-05:00",
           "release_key": "fomc-statement:monetary20200129a",
           "release_type": "statement",
+          "roster_total": 10,
           "row_count": 1,
           "state": "ok",
           "target_range_lower_percent": "1.5",
@@ -35,13 +36,14 @@
           "vote_split": "10-0",
           "vote_status": "stated",
           "voted_against": [],
+          "voted_for_count": 10,
           "voter_names_stated": true
         },
         {
           "action": "Cut",
           "artifact_hashes": {
             "application/pdf": "0391374234820ea92ea91aefaf1e8c158520715fb0285fafd2c09d00ceeb23a3",
-            "text/html": "5ea9d1c7e1b7ba17e116f7b3bc77098021917d6594bc57f1185637b8279c30e2"
+            "text/html": "9b3ec888bcb94fe9ea41e3374fe75c5a05823a82ae15f07a98f45d26c802d99e"
           },
           "discovery_url": "https://www.federalreserve.gov/monetarypolicy/fomchistorical2020.htm",
           "error_message": null,
@@ -53,6 +55,7 @@
           "published_at": "2020-03-03T10:00:00-05:00",
           "release_key": "fomc-statement:monetary20200303a",
           "release_type": "statement",
+          "roster_total": 10,
           "row_count": 1,
           "state": "ok",
           "target_range_lower_percent": "1",
@@ -60,13 +63,14 @@
           "vote_split": "10-0",
           "vote_status": "stated",
           "voted_against": [],
+          "voted_for_count": 10,
           "voter_names_stated": true
         },
         {
           "action": "Cut",
           "artifact_hashes": {
             "application/pdf": "1f7d689a27af7e04d5cbcdcf97ab67b4af18469d6478bca6c62955d0a71694ec",
-            "text/html": "35dfb23067a46955e02f3d9611bfd31fd8da2393f6c64419432a2554fdb15985"
+            "text/html": "73019c943bd7d0b4656f14711a02239a2a77dc18886360a6b8eb873296a2a2d1"
           },
           "discovery_url": "https://www.federalreserve.gov/monetarypolicy/fomchistorical2020.htm",
           "error_message": null,
@@ -78,6 +82,7 @@
           "published_at": "2020-03-15T17:00:00-04:00",
           "release_key": "fomc-statement:monetary20200315a",
           "release_type": "statement",
+          "roster_total": 10,
           "row_count": 1,
           "state": "ok",
           "target_range_lower_percent": "0",
@@ -87,13 +92,14 @@
           "voted_against": [
             "Loretta J. Mester"
           ],
+          "voted_for_count": 9,
           "voter_names_stated": true
         },
         {
           "action": "Hold",
           "artifact_hashes": {
             "application/pdf": "dae2d548df628d5d9af556b26d32e7f0beb3fa7d198b22fe0612d98425cde7a4",
-            "text/html": "4a633b8a1470555d48ef1a6e8b2e4620db53f716d67d6f5233e6484cbac89c64"
+            "text/html": "d17ab64bc7053130c687e8afc3417a1581b86b8b08efd1c686fb1e1cc56a3482"
           },
           "discovery_url": "https://www.federalreserve.gov/monetarypolicy/fomchistorical2020.htm",
           "error_message": null,
@@ -105,6 +111,7 @@
           "published_at": "2020-03-23T08:00:00-04:00",
           "release_key": "fomc-statement:monetary20200323a",
           "release_type": "statement",
+          "roster_total": 10,
           "row_count": 1,
           "state": "ok",
           "target_range_lower_percent": "0",
@@ -112,13 +119,14 @@
           "vote_split": "10-0",
           "vote_status": "stated",
           "voted_against": [],
+          "voted_for_count": 10,
           "voter_names_stated": true
         },
         {
           "action": "Hold",
           "artifact_hashes": {
             "application/pdf": "083d509f3fdb7784d8171837fc10a9a781f49912370107b78d539855792eb426",
-            "text/html": "15cf740f1b1db790b76c749a417479751d327c4dd69838493b8fe593cdc19d57"
+            "text/html": "ec3f7e58b9eb79be28ba755513544e6adacdf104ec8d779bffb14f01508be3f0"
           },
           "discovery_url": "https://www.federalreserve.gov/monetarypolicy/fomchistorical2020.htm",
           "error_message": null,
@@ -130,6 +138,7 @@
           "published_at": "2020-04-29T14:00:00-04:00",
           "release_key": "fomc-statement:monetary20200429a",
           "release_type": "statement",
+          "roster_total": 10,
           "row_count": 1,
           "state": "ok",
           "target_range_lower_percent": "0",
@@ -137,13 +146,14 @@
           "vote_split": "10-0",
           "vote_status": "stated",
           "voted_against": [],
+          "voted_for_count": 10,
           "voter_names_stated": true
         },
         {
           "action": "Hold",
           "artifact_hashes": {
             "application/pdf": "7ae6963831825b499a82a07133755ac057a14ae5fab01ed3bfb489c620a24407",
-            "text/html": "608dbfb9c72a411284881e4c74918e5ad8ae3bd8398fc6d5b85e54550e8ace9a"
+            "text/html": "f683f9178128013799d3e23d8656d1551dc508ffd7a3383e15e7897d198d9323"
           },
           "discovery_url": "https://www.federalreserve.gov/monetarypolicy/fomchistorical2020.htm",
           "error_message": null,
@@ -155,6 +165,7 @@
           "published_at": "2020-06-10T14:00:00-04:00",
           "release_key": "fomc-statement:monetary20200610a",
           "release_type": "statement",
+          "roster_total": 10,
           "row_count": 1,
           "state": "ok",
           "target_range_lower_percent": "0",
@@ -162,13 +173,14 @@
           "vote_split": "10-0",
           "vote_status": "stated",
           "voted_against": [],
+          "voted_for_count": 10,
           "voter_names_stated": true
         },
         {
           "action": "Hold",
           "artifact_hashes": {
             "application/pdf": "32bfee173c447622e8dc66466df57168baf214cc5332b8c4067b9bc061ec128f",
-            "text/html": "2a667236405dca777f53060b6b9f83dbf53df547d3a06373442bb575cc10a9e5"
+            "text/html": "17445bbc4c7b6e932536e307276b7b9405cf0e694776d2611c00768f87a1f977"
           },
           "discovery_url": "https://www.federalreserve.gov/monetarypolicy/fomchistorical2020.htm",
           "error_message": null,
@@ -180,6 +192,7 @@
           "published_at": "2020-07-29T14:00:00-04:00",
           "release_key": "fomc-statement:monetary20200729a",
           "release_type": "statement",
+          "roster_total": 10,
           "row_count": 1,
           "state": "ok",
           "target_range_lower_percent": "0",
@@ -187,13 +200,14 @@
           "vote_split": "10-0",
           "vote_status": "stated",
           "voted_against": [],
+          "voted_for_count": 10,
           "voter_names_stated": true
         },
         {
           "action": "Hold",
           "artifact_hashes": {
             "application/pdf": "ad326b1c99436e62ca002b666bc6b44e30aaf8e8e977beac0b8856cfa6240bcf",
-            "text/html": "86b84d851776086be11bc24c3aaf3aa298a89d54678c5142d63f2cce27ce2a90"
+            "text/html": "49428fe1c5340ff2680d382d0d90f4c31664426ba9df18772cd74c911af1f79e"
           },
           "discovery_url": "https://www.federalreserve.gov/monetarypolicy/fomchistorical2020.htm",
           "error_message": null,
@@ -205,6 +219,7 @@
           "published_at": "2020-09-16T14:00:00-04:00",
           "release_key": "fomc-statement:monetary20200916a",
           "release_type": "statement",
+          "roster_total": 10,
           "row_count": 1,
           "state": "ok",
           "target_range_lower_percent": "0",
@@ -215,13 +230,14 @@
             "Robert S. Kaplan",
             "Neel Kashkari"
           ],
+          "voted_for_count": 8,
           "voter_names_stated": true
         },
         {
           "action": "Hold",
           "artifact_hashes": {
             "application/pdf": "408f280d8c21d7dd49be993f1f54720e49ae6a0ca8078b5f6d12e321daeb4968",
-            "text/html": "6c334bb7e4e253af8bd8b51b1e8aa316c08ebd3093f346b09002270b0fe0860f"
+            "text/html": "84ae7009a88008970560411a5256ca78fb75b09b2ab6501a8e9528efcbaf8a25"
           },
           "discovery_url": "https://www.federalreserve.gov/monetarypolicy/fomchistorical2020.htm",
           "error_message": null,
@@ -233,6 +249,7 @@
           "published_at": "2020-11-05T14:00:00-05:00",
           "release_key": "fomc-statement:monetary20201105a",
           "release_type": "statement",
+          "roster_total": 10,
           "row_count": 1,
           "state": "ok",
           "target_range_lower_percent": "0",
@@ -240,13 +257,14 @@
           "vote_split": "10-0",
           "vote_status": "stated",
           "voted_against": [],
+          "voted_for_count": 10,
           "voter_names_stated": true
         },
         {
           "action": "Hold",
           "artifact_hashes": {
             "application/pdf": "b3ef1e3ac9c3ab75148c3065e9f2a7ebb4ab615e13ea23b057ead4cb70a29378",
-            "text/html": "80db13561ec76a46cc10aaf081c4352872b9a3b060cd11bacac96cb772958667"
+            "text/html": "11e3e06e2e8377748b472929946a643e4b5211a38748a062daa87c21840e97b8"
           },
           "discovery_url": "https://www.federalreserve.gov/monetarypolicy/fomchistorical2020.htm",
           "error_message": null,
@@ -258,6 +276,7 @@
           "published_at": "2020-12-16T14:00:00-05:00",
           "release_key": "fomc-statement:monetary20201216a",
           "release_type": "statement",
+          "roster_total": 10,
           "row_count": 1,
           "state": "ok",
           "target_range_lower_percent": "0",
@@ -265,13 +284,14 @@
           "vote_split": "10-0",
           "vote_status": "stated",
           "voted_against": [],
+          "voted_for_count": 10,
           "voter_names_stated": true
         },
         {
           "action": "Hold",
           "artifact_hashes": {
             "application/pdf": "df8c78e2b9ff0392706638142d81ab38920c0ff1ad273b34b9eb76ee88c1cb31",
-            "text/html": "b332fc4442992cb993645b98f0c772789e988b55d6211128748ea7ad762e5c59"
+            "text/html": "aa246e9c2df4380971b017ce8a1b9939d4391cbe50a890cdf9b623eef5f29980"
           },
           "discovery_url": "https://www.federalreserve.gov/monetarypolicy/fomccalendars.htm",
           "error_message": null,
@@ -283,6 +303,7 @@
           "published_at": "2021-01-27T14:00:00-05:00",
           "release_key": "fomc-statement:monetary20210127a",
           "release_type": "statement",
+          "roster_total": 11,
           "row_count": 1,
           "state": "ok",
           "target_range_lower_percent": "0",
@@ -290,13 +311,14 @@
           "vote_split": "11-0",
           "vote_status": "stated",
           "voted_against": [],
+          "voted_for_count": 11,
           "voter_names_stated": true
         },
         {
           "action": "Hold",
           "artifact_hashes": {
             "application/pdf": "51bdbed7bb1f39fbbb8ec5f508d2bcccae931d6cf656f2c3bf6a237f912653c3",
-            "text/html": "9983998941a4579e04d47f5be5cbed4d2a7f6996e75ac0cfb533936eac635814"
+            "text/html": "3e1f6db501ccf47f5ff70f4d9a70e6b86a51248aa922ef487fd6fe146df14a9c"
           },
           "discovery_url": "https://www.federalreserve.gov/monetarypolicy/fomccalendars.htm",
           "error_message": null,
@@ -308,6 +330,7 @@
           "published_at": "2021-03-17T14:00:00-04:00",
           "release_key": "fomc-statement:monetary20210317a",
           "release_type": "statement",
+          "roster_total": 11,
           "row_count": 1,
           "state": "ok",
           "target_range_lower_percent": "0",
@@ -315,13 +338,14 @@
           "vote_split": "11-0",
           "vote_status": "stated",
           "voted_against": [],
+          "voted_for_count": 11,
           "voter_names_stated": true
         },
         {
           "action": "Hold",
           "artifact_hashes": {
             "application/pdf": "03db640168d1773bdd708d145ecf0958214779879c270aa2f9fb1f80f187ccc2",
-            "text/html": "35ae49eb23697e20fa75ba9538d8f4a3c0347dea6f460872dc550a0c39a7447a"
+            "text/html": "a72a1436ccd07846ad7a142e7c127fd3bbd0a1dcc160da9ec477df6e838324a8"
           },
           "discovery_url": "https://www.federalreserve.gov/monetarypolicy/fomccalendars.htm",
           "error_message": null,
@@ -333,6 +357,7 @@
           "published_at": "2021-04-28T14:00:00-04:00",
           "release_key": "fomc-statement:monetary20210428a",
           "release_type": "statement",
+          "roster_total": 11,
           "row_count": 1,
           "state": "ok",
           "target_range_lower_percent": "0",
@@ -340,13 +365,14 @@
           "vote_split": "11-0",
           "vote_status": "stated",
           "voted_against": [],
+          "voted_for_count": 11,
           "voter_names_stated": true
         },
         {
           "action": "Hold",
           "artifact_hashes": {
             "application/pdf": "39f39887577c39d3bd293f199e4e53ebe8e3934159d65e62b497b3d348057ffd",
-            "text/html": "ddb8f19ac490107a0a86b776245fac5037231d7bfe7d1ded0b359b8748865b98"
+            "text/html": "5e4950666d0e111f8694c5a152060a33143ba397071881f0fb1bb72c93b8102e"
           },
           "discovery_url": "https://www.federalreserve.gov/monetarypolicy/fomccalendars.htm",
           "error_message": null,
@@ -358,6 +384,7 @@
           "published_at": "2021-06-16T14:00:00-04:00",
           "release_key": "fomc-statement:monetary20210616a",
           "release_type": "statement",
+          "roster_total": 11,
           "row_count": 1,
           "state": "ok",
           "target_range_lower_percent": "0",
@@ -365,13 +392,14 @@
           "vote_split": "11-0",
           "vote_status": "stated",
           "voted_against": [],
+          "voted_for_count": 11,
           "voter_names_stated": true
         },
         {
           "action": "Hold",
           "artifact_hashes": {
             "application/pdf": "a42e16b2c5fa616dc7b8b71f24169b9325135cc9ba2ce3c2492e8081521a8dea",
-            "text/html": "aa0e04d2e9411a685a52f524d9a2f0dfc26a7e862ac92ecb19915810a1215fcc"
+            "text/html": "e3ffb78d403108a6251974a6a8ba5bec494df02fe5c1d3eb9f3d7291f4d7054b"
           },
           "discovery_url": "https://www.federalreserve.gov/monetarypolicy/fomccalendars.htm",
           "error_message": null,
@@ -383,6 +411,7 @@
           "published_at": "2021-07-28T14:00:00-04:00",
           "release_key": "fomc-statement:monetary20210728a",
           "release_type": "statement",
+          "roster_total": 11,
           "row_count": 1,
           "state": "ok",
           "target_range_lower_percent": "0",
@@ -390,13 +419,14 @@
           "vote_split": "11-0",
           "vote_status": "stated",
           "voted_against": [],
+          "voted_for_count": 11,
           "voter_names_stated": true
         },
         {
           "action": "Hold",
           "artifact_hashes": {
             "application/pdf": "5f04a0bd564cb22503367079653c65c5a92dd91c3386d923037cea353129a404",
-            "text/html": "ef94bdb7a8af0ecd4d3af5f47726d3d739ad1b99f21cbabc660927f344a57f33"
+            "text/html": "9270af44bb3b404ee3acc1cce134d207ba3e3eb8ad7ea03b67664b0411b8550d"
           },
           "discovery_url": "https://www.federalreserve.gov/monetarypolicy/fomccalendars.htm",
           "error_message": null,
@@ -408,6 +438,7 @@
           "published_at": "2021-09-22T14:00:00-04:00",
           "release_key": "fomc-statement:monetary20210922a",
           "release_type": "statement",
+          "roster_total": 11,
           "row_count": 1,
           "state": "ok",
           "target_range_lower_percent": "0",
@@ -415,13 +446,14 @@
           "vote_split": "11-0",
           "vote_status": "stated",
           "voted_against": [],
+          "voted_for_count": 11,
           "voter_names_stated": true
         },
         {
           "action": "Hold",
           "artifact_hashes": {
             "application/pdf": "05830ff0f00a861442a81c9fc737596a25529d5f029a38b660aae71ee2ff2d07",
-            "text/html": "0de2485bed1032f99e12e0b25da5b7f0e74707fa15bbf9e079790995c8cca7c4"
+            "text/html": "43ee29d7f28c5b7a7bb6d232886092296718ee5347772952dd4b24d70d474a51"
           },
           "discovery_url": "https://www.federalreserve.gov/monetarypolicy/fomccalendars.htm",
           "error_message": null,
@@ -433,6 +465,7 @@
           "published_at": "2021-11-03T14:00:00-04:00",
           "release_key": "fomc-statement:monetary20211103a",
           "release_type": "statement",
+          "roster_total": 11,
           "row_count": 1,
           "state": "ok",
           "target_range_lower_percent": "0",
@@ -440,13 +473,14 @@
           "vote_split": "11-0",
           "vote_status": "stated",
           "voted_against": [],
+          "voted_for_count": 11,
           "voter_names_stated": true
         },
         {
           "action": "Hold",
           "artifact_hashes": {
             "application/pdf": "f26cd5c0ab7af30bbceaf0fdab6d8a35bbe77f805b6121a104e04da28209a45d",
-            "text/html": "4eb535c2f0a06f4bb50074bd1803bea185169d7c5e6f5533c34c5f82e750efd7"
+            "text/html": "5afe74abaa2b7ee580e0d099c830e8ba4643268ef343b269bcfd4213f41ee1cf"
           },
           "discovery_url": "https://www.federalreserve.gov/monetarypolicy/fomccalendars.htm",
           "error_message": null,
@@ -458,6 +492,7 @@
           "published_at": "2021-12-15T14:00:00-05:00",
           "release_key": "fomc-statement:monetary20211215a",
           "release_type": "statement",
+          "roster_total": 11,
           "row_count": 1,
           "state": "ok",
           "target_range_lower_percent": "0",
@@ -465,13 +500,14 @@
           "vote_split": "11-0",
           "vote_status": "stated",
           "voted_against": [],
+          "voted_for_count": 11,
           "voter_names_stated": true
         },
         {
           "action": "Hold",
           "artifact_hashes": {
             "application/pdf": "81b6336f6325fb41d651aa93a8844a8890c40c65350da5ac82df1f5bdd6f492a",
-            "text/html": "02702591217796d886eaaa1574921c617bf0f6cf3066797014aea67dc4585ddc"
+            "text/html": "6027dee6803b882470eb86cdb7cd7740299fb29c3458ba47815ac980ec7347c6"
           },
           "discovery_url": "https://www.federalreserve.gov/monetarypolicy/fomccalendars.htm",
           "error_message": null,
@@ -483,6 +519,7 @@
           "published_at": "2022-01-26T14:00:00-05:00",
           "release_key": "fomc-statement:monetary20220126a",
           "release_type": "statement",
+          "roster_total": 9,
           "row_count": 1,
           "state": "ok",
           "target_range_lower_percent": "0",
@@ -490,13 +527,14 @@
           "vote_split": "9-0",
           "vote_status": "stated",
           "voted_against": [],
+          "voted_for_count": 9,
           "voter_names_stated": true
         },
         {
           "action": "Hike",
           "artifact_hashes": {
             "application/pdf": "f856240971b770727711519a87082a3e623f14102edd26cdc3a0fe2ea143556d",
-            "text/html": "756783e76a472e801ca6b7f09350aeca76034217d0a6e04b2370c8ed67ec88e4"
+            "text/html": "4090abf79f4d39ad24ab45290d783165de572c73b3981ae8b0e6e835f078fb54"
           },
           "discovery_url": "https://www.federalreserve.gov/monetarypolicy/fomccalendars.htm",
           "error_message": null,
@@ -508,6 +546,7 @@
           "published_at": "2022-03-16T14:00:00-04:00",
           "release_key": "fomc-statement:monetary20220316a",
           "release_type": "statement",
+          "roster_total": 9,
           "row_count": 1,
           "state": "ok",
           "target_range_lower_percent": "0.25",
@@ -517,13 +556,14 @@
           "voted_against": [
             "James Bullard"
           ],
+          "voted_for_count": 8,
           "voter_names_stated": true
         },
         {
           "action": "Hike",
           "artifact_hashes": {
             "application/pdf": "a4ade0244cf268ccacdc46614d055620089ec9a411b24f47cea073d15e9f4b3d",
-            "text/html": "f444f2a121d1f036a41045e18213990bbf2f4c5e2ce81d0809f175f5cf7a4a78"
+            "text/html": "5f9c0aa147c406865f3a4d6cf838eb26ec0800d0e57138849b154d5f124ef246"
           },
           "discovery_url": "https://www.federalreserve.gov/monetarypolicy/fomccalendars.htm",
           "error_message": null,
@@ -535,6 +575,7 @@
           "published_at": "2022-05-04T14:00:00-04:00",
           "release_key": "fomc-statement:monetary20220504a",
           "release_type": "statement",
+          "roster_total": 9,
           "row_count": 1,
           "state": "ok",
           "target_range_lower_percent": "0.75",
@@ -542,13 +583,14 @@
           "vote_split": "9-0",
           "vote_status": "stated",
           "voted_against": [],
+          "voted_for_count": 9,
           "voter_names_stated": true
         },
         {
           "action": "Hike",
           "artifact_hashes": {
             "application/pdf": "a883f6d7a6761822c48e9416fb6ee65815405e4ca6002e2a192edcb31691da65",
-            "text/html": "ddb88e6c2a03e55f0f463551e13e124da95ab09529ff14736865d6c357e91dbe"
+            "text/html": "789b1f10073c66389654547a7c21f4a2ff2b3a3d6b7d28b5e17d948238c82ea6"
           },
           "discovery_url": "https://www.federalreserve.gov/monetarypolicy/fomccalendars.htm",
           "error_message": null,
@@ -560,6 +602,7 @@
           "published_at": "2022-06-15T14:00:00-04:00",
           "release_key": "fomc-statement:monetary20220615a",
           "release_type": "statement",
+          "roster_total": 11,
           "row_count": 1,
           "state": "ok",
           "target_range_lower_percent": "1.5",
@@ -569,13 +612,14 @@
           "voted_against": [
             "Esther L. George"
           ],
+          "voted_for_count": 10,
           "voter_names_stated": true
         },
         {
           "action": "Hike",
           "artifact_hashes": {
             "application/pdf": "cfac7f7a513c34d6b61a1f6af3352c48b18ddff898af7f6690cd981ce5f801e1",
-            "text/html": "c7763f8e14427342fdd8f58a240e83356569a1ae670cb097bcdc1c32a86dbe9f"
+            "text/html": "8efbd4141c2934673a4dc05dc809dee3d872043a6d53efb1d6b170bfcb9b26b3"
           },
           "discovery_url": "https://www.federalreserve.gov/monetarypolicy/fomccalendars.htm",
           "error_message": null,
@@ -587,6 +631,7 @@
           "published_at": "2022-07-27T14:00:00-04:00",
           "release_key": "fomc-statement:monetary20220727a",
           "release_type": "statement",
+          "roster_total": 12,
           "row_count": 1,
           "state": "ok",
           "target_range_lower_percent": "2.25",
@@ -594,13 +639,14 @@
           "vote_split": "12-0",
           "vote_status": "stated",
           "voted_against": [],
+          "voted_for_count": 12,
           "voter_names_stated": true
         },
         {
           "action": "Hike",
           "artifact_hashes": {
             "application/pdf": "a5c0bafa34c4b8aff188cbebbba144be512fb975e7a6a844015acf442c02c6c9",
-            "text/html": "47faaa46ef386497514abb3e709b584513b76885cf58155fba299589ef47b8b5"
+            "text/html": "74796a5156d7cb10da6596b20b274a7698c452cc77470f91b80ca228c1883bc5"
           },
           "discovery_url": "https://www.federalreserve.gov/monetarypolicy/fomccalendars.htm",
           "error_message": null,
@@ -612,6 +658,7 @@
           "published_at": "2022-09-21T14:00:00-04:00",
           "release_key": "fomc-statement:monetary20220921a",
           "release_type": "statement",
+          "roster_total": 12,
           "row_count": 1,
           "state": "ok",
           "target_range_lower_percent": "3",
@@ -619,13 +666,14 @@
           "vote_split": "12-0",
           "vote_status": "stated",
           "voted_against": [],
+          "voted_for_count": 12,
           "voter_names_stated": true
         },
         {
           "action": "Hike",
           "artifact_hashes": {
             "application/pdf": "3c0745c9cb654d951d22a9e73ce69bdc93b525a0ac5a749efcfbaf3331133715",
-            "text/html": "15dc44b78fbdb3b341365bc10abe7bd101897d3269504089b8db00fb8047f9fe"
+            "text/html": "828aabcc392775bf9ac297c1801bf37a22fa04573def86cdbeaab74d8820aead"
           },
           "discovery_url": "https://www.federalreserve.gov/monetarypolicy/fomccalendars.htm",
           "error_message": null,
@@ -637,6 +685,7 @@
           "published_at": "2022-11-02T14:00:00-04:00",
           "release_key": "fomc-statement:monetary20221102a",
           "release_type": "statement",
+          "roster_total": 12,
           "row_count": 1,
           "state": "ok",
           "target_range_lower_percent": "3.75",
@@ -644,13 +693,14 @@
           "vote_split": "12-0",
           "vote_status": "stated",
           "voted_against": [],
+          "voted_for_count": 12,
           "voter_names_stated": true
         },
         {
           "action": "Hike",
           "artifact_hashes": {
             "application/pdf": "3b5199df5abcca17c3bb8cf0e420b31e3f9e9a51cf577fd4da46ee050622b631",
-            "text/html": "eda8809b4e13c467b3f9b9a25f266d32dc8ee0bd685b80d16e4e371d55782f2d"
+            "text/html": "289eef7bdd673319daed468b6859e859fb25bd345315f16363de863e91acb446"
           },
           "discovery_url": "https://www.federalreserve.gov/monetarypolicy/fomccalendars.htm",
           "error_message": null,
@@ -662,6 +712,7 @@
           "published_at": "2022-12-14T14:00:00-05:00",
           "release_key": "fomc-statement:monetary20221214a",
           "release_type": "statement",
+          "roster_total": 12,
           "row_count": 1,
           "state": "ok",
           "target_range_lower_percent": "4.25",
@@ -669,13 +720,14 @@
           "vote_split": "12-0",
           "vote_status": "stated",
           "voted_against": [],
+          "voted_for_count": 12,
           "voter_names_stated": true
         },
         {
           "action": "Hike",
           "artifact_hashes": {
             "application/pdf": "f6332f3880121bcbd2a235fbc83e8548a6298131264f558ccd56fd10af8b9956",
-            "text/html": "11c291c475269d18ec80866f20b6079d335f57e1bea81f2e1d0a8c65c0d7c6d5"
+            "text/html": "66a04e2c2728343fdccf3d130cc86065003c49eb033b3094d365afd974c3616f"
           },
           "discovery_url": "https://www.federalreserve.gov/monetarypolicy/fomccalendars.htm",
           "error_message": null,
@@ -687,6 +739,7 @@
           "published_at": "2023-02-01T14:00:00-05:00",
           "release_key": "fomc-statement:monetary20230201a",
           "release_type": "statement",
+          "roster_total": 12,
           "row_count": 1,
           "state": "ok",
           "target_range_lower_percent": "4.5",
@@ -694,13 +747,14 @@
           "vote_split": "12-0",
           "vote_status": "stated",
           "voted_against": [],
+          "voted_for_count": 12,
           "voter_names_stated": true
         },
         {
           "action": "Hike",
           "artifact_hashes": {
             "application/pdf": "276b1450190013984e6ff5affdb803426f04a71bfbe20568afff412d903ece3b",
-            "text/html": "a3e6c45529430bb40b43f90310ce081db60a65467d4cbc2b21a9cb635286a482"
+            "text/html": "1dc4456d18a34885665cbd4d5c9637d9e55262085515dd31d144934647ebd018"
           },
           "discovery_url": "https://www.federalreserve.gov/monetarypolicy/fomccalendars.htm",
           "error_message": null,
@@ -712,6 +766,7 @@
           "published_at": "2023-03-22T14:00:00-04:00",
           "release_key": "fomc-statement:monetary20230322a",
           "release_type": "statement",
+          "roster_total": 11,
           "row_count": 1,
           "state": "ok",
           "target_range_lower_percent": "4.75",
@@ -719,13 +774,14 @@
           "vote_split": "11-0",
           "vote_status": "stated",
           "voted_against": [],
+          "voted_for_count": 11,
           "voter_names_stated": true
         },
         {
           "action": "Hike",
           "artifact_hashes": {
             "application/pdf": "f572c4ff81ac3a14ed14a3637877009ec14028cc8a0a24b20c9e0559873515a7",
-            "text/html": "c79df084b28a82c2faf6d7f81b5bad756f19d25d584f7e4fc29d99a758f69ac9"
+            "text/html": "eb599c4220f54c74112ad9ff6f62f9a6edb00b7da0227fd2c78d6d92f195027e"
           },
           "discovery_url": "https://www.federalreserve.gov/monetarypolicy/fomccalendars.htm",
           "error_message": null,
@@ -737,6 +793,7 @@
           "published_at": "2023-05-03T14:00:00-04:00",
           "release_key": "fomc-statement:monetary20230503a",
           "release_type": "statement",
+          "roster_total": 11,
           "row_count": 1,
           "state": "ok",
           "target_range_lower_percent": "5",
@@ -744,13 +801,14 @@
           "vote_split": "11-0",
           "vote_status": "stated",
           "voted_against": [],
+          "voted_for_count": 11,
           "voter_names_stated": true
         },
         {
           "action": "Hold",
           "artifact_hashes": {
             "application/pdf": "0e0124a468bbc875df0728b2082fec149db10d2c7114f7d0dc94ded6fda232b9",
-            "text/html": "fd94be4118c1bf774a9a6834258314b7936df10df7360214c257feb5168c0526"
+            "text/html": "fe7f7863d6de39626dbf8c3a4a9bdca90ecdf911cad67d0fc84b30078b11b81e"
           },
           "discovery_url": "https://www.federalreserve.gov/monetarypolicy/fomccalendars.htm",
           "error_message": null,
@@ -762,6 +820,7 @@
           "published_at": "2023-06-14T14:00:00-04:00",
           "release_key": "fomc-statement:monetary20230614a",
           "release_type": "statement",
+          "roster_total": 11,
           "row_count": 1,
           "state": "ok",
           "target_range_lower_percent": "5",
@@ -769,13 +828,14 @@
           "vote_split": "11-0",
           "vote_status": "stated",
           "voted_against": [],
+          "voted_for_count": 11,
           "voter_names_stated": true
         },
         {
           "action": "Hike",
           "artifact_hashes": {
             "application/pdf": "663c1bc6ca3187a15399dbd7844224064e0cd665210ca47024bb3303f517ac9a",
-            "text/html": "113a47e9e0791bda397d42c9d02e4b64da7b3b717a692a36d0d884a946b56564"
+            "text/html": "f8ea2181275eccb941d9bd861212a51a772b51a8854beb1d8753014e66f3c413"
           },
           "discovery_url": "https://www.federalreserve.gov/monetarypolicy/fomccalendars.htm",
           "error_message": null,
@@ -787,6 +847,7 @@
           "published_at": "2023-07-26T14:00:00-04:00",
           "release_key": "fomc-statement:monetary20230726a",
           "release_type": "statement",
+          "roster_total": 11,
           "row_count": 1,
           "state": "ok",
           "target_range_lower_percent": "5.25",
@@ -794,13 +855,14 @@
           "vote_split": "11-0",
           "vote_status": "stated",
           "voted_against": [],
+          "voted_for_count": 11,
           "voter_names_stated": true
         },
         {
           "action": "Hold",
           "artifact_hashes": {
             "application/pdf": "258875fea372eaa3bcf24311529eb21aa440e0bf973aedbe0166e911bb002dea",
-            "text/html": "de6d6d73cdfb20bf2d35eb308370de60f56fd4f8bc3858a556114e09f810bdc4"
+            "text/html": "5f7519ec6f9687083ed40d9067db107df0b96a1b91df1277172e7d136a79a2ce"
           },
           "discovery_url": "https://www.federalreserve.gov/monetarypolicy/fomccalendars.htm",
           "error_message": null,
@@ -812,6 +874,7 @@
           "published_at": "2023-09-20T14:00:00-04:00",
           "release_key": "fomc-statement:monetary20230920a",
           "release_type": "statement",
+          "roster_total": 12,
           "row_count": 1,
           "state": "ok",
           "target_range_lower_percent": "5.25",
@@ -819,13 +882,14 @@
           "vote_split": "12-0",
           "vote_status": "stated",
           "voted_against": [],
+          "voted_for_count": 12,
           "voter_names_stated": true
         },
         {
           "action": "Hold",
           "artifact_hashes": {
             "application/pdf": "7de651346f83fffe1eee3371ce217e21fee76e67c963bf06ce5090d298de80a9",
-            "text/html": "1c855e9bb6e09ea16bc359c9f904195531990f2f1bb6f86f71f36f2511560241"
+            "text/html": "3783c23d793e3b5b100dddd28c0a8ae41a73ba11e5909657a803cc5ec89d3d50"
           },
           "discovery_url": "https://www.federalreserve.gov/monetarypolicy/fomccalendars.htm",
           "error_message": null,
@@ -837,6 +901,7 @@
           "published_at": "2023-11-01T14:00:00-04:00",
           "release_key": "fomc-statement:monetary20231101a",
           "release_type": "statement",
+          "roster_total": 12,
           "row_count": 1,
           "state": "ok",
           "target_range_lower_percent": "5.25",
@@ -844,13 +909,14 @@
           "vote_split": "12-0",
           "vote_status": "stated",
           "voted_against": [],
+          "voted_for_count": 12,
           "voter_names_stated": true
         },
         {
           "action": "Hold",
           "artifact_hashes": {
             "application/pdf": "184b2656e813225e0489fda689e113520b2f255b9f2704adb0400421a4d797bd",
-            "text/html": "1f85d5d5a792592fb22b9573697d7180803ceb0e5d2b3180ead000346edcb460"
+            "text/html": "48b0c8e8934b2df5e8d65a632aeb9dc6865d7c99b6d2e00294326ef8449bd631"
           },
           "discovery_url": "https://www.federalreserve.gov/monetarypolicy/fomccalendars.htm",
           "error_message": null,
@@ -862,6 +928,7 @@
           "published_at": "2023-12-13T14:00:00-05:00",
           "release_key": "fomc-statement:monetary20231213a",
           "release_type": "statement",
+          "roster_total": 12,
           "row_count": 1,
           "state": "ok",
           "target_range_lower_percent": "5.25",
@@ -869,13 +936,14 @@
           "vote_split": "12-0",
           "vote_status": "stated",
           "voted_against": [],
+          "voted_for_count": 12,
           "voter_names_stated": true
         },
         {
           "action": "Hold",
           "artifact_hashes": {
             "application/pdf": "e5a3eb8cf61b90c23fa0e7bd87f4ef4bb38388bc11ba699ac1ef6ac0283d779b",
-            "text/html": "9390c8f0707241c031469dc4b183a42b4fcff91d72012ea4ae107984767fe141"
+            "text/html": "ac0e1732db4d481fde17ff51101a1b7d6bf16043fcc4ae383c9ddb782e4a6bd2"
           },
           "discovery_url": "https://www.federalreserve.gov/monetarypolicy/fomccalendars.htm",
           "error_message": null,
@@ -887,6 +955,7 @@
           "published_at": "2024-01-31T14:00:00-05:00",
           "release_key": "fomc-statement:monetary20240131a",
           "release_type": "statement",
+          "roster_total": 12,
           "row_count": 1,
           "state": "ok",
           "target_range_lower_percent": "5.25",
@@ -894,13 +963,14 @@
           "vote_split": "12-0",
           "vote_status": "stated",
           "voted_against": [],
+          "voted_for_count": 12,
           "voter_names_stated": true
         },
         {
           "action": "Hold",
           "artifact_hashes": {
             "application/pdf": "810ec4ef02de360d742e3f9705b653a81350337d032b582f62cbba7477e65513",
-            "text/html": "da628ce5967731a632e3919924ee0adf9d030b91d3f9d114d9fdebe78eb27b63"
+            "text/html": "cc7d03a697bb8afad0cc8c0b357f7d0325e6aa4aceb9da101f8a388f1af17caa"
           },
           "discovery_url": "https://www.federalreserve.gov/monetarypolicy/fomccalendars.htm",
           "error_message": null,
@@ -912,6 +982,7 @@
           "published_at": "2024-03-20T14:00:00-04:00",
           "release_key": "fomc-statement:monetary20240320a",
           "release_type": "statement",
+          "roster_total": 12,
           "row_count": 1,
           "state": "ok",
           "target_range_lower_percent": "5.25",
@@ -919,13 +990,14 @@
           "vote_split": "12-0",
           "vote_status": "stated",
           "voted_against": [],
+          "voted_for_count": 12,
           "voter_names_stated": true
         },
         {
           "action": "Hold",
           "artifact_hashes": {
             "application/pdf": "fe6646ecc5c520330abf695c0011b6cf10d3e9c7502e48c4accb6d2b3e6a6a3e",
-            "text/html": "94b8a9391cfc445a69787c8de9505b2b5cdd72ce15a100d28ed0453a678958d3"
+            "text/html": "90aad596b109802387d35cc2401cf0ec95279e1fdfce91a0f62d97aa37dc583a"
           },
           "discovery_url": "https://www.federalreserve.gov/monetarypolicy/fomccalendars.htm",
           "error_message": null,
@@ -937,6 +1009,7 @@
           "published_at": "2024-05-01T14:00:00-04:00",
           "release_key": "fomc-statement:monetary20240501a",
           "release_type": "statement",
+          "roster_total": 12,
           "row_count": 1,
           "state": "ok",
           "target_range_lower_percent": "5.25",
@@ -944,13 +1017,14 @@
           "vote_split": "12-0",
           "vote_status": "stated",
           "voted_against": [],
+          "voted_for_count": 12,
           "voter_names_stated": true
         },
         {
           "action": "Hold",
           "artifact_hashes": {
             "application/pdf": "97d04acc005e8f1e4d5f7073e6f8b3ca975fad369d6f14f2f823bef165a72dde",
-            "text/html": "fa24bc720a7cf15f8d169ef554950e0b0f7937f19fb565e4f7e08eca9938ce3b"
+            "text/html": "33b8c3aa1adfe16993408b4ac6da8b602478d74ae3553adff2702d439a2414ba"
           },
           "discovery_url": "https://www.federalreserve.gov/monetarypolicy/fomccalendars.htm",
           "error_message": null,
@@ -962,6 +1036,7 @@
           "published_at": "2024-06-12T14:00:00-04:00",
           "release_key": "fomc-statement:monetary20240612a",
           "release_type": "statement",
+          "roster_total": 12,
           "row_count": 1,
           "state": "ok",
           "target_range_lower_percent": "5.25",
@@ -969,13 +1044,14 @@
           "vote_split": "12-0",
           "vote_status": "stated",
           "voted_against": [],
+          "voted_for_count": 12,
           "voter_names_stated": true
         },
         {
           "action": "Hold",
           "artifact_hashes": {
             "application/pdf": "dbf212778a5a566877f26c709489effab8bc8e09ad91984897e2676f20a2de06",
-            "text/html": "e7f88d940671eeeede33f5aff9876ae5234ce607c3c894f8704f68641b14ab5f"
+            "text/html": "0b0e55313b18b31907f9eb5c2d24ac737b77eb561cac881ca69378e2962f9914"
           },
           "discovery_url": "https://www.federalreserve.gov/monetarypolicy/fomccalendars.htm",
           "error_message": null,
@@ -987,6 +1063,7 @@
           "published_at": "2024-07-31T14:00:00-04:00",
           "release_key": "fomc-statement:monetary20240731a",
           "release_type": "statement",
+          "roster_total": 12,
           "row_count": 1,
           "state": "ok",
           "target_range_lower_percent": "5.25",
@@ -994,13 +1071,14 @@
           "vote_split": "12-0",
           "vote_status": "stated",
           "voted_against": [],
+          "voted_for_count": 12,
           "voter_names_stated": true
         },
         {
           "action": "Cut",
           "artifact_hashes": {
             "application/pdf": "415c291eb7e754b99349cd3a2b0c6561de8ef5258da9f037bbd0fc0564b22932",
-            "text/html": "488727d4cd8af71205ecff1c623f98561cda204ebb5269b1acb5bdedf8161fba"
+            "text/html": "d3a8f453d8ee23a0196aa128865bd7bce798d6294dbf308772ab6554043e88fc"
           },
           "discovery_url": "https://www.federalreserve.gov/monetarypolicy/fomccalendars.htm",
           "error_message": null,
@@ -1012,6 +1090,7 @@
           "published_at": "2024-09-18T14:00:00-04:00",
           "release_key": "fomc-statement:monetary20240918a",
           "release_type": "statement",
+          "roster_total": 12,
           "row_count": 1,
           "state": "ok",
           "target_range_lower_percent": "4.75",
@@ -1021,13 +1100,14 @@
           "voted_against": [
             "Michelle W. Bowman"
           ],
+          "voted_for_count": 11,
           "voter_names_stated": true
         },
         {
           "action": "Cut",
           "artifact_hashes": {
             "application/pdf": "33b2da84c96683b7fff9f334b487baec3ebb150ffc5a0475b687544f9077640c",
-            "text/html": "bbb4eaa6ca6c675bc35867016b35ada078b8fc546f818cddf735f855e737eb4c"
+            "text/html": "6493f41963eec273eaa4faee5e8783021cfe832c0fce8790e9a1be08276c3271"
           },
           "discovery_url": "https://www.federalreserve.gov/monetarypolicy/fomccalendars.htm",
           "error_message": null,
@@ -1039,6 +1119,7 @@
           "published_at": "2024-11-07T14:00:00-05:00",
           "release_key": "fomc-statement:monetary20241107a",
           "release_type": "statement",
+          "roster_total": 12,
           "row_count": 1,
           "state": "ok",
           "target_range_lower_percent": "4.5",
@@ -1046,13 +1127,14 @@
           "vote_split": "12-0",
           "vote_status": "stated",
           "voted_against": [],
+          "voted_for_count": 12,
           "voter_names_stated": true
         },
         {
           "action": "Cut",
           "artifact_hashes": {
             "application/pdf": "9c21bc7aa2b6e8014ed3fac9d684093be0b8bf4cd61454579debc5e40b733ed0",
-            "text/html": "6ab073833563d67c256ef30ce1f2f9500510c985b63740b6294ba39947f3dd82"
+            "text/html": "3a7fcf11ebb07abae1c553650b7192781cc11b2672b7b416780c170ace5de43d"
           },
           "discovery_url": "https://www.federalreserve.gov/monetarypolicy/fomccalendars.htm",
           "error_message": null,
@@ -1064,6 +1146,7 @@
           "published_at": "2024-12-18T14:00:00-05:00",
           "release_key": "fomc-statement:monetary20241218a",
           "release_type": "statement",
+          "roster_total": 12,
           "row_count": 1,
           "state": "ok",
           "target_range_lower_percent": "4.25",
@@ -1073,13 +1156,14 @@
           "voted_against": [
             "Beth M. Hammack"
           ],
+          "voted_for_count": 11,
           "voter_names_stated": true
         },
         {
           "action": "Hold",
           "artifact_hashes": {
             "application/pdf": "fbb886257e82c1ef1c21b34f235dfe9435eefc902c04d53356874784d6691a21",
-            "text/html": "a2fe884fef03232ea9f0602d124ba76a728d0f27026f0bcae88d31bcfc08f803"
+            "text/html": "ad5aeb19ff62a1d09ca272a91e1f0b83f64b049b160934020498fa342f5cc5f8"
           },
           "discovery_url": "https://www.federalreserve.gov/monetarypolicy/fomccalendars.htm",
           "error_message": null,
@@ -1091,6 +1175,7 @@
           "published_at": "2025-01-29T14:00:00-05:00",
           "release_key": "fomc-statement:monetary20250129a",
           "release_type": "statement",
+          "roster_total": 12,
           "row_count": 1,
           "state": "ok",
           "target_range_lower_percent": "4.25",
@@ -1098,13 +1183,14 @@
           "vote_split": "12-0",
           "vote_status": "stated",
           "voted_against": [],
+          "voted_for_count": 12,
           "voter_names_stated": true
         },
         {
           "action": "Hold",
           "artifact_hashes": {
             "application/pdf": "994bda73108026f4b59cadfea19979bc1b4e14eec750d2315e9c66142158e509",
-            "text/html": "652abbdd45cb3406ca09a460fbbd1ecedafd17d3f0798c0d3eae3d5a1fd46b37"
+            "text/html": "baf8a0f7e909bd862ba1f9ac4bb41b83a18d7bf2dea6ebc3f2b717c0caa6c473"
           },
           "discovery_url": "https://www.federalreserve.gov/monetarypolicy/fomccalendars.htm",
           "error_message": null,
@@ -1116,6 +1202,7 @@
           "published_at": "2025-03-19T14:00:00-04:00",
           "release_key": "fomc-statement:monetary20250319a",
           "release_type": "statement",
+          "roster_total": 12,
           "row_count": 1,
           "state": "ok",
           "target_range_lower_percent": "4.25",
@@ -1125,13 +1212,14 @@
           "voted_against": [
             "Christopher J. Waller"
           ],
+          "voted_for_count": 11,
           "voter_names_stated": true
         },
         {
           "action": "Hold",
           "artifact_hashes": {
             "application/pdf": "b4af4f576ea67764285a6a1a663ff145f52b7be478eeff5153c508175355505b",
-            "text/html": "b5d10cc64d95aec41803db220b94f56c96110ddff21e1c5403e7e57c3cc0d6df"
+            "text/html": "058fcb20d1e2933fa7a7991ee5e6ed6243bc46462052c9231d6b151b98413046"
           },
           "discovery_url": "https://www.federalreserve.gov/monetarypolicy/fomccalendars.htm",
           "error_message": null,
@@ -1143,6 +1231,7 @@
           "published_at": "2025-05-07T14:00:00-04:00",
           "release_key": "fomc-statement:monetary20250507a",
           "release_type": "statement",
+          "roster_total": 12,
           "row_count": 1,
           "state": "ok",
           "target_range_lower_percent": "4.25",
@@ -1150,13 +1239,14 @@
           "vote_split": "12-0",
           "vote_status": "stated",
           "voted_against": [],
+          "voted_for_count": 12,
           "voter_names_stated": true
         },
         {
           "action": "Hold",
           "artifact_hashes": {
             "application/pdf": "fd5214f1d93b8289609fb5ac35c12108092d4c82c7dea0804ef8b60575166b7f",
-            "text/html": "95febe3ae0dc44fda40381080639e8eeb7f9f35c9e1ae00702b9ad7cfff1d2ab"
+            "text/html": "f42900e0aa532a4e93a005ae9a8405cd68b5304df89f6b7177bc595a562b52ac"
           },
           "discovery_url": "https://www.federalreserve.gov/monetarypolicy/fomccalendars.htm",
           "error_message": null,
@@ -1168,6 +1258,7 @@
           "published_at": "2025-06-18T14:00:00-04:00",
           "release_key": "fomc-statement:monetary20250618a",
           "release_type": "statement",
+          "roster_total": 12,
           "row_count": 1,
           "state": "ok",
           "target_range_lower_percent": "4.25",
@@ -1175,13 +1266,14 @@
           "vote_split": "12-0",
           "vote_status": "stated",
           "voted_against": [],
+          "voted_for_count": 12,
           "voter_names_stated": true
         },
         {
           "action": "Hold",
           "artifact_hashes": {
             "application/pdf": "a03d33f6c48a6e3b5d0c2cacb76c0792a517c99c6d900d0bb8f362145bc5e579",
-            "text/html": "f63548a703eb2c64f3ceea491d257471994a984fceb93a112fb4f456adf11652"
+            "text/html": "3e37785adf4bc2a6a0ec3d9abf5098633d979071a24e78b7644e939ba11dd615"
           },
           "discovery_url": "https://www.federalreserve.gov/monetarypolicy/fomccalendars.htm",
           "error_message": null,
@@ -1193,6 +1285,7 @@
           "published_at": "2025-07-30T14:00:00-04:00",
           "release_key": "fomc-statement:monetary20250730a",
           "release_type": "statement",
+          "roster_total": 11,
           "row_count": 1,
           "state": "ok",
           "target_range_lower_percent": "4.25",
@@ -1203,13 +1296,14 @@
             "Michelle W. Bowman",
             "Christopher J. Waller"
           ],
+          "voted_for_count": 9,
           "voter_names_stated": true
         },
         {
           "action": "Cut",
           "artifact_hashes": {
             "application/pdf": "74f7ac62620517260433296be0c7c62037ec7013987859ba2583bffb28b2b8e9",
-            "text/html": "49e7b623422399261fcc05e3531658ba1a57a2fe3b4d7123b1f6509e2b00edf6"
+            "text/html": "a55a58ed275c616be9d2c0ad2cabf0136a216739a18dc52a0dec1b9ff0388a32"
           },
           "discovery_url": "https://www.federalreserve.gov/monetarypolicy/fomccalendars.htm",
           "error_message": null,
@@ -1221,6 +1315,7 @@
           "published_at": "2025-09-17T14:00:00-04:00",
           "release_key": "fomc-statement:monetary20250917a",
           "release_type": "statement",
+          "roster_total": 12,
           "row_count": 1,
           "state": "ok",
           "target_range_lower_percent": "4",
@@ -1230,13 +1325,14 @@
           "voted_against": [
             "Stephen I. Miran"
           ],
+          "voted_for_count": 11,
           "voter_names_stated": true
         },
         {
           "action": "Cut",
           "artifact_hashes": {
             "application/pdf": "a7ed111aafc91558c58ff47d594b6198bf616c9ffc48b3e61da640ba939a8efe",
-            "text/html": "14329b1b88d49c3409ac7d252e7c9dd3a11c370744cce366278dc5c5b8f4fc9f"
+            "text/html": "f3120cc015eb34ea7203d05be2656a045bea6121bd03d12267e480632e354bc8"
           },
           "discovery_url": "https://www.federalreserve.gov/monetarypolicy/fomccalendars.htm",
           "error_message": null,
@@ -1248,22 +1344,25 @@
           "published_at": "2025-10-29T14:00:00-04:00",
           "release_key": "fomc-statement:monetary20251029a",
           "release_type": "statement",
+          "roster_total": 12,
           "row_count": 1,
           "state": "ok",
           "target_range_lower_percent": "3.75",
           "target_range_upper_percent": "4",
-          "vote_split": "10-1",
+          "vote_split": "10-2",
           "vote_status": "stated",
           "voted_against": [
-            "Stephen I. Miran"
+            "Stephen I. Miran",
+            "Jeffrey R. Schmid"
           ],
+          "voted_for_count": 10,
           "voter_names_stated": true
         },
         {
           "action": "Cut",
           "artifact_hashes": {
             "application/pdf": "234226e25444b3a2435f9a420064fba4d7d2a208793fe9efe74ec2b2f4328855",
-            "text/html": "aac8e91892e126d0fde2cddeaf91664d1587db985edc055893fe390d973a5278"
+            "text/html": "8759aa8ce9f69016e96d75917a06428b614603e579c46866485c74c18ea87842"
           },
           "discovery_url": "https://www.federalreserve.gov/monetarypolicy/fomccalendars.htm",
           "error_message": null,
@@ -1275,6 +1374,7 @@
           "published_at": "2025-12-10T14:00:00-05:00",
           "release_key": "fomc-statement:monetary20251210a",
           "release_type": "statement",
+          "roster_total": 12,
           "row_count": 1,
           "state": "ok",
           "target_range_lower_percent": "3.5",
@@ -1286,13 +1386,14 @@
             "Austan D. Goolsbee",
             "Jeffrey R. Schmid"
           ],
+          "voted_for_count": 9,
           "voter_names_stated": true
         },
         {
           "action": "Hold",
           "artifact_hashes": {
             "application/pdf": "44c72e6459887407e64cfc4a8fa49f6a8b5ce929feb6e47277ad4a1a1a99aac1",
-            "text/html": "2339c3fa3bcff259e469002dbdf425be20da57d2d0c9624a904b4e30007f3cc8"
+            "text/html": "70fd87942563d7f2c9bfd6ac4f90567831069382699ce0636ff0b4c016eb472e"
           },
           "discovery_url": "https://www.federalreserve.gov/monetarypolicy/fomccalendars.htm",
           "error_message": null,
@@ -1304,6 +1405,7 @@
           "published_at": "2026-01-28T14:00:00-05:00",
           "release_key": "fomc-statement:monetary20260128a",
           "release_type": "statement",
+          "roster_total": 12,
           "row_count": 1,
           "state": "ok",
           "target_range_lower_percent": "3.5",
@@ -1314,13 +1416,14 @@
             "Stephen I. Miran",
             "Christopher J. Waller"
           ],
+          "voted_for_count": 10,
           "voter_names_stated": true
         },
         {
           "action": "Hold",
           "artifact_hashes": {
             "application/pdf": "6d0f8f1fdeab2b08dd5102c3ccc6b4f876a84a933e03d915ef5b21bae7b684d4",
-            "text/html": "65374f4bd23a57535af42cfe6519125a33bf9ab0c569549bc975762610e5c723"
+            "text/html": "2e2dde1e165629b4a4418996e77b9268d6cfafeac8c652b2fbc1bc79626bbbc2"
           },
           "discovery_url": "https://www.federalreserve.gov/monetarypolicy/fomccalendars.htm",
           "error_message": null,
@@ -1332,6 +1435,7 @@
           "published_at": "2026-03-18T14:00:00-04:00",
           "release_key": "fomc-statement:monetary20260318a",
           "release_type": "statement",
+          "roster_total": 12,
           "row_count": 1,
           "state": "ok",
           "target_range_lower_percent": "3.5",
@@ -1341,13 +1445,14 @@
           "voted_against": [
             "Stephen I. Miran"
           ],
+          "voted_for_count": 11,
           "voter_names_stated": true
         },
         {
           "action": "Hold",
           "artifact_hashes": {
             "application/pdf": "8153654a49edfb86e62e5fd34f01cb641e01d5adfea37ef0be69528cf92c6bb8",
-            "text/html": "549a14c790d6e8c4b589cce41a65da1103f936962b408d26b852b8d9e9bf29d5"
+            "text/html": "fc77dc5a89c4c5662406391f7f6b701b7350d833d5d8ab6f2b24a6161df0967c"
           },
           "discovery_url": "https://www.federalreserve.gov/monetarypolicy/fomccalendars.htm",
           "error_message": null,
@@ -1359,6 +1464,7 @@
           "published_at": "2026-04-29T14:00:00-04:00",
           "release_key": "fomc-statement:monetary20260429a",
           "release_type": "statement",
+          "roster_total": 12,
           "row_count": 1,
           "state": "ok",
           "target_range_lower_percent": "3.5",
@@ -1371,13 +1477,14 @@
             "Neel Kashkari",
             "Lorie K. Logan"
           ],
+          "voted_for_count": 8,
           "voter_names_stated": true
         },
         {
           "action": "Hold",
           "artifact_hashes": {
             "application/pdf": "13c6558e213dd433c4a0c255d5f7a25ab79992f672c9644994307afea5d7932f",
-            "text/html": "c18830bf4d98a81e99a23c59f4895d5bae845908c75278573422e6bc196f2ff8"
+            "text/html": "b0b44a26024d951048150d76f6ba5172151787fba6117d164effbfc12ab7faf5"
           },
           "discovery_url": "https://www.federalreserve.gov/monetarypolicy/fomccalendars.htm",
           "error_message": null,
@@ -1389,6 +1496,7 @@
           "published_at": "2026-06-17T14:00:00-04:00",
           "release_key": "fomc-statement:monetary20260617a",
           "release_type": "statement",
+          "roster_total": 0,
           "row_count": 1,
           "state": "ok",
           "target_range_lower_percent": "3.5",
@@ -1396,13 +1504,14 @@
           "vote_split": "12-0",
           "vote_status": "stated",
           "voted_against": [],
+          "voted_for_count": 0,
           "voter_names_stated": false
         },
         {
           "action": "Hold",
           "artifact_hashes": {
             "application/pdf": "825cfed5e0956055d46ea3bf4d09f3939d79890fa0b3ade78bbf3957d7264522",
-            "text/html": "0368db05d0a416e909ad04631b174e176c0cb055cb1740c9b83faacb30de26a5"
+            "text/html": "0f09ac1b42c3045dc760f832d385df2d67d6a7623076a0173019a394e84c0dff"
           },
           "discovery_url": "https://www.federalreserve.gov/monetarypolicy/fomccalendars.htm",
           "error_message": null,
@@ -1414,6 +1523,7 @@
           "published_at": "2026-07-29T14:00:00-04:00",
           "release_key": "fomc-statement:monetary20260729a",
           "release_type": "statement",
+          "roster_total": 0,
           "row_count": 1,
           "state": "ok",
           "target_range_lower_percent": "3.5",
@@ -1421,6 +1531,7 @@
           "vote_split": "9-3",
           "vote_status": "stated",
           "voted_against": [],
+          "voted_for_count": 0,
           "voter_names_stated": false
         }
       ],
@@ -1434,7 +1545,7 @@
         {
           "artifact_hashes": {
             "application/pdf": "b5c7c56e76bc98755d4d06260659900c7f64e3e021d26548bfdad5e467d33250",
-            "text/html": "43b37e71fd32966ee9615e1cf1309562695d8e72c8e48b6d29583d69f4fe4da7"
+            "text/html": "5917db48cd37f6cc9348d4b13420e93d103872ace950364860d6a8c36927edb9"
           },
           "discovery_url": "https://www.federalreserve.gov/monetarypolicy/fomchistorical2020.htm",
           "error_message": null,
@@ -1481,7 +1592,7 @@
         {
           "artifact_hashes": {
             "application/pdf": "d26cdb38ddfb7cb179b747ff3e326937a7e3d30bb28d85a97ea9cbf391796ba9",
-            "text/html": "c50d55546a13fac334a604d78a7ac47987f96d585f8f16762d39211a66284b29"
+            "text/html": "7cc4e30e6ff2a8d6ccd20fdad3d6ec58e5c902c65d058778b6905e3824e92bd3"
           },
           "discovery_url": "https://www.federalreserve.gov/monetarypolicy/fomchistorical2020.htm",
           "error_message": null,
@@ -1534,7 +1645,7 @@
         {
           "artifact_hashes": {
             "application/pdf": "f8f43c5c0c6dc3080733bcf73132e551f031548c31f832fa06ead3e900c3a938",
-            "text/html": "49be92d8def19174dd44827a3ae355c002ea7cd1655a0858ad9944cbfb8da1b4"
+            "text/html": "d9149f6a4ada3a421383eca17be1fcd7f13c89de98356a55ebba495be4076ae1"
           },
           "discovery_url": "https://www.federalreserve.gov/monetarypolicy/fomchistorical2020.htm",
           "error_message": null,
@@ -1587,7 +1698,7 @@
         {
           "artifact_hashes": {
             "application/pdf": "aa1f54fd28090c48de0fc3eebe04a52d0607cef7cc025df3c6a1a833dcc516db",
-            "text/html": "cb603c15092551d3c7970e1d1348d5a4b695013346382af3b05887db55bb3e8f"
+            "text/html": "34b92136ce08922e2042d3f41a89115730204bbb57a97288825df779f448400f"
           },
           "discovery_url": "https://www.federalreserve.gov/monetarypolicy/fomccalendars.htm",
           "error_message": null,
@@ -1634,7 +1745,7 @@
         {
           "artifact_hashes": {
             "application/pdf": "f40aee733a9c794c551fc0f94e420028c6c964b88bce303ce3d1ae44f7c072ea",
-            "text/html": "99b334e262eaba174c156fcd03919880c2253e7aa38d352e7e9caafc3326d5f8"
+            "text/html": "0b17e7a61d6bef590cbb87876f9597cded7527e5095426dc479feaa3e72b4678"
           },
           "discovery_url": "https://www.federalreserve.gov/monetarypolicy/fomccalendars.htm",
           "error_message": null,
@@ -1681,7 +1792,7 @@
         {
           "artifact_hashes": {
             "application/pdf": "de7331bc99affd2bf4dc0b177c04d0479564f1b43d4b4b5b7de7951176e9b788",
-            "text/html": "b790dadbc6bb3904e979cd28fe1852f3a1db4307564562d0998ccc1a37af4e9f"
+            "text/html": "be8973459c8d929ece3007ba9ccdd1e64955f2cfc8d809ba86b4e5ec55862a64"
           },
           "discovery_url": "https://www.federalreserve.gov/monetarypolicy/fomccalendars.htm",
           "error_message": null,
@@ -1734,7 +1845,7 @@
         {
           "artifact_hashes": {
             "application/pdf": "a99faad60b5cbe4bc334e4f5d9a67f748234fc9fbd1128d811751ff4ea634c8d",
-            "text/html": "32665e32ffc93b78fe8d087d55bfd66798b2c10605ff13d29b14dab0a7b58e0d"
+            "text/html": "b5d1e1e70707357648b4535658560da23caff3152d55c84fae387450384abe64"
           },
           "discovery_url": "https://www.federalreserve.gov/monetarypolicy/fomccalendars.htm",
           "error_message": null,
@@ -1787,7 +1898,7 @@
         {
           "artifact_hashes": {
             "application/pdf": "4a3ff9efb51ed06c9c7794c3e4eea33320a6990a9a7133e149c4885bdd3a62d2",
-            "text/html": "00d27a3a62993eb4c62b2b1fa3ec7826db8fc99bcec1877a3a7beaa58e1da2c6"
+            "text/html": "924b2b0262912ef5a6054d11d5a881affcab6c598b5f2183c83a8aedd839efc7"
           },
           "discovery_url": "https://www.federalreserve.gov/monetarypolicy/fomccalendars.htm",
           "error_message": null,
@@ -1834,7 +1945,7 @@
         {
           "artifact_hashes": {
             "application/pdf": "dd496b2d985d89057c0bcd4d9754f7975eb4b6eb16a690bbd8dd09f676c48789",
-            "text/html": "a63c24fc2f980102ea6dc6078c9fecf9adf12772849f7c42e744ce69c1e8b9f6"
+            "text/html": "7ce2eb3933129527da2f838d1fa4fe2213268e8e80fa74ac57b29f70f60e383c"
           },
           "discovery_url": "https://www.federalreserve.gov/monetarypolicy/fomccalendars.htm",
           "error_message": null,
@@ -1881,7 +1992,7 @@
         {
           "artifact_hashes": {
             "application/pdf": "58571bb954f1753d5bd1dc44a80247d960ee4774e50ecadaae44e52987ec9252",
-            "text/html": "74187b97acc420be65218f26c96719f6db9523bab0a8350feb08ac08efdbc6a3"
+            "text/html": "d0834bb491ba73425442dbc960d372dff1590778f7d65cf9b1e81670bbe00679"
           },
           "discovery_url": "https://www.federalreserve.gov/monetarypolicy/fomccalendars.htm",
           "error_message": null,
@@ -1934,7 +2045,7 @@
         {
           "artifact_hashes": {
             "application/pdf": "cbb298371c4510159979e41f6b905c275ce026c3361905346c1a78aa72e317b4",
-            "text/html": "54404d7d21b00f68e473945958ad13aa49ea0929221e4717e6233241b1f42a12"
+            "text/html": "6c21f92ffe2a400f90f17cef19a5731fc669a8cad350ca37fbdbb65a0c09d63b"
           },
           "discovery_url": "https://www.federalreserve.gov/monetarypolicy/fomccalendars.htm",
           "error_message": null,
@@ -1987,7 +2098,7 @@
         {
           "artifact_hashes": {
             "application/pdf": "eafeb9cea1abbd1c16899ded75e97f77c13b6cacc0584bf0b80277a4c93fb2cb",
-            "text/html": "7b0d402ab8f57d156c96f12b459e1097ccf4e806e53ab67cfdab346166f15977"
+            "text/html": "a6f552d460e2e7e2d99bd3bdd2df71a9f236d3280a8487b921e2c9c4a5792162"
           },
           "discovery_url": "https://www.federalreserve.gov/monetarypolicy/fomccalendars.htm",
           "error_message": null,
@@ -2034,7 +2145,7 @@
         {
           "artifact_hashes": {
             "application/pdf": "fd659f61c21a765d7bb2dcf05da1b0429ec977615ed4b3a46206dccc9a5b660c",
-            "text/html": "17888329d75f3396858e31d024f1909509e29f0fa1e2f370d36b6ebef4d82e83"
+            "text/html": "2edd19d64cc06380cdbe4a9a08b1ee7bed1f00d57894a2e3d46e5a7c97738396"
           },
           "discovery_url": "https://www.federalreserve.gov/monetarypolicy/fomccalendars.htm",
           "error_message": null,
@@ -2081,7 +2192,7 @@
         {
           "artifact_hashes": {
             "application/pdf": "8b9f0dbd12968aea6a114fb70a939d891166de598c0562f578e3420a98d38bcd",
-            "text/html": "9ccfc5f26753d44141bcd957250236cc7478ffb67835ba4d4138adc6a9a53676"
+            "text/html": "3f34f5a9d421c510539536044fccd70d3cafbb79520b40c065c8dc9d32fae8f7"
           },
           "discovery_url": "https://www.federalreserve.gov/monetarypolicy/fomccalendars.htm",
           "error_message": null,
@@ -2134,7 +2245,7 @@
         {
           "artifact_hashes": {
             "application/pdf": "2811d15aface9e9453c4965d8746b1f01778bf994e692b52772cc9610a9137d6",
-            "text/html": "e0356ad8497c6d8905fa7b0626516b103ff9da61a6f00ec4ad822a331d299717"
+            "text/html": "6854c483e624008f3bd3895fc98a0fdbc42426dc0105fffc0d61bd398904ae15"
           },
           "discovery_url": "https://www.federalreserve.gov/monetarypolicy/fomccalendars.htm",
           "error_message": null,
@@ -2187,7 +2298,7 @@
         {
           "artifact_hashes": {
             "application/pdf": "9e6705e28948d10b54b37bbda2c94fa4eb553864aed82be5bf985f5cfe735a5a",
-            "text/html": "29ad23284236fc41579db0cfc248e99b761f3fc614beebde1fc47010e66c7a37"
+            "text/html": "f929ba8ec87bd82422c0471230cf68dd220e568b4d68d201dc690f6a09cd1206"
           },
           "discovery_url": "https://www.federalreserve.gov/monetarypolicy/fomccalendars.htm",
           "error_message": null,
@@ -2234,7 +2345,7 @@
         {
           "artifact_hashes": {
             "application/pdf": "e8d3433207abc39c3064af3c9169404e8a5dde6e9ea87d44c8cc600359ad9472",
-            "text/html": "12d4afc31fc5b7073e1c92ab33f9747be974ed5949c6465a1d33c02b6a1efe82"
+            "text/html": "3d1fac0622c2d86c83f853d9492a4c4c0e9a2fab04dba377fb0bce28789bfa9a"
           },
           "discovery_url": "https://www.federalreserve.gov/monetarypolicy/fomccalendars.htm",
           "error_message": null,
@@ -2281,7 +2392,7 @@
         {
           "artifact_hashes": {
             "application/pdf": "fb5e0b1bbe836b8fbf11ec0086c9f5cb33c968d17073b932bdd8dfecec902e0a",
-            "text/html": "ec34560f2a86dc458dc848fd807562e3609ab208bbfa3c061f036e728a116baa"
+            "text/html": "139ba5c343186893008f2e9d4cec2b6a77c47d4f78d16c3f0e61d936837f3dee"
           },
           "discovery_url": "https://www.federalreserve.gov/monetarypolicy/fomccalendars.htm",
           "error_message": null,
@@ -2334,7 +2445,7 @@
         {
           "artifact_hashes": {
             "application/pdf": "c7db16b2c52b18048bde11ff09721273f542b9344a40aaf3931139c35918448e",
-            "text/html": "c39c8436b67193bf192bd4ad06f6d7ba25936b15b1a39be4423ab51d668113b1"
+            "text/html": "74cdffac5a9c87e438833e90661b2d7436a04caafe1334c3caa93f3b70b68bb5"
           },
           "discovery_url": "https://www.federalreserve.gov/monetarypolicy/fomccalendars.htm",
           "error_message": null,
@@ -2387,7 +2498,7 @@
         {
           "artifact_hashes": {
             "application/pdf": "5adb4ec6619920f1d71b2ad8391b91b365d5183206acca0692e508bcbc8fa668",
-            "text/html": "7e1bc1c98cc472ffb7efe42b6056645d5f139f6d978da1bd29d68c9860b53a3a"
+            "text/html": "f4344c8a3ff210b65c1fe2fa97c1b47717457788c492c478dda7284195eef84c"
           },
           "discovery_url": "https://www.federalreserve.gov/monetarypolicy/fomccalendars.htm",
           "error_message": null,
@@ -2434,7 +2545,7 @@
         {
           "artifact_hashes": {
             "application/pdf": "34f9a88b438f4d8543bed71f1f02c1405e4a97ff1f4cbd18e7a2d04c73848ac1",
-            "text/html": "035e188d967f87b68e2a1a395ba03a583dbc7913f348ed0b1bec75f205ab172d"
+            "text/html": "07f017d252b028c45d64ab33f82a325c1ab50d2a060a1947694ea7671b98cc3b"
           },
           "discovery_url": "https://www.federalreserve.gov/monetarypolicy/fomccalendars.htm",
           "error_message": null,
@@ -2481,7 +2592,7 @@
         {
           "artifact_hashes": {
             "application/pdf": "6863853dd6e970ed94eef5ed6d069ae23dfc6a7607f7e2c022b8afdcb6992e69",
-            "text/html": "3614863f98cd920a8fc2b9a7cf6eed1792b242a1d8ef6c985ae8fc497e8512a2"
+            "text/html": "a8c38f02ee7f80ce2badcf442cd1a6643dd602ff2ff8d6ad25bb6ae9b80612af"
           },
           "discovery_url": "https://www.federalreserve.gov/monetarypolicy/fomccalendars.htm",
           "error_message": null,
@@ -2534,7 +2645,7 @@
         {
           "artifact_hashes": {
             "application/pdf": "7f604085289cd4d586c0df42a996d77e6642efcb1c897038051d791a98a2c7dd",
-            "text/html": "a99573b29fb5aeac271f24512f6ac695301dd4e737a4e4252a02ff1e0226966c"
+            "text/html": "10cb883f4d14a202e6fe1c8c5483a6c4b0783550849ccd09bbbe12ba49fb0a5f"
           },
           "discovery_url": "https://www.federalreserve.gov/monetarypolicy/fomccalendars.htm",
           "error_message": null,
@@ -2587,7 +2698,7 @@
         {
           "artifact_hashes": {
             "application/pdf": "2e9452c51a4b5907da952fad6f39dd25dc048161af123e09a1981f5982724f14",
-            "text/html": "5a43b6558ed0524015b27a840cc584d78c6e761c68e6a93fbdcdf1c9bf93b40d"
+            "text/html": "feb3dcd8b31404b2af2eabcfda6d7f98c5675a34c575cd32743153917ec9c4f8"
           },
           "discovery_url": "https://www.federalreserve.gov/monetarypolicy/fomccalendars.htm",
           "error_message": null,
@@ -2634,7 +2745,7 @@
         {
           "artifact_hashes": {
             "application/pdf": "a517887623520922a782e0cd01fb38d4469bed951f63d2588efb99f72deddde3",
-            "text/html": "1ffcf7e6e540bfdcc91b92583915f193536dec768d210e0edb671e0d90cbeee1"
+            "text/html": "93a4be1c6cfaaefc60273a34ae58faa6bd852a72aa9c38dea164d8a1c5c7f8be"
           },
           "discovery_url": "https://www.federalreserve.gov/monetarypolicy/fomccalendars.htm",
           "error_message": null,
@@ -2686,17 +2797,17 @@
     },
     "frenzy_capital": {
       "artifact": {
-        "available_at": "2026-08-17T16:17:20.288296+00:00",
-        "content_hash": "7a25075bd42b7c63be5c8fd2798b6a84102c4d4735ce4ab48e0b9b775d58dc6e",
-        "content_length": 105263,
+        "available_at": "2026-08-18T01:25:28.096792+00:00",
+        "content_hash": "be94478e0ddc4c1169809a67656e540028a4ecbd322c4c84d676aad9ba68bc6f",
+        "content_length": 105264,
         "cost_class": "free_third_party_shadow",
         "media_type": "text/html",
         "parser_version": "frenzy_fedwatch.v1",
         "published_at": null,
-        "source_record_id": "frenzy-fedwatch:7a25075bd42b7c63be5c8fd2798b6a84102c4d4735ce4ab48e0b9b775d58dc6e",
+        "source_record_id": "frenzy-fedwatch:be94478e0ddc4c1169809a67656e540028a4ecbd322c4c84d676aad9ba68bc6f",
         "source_url": "https://www.frenzycap.com/fedwatch"
       },
-      "available_at": "2026-08-17T16:17:20.288296+00:00",
+      "available_at": "2026-08-18T01:25:28.096792+00:00",
       "delay_minutes": null,
       "delay_status": "unknown",
       "first_meeting_date": "2026-09-16",
@@ -2717,9 +2828,9 @@
       "state": "ok"
     },
     "new_york_fed_sme": {
-      "available_at": "2026-08-17T16:17:20.288296+00:00",
+      "available_at": "2026-08-18T01:25:28.096792+00:00",
       "data_artifact": {
-        "available_at": "2026-08-17T16:17:20.288296+00:00",
+        "available_at": "2026-08-18T01:25:28.096792+00:00",
         "content_hash": "d0cf390537a631ba32990aba2bf0229dd5c92a9a18b7e95fd2c1119eeb5e5ecb",
         "content_length": 253265,
         "cost_class": "free_official",
@@ -2741,7 +2852,7 @@
       "published_at": null,
       "questionnaire_release_date": "2026-06-03",
       "report_artifact": {
-        "available_at": "2026-08-17T16:17:20.288296+00:00",
+        "available_at": "2026-08-18T01:25:28.096792+00:00",
         "content_hash": "48c2846ac5ee6f54611fef925499476e31dab5ea2d4f7b8669b64a6b32a920a6",
         "content_length": 305404,
         "cost_class": "free_official",

@@ -23,12 +23,12 @@ from typing import Any, Literal
 
 import httpx
 
-from uw_scan.sources.fed_sep import FedSepProvider, SepSourceBundle, parse_sep_release
 from uw_scan.sources.fed_funds_futures_path import (
     FedFundsFuturesPathProvider,
     FedFundsFuturesSourceBundle,
     parse_fed_funds_futures_snapshot,
 )
+from uw_scan.sources.fed_sep import FedSepProvider, SepSourceBundle, parse_sep_release
 from uw_scan.sources.fomc_statement import (
     FomcStatementBundle,
     FomcStatementProvider,
@@ -46,9 +46,7 @@ OFFICIAL_SOURCE_KEYS = (
     "federal_reserve_sep",
     "new_york_fed_sme",
 )
-DEFAULT_OUTPUT = Path(
-    "docs/research/2026-08-12-fomc-sep-source-probe/probe.json"
-)
+DEFAULT_OUTPUT = Path("docs/research/2026-08-12-fomc-sep-source-probe/probe.json")
 FIXTURES = Path("tests/fixtures/macro")
 
 
@@ -76,12 +74,12 @@ def probe_exit_code(
     if require_shadow:
         required.append("frenzy_capital")
     sources = payload.get("sources", {})
-    return 0 if all(sources.get(key, {}).get("state") == "ok" for key in required) else 1
+    return (
+        0 if all(sources.get(key, {}).get("state") == "ok" for key in required) else 1
+    )
 
 
-def probe_live(
-    *, years: tuple[int, ...], observed_at: datetime
-) -> dict[str, Any]:
+def probe_live(*, years: tuple[int, ...], observed_at: datetime) -> dict[str, Any]:
     return {
         "schema_version": 2,
         "generated_at": observed_at,
@@ -120,6 +118,15 @@ def _statement_summary(bundle: Any) -> dict[str, Any]:
         # publisher printed only a tally -- never that the vote was unanimous.
         "voter_names_stated": release.voter_names_stated,
         "voted_against": list(release.voted_against),
+        # The only cross-check this data supports.  ``vote_split`` is DERIVED
+        # from the names, so a dropped dissenter decrements the tally that would
+        # expose it -- 2025-10-29 recorded a self-consistent 10-1 for a real
+        # 10-2.  The roster total is independent of that: it should equal the
+        # committee actually seated, so a release that stops matching its
+        # neighbours is visible in the evidence instead of only to a reviewer
+        # who thinks to add the columns up.
+        "voted_for_count": len(release.voted_for),
+        "roster_total": len(release.voted_for) + len(release.voted_against),
         "target_range_lower_percent": release.target_range_lower,
         "target_range_upper_percent": release.target_range_upper,
         "row_count": 1,
@@ -196,9 +203,7 @@ def _probe_sme(observed_at: datetime) -> dict[str, Any]:
             "available_at": release.available_at,
             "panel_type": release.panel_type,
             "path_point_count": len(release.path_points),
-            "probability_distribution_count": len(
-                release.probability_distributions
-            ),
+            "probability_distribution_count": len(release.probability_distributions),
             "respondent_counts": sorted(
                 {point.respondent_count for point in release.path_points}
             ),
@@ -221,9 +226,7 @@ def _probe_market_shadow(observed_at: datetime) -> dict[str, Any]:
     try:
         with FedFundsFuturesPathProvider() as provider:
             bundle = provider.fetch_bundle(retrieved_at=observed_at)
-        snapshot = parse_fed_funds_futures_snapshot(
-            bundle, current_target_range=None
-        )
+        snapshot = parse_fed_funds_futures_snapshot(bundle, current_target_range=None)
         output = {
             "http_statuses": [200],
             "publisher_class": "third_party_shadow",
@@ -362,15 +365,18 @@ def _failure(exc: Exception) -> dict[str, Any]:
 
 
 def self_check() -> None:
-    assert classify_probe_state(
-        http_statuses=[500], parse_error=None, row_count=None
-    ) == "http_error"
-    assert classify_probe_state(
-        http_statuses=[200], parse_error="drift", row_count=None
-    ) == "parse_error"
-    assert classify_probe_state(
-        http_statuses=[200], parse_error=None, row_count=0
-    ) == "empty"
+    assert (
+        classify_probe_state(http_statuses=[500], parse_error=None, row_count=None)
+        == "http_error"
+    )
+    assert (
+        classify_probe_state(http_statuses=[200], parse_error="drift", row_count=None)
+        == "parse_error"
+    )
+    assert (
+        classify_probe_state(http_statuses=[200], parse_error=None, row_count=0)
+        == "empty"
+    )
 
     observed_at = datetime(2026, 8, 12, 12, tzinfo=UTC)
     statement = parse_fomc_statement(
@@ -393,8 +399,7 @@ def self_check() -> None:
         SepSourceBundle.from_bytes(
             meeting_date=date(2026, 6, 17),
             accessible_url=(
-                "https://www.federalreserve.gov/monetarypolicy/"
-                "fomcprojtabl20260617.htm"
+                "https://www.federalreserve.gov/monetarypolicy/fomcprojtabl20260617.htm"
             ),
             accessible_bytes=(FIXTURES / "fed_sep_2026_06.html").read_bytes(),
             pdf_url=(
@@ -436,14 +441,13 @@ def self_check() -> None:
         ),
         current_target_range="3.50-3.75%",
     )
-    policy = [
-        item for item in sep.projections if item.variable == "federal_funds_rate"
-    ]
+    policy = [item for item in sep.projections if item.variable == "federal_funds_rate"]
     assert (statement.action, statement.vote_split) == ("Hold", "12-0")
     assert len(policy) == 4
-    assert sum(
-        point.participant_count for point in policy[0].participant_distribution
-    ) == 18
+    assert (
+        sum(point.participant_count for point in policy[0].participant_distribution)
+        == 18
+    )
     assert len(sme.path_points) == 16
     assert sme.path_points[0].horizon_date == date(2026, 6, 17)
     assert sme.path_points[0].respondent_count == 26
@@ -489,13 +493,16 @@ def main() -> int:
         parser.error("--start-year must be >= 2020 and not after --end-year")
     years = tuple(range(args.start_year, end_year + 1))
     payload = probe_live(years=years, observed_at=observed_at)
-    encoded = json.dumps(
-        payload,
-        default=_json_default,
-        indent=2,
-        sort_keys=True,
-        ensure_ascii=False,
-    ) + "\n"
+    encoded = (
+        json.dumps(
+            payload,
+            default=_json_default,
+            indent=2,
+            sort_keys=True,
+            ensure_ascii=False,
+        )
+        + "\n"
+    )
     args.output.parent.mkdir(parents=True, exist_ok=True)
     args.output.write_text(encoded)
     states = {

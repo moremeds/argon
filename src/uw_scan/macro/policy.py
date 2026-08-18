@@ -30,7 +30,15 @@ def assemble_policy_paths(
     *,
     as_of: datetime,
     freshness_by_kind: dict[PolicyPathKind, PolicySourceFreshness] | None = None,
+    missing_reasons: dict[PolicyPathKind, str] | None = None,
 ) -> PolicyComparison:
+    """Assemble four independent slots, never a blended path.
+
+    ``missing_reasons`` overrides the default "no PIT-eligible release" wording
+    for a kind the caller could not read.  A row that exists but cannot be
+    parsed is a different operational fact from one that was never published,
+    and collapsing the two sends an operator looking for the wrong outage.
+    """
     if as_of.tzinfo is None or as_of.utcoffset() is None:
         raise ValueError("as_of must be timezone-aware")
     by_kind: dict[PolicyPathKind, PolicyPath] = {}
@@ -45,7 +53,11 @@ def assemble_policy_paths(
         kind: PolicyPathSlot(
             kind=kind,
             path=by_kind.get(kind),
-            missing_reason=None if kind in by_kind else _MISSING_REASON[kind],
+            missing_reason=(
+                None
+                if kind in by_kind
+                else (missing_reasons or {}).get(kind, _MISSING_REASON[kind])
+            ),
             freshness=(freshness_by_kind or {}).get(
                 kind,
                 PolicySourceFreshness(

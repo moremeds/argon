@@ -1197,3 +1197,55 @@ def test_policy_semantic_hash_ignores_the_artifact_and_availability(
     assert macro_observation_content_hash(base) != macro_observation_content_hash(
         moved
     )
+
+
+def test_a_correction_takes_its_own_retrieval_instant_not_the_first_release(
+    repo: Repository,
+) -> None:
+    """The artifact-layer half of the backdating fix, tested where it lives.
+
+    A reissue retrieved weeks later did not exist at the original release
+    instant, and dating it there is a look-ahead leak in the dangerous
+    direction: a replay reads a number nobody could have had. This pins
+    ``_revision_available_at`` directly rather than only through the live smoke,
+    because the defect is silent -- the row simply claims an earlier instant.
+    """
+    released = datetime(2026, 2, 12, 13, 30, tzinfo=UTC)
+    corrected_at = datetime(2026, 4, 3, 9, 15, tzinfo=UTC)
+
+    first_id = _insert_artifact(repo, available_at=released, retrieved_at=released)
+    # Same record, genuinely different bytes, retrieved seven weeks later. The
+    # caller still offers the publisher's original instant, exactly as the
+    # source modules do.
+    corrected_id = _insert_artifact(
+        repo,
+        available_at=released,
+        retrieved_at=corrected_at,
+        raw_json={"series": "CPIAUCSL", "value": "319.4", "revision": "second"},
+    )
+    assert corrected_id != first_id
+
+    assert repo.fetch_macro_artifact(first_id)["available_at"] == released
+    assert repo.fetch_macro_artifact(corrected_id)["available_at"] == corrected_at
+
+
+def test_reinserting_identical_bytes_does_not_move_their_availability(
+    repo: Repository,
+) -> None:
+    """A rerun must not push a known fact's availability forward.
+
+    The revision clamp keys on the bytes, so re-seeing the SAME payload later
+    has to return the instant already stored -- otherwise every nightly rerun
+    would walk availability toward today and quietly destroy the replay.
+    """
+    released = datetime(2026, 2, 12, 13, 30, tzinfo=UTC)
+
+    first_id = _insert_artifact(repo, available_at=released, retrieved_at=released)
+    again_id = _insert_artifact(
+        repo,
+        available_at=released,
+        retrieved_at=datetime(2026, 6, 1, 12, tzinfo=UTC),
+    )
+
+    assert again_id == first_id
+    assert repo.fetch_macro_artifact(first_id)["available_at"] == released

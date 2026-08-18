@@ -12,18 +12,20 @@ free sources separate:
 
 ## Current gate status
 
-The gate is **PASS**, on two committed evidence files measured 2026-08-17:
+The gate is **PASS**, on two committed evidence files measured 2026-08-18:
 [probe.json](probe.json) (55/55 FOMC statements and 25/25 SEP releases parse across 2020–2026, zero
 failures) and [smoke-4x4.json](smoke-4x4.json) (worker → DB → API returns 4/4 paths from persisted
 rows, 8/8 assertions, 80/80 releases `ok`). The pre-hardening baseline that produced the earlier
 PARTIAL is preserved unchanged in [pre-hardening-audit.json](pre-hardening-audit.json); the gate
 history and what the hardening changed are in [VERDICT.md](VERDICT.md).
 
-The Federal Reserve PDF is stable primary evidence — measured across the full archive, 81 PDF records
-produced **0** multi-revision records. Accessible HTML is retained separately as the deterministic
-extraction surface and is **not** byte-stable: it is served through Cloudflare, which injects a
-per-request `__CF$cv$params` script carrying a unique ray id and timestamp, so 80 of 82 HTML records
-gained a revision on a single rerun. That churn is transport, not publisher: the facts are unchanged,
+The Federal Reserve PDF is stable primary evidence. Two fetches of the same PDF one second apart are
+**byte-identical**; two fetches of the same HTML have identical content-length and a different
+SHA-256, with a differing `__CF$cv$params` token — the per-request Cloudflare script carrying a
+unique ray id. Both comparisons are recorded under `source_byte_stability.measured` in
+`smoke-4x4.json`. Across the archive: **82 stable records** (everything whose media type is not
+`text/html` — the Fed PDFs plus the NY Fed workbook) were unchanged across a rerun, while **81 HTML
+records became 162**, each gaining exactly one revision. That churn is transport, not publisher: the facts are unchanged,
 so a re-fetched page is preserved as exact evidence and linked as another witness of the same
 observation rather than becoming a second fact. The NY Fed workbook is the structured dealer data
 path, while its PDF supports human audit. The Frenzy page is retained byte-for-byte but is
@@ -95,9 +97,13 @@ dropdb option_wizard_test_mc1_smoke
 
 - `probe.json` was measured at its recorded `generated_at` and is an all-release audit of the years
   it names in `years`. The 2026-08-18 run reports 55/55 FOMC statements and 25/25 SEP releases
-  parsing across 2020–2026, zero failures. Every pre-cutoff dissent it recovered matches published
+  parsing across 2020–2026, zero failures. Six dissents were checked by hand against published
   history: Mester (2020-03-15, 9-1), Kaplan and Kashkari (2020-09-16, 8-2), Bullard (2022-03-16,
-  8-1), George (2022-06-15, 10-1), Bowman (2024-09-18, 11-1), Hammack (2024-12-18, 11-1).
+  8-1), George (2022-06-15, 10-1), Bowman (2024-09-18, 11-1), Hammack (2024-12-18, 11-1). That is
+  six of the fourteen dissent-bearing releases, not all of them — and the review that noticed the
+  gap also found the one release in the unchecked remainder that was wrong (2025-10-29, recorded
+  10-1 for a real 10-2; see VERDICT.md). `roster_total` now travels with each release so the same
+  anomaly is visible without recomputing it.
 - `pre-hardening-audit.json` was generated on 2026-08-13 from the already observed MC1 exploratory
   worker and historical parser outputs. Their original execution time and exact temporary-DB command
   were not retained; the JSON says so explicitly rather than manufacturing provenance.

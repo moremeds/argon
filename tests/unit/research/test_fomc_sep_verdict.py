@@ -12,6 +12,7 @@ AUDIT = VERDICT.with_name("pre-hardening-audit.json")
 PROBE = VERDICT.with_name("probe.json")
 SMOKE = VERDICT.with_name("smoke-4x4.json")
 PLAN = VERDICT.parents[2] / "plans/2026-08-13-macro-mc1-historical-release-hardening.md"
+REPO = VERDICT.parents[3]
 DESIGN = (
     VERDICT.parents[2]
     / "superpowers/specs/2026-08-13-macro-mc1-historical-release-durability-design.md"
@@ -61,6 +62,32 @@ def test_verdict_claims_only_what_the_committed_evidence_measures() -> None:
             f"{result['releases_discovered']}/{result['releases_succeeded']}"
             in text.replace("**", "")
         )
+
+    # The byte-stability paragraph is where the swapped counts hid: the guard
+    # bound the headline numbers and the pre-hardening baseline, and nothing
+    # read this section -- so "81 PDF / 82 HTML" survived review with both
+    # figures attached to the wrong media type.
+    flat = " ".join(text.replace("**", "").split())
+    stability = smoke["source_byte_stability"]
+    assert f"{stability['stable_artifacts_after_first_run']} stable records" in flat
+    assert (
+        f"{stability['html_artifacts_after_first_run']} HTML records that become "
+        f"{stability['html_artifacts_after_rerun']}" in flat
+    )
+    assert stability["stable_artifacts_after_first_run"] == (
+        stability["stable_artifacts_after_rerun"]
+    )
+
+    # The Cloudflare cause must be measured, not asserted: naming a mechanism
+    # the run never observed is the assumption-as-finding this repo bans.
+    measured = stability["measured"]
+    assert measured["pdf"]["byte_identical"] is True
+    assert measured["html"]["byte_identical"] is False
+    assert measured["html"]["cloudflare_token_differs"] is True
+    assert (
+        measured["html"]["content_length_first"]
+        == measured["html"]["content_length_second"]
+    )
 
     # All four slots, and the shadow never stands in for an official path.
     assert all(slot["present"] for slot in smoke["api_slots"].values())
@@ -131,11 +158,22 @@ def test_plan_requires_release_type_and_event_class_consistency() -> None:
     assert "def __post_init__(self) -> None:" in plan
     assert "statement candidates require a non-null event_class" in plan
     assert "SEP candidates require event_class=None" in plan
-    assert "test_statement_candidate_rejects_null_event_class" in plan
-    assert "test_sep_candidate_rejects_non_null_event_class" in plan
-    assert "test_migration_rejects_statement_without_event_class" in plan
-    assert "test_migration_rejects_sep_with_event_class" in plan
     assert "tests/integration/storage/test_migrations.py" in plan
+
+    # The named tests must EXIST, not merely be mentioned in the plan.  The
+    # plan sketched the two candidate cases separately; they shipped merged
+    # under one name, and asserting the plan's wording made two names that are
+    # not tests anywhere read as covered.
+    candidate_tests = (REPO / "tests/unit/sources/test_fomc_calendar.py").read_text()
+    assert (
+        "def test_release_candidate_enforces_statement_and_sep_event_class_invariants"
+        in candidate_tests
+    )
+    migration_tests = (
+        REPO / "tests/integration/storage/test_migrations.py"
+    ).read_text()
+    assert "def test_migration_rejects_statement_without_event_class" in migration_tests
+    assert "def test_migration_rejects_sep_with_event_class" in migration_tests
     assert "release_type TEXT NOT NULL CHECK" in plan
     assert "release_type = 'statement' AND event_class IS NOT NULL" in plan
     assert "release_type = 'sep' AND event_class IS NULL" in plan

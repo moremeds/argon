@@ -3,8 +3,8 @@
     "actual": {
       "evidence": [
         {
-          "artifact_id": 1087,
-          "obs_id": 304,
+          "artifact_id": 110,
+          "obs_id": 55,
           "source_url": "https://www.federalreserve.gov/newsevents/pressreleases/monetary20260729a.htm"
         }
       ],
@@ -12,8 +12,8 @@
         "consecutive_failures": 0,
         "error_message": null,
         "error_type": null,
-        "last_attempt_at": "2026-08-18T01:19:56.767924+08:00",
-        "last_success_at": "2026-08-18T01:19:56.767924+08:00",
+        "last_attempt_at": "2026-08-18T09:20:34.388884+08:00",
+        "last_success_at": "2026-08-18T09:20:34.388884+08:00",
         "release_failures": [],
         "releases_discovered": 55,
         "releases_failed": 0,
@@ -29,8 +29,8 @@
     "committee_projection": {
       "evidence": [
         {
-          "artifact_id": 1137,
-          "obs_id": 329,
+          "artifact_id": 160,
+          "obs_id": 80,
           "source_url": "https://www.federalreserve.gov/monetarypolicy/fomcprojtabl20260617.htm"
         }
       ],
@@ -38,8 +38,8 @@
         "consecutive_failures": 0,
         "error_message": null,
         "error_type": null,
-        "last_attempt_at": "2026-08-18T01:19:56.767924+08:00",
-        "last_success_at": "2026-08-18T01:19:56.767924+08:00",
+        "last_attempt_at": "2026-08-18T09:20:34.388884+08:00",
+        "last_success_at": "2026-08-18T09:20:34.388884+08:00",
         "release_failures": [],
         "releases_discovered": 25,
         "releases_failed": 0,
@@ -55,8 +55,8 @@
     "dealer_expectations": {
       "evidence": [
         {
-          "artifact_id": 1138,
-          "obs_id": 330,
+          "artifact_id": 161,
+          "obs_id": 81,
           "source_url": "https://www.newyorkfed.org/medialibrary/media/markets/survey/2026/jun-2026-data.xlsx"
         }
       ],
@@ -64,8 +64,8 @@
         "consecutive_failures": 0,
         "error_message": null,
         "error_type": null,
-        "last_attempt_at": "2026-08-18T01:19:56.767924+08:00",
-        "last_success_at": "2026-08-18T01:19:56.767924+08:00",
+        "last_attempt_at": "2026-08-18T09:20:34.388884+08:00",
+        "last_success_at": "2026-08-18T09:20:34.388884+08:00",
         "release_failures": [],
         "releases_discovered": 0,
         "releases_failed": 0,
@@ -81,8 +81,8 @@
     "market_implied": {
       "evidence": [
         {
-          "artifact_id": 1140,
-          "obs_id": 331,
+          "artifact_id": 163,
+          "obs_id": 82,
           "source_url": "https://www.frenzycap.com/fedwatch"
         }
       ],
@@ -90,8 +90,8 @@
         "consecutive_failures": 0,
         "error_message": null,
         "error_type": null,
-        "last_attempt_at": "2026-08-18T01:19:56.767924+08:00",
-        "last_success_at": "2026-08-18T01:19:56.767924+08:00",
+        "last_attempt_at": "2026-08-18T09:20:34.388884+08:00",
+        "last_success_at": "2026-08-18T09:20:34.388884+08:00",
         "release_failures": [],
         "releases_discovered": 0,
         "releases_failed": 0,
@@ -117,7 +117,7 @@
   },
   "command": "UW_SCAN_TEST_DB_NAME=<dedicated test db> uv run python scripts/research/macro_policy_4x4_smoke.py --require-shadow",
   "database_class": "dedicated option_wizard_test* database, dropped after run",
-  "finished_at": "2026-08-17T17:26:41.491178+00:00",
+  "finished_at": "2026-08-18T01:25:03.959041+00:00",
   "offline_read": {
     "actual": true,
     "committee_projection": true,
@@ -143,7 +143,27 @@
   "source_byte_stability": {
     "html_artifacts_after_first_run": 81,
     "html_artifacts_after_rerun": 162,
-    "note": "Federal Reserve HTML is served through Cloudflare, which injects a per-request __CF$cv$params script carrying a unique ray id and timestamp. Identical-length, different-bytes on every fetch. The PDF carries no such injection and is byte-stable, which is why it is the primary artifact. Re-fetched HTML is preserved as exact evidence and linked as another witness of the same observation; it never creates a second fact.",
+    "measured": {
+      "html": {
+        "byte_identical": false,
+        "cloudflare_token_differs": true,
+        "cloudflare_token_present": true,
+        "content_length_first": 81213,
+        "content_length_second": 81213,
+        "sha256_first": "b353400bab1695b56234942b61a985500417bd8d30da06b362ca26c6ac8cacfd",
+        "sha256_second": "12fc1a0551395df8482342c071fb5ca8422fd4ba1e8f862ce68c6b015670ec4a",
+        "url": "https://www.federalreserve.gov/newsevents/pressreleases/monetary20260729a.htm"
+      },
+      "pdf": {
+        "byte_identical": true,
+        "content_length_first": 42801,
+        "content_length_second": 42801,
+        "sha256_first": "dae2d548df628d5d9af556b26d32e7f0beb3fa7d198b22fe0612d98425cde7a4",
+        "sha256_second": "dae2d548df628d5d9af556b26d32e7f0beb3fa7d198b22fe0612d98425cde7a4",
+        "url": "https://www.federalreserve.gov/newsevents/pressreleases/files/monetary20200323a1.pdf"
+      }
+    },
+    "note": "The stable set is every artifact whose media_type is not text/html -- the Fed PDFs plus the NY Fed workbook -- so it is wider than 'PDF'. Re-fetched HTML is preserved as exact evidence and linked as another witness of the same observation; it never creates a second fact. The 'measured' block below compares two fetches of one URL so the cause is observed, not asserted.",
     "stable_artifacts_after_first_run": 82,
     "stable_artifacts_after_rerun": 82
   },
@@ -153,7 +173,7 @@
     "frenzy_capital": "https://www.frenzycap.com/fedwatch",
     "new_york_fed_sme": "https://www.newyorkfed.org/medialibrary/media/markets/survey/2026/jun-2026-data.xlsx"
   },
-  "started_at": "2026-08-17T17:19:56.751724+00:00",
+  "started_at": "2026-08-18T01:20:34.372043+00:00",
   "table_counts": {
     "after_first_run": {
       "macro_observation_artifacts": 163,

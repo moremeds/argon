@@ -12,16 +12,21 @@ import pytest
 
 from scripts.backfill.macro_policy_history import (
     backfill_exit_code,
+    missing_coverage,
     resolve_years,
     years_to_run,
 )
 
 
 def _status(
-    release_key: str, *, status: str, event_date: date
+    release_key: str,
+    *,
+    status: str,
+    event_date: date,
+    source: str = "federal_reserve_fomc",
 ) -> dict[str, object]:
     return {
-        "source": "federal_reserve_fomc",
+        "source": source,
         "release_key": release_key,
         "status": status,
         "event_date": event_date,
@@ -98,24 +103,85 @@ def test_without_resume_every_requested_year_runs():
     ) == (2020, 2021)
 
 
-def test_a_single_failed_release_fails_the_whole_backfill():
-    """Partial history is the failure this milestone exists to stop shipping."""
-    statuses = [
-        _status("fomc-statement:monetary20200315a", status="ok", event_date=date(2020, 3, 15)),
-        _status("fomc-statement:monetary20200429a", status="failed", event_date=date(2020, 4, 29)),
+def _complete_2020() -> list[dict[str, object]]:
+    """One ok release per source for 2020 — the minimum a covered year needs."""
+    return [
+        _status(
+            "fomc-statement:monetary20200315a", status="ok", event_date=date(2020, 3, 15)
+        ),
+        _status(
+            "fed-sep:20200610",
+            status="ok",
+            event_date=date(2020, 6, 10),
+            source="federal_reserve_sep",
+        ),
     ]
 
-    assert backfill_exit_code(statuses) == 1
+
+def test_a_single_failed_release_fails_the_whole_backfill():
+    """Partial history is the failure this milestone exists to stop shipping."""
+    statuses = _complete_2020() + [
+        _status(
+            "fomc-statement:monetary20200429a",
+            status="failed",
+            event_date=date(2020, 4, 29),
+        ),
+    ]
+
+    assert backfill_exit_code(statuses, years=(2020,), current_year=2026) == 1
 
 
 def test_a_fully_ok_archive_exits_zero():
-    statuses = [
-        _status("fomc-statement:monetary20200315a", status="ok", event_date=date(2020, 3, 15))
-    ]
-
-    assert backfill_exit_code(statuses) == 0
+    assert (
+        backfill_exit_code(_complete_2020(), years=(2020,), current_year=2026) == 0
+    )
 
 
 def test_an_empty_archive_is_a_failure_not_a_pass():
     """Zero releases means discovery broke; vacuous success hides an outage."""
-    assert backfill_exit_code([]) == 1
+    assert backfill_exit_code([], years=(2020,), current_year=2026) == 1
+
+
+def test_a_past_year_that_produced_nothing_fails_even_when_every_row_is_ok():
+    """The rows are the numerator; the requested window is the denominator.
+
+    A year whose discovery failed writes NO catalog rows, so it vanishes from
+    the filter and takes its own evidence with it.  Judging the run by the rows
+    that exist passes over exactly the hole worth catching.
+    """
+    statuses = _complete_2020()
+
+    assert backfill_exit_code(statuses, years=(2020, 2021), current_year=2026) == 1
+    assert missing_coverage(statuses, years=(2020, 2021), current_year=2026) == [
+        "federal_reserve_fomc:2021",
+        "federal_reserve_sep:2021",
+    ]
+
+
+def test_one_source_going_dark_for_a_year_is_not_hidden_by_the_other():
+    """SEP publishes 4 times a year against the FOMC's 8.
+
+    Requiring only "the year has rows" would let a whole SEP outage hide behind
+    a healthy statement feed.
+    """
+    statuses = [
+        _status(
+            "fomc-statement:monetary20200315a", status="ok", event_date=date(2020, 3, 15)
+        )
+    ]
+
+    assert missing_coverage(statuses, years=(2020,), current_year=2026) == [
+        "federal_reserve_sep:2020"
+    ]
+
+
+def test_the_current_year_is_never_required_to_have_published_yet():
+    """In January a source legitimately has zero releases.
+
+    An exit code that cries wolf every January is one the operator learns to
+    ignore, which costs more than the case it catches.
+    """
+    statuses = _complete_2020()
+
+    assert missing_coverage(statuses, years=(2020, 2026), current_year=2026) == []
+    assert backfill_exit_code(statuses, years=(2020, 2026), current_year=2026) == 0

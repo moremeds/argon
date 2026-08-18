@@ -11,8 +11,10 @@ discovered release is ``ok`` is skipped without touching the network.  The
 current year is never skipped — the Fed has not finished publishing it, so
 "complete" cannot be true of it.
 
-Exits non-zero if any release in the requested window is not ``ok``, and if the
-window produced no releases at all: a vacuous pass would hide a discovery outage.
+Exits non-zero if any release in the requested window is not ``ok``, if the
+window produced no releases at all, or if any past source-year inside it produced
+none: a year whose discovery failed writes no catalog rows, so judging the run by
+the rows that exist would let it pass over the hole that erased its own evidence.
 
 Reproduce::
 
@@ -82,10 +84,46 @@ def years_to_run(
     )
 
 
-def backfill_exit_code(statuses: Sequence[dict[str, Any]]) -> int:
+def missing_coverage(
+    statuses: Sequence[dict[str, Any]],
+    *,
+    years: Sequence[int],
+    current_year: int,
+) -> list[str]:
+    """Requested source-years that produced no catalog row at all.
+
+    A year whose discovery failed writes NOTHING to the catalog, so it drops out
+    of the filtered rows and takes its own evidence with it.  Reading only the
+    rows that exist is the same self-blinding the probe's ``max(meeting_date)``
+    had, one level up: the requested window is the denominator, and the rows are
+    only ever the numerator.
+
+    The current year is exempt.  The Fed has not finished publishing it, so in
+    January a source legitimately has zero releases -- and an exit code that
+    cries wolf every January is one the operator learns to ignore.
+    """
+    covered = {(row["source"], row["event_date"].year) for row in statuses}
+    return [
+        f"{source}:{year}"
+        for year in sorted(years)
+        for source in SOURCES
+        if year < current_year and (source, year) not in covered
+    ]
+
+
+def backfill_exit_code(
+    statuses: Sequence[dict[str, Any]],
+    *,
+    years: Sequence[int],
+    current_year: int,
+) -> int:
     if not statuses:
         return 1
-    return 0 if all(s["status"] == COMPLETE_STATUS for s in statuses) else 1
+    if any(row["status"] != COMPLETE_STATUS for row in statuses):
+        return 1
+    return (
+        1 if missing_coverage(statuses, years=years, current_year=current_year) else 0
+    )
 
 
 def _statuses(repo: Repository, years: Sequence[int]) -> list[dict[str, Any]]:
@@ -97,7 +135,9 @@ def _statuses(repo: Repository, years: Sequence[int]) -> list[dict[str, Any]]:
     ]
 
 
-def _report(statuses: Sequence[dict[str, Any]]) -> dict[str, Any]:
+def _report(
+    statuses: Sequence[dict[str, Any]], *, years: Sequence[int], current_year: int
+) -> dict[str, Any]:
     return {
         "releases": len(statuses),
         "ok": sum(1 for s in statuses if s["status"] == COMPLETE_STATUS),
@@ -107,6 +147,10 @@ def _report(statuses: Sequence[dict[str, Any]]) -> dict[str, Any]:
                 for s in statuses
                 if s["status"] != COMPLETE_STATUS
             }
+        ),
+        # Named, not counted: "2021 is empty" is actionable, "6 of 7 years" is not.
+        "no_releases_at_all": missing_coverage(
+            statuses, years=years, current_year=current_year
         ),
     }
 
@@ -135,14 +179,15 @@ def main() -> int:
     except ValueError as exc:
         parser.error(str(exc))
 
+    window = {"years": years, "current_year": observed_at.year}
     settings = Settings.from_env()
     dsn = settings.db_dsn()
     repo = Repository(psycopg.connect(dsn), schema=settings.db_schema)
     try:
         if args.verify:
             statuses = _statuses(repo, years)
-            logger.info(json.dumps(_report(statuses), indent=2))
-            return backfill_exit_code(statuses)
+            logger.info(json.dumps(_report(statuses, **window), indent=2))
+            return backfill_exit_code(statuses, **window)
 
         pending = years_to_run(
             years,
@@ -169,8 +214,8 @@ def main() -> int:
                     list(result.failed_release_keys),
                 )
         statuses = _statuses(repo, years)
-        logger.info(json.dumps(_report(statuses), indent=2))
-        return backfill_exit_code(statuses)
+        logger.info(json.dumps(_report(statuses, **window), indent=2))
+        return backfill_exit_code(statuses, **window)
     finally:
         repo.conn.close()
 

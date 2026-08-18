@@ -2,9 +2,12 @@
 
 from __future__ import annotations
 
+import logging
 from dataclasses import dataclass
 from datetime import datetime
 from typing import Any
+
+from pydantic import ValidationError
 
 from uw_scan.models.macro import (
     MacroEvidenceRef,
@@ -18,6 +21,8 @@ from uw_scan.models.macro import (
 from uw_scan.storage.repository import Repository
 
 from .policy import assemble_policy_paths
+
+logger = logging.getLogger(__name__)
 
 
 @dataclass(frozen=True)
@@ -56,11 +61,10 @@ _CONTRACTS = (
 )
 
 
-def build_policy_comparison(
-    repo: Repository, *, as_of: datetime
-) -> PolicyComparison:
+def build_policy_comparison(repo: Repository, *, as_of: datetime) -> PolicyComparison:
     rows: dict[PolicyPathKind, dict[str, Any]] = {}
     paths: list[PolicyPath] = []
+    unreadable: dict[PolicyPathKind, str] = {}
     for contract in _CONTRACTS:
         row = repo.fetch_latest_macro_observation_as_of(
             contract.series_id,
@@ -70,7 +74,17 @@ def build_policy_comparison(
         if row is None:
             continue
         rows[contract.kind] = row
-        paths.append(_path_from_observation(contract, row))
+        try:
+            paths.append(_path_from_observation(contract, row))
+        except (ValueError, ValidationError) as exc:
+            # The read-side twin of the per-release write transaction: one bad
+            # release cannot erase its siblings on ingest, and one row whose
+            # shape drifted cannot erase the other three paths on read.  The
+            # slot degrades to a named reason; it never borrows another source.
+            logger.warning("policy path %s is unreadable: %s", contract.kind, repr(exc))
+            unreadable[contract.kind] = (
+                f"stored {contract.kind} observation is unreadable: {type(exc).__name__}"
+            )
 
     sources = [source for contract in _CONTRACTS for source in contract.sources]
     status_rows = repo.fetch_macro_source_statuses(sources)
@@ -85,12 +99,11 @@ def build_policy_comparison(
         paths,
         as_of=as_of,
         freshness_by_kind=freshness,
+        missing_reasons=unreadable,
     )
 
 
-def _path_from_observation(
-    contract: _PathContract, row: dict[str, Any]
-) -> PolicyPath:
+def _path_from_observation(contract: _PathContract, row: dict[str, Any]) -> PolicyPath:
     value = row.get("value_jsonb")
     if not isinstance(value, dict) or value.get("kind") != contract.kind:
         raise ValueError(
@@ -147,7 +160,13 @@ def _coverage(
         for release in releases
         if release["source"] == source and release["last_attempt_at"] <= as_of
     ]
-    failed = [release for release in visible if release["status"] == "failed"]
+    # Every status that is not ``ok`` is a release carrying no fact, and the
+    # operator's question is "which releases have no fact?" -- not "which ones
+    # raised".  Counting only ``failed`` left ``artifact_only`` (bytes landed,
+    # parse did not) and ``discovered`` in a limbo that read as healthy: 20
+    # discovered / 17 succeeded / 0 failed has the same shape as a clean source.
+    # ``error_type`` still distinguishes how each one failed.
+    failed = [release for release in visible if release["status"] != "ok"]
     return {
         "releases_discovered": len(visible),
         "releases_succeeded": sum(1 for r in visible if r["status"] == "ok"),

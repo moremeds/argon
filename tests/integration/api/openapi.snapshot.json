@@ -11888,6 +11888,31 @@
               }
             ],
             "title": "Vote Status"
+          },
+          "voted_against": {
+            "items": {
+              "type": "string"
+            },
+            "title": "Voted Against",
+            "type": "array"
+          },
+          "voted_for": {
+            "items": {
+              "type": "string"
+            },
+            "title": "Voted For",
+            "type": "array"
+          },
+          "voter_names_stated": {
+            "anyOf": [
+              {
+                "type": "boolean"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Voter Names Stated"
           }
         },
         "required": [
@@ -12080,6 +12105,7 @@
             "title": "Last Success At"
           },
           "release_failures": {
+            "description": "Oldest failures first, capped: the deepest hole is the one a backfill has to reach. May be shorter than releases_failed.",
             "items": {
               "$ref": "#/components/schemas/PolicyReleaseFailure"
             },
@@ -12088,16 +12114,19 @@
           },
           "releases_discovered": {
             "default": 0,
+            "description": "Releases this deployment has attempted by as_of. This is our own attempt log, NOT the publisher's archive: a source we have never backfilled reports a small complete-looking window rather than a hole. Use the backfill's coverage audit to compare against the published archive.",
             "title": "Releases Discovered",
             "type": "integer"
           },
           "releases_failed": {
             "default": 0,
+            "description": "Attempted releases that produced no fact, for any reason \u2014 a failed parse and bytes-without-a-reading both count. Always equals releases_discovered minus releases_succeeded.",
             "title": "Releases Failed",
             "type": "integer"
           },
           "releases_succeeded": {
             "default": 0,
+            "description": "Attempted releases that produced a durable fact.",
             "title": "Releases Succeeded",
             "type": "integer"
           },

@@ -5610,6 +5610,12 @@ export interface components {
             vote_status?: ("stated" | "not_stated") | null;
             /** Vote Split */
             vote_split?: string | null;
+            /** Voted For */
+            voted_for?: string[];
+            /** Voted Against */
+            voted_against?: string[];
+            /** Voter Names Stated */
+            voter_names_stated?: boolean | null;
             /** Central Tendency Lower Percent */
             central_tendency_lower_percent?: string | null;
             /** Central Tendency Upper Percent */
@@ -5696,20 +5702,26 @@ export interface components {
             error_message?: string | null;
             /**
              * Releases Discovered
+             * @description Releases this deployment has attempted by as_of. This is our own attempt log, NOT the publisher's archive: a source we have never backfilled reports a small complete-looking window rather than a hole. Use the backfill's coverage audit to compare against the published archive.
              * @default 0
              */
             releases_discovered: number;
             /**
              * Releases Succeeded
+             * @description Attempted releases that produced a durable fact.
              * @default 0
              */
             releases_succeeded: number;
             /**
              * Releases Failed
+             * @description Attempted releases that produced no fact, for any reason — a failed parse and bytes-without-a-reading both count. Always equals releases_discovered minus releases_succeeded.
              * @default 0
              */
             releases_failed: number;
-            /** Release Failures */
+            /**
+             * Release Failures
+             * @description Oldest failures first, capped: the deepest hole is the one a backfill has to reach. May be shorter than releases_failed.
+             */
             release_failures?: components["schemas"]["PolicyReleaseFailure"][];
         };
         /** PositioningBlock */

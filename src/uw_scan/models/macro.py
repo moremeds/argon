@@ -13,8 +13,7 @@ from uw_scan.macro_evidence import (
     macro_observation_content_hash,
 )
 
-from ._base import _UwBase, _preserve_public_module
-
+from ._base import _preserve_public_module, _UwBase
 
 MacroDomain = Literal["inflation", "policy_rates", "usd", "gold", "cross_domain"]
 MacroSourceKind = Literal[
@@ -181,10 +180,24 @@ class PolicyPathPoint(_UwBase):
     target_range_lower_percent: Decimal | None = None
     target_range_upper_percent: Decimal | None = None
     action: str | None = None
-    #: ``not_stated`` means the publisher printed no vote, which is a different
-    #: fact from a unanimous one.  ``None`` means the path kind has no vote.
+    #: ``not_stated`` means the publisher printed no vote at all.  The FOMC
+    #: parser never produces it -- a statement with no vote paragraph fails
+    #: closed and becomes no fact -- so it is reserved for a producer that can
+    #: legitimately observe a voteless release.  ``None`` means the path kind
+    #: has no vote: an anonymous SEP dot belongs to no named participant.
     vote_status: Literal["stated", "not_stated"] | None = None
     vote_split: str | None = None
+    #: Who voted, and whether the publisher said.  A tally alone cannot recover
+    #: the composition, and the composition is where the directional signal is.
+    #:
+    #: The three fields are only meaningful together.  Two of 55 statements in
+    #: the 2020+ archive print a tally with no roster, one of them a 9-3 -- so
+    #: an empty ``voted_against`` means "no dissenter was NAMED", and equals
+    #: "no dissenter" only when ``voter_names_stated`` is true.  Dropping that
+    #: flag turns three dissenters into a unanimous committee.
+    voted_for: list[str] = Field(default_factory=list)
+    voted_against: list[str] = Field(default_factory=list)
+    voter_names_stated: bool | None = None
     central_tendency_lower_percent: Decimal | None = None
     central_tendency_upper_percent: Decimal | None = None
     range_lower_percent: Decimal | None = None
@@ -272,20 +285,45 @@ class PolicySourceFreshness(_UwBase):
     #: Release coverage as of the same instant as the path itself.  A source can
     #: be ``ok`` on its latest release and still be missing half its history, so
     #: these counts answer a question ``status`` cannot.
-    releases_discovered: int = 0
-    releases_succeeded: int = 0
-    releases_failed: int = 0
-    release_failures: list[PolicyReleaseFailure] = Field(default_factory=list)
+    releases_discovered: int = Field(
+        default=0,
+        description=(
+            "Releases this deployment has attempted by as_of. This is our own "
+            "attempt log, NOT the publisher's archive: a source we have never "
+            "backfilled reports a small complete-looking window rather than a "
+            "hole. Use the backfill's coverage audit to compare against the "
+            "published archive."
+        ),
+    )
+    releases_succeeded: int = Field(
+        default=0, description="Attempted releases that produced a durable fact."
+    )
+    releases_failed: int = Field(
+        default=0,
+        description=(
+            "Attempted releases that produced no fact, for any reason — a failed "
+            "parse and bytes-without-a-reading both count. Always equals "
+            "releases_discovered minus releases_succeeded."
+        ),
+    )
+    release_failures: list[PolicyReleaseFailure] = Field(
+        default_factory=list,
+        description=(
+            "Oldest failures first, capped: the deepest hole is the one a "
+            "backfill has to reach. May be shorter than releases_failed."
+        ),
+    )
 
     @model_validator(mode="after")
     def _counts_are_consistent(self) -> "PolicySourceFreshness":
-        if min(
-            self.releases_discovered, self.releases_succeeded, self.releases_failed
-        ) < 0:
+        if (
+            min(self.releases_discovered, self.releases_succeeded, self.releases_failed)
+            < 0
+        ):
             raise ValueError("policy release counts cannot be negative")
-        if self.releases_succeeded + self.releases_failed > self.releases_discovered:
+        if self.releases_succeeded + self.releases_failed != self.releases_discovered:
             raise ValueError(
-                "policy release outcomes cannot exceed the releases discovered"
+                "policy release outcomes must account for every release discovered"
             )
         if len(self.release_failures) > self.releases_failed:
             raise ValueError(

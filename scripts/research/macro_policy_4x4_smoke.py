@@ -21,13 +21,19 @@ Reproduce::
 from __future__ import annotations
 
 import argparse
+import contextlib
+import hashlib
 import json
 import os
+import re
+import socket
+from collections.abc import Iterator
 from datetime import UTC, date, datetime
 from decimal import Decimal
 from pathlib import Path
 from typing import Any
 
+import httpx
 import psycopg
 from fastapi.testclient import TestClient
 
@@ -42,9 +48,7 @@ from uw_scan.worker.jobs.macro_policy_jobs import (
     macro_sme_ingest_job,
 )
 
-DEFAULT_OUTPUT = Path(
-    "docs/research/2026-08-12-fomc-sep-source-probe/smoke-4x4.json"
-)
+DEFAULT_OUTPUT = Path("docs/research/2026-08-12-fomc-sep-source-probe/smoke-4x4.json")
 COMMAND = (
     "UW_SCAN_TEST_DB_NAME=<dedicated test db> "
     "uv run python scripts/research/macro_policy_4x4_smoke.py"
@@ -195,10 +199,80 @@ def _api_evidence(settings: Settings, as_of: datetime) -> dict[str, Any]:
     return slots
 
 
+_LOOPBACK = frozenset({"127.0.0.1", "::1", "localhost"})
+
+
+@contextlib.contextmanager
+def _network_severed() -> Iterator[None]:
+    """Fail any connection that leaves this machine.
+
+    Loopback stays reachable because the read path still needs Postgres.  The
+    guard sits at the socket, not at the provider classes: durability is the
+    claim, and "no provider was constructed" does not establish it -- any code
+    path could open its own client.
+    """
+    real_connect = socket.socket.connect
+
+    def guarded(self, address, *args, **kwargs):  # type: ignore[no-untyped-def]
+        host = address[0] if isinstance(address, tuple) else None
+        if (
+            isinstance(host, str)
+            and host not in _LOOPBACK
+            and not host.startswith("127.")
+        ):
+            raise AssertionError(f"offline read reached out to {host}")
+        return real_connect(self, address, *args, **kwargs)
+
+    socket.socket.connect = guarded  # type: ignore[method-assign]
+    try:
+        yield
+    finally:
+        socket.socket.connect = real_connect  # type: ignore[method-assign]
+
+
 def _offline_read(settings: Settings, as_of: datetime) -> dict[str, bool]:
-    """Every provider class is unreachable here: nothing on the read path fetches."""
-    slots = _api_evidence(settings, as_of)
+    """Read the four paths with the source network actually severed."""
+    with _network_severed():
+        slots = _api_evidence(settings, as_of)
     return {slot: slots[slot]["present"] for slot in PATH_SLOTS}
+
+
+def _measure_byte_stability(html_url: str, pdf_url: str) -> dict[str, Any]:
+    """Fetch each URL twice and compare, rather than asserting a cause.
+
+    The rerun's artifact counts show HTML churning and non-HTML holding still,
+    but they cannot say WHY.  Naming Cloudflare without measuring it is an
+    assumption dressed as a finding, so this records the actual comparison:
+    same length, different hash, and whether the injected __CF$cv$params token
+    differs between two fetches of the identical URL.
+    """
+    headers = {"User-Agent": "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7)"}
+    measured: dict[str, Any] = {}
+    for label, url in (("html", html_url), ("pdf", pdf_url)):
+        payloads = []
+        for _ in range(2):
+            response = httpx.get(
+                url, timeout=30, follow_redirects=True, trust_env=False, headers=headers
+            )
+            response.raise_for_status()
+            payloads.append(response.content)
+        first, second = payloads
+        entry = {
+            "url": url,
+            "content_length_first": len(first),
+            "content_length_second": len(second),
+            "sha256_first": hashlib.sha256(first).hexdigest(),
+            "sha256_second": hashlib.sha256(second).hexdigest(),
+            "byte_identical": first == second,
+        }
+        if label == "html":
+            tokens = [
+                set(re.findall(rb"__CF\$cv\$params[^<]{0,80}", p)) for p in payloads
+            ]
+            entry["cloudflare_token_present"] = bool(tokens[0])
+            entry["cloudflare_token_differs"] = tokens[0] != tokens[1]
+        measured[label] = entry
+    return measured
 
 
 def _json_default(value: Any) -> Any:
@@ -272,6 +346,20 @@ def main() -> int:
             "JOIN uw_scan.macro_source_artifacts a USING (artifact_id) "
             "WHERE o.available_at < a.available_at"
         ).fetchone()[0]
+        # One real statement's two media, taken from what we just stored rather
+        # than hardcoded, so the measurement follows the archive if URLs move.
+        stability_pair = conn.execute(
+            "SELECT max(source_url) FILTER (WHERE media_type = 'text/html'), "
+            "       max(source_url) FILTER (WHERE media_type = 'application/pdf') "
+            "FROM uw_scan.macro_source_artifacts "
+            "WHERE source = 'federal_reserve_fomc'"
+        ).fetchone()
+
+    byte_stability = (
+        _measure_byte_stability(stability_pair[0], stability_pair[1])
+        if stability_pair and all(stability_pair)
+        else {"skipped": "no FOMC html/pdf pair stored"}
+    )
 
     assertions = {
         "four_paths_present": all(api_first[s]["present"] for s in PATH_SLOTS)
@@ -284,8 +372,7 @@ def main() -> int:
         # Facts, outcomes, and stable evidence must all be unchanged. The HTML
         # byte count deliberately is not asserted: see _counts.
         "rerun_adds_no_official_fact": (
-            after_first["official_observations"]
-            == after_rerun["official_observations"]
+            after_first["official_observations"] == after_rerun["official_observations"]
         ),
         "rerun_adds_no_release_outcome": (
             after_first["macro_release_ingest_status"]
@@ -296,9 +383,7 @@ def main() -> int:
             after_first["macro_source_artifacts_stable"]
             == after_rerun["macro_source_artifacts_stable"]
         ),
-        "offline_read_returns_paths": all(
-            offline[slot] for slot in OFFICIAL_SLOTS
-        ),
+        "offline_read_returns_paths": all(offline[slot] for slot in OFFICIAL_SLOTS),
         "no_observation_predates_its_evidence": backdated == 0,
     }
     payload = {
@@ -325,14 +410,14 @@ def main() -> int:
         "api_slots": api_first,
         "source_byte_stability": {
             "note": (
-                "Federal Reserve HTML is served through Cloudflare, which injects a "
-                "per-request __CF$cv$params script carrying a unique ray id and "
-                "timestamp. Identical-length, different-bytes on every fetch. The "
-                "PDF carries no such injection and is byte-stable, which is why it "
-                "is the primary artifact. Re-fetched HTML is preserved as exact "
-                "evidence and linked as another witness of the same observation; it "
-                "never creates a second fact."
+                "The stable set is every artifact whose media_type is not "
+                "text/html -- the Fed PDFs plus the NY Fed workbook -- so it is "
+                "wider than 'PDF'. Re-fetched HTML is preserved as exact evidence "
+                "and linked as another witness of the same observation; it never "
+                "creates a second fact. The 'measured' block below compares two "
+                "fetches of one URL so the cause is observed, not asserted."
             ),
+            "measured": byte_stability,
             "stable_artifacts_after_first_run": after_first[
                 "macro_source_artifacts_stable"
             ],
