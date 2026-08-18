@@ -6,7 +6,7 @@ Generated from `REGISTRY` in `src/uw_scan/reports/data_gap_healer.py` (one sourc
 uv run python -c "from uw_scan.reports.data_gap_healer import render_dataset_policy_markdown as r; open('docs/runbooks/data-gap-dataset-policy.md','w').write(r())"
 ```
 
-**143 datasets** across 11 groups.
+**144 datasets** across 11 groups.
 
 ## core_watchlist
 
@@ -35,8 +35,9 @@ uv run python -c "from uw_scan.reports.data_gap_healer import render_dataset_pol
 | fundamental_method_versions | excluded | none | none |  | none | immutable method registry, not a time series |  |
 | fundamental_obs_violations | provenance | none | none |  | event |  |  |
 | fundamental_scores | freshness_only | db | run_once | fundamental_refresh | event | derived from fundamental_statement_obs; worker/jobs/fundamental_refresh re-runs routing -> scoring -> anchors at zero provider spend. The old reason named this job and then declined to wire it. | 2026-08-16 |
-| fundamental_statement_obs | freshness_only | uw | none |  | event | quarterly filings over the fundamental universe (257 tickers), not the watchlist. Deliberately NOT wired to the healer: unlike scores/anchors this is a provider INGEST, and worker/jobs/fundamental_refresh explicitly does not ingest. Heal by running scripts/backfill/fundamental_ingest_backfill.py (insert-or-touch, safe to repeat) as a budgeted operator action, not on the nightly cron. | 2026-08-16 |
+| fundamental_statement_obs | freshness_only | uw | none |  | event | quarterly filings over the fundamental universe (450 tickers as of 2026-08-18; it moves when the seeder runs), not the watchlist. Deliberately NOT wired to the healer: unlike scores/anchors this is a provider INGEST, and worker/jobs/fundamental_refresh explicitly does not ingest. Heal by running scripts/backfill/fundamental_ingest_backfill.py (insert-or-touch, safe to repeat) as a budgeted operator action, not on the nightly cron. | 2026-08-16 |
 | fundamental_universe | excluded | none | none |  | none | seeded membership list, not a time series; scripts/seed_fundamental_universe.py is the source of truth |  |
+| revenue_breakdown_obs | freshness_only | uw | none |  | event | revenue breakdown by XBRL axis over the fundamental universe. Deliberately NOT wired to the healer: this is a provider INGEST, and its own capture job is the only writer. Heal by re-running worker/jobs/fundamental_concentration_capture (insert-or-touch by content hash, safe to repeat) as a budgeted operator action, not on the nightly cron. Note the provider window may roll: a period that has aged out cannot be healed at all, which is why capture runs monthly rather than quarterly. | 2026-08-18 |
 | valuation_anchors | freshness_only | db | run_once | fundamental_refresh | event | derived from fundamental_statement_obs + fundamental_company_type; healed by the same worker/jobs/fundamental_refresh chain as fundamental_scores (routing runs FIRST because anchors read company_type). Zero provider spend. | 2026-08-16 |
 
 ## gold_rates_macro
