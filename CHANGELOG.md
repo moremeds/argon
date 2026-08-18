@@ -7,6 +7,9 @@ version in lockstep (enforced by `scripts/release/version_sync_check.py`).
 
 ## [Unreleased]
 
+## [0.12.5] — 2026-08-18
+
+
 ### Added
 
 - **The fundamental panel now widens to every name this desk researches, and it
@@ -89,7 +92,6 @@ version in lockstep (enforced by `scripts/release/version_sync_check.py`).
   makes the observable failure rate structurally zero — the SEP parser sat at 1-of-25 while the
   probe reported healthy. It now parses every discovered release and takes the source state as the
   worst among them.
-
 ## [0.12.4] — 2026-08-18
 
 ### Fixed
