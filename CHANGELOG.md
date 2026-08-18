@@ -39,6 +39,23 @@ version in lockstep (enforced by `scripts/release/version_sync_check.py`).
 
 ### Fixed
 
+- **The SPX density cone now fills its own outage holes instead of losing the
+  session forever.** The nightly job only ever anchors the freshest bar and
+  self-gates on `latest_as_of() == anchor`, so any session whose 03:30 run never
+  fired became unreachable the moment a later cone landed — there was no path
+  back to it. Two ways in, both hit at once over 2026-08-11..14: the stack was
+  down, and the job's `tue-sat` cron puts the only chance to issue Friday's
+  anchor on a Saturday. `2026-08-14` was silently absent while `08-13` and
+  `08-17` were both present, and the chart read "1 session behind the tape".
+  A third pass now reconstructs holes across the last 10 sessions, bounded so it
+  stays a gap-filler rather than a seeder: the freshest bar belongs to the issue
+  pass prospectively, and nothing older than the earliest cone on record is
+  touched — an unseeded log is `scripts/backfill/spx_density_backfill.py`'s job,
+  not a side effect of a nightly run. The `select_sessions` integrity guard is
+  now shared by both callers rather than living only in the script, so a
+  prospective row can never be relabelled `reconstructed` (which would move an
+  out-of-sample cone into the in-sample tally and inflate the only honest
+  hit-rate number on the page). Summary gains a `reconstructed` count.
 - **A finished or killed heal run no longer wedges the nightly healer forever.**
   The nightly job skips itself while another `execute` run is `running`, and
   nothing ever cleared that flag. Two ways in: a run whose process died (SSH

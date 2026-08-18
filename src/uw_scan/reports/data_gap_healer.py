@@ -388,8 +388,11 @@ REGISTRY: list[DatasetRegistryEntry] = [
         source_system="derived",
         reason=(
             "Display-only v13 density cone shadow log. Prospective rows are "
-            "forward-in-time only; historical fill is origin='reconstructed' via "
-            "scripts/backfill/spx_density_backfill.py."
+            "forward-in-time only; historical fill is origin='reconstructed', which "
+            "the cone's own nightly job self-heals over the last 10 sessions "
+            "(worker/jobs/spx_density_forecast._reconstruct_pass) and "
+            "scripts/backfill/spx_density_backfill.py seeds beyond that. Neither may "
+            "relabel a prospective row, so this stays outside the generic healer."
         ),
     ),
     DatasetRegistryEntry(

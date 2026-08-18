@@ -5,6 +5,11 @@ Each historical as_of reuses compute_forecast's as_of truncation, so the seed is
 v13 panel-index convention — bit-faithful to what the model would have issued that night.
 Settles all rows at the end.
 
+This script SEEDS history. Short holes inside an already-seeded log (a stack outage, a
+missed tue-sat cron) are self-healed nightly by the job's own reconstruct pass, which
+shares this module's `select_sessions` guard — reach for this script when you need depth
+beyond the job's 10-session lookback, or `--force` to recompute after a migration.
+
 Usage:
   uv run python scripts/backfill/spx_density_backfill.py --sessions 60 [--dry-run]
 Persists to Postgres (uw_scan.spx_density_forecast) — the durable trace IS the table.
@@ -14,8 +19,6 @@ from __future__ import annotations
 
 import argparse
 import logging
-from datetime import date
-from typing import AbstractSet, Sequence
 
 import psycopg
 
@@ -27,28 +30,10 @@ from uw_scan.density.forecast import (
     result_to_db_rows,
 )
 from uw_scan.storage.spx_density_repository import SpxDensityRepository
-from uw_scan.worker.jobs.spx_density_forecast import _settle_pass
+from uw_scan.worker.jobs.spx_density_forecast import _settle_pass, select_sessions
 
 logging.basicConfig(level=logging.INFO, format="%(message)s")
 log = logging.getLogger("spx_density_backfill")
-
-
-def select_sessions(
-    candidates: Sequence[date],
-    *,
-    existing: AbstractSet[date],
-    prospective: AbstractSet[date],
-) -> list[date]:
-    """Which candidate sessions this backfill may write.
-
-    `existing` is empty under --force, which is the point of the flag: recompute rows we
-    already have. `prospective` is NOT, ever. upsert_rows updates `origin` on conflict, so
-    recomputing a session the nightly job issued forward would rewrite it to
-    'reconstructed' and move a genuinely out-of-sample cone into the in-sample tally —
-    quietly inflating the only honest hit-rate number on the page. A row the model
-    published forward is not something a backfill may relabel.
-    """
-    return [d for d in candidates if d not in existing and d not in prospective]
 
 
 def main() -> int:
