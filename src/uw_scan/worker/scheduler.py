@@ -331,6 +331,17 @@ def _should_schedule_market_tide_capture(settings: Settings) -> bool:
     return role == "all" or (role == "uw" and settings.worker_index == 0)
 
 
+def _should_schedule_fundamental_ingest(settings: Settings) -> bool:
+    """One process owns the monthly statement pull. Pinned to uw-0, not
+    `_is_primary_worker` (true for index-0 of every role) — the job has no
+    advisory lock, so scheduling it per role-0 would multiply UW spend and race
+    the insert-or-touch on identical content hashes."""
+    if not settings.fundamental_ingest_enabled:
+        return False
+    role = settings.worker_role.lower()
+    return role == "all" or (role == "uw" and settings.worker_index == 0)
+
+
 def _should_schedule_top_net_impact_capture(settings: Settings) -> bool:
     """Exactly one process owns the 15-min top-net-impact capture. Same uw-0
     pin + kill-switch as market-tide (one UW call/tick, idempotent upsert)."""
@@ -776,6 +787,21 @@ def main() -> int:
 
         with _repo(settings) as repo:
             fundamental_refresh(conn=repo.conn, settings=settings)
+
+    def _fundamental_ingest() -> None:
+        from uw_scan.worker.jobs.fundamental_ingest import fundamental_ingest
+
+        with _external_api_recorder(settings) as recorder:
+            with _uw_client(
+                settings,
+                telemetry_recorder=recorder,
+                job_name="fundamental_ingest",
+            ) as uw:
+                with _repo(settings) as repo:
+                    counters = fundamental_ingest(
+                        conn=repo.conn, client=uw, schema=settings.db_schema
+                    )
+        logger.info("fundamental_ingest %s", counters)
 
     def _theta_harvester_scan() -> None:
         with _repo(settings) as repo:
@@ -1734,6 +1760,21 @@ def main() -> int:
                     CronTrigger.from_crontab("30 17 * * 0-4", timezone=settings.rth_tz),
                     id="skew_swing_greeks_refresh",
                     name="Skew swing-DTE greeks refresh",
+                    max_instances=1,
+                    coalesce=True,
+                )
+            # Monthly statement pull, 03:40 ET on the 2nd. Overnight and off the
+            # 2nd-of-month boundary that quarter-end reporting clusters around, so
+            # it never contends with the 19:00 surface capture for the shared UW
+            # per-minute ceiling.
+            if _should_schedule_fundamental_ingest(settings):
+                sched.add_job(
+                    _fundamental_ingest,
+                    CronTrigger.from_crontab(
+                        settings.fundamental_ingest_cron, timezone=settings.rth_tz
+                    ),
+                    id="fundamental_ingest",
+                    name="Fundamental statement ingest (monthly)",
                     max_instances=1,
                     coalesce=True,
                 )

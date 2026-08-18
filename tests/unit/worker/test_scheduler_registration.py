@@ -132,3 +132,52 @@ def test_uw_alpha_capture_absent_on_non_primary_uw(monkeypatch):
         UW_SCAN_UW_ALPHA_CAPTURE_ENABLED="true",
     )
     assert not (_UW_ALPHA_JOB_IDS & ids)  # pinned to uw-0 only
+
+
+def test_fundamental_ingest_registered_on_primary_uw_when_enabled(monkeypatch):
+    ids = _registered_job_ids(
+        monkeypatch,
+        UW_SCAN_WORKER_ROLE="uw",
+        UW_SCAN_WORKER_INDEX="0",
+        UW_SCAN_WORKER_COUNT="1",
+        UW_SCAN_FUNDAMENTAL_INGEST_ENABLED="true",
+    )
+    assert "fundamental_ingest" in ids
+
+
+def test_fundamental_ingest_absent_when_disabled(monkeypatch):
+    ids = _registered_job_ids(
+        monkeypatch,
+        UW_SCAN_WORKER_ROLE="uw",
+        UW_SCAN_WORKER_INDEX="0",
+        UW_SCAN_WORKER_COUNT="1",
+        UW_SCAN_FUNDAMENTAL_INGEST_ENABLED="false",
+    )
+    assert "fundamental_ingest" not in ids
+    assert "full_scan_0" in ids  # harness sanity: sibling uw job still wires
+
+
+def test_fundamental_ingest_absent_on_non_primary_uw(monkeypatch):
+    # No advisory lock on this job, so a per-role-0 pin would run N copies and
+    # multiply UW spend. uw-0 only.
+    ids = _registered_job_ids(
+        monkeypatch,
+        UW_SCAN_WORKER_ROLE="uw",
+        UW_SCAN_WORKER_INDEX="1",
+        UW_SCAN_WORKER_COUNT="2",
+        UW_SCAN_FUNDAMENTAL_INGEST_ENABLED="true",
+    )
+    assert "fundamental_ingest" not in ids
+
+
+def test_fundamental_ingest_absent_on_massive_role(monkeypatch):
+    # It spends UW calls; the massive workers must never pick it up.
+    ids = _registered_job_ids(
+        monkeypatch,
+        UW_SCAN_WORKER_ROLE="massive",
+        UW_SCAN_WORKER_INDEX="0",
+        UW_SCAN_WORKER_COUNT="1",
+        UW_SCAN_FUNDAMENTAL_INGEST_ENABLED="true",
+    )
+    assert "fundamental_ingest" not in ids
+    assert "fundamental_refresh" in ids  # harness sanity: massive-0 sibling wires

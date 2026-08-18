@@ -7,6 +7,33 @@ version in lockstep (enforced by `scripts/release/version_sync_check.py`).
 
 ## [Unreleased]
 
+### Added
+
+- **The fundamental panel now widens to every name this desk researches, and it
+  stays fresh on its own.** Two gaps closed together. The universe seeder gained
+  a third source — industry-chain membership — taking production's `ranked` tier
+  from 257 to 450 names. Keying admission on "already has statements" instead,
+  as originally planned, is circular: `fundamental_ingest` draws its ticker list
+  from the universe, so a name outside it never gets statements and could never
+  qualify. That rule reads correct on a laptop, where a research backfill run
+  during the mini outage left 144 extra statement-bearing names, and is a silent
+  no-op in production, where it admits zero. Admission is strictly additive —
+  a name already carrying validation backing is excluded from the new source
+  rather than re-seeded, since `seed_universe` upserts `reason` and would
+  otherwise downgrade its provenance. The three provenances stay separable in
+  that column.
+- **`fundamental_ingest` is now scheduled** (monthly, 03:40 ET on the 2nd, uw-0,
+  `UW_SCAN_FUNDAMENTAL_INGEST_ENABLED`, cron overridable via
+  `UW_SCAN_FUNDAMENTAL_INGEST_CRON`). The nightly `fundamental_refresh`
+  deliberately does not pull filings, so until now the entire lane recomputed
+  every night over a panel that stopped advancing the moment nobody ran the
+  backfill script by hand — healthy-looking and stale. Monthly rather than daily
+  because statements are quarterly but filings arrive spread across the
+  calendar; ~1,800 UW calls per month at the widened universe, against a
+  120k/day budget. Pinned to uw-0 rather than every role's index-0: the job has
+  no advisory lock, so a per-role pin would multiply UW spend and race the
+  insert-or-touch.
+
 ## [0.12.4] — 2026-08-18
 
 

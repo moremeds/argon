@@ -19,6 +19,14 @@ Statement ingest reads UW and never touches the lake, so that limit does not
 apply here and the 12 are seeded. The distinction survives in the `reason`
 column: 245 names carry validation backing, the rest are ingested and ranked
 without it. Do not let a later reader collapse those into one claim.
+
+A third source extends the same argument to every name this desk researches —
+see `researched_tickers`. That source reads a live table, so unlike the breadth
+replay this script is no longer a pure function of committed files: re-running it
+after the chain taxonomy changes gives a different membership, by design. The
+`reason` column is what keeps the three provenances separable, and membership is
+only ever added — `seed_universe` upserts `reason`, so a name already admitted by
+a higher-provenance source is excluded from the new one rather than overwritten.
 """
 
 from __future__ import annotations
@@ -61,6 +69,43 @@ def ranked_tickers() -> tuple[list[str], dict[str, int]]:
     return sorted(keep), {"expected": doc["usable"], "recomputed": len(keep)}
 
 
+RESEARCHED_REASON = "researched: industry-chain member, no validation backing"
+
+
+def researched_tickers(conn, already: set[str], schema: str) -> list[str]:
+    """Names this desk researches that the breadth probe never got to consider.
+
+    Sourced from `watchlist_chain` — the durable industry-chain taxonomy — plus
+    any name that somehow already carries statements. **The chain half is what
+    makes this work in production**, and the reason is a circle worth stating:
+    `fundamental_ingest` draws its ticker list from `fundamental_universe`, so a
+    name with no membership never gets statements, and a rule that admits only
+    statement-bearing names can never let it in. Keying on statements alone reads
+    correct on a laptop and is a silent no-op on the mini, because the extra
+    statement-bearing names in `option_wizard_local` are residue from a research
+    backfill run while the mini was down — not a state production shares.
+
+    These names carry no validation backing at all: the breadth probe gated on
+    LOCAL LAKE PRICE DEPTH because it needed forward returns to validate against,
+    which says nothing about whether a name is ingestable. That is the same
+    argument this module's docstring already makes for the 12 core names.
+
+    `already` is excluded rather than re-seeded. `seed_universe` upserts `reason`,
+    so re-admitting a validated name from here would quietly downgrade its
+    provenance to this one.
+    """
+    with conn.cursor() as cur:
+        cur.execute(
+            f"""
+            SELECT DISTINCT ticker FROM {schema}.watchlist_chain
+             UNION
+            SELECT DISTINCT ticker FROM {schema}.fundamental_statement_obs
+             ORDER BY 1
+            """
+        )
+        return [t for (t,) in cur.fetchall() if t not in already]
+
+
 def main() -> int:
     dry = "--dry-run" in sys.argv
     ranked, counts = ranked_tickers()
@@ -90,18 +135,23 @@ def main() -> int:
         for t in missing
     ]
 
-    print(f"core    {len(core)} names")
-    print(
-        f"ranked  {len(ranked)} validated + {len(missing)} core-containment "
-        f"= {len(ranked_rows)}"
-    )
-    if missing:
-        print(f"  core names outside the validated panel: {', '.join(missing)}")
-    if dry:
-        return 0
-
     settings = Settings.from_env()
     with psycopg.connect(settings.db_dsn()) as conn:
+        researched = researched_tickers(
+            conn, {t for t, _, _ in ranked_rows}, settings.db_schema
+        )
+        ranked_rows += [(t, None, RESEARCHED_REASON) for t in researched]
+
+        print(f"core    {len(core)} names")
+        print(
+            f"ranked  {len(ranked)} validated + {len(missing)} core-containment "
+            f"+ {len(researched)} researched = {len(ranked_rows)}"
+        )
+        if missing:
+            print(f"  core names outside the validated panel: {', '.join(missing)}")
+        if dry:
+            return 0
+
         repo = FundamentalObsRepository(conn, schema=settings.db_schema)
         repo.seed_universe("core", core)
         repo.seed_universe("ranked", ranked_rows)

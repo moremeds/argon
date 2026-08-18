@@ -425,6 +425,17 @@ class Settings(BaseModel):
     # only. Default ON because the alternative is a card that silently stops
     # updating, which is how it behaved before the job existed.
     fundamental_refresh_enabled: bool = True
+    # Statement ingest (monthly, uw-0). `fundamental_refresh` recomputes derived
+    # layers nightly but deliberately does NOT pull filings, so without this job
+    # the whole lane faithfully recomputes over a panel that stops advancing the
+    # moment nobody runs the backfill script by hand — healthy-looking and stale,
+    # the same failure shape as `fundamentals_refresh` never committing a row.
+    # Monthly, not daily: statements are quarterly but filings arrive spread
+    # across the calendar, so a monthly pass catches each name within weeks of
+    # its filing at 4 UW calls per ticker (~1,800/month at the widened universe,
+    # against a 120k/day budget).
+    fundamental_ingest_enabled: bool = True
+    fundamental_ingest_cron: str = "40 3 2 * *"
     chanlun_anchor_tol: float = 0.0
     chanlun_stale_sessions: int = 20
     # Empty by DESIGN (2026-07-15 walk-forward probe): all 4 candidate
@@ -958,6 +969,12 @@ class Settings(BaseModel):
             ),
             fundamental_refresh_enabled=_env_bool(
                 "UW_SCAN_FUNDAMENTAL_REFRESH_ENABLED", True
+            ),
+            fundamental_ingest_enabled=_env_bool(
+                "UW_SCAN_FUNDAMENTAL_INGEST_ENABLED", True
+            ),
+            fundamental_ingest_cron=os.environ.get(
+                "UW_SCAN_FUNDAMENTAL_INGEST_CRON", "40 3 2 * *"
             ),
             chanlun_anchor_tol=float(
                 os.environ.get("UW_SCAN_CHANLUN_ANCHOR_TOL", "0.0")
