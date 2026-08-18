@@ -38,9 +38,9 @@ version in lockstep (enforced by `scripts/release/version_sync_check.py`).
   and an optional third-party market shadow — now persist through the production worker and serve
   from stored rows. They stay separately keyed and are never averaged into a synthetic Fed path, and
   an anonymous SEP dot is never attributed to the Chair. Measured live: 55/55 FOMC statements and
-  25/25 SEP releases parse across 2020–2026 with zero failures. Every dissent-bearing release now
-  has a roster whose named voters sum to the committee actually seated that year — the one release
-  that did not is the parser bug fixed below. `GET /api/macro/policy` gains per-source release
+  25/25 SEP releases parse across 2020–2026 with zero failures, and every release with more than
+  one dissenter — the case where the clause grammar can actually go wrong — is verified name by
+  name against the published statement. `GET /api/macro/policy` gains per-source release
   coverage (`releases_discovered` / `releases_succeeded` / `releases_failed` plus named failures),
   an exact `as_of_ts` replay instant beside the existing date-level `as_of`, and the full vote on
   each path point — `vote_status`, `vote_split`, `voted_for`, `voted_against`, and

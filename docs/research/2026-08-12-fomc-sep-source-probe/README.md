@@ -97,13 +97,20 @@ dropdb option_wizard_test_mc1_smoke
 
 - `probe.json` was measured at its recorded `generated_at` and is an all-release audit of the years
   it names in `years`. The 2026-08-18 run reports 55/55 FOMC statements and 25/25 SEP releases
-  parsing across 2020–2026, zero failures. Six dissents were checked by hand against published
-  history: Mester (2020-03-15, 9-1), Kaplan and Kashkari (2020-09-16, 8-2), Bullard (2022-03-16,
-  8-1), George (2022-06-15, 10-1), Bowman (2024-09-18, 11-1), Hammack (2024-12-18, 11-1). That is
-  six of the fourteen dissent-bearing releases, not all of them — and the review that noticed the
-  gap also found the one release in the unchecked remainder that was wrong (2025-10-29, recorded
-  10-1 for a real 10-2; see VERDICT.md). `roster_total` now travels with each release so the same
-  anomaly is visible without recomputing it.
+  parsing across 2020–2026, zero failures. Ten of the fourteen dissent-bearing releases were
+  checked by hand against the published statement: Mester (2020-03-15, 9-1), Kaplan and Kashkari
+  (2020-09-16, 8-2), Bullard (2022-03-16, 8-1), George (2022-06-15, 10-1), Bowman (2024-09-18,
+  11-1), Hammack (2024-12-18, 11-1), Bowman and Waller (2025-07-30, 9-2), Miran and Schmid
+  (2025-10-29, 10-2), Miran/Goolsbee/Schmid (2025-12-10, 9-3), Miran and Waller (2026-01-28, 10-2),
+  and Miran/Hammack/Kashkari/Logan (2026-04-29, 8-4). **Every release with more than one dissenter
+  is in that set**, which is where the clause grammar can actually go wrong; the four unchecked
+  releases are single-dissenter with a full twelve-seat roster.
+
+  The first six were checked before the independent review, and the review found that the unchecked
+  remainder contained a wrong one — 2025-10-29, recorded 10-1 for a real 10-2 (see VERDICT.md).
+  That is why the multi-dissenter class was then swept exhaustively rather than sampled.
+  `roster_total` now travels with each release so the same anomaly is visible without recomputing
+  it, but read it as a prompt to check, never as a gate — see the roster caveat in VERDICT.md.
 - `pre-hardening-audit.json` was generated on 2026-08-13 from the already observed MC1 exploratory
   worker and historical parser outputs. Their original execution time and exact temporary-DB command
   were not retained; the JSON says so explicitly rather than manufacturing provenance.

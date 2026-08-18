@@ -133,10 +133,18 @@ A third defect was found by independent review, in the parse itself rather than 
   roster was knowable.
 - **A dissent roster is the only self-check this data has, and it is weak.** `vote_split` is derived
   from the parsed names in the regular format family, so the tally cannot corroborate the roster —
-  they fail together. The independent quantity is the roster TOTAL, which should track the committee
-  seated that year; `probe.json` now records `voted_for_count` and `roster_total` per release so the
-  anomaly that exposed the 2025-10-29 defect is visible in the evidence rather than only to a
-  reviewer who thinks to add the columns up.
+  they fail together. The independent quantity is the roster TOTAL; `probe.json` now records
+  `voted_for_count` and `roster_total` per release so the anomaly that exposed the 2025-10-29 defect
+  is visible in the evidence rather than only to a reviewer who thinks to add the columns up.
+- **`roster_total` below twelve has three causes, and we can only distinguish two of them.** A short
+  roster means a Board vacancy (2020–2022 sit at 9–11 for this reason), a declared absence, or a
+  dropped voter — the defect. The parser does not read the absence sentence: 2025-07-30 ends
+  "Absent and not voting was Adriana D. Kugler", which is why that release totals 11, and **no
+  fixture in the suite contains that sentence**. Nothing stored for it is wrong — 9 voting for, 2
+  against, both dissenters named — but the member is silently dropped, which is the one place this
+  milestone's "never silently skip a voter" rule is not yet honored, and it leaves the roster signal
+  ambiguous in exactly the direction that hid the 10-1. Capturing absences is tracked as follow-up
+  work; until then the roster total is a prompt to go read the statement, not a check that passes.
 
 ## What the live sweep does and does not protect
 
