@@ -6454,10 +6454,14 @@ export interface components {
             composite_score?: number | null;
             /**
              * Duration Stance
-             * @default NEUTRAL
+             * @default UNKNOWN
              * @enum {string}
              */
-            duration_stance: "BUY" | "SELL" | "NEUTRAL";
+            duration_stance: "BUY" | "SELL" | "NEUTRAL" | "UNKNOWN";
+            /** Coverage */
+            coverage?: number | null;
+            /** Coverage Detail */
+            coverage_detail?: string | null;
             /** Curve Score */
             curve_score?: number | null;
             /**

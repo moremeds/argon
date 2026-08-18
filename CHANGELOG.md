@@ -9,6 +9,28 @@ version in lockstep (enforced by `scripts/release/version_sync_check.py`).
 
 ### Added
 
+- **Point-in-time inflation and rates states — what regime we are in, which way it
+  is moving, how fast, and how much of that we actually know.** Two pure engines over
+  vintage-stamped evidence, replacing a score that could look confident while standing
+  on one populated input. `state` and `direction` are separate fields: "above target
+  and falling" and "above target and rising" are the same level and opposite
+  situations. Confidence is a function of coverage, freshness, quality, revisions and
+  contradictions — never of signal magnitude, so a reading does not gain authority by
+  getting extreme.
+- **The inflation state is scored on core PCE, not CPI.** The FOMC's 2 percent
+  objective is stated on PCE and core CPI runs structurally above it, so thresholding
+  CPI against 2 percent mislabels the regime by roughly one policy move, permanently
+  and in one direction. CPI lands about two weeks earlier and enters as a corroborator
+  and a contradiction input.
+- **ALFRED-backed realized-inflation adapter with true vintage replay.** A replay at
+  2024-06-01 returns January 2024 CPI as 309.685 — the value published then — not the
+  309.698 it reads today. Built on FRED rather than BLS/BEA for measured reasons: BLS
+  returns HTTP 403 to this desk on every host, BEA answers a missing credential with
+  HTTP 200 and zero bytes, and neither publishes vintages at all
+  (`docs/research/2026-08-18-mc2-inflation-source-probe/`).
+- **Treasury supply, positioning and plumbing are separate factors with their own
+  freshness**, so a blended technicals score can no longer hide which one is stale.
+
 - **Revenue concentration on the Fundamentals tab — where a company's revenue
   actually comes from, by reportable segment and by geography.** NVDA reads 91.3%
   Compute & Networking and 78.1% United States; the share, the member name and
@@ -46,8 +68,34 @@ version in lockstep (enforced by `scripts/release/version_sync_check.py`).
   no fact, a restatement lands beside its predecessor. First run: 63,567 rows
   over 400 names spanning 2019-09-30 to 2026-07-05.
 
+### Changed
+
+- **The rates duration stance can no longer be confident on incomplete evidence.**
+  `RatesScorecard` gains `coverage` and `duration_stance` gains `UNKNOWN`. Three of
+  six scorecard groups are hard-coded as missing until the Phase 2 feeds land, so the
+  desk has been printing a `BUY`/`SELL`/`NEUTRAL` built on **45%** of its own weight;
+  it now prints `UNKNOWN` with the coverage stated. `_duration_stance(None)` returned
+  `NEUTRAL`, rendering absence as a considered view — it returns `UNKNOWN` now, and the
+  synthesis sentence beneath the card stops narrating a lean the stance has refused.
+- **Curve slope is no longer described as a term premium.** A slope is the difference
+  between two traded yields; a term premium is a model output. The only term-premium
+  figure on the rates desk is the Cleveland Fed's, in the decomposition section with
+  its own vintage.
+- **The decomposition reconciliation tolerance is calibrated, not picked: 25bp → 85bp.**
+  Measured over 332 months, the Cleveland modelled 10y and the traded `DGS10` normally
+  differ by 41bp (63bp since 2016), so 25bp would have fired on **66.9%** of months and
+  carried no information. 85bp is the post-2016 p90 and fires on 11 of 332 months, all
+  of them in the 2022 repricing. The two other candidate decompositions cannot fail at
+  all — FRED derives `T10YIE` from `DGS10 - DFII10`, and the Cleveland model's expected
+  short real rate is defined as its real yield minus its term premium, measured at
+  exactly 0.0bp residual across all 332 months
+  (`docs/research/2026-08-18-mc2-decomposition-residual/`).
+
 ### Fixed
 
+- **Vintage replay lost a full day at every changeover.** FRED's `realtime_end` is the
+  last day a value *was* current, inclusive; treating it as exclusive erased each
+  vintage for its final day, so a replay landing on 2025-02-11 returned no CPI at all.
 - **A refused valuation band no longer reports itself as having no data.**
   `_no_anchor` hardcoded `history_quarters: 0`, so NVDA's card read `0q` beside a
   refusal caused by twenty quarters of FCF yield spanning 17x — the data is there

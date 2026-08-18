@@ -146,6 +146,10 @@ function stanceDescription(
   stance: string,
   fallback: string | undefined,
 ): string {
+  // UNKNOWN is checked before the fallback: the synthesis sentence is generated from
+  // the same composite and must not narrate a lean the stance has already refused.
+  if (kind === "duration" && stance === "UNKNOWN")
+    return fallback ?? "Not enough scored inputs to take a duration view.";
   if (fallback) return fallback;
   if (kind === "duration") {
     if (stance === "BUY") return "Rule score favors owning duration.";
@@ -199,7 +203,7 @@ function SummaryStances({
         description={stanceDescription(
           "duration",
           scorecard.duration_stance,
-          synthesis?.duration_view,
+          synthesis?.duration_view ?? scorecard.coverage_detail ?? undefined,
         )}
       />
       <StanceCard
@@ -230,9 +234,8 @@ function slopeInterpretation(slope: SlopeMetric): string {
   if (slope.label === "3m10y") {
     if (value < 0)
       return "Front-end inversion warns policy is restrictive versus long growth pricing.";
-    if (value < 50)
-      return "Term premium is modest; curve is only lightly positive from bills to 10Y.";
-    return "Long end is clearly above bills; easing or term premium pressure is visible.";
+    if (value < 50) return "Curve is only lightly positive from bills to 10Y.";
+    return "Long end is clearly above bills; the bills-to-10Y spread is wide.";
   }
   if (value < 0)
     return "Inverted spread; front end is leading and duration risk is defensive.";
@@ -240,8 +243,13 @@ function slopeInterpretation(slope: SlopeMetric): string {
     return "Flat positive spread; curve has limited carry cushion.";
   if (value < 90)
     return "Normal positive slope; long-end yield pickup is meaningful.";
-  return "Steep spread; long-end supply, inflation, or term premium is dominating.";
+  return "Steep spread; the long end is well above the front end.";
 }
+
+// A slope is the difference between two traded yields and nothing else.  Naming it a
+// term premium promotes a shape into an estimate of compensation for duration risk,
+// which only a model can produce -- here, the Cleveland Fed's, whose figure appears in
+// the decomposition section with its own vintage and its own uncertainty.
 
 export function RatesDesk({
   snapshot,
@@ -256,7 +264,9 @@ export function RatesDesk({
       <div className={styles.page}>
         <div className={styles.emptyState}>
           <p className={styles.eyebrow}>US Rates Factor Desk</p>
-          <h1>{hasError ? "Rates API unavailable" : "Rates snapshot not computed"}</h1>
+          <h1>
+            {hasError ? "Rates API unavailable" : "Rates snapshot not computed"}
+          </h1>
           <p>
             {hasError
               ? errorMessage
@@ -301,9 +311,7 @@ export function RatesDesk({
             </h1>
             <p>Treasury Factor Board</p>
           </div>
-          <p className={styles.headerMeta}>
-            {snapshotMeta(snapshot)}
-          </p>
+          <p className={styles.headerMeta}>{snapshotMeta(snapshot)}</p>
         </div>
         <nav className={styles.nav} aria-label="Rates sections">
           {NAV.map(([id, label]) => (
@@ -340,7 +348,11 @@ export function RatesDesk({
         <RatesCurveChart points={curve.points ?? []} />
         <div className={styles.slopeCards}>
           {(curve.slopes ?? []).map((slope) => (
-            <article key={slope.label} className={styles.slopeCard}>
+            <article
+              key={slope.label}
+              className={styles.slopeCard}
+              data-testid="slope-card"
+            >
               <span>{slope.label}</span>
               <strong>{fmtValue(slope.value_bps, "bps", 1)}</strong>
               <p>{slopeInterpretation(slope)}</p>

@@ -24,6 +24,8 @@ Recorded rather than silently absorbed. Each is measured, not assumed.
 | D3 | scenario 3 is "dovish SEP but hawkish market pricing" | Measured: SEP end-2026 **3.80** vs market **3.875** — a **7.5bp** spread, i.e. the paths *agree* | Scenario is renamed `policy_paths_kept_separate` and asserts the contradiction does **not** fire. The disagreement branch has no real anchor (the market path is a live snapshot with no history), so it moves to a labelled threshold test |
 | D4 | "test decompositions whose components do not add within tolerance" over nominal/real/breakeven | `T10YIE` is **defined** as `DGS10 − DFII10`; measured residual is 0.0bp in both probed episodes | The reconciliation rule applies only to the Cleveland Fed model's explicit components. A tolerance test over the FRED triple asserts an identity against itself |
 | D5 | spec filename dated `2026-08-12` | authored 2026-08-18 | filename carries the authoring date, per repo convention |
+| D6 | §4's completeness floor forces `INDETERMINATE` for every domain | Scenario 3 preregisters `ON_HOLD` with only the policy paths present and no curve/supply/positioning/plumbing data | For **rates**, the load-bearing set is the three official policy paths, not all nine factors. Supply and positioning do not bear on whether the committee cut, held or hiked, so their absence must not erase a published fact. The market path is excluded as a third-party shadow |
+| D7 | "test decompositions whose components do not add within tolerance" over the Cleveland components | The Cleveland model's expected short real rate is **defined** as modelled real yield minus real term premium, so adding the premium back is a no-op. Measured intra-model residual: **0.0bp across all 332 months** | The only failable residual is the Cleveland modelled nominal against the **traded** `DGS10`. Its tolerance is calibrated, not picked: the two normally differ by 41bp (63bp since 2016), so the 25bp default would have fired on **66.9%** of months. Set to 85bp — the post-2016 p90, firing on 11 of 332 months, all in the 2022 repricing. Evidence: [`docs/research/2026-08-18-mc2-decomposition-residual/`](../../research/2026-08-18-mc2-decomposition-residual/README.md) |
 
 ## 1. What each state is
 
@@ -168,8 +170,8 @@ where a residual is real information.
 |---|---|
 | `policy_paths_disagree` | spread of **forward** path rates at a **common horizon** > 25bp. The actual path is excluded: it is where rates are, not where they are going, so including it measures curve slope rather than disagreement |
 | `path_conflicts_with_actual` | a forward path implies the opposite direction to the actual regime |
-| `decomposition_components_do_not_reconcile` | Cleveland component sum differs from the modelled total beyond tolerance |
-| `supply_pressure_without_macro_confirmation` | supply factor elevated while realized and expectations factors are `FLAT` |
+| `decomposition_components_do_not_reconcile` | The Cleveland **modelled** 10y nominal differs from the **traded** `DGS10` by more than 85bp. Not the component sum — that is an identity (D7), measured at 0.0bp across 332 months |
+| `supply_pressure_without_macro_confirmation` | new-issue coupon size at a strict multi-quarter high **and** the nominal 10y moved ≥ 25bp **and** inflation compensation moved < 10bp. Elevated is a new high against the previous four new issues rather than a percentage over a baseline: auction sizes step in increments Treasury chooses, so "higher than it has been all year" is a statement about the publisher's decisions rather than about a threshold we picked |
 
 ## 4. Confidence
 
@@ -194,12 +196,37 @@ Two hard rails:
   surviving inputs say. **This is the defect being fixed**: `compute_composite_score` renormalises
   over surviving weight, so one populated group out of six yields a full-magnitude composite and a
   confident `BUY`/`SELL`.
-- A missing input is never a neutral input. `_duration_stance(None)` currently returns `"NEUTRAL"`,
-  rendering absence as a view. Under this contract absence produces `INDETERMINATE` with the
-  coverage stated.
+- A missing input is never a neutral input. `_duration_stance(None)` returned `"NEUTRAL"`, rendering
+  absence as a considered view; it now returns `UNKNOWN`, and so does any score standing on less
+  than half the scorecard weight. See §4.1.
 
 `confidence_reasons` records every term with its value and the inputs that drove it, so a number can
 be argued with rather than merely believed.
+
+**Per-domain load-bearing sets** (D6). Completeness is measured against the inputs the *state*
+stands on, not against every factor the domain reports:
+
+| domain | load-bearing | reported but not load-bearing |
+|---|---|---|
+| inflation | the eight realized/breadth/stickiness/survey series | market compensation (`T10YIE`, `T5YIFR`) |
+| rates | the three official policy paths (actual, SEP, dealer) | the market shadow, curve, decomposition, supply, positioning, plumbing |
+
+For rates this matters twice over. Missing supply data cannot make "the committee held in July"
+unknowable, so it must not erase the state. And the market shadow is deliberately outside the
+required set — counting it would let a third-party estimate stand in for an absent dealer survey and
+report full coverage, which is the exact substitution this domain refuses.
+
+### 4.1 The legacy scorecard
+
+`RatesScorecard` keeps `composite_score` unchanged — it is the honest weighted mean of the groups
+that reported — and gains `coverage`, the share of group weight actually scored. `duration_stance`
+gains `UNKNOWN` and returns it whenever the score is absent **or** coverage sits below 0.50.
+
+On today's feeds that is not hypothetical: three of six groups are hard-coded as missing until the
+Phase 2 macro, supply and positioning feeds land, so coverage is **0.45** and the desk has been
+printing a `BUY`/`SELL`/`NEUTRAL` built on 45% of its own weight. It now prints `UNKNOWN` with the
+coverage stated, and the synthesis sentence beneath it stops narrating a lean the stance has already
+refused.
 
 ## 5. Point-in-time semantics
 
@@ -258,7 +285,7 @@ artifact of asking rather than a fact about publishing.
 | 2 | `broad_reacceleration` | 2022-01 | `WELL_ABOVE_TARGET`/`RISING`, `breadth_measures_disagree` fires, `breadth_contradicts_core` **must not** |
 | 3 | `policy_paths_kept_separate` | 2026-08-18 | `ON_HOLD`/`RISING`, paths kept separate, `policy_paths_disagree` **must not** fire — measured spread is 7.5bp |
 | 4 | `nominal_led_by_real_yields` | 2024-09-03 → 2025-01-31 | attribution real-led (+43 of +74bp), breakeven contribution stated, no term-premium claim |
-| 5 | `supply_pressure_with_neutral_macro` | 2023-07-03 → 2023-11-30 | +51bp nominal with **−2bp** breakeven, `supply_pressure_without_macro_confirmation`, state unchanged |
+| 5 | `supply_pressure_with_neutral_macro` | 2023-07-03 → 2023-11-30 | +41bp nominal with **−4bp** breakeven; 10y new-issue size 35B → 38B → 40B after four flat quarters, so `supply_pressure_without_macro_confirmation` fires and the inflation state is untouched |
 | 6 | `stale_and_revised_realized_inflation` | 2025-10 absent; 2024-01 three vintages | abstains on the hole; replay at 2024-06-01 returns 309.685, not 309.698 |
 
 ## 8. Exit criteria this design must satisfy

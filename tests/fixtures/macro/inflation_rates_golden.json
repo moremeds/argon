@@ -1868,6 +1868,132 @@
         ],
         "inflation_state_unchanged_by_this_episode": true,
         "note": "Nominal rises with inflation compensation flat, so nothing here is evidence about the inflation regime."
+      },
+      "supply_history": {
+        "source": "treasurydirect",
+        "source_kind": "official",
+        "cost_class": "free_official",
+        "unit": "usd_offering_amount",
+        "causal_role": "supply",
+        "note": "New-issue quarterly refunding sizes only; reopenings are excluded because a reopening adds to an existing security and its size is not comparable to a new issue's.",
+        "auctions": {
+          "10-Year": [
+            {
+              "security_term": "10-Year",
+              "auction_date": "2022-02-09",
+              "available_at": "2022-02-02",
+              "offering_amount_usd": "37000000000",
+              "reopening": "No"
+            },
+            {
+              "security_term": "10-Year",
+              "auction_date": "2022-05-11",
+              "available_at": "2022-05-04",
+              "offering_amount_usd": "36000000000",
+              "reopening": "No"
+            },
+            {
+              "security_term": "10-Year",
+              "auction_date": "2022-08-10",
+              "available_at": "2022-08-03",
+              "offering_amount_usd": "35000000000",
+              "reopening": "No"
+            },
+            {
+              "security_term": "10-Year",
+              "auction_date": "2022-11-09",
+              "available_at": "2022-11-02",
+              "offering_amount_usd": "35000000000",
+              "reopening": "No"
+            },
+            {
+              "security_term": "10-Year",
+              "auction_date": "2023-02-08",
+              "available_at": "2023-02-01",
+              "offering_amount_usd": "35000000000",
+              "reopening": "No"
+            },
+            {
+              "security_term": "10-Year",
+              "auction_date": "2023-05-10",
+              "available_at": "2023-05-03",
+              "offering_amount_usd": "35000000000",
+              "reopening": "No"
+            },
+            {
+              "security_term": "10-Year",
+              "auction_date": "2023-08-09",
+              "available_at": "2023-08-02",
+              "offering_amount_usd": "38000000000",
+              "reopening": "No"
+            },
+            {
+              "security_term": "10-Year",
+              "auction_date": "2023-11-08",
+              "available_at": "2023-11-01",
+              "offering_amount_usd": "40000000000",
+              "reopening": "No"
+            }
+          ],
+          "30-Year": [
+            {
+              "security_term": "30-Year",
+              "auction_date": "2022-02-10",
+              "available_at": "2022-02-02",
+              "offering_amount_usd": "23000000000",
+              "reopening": "No"
+            },
+            {
+              "security_term": "30-Year",
+              "auction_date": "2022-05-12",
+              "available_at": "2022-05-04",
+              "offering_amount_usd": "22000000000",
+              "reopening": "No"
+            },
+            {
+              "security_term": "30-Year",
+              "auction_date": "2022-08-11",
+              "available_at": "2022-08-03",
+              "offering_amount_usd": "21000000000",
+              "reopening": "No"
+            },
+            {
+              "security_term": "30-Year",
+              "auction_date": "2022-11-10",
+              "available_at": "2022-11-02",
+              "offering_amount_usd": "21000000000",
+              "reopening": "No"
+            },
+            {
+              "security_term": "30-Year",
+              "auction_date": "2023-02-09",
+              "available_at": "2023-02-01",
+              "offering_amount_usd": "21000000000",
+              "reopening": "No"
+            },
+            {
+              "security_term": "30-Year",
+              "auction_date": "2023-05-11",
+              "available_at": "2023-05-03",
+              "offering_amount_usd": "21000000000",
+              "reopening": "No"
+            },
+            {
+              "security_term": "30-Year",
+              "auction_date": "2023-08-10",
+              "available_at": "2023-08-02",
+              "offering_amount_usd": "23000000000",
+              "reopening": "No"
+            },
+            {
+              "security_term": "30-Year",
+              "auction_date": "2023-11-09",
+              "available_at": "2023-11-01",
+              "offering_amount_usd": "24000000000",
+              "reopening": "No"
+            }
+          ]
+        }
       }
     },
     {

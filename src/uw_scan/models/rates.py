@@ -11,7 +11,10 @@ from ._base import _UwBase, _preserve_public_module
 
 
 RatesAvailability = Literal["ok", "missing", "partial", "stale"]
-RatesDurationStance = Literal["BUY", "SELL", "NEUTRAL"]
+#: ``UNKNOWN`` is not a weak ``NEUTRAL``.  Neutral is a view formed from evidence;
+#: unknown is the absence of enough evidence to form one, and collapsing the two is
+#: what let a scorecard standing on 45% of its weight print a confident stance.
+RatesDurationStance = Literal["BUY", "SELL", "NEUTRAL", "UNKNOWN"]
 RatesCurveStance = Literal["STEEP", "FLAT", "NEUTRAL"]
 RatesPolicyPathStance = Literal["CUT", "HOLD", "HIKE", "UNKNOWN"]
 
@@ -101,7 +104,12 @@ class RatesScorecardGroup(_UwBase):
 
 class RatesScorecard(_UwBase):
     composite_score: float | None = None
-    duration_stance: RatesDurationStance = "NEUTRAL"
+    duration_stance: RatesDurationStance = "UNKNOWN"
+    #: Share of total group weight that actually carries a score.  The composite
+    #: renormalises over surviving weight, so without this a reader cannot tell a
+    #: fully-evidenced 0.4 from a 0.4 built on one group out of six.
+    coverage: float | None = None
+    coverage_detail: str | None = None
     curve_score: float | None = None
     curve_stance: RatesCurveStance = "NEUTRAL"
     groups: list[RatesScorecardGroup] = Field(default_factory=list)

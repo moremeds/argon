@@ -67,8 +67,9 @@ describe("RatesDesk", () => {
       screen.getAllByText("Neutral until the live FRED curve breaks range.")
         .length,
     ).toBeGreaterThan(1);
-    expect(screen.getAllByText("Curve still biased flatter.").length)
-      .toBeGreaterThan(1);
+    expect(
+      screen.getAllByText("Curve still biased flatter.").length,
+    ).toBeGreaterThan(1);
   });
 
   it("colors summary 1D bps changes by sign", () => {
@@ -86,10 +87,19 @@ describe("RatesDesk", () => {
     render(<RatesDesk snapshot={SNAPSHOT} />);
 
     expect(screen.getByText("3m10y")).toBeTruthy();
-    expect(
-      screen.getByText(/easing or term premium pressure is visible/),
-    ).toBeTruthy();
+    expect(screen.getByText(/the bills-to-10Y spread is wide/)).toBeTruthy();
     expect(screen.getByText(/Belly is rich versus wings/)).toBeTruthy();
+  });
+
+  it("never describes a curve slope as a term premium", () => {
+    // A slope is a difference between two traded yields. Term premium is a model
+    // output, and the only one on this page belongs to the Cleveland Fed section.
+    const { container } = render(<RatesDesk snapshot={SNAPSHOT} />);
+    const slopeCards = container.querySelectorAll('[data-testid="slope-card"]');
+    const slopeText = Array.from(slopeCards)
+      .map((node) => node.textContent ?? "")
+      .join(" ");
+    expect(slopeText.toLowerCase()).not.toContain("term premium");
   });
 
   it("renders a live decomposition dashboard with attribution rows", () => {
@@ -100,22 +110,36 @@ describe("RatesDesk", () => {
         "Live 10Y nominal = E[short real] + E[short inflation] + real term premium + inflation risk premium + Cleveland/FRED gap",
       ),
     ).toBeTruthy();
-    expect(screen.getByText(/Cleveland Fed model \+ FRED DGS10 · 2026-05-01/)).toBeTruthy();
+    expect(
+      screen.getByText(/Cleveland Fed model \+ FRED DGS10 · 2026-05-01/),
+    ).toBeTruthy();
     expect(screen.getByText("Live 10Y nominal")).toBeTruthy();
     expect(screen.getByText("Expected short real")).toBeTruthy();
-    expect(screen.getAllByText("Expected short inflation").length).toBeGreaterThan(1);
+    expect(
+      screen.getAllByText("Expected short inflation").length,
+    ).toBeGreaterThan(1);
     expect(screen.getAllByText("Real term premium").length).toBeGreaterThan(1);
-    expect(screen.getAllByText("Inflation risk premium").length).toBeGreaterThan(1);
+    expect(
+      screen.getAllByText("Inflation risk premium").length,
+    ).toBeGreaterThan(1);
     expect(screen.getAllByText("FRED residual").length).toBeGreaterThan(1);
     expect(screen.getByText("Cleveland/FRED gap")).toBeTruthy();
     expect(screen.getByText(/reconciliation term that bridges/)).toBeTruthy();
     expect(screen.getByText("Move attribution · bps")).toBeTruthy();
     expect(screen.getAllByText("+15.3").length).toBeGreaterThan(0);
     expect(screen.getAllByText("+19.7").length).toBeGreaterThan(0);
-    expect(screen.getByText(/expected inflation contributes 5\.7 bps/)).toBeTruthy();
+    expect(
+      screen.getByText(/expected inflation contributes 5\.7 bps/),
+    ).toBeTruthy();
     expect(screen.getByText("Rates read")).toBeTruthy();
-    expect(screen.getByText(/Cleveland's monthly model explains \+15\.3 bps/)).toBeTruthy();
-    expect(screen.getByText(/daily FRED pricing has moved faster than the monthly Cleveland release/)).toBeTruthy();
+    expect(
+      screen.getByText(/Cleveland's monthly model explains \+15\.3 bps/),
+    ).toBeTruthy();
+    expect(
+      screen.getByText(
+        /daily FRED pricing has moved faster than the monthly Cleveland release/,
+      ),
+    ).toBeTruthy();
   });
 
   it("renders persisted Treasury supply data instead of the phase placeholder", () => {
@@ -143,24 +167,31 @@ describe("RatesDesk", () => {
     ).toBeTruthy();
     expect(within(positioningSection).getByText("UST 10Y NOTE")).toBeTruthy();
     expect(within(positioningSection).getByText("-26.3% OI")).toBeTruthy();
-    expect(within(positioningSection).getByText(/CFTC TFF 2026-05-22/))
-      .toBeTruthy();
+    expect(
+      within(positioningSection).getByText(/CFTC TFF 2026-05-22/),
+    ).toBeTruthy();
   });
 
   it("renders source freshness so failed refreshes do not look live", () => {
     render(<RatesDesk snapshot={SNAPSHOT} />);
 
     expect(screen.getByText("10Y Treasury")).toBeTruthy();
-    expect(screen.getByText("Cleveland Fed 10Y expected inflation")).toBeTruthy();
+    expect(
+      screen.getByText("Cleveland Fed 10Y expected inflation"),
+    ).toBeTruthy();
     expect(screen.getByText("Stale")).toBeTruthy();
     expect(screen.getByText("FRED / Board of Governors")).toBeTruthy();
-    expect(screen.getByText("Cleveland Fed Inflation Expectations")).toBeTruthy();
+    expect(
+      screen.getByText("Cleveland Fed Inflation Expectations"),
+    ).toBeTruthy();
     expect(screen.getByRole("link", { name: "FRED DGS10" })).toHaveProperty(
       "href",
       "https://fred.stlouisfed.org/series/DGS10",
     );
     expect(
-      screen.getByRole("link", { name: "Cleveland Fed CLEVE_EXPECTED_INFLATION_10Y" }),
+      screen.getByRole("link", {
+        name: "Cleveland Fed CLEVE_EXPECTED_INFLATION_10Y",
+      }),
     ).toHaveProperty(
       "href",
       "https://www.clevelandfed.org/indicators-and-data/inflation-expectations",
@@ -189,7 +220,9 @@ describe("RatesDesk", () => {
   });
 
   it("renders an explicit API outage state separately from a missing snapshot", () => {
-    render(<RatesDesk snapshot={null} errorMessage="The rates API request failed" />);
+    render(
+      <RatesDesk snapshot={null} errorMessage="The rates API request failed" />,
+    );
 
     expect(screen.getByText(/Rates API unavailable/)).toBeTruthy();
     expect(screen.getByText(/The rates API request failed/)).toBeTruthy();

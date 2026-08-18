@@ -14444,6 +14444,28 @@
             ],
             "title": "Composite Score"
           },
+          "coverage": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Coverage"
+          },
+          "coverage_detail": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Coverage Detail"
+          },
           "curve_score": {
             "anyOf": [
               {
@@ -14466,11 +14488,12 @@
             "type": "string"
           },
           "duration_stance": {
-            "default": "NEUTRAL",
+            "default": "UNKNOWN",
             "enum": [
               "BUY",
               "SELL",
-              "NEUTRAL"
+              "NEUTRAL",
+              "UNKNOWN"
             ],
             "title": "Duration Stance",
             "type": "string"
