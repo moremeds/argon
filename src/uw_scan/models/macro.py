@@ -6,15 +6,14 @@ from datetime import date
 from decimal import Decimal
 from typing import Any, Literal
 
-from pydantic import AwareDatetime, field_validator, model_validator
+from pydantic import AwareDatetime, Field, field_validator, model_validator
 
 from uw_scan.macro_evidence import (
     macro_artifact_content_identity,
     macro_observation_content_hash,
 )
 
-from ._base import _UwBase, _preserve_public_module
-
+from ._base import _preserve_public_module, _UwBase
 
 MacroDomain = Literal["inflation", "policy_rates", "usd", "gold", "cross_domain"]
 MacroSourceKind = Literal[
@@ -37,6 +36,10 @@ MacroCostClass = Literal[
 MacroFrequency = Literal[
     "daily", "weekly", "monthly", "quarterly", "annual", "event", "irregular"
 ]
+PolicyPathKind = Literal[
+    "actual", "committee_projection", "dealer_expectations", "market_implied"
+]
+PolicyPathDelayStatus = Literal["known", "unknown", "not_applicable"]
 
 
 class MacroSourceArtifact(_UwBase):
@@ -158,6 +161,203 @@ class MacroEvidenceRef(_UwBase):
         return _validate_sha256(value)
 
 
+class PolicyPathProbabilityBucket(_UwBase):
+    label: str
+    lower_bound_percent: Decimal | None = None
+    upper_bound_percent: Decimal | None = None
+    probability_percent: Decimal
+
+
+class PolicyPathParticipantPoint(_UwBase):
+    rate_percent: Decimal
+    participant_count: int
+
+
+class PolicyPathPoint(_UwBase):
+    horizon: str
+    horizon_date: date | None = None
+    rate_percent: Decimal
+    target_range_lower_percent: Decimal | None = None
+    target_range_upper_percent: Decimal | None = None
+    action: str | None = None
+    #: ``not_stated`` means the publisher printed no vote at all.  The FOMC
+    #: parser never produces it -- a statement with no vote paragraph fails
+    #: closed and becomes no fact -- so it is reserved for a producer that can
+    #: legitimately observe a voteless release.  ``None`` means the path kind
+    #: has no vote: an anonymous SEP dot belongs to no named participant.
+    vote_status: Literal["stated", "not_stated"] | None = None
+    vote_split: str | None = None
+    #: Who voted, and whether the publisher said.  A tally alone cannot recover
+    #: the composition, and the composition is where the directional signal is.
+    #:
+    #: The three fields are only meaningful together.  Two of 55 statements in
+    #: the 2020+ archive print a tally with no roster, one of them a 9-3 -- so
+    #: an empty ``voted_against`` means "no dissenter was NAMED", and equals
+    #: "no dissenter" only when ``voter_names_stated`` is true.  Dropping that
+    #: flag turns three dissenters into a unanimous committee.
+    voted_for: list[str] = Field(default_factory=list)
+    voted_against: list[str] = Field(default_factory=list)
+    voter_names_stated: bool | None = None
+    central_tendency_lower_percent: Decimal | None = None
+    central_tendency_upper_percent: Decimal | None = None
+    range_lower_percent: Decimal | None = None
+    range_upper_percent: Decimal | None = None
+    p25_percent: Decimal | None = None
+    p75_percent: Decimal | None = None
+    respondent_count: int | None = None
+    participant_distribution: list[PolicyPathParticipantPoint] = Field(
+        default_factory=list
+    )
+    probability_distribution: list[PolicyPathProbabilityBucket] = Field(
+        default_factory=list
+    )
+
+
+class PolicyPath(_UwBase):
+    kind: PolicyPathKind
+    source: str
+    source_kind: MacroSourceKind
+    source_record_id: str
+    published_at: AwareDatetime | None = None
+    available_at: AwareDatetime
+    cost_class: MacroCostClass
+    delay_status: PolicyPathDelayStatus = "not_applicable"
+    delay_minutes: int | None = None
+    points: list[PolicyPathPoint]
+    evidence_refs: list[MacroEvidenceRef] = Field(default_factory=list)
+
+    @model_validator(mode="after")
+    def _validate_source_contract(self) -> "PolicyPath":
+        if self.kind == "market_implied":
+            if self.source_kind != "third_party_shadow":
+                raise ValueError(
+                    "market_implied source_kind must be third_party_shadow"
+                )
+            if self.cost_class != "free_third_party_shadow":
+                raise ValueError(
+                    "third_party_shadow evidence requires "
+                    "free_third_party_shadow cost_class"
+                )
+            if self.delay_status == "not_applicable":
+                raise ValueError(
+                    "third_party_shadow evidence requires explicit delay_status"
+                )
+            if self.delay_status == "known" and (
+                self.delay_minutes is None or self.delay_minutes < 0
+            ):
+                raise ValueError(
+                    "third_party_shadow evidence with known delay requires minutes"
+                )
+            if self.delay_status == "unknown" and self.delay_minutes is not None:
+                raise ValueError(
+                    "third_party_shadow evidence cannot attach minutes to unknown delay"
+                )
+        elif self.source_kind == "third_party_shadow":
+            raise ValueError("third_party_shadow evidence must be market_implied")
+        elif self.delay_status != "not_applicable" or self.delay_minutes is not None:
+            raise ValueError("delay labels only apply to market_implied paths")
+        if not self.points:
+            raise ValueError("policy path requires at least one point")
+        return self
+
+
+class PolicyReleaseFailure(_UwBase):
+    """One named release whose evidence landed but whose facts did not.
+
+    Named rather than counted: an operator cannot re-run "the 3 that failed",
+    only a specific release key.
+    """
+
+    release_key: str
+    event_date: date
+    error_type: str | None = None
+    error_message: str | None = None
+
+
+class PolicySourceFreshness(_UwBase):
+    source: str
+    status: Literal["ok", "degraded", "missing"]
+    last_attempt_at: AwareDatetime | None = None
+    last_success_at: AwareDatetime | None = None
+    consecutive_failures: int = 0
+    error_type: str | None = None
+    error_message: str | None = None
+    #: Release coverage as of the same instant as the path itself.  A source can
+    #: be ``ok`` on its latest release and still be missing half its history, so
+    #: these counts answer a question ``status`` cannot.
+    releases_discovered: int = Field(
+        default=0,
+        description=(
+            "Releases this deployment has attempted by as_of. This is our own "
+            "attempt log, NOT the publisher's archive: a source we have never "
+            "backfilled reports a small complete-looking window rather than a "
+            "hole. Use the backfill's coverage audit to compare against the "
+            "published archive."
+        ),
+    )
+    releases_succeeded: int = Field(
+        default=0, description="Attempted releases that produced a durable fact."
+    )
+    releases_failed: int = Field(
+        default=0,
+        description=(
+            "Attempted releases that produced no fact, for any reason — a failed "
+            "parse and bytes-without-a-reading both count. Always equals "
+            "releases_discovered minus releases_succeeded."
+        ),
+    )
+    release_failures: list[PolicyReleaseFailure] = Field(
+        default_factory=list,
+        description=(
+            "Oldest failures first, capped: the deepest hole is the one a "
+            "backfill has to reach. May be shorter than releases_failed."
+        ),
+    )
+
+    @model_validator(mode="after")
+    def _counts_are_consistent(self) -> "PolicySourceFreshness":
+        if (
+            min(self.releases_discovered, self.releases_succeeded, self.releases_failed)
+            < 0
+        ):
+            raise ValueError("policy release counts cannot be negative")
+        if self.releases_succeeded + self.releases_failed != self.releases_discovered:
+            raise ValueError(
+                "policy release outcomes must account for every release discovered"
+            )
+        if len(self.release_failures) > self.releases_failed:
+            raise ValueError(
+                "policy release failure details cannot exceed the failure count"
+            )
+        return self
+
+
+class PolicyPathSlot(_UwBase):
+    kind: PolicyPathKind
+    path: PolicyPath | None = None
+    missing_reason: str | None = None
+    freshness: PolicySourceFreshness
+
+    @model_validator(mode="after")
+    def _path_or_reason(self) -> "PolicyPathSlot":
+        if (self.path is None) == (self.missing_reason is None):
+            raise ValueError(
+                "policy path slot requires exactly one path or missing_reason"
+            )
+        if self.path is not None and self.path.kind != self.kind:
+            raise ValueError("policy path slot kind does not match path")
+        return self
+
+
+class PolicyComparison(_UwBase):
+    as_of: AwareDatetime
+    actual: PolicyPathSlot
+    committee_projection: PolicyPathSlot
+    dealer_expectations: PolicyPathSlot
+    market_implied: PolicyPathSlot
+    contradictions: list[str] = Field(default_factory=list)
+
+
 def _validate_sha256(value: str) -> str:
     if len(value) != 64 or any(char not in "0123456789abcdef" for char in value):
         raise ValueError("content_hash must be lowercase SHA-256 hex")
@@ -168,4 +368,12 @@ _preserve_public_module(
     MacroSourceArtifact,
     MacroObservation,
     MacroEvidenceRef,
+    PolicyPathProbabilityBucket,
+    PolicyPathParticipantPoint,
+    PolicyPathPoint,
+    PolicyPath,
+    PolicyReleaseFailure,
+    PolicySourceFreshness,
+    PolicyPathSlot,
+    PolicyComparison,
 )

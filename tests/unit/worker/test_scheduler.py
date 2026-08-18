@@ -15,6 +15,7 @@ from uw_scan.worker.scheduler import (
     _ohlc_provider,
     _record_worker_heartbeat,
     _run_rates_fred_ingest,
+    _should_schedule_macro_policy_ingest,
     _should_schedule_pipeline_benchmark,
     _should_schedule_rates_fred_ingest,
     _should_schedule_skew_swing_greeks,
@@ -200,6 +201,21 @@ def test_rates_fred_ingest_schedules_only_on_all_or_primary_uw_worker() -> None:
     )
     assert not _should_schedule_rates_fred_ingest(
         Settings(api_key="uw", worker_role="ai", worker_index=0, worker_count=1)
+    )
+
+
+def test_macro_policy_ingest_has_one_non_uw_owner() -> None:
+    assert _should_schedule_macro_policy_ingest(
+        Settings(api_key="uw", worker_role="all")
+    )
+    assert _should_schedule_macro_policy_ingest(
+        Settings(api_key="uw", worker_role="massive", worker_index=0, worker_count=2)
+    )
+    assert not _should_schedule_macro_policy_ingest(
+        Settings(api_key="uw", worker_role="massive", worker_index=1, worker_count=2)
+    )
+    assert not _should_schedule_macro_policy_ingest(
+        Settings(api_key="uw", worker_role="uw", worker_index=0, worker_count=2)
     )
 
 

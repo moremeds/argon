@@ -1635,6 +1635,23 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/macro/policy": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Macro Policy */
+        get: operations["macro_policy_api_macro_policy_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/scanner": {
         parameters: {
             query?: never;
@@ -4807,6 +4824,55 @@ export interface components {
             /** Finished At */
             finished_at?: string | null;
         };
+        /** MacroEvidenceRef */
+        MacroEvidenceRef: {
+            /** Obs Id */
+            obs_id: number;
+            /** Artifact Id */
+            artifact_id: number;
+            /**
+             * Domain
+             * @enum {string}
+             */
+            domain: "inflation" | "policy_rates" | "usd" | "gold" | "cross_domain";
+            /** Source */
+            source: string;
+            /** Source Url */
+            source_url?: string | null;
+            /** Source Record Id */
+            source_record_id: string;
+            /**
+             * Period End
+             * Format: date
+             */
+            period_end: string;
+            /** Published At */
+            published_at?: string | null;
+            /**
+             * Available At
+             * Format: date-time
+             */
+            available_at: string;
+            /**
+             * First Observed At
+             * Format: date-time
+             */
+            first_observed_at: string;
+            /** Content Hash */
+            content_hash: string;
+            /** Parser Version */
+            parser_version: string;
+            /**
+             * Quality Status
+             * @enum {string}
+             */
+            quality_status: "valid" | "invalid" | "partial" | "quarantined";
+            /**
+             * Cost Class
+             * @enum {string}
+             */
+            cost_class: "free_official" | "free_publisher" | "already_entitled" | "free_third_party_shadow" | "paid_authorized";
+        };
         /** MagnetCandle */
         MagnetCandle: {
             /**
@@ -5463,6 +5529,200 @@ export interface components {
             avg_30_day_call_volume?: string | null;
             /** Avg 30 Day Put Volume */
             avg_30_day_put_volume?: string | null;
+        };
+        /** PolicyComparison */
+        PolicyComparison: {
+            /**
+             * As Of
+             * Format: date-time
+             */
+            as_of: string;
+            actual: components["schemas"]["PolicyPathSlot"];
+            committee_projection: components["schemas"]["PolicyPathSlot"];
+            dealer_expectations: components["schemas"]["PolicyPathSlot"];
+            market_implied: components["schemas"]["PolicyPathSlot"];
+            /** Contradictions */
+            contradictions?: string[];
+        };
+        /** PolicyPath */
+        PolicyPath: {
+            /**
+             * Kind
+             * @enum {string}
+             */
+            kind: "actual" | "committee_projection" | "dealer_expectations" | "market_implied";
+            /** Source */
+            source: string;
+            /**
+             * Source Kind
+             * @enum {string}
+             */
+            source_kind: "official" | "first_party_publisher" | "entitled_provider" | "third_party_shadow" | "mock" | "static" | "demo";
+            /** Source Record Id */
+            source_record_id: string;
+            /** Published At */
+            published_at?: string | null;
+            /**
+             * Available At
+             * Format: date-time
+             */
+            available_at: string;
+            /**
+             * Cost Class
+             * @enum {string}
+             */
+            cost_class: "free_official" | "free_publisher" | "already_entitled" | "free_third_party_shadow" | "paid_authorized";
+            /**
+             * Delay Status
+             * @default not_applicable
+             * @enum {string}
+             */
+            delay_status: "known" | "unknown" | "not_applicable";
+            /** Delay Minutes */
+            delay_minutes?: number | null;
+            /** Points */
+            points: components["schemas"]["PolicyPathPoint"][];
+            /** Evidence Refs */
+            evidence_refs?: components["schemas"]["MacroEvidenceRef"][];
+        };
+        /** PolicyPathParticipantPoint */
+        PolicyPathParticipantPoint: {
+            /** Rate Percent */
+            rate_percent: string;
+            /** Participant Count */
+            participant_count: number;
+        };
+        /** PolicyPathPoint */
+        PolicyPathPoint: {
+            /** Horizon */
+            horizon: string;
+            /** Horizon Date */
+            horizon_date?: string | null;
+            /** Rate Percent */
+            rate_percent: string;
+            /** Target Range Lower Percent */
+            target_range_lower_percent?: string | null;
+            /** Target Range Upper Percent */
+            target_range_upper_percent?: string | null;
+            /** Action */
+            action?: string | null;
+            /** Vote Status */
+            vote_status?: ("stated" | "not_stated") | null;
+            /** Vote Split */
+            vote_split?: string | null;
+            /** Voted For */
+            voted_for?: string[];
+            /** Voted Against */
+            voted_against?: string[];
+            /** Voter Names Stated */
+            voter_names_stated?: boolean | null;
+            /** Central Tendency Lower Percent */
+            central_tendency_lower_percent?: string | null;
+            /** Central Tendency Upper Percent */
+            central_tendency_upper_percent?: string | null;
+            /** Range Lower Percent */
+            range_lower_percent?: string | null;
+            /** Range Upper Percent */
+            range_upper_percent?: string | null;
+            /** P25 Percent */
+            p25_percent?: string | null;
+            /** P75 Percent */
+            p75_percent?: string | null;
+            /** Respondent Count */
+            respondent_count?: number | null;
+            /** Participant Distribution */
+            participant_distribution?: components["schemas"]["PolicyPathParticipantPoint"][];
+            /** Probability Distribution */
+            probability_distribution?: components["schemas"]["PolicyPathProbabilityBucket"][];
+        };
+        /** PolicyPathProbabilityBucket */
+        PolicyPathProbabilityBucket: {
+            /** Label */
+            label: string;
+            /** Lower Bound Percent */
+            lower_bound_percent?: string | null;
+            /** Upper Bound Percent */
+            upper_bound_percent?: string | null;
+            /** Probability Percent */
+            probability_percent: string;
+        };
+        /** PolicyPathSlot */
+        PolicyPathSlot: {
+            /**
+             * Kind
+             * @enum {string}
+             */
+            kind: "actual" | "committee_projection" | "dealer_expectations" | "market_implied";
+            path?: components["schemas"]["PolicyPath"] | null;
+            /** Missing Reason */
+            missing_reason?: string | null;
+            freshness: components["schemas"]["PolicySourceFreshness"];
+        };
+        /**
+         * PolicyReleaseFailure
+         * @description One named release whose evidence landed but whose facts did not.
+         *
+         *     Named rather than counted: an operator cannot re-run "the 3 that failed",
+         *     only a specific release key.
+         */
+        PolicyReleaseFailure: {
+            /** Release Key */
+            release_key: string;
+            /**
+             * Event Date
+             * Format: date
+             */
+            event_date: string;
+            /** Error Type */
+            error_type?: string | null;
+            /** Error Message */
+            error_message?: string | null;
+        };
+        /** PolicySourceFreshness */
+        PolicySourceFreshness: {
+            /** Source */
+            source: string;
+            /**
+             * Status
+             * @enum {string}
+             */
+            status: "ok" | "degraded" | "missing";
+            /** Last Attempt At */
+            last_attempt_at?: string | null;
+            /** Last Success At */
+            last_success_at?: string | null;
+            /**
+             * Consecutive Failures
+             * @default 0
+             */
+            consecutive_failures: number;
+            /** Error Type */
+            error_type?: string | null;
+            /** Error Message */
+            error_message?: string | null;
+            /**
+             * Releases Discovered
+             * @description Releases this deployment has attempted by as_of. This is our own attempt log, NOT the publisher's archive: a source we have never backfilled reports a small complete-looking window rather than a hole. Use the backfill's coverage audit to compare against the published archive.
+             * @default 0
+             */
+            releases_discovered: number;
+            /**
+             * Releases Succeeded
+             * @description Attempted releases that produced a durable fact.
+             * @default 0
+             */
+            releases_succeeded: number;
+            /**
+             * Releases Failed
+             * @description Attempted releases that produced no fact, for any reason — a failed parse and bytes-without-a-reading both count. Always equals releases_discovered minus releases_succeeded.
+             * @default 0
+             */
+            releases_failed: number;
+            /**
+             * Release Failures
+             * @description Oldest failures first, capped: the deepest hole is the one a backfill has to reach. May be shorter than releases_failed.
+             */
+            release_failures?: components["schemas"]["PolicyReleaseFailure"][];
         };
         /** PositioningBlock */
         PositioningBlock: {
@@ -12703,6 +12963,40 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["RatesSnapshotResponse"];
+                };
+            };
+        };
+    };
+    macro_policy_api_macro_policy_get: {
+        parameters: {
+            query?: {
+                /** @description UTC calendar date; replay includes evidence available by day-end. */
+                as_of?: string | null;
+                /** @description Timezone-aware instant; replay includes evidence available at or before it. Required to replay across an intraday release. */
+                as_of_ts?: string | null;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["PolicyComparison"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
                 };
             };
         };

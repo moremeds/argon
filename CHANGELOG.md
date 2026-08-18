@@ -33,9 +33,64 @@ version in lockstep (enforced by `scripts/release/version_sync_check.py`).
   120k/day budget. Pinned to uw-0 rather than every role's index-0: the job has
   no advisory lock, so a per-role pin would multiply UW spend and race the
   insert-or-touch.
+- **Durable point-in-time FOMC and SEP policy paths, 2020 to present.** Four independent policy
+  paths — the committee's actual decision, its anonymous SEP projection, the NY Fed dealer survey,
+  and an optional third-party market shadow — now persist through the production worker and serve
+  from stored rows. They stay separately keyed and are never averaged into a synthetic Fed path, and
+  an anonymous SEP dot is never attributed to the Chair. Measured live: 55/55 FOMC statements and
+  25/25 SEP releases parse across 2020–2026 with zero failures, and every release with more than
+  one dissenter — the case where the clause grammar can actually go wrong — is verified name by
+  name against the published statement. `GET /api/macro/policy` gains per-source release
+  coverage (`releases_discovered` / `releases_succeeded` / `releases_failed` plus named failures),
+  an exact `as_of_ts` replay instant beside the existing date-level `as_of`, and the full vote on
+  each path point — `vote_status`, `vote_split`, `voted_for`, `voted_against`, and
+  `voter_names_stated`, so a tally printed without a roster stays distinct from a unanimous
+  committee. Evidence:
+  `docs/research/2026-08-12-fomc-sep-source-probe/{probe.json,smoke-4x4.json,VERDICT.md}`.
+- **Per-release ingest catalog** (`macro_release_ingest_status`) and **observation lineage**
+  (`macro_observation_artifacts`), migration 121. One release's outcome no longer hides behind a
+  source-level status, and every fact can name the exact artifacts that witness it.
+- **Resumable 2020+ policy backfill** — `scripts/backfill/macro_policy_history.py`, driving the
+  production worker entry points year by year and resuming off the release catalog. A window that
+  produced no releases exits non-zero; a vacuous pass would hide a discovery outage.
+
+### Fixed
+
+- **A two-sided FOMC dissent no longer loses a dissenter.** The voting-against block was split on
+  `;`, but when dissenters want opposite things the Fed joins their clauses with `, and` instead.
+  2025-10-29 — Miran wanting a deeper cut, Schmid wanting none — therefore parsed as a single
+  clause: everything after the first `, who` was discarded as rationale, taking Schmid with it. The
+  tally is derived from the surviving names, so the release recorded **10-1 instead of 10-2** and
+  still reported `ok` — the drop decremented the very count that would have exposed it. Both
+  separators are now read, and a clause grammar we cannot parse fails the release closed rather
+  than returning the dissenters it happened to understand.
+- **Every release with bytes but no fact is now counted as a hole.** `GET /api/macro/policy` counted
+  only `failed`, so an `artifact_only` release — the parse produced nothing but the evidence landed —
+  showed up as neither a success nor a failure. "20 discovered / 17 succeeded / 0 failed" read
+  exactly like a healthy source while three releases carried no fact. The counts must now account
+  for every release discovered, which makes that limbo unconstructible rather than merely unfixed.
+- **One unreadable stored row no longer takes the other three paths down.** A shape-drifted
+  observation raised through the whole comparison and returned a 500 for all four slots. Each path
+  now degrades on its own, the read-side twin of the per-release write transaction below.
+- **A backfill window with a silent hole no longer exits zero.** The exit code read the catalog rows
+  that existed, but a year whose discovery failed writes no rows at all — so it dropped out of the
+  check that was supposed to catch it. The requested window is now the denominator, and any past
+  source-year with no releases fails the run by name.
+- **A corrected policy release is no longer backdated to the original release instant.** Both the
+  artifact and observation layers took the publisher's declared release time verbatim, so a reissue
+  retrieved months later claimed to have been public on the original afternoon — a look-ahead leak
+  in the dangerous direction, where a replay reads a number nobody had. A later revision now takes
+  the instant those exact bytes could first be observed, and a fact can never predate its evidence.
+- **One unreadable release no longer discards its siblings.** Policy ingest committed the whole
+  fetch as a single transaction, so a single malformed statement rolled back the batch — a real run
+  persisted 10 statement artifacts and zero facts. Each release now commits independently; the bad
+  one is recorded as failed by name and the rest survive.
+- **The source probe no longer samples one release per year.** It parsed `max(meeting_date)`, which
+  makes the observable failure rate structurally zero — the SEP parser sat at 1-of-25 while the
+  probe reported healthy. It now parses every discovered release and takes the source state as the
+  worst among them.
 
 ## [0.12.4] — 2026-08-18
-
 
 ### Fixed
 
@@ -63,6 +118,7 @@ version in lockstep (enforced by `scripts/release/version_sync_check.py`).
   heal them alongside it, double-charging the provider budget. Staleness is
   measured by progress (last item driven to a verdict) rather than age, so the
   heuristic stays conservative even if that ordering is ever loosened.
+
 ## [0.12.3] — 2026-08-17
 
 
@@ -287,6 +343,16 @@ version in lockstep (enforced by `scripts/release/version_sync_check.py`).
   outside test databases. A read-only `option_wizard_local` inventory covers all 19 legacy
   rates/gold relations and records the adapter sequence for inflation → policy/rates → USD → gold,
   including future evidence-first Rates, Gold, unified Macro, and Fundamental PM context surfaces.
+- **Free policy-evidence ingestion with four paths that never get averaged together.** Official
+  Federal Reserve statements preserve decisions, target ranges, dissent, and vote splits; official
+  SEP releases preserve anonymous participant distributions and published medians without inferring
+  a Chair-specific dot; and the New York Fed Survey of Market Expectations preserves its Primary
+  Dealer path and distributions from the structured workbook. `GET /api/macro/policy` returns
+  actual, committee-projection, dealer-expectations, and market-implied paths independently with
+  evidence references, release/availability times, missing reasons, freshness, and contradictions.
+  The free Frenzy Capital futures view is retained byte-for-byte as an optional third-party shadow:
+  it is disabled by default, cannot satisfy an official path, and reports `delay_status=unknown`
+  because its publisher supplies neither a publication timestamp nor a delay contract.
 
 ### Changed
 
