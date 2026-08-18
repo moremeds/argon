@@ -4,8 +4,12 @@
 from __future__ import annotations
 
 import importlib.util
+import sys
 import types
 from datetime import date, timedelta
+
+import psycopg
+import pytest
 
 from uw_scan.storage.data_gap_healer_repository import DataGapHealerRepository
 from uw_scan.worker.jobs.data_gap_adapters import HealSpec
@@ -167,6 +171,15 @@ def test_resume_requeues_orphaned_running_items(seeded_db_empty_cards):
             f"UPDATE {repo._schema}.data_gap_items SET status='running' WHERE run_id=%s",
             (run_id,),
         )
+        # audit_into_run does not write the rollup -- its caller finalizes. Seed
+        # it as a completed-then-re-resumed run would carry, so the assertion
+        # below proves resume MERGES into the summary instead of replacing it.
+        cur.execute(
+            f"UPDATE {repo._schema}.data_gap_runs "
+            'SET summary_jsonb = \'{"datasets": {"daily_ohlc": {}}}\'::jsonb '
+            "WHERE id=%s",
+            (run_id,),
+        )
     repo.conn.commit()
 
     def fake_range(ctx, ticker, lo, hi):
@@ -190,3 +203,82 @@ def test_resume_requeues_orphaned_running_items(seeded_db_empty_cards):
     )
     # the orphaned 'running' items were requeued and then healed
     assert outcome.get("healed") == len(items)
+    # and the run is CLOSED. A resume that succeeded used to leave status
+    # 'running' forever, which wedges the nightly job's active-run guard just as
+    # a killed process does -- via the ordinary operator path, not a crash.
+    run = gap.get_run(run_id)
+    assert run["status"] == "complete"
+    assert run["finished_at"] is not None
+    # the audit's per-dataset rollup survives the merge
+    assert "datasets" in run["summary_jsonb"]
+    assert run["summary_jsonb"]["resumes"][-1]["outcome"] == outcome
+
+    # staged resumes APPEND. An operator draining a run dataset-by-dataset would
+    # otherwise lose every earlier stage's outcome and budget from the audit trail.
+    cli.resume_run(
+        repo,
+        gap,
+        _settings(repo),
+        run_id,
+        today=date(2026, 6, 30),
+        max_uw_calls=20000,
+        specs=specs,
+    )
+    assert len(gap.get_run(run_id)["summary_jsonb"]["resumes"]) == 2
+
+
+def test_cli_refuses_to_race_another_heal(seeded_db_empty_cards, _migrated_settings):
+    """`execute` and `resume` now take the healer's single-flight advisory lock.
+    Racing another heal would re-audit the same still-missing gaps and heal them
+    twice, double-charging the provider budget -- the hazard data_freshness_monitor
+    already documents at this same lock key. The CLI re-exports HealerBusy so
+    main() can map it to exit code 2 ("busy", not "broken")."""
+    cli = _load_cli()
+    repo = seeded_db_empty_cards
+    gap = DataGapHealerRepository(repo.conn, schema=repo._schema)
+
+    # A second connection stands in for the nightly job / another operator. Take
+    # the DSN from the fixture's own Settings -- conn.info deliberately withholds
+    # the password, so a hand-built DSN passes on a trust-auth dev box and fails
+    # against CI's password-authenticated Postgres service.
+    with psycopg.connect(_migrated_settings.db_dsn()) as holder, holder.cursor() as cur:
+        cur.execute("SELECT pg_try_advisory_lock(92010)")
+        assert cur.fetchone()[0] is True
+
+        with pytest.raises(cli.HealerBusy):
+            cli.execute_into_run(
+                repo,
+                gap,
+                _settings(repo),
+                start=date(2026, 6, 10),
+                end=date(2026, 6, 11),
+                datasets=["daily_ohlc"],
+                max_uw_calls=0,
+                today=date(2026, 6, 30),
+            )
+        with pytest.raises(cli.HealerBusy):
+            cli.resume_run(
+                repo,
+                gap,
+                _settings(repo),
+                1,
+                today=date(2026, 6, 30),
+                max_uw_calls=0,
+            )
+
+
+def test_main_maps_healer_busy_to_exit_code_2(monkeypatch):
+    """`2` is an operator contract, not an implementation detail: a wrapper needs
+    to tell "another heal holds the lock, try later" apart from "this run broke".
+    build_parser() resolves cmd_execute from module globals when main() calls it,
+    so patching the command is enough to drive the handler."""
+    cli = _load_cli()
+
+    def _busy(_args, _settings):
+        raise cli.HealerBusy("another gap-heal holds the single-flight lock")
+
+    monkeypatch.setattr(cli, "cmd_execute", _busy)
+    monkeypatch.setattr(
+        sys, "argv", ["data_gap_healer.py", "execute", "--start", "2026-01-01"]
+    )
+    assert cli.main() == 2
