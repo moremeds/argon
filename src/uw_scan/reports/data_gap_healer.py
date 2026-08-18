@@ -1427,7 +1427,8 @@ REGISTRY.extend(
             source_system="uw",
             retention_days=None,
             reason=(
-                "quarterly filings over the fundamental universe (257 tickers), "
+                "quarterly filings over the fundamental universe (450 tickers as "
+                "of 2026-08-18; it moves when the seeder runs), "
                 "not the watchlist. Deliberately NOT wired to the healer: unlike "
                 "scores/anchors this is a provider INGEST, and "
                 "worker/jobs/fundamental_refresh explicitly does not ingest. "
@@ -1436,6 +1437,36 @@ REGISTRY.extend(
                 "action, not on the nightly cron."
             ),
             reason_verified_on=date(2026, 8, 16),
+        ),
+        DatasetRegistryEntry(
+            "revenue_breakdown_obs",
+            "fundamentals",
+            # freshness_only for the same reason as fundamental_statement_obs:
+            # the grain is (ticker x fiscal QUARTER), not (ticker x SESSION), so
+            # a strict audit would invent a gap of roughly the session-to-quarter
+            # ratio that no filing will ever fill.
+            "freshness_only",
+            date_col="report_date",
+            ticker_col="ticker",
+            # A breakdown row appears when a filing appears.
+            expected_frequency="event",
+            provider="uw",
+            granularity="none",
+            healer_adapter=None,
+            source_system="uw",
+            retention_days=None,
+            reason=(
+                "revenue breakdown by XBRL axis over the fundamental universe. "
+                "Deliberately NOT wired to the healer: this is a provider "
+                "INGEST, and its own capture job is the only writer. Heal by "
+                "re-running worker/jobs/fundamental_concentration_capture "
+                "(insert-or-touch by content hash, safe to repeat) as a "
+                "budgeted operator action, not on the nightly cron. Note the "
+                "provider window may roll: a period that has aged out cannot be "
+                "healed at all, which is why capture runs monthly rather than "
+                "quarterly."
+            ),
+            reason_verified_on=date(2026, 8, 18),
         ),
         DatasetRegistryEntry(
             "fundamental_obs_violations",

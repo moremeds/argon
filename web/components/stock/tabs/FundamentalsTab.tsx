@@ -6,6 +6,7 @@ import { fmtDecimal } from "@/lib/formatters";
 import { FundamentalAnchorBand } from "../panels/FundamentalAnchorBand";
 import { FundamentalBackPlaceholder } from "../panels/FundamentalBackPlaceholder";
 import { FundamentalCardBack } from "../panels/FundamentalCardBack";
+import { FundamentalConcentration } from "../panels/FundamentalConcentration";
 import { FundamentalRevenueCard } from "../panels/FundamentalRevenueCard";
 import { FundamentalSparkline } from "../panels/FundamentalSparkline";
 import { SubscoreTile, PercentileTag } from "../panels/FundamentalSubscoreTile";
@@ -18,6 +19,7 @@ import {
 
 type Card = components["schemas"]["FundamentalCardResponse"];
 type Statements = components["schemas"]["FundamentalStatementsResponse"];
+type Concentration = components["schemas"]["FundamentalConcentrationResponse"];
 
 export function FundamentalsTab({ ticker }: { ticker: string }) {
   const [card, setCard] = useState<Card | null>(null);
@@ -35,10 +37,12 @@ export function FundamentalsTab({ ticker }: { ticker: string }) {
   } | null>(null);
   const [statements, setStatements] = useState<Statements | null>(null);
   const [failedTicker, setFailedTicker] = useState<string | null>(null);
+  const [conc, setConc] = useState<Concentration | null>(null);
 
   const stmts = statements?.ticker === ticker ? statements : null;
   const open = openFeature?.ticker === ticker ? openFeature.feature : null;
   const statementsFailed = failedTicker === ticker;
+  const concentration = conc?.ticker === ticker ? conc : null;
 
   useEffect(() => {
     let live = true;
@@ -72,6 +76,23 @@ export function FundamentalsTab({ ticker }: { ticker: string }) {
         // `statements` null with no failure flag spins "Loading components…"
         // forever, which claims progress that will never come.
         if (live) setFailedTicker(ticker);
+      }
+    })();
+    return () => {
+      live = false;
+    };
+  }, [ticker]);
+
+  useEffect(() => {
+    let live = true;
+    void (async () => {
+      try {
+        const k = await api.fundamentalConcentration(ticker);
+        if (live) setConc(k);
+      } catch {
+        // 404 is the ordinary case: 48 of 449 universe names publish no XBRL
+        // disaggregation at all. Left null, which renders the absence panel —
+        // never an error, and never a 0% share.
       }
     })();
     return () => {
@@ -257,6 +278,21 @@ export function FundamentalsTab({ ticker }: { ticker: string }) {
           onClose={() => setOpenFeature(null)}
         />
       </div>
+
+      {concentration ? (
+        <FundamentalConcentration c={concentration} />
+      ) : (
+        <div style={panelStyle} data-testid="fundamentals-concentration-absent">
+          <div style={labelStyle}>REVENUE CONCENTRATION</div>
+          <div
+            style={{ color: "var(--text-muted)", fontSize: 12, marginTop: 10 }}
+          >
+            No revenue breakdown captured for {ticker}. Many filers publish no
+            XBRL disaggregation at all — that is a fact about the filing, not a
+            statement that revenue is unconcentrated.
+          </div>
+        </div>
+      )}
 
       <div style={panelStyle} data-testid="fundamentals-coverage">
         <div style={labelStyle}>COVERAGE</div>

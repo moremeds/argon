@@ -195,6 +195,65 @@ class FundamentalStatementsResponse(_UwBase):
     features: list[FundamentalFeatureDetail]
 
 
+class FundamentalConcentrationFamily(_UwBase):
+    """The reported top-member share on one axis family, for one period.
+
+    Carries its own `report_date`: a filer may publish a geography cut every
+    quarter and a segment cut only annually, so the two families legitimately
+    date differently and one shared as-of would misdate one of them.
+
+    `top_member` is the RAW XBRL member string. Filers mix `country:US` with
+    custom members like `nvda:ChinaIncludingHongKongMember` and with continent
+    aggregates; the share is defensible, a beautified label would not be.
+    """
+
+    # The XBRL axis the partition was taken on, e.g.
+    # 'us-gaap:StatementBusinessSegmentsAxis'.
+    axis: str
+    # "all" when the published members sum to the period total; "subset:N" when
+    # a coarser level had to be recovered. Rendered so a reader can tell which.
+    level: str
+    n_members: int
+    top_member: str
+    top_share: float
+    report_date: str
+
+
+class FundamentalConcentrationPoint(_UwBase):
+    """One period of the trend. Null where the family did not resolve — never 0,
+    which would read as "no concentration" rather than "not disclosed"."""
+
+    report_date: str
+    segment_top_share: float | None
+    geography_top_share: float | None
+
+
+class FundamentalConcentrationResponse(_UwBase):
+    """Revenue concentration for one name. DESCRIPTIVE ONLY.
+
+    This is not an edge and nothing here may become a composite input. Measured
+    over 401 tickers, the top share moves a median 1.20pp per quarter against
+    annual/quarterly basis contamination of median 2.5pp and p90 17.5pp — the
+    level is a public, filing-lagged, highly persistent characteristic, which is
+    a factor loading rather than alpha. No rank, no percentile against other
+    names, no score.
+    """
+
+    ticker: str
+    # Absent, never an empty family: absence is about our coverage, an empty
+    # band would be a claim about the company.
+    segment: FundamentalConcentrationFamily | None = None
+    geography: FundamentalConcentrationFamily | None = None
+    # Oldest first, annual periods excluded.
+    trend: list[FundamentalConcentrationPoint] = []
+    # Excluded from the trend but reported, so a reader comparing against the
+    # filer's own history can see the period existed and was filtered.
+    dropped_annual_periods: list[str] = []
+    # Which derivation produced the shares. The rules are new and one has
+    # already been corrected once against real data.
+    derivation_version: str
+
+
 _preserve_public_module(
     FundamentalPercentile,
     FundamentalSubscore,
@@ -205,4 +264,7 @@ _preserve_public_module(
     FundamentalComponentSeries,
     FundamentalFeatureDetail,
     FundamentalStatementsResponse,
+    FundamentalConcentrationFamily,
+    FundamentalConcentrationPoint,
+    FundamentalConcentrationResponse,
 )

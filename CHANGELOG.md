@@ -7,6 +7,56 @@ version in lockstep (enforced by `scripts/release/version_sync_check.py`).
 
 ## [Unreleased]
 
+### Added
+
+- **Revenue concentration on the Fundamentals tab — where a company's revenue
+  actually comes from, by reportable segment and by geography.** NVDA reads 91.3%
+  Compute & Networking and 78.1% United States; the share, the member name and
+  the multi-year trend all come from the filer's own XBRL disaggregation. The
+  block is **descriptive and says so on screen**: no rank, no percentile against
+  other names, no score, and no contribution to the composite. Measured over 401
+  tickers the top share moves a median 1.20pp per quarter against basis
+  contamination of median 2.5pp and p90 17.5pp — the level survives that noise
+  and is near-static, which makes it a factor loading rather than alpha. The
+  spec's 0.10 composite weight for `concentration_risk` is withdrawn, and its
+  `✅ 24/25` coverage claim corrected to the measured 184/401 by segment and
+  128/401 by geography — the earlier figure counted tickers for which the
+  endpoint returned rows, which is presence, not computability.
+- **Member names render exactly as filed** — `country:US`, `nvda:ChinaIncludingHongKongMember`.
+  Mapping those to flags or country names would mean inventing a taxonomy the
+  filer did not use. An absent family renders `na`, never 0: a zero share reads
+  as "no concentration risk", which is a claim about the company rather than
+  about our coverage.
+- **Annual figures are detected and excluded from the trend, and named rather
+  than hidden.** Filers mix an annual total into a quarterly breakdown series,
+  and an undetected one moves the share by several times its own quarterly step.
+  Detection compares a period against its four nearest neighbours rather than
+  against the ticker's lifetime median — over NVDA's 25-period history revenue
+  grows 26×, so a recent *quarterly* total clears 2.5× a lifetime median on
+  growth alone. On the frozen fixtures the local rule flags 7 of 7 annual periods
+  with no false positives, against 3 of 6 with 3 false positives for the global
+  one, and the periods it drops land exactly on each filer's fiscal year-end.
+- **New monthly capture job** `fundamental_concentration_capture` (04:10 ET on
+  the 3rd, uw-0, `UW_SCAN_FUNDAMENTAL_CONCENTRATION_CAPTURE_ENABLED`, default on)
+  writing `revenue_breakdown_obs` (migration 122). Raw rows are stored, never the
+  derived share: the derivation rules are new and one has already been corrected
+  once against real data, so re-deriving from stored rows must stay possible
+  while re-fetching a rolled-off quarter may not be. Identity is content-hash,
+  matching migration 114 — an unchanged recapture bumps `last_seen_at` and writes
+  no fact, a restatement lands beside its predecessor. First run: 63,567 rows
+  over 400 names spanning 2019-09-30 to 2026-07-05.
+
+### Fixed
+
+- **`valuation_anchors.as_of` is the spot date, not the compute date**, and the
+  docstring that said otherwise is corrected. The job is healthy — 2 of 2
+  scheduled runs since the v0.12.0 deploy wrote rows, the last at its exact 18:20
+  ET slot — but a health check of the form `max(as_of) >= today` is unsatisfiable
+  by construction: `as_of` is the last bar in the ticker's price series, and the
+  lake lands a session's close around midnight New York, hours after the run.
+  Check `max(computed_at)` for liveness and compare `max(as_of)` against the
+  lake's own last close for correctness.
+
 ## [0.12.5] — 2026-08-18
 
 

@@ -2,7 +2,7 @@
 
 Reads the tier-1 statement panel plus unadjusted daily closes, rebuilds every
 ticker's own valuation-yield history, and persists one band per ticker per
-compute day under the active method version.
+PRICE date under the active method version.
 
 WHY UNADJUSTED CLOSES
 ---------------------
@@ -13,12 +13,30 @@ moves its market cap by an order of magnitude, which would corrupt the whole
 history the band's percentiles are drawn from. Raw close and as-reported shares
 are both point-in-time, so their product is the market cap that was observable.
 
-WHY `as_of` IS THE COMPUTE DATE, NOT THE FISCAL PERIOD
-------------------------------------------------------
+WHY `as_of` IS THE SPOT DATE, NOT THE FISCAL PERIOD OR THE CLOCK
+---------------------------------------------------------------
 The five levels only move when a filing lands, but `spot` and `spot_percentile`
-move with the price. Keying on the compute date lets the daily snapshot of where
-price sat inside its own band accumulate as history, instead of a same-day
-`DO NOTHING` freezing the first spot ever recorded into a row that looks current.
+move with the price, so the row has to be keyed on something that tracks price —
+otherwise a same-day `DO NOTHING` freezes the first spot ever recorded into a row
+that looks current.
+
+`as_of` is the date of the close the row was priced at (`spot_date`, the last bar
+in the ticker's series), NOT the date the job ran. Those coincide only when the
+lake is current, and the lake is an EOD store: livewire lands a session's close
+around midnight New York, well after this job's 18:20 ET slot. So a healthy run
+on a Monday evening writes `as_of` = **Friday** — the newest close that existed
+when it ran. A ticker whose series ends earlier still gets its real last close,
+which is why old `as_of` values appear beside current ones and are correct.
+
+Keying on the clock instead would be actively wrong: a stale lake would then mint
+one row per calendar day all carrying the same spot, asserting a price
+observation on days when none existed. Keying on the spot date writes exactly one
+row per real observation, so the table stays a point-in-time record.
+
+**Do not health-check this table with `max(as_of) >= today`** — that is
+unsatisfiable by construction and reads a healthy job as a dead one. Check
+`max(computed_at)` for liveness, and compare `max(as_of)` against the lake's own
+last close for correctness.
 
 The job never raises on a single ticker: a name missing prices, statements or a
 company_type is counted and skipped, because one unrouted ticker must not cost

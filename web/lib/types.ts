@@ -411,6 +411,40 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/stock/{ticker}/fundamentals/concentration": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Get Stock Fundamental Concentration
+         * @description Revenue concentration by reportable segment and by geography.
+         *
+         *     DESCRIPTIVE ONLY — see the response model. No rank, no percentile, no
+         *     contribution to any score.
+         *
+         *     Shares are derived here, at read time, from stored raw rows. Nothing
+         *     persists a share: the axis-selection, level-collapse and annual-detection
+         *     rules are new, one of them has already been corrected once against real
+         *     data, and a stored share would freeze whichever rules were current when the
+         *     row was written into a history no later correction could reach.
+         *
+         *     404 means no breakdown rows have been captured for this name — which is a
+         *     different condition from either fundamentals endpoint's, and the three
+         *     legitimately disagree: a filer can hold statements and publish no
+         *     disaggregation at all.
+         */
+        get: operations["get_stock_fundamental_concentration_api_stock__ticker__fundamentals_concentration_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/stock/{ticker}/magnets": {
         parameters: {
             query?: never;
@@ -3438,6 +3472,74 @@ export interface components {
             unit: string;
             /** Values */
             values: (number | null)[];
+        };
+        /**
+         * FundamentalConcentrationFamily
+         * @description The reported top-member share on one axis family, for one period.
+         *
+         *     Carries its own `report_date`: a filer may publish a geography cut every
+         *     quarter and a segment cut only annually, so the two families legitimately
+         *     date differently and one shared as-of would misdate one of them.
+         *
+         *     `top_member` is the RAW XBRL member string. Filers mix `country:US` with
+         *     custom members like `nvda:ChinaIncludingHongKongMember` and with continent
+         *     aggregates; the share is defensible, a beautified label would not be.
+         */
+        FundamentalConcentrationFamily: {
+            /** Axis */
+            axis: string;
+            /** Level */
+            level: string;
+            /** N Members */
+            n_members: number;
+            /** Top Member */
+            top_member: string;
+            /** Top Share */
+            top_share: number;
+            /** Report Date */
+            report_date: string;
+        };
+        /**
+         * FundamentalConcentrationPoint
+         * @description One period of the trend. Null where the family did not resolve — never 0,
+         *     which would read as "no concentration" rather than "not disclosed".
+         */
+        FundamentalConcentrationPoint: {
+            /** Report Date */
+            report_date: string;
+            /** Segment Top Share */
+            segment_top_share: number | null;
+            /** Geography Top Share */
+            geography_top_share: number | null;
+        };
+        /**
+         * FundamentalConcentrationResponse
+         * @description Revenue concentration for one name. DESCRIPTIVE ONLY.
+         *
+         *     This is not an edge and nothing here may become a composite input. Measured
+         *     over 401 tickers, the top share moves a median 1.20pp per quarter against
+         *     annual/quarterly basis contamination of median 2.5pp and p90 17.5pp — the
+         *     level is a public, filing-lagged, highly persistent characteristic, which is
+         *     a factor loading rather than alpha. No rank, no percentile against other
+         *     names, no score.
+         */
+        FundamentalConcentrationResponse: {
+            /** Ticker */
+            ticker: string;
+            segment?: components["schemas"]["FundamentalConcentrationFamily"] | null;
+            geography?: components["schemas"]["FundamentalConcentrationFamily"] | null;
+            /**
+             * Trend
+             * @default []
+             */
+            trend: components["schemas"]["FundamentalConcentrationPoint"][];
+            /**
+             * Dropped Annual Periods
+             * @default []
+             */
+            dropped_annual_periods: string[];
+            /** Derivation Version */
+            derivation_version: string;
         };
         /**
          * FundamentalCoverage
@@ -11218,6 +11320,39 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["FundamentalStatementsResponse"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    get_stock_fundamental_concentration_api_stock__ticker__fundamentals_concentration_get: {
+        parameters: {
+            query?: {
+                periods?: number;
+            };
+            header?: never;
+            path: {
+                ticker: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["FundamentalConcentrationResponse"];
                 };
             };
             /** @description Validation Error */

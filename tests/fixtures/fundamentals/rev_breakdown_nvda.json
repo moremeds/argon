@@ -1,0 +1,3271 @@
+{
+  "_fixture": "real UW /stock/NVDA/fundamental-breakdown rev_breakdown rows, fetched 2026-08-18. Frozen: tests must not hit the network.",
+  "ticker": "NVDA",
+  "fetched_on": "2026-08-18",
+  "rows": [
+    {
+      "value": "-19424000000.0",
+      "members": [
+        "nvda:OtherCountriesMember"
+      ],
+      "field": "us-gaap:Revenues",
+      "axis": [
+        "srt:StatementGeographicalAxis"
+      ],
+      "report_date": "2026-01-25",
+      "rev_group": "continent"
+    },
+    {
+      "value": "0.1",
+      "members": [],
+      "field": "us-gaap:ConcentrationRiskPercentage1",
+      "axis": [],
+      "report_date": "2022-10-30",
+      "rev_group": "rewards"
+    },
+    {
+      "value": "0.12",
+      "members": [],
+      "field": "us-gaap:ConcentrationRiskPercentage1",
+      "axis": [],
+      "report_date": "2022-05-01",
+      "rev_group": "rewards"
+    },
+    {
+      "value": "0.13",
+      "members": [],
+      "field": "us-gaap:ConcentrationRiskPercentage1",
+      "axis": [],
+      "report_date": "2020-10-25",
+      "rev_group": "rewards"
+    },
+    {
+      "value": "0.13",
+      "members": [],
+      "field": "us-gaap:ConcentrationRiskPercentage1",
+      "axis": [],
+      "report_date": "2021-05-02",
+      "rev_group": "rewards"
+    },
+    {
+      "value": "0.13",
+      "members": [],
+      "field": "us-gaap:ConcentrationRiskPercentage1",
+      "axis": [],
+      "report_date": "2021-08-01",
+      "rev_group": "rewards"
+    },
+    {
+      "value": "0.14",
+      "members": [],
+      "field": "us-gaap:ConcentrationRiskPercentage1",
+      "axis": [],
+      "report_date": "2020-07-26",
+      "rev_group": "rewards"
+    },
+    {
+      "value": "0.14",
+      "members": [],
+      "field": "us-gaap:ConcentrationRiskPercentage1",
+      "axis": [],
+      "report_date": "2021-10-31",
+      "rev_group": "rewards"
+    },
+    {
+      "value": "0.15",
+      "members": [],
+      "field": "us-gaap:ConcentrationRiskPercentage1",
+      "axis": [],
+      "report_date": "2020-04-26",
+      "rev_group": "rewards"
+    },
+    {
+      "value": "0.21",
+      "members": [],
+      "field": "us-gaap:ConcentrationRiskPercentage1",
+      "axis": [],
+      "report_date": "2022-07-31",
+      "rev_group": "rewards"
+    },
+    {
+      "value": "0.22",
+      "members": [],
+      "field": "us-gaap:ConcentrationRiskPercentage1",
+      "axis": [],
+      "report_date": "2022-01-30",
+      "rev_group": "rewards"
+    },
+    {
+      "value": "0.22",
+      "members": [],
+      "field": "us-gaap:ConcentrationRiskPercentage1",
+      "axis": [],
+      "report_date": "2023-04-30",
+      "rev_group": "rewards"
+    },
+    {
+      "value": "0.25",
+      "members": [],
+      "field": "us-gaap:ConcentrationRiskPercentage1",
+      "axis": [],
+      "report_date": "2023-01-29",
+      "rev_group": "rewards"
+    },
+    {
+      "value": "0.26",
+      "members": [],
+      "field": "us-gaap:ConcentrationRiskPercentage1",
+      "axis": [],
+      "report_date": "2021-01-31",
+      "rev_group": "rewards"
+    },
+    {
+      "value": "0.36",
+      "members": [],
+      "field": "us-gaap:ConcentrationRiskPercentage1",
+      "axis": [],
+      "report_date": "2024-10-27",
+      "rev_group": "rewards"
+    },
+    {
+      "value": "0.39",
+      "members": [],
+      "field": "us-gaap:ConcentrationRiskPercentage1",
+      "axis": [],
+      "report_date": "2023-07-30",
+      "rev_group": "rewards"
+    },
+    {
+      "value": "0.45999999999999996",
+      "members": [],
+      "field": "us-gaap:ConcentrationRiskPercentage1",
+      "axis": [],
+      "report_date": "2024-07-28",
+      "rev_group": "rewards"
+    },
+    {
+      "value": "0.55",
+      "members": [],
+      "field": "us-gaap:ConcentrationRiskPercentage1",
+      "axis": [],
+      "report_date": "2024-04-28",
+      "rev_group": "rewards"
+    },
+    {
+      "value": "0.87",
+      "members": [],
+      "field": "us-gaap:ConcentrationRiskPercentage1",
+      "axis": [],
+      "report_date": "2023-10-29",
+      "rev_group": "rewards"
+    },
+    {
+      "value": "0.92",
+      "members": [],
+      "field": "us-gaap:ConcentrationRiskPercentage1",
+      "axis": [],
+      "report_date": "2025-10-26",
+      "rev_group": "rewards"
+    },
+    {
+      "value": "1.04",
+      "members": [],
+      "field": "us-gaap:ConcentrationRiskPercentage1",
+      "axis": [],
+      "report_date": "2024-01-28",
+      "rev_group": "rewards"
+    },
+    {
+      "value": "1.4",
+      "members": [],
+      "field": "us-gaap:ConcentrationRiskPercentage1",
+      "axis": [],
+      "report_date": "2026-04-26",
+      "rev_group": "rewards"
+    },
+    {
+      "value": "1.4000000000000004",
+      "members": [],
+      "field": "us-gaap:ConcentrationRiskPercentage1",
+      "axis": [],
+      "report_date": "2025-01-26",
+      "rev_group": "rewards"
+    },
+    {
+      "value": "1.9900000000000002",
+      "members": [],
+      "field": "us-gaap:ConcentrationRiskPercentage1",
+      "axis": [],
+      "report_date": "2026-01-25",
+      "rev_group": "rewards"
+    },
+    {
+      "value": "2.1",
+      "members": [],
+      "field": "us-gaap:ConcentrationRiskPercentage1",
+      "axis": [],
+      "report_date": "2025-07-27",
+      "rev_group": "rewards"
+    },
+    {
+      "value": "2.5900000000000003",
+      "members": [],
+      "field": "us-gaap:ConcentrationRiskPercentage1",
+      "axis": [],
+      "report_date": "2025-04-27",
+      "rev_group": "rewards"
+    },
+    {
+      "value": "66000000.0",
+      "members": [
+        "nvda:OEMAndOtherMember"
+      ],
+      "field": "us-gaap:Revenues",
+      "axis": [
+        "srt:ProductOrServiceAxis"
+      ],
+      "report_date": "2023-07-30",
+      "rev_group": "product"
+    },
+    {
+      "value": "73000000.0",
+      "members": [
+        "nvda:OEMAndOtherMember"
+      ],
+      "field": "us-gaap:Revenues",
+      "axis": [
+        "srt:ProductOrServiceAxis"
+      ],
+      "report_date": "2022-10-30",
+      "rev_group": "product"
+    },
+    {
+      "value": "73000000.0",
+      "members": [
+        "nvda:OEMAndOtherMember"
+      ],
+      "field": "us-gaap:Revenues",
+      "axis": [
+        "srt:ProductOrServiceAxis"
+      ],
+      "report_date": "2023-10-29",
+      "rev_group": "product"
+    },
+    {
+      "value": "77000000.0",
+      "members": [
+        "nvda:OEMAndOtherMember"
+      ],
+      "field": "us-gaap:Revenues",
+      "axis": [
+        "srt:ProductOrServiceAxis"
+      ],
+      "report_date": "2023-04-30",
+      "rev_group": "product"
+    },
+    {
+      "value": "78000000.0",
+      "members": [
+        "nvda:OEMAndOtherMember"
+      ],
+      "field": "us-gaap:Revenues",
+      "axis": [
+        "srt:ProductOrServiceAxis"
+      ],
+      "report_date": "2024-04-28",
+      "rev_group": "product"
+    },
+    {
+      "value": "84000000.0",
+      "members": [
+        "nvda:OEMAndOtherMember"
+      ],
+      "field": "us-gaap:Revenues",
+      "axis": [
+        "srt:ProductOrServiceAxis"
+      ],
+      "report_date": "2023-01-29",
+      "rev_group": "product"
+    },
+    {
+      "value": "88000000.0",
+      "members": [
+        "nvda:OEMAndOtherMember"
+      ],
+      "field": "us-gaap:Revenues",
+      "axis": [
+        "srt:ProductOrServiceAxis"
+      ],
+      "report_date": "2024-07-28",
+      "rev_group": "product"
+    },
+    {
+      "value": "90000000.0",
+      "members": [
+        "nvda:OEMAndOtherMember"
+      ],
+      "field": "us-gaap:Revenues",
+      "axis": [
+        "srt:ProductOrServiceAxis"
+      ],
+      "report_date": "2024-01-28",
+      "rev_group": "product"
+    },
+    {
+      "value": "97000000.0",
+      "members": [
+        "nvda:OEMAndOtherMember"
+      ],
+      "field": "us-gaap:Revenues",
+      "axis": [
+        "srt:ProductOrServiceAxis"
+      ],
+      "report_date": "2024-10-27",
+      "rev_group": "product"
+    },
+    {
+      "value": "111000000.0",
+      "members": [
+        "nvda:AutomotiveMember"
+      ],
+      "field": "us-gaap:Revenues",
+      "axis": [
+        "srt:ProductOrServiceAxis"
+      ],
+      "report_date": "2020-07-26",
+      "rev_group": "product"
+    },
+    {
+      "value": "111000000.0",
+      "members": [
+        "nvda:OEMAndOtherMember"
+      ],
+      "field": "us-gaap:Revenues",
+      "axis": [
+        "srt:ProductOrServiceAxis"
+      ],
+      "report_date": "2025-04-27",
+      "rev_group": "product"
+    },
+    {
+      "value": "125000000.0",
+      "members": [
+        "nvda:AutomotiveMember"
+      ],
+      "field": "us-gaap:Revenues",
+      "axis": [
+        "srt:ProductOrServiceAxis"
+      ],
+      "report_date": "2020-10-25",
+      "rev_group": "product"
+    },
+    {
+      "value": "125000000.0",
+      "members": [
+        "nvda:AutomotiveMember"
+      ],
+      "field": "us-gaap:RevenueFromContractWithCustomerExcludingAssessedTax",
+      "axis": [
+        "srt:ProductOrServiceAxis"
+      ],
+      "report_date": "2022-01-30",
+      "rev_group": "product"
+    },
+    {
+      "value": "126000000.0",
+      "members": [
+        "nvda:OEMAndOtherMember"
+      ],
+      "field": "us-gaap:Revenues",
+      "axis": [
+        "srt:ProductOrServiceAxis"
+      ],
+      "report_date": "2025-01-26",
+      "rev_group": "product"
+    },
+    {
+      "value": "135000000.0",
+      "members": [
+        "nvda:AutomotiveMember"
+      ],
+      "field": "us-gaap:Revenues",
+      "axis": [
+        "srt:ProductOrServiceAxis"
+      ],
+      "report_date": "2021-10-31",
+      "rev_group": "product"
+    },
+    {
+      "value": "138000000.0",
+      "members": [
+        "nvda:AutomotiveMember"
+      ],
+      "field": "us-gaap:Revenues",
+      "axis": [
+        "srt:ProductOrServiceAxis"
+      ],
+      "report_date": "2022-05-01",
+      "rev_group": "product"
+    },
+    {
+      "value": "138000000.0",
+      "members": [
+        "nvda:OEMAndOtherMember"
+      ],
+      "field": "us-gaap:Revenues",
+      "axis": [
+        "srt:ProductOrServiceAxis"
+      ],
+      "report_date": "2020-04-26",
+      "rev_group": "product"
+    },
+    {
+      "value": "140000000.0",
+      "members": [
+        "nvda:OEMAndOtherMember"
+      ],
+      "field": "us-gaap:Revenues",
+      "axis": [
+        "srt:ProductOrServiceAxis"
+      ],
+      "report_date": "2022-07-31",
+      "rev_group": "product"
+    },
+    {
+      "value": "145000000.0",
+      "members": [
+        "nvda:AutomotiveMember"
+      ],
+      "field": "us-gaap:RevenueFromContractWithCustomerExcludingAssessedTax",
+      "axis": [
+        "srt:ProductOrServiceAxis"
+      ],
+      "report_date": "2021-01-31",
+      "rev_group": "product"
+    },
+    {
+      "value": "146000000.0",
+      "members": [
+        "nvda:OEMAndOtherMember"
+      ],
+      "field": "us-gaap:Revenues",
+      "axis": [
+        "srt:ProductOrServiceAxis"
+      ],
+      "report_date": "2020-07-26",
+      "rev_group": "product"
+    },
+    {
+      "value": "152000000.0",
+      "members": [
+        "nvda:AutomotiveMember"
+      ],
+      "field": "us-gaap:Revenues",
+      "axis": [
+        "srt:ProductOrServiceAxis"
+      ],
+      "report_date": "2021-08-01",
+      "rev_group": "product"
+    },
+    {
+      "value": "153000000.0",
+      "members": [
+        "nvda:OEMAndOtherMember"
+      ],
+      "field": "us-gaap:RevenueFromContractWithCustomerExcludingAssessedTax",
+      "axis": [
+        "srt:ProductOrServiceAxis"
+      ],
+      "report_date": "2021-01-31",
+      "rev_group": "product"
+    },
+    {
+      "value": "154000000.0",
+      "members": [
+        "nvda:AutomotiveMember"
+      ],
+      "field": "us-gaap:Revenues",
+      "axis": [
+        "srt:ProductOrServiceAxis"
+      ],
+      "report_date": "2021-05-02",
+      "rev_group": "product"
+    },
+    {
+      "value": "155000000.0",
+      "members": [
+        "nvda:AutomotiveMember"
+      ],
+      "field": "us-gaap:Revenues",
+      "axis": [
+        "srt:ProductOrServiceAxis"
+      ],
+      "report_date": "2020-04-26",
+      "rev_group": "product"
+    },
+    {
+      "value": "158000000.0",
+      "members": [
+        "nvda:OEMAndOtherMember"
+      ],
+      "field": "us-gaap:Revenues",
+      "axis": [
+        "srt:ProductOrServiceAxis"
+      ],
+      "report_date": "2022-05-01",
+      "rev_group": "product"
+    },
+    {
+      "value": "161000000.0",
+      "members": [
+        "nvda:OEMAndOtherMember"
+      ],
+      "field": "us-gaap:Revenues",
+      "axis": [
+        "srt:ProductOrServiceAxis"
+      ],
+      "report_date": "2026-01-25",
+      "rev_group": "product"
+    },
+    {
+      "value": "173000000.0",
+      "members": [
+        "nvda:OEMAndOtherMember"
+      ],
+      "field": "us-gaap:Revenues",
+      "axis": [
+        "srt:ProductOrServiceAxis"
+      ],
+      "report_date": "2025-07-27",
+      "rev_group": "product"
+    },
+    {
+      "value": "174000000.0",
+      "members": [
+        "nvda:OEMAndOtherMember"
+      ],
+      "field": "us-gaap:Revenues",
+      "axis": [
+        "srt:ProductOrServiceAxis"
+      ],
+      "report_date": "2025-10-26",
+      "rev_group": "product"
+    },
+    {
+      "value": "192000000.0",
+      "members": [
+        "nvda:OEMAndOtherMember"
+      ],
+      "field": "us-gaap:RevenueFromContractWithCustomerExcludingAssessedTax",
+      "axis": [
+        "srt:ProductOrServiceAxis"
+      ],
+      "report_date": "2022-01-30",
+      "rev_group": "product"
+    },
+    {
+      "value": "194000000.0",
+      "members": [
+        "nvda:OEMAndOtherMember"
+      ],
+      "field": "us-gaap:Revenues",
+      "axis": [
+        "srt:ProductOrServiceAxis"
+      ],
+      "report_date": "2020-10-25",
+      "rev_group": "product"
+    },
+    {
+      "value": "200000000.0",
+      "members": [
+        "nvda:ProfessionalVisualizationMember"
+      ],
+      "field": "us-gaap:Revenues",
+      "axis": [
+        "srt:ProductOrServiceAxis"
+      ],
+      "report_date": "2022-10-30",
+      "rev_group": "product"
+    },
+    {
+      "value": "203000000.0",
+      "members": [
+        "nvda:ProfessionalVisualizationMember"
+      ],
+      "field": "us-gaap:Revenues",
+      "axis": [
+        "srt:ProductOrServiceAxis"
+      ],
+      "report_date": "2020-07-26",
+      "rev_group": "product"
+    },
+    {
+      "value": "220000000.0",
+      "members": [
+        "nvda:AutomotiveMember"
+      ],
+      "field": "us-gaap:Revenues",
+      "axis": [
+        "srt:ProductOrServiceAxis"
+      ],
+      "report_date": "2022-07-31",
+      "rev_group": "product"
+    },
+    {
+      "value": "226000000.0",
+      "members": [
+        "nvda:ProfessionalVisualizationMember"
+      ],
+      "field": "us-gaap:Revenues",
+      "axis": [
+        "srt:ProductOrServiceAxis"
+      ],
+      "report_date": "2023-01-29",
+      "rev_group": "product"
+    },
+    {
+      "value": "234000000.0",
+      "members": [
+        "nvda:OEMAndOtherMember"
+      ],
+      "field": "us-gaap:Revenues",
+      "axis": [
+        "srt:ProductOrServiceAxis"
+      ],
+      "report_date": "2021-10-31",
+      "rev_group": "product"
+    },
+    {
+      "value": "236000000.0",
+      "members": [
+        "nvda:ProfessionalVisualizationMember"
+      ],
+      "field": "us-gaap:Revenues",
+      "axis": [
+        "srt:ProductOrServiceAxis"
+      ],
+      "report_date": "2020-10-25",
+      "rev_group": "product"
+    },
+    {
+      "value": "251000000.0",
+      "members": [
+        "nvda:AutomotiveMember"
+      ],
+      "field": "us-gaap:Revenues",
+      "axis": [
+        "srt:ProductOrServiceAxis"
+      ],
+      "report_date": "2022-10-30",
+      "rev_group": "product"
+    },
+    {
+      "value": "253000000.0",
+      "members": [
+        "nvda:AutomotiveMember"
+      ],
+      "field": "us-gaap:Revenues",
+      "axis": [
+        "srt:ProductOrServiceAxis"
+      ],
+      "report_date": "2023-07-30",
+      "rev_group": "product"
+    },
+    {
+      "value": "261000000.0",
+      "members": [
+        "nvda:AutomotiveMember"
+      ],
+      "field": "us-gaap:Revenues",
+      "axis": [
+        "srt:ProductOrServiceAxis"
+      ],
+      "report_date": "2023-10-29",
+      "rev_group": "product"
+    },
+    {
+      "value": "281000000.0",
+      "members": [
+        "nvda:AutomotiveMember"
+      ],
+      "field": "us-gaap:Revenues",
+      "axis": [
+        "srt:ProductOrServiceAxis"
+      ],
+      "report_date": "2024-01-28",
+      "rev_group": "product"
+    },
+    {
+      "value": "294000000.0",
+      "members": [
+        "nvda:AutomotiveMember"
+      ],
+      "field": "us-gaap:Revenues",
+      "axis": [
+        "srt:ProductOrServiceAxis"
+      ],
+      "report_date": "2023-01-29",
+      "rev_group": "product"
+    },
+    {
+      "value": "295000000.0",
+      "members": [
+        "nvda:ProfessionalVisualizationMember"
+      ],
+      "field": "us-gaap:Revenues",
+      "axis": [
+        "srt:ProductOrServiceAxis"
+      ],
+      "report_date": "2023-04-30",
+      "rev_group": "product"
+    },
+    {
+      "value": "296000000.0",
+      "members": [
+        "nvda:AutomotiveMember"
+      ],
+      "field": "us-gaap:Revenues",
+      "axis": [
+        "srt:ProductOrServiceAxis"
+      ],
+      "report_date": "2023-04-30",
+      "rev_group": "product"
+    },
+    {
+      "value": "307000000.0",
+      "members": [
+        "nvda:ProfessionalVisualizationMember"
+      ],
+      "field": "us-gaap:Revenues",
+      "axis": [
+        "srt:ProductOrServiceAxis"
+      ],
+      "report_date": "2020-04-26",
+      "rev_group": "product"
+    },
+    {
+      "value": "307000000.0",
+      "members": [
+        "nvda:ProfessionalVisualizationMember"
+      ],
+      "field": "us-gaap:RevenueFromContractWithCustomerExcludingAssessedTax",
+      "axis": [
+        "srt:ProductOrServiceAxis"
+      ],
+      "report_date": "2021-01-31",
+      "rev_group": "product"
+    },
+    {
+      "value": "327000000.0",
+      "members": [
+        "nvda:OEMAndOtherMember"
+      ],
+      "field": "us-gaap:Revenues",
+      "axis": [
+        "srt:ProductOrServiceAxis"
+      ],
+      "report_date": "2021-05-02",
+      "rev_group": "product"
+    },
+    {
+      "value": "329000000.0",
+      "members": [
+        "nvda:AutomotiveMember"
+      ],
+      "field": "us-gaap:Revenues",
+      "axis": [
+        "srt:ProductOrServiceAxis"
+      ],
+      "report_date": "2024-04-28",
+      "rev_group": "product"
+    },
+    {
+      "value": "346000000.0",
+      "members": [
+        "nvda:AutomotiveMember"
+      ],
+      "field": "us-gaap:Revenues",
+      "axis": [
+        "srt:ProductOrServiceAxis"
+      ],
+      "report_date": "2024-07-28",
+      "rev_group": "product"
+    },
+    {
+      "value": "372000000.0",
+      "members": [
+        "nvda:ProfessionalVisualizationMember"
+      ],
+      "field": "us-gaap:Revenues",
+      "axis": [
+        "srt:ProductOrServiceAxis"
+      ],
+      "report_date": "2021-05-02",
+      "rev_group": "product"
+    },
+    {
+      "value": "379000000.0",
+      "members": [
+        "nvda:ProfessionalVisualizationMember"
+      ],
+      "field": "us-gaap:Revenues",
+      "axis": [
+        "srt:ProductOrServiceAxis"
+      ],
+      "report_date": "2023-07-30",
+      "rev_group": "product"
+    },
+    {
+      "value": "409000000.0",
+      "members": [
+        "nvda:OEMAndOtherMember"
+      ],
+      "field": "us-gaap:Revenues",
+      "axis": [
+        "srt:ProductOrServiceAxis"
+      ],
+      "report_date": "2021-08-01",
+      "rev_group": "product"
+    },
+    {
+      "value": "416000000.0",
+      "members": [
+        "nvda:ProfessionalVisualizationMember"
+      ],
+      "field": "us-gaap:Revenues",
+      "axis": [
+        "srt:ProductOrServiceAxis"
+      ],
+      "report_date": "2023-10-29",
+      "rev_group": "product"
+    },
+    {
+      "value": "427000000.0",
+      "members": [
+        "nvda:ProfessionalVisualizationMember"
+      ],
+      "field": "us-gaap:Revenues",
+      "axis": [
+        "srt:ProductOrServiceAxis"
+      ],
+      "report_date": "2024-04-28",
+      "rev_group": "product"
+    },
+    {
+      "value": "449000000.0",
+      "members": [
+        "nvda:AutomotiveMember"
+      ],
+      "field": "us-gaap:Revenues",
+      "axis": [
+        "srt:ProductOrServiceAxis"
+      ],
+      "report_date": "2024-10-27",
+      "rev_group": "product"
+    },
+    {
+      "value": "454000000.0",
+      "members": [
+        "nvda:ProfessionalVisualizationMember"
+      ],
+      "field": "us-gaap:Revenues",
+      "axis": [
+        "srt:ProductOrServiceAxis"
+      ],
+      "report_date": "2024-07-28",
+      "rev_group": "product"
+    },
+    {
+      "value": "463000000.0",
+      "members": [
+        "nvda:ProfessionalVisualizationMember"
+      ],
+      "field": "us-gaap:Revenues",
+      "axis": [
+        "srt:ProductOrServiceAxis"
+      ],
+      "report_date": "2024-01-28",
+      "rev_group": "product"
+    },
+    {
+      "value": "486000000.0",
+      "members": [
+        "nvda:ProfessionalVisualizationMember"
+      ],
+      "field": "us-gaap:Revenues",
+      "axis": [
+        "srt:ProductOrServiceAxis"
+      ],
+      "report_date": "2024-10-27",
+      "rev_group": "product"
+    },
+    {
+      "value": "496000000.0",
+      "members": [
+        "nvda:ProfessionalVisualizationMember"
+      ],
+      "field": "us-gaap:Revenues",
+      "axis": [
+        "srt:ProductOrServiceAxis"
+      ],
+      "report_date": "2022-07-31",
+      "rev_group": "product"
+    },
+    {
+      "value": "497000000.0",
+      "members": [
+        "country:US"
+      ],
+      "field": "us-gaap:Revenues",
+      "axis": [
+        "srt:StatementGeographicalAxis"
+      ],
+      "report_date": "2020-04-26",
+      "rev_group": "country"
+    },
+    {
+      "value": "509000000.0",
+      "members": [
+        "nvda:ProfessionalVisualizationMember"
+      ],
+      "field": "us-gaap:Revenues",
+      "axis": [
+        "srt:ProductOrServiceAxis"
+      ],
+      "report_date": "2025-04-27",
+      "rev_group": "product"
+    },
+    {
+      "value": "511000000.0",
+      "members": [
+        "nvda:ProfessionalVisualizationMember"
+      ],
+      "field": "us-gaap:Revenues",
+      "axis": [
+        "srt:ProductOrServiceAxis"
+      ],
+      "report_date": "2025-01-26",
+      "rev_group": "product"
+    },
+    {
+      "value": "519000000.0",
+      "members": [
+        "nvda:ProfessionalVisualizationMember"
+      ],
+      "field": "us-gaap:Revenues",
+      "axis": [
+        "srt:ProductOrServiceAxis"
+      ],
+      "report_date": "2021-08-01",
+      "rev_group": "product"
+    },
+    {
+      "value": "567000000.0",
+      "members": [
+        "nvda:AutomotiveMember"
+      ],
+      "field": "us-gaap:Revenues",
+      "axis": [
+        "srt:ProductOrServiceAxis"
+      ],
+      "report_date": "2025-04-27",
+      "rev_group": "product"
+    },
+    {
+      "value": "570000000.0",
+      "members": [
+        "nvda:AutomotiveMember"
+      ],
+      "field": "us-gaap:Revenues",
+      "axis": [
+        "srt:ProductOrServiceAxis"
+      ],
+      "report_date": "2025-01-26",
+      "rev_group": "product"
+    },
+    {
+      "value": "577000000.0",
+      "members": [
+        "nvda:ProfessionalVisualizationMember"
+      ],
+      "field": "us-gaap:Revenues",
+      "axis": [
+        "srt:ProductOrServiceAxis"
+      ],
+      "report_date": "2021-10-31",
+      "rev_group": "product"
+    },
+    {
+      "value": "586000000.0",
+      "members": [
+        "nvda:AutomotiveMember"
+      ],
+      "field": "us-gaap:Revenues",
+      "axis": [
+        "srt:ProductOrServiceAxis"
+      ],
+      "report_date": "2025-07-27",
+      "rev_group": "product"
+    },
+    {
+      "value": "592000000.0",
+      "members": [
+        "nvda:AutomotiveMember"
+      ],
+      "field": "us-gaap:Revenues",
+      "axis": [
+        "srt:ProductOrServiceAxis"
+      ],
+      "report_date": "2025-10-26",
+      "rev_group": "product"
+    },
+    {
+      "value": "601000000.0",
+      "members": [
+        "nvda:ProfessionalVisualizationMember"
+      ],
+      "field": "us-gaap:Revenues",
+      "axis": [
+        "srt:ProductOrServiceAxis"
+      ],
+      "report_date": "2025-07-27",
+      "rev_group": "product"
+    },
+    {
+      "value": "604000000.0",
+      "members": [
+        "nvda:AutomotiveMember"
+      ],
+      "field": "us-gaap:Revenues",
+      "axis": [
+        "srt:ProductOrServiceAxis"
+      ],
+      "report_date": "2026-01-25",
+      "rev_group": "product"
+    },
+    {
+      "value": "622000000.0",
+      "members": [
+        "nvda:ProfessionalVisualizationMember"
+      ],
+      "field": "us-gaap:Revenues",
+      "axis": [
+        "srt:ProductOrServiceAxis"
+      ],
+      "report_date": "2022-05-01",
+      "rev_group": "product"
+    },
+    {
+      "value": "643000000.0",
+      "members": [
+        "nvda:ProfessionalVisualizationMember"
+      ],
+      "field": "us-gaap:RevenueFromContractWithCustomerExcludingAssessedTax",
+      "axis": [
+        "srt:ProductOrServiceAxis"
+      ],
+      "report_date": "2022-01-30",
+      "rev_group": "product"
+    },
+    {
+      "value": "758000000.0",
+      "members": [
+        "nvda:ChinaIncludingHongKongMember"
+      ],
+      "field": "us-gaap:Revenues",
+      "axis": [
+        "srt:StatementGeographicalAxis"
+      ],
+      "report_date": "2020-04-26",
+      "rev_group": "country"
+    },
+    {
+      "value": "760000000.0",
+      "members": [
+        "nvda:ProfessionalVisualizationMember"
+      ],
+      "field": "us-gaap:Revenues",
+      "axis": [
+        "srt:ProductOrServiceAxis"
+      ],
+      "report_date": "2025-10-26",
+      "rev_group": "product"
+    },
+    {
+      "value": "768000000.0",
+      "members": [
+        "country:US"
+      ],
+      "field": "us-gaap:Revenues",
+      "axis": [
+        "srt:StatementGeographicalAxis"
+      ],
+      "report_date": "2021-05-02",
+      "rev_group": "country"
+    },
+    {
+      "value": "813000000.0",
+      "members": [
+        "country:TW"
+      ],
+      "field": "us-gaap:Revenues",
+      "axis": [
+        "srt:StatementGeographicalAxis"
+      ],
+      "report_date": "2020-04-26",
+      "rev_group": "country"
+    },
+    {
+      "value": "855000000.0",
+      "members": [
+        "nvda:ChinaIncludingHongKongMember"
+      ],
+      "field": "us-gaap:Revenues",
+      "axis": [
+        "srt:StatementGeographicalAxis"
+      ],
+      "report_date": "2020-07-26",
+      "rev_group": "country"
+    },
+    {
+      "value": "883000000.0",
+      "members": [
+        "country:US"
+      ],
+      "field": "us-gaap:RevenueFromContractWithCustomerExcludingAssessedTax",
+      "axis": [
+        "srt:StatementGeographicalAxis"
+      ],
+      "report_date": "2021-01-31",
+      "rev_group": "country"
+    },
+    {
+      "value": "890000000.0",
+      "members": [
+        "country:US"
+      ],
+      "field": "us-gaap:Revenues",
+      "axis": [
+        "srt:StatementGeographicalAxis"
+      ],
+      "report_date": "2020-10-25",
+      "rev_group": "country"
+    },
+    {
+      "value": "944000000.0",
+      "members": [
+        "country:US"
+      ],
+      "field": "us-gaap:Revenues",
+      "axis": [
+        "srt:StatementGeographicalAxis"
+      ],
+      "report_date": "2020-07-26",
+      "rev_group": "country"
+    },
+    {
+      "value": "954000000.0",
+      "members": [
+        "country:TW"
+      ],
+      "field": "us-gaap:Revenues",
+      "axis": [
+        "srt:StatementGeographicalAxis"
+      ],
+      "report_date": "2020-07-26",
+      "rev_group": "country"
+    },
+    {
+      "value": "954000000.0",
+      "members": [
+        "nvda:ChinaIncludingHongKongMember"
+      ],
+      "field": "us-gaap:Revenues",
+      "axis": [
+        "srt:StatementGeographicalAxis"
+      ],
+      "report_date": "2023-01-29",
+      "rev_group": "country"
+    },
+    {
+      "value": "996000000.0",
+      "members": [
+        "country:US"
+      ],
+      "field": "us-gaap:Revenues",
+      "axis": [
+        "srt:StatementGeographicalAxis"
+      ],
+      "report_date": "2021-08-01",
+      "rev_group": "country"
+    },
+    {
+      "value": "1012000000.0",
+      "members": [
+        "nvda:OtherCountriesMember"
+      ],
+      "field": "us-gaap:Revenues",
+      "axis": [
+        "srt:StatementGeographicalAxis"
+      ],
+      "report_date": "2020-04-26",
+      "rev_group": "continent"
+    },
+    {
+      "value": "1021000000.0",
+      "members": [
+        "nvda:OtherCountriesMember"
+      ],
+      "field": "us-gaap:Revenues",
+      "axis": [
+        "srt:StatementGeographicalAxis"
+      ],
+      "report_date": "2023-01-29",
+      "rev_group": "continent"
+    },
+    {
+      "value": "1105000000.0",
+      "members": [
+        "nvda:OtherCountriesMember"
+      ],
+      "field": "us-gaap:Revenues",
+      "axis": [
+        "srt:StatementGeographicalAxis"
+      ],
+      "report_date": "2025-10-26",
+      "rev_group": "continent"
+    },
+    {
+      "value": "1113000000.0",
+      "members": [
+        "nvda:ChinaIncludingHongKongMember"
+      ],
+      "field": "us-gaap:Revenues",
+      "axis": [
+        "srt:StatementGeographicalAxis"
+      ],
+      "report_date": "2020-10-25",
+      "rev_group": "country"
+    },
+    {
+      "value": "1113000000.0",
+      "members": [
+        "nvda:OtherCountriesMember"
+      ],
+      "field": "us-gaap:Revenues",
+      "axis": [
+        "srt:StatementGeographicalAxis"
+      ],
+      "report_date": "2020-07-26",
+      "rev_group": "continent"
+    },
+    {
+      "value": "1126000000.0",
+      "members": [
+        "country:US"
+      ],
+      "field": "us-gaap:Revenues",
+      "axis": [
+        "srt:StatementGeographicalAxis"
+      ],
+      "report_date": "2021-10-31",
+      "rev_group": "country"
+    },
+    {
+      "value": "1141000000.0",
+      "members": [
+        "nvda:DataCenterMember"
+      ],
+      "field": "us-gaap:Revenues",
+      "axis": [
+        "srt:ProductOrServiceAxis"
+      ],
+      "report_date": "2020-04-26",
+      "rev_group": "product"
+    },
+    {
+      "value": "1148000000.0",
+      "members": [
+        "nvda:ChinaIncludingHongKongMember"
+      ],
+      "field": "us-gaap:Revenues",
+      "axis": [
+        "srt:StatementGeographicalAxis"
+      ],
+      "report_date": "2022-10-30",
+      "rev_group": "country"
+    },
+    {
+      "value": "1153000000.0",
+      "members": [
+        "country:TW"
+      ],
+      "field": "us-gaap:Revenues",
+      "axis": [
+        "srt:StatementGeographicalAxis"
+      ],
+      "report_date": "2022-10-30",
+      "rev_group": "country"
+    },
+    {
+      "value": "1160000000.0",
+      "members": [
+        "nvda:ChinaIncludingHongKongMember"
+      ],
+      "field": "us-gaap:RevenueFromContractWithCustomerExcludingAssessedTax",
+      "axis": [
+        "srt:StatementGeographicalAxis"
+      ],
+      "report_date": "2021-01-31",
+      "rev_group": "country"
+    },
+    {
+      "value": "1204000000.0",
+      "members": [
+        "country:TW"
+      ],
+      "field": "us-gaap:Revenues",
+      "axis": [
+        "srt:StatementGeographicalAxis"
+      ],
+      "report_date": "2022-07-31",
+      "rev_group": "country"
+    },
+    {
+      "value": "1290000000.0",
+      "members": [
+        "nvda:OtherCountriesMember"
+      ],
+      "field": "us-gaap:Revenues",
+      "axis": [
+        "srt:StatementGeographicalAxis"
+      ],
+      "report_date": "2026-04-26",
+      "rev_group": "continent"
+    },
+    {
+      "value": "1296000000.0",
+      "members": [
+        "country:TW"
+      ],
+      "field": "us-gaap:Revenues",
+      "axis": [
+        "srt:StatementGeographicalAxis"
+      ],
+      "report_date": "2020-10-25",
+      "rev_group": "country"
+    },
+    {
+      "value": "1321000000.0",
+      "members": [
+        "nvda:ProfessionalVisualizationMember"
+      ],
+      "field": "us-gaap:Revenues",
+      "axis": [
+        "srt:ProductOrServiceAxis"
+      ],
+      "report_date": "2026-01-25",
+      "rev_group": "product"
+    },
+    {
+      "value": "1339000000.0",
+      "members": [
+        "nvda:GamingMember"
+      ],
+      "field": "us-gaap:Revenues",
+      "axis": [
+        "srt:ProductOrServiceAxis"
+      ],
+      "report_date": "2020-04-26",
+      "rev_group": "product"
+    },
+    {
+      "value": "1391000000.0",
+      "members": [
+        "nvda:ChinaIncludingHongKongMember"
+      ],
+      "field": "us-gaap:Revenues",
+      "axis": [
+        "srt:StatementGeographicalAxis"
+      ],
+      "report_date": "2021-05-02",
+      "rev_group": "country"
+    },
+    {
+      "value": "1421000000.0",
+      "members": [
+        "nvda:OtherCountriesMember"
+      ],
+      "field": "us-gaap:Revenues",
+      "axis": [
+        "srt:StatementGeographicalAxis"
+      ],
+      "report_date": "2023-04-30",
+      "rev_group": "continent"
+    },
+    {
+      "value": "1427000000.0",
+      "members": [
+        "nvda:OtherCountriesMember"
+      ],
+      "field": "us-gaap:Revenues",
+      "axis": [
+        "srt:StatementGeographicalAxis"
+      ],
+      "report_date": "2020-10-25",
+      "rev_group": "continent"
+    },
+    {
+      "value": "1459000000.0",
+      "members": [
+        "country:US"
+      ],
+      "field": "us-gaap:RevenueFromContractWithCustomerExcludingAssessedTax",
+      "axis": [
+        "srt:StatementGeographicalAxis"
+      ],
+      "report_date": "2022-01-30",
+      "rev_group": "country"
+    },
+    {
+      "value": "1468000000.0",
+      "members": [
+        "country:TW"
+      ],
+      "field": "us-gaap:RevenueFromContractWithCustomerExcludingAssessedTax",
+      "axis": [
+        "srt:StatementGeographicalAxis"
+      ],
+      "report_date": "2021-01-31",
+      "rev_group": "country"
+    },
+    {
+      "value": "1482000000.0",
+      "members": [
+        "nvda:OtherCountriesMember"
+      ],
+      "field": "us-gaap:Revenues",
+      "axis": [
+        "srt:StatementGeographicalAxis"
+      ],
+      "report_date": "2022-10-30",
+      "rev_group": "continent"
+    },
+    {
+      "value": "1492000000.0",
+      "members": [
+        "nvda:OtherCountriesMember"
+      ],
+      "field": "us-gaap:RevenueFromContractWithCustomerExcludingAssessedTax",
+      "axis": [
+        "srt:StatementGeographicalAxis"
+      ],
+      "report_date": "2021-01-31",
+      "rev_group": "continent"
+    },
+    {
+      "value": "1498000000.0",
+      "members": [
+        "nvda:OtherCountriesMember"
+      ],
+      "field": "us-gaap:Revenues",
+      "axis": [
+        "srt:StatementGeographicalAxis"
+      ],
+      "report_date": "2022-05-01",
+      "rev_group": "continent"
+    },
+    {
+      "value": "1574000000.0",
+      "members": [
+        "nvda:GamingMember"
+      ],
+      "field": "us-gaap:Revenues",
+      "axis": [
+        "srt:ProductOrServiceAxis"
+      ],
+      "report_date": "2022-10-30",
+      "rev_group": "product"
+    },
+    {
+      "value": "1589000000.0",
+      "members": [
+        "nvda:OtherCountriesMember"
+      ],
+      "field": "us-gaap:RevenueFromContractWithCustomerExcludingAssessedTax",
+      "axis": [
+        "srt:StatementGeographicalAxis"
+      ],
+      "report_date": "2022-01-30",
+      "rev_group": "continent"
+    },
+    {
+      "value": "1590000000.0",
+      "members": [
+        "nvda:ChinaIncludingHongKongMember"
+      ],
+      "field": "us-gaap:Revenues",
+      "axis": [
+        "srt:StatementGeographicalAxis"
+      ],
+      "report_date": "2023-04-30",
+      "rev_group": "country"
+    },
+    {
+      "value": "1602000000.0",
+      "members": [
+        "nvda:ChinaIncludingHongKongMember"
+      ],
+      "field": "us-gaap:Revenues",
+      "axis": [
+        "srt:StatementGeographicalAxis"
+      ],
+      "report_date": "2022-07-31",
+      "rev_group": "country"
+    },
+    {
+      "value": "1654000000.0",
+      "members": [
+        "nvda:GamingMember"
+      ],
+      "field": "us-gaap:Revenues",
+      "axis": [
+        "srt:ProductOrServiceAxis"
+      ],
+      "report_date": "2020-07-26",
+      "rev_group": "product"
+    },
+    {
+      "value": "1718000000.0",
+      "members": [
+        "nvda:OtherCountriesMember"
+      ],
+      "field": "us-gaap:Revenues",
+      "axis": [
+        "srt:StatementGeographicalAxis"
+      ],
+      "report_date": "2021-05-02",
+      "rev_group": "continent"
+    },
+    {
+      "value": "1720000000.0",
+      "members": [
+        "nvda:ChinaIncludingHongKongMember"
+      ],
+      "field": "us-gaap:Revenues",
+      "axis": [
+        "srt:StatementGeographicalAxis"
+      ],
+      "report_date": "2021-08-01",
+      "rev_group": "country"
+    },
+    {
+      "value": "1752000000.0",
+      "members": [
+        "nvda:DataCenterMember"
+      ],
+      "field": "us-gaap:Revenues",
+      "axis": [
+        "srt:ProductOrServiceAxis"
+      ],
+      "report_date": "2020-07-26",
+      "rev_group": "product"
+    },
+    {
+      "value": "1773000000.0",
+      "members": [
+        "nvda:OtherCountriesMember"
+      ],
+      "field": "us-gaap:Revenues",
+      "axis": [
+        "srt:StatementGeographicalAxis"
+      ],
+      "report_date": "2021-10-31",
+      "rev_group": "continent"
+    },
+    {
+      "value": "1784000000.0",
+      "members": [
+        "country:TW"
+      ],
+      "field": "us-gaap:Revenues",
+      "axis": [
+        "srt:StatementGeographicalAxis"
+      ],
+      "report_date": "2021-05-02",
+      "rev_group": "country"
+    },
+    {
+      "value": "1796000000.0",
+      "members": [
+        "country:TW"
+      ],
+      "field": "us-gaap:Revenues",
+      "axis": [
+        "srt:StatementGeographicalAxis"
+      ],
+      "report_date": "2023-04-30",
+      "rev_group": "country"
+    },
+    {
+      "value": "1830000000.0",
+      "members": [
+        "nvda:OtherCountriesMember"
+      ],
+      "field": "us-gaap:Revenues",
+      "axis": [
+        "srt:StatementGeographicalAxis"
+      ],
+      "report_date": "2021-08-01",
+      "rev_group": "continent"
+    },
+    {
+      "value": "1831000000.0",
+      "members": [
+        "nvda:GamingMember"
+      ],
+      "field": "us-gaap:Revenues",
+      "axis": [
+        "srt:ProductOrServiceAxis"
+      ],
+      "report_date": "2023-01-29",
+      "rev_group": "product"
+    },
+    {
+      "value": "1852000000.0",
+      "members": [
+        "country:TW"
+      ],
+      "field": "us-gaap:Revenues",
+      "axis": [
+        "srt:StatementGeographicalAxis"
+      ],
+      "report_date": "2023-01-29",
+      "rev_group": "country"
+    },
+    {
+      "value": "1885000000.0",
+      "members": [
+        "nvda:OtherCountriesMember"
+      ],
+      "field": "us-gaap:Revenues",
+      "axis": [
+        "srt:StatementGeographicalAxis"
+      ],
+      "report_date": "2023-07-30",
+      "rev_group": "continent"
+    },
+    {
+      "value": "1900000000.0",
+      "members": [
+        "nvda:DataCenterMember"
+      ],
+      "field": "us-gaap:Revenues",
+      "axis": [
+        "srt:ProductOrServiceAxis"
+      ],
+      "report_date": "2020-10-25",
+      "rev_group": "product"
+    },
+    {
+      "value": "1903000000.0",
+      "members": [
+        "nvda:DataCenterMember"
+      ],
+      "field": "us-gaap:RevenueFromContractWithCustomerExcludingAssessedTax",
+      "axis": [
+        "srt:ProductOrServiceAxis"
+      ],
+      "report_date": "2021-01-31",
+      "rev_group": "product"
+    },
+    {
+      "value": "1910000000.0",
+      "members": [
+        "nvda:OtherCountriesMember"
+      ],
+      "field": "us-gaap:Revenues",
+      "axis": [
+        "srt:StatementGeographicalAxis"
+      ],
+      "report_date": "2022-07-31",
+      "rev_group": "continent"
+    },
+    {
+      "value": "1932000000.0",
+      "members": [
+        "country:US"
+      ],
+      "field": "us-gaap:Revenues",
+      "axis": [
+        "srt:StatementGeographicalAxis"
+      ],
+      "report_date": "2022-05-01",
+      "rev_group": "country"
+    },
+    {
+      "value": "1946000000.0",
+      "members": [
+        "nvda:ChinaIncludingHongKongMember"
+      ],
+      "field": "us-gaap:Revenues",
+      "axis": [
+        "srt:StatementGeographicalAxis"
+      ],
+      "report_date": "2024-01-28",
+      "rev_group": "country"
+    },
+    {
+      "value": "1961000000.0",
+      "members": [
+        "country:TW"
+      ],
+      "field": "us-gaap:Revenues",
+      "axis": [
+        "srt:StatementGeographicalAxis"
+      ],
+      "report_date": "2021-08-01",
+      "rev_group": "country"
+    },
+    {
+      "value": "1983000000.0",
+      "members": [
+        "nvda:ChinaIncludingHongKongMember"
+      ],
+      "field": "us-gaap:RevenueFromContractWithCustomerExcludingAssessedTax",
+      "axis": [
+        "srt:StatementGeographicalAxis"
+      ],
+      "report_date": "2022-01-30",
+      "rev_group": "country"
+    },
+    {
+      "value": "1988000000.0",
+      "members": [
+        "country:US"
+      ],
+      "field": "us-gaap:Revenues",
+      "axis": [
+        "srt:StatementGeographicalAxis"
+      ],
+      "report_date": "2022-07-31",
+      "rev_group": "country"
+    },
+    {
+      "value": "2017000000.0",
+      "members": [
+        "nvda:ChinaIncludingHongKongMember"
+      ],
+      "field": "us-gaap:Revenues",
+      "axis": [
+        "srt:StatementGeographicalAxis"
+      ],
+      "report_date": "2021-10-31",
+      "rev_group": "country"
+    },
+    {
+      "value": "2042000000.0",
+      "members": [
+        "nvda:GamingMember"
+      ],
+      "field": "us-gaap:Revenues",
+      "axis": [
+        "srt:ProductOrServiceAxis"
+      ],
+      "report_date": "2022-07-31",
+      "rev_group": "product"
+    },
+    {
+      "value": "2048000000.0",
+      "members": [
+        "nvda:DataCenterMember"
+      ],
+      "field": "us-gaap:Revenues",
+      "axis": [
+        "srt:ProductOrServiceAxis"
+      ],
+      "report_date": "2021-05-02",
+      "rev_group": "product"
+    },
+    {
+      "value": "2081000000.0",
+      "members": [
+        "nvda:ChinaIncludingHongKongMember"
+      ],
+      "field": "us-gaap:Revenues",
+      "axis": [
+        "srt:StatementGeographicalAxis"
+      ],
+      "report_date": "2022-05-01",
+      "rev_group": "country"
+    },
+    {
+      "value": "2148000000.0",
+      "members": [
+        "country:US"
+      ],
+      "field": "us-gaap:Revenues",
+      "axis": [
+        "srt:StatementGeographicalAxis"
+      ],
+      "report_date": "2022-10-30",
+      "rev_group": "country"
+    },
+    {
+      "value": "2187000000.0",
+      "members": [
+        "country:TW"
+      ],
+      "field": "us-gaap:Revenues",
+      "axis": [
+        "srt:StatementGeographicalAxis"
+      ],
+      "report_date": "2021-10-31",
+      "rev_group": "country"
+    },
+    {
+      "value": "2224000000.0",
+      "members": [
+        "country:US"
+      ],
+      "field": "us-gaap:Revenues",
+      "axis": [
+        "srt:StatementGeographicalAxis"
+      ],
+      "report_date": "2023-01-29",
+      "rev_group": "country"
+    },
+    {
+      "value": "2240000000.0",
+      "members": [
+        "nvda:GamingMember"
+      ],
+      "field": "us-gaap:Revenues",
+      "axis": [
+        "srt:ProductOrServiceAxis"
+      ],
+      "report_date": "2023-04-30",
+      "rev_group": "product"
+    },
+    {
+      "value": "2271000000.0",
+      "members": [
+        "nvda:GamingMember"
+      ],
+      "field": "us-gaap:Revenues",
+      "axis": [
+        "srt:ProductOrServiceAxis"
+      ],
+      "report_date": "2020-10-25",
+      "rev_group": "product"
+    },
+    {
+      "value": "2366000000.0",
+      "members": [
+        "nvda:DataCenterMember"
+      ],
+      "field": "us-gaap:Revenues",
+      "axis": [
+        "srt:ProductOrServiceAxis"
+      ],
+      "report_date": "2021-08-01",
+      "rev_group": "product"
+    },
+    {
+      "value": "2385000000.0",
+      "members": [
+        "country:US"
+      ],
+      "field": "us-gaap:Revenues",
+      "axis": [
+        "srt:StatementGeographicalAxis"
+      ],
+      "report_date": "2023-04-30",
+      "rev_group": "country"
+    },
+    {
+      "value": "2486000000.0",
+      "members": [
+        "nvda:GamingMember"
+      ],
+      "field": "us-gaap:Revenues",
+      "axis": [
+        "srt:ProductOrServiceAxis"
+      ],
+      "report_date": "2023-07-30",
+      "rev_group": "product"
+    },
+    {
+      "value": "2491000000.0",
+      "members": [
+        "nvda:ChinaIncludingHongKongMember"
+      ],
+      "field": "us-gaap:Revenues",
+      "axis": [
+        "srt:StatementGeographicalAxis"
+      ],
+      "report_date": "2024-04-28",
+      "rev_group": "country"
+    },
+    {
+      "value": "2495000000.0",
+      "members": [
+        "nvda:GamingMember"
+      ],
+      "field": "us-gaap:RevenueFromContractWithCustomerExcludingAssessedTax",
+      "axis": [
+        "srt:ProductOrServiceAxis"
+      ],
+      "report_date": "2021-01-31",
+      "rev_group": "product"
+    },
+    {
+      "value": "2544000000.0",
+      "members": [
+        "nvda:GamingMember"
+      ],
+      "field": "us-gaap:Revenues",
+      "axis": [
+        "srt:ProductOrServiceAxis"
+      ],
+      "report_date": "2025-01-26",
+      "rev_group": "product"
+    },
+    {
+      "value": "2612000000.0",
+      "members": [
+        "country:TW"
+      ],
+      "field": "us-gaap:RevenueFromContractWithCustomerExcludingAssessedTax",
+      "axis": [
+        "srt:StatementGeographicalAxis"
+      ],
+      "report_date": "2022-01-30",
+      "rev_group": "country"
+    },
+    {
+      "value": "2647000000.0",
+      "members": [
+        "nvda:GamingMember"
+      ],
+      "field": "us-gaap:Revenues",
+      "axis": [
+        "srt:ProductOrServiceAxis"
+      ],
+      "report_date": "2024-04-28",
+      "rev_group": "product"
+    },
+    {
+      "value": "2740000000.0",
+      "members": [
+        "nvda:ChinaIncludingHongKongMember"
+      ],
+      "field": "us-gaap:Revenues",
+      "axis": [
+        "srt:StatementGeographicalAxis"
+      ],
+      "report_date": "2023-07-30",
+      "rev_group": "country"
+    },
+    {
+      "value": "2760000000.0",
+      "members": [
+        "nvda:GamingMember"
+      ],
+      "field": "us-gaap:Revenues",
+      "axis": [
+        "srt:ProductOrServiceAxis"
+      ],
+      "report_date": "2021-05-02",
+      "rev_group": "product"
+    },
+    {
+      "value": "2769000000.0",
+      "members": [
+        "nvda:ChinaIncludingHongKongMember"
+      ],
+      "field": "us-gaap:Revenues",
+      "axis": [
+        "srt:StatementGeographicalAxis"
+      ],
+      "report_date": "2025-07-27",
+      "rev_group": "country"
+    },
+    {
+      "value": "2777000000.0",
+      "members": [
+        "country:TW"
+      ],
+      "field": "us-gaap:Revenues",
+      "axis": [
+        "srt:StatementGeographicalAxis"
+      ],
+      "report_date": "2022-05-01",
+      "rev_group": "country"
+    },
+    {
+      "value": "2839000000.0",
+      "members": [
+        "country:TW"
+      ],
+      "field": "us-gaap:Revenues",
+      "axis": [
+        "srt:StatementGeographicalAxis"
+      ],
+      "report_date": "2023-07-30",
+      "rev_group": "country"
+    },
+    {
+      "value": "2856000000.0",
+      "members": [
+        "nvda:GamingMember"
+      ],
+      "field": "us-gaap:Revenues",
+      "axis": [
+        "srt:ProductOrServiceAxis"
+      ],
+      "report_date": "2023-10-29",
+      "rev_group": "product"
+    },
+    {
+      "value": "2865000000.0",
+      "members": [
+        "nvda:GamingMember"
+      ],
+      "field": "us-gaap:Revenues",
+      "axis": [
+        "srt:ProductOrServiceAxis"
+      ],
+      "report_date": "2024-01-28",
+      "rev_group": "product"
+    },
+    {
+      "value": "2880000000.0",
+      "members": [
+        "nvda:GamingMember"
+      ],
+      "field": "us-gaap:Revenues",
+      "axis": [
+        "srt:ProductOrServiceAxis"
+      ],
+      "report_date": "2024-07-28",
+      "rev_group": "product"
+    },
+    {
+      "value": "2936000000.0",
+      "members": [
+        "nvda:DataCenterMember"
+      ],
+      "field": "us-gaap:Revenues",
+      "axis": [
+        "srt:ProductOrServiceAxis"
+      ],
+      "report_date": "2021-10-31",
+      "rev_group": "product"
+    },
+    {
+      "value": "2973000000.0",
+      "members": [
+        "nvda:ChinaIncludingHongKongMember"
+      ],
+      "field": "us-gaap:Revenues",
+      "axis": [
+        "srt:StatementGeographicalAxis"
+      ],
+      "report_date": "2025-10-26",
+      "rev_group": "country"
+    },
+    {
+      "value": "3061000000.0",
+      "members": [
+        "nvda:GamingMember"
+      ],
+      "field": "us-gaap:Revenues",
+      "axis": [
+        "srt:ProductOrServiceAxis"
+      ],
+      "report_date": "2021-08-01",
+      "rev_group": "product"
+    },
+    {
+      "value": "3080000000.0",
+      "members": [],
+      "field": "us-gaap:Revenues",
+      "axis": [],
+      "report_date": "2020-04-26",
+      "rev_group": "product"
+    },
+    {
+      "value": "3221000000.0",
+      "members": [
+        "nvda:GamingMember"
+      ],
+      "field": "us-gaap:Revenues",
+      "axis": [
+        "srt:ProductOrServiceAxis"
+      ],
+      "report_date": "2021-10-31",
+      "rev_group": "product"
+    },
+    {
+      "value": "3263000000.0",
+      "members": [
+        "nvda:DataCenterMember"
+      ],
+      "field": "us-gaap:RevenueFromContractWithCustomerExcludingAssessedTax",
+      "axis": [
+        "srt:ProductOrServiceAxis"
+      ],
+      "report_date": "2022-01-30",
+      "rev_group": "product"
+    },
+    {
+      "value": "3279000000.0",
+      "members": [
+        "nvda:GamingMember"
+      ],
+      "field": "us-gaap:Revenues",
+      "axis": [
+        "srt:ProductOrServiceAxis"
+      ],
+      "report_date": "2024-10-27",
+      "rev_group": "product"
+    },
+    {
+      "value": "3420000000.0",
+      "members": [
+        "nvda:GamingMember"
+      ],
+      "field": "us-gaap:RevenueFromContractWithCustomerExcludingAssessedTax",
+      "axis": [
+        "srt:ProductOrServiceAxis"
+      ],
+      "report_date": "2022-01-30",
+      "rev_group": "product"
+    },
+    {
+      "value": "3455000000.0",
+      "members": [
+        "nvda:OtherCountriesMember"
+      ],
+      "field": "us-gaap:Revenues",
+      "axis": [
+        "srt:StatementGeographicalAxis"
+      ],
+      "report_date": "2023-10-29",
+      "rev_group": "continent"
+    },
+    {
+      "value": "3484000000.0",
+      "members": [
+        "nvda:OtherCountriesMember"
+      ],
+      "field": "us-gaap:Revenues",
+      "axis": [
+        "srt:StatementGeographicalAxis"
+      ],
+      "report_date": "2024-01-28",
+      "rev_group": "continent"
+    },
+    {
+      "value": "3616000000.0",
+      "members": [
+        "nvda:DataCenterMember"
+      ],
+      "field": "us-gaap:Revenues",
+      "axis": [
+        "srt:ProductOrServiceAxis"
+      ],
+      "report_date": "2023-01-29",
+      "rev_group": "product"
+    },
+    {
+      "value": "3620000000.0",
+      "members": [
+        "nvda:GamingMember"
+      ],
+      "field": "us-gaap:Revenues",
+      "axis": [
+        "srt:ProductOrServiceAxis"
+      ],
+      "report_date": "2022-05-01",
+      "rev_group": "product"
+    },
+    {
+      "value": "3667000000.0",
+      "members": [
+        "nvda:ChinaIncludingHongKongMember"
+      ],
+      "field": "us-gaap:Revenues",
+      "axis": [
+        "srt:StatementGeographicalAxis"
+      ],
+      "report_date": "2024-07-28",
+      "rev_group": "country"
+    },
+    {
+      "value": "3727000000.0",
+      "members": [
+        "nvda:GamingMember"
+      ],
+      "field": "us-gaap:Revenues",
+      "axis": [
+        "srt:ProductOrServiceAxis"
+      ],
+      "report_date": "2026-01-25",
+      "rev_group": "product"
+    },
+    {
+      "value": "3750000000.0",
+      "members": [
+        "nvda:DataCenterMember"
+      ],
+      "field": "us-gaap:Revenues",
+      "axis": [
+        "srt:ProductOrServiceAxis"
+      ],
+      "report_date": "2022-05-01",
+      "rev_group": "product"
+    },
+    {
+      "value": "3763000000.0",
+      "members": [
+        "nvda:GamingMember"
+      ],
+      "field": "us-gaap:Revenues",
+      "axis": [
+        "srt:ProductOrServiceAxis"
+      ],
+      "report_date": "2025-04-27",
+      "rev_group": "product"
+    },
+    {
+      "value": "3806000000.0",
+      "members": [
+        "nvda:DataCenterMember"
+      ],
+      "field": "us-gaap:Revenues",
+      "axis": [
+        "srt:ProductOrServiceAxis"
+      ],
+      "report_date": "2022-07-31",
+      "rev_group": "product"
+    },
+    {
+      "value": "3833000000.0",
+      "members": [
+        "nvda:DataCenterMember"
+      ],
+      "field": "us-gaap:Revenues",
+      "axis": [
+        "srt:ProductOrServiceAxis"
+      ],
+      "report_date": "2022-10-30",
+      "rev_group": "product"
+    },
+    {
+      "value": "3866000000.0",
+      "members": [],
+      "field": "us-gaap:Revenues",
+      "axis": [],
+      "report_date": "2020-07-26",
+      "rev_group": "product"
+    },
+    {
+      "value": "4030000000.0",
+      "members": [
+        "nvda:ChinaIncludingHongKongMember"
+      ],
+      "field": "us-gaap:Revenues",
+      "axis": [
+        "srt:StatementGeographicalAxis"
+      ],
+      "report_date": "2023-10-29",
+      "rev_group": "country"
+    },
+    {
+      "value": "4265000000.0",
+      "members": [
+        "nvda:GamingMember"
+      ],
+      "field": "us-gaap:Revenues",
+      "axis": [
+        "srt:ProductOrServiceAxis"
+      ],
+      "report_date": "2025-10-26",
+      "rev_group": "product"
+    },
+    {
+      "value": "4284000000.0",
+      "members": [
+        "nvda:DataCenterMember"
+      ],
+      "field": "us-gaap:Revenues",
+      "axis": [
+        "srt:ProductOrServiceAxis"
+      ],
+      "report_date": "2023-04-30",
+      "rev_group": "product"
+    },
+    {
+      "value": "4287000000.0",
+      "members": [
+        "nvda:GamingMember"
+      ],
+      "field": "us-gaap:Revenues",
+      "axis": [
+        "srt:ProductOrServiceAxis"
+      ],
+      "report_date": "2025-07-27",
+      "rev_group": "product"
+    },
+    {
+      "value": "4333000000.0",
+      "members": [
+        "country:TW"
+      ],
+      "field": "us-gaap:Revenues",
+      "axis": [
+        "srt:StatementGeographicalAxis"
+      ],
+      "report_date": "2023-10-29",
+      "rev_group": "country"
+    },
+    {
+      "value": "4373000000.0",
+      "members": [
+        "country:TW"
+      ],
+      "field": "us-gaap:Revenues",
+      "axis": [
+        "srt:StatementGeographicalAxis"
+      ],
+      "report_date": "2024-04-28",
+      "rev_group": "country"
+    },
+    {
+      "value": "4437000000.0",
+      "members": [
+        "country:TW"
+      ],
+      "field": "us-gaap:Revenues",
+      "axis": [
+        "srt:StatementGeographicalAxis"
+      ],
+      "report_date": "2024-01-28",
+      "rev_group": "country"
+    },
+    {
+      "value": "4473000000.0",
+      "members": [
+        "us-gaap:OperatingSegmentsMember",
+        "nvda:GraphicsSegmentMember"
+      ],
+      "field": "us-gaap:Revenues",
+      "axis": [
+        "srt:ConsolidationItemsAxis",
+        "us-gaap:StatementBusinessSegmentsAxis"
+      ],
+      "report_date": "2025-04-27",
+      "rev_group": "product"
+    },
+    {
+      "value": "4550000000.0",
+      "members": [
+        "nvda:ChinaIncludingHongKongMember"
+      ],
+      "field": "us-gaap:Revenues",
+      "axis": [
+        "srt:StatementGeographicalAxis"
+      ],
+      "report_date": "2026-04-26",
+      "rev_group": "country"
+    },
+    {
+      "value": "4726000000.0",
+      "members": [],
+      "field": "us-gaap:Revenues",
+      "axis": [],
+      "report_date": "2020-10-25",
+      "rev_group": "product"
+    },
+    {
+      "value": "5153000000.0",
+      "members": [
+        "country:TW"
+      ],
+      "field": "us-gaap:Revenues",
+      "axis": [
+        "srt:StatementGeographicalAxis"
+      ],
+      "report_date": "2024-10-27",
+      "rev_group": "country"
+    },
+    {
+      "value": "5307000000.0",
+      "members": [
+        "country:TW"
+      ],
+      "field": "us-gaap:Revenues",
+      "axis": [
+        "srt:StatementGeographicalAxis"
+      ],
+      "report_date": "2025-01-26",
+      "rev_group": "country"
+    },
+    {
+      "value": "5412000000.0",
+      "members": [
+        "us-gaap:OperatingSegmentsMember",
+        "nvda:GraphicsSegmentMember"
+      ],
+      "field": "us-gaap:Revenues",
+      "axis": [
+        "srt:ConsolidationItemsAxis",
+        "us-gaap:StatementBusinessSegmentsAxis"
+      ],
+      "report_date": "2025-07-27",
+      "rev_group": "product"
+    },
+    {
+      "value": "5416000000.0",
+      "members": [
+        "nvda:ChinaIncludingHongKongMember"
+      ],
+      "field": "us-gaap:Revenues",
+      "axis": [
+        "srt:StatementGeographicalAxis"
+      ],
+      "report_date": "2024-10-27",
+      "rev_group": "country"
+    },
+    {
+      "value": "5522000000.0",
+      "members": [
+        "nvda:ChinaIncludingHongKongMember"
+      ],
+      "field": "us-gaap:Revenues",
+      "axis": [
+        "srt:StatementGeographicalAxis"
+      ],
+      "report_date": "2025-04-27",
+      "rev_group": "country"
+    },
+    {
+      "value": "5534000000.0",
+      "members": [
+        "nvda:ChinaIncludingHongKongMember"
+      ],
+      "field": "us-gaap:Revenues",
+      "axis": [
+        "srt:StatementGeographicalAxis"
+      ],
+      "report_date": "2025-01-26",
+      "rev_group": "country"
+    },
+    {
+      "value": "5661000000.0",
+      "members": [],
+      "field": "us-gaap:Revenues",
+      "axis": [],
+      "report_date": "2021-05-02",
+      "rev_group": "product"
+    },
+    {
+      "value": "5684000000.0",
+      "members": [
+        "nvda:OtherCountriesMember"
+      ],
+      "field": "us-gaap:Revenues",
+      "axis": [
+        "srt:StatementGeographicalAxis"
+      ],
+      "report_date": "2024-04-28",
+      "rev_group": "continent"
+    },
+    {
+      "value": "5740000000.0",
+      "members": [
+        "country:TW"
+      ],
+      "field": "us-gaap:Revenues",
+      "axis": [
+        "srt:StatementGeographicalAxis"
+      ],
+      "report_date": "2024-07-28",
+      "rev_group": "country"
+    },
+    {
+      "value": "5931000000.0",
+      "members": [],
+      "field": "us-gaap:Revenues",
+      "axis": [],
+      "report_date": "2022-10-30",
+      "rev_group": "product"
+    },
+    {
+      "value": "6043000000.0",
+      "members": [
+        "country:US"
+      ],
+      "field": "us-gaap:Revenues",
+      "axis": [
+        "srt:StatementGeographicalAxis"
+      ],
+      "report_date": "2023-07-30",
+      "rev_group": "country"
+    },
+    {
+      "value": "6098000000.0",
+      "members": [
+        "us-gaap:OperatingSegmentsMember",
+        "nvda:GraphicsSegmentMember"
+      ],
+      "field": "us-gaap:Revenues",
+      "axis": [
+        "srt:ConsolidationItemsAxis",
+        "us-gaap:StatementBusinessSegmentsAxis"
+      ],
+      "report_date": "2025-10-26",
+      "rev_group": "product"
+    },
+    {
+      "value": "6302000000.0",
+      "members": [
+        "country:US"
+      ],
+      "field": "us-gaap:Revenues",
+      "axis": [
+        "srt:StatementGeographicalAxis"
+      ],
+      "report_date": "2023-10-29",
+      "rev_group": "country"
+    },
+    {
+      "value": "6369000000.0",
+      "members": [
+        "nvda:EdgeComputingMember"
+      ],
+      "field": "us-gaap:Revenues",
+      "axis": [
+        "srt:ProductOrServiceAxis"
+      ],
+      "report_date": "2026-04-26",
+      "rev_group": "product"
+    },
+    {
+      "value": "6476000000.0",
+      "members": [
+        "us-gaap:OperatingSegmentsMember",
+        "nvda:GraphicsSegmentMember"
+      ],
+      "field": "us-gaap:Revenues",
+      "axis": [
+        "srt:ConsolidationItemsAxis",
+        "us-gaap:StatementBusinessSegmentsAxis"
+      ],
+      "report_date": "2026-01-25",
+      "rev_group": "product"
+    },
+    {
+      "value": "6507000000.0",
+      "members": [],
+      "field": "us-gaap:Revenues",
+      "axis": [],
+      "report_date": "2021-08-01",
+      "rev_group": "product"
+    },
+    {
+      "value": "6704000000.0",
+      "members": [],
+      "field": "us-gaap:Revenues",
+      "axis": [],
+      "report_date": "2022-07-31",
+      "rev_group": "product"
+    },
+    {
+      "value": "7065000000.0",
+      "members": [
+        "us-gaap:OperatingSegmentsMember",
+        "nvda:GraphicsSegmentMember"
+      ],
+      "field": "us-gaap:Revenues",
+      "axis": [
+        "srt:ConsolidationItemsAxis",
+        "us-gaap:StatementBusinessSegmentsAxis"
+      ],
+      "report_date": "2026-04-26",
+      "rev_group": "product"
+    },
+    {
+      "value": "7103000000.0",
+      "members": [],
+      "field": "us-gaap:Revenues",
+      "axis": [],
+      "report_date": "2021-10-31",
+      "rev_group": "product"
+    },
+    {
+      "value": "7158000000.0",
+      "members": [
+        "country:TW"
+      ],
+      "field": "us-gaap:Revenues",
+      "axis": [
+        "srt:StatementGeographicalAxis"
+      ],
+      "report_date": "2025-04-27",
+      "rev_group": "country"
+    },
+    {
+      "value": "7192000000.0",
+      "members": [],
+      "field": "us-gaap:Revenues",
+      "axis": [],
+      "report_date": "2023-04-30",
+      "rev_group": "product"
+    },
+    {
+      "value": "7611000000.0",
+      "members": [
+        "nvda:OtherCountriesMember"
+      ],
+      "field": "us-gaap:Revenues",
+      "axis": [
+        "srt:StatementGeographicalAxis"
+      ],
+      "report_date": "2024-07-28",
+      "rev_group": "continent"
+    },
+    {
+      "value": "8288000000.0",
+      "members": [],
+      "field": "us-gaap:Revenues",
+      "axis": [],
+      "report_date": "2022-05-01",
+      "rev_group": "product"
+    },
+    {
+      "value": "8413000000.0",
+      "members": [
+        "nvda:ChinaIncludingHongKongMember"
+      ],
+      "field": "us-gaap:Revenues",
+      "axis": [
+        "srt:StatementGeographicalAxis"
+      ],
+      "report_date": "2026-01-25",
+      "rev_group": "country"
+    },
+    {
+      "value": "8529000000.0",
+      "members": [
+        "country:TW"
+      ],
+      "field": "us-gaap:Revenues",
+      "axis": [
+        "srt:StatementGeographicalAxis"
+      ],
+      "report_date": "2025-07-27",
+      "rev_group": "country"
+    },
+    {
+      "value": "8551000000.0",
+      "members": [
+        "nvda:OtherCountriesMember"
+      ],
+      "field": "us-gaap:Revenues",
+      "axis": [
+        "srt:StatementGeographicalAxis"
+      ],
+      "report_date": "2025-01-26",
+      "rev_group": "continent"
+    },
+    {
+      "value": "9713000000.0",
+      "members": [
+        "nvda:OtherCountriesMember"
+      ],
+      "field": "us-gaap:Revenues",
+      "axis": [
+        "srt:StatementGeographicalAxis"
+      ],
+      "report_date": "2024-10-27",
+      "rev_group": "continent"
+    },
+    {
+      "value": "10323000000.0",
+      "members": [
+        "nvda:DataCenterMember"
+      ],
+      "field": "us-gaap:Revenues",
+      "axis": [
+        "srt:ProductOrServiceAxis"
+      ],
+      "report_date": "2023-07-30",
+      "rev_group": "product"
+    },
+    {
+      "value": "10643000000.0",
+      "members": [
+        "nvda:OtherCountriesMember"
+      ],
+      "field": "us-gaap:Revenues",
+      "axis": [
+        "srt:StatementGeographicalAxis"
+      ],
+      "report_date": "2025-04-27",
+      "rev_group": "continent"
+    },
+    {
+      "value": "11975000000.0",
+      "members": [
+        "nvda:OtherCountriesMember"
+      ],
+      "field": "us-gaap:Revenues",
+      "axis": [
+        "srt:StatementGeographicalAxis"
+      ],
+      "report_date": "2025-07-27",
+      "rev_group": "continent"
+    },
+    {
+      "value": "12006000000.0",
+      "members": [
+        "country:TW"
+      ],
+      "field": "us-gaap:Revenues",
+      "axis": [
+        "srt:StatementGeographicalAxis"
+      ],
+      "report_date": "2026-04-26",
+      "rev_group": "country"
+    },
+    {
+      "value": "12236000000.0",
+      "members": [
+        "country:US"
+      ],
+      "field": "us-gaap:Revenues",
+      "axis": [
+        "srt:StatementGeographicalAxis"
+      ],
+      "report_date": "2024-01-28",
+      "rev_group": "country"
+    },
+    {
+      "value": "12907000000.0",
+      "members": [
+        "country:TW"
+      ],
+      "field": "us-gaap:Revenues",
+      "axis": [
+        "srt:StatementGeographicalAxis"
+      ],
+      "report_date": "2026-01-25",
+      "rev_group": "country"
+    },
+    {
+      "value": "13022000000.0",
+      "members": [
+        "country:US"
+      ],
+      "field": "us-gaap:Revenues",
+      "axis": [
+        "srt:StatementGeographicalAxis"
+      ],
+      "report_date": "2024-07-28",
+      "rev_group": "country"
+    },
+    {
+      "value": "13496000000.0",
+      "members": [
+        "country:US"
+      ],
+      "field": "us-gaap:Revenues",
+      "axis": [
+        "srt:StatementGeographicalAxis"
+      ],
+      "report_date": "2024-04-28",
+      "rev_group": "country"
+    },
+    {
+      "value": "13507000000.0",
+      "members": [],
+      "field": "us-gaap:Revenues",
+      "axis": [],
+      "report_date": "2023-07-30",
+      "rev_group": "product"
+    },
+    {
+      "value": "13751000000.0",
+      "members": [
+        "country:TW"
+      ],
+      "field": "us-gaap:Revenues",
+      "axis": [
+        "srt:StatementGeographicalAxis"
+      ],
+      "report_date": "2025-10-26",
+      "rev_group": "country"
+    },
+    {
+      "value": "14304000000.0",
+      "members": [
+        "us-gaap:OperatingSegmentsMember",
+        "nvda:GraphicsSegmentMember"
+      ],
+      "field": "us-gaap:Revenues",
+      "axis": [
+        "srt:ConsolidationItemsAxis",
+        "us-gaap:StatementBusinessSegmentsAxis"
+      ],
+      "report_date": "2025-01-26",
+      "rev_group": "product"
+    },
+    {
+      "value": "14514000000.0",
+      "members": [
+        "nvda:DataCenterMember"
+      ],
+      "field": "us-gaap:Revenues",
+      "axis": [
+        "srt:ProductOrServiceAxis"
+      ],
+      "report_date": "2023-10-29",
+      "rev_group": "product"
+    },
+    {
+      "value": "14800000000.0",
+      "members": [
+        "country:US"
+      ],
+      "field": "us-gaap:Revenues",
+      "axis": [
+        "srt:StatementGeographicalAxis"
+      ],
+      "report_date": "2024-10-27",
+      "rev_group": "country"
+    },
+    {
+      "value": "16674999999.580002",
+      "members": [],
+      "field": "us-gaap:RevenueFromContractWithCustomerExcludingAssessedTax",
+      "axis": [],
+      "report_date": "2021-01-31",
+      "rev_group": "product"
+    },
+    {
+      "value": "18120000000.0",
+      "members": [],
+      "field": "us-gaap:Revenues",
+      "axis": [],
+      "report_date": "2023-10-29",
+      "rev_group": "product"
+    },
+    {
+      "value": "18404000000.0",
+      "members": [
+        "nvda:DataCenterMember"
+      ],
+      "field": "us-gaap:Revenues",
+      "axis": [
+        "srt:ProductOrServiceAxis"
+      ],
+      "report_date": "2024-01-28",
+      "rev_group": "product"
+    },
+    {
+      "value": "19939000000.0",
+      "members": [
+        "country:US"
+      ],
+      "field": "us-gaap:Revenues",
+      "axis": [
+        "srt:StatementGeographicalAxis"
+      ],
+      "report_date": "2025-01-26",
+      "rev_group": "country"
+    },
+    {
+      "value": "20739000000.0",
+      "members": [
+        "country:US"
+      ],
+      "field": "us-gaap:Revenues",
+      "axis": [
+        "srt:StatementGeographicalAxis"
+      ],
+      "report_date": "2025-04-27",
+      "rev_group": "country"
+    },
+    {
+      "value": "22563000000.0",
+      "members": [
+        "nvda:DataCenterMember"
+      ],
+      "field": "us-gaap:Revenues",
+      "axis": [
+        "srt:ProductOrServiceAxis"
+      ],
+      "report_date": "2024-04-28",
+      "rev_group": "product"
+    },
+    {
+      "value": "23470000000.0",
+      "members": [
+        "country:US"
+      ],
+      "field": "us-gaap:Revenues",
+      "axis": [
+        "srt:StatementGeographicalAxis"
+      ],
+      "report_date": "2025-07-27",
+      "rev_group": "country"
+    },
+    {
+      "value": "26044000000.0",
+      "members": [],
+      "field": "us-gaap:Revenues",
+      "axis": [],
+      "report_date": "2024-04-28",
+      "rev_group": "product"
+    },
+    {
+      "value": "26272000000.0",
+      "members": [
+        "nvda:DataCenterMember"
+      ],
+      "field": "us-gaap:Revenues",
+      "axis": [
+        "srt:ProductOrServiceAxis"
+      ],
+      "report_date": "2024-07-28",
+      "rev_group": "product"
+    },
+    {
+      "value": "26913999999.6",
+      "members": [],
+      "field": "us-gaap:RevenueFromContractWithCustomerExcludingAssessedTax",
+      "axis": [],
+      "report_date": "2022-01-30",
+      "rev_group": "product"
+    },
+    {
+      "value": "26913999999.6",
+      "members": [],
+      "field": "us-gaap:Revenues",
+      "axis": [],
+      "report_date": "2022-01-30",
+      "rev_group": "product"
+    },
+    {
+      "value": "26973999999.570004",
+      "members": [],
+      "field": "us-gaap:Revenues",
+      "axis": [],
+      "report_date": "2023-01-29",
+      "rev_group": "product"
+    },
+    {
+      "value": "30040000000.0",
+      "members": [],
+      "field": "us-gaap:Revenues",
+      "axis": [],
+      "report_date": "2024-07-28",
+      "rev_group": "product"
+    },
+    {
+      "value": "30771000000.0",
+      "members": [
+        "nvda:DataCenterMember"
+      ],
+      "field": "us-gaap:Revenues",
+      "axis": [
+        "srt:ProductOrServiceAxis"
+      ],
+      "report_date": "2024-10-27",
+      "rev_group": "product"
+    },
+    {
+      "value": "35082000000.0",
+      "members": [],
+      "field": "us-gaap:Revenues",
+      "axis": [],
+      "report_date": "2024-10-27",
+      "rev_group": "product"
+    },
+    {
+      "value": "35580000000.0",
+      "members": [
+        "nvda:DataCenterMember"
+      ],
+      "field": "us-gaap:Revenues",
+      "axis": [
+        "srt:ProductOrServiceAxis"
+      ],
+      "report_date": "2025-01-26",
+      "rev_group": "product"
+    },
+    {
+      "value": "37377000000.0",
+      "members": [
+        "nvda:AICloudsIndustrialEnterpriseMember"
+      ],
+      "field": "us-gaap:Revenues",
+      "axis": [
+        "srt:ProductOrServiceAxis"
+      ],
+      "report_date": "2026-04-26",
+      "rev_group": "product"
+    },
+    {
+      "value": "37869000000.0",
+      "members": [
+        "nvda:HyperscaleMember"
+      ],
+      "field": "us-gaap:Revenues",
+      "axis": [
+        "srt:ProductOrServiceAxis"
+      ],
+      "report_date": "2026-04-26",
+      "rev_group": "product"
+    },
+    {
+      "value": "39112000000.0",
+      "members": [
+        "nvda:DataCenterMember"
+      ],
+      "field": "us-gaap:Revenues",
+      "axis": [
+        "srt:ProductOrServiceAxis"
+      ],
+      "report_date": "2025-04-27",
+      "rev_group": "product"
+    },
+    {
+      "value": "39177000000.0",
+      "members": [
+        "country:US"
+      ],
+      "field": "us-gaap:Revenues",
+      "axis": [
+        "srt:StatementGeographicalAxis"
+      ],
+      "report_date": "2025-10-26",
+      "rev_group": "country"
+    },
+    {
+      "value": "39589000000.0",
+      "members": [
+        "us-gaap:OperatingSegmentsMember",
+        "nvda:ComputeAndNetworkingSegmentMember"
+      ],
+      "field": "us-gaap:Revenues",
+      "axis": [
+        "srt:ConsolidationItemsAxis",
+        "us-gaap:StatementBusinessSegmentsAxis"
+      ],
+      "report_date": "2025-04-27",
+      "rev_group": "product"
+    },
+    {
+      "value": "41096000000.0",
+      "members": [
+        "nvda:DataCenterMember"
+      ],
+      "field": "us-gaap:Revenues",
+      "axis": [
+        "srt:ProductOrServiceAxis"
+      ],
+      "report_date": "2025-07-27",
+      "rev_group": "product"
+    },
+    {
+      "value": "41331000000.0",
+      "members": [
+        "us-gaap:OperatingSegmentsMember",
+        "nvda:ComputeAndNetworkingSegmentMember"
+      ],
+      "field": "us-gaap:Revenues",
+      "axis": [
+        "srt:ConsolidationItemsAxis",
+        "us-gaap:StatementBusinessSegmentsAxis"
+      ],
+      "report_date": "2025-07-27",
+      "rev_group": "product"
+    },
+    {
+      "value": "44062000000.0",
+      "members": [],
+      "field": "us-gaap:Revenues",
+      "axis": [],
+      "report_date": "2025-04-27",
+      "rev_group": "product"
+    },
+    {
+      "value": "46743000000.0",
+      "members": [],
+      "field": "us-gaap:Revenues",
+      "axis": [],
+      "report_date": "2025-07-27",
+      "rev_group": "product"
+    },
+    {
+      "value": "50908000000.0",
+      "members": [
+        "us-gaap:OperatingSegmentsMember",
+        "nvda:ComputeAndNetworkingSegmentMember"
+      ],
+      "field": "us-gaap:Revenues",
+      "axis": [
+        "srt:ConsolidationItemsAxis",
+        "us-gaap:StatementBusinessSegmentsAxis"
+      ],
+      "report_date": "2025-10-26",
+      "rev_group": "product"
+    },
+    {
+      "value": "51215000000.0",
+      "members": [
+        "nvda:DataCenterMember"
+      ],
+      "field": "us-gaap:Revenues",
+      "axis": [
+        "srt:ProductOrServiceAxis"
+      ],
+      "report_date": "2025-10-26",
+      "rev_group": "product"
+    },
+    {
+      "value": "57006000000.0",
+      "members": [],
+      "field": "us-gaap:Revenues",
+      "axis": [],
+      "report_date": "2025-10-26",
+      "rev_group": "product"
+    },
+    {
+      "value": "60921999998.52",
+      "members": [],
+      "field": "us-gaap:Revenues",
+      "axis": [],
+      "report_date": "2024-01-28",
+      "rev_group": "product"
+    },
+    {
+      "value": "61651000000.0",
+      "members": [
+        "us-gaap:OperatingSegmentsMember",
+        "nvda:ComputeAndNetworkingSegmentMember"
+      ],
+      "field": "us-gaap:Revenues",
+      "axis": [
+        "srt:ConsolidationItemsAxis",
+        "us-gaap:StatementBusinessSegmentsAxis"
+      ],
+      "report_date": "2026-01-25",
+      "rev_group": "product"
+    },
+    {
+      "value": "62314000000.0",
+      "members": [
+        "nvda:DataCenterMember"
+      ],
+      "field": "us-gaap:Revenues",
+      "axis": [
+        "srt:ProductOrServiceAxis"
+      ],
+      "report_date": "2026-01-25",
+      "rev_group": "product"
+    },
+    {
+      "value": "63769000000.0",
+      "members": [
+        "country:US"
+      ],
+      "field": "us-gaap:Revenues",
+      "axis": [
+        "srt:StatementGeographicalAxis"
+      ],
+      "report_date": "2026-04-26",
+      "rev_group": "country"
+    },
+    {
+      "value": "66231000000.0",
+      "members": [
+        "country:US"
+      ],
+      "field": "us-gaap:Revenues",
+      "axis": [
+        "srt:StatementGeographicalAxis"
+      ],
+      "report_date": "2026-01-25",
+      "rev_group": "country"
+    },
+    {
+      "value": "74550000000.0",
+      "members": [
+        "us-gaap:OperatingSegmentsMember",
+        "nvda:ComputeAndNetworkingSegmentMember"
+      ],
+      "field": "us-gaap:Revenues",
+      "axis": [
+        "srt:ConsolidationItemsAxis",
+        "us-gaap:StatementBusinessSegmentsAxis"
+      ],
+      "report_date": "2026-04-26",
+      "rev_group": "product"
+    },
+    {
+      "value": "75246000000.0",
+      "members": [
+        "nvda:DataCenterMember"
+      ],
+      "field": "us-gaap:Revenues",
+      "axis": [
+        "srt:ProductOrServiceAxis"
+      ],
+      "report_date": "2026-04-26",
+      "rev_group": "product"
+    },
+    {
+      "value": "81615000000.0",
+      "members": [],
+      "field": "us-gaap:Revenues",
+      "axis": [],
+      "report_date": "2026-04-26",
+      "rev_group": "product"
+    },
+    {
+      "value": "116193000000.0",
+      "members": [
+        "us-gaap:OperatingSegmentsMember",
+        "nvda:ComputeAndNetworkingSegmentMember"
+      ],
+      "field": "us-gaap:Revenues",
+      "axis": [
+        "srt:ConsolidationItemsAxis",
+        "us-gaap:StatementBusinessSegmentsAxis"
+      ],
+      "report_date": "2025-01-26",
+      "rev_group": "product"
+    },
+    {
+      "value": "130496999998.62999",
+      "members": [],
+      "field": "us-gaap:Revenues",
+      "axis": [],
+      "report_date": "2025-01-26",
+      "rev_group": "product"
+    },
+    {
+      "value": "158931999995.31",
+      "members": [],
+      "field": "us-gaap:Revenues",
+      "axis": [],
+      "report_date": "2026-01-25",
+      "rev_group": "product"
+    }
+  ]
+}

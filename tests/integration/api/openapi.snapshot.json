@@ -4859,6 +4859,138 @@
         "title": "FundamentalComponentSeries",
         "type": "object"
       },
+      "FundamentalConcentrationFamily": {
+        "description": "The reported top-member share on one axis family, for one period.\n\nCarries its own `report_date`: a filer may publish a geography cut every\nquarter and a segment cut only annually, so the two families legitimately\ndate differently and one shared as-of would misdate one of them.\n\n`top_member` is the RAW XBRL member string. Filers mix `country:US` with\ncustom members like `nvda:ChinaIncludingHongKongMember` and with continent\naggregates; the share is defensible, a beautified label would not be.",
+        "properties": {
+          "axis": {
+            "title": "Axis",
+            "type": "string"
+          },
+          "level": {
+            "title": "Level",
+            "type": "string"
+          },
+          "n_members": {
+            "title": "N Members",
+            "type": "integer"
+          },
+          "report_date": {
+            "title": "Report Date",
+            "type": "string"
+          },
+          "top_member": {
+            "title": "Top Member",
+            "type": "string"
+          },
+          "top_share": {
+            "title": "Top Share",
+            "type": "number"
+          }
+        },
+        "required": [
+          "axis",
+          "level",
+          "n_members",
+          "top_member",
+          "top_share",
+          "report_date"
+        ],
+        "title": "FundamentalConcentrationFamily",
+        "type": "object"
+      },
+      "FundamentalConcentrationPoint": {
+        "description": "One period of the trend. Null where the family did not resolve \u2014 never 0,\nwhich would read as \"no concentration\" rather than \"not disclosed\".",
+        "properties": {
+          "geography_top_share": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Geography Top Share"
+          },
+          "report_date": {
+            "title": "Report Date",
+            "type": "string"
+          },
+          "segment_top_share": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Segment Top Share"
+          }
+        },
+        "required": [
+          "report_date",
+          "segment_top_share",
+          "geography_top_share"
+        ],
+        "title": "FundamentalConcentrationPoint",
+        "type": "object"
+      },
+      "FundamentalConcentrationResponse": {
+        "description": "Revenue concentration for one name. DESCRIPTIVE ONLY.\n\nThis is not an edge and nothing here may become a composite input. Measured\nover 401 tickers, the top share moves a median 1.20pp per quarter against\nannual/quarterly basis contamination of median 2.5pp and p90 17.5pp \u2014 the\nlevel is a public, filing-lagged, highly persistent characteristic, which is\na factor loading rather than alpha. No rank, no percentile against other\nnames, no score.",
+        "properties": {
+          "derivation_version": {
+            "title": "Derivation Version",
+            "type": "string"
+          },
+          "dropped_annual_periods": {
+            "default": [],
+            "items": {
+              "type": "string"
+            },
+            "title": "Dropped Annual Periods",
+            "type": "array"
+          },
+          "geography": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/FundamentalConcentrationFamily"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "segment": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/FundamentalConcentrationFamily"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "ticker": {
+            "title": "Ticker",
+            "type": "string"
+          },
+          "trend": {
+            "default": [],
+            "items": {
+              "$ref": "#/components/schemas/FundamentalConcentrationPoint"
+            },
+            "title": "Trend",
+            "type": "array"
+          }
+        },
+        "required": [
+          "ticker",
+          "derivation_version"
+        ],
+        "title": "FundamentalConcentrationResponse",
+        "type": "object"
+      },
       "FundamentalCoverage": {
         "description": "The explicit absence list. Mandatory, not a footer.\n\n`missing` and `suppressed` are kept apart on purpose: \"never reported\" and\n\"reported and not believed\" are different facts about a company.",
         "properties": {
@@ -28577,6 +28709,61 @@
           }
         },
         "summary": "Get Stock Fundamentals",
+        "tags": [
+          "stock"
+        ]
+      }
+    },
+    "/api/stock/{ticker}/fundamentals/concentration": {
+      "get": {
+        "description": "Revenue concentration by reportable segment and by geography.\n\nDESCRIPTIVE ONLY \u2014 see the response model. No rank, no percentile, no\ncontribution to any score.\n\nShares are derived here, at read time, from stored raw rows. Nothing\npersists a share: the axis-selection, level-collapse and annual-detection\nrules are new, one of them has already been corrected once against real\ndata, and a stored share would freeze whichever rules were current when the\nrow was written into a history no later correction could reach.\n\n404 means no breakdown rows have been captured for this name \u2014 which is a\ndifferent condition from either fundamentals endpoint's, and the three\nlegitimately disagree: a filer can hold statements and publish no\ndisaggregation at all.",
+        "operationId": "get_stock_fundamental_concentration_api_stock__ticker__fundamentals_concentration_get",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "ticker",
+            "required": true,
+            "schema": {
+              "title": "Ticker",
+              "type": "string"
+            }
+          },
+          {
+            "in": "query",
+            "name": "periods",
+            "required": false,
+            "schema": {
+              "default": 20,
+              "maximum": 40,
+              "minimum": 1,
+              "title": "Periods",
+              "type": "integer"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/FundamentalConcentrationResponse"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Get Stock Fundamental Concentration",
         "tags": [
           "stock"
         ]

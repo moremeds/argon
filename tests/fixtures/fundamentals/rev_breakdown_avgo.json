@@ -1,0 +1,1379 @@
+{
+  "_fixture": "real UW /stock/AVGO/fundamental-breakdown rev_breakdown rows, fetched 2026-08-18. Frozen: tests must not hit the network.",
+  "ticker": "AVGO",
+  "fetched_on": "2026-08-18",
+  "rows": [
+    {
+      "value": "-45525000000.0",
+      "members": [],
+      "field": "us-gaap:InterestIncomeOther",
+      "axis": [],
+      "report_date": "2025-11-02",
+      "rev_group": "product"
+    },
+    {
+      "value": "-1244000000.0",
+      "members": [
+        "avgo:SubscriptionsandServicesMember",
+        "srt:AmericasMember"
+      ],
+      "field": "us-gaap:RevenueFromContractWithCustomerExcludingAssessedTax",
+      "axis": [
+        "srt:ProductOrServiceAxis",
+        "srt:StatementGeographicalAxis"
+      ],
+      "report_date": "2025-11-02",
+      "rev_group": "country"
+    },
+    {
+      "value": "-898000000.0",
+      "members": [
+        "avgo:SubscriptionsandServicesMember"
+      ],
+      "field": "us-gaap:RevenueFromContractWithCustomerExcludingAssessedTax",
+      "axis": [
+        "srt:ProductOrServiceAxis"
+      ],
+      "report_date": "2025-11-02",
+      "rev_group": "product"
+    },
+    {
+      "value": "0.46",
+      "members": [],
+      "field": "us-gaap:ConcentrationRiskPercentage1",
+      "axis": [],
+      "report_date": "2024-11-03",
+      "rev_group": "rewards"
+    },
+    {
+      "value": "0.76",
+      "members": [],
+      "field": "us-gaap:ConcentrationRiskPercentage1",
+      "axis": [],
+      "report_date": "2025-11-02",
+      "rev_group": "rewards"
+    },
+    {
+      "value": "112000000.0",
+      "members": [
+        "avgo:SubscriptionsandServicesMember",
+        "srt:AsiaPacificMember"
+      ],
+      "field": "us-gaap:RevenueFromContractWithCustomerExcludingAssessedTax",
+      "axis": [
+        "srt:ProductOrServiceAxis",
+        "srt:StatementGeographicalAxis"
+      ],
+      "report_date": "2025-11-02",
+      "rev_group": "continent"
+    },
+    {
+      "value": "234000000.0",
+      "members": [
+        "avgo:SubscriptionsandServicesMember",
+        "us-gaap:EMEAMember"
+      ],
+      "field": "us-gaap:RevenueFromContractWithCustomerExcludingAssessedTax",
+      "axis": [
+        "srt:ProductOrServiceAxis",
+        "srt:StatementGeographicalAxis"
+      ],
+      "report_date": "2025-11-02",
+      "rev_group": "continent"
+    },
+    {
+      "value": "412000000.0",
+      "members": [
+        "us-gaap:ProductMember",
+        "us-gaap:EMEAMember"
+      ],
+      "field": "us-gaap:RevenueFromContractWithCustomerExcludingAssessedTax",
+      "axis": [
+        "srt:ProductOrServiceAxis",
+        "srt:StatementGeographicalAxis"
+      ],
+      "report_date": "2025-02-02",
+      "rev_group": "continent"
+    },
+    {
+      "value": "414000000.0",
+      "members": [
+        "us-gaap:ProductMember",
+        "us-gaap:EMEAMember"
+      ],
+      "field": "us-gaap:RevenueFromContractWithCustomerExcludingAssessedTax",
+      "axis": [
+        "srt:ProductOrServiceAxis",
+        "srt:StatementGeographicalAxis"
+      ],
+      "report_date": "2025-08-03",
+      "rev_group": "continent"
+    },
+    {
+      "value": "417000000.0",
+      "members": [
+        "us-gaap:ProductMember",
+        "us-gaap:EMEAMember"
+      ],
+      "field": "us-gaap:RevenueFromContractWithCustomerExcludingAssessedTax",
+      "axis": [
+        "srt:ProductOrServiceAxis",
+        "srt:StatementGeographicalAxis"
+      ],
+      "report_date": "2025-05-04",
+      "rev_group": "continent"
+    },
+    {
+      "value": "461000000.0",
+      "members": [],
+      "field": "us-gaap:InterestIncomeOther",
+      "axis": [],
+      "report_date": "2024-11-03",
+      "rev_group": "product"
+    },
+    {
+      "value": "490000000.0",
+      "members": [
+        "us-gaap:ProductMember",
+        "srt:AmericasMember"
+      ],
+      "field": "us-gaap:RevenueFromContractWithCustomerExcludingAssessedTax",
+      "axis": [
+        "srt:ProductOrServiceAxis",
+        "srt:StatementGeographicalAxis"
+      ],
+      "report_date": "2025-02-02",
+      "rev_group": "country"
+    },
+    {
+      "value": "579000000.0",
+      "members": [
+        "avgo:SubscriptionsandServicesMember",
+        "srt:AsiaPacificMember"
+      ],
+      "field": "us-gaap:RevenueFromContractWithCustomerExcludingAssessedTax",
+      "axis": [
+        "srt:ProductOrServiceAxis",
+        "srt:StatementGeographicalAxis"
+      ],
+      "report_date": "2026-05-03",
+      "rev_group": "continent"
+    },
+    {
+      "value": "635000000.0",
+      "members": [
+        "us-gaap:ProductMember",
+        "srt:AmericasMember"
+      ],
+      "field": "us-gaap:RevenueFromContractWithCustomerExcludingAssessedTax",
+      "axis": [
+        "srt:ProductOrServiceAxis",
+        "srt:StatementGeographicalAxis"
+      ],
+      "report_date": "2025-05-04",
+      "rev_group": "country"
+    },
+    {
+      "value": "646000000.0",
+      "members": [
+        "avgo:SubscriptionsandServicesMember",
+        "srt:AsiaPacificMember"
+      ],
+      "field": "us-gaap:RevenueFromContractWithCustomerExcludingAssessedTax",
+      "axis": [
+        "srt:ProductOrServiceAxis",
+        "srt:StatementGeographicalAxis"
+      ],
+      "report_date": "2025-05-04",
+      "rev_group": "continent"
+    },
+    {
+      "value": "662000000.0",
+      "members": [
+        "us-gaap:ProductMember",
+        "srt:AmericasMember"
+      ],
+      "field": "us-gaap:RevenueFromContractWithCustomerExcludingAssessedTax",
+      "axis": [
+        "srt:ProductOrServiceAxis",
+        "srt:StatementGeographicalAxis"
+      ],
+      "report_date": "2025-08-03",
+      "rev_group": "country"
+    },
+    {
+      "value": "665000000.0",
+      "members": [
+        "avgo:SubscriptionsandServicesMember",
+        "srt:AsiaPacificMember"
+      ],
+      "field": "us-gaap:RevenueFromContractWithCustomerExcludingAssessedTax",
+      "axis": [
+        "srt:ProductOrServiceAxis",
+        "srt:StatementGeographicalAxis"
+      ],
+      "report_date": "2026-02-01",
+      "rev_group": "continent"
+    },
+    {
+      "value": "749000000.0",
+      "members": [
+        "us-gaap:ProductMember",
+        "us-gaap:EMEAMember"
+      ],
+      "field": "us-gaap:RevenueFromContractWithCustomerExcludingAssessedTax",
+      "axis": [
+        "srt:ProductOrServiceAxis",
+        "srt:StatementGeographicalAxis"
+      ],
+      "report_date": "2026-05-03",
+      "rev_group": "continent"
+    },
+    {
+      "value": "763000000.0",
+      "members": [
+        "avgo:SubscriptionsandServicesMember",
+        "srt:AsiaPacificMember"
+      ],
+      "field": "us-gaap:RevenueFromContractWithCustomerExcludingAssessedTax",
+      "axis": [
+        "srt:ProductOrServiceAxis",
+        "srt:StatementGeographicalAxis"
+      ],
+      "report_date": "2025-02-02",
+      "rev_group": "continent"
+    },
+    {
+      "value": "779000000.0",
+      "members": [
+        "avgo:SubscriptionsandServicesMember",
+        "srt:AsiaPacificMember"
+      ],
+      "field": "us-gaap:RevenueFromContractWithCustomerExcludingAssessedTax",
+      "axis": [
+        "srt:ProductOrServiceAxis",
+        "srt:StatementGeographicalAxis"
+      ],
+      "report_date": "2025-08-03",
+      "rev_group": "continent"
+    },
+    {
+      "value": "1016000000.0",
+      "members": [
+        "us-gaap:ProductMember",
+        "us-gaap:EMEAMember"
+      ],
+      "field": "us-gaap:RevenueFromContractWithCustomerExcludingAssessedTax",
+      "axis": [
+        "srt:ProductOrServiceAxis",
+        "srt:StatementGeographicalAxis"
+      ],
+      "report_date": "2026-02-01",
+      "rev_group": "continent"
+    },
+    {
+      "value": "1599000000.0",
+      "members": [
+        "avgo:SubscriptionsandServicesMember",
+        "us-gaap:EMEAMember"
+      ],
+      "field": "us-gaap:RevenueFromContractWithCustomerExcludingAssessedTax",
+      "axis": [
+        "srt:ProductOrServiceAxis",
+        "srt:StatementGeographicalAxis"
+      ],
+      "report_date": "2026-02-01",
+      "rev_group": "continent"
+    },
+    {
+      "value": "1701000000.0",
+      "members": [
+        "avgo:SubscriptionsandServicesMember",
+        "us-gaap:EMEAMember"
+      ],
+      "field": "us-gaap:RevenueFromContractWithCustomerExcludingAssessedTax",
+      "axis": [
+        "srt:ProductOrServiceAxis",
+        "srt:StatementGeographicalAxis"
+      ],
+      "report_date": "2026-05-03",
+      "rev_group": "continent"
+    },
+    {
+      "value": "1781000000.0",
+      "members": [
+        "avgo:SubscriptionsandServicesMember",
+        "us-gaap:EMEAMember"
+      ],
+      "field": "us-gaap:RevenueFromContractWithCustomerExcludingAssessedTax",
+      "axis": [
+        "srt:ProductOrServiceAxis",
+        "srt:StatementGeographicalAxis"
+      ],
+      "report_date": "2025-05-04",
+      "rev_group": "continent"
+    },
+    {
+      "value": "1840000000.0",
+      "members": [
+        "avgo:SubscriptionsandServicesMember",
+        "us-gaap:EMEAMember"
+      ],
+      "field": "us-gaap:RevenueFromContractWithCustomerExcludingAssessedTax",
+      "axis": [
+        "srt:ProductOrServiceAxis",
+        "srt:StatementGeographicalAxis"
+      ],
+      "report_date": "2025-02-02",
+      "rev_group": "continent"
+    },
+    {
+      "value": "1854000000.0",
+      "members": [
+        "avgo:SubscriptionsandServicesMember",
+        "us-gaap:EMEAMember"
+      ],
+      "field": "us-gaap:RevenueFromContractWithCustomerExcludingAssessedTax",
+      "axis": [
+        "srt:ProductOrServiceAxis",
+        "srt:StatementGeographicalAxis"
+      ],
+      "report_date": "2025-08-03",
+      "rev_group": "continent"
+    },
+    {
+      "value": "1896000000.0",
+      "members": [
+        "us-gaap:ProductMember",
+        "us-gaap:EMEAMember"
+      ],
+      "field": "us-gaap:RevenueFromContractWithCustomerExcludingAssessedTax",
+      "axis": [
+        "srt:ProductOrServiceAxis",
+        "srt:StatementGeographicalAxis"
+      ],
+      "report_date": "2024-11-03",
+      "rev_group": "continent"
+    },
+    {
+      "value": "2100000000.0",
+      "members": [
+        "us-gaap:ProductMember",
+        "us-gaap:EMEAMember"
+      ],
+      "field": "us-gaap:RevenueFromContractWithCustomerExcludingAssessedTax",
+      "axis": [
+        "srt:ProductOrServiceAxis",
+        "srt:StatementGeographicalAxis"
+      ],
+      "report_date": "2025-11-02",
+      "rev_group": "continent"
+    },
+    {
+      "value": "2164000000.0",
+      "members": [
+        "us-gaap:ProductMember",
+        "srt:AmericasMember"
+      ],
+      "field": "us-gaap:RevenueFromContractWithCustomerExcludingAssessedTax",
+      "axis": [
+        "srt:ProductOrServiceAxis",
+        "srt:StatementGeographicalAxis"
+      ],
+      "report_date": "2026-02-01",
+      "rev_group": "country"
+    },
+    {
+      "value": "2187000000.0",
+      "members": [
+        "us-gaap:ProductMember",
+        "srt:AmericasMember"
+      ],
+      "field": "us-gaap:RevenueFromContractWithCustomerExcludingAssessedTax",
+      "axis": [
+        "srt:ProductOrServiceAxis",
+        "srt:StatementGeographicalAxis"
+      ],
+      "report_date": "2026-05-03",
+      "rev_group": "country"
+    },
+    {
+      "value": "2198000000.0",
+      "members": [
+        "us-gaap:EMEAMember"
+      ],
+      "field": "us-gaap:RevenueFromContractWithCustomerExcludingAssessedTax",
+      "axis": [
+        "srt:StatementGeographicalAxis"
+      ],
+      "report_date": "2025-05-04",
+      "rev_group": "continent"
+    },
+    {
+      "value": "2203000000.0",
+      "members": [
+        "avgo:SubscriptionsandServicesMember",
+        "srt:AsiaPacificMember"
+      ],
+      "field": "us-gaap:RevenueFromContractWithCustomerExcludingAssessedTax",
+      "axis": [
+        "srt:ProductOrServiceAxis",
+        "srt:StatementGeographicalAxis"
+      ],
+      "report_date": "2024-11-03",
+      "rev_group": "continent"
+    },
+    {
+      "value": "2244000000.0",
+      "members": [
+        "us-gaap:ProductMember",
+        "srt:AmericasMember"
+      ],
+      "field": "us-gaap:RevenueFromContractWithCustomerExcludingAssessedTax",
+      "axis": [
+        "srt:ProductOrServiceAxis",
+        "srt:StatementGeographicalAxis"
+      ],
+      "report_date": "2024-11-03",
+      "rev_group": "country"
+    },
+    {
+      "value": "2252000000.0",
+      "members": [
+        "us-gaap:EMEAMember"
+      ],
+      "field": "us-gaap:RevenueFromContractWithCustomerExcludingAssessedTax",
+      "axis": [
+        "srt:StatementGeographicalAxis"
+      ],
+      "report_date": "2025-02-02",
+      "rev_group": "continent"
+    },
+    {
+      "value": "2268000000.0",
+      "members": [
+        "us-gaap:EMEAMember"
+      ],
+      "field": "us-gaap:RevenueFromContractWithCustomerExcludingAssessedTax",
+      "axis": [
+        "srt:StatementGeographicalAxis"
+      ],
+      "report_date": "2025-08-03",
+      "rev_group": "continent"
+    },
+    {
+      "value": "2334000000.0",
+      "members": [
+        "us-gaap:EMEAMember"
+      ],
+      "field": "us-gaap:RevenueFromContractWithCustomerExcludingAssessedTax",
+      "axis": [
+        "srt:StatementGeographicalAxis"
+      ],
+      "report_date": "2025-11-02",
+      "rev_group": "continent"
+    },
+    {
+      "value": "2450000000.0",
+      "members": [
+        "us-gaap:EMEAMember"
+      ],
+      "field": "us-gaap:RevenueFromContractWithCustomerExcludingAssessedTax",
+      "axis": [
+        "srt:StatementGeographicalAxis"
+      ],
+      "report_date": "2026-05-03",
+      "rev_group": "continent"
+    },
+    {
+      "value": "2615000000.0",
+      "members": [
+        "us-gaap:EMEAMember"
+      ],
+      "field": "us-gaap:RevenueFromContractWithCustomerExcludingAssessedTax",
+      "axis": [
+        "srt:StatementGeographicalAxis"
+      ],
+      "report_date": "2026-02-01",
+      "rev_group": "continent"
+    },
+    {
+      "value": "2917000000.0",
+      "members": [
+        "avgo:SubscriptionsandServicesMember",
+        "srt:AmericasMember"
+      ],
+      "field": "us-gaap:RevenueFromContractWithCustomerExcludingAssessedTax",
+      "axis": [
+        "srt:ProductOrServiceAxis",
+        "srt:StatementGeographicalAxis"
+      ],
+      "report_date": "2026-02-01",
+      "rev_group": "country"
+    },
+    {
+      "value": "3015000000.0",
+      "members": [
+        "avgo:SubscriptionsandServicesMember",
+        "srt:AmericasMember"
+      ],
+      "field": "us-gaap:RevenueFromContractWithCustomerExcludingAssessedTax",
+      "axis": [
+        "srt:ProductOrServiceAxis",
+        "srt:StatementGeographicalAxis"
+      ],
+      "report_date": "2026-05-03",
+      "rev_group": "country"
+    },
+    {
+      "value": "4062000000.0",
+      "members": [
+        "avgo:SubscriptionsandServicesMember",
+        "srt:AmericasMember"
+      ],
+      "field": "us-gaap:RevenueFromContractWithCustomerExcludingAssessedTax",
+      "axis": [
+        "srt:ProductOrServiceAxis",
+        "srt:StatementGeographicalAxis"
+      ],
+      "report_date": "2025-08-03",
+      "rev_group": "country"
+    },
+    {
+      "value": "4071000000.0",
+      "members": [
+        "avgo:SubscriptionsandServicesMember",
+        "srt:AmericasMember"
+      ],
+      "field": "us-gaap:RevenueFromContractWithCustomerExcludingAssessedTax",
+      "axis": [
+        "srt:ProductOrServiceAxis",
+        "srt:StatementGeographicalAxis"
+      ],
+      "report_date": "2025-05-04",
+      "rev_group": "country"
+    },
+    {
+      "value": "4142000000.0",
+      "members": [
+        "avgo:SubscriptionsandServicesMember",
+        "srt:AmericasMember"
+      ],
+      "field": "us-gaap:RevenueFromContractWithCustomerExcludingAssessedTax",
+      "axis": [
+        "srt:ProductOrServiceAxis",
+        "srt:StatementGeographicalAxis"
+      ],
+      "report_date": "2025-02-02",
+      "rev_group": "country"
+    },
+    {
+      "value": "4632000000.0",
+      "members": [
+        "srt:AmericasMember"
+      ],
+      "field": "us-gaap:RevenueFromContractWithCustomerExcludingAssessedTax",
+      "axis": [
+        "srt:StatementGeographicalAxis"
+      ],
+      "report_date": "2025-02-02",
+      "rev_group": "country"
+    },
+    {
+      "value": "4706000000.0",
+      "members": [
+        "srt:AmericasMember"
+      ],
+      "field": "us-gaap:RevenueFromContractWithCustomerExcludingAssessedTax",
+      "axis": [
+        "srt:StatementGeographicalAxis"
+      ],
+      "report_date": "2025-05-04",
+      "rev_group": "country"
+    },
+    {
+      "value": "4724000000.0",
+      "members": [
+        "srt:AmericasMember"
+      ],
+      "field": "us-gaap:RevenueFromContractWithCustomerExcludingAssessedTax",
+      "axis": [
+        "srt:StatementGeographicalAxis"
+      ],
+      "report_date": "2025-08-03",
+      "rev_group": "country"
+    },
+    {
+      "value": "4877000000.0",
+      "members": [
+        "srt:AmericasMember"
+      ],
+      "field": "us-gaap:RevenueFromContractWithCustomerExcludingAssessedTax",
+      "axis": [
+        "srt:StatementGeographicalAxis"
+      ],
+      "report_date": "2025-11-02",
+      "rev_group": "country"
+    },
+    {
+      "value": "5081000000.0",
+      "members": [
+        "srt:AmericasMember"
+      ],
+      "field": "us-gaap:RevenueFromContractWithCustomerExcludingAssessedTax",
+      "axis": [
+        "srt:StatementGeographicalAxis"
+      ],
+      "report_date": "2026-02-01",
+      "rev_group": "country"
+    },
+    {
+      "value": "5181000000.0",
+      "members": [
+        "avgo:SubscriptionsandServicesMember"
+      ],
+      "field": "us-gaap:RevenueFromContractWithCustomerExcludingAssessedTax",
+      "axis": [
+        "srt:ProductOrServiceAxis"
+      ],
+      "report_date": "2026-02-01",
+      "rev_group": "product"
+    },
+    {
+      "value": "5202000000.0",
+      "members": [
+        "srt:AmericasMember"
+      ],
+      "field": "us-gaap:RevenueFromContractWithCustomerExcludingAssessedTax",
+      "axis": [
+        "srt:StatementGeographicalAxis"
+      ],
+      "report_date": "2026-05-03",
+      "rev_group": "country"
+    },
+    {
+      "value": "5295000000.0",
+      "members": [
+        "avgo:SubscriptionsandServicesMember"
+      ],
+      "field": "us-gaap:RevenueFromContractWithCustomerExcludingAssessedTax",
+      "axis": [
+        "srt:ProductOrServiceAxis"
+      ],
+      "report_date": "2026-05-03",
+      "rev_group": "product"
+    },
+    {
+      "value": "6121000000.0",
+      "members": [
+        "us-gaap:ProductMember",
+        "srt:AmericasMember"
+      ],
+      "field": "us-gaap:RevenueFromContractWithCustomerExcludingAssessedTax",
+      "axis": [
+        "srt:ProductOrServiceAxis",
+        "srt:StatementGeographicalAxis"
+      ],
+      "report_date": "2025-11-02",
+      "rev_group": "country"
+    },
+    {
+      "value": "6286000000.0",
+      "members": [
+        "avgo:SubscriptionsandServicesMember",
+        "us-gaap:EMEAMember"
+      ],
+      "field": "us-gaap:RevenueFromContractWithCustomerExcludingAssessedTax",
+      "axis": [
+        "srt:ProductOrServiceAxis",
+        "srt:StatementGeographicalAxis"
+      ],
+      "report_date": "2024-11-03",
+      "rev_group": "continent"
+    },
+    {
+      "value": "6451000000.0",
+      "members": [
+        "country:TW"
+      ],
+      "field": "us-gaap:RevenueFromContractWithCustomerExcludingAssessedTax",
+      "axis": [
+        "srt:StatementGeographicalAxis"
+      ],
+      "report_date": "2025-11-02",
+      "rev_group": "country"
+    },
+    {
+      "value": "6498000000.0",
+      "members": [
+        "avgo:SubscriptionsandServicesMember"
+      ],
+      "field": "us-gaap:RevenueFromContractWithCustomerExcludingAssessedTax",
+      "axis": [
+        "srt:ProductOrServiceAxis"
+      ],
+      "report_date": "2025-05-04",
+      "rev_group": "product"
+    },
+    {
+      "value": "6596000000.0",
+      "members": [
+        "avgo:InfrastructureSoftwareMember"
+      ],
+      "field": "us-gaap:RevenueFromContractWithCustomerExcludingAssessedTax",
+      "axis": [
+        "us-gaap:StatementBusinessSegmentsAxis"
+      ],
+      "report_date": "2025-05-04",
+      "rev_group": "product"
+    },
+    {
+      "value": "6695000000.0",
+      "members": [
+        "avgo:SubscriptionsandServicesMember"
+      ],
+      "field": "us-gaap:RevenueFromContractWithCustomerExcludingAssessedTax",
+      "axis": [
+        "srt:ProductOrServiceAxis"
+      ],
+      "report_date": "2025-08-03",
+      "rev_group": "product"
+    },
+    {
+      "value": "6704000000.0",
+      "members": [
+        "avgo:InfrastructureSoftwareMember"
+      ],
+      "field": "us-gaap:RevenueFromContractWithCustomerExcludingAssessedTax",
+      "axis": [
+        "us-gaap:StatementBusinessSegmentsAxis"
+      ],
+      "report_date": "2025-02-02",
+      "rev_group": "product"
+    },
+    {
+      "value": "6745000000.0",
+      "members": [
+        "avgo:SubscriptionsandServicesMember"
+      ],
+      "field": "us-gaap:RevenueFromContractWithCustomerExcludingAssessedTax",
+      "axis": [
+        "srt:ProductOrServiceAxis"
+      ],
+      "report_date": "2025-02-02",
+      "rev_group": "product"
+    },
+    {
+      "value": "6786000000.0",
+      "members": [
+        "avgo:InfrastructureSoftwareMember"
+      ],
+      "field": "us-gaap:RevenueFromContractWithCustomerExcludingAssessedTax",
+      "axis": [
+        "us-gaap:StatementBusinessSegmentsAxis"
+      ],
+      "report_date": "2025-08-03",
+      "rev_group": "product"
+    },
+    {
+      "value": "6796000000.0",
+      "members": [
+        "avgo:InfrastructureSoftwareMember"
+      ],
+      "field": "us-gaap:RevenueFromContractWithCustomerExcludingAssessedTax",
+      "axis": [
+        "us-gaap:StatementBusinessSegmentsAxis"
+      ],
+      "report_date": "2026-02-01",
+      "rev_group": "product"
+    },
+    {
+      "value": "6943000000.0",
+      "members": [
+        "avgo:InfrastructureSoftwareMember"
+      ],
+      "field": "us-gaap:RevenueFromContractWithCustomerExcludingAssessedTax",
+      "axis": [
+        "us-gaap:StatementBusinessSegmentsAxis"
+      ],
+      "report_date": "2025-11-02",
+      "rev_group": "product"
+    },
+    {
+      "value": "7178000000.0",
+      "members": [
+        "avgo:InfrastructureSoftwareMember"
+      ],
+      "field": "us-gaap:RevenueFromContractWithCustomerExcludingAssessedTax",
+      "axis": [
+        "us-gaap:StatementBusinessSegmentsAxis"
+      ],
+      "report_date": "2026-05-03",
+      "rev_group": "product"
+    },
+    {
+      "value": "7269000000.0",
+      "members": [
+        "us-gaap:ProductMember",
+        "srt:AsiaPacificMember"
+      ],
+      "field": "us-gaap:RevenueFromContractWithCustomerExcludingAssessedTax",
+      "axis": [
+        "srt:ProductOrServiceAxis",
+        "srt:StatementGeographicalAxis"
+      ],
+      "report_date": "2025-02-02",
+      "rev_group": "continent"
+    },
+    {
+      "value": "7454000000.0",
+      "members": [
+        "us-gaap:ProductMember",
+        "srt:AsiaPacificMember"
+      ],
+      "field": "us-gaap:RevenueFromContractWithCustomerExcludingAssessedTax",
+      "axis": [
+        "srt:ProductOrServiceAxis",
+        "srt:StatementGeographicalAxis"
+      ],
+      "report_date": "2025-05-04",
+      "rev_group": "continent"
+    },
+    {
+      "value": "8032000000.0",
+      "members": [
+        "srt:AsiaPacificMember"
+      ],
+      "field": "us-gaap:RevenueFromContractWithCustomerExcludingAssessedTax",
+      "axis": [
+        "srt:StatementGeographicalAxis"
+      ],
+      "report_date": "2025-02-02",
+      "rev_group": "continent"
+    },
+    {
+      "value": "8100000000.0",
+      "members": [
+        "srt:AsiaPacificMember"
+      ],
+      "field": "us-gaap:RevenueFromContractWithCustomerExcludingAssessedTax",
+      "axis": [
+        "srt:StatementGeographicalAxis"
+      ],
+      "report_date": "2025-05-04",
+      "rev_group": "continent"
+    },
+    {
+      "value": "8171000000.0",
+      "members": [
+        "us-gaap:ProductMember"
+      ],
+      "field": "us-gaap:RevenueFromContractWithCustomerExcludingAssessedTax",
+      "axis": [
+        "srt:ProductOrServiceAxis"
+      ],
+      "report_date": "2025-02-02",
+      "rev_group": "product"
+    },
+    {
+      "value": "8181000000.0",
+      "members": [
+        "us-gaap:ProductMember",
+        "srt:AsiaPacificMember"
+      ],
+      "field": "us-gaap:RevenueFromContractWithCustomerExcludingAssessedTax",
+      "axis": [
+        "srt:ProductOrServiceAxis",
+        "srt:StatementGeographicalAxis"
+      ],
+      "report_date": "2025-08-03",
+      "rev_group": "continent"
+    },
+    {
+      "value": "8182000000.0",
+      "members": [
+        "us-gaap:EMEAMember"
+      ],
+      "field": "us-gaap:RevenueFromContractWithCustomerExcludingAssessedTax",
+      "axis": [
+        "srt:StatementGeographicalAxis"
+      ],
+      "report_date": "2024-11-03",
+      "rev_group": "continent"
+    },
+    {
+      "value": "8212000000.0",
+      "members": [
+        "avgo:SemiconductorSolutionsMember"
+      ],
+      "field": "us-gaap:RevenueFromContractWithCustomerExcludingAssessedTax",
+      "axis": [
+        "us-gaap:StatementBusinessSegmentsAxis"
+      ],
+      "report_date": "2025-02-02",
+      "rev_group": "product"
+    },
+    {
+      "value": "8408000000.0",
+      "members": [
+        "avgo:SemiconductorSolutionsMember"
+      ],
+      "field": "us-gaap:RevenueFromContractWithCustomerExcludingAssessedTax",
+      "axis": [
+        "us-gaap:StatementBusinessSegmentsAxis"
+      ],
+      "report_date": "2025-05-04",
+      "rev_group": "product"
+    },
+    {
+      "value": "8506000000.0",
+      "members": [
+        "us-gaap:ProductMember"
+      ],
+      "field": "us-gaap:RevenueFromContractWithCustomerExcludingAssessedTax",
+      "axis": [
+        "srt:ProductOrServiceAxis"
+      ],
+      "report_date": "2025-05-04",
+      "rev_group": "product"
+    },
+    {
+      "value": "8960000000.0",
+      "members": [
+        "srt:AsiaPacificMember"
+      ],
+      "field": "us-gaap:RevenueFromContractWithCustomerExcludingAssessedTax",
+      "axis": [
+        "srt:StatementGeographicalAxis"
+      ],
+      "report_date": "2025-08-03",
+      "rev_group": "continent"
+    },
+    {
+      "value": "9166000000.0",
+      "members": [
+        "avgo:SemiconductorSolutionsMember"
+      ],
+      "field": "us-gaap:RevenueFromContractWithCustomerExcludingAssessedTax",
+      "axis": [
+        "us-gaap:StatementBusinessSegmentsAxis"
+      ],
+      "report_date": "2025-08-03",
+      "rev_group": "product"
+    },
+    {
+      "value": "9257000000.0",
+      "members": [
+        "us-gaap:ProductMember"
+      ],
+      "field": "us-gaap:RevenueFromContractWithCustomerExcludingAssessedTax",
+      "axis": [
+        "srt:ProductOrServiceAxis"
+      ],
+      "report_date": "2025-08-03",
+      "rev_group": "product"
+    },
+    {
+      "value": "9559000000.0",
+      "members": [
+        "country:SG"
+      ],
+      "field": "us-gaap:RevenueFromContractWithCustomerExcludingAssessedTax",
+      "axis": [
+        "srt:StatementGeographicalAxis"
+      ],
+      "report_date": "2024-11-03",
+      "rev_group": "country"
+    },
+    {
+      "value": "10483000000.0",
+      "members": [
+        "avgo:ChinaincludingHongKongMember"
+      ],
+      "field": "us-gaap:RevenueFromContractWithCustomerExcludingAssessedTax",
+      "axis": [
+        "srt:StatementGeographicalAxis"
+      ],
+      "report_date": "2024-11-03",
+      "rev_group": "country"
+    },
+    {
+      "value": "10692000000.0",
+      "members": [
+        "us-gaap:ProductMember",
+        "srt:AsiaPacificMember"
+      ],
+      "field": "us-gaap:RevenueFromContractWithCustomerExcludingAssessedTax",
+      "axis": [
+        "srt:ProductOrServiceAxis",
+        "srt:StatementGeographicalAxis"
+      ],
+      "report_date": "2025-11-02",
+      "rev_group": "continent"
+    },
+    {
+      "value": "10796000000.0",
+      "members": [
+        "country:SG"
+      ],
+      "field": "us-gaap:RevenueFromContractWithCustomerExcludingAssessedTax",
+      "axis": [
+        "srt:StatementGeographicalAxis"
+      ],
+      "report_date": "2025-11-02",
+      "rev_group": "country"
+    },
+    {
+      "value": "10804000000.0",
+      "members": [
+        "srt:AsiaPacificMember"
+      ],
+      "field": "us-gaap:RevenueFromContractWithCustomerExcludingAssessedTax",
+      "axis": [
+        "srt:StatementGeographicalAxis"
+      ],
+      "report_date": "2025-11-02",
+      "rev_group": "continent"
+    },
+    {
+      "value": "10950000000.0",
+      "members": [
+        "us-gaap:ProductMember",
+        "srt:AsiaPacificMember"
+      ],
+      "field": "us-gaap:RevenueFromContractWithCustomerExcludingAssessedTax",
+      "axis": [
+        "srt:ProductOrServiceAxis",
+        "srt:StatementGeographicalAxis"
+      ],
+      "report_date": "2026-02-01",
+      "rev_group": "continent"
+    },
+    {
+      "value": "11072000000.0",
+      "members": [
+        "avgo:SemiconductorSolutionsMember"
+      ],
+      "field": "us-gaap:RevenueFromContractWithCustomerExcludingAssessedTax",
+      "axis": [
+        "us-gaap:StatementBusinessSegmentsAxis"
+      ],
+      "report_date": "2025-11-02",
+      "rev_group": "product"
+    },
+    {
+      "value": "11155000000.0",
+      "members": [
+        "avgo:ChinaincludingHongKongMember"
+      ],
+      "field": "us-gaap:RevenueFromContractWithCustomerExcludingAssessedTax",
+      "axis": [
+        "srt:StatementGeographicalAxis"
+      ],
+      "report_date": "2025-11-02",
+      "rev_group": "country"
+    },
+    {
+      "value": "11615000000.0",
+      "members": [
+        "srt:AsiaPacificMember"
+      ],
+      "field": "us-gaap:RevenueFromContractWithCustomerExcludingAssessedTax",
+      "axis": [
+        "srt:StatementGeographicalAxis"
+      ],
+      "report_date": "2026-02-01",
+      "rev_group": "continent"
+    },
+    {
+      "value": "12515000000.0",
+      "members": [
+        "avgo:SemiconductorSolutionsMember"
+      ],
+      "field": "us-gaap:RevenueFromContractWithCustomerExcludingAssessedTax",
+      "axis": [
+        "us-gaap:StatementBusinessSegmentsAxis"
+      ],
+      "report_date": "2026-02-01",
+      "rev_group": "product"
+    },
+    {
+      "value": "12726000000.0",
+      "members": [
+        "avgo:SubscriptionsandServicesMember",
+        "srt:AmericasMember"
+      ],
+      "field": "us-gaap:RevenueFromContractWithCustomerExcludingAssessedTax",
+      "axis": [
+        "srt:ProductOrServiceAxis",
+        "srt:StatementGeographicalAxis"
+      ],
+      "report_date": "2024-11-03",
+      "rev_group": "country"
+    },
+    {
+      "value": "12887000000.0",
+      "members": [
+        "country:US"
+      ],
+      "field": "us-gaap:RevenueFromContractWithCustomerExcludingAssessedTax",
+      "axis": [
+        "srt:StatementGeographicalAxis"
+      ],
+      "report_date": "2024-11-03",
+      "rev_group": "country"
+    },
+    {
+      "value": "13956000000.0",
+      "members": [
+        "us-gaap:ProductMember",
+        "srt:AsiaPacificMember"
+      ],
+      "field": "us-gaap:RevenueFromContractWithCustomerExcludingAssessedTax",
+      "axis": [
+        "srt:ProductOrServiceAxis",
+        "srt:StatementGeographicalAxis"
+      ],
+      "report_date": "2026-05-03",
+      "rev_group": "continent"
+    },
+    {
+      "value": "14130000000.0",
+      "members": [
+        "us-gaap:ProductMember"
+      ],
+      "field": "us-gaap:RevenueFromContractWithCustomerExcludingAssessedTax",
+      "axis": [
+        "srt:ProductOrServiceAxis"
+      ],
+      "report_date": "2026-02-01",
+      "rev_group": "product"
+    },
+    {
+      "value": "14535000000.0",
+      "members": [
+        "srt:AsiaPacificMember"
+      ],
+      "field": "us-gaap:RevenueFromContractWithCustomerExcludingAssessedTax",
+      "axis": [
+        "srt:StatementGeographicalAxis"
+      ],
+      "report_date": "2026-05-03",
+      "rev_group": "continent"
+    },
+    {
+      "value": "14916000000.0",
+      "members": [],
+      "field": "us-gaap:RevenueFromContractWithCustomerExcludingAssessedTax",
+      "axis": [],
+      "report_date": "2025-02-02",
+      "rev_group": "product"
+    },
+    {
+      "value": "14970000000.0",
+      "members": [
+        "srt:AmericasMember"
+      ],
+      "field": "us-gaap:RevenueFromContractWithCustomerExcludingAssessedTax",
+      "axis": [
+        "srt:StatementGeographicalAxis"
+      ],
+      "report_date": "2024-11-03",
+      "rev_group": "country"
+    },
+    {
+      "value": "15004000000.0",
+      "members": [],
+      "field": "us-gaap:RevenueFromContractWithCustomerExcludingAssessedTax",
+      "axis": [],
+      "report_date": "2025-05-04",
+      "rev_group": "product"
+    },
+    {
+      "value": "15009000000.0",
+      "members": [
+        "avgo:SemiconductorSolutionsMember"
+      ],
+      "field": "us-gaap:RevenueFromContractWithCustomerExcludingAssessedTax",
+      "axis": [
+        "us-gaap:StatementBusinessSegmentsAxis"
+      ],
+      "report_date": "2026-05-03",
+      "rev_group": "product"
+    },
+    {
+      "value": "15952000000.0",
+      "members": [],
+      "field": "us-gaap:RevenueFromContractWithCustomerExcludingAssessedTax",
+      "axis": [],
+      "report_date": "2025-08-03",
+      "rev_group": "product"
+    },
+    {
+      "value": "16506000000.0",
+      "members": [
+        "country:US"
+      ],
+      "field": "us-gaap:RevenueFromContractWithCustomerExcludingAssessedTax",
+      "axis": [
+        "srt:StatementGeographicalAxis"
+      ],
+      "report_date": "2025-11-02",
+      "rev_group": "country"
+    },
+    {
+      "value": "16892000000.0",
+      "members": [
+        "us-gaap:ProductMember"
+      ],
+      "field": "us-gaap:RevenueFromContractWithCustomerExcludingAssessedTax",
+      "axis": [
+        "srt:ProductOrServiceAxis"
+      ],
+      "report_date": "2026-05-03",
+      "rev_group": "product"
+    },
+    {
+      "value": "18015000000.0",
+      "members": [],
+      "field": "us-gaap:RevenueFromContractWithCustomerExcludingAssessedTax",
+      "axis": [],
+      "report_date": "2025-11-02",
+      "rev_group": "product"
+    },
+    {
+      "value": "18645000000.0",
+      "members": [
+        "avgo:AllOtherGeographiesMemberMember"
+      ],
+      "field": "us-gaap:RevenueFromContractWithCustomerExcludingAssessedTax",
+      "axis": [
+        "srt:StatementGeographicalAxis"
+      ],
+      "report_date": "2024-11-03",
+      "rev_group": "product"
+    },
+    {
+      "value": "18913000000.0",
+      "members": [
+        "us-gaap:ProductMember"
+      ],
+      "field": "us-gaap:RevenueFromContractWithCustomerExcludingAssessedTax",
+      "axis": [
+        "srt:ProductOrServiceAxis"
+      ],
+      "report_date": "2025-11-02",
+      "rev_group": "product"
+    },
+    {
+      "value": "18979000000.0",
+      "members": [
+        "avgo:AllOtherGeographiesMemberMember"
+      ],
+      "field": "us-gaap:RevenueFromContractWithCustomerExcludingAssessedTax",
+      "axis": [
+        "srt:StatementGeographicalAxis"
+      ],
+      "report_date": "2025-11-02",
+      "rev_group": "product"
+    },
+    {
+      "value": "19311000000.0",
+      "members": [],
+      "field": "us-gaap:RevenueFromContractWithCustomerExcludingAssessedTax",
+      "axis": [],
+      "report_date": "2026-02-01",
+      "rev_group": "product"
+    },
+    {
+      "value": "21215000000.0",
+      "members": [
+        "avgo:SubscriptionsandServicesMember"
+      ],
+      "field": "us-gaap:RevenueFromContractWithCustomerExcludingAssessedTax",
+      "axis": [
+        "srt:ProductOrServiceAxis"
+      ],
+      "report_date": "2024-11-03",
+      "rev_group": "product"
+    },
+    {
+      "value": "21478000000.0",
+      "members": [
+        "avgo:InfrastructureSoftwareMember"
+      ],
+      "field": "us-gaap:RevenueFromContractWithCustomerExcludingAssessedTax",
+      "axis": [
+        "us-gaap:StatementBusinessSegmentsAxis"
+      ],
+      "report_date": "2024-11-03",
+      "rev_group": "product"
+    },
+    {
+      "value": "22187000000.0",
+      "members": [],
+      "field": "us-gaap:RevenueFromContractWithCustomerExcludingAssessedTax",
+      "axis": [],
+      "report_date": "2026-05-03",
+      "rev_group": "product"
+    },
+    {
+      "value": "26219000000.0",
+      "members": [
+        "us-gaap:ProductMember",
+        "srt:AsiaPacificMember"
+      ],
+      "field": "us-gaap:RevenueFromContractWithCustomerExcludingAssessedTax",
+      "axis": [
+        "srt:ProductOrServiceAxis",
+        "srt:StatementGeographicalAxis"
+      ],
+      "report_date": "2024-11-03",
+      "rev_group": "continent"
+    },
+    {
+      "value": "28422000000.0",
+      "members": [
+        "srt:AsiaPacificMember"
+      ],
+      "field": "us-gaap:RevenueFromContractWithCustomerExcludingAssessedTax",
+      "axis": [
+        "srt:StatementGeographicalAxis"
+      ],
+      "report_date": "2024-11-03",
+      "rev_group": "continent"
+    },
+    {
+      "value": "30096000000.0",
+      "members": [
+        "avgo:SemiconductorSolutionsMember"
+      ],
+      "field": "us-gaap:RevenueFromContractWithCustomerExcludingAssessedTax",
+      "axis": [
+        "us-gaap:StatementBusinessSegmentsAxis"
+      ],
+      "report_date": "2024-11-03",
+      "rev_group": "product"
+    },
+    {
+      "value": "30359000000.0",
+      "members": [
+        "us-gaap:ProductMember"
+      ],
+      "field": "us-gaap:RevenueFromContractWithCustomerExcludingAssessedTax",
+      "axis": [
+        "srt:ProductOrServiceAxis"
+      ],
+      "report_date": "2024-11-03",
+      "rev_group": "product"
+    },
+    {
+      "value": "51574000000.0",
+      "members": [],
+      "field": "us-gaap:RevenueFromContractWithCustomerExcludingAssessedTax",
+      "axis": [],
+      "report_date": "2024-11-03",
+      "rev_group": "product"
+    }
+  ]
+}
