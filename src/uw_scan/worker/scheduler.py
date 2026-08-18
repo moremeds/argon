@@ -342,6 +342,16 @@ def _should_schedule_fundamental_ingest(settings: Settings) -> bool:
     return role == "all" or (role == "uw" and settings.worker_index == 0)
 
 
+def _should_schedule_fundamental_concentration_capture(settings: Settings) -> bool:
+    """Same uw-0 pin and the same reason as the statement ingest: no advisory
+    lock, so a per-role-0 schedule would run N copies of a 450-call job against
+    one insert-or-touch table."""
+    if not settings.fundamental_concentration_capture_enabled:
+        return False
+    role = settings.worker_role.lower()
+    return role == "all" or (role == "uw" and settings.worker_index == 0)
+
+
 def _should_schedule_top_net_impact_capture(settings: Settings) -> bool:
     """Exactly one process owns the 15-min top-net-impact capture. Same uw-0
     pin + kill-switch as market-tide (one UW call/tick, idempotent upsert)."""
@@ -802,6 +812,23 @@ def main() -> int:
                         conn=repo.conn, client=uw, schema=settings.db_schema
                     )
         logger.info("fundamental_ingest %s", counters)
+
+    def _fundamental_concentration_capture() -> None:
+        from uw_scan.worker.jobs.fundamental_concentration_capture import (
+            fundamental_concentration_capture,
+        )
+
+        with _external_api_recorder(settings) as recorder:
+            with _uw_client(
+                settings,
+                telemetry_recorder=recorder,
+                job_name="fundamental_concentration_capture",
+            ) as uw:
+                with _repo(settings) as repo:
+                    counters = fundamental_concentration_capture(
+                        conn=repo.conn, client=uw, schema=settings.db_schema
+                    )
+        logger.info("fundamental_concentration_capture %s", counters)
 
     def _theta_harvester_scan() -> None:
         with _repo(settings) as repo:
@@ -1775,6 +1802,21 @@ def main() -> int:
                     ),
                     id="fundamental_ingest",
                     name="Fundamental statement ingest (monthly)",
+                    max_instances=1,
+                    coalesce=True,
+                )
+            # Monthly revenue-breakdown capture, 04:10 ET on the 3rd — a day
+            # after the statement ingest so the two monthly uw-0 jobs never
+            # share a per-minute ceiling. Accrual, not analysis: see the job.
+            if _should_schedule_fundamental_concentration_capture(settings):
+                sched.add_job(
+                    _fundamental_concentration_capture,
+                    CronTrigger.from_crontab(
+                        settings.fundamental_concentration_capture_cron,
+                        timezone=settings.rth_tz,
+                    ),
+                    id="fundamental_concentration_capture",
+                    name="Fundamental revenue-breakdown capture (monthly)",
                     max_instances=1,
                     coalesce=True,
                 )

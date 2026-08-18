@@ -181,3 +181,52 @@ def test_fundamental_ingest_absent_on_massive_role(monkeypatch):
     )
     assert "fundamental_ingest" not in ids
     assert "fundamental_refresh" in ids  # harness sanity: massive-0 sibling wires
+
+
+def test_fundamental_concentration_capture_registered_on_primary_uw(monkeypatch):
+    ids = _registered_job_ids(
+        monkeypatch,
+        UW_SCAN_WORKER_ROLE="uw",
+        UW_SCAN_WORKER_INDEX="0",
+        UW_SCAN_WORKER_COUNT="1",
+        UW_SCAN_FUNDAMENTAL_CONCENTRATION_CAPTURE_ENABLED="true",
+    )
+    assert "fundamental_concentration_capture" in ids
+
+
+def test_fundamental_concentration_capture_absent_when_disabled(monkeypatch):
+    ids = _registered_job_ids(
+        monkeypatch,
+        UW_SCAN_WORKER_ROLE="uw",
+        UW_SCAN_WORKER_INDEX="0",
+        UW_SCAN_WORKER_COUNT="1",
+        UW_SCAN_FUNDAMENTAL_CONCENTRATION_CAPTURE_ENABLED="false",
+    )
+    assert "fundamental_concentration_capture" not in ids
+    assert "full_scan_0" in ids  # harness sanity: sibling uw job still wires
+
+
+def test_fundamental_concentration_capture_absent_on_non_primary_uw(monkeypatch):
+    # Same reason as the statement ingest: no advisory lock, so a per-role-0 pin
+    # would run N copies of a 450-call job.
+    ids = _registered_job_ids(
+        monkeypatch,
+        UW_SCAN_WORKER_ROLE="uw",
+        UW_SCAN_WORKER_INDEX="1",
+        UW_SCAN_WORKER_COUNT="2",
+        UW_SCAN_FUNDAMENTAL_CONCENTRATION_CAPTURE_ENABLED="true",
+    )
+    assert "fundamental_concentration_capture" not in ids
+
+
+def test_fundamental_concentration_capture_absent_on_massive_role(monkeypatch):
+    # It spends UW calls; the massive workers must never pick it up.
+    ids = _registered_job_ids(
+        monkeypatch,
+        UW_SCAN_WORKER_ROLE="massive",
+        UW_SCAN_WORKER_INDEX="0",
+        UW_SCAN_WORKER_COUNT="1",
+        UW_SCAN_FUNDAMENTAL_CONCENTRATION_CAPTURE_ENABLED="true",
+    )
+    assert "fundamental_concentration_capture" not in ids
+    assert "fundamental_refresh" in ids  # harness sanity: massive-0 sibling wires

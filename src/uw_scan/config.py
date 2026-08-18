@@ -436,6 +436,17 @@ class Settings(BaseModel):
     # against a 120k/day budget).
     fundamental_ingest_enabled: bool = True
     fundamental_ingest_cron: str = "40 3 2 * *"
+    # Revenue-breakdown capture (monthly, uw-0). Default ON for the same reason
+    # the job exists at all: it is an ACCRUAL job. The signal it feeds is
+    # descriptive and does not pay, but if the provider's breakdown history
+    # rolls, a month not captured is a quarter no future decision can use. A
+    # default-off accrual job loses exactly what it was built to preserve.
+    # One UW call per ticker, ~450/month at the widened universe.
+    fundamental_concentration_capture_enabled: bool = True
+    # 04:10 ET on the 3rd: a day clear of the statement ingest so the two
+    # monthly uw-0 jobs never contend for the same per-minute ceiling, and an
+    # hour clear of the 03:20/03:45/03:50 weekday jobs.
+    fundamental_concentration_capture_cron: str = "10 4 3 * *"
     chanlun_anchor_tol: float = 0.0
     chanlun_stale_sessions: int = 20
     # Empty by DESIGN (2026-07-15 walk-forward probe): all 4 candidate
@@ -975,6 +986,12 @@ class Settings(BaseModel):
             ),
             fundamental_ingest_cron=os.environ.get(
                 "UW_SCAN_FUNDAMENTAL_INGEST_CRON", "40 3 2 * *"
+            ),
+            fundamental_concentration_capture_enabled=_env_bool(
+                "UW_SCAN_FUNDAMENTAL_CONCENTRATION_CAPTURE_ENABLED", True
+            ),
+            fundamental_concentration_capture_cron=os.environ.get(
+                "UW_SCAN_FUNDAMENTAL_CONCENTRATION_CAPTURE_CRON", "10 4 3 * *"
             ),
             chanlun_anchor_tol=float(
                 os.environ.get("UW_SCAN_CHANLUN_ANCHOR_TOL", "0.0")
