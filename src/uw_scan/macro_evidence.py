@@ -63,6 +63,39 @@ def macro_observation_content_hash(row: dict[str, Any]) -> str:
     return hashlib.sha256(_canonical_json_bytes(record)).hexdigest()
 
 
+def macro_policy_semantic_hash(row: dict[str, Any]) -> str:
+    """Identify a published policy fact independently of the bytes carrying it.
+
+    Deliberately omits ``artifact_id`` and ``available_at``, which
+    :func:`macro_observation_content_hash` includes.  Both are properties of our
+    fetch, not of the publisher: re-fetching an unchanged release produces a new
+    artifact row and, when the publisher declares no instant, a new availability
+    clock -- neither of which makes it a new fact.  The stable release key, the
+    publisher's own release instant, the normalized value, and the SEMANTIC
+    parser version do define one, so a corrected reparse earns a new identity.
+
+    ``release_key`` is required and is NOT ``source_record_id``: migration 115
+    ties the latter to one artifact by composite foreign key, so a release
+    served as both HTML and PDF has two of them and would otherwise split one
+    committee decision into two facts.
+
+    Must stay byte-identical to ``uw_scan.macro_policy_semantic_hash`` in SQL.
+    """
+    record = {
+        "domain": row["domain"],
+        "frequency": row["frequency"],
+        "parser_version": row["parser_version"],
+        "period_end": _canonical_date(row["period_end"]),
+        "published_at": _canonical_optional_instant(row.get("published_at")),
+        "release_key": row["release_key"],
+        "series_id": row["series_id"],
+        "source": row["source"],
+        "unit": row["unit"],
+        "value": _typed_value(row),
+    }
+    return hashlib.sha256(_canonical_json_bytes(record)).hexdigest()
+
+
 def _typed_value(row: dict[str, Any]) -> dict[str, Any]:
     numeric = row.get("value_numeric")
     text = row.get("value_text")

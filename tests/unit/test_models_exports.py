@@ -185,3 +185,12 @@ def test_new_skew_structure_models_exported():
     # _preserve_public_module rewrites __module__ so OpenAPI component names stay stable.
     assert models.SkewStructureLeg.__module__ == "uw_scan.models"
     assert models.SkewStructureDetail.__module__ == "uw_scan.models"
+
+
+def test_policy_release_coverage_models_exported():
+    from uw_scan import models
+
+    assert "PolicyReleaseFailure" in models.__all__
+    # _preserve_public_module rewrites __module__ so the OpenAPI component name
+    # stays "PolicyReleaseFailure" rather than drifting to the domain module.
+    assert models.PolicyReleaseFailure.__module__ == "uw_scan.models"

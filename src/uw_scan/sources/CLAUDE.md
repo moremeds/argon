@@ -34,15 +34,20 @@ Related migrations: `storage/migrations/041_gold_cot.sql` (COT), `046_wgc_etf_mo
 
 ## US rates
 
-Feeds `/rates` through `worker/jobs/rates_jobs.py` and
-`storage/migrations/052_rates_tables.sql` / `053_rates_policy_sources.sql`.
+Feeds the legacy `/rates` surface through `worker/jobs/rates_jobs.py` and the evidence-first
+`/api/macro/policy` contract through `worker/jobs/macro_policy_jobs.py`. Legacy storage is in
+`storage/migrations/052_rates_tables.sql` / `053_rates_policy_sources.sql`; immutable release
+artifacts and observations use migrations `115` / `116`.
 
 | Source file | What it pulls | Status |
 |---|---|---|
 | `fred.py` | FRED observations for nominal Treasury curve, TIPS real yields, breakevens, EFFR, SOFR, target range, and Fed plumbing. Requires `FRED_API_KEY`. | Live |
 | `cleveland_fed.py` | Cleveland Fed inflation-expectations model CSVs for the four-component 10Y decomposition. | Live |
-| `fomc_calendar.py` | Federal Reserve FOMC calendar page for meeting metadata. | Live |
-| `fed_funds_futures_path.py` | Frenzy Capital Fed Watch SSR data, a free/delayed fed-funds-futures move-probability source used as an alternative to the paid CME FedWatch API. Override with `RATES_POLICY_PATH_URL` if we later host our own scraped/derived page. | Live |
+| `fomc_calendar.py` | Federal Reserve FOMC calendar discovery and meeting metadata. It does not establish the decision, vote, or statement text by itself. | Live |
+| `fomc_statement.py` | Official Federal Reserve statement releases. Stable PDF bytes are the primary evidence artifact; the accessible HTML is retained separately for deterministic parsing. Produces actual decisions, target ranges, dissents, and vote splits. | Live (MC1) |
+| `fed_sep.py` | Official Federal Reserve Summary of Economic Projections. Stable PDF bytes are primary evidence and accessible HTML is the structured extraction artifact. Preserves anonymous dot distributions and published medians; participant identity and a Chair-specific dot are never inferred. | Live (MC1) |
+| `nyfed_sme.py` | Official New York Fed Survey of Market Expectations. The structured XLSX is the critical data path and the matching PDF is retained for human audit. Only the explicit `Dealer` panel is normalized into dealer expectations. When the publisher gives no reliable results timestamp, `published_at` stays null and `available_at` is first retrieval. | Live (MC1) |
+| `fed_funds_futures_path.py` | Frenzy Capital Fed Watch SSR data. Exact HTML bytes and full probability buckets are retained before parsing, but this is a free third-party market shadow, never official evidence. Its page exposes no reliable timestamp or delay contract, so the MC1 path reports `delay_status=unknown`; the independent official jobs do not depend on it. Override with `RATES_POLICY_PATH_URL` only for a source with the same audited contract. | Live, optional and default-off (MC1 shadow) |
 | `cftc_tff.py` | CFTC Traders in Financial Futures futures-only API (`gpe5-46if`) for U.S. Treasury futures positioning by dealer/intermediary, asset manager, leveraged funds, and other reportables. | Live |
 | `treasury_supply.py` | TreasuryDirect auction results plus FiscalData debt-to-the-penny for the rates Supply panel. | Live |
 
@@ -56,3 +61,7 @@ Feeds `/rates` through `worker/jobs/rates_jobs.py` and
 - **Never add a Yahoo Finance source.** Project-wide rule — yfinance is for radon/other projects, not this one.
 - **Telemetry hook.** Gold sources accept a `record_request` callable that emits `ExternalApiRequestEvent` rows via `ExternalApiRequestRecorder` (production wiring) — keep it injectable for tests.
 - **Backtest lag rule for COT.** Always lag inputs to CFTC `release_date + 3 trading days`. Using `obs_date` (Tuesday position date) leaks look-ahead because the report is published Friday.
+- **Policy paths stay separate.** Actual decisions, anonymous SEP projections, Primary Dealer
+  expectations, and market pricing are different populations and objects. Do not average them into
+  a synthetic Fed path. Missing evidence remains missing, and the third-party shadow never fills an
+  official-source failure.

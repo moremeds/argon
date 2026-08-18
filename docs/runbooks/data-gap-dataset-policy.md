@@ -6,7 +6,7 @@ Generated from `REGISTRY` in `src/uw_scan/reports/data_gap_healer.py` (one sourc
 uv run python -c "from uw_scan.reports.data_gap_healer import render_dataset_policy_markdown as r; open('docs/runbooks/data-gap-dataset-policy.md','w').write(r())"
 ```
 
-**144 datasets** across 11 groups.
+**147 datasets** across 11 groups.
 
 ## core_watchlist
 
@@ -68,8 +68,11 @@ uv run python -c "from uw_scan.reports.data_gap_healer import render_dataset_pol
 
 | table | audit_mode | provider | granularity | adapter | freq | reason | verified |
 |---|---|---|---|---|---|---|---|
+| macro_observation_artifacts | provenance | none | none |  | none | immutable lineage linking an observation to the exact artifacts that witness it; synthesizing a link would fabricate evidence |  |
 | macro_observations | provenance | none | none |  | none |  |  |
+| macro_release_ingest_status | operational_state | none | none |  | liveness | latest ingest outcome per individual release; describes our attempts, never what the publisher said, so it is not a substitute for immutable release evidence and must not be backfilled |  |
 | macro_source_artifacts | provenance | none | none |  | none |  |  |
+| macro_source_status | operational_state | none | none |  | liveness | current per-source ingestion health; not immutable release history and not backfillable |  |
 
 ## operational_provenance
 
