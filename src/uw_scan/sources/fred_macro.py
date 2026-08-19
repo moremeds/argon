@@ -194,6 +194,9 @@ class FredSeriesBundle:
             cost_class="free_publisher",
             media_type="application/json",
             content_length=content_length,
+            # Every row in this payload carries its own realtime_start, so the payload
+            # reports a publication history rather than being a publication.
+            vintage_bearing=True,
             raw_bytes=raw_bytes,
         )
         return cls(

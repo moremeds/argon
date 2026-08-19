@@ -36,6 +36,7 @@ class _MacroContextMixin:
         cost_class: str,
         media_type: str,
         content_length: int,
+        vintage_bearing: bool = False,
         raw_json: dict[str, Any] | list[Any] | None = None,
         raw_text: str | None = None,
         raw_bytes: bytes | None = None,
@@ -69,13 +70,14 @@ class _MacroContextMixin:
                   source, source_kind, source_record_id, source_url,
                   published_at, available_at, retrieved_at, last_seen_at,
                   content_hash, parser_version, quality_status, cost_class,
-                  media_type, content_length, raw_jsonb, raw_text, raw_bytes
+                  media_type, content_length, vintage_bearing,
+                  raw_jsonb, raw_text, raw_bytes
                 )
                 VALUES (
                   %s, %s, %s, %s,
                   %s, %s, %s, %s,
                   %s, %s, %s, %s,
-                  %s, %s, %s, %s, %s
+                  %s, %s, %s, %s, %s, %s
                 )
                 ON CONFLICT (source, source_record_id, content_hash)
                 DO UPDATE SET
@@ -134,6 +136,8 @@ class _MacroContextMixin:
                     IS NOT DISTINCT FROM EXCLUDED.media_type
                   AND {self._schema}.macro_source_artifacts.content_length
                     IS NOT DISTINCT FROM EXCLUDED.content_length
+                  AND {self._schema}.macro_source_artifacts.vintage_bearing
+                    IS NOT DISTINCT FROM EXCLUDED.vintage_bearing
                   AND {self._schema}.macro_source_artifacts.raw_jsonb
                     IS NOT DISTINCT FROM EXCLUDED.raw_jsonb
                   AND {self._schema}.macro_source_artifacts.raw_text
@@ -157,6 +161,7 @@ class _MacroContextMixin:
                     cost_class,
                     media_type,
                     content_length,
+                    vintage_bearing,
                     Jsonb(raw_json) if raw_json is not None else None,
                     raw_text,
                     raw_bytes,

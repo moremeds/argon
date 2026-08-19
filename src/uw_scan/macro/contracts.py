@@ -18,37 +18,25 @@ from __future__ import annotations
 from dataclasses import dataclass, field
 from datetime import date, datetime
 from decimal import Decimal
-from typing import Any, Literal
+from typing import Any
 
 from uw_scan.macro_evidence import macro_artifact_content_identity
 from uw_scan.models.macro import (
+    MacroCausalRole,
     MacroCostClass,
+    MacroDirection,
     MacroDomain,
     MacroQualityStatus,
     MacroSourceKind,
 )
 
-Direction = Literal["RISING", "FALLING", "FLAT", "UNKNOWN"]
+Direction = MacroDirection
 
 #: What an input *does* in a state, which is not what it measures.  A breakeven and a
 #: survey are both about future inflation and are still different evidence, so the role
 #: travels with the observation and the engine refuses to pool two unlike roles.
-CausalRole = Literal[
-    "realized",
-    "breadth",
-    "stickiness",
-    "expectations_survey",
-    "expectations_market",
-    "policy_actual",
-    "policy_committee",
-    "policy_dealer",
-    "policy_market_shadow",
-    "curve",
-    "decomposition_component",
-    "supply",
-    "positioning",
-    "plumbing",
-]
+#: Defined in ``uw_scan.models.macro`` so the engine and the API contract cannot drift.
+CausalRole = MacroCausalRole
 
 _QUALITY_WEIGHT: dict[MacroQualityStatus, Decimal] = {
     "valid": Decimal("1.0"),

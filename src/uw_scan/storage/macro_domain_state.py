@@ -13,7 +13,7 @@ from __future__ import annotations
 
 import json
 from collections.abc import Sequence
-from datetime import datetime
+from datetime import date, datetime
 from decimal import Decimal
 from typing import Any
 
@@ -21,7 +21,14 @@ import psycopg
 from psycopg.rows import dict_row
 from psycopg.types.json import Jsonb
 
-from uw_scan.macro.contracts import MacroDomainState
+from uw_scan.macro.contracts import (
+    ConfidenceTerm,
+    Contradiction,
+    EvidenceRef,
+    FactorState,
+    MacroDomainState,
+    Velocity,
+)
 
 #: Fields that the method identity claims to determine.  If two rows share
 #: (domain, as_of, engine_version, inputs_hash) and differ in any of these, the engine is
@@ -144,8 +151,15 @@ class _MacroDomainStateMixin:
         as_of: datetime,
         *,
         engine_version: str | None = None,
+        strictly_before: bool = False,
     ) -> dict[str, Any] | None:
         """The most recent published state that answers for a time at or before ``as_of``.
+
+        ``strictly_before`` excludes ``as_of`` itself, which is what a recompute needs.
+        Selecting the prior state with ``<=`` would let a second run of the same instant
+        pick up the state the first run just wrote, so the revision term would differ
+        between two runs of identical evidence -- and the identity guard would then
+        (correctly) refuse the write.  A deterministic prior keeps recompute a no-op.
 
         Ties on ``as_of`` are broken by the later ``computed_at``.  That is not backdating:
         the evidence trigger already refuses any observation that became available after
@@ -153,7 +167,8 @@ class _MacroDomainStateMixin:
         more of what was already published then -- a better answer to the same question.
         """
         _require_aware("as_of", as_of)
-        clauses = ["domain = %s", "as_of <= %s", "status = 'published'"]
+        bound = "as_of < %s" if strictly_before else "as_of <= %s"
+        clauses = ["domain = %s", bound, "status = 'published'"]
         params: list[Any] = [domain, as_of]
         if engine_version is not None:
             clauses.append("engine_version = %s")
@@ -171,13 +186,21 @@ class _MacroDomainStateMixin:
             return cur.fetchone()
 
     def fetch_macro_domain_state_evidence(self, state_id: int) -> list[dict[str, Any]]:
-        """The exact observations behind a state, in the order the engine used them."""
+        """The exact observations behind a state, in the order the engine used them.
+
+        The artifact is joined for ``source_kind`` and ``source_url``: whether a piece of
+        evidence came from the publisher itself or from a third-party shadow is the first
+        thing a reader needs about it, and it lives on the artifact, not the observation.
+        """
         with self._conn.cursor(row_factory=dict_row) as cur:
             cur.execute(
                 f"""
-                SELECT e.ordinal, e.causal_role, o.*
+                SELECT e.ordinal, e.causal_role, o.*,
+                       a.source_kind, a.source_url, a.media_type
                 FROM {self._schema}.macro_domain_state_evidence e
                 JOIN {self._schema}.macro_observations o ON o.obs_id = e.obs_id
+                JOIN {self._schema}.macro_source_artifacts a
+                  ON a.artifact_id = o.artifact_id
                 WHERE e.state_id = %s
                 ORDER BY e.ordinal
                 """,
@@ -351,3 +374,87 @@ def _normalized(value: Any) -> Any:
 def _require_aware(field: str, value: datetime) -> None:
     if value.tzinfo is None or value.utcoffset() is None:
         raise ValueError(f"{field} must be timezone-aware")
+
+
+def macro_domain_state_from_row(
+    row: dict[str, Any], evidence_rows: Sequence[dict[str, Any]]
+) -> MacroDomainState:
+    """Rebuild the engine's own answer from what was stored.
+
+    The exact inverse of :func:`_state_payload` plus the evidence join, and the pair is
+    the claim this module makes: a stored state is the state, not a summary of one.
+    Evidence is a required argument rather than an optional extra because a state
+    reconstructed without its lineage is precisely the unfalsifiable object the table
+    exists to refuse -- an empty default would let a caller produce one by omission.
+
+    Its first consumer is revision detection: the state job feeds the preceding state
+    back into the engine so ``load_bearing_input_revised_since_prior_state`` can fire.
+    Without a rehydrator that term is dead code in production, because nothing else can
+    turn a row back into the object the engine compares against.
+    """
+    return MacroDomainState(
+        domain=row["domain"],
+        state=row["state"],
+        direction=row["direction"],
+        velocity=tuple(
+            Velocity(
+                metric=item["metric"],
+                value=_decimal_or_none(item["value"]),
+                unit=item["unit"],
+                window_months=item["window_months"],
+                unavailable_reason=item["unavailable_reason"],
+            )
+            for item in row["velocity_jsonb"]
+        ),
+        confidence=Decimal(row["confidence"]),
+        confidence_reasons=tuple(
+            ConfidenceTerm(
+                term=item["term"],
+                value=Decimal(item["value"]),
+                detail=item["detail"],
+            )
+            for item in row["confidence_reasons_jsonb"]
+        ),
+        contradictions=tuple(
+            Contradiction(rule=item["rule"], detail=item["detail"])
+            for item in row["contradictions_jsonb"]
+        ),
+        factors=tuple(
+            FactorState(
+                name=item["name"],
+                causal_role=item["causal_role"],
+                series_id=item["series_id"],
+                period_end=date.fromisoformat(item["period_end"]),
+                value=Decimal(item["value"]),
+                unit=item["unit"],
+                direction=item["direction"],
+                change_over_window=_decimal_or_none(item["change_over_window"]),
+                available_at=datetime.fromisoformat(item["available_at"]),
+                age_days=item["age_days"],
+                freshness=Decimal(item["freshness"]),
+                quality_status=item["quality_status"],
+                source=item["source"],
+                source_kind=item["source_kind"],
+            )
+            for item in row["factors_jsonb"]
+        ),
+        evidence_refs=tuple(
+            EvidenceRef(
+                series_id=item["series_id"],
+                period_end=item["period_end"],
+                causal_role=item["causal_role"],
+                available_at=item["available_at"],
+                obs_id=item["obs_id"],
+                artifact_id=item["artifact_id"],
+            )
+            for item in evidence_rows
+        ),
+        engine_version=row["engine_version"],
+        inputs_hash=row["inputs_hash"],
+        as_of=row["as_of"],
+        notes=tuple(row["notes_jsonb"]),
+    )
+
+
+def _decimal_or_none(value: str | None) -> Decimal | None:
+    return None if value is None else Decimal(value)

@@ -213,3 +213,37 @@ Deviations from the plan as written, with the reason each was taken.
    write-guarded table can express: `published → quarantined`, enforced by trigger, which withdraws
    a state computed by an engine later found wrong without editing what that state said.
    `notes_jsonb` exists because `MacroDomainState.notes` would otherwise be dropped on persist.
+
+4. **Task 6 added two files the plan does not list: `worker/jobs/macro_series_ingest.py`
+   and `macro/evidence_store.py`.** Step 1 requires that official releases be ingested
+   independently of state computation and that state jobs read persisted evidence. The
+   policy releases already had an ingest (MC1), but nothing wrote the FRED series the
+   inflation engine reads — `sources/fred_macro.py` had parser tests and no consumer. Without
+   the ingest the state job would abstain forever in production, so the task was not
+   deliverable from the listed files alone. `evidence_store.py` is the read half: turning
+   stored rows back into `DomainObservation` needs the causal role and publisher transform,
+   neither of which is a column, and both jobs plus any future domain need the same mapping.
+
+5. **Migration `124` was not planned; it splits an availability bound that migration 115
+   states as universal.** 115 refuses any observation that became available before the
+   artifact carrying it — correct for a release, and backwards for a vintage record, whose
+   entire product is reporting today when a value was published in the past. Enforced in a
+   trigger, so it could not be worked around in application code. `vintage_bearing` on the
+   artifact selects which bound applies; the forward direction (a vintage may never postdate
+   the fetch reporting it) is enforced for both. The replacement trigger body was rebuilt
+   verbatim from 115 with only that block substituted, after a hand-written version silently
+   altered the content-hash formula.
+
+6. **`macro/rates.py` was changed during Task 6: the state now cites its policy releases.**
+   Task 4 emitted `evidence_refs` for market observations only, so a rates state whose
+   `state` field came from the FOMC target range named every input except that one — and a
+   rates state with no market series had no citable evidence at all and could not be stored.
+   `inputs_hash` is unchanged: the paths were already identified inside `parameters`.
+
+7. **The API returns stored states and 404s rather than computing on read.** The plan says
+   "with `as_of` replay" without saying which. Recomputing a past instant with today's
+   engine reports what we would now say about then, which is not what we said; that makes
+   the record regenerable to taste. `fetch_macro_domain_state_as_of` gained
+   `strictly_before` for the same reason: a recompute must select its prior state
+   deterministically, or two runs over identical evidence produce different confidence and
+   the identity guard (correctly) refuses the second.

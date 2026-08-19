@@ -40,6 +40,29 @@ PolicyPathKind = Literal[
     "actual", "committee_projection", "dealer_expectations", "market_implied"
 ]
 PolicyPathDelayStatus = Literal["known", "unknown", "not_applicable"]
+#: Defined here rather than in ``uw_scan.macro.contracts`` because that module already
+#: imports from this one; a second copy of either literal would drift the moment a role
+#: is added, and the drift would only surface as a serialization failure.
+MacroDirection = Literal["RISING", "FALLING", "FLAT", "UNKNOWN"]
+MacroCausalRole = Literal[
+    "realized",
+    "breadth",
+    "stickiness",
+    "expectations_survey",
+    "expectations_market",
+    "policy_actual",
+    "policy_committee",
+    "policy_dealer",
+    "policy_market_shadow",
+    "curve",
+    "decomposition_component",
+    "supply",
+    "positioning",
+    "plumbing",
+]
+#: ``stale`` means only that no newer state has been computed; it says nothing about the
+#: publishers, which carry their own per-factor freshness inside ``confidence_reasons``.
+MacroStateFreshness = Literal["fresh", "stale"]
 
 
 class MacroSourceArtifact(_UwBase):
@@ -58,6 +81,11 @@ class MacroSourceArtifact(_UwBase):
     cost_class: MacroCostClass
     media_type: str
     content_length: int
+    #: True when the payload states when each value it carries was first published,
+    #: rather than being that publication.  An ALFRED series response is one; an FOMC
+    #: statement is not.  It changes which availability bound the store enforces, so it
+    #: is declared by the adapter that knows the shape rather than inferred downstream.
+    vintage_bearing: bool = False
     raw_json: dict[str, Any] | list[Any] | None = None
     raw_text: str | None = None
     raw_bytes: bytes | None = None
@@ -358,6 +386,118 @@ class PolicyComparison(_UwBase):
     contradictions: list[str] = Field(default_factory=list)
 
 
+class MacroVelocityItem(_UwBase):
+    """How fast, with its metric, unit and window -- never a bare number."""
+
+    metric: str
+    value: Decimal | None = None
+    unit: str
+    window_months: int
+    unavailable_reason: str | None = None
+
+
+class MacroConfidenceReason(_UwBase):
+    """One multiplicand of the confidence product, so the number can be argued with."""
+
+    term: str
+    value: Decimal
+    detail: str
+
+
+class MacroContradiction(_UwBase):
+    rule: str
+    detail: str
+
+
+class MacroFactorState(_UwBase):
+    """One input's own sub-state, carrying its own freshness rather than inheriting one."""
+
+    name: str
+    causal_role: MacroCausalRole
+    series_id: str
+    period_end: date
+    value: Decimal
+    unit: str
+    direction: MacroDirection
+    change_over_window: Decimal | None = None
+    available_at: AwareDatetime
+    age_days: int
+    freshness: Decimal
+    quality_status: MacroQualityStatus
+    source: str
+    source_kind: MacroSourceKind
+
+
+class MacroStateEvidenceItem(_UwBase):
+    """One observation the state stood on, in the order the engine used it."""
+
+    ordinal: int
+    obs_id: int
+    artifact_id: int
+    causal_role: MacroCausalRole
+    series_id: str
+    period_end: date
+    unit: str
+    value_numeric: Decimal | None = None
+    available_at: AwareDatetime
+    source: str
+    source_kind: MacroSourceKind
+    quality_status: MacroQualityStatus
+
+
+class MacroDomainStateResponse(_UwBase):
+    """A stored answer, replayed -- never recomputed at read time.
+
+    ``requested_as_of`` and ``as_of`` are separate because they routinely differ: the
+    reply is the most recent state that answers for a time at or before the request, so
+    asking about right now returns the last state actually computed.  Collapsing them
+    would present a day-old answer as a live one.
+    """
+
+    domain: MacroDomain
+    requested_as_of: AwareDatetime
+    as_of: AwareDatetime
+    computed_at: AwareDatetime
+    engine_version: str
+    inputs_hash: str
+    state: str
+    direction: MacroDirection
+    confidence: Decimal
+    freshness: MacroStateFreshness
+    age_hours: float
+    velocity: list[MacroVelocityItem] = Field(default_factory=list)
+    confidence_reasons: list[MacroConfidenceReason] = Field(default_factory=list)
+    contradictions: list[MacroContradiction] = Field(default_factory=list)
+    factors: list[MacroFactorState] = Field(default_factory=list)
+    evidence: list[MacroStateEvidenceItem] = Field(default_factory=list)
+    notes: list[str] = Field(default_factory=list)
+
+
+class MacroStateSummary(_UwBase):
+    """The state without its lineage, for surfaces that already carry a large payload.
+
+    ``detail_path`` is not decoration: a block that shows a conclusion and hides what it
+    stood on is the shape this milestone exists to replace, so the full evidence is
+    always one documented hop away.
+    """
+
+    domain: MacroDomain
+    as_of: AwareDatetime
+    computed_at: AwareDatetime
+    engine_version: str
+    state: str
+    direction: MacroDirection
+    confidence: Decimal
+    freshness: MacroStateFreshness
+    age_hours: float
+    velocity: list[MacroVelocityItem] = Field(default_factory=list)
+    confidence_reasons: list[MacroConfidenceReason] = Field(default_factory=list)
+    contradictions: list[MacroContradiction] = Field(default_factory=list)
+    notes: list[str] = Field(default_factory=list)
+    evidence_count: int = 0
+    detail_path: str
+
+
 def _validate_sha256(value: str) -> str:
     if len(value) != 64 or any(char not in "0123456789abcdef" for char in value):
         raise ValueError("content_hash must be lowercase SHA-256 hex")
@@ -376,4 +516,11 @@ _preserve_public_module(
     PolicySourceFreshness,
     PolicyPathSlot,
     PolicyComparison,
+    MacroVelocityItem,
+    MacroConfidenceReason,
+    MacroContradiction,
+    MacroFactorState,
+    MacroStateEvidenceItem,
+    MacroDomainStateResponse,
+    MacroStateSummary,
 )

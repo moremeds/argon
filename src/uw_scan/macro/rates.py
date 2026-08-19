@@ -29,6 +29,7 @@ from uw_scan.models.macro import PolicyPath, PolicyPathKind
 
 from .confidence import compute_confidence
 from .contracts import (
+    CausalRole,
     ConfidenceTerm,
     Direction,
     DomainObservation,
@@ -196,7 +197,8 @@ def compute_rates_state(
         confidence_reasons=reasons,
         contradictions=contradictions,
         factors=factors,
-        evidence_refs=tuple(
+        evidence_refs=_policy_evidence(by_kind)
+        + tuple(
             EvidenceRef(
                 series_id=obs.series_id,
                 period_end=obs.period_end,
@@ -234,12 +236,38 @@ _POLICY_SERIES_IDS: dict[PolicyPathKind, str] = {
     "dealer_expectations": "NYFED_SME_FEDERAL_FUNDS_RATE",
     "market_implied": "MARKET_IMPLIED_FEDERAL_FUNDS_RATE",
 }
-_POLICY_ROLES: dict[PolicyPathKind, str] = {
+_POLICY_ROLES: dict[PolicyPathKind, CausalRole] = {
     "actual": "policy_actual",
     "committee_projection": "policy_committee",
     "dealer_expectations": "policy_dealer",
     "market_implied": "policy_market_shadow",
 }
+
+
+def _policy_evidence(
+    by_kind: dict[PolicyPathKind, PolicyPath],
+) -> tuple[EvidenceRef, ...]:
+    """Cite the policy releases, not only the market series.
+
+    ``state`` is read off the FOMC's own target range, so a lineage listing only DGS10
+    and its siblings would omit the one input the answer actually turned on.  A path
+    whose stored observation carries no id is skipped rather than cited as a headless
+    reference: it would name evidence nobody can retrieve.
+    """
+    out: list[EvidenceRef] = []
+    for kind, path in sorted(by_kind.items()):
+        for ref in path.evidence_refs:
+            out.append(
+                EvidenceRef(
+                    series_id=_POLICY_SERIES_IDS[kind],
+                    period_end=ref.period_end,
+                    causal_role=_POLICY_ROLES[kind],
+                    available_at=ref.available_at,
+                    obs_id=ref.obs_id,
+                    artifact_id=ref.artifact_id,
+                )
+            )
+    return tuple(out)
 
 
 def _policy_factors(

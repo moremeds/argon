@@ -40,6 +40,43 @@ version in lockstep (enforced by `scripts/release/version_sync_check.py`).
   the same inputs producing a different answer raises instead of appending a second
   equally-authoritative row. Stored answers are immutable: an engine later found
   wrong can be quarantined out of service, never edited.
+- **The states are computed by a worker and served for replay, never recomputed at
+  read time.** `GET /api/macro/inflation` and `/api/macro/rates` return the stored
+  answer that was in force at the requested instant, with every observation it stood
+  on; an instant nobody computed a state for is a 404 rather than a state assembled on
+  the spot. Recomputing a 2024 replay with today's engine would report what we *would*
+  have said, and an audit trail you can regenerate to taste is not an audit trail. The
+  reply carries `requested_as_of` and `as_of` separately, so a day-old answer cannot
+  present itself as a live one.
+- **Vintage-bearing series ingest, separate from state computation** (`fred_series`
+  job, `macro_series_ingest.py`). Two things about it are load-bearing. The request
+  spans ALFRED's unbounded vintage window: asking with `realtime_start = realtime_end
+  = today` makes FRED clamp every returned window to the query and report today as the
+  vintage of the 1947 CPI — an artifact of asking, not a fact about publishing, and it
+  destroys the one field replay is built on. And a series observation is identified by
+  its vintage — `(source, series_id, period_end, available_at)` — not by the payload
+  carrying it, because one request returns the whole history: under an identity that
+  includes `artifact_id`, a single new monthly print would re-write every unchanged
+  month beside it.
+- **Migration `124` splits the availability bound in two.** An artifact that *is* a
+  release (an FOMC statement) still cannot carry an observation older than itself. An
+  artifact that *reports* a publication history (an ALFRED response) may: its whole
+  product is telling us today that January 2024 CPI was first published on 2024-02-13,
+  and the single rule would have stamped the fetch date on every historical vintage.
+  The forward direction is untouched — a vintage may still never postdate the fetch
+  reporting it, which is what a lookahead would need.
+- **A rates state cites the policy release its answer turned on.** `state` is read off
+  the FOMC's own target range, but `evidence_refs` carried only market series — so a
+  rates state with no DGS10 was unpersistable, and one with DGS10 named everything
+  except the release that decided it.
+- **The `/api/rates/snapshot` state block (flag `UW_SCAN_RATES_SNAPSHOT_STATE_BLOCK_ENABLED`,
+  default off).** Compact by design — state, direction, confidence with its terms,
+  contradictions — plus `detail_path` to the full evidence, so the short block can
+  never become the only view of the answer. Read fresh per request rather than baked
+  into the stored snapshot: the two are computed by different jobs on different clocks,
+  and a state copied into last night's payload would keep asserting itself after the
+  state had been quarantined. Absent means the flag is off or nothing was computed —
+  never that the desk is neutral.
 
 - **Revenue concentration on the Fundamentals tab — where a company's revenue
   actually comes from, by reportable segment and by geography.** NVDA reads 91.3%

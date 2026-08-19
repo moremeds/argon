@@ -8,6 +8,7 @@ from typing import Literal
 from pydantic import Field
 
 from ._base import _UwBase, _preserve_public_module
+from .macro import MacroStateSummary
 
 
 RatesAvailability = Literal["ok", "missing", "partial", "stale"]
@@ -249,6 +250,13 @@ class RatesSnapshotResponse(_UwBase):
     events: list[RatesEventItem] = Field(default_factory=list)
     synthesis: RatesSynthesisPanel
     source_freshness: list[RatesSourceFreshness] = Field(default_factory=list)
+    #: The MC2 policy/rates domain state, attached at read time behind
+    #: ``rates_snapshot_state_block_enabled``.  Absent means the flag is off or no state
+    #: has been computed -- never that the desk is neutral.  Deliberately not persisted
+    #: into the stored snapshot payload: the state has its own identity, its own evidence
+    #: and its own retraction path, and copying it here would fork one answer into two
+    #: records that could disagree.
+    state: MacroStateSummary | None = None
 
 
 _preserve_public_module(

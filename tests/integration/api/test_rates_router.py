@@ -23,6 +23,11 @@ from uw_scan.models import (
     RatesSynthesisPanel,
 )
 from uw_scan.storage.repository import Repository
+from uw_scan.worker.jobs.macro_policy_jobs import macro_fomc_statement_ingest_job
+from uw_scan.worker.jobs.macro_state_jobs import macro_rates_state_job
+
+from tests.integration.worker._macro_providers import _StatementProvider
+from tests.integration.worker.test_macro_state_jobs import POLICY_AS_OF
 
 
 def _test_settings() -> Settings:
@@ -142,3 +147,99 @@ def test_stale_rates_snapshot_marks_live_sources_stale() -> None:
 
     assert stale.source_freshness[0].status == "stale"
     assert "scheduled FRED refresh" in stale.synthesis.risks[-1]
+
+
+# --- MC2 dual-read: the policy/rates domain state attached behind a flag -------------
+
+
+def _client_with(settings: Settings) -> TestClient:
+    app = create_app()
+
+    def _override_repo():
+        conn = psycopg.connect(settings.db_dsn())
+        try:
+            yield Repository(conn, schema=settings.db_schema)
+        finally:
+            conn.close()
+
+    app.dependency_overrides[get_settings] = lambda: settings
+    app.dependency_overrides[get_repo] = _override_repo
+    return TestClient(app)
+
+
+def _seed_snapshot(settings: Settings) -> None:
+    snapshot = _snapshot()
+    payload = snapshot.model_dump(mode="json")
+    with psycopg.connect(settings.db_dsn()) as conn:
+        repo = Repository(conn, schema=settings.db_schema)
+        repo.insert_rates_snapshot(
+            snapshot_date=snapshot.as_of,
+            computed_at=snapshot.computed_at,
+            payload=payload,
+            source_freshness=payload["source_freshness"],
+        )
+        conn.commit()
+
+
+def _seed_policy_rates_state(settings: Settings) -> None:
+    macro_fomc_statement_ingest_job(
+        dsn=settings.db_dsn(),
+        provider_factory=_StatementProvider,
+        observed_at=POLICY_AS_OF,
+    )
+    with psycopg.connect(settings.db_dsn()) as conn:
+        result = macro_rates_state_job(
+            Repository(conn, schema=settings.db_schema), as_of=POLICY_AS_OF
+        )
+    assert result.status == "ok", result.error_message
+
+
+def test_snapshot_omits_the_domain_state_while_the_flag_is_off(
+    seeded_db_empty_cards,
+) -> None:
+    settings = _test_settings()
+    _seed_snapshot(settings)
+    _seed_policy_rates_state(settings)
+
+    body = _client_with(settings).get("/api/rates/snapshot").json()
+
+    # A computed state exists; the flag alone decides whether this surface shows it, so
+    # the legacy payload stays byte-for-byte what it was during dual-read.
+    assert body["state"] is None
+
+
+def test_the_flagged_state_block_carries_its_confidence_and_a_route_to_its_evidence(
+    seeded_db_empty_cards,
+) -> None:
+    settings = _test_settings().model_copy(
+        update={"rates_snapshot_state_block_enabled": True}
+    )
+    _seed_snapshot(settings)
+    _seed_policy_rates_state(settings)
+
+    body = _client_with(settings).get("/api/rates/snapshot").json()
+
+    state = body["state"]
+    assert state["domain"] == "policy_rates"
+    assert state["state"] == "ON_HOLD"
+    assert state["engine_version"] == "rates/1"
+    assert state["confidence_reasons"], (
+        "a confidence with no terms cannot be argued with"
+    )
+    assert state["evidence_count"] > 0
+    # The compact block must never be the only view of the answer.
+    assert state["detail_path"] == "/api/macro/rates"
+
+
+def test_no_computed_state_reads_as_absent_rather_than_as_a_neutral_one(
+    seeded_db_empty_cards,
+) -> None:
+    settings = _test_settings().model_copy(
+        update={"rates_snapshot_state_block_enabled": True}
+    )
+    _seed_snapshot(settings)
+
+    body = _client_with(settings).get("/api/rates/snapshot").json()
+
+    # The defect this milestone exists to prevent: absence rendered as a confident view.
+    assert body["state"] is None

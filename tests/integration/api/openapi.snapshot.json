@@ -9188,6 +9188,176 @@
         "title": "JobStatus",
         "type": "object"
       },
+      "MacroConfidenceReason": {
+        "description": "One multiplicand of the confidence product, so the number can be argued with.",
+        "properties": {
+          "detail": {
+            "title": "Detail",
+            "type": "string"
+          },
+          "term": {
+            "title": "Term",
+            "type": "string"
+          },
+          "value": {
+            "pattern": "^(?!^[-+.]*$)[+-]?0*\\d*\\.?\\d*$",
+            "title": "Value",
+            "type": "string"
+          }
+        },
+        "required": [
+          "term",
+          "value",
+          "detail"
+        ],
+        "title": "MacroConfidenceReason",
+        "type": "object"
+      },
+      "MacroContradiction": {
+        "properties": {
+          "detail": {
+            "title": "Detail",
+            "type": "string"
+          },
+          "rule": {
+            "title": "Rule",
+            "type": "string"
+          }
+        },
+        "required": [
+          "rule",
+          "detail"
+        ],
+        "title": "MacroContradiction",
+        "type": "object"
+      },
+      "MacroDomainStateResponse": {
+        "description": "A stored answer, replayed -- never recomputed at read time.\n\n``requested_as_of`` and ``as_of`` are separate because they routinely differ: the\nreply is the most recent state that answers for a time at or before the request, so\nasking about right now returns the last state actually computed.  Collapsing them\nwould present a day-old answer as a live one.",
+        "properties": {
+          "age_hours": {
+            "title": "Age Hours",
+            "type": "number"
+          },
+          "as_of": {
+            "format": "date-time",
+            "title": "As Of",
+            "type": "string"
+          },
+          "computed_at": {
+            "format": "date-time",
+            "title": "Computed At",
+            "type": "string"
+          },
+          "confidence": {
+            "pattern": "^(?!^[-+.]*$)[+-]?0*\\d*\\.?\\d*$",
+            "title": "Confidence",
+            "type": "string"
+          },
+          "confidence_reasons": {
+            "items": {
+              "$ref": "#/components/schemas/MacroConfidenceReason"
+            },
+            "title": "Confidence Reasons",
+            "type": "array"
+          },
+          "contradictions": {
+            "items": {
+              "$ref": "#/components/schemas/MacroContradiction"
+            },
+            "title": "Contradictions",
+            "type": "array"
+          },
+          "direction": {
+            "enum": [
+              "RISING",
+              "FALLING",
+              "FLAT",
+              "UNKNOWN"
+            ],
+            "title": "Direction",
+            "type": "string"
+          },
+          "domain": {
+            "enum": [
+              "inflation",
+              "policy_rates",
+              "usd",
+              "gold",
+              "cross_domain"
+            ],
+            "title": "Domain",
+            "type": "string"
+          },
+          "engine_version": {
+            "title": "Engine Version",
+            "type": "string"
+          },
+          "evidence": {
+            "items": {
+              "$ref": "#/components/schemas/MacroStateEvidenceItem"
+            },
+            "title": "Evidence",
+            "type": "array"
+          },
+          "factors": {
+            "items": {
+              "$ref": "#/components/schemas/MacroFactorState"
+            },
+            "title": "Factors",
+            "type": "array"
+          },
+          "freshness": {
+            "enum": [
+              "fresh",
+              "stale"
+            ],
+            "title": "Freshness",
+            "type": "string"
+          },
+          "inputs_hash": {
+            "title": "Inputs Hash",
+            "type": "string"
+          },
+          "notes": {
+            "items": {
+              "type": "string"
+            },
+            "title": "Notes",
+            "type": "array"
+          },
+          "requested_as_of": {
+            "format": "date-time",
+            "title": "Requested As Of",
+            "type": "string"
+          },
+          "state": {
+            "title": "State",
+            "type": "string"
+          },
+          "velocity": {
+            "items": {
+              "$ref": "#/components/schemas/MacroVelocityItem"
+            },
+            "title": "Velocity",
+            "type": "array"
+          }
+        },
+        "required": [
+          "domain",
+          "requested_as_of",
+          "as_of",
+          "computed_at",
+          "engine_version",
+          "inputs_hash",
+          "state",
+          "direction",
+          "confidence",
+          "freshness",
+          "age_hours"
+        ],
+        "title": "MacroDomainStateResponse",
+        "type": "object"
+      },
       "MacroEvidenceRef": {
         "properties": {
           "artifact_id": {
@@ -9300,6 +9470,401 @@
           "cost_class"
         ],
         "title": "MacroEvidenceRef",
+        "type": "object"
+      },
+      "MacroFactorState": {
+        "description": "One input's own sub-state, carrying its own freshness rather than inheriting one.",
+        "properties": {
+          "age_days": {
+            "title": "Age Days",
+            "type": "integer"
+          },
+          "available_at": {
+            "format": "date-time",
+            "title": "Available At",
+            "type": "string"
+          },
+          "causal_role": {
+            "enum": [
+              "realized",
+              "breadth",
+              "stickiness",
+              "expectations_survey",
+              "expectations_market",
+              "policy_actual",
+              "policy_committee",
+              "policy_dealer",
+              "policy_market_shadow",
+              "curve",
+              "decomposition_component",
+              "supply",
+              "positioning",
+              "plumbing"
+            ],
+            "title": "Causal Role",
+            "type": "string"
+          },
+          "change_over_window": {
+            "anyOf": [
+              {
+                "pattern": "^(?!^[-+.]*$)[+-]?0*\\d*\\.?\\d*$",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Change Over Window"
+          },
+          "direction": {
+            "enum": [
+              "RISING",
+              "FALLING",
+              "FLAT",
+              "UNKNOWN"
+            ],
+            "title": "Direction",
+            "type": "string"
+          },
+          "freshness": {
+            "pattern": "^(?!^[-+.]*$)[+-]?0*\\d*\\.?\\d*$",
+            "title": "Freshness",
+            "type": "string"
+          },
+          "name": {
+            "title": "Name",
+            "type": "string"
+          },
+          "period_end": {
+            "format": "date",
+            "title": "Period End",
+            "type": "string"
+          },
+          "quality_status": {
+            "enum": [
+              "valid",
+              "invalid",
+              "partial",
+              "quarantined"
+            ],
+            "title": "Quality Status",
+            "type": "string"
+          },
+          "series_id": {
+            "title": "Series Id",
+            "type": "string"
+          },
+          "source": {
+            "title": "Source",
+            "type": "string"
+          },
+          "source_kind": {
+            "enum": [
+              "official",
+              "first_party_publisher",
+              "entitled_provider",
+              "third_party_shadow",
+              "mock",
+              "static",
+              "demo"
+            ],
+            "title": "Source Kind",
+            "type": "string"
+          },
+          "unit": {
+            "title": "Unit",
+            "type": "string"
+          },
+          "value": {
+            "pattern": "^(?!^[-+.]*$)[+-]?0*\\d*\\.?\\d*$",
+            "title": "Value",
+            "type": "string"
+          }
+        },
+        "required": [
+          "name",
+          "causal_role",
+          "series_id",
+          "period_end",
+          "value",
+          "unit",
+          "direction",
+          "available_at",
+          "age_days",
+          "freshness",
+          "quality_status",
+          "source",
+          "source_kind"
+        ],
+        "title": "MacroFactorState",
+        "type": "object"
+      },
+      "MacroStateEvidenceItem": {
+        "description": "One observation the state stood on, in the order the engine used it.",
+        "properties": {
+          "artifact_id": {
+            "title": "Artifact Id",
+            "type": "integer"
+          },
+          "available_at": {
+            "format": "date-time",
+            "title": "Available At",
+            "type": "string"
+          },
+          "causal_role": {
+            "enum": [
+              "realized",
+              "breadth",
+              "stickiness",
+              "expectations_survey",
+              "expectations_market",
+              "policy_actual",
+              "policy_committee",
+              "policy_dealer",
+              "policy_market_shadow",
+              "curve",
+              "decomposition_component",
+              "supply",
+              "positioning",
+              "plumbing"
+            ],
+            "title": "Causal Role",
+            "type": "string"
+          },
+          "obs_id": {
+            "title": "Obs Id",
+            "type": "integer"
+          },
+          "ordinal": {
+            "title": "Ordinal",
+            "type": "integer"
+          },
+          "period_end": {
+            "format": "date",
+            "title": "Period End",
+            "type": "string"
+          },
+          "quality_status": {
+            "enum": [
+              "valid",
+              "invalid",
+              "partial",
+              "quarantined"
+            ],
+            "title": "Quality Status",
+            "type": "string"
+          },
+          "series_id": {
+            "title": "Series Id",
+            "type": "string"
+          },
+          "source": {
+            "title": "Source",
+            "type": "string"
+          },
+          "source_kind": {
+            "enum": [
+              "official",
+              "first_party_publisher",
+              "entitled_provider",
+              "third_party_shadow",
+              "mock",
+              "static",
+              "demo"
+            ],
+            "title": "Source Kind",
+            "type": "string"
+          },
+          "unit": {
+            "title": "Unit",
+            "type": "string"
+          },
+          "value_numeric": {
+            "anyOf": [
+              {
+                "pattern": "^(?!^[-+.]*$)[+-]?0*\\d*\\.?\\d*$",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Value Numeric"
+          }
+        },
+        "required": [
+          "ordinal",
+          "obs_id",
+          "artifact_id",
+          "causal_role",
+          "series_id",
+          "period_end",
+          "unit",
+          "available_at",
+          "source",
+          "source_kind",
+          "quality_status"
+        ],
+        "title": "MacroStateEvidenceItem",
+        "type": "object"
+      },
+      "MacroStateSummary": {
+        "description": "The state without its lineage, for surfaces that already carry a large payload.\n\n``detail_path`` is not decoration: a block that shows a conclusion and hides what it\nstood on is the shape this milestone exists to replace, so the full evidence is\nalways one documented hop away.",
+        "properties": {
+          "age_hours": {
+            "title": "Age Hours",
+            "type": "number"
+          },
+          "as_of": {
+            "format": "date-time",
+            "title": "As Of",
+            "type": "string"
+          },
+          "computed_at": {
+            "format": "date-time",
+            "title": "Computed At",
+            "type": "string"
+          },
+          "confidence": {
+            "pattern": "^(?!^[-+.]*$)[+-]?0*\\d*\\.?\\d*$",
+            "title": "Confidence",
+            "type": "string"
+          },
+          "confidence_reasons": {
+            "items": {
+              "$ref": "#/components/schemas/MacroConfidenceReason"
+            },
+            "title": "Confidence Reasons",
+            "type": "array"
+          },
+          "contradictions": {
+            "items": {
+              "$ref": "#/components/schemas/MacroContradiction"
+            },
+            "title": "Contradictions",
+            "type": "array"
+          },
+          "detail_path": {
+            "title": "Detail Path",
+            "type": "string"
+          },
+          "direction": {
+            "enum": [
+              "RISING",
+              "FALLING",
+              "FLAT",
+              "UNKNOWN"
+            ],
+            "title": "Direction",
+            "type": "string"
+          },
+          "domain": {
+            "enum": [
+              "inflation",
+              "policy_rates",
+              "usd",
+              "gold",
+              "cross_domain"
+            ],
+            "title": "Domain",
+            "type": "string"
+          },
+          "engine_version": {
+            "title": "Engine Version",
+            "type": "string"
+          },
+          "evidence_count": {
+            "default": 0,
+            "title": "Evidence Count",
+            "type": "integer"
+          },
+          "freshness": {
+            "enum": [
+              "fresh",
+              "stale"
+            ],
+            "title": "Freshness",
+            "type": "string"
+          },
+          "notes": {
+            "items": {
+              "type": "string"
+            },
+            "title": "Notes",
+            "type": "array"
+          },
+          "state": {
+            "title": "State",
+            "type": "string"
+          },
+          "velocity": {
+            "items": {
+              "$ref": "#/components/schemas/MacroVelocityItem"
+            },
+            "title": "Velocity",
+            "type": "array"
+          }
+        },
+        "required": [
+          "domain",
+          "as_of",
+          "computed_at",
+          "engine_version",
+          "state",
+          "direction",
+          "confidence",
+          "freshness",
+          "age_hours",
+          "detail_path"
+        ],
+        "title": "MacroStateSummary",
+        "type": "object"
+      },
+      "MacroVelocityItem": {
+        "description": "How fast, with its metric, unit and window -- never a bare number.",
+        "properties": {
+          "metric": {
+            "title": "Metric",
+            "type": "string"
+          },
+          "unavailable_reason": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Unavailable Reason"
+          },
+          "unit": {
+            "title": "Unit",
+            "type": "string"
+          },
+          "value": {
+            "anyOf": [
+              {
+                "pattern": "^(?!^[-+.]*$)[+-]?0*\\d*\\.?\\d*$",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Value"
+          },
+          "window_months": {
+            "title": "Window Months",
+            "type": "integer"
+          }
+        },
+        "required": [
+          "metric",
+          "unit",
+          "window_months"
+        ],
+        "title": "MacroVelocityItem",
         "type": "object"
       },
       "MagnetCandle": {
@@ -14696,6 +15261,16 @@
             },
             "title": "Source Freshness",
             "type": "array"
+          },
+          "state": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/MacroStateSummary"
+              },
+              {
+                "type": "null"
+              }
+            ]
           },
           "summary": {
             "items": {
@@ -26528,6 +27103,78 @@
         ]
       }
     },
+    "/api/macro/inflation": {
+      "get": {
+        "operationId": "macro_inflation_state_api_macro_inflation_get",
+        "parameters": [
+          {
+            "description": "UTC calendar date; returns the state answering for that day-end.",
+            "in": "query",
+            "name": "as_of",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "format": "date",
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "description": "UTC calendar date; returns the state answering for that day-end.",
+              "title": "As Of"
+            }
+          },
+          {
+            "description": "Timezone-aware instant to replay.",
+            "in": "query",
+            "name": "as_of_ts",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "format": "date-time",
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "description": "Timezone-aware instant to replay.",
+              "title": "As Of Ts"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MacroDomainStateResponse"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Macro Inflation State",
+        "tags": [
+          "macro",
+          "macro"
+        ]
+      }
+    },
     "/api/macro/policy": {
       "get": {
         "operationId": "macro_policy_api_macro_policy_get",
@@ -26594,6 +27241,78 @@
           }
         },
         "summary": "Macro Policy",
+        "tags": [
+          "macro",
+          "macro"
+        ]
+      }
+    },
+    "/api/macro/rates": {
+      "get": {
+        "operationId": "macro_rates_state_api_macro_rates_get",
+        "parameters": [
+          {
+            "description": "UTC calendar date; returns the state answering for that day-end.",
+            "in": "query",
+            "name": "as_of",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "format": "date",
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "description": "UTC calendar date; returns the state answering for that day-end.",
+              "title": "As Of"
+            }
+          },
+          {
+            "description": "Timezone-aware instant to replay.",
+            "in": "query",
+            "name": "as_of_ts",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "format": "date-time",
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "description": "Timezone-aware instant to replay.",
+              "title": "As Of Ts"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MacroDomainStateResponse"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Macro Rates State",
         "tags": [
           "macro",
           "macro"

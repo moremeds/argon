@@ -1686,6 +1686,40 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/macro/inflation": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Macro Inflation State */
+        get: operations["macro_inflation_state_api_macro_inflation_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/macro/rates": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Macro Rates State */
+        get: operations["macro_rates_state_api_macro_rates_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/scanner": {
         parameters: {
             query?: never;
@@ -4926,6 +4960,88 @@ export interface components {
             /** Finished At */
             finished_at?: string | null;
         };
+        /**
+         * MacroConfidenceReason
+         * @description One multiplicand of the confidence product, so the number can be argued with.
+         */
+        MacroConfidenceReason: {
+            /** Term */
+            term: string;
+            /** Value */
+            value: string;
+            /** Detail */
+            detail: string;
+        };
+        /** MacroContradiction */
+        MacroContradiction: {
+            /** Rule */
+            rule: string;
+            /** Detail */
+            detail: string;
+        };
+        /**
+         * MacroDomainStateResponse
+         * @description A stored answer, replayed -- never recomputed at read time.
+         *
+         *     ``requested_as_of`` and ``as_of`` are separate because they routinely differ: the
+         *     reply is the most recent state that answers for a time at or before the request, so
+         *     asking about right now returns the last state actually computed.  Collapsing them
+         *     would present a day-old answer as a live one.
+         */
+        MacroDomainStateResponse: {
+            /**
+             * Domain
+             * @enum {string}
+             */
+            domain: "inflation" | "policy_rates" | "usd" | "gold" | "cross_domain";
+            /**
+             * Requested As Of
+             * Format: date-time
+             */
+            requested_as_of: string;
+            /**
+             * As Of
+             * Format: date-time
+             */
+            as_of: string;
+            /**
+             * Computed At
+             * Format: date-time
+             */
+            computed_at: string;
+            /** Engine Version */
+            engine_version: string;
+            /** Inputs Hash */
+            inputs_hash: string;
+            /** State */
+            state: string;
+            /**
+             * Direction
+             * @enum {string}
+             */
+            direction: "RISING" | "FALLING" | "FLAT" | "UNKNOWN";
+            /** Confidence */
+            confidence: string;
+            /**
+             * Freshness
+             * @enum {string}
+             */
+            freshness: "fresh" | "stale";
+            /** Age Hours */
+            age_hours: number;
+            /** Velocity */
+            velocity?: components["schemas"]["MacroVelocityItem"][];
+            /** Confidence Reasons */
+            confidence_reasons?: components["schemas"]["MacroConfidenceReason"][];
+            /** Contradictions */
+            contradictions?: components["schemas"]["MacroContradiction"][];
+            /** Factors */
+            factors?: components["schemas"]["MacroFactorState"][];
+            /** Evidence */
+            evidence?: components["schemas"]["MacroStateEvidenceItem"][];
+            /** Notes */
+            notes?: string[];
+        };
         /** MacroEvidenceRef */
         MacroEvidenceRef: {
             /** Obs Id */
@@ -4974,6 +5090,177 @@ export interface components {
              * @enum {string}
              */
             cost_class: "free_official" | "free_publisher" | "already_entitled" | "free_third_party_shadow" | "paid_authorized";
+        };
+        /**
+         * MacroFactorState
+         * @description One input's own sub-state, carrying its own freshness rather than inheriting one.
+         */
+        MacroFactorState: {
+            /** Name */
+            name: string;
+            /**
+             * Causal Role
+             * @enum {string}
+             */
+            causal_role: "realized" | "breadth" | "stickiness" | "expectations_survey" | "expectations_market" | "policy_actual" | "policy_committee" | "policy_dealer" | "policy_market_shadow" | "curve" | "decomposition_component" | "supply" | "positioning" | "plumbing";
+            /** Series Id */
+            series_id: string;
+            /**
+             * Period End
+             * Format: date
+             */
+            period_end: string;
+            /** Value */
+            value: string;
+            /** Unit */
+            unit: string;
+            /**
+             * Direction
+             * @enum {string}
+             */
+            direction: "RISING" | "FALLING" | "FLAT" | "UNKNOWN";
+            /** Change Over Window */
+            change_over_window?: string | null;
+            /**
+             * Available At
+             * Format: date-time
+             */
+            available_at: string;
+            /** Age Days */
+            age_days: number;
+            /** Freshness */
+            freshness: string;
+            /**
+             * Quality Status
+             * @enum {string}
+             */
+            quality_status: "valid" | "invalid" | "partial" | "quarantined";
+            /** Source */
+            source: string;
+            /**
+             * Source Kind
+             * @enum {string}
+             */
+            source_kind: "official" | "first_party_publisher" | "entitled_provider" | "third_party_shadow" | "mock" | "static" | "demo";
+        };
+        /**
+         * MacroStateEvidenceItem
+         * @description One observation the state stood on, in the order the engine used it.
+         */
+        MacroStateEvidenceItem: {
+            /** Ordinal */
+            ordinal: number;
+            /** Obs Id */
+            obs_id: number;
+            /** Artifact Id */
+            artifact_id: number;
+            /**
+             * Causal Role
+             * @enum {string}
+             */
+            causal_role: "realized" | "breadth" | "stickiness" | "expectations_survey" | "expectations_market" | "policy_actual" | "policy_committee" | "policy_dealer" | "policy_market_shadow" | "curve" | "decomposition_component" | "supply" | "positioning" | "plumbing";
+            /** Series Id */
+            series_id: string;
+            /**
+             * Period End
+             * Format: date
+             */
+            period_end: string;
+            /** Unit */
+            unit: string;
+            /** Value Numeric */
+            value_numeric?: string | null;
+            /**
+             * Available At
+             * Format: date-time
+             */
+            available_at: string;
+            /** Source */
+            source: string;
+            /**
+             * Source Kind
+             * @enum {string}
+             */
+            source_kind: "official" | "first_party_publisher" | "entitled_provider" | "third_party_shadow" | "mock" | "static" | "demo";
+            /**
+             * Quality Status
+             * @enum {string}
+             */
+            quality_status: "valid" | "invalid" | "partial" | "quarantined";
+        };
+        /**
+         * MacroStateSummary
+         * @description The state without its lineage, for surfaces that already carry a large payload.
+         *
+         *     ``detail_path`` is not decoration: a block that shows a conclusion and hides what it
+         *     stood on is the shape this milestone exists to replace, so the full evidence is
+         *     always one documented hop away.
+         */
+        MacroStateSummary: {
+            /**
+             * Domain
+             * @enum {string}
+             */
+            domain: "inflation" | "policy_rates" | "usd" | "gold" | "cross_domain";
+            /**
+             * As Of
+             * Format: date-time
+             */
+            as_of: string;
+            /**
+             * Computed At
+             * Format: date-time
+             */
+            computed_at: string;
+            /** Engine Version */
+            engine_version: string;
+            /** State */
+            state: string;
+            /**
+             * Direction
+             * @enum {string}
+             */
+            direction: "RISING" | "FALLING" | "FLAT" | "UNKNOWN";
+            /** Confidence */
+            confidence: string;
+            /**
+             * Freshness
+             * @enum {string}
+             */
+            freshness: "fresh" | "stale";
+            /** Age Hours */
+            age_hours: number;
+            /** Velocity */
+            velocity?: components["schemas"]["MacroVelocityItem"][];
+            /** Confidence Reasons */
+            confidence_reasons?: components["schemas"]["MacroConfidenceReason"][];
+            /** Contradictions */
+            contradictions?: components["schemas"]["MacroContradiction"][];
+            /** Notes */
+            notes?: string[];
+            /**
+             * Evidence Count
+             * @default 0
+             */
+            evidence_count: number;
+            /** Detail Path */
+            detail_path: string;
+        };
+        /**
+         * MacroVelocityItem
+         * @description How fast, with its metric, unit and window -- never a bare number.
+         */
+        MacroVelocityItem: {
+            /** Metric */
+            metric: string;
+            /** Value */
+            value?: string | null;
+            /** Unit */
+            unit: string;
+            /** Window Months */
+            window_months: number;
+            /** Unavailable Reason */
+            unavailable_reason?: string | null;
         };
         /** MagnetCandle */
         MagnetCandle: {
@@ -6548,6 +6835,7 @@ export interface components {
             synthesis: components["schemas"]["RatesSynthesisPanel"];
             /** Source Freshness */
             source_freshness?: components["schemas"]["RatesSourceFreshness"][];
+            state?: components["schemas"]["MacroStateSummary"] | null;
         };
         /** RatesSourceFreshness */
         RatesSourceFreshness: {
@@ -13127,6 +13415,74 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["PolicyComparison"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    macro_inflation_state_api_macro_inflation_get: {
+        parameters: {
+            query?: {
+                /** @description UTC calendar date; returns the state answering for that day-end. */
+                as_of?: string | null;
+                /** @description Timezone-aware instant to replay. */
+                as_of_ts?: string | null;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["MacroDomainStateResponse"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    macro_rates_state_api_macro_rates_get: {
+        parameters: {
+            query?: {
+                /** @description UTC calendar date; returns the state answering for that day-end. */
+                as_of?: string | null;
+                /** @description Timezone-aware instant to replay. */
+                as_of_ts?: string | null;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["MacroDomainStateResponse"];
                 };
             };
             /** @description Validation Error */

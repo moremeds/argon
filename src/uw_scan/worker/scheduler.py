@@ -54,6 +54,11 @@ from uw_scan.worker.jobs.gold_jobs import (
     gold_wgc_cb_ingest_job,
 )
 from uw_scan.worker.jobs.ohlc_pull import ohlc_pull_once
+from uw_scan.worker.jobs.macro_series_ingest import macro_fred_series_ingest_job
+from uw_scan.worker.jobs.macro_state_jobs import (
+    macro_inflation_state_job,
+    macro_rates_state_job,
+)
 from uw_scan.worker.jobs.macro_policy_jobs import (
     macro_fomc_statement_ingest_job,
     macro_market_implied_ingest_job,
@@ -1460,6 +1465,31 @@ def main() -> int:
             ),
         )
 
+    def _macro_series_ingest() -> None:
+        key = settings.fred_api_key
+        if key is None:
+            logger.warning("macro series ingest skipped: FRED_API_KEY is not set")
+            return
+        macro_fred_series_ingest_job(
+            dsn=settings.db_dsn(), api_key=key.get_secret_value()
+        )
+
+    def _macro_state_compute() -> None:
+        # One connection, both domains, in order: they share no state, but running them
+        # together keeps the pair's as_of within the same minute so a reader comparing
+        # inflation against rates is comparing two answers to the same question.
+        with _repo(settings) as repo:
+            for job in (macro_inflation_state_job, macro_rates_state_job):
+                result = job(repo)
+                logger.info(
+                    "macro state %s: %s state=%s confidence=%s evidence=%d",
+                    result.domain,
+                    result.status,
+                    result.state,
+                    result.confidence,
+                    result.evidence_count,
+                )
+
     def _pipeline_benchmark_snapshot() -> None:
         pipeline_benchmark_snapshot_job(settings)
 
@@ -2287,6 +2317,26 @@ def main() -> int:
                     CronTrigger.from_crontab("15 19 * * *", timezone=settings.rth_tz),
                     id="macro_market_shadow_ingest",
                     name="Macro: delayed third-party market policy shadow",
+                    max_instances=1,
+                    coalesce=True,
+                )
+            if settings.macro_series_ingest_enabled:
+                sched.add_job(
+                    _macro_series_ingest,
+                    CronTrigger.from_crontab("20 19 * * *", timezone=settings.rth_tz),
+                    id="macro_series_ingest",
+                    name="Macro: vintage-bearing FRED series evidence",
+                    max_instances=1,
+                    coalesce=True,
+                )
+            if settings.macro_state_compute_enabled:
+                # After every ingest above, and after them by enough that a slow SEP
+                # fetch cannot make tonight's state answer from yesterday's evidence.
+                sched.add_job(
+                    _macro_state_compute,
+                    CronTrigger.from_crontab("40 19 * * *", timezone=settings.rth_tz),
+                    id="macro_state_compute",
+                    name="Macro: inflation and policy/rates domain states",
                     max_instances=1,
                     coalesce=True,
                 )
