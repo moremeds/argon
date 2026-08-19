@@ -7,6 +7,9 @@ version in lockstep (enforced by `scripts/release/version_sync_check.py`).
 
 ## [Unreleased]
 
+## [0.12.8] — 2026-08-19
+
+
 ### Fixed
 
 - **A UW budget day that closed above the account guard silently disabled the
@@ -27,7 +30,6 @@ version in lockstep (enforced by `scripts/release/version_sync_check.py`).
   means anything, and it cannot inherit the carry-over. A stale-low read costs at
   most one extra call before the next snapshot, where the old behaviour cost a
   trading day.
-
 ## [0.12.7] — 2026-08-19
 
 
