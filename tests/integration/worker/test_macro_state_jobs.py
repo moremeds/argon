@@ -25,6 +25,7 @@ import psycopg
 import pytest
 
 from uw_scan.config import Settings
+from uw_scan.macro_evidence import macro_artifact_content_identity
 from uw_scan.storage.repository import Repository
 from uw_scan.worker.jobs.macro_policy_jobs import (
     macro_fomc_statement_ingest_job,
@@ -145,6 +146,70 @@ def _ingest_scenario(
 
 def _repo(conn: psycopg.Connection) -> Repository:
     return Repository(conn, schema="uw_scan")
+
+
+class TestRawEvidenceSurvivesAParseFailure:
+    """The bytes that broke the parser are the bytes needed to fix it.
+
+    Each series commits on its own, so with the artifact insert on the far side of
+    ``parse_fred_series`` a FRED schema change rolled back the exact payload that caused
+    the failure -- destroying the evidence on precisely the run where it is wanted, and
+    leaving the parser fix unverifiable against what broke it.
+
+    The payload below is a real CPIAUCSL vintage (January 2024, 309.685, first published
+    2024-02-13) with ``realtime_start`` dropped from one row: the shape a publisher
+    schema change actually takes, rather than corruption.
+    """
+
+    def _broken_payload(self) -> bytes:
+        return json.dumps(
+            {
+                "observations": [
+                    {
+                        "date": "2024-01-01",
+                        "value": "309.685",
+                        "realtime_start": "2024-02-13",
+                        "realtime_end": "2024-03-11",
+                    },
+                    {"date": "2024-02-01", "value": "310.326"},
+                ]
+            }
+        ).encode()
+
+    def test_the_artifact_is_committed_before_anything_is_parsed_from_it(
+        self, seeded_db_empty_cards
+    ) -> None:
+        settings = _settings()
+        raw = self._broken_payload()
+
+        result = macro_fred_series_ingest_job(
+            dsn=settings.db_dsn(),
+            api_key="unused-by-the-stub",
+            series=("CPIAUCSL",),
+            observed_at=CPI_FIXTURE_AS_OF,
+            provider_factory=lambda: _PayloadProvider({"CPIAUCSL": raw}),
+        )
+
+        assert result.failed_series == ("CPIAUCSL",)
+        assert result.observations_created == 0
+
+        expected_hash, expected_length = macro_artifact_content_identity(raw_bytes=raw)
+        with psycopg.connect(settings.db_dsn()) as conn:
+            row = conn.execute(
+                """
+                SELECT content_hash, content_length, raw_bytes, vintage_bearing
+                FROM uw_scan.macro_source_artifacts
+                WHERE source_record_id = 'fred-series:CPIAUCSL'
+                """
+            ).fetchone()
+        assert row is not None, (
+            "the payload that broke the parser was discarded; it is the only copy of "
+            "what FRED actually sent"
+        )
+        assert row[0] == expected_hash
+        assert row[1] == expected_length
+        assert bytes(row[2]) == raw
+        assert row[3] is True
 
 
 class TestFredSeriesIngest:

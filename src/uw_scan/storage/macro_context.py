@@ -16,6 +16,23 @@ from uw_scan.macro_evidence import (
 )
 
 
+#: The availability bound an artifact imposes on its own observations at READ time.
+#:
+#: A release gates the facts it carries: the FOMC statement became knowable when it went
+#: up, so nothing parsed out of it was knowable earlier.  A vintage-bearing artifact
+#: inverts that, exactly as migration 124 says on the write side -- an ALFRED payload
+#: fetched today REPORTS that January 2024 CPI was first published on 2024-02-13; it is
+#: not that publication.  Gating those rows on when we happened to fetch them re-imposes
+#: the rule 124 removed, and does it silently: every historical replay returns zero rows
+#: and the state abstains, which reads as missing data rather than as a broken query.
+#:
+#: The point-in-time gate does not weaken -- ``o.available_at <= as_of`` still applies to
+#: every row, and that column IS the vintage.  What is dropped is a second bound that
+#: only ever measured our fetch schedule.  Quality still gates unconditionally: a
+#: quarantined artifact takes its observations out of service however it was obtained.
+_ARTIFACT_AVAILABLE = "(a.vintage_bearing OR a.available_at <= %s)"
+
+
 class _MacroContextMixin:
     _conn: psycopg.Connection
     _schema: str
@@ -311,7 +328,7 @@ class _MacroContextMixin:
                   AND o.period_end = %s
                   AND o.available_at <= %s
                   AND o.quality_status IN ('valid', 'partial')
-                  AND a.available_at <= %s
+                  AND {_ARTIFACT_AVAILABLE}
                   AND a.quality_status IN ('valid', 'partial')
                 ORDER BY {rank_sql}, o.available_at DESC,
                          o.first_observed_at DESC, o.obs_id DESC
@@ -334,7 +351,7 @@ class _MacroContextMixin:
             "o.series_id = %s",
             "o.available_at <= %s",
             "o.quality_status IN ('valid', 'partial')",
-            "a.available_at <= %s",
+            _ARTIFACT_AVAILABLE,
             "a.quality_status IN ('valid', 'partial')",
         ]
         params: list[Any] = [series_id, as_of, as_of]
@@ -378,7 +395,7 @@ class _MacroContextMixin:
                 WHERE o.series_id = %s
                   AND o.available_at <= %s
                   AND o.quality_status IN ('valid', 'partial')
-                  AND a.available_at <= %s
+                  AND {_ARTIFACT_AVAILABLE}
                   AND a.quality_status IN ('valid', 'partial')
                 ORDER BY {rank_sql}, o.available_at DESC,
                          o.period_end DESC, o.first_observed_at DESC,

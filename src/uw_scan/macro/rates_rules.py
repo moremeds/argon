@@ -109,7 +109,16 @@ def year_end_rate(path: PolicyPath, year: int) -> Decimal | None:
     return max(dated, key=lambda point: point.horizon_date).rate_percent  # type: ignore[arg-type,return-value]
 
 
-def horizon_years(path: PolicyPath) -> list[int]:
+def horizon_years(path: PolicyPath, *, not_before: int | None = None) -> list[int]:
+    """Calendar years this path says something about, earliest first.
+
+    ``not_before`` drops years that have already ended.  A release keeps its horizons
+    after the calendar moves past them -- the December 2026 SEP still prints a 2026
+    year-end dot in January 2027 -- and the nearest horizon is what both the direction
+    vote and the spread comparison reach for.  Without the filter they reach for a
+    year whose answer is already known, and report a lean toward a level that has
+    either happened or not.
+    """
     years: list[int] = []
     for point in path.points:
         label = point.horizon.strip()
@@ -117,18 +126,24 @@ def horizon_years(path: PolicyPath) -> list[int]:
             years.append(int(label))
         elif point.horizon_date is not None:
             years.append(point.horizon_date.year)
-    return sorted(set(years))
+    return sorted({year for year in years if not_before is None or year >= not_before})
 
 
 def forward_spreads(
     by_kind: dict[PolicyPathKind, PolicyPath],
+    *,
+    not_before: int | None = None,
 ) -> tuple[int | None, dict[tuple[PolicyPathKind, PolicyPathKind], Decimal]]:
-    """Pairwise forward-path spreads in bps at the nearest common calendar horizon.
+    """Pairwise forward-path spreads in bps at the nearest common FUTURE horizon.
 
     The **actual** path is excluded. It is where rates are, not where they are going;
     including it would measure the distance from spot to a projection -- curve slope
     dressed up as disagreement -- and would fire on a committee and a market that agree
     perfectly about a coming move.
+
+    ``not_before`` is the year the comparison is being made in.  Without it the nearest
+    common horizon can be a year that has already ended, and two forecasts of a settled
+    year are not a disagreement about where rates are going.
     """
     forward = {
         kind: path
@@ -137,7 +152,9 @@ def forward_spreads(
     }
     if len(forward) < 2:
         return None, {}
-    common = set.intersection(*(set(horizon_years(path)) for path in forward.values()))
+    common = set.intersection(
+        *(set(horizon_years(path, not_before=not_before)) for path in forward.values())
+    )
     if not common:
         return None, {}
     horizon = min(common)
@@ -266,11 +283,14 @@ def _decomposition_rules(
     carries information is the gap between that modelled nominal and the yield the
     market actually traded.
     """
-    values = {
-        obs.series_id: obs.value
-        for obs in observations
-        if obs.causal_role == "decomposition_component"
-    }
+    # Selected by series id and NOT by causal role.  Both legs are named here
+    # explicitly, so filtering by role buys nothing -- and it once cost the rule its
+    # existence: ``RATES_EVIDENCE`` tags ``DGS10`` as ``curve``, deliberately and
+    # correctly, so a ``decomposition_component`` filter dropped the traded leg on
+    # every production run and the check could never fire no matter what else was
+    # ingested.  The unit fixture happened to tag ``DGS10`` with the role the filter
+    # wanted, so the rule read as covered while being unreachable.
+    values = {obs.series_id: obs.value for obs in observations}
     traded = values.get("DGS10")
     modelled = values.get("CLEVELAND_MODEL_NOMINAL_10Y")
     if traded is None or modelled is None:

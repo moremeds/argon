@@ -439,3 +439,132 @@ Two presentation bugs found by looking at the rendered output rather than the te
 the SEP header summed the columns to "71 dots", which reads as a participant count and
 is not one (it is now the per-horizon maximum, 18); and the dealer caption ran two
 sentences together without a space.
+
+## Task 10: review cycle before the PR
+
+Six passes over the whole branch diff (self-review → tribunal → adversarial → simplicity
+→ cumulative re-read → assumption verification). Gemini's CLI reports no valid license
+on this machine, so the tribunal ran **bilateral** — Codex plus Claude — not three-way.
+
+Three of the findings share one shape, and it is worth naming because the suite was green
+through all of them: **a check that cannot fire, and a test that proves it fires by
+building a world production never produces.**
+
+### The traded leg the reconciliation rule could never see
+
+`_decomposition_rules` selected observations by causal role and then looked its two legs
+up by series id:
+
+```python
+values = {obs.series_id: obs.value
+          for obs in observations if obs.causal_role == "decomposition_component"}
+traded = values.get("DGS10")
+```
+
+`RATES_EVIDENCE` tags `DGS10` as `curve` — deliberately, and `evidence_store.py`'s own
+docstring defends that choice. So `traded` was `None` on every production run and the
+Cleveland model-versus-market check could never fire, no matter what else was ingested.
+The unit fixture built `DGS10` with `causal_role="decomposition_component"`, so five
+tests passed against a tagging the evidence contract never assigns. Code, test and
+comment all agreed with each other; none agreed with production.
+
+The role filter bought nothing — both legs are named by id — and cost the rule its
+existence, so it is gone. The fixture now uses production's roles, and
+`test_the_traded_leg_is_read_under_the_role_production_assigns` asserts the contract
+directly, so a future re-tag fails here instead of going quiet. Reverting the fix under
+the corrected fixture fails 3 tests, which is the demonstration that the old green was
+empty.
+
+`evidence_store.py`'s stated reactivation condition was wrong in the same way — it named
+one prerequisite when there were two, the second contradicting its own tagging. Corrected.
+The inflation engine's `expectations_diverge_from_realized` rule is dormant for a related
+reason (no `REQUIRED` entry carries `expectations_market`); it now says so, names the
+exact condition that would wake it, and
+`test_no_required_series_carries_the_market_expectations_role` fails loudly when someone
+satisfies it.
+
+### Every historical replay returned nothing (Codex P1)
+
+The most serious finding, and the one that made the branch's headline claim false.
+
+A FRED series query is a rolling read, so its artifact's `available_at` is correctly the
+fetch time. Migration 124 exists precisely because those bytes *report* a publication
+history rather than *being* one, and it inverted the availability rule on the **write**
+side. The **read** side kept the release rule:
+
+```sql
+AND o.available_at <= %s          -- the vintage. correct.
+AND a.available_at <= %s          -- the fetch date. vetoes every replay.
+```
+
+Measured against the local store before the fix:
+
+| as_of | CPILFESL rows |
+|---|---|
+| today | 138 |
+| 2024-06-01 | **0** |
+| 2023-01-01 | **0** |
+
+Zero — not a wrong number, no rows at all, so the state job abstained and it read as
+missing data rather than as a broken query. The unit tests construct `DomainObservation`s
+directly and never traverse the artifact join, which is why nothing caught it.
+
+The bound is now `(a.vintage_bearing OR a.available_at <= %s)` at all three read sites.
+The point-in-time gate does not weaken: `o.available_at <= as_of` still applies to every
+row, and that column **is** the vintage. What was dropped is a second bound that only
+ever measured our own fetch schedule. Quality still gates unconditionally.
+
+After, against the same real data:
+
+| read at | Jan-2024 CPI | vintage |
+|---|---|---|
+| 2024-06-01 | **309.685** | 2024-02-13 |
+| today | **309.698** | 2026-02-13 |
+
+That is the CHANGELOG's headline sentence, true through the storage path for the first
+time. `test_a_vintage_bearing_artifact_does_not_gate_replay_on_its_fetch_time` pins it,
+and `test_a_release_artifact_still_gates_its_own_observations` is the control: relaxing
+the bound for vintage records must not relax it for releases.
+
+### The evidence was destroyed on exactly the run that needed it (Codex P2)
+
+`_ingest_series` parsed before inserting the artifact, and each series commits on its own,
+so a FRED schema change made `parse_fred_series` raise and the rollback discarded the
+exact bytes that caused the failure. Raw evidence is now written and committed before
+anything is parsed out of it — the standing rule, applied where it had been inverted.
+
+### A settled year is not a forecast (Codex P2)
+
+Both `forward_spreads` and `_direction` reach for the *nearest* horizon, and a release
+keeps its horizons after the calendar passes them: the December 2026 SEP still prints a
+2026 year-end dot in January 2027. So every January the direction vote read a year whose
+answer was already known and reported a lean toward a level that had either happened or
+not. This fires in live operation, not only in replay. `horizon_years` now takes a
+`not_before` floor and both callers pass `as_of.year`.
+
+### Also found
+
+- **`confidence.py` kept a second quality-weight table** disagreeing with `contracts.py`
+  on `invalid`/`quarantined` (0.5 versus 0). Safe today only because the point-in-time
+  SQL filters those rows three layers away. The shared table also raises on an
+  unrecognised status where the local copy silently priced it at half — the opposite of
+  the fail-closed rule this milestone is built on. One table now.
+- **The attribution's 30-day window could silently be 45.** `_value_at` walked back as
+  far as the loaded history allowed, so a publisher gap reported a 38-day move under a
+  30-day name. Bounded to a 7-day tolerance — past that the leg is unavailable, which the
+  attribution already knows how to say.
+- **`_policy_state` crashed on a whitespace-only action** (`"   ".split()[0]`), and
+  silently discarded an action word it did not recognise, inferring the state from target
+  ranges as though it had read the committee's sentence. The statement parser's vocabulary
+  is closed (Hold/Hike/Cut); the calendar scraper's is not. Both fixed, and an unread word
+  now travels in `notes`.
+- Cut: `PRODUCT_TERMS` (declared once, referenced nowhere); two byte-identical nullable
+  coercions in the chart components (now one `finiteOrNull` beside `toFiniteNumber`); and
+  `PolicyPathComparison` open-coding the set lookup `isWithheld` already is.
+
+### Deliberately not changed
+
+- `rates.py` is 503 lines against a 500-line target. Three lines over, one clear
+  responsibility; splitting it to make the number would be worse code than leaving it.
+- `_policy_state_summary` fetches evidence rows only to count them. A `COUNT(*)`
+  repository method is more code than it saves on a table this size.

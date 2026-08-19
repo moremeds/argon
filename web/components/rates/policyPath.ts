@@ -11,8 +11,9 @@ import type { PolicyPath, PolicyPathSlot } from "./types";
 
 //: A source kind that is not a real publisher can never be presented as one. It is
 //: representable in the contract, so the rejection is enforced at every render site
-//: rather than assumed away upstream.
-export const NON_PRODUCTION_SOURCE_KINDS = new Set(["mock", "static", "demo"]);
+//: rather than assumed away upstream -- through ``isWithheld`` and only through it, so
+//: the rule has one spelling instead of one per caller.
+const NON_PRODUCTION_SOURCE_KINDS = new Set(["mock", "static", "demo"]);
 
 export function isWithheld(path: PolicyPath): boolean {
   return NON_PRODUCTION_SOURCE_KINDS.has(path.source_kind);

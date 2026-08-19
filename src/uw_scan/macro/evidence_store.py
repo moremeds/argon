@@ -81,11 +81,12 @@ INFLATION_EVIDENCE: tuple[SeriesEvidenceContract, ...] = tuple(
 )
 
 #: The market half of the rates state.  ``DGS10`` is tagged ``curve`` because that is
-#: what it is; the Cleveland reconciliation rule reads ``decomposition_component`` and
-#: therefore stays dormant until ``CLEVELAND_MODEL_NOMINAL_10Y`` has an ingest of its
-#: own -- there is nothing to reconcile a traded yield against yet.  Supply, positioning
-#: and plumbing are absent for the same reason: no free vintage-bearing source for them
-#: is ingested, and the engine reports their absence rather than inventing them.
+#: what it is, and the Cleveland reconciliation rule looks its two legs up by series id
+#: rather than by role precisely so this tagging cannot mute it -- it stays dormant
+#: until ``CLEVELAND_MODEL_NOMINAL_10Y`` has an ingest of its own, and nothing else.
+#: There is nothing to reconcile a traded yield against yet.  Supply, positioning and
+#: plumbing are absent for the same reason: no free vintage-bearing source for them is
+#: ingested, and the engine reports their absence rather than inventing them.
 RATES_EVIDENCE: tuple[SeriesEvidenceContract, ...] = (
     _contract("DGS10", "curve"),
     _contract("DFII10", "decomposition_component"),

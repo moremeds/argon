@@ -16,20 +16,12 @@ from collections.abc import Sequence
 from decimal import Decimal
 
 from .contracts import (
+    QUALITY_WEIGHT,
     ConfidenceTerm,
     Contradiction,
     FactorState,
     MacroDomainState,
     clamp_unit,
-)
-
-#: Terms every state reports, in the order they multiply.
-PRODUCT_TERMS = (
-    "completeness",
-    "freshness",
-    "quality",
-    "revision_penalty",
-    "contradiction_penalty",
 )
 
 
@@ -54,12 +46,13 @@ def compute_confidence(
     completeness = Decimal(present) / Decimal(required) if required else Decimal(0)
     missing = sorted(set(required_series) - {factor.series_id for factor in factors})
 
-    # Weighted minimum, not a mean: one input that has gone quiet past its own cadence
+    # The minimum, not a mean: one input that has gone quiet past its own cadence
     # makes the whole state stale, and a mean lets several fresh inputs hide it.
     stalest = min(factors, key=lambda f: f.freshness) if factors else None
     freshness = stalest.freshness if stalest else Decimal(0)
     quality = (
-        sum((_quality_weight(f) for f in factors), Decimal(0)) / Decimal(present)
+        sum((QUALITY_WEIGHT[f.quality_status] for f in factors), Decimal(0))
+        / Decimal(present)
         if present
         else Decimal(0)
     )
@@ -154,7 +147,3 @@ def revised_series(
         and prior[factor.series_id].period_end == factor.period_end
         and prior[factor.series_id].value != factor.value
     )
-
-
-def _quality_weight(factor: FactorState) -> Decimal:
-    return Decimal("1.0") if factor.quality_status == "valid" else Decimal("0.5")

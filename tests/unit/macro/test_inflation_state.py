@@ -486,3 +486,27 @@ class TestSharedConfidenceContract:
         )
         penalty = next(r for r in reasons if r.term == "contradiction_penalty")
         assert penalty.value == DEFAULT_INFLATION_PARAMETERS.contradiction_penalty_cap
+
+
+class TestDormantRulesStateTheirOwnCondition:
+    """A rule that cannot fire must say so, and say exactly what would change that.
+
+    ``expectations_diverge_from_realized`` reads factors whose role is
+    ``expectations_market``. ``_factors`` only builds factors for series listed in
+    ``REQUIRED``, and no entry there carries that role -- so the rule is unreachable
+    today. That is deliberate: the design keeps survey expectations and market
+    compensation apart, and this rule is where the separation gets enforced once both
+    are present.
+
+    The failure this guards against is the one the rates domain actually shipped: a
+    dormant rule whose stated wake-up condition was wrong, so the person who satisfied
+    it got no rule and no warning.
+    """
+
+    def test_no_required_series_carries_the_market_expectations_role(self) -> None:
+        roles = {role for role, _cadence in REQUIRED.values()}
+        assert "expectations_market" not in roles, (
+            "A market-compensation series was added to REQUIRED. "
+            "expectations_diverge_from_realized in inflation.py can now fire -- give it "
+            "a scenario, and drop the dormancy comment above it."
+        )

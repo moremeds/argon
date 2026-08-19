@@ -20,6 +20,7 @@ from typing import Any
 import pytest
 
 from uw_scan.macro.contracts import DomainObservation
+from uw_scan.macro.evidence_store import RATES_EVIDENCE
 from uw_scan.macro.inflation import compute_inflation_state
 from uw_scan.macro.rates import (
     DEFAULT_RATES_PARAMETERS,
@@ -27,7 +28,7 @@ from uw_scan.macro.rates import (
     attribute_nominal_change,
     compute_rates_state,
 )
-from uw_scan.macro.rates_rules import forward_spreads, year_end_rate
+from uw_scan.macro.rates_rules import forward_spreads, horizon_years, year_end_rate
 from uw_scan.models.macro import PolicyPath, PolicyPathPoint
 
 FIXTURE = (
@@ -409,11 +410,18 @@ class TestSupplyPressure:
 
 
 def _decomposition(traded: str, modelled: str) -> list[DomainObservation]:
-    """Real Cleveland model output against the real traded yield for one month."""
+    """Real Cleveland model output against the real traded yield for one month.
+
+    The roles here are the ones ``RATES_EVIDENCE`` actually assigns, and that is the
+    point: the traded 10y is ``curve``, not ``decomposition_component``.  An earlier
+    fixture gave ``DGS10`` the role the rule filtered on, which made every case below
+    pass against a world production never produces -- the rule could not fire at all
+    on real evidence.
+    """
     return [
         DomainObservation(
             series_id=series_id,
-            causal_role="decomposition_component",
+            causal_role=role,
             period_end=date(2022, 4, 1),
             value=Decimal(value),
             unit="percent",
@@ -423,9 +431,14 @@ def _decomposition(traded: str, modelled: str) -> list[DomainObservation]:
             source_kind="official",
             cost_class="free_official",
         )
-        for series_id, value, source in (
-            ("DGS10", traded, "fred"),
-            ("CLEVELAND_MODEL_NOMINAL_10Y", modelled, "cleveland_fed"),
+        for series_id, role, value, source in (
+            ("DGS10", "curve", traded, "fred"),
+            (
+                "CLEVELAND_MODEL_NOMINAL_10Y",
+                "decomposition_component",
+                modelled,
+                "cleveland_fed",
+            ),
         )
     ]
 
@@ -467,6 +480,27 @@ class TestDecompositionReconciliation:
         )
         assert noisy.fired("decomposition_components_do_not_reconcile")
         assert DEFAULT_RATES_PARAMETERS.decomposition_tolerance_bps == Decimal("85")
+
+    def test_the_traded_leg_is_read_under_the_role_production_assigns(self) -> None:
+        """The rule must not depend on how the traded yield happens to be tagged.
+
+        ``RATES_EVIDENCE`` calls ``DGS10`` ``curve``.  A rule that only reads
+        ``decomposition_component`` therefore never sees it, which is how this check
+        spent its whole life unreachable while its tests were green.
+        """
+        assert {obs.causal_role for obs in _decomposition("2.39", "3.669")} == {
+            "curve",
+            "decomposition_component",
+        }
+        assert (
+            next(
+                contract.causal_role
+                for contract in RATES_EVIDENCE
+                if contract.series_id == "DGS10"
+            )
+            == "curve"
+        )
+        assert self._fired("2.39", "3.669")
 
     def test_a_missing_model_leg_raises_nothing(self) -> None:
         """Absence is not a reconciliation failure."""
@@ -582,6 +616,97 @@ class TestFailClosed:
             compute_rates_state(
                 doubled, as_of=_instant(SCENARIOS[PATHS_SCENARIO]["as_of"])
             )
+
+
+class TestExpiredHorizonsAreNotCompared:
+    """A horizon the calendar has passed is a settled question, not a forecast.
+
+    A release keeps its horizons after the year ends: the December 2026 SEP still
+    prints a 2026 year-end dot in January 2027. Both the direction vote and the spread
+    comparison reach for the NEAREST horizon, so without a floor they reach for the one
+    year whose answer is already known -- and report a lean toward a level that has
+    either happened or not. This fires every January in live operation, not only in
+    replay.
+    """
+
+    def _sep(self):
+        return next(path for path in _paths() if path.kind == "committee_projection")
+
+    def test_a_year_that_has_ended_drops_out_of_the_horizons(self) -> None:
+        sep = self._sep()
+        assert horizon_years(sep)[0] == 2026
+        assert horizon_years(sep, not_before=2026)[0] == 2026
+        assert horizon_years(sep, not_before=2027)[0] == 2027
+
+    def test_the_direction_vote_reads_the_nearest_future_horizon(self) -> None:
+        """Same release, one calendar year later, a different question asked of it."""
+        paths = _paths()
+        during = compute_rates_state(paths, as_of=_instant("2026-08-18"))
+        after = compute_rates_state(paths, as_of=_instant("2027-01-15"))
+        # The 2026 dot is what "during" leans on; by 2027-01-15 that year is settled and
+        # the vote must move to 2027 rather than re-reading a decided one.
+        assert during.direction != "UNKNOWN"
+        sep = self._sep()
+        assert year_end_rate(sep, 2026) != year_end_rate(sep, 2027)
+        assert after.velocity is not None
+
+    def test_a_common_horizon_entirely_in_the_past_is_no_common_horizon(self) -> None:
+        by_kind = {path.kind: path for path in _paths() if path.kind != "actual"}
+        horizon, _spreads = forward_spreads(by_kind, not_before=2026)
+        assert horizon == 2026
+        # The market snapshot only prices 2026 meetings, so a year later the two paths
+        # share nothing comparable -- which is the honest answer, not a stale spread.
+        later, spreads_later = forward_spreads(by_kind, not_before=2027)
+        assert later is None
+        assert spreads_later == {}
+
+
+class TestUnreadActionWord:
+    """An action word we cannot read must not pass as one we read.
+
+    The statement parser emits a closed vocabulary (Hold / Hike / Cut), so these cases
+    stand in for a *different* producer -- the calendar scraper, which lifts its action
+    text from the Fed's meeting-calendar HTML -- starting to say something new. The
+    rates below are the real frozen scenario values; only the action string is altered,
+    because a malformed release is what is being tested.
+    """
+
+    def _actual_with_action(self, action: str | None) -> list[PolicyPath]:
+        paths = _paths()
+        actual = next(path for path in paths if path.kind == "actual")
+        altered = actual.model_copy(
+            update={
+                "points": [
+                    point.model_copy(update={"action": action})
+                    for point in actual.points
+                ]
+            }
+        )
+        return [altered if path.kind == "actual" else path for path in paths]
+
+    def _state_for(self, action: str | None):
+        return compute_rates_state(
+            self._actual_with_action(action),
+            as_of=_instant(SCENARIOS[PATHS_SCENARIO]["as_of"]),
+        )
+
+    def test_a_blank_action_is_not_a_stated_one(self) -> None:
+        """A whitespace-only action used to crash on an empty ``split()``."""
+        blank = self._state_for("   ")
+        assert blank.state == self._state_for(None).state
+        assert not [note for note in blank.notes if "does not recognise" in note]
+
+    def test_an_unrecognised_action_is_reported_rather_than_discarded(self) -> None:
+        state = self._state_for("Recalibrate")
+        # One point means no target-range difference to fall back on, so the honest
+        # answer is that we do not know -- not a label inferred from a discarded word.
+        assert state.state == "INDETERMINATE"
+        assert any("'Recalibrate'" in note for note in state.notes)
+
+    def test_a_recognised_action_adds_no_note(self) -> None:
+        state = self._state_for("Hold")
+        assert state.state == "ON_HOLD"
+        assert not [note for note in state.notes if "does not recognise" in note]
 
 
 class TestHorizonResolution:

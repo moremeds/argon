@@ -228,8 +228,12 @@ def _ingest_series(
         raw_bytes=raw_bytes,
         retrieved_at=seen_at,
     )
-    observations = parse_fred_series(bundle)
-
+    # The artifact is written and COMMITTED before anything is parsed out of it.  A
+    # schema change on FRED's side makes ``parse_fred_series`` raise, and with the
+    # insert on the far side of that call the per-series rollback threw away the exact
+    # bytes that caused the failure -- destroying the evidence on precisely the run
+    # where it is needed, and making the parser fix unverifiable against the payload
+    # that broke it.  Raw evidence is preserved before it is interpreted, always.
     artifact = bundle.artifact
     artifact_id = repo.insert_macro_artifact(
         source=artifact.source,
@@ -248,6 +252,9 @@ def _ingest_series(
         vintage_bearing=artifact.vintage_bearing,
         raw_bytes=artifact.raw_bytes,
     )
+    conn.commit()
+
+    observations = parse_fred_series(bundle)
     outcome = repo.upsert_macro_series_observations(
         [
             _observation_row(observation, artifact_id=artifact_id, artifact=artifact)

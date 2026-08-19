@@ -38,6 +38,14 @@ logger = logging.getLogger(__name__)
 #: by the auction and index-rebalance calendar rather than by macro.
 ATTRIBUTION_WINDOW_DAYS = 30
 
+#: How far before the window's start a print may be and still open it.  These series
+#: publish every business day, so the only legitimate gaps are holidays -- a week covers
+#: the longest of them.  Without a floor the search walks back as far as the loaded
+#: history allows and quietly opens a "30-day" move at 45 days: the same number, over a
+#: different window, under the same name.  Past the floor the leg is simply unavailable,
+#: which the attribution already knows how to say.
+ATTRIBUTION_START_TOLERANCE_DAYS = 7
+
 
 @dataclass(frozen=True)
 class MacroStateJobResult:
@@ -176,9 +184,12 @@ def _attribution(
     not an attribution at all, and the engine has its own language for absence.
     """
     start_on = as_of.date() - timedelta(days=ATTRIBUTION_WINDOW_DAYS)
+    earliest = start_on - timedelta(days=ATTRIBUTION_START_TOLERANCE_DAYS)
     legs = {
         series_id: (
-            _value_at(observations, series_id, on_or_before=start_on),
+            _value_at(
+                observations, series_id, on_or_before=start_on, not_before=earliest
+            ),
             _latest_value(observations, series_id),
         )
         for series_id in ("DGS10", "DFII10", "T10YIE")
@@ -196,12 +207,16 @@ def _attribution(
 
 
 def _value_at(
-    observations: tuple[DomainObservation, ...], series_id: str, *, on_or_before: date
+    observations: tuple[DomainObservation, ...],
+    series_id: str,
+    *,
+    on_or_before: date,
+    not_before: date,
 ) -> Decimal | None:
     candidates = [
         obs
         for obs in observations
-        if obs.series_id == series_id and obs.period_end <= on_or_before
+        if obs.series_id == series_id and not_before <= obs.period_end <= on_or_before
     ]
     if not candidates:
         return None

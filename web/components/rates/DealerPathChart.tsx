@@ -1,5 +1,5 @@
 import styles from "./RatesDesk.module.css";
-import { toFiniteNumber } from "./format";
+import { finiteOrNull, toFiniteNumber } from "./format";
 import { plottable, releaseDate } from "./policyPath";
 import type { MacroPolicyPathPoint, PolicyPathSlot } from "./types";
 
@@ -43,21 +43,15 @@ export function shortHorizon(horizon: string): string {
   return horizon;
 }
 
-function numberOrNull(value: unknown): number | null {
-  if (value == null) return null;
-  const n = toFiniteNumber(value, Number.NaN);
-  return Number.isFinite(n) ? n : null;
-}
-
 function toRows(points: MacroPolicyPathPoint[]): Row[] {
   return points
     .map((point, index) => ({
       index,
       horizon: point.horizon,
       median: toFiniteNumber(point.rate_percent, Number.NaN),
-      p25: numberOrNull(point.p25_percent),
-      p75: numberOrNull(point.p75_percent),
-      respondents: numberOrNull(point.respondent_count),
+      p25: finiteOrNull(point.p25_percent),
+      p75: finiteOrNull(point.p75_percent),
+      respondents: finiteOrNull(point.respondent_count),
     }))
     .filter((row) => Number.isFinite(row.median));
 }

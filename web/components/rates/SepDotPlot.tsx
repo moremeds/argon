@@ -1,5 +1,5 @@
 import styles from "./RatesDesk.module.css";
-import { toFiniteNumber } from "./format";
+import { finiteOrNull, toFiniteNumber } from "./format";
 import { plottable, releaseDate } from "./policyPath";
 import type { MacroPolicyPathPoint, PolicyPathSlot } from "./types";
 
@@ -58,9 +58,9 @@ export function SepDotPlot({
   const values = columns.flatMap((column) => [
     ...column.dots.map((dot) => dot.rate),
     ...[
-      point_(column.point.rate_percent),
-      point_(column.point.central_tendency_lower_percent),
-      point_(column.point.central_tendency_upper_percent),
+      finiteOrNull(column.point.rate_percent),
+      finiteOrNull(column.point.central_tendency_lower_percent),
+      finiteOrNull(column.point.central_tendency_upper_percent),
     ].filter((n): n is number => n != null),
   ]);
 
@@ -150,9 +150,9 @@ export function SepDotPlot({
 
           {columns.map((column, index) => {
             const cx = xFor(index);
-            const lower = point_(column.point.central_tendency_lower_percent);
-            const upper = point_(column.point.central_tendency_upper_percent);
-            const median = point_(column.point.rate_percent);
+            const lower = finiteOrNull(column.point.central_tendency_lower_percent);
+            const upper = finiteOrNull(column.point.central_tendency_upper_percent);
+            const median = finiteOrNull(column.point.rate_percent);
             const half = colW * 0.36;
             return (
               <g key={`${column.point.horizon}:${index}`}>
@@ -241,10 +241,4 @@ export function SepDotPlot({
       </p>
     </div>
   );
-}
-
-function point_(value: unknown): number | null {
-  if (value == null) return null;
-  const n = toFiniteNumber(value, Number.NaN);
-  return Number.isFinite(n) ? n : null;
 }

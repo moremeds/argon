@@ -38,7 +38,12 @@ Direction = MacroDirection
 #: Defined in ``uw_scan.models.macro`` so the engine and the API contract cannot drift.
 CausalRole = MacroCausalRole
 
-_QUALITY_WEIGHT: dict[MacroQualityStatus, Decimal] = {
+#: How much a reading counts toward a state's quality term.  One table, shared by the
+#: observation and the confidence engine: two copies drift, and the copy that drifts is
+#: the one that silently prices an input the store meant to take out of service.  A
+#: status outside this table raises rather than defaulting, because an unrecognised
+#: quality label is exactly the thing that must not be quietly assigned a weight.
+QUALITY_WEIGHT: dict[MacroQualityStatus, Decimal] = {
     "valid": Decimal("1.0"),
     "partial": Decimal("0.5"),
     "invalid": Decimal("0"),
@@ -78,7 +83,7 @@ class DomainObservation:
 
     @property
     def quality_weight(self) -> Decimal:
-        return _QUALITY_WEIGHT[self.quality_status]
+        return QUALITY_WEIGHT[self.quality_status]
 
 
 @dataclass(frozen=True)

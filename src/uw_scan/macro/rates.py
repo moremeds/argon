@@ -151,9 +151,9 @@ def compute_rates_state(
     factors = _policy_factors(
         by_kind, as_of=as_of, parameters=parameters
     ) + _market_factors(eligible, as_of=as_of, parameters=parameters)
-    horizon, spreads = forward_spreads(by_kind)
-    state = _policy_state(by_kind.get("actual"))
-    direction = _direction(by_kind, parameters=parameters)
+    horizon, spreads = forward_spreads(by_kind, not_before=as_of.year)
+    state, unread_action = _policy_state(by_kind.get("actual"))
+    direction = _direction(by_kind, as_of=as_of, parameters=parameters)
     contradictions = policy_contradictions(
         by_kind,
         eligible,
@@ -225,7 +225,8 @@ def compute_rates_state(
         notes=(
             "curve steepness is reported as steepness; the only term-premium figure in "
             "this domain comes from the Cleveland Fed's estimated model",
-        ),
+        )
+        + ((unread_action,) if unread_action else ()),
     )
 
 
@@ -353,30 +354,52 @@ def _market_factors(
     return tuple(out)
 
 
-def _policy_state(actual: PolicyPath | None) -> RatesStateLabel:
-    """What the committee has done, which is a published fact rather than a view."""
+def _policy_state(actual: PolicyPath | None) -> tuple[RatesStateLabel, str | None]:
+    """What the committee has done, which is a published fact rather than a view.
+
+    Returns the label and, when the release said something this engine could not read,
+    a note saying so.  An action word we do not recognise is not the same as no action
+    word: falling silently through to the rate difference would report a state as if it
+    had been read off the committee's own sentence when in fact that sentence was
+    discarded.  The statement parser's own vocabulary is closed -- Hold, Hike, Cut --
+    so this can only fire on a producer that has started saying something new, which is
+    exactly when the operator needs to hear about it.
+    """
     if actual is None:
-        return "INDETERMINATE"
+        return "INDETERMINATE", None
     points = sorted(
         actual.points, key=lambda point: point.horizon_date or date.min, reverse=True
     )
-    stated = next((point.action for point in points if point.action), None)
-    if stated:
-        mapped = _ACTION_STATE.get(stated.strip().lower().split()[0])
+    # ``point.action`` is truthy for a whitespace-only string, whose ``split()`` is
+    # empty -- indexing that was a crash, and a blank action is not a stated one.
+    stated = next(
+        (point.action.strip() for point in points if (point.action or "").strip()),
+        None,
+    )
+    unread: str | None = None
+    if stated is not None:
+        mapped = _ACTION_STATE.get(stated.lower().split()[0])
         if mapped is not None:
-            return mapped
+            return mapped, None
+        unread = (
+            f"{actual.source} stated the action as {stated!r}, which this engine does "
+            "not recognise; the state below was inferred from the target ranges instead"
+        )
     if len(points) >= 2:
         move = points[0].rate_percent - points[1].rate_percent
         if move > 0:
-            return "TIGHTENING"
+            return "TIGHTENING", unread
         if move < 0:
-            return "EASING"
-        return "ON_HOLD"
-    return "INDETERMINATE"
+            return "EASING", unread
+        return "ON_HOLD", unread
+    return "INDETERMINATE", unread
 
 
 def _direction(
-    by_kind: dict[PolicyPathKind, PolicyPath], *, parameters: RatesParameters
+    by_kind: dict[PolicyPathKind, PolicyPath],
+    *,
+    as_of: datetime,
+    parameters: RatesParameters,
 ) -> Direction:
     """Where the load-bearing forward paths agree rates are going.
 
@@ -393,7 +416,7 @@ def _direction(
         path = by_kind.get(kind)
         if path is None:
             continue
-        for year in horizon_years(path):
+        for year in horizon_years(path, not_before=as_of.year):
             rate = year_end_rate(path, year)
             if rate is None:
                 continue

@@ -1,6 +1,6 @@
 import styles from "./RatesDesk.module.css";
 import { fmtValue, toFiniteNumber } from "./format";
-import { NON_PRODUCTION_SOURCE_KINDS, releaseDate } from "./policyPath";
+import { isWithheld, releaseDate } from "./policyPath";
 import type {
   MacroPolicyPathPoint,
   PolicyComparison,
@@ -216,7 +216,7 @@ function Lane({
 }) {
   const path = slot?.path ?? null;
   const rejected =
-    path != null && NON_PRODUCTION_SOURCE_KINDS.has(path.source_kind);
+    path != null && isWithheld(path);
 
   return (
     <article

@@ -410,6 +410,14 @@ def _contradictions(
         )
 
     survey = by_series.get(SURVEY_EXPECTATIONS)
+    # Dormant, and the condition for waking it is exact: ``_factors`` only builds a
+    # factor for a series listed in ``REQUIRED``, so a market-compensation series has
+    # to be added THERE with the ``expectations_market`` role before this can fire.
+    # Ingesting the series is not enough -- ``T10YIE`` is already ingested and reaches
+    # the rates domain as a ``decomposition_component``, which this rule must not and
+    # does not read.  Kept rather than deleted because the design separates survey
+    # expectations from market compensation deliberately, and the rule is where that
+    # separation is enforced once both are present.
     market = [
         factor for factor in factors if factor.causal_role == "expectations_market"
     ]
