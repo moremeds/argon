@@ -91,7 +91,14 @@ def may_spend(pool: Pool, snap: BudgetSnapshot, limits: BudgetLimits) -> bool:
 
 
 def bucket_spend(rows: Iterable[tuple[str | None, int, int | None]]) -> BudgetSnapshot:
-    """Fold (job_name, call_count, account_count) rows into a pool snapshot."""
+    """Fold (job_name, call_count, account_count) rows into a pool snapshot.
+
+    Every row is expected to carry the SAME account counter — `read_snapshot`
+    selects the latest reading once and repeats it per group, so the max-fold
+    below is just a null-tolerant pick. Do not "simplify" that back into a
+    `MAX(official_daily_count)` in SQL: see `read_snapshot` for the day-boundary
+    carry-over that cost a full trading day of scans.
+    """
     live = 0
     research = 0
     account: int | None = None
@@ -118,18 +125,34 @@ def _utc_day_start(now_utc: datetime) -> datetime:
 def read_snapshot(
     conn, schema: str, *, now_utc: datetime | None = None
 ) -> BudgetSnapshot:
-    """Read today's (UTC-day) UW spend grouped into pools from telemetry."""
+    """Read today's (UTC-day) UW spend grouped into pools from telemetry.
+
+    The account counter is the LATEST reading, never `MAX()` over the day. UW's
+    counter resets a beat after 00:00 UTC, so the first requests of a new budget
+    day still carry the previous day's tail — 2026-08-18 recorded twelve rows at
+    110204..110214 before dropping to 1 at 00:00:04.227Z. A `MAX()` pins those
+    for the next 24h, and since `may_spend` halts EVERY pool at `total_guard`,
+    one day closing above the guard silently disabled the whole next day (08-18
+    lost all 16 of its full scans). The counter is monotone inside a day, so the
+    latest reading is the max that matters and is immune to the carry-over; a
+    stale-low read merely costs one extra call before the next snapshot.
+    """
     day_start = _utc_day_start(now_utc or datetime.now(timezone.utc))
     with conn.cursor() as cur:
         cur.execute(
             f"""
             SELECT job_name, COUNT(*)::bigint AS n,
-                   MAX(official_daily_count) AS acct
+                   (SELECT official_daily_count
+                      FROM {schema}.external_api_requests
+                     WHERE provider = 'uw' AND request_started_at >= %s
+                       AND official_daily_count IS NOT NULL
+                     ORDER BY request_started_at DESC
+                     LIMIT 1) AS acct
             FROM {schema}.external_api_requests
             WHERE provider = 'uw' AND request_started_at >= %s
             GROUP BY job_name
             """,
-            (day_start,),
+            (day_start, day_start),
         )
         rows = [(r[0], int(r[1]), r[2]) for r in cur.fetchall()]
     return bucket_spend(rows)

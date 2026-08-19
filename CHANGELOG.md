@@ -7,6 +7,27 @@ version in lockstep (enforced by `scripts/release/version_sync_check.py`).
 
 ## [Unreleased]
 
+### Fixed
+
+- **A UW budget day that closed above the account guard silently disabled the
+  entire next day.** UW's `official_daily_count` resets a beat *after* 00:00 UTC,
+  so the first requests of a new budget day still carry the previous day's tail —
+  on 2026-08-18 twelve rows recorded 110204..110214 before the counter dropped to
+  1 at `00:00:04.227Z`. `read_snapshot` took `MAX(official_daily_count)` over the
+  UTC day, which pinned 110214 for the next 24 hours, and `may_spend` halts
+  **every** pool once the account counter reaches `total_guard` (105000). The
+  result was a full-day outage that looked like ordinary budget pressure:
+  `full_scan` made **zero** UW calls all of 08-18, `regime_gex_scan` logged
+  "research UW budget exhausted" from open to close, and `/api/health` reported
+  `ok: false` with "16 expected full scans missed". It also self-obscured — the
+  starved day then closed far below the guard, so the following day recovered on
+  its own and the fault read as intermittent rather than as a stuck gate. The
+  account counter is now the **latest** reading rather than the day's maximum:
+  it is monotone within a budget day, so the newest row is the only maximum that
+  means anything, and it cannot inherit the carry-over. A stale-low read costs at
+  most one extra call before the next snapshot, where the old behaviour cost a
+  trading day.
+
 ## [0.12.7] — 2026-08-19
 
 
