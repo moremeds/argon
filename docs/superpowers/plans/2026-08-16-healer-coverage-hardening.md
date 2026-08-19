@@ -105,8 +105,8 @@ The plan's completeness claim, stated so it can be falsified — and asserted as
 
 | bucket | count | disposition |
 |---|---|---|
-| `research_artifact` / `provenance` / `excluded` / `operational_state` | 60 | existence-only by design — nothing to heal |
-| `equity_session` / `daily` | 58 | Tasks 1–8 (detailed below) |
+| `research_artifact` / `provenance` / `excluded` / `operational_state` | 59 | existence-only by design — nothing to heal |
+| `equity_session` / `daily` | 59 | Tasks 1–8 (detailed below), +1 post-plan (see below) |
 | weekly / monthly / event / liveness | 25 | Task 10 — 6 already wired, 3 fundamentals wired for free, 13 liveness + 3 external given **dated** refusals |
 
 Tasks 1–8 originally scoped only the 58. That was a stated boundary, not full coverage: of the other 25, **19 had no adapter and 13 had a completely empty `reason`** — undocumented refusals of exactly the kind that proved false eight times in Tasks 4–6. Task 10 closes that, and widens the `test_every_refusal_is_dated` gate to every cadence so it cannot reopen.
@@ -148,6 +148,18 @@ execution rather than planned:
 
 The 27 dated refusals include the 15 options-chain tables Task 7 would wire;
 until round 1 ships they are honestly refused rather than silently uncovered.
+
+**Post-plan amendment, 2026-08-18 — scope 58 → 59.** `spx_density_forecast`
+moved out of `research_artifact` into `freshness_only`/`run_once_lookback` with
+a `spx_density_reconstruct` adapter, so it left the existence-only bucket (60 →
+59) and entered the daily scope (58 → 59): **32 wired + 27 dated refusals**. The
+plan classed it existence-only on the reasoning that a *prospective* forecast
+cannot be recreated for a past date. True, and not the whole question — what a
+heal writes is `origin='reconstructed'`, a separate in-sample tally, so filling
+the gap was always legitimate; only *relabelling a forward-issued row* is
+forbidden, and `select_sessions` is what forbids it. The trigger was
+`2026-08-14` going missing during the 08-11..14 outage with no mechanism able to
+reach it.
 
 | task | datasets it makes healable |
 |---|---|

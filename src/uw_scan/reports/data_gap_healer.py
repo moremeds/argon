@@ -375,22 +375,28 @@ REGISTRY: list[DatasetRegistryEntry] = [
     DatasetRegistryEntry(
         "spx_density_forecast",
         "regime_marketwide",
-        # research_artifact, not strict_session: a prospective forecast for a past
-        # date cannot be healed retroactively BY DEFINITION -- a healed row would be
-        # origin='reconstructed', which the backfill script owns explicitly.
-        "research_artifact",
+        # freshness_only, not strict_session: a PROSPECTIVE cone for a past date cannot
+        # be recreated retroactively -- what the healer writes is origin='reconstructed',
+        # a separate in-sample tally. Healing the gap is legitimate; relabelling a
+        # forward-issued row is not, and select_sessions is what forbids it.
+        "freshness_only",
         date_col="as_of",
         ticker_col=None,
         expected_frequency="equity_session",
         provider="db",
-        granularity="none",
-        healer_adapter=None,
+        granularity="run_once_lookback",
+        healer_adapter="spx_density_reconstruct",
         source_system="derived",
         reason=(
-            "Display-only v13 density cone shadow log. Prospective rows are "
-            "forward-in-time only; historical fill is origin='reconstructed' via "
+            "worker/jobs/spx_density_forecast.reconstruct_recent_gaps(conn, schema, "
+            "lookback_days=) re-derives missing cones from vol_index_daily at zero "
+            "provider cost -- same shape as CRI/VCG/canary. The issue pass anchors only "
+            "the freshest bar, so a session it skipped is unreachable from that pass "
+            "forever (2026-08-14). Writes origin='reconstructed' and never over a "
+            "prospective row; deeper seeding stays with "
             "scripts/backfill/spx_density_backfill.py."
         ),
+        reason_verified_on=date(2026, 8, 18),
     ),
     DatasetRegistryEntry(
         "market_tide_snapshots",
