@@ -1,3 +1,4 @@
+import { PolicyPathComparison } from "./PolicyPathComparison";
 import { RatesCurveChart } from "./RatesCurveChart";
 import styles from "./RatesDesk.module.css";
 import { RatesScorecard } from "./RatesScorecard";
@@ -6,10 +7,12 @@ import { fmtSigned, fmtValue, statusLabel, toFiniteNumber } from "./format";
 import { DecompositionSection } from "./sections/DecompositionSection";
 import { PolicySection } from "./sections/PolicySection";
 import { PositioningSection } from "./sections/PositioningSection";
+import { StateSection } from "./sections/StateSection";
 import { SupplySection } from "./sections/SupplySection";
 import type {
   Decomposition,
   Policy,
+  PolicyComparison,
   Positioning,
   Scorecard,
   SlopeMetric,
@@ -19,6 +22,8 @@ import type {
 } from "./types";
 
 const NAV = [
+  ["state", "State"],
+  ["paths", "Policy Paths"],
   ["summary", "Summary"],
   ["curve", "Curve"],
   ["decomp", "Decomp"],
@@ -195,7 +200,7 @@ function SummaryStances({
   synthesis: Snapshot["synthesis"];
 }) {
   return (
-    <div className={styles.stanceGrid}>
+    <div className={styles.stanceGrid} data-testid="legacy-stance-grid">
       <StanceCard
         label="Duration stance"
         kind="duration"
@@ -254,9 +259,13 @@ function slopeInterpretation(slope: SlopeMetric): string {
 export function RatesDesk({
   snapshot,
   errorMessage,
+  policyComparison,
+  policyComparisonError,
 }: {
   snapshot: Snapshot | null;
   errorMessage?: string;
+  policyComparison?: PolicyComparison | null;
+  policyComparisonError?: string;
 }) {
   if (!snapshot) {
     const hasError = Boolean(errorMessage);
@@ -291,8 +300,10 @@ export function RatesDesk({
     status: "missing",
   }) as Positioning;
   const cross = snapshot.cross_market;
+  // UNKNOWN, not NEUTRAL: an absent scorecard is the absence of a view, and
+  // "NEUTRAL" is a view.
   const scorecard = snapshot.scorecard ?? {
-    duration_stance: "NEUTRAL",
+    duration_stance: "UNKNOWN",
     curve_stance: "NEUTRAL",
     groups: [],
   };
@@ -326,6 +337,25 @@ export function RatesDesk({
         </nav>
       </header>
 
+      <RatesSection
+        id="state"
+        title="Policy / Rates State"
+        eyebrow="Point-in-time evidence"
+      >
+        <StateSection state={snapshot.state} />
+      </RatesSection>
+
+      <RatesSection
+        id="paths"
+        title="Policy Paths"
+        eyebrow="Four publishers, never averaged"
+      >
+        <PolicyPathComparison
+          comparison={policyComparison}
+          errorMessage={policyComparisonError}
+        />
+      </RatesSection>
+
       <RatesSection id="summary" title="Summary" eyebrow="Live FRED curve">
         <div className={styles.summaryStack}>
           <div className={styles.kpiGrid}>
@@ -333,6 +363,10 @@ export function RatesDesk({
               <Tile key={tile.label} tile={tile} />
             ))}
           </div>
+          <p className={styles.legacyBanner}>
+            Experimental legacy · the stances below come from the rule score, not
+            from the state above.
+          </p>
           <SummaryStances
             scorecard={scorecard}
             synthesis={snapshot.synthesis}
@@ -367,7 +401,12 @@ export function RatesDesk({
         slopes={curve.slopes ?? []}
       />
 
-      <RatesSection id="scorecard" title="Scorecard" eyebrow="Rule weights">
+      <RatesSection
+        id="scorecard"
+        title="Scorecard"
+        eyebrow="Rule weights"
+        status="Experimental legacy"
+      >
         <RatesScorecard scorecard={scorecard} />
       </RatesSection>
 

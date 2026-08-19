@@ -8,10 +8,22 @@ import { fmtSigned, toFiniteNumber } from "./format";
 
 type Scorecard = components["schemas"]["RatesScorecard"];
 
-function stance(score: number): string {
-  if (score >= 0.5) return "BUY duration";
-  if (score <= -0.5) return "SELL duration";
-  return "NEUTRAL duration";
+// The composite is the server's, or it does not exist.
+//
+// This component used to renormalise the weights itself and fall back to 0 when every
+// group was missing, which then rendered as "NEUTRAL duration" -- a confident verdict
+// manufactured out of nothing. The server already decides both the composite and
+// whether coverage is high enough to take a stance, so the client's job is to print
+// what it decided, including the refusal.
+
+function fmtComposite(score: number | null): string {
+  return score == null ? "n/a" : fmtSigned(score, "", 2);
+}
+
+function fmtCoverage(coverage: number | null | undefined): string | null {
+  const n = toFiniteNumber(coverage, Number.NaN);
+  if (!Number.isFinite(n)) return null;
+  return `${(n * 100).toFixed(0)}% of weight scored`;
 }
 
 export function RatesScorecard({ scorecard }: { scorecard: Scorecard }) {
@@ -20,32 +32,43 @@ export function RatesScorecard({ scorecard }: { scorecard: Scorecard }) {
     Object.fromEntries(groups.map((group) => [group.id, true])),
   );
 
-  const composite = useMemo(() => {
-    if (scorecard.composite_score != null) {
-      return toFiniteNumber(scorecard.composite_score, 0);
-    }
-    let weighted = 0;
-    let total = 0;
-    for (const group of groups) {
-      if (group.status === "missing") continue;
-      const weight = Math.max(0, toFiniteNumber(group.weight));
-      const score = toFiniteNumber(group.score, 0);
-      weighted += weight * score;
-      total += weight;
-    }
-    return total > 0 ? weighted / total : 0;
-  }, [groups, scorecard.composite_score]);
+  const composite =
+    scorecard.composite_score == null
+      ? null
+      : toFiniteNumber(scorecard.composite_score, Number.NaN);
+  const coverage = fmtCoverage(scorecard.coverage);
 
   return (
-    <div className={styles.scorecard}>
+    <div className={styles.scorecard} data-testid="rates-scorecard">
+      {/* Dual-read: this rule score predates the state engine and is kept only so its
+          history stays readable. It is not the contract the desk answers with. */}
+      <p className={styles.legacyBanner} data-testid="scorecard-legacy-banner">
+        Experimental legacy · superseded by the policy / rates state above. Kept
+        visible during dual-read; not a decision surface.
+      </p>
+
       <div className={styles.scoreHero}>
         <div>
           <p className={styles.eyebrow}>Duration Composite</p>
-          <strong data-testid="duration-score">{fmtSigned(composite, "", 2)}</strong>
+          <strong data-testid="duration-score">
+            {fmtComposite(composite)}
+          </strong>
         </div>
-        <span className={styles.stance}>{stance(composite)}</span>
+        <span className={styles.stance} data-testid="duration-stance">
+          {scorecard.duration_stance} duration
+        </span>
         <span className={styles.stance}>Curve {scorecard.curve_stance}</span>
       </div>
+
+      {composite == null || scorecard.duration_stance === "UNKNOWN" ? (
+        <p className={styles.stateEmptyNote} data-testid="scorecard-no-score">
+          {scorecard.coverage_detail ??
+            "Not enough scored groups to compute a composite."}{" "}
+          No duration stance is taken.
+        </p>
+      ) : coverage ? (
+        <p className={styles.stateEmptyNote}>{coverage}</p>
+      ) : null}
 
       <div className={styles.scoreGroups}>
         {groups.map((group) => {
@@ -60,13 +83,21 @@ export function RatesScorecard({ scorecard }: { scorecard: Scorecard }) {
                     setOpen((prev) => ({ ...prev, [group.id]: !isOpen }))
                   }
                 >
-                  {isOpen ? <ChevronDown size={16} /> : <ChevronRight size={16} />}
+                  {isOpen ? (
+                    <ChevronDown size={16} />
+                  ) : (
+                    <ChevronRight size={16} />
+                  )}
                   {group.label}
                 </button>
                 <span className={styles.staticWeight}>
                   Weight {toFiniteNumber(group.weight).toFixed(2)}
                 </span>
-                <span className={styles.groupScore}>{fmtSigned(group.score, "", 2)}</span>
+                <span className={styles.groupScore}>
+                  {group.status === "missing"
+                    ? "unscored"
+                    : fmtSigned(group.score, "", 2)}
+                </span>
               </div>
               {isOpen ? (
                 <div className={styles.factorList}>

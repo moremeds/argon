@@ -1304,3 +1304,306 @@
     grid-template-columns: repeat(2, minmax(0, 1fr));
   }
 }
+
+/* ---- Point-in-time domain state (MC2) ---------------------------------- */
+
+.stateBlock {
+  display: grid;
+  gap: 16px;
+}
+
+.stateHero {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: space-between;
+  align-items: flex-start;
+  gap: 20px;
+  padding-bottom: 14px;
+  border-bottom: 1px solid var(--border-dim);
+}
+
+.stateHeadline {
+  display: grid;
+  gap: 6px;
+}
+
+.stateHeadline strong {
+  font-family: var(--font-mono), "IBM Plex Mono", monospace;
+  font-size: 30px;
+  letter-spacing: 0.5px;
+  color: var(--text-primary);
+}
+
+.stateDirection {
+  font-family: var(--font-mono), "IBM Plex Mono", monospace;
+  font-size: 12px;
+  letter-spacing: 1.5px;
+  text-transform: uppercase;
+}
+
+.stateMeta {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 22px;
+  margin: 0;
+}
+
+.stateMeta dt,
+.stateRows dt,
+.stateFooter,
+.stateEmptyNote,
+.legacyBanner,
+.pathIntro,
+.pathQuestion,
+.pathProvenance,
+.pathFreshness,
+.pathNote,
+.pathSourceKind {
+  font-family: var(--font-mono), "IBM Plex Mono", monospace;
+  font-size: 10px;
+  letter-spacing: 1.5px;
+  text-transform: uppercase;
+  color: var(--text-muted);
+}
+
+.stateMeta dd {
+  margin: 4px 0 0;
+  font-family: var(--font-mono), "IBM Plex Mono", monospace;
+  font-size: 16px;
+  color: var(--text-primary);
+}
+
+.stateColumns {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(260px, 1fr));
+  gap: 14px;
+}
+
+.statePanel {
+  border: 1px solid var(--border-dim);
+  border-radius: 4px;
+  padding: 14px;
+}
+
+.statePanel h3 {
+  font-size: 13px;
+  margin: 0 0 10px;
+  color: var(--text-secondary);
+}
+
+.stateRows {
+  display: grid;
+  gap: 10px;
+  margin: 0;
+}
+
+.stateRows div {
+  display: grid;
+  gap: 3px;
+}
+
+.stateRows dt small {
+  display: block;
+  text-transform: none;
+  letter-spacing: 0.5px;
+  color: var(--text-muted);
+}
+
+.stateRows dd {
+  margin: 0;
+  font-size: 13px;
+  color: var(--text-primary);
+}
+
+.stateContradictions {
+  list-style: none;
+  display: grid;
+  gap: 8px;
+  margin: 0;
+  padding: 0;
+}
+
+.stateContradictions li {
+  display: grid;
+  gap: 3px;
+  padding: 8px 10px;
+  border-left: 2px solid var(--warning);
+  background: rgba(233, 168, 62, 0.06);
+  font-size: 13px;
+  color: var(--text-primary);
+}
+
+.stateContradictions strong {
+  font-family: var(--font-mono), "IBM Plex Mono", monospace;
+  font-size: 10px;
+  letter-spacing: 1.5px;
+  text-transform: uppercase;
+  color: var(--warning);
+}
+
+.stateNotes {
+  list-style: none;
+  display: grid;
+  gap: 6px;
+  margin: 0;
+  padding: 0;
+  font-size: 13px;
+  color: var(--text-secondary);
+}
+
+.stateEmptyNote {
+  text-transform: none;
+  letter-spacing: 0.3px;
+  font-size: 12px;
+  line-height: 1.5;
+}
+
+.stateFooter a {
+  color: var(--accent-bg);
+}
+
+.stateMissing {
+  display: grid;
+  gap: 6px;
+  padding: 18px;
+  border: 1px dashed var(--border-dim);
+  border-radius: 4px;
+}
+
+.stateMissing strong {
+  font-family: var(--font-mono), "IBM Plex Mono", monospace;
+  font-size: 18px;
+  color: var(--text-secondary);
+}
+
+.stateMissing p {
+  font-size: 13px;
+  color: var(--text-muted);
+  line-height: 1.5;
+  margin: 0;
+}
+
+.legacyBanner {
+  text-transform: none;
+  letter-spacing: 0.3px;
+  font-size: 11px;
+  padding: 7px 10px;
+  border: 1px dashed var(--border-dim);
+  border-radius: 3px;
+  color: var(--text-muted);
+}
+
+/* ---- Four policy paths, four lanes ------------------------------------- */
+
+.pathComparison {
+  display: grid;
+  gap: 14px;
+}
+
+.pathIntro {
+  text-transform: none;
+  letter-spacing: 0.3px;
+  font-size: 12px;
+}
+
+.pathLanes {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+  gap: 12px;
+  align-items: start;
+}
+
+.pathLane {
+  display: grid;
+  gap: 8px;
+  padding: 14px;
+  border: 1px solid var(--border-dim);
+  border-radius: 4px;
+}
+
+.pathLane[data-path-status="unavailable"],
+.pathLane[data-path-status="rejected"] {
+  border-style: dashed;
+}
+
+.pathLaneTop {
+  display: flex;
+  justify-content: space-between;
+  align-items: baseline;
+  gap: 10px;
+}
+
+.pathLaneTop h3 {
+  font-size: 14px;
+  margin: 0;
+}
+
+.pathQuestion,
+.pathProvenance {
+  text-transform: none;
+  letter-spacing: 0.3px;
+  font-size: 11px;
+  margin: 0;
+}
+
+.pathPoints {
+  list-style: none;
+  display: grid;
+  gap: 8px;
+  margin: 0;
+  padding: 0;
+}
+
+.pathPoints li {
+  display: grid;
+  gap: 2px;
+  padding-top: 8px;
+  border-top: 1px solid var(--border-dim);
+}
+
+.pathPoints span {
+  font-family: var(--font-mono), "IBM Plex Mono", monospace;
+  font-size: 10px;
+  letter-spacing: 1.5px;
+  text-transform: uppercase;
+  color: var(--text-muted);
+}
+
+.pathPoints strong {
+  font-family: var(--font-mono), "IBM Plex Mono", monospace;
+  font-size: 17px;
+  color: var(--text-primary);
+}
+
+.pathPoints small {
+  font-size: 11px;
+  color: var(--text-secondary);
+  line-height: 1.45;
+}
+
+.pathNote,
+.pathMissing,
+.pathRejected {
+  text-transform: none;
+  letter-spacing: 0.3px;
+  font-size: 11px;
+  line-height: 1.5;
+  margin: 0;
+  color: var(--text-muted);
+}
+
+.pathRejected {
+  padding: 8px 10px;
+  border-left: 2px solid var(--negative);
+  background: rgba(214, 85, 85, 0.07);
+  color: var(--text-primary);
+}
+
+.pathFreshness {
+  text-transform: none;
+  letter-spacing: 0.3px;
+  font-size: 10px;
+  margin: 0;
+  padding-top: 8px;
+  border-top: 1px solid var(--border-dim);
+}

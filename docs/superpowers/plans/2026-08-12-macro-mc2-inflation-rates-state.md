@@ -247,3 +247,110 @@ Deviations from the plan as written, with the reason each was taken.
    `strictly_before` for the same reason: a recompute must select its prior state
    deterministically, or two runs over identical evidence produce different confidence and
    the identity guard (correctly) refuses the second.
+
+8. **Task 7 touched three files the plan does not list:
+   `web/components/rates/sections/StateSection.tsx` (new), `web/lib/api.ts` and
+   `web/app/rates/page.tsx`.** Step 2 requires the four policy paths on the page, and
+   they do not live in the rates snapshot — they come from `GET /api/macro/policy`,
+   computed by a different job on a different clock. Nothing in the listed file set
+   could feed `PolicyPathComparison`, so the task was not deliverable from them alone;
+   the page now settles the two fetches independently, because a policy-ingest outage
+   must not blank a curve that is still a fact. `StateSection` went to `sections/`
+   rather than inline: that directory already holds the page's composed blocks
+   (Decomposition, Policy, Supply, Positioning) and `RatesDesk.tsx` was already 461
+   lines.
+
+9. **The scorecard's client-side composite was deleted rather than repaired.** Step 4
+   asks for no fabricated zeros; the fabrication was a *second* implementation. The
+   component renormalised the weights itself and fell back to `0` on a zero
+   denominator, which `stance()` then rendered as "NEUTRAL duration". Patching the
+   fallback would have left two independent answers on one card — a server that
+   refuses a stance beside a client that takes one. The server already owns the
+   composite and the coverage floor, so the client now prints what it decided,
+   including the refusal.
+
+10. **Replay is browser-tested through the API, not through a `?as_of=` on `/rates`.**
+    Step 5 says "browser-test replay". `/api/rates/snapshot` has no `as_of` parameter,
+    so a replay control on the page would replay the state and policy blocks while the
+    curve, decomposition, supply and positioning stayed live — a half-replayed page
+    that reads as a fully replayed one, which is the failure this milestone exists to
+    prevent. `tests/e2e/macro-rates-state.spec.ts` exercises replay against the same
+    origin the page uses (through the Next `/api/*` rewrite) and asserts the page's
+    rendering invariants separately.
+
+11. **The web fixture's policy paths are parser output over the committed official
+    fixtures, not hand-written numbers.** `web/tests/unit/rates/fixture.ts` carries the
+    real FOMC 2026-06-17 statement (Hold, 3.50–3.75%, vote 12-0 with **no roster
+    printed**), the real SEP 2026-06 federal-funds projections (2026 median 3.8,
+    central tendency 3.6–4.1, 18 dots) and the real NY Fed SME June 2026 dealer path
+    (n=26). The market-implied lane is deliberately absent — Frenzy is optional,
+    default-off, and this repo commits no fixture for it — which also gives step 5 its
+    partial-path case. The 12-0-with-no-roster statement is the reason
+    `voter_names_stated` exists, and it is now a rendering test rather than a comment.
+
+12. **Task 8's checkpoint commit is scoped to the UI, not to "the state engines".** The
+    plan named one commit, `feat(macro): add inflation and rates state engines`, on the
+    assumption the milestone landed as a single checkpoint. The engines, persistence and
+    replay API had already landed in five earlier commits on this branch, so a commit
+    claiming to add them would misdescribe its own diff. The checkpoint carries what
+    Task 7 actually produced and is named for it.
+
+## Task 8 verification
+
+Run 2026-08-19 against live publishers and a real browser.
+
+| Gate | Result |
+|---|---|
+| Source parsers (FOMC / SEP / SME / calendar / census / discovery / treasury) | 130 passed |
+| Macro + rates unit (engines, models, contract, worker, scripts) | 168 passed |
+| Integration — storage, worker, API | 137 passed |
+| OpenAPI snapshot / contract | 24 passed |
+| Web unit (vitest) | 777 passed across 116 files |
+| Playwright `macro-rates-state.spec.ts` | 8 passed, 0 skipped |
+| Playwright `golden-path` regression | 1 passed |
+| Migrations applied twice | clean both passes |
+| `npm run gen:types` | regenerates byte-identical |
+| `git diff --check`, ruff, `check_no_yahoo.py`, tsc, eslint | clean |
+
+Real path, no fixtures: FOMC 5/5 releases parsed, SEP 2/2, SME 1/1 (16 raw artifacts),
+FRED 6,726 observations, both domain states computed and stored, rendered at `/rates`.
+The live 2026-07-29 statement prints a 9-3 tally and names nobody, so the
+`voter_names_stated=false` branch is exercised by production data, not only by fixtures.
+
+### Open defect found by this run: FRED refuses every daily series
+
+`macro_series_ingest.py` requests the unbounded vintage window
+(`ALL_VINTAGES_START` .. `ALL_VINTAGES_END`) and documents it as "not a tunable knob",
+because a narrower window is clamped onto the returned rows and destroys the
+point-in-time field. That holds for monthly series and fails for daily ones: FRED caps a
+`file_type=json` request at **2000 vintage dates**, and a daily series mints one per
+business day.
+
+    There are 5090 vintage dates in the specified real-time period: 1776-07-04 to
+    9999-12-31. This exceeds the maximum number of vintage dates allowed for this
+    file type (2000).
+
+All 8 monthly inflation series ingest; all 3 daily series (`DGS10`, `DFII10`, `T10YIE`)
+fail. `RATES_EVIDENCE` is entirely daily, so `policy_rates` permanently reports
+`market_factors_absent` for curve, decomposition_component, supply, positioning and
+plumbing. The state still computes and names the absence, so no exit criterion is
+violated — the rates domain simply cannot see the market layer.
+
+Measured boundary on `DGS10` with `observation_start == realtime_start`:
+
+| `realtime_start` | vintage dates | result |
+|---|---|---|
+| 1776-07-04 | 5090 | 400 |
+| 2015-01-01 | 2871 | 400 |
+| 2019-01-01 | 1993 | 200 |
+| 2023-01-01 | 946 | 200 |
+
+Bounding the window does **not** clamp the vintages: asking from 2019-01-01 returns the
+2019-01-01 observation with its true `realtime_start` of 2019-01-03, not the window
+edge. So a bounded daily window is safe for replay as long as the bound predates the
+first observation's publication day. The tension a fix must resolve: the cap is on
+vintage *count*, which grows ~252/year for a daily series, so any fixed start eventually
+crosses 2000 again (2023-01-01 buys until roughly 2027), while a rolling start changes
+the payload bytes every run and mints a fresh artifact for an unchanged history — the
+churn the fixed `DEFAULT_OBSERVATION_START` exists to prevent. Deferred rather than
+decided unilaterally: it trades off two properties this milestone treats as load-bearing.

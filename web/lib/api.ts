@@ -112,6 +112,7 @@ type RegimeGexResponse = Json<"/api/regime/gex", "get">;
 type RegimeDealerResponse = Json<"/api/regime/dealer", "get">;
 type RegimeVcgResponse = Json<"/api/regime/vcg", "get">;
 type RatesSnapshotResponse = Json<"/api/rates/snapshot", "get">;
+type MacroPolicyComparison = Json<"/api/macro/policy", "get">;
 type PositioningSnapshot = Json<"/api/positioning/{ticker}", "get">;
 type PositioningScreenerResponse = Json<"/api/positioning/screener", "get">;
 
@@ -282,6 +283,14 @@ export const api = {
     _fetch<PositioningScreenerResponse>(`/api/positioning/screener`),
   ratesSnapshot: (): Promise<RatesSnapshotResponse | null> =>
     _fetch<RatesSnapshotResponse | null>(`/api/rates/snapshot`, undefined, {
+      allow404: true,
+    }),
+  // The four policy paths, each with its own publisher and release date. Kept
+  // separate from ratesSnapshot deliberately: they are computed by a different
+  // job on a different clock, and folding them into one call would make a stale
+  // snapshot look like it carried a fresh FOMC release.
+  macroPolicy: (): Promise<MacroPolicyComparison | null> =>
+    _fetch<MacroPolicyComparison | null>(`/api/macro/policy`, undefined, {
       allow404: true,
     }),
   tradeInsights: (ticker: string): Promise<TradeInsightsResponse> =>

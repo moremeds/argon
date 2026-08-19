@@ -50,3 +50,12 @@ export type PositioningDetail = {
   source_url?: string | null;
   status?: string;
 };
+
+// The four policy paths and the domain state arrive from /api/macro/*, not from the
+// rates snapshot -- different jobs, different clocks.  Aliased here so the rates
+// components import one contract surface rather than reaching into lib/types twice.
+export type PolicyComparison = components["schemas"]["PolicyComparison"];
+export type PolicyPathSlot = components["schemas"]["PolicyPathSlot"];
+export type PolicyPath = components["schemas"]["PolicyPath"];
+export type MacroPolicyPathPoint = components["schemas"]["PolicyPathPoint"];
+export type MacroStateSummary = components["schemas"]["MacroStateSummary"];

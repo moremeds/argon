@@ -77,6 +77,19 @@ version in lockstep (enforced by `scripts/release/version_sync_check.py`).
   and a state copied into last night's payload would keep asserting itself after the
   state had been quarantined. Absent means the flag is off or nothing was computed —
   never that the desk is neutral.
+- **`/rates` leads with the state, and the four policy paths get four lanes.** State,
+  direction, velocity, the confidence terms and any contradictions come first; the
+  legacy rule composite and its BUY/SELL/NEUTRAL stances sit below it behind an
+  explicit "experimental legacy" label for as long as dual-read runs. The paths —
+  FOMC actual, SEP projection, dealer survey, market-implied — each render in their
+  own lane with their own publisher and release date and are **never averaged**: a
+  blended path is a rate no committee voted on, no dealer forecast and no market
+  traded. SEP dots render as anonymous counts, never attached to a named participant.
+- **A path whose source is not a publisher is refused at the display layer.** `mock`,
+  `static` and `demo` source kinds are representable in the contract, so the lane
+  withholds their numbers and says why rather than trusting that upstream never emits
+  one. A market-implied lane additionally carries its third-party-shadow label and its
+  delay status.
 
 - **Revenue concentration on the Fundamentals tab — where a company's revenue
   actually comes from, by reportable segment and by geography.** NVDA reads 91.3%
@@ -139,6 +152,16 @@ version in lockstep (enforced by `scripts/release/version_sync_check.py`).
   (`docs/research/2026-08-18-mc2-decomposition-residual/`).
 
 ### Fixed
+
+- **The rates scorecard could manufacture a confident verdict out of entirely missing
+  data.** The web component recomputed the composite itself, renormalising over
+  surviving group weight; with every group missing the denominator was zero, the
+  fallback was `0`, and `0` rendered as "NEUTRAL duration" — a stance on rates
+  assembled from no evidence at all. The client-side recompute is gone: the server
+  already decides both the composite and whether coverage permits a stance, and the
+  card now prints `n/a` and "No duration stance is taken" when it does not. An absent
+  scorecard likewise defaults to `UNKNOWN` rather than `NEUTRAL`, because the absence
+  of a view is not a neutral view.
 
 - **Vintage replay lost a full day at every changeover.** FRED's `realtime_end` is the
   last day a value *was* current, inclusive; treating it as exclusive erased each
