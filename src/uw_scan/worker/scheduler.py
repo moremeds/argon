@@ -1597,7 +1597,10 @@ def main() -> int:
             # subscores -> anchor bands, all warm-store + local-lake compute:
             # zero UW/IB spend, which is why it sits on massive-0. Runs nightly
             # even with no new filing, because spot moves daily and
-            # valuation_anchors.as_of is the compute date.
+            # valuation_anchors.as_of is the SPOT date — the close the row was
+            # priced at, not this job's clock. A healthy 18:20 Monday run writes
+            # as_of = Friday, since the lake lands a session near midnight NY.
+            # Do NOT health-check that table with max(as_of) >= today.
             if settings.fundamental_refresh_enabled:
                 sched.add_job(
                     _fundamental_refresh,

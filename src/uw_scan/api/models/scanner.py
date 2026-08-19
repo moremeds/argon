@@ -2,7 +2,7 @@
 
 from __future__ import annotations
 
-from datetime import datetime
+from datetime import date, datetime
 from decimal import Decimal
 from typing import Any, Literal
 
@@ -108,3 +108,46 @@ class DiscoveryResponse(BaseModel):
     source: Literal["scanner_candidate_snapshots"] = "scanner_candidate_snapshots"
     alerts_pulled: int
     earnings_unknown_dropped: int = 0
+
+
+class ValueCandidate(BaseModel):
+    """One name whose price sits at or below its OWN `buy_below` level.
+
+    A membership fact about a single company, not a placement against the other
+    rows. `spot_percentile` is a YIELD percentile — high means cheap versus this
+    name's own past — and is carried for the reader, never as a sort key.
+    """
+
+    ticker: str
+    company_type: str
+    method: str
+    spot: Decimal | None
+    buy_below: Decimal | None
+    observe_mid: Decimal | None
+    risk_above: Decimal | None
+    spot_percentile: float | None
+    history_quarters: int
+    confidence: Literal["high", "medium", "low", "none"]
+    confidence_reasons: list[str] = []
+    # True = out of its zone at the previous as_of and in it now. False = already
+    # in. Null = no prior row inside the lookback, so no comparison was possible.
+    entered: bool | None = None
+    as_of: date
+
+
+class ValueScanResponse(BaseModel):
+    """Every name currently inside its own buy zone.
+
+    Deliberately unranked. Ordering names by cheapness measured INVERTED in this
+    universe (`book_to_price` 2q IC -0.0365, t -2.32), so the list is sorted by
+    entry event and then alphabetically. `engine_version` is on the response
+    because a band is only readable beside the method that produced it.
+    """
+
+    candidates: list[ValueCandidate]
+    engine_version: str
+    # Spot date the bands were computed against, not the date the job ran.
+    as_of: date | None
+    # Names carrying a band at `as_of`, i.e. the denominator for the list length.
+    banded_universe: int
+    generated_at: datetime

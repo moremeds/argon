@@ -7,6 +7,53 @@ version in lockstep (enforced by `scripts/release/version_sync_check.py`).
 
 ## [Unreleased]
 
+### Added
+
+- **Scanner gains a `Value` sub-tab — every name currently sitting at or below
+  its own `buy_below` level.** `valuation_anchors` had exactly one read path
+  (`latest_for_ticker`), so the one fundamental signal in the stack that
+  measured — `sales_to_ev` against a name's OWN history, market-neutral 2q IC
+  +0.0744 (t 5.77) — could only be seen by a reader who already suspected the
+  name. On 2026-08-17, 98 of 336 banded names were inside their own buy zone and
+  no screen in the product showed them. `GET /api/scanner/value` reads the warm
+  store only: zero UW calls, zero IB calls.
+  **The list is unranked by construction and says so on screen.** Ranking names
+  against each other on value measured *inverted* in this universe
+  (`book_to_price` 2q IC -0.0365, t -2.32), so ordering by cheapness would point
+  at the half of the panel that then underperforms. Rows are ordered
+  newly-entered first, then alphabetically, and the endpoint takes no `sort`
+  parameter. `entered` is three-state: a name with no prior band inside the
+  30-day lookback reads `null` (unknown), never `true` — on 2026-08-17 that was
+  29 names, all of them present because the panel widened from 256 to 414 three
+  days earlier rather than because a price moved.
+
+### Fixed
+
+- **`valuation_anchors.as_of` is the SPOT date, not the compute date** — two
+  comments (`worker/jobs/fundamental_refresh.py`, `worker/scheduler.py`) said
+  otherwise and contradicted the authoritative docstring in
+  `worker/jobs/fundamental_anchors.py`. The mislabel already cost one debugging
+  session that read a healthy job's date spread as a broken feed: the lake is an
+  EOD store landing a session near midnight New York, so a healthy 18:20 ET
+  Monday run correctly writes `as_of` = Friday, and `max(as_of) >= today` is
+  unsatisfiable by construction.
+
+### Verified
+
+- **The universe widening delivered +109 usable valuation bands (227 → 336,
+  +48%)** between `as_of` 2026-08-14 and 2026-08-17, against the +132 upper
+  bound the plan projected. Counted by rows rather than by usable bands the same
+  widening reads +62% (256 → 414); a REFUSED band is a row with every level
+  null, so a coverage number has to name which it counts. Reproduce with
+  `scripts/research/valuation_band_coverage_check.py`, which calls the same
+  repository methods the endpoint serves from.
+- **`spot_percentile` moves between sessions** — 78 of 226 paired names (34.5%)
+  changed across those two dates, largest move 0.15. The rest are quantised, not
+  frozen: the percentile is a rank over `history_quarters` observations, so a
+  20-quarter name can only step by 0.05. BAX read 0.80 on both dates while its
+  spot went 26.73 → 25.91 and crossed its own `buy_below` of 26.54 — which is
+  why the new tab keys membership on the band and not on the percentile.
+
 ## [0.12.8] — 2026-08-19
 
 
