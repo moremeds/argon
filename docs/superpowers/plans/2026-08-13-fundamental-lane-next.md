@@ -121,6 +121,24 @@ converts at 99.2% (256 clear the gate, 254 bands exist), but that rate must not 
 144 carry more unprofitable and negative-EV names, which is exactly what the EV guard catches. **PR 1
 must therefore report the realised band count as its verification rather than assert one up front.**
 
+**REALISED, measured 2026-08-19 on the mini** (`scripts/research/valuation_band_coverage_check.py`,
+run from a worktree against `100.66.147.98/option_wizard` so it exercises the shipped read path):
+
+| `as_of` | names with a row | names with a **usable band** |
+|---|---:|---:|
+| 2026-08-14 (pre-widening) | 256 | **227** |
+| 2026-08-17 (post-widening) | 414 | **336** |
+
+**+109 usable bands, +48%** — against D5's upper bound of +132 (+52%). The widening delivered 83%
+of its bound, and the overturn above was right.
+
+Note the two denominators, because they differ and the difference is this lane's recurring error in
+miniature: 256 → 414 is **+62%** counted by rows, +48% counted by bands the method will actually
+price. D5's own "254" was a row count compared against a band bound. A row exists for every routed
+name; a REFUSED band is a row with every level null (NVDA, 2026-08-17: *"own 20-quarter valuation
+range spans 16.9x, wider than the 4x limit"*). State which one a coverage number counts, or it will
+be compared against the other.
+
 Two lessons, both already paid for once in this lane:
 
 - **counting files is coverage, not computability** — the identical conflation produced the retracted
@@ -379,12 +397,29 @@ SELECT date(computed_at) AS run, count(*), count(DISTINCT ticker), max(as_of)
   FROM uw_scan.valuation_anchors GROUP BY 1 ORDER BY 1 DESC LIMIT 10;
 ```
 
-### Still open
+### Step 3 — ANSWERED 2026-08-19
 
-Step 3 of the original section — confirm the band renders against a real ticker on the mini and
-that its spot percentile moves between sessions — is **not** answered by the query above and is
-not attempted here. It needs two consecutive lake-fresh sessions, which the outage backfill has
-only just restored.
+Step 3 (does the spot percentile move between sessions?) needed two consecutive lake-fresh
+sessions. 2026-08-14 and 2026-08-17 are those sessions, and the answer is yes:
+
+| | |
+|---|---|
+| names paired across the two newest `as_of` values | 226 |
+| percentile changed | **78 (34.5%)** |
+| largest single move | 0.15 |
+
+The 148 that did not move are the construction, not a frozen field. `spot_percentile` is a rank
+over `history_quarters` observations, so with the 20-quarter majority it can only take steps of
+0.05 — a 3% price move inside a bucket cannot show up in it at all. **BAX is the worked example**:
+0.80 on both dates while its spot went 26.73 → 25.91 and *crossed its own `buy_below` of 26.54*.
+The percentile said nothing happened; the band said the name entered its buy zone.
+
+That is why `GET /api/scanner/value` keys membership on `spot <= buy_below` and not on the
+percentile, and why the percentile reaches the screen only through `rankPhrase` — as a rank with
+its sample size named, never as a bare number.
+
+Reproduce: `scripts/research/valuation_band_coverage_check.py` (read-only; header carries the
+`docker cp` form for running it in the mini's worker container).
 
 ---
 
@@ -585,6 +620,43 @@ share — the failure mode this lane already has a rule about. Default to refusi
 - [x] **Step 7:** CHANGELOG and commit.
 
 ---
+
+## PR 4 — The buy-zone surface — SHIPPED 2026-08-19
+
+**Branch:** `feat/valuation-buy-zone-scanner`
+
+Not in the original plan. It became the obvious next move once PR 1 landed and PR 2 confirmed the
+band accrues: `valuation_anchors` had exactly one read path, `latest_for_ticker`, so the only
+signal in this lane that measured could be seen only by a reader who already suspected the name.
+On 2026-08-17, **98 of 336 banded names sat at or below their own `buy_below`** and nothing in the
+product showed that list.
+
+- `FundamentalAnchorsRepository.in_buy_zone` / `.band_coverage` — the cross-name reads.
+- `GET /api/scanner/value` — warm-store only, zero UW/IB spend.
+- `/scanner` gains a fourth sub-tab, `value`, beside flow / discover / theta.
+
+### The constraint, which outlives the code
+
+**The surface lists; it must never rank.** Own-history value measured (`sales_to_ev` within-ticker
+2q IC +0.0744, t 5.77); cross-sectional value measured *inverted* in the same universe
+(`book_to_price` IC -0.0365, t -2.32). A `sort` control over `spot_percentile` — or over the
+per-row depth — would ship the refuted claim wearing the validated one's name, and nothing about
+the response shape would show it. The ordering is therefore: newly-entered first, then
+alphabetical. `tests/integration/api/test_scanner_value_endpoint.py::test_the_list_is_not_ordered_by_cheapness`
+is the regression gate, and the tab says so on screen because a dense table of numbers reads as a
+ranking whatever the code intends.
+
+Three things that will bite:
+
+- **`spot_percentile` is a YIELD percentile.** 0.80 means CHEAP. It reaches the screen only via
+  `rankPhrase`, which prints "Cheaper than 16 of its last 20 quarters" — direction and sample size
+  both named. A bare number reads backwards.
+- **`entered` is three-state, and `null` is not `false`.** No prior band inside the 30-day lookback
+  means "unknown", not "not new". On 2026-08-17 that was 29 of 98 names, every one of them there
+  because the panel widened from 256 to 414 three days earlier — badging them NEW would have
+  reported a universe change as a price move.
+- **A REFUSED band is a row.** Membership and the denominator both require `buy_below IS NOT NULL`,
+  or a name the method declined to price counts as covered.
 
 ## Deferred, with reasons
 

@@ -168,3 +168,130 @@ class FundamentalAnchorsRepository:
             )
             row = cur.fetchone()
         return dict(zip(cols, row)) if row else None
+
+    # ---------------- cross-name membership ----------------
+    #
+    # A LIST of names each in its own buy zone. Not a cross-sectional RANK, and
+    # the difference is the reason this method is allowed to exist at all.
+    #
+    # `latest_for_ticker` above answers "is THIS name cheap against its own
+    # past" — the claim that measured (`sales_to_ev` market-neutral 2q IC
+    # +0.0744, t 5.77, within-ticker). Ranking names against each other on value
+    # measured INVERTED in this universe (`book_to_price` IC -0.0365, t -2.32),
+    # so an ordering by `spot_percentile` would point at the half of the panel
+    # that then underperforms.
+    #
+    # `in_buy_zone` returns N independent single-name verdicts side by side. Each
+    # row still says only "this name is cheap versus its OWN history"; putting
+    # them in one response does not compare them, and the ordering deliberately
+    # carries no valuation information (see ORDER BY below).
+
+    IN_ZONE_LOOKBACK_DAYS = 30
+
+    def in_buy_zone(self, engine_version: str) -> list[dict[str, Any]]:
+        """Names whose stored spot sits at or below their own `buy_below`.
+
+        Read at the newest `as_of` present for this method version. Rows carry
+        `entered`: True when the name was OUT of its zone at the previous
+        `as_of` and is in it now, False when it was already in, and None when no
+        prior row exists inside the lookback — three states rather than two
+        because "no comparison available" is not "not new", and a renderer that
+        collapsed them would badge a name NEW on the strength of missing data.
+
+        `as_of` is the SPOT date the band was computed against, not the date the
+        job ran.
+        """
+        cols = [
+            "ticker",
+            "as_of",
+            "company_type",
+            "method",
+            "buy_below",
+            "observe_mid",
+            "risk_above",
+            "spot",
+            "spot_percentile",
+            "history_quarters",
+            "confidence",
+            "confidence_reasons_jsonb",
+        ]
+        out = [*cols, "entered"]
+        # NULL-safe: a row missing either side is not in the zone, and IS NOT
+        # DISTINCT FROM would make `spot IS NULL` compare equal to nothing.
+        in_zone = "(spot IS NOT NULL AND buy_below IS NOT NULL AND spot <= buy_below)"
+        with self.conn.cursor() as cur:
+            cur.execute(
+                f"""
+                WITH latest AS (
+                    SELECT max(as_of) AS d
+                      FROM {self._schema}.valuation_anchors
+                     WHERE engine_version = %(engine)s
+                ),
+                -- One row per (ticker, as_of): a single day can hold several
+                -- inputs_hash rows, and the newest is the one the card shows.
+                recent AS (
+                    SELECT DISTINCT ON (a.ticker, a.as_of) {", ".join(f"a.{c}" for c in cols)}
+                      FROM {self._schema}.valuation_anchors a, latest
+                     WHERE a.engine_version = %(engine)s
+                       AND a.as_of > latest.d - %(lookback)s
+                     ORDER BY a.ticker, a.as_of DESC, a.result_id DESC
+                ),
+                flagged AS (
+                    SELECT {", ".join(cols)},
+                           {in_zone} AS in_zone,
+                           LAG({in_zone}) OVER w AS prev_in_zone,
+                           LAG(as_of)     OVER w AS prev_as_of
+                      FROM recent
+                    WINDOW w AS (PARTITION BY ticker ORDER BY as_of)
+                )
+                SELECT {", ".join(cols)},
+                       CASE WHEN prev_as_of IS NULL THEN NULL
+                            ELSE NOT prev_in_zone END AS entered
+                  FROM flagged, latest
+                 WHERE as_of = latest.d AND in_zone
+                 -- Two groups only: newly-entered first, because entry is a
+                 -- dated EVENT about one name, then everything else
+                 -- alphabetically. `entered = false` and `entered = null` share
+                 -- the tail deliberately — sorting unknown ABOVE known-not-new
+                 -- would have put 29 of 98 names at the top on 2026-08-17,
+                 -- every one of them there because the panel widened from 256
+                 -- to 414 names rather than because a price moved.
+                 --
+                 -- Never by `spot_percentile`: that ordering is the inverted
+                 -- cross-sectional claim wearing the validated one's clothes.
+                 ORDER BY (prev_as_of IS NOT NULL AND NOT prev_in_zone) DESC,
+                          ticker
+                """,
+                {"engine": engine_version, "lookback": self.IN_ZONE_LOOKBACK_DAYS},
+            )
+            rows = cur.fetchall()
+        return [dict(zip(out, r)) for r in rows]
+
+    def band_coverage(self, engine_version: str) -> tuple[Any, int]:
+        """`(newest as_of, names carrying a usable band on it)`.
+
+        The denominator for `in_buy_zone`: without it a list of 100 says nothing,
+        because 100-of-342 and 100-of-110 are different facts about the universe.
+        A band is "usable" when `buy_below` is present — a REFUSED band is a row
+        with every level null, and counting it would inflate coverage with names
+        the method declined to price.
+        """
+        with self.conn.cursor() as cur:
+            cur.execute(
+                f"""
+                WITH latest AS (
+                    SELECT max(as_of) AS d
+                      FROM {self._schema}.valuation_anchors
+                     WHERE engine_version = %s
+                )
+                SELECT latest.d,
+                       count(DISTINCT a.ticker) FILTER (WHERE a.buy_below IS NOT NULL)
+                  FROM latest
+                  LEFT JOIN {self._schema}.valuation_anchors a
+                         ON a.engine_version = %s AND a.as_of = latest.d
+                 GROUP BY latest.d
+                """,
+                (engine_version, engine_version),
+            )
+            row = cur.fetchone()
+        return (row[0], row[1]) if row else (None, 0)
