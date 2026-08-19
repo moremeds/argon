@@ -49,6 +49,29 @@ FRED_SOURCE = "fred"
 ALL_VINTAGES_START = date(1776, 7, 4)
 ALL_VINTAGES_END = date(9999, 12, 31)
 
+#: FRED refuses a JSON ``series/observations`` request whose real-time window spans more
+#: than 2000 vintage dates.  A monthly series mints ~12 vintages a year and never comes
+#: close; a daily series mints one on every publication day and blows the cap outright,
+#: so the unbounded window above returns HTTP 400 for every daily series.  Bounding the
+#: window is the fix, and it is safe: measured against the live API, a bounded request
+#: still reports each observation's TRUE first-publication day, not the window edge --
+#: ``observation_start=2021-01-01`` returns the 2021-01-01 value stamped
+#: ``realtime_start=2021-01-05``.  The clamping the module docstring warns about happens
+#: when the window EXCLUDES an observation's real vintage, which is why the daily request
+#: starts its observations on the same day it starts its vintages: an observation cannot
+#: be published before the day it describes, so nothing returned has a vintage outside
+#: the window, and nothing gets clamped.
+#:
+#: **This date expires.**  The cap is on window WIDTH, not on the start: ~248 vintages a
+#: year against a 2000 ceiling is a hard limit of ~8 years, so 2021-01-01 stops working
+#: around **January 2029**.  ``test_daily_vintage_start_has_not_expired`` fails a year
+#: ahead of that so the deadline arrives as a red build rather than as a dead feed.  To
+#: renew, move this date forward -- and know what it costs: it is also the floor on how
+#: far back a state can be replayed (the inflation engine reads 18 months, so a
+#: 2021-01-01 archive replays to roughly 2022-07), so moving it forward shortens history
+#: as well as buying time.
+DAILY_VINTAGE_START = date(2021, 1, 1)
+
 #: How far back observations are requested.  Fixed rather than rolling: a start date that
 #: moved with the calendar would change the payload bytes every month, mint a new
 #: artifact, and make an unchanged history look re-published.
@@ -264,6 +287,30 @@ def _observation_row(
     }
 
 
+def request_window(series_id: str, observation_start: date) -> tuple[date, date, date]:
+    """Return ``(observation_start, realtime_start, realtime_end)`` for one series.
+
+    Split by publication frequency because the publisher's own limit is: monthly series
+    get the unbounded vintage window and their full requested history; daily series get
+    a bounded one, because the unbounded window exceeds FRED's 2000-vintage ceiling and
+    returns nothing at all.
+
+    An unknown series id gets the unbounded window rather than a guess.  It is the
+    conservative branch: worst case is the 400 this function exists to avoid, which is
+    loud, whereas guessing "daily" would silently truncate a monthly series' history.
+    """
+    contract = SERIES_CONTRACT.get(series_id)
+    if contract is None or contract.frequency != "daily":
+        return observation_start, ALL_VINTAGES_START, ALL_VINTAGES_END
+    # Observations start where the vintages do, so every row returned carries its real
+    # first-publication day.  ``max`` keeps an explicitly narrower caller request narrow.
+    return (
+        max(observation_start, DAILY_VINTAGE_START),
+        DAILY_VINTAGE_START,
+        ALL_VINTAGES_END,
+    )
+
+
 def _fetch_with_retry(
     *,
     series_id: str,
@@ -275,14 +322,17 @@ def _fetch_with_retry(
 ) -> tuple[bytes, str]:
     if max_attempts < 1:
         raise ValueError("max_attempts must be positive")
+    obs_start, realtime_start, realtime_end = request_window(
+        series_id, observation_start
+    )
     for attempt in range(max_attempts):
         try:
             with provider_factory() as provider:
                 return provider.fetch_series_payload(
                     series_id,
-                    start=observation_start,
-                    realtime_start=ALL_VINTAGES_START,
-                    realtime_end=ALL_VINTAGES_END,
+                    start=obs_start,
+                    realtime_start=realtime_start,
+                    realtime_end=realtime_end,
                 )
         except Exception:
             if attempt + 1 == max_attempts:

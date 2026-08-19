@@ -317,7 +317,7 @@ FRED 6,726 observations, both domain states computed and stored, rendered at `/r
 The live 2026-07-29 statement prints a 9-3 tally and names nobody, so the
 `voter_names_stated=false` branch is exercised by production data, not only by fixtures.
 
-### Open defect found by this run: FRED refuses every daily series
+### Defect found by this run, RESOLVED in Task 9: FRED refuses every daily series
 
 `macro_series_ingest.py` requests the unbounded vintage window
 (`ALL_VINTAGES_START` .. `ALL_VINTAGES_END`) and documents it as "not a tunable knob",
@@ -349,8 +349,93 @@ Bounding the window does **not** clamp the vintages: asking from 2019-01-01 retu
 2019-01-01 observation with its true `realtime_start` of 2019-01-03, not the window
 edge. So a bounded daily window is safe for replay as long as the bound predates the
 first observation's publication day. The tension a fix must resolve: the cap is on
-vintage *count*, which grows ~252/year for a daily series, so any fixed start eventually
-crosses 2000 again (2023-01-01 buys until roughly 2027), while a rolling start changes
-the payload bytes every run and mints a fresh artifact for an unchanged history — the
-churn the fixed `DEFAULT_OBSERVATION_START` exists to prevent. Deferred rather than
-decided unilaterally: it trades off two properties this milestone treats as load-bearing.
+vintage *count*, which grows ~248/year for a daily series, so any fixed start eventually
+crosses 2000 again, while a rolling start changes the payload bytes every run and mints
+a fresh artifact for an unchanged history — the churn the fixed
+`DEFAULT_OBSERVATION_START` exists to prevent. Deferred rather than decided
+unilaterally: it trades off two properties this milestone treats as load-bearing.
+
+*(One number above was corrected in Task 9: "2023-01-01 buys until roughly 2027" was
+wrong. The cap bounds window WIDTH, so a start date buys `2000 / 248 ≈ 8.06` years
+regardless of which start it is — 2023-01-01 runs to roughly 2031, not 2027.)*
+
+## Task 9: FRED daily-series window, and the two path plots
+
+Authorized directly rather than planned: fix the daily-series defect, then add two
+plotted blocks below Summary.
+
+### The window
+
+`DAILY_VINTAGE_START = 2021-01-01`, applied by a new `request_window(series_id,
+observation_start)` that splits on the contract's own `frequency`. Monthly series keep
+the unbounded window byte-for-byte; daily series get `observation_start ==
+realtime_start == DAILY_VINTAGE_START`.
+
+**Why the equality is the correctness condition, not a coincidence.** The clamping the
+module docstring warns about happens when the requested window *excludes* an
+observation's real vintage. An observation cannot be published before the day it
+describes, so if the earliest observation starts where the earliest vintage starts,
+nothing returned can have a true vintage outside the window and nothing can be clamped.
+A bounded `realtime_start` alone would not be safe; the pair is.
+
+Measured against the live API 2026-08-19, `observation_start == realtime_start`:
+
+| start | rows | distinct vintages | first obs | its true vintage |
+|---|---|---|---|---|
+| 2015-01-01 | — | — | HTTP 400 | — |
+| 2019-01-01 | 1993 | 1891 | 2019-01-01 | 2019-01-03 |
+| 2020-01-01 | 1732 | 1644 | 2020-01-01 | 2020-01-03 |
+| 2021-01-01 | 1469 | 1395 | 2021-01-01 | 2021-01-05 |
+
+The true vintage is never the window edge, which is the property the fix rests on.
+Growth is 496 vintages per 2 years = ~248/year, so the ceiling is a window **width** of
+~8.06 years, not a particular start date.
+
+**Why 2021-01-01.** The start is not a compute window — the engines read 18 months
+(inflation) and 45 days (rates) — it is the **replay floor**. 2021-01-01 keeps the
+entire 2021–23 inflation surge and hiking cycle replayable, the regime a rates state is
+most worth replaying against, while leaving ~2.4 years of headroom. A later start buys
+time by deleting exactly that history.
+
+**Why the comment is not the deliverable.** A dated constant with an 8-year life rots
+silently. `test_daily_vintage_start_has_not_expired` fails while a year of headroom
+remains, so the renewal arrives as a red build on a knowable date rather than as a dead
+feed. The failure message names the cost of renewing (it raises the replay floor).
+
+Real-path result, live publishers against `option_wizard_local`:
+
+| | before | after |
+|---|---|---|
+| series ingested | 8/11 | **11/11** |
+| observations created | 0 | 4223 |
+| observations unchanged | 6726 | 6726 |
+| `policy_rates` `market_factors_absent` | 5 | **3** |
+
+`unchanged=6726` is the monthly-series regression check: identical to the prior run's
+total, so no monthly payload changed and no artifact churned. The remaining 3 absent
+factors (supply, positioning, plumbing) have no FRED series in `RATES_EVIDENCE` at all
+and are a separate gap, not this defect.
+
+### The two plots
+
+`SepDotPlot` and `DealerPathChart`, as sections `#sep-plot` and `#dealer-plot` directly
+below `#summary`. Both read the same `/api/macro/policy` slots the lanes read; the lanes
+stay as the provenance surface.
+
+Three rules the plots inherit rather than restate:
+
+1. **Separate blocks, separate axes.** A shared frame would draw the comparison the
+   desk refuses to make numerically. Asserted structurally (one `<svg>` per section),
+   not by grepping prose.
+2. **Anonymity survives the format change.** Dot position within a horizon is spacing,
+   never identity, and every per-dot `<title>` says so — the caption alone would leave
+   the tooltips attributable.
+3. **An empty chart is a claim.** A bare axis reads as a flat path, so an unavailable,
+   unreadable or non-publisher release renders the sentence instead. `plottable()` in
+   `policyPath.ts` is the single place that decides, shared with the lanes so a mock
+   source cannot slip through one surface after being refused by the other.
+
+Two presentation bugs found by looking at the rendered output rather than the tests:
+the SEP header summed the columns to "71 dots", which reads as a participant count and
+is not one (it is now the per-horizon maximum, 18); and the dealer caption ran two
+sentences together without a space.

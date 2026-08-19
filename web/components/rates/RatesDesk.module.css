@@ -1607,3 +1607,93 @@
   padding-top: 8px;
   border-top: 1px solid var(--border-dim);
 }
+
+/* --- Policy path charts (SEP dot plot, dealer survey path) ------------------ */
+
+.pathChartBlock {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.svgAxisLabel {
+  fill: var(--text-secondary);
+  font-size: 12px;
+  font-weight: 600;
+}
+
+.sepDot {
+  fill: var(--info);
+  fill-opacity: 0.85;
+}
+
+.sepBand {
+  fill: var(--info);
+  fill-opacity: 0.1;
+  stroke: var(--info);
+  stroke-opacity: 0.3;
+}
+
+.sepMedian {
+  stroke: var(--text-primary);
+  stroke-width: 3;
+  stroke-linecap: round;
+}
+
+.sepMedianLabel {
+  fill: var(--text-primary);
+  font-size: 11px;
+  font-weight: 600;
+}
+
+.sepDotSwatch {
+  width: 10px;
+  height: 10px;
+  border-radius: 50%;
+  background: var(--info);
+}
+
+.sepMedianSwatch {
+  width: 22px;
+  height: 3px;
+  border-radius: 2px;
+  background: var(--text-primary);
+}
+
+.sepBandSwatch {
+  width: 16px;
+  height: 12px;
+  border-radius: 2px;
+  background: var(--info);
+  opacity: 0.25;
+}
+
+.dealerBand {
+  fill: var(--positive);
+  fill-opacity: 0.14;
+  stroke: var(--positive);
+  stroke-opacity: 0.28;
+}
+
+.dealerMedian {
+  stroke: var(--positive);
+}
+
+.dealerDot {
+  fill: var(--positive);
+}
+
+.dealerMedianSwatch {
+  width: 22px;
+  height: 3px;
+  border-radius: 2px;
+  background: var(--positive);
+}
+
+.dealerBandSwatch {
+  width: 16px;
+  height: 12px;
+  border-radius: 2px;
+  background: var(--positive);
+  opacity: 0.3;
+}

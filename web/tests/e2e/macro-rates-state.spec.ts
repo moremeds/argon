@@ -216,3 +216,58 @@ test.describe("rates desk — replay", () => {
     expect(staleBody.state).toBe(body.state);
   });
 });
+
+test.describe("rates desk — policy path plots", () => {
+  test("the SEP block plots dots and still refuses to name a participant", async ({
+    page,
+  }) => {
+    await ratesPage(page);
+    const block = page.locator("#sep-plot");
+    await expect(block).toBeVisible();
+
+    if ((await block.getByTestId("sep-dot-plot-missing").count()) > 0) {
+      // An absent release is an allowed state; an absent SENTENCE is not.
+      await expect(block.getByTestId("sep-dot-plot-missing")).not.toBeEmpty();
+      test.skip(true, "no SEP release ingested in this environment");
+    }
+
+    await expect(block.locator("svg circle").first()).toBeVisible();
+    expect(await block.locator("svg circle").count()).toBeGreaterThan(1);
+    await expect(block.getByTestId("sep-plot-anonymity-note")).toContainText(
+      /anonymous/i,
+    );
+    await expect(block).not.toContainText(/chair|powell/i);
+  });
+
+  test("the dealer block plots a path with its dispersion band", async ({
+    page,
+  }) => {
+    await ratesPage(page);
+    const block = page.locator("#dealer-plot");
+    await expect(block).toBeVisible();
+
+    if ((await block.getByTestId("dealer-path-missing").count()) > 0) {
+      await expect(block.getByTestId("dealer-path-missing")).not.toBeEmpty();
+      test.skip(true, "no dealer survey ingested in this environment");
+    }
+
+    await expect(block.locator("svg polyline")).toHaveCount(1);
+    // Either form is correct; what is refused is a plot that never says how many
+    // dealers stand behind the far end of the path.
+    await expect(block.getByTestId("dealer-path-note")).toContainText(
+      /n=\d+ at every horizon|n varies by horizon, \d+–\d+/,
+    );
+  });
+
+  test("the two publishers are plotted in separate blocks, never on one axis", async ({
+    page,
+  }) => {
+    // Structural, not textual: one <svg> each, in their own sections. A shared frame
+    // would read as a comparison this desk refuses to draw.
+    await ratesPage(page);
+
+    await expect(page.locator("#sep-plot svg")).toHaveCount(1);
+    await expect(page.locator("#dealer-plot svg")).toHaveCount(1);
+    await expect(page.locator("#sep-plot #dealer-plot")).toHaveCount(0);
+  });
+});

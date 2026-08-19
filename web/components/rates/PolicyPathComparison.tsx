@@ -1,5 +1,6 @@
 import styles from "./RatesDesk.module.css";
 import { fmtValue, toFiniteNumber } from "./format";
+import { NON_PRODUCTION_SOURCE_KINDS, releaseDate } from "./policyPath";
 import type {
   MacroPolicyPathPoint,
   PolicyComparison,
@@ -39,24 +40,12 @@ const LANES: {
   },
 ];
 
-//: A source kind that is not a real publisher can never be presented as one. It is
-//: representable in the contract, so the rejection is enforced here rather than assumed
-//: away upstream.
-const NON_PRODUCTION_SOURCE_KINDS = new Set(["mock", "static", "demo"]);
-
 function sourceKindLabel(kind: string): string {
   if (kind === "official") return "Official";
   if (kind === "first_party_publisher") return "First-party publisher";
   if (kind === "entitled_provider") return "Entitled provider";
   if (kind === "third_party_shadow") return "Third-party shadow · not official";
   return "Non-production source";
-}
-
-function releaseDate(path: PolicyPath): string {
-  const stamp = path.published_at ?? path.available_at;
-  const date = new Date(stamp);
-  if (Number.isNaN(date.getTime())) return stamp;
-  return date.toISOString().slice(0, 10);
 }
 
 function delayLabel(path: PolicyPath): string | null {

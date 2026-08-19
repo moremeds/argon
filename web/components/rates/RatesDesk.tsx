@@ -1,8 +1,10 @@
+import { DealerPathChart } from "./DealerPathChart";
 import { PolicyPathComparison } from "./PolicyPathComparison";
 import { RatesCurveChart } from "./RatesCurveChart";
 import styles from "./RatesDesk.module.css";
 import { RatesScorecard } from "./RatesScorecard";
 import { RatesSection } from "./RatesSection";
+import { SepDotPlot } from "./SepDotPlot";
 import { fmtSigned, fmtValue, statusLabel, toFiniteNumber } from "./format";
 import { DecompositionSection } from "./sections/DecompositionSection";
 import { PolicySection } from "./sections/PolicySection";
@@ -25,6 +27,8 @@ const NAV = [
   ["state", "State"],
   ["paths", "Policy Paths"],
   ["summary", "Summary"],
+  ["sep-plot", "Dot Plot"],
+  ["dealer-plot", "Dealer Path"],
   ["curve", "Curve"],
   ["decomp", "Decomp"],
   ["scorecard", "Scorecard"],
@@ -372,6 +376,26 @@ export function RatesDesk({
             synthesis={snapshot.synthesis}
           />
         </div>
+      </RatesSection>
+
+      {/* Two publishers, two blocks, two sets of axes. Plotted rather than listed
+          because the point of each release is its dispersion, and a column of medians
+          is the one view that hides it. Kept apart because a shared frame would read
+          as a comparison the desk refuses to make. */}
+      <RatesSection
+        id="sep-plot"
+        title="Committee Projection (SEP)"
+        eyebrow="Anonymous participant dots"
+      >
+        <SepDotPlot slot={policyComparison?.committee_projection} />
+      </RatesSection>
+
+      <RatesSection
+        id="dealer-plot"
+        title="Dealer Expectations"
+        eyebrow="Survey median and interquartile range"
+      >
+        <DealerPathChart slot={policyComparison?.dealer_expectations} />
       </RatesSection>
 
       <RatesSection

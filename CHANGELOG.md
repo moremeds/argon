@@ -9,6 +9,18 @@ version in lockstep (enforced by `scripts/release/version_sync_check.py`).
 
 ### Added
 
+- **The SEP and the dealer survey are plotted, not listed.** Both releases publish a
+  distribution and both were rendered as a column of medians, which is the one view
+  that hides what each release is for. The committee's projections are now the dot plot
+  the FOMC actually publishes — every participant's dot placed on an axis, so a median
+  of 3.60% no longer reads identically whether the dots sit on it or span 2.875 to
+  4.375 — and the dealer survey is a path with its own interquartile band, which shows
+  the quartiles opening months before the median moves. Each is a separate block on its
+  own axes: overlaying them would draw a comparison this desk refuses to make
+  numerically. Dots stay anonymous in the plot as in the release, including in every
+  per-dot tooltip; a lane with no readable release prints the sentence saying so rather
+  than an empty axis, because a bare axis reads as a flat path and that is a claim.
+
 - **Point-in-time inflation and rates states — what regime we are in, which way it
   is moving, how fast, and how much of that we actually know.** Two pure engines over
   vintage-stamped evidence, replacing a score that could look confident while standing
@@ -152,6 +164,24 @@ version in lockstep (enforced by `scripts/release/version_sync_check.py`).
   (`docs/research/2026-08-18-mc2-decomposition-residual/`).
 
 ### Fixed
+
+- **Every daily FRED series had been silently failing to ingest, taking the rates
+  domain's whole market layer with it.** The ingest asked ALFRED for the unbounded
+  vintage window on the sound principle that a narrower one gets clamped onto the
+  returned rows and destroys each value's true first-publication day. That is right for
+  a monthly series and impossible for a daily one: FRED refuses any JSON request
+  spanning more than 2000 vintage dates, and a daily series mints one on every
+  publication day, so `DGS10`, `DFII10` and `T10YIE` returned HTTP 400 on every run
+  while the eight monthly series succeeded — a per-series failure that read as a
+  degraded batch rather than as a dead feed. Daily series now request a bounded window
+  whose observations start on the same day its vintages do, which is what makes the
+  bound safe: an observation cannot be published before the day it describes, so
+  nothing returned has a vintage outside the window and nothing is clamped. Verified
+  against the live API — the 2021-01-04 ten-year is stamped published 2021-01-05, its
+  real T+1 lag. `policy_rates` now resolves its curve and decomposition factors instead
+  of reporting them permanently absent. The bound is a dated asset, not a constant: the
+  2000-vintage cap is on window *width*, so it buys about eight years, and
+  `test_daily_vintage_start_has_not_expired` turns red a year before FRED does.
 
 - **The rates scorecard could manufacture a confident verdict out of entirely missing
   data.** The web component recomputed the composite itself, renormalising over
