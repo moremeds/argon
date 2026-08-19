@@ -192,3 +192,24 @@ state engines` commit.
 - slope is not presented as term premium;
 - legacy stance is visibly experimental and cannot become confident from missing groups;
 - real worker/database/API/browser path passes.
+
+## Recorded deviations
+
+Deviations from the plan as written, with the reason each was taken.
+
+1. **Task 5 migration number: `116` → `123`.** The plan reserved 116; 116..122 were claimed by
+   intervening work (`116_macro_source_status` through `122_revenue_breakdown_obs`) before this task
+   started. The reservation moved rather than the file being renumbered into a duplicate prefix.
+
+2. **Task 5 landed in new modules instead of extending `macro_context.py`.** That module was already
+   604 lines — past the repo's 500-line target — and domain states are a different seam from artifact
+   and observation ingestion, so the work went to `storage/macro_domain_state.py` (mixin wired into
+   `Repository` assembly) and `tests/integration/storage/test_macro_domain_state_repository.py`. No
+   method was added to `macro_context.py`.
+
+3. **Task 5 columns beyond the plan's list: `notes_jsonb`, `quarantined_at`, `quarantine_reason`,
+   and a one-way `status` transition.** The plan named `status` without saying what writes it. Left
+   as a single-valued column it records nothing, so it now carries the only retraction a
+   write-guarded table can express: `published → quarantined`, enforced by trigger, which withdraws
+   a state computed by an engine later found wrong without editing what that state said.
+   `notes_jsonb` exists because `MacroDomainState.notes` would otherwise be dropped on persist.

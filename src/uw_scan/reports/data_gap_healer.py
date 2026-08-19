@@ -503,6 +503,33 @@ REGISTRY: list[DatasetRegistryEntry] = [
             "witness it; synthesizing a link would fabricate evidence"
         ),
     ),
+    # Domain states and their evidence (migration 123). A state records what we
+    # concluded at an instant and which observations we concluded it from. Recomputing
+    # one is a job, never a heal: the database refuses rewrites outright, and a healer
+    # that invented a missing state would be asserting a past decision nobody made.
+    DatasetRegistryEntry(
+        "macro_domain_states",
+        "macro_evidence",
+        "provenance",
+        expected_frequency="none",
+        source_system="derived",
+        reason=(
+            "immutable record of a decision at an instant; recomputation belongs to the "
+            "state job, which stamps its own computed_at, and the write guard rejects "
+            "any edit to a stored answer"
+        ),
+    ),
+    DatasetRegistryEntry(
+        "macro_domain_state_evidence",
+        "macro_evidence",
+        "provenance",
+        expected_frequency="none",
+        source_system="derived",
+        reason=(
+            "immutable observation-level lineage for a state; a synthesized row would "
+            "claim a state stood on evidence it never saw"
+        ),
+    ),
     DatasetRegistryEntry(
         "ws_consumer_state",
         "operational_provenance",

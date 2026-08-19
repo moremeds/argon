@@ -30,6 +30,16 @@ version in lockstep (enforced by `scripts/release/version_sync_check.py`).
   (`docs/research/2026-08-18-mc2-inflation-source-probe/`).
 - **Treasury supply, positioning and plumbing are separate factors with their own
   freshness**, so a blended technicals score can no longer hide which one is stale.
+- **Domain states are persisted with the exact observations they stood on**
+  (migration `123`, `macro_domain_states` + `macro_domain_state_evidence`). Evidence
+  rows carry real `obs_id` foreign keys, and the database refuses any evidence that
+  became available after the state's `as_of` — lookahead is rejected below the
+  application, not merely avoided by it. A state is identified by its method
+  (`domain`, `as_of`, `engine_version`, `inputs_hash`, where the hash covers the
+  thresholds as well as the data), so recomputing an unchanged state is a no-op and
+  the same inputs producing a different answer raises instead of appending a second
+  equally-authoritative row. Stored answers are immutable: an engine later found
+  wrong can be quarantined out of service, never edited.
 
 - **Revenue concentration on the Fundamentals tab — where a company's revenue
   actually comes from, by reportable segment and by geography.** NVDA reads 91.3%
