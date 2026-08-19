@@ -59,6 +59,8 @@ from uw_scan.fundamentals.fx import (
     load_fx,
 )
 from uw_scan.fundamentals.valuation import (
+    FINANCIALS,
+    FINANCIALS_REFUSAL,
     LEVEL_ORDER,
     METHOD_NUMERATOR,
     TYPE_YIELD,
@@ -177,7 +179,7 @@ def _history(
     per: dict[str, Any],
     periods: list[str],
     closes: list[tuple[date, float]],
-    method: str,
+    method: str | None,
     *,
     currencies: dict[str, str | None] | None = None,
     fx: dict[str, list[tuple[date, float]]] | None = None,
@@ -228,9 +230,14 @@ def _history(
 #: which routes to the pooled-universe yield and SAYS SO on the card. What must
 #: never happen is a name being forced into one of the five real types on a
 #: guess: that produces a confident band built from the wrong yield with nothing
-#: on screen to say the type was invented. Consumer, Healthcare, Banks, Defense
-#: and Airlines all sit here — they are real sectors that this AI-supply-chain
+#: on screen to say the type was invented. Consumer, Healthcare, Defense and
+#: Airlines all sit here — they are real sectors that this AI-supply-chain
 #: taxonomy has no honest bucket for.
+#:
+#: Banks USED to sit there too, and that was a bug rather than a gap: the pooled
+#: default is a claim that a name's EV yield is meaningful, which is false for a
+#: deposit-funded balance sheet. See `FINANCIALS` for the measurement. They now
+#: route to a type that refuses and says why.
 SECTOR_TO_TYPE: dict[str, str] = {
     "Semi": "chips_cyclical",
     "Foundry": "chips_cyclical",
@@ -250,25 +257,86 @@ SECTOR_TO_TYPE: dict[str, str] = {
     "NeoCloud": "high_risk_growth",
     "AI-Cloud": "high_risk_growth",
     "Crypto": "high_risk_growth",
+    # Funding-financed balance sheets — routed to a refusal, not to a yield.
+    # `Fintech` is the mixed one: HOOD is a broker and SOFI a lender, but PYPL
+    # is a payment processor. The sector rule is right about the sector, so the
+    # exception is per name and lives in `TICKER_TO_TYPE` below.
+    "Banks": FINANCIALS,
+    "Fintech": FINANCIALS,
+}
+
+#: Ticker -> company_type, checked BEFORE either sector map.
+#:
+#: For one situation only: a name whose sector label is right about its industry
+#: and wrong about what prices it. Not a general escape hatch — a DB-level
+#: `manual` assignment is that, and it still beats this (`assign` writes
+#: `seeded` here, so a hand correction is never overwritten by a reseed).
+TICKER_TO_TYPE: dict[str, str] = {
+    # PYPL's chain sector is `Fintech`, which routes to the financials refusal
+    # because deposit- and custodial-funded balance sheets carry no meaningful
+    # enterprise value. That is right about PayPal's BALANCE SHEET — it holds
+    # customer balances and runs a BNPL credit book — but `fcf_yield` divides by
+    # MARKET CAP and never adds `net_debt` (see `EV_DENOMINATED`), so the
+    # contamination the refusal exists to stop cannot reach this band at all.
+    # The exception is therefore not a hole in the rule; it is a method the rule
+    # never covered.
+    #
+    # Measured on the mini 2026-08-19 against the deployed engine
+    # (`docs/research/2026-08-19-valuation-refusal-anatomy/pypl_route_probe.py`):
+    # 0 of the trailing 20 quarters carry non-positive TTM free cash flow, and
+    # the fcf_yield band lands at `confidence: high` with no caveats — against
+    # `medium` plus a "no sector on file" caveat under the pooled default PYPL
+    # has today. An upgrade on the status quo, not a rescue of it.
+    #
+    # What is NOT claimed: that fcf_yield was validated on PYPL specifically. It
+    # was measured pooled (+0.0457, t 3.64). Calling PayPal a platform is a
+    # judgement about the business, and it is recorded as one.
+    "PYPL": "platform_scale",
+}
+
+#: Vendor sector -> company_type. A SEPARATE map from `SECTOR_TO_TYPE`, and the
+#: separation is load-bearing rather than tidiness: the two vocabularies collide
+#: on the word `Energy`. Argon's chain taxonomy means power generation by it and
+#: routes it to `power_infra`/EV-EBITDA; the vendor vocabulary (GICS-style, as
+#: `research_universe.sector` and UW's `/stock/{t}/info` both report it) means
+#: oil and gas. Feeding vendor sectors through the chain map would silently
+#: reprice every energy name.
+#:
+#: Exact match, not prefix: vendor sector strings are a closed vocabulary, so a
+#: prefix rule would only create the chance of an accidental hit.
+#:
+#: Deliberately holds ONE rule. This map exists to answer a question the chain
+#: taxonomy cannot ("is this a bank?"), not to reclassify the universe — every
+#: other vendor sector falls through to `UNCLASSIFIED` exactly as before.
+VENDOR_SECTOR_TO_TYPE: dict[str, str] = {
+    "Financial Services": FINANCIALS,
 }
 
 
 def seed_company_types(
     conn: psycopg.Connection, *, schema: str = "uw_scan"
 ) -> dict[str, int]:
-    """Route every universe ticker: by sector where one exists, else the default.
+    """Route every universe ticker: name override, chain, vendor, else default.
 
     Idempotent and safe to re-run: `assign` refuses to overwrite a row marked
     `manual`, so the seeding pass never undoes a correction. It also lets a real
     sector match REPLACE a previous default, which is the direction that matters
     — a name that acquires a sector should stop being unclassified.
 
-    The default is not a convenience. Measured 2026-08-12, only 83 of the 257
-    ranked names carry a sector anywhere in this database (`watchlist` is the
-    sole source; `flow_events` adds no name the watchlist lacks, and
-    `research_universe` shares none). Without it, two thirds of the universe
-    render an empty valuation block forever — not because the band cannot be
-    computed for them, but because nothing has classified them.
+    The default is not a convenience. Re-measured 2026-08-19 on the widened
+    universe: of 450 names, 185 carry a `watchlist` chain sector and 4 more are
+    reachable only through `research_universe` — 261 carry none. Without a
+    default those render an empty valuation block forever, not because the band
+    cannot be computed but because nothing has classified them.
+
+    The name override is checked first and holds one entry; see `TICKER_TO_TYPE`
+    for why a per-name rule is legitimate here and when it is not.
+
+    The vendor sector is the third pass and answers exactly one question the
+    chain taxonomy cannot: is this a deposit-funded financial? It is read from
+    `company_sector`, which `company_sector_refresh` fills — deliberately not
+    fetched here, because this function runs inside `fundamental_refresh` and
+    that chain's documented property is zero provider spend.
     """
     repo = FundamentalAnchorsRepository(conn, schema=schema)
     with conn.cursor() as cur:
@@ -277,20 +345,44 @@ def seed_company_types(
             # watchlist row at all. DISTINCT because fundamental_universe carries
             # one row per TIER — a plain join visits a core+ranked ticker twice
             # and reports routing counts that do not match the tickers routed.
-            f"""SELECT DISTINCT f.ticker, w.sector
+            # Two sector columns, deliberately NOT coalesced in SQL: the two
+            # vocabularies route through different maps, so the caller has to
+            # know WHICH one matched. Coalescing here would send a vendor sector
+            # through the chain map and mean `Energy` twice.
+            f"""SELECT DISTINCT f.ticker, w.sector, v.sector
                   FROM {schema}.fundamental_universe f
                   LEFT JOIN {schema}.watchlist w ON w.ticker = f.ticker
+                  LEFT JOIN {schema}.company_sector v ON v.ticker = f.ticker
                  WHERE f.removed_at IS NULL"""
         )
         pairs = cur.fetchall()
 
-    counters = {"seen": len(pairs), "routed": 0, "changed": 0, "defaulted": 0}
-    for ticker, sector in pairs:
+    counters = {
+        "seen": len(pairs),
+        "routed": 0,
+        "routed_vendor": 0,
+        "routed_ticker": 0,
+        "changed": 0,
+        "defaulted": 0,
+    }
+    for ticker, sector, vendor_sector in pairs:
+        # Chain sector first: it is hand-curated for THIS desk and strictly more
+        # specific than a vendor sector (it separates Foundry from Memory, which
+        # GICS calls one thing). The vendor sector only answers what the chain
+        # taxonomy has no bucket for.
         matches = [k for k in SECTOR_TO_TYPE if sector and sector.startswith(k)]
-        if matches:
+        if ticker in TICKER_TO_TYPE:
+            company_type = TICKER_TO_TYPE[ticker]
+            note = f"ticker override (sector={sector!r})"
+            counters["routed_ticker"] += 1
+        elif matches:
             best = max(matches, key=len)
             company_type, note = SECTOR_TO_TYPE[best], f"sector={sector}"
             counters["routed"] += 1
+        elif vendor_sector in VENDOR_SECTOR_TO_TYPE:
+            company_type = VENDOR_SECTOR_TO_TYPE[vendor_sector]
+            note = f"vendor_sector={vendor_sector}"
+            counters["routed_vendor"] += 1
         else:
             company_type = UNCLASSIFIED
             note = f"no rule for sector={sector!r}" if sector else "no sector on file"
@@ -384,6 +476,7 @@ def fundamental_anchors(
     counters = {
         "considered": len(panel),
         "unrouted": len(panel) - len(universe),
+        "financials": 0,
         "no_prices": 0,
         "no_fx": 0,
         "converted": 0,
@@ -402,6 +495,30 @@ def fundamental_anchors(
         company_type = types[ticker]
         method = TYPE_YIELD.get(company_type)
         if method is None:
+            if company_type == FINANCIALS:
+                # PERSIST the refusal rather than skipping it. A skipped ticker
+                # writes no row, and the card's no-row branch says "it has no
+                # company_type, so no valuation method is routed to it — a gap
+                # in our coverage, not a judgement about the company". For a
+                # bank every clause of that is wrong: the type is known, the
+                # omission is deliberate, and it IS a judgement about what can
+                # be priced this way. The refusal is the finding, so it has to
+                # reach the screen.
+                spot_date, spot = px[-1]
+                counters["financials"] += 1
+                rows.append(
+                    _refusal_row(
+                        ticker=ticker,
+                        as_of=as_of or spot_date,
+                        engine=engine,
+                        company_type=company_type,
+                        # No method, and not a sentinel: see migration 124.
+                        method=None,
+                        spot=spot,
+                        reasons=[FINANCIALS_REFUSAL],
+                    )
+                )
+                continue
             counters["unrouted"] += 1
             continue
 

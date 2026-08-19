@@ -3428,7 +3428,7 @@ export interface components {
             /** Company Type */
             company_type: string;
             /** Method */
-            method: string;
+            method?: string | null;
             /** Buy Below */
             buy_below?: number | null;
             /** Observe Low */

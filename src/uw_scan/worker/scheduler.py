@@ -365,6 +365,15 @@ def _should_schedule_fundamental_concentration_capture(settings: Settings) -> bo
     return role == "all" or (role == "uw" and settings.worker_index == 0)
 
 
+def _should_schedule_company_sector_refresh(settings: Settings) -> bool:
+    """Same uw-0 pin as its monthly siblings: no advisory lock, and N copies
+    would each spend a call per ticker on one upsert table."""
+    if not settings.company_sector_refresh_enabled:
+        return False
+    role = settings.worker_role.lower()
+    return role == "all" or (role == "uw" and settings.worker_index == 0)
+
+
 def _should_schedule_top_net_impact_capture(settings: Settings) -> bool:
     """Exactly one process owns the 15-min top-net-impact capture. Same uw-0
     pin + kill-switch as market-tide (one UW call/tick, idempotent upsert)."""
@@ -842,6 +851,21 @@ def main() -> int:
                         conn=repo.conn, client=uw, schema=settings.db_schema
                     )
         logger.info("fundamental_concentration_capture %s", counters)
+
+    def _company_sector_refresh() -> None:
+        from uw_scan.worker.jobs.company_sector_refresh import company_sector_refresh
+
+        with _external_api_recorder(settings) as recorder:
+            with _uw_client(
+                settings,
+                telemetry_recorder=recorder,
+                job_name="company_sector_refresh",
+            ) as uw:
+                with _repo(settings) as repo:
+                    counters = company_sector_refresh(
+                        conn=repo.conn, client=uw, schema=settings.db_schema
+                    )
+        logger.info("company_sector_refresh %s", counters)
 
     def _theta_harvester_scan() -> None:
         with _repo(settings) as repo:
@@ -1851,6 +1875,22 @@ def main() -> int:
                     ),
                     id="fundamental_concentration_capture",
                     name="Fundamental revenue-breakdown capture (monthly)",
+                    max_instances=1,
+                    coalesce=True,
+                )
+            # Monthly vendor-sector fill, 04:40 ET on the 4th. Exists to answer
+            # one routing question the chain taxonomy cannot ("is this a
+            # deposit-funded financial?") for the universe names with no
+            # watchlist row — see the job.
+            if _should_schedule_company_sector_refresh(settings):
+                sched.add_job(
+                    _company_sector_refresh,
+                    CronTrigger.from_crontab(
+                        settings.company_sector_refresh_cron,
+                        timezone=settings.rth_tz,
+                    ),
+                    id="company_sector_refresh",
+                    name="Vendor sector fill for company_type routing (monthly)",
                     max_instances=1,
                     coalesce=True,
                 )

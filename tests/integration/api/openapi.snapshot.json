@@ -4645,8 +4645,15 @@
             "type": "integer"
           },
           "method": {
-            "title": "Method",
-            "type": "string"
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Method"
           },
           "observe_high": {
             "anyOf": [
@@ -4717,7 +4724,6 @@
         },
         "required": [
           "company_type",
-          "method",
           "history_quarters",
           "confidence",
           "as_of"
@@ -25965,7 +25971,7 @@
   },
   "info": {
     "title": "UW Watchlist API",
-    "version": "0.12.6"
+    "version": "0.12.8"
   },
   "openapi": "3.1.0",
   "paths": {

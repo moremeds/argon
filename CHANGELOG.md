@@ -9,6 +9,19 @@ version in lockstep (enforced by `scripts/release/version_sync_check.py`).
 
 ### Added
 
+- **Vendor sector fill for `company_type` routing** (`company_sector`, migration
+  123; job `company_sector_refresh`, 04:40 ET monthly on the 4th, uw-0, gated
+  `UW_SCAN_COMPANY_SECTOR_REFRESH_ENABLED` default **on**). Of the 450 universe
+  names, 185 carry an argon chain sector and 4 more are reachable through
+  `research_universe`; **261 carry none** — including AXP, COF and FLG, three of
+  the financials above, so no chain rule can reach them. One UW call per ticker,
+  once per ticker, and a vendor reply with no sector is stored as NULL so it is
+  never re-asked. Deliberately NOT fetched inside `fundamental_refresh`, whose
+  documented property is that the whole nightly chain costs zero provider spend.
+  The vendor vocabulary gets its **own** map: it collides with argon's chain
+  taxonomy on `Energy`, which means power generation in one (routing to
+  `power_infra`/EV-EBITDA) and oil and gas in the other.
+
 - **Scanner gains a `Value` sub-tab — every name currently sitting at or below
   its own `buy_below` level.** `valuation_anchors` had exactly one read path
   (`latest_for_ticker`), so the one fundamental signal in the stack that
@@ -28,6 +41,49 @@ version in lockstep (enforced by `scripts/release/version_sync_check.py`).
   days earlier rather than because a price moved.
 
 ### Fixed
+
+- **Deposit-funded financials were handed an arbitrary valuation band instead of
+  an honest refusal.** `company_type` routing had no rule for banks, so all 11
+  financials in the panel fell through to the pooled-universe default
+  (`sales_to_ev`). Every yield there is denominated in enterprise value, and
+  `EV = market cap + net debt` treats net debt as a claim on operating assets —
+  for a bank, broker or lender the funding IS the business, and the vendor `debt`
+  field does not carry deposits at all. The result was not a wrong number but an
+  arbitrary one: measured 2026-08-17, **AXP, BLK, COF, MS and SOFI were rendering
+  a `medium`-confidence band** (AXP "buy below 268.92") while **BAC, GS, JPM,
+  WFC, HOOD and FLG refused** — the same business model reaching both outcomes
+  depending on which side of a numeric guard it landed on. `net_debt/market_cap`
+  over those 11 ran -0.07 (COF) to 1.73 (GS) against a non-financial
+  distribution of p50 0.05 / max 21.61, so no threshold could have separated
+  them: one catching GS/BAC/WFC/JPM also catches EIX, EXC, AES, BXP and ARE,
+  whose EV yields are legitimate. They now route to a `financials` type that has
+  no yield **by design** and persists a refusal saying so. Method and
+  measurement: `docs/research/2026-08-19-valuation-refusal-anatomy/`.
+- **A refusal is now persisted rather than the ticker being skipped.** An
+  unrouted ticker wrote no row, and the card's no-row branch reads "it has no
+  `company_type`, so no valuation method is routed to it — a gap in our
+  coverage, not a judgement about the company". For a bank every clause of that
+  is false. `valuation_anchors.method` becomes nullable (migration 124) to carry
+  the state migration 118 could not express: refused because NO method applies,
+  rather than refused under one. A sentinel string was rejected — it would read
+  like a method in `METHOD_LABEL` lookups and in the card header.
+- **PYPL keeps its band, through a market-cap method rather than an exemption.**
+  Its chain sector is `Fintech` and its vendor sector `Financial Services`, so
+  both routing passes independently sent it to the refusal — correctly, about its
+  balance sheet: PayPal holds custodial customer balances and runs a BNPL credit
+  book. But every method that breaks for a financial is EV-denominated, and
+  `fcf_yield` divides by market cap and never reads `net_debt`, so the
+  contamination cannot reach that band at all. A one-entry `TICKER_TO_TYPE`
+  override, checked ahead of both sector passes, routes it to `platform_scale`.
+  Measured on the mini against the deployed engine: **0 of the trailing 20
+  quarters carry non-positive TTM free cash flow**, and the band lands at
+  `confidence: high` with no caveats (buy below 79.40, spot 60.43) against
+  `medium` plus a "no sector on file" caveat under the pooled default it had.
+  The override writes `seeded`, so a DB-level `manual` assignment still overrules
+  it. A test pins that every override routes to a market-cap method — an entry
+  pointing at an EV-denominated type would look deliberate while its entire
+  justification had evaporated.
+
 
 - **`valuation_anchors.as_of` is the SPOT date, not the compute date** — two
   comments (`worker/jobs/fundamental_refresh.py`, `worker/scheduler.py`) said

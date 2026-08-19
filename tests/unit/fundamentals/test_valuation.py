@@ -17,6 +17,8 @@ from __future__ import annotations
 import pytest
 
 from uw_scan.fundamentals.valuation import (
+    FINANCIALS,
+    FINANCIALS_REFUSAL,
     LEVEL_ORDER,
     METHOD_NUMERATOR,
     MAX_BAND_WIDTH,
@@ -341,3 +343,60 @@ def test_a_genuinely_unsettled_window_is_not_called_a_regime_shift():
     (reason,) = [r for r in swinging["confidence_reasons"] if "spans" in r]
     assert "swinging both ways" in reason
     assert "valuation regimes" not in reason
+
+
+# --------------------------------------------------------------------------
+# Deposit-funded balance sheets
+# --------------------------------------------------------------------------
+
+
+def test_a_financial_is_refused_even_when_every_input_is_perfect():
+    """The refusal is about the METHOD, not the data.
+
+    `_band()`'s inputs produce a clean ascending band for every other type, and
+    they still must not produce one here: what is missing is not history, price
+    or a numerator but a denominator that means anything. Asserting on good
+    inputs is the point — a test built on bad inputs would pass for the wrong
+    reason and keep passing if the guard were deleted.
+    """
+    out = _band(company_type=FINANCIALS)
+    assert out["anchors"] is None
+    assert out["spot_percentile"] is None
+
+
+def test_the_financial_refusal_explains_itself_rather_than_reading_as_a_bug():
+    """It must not fall through to "unknown company_type financials".
+
+    That string describes a routing table with a hole in it, and the obvious fix
+    for a hole is to fill it — which is exactly the bug this replaces. The reason
+    on screen has to say the omission is deliberate and why.
+    """
+    reasons = _band(company_type=FINANCIALS)["confidence_reasons"]
+    assert FINANCIALS_REFUSAL in reasons
+    assert not any("unknown company_type" in r for r in reasons)
+
+
+def test_financials_has_no_yield_and_that_is_what_makes_it_refuse():
+    """The guard and the routing table must not be able to disagree.
+
+    If a later edit adds a `financials` entry to TYPE_YIELD, the explicit branch
+    above would still refuse and the table would silently claim otherwise. This
+    pins the single source of truth: the absence IS the decision.
+    """
+    assert FINANCIALS not in TYPE_YIELD
+
+
+def test_a_bank_shaped_balance_sheet_no_longer_depends_on_net_debt_to_refuse():
+    """Measured 2026-08-19: `net_debt/market_cap` over the 11 financials in the
+    panel ran -0.07 (COF) to 1.73 (GS) — straddling the non-financial
+    distribution — so five got a band and six refused on the same business
+    model. Routing by type has to make that spread irrelevant.
+    """
+    # COF's real shape: net CASH on the vendor's `debt - cash`, which is what let
+    # it through the old net-debt guard and onto the card with a band.
+    net_cash = _band(company_type=FINANCIALS, net_debt=-4.0e9)
+    # GS's real shape: net debt large enough to collapse the band's cheap end.
+    net_debt = _band(company_type=FINANCIALS, net_debt=1e6)
+    for out in (net_cash, net_debt):
+        assert out["anchors"] is None
+        assert FINANCIALS_REFUSAL in out["confidence_reasons"]

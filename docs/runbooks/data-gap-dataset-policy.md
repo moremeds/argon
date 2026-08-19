@@ -6,7 +6,7 @@ Generated from `REGISTRY` in `src/uw_scan/reports/data_gap_healer.py` (one sourc
 uv run python -c "from uw_scan.reports.data_gap_healer import render_dataset_policy_markdown as r; open('docs/runbooks/data-gap-dataset-policy.md','w').write(r())"
 ```
 
-**147 datasets** across 11 groups.
+**148 datasets** across 11 groups.
 
 ## core_watchlist
 
@@ -29,6 +29,7 @@ uv run python -c "from uw_scan.reports.data_gap_healer import render_dataset_pol
 
 | table | audit_mode | provider | granularity | adapter | freq | reason | verified |
 |---|---|---|---|---|---|---|---|
+| company_sector | operational_state | uw | none |  | liveness | a per-ticker cache of the vendor's current sector, used only to route company_type. `fetched_at` records when we last ASKED, not when a fact was true, so there is no per-date series to be missing and nothing to backfill; a stale row self-heals on the next monthly fill and a name absent from it simply routes to the pooled default, exactly as before the table existed |  |
 | fundamental_company_type | excluded | none | none |  | none | hand-maintainable routing table, not a time series — a missing row means the name is unrouted, which the card states explicitly |  |
 | fundamental_method_params | excluded | none | none |  | none | immutable parameter rows keyed by engine_version |  |
 | fundamental_method_state | excluded | none | none |  | none | singleton pointer to the active method version |  |
