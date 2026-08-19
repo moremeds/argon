@@ -7,6 +7,47 @@ version in lockstep (enforced by `scripts/release/version_sync_check.py`).
 
 ## [Unreleased]
 
+## [0.12.7] — 2026-08-19
+
+
+### Fixed
+
+- **The SPX density cone now fills its own outage holes instead of losing the
+  session forever.** The nightly job only ever anchors the freshest bar and
+  self-gates on `latest_as_of() == anchor`, so any session whose 03:30 run never
+  fired became unreachable the moment a later cone landed — there was no path
+  back to it. Two ways in, both hit at once over 2026-08-11..14: the stack was
+  down, and the job's `tue-sat` cron puts the only chance to issue Friday's
+  anchor on a Saturday. `2026-08-14` was silently absent while `08-13` and
+  `08-17` were both present, and the chart read "1 session behind the tape".
+  `spx_density_forecast` now carries a `spx_density_reconstruct` healer adapter
+  (zero provider cost, same shape as the CRI/VCG/canary recoverers), so the
+  nightly gap healer fills these holes with the rest — one gap mechanism, one
+  report, and a window that spans the whole audit range instead of a bespoke
+  lookback. The registry entry moves from `research_artifact`/no-adapter to
+  `freshness_only`/`run_once_lookback`: healing the gap was always legitimate,
+  it is *relabelling a forward-issued row* that is not. Bounded so it stays a
+  gap-filler rather than a seeder — the freshest bar belongs to the issue pass
+  prospectively, and nothing older than the earliest cone on record is touched,
+  since an unseeded log is `scripts/backfill/spx_density_backfill.py`'s job. The
+  `select_sessions` integrity guard now lives with the cone and is shared by
+  both callers, so a prospective row can never be relabelled `reconstructed`
+  (which would move an out-of-sample cone into the in-sample tally and inflate
+  the only honest hit-rate number on the page).
+
+### Changed
+
+- **The gap healer now runs Saturday nights too, and spends far harder on the
+  nights that cost nothing.** The UW budget day runs 20:00 ET → 20:00 ET and the
+  healer fires *at* 20:00, so a run bills the day that **follows** it. Friday's
+  and Saturday's runs therefore bill Saturday and Sunday — no session, so the
+  live pool needs nothing. The cron extends from `0 20 * * 0-4` (Mon–Fri) to
+  `0 20 * * 0-5` (Mon–Sat), and those two runs take a separate
+  `DATA_GAP_HEALER_MAX_UW_CALLS_WEEKEND` (default 90000) instead of the weekday
+  cap. Sunday stays deliberately unscheduled: that run would bill **Monday**, a
+  full trading day, and the intuitive "Saturday and Sunday are the weekend"
+  reading would hand it a 90k head start against a 105k account guard. Measured
+  on UW's own counter over 2026-08: weekday burn 64k–82k, weekends ~1k.
 ## [0.12.6] — 2026-08-18
 
 
@@ -188,44 +229,9 @@ version in lockstep (enforced by `scripts/release/version_sync_check.py`).
   worst among them.
 ## [0.12.4] — 2026-08-18
 
+
 ### Fixed
 
-- **The SPX density cone now fills its own outage holes instead of losing the
-  session forever.** The nightly job only ever anchors the freshest bar and
-  self-gates on `latest_as_of() == anchor`, so any session whose 03:30 run never
-  fired became unreachable the moment a later cone landed — there was no path
-  back to it. Two ways in, both hit at once over 2026-08-11..14: the stack was
-  down, and the job's `tue-sat` cron puts the only chance to issue Friday's
-  anchor on a Saturday. `2026-08-14` was silently absent while `08-13` and
-  `08-17` were both present, and the chart read "1 session behind the tape".
-  `spx_density_forecast` now carries a `spx_density_reconstruct` healer adapter
-  (zero provider cost, same shape as the CRI/VCG/canary recoverers), so the
-  nightly gap healer fills these holes with the rest — one gap mechanism, one
-  report, and a window that spans the whole audit range instead of a bespoke
-  lookback. The registry entry moves from `research_artifact`/no-adapter to
-  `freshness_only`/`run_once_lookback`: healing the gap was always legitimate,
-  it is *relabelling a forward-issued row* that is not. Bounded so it stays a
-  gap-filler rather than a seeder — the freshest bar belongs to the issue pass
-  prospectively, and nothing older than the earliest cone on record is touched,
-  since an unseeded log is `scripts/backfill/spx_density_backfill.py`'s job. The
-  `select_sessions` integrity guard now lives with the cone and is shared by
-  both callers, so a prospective row can never be relabelled `reconstructed`
-  (which would move an out-of-sample cone into the in-sample tally and inflate
-  the only honest hit-rate number on the page).
-
-### Changed
-
-- **The gap healer now runs Saturday nights too, and spends far harder on the
-  nights that cost nothing.** The UW budget day runs 20:00 ET → 20:00 ET and the
-  healer fires *at* 20:00, so a run bills the day that **follows** it. Friday's
-  and Saturday's runs therefore bill Saturday and Sunday — no session, so the
-  live pool needs nothing. The cron extends from `0 20 * * 0-4` (Mon–Fri) to
-  `0 20 * * 0-5` (Mon–Sat), and those two runs take a separate
-  `DATA_GAP_HEALER_MAX_UW_CALLS_WEEKEND` (default 90000) instead of the weekday
-  cap. Sunday stays deliberately unscheduled: that run would bill **Monday**, a
-  full trading day, and the intuitive "Saturday and Sunday are the weekend"
-  reading would hand it a 90k head start against a 105k account guard. Measured
-  on UW's own counter over 2026-08: weekday burn 64k–82k, weekends ~1k.
 - **A finished or killed heal run no longer wedges the nightly healer forever.**
   The nightly job skips itself while another `execute` run is `running`, and
   nothing ever cleared that flag. Two ways in: a run whose process died (SSH
