@@ -26,17 +26,17 @@ from datetime import date
 
 from psycopg import sql as psql
 
+from uw_scan.reports.data_gap_healer import (
+    _DATE_COL_PREFERENCE,
+    _TICKER_COL_PREFERENCE,
+    REGISTRY,
+    Caveat,
+    DatasetRegistryEntry,
+    _detect_col,
+)
 from uw_scan.worker.jobs.uw_alpha_capture import (
     capture_dark_lit_for,
     capture_intraday_flow_for,
-)
-from uw_scan.reports.data_gap_healer import (
-    _DATE_COL_PREFERENCE,
-    Caveat,
-    _TICKER_COL_PREFERENCE,
-    REGISTRY,
-    DatasetRegistryEntry,
-    _detect_col,
 )
 
 logger = logging.getLogger(__name__)
@@ -377,6 +377,15 @@ def _run_cri_recover(ctx: HealContext, lookback_days: int) -> int:
     return int(out.get("filled", 0))
 
 
+def _run_spx_density_reconstruct(ctx: HealContext, lookback_days: int) -> int:
+    from uw_scan.worker.jobs.spx_density_forecast import reconstruct_recent_gaps
+
+    out = reconstruct_recent_gaps(
+        ctx.repo.conn, ctx.schema, lookback_days=max(1, lookback_days)
+    )
+    return int(out.get("filled", 0))
+
+
 def _run_vcg_recover(ctx: HealContext, lookback_days: int) -> int:
     from uw_scan.scanners import vcg
 
@@ -530,7 +539,6 @@ def _eventlog_heal(capture_fn):
     return _run
 
 
-
 def _run_fundamental_refresh(ctx: HealContext) -> int:
     """Routing -> subscores -> anchor bands. Zero UW/IB spend: every stage reads
     fundamental_statement_obs and the lake, so this heals fundamental_scores and
@@ -606,9 +614,7 @@ def _run_pipeline_replay(ctx: HealContext, ticker: str, market_date: date) -> in
     key = (ticker.upper(), market_date)
     if key in ctx._replayed:
         return 1  # already healed by a sibling dataset in this run
-    _replay_run_single_stock(
-        ticker, ctx.uw_client(), ctx.repo, market_date=market_date
-    )
+    _replay_run_single_stock(ticker, ctx.uw_client(), ctx.repo, market_date=market_date)
     ctx._replayed.add(key)
     return 1
 
@@ -623,9 +629,12 @@ HEAL_SPECS: dict[str, HealSpec] = {
         "pipeline_replay", "uw", "per_ticker_date", _run_pipeline_replay, est_per_item=2
     ),
     "flow_chain_replay": HealSpec(
-        "flow_chain_replay", "uw", "per_ticker_date", _run_flow_chain_replay, est_per_item=1
+        "flow_chain_replay",
+        "uw",
+        "per_ticker_date",
+        _run_flow_chain_replay,
+        est_per_item=1,
     ),
-
     "fundamental_refresh": HealSpec(
         "fundamental_refresh",
         "db",
@@ -668,6 +677,16 @@ HEAL_SPECS: dict[str, HealSpec] = {
     ),
     "canary_recover": HealSpec(
         "canary_recover", "db", "run_once_lookback", _run_canary_recover, est_per_item=0
+    ),
+    # Writes origin='reconstructed' only, and never over a prospective row — the
+    # selection rule that guarantees it lives with the cone, in
+    # spx_density_forecast.select_sessions.
+    "spx_density_reconstruct": HealSpec(
+        "spx_density_reconstruct",
+        "db",
+        "run_once_lookback",
+        _run_spx_density_reconstruct,
+        est_per_item=0,
     ),
     "market_tide": HealSpec(
         "market_tide", "uw", "per_ticker_date", _run_market_tide, est_per_item=1

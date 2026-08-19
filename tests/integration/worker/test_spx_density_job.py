@@ -12,7 +12,10 @@ from uw_scan.config import Settings
 from uw_scan.density.forecast import load_frozen_panel
 from uw_scan.storage.spx_density_repository import SpxDensityRepository
 from uw_scan.storage.vol_index_repository import VolIndexRepository
-from uw_scan.worker.jobs.spx_density_forecast import spx_density_forecast_job
+from uw_scan.worker.jobs.spx_density_forecast import (
+    reconstruct_recent_gaps,
+    spx_density_forecast_job,
+)
 
 REPO_ROOT = Path(__file__).resolve().parents[3]
 GOLDEN = json.loads(
@@ -85,23 +88,26 @@ def test_reconstruct_fills_outage_hole_without_relabelling_prospective(
     """The 2026-08-14 failure mode: a session whose issue run never fired.
 
     The issue pass only ever anchors the freshest bar, so once a later cone lands the
-    skipped session is unreachable forever. The reconstruct pass fills it — but a row the
-    model published forward must keep origin='prospective', or an out-of-sample cone
-    silently joins the in-sample tally.
+    skipped session is unreachable from it forever. ``reconstruct_recent_gaps`` — the
+    healer's ``spx_density_reconstruct`` adapter — fills it, but a row the model published
+    forward must keep origin='prospective', or an out-of-sample cone silently joins the
+    in-sample tally.
     """
     repo = seeded_db_empty_cards
     settings = Settings.from_env()
     _seed_spx(repo)
     sdr = SpxDensityRepository(repo.conn, schema=repo._schema)
+    schema = repo._schema
 
     out1 = spx_density_forecast_job(repo, settings)
     assert out1["as_of"] == "2026-07-30"
-    # nothing to fill yet, and pre-panel history is the backfill script's job, not ours
-    assert out1["reconstructed"] == 0
+    # One cone on record and nothing below it: the pass must not invent pre-history
+    # even at a huge lookback — seeding is the backfill script's job.
+    assert reconstruct_recent_gaps(repo.conn, schema, lookback_days=3650)["filled"] == 0
 
     # Two sessions land while the stack is down, so 07-31's anchor is never issued.
     anchor_close = float(GOLDEN["anchor"]["close"])
-    VolIndexRepository(repo.conn, schema=repo._schema).upsert_rows(
+    VolIndexRepository(repo.conn, schema=schema).upsert_rows(
         [
             _bar(date(2026, 7, 31), anchor_close * 1.01),
             _bar(date(2026, 8, 3), anchor_close * 1.02),
@@ -110,8 +116,10 @@ def test_reconstruct_fills_outage_hole_without_relabelling_prospective(
 
     out2 = spx_density_forecast_job(repo, settings)
     assert out2["issued"] == 5 and out2["as_of"] == "2026-08-03"
-    assert out2["reconstructed"] == 1
+    # the issue pass alone leaves the hole — that is the bug being fixed
+    assert sdr.fetch_forecast(date(2026, 7, 31)) == []
 
+    assert reconstruct_recent_gaps(repo.conn, schema, lookback_days=3650)["filled"] == 1
     filled = sdr.fetch_forecast(date(2026, 7, 31))
     assert len(filled) == 5
     assert {r["origin"] for r in filled} == {"reconstructed"}
@@ -124,8 +132,8 @@ def test_reconstruct_fills_outage_hole_without_relabelling_prospective(
         "prospective"
     }
 
-    # idempotent: a second run finds no hole and rewrites nothing
-    assert spx_density_forecast_job(repo, settings)["reconstructed"] == 0
+    # idempotent: a second pass finds no hole and rewrites nothing
+    assert reconstruct_recent_gaps(repo.conn, schema, lookback_days=3650)["filled"] == 0
 
 
 def test_panel_mismatch_refuses_but_settles(seeded_db_empty_cards):

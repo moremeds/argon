@@ -483,6 +483,27 @@ def data_gap_healer_job(
         repo.conn.close()
 
 
+def _nightly_uw_cap(settings: Settings, today: date) -> int:
+    """The night's UW ceiling — larger when the run bills a non-trading day.
+
+    The UW budget day runs 20:00 ET -> 20:00 ET and this job fires AT 20:00, so a run
+    spends against the day that FOLLOWS it, not the one it starts in. Friday's and
+    Saturday's runs bill Saturday and Sunday: no session, so the live pool needs nothing
+    and the healer may take most of the account. Sunday is not scheduled at all (see
+    ``data_gap_healer_cron_et``) precisely because that run would bill Monday.
+
+    Getting the boundary wrong in the safe-looking direction — treating Sunday night as
+    "the weekend" — would hand a full trading Monday a 90k head start against a 105k
+    guard, which is the failure this function exists to prevent.
+    """
+    is_weekend_billing = today.weekday() in (4, 5)  # Fri, Sat
+    return (
+        settings.data_gap_healer_max_uw_calls_weekend
+        if is_weekend_billing
+        else settings.data_gap_healer_max_uw_calls
+    )
+
+
 def _run_nightly(
     repo: Repository,
     gap: DataGapHealerRepository,
@@ -516,7 +537,7 @@ def _run_nightly(
         # Only the NIGHTLY job is sliced. An operator draining one dataset on
         # purpose via the CLI should not be.
         budget=RequestBudget(
-            settings.data_gap_healer_max_uw_calls,
+            _nightly_uw_cap(settings, today),
             dataset_share=settings.data_gap_healer_dataset_share,
         ),
         settings=settings,

@@ -448,11 +448,18 @@ class Settings(BaseModel):
     # Nightly data gap healer (8pm ET, after UW quota reset). Only UW is capped.
     data_gap_healer_enabled: bool = False
     data_gap_healer_cron_et: str = (
-        "0 20 * * 0-4"  # 20:00 ET Mon-Fri (APScheduler Mon=0)
+        "0 20 * * 0-5"  # 20:00 ET Mon-Sat (APScheduler Mon=0)
     )
     data_gap_healer_datasets: str = ""  # empty = all healable datasets
     data_gap_healer_start: str = "2026-01-01"
     data_gap_healer_max_uw_calls: int = 20000
+    # The UW budget day runs 20:00 ET -> 20:00 ET and the healer fires AT 20:00, so a
+    # run bills the day that FOLLOWS it. Friday's and Saturday's runs therefore bill to
+    # Saturday and Sunday -- no session, so the live pool needs nothing and the healer
+    # can take most of the account. Sunday is deliberately NOT scheduled: that run would
+    # bill Monday, a full trading day. Measured 2026-08 on UW's own counter: weekday
+    # burn 64k-82k against a 105k guard, weekends ~1k.
+    data_gap_healer_max_uw_calls_weekend: int = 90000
     # No single dataset may take more than this share of one night's UW cap.
     # execute_run groups items by dataset and runs each group to completion
     # against one shared budget, so the first big UW spender in REGISTRY drains
@@ -987,12 +994,15 @@ class Settings(BaseModel):
             ),
             data_gap_healer_enabled=_env_bool("DATA_GAP_HEALER_ENABLED", False),
             data_gap_healer_cron_et=os.environ.get(
-                "DATA_GAP_HEALER_CRON_ET", "0 20 * * 0-4"
+                "DATA_GAP_HEALER_CRON_ET", "0 20 * * 0-5"
             ),
             data_gap_healer_datasets=os.environ.get("DATA_GAP_HEALER_DATASETS", ""),
             data_gap_healer_start=os.environ.get("DATA_GAP_HEALER_START", "2026-01-01"),
             data_gap_healer_max_uw_calls=int(
                 os.environ.get("DATA_GAP_HEALER_MAX_UW_CALLS", "20000")
+            ),
+            data_gap_healer_max_uw_calls_weekend=int(
+                os.environ.get("DATA_GAP_HEALER_MAX_UW_CALLS_WEEKEND", "90000")
             ),
             data_gap_healer_dataset_share=float(
                 os.environ.get("DATA_GAP_HEALER_DATASET_SHARE", "0.4")
