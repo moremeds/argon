@@ -3,11 +3,12 @@
 import { useEffect, useState } from "react";
 import ThetaSubTab from "./theta/ThetaSubTab";
 
-type ScannerTab = "flow" | "discover" | "theta";
+type ScannerTab = "flow" | "discover" | "value" | "theta";
 
 const TABS: { id: ScannerTab; label: string }[] = [
   { id: "flow", label: "Flow Signals" },
   { id: "discover", label: "Discover" },
+  { id: "value", label: "Value" },
   { id: "theta", label: "Theta Harvester" },
 ];
 
@@ -23,6 +24,7 @@ export default function ScannerPanel({
   theta,
   flowContent,
   discoverContent,
+  valueContent,
 }: {
   initialTab?: string;
   // Counts come from the server so every badge is correct on first paint,
@@ -31,6 +33,7 @@ export default function ScannerPanel({
   theta?: React.ComponentProps<typeof ThetaSubTab>["initial"];
   flowContent?: React.ReactNode;
   discoverContent?: React.ReactNode;
+  valueContent?: React.ReactNode;
 }) {
   // Mirrors RegimePanel: local state renders instantly, the URL is kept in sync
   // via pushState + a popstate listener so deep-links and back/forward both work
@@ -82,6 +85,7 @@ export default function ScannerPanel({
             async server components and cannot be imported into a client one. */}
         {activeTab === "flow" ? flowContent : null}
         {activeTab === "discover" ? discoverContent : null}
+        {activeTab === "value" ? valueContent : null}
         {activeTab === "theta" ? <ThetaSubTab initial={theta} /> : null}
       </div>
     </div>

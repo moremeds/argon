@@ -28,6 +28,8 @@ from uw_scan.api.models.scanner import (
     ScannerGatesStatus,
     ScannerResponse,
     ScannerSignalHit,
+    ValueCandidate,
+    ValueScanResponse,
 )
 from uw_scan.api.models.theta_harvester import (
     ThetaHarvesterCandidate,
@@ -482,3 +484,54 @@ def theta_harvester_quote(
         # error and a leaked session lock would block every later quote until
         # the connection is recycled.
         _release(repo, _THETA_QUOTE_LOCK_SQL)
+
+
+@router.get("/value", response_model=ValueScanResponse)
+def get_scanner_value(
+    repo: Repository = Depends(get_repo),
+    settings: Settings = Depends(get_settings),
+) -> ValueScanResponse:
+    """Names currently inside their OWN valuation buy zone.
+
+    Pure warm-store read of `valuation_anchors` — no UW call, no IB call, no
+    compute. The bands were written by `fundamental_refresh` (18:20 ET).
+
+    Exists because the one fundamental signal that measured (`sales_to_ev`
+    within-ticker, market-neutral 2q IC +0.0744, t 5.77) was reachable only one
+    ticker at a time: `latest_for_ticker` was the sole read path on the table, so
+    seeing the zone required already suspecting the name.
+
+    UNRANKED BY CONSTRUCTION. Cross-sectional value is INVERTED in this universe
+    (`book_to_price` IC -0.0365, t -2.32), so this endpoint must never grow a
+    `sort` parameter over `spot_percentile` — that would ship the refuted claim
+    under the validated one's name.
+
+    503 rather than an empty list when no method version is active: "no name is
+    cheap today" and "the fundamentals stack is down" are different facts, and an
+    empty array asserts the first.
+    """
+    from uw_scan.storage.fundamental_anchors import FundamentalAnchorsRepository
+    from uw_scan.storage.fundamental_scores import FundamentalScoresRepository
+
+    conn, schema = repo.conn, settings.db_schema
+    engine = FundamentalScoresRepository(conn, schema=schema).active_version()
+    if engine is None:
+        raise HTTPException(
+            status_code=503, detail="no active fundamental method version"
+        )
+    anchors = FundamentalAnchorsRepository(conn, schema=schema)
+    as_of, banded = anchors.band_coverage(engine)
+    rows = anchors.in_buy_zone(engine) if as_of else []
+    return ValueScanResponse(
+        candidates=[
+            ValueCandidate(
+                **{k: v for k, v in r.items() if k != "confidence_reasons_jsonb"},
+                confidence_reasons=r["confidence_reasons_jsonb"] or [],
+            )
+            for r in rows
+        ],
+        engine_version=engine,
+        as_of=as_of,
+        banded_universe=banded,
+        generated_at=_now_utc(),
+    )

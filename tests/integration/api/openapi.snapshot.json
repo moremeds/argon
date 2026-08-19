@@ -22361,6 +22361,181 @@
         "title": "ValidationResponse",
         "type": "object"
       },
+      "ValueCandidate": {
+        "description": "One name whose price sits at or below its OWN `buy_below` level.\n\nA membership fact about a single company, not a placement against the other\nrows. `spot_percentile` is a YIELD percentile \u2014 high means cheap versus this\nname's own past \u2014 and is carried for the reader, never as a sort key.",
+        "properties": {
+          "as_of": {
+            "format": "date",
+            "title": "As Of",
+            "type": "string"
+          },
+          "buy_below": {
+            "anyOf": [
+              {
+                "pattern": "^(?!^[-+.]*$)[+-]?0*\\d*\\.?\\d*$",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Buy Below"
+          },
+          "company_type": {
+            "title": "Company Type",
+            "type": "string"
+          },
+          "confidence": {
+            "enum": [
+              "high",
+              "medium",
+              "low",
+              "none"
+            ],
+            "title": "Confidence",
+            "type": "string"
+          },
+          "confidence_reasons": {
+            "default": [],
+            "items": {
+              "type": "string"
+            },
+            "title": "Confidence Reasons",
+            "type": "array"
+          },
+          "entered": {
+            "anyOf": [
+              {
+                "type": "boolean"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Entered"
+          },
+          "history_quarters": {
+            "title": "History Quarters",
+            "type": "integer"
+          },
+          "method": {
+            "title": "Method",
+            "type": "string"
+          },
+          "observe_mid": {
+            "anyOf": [
+              {
+                "pattern": "^(?!^[-+.]*$)[+-]?0*\\d*\\.?\\d*$",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Observe Mid"
+          },
+          "risk_above": {
+            "anyOf": [
+              {
+                "pattern": "^(?!^[-+.]*$)[+-]?0*\\d*\\.?\\d*$",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Risk Above"
+          },
+          "spot": {
+            "anyOf": [
+              {
+                "pattern": "^(?!^[-+.]*$)[+-]?0*\\d*\\.?\\d*$",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Spot"
+          },
+          "spot_percentile": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Spot Percentile"
+          },
+          "ticker": {
+            "title": "Ticker",
+            "type": "string"
+          }
+        },
+        "required": [
+          "ticker",
+          "company_type",
+          "method",
+          "spot",
+          "buy_below",
+          "observe_mid",
+          "risk_above",
+          "spot_percentile",
+          "history_quarters",
+          "confidence",
+          "as_of"
+        ],
+        "title": "ValueCandidate",
+        "type": "object"
+      },
+      "ValueScanResponse": {
+        "description": "Every name currently inside its own buy zone.\n\nDeliberately unranked. Ordering names by cheapness measured INVERTED in this\nuniverse (`book_to_price` 2q IC -0.0365, t -2.32), so the list is sorted by\nentry event and then alphabetically. `engine_version` is on the response\nbecause a band is only readable beside the method that produced it.",
+        "properties": {
+          "as_of": {
+            "anyOf": [
+              {
+                "format": "date",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "As Of"
+          },
+          "banded_universe": {
+            "title": "Banded Universe",
+            "type": "integer"
+          },
+          "candidates": {
+            "items": {
+              "$ref": "#/components/schemas/ValueCandidate"
+            },
+            "title": "Candidates",
+            "type": "array"
+          },
+          "engine_version": {
+            "title": "Engine Version",
+            "type": "string"
+          },
+          "generated_at": {
+            "format": "date-time",
+            "title": "Generated At",
+            "type": "string"
+          }
+        },
+        "required": [
+          "candidates",
+          "engine_version",
+          "as_of",
+          "banded_universe",
+          "generated_at"
+        ],
+        "title": "ValueScanResponse",
+        "type": "object"
+      },
       "VcgAttribution": {
         "properties": {
           "model_implied": {
@@ -26388,7 +26563,7 @@
   },
   "info": {
     "title": "UW Watchlist API",
-    "version": "0.12.3"
+    "version": "0.12.6"
   },
   "openapi": "3.1.0",
   "paths": {
@@ -29310,6 +29485,29 @@
           }
         },
         "summary": "Theta Harvester Rescan",
+        "tags": [
+          "scanner",
+          "scanner"
+        ]
+      }
+    },
+    "/api/scanner/value": {
+      "get": {
+        "description": "Names currently inside their OWN valuation buy zone.\n\nPure warm-store read of `valuation_anchors` \u2014 no UW call, no IB call, no\ncompute. The bands were written by `fundamental_refresh` (18:20 ET).\n\nExists because the one fundamental signal that measured (`sales_to_ev`\nwithin-ticker, market-neutral 2q IC +0.0744, t 5.77) was reachable only one\nticker at a time: `latest_for_ticker` was the sole read path on the table, so\nseeing the zone required already suspecting the name.\n\nUNRANKED BY CONSTRUCTION. Cross-sectional value is INVERTED in this universe\n(`book_to_price` IC -0.0365, t -2.32), so this endpoint must never grow a\n`sort` parameter over `spot_percentile` \u2014 that would ship the refuted claim\nunder the validated one's name.\n\n503 rather than an empty list when no method version is active: \"no name is\ncheap today\" and \"the fundamentals stack is down\" are different facts, and an\nempty array asserts the first.",
+        "operationId": "get_scanner_value_api_scanner_value_get",
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ValueScanResponse"
+                }
+              }
+            },
+            "description": "Successful Response"
+          }
+        },
+        "summary": "Get Scanner Value",
         "tags": [
           "scanner",
           "scanner"

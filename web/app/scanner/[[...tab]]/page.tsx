@@ -1,5 +1,6 @@
 import DiscoverSubTab from "@/components/scanner/DiscoverSubTab";
 import FlowSubTab from "@/components/scanner/FlowSubTab";
+import ValueSubTab from "@/components/scanner/value/ValueSubTab";
 import ScannerPanel from "@/components/scanner/ScannerPanel";
 import { api } from "@/lib/api";
 
@@ -7,10 +8,11 @@ export const dynamic = "force-dynamic";
 
 export const metadata = {
   title: "Scanner — Unusual Whales",
-  description: "Flow scanner and Theta Harvester short-strangle candidates",
+  description:
+    "Flow scanner, own-history valuation buy zones, and Theta Harvester candidates",
 };
 
-const VALID_TABS = new Set(["flow", "discover", "theta"]);
+const VALID_TABS = new Set(["flow", "discover", "value", "theta"]);
 
 export default async function ScannerPage({
   params,
@@ -33,10 +35,13 @@ export default async function ScannerPage({
   // so all slots are rendered up front regardless of which tab is active —
   // fetching inside each sub-tab would run the same requests AND still leave
   // the route unable to label the badges.
-  const [data, queue, discover, theta] = await Promise.all([
+  const [data, queue, discover, value, theta] = await Promise.all([
     api.scanner(qs),
     api.queueSummary().catch(() => undefined),
     api.scannerDiscover(20).catch(() => undefined),
+    // 503 (no active method version) lands here as undefined, which the
+    // sub-tab renders as an outage rather than as an empty buy-zone list.
+    api.scannerValue().catch(() => undefined),
     api.thetaHarvester().catch(() => undefined),
   ]);
 
@@ -58,11 +63,13 @@ export default async function ScannerPage({
         counts={{
           flow: data.candidates.length,
           discover: discover?.candidates.length,
+          value: value?.candidates.length,
           theta: theta?.candidates.length,
         }}
         theta={theta}
         flowContent={<FlowSubTab data={data} queue={queue} />}
         discoverContent={<DiscoverSubTab discover={discover} />}
+        valueContent={<ValueSubTab value={value} />}
       />
     </div>
   );

@@ -99,6 +99,7 @@ type CockpitFlowImResponse = Json<"/api/cockpit/{ticker}/flow-im", "get">;
 type CockpitVrpResponse = Json<"/api/cockpit/{ticker}/vrp", "get">;
 type ScannerResponse = Json<"/api/scanner", "get">;
 type ScannerDiscoverResponse = Json<"/api/scanner/discover", "get">;
+type ScannerValueResponse = Json<"/api/scanner/value", "get">;
 type ThetaHarvesterResponse = Json<"/api/scanner/theta-harvester", "get">;
 type ThetaHarvesterScanResult = Json<
   "/api/scanner/theta-harvester/rescan",
@@ -258,6 +259,11 @@ export const api = {
   },
   scannerDiscover: (limit = 20): Promise<ScannerDiscoverResponse> =>
     _fetch<ScannerDiscoverResponse>(`/api/scanner/discover?limit=${limit}`),
+  // No params by design: the list is every name in its own buy zone at the
+  // latest as_of. A `sort` or `limit` would invite ordering by cheapness,
+  // which measured INVERTED across names (book_to_price IC -0.0365).
+  scannerValue: (): Promise<ScannerValueResponse> =>
+    _fetch<ScannerValueResponse>("/api/scanner/value"),
   thetaHarvester: (
     params: URLSearchParams = new URLSearchParams(),
   ): Promise<ThetaHarvesterResponse> => {

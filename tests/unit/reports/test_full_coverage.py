@@ -35,7 +35,7 @@ def test_the_coverage_ledger_numbers_are_still_true() -> None:
         if e.audit_mode not in BY_DESIGN_AUDIT_MODES
         and e.expected_frequency in ("equity_session", "daily")
     ]
-    assert len(scoped) == 58, (
+    assert len(scoped) == 59, (
         f"the daily/equity_session scope moved to {len(scoped)}; update the "
         "Coverage Ledger in docs/superpowers/plans/"
         "2026-08-16-healer-coverage-hardening.md"

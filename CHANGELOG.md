@@ -139,6 +139,23 @@ version in lockstep (enforced by `scripts/release/version_sync_check.py`).
   matching migration 114 — an unchanged recapture bumps `last_seen_at` and writes
   no fact, a restatement lands beside its predecessor. First run: 63,567 rows
   over 400 names spanning 2019-09-30 to 2026-07-05.
+- **Scanner gains a `Value` sub-tab — every name currently sitting at or below
+  its own `buy_below` level.** `valuation_anchors` had exactly one read path
+  (`latest_for_ticker`), so the one fundamental signal in the stack that
+  measured — `sales_to_ev` against a name's OWN history, market-neutral 2q IC
+  +0.0744 (t 5.77) — could only be seen by a reader who already suspected the
+  name. On 2026-08-17, 98 of 336 banded names were inside their own buy zone and
+  no screen in the product showed them. `GET /api/scanner/value` reads the warm
+  store only: zero UW calls, zero IB calls.
+  **The list is unranked by construction and says so on screen.** Ranking names
+  against each other on value measured *inverted* in this universe
+  (`book_to_price` 2q IC -0.0365, t -2.32), so ordering by cheapness would point
+  at the half of the panel that then underperforms. Rows are ordered
+  newly-entered first, then alphabetically, and the endpoint takes no `sort`
+  parameter. `entered` is three-state: a name with no prior band inside the
+  30-day lookback reads `null` (unknown), never `true` — on 2026-08-17 that was
+  29 names, all of them present because the panel widened from 256 to 414 three
+  days earlier rather than because a price moved.
 
 ### Changed
 
@@ -246,7 +263,189 @@ version in lockstep (enforced by `scripts/release/version_sync_check.py`).
   lake lands a session's close around midnight New York, hours after the run.
   Check `max(computed_at)` for liveness and compare `max(as_of)` against the
   lake's own last close for correctness.
+- **`valuation_anchors.as_of` is the SPOT date, not the compute date** — two
+  comments (`worker/jobs/fundamental_refresh.py`, `worker/scheduler.py`) said
+  otherwise and contradicted the authoritative docstring in
+  `worker/jobs/fundamental_anchors.py`. The mislabel already cost one debugging
+  session that read a healthy job's date spread as a broken feed: the lake is an
+  EOD store landing a session near midnight New York, so a healthy 18:20 ET
+  Monday run correctly writes `as_of` = Friday, and `max(as_of) >= today` is
+  unsatisfiable by construction.
 
+### Verified
+
+- **The universe widening delivered +109 usable valuation bands (227 → 336,
+  +48%)** between `as_of` 2026-08-14 and 2026-08-17, against the +132 upper
+  bound the plan projected. Counted by rows rather than by usable bands the same
+  widening reads +62% (256 → 414); a REFUSED band is a row with every level
+  null, so a coverage number has to name which it counts. Reproduce with
+  `scripts/research/valuation_band_coverage_check.py`, which calls the same
+  repository methods the endpoint serves from.
+- **`spot_percentile` moves between sessions** — 78 of 226 paired names (34.5%)
+  changed across those two dates, largest move 0.15. The rest are quantised, not
+  frozen: the percentile is a rank over `history_quarters` observations, so a
+  20-quarter name can only step by 0.05. BAX read 0.80 on both dates while its
+  spot went 26.73 → 25.91 and crossed its own `buy_below` of 26.54 — which is
+  why the new tab keys membership on the band and not on the percentile.
+
+## [0.12.8] — 2026-08-19
+
+
+### Fixed
+
+- **A UW budget day that closed above the account guard silently disabled the
+  entire next day.** UW's `official_daily_count` resets a beat *after* 00:00 UTC,
+  so the first requests of a new budget day still carry the previous day's tail —
+  on 2026-08-18 twelve rows recorded 110204..110214 before the counter dropped to
+  1 at `00:00:04.227Z`. `read_snapshot` took `MAX(official_daily_count)` over the
+  UTC day, which pinned 110214 for the next 24 hours, and `may_spend` halts
+  **every** pool once the account counter reaches `total_guard` (105000). The
+  result was a full-day outage that looked like ordinary budget pressure:
+  `full_scan` made **zero** UW calls all of 08-18, `regime_gex_scan` logged
+  "research UW budget exhausted" from open to close, and `/api/health` reported
+  `ok: false` with "16 expected full scans missed". It also self-obscured — the
+  starved day then closed far below the guard, so the following day recovered on
+  its own and the fault read as intermittent rather than as a stuck gate. The
+  account counter is now the **latest** reading rather than the day's maximum:
+  it is monotone within a budget day, so the newest row is the only maximum that
+  means anything, and it cannot inherit the carry-over. A stale-low read costs at
+  most one extra call before the next snapshot, where the old behaviour cost a
+  trading day.
+## [0.12.7] — 2026-08-19
+
+
+### Fixed
+
+- **The SPX density cone now fills its own outage holes instead of losing the
+  session forever.** The nightly job only ever anchors the freshest bar and
+  self-gates on `latest_as_of() == anchor`, so any session whose 03:30 run never
+  fired became unreachable the moment a later cone landed — there was no path
+  back to it. Two ways in, both hit at once over 2026-08-11..14: the stack was
+  down, and the job's `tue-sat` cron puts the only chance to issue Friday's
+  anchor on a Saturday. `2026-08-14` was silently absent while `08-13` and
+  `08-17` were both present, and the chart read "1 session behind the tape".
+  `spx_density_forecast` now carries a `spx_density_reconstruct` healer adapter
+  (zero provider cost, same shape as the CRI/VCG/canary recoverers), so the
+  nightly gap healer fills these holes with the rest — one gap mechanism, one
+  report, and a window that spans the whole audit range instead of a bespoke
+  lookback. The registry entry moves from `research_artifact`/no-adapter to
+  `freshness_only`/`run_once_lookback`: healing the gap was always legitimate,
+  it is *relabelling a forward-issued row* that is not. Bounded so it stays a
+  gap-filler rather than a seeder — the freshest bar belongs to the issue pass
+  prospectively, and nothing older than the earliest cone on record is touched,
+  since an unseeded log is `scripts/backfill/spx_density_backfill.py`'s job. The
+  `select_sessions` integrity guard now lives with the cone and is shared by
+  both callers, so a prospective row can never be relabelled `reconstructed`
+  (which would move an out-of-sample cone into the in-sample tally and inflate
+  the only honest hit-rate number on the page).
+
+### Changed
+
+- **The gap healer now runs Saturday nights too, and spends far harder on the
+  nights that cost nothing.** The UW budget day runs 20:00 ET → 20:00 ET and the
+  healer fires *at* 20:00, so a run bills the day that **follows** it. Friday's
+  and Saturday's runs therefore bill Saturday and Sunday — no session, so the
+  live pool needs nothing. The cron extends from `0 20 * * 0-4` (Mon–Fri) to
+  `0 20 * * 0-5` (Mon–Sat), and those two runs take a separate
+  `DATA_GAP_HEALER_MAX_UW_CALLS_WEEKEND` (default 90000) instead of the weekday
+  cap. Sunday stays deliberately unscheduled: that run would bill **Monday**, a
+  full trading day, and the intuitive "Saturday and Sunday are the weekend"
+  reading would hand it a 90k head start against a 105k account guard. Measured
+  on UW's own counter over 2026-08: weekday burn 64k–82k, weekends ~1k.
+## [0.12.6] — 2026-08-18
+
+
+### Added
+
+- **Revenue concentration on the Fundamentals tab — where a company's revenue
+  actually comes from, by reportable segment and by geography.** NVDA reads 91.3%
+  Compute & Networking and 78.1% United States; the share, the member name and
+  the multi-year trend all come from the filer's own XBRL disaggregation. The
+  block is **descriptive and says so on screen**: no rank, no percentile against
+  other names, no score, and no contribution to the composite. Measured over 401
+  tickers the top share moves a median 1.20pp per quarter against basis
+  contamination of median 2.5pp and p90 17.5pp — the level survives that noise
+  and is near-static, which makes it a factor loading rather than alpha. The
+  spec's 0.10 composite weight for `concentration_risk` is withdrawn, and its
+  `✅ 24/25` coverage claim corrected to the measured 184/401 by segment and
+  128/401 by geography — the earlier figure counted tickers for which the
+  endpoint returned rows, which is presence, not computability.
+- **Member names render exactly as filed** — `country:US`, `nvda:ChinaIncludingHongKongMember`.
+  Mapping those to flags or country names would mean inventing a taxonomy the
+  filer did not use. An absent family renders `na`, never 0: a zero share reads
+  as "no concentration risk", which is a claim about the company rather than
+  about our coverage.
+- **Annual figures are detected and excluded from the trend, and named rather
+  than hidden.** Filers mix an annual total into a quarterly breakdown series,
+  and an undetected one moves the share by several times its own quarterly step.
+  Detection compares a period against its four nearest neighbours rather than
+  against the ticker's lifetime median — over NVDA's 25-period history revenue
+  grows 26×, so a recent *quarterly* total clears 2.5× a lifetime median on
+  growth alone. On the frozen fixtures the local rule flags 7 of 7 annual periods
+  with no false positives, against 3 of 6 with 3 false positives for the global
+  one, and the periods it drops land exactly on each filer's fiscal year-end.
+- **New monthly capture job** `fundamental_concentration_capture` (04:10 ET on
+  the 3rd, uw-0, `UW_SCAN_FUNDAMENTAL_CONCENTRATION_CAPTURE_ENABLED`, default on)
+  writing `revenue_breakdown_obs` (migration 122). Raw rows are stored, never the
+  derived share: the derivation rules are new and one has already been corrected
+  once against real data, so re-deriving from stored rows must stay possible
+  while re-fetching a rolled-off quarter may not be. Identity is content-hash,
+  matching migration 114 — an unchanged recapture bumps `last_seen_at` and writes
+  no fact, a restatement lands beside its predecessor. First run: 63,567 rows
+  over 400 names spanning 2019-09-30 to 2026-07-05.
+
+### Fixed
+
+- **A refused valuation band no longer reports itself as having no data.**
+  `_no_anchor` hardcoded `history_quarters: 0`, so NVDA's card read `0q` beside a
+  refusal caused by twenty quarters of FCF yield spanning 17x — the data is there
+  and its spread *is* the finding, but the header sent readers hunting a data gap
+  that does not exist. A refusal now carries the window it was taken on, and
+  stays 0 only for the three gates that fire before any history is read (unknown
+  company type, suppressed or non-positive numerator). `ANCHOR_RULES_REV` goes
+  2 → 3 with it: no threshold moved, but what a refusal row *says* did, and the
+  identity key is `ON CONFLICT DO NOTHING`.
+- **The refusal reason leads the panel instead of sitting under an explainer for
+  a band that was never drawn.** The header paragraph teaches how to read five
+  levels and a spot marker; on a refusal none of them are on screen, and it
+  pushed the one sentence that answers "where is the band?" below three lines of
+  prose. It is now omitted on a refusal.
+- **A marginal width refusal no longer contradicts itself.** AVGO spans 4.04x
+  against a 4.0x limit and `:.0f` rendered "spans 4x". Precision now follows the
+  number — the coarsest that still reads above the limit — and the message names
+  the window it actually measured rather than interpolating `WINDOW_QUARTERS`
+  regardless.
+- **"too unstable to anchor a price to" is withdrawn from the width refusal**,
+  because the gate never measured instability. A band spans 17x either because
+  the yield swings — genuinely unsettled — or because it walks one way and stays
+  there, which is a window straddling two valuation regimes and the *opposite* of
+  unstable. The refusal now reports the measured shape: `valuation.yield_drift`,
+  the rank correlation of a name's own yield against time over the band's own
+  window. Of 13 names refused on width, 7 are one-way walks (GE −0.96, AVGO
+  −0.90, LRCX −0.85, MSTR −0.83 as the multiple expanded; DIS +0.81, NVDA +0.68,
+  NFLX +0.66 as the fundamental outgrew the price) and only RIOT, APLD and ACRE
+  swing. **The 4x threshold is unchanged** — the same probe shows shape does not
+  separate wide bands from narrow ones as a population (monotone share 38% vs
+  36%, Mann-Whitney on rho p=0.16), so it licenses a better sentence, not a
+  looser gate. Probe: `scripts/research/valuation_band_width_anatomy.py`.
+- **Full-watchlist survey behind all four** (`docs/research/2026-08-18-valuation-band-refusal/`,
+  reproduce with `scripts/research/valuation_band_survey.py`): of 145 operating
+  companies on the watchlist, 54 render a band, 17 are scored and refused, and
+  **74 have no statements ingested at all** — the dominant gap is coverage, not
+  the band. Those 74 are pending rather than broken: the universe widening
+  shipped in v0.12.5 and `fundamental_ingest` is monthly on the 2nd, so it does
+  not execute until 2026-09-02 unless the seed and backfill are run by hand.
+  AMZN's refusal is verified true — TTM operating cashflow 161.4B against 173.0B
+  of capex at 2026-06-30, free cash flow of −11.6B.
+
+- **`valuation_anchors.as_of` is the spot date, not the compute date**, and the
+  docstring that said otherwise is corrected. The job is healthy — 2 of 2
+  scheduled runs since the v0.12.0 deploy wrote rows, the last at its exact 18:20
+  ET slot — but a health check of the form `max(as_of) >= today` is unsatisfiable
+  by construction: `as_of` is the last bar in the ticker's price series, and the
+  lake lands a session's close around midnight New York, hours after the run.
+  Check `max(computed_at)` for liveness and compare `max(as_of)` against the
+  lake's own last close for correctness.
 ## [0.12.5] — 2026-08-18
 
 
@@ -333,6 +532,7 @@ version in lockstep (enforced by `scripts/release/version_sync_check.py`).
   probe reported healthy. It now parses every discovered release and takes the source state as the
   worst among them.
 ## [0.12.4] — 2026-08-18
+
 
 ### Fixed
 

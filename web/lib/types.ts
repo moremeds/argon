@@ -1838,6 +1838,43 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/scanner/value": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Get Scanner Value
+         * @description Names currently inside their OWN valuation buy zone.
+         *
+         *     Pure warm-store read of `valuation_anchors` — no UW call, no IB call, no
+         *     compute. The bands were written by `fundamental_refresh` (18:20 ET).
+         *
+         *     Exists because the one fundamental signal that measured (`sales_to_ev`
+         *     within-ticker, market-neutral 2q IC +0.0744, t 5.77) was reachable only one
+         *     ticker at a time: `latest_for_ticker` was the sole read path on the table, so
+         *     seeing the zone required already suspecting the name.
+         *
+         *     UNRANKED BY CONSTRUCTION. Cross-sectional value is INVERTED in this universe
+         *     (`book_to_price` IC -0.0365, t -2.32), so this endpoint must never grow a
+         *     `sort` parameter over `spot_percentile` — that would ship the refuted claim
+         *     under the validated one's name.
+         *
+         *     503 rather than an empty list when no method version is active: "no name is
+         *     cheap today" and "the fundamentals stack is down" are different facts, and an
+         *     empty array asserts the first.
+         */
+        get: operations["get_scanner_value_api_scanner_value_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/positioning/screener": {
         parameters: {
             query?: never;
@@ -9583,6 +9620,75 @@ export interface components {
             backtest_csv_rows: number;
             oos?: components["schemas"]["OosSummary"] | null;
         };
+        /**
+         * ValueCandidate
+         * @description One name whose price sits at or below its OWN `buy_below` level.
+         *
+         *     A membership fact about a single company, not a placement against the other
+         *     rows. `spot_percentile` is a YIELD percentile — high means cheap versus this
+         *     name's own past — and is carried for the reader, never as a sort key.
+         */
+        ValueCandidate: {
+            /** Ticker */
+            ticker: string;
+            /** Company Type */
+            company_type: string;
+            /** Method */
+            method: string;
+            /** Spot */
+            spot: string | null;
+            /** Buy Below */
+            buy_below: string | null;
+            /** Observe Mid */
+            observe_mid: string | null;
+            /** Risk Above */
+            risk_above: string | null;
+            /** Spot Percentile */
+            spot_percentile: number | null;
+            /** History Quarters */
+            history_quarters: number;
+            /**
+             * Confidence
+             * @enum {string}
+             */
+            confidence: "high" | "medium" | "low" | "none";
+            /**
+             * Confidence Reasons
+             * @default []
+             */
+            confidence_reasons: string[];
+            /** Entered */
+            entered?: boolean | null;
+            /**
+             * As Of
+             * Format: date
+             */
+            as_of: string;
+        };
+        /**
+         * ValueScanResponse
+         * @description Every name currently inside its own buy zone.
+         *
+         *     Deliberately unranked. Ordering names by cheapness measured INVERTED in this
+         *     universe (`book_to_price` 2q IC -0.0365, t -2.32), so the list is sorted by
+         *     entry event and then alphabetically. `engine_version` is on the response
+         *     because a band is only readable beside the method that produced it.
+         */
+        ValueScanResponse: {
+            /** Candidates */
+            candidates: components["schemas"]["ValueCandidate"][];
+            /** Engine Version */
+            engine_version: string;
+            /** As Of */
+            as_of: string | null;
+            /** Banded Universe */
+            banded_universe: number;
+            /**
+             * Generated At
+             * Format: date-time
+             */
+            generated_at: string;
+        };
         /** VcgAttribution */
         VcgAttribution: {
             /**
@@ -13642,6 +13748,26 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    get_scanner_value_api_scanner_value_get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ValueScanResponse"];
                 };
             };
         };

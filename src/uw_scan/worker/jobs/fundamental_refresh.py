@@ -8,9 +8,17 @@ have gone quietly stale the first day nobody ran it by hand.
 WHY IT IS WORTH A NIGHTLY RUN EVEN WHEN NO FILING LANDED
 --------------------------------------------------------
 The five anchor levels only move on a filing, but `spot` and `spot_percentile`
-move with the price, and `valuation_anchors.as_of` is the COMPUTE date precisely
-so that daily record accumulates. A weekly cadence would leave the card telling
-the reader where price sat inside its own band up to six days ago.
+move with the price, and `valuation_anchors.as_of` is the SPOT date precisely so
+that daily record accumulates. A weekly cadence would leave the card telling the
+reader where price sat inside its own band up to six days ago.
+
+`as_of` is the date of the CLOSE the row was priced at, not the date this job
+ran; the two coincide only when the lake is current, and it is an EOD store that
+lands a session around midnight New York — after this job's 18:20 ET slot. A
+healthy Monday run therefore writes `as_of` = Friday. This paragraph said
+"COMPUTE date" until 2026-08-19 and cost a debugging session that read the
+resulting date spread as a broken job. The full argument, including why keying
+on the clock would be actively wrong, is in `fundamental_anchors.py`.
 
 COST
 ----
