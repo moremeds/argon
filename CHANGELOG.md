@@ -7,6 +7,9 @@ version in lockstep (enforced by `scripts/release/version_sync_check.py`).
 
 ## [Unreleased]
 
+## [0.12.9] — 2026-08-20
+
+
 ### Added
 
 - **Vendor sector fill for `company_type` routing** (`company_sector`, migration
@@ -126,7 +129,6 @@ version in lockstep (enforced by `scripts/release/version_sync_check.py`).
   20-quarter name can only step by 0.05. BAX read 0.80 on both dates while its
   spot went 26.73 → 25.91 and crossed its own `buy_below` of 26.54 — which is
   why the new tab keys membership on the band and not on the percentile.
-
 ## [0.12.8] — 2026-08-19
 
 
