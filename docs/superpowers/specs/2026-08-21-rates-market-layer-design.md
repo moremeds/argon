@@ -246,6 +246,26 @@ substituting a neighbour.
 None of the four is registered in `sources/fred_macro.py` today, which carries exactly 11
 series.
 
+**Probe result (2026-08-21): all four selected.** `docs/research/2026-08-21-rates-market-layer-probe/VERDICT.md`
+carries the measurement. Two things it found that change the work:
+
+- the three daily series sit at ~250 vintages/year against the 2000 cap, leaving 2.3–2.4
+  years of headroom. That clears the rule, but only just, so
+  `test_daily_vintage_start_has_not_expired` must be extended to cover them — otherwise it
+  keeps passing on the original three while these start returning HTTP 400.
+- a FRED title carries the publisher's release-table path as a prefix. `WRESBAL` reads
+  "Liabilities and Capital: Other Factors Draining Reserve Balances: **Reserve Balances with
+  Federal Reserve Banks**", and truncating it inverts the apparent concept. Match the leaf,
+  not the prefix.
+
+**And the positioning ruling got stronger.** The `obs_date + 3 days` derivation is wrong on
+36 of 205 releases (17.6%) and **always early**. The large errors are not holidays: they are
+two publication outages — the ION Markets incident from 2023-01-31 and the government-funding
+lapse from 2025-09-30 — where the rule claims data was knowable up to 47 days before it
+existed, for ten consecutive weeks. A holiday calendar cannot fix this; an outage is not on a
+calendar. Nor can a fixed release time: 15:30 ET is 19:30Z or 20:30Z depending on daylight
+saving, so the observed times split 120/69 across the two.
+
 ## 6. Contradictions
 
 | Rule | Fires when | Notes |
