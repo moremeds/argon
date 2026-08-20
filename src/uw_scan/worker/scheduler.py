@@ -1878,10 +1878,14 @@ def main() -> int:
                     max_instances=1,
                     coalesce=True,
                 )
-            # Monthly vendor-sector fill, 04:40 ET on the 4th. Exists to answer
-            # one routing question the chain taxonomy cannot ("is this a
-            # deposit-funded financial?") for the universe names with no
-            # watchlist row — see the job.
+            # Vendor-sector fill, 04:40 ET DAILY — a cache top-up, not an
+            # accrual like the two monthly uw-0 jobs above it. It asks only
+            # names with no row, so the first run costs one call per universe
+            # ticker and every run after it costs zero. Daily is what makes the
+            # table non-empty the morning after a deploy; monthly left the
+            # vendor pass blind for up to 31 days. Answers one routing question
+            # the chain taxonomy cannot ("is this a deposit-funded financial?")
+            # for the universe names with no watchlist row — see the job.
             if _should_schedule_company_sector_refresh(settings):
                 sched.add_job(
                     _company_sector_refresh,
@@ -1890,7 +1894,7 @@ def main() -> int:
                         timezone=settings.rth_tz,
                     ),
                     id="company_sector_refresh",
-                    name="Vendor sector fill for company_type routing (monthly)",
+                    name="Vendor sector fill for company_type routing (daily)",
                     max_instances=1,
                     coalesce=True,
                 )

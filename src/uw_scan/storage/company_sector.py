@@ -42,20 +42,25 @@ class CompanySectorRepository:
         self.conn.commit()
 
     def tickers_needing_fetch(self, limit: int) -> list[str]:
-        """Universe names with no sector row yet, never-asked first.
+        """Universe names with no sector row yet.
+
+        Joined on `upper(f.ticker)` because `upsert` stores the uppercase form.
+        Every ticker in the universe is uppercase today and nothing enforces it;
+        a lowercase one would be asked, written uppercase, then fail this join
+        and be asked again every month forever — one UW call per name, silently.
 
         Only names absent from the table: a recorded NULL means the vendor was
         asked and had no sector, and re-asking it every run would spend the
         budget on the one answer that cannot change the routing. A periodic
-        re-ask belongs in a separate refresh pass keyed on `fetched_at`, which
-        the index supports — not built until something needs it.
+        re-ask belongs in a separate refresh pass keyed on `fetched_at` — not
+        built, and not indexed for, until something needs it.
         """
         with self.conn.cursor() as cur:
             cur.execute(
                 f"""SELECT DISTINCT f.ticker
                       FROM {self._schema}.fundamental_universe f
                       LEFT JOIN {self._schema}.company_sector c
-                             ON c.ticker = f.ticker
+                             ON c.ticker = upper(f.ticker)
                      WHERE f.removed_at IS NULL AND c.ticker IS NULL
                      ORDER BY f.ticker
                      LIMIT %s""",
@@ -64,7 +69,14 @@ class CompanySectorRepository:
             return [r[0] for r in cur.fetchall()]
 
     def coverage(self) -> dict[str, Any]:
-        """`(universe, with a row, with a non-null sector)` — for the job log."""
+        """`(universe, with a row, with a non-null sector)` — for the job log.
+
+        `count(DISTINCT ...)` on every leg and `upper()` on the join for the same
+        two reasons `tickers_needing_fetch` needs them: the universe holds one row
+        per (tier, ticker) — 475 rows for 450 names on 2026-08-20 — and `upsert`
+        stores the uppercase ticker. Get either wrong and the log reports a
+        coverage shortfall that the fetch loop cannot close, run after run.
+        """
         with self.conn.cursor() as cur:
             cur.execute(
                 f"""SELECT count(DISTINCT f.ticker) AS universe,
@@ -73,7 +85,7 @@ class CompanySectorRepository:
                                WHERE c.sector IS NOT NULL) AS classified
                       FROM {self._schema}.fundamental_universe f
                       LEFT JOIN {self._schema}.company_sector c
-                             ON c.ticker = f.ticker
+                             ON c.ticker = upper(f.ticker)
                      WHERE f.removed_at IS NULL"""
             )
             row = cur.fetchone() or (0, 0, 0)

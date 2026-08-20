@@ -276,3 +276,31 @@ def test_a_hand_correction_still_beats_the_override(seeded_db_empty_cards):
     FundamentalAnchorsRepository(conn).assign("PYPL", FINANCIALS, source="manual")
     seed_company_types(conn)
     assert _type_of(conn, "PYPL")[0] == FINANCIALS
+
+
+def test_a_capped_run_says_so_instead_of_looking_complete(seeded_db_empty_cards):
+    """A truncated fill and a finished one produce identical counters otherwise.
+
+    The universe is 450 names and the first run fetches all of them, so a cap
+    below that drops names silently. The daily cron picks the remainder up the
+    next morning, so this is not a correctness hole — but a cap that binds means
+    the universe outgrew what one run was sized for, and nothing else on record
+    would say so. `capped` is the record.
+    """
+    conn = seeded_db_empty_cards.conn
+    _universe(conn, ["ZZD", "ZZE", "ZZF"])
+    bodies = {
+        t: {"data": {"symbol": t, "sector": "Financial Services"}}
+        for t in ("ZZD", "ZZE", "ZZF")
+    }
+    from uw_scan.worker.jobs.company_sector_refresh import company_sector_refresh
+
+    client = _StubClient(bodies)
+    totals = company_sector_refresh(conn=conn, client=client, max_calls=2)
+    assert totals["capped"] == 1
+    assert totals["asked"] == 2, "the cap must still bound the spend it reports"
+    assert len(client.asked) == 2
+
+    # And an uncapped run reports the opposite, so the flag means something.
+    rest = company_sector_refresh(conn=conn, client=_StubClient(bodies), max_calls=50)
+    assert rest["capped"] == 0

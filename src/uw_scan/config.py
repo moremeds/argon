@@ -454,11 +454,17 @@ class Settings(BaseModel):
     # monthly uw-0 jobs never contend for the same per-minute ceiling, and an
     # hour clear of the 03:20/03:45/03:50 weekday jobs.
     fundamental_concentration_capture_cron: str = "10 4 3 * *"
-    #: 04:40 ET on the 4th — after the statement ingest and the breakdown
-    #: capture, so the three monthly uw-0 jobs never share a per-minute
-    #: ceiling, and so a name admitted by that month's ingest is asked
-    #: for its sector in the same cycle rather than waiting a month.
-    company_sector_refresh_cron: str = "40 4 4 * *"
+    #: 04:40 ET DAILY, not monthly like its uw-0 siblings, because this job is
+    #: not an accrual — it fills a cache that is only ever missing rows. It asks
+    #: names with no row, and after the first fill there are none, so every run
+    #: from the second onward costs one indexed SELECT and zero UW calls. Daily
+    #: buys three things a monthly cron cannot: the table is populated the
+    #: morning after deploy instead of up to 31 days later; a name admitted by
+    #: the monthly ingest is routed the next night rather than in the next
+    #: cycle; and a provider failure retries tomorrow instead of next month.
+    #: 04:40 keeps it 30 min clear of the breakdown capture on the 3rd and an
+    #: hour clear of the 03:20/03:45/03:50 weekday jobs.
+    company_sector_refresh_cron: str = "40 4 * * *"
     chanlun_anchor_tol: float = 0.0
     chanlun_stale_sessions: int = 20
     # Empty by DESIGN (2026-07-15 walk-forward probe): all 4 candidate
@@ -1028,7 +1034,7 @@ class Settings(BaseModel):
                 "UW_SCAN_COMPANY_SECTOR_REFRESH_ENABLED", True
             ),
             company_sector_refresh_cron=os.environ.get(
-                "UW_SCAN_COMPANY_SECTOR_REFRESH_CRON", "40 4 4 * *"
+                "UW_SCAN_COMPANY_SECTOR_REFRESH_CRON", "40 4 * * *"
             ),
             chanlun_anchor_tol=float(
                 os.environ.get("UW_SCAN_CHANLUN_ANCHOR_TOL", "0.0")

@@ -22,7 +22,6 @@ for t, ct, m, bb, sp, pct, ra, conf in rows:
     print(f"{t:<6}{ct or '—':<22}{m or '—':<14}{f(bb):>11}{f(sp):>10}{(f'{float(pct):.2f}' if pct is not None else '—'):>7}  {conf}")
 
 # and: is there ANY company_type that names financials?
-cur = conn.cursor()
 with psycopg.connect(s.db_dsn()) as c2, c2.cursor() as cur2:
     cur2.execute("SELECT company_type, count(*) FROM uw_scan.valuation_anchors "
                  "WHERE as_of=%s GROUP BY 1 ORDER BY 2 DESC", (as_of,))

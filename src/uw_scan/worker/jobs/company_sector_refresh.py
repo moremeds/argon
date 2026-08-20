@@ -18,12 +18,28 @@ band and six refused, the same business model reaching both outcomes because
 carry no watchlist sector at all, so no chain rule can reach them.
 Full measurement: `docs/research/2026-08-19-valuation-refusal-anatomy/`.
 
-COST
-----
-One call per ticker, once per ticker, ~261 names at first run against a 120k/day
-budget. Names already carrying a row are never re-asked, including those the
-vendor could not classify (a recorded NULL is an answer) — so the steady state is
-a handful of calls a month as the universe grows.
+COST, AND WHY IT RUNS DAILY
+---------------------------
+One call per ticker, once per ticker: the whole universe on the first run (450
+distinct names 2026-08-20 — `fundamental_universe` holds 475 rows for them,
+one per tier) against a 120k/day budget. Names already carrying a row are never
+re-asked, including those the vendor could not classify (a recorded NULL is an
+answer), so the second run and every run after it costs zero UW calls and one
+indexed SELECT.
+
+That asymmetry is the whole argument for a daily cron on a value that changes
+at most once a quarter. The cost of running it is not the cadence but the
+number of unfilled names, which only ever goes down. Monthly bought nothing and
+cost a 31-day window in which the vendor pass reads an empty table and silently
+routes AXP/COF/FLG on the pooled default — including the window right after the
+deploy that ships it.
+
+It asks every name without a row, NOT only the 265 with no chain sector, and
+that is deliberate. `SECTOR_TO_TYPE` is prefix-matched, so a name carrying a
+chain sector the map has no rule for (`Consumer`, `Healthcare`) still falls
+through to the vendor pass — 337 of the 450 can reach it. Fetching only the
+sectorless names would blind exactly that fallthrough. The 113 whose chain
+sector does match a rule are the only wasted calls, once each, forever.
 """
 
 from __future__ import annotations
@@ -39,13 +55,23 @@ from uw_scan.storage.company_sector import CompanySectorRepository
 
 log = logging.getLogger(__name__)
 
-#: Ceiling on one run. The universe grows by tens, not thousands, so this bounds
-#: an unnoticed universe explosion rather than the normal case.
-DEFAULT_MAX_CALLS = 400
+#: Ceiling on one run. Bounds an unnoticed universe explosion, NOT the normal
+#: case — it sits above the 450-name universe on purpose. With a daily cron a
+#: truncated run self-heals tomorrow, so this is a spend guard rather than a
+#: correctness one; raise it with the universe, and the run logs when it binds.
+DEFAULT_MAX_CALLS = 800
 
 
 def parse_sector(body: Any) -> str | None:
     """The vendor's sector string, or None when it reports none.
+
+    The `data` envelope is REAL even though `docs/uw-samples/unusual_whales_api_spec.yaml`
+    declares `Ticker Info` flat: the live probe in `uw_api_capability_audit.json`
+    records `/api/stock/{ticker}/info` as `body_kind: object:data-object`, and
+    `normalize_etf_info` — production code against the structurally identical
+    `Etf Info` — raises if `payload["data"]` is absent. Drop the envelope on the
+    spec's word and this returns None for every ticker, which the job then stores
+    as "the vendor has no sector" and never re-asks. Silent and permanent.
 
     Pure so it can be tested against a real captured payload without a client.
     An empty string is normalised to None: the caller stores one shape for "the
@@ -70,11 +96,27 @@ def company_sector_refresh(
 ) -> dict[str, int]:
     """Fill missing vendor sectors. Returns counters."""
     repo = CompanySectorRepository(conn, schema=schema)
-    names = repo.tickers_needing_fetch(max_calls)
-    totals = {"asked": 0, "classified": 0, "unclassified": 0, "failed": 0}
+    # One over the cap, so "there was more" is observable rather than inferred
+    # from `len(names) == max_calls` — which is also what a universe of exactly
+    # `max_calls` looks like.
+    names = repo.tickers_needing_fetch(max_calls + 1)
+    totals = {"asked": 0, "classified": 0, "unclassified": 0, "failed": 0, "capped": 0}
     if not names:
         log.info("company_sector_refresh: nothing to fetch; %s", repo.coverage())
         return totals
+    if len(names) > max_calls:
+        # Never truncate quietly. A capped run looks exactly like a complete one
+        # in the counters, and the cap binding at all means the universe grew
+        # past what one run was sized for — worth seeing even though tomorrow's
+        # run picks up the remainder.
+        log.warning(
+            "company_sector_refresh: capped at %d, more names still unfetched — "
+            "the next daily run will continue; raise DEFAULT_MAX_CALLS to finish "
+            "in one pass",
+            max_calls,
+        )
+        names = names[:max_calls]
+        totals["capped"] = 1
 
     for ticker in names:
         try:

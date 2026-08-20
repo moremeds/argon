@@ -10,17 +10,36 @@ version in lockstep (enforced by `scripts/release/version_sync_check.py`).
 ### Added
 
 - **Vendor sector fill for `company_type` routing** (`company_sector`, migration
-  123; job `company_sector_refresh`, 04:40 ET monthly on the 4th, uw-0, gated
+  123; job `company_sector_refresh`, 04:40 ET **daily**, uw-0, gated
   `UW_SCAN_COMPANY_SECTOR_REFRESH_ENABLED` default **on**). Of the 450 universe
   names, 185 carry an argon chain sector and 4 more are reachable through
-  `research_universe`; **261 carry none** — including AXP, COF and FLG, three of
+  `research_universe`; **265 carry none** — including AXP, COF and FLG, three of
   the financials above, so no chain rule can reach them. One UW call per ticker,
-  once per ticker, and a vendor reply with no sector is stored as NULL so it is
-  never re-asked. Deliberately NOT fetched inside `fundamental_refresh`, whose
-  documented property is that the whole nightly chain costs zero provider spend.
+  once per ticker — the whole universe on the first run, not only the sectorless
+  names, because the chain map is prefix-matched and a name carrying a sector it
+  has no rule for (`Consumer`, `Healthcare`) still falls through to the vendor
+  pass. A vendor reply with no sector is stored as NULL so it is never re-asked.
+  Daily rather than monthly like its uw-0 siblings, because this fills a cache
+  instead of accruing a series: it asks only names with no row, so the first run
+  costs one call per universe ticker and **every run after it costs zero**. The
+  cadence therefore buys the table being populated the morning after deploy
+  rather than up to 31 days later, a newly-admitted name being routed the next
+  night, and a provider failure retrying tomorrow instead of next month.
+  Deliberately NOT fetched inside `fundamental_refresh`, whose documented
+  property is that the whole nightly chain costs zero provider spend.
   The vendor vocabulary gets its **own** map: it collides with argon's chain
   taxonomy on `Energy`, which means power generation in one (routing to
   `power_infra`/EV-EBITDA) and oil and gas in the other.
+
+- **`valuation_anchors` rejects a methodless row that carries a price**
+  (`valuation_anchors_methodless_is_refusal`, migration 124). Making `method`
+  nullable opened a state nothing else checked: `method` NULL with a real
+  `buy_below` clears the `buy_below IS NOT NULL` filter in `GET
+  /api/scanner/value`, reaches a non-nullable model field, and fails response
+  validation — 500-ing the endpoint for **every** name in the list, not just the
+  malformed one. In the schema rather than in `build_anchors`, on the same
+  argument migration 118 gives for `valuation_anchors_band_ascends`: the builder
+  is one writer among the backfills still to come.
 
 - **Scanner gains a `Value` sub-tab — every name currently sitting at or below
   its own `buy_below` level.** `valuation_anchors` had exactly one read path
@@ -83,8 +102,6 @@ version in lockstep (enforced by `scripts/release/version_sync_check.py`).
   it. A test pins that every override routes to a market-cap method — an entry
   pointing at an EV-denominated type would look deliberate while its entire
   justification had evaporated.
-
-
 - **`valuation_anchors.as_of` is the SPOT date, not the compute date** — two
   comments (`worker/jobs/fundamental_refresh.py`, `worker/scheduler.py`) said
   otherwise and contradicted the authoritative docstring in

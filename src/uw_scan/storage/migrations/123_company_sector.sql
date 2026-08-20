@@ -36,7 +36,3 @@ CREATE TABLE IF NOT EXISTS uw_scan.company_sector (
 COMMENT ON TABLE uw_scan.company_sector IS
   'Vendor (GICS-style) sector per ticker, cached for company_type routing. '
   'Distinct vocabulary from watchlist.sector — see 123_company_sector.sql.';
-
--- The fetch job walks universe names with no row yet, then refreshes the oldest.
-CREATE INDEX IF NOT EXISTS company_sector_fetched_at_idx
-    ON uw_scan.company_sector (fetched_at);

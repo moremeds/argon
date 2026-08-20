@@ -124,3 +124,26 @@ def test_PYPL_is_the_override_and_it_beats_both_sector_passes():
     assert TICKER_TO_TYPE == {"PYPL": "platform_scale"}
     assert SECTOR_TO_TYPE["Fintech"] == FINANCIALS
     assert VENDOR_SECTOR_TO_TYPE["Financial Services"] == FINANCIALS
+
+
+def test_parse_sector_against_the_real_captured_vendor_payload():
+    """The envelope, settled by the vendor rather than by the spec.
+
+    `docs/uw-samples/unusual_whales_api_spec.yaml` declares `Ticker Info` FLAT —
+    `sector` as a top-level property, no `data` wrapper. It is wrong. This
+    asserts against the response actually captured from `/api/stock/JPM/info`
+    on 2026-08-20, because a stub written to match the parser proves only that
+    the parser matches the stub. Trusting the spec here would make this return
+    None for every ticker, which the job stores as "the vendor has no sector"
+    and never re-asks: silent, permanent, and 450 names wide.
+
+    JPM is the right fixture twice over — its real sector is the one string
+    `VENDOR_SECTOR_TO_TYPE` maps, so this pins the whole vendor path.
+    """
+    import json
+    from pathlib import Path
+
+    sample = Path(__file__).resolve().parents[3] / "docs/uw-samples/stock_info.json"
+    body = json.loads(sample.read_text())["response"]
+    assert parse_sector(body) == "Financial Services"
+    assert VENDOR_SECTOR_TO_TYPE[parse_sector(body)] == FINANCIALS

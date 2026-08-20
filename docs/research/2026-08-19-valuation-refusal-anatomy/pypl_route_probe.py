@@ -13,7 +13,6 @@ Compares the two live routings for a payment processor:
 
 from __future__ import annotations
 
-from datetime import date
 from pathlib import Path
 
 from uw_scan.config import Settings

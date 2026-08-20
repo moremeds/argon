@@ -352,7 +352,10 @@ def seed_company_types(
             f"""SELECT DISTINCT f.ticker, w.sector, v.sector
                   FROM {schema}.fundamental_universe f
                   LEFT JOIN {schema}.watchlist w ON w.ticker = f.ticker
-                  LEFT JOIN {schema}.company_sector v ON v.ticker = f.ticker
+                  -- upper(): `company_sector` stores the uppercase ticker, so a
+                  -- lowercase universe row would silently never match its own
+                  -- cached sector and stay unrouted forever.
+                  LEFT JOIN {schema}.company_sector v ON v.ticker = upper(f.ticker)
                  WHERE f.removed_at IS NULL"""
         )
         pairs = cur.fetchall()
@@ -400,7 +403,9 @@ def _refusal_row(
     as_of: date,
     engine: str,
     company_type: str,
-    method: str,
+    # NULL when the refusal is that NO method applies to the type at all
+    # (`financials`); a real method name for every refusal taken UNDER one.
+    method: str | None,
     spot: float,
     reasons: list[str],
 ) -> dict[str, Any]:
