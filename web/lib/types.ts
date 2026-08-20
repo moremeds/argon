@@ -4999,7 +4999,12 @@ export interface components {
         };
         /**
          * MacroConfidenceReason
-         * @description One multiplicand of the confidence product, so the number can be argued with.
+         * @description One term behind a confidence number, so the number can be argued with.
+         *
+         *     ``kind`` is what lets a reader know whether a value drags: 1.00 is neutral for a
+         *     multiplicand and total for a penalty, and an informational term is not in the
+         *     product at all.  Without it every consumer re-derives the distinction by matching
+         *     on term names.
          */
         MacroConfidenceReason: {
             /** Term */
@@ -5008,6 +5013,12 @@ export interface components {
             value: string;
             /** Detail */
             detail: string;
+            /**
+             * Kind
+             * @default multiplicand
+             * @enum {string}
+             */
+            kind: "multiplicand" | "penalty" | "informational";
         };
         /** MacroContradiction */
         MacroContradiction: {
@@ -5986,6 +5997,8 @@ export interface components {
             source_kind: "official" | "first_party_publisher" | "entitled_provider" | "third_party_shadow" | "mock" | "static" | "demo";
             /** Source Record Id */
             source_record_id: string;
+            /** Release Date */
+            release_date?: string | null;
             /** Published At */
             published_at?: string | null;
             /**
@@ -6080,6 +6093,8 @@ export interface components {
              */
             kind: "actual" | "committee_projection" | "dealer_expectations" | "market_implied";
             path?: components["schemas"]["PolicyPath"] | null;
+            /** Prior */
+            prior?: components["schemas"]["PolicyPath"][];
             /** Missing Reason */
             missing_reason?: string | null;
             freshness: components["schemas"]["PolicySourceFreshness"];

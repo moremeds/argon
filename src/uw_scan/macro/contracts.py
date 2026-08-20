@@ -22,6 +22,7 @@ from typing import Any
 
 from uw_scan.macro_evidence import macro_artifact_content_identity
 from uw_scan.models.macro import (
+    ConfidenceTermKind,
     MacroCausalRole,
     MacroCostClass,
     MacroDirection,
@@ -119,14 +120,23 @@ class FactorState:
 
 @dataclass(frozen=True)
 class ConfidenceTerm:
-    """One multiplicand of the confidence product, with what drove it.
+    """One term behind a confidence number, with what drove it.
 
     Recorded per term so a confidence number can be argued with rather than believed.
+
+    ``kind`` says how to read ``value``, because the terms are not all the same shape
+    and a reader cannot tell from the number: 1.00 means "no drag" for a multiplicand
+    and "full drag" for a penalty, and an informational term is not in the product at
+    all -- ``market_factors_absent`` carries a COUNT of absent factor groups, so
+    rendering it beside the others as "x3.00" invites reading it as a term that
+    tripled the confidence. The producer knows which is which; naming it here is what
+    stops every consumer from re-deriving it by matching on term strings.
     """
 
     term: str
     value: Decimal
     detail: str
+    kind: ConfidenceTermKind = "multiplicand"
 
 
 @dataclass(frozen=True)

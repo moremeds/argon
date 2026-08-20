@@ -3,7 +3,7 @@ import { PolicyPathComparison } from "./PolicyPathComparison";
 import { RatesCurveChart } from "./RatesCurveChart";
 import styles from "./RatesDesk.module.css";
 import { RatesScorecard } from "./RatesScorecard";
-import { RatesSection } from "./RatesSection";
+import { RatesSection, RatesTier } from "./RatesSection";
 import { SepDotPlot } from "./SepDotPlot";
 import { fmtSigned, fmtValue, statusLabel, toFiniteNumber } from "./format";
 import { DecompositionSection } from "./sections/DecompositionSection";
@@ -23,21 +23,63 @@ import type {
   Supply,
 } from "./types";
 
+/**
+ * The desk in reading order: the answer, who said it, what the market pays, the
+ * plumbing underneath, and finally where it all came from.
+ *
+ * Grouped rather than flat because the old fifteen-item strip ordered panels by
+ * nothing at all -- "Scorecard" (experimental legacy) sat between "Decomp" and
+ * "Policy" with the same weight as the state itself.
+ */
 const NAV = [
-  ["state", "State"],
-  ["paths", "Policy Paths"],
-  ["summary", "Summary"],
-  ["sep-plot", "Dot Plot"],
-  ["dealer-plot", "Dealer Path"],
-  ["curve", "Curve"],
-  ["decomp", "Decomp"],
-  ["scorecard", "Scorecard"],
-  ["policy", "Policy"],
-  ["supply", "Supply"],
-  ["positioning", "Positioning"],
-  ["cross", "Cross-Market"],
-  ["events", "Events"],
-  ["synthesis", "View"],
+  {
+    id: "tier-answer",
+    tier: "The answer",
+    lede: "What this desk says about policy right now, and how sure it is.",
+    items: [["state", "State"]],
+  },
+  {
+    id: "tier-publishers",
+    tier: "Who says what",
+    lede: "Each publisher on its own axes, and how far it has moved since its last release.",
+    items: [
+      ["paths", "Four lanes"],
+      ["sep-plot", "Dot plot"],
+      ["dealer-plot", "Dealer path"],
+    ],
+  },
+  {
+    id: "tier-market",
+    tier: "What the market prices",
+    lede: "The traded curve, its slopes, and what moved them.",
+    items: [
+      ["summary", "Summary"],
+      ["curve", "Curve"],
+      ["decomp", "Decomposition"],
+    ],
+  },
+  {
+    id: "tier-mechanics",
+    tier: "Mechanics",
+    lede: "The plumbing a rates view stands on: policy settings, issuance, positioning, cross-market.",
+    items: [
+      ["policy", "Policy"],
+      ["supply", "Supply"],
+      ["positioning", "Positioning"],
+      ["cross", "Cross-market"],
+    ],
+  },
+  {
+    id: "tier-provenance",
+    tier: "Provenance and legacy",
+    lede: "Where the numbers came from, and the older rule score kept for comparison only.",
+    items: [
+      ["events", "Events"],
+      ["sources", "Sources"],
+      ["scorecard", "Scorecard"],
+      ["synthesis", "View"],
+    ],
+  },
 ] as const;
 
 const FED_BOARD_SERIES = new Set([
@@ -329,17 +371,22 @@ export function RatesDesk({
           <p className={styles.headerMeta}>{snapshotMeta(snapshot)}</p>
         </div>
         <nav className={styles.nav} aria-label="Rates sections">
-          {NAV.map(([id, label]) => (
-            <a
-              key={id}
-              href={`#${id}`}
-              className={id === "summary" ? styles.navActive : undefined}
-            >
-              {label}
-            </a>
+          {NAV.map((group) => (
+            <span key={group.id} className={styles.navGroup}>
+              <a href={`#${group.id}`} className={styles.navGroupLabel}>
+                {group.tier}
+              </a>
+              {group.items.map(([id, label]) => (
+                <a key={id} href={`#${id}`}>
+                  {label}
+                </a>
+              ))}
+            </span>
           ))}
         </nav>
       </header>
+
+      <RatesTier id="tier-answer" title="The answer" lede="What this desk says about policy right now, and how sure it is." />
 
       <RatesSection
         id="state"
@@ -349,16 +396,35 @@ export function RatesDesk({
         <StateSection state={snapshot.state} />
       </RatesSection>
 
+      <RatesTier id="tier-publishers" title="Who says what" lede="Each publisher on its own axes, and how far it has moved since its last release." />
+
       <RatesSection
         id="paths"
         title="Policy Paths"
-        eyebrow="Four publishers, never averaged"
       >
         <PolicyPathComparison
           comparison={policyComparison}
           errorMessage={policyComparisonError}
         />
+
+        {/* The two publishers that plot, inside the same section as the four lanes
+            they belong to -- they ARE two of those lanes, and splitting them into
+            sibling sections asked the reader to hold that connection themselves.
+            Still two blocks with two sets of axes: sharing a frame would draw a
+            comparison this desk refuses to make. */}
+        <div className={styles.pathPlots}>
+          <div id="sep-plot" className={styles.pathPlot}>
+            <h3>Committee projection (SEP)</h3>
+            <SepDotPlot slot={policyComparison?.committee_projection} />
+          </div>
+          <div id="dealer-plot" className={styles.pathPlot}>
+            <h3>Dealer expectations</h3>
+            <DealerPathChart slot={policyComparison?.dealer_expectations} />
+          </div>
+        </div>
       </RatesSection>
+
+      <RatesTier id="tier-market" title="What the market prices" lede="The traded curve, its slopes, and what moved them." />
 
       <RatesSection id="summary" title="Summary" eyebrow="Live FRED curve">
         <div className={styles.summaryStack}>
@@ -376,26 +442,6 @@ export function RatesDesk({
             synthesis={snapshot.synthesis}
           />
         </div>
-      </RatesSection>
-
-      {/* Two publishers, two blocks, two sets of axes. Plotted rather than listed
-          because the point of each release is its dispersion, and a column of medians
-          is the one view that hides it. Kept apart because a shared frame would read
-          as a comparison the desk refuses to make. */}
-      <RatesSection
-        id="sep-plot"
-        title="Committee Projection (SEP)"
-        eyebrow="Anonymous participant dots"
-      >
-        <SepDotPlot slot={policyComparison?.committee_projection} />
-      </RatesSection>
-
-      <RatesSection
-        id="dealer-plot"
-        title="Dealer Expectations"
-        eyebrow="Survey median and interquartile range"
-      >
-        <DealerPathChart slot={policyComparison?.dealer_expectations} />
       </RatesSection>
 
       <RatesSection
@@ -425,14 +471,7 @@ export function RatesDesk({
         slopes={curve.slopes ?? []}
       />
 
-      <RatesSection
-        id="scorecard"
-        title="Scorecard"
-        eyebrow="Rule weights"
-        status="Experimental legacy"
-      >
-        <RatesScorecard scorecard={scorecard} />
-      </RatesSection>
+      <RatesTier id="tier-mechanics" title="Mechanics" lede="The plumbing a rates view stands on: policy settings, issuance, positioning, cross-market." />
 
       <RatesSection
         id="policy"
@@ -469,6 +508,8 @@ export function RatesDesk({
           ))}
         </div>
       </RatesSection>
+
+      <RatesTier id="tier-provenance" title="Provenance and legacy" lede="Where the numbers came from, and the older rule score kept for comparison only." />
 
       <RatesSection
         id="events"
@@ -510,6 +551,15 @@ export function RatesDesk({
         </div>
       </RatesSection>
 
+      <RatesSection
+        id="scorecard"
+        title="Scorecard"
+        eyebrow="Rule weights"
+        status="Experimental legacy"
+      >
+        <RatesScorecard scorecard={scorecard} />
+      </RatesSection>
+
       <RatesSection id="synthesis" title="Synthesis">
         <div className={styles.synthesis}>
           <p>{snapshot.synthesis.duration_view}</p>
@@ -519,6 +569,34 @@ export function RatesDesk({
           ))}
         </div>
       </RatesSection>
+
+      {/* Two publishers, two blocks, two sets of axes. Plotted rather than listed
+          because the point of each release is its dispersion, and a column of medians
+          is the one view that hides it. Kept apart because a shared frame would read
+          as a comparison the desk refuses to make. */}
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
     </div>
   );
 }

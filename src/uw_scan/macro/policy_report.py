@@ -61,9 +61,17 @@ _CONTRACTS = (
 )
 
 
+#: Releases exposed per publisher: the current one plus this many earlier ones.
+#: Two is what the overlay draws -- current, previous, and one further back for
+#: context.  Every extra release is a full point list on every page load, so this
+#: is the number the UI uses, not a generous buffer nobody reads.
+_PRIOR_RELEASES = 2
+
+
 def build_policy_comparison(repo: Repository, *, as_of: datetime) -> PolicyComparison:
     rows: dict[PolicyPathKind, dict[str, Any]] = {}
     paths: list[PolicyPath] = []
+    prior_paths: list[PolicyPath] = []
     unreadable: dict[PolicyPathKind, str] = {}
     for contract in _CONTRACTS:
         row = repo.fetch_latest_macro_observation_as_of(
@@ -86,6 +94,26 @@ def build_policy_comparison(repo: Repository, *, as_of: datetime) -> PolicyCompa
                 f"stored {contract.kind} observation is unreadable: {type(exc).__name__}"
             )
 
+    readable = {path.kind for path in paths}
+    for contract in _CONTRACTS:
+        if contract.kind not in readable:
+            continue
+        for row in repo.fetch_recent_macro_observations_as_of(
+            contract.series_id,
+            as_of,
+            preferred_sources=contract.sources,
+            limit=_PRIOR_RELEASES + 1,
+        ):
+            try:
+                prior_paths.append(_path_from_observation(contract, row))
+            except (ValueError, ValidationError) as exc:
+                # An older release whose shape drifted is dropped on its own.  It
+                # must not cost the current release its slot -- the whole point of
+                # showing history is that old formats differ from today's.
+                logger.warning(
+                    "prior policy path %s is unreadable: %s", contract.kind, repr(exc)
+                )
+
     sources = [source for contract in _CONTRACTS for source in contract.sources]
     status_rows = repo.fetch_macro_source_statuses(sources)
     release_rows = repo.fetch_macro_release_statuses(sources=sources)
@@ -98,6 +126,7 @@ def build_policy_comparison(repo: Repository, *, as_of: datetime) -> PolicyCompa
     return assemble_policy_paths(
         paths,
         as_of=as_of,
+        prior_paths=prior_paths,
         freshness_by_kind=freshness,
         missing_reasons=unreadable,
     )
@@ -118,6 +147,7 @@ def _path_from_observation(contract: _PathContract, row: dict[str, Any]) -> Poli
         source=row["source"],
         source_kind=row["source_kind"],
         source_record_id=row["source_record_id"],
+        release_date=row.get("period_end"),
         published_at=row["published_at"],
         available_at=row["available_at"],
         cost_class=row["cost_class"],

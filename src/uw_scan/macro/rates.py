@@ -488,6 +488,10 @@ def _coverage_notes(
                     f"no observations for: {', '.join(absent_market)}; these do not "
                     "gate the policy state but their sub-states are unavailable"
                 ),
+                # A COUNT of absent factor groups, not a multiplicand.  It is not in
+                # the confidence product at all -- rendered as one, "3" reads as a
+                # term that tripled the number it is only annotating.
+                kind="informational",
             )
         )
     return tuple(out)

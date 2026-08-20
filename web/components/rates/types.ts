@@ -59,3 +59,4 @@ export type PolicyPathSlot = components["schemas"]["PolicyPathSlot"];
 export type PolicyPath = components["schemas"]["PolicyPath"];
 export type MacroPolicyPathPoint = components["schemas"]["PolicyPathPoint"];
 export type MacroStateSummary = components["schemas"]["MacroStateSummary"];
+export type ConfidenceReason = components["schemas"]["MacroConfidenceReason"];

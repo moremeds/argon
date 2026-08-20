@@ -1,4 +1,5 @@
 import type { components } from "@/lib/types";
+import { NARROW_FRAME } from "./chartGeometry";
 import styles from "./RatesDesk.module.css";
 import { fmtSigned, fmtValue, toFiniteNumber } from "./format";
 
@@ -71,11 +72,15 @@ export function RatesCurveChart({ points }: { points: CurvePoint[] }) {
     ? Math.max(...numeric.map((item) => item.value))
     : 1;
   const span = Math.max(max - min, 0.25);
-  const width = 760;
-  const height = 320;
-  const padX = 58;
-  const padTop = 22;
-  const padBottom = 38;
+  // Sized to the grid cell this chart actually occupies, not to the full-width
+  // panels, so its scale factor lands near 1 like theirs and the three charts share
+  // one rendered type size. See ./chartGeometry.ts -- equal viewBox in unequal
+  // containers is exactly what made these disagree.
+  const width = NARROW_FRAME.width;
+  const height = NARROW_FRAME.height;
+  const padX = NARROW_FRAME.padLeft;
+  const padTop = NARROW_FRAME.padTop;
+  const padBottom = NARROW_FRAME.padBottom;
   const plotHeight = height - padTop - padBottom;
   const tickValues = [1, 0.75, 0.5, 0.25, 0].map((ratio) => min + span * ratio);
 

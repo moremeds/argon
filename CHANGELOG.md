@@ -9,6 +9,23 @@ version in lockstep (enforced by `scripts/release/version_sync_check.py`).
 
 ### Added
 
+- **A dozen dealer surveys instead of one, and both policy-path charts now show
+  movement.** The NY Fed publishes every Survey of Market Expectations it still hosts
+  on one page and the nightly job took `[-1]`, so the desk held a single release and
+  could not show how dealer expectations had CHANGED. All twelve (2025-01 → 2026-06)
+  are backfilled through the real ingest job, and the dealer path plots the latest
+  survey over the two before it while the SEP dot plot carries the previous release's
+  median as a dashed line. Both label their series by real release date, and earlier
+  releases stay separate dated releases — never merged into the current one, the same
+  rule that keeps the four publishers apart. The survey runs on the FOMC cycle (~8x a
+  year), so the comparison offered is "previous survey", never "one week ago": there
+  are months with no survey at all.
+
+- **The dealer chart is plotted against meeting DATE, not survey row order.** Each
+  survey asks about the meetings ahead of itself, so a March release and a June release
+  do not share a horizon; against row index the overlay would have drawn March's first
+  meeting on top of June's and called the difference a revision.
+
 - **The SEP and the dealer survey are plotted, not listed.** Both releases publish a
   distribution and both were rendered as a column of medians, which is the one view
   that hides what each release is for. The committee's projections are now the dot plot
@@ -159,6 +176,47 @@ version in lockstep (enforced by `scripts/release/version_sync_check.py`).
 
 ### Changed
 
+- **The rates header stopped shouting.** It had grown a bespoke 26px/700 lockup with
+  a 0.18em wide-tracked subtitle and a bold 13px nav, so `/rates` announced itself
+  about twice as loudly as every other page in the sidebar. It now follows the house
+  pattern (`.regime-page-header`): mono, 18px, 600, uppercase, with an 11px mono
+  subtitle and a light mono nav.
+
+- **A charted lane shows its headline, not every horizon.** The SEP and dealer lanes
+  listed all of their horizons — sixteen rows for the dealer survey — directly above
+  the chart that draws exactly those numbers on an axis. The lane keeps what a lane is
+  for (which publisher, which release, is it healthy) plus the near-term number, and
+  links to the plot for the rest.
+
+- **A lane that legitimately trails the last FOMC decision now says so.** Seeing
+  "released 2026-06-17" on the SEP lane when the committee last met on 2026-07-29
+  reads as a stalled feed; it is not, because the FOMC publishes projections at four
+  of its eight annual meetings and the dealer survey runs per survey round. The note
+  is derived from the two release dates already on the page — not a hardcoded meeting
+  calendar — and disappears the moment the lane catches up.
+
+- **The rates desk is grouped, not listed.** Fifteen sections at one visual weight
+  behind a flat fifteen-item nav is a list, not a hierarchy: the verdict, the
+  publishers feeding it, the market's own pricing and the experimental legacy
+  scorecard all shouted equally. They now sit under five named tiers — the answer, who
+  says what, what the market prices, mechanics, provenance and legacy — and the nav is
+  grouped to match and wraps rather than scrolling behind a hidden scrollbar. The two
+  policy-path plots moved inside the policy-paths section, because they ARE two of
+  those four lanes; still two blocks with two sets of axes.
+
+- **Two headers stopped repeating themselves.** The state block printed "Policy /
+  rates state · rates/1" one line under a section heading reading "Policy / Rates
+  State", and the policy-paths eyebrow was a truncation of the sentence directly below
+  it. The engine version — the only part that was not a repeat — moved to the meta row.
+
+- **Confidence explains itself in a line instead of a sub-card.** The card listed all
+  six terms at equal weight, and most are neutral most of the time: three multiplicands
+  at 1.00 and two penalties at 0.00 is "nothing reduced it", spelled as five rows a
+  reader had to decode. It now names only the terms that actually dragged, says so
+  plainly when none did, and keeps informational terms — which are not in the product
+  at all — visually apart, so `market_factors_absent` at 3 no longer reads as a term
+  that tripled the number it only annotates.
+
 - **The rates duration stance can no longer be confident on incomplete evidence.**
   `RatesScorecard` gains `coverage` and `duration_stance` gains `UNKNOWN`. Three of
   six scorecard groups are hard-coded as missing until the Phase 2 feeds land, so the
@@ -181,6 +239,71 @@ version in lockstep (enforced by `scripts/release/version_sync_check.py`).
   (`docs/research/2026-08-18-mc2-decomposition-residual/`).
 
 ### Fixed
+
+- **The whole legacy rates lane had been frozen since mid-June, and the cause was a
+  proxy.** `FredProvider` and the Cleveland Fed, CFTC and Treasury clients all built
+  `httpx.Client()` without `trust_env=False`, unlike every macro source added
+  alongside them (`fomc_statement`, `fed_sep_provider`, `fomc_calendar`, `nyfed_sme`
+  all pass it). httpx reads a macOS system HTTPS proxy even when the `*_PROXY`
+  environment variables are unset, so the TLS handshake to `api.stlouisfed.org` died
+  with `SSL: UNEXPECTED_EOF_WHILE_READING`, the job correctly refused to publish a
+  snapshot without a Treasury curve, and every table behind `/rates` silently stopped
+  advancing — observations, auctions and CFTC positioning all last moved 2026-06-09
+  to 06-15 while the header honestly reported a two-month-old `as_of` that nothing
+  flagged. With the four clients no longer inheriting ambient proxy config the run
+  goes from 11 required series failing to `failed_series=[]`, 4712 observations, and
+  the snapshot advances 2026-06-12 → 2026-08-18.
+
+- **A lane reported "0/0 releases parsed" over twelve parsed surveys.** The
+  per-release catalog models FOMC statements and SEPs only — the dealer survey and the
+  market shadow carry `release_type=None` deliberately — so their counters are
+  structurally zero. The ratio is now printed only where the catalog models it; a
+  number that does not apply is not a neutral one, it reads as a broken feed.
+
+- **Six of twelve dealer surveys were unreadable, and neither reason was a broken
+  publisher.** The XLSX parser demanded probability distributions sum to 99–101, but
+  the NY Fed publishes each bucket already rounded, so a correct 10-bucket
+  distribution can be up to 5 off by arithmetic alone; measured across all twelve
+  surveys the totals run 98–102 and the ±1 band was rejecting real data by
+  construction. The tolerance is now derived from the bucket count — the tightest
+  bound that cannot reject a correctly-rounded release — and a dropped bucket, the
+  parse error the guard exists to catch, still moves a 10-bucket total by ~10. The
+  parser also required the workbook's release date to fall in the month its filename
+  names; two of twelve publish in the PRIOR month (may-2025 released 2025-04-23,
+  dec-2025 released 2025-11-25), so equality rejected releases for following the
+  publisher's own calendar. Both failures named the probability sub-table while what
+  they actually cost was the policy path.
+
+- **"Latest observation" meant "most recently downloaded".** `fetch_latest_macro_-
+  observation_as_of` ordered by `available_at` before `period_end`, which is a fact
+  about our fetch schedule rather than the publisher's: backfilling an archive out of
+  order made the last file downloaded the current release — the April 2026 dealer
+  survey outranked June's — and a revision to a two-year-old period would outrank this
+  month's reading. Period first, vintage second; `available_at DESC` still picks the
+  newest vintage OF that period, which is the part that must stay point-in-time.
+
+- **A policy path could not say which release it was.** `release_date` is now carried
+  on the path itself. `published_at` is null for publishers that state a date rather
+  than an instant (the dealer survey does), so the UI fell through to `available_at` —
+  our fetch time — and labelled all twelve backfilled surveys with the day of the
+  backfill.
+
+- **Confidence terms lost their kind on the way to storage.** The persistence layer
+  hand-listed the fields it wrote, so a term's `kind` was dropped on write and never
+  read back. A value alone cannot say whether it drags — 1.00 is neutral for a
+  multiplicand and total for a penalty — which is why the desk reported "reduced by
+  revision penalty ×0.00" on a state nothing had reduced.
+
+- **The three rates charts each magnified their own labels by a different factor.**
+  They are `viewBox`-sized SVGs stretched to `width: 100%`, so the viewBox is the type
+  scale and everything inside it scales, text included. The two policy paths sat full
+  width at 780×400 and the curve in a ~760px cell at 760×320, so an 11px stylesheet
+  rule arrived at ~17px on one chart and ~11px on another, and no container width could
+  line them up. Each chart now uses a frame sized to the container it is actually
+  rendered into, giving all three a scale near 1 and one shared type size. A
+  `min-height: 420px` floor on top of a 1.95 aspect was also stretching the SVG box
+  past its own ratio, and the empty band above the dot plot was `preserveAspectRatio`
+  centring the drawing inside it — not padding.
 
 - **Every daily FRED series had been silently failing to ingest, taking the rates
   domain's whole market layer with it.** The ingest asked ALFRED for the unbounded

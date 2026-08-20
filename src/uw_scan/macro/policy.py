@@ -29,6 +29,7 @@ def assemble_policy_paths(
     paths: Iterable[PolicyPath],
     *,
     as_of: datetime,
+    prior_paths: Iterable[PolicyPath] | None = None,
     freshness_by_kind: dict[PolicyPathKind, PolicySourceFreshness] | None = None,
     missing_reasons: dict[PolicyPathKind, str] | None = None,
 ) -> PolicyComparison:
@@ -38,6 +39,20 @@ def assemble_policy_paths(
     for a kind the caller could not read.  A row that exists but cannot be
     parsed is a different operational fact from one that was never published,
     and collapsing the two sends an operator looking for the wrong outage.
+
+    ``prior_paths`` are EARLIER releases from the same publishers, attached to
+    their own slot so a reader can see how one publisher moved between its own
+    releases.  They are deliberately kept out of ``_contradictions``: that check
+    asks whether two publishers disagree at one instant, and a release from three
+    months ago disagreeing with today is the passage of time, not a contradiction.
+
+    Their order is the CALLER's, preserved as given, and the caller is expected to
+    supply newest release first.  Re-sorting them here on ``available_at`` was
+    tried and is wrong for the same reason it was wrong in the query that feeds
+    this: that column records when we fetched a release, so a backfill that walked
+    an archive oldest-first would hand back a history in the order we happened to
+    download it.  The release date lives on the observation row, which only the
+    repository read can see.
     """
     if as_of.tzinfo is None or as_of.utcoffset() is None:
         raise ValueError("as_of must be timezone-aware")
@@ -49,10 +64,21 @@ def assemble_policy_paths(
             raise ValueError(f"{path.kind} available after comparison as_of")
         by_kind[path.kind] = path
 
+    earlier_by_kind: dict[PolicyPathKind, list[PolicyPath]] = {}
+    for path in prior_paths or ():
+        if path.available_at > as_of:
+            raise ValueError(f"prior {path.kind} available after comparison as_of")
+        if path.kind not in by_kind:
+            raise ValueError(f"prior {path.kind} release has no current release")
+        if path.source_record_id == by_kind[path.kind].source_record_id:
+            continue
+        earlier_by_kind.setdefault(path.kind, []).append(path)
+
     slots = {
         kind: PolicyPathSlot(
             kind=kind,
             path=by_kind.get(kind),
+            prior=earlier_by_kind.get(kind, []),
             missing_reason=(
                 None
                 if kind in by_kind

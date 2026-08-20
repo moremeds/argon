@@ -318,6 +318,11 @@ def _state_payload(state: MacroDomainState, *, computed_at: datetime) -> dict[st
                     "term": item.term,
                     "value": _decimal_text(item.value),
                     "detail": item.detail,
+                    # Persisted, not re-derived on read.  A value alone cannot say
+                    # whether it drags -- 1.00 is neutral for a multiplicand and
+                    # total for a penalty -- so a hand-listed field set that omits
+                    # this writes rows a reader can only guess at.
+                    "kind": item.kind,
                 }
                 for item in state.confidence_reasons
             ]
@@ -412,6 +417,9 @@ def macro_domain_state_from_row(
                 term=item["term"],
                 value=Decimal(item["value"]),
                 detail=item["detail"],
+                # Rows written before the column carried a kind are multiplicands,
+                # which is what every term in the product was at the time.
+                kind=item.get("kind", "multiplicand"),
             )
             for item in row["confidence_reasons_jsonb"]
         ),

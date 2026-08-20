@@ -17,6 +17,8 @@ const LANES: {
   kind: PolicyPathSlot["kind"];
   title: string;
   question: string;
+  /** Anchor of the chart below that draws this lane's full path, if there is one. */
+  plotId?: string;
 }[] = [
   {
     kind: "actual",
@@ -25,11 +27,13 @@ const LANES: {
   },
   {
     kind: "committee_projection",
+    plotId: "sep-plot",
     title: "Committee projection (SEP)",
     question: "Where participants projected rates, anonymously.",
   },
   {
     kind: "dealer_expectations",
+    plotId: "dealer-plot",
     title: "Dealer expectations",
     question: "What surveyed dealers said they expect.",
   },
@@ -188,6 +192,47 @@ function MarketPoints({ points }: { points: MacroPolicyPathPoint[] }) {
   );
 }
 
+/**
+ * The headline of a path whose every horizon is plotted directly below.
+ *
+ * The SEP and dealer lanes used to list all of their horizons -- sixteen rows for the
+ * dealer survey -- immediately above the chart that draws exactly those numbers on an
+ * axis. Two renderings of one release, the taller of which is the one that hides the
+ * shape. The lane keeps what a lane is for (which publisher, which release, is it
+ * healthy) plus the near-term number, and points at the plot for the rest.
+ */
+function PlottedSummary({ path, plotId }: { path: PolicyPath; plotId: string }) {
+  const points = path.points ?? [];
+  const first = points[0];
+  const rate = first ? toFiniteNumber(first.rate_percent, Number.NaN) : Number.NaN;
+  return (
+    <div className={styles.pathSummary} data-testid="policy-path-summary">
+      {first ? (
+        <>
+          <span className={styles.pathSummaryHorizon}>{first.horizon}</span>
+          <strong className={styles.pathSummaryValue}>
+            {Number.isFinite(rate) ? `${rate.toFixed(2)} %` : "n/a"}
+          </strong>
+        </>
+      ) : null}
+      <a className={styles.pathSummaryLink} href={`#${plotId}`}>
+        {points.length} horizon{points.length === 1 ? "" : "s"} plotted below →
+      </a>
+      {/* Kept even in the collapsed lane. The per-horizon list this replaced carried
+          the anonymity statement, and dropping it with the rest of the detail would
+          have quietly removed a safety rule along with some duplication: the FOMC
+          publishes these dots without names, and the desk says so wherever it shows
+          them. */}
+      {path.kind === "committee_projection" ? (
+        <p className={styles.pathNote} data-testid="sep-anonymity-note">
+          SEP dots are anonymous. No dot on this page is attributed to a named
+          participant.
+        </p>
+      ) : null}
+    </div>
+  );
+}
+
 function PathPoints({ path }: { path: PolicyPath }) {
   const points = path.points ?? [];
   if (!points.length) {
@@ -205,14 +250,46 @@ function PathPoints({ path }: { path: PolicyPath }) {
   return <MarketPoints points={points} />;
 }
 
+function latestActualRelease(slot: PolicyPathSlot | undefined): string | null {
+  const path = slot?.path;
+  return path && !isWithheld(path) ? releaseDate(path) : null;
+}
+
+/**
+ * Why a lane's newest release is older than the newest FOMC decision.
+ *
+ * A reader who knows the committee last met on 2026-07-29 and sees "released
+ * 2026-06-17" on the SEP lane concludes the feed is stale. It is not: the FOMC
+ * publishes projections at four of its eight annual meetings, and the dealer survey
+ * runs per survey round rather than per meeting. That is derivable from what is
+ * already on the page -- an `actual` release newer than this lane's -- so the page
+ * states it rather than leaving the reader to diagnose a non-problem.
+ *
+ * Deliberately NOT a hardcoded meeting calendar: it says only what the two release
+ * dates show, and goes quiet the moment the lane catches up.
+ */
+function behindActual(path: PolicyPath, latestActual: string | null): string | null {
+  if (!latestActual) return null;
+  const mine = releaseDate(path);
+  return mine < latestActual
+    ? `No release since ${mine}; the FOMC last decided on ${latestActual}.`
+    : null;
+}
+
 function Lane({
   title,
   question,
   slot,
+  plotId,
+  latestActual,
 }: {
   title: string;
   question: string;
   slot: PolicyPathSlot | undefined;
+  /** Anchor of the chart that draws this lane's full path, when one exists. */
+  plotId?: string;
+  /** Release date of the newest FOMC decision, for the behind-actual note. */
+  latestActual?: string | null;
 }) {
   const path = slot?.path ?? null;
   const rejected =
@@ -251,6 +328,8 @@ function Lane({
               is not a publisher. Its numbers are withheld rather than shown as
               a path.
             </p>
+          ) : plotId ? (
+            <PlottedSummary path={path} plotId={plotId} />
           ) : (
             <PathPoints path={path} />
           )}
@@ -261,10 +340,24 @@ function Lane({
         </p>
       )}
 
+      {path && !rejected && behindActual(path, latestActual ?? null) ? (
+        <p className={styles.pathBehind} data-testid="policy-path-behind">
+          {behindActual(path, latestActual ?? null)}
+        </p>
+      ) : null}
+
       {slot ? (
         <p className={styles.pathFreshness}>
-          {slot.freshness.status} · {slot.freshness.releases_succeeded}/
-          {slot.freshness.releases_discovered} releases parsed
+          {slot.freshness.status}
+          {/* The per-release catalog deliberately models only FOMC statements and
+              SEPs -- the dealer survey and the market shadow are not FOMC releases
+              and carry release_type=None. So their counters are structurally 0/0,
+              and printing the ratio anyway put "0/0 releases parsed" underneath a
+              lane showing twelve parsed surveys. A number that does not apply is
+              not a neutral one; it reads as a broken feed. */}
+          {slot.freshness.releases_discovered > 0
+            ? ` · ${slot.freshness.releases_succeeded}/${slot.freshness.releases_discovered} releases parsed`
+            : ""}
           {slot.freshness.releases_failed
             ? ` · ${slot.freshness.releases_failed} failed`
             : ""}
@@ -314,6 +407,10 @@ export function PolicyPathComparison({
             title={lane.title}
             question={lane.question}
             slot={slots[lane.kind]}
+            plotId={lane.plotId}
+            latestActual={
+              lane.kind === "actual" ? null : latestActualRelease(slots.actual)
+            }
           />
         ))}
       </div>

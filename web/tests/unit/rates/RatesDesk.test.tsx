@@ -15,21 +15,38 @@ describe("RatesDesk", () => {
   it("renders all reference-page anchors and KPI tiles", () => {
     render(<RatesDesk snapshot={SNAPSHOT} />);
 
+    // Every section is still reachable from the nav, now grouped under its tier.
     for (const label of [
       "State",
-      "Policy Paths",
+      "Four lanes",
+      "Dot plot",
+      "Dealer path",
       "Summary",
       "Curve",
-      "Decomp",
+      "Decomposition",
       "Scorecard",
       "Policy",
       "Supply",
       "Positioning",
-      "Cross-Market",
+      "Cross-market",
       "Events",
+      "Sources",
       "View",
     ]) {
       expect(screen.getByRole("link", { name: label })).toBeTruthy();
+    }
+
+    // The tiers are what make the nav a hierarchy rather than a longer list, so
+    // they are links too -- and the page must carry the matching headings.
+    for (const tier of [
+      "The answer",
+      "Who says what",
+      "What the market prices",
+      "Mechanics",
+      "Provenance and legacy",
+    ]) {
+      expect(screen.getByRole("link", { name: tier })).toBeTruthy();
+      expect(screen.getByRole("heading", { name: tier })).toBeTruthy();
     }
 
     expect(screen.getByText("US Rates Factor Desk")).toBeTruthy();
@@ -316,12 +333,17 @@ describe("RatesDesk", () => {
       const sep = screen.getByTestId("policy-path-lane-committee_projection");
       expect(sep.textContent).toContain("fed_sep");
       expect(sep.textContent).toContain("3.80 %");
-      expect(sep.textContent).toContain("central tendency 3.60–4.10%");
+      // Horizon detail lives in the dot plot below; the lane keeps the near-term
+      // number and points at the chart rather than rendering the release twice.
+      expect(sep.textContent).toContain("plotted below");
 
       const dealer = screen.getByTestId("policy-path-lane-dealer_expectations");
       expect(dealer.textContent).toContain("nyfed_sme");
-      expect(dealer.textContent).toContain("IQR 3.44–3.63%");
-      expect(dealer.textContent).toContain("n=26");
+      expect(dealer.textContent).toContain("plotted below");
+      // Respondent counts moved to the chart's note ("n varies by horizon, ...")
+      // along with the per-horizon rows. The lane keeps the release identity, which
+      // is the thing only a lane shows.
+      expect(dealer.textContent).toContain("released");
     });
 
     it("never merges the paths into a single Fed path", () => {
@@ -356,7 +378,11 @@ describe("RatesDesk", () => {
       expect(screen.getByTestId("sep-anonymity-note").textContent).toMatch(
         /dots are anonymous/i,
       );
-      expect(sep.textContent).toContain("18 dots");
+      // The dot COUNT moved to the plot with the rest of the per-horizon detail.
+      // What must not move is the sentence: the anonymity rule is stated wherever
+      // the desk shows these dots, which is why it survives the collapsed lane.
+      expect(sep.textContent).toMatch(/anonymous/i);
+      expect(sep.textContent).not.toMatch(/chair|powell/i);
       expect(sep.textContent).not.toMatch(/chair|powell/i);
     });
 

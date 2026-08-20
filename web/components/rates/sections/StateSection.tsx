@@ -1,6 +1,6 @@
 import styles from "../RatesDesk.module.css";
 import { toFiniteNumber } from "../format";
-import type { MacroStateSummary } from "../types";
+import type { ConfidenceReason, MacroStateSummary } from "../types";
 
 // The state is deliberately not a score. It answers four separate questions -- what
 // regime, which way, how fast, and how much of that we actually know -- and each is
@@ -56,9 +56,62 @@ function fmtInstant(value: string): string {
 function NoState({ reason }: { reason: string }) {
   return (
     <div className={styles.stateMissing} data-testid="rates-state-missing">
-      <p className={styles.eyebrow}>Policy / rates state</p>
       <strong>Not computed</strong>
       <p>{reason}</p>
+    </div>
+  );
+}
+
+/**
+ * What actually moved the confidence, and nothing else.
+ *
+ * This replaces a sub-card that listed all six terms at equal weight. Most of them
+ * are neutral most of the time -- three multiplicands at 1.00 and two penalties at
+ * 0.00 is "nothing reduced it", spelled as five rows a reader has to decode. Worse,
+ * a neutral value LOOKS different per term: 1.00 is neutral for a multiplicand and
+ * total for a penalty, so the card taught the wrong reading of its own numbers.
+ *
+ * So: name the terms that dragged, say plainly when none did, and keep the
+ * informational terms (which are not in the product at all) visually apart.
+ */
+function ConfidenceStrip({ reasons }: { reasons: ConfidenceReason[] }) {
+  if (!reasons.length) return null;
+
+  const drags = reasons.filter((reason) => {
+    const value = toFiniteNumber(reason.value);
+    if (reason.kind === "penalty") return value > 0;
+    if (reason.kind === "multiplicand") return value < 1;
+    return false;
+  });
+  const notes = reasons.filter((reason) => reason.kind === "informational");
+
+  return (
+    <div className={styles.confidenceStrip} data-testid="rates-confidence-strip">
+      {drags.length ? (
+        <>
+          <span className={styles.confidenceStripLabel}>Reduced by</span>
+          {drags.map((reason) => (
+            <span key={reason.term} className={styles.confidenceDrag}>
+              <strong>{reason.term.replace(/_/g, " ")}</strong>
+              {reason.kind === "penalty"
+                ? ` −${(toFiniteNumber(reason.value) * 100).toFixed(0)}%`
+                : ` ×${toFiniteNumber(reason.value).toFixed(2)}`}
+              <small>{reason.detail}</small>
+            </span>
+          ))}
+        </>
+      ) : (
+        <span className={styles.confidenceStripLabel}>
+          Nothing reduced it — every load-bearing input is present, fresh and
+          uncontradicted.
+        </span>
+      )}
+      {notes.map((note) => (
+        <span key={note.term} className={styles.confidenceNote}>
+          <strong>{note.term.replace(/_/g, " ")}</strong>
+          <small>{note.detail}</small>
+        </span>
+      ))}
     </div>
   );
 }
@@ -90,9 +143,11 @@ export function StateSection({
     <div className={styles.stateBlock} data-testid="rates-state-block">
       <div className={styles.stateHero}>
         <div className={styles.stateHeadline}>
-          <p className={styles.eyebrow}>
-            Policy / rates state · {state.engine_version}
-          </p>
+          {/* No eyebrow here. The section header one line above already reads
+              "Policy / Rates State"; repeating it under the title spent the most
+              valuable line on the page saying the same thing twice. The engine
+              version is the only part that was not a repeat, so it moves to the
+              meta row with the other provenance. */}
           <strong data-testid="rates-state-label">
             {readableState(state.state)}
           </strong>
@@ -125,8 +180,14 @@ export function StateSection({
             <dt>Answers for</dt>
             <dd>{fmtInstant(state.as_of)} HKT</dd>
           </div>
+          <div>
+            <dt>Engine</dt>
+            <dd>{state.engine_version}</dd>
+          </div>
         </dl>
       </div>
+
+      <ConfidenceStrip reasons={reasons} />
 
       <div className={styles.stateColumns}>
         <section className={styles.statePanel}>
@@ -151,29 +212,6 @@ export function StateSection({
             <p className={styles.stateEmptyNote}>
               No velocity metric was computable from the evidence available at
               this instant.
-            </p>
-          )}
-        </section>
-
-        <section className={styles.statePanel}>
-          {/* Confidence is a product of knowledge terms, not of signal size. Printing
-              every multiplicand is what lets a reader argue with the number. */}
-          <h3>Why this confidence</h3>
-          {reasons.length ? (
-            <dl className={styles.stateRows}>
-              {reasons.map((reason) => (
-                <div key={reason.term}>
-                  <dt>
-                    {reason.term}
-                    <small>×{toFiniteNumber(reason.value).toFixed(2)}</small>
-                  </dt>
-                  <dd>{reason.detail}</dd>
-                </div>
-              ))}
-            </dl>
-          ) : (
-            <p className={styles.stateEmptyNote}>
-              The engine recorded no confidence terms for this state.
             </p>
           )}
         </section>

@@ -19,11 +19,31 @@ export function isWithheld(path: PolicyPath): boolean {
   return NON_PRODUCTION_SOURCE_KINDS.has(path.source_kind);
 }
 
+/**
+ * The date a release is labelled by, most authoritative source first.
+ *
+ * `release_date` is the date the release is ABOUT and is the only one that
+ * identifies it. `published_at` is null for publishers that state a date rather
+ * than an instant (the NY Fed dealer survey does), and `available_at` is when WE
+ * fetched the bytes -- so falling through to it labelled all twelve backfilled
+ * surveys with the day of the backfill, which is a fact about our download
+ * schedule presented as a publication date.
+ */
 export function releaseDate(path: PolicyPath): string {
+  if (path.release_date) return path.release_date;
   const stamp = path.published_at ?? path.available_at;
   const date = new Date(stamp);
   if (Number.isNaN(date.getTime())) return stamp;
   return date.toISOString().slice(0, 10);
+}
+
+/** Earlier releases from the same publisher, newest first, already PIT-gated. */
+export function priorReleases(
+  slot: PolicyPathSlot | null | undefined,
+): PolicyPath[] {
+  return (slot?.prior ?? []).filter(
+    (path) => !isWithheld(path) && (path.points ?? []).length > 0,
+  );
 }
 
 export type PlottablePath =

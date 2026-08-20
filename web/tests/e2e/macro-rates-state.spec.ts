@@ -217,6 +217,57 @@ test.describe("rates desk — replay", () => {
   });
 });
 
+test.describe("rates desk — information hierarchy", () => {
+  test("sections sit under named tiers rather than one flat list", async ({
+    page,
+  }) => {
+    await ratesPage(page);
+    if (
+      (await page
+        .getByRole("heading", {
+          name: /Rates (snapshot not computed|API unavailable)/,
+        })
+        .count()) > 0
+    ) {
+      test.skip(true, "no rates snapshot in this environment");
+    }
+
+    const tiers = page.locator('[data-testid^="rates-tier-"]');
+    await expect(tiers).toHaveCount(5);
+    await expect(page.getByTestId("rates-tier-tier-answer")).toContainText(
+      /the answer/i,
+    );
+
+    // The verdict comes before the publishers that feed it, which come before the
+    // legacy scorecard. A flat page can satisfy every other assertion on this file
+    // and still bury the state under the rule score.
+    const order = await page
+      .locator('[data-testid^="rates-tier-"] h2')
+      .allTextContents();
+    expect(order.map((t) => t.trim().toLowerCase())).toEqual([
+      "the answer",
+      "who says what",
+      "what the market prices",
+      "mechanics",
+      "provenance and legacy",
+    ]);
+  });
+
+  test("a state that exists never repeats its own title as an eyebrow", async ({
+    page,
+  }) => {
+    await ratesPage(page);
+    const block = page.getByTestId("rates-state-block");
+    if ((await block.count()) === 0) {
+      test.skip(true, "no stored state in this environment");
+    }
+    // "Policy / Rates State" is the section heading. Printing it again one line
+    // below spent the most valuable line on the page saying nothing new.
+    const repeated = block.locator("text=/^policy \\/ rates state/i");
+    await expect(repeated).toHaveCount(0);
+  });
+});
+
 test.describe("rates desk — policy path plots", () => {
   test("the SEP block plots dots and still refuses to name a participant", async ({
     page,
@@ -251,12 +302,25 @@ test.describe("rates desk — policy path plots", () => {
       test.skip(true, "no dealer survey ingested in this environment");
     }
 
-    await expect(block.locator("svg polyline")).toHaveCount(1);
+    // Exactly one CURRENT median. Earlier surveys are drawn beside it as their own
+    // dated releases, so counting every polyline would have pinned the chart to the
+    // one-survey design it replaced.
+    await expect(block.getByTestId("dealer-path-median")).toHaveCount(1);
     // Either form is correct; what is refused is a plot that never says how many
     // dealers stand behind the far end of the path.
     await expect(block.getByTestId("dealer-path-note")).toContainText(
       /n=\d+ at every horizon|n varies by horizon, \d+–\d+/,
     );
+
+    // Every prior series must be a SEPARATE dated release, never merged into the
+    // current one -- the same rule that keeps the four publishers apart.
+    const priors = block.getByTestId("dealer-path-median-prior");
+    if ((await priors.count()) > 0) {
+      await expect(block.getByTestId("dealer-path-note")).toContainText(
+        /separate releases shown for movement, never merged/i,
+      );
+      await expect(block).toContainText(/earlier survey/i);
+    }
   });
 
   test("the two publishers are plotted in separate blocks, never on one axis", async ({

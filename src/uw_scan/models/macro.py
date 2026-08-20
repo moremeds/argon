@@ -246,6 +246,12 @@ class PolicyPath(_UwBase):
     source: str
     source_kind: MacroSourceKind
     source_record_id: str
+    #: The date this release is ABOUT -- the meeting for FOMC and SEP, the response
+    #: due date for the dealer survey.  Carried because it is the only date that can
+    #: label a release: ``published_at`` is null for publishers that state a date and
+    #: not an instant, and ``available_at`` is when WE fetched it, so a backfilled
+    #: archive labels every one of its releases with the day of the backfill.
+    release_date: date | None = None
     published_at: AwareDatetime | None = None
     available_at: AwareDatetime
     cost_class: MacroCostClass
@@ -363,6 +369,11 @@ class PolicySourceFreshness(_UwBase):
 class PolicyPathSlot(_UwBase):
     kind: PolicyPathKind
     path: PolicyPath | None = None
+    #: Earlier releases from THIS publisher, newest first, so a reader can see how
+    #: one publisher's own view moved.  Separate from ``path`` on purpose: each is
+    #: its own dated release, never merged into the current one and never averaged
+    #: with it.  Empty when only one release has been ingested.
+    prior: list[PolicyPath] = Field(default_factory=list)
     missing_reason: str | None = None
     freshness: PolicySourceFreshness
 
@@ -374,6 +385,10 @@ class PolicyPathSlot(_UwBase):
             )
         if self.path is not None and self.path.kind != self.kind:
             raise ValueError("policy path slot kind does not match path")
+        if any(earlier.kind != self.kind for earlier in self.prior):
+            raise ValueError("policy path slot kind does not match a prior release")
+        if self.path is None and self.prior:
+            raise ValueError("a slot with no current path cannot carry prior releases")
         return self
 
 
@@ -396,12 +411,26 @@ class MacroVelocityItem(_UwBase):
     unavailable_reason: str | None = None
 
 
+#: How to read a confidence term's value.
+#: - ``multiplicand``: in the product; 1 is neutral, below 1 drags.
+#: - ``penalty``: in the product as ``(1 - value)``; 0 is neutral, above 0 drags.
+#: - ``informational``: NOT in the product; the value is a count or a flag.
+ConfidenceTermKind = Literal["multiplicand", "penalty", "informational"]
+
+
 class MacroConfidenceReason(_UwBase):
-    """One multiplicand of the confidence product, so the number can be argued with."""
+    """One term behind a confidence number, so the number can be argued with.
+
+    ``kind`` is what lets a reader know whether a value drags: 1.00 is neutral for a
+    multiplicand and total for a penalty, and an informational term is not in the
+    product at all.  Without it every consumer re-derives the distinction by matching
+    on term names.
+    """
 
     term: str
     value: Decimal
     detail: str
+    kind: ConfidenceTermKind = "multiplicand"
 
 
 class MacroContradiction(_UwBase):

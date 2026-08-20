@@ -65,10 +65,19 @@ class FredProvider:
         timeout_s: float = 30.0,
         record_request: RecordHook | None = None,
         job_name: str | None = None,
+        trust_env: bool = False,
     ):
         self._api_key = api_key
         self._api_base_url = base_url.rstrip("/")
-        self._client = httpx.Client(timeout=timeout_s)
+        # Ambient proxy config is not inherited, matching every other official-data
+        # source on this desk (fomc_statement, fed_sep_provider, fomc_calendar,
+        # nyfed_sme all pass trust_env=False).  This one did not, and a macOS box
+        # with a system HTTPS proxy configured -- which httpx reads from the system
+        # even when the *_PROXY environment variables are unset -- gets
+        # `SSL: UNEXPECTED_EOF_WHILE_READING` from api.stlouisfed.org on every call.
+        # The job then refuses to publish a snapshot, correctly, and the whole rates
+        # lane silently stops advancing while every other source keeps updating.
+        self._client = httpx.Client(timeout=timeout_s, trust_env=trust_env)
         self._record_request_fn = record_request
         self._job_name = job_name
 

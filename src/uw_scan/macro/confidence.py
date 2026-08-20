@@ -98,12 +98,14 @@ def compute_confidence(
             f"revised since the prior state: {', '.join(revised)}"
             if revised
             else "no load-bearing input revised since the prior state",
+            kind="penalty",
         ),
         ConfidenceTerm(
             "contradiction_penalty",
             contradiction_penalty,
             f"{len(contradictions)} rule(s) fired: "
             + (", ".join(item.rule for item in contradictions) or "none"),
+            kind="penalty",
         ),
     ]
     if revised:
@@ -112,11 +114,17 @@ def compute_confidence(
                 "load_bearing_input_revised_since_prior_state",
                 Decimal(len(revised)),
                 f"{', '.join(revised)} changed value for a period already stated",
+                kind="informational",
             )
         )
     if absent_reason is not None:
         reasons.append(
-            ConfidenceTerm("required_period_absent_at_as_of", Decimal(1), absent_reason)
+            ConfidenceTerm(
+                "required_period_absent_at_as_of",
+                Decimal(1),
+                absent_reason,
+                kind="informational",
+            )
         )
     return confidence, tuple(reasons)
 

@@ -12,8 +12,8 @@
   top: 0;
   z-index: 10;
   display: grid;
-  gap: 20px;
-  padding: 16px 0 12px;
+  gap: 10px;
+  padding: 14px 0 10px;
   margin: 0 auto 18px;
   max-width: 1440px;
   background: var(--bg-base);
@@ -43,10 +43,17 @@
   letter-spacing: 0;
 }
 
+/* Matches the house page header (`.regime-page-header h1` in globals.css):
+   mono, 18px, 600, uppercase, 0.05em. This desk had grown its own 26px/700
+   lockup with a 0.18em wide-tracked subtitle, so /rates announced itself twice
+   as loudly as every other page in the sidebar. */
 .header h1 {
   font-family: var(--font-mono), "IBM Plex Mono", monospace;
-  font-size: 26px;
-  line-height: 1.1;
+  font-size: 18px;
+  font-weight: 600;
+  letter-spacing: 0.05em;
+  text-transform: uppercase;
+  line-height: 1.2;
   white-space: nowrap;
 }
 
@@ -59,16 +66,13 @@
   margin: 0;
   color: var(--text-muted);
   font-family: var(--font-mono), "IBM Plex Mono", monospace;
-  font-size: 12px;
-  font-weight: 700;
-  letter-spacing: 0.18em;
-  text-transform: uppercase;
+  font-size: 11px;
+  font-weight: 400;
+  letter-spacing: 0.04em;
 }
 
 .headerMeta {
-  color: var(--text-secondary);
-  font-size: 12px;
-  letter-spacing: 0.04em;
+  color: var(--text-muted);
   text-align: right;
   white-space: nowrap;
 }
@@ -102,26 +106,26 @@
 
 .nav {
   display: flex;
-  flex-wrap: nowrap;
+  /* Wraps rather than scrolls. The strip used to be `nowrap` + `overflow-x: auto`
+     with the scrollbar hidden, so anything past the viewport edge was reachable
+     only by a horizontal scroll with no affordance saying it was there -- and
+     grouping into five tiers made the strip longer, not shorter. */
+  flex-wrap: wrap;
   justify-content: flex-start;
-  gap: 8px;
-  overflow-x: auto;
-  scrollbar-width: none;
-}
-
-.nav::-webkit-scrollbar {
-  display: none;
+  gap: 4px 8px;
 }
 
 .nav a {
-  color: var(--text-secondary);
+  color: var(--text-muted);
   text-decoration: none;
-  font-size: 13px;
-  font-weight: 700;
+  font-family: var(--font-mono), "IBM Plex Mono", monospace;
+  font-size: 11px;
+  font-weight: 400;
+  letter-spacing: 0.04em;
   border: 1px solid transparent;
   border-radius: 3px;
   background: transparent;
-  padding: 10px 12px;
+  padding: 4px 7px;
   white-space: nowrap;
   transition:
     border-color 160ms var(--ease-out),
@@ -285,7 +289,11 @@
   display: grid;
   grid-template-columns: minmax(320px, 1.4fr) minmax(320px, 0.8fr);
   gap: 16px;
-  align-items: stretch;
+  /* `stretch` made sense while the SVG filled its panel via `flex: 1` and a
+     min-height floor. Now that height comes from the viewBox aspect, stretching
+     leaves the chart panel taller than its own drawing and prints a dead band
+     under the curve. Each cell is as tall as its content. */
+  align-items: start;
 }
 
 .chartPanel,
@@ -341,8 +349,11 @@
 .chartPanel svg {
   display: block;
   width: 100%;
-  flex: 1;
-  min-height: 420px;
+  /* Height comes from the viewBox aspect, nothing else.  `flex: 1` plus a
+     `min-height` floor used to stretch the SVG BOX past its own ratio, and
+     `preserveAspectRatio` then centred the drawing inside it -- the empty band
+     above the plot was letterboxing, not padding.  See ./chartGeometry.ts. */
+  height: auto;
 }
 
 .currentCurve {
@@ -358,6 +369,32 @@
 .monthCurve {
   stroke: var(--text-muted);
   background: var(--text-muted);
+}
+
+/* One release against its own earlier selves. Same three colours as the curve
+   overlay above so "current / previous / older" reads identically on both
+   charts, named for releases because that is what these series are. */
+.releaseCurrent {
+  stroke: var(--positive);
+  background: var(--positive);
+}
+
+.releasePrior {
+  stroke: var(--info);
+  background: var(--info);
+}
+
+.releaseOlder {
+  stroke: var(--text-muted);
+  background: var(--text-muted);
+}
+
+/* The SEP's own prior median needs a colour the dot plot is not already using:
+   the participant dots ARE --info, so drawing the previous median in --info made
+   the legend say "one participant" and "previous median" in the same purple. */
+.sepPriorMedian {
+  stroke: var(--warning);
+  background: var(--warning);
 }
 
 .svgLabel {
@@ -1696,4 +1733,165 @@
   border-radius: 2px;
   background: var(--positive);
   opacity: 0.3;
+}
+
+/* Confidence, inline under the number it explains, rather than a third sub-card
+   competing with Velocity and Contradictions for the same visual weight. */
+.confidenceStrip {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  gap: 8px 18px;
+  padding: 10px 14px;
+  border: 1px solid var(--border-dim);
+  border-radius: 4px;
+  background: var(--bg-panel);
+}
+
+.confidenceStripLabel {
+  font-family: var(--font-mono), "IBM Plex Mono", monospace;
+  font-size: 10px;
+  letter-spacing: 1.5px;
+  text-transform: uppercase;
+  color: var(--text-muted);
+}
+
+.confidenceDrag,
+.confidenceNote {
+  display: inline-flex;
+  align-items: baseline;
+  gap: 6px;
+  font-size: 12px;
+  color: var(--text-secondary);
+}
+
+.confidenceDrag strong {
+  font-family: var(--font-mono), "IBM Plex Mono", monospace;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  font-size: 11px;
+  color: var(--warning);
+}
+
+.confidenceNote strong {
+  font-family: var(--font-mono), "IBM Plex Mono", monospace;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  font-size: 11px;
+  color: var(--text-muted);
+}
+
+.confidenceDrag small,
+.confidenceNote small {
+  font-size: 11px;
+  color: var(--text-muted);
+}
+
+/* Tier bands. The desk is read top-down as answer -> publishers -> market ->
+   mechanics -> provenance, and these are the only headings that say so. */
+.tier {
+  margin: 34px 0 -6px;
+  padding-bottom: 8px;
+  border-bottom: 1px solid var(--border-dim);
+}
+
+.tier:first-of-type {
+  margin-top: 12px;
+}
+
+.tierTitle {
+  margin: 0;
+  font-family: var(--font-mono), "IBM Plex Mono", monospace;
+  font-size: 13px;
+  letter-spacing: 2.5px;
+  text-transform: uppercase;
+  color: var(--positive);
+}
+
+.tierLede {
+  margin: 4px 0 0;
+  font-size: 12px;
+  color: var(--text-muted);
+}
+
+.navGroup {
+  display: inline-flex;
+  align-items: baseline;
+  gap: 10px;
+  padding-right: 14px;
+  margin-right: 4px;
+  border-right: 1px solid var(--border-dim);
+}
+
+.navGroup:last-child {
+  border-right: none;
+}
+
+.navGroupLabel {
+  font-weight: 600;
+  color: var(--text-secondary) !important;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+}
+
+/* The two plotting publishers, side by side inside the policy-paths section but
+   in separate frames -- one shared axis would read as a comparison. */
+.pathPlots {
+  display: grid;
+  grid-template-columns: 1fr;
+  gap: 26px;
+  margin-top: 24px;
+}
+
+.pathPlot > h3 {
+  margin: 0 0 10px;
+  font-family: var(--font-mono), "IBM Plex Mono", monospace;
+  font-size: 12px;
+  letter-spacing: 1.5px;
+  text-transform: uppercase;
+  color: var(--text-secondary);
+}
+
+/* A charted lane's headline, in place of re-listing every horizon the plot draws. */
+.pathSummary {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  gap: 4px 10px;
+  padding-top: 8px;
+}
+
+.pathSummaryHorizon {
+  font-family: var(--font-mono), "IBM Plex Mono", monospace;
+  font-size: 10px;
+  letter-spacing: 1.5px;
+  text-transform: uppercase;
+  color: var(--text-muted);
+  flex-basis: 100%;
+}
+
+.pathSummaryValue {
+  font-family: var(--font-mono), "IBM Plex Mono", monospace;
+  font-size: 22px;
+  font-weight: 700;
+  color: var(--text-primary);
+}
+
+.pathSummaryLink {
+  font-size: 11px;
+  color: var(--positive);
+  text-decoration: none;
+}
+
+.pathSummaryLink:hover {
+  text-decoration: underline;
+}
+
+/* Why a lane's newest release predates the newest FOMC decision. Muted: it explains
+   an expected gap, it does not report a fault. */
+.pathBehind {
+  margin: 6px 0 0;
+  font-size: 11px;
+  line-height: 1.4;
+  color: var(--text-muted);
 }

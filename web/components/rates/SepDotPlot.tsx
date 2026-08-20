@@ -1,7 +1,21 @@
+import { WIDE_FRAME } from "./chartGeometry";
 import styles from "./RatesDesk.module.css";
 import { finiteOrNull, toFiniteNumber } from "./format";
-import { plottable, releaseDate } from "./policyPath";
+import { plottable, priorReleases, releaseDate } from "./policyPath";
 import type { MacroPolicyPathPoint, PolicyPathSlot } from "./types";
+
+
+const {
+  width: WIDTH,
+  height: HEIGHT,
+  padLeft: PAD_LEFT,
+  padRight: PAD_RIGHT,
+  padTop: PAD_TOP,
+  plotW: PLOT_W,
+  plotH: PLOT_H,
+  xLabelNear: X_LABEL_NEAR,
+  xLabelFar: X_LABEL_FAR,
+} = WIDE_FRAME;
 
 /**
  * The SEP as the committee publishes it: a dot plot.
@@ -15,14 +29,6 @@ import type { MacroPolicyPathPoint, PolicyPathSlot } from "./types";
  * express which participant a dot belongs to, because the FOMC does not publish it.
  */
 
-const WIDTH = 780;
-const HEIGHT = 400;
-const PAD_LEFT = 56;
-const PAD_RIGHT = 24;
-const PAD_TOP = 26;
-const PAD_BOTTOM = 52;
-const PLOT_W = WIDTH - PAD_LEFT - PAD_RIGHT;
-const PLOT_H = HEIGHT - PAD_TOP - PAD_BOTTOM;
 const DOT_R = 4.5;
 const DOT_GAP = 12;
 
@@ -54,13 +60,32 @@ export function SepDotPlot({
 
   const path = resolved.path;
   const points = path.points ?? [];
-  const columns = points.map((point) => ({ point, dots: dotsOf(point) }));
+
+  // The SEP projects named YEARS ("2026", "Longer run"), and successive releases
+  // reuse those labels, so two releases match on the horizon itself. That is why the
+  // dealer chart needs a time axis to overlay and this one does not: there, each
+  // survey asks about the meetings ahead of IT, and the labels genuinely differ.
+  const previous = priorReleases(slot)[0];
+  const previousMedian = new Map<string, number>();
+  for (const point of previous?.points ?? []) {
+    const median = finiteOrNull(point.rate_percent);
+    if (median != null) previousMedian.set(point.horizon, median);
+  }
+
+  const columns = points.map((point) => ({
+    point,
+    dots: dotsOf(point),
+    previous: previousMedian.get(point.horizon) ?? null,
+  }));
   const values = columns.flatMap((column) => [
     ...column.dots.map((dot) => dot.rate),
     ...[
       finiteOrNull(column.point.rate_percent),
       finiteOrNull(column.point.central_tendency_lower_percent),
       finiteOrNull(column.point.central_tendency_upper_percent),
+      // In the domain so a committee that moved a long way does not push its own
+      // previous median off the top of the frame.
+      column.previous,
     ].filter((n): n is number => n != null),
   ]);
 
@@ -113,6 +138,12 @@ export function SepDotPlot({
               <i className={styles.sepBandSwatch} />
               Central tendency
             </span>
+            {previous ? (
+              <span>
+                <i className={styles.sepPriorMedian} />
+                {releaseDate(previous)} median
+              </span>
+            ) : null}
           </div>
         </div>
         <svg
@@ -188,6 +219,26 @@ export function SepDotPlot({
                   }),
                 )}
 
+                {column.previous != null ? (
+                  <line
+                    x1={cx - half}
+                    x2={cx + half}
+                    y1={yFor(column.previous)}
+                    y2={yFor(column.previous)}
+                    className={styles.sepPriorMedian}
+                    strokeWidth="2"
+                    strokeDasharray="6 4"
+                    data-testid="sep-prior-median"
+                  >
+                    <title>
+                      {`${previous ? releaseDate(previous) : "previous"} median ${column.previous.toFixed(2)}%` +
+                        (median != null
+                          ? ` · moved ${((median - column.previous) * 100).toFixed(0)} bps`
+                          : "")}
+                    </title>
+                  </line>
+                ) : null}
+
                 {median != null ? (
                   <g>
                     <line
@@ -210,7 +261,7 @@ export function SepDotPlot({
 
                 <text
                   x={cx}
-                  y={HEIGHT - 26}
+                  y={X_LABEL_NEAR}
                   textAnchor="middle"
                   className={styles.svgAxisLabel}
                 >
@@ -218,7 +269,7 @@ export function SepDotPlot({
                 </text>
                 <text
                   x={cx}
-                  y={HEIGHT - 11}
+                  y={X_LABEL_FAR}
                   textAnchor="middle"
                   className={styles.svgLabel}
                 >
@@ -232,6 +283,7 @@ export function SepDotPlot({
 
       <p className={styles.pathProvenance}>
         {path.source} · released {releaseDate(path)}
+        {previous ? ` · dashed line is the ${releaseDate(previous)} median` : ""}
       </p>
       {/* The dot plot is published without names. Attaching one -- the Chair's above
           all -- would invent a fact the FOMC deliberately does not publish. */}

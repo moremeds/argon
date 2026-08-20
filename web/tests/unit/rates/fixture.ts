@@ -539,11 +539,13 @@ export const POLICY_RATES_STATE: MacroStateSummary = {
       term: "coverage",
       value: "0.75",
       detail: "3 of 4 policy paths carry a release.",
+      kind: "multiplicand",
     },
     {
       term: "freshness",
       value: "0.92",
       detail: "Newest load-bearing observation is 1 day old.",
+      kind: "multiplicand",
     },
   ],
   contradictions: [
