@@ -97,7 +97,11 @@ class FundamentalAnchors(_UwBase):
 
     company_type: str
     # The yield the band was built from: sales_to_ev | fcf_yield | ebitda_to_ev.
-    method: str
+    #: NULL only when the refusal is that NO method applies to the company
+    #: type — `financials`, where every yield is EV-denominated and EV is
+    #: not a meaningful denominator for a deposit-funded balance sheet.
+    #: A sentinel string would have read like a method on the card.
+    method: str | None = None
     # Null where the yield inversion diverges or lands below zero after net debt.
     # A null level is unknown, not zero, and must not be drawn as a boundary.
     buy_below: float | None = None

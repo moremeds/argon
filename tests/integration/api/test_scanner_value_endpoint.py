@@ -15,6 +15,9 @@ from __future__ import annotations
 
 from datetime import date
 
+import psycopg
+import pytest
+
 from uw_scan.fundamentals.features import FEATURES
 from uw_scan.storage.fundamental_anchors import FundamentalAnchorsRepository
 from uw_scan.storage.fundamental_scores import FundamentalScoresRepository
@@ -168,3 +171,76 @@ def test_no_active_method_version_is_503_not_an_empty_list(
     """An empty list asserts 'no name is cheap today'. A dead fundamentals stack
     asserts nothing at all, and the two must not read the same on screen."""
     assert client.get("/api/scanner/value").status_code == 503
+
+
+def _anchor_row(ticker: str, *, method: str | None, buy_below: float | None) -> dict:
+    """Minimum row the table accepts, with the two fields under test explicit."""
+    return {
+        "ticker": ticker,
+        "as_of": D17,
+        "engine_version": ENGINE,
+        "inputs_hash": f"{ticker}-methodless",
+        "company_type": "financials",
+        "method": method,
+        "buy_below": buy_below,
+        "observe_low": None,
+        "observe_mid": None,
+        "observe_high": None,
+        "risk_above": None,
+        "spot": 100.0,
+        "spot_percentile": None,
+        "history_quarters": 20,
+        "confidence": "none",
+        "confidence_reasons_jsonb": ["test"],
+        "inputs_jsonb": {},
+        "source_obs_ids": [],
+    }
+
+
+def test_a_methodless_refusal_is_writable(seeded_db_empty_cards):
+    """The shape this feature exists to write: `financials` refuses because no
+    method applies, so `method` is NULL and every level is absent.
+
+    Paired with the test below deliberately. A constraint that rejected the
+    priced case by rejecting ALL methodless rows would pass that test while
+    breaking the only reason `method` was made nullable.
+    """
+    _seed(seeded_db_empty_cards)
+    repo = FundamentalAnchorsRepository(
+        seeded_db_empty_cards.conn, schema=seeded_db_empty_cards._schema
+    )
+    assert repo.insert_anchors([_anchor_row("JPM", method=None, buy_below=None)]) == 1
+
+
+def test_a_methodless_row_carrying_a_price_is_refused_by_the_database(
+    seeded_db_empty_cards,
+):
+    """The one row shape that would 500 this endpoint for EVERY name in the list.
+
+    `valuation_anchors.method` is nullable (migration 124) so a `financials`
+    refusal can decline to name a method; `ValueCandidate.method` is not, because
+    every row that reaches it has been filtered on `buy_below IS NOT NULL` and a
+    priced row always has a method. Nothing was enforcing the join between those
+    two facts. A row with `method` NULL and a real `buy_below` clears the filter,
+    reaches a non-nullable field, and fails response validation — so the failure
+    is not "one bad row is skipped", it is the whole endpoint returning 500 while
+    every other name in it is fine.
+
+    Enforced by `valuation_anchors_methodless_is_refusal` in the schema rather
+    than in `build_anchors`, on the same argument migration 118 gives for
+    `valuation_anchors_band_ascends`: the builder is one writer among the
+    backfills and repairs still to come, and the invariant is a property of the
+    table.
+    """
+    _seed(seeded_db_empty_cards)
+    repo = FundamentalAnchorsRepository(
+        seeded_db_empty_cards.conn, schema=seeded_db_empty_cards._schema
+    )
+    with pytest.raises(psycopg.errors.CheckViolation) as exc:
+        repo.insert_anchors([_anchor_row("BAC", method=None, buy_below=90.0)])
+    # Name the constraint, or this passes on any CHECK the row happens to trip —
+    # `valuation_anchors_band_ascends` sits on the same table and a future one
+    # will too, and a test that accepts the wrong rejection proves nothing about
+    # the shape it was written for.
+    assert exc.value.diag.constraint_name == "valuation_anchors_methodless_is_refusal"
+    seeded_db_empty_cards.conn.rollback()

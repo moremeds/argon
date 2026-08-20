@@ -263,8 +263,12 @@ function Header({ a, explain = true }: { a: Anchors; explain?: boolean }) {
             color: "var(--text-muted)",
           }}
         >
-          {a.company_type} · {METHOD_LABEL[a.method] ?? a.method} ·{" "}
-          {a.history_quarters}q · {a.confidence} · {a.as_of}
+          {a.company_type}
+          {/* `financials` carries no method: the refusal is that none applies,
+              so there is nothing to name here. Printing an empty segment would
+              leave a dangling "· ·" that reads as a missing value. */}
+          {a.method ? ` · ${METHOD_LABEL[a.method] ?? a.method}` : ""}
+          {` · ${a.history_quarters}q · ${a.confidence} · ${a.as_of}`}
         </span>
       </div>
       {explain ? (
@@ -276,7 +280,7 @@ function Header({ a, explain = true }: { a: Anchors; explain?: boolean }) {
             lineHeight: 1.5,
           }}
         >
-          {pct != null ? (
+          {pct != null && a.method ? (
             <>
               <strong>{rankPhrase(pct, a.history_quarters)}</strong>
               {` on ${METHOD_LABEL[a.method] ?? a.method}. `}

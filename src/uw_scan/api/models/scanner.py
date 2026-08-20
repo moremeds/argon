@@ -120,6 +120,13 @@ class ValueCandidate(BaseModel):
 
     ticker: str
     company_type: str
+    #: Non-null HERE though the column is nullable (migration 124): every row
+    #: reaching this model cleared `buy_below IS NOT NULL`, and a priced row
+    #: always has a method. That join is enforced in the schema, not by comment
+    #: — `valuation_anchors_methodless_is_refusal` (migration 124) rejects a
+    #: methodless row carrying any level, so the shape that would fail response
+    #: validation here cannot be written. Widening this to `str | None` would
+    #: mean the constraint was dropped; check that before touching it.
     method: str
     spot: Decimal | None
     buy_below: Decimal | None

@@ -134,6 +134,17 @@
 - Top-level keys: data
 - Pagination hints: []
 
+### stock_info
+- Path: `/api/stock/JPM/info`
+- Status: 200
+- Params: `{}`
+- Body type: object
+- Top-level keys: data
+- Pagination hints: []
+- NOTE: the OpenAPI spec declares `Ticker Info` FLAT (no `data` wrapper). It is
+  wrong — this capture is the evidence, and `worker/jobs/company_sector_refresh`
+  depends on the wrapper being real.
+
 ### term_structure
 - Path: `/api/stock/TSLA/volatility/term-structure`
 - Status: 200
