@@ -129,16 +129,31 @@ def macro_sep_ingest_job(
 def macro_sme_ingest_job(
     *,
     dsn: str,
+    survey_month: date | None = None,
     provider_factory: Callable[[], _ContextProvider] = NyFedSmeProvider,
     observed_at: datetime | None = None,
     max_attempts: int = 3,
     backoff_base_seconds: float = 1.0,
     sleep_fn: Callable[[float], None] = time.sleep,
 ) -> MacroPolicyIngestResult:
+    """Ingest one dealer survey: the newest by default, or a named month.
+
+    Deliberately one month per call rather than a batch.  ``fetch_bundles``
+    fails closed on a month the publisher does not list, so a batch would let a
+    single unreachable survey erase every other release in the same run -- the
+    exact failure ``_works_from_outcomes`` exists to avoid one level up.  Driven
+    one at a time, a bad month records its own failure row and the rest still land.
+    """
     seen_at = observed_at or datetime.now(UTC)
     try:
         bundle = _fetch_with_retry(
-            lambda provider: provider.fetch_latest_bundle(retrieved_at=seen_at),
+            lambda provider: (
+                provider.fetch_latest_bundle(retrieved_at=seen_at)
+                if survey_month is None
+                else provider.fetch_bundles(
+                    survey_months=[survey_month], retrieved_at=seen_at
+                )[0]
+            ),
             provider_factory=provider_factory,
             max_attempts=max_attempts,
             backoff_base_seconds=backoff_base_seconds,

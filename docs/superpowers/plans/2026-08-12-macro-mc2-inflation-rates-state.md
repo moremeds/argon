@@ -192,3 +192,382 @@ state engines` commit.
 - slope is not presented as term premium;
 - legacy stance is visibly experimental and cannot become confident from missing groups;
 - real worker/database/API/browser path passes.
+
+## Recorded deviations
+
+Deviations from the plan as written, with the reason each was taken.
+
+1. **Task 5 migration number: `116` → `123` → `125`.** The plan reserved 116; 116..122 were claimed
+   by intervening work (`116_macro_source_status` through `122_revenue_breakdown_obs`) before this
+   task started, and 123/124 were claimed by `company_sector` and
+   `valuation_anchors_method_nullable` on main while this branch was open. Renumbered again at merge
+   rather than landing a duplicate prefix. The number is a shared namespace with no reservation
+   mechanism, so a long-lived branch should expect to renumber at merge, not at authoring time.
+
+2. **Task 5 landed in new modules instead of extending `macro_context.py`.** That module was already
+   604 lines — past the repo's 500-line target — and domain states are a different seam from artifact
+   and observation ingestion, so the work went to `storage/macro_domain_state.py` (mixin wired into
+   `Repository` assembly) and `tests/integration/storage/test_macro_domain_state_repository.py`. No
+   method was added to `macro_context.py`.
+
+3. **Task 5 columns beyond the plan's list: `notes_jsonb`, `quarantined_at`, `quarantine_reason`,
+   and a one-way `status` transition.** The plan named `status` without saying what writes it. Left
+   as a single-valued column it records nothing, so it now carries the only retraction a
+   write-guarded table can express: `published → quarantined`, enforced by trigger, which withdraws
+   a state computed by an engine later found wrong without editing what that state said.
+   `notes_jsonb` exists because `MacroDomainState.notes` would otherwise be dropped on persist.
+
+4. **Task 6 added two files the plan does not list: `worker/jobs/macro_series_ingest.py`
+   and `macro/evidence_store.py`.** Step 1 requires that official releases be ingested
+   independently of state computation and that state jobs read persisted evidence. The
+   policy releases already had an ingest (MC1), but nothing wrote the FRED series the
+   inflation engine reads — `sources/fred_macro.py` had parser tests and no consumer. Without
+   the ingest the state job would abstain forever in production, so the task was not
+   deliverable from the listed files alone. `evidence_store.py` is the read half: turning
+   stored rows back into `DomainObservation` needs the causal role and publisher transform,
+   neither of which is a column, and both jobs plus any future domain need the same mapping.
+
+5. **Migration `126` was not planned; it splits an availability bound that migration 115
+   states as universal.** 115 refuses any observation that became available before the
+   artifact carrying it — correct for a release, and backwards for a vintage record, whose
+   entire product is reporting today when a value was published in the past. Enforced in a
+   trigger, so it could not be worked around in application code. `vintage_bearing` on the
+   artifact selects which bound applies; the forward direction (a vintage may never postdate
+   the fetch reporting it) is enforced for both. The replacement trigger body was rebuilt
+   verbatim from 115 with only that block substituted, after a hand-written version silently
+   altered the content-hash formula.
+
+6. **`macro/rates.py` was changed during Task 6: the state now cites its policy releases.**
+   Task 4 emitted `evidence_refs` for market observations only, so a rates state whose
+   `state` field came from the FOMC target range named every input except that one — and a
+   rates state with no market series had no citable evidence at all and could not be stored.
+   `inputs_hash` is unchanged: the paths were already identified inside `parameters`.
+
+7. **The API returns stored states and 404s rather than computing on read.** The plan says
+   "with `as_of` replay" without saying which. Recomputing a past instant with today's
+   engine reports what we would now say about then, which is not what we said; that makes
+   the record regenerable to taste. `fetch_macro_domain_state_as_of` gained
+   `strictly_before` for the same reason: a recompute must select its prior state
+   deterministically, or two runs over identical evidence produce different confidence and
+   the identity guard (correctly) refuses the second.
+
+8. **Task 7 touched three files the plan does not list:
+   `web/components/rates/sections/StateSection.tsx` (new), `web/lib/api.ts` and
+   `web/app/rates/page.tsx`.** Step 2 requires the four policy paths on the page, and
+   they do not live in the rates snapshot — they come from `GET /api/macro/policy`,
+   computed by a different job on a different clock. Nothing in the listed file set
+   could feed `PolicyPathComparison`, so the task was not deliverable from them alone;
+   the page now settles the two fetches independently, because a policy-ingest outage
+   must not blank a curve that is still a fact. `StateSection` went to `sections/`
+   rather than inline: that directory already holds the page's composed blocks
+   (Decomposition, Policy, Supply, Positioning) and `RatesDesk.tsx` was already 461
+   lines.
+
+9. **The scorecard's client-side composite was deleted rather than repaired.** Step 4
+   asks for no fabricated zeros; the fabrication was a *second* implementation. The
+   component renormalised the weights itself and fell back to `0` on a zero
+   denominator, which `stance()` then rendered as "NEUTRAL duration". Patching the
+   fallback would have left two independent answers on one card — a server that
+   refuses a stance beside a client that takes one. The server already owns the
+   composite and the coverage floor, so the client now prints what it decided,
+   including the refusal.
+
+10. **Replay is browser-tested through the API, not through a `?as_of=` on `/rates`.**
+    Step 5 says "browser-test replay". `/api/rates/snapshot` has no `as_of` parameter,
+    so a replay control on the page would replay the state and policy blocks while the
+    curve, decomposition, supply and positioning stayed live — a half-replayed page
+    that reads as a fully replayed one, which is the failure this milestone exists to
+    prevent. `tests/e2e/macro-rates-state.spec.ts` exercises replay against the same
+    origin the page uses (through the Next `/api/*` rewrite) and asserts the page's
+    rendering invariants separately.
+
+11. **The web fixture's policy paths are parser output over the committed official
+    fixtures, not hand-written numbers.** `web/tests/unit/rates/fixture.ts` carries the
+    real FOMC 2026-06-17 statement (Hold, 3.50–3.75%, vote 12-0 with **no roster
+    printed**), the real SEP 2026-06 federal-funds projections (2026 median 3.8,
+    central tendency 3.6–4.1, 18 dots) and the real NY Fed SME June 2026 dealer path
+    (n=26). The market-implied lane is deliberately absent — Frenzy is optional,
+    default-off, and this repo commits no fixture for it — which also gives step 5 its
+    partial-path case. The 12-0-with-no-roster statement is the reason
+    `voter_names_stated` exists, and it is now a rendering test rather than a comment.
+
+12. **Task 8's checkpoint commit is scoped to the UI, not to "the state engines".** The
+    plan named one commit, `feat(macro): add inflation and rates state engines`, on the
+    assumption the milestone landed as a single checkpoint. The engines, persistence and
+    replay API had already landed in five earlier commits on this branch, so a commit
+    claiming to add them would misdescribe its own diff. The checkpoint carries what
+    Task 7 actually produced and is named for it.
+
+## Task 8 verification
+
+Run 2026-08-19 against live publishers and a real browser.
+
+| Gate | Result |
+|---|---|
+| Source parsers (FOMC / SEP / SME / calendar / census / discovery / treasury) | 130 passed |
+| Macro + rates unit (engines, models, contract, worker, scripts) | 168 passed |
+| Integration — storage, worker, API | 137 passed |
+| OpenAPI snapshot / contract | 24 passed |
+| Web unit (vitest) | 777 passed across 116 files |
+| Playwright `macro-rates-state.spec.ts` | 8 passed, 0 skipped |
+| Playwright `golden-path` regression | 1 passed |
+| Migrations applied twice | clean both passes |
+| `npm run gen:types` | regenerates byte-identical |
+| `git diff --check`, ruff, `check_no_yahoo.py`, tsc, eslint | clean |
+
+Real path, no fixtures: FOMC 5/5 releases parsed, SEP 2/2, SME 1/1 (16 raw artifacts),
+FRED 6,726 observations, both domain states computed and stored, rendered at `/rates`.
+The live 2026-07-29 statement prints a 9-3 tally and names nobody, so the
+`voter_names_stated=false` branch is exercised by production data, not only by fixtures.
+
+### Defect found by this run, RESOLVED in Task 9: FRED refuses every daily series
+
+`macro_series_ingest.py` requests the unbounded vintage window
+(`ALL_VINTAGES_START` .. `ALL_VINTAGES_END`) and documents it as "not a tunable knob",
+because a narrower window is clamped onto the returned rows and destroys the
+point-in-time field. That holds for monthly series and fails for daily ones: FRED caps a
+`file_type=json` request at **2000 vintage dates**, and a daily series mints one per
+business day.
+
+    There are 5090 vintage dates in the specified real-time period: 1776-07-04 to
+    9999-12-31. This exceeds the maximum number of vintage dates allowed for this
+    file type (2000).
+
+All 8 monthly inflation series ingest; all 3 daily series (`DGS10`, `DFII10`, `T10YIE`)
+fail. `RATES_EVIDENCE` is entirely daily, so `policy_rates` permanently reports
+`market_factors_absent` for curve, decomposition_component, supply, positioning and
+plumbing. The state still computes and names the absence, so no exit criterion is
+violated — the rates domain simply cannot see the market layer.
+
+Measured boundary on `DGS10` with `observation_start == realtime_start`:
+
+| `realtime_start` | vintage dates | result |
+|---|---|---|
+| 1776-07-04 | 5090 | 400 |
+| 2015-01-01 | 2871 | 400 |
+| 2019-01-01 | 1993 | 200 |
+| 2023-01-01 | 946 | 200 |
+
+Bounding the window does **not** clamp the vintages: asking from 2019-01-01 returns the
+2019-01-01 observation with its true `realtime_start` of 2019-01-03, not the window
+edge. So a bounded daily window is safe for replay as long as the bound predates the
+first observation's publication day. The tension a fix must resolve: the cap is on
+vintage *count*, which grows ~248/year for a daily series, so any fixed start eventually
+crosses 2000 again, while a rolling start changes the payload bytes every run and mints
+a fresh artifact for an unchanged history — the churn the fixed
+`DEFAULT_OBSERVATION_START` exists to prevent. Deferred rather than decided
+unilaterally: it trades off two properties this milestone treats as load-bearing.
+
+*(One number above was corrected in Task 9: "2023-01-01 buys until roughly 2027" was
+wrong. The cap bounds window WIDTH, so a start date buys `2000 / 248 ≈ 8.06` years
+regardless of which start it is — 2023-01-01 runs to roughly 2031, not 2027.)*
+
+## Task 9: FRED daily-series window, and the two path plots
+
+Authorized directly rather than planned: fix the daily-series defect, then add two
+plotted blocks below Summary.
+
+### The window
+
+`DAILY_VINTAGE_START = 2021-01-01`, applied by a new `request_window(series_id,
+observation_start)` that splits on the contract's own `frequency`. Monthly series keep
+the unbounded window byte-for-byte; daily series get `observation_start ==
+realtime_start == DAILY_VINTAGE_START`.
+
+**Why the equality is the correctness condition, not a coincidence.** The clamping the
+module docstring warns about happens when the requested window *excludes* an
+observation's real vintage. An observation cannot be published before the day it
+describes, so if the earliest observation starts where the earliest vintage starts,
+nothing returned can have a true vintage outside the window and nothing can be clamped.
+A bounded `realtime_start` alone would not be safe; the pair is.
+
+Measured against the live API 2026-08-19, `observation_start == realtime_start`:
+
+| start | rows | distinct vintages | first obs | its true vintage |
+|---|---|---|---|---|
+| 2015-01-01 | — | — | HTTP 400 | — |
+| 2019-01-01 | 1993 | 1891 | 2019-01-01 | 2019-01-03 |
+| 2020-01-01 | 1732 | 1644 | 2020-01-01 | 2020-01-03 |
+| 2021-01-01 | 1469 | 1395 | 2021-01-01 | 2021-01-05 |
+
+The true vintage is never the window edge, which is the property the fix rests on.
+Growth is 496 vintages per 2 years = ~248/year, so the ceiling is a window **width** of
+~8.06 years, not a particular start date.
+
+**Why 2021-01-01.** The start is not a compute window — the engines read 18 months
+(inflation) and 45 days (rates) — it is the **replay floor**. 2021-01-01 keeps the
+entire 2021–23 inflation surge and hiking cycle replayable, the regime a rates state is
+most worth replaying against, while leaving ~2.4 years of headroom. A later start buys
+time by deleting exactly that history.
+
+**Why the comment is not the deliverable.** A dated constant with an 8-year life rots
+silently. `test_daily_vintage_start_has_not_expired` fails while a year of headroom
+remains, so the renewal arrives as a red build on a knowable date rather than as a dead
+feed. The failure message names the cost of renewing (it raises the replay floor).
+
+Real-path result, live publishers against `option_wizard_local`:
+
+| | before | after |
+|---|---|---|
+| series ingested | 8/11 | **11/11** |
+| observations created | 0 | 4223 |
+| observations unchanged | 6726 | 6726 |
+| `policy_rates` `market_factors_absent` | 5 | **3** |
+
+`unchanged=6726` is the monthly-series regression check: identical to the prior run's
+total, so no monthly payload changed and no artifact churned. The remaining 3 absent
+factors (supply, positioning, plumbing) have no FRED series in `RATES_EVIDENCE` at all
+and are a separate gap, not this defect.
+
+### The two plots
+
+`SepDotPlot` and `DealerPathChart`, as sections `#sep-plot` and `#dealer-plot` directly
+below `#summary`. Both read the same `/api/macro/policy` slots the lanes read; the lanes
+stay as the provenance surface.
+
+Three rules the plots inherit rather than restate:
+
+1. **Separate blocks, separate axes.** A shared frame would draw the comparison the
+   desk refuses to make numerically. Asserted structurally (one `<svg>` per section),
+   not by grepping prose.
+2. **Anonymity survives the format change.** Dot position within a horizon is spacing,
+   never identity, and every per-dot `<title>` says so — the caption alone would leave
+   the tooltips attributable.
+3. **An empty chart is a claim.** A bare axis reads as a flat path, so an unavailable,
+   unreadable or non-publisher release renders the sentence instead. `plottable()` in
+   `policyPath.ts` is the single place that decides, shared with the lanes so a mock
+   source cannot slip through one surface after being refused by the other.
+
+Two presentation bugs found by looking at the rendered output rather than the tests:
+the SEP header summed the columns to "71 dots", which reads as a participant count and
+is not one (it is now the per-horizon maximum, 18); and the dealer caption ran two
+sentences together without a space.
+
+## Task 10: review cycle before the PR
+
+Six passes over the whole branch diff (self-review → tribunal → adversarial → simplicity
+→ cumulative re-read → assumption verification). Gemini's CLI reports no valid license
+on this machine, so the tribunal ran **bilateral** — Codex plus Claude — not three-way.
+
+Three of the findings share one shape, and it is worth naming because the suite was green
+through all of them: **a check that cannot fire, and a test that proves it fires by
+building a world production never produces.**
+
+### The traded leg the reconciliation rule could never see
+
+`_decomposition_rules` selected observations by causal role and then looked its two legs
+up by series id:
+
+```python
+values = {obs.series_id: obs.value
+          for obs in observations if obs.causal_role == "decomposition_component"}
+traded = values.get("DGS10")
+```
+
+`RATES_EVIDENCE` tags `DGS10` as `curve` — deliberately, and `evidence_store.py`'s own
+docstring defends that choice. So `traded` was `None` on every production run and the
+Cleveland model-versus-market check could never fire, no matter what else was ingested.
+The unit fixture built `DGS10` with `causal_role="decomposition_component"`, so five
+tests passed against a tagging the evidence contract never assigns. Code, test and
+comment all agreed with each other; none agreed with production.
+
+The role filter bought nothing — both legs are named by id — and cost the rule its
+existence, so it is gone. The fixture now uses production's roles, and
+`test_the_traded_leg_is_read_under_the_role_production_assigns` asserts the contract
+directly, so a future re-tag fails here instead of going quiet. Reverting the fix under
+the corrected fixture fails 3 tests, which is the demonstration that the old green was
+empty.
+
+`evidence_store.py`'s stated reactivation condition was wrong in the same way — it named
+one prerequisite when there were two, the second contradicting its own tagging. Corrected.
+The inflation engine's `expectations_diverge_from_realized` rule is dormant for a related
+reason (no `REQUIRED` entry carries `expectations_market`); it now says so, names the
+exact condition that would wake it, and
+`test_no_required_series_carries_the_market_expectations_role` fails loudly when someone
+satisfies it.
+
+### Every historical replay returned nothing (Codex P1)
+
+The most serious finding, and the one that made the branch's headline claim false.
+
+A FRED series query is a rolling read, so its artifact's `available_at` is correctly the
+fetch time. Migration 126 exists precisely because those bytes *report* a publication
+history rather than *being* one, and it inverted the availability rule on the **write**
+side. The **read** side kept the release rule:
+
+```sql
+AND o.available_at <= %s          -- the vintage. correct.
+AND a.available_at <= %s          -- the fetch date. vetoes every replay.
+```
+
+Measured against the local store before the fix:
+
+| as_of | CPILFESL rows |
+|---|---|
+| today | 138 |
+| 2024-06-01 | **0** |
+| 2023-01-01 | **0** |
+
+Zero — not a wrong number, no rows at all, so the state job abstained and it read as
+missing data rather than as a broken query. The unit tests construct `DomainObservation`s
+directly and never traverse the artifact join, which is why nothing caught it.
+
+The bound is now `(a.vintage_bearing OR a.available_at <= %s)` at all three read sites.
+The point-in-time gate does not weaken: `o.available_at <= as_of` still applies to every
+row, and that column **is** the vintage. What was dropped is a second bound that only
+ever measured our own fetch schedule. Quality still gates unconditionally.
+
+After, against the same real data:
+
+| read at | Jan-2024 CPI | vintage |
+|---|---|---|
+| 2024-06-01 | **309.685** | 2024-02-13 |
+| today | **309.698** | 2026-02-13 |
+
+That is the CHANGELOG's headline sentence, true through the storage path for the first
+time. `test_a_vintage_bearing_artifact_does_not_gate_replay_on_its_fetch_time` pins it,
+and `test_a_release_artifact_still_gates_its_own_observations` is the control: relaxing
+the bound for vintage records must not relax it for releases.
+
+### The evidence was destroyed on exactly the run that needed it (Codex P2)
+
+`_ingest_series` parsed before inserting the artifact, and each series commits on its own,
+so a FRED schema change made `parse_fred_series` raise and the rollback discarded the
+exact bytes that caused the failure. Raw evidence is now written and committed before
+anything is parsed out of it — the standing rule, applied where it had been inverted.
+
+### A settled year is not a forecast (Codex P2)
+
+Both `forward_spreads` and `_direction` reach for the *nearest* horizon, and a release
+keeps its horizons after the calendar passes them: the December 2026 SEP still prints a
+2026 year-end dot in January 2027. So every January the direction vote read a year whose
+answer was already known and reported a lean toward a level that had either happened or
+not. This fires in live operation, not only in replay. `horizon_years` now takes a
+`not_before` floor and both callers pass `as_of.year`.
+
+### Also found
+
+- **`confidence.py` kept a second quality-weight table** disagreeing with `contracts.py`
+  on `invalid`/`quarantined` (0.5 versus 0). Safe today only because the point-in-time
+  SQL filters those rows three layers away. The shared table also raises on an
+  unrecognised status where the local copy silently priced it at half — the opposite of
+  the fail-closed rule this milestone is built on. One table now.
+- **The attribution's 30-day window could silently be 45.** `_value_at` walked back as
+  far as the loaded history allowed, so a publisher gap reported a 38-day move under a
+  30-day name. Bounded to a 7-day tolerance — past that the leg is unavailable, which the
+  attribution already knows how to say.
+- **`_policy_state` crashed on a whitespace-only action** (`"   ".split()[0]`), and
+  silently discarded an action word it did not recognise, inferring the state from target
+  ranges as though it had read the committee's sentence. The statement parser's vocabulary
+  is closed (Hold/Hike/Cut); the calendar scraper's is not. Both fixed, and an unread word
+  now travels in `notes`.
+- Cut: `PRODUCT_TERMS` (declared once, referenced nowhere); two byte-identical nullable
+  coercions in the chart components (now one `finiteOrNull` beside `toFiniteNumber`); and
+  `PolicyPathComparison` open-coding the set lookup `isWithheld` already is.
+
+### Deliberately not changed
+
+- `rates.py` is 503 lines against a 500-line target. Three lines over, one clear
+  responsibility; splitting it to make the number would be worse code than leaving it.
+- `_policy_state_summary` fetches evidence rows only to count them. A `COUNT(*)`
+  repository method is more code than it saves on a table this size.

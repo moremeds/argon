@@ -11,8 +11,9 @@ from __future__ import annotations
 import logging
 import re
 from collections import defaultdict
+from collections.abc import Collection
 from dataclasses import dataclass
-from datetime import UTC, date, datetime
+from datetime import UTC, date, datetime, timedelta
 from decimal import Decimal, InvalidOperation
 from io import BytesIO
 from typing import Final, Literal
@@ -177,9 +178,58 @@ class NyFedSmeProvider:
     def fetch_latest_bundle(
         self, *, retrieved_at: datetime | None = None
     ) -> SmeSourceBundle:
+        return self.fetch_bundles(retrieved_at=retrieved_at)[-1]
+
+    def list_survey_months(self) -> tuple[date, ...]:
+        """Every survey month the publisher currently lists, oldest first.
+
+        Cheap next to a bundle fetch (one HTML GET, no XLSX/PDF), so a caller can
+        ask what exists before deciding what to download.
+        """
+        return tuple(links.survey_month for links in self._discover())
+
+    def _discover(self) -> tuple[SmeLinks, ...]:
         landing = self._get(self.LANDING_PATH)
         landing.raise_for_status()
-        links = discover_sme_links(landing.content, base_url=self._base_url)[-1]
+        return discover_sme_links(landing.content, base_url=self._base_url)
+
+    def fetch_bundles(
+        self,
+        *,
+        survey_months: Collection[date] | None = None,
+        retrieved_at: datetime | None = None,
+    ) -> tuple[SmeSourceBundle, ...]:
+        """Download one bundle per requested survey month, oldest first.
+
+        The landing page has always listed every survey the NY Fed still hosts --
+        ``discover_sme_links`` returns all of them and the nightly job simply took
+        ``[-1]``.  So the history was never unreachable; it was unasked for.
+
+        ``survey_months=None`` keeps that nightly contract exactly: latest only.
+        A requested month the publisher does not list is an error naming the month
+        and what is on offer, never a silent short read -- a backfill that quietly
+        returns 11 of 12 surveys reports success for a hole it just made.
+        """
+        available = self._discover()
+        if survey_months is None:
+            wanted = available[-1:]
+        else:
+            starts = {month.replace(day=1) for month in survey_months}
+            by_month = {links.survey_month: links for links in available}
+            missing = sorted(starts - by_month.keys())
+            if missing:
+                raise NormalizationError(
+                    "NY Fed SME publisher page does not list survey month(s) "
+                    f"{', '.join(f'{month:%Y-%m}' for month in missing)}; "
+                    f"available: {', '.join(f'{m:%Y-%m}' for m in by_month)}"
+                )
+            wanted = tuple(by_month[month] for month in sorted(starts))
+        seen_at = retrieved_at or datetime.now(UTC)
+        return tuple(self._bundle_for(links, retrieved_at=seen_at) for links in wanted)
+
+    def _bundle_for(
+        self, links: SmeLinks, *, retrieved_at: datetime
+    ) -> SmeSourceBundle:
         data_response = self._get(links.data_url)
         data_response.raise_for_status()
         report_response = self._get(links.report_url)
@@ -190,7 +240,7 @@ class NyFedSmeProvider:
             data_bytes=data_response.content,
             report_url=links.report_url,
             report_bytes=report_response.content,
-            retrieved_at=retrieved_at or datetime.now(UTC),
+            retrieved_at=retrieved_at,
         )
 
     def _get(self, path_or_url: str) -> httpx.Response:
@@ -272,12 +322,20 @@ def parse_sme_release(
         raise NormalizationError("NY Fed SME survey dates are inconsistent")
     release_date = next(iter(release_dates))
     due_date = next(iter(due_dates))
-    if (release_date.year, release_date.month) != (
-        bundle.survey_month.year,
-        bundle.survey_month.month,
-    ):
+    # The filename month labels the FOMC cycle the survey feeds; the workbook's own
+    # release date is when it was actually published, and the two are not required to
+    # agree.  Measured across the 12 hosted surveys, 10 match and 2 publish in the
+    # PRIOR month (may-2025 released 2025-04-23, dec-2025 released 2025-11-25), so
+    # demanding equality rejected real releases for following the publisher's calendar.
+    #
+    # Still fails closed on the mispairing this guards against: fetching one month's
+    # workbook under another's key is months out, not weeks, and is caught here.
+    labelled = bundle.survey_month.replace(day=1)
+    earliest = (labelled - timedelta(days=1)).replace(day=1)
+    if not earliest <= release_date.replace(day=1) <= labelled:
         raise NormalizationError(
-            "NY Fed SME workbook month does not match discovered release"
+            f"NY Fed SME workbook release date {release_date} is outside the "
+            f"{labelled:%Y-%m} release window (that month or the one before it)"
         )
 
     path_points = _path_points(filtered, sheet_name=sheet_name, panel_type=panel_type)
@@ -297,6 +355,11 @@ def parse_sme_release(
     return SmeRelease(
         survey_release_date=release_date,
         response_due_date=due_date,
+        # Deliberately None, not midnight on ``release_date``.  The NY Fed states a
+        # release DATE; ``published_at`` is an aware instant, so deriving one would
+        # invent an hour the publisher never gave and let a replay claim the survey
+        # was readable before it was.  ``response_due_date`` carries the real survey
+        # date on the observation, and that is what orders releases.
         published_at=None,
         available_at=bundle.data_artifact.available_at,
         panel_type=panel_type,
@@ -452,9 +515,23 @@ def _probability_distributions(
                 f"NY Fed SME {question_tag} respondent counts are inconsistent"
             )
         total = sum((bucket.probability for bucket in buckets), Decimal(0))
-        if not Decimal("99") <= total <= Decimal("101"):
+        # Each bucket is a mean across respondents that the NY Fed publishes already
+        # rounded, so a correct distribution does NOT sum to exactly 100 -- N buckets
+        # rounded to the whole percent can be off by up to 0.5 each.  The tolerance is
+        # therefore derived from the bucket count rather than fixed: it is the tightest
+        # bound that cannot reject a correctly-rounded release.
+        #
+        # A fixed +/-1 band was rejecting real data.  Measured over all 12 surveys the
+        # publisher currently hosts (2025-01..2026-06, ~13 distributions each), totals
+        # run 98..102 -- so the band threw away 6 of 12 surveys, and the failure named
+        # the probability sub-table while what it actually cost was the policy path.
+        # A dropped bucket, which is the parse error this guard exists to catch, moves
+        # a 10-bucket total by ~10 and is still caught with room to spare.
+        tolerance = Decimal("0.5") * len(buckets)
+        if abs(total - Decimal(100)) > tolerance:
             raise NormalizationError(
-                f"NY Fed SME {question_tag} probability total {total} outside 99-101"
+                f"NY Fed SME {question_tag} probability total {total} is further than "
+                f"{tolerance} from 100 across {len(buckets)} rounded buckets"
             )
         output.append(
             SmeProbabilityDistribution(

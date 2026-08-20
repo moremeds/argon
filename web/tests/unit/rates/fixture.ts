@@ -313,3 +313,255 @@ export const SNAPSHOT: Snapshot = {
     },
   ],
 };
+
+// ---------------------------------------------------------------------------
+// MC2 fixtures.
+//
+// Every policy-path number below was produced by this repo's own parsers over the
+// committed official fixtures in tests/fixtures/macro/, not written by hand:
+//
+//   actual               fomc_statement_2026_06.{html,pdf}  parse_fomc_statement()
+//   committee_projection fed_sep_2026_06.{html,pdf}         parse_sep_release()
+//   dealer_expectations  nyfed_sme_2026_06.{xlsx,pdf}       parse_sme_release()
+//
+// (bytes under tests/fixtures/macro/; parsers under src/uw_scan/sources/. Feed each
+// file to its <Source>SourceBundle.from_bytes() and the parser prints these values.)
+//
+// The market-implied lane is deliberately absent: Frenzy is an optional, default-off
+// third-party shadow and this repo commits no fixture for it. Rendering a partial
+// comparison is a case the UI has to get right anyway.
+// ---------------------------------------------------------------------------
+
+export type PolicyComparison = components["schemas"]["PolicyComparison"];
+export type MacroStateSummary = components["schemas"]["MacroStateSummary"];
+
+const OFFICIAL_FRESHNESS = {
+  status: "ok" as const,
+  last_attempt_at: "2026-06-18T00:00:00Z",
+  last_success_at: "2026-06-18T00:00:00Z",
+  consecutive_failures: 0,
+  releases_discovered: 4,
+  releases_succeeded: 4,
+  releases_failed: 0,
+  release_failures: [],
+};
+
+export const POLICY_COMPARISON: PolicyComparison = {
+  as_of: "2026-06-18T00:00:00Z",
+  actual: {
+    kind: "actual",
+    freshness: { ...OFFICIAL_FRESHNESS, source: "fomc_statement" },
+    path: {
+      kind: "actual",
+      source: "fomc_statement",
+      source_kind: "official",
+      source_record_id: "fomc-statement:monetary20260617a",
+      published_at: "2026-06-17T18:00:00Z",
+      available_at: "2026-06-17T18:00:00Z",
+      cost_class: "free_official",
+      delay_status: "not_applicable",
+      points: [
+        {
+          horizon: "current",
+          horizon_date: "2026-06-17",
+          rate_percent: "3.625",
+          target_range_lower_percent: "3.5",
+          target_range_upper_percent: "3.75",
+          action: "Hold",
+          // The real statement prints a 12-0 tally and names nobody. That is why
+          // voter_names_stated exists: an empty voted_against here means "no
+          // dissenter was NAMED", not "the committee was unanimous".
+          vote_status: "stated",
+          vote_split: "12-0",
+          voted_for: [],
+          voted_against: [],
+          voter_names_stated: false,
+          participant_distribution: [],
+          probability_distribution: [],
+        },
+      ],
+      evidence_refs: [],
+    },
+  },
+  committee_projection: {
+    kind: "committee_projection",
+    freshness: { ...OFFICIAL_FRESHNESS, source: "fed_sep" },
+    path: {
+      kind: "committee_projection",
+      source: "fed_sep",
+      source_kind: "official",
+      source_record_id: "fed-sep:fomcprojtabl20260617",
+      published_at: "2026-06-17T18:00:00Z",
+      available_at: "2026-06-17T18:00:00Z",
+      cost_class: "free_official",
+      delay_status: "not_applicable",
+      points: [
+        {
+          horizon: "2026",
+          rate_percent: "3.8",
+          central_tendency_lower_percent: "3.6",
+          central_tendency_upper_percent: "4.1",
+          range_lower_percent: "3.4",
+          range_upper_percent: "4.4",
+          participant_distribution: [
+            { rate_percent: "3.375", participant_count: 1 },
+            { rate_percent: "3.625", participant_count: 8 },
+            { rate_percent: "3.875", participant_count: 3 },
+            { rate_percent: "4.125", participant_count: 5 },
+            { rate_percent: "4.375", participant_count: 1 },
+          ],
+          probability_distribution: [],
+          voted_for: [],
+          voted_against: [],
+        },
+        {
+          horizon: "2027",
+          rate_percent: "3.6",
+          central_tendency_lower_percent: "3.1",
+          central_tendency_upper_percent: "3.9",
+          range_lower_percent: "2.9",
+          range_upper_percent: "4.4",
+          participant_distribution: [],
+          probability_distribution: [],
+          voted_for: [],
+          voted_against: [],
+        },
+      ],
+      evidence_refs: [],
+    },
+  },
+  dealer_expectations: {
+    kind: "dealer_expectations",
+    freshness: { ...OFFICIAL_FRESHNESS, source: "nyfed_sme" },
+    path: {
+      kind: "dealer_expectations",
+      source: "nyfed_sme",
+      source_kind: "official",
+      source_record_id: "nyfed-sme:2026-06:Dealer",
+      // The workbook states no publication instant, so availability is the fetch.
+      published_at: null,
+      available_at: "2026-06-18T00:00:00Z",
+      cost_class: "free_official",
+      delay_status: "not_applicable",
+      points: [
+        {
+          horizon: "Jun. 16-17 2026",
+          horizon_date: "2026-06-17",
+          rate_percent: "3.63",
+          p25_percent: "3.63",
+          p75_percent: "3.63",
+          respondent_count: 26,
+          participant_distribution: [],
+          probability_distribution: [],
+          voted_for: [],
+          voted_against: [],
+        },
+        {
+          horizon: "Dec. 8-9 2026",
+          horizon_date: "2026-12-09",
+          rate_percent: "3.63",
+          p25_percent: "3.44",
+          p75_percent: "3.63",
+          respondent_count: 26,
+          participant_distribution: [],
+          probability_distribution: [],
+          voted_for: [],
+          voted_against: [],
+        },
+      ],
+      evidence_refs: [],
+    },
+  },
+  market_implied: {
+    kind: "market_implied",
+    missing_reason:
+      "Frenzy Capital Fed Watch is an optional third-party shadow and is not enabled.",
+    freshness: {
+      source: "frenzy_fed_watch",
+      status: "missing",
+      last_attempt_at: null,
+      last_success_at: null,
+      consecutive_failures: 0,
+      releases_discovered: 0,
+      releases_succeeded: 0,
+      releases_failed: 0,
+      release_failures: [],
+    },
+  },
+  contradictions: [
+    "Committee projection median (3.8%) sits above the dealer median (3.63%) for 2026.",
+  ],
+};
+
+/**
+ * A path carrying a non-publisher source. Representable in the contract, so the UI has
+ * to refuse it rather than assume upstream never emits one. No market value is invented
+ * here — the point is precisely that the lane's numbers must not be shown.
+ */
+export const COMPARISON_WITH_REJECTED_PATH: PolicyComparison = {
+  ...POLICY_COMPARISON,
+  actual: {
+    ...POLICY_COMPARISON.actual,
+    path: {
+      ...POLICY_COMPARISON.actual.path!,
+      source: "demo_seed",
+      source_kind: "mock",
+    },
+  },
+};
+
+export const POLICY_RATES_STATE: MacroStateSummary = {
+  domain: "policy_rates",
+  as_of: "2026-06-18T00:00:00Z",
+  computed_at: "2026-06-18T00:10:00Z",
+  engine_version: "policy_rates/1",
+  state: "ON_HOLD",
+  direction: "FLAT",
+  confidence: "0.62",
+  freshness: "fresh",
+  age_hours: 0,
+  velocity: [
+    {
+      metric: "target_range_midpoint_change",
+      value: "0.00",
+      unit: "pp",
+      window_months: 3,
+    },
+    {
+      metric: "ten_year_real_yield_change",
+      unit: "pp",
+      window_months: 3,
+      unavailable_reason: "DFII10 has no observation in force at this instant.",
+    },
+  ],
+  confidence_reasons: [
+    {
+      term: "coverage",
+      value: "0.75",
+      detail: "3 of 4 policy paths carry a release.",
+      kind: "multiplicand",
+    },
+    {
+      term: "freshness",
+      value: "0.92",
+      detail: "Newest load-bearing observation is 1 day old.",
+      kind: "multiplicand",
+    },
+  ],
+  contradictions: [
+    {
+      rule: "committee_above_dealers",
+      detail:
+        "The SEP 2026 median is 17bp above the dealer median for the same year.",
+    },
+  ],
+  notes: ["Market-implied path absent; the state does not stand on one."],
+  evidence_count: 9,
+  detail_path: "/api/macro/rates",
+};
+
+export const STALE_POLICY_RATES_STATE: MacroStateSummary = {
+  ...POLICY_RATES_STATE,
+  freshness: "stale",
+  age_hours: 96,
+};

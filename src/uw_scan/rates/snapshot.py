@@ -22,7 +22,7 @@ from uw_scan.rates.calculations import (
 )
 from uw_scan.rates.policy import build_policy_panel
 from uw_scan.rates.positioning import build_positioning_panel
-from uw_scan.rates.scorecard import build_scorecard
+from uw_scan.rates.scorecard import DURATION_COVERAGE_FLOOR, build_scorecard
 from uw_scan.rates.series import YIELD_CURVE_SERIES
 from uw_scan.rates.supply import build_supply_panel
 from uw_scan.rates.utils import latest_float
@@ -125,7 +125,9 @@ def build_rates_snapshot(
         ),
         events=[],
         synthesis=RatesSynthesisPanel(
-            duration_view=_duration_text(scorecard.composite_score),
+            duration_view=_duration_text(
+                scorecard.composite_score, scorecard.coverage or 0.0
+            ),
             curve_view=_curve_text(curve_score),
             risks=[
                 _risk_text(positioning_panel, supply_panel),
@@ -196,7 +198,6 @@ def _summary_tiles(curve_points, slopes) -> list[RatesSummaryTile]:
             )
         )
     return tiles
-
 
 
 def _optional_source_freshness(
@@ -302,9 +303,16 @@ def _curve_score(slopes) -> float | None:
     return 0.0
 
 
-def _duration_text(score: float | None) -> str:
+def _duration_text(score: float | None, coverage: float) -> str:
     if score is None:
         return "Duration stance unavailable until enough FRED inputs are persisted."
+    if coverage < DURATION_COVERAGE_FLOOR:
+        # This sentence is the stance card's description, so it must not narrate a lean
+        # the stance itself has already refused to take.
+        return (
+            f"Only {coverage:.0%} of scorecard weight is scored; too little to take a "
+            "duration view."
+        )
     if score <= -0.25:
         return "Live FRED inputs lean bearish duration."
     if score >= 0.25:

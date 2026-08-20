@@ -16,6 +16,23 @@ from uw_scan.macro_evidence import (
 )
 
 
+#: The availability bound an artifact imposes on its own observations at READ time.
+#:
+#: A release gates the facts it carries: the FOMC statement became knowable when it went
+#: up, so nothing parsed out of it was knowable earlier.  A vintage-bearing artifact
+#: inverts that, exactly as migration 126 says on the write side -- an ALFRED payload
+#: fetched today REPORTS that January 2024 CPI was first published on 2024-02-13; it is
+#: not that publication.  Gating those rows on when we happened to fetch them re-imposes
+#: the rule 124 removed, and does it silently: every historical replay returns zero rows
+#: and the state abstains, which reads as missing data rather than as a broken query.
+#:
+#: The point-in-time gate does not weaken -- ``o.available_at <= as_of`` still applies to
+#: every row, and that column IS the vintage.  What is dropped is a second bound that
+#: only ever measured our fetch schedule.  Quality still gates unconditionally: a
+#: quarantined artifact takes its observations out of service however it was obtained.
+_ARTIFACT_AVAILABLE = "(a.vintage_bearing OR a.available_at <= %s)"
+
+
 class _MacroContextMixin:
     _conn: psycopg.Connection
     _schema: str
@@ -36,6 +53,7 @@ class _MacroContextMixin:
         cost_class: str,
         media_type: str,
         content_length: int,
+        vintage_bearing: bool = False,
         raw_json: dict[str, Any] | list[Any] | None = None,
         raw_text: str | None = None,
         raw_bytes: bytes | None = None,
@@ -69,13 +87,14 @@ class _MacroContextMixin:
                   source, source_kind, source_record_id, source_url,
                   published_at, available_at, retrieved_at, last_seen_at,
                   content_hash, parser_version, quality_status, cost_class,
-                  media_type, content_length, raw_jsonb, raw_text, raw_bytes
+                  media_type, content_length, vintage_bearing,
+                  raw_jsonb, raw_text, raw_bytes
                 )
                 VALUES (
                   %s, %s, %s, %s,
                   %s, %s, %s, %s,
                   %s, %s, %s, %s,
-                  %s, %s, %s, %s, %s
+                  %s, %s, %s, %s, %s, %s
                 )
                 ON CONFLICT (source, source_record_id, content_hash)
                 DO UPDATE SET
@@ -134,6 +153,8 @@ class _MacroContextMixin:
                     IS NOT DISTINCT FROM EXCLUDED.media_type
                   AND {self._schema}.macro_source_artifacts.content_length
                     IS NOT DISTINCT FROM EXCLUDED.content_length
+                  AND {self._schema}.macro_source_artifacts.vintage_bearing
+                    IS NOT DISTINCT FROM EXCLUDED.vintage_bearing
                   AND {self._schema}.macro_source_artifacts.raw_jsonb
                     IS NOT DISTINCT FROM EXCLUDED.raw_jsonb
                   AND {self._schema}.macro_source_artifacts.raw_text
@@ -157,6 +178,7 @@ class _MacroContextMixin:
                     cost_class,
                     media_type,
                     content_length,
+                    vintage_bearing,
                     Jsonb(raw_json) if raw_json is not None else None,
                     raw_text,
                     raw_bytes,
@@ -306,7 +328,7 @@ class _MacroContextMixin:
                   AND o.period_end = %s
                   AND o.available_at <= %s
                   AND o.quality_status IN ('valid', 'partial')
-                  AND a.available_at <= %s
+                  AND {_ARTIFACT_AVAILABLE}
                   AND a.quality_status IN ('valid', 'partial')
                 ORDER BY {rank_sql}, o.available_at DESC,
                          o.first_observed_at DESC, o.obs_id DESC
@@ -329,7 +351,7 @@ class _MacroContextMixin:
             "o.series_id = %s",
             "o.available_at <= %s",
             "o.quality_status IN ('valid', 'partial')",
-            "a.available_at <= %s",
+            _ARTIFACT_AVAILABLE,
             "a.quality_status IN ('valid', 'partial')",
         ]
         params: list[Any] = [series_id, as_of, as_of]
@@ -361,6 +383,17 @@ class _MacroContextMixin:
         *,
         preferred_sources: Sequence[str],
     ) -> dict[str, Any] | None:
+        """The newest PERIOD available by ``as_of``, at its newest vintage.
+
+        Period first, vintage second.  Sorting by ``available_at`` first answers
+        "what did we most recently write", which is a fact about our own fetch
+        schedule: backfilling a publisher's archive out of order then makes the
+        last file downloaded the current release, and a revision to a two-year-old
+        period outranks this month's reading.  Ordering by ``period_end`` first
+        asks the question the caller means -- what is the latest reading -- and
+        ``available_at DESC`` still picks the newest vintage OF that period, which
+        is the part that must stay point-in-time.
+        """
         _require_aware("as_of", as_of)
         rank_sql, rank_params = _source_rank_sql(preferred_sources)
         with self._conn.cursor(row_factory=dict_row) as cur:
@@ -373,16 +406,64 @@ class _MacroContextMixin:
                 WHERE o.series_id = %s
                   AND o.available_at <= %s
                   AND o.quality_status IN ('valid', 'partial')
-                  AND a.available_at <= %s
+                  AND {_ARTIFACT_AVAILABLE}
                   AND a.quality_status IN ('valid', 'partial')
-                ORDER BY {rank_sql}, o.available_at DESC,
-                         o.period_end DESC, o.first_observed_at DESC,
+                ORDER BY {rank_sql}, o.period_end DESC,
+                         o.available_at DESC, o.first_observed_at DESC,
                          o.obs_id DESC
                 LIMIT 1
                 """,
                 (series_id, as_of, as_of, *rank_params),
             )
             return cur.fetchone()
+
+    def fetch_recent_macro_observations_as_of(
+        self,
+        series_id: str,
+        as_of: datetime,
+        *,
+        preferred_sources: Sequence[str],
+        limit: int,
+    ) -> list[dict[str, Any]]:
+        """The most recent distinct RELEASES of a series, newest first.
+
+        Not "the newest N rows".  A release that was corrected has more than one
+        row, and taking rows would spend the caller's budget re-reading one survey
+        as though it were several -- so the newest surviving row per
+        ``release_key`` is picked first, and only then are releases ranked.
+
+        Same point-in-time gate as every other read here: ``available_at <=
+        as_of`` on the observation, and on the artifact unless it is
+        vintage-bearing.  A caller asking for prior releases as of a past instant
+        gets what was published by then, never what we know now.
+        """
+        _require_aware("as_of", as_of)
+        if limit < 1:
+            raise ValueError("limit must be positive")
+        rank_sql, rank_params = _source_rank_sql(preferred_sources)
+        with self._conn.cursor(row_factory=dict_row) as cur:
+            cur.execute(
+                f"""
+                SELECT * FROM (
+                    SELECT DISTINCT ON (o.release_key)
+                           o.*, a.source_url, a.source_kind, a.media_type
+                    FROM {self._schema}.macro_observations o
+                    JOIN {self._schema}.macro_source_artifacts a
+                      ON a.artifact_id = o.artifact_id
+                    WHERE o.series_id = %s
+                      AND o.available_at <= %s
+                      AND o.quality_status IN ('valid', 'partial')
+                      AND {_ARTIFACT_AVAILABLE}
+                      AND a.quality_status IN ('valid', 'partial')
+                    ORDER BY o.release_key, {rank_sql}, o.available_at DESC,
+                             o.first_observed_at DESC, o.obs_id DESC
+                ) AS releases
+                ORDER BY period_end DESC, available_at DESC, obs_id DESC
+                LIMIT %s
+                """,
+                (series_id, as_of, as_of, *rank_params, limit),
+            )
+            return list(cur.fetchall())
 
     def fetch_macro_observation_history(
         self,

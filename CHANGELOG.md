@@ -7,6 +7,289 @@ version in lockstep (enforced by `scripts/release/version_sync_check.py`).
 
 ## [Unreleased]
 
+### Added
+
+- **A dozen dealer surveys instead of one, and both policy-path charts now show
+  movement.** The NY Fed publishes every Survey of Market Expectations it still hosts
+  on one page and the nightly job took `[-1]`, so the desk held a single release and
+  could not show how dealer expectations had CHANGED. All twelve (2025-01 → 2026-06)
+  are backfilled through the real ingest job, and the dealer path plots the latest
+  survey over the two before it while the SEP dot plot carries the previous release's
+  median as a dashed line. Both label their series by real release date, and earlier
+  releases stay separate dated releases — never merged into the current one, the same
+  rule that keeps the four publishers apart. The survey runs on the FOMC cycle (~8x a
+  year), so the comparison offered is "previous survey", never "one week ago": there
+  are months with no survey at all.
+
+- **The dealer chart is plotted against meeting DATE, not survey row order.** Each
+  survey asks about the meetings ahead of itself, so a March release and a June release
+  do not share a horizon; against row index the overlay would have drawn March's first
+  meeting on top of June's and called the difference a revision.
+
+- **The SEP and the dealer survey are plotted, not listed.** Both releases publish a
+  distribution and both were rendered as a column of medians, which is the one view
+  that hides what each release is for. The committee's projections are now the dot plot
+  the FOMC actually publishes — every participant's dot placed on an axis, so a median
+  of 3.60% no longer reads identically whether the dots sit on it or span 2.875 to
+  4.375 — and the dealer survey is a path with its own interquartile band, which shows
+  the quartiles opening months before the median moves. Each is a separate block on its
+  own axes: overlaying them would draw a comparison this desk refuses to make
+  numerically. Dots stay anonymous in the plot as in the release, including in every
+  per-dot tooltip; a lane with no readable release prints the sentence saying so rather
+  than an empty axis, because a bare axis reads as a flat path and that is a claim.
+
+- **Point-in-time inflation and rates states — what regime we are in, which way it
+  is moving, how fast, and how much of that we actually know.** Two pure engines over
+  vintage-stamped evidence, replacing a score that could look confident while standing
+  on one populated input. `state` and `direction` are separate fields: "above target
+  and falling" and "above target and rising" are the same level and opposite
+  situations. Confidence is a function of coverage, freshness, quality, revisions and
+  contradictions — never of signal magnitude, so a reading does not gain authority by
+  getting extreme.
+- **The inflation state is scored on core PCE, not CPI.** The FOMC's 2 percent
+  objective is stated on PCE and core CPI runs structurally above it, so thresholding
+  CPI against 2 percent mislabels the regime by roughly one policy move, permanently
+  and in one direction. CPI lands about two weeks earlier and enters as a corroborator
+  and a contradiction input.
+- **ALFRED-backed realized-inflation adapter with true vintage replay.** A replay at
+  2024-06-01 returns January 2024 CPI as 309.685 — the value published then — not the
+  309.698 it reads today. Built on FRED rather than BLS/BEA for measured reasons: BLS
+  returns HTTP 403 to this desk on every host, BEA answers a missing credential with
+  HTTP 200 and zero bytes, and neither publishes vintages at all
+  (`docs/research/2026-08-18-mc2-inflation-source-probe/`).
+- **Treasury supply, positioning and plumbing are separate factors with their own
+  freshness**, so a blended technicals score can no longer hide which one is stale.
+- **Domain states are persisted with the exact observations they stood on**
+  (migration `125`, `macro_domain_states` + `macro_domain_state_evidence`). Evidence
+  rows carry real `obs_id` foreign keys, and the database refuses any evidence that
+  became available after the state's `as_of` — lookahead is rejected below the
+  application, not merely avoided by it. A state is identified by its method
+  (`domain`, `as_of`, `engine_version`, `inputs_hash`, where the hash covers the
+  thresholds as well as the data), so recomputing an unchanged state is a no-op and
+  the same inputs producing a different answer raises instead of appending a second
+  equally-authoritative row. Stored answers are immutable: an engine later found
+  wrong can be quarantined out of service, never edited.
+- **The states are computed by a worker and served for replay, never recomputed at
+  read time.** `GET /api/macro/inflation` and `/api/macro/rates` return the stored
+  answer that was in force at the requested instant, with every observation it stood
+  on; an instant nobody computed a state for is a 404 rather than a state assembled on
+  the spot. Recomputing a 2024 replay with today's engine would report what we *would*
+  have said, and an audit trail you can regenerate to taste is not an audit trail. The
+  reply carries `requested_as_of` and `as_of` separately, so a day-old answer cannot
+  present itself as a live one.
+- **Vintage-bearing series ingest, separate from state computation** (`fred_series`
+  job, `macro_series_ingest.py`). Two things about it are load-bearing. The request
+  spans ALFRED's unbounded vintage window: asking with `realtime_start = realtime_end
+  = today` makes FRED clamp every returned window to the query and report today as the
+  vintage of the 1947 CPI — an artifact of asking, not a fact about publishing, and it
+  destroys the one field replay is built on. And a series observation is identified by
+  its vintage — `(source, series_id, period_end, available_at)` — not by the payload
+  carrying it, because one request returns the whole history: under an identity that
+  includes `artifact_id`, a single new monthly print would re-write every unchanged
+  month beside it.
+- **Migration `126` splits the availability bound in two.** An artifact that *is* a
+  release (an FOMC statement) still cannot carry an observation older than itself. An
+  artifact that *reports* a publication history (an ALFRED response) may: its whole
+  product is telling us today that January 2024 CPI was first published on 2024-02-13,
+  and the single rule would have stamped the fetch date on every historical vintage.
+  The forward direction is untouched — a vintage may still never postdate the fetch
+  reporting it, which is what a lookahead would need.
+- **A rates state cites the policy release its answer turned on.** `state` is read off
+  the FOMC's own target range, but `evidence_refs` carried only market series — so a
+  rates state with no DGS10 was unpersistable, and one with DGS10 named everything
+  except the release that decided it.
+- **The `/api/rates/snapshot` state block (flag `UW_SCAN_RATES_SNAPSHOT_STATE_BLOCK_ENABLED`,
+  default off).** Compact by design — state, direction, confidence with its terms,
+  contradictions — plus `detail_path` to the full evidence, so the short block can
+  never become the only view of the answer. Read fresh per request rather than baked
+  into the stored snapshot: the two are computed by different jobs on different clocks,
+  and a state copied into last night's payload would keep asserting itself after the
+  state had been quarantined. Absent means the flag is off or nothing was computed —
+  never that the desk is neutral.
+- **`/rates` leads with the state, and the four policy paths get four lanes.** State,
+  direction, velocity, the confidence terms and any contradictions come first; the
+  legacy rule composite and its BUY/SELL/NEUTRAL stances sit below it behind an
+  explicit "experimental legacy" label for as long as dual-read runs. The paths —
+  FOMC actual, SEP projection, dealer survey, market-implied — each render in their
+  own lane with their own publisher and release date and are **never averaged**: a
+  blended path is a rate no committee voted on, no dealer forecast and no market
+  traded. SEP dots render as anonymous counts, never attached to a named participant.
+- **A path whose source is not a publisher is refused at the display layer.** `mock`,
+  `static` and `demo` source kinds are representable in the contract, so the lane
+  withholds their numbers and says why rather than trusting that upstream never emits
+  one. A market-implied lane additionally carries its third-party-shadow label and its
+  delay status.
+
+### Changed
+
+- **The rates header stopped shouting.** It had grown a bespoke 26px/700 lockup with
+  a 0.18em wide-tracked subtitle and a bold 13px nav, so `/rates` announced itself
+  about twice as loudly as every other page in the sidebar. It now follows the house
+  pattern (`.regime-page-header`): mono, 18px, 600, uppercase, with an 11px mono
+  subtitle and a light mono nav.
+
+- **A charted lane shows its headline, not every horizon.** The SEP and dealer lanes
+  listed all of their horizons — sixteen rows for the dealer survey — directly above
+  the chart that draws exactly those numbers on an axis. The lane keeps what a lane is
+  for (which publisher, which release, is it healthy) plus the near-term number, and
+  links to the plot for the rest.
+
+- **A lane that legitimately trails the last FOMC decision now says so.** Seeing
+  "released 2026-06-17" on the SEP lane when the committee last met on 2026-07-29
+  reads as a stalled feed; it is not, because the FOMC publishes projections at four
+  of its eight annual meetings and the dealer survey runs per survey round. The note
+  is derived from the two release dates already on the page — not a hardcoded meeting
+  calendar — and disappears the moment the lane catches up.
+
+- **The rates desk is grouped, not listed.** Fifteen sections at one visual weight
+  behind a flat fifteen-item nav is a list, not a hierarchy: the verdict, the
+  publishers feeding it, the market's own pricing and the experimental legacy
+  scorecard all shouted equally. They now sit under five named tiers — the answer, who
+  says what, what the market prices, mechanics, provenance and legacy — and the nav is
+  grouped to match and wraps rather than scrolling behind a hidden scrollbar. The two
+  policy-path plots moved inside the policy-paths section, because they ARE two of
+  those four lanes; still two blocks with two sets of axes.
+
+- **Two headers stopped repeating themselves.** The state block printed "Policy /
+  rates state · rates/1" one line under a section heading reading "Policy / Rates
+  State", and the policy-paths eyebrow was a truncation of the sentence directly below
+  it. The engine version — the only part that was not a repeat — moved to the meta row.
+
+- **Confidence explains itself in a line instead of a sub-card.** The card listed all
+  six terms at equal weight, and most are neutral most of the time: three multiplicands
+  at 1.00 and two penalties at 0.00 is "nothing reduced it", spelled as five rows a
+  reader had to decode. It now names only the terms that actually dragged, says so
+  plainly when none did, and keeps informational terms — which are not in the product
+  at all — visually apart, so `market_factors_absent` at 3 no longer reads as a term
+  that tripled the number it only annotates.
+
+- **The rates duration stance can no longer be confident on incomplete evidence.**
+  `RatesScorecard` gains `coverage` and `duration_stance` gains `UNKNOWN`. Three of
+  six scorecard groups are hard-coded as missing until the Phase 2 feeds land, so the
+  desk has been printing a `BUY`/`SELL`/`NEUTRAL` built on **45%** of its own weight;
+  it now prints `UNKNOWN` with the coverage stated. `_duration_stance(None)` returned
+  `NEUTRAL`, rendering absence as a considered view — it returns `UNKNOWN` now, and the
+  synthesis sentence beneath the card stops narrating a lean the stance has refused.
+- **Curve slope is no longer described as a term premium.** A slope is the difference
+  between two traded yields; a term premium is a model output. The only term-premium
+  figure on the rates desk is the Cleveland Fed's, in the decomposition section with
+  its own vintage.
+- **The decomposition reconciliation tolerance is calibrated, not picked: 25bp → 85bp.**
+  Measured over 332 months, the Cleveland modelled 10y and the traded `DGS10` normally
+  differ by 41bp (63bp since 2016), so 25bp would have fired on **66.9%** of months and
+  carried no information. 85bp is the post-2016 p90 and fires on 11 of 332 months, all
+  of them in the 2022 repricing. The two other candidate decompositions cannot fail at
+  all — FRED derives `T10YIE` from `DGS10 - DFII10`, and the Cleveland model's expected
+  short real rate is defined as its real yield minus its term premium, measured at
+  exactly 0.0bp residual across all 332 months
+  (`docs/research/2026-08-18-mc2-decomposition-residual/`).
+
+### Fixed
+
+- **Four rates clients inherited ambient proxy config, freezing the entire lane on any
+  macOS host.** `FredProvider` and the Cleveland Fed, CFTC and Treasury clients all
+  built `httpx.Client()` without `trust_env=False`, unlike every macro source added
+  alongside them (`fomc_statement`, `fed_sep_provider`, `fomc_calendar`, `nyfed_sme`
+  all pass it). `trust_env` falls through to `urllib.request.getproxies()`, which on
+  macOS reads the system network pane — so unsetting `HTTPS_PROXY` does not disable it
+  — and the TLS handshake to `api.stlouisfed.org` died with
+  `SSL: UNEXPECTED_EOF_WHILE_READING`. The job then correctly refused to publish a
+  snapshot without a Treasury curve, so every table behind `/rates` stopped advancing
+  at once: observations, auctions and CFTC positioning last moved 2026-06-09 to 06-15
+  while the header honestly reported a two-month-old `as_of` that nothing flagged.
+
+  **The deployed stack was never affected and its data has no gap** — the mini's
+  workers run in Linux containers, where `getproxies()` reads environment variables
+  only and the container has none, so `rates_observations` carries all 31 series for
+  every month from May through August. What the bug hit was every *native* macOS run:
+  the whole dev loop, and any out-of-band `uv run` script on the mini itself, where
+  `getproxies()` does return the host's proxy. Measured on the local database, the run
+  goes from 11 required series failing to `failed_series=[]`, 4712 observations, and
+  the snapshot advances 2026-06-12 → 2026-08-18.
+
+- **A lane reported "0/0 releases parsed" over twelve parsed surveys.** The
+  per-release catalog models FOMC statements and SEPs only — the dealer survey and the
+  market shadow carry `release_type=None` deliberately — so their counters are
+  structurally zero. The ratio is now printed only where the catalog models it; a
+  number that does not apply is not a neutral one, it reads as a broken feed.
+
+- **Six of twelve dealer surveys were unreadable, and neither reason was a broken
+  publisher.** The XLSX parser demanded probability distributions sum to 99–101, but
+  the NY Fed publishes each bucket already rounded, so a correct 10-bucket
+  distribution can be up to 5 off by arithmetic alone; measured across all twelve
+  surveys the totals run 98–102 and the ±1 band was rejecting real data by
+  construction. The tolerance is now derived from the bucket count — the tightest
+  bound that cannot reject a correctly-rounded release — and a dropped bucket, the
+  parse error the guard exists to catch, still moves a 10-bucket total by ~10. The
+  parser also required the workbook's release date to fall in the month its filename
+  names; two of twelve publish in the PRIOR month (may-2025 released 2025-04-23,
+  dec-2025 released 2025-11-25), so equality rejected releases for following the
+  publisher's own calendar. Both failures named the probability sub-table while what
+  they actually cost was the policy path.
+
+- **"Latest observation" meant "most recently downloaded".** `fetch_latest_macro_-
+  observation_as_of` ordered by `available_at` before `period_end`, which is a fact
+  about our fetch schedule rather than the publisher's: backfilling an archive out of
+  order made the last file downloaded the current release — the April 2026 dealer
+  survey outranked June's — and a revision to a two-year-old period would outrank this
+  month's reading. Period first, vintage second; `available_at DESC` still picks the
+  newest vintage OF that period, which is the part that must stay point-in-time.
+
+- **A policy path could not say which release it was.** `release_date` is now carried
+  on the path itself. `published_at` is null for publishers that state a date rather
+  than an instant (the dealer survey does), so the UI fell through to `available_at` —
+  our fetch time — and labelled all twelve backfilled surveys with the day of the
+  backfill.
+
+- **Confidence terms lost their kind on the way to storage.** The persistence layer
+  hand-listed the fields it wrote, so a term's `kind` was dropped on write and never
+  read back. A value alone cannot say whether it drags — 1.00 is neutral for a
+  multiplicand and total for a penalty — which is why the desk reported "reduced by
+  revision penalty ×0.00" on a state nothing had reduced.
+
+- **The three rates charts each magnified their own labels by a different factor.**
+  They are `viewBox`-sized SVGs stretched to `width: 100%`, so the viewBox is the type
+  scale and everything inside it scales, text included. The two policy paths sat full
+  width at 780×400 and the curve in a ~760px cell at 760×320, so an 11px stylesheet
+  rule arrived at ~17px on one chart and ~11px on another, and no container width could
+  line them up. Each chart now uses a frame sized to the container it is actually
+  rendered into, giving all three a scale near 1 and one shared type size. A
+  `min-height: 420px` floor on top of a 1.95 aspect was also stretching the SVG box
+  past its own ratio, and the empty band above the dot plot was `preserveAspectRatio`
+  centring the drawing inside it — not padding.
+
+- **Every daily FRED series had been silently failing to ingest, taking the rates
+  domain's whole market layer with it.** The ingest asked ALFRED for the unbounded
+  vintage window on the sound principle that a narrower one gets clamped onto the
+  returned rows and destroys each value's true first-publication day. That is right for
+  a monthly series and impossible for a daily one: FRED refuses any JSON request
+  spanning more than 2000 vintage dates, and a daily series mints one on every
+  publication day, so `DGS10`, `DFII10` and `T10YIE` returned HTTP 400 on every run
+  while the eight monthly series succeeded — a per-series failure that read as a
+  degraded batch rather than as a dead feed. Daily series now request a bounded window
+  whose observations start on the same day its vintages do, which is what makes the
+  bound safe: an observation cannot be published before the day it describes, so
+  nothing returned has a vintage outside the window and nothing is clamped. Verified
+  against the live API — the 2021-01-04 ten-year is stamped published 2021-01-05, its
+  real T+1 lag. `policy_rates` now resolves its curve and decomposition factors instead
+  of reporting them permanently absent. The bound is a dated asset, not a constant: the
+  2000-vintage cap is on window *width*, so it buys about eight years, and
+  `test_daily_vintage_start_has_not_expired` turns red a year before FRED does.
+
+- **The rates scorecard could manufacture a confident verdict out of entirely missing
+  data.** The web component recomputed the composite itself, renormalising over
+  surviving group weight; with every group missing the denominator was zero, the
+  fallback was `0`, and `0` rendered as "NEUTRAL duration" — a stance on rates
+  assembled from no evidence at all. The client-side recompute is gone: the server
+  already decides both the composite and whether coverage permits a stance, and the
+  card now prints `n/a` and "No duration stance is taken" when it does not. An absent
+  scorecard likewise defaults to `UNKNOWN` rather than `NEUTRAL`, because the absence
+  of a view is not a neutral view.
+
+- **Vintage replay lost a full day at every changeover.** FRED's `realtime_end` is the
+  last day a value *was* current, inclusive; treating it as exclusive erased each
+  vintage for its final day, so a replay landing on 2025-02-11 returned no CPI at all.
+
 ## [0.12.9] — 2026-08-20
 
 

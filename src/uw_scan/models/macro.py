@@ -40,6 +40,29 @@ PolicyPathKind = Literal[
     "actual", "committee_projection", "dealer_expectations", "market_implied"
 ]
 PolicyPathDelayStatus = Literal["known", "unknown", "not_applicable"]
+#: Defined here rather than in ``uw_scan.macro.contracts`` because that module already
+#: imports from this one; a second copy of either literal would drift the moment a role
+#: is added, and the drift would only surface as a serialization failure.
+MacroDirection = Literal["RISING", "FALLING", "FLAT", "UNKNOWN"]
+MacroCausalRole = Literal[
+    "realized",
+    "breadth",
+    "stickiness",
+    "expectations_survey",
+    "expectations_market",
+    "policy_actual",
+    "policy_committee",
+    "policy_dealer",
+    "policy_market_shadow",
+    "curve",
+    "decomposition_component",
+    "supply",
+    "positioning",
+    "plumbing",
+]
+#: ``stale`` means only that no newer state has been computed; it says nothing about the
+#: publishers, which carry their own per-factor freshness inside ``confidence_reasons``.
+MacroStateFreshness = Literal["fresh", "stale"]
 
 
 class MacroSourceArtifact(_UwBase):
@@ -58,6 +81,11 @@ class MacroSourceArtifact(_UwBase):
     cost_class: MacroCostClass
     media_type: str
     content_length: int
+    #: True when the payload states when each value it carries was first published,
+    #: rather than being that publication.  An ALFRED series response is one; an FOMC
+    #: statement is not.  It changes which availability bound the store enforces, so it
+    #: is declared by the adapter that knows the shape rather than inferred downstream.
+    vintage_bearing: bool = False
     raw_json: dict[str, Any] | list[Any] | None = None
     raw_text: str | None = None
     raw_bytes: bytes | None = None
@@ -218,6 +246,12 @@ class PolicyPath(_UwBase):
     source: str
     source_kind: MacroSourceKind
     source_record_id: str
+    #: The date this release is ABOUT -- the meeting for FOMC and SEP, the response
+    #: due date for the dealer survey.  Carried because it is the only date that can
+    #: label a release: ``published_at`` is null for publishers that state a date and
+    #: not an instant, and ``available_at`` is when WE fetched it, so a backfilled
+    #: archive labels every one of its releases with the day of the backfill.
+    release_date: date | None = None
     published_at: AwareDatetime | None = None
     available_at: AwareDatetime
     cost_class: MacroCostClass
@@ -335,6 +369,11 @@ class PolicySourceFreshness(_UwBase):
 class PolicyPathSlot(_UwBase):
     kind: PolicyPathKind
     path: PolicyPath | None = None
+    #: Earlier releases from THIS publisher, newest first, so a reader can see how
+    #: one publisher's own view moved.  Separate from ``path`` on purpose: each is
+    #: its own dated release, never merged into the current one and never averaged
+    #: with it.  Empty when only one release has been ingested.
+    prior: list[PolicyPath] = Field(default_factory=list)
     missing_reason: str | None = None
     freshness: PolicySourceFreshness
 
@@ -346,6 +385,10 @@ class PolicyPathSlot(_UwBase):
             )
         if self.path is not None and self.path.kind != self.kind:
             raise ValueError("policy path slot kind does not match path")
+        if any(earlier.kind != self.kind for earlier in self.prior):
+            raise ValueError("policy path slot kind does not match a prior release")
+        if self.path is None and self.prior:
+            raise ValueError("a slot with no current path cannot carry prior releases")
         return self
 
 
@@ -356,6 +399,132 @@ class PolicyComparison(_UwBase):
     dealer_expectations: PolicyPathSlot
     market_implied: PolicyPathSlot
     contradictions: list[str] = Field(default_factory=list)
+
+
+class MacroVelocityItem(_UwBase):
+    """How fast, with its metric, unit and window -- never a bare number."""
+
+    metric: str
+    value: Decimal | None = None
+    unit: str
+    window_months: int
+    unavailable_reason: str | None = None
+
+
+#: How to read a confidence term's value.
+#: - ``multiplicand``: in the product; 1 is neutral, below 1 drags.
+#: - ``penalty``: in the product as ``(1 - value)``; 0 is neutral, above 0 drags.
+#: - ``informational``: NOT in the product; the value is a count or a flag.
+ConfidenceTermKind = Literal["multiplicand", "penalty", "informational"]
+
+
+class MacroConfidenceReason(_UwBase):
+    """One term behind a confidence number, so the number can be argued with.
+
+    ``kind`` is what lets a reader know whether a value drags: 1.00 is neutral for a
+    multiplicand and total for a penalty, and an informational term is not in the
+    product at all.  Without it every consumer re-derives the distinction by matching
+    on term names.
+    """
+
+    term: str
+    value: Decimal
+    detail: str
+    kind: ConfidenceTermKind = "multiplicand"
+
+
+class MacroContradiction(_UwBase):
+    rule: str
+    detail: str
+
+
+class MacroFactorState(_UwBase):
+    """One input's own sub-state, carrying its own freshness rather than inheriting one."""
+
+    name: str
+    causal_role: MacroCausalRole
+    series_id: str
+    period_end: date
+    value: Decimal
+    unit: str
+    direction: MacroDirection
+    change_over_window: Decimal | None = None
+    available_at: AwareDatetime
+    age_days: int
+    freshness: Decimal
+    quality_status: MacroQualityStatus
+    source: str
+    source_kind: MacroSourceKind
+
+
+class MacroStateEvidenceItem(_UwBase):
+    """One observation the state stood on, in the order the engine used it."""
+
+    ordinal: int
+    obs_id: int
+    artifact_id: int
+    causal_role: MacroCausalRole
+    series_id: str
+    period_end: date
+    unit: str
+    value_numeric: Decimal | None = None
+    available_at: AwareDatetime
+    source: str
+    source_kind: MacroSourceKind
+    quality_status: MacroQualityStatus
+
+
+class MacroDomainStateResponse(_UwBase):
+    """A stored answer, replayed -- never recomputed at read time.
+
+    ``requested_as_of`` and ``as_of`` are separate because they routinely differ: the
+    reply is the most recent state that answers for a time at or before the request, so
+    asking about right now returns the last state actually computed.  Collapsing them
+    would present a day-old answer as a live one.
+    """
+
+    domain: MacroDomain
+    requested_as_of: AwareDatetime
+    as_of: AwareDatetime
+    computed_at: AwareDatetime
+    engine_version: str
+    inputs_hash: str
+    state: str
+    direction: MacroDirection
+    confidence: Decimal
+    freshness: MacroStateFreshness
+    age_hours: float
+    velocity: list[MacroVelocityItem] = Field(default_factory=list)
+    confidence_reasons: list[MacroConfidenceReason] = Field(default_factory=list)
+    contradictions: list[MacroContradiction] = Field(default_factory=list)
+    factors: list[MacroFactorState] = Field(default_factory=list)
+    evidence: list[MacroStateEvidenceItem] = Field(default_factory=list)
+    notes: list[str] = Field(default_factory=list)
+
+
+class MacroStateSummary(_UwBase):
+    """The state without its lineage, for surfaces that already carry a large payload.
+
+    ``detail_path`` is not decoration: a block that shows a conclusion and hides what it
+    stood on is the shape this milestone exists to replace, so the full evidence is
+    always one documented hop away.
+    """
+
+    domain: MacroDomain
+    as_of: AwareDatetime
+    computed_at: AwareDatetime
+    engine_version: str
+    state: str
+    direction: MacroDirection
+    confidence: Decimal
+    freshness: MacroStateFreshness
+    age_hours: float
+    velocity: list[MacroVelocityItem] = Field(default_factory=list)
+    confidence_reasons: list[MacroConfidenceReason] = Field(default_factory=list)
+    contradictions: list[MacroContradiction] = Field(default_factory=list)
+    notes: list[str] = Field(default_factory=list)
+    evidence_count: int = 0
+    detail_path: str
 
 
 def _validate_sha256(value: str) -> str:
@@ -376,4 +545,11 @@ _preserve_public_module(
     PolicySourceFreshness,
     PolicyPathSlot,
     PolicyComparison,
+    MacroVelocityItem,
+    MacroConfidenceReason,
+    MacroContradiction,
+    MacroFactorState,
+    MacroStateEvidenceItem,
+    MacroDomainStateResponse,
+    MacroStateSummary,
 )

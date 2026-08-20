@@ -28,3 +28,10 @@ export function statusLabel(status: string | undefined): string {
   if (status === "stale") return "Stale";
   return "Live";
 }
+
+/** ``toFiniteNumber`` for an optional field: absent and unparseable both read null. */
+export function finiteOrNull(value: unknown): number | null {
+  if (value == null) return null;
+  const n = toFiniteNumber(value, Number.NaN);
+  return Number.isFinite(n) ? n : null;
+}

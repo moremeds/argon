@@ -188,3 +188,51 @@ def test_fred_json_http_errors_do_not_expose_api_key():
     assert "api_key" not in message
     assert "fred_series_observations" in message
     assert "403" in message
+
+
+class TestVintageAwarePayloadFetch:
+    """The evidence layer needs the exact bytes and a specific ALFRED vintage window.
+
+    ``fetch_observations`` returns parsed rows for the CURRENT vintage only, which is
+    fine for the legacy rates surface and useless for point-in-time replay.
+    """
+
+    def _capture(self, **kwargs):
+        seen: dict[str, object] = {}
+
+        def fake_get(_self, base_url, path, params, *, endpoint_key, path_template):
+            seen["params"] = dict(params)
+            return httpx.Response(
+                200,
+                content=b'{"observations": []}',
+                request=httpx.Request("GET", f"{base_url}{path}"),
+            )
+
+        with patch.object(FredProvider, "_get_with_telemetry", fake_get):
+            with FredProvider(api_key="secret-key-value") as provider:
+                payload, url = provider.fetch_series_payload("CPIAUCSL", **kwargs)
+        return payload, url, seen["params"]
+
+    def test_vintage_window_reaches_the_request(self):
+        _, _, params = self._capture(
+            realtime_start=date(2024, 6, 1), realtime_end=date(2024, 6, 1)
+        )
+        assert params["realtime_start"] == "2024-06-01"
+        assert params["realtime_end"] == "2024-06-01"
+
+    def test_omitting_the_window_asks_for_the_current_vintage(self):
+        _, _, params = self._capture()
+        assert "realtime_start" not in params
+        assert "realtime_end" not in params
+
+    def test_raw_bytes_are_returned_unparsed(self):
+        payload, _, _ = self._capture()
+        assert payload == b'{"observations": []}'
+
+    def test_the_audited_url_never_carries_the_api_key(self):
+        # FRED takes the key as a query parameter, so a naively recorded request URL
+        # would write the secret into the external-API audit table.
+        _, url, params = self._capture(realtime_start=date(2024, 6, 1))
+        assert "secret-key-value" not in url
+        assert "api_key" not in url
+        assert params["api_key"] == "secret-key-value"

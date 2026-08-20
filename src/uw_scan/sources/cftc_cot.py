@@ -78,8 +78,13 @@ class CftcCotProvider:
         *,
         timeout_s: float = 30.0,
         record_request: RecordHook | None = None,
+        trust_env: bool = False,
     ):
-        self._client = httpx.Client(timeout=timeout_s)
+        # Ambient proxy config is not inherited -- see sources/fred.py for the
+        # failure this prevents: httpx reads a macOS system HTTPS proxy even with
+        # the *_PROXY environment variables unset, and the TLS handshake to this
+        # publisher then dies with SSL: UNEXPECTED_EOF_WHILE_READING.
+        self._client = httpx.Client(timeout=timeout_s, trust_env=trust_env)
         self._record_request_fn = record_request
 
     def close(self) -> None:

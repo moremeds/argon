@@ -1,0 +1,2290 @@
+{
+  "schema_version": "1",
+  "authored_at": "2026-08-18T10:19:32.367719+00:00",
+  "spec": "docs/superpowers/specs/2026-08-18-inflation-rates-state-design.md",
+  "provenance": {
+    "realized_and_market_series": "FRED/ALFRED, vintage-aware",
+    "why_not_bls_or_bea": "BLS returns HTTP 403 on every host from this network; BEA returns HTTP 200 with a zero-length body without a UserID.  Neither publishes vintages.  See docs/research/2026-08-18-mc2-inflation-source-probe/.",
+    "values_are_real": "Every number was fetched from the live source at authoring time and frozen with the vintage that made it knowable."
+  },
+  "scenarios": [
+    {
+      "id": "disinflation_with_sticky_services",
+      "domain": "inflation",
+      "as_of": "2023-07-28",
+      "target_period": "2023-06-01",
+      "inputs": [
+        {
+          "series_id": "PCEPILFE",
+          "period_end": "2023-06-01",
+          "value": "128.311",
+          "unit": "index_2017_100_sa",
+          "publisher_transform": "index",
+          "available_at": "2023-07-28",
+          "causal_role": "realized",
+          "source": "fred",
+          "source_kind": "first_party_publisher",
+          "cost_class": "free_publisher"
+        },
+        {
+          "series_id": "PCEPI",
+          "period_end": "2023-06-01",
+          "value": "127.178",
+          "unit": "index_2017_100_sa",
+          "publisher_transform": "index",
+          "available_at": "2023-07-28",
+          "causal_role": "realized",
+          "source": "fred",
+          "source_kind": "first_party_publisher",
+          "cost_class": "free_publisher"
+        },
+        {
+          "series_id": "CPILFESL",
+          "period_end": "2023-06-01",
+          "value": "308.309",
+          "unit": "index_1982_84_100_sa",
+          "publisher_transform": "index",
+          "available_at": "2023-07-28",
+          "causal_role": "realized",
+          "source": "fred",
+          "source_kind": "first_party_publisher",
+          "cost_class": "free_publisher"
+        },
+        {
+          "series_id": "CPIAUCSL",
+          "period_end": "2023-06-01",
+          "value": "303.841",
+          "unit": "index_1982_84_100_sa",
+          "publisher_transform": "index",
+          "available_at": "2023-07-28",
+          "causal_role": "realized",
+          "source": "fred",
+          "source_kind": "first_party_publisher",
+          "cost_class": "free_publisher"
+        },
+        {
+          "series_id": "MEDCPIM158SFRBCLE",
+          "period_end": "2023-06-01",
+          "value": "4.35544718579104",
+          "unit": "percent_change_annual_rate",
+          "publisher_transform": "publisher_transformed_mom_annualized",
+          "available_at": "2023-07-28",
+          "causal_role": "breadth",
+          "source": "fred",
+          "source_kind": "first_party_publisher",
+          "cost_class": "free_publisher"
+        },
+        {
+          "series_id": "TRMMEANCPIM158SFRBCLE",
+          "period_end": "2023-06-01",
+          "value": "2.7034088971175096",
+          "unit": "percent_change_annual_rate",
+          "publisher_transform": "publisher_transformed_mom_annualized",
+          "available_at": "2023-07-28",
+          "causal_role": "breadth",
+          "source": "fred",
+          "source_kind": "first_party_publisher",
+          "cost_class": "free_publisher"
+        },
+        {
+          "series_id": "CORESTICKM159SFRBATL",
+          "period_end": "2023-06-01",
+          "value": "5.62652874",
+          "unit": "percent_change_from_year_ago",
+          "publisher_transform": "publisher_transformed_yoy",
+          "available_at": "2023-07-28",
+          "causal_role": "stickiness",
+          "source": "fred",
+          "source_kind": "first_party_publisher",
+          "cost_class": "free_publisher"
+        },
+        {
+          "series_id": "MICH",
+          "period_end": "2023-06-01",
+          "value": "3.3",
+          "unit": "percent",
+          "publisher_transform": "level",
+          "available_at": "2023-07-28",
+          "causal_role": "expectations_survey",
+          "source": "fred",
+          "source_kind": "first_party_publisher",
+          "cost_class": "free_publisher"
+        }
+      ],
+      "derived_from_inputs": {
+        "PCEPILFE_yoy_percent": "4.10",
+        "PCEPILFE_yoy_change_3m_pp": "-0.51",
+        "PCEPILFE_latest_period_at_as_of": "2023-06-01",
+        "PCEPI_yoy_percent": "2.97",
+        "PCEPI_yoy_change_3m_pp": "-1.20",
+        "PCEPI_latest_period_at_as_of": "2023-06-01",
+        "CPILFESL_yoy_percent": "4.86",
+        "CPILFESL_yoy_change_3m_pp": "-0.74",
+        "CPILFESL_latest_period_at_as_of": "2023-06-01",
+        "CPIAUCSL_yoy_percent": "3.09",
+        "CPIAUCSL_yoy_change_3m_pp": "-1.90",
+        "CPIAUCSL_latest_period_at_as_of": "2023-06-01",
+        "MEDCPIM158SFRBCLE_change_3m": "-0.55",
+        "MEDCPIM158SFRBCLE_latest_period_at_as_of": "2023-06-01",
+        "TRMMEANCPIM158SFRBCLE_change_3m": "-0.06",
+        "TRMMEANCPIM158SFRBCLE_latest_period_at_as_of": "2023-06-01",
+        "CORESTICKM159SFRBATL_change_3m": "-0.83",
+        "CORESTICKM159SFRBATL_latest_period_at_as_of": "2023-06-01",
+        "MICH_change_3m": "-0.30",
+        "MICH_latest_period_at_as_of": "2023-06-01"
+      },
+      "expect": {
+        "state": "WELL_ABOVE_TARGET",
+        "direction": "FALLING",
+        "contradictions_include": [
+          "headline_core_divergence"
+        ],
+        "contradictions_exclude": [
+          "stickiness_not_confirming_disinflation",
+          "breadth_contradicts_core"
+        ],
+        "confidence_band": [
+          0.55,
+          0.9
+        ],
+        "note": "Headline and core are far apart in level while moving the same way. Level divergence and direction divergence are separate claims and the engine must not report one as the other."
+      },
+      "observation_history": {
+        "PCEPILFE": {
+          "unit": "index_2017_100_sa",
+          "publisher_transform": "index",
+          "observations": [
+            {
+              "period_end": "2022-03-01",
+              "value": "121.651",
+              "available_at": "2022-09-30"
+            },
+            {
+              "period_end": "2022-04-01",
+              "value": "122.03",
+              "available_at": "2022-09-30"
+            },
+            {
+              "period_end": "2022-05-01",
+              "value": "122.488",
+              "available_at": "2022-09-30"
+            },
+            {
+              "period_end": "2022-06-01",
+              "value": "123.258",
+              "available_at": "2022-09-30"
+            },
+            {
+              "period_end": "2022-07-01",
+              "value": "123.352",
+              "available_at": "2022-12-23"
+            },
+            {
+              "period_end": "2022-08-01",
+              "value": "124.031",
+              "available_at": "2022-12-23"
+            },
+            {
+              "period_end": "2022-09-01",
+              "value": "124.607",
+              "available_at": "2022-12-23"
+            },
+            {
+              "period_end": "2022-10-01",
+              "value": "124.998",
+              "available_at": "2023-03-31"
+            },
+            {
+              "period_end": "2022-11-01",
+              "value": "125.277",
+              "available_at": "2023-03-31"
+            },
+            {
+              "period_end": "2022-12-01",
+              "value": "125.746",
+              "available_at": "2023-03-31"
+            },
+            {
+              "period_end": "2023-01-01",
+              "value": "126.422",
+              "available_at": "2023-06-30"
+            },
+            {
+              "period_end": "2023-02-01",
+              "value": "126.847",
+              "available_at": "2023-06-30"
+            },
+            {
+              "period_end": "2023-03-01",
+              "value": "127.257",
+              "available_at": "2023-06-30"
+            },
+            {
+              "period_end": "2023-04-01",
+              "value": "127.704",
+              "available_at": "2023-07-28"
+            },
+            {
+              "period_end": "2023-05-01",
+              "value": "128.099",
+              "available_at": "2023-07-28"
+            },
+            {
+              "period_end": "2023-06-01",
+              "value": "128.311",
+              "available_at": "2023-07-28"
+            }
+          ]
+        },
+        "PCEPI": {
+          "unit": "index_2017_100_sa",
+          "publisher_transform": "index",
+          "observations": [
+            {
+              "period_end": "2022-03-01",
+              "value": "121.321",
+              "available_at": "2022-09-30"
+            },
+            {
+              "period_end": "2022-04-01",
+              "value": "121.563",
+              "available_at": "2022-09-30"
+            },
+            {
+              "period_end": "2022-05-01",
+              "value": "122.3",
+              "available_at": "2022-09-30"
+            },
+            {
+              "period_end": "2022-06-01",
+              "value": "123.512",
+              "available_at": "2022-09-30"
+            },
+            {
+              "period_end": "2022-07-01",
+              "value": "123.397",
+              "available_at": "2022-12-23"
+            },
+            {
+              "period_end": "2022-08-01",
+              "value": "123.728",
+              "available_at": "2022-12-23"
+            },
+            {
+              "period_end": "2022-09-01",
+              "value": "124.154",
+              "available_at": "2022-12-23"
+            },
+            {
+              "period_end": "2022-10-01",
+              "value": "124.676",
+              "available_at": "2023-03-31"
+            },
+            {
+              "period_end": "2022-11-01",
+              "value": "124.889",
+              "available_at": "2023-03-31"
+            },
+            {
+              "period_end": "2022-12-01",
+              "value": "125.141",
+              "available_at": "2023-03-31"
+            },
+            {
+              "period_end": "2023-01-01",
+              "value": "125.874",
+              "available_at": "2023-06-30"
+            },
+            {
+              "period_end": "2023-02-01",
+              "value": "126.24",
+              "available_at": "2023-06-30"
+            },
+            {
+              "period_end": "2023-03-01",
+              "value": "126.385",
+              "available_at": "2023-06-30"
+            },
+            {
+              "period_end": "2023-04-01",
+              "value": "126.814",
+              "available_at": "2023-07-28"
+            },
+            {
+              "period_end": "2023-05-01",
+              "value": "126.973",
+              "available_at": "2023-07-28"
+            },
+            {
+              "period_end": "2023-06-01",
+              "value": "127.178",
+              "available_at": "2023-07-28"
+            }
+          ]
+        },
+        "CPILFESL": {
+          "unit": "index_1982_84_100_sa",
+          "publisher_transform": "index",
+          "observations": [
+            {
+              "period_end": "2022-03-01",
+              "value": "289.046",
+              "available_at": "2023-02-10"
+            },
+            {
+              "period_end": "2022-04-01",
+              "value": "290.410",
+              "available_at": "2023-02-10"
+            },
+            {
+              "period_end": "2022-05-01",
+              "value": "292.251",
+              "available_at": "2023-02-10"
+            },
+            {
+              "period_end": "2022-06-01",
+              "value": "294.017",
+              "available_at": "2023-02-10"
+            },
+            {
+              "period_end": "2022-07-01",
+              "value": "294.925",
+              "available_at": "2023-02-10"
+            },
+            {
+              "period_end": "2022-08-01",
+              "value": "296.639",
+              "available_at": "2023-02-10"
+            },
+            {
+              "period_end": "2022-09-01",
+              "value": "298.339",
+              "available_at": "2023-02-10"
+            },
+            {
+              "period_end": "2022-10-01",
+              "value": "299.333",
+              "available_at": "2023-02-10"
+            },
+            {
+              "period_end": "2022-11-01",
+              "value": "300.261",
+              "available_at": "2023-02-10"
+            },
+            {
+              "period_end": "2022-12-01",
+              "value": "301.460",
+              "available_at": "2023-02-10"
+            },
+            {
+              "period_end": "2023-01-01",
+              "value": "302.702",
+              "available_at": "2023-02-14"
+            },
+            {
+              "period_end": "2023-02-01",
+              "value": "304.070",
+              "available_at": "2023-03-14"
+            },
+            {
+              "period_end": "2023-03-01",
+              "value": "305.240",
+              "available_at": "2023-04-12"
+            },
+            {
+              "period_end": "2023-04-01",
+              "value": "306.489",
+              "available_at": "2023-05-10"
+            },
+            {
+              "period_end": "2023-05-01",
+              "value": "307.824",
+              "available_at": "2023-06-13"
+            },
+            {
+              "period_end": "2023-06-01",
+              "value": "308.309",
+              "available_at": "2023-07-12"
+            }
+          ]
+        },
+        "CPIAUCSL": {
+          "unit": "index_1982_84_100_sa",
+          "publisher_transform": "index",
+          "observations": [
+            {
+              "period_end": "2022-03-01",
+              "value": "287.472",
+              "available_at": "2023-02-10"
+            },
+            {
+              "period_end": "2022-04-01",
+              "value": "288.611",
+              "available_at": "2023-02-10"
+            },
+            {
+              "period_end": "2022-05-01",
+              "value": "291.268",
+              "available_at": "2023-02-10"
+            },
+            {
+              "period_end": "2022-06-01",
+              "value": "294.728",
+              "available_at": "2023-02-10"
+            },
+            {
+              "period_end": "2022-07-01",
+              "value": "294.628",
+              "available_at": "2023-02-10"
+            },
+            {
+              "period_end": "2022-08-01",
+              "value": "295.320",
+              "available_at": "2023-02-10"
+            },
+            {
+              "period_end": "2022-09-01",
+              "value": "296.539",
+              "available_at": "2023-02-10"
+            },
+            {
+              "period_end": "2022-10-01",
+              "value": "297.987",
+              "available_at": "2023-02-10"
+            },
+            {
+              "period_end": "2022-11-01",
+              "value": "298.598",
+              "available_at": "2023-02-10"
+            },
+            {
+              "period_end": "2022-12-01",
+              "value": "298.990",
+              "available_at": "2023-02-10"
+            },
+            {
+              "period_end": "2023-01-01",
+              "value": "300.536",
+              "available_at": "2023-02-14"
+            },
+            {
+              "period_end": "2023-02-01",
+              "value": "301.648",
+              "available_at": "2023-03-14"
+            },
+            {
+              "period_end": "2023-03-01",
+              "value": "301.808",
+              "available_at": "2023-04-12"
+            },
+            {
+              "period_end": "2023-04-01",
+              "value": "302.918",
+              "available_at": "2023-05-10"
+            },
+            {
+              "period_end": "2023-05-01",
+              "value": "303.294",
+              "available_at": "2023-06-13"
+            },
+            {
+              "period_end": "2023-06-01",
+              "value": "303.841",
+              "available_at": "2023-07-12"
+            }
+          ]
+        },
+        "MEDCPIM158SFRBCLE": {
+          "unit": "percent_change_annual_rate",
+          "publisher_transform": "publisher_transformed_mom_annualized",
+          "observations": [
+            {
+              "period_end": "2022-03-01",
+              "value": "6.35024941072335",
+              "available_at": "2023-02-14"
+            },
+            {
+              "period_end": "2022-04-01",
+              "value": "6.03032022330425",
+              "available_at": "2023-02-14"
+            },
+            {
+              "period_end": "2022-05-01",
+              "value": "7.50394411350803",
+              "available_at": "2023-02-14"
+            },
+            {
+              "period_end": "2022-06-01",
+              "value": "7.924919184464071",
+              "available_at": "2023-02-14"
+            },
+            {
+              "period_end": "2022-07-01",
+              "value": "6.423611018812459",
+              "available_at": "2023-02-14"
+            },
+            {
+              "period_end": "2022-08-01",
+              "value": "8.46391746602624",
+              "available_at": "2023-02-14"
+            },
+            {
+              "period_end": "2022-09-01",
+              "value": "8.38296430227019",
+              "available_at": "2023-02-14"
+            },
+            {
+              "period_end": "2022-10-01",
+              "value": "6.50774804422964",
+              "available_at": "2023-02-14"
+            },
+            {
+              "period_end": "2022-11-01",
+              "value": "5.76577021806237",
+              "available_at": "2023-02-14"
+            },
+            {
+              "period_end": "2022-12-01",
+              "value": "7.04916103059838",
+              "available_at": "2023-02-14"
+            },
+            {
+              "period_end": "2023-01-01",
+              "value": "8.142495355377719",
+              "available_at": "2023-02-14"
+            },
+            {
+              "period_end": "2023-02-01",
+              "value": "7.880495894967001",
+              "available_at": "2023-03-14"
+            },
+            {
+              "period_end": "2023-03-01",
+              "value": "4.90705452795612",
+              "available_at": "2023-04-12"
+            },
+            {
+              "period_end": "2023-04-01",
+              "value": "4.91159508026411",
+              "available_at": "2023-05-10"
+            },
+            {
+              "period_end": "2023-05-01",
+              "value": "4.65568634289892",
+              "available_at": "2023-06-13"
+            },
+            {
+              "period_end": "2023-06-01",
+              "value": "4.35544718579104",
+              "available_at": "2023-07-12"
+            }
+          ]
+        },
+        "TRMMEANCPIM158SFRBCLE": {
+          "unit": "percent_change_annual_rate",
+          "publisher_transform": "publisher_transformed_mom_annualized",
+          "observations": [
+            {
+              "period_end": "2022-03-01",
+              "value": "6.398724875268759",
+              "available_at": "2023-02-14"
+            },
+            {
+              "period_end": "2022-04-01",
+              "value": "5.175070237352",
+              "available_at": "2023-02-14"
+            },
+            {
+              "period_end": "2022-05-01",
+              "value": "9.19390371394466",
+              "available_at": "2023-02-14"
+            },
+            {
+              "period_end": "2022-06-01",
+              "value": "8.99192017760113",
+              "available_at": "2023-02-14"
+            },
+            {
+              "period_end": "2022-07-01",
+              "value": "5.2460322956623795",
+              "available_at": "2023-02-14"
+            },
+            {
+              "period_end": "2022-08-01",
+              "value": "7.4921645608894405",
+              "available_at": "2023-02-14"
+            },
+            {
+              "period_end": "2022-09-01",
+              "value": "7.0753466795646",
+              "available_at": "2023-02-14"
+            },
+            {
+              "period_end": "2022-10-01",
+              "value": "5.07033597701168",
+              "available_at": "2023-02-14"
+            },
+            {
+              "period_end": "2022-11-01",
+              "value": "4.32184230045518",
+              "available_at": "2023-02-14"
+            },
+            {
+              "period_end": "2022-12-01",
+              "value": "6.09251463294964",
+              "available_at": "2023-02-14"
+            },
+            {
+              "period_end": "2023-01-01",
+              "value": "7.013686152817611",
+              "available_at": "2023-02-14"
+            },
+            {
+              "period_end": "2023-02-01",
+              "value": "5.800136121954959",
+              "available_at": "2023-03-14"
+            },
+            {
+              "period_end": "2023-03-01",
+              "value": "2.7620366267159",
+              "available_at": "2023-04-12"
+            },
+            {
+              "period_end": "2023-04-01",
+              "value": "4.03497956003374",
+              "available_at": "2023-05-10"
+            },
+            {
+              "period_end": "2023-05-01",
+              "value": "2.7651098122845097",
+              "available_at": "2023-06-13"
+            },
+            {
+              "period_end": "2023-06-01",
+              "value": "2.7034088971175096",
+              "available_at": "2023-07-12"
+            }
+          ]
+        },
+        "CORESTICKM159SFRBATL": {
+          "unit": "percent_change_from_year_ago",
+          "publisher_transform": "publisher_transformed_yoy",
+          "observations": [
+            {
+              "period_end": "2022-03-01",
+              "value": "4.558423",
+              "available_at": "2023-02-14"
+            },
+            {
+              "period_end": "2022-04-01",
+              "value": "4.721803",
+              "available_at": "2023-02-14"
+            },
+            {
+              "period_end": "2022-05-01",
+              "value": "4.985582",
+              "available_at": "2023-02-14"
+            },
+            {
+              "period_end": "2022-06-01",
+              "value": "5.422337",
+              "available_at": "2023-02-14"
+            },
+            {
+              "period_end": "2022-07-01",
+              "value": "5.625329",
+              "available_at": "2023-02-14"
+            },
+            {
+              "period_end": "2022-08-01",
+              "value": "5.991705",
+              "available_at": "2023-02-14"
+            },
+            {
+              "period_end": "2022-09-01",
+              "value": "6.392795",
+              "available_at": "2023-02-14"
+            },
+            {
+              "period_end": "2022-10-01",
+              "value": "6.364809",
+              "available_at": "2023-02-14"
+            },
+            {
+              "period_end": "2022-11-01",
+              "value": "6.471178",
+              "available_at": "2023-02-14"
+            },
+            {
+              "period_end": "2022-12-01",
+              "value": "6.617223",
+              "available_at": "2023-02-14"
+            },
+            {
+              "period_end": "2023-01-01",
+              "value": "6.554492474",
+              "available_at": "2023-02-14"
+            },
+            {
+              "period_end": "2023-02-01",
+              "value": "6.59375",
+              "available_at": "2023-03-14"
+            },
+            {
+              "period_end": "2023-03-01",
+              "value": "6.451708317",
+              "available_at": "2023-04-12"
+            },
+            {
+              "period_end": "2023-04-01",
+              "value": "6.322748661",
+              "available_at": "2023-05-10"
+            },
+            {
+              "period_end": "2023-05-01",
+              "value": "6.000605583",
+              "available_at": "2023-06-13"
+            },
+            {
+              "period_end": "2023-06-01",
+              "value": "5.62652874",
+              "available_at": "2023-07-12"
+            }
+          ]
+        },
+        "MICH": {
+          "unit": "percent",
+          "publisher_transform": "level",
+          "observations": [
+            {
+              "period_end": "2022-03-01",
+              "value": "5.4",
+              "available_at": "2022-03-25"
+            },
+            {
+              "period_end": "2022-04-01",
+              "value": "5.4",
+              "available_at": "2022-04-29"
+            },
+            {
+              "period_end": "2022-05-01",
+              "value": "5.3",
+              "available_at": "2022-05-27"
+            },
+            {
+              "period_end": "2022-06-01",
+              "value": "5.3",
+              "available_at": "2022-06-24"
+            },
+            {
+              "period_end": "2022-07-01",
+              "value": "5.2",
+              "available_at": "2022-07-29"
+            },
+            {
+              "period_end": "2022-08-01",
+              "value": "4.8",
+              "available_at": "2022-08-26"
+            },
+            {
+              "period_end": "2022-09-01",
+              "value": "4.7",
+              "available_at": "2022-09-30"
+            },
+            {
+              "period_end": "2022-10-01",
+              "value": "5",
+              "available_at": "2022-10-28"
+            },
+            {
+              "period_end": "2022-11-01",
+              "value": "4.9",
+              "available_at": "2022-11-23"
+            },
+            {
+              "period_end": "2022-12-01",
+              "value": "4.4",
+              "available_at": "2022-12-23"
+            },
+            {
+              "period_end": "2023-01-01",
+              "value": "3.9",
+              "available_at": "2023-01-27"
+            },
+            {
+              "period_end": "2023-02-01",
+              "value": "4.1",
+              "available_at": "2023-02-24"
+            },
+            {
+              "period_end": "2023-03-01",
+              "value": "3.6",
+              "available_at": "2023-03-31"
+            },
+            {
+              "period_end": "2023-04-01",
+              "value": "4.6",
+              "available_at": "2023-04-28"
+            },
+            {
+              "period_end": "2023-05-01",
+              "value": "4.2",
+              "available_at": "2023-05-26"
+            },
+            {
+              "period_end": "2023-06-01",
+              "value": "3.3",
+              "available_at": "2023-06-30"
+            }
+          ]
+        }
+      }
+    },
+    {
+      "id": "broad_reacceleration",
+      "domain": "inflation",
+      "as_of": "2022-02-25",
+      "target_period": "2022-01-01",
+      "inputs": [
+        {
+          "series_id": "PCEPILFE",
+          "period_end": "2022-01-01",
+          "value": "120.723",
+          "unit": "index_2017_100_sa",
+          "publisher_transform": "index",
+          "available_at": "2022-02-25",
+          "causal_role": "realized",
+          "source": "fred",
+          "source_kind": "first_party_publisher",
+          "cost_class": "free_publisher"
+        },
+        {
+          "series_id": "PCEPI",
+          "period_end": "2022-01-01",
+          "value": "119.393",
+          "unit": "index_2017_100_sa",
+          "publisher_transform": "index",
+          "available_at": "2022-02-25",
+          "causal_role": "realized",
+          "source": "fred",
+          "source_kind": "first_party_publisher",
+          "cost_class": "free_publisher"
+        },
+        {
+          "series_id": "CPILFESL",
+          "period_end": "2022-01-01",
+          "value": "286.431",
+          "unit": "index_1982_84_100_sa",
+          "publisher_transform": "index",
+          "available_at": "2022-02-25",
+          "causal_role": "realized",
+          "source": "fred",
+          "source_kind": "first_party_publisher",
+          "cost_class": "free_publisher"
+        },
+        {
+          "series_id": "CPIAUCSL",
+          "period_end": "2022-01-01",
+          "value": "281.933",
+          "unit": "index_1982_84_100_sa",
+          "publisher_transform": "index",
+          "available_at": "2022-02-25",
+          "causal_role": "realized",
+          "source": "fred",
+          "source_kind": "first_party_publisher",
+          "cost_class": "free_publisher"
+        },
+        {
+          "series_id": "MEDCPIM158SFRBCLE",
+          "period_end": "2022-01-01",
+          "value": "7.1415250188255195",
+          "unit": "percent_change_annual_rate",
+          "publisher_transform": "publisher_transformed_mom_annualized",
+          "available_at": "2022-02-25",
+          "causal_role": "breadth",
+          "source": "fred",
+          "source_kind": "first_party_publisher",
+          "cost_class": "free_publisher"
+        },
+        {
+          "series_id": "TRMMEANCPIM158SFRBCLE",
+          "period_end": "2022-01-01",
+          "value": "7.8505434773366",
+          "unit": "percent_change_annual_rate",
+          "publisher_transform": "publisher_transformed_mom_annualized",
+          "available_at": "2022-02-25",
+          "causal_role": "breadth",
+          "source": "fred",
+          "source_kind": "first_party_publisher",
+          "cost_class": "free_publisher"
+        },
+        {
+          "series_id": "CORESTICKM159SFRBATL",
+          "period_end": "2022-01-01",
+          "value": "3.982987642",
+          "unit": "percent_change_from_year_ago",
+          "publisher_transform": "publisher_transformed_yoy",
+          "available_at": "2022-02-25",
+          "causal_role": "stickiness",
+          "source": "fred",
+          "source_kind": "first_party_publisher",
+          "cost_class": "free_publisher"
+        },
+        {
+          "series_id": "MICH",
+          "period_end": "2022-01-01",
+          "value": "4.9",
+          "unit": "percent",
+          "publisher_transform": "level",
+          "available_at": "2022-02-25",
+          "causal_role": "expectations_survey",
+          "source": "fred",
+          "source_kind": "first_party_publisher",
+          "cost_class": "free_publisher"
+        }
+      ],
+      "derived_from_inputs": {
+        "PCEPILFE_yoy_percent": "5.21",
+        "PCEPILFE_yoy_change_3m_pp": "1.03",
+        "PCEPILFE_latest_period_at_as_of": "2022-01-01",
+        "PCEPI_yoy_percent": "6.06",
+        "PCEPI_yoy_change_3m_pp": "1.01",
+        "PCEPI_latest_period_at_as_of": "2022-01-01",
+        "CPILFESL_yoy_percent": "6.04",
+        "CPILFESL_yoy_change_3m_pp": "1.45",
+        "CPILFESL_latest_period_at_as_of": "2022-01-01",
+        "CPIAUCSL_yoy_percent": "7.53",
+        "CPIAUCSL_yoy_change_3m_pp": "1.29",
+        "CPIAUCSL_latest_period_at_as_of": "2022-01-01",
+        "MEDCPIM158SFRBCLE_change_3m": "0.89",
+        "MEDCPIM158SFRBCLE_latest_period_at_as_of": "2022-01-01",
+        "TRMMEANCPIM158SFRBCLE_change_3m": "-0.90",
+        "TRMMEANCPIM158SFRBCLE_latest_period_at_as_of": "2022-01-01",
+        "CORESTICKM159SFRBATL_change_3m": "0.94",
+        "CORESTICKM159SFRBATL_latest_period_at_as_of": "2022-01-01",
+        "MICH_change_3m": "0.10",
+        "MICH_latest_period_at_as_of": "2022-01-01"
+      },
+      "expect": {
+        "state": "WELL_ABOVE_TARGET",
+        "direction": "RISING",
+        "contradictions_include": [
+          "breadth_measures_disagree"
+        ],
+        "contradictions_exclude": [
+          "breadth_contradicts_core",
+          "stickiness_not_confirming_disinflation"
+        ],
+        "confidence_band": [
+          0.7,
+          1.0
+        ],
+        "note": "The core move is broad on the median measure, so breadth does not contradict core -- but the breadth measures contradict each other, which lowers confidence without changing the state."
+      },
+      "observation_history": {
+        "PCEPILFE": {
+          "unit": "index_2017_100_sa",
+          "publisher_transform": "index",
+          "observations": [
+            {
+              "period_end": "2020-10-01",
+              "value": "114.137",
+              "available_at": "2021-07-30"
+            },
+            {
+              "period_end": "2020-11-01",
+              "value": "114.134",
+              "available_at": "2021-07-30"
+            },
+            {
+              "period_end": "2020-12-01",
+              "value": "114.494",
+              "available_at": "2021-07-30"
+            },
+            {
+              "period_end": "2021-01-01",
+              "value": "114.746",
+              "available_at": "2021-07-30"
+            },
+            {
+              "period_end": "2021-02-01",
+              "value": "114.899",
+              "available_at": "2021-07-30"
+            },
+            {
+              "period_end": "2021-03-01",
+              "value": "115.383",
+              "available_at": "2021-07-30"
+            },
+            {
+              "period_end": "2021-04-01",
+              "value": "116.1",
+              "available_at": "2021-10-01"
+            },
+            {
+              "period_end": "2021-05-01",
+              "value": "116.766",
+              "available_at": "2021-10-01"
+            },
+            {
+              "period_end": "2021-06-01",
+              "value": "117.327",
+              "available_at": "2021-10-01"
+            },
+            {
+              "period_end": "2021-07-01",
+              "value": "117.704",
+              "available_at": "2021-12-23"
+            },
+            {
+              "period_end": "2021-08-01",
+              "value": "118.073",
+              "available_at": "2021-12-23"
+            },
+            {
+              "period_end": "2021-09-01",
+              "value": "118.357",
+              "available_at": "2021-12-23"
+            },
+            {
+              "period_end": "2021-10-01",
+              "value": "118.909",
+              "available_at": "2022-02-25"
+            },
+            {
+              "period_end": "2021-11-01",
+              "value": "119.469",
+              "available_at": "2022-02-25"
+            },
+            {
+              "period_end": "2021-12-01",
+              "value": "120.102",
+              "available_at": "2022-02-25"
+            },
+            {
+              "period_end": "2022-01-01",
+              "value": "120.723",
+              "available_at": "2022-02-25"
+            }
+          ]
+        },
+        "PCEPI": {
+          "unit": "index_2017_100_sa",
+          "publisher_transform": "index",
+          "observations": [
+            {
+              "period_end": "2020-10-01",
+              "value": "111.775",
+              "available_at": "2021-07-30"
+            },
+            {
+              "period_end": "2020-11-01",
+              "value": "111.79",
+              "available_at": "2021-07-30"
+            },
+            {
+              "period_end": "2020-12-01",
+              "value": "112.22",
+              "available_at": "2021-07-30"
+            },
+            {
+              "period_end": "2021-01-01",
+              "value": "112.57",
+              "available_at": "2021-07-30"
+            },
+            {
+              "period_end": "2021-02-01",
+              "value": "112.878",
+              "available_at": "2021-07-30"
+            },
+            {
+              "period_end": "2021-03-01",
+              "value": "113.518",
+              "available_at": "2021-07-30"
+            },
+            {
+              "period_end": "2021-04-01",
+              "value": "114.161",
+              "available_at": "2021-10-01"
+            },
+            {
+              "period_end": "2021-05-01",
+              "value": "114.767",
+              "available_at": "2021-10-01"
+            },
+            {
+              "period_end": "2021-06-01",
+              "value": "115.388",
+              "available_at": "2021-10-01"
+            },
+            {
+              "period_end": "2021-07-01",
+              "value": "115.847",
+              "available_at": "2021-12-23"
+            },
+            {
+              "period_end": "2021-08-01",
+              "value": "116.29",
+              "available_at": "2021-12-23"
+            },
+            {
+              "period_end": "2021-09-01",
+              "value": "116.693",
+              "available_at": "2021-12-23"
+            },
+            {
+              "period_end": "2021-10-01",
+              "value": "117.423",
+              "available_at": "2022-02-25"
+            },
+            {
+              "period_end": "2021-11-01",
+              "value": "118.094",
+              "available_at": "2022-02-25"
+            },
+            {
+              "period_end": "2021-12-01",
+              "value": "118.717",
+              "available_at": "2022-02-25"
+            },
+            {
+              "period_end": "2022-01-01",
+              "value": "119.393",
+              "available_at": "2022-02-25"
+            }
+          ]
+        },
+        "CPILFESL": {
+          "unit": "index_1982_84_100_sa",
+          "publisher_transform": "index",
+          "observations": [
+            {
+              "period_end": "2020-10-01",
+              "value": "269.332",
+              "available_at": "2022-02-08"
+            },
+            {
+              "period_end": "2020-11-01",
+              "value": "269.816",
+              "available_at": "2022-02-08"
+            },
+            {
+              "period_end": "2020-12-01",
+              "value": "269.984",
+              "available_at": "2022-02-08"
+            },
+            {
+              "period_end": "2021-01-01",
+              "value": "270.114",
+              "available_at": "2022-02-08"
+            },
+            {
+              "period_end": "2021-02-01",
+              "value": "270.522",
+              "available_at": "2022-02-08"
+            },
+            {
+              "period_end": "2021-03-01",
+              "value": "271.347",
+              "available_at": "2022-02-08"
+            },
+            {
+              "period_end": "2021-04-01",
+              "value": "273.669",
+              "available_at": "2022-02-08"
+            },
+            {
+              "period_end": "2021-05-01",
+              "value": "275.715",
+              "available_at": "2022-02-08"
+            },
+            {
+              "period_end": "2021-06-01",
+              "value": "277.922",
+              "available_at": "2022-02-08"
+            },
+            {
+              "period_end": "2021-07-01",
+              "value": "278.794",
+              "available_at": "2022-02-08"
+            },
+            {
+              "period_end": "2021-08-01",
+              "value": "279.306",
+              "available_at": "2022-02-08"
+            },
+            {
+              "period_end": "2021-09-01",
+              "value": "280.017",
+              "available_at": "2021-10-13"
+            },
+            {
+              "period_end": "2021-10-01",
+              "value": "281.705",
+              "available_at": "2022-02-08"
+            },
+            {
+              "period_end": "2021-11-01",
+              "value": "283.179",
+              "available_at": "2022-02-08"
+            },
+            {
+              "period_end": "2021-12-01",
+              "value": "284.770",
+              "available_at": "2022-02-08"
+            },
+            {
+              "period_end": "2022-01-01",
+              "value": "286.431",
+              "available_at": "2022-02-10"
+            }
+          ]
+        },
+        "CPIAUCSL": {
+          "unit": "index_1982_84_100_sa",
+          "publisher_transform": "index",
+          "observations": [
+            {
+              "period_end": "2020-10-01",
+              "value": "260.352",
+              "available_at": "2022-02-08"
+            },
+            {
+              "period_end": "2020-11-01",
+              "value": "260.721",
+              "available_at": "2022-02-08"
+            },
+            {
+              "period_end": "2020-12-01",
+              "value": "261.564",
+              "available_at": "2022-02-08"
+            },
+            {
+              "period_end": "2021-01-01",
+              "value": "262.200",
+              "available_at": "2022-02-08"
+            },
+            {
+              "period_end": "2021-02-01",
+              "value": "263.346",
+              "available_at": "2022-02-08"
+            },
+            {
+              "period_end": "2021-03-01",
+              "value": "265.028",
+              "available_at": "2022-02-08"
+            },
+            {
+              "period_end": "2021-04-01",
+              "value": "266.727",
+              "available_at": "2022-02-08"
+            },
+            {
+              "period_end": "2021-05-01",
+              "value": "268.599",
+              "available_at": "2022-02-08"
+            },
+            {
+              "period_end": "2021-06-01",
+              "value": "270.955",
+              "available_at": "2022-02-08"
+            },
+            {
+              "period_end": "2021-07-01",
+              "value": "272.184",
+              "available_at": "2022-02-08"
+            },
+            {
+              "period_end": "2021-08-01",
+              "value": "273.092",
+              "available_at": "2022-02-08"
+            },
+            {
+              "period_end": "2021-09-01",
+              "value": "274.214",
+              "available_at": "2022-02-08"
+            },
+            {
+              "period_end": "2021-10-01",
+              "value": "276.590",
+              "available_at": "2022-02-08"
+            },
+            {
+              "period_end": "2021-11-01",
+              "value": "278.524",
+              "available_at": "2022-02-08"
+            },
+            {
+              "period_end": "2021-12-01",
+              "value": "280.126",
+              "available_at": "2022-02-08"
+            },
+            {
+              "period_end": "2022-01-01",
+              "value": "281.933",
+              "available_at": "2022-02-10"
+            }
+          ]
+        },
+        "MEDCPIM158SFRBCLE": {
+          "unit": "percent_change_annual_rate",
+          "publisher_transform": "publisher_transformed_mom_annualized",
+          "observations": [
+            {
+              "period_end": "2020-10-01",
+              "value": "2.01902685688957",
+              "available_at": "2022-02-10"
+            },
+            {
+              "period_end": "2020-11-01",
+              "value": "0.7466587165494201",
+              "available_at": "2022-02-10"
+            },
+            {
+              "period_end": "2020-12-01",
+              "value": "1.94088496978138",
+              "available_at": "2022-02-10"
+            },
+            {
+              "period_end": "2021-01-01",
+              "value": "1.5064750773982298",
+              "available_at": "2022-02-10"
+            },
+            {
+              "period_end": "2021-02-01",
+              "value": "2.4919781210563503",
+              "available_at": "2022-02-10"
+            },
+            {
+              "period_end": "2021-03-01",
+              "value": "2.03573217055215",
+              "available_at": "2022-02-10"
+            },
+            {
+              "period_end": "2021-04-01",
+              "value": "2.74406534454605",
+              "available_at": "2022-02-10"
+            },
+            {
+              "period_end": "2021-05-01",
+              "value": "3.59019900416062",
+              "available_at": "2022-02-10"
+            },
+            {
+              "period_end": "2021-06-01",
+              "value": "3.99408215067745",
+              "available_at": "2022-02-10"
+            },
+            {
+              "period_end": "2021-07-01",
+              "value": "2.76449822278044",
+              "available_at": "2022-02-10"
+            },
+            {
+              "period_end": "2021-08-01",
+              "value": "4.02552264909379",
+              "available_at": "2022-02-10"
+            },
+            {
+              "period_end": "2021-09-01",
+              "value": "4.96883904402985",
+              "available_at": "2022-02-10"
+            },
+            {
+              "period_end": "2021-10-01",
+              "value": "6.25163662369874",
+              "available_at": "2022-02-10"
+            },
+            {
+              "period_end": "2021-11-01",
+              "value": "5.855760303899291",
+              "available_at": "2022-02-10"
+            },
+            {
+              "period_end": "2021-12-01",
+              "value": "5.2758190004058605",
+              "available_at": "2022-02-10"
+            },
+            {
+              "period_end": "2022-01-01",
+              "value": "7.1415250188255195",
+              "available_at": "2022-02-10"
+            }
+          ]
+        },
+        "TRMMEANCPIM158SFRBCLE": {
+          "unit": "percent_change_annual_rate",
+          "publisher_transform": "publisher_transformed_mom_annualized",
+          "observations": [
+            {
+              "period_end": "2020-10-01",
+              "value": "1.13590258476681",
+              "available_at": "2022-02-10"
+            },
+            {
+              "period_end": "2020-11-01",
+              "value": "1.32979133467281",
+              "available_at": "2022-02-10"
+            },
+            {
+              "period_end": "2020-12-01",
+              "value": "2.04839168713447",
+              "available_at": "2022-02-10"
+            },
+            {
+              "period_end": "2021-01-01",
+              "value": "1.44138127241018",
+              "available_at": "2022-02-10"
+            },
+            {
+              "period_end": "2021-02-01",
+              "value": "2.8180186470425896",
+              "available_at": "2022-02-10"
+            },
+            {
+              "period_end": "2021-03-01",
+              "value": "3.1487134688934906",
+              "available_at": "2022-02-10"
+            },
+            {
+              "period_end": "2021-04-01",
+              "value": "4.23106910742135",
+              "available_at": "2022-02-10"
+            },
+            {
+              "period_end": "2021-05-01",
+              "value": "5.0778840444549695",
+              "available_at": "2022-02-10"
+            },
+            {
+              "period_end": "2021-06-01",
+              "value": "5.25301495578454",
+              "available_at": "2022-02-10"
+            },
+            {
+              "period_end": "2021-07-01",
+              "value": "4.76472316683434",
+              "available_at": "2022-02-10"
+            },
+            {
+              "period_end": "2021-08-01",
+              "value": "5.04749802049911",
+              "available_at": "2022-02-10"
+            },
+            {
+              "period_end": "2021-09-01",
+              "value": "5.874184556217751",
+              "available_at": "2022-02-10"
+            },
+            {
+              "period_end": "2021-10-01",
+              "value": "8.753825056860599",
+              "available_at": "2022-02-10"
+            },
+            {
+              "period_end": "2021-11-01",
+              "value": "6.393858948002549",
+              "available_at": "2022-02-10"
+            },
+            {
+              "period_end": "2021-12-01",
+              "value": "5.94174541319368",
+              "available_at": "2022-02-10"
+            },
+            {
+              "period_end": "2022-01-01",
+              "value": "7.8505434773366",
+              "available_at": "2022-02-10"
+            }
+          ]
+        },
+        "CORESTICKM159SFRBATL": {
+          "unit": "percent_change_from_year_ago",
+          "publisher_transform": "publisher_transformed_yoy",
+          "observations": [
+            {
+              "period_end": "2020-10-01",
+              "value": "1.848308",
+              "available_at": "2022-02-10"
+            },
+            {
+              "period_end": "2020-11-01",
+              "value": "1.786708",
+              "available_at": "2022-02-10"
+            },
+            {
+              "period_end": "2020-12-01",
+              "value": "1.694452",
+              "available_at": "2022-02-10"
+            },
+            {
+              "period_end": "2021-01-01",
+              "value": "1.504532",
+              "available_at": "2022-02-10"
+            },
+            {
+              "period_end": "2021-02-01",
+              "value": "1.520784",
+              "available_at": "2022-02-10"
+            },
+            {
+              "period_end": "2021-03-01",
+              "value": "1.694673",
+              "available_at": "2022-02-10"
+            },
+            {
+              "period_end": "2021-04-01",
+              "value": "2.284027",
+              "available_at": "2022-02-10"
+            },
+            {
+              "period_end": "2021-05-01",
+              "value": "2.623896",
+              "available_at": "2022-02-10"
+            },
+            {
+              "period_end": "2021-06-01",
+              "value": "2.604632",
+              "available_at": "2022-02-10"
+            },
+            {
+              "period_end": "2021-07-01",
+              "value": "2.325734",
+              "available_at": "2022-02-10"
+            },
+            {
+              "period_end": "2021-08-01",
+              "value": "2.353165",
+              "available_at": "2022-02-10"
+            },
+            {
+              "period_end": "2021-09-01",
+              "value": "2.649506",
+              "available_at": "2022-02-10"
+            },
+            {
+              "period_end": "2021-10-01",
+              "value": "3.04294",
+              "available_at": "2022-02-10"
+            },
+            {
+              "period_end": "2021-11-01",
+              "value": "3.205069",
+              "available_at": "2022-02-10"
+            },
+            {
+              "period_end": "2021-12-01",
+              "value": "3.467011",
+              "available_at": "2022-02-10"
+            },
+            {
+              "period_end": "2022-01-01",
+              "value": "3.982987642",
+              "available_at": "2022-02-10"
+            }
+          ]
+        },
+        "MICH": {
+          "unit": "percent",
+          "publisher_transform": "level",
+          "observations": [
+            {
+              "period_end": "2020-10-01",
+              "value": "2.6",
+              "available_at": "2020-10-30"
+            },
+            {
+              "period_end": "2020-11-01",
+              "value": "2.8",
+              "available_at": "2020-11-25"
+            },
+            {
+              "period_end": "2020-12-01",
+              "value": "2.5",
+              "available_at": "2020-12-23"
+            },
+            {
+              "period_end": "2021-01-01",
+              "value": "3",
+              "available_at": "2021-01-29"
+            },
+            {
+              "period_end": "2021-02-01",
+              "value": "3.3",
+              "available_at": "2021-02-26"
+            },
+            {
+              "period_end": "2021-03-01",
+              "value": "3.1",
+              "available_at": "2021-03-26"
+            },
+            {
+              "period_end": "2021-04-01",
+              "value": "3.4",
+              "available_at": "2021-04-30"
+            },
+            {
+              "period_end": "2021-05-01",
+              "value": "4.6",
+              "available_at": "2021-05-28"
+            },
+            {
+              "period_end": "2021-06-01",
+              "value": "4.2",
+              "available_at": "2021-06-25"
+            },
+            {
+              "period_end": "2021-07-01",
+              "value": "4.7",
+              "available_at": "2021-07-30"
+            },
+            {
+              "period_end": "2021-08-01",
+              "value": "4.6",
+              "available_at": "2021-08-27"
+            },
+            {
+              "period_end": "2021-09-01",
+              "value": "4.6",
+              "available_at": "2021-10-01"
+            },
+            {
+              "period_end": "2021-10-01",
+              "value": "4.8",
+              "available_at": "2021-10-29"
+            },
+            {
+              "period_end": "2021-11-01",
+              "value": "4.9",
+              "available_at": "2021-11-24"
+            },
+            {
+              "period_end": "2021-12-01",
+              "value": "4.8",
+              "available_at": "2021-12-23"
+            },
+            {
+              "period_end": "2022-01-01",
+              "value": "4.9",
+              "available_at": "2022-01-28"
+            }
+          ]
+        }
+      }
+    },
+    {
+      "id": "nominal_led_by_real_yields",
+      "domain": "rates",
+      "as_of": "2025-01-31",
+      "window": {
+        "first_common_session": "2024-09-03",
+        "last_common_session": "2025-01-30"
+      },
+      "inputs": [
+        {
+          "series_id": "DGS10",
+          "period_end": "2024-09-03",
+          "value": "3.84",
+          "unit": "percent",
+          "publisher_transform": "level",
+          "available_at": "2025-01-31",
+          "causal_role": "curve",
+          "source": "fred",
+          "source_kind": "first_party_publisher",
+          "cost_class": "free_publisher"
+        },
+        {
+          "series_id": "DGS10",
+          "period_end": "2025-01-30",
+          "value": "4.52",
+          "unit": "percent",
+          "publisher_transform": "level",
+          "available_at": "2025-01-31",
+          "causal_role": "curve",
+          "source": "fred",
+          "source_kind": "first_party_publisher",
+          "cost_class": "free_publisher"
+        },
+        {
+          "series_id": "DFII10",
+          "period_end": "2024-09-03",
+          "value": "1.73",
+          "unit": "percent",
+          "publisher_transform": "level",
+          "available_at": "2025-01-31",
+          "causal_role": "decomposition_component",
+          "source": "fred",
+          "source_kind": "first_party_publisher",
+          "cost_class": "free_publisher"
+        },
+        {
+          "series_id": "DFII10",
+          "period_end": "2025-01-30",
+          "value": "2.14",
+          "unit": "percent",
+          "publisher_transform": "level",
+          "available_at": "2025-01-31",
+          "causal_role": "decomposition_component",
+          "source": "fred",
+          "source_kind": "first_party_publisher",
+          "cost_class": "free_publisher"
+        },
+        {
+          "series_id": "T10YIE",
+          "period_end": "2024-09-03",
+          "value": "2.11",
+          "unit": "percent",
+          "publisher_transform": "level",
+          "available_at": "2025-01-31",
+          "causal_role": "decomposition_component",
+          "source": "fred",
+          "source_kind": "first_party_publisher",
+          "cost_class": "free_publisher"
+        },
+        {
+          "series_id": "T10YIE",
+          "period_end": "2025-01-31",
+          "value": "2.42",
+          "unit": "percent",
+          "publisher_transform": "level",
+          "available_at": "2025-01-31",
+          "causal_role": "decomposition_component",
+          "source": "fred",
+          "source_kind": "first_party_publisher",
+          "cost_class": "free_publisher"
+        }
+      ],
+      "derived_from_inputs": {
+        "nominal_change_bp": "68.0",
+        "real_change_bp": "41.0",
+        "breakeven_change_bp": "27.0",
+        "identity_residual_bp": "0.0",
+        "identity_note": "T10YIE is defined by the publisher as DGS10 - DFII10, so this residual is an identity check on the fetch, never evidence about term premium."
+      },
+      "expect": {
+        "attribution": "real_led",
+        "real_share_of_nominal_change": "greater_than_half",
+        "must_not": [
+          "describe_curve_slope_as_term_premium"
+        ],
+        "term_premium_source_required": "cleveland_fed_model",
+        "note": "Both legs move; the engine states the split instead of picking a driver."
+      }
+    },
+    {
+      "id": "supply_pressure_with_neutral_macro",
+      "domain": "rates",
+      "as_of": "2023-11-30",
+      "window": {
+        "first_common_session": "2023-07-03",
+        "last_common_session": "2023-11-29"
+      },
+      "inputs": [
+        {
+          "series_id": "DGS10",
+          "period_end": "2023-07-03",
+          "value": "3.86",
+          "unit": "percent",
+          "publisher_transform": "level",
+          "available_at": "2023-11-30",
+          "causal_role": "curve",
+          "source": "fred",
+          "source_kind": "first_party_publisher",
+          "cost_class": "free_publisher"
+        },
+        {
+          "series_id": "DGS10",
+          "period_end": "2023-11-29",
+          "value": "4.27",
+          "unit": "percent",
+          "publisher_transform": "level",
+          "available_at": "2023-11-30",
+          "causal_role": "curve",
+          "source": "fred",
+          "source_kind": "first_party_publisher",
+          "cost_class": "free_publisher"
+        },
+        {
+          "series_id": "DFII10",
+          "period_end": "2023-07-03",
+          "value": "1.61",
+          "unit": "percent",
+          "publisher_transform": "level",
+          "available_at": "2023-11-30",
+          "causal_role": "decomposition_component",
+          "source": "fred",
+          "source_kind": "first_party_publisher",
+          "cost_class": "free_publisher"
+        },
+        {
+          "series_id": "DFII10",
+          "period_end": "2023-11-29",
+          "value": "2.06",
+          "unit": "percent",
+          "publisher_transform": "level",
+          "available_at": "2023-11-30",
+          "causal_role": "decomposition_component",
+          "source": "fred",
+          "source_kind": "first_party_publisher",
+          "cost_class": "free_publisher"
+        },
+        {
+          "series_id": "T10YIE",
+          "period_end": "2023-07-03",
+          "value": "2.25",
+          "unit": "percent",
+          "publisher_transform": "level",
+          "available_at": "2023-11-30",
+          "causal_role": "decomposition_component",
+          "source": "fred",
+          "source_kind": "first_party_publisher",
+          "cost_class": "free_publisher"
+        },
+        {
+          "series_id": "T10YIE",
+          "period_end": "2023-11-30",
+          "value": "2.23",
+          "unit": "percent",
+          "publisher_transform": "level",
+          "available_at": "2023-11-30",
+          "causal_role": "decomposition_component",
+          "source": "fred",
+          "source_kind": "first_party_publisher",
+          "cost_class": "free_publisher"
+        }
+      ],
+      "derived_from_inputs": {
+        "nominal_change_bp": "41.0",
+        "real_change_bp": "45.0",
+        "breakeven_change_bp": "-4.0",
+        "identity_residual_bp": "0.0",
+        "identity_note": "T10YIE is defined by the publisher as DGS10 - DFII10, so this residual is an identity check on the fetch, never evidence about term premium."
+      },
+      "expect": {
+        "attribution": "real_led",
+        "breakeven_change_is_approximately_zero": true,
+        "contradictions_include": [
+          "supply_pressure_without_macro_confirmation"
+        ],
+        "inflation_state_unchanged_by_this_episode": true,
+        "note": "Nominal rises with inflation compensation flat, so nothing here is evidence about the inflation regime."
+      },
+      "supply_history": {
+        "source": "treasurydirect",
+        "source_kind": "official",
+        "cost_class": "free_official",
+        "unit": "usd_offering_amount",
+        "causal_role": "supply",
+        "note": "New-issue quarterly refunding sizes only; reopenings are excluded because a reopening adds to an existing security and its size is not comparable to a new issue's.",
+        "auctions": {
+          "10-Year": [
+            {
+              "security_term": "10-Year",
+              "auction_date": "2022-02-09",
+              "available_at": "2022-02-02",
+              "offering_amount_usd": "37000000000",
+              "reopening": "No"
+            },
+            {
+              "security_term": "10-Year",
+              "auction_date": "2022-05-11",
+              "available_at": "2022-05-04",
+              "offering_amount_usd": "36000000000",
+              "reopening": "No"
+            },
+            {
+              "security_term": "10-Year",
+              "auction_date": "2022-08-10",
+              "available_at": "2022-08-03",
+              "offering_amount_usd": "35000000000",
+              "reopening": "No"
+            },
+            {
+              "security_term": "10-Year",
+              "auction_date": "2022-11-09",
+              "available_at": "2022-11-02",
+              "offering_amount_usd": "35000000000",
+              "reopening": "No"
+            },
+            {
+              "security_term": "10-Year",
+              "auction_date": "2023-02-08",
+              "available_at": "2023-02-01",
+              "offering_amount_usd": "35000000000",
+              "reopening": "No"
+            },
+            {
+              "security_term": "10-Year",
+              "auction_date": "2023-05-10",
+              "available_at": "2023-05-03",
+              "offering_amount_usd": "35000000000",
+              "reopening": "No"
+            },
+            {
+              "security_term": "10-Year",
+              "auction_date": "2023-08-09",
+              "available_at": "2023-08-02",
+              "offering_amount_usd": "38000000000",
+              "reopening": "No"
+            },
+            {
+              "security_term": "10-Year",
+              "auction_date": "2023-11-08",
+              "available_at": "2023-11-01",
+              "offering_amount_usd": "40000000000",
+              "reopening": "No"
+            }
+          ],
+          "30-Year": [
+            {
+              "security_term": "30-Year",
+              "auction_date": "2022-02-10",
+              "available_at": "2022-02-02",
+              "offering_amount_usd": "23000000000",
+              "reopening": "No"
+            },
+            {
+              "security_term": "30-Year",
+              "auction_date": "2022-05-12",
+              "available_at": "2022-05-04",
+              "offering_amount_usd": "22000000000",
+              "reopening": "No"
+            },
+            {
+              "security_term": "30-Year",
+              "auction_date": "2022-08-11",
+              "available_at": "2022-08-03",
+              "offering_amount_usd": "21000000000",
+              "reopening": "No"
+            },
+            {
+              "security_term": "30-Year",
+              "auction_date": "2022-11-10",
+              "available_at": "2022-11-02",
+              "offering_amount_usd": "21000000000",
+              "reopening": "No"
+            },
+            {
+              "security_term": "30-Year",
+              "auction_date": "2023-02-09",
+              "available_at": "2023-02-01",
+              "offering_amount_usd": "21000000000",
+              "reopening": "No"
+            },
+            {
+              "security_term": "30-Year",
+              "auction_date": "2023-05-11",
+              "available_at": "2023-05-03",
+              "offering_amount_usd": "21000000000",
+              "reopening": "No"
+            },
+            {
+              "security_term": "30-Year",
+              "auction_date": "2023-08-10",
+              "available_at": "2023-08-02",
+              "offering_amount_usd": "23000000000",
+              "reopening": "No"
+            },
+            {
+              "security_term": "30-Year",
+              "auction_date": "2023-11-09",
+              "available_at": "2023-11-01",
+              "offering_amount_usd": "24000000000",
+              "reopening": "No"
+            }
+          ]
+        }
+      }
+    },
+    {
+      "id": "policy_paths_kept_separate",
+      "domain": "rates",
+      "as_of": "2026-08-18",
+      "inputs": [
+        {
+          "path": "actual",
+          "causal_role": "policy_actual",
+          "source": "federal_reserve_fomc",
+          "source_kind": "official",
+          "meeting_date": "2026-07-29",
+          "target_range_lower": "3.5",
+          "target_range_upper": "3.75",
+          "midpoint": "3.625",
+          "action": "Hold",
+          "vote_split": "9-3",
+          "voter_names_stated": false
+        },
+        {
+          "path": "committee_projection",
+          "causal_role": "policy_committee",
+          "source": "federal_reserve_sep",
+          "source_kind": "official",
+          "release_date": "2026-06-17",
+          "federal_funds_rate": [
+            {
+              "horizon": "2026",
+              "median": "3.8",
+              "central_tendency": [
+                "3.6",
+                "4.1"
+              ],
+              "range": [
+                "3.4",
+                "4.4"
+              ],
+              "participant_dots": 5
+            },
+            {
+              "horizon": "2027",
+              "median": "3.6",
+              "central_tendency": [
+                "3.1",
+                "3.9"
+              ],
+              "range": [
+                "2.9",
+                "4.4"
+              ],
+              "participant_dots": 7
+            },
+            {
+              "horizon": "2028",
+              "median": "3.4",
+              "central_tendency": [
+                "3.1",
+                "3.6"
+              ],
+              "range": [
+                "2.9",
+                "3.9"
+              ],
+              "participant_dots": 5
+            },
+            {
+              "horizon": "Longer run",
+              "median": "3.1",
+              "central_tendency": [
+                "3.0",
+                "3.5"
+              ],
+              "range": [
+                "2.9",
+                "3.9"
+              ],
+              "participant_dots": 9
+            }
+          ]
+        },
+        {
+          "path": "market_implied",
+          "causal_role": "policy_market_shadow",
+          "source": "frenzy_capital_fed_watch",
+          "source_kind": "third_party_shadow",
+          "load_bearing": false,
+          "points": [
+            {
+              "meeting_date": "2026-09-16",
+              "implied_rate": "3.7157",
+              "stance": "HOLD",
+              "probabilities": {
+                "Cut 50 bp": "0.0",
+                "Cut 25 bp": "0.0",
+                "Hold": "0.6571",
+                "Hike 25 bp": "0.3429",
+                "Hike 50 bp": "0.0"
+              }
+            },
+            {
+              "meeting_date": "2026-10-28",
+              "implied_rate": "3.77",
+              "stance": "HOLD",
+              "probabilities": {
+                "Cut 50 bp": "0.0",
+                "Cut 25 bp": "0.0",
+                "Hold": "0.7829",
+                "Hike 25 bp": "0.2171",
+                "Hike 50 bp": "0.0"
+              }
+            },
+            {
+              "meeting_date": "2026-12-09",
+              "implied_rate": "3.875",
+              "stance": "HOLD",
+              "probabilities": {
+                "Cut 50 bp": "0.0",
+                "Cut 25 bp": "0.0",
+                "Hold": "0.58",
+                "Hike 25 bp": "0.42",
+                "Hike 50 bp": "0.0"
+              }
+            }
+          ]
+        }
+      ],
+      "derived_from_inputs": {
+        "actual_midpoint": "3.625",
+        "sep_median_end_2026": "3.8",
+        "market_implied_end_2026": "3.875",
+        "committee_vs_market_spread_bp": "7.5",
+        "spread_is_between_forward_paths_only": "The actual midpoint is where rates ARE, not where they are going.  Including it in the spread measures curve slope, not path disagreement.",
+        "arithmetic_mean_of_the_two_paths": "3.8375",
+        "why_the_mean_is_meaningless": "SEP dots fall on an eighth-point grid and market pricing is a probability-weighted contract rate.  Their average is neither: no participant projected it and no contract prices it."
+      },
+      "expect": {
+        "state": "ON_HOLD",
+        "direction": "RISING",
+        "contradictions_exclude": [
+          "policy_paths_disagree"
+        ],
+        "forward_path_spread_bp_below_threshold": true,
+        "paths_reported_separately": [
+          "actual",
+          "committee_projection",
+          "market_implied"
+        ],
+        "must_not": [
+          "average_any_two_policy_paths",
+          "attribute_an_anonymous_sep_dot_to_the_chair",
+          "treat_a_missing_dealer_path_as_a_neutral_vote"
+        ],
+        "market_path_is_load_bearing": false,
+        "note": "The dealer path is absent here.  Its absence must lower confidence and appear in confidence_reasons; it must never be filled by the other three."
+      }
+    },
+    {
+      "id": "absent_period_from_publication_gap",
+      "domain": "inflation",
+      "as_of": "2026-01-15",
+      "target_period": "2025-10-01",
+      "inputs": [
+        {
+          "series_id": "CPIAUCSL",
+          "observed_window": {
+            "2025-06-01": "321.500",
+            "2025-07-01": "322.132",
+            "2025-08-01": "323.364",
+            "2025-09-01": "324.368",
+            "2025-11-01": "325.031",
+            "2025-12-01": "326.030"
+          },
+          "unit": "index_1982_84_100_sa",
+          "causal_role": "realized",
+          "source": "fred",
+          "source_kind": "first_party_publisher",
+          "cost_class": "free_publisher"
+        }
+      ],
+      "derived_from_inputs": {
+        "periods_present": [
+          "2025-06-01",
+          "2025-07-01",
+          "2025-08-01",
+          "2025-09-01",
+          "2025-11-01",
+          "2025-12-01"
+        ],
+        "target_period_present": false,
+        "cause": "no CPI was published for October 2025 (federal government shutdown)"
+      },
+      "expect": {
+        "target_period_state": "INDETERMINATE",
+        "must_not": [
+          "forward_fill_the_missing_period",
+          "substitute_a_different_series_for_the_missing_period",
+          "compute_a_3m_change_spanning_the_hole_and_label_it_3m"
+        ],
+        "confidence_reasons_include": [
+          "required_period_absent_at_as_of"
+        ]
+      },
+      "observation_history": {
+        "CPIAUCSL": {
+          "unit": "index_1982_84_100_sa",
+          "publisher_transform": "index",
+          "observations": [
+            {
+              "period_end": "2025-06-01",
+              "value": "321.500",
+              "available_at": "2025-07-15"
+            },
+            {
+              "period_end": "2025-07-01",
+              "value": "322.132",
+              "available_at": "2025-08-12"
+            },
+            {
+              "period_end": "2025-08-01",
+              "value": "323.364",
+              "available_at": "2025-09-11"
+            },
+            {
+              "period_end": "2025-09-01",
+              "value": "324.368",
+              "available_at": "2025-10-24"
+            },
+            {
+              "period_end": "2025-11-01",
+              "value": "325.031",
+              "available_at": "2025-12-18"
+            },
+            {
+              "period_end": "2025-12-01",
+              "value": "326.030",
+              "available_at": "2026-01-13"
+            }
+          ]
+        }
+      }
+    },
+    {
+      "id": "stale_and_revised_realized_inflation",
+      "domain": "inflation",
+      "as_of": "2024-06-01",
+      "target_period": "2024-01-01",
+      "inputs": [
+        {
+          "series_id": "CPIAUCSL",
+          "period_end": "2024-01-01",
+          "vintages": [
+            {
+              "value": "309.685",
+              "available_at": "2024-02-13",
+              "superseded_at": "2025-02-11"
+            },
+            {
+              "value": "309.794",
+              "available_at": "2025-02-12",
+              "superseded_at": "2026-02-12"
+            },
+            {
+              "value": "309.698",
+              "available_at": "2026-02-13",
+              "superseded_at": "9999-12-31"
+            }
+          ],
+          "unit": "index_1982_84_100_sa",
+          "causal_role": "realized",
+          "source": "fred",
+          "source_kind": "first_party_publisher",
+          "cost_class": "free_publisher"
+        }
+      ],
+      "derived_from_inputs": {
+        "vintage_count": 3,
+        "value_visible_at_as_of": "309.685",
+        "value_visible_today": "309.698"
+      },
+      "expect": {
+        "state_basis_value": "309.685",
+        "must_not_read": "309.698",
+        "confidence_terms": {
+          "revision_penalty": "greater_than_zero"
+        },
+        "confidence_reasons_include": [
+          "load_bearing_input_revised_since_prior_state"
+        ],
+        "note": "A replay must return the vintage in force at as_of, never the current value."
+      }
+    }
+  ]
+}

@@ -36,7 +36,20 @@ def score_group(group: RatesScorecardGroup) -> float | None:
     return round(sum(scores) / len(scores), 2)
 
 
+#: Share of group weight that must carry a score before a duration stance is allowed.
+#: Below it the composite is still computed -- it is the honest mean of what arrived --
+#: but it is not permitted to become a BUY or a SELL.
+DURATION_COVERAGE_FLOOR = 0.5
+
+
 def compute_composite_score(groups: Sequence[RatesScorecardGroup]) -> float | None:
+    """Weighted mean over the groups that reported, renormalised to their weight.
+
+    This renormalisation is why :func:`compute_coverage` exists.  One populated group
+    out of six produces a full-magnitude composite that is indistinguishable from a
+    fully-evidenced one, so the number must always travel with the share of weight
+    behind it.
+    """
     weighted = 0.0
     total_weight = 0.0
     for group in groups:
@@ -47,6 +60,15 @@ def compute_composite_score(groups: Sequence[RatesScorecardGroup]) -> float | No
     if total_weight == 0:
         return None
     return round(weighted / total_weight, 2)
+
+
+def compute_coverage(groups: Sequence[RatesScorecardGroup]) -> float:
+    """Fraction of total group weight that actually carries a score."""
+    total = sum(float(group.weight) for group in groups)
+    if total == 0:
+        return 0.0
+    scored = sum(float(group.weight) for group in groups if group.score is not None)
+    return round(scored / total, 4)
 
 
 def build_scorecard(
@@ -131,9 +153,16 @@ def build_scorecard(
         group.status = "ok" if group.score is not None else "missing"
 
     composite = compute_composite_score(groups)
+    coverage = compute_coverage(groups)
+    missing = [group.label for group in groups if group.score is None]
     return RatesScorecard(
         composite_score=composite,
-        duration_stance=_duration_stance(composite),
+        duration_stance=_duration_stance(composite, coverage),
+        coverage=coverage,
+        coverage_detail=(
+            f"{coverage:.0%} of scorecard weight is scored"
+            + (f"; missing: {', '.join(missing)}" if missing else "")
+        ),
         curve_score=curve_score,
         curve_stance=_curve_stance(curve_score),
         groups=groups,
@@ -180,9 +209,18 @@ def _momentum_score(delta_bps_value: float | None) -> float | None:
     return 0.0
 
 
-def _duration_stance(score: float | None):
+def _duration_stance(score: float | None, coverage: float):
+    """A stance requires evidence; absence of evidence is UNKNOWN, not NEUTRAL.
+
+    Returning NEUTRAL for a missing score rendered "we have nothing" as "we looked and
+    it is balanced" -- the two are opposite claims about how much the reader should
+    trust the number next to them.  Below the coverage floor the composite exists but
+    is not entitled to a direction.
+    """
     if score is None:
-        return "NEUTRAL"
+        return "UNKNOWN"
+    if coverage < DURATION_COVERAGE_FLOOR:
+        return "UNKNOWN"
     if score <= -0.25:
         return "SELL"
     if score >= 0.25:

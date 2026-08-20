@@ -34,6 +34,8 @@ from .health import _HealthMixin
 from .jobs import _JobsMixin
 from .market_data import _MarketDataMixin
 from .macro_context import _MacroContextMixin
+from .macro_domain_state import _MacroDomainStateMixin
+from .macro_series_observations import _MacroSeriesObservationMixin
 from .macro_policy_observations import _MacroPolicyObservationMixin
 from .macro_release_status import _MacroReleaseStatusMixin
 from .matrix_state import _MatrixStateMixin
@@ -122,7 +124,9 @@ class Repository(
     _JobsMixin,
     _MarketDataMixin,
     _MacroContextMixin,
+    _MacroDomainStateMixin,
     _MacroPolicyObservationMixin,
+    _MacroSeriesObservationMixin,
     _MacroReleaseStatusMixin,
     _MatrixStateMixin,
     _OptionSurfaceMixin,

@@ -35,6 +35,7 @@ def _insert_artifact(
     raw_json: dict[str, object] | None = None,
     content_hash: str | None = None,
     content_length: int | None = None,
+    vintage_bearing: bool = False,
 ) -> int:
     raw_json = raw_json or RAW_CPI
     actual_hash, actual_length = macro_artifact_content_identity(raw_json=raw_json)
@@ -52,6 +53,7 @@ def _insert_artifact(
         cost_class=cost_class,
         media_type="application/json",
         content_length=actual_length if content_length is None else content_length,
+        vintage_bearing=vintage_bearing,
         raw_json=raw_json,
     )
 
@@ -1053,7 +1055,11 @@ def test_a_changed_fact_creates_a_second_policy_observation(repo: Repository) ->
     assert created is True
     assert second != first
     assert (
-        len(repo.fetch_macro_observation_history("POLICY_PATH_ACTUAL", date(2026, 4, 29)))
+        len(
+            repo.fetch_macro_observation_history(
+                "POLICY_PATH_ACTUAL", date(2026, 4, 29)
+            )
+        )
         == 2
     )
 
@@ -1194,9 +1200,7 @@ def test_policy_semantic_hash_ignores_the_artifact_and_availability(
     assert macro_policy_semantic_hash(base) == macro_policy_semantic_hash(moved)
     # ...while the general MC0 identity does change, which is why policy needs
     # its own.
-    assert macro_observation_content_hash(base) != macro_observation_content_hash(
-        moved
-    )
+    assert macro_observation_content_hash(base) != macro_observation_content_hash(moved)
 
 
 def test_a_correction_takes_its_own_retrieval_instant_not_the_first_release(
@@ -1249,3 +1253,117 @@ def test_reinserting_identical_bytes_does_not_move_their_availability(
 
     assert again_id == first_id
     assert repo.fetch_macro_artifact(first_id)["available_at"] == released
+
+
+def _vintage_row(
+    artifact_id: int, *, period_end: date, available_at: datetime, value: str
+) -> dict[str, object]:
+    """One ALFRED vintage: a value, and the day the publisher first printed it."""
+    row: dict[str, object] = {
+        "artifact_id": artifact_id,
+        "domain": "inflation",
+        "series_id": "CPIAUCSL",
+        "period_end": period_end,
+        "frequency": "monthly",
+        "unit": "index_1982_84_100_sa",
+        "value_numeric": Decimal(value),
+        "value_text": None,
+        "value_json": None,
+        "source": "fred",
+        "source_record_id": "fred-series:CPIAUCSL",
+        "published_at": available_at,
+        "available_at": available_at,
+        "parser_version": "fred-series-v1",
+        "quality_status": "valid",
+        "cost_class": "free_publisher",
+    }
+    row["content_hash"] = macro_observation_content_hash(row)
+    return row
+
+
+def test_a_vintage_bearing_artifact_does_not_gate_replay_on_its_fetch_time(
+    repo: Repository,
+) -> None:
+    """The bug this pins made every historical replay return nothing at all.
+
+    An ALFRED payload fetched today REPORTS that January 2024 CPI was first published on
+    2024-02-13; it is not that publication, which is why its own ``available_at`` is the
+    fetch time and why migration 126 inverted the WRITE bound for it. The READ path kept
+    the release rule, so ``a.available_at <= as_of`` let a 2026 fetch veto every earlier
+    replay -- and the result looked like missing data rather than a broken query.
+
+    Values are the real CPIAUCSL readings for January 2024: 309.685 as first published,
+    309.698 as it stands after later seasonal-factor revisions.
+    """
+    fetched_at = datetime(2026, 8, 19, 15, 0, tzinfo=UTC)
+    artifact_id = _insert_artifact(
+        repo,
+        source="fred",
+        source_kind="first_party_publisher",
+        source_record_id="fred-series:CPIAUCSL",
+        cost_class="free_publisher",
+        available_at=fetched_at,
+        retrieved_at=fetched_at,
+        raw_json={"series": "CPIAUCSL", "observations": []},
+        vintage_bearing=True,
+    )
+    repo.upsert_macro_series_observations(
+        [
+            _vintage_row(
+                artifact_id,
+                period_end=date(2024, 1, 1),
+                available_at=datetime(2024, 2, 13, 13, 30, tzinfo=UTC),
+                value="309.685",
+            )
+        ],
+        seen_at=fetched_at,
+    )
+
+    replayed = repo.fetch_macro_series_as_of(
+        "CPIAUCSL",
+        datetime(2024, 6, 1, tzinfo=UTC),
+        preferred_sources=("fred",),
+    )
+    assert [row["value_numeric"] for row in replayed] == [Decimal("309.685")]
+
+    # The point-in-time gate itself does not weaken: the vintage is still the bound.
+    before_publication = repo.fetch_macro_series_as_of(
+        "CPIAUCSL",
+        datetime(2024, 2, 1, tzinfo=UTC),
+        preferred_sources=("fred",),
+    )
+    assert before_publication == []
+
+
+def test_a_release_artifact_still_gates_its_own_observations(
+    repo: Repository,
+) -> None:
+    """The control. Relaxing the bound for vintage records must not relax it for releases.
+
+    A statement becomes knowable when it goes up, so nothing parsed out of it may be
+    read at an instant before the artifact itself existed.
+    """
+    published_at = datetime(2026, 2, 12, 13, 30, tzinfo=UTC)
+    artifact_id = _insert_artifact(repo, available_at=published_at)
+    repo.insert_macro_observations(
+        [_observation(artifact_id, available_at=published_at)], seen_at=published_at
+    )
+
+    assert (
+        repo.fetch_macro_series_as_of(
+            "CPI_ALL_ITEMS",
+            datetime(2026, 2, 11, tzinfo=UTC),
+            preferred_sources=("BLS",),
+        )
+        == []
+    )
+    assert (
+        len(
+            repo.fetch_macro_series_as_of(
+                "CPI_ALL_ITEMS",
+                datetime(2026, 3, 1, tzinfo=UTC),
+                preferred_sources=("BLS",),
+            )
+        )
+        == 1
+    )

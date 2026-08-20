@@ -12,8 +12,8 @@
   top: 0;
   z-index: 10;
   display: grid;
-  gap: 20px;
-  padding: 16px 0 12px;
+  gap: 10px;
+  padding: 14px 0 10px;
   margin: 0 auto 18px;
   max-width: 1440px;
   background: var(--bg-base);
@@ -43,10 +43,17 @@
   letter-spacing: 0;
 }
 
+/* Matches the house page header (`.regime-page-header h1` in globals.css):
+   mono, 18px, 600, uppercase, 0.05em. This desk had grown its own 26px/700
+   lockup with a 0.18em wide-tracked subtitle, so /rates announced itself twice
+   as loudly as every other page in the sidebar. */
 .header h1 {
   font-family: var(--font-mono), "IBM Plex Mono", monospace;
-  font-size: 26px;
-  line-height: 1.1;
+  font-size: 18px;
+  font-weight: 600;
+  letter-spacing: 0.05em;
+  text-transform: uppercase;
+  line-height: 1.2;
   white-space: nowrap;
 }
 
@@ -59,16 +66,13 @@
   margin: 0;
   color: var(--text-muted);
   font-family: var(--font-mono), "IBM Plex Mono", monospace;
-  font-size: 12px;
-  font-weight: 700;
-  letter-spacing: 0.18em;
-  text-transform: uppercase;
+  font-size: 11px;
+  font-weight: 400;
+  letter-spacing: 0.04em;
 }
 
 .headerMeta {
-  color: var(--text-secondary);
-  font-size: 12px;
-  letter-spacing: 0.04em;
+  color: var(--text-muted);
   text-align: right;
   white-space: nowrap;
 }
@@ -102,26 +106,26 @@
 
 .nav {
   display: flex;
-  flex-wrap: nowrap;
+  /* Wraps rather than scrolls. The strip used to be `nowrap` + `overflow-x: auto`
+     with the scrollbar hidden, so anything past the viewport edge was reachable
+     only by a horizontal scroll with no affordance saying it was there -- and
+     grouping into five tiers made the strip longer, not shorter. */
+  flex-wrap: wrap;
   justify-content: flex-start;
-  gap: 8px;
-  overflow-x: auto;
-  scrollbar-width: none;
-}
-
-.nav::-webkit-scrollbar {
-  display: none;
+  gap: 4px 8px;
 }
 
 .nav a {
-  color: var(--text-secondary);
+  color: var(--text-muted);
   text-decoration: none;
-  font-size: 13px;
-  font-weight: 700;
+  font-family: var(--font-mono), "IBM Plex Mono", monospace;
+  font-size: 11px;
+  font-weight: 400;
+  letter-spacing: 0.04em;
   border: 1px solid transparent;
   border-radius: 3px;
   background: transparent;
-  padding: 10px 12px;
+  padding: 4px 7px;
   white-space: nowrap;
   transition:
     border-color 160ms var(--ease-out),
@@ -285,7 +289,11 @@
   display: grid;
   grid-template-columns: minmax(320px, 1.4fr) minmax(320px, 0.8fr);
   gap: 16px;
-  align-items: stretch;
+  /* `stretch` made sense while the SVG filled its panel via `flex: 1` and a
+     min-height floor. Now that height comes from the viewBox aspect, stretching
+     leaves the chart panel taller than its own drawing and prints a dead band
+     under the curve. Each cell is as tall as its content. */
+  align-items: start;
 }
 
 .chartPanel,
@@ -341,8 +349,11 @@
 .chartPanel svg {
   display: block;
   width: 100%;
-  flex: 1;
-  min-height: 420px;
+  /* Height comes from the viewBox aspect, nothing else.  `flex: 1` plus a
+     `min-height` floor used to stretch the SVG BOX past its own ratio, and
+     `preserveAspectRatio` then centred the drawing inside it -- the empty band
+     above the plot was letterboxing, not padding.  See ./chartGeometry.ts. */
+  height: auto;
 }
 
 .currentCurve {
@@ -358,6 +369,32 @@
 .monthCurve {
   stroke: var(--text-muted);
   background: var(--text-muted);
+}
+
+/* One release against its own earlier selves. Same three colours as the curve
+   overlay above so "current / previous / older" reads identically on both
+   charts, named for releases because that is what these series are. */
+.releaseCurrent {
+  stroke: var(--positive);
+  background: var(--positive);
+}
+
+.releasePrior {
+  stroke: var(--info);
+  background: var(--info);
+}
+
+.releaseOlder {
+  stroke: var(--text-muted);
+  background: var(--text-muted);
+}
+
+/* The SEP's own prior median needs a colour the dot plot is not already using:
+   the participant dots ARE --info, so drawing the previous median in --info made
+   the legend say "one participant" and "previous median" in the same purple. */
+.sepPriorMedian {
+  stroke: var(--warning);
+  background: var(--warning);
 }
 
 .svgLabel {
@@ -1303,4 +1340,558 @@
   .supplyMetricGrid {
     grid-template-columns: repeat(2, minmax(0, 1fr));
   }
+}
+
+/* ---- Point-in-time domain state (MC2) ---------------------------------- */
+
+.stateBlock {
+  display: grid;
+  gap: 16px;
+}
+
+.stateHero {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: space-between;
+  align-items: flex-start;
+  gap: 20px;
+  padding-bottom: 14px;
+  border-bottom: 1px solid var(--border-dim);
+}
+
+.stateHeadline {
+  display: grid;
+  gap: 6px;
+}
+
+.stateHeadline strong {
+  font-family: var(--font-mono), "IBM Plex Mono", monospace;
+  font-size: 30px;
+  letter-spacing: 0.5px;
+  color: var(--text-primary);
+}
+
+.stateDirection {
+  font-family: var(--font-mono), "IBM Plex Mono", monospace;
+  font-size: 12px;
+  letter-spacing: 1.5px;
+  text-transform: uppercase;
+}
+
+.stateMeta {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 22px;
+  margin: 0;
+}
+
+.stateMeta dt,
+.stateRows dt,
+.stateFooter,
+.stateEmptyNote,
+.legacyBanner,
+.pathIntro,
+.pathQuestion,
+.pathProvenance,
+.pathFreshness,
+.pathNote,
+.pathSourceKind {
+  font-family: var(--font-mono), "IBM Plex Mono", monospace;
+  font-size: 10px;
+  letter-spacing: 1.5px;
+  text-transform: uppercase;
+  color: var(--text-muted);
+}
+
+.stateMeta dd {
+  margin: 4px 0 0;
+  font-family: var(--font-mono), "IBM Plex Mono", monospace;
+  font-size: 16px;
+  color: var(--text-primary);
+}
+
+.stateColumns {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(260px, 1fr));
+  gap: 14px;
+}
+
+.statePanel {
+  border: 1px solid var(--border-dim);
+  border-radius: 4px;
+  padding: 14px;
+}
+
+.statePanel h3 {
+  font-size: 13px;
+  margin: 0 0 10px;
+  color: var(--text-secondary);
+}
+
+.stateRows {
+  display: grid;
+  gap: 10px;
+  margin: 0;
+}
+
+.stateRows div {
+  display: grid;
+  gap: 3px;
+}
+
+.stateRows dt small {
+  display: block;
+  text-transform: none;
+  letter-spacing: 0.5px;
+  color: var(--text-muted);
+}
+
+.stateRows dd {
+  margin: 0;
+  font-size: 13px;
+  color: var(--text-primary);
+}
+
+.stateContradictions {
+  list-style: none;
+  display: grid;
+  gap: 8px;
+  margin: 0;
+  padding: 0;
+}
+
+.stateContradictions li {
+  display: grid;
+  gap: 3px;
+  padding: 8px 10px;
+  border-left: 2px solid var(--warning);
+  background: rgba(233, 168, 62, 0.06);
+  font-size: 13px;
+  color: var(--text-primary);
+}
+
+.stateContradictions strong {
+  font-family: var(--font-mono), "IBM Plex Mono", monospace;
+  font-size: 10px;
+  letter-spacing: 1.5px;
+  text-transform: uppercase;
+  color: var(--warning);
+}
+
+.stateNotes {
+  list-style: none;
+  display: grid;
+  gap: 6px;
+  margin: 0;
+  padding: 0;
+  font-size: 13px;
+  color: var(--text-secondary);
+}
+
+.stateEmptyNote {
+  text-transform: none;
+  letter-spacing: 0.3px;
+  font-size: 12px;
+  line-height: 1.5;
+}
+
+.stateFooter a {
+  color: var(--accent-bg);
+}
+
+.stateMissing {
+  display: grid;
+  gap: 6px;
+  padding: 18px;
+  border: 1px dashed var(--border-dim);
+  border-radius: 4px;
+}
+
+.stateMissing strong {
+  font-family: var(--font-mono), "IBM Plex Mono", monospace;
+  font-size: 18px;
+  color: var(--text-secondary);
+}
+
+.stateMissing p {
+  font-size: 13px;
+  color: var(--text-muted);
+  line-height: 1.5;
+  margin: 0;
+}
+
+.legacyBanner {
+  text-transform: none;
+  letter-spacing: 0.3px;
+  font-size: 11px;
+  padding: 7px 10px;
+  border: 1px dashed var(--border-dim);
+  border-radius: 3px;
+  color: var(--text-muted);
+}
+
+/* ---- Four policy paths, four lanes ------------------------------------- */
+
+.pathComparison {
+  display: grid;
+  gap: 14px;
+}
+
+.pathIntro {
+  text-transform: none;
+  letter-spacing: 0.3px;
+  font-size: 12px;
+}
+
+.pathLanes {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+  gap: 12px;
+  align-items: start;
+}
+
+.pathLane {
+  display: grid;
+  gap: 8px;
+  padding: 14px;
+  border: 1px solid var(--border-dim);
+  border-radius: 4px;
+}
+
+.pathLane[data-path-status="unavailable"],
+.pathLane[data-path-status="rejected"] {
+  border-style: dashed;
+}
+
+.pathLaneTop {
+  display: flex;
+  justify-content: space-between;
+  align-items: baseline;
+  gap: 10px;
+}
+
+.pathLaneTop h3 {
+  font-size: 14px;
+  margin: 0;
+}
+
+.pathQuestion,
+.pathProvenance {
+  text-transform: none;
+  letter-spacing: 0.3px;
+  font-size: 11px;
+  margin: 0;
+}
+
+.pathPoints {
+  list-style: none;
+  display: grid;
+  gap: 8px;
+  margin: 0;
+  padding: 0;
+}
+
+.pathPoints li {
+  display: grid;
+  gap: 2px;
+  padding-top: 8px;
+  border-top: 1px solid var(--border-dim);
+}
+
+.pathPoints span {
+  font-family: var(--font-mono), "IBM Plex Mono", monospace;
+  font-size: 10px;
+  letter-spacing: 1.5px;
+  text-transform: uppercase;
+  color: var(--text-muted);
+}
+
+.pathPoints strong {
+  font-family: var(--font-mono), "IBM Plex Mono", monospace;
+  font-size: 17px;
+  color: var(--text-primary);
+}
+
+.pathPoints small {
+  font-size: 11px;
+  color: var(--text-secondary);
+  line-height: 1.45;
+}
+
+.pathNote,
+.pathMissing,
+.pathRejected {
+  text-transform: none;
+  letter-spacing: 0.3px;
+  font-size: 11px;
+  line-height: 1.5;
+  margin: 0;
+  color: var(--text-muted);
+}
+
+.pathRejected {
+  padding: 8px 10px;
+  border-left: 2px solid var(--negative);
+  background: rgba(214, 85, 85, 0.07);
+  color: var(--text-primary);
+}
+
+.pathFreshness {
+  text-transform: none;
+  letter-spacing: 0.3px;
+  font-size: 10px;
+  margin: 0;
+  padding-top: 8px;
+  border-top: 1px solid var(--border-dim);
+}
+
+/* --- Policy path charts (SEP dot plot, dealer survey path) ------------------ */
+
+.pathChartBlock {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.svgAxisLabel {
+  fill: var(--text-secondary);
+  font-size: 12px;
+  font-weight: 600;
+}
+
+.sepDot {
+  fill: var(--info);
+  fill-opacity: 0.85;
+}
+
+.sepBand {
+  fill: var(--info);
+  fill-opacity: 0.1;
+  stroke: var(--info);
+  stroke-opacity: 0.3;
+}
+
+.sepMedian {
+  stroke: var(--text-primary);
+  stroke-width: 3;
+  stroke-linecap: round;
+}
+
+.sepMedianLabel {
+  fill: var(--text-primary);
+  font-size: 11px;
+  font-weight: 600;
+}
+
+.sepDotSwatch {
+  width: 10px;
+  height: 10px;
+  border-radius: 50%;
+  background: var(--info);
+}
+
+.sepMedianSwatch {
+  width: 22px;
+  height: 3px;
+  border-radius: 2px;
+  background: var(--text-primary);
+}
+
+.sepBandSwatch {
+  width: 16px;
+  height: 12px;
+  border-radius: 2px;
+  background: var(--info);
+  opacity: 0.25;
+}
+
+.dealerBand {
+  fill: var(--positive);
+  fill-opacity: 0.14;
+  stroke: var(--positive);
+  stroke-opacity: 0.28;
+}
+
+.dealerMedian {
+  stroke: var(--positive);
+}
+
+.dealerDot {
+  fill: var(--positive);
+}
+
+.dealerMedianSwatch {
+  width: 22px;
+  height: 3px;
+  border-radius: 2px;
+  background: var(--positive);
+}
+
+.dealerBandSwatch {
+  width: 16px;
+  height: 12px;
+  border-radius: 2px;
+  background: var(--positive);
+  opacity: 0.3;
+}
+
+/* Confidence, inline under the number it explains, rather than a third sub-card
+   competing with Velocity and Contradictions for the same visual weight. */
+.confidenceStrip {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  gap: 8px 18px;
+  padding: 10px 14px;
+  border: 1px solid var(--border-dim);
+  border-radius: 4px;
+  background: var(--bg-panel);
+}
+
+.confidenceStripLabel {
+  font-family: var(--font-mono), "IBM Plex Mono", monospace;
+  font-size: 10px;
+  letter-spacing: 1.5px;
+  text-transform: uppercase;
+  color: var(--text-muted);
+}
+
+.confidenceDrag,
+.confidenceNote {
+  display: inline-flex;
+  align-items: baseline;
+  gap: 6px;
+  font-size: 12px;
+  color: var(--text-secondary);
+}
+
+.confidenceDrag strong {
+  font-family: var(--font-mono), "IBM Plex Mono", monospace;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  font-size: 11px;
+  color: var(--warning);
+}
+
+.confidenceNote strong {
+  font-family: var(--font-mono), "IBM Plex Mono", monospace;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  font-size: 11px;
+  color: var(--text-muted);
+}
+
+.confidenceDrag small,
+.confidenceNote small {
+  font-size: 11px;
+  color: var(--text-muted);
+}
+
+/* Tier bands. The desk is read top-down as answer -> publishers -> market ->
+   mechanics -> provenance, and these are the only headings that say so. */
+.tier {
+  margin: 34px 0 -6px;
+  padding-bottom: 8px;
+  border-bottom: 1px solid var(--border-dim);
+}
+
+.tier:first-of-type {
+  margin-top: 12px;
+}
+
+.tierTitle {
+  margin: 0;
+  font-family: var(--font-mono), "IBM Plex Mono", monospace;
+  font-size: 13px;
+  letter-spacing: 2.5px;
+  text-transform: uppercase;
+  color: var(--positive);
+}
+
+.tierLede {
+  margin: 4px 0 0;
+  font-size: 12px;
+  color: var(--text-muted);
+}
+
+.navGroup {
+  display: inline-flex;
+  align-items: baseline;
+  gap: 10px;
+  padding-right: 14px;
+  margin-right: 4px;
+  border-right: 1px solid var(--border-dim);
+}
+
+.navGroup:last-child {
+  border-right: none;
+}
+
+.navGroupLabel {
+  font-weight: 600;
+  color: var(--text-secondary) !important;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+}
+
+/* The two plotting publishers, side by side inside the policy-paths section but
+   in separate frames -- one shared axis would read as a comparison. */
+.pathPlots {
+  display: grid;
+  grid-template-columns: 1fr;
+  gap: 26px;
+  margin-top: 24px;
+}
+
+.pathPlot > h3 {
+  margin: 0 0 10px;
+  font-family: var(--font-mono), "IBM Plex Mono", monospace;
+  font-size: 12px;
+  letter-spacing: 1.5px;
+  text-transform: uppercase;
+  color: var(--text-secondary);
+}
+
+/* A charted lane's headline, in place of re-listing every horizon the plot draws. */
+.pathSummary {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  gap: 4px 10px;
+  padding-top: 8px;
+}
+
+.pathSummaryHorizon {
+  font-family: var(--font-mono), "IBM Plex Mono", monospace;
+  font-size: 10px;
+  letter-spacing: 1.5px;
+  text-transform: uppercase;
+  color: var(--text-muted);
+  flex-basis: 100%;
+}
+
+.pathSummaryValue {
+  font-family: var(--font-mono), "IBM Plex Mono", monospace;
+  font-size: 22px;
+  font-weight: 700;
+  color: var(--text-primary);
+}
+
+.pathSummaryLink {
+  font-size: 11px;
+  color: var(--positive);
+  text-decoration: none;
+}
+
+.pathSummaryLink:hover {
+  text-decoration: underline;
+}
+
+/* Why a lane's newest release predates the newest FOMC decision. Muted: it explains
+   an expected gap, it does not report a fault. */
+.pathBehind {
+  margin: 6px 0 0;
+  font-size: 11px;
+  line-height: 1.4;
+  color: var(--text-muted);
 }

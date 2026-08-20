@@ -1,15 +1,20 @@
+import { DealerPathChart } from "./DealerPathChart";
+import { PolicyPathComparison } from "./PolicyPathComparison";
 import { RatesCurveChart } from "./RatesCurveChart";
 import styles from "./RatesDesk.module.css";
 import { RatesScorecard } from "./RatesScorecard";
-import { RatesSection } from "./RatesSection";
+import { RatesSection, RatesTier } from "./RatesSection";
+import { SepDotPlot } from "./SepDotPlot";
 import { fmtSigned, fmtValue, statusLabel, toFiniteNumber } from "./format";
 import { DecompositionSection } from "./sections/DecompositionSection";
 import { PolicySection } from "./sections/PolicySection";
 import { PositioningSection } from "./sections/PositioningSection";
+import { StateSection } from "./sections/StateSection";
 import { SupplySection } from "./sections/SupplySection";
 import type {
   Decomposition,
   Policy,
+  PolicyComparison,
   Positioning,
   Scorecard,
   SlopeMetric,
@@ -18,17 +23,63 @@ import type {
   Supply,
 } from "./types";
 
+/**
+ * The desk in reading order: the answer, who said it, what the market pays, the
+ * plumbing underneath, and finally where it all came from.
+ *
+ * Grouped rather than flat because the old fifteen-item strip ordered panels by
+ * nothing at all -- "Scorecard" (experimental legacy) sat between "Decomp" and
+ * "Policy" with the same weight as the state itself.
+ */
 const NAV = [
-  ["summary", "Summary"],
-  ["curve", "Curve"],
-  ["decomp", "Decomp"],
-  ["scorecard", "Scorecard"],
-  ["policy", "Policy"],
-  ["supply", "Supply"],
-  ["positioning", "Positioning"],
-  ["cross", "Cross-Market"],
-  ["events", "Events"],
-  ["synthesis", "View"],
+  {
+    id: "tier-answer",
+    tier: "The answer",
+    lede: "What this desk says about policy right now, and how sure it is.",
+    items: [["state", "State"]],
+  },
+  {
+    id: "tier-publishers",
+    tier: "Who says what",
+    lede: "Each publisher on its own axes, and how far it has moved since its last release.",
+    items: [
+      ["paths", "Four lanes"],
+      ["sep-plot", "Dot plot"],
+      ["dealer-plot", "Dealer path"],
+    ],
+  },
+  {
+    id: "tier-market",
+    tier: "What the market prices",
+    lede: "The traded curve, its slopes, and what moved them.",
+    items: [
+      ["summary", "Summary"],
+      ["curve", "Curve"],
+      ["decomp", "Decomposition"],
+    ],
+  },
+  {
+    id: "tier-mechanics",
+    tier: "Mechanics",
+    lede: "The plumbing a rates view stands on: policy settings, issuance, positioning, cross-market.",
+    items: [
+      ["policy", "Policy"],
+      ["supply", "Supply"],
+      ["positioning", "Positioning"],
+      ["cross", "Cross-market"],
+    ],
+  },
+  {
+    id: "tier-provenance",
+    tier: "Provenance and legacy",
+    lede: "Where the numbers came from, and the older rule score kept for comparison only.",
+    items: [
+      ["events", "Events"],
+      ["sources", "Sources"],
+      ["scorecard", "Scorecard"],
+      ["synthesis", "View"],
+    ],
+  },
 ] as const;
 
 const FED_BOARD_SERIES = new Set([
@@ -146,6 +197,10 @@ function stanceDescription(
   stance: string,
   fallback: string | undefined,
 ): string {
+  // UNKNOWN is checked before the fallback: the synthesis sentence is generated from
+  // the same composite and must not narrate a lean the stance has already refused.
+  if (kind === "duration" && stance === "UNKNOWN")
+    return fallback ?? "Not enough scored inputs to take a duration view.";
   if (fallback) return fallback;
   if (kind === "duration") {
     if (stance === "BUY") return "Rule score favors owning duration.";
@@ -191,7 +246,7 @@ function SummaryStances({
   synthesis: Snapshot["synthesis"];
 }) {
   return (
-    <div className={styles.stanceGrid}>
+    <div className={styles.stanceGrid} data-testid="legacy-stance-grid">
       <StanceCard
         label="Duration stance"
         kind="duration"
@@ -199,7 +254,7 @@ function SummaryStances({
         description={stanceDescription(
           "duration",
           scorecard.duration_stance,
-          synthesis?.duration_view,
+          synthesis?.duration_view ?? scorecard.coverage_detail ?? undefined,
         )}
       />
       <StanceCard
@@ -230,9 +285,8 @@ function slopeInterpretation(slope: SlopeMetric): string {
   if (slope.label === "3m10y") {
     if (value < 0)
       return "Front-end inversion warns policy is restrictive versus long growth pricing.";
-    if (value < 50)
-      return "Term premium is modest; curve is only lightly positive from bills to 10Y.";
-    return "Long end is clearly above bills; easing or term premium pressure is visible.";
+    if (value < 50) return "Curve is only lightly positive from bills to 10Y.";
+    return "Long end is clearly above bills; the bills-to-10Y spread is wide.";
   }
   if (value < 0)
     return "Inverted spread; front end is leading and duration risk is defensive.";
@@ -240,15 +294,24 @@ function slopeInterpretation(slope: SlopeMetric): string {
     return "Flat positive spread; curve has limited carry cushion.";
   if (value < 90)
     return "Normal positive slope; long-end yield pickup is meaningful.";
-  return "Steep spread; long-end supply, inflation, or term premium is dominating.";
+  return "Steep spread; the long end is well above the front end.";
 }
+
+// A slope is the difference between two traded yields and nothing else.  Naming it a
+// term premium promotes a shape into an estimate of compensation for duration risk,
+// which only a model can produce -- here, the Cleveland Fed's, whose figure appears in
+// the decomposition section with its own vintage and its own uncertainty.
 
 export function RatesDesk({
   snapshot,
   errorMessage,
+  policyComparison,
+  policyComparisonError,
 }: {
   snapshot: Snapshot | null;
   errorMessage?: string;
+  policyComparison?: PolicyComparison | null;
+  policyComparisonError?: string;
 }) {
   if (!snapshot) {
     const hasError = Boolean(errorMessage);
@@ -256,7 +319,9 @@ export function RatesDesk({
       <div className={styles.page}>
         <div className={styles.emptyState}>
           <p className={styles.eyebrow}>US Rates Factor Desk</p>
-          <h1>{hasError ? "Rates API unavailable" : "Rates snapshot not computed"}</h1>
+          <h1>
+            {hasError ? "Rates API unavailable" : "Rates snapshot not computed"}
+          </h1>
           <p>
             {hasError
               ? errorMessage
@@ -281,8 +346,10 @@ export function RatesDesk({
     status: "missing",
   }) as Positioning;
   const cross = snapshot.cross_market;
+  // UNKNOWN, not NEUTRAL: an absent scorecard is the absence of a view, and
+  // "NEUTRAL" is a view.
   const scorecard = snapshot.scorecard ?? {
-    duration_stance: "NEUTRAL",
+    duration_stance: "UNKNOWN",
     curve_stance: "NEUTRAL",
     groups: [],
   };
@@ -301,22 +368,63 @@ export function RatesDesk({
             </h1>
             <p>Treasury Factor Board</p>
           </div>
-          <p className={styles.headerMeta}>
-            {snapshotMeta(snapshot)}
-          </p>
+          <p className={styles.headerMeta}>{snapshotMeta(snapshot)}</p>
         </div>
         <nav className={styles.nav} aria-label="Rates sections">
-          {NAV.map(([id, label]) => (
-            <a
-              key={id}
-              href={`#${id}`}
-              className={id === "summary" ? styles.navActive : undefined}
-            >
-              {label}
-            </a>
+          {NAV.map((group) => (
+            <span key={group.id} className={styles.navGroup}>
+              <a href={`#${group.id}`} className={styles.navGroupLabel}>
+                {group.tier}
+              </a>
+              {group.items.map(([id, label]) => (
+                <a key={id} href={`#${id}`}>
+                  {label}
+                </a>
+              ))}
+            </span>
           ))}
         </nav>
       </header>
+
+      <RatesTier id="tier-answer" title="The answer" lede="What this desk says about policy right now, and how sure it is." />
+
+      <RatesSection
+        id="state"
+        title="Policy / Rates State"
+        eyebrow="Point-in-time evidence"
+      >
+        <StateSection state={snapshot.state} />
+      </RatesSection>
+
+      <RatesTier id="tier-publishers" title="Who says what" lede="Each publisher on its own axes, and how far it has moved since its last release." />
+
+      <RatesSection
+        id="paths"
+        title="Policy Paths"
+      >
+        <PolicyPathComparison
+          comparison={policyComparison}
+          errorMessage={policyComparisonError}
+        />
+
+        {/* The two publishers that plot, inside the same section as the four lanes
+            they belong to -- they ARE two of those lanes, and splitting them into
+            sibling sections asked the reader to hold that connection themselves.
+            Still two blocks with two sets of axes: sharing a frame would draw a
+            comparison this desk refuses to make. */}
+        <div className={styles.pathPlots}>
+          <div id="sep-plot" className={styles.pathPlot}>
+            <h3>Committee projection (SEP)</h3>
+            <SepDotPlot slot={policyComparison?.committee_projection} />
+          </div>
+          <div id="dealer-plot" className={styles.pathPlot}>
+            <h3>Dealer expectations</h3>
+            <DealerPathChart slot={policyComparison?.dealer_expectations} />
+          </div>
+        </div>
+      </RatesSection>
+
+      <RatesTier id="tier-market" title="What the market prices" lede="The traded curve, its slopes, and what moved them." />
 
       <RatesSection id="summary" title="Summary" eyebrow="Live FRED curve">
         <div className={styles.summaryStack}>
@@ -325,6 +433,10 @@ export function RatesDesk({
               <Tile key={tile.label} tile={tile} />
             ))}
           </div>
+          <p className={styles.legacyBanner}>
+            Experimental legacy · the stances below come from the rule score, not
+            from the state above.
+          </p>
           <SummaryStances
             scorecard={scorecard}
             synthesis={snapshot.synthesis}
@@ -340,7 +452,11 @@ export function RatesDesk({
         <RatesCurveChart points={curve.points ?? []} />
         <div className={styles.slopeCards}>
           {(curve.slopes ?? []).map((slope) => (
-            <article key={slope.label} className={styles.slopeCard}>
+            <article
+              key={slope.label}
+              className={styles.slopeCard}
+              data-testid="slope-card"
+            >
               <span>{slope.label}</span>
               <strong>{fmtValue(slope.value_bps, "bps", 1)}</strong>
               <p>{slopeInterpretation(slope)}</p>
@@ -355,9 +471,7 @@ export function RatesDesk({
         slopes={curve.slopes ?? []}
       />
 
-      <RatesSection id="scorecard" title="Scorecard" eyebrow="Rule weights">
-        <RatesScorecard scorecard={scorecard} />
-      </RatesSection>
+      <RatesTier id="tier-mechanics" title="Mechanics" lede="The plumbing a rates view stands on: policy settings, issuance, positioning, cross-market." />
 
       <RatesSection
         id="policy"
@@ -394,6 +508,8 @@ export function RatesDesk({
           ))}
         </div>
       </RatesSection>
+
+      <RatesTier id="tier-provenance" title="Provenance and legacy" lede="Where the numbers came from, and the older rule score kept for comparison only." />
 
       <RatesSection
         id="events"
@@ -435,6 +551,15 @@ export function RatesDesk({
         </div>
       </RatesSection>
 
+      <RatesSection
+        id="scorecard"
+        title="Scorecard"
+        eyebrow="Rule weights"
+        status="Experimental legacy"
+      >
+        <RatesScorecard scorecard={scorecard} />
+      </RatesSection>
+
       <RatesSection id="synthesis" title="Synthesis">
         <div className={styles.synthesis}>
           <p>{snapshot.synthesis.duration_view}</p>
@@ -444,6 +569,34 @@ export function RatesDesk({
           ))}
         </div>
       </RatesSection>
+
+      {/* Two publishers, two blocks, two sets of axes. Plotted rather than listed
+          because the point of each release is its dispersion, and a column of medians
+          is the one view that hides it. Kept apart because a shared frame would read
+          as a comparison the desk refuses to make. */}
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
     </div>
   );
 }

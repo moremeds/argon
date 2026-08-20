@@ -202,6 +202,15 @@ class Settings(BaseModel):
     macro_sep_ingest_enabled: bool = False
     macro_sme_ingest_enabled: bool = False
     macro_market_shadow_ingest_enabled: bool = False
+    # MC2 vintage-bearing series evidence + the domain-state engines that read it.
+    # Off until an environment has a FRED key and has run the series backfill: a state
+    # job with no evidence abstains, which is correct but not worth scheduling.
+    macro_series_ingest_enabled: bool = False
+    macro_state_compute_enabled: bool = False
+    # Dual-read: attach the policy/rates domain state to the legacy rates snapshot.
+    # Separate from the compute flag so the state can accrue a history before the
+    # surface that reads it changes shape.
+    rates_snapshot_state_block_enabled: bool = False
     # WGC Goldhub authenticated downloads. Keep secrets in environment only.
     wgc_goldhub_cookie: SecretStr | None = None
     wgc_etf_flows_workbook_path: str = ""
@@ -711,6 +720,15 @@ class Settings(BaseModel):
             ),
             macro_market_shadow_ingest_enabled=_env_bool(
                 "UW_SCAN_MACRO_MARKET_SHADOW_INGEST_ENABLED", False
+            ),
+            macro_series_ingest_enabled=_env_bool(
+                "UW_SCAN_MACRO_SERIES_INGEST_ENABLED", False
+            ),
+            macro_state_compute_enabled=_env_bool(
+                "UW_SCAN_MACRO_STATE_COMPUTE_ENABLED", False
+            ),
+            rates_snapshot_state_block_enabled=_env_bool(
+                "UW_SCAN_RATES_SNAPSHOT_STATE_BLOCK_ENABLED", False
             ),
             wgc_goldhub_cookie=(
                 SecretStr(_wgc_cookie)
