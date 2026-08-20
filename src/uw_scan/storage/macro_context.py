@@ -20,7 +20,7 @@ from uw_scan.macro_evidence import (
 #:
 #: A release gates the facts it carries: the FOMC statement became knowable when it went
 #: up, so nothing parsed out of it was knowable earlier.  A vintage-bearing artifact
-#: inverts that, exactly as migration 124 says on the write side -- an ALFRED payload
+#: inverts that, exactly as migration 126 says on the write side -- an ALFRED payload
 #: fetched today REPORTS that January 2024 CPI was first published on 2024-02-13; it is
 #: not that publication.  Gating those rows on when we happened to fetch them re-imposes
 #: the rule 124 removed, and does it silently: every historical replay returns zero rows

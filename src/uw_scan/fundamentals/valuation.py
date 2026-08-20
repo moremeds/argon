@@ -102,6 +102,50 @@ LEVEL_ORDER = ("buy_below", "observe_low", "observe_mid", "observe_high", "risk_
 #: which assumption it is standing on.
 UNCLASSIFIED = "unclassified"
 
+#: Deposit- and funding-financed balance sheets: banks, brokers, consumer
+#: lenders, and the asset-management and payment names that share their sector.
+#:
+#: This type deliberately has NO entry in `TYPE_YIELD`, and the absence is the
+#: decision. Every yield here is denominated in enterprise value, and
+#: `EV = market cap + net debt` treats net debt as a CLAIM ON operating assets.
+#: For a deposit-funded firm funding IS the business, and the vendor `debt` field
+#: does not carry deposits at all — so `debt - cash` measures neither leverage nor
+#: anything else stable, and inverting a yield through it yields a price that
+#: means nothing.
+#:
+#: Measured 2026-08-19 over the 11 financials then in the panel
+#: (`docs/research/2026-08-19-valuation-refusal-anatomy/`): `net_debt/market_cap`
+#: ran -0.07 (COF) to 1.73 (GS), straddling the whole non-financial distribution
+#: (p50 0.05, p99 4.72, max 21.61). Five of the eleven were handed a
+#: `medium`-confidence band and six refused — the SAME business model reaching
+#: both outcomes, decided by which side of a numeric guard the name landed on.
+#: That spread is also why no `net_debt` threshold can stand in for the label: one
+#: catching GS/BAC/WFC/JPM also catches EIX, EXC, AES, BXP and ARE, whose EV
+#: yields are legitimate, while missing COF, BLK, SOFI and AXP entirely.
+#:
+#: Any name landing in this type is refused, asset-light ones included, and that
+#: is the intended direction of error: a refusal says "no band", a wrong band
+#: says "buy below 268.92".
+#:
+#: The way out is not an exception to this rule. Every method that breaks here is
+#: EV-denominated; `fcf_yield` divides by MARKET CAP and never reads `net_debt`
+#: (see `EV_DENOMINATED`), so a name routed to `platform_scale` is priced by
+#: something this refusal never covered. PYPL is routed that way for exactly that
+#: reason — `TICKER_TO_TYPE` in the anchors job carries the measurement. A
+#: per-name correction with no such argument belongs in a `manual` assignment,
+#: which `assign` already protects from reseeding.
+FINANCIALS = "financials"
+
+#: Stated on the card verbatim. A refusal that only said "no band" would read as
+#: missing data, and someone would eventually "fix" it by routing the type to a
+#: yield — which is precisely the bug this replaces.
+FINANCIALS_REFUSAL = (
+    "no valuation band for a deposit-funded balance sheet: every method here "
+    "prices a company through its enterprise value, and for a bank, broker or "
+    "lender the funding is the business rather than a claim against it, so "
+    "enterprise value is not a meaningful denominator"
+)
+
 #: `company_type` -> the yield its band is built from. Values are the measured
 #: signals; the comment on each is its market-neutral 2q IC.
 TYPE_YIELD: dict[str, str] = {
@@ -359,8 +403,13 @@ def build_anchors(
     populated `confidence_reasons`, never a silent empty band: the card's job is
     to say what it lacks, and a missing block reads as "nothing to say".
     """
-    method = TYPE_YIELD.get(company_type)
     reasons: list[str] = []
+    if company_type == FINANCIALS:
+        # Before the TYPE_YIELD lookup, and with its own reason: falling through
+        # to "unknown company_type financials" would read as a routing bug and
+        # invite someone to close it by adding a yield.
+        return _no_anchor(ticker, company_type, None, [FINANCIALS_REFUSAL])
+    method = TYPE_YIELD.get(company_type)
     if method is None:
         return _no_anchor(
             ticker, company_type, None, [f"unknown company_type {company_type}"]

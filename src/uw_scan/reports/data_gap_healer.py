@@ -476,6 +476,22 @@ REGISTRY: list[DatasetRegistryEntry] = [
         source_system="multi-source",
     ),
     DatasetRegistryEntry(
+        "company_sector",
+        "fundamentals",
+        "operational_state",
+        expected_frequency="liveness",
+        provider="uw",
+        source_system="uw",
+        reason=(
+            "a per-ticker cache of the vendor's current sector, used only to route "
+            "company_type. `fetched_at` records when we last ASKED, not when a fact "
+            "was true, so there is no per-date series to be missing and nothing to "
+            "backfill; a stale row self-heals on the next monthly fill and a name "
+            "absent from it simply routes to the pooled default, exactly as before "
+            "the table existed"
+        ),
+    ),
+    DatasetRegistryEntry(
         "macro_source_status",
         "macro_evidence",
         "operational_state",
@@ -509,7 +525,7 @@ REGISTRY: list[DatasetRegistryEntry] = [
             "witness it; synthesizing a link would fabricate evidence"
         ),
     ),
-    # Domain states and their evidence (migration 123). A state records what we
+    # Domain states and their evidence (migration 125). A state records what we
     # concluded at an instant and which observations we concluded it from. Recomputing
     # one is a job, never a heal: the database refuses rewrites outright, and a healer
     # that invented a missing state would be asserting a past decision nobody made.

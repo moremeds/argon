@@ -197,9 +197,12 @@ state engines` commit.
 
 Deviations from the plan as written, with the reason each was taken.
 
-1. **Task 5 migration number: `116` → `123`.** The plan reserved 116; 116..122 were claimed by
-   intervening work (`116_macro_source_status` through `122_revenue_breakdown_obs`) before this task
-   started. The reservation moved rather than the file being renumbered into a duplicate prefix.
+1. **Task 5 migration number: `116` → `123` → `125`.** The plan reserved 116; 116..122 were claimed
+   by intervening work (`116_macro_source_status` through `122_revenue_breakdown_obs`) before this
+   task started, and 123/124 were claimed by `company_sector` and
+   `valuation_anchors_method_nullable` on main while this branch was open. Renumbered again at merge
+   rather than landing a duplicate prefix. The number is a shared namespace with no reservation
+   mechanism, so a long-lived branch should expect to renumber at merge, not at authoring time.
 
 2. **Task 5 landed in new modules instead of extending `macro_context.py`.** That module was already
    604 lines — past the repo's 500-line target — and domain states are a different seam from artifact
@@ -224,7 +227,7 @@ Deviations from the plan as written, with the reason each was taken.
    stored rows back into `DomainObservation` needs the causal role and publisher transform,
    neither of which is a column, and both jobs plus any future domain need the same mapping.
 
-5. **Migration `124` was not planned; it splits an availability bound that migration 115
+5. **Migration `126` was not planned; it splits an availability bound that migration 115
    states as universal.** 115 refuses any observation that became available before the
    artifact carrying it — correct for a release, and backwards for a vintage record, whose
    entire product is reporting today when a value was published in the past. Enforced in a
@@ -488,7 +491,7 @@ satisfies it.
 The most serious finding, and the one that made the branch's headline claim false.
 
 A FRED series query is a rolling read, so its artifact's `available_at` is correctly the
-fetch time. Migration 124 exists precisely because those bytes *report* a publication
+fetch time. Migration 126 exists precisely because those bytes *report* a publication
 history rather than *being* one, and it inverted the availability rule on the **write**
 side. The **read** side kept the release rule:
 

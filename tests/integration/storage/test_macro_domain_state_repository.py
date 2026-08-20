@@ -1,4 +1,4 @@
-"""Persistence contract for macro domain states (migration 123).
+"""Persistence contract for macro domain states (migration 125).
 
 A state is a claim about a moment: "core PCE was WELL_ABOVE_TARGET and falling on
 2023-07-28, and here is how much of what we would need to know we actually had."  Storing

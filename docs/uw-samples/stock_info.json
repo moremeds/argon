@@ -1,0 +1,28 @@
+{
+  "endpoint": "/api/stock/JPM/info",
+  "params": {},
+  "captured_at": "2026-08-20",
+  "response": {
+    "data": {
+      "symbol": "JPM",
+      "logo": "https://storage.googleapis.com/uwassets/logos/JPM.png",
+      "beta": "0.7952",
+      "full_name": "JPMORGAN CHASE",
+      "sector": "Financial Services",
+      "issue_type": "Common Stock",
+      "marketcap_size": "big",
+      "has_options": true,
+      "outstanding": "2658186195",
+      "announce_time": "unknown",
+      "marketcap": "965586135334",
+      "next_earnings_date": "2026-10-13",
+      "uw_tags": [],
+      "avg30_volume": "6496942.909090909091",
+      "short_name": "JPMORGAN CHASE",
+      "short_description": "JPMorgan Chase & Co. is an American multinational financial services firm headquartered in New York City and incorporated in Delaware. It is the ...",
+      "has_investment_arm": true,
+      "has_dividend": true,
+      "has_earnings_history": true
+    }
+  }
+}

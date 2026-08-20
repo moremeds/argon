@@ -60,7 +60,7 @@ version in lockstep (enforced by `scripts/release/version_sync_check.py`).
 - **Treasury supply, positioning and plumbing are separate factors with their own
   freshness**, so a blended technicals score can no longer hide which one is stale.
 - **Domain states are persisted with the exact observations they stood on**
-  (migration `123`, `macro_domain_states` + `macro_domain_state_evidence`). Evidence
+  (migration `125`, `macro_domain_states` + `macro_domain_state_evidence`). Evidence
   rows carry real `obs_id` foreign keys, and the database refuses any evidence that
   became available after the state's `as_of` — lookahead is rejected below the
   application, not merely avoided by it. A state is identified by its method
@@ -87,7 +87,7 @@ version in lockstep (enforced by `scripts/release/version_sync_check.py`).
   carrying it, because one request returns the whole history: under an identity that
   includes `artifact_id`, a single new monthly print would re-write every unchanged
   month beside it.
-- **Migration `124` splits the availability bound in two.** An artifact that *is* a
+- **Migration `126` splits the availability bound in two.** An artifact that *is* a
   release (an FOMC statement) still cannot carry an observation older than itself. An
   artifact that *reports* a publication history (an ALFRED response) may: its whole
   product is telling us today that January 2024 CPI was first published on 2024-02-13,
@@ -119,60 +119,6 @@ version in lockstep (enforced by `scripts/release/version_sync_check.py`).
   withholds their numbers and says why rather than trusting that upstream never emits
   one. A market-implied lane additionally carries its third-party-shadow label and its
   delay status.
-
-- **Revenue concentration on the Fundamentals tab — where a company's revenue
-  actually comes from, by reportable segment and by geography.** NVDA reads 91.3%
-  Compute & Networking and 78.1% United States; the share, the member name and
-  the multi-year trend all come from the filer's own XBRL disaggregation. The
-  block is **descriptive and says so on screen**: no rank, no percentile against
-  other names, no score, and no contribution to the composite. Measured over 401
-  tickers the top share moves a median 1.20pp per quarter against basis
-  contamination of median 2.5pp and p90 17.5pp — the level survives that noise
-  and is near-static, which makes it a factor loading rather than alpha. The
-  spec's 0.10 composite weight for `concentration_risk` is withdrawn, and its
-  `✅ 24/25` coverage claim corrected to the measured 184/401 by segment and
-  128/401 by geography — the earlier figure counted tickers for which the
-  endpoint returned rows, which is presence, not computability.
-- **Member names render exactly as filed** — `country:US`, `nvda:ChinaIncludingHongKongMember`.
-  Mapping those to flags or country names would mean inventing a taxonomy the
-  filer did not use. An absent family renders `na`, never 0: a zero share reads
-  as "no concentration risk", which is a claim about the company rather than
-  about our coverage.
-- **Annual figures are detected and excluded from the trend, and named rather
-  than hidden.** Filers mix an annual total into a quarterly breakdown series,
-  and an undetected one moves the share by several times its own quarterly step.
-  Detection compares a period against its four nearest neighbours rather than
-  against the ticker's lifetime median — over NVDA's 25-period history revenue
-  grows 26×, so a recent *quarterly* total clears 2.5× a lifetime median on
-  growth alone. On the frozen fixtures the local rule flags 7 of 7 annual periods
-  with no false positives, against 3 of 6 with 3 false positives for the global
-  one, and the periods it drops land exactly on each filer's fiscal year-end.
-- **New monthly capture job** `fundamental_concentration_capture` (04:10 ET on
-  the 3rd, uw-0, `UW_SCAN_FUNDAMENTAL_CONCENTRATION_CAPTURE_ENABLED`, default on)
-  writing `revenue_breakdown_obs` (migration 122). Raw rows are stored, never the
-  derived share: the derivation rules are new and one has already been corrected
-  once against real data, so re-deriving from stored rows must stay possible
-  while re-fetching a rolled-off quarter may not be. Identity is content-hash,
-  matching migration 114 — an unchanged recapture bumps `last_seen_at` and writes
-  no fact, a restatement lands beside its predecessor. First run: 63,567 rows
-  over 400 names spanning 2019-09-30 to 2026-07-05.
-- **Scanner gains a `Value` sub-tab — every name currently sitting at or below
-  its own `buy_below` level.** `valuation_anchors` had exactly one read path
-  (`latest_for_ticker`), so the one fundamental signal in the stack that
-  measured — `sales_to_ev` against a name's OWN history, market-neutral 2q IC
-  +0.0744 (t 5.77) — could only be seen by a reader who already suspected the
-  name. On 2026-08-17, 98 of 336 banded names were inside their own buy zone and
-  no screen in the product showed them. `GET /api/scanner/value` reads the warm
-  store only: zero UW calls, zero IB calls.
-  **The list is unranked by construction and says so on screen.** Ranking names
-  against each other on value measured *inverted* in this universe
-  (`book_to_price` 2q IC -0.0365, t -2.32), so ordering by cheapness would point
-  at the half of the panel that then underperforms. Rows are ordered
-  newly-entered first, then alphabetically, and the endpoint takes no `sort`
-  parameter. `entered` is three-state: a name with no prior band inside the
-  30-day lookback reads `null` (unknown), never `true` — on 2026-08-17 that was
-  29 names, all of them present because the panel widened from 256 to 414 three
-  days earlier rather than because a price moved.
 
 ### Changed
 
@@ -336,56 +282,105 @@ version in lockstep (enforced by `scripts/release/version_sync_check.py`).
 - **Vintage replay lost a full day at every changeover.** FRED's `realtime_end` is the
   last day a value *was* current, inclusive; treating it as exclusive erased each
   vintage for its final day, so a replay landing on 2025-02-11 returned no CPI at all.
-- **A refused valuation band no longer reports itself as having no data.**
-  `_no_anchor` hardcoded `history_quarters: 0`, so NVDA's card read `0q` beside a
-  refusal caused by twenty quarters of FCF yield spanning 17x — the data is there
-  and its spread *is* the finding, but the header sent readers hunting a data gap
-  that does not exist. A refusal now carries the window it was taken on, and
-  stays 0 only for the three gates that fire before any history is read (unknown
-  company type, suppressed or non-positive numerator). `ANCHOR_RULES_REV` goes
-  2 → 3 with it: no threshold moved, but what a refusal row *says* did, and the
-  identity key is `ON CONFLICT DO NOTHING`.
-- **The refusal reason leads the panel instead of sitting under an explainer for
-  a band that was never drawn.** The header paragraph teaches how to read five
-  levels and a spot marker; on a refusal none of them are on screen, and it
-  pushed the one sentence that answers "where is the band?" below three lines of
-  prose. It is now omitted on a refusal.
-- **A marginal width refusal no longer contradicts itself.** AVGO spans 4.04x
-  against a 4.0x limit and `:.0f` rendered "spans 4x". Precision now follows the
-  number — the coarsest that still reads above the limit — and the message names
-  the window it actually measured rather than interpolating `WINDOW_QUARTERS`
-  regardless.
-- **"too unstable to anchor a price to" is withdrawn from the width refusal**,
-  because the gate never measured instability. A band spans 17x either because
-  the yield swings — genuinely unsettled — or because it walks one way and stays
-  there, which is a window straddling two valuation regimes and the *opposite* of
-  unstable. The refusal now reports the measured shape: `valuation.yield_drift`,
-  the rank correlation of a name's own yield against time over the band's own
-  window. Of 13 names refused on width, 7 are one-way walks (GE −0.96, AVGO
-  −0.90, LRCX −0.85, MSTR −0.83 as the multiple expanded; DIS +0.81, NVDA +0.68,
-  NFLX +0.66 as the fundamental outgrew the price) and only RIOT, APLD and ACRE
-  swing. **The 4x threshold is unchanged** — the same probe shows shape does not
-  separate wide bands from narrow ones as a population (monotone share 38% vs
-  36%, Mann-Whitney on rho p=0.16), so it licenses a better sentence, not a
-  looser gate. Probe: `scripts/research/valuation_band_width_anatomy.py`.
-- **Full-watchlist survey behind all four** (`docs/research/2026-08-18-valuation-band-refusal/`,
-  reproduce with `scripts/research/valuation_band_survey.py`): of 145 operating
-  companies on the watchlist, 54 render a band, 17 are scored and refused, and
-  **74 have no statements ingested at all** — the dominant gap is coverage, not
-  the band. Those 74 are pending rather than broken: the universe widening
-  shipped in v0.12.5 and `fundamental_ingest` is monthly on the 2nd, so it does
-  not execute until 2026-09-02 unless the seed and backfill are run by hand.
-  AMZN's refusal is verified true — TTM operating cashflow 161.4B against 173.0B
-  of capex at 2026-06-30, free cash flow of −11.6B.
 
-- **`valuation_anchors.as_of` is the spot date, not the compute date**, and the
-  docstring that said otherwise is corrected. The job is healthy — 2 of 2
-  scheduled runs since the v0.12.0 deploy wrote rows, the last at its exact 18:20
-  ET slot — but a health check of the form `max(as_of) >= today` is unsatisfiable
-  by construction: `as_of` is the last bar in the ticker's price series, and the
-  lake lands a session's close around midnight New York, hours after the run.
-  Check `max(computed_at)` for liveness and compare `max(as_of)` against the
-  lake's own last close for correctness.
+## [0.12.9] — 2026-08-20
+
+
+### Added
+
+- **Vendor sector fill for `company_type` routing** (`company_sector`, migration
+  123; job `company_sector_refresh`, 04:40 ET **daily**, uw-0, gated
+  `UW_SCAN_COMPANY_SECTOR_REFRESH_ENABLED` default **on**). Of the 450 universe
+  names, 185 carry an argon chain sector and 4 more are reachable through
+  `research_universe`; **265 carry none** — including AXP, COF and FLG, three of
+  the financials above, so no chain rule can reach them. One UW call per ticker,
+  once per ticker — the whole universe on the first run, not only the sectorless
+  names, because the chain map is prefix-matched and a name carrying a sector it
+  has no rule for (`Consumer`, `Healthcare`) still falls through to the vendor
+  pass. A vendor reply with no sector is stored as NULL so it is never re-asked.
+  Daily rather than monthly like its uw-0 siblings, because this fills a cache
+  instead of accruing a series: it asks only names with no row, so the first run
+  costs one call per universe ticker and **every run after it costs zero**. The
+  cadence therefore buys the table being populated the morning after deploy
+  rather than up to 31 days later, a newly-admitted name being routed the next
+  night, and a provider failure retrying tomorrow instead of next month.
+  Deliberately NOT fetched inside `fundamental_refresh`, whose documented
+  property is that the whole nightly chain costs zero provider spend.
+  The vendor vocabulary gets its **own** map: it collides with argon's chain
+  taxonomy on `Energy`, which means power generation in one (routing to
+  `power_infra`/EV-EBITDA) and oil and gas in the other.
+
+- **`valuation_anchors` rejects a methodless row that carries a price**
+  (`valuation_anchors_methodless_is_refusal`, migration 124). Making `method`
+  nullable opened a state nothing else checked: `method` NULL with a real
+  `buy_below` clears the `buy_below IS NOT NULL` filter in `GET
+  /api/scanner/value`, reaches a non-nullable model field, and fails response
+  validation — 500-ing the endpoint for **every** name in the list, not just the
+  malformed one. In the schema rather than in `build_anchors`, on the same
+  argument migration 118 gives for `valuation_anchors_band_ascends`: the builder
+  is one writer among the backfills still to come.
+
+- **Scanner gains a `Value` sub-tab — every name currently sitting at or below
+  its own `buy_below` level.** `valuation_anchors` had exactly one read path
+  (`latest_for_ticker`), so the one fundamental signal in the stack that
+  measured — `sales_to_ev` against a name's OWN history, market-neutral 2q IC
+  +0.0744 (t 5.77) — could only be seen by a reader who already suspected the
+  name. On 2026-08-17, 98 of 336 banded names were inside their own buy zone and
+  no screen in the product showed them. `GET /api/scanner/value` reads the warm
+  store only: zero UW calls, zero IB calls.
+  **The list is unranked by construction and says so on screen.** Ranking names
+  against each other on value measured *inverted* in this universe
+  (`book_to_price` 2q IC -0.0365, t -2.32), so ordering by cheapness would point
+  at the half of the panel that then underperforms. Rows are ordered
+  newly-entered first, then alphabetically, and the endpoint takes no `sort`
+  parameter. `entered` is three-state: a name with no prior band inside the
+  30-day lookback reads `null` (unknown), never `true` — on 2026-08-17 that was
+  29 names, all of them present because the panel widened from 256 to 414 three
+  days earlier rather than because a price moved.
+
+### Fixed
+
+- **Deposit-funded financials were handed an arbitrary valuation band instead of
+  an honest refusal.** `company_type` routing had no rule for banks, so all 11
+  financials in the panel fell through to the pooled-universe default
+  (`sales_to_ev`). Every yield there is denominated in enterprise value, and
+  `EV = market cap + net debt` treats net debt as a claim on operating assets —
+  for a bank, broker or lender the funding IS the business, and the vendor `debt`
+  field does not carry deposits at all. The result was not a wrong number but an
+  arbitrary one: measured 2026-08-17, **AXP, BLK, COF, MS and SOFI were rendering
+  a `medium`-confidence band** (AXP "buy below 268.92") while **BAC, GS, JPM,
+  WFC, HOOD and FLG refused** — the same business model reaching both outcomes
+  depending on which side of a numeric guard it landed on. `net_debt/market_cap`
+  over those 11 ran -0.07 (COF) to 1.73 (GS) against a non-financial
+  distribution of p50 0.05 / max 21.61, so no threshold could have separated
+  them: one catching GS/BAC/WFC/JPM also catches EIX, EXC, AES, BXP and ARE,
+  whose EV yields are legitimate. They now route to a `financials` type that has
+  no yield **by design** and persists a refusal saying so. Method and
+  measurement: `docs/research/2026-08-19-valuation-refusal-anatomy/`.
+- **A refusal is now persisted rather than the ticker being skipped.** An
+  unrouted ticker wrote no row, and the card's no-row branch reads "it has no
+  `company_type`, so no valuation method is routed to it — a gap in our
+  coverage, not a judgement about the company". For a bank every clause of that
+  is false. `valuation_anchors.method` becomes nullable (migration 124) to carry
+  the state migration 118 could not express: refused because NO method applies,
+  rather than refused under one. A sentinel string was rejected — it would read
+  like a method in `METHOD_LABEL` lookups and in the card header.
+- **PYPL keeps its band, through a market-cap method rather than an exemption.**
+  Its chain sector is `Fintech` and its vendor sector `Financial Services`, so
+  both routing passes independently sent it to the refusal — correctly, about its
+  balance sheet: PayPal holds custodial customer balances and runs a BNPL credit
+  book. But every method that breaks for a financial is EV-denominated, and
+  `fcf_yield` divides by market cap and never reads `net_debt`, so the
+  contamination cannot reach that band at all. A one-entry `TICKER_TO_TYPE`
+  override, checked ahead of both sector passes, routes it to `platform_scale`.
+  Measured on the mini against the deployed engine: **0 of the trailing 20
+  quarters carry non-positive TTM free cash flow**, and the band lands at
+  `confidence: high` with no caveats (buy below 79.40, spot 60.43) against
+  `medium` plus a "no sector on file" caveat under the pooled default it had.
+  The override writes `seeded`, so a DB-level `manual` assignment still overrules
+  it. A test pins that every override routes to a market-cap method — an entry
+  pointing at an EV-denominated type would look deliberate while its entire
+  justification had evaporated.
 - **`valuation_anchors.as_of` is the SPOT date, not the compute date** — two
   comments (`worker/jobs/fundamental_refresh.py`, `worker/scheduler.py`) said
   otherwise and contradicted the authoritative docstring in
@@ -410,7 +405,6 @@ version in lockstep (enforced by `scripts/release/version_sync_check.py`).
   20-quarter name can only step by 0.05. BAX read 0.80 on both dates while its
   spot went 26.73 → 25.91 and crossed its own `buy_below` of 26.54 — which is
   why the new tab keys membership on the band and not on the percentile.
-
 ## [0.12.8] — 2026-08-19
 
 

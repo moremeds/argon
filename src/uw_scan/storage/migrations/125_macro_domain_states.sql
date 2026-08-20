@@ -1,4 +1,4 @@
--- 123_macro_domain_states.sql — versioned macro domain states and their exact evidence.
+-- 125_macro_domain_states.sql — versioned macro domain states and their exact evidence.
 --
 -- A state is a claim ("inflation is COOLING, falling, and we know 0.62 of what we would
 -- need to know") and a claim is only worth keeping if it can be argued with later. So the

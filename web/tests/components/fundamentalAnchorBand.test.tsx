@@ -203,6 +203,45 @@ describe("FundamentalAnchorBand", () => {
     for (const r of reasons) expect(container.textContent).toContain(r);
   });
 
+  it("renders a methodless refusal without a dangling separator", () => {
+    // JPM's real shape after the 2026-08-19 routing fix. `financials` carries NO
+    // method: the refusal is that none applies, because every yield here is
+    // denominated in enterprise value and for a deposit-funded balance sheet
+    // that is not a meaningful denominator. The header used to interpolate the
+    // method unconditionally, so a null printed as "financials ·  · 20q" — an
+    // empty segment that reads as a missing value rather than an absent concept.
+    const { container } = render(
+      <FundamentalAnchorBand
+        a={band({
+          company_type: "financials",
+          method: null,
+          buy_below: null,
+          observe_low: null,
+          observe_mid: null,
+          observe_high: null,
+          risk_above: null,
+          spot: 360.96,
+          spot_percentile: null,
+          confidence: "none",
+          confidence_reasons: [
+            "no valuation band for a deposit-funded balance sheet: every method " +
+              "here prices a company through its enterprise value, and for a " +
+              "bank, broker or lender the funding is the business rather than a " +
+              "claim against it, so enterprise value is not a meaningful " +
+              "denominator",
+          ],
+        })}
+      />,
+    );
+    const text = container.textContent ?? "";
+    expect(text).toMatch(/financials/);
+    expect(text).toMatch(/funding is the business/);
+    // The type is followed straight by the window — no empty method segment.
+    expect(text).toMatch(/financials · 20q/);
+    expect(text).not.toMatch(/· +·/);
+    expect(screen.getByText("No band.")).toBeTruthy();
+  });
+
   it("keeps an out-of-band spot on screen", () => {
     // Spot far below the whole band must not be clipped to the left edge, which
     // would read as "at the boundary" — the opposite of what out-of-band means.

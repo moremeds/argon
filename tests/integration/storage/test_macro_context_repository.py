@@ -1288,7 +1288,7 @@ def test_a_vintage_bearing_artifact_does_not_gate_replay_on_its_fetch_time(
 
     An ALFRED payload fetched today REPORTS that January 2024 CPI was first published on
     2024-02-13; it is not that publication, which is why its own ``available_at`` is the
-    fetch time and why migration 124 inverted the WRITE bound for it. The READ path kept
+    fetch time and why migration 126 inverted the WRITE bound for it. The READ path kept
     the release rule, so ``a.available_at <= as_of`` let a 2026 fetch veto every earlier
     replay -- and the result looked like missing data rather than a broken query.
 
