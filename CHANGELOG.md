@@ -186,17 +186,24 @@ version in lockstep (enforced by `scripts/release/version_sync_check.py`).
 
 ### Fixed
 
-- **The whole legacy rates lane had been frozen since mid-June, and the cause was a
-  proxy.** `FredProvider` and the Cleveland Fed, CFTC and Treasury clients all built
-  `httpx.Client()` without `trust_env=False`, unlike every macro source added
+- **Four rates clients inherited ambient proxy config, freezing the entire lane on any
+  macOS host.** `FredProvider` and the Cleveland Fed, CFTC and Treasury clients all
+  built `httpx.Client()` without `trust_env=False`, unlike every macro source added
   alongside them (`fomc_statement`, `fed_sep_provider`, `fomc_calendar`, `nyfed_sme`
-  all pass it). httpx reads a macOS system HTTPS proxy even when the `*_PROXY`
-  environment variables are unset, so the TLS handshake to `api.stlouisfed.org` died
-  with `SSL: UNEXPECTED_EOF_WHILE_READING`, the job correctly refused to publish a
-  snapshot without a Treasury curve, and every table behind `/rates` silently stopped
-  advancing — observations, auctions and CFTC positioning all last moved 2026-06-09
-  to 06-15 while the header honestly reported a two-month-old `as_of` that nothing
-  flagged. With the four clients no longer inheriting ambient proxy config the run
+  all pass it). `trust_env` falls through to `urllib.request.getproxies()`, which on
+  macOS reads the system network pane — so unsetting `HTTPS_PROXY` does not disable it
+  — and the TLS handshake to `api.stlouisfed.org` died with
+  `SSL: UNEXPECTED_EOF_WHILE_READING`. The job then correctly refused to publish a
+  snapshot without a Treasury curve, so every table behind `/rates` stopped advancing
+  at once: observations, auctions and CFTC positioning last moved 2026-06-09 to 06-15
+  while the header honestly reported a two-month-old `as_of` that nothing flagged.
+
+  **The deployed stack was never affected and its data has no gap** — the mini's
+  workers run in Linux containers, where `getproxies()` reads environment variables
+  only and the container has none, so `rates_observations` carries all 31 series for
+  every month from May through August. What the bug hit was every *native* macOS run:
+  the whole dev loop, and any out-of-band `uv run` script on the mini itself, where
+  `getproxies()` does return the host's proxy. Measured on the local database, the run
   goes from 11 required series failing to `failed_series=[]`, 4712 observations, and
   the snapshot advances 2026-06-12 → 2026-08-18.
 
