@@ -7,6 +7,9 @@ version in lockstep (enforced by `scripts/release/version_sync_check.py`).
 
 ## [Unreleased]
 
+## [0.12.10] — 2026-08-20
+
+
 ### Added
 
 - **A dozen dealer surveys instead of one, and both policy-path charts now show
@@ -289,7 +292,6 @@ version in lockstep (enforced by `scripts/release/version_sync_check.py`).
 - **Vintage replay lost a full day at every changeover.** FRED's `realtime_end` is the
   last day a value *was* current, inclusive; treating it as exclusive erased each
   vintage for its final day, so a replay landing on 2025-02-11 returned no CPI at all.
-
 ## [0.12.9] — 2026-08-20
 
 
