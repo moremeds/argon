@@ -189,6 +189,10 @@ class _CftcTffProvider:
                 commodity_name="T-NOTES, 6.5-10 YEAR",
                 tenor_bucket="10Y",
                 obs_date=date(2026, 5, 19),
+                # CFTC's own load instant, not a schedule rule. This week the retired
+                # obs_date+3d derivation happened to agree; the Juneteenth week in
+                # tests/unit/sources/test_cftc_tff.py is the one where it did not.
+                release_at=datetime(2026, 5, 22, 19, 30, 55, 580000, tzinfo=UTC),
                 release_date=date(2026, 5, 22),
                 open_interest=Decimal("4544233"),
                 dealer_long=Decimal("416965"),
@@ -223,20 +227,26 @@ class _TreasurySupplyProvider:
 
     def fetch_recent_auctions(self, *, start=None):
         return [
+            # Treasury's real 30-year new issue of 2026-08-13, fetched 2026-08-21.
+            # The values this replaced were invented -- 912810UL0 is a 20-Year first
+            # sold at $16bn, and Treasury held no auction at all on 2026-05-14.
             TreasuryAuctionRow(
-                cusip="912810UL0",
+                cusip="912810UW6",
                 security_type="Bond",
                 security_term="30-Year",
-                auction_date=date(2026, 5, 14),
-                issue_date=date(2026, 5, 15),
+                instrument_type="Bond",
+                auction_date=date(2026, 8, 13),
+                announcement_date=date(2026, 8, 5),
+                reopening=False,
+                issue_date=date(2026, 8, 17),
                 offering_amount=Decimal("25000000000"),
-                high_rate=Decimal("5.046"),
-                bid_to_cover=Decimal("2.30"),
-                direct_bidder_pct=Decimal("20.3"),
-                indirect_bidder_pct=Decimal("56.5"),
-                primary_dealer_pct=Decimal("23.2"),
+                high_rate=Decimal("5.2160"),
+                bid_to_cover=Decimal("2.390000"),
+                direct_bidder_pct=Decimal("17.2"),
+                indirect_bidder_pct=Decimal("53.1"),
+                primary_dealer_pct=Decimal("9.2"),
                 tail_indicator="long-end",
-                source_url="https://fiscaldata.treasury.gov/static-data/published-reports/auctions-query/results/R_20260514_1.pdf",
+                source_url="https://fiscaldata.treasury.gov/static-data/published-reports/auctions-query/results/R_20260813_3.pdf",
             )
         ]
 
@@ -261,12 +271,12 @@ def test_rates_job_requires_fred_api_key(migrated_settings: Settings):
 
 
 def test_rates_job_history_start_includes_ytd_anchor_buffer():
-    assert _history_start_for_snapshot(
-        date(2026, 5, 20), lookback_days=45
-    ) == date(2025, 12, 18)
-    assert _history_start_for_snapshot(
-        date(2026, 1, 10), lookback_days=45
-    ) == date(2025, 11, 26)
+    assert _history_start_for_snapshot(date(2026, 5, 20), lookback_days=45) == date(
+        2025, 12, 18
+    )
+    assert _history_start_for_snapshot(date(2026, 1, 10), lookback_days=45) == date(
+        2025, 11, 26
+    )
 
 
 def test_rates_job_persists_observations_and_snapshot(migrated_settings: Settings):
@@ -304,9 +314,7 @@ def test_rates_job_persists_observations_and_snapshot(migrated_settings: Setting
     )
     assert row["payload"]["positioning"]["status"] == "ok"
     assert row["payload"]["positioning"]["details"][0]["contract_code"] == "043602"
-    assert (
-        row["payload"]["positioning"]["details"][0]["lev_money_net_pct_oi"] == -26.3
-    )
+    assert row["payload"]["positioning"]["details"][0]["lev_money_net_pct_oi"] == -26.3
     assert "CFTC TFF" in row["payload"]["positioning"]["positioning_read"]
     assert row["payload"]["supply"]["status"] == "ok"
     assert row["payload"]["supply"]["recent_auctions"][0]["security_term"] == "30-Year"
@@ -337,7 +345,9 @@ def test_rates_job_keeps_raw_observations_when_snapshot_build_fails(
     def fail_snapshot(*_args, **_kwargs):
         raise ValueError("snapshot assembler failed")
 
-    monkeypatch.setattr("uw_scan.worker.jobs.rates_jobs.build_rates_snapshot", fail_snapshot)
+    monkeypatch.setattr(
+        "uw_scan.worker.jobs.rates_jobs.build_rates_snapshot", fail_snapshot
+    )
 
     with pytest.raises(ValueError, match="snapshot assembler failed"):
         rates_fred_ingest_job(

@@ -7,6 +7,63 @@ version in lockstep (enforced by `scripts/release/version_sync_check.py`).
 
 ## [Unreleased]
 
+### Fixed
+
+- **The rates positioning table has been claiming CFTC data was knowable before it was
+  published.** `sources/cftc_tff.py` derived each report's release date as `report_date +
+  3 days`. Measured against Socrata's own `:created_at` over 205 releases, that rule is
+  wrong on 36 of them (17.6%) and **always early** — not one error is conservative. The
+  large ones are not holidays: they are two publication outages, the ION Markets incident
+  from 2023-01-31 and the government-funding lapse from 2025-09-30, where the rule claims
+  data was knowable up to **47 days** before it existed, for ten consecutive weeks each.
+  A holiday calendar cannot fix that, because an outage is not on a calendar; nor can a
+  fixed release time, because 15:30 ET is 19:30Z or 20:30Z depending on daylight saving
+  and the observed instants split 120/69 across the two. The derivation is gone and the
+  publisher's own load instant takes its place. Anything that backtested
+  `rates_cftc_tff_weekly` positioned on reports that had not been published, and the error
+  was largest exactly when positioning data matters most.
+
+- **A unit-test fixture was asserting auction values the publisher never printed.**
+  `tests/unit/sources/test_treasury_supply.py` claimed 912810UL0 was a 30-Year at $25bn
+  auctioned 2026-05-14 — Treasury held no auction that day and that CUSIP is a 20-Year
+  first sold at $16bn — and 91282CPU9 at $16bn / 5.122%, really a TIPS at $19bn / 2.169%.
+  Replaced with four real rows fetched from TreasuryDirect and frozen with their as-of
+  date.
+
+### Added
+
+- **The rates engine can finally see supply and positioning.** It has enumerated
+  `supply`, `positioning` and `plumbing` as its own market factors since MC0 and reported
+  all three absent ever since — not because nothing publishes them, but because the tables
+  they land in key on `as_of` and update on conflict, so a value read back may already have
+  been overwritten. Promoting one to an immutable observation would launder a mutated
+  number into the evidence store. Both are now fetched from their publishers directly and
+  written as point-in-time evidence, carrying the publisher's own availability: a Treasury
+  auction becomes knowable on its **announcement** date, about a week before it is sold,
+  and a CFTC report becomes knowable when CFTC loaded it. The legacy tables stay read
+  models for the existing `/rates` surface. Gated by
+  `UW_SCAN_MACRO_MARKET_LAYER_INGEST_ENABLED`, default off; deep history via
+  `scripts/backfill/macro_market_layer_backfill.py`.
+
+- **A supply series is keyed by the term AND the type, because the term alone is not an
+  identity.** A 10-Year TIPS carries `securityTerm="10-Year"` and `securityType="Note"`
+  exactly like a nominal 10-year note, and is half the size — $21bn against $42bn. Keyed on
+  the term, the two interleave, and the engine's multi-quarter-high rule reads the
+  alternation as a supply collapse and recovery every quarter: a signal produced entirely
+  by a taxonomy error. Reopenings are excluded for a related reason — a reopening adds to
+  an outstanding security, so its size is a marginal add and comparing it against a new
+  issue reads as a supply cut.
+
+- **Sixteen years of CFTC history that honestly says it was loaded, not published.** Every
+  report from 2006-06-13 to 2022-09-06 shares one Socrata `:created_at` — a bulk load, not
+  a release. Recording that as a publication would assert that sixteen years of weekly
+  reports all became knowable on the same afternoon. Those 31,458 observations carry
+  `published_at = NULL` with availability at the load instant, so a 2019 replay sees
+  nothing; the 9,653 rows after it each carry their own release. The distinction is
+  detected from the data — one instant spanning more than one report date is a load — not
+  hardcoded, and migration 119 already allows exactly one `NULL -> value` promotion if a
+  real instant is ever verified.
+
 ## [0.12.10] — 2026-08-20
 
 

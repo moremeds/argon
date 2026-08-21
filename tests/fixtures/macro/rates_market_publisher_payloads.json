@@ -1,0 +1,137 @@
+{
+  "schema_version": 1,
+  "captured_at": "2026-08-21",
+  "provenance": {
+    "auctions": "TreasuryDirect TA_WS/securities/auctioned, projected to the fields the parser reads. 91282CRF0 and 91282CRE3 are the spec 2.1 collision: same securityTerm, same securityType, one nominal at $42bn and one TIPS at $21bn.",
+    "positioning": "CFTC TFF futures-only, Socrata gpe5-46if, contract 043602. Each row carries the publisher's own :created_at. positioning_bulk_loaded holds two report dates under Socrata's single 2022-09-13 backfill instant.",
+    "values_are_real": "Every value was fetched from the live publisher on 2026-08-21."
+  },
+  "auctions": [
+    {
+      "cusip": "912810UW6",
+      "securityType": "Bond",
+      "securityTerm": "30-Year",
+      "type": "Bond",
+      "reopening": "No",
+      "announcementDate": "2026-08-05T00:00:00",
+      "auctionDate": "2026-08-13T00:00:00",
+      "issueDate": "2026-08-17T00:00:00",
+      "offeringAmount": "25000000000",
+      "highYield": "5.2160"
+    },
+    {
+      "cusip": "91282CRF0",
+      "securityType": "Note",
+      "securityTerm": "10-Year",
+      "type": "Note",
+      "reopening": "No",
+      "announcementDate": "2026-08-05T00:00:00",
+      "auctionDate": "2026-08-12T00:00:00",
+      "issueDate": "2026-08-17T00:00:00",
+      "offeringAmount": "42000000000",
+      "highYield": "4.6830"
+    },
+    {
+      "cusip": "91282CRE3",
+      "securityType": "Note",
+      "securityTerm": "10-Year",
+      "type": "TIPS",
+      "reopening": "No",
+      "announcementDate": "2026-07-16T00:00:00",
+      "auctionDate": "2026-07-23T00:00:00",
+      "issueDate": "2026-07-31T00:00:00",
+      "offeringAmount": "21000000000",
+      "highYield": "2.4380"
+    },
+    {
+      "cusip": "912797UZ8",
+      "securityType": "Bill",
+      "securityTerm": "13-Week",
+      "type": "Bill",
+      "reopening": "Yes",
+      "announcementDate": "2026-08-13T00:00:00",
+      "auctionDate": "2026-08-17T00:00:00",
+      "issueDate": "2026-08-20T00:00:00",
+      "offeringAmount": "92000000000",
+      "highDiscountRate": "3.715000"
+    }
+  ],
+  "positioning_stretched": [
+    {
+      "cftc_contract_market_code": "043602",
+      "contract_market_name": "UST 10Y NOTE",
+      "commodity_name": "T-NOTES, 6.5-10 YEAR",
+      "commodity_subgroup_name": "Interest Rates - U.S. Treasury",
+      "futonly_or_combined": "FutOnly",
+      ":created_at": "2025-07-07T19:30:49.230Z",
+      "report_date_as_yyyy_mm_dd": "2025-07-01T00:00:00.000",
+      "open_interest_all": "5050378",
+      "dealer_positions_long_all": "274599",
+      "dealer_positions_short_all": "603914",
+      "asset_mgr_positions_long": "3027697",
+      "asset_mgr_positions_short": "769576",
+      "lev_money_positions_long": "334595",
+      "lev_money_positions_short": "2368934"
+    },
+    {
+      "cftc_contract_market_code": "043602",
+      "contract_market_name": "UST 10Y NOTE",
+      "commodity_name": "T-NOTES, 6.5-10 YEAR",
+      "commodity_subgroup_name": "Interest Rates - U.S. Treasury",
+      "futonly_or_combined": "FutOnly",
+      ":created_at": "2025-09-12T19:30:47.287Z",
+      "report_date_as_yyyy_mm_dd": "2025-09-09T00:00:00.000",
+      "open_interest_all": "5268466",
+      "dealer_positions_long_all": "383672",
+      "dealer_positions_short_all": "471796",
+      "asset_mgr_positions_long": "3065281",
+      "asset_mgr_positions_short": "813192",
+      "lev_money_positions_long": "432190",
+      "lev_money_positions_short": "2851260"
+    }
+  ],
+  "positioning_holiday": [
+    {
+      "cftc_contract_market_code": "043602",
+      "contract_market_name": "UST 10Y NOTE",
+      "commodity_name": "T-NOTES, 6.5-10 YEAR",
+      "commodity_subgroup_name": "Interest Rates - U.S. Treasury",
+      "futonly_or_combined": "FutOnly",
+      ":created_at": "2026-06-22T19:30:53.455Z",
+      "report_date_as_yyyy_mm_dd": "2026-06-16T00:00:00.000",
+      "open_interest_all": "5324590",
+      "dealer_positions_long_all": "170280",
+      "dealer_positions_short_all": "610039",
+      "asset_mgr_positions_long": "3345129",
+      "asset_mgr_positions_short": "860128",
+      "lev_money_positions_long": "298774",
+      "lev_money_positions_short": "2381010"
+    }
+  ],
+  "positioning_bulk_loaded": [
+    {
+      "cftc_contract_market_code": "043602",
+      "contract_market_name": "UST 10Y NOTE",
+      "commodity_name": "T-NOTES, 6.5-10 YEAR",
+      "commodity_subgroup_name": "Interest Rates - U.S. Treasury",
+      "futonly_or_combined": "FutOnly",
+      ":created_at": "2022-09-13T14:16:09.004Z",
+      "report_date_as_yyyy_mm_dd": "2018-12-11T00:00:00.000",
+      "open_interest_all": "4224835",
+      "lev_money_positions_long": "471746",
+      "lev_money_positions_short": "1340848"
+    },
+    {
+      "cftc_contract_market_code": "043602",
+      "contract_market_name": "UST 10Y NOTE",
+      "commodity_name": "T-NOTES, 6.5-10 YEAR",
+      "commodity_subgroup_name": "Interest Rates - U.S. Treasury",
+      "futonly_or_combined": "FutOnly",
+      ":created_at": "2022-09-13T14:16:09.004Z",
+      "report_date_as_yyyy_mm_dd": "2018-12-18T00:00:00.000",
+      "open_interest_all": "4136554",
+      "lev_money_positions_long": "412720",
+      "lev_money_positions_short": "1348363"
+    }
+  ]
+}

@@ -6,12 +6,14 @@ import json
 import logging
 from collections.abc import Callable
 from dataclasses import dataclass
-from datetime import UTC, date, datetime, timedelta
+from datetime import UTC, date, datetime
 from decimal import Decimal, InvalidOperation
 from typing import Any
+from zoneinfo import ZoneInfo
 
 import httpx
 
+from uw_scan.normalize import NormalizationError
 from uw_scan.storage.provider_usage import ExternalApiRequestEvent
 from uw_scan.storage.repository import redact_params, status_family_for
 
@@ -19,6 +21,38 @@ logger = logging.getLogger(__name__)
 
 CFTC_TFF_FUTURES_ONLY_URL = "https://publicreporting.cftc.gov/resource/gpe5-46if.json"
 CFTC_TFF_TREASURY_SUBGROUP = "Interest Rates - U.S. Treasury"
+
+#: Exactly the columns this module reads, plus the one system field it cannot do without.
+#:
+#: ``:created_at`` is the instant CFTC loaded the row and the ONLY publication instant this
+#: payload carries -- the 89 data columns hold no release field at all.  Without it in the
+#: select the response comes back byte-identical minus the ``:``-prefixed keys, so omitting
+#: it fails silently rather than loudly.
+#:
+#: The columns are enumerated rather than taken as ``:*,*`` because these bytes are kept:
+#: the evidence path stores each payload verbatim and forever.  Measured 2026-08-21 over a
+#: 120-day window, all 89 columns cost 12.5 MB against 56 KB for these fourteen -- a 220x
+#: difference in what accrues, for identical parsed output.
+CFTC_TFF_SELECT = ",".join(
+    (
+        ":created_at",
+        "cftc_contract_market_code",
+        "contract_market_name",
+        "commodity_name",
+        "report_date_as_yyyy_mm_dd",
+        "open_interest_all",
+        "dealer_positions_long_all",
+        "dealer_positions_short_all",
+        "asset_mgr_positions_long",
+        "asset_mgr_positions_short",
+        "lev_money_positions_long",
+        "lev_money_positions_short",
+        "other_rept_positions_long",
+        "other_rept_positions_short",
+    )
+)
+
+_ET = ZoneInfo("America/New_York")
 
 TREASURY_TFF_CONTRACTS: dict[str, str] = {
     "042601": "2Y",
@@ -39,6 +73,18 @@ class CftcTffTreasuryRow:
     commodity_name: str | None
     tenor_bucket: str
     obs_date: date
+    #: The instant CFTC loaded the row (Socrata ``:created_at``), NOT a schedule rule.
+    #: Measured across 205 releases, ``obs_date + 3 days`` is wrong on 36 of them and
+    #: always EARLY: holiday weeks slip by three days, and two publication outages -- the
+    #: ION Markets incident from 2023-01-31 and the funding lapse from 2025-09-30 -- slip
+    #: by up to 47 days for ten consecutive weeks.  A rule marks a report knowable before
+    #: it existed, which is lookahead, and no holiday calendar fixes an outage.  Evidence:
+    #: ``docs/research/2026-08-21-rates-market-layer-probe/VERDICT.md``.
+    release_at: datetime
+    #: The Eastern-time date of ``release_at``.  Eastern rather than UTC because the
+    #: publisher's schedule is stated in ET (15:30) and the observed instants land at
+    #: 19:30Z or 20:30Z depending on daylight saving; taking the UTC date would move the
+    #: release a day earlier for any load after 20:00 ET.
     release_date: date
     open_interest: Decimal | None
     dealer_long: Decimal | None
@@ -92,35 +138,23 @@ class CftcTffProvider:
     def close(self) -> None:
         self._client.close()
 
+    def fetch_treasury_payload(self, *, start: date | None = None) -> tuple[bytes, str]:
+        """The exact response bytes and the URL that produced them.
+
+        Split out from :meth:`fetch_treasury_rows` because the evidence path must write
+        the artifact before it parses anything: a schema change on the publisher's side
+        makes the parser raise, and preserving the bytes only after a successful parse
+        destroys them on precisely the run where they are needed.
+        """
+        response = self._get_with_telemetry(self.URL, _query_params(start))
+        response.raise_for_status()
+        return response.content, str(response.url)
+
     def fetch_treasury_rows(
         self, *, start: date | None = None
     ) -> list[CftcTffTreasuryRow]:
-        clauses = [
-            f'commodity_subgroup_name="{CFTC_TFF_TREASURY_SUBGROUP}"',
-            "futonly_or_combined=\"FutOnly\"",
-        ]
-        if start is not None:
-            clauses.append(
-                f'report_date_as_yyyy_mm_dd >= "{start.isoformat()}T00:00:00"'
-            )
-        params = {
-            "$where": " AND ".join(clauses),
-            "$order": "report_date_as_yyyy_mm_dd ASC, contract_market_name ASC",
-            "$limit": "50000",
-        }
-        response = self._get_with_telemetry(self.URL, params)
-        response.raise_for_status()
-        out: list[CftcTffTreasuryRow] = []
-        for row in json.loads(response.text):
-            try:
-                parsed = _row_from_mapping(row)
-            except (KeyError, ValueError, InvalidOperation) as exc:
-                logger.debug("cftc tff row parse skipped: %s", repr(exc))
-                continue
-            if parsed.contract_code not in TREASURY_TFF_CONTRACTS:
-                continue
-            out.append(parsed)
-        return out
+        raw_bytes, _url = self.fetch_treasury_payload(start=start)
+        return parse_treasury_rows(raw_bytes)
 
     def _get_with_telemetry(self, url: str, params: dict[str, Any]) -> httpx.Response:
         started_at = datetime.now(UTC)
@@ -186,9 +220,53 @@ class CftcTffProvider:
         )
 
 
+def _query_params(start: date | None) -> dict[str, str]:
+    clauses = [
+        f'commodity_subgroup_name="{CFTC_TFF_TREASURY_SUBGROUP}"',
+        'futonly_or_combined="FutOnly"',
+    ]
+    if start is not None:
+        clauses.append(f'report_date_as_yyyy_mm_dd >= "{start.isoformat()}T00:00:00"')
+    return {
+        "$select": CFTC_TFF_SELECT,
+        "$where": " AND ".join(clauses),
+        "$order": "report_date_as_yyyy_mm_dd ASC, contract_market_name ASC",
+        "$limit": "50000",
+    }
+
+
+def parse_treasury_rows(raw_bytes: bytes) -> list[CftcTffTreasuryRow]:
+    """Normalize one Socrata payload into Treasury futures positioning rows.
+
+    An absent ``:created_at`` raises rather than skipping the row.  The per-row skip
+    below is for a value this desk cannot read; a missing system field means the
+    ``$select`` stopped taking effect, which would otherwise drop every row in the
+    payload one debug line at a time and read as "CFTC published nothing".
+    """
+    payload = json.loads(raw_bytes)
+    if payload and ":created_at" not in payload[0]:
+        raise NormalizationError(
+            "CFTC TFF payload carries no ':created_at'; the Socrata $select "
+            f"({CFTC_TFF_SELECT!r}) stopped returning system fields, and this payload "
+            "has no other publication instant to fall back on"
+        )
+    out: list[CftcTffTreasuryRow] = []
+    for row in payload:
+        try:
+            parsed = _row_from_mapping(row)
+        except (KeyError, ValueError, InvalidOperation) as exc:
+            logger.debug("cftc tff row parse skipped: %s", repr(exc))
+            continue
+        if parsed.contract_code not in TREASURY_TFF_CONTRACTS:
+            continue
+        out.append(parsed)
+    return out
+
+
 def _row_from_mapping(row: dict[str, Any]) -> CftcTffTreasuryRow:
     contract_code = _field(row, "cftc_contract_market_code")
     obs = _obs_date(row)
+    release_at = _created_at(row)
     dealer_long = _dec(_field(row, "dealer_positions_long_all"))
     dealer_short = _dec(_field(row, "dealer_positions_short_all"))
     asset_mgr_long = _dec(_field(row, "asset_mgr_positions_long"))
@@ -207,7 +285,8 @@ def _row_from_mapping(row: dict[str, Any]) -> CftcTffTreasuryRow:
         commodity_name=_field(row, "commodity_name") or None,
         tenor_bucket=TREASURY_TFF_CONTRACTS.get(contract_code, "Other Treasury"),
         obs_date=obs,
-        release_date=obs + timedelta(days=3),
+        release_at=release_at,
+        release_date=release_at.astimezone(_ET).date(),
         open_interest=open_interest,
         dealer_long=dealer_long,
         dealer_short=dealer_short,
@@ -237,6 +316,13 @@ def _field(row: dict[str, Any], name: str) -> str:
 def _obs_date(row: dict[str, Any]) -> date:
     raw = _field(row, "report_date_as_yyyy_mm_dd")
     return date.fromisoformat(raw[:10])
+
+
+def _created_at(row: dict[str, Any]) -> datetime:
+    raw = _field(row, ":created_at")
+    if not raw:
+        raise KeyError(":created_at")
+    return datetime.fromisoformat(raw.replace("Z", "+00:00")).astimezone(UTC)
 
 
 def _dec(raw: Any) -> Decimal | None:

@@ -34,6 +34,45 @@ are out of scope except where a rule spans them.
    availability by 3 days on federal-holiday weeks. §3.2 has the measurement; Task A3 fixes
    it at the source rather than building the correct path beside a known-broken one.
 
+5. **The supply request is per instrument type, and that is not a preference.** Measured
+   during Task A3's first live run: `TA_WS/securities/auctioned` caps every response at 250
+   rows, and the cap is spent per request. Unfiltered, it reaches back eighteen months and
+   yields **six** new issues per coupon term — one above the five the baseline rule needs.
+   `type=Note` reaches 2021 (22 ten-year new issues) and `type=Bond` reaches 2012 (58
+   thirty-year). The first implementation omitted the parameter; nothing failed, the history
+   was simply four years shallower, which is why a test now pins the parameter reaching the
+   request.
+
+6. **The CFTC select is an explicit column list, not `:*,*`.** These bytes are kept forever.
+   Over one 120-day window all 89 columns cost **12.5 MB** against **56 KB** for the fourteen
+   the parser reads, for identical parsed output. The scheduled request is also a 120-day
+   window rather than full history — the longest measured publication outage was ten weeks,
+   so 120 days clears the worst observed backlog — and deep history is a one-off backfill
+   (`scripts/backfill/macro_market_layer_backfill.py`).
+
+7. **Date-only publisher fields resolve to Eastern midnight, not UTC midnight.**
+   `sources/fred_macro._instant` uses UTC midnight for an ALFRED vintage day. For a Treasury
+   announcement that would place availability at 20:00 the previous evening in Washington —
+   claiming the offering size was knowable before the day it was announced on began. The
+   market layer uses ET midnight. FRED is deliberately **not** changed to match:
+   `available_at` is part of the observation identity (`macro_observation_content_hash`), so
+   shifting it would re-mint every vintage already stored rather than correct one.
+
+8. **The ingest is scheduled at 19:25 ET on `massive-0`, inside the macro block.** The plan
+   said `uw-0`, clear of the 18:45–19:40 block. Both changed for the same reason: the macro
+   evidence block already runs on `massive-0` under `_should_schedule_macro_policy_ingest`,
+   these publishers cost zero UW budget, and the state compute at 19:40 is the layer's only
+   consumer — scheduling after it would make every release a full day stale to the state
+   that reads it.
+
+9. **A pre-existing test fixture was carrying fabricated auction values.** Not a planned
+   finding. `tests/unit/sources/test_treasury_supply.py` asserted 912810UL0 as a 30-Year at
+   $25bn on 2026-05-14 (the publisher has no auction that day, and that CUSIP is a 20-Year
+   first sold at $16bn) and 91282CPU9 at $16bn / 5.122% (really a TIPS at $19bn / 2.169%).
+   Adding real announcement dates to invented auctions would have made the fixture more
+   convincing rather than more correct, so it was replaced with four real rows — including
+   the TIPS collision §2.1 describes.
+
 ## 1. What the market layer is, and what it is not
 
 The rates domain publishes one policy state — what the committee did — plus a set of market
