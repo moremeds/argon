@@ -28,6 +28,7 @@ from uw_scan.cards.structural_flow import (
     compute_structural_posture,
 )
 from uw_scan.cards.valuation import compute_valuation_overlay
+from uw_scan.macro.gold import evidence_manifest, read_gold_inputs
 from uw_scan.storage.repository import Repository
 
 logger = logging.getLogger(__name__)
@@ -265,15 +266,19 @@ def compute_and_persist_gold_posture(
     if computed_at is None:
         computed_at = datetime.now(UTC)
 
-    gold_rows = repo.fetch_macro_series_daily("GLD_CLOSE", to_date=as_of)
-    dfii10_rows = repo.fetch_macro_series_daily("DFII10", to_date=as_of)
+    # One read per DECLARED input, so the manifest below and the rows the lenses see
+    # come from the same list. The four-entry manifest this replaces was not written
+    # wrong -- it went stale as reads were added beside it, and a hand-maintained copy
+    # would go stale again. See uw_scan.macro.gold.
+    readings = read_gold_inputs(repo, as_of)
+
+    gold_rows = list(readings["GLD_CLOSE"].rows)
+    dfii10_rows = list(readings["DFII10"].rows)
     gold_series = _series_to_tuples(gold_rows, "obs_date")
     dfii10_series = _series_to_tuples(dfii10_rows, "obs_date")
     gauge = compute_correlation_gauge(gold_series, dfii10_series, as_of=as_of)
 
-    cb_db_rows = repo.fetch_cb_gold_reserves_monthly(
-        from_month=as_of - timedelta(days=400)
-    )
+    cb_db_rows = list(readings["cb_gold_reserves_monthly"].rows)
     cb_snapshots = [
         CbReserveSnapshot(
             country_iso3=r["country_iso3"],
@@ -283,27 +288,22 @@ def compute_and_persist_gold_posture(
         )
         for r in cb_db_rows
     ]
-    etf_db = repo.fetch_etf_holdings_daily("GLD", from_date=as_of - timedelta(days=400))
+    etf_db = list(readings["etf_holdings_daily"].rows)
     etf_snapshots = [
         EtfHoldingSnapshot(
             ticker="GLD", obs_date=r["obs_date"], holdings_oz=r.get("holdings_oz")
         )
         for r in etf_db
     ]
-    etf_flow_db = repo.fetch_etf_flows_daily(
-        "GLD", from_date=as_of - timedelta(days=45), to_date=as_of
-    )
     etf_flow_snapshots = [
         EtfFlowSnapshot(
             ticker="GLD",
             obs_date=r["obs_date"],
             share_change=r.get("share_change"),
         )
-        for r in etf_flow_db
+        for r in readings["etf_flows_daily"].rows
     ]
-    inv_db = repo.fetch_exchange_inventory_daily(
-        "COMEX", from_date=as_of - timedelta(days=60)
-    )
+    inv_db = list(readings["exchange_inventory_daily"].rows)
     inv_snapshots = [
         InventorySnapshot(
             exchange="COMEX",
@@ -313,10 +313,7 @@ def compute_and_persist_gold_posture(
         )
         for r in inv_db
     ]
-    cot_db = repo.fetch_cot_gold_weekly(
-        from_release_date=as_of - timedelta(days=400),
-        to_release_date=as_of,
-    )
+    cot_db = list(readings["cot_gold_weekly"].rows)
     cot_snapshots = [
         CotSnapshot(release_date=r["release_date"], mm_net=r.get("mm_net"))
         for r in cot_db
@@ -327,15 +324,13 @@ def compute_and_persist_gold_posture(
         etf_rows=etf_snapshots,
         inventory_rows=inv_snapshots,
         cot_rows=cot_snapshots,
-        fx_rows=[],
+        fx_rows=[],  # declared not-read: see GOLD_INPUTS['fx']
         gold_series=gold_series,
         as_of=as_of,
         etf_flow_rows=etf_flow_snapshots,
     )
 
-    cpi_rows = repo.fetch_macro_series_monthly(
-        "CPIAUCSL", to_month=date(as_of.year, as_of.month, 1)
-    )
+    cpi_rows = list(readings["CPIAUCSL"].rows)
     cpi_now = cpi_rows[-1]["value"] if cpi_rows else None
     cpi_prior_year = next(
         (
@@ -349,7 +344,7 @@ def compute_and_persist_gold_posture(
         ((cpi_now / cpi_prior_year) - 1) * 100 if cpi_now and cpi_prior_year else None
     )
 
-    t5yifr_rows = repo.fetch_macro_series_daily("T5YIFR", to_date=as_of)
+    t5yifr_rows = list(readings["T5YIFR"].rows)
     t5yifr = t5yifr_rows[-1]["value"] if t5yifr_rows else None
     dfii10 = dfii10_series[-1][1] if dfii10_series else None
     dfii10_60d_chg = None
@@ -365,38 +360,19 @@ def compute_and_persist_gold_posture(
         gauge_state=gauge.state,
     )
 
-    m2_rows = repo.fetch_macro_series_monthly(
-        "M2SL", to_month=date(as_of.year, as_of.month, 1)
-    )
+    m2_rows = list(readings["M2SL"].rows)
     m2_series = [(r["obs_month"], r["value"]) for r in m2_rows]
     valuation = compute_valuation_overlay(
         gold_series=gold_series,
         cpi_series=[(r["obs_month"], r["value"]) for r in cpi_rows],
         m2_series=m2_series,
-        spx_series=[],
+        spx_series=[],  # declared not-read: see GOLD_INPUTS['spx']
         as_of=as_of,
     )
 
-    inputs_used = {
-        "DFII10": {
-            "obs_date": dfii10_series[-1][0].isoformat() if dfii10_series else None,
-            "as_of": (dfii10_rows[-1]["as_of"].isoformat() if dfii10_rows else None),
-        },
-        "GLD_CLOSE": {
-            "obs_date": gold_series[-1][0].isoformat() if gold_series else None,
-            "as_of": (gold_rows[-1]["as_of"].isoformat() if gold_rows else None),
-        },
-        "T5YIFR": {
-            "obs_date": (
-                t5yifr_rows[-1]["obs_date"].isoformat() if t5yifr_rows else None
-            ),
-            "as_of": (t5yifr_rows[-1]["as_of"].isoformat() if t5yifr_rows else None),
-        },
-        "CPIAUCSL": {
-            "obs_month": (cpi_rows[-1]["obs_month"].isoformat() if cpi_rows else None),
-            "as_of": (cpi_rows[-1]["as_of"].isoformat() if cpi_rows else None),
-        },
-    }
+    # Every declared input, present or explained. The predecessor named four of twelve
+    # and read as a complete audit trail, which is worse than naming none.
+    inputs_used = evidence_manifest(readings)
 
     # ---- GOLD COMPASS UI payloads ------------------------------------------
     now = datetime.now(UTC)

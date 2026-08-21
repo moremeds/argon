@@ -101,7 +101,30 @@ const FIXTURE: State = {
     narrative_text: "Mean-reversion risk: SEVERE.",
   },
   inputs_used: {
-    DFII10: { obs_date: "2026-05-16", as_of: "2026-05-17T00:00:00Z" },
+    DFII10: {
+      obs_date: "2026-05-16",
+      as_of: "2026-05-17T00:00:00Z",
+      lens: ["L2"],
+      causal_role: "decomposition_component",
+      source: "fred",
+      row_count: 1289,
+      required: true,
+      omission_reason: null,
+    },
+    // An input that was declared and deliberately NOT read. The manifest used to omit
+    // these entirely and the router dropped anything without an obs_date, so a reader
+    // could not tell "not consulted" from "nothing to say".
+    fx: {
+      obs_date: null,
+      as_of: null,
+      lens: ["L1"],
+      causal_role: "curve",
+      source: "none",
+      row_count: 0,
+      required: false,
+      omission_reason:
+        "compute_structural_posture is called with fx_rows=[]. No FX leg is ingested.",
+    },
   },
   data_freshness: [
     {

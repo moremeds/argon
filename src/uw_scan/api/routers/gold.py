@@ -271,17 +271,25 @@ def _state_from_row(
         if not isinstance(meta, dict):
             continue
         obs_date_raw = meta.get("obs_date") or meta.get("obs_month")
-        as_of_raw = meta.get("as_of")
-        if obs_date_raw is None or as_of_raw is None:
-            continue
+        # An entry with no obs_date used to be DROPPED here, which is how an explicit
+        # omission would have disappeared between the store and the client. The record
+        # now survives carrying its reason: "not read, and here is why" is evidence, and
+        # deleting it rebuilds the partial manifest this milestone exists to retire.
         try:
-            inputs_used[sid] = GoldInputProvenance(
-                obs_date=date.fromisoformat(obs_date_raw),
-                as_of=as_of_raw,
-            )
+            obs_date = date.fromisoformat(obs_date_raw) if obs_date_raw else None
         except ValueError as exc:
             logger.debug("input provenance parse skipped: %s", repr(exc))
             continue
+        inputs_used[sid] = GoldInputProvenance(
+            obs_date=obs_date,
+            as_of=meta.get("as_of"),
+            omission_reason=meta.get("omission_reason"),
+            lens=list(meta.get("lens") or []),
+            causal_role=meta.get("causal_role"),
+            source=meta.get("source"),
+            row_count=meta.get("row_count"),
+            required=meta.get("required"),
+        )
 
     return GoldStateResponse(
         obs_date=row["obs_date"],
