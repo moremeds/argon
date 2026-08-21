@@ -75,6 +75,19 @@ SUPPLY_HISTORY_DAYS = 730
 #: history, which is real but carries a single bulk-load availability instant.
 POSITIONING_HISTORY_DAYS = 1460
 
+#: The dollar anchor is scored against its own trailing year, so this must span one --
+#: and it is a DAY count over a series whose releases are weekly.  The H.10 publishes the
+#: week's daily observations together, 52.2 releases a year, so 400 days buys roughly a
+#: year of releases plus the slack a late one costs.  Reading the value alone would make
+#: "the dollar is strong" unfalsifiable: strong against what?
+USD_HISTORY_DAYS = 400
+
+#: The real index is monthly, so the same calendar window would give it 13 points -- too
+#: few to say whether it confirms the nominal move or diverges from it.  Five years is 60
+#: points, which spans the 2021-2022 tightening and its unwind, the one episode in the
+#: sample where the nominal and real indices moved by materially different amounts.
+USD_REAL_HISTORY_DAYS = 1830
+
 
 @dataclass(frozen=True)
 class SeriesEvidenceContract:
@@ -193,6 +206,26 @@ RATES_EVIDENCE: tuple[SeriesEvidenceContract, ...] = (
 )
 
 
+#: The dollar half of the USD transmission state, and ALL of what USD owns.
+#:
+#: Two series and no more.  Relative policy, funding and positioning are USD factors too,
+#: but they are owned upstream -- by MC2's rates state and by Part A's market layer -- and
+#: USD reads them through those states rather than re-declaring them here.  Adding
+#: ``EFFR`` or a positioning contract to this tuple would ingest the same publisher
+#: payload under a second owner, and the two copies would drift on the first parser
+#: change.  That is the double-count the design spec prohibits, and this tuple is where
+#: it would happen.
+#:
+#: ``DTWEXBGS`` is the REQUIRED anchor: with it absent the state abstains rather than
+#: promoting ``RTWEXBGS``.  They answer different questions -- a nominal index moving
+#: while the real one does not is an inflation differential, which is a fact worth
+#: reporting and not a reason to swap one for the other.
+USD_EVIDENCE: tuple[SeriesEvidenceContract, ...] = (
+    _contract("DTWEXBGS", "curve", USD_HISTORY_DAYS),
+    _contract("RTWEXBGS", "decomposition_component", USD_REAL_HISTORY_DAYS),
+)
+
+
 class EvidenceContractError(ValueError):
     """A stored row does not match the contract the engine was built against."""
 
@@ -246,6 +279,15 @@ def load_rates_observations(
     # attribution reads a month while the supply baseline reads five quarterly
     # refundings and the positioning percentile reads four years.
     return load_domain_observations(repo, RATES_EVIDENCE, as_of=as_of)
+
+
+def load_usd_observations(
+    repo: Repository, *, as_of: datetime
+) -> tuple[DomainObservation, ...]:
+    # No domain-wide ``from_date``: the nominal anchor reads a year of weekly releases
+    # and the real index reads five years of monthly ones, and one window would either
+    # starve the second or drag five years of daily prints into every ``inputs_hash``.
+    return load_domain_observations(repo, USD_EVIDENCE, as_of=as_of)
 
 
 def _window_start(

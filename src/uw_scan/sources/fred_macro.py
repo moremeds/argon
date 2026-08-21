@@ -140,6 +140,19 @@ SERIES_CONTRACT: Final[dict[str, FredSeriesContract]] = {
         _contract("SOFR", "policy_rates", "daily", "percent", "level", 1),
         _contract("EFFR", "policy_rates", "daily", "percent", "level", 1),
         _contract("RRPONTSYD", "policy_rates", "daily", "billions_usd", "level", 1),
+        # The dollar.  DTWEXBGS is the H.10 nominal broad index and the USD state's
+        # REQUIRED anchor; with it absent the state abstains rather than reaching for a
+        # substitute.  RTWEXBGS is its CPI-deflated sibling and answers a different
+        # question -- a nominal index moving while the real one does not is an inflation
+        # differential, which is a fact worth reporting and not a reason to swap them.
+        #
+        # cadence_days=7 for both, and that is not a typo for a series FRED labels daily.
+        # The H.10 goes out WEEKLY carrying the week's daily observations together, so
+        # DTWEXBGS mints 52.2 vintages a year against ~250 for SOFR.  A cadence of 1 would
+        # mark the anchor stale every Monday through Thursday of a normal week.  Measured
+        # in docs/research/2026-08-12-usd-source-probe/VERDICT.md.
+        _contract("DTWEXBGS", "usd", "daily", "index_jan_2006_100", "index_level", 7),
+        _contract("RTWEXBGS", "usd", "monthly", "index_jan_2006_100", "index_level", 31),
     )
 }
 

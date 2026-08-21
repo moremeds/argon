@@ -18,6 +18,7 @@ from uw_scan.macro.evidence_store import (
     POSITIONING_HISTORY_DAYS,
     RATES_EVIDENCE,
     SUPPLY_HISTORY_DAYS,
+    USD_EVIDENCE,
     EvidenceContractError,
     SeriesEvidenceContract,
     _window_start,
@@ -127,3 +128,43 @@ def test_reserve_balances_stay_unregistered_until_its_unit_is_a_vintage_property
     """
     assert "WRESBAL" not in SERIES_CONTRACT
     assert "WRESBAL" not in {contract.series_id for contract in RATES_EVIDENCE}
+
+
+def test_usd_owns_the_dollar_and_nothing_else() -> None:
+    """The double-count prohibition, at the one place it could be broken.
+
+    Relative policy, funding and positioning are USD transmission factors, and every one
+    of them is owned upstream. Adding any of them here would ingest the same publisher
+    payload under a second owner, and the two copies would drift on the first parser
+    change.
+    """
+    assert {contract.series_id for contract in USD_EVIDENCE} == {
+        "DTWEXBGS",
+        "RTWEXBGS",
+    }
+
+
+def test_no_usd_series_is_also_claimed_by_an_upstream_domain() -> None:
+    upstream = {
+        contract.series_id for contract in (*INFLATION_EVIDENCE, *RATES_EVIDENCE)
+    }
+    overlap = {contract.series_id for contract in USD_EVIDENCE} & upstream
+    assert not overlap, (
+        f"{sorted(overlap)} is declared by USD and by an upstream domain. USD must "
+        "reference the upstream state, not re-read its series."
+    )
+
+
+def test_the_usd_anchor_reads_a_year_and_the_real_index_reads_a_cycle() -> None:
+    windows = {c.series_id: c.history_days for c in USD_EVIDENCE}
+    # The anchor is scored against its own trailing year; without one, "the dollar is
+    # strong" has no denominator. The real index is monthly, so the same day count would
+    # give it 13 points -- too few to say whether it confirms the nominal move.
+    assert windows["DTWEXBGS"] >= 365
+    assert windows["RTWEXBGS"] >= 365 * 4
+
+
+def test_every_usd_contract_declares_its_own_window() -> None:
+    # load_usd_observations passes no domain-wide from_date, so a None here would raise
+    # at read time rather than at import.
+    assert all(contract.history_days is not None for contract in USD_EVIDENCE)
