@@ -27,6 +27,7 @@ from uw_scan.macro.contracts import (
     EvidenceRef,
     FactorState,
     MacroDomainState,
+    MacroSubState,
     Velocity,
 )
 
@@ -42,6 +43,10 @@ _DETERMINED_BY_IDENTITY = (
     "contradictions_jsonb",
     "factors_jsonb",
     "notes_jsonb",
+    # Determined too: a sub-state is computed from the same observations, so two rows
+    # sharing an inputs_hash and differing here would mean a role's answer moved without
+    # its inputs moving.
+    "sub_states_jsonb",
 )
 
 
@@ -80,13 +85,14 @@ class _MacroDomainStateMixin:
                       domain, as_of, computed_at, engine_version, inputs_hash,
                       state, direction, velocity_jsonb, confidence,
                       confidence_reasons_jsonb, contradictions_jsonb,
-                      factors_jsonb, notes_jsonb
+                      factors_jsonb, notes_jsonb, sub_states_jsonb
                     )
                     VALUES (
                       %(domain)s, %(as_of)s, %(computed_at)s, %(engine_version)s,
                       %(inputs_hash)s, %(state)s, %(direction)s, %(velocity_jsonb)s,
                       %(confidence)s, %(confidence_reasons_jsonb)s,
-                      %(contradictions_jsonb)s, %(factors_jsonb)s, %(notes_jsonb)s
+                      %(contradictions_jsonb)s, %(factors_jsonb)s, %(notes_jsonb)s,
+                      %(sub_states_jsonb)s
                     )
                     ON CONFLICT (domain, as_of, engine_version, inputs_hash)
                     DO NOTHING
@@ -355,6 +361,43 @@ def _state_payload(state: MacroDomainState, *, computed_at: datetime) -> dict[st
             ]
         ),
         "notes_jsonb": Jsonb(list(state.notes)),
+        "sub_states_jsonb": Jsonb(
+            [
+                {
+                    "role": item.role,
+                    "state": item.state,
+                    "direction": item.direction,
+                    "confidence": _decimal_text(item.confidence),
+                    "series_ids": list(item.series_ids),
+                    "latest_period_end": (
+                        item.latest_period_end.isoformat()
+                        if item.latest_period_end
+                        else None
+                    ),
+                    "unavailable_reason": item.unavailable_reason,
+                    "velocity": [
+                        {
+                            "metric": leg.metric,
+                            "value": _decimal_text(leg.value),
+                            "unit": leg.unit,
+                            "window_months": leg.window_months,
+                            "unavailable_reason": leg.unavailable_reason,
+                        }
+                        for leg in item.velocity
+                    ],
+                    "confidence_reasons": [
+                        {
+                            "term": reason.term,
+                            "value": _decimal_text(reason.value),
+                            "detail": reason.detail,
+                            "kind": reason.kind,
+                        }
+                        for reason in item.confidence_reasons
+                    ],
+                }
+                for item in state.sub_states
+            ]
+        ),
     }
 
 
@@ -461,6 +504,43 @@ def macro_domain_state_from_row(
         inputs_hash=row["inputs_hash"],
         as_of=row["as_of"],
         notes=tuple(row["notes_jsonb"]),
+        sub_states=tuple(
+            MacroSubState(
+                role=item["role"],
+                state=item["state"],
+                direction=item["direction"],
+                velocity=tuple(
+                    Velocity(
+                        metric=leg["metric"],
+                        value=_decimal_or_none(leg["value"]),
+                        unit=leg["unit"],
+                        window_months=leg["window_months"],
+                        unavailable_reason=leg["unavailable_reason"],
+                    )
+                    for leg in item["velocity"]
+                ),
+                confidence=Decimal(item["confidence"]),
+                confidence_reasons=tuple(
+                    ConfidenceTerm(
+                        term=reason["term"],
+                        value=Decimal(reason["value"]),
+                        detail=reason["detail"],
+                        kind=reason["kind"],
+                    )
+                    for reason in item["confidence_reasons"]
+                ),
+                series_ids=tuple(item["series_ids"]),
+                latest_period_end=(
+                    date.fromisoformat(item["latest_period_end"])
+                    if item["latest_period_end"]
+                    else None
+                ),
+                unavailable_reason=item["unavailable_reason"],
+            )
+            # Rows written before migration 127 default to an empty array, which is
+            # true of them: they carried no sub-states.
+            for item in row.get("sub_states_jsonb") or []
+        ),
     )
 
 

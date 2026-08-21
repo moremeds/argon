@@ -7,6 +7,42 @@ version in lockstep (enforced by `scripts/release/version_sync_check.py`).
 
 ## [Unreleased]
 
+### Added
+
+- **Supply, positioning and plumbing now publish their own sub-states, each with its own
+  confidence.** The rates policy state answers what the committee did and is gated by
+  three policy paths; a positioning read is gated by whether CFTC published. Sharing one
+  confidence number would let either stand in for the other, so each role computes its
+  own over its own required series and the `/rates` state block renders them side by side
+  and labelled. `market_factors_absent` now reports **0** and — deliberately — is still
+  emitted at zero: a term that disappears when healthy gives a reader nothing to notice
+  when it comes back.
+
+- **Plumbing is classified on a price, never on a quantity level, and that choice was
+  forced by testing it.** The first rule combined a wide SOFR–EFFR spread with exhausted
+  RRP take-up. It fails on the only funding crisis in the record: on 2019-09-17, when
+  SOFR printed 5.25 against an effective rate of 2.30 — 295bp — RRP stood at 1.825bn,
+  which is unremarkable for a year when the facility was structurally small. RRP ran
+  ~2bn in 2019 and ~2,300bn in 2022 for reasons that have nothing to do with stress, so
+  its level cannot carry a stress claim. The spread is a price and comparable across both
+  regimes. `STRESSED` is set at one policy move (25bp), not at the measured sample's p99
+  (15bp): the 2021–2026 sample contains no crisis, so its p99 marks the calmest kind of
+  unusual, and calibrating to it would have called a 19bp day stressed while leaving no
+  label for 295bp.
+
+- **Two contradiction rules that report disagreement without resolving it.**
+  `positioning_against_curve_direction` fires when a category at an extreme of its own
+  distribution sits on the opposite side of the realised yield move over the same four
+  weeks — a net short profits when yields rise, so a stretched short into falling yields
+  is evidence pointing two ways. `plumbing_stress_without_policy_change` reports funding
+  stress the committee has not responded to. Neither infers a direction and neither
+  changes a state label.
+
+- **A cost worth stating: a rates state now cites 1,923 observations.** Four years of
+  weekly positioning and two years of quarterly refundings are genuinely what a percentile
+  and a multi-quarter-high stand on, so the evidence rows are correct rather than
+  excessive — but at one state a day that is roughly 700k lineage rows a year.
+
 ### Fixed
 
 - **The rates positioning table has been claiming CFTC data was knowable before it was
@@ -30,7 +66,12 @@ version in lockstep (enforced by `scripts/release/version_sync_check.py`).
   Replaced with four real rows fetched from TreasuryDirect and frozen with their as-of
   date.
 
-### Added
+- **Positioning was being given a 120-day freshness cadence for a weekly report.** Every
+  market factor inherited the policy-path cadence, so a COT report four months past its
+  release read as perfectly fresh — seventeen weeks inside a seventeen-week window. A
+  freshness term that cannot detect a publisher going quiet is decoration. Each role now
+  carries its publisher's own cadence, and supply gained the staleness gate it never had:
+  a 2024 refunding is not today's supply condition.
 
 - **The three market roles the rates engine has enumerated since MC0 now resolve to
   evidence.** `supply`, `positioning` and `plumbing` reported absent for two milestones;

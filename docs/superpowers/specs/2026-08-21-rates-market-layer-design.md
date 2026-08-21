@@ -73,6 +73,50 @@ are out of scope except where a rule spans them.
    convincing rather than more correct, so it was replaced with four real rows — including
    the TIPS collision §2.1 describes.
 
+10. **The plumbing STRESSED threshold is not taken from the measured sample, and the
+    first rule that was tried failed on the only real event.** A rule combining a wide
+    spread with exhausted RRP take-up would have missed 2019-09-17 — SOFR 5.25 against an
+    effective rate of 2.30, **+295bp**, with RRP at 1.825bn, unremarkable for a year when
+    the facility was structurally small. RRP ran ~2bn in 2019 and ~2,300bn in 2022 for
+    reasons unrelated to stress, so a quantity level cannot carry the claim. Classification
+    is on the spread alone. `TIGHTENING` is the sample's p95 (+6bp), which is a
+    relative-to-own-history statement the sample supports; `STRESSED` is one policy move
+    (25bp), because the sample's own p99 (+15bp) marks the calmest kind of unusual — it
+    would have called the golden scenario's +19bp STRESSED and left no label for +295bp.
+    Disclosed plainly: the p99 alternative was rejected **after** it was seen to contradict
+    the preregistered `TIGHTENING` prediction, and the argument above is why the rejection
+    stands on its own.
+
+11. **Supply aggregates by majority, positioning by any, and the asymmetry is deliberate.**
+    Seven coupon terms each at a five-issue high about a quarter of the time puts "any term
+    elevated" near 87% — a label that is almost always ELEVATED is not a label. Positioning
+    categories are each other's counterparties, so a stretched leveraged short IS somebody's
+    stretched long, and requiring a majority would ask the report to contradict its own
+    construction.
+
+12. **Sub-states needed a carrier the plan did not list.** `MacroSubState` on the domain
+    contract, a `sub_states_jsonb` column (migration 127), and `MacroSubStateItem` on the
+    API response. Folding them into `factors_jsonb` was rejected: a factor is one series'
+    reading and a sub-state is a role's answer with its own confidence, and merging them
+    leaves a reader no way to tell which confidence governs which claim — the exact
+    confusion R2 forbids. The builders live in a new `macro/rates_sub_states.py` rather
+    than in `rates_rules.py`, which was already at 367 lines against the repo's 500-line
+    budget.
+
+13. **`market_factors_absent` is emitted at zero, not omitted.** The plan asked for the
+    term to survive; it was previously emitted only when something was absent, so a healthy
+    surface and a surface that never had the term look identical. Reported as `0`, a
+    regression to `1` is a visible change.
+
+14. **The staleness scenario found a live defect in the freshness cadence.** Every market
+    factor inherited the 120-day policy-path cadence, so a weekly COT report four months
+    past its release scored a freshness of 1.0. Roles now carry their publisher's cadence
+    (supply 92d, positioning 7d, daily series 4d) and supply gained the staleness gate it
+    never had. Related: scenario 6's own note claims "supply is fresh" while its supply
+    rows end 2024-05-08 against an `as_of` of 2026-08-20 — the note is inaccurate about its
+    own data; the prediction it pins (positioning `UNKNOWN`) holds, and both roles now
+    report `UNKNOWN` for their own measured reason.
+
 ## 1. What the market layer is, and what it is not
 
 The rates domain publishes one policy state — what the committee did — plus a set of market

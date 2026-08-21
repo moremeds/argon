@@ -30,6 +30,7 @@ from uw_scan.macro.contracts import (
     EvidenceRef,
     FactorState,
     MacroDomainState,
+    MacroSubState,
     Velocity,
 )
 from uw_scan.macro.inflation import compute_inflation_state
@@ -37,6 +38,7 @@ from uw_scan.macro_evidence import (
     macro_artifact_content_identity,
     macro_observation_content_hash,
 )
+from uw_scan.storage.macro_domain_state import macro_domain_state_from_row
 from uw_scan.storage.repository import Repository
 
 # The June 2023 core PCE release: BEA published it on 2023-07-28.
@@ -138,6 +140,7 @@ def _state(
     inputs_hash: str = "a" * 64,
     engine_version: str = "inflation/1",
     notes: tuple[str, ...] = (),
+    sub_states: tuple[MacroSubState, ...] = (),
 ) -> MacroDomainState:
     return MacroDomainState(
         domain="inflation",
@@ -197,6 +200,7 @@ def _state(
         inputs_hash=inputs_hash,
         as_of=as_of,
         notes=notes,
+        sub_states=sub_states,
     )
 
 
@@ -729,3 +733,111 @@ class TestTheEngineToStorageSeam:
         with repo._conn.cursor() as cur:
             cur.execute("SELECT count(*) FROM uw_scan.macro_domain_states")
             assert cur.fetchone()[0] == 1
+
+
+class TestSubStatesRoundTrip:
+    """A sub-state carries its own confidence, and that must survive storage.
+
+    Not a detail: the whole reason sub-states are separate rows rather than factors is
+    that their confidence denominators differ from the domain's. A round trip that
+    dropped or flattened the number would silently restore the substitution R2 forbids.
+    """
+
+    def _rates_sub_states(self) -> tuple[MacroSubState, ...]:
+        return (
+            MacroSubState(
+                role="positioning",
+                state="STRETCHED_LOW",
+                direction="FALLING",
+                velocity=(
+                    Velocity(
+                        metric="043602|lev_money_net_pct_oi_change_4w",
+                        value=Decimal("-5.6103"),
+                        unit="pct_open_interest",
+                        window_months=1,
+                    ),
+                ),
+                confidence=Decimal("0.6250"),
+                confidence_reasons=(
+                    ConfidenceTerm(
+                        term="completeness",
+                        value=Decimal("1"),
+                        detail="1/1 load-bearing inputs present",
+                    ),
+                    ConfidenceTerm(
+                        term="positioning_percentiles",
+                        value=Decimal("1"),
+                        detail="043602|lev_money_net_pct_oi at p10 (STRETCHED_LOW)",
+                        kind="informational",
+                    ),
+                ),
+                series_ids=("043602|lev_money_net_pct_oi",),
+                latest_period_end=date(2025, 9, 9),
+            ),
+            MacroSubState(
+                role="plumbing",
+                state="UNKNOWN",
+                direction="UNKNOWN",
+                velocity=(),
+                confidence=Decimal(0),
+                confidence_reasons=(
+                    ConfidenceTerm(
+                        term="plumbing_unavailable",
+                        value=Decimal(0),
+                        detail="SOFR had no observation available at as_of",
+                        kind="informational",
+                    ),
+                ),
+                series_ids=(),
+                unavailable_reason="SOFR had no observation available at as_of",
+            ),
+        )
+
+    def test_a_sub_state_survives_with_its_own_confidence(
+        self, repo: Repository
+    ) -> None:
+        obs_ids = [
+            _insert_observation(repo),
+            _insert_observation(
+                repo, series_id="MICH", value=Decimal("3.3"), unit="percent"
+            ),
+        ]
+        original = _state(obs_ids=obs_ids, sub_states=self._rates_sub_states())
+        repo.insert_macro_domain_state(original, computed_at=COMPUTED_AT)
+
+        row = repo.fetch_macro_domain_state_as_of("inflation", AS_OF)
+        restored = macro_domain_state_from_row(
+            row, repo.fetch_macro_domain_state_evidence(int(row["state_id"]))
+        )
+        assert restored.sub_states == original.sub_states
+
+        positioning = restored.sub_state("positioning")
+        assert positioning is not None
+        # Exact, not approximate: a percentile band is decided at the fourth place.
+        assert positioning.confidence == Decimal("0.6250")
+        assert positioning.velocity[0].value == Decimal("-5.6103")
+        assert positioning.confidence != restored.confidence
+
+    def test_an_unknown_sub_state_keeps_its_reason(
+        self, repo: Repository, seeded_db_empty_cards
+    ) -> None:
+        """UNKNOWN with no reason is indistinguishable from a role nobody declared."""
+        obs_ids = [
+            _insert_observation(repo),
+            _insert_observation(
+                repo, series_id="MICH", value=Decimal("3.3"), unit="percent"
+            ),
+        ]
+        repo.insert_macro_domain_state(
+            _state(obs_ids=obs_ids, sub_states=self._rates_sub_states()),
+            computed_at=COMPUTED_AT,
+        )
+        row = repo.fetch_macro_domain_state_as_of("inflation", AS_OF)
+        restored = macro_domain_state_from_row(
+            row, repo.fetch_macro_domain_state_evidence(int(row["state_id"]))
+        )
+        plumbing = restored.sub_state("plumbing")
+        assert plumbing is not None
+        assert plumbing.state == "UNKNOWN"
+        assert plumbing.unavailable_reason
+        assert plumbing.series_ids == ()

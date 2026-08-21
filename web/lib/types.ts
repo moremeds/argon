@@ -5089,6 +5089,8 @@ export interface components {
             evidence?: components["schemas"]["MacroStateEvidenceItem"][];
             /** Notes */
             notes?: string[];
+            /** Sub States */
+            sub_states?: components["schemas"]["MacroSubStateItem"][];
         };
         /** MacroEvidenceRef */
         MacroEvidenceRef: {
@@ -5293,6 +5295,47 @@ export interface components {
             evidence_count: number;
             /** Detail Path */
             detail_path: string;
+        };
+        /**
+         * MacroSubStateItem
+         * @description One causal role's own read, with its own confidence.
+         *
+         *     Kept beside the domain state rather than merged into it because the two have
+         *     different denominators: the rates policy state is gated by the three policy paths and
+         *     nothing else, while a positioning read is gated by whether CFTC published. A surface
+         *     rendering one confidence above a panel holding both would let either stand in for the
+         *     other -- which is the substitution the rates engine exists to refuse.
+         *
+         *     ``state`` is a plain string because the vocabularies are per role and not comparable:
+         *     ELEVATED is about issuance size, STRETCHED_LOW is a percentile of a position. A
+         *     shared enum would invite exactly that comparison. Every vocabulary includes
+         *     ``UNKNOWN`` and none includes ``NEUTRAL`` -- absence is not a centred reading.
+         */
+        MacroSubStateItem: {
+            /**
+             * Role
+             * @enum {string}
+             */
+            role: "realized" | "breadth" | "stickiness" | "expectations_survey" | "expectations_market" | "policy_actual" | "policy_committee" | "policy_dealer" | "policy_market_shadow" | "curve" | "decomposition_component" | "supply" | "positioning" | "plumbing";
+            /** State */
+            state: string;
+            /**
+             * Direction
+             * @enum {string}
+             */
+            direction: "RISING" | "FALLING" | "FLAT" | "UNKNOWN";
+            /** Confidence */
+            confidence: string;
+            /** Series Ids */
+            series_ids?: string[];
+            /** Latest Period End */
+            latest_period_end?: string | null;
+            /** Unavailable Reason */
+            unavailable_reason?: string | null;
+            /** Velocity */
+            velocity?: components["schemas"]["MacroVelocityItem"][];
+            /** Confidence Reasons */
+            confidence_reasons?: components["schemas"]["MacroConfidenceReason"][];
         };
         /**
          * MacroVelocityItem

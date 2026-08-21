@@ -178,6 +178,12 @@ PLUMBING: dict[str, str] = {
 def fetch_fred(
     client: httpx.Client, series_id: str, start: str, end: str, key: str
 ) -> list[dict[str, Any]]:
+    # The vintage window is what makes each row point-in-time readable: ``realtime_start``
+    # is the day the value became the published value, and it is the ONLY availability a
+    # FRED observation has.  A row without it cannot be replayed, which is the whole point
+    # of the fixture.  Bounded at DAILY_VINTAGE_START because these are daily series and
+    # the unbounded window exceeds FRED's 2000-vintage cap -- the same split
+    # ``worker/jobs/macro_series_ingest.request_window`` makes.
     response = client.get(
         FRED,
         params={
@@ -186,6 +192,8 @@ def fetch_fred(
             "file_type": "json",
             "observation_start": start,
             "observation_end": end,
+            "realtime_start": "2021-01-01",
+            "realtime_end": "9999-12-31",
         },
     )
     response.raise_for_status()
@@ -194,6 +202,7 @@ def fetch_fred(
             "series_id": series_id,
             "causal_role": "curve",
             "period_end": row["date"],
+            "available_at": row["realtime_start"],
             "value": row["value"],
             "unit": "percent",
             "source": "fred",

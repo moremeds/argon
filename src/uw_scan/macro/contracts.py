@@ -158,6 +158,35 @@ class EvidenceRef:
 
 
 @dataclass(frozen=True)
+class MacroSubState:
+    """One causal role's own read, with its own confidence.
+
+    A domain state answers one question; a sub-state answers a narrower one beside it.
+    They are kept apart rather than folded together because their denominators differ:
+    the rates policy state is gated by the three policy paths and nothing else, while a
+    positioning read is gated by whether CFTC published. Sharing one confidence number
+    would let either stand in for the other, which is the substitution
+    ``macro/rates.py:169`` exists to refuse.
+
+    ``state`` is a plain string rather than a shared Literal because the vocabularies are
+    per role and not comparable -- ELEVATED is about issuance size and STRETCHED_LOW is a
+    percentile of a position. A common enum would invite exactly the cross-role
+    comparison the split is for. Every vocabulary includes ``UNKNOWN``, and never
+    ``NEUTRAL``: absence is not a centred reading.
+    """
+
+    role: CausalRole
+    state: str
+    direction: Direction
+    velocity: tuple[Velocity, ...]
+    confidence: Decimal
+    confidence_reasons: tuple[ConfidenceTerm, ...]
+    series_ids: tuple[str, ...]
+    latest_period_end: date | None = None
+    unavailable_reason: str | None = None
+
+
+@dataclass(frozen=True)
 class MacroDomainState:
     domain: MacroDomain
     state: str
@@ -172,6 +201,11 @@ class MacroDomainState:
     inputs_hash: str
     as_of: datetime
     notes: tuple[str, ...] = field(default_factory=tuple)
+    #: Per-role reads that sit BESIDE the domain state without gating it.
+    sub_states: tuple[MacroSubState, ...] = field(default_factory=tuple)
+
+    def sub_state(self, role: CausalRole) -> MacroSubState | None:
+        return next((item for item in self.sub_states if item.role == role), None)
 
     def factor(self, series_id: str) -> FactorState | None:
         return next((f for f in self.factors if f.series_id == series_id), None)

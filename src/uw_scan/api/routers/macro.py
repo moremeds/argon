@@ -94,6 +94,9 @@ def _domain_state(
             "requested_as_of": requested_as_of,
             "inputs_hash": row["inputs_hash"],
             "factors": row["factors_jsonb"],
+            # Rows written before migration 127 have no column value at all; an empty
+            # list is what they actually carried, so it is not a substitution.
+            "sub_states": row.get("sub_states_jsonb") or [],
             "evidence": [
                 {
                     "ordinal": item["ordinal"],
