@@ -135,19 +135,6 @@ def fetch_fred(
     ]
 
 
-def latest_vintage_per_period(rows: list[dict[str, Any]]) -> list[dict[str, Any]]:
-    """Collapse to one row per period: the vintage still in force.
-
-    Used everywhere except the revision scenario, which needs every vintage precisely
-    because collapsing is the bug it exists to catch.
-    """
-    by_period: dict[str, dict[str, Any]] = {}
-    for row in rows:
-        if row["superseded_at"] is None or row["period_end"] not in by_period:
-            by_period[row["period_end"]] = row
-    return sorted(by_period.values(), key=lambda row: row["period_end"])
-
-
 def fetch_gld_close(
     client: httpx.Client, start: str, end: str, key: str
 ) -> list[dict[str, Any]]:
@@ -225,8 +212,14 @@ EXPECT: dict[str, dict[str, Any]] = {
         "policy_direction_inferred": None,
         "policy_actual_is_upstream_reference": True,
         "note": (
-            "2024-09-16 to 2024-12-31. The broad dollar rises 121.50 -> 129.28, +6.4%, "
-            "while EFFR falls 5.33 -> 4.33 across three cuts. Easing is supposed to weaken "
+            "Window 2024-09-16 to 2024-12-31, replayed at as_of 2025-01-08 -- the first "
+            "date the whole window was knowable, because the H.10 releases weekly in "
+            "arrears and an as_of of 2024-12-31 cannot see 2024-12-31. The broad dollar "
+            "rises 121.7684 -> 129.4880, +6.34%, while EFFR falls 5.33 -> 4.33 across "
+            "three cuts. Those are the POINT-IN-TIME values: the vintage in force today "
+            "reads 121.4976 -> 129.2775 (+6.40%), restated on 2026-02-02, and a replay "
+            "that quoted it would be reading the 2026 annual revision into 2024. "
+            "Easing is supposed to weaken "
             "a currency and the measured move is the opposite, so the contradiction is the "
             "output and no direction for policy is read back out of the dollar. The USD "
             "state is STRENGTHENING because that is what the anchor did; the contradiction "
@@ -241,8 +234,9 @@ EXPECT: dict[str, dict[str, Any]] = {
         "contradictions_include": ["gold_against_real_yields_post_2022"],
         "lens2_direction_inferred": None,
         "note": (
-            "2025-10-01 to 2025-12-31. GLD closes 356.03 -> 396.31, +11.3%, while the 10y "
-            "real yield rises 1.77 -> 1.93. The pre-2022 relationship is that gold falls "
+            "Window 2025-10-01 to 2025-12-31, replayed at as_of 2026-01-08. GLD closes "
+            "356.03 -> 396.31, +11.3%, while the 10y real yield rises 1.77 -> 1.93. "
+            "The pre-2022 relationship is that gold falls "
             "when real yields rise -- a higher real rate is a higher carrying cost for a "
             "zero-coupon asset -- and both legs rise together here. The gate is what makes "
             "this reportable rather than an error: a Lens 2 fitted across the break would "
@@ -256,9 +250,11 @@ EXPECT: dict[str, dict[str, Any]] = {
         "lens_precedence": None,
         "contradictions_include": ["gold_flow_against_cyclical"],
         "note": (
-            "2024-08-19 to 2024-10-23. GLD tonnage rises 4.05% -- real accumulation into "
-            "the trust, not a price effect, because holdings are counted in ounces -- while "
-            "the 10y real yield rises 14bp and the broad dollar rises 2.31%. Both cyclical "
+            "Window 2024-08-19 to 2024-10-23, replayed at as_of 2024-10-30 once the "
+            "H.10 had published the last of it. GLD tonnage rises 4.05% -- real "
+            "accumulation into the trust, not a price effect, because holdings are "
+            "counted in ounces -- while the 10y real yield rises 14bp (1.79 -> 1.93) and "
+            "the broad dollar rises 2.24% (122.1762 -> 124.9181). Both cyclical "
             "legs are adverse and the flow leg is strong. Neither lens is allowed to "
             "overwrite the other and there is no precedence rule: the state reports a "
             "strong flow and an adverse cyclical backdrop as two findings, because "
@@ -334,50 +330,55 @@ def main() -> None:
         )
 
     # 1 -- the dollar rises through three cuts.
-    s1_usd = latest_vintage_per_period(usd("DTWEXBGS", "2024-09-16", "2024-12-31"))
-    s1_effr = latest_vintage_per_period(
-        fetch_fred(
-            client,
-            "EFFR",
-            "2024-09-16",
-            "2024-12-31",
-            key,
-            causal_role="policy_actual",
-            owned_by="policy_rates",
-            unit="percent",
-        )
+    #
+    # EVERY vintage is frozen, never just the one still in force.  The first draft
+    # collapsed each period to its current value, and every scenario-1 row then carried
+    # available_at=2026-02-02 -- the annual revision -- so nothing at all was knowable
+    # at an as_of in 2024 and the state read UNKNOWN.  Selection belongs to
+    # ``is_known_on``, which is the predicate under test; a generator that pre-selects
+    # is a second implementation of it that cannot be wrong out loud.
+    s1_usd = usd("DTWEXBGS", "2024-09-16", "2024-12-31")
+    s1_effr = fetch_fred(
+        client,
+        "EFFR",
+        "2024-09-16",
+        "2024-12-31",
+        key,
+        causal_role="policy_actual",
+        owned_by="policy_rates",
+        unit="percent",
     )
 
     # 2 -- gold and real yields rise together, which the pre-2022 relationship forbids.
     s2_gold = fetch_gld_close(client, "2025-10-01", "2025-12-31", massive_key)
-    s2_real = latest_vintage_per_period(
-        fetch_fred(
-            client,
-            "DFII10",
-            "2025-10-01",
-            "2025-12-31",
-            key,
-            causal_role="decomposition_component",
-            owned_by="policy_rates",
-            unit="percent",
-        )
+    s2_real = fetch_fred(
+        client,
+        "DFII10",
+        "2025-10-01",
+        "2025-12-31",
+        key,
+        causal_role="decomposition_component",
+        owned_by="policy_rates",
+        unit="percent",
     )
 
     # 3 -- tonnage accumulates into a rising real yield and a rising dollar.
+    #
+    # The cyclical legs reach back to January so a reader has a denominator: the
+    # measured disagreement is the Aug-Oct window, but "the dollar is strong" against
+    # ten weeks of its own history is not a statement about anything.
     s3_flow = fetch_gld_holdings(date(2024, 8, 19), date(2024, 10, 23))
-    s3_real = latest_vintage_per_period(
-        fetch_fred(
-            client,
-            "DFII10",
-            "2024-08-19",
-            "2024-10-23",
-            key,
-            causal_role="decomposition_component",
-            owned_by="policy_rates",
-            unit="percent",
-        )
+    s3_real = fetch_fred(
+        client,
+        "DFII10",
+        "2024-01-02",
+        "2024-10-23",
+        key,
+        causal_role="decomposition_component",
+        owned_by="policy_rates",
+        unit="percent",
     )
-    s3_usd = latest_vintage_per_period(usd("DTWEXBGS", "2024-08-19", "2024-10-23"))
+    s3_usd = usd("DTWEXBGS", "2024-01-02", "2024-10-23")
 
     # 4 -- the anchor has no vintage at as_of and the real sibling does.
     #
@@ -407,21 +408,21 @@ def main() -> None:
         {
             "id": "usd_strength_against_easing_policy",
             "domain": "usd",
-            "as_of": "2024-12-31",
+            "as_of": "2025-01-08",
             "inputs": s1_usd + s1_effr,
             "expect": EXPECT["usd_strength_against_easing_policy"],
         },
         {
             "id": "gold_and_real_yields_decoupled_post_2022",
             "domain": "gold",
-            "as_of": "2025-12-31",
+            "as_of": "2026-01-08",
             "inputs": s2_gold + s2_real,
             "expect": EXPECT["gold_and_real_yields_decoupled_post_2022"],
         },
         {
             "id": "strong_official_flows_against_adverse_cyclical",
             "domain": "gold",
-            "as_of": "2024-10-23",
+            "as_of": "2024-10-30",
             "inputs": s3_flow + s3_real + s3_usd,
             "expect": EXPECT["strong_official_flows_against_adverse_cyclical"],
         },
@@ -564,6 +565,29 @@ def _assert_preconditions(scenarios: list[dict[str, Any]]) -> None:
             and scenario["id"] != "usd_anchor_absent_state_abstains"
         ):
             raise SystemExit(f"{scenario['id']} fetched no inputs")
+
+    # Rows that exist but are not yet knowable are the failure this guard exists for.
+    # The first draft froze each period's CURRENT vintage, so scenario 1's rows all
+    # carried available_at=2026-02-02 and a 2024 replay saw nothing -- every count above
+    # was healthy and the scenario was empty. Only the abstention scenario is exempt,
+    # because zero knowable anchor rows is the thing it asserts.
+    for scenario in scenarios:
+        if scenario["id"] == "usd_anchor_absent_state_abstains":
+            continue
+        raw = scenario["as_of"]
+        as_of = min(raw) if isinstance(raw, list) else raw
+        for series_id in sorted({row["series_id"] for row in scenario["inputs"]}):
+            rows = [r for r in scenario["inputs"] if r["series_id"] == series_id]
+            knowable = {r["period_end"] for r in rows if r["available_at"] <= as_of}
+            if not knowable:
+                raise SystemExit(
+                    f"{scenario['id']}: {series_id} has {len(rows)} rows and NONE is "
+                    f"knowable at as_of {as_of}. The scenario would replay as empty."
+                )
+            print(
+                f"    {scenario['id'][:34]:<34} {series_id:<16} "
+                f"{len(knowable):>4} knowable of {len(rows):>4}"
+            )
 
 
 if __name__ == "__main__":

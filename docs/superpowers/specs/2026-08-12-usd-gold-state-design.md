@@ -34,6 +34,26 @@ document's rulings before implementation started.
    labelled `vendor` rather than `official` and the fixture says so in `provenance`, so a
    later reader does not mistake a fund's settled close for a London fix.
 
+5. **`usd_against_relative_policy` observes only the US leg.** The rule name was frozen
+   in §4 and in the golden fixture before implementation, and it says *relative*. This
+   desk ingests no foreign policy path, so what the rule actually measures is the dollar
+   disagreeing with **US** policy, not a measured rate differential. The name stands
+   because renaming it would break the preregistration; the limit is stated in the
+   contradiction's own `detail`, which is the text an operator reads, and asserted by a
+   test. A later milestone that ingests an ECB or BoJ path can make the name true.
+
+6. **The golden fixture froze the wrong vintage on its first pass, and the correction is
+   recorded here rather than quietly regenerated.** The generator collapsed each period
+   to the vintage *still in force*, so every scenario-1 row carried
+   `available_at = 2026-02-02` — the annual revision — and nothing was knowable at a 2024
+   `as_of`. The state read `UNKNOWN` and the scenario proved nothing. Three consequences,
+   all now in the generator: it freezes **every** vintage and lets `is_known_on` select;
+   each scenario's `as_of` moved to the first date its window was actually knowable
+   (scenario 1 from 2024-12-31 to 2025-01-08, because the H.10 releases weekly in
+   arrears); and a precondition refuses to write a fixture in which any series has rows
+   but none knowable at `as_of`. The corrected point-in-time figures replaced the
+   restated ones under `--rewrite-predictions`, which logged the prior text.
+
 ## 1. What the USD domain is, and what it must not become
 
 USD is a **transmission** domain. It does not re-answer what inflation is doing or what the
@@ -163,9 +183,9 @@ Generator: `scripts/research/build_usd_gold_golden.py`. Reproduce with
 
 | #   | window                    | the measured disagreement                                                       |
 | --- | ------------------------- | -------------------------------------------------------------------------------- |
-| 1   | 2024-09-16 → 2024-12-31   | `DTWEXBGS` 121.4976 → 129.2775 (+6.4%) while `EFFR` falls 5.33 → 4.33            |
-| 2   | 2025-10-01 → 2025-12-31   | `GLD_CLOSE` 356.03 → 396.31 (+11.3%) while `DFII10` rises 1.77 → 1.93            |
-| 3   | 2024-08-19 → 2024-10-23   | GLD tonnage +4.05% while `DFII10` +14bp and `DTWEXBGS` +2.31%                    |
+| 1   | 2024-09-16 → 2024-12-31 @ 2025-01-08 | `DTWEXBGS` 121.7684 → 129.4880 (+6.34%) while `EFFR` falls 5.33 → 4.33 |
+| 2   | 2025-10-01 → 2025-12-31 @ 2026-01-08 | `GLD_CLOSE` 356.03 → 396.31 (+11.3%) while `DFII10` rises 1.77 → 1.93  |
+| 3   | 2024-08-19 → 2024-10-23 @ 2024-10-30 | GLD tonnage +4.05% while `DFII10` +14bp and `DTWEXBGS` +2.24%          |
 | 4   | as_of 2020-06-30          | 22 anchor periods present, 0 passing `available_at <= as_of`; `RTWEXBGS` present |
 | 5   | period 2026-08-03         | 120.7739 (published 08-10) restated to 119.6951 (08-17)                          |
 
@@ -173,6 +193,11 @@ Generator: `scripts/research/build_usd_gold_golden.py`. Reproduce with
 `EFFR` and `DFII10` are tagged `policy_rates`, so a test can assert USD and gold referenced
 them as upstream rather than claiming them as domain-owned factors. §1 states the rule in
 prose; without this tag there is nothing for a test to fail on.
+
+Each window carries the `as_of` it is replayed at, and the two differ on purpose:
+scenario 1's figures are what was **published in January 2025**, not the vintage in force
+today (121.4976 → 129.2775, restated 2026-02-02). Quoting the current value in a replay
+of the past is the defect deviation 6 records.
 
 **Scenario 4 freezes the anchor's rows rather than an empty list.** The 22 periods exist and
 every vintage of them carries `available_at >= 2021-01-01`, because `DTWEXBGS` is a daily
