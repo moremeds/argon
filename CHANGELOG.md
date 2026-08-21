@@ -32,6 +32,29 @@ version in lockstep (enforced by `scripts/release/version_sync_check.py`).
 
 ### Added
 
+- **The three market roles the rates engine has enumerated since MC0 now resolve to
+  evidence.** `supply`, `positioning` and `plumbing` reported absent for two milestones;
+  `RATES_EVIDENCE` now carries seven nominal coupon terms, the 10-year note future's
+  three trader-category nets with their open-interest shares, and three funding series
+  (`SOFR`, `EFFR`, `RRPONTSYD`). Each role reads over its own history window rather than
+  one for the domain — a curve attribution needs a month, a supply baseline needs five
+  quarterly refundings, and a positioning percentile needs the four-year sample its
+  thresholds were calibrated on. One window would starve the first or drag two years of
+  daily curve prints into every state's identity.
+
+- **Reserve balances are deliberately NOT registered, and that is a finding.** FRED
+  republished `WRESBAL`'s entire history on 2025-11-13 with every value multiplied by a
+  thousand: period 2025-06-04 reads 3294.381 under the vintage in force until 2025-11-12
+  and 3294381.0 under the one after, and the ratio is exactly 1000.0 across all 566
+  multi-vintage periods. FRED today declares the units as millions, so every earlier
+  vintage is billions wearing a millions label. A series contract declares one unit for
+  all vintages and the observations endpoint reports no per-vintage unit, so live reads
+  are fine — every vintage in a 120-day window is post-rebasing — while any replay before
+  that date is wrong by a factor of a thousand, silently and plausibly. That is the exact
+  case this milestone exists to make trustworthy, so the reserve-balances slice reports
+  UNKNOWN rather than borrowing a neighbour. The same scan over all eleven previously
+  registered FRED series found no other instance.
+
 - **The rates engine can finally see supply and positioning.** It has enumerated
   `supply`, `positioning` and `plumbing` as its own market factors since MC0 and reported
   all three absent ever since — not because nothing publishes them, but because the tables

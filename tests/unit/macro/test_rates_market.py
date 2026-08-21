@@ -231,3 +231,44 @@ def test_artifacts_are_vintage_bearing_and_carry_no_release_instant() -> None:
         assert artifact.available_at == RETRIEVED_AT
         assert artifact.source_kind == "official"
         assert artifact.cost_class == "free_official"
+
+
+def test_the_fixture_carries_every_scenario_the_spec_lists() -> None:
+    """Spec 7 names seven; a spec that claims a scenario the fixture lacks is a lie.
+
+    The plumbing scenario landed last because it needed FRED series that were not
+    registered until Task A4, and it is preregistered like the rest -- written before any
+    plumbing sub-state exists to be measured against.
+    """
+    assert {item["id"] for item in GOLDEN["scenarios"]} == {
+        "supply_elevated_against_neutral_macro",
+        "positioning_stretched_against_curve",
+        "plumbing_stress_under_unchanged_policy",
+        "cot_week_never_published",
+        "holiday_shifted_release_is_not_knowable_early",
+        "positioning_stale_past_its_cadence",
+        "supply_term_below_minimum_rows",
+    }
+
+
+def test_the_plumbing_scenario_holds_the_policy_target_still() -> None:
+    """Its whole point is plumbing moving while policy does not.
+
+    If the effective rate moved with the target inside the window, the scenario would be
+    measuring a policy change and calling it a funding condition. It ends the day before
+    the 2025-10-29 cut for exactly that reason.
+    """
+    case = scenario("plumbing_stress_under_unchanged_policy")
+    effr = [
+        Decimal(row["value"]) for row in case["inputs"] if row["series_id"] == "EFFR"
+    ]
+    assert max(effr) - min(effr) <= Decimal("0.05")
+    assert case["expect"]["policy_direction_inferred"] is None
+
+    # SOFR above EFFR on every day of the window is the funding signal itself.
+    by_day = {
+        (row["series_id"], row["period_end"]): Decimal(row["value"])
+        for row in case["inputs"]
+    }
+    days = sorted({row["period_end"] for row in case["inputs"]})
+    assert all(by_day[("SOFR", d)] > by_day[("EFFR", d)] for d in days)

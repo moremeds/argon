@@ -165,6 +165,16 @@ def detect_bulk_load(raw: list[dict[str, Any]]) -> str | None:
     return loads[0] if loads else None
 
 
+#: The plumbing series that survived the Task A4 unit clause.  WRESBAL is deliberately
+#: absent: FRED republished its whole history on 2025-11-13 multiplied by a thousand, so
+#: its unit is a property of the vintage and a contract cannot express one.
+PLUMBING: dict[str, str] = {
+    "SOFR": "percent",
+    "EFFR": "percent",
+    "RRPONTSYD": "billions_usd",
+}
+
+
 def fetch_fred(
     client: httpx.Client, series_id: str, start: str, end: str, key: str
 ) -> list[dict[str, Any]]:
@@ -248,6 +258,28 @@ EXPECT: dict[str, dict[str, Any]] = {
             "hides behind several live ones."
         ),
     },
+    "plumbing_stress_under_unchanged_policy": {
+        "plumbing_state": "TIGHTENING",
+        "policy_state_unchanged_by_plumbing": True,
+        "policy_direction_inferred": None,
+        "contradictions_include": [],
+        "note": (
+            "October 2025, 19 business days. RRP take-up is spent: 2.4bn to 25.4bn against "
+            "a 2.4tn peak, single-digit billions on most days. SOFR prints above EFFR on "
+            "every single day of the window, the spread widening from 2bp on the 8th to "
+            "19bp on the 15th and again on the 28th. EFFR itself drifts up 4.09 -> 4.12 "
+            "INSIDE an unchanged target range, which is the effective rate firming within "
+            "the corridor rather than the committee moving it. Reserves are becoming scarce "
+            "and the funding market is repricing that. TIGHTENING and not STRESSED: a "
+            "stressed print is September 2019, where SOFR spiked hundreds of basis points; "
+            "19bp is the approach to that, not an instance of it, and calling it STRESSED "
+            "would leave no label for the real thing. The window ends the day before the "
+            "2025-10-29 cut on purpose, so the policy state is unchanged throughout -- and "
+            "the sub-state infers NO policy direction from any of it. It describes a "
+            "funding condition the committee has not responded to; what the committee will "
+            "do next is not this role's claim."
+        ),
+    },
     "supply_term_below_minimum_rows": {
         "supply_state": "UNKNOWN",
         "shortfall_named": True,
@@ -295,6 +327,17 @@ def main() -> None:
     curve = fetch_fred(client, "DGS10", "2025-07-14", "2025-09-10", key)
     curve_2023 = fetch_fred(client, "DGS10", "2023-07-01", "2023-11-30", key)
 
+    # Ends the day before the 2025-10-29 FOMC cut: the scenario needs the policy target
+    # UNCHANGED across the window, and EFFR drops 4.12 -> 3.87 on the 30th.
+    plumbing = [
+        row
+        for series_id, unit in PLUMBING.items()
+        for row in fetch_fred(client, series_id, "2025-10-01", "2025-10-28", key)
+    ]
+    for row in plumbing:
+        row["causal_role"] = "plumbing"
+        row["unit"] = PLUMBING[row["series_id"]]
+
     scenarios = [
         {
             "id": "supply_elevated_against_neutral_macro",
@@ -314,6 +357,14 @@ def main() -> None:
             "inputs": recent,
             "curve_window": [curve[0], curve[-1]],
             "expect": EXPECT["positioning_stretched_against_curve"],
+        },
+        {
+            "id": "plumbing_stress_under_unchanged_policy",
+            "domain": "policy_rates",
+            "role": "plumbing",
+            "as_of": "2025-10-28",
+            "inputs": plumbing,
+            "expect": EXPECT["plumbing_stress_under_unchanged_policy"],
         },
         {
             "id": "cot_week_never_published",

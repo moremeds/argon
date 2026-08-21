@@ -125,6 +125,21 @@ SERIES_CONTRACT: Final[dict[str, FredSeriesContract]] = {
         # Rates.
         _contract("DGS10", "policy_rates", "daily", "percent", "level", 1),
         _contract("DFII10", "policy_rates", "daily", "percent", "level", 1),
+        # Funding plumbing.  Two overnight rates the market clears at, plus the
+        # balance-sheet quantity that drains against them.
+        #
+        # WRESBAL -- reserve balances -- is deliberately NOT here, and the reason is a
+        # property of this table's shape.  A contract declares ONE unit per series, and
+        # FRED republished WRESBAL's entire history on 2025-11-13 with every value
+        # multiplied by a thousand: the vintage of period 2025-06-04 in force until
+        # 2025-11-12 reads 3294.381 and the one in force after reads 3294381.0.  Measured
+        # across 566 periods, every ratio is exactly 1000.0.  So the unit is a property of
+        # the VINTAGE, which this contract cannot express and the observations endpoint
+        # does not report -- any replay with an as_of before that date would read billions
+        # labelled millions, silently and plausibly.  See the probe verdict.
+        _contract("SOFR", "policy_rates", "daily", "percent", "level", 1),
+        _contract("EFFR", "policy_rates", "daily", "percent", "level", 1),
+        _contract("RRPONTSYD", "policy_rates", "daily", "billions_usd", "level", 1),
     )
 }
 

@@ -129,3 +129,96 @@ and promotable later through migration 119's single `NULL -> value` resolution.
 | 2 | `supply` series key is `(securityTerm, type)`; `available_at = announcementDate`; apply the auction window client-side |
 | 3 | `positioning` `available_at = :created_at`; replace the `obs_date + 3 days` derivation in `sources/cftc_tff.py` rather than building the correct path beside it |
 | 4 | Pre-bulk-load positioning history gets `published_at = NULL` and the load instant as `available_at`, detected by the shared-timestamp rule, not a hardcoded date |
+
+---
+
+## Task A4 verification — the new daily series churn nothing monthly (2026-08-21)
+
+MC2 Task 9's regression model: a new daily series must not re-mint a monthly one. FRED
+returns a series' whole history in one payload, so if the request window for a monthly
+series moved, every month in it would re-hash and read as a revision.
+
+Run against `option_wizard_local` with all fifteen registered series after adding SOFR,
+EFFR, RRPONTSYD and WRESBAL. Per-series observation counts before and after:
+
+| series | frequency | before | after | |
+|---|---|---|---|---|
+| PCEPILFE | monthly | 1092 | 1092 | unchanged |
+| PCEPI | monthly | 1097 | 1097 | unchanged |
+| CPILFESL | monthly | 676 | 676 | unchanged |
+| CPIAUCSL | monthly | 680 | 680 | unchanged |
+| MEDCPIM158SFRBCLE | monthly | 1029 | 1029 | unchanged |
+| TRMMEANCPIM158SFRBCLE | monthly | 1152 | 1152 | unchanged |
+| CORESTICKM159SFRBATL | monthly | 858 | 858 | unchanged |
+| MICH | monthly | 142 | 142 | unchanged |
+| DGS10 | daily | 1408 | 1410 | +2 real vintages since 2026-08-17 |
+| DFII10 | daily | 1406 | 1408 | +2 |
+| T10YIE | daily | 1409 | 1411 | +2 |
+| **SOFR** | daily | 0 | **1405** | new |
+| **EFFR** | daily | 0 | **1413** | new |
+| **RRPONTSYD** | daily | 0 | **1406** | new |
+| ~~WRESBAL~~ | weekly | 0 | ~~1173~~ | **rejected — see below** |
+
+`created=5403 unchanged=10949 failed=()`. Eight of eight monthly series created nothing;
+the three existing daily series gained exactly the vintages published since the previous
+local ingest.
+
+The structural guarantee behind this is `request_window()` splitting on the contract's own
+`frequency`, which `tests/unit/worker/test_macro_series_window.py` parametrizes over
+`DEFAULT_SERIES` — so the monthly assertion now covers every registered series
+automatically, and the daily assertion picked up SOFR/EFFR/RRPONTSYD without being edited.
+
+**One constant moved.** `VINTAGES_PER_YEAR` in that test was 248, measured on
+DGS10/DFII10/T10YIE. EFFR mints **250.7** a year, so it hits FRED's 2000-vintage cap
+first, at 2.3 years of headroom. The alarm now keys on 251 — the fastest series, not the
+mean, because a mean would put the red build after the date EFFR starts returning HTTP 400.
+
+Reproduce: `uv run python scripts/research/rates_market_layer_probe.py`
+
+### WRESBAL is rejected: its unit is a property of the vintage
+
+Found while picking a window for the plumbing golden scenario, not by looking for it. The
+series returned two values for the same period:
+
+```
+period 2025-06-04, straight from ALFRED
+  {realtime_start: 2025-06-05, realtime_end: 2025-11-12, value: "3294.381"}
+  {realtime_start: 2025-11-13, realtime_end: 9999-12-31, value: "3294381.0"}
+```
+
+FRED republished the whole history on 2025-11-13 with every value multiplied by a thousand.
+Measured across every multi-vintage period in the store: **566 periods, ratio exactly
+1000.0 in all of them.** `fred/series` today declares `units='Millions of U.S. Dollars'`, so
+every vintage before that date is billions carrying a millions label.
+
+The same scan over all eleven previously registered FRED series found no other case. The one
+other period flagged at >10x — `TRMMEANCPIM158SFRBCLE` for 2020-04 — is a genuine revision of
+a small annualised rate (0.279 → 0.658 → 0.380 → 0.109 → −0.042 → 0.099, six vintages, all
+the same order of magnitude); the ratio is large only because one vintage sits near zero.
+
+Why this disqualifies the series rather than being a detail: a `SeriesEvidenceContract`
+declares **one unit per series**, and the ingest stamps that unit on every observation it
+writes. So `_observation`'s unit check cannot catch a publisher rebasing — it compares our
+claim against our claim. Live reads are unaffected, because every vintage inside a 120-day
+window is post-rebasing. A replay with `as_of` before 2025-11-13 reads billions labelled
+millions, and a level threshold calibrated in millions would pass it without complaint.
+
+`SOFR`, `EFFR` and `RRPONTSYD` have no multi-vintage periods at all — those three publishers
+do not revise — so they carry no equivalent risk and stay selected.
+
+**Recovery path, not taken here.** A per-vintage `publisher_transform` (`rebased_x1000`
+before 2025-11-13) would restore the series. It needs its own measurement across the full
+history first — the 566-period ratio was measured on what this desk has stored since 2015,
+not on every vintage FRED holds — and it means writing a number the publisher never
+published into an immutable store, which is a contract change rather than a fix.
+
+Reproduce the scan:
+
+```sql
+SELECT series_id, count(*) FROM (
+  SELECT series_id, period_end, min(abs(value_numeric)) lo, max(abs(value_numeric)) hi
+  FROM uw_scan.macro_observations WHERE source='fred' AND value_numeric <> 0
+  GROUP BY 1,2 HAVING count(*) > 1
+) t WHERE hi/lo > 10 GROUP BY 1;
+```
+

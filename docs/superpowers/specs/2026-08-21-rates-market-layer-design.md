@@ -276,17 +276,35 @@ Task A2 selects; this section names the field and the decision rule, not the ans
 | `WRESBAL` | reserve balances at Federal Reserve banks | weekly |
 
 Decision rule: a candidate is selected only if it exists on FRED, its frequency matches the
-table above, and — for a daily series — its vintage count under `DAILY_VINTAGE_START =
-2021-01-01` clears FRED's 2000-vintage cap with at least two years of headroom. A candidate
-that fails any clause is rejected in the probe verdict with the measured reason, and the
-plumbing sub-state reports `UNKNOWN` for the slice it would have covered rather than
-substituting a neighbour.
+table above, its unit is **stable across its own vintages**, and — for a daily series — its
+vintage count under `DAILY_VINTAGE_START = 2021-01-01` clears FRED's 2000-vintage cap with at
+least two years of headroom. A candidate that fails any clause is rejected in the probe
+verdict with the measured reason, and the plumbing sub-state reports `UNKNOWN` for the slice
+it would have covered rather than substituting a neighbour.
+
+The unit clause was added during Task A4, after WRESBAL failed it. A
+`SeriesEvidenceContract` declares one unit per series; a publisher that rebases republishes
+the whole history under a different one, and the observations endpoint reports no per-vintage
+unit at all.
 
 None of the four is registered in `sources/fred_macro.py` today, which carries exactly 11
 series.
 
-**Probe result (2026-08-21): all four selected.** `docs/research/2026-08-21-rates-market-layer-probe/VERDICT.md`
-carries the measurement. Two things it found that change the work:
+**Probe result (2026-08-21): three of four selected; WRESBAL rejected on the unit clause.**
+`docs/research/2026-08-21-rates-market-layer-probe/VERDICT.md` carries the measurement. Three
+things it found that change the work:
+
+- **WRESBAL's unit is a property of its vintage, not of the series.** FRED republished the
+  entire history on 2025-11-13 with every value multiplied by a thousand: period 2025-06-04
+  reads `3294.381` under the vintage in force until 2025-11-12 and `3294381.0` under the one
+  after, and the ratio is exactly 1000.0 across all 566 multi-vintage periods. FRED today
+  declares the units as millions, so every vintage before that date was billions labelled
+  millions. Live use is unaffected — every readable vintage is post-rebasing — and every
+  replay before that date is wrong by a factor of a thousand, silently and plausibly. That is
+  precisely the case this milestone exists to make trustworthy, so the series is unregistered
+  and the reserve-balances slice reports `UNKNOWN`. Recoverable, but not by assertion: a
+  per-vintage `publisher_transform` would need its own measurement across the full history
+  before it could be trusted, and it is not in this milestone.
 
 - the three daily series sit at ~250 vintages/year against the 2000 cap, leaving 2.3–2.4
   years of headroom. That clears the rule, but only just, so
