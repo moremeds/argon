@@ -553,6 +553,18 @@ REGISTRY: list[DatasetRegistryEntry] = [
         ),
     ),
     DatasetRegistryEntry(
+        "macro_domain_state_dependencies",
+        "macro_evidence",
+        "provenance",
+        expected_frequency="none",
+        source_system="derived",
+        reason=(
+            "immutable state-level lineage (migration 128); a synthesized edge would "
+            "claim one domain consulted another's answer when it never did, which is a "
+            "worse failure than a missing edge because it reads as provenance"
+        ),
+    ),
+    DatasetRegistryEntry(
         "ws_consumer_state",
         "operational_provenance",
         "operational_state",
