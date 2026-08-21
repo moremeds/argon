@@ -1,0 +1,158 @@
+{
+ "probed_at": "2026-08-21T13:14:41.916074+00:00",
+ "spec": "docs/superpowers/specs/2026-08-12-usd-gold-state-design.md",
+ "vintage_cap": 2000,
+ "daily_vintage_start": "2021-01-01",
+ "fred_broad_dollar": {
+  "DTWEXBGS": {
+   "exists": true,
+   "title": "Nominal Broad U.S. Dollar Index",
+   "units": "Index Jan 2006=100",
+   "declared_frequency": "daily",
+   "assumed_frequency": "daily",
+   "observation_start": "2006-01-02",
+   "observation_end": "2026-08-14",
+   "observations_http_status": 200,
+   "rows": 4302,
+   "distinct_vintages": 293,
+   "span_years": 5.62,
+   "vintages_per_year": 52.2,
+   "headroom_years": 32.7,
+   "revised_periods": 1265,
+   "first_observation": "2021-01-01",
+   "first_observation_vintage": "2021-01-11",
+   "verdict": "SELECT"
+  },
+  "RTWEXBGS": {
+   "exists": true,
+   "title": "Real Broad Dollar Index",
+   "units": "Index Jan 2006=100",
+   "declared_frequency": "monthly",
+   "assumed_frequency": "monthly",
+   "observation_start": "2006-01-01",
+   "observation_end": "2026-07-01",
+   "observations_http_status": 200,
+   "rows": 7237,
+   "distinct_vintages": 90,
+   "span_years": 11.5,
+   "vintages_per_year": 7.8,
+   "headroom_years": 244.9,
+   "revised_periods": 138,
+   "first_observation": "2015-01-01",
+   "first_observation_vintage": "2019-03-01",
+   "verdict": "SELECT"
+  },
+  "DTWEXAFEGS": {
+   "exists": true,
+   "title": "Nominal Advanced Foreign Economies U.S. Dollar Index",
+   "units": "Index Jan 2006=100",
+   "declared_frequency": "daily",
+   "assumed_frequency": "daily",
+   "observation_start": "2006-01-02",
+   "observation_end": "2026-08-14",
+   "observations_http_status": 200,
+   "rows": 4242,
+   "distinct_vintages": 293,
+   "span_years": 5.62,
+   "vintages_per_year": 52.2,
+   "headroom_years": 32.7,
+   "revised_periods": 1265,
+   "first_observation": "2021-01-01",
+   "first_observation_vintage": "2021-01-11",
+   "verdict": "SELECT"
+  },
+  "DTWEXEMEGS": {
+   "exists": true,
+   "title": "Nominal Emerging Market Economies U.S. Dollar Index",
+   "units": "Index Jan 2006=100",
+   "declared_frequency": "daily",
+   "assumed_frequency": "daily",
+   "observation_start": "2006-01-02",
+   "observation_end": "2026-08-14",
+   "observations_http_status": 200,
+   "rows": 4304,
+   "distinct_vintages": 293,
+   "span_years": 5.62,
+   "vintages_per_year": 52.2,
+   "headroom_years": 32.7,
+   "revised_periods": 1265,
+   "first_observation": "2021-01-01",
+   "first_observation_vintage": "2021-01-11",
+   "verdict": "SELECT"
+  },
+  "DTWEXM": {
+   "exists": true,
+   "title": "Nominal Major Currencies U.S. Dollar Index (Goods Only) (DISCONTINUED)",
+   "units": "Index Mar 1973=100",
+   "declared_frequency": "daily",
+   "assumed_frequency": "daily",
+   "observation_start": "1973-01-02",
+   "observation_end": "2019-12-31",
+   "observations_http_status": 200,
+   "rows": 0,
+   "distinct_vintages": 0,
+   "span_years": 0.0,
+   "vintages_per_year": 0.0,
+   "headroom_years": null,
+   "revised_periods": 0,
+   "first_observation": null,
+   "first_observation_vintage": null,
+   "verdict": "REJECT",
+   "reason": "discontinued: last observation 2019-12-31, so it can describe no current condition"
+  }
+ },
+ "bis_effective_exchange_rate": {
+  "url": "https://stats.bis.org/api/v2/data/dataflow/BIS/WS_EER/1.0/D.N.B.US",
+  "bare_request": [
+   200,
+   "application/xml"
+  ],
+  "format_param_only": [
+   406,
+   "application/xml"
+  ],
+  "with_sdmx_accept": [
+   200,
+   "application/json"
+  ],
+  "accept_header_selects_json": true,
+  "anonymous_access": true,
+  "series_key": "0:0:0:0",
+  "dimensions": [
+   [
+    "FREQ",
+    "D"
+   ],
+   [
+    "EER_TYPE",
+    "N"
+   ],
+   [
+    "EER_BASKET",
+    "B"
+   ],
+   [
+    "REF_AREA",
+    "US"
+   ]
+  ],
+  "observations": {
+   "2026-08-14": "101.79",
+   "2026-08-15": "NaN",
+   "2026-08-16": "NaN",
+   "2026-08-17": "101.71",
+   "2026-08-18": "101.87"
+  },
+  "non_trading_days_are_nan": true,
+  "vintage_bearing": false,
+  "verdict": "SELECT_AS_CROSS_CHECK_ONLY",
+  "reason": "reachable anonymously and current, but the data message carries no real-time dimension: it can corroborate today's level and can never answer what the level was believed to be on a past date"
+ },
+ "candidate_notes": {
+  "DTWEXBGS": "nominal broad dollar, the H.10 headline",
+  "RTWEXBGS": "real broad dollar, CPI-deflated",
+  "DTWEXAFEGS": "nominal advanced-economies dollar",
+  "DTWEXEMEGS": "nominal emerging-market dollar",
+  "DTWEXM": "the pre-2020 major-currencies index"
+ }
+}
