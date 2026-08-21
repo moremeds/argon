@@ -61,6 +61,7 @@ from uw_scan.worker.jobs.macro_series_ingest import macro_fred_series_ingest_job
 from uw_scan.worker.jobs.macro_state_jobs import (
     macro_inflation_state_job,
     macro_rates_state_job,
+    macro_usd_state_job,
 )
 from uw_scan.worker.jobs.macro_policy_jobs import (
     macro_fomc_statement_ingest_job,
@@ -1514,11 +1515,18 @@ def main() -> int:
         )
 
     def _macro_state_compute() -> None:
-        # One connection, both domains, in order: they share no state, but running them
-        # together keeps the pair's as_of within the same minute so a reader comparing
-        # inflation against rates is comparing two answers to the same question.
+        # One connection, all three domains, IN ORDER -- and for USD the order is a
+        # dependency, not a nicety. It reads the stored rates ANSWER, so rates must have
+        # been computed for this instant first or USD runs with no upstream and the
+        # policy contradiction cannot fire. Inflation and rates share no state; keeping
+        # them in one pass holds every as_of inside the same minute, so a reader
+        # comparing two domains is comparing two answers to the same question.
         with _repo(settings) as repo:
-            for job in (macro_inflation_state_job, macro_rates_state_job):
+            for job in (
+                macro_inflation_state_job,
+                macro_rates_state_job,
+                macro_usd_state_job,
+            ):
                 result = job(repo)
                 logger.info(
                     "macro state %s: %s state=%s confidence=%s evidence=%d",
@@ -2411,7 +2419,7 @@ def main() -> int:
                     _macro_state_compute,
                     CronTrigger.from_crontab("40 19 * * *", timezone=settings.rth_tz),
                     id="macro_state_compute",
-                    name="Macro: inflation and policy/rates domain states",
+                    name="Macro: inflation, policy/rates and USD domain states",
                     max_instances=1,
                     coalesce=True,
                 )

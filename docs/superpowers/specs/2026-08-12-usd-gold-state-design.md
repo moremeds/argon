@@ -54,6 +54,44 @@ document's rulings before implementation started.
    but none knowable at `as_of`. The corrected point-in-time figures replaced the
    restated ones under `--rewrite-predictions`, which logged the prior text.
 
+7. **No `MacroDomainState(domain="gold")` is emitted, and forcing one would have been
+   dishonest.** Plan step B4.4 asks for it. The store refuses a state that cannot cite
+   evidence — `_evidence_rows` raises on a `NULL` `obs_id` and `_insert_evidence` raises
+   on an empty set — because an answer nobody can reconstruct is unfalsifiable. Gold's
+   inputs live in the warm-store tables (`cb_gold_reserves_monthly`, `etf_holdings_daily`,
+   …), not in `macro_observations`, so there are no `obs_id`s to cite. Three ways out,
+   and only one of them is honest:
+
+   - fabricate ids — forbidden by this spec's own omission rule;
+   - relax the store to accept a state whose lineage is entirely upstream *states*. That
+     is principled in general, and wrong here: gold's regime label is computed from
+     warm-store rows, not from the USD or rates answers, so upstream edges would point at
+     things that did not produce it. Lineage that names the wrong parents is worse than
+     none;
+   - ingest gold's ten sources into the evidence store. That is the real fix and it is a
+     milestone, not a step.
+
+   So gold's complete manifest ships where the orchestrator already writes —
+   `gold_posture_daily.inputs_jsonb`, now twelve entries instead of four — and no domain
+   state is minted. The helpers written for it (`GOLD_ENGINE_VERSION`, `regime_state`,
+   `lens_coverage`) were **deleted rather than left in place**: code that is tested but
+   has no caller reads as wired-up to the next person, and partial scaffolding for a
+   deferred feature is worse than either building it or not. When the state is built they
+   come back with the caller that needs them. Every Part B exit criterion is still met; it is B4.4 alone that is
+   deferred. **Overturned by:** an ingest that lands the gold sources as
+   `macro_observations`, at which point the state can cite real evidence.
+
+8. **The `/gold` provenance change is additive, not feature-flagged.** Plan step B6.3
+   asks for a flag with the existing response retained during parity. A flag guards a
+   NEW block that can be compared against an old one; this milestone completes an
+   EXISTING field — `inputs_used` went from four entries to twelve, and
+   `GoldInputProvenance` gained optional fields. Every legacy row still replays exactly
+   as recorded (verified: a 2026-08-19 row returns its four entries with `lens: []` and
+   no omission reason, which is the truth about what that row stored), so there is no
+   parity window to hold open and a flag would only add a second code path to keep
+   correct. **Overturned by:** any change that alters what an existing stored row
+   renders as.
+
 ## 1. What the USD domain is, and what it must not become
 
 USD is a **transmission** domain. It does not re-answer what inflation is doing or what the
@@ -146,6 +184,36 @@ orchestrator consumes roughly eleven inputs. Every consumed row gets a typed evi
 association, and an absent optional input is recorded as an **omission reason**, never as a
 fabricated evidence id. A manifest that names four of eleven is worse than no manifest: it
 reads as a complete audit trail.
+
+### 3.1 What the manifest checks, and the one thing it still cannot claim
+
+`GOLD_INPUTS` in `macro/gold.py` declares all twelve inputs once, and both the reads and
+the manifest are generated from it. The four-entry manifest was not written wrong — it
+went stale as reads were added beside it, and a second hand-maintained copy would go
+stale the same way. The registry makes that failure unrepresentable: an entry must
+declare exactly one of `read` / `not_read_reason`, and `evidence_manifest` refuses to emit
+unless every declared input is covered.
+
+**Measured, and now asserted:** every table a gold lens reads keys on `(…, as_of)` and
+inserts `DO NOTHING`. That is the property Part A required and the rates legacy tables
+failed — those key on `(series_id, obs_date, source)` and `DO UPDATE`, so a value read
+back may already have been overwritten. `wgc_etf_monthly` in the same storage module
+*does* update on conflict; no declared input reads it, and a test asserts the exclusion
+stays deliberate.
+
+**What the manifest does not claim.** It records the rows the orchestrator read, which is
+not the same as the rows knowable at `as_of`. The gold flow tables are queried by
+observation period with their `as_of` column unbounded — `fetch_etf_flows_daily` accepts
+an `as_of_max` the orchestrator does not pass. Bounding it changes what the three lenses
+see, which is a lens change and not a provenance one, so it is recorded rather than done
+quietly. The rows are immutable; they are not yet replayable.
+
+**The gate is the domain's state.** The three lenses publish as sub-states with their own
+coverage, exactly as Part A's market roles do. What is left for the domain itself is the
+one fact belonging to no single lens: whether the gold/real-yield relationship the
+cyclical lens rests on is currently in force. An unrecognised gauge label maps to
+`UNKNOWN`, never to `operative` — defaulting there would assert the pre-2022 relationship
+holds, which is the single claim the gate exists to withhold.
 
 **The post-2022 regime gate stays load-bearing.** Gold decoupled from real yields after 2022,
 and a Lens 2 that averages across the break describes neither side of it.

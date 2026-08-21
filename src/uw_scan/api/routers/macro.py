@@ -67,6 +67,34 @@ def macro_rates_state(
     return _domain_state(repo, "policy_rates", _resolve_instant(as_of, as_of_ts))
 
 
+@router.get("/usd", response_model=MacroDomainStateResponse)
+def macro_usd_state(
+    as_of: date | None = Query(
+        default=None,
+        description="UTC calendar date; returns the state answering for that day-end.",
+    ),
+    as_of_ts: datetime | None = Query(
+        default=None, description="Timezone-aware instant to replay."
+    ),
+    repo: Repository = Depends(get_repo),
+) -> MacroDomainStateResponse:
+    return _domain_state(repo, "usd", _resolve_instant(as_of, as_of_ts))
+
+
+@router.get("/gold", response_model=MacroDomainStateResponse)
+def macro_gold_state(
+    as_of: date | None = Query(
+        default=None,
+        description="UTC calendar date; returns the state answering for that day-end.",
+    ),
+    as_of_ts: datetime | None = Query(
+        default=None, description="Timezone-aware instant to replay."
+    ),
+    repo: Repository = Depends(get_repo),
+) -> MacroDomainStateResponse:
+    return _domain_state(repo, "gold", _resolve_instant(as_of, as_of_ts))
+
+
 def _domain_state(
     repo: Repository, domain: str, requested_as_of: datetime
 ) -> MacroDomainStateResponse:
@@ -87,7 +115,9 @@ def _domain_state(
                 f"{requested_as_of.isoformat()}"
             ),
         )
-    evidence = repo.fetch_macro_domain_state_evidence(int(row["state_id"]))
+    state_id = int(row["state_id"])
+    evidence = repo.fetch_macro_domain_state_evidence(state_id)
+    upstream = repo.fetch_macro_domain_state_dependencies(state_id)
     return MacroDomainStateResponse.model_validate(
         {
             **state_summary_fields(row, requested_as_of=requested_as_of),
@@ -113,6 +143,20 @@ def _domain_state(
                     "quality_status": item["quality_status"],
                 }
                 for item in evidence
+            ],
+            "upstream": [
+                {
+                    "upstream_state_id": item["upstream_state_id"],
+                    "domain": item["upstream_domain"],
+                    "causal_role": item["causal_role"],
+                    "state": item["upstream_state"],
+                    "direction": item["upstream_direction"],
+                    "confidence": item["upstream_confidence"],
+                    "as_of": item["upstream_as_of"],
+                    "engine_version": item["upstream_engine_version"],
+                    "inputs_hash": item["upstream_inputs_hash"],
+                }
+                for item in upstream
             ],
         }
     )

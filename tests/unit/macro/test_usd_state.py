@@ -318,3 +318,57 @@ class TestMomentumWindow:
         from uw_scan.macro.usd import DEFAULT_USD_PARAMETERS
 
         assert DEFAULT_USD_PARAMETERS.anchor_cadence_days == 7
+
+
+class TestTheTwoIndicesGetTheirOwnWindows:
+    """A window in OBSERVATIONS is only a window once you say whose observations.
+
+    ``DTWEXBGS`` is daily and ``RTWEXBGS`` is monthly. Reusing the anchor's 63
+    observations for the real index measures 63 MONTHS -- five and a quarter years --
+    and reports it under a label that says three, so the two changes rendered beside
+    each other differ by a factor of twenty-one while looking entirely ordinary.
+    """
+
+    SCENARIO = "usd_strength_against_easing_policy"
+
+    def _state(self):
+        return compute_usd_state(_owned(self.SCENARIO), as_of=_as_of(self.SCENARIO))
+
+    def test_both_legs_report_the_same_calendar_window(self) -> None:
+        windows = {v.metric: v.window_months for v in self._state().velocity}
+        assert windows["broad_dollar_change"] == windows["real_dollar_change"] == 3
+
+    def test_the_monthly_index_uses_a_monthly_window(self) -> None:
+        from uw_scan.macro.usd import DEFAULT_USD_PARAMETERS
+
+        assert DEFAULT_USD_PARAMETERS.real_momentum_window_obs == 3
+        assert DEFAULT_USD_PARAMETERS.momentum_window_obs == 63
+
+    def test_the_real_index_change_is_actually_computed(self) -> None:
+        """The bug's symptom: a permanently unavailable velocity that looked principled.
+
+        With the anchor's window the real leg needed 64 MONTHLY observations -- more than
+        five years, against an evidence window that holds five -- so it reported None for
+        a reason that read like honest missingness and would never once have been false.
+
+        Asserted on the abstention scenario because that is the fixture carrying real
+        RTWEXBGS rows (59 of them); scenario 1 freezes only the anchor and its upstream.
+        """
+        state = compute_usd_state(
+            _owned("usd_anchor_absent_state_abstains"),
+            as_of=_as_of("usd_anchor_absent_state_abstains"),
+        )
+        real = next(v for v in state.velocity if v.metric == "real_dollar_change")
+        assert real.value is not None
+        assert real.unavailable_reason is None
+
+    def test_a_genuinely_short_history_still_reports_unavailable(self) -> None:
+        # The fix must not turn every absence into a number. Scenario 5 carries five
+        # knowable anchor rows, far short of 64.
+        state = compute_usd_state(
+            _owned("broad_dollar_revised_after_the_fact"),
+            as_of=_as_of("broad_dollar_revised_after_the_fact"),
+        )
+        anchor = next(v for v in state.velocity if v.metric == "broad_dollar_change")
+        assert anchor.value is None
+        assert "fewer than 64 observations" in anchor.unavailable_reason

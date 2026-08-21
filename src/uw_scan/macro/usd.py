@@ -96,9 +96,12 @@ class UsdParameters:
     #: record by construction, not a number that felt small. p90 is 4.82%.
     #: Reproduce: uv run python scripts/research/usd_source_probe.py
     momentum_threshold_pct: Decimal = Decimal("2.0")
-    #: The anchor's own trailing window for the level percentile. One year of a weekly
-    #: release. Without it "the dollar is strong" has no denominator.
-    level_window_obs: int = 252
+    #: The real index is MONTHLY, so the anchor's 63 observations would be 63 months on
+    #: it -- five and a quarter years reported under a label that says three months, and
+    #: the two "changes" beside each other would not be comparable at all. Three
+    #: observations is the same calendar quarter the anchor's window covers. A window
+    #: expressed in observations is only a window once you say whose observations.
+    real_momentum_window_obs: int = 3
     contradiction_penalty_each: Decimal = Decimal("0.15")
     contradiction_penalty_cap: Decimal = Decimal("0.60")
     freshness_decay_multiple: Decimal = Decimal("3")
@@ -143,15 +146,6 @@ class _SeriesWindow:
             return None
         return (self.latest.value - start) / start * Decimal(100)
 
-    def percentile(self, window_obs: int) -> Decimal | None:
-        if not self.rows:
-            return None
-        window = [row.value for row in self.rows[-window_obs:]]
-        if len(window) < 2:
-            return None
-        below = sum(1 for value in window if value < self.latest.value)
-        return Decimal(below) / Decimal(len(window))
-
 
 def compute_usd_state(
     observations: Iterable[DomainObservation],
@@ -188,6 +182,7 @@ def compute_usd_state(
                 as_of,
                 parameters.anchor_cadence_days,
                 parameters,
+                parameters.momentum_window_obs,
             ),
             _factor(
                 real,
@@ -196,6 +191,7 @@ def compute_usd_state(
                 as_of,
                 parameters.real_index_cadence_days,
                 parameters,
+                parameters.real_momentum_window_obs,
             ),
         )
         if factor is not None
@@ -292,6 +288,7 @@ def _factor(
     as_of: datetime,
     cadence_days: int,
     parameters: UsdParameters,
+    window_obs: int,
 ) -> FactorState | None:
     latest = window.latest
     if latest is None:
@@ -304,10 +301,8 @@ def _factor(
         period_end=latest.period_end,
         value=latest.value,
         unit=latest.unit,
-        direction=_direction(
-            window.change_pct(parameters.momentum_window_obs), parameters
-        ),
-        change_over_window=window.change_pct(parameters.momentum_window_obs),
+        direction=_direction(window.change_pct(window_obs), parameters),
+        change_over_window=window.change_pct(window_obs),
         available_at=latest.available_at,
         age_days=age_days,
         freshness=freshness_for(
@@ -376,24 +371,30 @@ def _contradictions(
 def _velocity(
     anchor: _SeriesWindow, real: _SeriesWindow, parameters: UsdParameters
 ) -> tuple[Velocity, ...]:
-    window_months = round(parameters.momentum_window_obs / 21)
+    """Both legs over the same CALENDAR window, which is not the same observation count.
+
+    ``window_months`` is reported per metric and both come out at 3, so the two changes
+    sitting beside each other are comparable. Reusing the anchor's 63 observations for a
+    monthly series would have measured 63 months and labelled it 3 -- a velocity that is
+    wrong by a factor of twenty-one while looking entirely ordinary.
+    """
     out = []
-    for window, metric in (
-        (anchor, "broad_dollar_change"),
-        (real, "real_dollar_change"),
+    for window, metric, window_obs in (
+        (anchor, "broad_dollar_change", parameters.momentum_window_obs),
+        (real, "real_dollar_change", parameters.real_momentum_window_obs),
     ):
-        change = window.change_pct(parameters.momentum_window_obs)
+        change = window.change_pct(window_obs)
         out.append(
             Velocity(
                 metric=metric,
                 value=change,
                 unit="percent",
-                window_months=window_months,
+                window_months=3,
                 unavailable_reason=(
                     None
                     if change is not None
-                    else f"fewer than {parameters.momentum_window_obs + 1} observations "
-                    f"of {window.series_id} at as_of; a change measured over a shorter "
+                    else f"fewer than {window_obs + 1} observations of "
+                    f"{window.series_id} at as_of; a change measured over a shorter "
                     "window is a different statistic under the same label"
                 ),
             )

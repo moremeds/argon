@@ -500,6 +500,26 @@ class MacroStateEvidenceItem(_UwBase):
     quality_status: MacroQualityStatus
 
 
+class MacroUpstreamState(_UwBase):
+    """One upstream domain's answer, carried on the edge that references it.
+
+    The upstream's own state and confidence travel with the edge on purpose. A pointer a
+    reader has to resolve with a second request is a foreign key, not lineage -- and the
+    thing they actually want to know is what the upstream SAID, not merely that it was
+    consulted.
+    """
+
+    upstream_state_id: int
+    domain: MacroDomain
+    causal_role: MacroCausalRole
+    state: str
+    direction: MacroDirection
+    confidence: Decimal
+    as_of: AwareDatetime
+    engine_version: str
+    inputs_hash: str
+
+
 class MacroDomainStateResponse(_UwBase):
     """A stored answer, replayed -- never recomputed at read time.
 
@@ -527,6 +547,10 @@ class MacroDomainStateResponse(_UwBase):
     evidence: list[MacroStateEvidenceItem] = Field(default_factory=list)
     notes: list[str] = Field(default_factory=list)
     sub_states: list[MacroSubStateItem] = Field(default_factory=list)
+    #: Upstream ANSWERS this state consumed. Empty for inflation and rates, which stand
+    #: on observations alone -- only a transmission domain has any, so an empty list is
+    #: the normal shape rather than missing lineage.
+    upstream: list[MacroUpstreamState] = Field(default_factory=list)
 
 
 class MacroStateSummary(_UwBase):

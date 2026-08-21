@@ -9,6 +9,70 @@ version in lockstep (enforced by `scripts/release/version_sync_check.py`).
 
 ### Added
 
+- **A USD transmission state that consumes upstream answers and refuses to guess.** The
+  Fed's H.10 nominal broad dollar (`DTWEXBGS`) is the required anchor; with no vintage of
+  it at `as_of` the state is `UNKNOWN`. The CPI-deflated sibling `RTWEXBGS` is reported
+  beside it and is **never substituted** — the golden scenario freezes an `as_of` where
+  the sibling has 59 observations and the anchor has zero, because the substitute being
+  available is exactly what makes the refusal a decision rather than an absence of
+  options. A nominal index moving while the real one does not is an inflation
+  differential, and swapping them would report that as a dollar move. Relative policy,
+  funding and positioning are USD factors too, and every one is owned upstream: USD reads
+  the stored **answer** through `UpstreamState`, and passing it an upstream-owned
+  observation raises. `GET /api/macro/usd` serves it with its lineage.
+
+- **`DTWEXBGS` carries a weekly cadence for a series FRED labels daily, and that is the
+  load-bearing detail.** The H.10 goes out weekly carrying the week's daily observations
+  together — 52.2 vintages a year against ~250 for SOFR. A cadence of 1 would mark the
+  *required* anchor stale Monday through Thursday of an ordinary week, and an abstaining
+  state is not a degraded reading, it is no reading at all. The same measurement gives
+  32.7 years of headroom under FRED's 2000-vintage cap, against EFFR's 2.3.
+
+- **Cross-domain lineage (migration 128).** `macro_domain_state_dependencies` records the
+  typed edge from a state to the upstream **answers** it stood on, carrying the upstream's
+  own state and confidence so the edge is traversable rather than merely present. Inside
+  `inputs_hash` alone the dependency is in the identity and invisible in the record: you
+  could tell a USD state changed when rates did and never ask what rates said. An upstream
+  answering for an instant *after* the downstream's `as_of` is refused as lookahead.
+
+- **A BIS cross-check that cannot become evidence.** `sources/bis_eer.py` returns a
+  dataclass with no `available_at`, no vintage and no artifact, because a BIS SDMX data
+  message carries no real-time dimension: it can corroborate today's level and can never
+  say what the level was believed to be on a past date. Two measured traps are tested
+  against the publisher's own bytes — a bare request **succeeds** with HTTP 200 and
+  `application/xml`, so a client that omits the `Accept` header hands SDMX-ML to a JSON
+  parser and `raise_for_status` passes it through; and `NaN` on a non-trading day is an
+  absence that must never become a zero.
+
+### Fixed
+
+- **Gold Compass named four of its twelve inputs and read as a complete audit trail.**
+  `reports/gold_posture.py` pinned a four-entry `inputs_used` manifest — `DFII10`,
+  `GLD_CLOSE`, `T5YIFR`, `CPIAUCSL` — while the orchestrator read ten sources and passed
+  two more to the lens functions as deliberately empty lists. The manifest was not written
+  wrong; it went stale as reads were added beside it, so the reads and the manifest are
+  now generated from **one** declaration (`macro/gold.py::GOLD_INPUTS`) and an entry that
+  is neither read nor explained cannot be constructed. An input with no rows carries a
+  reason; `fx` and `spx` are recorded as declared-and-not-read, because an empty list
+  reaching a lens is indistinguishable in the output from a factor that did not move. The
+  `/gold` audit footer now reports `INPUTS 9/12 READ` with each omission and its reason.
+  The first thing this surfaced was real: COMEX inventory (`exchange_inventory_daily`)
+  last observed 2026-06-01 in production against a 60-day read window, so Lens 1's
+  inventory leg has been silently empty — invisible under the old manifest.
+
+- **The gold API dropped any provenance entry without an `obs_date`.** An explicit
+  omission would have been discarded between the store and the client, rebuilding the
+  partial manifest one layer up. `GoldInputProvenance` now carries the omission and the
+  router keeps the record.
+
+- **`compute_confidence` counted factors instead of matched requirements.**
+  `len(factors) / len(required_series)` is correct only while every caller pre-filters its
+  factors down to the required set — which rates does by an explicit filter and inflation
+  does by iterating `REQUIRED`, so the two shipped domains made those numbers identical by
+  accident. A caller passing a factor it merely *reports* got **1/1 complete on a state
+  whose one required input was absent**: full confidence in a reading built entirely from
+  a substitute. Now counts the intersection; both existing domains are unchanged.
+
 - **Supply, positioning and plumbing now publish their own sub-states, each with its own
   confidence.** The rates policy state answers what the committee did and is gated by
   three policy paths; a positioning read is gated by whether CFTC published. Sharing one
