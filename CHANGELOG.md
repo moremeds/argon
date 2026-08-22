@@ -196,6 +196,107 @@ version in lockstep (enforced by `scripts/release/version_sync_check.py`).
   hardcoded, and migration 119 already allows exactly one `NULL -> value` promotion if a
   real instant is ever verified.
 
+- **The valuation band was priced against the wrong share basis, and it put a
+  dozen names on the buy list that do not belong there — while refusing seven
+  that do.** `valuation_anchors` builds each band from 20 quarters of
+  `fundamental / shares ÷ price`, and the two legs disagreed: UW restates
+  historical share counts onto today's post-split basis, while bronze stores
+  closes unadjusted. So the numerator already sat in today's units and the price
+  did not, and every quarter before a split yielded a number wrong by the split
+  factor. BKNG's 1-for-25 set its `buy_below` at $4,702.64 against a $208.25
+  spot — the name read as cheap. On 2026-08-18, 26 of 335 bands were built
+  across a split inside their own window and 12 of those were showing in the buy
+  zone. The error also ran the other way: a split made a name's own yield history
+  look like it spanned two regimes, so the 4x width gate refused it. NVDA, which
+  split 4-for-1 in 2021 and 10-for-1 in 2024, was refused for an "own 20-quarter
+  valuation range spans 16.9x" that was the splits, not its valuation — it and
+  AVGO, LRCX, ORLY, DECK, SMCI and BKSY all get real bands now.
+
+  Prices now come from livewire's **silver** tier, which publishes fully
+  back-adjusted daily bars, rather than being adjusted here. Silver's close is
+  adjusted for splits AND dividends, so it is divided by
+  `price_adjustment_factor * split_volume_factor` to undo the dividend half:
+  a cash dividend genuinely lowers market cap and nothing restates a share count
+  for it, so leaving it in understates every historical market cap on a payer
+  and biases the whole band cheap. `ANCHOR_RULES_REV` goes to 4 so the corrected
+  rows are actually written — the hashed inputs (`fundamental`, `net_debt`,
+  `shares`, `history_n`) are all unchanged by this fix, so without the bump every
+  correction would collide on `(ticker, as_of, engine_version, inputs_hash)` and
+  `DO NOTHING` would keep the wrong band for the rest of the day.
+
+  The file's own `WHY UNADJUSTED CLOSES` note argued the opposite for a sound
+  reason resting on a premise nobody had checked; it now carries the three
+  measurements that disprove it. Verified against production writing nothing:
+  `docs/research/2026-08-21-lake-price-basis-split-contamination/VERDICT.md`.
+
+- **Bronze's 2021-06-11 basis seam, and the 18 names livewire refuses to
+  adjust at all.** Bronze rows before that date were back-adjusted by a legacy
+  backfill and rows from it forward are raw, concatenated without reconciling
+  (TSLA steps 203.37 → 609.89 that day, WMT 46.63 → 140.75). An earlier fix here
+  clamped every series to that date — but it is livewire's boundary for the
+  *ambiguous* symbols only, and applying it globally cost KLAC, whose bronze
+  basis is clean throughout, forty years of history. Silver carries the
+  per-symbol truth: TSLA/WMT/CTAS start exactly 2021-06-11, KLAC starts 1980.
+
+  Where livewire cannot establish a basis at all (`price_basis='unknown'` on
+  bronze) it publishes no silver series — 18 of 450 universe names on
+  2026-08-21, including HON, CMCSA and MSTR. Those fall back to raw bronze,
+  which is provably equivalent when no split falls inside the window being
+  priced, and are **refused** when one does: CXAI's 50-for-1 on 2026-08-18 had
+  left `buy_below` at $0.107 against a $4.59 spot, and TRI's buyback
+  consolidations put it on the buy list 24% below a band it had not earned. The
+  new `unadjustable_prices` counter tracks them, and falls to zero as livewire
+  resolves those symbols upstream.
+
+  That fallback is only sound while "no split on record" means the ingest looked
+  and found none, and on 2026-08-22 it did not: `corporate_actions` covered 137
+  of the universe's 450 names, so 15 of those 18 — AIG, CMCSA, ECL, HON among
+  them — had zero rows for the plain reason that nobody had asked, and every one
+  was banded off an unverified basis. CMCSA was sitting in the buy zone on it.
+  The guard now requires positive evidence that a name was ingested (any split
+  or dividend row) and refuses otherwise, and the ingest itself widened to the
+  full scoring universe so that evidence exists. Refusals rise from 4 to 10 on
+  the 2026-08-22 store and fall back to 4 after one ingest run (verified by
+  staging that run's splits *and* dividends against production). Three names
+  (CFLT, CYBR, PSTG) have no split and no dividend at massive at all, so they
+  can never satisfy the rule; none of the three carries a band today, so the
+  measured coverage cost is zero, but the ceiling is real — an event table
+  cannot record a non-event.
+
+  A missing silver tier is now a hard failure rather than a silent one. The
+  whole directory absent is a mount or path error, never a data gap, and it was
+  the one fault that would have put all 450 names back on unadjusted bronze —
+  quietly reinstating the bug above. The job refuses to run instead, leaving the
+  previous day's bands standing.
+
+- **Twelve foreign filers were refused a valuation band for want of an FX series
+  the lake was carrying the whole time.** Two independent faults. `lake_fx_root`
+  was added after the container migration and never got a case in
+  `Settings.from_env`, so it fell back to a `$HOME` path — `/root/market-warehouse/…`
+  inside the container — that has never existed in production. Every lake root
+  now falls back under `market_warehouse_lake_root` instead of `$HOME`, so the
+  next one added is correct by default and no `.env` edit is needed.
+
+  Underneath that, `fx_symbol` looked only for `USD<CCY>`, and the mirrors
+  disagree: the mini's lake publishes `EURUSD` (1.16973 on 2026-08-21, USD per
+  EUR) and no `USDEUR`, while the MacBook's publishes `USDEUR` (0.8586) and no
+  `EURUSD`. Both are livewire artifacts and neither is wrong. `load_fx` now reads
+  whichever orientation exists and inverts `<CCY>USD` on read, so `convert`'s
+  single convention holds downstream — rather than keeping a table of which
+  currencies are quoted which way in sync with two mirrors. Verified against real
+  filings: ASML Q2-2026 €9.33B → $10.87B, TSM NT$1,270.38B → $40.45B.
+
+  `no_fx` falls 12 → 1 and ASML, ASX, BABA, CCEP, CCJ, NOK, SONY, SPOT, TSM, UMC
+  and WIT get bands. NVO stays refused and should: it reports DKK and the lake
+  carries no DKK series in either orientation. That is an upstream ask, not
+  something to paper over with an unconverted band.
+
+- **The split store covered 137 of the fundamental universe's 450 names.**
+  `corporate_actions_refresh` ingested the watchlist and the VRP panel only, so
+  the guard above had no evidence for most of the names that need it. The job now
+  covers the fundamental universe as well, at 17:35 ET — 45 minutes before
+  `fundamental_refresh`, so the guard is armed on the first day after a deploy.
+
 ## [0.12.10] — 2026-08-20
 
 

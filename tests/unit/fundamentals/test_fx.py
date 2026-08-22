@@ -22,6 +22,8 @@ from uw_scan.fundamentals.fx import (
     average_rate,
     convert,
     fx_symbol,
+    inverse_fx_symbol,
+    load_fx,
     rate_on_or_before,
 )
 
@@ -141,3 +143,63 @@ def test_average_rate_falls_back_to_the_close_on_an_empty_window():
 def test_symbol_convention_is_local_per_usd():
     assert fx_symbol("twd") == "USDTWD"
     assert fx_symbol("EUR") == "USDEUR"
+    assert inverse_fx_symbol("eur") == "EURUSD"
+
+
+def _write_fx(root, symbol, rows):
+    import pyarrow as pa
+    import pyarrow.parquet as pq
+
+    d = root / f"symbol={symbol}"
+    d.mkdir(parents=True)
+    pq.write_table(
+        pa.table(
+            {"trade_date": [r[0] for r in rows], "close": [r[1] for r in rows]},
+            schema=pa.schema(
+                [("trade_date", pa.date32()), ("close", pa.float64())]
+            ),
+        ),
+        d / "1d.parquet",
+    )
+
+
+class TestLoadFxAcceptsEitherOrientation:
+    """The two lake mirrors disagree and neither is wrong.
+
+    Real closes, both read 2026-08-21: the mini's lake carries EURUSD at 1.16973
+    (USD per EUR) and no USDEUR; the MacBook's carries USDEUR at 0.8586 (EUR per
+    USD) and no EURUSD. Before this, `fx_symbol` looked only for USDEUR — so in
+    production the series was reported absent and ASML, CCEP, NOK and SPOT were
+    refused a band for want of an FX rate the lake was carrying.
+    """
+
+    MINI = [(date(2026, 8, 20), 1.16805), (date(2026, 8, 21), 1.16973)]
+    MACBOOK = [(date(2026, 5, 18), 0.8585755)]
+
+    def test_usd_ccy_is_read_as_published(self, tmp_path):
+        _write_fx(tmp_path, "USDEUR", self.MACBOOK)
+
+        assert load_fx(tmp_path, "EUR") == [(date(2026, 5, 18), 0.8585755)]
+
+    def test_ccy_usd_is_inverted_on_read(self, tmp_path):
+        """1.16973 USD per EUR is 0.8549 EUR per USD — the module's convention."""
+        _write_fx(tmp_path, "EURUSD", self.MINI)
+
+        got = dict(load_fx(tmp_path, "EUR"))
+
+        assert got[date(2026, 8, 21)] == pytest.approx(1 / 1.16973)
+        assert 0.85 < got[date(2026, 8, 21)] < 0.86
+
+    def test_the_direct_symbol_wins_when_a_lake_has_both(self, tmp_path):
+        """Deterministic rather than filesystem-order dependent."""
+        _write_fx(tmp_path, "USDEUR", self.MACBOOK)
+        _write_fx(tmp_path, "EURUSD", self.MINI)
+
+        assert load_fx(tmp_path, "EUR") == [(date(2026, 5, 18), 0.8585755)]
+
+    def test_a_currency_the_lake_lacks_stays_empty(self, tmp_path):
+        """NVO reports DKK and the mini's lake has neither USDDKK nor DKKUSD, so
+        it must stay refused rather than be banded unconverted."""
+        _write_fx(tmp_path, "EURUSD", self.MINI)
+
+        assert load_fx(tmp_path, "DKK") == []

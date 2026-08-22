@@ -1,17 +1,62 @@
 """Stage-3 anchor job — a price band from each name's own valuation history.
 
-Reads the tier-1 statement panel plus unadjusted daily closes, rebuilds every
-ticker's own valuation-yield history, and persists one band per ticker per
+Reads the tier-1 statement panel plus split-adjusted daily closes, rebuilds
+every ticker's own valuation-yield history, and persists one band per ticker per
 PRICE date under the active method version.
 
-WHY UNADJUSTED CLOSES
----------------------
-`adj_close` is retroactively split-adjusted; `common_stock_shares_outstanding` is
-as-reported at the filing. Multiplying the two mixes reference frames and
-misprices every name across every split it has ever done — NVDA's 10:1 alone
-moves its market cap by an order of magnitude, which would corrupt the whole
-history the band's percentiles are drawn from. Raw close and as-reported shares
-are both point-in-time, so their product is the market cap that was observable.
+WHY PRICES COME FROM SILVER — AND WHY THIS FILE ONCE ARGUED FOR RAW
+-------------------------------------------------------------------
+This section used to argue for RAW closes, on the premise that
+`common_stock_shares_outstanding` is as-reported at the filing, so that raw price
+and as-reported shares are both point-in-time and their product is the market cap
+that was observable. The reasoning is sound. The premise is false for this
+provider, and it was never checked.
+
+UW restates share counts onto TODAY's split basis, back to the beginning of the
+panel. Measured 2026-08-21 against the mini's store:
+
+    TSLA 2021-12-31  3,100,522,833   actual then ~1,033M  (3-for-1, Aug 2022)
+    KLAC 2021-12-31  1,523,310,000   actual then   ~152M  (10-for-1, Jun 2026)
+    BKNG 2021-12-31  1,034,275,000   actual then    ~41M  (25-for-1, Apr 2026)
+
+Each is the real count times the factor of a split that had not happened yet. So
+`fundamental / shares` arrives already in today's units, and pairing it with a
+raw price mixes exactly the two reference frames the old note set out to keep
+apart — in the opposite direction, and unnoticed, because nothing downstream
+compares a band against the price scale it was built from.
+
+The damage was not subtle. On 2026-08-18, 26 of 335 bands were built across a
+split inside their own window, and 12 of those rendered as sitting in the buy
+zone: BKNG at $208.25 against a `buy_below` of $4,702.64 read as cheap, because
+20 quarters of its sales yield were 25x too low. A reverse split runs the same
+error the other way and buries a name under a band it can never reach.
+
+So price has to be put on the same basis the share counts already use, and the
+producer already does it: livewire's SILVER tier publishes fully back-adjusted
+daily bars with `price_adjustment_factor` and `split_volume_factor` per session.
+Argon reads those rather than adjusting bronze itself. Silver is better than
+anything reconstructable here on three counts:
+
+* It repairs a defect argon cannot see around. Bronze's legacy segment was
+  back-adjusted by an old backfill and its newer rows are raw as-traded,
+  concatenated unreconciled — TSLA steps 203.37 -> 609.89 on 2021-06-11, WMT
+  46.63 -> 140.75 the same day, both `source='legacy'`, in opposite directions.
+  Silver starts TSLA/WMT/CTAS exactly at 2021-06-11 and carries KLAC, whose bronze
+  basis is clean throughout, all the way back to 1980.
+* It is per-symbol rather than a global cutoff. An earlier version of this job
+  clamped every series to 2021-06-11, which is livewire's boundary for the
+  ambiguous symbols and nobody else's — it silently cost KLAC forty years.
+* Where livewire cannot establish a basis it publishes NOTHING (18 of 450 on
+  2026-08-21, `price_basis='unknown'` on bronze), which is a refusal argon can
+  read, not a wrong number it has to detect.
+
+`corporate_actions` still earns its keep, in a smaller role: for those 18, it is
+the evidence for whether raw bronze is usable anyway — see
+`_bronze_basis_refusal`.
+Its splits come from massive's `/v3/reference/splits`, an authoritative event
+list, never a price-gap heuristic. That distinction matters: DOCU fell 42% in a
+day on 2021-12-03 and SOUN 48% on 2022-12-30, and any cliff detector wide enough
+to catch a 2-for-1 also eats those, deleting real valuation history.
 
 WHY `as_of` IS THE SPOT DATE, NOT THE FISCAL PERIOD OR THE CLOCK
 ---------------------------------------------------------------
@@ -65,11 +110,13 @@ from uw_scan.fundamentals.valuation import (
     METHOD_NUMERATOR,
     TYPE_YIELD,
     UNCLASSIFIED,
+    WINDOW_QUARTERS,
     anchor_inputs_hash,
     build_anchors,
     quarter_inputs,
     yield_at,
 )
+from uw_scan.storage.corporate_actions import CorporateActionsRepository
 from uw_scan.storage.fundamental_anchors import FundamentalAnchorsRepository
 from uw_scan.storage.fundamental_obs import FundamentalObsRepository
 from uw_scan.storage.fundamental_scores import FundamentalScoresRepository
@@ -84,10 +131,22 @@ BAR_FILENAME = "1d.parquet"
 REFUSAL_ALERT_SHARE = 0.30
 
 
-def load_raw_closes(
-    root: Path, tickers: list[str]
+#: Columns the silver tier adds on top of bronze's raw OHLCV. `close` there is
+#: already back-adjusted for BOTH splits and dividends; dividing it back out by
+#: `price_adjustment_factor * split_volume_factor` leaves a SPLIT-ONLY series,
+#: which is the one a valuation yield needs — see `load_closes`.
+_SILVER_COLUMNS = [
+    "trade_date",
+    "close",
+    "price_adjustment_factor",
+    "split_volume_factor",
+]
+
+
+def load_closes(
+    root: Path, tickers: list[str], *, adjusted: bool
 ) -> dict[str, list[tuple[date, float]]]:
-    """Unadjusted daily closes per ticker from the local parquet mirror.
+    """Daily closes per ticker from one tier of the parquet lake.
 
     Points pyarrow at the explicit `1d.parquet` rather than the symbol directory:
     the directory also holds intraday parquets and zero-byte `.lock` markers, and
@@ -96,6 +155,33 @@ def load_raw_closes(
     Rows with a null trade_date are dropped — some symbols carry an
     alternate-schema partition mixed in, and the non-null rows are the clean
     series.
+
+    `adjusted=True` reads livewire's SILVER tier, whose closes are already
+    restated onto today's corporate-action basis, and divides each by
+    `price_adjustment_factor * split_volume_factor` to undo the DIVIDEND half of
+    that restatement. Both halves matter and they pull opposite ways:
+
+    * Splits must be adjusted for. The provider restates historical share counts
+      onto today's post-split basis, so `fundamental/shares` is already in
+      today's units while a raw price is not, and the yield the two form is wrong
+      by the split factor for every quarter before the split. BKNG's 1-for-25 on
+      2026-04-06 put 20 quarters of sales yield 25x too low, which set
+      `buy_below` at $4,702.64 against a $208.25 spot and rendered the name as
+      sitting in its buy zone. 26 of 335 bands carried a split inside their own
+      window on 2026-08-18 and 12 of those were on the buy list.
+    * Dividends must NOT be. A cash dividend genuinely lowers market cap; nothing
+      restates the share count for it. Leaving silver's dividend adjustment in
+      understates every historical market cap on a payer, inflates the historical
+      yields, and biases the whole band cheap against an unadjusted spot.
+
+    `market_cap(t) = shares_restated(t) * split_only_close(t)` is the identity
+    this reconstructs, and it is exact: for BKNG on 2026-04-02 it returns 167.77
+    against a raw close of 4194.25 and a 25.0 split factor.
+
+    `adjusted=False` reads BRONZE closes verbatim. That is only correct for a
+    ticker with no split inside the window being priced — the caller must
+    establish that, because bronze carries no corporate-action treatment of its
+    own and its legacy rows may be on any basis (`price_basis='unknown'`).
     """
     import pyarrow.parquet as pq
 
@@ -105,20 +191,72 @@ def load_raw_closes(
         if not path.exists():
             continue
         try:
-            tab = pq.read_table(str(path), columns=["trade_date", "close"])
-        except (OSError, ValueError) as exc:
+            tab = pq.read_table(
+                str(path),
+                columns=_SILVER_COLUMNS if adjusted else ["trade_date", "close"],
+            ).to_pydict()
+        except (OSError, ValueError, KeyError) as exc:
             log.warning("anchors: unreadable bars for %s: %s", t, repr(exc))
             continue
-        rows = [
-            (d, float(c))
-            for d, c in zip(
-                tab.column("trade_date").to_pylist(), tab.column("close").to_pylist()
-            )
-            if d is not None and c is not None
-        ]
+        if adjusted:
+            rows = [
+                (d, float(c) / (float(pf) * float(svf)))
+                for d, c, pf, svf in zip(
+                    tab["trade_date"],
+                    tab["close"],
+                    tab["price_adjustment_factor"],
+                    tab["split_volume_factor"],
+                )
+                if d is not None and c is not None and pf and svf
+            ]
+        else:
+            rows = [
+                (d, float(c))
+                for d, c in zip(tab["trade_date"], tab["close"])
+                if d is not None and c is not None
+            ]
         if rows:
             out[t] = sorted(rows)
     return out
+
+
+def _bronze_basis_refusal(
+    per: dict[str, Any],
+    periods: list[str],
+    events: list[tuple[date, float]],
+    *,
+    ingested: bool,
+) -> str | None:
+    """Why a bronze-priced name cannot be banded, or None when it may be.
+
+    A split OUTSIDE the window is harmless even on an unknown price basis: the
+    shares restated to today equal the shares as-filed across the whole window,
+    so any consistent basis is today's basis. Inside it, the two disagree by the
+    split factor and the yield series is not on one basis at all.
+
+    That argument only holds while "no split on record" means the ingest looked
+    and found none. Where it never looked, an empty list is an absence of
+    evidence and this refuses instead — see
+    `CorporateActionsRepository.ingested_tickers` for why zero rows is a sound
+    proxy for never-looked, and for the 15 names it silently mispriced before.
+    """
+    if not ingested:
+        return (
+            "no corporate-action history is on record for this name, which is "
+            "indistinguishable from never having asked, so a split inside the "
+            "window being priced cannot be ruled out and the lake has no "
+            "corporate-action-adjusted series to fall back on"
+        )
+    if not periods or not events:
+        return None
+    start = _knowledge_date(per, periods[-WINDOW_QUARTERS:][0])[0]
+    if any(d >= start for d, _ in events):
+        return (
+            "this name split inside the window being priced and the lake has no "
+            "corporate-action-adjusted series for it, so its history and its "
+            "quote are on different share bases"
+        )
+    return None
 
 
 def close_on_or_before(series: list[tuple[date, float]], when: date) -> float | None:
@@ -440,12 +578,24 @@ def fundamental_anchors(
     *,
     conn: psycopg.Connection,
     lake_root: Path,
+    silver_root: Path,
     schema: str = "uw_scan",
     tickers: list[str] | None = None,
     as_of: date | None = None,
     fx_root: Path,
 ) -> dict[str, int]:
     """Compute and persist anchor bands. Returns counters, never raises per ticker."""
+    # First, and before any DB work: the whole tier absent is a mount or a path
+    # error, never a data gap, and it is the one failure that would put every
+    # name back on unadjusted bronze — silently reinstating the bug this job was
+    # fixed for. Refuse the run. The rows already written stay readable and
+    # yesterday's bands stand, which beats minting a universe of wrong ones.
+    if not silver_root.is_dir():
+        raise RuntimeError(
+            f"anchors: no silver tier at {silver_root} — refusing to price the "
+            "universe from unadjusted bronze"
+        )
+
     obs = FundamentalObsRepository(conn, schema=schema)
     scores = FundamentalScoresRepository(conn, schema=schema)
     anchors_repo = FundamentalAnchorsRepository(conn, schema=schema)
@@ -458,7 +608,30 @@ def fundamental_anchors(
     types = anchors_repo.company_types()
     panel = obs.statement_panel(tickers)
     universe = sorted(t for t in panel if t in types)
-    closes = load_raw_closes(lake_root, universe)
+    ca_repo = CorporateActionsRepository(conn, schema=schema)
+    splits = ca_repo.split_factors(universe)
+    ingested = ca_repo.ingested_tickers(universe)
+    closes = load_closes(silver_root, universe, adjusted=True)
+
+    # ponytail: bronze fallback for names livewire cannot yet adjust. Silver is
+    # absent exactly when bronze's own `price_basis` is `unknown`, i.e. the
+    # producer refuses to guess what basis its legacy rows are on — 18 of the
+    # 450-name universe on 2026-08-21, including HON, CMCSA and MSTR. Bronze is
+    # nonetheless provably equivalent for a name with NO split inside the window
+    # being priced, because an unknown-but-consistent basis is today's basis when
+    # nothing has restated the shares since. The per-ticker guard below enforces
+    # that, and once the ingest covers the universe it refuses 4 of the 18 —
+    # CXAI, HON, MSTR, TRI, the four with a real in-window split. Drop this whole
+    # branch when livewire resolves `price_basis` for them.
+    on_bronze = set(universe) - set(closes)
+    if on_bronze:
+        closes |= load_closes(lake_root, sorted(on_bronze), adjusted=False)
+        log.info(
+            "anchors: %d names have no silver series, priced from bronze if a "
+            "clean split record proves the basis (%d of them have one)",
+            len(on_bronze),
+            len(on_bronze & ingested),
+        )
 
     # One FX series per distinct foreign reporting currency, loaded once. Five
     # filers in the measured 257-name panel report non-USD; the rest short-circuit.
@@ -488,6 +661,11 @@ def fundamental_anchors(
         "banded": 0,
         "refused": 0,
         "written": 0,
+        # Names refused because they have no silver series AND a split inside
+        # their own window, so no price series on today's basis exists for them.
+        # Falls to zero as livewire resolves `price_basis`; a RISE means the
+        # producer is losing ground, so it is counted rather than assumed away.
+        "unadjustable_prices": 0,
     }
 
     rows: list[dict[str, Any]] = []
@@ -530,6 +708,37 @@ def fundamental_anchors(
         periods = sorted(per["income-statements"])
         by_statement = currencies.get(ticker) or {}
         spot_date, spot = px[-1]
+
+        # A bronze-priced name whose window spans one of its own splits cannot be
+        # put on a single basis at all: the shares are restated to today and the
+        # price is on whatever basis the legacy backfill left. REFUSE rather than
+        # band it — CXAI's 50-for-1 on 2026-08-18 left `buy_below` at $0.107
+        # against a $4.59 spot, and TRI's buyback consolidations put it on the
+        # buy list 24% below a band it had not earned.
+        unadjustable = (
+            _bronze_basis_refusal(
+                per,
+                periods,
+                splits.get(ticker, ()),
+                ingested=ticker in ingested,
+            )
+            if ticker in on_bronze
+            else None
+        )
+        if unadjustable:
+            counters["unadjustable_prices"] += 1
+            rows.append(
+                _refusal_row(
+                    ticker=ticker,
+                    as_of=as_of or spot_date,
+                    engine=engine,
+                    company_type=company_type,
+                    method=method,
+                    spot=spot,
+                    reasons=[unadjustable],
+                )
+            )
+            continue
 
         # Blocked only by a currency THIS METHOD reads. NBIS's RUB cash-flow
         # statement does not stop `sales_to_ev`, which needs income + balance and

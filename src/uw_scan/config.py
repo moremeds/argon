@@ -617,6 +617,21 @@ class Settings(BaseModel):
         db_name = os.environ.get("UW_SCAN_DB_NAME", "option_wizard_local")
         _enforce_db_isolation(db_host, db_name)
 
+        # Every lake root falls back UNDER the warehouse root, never under $HOME.
+        # In a container $HOME is /root and no lake lives there, so a root with no
+        # env var of its own silently resolves to a path that does not exist. That
+        # is exactly what happened to `lake_fx_root`: it was added after the
+        # container migration, never got a `LAKE_FX_ROOT` case here, and resolved
+        # to /root/market-warehouse/... in production — so 12 foreign filers were
+        # refused for want of an FX series the lake was carrying the whole time.
+        # Deriving the fallback means the next root added is correct by default.
+        _mw_lake = os.environ.get("MARKET_WAREHOUSE_LAKE", "").strip()
+        mw_lake_root = (
+            Path(_mw_lake)
+            if _mw_lake
+            else Path.home() / "market-warehouse" / "data-lake"
+        )
+
         return cls(
             api_key=SecretStr(api_key),
             db_host=db_host,
@@ -954,20 +969,19 @@ class Settings(BaseModel):
             lake_vol_index_root=(
                 Path(_lake_vol)
                 if (_lake_vol := os.environ.get("LAKE_VOL_INDEX_ROOT", "").strip())
-                else Path.home()
-                / "market-warehouse/data-lake/bronze/asset_class=volatility"
+                else mw_lake_root / "bronze/asset_class=volatility"
             ),
             lake_credit_etf_root=(
                 Path(_lake_credit)
                 if (_lake_credit := os.environ.get("LAKE_CREDIT_ETF_ROOT", "").strip())
-                else Path.home()
-                / "market-warehouse/data-lake/bronze/asset_class=equity"
+                else mw_lake_root / "bronze/asset_class=equity"
             ),
-            market_warehouse_lake_root=(
-                Path(_mw_lake)
-                if (_mw_lake := os.environ.get("MARKET_WAREHOUSE_LAKE", "").strip())
-                else Path.home() / "market-warehouse" / "data-lake"
+            lake_fx_root=(
+                Path(_lake_fx)
+                if (_lake_fx := os.environ.get("LAKE_FX_ROOT", "").strip())
+                else mw_lake_root / "bronze/asset_class=fx"
             ),
+            market_warehouse_lake_root=mw_lake_root,
             credit_etf_symbols=_parse_csv_env(
                 "CREDIT_ETF_SYMBOLS", default=["HYG", "JNK", "LQD"]
             ),

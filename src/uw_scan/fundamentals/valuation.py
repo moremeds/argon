@@ -222,6 +222,17 @@ MAX_BAND_WIDTH = 4.0
 #: redefined. Threshold moves do not need it: the constants above are hashed
 #: directly, so changing one already produces a new identity.
 #:
+#: rev 4: the yield window is priced from the lake's SILVER tier, on today's
+#: split basis, instead of raw bronze closes. Nothing in this module moved, but
+#: every historical yield the percentiles are drawn from did: the provider
+#: restates share counts onto today's split basis while bronze stores closes
+#: raw, so a quarter before a split was yielding a number wrong by the split
+#: factor. Not bumping this would be the exact failure the
+#: docstring below describes — the corrected band collides with the wrong one on
+#: `(ticker, as_of, engine_version, inputs_hash)` and `DO NOTHING` keeps BKNG's
+#: $4,702.64 `buy_below` against its $208.25 spot. The inputs hashed here
+#: (`fundamental`, `net_debt`, `shares`, `history_n`) are all unchanged by the
+#: fix, so the identity cannot see it any other way.
 #: rev 3: a refusal reports the window it refused ON rather than a hardcoded 0,
 #: and the width refusal describes the window's measured SHAPE instead of
 #: asserting instability it never tested for.
@@ -230,7 +241,7 @@ MAX_BAND_WIDTH = 4.0
 #: `DO NOTHING` would keep the wrong one for the rest of the day.
 #: rev 2: refuse a band with a missing end (`buy_below` / `risk_above` not
 #: invertible). rev 1: the original five-level construction.
-ANCHOR_RULES_REV = 3
+ANCHOR_RULES_REV = 4
 
 
 def anchor_inputs_hash(

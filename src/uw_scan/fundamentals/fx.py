@@ -34,11 +34,17 @@ at one day's rate.
 
 SYMBOL CONVENTION
 -----------------
-`USD<CCY>` in the lake holds **<CCY> per one USD** (USDEUR closed 0.8586 on
-2026-05-18, i.e. EUR per USD). So `usd = local / rate`. Getting this inverted is
-a ~35% error on EUR that still produces plausible-looking prices, so the
-direction is asserted in the self-check against a real observed level rather than
-left to the reader.
+`USD<CCY>` holds **<CCY> per one USD** (USDEUR closed 0.8586 on 2026-05-18, i.e.
+EUR per USD). So `usd = local / rate`. Getting this inverted is a ~35% error on
+EUR that still produces plausible-looking prices, so the direction is asserted in
+the self-check against a real observed level rather than left to the reader.
+
+The lake does not always use it. The mini's mirror publishes the majors on the
+market's convention instead — `EURUSD` closed 1.16973 on 2026-08-21, USD per EUR
+— and carries no `USDEUR` at all, while the MacBook's mirror carries `USDEUR` and
+no `EURUSD`. `load_fx` reads whichever exists and inverts the second, so this
+module's convention holds downstream regardless. Until it did, `fx_symbol` looked
+for a symbol the production lake has never had.
 """
 
 from __future__ import annotations
@@ -57,19 +63,40 @@ USD_LIKE = frozenset({"USD", None, ""})
 
 
 def fx_symbol(currency: str) -> str:
-    """Lake symbol for a reporting currency. `USD<CCY>` = <CCY> per one USD."""
+    """Lake symbol on THIS module's convention. `USD<CCY>` = <CCY> per one USD."""
     return f"USD{currency.upper()}"
 
 
+def inverse_fx_symbol(currency: str) -> str:
+    """The market's own convention. `<CCY>USD` = USD per one CCY."""
+    return f"{currency.upper()}USD"
+
+
 def load_fx(root: Path, currency: str) -> list[tuple[date, float]]:
-    """Daily rates for one currency, ascending. Empty when the series is absent.
+    """Daily rates for one currency, ascending, as <CCY> per one USD.
+
+    Accepts EITHER orientation from the lake, because the mirrors disagree and
+    neither is wrong: the Mac mini's lake publishes `EURUSD` (1.16973 on
+    2026-08-21, USD per EUR) while the MacBook's publishes `USDEUR` (0.8586,
+    EUR per USD), and both are livewire artifacts. `USD<CCY>` is preferred and
+    used as-is; `<CCY>USD` is inverted on read, so everything downstream sees one
+    convention and `convert`'s `value / rate` stays correct.
+
+    Hardcoding which currencies are quoted which way would be a table to keep in
+    sync with two mirrors; asking the lake what it actually has is both shorter
+    and right when a mirror changes.
 
     Empty is a real answer and callers must refuse the ticker on it rather than
     fall back to an unconverted figure — an unconverted band is the silent wrong
     answer this module exists to prevent.
     """
-    path = root / f"symbol={fx_symbol(currency)}" / BAR_FILENAME
-    if not path.exists():
+    direct = root / f"symbol={fx_symbol(currency)}" / BAR_FILENAME
+    inverse = root / f"symbol={inverse_fx_symbol(currency)}" / BAR_FILENAME
+    if direct.exists():
+        path, invert = direct, False
+    elif inverse.exists():
+        path, invert = inverse, True
+    else:
         return []
     import pyarrow.parquet as pq
 
@@ -79,7 +106,7 @@ def load_fx(root: Path, currency: str) -> list[tuple[date, float]]:
         log.warning("fx: unreadable series for %s: %s", currency, repr(exc))
         return []
     rows = [
-        (d, float(c))
+        (d, 1.0 / float(c) if invert else float(c))
         for d, c in zip(
             tab.column("trade_date").to_pylist(), tab.column("close").to_pylist()
         )
