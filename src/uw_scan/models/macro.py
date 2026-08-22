@@ -457,6 +457,32 @@ class MacroFactorState(_UwBase):
     source_kind: MacroSourceKind
 
 
+class MacroSubStateItem(_UwBase):
+    """One causal role's own read, with its own confidence.
+
+    Kept beside the domain state rather than merged into it because the two have
+    different denominators: the rates policy state is gated by the three policy paths and
+    nothing else, while a positioning read is gated by whether CFTC published. A surface
+    rendering one confidence above a panel holding both would let either stand in for the
+    other -- which is the substitution the rates engine exists to refuse.
+
+    ``state`` is a plain string because the vocabularies are per role and not comparable:
+    ELEVATED is about issuance size, STRETCHED_LOW is a percentile of a position. A
+    shared enum would invite exactly that comparison. Every vocabulary includes
+    ``UNKNOWN`` and none includes ``NEUTRAL`` -- absence is not a centred reading.
+    """
+
+    role: MacroCausalRole
+    state: str
+    direction: MacroDirection
+    confidence: Decimal
+    series_ids: list[str] = Field(default_factory=list)
+    latest_period_end: date | None = None
+    unavailable_reason: str | None = None
+    velocity: list[MacroVelocityItem] = Field(default_factory=list)
+    confidence_reasons: list[MacroConfidenceReason] = Field(default_factory=list)
+
+
 class MacroStateEvidenceItem(_UwBase):
     """One observation the state stood on, in the order the engine used it."""
 
@@ -472,6 +498,26 @@ class MacroStateEvidenceItem(_UwBase):
     source: str
     source_kind: MacroSourceKind
     quality_status: MacroQualityStatus
+
+
+class MacroUpstreamState(_UwBase):
+    """One upstream domain's answer, carried on the edge that references it.
+
+    The upstream's own state and confidence travel with the edge on purpose. A pointer a
+    reader has to resolve with a second request is a foreign key, not lineage -- and the
+    thing they actually want to know is what the upstream SAID, not merely that it was
+    consulted.
+    """
+
+    upstream_state_id: int
+    domain: MacroDomain
+    causal_role: MacroCausalRole
+    state: str
+    direction: MacroDirection
+    confidence: Decimal
+    as_of: AwareDatetime
+    engine_version: str
+    inputs_hash: str
 
 
 class MacroDomainStateResponse(_UwBase):
@@ -500,6 +546,11 @@ class MacroDomainStateResponse(_UwBase):
     factors: list[MacroFactorState] = Field(default_factory=list)
     evidence: list[MacroStateEvidenceItem] = Field(default_factory=list)
     notes: list[str] = Field(default_factory=list)
+    sub_states: list[MacroSubStateItem] = Field(default_factory=list)
+    #: Upstream ANSWERS this state consumed. Empty for inflation and rates, which stand
+    #: on observations alone -- only a transmission domain has any, so an empty list is
+    #: the normal shape rather than missing lineage.
+    upstream: list[MacroUpstreamState] = Field(default_factory=list)
 
 
 class MacroStateSummary(_UwBase):

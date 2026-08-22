@@ -7,6 +7,195 @@ version in lockstep (enforced by `scripts/release/version_sync_check.py`).
 
 ## [Unreleased]
 
+### Added
+
+- **A USD transmission state that consumes upstream answers and refuses to guess.** The
+  Fed's H.10 nominal broad dollar (`DTWEXBGS`) is the required anchor; with no vintage of
+  it at `as_of` the state is `UNKNOWN`. The CPI-deflated sibling `RTWEXBGS` is reported
+  beside it and is **never substituted** — the golden scenario freezes an `as_of` where
+  the sibling has 59 observations and the anchor has zero, because the substitute being
+  available is exactly what makes the refusal a decision rather than an absence of
+  options. A nominal index moving while the real one does not is an inflation
+  differential, and swapping them would report that as a dollar move. Relative policy,
+  funding and positioning are USD factors too, and every one is owned upstream: USD reads
+  the stored **answer** through `UpstreamState`, and passing it an upstream-owned
+  observation raises. `GET /api/macro/usd` serves it with its lineage.
+
+- **`DTWEXBGS` carries a weekly cadence for a series FRED labels daily, and that is the
+  load-bearing detail.** The H.10 goes out weekly carrying the week's daily observations
+  together — 52.2 vintages a year against ~250 for SOFR. A cadence of 1 would mark the
+  *required* anchor stale Monday through Thursday of an ordinary week, and an abstaining
+  state is not a degraded reading, it is no reading at all. The same measurement gives
+  32.7 years of headroom under FRED's 2000-vintage cap, against EFFR's 2.3.
+
+- **Cross-domain lineage (migration 128).** `macro_domain_state_dependencies` records the
+  typed edge from a state to the upstream **answers** it stood on, carrying the upstream's
+  own state and confidence so the edge is traversable rather than merely present. Inside
+  `inputs_hash` alone the dependency is in the identity and invisible in the record: you
+  could tell a USD state changed when rates did and never ask what rates said. An upstream
+  answering for an instant *after* the downstream's `as_of` is refused as lookahead.
+
+- **A BIS cross-check that cannot become evidence.** `sources/bis_eer.py` returns a
+  dataclass with no `available_at`, no vintage and no artifact, because a BIS SDMX data
+  message carries no real-time dimension: it can corroborate today's level and can never
+  say what the level was believed to be on a past date. Two measured traps are tested
+  against the publisher's own bytes — a bare request **succeeds** with HTTP 200 and
+  `application/xml`, so a client that omits the `Accept` header hands SDMX-ML to a JSON
+  parser and `raise_for_status` passes it through; and `NaN` on a non-trading day is an
+  absence that must never become a zero.
+
+### Fixed
+
+- **Gold Compass named four of its sixteen inputs and read as a complete audit trail.**
+  `reports/gold_posture.py` pinned a four-entry `inputs_used` manifest — `DFII10`,
+  `GLD_CLOSE`, `T5YIFR`, `CPIAUCSL` — while the orchestrator read fourteen sources and
+  passed two more to the lens functions as deliberately empty lists. The manifest was not written
+  wrong; it went stale as reads were added beside it, so the reads and the manifest are
+  now generated from **one** declaration (`macro/gold.py::GOLD_INPUTS`) and an entry that
+  is neither read nor explained cannot be constructed. An input with no rows carries a
+  reason; `fx` and `spx` are recorded as declared-and-not-read, because an empty list
+  reaching a lens is indistinguishable in the output from a factor that did not move. The
+  `/gold` audit footer reports how many of the declared inputs were read, with each
+  omission and its reason. Every read is also bounded on the retrieval clock now
+  (`as_of_max`), not just the observation period: the readers select the newest vintage
+  by `as_of DESC`, so recomputing a past date used to read restatements that did not
+  exist yet — the orchestrator's own test fixture was relying on exactly that.
+  The first thing this surfaced was real: COMEX inventory (`exchange_inventory_daily`)
+  last observed 2026-06-01 in production against a 60-day read window, so Lens 1's
+  inventory leg has been silently empty — invisible under the old manifest.
+
+- **The gold API dropped any provenance entry without an `obs_date`.** An explicit
+  omission would have been discarded between the store and the client, rebuilding the
+  partial manifest one layer up. `GoldInputProvenance` now carries the omission and the
+  router keeps the record.
+
+- **`compute_confidence` counted factors instead of matched requirements.**
+  `len(factors) / len(required_series)` is correct only while every caller pre-filters its
+  factors down to the required set — which rates does by an explicit filter and inflation
+  does by iterating `REQUIRED`, so the two shipped domains made those numbers identical by
+  accident. A caller passing a factor it merely *reports* got **1/1 complete on a state
+  whose one required input was absent**: full confidence in a reading built entirely from
+  a substitute. Now counts the intersection; both existing domains are unchanged.
+
+- **Supply, positioning and plumbing now publish their own sub-states, each with its own
+  confidence.** The rates policy state answers what the committee did and is gated by
+  three policy paths; a positioning read is gated by whether CFTC published. Sharing one
+  confidence number would let either stand in for the other, so each role computes its
+  own over its own required series and the `/rates` state block renders them side by side
+  and labelled. `market_factors_absent` now reports **0** and — deliberately — is still
+  emitted at zero: a term that disappears when healthy gives a reader nothing to notice
+  when it comes back.
+
+- **Plumbing is classified on a price, never on a quantity level, and that choice was
+  forced by testing it.** The first rule combined a wide SOFR–EFFR spread with exhausted
+  RRP take-up. It fails on the only funding crisis in the record: on 2019-09-17, when
+  SOFR printed 5.25 against an effective rate of 2.30 — 295bp — RRP stood at 1.825bn,
+  which is unremarkable for a year when the facility was structurally small. RRP ran
+  ~2bn in 2019 and ~2,300bn in 2022 for reasons that have nothing to do with stress, so
+  its level cannot carry a stress claim. The spread is a price and comparable across both
+  regimes. `STRESSED` is set at one policy move (25bp), not at the measured sample's p99
+  (15bp): the 2021–2026 sample contains no crisis, so its p99 marks the calmest kind of
+  unusual, and calibrating to it would have called a 19bp day stressed while leaving no
+  label for 295bp.
+
+- **Two contradiction rules that report disagreement without resolving it.**
+  `positioning_against_curve_direction` fires when a category at an extreme of its own
+  distribution sits on the opposite side of the realised yield move over the same four
+  weeks — a net short profits when yields rise, so a stretched short into falling yields
+  is evidence pointing two ways. `plumbing_stress_without_policy_change` reports funding
+  stress the committee has not responded to. Neither infers a direction and neither
+  changes a state label.
+
+- **A cost worth stating: a rates state now cites 1,923 observations.** Four years of
+  weekly positioning and two years of quarterly refundings are genuinely what a percentile
+  and a multi-quarter-high stand on, so the evidence rows are correct rather than
+  excessive — but at one state a day that is roughly 700k lineage rows a year.
+
+### Fixed
+
+- **The rates positioning table has been claiming CFTC data was knowable before it was
+  published.** `sources/cftc_tff.py` derived each report's release date as `report_date +
+  3 days`. Measured against Socrata's own `:created_at` over 205 releases, that rule is
+  wrong on 36 of them (17.6%) and **always early** — not one error is conservative. The
+  large ones are not holidays: they are two publication outages, the ION Markets incident
+  from 2023-01-31 and the government-funding lapse from 2025-09-30, where the rule claims
+  data was knowable up to **47 days** before it existed, for ten consecutive weeks each.
+  A holiday calendar cannot fix that, because an outage is not on a calendar; nor can a
+  fixed release time, because 15:30 ET is 19:30Z or 20:30Z depending on daylight saving
+  and the observed instants split 120/69 across the two. The derivation is gone and the
+  publisher's own load instant takes its place. Anything that backtested
+  `rates_cftc_tff_weekly` positioned on reports that had not been published, and the error
+  was largest exactly when positioning data matters most.
+
+- **A unit-test fixture was asserting auction values the publisher never printed.**
+  `tests/unit/sources/test_treasury_supply.py` claimed 912810UL0 was a 30-Year at $25bn
+  auctioned 2026-05-14 — Treasury held no auction that day and that CUSIP is a 20-Year
+  first sold at $16bn — and 91282CPU9 at $16bn / 5.122%, really a TIPS at $19bn / 2.169%.
+  Replaced with four real rows fetched from TreasuryDirect and frozen with their as-of
+  date.
+
+- **Positioning was being given a 120-day freshness cadence for a weekly report.** Every
+  market factor inherited the policy-path cadence, so a COT report four months past its
+  release read as perfectly fresh — seventeen weeks inside a seventeen-week window. A
+  freshness term that cannot detect a publisher going quiet is decoration. Each role now
+  carries its publisher's own cadence, and supply gained the staleness gate it never had:
+  a 2024 refunding is not today's supply condition.
+
+- **The three market roles the rates engine has enumerated since MC0 now resolve to
+  evidence.** `supply`, `positioning` and `plumbing` reported absent for two milestones;
+  `RATES_EVIDENCE` now carries seven nominal coupon terms, the 10-year note future's
+  three trader-category nets with their open-interest shares, and three funding series
+  (`SOFR`, `EFFR`, `RRPONTSYD`). Each role reads over its own history window rather than
+  one for the domain — a curve attribution needs a month, a supply baseline needs five
+  quarterly refundings, and a positioning percentile needs the four-year sample its
+  thresholds were calibrated on. One window would starve the first or drag two years of
+  daily curve prints into every state's identity.
+
+- **Reserve balances are deliberately NOT registered, and that is a finding.** FRED
+  republished `WRESBAL`'s entire history on 2025-11-13 with every value multiplied by a
+  thousand: period 2025-06-04 reads 3294.381 under the vintage in force until 2025-11-12
+  and 3294381.0 under the one after, and the ratio is exactly 1000.0 across all 566
+  multi-vintage periods. FRED today declares the units as millions, so every earlier
+  vintage is billions wearing a millions label. A series contract declares one unit for
+  all vintages and the observations endpoint reports no per-vintage unit, so live reads
+  are fine — every vintage in a 120-day window is post-rebasing — while any replay before
+  that date is wrong by a factor of a thousand, silently and plausibly. That is the exact
+  case this milestone exists to make trustworthy, so the reserve-balances slice reports
+  UNKNOWN rather than borrowing a neighbour. The same scan over all eleven previously
+  registered FRED series found no other instance.
+
+- **The rates engine can finally see supply and positioning.** It has enumerated
+  `supply`, `positioning` and `plumbing` as its own market factors since MC0 and reported
+  all three absent ever since — not because nothing publishes them, but because the tables
+  they land in key on `as_of` and update on conflict, so a value read back may already have
+  been overwritten. Promoting one to an immutable observation would launder a mutated
+  number into the evidence store. Both are now fetched from their publishers directly and
+  written as point-in-time evidence, carrying the publisher's own availability: a Treasury
+  auction becomes knowable on its **announcement** date, about a week before it is sold,
+  and a CFTC report becomes knowable when CFTC loaded it. The legacy tables stay read
+  models for the existing `/rates` surface. Gated by
+  `UW_SCAN_MACRO_MARKET_LAYER_INGEST_ENABLED`, default off; deep history via
+  `scripts/backfill/macro_market_layer_backfill.py`.
+
+- **A supply series is keyed by the term AND the type, because the term alone is not an
+  identity.** A 10-Year TIPS carries `securityTerm="10-Year"` and `securityType="Note"`
+  exactly like a nominal 10-year note, and is half the size — $21bn against $42bn. Keyed on
+  the term, the two interleave, and the engine's multi-quarter-high rule reads the
+  alternation as a supply collapse and recovery every quarter: a signal produced entirely
+  by a taxonomy error. Reopenings are excluded for a related reason — a reopening adds to
+  an outstanding security, so its size is a marginal add and comparing it against a new
+  issue reads as a supply cut.
+
+- **Sixteen years of CFTC history that honestly says it was loaded, not published.** Every
+  report from 2006-06-13 to 2022-09-06 shares one Socrata `:created_at` — a bulk load, not
+  a release. Recording that as a publication would assert that sixteen years of weekly
+  reports all became knowable on the same afternoon. Those 31,458 observations carry
+  `published_at = NULL` with availability at the load instant, so a 2019 replay sees
+  nothing; the 9,653 rows after it each carry their own release. The distinction is
+  detected from the data — one instant spanning more than one report date is a load — not
+  hardcoded, and migration 119 already allows exactly one `NULL -> value` promotion if a
+  real instant is ever verified.
+
 ## [0.12.10] — 2026-08-20
 
 

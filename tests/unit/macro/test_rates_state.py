@@ -739,3 +739,113 @@ class TestHorizonResolution:
         )
         assert any(point.horizon == "Longer run" for point in committee.points)
         assert year_end_rate(committee, 2029) is None
+
+
+class TestR2TheMarketLayerNeverGatesThePolicyState:
+    """MC3's second ruling, encoded as tests rather than left as a comment.
+
+    ``macro/rates.py:169`` already documents why widening the policy denominator is
+    unsafe: it would let the market shadow stand in for an absent dealer path and report
+    full coverage. What MC3 changed is presentation, not arithmetic -- once the market
+    layer has evidence its sub-states publish their own confidence, and no surface may
+    render the policy number beside a sub-state in a way that implies one covers the
+    other. The populated cases live in ``test_rates_sub_states.py``, driven by the golden
+    fixture; what is asserted here is the structure that must hold with or without them.
+    """
+
+    def _state(self, **kwargs: Any):
+        return compute_rates_state(
+            _paths(), as_of=_instant(SCENARIOS[PATHS_SCENARIO]["as_of"]), **kwargs
+        )
+
+    def test_no_market_role_may_enter_the_policy_denominator(self) -> None:
+        from uw_scan.macro.rates import _POLICY_ROLES, POLICY_REQUIRED
+
+        market_roles = {"supply", "positioning", "plumbing", "curve"}
+        assert not {_POLICY_ROLES[kind] for kind in POLICY_REQUIRED} & market_roles
+        assert set(POLICY_REQUIRED) == {
+            "actual",
+            "committee_projection",
+            "dealer_expectations",
+        }
+
+    def test_every_role_publishes_a_sub_state_with_its_own_confidence(self) -> None:
+        """Including when it has nothing: a role that vanishes reads as undeclared."""
+        state = self._state()
+        assert [item.role for item in state.sub_states] == [
+            "supply",
+            "positioning",
+            "plumbing",
+        ]
+        for item in state.sub_states:
+            assert item.confidence_reasons
+            assert Decimal(0) <= item.confidence <= Decimal(1)
+            if item.state == "UNKNOWN":
+                assert item.unavailable_reason
+
+    def test_an_absent_market_layer_does_not_lower_the_policy_confidence(self) -> None:
+        """The committee's published action is not less certain because CFTC is quiet."""
+        state = self._state()
+        assert state.confidence > 0
+        assert all(item.confidence == 0 for item in state.sub_states)
+
+    def test_each_sub_state_confidence_is_surfaced_next_to_the_policy_one(self) -> None:
+        """So a reader cannot mistake one 1.00 for coverage of both."""
+        state = self._state()
+        for item in state.sub_states:
+            term = state.reason(f"sub_state_confidence:{item.role}")
+            assert term is not None
+            assert term.kind == "informational"
+            assert term.value == item.confidence
+
+    def test_market_factors_absent_survives_and_counts_what_is_missing(self) -> None:
+        """Kept, not deleted, so a future regression is visible rather than silent."""
+        absent = self._state().reason("market_factors_absent")
+        assert absent is not None
+        assert absent.kind == "informational"
+        assert absent.value == Decimal(5)
+
+    def test_market_factors_absent_is_reported_even_at_zero(self) -> None:
+        """A term that vanishes when healthy is a term nobody notices coming back."""
+        state = compute_rates_state(
+            _paths(),
+            as_of=_instant(SCENARIOS[PATHS_SCENARIO]["as_of"]),
+            observations=_every_market_role(),
+        )
+        term = state.reason("market_factors_absent")
+        assert term is not None
+        assert term.value == Decimal(0)
+        assert term.kind == "informational"
+
+
+def _every_market_role() -> list[DomainObservation]:
+    """One real observation per market causal role, so none is reported absent.
+
+    Values are real published readings frozen at authoring time: the 10-year note new
+    issue of 2026-08-12 at $42bn, the 10-year note future's leveraged-money share for
+    report week 2026-08-11, and SOFR/EFFR for 2026-08-19.
+    """
+    as_of_day = SCENARIOS[PATHS_SCENARIO]["as_of"]
+    rows = [
+        ("10-Year|Note", "supply", "42000000000", "usd_offering_amount"),
+        ("043602|lev_money_net_pct_oi", "positioning", "-39.6365", "pct_open_interest"),
+        ("SOFR", "plumbing", "4.35", "percent"),
+        ("EFFR", "plumbing", "4.33", "percent"),
+        ("DGS10", "curve", "4.24", "percent"),
+        ("T10YIE", "decomposition_component", "2.31", "percent"),
+    ]
+    return [
+        DomainObservation(
+            series_id=series_id,
+            causal_role=role,
+            period_end=date.fromisoformat(as_of_day),
+            value=Decimal(value),
+            unit=unit,
+            publisher_transform="level",
+            available_at=_instant(as_of_day),
+            source="fred",
+            source_kind="first_party_publisher",
+            cost_class="free_publisher",
+        )
+        for series_id, role, value, unit in rows
+    ]

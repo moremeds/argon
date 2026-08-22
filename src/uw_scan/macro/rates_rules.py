@@ -9,14 +9,22 @@ from __future__ import annotations
 
 from collections.abc import Sequence
 from dataclasses import dataclass
+from datetime import timedelta
 from decimal import Decimal
 from typing import TYPE_CHECKING, Literal
 
 from uw_scan.models.macro import PolicyPath, PolicyPathKind
 
-from .contracts import Contradiction, Direction, DomainObservation, Velocity
+from .contracts import (
+    Contradiction,
+    Direction,
+    DomainObservation,
+    MacroSubState,
+    Velocity,
+)
 
 if TYPE_CHECKING:  # pragma: no cover - import cycle exists only for type checkers
+    from .contracts import MacroDomainState
     from .rates import RatesParameters
 
 
@@ -249,6 +257,130 @@ def _supply_rules(
             ),
         )
     ]
+
+
+#: Weeks the positioning-versus-curve comparison spans.  Four, matching the positioning
+#: velocity window, so both legs describe the same period -- comparing a four-week
+#: position change against a two-month yield move would call the mismatch a disagreement.
+_POSITIONING_COMPARISON_WEEKS = 4
+
+
+def market_contradictions(
+    observations: Sequence[DomainObservation],
+    sub_states: Sequence[MacroSubState],
+    *,
+    state: str,
+    prior_state: "MacroDomainState | None",
+    parameters: "RatesParameters",
+) -> tuple[Contradiction, ...]:
+    """Where the market layer disagrees with itself or with the policy state.
+
+    A contradiction is an observation about evidence disagreeing.  It never resolves into
+    a direction and never changes a state label -- the disagreement IS the output.
+    """
+    out: list[Contradiction] = []
+    out.extend(_positioning_against_curve(observations, sub_states))
+    out.extend(_plumbing_without_policy_change(sub_states, state=state))
+    return tuple(out)
+
+
+def _positioning_against_curve(
+    observations: Sequence[DomainObservation],
+    sub_states: Sequence[MacroSubState],
+) -> list[Contradiction]:
+    """A stretched position on the wrong side of the move that actually happened.
+
+    A net short profits when yields rise.  If a category is at an extreme of its own
+    distribution AND the realised yield move over the same weeks went the other way,
+    position and outcome disagree.  Nothing is inferred about where yields go next: the
+    rule reports that two pieces of evidence point opposite ways, which is the whole of
+    its claim.
+    """
+    positioning = next(
+        (item for item in sub_states if item.role == "positioning"), None
+    )
+    if positioning is None or not positioning.state.startswith("STRETCHED"):
+        return []
+    yield_change = _change_over_weeks(
+        observations, "DGS10", _POSITIONING_COMPARISON_WEEKS
+    )
+    if yield_change is None or yield_change == 0:
+        return []
+
+    out: list[Contradiction] = []
+    for series_id in positioning.series_ids:
+        net_series = series_id.removesuffix("_pct_oi")
+        net = _latest_value(observations, net_series)
+        if net is None or net == 0:
+            continue
+        # Short profits from rising yields; long from falling.  Same sign on both legs
+        # is agreement, opposite signs are the disagreement this rule reports.
+        if (net < 0) == (yield_change < 0):
+            out.append(
+                Contradiction(
+                    rule="positioning_against_curve_direction",
+                    detail=(
+                        f"{net_series} is net {'short' if net < 0 else 'long'} "
+                        f"{abs(net):,.0f} contracts at an extreme of its own "
+                        f"distribution while the 10y yield moved "
+                        f"{yield_change:+.0f}bp over the same "
+                        f"{_POSITIONING_COMPARISON_WEEKS} weeks"
+                    ),
+                )
+            )
+    return out
+
+
+def _plumbing_without_policy_change(
+    sub_states: Sequence[MacroSubState], *, state: str
+) -> list[Contradiction]:
+    """Funding stress the committee has not responded to.
+
+    Asserts nothing about what the committee WILL do.  ``ON_HOLD`` is the published fact
+    that its last action was a hold, not a forecast that the next one will be.
+    """
+    plumbing = next((item for item in sub_states if item.role == "plumbing"), None)
+    if plumbing is None or plumbing.state != "STRESSED" or state != "ON_HOLD":
+        return []
+    spread = next(
+        (
+            reason.detail
+            for reason in plumbing.confidence_reasons
+            if reason.term == "funding_spread"
+        ),
+        "the funding spread is at its stressed threshold",
+    )
+    return [
+        Contradiction(
+            rule="plumbing_stress_without_policy_change",
+            detail=f"{spread}, and the committee's last action was a hold",
+        )
+    ]
+
+
+def _change_over_weeks(
+    observations: Sequence[DomainObservation], series_id: str, weeks: int
+) -> Decimal | None:
+    """Basis-point change in a percent-quoted series over ``weeks`` calendar weeks."""
+    rows = sorted(
+        (obs for obs in observations if obs.series_id == series_id),
+        key=lambda obs: obs.period_end,
+    )
+    if len(rows) < 2:
+        return None
+    cutoff = rows[-1].period_end - timedelta(weeks=weeks)
+    earlier = [row for row in rows if row.period_end <= cutoff]
+    start = earlier[-1] if earlier else rows[0]
+    return (rows[-1].value - start.value) * 100
+
+
+def _latest_value(
+    observations: Sequence[DomainObservation], series_id: str
+) -> Decimal | None:
+    rows = [obs for obs in observations if obs.series_id == series_id]
+    if not rows:
+        return None
+    return max(rows, key=lambda obs: obs.period_end).value
 
 
 def _elevated_supply(

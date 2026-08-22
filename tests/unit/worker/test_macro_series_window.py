@@ -20,10 +20,15 @@ from uw_scan.worker.jobs.macro_series_ingest import (
     request_window,
 )
 
-#: Measured against the live API on 2026-08-19 for DGS10 / DFII10 / T10YIE: a
-#: 2019-01-01 start returned 1891 distinct vintages and a 2021-01-01 start returned
-#: 1395, i.e. ~248 a year.  Reproduce with the probe in the plan's Task 9 section.
-VINTAGES_PER_YEAR = 248
+#: The FASTEST-minting daily series, not the average, because the cap is what the
+#: fastest one hits first.  Measured against the live API on 2026-08-19 for DGS10 /
+#: DFII10 / T10YIE (~248 a year: a 2019-01-01 start returned 1891 distinct vintages and
+#: a 2021-01-01 start returned 1395) and again on 2026-08-21 for the plumbing series
+#: added by MC3 -- SOFR 249.4, RRPONTSYD 248.7 and EFFR 250.7, the last of which is the
+#: binding one at 2.3 years of headroom.  Taking the mean here would push the alarm past
+#: the date EFFR actually starts returning HTTP 400.  Reproduce:
+#: ``uv run python scripts/research/rates_market_layer_probe.py``.
+VINTAGES_PER_YEAR = 251
 FRED_VINTAGE_CAP = 2000
 
 
@@ -46,7 +51,9 @@ def test_non_daily_series_keep_the_unbounded_vintage_window(series_id: str) -> N
 def test_daily_series_start_observations_where_the_vintages_start(
     series_id: str,
 ) -> None:
-    obs_start, realtime_start, realtime_end = request_window(series_id, date(2015, 1, 1))
+    obs_start, realtime_start, realtime_end = request_window(
+        series_id, date(2015, 1, 1)
+    )
 
     # Equality is the correctness condition, not a coincidence: an observation cannot be
     # published before the day it describes, so starting both on the same day means no

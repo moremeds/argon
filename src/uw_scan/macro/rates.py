@@ -36,13 +36,16 @@ from .contracts import (
     EvidenceRef,
     FactorState,
     MacroDomainState,
+    MacroSubState,
     compute_inputs_hash,
     freshness_for,
 )
+from .rates_sub_states import build_sub_states
 from .rates_rules import (
     YieldAttribution,
     attribute_nominal_change,
     forward_spreads,
+    market_contradictions,
     horizon_years,
     policy_contradictions,
     rates_velocity,
@@ -115,6 +118,13 @@ class RatesParameters:
     freshness_decay_multiple: Decimal = Decimal("3")
     policy_path_cadence_days: int = 120
     market_series_cadence_days: int = 4
+    #: Per role, because a market factor's cadence is its PUBLISHER's, not the domain's.
+    #: These were one value -- the 120-day policy-path cadence -- until the golden
+    #: staleness scenario showed what that costs: a COT report four months past its
+    #: weekly release read as perfectly fresh, because 120 days is seventeen weeks.
+    #: A freshness term that cannot detect a publisher going quiet is decoration.
+    supply_cadence_days: int = 92
+    positioning_cadence_days: int = 7
 
     def as_record(self) -> dict[str, Any]:
         return {
@@ -151,6 +161,14 @@ def compute_rates_state(
     factors = _policy_factors(
         by_kind, as_of=as_of, parameters=parameters
     ) + _market_factors(eligible, as_of=as_of, parameters=parameters)
+    sub_states = build_sub_states(
+        eligible,
+        factors,
+        as_of=as_of,
+        supply_baseline_quarters=parameters.supply_baseline_quarters,
+        cadence_by_role=_CADENCE_BY_ROLE(parameters),
+        freshness_decay_multiple=parameters.freshness_decay_multiple,
+    )
     horizon, spreads = forward_spreads(by_kind, not_before=as_of.year)
     state, unread_action = _policy_state(by_kind.get("actual"))
     direction = _direction(by_kind, as_of=as_of, parameters=parameters)
@@ -161,6 +179,12 @@ def compute_rates_state(
         state=state,
         direction=direction,
         attribution=attribution,
+        parameters=parameters,
+    ) + market_contradictions(
+        eligible,
+        sub_states,
+        state=state,
+        prior_state=prior_state,
         parameters=parameters,
     )
 
@@ -185,7 +209,7 @@ def compute_rates_state(
             "state abstains rather than inferring what the committee did"
         ),
     )
-    reasons = reasons + _coverage_notes(by_kind, factors)
+    reasons = reasons + _coverage_notes(by_kind, factors) + _sub_state_notes(sub_states)
 
     used = tuple(sorted(eligible, key=lambda obs: (obs.series_id, obs.period_end)))
     return MacroDomainState(
@@ -227,6 +251,32 @@ def compute_rates_state(
             "this domain comes from the Cleveland Fed's estimated model",
         )
         + ((unread_action,) if unread_action else ()),
+        sub_states=sub_states,
+    )
+
+
+def _sub_state_notes(
+    sub_states: tuple[MacroSubState, ...],
+) -> tuple[ConfidenceTerm, ...]:
+    """Each sub-state's own confidence, surfaced beside the policy number.
+
+    Informational on purpose: none of these is in the policy confidence product, and R2
+    is the reason. What they prevent is a surface rendering one number above a panel
+    holding both -- a reader cannot tell from a single 1.00 whether the positioning read
+    behind it is fresh or four months stale.
+    """
+    return tuple(
+        ConfidenceTerm(
+            term=f"sub_state_confidence:{item.role}",
+            value=item.confidence,
+            detail=(
+                f"{item.role} is {item.state} with its own confidence "
+                f"{item.confidence:.2f} over {len(item.series_ids)} series"
+                + (f"; {item.unavailable_reason}" if item.unavailable_reason else "")
+            ),
+            kind="informational",
+        )
+        for item in sub_states
     )
 
 
@@ -306,6 +356,22 @@ def _policy_factors(
     return tuple(out)
 
 
+def _CADENCE_BY_ROLE(parameters: RatesParameters) -> dict[CausalRole, int]:
+    """How often each role's publisher is expected to speak.
+
+    A role missing from this table falls back to the policy-path cadence, which is the
+    longest and therefore the most forgiving -- an unknown role should not be marked
+    stale by a cadence nobody declared for it.
+    """
+    return {
+        "curve": parameters.market_series_cadence_days,
+        "decomposition_component": parameters.market_series_cadence_days,
+        "plumbing": parameters.market_series_cadence_days,
+        "supply": parameters.supply_cadence_days,
+        "positioning": parameters.positioning_cadence_days,
+    }
+
+
 def _market_factors(
     observations: tuple[DomainObservation, ...],
     *,
@@ -326,10 +392,8 @@ def _market_factors(
     out: list[FactorState] = []
     for series_id, obs in sorted(latest.items()):
         age_days = (as_of.date() - obs.available_at.date()).days
-        cadence = (
-            parameters.market_series_cadence_days
-            if obs.causal_role in {"curve", "decomposition_component", "plumbing"}
-            else parameters.policy_path_cadence_days
+        cadence = _CADENCE_BY_ROLE(parameters).get(
+            obs.causal_role, parameters.policy_path_cadence_days
         )
         out.append(
             FactorState(
@@ -479,21 +543,31 @@ def _coverage_notes(
         )
         if role not in roles
     ]
-    if absent_market:
-        out.append(
-            ConfidenceTerm(
-                term="market_factors_absent",
-                value=Decimal(len(absent_market)),
-                detail=(
+    # Emitted at zero too, deliberately.  A term that disappears when healthy gives a
+    # reader nothing to notice when it comes back: "no market_factors_absent line" and
+    # "this surface never had one" are the same sight. Reported as 0, a regression to 1
+    # is a visible change rather than the reappearance of a line nobody was watching.
+    out.append(
+        ConfidenceTerm(
+            term="market_factors_absent",
+            value=Decimal(len(absent_market)),
+            detail=(
+                (
                     f"no observations for: {', '.join(absent_market)}; these do not "
                     "gate the policy state but their sub-states are unavailable"
-                ),
-                # A COUNT of absent factor groups, not a multiplicand.  It is not in
-                # the confidence product at all -- rendered as one, "3" reads as a
-                # term that tripled the number it is only annotating.
-                kind="informational",
-            )
+                )
+                if absent_market
+                else (
+                    "every market role resolved to evidence; each publishes its own "
+                    "sub-state confidence, and none of them gates the policy state"
+                )
+            ),
+            # A COUNT of absent factor groups, not a multiplicand.  It is not in
+            # the confidence product at all -- rendered as one, "3" reads as a
+            # term that tripled the number it is only annotating.
+            kind="informational",
         )
+    )
     return tuple(out)
 
 

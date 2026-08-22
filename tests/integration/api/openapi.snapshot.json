@@ -6890,22 +6890,96 @@
         "type": "object"
       },
       "GoldInputProvenance": {
+        "description": "One declared gold input, present or explained.\n\n``obs_date`` and ``as_of`` became optional so an OMISSION can be carried. They were\nrequired, and the router dropped any entry missing either -- so a manifest that\nrecorded \"this input was not read, and here is why\" would have been silently\ndiscarded on the way to the client, reproducing the four-of-twelve manifest one layer\nup. An input with no ``omission_reason`` and no ``obs_date`` is the one shape that\nmust never occur; that is a gap wearing a record's clothes.",
         "properties": {
           "as_of": {
-            "format": "date-time",
-            "title": "As Of",
-            "type": "string"
+            "anyOf": [
+              {
+                "format": "date-time",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "As Of"
+          },
+          "causal_role": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Causal Role"
+          },
+          "lens": {
+            "default": [],
+            "items": {
+              "type": "string"
+            },
+            "title": "Lens",
+            "type": "array"
           },
           "obs_date": {
-            "format": "date",
-            "title": "Obs Date",
-            "type": "string"
+            "anyOf": [
+              {
+                "format": "date",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Obs Date"
+          },
+          "omission_reason": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Omission Reason"
+          },
+          "required": {
+            "anyOf": [
+              {
+                "type": "boolean"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Required"
+          },
+          "row_count": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Row Count"
+          },
+          "source": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Source"
           }
         },
-        "required": [
-          "obs_date",
-          "as_of"
-        ],
         "title": "GoldInputProvenance",
         "type": "object"
       },
@@ -9350,6 +9424,20 @@
             "title": "State",
             "type": "string"
           },
+          "sub_states": {
+            "items": {
+              "$ref": "#/components/schemas/MacroSubStateItem"
+            },
+            "title": "Sub States",
+            "type": "array"
+          },
+          "upstream": {
+            "items": {
+              "$ref": "#/components/schemas/MacroUpstreamState"
+            },
+            "title": "Upstream",
+            "type": "array"
+          },
           "velocity": {
             "items": {
               "$ref": "#/components/schemas/MacroVelocityItem"
@@ -9834,6 +9922,187 @@
           "detail_path"
         ],
         "title": "MacroStateSummary",
+        "type": "object"
+      },
+      "MacroSubStateItem": {
+        "description": "One causal role's own read, with its own confidence.\n\nKept beside the domain state rather than merged into it because the two have\ndifferent denominators: the rates policy state is gated by the three policy paths and\nnothing else, while a positioning read is gated by whether CFTC published. A surface\nrendering one confidence above a panel holding both would let either stand in for the\nother -- which is the substitution the rates engine exists to refuse.\n\n``state`` is a plain string because the vocabularies are per role and not comparable:\nELEVATED is about issuance size, STRETCHED_LOW is a percentile of a position. A\nshared enum would invite exactly that comparison. Every vocabulary includes\n``UNKNOWN`` and none includes ``NEUTRAL`` -- absence is not a centred reading.",
+        "properties": {
+          "confidence": {
+            "pattern": "^(?!^[-+.]*$)[+-]?0*\\d*\\.?\\d*$",
+            "title": "Confidence",
+            "type": "string"
+          },
+          "confidence_reasons": {
+            "items": {
+              "$ref": "#/components/schemas/MacroConfidenceReason"
+            },
+            "title": "Confidence Reasons",
+            "type": "array"
+          },
+          "direction": {
+            "enum": [
+              "RISING",
+              "FALLING",
+              "FLAT",
+              "UNKNOWN"
+            ],
+            "title": "Direction",
+            "type": "string"
+          },
+          "latest_period_end": {
+            "anyOf": [
+              {
+                "format": "date",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Latest Period End"
+          },
+          "role": {
+            "enum": [
+              "realized",
+              "breadth",
+              "stickiness",
+              "expectations_survey",
+              "expectations_market",
+              "policy_actual",
+              "policy_committee",
+              "policy_dealer",
+              "policy_market_shadow",
+              "curve",
+              "decomposition_component",
+              "supply",
+              "positioning",
+              "plumbing"
+            ],
+            "title": "Role",
+            "type": "string"
+          },
+          "series_ids": {
+            "items": {
+              "type": "string"
+            },
+            "title": "Series Ids",
+            "type": "array"
+          },
+          "state": {
+            "title": "State",
+            "type": "string"
+          },
+          "unavailable_reason": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Unavailable Reason"
+          },
+          "velocity": {
+            "items": {
+              "$ref": "#/components/schemas/MacroVelocityItem"
+            },
+            "title": "Velocity",
+            "type": "array"
+          }
+        },
+        "required": [
+          "role",
+          "state",
+          "direction",
+          "confidence"
+        ],
+        "title": "MacroSubStateItem",
+        "type": "object"
+      },
+      "MacroUpstreamState": {
+        "description": "One upstream domain's answer, carried on the edge that references it.\n\nThe upstream's own state and confidence travel with the edge on purpose. A pointer a\nreader has to resolve with a second request is a foreign key, not lineage -- and the\nthing they actually want to know is what the upstream SAID, not merely that it was\nconsulted.",
+        "properties": {
+          "as_of": {
+            "format": "date-time",
+            "title": "As Of",
+            "type": "string"
+          },
+          "causal_role": {
+            "enum": [
+              "realized",
+              "breadth",
+              "stickiness",
+              "expectations_survey",
+              "expectations_market",
+              "policy_actual",
+              "policy_committee",
+              "policy_dealer",
+              "policy_market_shadow",
+              "curve",
+              "decomposition_component",
+              "supply",
+              "positioning",
+              "plumbing"
+            ],
+            "title": "Causal Role",
+            "type": "string"
+          },
+          "confidence": {
+            "pattern": "^(?!^[-+.]*$)[+-]?0*\\d*\\.?\\d*$",
+            "title": "Confidence",
+            "type": "string"
+          },
+          "direction": {
+            "enum": [
+              "RISING",
+              "FALLING",
+              "FLAT",
+              "UNKNOWN"
+            ],
+            "title": "Direction",
+            "type": "string"
+          },
+          "domain": {
+            "enum": [
+              "inflation",
+              "policy_rates",
+              "usd",
+              "gold",
+              "cross_domain"
+            ],
+            "title": "Domain",
+            "type": "string"
+          },
+          "engine_version": {
+            "title": "Engine Version",
+            "type": "string"
+          },
+          "inputs_hash": {
+            "title": "Inputs Hash",
+            "type": "string"
+          },
+          "state": {
+            "title": "State",
+            "type": "string"
+          },
+          "upstream_state_id": {
+            "title": "Upstream State Id",
+            "type": "integer"
+          }
+        },
+        "required": [
+          "upstream_state_id",
+          "domain",
+          "causal_role",
+          "state",
+          "direction",
+          "confidence",
+          "as_of",
+          "engine_version",
+          "inputs_hash"
+        ],
+        "title": "MacroUpstreamState",
         "type": "object"
       },
       "MacroVelocityItem": {
@@ -27523,6 +27792,78 @@
           }
         },
         "summary": "Macro Rates State",
+        "tags": [
+          "macro",
+          "macro"
+        ]
+      }
+    },
+    "/api/macro/usd": {
+      "get": {
+        "operationId": "macro_usd_state_api_macro_usd_get",
+        "parameters": [
+          {
+            "description": "UTC calendar date; returns the state answering for that day-end.",
+            "in": "query",
+            "name": "as_of",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "format": "date",
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "description": "UTC calendar date; returns the state answering for that day-end.",
+              "title": "As Of"
+            }
+          },
+          {
+            "description": "Timezone-aware instant to replay.",
+            "in": "query",
+            "name": "as_of_ts",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "format": "date-time",
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "description": "Timezone-aware instant to replay.",
+              "title": "As Of Ts"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MacroDomainStateResponse"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Macro Usd State",
         "tags": [
           "macro",
           "macro"

@@ -1720,6 +1720,23 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/macro/usd": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Macro Usd State */
+        get: operations["macro_usd_state_api_macro_usd_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/scanner": {
         parameters: {
             query?: never;
@@ -4167,18 +4184,37 @@ export interface components {
             /** Value */
             value: string;
         };
-        /** GoldInputProvenance */
+        /**
+         * GoldInputProvenance
+         * @description One declared gold input, present or explained.
+         *
+         *     ``obs_date`` and ``as_of`` became optional so an OMISSION can be carried. They were
+         *     required, and the router dropped any entry missing either -- so a manifest that
+         *     recorded "this input was not read, and here is why" would have been silently
+         *     discarded on the way to the client, reproducing the four-of-twelve manifest one layer
+         *     up. An input with no ``omission_reason`` and no ``obs_date`` is the one shape that
+         *     must never occur; that is a gap wearing a record's clothes.
+         */
         GoldInputProvenance: {
+            /** Obs Date */
+            obs_date?: string | null;
+            /** As Of */
+            as_of?: string | null;
+            /** Omission Reason */
+            omission_reason?: string | null;
             /**
-             * Obs Date
-             * Format: date
+             * Lens
+             * @default []
              */
-            obs_date: string;
-            /**
-             * As Of
-             * Format: date-time
-             */
-            as_of: string;
+            lens: string[];
+            /** Causal Role */
+            causal_role?: string | null;
+            /** Source */
+            source?: string | null;
+            /** Row Count */
+            row_count?: number | null;
+            /** Required */
+            required?: boolean | null;
         };
         /** GoldInputSeriesPoint */
         GoldInputSeriesPoint: {
@@ -5089,6 +5125,10 @@ export interface components {
             evidence?: components["schemas"]["MacroStateEvidenceItem"][];
             /** Notes */
             notes?: string[];
+            /** Sub States */
+            sub_states?: components["schemas"]["MacroSubStateItem"][];
+            /** Upstream */
+            upstream?: components["schemas"]["MacroUpstreamState"][];
         };
         /** MacroEvidenceRef */
         MacroEvidenceRef: {
@@ -5293,6 +5333,88 @@ export interface components {
             evidence_count: number;
             /** Detail Path */
             detail_path: string;
+        };
+        /**
+         * MacroSubStateItem
+         * @description One causal role's own read, with its own confidence.
+         *
+         *     Kept beside the domain state rather than merged into it because the two have
+         *     different denominators: the rates policy state is gated by the three policy paths and
+         *     nothing else, while a positioning read is gated by whether CFTC published. A surface
+         *     rendering one confidence above a panel holding both would let either stand in for the
+         *     other -- which is the substitution the rates engine exists to refuse.
+         *
+         *     ``state`` is a plain string because the vocabularies are per role and not comparable:
+         *     ELEVATED is about issuance size, STRETCHED_LOW is a percentile of a position. A
+         *     shared enum would invite exactly that comparison. Every vocabulary includes
+         *     ``UNKNOWN`` and none includes ``NEUTRAL`` -- absence is not a centred reading.
+         */
+        MacroSubStateItem: {
+            /**
+             * Role
+             * @enum {string}
+             */
+            role: "realized" | "breadth" | "stickiness" | "expectations_survey" | "expectations_market" | "policy_actual" | "policy_committee" | "policy_dealer" | "policy_market_shadow" | "curve" | "decomposition_component" | "supply" | "positioning" | "plumbing";
+            /** State */
+            state: string;
+            /**
+             * Direction
+             * @enum {string}
+             */
+            direction: "RISING" | "FALLING" | "FLAT" | "UNKNOWN";
+            /** Confidence */
+            confidence: string;
+            /** Series Ids */
+            series_ids?: string[];
+            /** Latest Period End */
+            latest_period_end?: string | null;
+            /** Unavailable Reason */
+            unavailable_reason?: string | null;
+            /** Velocity */
+            velocity?: components["schemas"]["MacroVelocityItem"][];
+            /** Confidence Reasons */
+            confidence_reasons?: components["schemas"]["MacroConfidenceReason"][];
+        };
+        /**
+         * MacroUpstreamState
+         * @description One upstream domain's answer, carried on the edge that references it.
+         *
+         *     The upstream's own state and confidence travel with the edge on purpose. A pointer a
+         *     reader has to resolve with a second request is a foreign key, not lineage -- and the
+         *     thing they actually want to know is what the upstream SAID, not merely that it was
+         *     consulted.
+         */
+        MacroUpstreamState: {
+            /** Upstream State Id */
+            upstream_state_id: number;
+            /**
+             * Domain
+             * @enum {string}
+             */
+            domain: "inflation" | "policy_rates" | "usd" | "gold" | "cross_domain";
+            /**
+             * Causal Role
+             * @enum {string}
+             */
+            causal_role: "realized" | "breadth" | "stickiness" | "expectations_survey" | "expectations_market" | "policy_actual" | "policy_committee" | "policy_dealer" | "policy_market_shadow" | "curve" | "decomposition_component" | "supply" | "positioning" | "plumbing";
+            /** State */
+            state: string;
+            /**
+             * Direction
+             * @enum {string}
+             */
+            direction: "RISING" | "FALLING" | "FLAT" | "UNKNOWN";
+            /** Confidence */
+            confidence: string;
+            /**
+             * As Of
+             * Format: date-time
+             */
+            as_of: string;
+            /** Engine Version */
+            engine_version: string;
+            /** Inputs Hash */
+            inputs_hash: string;
         };
         /**
          * MacroVelocityItem
@@ -13584,6 +13706,40 @@ export interface operations {
         };
     };
     macro_rates_state_api_macro_rates_get: {
+        parameters: {
+            query?: {
+                /** @description UTC calendar date; returns the state answering for that day-end. */
+                as_of?: string | null;
+                /** @description Timezone-aware instant to replay. */
+                as_of_ts?: string | null;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["MacroDomainStateResponse"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    macro_usd_state_api_macro_usd_get: {
         parameters: {
             query?: {
                 /** @description UTC calendar date; returns the state answering for that day-end. */

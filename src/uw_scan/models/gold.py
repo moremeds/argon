@@ -22,9 +22,11 @@ class GoldGaugeState(BaseModel):
     corr_252d_returns: Decimal | None = None
     state: Literal["operative", "partial", "suspended"]
 
+
 class GoldHistoryPoint(BaseModel):
     obs_date: date
     value: Decimal
+
 
 class GoldCbCountryHistory(BaseModel):
     country_iso3: str
@@ -32,6 +34,7 @@ class GoldCbCountryHistory(BaseModel):
     bucket: str
     latest_reserves_t: Decimal | None = None
     history: list[GoldHistoryPoint] = []
+
 
 class GoldSpotTile(BaseModel):
     """XAU/USD snapshot used by the Tier 1 KPI strip."""
@@ -42,6 +45,7 @@ class GoldSpotTile(BaseModel):
     high: Decimal
     low: Decimal
     open: Decimal
+
 
 class GoldStructuralPostureModel(BaseModel):
     state_label: str | None = None
@@ -65,9 +69,11 @@ class GoldStructuralPostureModel(BaseModel):
     cb_country_history: list[GoldCbCountryHistory] = []
     narrative_text: str
 
+
 class GoldTwoForceText(BaseModel):
     discount_rate: str
     hedge_demand: str
+
 
 class GoldCyclicalPostureModel(BaseModel):
     zone_label: str | None = None
@@ -85,6 +91,7 @@ class GoldCyclicalPostureModel(BaseModel):
     two_force_text: GoldTwoForceText
     narrative_text: str
 
+
 class GoldValuationPostureModel(BaseModel):
     flag: Literal["Low", "Moderate", "High", "Severe"]
     posture_chip: PostureChipState
@@ -94,9 +101,27 @@ class GoldValuationPostureModel(BaseModel):
     gold_spx_ratio_percentile: Decimal | None = None
     narrative_text: str
 
+
 class GoldInputProvenance(BaseModel):
-    obs_date: date
-    as_of: datetime
+    """One declared gold input, present or explained.
+
+    ``obs_date`` and ``as_of`` became optional so an OMISSION can be carried. They were
+    required, and the router dropped any entry missing either -- so a manifest that
+    recorded "this input was not read, and here is why" would have been silently
+    discarded on the way to the client, reproducing the four-of-twelve manifest one layer
+    up. An input with no ``omission_reason`` and no ``obs_date`` is the one shape that
+    must never occur; that is a gap wearing a record's clothes.
+    """
+
+    obs_date: date | None = None
+    as_of: datetime | None = None
+    omission_reason: str | None = None
+    lens: list[str] = []
+    causal_role: str | None = None
+    source: str | None = None
+    row_count: int | None = None
+    required: bool | None = None
+
 
 class GoldDataFreshnessSource(BaseModel):
     """Per-source freshness for the Tier 1 Data Freshness card."""
@@ -106,6 +131,7 @@ class GoldDataFreshnessSource(BaseModel):
     stale_seconds: int | None = None
     status: Literal["ok", "missing"] = "ok"
 
+
 class GoldDecompositionRow(BaseModel):
     """One row of the Tier 5 lens-decomposition bars."""
 
@@ -113,13 +139,16 @@ class GoldDecompositionRow(BaseModel):
     factor: str
     contribution: Decimal
 
+
 class GoldCorrelationPoint(BaseModel):
     obs_date: date
     value: Decimal
 
+
 class GoldCorrelationBand(BaseModel):
     mean: Decimal
     std: Decimal
+
 
 class GoldCorrelationHistory(BaseModel):
     """Tier 5 correlation-history panel inputs."""
@@ -128,6 +157,7 @@ class GoldCorrelationHistory(BaseModel):
     gold_dxy: list[GoldCorrelationPoint] = []
     gold_gpr: list[GoldCorrelationPoint] = []
     pre_2022_band: GoldCorrelationBand | None = None
+
 
 class GoldStateResponse(BaseModel):
     obs_date: date
@@ -142,13 +172,16 @@ class GoldStateResponse(BaseModel):
     decomposition_rows: list[GoldDecompositionRow] = []
     correlation_history: GoldCorrelationHistory = GoldCorrelationHistory()
 
+
 class GoldGaugeTimeSeriesPoint(BaseModel):
     obs_date: date
     corr_252d: Decimal | None
 
+
 class GoldGaugeResponse(BaseModel):
     current: GoldGaugeState
     history_252d: list[GoldGaugeTimeSeriesPoint]
+
 
 class GoldInputSeriesPoint(BaseModel):
     obs_date: date
@@ -156,9 +189,11 @@ class GoldInputSeriesPoint(BaseModel):
     as_of: datetime
     release_date: date | None = None
 
+
 class GoldInputSeriesResponse(BaseModel):
     series_id: str
     points: list[GoldInputSeriesPoint]
+
 
 class GoldLensResponse(BaseModel):
     """Detail payload for one lens (richer than the summary in GoldStateResponse)."""

@@ -34,7 +34,24 @@ class TreasuryAuctionRow:
     cusip: str
     security_type: str
     security_term: str
+    #: The publisher's ``type`` field, which is FINER than ``securityType`` and is the
+    #: half that separates a nominal note from a TIPS.  A 10-Year TIPS carries
+    #: ``securityTerm='10-Year'`` and ``securityType='Note'`` exactly like a nominal
+    #: 10-year and is half the size ($21bn against $42bn), so a series keyed on the term
+    #: alone interleaves them and reads the alternation as a supply collapse and recovery
+    #: every quarter.  The nominal series is the one where ``instrument_type ==
+    #: security_type`` -- see spec 2.1.
+    instrument_type: str
     auction_date: date
+    #: When Treasury ANNOUNCED the auction, about a week before it happens.  The offering
+    #: size is knowable from the announcement, so this -- not ``auction_date`` -- is what
+    #: an availability bound must use.  Date only: the feed states no time of day.
+    announcement_date: date | None
+    #: ``True``/``False`` from the publisher's Yes/No, ``None`` when it says neither.  A
+    #: reopening adds to an existing security and its size is not comparable to a new
+    #: issue's, so a supply series must exclude them rather than treat the marginal add
+    #: as a smaller auction.
+    reopening: bool | None
     issue_date: date | None
     offering_amount: Decimal | None
     high_rate: Decimal | None
@@ -88,25 +105,37 @@ class TreasurySupplyProvider:
     def close(self) -> None:
         self._client.close()
 
+    def fetch_auctions_payload(
+        self, *, security_type: str | None = None
+    ) -> tuple[bytes, str]:
+        """The exact response bytes and the URL that produced them.
+
+        The endpoint takes no usable date window: ``startDate``/``endDate`` are accepted
+        and ignored, and it returns a fixed 250-row cap of the most recent auctions either
+        way (measured 2026-08-21). Any date filtering is the caller's, applied after the
+        fact -- which is also why the artifact is the whole payload rather than a slice.
+
+        ``security_type`` is what actually selects the window, because the 250-row cap
+        applies per request: unfiltered it is spent across every type and reaches back
+        eighteen months, while ``type=Note`` reaches 2021 and ``type=Bond`` reaches 2012.
+        """
+        params = {"format": "json"}
+        if security_type is not None:
+            params["type"] = security_type
+        response = self._get_with_telemetry(self.AUCTIONS_URL, params)
+        response.raise_for_status()
+        return response.content, str(response.url)
+
     def fetch_recent_auctions(
         self, *, start: date | None = None
     ) -> list[TreasuryAuctionRow]:
-        params = {"format": "json"}
-        response = self._get_with_telemetry(self.AUCTIONS_URL, params)
-        response.raise_for_status()
-        rows: list[TreasuryAuctionRow] = []
-        for raw in json.loads(response.text):
-            try:
-                parsed = _auction_from_mapping(raw)
-            except (KeyError, ValueError, InvalidOperation) as exc:
-                logger.debug("treasury auction row parse skipped: %s", repr(exc))
-                continue
-            if start is not None and parsed.auction_date < start:
-                continue
-            if parsed.security_type not in {"Bill", "Note", "Bond"}:
-                continue
-            rows.append(parsed)
-        return rows
+        raw_bytes, _url = self.fetch_auctions_payload()
+        return [
+            row
+            for row in parse_auctions(raw_bytes)
+            if (start is None or row.auction_date >= start)
+            and row.security_type in {"Bill", "Note", "Bond"}
+        ]
 
     def fetch_latest_debt(self) -> TreasuryDebtRecord | None:
         params = {"sort": "-record_date", "page[size]": "1"}
@@ -185,6 +214,17 @@ class TreasurySupplyProvider:
         )
 
 
+def parse_auctions(raw_bytes: bytes) -> list[TreasuryAuctionRow]:
+    """Normalize one TreasuryDirect payload into auction rows, skipping unreadable ones."""
+    out: list[TreasuryAuctionRow] = []
+    for raw in json.loads(raw_bytes):
+        try:
+            out.append(_auction_from_mapping(raw))
+        except (KeyError, ValueError, InvalidOperation) as exc:
+            logger.debug("treasury auction row parse skipped: %s", repr(exc))
+    return out
+
+
 def _auction_from_mapping(row: dict[str, Any]) -> TreasuryAuctionRow:
     high_rate = _dec(_field(row, "highYield")) or _dec(_field(row, "highDiscountRate"))
     total_accepted = _dec(_field(row, "totalAccepted"))
@@ -192,12 +232,17 @@ def _auction_from_mapping(row: dict[str, Any]) -> TreasuryAuctionRow:
         cusip=_field(row, "cusip"),
         security_type=_field(row, "securityType"),
         security_term=_field(row, "securityTerm"),
+        instrument_type=_field(row, "type"),
         auction_date=_parse_date(_field(row, "auctionDate")),
+        announcement_date=_parse_optional_date(_field(row, "announcementDate")),
+        reopening=_yes_no(_field(row, "reopening")),
         issue_date=_parse_optional_date(_field(row, "issueDate")),
         offering_amount=_dec(_field(row, "offeringAmount")),
         high_rate=high_rate,
         bid_to_cover=_dec(_field(row, "bidToCoverRatio")),
-        direct_bidder_pct=_pct(_dec(_field(row, "directBidderAccepted")), total_accepted),
+        direct_bidder_pct=_pct(
+            _dec(_field(row, "directBidderAccepted")), total_accepted
+        ),
         indirect_bidder_pct=_pct(
             _dec(_field(row, "indirectBidderAccepted")), total_accepted
         ),
@@ -234,6 +279,10 @@ def _parse_optional_date(raw: str) -> date | None:
     if not raw:
         return None
     return _parse_date(raw)
+
+
+def _yes_no(raw: str) -> bool | None:
+    return {"Yes": True, "No": False}.get(raw)
 
 
 def _dec(raw: Any) -> Decimal | None:

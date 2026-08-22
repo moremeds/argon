@@ -27,6 +27,7 @@ from uw_scan.macro.contracts import (
     EvidenceRef,
     FactorState,
     MacroDomainState,
+    MacroSubState,
     Velocity,
 )
 
@@ -42,6 +43,10 @@ _DETERMINED_BY_IDENTITY = (
     "contradictions_jsonb",
     "factors_jsonb",
     "notes_jsonb",
+    # Determined too: a sub-state is computed from the same observations, so two rows
+    # sharing an inputs_hash and differing here would mean a role's answer moved without
+    # its inputs moving.
+    "sub_states_jsonb",
 )
 
 
@@ -54,12 +59,19 @@ class _MacroDomainStateMixin:
         state: MacroDomainState,
         *,
         computed_at: datetime,
+        upstream: Sequence[tuple[int, str]] = (),
     ) -> int:
         """Persist a state with its evidence, or return the id of the identical one.
 
         ``computed_at`` is separate from ``state.as_of`` on purpose: the first is when we
         did the arithmetic, the second is the instant the answer is about.  Collapsing
         them would make every backfilled replay look like it was known in real time.
+
+        ``upstream`` is ``(state_id, causal_role)`` per upstream ANSWER this state stood
+        on -- a transmission domain consumes those rather than re-reading their inputs.
+        Recorded as rows rather than left inside ``inputs_hash``, which identifies the
+        dependency without making it traversable: you could tell that a USD state changed
+        when rates did, and never ask what rates said.
         """
         _require_aware("computed_at", computed_at)
         _require_aware("as_of", state.as_of)
@@ -74,19 +86,21 @@ class _MacroDomainStateMixin:
 
         with self._conn.transaction():
             with self._conn.cursor(row_factory=dict_row) as cur:
+                deps = self._resolve_upstream(cur, state, upstream)
                 cur.execute(
                     f"""
                     INSERT INTO {self._schema}.macro_domain_states (
                       domain, as_of, computed_at, engine_version, inputs_hash,
                       state, direction, velocity_jsonb, confidence,
                       confidence_reasons_jsonb, contradictions_jsonb,
-                      factors_jsonb, notes_jsonb
+                      factors_jsonb, notes_jsonb, sub_states_jsonb
                     )
                     VALUES (
                       %(domain)s, %(as_of)s, %(computed_at)s, %(engine_version)s,
                       %(inputs_hash)s, %(state)s, %(direction)s, %(velocity_jsonb)s,
                       %(confidence)s, %(confidence_reasons_jsonb)s,
-                      %(contradictions_jsonb)s, %(factors_jsonb)s, %(notes_jsonb)s
+                      %(contradictions_jsonb)s, %(factors_jsonb)s, %(notes_jsonb)s,
+                      %(sub_states_jsonb)s
                     )
                     ON CONFLICT (domain, as_of, engine_version, inputs_hash)
                     DO NOTHING
@@ -98,12 +112,50 @@ class _MacroDomainStateMixin:
                 if inserted is not None:
                     state_id = int(inserted["state_id"])
                     _insert_evidence(cur, self._schema, state_id, evidence)
+                    _insert_dependencies(cur, self._schema, state_id, deps)
                     return state_id
 
                 existing = self._existing_identical_state(cur, payload)
                 state_id = int(existing["state_id"])
                 _assert_same_evidence(cur, self._schema, state_id, evidence)
+                _assert_same_dependencies(cur, self._schema, state_id, deps)
                 return state_id
+
+    def _resolve_upstream(
+        self,
+        cur: psycopg.Cursor,
+        state: MacroDomainState,
+        upstream: Sequence[tuple[int, str]],
+    ) -> list[tuple[int, str, int]]:
+        """Check each upstream exists and could have been known at ``as_of``.
+
+        The temporal rule lives here rather than in a CHECK because it spans two rows,
+        and a trigger reading macro_domain_states on every insert would sit on the hot
+        path of every state write to catch a violation only Argon itself can commit. It
+        is the same lookahead the evidence predicate refuses one level down: a state that
+        consulted an answer computed after the instant it describes has read the future.
+        """
+        rows: list[tuple[int, str, int]] = []
+        for ordinal, (upstream_id, role) in enumerate(upstream):
+            cur.execute(
+                f"SELECT domain, as_of FROM {self._schema}.macro_domain_states "
+                "WHERE state_id = %s",
+                (upstream_id,),
+            )
+            found = cur.fetchone()
+            if found is None:
+                raise ValueError(
+                    f"upstream state {upstream_id} does not exist; a dependency on a "
+                    "state that was never stored is not a reference, it is a claim"
+                )
+            if found["as_of"] > state.as_of:
+                raise ValueError(
+                    f"upstream {found['domain']} state {upstream_id} answers for "
+                    f"{found['as_of'].isoformat()}, after this state's as_of "
+                    f"{state.as_of.isoformat()}: consuming it would be lookahead"
+                )
+            rows.append((upstream_id, role, ordinal))
+        return rows
 
     def _existing_identical_state(
         self, cur: psycopg.Cursor, payload: dict[str, Any]
@@ -184,6 +236,36 @@ class _MacroDomainStateMixin:
                 params,
             )
             return cur.fetchone()
+
+    def fetch_macro_domain_state_dependencies(
+        self, state_id: int
+    ) -> list[dict[str, Any]]:
+        """The upstream ANSWERS a state stood on, in the order the engine used them.
+
+        Returns the upstream state's own domain, answer and confidence alongside the
+        edge, because "USD consulted policy_rates" is not yet useful -- what rates SAID
+        is the thing a reader is actually after, and joining it here is what makes the
+        edge traversable rather than merely present.
+        """
+        with self._conn.cursor(row_factory=dict_row) as cur:
+            cur.execute(
+                f"""
+                SELECT d.ordinal, d.causal_role, d.upstream_state_id,
+                       u.domain AS upstream_domain, u.state AS upstream_state,
+                       u.direction AS upstream_direction,
+                       u.confidence AS upstream_confidence,
+                       u.as_of AS upstream_as_of,
+                       u.engine_version AS upstream_engine_version,
+                       u.inputs_hash AS upstream_inputs_hash
+                FROM {self._schema}.macro_domain_state_dependencies d
+                JOIN {self._schema}.macro_domain_states u
+                  ON u.state_id = d.upstream_state_id
+                WHERE d.downstream_state_id = %s
+                ORDER BY d.ordinal
+                """,
+                (state_id,),
+            )
+            return [dict(row) for row in cur.fetchall()]
 
     def fetch_macro_domain_state_evidence(self, state_id: int) -> list[dict[str, Any]]:
         """The exact observations behind a state, in the order the engine used them.
@@ -277,6 +359,50 @@ def _assert_same_evidence(
         )
 
 
+def _insert_dependencies(
+    cur: psycopg.Cursor,
+    schema: str,
+    state_id: int,
+    deps: Sequence[tuple[int, str, int]],
+) -> None:
+    if not deps:
+        # Legitimately empty: inflation and rates stand on observations alone. Only a
+        # transmission domain has upstream answers, so silence here is not a gap.
+        return
+    cur.executemany(
+        f"""
+        INSERT INTO {schema}.macro_domain_state_dependencies (
+          downstream_state_id, upstream_state_id, causal_role, ordinal
+        )
+        VALUES (%s, %s, %s, %s)
+        """,
+        [(state_id, upstream_id, role, ordinal) for upstream_id, role, ordinal in deps],
+    )
+
+
+def _assert_same_dependencies(
+    cur: psycopg.Cursor,
+    schema: str,
+    state_id: int,
+    deps: Sequence[tuple[int, str, int]],
+) -> None:
+    cur.execute(
+        f"""
+        SELECT upstream_state_id, causal_role
+        FROM {schema}.macro_domain_state_dependencies
+        WHERE downstream_state_id = %s
+        """,
+        (state_id,),
+    )
+    stored = {(int(r["upstream_state_id"]), r["causal_role"]) for r in cur.fetchall()}
+    requested = {(upstream_id, role) for upstream_id, role, _o in deps}
+    if stored != requested:
+        raise ValueError(
+            f"macro domain state {state_id} already stands on a different upstream set; "
+            "the same inputs_hash cannot name different upstream states"
+        )
+
+
 def _evidence_rows(state: MacroDomainState) -> list[tuple[int, str, int]]:
     rows: list[tuple[int, str, int]] = []
     for ordinal, ref in enumerate(state.evidence_refs):
@@ -355,6 +481,43 @@ def _state_payload(state: MacroDomainState, *, computed_at: datetime) -> dict[st
             ]
         ),
         "notes_jsonb": Jsonb(list(state.notes)),
+        "sub_states_jsonb": Jsonb(
+            [
+                {
+                    "role": item.role,
+                    "state": item.state,
+                    "direction": item.direction,
+                    "confidence": _decimal_text(item.confidence),
+                    "series_ids": list(item.series_ids),
+                    "latest_period_end": (
+                        item.latest_period_end.isoformat()
+                        if item.latest_period_end
+                        else None
+                    ),
+                    "unavailable_reason": item.unavailable_reason,
+                    "velocity": [
+                        {
+                            "metric": leg.metric,
+                            "value": _decimal_text(leg.value),
+                            "unit": leg.unit,
+                            "window_months": leg.window_months,
+                            "unavailable_reason": leg.unavailable_reason,
+                        }
+                        for leg in item.velocity
+                    ],
+                    "confidence_reasons": [
+                        {
+                            "term": reason.term,
+                            "value": _decimal_text(reason.value),
+                            "detail": reason.detail,
+                            "kind": reason.kind,
+                        }
+                        for reason in item.confidence_reasons
+                    ],
+                }
+                for item in state.sub_states
+            ]
+        ),
     }
 
 
@@ -461,6 +624,43 @@ def macro_domain_state_from_row(
         inputs_hash=row["inputs_hash"],
         as_of=row["as_of"],
         notes=tuple(row["notes_jsonb"]),
+        sub_states=tuple(
+            MacroSubState(
+                role=item["role"],
+                state=item["state"],
+                direction=item["direction"],
+                velocity=tuple(
+                    Velocity(
+                        metric=leg["metric"],
+                        value=_decimal_or_none(leg["value"]),
+                        unit=leg["unit"],
+                        window_months=leg["window_months"],
+                        unavailable_reason=leg["unavailable_reason"],
+                    )
+                    for leg in item["velocity"]
+                ),
+                confidence=Decimal(item["confidence"]),
+                confidence_reasons=tuple(
+                    ConfidenceTerm(
+                        term=reason["term"],
+                        value=Decimal(reason["value"]),
+                        detail=reason["detail"],
+                        kind=reason["kind"],
+                    )
+                    for reason in item["confidence_reasons"]
+                ),
+                series_ids=tuple(item["series_ids"]),
+                latest_period_end=(
+                    date.fromisoformat(item["latest_period_end"])
+                    if item["latest_period_end"]
+                    else None
+                ),
+                unavailable_reason=item["unavailable_reason"],
+            )
+            # Rows written before migration 127 default to an empty array, which is
+            # true of them: they carried no sub-states.
+            for item in row.get("sub_states_jsonb") or []
+        ),
     )
 
 

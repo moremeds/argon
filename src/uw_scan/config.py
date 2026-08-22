@@ -206,6 +206,11 @@ class Settings(BaseModel):
     # Off until an environment has a FRED key and has run the series backfill: a state
     # job with no evidence abstains, which is correct but not worth scheduling.
     macro_series_ingest_enabled: bool = False
+    # MC3 rates market layer (supply + positioning) as evidence.  Off until an
+    # environment has run the deep backfill: the engine's supply rule needs five new
+    # issues per term before it can call a multi-quarter high, so a first scheduled run
+    # on an empty store produces sub-states that correctly say UNKNOWN and nothing else.
+    macro_market_layer_ingest_enabled: bool = False
     macro_state_compute_enabled: bool = False
     # Dual-read: attach the policy/rates domain state to the legacy rates snapshot.
     # Separate from the compute flag so the state can accrue a history before the
@@ -723,6 +728,9 @@ class Settings(BaseModel):
             ),
             macro_series_ingest_enabled=_env_bool(
                 "UW_SCAN_MACRO_SERIES_INGEST_ENABLED", False
+            ),
+            macro_market_layer_ingest_enabled=_env_bool(
+                "UW_SCAN_MACRO_MARKET_LAYER_INGEST_ENABLED", False
             ),
             macro_state_compute_enabled=_env_bool(
                 "UW_SCAN_MACRO_STATE_COMPUTE_ENABLED", False

@@ -192,9 +192,9 @@ Storage boundaries:
 | ID | Status | Child plan | Exit gate |
 |---|---|---|---|
 | MC0 | implementation verified | `2026-08-12-macro-mc0-evidence-contract.md` | two migration replays; immutable hash/time/quality/SQL guards; 19-relation read-only inventory self-check; lint/format/diff gates |
-| MC1 | planned | `2026-08-12-macro-mc1-fomc-sep-policy-paths.md` | official FOMC/SEP evidence and four independent policy paths replay PIT |
-| MC2 | planned | `2026-08-12-macro-mc2-inflation-rates-state.md` | inflation/rates states abstain honestly and reproduce from exact observations |
-| MC3 | planned | `2026-08-12-macro-mc3-usd-gold-state.md` | USD/Gold states reuse shared inputs and Gold provenance is complete |
+| MC1 | merged | `2026-08-12-macro-mc1-fomc-sep-policy-paths.md` | official FOMC/SEP evidence and four independent policy paths replay PIT — PR #359, v0.12.10 |
+| MC2 | merged | `2026-08-12-macro-mc2-inflation-rates-state.md` | inflation/rates states abstain honestly and reproduce from exact observations — PR #359, v0.12.10 |
+| MC3 | in_progress | `2026-08-12-macro-mc3-usd-gold-state.md` | rates market layer resolves to real evidence; USD/Gold states reuse shared inputs and Gold provenance is complete |
 | MC4–MC6 | planned | `2026-08-12-macro-mc4-mc6-context-pm-validation.md` | snapshot, context-only PM integration, then separate PIT/OOS promotion verdict |
 
 Every child is implemented through its own branch/PR sequence. Status changes only after its stated
@@ -207,7 +207,7 @@ commit or publish.
 MC0 evidence contract
   └── MC1 official policy evidence
        └── MC2 inflation + rates
-            └── MC3 USD + gold
+            └── MC3 rates market layer → USD + gold
                  └── MC4 context snapshot
                       ├── MC5 PM context-only integration
                       └── MC6 empirical promotion research

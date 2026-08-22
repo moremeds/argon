@@ -29,7 +29,11 @@ from typing import Any
 
 import psycopg
 
-from uw_scan.macro.evidence_store import INFLATION_EVIDENCE, RATES_EVIDENCE
+from uw_scan.macro.evidence_store import (
+    INFLATION_EVIDENCE,
+    RATES_EVIDENCE,
+    USD_EVIDENCE,
+)
 from uw_scan.models.macro import MacroSourceArtifact
 from uw_scan.sources.fred import FredProvider
 from uw_scan.sources.fred_macro import (
@@ -84,11 +88,16 @@ DAILY_VINTAGE_START = date(2021, 1, 1)
 #: parameter) if artifact storage becomes the binding constraint.
 DEFAULT_OBSERVATION_START = date(2015, 1, 1)
 
-#: Every series the two domain engines read.  Deduplicated because a series may be
-#: load-bearing in more than one domain.
+#: Every FRED series the two domain engines read.  Deduplicated because a series may be
+#: load-bearing in more than one domain, and filtered by ``source`` because MC3 put
+#: Treasury and CFTC series into ``RATES_EVIDENCE``.  Without the filter this job asks
+#: ALFRED for ``10-Year|Note`` and gets a failure it cannot explain -- the evidence set
+#: is what an engine READS, which is not the same list as what any one publisher serves.
 DEFAULT_SERIES: tuple[str, ...] = tuple(
     dict.fromkeys(
-        contract.series_id for contract in (*INFLATION_EVIDENCE, *RATES_EVIDENCE)
+        contract.series_id
+        for contract in (*INFLATION_EVIDENCE, *RATES_EVIDENCE, *USD_EVIDENCE)
+        if contract.source == FRED_SOURCE
     )
 )
 

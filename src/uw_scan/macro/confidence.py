@@ -43,8 +43,17 @@ def compute_confidence(
     """
     present = len(factors)
     required = len(required_series)
-    completeness = Decimal(present) / Decimal(required) if required else Decimal(0)
     missing = sorted(set(required_series) - {factor.series_id for factor in factors})
+    # Completeness counts the required series that ARRIVED, not how many factors were
+    # passed. Those are the same number only while every caller pre-filters its factors
+    # down to the required set, which the two original callers happen to do -- rates by
+    # an explicit filter, inflation by iterating REQUIRED. The third caller passed a
+    # factor that was NOT required, and len()/len() reported 1/1 complete on a state
+    # whose one required input was absent: full confidence in a reading built from a
+    # substitute. Counting the intersection cannot express that.
+    completeness = (
+        Decimal(required - len(missing)) / Decimal(required) if required else Decimal(0)
+    )
 
     # The minimum, not a mean: one input that has gone quiet past its own cadence
     # makes the whole state stale, and a mean lets several fresh inputs hide it.

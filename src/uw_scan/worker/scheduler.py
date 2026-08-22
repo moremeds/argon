@@ -8,7 +8,7 @@ import sys
 import zlib
 from collections.abc import Callable, Iterator
 from contextlib import contextmanager
-from datetime import datetime, time, timedelta
+from datetime import UTC, datetime, time, timedelta
 from typing import Literal
 from zoneinfo import ZoneInfo
 
@@ -54,10 +54,14 @@ from uw_scan.worker.jobs.gold_jobs import (
     gold_wgc_cb_ingest_job,
 )
 from uw_scan.worker.jobs.ohlc_pull import ohlc_pull_once
+from uw_scan.worker.jobs.macro_market_layer_ingest import (
+    macro_market_layer_ingest_job,
+)
 from uw_scan.worker.jobs.macro_series_ingest import macro_fred_series_ingest_job
 from uw_scan.worker.jobs.macro_state_jobs import (
     macro_inflation_state_job,
     macro_rates_state_job,
+    macro_usd_state_job,
 )
 from uw_scan.worker.jobs.macro_policy_jobs import (
     macro_fomc_statement_ingest_job,
@@ -1498,13 +1502,38 @@ def main() -> int:
             dsn=settings.db_dsn(), api_key=key.get_secret_value()
         )
 
+    def _macro_market_layer_ingest() -> None:
+        result = macro_market_layer_ingest_job(dsn=settings.db_dsn())
+        logger.info(
+            "macro market layer ingest: %s feeds=%d/%d created=%d unchanged=%d%s",
+            result.status,
+            result.feeds_succeeded,
+            result.feeds_attempted,
+            result.observations_created,
+            result.observations_unchanged,
+            f" failed={','.join(result.failed_feeds)}" if result.failed_feeds else "",
+        )
+
     def _macro_state_compute() -> None:
-        # One connection, both domains, in order: they share no state, but running them
-        # together keeps the pair's as_of within the same minute so a reader comparing
-        # inflation against rates is comparing two answers to the same question.
+        # One connection, all three domains, IN ORDER -- and for USD the order is a
+        # dependency, not a nicety. It reads the stored rates ANSWER, so rates must have
+        # been computed for this instant first or USD runs with no upstream and the
+        # policy contradiction cannot fire.
+        #
+        # ONE as_of for all three, stamped once rather than per job. Letting each call
+        # now() gives three instants seconds apart, and then "the inflation state and
+        # the rates state" are answers to two slightly different questions -- which is
+        # exactly the comparison this pass exists to make safe. It also makes USD's
+        # upstream lookup exact: rates is stored at the same instant USD asks about,
+        # and `available_at <= as_of` admits equality.
+        instant = datetime.now(UTC)
         with _repo(settings) as repo:
-            for job in (macro_inflation_state_job, macro_rates_state_job):
-                result = job(repo)
+            for job in (
+                macro_inflation_state_job,
+                macro_rates_state_job,
+                macro_usd_state_job,
+            ):
+                result = job(repo, as_of=instant)
                 logger.info(
                     "macro state %s: %s state=%s confidence=%s evidence=%d",
                     result.domain,
@@ -2376,6 +2405,19 @@ def main() -> int:
                     max_instances=1,
                     coalesce=True,
                 )
+            if settings.macro_market_layer_ingest_enabled:
+                # Inside the macro block rather than clear of it, deliberately: the state
+                # compute at 19:40 is the only consumer, and scheduling the layer after it
+                # would make every supply announcement and positioning release a full day
+                # stale to the state that reads it.  19:25 is the block's free slot.
+                sched.add_job(
+                    _macro_market_layer_ingest,
+                    CronTrigger.from_crontab("25 19 * * *", timezone=settings.rth_tz),
+                    id="macro_market_layer_ingest",
+                    name="Macro: Treasury supply and CFTC positioning evidence",
+                    max_instances=1,
+                    coalesce=True,
+                )
             if settings.macro_state_compute_enabled:
                 # After every ingest above, and after them by enough that a slow SEP
                 # fetch cannot make tonight's state answer from yesterday's evidence.
@@ -2383,7 +2425,7 @@ def main() -> int:
                     _macro_state_compute,
                     CronTrigger.from_crontab("40 19 * * *", timezone=settings.rth_tz),
                     id="macro_state_compute",
-                    name="Macro: inflation and policy/rates domain states",
+                    name="Macro: inflation, policy/rates and USD domain states",
                     max_instances=1,
                     coalesce=True,
                 )

@@ -30,6 +30,7 @@ from uw_scan.macro.contracts import (
     EvidenceRef,
     FactorState,
     MacroDomainState,
+    MacroSubState,
     Velocity,
 )
 from uw_scan.macro.inflation import compute_inflation_state
@@ -37,6 +38,7 @@ from uw_scan.macro_evidence import (
     macro_artifact_content_identity,
     macro_observation_content_hash,
 )
+from uw_scan.storage.macro_domain_state import macro_domain_state_from_row
 from uw_scan.storage.repository import Repository
 
 # The June 2023 core PCE release: BEA published it on 2023-07-28.
@@ -138,6 +140,7 @@ def _state(
     inputs_hash: str = "a" * 64,
     engine_version: str = "inflation/1",
     notes: tuple[str, ...] = (),
+    sub_states: tuple[MacroSubState, ...] = (),
 ) -> MacroDomainState:
     return MacroDomainState(
         domain="inflation",
@@ -197,6 +200,7 @@ def _state(
         inputs_hash=inputs_hash,
         as_of=as_of,
         notes=notes,
+        sub_states=sub_states,
     )
 
 
@@ -729,3 +733,299 @@ class TestTheEngineToStorageSeam:
         with repo._conn.cursor() as cur:
             cur.execute("SELECT count(*) FROM uw_scan.macro_domain_states")
             assert cur.fetchone()[0] == 1
+
+
+class TestSubStatesRoundTrip:
+    """A sub-state carries its own confidence, and that must survive storage.
+
+    Not a detail: the whole reason sub-states are separate rows rather than factors is
+    that their confidence denominators differ from the domain's. A round trip that
+    dropped or flattened the number would silently restore the substitution R2 forbids.
+    """
+
+    def _rates_sub_states(self) -> tuple[MacroSubState, ...]:
+        return (
+            MacroSubState(
+                role="positioning",
+                state="STRETCHED_LOW",
+                direction="FALLING",
+                velocity=(
+                    Velocity(
+                        metric="043602|lev_money_net_pct_oi_change_4w",
+                        value=Decimal("-5.6103"),
+                        unit="pct_open_interest",
+                        window_months=1,
+                    ),
+                ),
+                confidence=Decimal("0.6250"),
+                confidence_reasons=(
+                    ConfidenceTerm(
+                        term="completeness",
+                        value=Decimal("1"),
+                        detail="1/1 load-bearing inputs present",
+                    ),
+                    ConfidenceTerm(
+                        term="positioning_percentiles",
+                        value=Decimal("1"),
+                        detail="043602|lev_money_net_pct_oi at p10 (STRETCHED_LOW)",
+                        kind="informational",
+                    ),
+                ),
+                series_ids=("043602|lev_money_net_pct_oi",),
+                latest_period_end=date(2025, 9, 9),
+            ),
+            MacroSubState(
+                role="plumbing",
+                state="UNKNOWN",
+                direction="UNKNOWN",
+                velocity=(),
+                confidence=Decimal(0),
+                confidence_reasons=(
+                    ConfidenceTerm(
+                        term="plumbing_unavailable",
+                        value=Decimal(0),
+                        detail="SOFR had no observation available at as_of",
+                        kind="informational",
+                    ),
+                ),
+                series_ids=(),
+                unavailable_reason="SOFR had no observation available at as_of",
+            ),
+        )
+
+    def test_a_sub_state_survives_with_its_own_confidence(
+        self, repo: Repository
+    ) -> None:
+        obs_ids = [
+            _insert_observation(repo),
+            _insert_observation(
+                repo, series_id="MICH", value=Decimal("3.3"), unit="percent"
+            ),
+        ]
+        original = _state(obs_ids=obs_ids, sub_states=self._rates_sub_states())
+        repo.insert_macro_domain_state(original, computed_at=COMPUTED_AT)
+
+        row = repo.fetch_macro_domain_state_as_of("inflation", AS_OF)
+        restored = macro_domain_state_from_row(
+            row, repo.fetch_macro_domain_state_evidence(int(row["state_id"]))
+        )
+        assert restored.sub_states == original.sub_states
+
+        positioning = restored.sub_state("positioning")
+        assert positioning is not None
+        # Exact, not approximate: a percentile band is decided at the fourth place.
+        assert positioning.confidence == Decimal("0.6250")
+        assert positioning.velocity[0].value == Decimal("-5.6103")
+        assert positioning.confidence != restored.confidence
+
+    def test_an_unknown_sub_state_keeps_its_reason(
+        self, repo: Repository, seeded_db_empty_cards
+    ) -> None:
+        """UNKNOWN with no reason is indistinguishable from a role nobody declared."""
+        obs_ids = [
+            _insert_observation(repo),
+            _insert_observation(
+                repo, series_id="MICH", value=Decimal("3.3"), unit="percent"
+            ),
+        ]
+        repo.insert_macro_domain_state(
+            _state(obs_ids=obs_ids, sub_states=self._rates_sub_states()),
+            computed_at=COMPUTED_AT,
+        )
+        row = repo.fetch_macro_domain_state_as_of("inflation", AS_OF)
+        restored = macro_domain_state_from_row(
+            row, repo.fetch_macro_domain_state_evidence(int(row["state_id"]))
+        )
+        plumbing = restored.sub_state("plumbing")
+        assert plumbing is not None
+        assert plumbing.state == "UNKNOWN"
+        assert plumbing.unavailable_reason
+        assert plumbing.series_ids == ()
+
+
+class TestCrossDomainLineage:
+    """One state standing on another's ANSWER (migration 128).
+
+    USD is a transmission domain and gold reads three upstream answers. Both must
+    reference those answers rather than re-read their inputs, and the reference has to be
+    a row -- inside ``inputs_hash`` alone it is present in the identity and invisible in
+    the record, so a reader could tell that a USD state changed when rates did and never
+    ask what rates said.
+    """
+
+    def _upstream(
+        self,
+        repo: Repository,
+        *,
+        as_of: datetime = AS_OF,
+        inputs_hash: str = "b" * 64,
+        value: Decimal = CORE_PCE_VALUE,
+        computed_at: datetime | None = None,
+    ) -> int:
+        # inputs_hash and value are parameters because _insert_observation is content
+        # addressed: calling it twice with defaults returns the SAME obs_id, and the
+        # state built on it would then collide on method identity and hand back the
+        # first state's id. A test that needs two distinct upstreams has to make them
+        # actually distinct.
+        obs = _insert_observation(repo, value=value)
+        return repo.insert_macro_domain_state(
+            _state(obs_ids=[obs], as_of=as_of, inputs_hash=inputs_hash),
+            # Must trail as_of: a state cannot be computed before the instant it answers
+            # for, and a fixed COMPUTED_AT trips that rule before the lookahead check
+            # this class is actually about ever runs.
+            computed_at=computed_at or max(COMPUTED_AT, as_of),
+        )
+
+    def _downstream(
+        self,
+        repo: Repository,
+        upstream: list[tuple[int, str]],
+        *,
+        as_of: datetime = AS_OF,
+        inputs_hash: str = "c" * 64,
+    ) -> int:
+        obs = _insert_observation(repo, series_id="MICH", value=Decimal("3.3"))
+        return repo.insert_macro_domain_state(
+            _state(obs_ids=[obs], as_of=as_of, inputs_hash=inputs_hash),
+            computed_at=COMPUTED_AT,
+            upstream=upstream,
+        )
+
+    def test_the_edge_carries_what_the_upstream_actually_said(
+        self, repo: Repository
+    ) -> None:
+        upstream_id = self._upstream(repo)
+        downstream_id = self._downstream(repo, [(upstream_id, "policy_actual")])
+
+        deps = repo.fetch_macro_domain_state_dependencies(downstream_id)
+        assert len(deps) == 1
+        assert deps[0]["upstream_state_id"] == upstream_id
+        assert deps[0]["causal_role"] == "policy_actual"
+        # The answer, not just the pointer: an edge you have to make a second query to
+        # interpret is a foreign key, not lineage.
+        assert deps[0]["upstream_state"] == "WELL_ABOVE_TARGET"
+        assert deps[0]["upstream_direction"] == "FALLING"
+        assert deps[0]["upstream_confidence"] == Decimal("0.72")
+
+    def test_an_upstream_answering_for_a_later_instant_is_refused(
+        self, repo: Repository
+    ) -> None:
+        """The same lookahead the evidence predicate refuses, one level up.
+
+        A state that consulted an answer computed for a moment after the one it
+        describes has read the future, and the fact that the future answer is about
+        another domain does not make it knowable.
+        """
+        later = self._upstream(
+            repo,
+            as_of=AS_OF + timedelta(days=1),
+            computed_at=COMPUTED_AT + timedelta(days=2),
+        )
+        with pytest.raises(ValueError, match="lookahead"):
+            self._downstream(repo, [(later, "policy_actual")])
+
+    def test_an_upstream_answering_for_the_same_instant_is_allowed(
+        self, repo: Repository
+    ) -> None:
+        # Not a strict inequality: two domains computed for the same as_of is the normal
+        # case, not a violation.
+        same = self._upstream(repo, as_of=AS_OF)
+        assert self._downstream(repo, [(same, "policy_actual")])
+
+    def test_a_dependency_on_a_state_that_was_never_stored_is_refused(
+        self, repo: Repository
+    ) -> None:
+        with pytest.raises(ValueError, match="does not exist"):
+            self._downstream(repo, [(9_999_999, "policy_actual")])
+
+    def test_a_state_cannot_stand_on_itself(self, repo: Repository) -> None:
+        obs = _insert_observation(repo)
+        state_id = repo.insert_macro_domain_state(
+            _state(obs_ids=[obs], inputs_hash="d" * 64), computed_at=COMPUTED_AT
+        )
+        with pytest.raises(psycopg.errors.CheckViolation):
+            with repo._conn.transaction():
+                repo._conn.execute(
+                    "INSERT INTO uw_scan.macro_domain_state_dependencies "
+                    "(downstream_state_id, upstream_state_id, causal_role, ordinal) "
+                    "VALUES (%s, %s, 'curve', 0)",
+                    (state_id, state_id),
+                )
+
+    def test_one_upstream_serves_two_downstreams_without_copying_observations(
+        self, repo: Repository
+    ) -> None:
+        """USD and gold both read the rates answer. Neither copies its rows.
+
+        The observation count is the assertion: if referencing an upstream duplicated
+        its evidence, two consumers would double it.
+        """
+        upstream_id = self._upstream(repo)
+        before = _count_observations(repo)
+
+        first = self._downstream(
+            repo, [(upstream_id, "policy_actual")], inputs_hash="e" * 64
+        )
+        second = self._downstream(repo, [(upstream_id, "curve")], inputs_hash="f" * 64)
+
+        assert first != second
+        # ONE new observation for two new downstream states: they share the same MICH row
+        # because observations are content addressed, and the upstream's own PCEPILFE row
+        # is reached through the edge rather than copied. Referencing an upstream costs
+        # zero observations, which is the whole reason the edge exists.
+        assert _count_observations(repo) == before + 1
+        for state_id, role in ((first, "policy_actual"), (second, "curve")):
+            deps = repo.fetch_macro_domain_state_dependencies(state_id)
+            assert [(d["upstream_state_id"], d["causal_role"]) for d in deps] == [
+                (upstream_id, role)
+            ]
+
+    def test_the_same_identity_cannot_name_a_different_upstream_set(
+        self, repo: Repository
+    ) -> None:
+        first = self._upstream(repo, inputs_hash="a" * 63 + "1")
+        second = self._upstream(
+            repo, inputs_hash="a" * 63 + "2", value=Decimal("128.412")
+        )
+        assert first != second
+        obs = _insert_observation(repo, series_id="MICH", value=Decimal("3.3"))
+        state = _state(obs_ids=[obs], inputs_hash="1" * 64)
+        repo.insert_macro_domain_state(
+            state, computed_at=COMPUTED_AT, upstream=[(first, "policy_actual")]
+        )
+        with pytest.raises(ValueError, match="different upstream set"):
+            repo.insert_macro_domain_state(
+                state, computed_at=COMPUTED_AT, upstream=[(second, "policy_actual")]
+            )
+
+    def test_re_inserting_with_the_same_upstream_set_is_a_no_op(
+        self, repo: Repository
+    ) -> None:
+        upstream_id = self._upstream(repo)
+        obs = _insert_observation(repo, series_id="MICH", value=Decimal("3.3"))
+        state = _state(obs_ids=[obs], inputs_hash="2" * 64)
+        first = repo.insert_macro_domain_state(
+            state, computed_at=COMPUTED_AT, upstream=[(upstream_id, "policy_actual")]
+        )
+        again = repo.insert_macro_domain_state(
+            state, computed_at=COMPUTED_AT, upstream=[(upstream_id, "policy_actual")]
+        )
+        assert first == again
+        assert len(repo.fetch_macro_domain_state_dependencies(first)) == 1
+
+    def test_a_state_with_no_upstream_is_normal_not_a_gap(
+        self, repo: Repository
+    ) -> None:
+        # Inflation and rates stand on observations alone. Only a transmission domain
+        # has upstream answers, so silence here must not be treated as missing lineage.
+        obs = _insert_observation(repo)
+        state_id = repo.insert_macro_domain_state(
+            _state(obs_ids=[obs], inputs_hash="3" * 64), computed_at=COMPUTED_AT
+        )
+        assert repo.fetch_macro_domain_state_dependencies(state_id) == []
+
+
+def _count_observations(repo: Repository) -> int:
+    with repo._conn.cursor() as cur:
+        cur.execute("SELECT count(*) FROM uw_scan.macro_observations")
+        return int(cur.fetchone()[0])

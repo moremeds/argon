@@ -236,3 +236,57 @@ class TestArtifactIdentity:
         # defect MC1 fixed twice.
         assert _bundle().artifact.available_at == RETRIEVED_AT
         assert _bundle().artifact.published_at is None
+
+
+class TestBroadDollarContract:
+    """The USD anchor and its real sibling, registered on the same table as the rest.
+
+    There is no ``sources/fed_h10.py``: the H.10 indices are published through
+    FRED/ALFRED, and a second FRED client would give the two copies room to disagree
+    about what a vintage is.  Recorded as deviation 2 in the design spec.
+    """
+
+    def test_the_anchor_and_its_real_sibling_are_registered_to_usd(self) -> None:
+        for series_id in ("DTWEXBGS", "RTWEXBGS"):
+            assert SERIES_CONTRACT[series_id].domain == "usd"
+
+    def test_the_anchor_is_daily_and_the_real_index_is_not(self) -> None:
+        # Not cosmetic: request_window() splits on this, so getting it wrong sends the
+        # monthly series through the daily 2021 window and truncates 15 years of it.
+        assert SERIES_CONTRACT["DTWEXBGS"].frequency == "daily"
+        assert SERIES_CONTRACT["RTWEXBGS"].frequency == "monthly"
+
+    def test_the_anchor_cadence_is_weekly_despite_a_daily_frequency(self) -> None:
+        """A daily series whose staleness clock runs weekly, and it is not a typo.
+
+        The H.10 goes out once a week carrying the week's daily observations together,
+        so ``DTWEXBGS`` mints 52.2 vintages a year against roughly 250 for SOFR.  A
+        cadence of 1 would mark the required USD anchor stale from Monday to Thursday of
+        an ordinary week, and the state abstains when its anchor is missing -- so the
+        wrong number here does not degrade the reading, it deletes it four days in five.
+        Measured in docs/research/2026-08-12-usd-source-probe/VERDICT.md.
+        """
+        assert SERIES_CONTRACT["DTWEXBGS"].cadence_days == 7
+        assert SERIES_CONTRACT["SOFR"].cadence_days == 1
+
+    def test_both_indices_report_the_same_units_and_are_still_not_substitutes(
+        self,
+    ) -> None:
+        # Identical units are exactly why the substitution is tempting: nothing about
+        # the numbers themselves says one is CPI-deflated. The refusal has to be a rule.
+        assert (
+            SERIES_CONTRACT["DTWEXBGS"].unit
+            == SERIES_CONTRACT["RTWEXBGS"].unit
+            == "index_jan_2006_100"
+        )
+
+    def test_the_index_is_not_labelled_a_rate(self) -> None:
+        assert SERIES_CONTRACT["DTWEXBGS"].publisher_transform == "index_level"
+
+    def test_the_discontinued_major_currencies_index_is_unregistered(self) -> None:
+        """``DTWEXM`` still answers every request, and everything it says is history.
+
+        Last observation 2019-12-31.  It is absent rather than commented out because a
+        registered contract is a thing the ingest will fetch.
+        """
+        assert "DTWEXM" not in SERIES_CONTRACT

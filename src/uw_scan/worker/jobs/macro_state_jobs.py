@@ -14,18 +14,21 @@ answer can witness that.
 from __future__ import annotations
 
 import logging
+from collections.abc import Sequence
 from dataclasses import dataclass
 from datetime import UTC, date, datetime, timedelta
 from decimal import Decimal
 
 from uw_scan.macro.contracts import DomainObservation, MacroDomainState
 from uw_scan.macro.evidence_store import (
+    load_usd_observations,
     load_inflation_observations,
     load_rates_observations,
 )
 from uw_scan.macro.inflation import compute_inflation_state
 from uw_scan.macro.policy_report import build_policy_comparison
 from uw_scan.macro.rates import compute_rates_state
+from uw_scan.macro.usd import UpstreamState, compute_usd_state
 from uw_scan.macro.rates_rules import YieldAttribution, attribute_nominal_change
 from uw_scan.models.macro import PolicyComparison, PolicyPath
 from uw_scan.storage.macro_domain_state import macro_domain_state_from_row
@@ -108,8 +111,78 @@ def macro_rates_state_job(
     return _persist(repo, state, computed_at=computed_at or datetime.now(UTC))
 
 
+def macro_usd_state_job(
+    repo: Repository,
+    *,
+    as_of: datetime | None = None,
+    computed_at: datetime | None = None,
+) -> MacroStateJobResult:
+    """The dollar, referencing the stored rates ANSWER rather than its inputs.
+
+    The upstream is looked up from ``macro_domain_states`` rather than recomputed, and
+    that is the whole design: recomputing it here would produce a second rates opinion
+    that could disagree with the published one while claiming to be it. If no rates state
+    has been computed for an instant at or before ``as_of``, USD runs with no upstream --
+    the dollar reading is still true, and the contradiction that needs a policy state
+    simply does not fire rather than firing against a guess.
+    """
+    instant = as_of or datetime.now(UTC)
+    try:
+        observations = load_usd_observations(repo, as_of=instant)
+        upstream_row = repo.fetch_macro_domain_state_as_of("policy_rates", instant)
+        upstream = _upstream_states(upstream_row)
+        state = compute_usd_state(
+            observations,
+            as_of=instant,
+            upstream=tuple(item for item, _role in upstream),
+            prior_state=_prior_state(repo, "usd", instant),
+        )
+    except Exception as exc:
+        logger.warning("macro usd state failed: %s", repr(exc))
+        return _failed("usd", instant, exc)
+    edges = (
+        [(int(upstream_row["state_id"]), role) for _item, role in upstream]
+        if upstream_row is not None
+        else []
+    )
+    return _persist(
+        repo, state, computed_at=computed_at or datetime.now(UTC), upstream=edges
+    )
+
+
+def _upstream_states(
+    row: dict[str, object] | None,
+) -> list[tuple[UpstreamState, str]]:
+    """The rates answer as an upstream reference, with the role it plays for USD.
+
+    ``policy_actual``: what the committee has done is what the dollar is measured
+    against. The role is named here rather than inside the engine because the same
+    upstream state plays a different role for gold, and a role baked into the engine
+    could not be two things at once.
+    """
+    if row is None:
+        return []
+    return [
+        (
+            UpstreamState(
+                domain="policy_rates",
+                state=str(row["state"]),
+                direction=str(row["direction"]),
+                inputs_hash=str(row["inputs_hash"]),
+                as_of=row["as_of"],
+                confidence=row["confidence"],
+            ),
+            "policy_actual",
+        )
+    ]
+
+
 def _persist(
-    repo: Repository, state: MacroDomainState, *, computed_at: datetime
+    repo: Repository,
+    state: MacroDomainState,
+    *,
+    computed_at: datetime,
+    upstream: Sequence[tuple[int, str]] = (),
 ) -> MacroStateJobResult:
     citable = [ref for ref in state.evidence_refs if ref.obs_id is not None]
     if not citable:
@@ -126,7 +199,9 @@ def _persist(
             contradiction_count=len(state.contradictions),
         )
     try:
-        state_id = repo.insert_macro_domain_state(state, computed_at=computed_at)
+        state_id = repo.insert_macro_domain_state(
+            state, computed_at=computed_at, upstream=upstream
+        )
     except Exception as exc:
         logger.warning("macro %s state persist failed: %s", state.domain, repr(exc))
         return _failed(state.domain, state.as_of, exc)

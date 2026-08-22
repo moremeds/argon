@@ -137,7 +137,12 @@ def test_gold_posture_compute_uses_uw_gld_flows(fresh_db: Settings) -> None:
             premium_change_usd=Decimal("-375300000"),
             close=Decimal("417.29"),
             volume=Decimal("8801181"),
-            as_of=datetime.now(UTC),
+            # A knowable instant, not the wall clock. This job replays a PAST date, and
+            # gold reads are bounded on the RETRIEVAL clock as well as the observation
+            # period -- so a row stamped now() was fetched after the moment the posture
+            # answers for, and is correctly invisible to it. Stamping retrieval at
+            # datetime.now() made this assertion pass on lookahead.
+            as_of=datetime.combine(date(2026, 5, 15), datetime.min.time(), tzinfo=UTC),
             source="UW",
         )
         conn.commit()
