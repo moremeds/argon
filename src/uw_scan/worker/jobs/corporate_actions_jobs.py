@@ -30,6 +30,12 @@ def corporate_actions_refresh_once(
     split_limit: int = 12,
     dividend_limit: int = 24,
 ) -> int:
+    # Both limits lean on massive returning NEWEST-FIRST, which it does: probed
+    # 2026-08-22, AAPL's 5 splits come back 2020-08-31 ... 1987-06-16 descending.
+    # Ascending would truncate away the RECENT events, the only ones the band's
+    # 20-quarter window can contain. The margin is wide anyway — the widest
+    # lifetime split history in the sample was AAPL's 5 against a limit of 12 —
+    # so this is a note on a dependency, not a live risk.
     if provider is None:
         logger.warning(
             "corporate_actions_refresh: no massive provider (MASSIVE_API_KEY unset); "
@@ -38,8 +44,18 @@ def corporate_actions_refresh_once(
         return 0
     completed = 0
     # ISSUE-9: cover the SCORING universe, not just the active watchlist.
+    # The fundamental universe joined that union on 2026-08-21, when this covered
+    # 137 of its 450 names. The band job prices from livewire's adjusted silver
+    # tier and does not adjust anything with these rows — it reads them to decide
+    # whether a name silver has NO series for may be priced from raw bronze
+    # anyway (see `fetch_fundamental_universe_tickers`). Absent a row it cannot
+    # tell "never split" from "not ingested", and bands the name either way.
     watch = {w.ticker for w in repo.list_active_watchlist()}
-    tickers = sorted(watch | set(repo.fetch_distinct_vrp_tickers()))
+    tickers = sorted(
+        watch
+        | set(repo.fetch_distinct_vrp_tickers())
+        | set(repo.fetch_fundamental_universe_tickers())
+    )
     for ticker in tickers:
         if ticker_filter is not None and not ticker_filter(ticker):
             continue

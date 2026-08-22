@@ -67,6 +67,10 @@ def fundamental_refresh(
     anchors = fundamental_anchors(
         conn=conn,
         lake_root=settings.lake_credit_etf_root,
+        # Sibling of the bronze root the other lake readers use. No separate env
+        # var: the mini already sets MARKET_WAREHOUSE_LAKE=/lake and mounts the
+        # whole tree read-only, so silver is reachable there the moment this ships.
+        silver_root=settings.market_warehouse_lake_root / "silver/asset_class=equity",
         fx_root=settings.lake_fx_root,
         schema=settings.db_schema,
     )

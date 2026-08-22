@@ -1695,7 +1695,11 @@ def main() -> int:
                 )
             # Corporate-actions ingestion at 17:35 ET — after the 17:30 OHLC pull,
             # before the research compute. Ingests split/dividend history (massive)
-            # over the vrp_daily ∪ watchlist universe for exact-RV adjustment.
+            # over the vrp_daily ∪ watchlist ∪ fundamental-universe names, for
+            # exact-RV adjustment and for the valuation band's price-basis guard.
+            # The 45-minute gap to `fundamental_refresh` at 18:20 is what arms
+            # that guard on the first day after a deploy rather than leaving it
+            # blind until the next fill.
             sched.add_job(
                 _corporate_actions_refresh,
                 CronTrigger.from_crontab("35 17 * * 0-4", timezone=settings.rth_tz),
