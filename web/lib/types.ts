@@ -1737,23 +1737,6 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
-    "/api/macro/gold": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        /** Macro Gold State */
-        get: operations["macro_gold_state_api_macro_gold_get"];
-        put?: never;
-        post?: never;
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
     "/api/scanner": {
         parameters: {
             query?: never;
@@ -13757,40 +13740,6 @@ export interface operations {
         };
     };
     macro_usd_state_api_macro_usd_get: {
-        parameters: {
-            query?: {
-                /** @description UTC calendar date; returns the state answering for that day-end. */
-                as_of?: string | null;
-                /** @description Timezone-aware instant to replay. */
-                as_of_ts?: string | null;
-            };
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        requestBody?: never;
-        responses: {
-            /** @description Successful Response */
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["MacroDomainStateResponse"];
-                };
-            };
-            /** @description Validation Error */
-            422: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["HTTPValidationError"];
-                };
-            };
-        };
-    };
-    macro_gold_state_api_macro_gold_get: {
         parameters: {
             query?: {
                 /** @description UTC calendar date; returns the state answering for that day-end. */

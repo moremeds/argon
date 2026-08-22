@@ -213,6 +213,7 @@ def _supply(inputs: SubStateInputs, *, baseline: int) -> MacroSubState:
         direction=direction,
         inputs=inputs,
         series_ids=tuple(sorted(by_series)),
+        qualified=tuple(sorted(classified)),
         velocity=(_supply_velocity(by_series),),
         extra=(
             ConfidenceTerm(
@@ -547,7 +548,14 @@ def _group(
 
 
 def _stalest(inputs: SubStateInputs) -> str | None:
-    """The reason string when this role's freshest input is past its own cadence.
+    """The reason string when ANY series in this role has gone quiet past its cadence.
+
+    Per SERIES, not across the role, and that distinction is the whole function. The
+    first version took ``max(available_at)`` over every observation the role had -- so a
+    role kept answering as long as ONE of its legs was live. Measured: with SOFR stopped
+    thirty days ago and EFFR still publishing, plumbing reported ``STRESSED`` -- its
+    loudest label -- from a spread computed on the last date the two happened to
+    overlap, a month before as_of. A false alarm assembled from a dead feed.
 
     Checked before sample size so the reported reason is the dominant one: a feed that
     has gone quiet for months is a different problem from one that is simply young, and
@@ -555,17 +563,29 @@ def _stalest(inputs: SubStateInputs) -> str | None:
     """
     if not inputs.observations:
         return None
-    freshest = max(obs.available_at for obs in inputs.observations)
-    age_days = (inputs.as_of.date() - freshest.date()).days
-    if (
-        freshness_for(age_days, inputs.cadence_days, inputs.freshness_decay_multiple)
-        > 0
-    ):
+    freshest_by_series: dict[str, datetime] = {}
+    for obs in inputs.observations:
+        current = freshest_by_series.get(obs.series_id)
+        if current is None or obs.available_at > current:
+            freshest_by_series[obs.series_id] = obs.available_at
+
+    quiet: list[tuple[str, int]] = []
+    for series_id, freshest in sorted(freshest_by_series.items()):
+        age_days = (inputs.as_of.date() - freshest.date()).days
+        if (
+            freshness_for(
+                age_days, inputs.cadence_days, inputs.freshness_decay_multiple
+            )
+            == 0
+        ):
+            quiet.append((series_id, age_days))
+    if not quiet:
         return None
+    named = ", ".join(f"{series_id} ({age}d)" for series_id, age in quiet)
     return (
-        f"the freshest observation became available {age_days}d before as_of, past a "
-        f"{inputs.cadence_days}d cadence; the publisher has gone quiet and a stale "
-        "reading is not a current condition"
+        f"{named} last became available past a {inputs.cadence_days}d cadence; a "
+        "reading assembled from a feed that has gone quiet is not a current condition, "
+        "however live its neighbours are"
     )
 
 
@@ -604,15 +624,24 @@ def _assemble(
     velocity: tuple[Velocity, ...],
     extra: tuple[ConfidenceTerm, ...],
     observed: tuple[date, ...],
+    qualified: tuple[str, ...] | None = None,
 ) -> MacroSubState:
     """Its own confidence, over its own required series.
 
     Not the policy state's: R2 keeps ``POLICY_REQUIRED`` at the three policy paths, and
     what changes is presentation -- a sub-state that borrowed the domain number would be
     exactly the substitution that ruling refuses.
+
+    ``qualified`` is the subset that had enough history to actually be evaluated, when
+    that is narrower than ``series_ids``. Supply needs five new issues to call a term
+    against its own baseline; a term with one row is REQUIRED and was not usable, and
+    counting it as present reported ``ELEVATED`` at confidence 1.00 over a term nobody
+    could evaluate. Confidence measures knowledge, so a term we could not read has to
+    cost knowledge -- it stays in the denominator and leaves the numerator.
     """
+    usable = set(series_ids if qualified is None else qualified)
     confidence, reasons = compute_confidence(
-        [factor for factor in inputs.factors if factor.series_id in set(series_ids)],
+        [factor for factor in inputs.factors if factor.series_id in usable],
         required_series=series_ids,
         contradictions=(),
         contradiction_penalty_each=Decimal(0),

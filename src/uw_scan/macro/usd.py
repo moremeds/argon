@@ -28,7 +28,7 @@ Sources: ``docs/research/2026-08-12-usd-source-probe/VERDICT.md``.
 from __future__ import annotations
 
 from collections.abc import Iterable, Sequence
-from dataclasses import asdict, dataclass, field
+from dataclasses import asdict, dataclass
 from datetime import datetime
 from decimal import Decimal
 from typing import Any, Literal
@@ -57,9 +57,19 @@ ANCHOR_SERIES = "DTWEXBGS"
 #: The CPI-deflated sibling.  Reported, never substituted for the anchor.
 REAL_SERIES = "RTWEXBGS"
 
-#: Everything USD reads and does not own.  Listed by role rather than by series id
-#: because that is how the double-count prohibition is actually stated: USD may consult
-#: an upstream role's answer, and may not re-derive it from that role's inputs.
+#: Roles this engine does NOT read, listed by role rather than by series id.
+#:
+#: The design spec names `plumbing` and `positioning` as USD transmission factors and
+#: says USD may read Part A's observations for them -- storing a row once and pointing at
+#: it from two states is "many readers", not a double-count. This engine does not, and
+#: the reason is deliberate rather than an oversight: nothing in the spec defines what
+#: USD would DO with a funding spread or a dealer position. Reading them would add
+#: factors that enlarge every ``inputs_hash`` and change no answer, which is the same
+#: mistake as a parameter nothing reads. They arrive when a rule needs them.
+#:
+#: ``policy_actual`` is different and stays refused permanently: USD consumes what the
+#: committee did through the rates STATE, so an EFFR observation reaching this engine
+#: means a caller is about to derive a second policy opinion.
 UPSTREAM_ROLES: tuple[CausalRole, ...] = ("policy_actual", "plumbing", "positioning")
 
 
@@ -127,7 +137,7 @@ class _SeriesWindow:
     """One series' observations at ``as_of``, newest last."""
 
     series_id: str
-    rows: tuple[DomainObservation, ...] = field(default_factory=tuple)
+    rows: tuple[DomainObservation, ...]
 
     @property
     def latest(self) -> DomainObservation | None:
@@ -169,6 +179,7 @@ def compute_usd_state(
         obs for obs in eligible if obs.series_id in (ANCHOR_SERIES, REAL_SERIES)
     )
     _refuse_upstream_series(eligible)
+    _refuse_future_upstream(upstream, as_of)
 
     anchor = _window(owned, ANCHOR_SERIES)
     real = _window(owned, REAL_SERIES)
@@ -268,9 +279,43 @@ def _refuse_upstream_series(observations: Sequence[DomainObservation]) -> None:
     )
     if intruders:
         raise ValueError(
-            f"{intruders} carry upstream causal roles and were passed to the USD "
-            "engine as evidence. USD consumes upstream ANSWERS through UpstreamState, "
-            "never their inputs -- see the double-count prohibition in the design spec."
+            f"{intruders} carry causal roles this engine does not read. USD consumes "
+            "what the committee did through the rates STATE, not through EFFR; and it "
+            "does not yet read Part A's plumbing or positioning observations, because "
+            "no rule here consumes them and factors that change no answer only move "
+            "inputs_hash. See UPSTREAM_ROLES."
+        )
+
+
+def _refuse_future_upstream(upstream: Sequence[UpstreamState], as_of: datetime) -> None:
+    """An upstream answering for a later instant could not have been known.
+
+    The store enforces this too, but by then the damage is done in the only place it
+    shows: a contradiction is fired against an answer from the future, and a caller that
+    never persists would serve that state anyway. The check belongs where the value is
+    READ, not only where it is written.
+    """
+    domains = [item.domain for item in upstream]
+    duplicated = sorted({d for d in domains if domains.count(d) > 1})
+    if duplicated:
+        # Silently taking the first would make the contradiction depend on argument
+        # order: two rates answers, one EASING and one TIGHTENING, would fire or not
+        # fire based on which the caller happened to list first.
+        raise ValueError(
+            f"upstream lists {duplicated} more than once; a domain has one answer per "
+            "as_of, and picking the first would make the contradiction depend on "
+            "argument order"
+        )
+    ahead = [item for item in upstream if item.as_of > as_of]
+    if ahead:
+        named = ", ".join(
+            f"{item.domain}@{item.as_of.isoformat()}"
+            for item in sorted(ahead, key=lambda item: item.domain)
+        )
+        raise ValueError(
+            f"upstream {named} answers for an instant after as_of {as_of.isoformat()}; "
+            "consuming it would be lookahead, and the fact that the future answer is "
+            "about another domain does not make it knowable"
         )
 
 

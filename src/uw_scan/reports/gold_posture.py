@@ -405,8 +405,8 @@ def compute_and_persist_gold_posture(
         ),
     }
 
-    dxy_rows = repo.fetch_macro_series_daily("DTWEXBGS", to_date=as_of)
-    gpr_rows = repo.fetch_macro_series_daily("GPRD", to_date=as_of)
+    dxy_rows = list(readings["DTWEXBGS"].rows)
+    gpr_rows = list(readings["GPRD"].rows)
     dxy_series = _series_to_tuples(dxy_rows, "obs_date")
     gpr_series = _series_to_tuples(gpr_rows, "obs_date")
     window5y_start = as_of - timedelta(days=365 * 5)
@@ -452,17 +452,13 @@ def compute_and_persist_gold_posture(
     cot_mm_4w_change_sigma = _cot_mm_4w_change_sigma(cot_snapshots, as_of=as_of)
 
     # LBMA vault: month-over-month delta in tonnes.
-    lbma_rows = repo.fetch_exchange_inventory_daily(
-        "LBMA", from_date=as_of - timedelta(days=400)
-    )
+    lbma_rows = list(readings["lbma_inventory_daily"].rows)
     lbma_30d_momentum_t = _lbma_30d_momentum_t(lbma_rows)
 
     # UW 25Δ skew — latest GLD snapshot (A1 stores the raw decimal; a sigma
     # calibration needs more history than the 9 snapshots accumulated so far).
     uw_25d_skew_sigma: Decimal | None = None
-    uw_gld_rows = repo.fetch_uw_gold_options_daily(
-        "GLD", from_date=as_of - timedelta(days=30)
-    )
+    uw_gld_rows = list(readings["uw_gold_options_daily"].rows)
     if uw_gld_rows:
         latest_skew = uw_gld_rows[-1].get("skew_25d_30d")
         if latest_skew is not None:

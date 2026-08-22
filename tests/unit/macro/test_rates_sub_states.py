@@ -9,7 +9,7 @@ answer than the one that was called.
 from __future__ import annotations
 
 import json
-from datetime import UTC, date, datetime
+from datetime import UTC, date, datetime, timedelta
 from decimal import Decimal
 from pathlib import Path
 
@@ -270,3 +270,196 @@ def test_the_stressed_threshold_fires_on_the_real_crisis(
     vintage window does not.
     """
     assert _plumbing_label(spread_bps) == expected
+
+
+class TestOneDeadLegStopsTheRole:
+    """A role answers only while every leg it needs is still publishing.
+
+    The first staleness gate took ``max(available_at)`` across ALL of a role's
+    observations, so the role kept answering as long as ONE leg was live. Measured, with
+    SOFR stopped thirty days before as_of and EFFR still publishing daily: plumbing
+    reported ``STRESSED`` -- its loudest label -- from a spread computed on the last date
+    the two happened to overlap, a month stale. A false alarm assembled from a dead feed,
+    and the kind that erodes trust in every other alarm.
+    """
+
+    AS_OF = datetime(2026, 8, 20, tzinfo=UTC)
+
+    @staticmethod
+    def _obs(series_id: str, period: date, available: date, value: str):
+        return DomainObservation(
+            series_id=series_id,
+            causal_role="plumbing",
+            period_end=period,
+            value=Decimal(value),
+            unit="percent",
+            publisher_transform="level",
+            available_at=datetime(
+                available.year, available.month, available.day, tzinfo=UTC
+            ),
+            source="fred",
+            source_kind="first_party_publisher",
+            cost_class="free_publisher",
+            obs_id=1,
+        )
+
+    def _plumbing(self, rows):
+        return next(
+            sub
+            for sub in build_sub_states(
+                tuple(rows),
+                (),
+                as_of=self.AS_OF,
+                supply_baseline_quarters=4,
+                cadence_by_role={"plumbing": 1, "supply": 92, "positioning": 7},
+                freshness_decay_multiple=Decimal("3"),
+            )
+            if sub.role == "plumbing"
+        )
+
+    def _rows(self, *, sofr_days: int, effr_days: int):
+        start = date(2026, 6, 26)
+        rows = [
+            self._obs(
+                "SOFR", start + timedelta(days=i), start + timedelta(days=i + 1), "4.35"
+            )
+            for i in range(sofr_days)
+        ]
+        rows += [
+            self._obs(
+                "EFFR", start + timedelta(days=i), start + timedelta(days=i + 1), "4.10"
+            )
+            for i in range(effr_days)
+        ]
+        rows.append(self._obs("RRPONTSYD", date(2026, 8, 19), date(2026, 8, 20), "10"))
+        return rows
+
+    def test_a_quiet_leg_makes_the_role_unknown(self) -> None:
+        # SOFR's last print is 30 days before as_of; EFFR is current.
+        sub = self._plumbing(self._rows(sofr_days=25, effr_days=55))
+        assert sub.state == "UNKNOWN"
+
+    def test_the_reason_names_which_leg_went_quiet(self) -> None:
+        """An operator has to know WHICH publisher to chase."""
+        sub = self._plumbing(self._rows(sofr_days=25, effr_days=55))
+        assert "SOFR" in sub.unavailable_reason
+        assert "30d" in sub.unavailable_reason
+
+    def test_a_live_neighbour_does_not_rescue_a_dead_leg(self) -> None:
+        assert (
+            "however live its neighbours are"
+            in self._plumbing(self._rows(sofr_days=25, effr_days=55)).unavailable_reason
+        )
+
+    def test_the_stale_spread_is_not_reported_as_stress(self) -> None:
+        # The exact false alarm: +25bp on a month-old overlap is STRESSED under the old
+        # gate. Absence of a reading must not read as the loudest reading.
+        assert (
+            self._plumbing(self._rows(sofr_days=25, effr_days=55)).state != "STRESSED"
+        )
+
+    def test_healthy_legs_still_classify(self) -> None:
+        """The fix must not make the role permanently silent."""
+        sub = self._plumbing(self._rows(sofr_days=55, effr_days=55))
+        assert sub.state != "UNKNOWN"
+        assert sub.unavailable_reason is None
+
+
+class TestAnUnreadableTermCostsConfidence:
+    """A term we could not evaluate stays in the denominator and leaves the numerator.
+
+    Supply needs five new issues to call a term against its own baseline. A term with
+    one row is REQUIRED and was not usable -- and counting it as present reported
+    ``ELEVATED`` at confidence **1.00** over a term nobody could read, with the shortfall
+    mentioned only inside an informational detail string. Confidence measures knowledge;
+    a term we could not read has to cost knowledge.
+    """
+
+    AS_OF = datetime(2026, 8, 20, tzinfo=UTC)
+
+    @staticmethod
+    def _obs(series_id: str, period: date, value: str):
+        return DomainObservation(
+            series_id=series_id,
+            causal_role="supply",
+            period_end=period,
+            value=Decimal(value),
+            unit="usd_offering_amount",
+            publisher_transform="level",
+            available_at=datetime(period.year, period.month, period.day, tzinfo=UTC)
+            - timedelta(days=7),
+            source="treasurydirect",
+            source_kind="official",
+            cost_class="free_official",
+            obs_id=1,
+        )
+
+    @staticmethod
+    def _factor(series_id: str, period: date, value: str):
+        return FactorState(
+            name=series_id.lower(),
+            causal_role="supply",
+            series_id=series_id,
+            period_end=period,
+            value=Decimal(value),
+            unit="usd_offering_amount",
+            direction="FLAT",
+            change_over_window=None,
+            available_at=datetime(period.year, period.month, period.day, tzinfo=UTC),
+            age_days=1,
+            freshness=Decimal(1),
+            quality_status="valid",
+            source="treasurydirect",
+            source_kind="official",
+        )
+
+    def _supply(self, *, include_short_term: bool):
+        # Real 10-year new-issue sizes rising to a five-issue high.
+        rows = [
+            self._obs(
+                "10-Year|Note", date(2025, 5, 15) + timedelta(days=90 * i), amount
+            )
+            for i, amount in enumerate(
+                [
+                    "39000000000",
+                    "40000000000",
+                    "41000000000",
+                    "42000000000",
+                    "58000000000",
+                ]
+            )
+        ]
+        factors = [self._factor("10-Year|Note", date(2026, 5, 15), "58000000000")]
+        if include_short_term:
+            # One row where five are needed: present, and not evaluable.
+            rows.append(self._obs("2-Year|Note", date(2026, 8, 1), "69000000000"))
+            factors.append(self._factor("2-Year|Note", date(2026, 8, 1), "69000000000"))
+        return next(
+            sub
+            for sub in build_sub_states(
+                tuple(rows),
+                tuple(factors),
+                as_of=self.AS_OF,
+                supply_baseline_quarters=4,
+                cadence_by_role={"supply": 92, "plumbing": 1, "positioning": 7},
+                freshness_decay_multiple=Decimal("3"),
+            )
+            if sub.role == "supply"
+        )
+
+    def test_an_unqualified_term_halves_confidence(self) -> None:
+        assert self._supply(include_short_term=True).confidence == Decimal("0.5")
+
+    def test_completeness_names_the_term_it_could_not_read(self) -> None:
+        sub = self._supply(include_short_term=True)
+        completeness = next(
+            r for r in sub.confidence_reasons if r.term == "completeness"
+        )
+        assert "2-Year|Note" in completeness.detail
+
+    def test_the_label_still_reflects_the_term_that_was_readable(self) -> None:
+        # Lower confidence is not a different answer: the 10-year really is at a high.
+        assert self._supply(include_short_term=True).state == "ELEVATED"
+
+    def test_a_fully_qualified_role_keeps_full_confidence(self) -> None:
+        assert self._supply(include_short_term=False).confidence == Decimal(1)

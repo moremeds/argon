@@ -221,4 +221,3 @@ SELECT series_id, count(*) FROM (
   GROUP BY 1,2 HAVING count(*) > 1
 ) t WHERE hi/lo > 10 GROUP BY 1;
 ```
-

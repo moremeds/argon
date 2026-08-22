@@ -196,7 +196,12 @@ def fetch_fred(
             "realtime_end": "9999-12-31",
         },
     )
-    response.raise_for_status()
+    if response.is_error:
+        # NOT raise_for_status(): FRED takes its api_key as a QUERY PARAMETER, and that
+        # call embeds the full URL -- key included -- in the exception message.
+        raise SystemExit(
+            f"FRED returned HTTP {response.status_code} for {series_id} {start}..{end}"
+        )
     return [
         {
             "series_id": series_id,

@@ -66,10 +66,21 @@ def _get_with_retry(
     for attempt in range(3):
         response = client.get(url, params=params, **kw)
         if response.status_code < 500 or attempt == 2:
-            response.raise_for_status()
+            if response.is_error:
+                # NOT raise_for_status(): it embeds the full request URL in the message,
+                # and FRED takes its api_key as a QUERY PARAMETER -- so the obvious call
+                # prints the key into any terminal or CI log that captures the traceback.
+                raise SystemExit(
+                    f"{url} returned HTTP {response.status_code} "
+                    f"for {_redacted(params)}"
+                )
             return response
         print(f"  retry {attempt + 1}/2 after HTTP {response.status_code}")
     raise AssertionError("unreachable")
+
+
+def _redacted(params: dict[str, Any]) -> dict[str, Any]:
+    return {k: ("***" if "key" in k.lower() else v) for k, v in params.items()}
 
 
 def fetch_fred(

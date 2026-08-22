@@ -72,7 +72,7 @@ document's rulings before implementation started.
      milestone, not a step.
 
    So gold's complete manifest ships where the orchestrator already writes —
-   `gold_posture_daily.inputs_jsonb`, now twelve entries instead of four — and no domain
+   `gold_posture_daily.inputs_jsonb`, now sixteen entries instead of four — and no domain
    state is minted. The helpers written for it (`GOLD_ENGINE_VERSION`, `regime_state`,
    `lens_coverage`) were **deleted rather than left in place**: code that is tested but
    has no caller reads as wired-up to the next person, and partial scaffolding for a
@@ -84,13 +84,25 @@ document's rulings before implementation started.
 8. **The `/gold` provenance change is additive, not feature-flagged.** Plan step B6.3
    asks for a flag with the existing response retained during parity. A flag guards a
    NEW block that can be compared against an old one; this milestone completes an
-   EXISTING field — `inputs_used` went from four entries to twelve, and
+   EXISTING field — `inputs_used` went from four entries to sixteen, and
    `GoldInputProvenance` gained optional fields. Every legacy row still replays exactly
    as recorded (verified: a 2026-08-19 row returns its four entries with `lens: []` and
    no omission reason, which is the truth about what that row stored), so there is no
    parity window to hold open and a flag would only add a second code path to keep
    correct. **Overturned by:** any change that alters what an existing stored row
    renders as.
+
+9. **USD v1 reads the dollar and the rates answer; `plumbing` and `positioning` are
+   declared and not yet consumed.** §1.1 lists them as USD factors sourced from Part A's
+   observations, and reading them would be legitimate — a row stored once and pointed at
+   by two states is "many readers", not a double-count. The engine refuses them anyway,
+   and the reason is that **nothing here defines what USD would do with them**. No rule
+   consumes a funding spread or a dealer position, so reading them adds factors that
+   enlarge every `inputs_hash` and change no answer — the same defect as
+   `level_window_obs`, a parameter nothing read that still sat inside state identity.
+   Raised by the codex tribunal as an incomplete transmission state, which is a fair
+   description. **Overturned by:** a stated rule that consumes one of them — at which
+   point the observation and the rule arrive together.
 
 ## 1. What the USD domain is, and what it must not become
 
@@ -187,7 +199,7 @@ reads as a complete audit trail.
 
 ### 3.1 What the manifest checks, and the one thing it still cannot claim
 
-`GOLD_INPUTS` in `macro/gold.py` declares all twelve inputs once, and both the reads and
+`GOLD_INPUTS` in `macro/gold.py` declares all sixteen inputs once, and both the reads and
 the manifest are generated from it. The four-entry manifest was not written wrong — it
 went stale as reads were added beside it, and a second hand-maintained copy would go
 stale the same way. The registry makes that failure unrepresentable: an entry must
@@ -201,12 +213,26 @@ back may already have been overwritten. `wgc_etf_monthly` in the same storage mo
 *does* update on conflict; no declared input reads it, and a test asserts the exclusion
 stays deliberate.
 
-**What the manifest does not claim.** It records the rows the orchestrator read, which is
-not the same as the rows knowable at `as_of`. The gold flow tables are queried by
-observation period with their `as_of` column unbounded — `fetch_etf_flows_daily` accepts
-an `as_of_max` the orchestrator does not pass. Bounding it changes what the three lenses
-see, which is a lens change and not a provenance one, so it is recorded rather than done
-quietly. The rows are immutable; they are not yet replayable.
+**Sixteen inputs, and the first count was twelve.** The registry's first draft scoped
+itself to the reads the *lenses* consume and missed four that sit below them, in the
+section assembling the UI payload: `DTWEXBGS`, `GPRD`, LBMA inventory and UW gold
+options. It then reported 12 of 16 and called itself complete — reproducing, at smaller
+scale, the exact defect it exists to end. What makes a read declarable is that it
+happens, not where in the function it sits. Caught by the codex tribunal; the registry
+tests could not, because they assert
+`set(manifest) == {i.key for i in GOLD_INPUTS}`, which is true by construction and blind
+to a read nobody declared. There is now a test that runs the **real** orchestrator
+against a recording repository and fails on any fetch outside the registry.
+
+**Every read is bounded on the retrieval clock.** Each gold table keys on `(…, as_of)`
+and each reader accepts `as_of_max`, but the orchestrator passed only `to_date` — which
+bounds the observation PERIOD and says nothing about when the row was retrieved. Because
+the readers select `DISTINCT ON (obs_date) … ORDER BY as_of DESC`, recomputing a past
+date read restatements that did not exist yet. `_known_by(as_of)` now bounds every read.
+It is a no-op on the daily path, where `as_of` is today; it is backfill and replay that
+were wrong, which is where wrong is hardest to notice. The orchestrator's own fixture was
+relying on it: seeded with `as_of = now()` and replayed at 2026-05-16, the rows were
+three months in the future of the instant being answered for.
 
 **The gate is the domain's state.** The three lenses publish as sub-states with their own
 coverage, exactly as Part A's market roles do. What is left for the domain itself is the

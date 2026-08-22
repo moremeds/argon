@@ -33,6 +33,7 @@ from uw_scan.worker.jobs.macro_policy_jobs import (
 )
 from uw_scan.worker.jobs.macro_series_ingest import macro_fred_series_ingest_job
 from uw_scan.worker.jobs.macro_state_jobs import (
+    macro_usd_state_job,
     macro_inflation_state_job,
     macro_rates_state_job,
 )
@@ -504,3 +505,151 @@ class TestRatesStateJob:
         assert "policy_dealer" not in roles
         assert "policy_committee" not in roles
         assert result.confidence < Decimal("1")
+
+
+def _usd_anchor_payload() -> bytes:
+    """DTWEXBGS in ALFRED's envelope, from the frozen USD golden fixture.
+
+    Real H.10 vintages -- both the original and the restatement where one exists -- so
+    the ingest sees the same publication history the publisher actually had.
+    """
+    fixture = json.loads(
+        (FIXTURES / "usd_gold_golden.json").read_text(encoding="utf-8")
+    )
+    # The REVISION scenario, not the momentum one. Its periods are days from the policy
+    # release the rates state answers with, so both domains can be replayed at one
+    # instant; the momentum scenario's are 2024 and fall outside the anchor's 400-day
+    # evidence window at any as_of that also sees the 2026 FOMC statement.
+    scenario = next(
+        s
+        for s in fixture["scenarios"]
+        if s["id"] == "broad_dollar_revised_after_the_fact"
+    )
+    rows = [r for r in scenario["inputs"] if r["series_id"] == "DTWEXBGS"]
+    return json.dumps(
+        {
+            "realtime_start": "1776-07-04",
+            "realtime_end": "9999-12-31",
+            "observations": [
+                {
+                    "date": r["period_end"],
+                    "value": r["value"],
+                    "realtime_start": r["available_at"],
+                    "realtime_end": r["superseded_at"] or "9999-12-31",
+                }
+                for r in rows
+            ],
+        }
+    ).encode()
+
+
+class TestTheThreeDomainPass:
+    """What the scheduler's ``_macro_state_compute`` closure produces.
+
+    The closure is eight lines of glue that no test can import -- it is nested inside
+    the scheduler's setup function. What it MEANS is testable, and that is what matters:
+    three domains stamped with ONE as_of, and USD standing on the rates answer from that
+    same instant.
+
+    That equality is the interesting part. USD refuses an upstream answering for a later
+    instant, so a guard written with ``>=`` instead of ``>`` would reject the normal case
+    -- every scheduled run, every night -- and the symptom would be a USD state that
+    silently never has lineage.
+    """
+
+    #: After the anchor's restatement (2026-08-17) so the ingest can carry both
+    #: vintages, and after the policy release (2026-08-12) so rates has something to
+    #: answer with.
+    SHARED_AS_OF = datetime(2026, 8, 20, 12, tzinfo=UTC)
+
+    def _seed(self, settings: Settings) -> None:
+        macro_fomc_statement_ingest_job(
+            dsn=settings.db_dsn(),
+            provider_factory=_StatementProvider,
+            observed_at=POLICY_AS_OF,
+        )
+        result = macro_fred_series_ingest_job(
+            dsn=settings.db_dsn(),
+            api_key="unused-by-the-stub",
+            series=("DTWEXBGS",),
+            observed_at=self.SHARED_AS_OF,
+            provider_factory=lambda: _PayloadProvider(
+                {"DTWEXBGS": _usd_anchor_payload()}
+            ),
+        )
+        assert result.status == "ok", result.error_message
+
+    def test_all_three_domains_answer_for_one_instant(
+        self, seeded_db_empty_cards
+    ) -> None:
+        """Three separate now() calls make three slightly different questions.
+
+        A reader comparing the inflation state against the rates state would then be
+        comparing answers to two different moments, which is the exact comparison this
+        pass exists to make safe.
+        """
+        settings = _settings()
+        self._seed(settings)
+
+        with psycopg.connect(settings.db_dsn()) as conn:
+            repo = _repo(conn)
+            results = [
+                job(repo, as_of=self.SHARED_AS_OF)
+                for job in (
+                    macro_inflation_state_job,
+                    macro_rates_state_job,
+                    macro_usd_state_job,
+                )
+            ]
+
+        assert {r.as_of for r in results} == {self.SHARED_AS_OF}
+
+    def test_usd_records_the_rates_answer_it_stood_on(
+        self, seeded_db_empty_cards
+    ) -> None:
+        settings = _settings()
+        self._seed(settings)
+
+        with psycopg.connect(settings.db_dsn()) as conn:
+            repo = _repo(conn)
+            rates = macro_rates_state_job(repo, as_of=self.SHARED_AS_OF)
+            usd = macro_usd_state_job(repo, as_of=self.SHARED_AS_OF)
+            deps = repo.fetch_macro_domain_state_dependencies(usd.state_id)
+
+        assert rates.status == "ok", rates.error_message
+        # ``ok`` with state UNKNOWN: five observations is short of the 63 the momentum
+        # window needs, so there is no direction to report -- and the state persists
+        # anyway, because it has evidence it can be reconstructed from. Absence of a
+        # reading is not absence of a record.
+        assert usd.status == "ok", usd.error_message
+        assert len(deps) == 1
+        assert deps[0]["upstream_state_id"] == rates.state_id
+        assert deps[0]["causal_role"] == "policy_actual"
+        # The boundary the guard must ADMIT: same instant, not an earlier one.
+        assert deps[0]["upstream_as_of"] == self.SHARED_AS_OF
+        assert deps[0]["upstream_state"] == rates.state
+
+    def test_usd_still_answers_when_no_rates_state_exists(
+        self, seeded_db_empty_cards
+    ) -> None:
+        """Order is a dependency, not a precondition.
+
+        If rates failed or has never run, the dollar reading is still true. USD runs with
+        no upstream and the policy contradiction simply does not fire -- rather than
+        firing against a guess, or the whole domain going dark because a neighbour did.
+        """
+        settings = _settings()
+        self._seed(settings)
+
+        with psycopg.connect(settings.db_dsn()) as conn:
+            repo = _repo(conn)
+            usd = macro_usd_state_job(repo, as_of=self.SHARED_AS_OF)
+            deps = repo.fetch_macro_domain_state_dependencies(usd.state_id)
+            row = repo.fetch_macro_domain_state(usd.state_id)
+
+        assert usd.status == "ok", usd.error_message
+        assert deps == []
+        assert not any(
+            c["rule"] == "usd_against_relative_policy"
+            for c in row["contradictions_jsonb"]
+        )

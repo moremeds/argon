@@ -8,7 +8,7 @@ import sys
 import zlib
 from collections.abc import Callable, Iterator
 from contextlib import contextmanager
-from datetime import datetime, time, timedelta
+from datetime import UTC, datetime, time, timedelta
 from typing import Literal
 from zoneinfo import ZoneInfo
 
@@ -1518,16 +1518,22 @@ def main() -> int:
         # One connection, all three domains, IN ORDER -- and for USD the order is a
         # dependency, not a nicety. It reads the stored rates ANSWER, so rates must have
         # been computed for this instant first or USD runs with no upstream and the
-        # policy contradiction cannot fire. Inflation and rates share no state; keeping
-        # them in one pass holds every as_of inside the same minute, so a reader
-        # comparing two domains is comparing two answers to the same question.
+        # policy contradiction cannot fire.
+        #
+        # ONE as_of for all three, stamped once rather than per job. Letting each call
+        # now() gives three instants seconds apart, and then "the inflation state and
+        # the rates state" are answers to two slightly different questions -- which is
+        # exactly the comparison this pass exists to make safe. It also makes USD's
+        # upstream lookup exact: rates is stored at the same instant USD asks about,
+        # and `available_at <= as_of` admits equality.
+        instant = datetime.now(UTC)
         with _repo(settings) as repo:
             for job in (
                 macro_inflation_state_job,
                 macro_rates_state_job,
                 macro_usd_state_job,
             ):
-                result = job(repo)
+                result = job(repo, as_of=instant)
                 logger.info(
                     "macro state %s: %s state=%s confidence=%s evidence=%d",
                     result.domain,

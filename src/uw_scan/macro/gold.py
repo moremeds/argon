@@ -38,7 +38,7 @@ from __future__ import annotations
 
 from collections.abc import Callable, Mapping, Sequence
 from dataclasses import dataclass
-from datetime import date, datetime, timedelta
+from datetime import UTC, date, datetime, time, timedelta
 from typing import Any, Literal
 
 Lens = Literal["L1", "L2", "L3"]
@@ -48,6 +48,10 @@ Lens = Literal["L1", "L2", "L3"]
 _FLOW_WINDOW_DAYS = 400
 _ETF_FLOW_WINDOW_DAYS = 45
 _INVENTORY_WINDOW_DAYS = 60
+_LBMA_WINDOW_DAYS = 400
+_UW_OPTIONS_WINDOW_DAYS = 30
+#: The correlation panel fits over five years of daily pairs.
+_CORRELATION_WINDOW_DAYS = 365 * 5
 
 
 @dataclass(frozen=True)
@@ -87,15 +91,35 @@ class GoldInput:
             )
 
 
+def _known_by(as_of: date) -> datetime:
+    """The RETRIEVAL bound: end of the as_of day, in UTC.
+
+    Every gold table keys on ``(..., as_of)`` and every reader accepts ``as_of_max``,
+    but the orchestrator passed only ``to_date`` -- which bounds the OBSERVATION PERIOD
+    and says nothing about when the row was retrieved. ``DISTINCT ON (obs_date) ...
+    ORDER BY as_of DESC`` then returns the newest vintage regardless of the replay
+    instant, so recomputing a past date read restatements that did not exist yet.
+
+    A no-op on the daily path, where ``as_of`` is today and every stored row was
+    retrieved before it. It is backfill and replay that were wrong -- which is exactly
+    where wrong is hardest to notice, because nobody watches a recomputation of history.
+    """
+    return datetime.combine(as_of, time.max, tzinfo=UTC)
+
+
 def _macro_daily(series_id: str) -> Callable[[Any, date], Sequence[Mapping[str, Any]]]:
-    return lambda repo, as_of: repo.fetch_macro_series_daily(series_id, to_date=as_of)
+    return lambda repo, as_of: repo.fetch_macro_series_daily(
+        series_id, to_date=as_of, as_of_max=_known_by(as_of)
+    )
 
 
 def _macro_monthly(
     series_id: str,
 ) -> Callable[[Any, date], Sequence[Mapping[str, Any]]]:
     return lambda repo, as_of: repo.fetch_macro_series_monthly(
-        series_id, to_month=date(as_of.year, as_of.month, 1)
+        series_id,
+        to_month=date(as_of.year, as_of.month, 1),
+        as_of_max=_known_by(as_of),
     )
 
 
@@ -152,7 +176,8 @@ GOLD_INPUTS: tuple[GoldInput, ...] = (
         period_field="obs_month",
         table="cb_gold_reserves_monthly",
         read=lambda repo, as_of: repo.fetch_cb_gold_reserves_monthly(
-            from_month=as_of - timedelta(days=_FLOW_WINDOW_DAYS)
+            from_month=as_of - timedelta(days=_FLOW_WINDOW_DAYS),
+            as_of_max=_known_by(as_of),
         ),
     ),
     GoldInput(
@@ -163,7 +188,9 @@ GOLD_INPUTS: tuple[GoldInput, ...] = (
         period_field="obs_date",
         table="etf_holdings_daily",
         read=lambda repo, as_of: repo.fetch_etf_holdings_daily(
-            "GLD", from_date=as_of - timedelta(days=_FLOW_WINDOW_DAYS)
+            "GLD",
+            from_date=as_of - timedelta(days=_FLOW_WINDOW_DAYS),
+            as_of_max=_known_by(as_of),
         ),
     ),
     GoldInput(
@@ -177,6 +204,7 @@ GOLD_INPUTS: tuple[GoldInput, ...] = (
             "GLD",
             from_date=as_of - timedelta(days=_ETF_FLOW_WINDOW_DAYS),
             to_date=as_of,
+            as_of_max=_known_by(as_of),
         ),
     ),
     GoldInput(
@@ -187,7 +215,9 @@ GOLD_INPUTS: tuple[GoldInput, ...] = (
         period_field="obs_date",
         table="exchange_inventory_daily",
         read=lambda repo, as_of: repo.fetch_exchange_inventory_daily(
-            "COMEX", from_date=as_of - timedelta(days=_INVENTORY_WINDOW_DAYS)
+            "COMEX",
+            from_date=as_of - timedelta(days=_INVENTORY_WINDOW_DAYS),
+            as_of_max=_known_by(as_of),
         ),
     ),
     GoldInput(
@@ -200,6 +230,7 @@ GOLD_INPUTS: tuple[GoldInput, ...] = (
         read=lambda repo, as_of: repo.fetch_cot_gold_weekly(
             from_release_date=as_of - timedelta(days=_FLOW_WINDOW_DAYS),
             to_release_date=as_of,
+            as_of_max=_known_by(as_of),
         ),
     ),
     # --- Lens 3, valuation overlay ---
@@ -211,6 +242,57 @@ GOLD_INPUTS: tuple[GoldInput, ...] = (
         period_field="obs_month",
         table="macro_series_monthly",
         read=_macro_monthly("M2SL"),
+    ),
+    # --- the correlation and detail panels ---
+    #
+    # These four were the ones the first draft of this registry MISSED, and the miss
+    # reproduced the exact defect the registry exists to end: the reads live below the
+    # lens calls, in the section that assembles the UI payload, so a manifest scoped to
+    # "what the lenses consume" reported 12 of 16 and called itself complete. What makes
+    # a read declarable is that it happens, not where in the function it sits.
+    GoldInput(
+        key="DTWEXBGS",
+        lens=("L2",),
+        causal_role="curve",
+        source="fred",
+        period_field="obs_date",
+        table="macro_series_daily",
+        read=_macro_daily("DTWEXBGS"),
+    ),
+    GoldInput(
+        key="GPRD",
+        lens=("L2",),
+        causal_role="curve",
+        source="gpr",
+        period_field="obs_date",
+        table="macro_series_daily",
+        read=_macro_daily("GPRD"),
+    ),
+    GoldInput(
+        key="lbma_inventory_daily",
+        lens=("L1",),
+        causal_role="supply",
+        source="lbma",
+        period_field="obs_date",
+        table="exchange_inventory_daily",
+        read=lambda repo, as_of: repo.fetch_exchange_inventory_daily(
+            "LBMA",
+            from_date=as_of - timedelta(days=_LBMA_WINDOW_DAYS),
+            as_of_max=_known_by(as_of),
+        ),
+    ),
+    GoldInput(
+        key="uw_gold_options_daily",
+        lens=("L2",),
+        causal_role="positioning",
+        source="unusual_whales",
+        period_field="obs_date",
+        table="uw_gold_options_daily",
+        read=lambda repo, as_of: repo.fetch_uw_gold_options_daily(
+            "GLD",
+            from_date=as_of - timedelta(days=_UW_OPTIONS_WINDOW_DAYS),
+            as_of_max=_known_by(as_of),
+        ),
     ),
     # --- declared, and deliberately not read ---
     GoldInput(
@@ -252,10 +334,6 @@ class InputReading:
     latest_period: date | None
     latest_as_of: datetime | None
     omission_reason: str | None
-
-    @property
-    def present(self) -> bool:
-        return bool(self.rows)
 
 
 def read_gold_inputs(repo: Any, as_of: date) -> dict[str, InputReading]:

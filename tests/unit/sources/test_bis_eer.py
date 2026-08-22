@@ -17,9 +17,14 @@ from datetime import date
 from decimal import Decimal
 from pathlib import Path
 
+import httpx
 import pytest
 from uw_scan.sources.bis_eer import (
+    DATAFLOW,
+    SDMX_JSON_ACCEPT,
+    US_NOMINAL_BROAD_DAILY,
     BisEerError,
+    BisEerProvider,
     BisEerReading,
     parse_eer,
 )
@@ -155,3 +160,78 @@ class TestParsing:
         series["observations"]["999"] = ["102.0"]
         with pytest.raises(BisEerError, match="no matching period"):
             _parse(body=json.dumps(body).encode())
+
+
+class TestTheFetchPath:
+    """The client, not just the parser.
+
+    ``parse_eer`` was split out so the negotiation trap is testable without a network
+    round trip — but that left the half that actually TALKS to BIS untested, including
+    the one line that makes the whole module correct: sending the Accept header.
+    """
+
+    class _StubClient:
+        """Records the request and replays a canned response."""
+
+        def __init__(self, response: httpx.Response | Exception) -> None:
+            self.response = response
+            self.calls: list[dict[str, object]] = []
+
+        def get(self, path, *, params=None, headers=None):
+            self.calls.append({"path": path, "params": params, "headers": headers})
+            if isinstance(self.response, Exception):
+                raise self.response
+            return self.response
+
+        def close(self) -> None:
+            pass
+
+    @staticmethod
+    def _ok() -> httpx.Response:
+        return httpx.Response(200, content=JSON_BODY, headers={"content-type": JSON_CT})
+
+    def test_the_accept_header_is_sent_on_the_request(self) -> None:
+        """Not merely set on the client: an injected client may not carry it.
+
+        A bare request returns HTTP 200 with XML, so this header is the only thing
+        standing between the parser and SDMX-ML.
+        """
+        stub = self._StubClient(self._ok())
+        with BisEerProvider(client=stub) as provider:
+            provider.fetch_us_broad_nominal()
+        assert stub.calls[0]["headers"]["Accept"] == SDMX_JSON_ACCEPT
+
+    def test_it_asks_for_the_us_broad_nominal_daily_series(self) -> None:
+        stub = self._StubClient(self._ok())
+        with BisEerProvider(client=stub) as provider:
+            provider.fetch_us_broad_nominal(last_n=7)
+        assert US_NOMINAL_BROAD_DAILY in str(stub.calls[0]["path"])
+        assert DATAFLOW in str(stub.calls[0]["path"])
+        assert stub.calls[0]["params"] == {"lastNObservations": "7"}
+
+    def test_a_transport_failure_is_a_named_error_not_a_bare_httpx_one(self) -> None:
+        """A caller must not have to know this module talks HTTP to handle its failure.
+
+        And it must never look like an absence: a cross-check that could not be reached
+        is a different fact from one that disagreed.
+        """
+        stub = self._StubClient(httpx.ConnectError("no route to host"))
+        with BisEerProvider(client=stub) as provider:
+            with pytest.raises(BisEerError, match="transport failure"):
+                provider.fetch_us_broad_nominal()
+
+    def test_the_fetch_path_returns_parsed_readings(self) -> None:
+        stub = self._StubClient(self._ok())
+        with BisEerProvider(client=stub) as provider:
+            rows = provider.fetch_us_broad_nominal()
+        assert len(rows) == 12
+        assert all(row.vintage_bearing is False for row in rows)
+
+    def test_a_200_with_xml_still_fails_through_the_client(self) -> None:
+        # The trap has to survive the fetch path too, not just a direct parse call.
+        stub = self._StubClient(
+            httpx.Response(200, content=XML_BODY, headers={"content-type": XML_CT})
+        )
+        with BisEerProvider(client=stub) as provider:
+            with pytest.raises(BisEerError, match="application/xml"):
+                provider.fetch_us_broad_nominal()

@@ -29,48 +29,81 @@ LEGACY_MANIFEST_KEYS = {"DFII10", "GLD_CLOSE", "T5YIFR", "CPIAUCSL"}
 
 
 class FakeRepo:
-    """Answers every declared read with one plausible row, or nothing when asked."""
+    """Answers every declared read with one plausible row, or nothing when asked.
+
+    Every method REQUIRES ``as_of_max``. A fake with a wider signature than the real
+    repository is how a missing retrieval bound stays invisible: the registry could stop
+    passing it and these tests would still pass, while a replay silently read vintages
+    published after the instant it describes.
+    """
 
     def __init__(self, *, empty: set[str] | None = None) -> None:
         self.empty = empty or set()
         self.calls: list[str] = []
+        self.as_of_max_seen: list[datetime] = []
 
-    def _rows(self, key: str, period_field: str, **extra):
+    def _rows(self, key: str, period_field: str, as_of_max, **extra):
         self.calls.append(key)
+        assert as_of_max is not None, (
+            f"{key} was read without an as_of_max bound; the row returned may have been "
+            "retrieved after the instant the replay describes"
+        )
+        self.as_of_max_seen.append(as_of_max)
         if key in self.empty:
             return []
         return [{period_field: AS_OF, "as_of": STAMP, **extra}]
 
-    def fetch_macro_series_daily(self, series_id, *, to_date=None):
-        return self._rows(series_id, "obs_date", value=Decimal("100"))
+    def fetch_macro_series_daily(self, series_id, *, to_date=None, as_of_max=None):
+        return self._rows(series_id, "obs_date", as_of_max, value=Decimal("100"))
 
-    def fetch_macro_series_monthly(self, series_id, *, to_month=None):
-        return self._rows(series_id, "obs_month", value=Decimal("100"))
+    def fetch_macro_series_monthly(self, series_id, *, to_month=None, as_of_max=None):
+        return self._rows(series_id, "obs_month", as_of_max, value=Decimal("100"))
 
-    def fetch_cb_gold_reserves_monthly(self, *, from_month=None):
+    def fetch_cb_gold_reserves_monthly(self, *, from_month=None, as_of_max=None):
         return self._rows(
             "cb_gold_reserves_monthly",
             "obs_month",
+            as_of_max,
             country_iso3="CHN",
             reserves_t=Decimal("2280"),
             bucket="official",
         )
 
-    def fetch_etf_holdings_daily(self, ticker, *, from_date=None):
+    def fetch_etf_holdings_daily(self, ticker, *, from_date=None, as_of_max=None):
         return self._rows(
-            "etf_holdings_daily", "obs_date", holdings_oz=Decimal("33402755.16")
+            "etf_holdings_daily",
+            "obs_date",
+            as_of_max,
+            holdings_oz=Decimal("33402755.16"),
         )
 
-    def fetch_etf_flows_daily(self, ticker, *, from_date=None, to_date=None):
-        return self._rows("etf_flows_daily", "obs_date", share_change=Decimal("100000"))
-
-    def fetch_exchange_inventory_daily(self, exchange, *, from_date=None):
+    def fetch_etf_flows_daily(
+        self, ticker, *, from_date=None, to_date=None, as_of_max=None
+    ):
         return self._rows(
-            "exchange_inventory_daily", "obs_date", registered_oz=Decimal("18000000")
+            "etf_flows_daily", "obs_date", as_of_max, share_change=Decimal("100000")
         )
 
-    def fetch_cot_gold_weekly(self, *, from_release_date=None, to_release_date=None):
-        return self._rows("cot_gold_weekly", "release_date", mm_net=137662)
+    def fetch_exchange_inventory_daily(
+        self, exchange, *, from_date=None, as_of_max=None
+    ):
+        key = (
+            "lbma_inventory_daily" if exchange == "LBMA" else "exchange_inventory_daily"
+        )
+        return self._rows(key, "obs_date", as_of_max, registered_oz=Decimal("18000000"))
+
+    def fetch_cot_gold_weekly(
+        self, *, from_release_date=None, to_release_date=None, as_of_max=None
+    ):
+        return self._rows("cot_gold_weekly", "release_date", as_of_max, mm_net=137662)
+
+    def fetch_uw_gold_options_daily(self, ticker, *, from_date=None, as_of_max=None):
+        return self._rows(
+            "uw_gold_options_daily",
+            "obs_date",
+            as_of_max,
+            skew_25d_30d=Decimal("0.0182"),
+        )
 
 
 class TestTheRegistryIsTheDeclaration:
@@ -82,7 +115,9 @@ class TestTheRegistryIsTheDeclaration:
     def test_the_manifest_is_materially_wider_than_the_one_it_replaces(self) -> None:
         manifest = evidence_manifest(read_gold_inputs(FakeRepo(), AS_OF))
         assert LEGACY_MANIFEST_KEYS < set(manifest)
-        assert len(manifest) >= 12
+        # Sixteen, not twelve: the first registry missed four reads that sit below the
+        # lens calls, in the section assembling the UI payload.
+        assert len(manifest) >= 16
 
     def test_an_input_that_is_neither_read_nor_explained_is_refused(self) -> None:
         """The registry cannot express the gap it exists to eliminate."""
@@ -194,8 +229,11 @@ class TestManifestShape:
 
     def test_a_reading_reports_presence_honestly(self) -> None:
         readings = read_gold_inputs(FakeRepo(empty={"M2SL"}), AS_OF)
-        assert readings["GLD_CLOSE"].present
-        assert not readings["M2SL"].present
+        assert readings["GLD_CLOSE"].rows
+        assert readings["GLD_CLOSE"].omission_reason is None
+        # Absent AND explained -- the two halves that must always travel together.
+        assert not readings["M2SL"].rows
+        assert readings["M2SL"].omission_reason
         assert isinstance(readings["M2SL"], InputReading)
 
 
@@ -254,6 +292,7 @@ class TestEveryGoldTableIsAppendOnly:
             "etf_flows_daily",
             "exchange_inventory_daily",
             "cot_gold_weekly",
+            "uw_gold_options_daily",
         }
 
     @pytest.mark.parametrize(

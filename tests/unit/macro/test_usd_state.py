@@ -11,7 +11,7 @@ Generator: ``scripts/research/build_usd_gold_golden.py``.
 from __future__ import annotations
 
 import json
-from datetime import UTC, date, datetime
+from datetime import UTC, date, datetime, timedelta
 from decimal import Decimal
 from pathlib import Path
 from typing import Any
@@ -255,14 +255,28 @@ class TestBroadDollarRevisedAfterTheFact:
 
 
 class TestTheDoubleCountProhibition:
-    """USD consumes upstream ANSWERS. Passing it upstream INPUTS is an error."""
+    """USD consumes what the committee did through the rates ANSWER, never through EFFR.
+
+    ``plumbing`` and ``positioning`` are refused for a different and weaker reason: the
+    design spec permits reading Part A's observations for them, and this engine has no
+    rule that consumes one, so reading them would add factors that move ``inputs_hash``
+    and change no answer. That refusal is versioned; ``policy_actual`` is permanent.
+    """
 
     def test_an_upstream_role_passed_as_evidence_is_refused(self) -> None:
         rows = tuple(
             _observation(row)
             for row in SCENARIOS["usd_strength_against_easing_policy"]["inputs"]
         )
-        with pytest.raises(ValueError, match="double-count"):
+        with pytest.raises(ValueError, match="does not read"):
+            compute_usd_state(rows, as_of=_as_of("usd_strength_against_easing_policy"))
+
+    def test_the_refusal_explains_that_policy_arrives_as_a_state(self) -> None:
+        rows = tuple(
+            _observation(row)
+            for row in SCENARIOS["usd_strength_against_easing_policy"]["inputs"]
+        )
+        with pytest.raises(ValueError, match="through the rates STATE"):
             compute_usd_state(rows, as_of=_as_of("usd_strength_against_easing_policy"))
 
     def test_the_refusal_names_the_offending_series(self) -> None:
@@ -344,6 +358,23 @@ class TestTheTwoIndicesGetTheirOwnWindows:
         assert DEFAULT_USD_PARAMETERS.real_momentum_window_obs == 3
         assert DEFAULT_USD_PARAMETERS.momentum_window_obs == 63
 
+    def test_the_two_windows_stay_the_same_span_under_edits(self) -> None:
+        """Guards against re-introducing the bug by editing one window alone.
+
+        ~21 trading-ish observations to a month on the anchor, one to a month on the
+        monthly index. Changing ``momentum_window_obs`` without changing
+        ``real_momentum_window_obs`` makes ``window_months=3`` a lie again, and the
+        symptom is a plausible-looking number rather than a failure.
+        """
+        from uw_scan.macro.usd import DEFAULT_USD_PARAMETERS as p
+
+        anchor_months = p.momentum_window_obs / 21
+        assert abs(anchor_months - p.real_momentum_window_obs) < 0.5, (
+            f"anchor window is ~{anchor_months:.1f} months but the real index reads "
+            f"{p.real_momentum_window_obs}; the velocity label reports one number for "
+            "both"
+        )
+
     def test_the_real_index_change_is_actually_computed(self) -> None:
         """The bug's symptom: a permanently unavailable velocity that looked principled.
 
@@ -372,3 +403,58 @@ class TestTheTwoIndicesGetTheirOwnWindows:
         anchor = next(v for v in state.velocity if v.metric == "broad_dollar_change")
         assert anchor.value is None
         assert "fewer than 64 observations" in anchor.unavailable_reason
+
+
+class TestTheEngineRefusesAFutureUpstream:
+    """The store guards this too, but the engine is where the value is READ.
+
+    By persist time a contradiction has already been fired against an answer from the
+    future, and a caller that never persists would serve that state regardless.
+    """
+
+    SCENARIO = "usd_strength_against_easing_policy"
+
+    def test_an_upstream_answering_later_is_refused(self) -> None:
+        as_of = _as_of(self.SCENARIO)
+        with pytest.raises(ValueError, match="lookahead"):
+            compute_usd_state(
+                _owned(self.SCENARIO),
+                as_of=as_of,
+                upstream=(_upstream(as_of=as_of + timedelta(days=1)),),
+            )
+
+    def test_the_refusal_names_the_offending_domain_and_instant(self) -> None:
+        as_of = _as_of(self.SCENARIO)
+        with pytest.raises(ValueError, match="policy_rates@"):
+            compute_usd_state(
+                _owned(self.SCENARIO),
+                as_of=as_of,
+                upstream=(_upstream(as_of=as_of + timedelta(seconds=1)),),
+            )
+
+    def test_the_same_instant_is_allowed(self) -> None:
+        # Two domains computed for the same as_of is the normal case, not a violation.
+        as_of = _as_of(self.SCENARIO)
+        assert compute_usd_state(
+            _owned(self.SCENARIO), as_of=as_of, upstream=(_upstream(as_of=as_of),)
+        )
+
+    def test_one_domain_may_not_appear_twice(self) -> None:
+        as_of = _as_of(self.SCENARIO)
+        with pytest.raises(ValueError, match="more than once"):
+            compute_usd_state(
+                _owned(self.SCENARIO),
+                as_of=as_of,
+                upstream=(
+                    _upstream(state="EASING", as_of=as_of),
+                    _upstream(state="TIGHTENING", as_of=as_of),
+                ),
+            )
+
+    def test_an_earlier_upstream_is_allowed(self) -> None:
+        as_of = _as_of(self.SCENARIO)
+        assert compute_usd_state(
+            _owned(self.SCENARIO),
+            as_of=as_of,
+            upstream=(_upstream(as_of=as_of - timedelta(days=30)),),
+        )

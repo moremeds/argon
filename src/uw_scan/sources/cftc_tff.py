@@ -8,7 +8,7 @@ from collections.abc import Callable
 from dataclasses import dataclass
 from datetime import UTC, date, datetime
 from decimal import Decimal, InvalidOperation
-from typing import Any
+from typing import Any, Final
 from zoneinfo import ZoneInfo
 
 import httpx
@@ -53,6 +53,10 @@ CFTC_TFF_SELECT = ",".join(
 )
 
 _ET = ZoneInfo("America/New_York")
+
+#: Exactly the columns ``CFTC_TFF_SELECT`` asks Socrata for. Derived from the select
+#: rather than restated, so the two cannot disagree about what a complete row is.
+_SELECTED_COLUMNS: Final[tuple[str, ...]] = tuple(CFTC_TFF_SELECT.split(","))
 
 TREASURY_TFF_CONTRACTS: dict[str, str] = {
     "042601": "2Y",
@@ -252,13 +256,42 @@ def parse_treasury_rows(raw_bytes: bytes) -> list[CftcTffTreasuryRow]:
         )
     out: list[CftcTffTreasuryRow] = []
     for row in payload:
+        # The contract code is read BEFORE the rest of the row, because it decides
+        # whether an unreadable row is our problem. A row for a contract this desk does
+        # not track is skipped and costs nothing.
+        code = row.get("cftc_contract_market_code")
+        if code not in TREASURY_TFF_CONTRACTS:
+            continue
+        # A missing KEY is not a null VALUE, and ``_field`` cannot tell them apart --
+        # it returns "" for both, and ``_dec("")`` returns None. So a counterparty leg
+        # that Socrata stopped returning becomes a hole in the distribution with no
+        # exception and no skip: the row is accepted, one category reads as absent, and
+        # the positioning percentile is computed against a different set of
+        # counterparties than the one it claims. CFTC genuinely does publish nulls, so
+        # the value may be empty; the column has to be there.
+        absent = sorted(set(_SELECTED_COLUMNS) - set(row))
+        if absent:
+            raise NormalizationError(
+                f"CFTC TFF row for tracked contract {code!r} on "
+                f"{row.get('report_date_as_yyyy_mm_dd')!r} is missing columns "
+                f"{absent}; the $select asked for them, so their absence is a schema "
+                "change and not a null. A distribution missing a counterparty is a "
+                "different reading, not a degraded one"
+            )
         try:
             parsed = _row_from_mapping(row)
         except (KeyError, ValueError, InvalidOperation) as exc:
-            logger.debug("cftc tff row parse skipped: %s", repr(exc))
-            continue
-        if parsed.contract_code not in TREASURY_TFF_CONTRACTS:
-            continue
+            # A TRACKED contract that will not parse fails the release. Positioning is a
+            # DISTRIBUTION across counterparty categories -- dealers against asset
+            # managers against leveraged money -- so a quietly dropped row does not make
+            # the answer noisier, it makes a different answer that reads as complete. The
+            # old code logged this at debug and returned the survivors.
+            raise NormalizationError(
+                f"CFTC TFF row for tracked contract {code!r} on "
+                f"{row.get('report_date_as_yyyy_mm_dd')!r} could not be parsed: "
+                f"{exc!r}. A partial positioning distribution is a different reading, "
+                "not a degraded one, so the release fails rather than shipping it"
+            ) from exc
         out.append(parsed)
     return out
 

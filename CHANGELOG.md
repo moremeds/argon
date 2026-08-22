@@ -46,16 +46,20 @@ version in lockstep (enforced by `scripts/release/version_sync_check.py`).
 
 ### Fixed
 
-- **Gold Compass named four of its twelve inputs and read as a complete audit trail.**
+- **Gold Compass named four of its sixteen inputs and read as a complete audit trail.**
   `reports/gold_posture.py` pinned a four-entry `inputs_used` manifest — `DFII10`,
-  `GLD_CLOSE`, `T5YIFR`, `CPIAUCSL` — while the orchestrator read ten sources and passed
-  two more to the lens functions as deliberately empty lists. The manifest was not written
+  `GLD_CLOSE`, `T5YIFR`, `CPIAUCSL` — while the orchestrator read fourteen sources and
+  passed two more to the lens functions as deliberately empty lists. The manifest was not written
   wrong; it went stale as reads were added beside it, so the reads and the manifest are
   now generated from **one** declaration (`macro/gold.py::GOLD_INPUTS`) and an entry that
   is neither read nor explained cannot be constructed. An input with no rows carries a
   reason; `fx` and `spx` are recorded as declared-and-not-read, because an empty list
   reaching a lens is indistinguishable in the output from a factor that did not move. The
-  `/gold` audit footer now reports `INPUTS 9/12 READ` with each omission and its reason.
+  `/gold` audit footer reports how many of the declared inputs were read, with each
+  omission and its reason. Every read is also bounded on the retrieval clock now
+  (`as_of_max`), not just the observation period: the readers select the newest vintage
+  by `as_of DESC`, so recomputing a past date used to read restatements that did not
+  exist yet — the orchestrator's own test fixture was relying on exactly that.
   The first thing this surfaced was real: COMEX inventory (`exchange_inventory_daily`)
   last observed 2026-06-01 in production against a 60-day read window, so Lens 1's
   inventory leg has been silently empty — invisible under the old manifest.
