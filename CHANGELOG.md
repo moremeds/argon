@@ -7,6 +7,9 @@ version in lockstep (enforced by `scripts/release/version_sync_check.py`).
 
 ## [Unreleased]
 
+## [0.12.12] — 2026-08-23
+
+
 ### Fixed
 
 - **The scheduler discarded every write from a job that reads before it writes.**
@@ -28,8 +31,6 @@ version in lockstep (enforced by `scripts/release/version_sync_check.py`).
   inflation state job through `scheduler._repo` itself and asserts from a **new** connection;
   it fails against the old helper. A second case raises inside the block and asserts nothing
   persisted, because committing on the way out must not become committing on the way down.
-
-
 ## [0.12.11] — 2026-08-23
 
 ### Added
