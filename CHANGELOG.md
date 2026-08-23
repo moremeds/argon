@@ -7,6 +7,9 @@ version in lockstep (enforced by `scripts/release/version_sync_check.py`).
 
 ## [Unreleased]
 
+## [0.12.13] — 2026-08-23
+
+
 ### Added
 
 - **The gold domain state — MC3 Part B's last deferred step, on the condition its own
@@ -53,7 +56,6 @@ version in lockstep (enforced by `scripts/release/version_sync_check.py`).
   The API field and the database column are unchanged (`[]` before, `[]` after), so this
   is not a contract change. A test now fails if any lens grows a real z-score, which is
   the moment to decide deliberately whether the panel should exist.
-
 ## [0.12.12] — 2026-08-23
 
 
