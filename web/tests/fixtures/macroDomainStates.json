@@ -1,0 +1,1387 @@
+{
+  "_note": "REAL /api/macro/{inflation,rates,usd,gold} responses, frozen 2026-08-23 from the production API. `evidence` is truncated to 2 items per domain and `evidence_total` records the real length -- the lists run 139..1091 items, which is exactly why the desk shows a count and a drill-down rather than the rows. Every other field is verbatim.",
+  "frozen_at": "2026-08-23",
+  "domains": {
+    "inflation": {
+      "domain": "inflation",
+      "requested_as_of": "2026-08-23T14:23:34.497602Z",
+      "as_of": "2026-08-23T16:43:01.584823+08:00",
+      "computed_at": "2026-08-23T16:43:01.636111+08:00",
+      "engine_version": "inflation/1",
+      "inputs_hash": "3ec910b0f31a36b160b3abbd3a4d42b778fb464da7b9eb140f6970ba905e3125",
+      "state": "WELL_ABOVE_TARGET",
+      "direction": "FLAT",
+      "confidence": "0.3951612903225806451612903226",
+      "freshness": "fresh",
+      "age_hours": 5.68,
+      "velocity": [
+        {
+          "metric": "core_pce_yoy_change_3m",
+          "value": "0.032676654090495561986570100",
+          "unit": "pp",
+          "window_months": 3,
+          "unavailable_reason": null
+        },
+        {
+          "metric": "core_pce_3m_annualized",
+          "value": "2.885125495984888515965052700",
+          "unit": "percent_annual_rate",
+          "window_months": 3,
+          "unavailable_reason": null
+        }
+      ],
+      "confidence_reasons": [
+        {
+          "term": "completeness",
+          "value": "1",
+          "detail": "8/8 load-bearing inputs present",
+          "kind": "multiplicand"
+        },
+        {
+          "term": "freshness",
+          "value": "0.5645161290322580645161290323",
+          "detail": "stalest input MICH at 58d",
+          "kind": "multiplicand"
+        },
+        {
+          "term": "quality",
+          "value": "1.0",
+          "detail": "mean publisher quality weight over present load-bearing inputs",
+          "kind": "multiplicand"
+        },
+        {
+          "term": "revision_penalty",
+          "value": "0",
+          "detail": "no load-bearing input revised since the prior state",
+          "kind": "penalty"
+        },
+        {
+          "term": "contradiction_penalty",
+          "value": "0.30",
+          "detail": "2 rule(s) fired: cpi_pce_divergence, breadth_contradicts_core",
+          "kind": "penalty"
+        }
+      ],
+      "contradictions": [
+        {
+          "rule": "cpi_pce_divergence",
+          "detail": "core CPI +2.47pp vs core PCE +3.29pp exceeds the +0.30pp wedge by -1.12pp"
+        },
+        {
+          "rule": "breadth_contradicts_core",
+          "detail": "median CPI moved -1.82pp while core PCE moved +0.03pp"
+        }
+      ],
+      "factors": [
+        {
+          "name": "realized:PCEPILFE",
+          "causal_role": "realized",
+          "series_id": "PCEPILFE",
+          "period_end": "2026-06-01",
+          "value": "130.266",
+          "unit": "index_2017_100_sa",
+          "direction": "FLAT",
+          "change_over_window": "0.032676654090495561986570100",
+          "available_at": "2026-07-30T08:00:00+08:00",
+          "age_days": 24,
+          "freshness": "1",
+          "quality_status": "valid",
+          "source": "fred",
+          "source_kind": "first_party_publisher"
+        },
+        {
+          "name": "realized:PCEPI",
+          "causal_role": "realized",
+          "series_id": "PCEPI",
+          "period_end": "2026-06-01",
+          "value": "131.392",
+          "unit": "index_2017_100_sa",
+          "direction": "FLAT",
+          "change_over_window": "0.125123841765879374079018300",
+          "available_at": "2026-07-30T08:00:00+08:00",
+          "age_days": 24,
+          "freshness": "1",
+          "quality_status": "valid",
+          "source": "fred",
+          "source_kind": "first_party_publisher"
+        },
+        {
+          "name": "realized:CPILFESL",
+          "causal_role": "realized",
+          "series_id": "CPILFESL",
+          "period_end": "2026-07-01",
+          "value": "336.789",
+          "unit": "index_1982_84_100_sa",
+          "direction": "FALLING",
+          "change_over_window": "-0.276791641737592180372296000",
+          "available_at": "2026-08-12T08:00:00+08:00",
+          "age_days": 11,
+          "freshness": "1",
+          "quality_status": "valid",
+          "source": "fred",
+          "source_kind": "first_party_publisher"
+        },
+        {
+          "name": "realized:CPIAUCSL",
+          "causal_role": "realized",
+          "series_id": "CPIAUCSL",
+          "period_end": "2026-07-01",
+          "value": "332.813",
+          "unit": "index_1982_84_100_sa",
+          "direction": "FALLING",
+          "change_over_window": "-0.475389786035268820971324300",
+          "available_at": "2026-08-12T08:00:00+08:00",
+          "age_days": 11,
+          "freshness": "1",
+          "quality_status": "valid",
+          "source": "fred",
+          "source_kind": "first_party_publisher"
+        },
+        {
+          "name": "breadth:MEDCPIM158SFRBCLE",
+          "causal_role": "breadth",
+          "series_id": "MEDCPIM158SFRBCLE",
+          "period_end": "2026-07-01",
+          "value": "3.11469719601836",
+          "unit": "percent_change_annual_rate",
+          "direction": "FALLING",
+          "change_over_window": "-1.81558578296561",
+          "available_at": "2026-08-12T08:00:00+08:00",
+          "age_days": 11,
+          "freshness": "1",
+          "quality_status": "valid",
+          "source": "fred",
+          "source_kind": "first_party_publisher"
+        },
+        {
+          "name": "breadth:TRMMEANCPIM158SFRBCLE",
+          "causal_role": "breadth",
+          "series_id": "TRMMEANCPIM158SFRBCLE",
+          "period_end": "2026-07-01",
+          "value": "2.70627619900861",
+          "unit": "percent_change_annual_rate",
+          "direction": "FALLING",
+          "change_over_window": "-2.51959372722625",
+          "available_at": "2026-08-12T08:00:00+08:00",
+          "age_days": 11,
+          "freshness": "1",
+          "quality_status": "valid",
+          "source": "fred",
+          "source_kind": "first_party_publisher"
+        },
+        {
+          "name": "stickiness:CORESTICKM159SFRBATL",
+          "causal_role": "stickiness",
+          "series_id": "CORESTICKM159SFRBATL",
+          "period_end": "2026-07-01",
+          "value": "2.715835582",
+          "unit": "percent_change_from_year_ago",
+          "direction": "FALLING",
+          "change_over_window": "-0.323096768",
+          "available_at": "2026-08-12T08:00:00+08:00",
+          "age_days": 11,
+          "freshness": "1",
+          "quality_status": "valid",
+          "source": "fred",
+          "source_kind": "first_party_publisher"
+        },
+        {
+          "name": "expectations_survey:MICH",
+          "causal_role": "expectations_survey",
+          "series_id": "MICH",
+          "period_end": "2026-06-01",
+          "value": "4.6",
+          "unit": "percent",
+          "direction": "RISING",
+          "change_over_window": "0.8",
+          "available_at": "2026-06-26T08:00:00+08:00",
+          "age_days": 58,
+          "freshness": "0.5645161290322580645161290323",
+          "quality_status": "valid",
+          "source": "fred",
+          "source_kind": "first_party_publisher"
+        }
+      ],
+      "evidence": [
+        {
+          "ordinal": 0,
+          "obs_id": 6651,
+          "artifact_id": 226,
+          "causal_role": "stickiness",
+          "series_id": "CORESTICKM159SFRBATL",
+          "period_end": "2025-02-01",
+          "unit": "percent_change_from_year_ago",
+          "value_numeric": "3.520917355",
+          "available_at": "2026-02-13T08:00:00+08:00",
+          "source": "fred",
+          "source_kind": "first_party_publisher",
+          "quality_status": "valid"
+        },
+        {
+          "ordinal": 1,
+          "obs_id": 6653,
+          "artifact_id": 226,
+          "causal_role": "stickiness",
+          "series_id": "CORESTICKM159SFRBATL",
+          "period_end": "2025-03-01",
+          "unit": "percent_change_from_year_ago",
+          "value_numeric": "3.265924267",
+          "available_at": "2026-02-13T08:00:00+08:00",
+          "source": "fred",
+          "source_kind": "first_party_publisher",
+          "quality_status": "valid"
+        }
+      ],
+      "notes": [],
+      "sub_states": [],
+      "upstream": [],
+      "_evidence_total": 139
+    },
+    "rates": {
+      "domain": "policy_rates",
+      "requested_as_of": "2026-08-23T14:23:34.522517Z",
+      "as_of": "2026-08-23T16:43:01.584823+08:00",
+      "computed_at": "2026-08-23T16:43:01.734260+08:00",
+      "engine_version": "rates/1",
+      "inputs_hash": "8f80e9f6530bea4f790adef6698423830a2adb65d4ea90b3814ed33a2fc5f9ee",
+      "state": "ON_HOLD",
+      "direction": "UNKNOWN",
+      "confidence": "0.850",
+      "freshness": "fresh",
+      "age_hours": 5.68,
+      "velocity": [
+        {
+          "metric": "committee_projection_vs_actual_bps",
+          "value": "17.500",
+          "unit": "bps",
+          "window_months": 0,
+          "unavailable_reason": null
+        },
+        {
+          "metric": "dealer_expectations_vs_actual_bps",
+          "value": "0.500",
+          "unit": "bps",
+          "window_months": 0,
+          "unavailable_reason": null
+        },
+        {
+          "metric": "market_implied_vs_actual_bps",
+          "value": "27.500",
+          "unit": "bps",
+          "window_months": 0,
+          "unavailable_reason": null
+        },
+        {
+          "metric": "widest_forward_path_spread_bps",
+          "value": "27.00",
+          "unit": "bps",
+          "window_months": 0,
+          "unavailable_reason": null
+        },
+        {
+          "metric": "real_share_of_nominal_change",
+          "value": null,
+          "unit": "ratio",
+          "window_months": 0,
+          "unavailable_reason": "real and compensation legs are stated separately; the split is an attribution of a traded move, not an estimate of term premium"
+        }
+      ],
+      "confidence_reasons": [
+        {
+          "term": "completeness",
+          "value": "1",
+          "detail": "3/3 load-bearing inputs present",
+          "kind": "multiplicand"
+        },
+        {
+          "term": "freshness",
+          "value": "1",
+          "detail": "stalest input FOMC_TARGET_RANGE at 24d",
+          "kind": "multiplicand"
+        },
+        {
+          "term": "quality",
+          "value": "1.0",
+          "detail": "mean publisher quality weight over present load-bearing inputs",
+          "kind": "multiplicand"
+        },
+        {
+          "term": "revision_penalty",
+          "value": "0",
+          "detail": "no load-bearing input revised since the prior state",
+          "kind": "penalty"
+        },
+        {
+          "term": "contradiction_penalty",
+          "value": "0.15",
+          "detail": "1 rule(s) fired: policy_paths_disagree",
+          "kind": "penalty"
+        },
+        {
+          "term": "market_path_is_a_shadow",
+          "value": "0",
+          "detail": "frenzy_capital is a third-party shadow; it is reported and compared, but contributes no confidence",
+          "kind": "multiplicand"
+        },
+        {
+          "term": "market_factors_absent",
+          "value": "0",
+          "detail": "every market role resolved to evidence; each publishes its own sub-state confidence, and none of them gates the policy state",
+          "kind": "informational"
+        },
+        {
+          "term": "sub_state_confidence:supply",
+          "value": "1",
+          "detail": "supply is IN_RANGE with its own confidence 1.00 over 7 series",
+          "kind": "informational"
+        },
+        {
+          "term": "sub_state_confidence:positioning",
+          "value": "1",
+          "detail": "positioning is IN_RANGE with its own confidence 1.00 over 3 series",
+          "kind": "informational"
+        },
+        {
+          "term": "sub_state_confidence:plumbing",
+          "value": "1",
+          "detail": "plumbing is AMPLE with its own confidence 1.00 over 3 series",
+          "kind": "informational"
+        }
+      ],
+      "contradictions": [
+        {
+          "rule": "policy_paths_disagree",
+          "detail": "dealer_expectations and market_implied differ by 27.0bp at a common horizon, past the 25bp threshold"
+        }
+      ],
+      "factors": [
+        {
+          "name": "policy_actual:federal_reserve_fomc",
+          "causal_role": "policy_actual",
+          "series_id": "FOMC_TARGET_RANGE",
+          "period_end": "2026-07-29",
+          "value": "3.625",
+          "unit": "percent",
+          "direction": "UNKNOWN",
+          "change_over_window": null,
+          "available_at": "2026-07-30T02:00:00+08:00",
+          "age_days": 24,
+          "freshness": "1",
+          "quality_status": "valid",
+          "source": "federal_reserve_fomc",
+          "source_kind": "official"
+        },
+        {
+          "name": "policy_committee:federal_reserve_sep",
+          "causal_role": "policy_committee",
+          "series_id": "SEP_FEDERAL_FUNDS_RATE",
+          "period_end": "2026-12-31",
+          "value": "3.8",
+          "unit": "percent",
+          "direction": "UNKNOWN",
+          "change_over_window": null,
+          "available_at": "2026-06-18T02:00:00+08:00",
+          "age_days": 66,
+          "freshness": "1",
+          "quality_status": "valid",
+          "source": "federal_reserve_sep",
+          "source_kind": "official"
+        },
+        {
+          "name": "policy_dealer:new_york_fed_sme",
+          "causal_role": "policy_dealer",
+          "series_id": "NYFED_SME_FEDERAL_FUNDS_RATE",
+          "period_end": "2026-07-29",
+          "value": "3.63",
+          "unit": "percent",
+          "direction": "UNKNOWN",
+          "change_over_window": null,
+          "available_at": "2026-08-21T07:10:00.000895+08:00",
+          "age_days": 2,
+          "freshness": "1",
+          "quality_status": "valid",
+          "source": "new_york_fed_sme",
+          "source_kind": "official"
+        },
+        {
+          "name": "policy_market_shadow:frenzy_capital",
+          "causal_role": "policy_market_shadow",
+          "series_id": "MARKET_IMPLIED_FEDERAL_FUNDS_RATE",
+          "period_end": "2026-09-16",
+          "value": "3.7371",
+          "unit": "percent",
+          "direction": "UNKNOWN",
+          "change_over_window": null,
+          "available_at": "2026-08-23T07:15:00.001234+08:00",
+          "age_days": 0,
+          "freshness": "1",
+          "quality_status": "valid",
+          "source": "frenzy_capital",
+          "source_kind": "third_party_shadow"
+        },
+        {
+          "name": "positioning:043602|asset_mgr_net",
+          "causal_role": "positioning",
+          "series_id": "043602|asset_mgr_net",
+          "period_end": "2026-08-18",
+          "value": "2585495",
+          "unit": "contracts_net",
+          "direction": "UNKNOWN",
+          "change_over_window": null,
+          "available_at": "2026-08-22T03:30:05.971000+08:00",
+          "age_days": 1,
+          "freshness": "1",
+          "quality_status": "valid",
+          "source": "cftc",
+          "source_kind": "official"
+        },
+        {
+          "name": "positioning:043602|asset_mgr_net_pct_oi",
+          "causal_role": "positioning",
+          "series_id": "043602|asset_mgr_net_pct_oi",
+          "period_end": "2026-08-18",
+          "value": "46.1965",
+          "unit": "pct_open_interest",
+          "direction": "UNKNOWN",
+          "change_over_window": null,
+          "available_at": "2026-08-22T03:30:05.971000+08:00",
+          "age_days": 1,
+          "freshness": "1",
+          "quality_status": "valid",
+          "source": "cftc",
+          "source_kind": "official"
+        },
+        {
+          "name": "positioning:043602|dealer_net",
+          "causal_role": "positioning",
+          "series_id": "043602|dealer_net",
+          "period_end": "2026-08-18",
+          "value": "-489394",
+          "unit": "contracts_net",
+          "direction": "UNKNOWN",
+          "change_over_window": null,
+          "available_at": "2026-08-22T03:30:05.971000+08:00",
+          "age_days": 1,
+          "freshness": "1",
+          "quality_status": "valid",
+          "source": "cftc",
+          "source_kind": "official"
+        },
+        {
+          "name": "positioning:043602|dealer_net_pct_oi",
+          "causal_role": "positioning",
+          "series_id": "043602|dealer_net_pct_oi",
+          "period_end": "2026-08-18",
+          "value": "-8.7443",
+          "unit": "pct_open_interest",
+          "direction": "UNKNOWN",
+          "change_over_window": null,
+          "available_at": "2026-08-22T03:30:05.971000+08:00",
+          "age_days": 1,
+          "freshness": "1",
+          "quality_status": "valid",
+          "source": "cftc",
+          "source_kind": "official"
+        },
+        {
+          "name": "positioning:043602|lev_money_net",
+          "causal_role": "positioning",
+          "series_id": "043602|lev_money_net",
+          "period_end": "2026-08-18",
+          "value": "-2229013",
+          "unit": "contracts_net",
+          "direction": "UNKNOWN",
+          "change_over_window": null,
+          "available_at": "2026-08-22T03:30:05.971000+08:00",
+          "age_days": 1,
+          "freshness": "1",
+          "quality_status": "valid",
+          "source": "cftc",
+          "source_kind": "official"
+        },
+        {
+          "name": "positioning:043602|lev_money_net_pct_oi",
+          "causal_role": "positioning",
+          "series_id": "043602|lev_money_net_pct_oi",
+          "period_end": "2026-08-18",
+          "value": "-39.8270",
+          "unit": "pct_open_interest",
+          "direction": "UNKNOWN",
+          "change_over_window": null,
+          "available_at": "2026-08-22T03:30:05.971000+08:00",
+          "age_days": 1,
+          "freshness": "1",
+          "quality_status": "valid",
+          "source": "cftc",
+          "source_kind": "official"
+        },
+        {
+          "name": "positioning:043602|open_interest",
+          "causal_role": "positioning",
+          "series_id": "043602|open_interest",
+          "period_end": "2026-08-18",
+          "value": "5596739",
+          "unit": "contracts",
+          "direction": "UNKNOWN",
+          "change_over_window": null,
+          "available_at": "2026-08-22T03:30:05.971000+08:00",
+          "age_days": 1,
+          "freshness": "1",
+          "quality_status": "valid",
+          "source": "cftc",
+          "source_kind": "official"
+        },
+        {
+          "name": "supply:10-Year|Note",
+          "causal_role": "supply",
+          "series_id": "10-Year|Note",
+          "period_end": "2026-08-12",
+          "value": "42000000000",
+          "unit": "usd_offering_amount",
+          "direction": "UNKNOWN",
+          "change_over_window": null,
+          "available_at": "2026-08-05T12:00:00+08:00",
+          "age_days": 18,
+          "freshness": "1",
+          "quality_status": "valid",
+          "source": "treasurydirect",
+          "source_kind": "official"
+        },
+        {
+          "name": "supply:2-Year|Note",
+          "causal_role": "supply",
+          "series_id": "2-Year|Note",
+          "period_end": "2026-07-27",
+          "value": "69000000000",
+          "unit": "usd_offering_amount",
+          "direction": "UNKNOWN",
+          "change_over_window": null,
+          "available_at": "2026-07-23T12:00:00+08:00",
+          "age_days": 31,
+          "freshness": "1",
+          "quality_status": "valid",
+          "source": "treasurydirect",
+          "source_kind": "official"
+        },
+        {
+          "name": "supply:20-Year|Bond",
+          "causal_role": "supply",
+          "series_id": "20-Year|Bond",
+          "period_end": "2026-08-19",
+          "value": "16000000000",
+          "unit": "usd_offering_amount",
+          "direction": "UNKNOWN",
+          "change_over_window": null,
+          "available_at": "2026-08-13T12:00:00+08:00",
+          "age_days": 10,
+          "freshness": "1",
+          "quality_status": "valid",
+          "source": "treasurydirect",
+          "source_kind": "official"
+        },
+        {
+          "name": "supply:3-Year|Note",
+          "causal_role": "supply",
+          "series_id": "3-Year|Note",
+          "period_end": "2026-08-11",
+          "value": "58000000000",
+          "unit": "usd_offering_amount",
+          "direction": "UNKNOWN",
+          "change_over_window": null,
+          "available_at": "2026-08-05T12:00:00+08:00",
+          "age_days": 18,
+          "freshness": "1",
+          "quality_status": "valid",
+          "source": "treasurydirect",
+          "source_kind": "official"
+        },
+        {
+          "name": "supply:30-Year|Bond",
+          "causal_role": "supply",
+          "series_id": "30-Year|Bond",
+          "period_end": "2026-08-13",
+          "value": "25000000000",
+          "unit": "usd_offering_amount",
+          "direction": "UNKNOWN",
+          "change_over_window": null,
+          "available_at": "2026-08-05T12:00:00+08:00",
+          "age_days": 18,
+          "freshness": "1",
+          "quality_status": "valid",
+          "source": "treasurydirect",
+          "source_kind": "official"
+        },
+        {
+          "name": "supply:5-Year|Note",
+          "causal_role": "supply",
+          "series_id": "5-Year|Note",
+          "period_end": "2026-07-27",
+          "value": "70000000000",
+          "unit": "usd_offering_amount",
+          "direction": "UNKNOWN",
+          "change_over_window": null,
+          "available_at": "2026-07-23T12:00:00+08:00",
+          "age_days": 31,
+          "freshness": "1",
+          "quality_status": "valid",
+          "source": "treasurydirect",
+          "source_kind": "official"
+        },
+        {
+          "name": "supply:7-Year|Note",
+          "causal_role": "supply",
+          "series_id": "7-Year|Note",
+          "period_end": "2026-07-28",
+          "value": "44000000000",
+          "unit": "usd_offering_amount",
+          "direction": "UNKNOWN",
+          "change_over_window": null,
+          "available_at": "2026-07-23T12:00:00+08:00",
+          "age_days": 31,
+          "freshness": "1",
+          "quality_status": "valid",
+          "source": "treasurydirect",
+          "source_kind": "official"
+        },
+        {
+          "name": "decomposition_component:DFII10",
+          "causal_role": "decomposition_component",
+          "series_id": "DFII10",
+          "period_end": "2026-08-20",
+          "value": "2.3500000000",
+          "unit": "percent",
+          "direction": "UNKNOWN",
+          "change_over_window": null,
+          "available_at": "2026-08-21T08:00:00+08:00",
+          "age_days": 2,
+          "freshness": "1",
+          "quality_status": "valid",
+          "source": "fred",
+          "source_kind": "first_party_publisher"
+        },
+        {
+          "name": "curve:DGS10",
+          "causal_role": "curve",
+          "series_id": "DGS10",
+          "period_end": "2026-08-20",
+          "value": "4.6900000000",
+          "unit": "percent",
+          "direction": "UNKNOWN",
+          "change_over_window": null,
+          "available_at": "2026-08-21T08:00:00+08:00",
+          "age_days": 2,
+          "freshness": "1",
+          "quality_status": "valid",
+          "source": "fred",
+          "source_kind": "first_party_publisher"
+        },
+        {
+          "name": "plumbing:EFFR",
+          "causal_role": "plumbing",
+          "series_id": "EFFR",
+          "period_end": "2026-08-20",
+          "value": "3.63",
+          "unit": "percent",
+          "direction": "UNKNOWN",
+          "change_over_window": null,
+          "available_at": "2026-08-21T08:00:00+08:00",
+          "age_days": 2,
+          "freshness": "1",
+          "quality_status": "valid",
+          "source": "fred",
+          "source_kind": "first_party_publisher"
+        },
+        {
+          "name": "plumbing:RRPONTSYD",
+          "causal_role": "plumbing",
+          "series_id": "RRPONTSYD",
+          "period_end": "2026-08-21",
+          "value": "0.2",
+          "unit": "billions_usd",
+          "direction": "UNKNOWN",
+          "change_over_window": null,
+          "available_at": "2026-08-21T08:00:00+08:00",
+          "age_days": 2,
+          "freshness": "1",
+          "quality_status": "valid",
+          "source": "fred",
+          "source_kind": "first_party_publisher"
+        },
+        {
+          "name": "plumbing:SOFR",
+          "causal_role": "plumbing",
+          "series_id": "SOFR",
+          "period_end": "2026-08-20",
+          "value": "3.63",
+          "unit": "percent",
+          "direction": "UNKNOWN",
+          "change_over_window": null,
+          "available_at": "2026-08-21T08:00:00+08:00",
+          "age_days": 2,
+          "freshness": "1",
+          "quality_status": "valid",
+          "source": "fred",
+          "source_kind": "first_party_publisher"
+        },
+        {
+          "name": "decomposition_component:T10YIE",
+          "causal_role": "decomposition_component",
+          "series_id": "T10YIE",
+          "period_end": "2026-08-21",
+          "value": "2.34",
+          "unit": "percent",
+          "direction": "UNKNOWN",
+          "change_over_window": null,
+          "available_at": "2026-08-21T08:00:00+08:00",
+          "age_days": 2,
+          "freshness": "1",
+          "quality_status": "valid",
+          "source": "fred",
+          "source_kind": "first_party_publisher"
+        }
+      ],
+      "evidence": [
+        {
+          "ordinal": 0,
+          "obs_id": 78,
+          "artifact_id": 156,
+          "causal_role": "policy_actual",
+          "series_id": "POLICY_PATH_ACTUAL",
+          "period_end": "2026-07-29",
+          "unit": "policy_path_json",
+          "value_numeric": null,
+          "available_at": "2026-07-30T02:00:00+08:00",
+          "source": "federal_reserve_fomc",
+          "source_kind": "official",
+          "quality_status": "partial"
+        },
+        {
+          "ordinal": 1,
+          "obs_id": 80,
+          "artifact_id": 160,
+          "causal_role": "policy_committee",
+          "series_id": "POLICY_PATH_COMMITTEE_PROJECTION",
+          "period_end": "2026-06-17",
+          "unit": "policy_path_json",
+          "value_numeric": null,
+          "available_at": "2026-06-18T02:00:00+08:00",
+          "source": "federal_reserve_sep",
+          "source_kind": "official",
+          "quality_status": "partial"
+        }
+      ],
+      "notes": [
+        "curve steepness is reported as steepness; the only term-premium figure in this domain comes from the Cleveland Fed's estimated model"
+      ],
+      "sub_states": [
+        {
+          "role": "supply",
+          "state": "IN_RANGE",
+          "direction": "FLAT",
+          "confidence": "1",
+          "series_ids": [
+            "10-Year|Note",
+            "2-Year|Note",
+            "20-Year|Bond",
+            "3-Year|Note",
+            "30-Year|Bond",
+            "5-Year|Note",
+            "7-Year|Note"
+          ],
+          "latest_period_end": "2026-08-19",
+          "unavailable_reason": null,
+          "velocity": [
+            {
+              "metric": "gross_coupon_new_issue_change",
+              "value": "0",
+              "unit": "usd_offering_amount",
+              "window_months": 3,
+              "unavailable_reason": null
+            }
+          ],
+          "confidence_reasons": [
+            {
+              "term": "completeness",
+              "value": "1",
+              "detail": "7/7 load-bearing inputs present",
+              "kind": "multiplicand"
+            },
+            {
+              "term": "freshness",
+              "value": "1",
+              "detail": "stalest input 10-Year|Note at 18d",
+              "kind": "multiplicand"
+            },
+            {
+              "term": "quality",
+              "value": "1.0",
+              "detail": "mean publisher quality weight over present load-bearing inputs",
+              "kind": "multiplicand"
+            },
+            {
+              "term": "revision_penalty",
+              "value": "0",
+              "detail": "no load-bearing input revised since the prior state",
+              "kind": "penalty"
+            },
+            {
+              "term": "contradiction_penalty",
+              "value": "0",
+              "detail": "0 rule(s) fired: none",
+              "kind": "penalty"
+            },
+            {
+              "term": "supply_terms_classified",
+              "value": "7",
+              "detail": "0/7 terms at a 4-quarter high",
+              "kind": "informational"
+            }
+          ]
+        },
+        {
+          "role": "positioning",
+          "state": "IN_RANGE",
+          "direction": "FALLING",
+          "confidence": "1",
+          "series_ids": [
+            "043602|asset_mgr_net_pct_oi",
+            "043602|dealer_net_pct_oi",
+            "043602|lev_money_net_pct_oi"
+          ],
+          "latest_period_end": "2026-08-18",
+          "unavailable_reason": null,
+          "velocity": [
+            {
+              "metric": "043602|asset_mgr_net_pct_oi_change_4w",
+              "value": "-1.9228",
+              "unit": "pct_open_interest",
+              "window_months": 1,
+              "unavailable_reason": null
+            },
+            {
+              "metric": "043602|dealer_net_pct_oi_change_4w",
+              "value": "1.0531",
+              "unit": "pct_open_interest",
+              "window_months": 1,
+              "unavailable_reason": null
+            },
+            {
+              "metric": "043602|lev_money_net_pct_oi_change_4w",
+              "value": "-0.6667",
+              "unit": "pct_open_interest",
+              "window_months": 1,
+              "unavailable_reason": null
+            }
+          ],
+          "confidence_reasons": [
+            {
+              "term": "completeness",
+              "value": "1",
+              "detail": "3/3 load-bearing inputs present",
+              "kind": "multiplicand"
+            },
+            {
+              "term": "freshness",
+              "value": "1",
+              "detail": "stalest input 043602|asset_mgr_net_pct_oi at 1d",
+              "kind": "multiplicand"
+            },
+            {
+              "term": "quality",
+              "value": "1.0",
+              "detail": "mean publisher quality weight over present load-bearing inputs",
+              "kind": "multiplicand"
+            },
+            {
+              "term": "revision_penalty",
+              "value": "0",
+              "detail": "no load-bearing input revised since the prior state",
+              "kind": "penalty"
+            },
+            {
+              "term": "contradiction_penalty",
+              "value": "0",
+              "detail": "0 rule(s) fired: none",
+              "kind": "penalty"
+            },
+            {
+              "term": "positioning_percentiles",
+              "value": "3",
+              "detail": "043602|asset_mgr_net_pct_oi at p62 (IN_RANGE); 043602|dealer_net_pct_oi at p31 (IN_RANGE); 043602|lev_money_net_pct_oi at p12 (IN_RANGE)",
+              "kind": "informational"
+            }
+          ]
+        },
+        {
+          "role": "plumbing",
+          "state": "AMPLE",
+          "direction": "FALLING",
+          "confidence": "1",
+          "series_ids": [
+            "EFFR",
+            "RRPONTSYD",
+            "SOFR"
+          ],
+          "latest_period_end": "2026-08-20",
+          "unavailable_reason": null,
+          "velocity": [
+            {
+              "metric": "sofr_effr_spread_change_4w",
+              "value": "-1.00",
+              "unit": "basis_points",
+              "window_months": 1,
+              "unavailable_reason": null
+            },
+            {
+              "metric": "sofr_effr_spread_change_13w",
+              "value": "10.00",
+              "unit": "basis_points",
+              "window_months": 3,
+              "unavailable_reason": null
+            }
+          ],
+          "confidence_reasons": [
+            {
+              "term": "completeness",
+              "value": "1",
+              "detail": "3/3 load-bearing inputs present",
+              "kind": "multiplicand"
+            },
+            {
+              "term": "freshness",
+              "value": "1",
+              "detail": "stalest input EFFR at 2d",
+              "kind": "multiplicand"
+            },
+            {
+              "term": "quality",
+              "value": "1.0",
+              "detail": "mean publisher quality weight over present load-bearing inputs",
+              "kind": "multiplicand"
+            },
+            {
+              "term": "revision_penalty",
+              "value": "0",
+              "detail": "no load-bearing input revised since the prior state",
+              "kind": "penalty"
+            },
+            {
+              "term": "contradiction_penalty",
+              "value": "0",
+              "detail": "0 rule(s) fired: none",
+              "kind": "penalty"
+            },
+            {
+              "term": "funding_spread",
+              "value": "0.00",
+              "detail": "SOFR less EFFR at +0bp on 2026-08-20; tightening at +6bp, stressed at +25bp",
+              "kind": "informational"
+            }
+          ]
+        }
+      ],
+      "upstream": [],
+      "_evidence_total": 580
+    },
+    "usd": {
+      "domain": "usd",
+      "requested_as_of": "2026-08-23T14:23:34.543045Z",
+      "as_of": "2026-08-23T16:43:01.584823+08:00",
+      "computed_at": "2026-08-23T16:43:01.820805+08:00",
+      "engine_version": "usd/1",
+      "inputs_hash": "81fc5b9e978cb305f8de5e8ad28c83a4f2654e6b89d4bd1f06ec02873e50baad",
+      "state": "RANGEBOUND",
+      "direction": "FLAT",
+      "confidence": "1",
+      "freshness": "fresh",
+      "age_hours": 5.68,
+      "velocity": [
+        {
+          "metric": "broad_dollar_change",
+          "value": "0.1965119963326749226423616495",
+          "unit": "percent",
+          "window_months": 3,
+          "unavailable_reason": null
+        },
+        {
+          "metric": "real_dollar_change",
+          "value": "1.163256381741589526661391088",
+          "unit": "percent",
+          "window_months": 3,
+          "unavailable_reason": null
+        }
+      ],
+      "confidence_reasons": [
+        {
+          "term": "completeness",
+          "value": "1",
+          "detail": "2/1 load-bearing inputs present",
+          "kind": "multiplicand"
+        },
+        {
+          "term": "freshness",
+          "value": "1",
+          "detail": "stalest input DTWEXBGS at 6d",
+          "kind": "multiplicand"
+        },
+        {
+          "term": "quality",
+          "value": "1.0",
+          "detail": "mean publisher quality weight over present load-bearing inputs",
+          "kind": "multiplicand"
+        },
+        {
+          "term": "revision_penalty",
+          "value": "0",
+          "detail": "no load-bearing input revised since the prior state",
+          "kind": "penalty"
+        },
+        {
+          "term": "contradiction_penalty",
+          "value": "0.00",
+          "detail": "0 rule(s) fired: none",
+          "kind": "penalty"
+        },
+        {
+          "term": "upstream_policy_rates",
+          "value": "0.850",
+          "detail": "policy_rates is ON_HOLD (UNKNOWN) as of 2026-08-23, referenced by state identity 8f80e9f6530b rather than recomputed from its inputs",
+          "kind": "informational"
+        }
+      ],
+      "contradictions": [],
+      "factors": [
+        {
+          "name": "broad_dollar",
+          "causal_role": "curve",
+          "series_id": "DTWEXBGS",
+          "period_end": "2026-08-14",
+          "value": "118.9028000000",
+          "unit": "index_jan_2006_100",
+          "direction": "FLAT",
+          "change_over_window": "0.1965119963326749226423616495",
+          "available_at": "2026-08-17T08:00:00+08:00",
+          "age_days": 6,
+          "freshness": "1",
+          "quality_status": "valid",
+          "source": "fred",
+          "source_kind": "first_party_publisher"
+        },
+        {
+          "name": "broad_dollar_real",
+          "causal_role": "decomposition_component",
+          "series_id": "RTWEXBGS",
+          "period_end": "2026-07-01",
+          "value": "115.4381",
+          "unit": "index_jan_2006_100",
+          "direction": "FLAT",
+          "change_over_window": "1.163256381741589526661391088",
+          "available_at": "2026-08-03T08:00:00+08:00",
+          "age_days": 20,
+          "freshness": "1",
+          "quality_status": "valid",
+          "source": "fred",
+          "source_kind": "first_party_publisher"
+        }
+      ],
+      "evidence": [
+        {
+          "ordinal": 0,
+          "obs_id": 19129,
+          "artifact_id": 329,
+          "causal_role": "curve",
+          "series_id": "DTWEXBGS",
+          "period_end": "2025-07-21",
+          "unit": "index_jan_2006_100",
+          "value_numeric": "119.9961",
+          "available_at": "2026-02-02T08:00:00+08:00",
+          "source": "fred",
+          "source_kind": "first_party_publisher",
+          "quality_status": "valid"
+        },
+        {
+          "ordinal": 1,
+          "obs_id": 19131,
+          "artifact_id": 329,
+          "causal_role": "curve",
+          "series_id": "DTWEXBGS",
+          "period_end": "2025-07-22",
+          "unit": "index_jan_2006_100",
+          "value_numeric": "119.681",
+          "available_at": "2026-02-02T08:00:00+08:00",
+          "source": "fred",
+          "source_kind": "first_party_publisher",
+          "quality_status": "valid"
+        }
+      ],
+      "notes": [
+        "the dollar is measured against the Fed's H.10 nominal broad index; the real index is reported beside it and is never substituted for it"
+      ],
+      "sub_states": [],
+      "upstream": [
+        {
+          "upstream_state_id": 20,
+          "domain": "policy_rates",
+          "causal_role": "policy_actual",
+          "state": "ON_HOLD",
+          "direction": "UNKNOWN",
+          "confidence": "0.850",
+          "as_of": "2026-08-23T16:43:01.584823+08:00",
+          "engine_version": "rates/1",
+          "inputs_hash": "8f80e9f6530bea4f790adef6698423830a2adb65d4ea90b3814ed33a2fc5f9ee"
+        }
+      ],
+      "_evidence_total": 328
+    },
+    "gold": {
+      "domain": "gold",
+      "requested_as_of": "2026-08-23T14:23:34.559307Z",
+      "as_of": "2026-08-23T16:43:01.584823+08:00",
+      "computed_at": "2026-08-23T16:43:01.906447+08:00",
+      "engine_version": "gold/1",
+      "inputs_hash": "511ae0e68ed9ae9d78de7db2d1d97e1b3568c5e89f18b967b71a4cc97455f9bc",
+      "state": "SUSPENDED",
+      "direction": "RISING",
+      "confidence": "0.850",
+      "freshness": "fresh",
+      "age_hours": 5.68,
+      "velocity": [
+        {
+          "metric": "gold_price_change",
+          "value": "9.361438313701177929324240546",
+          "unit": "percent",
+          "window_months": 3,
+          "unavailable_reason": null
+        },
+        {
+          "metric": "gold_real_yield_corr_252d",
+          "value": "-0.0510",
+          "unit": "correlation",
+          "window_months": 12,
+          "unavailable_reason": null
+        }
+      ],
+      "confidence_reasons": [
+        {
+          "term": "completeness",
+          "value": "1",
+          "detail": "2/1 load-bearing inputs present",
+          "kind": "multiplicand"
+        },
+        {
+          "term": "freshness",
+          "value": "1",
+          "detail": "stalest input GLD_CLOSE at 0d",
+          "kind": "multiplicand"
+        },
+        {
+          "term": "quality",
+          "value": "1.0",
+          "detail": "mean publisher quality weight over present load-bearing inputs",
+          "kind": "multiplicand"
+        },
+        {
+          "term": "revision_penalty",
+          "value": "0",
+          "detail": "no load-bearing input revised since the prior state",
+          "kind": "penalty"
+        },
+        {
+          "term": "contradiction_penalty",
+          "value": "0.15",
+          "detail": "1 rule(s) fired: gold_against_real_yields_post_2022",
+          "kind": "penalty"
+        },
+        {
+          "term": "anchor_period_age_days",
+          "value": "2",
+          "detail": "the newest GLD_CLOSE print is for 2026-08-21 (2d before as_of). freshness measures when we LEARNED a value, not how old the value is, so a backfilled history reads fresh and this term is the only thing that says otherwise",
+          "kind": "informational"
+        },
+        {
+          "term": "gauge_age_days",
+          "value": "2",
+          "detail": "the gauge this gate reads was computed for 2026-08-21 (2d before as_of); the orchestrator runs on its own schedule and its age is not the gold price's age",
+          "kind": "informational"
+        },
+        {
+          "term": "borrowed_evidence",
+          "value": "2",
+          "detail": "read but not owned: DFII10(policy_rates), DTWEXBGS(usd). these point at the same stored observations their owning domain points at -- one payload, one owner, many readers -- and are excluded from this state's required series so a quiet upstream degrades a lens, not the gate",
+          "kind": "informational"
+        },
+        {
+          "term": "upstream_consumed",
+          "value": "3",
+          "detail": "consumed 3 upstream state(s) by state id: inflation=WELL_ABOVE_TARGET/FLAT, policy_rates=ON_HOLD/UNKNOWN, usd=RANGEBOUND/FLAT",
+          "kind": "informational"
+        }
+      ],
+      "contradictions": [
+        {
+          "rule": "gold_against_real_yields_post_2022",
+          "detail": "gold +9.36% and the 10y real yield +0.14pp moved together over the same window; the pre-2022 relationship is that they oppose, because a higher real rate is a higher carrying cost for a zero-coupon asset. reported, not resolved -- the gate exists so a Lens 2 fitted across the break cannot average a negative relationship with a broken one and describe neither"
+        }
+      ],
+      "factors": [
+        {
+          "name": "gold_price",
+          "causal_role": "decomposition_component",
+          "series_id": "GLD_CLOSE",
+          "period_end": "2026-08-21",
+          "value": "423.36",
+          "unit": "usd_per_share",
+          "direction": "RISING",
+          "change_over_window": "9.361438313701177929324240546",
+          "available_at": "2026-08-23T16:42:09.022402+08:00",
+          "age_days": 0,
+          "freshness": "1",
+          "quality_status": "valid",
+          "source": "massive.com",
+          "source_kind": "entitled_provider"
+        },
+        {
+          "name": "gld_holdings",
+          "causal_role": "positioning",
+          "series_id": "GLD_HOLDINGS_OZ",
+          "period_end": "2026-08-20",
+          "value": "33402755.16",
+          "unit": "troy_oz",
+          "direction": "FLAT",
+          "change_over_window": "1.807206523376438787413231686",
+          "available_at": "2026-08-23T15:35:13.273233+08:00",
+          "age_days": 0,
+          "freshness": "1",
+          "quality_status": "valid",
+          "source": "spdrgoldshares",
+          "source_kind": "official"
+        }
+      ],
+      "evidence": [
+        {
+          "ordinal": 0,
+          "obs_id": 9367,
+          "artifact_id": 229,
+          "causal_role": "decomposition_component",
+          "series_id": "DFII10",
+          "period_end": "2025-07-21",
+          "unit": "percent",
+          "value_numeric": "1.98",
+          "available_at": "2025-07-22T08:00:00+08:00",
+          "source": "fred",
+          "source_kind": "first_party_publisher",
+          "quality_status": "valid"
+        },
+        {
+          "ordinal": 1,
+          "obs_id": 9368,
+          "artifact_id": 229,
+          "causal_role": "decomposition_component",
+          "series_id": "DFII10",
+          "period_end": "2025-07-22",
+          "unit": "percent",
+          "value_numeric": "1.96",
+          "available_at": "2025-07-23T08:00:00+08:00",
+          "source": "fred",
+          "source_kind": "first_party_publisher",
+          "quality_status": "valid"
+        }
+      ],
+      "notes": [
+        "the domain state is the GATE -- whether the gold/real-yield relationship Lens 2 rests on is in force -- and not a view on gold. the three lenses publish beside it as sub-states with their own confidence, and there is no precedence rule between them",
+        "the valuation lens is a warning: it never becomes a price target, an allocation, or a size"
+      ],
+      "sub_states": [
+        {
+          "role": "positioning",
+          "state": "NEUTRAL",
+          "direction": "FLAT",
+          "confidence": "1",
+          "series_ids": [
+            "GLD_HOLDINGS_OZ"
+          ],
+          "latest_period_end": "2026-08-20",
+          "unavailable_reason": null,
+          "velocity": [
+            {
+              "metric": "gld_holdings_change",
+              "value": "1.807206523376438787413231686",
+              "unit": "percent",
+              "window_months": 2,
+              "unavailable_reason": null
+            }
+          ],
+          "confidence_reasons": []
+        },
+        {
+          "role": "decomposition_component",
+          "state": "SUSPENDED",
+          "direction": "UNKNOWN",
+          "confidence": "0",
+          "series_ids": [
+            "DFII10",
+            "DTWEXBGS"
+          ],
+          "latest_period_end": "2026-08-20",
+          "unavailable_reason": "the gold/real-yield relationship reads suspended at as_of, so a cyclical view drawn from it would describe a correlation that is not currently in force",
+          "velocity": [],
+          "confidence_reasons": []
+        },
+        {
+          "role": "realized",
+          "state": "STRETCHED",
+          "direction": "UNKNOWN",
+          "confidence": "1",
+          "series_ids": [],
+          "latest_period_end": "2026-08-21",
+          "unavailable_reason": null,
+          "velocity": [],
+          "confidence_reasons": [
+            {
+              "term": "valuation_is_a_warning",
+              "value": "0",
+              "detail": "long-run anchors say where the price sits in its own history; they never become a price target, an allocation or a size",
+              "kind": "informational"
+            }
+          ]
+        }
+      ],
+      "upstream": [
+        {
+          "upstream_state_id": 20,
+          "domain": "policy_rates",
+          "causal_role": "decomposition_component",
+          "state": "ON_HOLD",
+          "direction": "UNKNOWN",
+          "confidence": "0.850",
+          "as_of": "2026-08-23T16:43:01.584823+08:00",
+          "engine_version": "rates/1",
+          "inputs_hash": "8f80e9f6530bea4f790adef6698423830a2adb65d4ea90b3814ed33a2fc5f9ee"
+        },
+        {
+          "upstream_state_id": 21,
+          "domain": "usd",
+          "causal_role": "curve",
+          "state": "RANGEBOUND",
+          "direction": "FLAT",
+          "confidence": "1",
+          "as_of": "2026-08-23T16:43:01.584823+08:00",
+          "engine_version": "usd/1",
+          "inputs_hash": "81fc5b9e978cb305f8de5e8ad28c83a4f2654e6b89d4bd1f06ec02873e50baad"
+        },
+        {
+          "upstream_state_id": 19,
+          "domain": "inflation",
+          "causal_role": "realized",
+          "state": "WELL_ABOVE_TARGET",
+          "direction": "FLAT",
+          "confidence": "0.3951612903225806451612903226",
+          "as_of": "2026-08-23T16:43:01.584823+08:00",
+          "engine_version": "inflation/1",
+          "inputs_hash": "3ec910b0f31a36b160b3abbd3a4d42b778fb464da7b9eb140f6970ba905e3125"
+        }
+      ],
+      "_evidence_total": 1091
+    }
+  }
+}
