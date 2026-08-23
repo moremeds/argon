@@ -12,6 +12,7 @@ inventing evidence.  Neither is observable from a function that returns a datacl
 
 from __future__ import annotations
 
+import itertools
 import json
 import os
 from datetime import UTC, date, datetime
@@ -60,6 +61,14 @@ class _HoldingRow:
         self.holdings_oz = holdings_oz
 
 
+#: Incremented per fetch so the stub reproduces the ONE behaviour that broke idempotency
+#: in production: massive stamps a fresh ``request_id`` on every response. A stub that
+#: returns byte-identical payloads makes the re-read test pass no matter what the code
+#: hashes, which is exactly why the original test was green while the real job wrote 275
+#: duplicate rows per run.
+_PRICE_FETCH_COUNT = itertools.count()
+
+
 class _PriceProvider:
     """Replays the frozen GLD closes as the massive payload they came from."""
 
@@ -77,7 +86,13 @@ class _PriceProvider:
             _Bar(date.fromisoformat(r["period_end"]), Decimal(r["value"])) for r in rows
         ]
         payload = json.dumps(
-            {"ticker": ticker, "results": [{"t": 0, "c": str(b.close)} for b in bars]}
+            {
+                "ticker": ticker,
+                "results": [{"t": 0, "c": str(b.close)} for b in bars],
+                # Same shape and same LENGTH every call, different value -- which is what
+                # made ``content_length`` match while the hash moved.
+                "request_id": f"{next(_PRICE_FETCH_COUNT):032x}",
+            }
         ).encode()
         return payload, "https://api.massive.com/v2/aggs/ticker/GLD/range/1/day", bars
 
@@ -149,13 +164,46 @@ def test_ingest_lands_both_gold_series_as_citable_evidence(seeded_db_empty_cards
 
 
 def test_ingest_is_idempotent_on_a_second_run(seeded_db_empty_cards):
-    """An unchanged re-read must not mint a phantom revision."""
+    """An unchanged re-read must not mint a phantom revision.
+
+    The price stub deliberately varies its ``request_id`` between calls, so this asserts
+    the property that actually matters -- unchanged DATA deduplicates -- rather than the
+    weaker one a fixed payload can prove.
+    """
     settings = _settings()
     first = _ingest(settings)
     second = _ingest(settings)
 
     assert second.observations_created == 0
     assert second.observations_unchanged == first.observations_created
+
+
+def test_a_fresh_request_id_alone_does_not_mint_a_new_artifact(seeded_db_empty_cards):
+    """Identity is the DATA, not the envelope massive wrapped it in.
+
+    Measured in production on 2026-08-23 before the fix: a second run over an unchanged
+    400-day window created 275 duplicate ``GLD_CLOSE`` rows under a second artifact,
+    because ``request_id`` is a fresh 32-hex UUID per call. Row counts are asserted
+    directly rather than through the job's own tallies -- the tallies are what reported
+    ``created=275`` while claiming success.
+    """
+    settings = _settings()
+    _ingest(settings)
+    _ingest(settings)
+
+    with psycopg.connect(settings.db_dsn()) as conn, conn.cursor() as cur:
+        cur.execute(
+            """
+            SELECT count(*), count(DISTINCT period_end), count(DISTINCT artifact_id)
+            FROM uw_scan.macro_observations
+            WHERE series_id = %s
+            """,
+            (GOLD_PRICE_SERIES,),
+        )
+        rows, periods, artifacts = cur.fetchone()
+
+    assert rows == periods, f"{rows - periods} duplicate rows for {GOLD_PRICE_SERIES}"
+    assert artifacts == 1, f"{artifacts} artifacts for one unchanged payload"
 
 
 def test_state_abstains_before_the_ingest_runs(seeded_db_empty_cards):
@@ -219,9 +267,7 @@ def test_state_persists_with_evidence_after_the_ingest(seeded_db_empty_cards):
             (result.state_id,),
         )
         reasons = cur.fetchone()[0]
-        age = next(
-            r for r in reasons if r["term"] == "anchor_period_age_days"
-        )
+        age = next(r for r in reasons if r["term"] == "anchor_period_age_days")
         assert Decimal(str(age["value"])) > 30, (
             "the fixture's newest gold print is 2025-12-31; a small period age here "
             "would mean the term is reading the retrieval clock too"

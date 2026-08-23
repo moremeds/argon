@@ -25,6 +25,7 @@ saw this morning, and migration 119 can promote a verified instant later.
 
 from __future__ import annotations
 
+import json
 from collections.abc import Sequence
 from dataclasses import dataclass
 from datetime import date, datetime
@@ -68,10 +69,42 @@ class GoldObservation:
     parser_version: str
 
 
+#: Fields massive stamps per REQUEST rather than per payload. They carry no information
+#: about the bars and change on every call, so hashing them makes a re-read of unchanged
+#: data look like a new artifact -- and the observations hanging off it then re-insert as
+#: a fresh vintage. Measured in production on 2026-08-23: a second run of an unchanged
+#: 400-day window created 275 duplicate ``GLD_CLOSE`` rows under a second artifact,
+#: because ``request_id`` is a 32-hex-character UUID (same LENGTH every call, so
+#: ``content_length`` matched and only the hash moved).
+VOLATILE_PRICE_ENVELOPE_FIELDS: frozenset[str] = frozenset({"request_id"})
+
+
+def _stable_price_payload(raw_bytes: bytes) -> dict[str, Any] | list[Any]:
+    """The massive OHLC payload with its per-request stamps dropped.
+
+    Returned as parsed JSON rather than bytes on purpose. ``MacroSourceArtifact`` hashes
+    a ``raw_json`` through the same canonical serializer the store re-derives with, so
+    identity stays key-order-independent AND the stored payload is queryable JSONB. The
+    alternative -- editing the wire bytes and still storing them as ``raw_bytes`` -- would
+    have to hand-roll a normalizer that ``storage.macro_context`` re-runs byte for byte,
+    which is the invariant most likely to drift.
+
+    The cost, stated plainly: the stored payload is no longer byte-identical to what
+    massive sent. That is acceptable here and would not be for a signed document -- this
+    is a query result, and ``source_url`` plus ``retrieved_at`` still record exactly what
+    was asked and when.
+    """
+    payload = json.loads(raw_bytes)
+    if not isinstance(payload, dict):
+        return payload
+    return {k: v for k, v in payload.items() if k not in VOLATILE_PRICE_ENVELOPE_FIELDS}
+
+
 def gold_price_artifact(
     raw_bytes: bytes, *, source_url: str, retrieved_at: datetime
 ) -> MacroSourceArtifact:
-    content_hash, content_length = macro_artifact_content_identity(raw_bytes=raw_bytes)
+    raw_json = _stable_price_payload(raw_bytes)
+    content_hash, content_length = macro_artifact_content_identity(raw_json=raw_json)
     return MacroSourceArtifact(
         source=GOLD_PRICE_SOURCE,
         source_kind="entitled_provider",
@@ -95,7 +128,7 @@ def gold_price_artifact(
         # The payload carries a bar history, so it reports many periods rather than
         # being one dated release.
         vintage_bearing=True,
-        raw_bytes=raw_bytes,
+        raw_json=raw_json,
     )
 
 

@@ -7,6 +7,35 @@ version in lockstep (enforced by `scripts/release/version_sync_check.py`).
 
 ## [Unreleased]
 
+### Fixed
+
+- **The gold ingest re-inserted its whole price history every run.** `macro_gold_ingest`
+  hashed massive's OHLC response bytes verbatim, and massive stamps a fresh
+  `request_id` — a 32-hex-character UUID — on every response. Same length every call, so
+  `content_length` matched and only `content_hash` moved: the artifact dedupe missed, and
+  all 275 `GLD_CLOSE` observations hanging off it re-inserted as a new vintage. Measured
+  on the mini the night the job was enabled: a second run over an unchanged 400-day
+  window took the series to 550 rows across 275 distinct periods under 2 artifacts. The
+  SPDR tonnage leg was never affected — its archive carries no per-request stamp.
+  - `macro/gold_ingest.py` now drops `VOLATILE_PRICE_ENVELOPE_FIELDS` from the payload
+    and stores it as `raw_json`, so identity is the DATA rather than the envelope. Parsed
+    JSON rather than edited bytes on purpose: `MacroSourceArtifact` and
+    `storage/macro_context` re-derive the hash through the same canonical serializer, so
+    normalising in one place and hashing in another cannot drift. The stored payload is
+    no longer byte-identical to the wire — acceptable for a query result, and
+    `source_url` plus `retrieved_at` still record what was asked and when.
+  - `worker/jobs/macro_gold_ingest.py` forwards whichever raw representation the artifact
+    chose instead of assuming bytes. The two feeds now differ deliberately: the price
+    payload is JSON, the SPDR archive stays raw because it arrives as CSV or XLSX.
+  - **Why the existing idempotency test was green through all of this:** the price stub
+    returned byte-identical payloads, so it proved that identical bytes deduplicate —
+    never that an unchanged READ does. The stub now varies its `request_id` per call, and
+    a second test asserts row counts directly rather than trusting the job's own tallies,
+    which reported `created=275` while reporting success.
+
+  Existing duplicate rows are left in place; they carry identical values and the
+  newest-vintage read picks correctly, so this is cleanup rather than a correction.
+
 ## [0.12.14] — 2026-08-23
 
 
