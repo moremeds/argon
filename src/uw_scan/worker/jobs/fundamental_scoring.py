@@ -56,41 +56,39 @@ def _knowledge_date(per: dict[str, Any], period: str) -> tuple[date, bool]:
     return (period_end + timedelta(days=FALLBACK_LAG_DAYS), False)
 
 
-def fundamental_scoring(
+def _build_buckets(
+    feats: dict[str, Any],
+    panel_raw: dict[str, Any],
     *,
-    conn: psycopg.Connection,
-    tier: str = "ranked",
-    schema: str = "uw_scan",
-    tickers: list[str] | None = None,
-) -> dict[str, int]:
-    """Score every knowledge-quarter cross-section in the panel. Returns counters."""
-    obs = FundamentalObsRepository(conn, schema=schema)
-    scores = FundamentalScoresRepository(conn, schema=schema)
+    knowledge_cutoff: date,
+) -> tuple[dict[str, dict[str, Any]], int]:
+    """Group one row per (knowledge quarter, ticker). Returns (buckets, withheld).
 
-    engine = scores.active_version()
-    if engine is None:
-        log.error(
-            "fundamental_scoring: no active method version — seed one with "
-            "scripts/seed_fundamental_method.py before scoring"
-        )
-        return {"buckets": 0, "scored": 0, "inserted": 0, "skipped_thin": 0}
+    One name gets ONE vote per cross-section: when a late 10-K and an on-time
+    10-Q land in the same quarter, the fresher period wins rather than both
+    competing.
 
-    names = tickers if tickers is not None else obs.list_universe(tier)
-    if not names:
-        log.info("fundamental_scoring: tier %r is empty — nothing to do", tier)
-        return {"buckets": 0, "scored": 0, "inserted": 0, "skipped_thin": 0}
-
-    panel_raw = obs.statement_panel(names)
-    feats = build_features(panel_raw)
-
-    # bucket -> ticker -> row. One name gets ONE vote per cross-section; when a
-    # late 10-K and an on-time 10-Q land in the same quarter, the fresher period
-    # wins rather than both competing.
+    A period whose knowledge date has not ARRIVED is withheld. When a filer's
+    real filing date is still unknown, `_knowledge_date` estimates `period_end +
+    FALLBACK_LAG_DAYS`, and for a fresh quarter that estimate lands in the
+    future — the name simply is not public yet. Admitting it breaks two things
+    at once: it contributes to every other name's z-score using figures the
+    market has not seen, and because `as_of` is the bucket's MAX knowledge date,
+    one unarrived estimate stamps the entire cross-section with a future date.
+    A future `as_of` then wins `ORDER BY as_of DESC` against every later run,
+    freezing the card on one stale compute until the calendar catches up.
+    Measured on prod 2026-08-23: AMAT and CSCO (period_end 2026-07-31, no filing
+    date) stamped 371 rows `2026-09-14` and shadowed six days of fresher scores.
+    """
     buckets: dict[str, dict[str, Any]] = {}
+    withheld = 0
     for ticker, per_period in feats.items():
         per = panel_raw[ticker]
         for period, values in per_period.items():
             know, known = _knowledge_date(per, period)
+            if know > knowledge_cutoff:
+                withheld += 1
+                continue
             bucket = f"{know.year}Q{(know.month - 1) // 3 + 1}"
             slot = buckets.setdefault(bucket, {})
             prior = slot.get(ticker)
@@ -103,8 +101,64 @@ def fundamental_scoring(
                 "filing_date_known": known,
                 "obs_ids": sorted(per["obs_ids"].get(period, [])),
             }
+    return buckets, withheld
 
-    totals = {"buckets": 0, "scored": 0, "inserted": 0, "skipped_thin": 0}
+
+def fundamental_scoring(
+    *,
+    conn: psycopg.Connection,
+    tier: str = "ranked",
+    schema: str = "uw_scan",
+    tickers: list[str] | None = None,
+    knowledge_cutoff: date | None = None,
+) -> dict[str, int]:
+    """Score every knowledge-quarter cross-section in the panel. Returns counters.
+
+    `knowledge_cutoff` defaults to today and bounds which periods are public
+    enough to score. It is a parameter rather than an inline `date.today()` so a
+    replay names its own as-of, and so a test does not depend on the wall clock.
+    """
+    cutoff = knowledge_cutoff or date.today()
+    obs = FundamentalObsRepository(conn, schema=schema)
+    scores = FundamentalScoresRepository(conn, schema=schema)
+
+    engine = scores.active_version()
+    if engine is None:
+        log.error(
+            "fundamental_scoring: no active method version — seed one with "
+            "scripts/seed_fundamental_method.py before scoring"
+        )
+        return {
+            "buckets": 0,
+            "scored": 0,
+            "inserted": 0,
+            "skipped_thin": 0,
+            "withheld_unpublished": 0,
+        }
+
+    names = tickers if tickers is not None else obs.list_universe(tier)
+    if not names:
+        log.info("fundamental_scoring: tier %r is empty — nothing to do", tier)
+        return {
+            "buckets": 0,
+            "scored": 0,
+            "inserted": 0,
+            "skipped_thin": 0,
+            "withheld_unpublished": 0,
+        }
+
+    panel_raw = obs.statement_panel(names)
+    feats = build_features(panel_raw)
+
+    buckets, withheld = _build_buckets(feats, panel_raw, knowledge_cutoff=cutoff)
+
+    totals = {
+        "buckets": 0,
+        "scored": 0,
+        "inserted": 0,
+        "skipped_thin": 0,
+        "withheld_unpublished": withheld,
+    }
     for bucket in sorted(buckets):
         rows = buckets[bucket]
         if len(rows) < MIN_CROSS_SECTION:
@@ -115,7 +169,9 @@ def fundamental_scoring(
 
         # as_of is the LAST knowledge date in the cross-section: the date by which
         # every name in it was public, and therefore the earliest date this
-        # ranking could legitimately have been computed.
+        # ranking could legitimately have been computed. That sentence is only
+        # true because `_build_buckets` withheld unarrived estimates — a single
+        # one in here would date the ranking's birth in the future.
         as_of = max(d["knowledge_date"] for d in rows.values())
 
         out: list[dict[str, Any]] = []
