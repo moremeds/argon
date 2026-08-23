@@ -7,6 +7,29 @@ version in lockstep (enforced by `scripts/release/version_sync_check.py`).
 
 ## [Unreleased]
 
+### Fixed
+
+- **The scheduler discarded every write from a job that reads before it writes.**
+  `worker/scheduler._repo` opened a connection and closed it in a `finally`, and closing a
+  psycopg connection does not commit — it discards. That is invisible for the many
+  repository methods that call `self._conn.commit()` themselves, and silently fatal for the
+  ones built on `self._conn.transaction()`: that block only emits `COMMIT` when it opened
+  the transaction, and every macro domain-state job loads its observations and its own prior
+  answer *before* it writes, so the connection was already mid-transaction and the write
+  degraded to a savepoint that nothing ever committed. Measured on the mini before the fix:
+  `macro_domain_states` at **8 rows inserted, 2 alive, 0 deleted**, with the nightly job
+  logging `ok` on every run — two nights of inflation and policy-rates states computed
+  correctly and thrown away. The helper is now a `with psycopg.connect(...)` block, which
+  commits on the way out and still rolls back on an exception.
+
+- **Why no test caught it, and what now would.** Every existing test drives its jobs through
+  `with psycopg.connect(...)`, which commits — none of them used the production helper, so a
+  green suite and a silently empty table were compatible. The regression test runs the
+  inflation state job through `scheduler._repo` itself and asserts from a **new** connection;
+  it fails against the old helper. A second case raises inside the block and asserts nothing
+  persisted, because committing on the way out must not become committing on the way down.
+
+
 ## [0.12.11] — 2026-08-23
 
 ### Added

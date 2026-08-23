@@ -32,6 +32,7 @@ from uw_scan.worker.jobs.macro_policy_jobs import (
     macro_sep_ingest_job,
 )
 from uw_scan.worker.jobs.macro_series_ingest import macro_fred_series_ingest_job
+from uw_scan.worker.scheduler import _repo as scheduler_repo
 from uw_scan.worker.jobs.macro_state_jobs import (
     macro_usd_state_job,
     macro_inflation_state_job,
@@ -653,3 +654,72 @@ class TestTheThreeDomainPass:
             c["rule"] == "usd_against_relative_policy"
             for c in row["contradictions_jsonb"]
         )
+
+
+class TestTheSchedulerPathPersistsWhatItComputes:
+    """The state the nightly job computes has to still be there after the job returns.
+
+    Every other test in this file opens its connection as ``with psycopg.connect(...)``,
+    which commits on the way out.  The scheduler does not use that form -- it hands jobs
+    a repository from ``scheduler._repo`` -- so no test here could witness a helper that
+    closed the connection without committing.  It closed without committing, and because
+    every state job reads (observations, then its own prior answer) before it writes, the
+    write's ``transaction()`` block was a savepoint rather than the outer transaction and
+    never emitted ``COMMIT``.
+
+    Production evidence before the fix: ``macro_domain_states`` at 8 rows inserted, 2
+    alive, 0 deleted, with the job logging ``ok`` on every run.  A green suite and a
+    silently empty table is exactly the pair this class exists to make impossible.
+    """
+
+    def test_a_state_written_through_the_scheduler_helper_is_still_there(
+        self, seeded_db_empty_cards
+    ) -> None:
+        settings = _settings()
+        _ingest_scenario(settings, _golden_scenario())
+
+        with scheduler_repo(settings) as repo:
+            result = macro_inflation_state_job(repo, as_of=DISINFLATION_AS_OF)
+        assert result.status == "ok", result.error_message
+
+        # A NEW connection: the point is what survived the helper, not what the writing
+        # session could still see inside its own open transaction.
+        with psycopg.connect(settings.db_dsn()) as conn:
+            stored = conn.execute(
+                "SELECT count(*) FROM uw_scan.macro_domain_states WHERE state_id = %s",
+                (result.state_id,),
+            ).fetchone()[0]
+            evidence = conn.execute(
+                """
+                SELECT count(*) FROM uw_scan.macro_domain_state_evidence
+                WHERE state_id = %s
+                """,
+                (result.state_id,),
+            ).fetchone()[0]
+
+        assert stored == 1
+        # The evidence has to survive with it. A state whose lineage was rolled back
+        # separately would be the unfalsifiable claim the store exists to refuse.
+        assert evidence == result.evidence_count
+
+    def test_a_failure_inside_the_block_still_leaves_nothing_behind(
+        self, seeded_db_empty_cards
+    ) -> None:
+        """Committing on the way out must not become committing on the way down.
+
+        The old helper got this right by accident -- it discarded everything -- so the
+        fix has to keep the half that was already correct.
+        """
+        settings = _settings()
+        _ingest_scenario(settings, _golden_scenario())
+
+        with pytest.raises(RuntimeError, match="deliberate"):
+            with scheduler_repo(settings) as repo:
+                macro_inflation_state_job(repo, as_of=DISINFLATION_AS_OF)
+                raise RuntimeError("deliberate failure after the write")
+
+        with psycopg.connect(settings.db_dsn()) as conn:
+            stored = conn.execute(
+                "SELECT count(*) FROM uw_scan.macro_domain_states"
+            ).fetchone()[0]
+        assert stored == 0
