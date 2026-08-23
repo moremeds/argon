@@ -7,6 +7,27 @@ version in lockstep (enforced by `scripts/release/version_sync_check.py`).
 
 ## [Unreleased]
 
+### Fixed
+
+- **A composite score dated three weeks in the future froze the Fundamentals card for 363
+  names.** `as_of` is the cross-section's *latest* knowledge date — the earliest moment
+  the ranking could legitimately have been computed. When a filer's real filing date is
+  still unknown, that date is estimated as `period_end + 45d`, and for a fresh quarter the
+  estimate has not arrived yet. Two such names (AMAT and CSCO, `period_end` 2026-07-31)
+  carried an estimate of 2026-09-14, and because `as_of` is the bucket **maximum**, their
+  estimate stamped all 371 rows in the quarter — every 2026Q3 score the table holds. The
+  read path orders `as_of DESC`, so nothing computed later can overtake it: the card
+  serves the 2026-08-16 compute, and each correct recompute for the rest of the quarter
+  carries a lower (because arrived) `as_of`, so it would land in the table and stay
+  invisible until the calendar reached September 14. `_build_buckets` now withholds any
+  period whose knowledge date has not arrived, which also removes the quieter half of the
+  defect — an unpublished name was contributing to every other name's z-score using
+  figures the market had not seen. The cutoff is a parameter defaulting to today, so a
+  replay names its own as-of and tests do not read the wall clock; withheld periods are
+  counted in the job's returned totals rather than dropped silently. Migration `129`
+  evicts the rows already written, which is safe because scores are fully derived and
+  every bucket is rebuilt from the statement panel on each run.
+
 ## [0.12.13] — 2026-08-23
 
 
