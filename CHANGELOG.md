@@ -7,6 +7,30 @@ version in lockstep (enforced by `scripts/release/version_sync_check.py`).
 
 ## [Unreleased]
 
+### Added
+
+- **A macro desk at `/macro`.** The four point-in-time domain states — inflation →
+  policy & rates → USD transmission → gold gate — rendered in **causal order** rather
+  than as four peer scorecards, each with its direction, confidence, freshness, velocity,
+  contradictions, upstream answers consumed, cited-evidence count, and a collapsible
+  "what this stood on" listing the load-bearing series and every confidence term.
+  - They were previously invisible. `/api/macro/{inflation,rates,usd,gold}` have all
+    existed and been computed nightly, and `web/lib/api.ts` consumed only
+    `/api/macro/policy` — the states landed in a table nothing rendered.
+  - **There is deliberately no composite, and there will not be one.** Averaging four
+    differently-grounded answers into a single number would hide exactly the
+    disagreements the contradiction lists exist to show. A test asserts the desk's own
+    chrome carries no master score, allocation, or probability, and that exactly four
+    states render with no fifth aggregate.
+  - Each domain is fetched and settled independently: four engines, four schedules, so
+    one dead publisher costs its own card rather than the page. The empty slot is
+    three-state — an answer, a failed request, or "the engine has not run", which is not
+    the same thing and must not render as the same thing.
+  - Test fixture is real: `web/tests/fixtures/macroDomainStates.json` freezes the actual
+    production responses (2026-08-23), evidence truncated to 2 rows per domain with the
+    real length recorded — those lists run 139 to 1091 items, which is why the card shows
+    a count and a drill-down rather than the rows.
+
 ### Changed
 
 - **The USD state's boundary moved out of the middle of its own distribution.**

@@ -114,6 +114,8 @@ type RegimeDealerResponse = Json<"/api/regime/dealer", "get">;
 type RegimeVcgResponse = Json<"/api/regime/vcg", "get">;
 type RatesSnapshotResponse = Json<"/api/rates/snapshot", "get">;
 type MacroPolicyComparison = Json<"/api/macro/policy", "get">;
+// All four domain states share one response model, so one alias covers the set.
+type MacroDomainStateResponse = Json<"/api/macro/usd", "get">;
 type PositioningSnapshot = Json<"/api/positioning/{ticker}", "get">;
 type PositioningScreenerResponse = Json<"/api/positioning/screener", "get">;
 
@@ -297,6 +299,17 @@ export const api = {
   // snapshot look like it carried a fresh FOMC release.
   macroPolicy: (): Promise<MacroPolicyComparison | null> =>
     _fetch<MacroPolicyComparison | null>(`/api/macro/policy`, undefined, {
+      allow404: true,
+    }),
+  // One call per domain rather than one bundling call. The four engines run on separate
+  // schedules and any of them can be absent; a bundle would make one missing state look
+  // like a failed page, and the desk's whole point is saying which half is missing.
+  // `allow404` is load-bearing here: a domain the pipeline has never computed 404s, and
+  // that is a fact to render, not an error to throw.
+  macroDomainState: (
+    domain: "inflation" | "rates" | "usd" | "gold",
+  ): Promise<MacroDomainStateResponse | null> =>
+    _fetch<MacroDomainStateResponse | null>(`/api/macro/${domain}`, undefined, {
       allow404: true,
     }),
   tradeInsights: (ticker: string): Promise<TradeInsightsResponse> =>

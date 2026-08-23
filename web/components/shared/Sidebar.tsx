@@ -10,6 +10,7 @@ import {
   ScanLine,
   TrendingUp,
   Wallet,
+  Globe,
 } from "lucide-react";
 import { HealthPanel } from "./HealthPanel";
 import styles from "./AppShell.module.css";
@@ -23,6 +24,7 @@ const NAV = [
   { href: "/positions", label: "Positions", icon: Wallet },
   { href: "/gold", label: "Gold", icon: Coins },
   { href: "/rates", label: "Rates", icon: TrendingUp },
+  { href: "/macro", label: "Macro", icon: Globe },
 ];
 
 export function Sidebar() {

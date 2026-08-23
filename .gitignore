@@ -16,6 +16,11 @@ __pycache__/
 # Playwright MCP artifacts
 .playwright-mcp/
 output/
+
+# Only web/.gitignore covered node_modules, and it is scoped to web/. Running a
+# node tool from the repo root (or a worktree root) creates node_modules/.vite
+# caches that were untracked-but-not-ignored, so `git add -A` swept them in.
+node_modules/
 *.png
 !docs/screenshots/*.png
 .claude/
