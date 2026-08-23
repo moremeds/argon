@@ -197,6 +197,12 @@ def _store(
         media_type=artifact.media_type,
         content_length=artifact.content_length,
         vintage_bearing=artifact.vintage_bearing,
+        # Forward whichever representation the artifact chose rather than assuming bytes.
+        # The two feeds differ deliberately: the price payload is stored as parsed JSON so
+        # massive's per-request ``request_id`` can be dropped from its identity, while the
+        # SPDR archive stays raw because it arrives as CSV or XLSX and has no such stamp.
+        raw_json=artifact.raw_json,
+        raw_text=artifact.raw_text,
         raw_bytes=artifact.raw_bytes,
     )
     conn.commit()
