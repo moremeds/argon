@@ -7,6 +7,9 @@ version in lockstep (enforced by `scripts/release/version_sync_check.py`).
 
 ## [Unreleased]
 
+## [0.12.15] — 2026-08-23
+
+
 ### Fixed
 
 - **The gold ingest re-inserted its whole price history every run.** `macro_gold_ingest`
@@ -35,7 +38,6 @@ version in lockstep (enforced by `scripts/release/version_sync_check.py`).
 
   Existing duplicate rows are left in place; they carry identical values and the
   newest-vintage read picks correctly, so this is cleanup rather than a correction.
-
 ## [0.12.14] — 2026-08-23
 
 

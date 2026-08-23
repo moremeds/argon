@@ -2723,7 +2723,7 @@ wheels = [
 
 [[package]]
 name = "uw-scan"
-version = "0.12.14"
+version = "0.12.15"
 source = { editable = "." }
 dependencies = [
     { name = "apscheduler" },
