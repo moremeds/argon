@@ -9,7 +9,6 @@ version in lockstep (enforced by `scripts/release/version_sync_check.py`).
 
 ## [0.12.16] — 2026-08-23
 
-
 ### Added
 
 - **A macro desk at `/macro`.** The four point-in-time domain states — inflation →
@@ -33,6 +32,29 @@ version in lockstep (enforced by `scripts/release/version_sync_check.py`).
     production responses (2026-08-23), evidence truncated to 2 rows per domain with the
     real length recorded — those lists run 139 to 1091 items, which is why the card shows
     a count and a drill-down rather than the rows.
+
+- **A test that every macro domain's engine version and parameter version move together.**
+  `tests/unit/macro/test_engine_versions.py`. Splitting them lets a recalibrated engine keep
+  publishing under the old engine identity, so a reader asking for one semantics silently
+  gets two. Not hypothetical: the USD recalibration above bumped the parameter version,
+  left the engine version behind, and nothing failed.
+
+- **Statement ingest is now calendar-driven and daily.** `fundamental_ingest_daily`
+  (04:20 ET, uw-0, `UW_SCAN_FUNDAMENTAL_INGEST_DAILY_ENABLED`) reads UW's earnings
+  calendar for the last 4 days, intersects it with the `ranked` universe, and pulls only
+  the names that actually reported — about 6 a day against the monthly sweep's 450.
+  Measured: a statement is retrievable the day the company reports (100% of reports 2–7
+  days old, 98.5% across 704 report events over 120 days), so the monthly cadence's
+  up-to-30-day staleness bought nothing and cost twice as much (~900 UW calls/month
+  against 1,800). The lookback is outage insurance, not a wait for UW to publish.
+  - The monthly sweep stays registered as a backstop, for two independent reasons.
+    `premarket`/`afterhours` are the *classified* calendar — a name UW reports as
+    `report_time: "unknown"` appears in neither, verified for ISRG, SONY, DJCO and POET,
+    ≈2% of the statement-bearing universe — and only a late full re-pull can collect a
+    filing date UW published after we first stored the row.
+  - New `sources/earnings_calendar.py` paginates both slots; the busiest day observed
+    returned 257 rows, so a single-page fetch would have dropped the tail on exactly the
+    days that matter.
 
 ### Changed
 
@@ -64,30 +86,25 @@ version in lockstep (enforced by `scripts/release/version_sync_check.py`).
     `scripts/research/macro_state_replay_census.py`, verdict
     `docs/research/2026-08-23-macro-state-replay-flip-census.md`.
 
-### Added
-
-- **A test that every macro domain's engine version and parameter version move together.**
-  `tests/unit/macro/test_engine_versions.py`. Splitting them lets a recalibrated engine keep
-  publishing under the old engine identity, so a reader asking for one semantics silently
-  gets two. Not hypothetical: the USD recalibration above bumped the parameter version,
-  left the engine version behind, and nothing failed.
-
-- **Statement ingest is now calendar-driven and daily.** `fundamental_ingest_daily`
-  (04:20 ET, uw-0, `UW_SCAN_FUNDAMENTAL_INGEST_DAILY_ENABLED`) reads UW's earnings
-  calendar for the last 4 days, intersects it with the `ranked` universe, and pulls only
-  the names that actually reported — about 6 a day against the monthly sweep's 450.
-  Measured: a statement is retrievable the day the company reports (100% of reports 2–7
-  days old, 98.5% across 704 report events over 120 days), so the monthly cadence's
-  up-to-30-day staleness bought nothing and cost twice as much (~900 UW calls/month
-  against 1,800). The lookback is outage insurance, not a wait for UW to publish.
-  - The monthly sweep stays registered as a backstop, for two independent reasons.
-    `premarket`/`afterhours` are the *classified* calendar — a name UW reports as
-    `report_time: "unknown"` appears in neither, verified for ISRG, SONY, DJCO and POET,
-    ≈2% of the statement-bearing universe — and only a late full re-pull can collect a
-    filing date UW published after we first stored the row.
-  - New `sources/earnings_calendar.py` paginates both slots; the busiest day observed
-    returned 257 rows, so a single-page fetch would have dropped the tail on exactly the
-    days that matter.
+- **`sources/apex.py` migrated to apex's `/v1/{asset_class}/{symbol}/bars`.** The flat
+  `/bars/{ticker}` alias emits `Deprecation`/`Sunset: Wed, 31 Dec 2026` and resolves
+  every symbol under `asset_class=equity`, so `GET /bars/SPX` was a
+  `404 unknown_symbol` — the vol complex was unreachable from argon.
+  - `fetch_bars` and `fetch_daily_bars` take `asset_class` (default `equity`); pass
+    `volatility` for SPX/VIX/VVIX/COR1M. Verified live: SPX 1d closes 7674.37 on
+    2026-08-21, VVIX 4183 bars from 2010.
+  - `price_mode=adjusted` is now REQUESTED rather than inherited from apex's
+    server-side `effective_price_mode`, so a config flip on the mini can no longer
+    re-base argon's price series mid-stream. Sent for `equity` only — no other class
+    has a Silver tree, and asking for one is a `400 adjusted_not_supported`.
+  - `_iso()` emits offset-aware ISO-8601. apex `/v1` answers `500 internal_error` for
+    a bare `YYYY-MM-DD` start and for a naive ISO datetime; only an explicit UTC
+    offset parses. The flat alias accepted the bare date, so every caller passing a
+    `date` — all of them — would have broken on the migration. Mocked transports
+    cannot catch this; it took a live probe against 0.1.4.
+  - apex's typed `error.code` (`adjusted_unavailable`, `unknown_symbol`, …) now reaches
+    the log line. Every path here still collapses to `[]`, so the code is the only
+    thing separating "apex refused" from "this symbol genuinely has no bars".
 
 ### Fixed
 
@@ -141,27 +158,6 @@ Method, probes and the full tolerance curve:
 `docs/research/2026-08-23-fundamental-filing-date-recovery/VERDICT.md`.
 Plan: `docs/superpowers/plans/2026-08-23-fundamental-calendar-ingest-and-filing-dates.md`.
 
-### Changed
-
-- **`sources/apex.py` migrated to apex's `/v1/{asset_class}/{symbol}/bars`.** The flat
-  `/bars/{ticker}` alias emits `Deprecation`/`Sunset: Wed, 31 Dec 2026` and resolves
-  every symbol under `asset_class=equity`, so `GET /bars/SPX` was a
-  `404 unknown_symbol` — the vol complex was unreachable from argon.
-  - `fetch_bars` and `fetch_daily_bars` take `asset_class` (default `equity`); pass
-    `volatility` for SPX/VIX/VVIX/COR1M. Verified live: SPX 1d closes 7674.37 on
-    2026-08-21, VVIX 4183 bars from 2010.
-  - `price_mode=adjusted` is now REQUESTED rather than inherited from apex's
-    server-side `effective_price_mode`, so a config flip on the mini can no longer
-    re-base argon's price series mid-stream. Sent for `equity` only — no other class
-    has a Silver tree, and asking for one is a `400 adjusted_not_supported`.
-  - `_iso()` emits offset-aware ISO-8601. apex `/v1` answers `500 internal_error` for
-    a bare `YYYY-MM-DD` start and for a naive ISO datetime; only an explicit UTC
-    offset parses. The flat alias accepted the bare date, so every caller passing a
-    `date` — all of them — would have broken on the migration. Mocked transports
-    cannot catch this; it took a live probe against 0.1.4.
-  - apex's typed `error.code` (`adjusted_unavailable`, `unknown_symbol`, …) now reaches
-    the log line. Every path here still collapses to `[]`, so the code is the only
-    thing separating "apex refused" from "this symbol genuinely has no bars".
 ## [0.12.15] — 2026-08-23
 
 
