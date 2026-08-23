@@ -183,6 +183,68 @@ def test_fundamental_ingest_absent_on_massive_role(monkeypatch):
     assert "fundamental_refresh" in ids  # harness sanity: massive-0 sibling wires
 
 
+def test_fundamental_ingest_daily_registered_on_primary_uw_when_enabled(monkeypatch):
+    ids = _registered_job_ids(
+        monkeypatch,
+        UW_SCAN_WORKER_ROLE="uw",
+        UW_SCAN_WORKER_INDEX="0",
+        UW_SCAN_WORKER_COUNT="1",
+        UW_SCAN_FUNDAMENTAL_INGEST_DAILY_ENABLED="true",
+    )
+    assert "fundamental_ingest_daily" in ids
+
+
+def test_fundamental_ingest_daily_absent_when_disabled(monkeypatch):
+    ids = _registered_job_ids(
+        monkeypatch,
+        UW_SCAN_WORKER_ROLE="uw",
+        UW_SCAN_WORKER_INDEX="0",
+        UW_SCAN_WORKER_COUNT="1",
+        UW_SCAN_FUNDAMENTAL_INGEST_DAILY_ENABLED="false",
+    )
+    assert "fundamental_ingest_daily" not in ids
+    assert "full_scan_0" in ids  # harness sanity: sibling uw job still wires
+
+
+def test_fundamental_ingest_daily_absent_on_non_primary_uw(monkeypatch):
+    """Same uw-0 pin as the monthly sweep, same reason: no advisory lock, so a
+    per-role-0 schedule would run N copies against one insert-or-touch table."""
+    ids = _registered_job_ids(
+        monkeypatch,
+        UW_SCAN_WORKER_ROLE="uw",
+        UW_SCAN_WORKER_INDEX="1",
+        UW_SCAN_WORKER_COUNT="2",
+        UW_SCAN_FUNDAMENTAL_INGEST_DAILY_ENABLED="true",
+    )
+    assert "fundamental_ingest_daily" not in ids
+
+
+def test_fundamental_ingest_daily_absent_on_massive_role(monkeypatch):
+    ids = _registered_job_ids(
+        monkeypatch,
+        UW_SCAN_WORKER_ROLE="massive",
+        UW_SCAN_WORKER_INDEX="0",
+        UW_SCAN_WORKER_COUNT="1",
+        UW_SCAN_FUNDAMENTAL_INGEST_DAILY_ENABLED="true",
+    )
+    assert "fundamental_ingest_daily" not in ids
+
+
+def test_the_monthly_backstop_survives_the_daily_job(monkeypatch):
+    """The daily calendar is the CLASSIFIED calendar and misses ~2% of names, and
+    only a full re-pull delivers a filing date UW published late. Both jobs, or
+    neither finding is covered."""
+    ids = _registered_job_ids(
+        monkeypatch,
+        UW_SCAN_WORKER_ROLE="uw",
+        UW_SCAN_WORKER_INDEX="0",
+        UW_SCAN_WORKER_COUNT="1",
+        UW_SCAN_FUNDAMENTAL_INGEST_ENABLED="true",
+        UW_SCAN_FUNDAMENTAL_INGEST_DAILY_ENABLED="true",
+    )
+    assert {"fundamental_ingest", "fundamental_ingest_daily"} <= ids
+
+
 def test_fundamental_concentration_capture_registered_on_primary_uw(monkeypatch):
     ids = _registered_job_ids(
         monkeypatch,

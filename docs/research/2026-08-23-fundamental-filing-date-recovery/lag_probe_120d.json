@@ -1,0 +1,5690 @@
+{
+  "days": 120,
+  "today": "2026-08-23",
+  "calls": 268,
+  "calendar_tickers": 3718,
+  "rows": [
+    {
+      "ticker": "A",
+      "report_date": "2026-05-27",
+      "period_end": "2026-04-30",
+      "filing_published_at": "2026-06-01",
+      "period_gap_days": 27,
+      "filing_lag_days": 5
+    },
+    {
+      "ticker": "AAOI",
+      "report_date": "2026-05-07",
+      "period_end": "2026-03-31",
+      "filing_published_at": "2026-05-07",
+      "period_gap_days": 37,
+      "filing_lag_days": 0
+    },
+    {
+      "ticker": "AAOI",
+      "report_date": "2026-08-06",
+      "period_end": "2026-06-30",
+      "filing_published_at": "2026-08-06",
+      "period_gap_days": 37,
+      "filing_lag_days": 0
+    },
+    {
+      "ticker": "AAON",
+      "report_date": "2026-05-07",
+      "period_end": "2026-03-31",
+      "filing_published_at": "2026-05-07",
+      "period_gap_days": 37,
+      "filing_lag_days": 0
+    },
+    {
+      "ticker": "AAON",
+      "report_date": "2026-08-10",
+      "period_end": "2026-06-30",
+      "filing_published_at": "2026-08-10",
+      "period_gap_days": 41,
+      "filing_lag_days": 0
+    },
+    {
+      "ticker": "AAP",
+      "report_date": "2026-05-21",
+      "period_end": "2026-03-31",
+      "filing_published_at": null,
+      "period_gap_days": 51,
+      "filing_lag_days": null
+    },
+    {
+      "ticker": "AAP",
+      "report_date": "2026-08-20",
+      "period_end": "2026-06-30",
+      "filing_published_at": null,
+      "period_gap_days": 51,
+      "filing_lag_days": null
+    },
+    {
+      "ticker": "AAPL",
+      "report_date": "2026-04-30",
+      "period_end": "2026-03-31",
+      "filing_published_at": null,
+      "period_gap_days": 30,
+      "filing_lag_days": null
+    },
+    {
+      "ticker": "AAPL",
+      "report_date": "2026-07-30",
+      "period_end": "2026-06-30",
+      "filing_published_at": null,
+      "period_gap_days": 30,
+      "filing_lag_days": null
+    },
+    {
+      "ticker": "AAT",
+      "report_date": "2026-04-28",
+      "period_end": "2026-03-31",
+      "filing_published_at": "2026-05-01",
+      "period_gap_days": 28,
+      "filing_lag_days": 3
+    },
+    {
+      "ticker": "AAT",
+      "report_date": "2026-07-28",
+      "period_end": "2026-06-30",
+      "filing_published_at": "2026-07-31",
+      "period_gap_days": 28,
+      "filing_lag_days": 3
+    },
+    {
+      "ticker": "ABBV",
+      "report_date": "2026-04-29",
+      "period_end": "2026-03-31",
+      "filing_published_at": "2026-05-08",
+      "period_gap_days": 29,
+      "filing_lag_days": 9
+    },
+    {
+      "ticker": "ABBV",
+      "report_date": "2026-07-31",
+      "period_end": "2026-06-30",
+      "filing_published_at": "2026-08-03",
+      "period_gap_days": 31,
+      "filing_lag_days": 3
+    },
+    {
+      "ticker": "ABCB",
+      "report_date": "2026-07-23",
+      "period_end": "2026-06-30",
+      "filing_published_at": "2026-08-07",
+      "period_gap_days": 23,
+      "filing_lag_days": 15
+    },
+    {
+      "ticker": "ABEO",
+      "report_date": "2026-05-13",
+      "period_end": "2026-03-31",
+      "filing_published_at": "2026-05-13",
+      "period_gap_days": 43,
+      "filing_lag_days": 0
+    },
+    {
+      "ticker": "ABEO",
+      "report_date": "2026-08-13",
+      "period_end": "2026-06-30",
+      "filing_published_at": "2026-08-13",
+      "period_gap_days": 44,
+      "filing_lag_days": 0
+    },
+    {
+      "ticker": "ABG",
+      "report_date": "2026-04-28",
+      "period_end": "2026-03-31",
+      "filing_published_at": "2026-05-01",
+      "period_gap_days": 28,
+      "filing_lag_days": 3
+    },
+    {
+      "ticker": "ABG",
+      "report_date": "2026-07-28",
+      "period_end": "2026-06-30",
+      "filing_published_at": "2026-07-31",
+      "period_gap_days": 28,
+      "filing_lag_days": 3
+    },
+    {
+      "ticker": "ABM",
+      "report_date": "2026-06-05",
+      "period_end": "2026-04-30",
+      "filing_published_at": "2026-06-05",
+      "period_gap_days": 36,
+      "filing_lag_days": 0
+    },
+    {
+      "ticker": "ABNB",
+      "report_date": "2026-05-07",
+      "period_end": "2026-03-31",
+      "filing_published_at": "2026-05-07",
+      "period_gap_days": 37,
+      "filing_lag_days": 0
+    },
+    {
+      "ticker": "ABNB",
+      "report_date": "2026-08-06",
+      "period_end": "2026-06-30",
+      "filing_published_at": "2026-08-06",
+      "period_gap_days": 37,
+      "filing_lag_days": 0
+    },
+    {
+      "ticker": "ABR",
+      "report_date": "2026-05-08",
+      "period_end": "2026-03-31",
+      "filing_published_at": "2026-05-08",
+      "period_gap_days": 38,
+      "filing_lag_days": 0
+    },
+    {
+      "ticker": "ABR",
+      "report_date": "2026-07-31",
+      "period_end": "2026-06-30",
+      "filing_published_at": "2026-07-31",
+      "period_gap_days": 31,
+      "filing_lag_days": 0
+    },
+    {
+      "ticker": "ABT",
+      "report_date": "2026-07-16",
+      "period_end": "2026-06-30",
+      "filing_published_at": "2026-07-28",
+      "period_gap_days": 16,
+      "filing_lag_days": 12
+    },
+    {
+      "ticker": "ACAD",
+      "report_date": "2026-05-06",
+      "period_end": "2026-03-31",
+      "filing_published_at": "2026-05-07",
+      "period_gap_days": 36,
+      "filing_lag_days": 1
+    },
+    {
+      "ticker": "ACAD",
+      "report_date": "2026-08-04",
+      "period_end": "2026-06-30",
+      "filing_published_at": "2026-08-05",
+      "period_gap_days": 35,
+      "filing_lag_days": 1
+    },
+    {
+      "ticker": "ACCO",
+      "report_date": "2026-04-30",
+      "period_end": "2026-03-31",
+      "filing_published_at": "2026-05-01",
+      "period_gap_days": 30,
+      "filing_lag_days": 1
+    },
+    {
+      "ticker": "ACCO",
+      "report_date": "2026-07-30",
+      "period_end": "2026-06-30",
+      "filing_published_at": "2026-07-31",
+      "period_gap_days": 30,
+      "filing_lag_days": 1
+    },
+    {
+      "ticker": "ACGL",
+      "report_date": "2026-04-28",
+      "period_end": "2026-03-31",
+      "filing_published_at": "2026-05-05",
+      "period_gap_days": 28,
+      "filing_lag_days": 7
+    },
+    {
+      "ticker": "ACGL",
+      "report_date": "2026-07-28",
+      "period_end": "2026-06-30",
+      "filing_published_at": "2026-08-04",
+      "period_gap_days": 28,
+      "filing_lag_days": 7
+    },
+    {
+      "ticker": "ACH",
+      "report_date": "2026-05-11",
+      "period_end": "2026-03-31",
+      "filing_published_at": "2026-05-11",
+      "period_gap_days": 41,
+      "filing_lag_days": 0
+    },
+    {
+      "ticker": "ACH",
+      "report_date": "2026-08-10",
+      "period_end": "2026-06-30",
+      "filing_published_at": "2026-08-10",
+      "period_gap_days": 41,
+      "filing_lag_days": 0
+    },
+    {
+      "ticker": "ACIW",
+      "report_date": "2026-05-07",
+      "period_end": "2026-03-31",
+      "filing_published_at": "2026-05-07",
+      "period_gap_days": 37,
+      "filing_lag_days": 0
+    },
+    {
+      "ticker": "ACIW",
+      "report_date": "2026-08-06",
+      "period_end": "2026-06-30",
+      "filing_published_at": "2026-08-06",
+      "period_gap_days": 37,
+      "filing_lag_days": 0
+    },
+    {
+      "ticker": "ACLS",
+      "report_date": "2026-05-07",
+      "period_end": "2026-03-31",
+      "filing_published_at": "2026-05-08",
+      "period_gap_days": 37,
+      "filing_lag_days": 1
+    },
+    {
+      "ticker": "ACLS",
+      "report_date": "2026-08-06",
+      "period_end": "2026-06-30",
+      "filing_published_at": "2026-08-06",
+      "period_gap_days": 37,
+      "filing_lag_days": 0
+    },
+    {
+      "ticker": "ACM",
+      "report_date": "2026-05-11",
+      "period_end": "2026-03-31",
+      "filing_published_at": "2026-05-12",
+      "period_gap_days": 41,
+      "filing_lag_days": 1
+    },
+    {
+      "ticker": "ACM",
+      "report_date": "2026-08-10",
+      "period_end": "2026-06-30",
+      "filing_published_at": "2026-08-11",
+      "period_gap_days": 41,
+      "filing_lag_days": 1
+    },
+    {
+      "ticker": "ACN",
+      "report_date": "2026-06-18",
+      "period_end": "2026-05-31",
+      "filing_published_at": "2026-06-18",
+      "period_gap_days": 18,
+      "filing_lag_days": 0
+    },
+    {
+      "ticker": "ACNT",
+      "report_date": "2026-05-06",
+      "period_end": "2026-03-31",
+      "filing_published_at": "2026-05-06",
+      "period_gap_days": 36,
+      "filing_lag_days": 0
+    },
+    {
+      "ticker": "ACNT",
+      "report_date": "2026-08-04",
+      "period_end": "2026-06-30",
+      "filing_published_at": "2026-08-04",
+      "period_gap_days": 35,
+      "filing_lag_days": 0
+    },
+    {
+      "ticker": "ACRE",
+      "report_date": "2026-05-07",
+      "period_end": "2026-03-31",
+      "filing_published_at": "2026-05-07",
+      "period_gap_days": 37,
+      "filing_lag_days": 0
+    },
+    {
+      "ticker": "ACRE",
+      "report_date": "2026-08-04",
+      "period_end": "2026-06-30",
+      "filing_published_at": "2026-08-04",
+      "period_gap_days": 35,
+      "filing_lag_days": 0
+    },
+    {
+      "ticker": "ACTG",
+      "report_date": "2026-05-07",
+      "period_end": "2026-03-31",
+      "filing_published_at": "2026-05-07",
+      "period_gap_days": 37,
+      "filing_lag_days": 0
+    },
+    {
+      "ticker": "ACTG",
+      "report_date": "2026-08-05",
+      "period_end": "2026-06-30",
+      "filing_published_at": "2026-08-06",
+      "period_gap_days": 36,
+      "filing_lag_days": 1
+    },
+    {
+      "ticker": "ADBE",
+      "report_date": "2026-06-11",
+      "period_end": "2026-05-31",
+      "filing_published_at": null,
+      "period_gap_days": 11,
+      "filing_lag_days": null
+    },
+    {
+      "ticker": "ADI",
+      "report_date": "2026-05-20",
+      "period_end": "2026-04-30",
+      "filing_published_at": null,
+      "period_gap_days": 20,
+      "filing_lag_days": null
+    },
+    {
+      "ticker": "ADI",
+      "report_date": "2026-08-19",
+      "period_end": "2026-07-31",
+      "filing_published_at": null,
+      "period_gap_days": 19,
+      "filing_lag_days": null
+    },
+    {
+      "ticker": "ADM",
+      "report_date": "2026-05-05",
+      "period_end": "2026-03-31",
+      "filing_published_at": "2026-05-05",
+      "period_gap_days": 35,
+      "filing_lag_days": 0
+    },
+    {
+      "ticker": "ADM",
+      "report_date": "2026-08-04",
+      "period_end": "2026-06-30",
+      "filing_published_at": "2026-08-04",
+      "period_gap_days": 35,
+      "filing_lag_days": 0
+    },
+    {
+      "ticker": "ADP",
+      "report_date": "2026-04-29",
+      "period_end": "2026-03-31",
+      "filing_published_at": "2026-04-30",
+      "period_gap_days": 29,
+      "filing_lag_days": 1
+    },
+    {
+      "ticker": "ADP",
+      "report_date": "2026-07-29",
+      "period_end": "2026-06-30",
+      "filing_published_at": "2026-08-05",
+      "period_gap_days": 29,
+      "filing_lag_days": 7
+    },
+    {
+      "ticker": "ADSK",
+      "report_date": "2026-05-28",
+      "period_end": "2026-04-30",
+      "filing_published_at": "2026-05-29",
+      "period_gap_days": 28,
+      "filing_lag_days": 1
+    },
+    {
+      "ticker": "AEE",
+      "report_date": "2026-05-05",
+      "period_end": "2026-03-31",
+      "filing_published_at": "2026-05-08",
+      "period_gap_days": 35,
+      "filing_lag_days": 3
+    },
+    {
+      "ticker": "AEE",
+      "report_date": "2026-07-30",
+      "period_end": "2026-06-30",
+      "filing_published_at": "2026-08-03",
+      "period_gap_days": 30,
+      "filing_lag_days": 4
+    },
+    {
+      "ticker": "AEHR",
+      "report_date": "2026-07-14",
+      "period_end": "2026-05-31",
+      "filing_published_at": null,
+      "period_gap_days": 44,
+      "filing_lag_days": null
+    },
+    {
+      "ticker": "AEIS",
+      "report_date": "2026-05-04",
+      "period_end": "2026-03-31",
+      "filing_published_at": "2026-05-04",
+      "period_gap_days": 34,
+      "filing_lag_days": 0
+    },
+    {
+      "ticker": "AEIS",
+      "report_date": "2026-08-03",
+      "period_end": "2026-06-30",
+      "filing_published_at": "2026-08-03",
+      "period_gap_days": 34,
+      "filing_lag_days": 0
+    },
+    {
+      "ticker": "AEO",
+      "report_date": "2026-05-28",
+      "period_end": "2026-04-30",
+      "filing_published_at": null,
+      "period_gap_days": 28,
+      "filing_lag_days": null
+    },
+    {
+      "ticker": "AEP",
+      "report_date": "2026-05-05",
+      "period_end": "2026-03-31",
+      "filing_published_at": "2026-05-05",
+      "period_gap_days": 35,
+      "filing_lag_days": 0
+    },
+    {
+      "ticker": "AEP",
+      "report_date": "2026-07-30",
+      "period_end": "2026-06-30",
+      "filing_published_at": null,
+      "period_gap_days": 30,
+      "filing_lag_days": null
+    },
+    {
+      "ticker": "AES",
+      "report_date": "2026-05-13",
+      "period_end": "2026-03-31",
+      "filing_published_at": "2026-05-05",
+      "period_gap_days": 43,
+      "filing_lag_days": -8
+    },
+    {
+      "ticker": "AFL",
+      "report_date": "2026-04-29",
+      "period_end": "2026-03-31",
+      "filing_published_at": "2026-05-06",
+      "period_gap_days": 29,
+      "filing_lag_days": 7
+    },
+    {
+      "ticker": "AFL",
+      "report_date": "2026-08-06",
+      "period_end": "2026-06-30",
+      "filing_published_at": "2026-08-07",
+      "period_gap_days": 37,
+      "filing_lag_days": 1
+    },
+    {
+      "ticker": "AI",
+      "report_date": "2026-06-03",
+      "period_end": "2026-04-30",
+      "filing_published_at": "2026-06-24",
+      "period_gap_days": 34,
+      "filing_lag_days": 21
+    },
+    {
+      "ticker": "AIG",
+      "report_date": "2026-04-30",
+      "period_end": "2026-03-31",
+      "filing_published_at": "2026-05-01",
+      "period_gap_days": 30,
+      "filing_lag_days": 1
+    },
+    {
+      "ticker": "AIG",
+      "report_date": "2026-08-06",
+      "period_end": "2026-06-30",
+      "filing_published_at": "2026-08-07",
+      "period_gap_days": 37,
+      "filing_lag_days": 1
+    },
+    {
+      "ticker": "AIZ",
+      "report_date": "2026-05-05",
+      "period_end": "2026-03-31",
+      "filing_published_at": "2026-05-07",
+      "period_gap_days": 35,
+      "filing_lag_days": 2
+    },
+    {
+      "ticker": "AIZ",
+      "report_date": "2026-08-04",
+      "period_end": "2026-06-30",
+      "filing_published_at": "2026-08-06",
+      "period_gap_days": 35,
+      "filing_lag_days": 2
+    },
+    {
+      "ticker": "AJG",
+      "report_date": "2026-04-30",
+      "period_end": "2026-03-31",
+      "filing_published_at": "2026-05-07",
+      "period_gap_days": 30,
+      "filing_lag_days": 7
+    },
+    {
+      "ticker": "AJG",
+      "report_date": "2026-07-30",
+      "period_end": "2026-06-30",
+      "filing_published_at": "2026-08-05",
+      "period_gap_days": 30,
+      "filing_lag_days": 6
+    },
+    {
+      "ticker": "AKAM",
+      "report_date": "2026-05-07",
+      "period_end": "2026-03-31",
+      "filing_published_at": "2026-05-08",
+      "period_gap_days": 37,
+      "filing_lag_days": 1
+    },
+    {
+      "ticker": "AKAM",
+      "report_date": "2026-08-06",
+      "period_end": "2026-06-30",
+      "filing_published_at": "2026-08-07",
+      "period_gap_days": 37,
+      "filing_lag_days": 1
+    },
+    {
+      "ticker": "ALAB",
+      "report_date": "2026-05-05",
+      "period_end": "2026-03-31",
+      "filing_published_at": "2026-05-06",
+      "period_gap_days": 35,
+      "filing_lag_days": 1
+    },
+    {
+      "ticker": "ALAB",
+      "report_date": "2026-08-04",
+      "period_end": "2026-06-30",
+      "filing_published_at": "2026-08-05",
+      "period_gap_days": 35,
+      "filing_lag_days": 1
+    },
+    {
+      "ticker": "ALB",
+      "report_date": "2026-05-06",
+      "period_end": "2026-03-31",
+      "filing_published_at": "2026-05-06",
+      "period_gap_days": 36,
+      "filing_lag_days": 0
+    },
+    {
+      "ticker": "ALB",
+      "report_date": "2026-08-05",
+      "period_end": "2026-06-30",
+      "filing_published_at": "2026-08-05",
+      "period_gap_days": 36,
+      "filing_lag_days": 0
+    },
+    {
+      "ticker": "ALGM",
+      "report_date": "2026-05-07",
+      "period_end": "2026-03-31",
+      "filing_published_at": null,
+      "period_gap_days": 37,
+      "filing_lag_days": null
+    },
+    {
+      "ticker": "ALGM",
+      "report_date": "2026-07-30",
+      "period_end": "2026-06-30",
+      "filing_published_at": null,
+      "period_gap_days": 30,
+      "filing_lag_days": null
+    },
+    {
+      "ticker": "ALGN",
+      "report_date": "2026-04-29",
+      "period_end": "2026-03-31",
+      "filing_published_at": "2026-05-06",
+      "period_gap_days": 29,
+      "filing_lag_days": 7
+    },
+    {
+      "ticker": "ALGN",
+      "report_date": "2026-07-29",
+      "period_end": "2026-06-30",
+      "filing_published_at": "2026-08-05",
+      "period_gap_days": 29,
+      "filing_lag_days": 7
+    },
+    {
+      "ticker": "ALL",
+      "report_date": "2026-04-29",
+      "period_end": "2026-03-31",
+      "filing_published_at": "2026-04-29",
+      "period_gap_days": 29,
+      "filing_lag_days": 0
+    },
+    {
+      "ticker": "ALL",
+      "report_date": "2026-08-05",
+      "period_end": "2026-06-30",
+      "filing_published_at": "2026-08-05",
+      "period_gap_days": 36,
+      "filing_lag_days": 0
+    },
+    {
+      "ticker": "ALNY",
+      "report_date": "2026-04-30",
+      "period_end": "2026-03-31",
+      "filing_published_at": "2026-04-30",
+      "period_gap_days": 30,
+      "filing_lag_days": 0
+    },
+    {
+      "ticker": "ALNY",
+      "report_date": "2026-07-30",
+      "period_end": "2026-06-30",
+      "filing_published_at": "2026-07-30",
+      "period_gap_days": 30,
+      "filing_lag_days": 0
+    },
+    {
+      "ticker": "AMAT",
+      "report_date": "2026-05-14",
+      "period_end": "2026-04-30",
+      "filing_published_at": null,
+      "period_gap_days": 14,
+      "filing_lag_days": null
+    },
+    {
+      "ticker": "AMAT",
+      "report_date": "2026-08-13",
+      "period_end": "2026-07-31",
+      "filing_published_at": null,
+      "period_gap_days": 13,
+      "filing_lag_days": null
+    },
+    {
+      "ticker": "AMD",
+      "report_date": "2026-05-05",
+      "period_end": "2026-03-31",
+      "filing_published_at": null,
+      "period_gap_days": 35,
+      "filing_lag_days": null
+    },
+    {
+      "ticker": "AMD",
+      "report_date": "2026-08-04",
+      "period_end": "2026-06-30",
+      "filing_published_at": null,
+      "period_gap_days": 35,
+      "filing_lag_days": null
+    },
+    {
+      "ticker": "AME",
+      "report_date": "2026-04-30",
+      "period_end": "2026-03-31",
+      "filing_published_at": "2026-04-30",
+      "period_gap_days": 30,
+      "filing_lag_days": 0
+    },
+    {
+      "ticker": "AME",
+      "report_date": "2026-08-04",
+      "period_end": "2026-06-30",
+      "filing_published_at": "2026-08-04",
+      "period_gap_days": 35,
+      "filing_lag_days": 0
+    },
+    {
+      "ticker": "AMGN",
+      "report_date": "2026-04-30",
+      "period_end": "2026-03-31",
+      "filing_published_at": "2026-05-01",
+      "period_gap_days": 30,
+      "filing_lag_days": 1
+    },
+    {
+      "ticker": "AMGN",
+      "report_date": "2026-08-04",
+      "period_end": "2026-06-30",
+      "filing_published_at": "2026-08-05",
+      "period_gap_days": 35,
+      "filing_lag_days": 1
+    },
+    {
+      "ticker": "AMKR",
+      "report_date": "2026-04-27",
+      "period_end": "2026-03-31",
+      "filing_published_at": "2026-04-28",
+      "period_gap_days": 27,
+      "filing_lag_days": 1
+    },
+    {
+      "ticker": "AMKR",
+      "report_date": "2026-07-27",
+      "period_end": "2026-06-30",
+      "filing_published_at": "2026-07-28",
+      "period_gap_days": 27,
+      "filing_lag_days": 1
+    },
+    {
+      "ticker": "AMP",
+      "report_date": "2026-07-23",
+      "period_end": "2026-06-30",
+      "filing_published_at": "2026-08-04",
+      "period_gap_days": 23,
+      "filing_lag_days": 12
+    },
+    {
+      "ticker": "AMT",
+      "report_date": "2026-04-28",
+      "period_end": "2026-03-31",
+      "filing_published_at": "2026-04-28",
+      "period_gap_days": 28,
+      "filing_lag_days": 0
+    },
+    {
+      "ticker": "AMT",
+      "report_date": "2026-07-28",
+      "period_end": "2026-06-30",
+      "filing_published_at": "2026-07-28",
+      "period_gap_days": 28,
+      "filing_lag_days": 0
+    },
+    {
+      "ticker": "AMZN",
+      "report_date": "2026-04-29",
+      "period_end": "2026-03-31",
+      "filing_published_at": "2026-04-30",
+      "period_gap_days": 29,
+      "filing_lag_days": 1
+    },
+    {
+      "ticker": "AMZN",
+      "report_date": "2026-07-30",
+      "period_end": "2026-06-30",
+      "filing_published_at": "2026-07-31",
+      "period_gap_days": 30,
+      "filing_lag_days": 1
+    },
+    {
+      "ticker": "ANET",
+      "report_date": "2026-05-05",
+      "period_end": "2026-03-31",
+      "filing_published_at": "2026-05-06",
+      "period_gap_days": 35,
+      "filing_lag_days": 1
+    },
+    {
+      "ticker": "ANET",
+      "report_date": "2026-08-04",
+      "period_end": "2026-06-30",
+      "filing_published_at": "2026-08-05",
+      "period_gap_days": 35,
+      "filing_lag_days": 1
+    },
+    {
+      "ticker": "ANGO",
+      "report_date": "2026-07-14",
+      "period_end": "2026-05-31",
+      "filing_published_at": "2026-07-14",
+      "period_gap_days": 44,
+      "filing_lag_days": 0
+    },
+    {
+      "ticker": "AON",
+      "report_date": "2026-05-01",
+      "period_end": "2026-03-31",
+      "filing_published_at": "2026-05-01",
+      "period_gap_days": 31,
+      "filing_lag_days": 0
+    },
+    {
+      "ticker": "AON",
+      "report_date": "2026-07-29",
+      "period_end": "2026-06-30",
+      "filing_published_at": "2026-07-29",
+      "period_gap_days": 29,
+      "filing_lag_days": 0
+    },
+    {
+      "ticker": "AOS",
+      "report_date": "2026-04-30",
+      "period_end": "2026-03-31",
+      "filing_published_at": "2026-04-30",
+      "period_gap_days": 30,
+      "filing_lag_days": 0
+    },
+    {
+      "ticker": "AOS",
+      "report_date": "2026-07-30",
+      "period_end": "2026-06-30",
+      "filing_published_at": "2026-07-30",
+      "period_gap_days": 30,
+      "filing_lag_days": 0
+    },
+    {
+      "ticker": "APA",
+      "report_date": "2026-05-06",
+      "period_end": "2026-03-31",
+      "filing_published_at": "2026-05-07",
+      "period_gap_days": 36,
+      "filing_lag_days": 1
+    },
+    {
+      "ticker": "APA",
+      "report_date": "2026-08-05",
+      "period_end": "2026-06-30",
+      "filing_published_at": "2026-08-06",
+      "period_gap_days": 36,
+      "filing_lag_days": 1
+    },
+    {
+      "ticker": "APD",
+      "report_date": "2026-04-30",
+      "period_end": "2026-03-31",
+      "filing_published_at": "2026-04-30",
+      "period_gap_days": 30,
+      "filing_lag_days": 0
+    },
+    {
+      "ticker": "APD",
+      "report_date": "2026-07-30",
+      "period_end": "2026-06-30",
+      "filing_published_at": "2026-07-30",
+      "period_gap_days": 30,
+      "filing_lag_days": 0
+    },
+    {
+      "ticker": "APH",
+      "report_date": "2026-04-29",
+      "period_end": "2026-03-31",
+      "filing_published_at": "2026-05-01",
+      "period_gap_days": 29,
+      "filing_lag_days": 2
+    },
+    {
+      "ticker": "APH",
+      "report_date": "2026-07-29",
+      "period_end": "2026-06-30",
+      "filing_published_at": "2026-07-31",
+      "period_gap_days": 29,
+      "filing_lag_days": 2
+    },
+    {
+      "ticker": "APLD",
+      "report_date": "2026-07-27",
+      "period_end": "2026-05-31",
+      "filing_published_at": "2026-07-29",
+      "period_gap_days": 57,
+      "filing_lag_days": 2
+    },
+    {
+      "ticker": "APP",
+      "report_date": "2026-05-06",
+      "period_end": "2026-03-31",
+      "filing_published_at": "2026-05-06",
+      "period_gap_days": 36,
+      "filing_lag_days": 0
+    },
+    {
+      "ticker": "APP",
+      "report_date": "2026-08-05",
+      "period_end": "2026-06-30",
+      "filing_published_at": "2026-08-05",
+      "period_gap_days": 36,
+      "filing_lag_days": 0
+    },
+    {
+      "ticker": "APTV",
+      "report_date": "2026-05-05",
+      "period_end": "2026-03-31",
+      "filing_published_at": "2026-05-05",
+      "period_gap_days": 35,
+      "filing_lag_days": 0
+    },
+    {
+      "ticker": "APTV",
+      "report_date": "2026-08-04",
+      "period_end": "2026-06-30",
+      "filing_published_at": "2026-08-04",
+      "period_gap_days": 35,
+      "filing_lag_days": 0
+    },
+    {
+      "ticker": "ARE",
+      "report_date": "2026-04-27",
+      "period_end": "2026-03-31",
+      "filing_published_at": "2026-04-27",
+      "period_gap_days": 27,
+      "filing_lag_days": 0
+    },
+    {
+      "ticker": "ARE",
+      "report_date": "2026-08-03",
+      "period_end": "2026-06-30",
+      "filing_published_at": "2026-08-03",
+      "period_gap_days": 34,
+      "filing_lag_days": 0
+    },
+    {
+      "ticker": "ARM",
+      "report_date": "2026-05-06",
+      "period_end": "2026-03-31",
+      "filing_published_at": "2026-05-26",
+      "period_gap_days": 36,
+      "filing_lag_days": 20
+    },
+    {
+      "ticker": "ARM",
+      "report_date": "2026-07-29",
+      "period_end": "2026-06-30",
+      "filing_published_at": null,
+      "period_gap_days": 29,
+      "filing_lag_days": null
+    },
+    {
+      "ticker": "ASML",
+      "report_date": "2026-07-15",
+      "period_end": "2026-06-30",
+      "filing_published_at": null,
+      "period_gap_days": 15,
+      "filing_lag_days": null
+    },
+    {
+      "ticker": "ASTS",
+      "report_date": "2026-05-11",
+      "period_end": "2026-03-31",
+      "filing_published_at": "2026-05-11",
+      "period_gap_days": 41,
+      "filing_lag_days": 0
+    },
+    {
+      "ticker": "ASTS",
+      "report_date": "2026-08-10",
+      "period_end": "2026-06-30",
+      "filing_published_at": "2026-08-10",
+      "period_gap_days": 41,
+      "filing_lag_days": 0
+    },
+    {
+      "ticker": "ASX",
+      "report_date": "2026-04-29",
+      "period_end": "2026-03-31",
+      "filing_published_at": null,
+      "period_gap_days": 29,
+      "filing_lag_days": null
+    },
+    {
+      "ticker": "ASX",
+      "report_date": "2026-07-30",
+      "period_end": "2026-06-30",
+      "filing_published_at": null,
+      "period_gap_days": 30,
+      "filing_lag_days": null
+    },
+    {
+      "ticker": "ATKR",
+      "report_date": "2026-05-05",
+      "period_end": "2026-03-31",
+      "filing_published_at": null,
+      "period_gap_days": 35,
+      "filing_lag_days": null
+    },
+    {
+      "ticker": "ATKR",
+      "report_date": "2026-08-04",
+      "period_end": "2026-06-30",
+      "filing_published_at": null,
+      "period_gap_days": 35,
+      "filing_lag_days": null
+    },
+    {
+      "ticker": "ATO",
+      "report_date": "2026-05-06",
+      "period_end": "2026-03-31",
+      "filing_published_at": "2026-05-06",
+      "period_gap_days": 36,
+      "filing_lag_days": 0
+    },
+    {
+      "ticker": "ATO",
+      "report_date": "2026-08-05",
+      "period_end": "2026-06-30",
+      "filing_published_at": "2026-08-05",
+      "period_gap_days": 36,
+      "filing_lag_days": 0
+    },
+    {
+      "ticker": "AVB",
+      "report_date": "2026-04-27",
+      "period_end": "2026-03-31",
+      "filing_published_at": "2026-05-07",
+      "period_gap_days": 27,
+      "filing_lag_days": 10
+    },
+    {
+      "ticker": "AVB",
+      "report_date": "2026-07-22",
+      "period_end": "2026-06-30",
+      "filing_published_at": "2026-07-30",
+      "period_gap_days": 22,
+      "filing_lag_days": 8
+    },
+    {
+      "ticker": "AVGO",
+      "report_date": "2026-06-03",
+      "period_end": "2026-04-30",
+      "filing_published_at": null,
+      "period_gap_days": 34,
+      "filing_lag_days": null
+    },
+    {
+      "ticker": "AVY",
+      "report_date": "2026-04-28",
+      "period_end": "2026-03-31",
+      "filing_published_at": "2026-05-05",
+      "period_gap_days": 28,
+      "filing_lag_days": 7
+    },
+    {
+      "ticker": "AVY",
+      "report_date": "2026-07-30",
+      "period_end": "2026-06-30",
+      "filing_published_at": "2026-08-04",
+      "period_gap_days": 30,
+      "filing_lag_days": 5
+    },
+    {
+      "ticker": "AWK",
+      "report_date": "2026-04-29",
+      "period_end": "2026-03-31",
+      "filing_published_at": "2026-04-29",
+      "period_gap_days": 29,
+      "filing_lag_days": 0
+    },
+    {
+      "ticker": "AWK",
+      "report_date": "2026-07-29",
+      "period_end": "2026-06-30",
+      "filing_published_at": "2026-07-29",
+      "period_gap_days": 29,
+      "filing_lag_days": 0
+    },
+    {
+      "ticker": "AXON",
+      "report_date": "2026-05-06",
+      "period_end": "2026-03-31",
+      "filing_published_at": "2026-05-07",
+      "period_gap_days": 36,
+      "filing_lag_days": 1
+    },
+    {
+      "ticker": "AXON",
+      "report_date": "2026-08-05",
+      "period_end": "2026-06-30",
+      "filing_published_at": "2026-08-06",
+      "period_gap_days": 36,
+      "filing_lag_days": 1
+    },
+    {
+      "ticker": "AXP",
+      "report_date": "2026-07-24",
+      "period_end": "2026-06-30",
+      "filing_published_at": "2026-07-24",
+      "period_gap_days": 24,
+      "filing_lag_days": 0
+    },
+    {
+      "ticker": "AYI",
+      "report_date": "2026-06-25",
+      "period_end": "2026-05-31",
+      "filing_published_at": "2026-06-25",
+      "period_gap_days": 25,
+      "filing_lag_days": 0
+    },
+    {
+      "ticker": "AZO",
+      "report_date": "2026-05-26",
+      "period_end": "2026-02-28",
+      "filing_published_at": null,
+      "period_gap_days": 87,
+      "filing_lag_days": null
+    },
+    {
+      "ticker": "BA",
+      "report_date": "2026-07-28",
+      "period_end": "2026-06-30",
+      "filing_published_at": "2026-07-28",
+      "period_gap_days": 28,
+      "filing_lag_days": 0
+    },
+    {
+      "ticker": "BABA",
+      "report_date": "2026-05-13",
+      "period_end": "2026-03-31",
+      "filing_published_at": "2026-05-20",
+      "period_gap_days": 43,
+      "filing_lag_days": 7
+    },
+    {
+      "ticker": "BABA",
+      "report_date": "2026-08-20",
+      "period_end": "2026-06-30",
+      "filing_published_at": null,
+      "period_gap_days": 51,
+      "filing_lag_days": null
+    },
+    {
+      "ticker": "BAC",
+      "report_date": "2026-07-14",
+      "period_end": "2026-06-30",
+      "filing_published_at": "2026-07-31",
+      "period_gap_days": 14,
+      "filing_lag_days": 17
+    },
+    {
+      "ticker": "BALL",
+      "report_date": "2026-05-05",
+      "period_end": "2026-03-31",
+      "filing_published_at": "2026-05-05",
+      "period_gap_days": 35,
+      "filing_lag_days": 0
+    },
+    {
+      "ticker": "BALL",
+      "report_date": "2026-08-04",
+      "period_end": "2026-06-30",
+      "filing_published_at": "2026-08-04",
+      "period_gap_days": 35,
+      "filing_lag_days": 0
+    },
+    {
+      "ticker": "BAX",
+      "report_date": "2026-04-30",
+      "period_end": "2026-03-31",
+      "filing_published_at": "2026-04-30",
+      "period_gap_days": 30,
+      "filing_lag_days": 0
+    },
+    {
+      "ticker": "BAX",
+      "report_date": "2026-07-30",
+      "period_end": "2026-06-30",
+      "filing_published_at": "2026-07-30",
+      "period_gap_days": 30,
+      "filing_lag_days": 0
+    },
+    {
+      "ticker": "BBAI",
+      "report_date": "2026-05-05",
+      "period_end": "2026-03-31",
+      "filing_published_at": "2026-05-05",
+      "period_gap_days": 35,
+      "filing_lag_days": 0
+    },
+    {
+      "ticker": "BBAI",
+      "report_date": "2026-07-30",
+      "period_end": "2026-06-30",
+      "filing_published_at": "2026-07-30",
+      "period_gap_days": 30,
+      "filing_lag_days": 0
+    },
+    {
+      "ticker": "BBY",
+      "report_date": "2026-05-28",
+      "period_end": "2026-04-30",
+      "filing_published_at": null,
+      "period_gap_days": 28,
+      "filing_lag_days": null
+    },
+    {
+      "ticker": "BCRX",
+      "report_date": "2026-05-06",
+      "period_end": "2026-03-31",
+      "filing_published_at": "2026-05-06",
+      "period_gap_days": 36,
+      "filing_lag_days": 0
+    },
+    {
+      "ticker": "BCRX",
+      "report_date": "2026-08-05",
+      "period_end": "2026-06-30",
+      "filing_published_at": "2026-08-05",
+      "period_gap_days": 36,
+      "filing_lag_days": 0
+    },
+    {
+      "ticker": "BDX",
+      "report_date": "2026-05-07",
+      "period_end": "2026-03-31",
+      "filing_published_at": "2026-05-07",
+      "period_gap_days": 37,
+      "filing_lag_days": 0
+    },
+    {
+      "ticker": "BDX",
+      "report_date": "2026-08-06",
+      "period_end": "2026-06-30",
+      "filing_published_at": "2026-08-06",
+      "period_gap_days": 37,
+      "filing_lag_days": 0
+    },
+    {
+      "ticker": "BE",
+      "report_date": "2026-04-28",
+      "period_end": "2026-03-31",
+      "filing_published_at": "2026-04-29",
+      "period_gap_days": 28,
+      "filing_lag_days": 1
+    },
+    {
+      "ticker": "BE",
+      "report_date": "2026-07-28",
+      "period_end": "2026-06-30",
+      "filing_published_at": "2026-07-29",
+      "period_gap_days": 28,
+      "filing_lag_days": 1
+    },
+    {
+      "ticker": "BELFB",
+      "report_date": "2026-04-29",
+      "period_end": "2026-03-31",
+      "filing_published_at": null,
+      "period_gap_days": 29,
+      "filing_lag_days": null
+    },
+    {
+      "ticker": "BELFB",
+      "report_date": "2026-07-29",
+      "period_end": "2026-06-30",
+      "filing_published_at": null,
+      "period_gap_days": 29,
+      "filing_lag_days": null
+    },
+    {
+      "ticker": "BEN",
+      "report_date": "2026-04-28",
+      "period_end": "2026-03-31",
+      "filing_published_at": "2026-04-28",
+      "period_gap_days": 28,
+      "filing_lag_days": 0
+    },
+    {
+      "ticker": "BEN",
+      "report_date": "2026-07-31",
+      "period_end": "2026-06-30",
+      "filing_published_at": "2026-07-31",
+      "period_gap_days": 31,
+      "filing_lag_days": 0
+    },
+    {
+      "ticker": "BIIB",
+      "report_date": "2026-04-29",
+      "period_end": "2026-03-31",
+      "filing_published_at": "2026-04-29",
+      "period_gap_days": 29,
+      "filing_lag_days": 0
+    },
+    {
+      "ticker": "BIIB",
+      "report_date": "2026-07-29",
+      "period_end": "2026-06-30",
+      "filing_published_at": "2026-07-29",
+      "period_gap_days": 29,
+      "filing_lag_days": 0
+    },
+    {
+      "ticker": "BKNG",
+      "report_date": "2026-04-28",
+      "period_end": "2026-03-31",
+      "filing_published_at": "2026-04-28",
+      "period_gap_days": 28,
+      "filing_lag_days": 0
+    },
+    {
+      "ticker": "BKNG",
+      "report_date": "2026-08-04",
+      "period_end": "2026-06-30",
+      "filing_published_at": "2026-08-04",
+      "period_gap_days": 35,
+      "filing_lag_days": 0
+    },
+    {
+      "ticker": "BKSY",
+      "report_date": "2026-05-07",
+      "period_end": "2026-03-31",
+      "filing_published_at": "2026-05-07",
+      "period_gap_days": 37,
+      "filing_lag_days": 0
+    },
+    {
+      "ticker": "BKSY",
+      "report_date": "2026-08-06",
+      "period_end": "2026-06-30",
+      "filing_published_at": "2026-08-06",
+      "period_gap_days": 37,
+      "filing_lag_days": 0
+    },
+    {
+      "ticker": "BLK",
+      "report_date": "2026-07-15",
+      "period_end": "2026-06-30",
+      "filing_published_at": "2026-08-06",
+      "period_gap_days": 15,
+      "filing_lag_days": 22
+    },
+    {
+      "ticker": "BMY",
+      "report_date": "2026-04-30",
+      "period_end": "2026-03-31",
+      "filing_published_at": "2026-04-30",
+      "period_gap_days": 30,
+      "filing_lag_days": 0
+    },
+    {
+      "ticker": "BMY",
+      "report_date": "2026-07-30",
+      "period_end": "2026-06-30",
+      "filing_published_at": "2026-07-30",
+      "period_gap_days": 30,
+      "filing_lag_days": 0
+    },
+    {
+      "ticker": "BR",
+      "report_date": "2026-04-30",
+      "period_end": "2026-03-31",
+      "filing_published_at": "2026-04-30",
+      "period_gap_days": 30,
+      "filing_lag_days": 0
+    },
+    {
+      "ticker": "BR",
+      "report_date": "2026-08-04",
+      "period_end": "2026-06-30",
+      "filing_published_at": "2026-08-04",
+      "period_gap_days": 35,
+      "filing_lag_days": 0
+    },
+    {
+      "ticker": "BRO",
+      "report_date": "2026-04-27",
+      "period_end": "2026-03-31",
+      "filing_published_at": "2026-04-27",
+      "period_gap_days": 27,
+      "filing_lag_days": 0
+    },
+    {
+      "ticker": "BRO",
+      "report_date": "2026-07-27",
+      "period_end": "2026-06-30",
+      "filing_published_at": "2026-07-27",
+      "period_gap_days": 27,
+      "filing_lag_days": 0
+    },
+    {
+      "ticker": "BSX",
+      "report_date": "2026-07-29",
+      "period_end": "2026-06-30",
+      "filing_published_at": "2026-08-03",
+      "period_gap_days": 29,
+      "filing_lag_days": 5
+    },
+    {
+      "ticker": "BTDR",
+      "report_date": "2026-05-14",
+      "period_end": "2026-03-31",
+      "filing_published_at": null,
+      "period_gap_days": 44,
+      "filing_lag_days": null
+    },
+    {
+      "ticker": "BTDR",
+      "report_date": "2026-08-10",
+      "period_end": "2026-06-30",
+      "filing_published_at": null,
+      "period_gap_days": 41,
+      "filing_lag_days": null
+    },
+    {
+      "ticker": "BXP",
+      "report_date": "2026-04-28",
+      "period_end": "2026-03-31",
+      "filing_published_at": "2026-05-07",
+      "period_gap_days": 28,
+      "filing_lag_days": 9
+    },
+    {
+      "ticker": "BXP",
+      "report_date": "2026-07-28",
+      "period_end": "2026-06-30",
+      "filing_published_at": "2026-08-06",
+      "period_gap_days": 28,
+      "filing_lag_days": 9
+    },
+    {
+      "ticker": "CAH",
+      "report_date": "2026-04-30",
+      "period_end": "2026-03-31",
+      "filing_published_at": "2026-04-30",
+      "period_gap_days": 30,
+      "filing_lag_days": 0
+    },
+    {
+      "ticker": "CAH",
+      "report_date": "2026-08-11",
+      "period_end": "2026-06-30",
+      "filing_published_at": "2026-08-11",
+      "period_gap_days": 42,
+      "filing_lag_days": 0
+    },
+    {
+      "ticker": "CAMT",
+      "report_date": "2026-05-12",
+      "period_end": "2026-03-31",
+      "filing_published_at": null,
+      "period_gap_days": 42,
+      "filing_lag_days": null
+    },
+    {
+      "ticker": "CAMT",
+      "report_date": "2026-08-10",
+      "period_end": "2026-06-30",
+      "filing_published_at": null,
+      "period_gap_days": 41,
+      "filing_lag_days": null
+    },
+    {
+      "ticker": "CARR",
+      "report_date": "2026-04-30",
+      "period_end": "2026-03-31",
+      "filing_published_at": "2026-04-30",
+      "period_gap_days": 30,
+      "filing_lag_days": 0
+    },
+    {
+      "ticker": "CARR",
+      "report_date": "2026-07-28",
+      "period_end": "2026-06-30",
+      "filing_published_at": "2026-07-28",
+      "period_gap_days": 28,
+      "filing_lag_days": 0
+    },
+    {
+      "ticker": "CB",
+      "report_date": "2026-07-21",
+      "period_end": "2026-06-30",
+      "filing_published_at": "2026-07-28",
+      "period_gap_days": 21,
+      "filing_lag_days": 7
+    },
+    {
+      "ticker": "CBRE",
+      "report_date": "2026-07-29",
+      "period_end": "2026-06-30",
+      "filing_published_at": "2026-07-29",
+      "period_gap_days": 29,
+      "filing_lag_days": 0
+    },
+    {
+      "ticker": "CBZ",
+      "report_date": "2026-04-29",
+      "period_end": "2026-03-31",
+      "filing_published_at": "2026-04-30",
+      "period_gap_days": 29,
+      "filing_lag_days": 1
+    },
+    {
+      "ticker": "CBZ",
+      "report_date": "2026-07-29",
+      "period_end": "2026-06-30",
+      "filing_published_at": "2026-08-04",
+      "period_gap_days": 29,
+      "filing_lag_days": 6
+    },
+    {
+      "ticker": "CCEP",
+      "report_date": "2026-08-04",
+      "period_end": "2026-06-30",
+      "filing_published_at": null,
+      "period_gap_days": 35,
+      "filing_lag_days": null
+    },
+    {
+      "ticker": "CCJ",
+      "report_date": "2026-05-05",
+      "period_end": "2026-03-31",
+      "filing_published_at": null,
+      "period_gap_days": 35,
+      "filing_lag_days": null
+    },
+    {
+      "ticker": "CCJ",
+      "report_date": "2026-07-31",
+      "period_end": "2026-06-30",
+      "filing_published_at": null,
+      "period_gap_days": 31,
+      "filing_lag_days": null
+    },
+    {
+      "ticker": "CCOI",
+      "report_date": "2026-05-04",
+      "period_end": "2026-03-31",
+      "filing_published_at": "2026-05-04",
+      "period_gap_days": 34,
+      "filing_lag_days": 0
+    },
+    {
+      "ticker": "CCOI",
+      "report_date": "2026-08-06",
+      "period_end": "2026-06-30",
+      "filing_published_at": "2026-08-06",
+      "period_gap_days": 37,
+      "filing_lag_days": 0
+    },
+    {
+      "ticker": "CDE",
+      "report_date": "2026-05-06",
+      "period_end": "2026-03-31",
+      "filing_published_at": "2026-05-06",
+      "period_gap_days": 36,
+      "filing_lag_days": 0
+    },
+    {
+      "ticker": "CDE",
+      "report_date": "2026-08-05",
+      "period_end": "2026-06-30",
+      "filing_published_at": "2026-08-05",
+      "period_gap_days": 36,
+      "filing_lag_days": 0
+    },
+    {
+      "ticker": "CDNS",
+      "report_date": "2026-04-27",
+      "period_end": "2026-03-31",
+      "filing_published_at": "2026-05-01",
+      "period_gap_days": 27,
+      "filing_lag_days": 4
+    },
+    {
+      "ticker": "CDNS",
+      "report_date": "2026-07-27",
+      "period_end": "2026-06-30",
+      "filing_published_at": "2026-07-29",
+      "period_gap_days": 27,
+      "filing_lag_days": 2
+    },
+    {
+      "ticker": "CEG",
+      "report_date": "2026-05-11",
+      "period_end": "2026-03-31",
+      "filing_published_at": "2026-05-11",
+      "period_gap_days": 41,
+      "filing_lag_days": 0
+    },
+    {
+      "ticker": "CEG",
+      "report_date": "2026-08-06",
+      "period_end": "2026-06-30",
+      "filing_published_at": "2026-08-06",
+      "period_gap_days": 37,
+      "filing_lag_days": 0
+    },
+    {
+      "ticker": "CHD",
+      "report_date": "2026-05-01",
+      "period_end": "2026-03-31",
+      "filing_published_at": "2026-05-01",
+      "period_gap_days": 31,
+      "filing_lag_days": 0
+    },
+    {
+      "ticker": "CHD",
+      "report_date": "2026-07-31",
+      "period_end": "2026-06-30",
+      "filing_published_at": "2026-07-31",
+      "period_gap_days": 31,
+      "filing_lag_days": 0
+    },
+    {
+      "ticker": "CHKP",
+      "report_date": "2026-04-30",
+      "period_end": "2026-03-31",
+      "filing_published_at": null,
+      "period_gap_days": 30,
+      "filing_lag_days": null
+    },
+    {
+      "ticker": "CHKP",
+      "report_date": "2026-07-30",
+      "period_end": "2026-06-30",
+      "filing_published_at": null,
+      "period_gap_days": 30,
+      "filing_lag_days": null
+    },
+    {
+      "ticker": "CHRW",
+      "report_date": "2026-04-29",
+      "period_end": "2026-03-31",
+      "filing_published_at": "2026-05-01",
+      "period_gap_days": 29,
+      "filing_lag_days": 2
+    },
+    {
+      "ticker": "CHRW",
+      "report_date": "2026-07-29",
+      "period_end": "2026-06-30",
+      "filing_published_at": "2026-07-31",
+      "period_gap_days": 29,
+      "filing_lag_days": 2
+    },
+    {
+      "ticker": "CHTR",
+      "report_date": "2026-07-24",
+      "period_end": "2026-06-30",
+      "filing_published_at": "2026-07-24",
+      "period_gap_days": 24,
+      "filing_lag_days": 0
+    },
+    {
+      "ticker": "CI",
+      "report_date": "2026-04-30",
+      "period_end": "2026-03-31",
+      "filing_published_at": "2026-04-30",
+      "period_gap_days": 30,
+      "filing_lag_days": 0
+    },
+    {
+      "ticker": "CI",
+      "report_date": "2026-07-30",
+      "period_end": "2026-06-30",
+      "filing_published_at": "2026-07-30",
+      "period_gap_days": 30,
+      "filing_lag_days": 0
+    },
+    {
+      "ticker": "CIEN",
+      "report_date": "2026-06-04",
+      "period_end": "2026-04-30",
+      "filing_published_at": null,
+      "period_gap_days": 35,
+      "filing_lag_days": null
+    },
+    {
+      "ticker": "CIFR",
+      "report_date": "2026-05-05",
+      "period_end": "2026-03-31",
+      "filing_published_at": "2026-05-05",
+      "period_gap_days": 35,
+      "filing_lag_days": 0
+    },
+    {
+      "ticker": "CIFR",
+      "report_date": "2026-08-04",
+      "period_end": "2026-06-30",
+      "filing_published_at": "2026-08-04",
+      "period_gap_days": 35,
+      "filing_lag_days": 0
+    },
+    {
+      "ticker": "CINF",
+      "report_date": "2026-04-27",
+      "period_end": "2026-03-31",
+      "filing_published_at": "2026-04-27",
+      "period_gap_days": 27,
+      "filing_lag_days": 0
+    },
+    {
+      "ticker": "CINF",
+      "report_date": "2026-07-27",
+      "period_end": "2026-06-30",
+      "filing_published_at": "2026-07-27",
+      "period_gap_days": 27,
+      "filing_lag_days": 0
+    },
+    {
+      "ticker": "CL",
+      "report_date": "2026-05-01",
+      "period_end": "2026-03-31",
+      "filing_published_at": "2026-05-01",
+      "period_gap_days": 31,
+      "filing_lag_days": 0
+    },
+    {
+      "ticker": "CL",
+      "report_date": "2026-07-31",
+      "period_end": "2026-06-30",
+      "filing_published_at": "2026-07-31",
+      "period_gap_days": 31,
+      "filing_lag_days": 0
+    },
+    {
+      "ticker": "CLSK",
+      "report_date": "2026-05-11",
+      "period_end": "2026-03-31",
+      "filing_published_at": "2026-05-11",
+      "period_gap_days": 41,
+      "filing_lag_days": 0
+    },
+    {
+      "ticker": "CLSK",
+      "report_date": "2026-08-06",
+      "period_end": "2026-06-30",
+      "filing_published_at": "2026-08-06",
+      "period_gap_days": 37,
+      "filing_lag_days": 0
+    },
+    {
+      "ticker": "CLX",
+      "report_date": "2026-04-30",
+      "period_end": "2026-03-31",
+      "filing_published_at": "2026-04-30",
+      "period_gap_days": 30,
+      "filing_lag_days": 0
+    },
+    {
+      "ticker": "CLX",
+      "report_date": "2026-08-03",
+      "period_end": "2026-06-30",
+      "filing_published_at": "2026-08-07",
+      "period_gap_days": 34,
+      "filing_lag_days": 4
+    },
+    {
+      "ticker": "CMCSA",
+      "report_date": "2026-07-23",
+      "period_end": "2026-06-30",
+      "filing_published_at": "2026-07-23",
+      "period_gap_days": 23,
+      "filing_lag_days": 0
+    },
+    {
+      "ticker": "CMI",
+      "report_date": "2026-05-05",
+      "period_end": "2026-03-31",
+      "filing_published_at": "2026-05-05",
+      "period_gap_days": 35,
+      "filing_lag_days": 0
+    },
+    {
+      "ticker": "CMI",
+      "report_date": "2026-08-04",
+      "period_end": "2026-06-30",
+      "filing_published_at": "2026-08-04",
+      "period_gap_days": 35,
+      "filing_lag_days": 0
+    },
+    {
+      "ticker": "CMS",
+      "report_date": "2026-04-28",
+      "period_end": "2026-03-31",
+      "filing_published_at": "2026-04-28",
+      "period_gap_days": 28,
+      "filing_lag_days": 0
+    },
+    {
+      "ticker": "CMS",
+      "report_date": "2026-07-28",
+      "period_end": "2026-06-30",
+      "filing_published_at": "2026-07-28",
+      "period_gap_days": 28,
+      "filing_lag_days": 0
+    },
+    {
+      "ticker": "CNC",
+      "report_date": "2026-04-28",
+      "period_end": "2026-03-31",
+      "filing_published_at": "2026-04-28",
+      "period_gap_days": 28,
+      "filing_lag_days": 0
+    },
+    {
+      "ticker": "CNC",
+      "report_date": "2026-07-28",
+      "period_end": "2026-06-30",
+      "filing_published_at": "2026-07-28",
+      "period_gap_days": 28,
+      "filing_lag_days": 0
+    },
+    {
+      "ticker": "COF",
+      "report_date": "2026-07-21",
+      "period_end": "2026-06-30",
+      "filing_published_at": "2026-07-28",
+      "period_gap_days": 21,
+      "filing_lag_days": 7
+    },
+    {
+      "ticker": "COHR",
+      "report_date": "2026-05-06",
+      "period_end": "2026-03-31",
+      "filing_published_at": "2026-05-06",
+      "period_gap_days": 36,
+      "filing_lag_days": 0
+    },
+    {
+      "ticker": "COHR",
+      "report_date": "2026-08-12",
+      "period_end": "2026-06-30",
+      "filing_published_at": "2026-08-14",
+      "period_gap_days": 43,
+      "filing_lag_days": 2
+    },
+    {
+      "ticker": "COHU",
+      "report_date": "2026-04-30",
+      "period_end": "2026-03-31",
+      "filing_published_at": null,
+      "period_gap_days": 30,
+      "filing_lag_days": null
+    },
+    {
+      "ticker": "COHU",
+      "report_date": "2026-07-30",
+      "period_end": "2026-06-30",
+      "filing_published_at": null,
+      "period_gap_days": 30,
+      "filing_lag_days": null
+    },
+    {
+      "ticker": "COIN",
+      "report_date": "2026-05-07",
+      "period_end": "2026-03-31",
+      "filing_published_at": "2026-05-07",
+      "period_gap_days": 37,
+      "filing_lag_days": 0
+    },
+    {
+      "ticker": "COIN",
+      "report_date": "2026-07-30",
+      "period_end": "2026-06-30",
+      "filing_published_at": "2026-07-30",
+      "period_gap_days": 30,
+      "filing_lag_days": 0
+    },
+    {
+      "ticker": "CORZ",
+      "report_date": "2026-05-06",
+      "period_end": "2026-03-31",
+      "filing_published_at": "2026-05-06",
+      "period_gap_days": 36,
+      "filing_lag_days": 0
+    },
+    {
+      "ticker": "COST",
+      "report_date": "2026-05-28",
+      "period_end": "2026-02-28",
+      "filing_published_at": null,
+      "period_gap_days": 89,
+      "filing_lag_days": null
+    },
+    {
+      "ticker": "CPRT",
+      "report_date": "2026-05-21",
+      "period_end": "2026-04-30",
+      "filing_published_at": "2026-05-29",
+      "period_gap_days": 21,
+      "filing_lag_days": 8
+    },
+    {
+      "ticker": "CRCL",
+      "report_date": "2026-05-11",
+      "period_end": "2026-03-31",
+      "filing_published_at": "2026-05-11",
+      "period_gap_days": 41,
+      "filing_lag_days": 0
+    },
+    {
+      "ticker": "CRCL",
+      "report_date": "2026-08-05",
+      "period_end": "2026-06-30",
+      "filing_published_at": "2026-08-05",
+      "period_gap_days": 36,
+      "filing_lag_days": 0
+    },
+    {
+      "ticker": "CRDO",
+      "report_date": "2026-06-01",
+      "period_end": "2026-04-30",
+      "filing_published_at": null,
+      "period_gap_days": 32,
+      "filing_lag_days": null
+    },
+    {
+      "ticker": "CRL",
+      "report_date": "2026-05-07",
+      "period_end": "2026-03-31",
+      "filing_published_at": null,
+      "period_gap_days": 37,
+      "filing_lag_days": null
+    },
+    {
+      "ticker": "CRL",
+      "report_date": "2026-08-05",
+      "period_end": "2026-06-30",
+      "filing_published_at": null,
+      "period_gap_days": 36,
+      "filing_lag_days": null
+    },
+    {
+      "ticker": "CRM",
+      "report_date": "2026-05-27",
+      "period_end": "2026-04-30",
+      "filing_published_at": "2026-05-28",
+      "period_gap_days": 27,
+      "filing_lag_days": 1
+    },
+    {
+      "ticker": "CRS",
+      "report_date": "2026-04-29",
+      "period_end": "2026-03-31",
+      "filing_published_at": "2026-04-29",
+      "period_gap_days": 29,
+      "filing_lag_days": 0
+    },
+    {
+      "ticker": "CRS",
+      "report_date": "2026-07-30",
+      "period_end": "2026-06-30",
+      "filing_published_at": "2026-08-12",
+      "period_gap_days": 30,
+      "filing_lag_days": 13
+    },
+    {
+      "ticker": "CRWD",
+      "report_date": "2026-06-03",
+      "period_end": "2026-04-30",
+      "filing_published_at": "2026-06-04",
+      "period_gap_days": 34,
+      "filing_lag_days": 1
+    },
+    {
+      "ticker": "CRWV",
+      "report_date": "2026-05-07",
+      "period_end": "2026-03-31",
+      "filing_published_at": "2026-05-08",
+      "period_gap_days": 37,
+      "filing_lag_days": 1
+    },
+    {
+      "ticker": "CRWV",
+      "report_date": "2026-08-11",
+      "period_end": "2026-06-30",
+      "filing_published_at": "2026-08-12",
+      "period_gap_days": 42,
+      "filing_lag_days": 1
+    },
+    {
+      "ticker": "CSCO",
+      "report_date": "2026-05-13",
+      "period_end": "2026-04-30",
+      "filing_published_at": null,
+      "period_gap_days": 13,
+      "filing_lag_days": null
+    },
+    {
+      "ticker": "CSCO",
+      "report_date": "2026-08-12",
+      "period_end": "2026-07-31",
+      "filing_published_at": null,
+      "period_gap_days": 12,
+      "filing_lag_days": null
+    },
+    {
+      "ticker": "CSGP",
+      "report_date": "2026-04-28",
+      "period_end": "2026-03-31",
+      "filing_published_at": "2026-04-29",
+      "period_gap_days": 28,
+      "filing_lag_days": 1
+    },
+    {
+      "ticker": "CSGP",
+      "report_date": "2026-07-28",
+      "period_end": "2026-06-30",
+      "filing_published_at": "2026-07-29",
+      "period_gap_days": 28,
+      "filing_lag_days": 1
+    },
+    {
+      "ticker": "CSR",
+      "report_date": "2026-05-04",
+      "period_end": "2026-03-31",
+      "filing_published_at": "2026-05-04",
+      "period_gap_days": 34,
+      "filing_lag_days": 0
+    },
+    {
+      "ticker": "CSR",
+      "report_date": "2026-08-03",
+      "period_end": "2026-06-30",
+      "filing_published_at": "2026-08-03",
+      "period_gap_days": 34,
+      "filing_lag_days": 0
+    },
+    {
+      "ticker": "CTAS",
+      "report_date": "2026-07-15",
+      "period_end": "2026-05-31",
+      "filing_published_at": "2026-07-29",
+      "period_gap_days": 45,
+      "filing_lag_days": 14
+    },
+    {
+      "ticker": "CTSH",
+      "report_date": "2026-04-29",
+      "period_end": "2026-03-31",
+      "filing_published_at": "2026-04-29",
+      "period_gap_days": 29,
+      "filing_lag_days": 0
+    },
+    {
+      "ticker": "CTSH",
+      "report_date": "2026-07-29",
+      "period_end": "2026-06-30",
+      "filing_published_at": "2026-07-29",
+      "period_gap_days": 29,
+      "filing_lag_days": 0
+    },
+    {
+      "ticker": "CVS",
+      "report_date": "2026-05-06",
+      "period_end": "2026-03-31",
+      "filing_published_at": "2026-05-06",
+      "period_gap_days": 36,
+      "filing_lag_days": 0
+    },
+    {
+      "ticker": "CVS",
+      "report_date": "2026-08-05",
+      "period_end": "2026-06-30",
+      "filing_published_at": "2026-08-05",
+      "period_gap_days": 36,
+      "filing_lag_days": 0
+    },
+    {
+      "ticker": "CVX",
+      "report_date": "2026-05-01",
+      "period_end": "2026-03-31",
+      "filing_published_at": "2026-05-07",
+      "period_gap_days": 31,
+      "filing_lag_days": 6
+    },
+    {
+      "ticker": "CVX",
+      "report_date": "2026-07-31",
+      "period_end": "2026-06-30",
+      "filing_published_at": "2026-08-06",
+      "period_gap_days": 31,
+      "filing_lag_days": 6
+    },
+    {
+      "ticker": "CWST",
+      "report_date": "2026-04-30",
+      "period_end": "2026-03-31",
+      "filing_published_at": "2026-05-01",
+      "period_gap_days": 30,
+      "filing_lag_days": 1
+    },
+    {
+      "ticker": "CWST",
+      "report_date": "2026-08-06",
+      "period_end": "2026-06-30",
+      "filing_published_at": "2026-08-07",
+      "period_gap_days": 37,
+      "filing_lag_days": 1
+    },
+    {
+      "ticker": "CXAI",
+      "report_date": "2026-05-13",
+      "period_end": "2026-03-31",
+      "filing_published_at": "2026-05-13",
+      "period_gap_days": 43,
+      "filing_lag_days": 0
+    },
+    {
+      "ticker": "CXAI",
+      "report_date": "2026-08-10",
+      "period_end": "2026-06-30",
+      "filing_published_at": "2026-08-14",
+      "period_gap_days": 41,
+      "filing_lag_days": 4
+    },
+    {
+      "ticker": "CXW",
+      "report_date": "2026-05-06",
+      "period_end": "2026-03-31",
+      "filing_published_at": "2026-05-07",
+      "period_gap_days": 36,
+      "filing_lag_days": 1
+    },
+    {
+      "ticker": "CXW",
+      "report_date": "2026-08-05",
+      "period_end": "2026-06-30",
+      "filing_published_at": "2026-08-06",
+      "period_gap_days": 36,
+      "filing_lag_days": 1
+    },
+    {
+      "ticker": "D",
+      "report_date": "2026-05-01",
+      "period_end": "2026-03-31",
+      "filing_published_at": "2026-05-01",
+      "period_gap_days": 31,
+      "filing_lag_days": 0
+    },
+    {
+      "ticker": "D",
+      "report_date": "2026-07-31",
+      "period_end": "2026-06-30",
+      "filing_published_at": "2026-07-31",
+      "period_gap_days": 31,
+      "filing_lag_days": 0
+    },
+    {
+      "ticker": "DAL",
+      "report_date": "2026-07-10",
+      "period_end": "2026-06-30",
+      "filing_published_at": "2026-07-10",
+      "period_gap_days": 10,
+      "filing_lag_days": 0
+    },
+    {
+      "ticker": "DASH",
+      "report_date": "2026-05-06",
+      "period_end": "2026-03-31",
+      "filing_published_at": "2026-05-06",
+      "period_gap_days": 36,
+      "filing_lag_days": 0
+    },
+    {
+      "ticker": "DASH",
+      "report_date": "2026-08-05",
+      "period_end": "2026-06-30",
+      "filing_published_at": "2026-08-05",
+      "period_gap_days": 36,
+      "filing_lag_days": 0
+    },
+    {
+      "ticker": "DDOG",
+      "report_date": "2026-05-07",
+      "period_end": "2026-03-31",
+      "filing_published_at": "2026-05-07",
+      "period_gap_days": 37,
+      "filing_lag_days": 0
+    },
+    {
+      "ticker": "DDOG",
+      "report_date": "2026-08-06",
+      "period_end": "2026-06-30",
+      "filing_published_at": "2026-08-06",
+      "period_gap_days": 37,
+      "filing_lag_days": 0
+    },
+    {
+      "ticker": "DE",
+      "report_date": "2026-05-21",
+      "period_end": "2026-04-30",
+      "filing_published_at": null,
+      "period_gap_days": 21,
+      "filing_lag_days": null
+    },
+    {
+      "ticker": "DE",
+      "report_date": "2026-08-20",
+      "period_end": "2026-07-31",
+      "filing_published_at": null,
+      "period_gap_days": 20,
+      "filing_lag_days": null
+    },
+    {
+      "ticker": "DECK",
+      "report_date": "2026-05-21",
+      "period_end": "2026-03-31",
+      "filing_published_at": "2026-05-22",
+      "period_gap_days": 51,
+      "filing_lag_days": 1
+    },
+    {
+      "ticker": "DECK",
+      "report_date": "2026-07-23",
+      "period_end": "2026-06-30",
+      "filing_published_at": "2026-07-30",
+      "period_gap_days": 23,
+      "filing_lag_days": 7
+    },
+    {
+      "ticker": "DELL",
+      "report_date": "2026-05-28",
+      "period_end": "2026-04-30",
+      "filing_published_at": null,
+      "period_gap_days": 28,
+      "filing_lag_days": null
+    },
+    {
+      "ticker": "DG",
+      "report_date": "2026-06-02",
+      "period_end": "2026-04-30",
+      "filing_published_at": null,
+      "period_gap_days": 33,
+      "filing_lag_days": null
+    },
+    {
+      "ticker": "DGX",
+      "report_date": "2026-07-23",
+      "period_end": "2026-06-30",
+      "filing_published_at": "2026-07-23",
+      "period_gap_days": 23,
+      "filing_lag_days": 0
+    },
+    {
+      "ticker": "DHI",
+      "report_date": "2026-07-21",
+      "period_end": "2026-06-30",
+      "filing_published_at": "2026-07-23",
+      "period_gap_days": 21,
+      "filing_lag_days": 2
+    },
+    {
+      "ticker": "DHR",
+      "report_date": "2026-07-21",
+      "period_end": "2026-06-30",
+      "filing_published_at": null,
+      "period_gap_days": 21,
+      "filing_lag_days": null
+    },
+    {
+      "ticker": "DHT",
+      "report_date": "2026-05-05",
+      "period_end": "2026-03-31",
+      "filing_published_at": null,
+      "period_gap_days": 35,
+      "filing_lag_days": null
+    },
+    {
+      "ticker": "DHT",
+      "report_date": "2026-08-05",
+      "period_end": "2026-06-30",
+      "filing_published_at": null,
+      "period_gap_days": 36,
+      "filing_lag_days": null
+    },
+    {
+      "ticker": "DIOD",
+      "report_date": "2026-05-07",
+      "period_end": "2026-03-31",
+      "filing_published_at": "2026-05-07",
+      "period_gap_days": 37,
+      "filing_lag_days": 0
+    },
+    {
+      "ticker": "DIOD",
+      "report_date": "2026-08-05",
+      "period_end": "2026-06-30",
+      "filing_published_at": "2026-08-05",
+      "period_gap_days": 36,
+      "filing_lag_days": 0
+    },
+    {
+      "ticker": "DIS",
+      "report_date": "2026-05-06",
+      "period_end": "2026-03-31",
+      "filing_published_at": null,
+      "period_gap_days": 36,
+      "filing_lag_days": null
+    },
+    {
+      "ticker": "DIS",
+      "report_date": "2026-08-05",
+      "period_end": "2026-06-30",
+      "filing_published_at": null,
+      "period_gap_days": 36,
+      "filing_lag_days": null
+    },
+    {
+      "ticker": "DLR",
+      "report_date": "2026-07-23",
+      "period_end": "2026-06-30",
+      "filing_published_at": "2026-07-31",
+      "period_gap_days": 23,
+      "filing_lag_days": 8
+    },
+    {
+      "ticker": "DLTR",
+      "report_date": "2026-05-28",
+      "period_end": "2026-04-30",
+      "filing_published_at": null,
+      "period_gap_days": 28,
+      "filing_lag_days": null
+    },
+    {
+      "ticker": "DMRC",
+      "report_date": "2026-05-12",
+      "period_end": "2026-03-31",
+      "filing_published_at": "2026-05-13",
+      "period_gap_days": 42,
+      "filing_lag_days": 1
+    },
+    {
+      "ticker": "DMRC",
+      "report_date": "2026-08-13",
+      "period_end": "2026-06-30",
+      "filing_published_at": "2026-08-14",
+      "period_gap_days": 44,
+      "filing_lag_days": 1
+    },
+    {
+      "ticker": "DNA",
+      "report_date": "2026-05-07",
+      "period_end": "2026-03-31",
+      "filing_published_at": "2026-05-07",
+      "period_gap_days": 37,
+      "filing_lag_days": 0
+    },
+    {
+      "ticker": "DNA",
+      "report_date": "2026-08-05",
+      "period_end": "2026-06-30",
+      "filing_published_at": "2026-08-06",
+      "period_gap_days": 36,
+      "filing_lag_days": 1
+    },
+    {
+      "ticker": "DOCN",
+      "report_date": "2026-05-05",
+      "period_end": "2026-03-31",
+      "filing_published_at": "2026-05-05",
+      "period_gap_days": 35,
+      "filing_lag_days": 0
+    },
+    {
+      "ticker": "DOCN",
+      "report_date": "2026-08-04",
+      "period_end": "2026-06-30",
+      "filing_published_at": "2026-08-04",
+      "period_gap_days": 35,
+      "filing_lag_days": 0
+    },
+    {
+      "ticker": "DOCU",
+      "report_date": "2026-06-04",
+      "period_end": "2026-04-30",
+      "filing_published_at": "2026-06-05",
+      "period_gap_days": 35,
+      "filing_lag_days": 1
+    },
+    {
+      "ticker": "DOV",
+      "report_date": "2026-07-23",
+      "period_end": "2026-06-30",
+      "filing_published_at": "2026-07-23",
+      "period_gap_days": 23,
+      "filing_lag_days": 0
+    },
+    {
+      "ticker": "DRI",
+      "report_date": "2026-06-25",
+      "period_end": "2026-05-31",
+      "filing_published_at": "2026-07-24",
+      "period_gap_days": 25,
+      "filing_lag_days": 29
+    },
+    {
+      "ticker": "DT",
+      "report_date": "2026-05-13",
+      "period_end": "2026-03-31",
+      "filing_published_at": "2026-05-20",
+      "period_gap_days": 43,
+      "filing_lag_days": 7
+    },
+    {
+      "ticker": "DT",
+      "report_date": "2026-08-05",
+      "period_end": "2026-06-30",
+      "filing_published_at": "2026-08-05",
+      "period_gap_days": 36,
+      "filing_lag_days": 0
+    },
+    {
+      "ticker": "DTE",
+      "report_date": "2026-04-30",
+      "period_end": "2026-03-31",
+      "filing_published_at": "2026-04-30",
+      "period_gap_days": 30,
+      "filing_lag_days": 0
+    },
+    {
+      "ticker": "DTE",
+      "report_date": "2026-07-28",
+      "period_end": "2026-06-30",
+      "filing_published_at": "2026-07-28",
+      "period_gap_days": 28,
+      "filing_lag_days": 0
+    },
+    {
+      "ticker": "DUK",
+      "report_date": "2026-05-05",
+      "period_end": "2026-03-31",
+      "filing_published_at": "2026-05-05",
+      "period_gap_days": 35,
+      "filing_lag_days": 0
+    },
+    {
+      "ticker": "DUK",
+      "report_date": "2026-08-04",
+      "period_end": "2026-06-30",
+      "filing_published_at": "2026-08-04",
+      "period_gap_days": 35,
+      "filing_lag_days": 0
+    },
+    {
+      "ticker": "DVA",
+      "report_date": "2026-05-05",
+      "period_end": "2026-03-31",
+      "filing_published_at": "2026-05-05",
+      "period_gap_days": 35,
+      "filing_lag_days": 0
+    },
+    {
+      "ticker": "DVA",
+      "report_date": "2026-08-04",
+      "period_end": "2026-06-30",
+      "filing_published_at": "2026-08-04",
+      "period_gap_days": 35,
+      "filing_lag_days": 0
+    },
+    {
+      "ticker": "DXC",
+      "report_date": "2026-05-07",
+      "period_end": "2026-03-31",
+      "filing_published_at": "2026-05-08",
+      "period_gap_days": 37,
+      "filing_lag_days": 1
+    },
+    {
+      "ticker": "DXC",
+      "report_date": "2026-07-30",
+      "period_end": "2026-06-30",
+      "filing_published_at": "2026-07-31",
+      "period_gap_days": 30,
+      "filing_lag_days": 1
+    },
+    {
+      "ticker": "DXCM",
+      "report_date": "2026-04-30",
+      "period_end": "2026-03-31",
+      "filing_published_at": "2026-04-30",
+      "period_gap_days": 30,
+      "filing_lag_days": 0
+    },
+    {
+      "ticker": "DXCM",
+      "report_date": "2026-07-30",
+      "period_end": "2026-06-30",
+      "filing_published_at": "2026-07-30",
+      "period_gap_days": 30,
+      "filing_lag_days": 0
+    },
+    {
+      "ticker": "DY",
+      "report_date": "2026-05-27",
+      "period_end": "2026-04-30",
+      "filing_published_at": null,
+      "period_gap_days": 27,
+      "filing_lag_days": null
+    },
+    {
+      "ticker": "EA",
+      "report_date": "2026-05-05",
+      "period_end": "2026-03-31",
+      "filing_published_at": "2026-05-11",
+      "period_gap_days": 35,
+      "filing_lag_days": 6
+    },
+    {
+      "ticker": "EBAY",
+      "report_date": "2026-04-29",
+      "period_end": "2026-03-31",
+      "filing_published_at": "2026-04-29",
+      "period_gap_days": 29,
+      "filing_lag_days": 0
+    },
+    {
+      "ticker": "EBAY",
+      "report_date": "2026-08-05",
+      "period_end": "2026-06-30",
+      "filing_published_at": "2026-08-06",
+      "period_gap_days": 36,
+      "filing_lag_days": 1
+    },
+    {
+      "ticker": "ECL",
+      "report_date": "2026-04-28",
+      "period_end": "2026-03-31",
+      "filing_published_at": "2026-05-07",
+      "period_gap_days": 28,
+      "filing_lag_days": 9
+    },
+    {
+      "ticker": "ECL",
+      "report_date": "2026-07-28",
+      "period_end": "2026-06-30",
+      "filing_published_at": "2026-08-06",
+      "period_gap_days": 28,
+      "filing_lag_days": 9
+    },
+    {
+      "ticker": "ED",
+      "report_date": "2026-05-07",
+      "period_end": "2026-03-31",
+      "filing_published_at": "2026-05-07",
+      "period_gap_days": 37,
+      "filing_lag_days": 0
+    },
+    {
+      "ticker": "ED",
+      "report_date": "2026-08-06",
+      "period_end": "2026-06-30",
+      "filing_published_at": "2026-08-06",
+      "period_gap_days": 37,
+      "filing_lag_days": 0
+    },
+    {
+      "ticker": "EFX",
+      "report_date": "2026-07-21",
+      "period_end": "2026-06-30",
+      "filing_published_at": "2026-07-21",
+      "period_gap_days": 21,
+      "filing_lag_days": 0
+    },
+    {
+      "ticker": "EIX",
+      "report_date": "2026-04-28",
+      "period_end": "2026-03-31",
+      "filing_published_at": "2026-04-28",
+      "period_gap_days": 28,
+      "filing_lag_days": 0
+    },
+    {
+      "ticker": "EIX",
+      "report_date": "2026-07-30",
+      "period_end": "2026-06-30",
+      "filing_published_at": "2026-07-30",
+      "period_gap_days": 30,
+      "filing_lag_days": 0
+    },
+    {
+      "ticker": "ELV",
+      "report_date": "2026-07-15",
+      "period_end": "2026-06-30",
+      "filing_published_at": "2026-07-15",
+      "period_gap_days": 15,
+      "filing_lag_days": 0
+    },
+    {
+      "ticker": "EME",
+      "report_date": "2026-04-29",
+      "period_end": "2026-03-31",
+      "filing_published_at": "2026-04-29",
+      "period_gap_days": 29,
+      "filing_lag_days": 0
+    },
+    {
+      "ticker": "EME",
+      "report_date": "2026-07-30",
+      "period_end": "2026-06-30",
+      "filing_published_at": "2026-07-30",
+      "period_gap_days": 30,
+      "filing_lag_days": 0
+    },
+    {
+      "ticker": "EMR",
+      "report_date": "2026-05-05",
+      "period_end": "2026-03-31",
+      "filing_published_at": "2026-05-05",
+      "period_gap_days": 35,
+      "filing_lag_days": 0
+    },
+    {
+      "ticker": "EMR",
+      "report_date": "2026-08-04",
+      "period_end": "2026-06-30",
+      "filing_published_at": "2026-08-04",
+      "period_gap_days": 35,
+      "filing_lag_days": 0
+    },
+    {
+      "ticker": "EOG",
+      "report_date": "2026-05-05",
+      "period_end": "2026-03-31",
+      "filing_published_at": "2026-05-05",
+      "period_gap_days": 35,
+      "filing_lag_days": 0
+    },
+    {
+      "ticker": "EOG",
+      "report_date": "2026-08-04",
+      "period_end": "2026-06-30",
+      "filing_published_at": "2026-08-04",
+      "period_gap_days": 35,
+      "filing_lag_days": 0
+    },
+    {
+      "ticker": "EPAM",
+      "report_date": "2026-05-07",
+      "period_end": "2026-03-31",
+      "filing_published_at": "2026-05-07",
+      "period_gap_days": 37,
+      "filing_lag_days": 0
+    },
+    {
+      "ticker": "EPAM",
+      "report_date": "2026-08-06",
+      "period_end": "2026-06-30",
+      "filing_published_at": "2026-08-06",
+      "period_gap_days": 37,
+      "filing_lag_days": 0
+    },
+    {
+      "ticker": "EQIX",
+      "report_date": "2026-04-29",
+      "period_end": "2026-03-31",
+      "filing_published_at": "2026-04-29",
+      "period_gap_days": 29,
+      "filing_lag_days": 0
+    },
+    {
+      "ticker": "EQIX",
+      "report_date": "2026-07-29",
+      "period_end": "2026-06-30",
+      "filing_published_at": "2026-07-29",
+      "period_gap_days": 29,
+      "filing_lag_days": 0
+    },
+    {
+      "ticker": "EQR",
+      "report_date": "2026-04-28",
+      "period_end": "2026-03-31",
+      "filing_published_at": "2026-04-30",
+      "period_gap_days": 28,
+      "filing_lag_days": 2
+    },
+    {
+      "ticker": "EQR",
+      "report_date": "2026-07-22",
+      "period_end": "2026-06-30",
+      "filing_published_at": "2026-07-30",
+      "period_gap_days": 22,
+      "filing_lag_days": 8
+    },
+    {
+      "ticker": "ERIE",
+      "report_date": "2026-07-30",
+      "period_end": "2026-06-30",
+      "filing_published_at": "2026-07-30",
+      "period_gap_days": 30,
+      "filing_lag_days": 0
+    },
+    {
+      "ticker": "ES",
+      "report_date": "2026-05-06",
+      "period_end": "2026-03-31",
+      "filing_published_at": "2026-05-07",
+      "period_gap_days": 36,
+      "filing_lag_days": 1
+    },
+    {
+      "ticker": "ES",
+      "report_date": "2026-07-30",
+      "period_end": "2026-06-30",
+      "filing_published_at": "2026-08-03",
+      "period_gap_days": 30,
+      "filing_lag_days": 4
+    },
+    {
+      "ticker": "ESE",
+      "report_date": "2026-05-07",
+      "period_end": "2026-03-31",
+      "filing_published_at": "2026-05-11",
+      "period_gap_days": 37,
+      "filing_lag_days": 4
+    },
+    {
+      "ticker": "ESE",
+      "report_date": "2026-08-06",
+      "period_end": "2026-06-30",
+      "filing_published_at": "2026-08-10",
+      "period_gap_days": 37,
+      "filing_lag_days": 4
+    },
+    {
+      "ticker": "ESTC",
+      "report_date": "2026-05-28",
+      "period_end": "2026-04-30",
+      "filing_published_at": "2026-06-08",
+      "period_gap_days": 28,
+      "filing_lag_days": 11
+    },
+    {
+      "ticker": "ETN",
+      "report_date": "2026-05-05",
+      "period_end": "2026-03-31",
+      "filing_published_at": "2026-05-05",
+      "period_gap_days": 35,
+      "filing_lag_days": 0
+    },
+    {
+      "ticker": "ETN",
+      "report_date": "2026-07-31",
+      "period_end": "2026-06-30",
+      "filing_published_at": "2026-07-31",
+      "period_gap_days": 31,
+      "filing_lag_days": 0
+    },
+    {
+      "ticker": "ETR",
+      "report_date": "2026-04-29",
+      "period_end": "2026-03-31",
+      "filing_published_at": "2026-05-01",
+      "period_gap_days": 29,
+      "filing_lag_days": 2
+    },
+    {
+      "ticker": "ETR",
+      "report_date": "2026-07-29",
+      "period_end": "2026-06-30",
+      "filing_published_at": null,
+      "period_gap_days": 29,
+      "filing_lag_days": null
+    },
+    {
+      "ticker": "EW",
+      "report_date": "2026-07-23",
+      "period_end": "2026-06-30",
+      "filing_published_at": "2026-08-04",
+      "period_gap_days": 23,
+      "filing_lag_days": 12
+    },
+    {
+      "ticker": "EXC",
+      "report_date": "2026-05-06",
+      "period_end": "2026-03-31",
+      "filing_published_at": "2026-05-06",
+      "period_gap_days": 36,
+      "filing_lag_days": 0
+    },
+    {
+      "ticker": "EXC",
+      "report_date": "2026-07-30",
+      "period_end": "2026-06-30",
+      "filing_published_at": "2026-07-30",
+      "period_gap_days": 30,
+      "filing_lag_days": 0
+    },
+    {
+      "ticker": "EXPD",
+      "report_date": "2026-08-04",
+      "period_end": "2026-06-30",
+      "filing_published_at": "2026-08-05",
+      "period_gap_days": 35,
+      "filing_lag_days": 1
+    },
+    {
+      "ticker": "EXR",
+      "report_date": "2026-04-28",
+      "period_end": "2026-03-31",
+      "filing_published_at": "2026-05-01",
+      "period_gap_days": 28,
+      "filing_lag_days": 3
+    },
+    {
+      "ticker": "EXR",
+      "report_date": "2026-07-28",
+      "period_end": "2026-06-30",
+      "filing_published_at": "2026-07-31",
+      "period_gap_days": 28,
+      "filing_lag_days": 3
+    },
+    {
+      "ticker": "EXTR",
+      "report_date": "2026-04-29",
+      "period_end": "2026-03-31",
+      "filing_published_at": "2026-04-30",
+      "period_gap_days": 29,
+      "filing_lag_days": 1
+    },
+    {
+      "ticker": "EXTR",
+      "report_date": "2026-08-05",
+      "period_end": "2026-06-30",
+      "filing_published_at": "2026-08-17",
+      "period_gap_days": 36,
+      "filing_lag_days": 12
+    },
+    {
+      "ticker": "FANG",
+      "report_date": "2026-05-04",
+      "period_end": "2026-03-31",
+      "filing_published_at": "2026-05-06",
+      "period_gap_days": 34,
+      "filing_lag_days": 2
+    },
+    {
+      "ticker": "FANG",
+      "report_date": "2026-08-03",
+      "period_end": "2026-06-30",
+      "filing_published_at": "2026-08-05",
+      "period_gap_days": 34,
+      "filing_lag_days": 2
+    },
+    {
+      "ticker": "FAST",
+      "report_date": "2026-07-14",
+      "period_end": "2026-06-30",
+      "filing_published_at": "2026-07-16",
+      "period_gap_days": 14,
+      "filing_lag_days": 2
+    },
+    {
+      "ticker": "FC",
+      "report_date": "2026-07-01",
+      "period_end": "2026-05-31",
+      "filing_published_at": "2026-07-07",
+      "period_gap_days": 31,
+      "filing_lag_days": 6
+    },
+    {
+      "ticker": "FDS",
+      "report_date": "2026-07-01",
+      "period_end": "2026-05-31",
+      "filing_published_at": "2026-07-01",
+      "period_gap_days": 31,
+      "filing_lag_days": 0
+    },
+    {
+      "ticker": "FDX",
+      "report_date": "2026-06-23",
+      "period_end": "2026-05-31",
+      "filing_published_at": "2026-07-20",
+      "period_gap_days": 23,
+      "filing_lag_days": 27
+    },
+    {
+      "ticker": "FE",
+      "report_date": "2026-04-28",
+      "period_end": "2026-03-31",
+      "filing_published_at": "2026-04-28",
+      "period_gap_days": 28,
+      "filing_lag_days": 0
+    },
+    {
+      "ticker": "FE",
+      "report_date": "2026-07-28",
+      "period_end": "2026-06-30",
+      "filing_published_at": "2026-07-28",
+      "period_gap_days": 28,
+      "filing_lag_days": 0
+    },
+    {
+      "ticker": "FEIM",
+      "report_date": "2026-07-15",
+      "period_end": "2026-04-30",
+      "filing_published_at": "2026-07-17",
+      "period_gap_days": 76,
+      "filing_lag_days": 2
+    },
+    {
+      "ticker": "FIG",
+      "report_date": "2026-05-14",
+      "period_end": "2026-03-31",
+      "filing_published_at": "2026-05-14",
+      "period_gap_days": 44,
+      "filing_lag_days": 0
+    },
+    {
+      "ticker": "FIG",
+      "report_date": "2026-08-05",
+      "period_end": "2026-06-30",
+      "filing_published_at": "2026-08-05",
+      "period_gap_days": 36,
+      "filing_lag_days": 0
+    },
+    {
+      "ticker": "FIS",
+      "report_date": "2026-05-08",
+      "period_end": "2026-03-31",
+      "filing_published_at": "2026-05-08",
+      "period_gap_days": 38,
+      "filing_lag_days": 0
+    },
+    {
+      "ticker": "FIS",
+      "report_date": "2026-08-04",
+      "period_end": "2026-06-30",
+      "filing_published_at": "2026-08-04",
+      "period_gap_days": 35,
+      "filing_lag_days": 0
+    },
+    {
+      "ticker": "FISV",
+      "report_date": "2026-05-05",
+      "period_end": "2026-03-31",
+      "filing_published_at": "2026-05-06",
+      "period_gap_days": 35,
+      "filing_lag_days": 1
+    },
+    {
+      "ticker": "FISV",
+      "report_date": "2026-08-06",
+      "period_end": "2026-06-30",
+      "filing_published_at": "2026-08-07",
+      "period_gap_days": 37,
+      "filing_lag_days": 1
+    },
+    {
+      "ticker": "FIX",
+      "report_date": "2026-07-23",
+      "period_end": "2026-06-30",
+      "filing_published_at": "2026-07-23",
+      "period_gap_days": 23,
+      "filing_lag_days": 0
+    },
+    {
+      "ticker": "FLG",
+      "report_date": "2026-07-24",
+      "period_end": "2026-06-30",
+      "filing_published_at": "2026-08-06",
+      "period_gap_days": 24,
+      "filing_lag_days": 13
+    },
+    {
+      "ticker": "FLY",
+      "report_date": "2026-05-04",
+      "period_end": "2026-03-31",
+      "filing_published_at": "2026-05-04",
+      "period_gap_days": 34,
+      "filing_lag_days": 0
+    },
+    {
+      "ticker": "FLY",
+      "report_date": "2026-08-11",
+      "period_end": "2026-06-30",
+      "filing_published_at": "2026-08-11",
+      "period_gap_days": 42,
+      "filing_lag_days": 0
+    },
+    {
+      "ticker": "FN",
+      "report_date": "2026-05-04",
+      "period_end": "2026-03-31",
+      "filing_published_at": null,
+      "period_gap_days": 34,
+      "filing_lag_days": null
+    },
+    {
+      "ticker": "FN",
+      "report_date": "2026-08-17",
+      "period_end": "2026-06-30",
+      "filing_published_at": null,
+      "period_gap_days": 48,
+      "filing_lag_days": null
+    },
+    {
+      "ticker": "FORM",
+      "report_date": "2026-04-29",
+      "period_end": "2026-03-31",
+      "filing_published_at": null,
+      "period_gap_days": 29,
+      "filing_lag_days": null
+    },
+    {
+      "ticker": "FORM",
+      "report_date": "2026-07-29",
+      "period_end": "2026-06-30",
+      "filing_published_at": null,
+      "period_gap_days": 29,
+      "filing_lag_days": null
+    },
+    {
+      "ticker": "FRMI",
+      "report_date": "2026-05-14",
+      "period_end": null,
+      "filing_published_at": null,
+      "period_gap_days": null,
+      "filing_lag_days": null
+    },
+    {
+      "ticker": "FRMI",
+      "report_date": "2026-08-13",
+      "period_end": null,
+      "filing_published_at": null,
+      "period_gap_days": null,
+      "filing_lag_days": null
+    },
+    {
+      "ticker": "FROG",
+      "report_date": "2026-05-07",
+      "period_end": "2026-03-31",
+      "filing_published_at": "2026-05-08",
+      "period_gap_days": 37,
+      "filing_lag_days": 1
+    },
+    {
+      "ticker": "FROG",
+      "report_date": "2026-08-06",
+      "period_end": "2026-06-30",
+      "filing_published_at": "2026-08-07",
+      "period_gap_days": 37,
+      "filing_lag_days": 1
+    },
+    {
+      "ticker": "FRT",
+      "report_date": "2026-05-01",
+      "period_end": "2026-03-31",
+      "filing_published_at": "2026-05-01",
+      "period_gap_days": 31,
+      "filing_lag_days": 0
+    },
+    {
+      "ticker": "FRT",
+      "report_date": "2026-07-31",
+      "period_end": "2026-06-30",
+      "filing_published_at": "2026-07-31",
+      "period_gap_days": 31,
+      "filing_lag_days": 0
+    },
+    {
+      "ticker": "FSLR",
+      "report_date": "2026-04-30",
+      "period_end": "2026-03-31",
+      "filing_published_at": "2026-04-30",
+      "period_gap_days": 30,
+      "filing_lag_days": 0
+    },
+    {
+      "ticker": "FSLR",
+      "report_date": "2026-07-30",
+      "period_end": "2026-06-30",
+      "filing_published_at": "2026-07-30",
+      "period_gap_days": 30,
+      "filing_lag_days": 0
+    },
+    {
+      "ticker": "FTNT",
+      "report_date": "2026-05-06",
+      "period_end": "2026-03-31",
+      "filing_published_at": "2026-05-08",
+      "period_gap_days": 36,
+      "filing_lag_days": 2
+    },
+    {
+      "ticker": "FTNT",
+      "report_date": "2026-07-29",
+      "period_end": "2026-06-30",
+      "filing_published_at": "2026-07-30",
+      "period_gap_days": 29,
+      "filing_lag_days": 1
+    },
+    {
+      "ticker": "GD",
+      "report_date": "2026-04-29",
+      "period_end": "2026-03-31",
+      "filing_published_at": null,
+      "period_gap_days": 29,
+      "filing_lag_days": null
+    },
+    {
+      "ticker": "GD",
+      "report_date": "2026-07-29",
+      "period_end": "2026-06-30",
+      "filing_published_at": null,
+      "period_gap_days": 29,
+      "filing_lag_days": null
+    },
+    {
+      "ticker": "GE",
+      "report_date": "2026-07-16",
+      "period_end": "2026-06-30",
+      "filing_published_at": "2026-07-16",
+      "period_gap_days": 16,
+      "filing_lag_days": 0
+    },
+    {
+      "ticker": "GEV",
+      "report_date": "2026-07-22",
+      "period_end": "2026-06-30",
+      "filing_published_at": "2026-07-22",
+      "period_gap_days": 22,
+      "filing_lag_days": 0
+    },
+    {
+      "ticker": "GFS",
+      "report_date": "2026-05-05",
+      "period_end": "2026-03-31",
+      "filing_published_at": null,
+      "period_gap_days": 35,
+      "filing_lag_days": null
+    },
+    {
+      "ticker": "GFS",
+      "report_date": "2026-08-05",
+      "period_end": "2026-06-30",
+      "filing_published_at": null,
+      "period_gap_days": 36,
+      "filing_lag_days": null
+    },
+    {
+      "ticker": "GILD",
+      "report_date": "2026-05-07",
+      "period_end": "2026-03-31",
+      "filing_published_at": "2026-05-07",
+      "period_gap_days": 37,
+      "filing_lag_days": 0
+    },
+    {
+      "ticker": "GILD",
+      "report_date": "2026-08-04",
+      "period_end": "2026-06-30",
+      "filing_published_at": "2026-08-06",
+      "period_gap_days": 35,
+      "filing_lag_days": 2
+    },
+    {
+      "ticker": "GLOB",
+      "report_date": "2026-05-14",
+      "period_end": "2026-03-31",
+      "filing_published_at": null,
+      "period_gap_days": 44,
+      "filing_lag_days": null
+    },
+    {
+      "ticker": "GLOB",
+      "report_date": "2026-08-13",
+      "period_end": "2026-06-30",
+      "filing_published_at": null,
+      "period_gap_days": 44,
+      "filing_lag_days": null
+    },
+    {
+      "ticker": "GLW",
+      "report_date": "2026-04-28",
+      "period_end": "2026-03-31",
+      "filing_published_at": "2026-05-01",
+      "period_gap_days": 28,
+      "filing_lag_days": 3
+    },
+    {
+      "ticker": "GLW",
+      "report_date": "2026-07-28",
+      "period_end": "2026-06-30",
+      "filing_published_at": "2026-07-29",
+      "period_gap_days": 28,
+      "filing_lag_days": 1
+    },
+    {
+      "ticker": "GLXY",
+      "report_date": "2026-04-28",
+      "period_end": "2026-03-31",
+      "filing_published_at": "2026-05-08",
+      "period_gap_days": 28,
+      "filing_lag_days": 10
+    },
+    {
+      "ticker": "GLXY",
+      "report_date": "2026-08-05",
+      "period_end": "2026-06-30",
+      "filing_published_at": "2026-08-10",
+      "period_gap_days": 36,
+      "filing_lag_days": 5
+    },
+    {
+      "ticker": "GOOGL",
+      "report_date": "2026-04-29",
+      "period_end": "2026-03-31",
+      "filing_published_at": "2026-04-30",
+      "period_gap_days": 29,
+      "filing_lag_days": 1
+    },
+    {
+      "ticker": "GOOGL",
+      "report_date": "2026-07-22",
+      "period_end": "2026-06-30",
+      "filing_published_at": "2026-07-23",
+      "period_gap_days": 22,
+      "filing_lag_days": 1
+    },
+    {
+      "ticker": "GRMN",
+      "report_date": "2026-04-29",
+      "period_end": "2026-03-31",
+      "filing_published_at": null,
+      "period_gap_days": 29,
+      "filing_lag_days": null
+    },
+    {
+      "ticker": "GRMN",
+      "report_date": "2026-07-29",
+      "period_end": "2026-06-30",
+      "filing_published_at": null,
+      "period_gap_days": 29,
+      "filing_lag_days": null
+    },
+    {
+      "ticker": "GS",
+      "report_date": "2026-07-14",
+      "period_end": "2026-06-30",
+      "filing_published_at": "2026-08-03",
+      "period_gap_days": 14,
+      "filing_lag_days": 20
+    },
+    {
+      "ticker": "GTLB",
+      "report_date": "2026-06-02",
+      "period_end": "2026-04-30",
+      "filing_published_at": "2026-06-02",
+      "period_gap_days": 33,
+      "filing_lag_days": 0
+    },
+    {
+      "ticker": "HD",
+      "report_date": "2026-05-19",
+      "period_end": "2026-04-30",
+      "filing_published_at": null,
+      "period_gap_days": 19,
+      "filing_lag_days": null
+    },
+    {
+      "ticker": "HD",
+      "report_date": "2026-08-18",
+      "period_end": "2026-07-31",
+      "filing_published_at": null,
+      "period_gap_days": 18,
+      "filing_lag_days": null
+    },
+    {
+      "ticker": "HIMS",
+      "report_date": "2026-05-11",
+      "period_end": "2026-03-31",
+      "filing_published_at": "2026-05-11",
+      "period_gap_days": 41,
+      "filing_lag_days": 0
+    },
+    {
+      "ticker": "HIMS",
+      "report_date": "2026-08-10",
+      "period_end": "2026-06-30",
+      "filing_published_at": "2026-08-10",
+      "period_gap_days": 41,
+      "filing_lag_days": 0
+    },
+    {
+      "ticker": "HON",
+      "report_date": "2026-07-23",
+      "period_end": "2026-06-30",
+      "filing_published_at": "2026-07-24",
+      "period_gap_days": 23,
+      "filing_lag_days": 1
+    },
+    {
+      "ticker": "HOOD",
+      "report_date": "2026-04-28",
+      "period_end": "2026-03-31",
+      "filing_published_at": "2026-04-29",
+      "period_gap_days": 28,
+      "filing_lag_days": 1
+    },
+    {
+      "ticker": "HOOD",
+      "report_date": "2026-07-29",
+      "period_end": "2026-06-30",
+      "filing_published_at": "2026-07-30",
+      "period_gap_days": 29,
+      "filing_lag_days": 1
+    },
+    {
+      "ticker": "HPE",
+      "report_date": "2026-06-01",
+      "period_end": "2026-04-30",
+      "filing_published_at": "2026-06-02",
+      "period_gap_days": 32,
+      "filing_lag_days": 1
+    },
+    {
+      "ticker": "HPQ",
+      "report_date": "2026-05-27",
+      "period_end": "2026-04-30",
+      "filing_published_at": "2026-05-28",
+      "period_gap_days": 27,
+      "filing_lag_days": 1
+    },
+    {
+      "ticker": "HUBB",
+      "report_date": "2026-04-30",
+      "period_end": "2026-03-31",
+      "filing_published_at": "2026-05-01",
+      "period_gap_days": 30,
+      "filing_lag_days": 1
+    },
+    {
+      "ticker": "HUBB",
+      "report_date": "2026-07-28",
+      "period_end": "2026-06-30",
+      "filing_published_at": "2026-07-29",
+      "period_gap_days": 28,
+      "filing_lag_days": 1
+    },
+    {
+      "ticker": "HUBS",
+      "report_date": "2026-05-07",
+      "period_end": "2026-03-31",
+      "filing_published_at": "2026-05-07",
+      "period_gap_days": 37,
+      "filing_lag_days": 0
+    },
+    {
+      "ticker": "HUBS",
+      "report_date": "2026-08-05",
+      "period_end": "2026-06-30",
+      "filing_published_at": "2026-08-05",
+      "period_gap_days": 36,
+      "filing_lag_days": 0
+    },
+    {
+      "ticker": "HUT",
+      "report_date": "2026-05-06",
+      "period_end": "2026-03-31",
+      "filing_published_at": "2026-05-06",
+      "period_gap_days": 36,
+      "filing_lag_days": 0
+    },
+    {
+      "ticker": "HUT",
+      "report_date": "2026-08-04",
+      "period_end": "2026-06-30",
+      "filing_published_at": "2026-08-04",
+      "period_gap_days": 35,
+      "filing_lag_days": 0
+    },
+    {
+      "ticker": "IBM",
+      "report_date": "2026-07-22",
+      "period_end": "2026-06-30",
+      "filing_published_at": "2026-07-23",
+      "period_gap_days": 22,
+      "filing_lag_days": 1
+    },
+    {
+      "ticker": "ICHR",
+      "report_date": "2026-05-04",
+      "period_end": "2026-03-31",
+      "filing_published_at": null,
+      "period_gap_days": 34,
+      "filing_lag_days": null
+    },
+    {
+      "ticker": "ICHR",
+      "report_date": "2026-08-03",
+      "period_end": "2026-06-30",
+      "filing_published_at": null,
+      "period_gap_days": 34,
+      "filing_lag_days": null
+    },
+    {
+      "ticker": "IDXX",
+      "report_date": "2026-05-05",
+      "period_end": "2026-03-31",
+      "filing_published_at": "2026-05-05",
+      "period_gap_days": 35,
+      "filing_lag_days": 0
+    },
+    {
+      "ticker": "IDXX",
+      "report_date": "2026-08-04",
+      "period_end": "2026-06-30",
+      "filing_published_at": "2026-08-04",
+      "period_gap_days": 35,
+      "filing_lag_days": 0
+    },
+    {
+      "ticker": "IESC",
+      "report_date": "2026-05-01",
+      "period_end": "2026-03-31",
+      "filing_published_at": "2026-05-01",
+      "period_gap_days": 31,
+      "filing_lag_days": 0
+    },
+    {
+      "ticker": "IESC",
+      "report_date": "2026-07-31",
+      "period_end": "2026-06-30",
+      "filing_published_at": "2026-07-31",
+      "period_gap_days": 31,
+      "filing_lag_days": 0
+    },
+    {
+      "ticker": "ILMN",
+      "report_date": "2026-04-30",
+      "period_end": "2026-03-31",
+      "filing_published_at": null,
+      "period_gap_days": 30,
+      "filing_lag_days": null
+    },
+    {
+      "ticker": "ILMN",
+      "report_date": "2026-07-30",
+      "period_end": "2026-06-30",
+      "filing_published_at": null,
+      "period_gap_days": 30,
+      "filing_lag_days": null
+    },
+    {
+      "ticker": "INFY",
+      "report_date": "2026-07-23",
+      "period_end": "2026-06-30",
+      "filing_published_at": null,
+      "period_gap_days": 23,
+      "filing_lag_days": null
+    },
+    {
+      "ticker": "INOD",
+      "report_date": "2026-05-07",
+      "period_end": "2026-03-31",
+      "filing_published_at": "2026-05-07",
+      "period_gap_days": 37,
+      "filing_lag_days": 0
+    },
+    {
+      "ticker": "INOD",
+      "report_date": "2026-08-06",
+      "period_end": "2026-06-30",
+      "filing_published_at": "2026-08-06",
+      "period_gap_days": 37,
+      "filing_lag_days": 0
+    },
+    {
+      "ticker": "INSM",
+      "report_date": "2026-05-07",
+      "period_end": "2026-03-31",
+      "filing_published_at": "2026-05-07",
+      "period_gap_days": 37,
+      "filing_lag_days": 0
+    },
+    {
+      "ticker": "INSM",
+      "report_date": "2026-08-06",
+      "period_end": "2026-06-30",
+      "filing_published_at": "2026-08-06",
+      "period_gap_days": 37,
+      "filing_lag_days": 0
+    },
+    {
+      "ticker": "INTC",
+      "report_date": "2026-07-23",
+      "period_end": "2026-06-30",
+      "filing_published_at": null,
+      "period_gap_days": 23,
+      "filing_lag_days": null
+    },
+    {
+      "ticker": "INTU",
+      "report_date": "2026-05-20",
+      "period_end": "2026-04-30",
+      "filing_published_at": "2026-05-20",
+      "period_gap_days": 20,
+      "filing_lag_days": 0
+    },
+    {
+      "ticker": "IONQ",
+      "report_date": "2026-05-06",
+      "period_end": "2026-03-31",
+      "filing_published_at": "2026-05-07",
+      "period_gap_days": 36,
+      "filing_lag_days": 1
+    },
+    {
+      "ticker": "IONQ",
+      "report_date": "2026-08-05",
+      "period_end": "2026-06-30",
+      "filing_published_at": "2026-08-10",
+      "period_gap_days": 36,
+      "filing_lag_days": 5
+    },
+    {
+      "ticker": "IREN",
+      "report_date": "2026-05-07",
+      "period_end": "2026-03-31",
+      "filing_published_at": "2026-05-08",
+      "period_gap_days": 37,
+      "filing_lag_days": 1
+    },
+    {
+      "ticker": "IRM",
+      "report_date": "2026-04-30",
+      "period_end": "2026-03-31",
+      "filing_published_at": "2026-04-30",
+      "period_gap_days": 30,
+      "filing_lag_days": 0
+    },
+    {
+      "ticker": "IRM",
+      "report_date": "2026-08-05",
+      "period_end": "2026-06-30",
+      "filing_published_at": "2026-08-05",
+      "period_gap_days": 36,
+      "filing_lag_days": 0
+    },
+    {
+      "ticker": "J",
+      "report_date": "2026-05-05",
+      "period_end": "2026-03-31",
+      "filing_published_at": null,
+      "period_gap_days": 35,
+      "filing_lag_days": null
+    },
+    {
+      "ticker": "J",
+      "report_date": "2026-08-04",
+      "period_end": "2026-06-30",
+      "filing_published_at": null,
+      "period_gap_days": 35,
+      "filing_lag_days": null
+    },
+    {
+      "ticker": "JCI",
+      "report_date": "2026-05-06",
+      "period_end": "2026-03-31",
+      "filing_published_at": "2026-05-06",
+      "period_gap_days": 36,
+      "filing_lag_days": 0
+    },
+    {
+      "ticker": "JCI",
+      "report_date": "2026-07-29",
+      "period_end": "2026-06-30",
+      "filing_published_at": "2026-07-29",
+      "period_gap_days": 29,
+      "filing_lag_days": 0
+    },
+    {
+      "ticker": "JNJ",
+      "report_date": "2026-07-15",
+      "period_end": "2026-06-30",
+      "filing_published_at": null,
+      "period_gap_days": 15,
+      "filing_lag_days": null
+    },
+    {
+      "ticker": "JPM",
+      "report_date": "2026-07-14",
+      "period_end": "2026-06-30",
+      "filing_published_at": "2026-08-06",
+      "period_gap_days": 14,
+      "filing_lag_days": 23
+    },
+    {
+      "ticker": "KDP",
+      "report_date": "2026-08-06",
+      "period_end": "2026-06-30",
+      "filing_published_at": "2026-08-10",
+      "period_gap_days": 37,
+      "filing_lag_days": 4
+    },
+    {
+      "ticker": "KEEL",
+      "report_date": "2026-05-11",
+      "period_end": null,
+      "filing_published_at": null,
+      "period_gap_days": null,
+      "filing_lag_days": null
+    },
+    {
+      "ticker": "KEEL",
+      "report_date": "2026-08-10",
+      "period_end": null,
+      "filing_published_at": null,
+      "period_gap_days": null,
+      "filing_lag_days": null
+    },
+    {
+      "ticker": "KLAC",
+      "report_date": "2026-04-29",
+      "period_end": "2026-03-31",
+      "filing_published_at": "2026-04-30",
+      "period_gap_days": 29,
+      "filing_lag_days": 1
+    },
+    {
+      "ticker": "KLAC",
+      "report_date": "2026-07-28",
+      "period_end": "2026-06-30",
+      "filing_published_at": "2026-08-06",
+      "period_gap_days": 28,
+      "filing_lag_days": 9
+    },
+    {
+      "ticker": "KO",
+      "report_date": "2026-04-28",
+      "period_end": "2026-03-31",
+      "filing_published_at": null,
+      "period_gap_days": 28,
+      "filing_lag_days": null
+    },
+    {
+      "ticker": "KO",
+      "report_date": "2026-07-28",
+      "period_end": "2026-06-30",
+      "filing_published_at": null,
+      "period_gap_days": 28,
+      "filing_lag_days": null
+    },
+    {
+      "ticker": "LEU",
+      "report_date": "2026-05-05",
+      "period_end": "2026-03-31",
+      "filing_published_at": "2026-05-06",
+      "period_gap_days": 35,
+      "filing_lag_days": 1
+    },
+    {
+      "ticker": "LEU",
+      "report_date": "2026-08-05",
+      "period_end": "2026-06-30",
+      "filing_published_at": "2026-08-06",
+      "period_gap_days": 36,
+      "filing_lag_days": 1
+    },
+    {
+      "ticker": "LII",
+      "report_date": "2026-04-29",
+      "period_end": "2026-03-31",
+      "filing_published_at": "2026-04-29",
+      "period_gap_days": 29,
+      "filing_lag_days": 0
+    },
+    {
+      "ticker": "LII",
+      "report_date": "2026-07-29",
+      "period_end": "2026-06-30",
+      "filing_published_at": "2026-07-29",
+      "period_gap_days": 29,
+      "filing_lag_days": 0
+    },
+    {
+      "ticker": "LITE",
+      "report_date": "2026-05-05",
+      "period_end": "2026-03-31",
+      "filing_published_at": null,
+      "period_gap_days": 35,
+      "filing_lag_days": null
+    },
+    {
+      "ticker": "LITE",
+      "report_date": "2026-08-11",
+      "period_end": "2026-06-30",
+      "filing_published_at": null,
+      "period_gap_days": 42,
+      "filing_lag_days": null
+    },
+    {
+      "ticker": "LLY",
+      "report_date": "2026-04-30",
+      "period_end": "2026-03-31",
+      "filing_published_at": "2026-04-30",
+      "period_gap_days": 30,
+      "filing_lag_days": 0
+    },
+    {
+      "ticker": "LLY",
+      "report_date": "2026-08-05",
+      "period_end": "2026-06-30",
+      "filing_published_at": "2026-08-05",
+      "period_gap_days": 36,
+      "filing_lag_days": 0
+    },
+    {
+      "ticker": "LMT",
+      "report_date": "2026-07-23",
+      "period_end": "2026-06-30",
+      "filing_published_at": null,
+      "period_gap_days": 23,
+      "filing_lag_days": null
+    },
+    {
+      "ticker": "LOGI",
+      "report_date": "2026-05-05",
+      "period_end": "2026-03-31",
+      "filing_published_at": "2026-05-21",
+      "period_gap_days": 35,
+      "filing_lag_days": 16
+    },
+    {
+      "ticker": "LOGI",
+      "report_date": "2026-07-28",
+      "period_end": "2026-06-30",
+      "filing_published_at": "2026-07-29",
+      "period_gap_days": 28,
+      "filing_lag_days": 1
+    },
+    {
+      "ticker": "LRCX",
+      "report_date": "2026-07-29",
+      "period_end": "2026-06-30",
+      "filing_published_at": null,
+      "period_gap_days": 29,
+      "filing_lag_days": null
+    },
+    {
+      "ticker": "LSCC",
+      "report_date": "2026-05-04",
+      "period_end": "2026-03-31",
+      "filing_published_at": null,
+      "period_gap_days": 34,
+      "filing_lag_days": null
+    },
+    {
+      "ticker": "LSCC",
+      "report_date": "2026-08-04",
+      "period_end": "2026-06-30",
+      "filing_published_at": null,
+      "period_gap_days": 35,
+      "filing_lag_days": null
+    },
+    {
+      "ticker": "MARA",
+      "report_date": "2026-05-11",
+      "period_end": "2026-03-31",
+      "filing_published_at": "2026-05-11",
+      "period_gap_days": 41,
+      "filing_lag_days": 0
+    },
+    {
+      "ticker": "MARA",
+      "report_date": "2026-08-06",
+      "period_end": "2026-06-30",
+      "filing_published_at": "2026-08-06",
+      "period_gap_days": 37,
+      "filing_lag_days": 0
+    },
+    {
+      "ticker": "MCD",
+      "report_date": "2026-05-07",
+      "period_end": "2026-03-31",
+      "filing_published_at": "2026-05-07",
+      "period_gap_days": 37,
+      "filing_lag_days": 0
+    },
+    {
+      "ticker": "MCD",
+      "report_date": "2026-08-04",
+      "period_end": "2026-06-30",
+      "filing_published_at": "2026-08-07",
+      "period_gap_days": 35,
+      "filing_lag_days": 3
+    },
+    {
+      "ticker": "MCHP",
+      "report_date": "2026-05-07",
+      "period_end": "2026-03-31",
+      "filing_published_at": "2026-05-21",
+      "period_gap_days": 37,
+      "filing_lag_days": 14
+    },
+    {
+      "ticker": "MCHP",
+      "report_date": "2026-08-06",
+      "period_end": "2026-06-30",
+      "filing_published_at": "2026-08-06",
+      "period_gap_days": 37,
+      "filing_lag_days": 0
+    },
+    {
+      "ticker": "MDB",
+      "report_date": "2026-05-28",
+      "period_end": "2026-04-30",
+      "filing_published_at": "2026-05-29",
+      "period_gap_days": 28,
+      "filing_lag_days": 1
+    },
+    {
+      "ticker": "MDLZ",
+      "report_date": "2026-04-28",
+      "period_end": "2026-03-31",
+      "filing_published_at": "2026-04-28",
+      "period_gap_days": 28,
+      "filing_lag_days": 0
+    },
+    {
+      "ticker": "MDLZ",
+      "report_date": "2026-07-28",
+      "period_end": "2026-06-30",
+      "filing_published_at": "2026-07-28",
+      "period_gap_days": 28,
+      "filing_lag_days": 0
+    },
+    {
+      "ticker": "MELI",
+      "report_date": "2026-05-07",
+      "period_end": "2026-03-31",
+      "filing_published_at": "2026-05-08",
+      "period_gap_days": 37,
+      "filing_lag_days": 1
+    },
+    {
+      "ticker": "MELI",
+      "report_date": "2026-08-05",
+      "period_end": "2026-06-30",
+      "filing_published_at": "2026-08-06",
+      "period_gap_days": 36,
+      "filing_lag_days": 1
+    },
+    {
+      "ticker": "META",
+      "report_date": "2026-04-29",
+      "period_end": "2026-03-31",
+      "filing_published_at": "2026-04-30",
+      "period_gap_days": 29,
+      "filing_lag_days": 1
+    },
+    {
+      "ticker": "META",
+      "report_date": "2026-07-29",
+      "period_end": "2026-06-30",
+      "filing_published_at": "2026-07-30",
+      "period_gap_days": 29,
+      "filing_lag_days": 1
+    },
+    {
+      "ticker": "MOD",
+      "report_date": "2026-05-26",
+      "period_end": "2026-03-31",
+      "filing_published_at": "2026-05-27",
+      "period_gap_days": 56,
+      "filing_lag_days": 1
+    },
+    {
+      "ticker": "MOD",
+      "report_date": "2026-07-29",
+      "period_end": "2026-06-30",
+      "filing_published_at": "2026-07-30",
+      "period_gap_days": 29,
+      "filing_lag_days": 1
+    },
+    {
+      "ticker": "MPWR",
+      "report_date": "2026-04-30",
+      "period_end": "2026-03-31",
+      "filing_published_at": "2026-05-04",
+      "period_gap_days": 30,
+      "filing_lag_days": 4
+    },
+    {
+      "ticker": "MPWR",
+      "report_date": "2026-07-30",
+      "period_end": "2026-06-30",
+      "filing_published_at": "2026-08-05",
+      "period_gap_days": 30,
+      "filing_lag_days": 6
+    },
+    {
+      "ticker": "MRK",
+      "report_date": "2026-04-30",
+      "period_end": "2026-03-31",
+      "filing_published_at": "2026-05-04",
+      "period_gap_days": 30,
+      "filing_lag_days": 4
+    },
+    {
+      "ticker": "MRK",
+      "report_date": "2026-08-04",
+      "period_end": "2026-06-30",
+      "filing_published_at": "2026-08-07",
+      "period_gap_days": 35,
+      "filing_lag_days": 3
+    },
+    {
+      "ticker": "MRVL",
+      "report_date": "2026-05-27",
+      "period_end": "2026-04-30",
+      "filing_published_at": null,
+      "period_gap_days": 27,
+      "filing_lag_days": null
+    },
+    {
+      "ticker": "MS",
+      "report_date": "2026-07-15",
+      "period_end": "2026-06-30",
+      "filing_published_at": "2026-08-04",
+      "period_gap_days": 15,
+      "filing_lag_days": 20
+    },
+    {
+      "ticker": "MSFT",
+      "report_date": "2026-04-29",
+      "period_end": "2026-03-31",
+      "filing_published_at": "2026-04-29",
+      "period_gap_days": 29,
+      "filing_lag_days": 0
+    },
+    {
+      "ticker": "MSFT",
+      "report_date": "2026-07-29",
+      "period_end": "2026-06-30",
+      "filing_published_at": "2026-07-29",
+      "period_gap_days": 29,
+      "filing_lag_days": 0
+    },
+    {
+      "ticker": "MSTR",
+      "report_date": "2026-05-05",
+      "period_end": "2026-03-31",
+      "filing_published_at": "2026-05-06",
+      "period_gap_days": 35,
+      "filing_lag_days": 1
+    },
+    {
+      "ticker": "MSTR",
+      "report_date": "2026-07-30",
+      "period_end": "2026-06-30",
+      "filing_published_at": "2026-08-03",
+      "period_gap_days": 30,
+      "filing_lag_days": 4
+    },
+    {
+      "ticker": "MTZ",
+      "report_date": "2026-04-30",
+      "period_end": "2026-03-31",
+      "filing_published_at": "2026-04-30",
+      "period_gap_days": 30,
+      "filing_lag_days": 0
+    },
+    {
+      "ticker": "MTZ",
+      "report_date": "2026-07-30",
+      "period_end": "2026-06-30",
+      "filing_published_at": "2026-07-30",
+      "period_gap_days": 30,
+      "filing_lag_days": 0
+    },
+    {
+      "ticker": "MU",
+      "report_date": "2026-06-24",
+      "period_end": "2026-05-31",
+      "filing_published_at": null,
+      "period_gap_days": 24,
+      "filing_lag_days": null
+    },
+    {
+      "ticker": "NBIS",
+      "report_date": "2026-05-13",
+      "period_end": "2026-03-31",
+      "filing_published_at": null,
+      "period_gap_days": 43,
+      "filing_lag_days": null
+    },
+    {
+      "ticker": "NBIS",
+      "report_date": "2026-08-12",
+      "period_end": "2026-06-30",
+      "filing_published_at": null,
+      "period_gap_days": 43,
+      "filing_lag_days": null
+    },
+    {
+      "ticker": "NET",
+      "report_date": "2026-05-07",
+      "period_end": "2026-03-31",
+      "filing_published_at": "2026-05-08",
+      "period_gap_days": 37,
+      "filing_lag_days": 1
+    },
+    {
+      "ticker": "NET",
+      "report_date": "2026-08-06",
+      "period_end": "2026-06-30",
+      "filing_published_at": "2026-08-06",
+      "period_gap_days": 37,
+      "filing_lag_days": 0
+    },
+    {
+      "ticker": "NFLX",
+      "report_date": "2026-07-16",
+      "period_end": "2026-06-30",
+      "filing_published_at": "2026-07-17",
+      "period_gap_days": 16,
+      "filing_lag_days": 1
+    },
+    {
+      "ticker": "NKE",
+      "report_date": "2026-06-30",
+      "period_end": "2026-05-31",
+      "filing_published_at": "2026-07-15",
+      "period_gap_days": 30,
+      "filing_lag_days": 15
+    },
+    {
+      "ticker": "NNE",
+      "report_date": "2026-05-14",
+      "period_end": "2025-12-31",
+      "filing_published_at": "2026-02-17",
+      "period_gap_days": 134,
+      "filing_lag_days": -86
+    },
+    {
+      "ticker": "NNE",
+      "report_date": "2026-08-12",
+      "period_end": "2025-12-31",
+      "filing_published_at": "2026-02-17",
+      "period_gap_days": 224,
+      "filing_lag_days": -176
+    },
+    {
+      "ticker": "NOK",
+      "report_date": "2026-07-23",
+      "period_end": "2026-06-30",
+      "filing_published_at": null,
+      "period_gap_days": 23,
+      "filing_lag_days": null
+    },
+    {
+      "ticker": "NOV",
+      "report_date": "2026-04-27",
+      "period_end": "2026-03-31",
+      "filing_published_at": "2026-04-28",
+      "period_gap_days": 27,
+      "filing_lag_days": 1
+    },
+    {
+      "ticker": "NOV",
+      "report_date": "2026-07-28",
+      "period_end": "2026-06-30",
+      "filing_published_at": "2026-07-29",
+      "period_gap_days": 28,
+      "filing_lag_days": 1
+    },
+    {
+      "ticker": "NOW",
+      "report_date": "2026-07-22",
+      "period_end": "2026-06-30",
+      "filing_published_at": "2026-07-23",
+      "period_gap_days": 22,
+      "filing_lag_days": 1
+    },
+    {
+      "ticker": "NRG",
+      "report_date": "2026-05-06",
+      "period_end": "2026-03-31",
+      "filing_published_at": "2026-05-06",
+      "period_gap_days": 36,
+      "filing_lag_days": 0
+    },
+    {
+      "ticker": "NRG",
+      "report_date": "2026-08-04",
+      "period_end": "2026-06-30",
+      "filing_published_at": "2026-08-04",
+      "period_gap_days": 35,
+      "filing_lag_days": 0
+    },
+    {
+      "ticker": "NTAP",
+      "report_date": "2026-05-28",
+      "period_end": "2026-04-30",
+      "filing_published_at": null,
+      "period_gap_days": 28,
+      "filing_lag_days": null
+    },
+    {
+      "ticker": "NVDA",
+      "report_date": "2026-05-20",
+      "period_end": "2026-04-30",
+      "filing_published_at": null,
+      "period_gap_days": 20,
+      "filing_lag_days": null
+    },
+    {
+      "ticker": "NVMI",
+      "report_date": "2026-05-14",
+      "period_end": "2026-03-31",
+      "filing_published_at": null,
+      "period_gap_days": 44,
+      "filing_lag_days": null
+    },
+    {
+      "ticker": "NVMI",
+      "report_date": "2026-08-06",
+      "period_end": "2026-06-30",
+      "filing_published_at": null,
+      "period_gap_days": 37,
+      "filing_lag_days": null
+    },
+    {
+      "ticker": "NVO",
+      "report_date": "2026-05-06",
+      "period_end": "2026-03-31",
+      "filing_published_at": null,
+      "period_gap_days": 36,
+      "filing_lag_days": null
+    },
+    {
+      "ticker": "NVT",
+      "report_date": "2026-05-01",
+      "period_end": "2026-03-31",
+      "filing_published_at": "2026-05-01",
+      "period_gap_days": 31,
+      "filing_lag_days": 0
+    },
+    {
+      "ticker": "NVT",
+      "report_date": "2026-07-31",
+      "period_end": "2026-06-30",
+      "filing_published_at": "2026-07-31",
+      "period_gap_days": 31,
+      "filing_lag_days": 0
+    },
+    {
+      "ticker": "NVTS",
+      "report_date": "2026-05-05",
+      "period_end": "2026-03-31",
+      "filing_published_at": "2026-05-05",
+      "period_gap_days": 35,
+      "filing_lag_days": 0
+    },
+    {
+      "ticker": "NVTS",
+      "report_date": "2026-07-27",
+      "period_end": "2026-06-30",
+      "filing_published_at": "2026-07-27",
+      "period_gap_days": 27,
+      "filing_lag_days": 0
+    },
+    {
+      "ticker": "NXPI",
+      "report_date": "2026-04-28",
+      "period_end": "2026-03-31",
+      "filing_published_at": null,
+      "period_gap_days": 28,
+      "filing_lag_days": null
+    },
+    {
+      "ticker": "NXPI",
+      "report_date": "2026-07-28",
+      "period_end": "2026-06-30",
+      "filing_published_at": null,
+      "period_gap_days": 28,
+      "filing_lag_days": null
+    },
+    {
+      "ticker": "OKLO",
+      "report_date": "2026-05-12",
+      "period_end": "2026-03-31",
+      "filing_published_at": "2026-06-17",
+      "period_gap_days": 42,
+      "filing_lag_days": 36
+    },
+    {
+      "ticker": "OKLO",
+      "report_date": "2026-08-07",
+      "period_end": "2026-06-30",
+      "filing_published_at": "2026-08-07",
+      "period_gap_days": 38,
+      "filing_lag_days": 0
+    },
+    {
+      "ticker": "OKTA",
+      "report_date": "2026-05-28",
+      "period_end": "2026-04-30",
+      "filing_published_at": "2026-05-29",
+      "period_gap_days": 28,
+      "filing_lag_days": 1
+    },
+    {
+      "ticker": "ON",
+      "report_date": "2026-05-04",
+      "period_end": "2026-03-31",
+      "filing_published_at": null,
+      "period_gap_days": 34,
+      "filing_lag_days": null
+    },
+    {
+      "ticker": "ON",
+      "report_date": "2026-08-03",
+      "period_end": "2026-06-30",
+      "filing_published_at": null,
+      "period_gap_days": 34,
+      "filing_lag_days": null
+    },
+    {
+      "ticker": "ONTO",
+      "report_date": "2026-05-05",
+      "period_end": "2026-03-31",
+      "filing_published_at": "2026-05-05",
+      "period_gap_days": 35,
+      "filing_lag_days": 0
+    },
+    {
+      "ticker": "ONTO",
+      "report_date": "2026-08-06",
+      "period_end": "2026-06-30",
+      "filing_published_at": "2026-08-06",
+      "period_gap_days": 37,
+      "filing_lag_days": 0
+    },
+    {
+      "ticker": "ORCL",
+      "report_date": "2026-06-10",
+      "period_end": "2026-05-31",
+      "filing_published_at": "2026-06-22",
+      "period_gap_days": 10,
+      "filing_lag_days": 12
+    },
+    {
+      "ticker": "ORLY",
+      "report_date": "2026-04-29",
+      "period_end": "2026-03-31",
+      "filing_published_at": "2026-05-08",
+      "period_gap_days": 29,
+      "filing_lag_days": 9
+    },
+    {
+      "ticker": "ORLY",
+      "report_date": "2026-07-29",
+      "period_end": "2026-06-30",
+      "filing_published_at": "2026-08-07",
+      "period_gap_days": 29,
+      "filing_lag_days": 9
+    },
+    {
+      "ticker": "OSIS",
+      "report_date": "2026-05-04",
+      "period_end": "2026-03-31",
+      "filing_published_at": "2026-05-04",
+      "period_gap_days": 34,
+      "filing_lag_days": 0
+    },
+    {
+      "ticker": "OSIS",
+      "report_date": "2026-08-20",
+      "period_end": "2026-06-30",
+      "filing_published_at": "2026-08-21",
+      "period_gap_days": 51,
+      "filing_lag_days": 1
+    },
+    {
+      "ticker": "OXY",
+      "report_date": "2026-05-05",
+      "period_end": "2026-03-31",
+      "filing_published_at": "2026-05-05",
+      "period_gap_days": 35,
+      "filing_lag_days": 0
+    },
+    {
+      "ticker": "OXY",
+      "report_date": "2026-08-05",
+      "period_end": "2026-06-30",
+      "filing_published_at": "2026-08-05",
+      "period_gap_days": 36,
+      "filing_lag_days": 0
+    },
+    {
+      "ticker": "PANW",
+      "report_date": "2026-06-02",
+      "period_end": "2026-04-30",
+      "filing_published_at": "2026-06-03",
+      "period_gap_days": 33,
+      "filing_lag_days": 1
+    },
+    {
+      "ticker": "PATH",
+      "report_date": "2026-05-28",
+      "period_end": "2026-04-30",
+      "filing_published_at": "2026-06-04",
+      "period_gap_days": 28,
+      "filing_lag_days": 7
+    },
+    {
+      "ticker": "PAYX",
+      "report_date": "2026-06-24",
+      "period_end": "2026-05-31",
+      "filing_published_at": "2026-07-17",
+      "period_gap_days": 24,
+      "filing_lag_days": 23
+    },
+    {
+      "ticker": "PCAR",
+      "report_date": "2026-04-28",
+      "period_end": "2026-03-31",
+      "filing_published_at": "2026-04-29",
+      "period_gap_days": 28,
+      "filing_lag_days": 1
+    },
+    {
+      "ticker": "PCAR",
+      "report_date": "2026-07-28",
+      "period_end": "2026-06-30",
+      "filing_published_at": "2026-07-29",
+      "period_gap_days": 28,
+      "filing_lag_days": 1
+    },
+    {
+      "ticker": "PD",
+      "report_date": "2026-05-28",
+      "period_end": "2026-04-30",
+      "filing_published_at": "2026-05-28",
+      "period_gap_days": 28,
+      "filing_lag_days": 0
+    },
+    {
+      "ticker": "PEG",
+      "report_date": "2026-05-05",
+      "period_end": "2026-03-31",
+      "filing_published_at": "2026-05-05",
+      "period_gap_days": 35,
+      "filing_lag_days": 0
+    },
+    {
+      "ticker": "PEG",
+      "report_date": "2026-08-04",
+      "period_end": "2026-06-30",
+      "filing_published_at": "2026-08-04",
+      "period_gap_days": 35,
+      "filing_lag_days": 0
+    },
+    {
+      "ticker": "PFE",
+      "report_date": "2026-05-05",
+      "period_end": "2026-03-31",
+      "filing_published_at": null,
+      "period_gap_days": 35,
+      "filing_lag_days": null
+    },
+    {
+      "ticker": "PFE",
+      "report_date": "2026-08-04",
+      "period_end": "2026-06-30",
+      "filing_published_at": null,
+      "period_gap_days": 35,
+      "filing_lag_days": null
+    },
+    {
+      "ticker": "PINS",
+      "report_date": "2026-05-04",
+      "period_end": "2026-03-31",
+      "filing_published_at": "2026-05-04",
+      "period_gap_days": 34,
+      "filing_lag_days": 0
+    },
+    {
+      "ticker": "PINS",
+      "report_date": "2026-08-04",
+      "period_end": "2026-06-30",
+      "filing_published_at": "2026-08-04",
+      "period_gap_days": 35,
+      "filing_lag_days": 0
+    },
+    {
+      "ticker": "PL",
+      "report_date": "2026-06-04",
+      "period_end": "2026-04-30",
+      "filing_published_at": "2026-06-05",
+      "period_gap_days": 35,
+      "filing_lag_days": 1
+    },
+    {
+      "ticker": "PLTR",
+      "report_date": "2026-05-04",
+      "period_end": "2026-03-31",
+      "filing_published_at": "2026-05-05",
+      "period_gap_days": 34,
+      "filing_lag_days": 1
+    },
+    {
+      "ticker": "PLTR",
+      "report_date": "2026-08-03",
+      "period_end": "2026-06-30",
+      "filing_published_at": "2026-08-04",
+      "period_gap_days": 34,
+      "filing_lag_days": 1
+    },
+    {
+      "ticker": "POWI",
+      "report_date": "2026-05-07",
+      "period_end": "2026-03-31",
+      "filing_published_at": "2026-05-07",
+      "period_gap_days": 37,
+      "filing_lag_days": 0
+    },
+    {
+      "ticker": "POWI",
+      "report_date": "2026-08-05",
+      "period_end": "2026-06-30",
+      "filing_published_at": "2026-08-06",
+      "period_gap_days": 36,
+      "filing_lag_days": 1
+    },
+    {
+      "ticker": "POWL",
+      "report_date": "2026-05-04",
+      "period_end": "2026-03-31",
+      "filing_published_at": "2026-05-05",
+      "period_gap_days": 34,
+      "filing_lag_days": 1
+    },
+    {
+      "ticker": "POWL",
+      "report_date": "2026-08-03",
+      "period_end": "2026-06-30",
+      "filing_published_at": "2026-08-04",
+      "period_gap_days": 34,
+      "filing_lag_days": 1
+    },
+    {
+      "ticker": "PWR",
+      "report_date": "2026-04-30",
+      "period_end": "2026-03-31",
+      "filing_published_at": "2026-04-30",
+      "period_gap_days": 30,
+      "filing_lag_days": 0
+    },
+    {
+      "ticker": "PWR",
+      "report_date": "2026-07-30",
+      "period_end": "2026-06-30",
+      "filing_published_at": "2026-07-30",
+      "period_gap_days": 30,
+      "filing_lag_days": 0
+    },
+    {
+      "ticker": "PYPL",
+      "report_date": "2026-05-05",
+      "period_end": "2026-03-31",
+      "filing_published_at": "2026-05-05",
+      "period_gap_days": 35,
+      "filing_lag_days": 0
+    },
+    {
+      "ticker": "PYPL",
+      "report_date": "2026-07-28",
+      "period_end": "2026-06-30",
+      "filing_published_at": "2026-07-28",
+      "period_gap_days": 28,
+      "filing_lag_days": 0
+    },
+    {
+      "ticker": "QCOM",
+      "report_date": "2026-04-29",
+      "period_end": "2026-03-31",
+      "filing_published_at": null,
+      "period_gap_days": 29,
+      "filing_lag_days": null
+    },
+    {
+      "ticker": "QCOM",
+      "report_date": "2026-07-29",
+      "period_end": "2026-06-30",
+      "filing_published_at": null,
+      "period_gap_days": 29,
+      "filing_lag_days": null
+    },
+    {
+      "ticker": "QLYS",
+      "report_date": "2026-05-05",
+      "period_end": "2026-03-31",
+      "filing_published_at": "2026-05-05",
+      "period_gap_days": 35,
+      "filing_lag_days": 0
+    },
+    {
+      "ticker": "QLYS",
+      "report_date": "2026-08-04",
+      "period_end": "2026-06-30",
+      "filing_published_at": "2026-08-04",
+      "period_gap_days": 35,
+      "filing_lag_days": 0
+    },
+    {
+      "ticker": "QRVO",
+      "report_date": "2026-05-05",
+      "period_end": "2026-03-31",
+      "filing_published_at": null,
+      "period_gap_days": 35,
+      "filing_lag_days": null
+    },
+    {
+      "ticker": "QRVO",
+      "report_date": "2026-07-28",
+      "period_end": "2026-06-30",
+      "filing_published_at": null,
+      "period_gap_days": 28,
+      "filing_lag_days": null
+    },
+    {
+      "ticker": "RBLX",
+      "report_date": "2026-04-30",
+      "period_end": "2026-03-31",
+      "filing_published_at": "2026-04-30",
+      "period_gap_days": 30,
+      "filing_lag_days": 0
+    },
+    {
+      "ticker": "RBLX",
+      "report_date": "2026-07-30",
+      "period_end": "2026-06-30",
+      "filing_published_at": "2026-07-30",
+      "period_gap_days": 30,
+      "filing_lag_days": 0
+    },
+    {
+      "ticker": "RDDT",
+      "report_date": "2026-04-30",
+      "period_end": "2026-03-31",
+      "filing_published_at": "2026-05-01",
+      "period_gap_days": 30,
+      "filing_lag_days": 1
+    },
+    {
+      "ticker": "RDDT",
+      "report_date": "2026-07-30",
+      "period_end": "2026-06-30",
+      "filing_published_at": "2026-07-31",
+      "period_gap_days": 30,
+      "filing_lag_days": 1
+    },
+    {
+      "ticker": "REGN",
+      "report_date": "2026-04-29",
+      "period_end": "2026-03-31",
+      "filing_published_at": "2026-04-29",
+      "period_gap_days": 29,
+      "filing_lag_days": 0
+    },
+    {
+      "ticker": "REGN",
+      "report_date": "2026-07-30",
+      "period_end": "2026-06-30",
+      "filing_published_at": "2026-07-30",
+      "period_gap_days": 30,
+      "filing_lag_days": 0
+    },
+    {
+      "ticker": "RGTI",
+      "report_date": "2026-05-11",
+      "period_end": "2026-03-31",
+      "filing_published_at": "2026-05-11",
+      "period_gap_days": 41,
+      "filing_lag_days": 0
+    },
+    {
+      "ticker": "RGTI",
+      "report_date": "2026-08-06",
+      "period_end": "2026-06-30",
+      "filing_published_at": "2026-08-06",
+      "period_gap_days": 37,
+      "filing_lag_days": 0
+    },
+    {
+      "ticker": "RIOT",
+      "report_date": "2026-04-30",
+      "period_end": "2026-03-31",
+      "filing_published_at": "2026-04-30",
+      "period_gap_days": 30,
+      "filing_lag_days": 0
+    },
+    {
+      "ticker": "RIOT",
+      "report_date": "2026-08-05",
+      "period_end": "2026-06-30",
+      "filing_published_at": "2026-08-10",
+      "period_gap_days": 36,
+      "filing_lag_days": 5
+    },
+    {
+      "ticker": "RKLB",
+      "report_date": "2026-05-07",
+      "period_end": "2026-03-31",
+      "filing_published_at": "2026-05-07",
+      "period_gap_days": 37,
+      "filing_lag_days": 0
+    },
+    {
+      "ticker": "RKLB",
+      "report_date": "2026-08-10",
+      "period_end": "2026-06-30",
+      "filing_published_at": "2026-08-10",
+      "period_gap_days": 41,
+      "filing_lag_days": 0
+    },
+    {
+      "ticker": "RMBS",
+      "report_date": "2026-04-27",
+      "period_end": "2026-03-31",
+      "filing_published_at": "2026-04-28",
+      "period_gap_days": 27,
+      "filing_lag_days": 1
+    },
+    {
+      "ticker": "RMBS",
+      "report_date": "2026-07-27",
+      "period_end": "2026-06-30",
+      "filing_published_at": "2026-07-28",
+      "period_gap_days": 27,
+      "filing_lag_days": 1
+    },
+    {
+      "ticker": "ROK",
+      "report_date": "2026-05-05",
+      "period_end": "2026-03-31",
+      "filing_published_at": "2026-05-05",
+      "period_gap_days": 35,
+      "filing_lag_days": 0
+    },
+    {
+      "ticker": "ROK",
+      "report_date": "2026-08-04",
+      "period_end": "2026-06-30",
+      "filing_published_at": "2026-08-04",
+      "period_gap_days": 35,
+      "filing_lag_days": 0
+    },
+    {
+      "ticker": "ROP",
+      "report_date": "2026-07-23",
+      "period_end": "2026-06-30",
+      "filing_published_at": "2026-07-31",
+      "period_gap_days": 23,
+      "filing_lag_days": 8
+    },
+    {
+      "ticker": "ROST",
+      "report_date": "2026-05-21",
+      "period_end": "2026-04-30",
+      "filing_published_at": null,
+      "period_gap_days": 21,
+      "filing_lag_days": null
+    },
+    {
+      "ticker": "ROST",
+      "report_date": "2026-08-20",
+      "period_end": "2026-07-31",
+      "filing_published_at": null,
+      "period_gap_days": 20,
+      "filing_lag_days": null
+    },
+    {
+      "ticker": "RPD",
+      "report_date": "2026-05-05",
+      "period_end": "2026-03-31",
+      "filing_published_at": "2026-05-05",
+      "period_gap_days": 35,
+      "filing_lag_days": 0
+    },
+    {
+      "ticker": "RPD",
+      "report_date": "2026-08-10",
+      "period_end": "2026-06-30",
+      "filing_published_at": "2026-08-10",
+      "period_gap_days": 41,
+      "filing_lag_days": 0
+    },
+    {
+      "ticker": "RTX",
+      "report_date": "2026-07-23",
+      "period_end": "2026-06-30",
+      "filing_published_at": "2026-07-23",
+      "period_gap_days": 23,
+      "filing_lag_days": 0
+    },
+    {
+      "ticker": "RXRX",
+      "report_date": "2026-05-06",
+      "period_end": "2026-03-31",
+      "filing_published_at": "2026-05-06",
+      "period_gap_days": 36,
+      "filing_lag_days": 0
+    },
+    {
+      "ticker": "RXRX",
+      "report_date": "2026-08-05",
+      "period_end": "2026-06-30",
+      "filing_published_at": "2026-08-05",
+      "period_gap_days": 36,
+      "filing_lag_days": 0
+    },
+    {
+      "ticker": "S",
+      "report_date": "2026-05-28",
+      "period_end": "2026-04-30",
+      "filing_published_at": "2026-05-28",
+      "period_gap_days": 28,
+      "filing_lag_days": 0
+    },
+    {
+      "ticker": "SBUX",
+      "report_date": "2026-04-28",
+      "period_end": "2026-03-31",
+      "filing_published_at": null,
+      "period_gap_days": 28,
+      "filing_lag_days": null
+    },
+    {
+      "ticker": "SBUX",
+      "report_date": "2026-07-29",
+      "period_end": "2026-06-30",
+      "filing_published_at": null,
+      "period_gap_days": 29,
+      "filing_lag_days": null
+    },
+    {
+      "ticker": "SHOP",
+      "report_date": "2026-05-05",
+      "period_end": "2026-03-31",
+      "filing_published_at": "2026-05-05",
+      "period_gap_days": 35,
+      "filing_lag_days": 0
+    },
+    {
+      "ticker": "SHOP",
+      "report_date": "2026-08-05",
+      "period_end": "2026-06-30",
+      "filing_published_at": "2026-08-05",
+      "period_gap_days": 36,
+      "filing_lag_days": 0
+    },
+    {
+      "ticker": "SMCI",
+      "report_date": "2026-05-05",
+      "period_end": "2026-03-31",
+      "filing_published_at": "2026-05-11",
+      "period_gap_days": 35,
+      "filing_lag_days": 6
+    },
+    {
+      "ticker": "SMCI",
+      "report_date": "2026-08-11",
+      "period_end": "2026-06-30",
+      "filing_published_at": null,
+      "period_gap_days": 42,
+      "filing_lag_days": null
+    },
+    {
+      "ticker": "SMR",
+      "report_date": "2026-05-07",
+      "period_end": "2026-03-31",
+      "filing_published_at": "2026-05-07",
+      "period_gap_days": 37,
+      "filing_lag_days": 0
+    },
+    {
+      "ticker": "SMR",
+      "report_date": "2026-08-05",
+      "period_end": "2026-06-30",
+      "filing_published_at": "2026-08-05",
+      "period_gap_days": 36,
+      "filing_lag_days": 0
+    },
+    {
+      "ticker": "SNAP",
+      "report_date": "2026-05-06",
+      "period_end": "2026-03-31",
+      "filing_published_at": "2026-05-07",
+      "period_gap_days": 36,
+      "filing_lag_days": 1
+    },
+    {
+      "ticker": "SNAP",
+      "report_date": "2026-08-03",
+      "period_end": "2026-06-30",
+      "filing_published_at": "2026-08-04",
+      "period_gap_days": 34,
+      "filing_lag_days": 1
+    },
+    {
+      "ticker": "SNDK",
+      "report_date": "2026-04-30",
+      "period_end": "2026-03-31",
+      "filing_published_at": null,
+      "period_gap_days": 30,
+      "filing_lag_days": null
+    },
+    {
+      "ticker": "SNDK",
+      "report_date": "2026-08-05",
+      "period_end": "2026-06-30",
+      "filing_published_at": null,
+      "period_gap_days": 36,
+      "filing_lag_days": null
+    },
+    {
+      "ticker": "SNOW",
+      "report_date": "2026-05-27",
+      "period_end": "2026-04-30",
+      "filing_published_at": "2026-05-29",
+      "period_gap_days": 27,
+      "filing_lag_days": 2
+    },
+    {
+      "ticker": "SNPS",
+      "report_date": "2026-05-27",
+      "period_end": "2026-04-30",
+      "filing_published_at": "2026-05-27",
+      "period_gap_days": 27,
+      "filing_lag_days": 0
+    },
+    {
+      "ticker": "SO",
+      "report_date": "2026-04-30",
+      "period_end": "2026-03-31",
+      "filing_published_at": "2026-04-30",
+      "period_gap_days": 30,
+      "filing_lag_days": 0
+    },
+    {
+      "ticker": "SO",
+      "report_date": "2026-07-30",
+      "period_end": "2026-06-30",
+      "filing_published_at": null,
+      "period_gap_days": 30,
+      "filing_lag_days": null
+    },
+    {
+      "ticker": "SOFI",
+      "report_date": "2026-04-29",
+      "period_end": "2026-03-31",
+      "filing_published_at": "2026-05-07",
+      "period_gap_days": 29,
+      "filing_lag_days": 8
+    },
+    {
+      "ticker": "SOFI",
+      "report_date": "2026-07-29",
+      "period_end": "2026-06-30",
+      "filing_published_at": "2026-08-06",
+      "period_gap_days": 29,
+      "filing_lag_days": 8
+    },
+    {
+      "ticker": "SOUN",
+      "report_date": "2026-05-07",
+      "period_end": "2026-03-31",
+      "filing_published_at": "2026-05-11",
+      "period_gap_days": 37,
+      "filing_lag_days": 4
+    },
+    {
+      "ticker": "SOUN",
+      "report_date": "2026-08-05",
+      "period_end": "2026-06-30",
+      "filing_published_at": "2026-08-10",
+      "period_gap_days": 36,
+      "filing_lag_days": 5
+    },
+    {
+      "ticker": "SPCX",
+      "report_date": "2026-08-04",
+      "period_end": null,
+      "filing_published_at": null,
+      "period_gap_days": null,
+      "filing_lag_days": null
+    },
+    {
+      "ticker": "SPOT",
+      "report_date": "2026-04-28",
+      "period_end": "2026-03-31",
+      "filing_published_at": null,
+      "period_gap_days": 28,
+      "filing_lag_days": null
+    },
+    {
+      "ticker": "SPOT",
+      "report_date": "2026-08-04",
+      "period_end": "2026-06-30",
+      "filing_published_at": null,
+      "period_gap_days": 35,
+      "filing_lag_days": null
+    },
+    {
+      "ticker": "SPXC",
+      "report_date": "2026-04-30",
+      "period_end": "2026-03-31",
+      "filing_published_at": null,
+      "period_gap_days": 30,
+      "filing_lag_days": null
+    },
+    {
+      "ticker": "SPXC",
+      "report_date": "2026-07-30",
+      "period_end": "2026-06-30",
+      "filing_published_at": null,
+      "period_gap_days": 30,
+      "filing_lag_days": null
+    },
+    {
+      "ticker": "STRL",
+      "report_date": "2026-05-04",
+      "period_end": "2026-03-31",
+      "filing_published_at": "2026-05-05",
+      "period_gap_days": 34,
+      "filing_lag_days": 1
+    },
+    {
+      "ticker": "STRL",
+      "report_date": "2026-08-03",
+      "period_end": "2026-06-30",
+      "filing_published_at": "2026-08-04",
+      "period_gap_days": 34,
+      "filing_lag_days": 1
+    },
+    {
+      "ticker": "STX",
+      "report_date": "2026-04-28",
+      "period_end": "2026-03-31",
+      "filing_published_at": null,
+      "period_gap_days": 28,
+      "filing_lag_days": null
+    },
+    {
+      "ticker": "STX",
+      "report_date": "2026-07-28",
+      "period_end": "2026-06-30",
+      "filing_published_at": null,
+      "period_gap_days": 28,
+      "filing_lag_days": null
+    },
+    {
+      "ticker": "SWKS",
+      "report_date": "2026-05-05",
+      "period_end": "2026-03-31",
+      "filing_published_at": null,
+      "period_gap_days": 35,
+      "filing_lag_days": null
+    },
+    {
+      "ticker": "SWKS",
+      "report_date": "2026-07-28",
+      "period_end": "2026-06-30",
+      "filing_published_at": null,
+      "period_gap_days": 28,
+      "filing_lag_days": null
+    },
+    {
+      "ticker": "SYM",
+      "report_date": "2026-05-06",
+      "period_end": "2026-03-31",
+      "filing_published_at": null,
+      "period_gap_days": 36,
+      "filing_lag_days": null
+    },
+    {
+      "ticker": "SYM",
+      "report_date": "2026-08-05",
+      "period_end": "2026-06-30",
+      "filing_published_at": null,
+      "period_gap_days": 36,
+      "filing_lag_days": null
+    },
+    {
+      "ticker": "T",
+      "report_date": "2026-07-22",
+      "period_end": "2026-06-30",
+      "filing_published_at": "2026-07-22",
+      "period_gap_days": 22,
+      "filing_lag_days": 0
+    },
+    {
+      "ticker": "TDC",
+      "report_date": "2026-05-05",
+      "period_end": "2026-03-31",
+      "filing_published_at": "2026-05-06",
+      "period_gap_days": 35,
+      "filing_lag_days": 1
+    },
+    {
+      "ticker": "TDC",
+      "report_date": "2026-08-04",
+      "period_end": "2026-06-30",
+      "filing_published_at": "2026-08-05",
+      "period_gap_days": 35,
+      "filing_lag_days": 1
+    },
+    {
+      "ticker": "TEAM",
+      "report_date": "2026-04-30",
+      "period_end": "2026-03-31",
+      "filing_published_at": "2026-05-01",
+      "period_gap_days": 30,
+      "filing_lag_days": 1
+    },
+    {
+      "ticker": "TEAM",
+      "report_date": "2026-08-06",
+      "period_end": "2026-06-30",
+      "filing_published_at": "2026-08-14",
+      "period_gap_days": 37,
+      "filing_lag_days": 8
+    },
+    {
+      "ticker": "TEL",
+      "report_date": "2026-07-22",
+      "period_end": "2026-06-30",
+      "filing_published_at": null,
+      "period_gap_days": 22,
+      "filing_lag_days": null
+    },
+    {
+      "ticker": "TEM",
+      "report_date": "2026-05-05",
+      "period_end": "2026-03-31",
+      "filing_published_at": "2026-05-05",
+      "period_gap_days": 35,
+      "filing_lag_days": 0
+    },
+    {
+      "ticker": "TEM",
+      "report_date": "2026-07-30",
+      "period_end": "2026-06-30",
+      "filing_published_at": "2026-07-30",
+      "period_gap_days": 30,
+      "filing_lag_days": 0
+    },
+    {
+      "ticker": "TENB",
+      "report_date": "2026-04-29",
+      "period_end": "2026-03-31",
+      "filing_published_at": "2026-05-05",
+      "period_gap_days": 29,
+      "filing_lag_days": 6
+    },
+    {
+      "ticker": "TENB",
+      "report_date": "2026-07-29",
+      "period_end": "2026-06-30",
+      "filing_published_at": "2026-08-04",
+      "period_gap_days": 29,
+      "filing_lag_days": 6
+    },
+    {
+      "ticker": "TER",
+      "report_date": "2026-04-28",
+      "period_end": "2026-03-31",
+      "filing_published_at": null,
+      "period_gap_days": 28,
+      "filing_lag_days": null
+    },
+    {
+      "ticker": "TER",
+      "report_date": "2026-07-28",
+      "period_end": "2026-06-30",
+      "filing_published_at": null,
+      "period_gap_days": 28,
+      "filing_lag_days": null
+    },
+    {
+      "ticker": "TGT",
+      "report_date": "2026-05-20",
+      "period_end": "2026-04-30",
+      "filing_published_at": null,
+      "period_gap_days": 20,
+      "filing_lag_days": null
+    },
+    {
+      "ticker": "TGT",
+      "report_date": "2026-08-19",
+      "period_end": "2026-07-31",
+      "filing_published_at": null,
+      "period_gap_days": 19,
+      "filing_lag_days": null
+    },
+    {
+      "ticker": "TLN",
+      "report_date": "2026-05-05",
+      "period_end": "2026-03-31",
+      "filing_published_at": "2026-05-05",
+      "period_gap_days": 35,
+      "filing_lag_days": 0
+    },
+    {
+      "ticker": "TLN",
+      "report_date": "2026-08-05",
+      "period_end": "2026-06-30",
+      "filing_published_at": "2026-08-05",
+      "period_gap_days": 36,
+      "filing_lag_days": 0
+    },
+    {
+      "ticker": "TMO",
+      "report_date": "2026-07-23",
+      "period_end": "2026-06-30",
+      "filing_published_at": null,
+      "period_gap_days": 23,
+      "filing_lag_days": null
+    },
+    {
+      "ticker": "TMUS",
+      "report_date": "2026-04-28",
+      "period_end": "2026-03-31",
+      "filing_published_at": "2026-04-28",
+      "period_gap_days": 28,
+      "filing_lag_days": 0
+    },
+    {
+      "ticker": "TMUS",
+      "report_date": "2026-07-23",
+      "period_end": "2026-06-30",
+      "filing_published_at": "2026-07-23",
+      "period_gap_days": 23,
+      "filing_lag_days": 0
+    },
+    {
+      "ticker": "TRI",
+      "report_date": "2026-05-05",
+      "period_end": "2026-03-31",
+      "filing_published_at": null,
+      "period_gap_days": 35,
+      "filing_lag_days": null
+    },
+    {
+      "ticker": "TRI",
+      "report_date": "2026-08-05",
+      "period_end": "2026-06-30",
+      "filing_published_at": null,
+      "period_gap_days": 36,
+      "filing_lag_days": null
+    },
+    {
+      "ticker": "TSEM",
+      "report_date": "2026-05-13",
+      "period_end": "2026-03-31",
+      "filing_published_at": null,
+      "period_gap_days": 43,
+      "filing_lag_days": null
+    },
+    {
+      "ticker": "TSEM",
+      "report_date": "2026-08-04",
+      "period_end": "2026-06-30",
+      "filing_published_at": null,
+      "period_gap_days": 35,
+      "filing_lag_days": null
+    },
+    {
+      "ticker": "TSLA",
+      "report_date": "2026-07-22",
+      "period_end": "2026-06-30",
+      "filing_published_at": "2026-07-23",
+      "period_gap_days": 22,
+      "filing_lag_days": 1
+    },
+    {
+      "ticker": "TSM",
+      "report_date": "2026-07-16",
+      "period_end": "2026-06-30",
+      "filing_published_at": null,
+      "period_gap_days": 16,
+      "filing_lag_days": null
+    },
+    {
+      "ticker": "TT",
+      "report_date": "2026-04-30",
+      "period_end": "2026-03-31",
+      "filing_published_at": "2026-04-30",
+      "period_gap_days": 30,
+      "filing_lag_days": 0
+    },
+    {
+      "ticker": "TT",
+      "report_date": "2026-07-30",
+      "period_end": "2026-06-30",
+      "filing_published_at": "2026-07-30",
+      "period_gap_days": 30,
+      "filing_lag_days": 0
+    },
+    {
+      "ticker": "TTD",
+      "report_date": "2026-05-07",
+      "period_end": "2026-03-31",
+      "filing_published_at": "2026-05-07",
+      "period_gap_days": 37,
+      "filing_lag_days": 0
+    },
+    {
+      "ticker": "TTD",
+      "report_date": "2026-08-06",
+      "period_end": "2026-06-30",
+      "filing_published_at": "2026-08-06",
+      "period_gap_days": 37,
+      "filing_lag_days": 0
+    },
+    {
+      "ticker": "TTWO",
+      "report_date": "2026-05-21",
+      "period_end": "2026-03-31",
+      "filing_published_at": "2026-05-22",
+      "period_gap_days": 51,
+      "filing_lag_days": 1
+    },
+    {
+      "ticker": "TTWO",
+      "report_date": "2026-08-07",
+      "period_end": "2026-06-30",
+      "filing_published_at": "2026-08-07",
+      "period_gap_days": 38,
+      "filing_lag_days": 0
+    },
+    {
+      "ticker": "TWLO",
+      "report_date": "2026-04-30",
+      "period_end": "2026-03-31",
+      "filing_published_at": "2026-05-01",
+      "period_gap_days": 30,
+      "filing_lag_days": 1
+    },
+    {
+      "ticker": "TWLO",
+      "report_date": "2026-08-06",
+      "period_end": "2026-06-30",
+      "filing_published_at": "2026-08-07",
+      "period_gap_days": 37,
+      "filing_lag_days": 1
+    },
+    {
+      "ticker": "TXN",
+      "report_date": "2026-07-22",
+      "period_end": "2026-06-30",
+      "filing_published_at": "2026-07-24",
+      "period_gap_days": 22,
+      "filing_lag_days": 2
+    },
+    {
+      "ticker": "U",
+      "report_date": "2026-05-07",
+      "period_end": "2026-03-31",
+      "filing_published_at": "2026-05-07",
+      "period_gap_days": 37,
+      "filing_lag_days": 0
+    },
+    {
+      "ticker": "U",
+      "report_date": "2026-08-06",
+      "period_end": "2026-06-30",
+      "filing_published_at": "2026-08-06",
+      "period_gap_days": 37,
+      "filing_lag_days": 0
+    },
+    {
+      "ticker": "UBER",
+      "report_date": "2026-05-06",
+      "period_end": "2026-03-31",
+      "filing_published_at": "2026-05-06",
+      "period_gap_days": 36,
+      "filing_lag_days": 0
+    },
+    {
+      "ticker": "UBER",
+      "report_date": "2026-08-05",
+      "period_end": "2026-06-30",
+      "filing_published_at": "2026-08-05",
+      "period_gap_days": 36,
+      "filing_lag_days": 0
+    },
+    {
+      "ticker": "UCTT",
+      "report_date": "2026-04-28",
+      "period_end": "2026-03-31",
+      "filing_published_at": null,
+      "period_gap_days": 28,
+      "filing_lag_days": null
+    },
+    {
+      "ticker": "UCTT",
+      "report_date": "2026-08-03",
+      "period_end": "2026-06-30",
+      "filing_published_at": null,
+      "period_gap_days": 34,
+      "filing_lag_days": null
+    },
+    {
+      "ticker": "UEC",
+      "report_date": "2026-06-09",
+      "period_end": "2026-04-30",
+      "filing_published_at": "2026-06-09",
+      "period_gap_days": 40,
+      "filing_lag_days": 0
+    },
+    {
+      "ticker": "UMC",
+      "report_date": "2026-04-29",
+      "period_end": "2026-03-31",
+      "filing_published_at": null,
+      "period_gap_days": 29,
+      "filing_lag_days": null
+    },
+    {
+      "ticker": "UMC",
+      "report_date": "2026-07-29",
+      "period_end": "2026-06-30",
+      "filing_published_at": null,
+      "period_gap_days": 29,
+      "filing_lag_days": null
+    },
+    {
+      "ticker": "UNH",
+      "report_date": "2026-07-16",
+      "period_end": "2026-06-30",
+      "filing_published_at": "2026-08-10",
+      "period_gap_days": 16,
+      "filing_lag_days": 25
+    },
+    {
+      "ticker": "VECO",
+      "report_date": "2026-05-05",
+      "period_end": "2026-03-31",
+      "filing_published_at": "2026-05-05",
+      "period_gap_days": 35,
+      "filing_lag_days": 0
+    },
+    {
+      "ticker": "VECO",
+      "report_date": "2026-08-05",
+      "period_end": "2026-06-30",
+      "filing_published_at": "2026-08-05",
+      "period_gap_days": 36,
+      "filing_lag_days": 0
+    },
+    {
+      "ticker": "VEEV",
+      "report_date": "2026-06-03",
+      "period_end": "2026-04-30",
+      "filing_published_at": "2026-06-05",
+      "period_gap_days": 34,
+      "filing_lag_days": 2
+    },
+    {
+      "ticker": "VRNS",
+      "report_date": "2026-04-28",
+      "period_end": "2026-03-31",
+      "filing_published_at": "2026-04-29",
+      "period_gap_days": 28,
+      "filing_lag_days": 1
+    },
+    {
+      "ticker": "VRNS",
+      "report_date": "2026-07-28",
+      "period_end": "2026-06-30",
+      "filing_published_at": "2026-07-29",
+      "period_gap_days": 28,
+      "filing_lag_days": 1
+    },
+    {
+      "ticker": "VRSK",
+      "report_date": "2026-04-29",
+      "period_end": "2026-03-31",
+      "filing_published_at": "2026-04-29",
+      "period_gap_days": 29,
+      "filing_lag_days": 0
+    },
+    {
+      "ticker": "VRSK",
+      "report_date": "2026-07-29",
+      "period_end": "2026-06-30",
+      "filing_published_at": "2026-07-29",
+      "period_gap_days": 29,
+      "filing_lag_days": 0
+    },
+    {
+      "ticker": "VRT",
+      "report_date": "2026-07-29",
+      "period_end": "2026-06-30",
+      "filing_published_at": "2026-07-29",
+      "period_gap_days": 29,
+      "filing_lag_days": 0
+    },
+    {
+      "ticker": "VRTX",
+      "report_date": "2026-05-04",
+      "period_end": "2026-03-31",
+      "filing_published_at": "2026-05-05",
+      "period_gap_days": 34,
+      "filing_lag_days": 1
+    },
+    {
+      "ticker": "VRTX",
+      "report_date": "2026-08-03",
+      "period_end": "2026-06-30",
+      "filing_published_at": "2026-08-04",
+      "period_gap_days": 34,
+      "filing_lag_days": 1
+    },
+    {
+      "ticker": "VSH",
+      "report_date": "2026-05-13",
+      "period_end": "2026-03-31",
+      "filing_published_at": null,
+      "period_gap_days": 43,
+      "filing_lag_days": null
+    },
+    {
+      "ticker": "VSH",
+      "report_date": "2026-08-05",
+      "period_end": "2026-06-30",
+      "filing_published_at": null,
+      "period_gap_days": 36,
+      "filing_lag_days": null
+    },
+    {
+      "ticker": "VST",
+      "report_date": "2026-05-07",
+      "period_end": "2026-03-31",
+      "filing_published_at": "2026-05-08",
+      "period_gap_days": 37,
+      "filing_lag_days": 1
+    },
+    {
+      "ticker": "VST",
+      "report_date": "2026-08-07",
+      "period_end": "2026-06-30",
+      "filing_published_at": "2026-08-10",
+      "period_gap_days": 38,
+      "filing_lag_days": 3
+    },
+    {
+      "ticker": "VZ",
+      "report_date": "2026-04-27",
+      "period_end": "2026-03-31",
+      "filing_published_at": "2026-05-01",
+      "period_gap_days": 27,
+      "filing_lag_days": 4
+    },
+    {
+      "ticker": "VZ",
+      "report_date": "2026-07-24",
+      "period_end": "2026-06-30",
+      "filing_published_at": "2026-07-31",
+      "period_gap_days": 24,
+      "filing_lag_days": 7
+    },
+    {
+      "ticker": "WBD",
+      "report_date": "2026-05-06",
+      "period_end": "2026-03-31",
+      "filing_published_at": "2026-05-06",
+      "period_gap_days": 36,
+      "filing_lag_days": 0
+    },
+    {
+      "ticker": "WBD",
+      "report_date": "2026-08-06",
+      "period_end": "2026-06-30",
+      "filing_published_at": "2026-08-06",
+      "period_gap_days": 37,
+      "filing_lag_days": 0
+    },
+    {
+      "ticker": "WDAY",
+      "report_date": "2026-05-21",
+      "period_end": "2026-04-30",
+      "filing_published_at": "2026-05-22",
+      "period_gap_days": 21,
+      "filing_lag_days": 1
+    },
+    {
+      "ticker": "WDC",
+      "report_date": "2026-04-30",
+      "period_end": "2026-03-31",
+      "filing_published_at": null,
+      "period_gap_days": 30,
+      "filing_lag_days": null
+    },
+    {
+      "ticker": "WDC",
+      "report_date": "2026-08-05",
+      "period_end": "2026-06-30",
+      "filing_published_at": null,
+      "period_gap_days": 36,
+      "filing_lag_days": null
+    },
+    {
+      "ticker": "WFC",
+      "report_date": "2026-07-14",
+      "period_end": "2026-06-30",
+      "filing_published_at": "2026-07-28",
+      "period_gap_days": 14,
+      "filing_lag_days": 14
+    },
+    {
+      "ticker": "WIT",
+      "report_date": "2026-07-16",
+      "period_end": "2026-06-30",
+      "filing_published_at": null,
+      "period_gap_days": 16,
+      "filing_lag_days": null
+    },
+    {
+      "ticker": "WMT",
+      "report_date": "2026-05-21",
+      "period_end": "2026-04-30",
+      "filing_published_at": "2026-05-29",
+      "period_gap_days": 21,
+      "filing_lag_days": 8
+    },
+    {
+      "ticker": "WMT",
+      "report_date": "2026-08-20",
+      "period_end": "2026-07-31",
+      "filing_published_at": null,
+      "period_gap_days": 20,
+      "filing_lag_days": null
+    },
+    {
+      "ticker": "WULF",
+      "report_date": "2026-05-08",
+      "period_end": "2026-03-31",
+      "filing_published_at": "2026-05-08",
+      "period_gap_days": 38,
+      "filing_lag_days": 0
+    },
+    {
+      "ticker": "WULF",
+      "report_date": "2026-08-05",
+      "period_end": "2026-06-30",
+      "filing_published_at": "2026-08-05",
+      "period_gap_days": 36,
+      "filing_lag_days": 0
+    },
+    {
+      "ticker": "XOM",
+      "report_date": "2026-05-01",
+      "period_end": "2026-03-31",
+      "filing_published_at": "2026-05-04",
+      "period_gap_days": 31,
+      "filing_lag_days": 3
+    },
+    {
+      "ticker": "XOM",
+      "report_date": "2026-07-31",
+      "period_end": "2026-06-30",
+      "filing_published_at": "2026-08-03",
+      "period_gap_days": 31,
+      "filing_lag_days": 3
+    },
+    {
+      "ticker": "ZBRA",
+      "report_date": "2026-05-12",
+      "period_end": "2026-03-31",
+      "filing_published_at": null,
+      "period_gap_days": 42,
+      "filing_lag_days": null
+    },
+    {
+      "ticker": "ZBRA",
+      "report_date": "2026-08-04",
+      "period_end": "2026-06-30",
+      "filing_published_at": null,
+      "period_gap_days": 35,
+      "filing_lag_days": null
+    },
+    {
+      "ticker": "ZM",
+      "report_date": "2026-05-21",
+      "period_end": "2026-04-30",
+      "filing_published_at": "2026-05-22",
+      "period_gap_days": 21,
+      "filing_lag_days": 1
+    },
+    {
+      "ticker": "ZS",
+      "report_date": "2026-05-26",
+      "period_end": "2026-04-30",
+      "filing_published_at": "2026-05-26",
+      "period_gap_days": 26,
+      "filing_lag_days": 0
+    }
+  ],
+  "summary": {
+    "report_events": 704,
+    "dated": 549,
+    "undated": 155,
+    "lag_min": -176,
+    "lag_p50": 0,
+    "lag_p90": 7,
+    "lag_p95": 10,
+    "lag_p99": 23,
+    "lag_max": 36,
+    "lag_le_0": 303,
+    "lag_le_3": 459,
+    "lag_le_7": 504,
+    "lag_le_14": 534,
+    "lag_le_21": 542,
+    "lag_le_30": 548,
+    "negative_lags": 3,
+    "period_gap_p50": 31
+  },
+  "lag_histogram": {
+    "-176": 1,
+    "-86": 1,
+    "-8": 1,
+    "0": 300,
+    "1": 121,
+    "2": 21,
+    "3": 14,
+    "4": 13,
+    "5": 7,
+    "6": 10,
+    "7": 15,
+    "8": 9,
+    "9": 8,
+    "10": 2,
+    "11": 1,
+    "12": 5,
+    "13": 2,
+    "14": 3,
+    "15": 2,
+    "16": 1,
+    "17": 1,
+    "20": 3,
+    "21": 1,
+    "22": 1,
+    "23": 2,
+    "25": 1,
+    "27": 1,
+    "29": 1,
+    "36": 1
+  }
+}

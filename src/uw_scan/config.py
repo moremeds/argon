@@ -461,6 +461,9 @@ class Settings(BaseModel):
     # against a 120k/day budget).
     fundamental_ingest_enabled: bool = True
     fundamental_ingest_cron: str = "40 3 2 * *"
+    fundamental_ingest_daily_enabled: bool = True
+    fundamental_ingest_daily_cron: str = "20 4 * * *"
+    fundamental_ingest_daily_lookback_days: int = 3
     # Revenue-breakdown capture (monthly, uw-0). Default ON for the same reason
     # the job exists at all: it is an ACCRUAL job. The signal it feeds is
     # descriptive and does not pay, but if the provider's breakdown history
@@ -1071,6 +1074,15 @@ class Settings(BaseModel):
             ),
             fundamental_ingest_cron=os.environ.get(
                 "UW_SCAN_FUNDAMENTAL_INGEST_CRON", "40 3 2 * *"
+            ),
+            fundamental_ingest_daily_enabled=_env_bool(
+                "UW_SCAN_FUNDAMENTAL_INGEST_DAILY_ENABLED", True
+            ),
+            fundamental_ingest_daily_cron=os.environ.get(
+                "UW_SCAN_FUNDAMENTAL_INGEST_DAILY_CRON", "20 4 * * *"
+            ),
+            fundamental_ingest_daily_lookback_days=int(
+                os.environ.get("UW_SCAN_FUNDAMENTAL_INGEST_DAILY_LOOKBACK_DAYS", "3")
             ),
             fundamental_concentration_capture_enabled=_env_bool(
                 "UW_SCAN_FUNDAMENTAL_CONCENTRATION_CAPTURE_ENABLED", True

@@ -84,6 +84,15 @@ class FundamentalObsRepository:
         Counted by table cardinality either side rather than by `rowcount`,
         because `ON CONFLICT DO UPDATE` reports conflicts and inserts alike and
         would make an all-duplicate rerun look like a full ingest.
+
+        `filing_published_at` fills but never revises. UW publishes a statement before
+        it publishes the filing date, and `content_hash` excludes the date by design, so
+        the later re-pull that carries it collides here — a plain touch discarded it
+        permanently. COALESCE keeps the existing value when there is one: the column is
+        a fact about an immutable observation, and letting a re-pull rewrite it would
+        make it mean "whatever the provider last said", which no point-in-time consumer
+        can use. A provider that changes a date it already gave is therefore ignored,
+        deliberately and silently — no such case has been observed.
         """
         batch = list(rows)
         if not batch:
@@ -99,7 +108,12 @@ class FundamentalObsRepository:
                          %(filing_accession)s, %(filing_published_at)s,
                          %(raw_jsonb)s, %(field_map_version)s)
             ON CONFLICT (source, ticker, period_end, period_type, statement, content_hash)
-            DO UPDATE SET last_seen_at = now()
+            DO UPDATE SET
+                last_seen_at = now(),
+                filing_published_at = COALESCE(
+                    {self._schema}.fundamental_statement_obs.filing_published_at,
+                    EXCLUDED.filing_published_at
+                )
         """
         before = self._count()
         with self.conn.cursor() as cur:

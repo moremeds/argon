@@ -44,6 +44,11 @@ class EndpointSlug(StrEnum):
     INSTITUTION_OWNERSHIP = "institution_ownership"
     INSIDER_TICKER_FLOW = "insider_ticker_flow"
     EARNINGS = "earnings"
+    # The market-wide calendar, split by session slot. UW exposes no combined
+    # endpoint, and these two carry only the names whose report_time it has
+    # classified -- see sources/earnings_calendar.py for what that costs.
+    EARNINGS_PREMARKET = "earnings_premarket"
+    EARNINGS_AFTERHOURS = "earnings_afterhours"
     MARKET_TIDE = "market_tide"
     TOP_NET_IMPACT = "top_net_impact"
     # UW historical-alpha datasets (real but absent from the curated UW reference;
@@ -198,6 +203,16 @@ REGISTRY: dict[EndpointSlug, Endpoint] = {
     EndpointSlug.EARNINGS: Endpoint(
         EndpointSlug.EARNINGS,
         "/api/earnings/{ticker}",
+        (),
+    ),
+    EndpointSlug.EARNINGS_PREMARKET: Endpoint(
+        EndpointSlug.EARNINGS_PREMARKET,
+        "/api/earnings/premarket",
+        (),
+    ),
+    EndpointSlug.EARNINGS_AFTERHOURS: Endpoint(
+        EndpointSlug.EARNINGS_AFTERHOURS,
+        "/api/earnings/afterhours",
         (),
     ),
     EndpointSlug.MARKET_TIDE: Endpoint(

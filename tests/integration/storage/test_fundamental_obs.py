@@ -92,6 +92,52 @@ _KEY = (
 )
 
 
+def test_a_filing_date_that_arrives_later_is_stored(seeded_db_empty_cards):
+    """UW publishes the statement before it publishes the filing date.
+
+    `fundamental-breakdown`'s frontier trails the statement endpoints for 7 of a random
+    40 names (INFY by 91 days, GFS by 181), so the first ingest of a fresh quarter
+    stores NULL and a later re-pull is the only thing that can fill it. `content_hash`
+    excludes the filing date by design, so that re-pull collides — and before this
+    behaviour existed the ON CONFLICT clause touched only `last_seen_at` and the date
+    was discarded permanently.
+    """
+    repo = _repo(seeded_db_empty_cards)
+    undated = dict(_row(NVDA_BALANCE), filing_published_at=None)
+    assert repo.record_statements([undated]) == (1, 0)
+
+    dated = _row(NVDA_BALANCE)  # same payload, same hash, now carrying a date
+    assert dated["content_hash"] == undated["content_hash"]
+    assert repo.record_statements([dated]) == (0, 1)
+
+    assert _filing_date_of(seeded_db_empty_cards, undated) == date(2026, 5, 21)
+
+
+def test_a_recorded_filing_date_is_never_overwritten(seeded_db_empty_cards):
+    """Fill NULL, never revise. The column is a fact about an immutable observation;
+    letting a re-pull rewrite it would make it mean 'whatever the provider said most
+    recently', which is not something a point-in-time consumer can use."""
+    repo = _repo(seeded_db_empty_cards)
+    original = _row(NVDA_BALANCE)
+    repo.record_statements([original])
+
+    moved = dict(original, filing_published_at=date(2027, 1, 1))
+    assert repo.record_statements([moved]) == (0, 1)
+
+    assert _filing_date_of(seeded_db_empty_cards, original) == date(2026, 5, 21)
+
+
+def _filing_date_of(seeded, row: dict):
+    with seeded.conn.cursor() as cur:
+        cur.execute(
+            f"SELECT filing_published_at FROM {seeded._schema}.fundamental_statement_obs"
+            " WHERE ticker = %s AND period_end = %s AND statement = %s"
+            "   AND content_hash = %s",
+            (row["ticker"], row["period_end"], row["statement"], row["content_hash"]),
+        )
+        return cur.fetchone()[0]
+
+
 def test_violations_are_idempotent_per_check(seeded_db_empty_cards):
     repo = _repo(seeded_db_empty_cards)
     bad_raw = dict(NVDA_BALANCE, common_stock_shares_outstanding="15393")
