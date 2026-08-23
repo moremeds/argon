@@ -24,11 +24,64 @@ Feeds the `/gold` GOLD COMPASS cockpit (`web/app/gold/`, `api/routers/gold.py`).
 | `gpr.py` | Caldara-Iacoviello Geopolitical Risk Index (GPRD) from matteoiacoviello.com. Publisher switched daily file from CSV → `.xls` (BIFF8) in 2024 — the old `/gpr_files/gpr_daily_recent.csv` path 404s. | Live |
 | `lbma.py` | LBMA monthly loco-London vault holdings. LBMA moved from a stable .csv URL to monthly-named .xlsx at `cdn.lbma.org.uk/downloads/LBMA-London-Vault-Holdings-Data-<Month-Year>.xlsx` — we scrape the listing page each run to discover the current URL. Gold column is in thousand troy oz; we multiply by 1000 to keep `vault_oz` in oz (consistent with COMEX). | Live |
 | `comex.py` | COMEX daily gold-stocks scraper from `cmegroup.com/markets/metals/precious/gold-stocks.html`. URL is subject to CME publishing changes — sanity-check before deploy. | Live |
-| `etf_holdings.py` | Per-fund daily holdings for GLD (SPDR), IAU (BlackRock), GLDM (SPDR), PHYS (Sprott). Each fund has its own endpoint and payload shape; normalised to `EtfHoldingRow`. | Live |
+| `etf_holdings.py` | Per-fund daily holdings for GLD (SPDR), IAU (BlackRock), GLDM (SPDR), PHYS (Sprott). Each fund has its own endpoint and payload shape; normalised to `EtfHoldingRow`. | **1 of 4 live** (measured 2026-08-23) — GLD only. See the per-fund table below. |
 | `uw_gold_options.py` | Gold-options snapshot for GLD/GDX/IAU. Composes existing UW fetchers (`interpolated_iv`, `oi_per_strike`, `option_contracts`, `skew`) into one snapshot row per (ticker, obs_date). | Live (A1 persists; A2 will consume) |
 | `cftc_cot.py` | CFTC Commitments of Traders disaggregated weekly report (commodity code `088691`). Managed-money + commercials longs/shorts/net, OI. `obs_date` = Tuesday position date, `release_date` = Friday publication. **Backtests must lag to release+3 trading days, never to obs_date.** | Live |
-| `wgc_etf.py` | World Gold Council monthly gold-ETF holdings workbook (Goldhub `Gold_ETF_flows_*.xlsx`). Per-fund holdings, demand, fund-flow with source-workbook lineage preserved. See `migrations/046_wgc_etf_monthly.sql` and `docs/research/gold-sdf-framework/12-wgc-etf-flow-corpus.md`. | Live (PR #42) |
-| `wgc_cb.py` | World Gold Council monthly central-bank gold reserves. | **Deferred** — WGC retired the anonymous CSV; downloads now sit behind a Goldhub login (verified 2026-05-17). Structural-lens CB tiles stay null and `cb_gold_reserves_monthly` stays empty until re-wired. See `docs/research/gold-sdf-framework/11-deferred-sources-phase-a1.md`. |
+| `wgc_etf.py` | World Gold Council monthly gold-ETF holdings workbook (Goldhub `Gold_ETF_flows_*.xlsx`). Per-fund holdings, demand, fund-flow with source-workbook lineage preserved. See `migrations/046_wgc_etf_monthly.sql` and `docs/research/gold-sdf-framework/12-wgc-etf-flow-corpus.md`. | **Workbook-fed, not fetched** — WGC publishes no queryable API (see below). `wgc_etf_monthly` holds 1,338,260 rows stopping at 2026-03-31; it advances only when a workbook is dropped at `WGC_ETF_FLOWS_WORKBOOK_PATH`. |
+| `wgc_cb.py` | World Gold Council monthly central-bank gold reserves. | **Deferred** — WGC retired the anonymous CSV and there is no API to re-wire to (see below). `cb_gold_reserves_monthly` holds 2,827 backfilled rows and does not advance; the job skips unless `WGC_CB_RESERVES_WORKBOOK_PATH` is set. See `docs/research/gold-sdf-framework/11-deferred-sources-phase-a1.md`. |
+
+### Gold ETF holdings: three of four funds have been dead since March
+
+`etf_holdings.py` carried a flat `Live` for months while only GLD worked. The warm store
+dates the break without any endpoint probing -- three funds stop on the SAME day:
+
+| Fund | Endpoint | Warm-store coverage | Diagnosis |
+|---|---|---|---|
+| GLD | `api.spdrgoldshares.com/api/v1/historical-archive?product=gld` | 76,187 rows, 2004-11-30 → **2026-08-20** | Healthy. The only fund on the archive API. |
+| GLDM | `www.spdrgoldshares.com/usa/historical-data-gldm/` | 94 rows, 2018-06-29 → **2026-03-31** | **404** — the web page moved. The same archive API serves it at `?product=gldm&exchange=NYSE` (verified 2026-08-23: 200, ~199 KB XLSX, 2,049 rows, latest 2026-08-20). Fixable with a URL + params change and the EXISTING `_parse_spdr_archive_xlsx`; no new parser. |
+| IAU | `www.ishares.com/us/products/239561/iau-holdings.ajax` | 255 rows, 2005-01-31 → **2026-03-31** | **404** — endpoint moved. The replacement is not discoverable from static HTML; it needs the live XHR observed in a browser. |
+| PHYS | `sprott.com/api/v1/funds/phys/nav-history` | 194 rows, 2010-02-26 → **2026-03-31** | **403** — Sprott blocks scrapers site-wide, same class as CME. |
+
+**Why the monitor did not catch it, which is the part worth remembering.** The freshness
+snapshot reported `etf_holdings_daily` coverage `0.250` -- four tickers, one with data,
+stated plainly. It sat beside tables marked "WGC login wall", so the whole cluster read as
+*externally blocked, nothing to do*. Nobody asked why it was 0.25 rather than 0.
+
+**0.25 and 0 are different failures.** Zero means the pipeline never ran -- check the
+scheduler. A fraction means the pipeline runs and some branches are broken -- check each
+branch's endpoint separately. A coverage ratio strictly between 0 and 1 is never an
+outage; it is always a per-branch fault, and it should be triaged as one.
+
+### World Gold Council publishes no queryable API
+
+Established 2026-08-23; do not re-derive it:
+
+- `/goldhub/api`, `/goldhub/data-api`, `/goldhub/about/api`, `/goldhub/licensing` all 404.
+- The login entry point is `javascript:website.user.login_form()` -- a JS modal, with no
+  URL to POST credentials to.
+- The bundle's user object is `endpoint:"/auth", cookie_name:"wgc"`, and the session
+  cookie is decrypted CLIENT-side with `CryptoJS.AES.decrypt`.
+- Login carries reCAPTCHA.
+
+Client-side-encrypted sessions plus reCAPTCHA is a deliberate anti-scripting design, so
+"store credentials and log in on a schedule" is closed off -- not merely unwritten. The
+two WGC tables are the only gold sources with no issuer-level substitute:
+`wgc_etf_monthly` (global gold-ETF holdings by region/country) and
+`cb_gold_reserves_monthly` (central-bank reserves) are WGC's own aggregations, which no
+fund issuer can supply. Both are monthly, so a dropped workbook costs 12 actions a year.
+
+IMF was tried as a central-bank-reserves substitute and produced **no data**:
+`dataservices.imf.org` drops the SSL connection and the newer `api.imf.org` path returns
+204 empty. It is an open question, not a validated alternative -- do not cite it as one.
+
+**None of this reaches the macro gold domain state.** `macro/gold_state.py` reads exactly
+four series -- `GLD_CLOSE`, `GLD_HOLDINGS_OZ`, `DFII10`, `DTWEXBGS` -- and its gate reads
+`compute_correlation_gauge(gold, dfii10)`, which takes no ETF holdings at all. GLD is the
+one fund that works, so the macro lane is unaffected by every failure above. Keep it that
+way: `fetch_gld_payload`'s `(bytes, media_type, source_url, rows)` return shape is
+consumed directly by `macro/gold_ingest.py` and `worker/jobs/macro_gold_ingest.py`. Adding
+parameters or branches is fine; reshaping that tuple is not.
+`tests/integration/worker/test_macro_gold_state_job.py` fails immediately if it changes.
 
 Related migrations: `storage/migrations/041_gold_cot.sql` (COT), `046_wgc_etf_monthly.sql` (WGC ETF corpus). Repository: `storage/gold_etf.py`. Scheduler jobs: `worker/jobs/gold_jobs.py` (`gold_fred_ingest_job`, `gold_gpr_ingest_job`, `gold_lbma_vault_ingest_job`, `gold_comex_vault_ingest_job`, `gold_etf_holdings_ingest_job`, `gold_spot_ingest_job`, `gold_uw_options_ingest_job`, `gold_cftc_cot_ingest_job`, `gold_wgc_cb_ingest_job`, `gold_posture_compute_job`).
 
