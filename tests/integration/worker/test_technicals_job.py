@@ -2,6 +2,9 @@
 
 from __future__ import annotations
 
+import logging
+from contextlib import contextmanager
+
 import pandas as pd
 
 from uw_scan.storage.technicals_repository import TechnicalsRepository
@@ -25,6 +28,28 @@ def _fake_bars(n: int = 300, drift: float = 1.0008) -> list[dict]:
             }
         )
     return out
+
+
+@contextmanager
+def caplog_at_warning():
+    """Collect WARNING records from the job's logger (pytest's caplog fixture
+    does not see it once the job module configures its own handler)."""
+    records: list[logging.LogRecord] = []
+
+    class _Collect(logging.Handler):
+        def emit(self, record):
+            records.append(record)
+
+    handler = _Collect(level=logging.WARNING)
+    logger = logging.getLogger("uw_scan.worker.jobs.technical_daily_refresh")
+    logger.addHandler(handler)
+    prev = logger.level
+    logger.setLevel(logging.WARNING)
+    try:
+        yield records
+    finally:
+        logger.removeHandler(handler)
+        logger.setLevel(prev)
 
 
 def _settings():
@@ -103,3 +128,42 @@ def test_refresh_persists_ohlcv(seeded_db_empty_cards, monkeypatch):
     last = series[-1]
     for k in ("open", "high", "low", "volume"):
         assert last[k] is not None, f"{k} not persisted by the refresh job"
+
+
+def test_apex_refusal_is_not_reported_as_thin_history(
+    seeded_db_empty_cards, monkeypatch
+):
+    """apex 503 adjusted_unavailable -> fetch_daily_bars returns [] (never-raise)
+    -> the ~60-session massive overlay alone is under the 210-bar floor -> the
+    job used to charge this to skipped_thin and log INFO. That is the exact
+    chain that froze MSTR's technical_daily at 2026-07-15 for 26 sessions with
+    nothing warning. An empty apex response is a SOURCE failure, not thin
+    history: it gets its own counter and a WARNING."""
+    repo = seeded_db_empty_cards
+    monkeypatch.setattr(
+        "uw_scan.worker.jobs.technical_daily_refresh.fetch_daily_bars",
+        lambda t, **kw: [] if t == "MSTR" else _fake_bars(400),
+    )
+    with caplog_at_warning() as records:
+        result = technical_daily_refresh(
+            repo=repo, settings=_settings(), ticker_filter=["MSTR"]
+        )
+    assert result["source_unavailable"] == 1
+    assert result["skipped_thin"] == 0  # NOT charged to thin history
+    assert result["ok"] == 1  # SPY still refreshed
+    assert any("MSTR" in r.getMessage() for r in records)
+
+
+def test_thin_history_still_counts_as_thin(seeded_db_empty_cards, monkeypatch):
+    """Non-vacuity guard for the test above: a ticker apex genuinely serves,
+    with a real but short history, must stay in skipped_thin."""
+    repo = seeded_db_empty_cards
+    monkeypatch.setattr(
+        "uw_scan.worker.jobs.technical_daily_refresh.fetch_daily_bars",
+        lambda t, **kw: _fake_bars(100) if t == "NVDA" else _fake_bars(400),
+    )
+    result = technical_daily_refresh(
+        repo=repo, settings=_settings(), ticker_filter=["NVDA"]
+    )
+    assert result["skipped_thin"] == 1
+    assert result["source_unavailable"] == 0
