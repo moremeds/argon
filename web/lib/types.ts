@@ -1737,6 +1737,41 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/macro/gold": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Macro Gold State
+         * @description The gold GATE, not a view on gold.
+         *
+         *     This route did not exist until now, and the reason it did not is worth keeping:
+         *     gold's inputs lived in warm-store tables rather than ``macro_observations``, so no
+         *     state could cite evidence and the store refuses an answer nobody can reconstruct
+         *     (design spec, deviation 7). That deviation names its own overturn condition -- "an
+         *     ingest that lands the gold sources as macro_observations" -- and
+         *     ``worker/jobs/macro_gold_ingest`` is it.
+         *
+         *     Honest about the scope of that overturn: TWO of the manifest's sixteen inputs are
+         *     citable, the gold price and the ETF tonnage. They are the two the state stands on,
+         *     which is what makes it persistable. The rest of the manifest -- central-bank
+         *     reserves, exchange inventory, COT, UW options -- is still warm-store only and is
+         *     still served, with its omission reasons, by ``/api/gold/state`` and
+         *     ``/api/gold/replay``. This endpoint does not replace those; it answers a narrower
+         *     question they never answered.
+         */
+        get: operations["macro_gold_state_api_macro_gold_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/scanner": {
         parameters: {
             query?: never;
@@ -13740,6 +13775,40 @@ export interface operations {
         };
     };
     macro_usd_state_api_macro_usd_get: {
+        parameters: {
+            query?: {
+                /** @description UTC calendar date; returns the state answering for that day-end. */
+                as_of?: string | null;
+                /** @description Timezone-aware instant to replay. */
+                as_of_ts?: string | null;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["MacroDomainStateResponse"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    macro_gold_state_api_macro_gold_get: {
         parameters: {
             query?: {
                 /** @description UTC calendar date; returns the state answering for that day-end. */

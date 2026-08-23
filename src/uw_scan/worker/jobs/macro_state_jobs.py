@@ -21,10 +21,12 @@ from decimal import Decimal
 
 from uw_scan.macro.contracts import DomainObservation, MacroDomainState
 from uw_scan.macro.evidence_store import (
-    load_usd_observations,
+    load_gold_observations,
     load_inflation_observations,
     load_rates_observations,
+    load_usd_observations,
 )
+from uw_scan.macro.gold_state import GoldLensResult, compute_gold_state
 from uw_scan.macro.inflation import compute_inflation_state
 from uw_scan.macro.policy_report import build_policy_comparison
 from uw_scan.macro.rates import compute_rates_state
@@ -147,6 +149,99 @@ def macro_usd_state_job(
     )
     return _persist(
         repo, state, computed_at=computed_at or datetime.now(UTC), upstream=edges
+    )
+
+
+def macro_gold_state_job(
+    repo: Repository,
+    *,
+    as_of: datetime | None = None,
+    computed_at: datetime | None = None,
+) -> MacroStateJobResult:
+    """Gold: the terminal node, standing on three upstream ANSWERS and a stored gauge.
+
+    Two things this job deliberately does not do.  It does not recompute the correlation
+    gauge -- that is the nightly orchestrator's output and recomputing it here would give
+    the desk two gold verdicts that can disagree.  And it does not fetch a provider: every
+    input is read from storage, which is what lets an arbitrary ``as_of`` replay produce
+    the same state without a network.
+
+    A missing upstream is not an error.  Gold's gate is measured from its own price and
+    the stored gauge; the upstream answers add lineage and let the cross-domain
+    contradictions fire.  With none stored, the state is still true and simply carries no
+    edges -- which is honest, where standing on a guessed upstream would not be.
+    """
+    instant = as_of or datetime.now(UTC)
+    try:
+        observations = load_gold_observations(repo, as_of=instant)
+        upstream_rows = _gold_upstream_rows(repo, instant)
+        state = compute_gold_state(
+            observations,
+            as_of=instant,
+            lens=_gold_lens(repo, instant),
+            upstream=tuple(item for item, _role, _row in upstream_rows),
+            prior_state=_prior_state(repo, "gold", instant),
+        )
+    except Exception as exc:
+        logger.warning("macro gold state failed: %s", repr(exc))
+        return _failed("gold", instant, exc)
+    edges = [(int(row["state_id"]), role) for _item, role, row in upstream_rows]
+    return _persist(
+        repo, state, computed_at=computed_at or datetime.now(UTC), upstream=edges
+    )
+
+
+#: What each upstream DOES for gold. Not the roles they play for each other: the same
+#: rates answer is ``policy_actual`` to the dollar and a discount-rate component to gold,
+#: which is exactly why the role lives on the EDGE and not on the upstream state.
+_GOLD_UPSTREAM_ROLES: tuple[tuple[str, str], ...] = (
+    # The real-yield leg Lens 2 is built on.
+    ("policy_rates", "decomposition_component"),
+    # The currency gold is priced in. Migration 128 names this edge verbatim:
+    # "gold consulted usd as curve".
+    ("usd", "curve"),
+    # The denominator behind the valuation lens's real price.
+    ("inflation", "realized"),
+)
+
+
+def _gold_upstream_rows(
+    repo: Repository, as_of: datetime
+) -> list[tuple[UpstreamState, str, dict[str, object]]]:
+    """Each upstream answer available at ``as_of``, with the role it plays for gold."""
+    out: list[tuple[UpstreamState, str, dict[str, object]]] = []
+    for domain, role in _GOLD_UPSTREAM_ROLES:
+        row = repo.fetch_macro_domain_state_as_of(domain, as_of)
+        if row is None:
+            continue
+        out.append(
+            (
+                UpstreamState(
+                    domain=domain,
+                    state=str(row["state"]),
+                    direction=str(row["direction"]),
+                    inputs_hash=str(row["inputs_hash"]),
+                    as_of=row["as_of"],
+                    confidence=row["confidence"],
+                ),
+                role,
+                row,
+            )
+        )
+    return out
+
+
+def _gold_lens(repo: Repository, as_of: datetime) -> GoldLensResult | None:
+    """The gauge that was in force at ``as_of``, read from storage and never recomputed."""
+    row = repo.fetch_gold_posture_as_of(as_of.date())
+    if row is None:
+        return None
+    return GoldLensResult(
+        obs_date=row.get("obs_date"),
+        gauge_state=row.get("gauge_state"),
+        corr_252d_level=row.get("gauge_corr_252d"),
+        corr_60d_level=row.get("gauge_corr_60d"),
+        valuation_flag=row.get("valuation_flag"),
     )
 
 

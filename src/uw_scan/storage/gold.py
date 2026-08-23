@@ -829,6 +829,36 @@ class _GoldMixin:
             cols = [c.name for c in cur.description]
             return dict(zip(cols, row, strict=True))
 
+    def fetch_gold_posture_as_of(self, as_of: _date) -> dict[str, Any] | None:
+        """The newest active posture row for a date AT OR BEFORE ``as_of``.
+
+        Neither existing reader answers this. ``fetch_gold_posture_latest`` returns the
+        newest row regardless of the instant being answered for -- fine for the live page,
+        lookahead for a replay -- and ``fetch_gold_posture_for_obs_date`` needs an exact
+        date, so a state computed on a day the orchestrator did not run would find
+        nothing and report UNKNOWN rather than reading the gauge that WAS in force.
+
+        ``computed_at ASC`` within a date matches the replay discipline the exact-date
+        reader already uses: the first non-invalidated computation is the one that stood.
+        """
+        with self._conn.cursor() as cur:
+            cur.execute(
+                """
+                SELECT *
+                FROM uw_scan.gold_posture_daily
+                WHERE obs_date <= %s
+                  AND row_status = 'active'
+                ORDER BY obs_date DESC, computed_at ASC
+                LIMIT 1
+                """,
+                (as_of,),
+            )
+            row = cur.fetchone()
+            if row is None:
+                return None
+            cols = [c.name for c in cur.description]
+            return dict(zip(cols, row, strict=True))
+
     def fetch_gold_posture_for_obs_date(self, obs_date: _date) -> dict[str, Any] | None:
         """Replay discipline: return the first non-invalidated posture row."""
         with self._conn.cursor() as cur:

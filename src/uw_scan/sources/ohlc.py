@@ -73,6 +73,18 @@ class MassiveOhlcProvider:
         self.close()
 
     def fetch_daily(self, ticker: str, start: date, end: date) -> list[OhlcBar]:
+        return self.fetch_daily_payload(ticker, start, end)[2]
+
+    def fetch_daily_payload(
+        self, ticker: str, start: date, end: date
+    ) -> tuple[bytes, str, list[OhlcBar]]:
+        """The bars AND the bytes they were parsed from, plus the URL that served them.
+
+        One fetch, two consumers: the warm store wants the bars and the macro evidence
+        store wants an artifact it can hash and replay from. Fetching twice would cost a
+        second vendor call and -- worse -- could return a different payload, so the
+        stored artifact would not be the bytes the stored observations came from.
+        """
         path = (
             f"/v2/aggs/ticker/{ticker}/range/1/day/"
             f"{start.isoformat()}/{end.isoformat()}"
@@ -84,6 +96,8 @@ class MassiveOhlcProvider:
             ticker=ticker,
         )
         r.raise_for_status()
+        raw_bytes = r.content
+        source_url = str(r.request.url)
         payload = r.json()
         results = payload.get("results") or []
         bars: list[OhlcBar] = []
@@ -103,7 +117,7 @@ class MassiveOhlcProvider:
                     volume=int(row["v"]) if row.get("v") is not None else None,
                 )
             )
-        return bars
+        return raw_bytes, source_url, bars
 
     def _get_with_telemetry(
         self,

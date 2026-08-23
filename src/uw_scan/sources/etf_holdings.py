@@ -76,13 +76,36 @@ class EtfHoldingsProvider:
         self.close()
 
     def fetch_gld(self, *, start: date | None = None) -> list[EtfHoldingRow]:
+        return self.fetch_gld_payload(start=start)[3]
+
+    def fetch_gld_payload(
+        self, *, start: date | None = None
+    ) -> tuple[bytes, str, str, list[EtfHoldingRow]]:
+        """The rows AND the bytes, media type and URL they came from.
+
+        One fetch, two consumers -- the warm store wants rows, the macro evidence store
+        wants a hashable artifact. The media type is REPORTED rather than assumed because
+        SPDR serves this same archive as CSV or XLSX depending on the day, and an
+        artifact mislabelled ``text/csv`` is one a replay cannot re-parse.
+        """
         response = self._get_with_telemetry(
             self.GLD_URL, self.GLD_PARAMS, endpoint_key="spdr_gld_archive"
         )
         response.raise_for_status()
+        source_url = str(response.request.url)
         if _looks_like_xlsx(response):
-            return self._parse_spdr_archive_xlsx("GLD", response.content, start)
-        return self._parse_spdr_csv("GLD", response.text, start)
+            return (
+                response.content,
+                "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+                source_url,
+                self._parse_spdr_archive_xlsx("GLD", response.content, start),
+            )
+        return (
+            response.content,
+            "text/csv",
+            source_url,
+            self._parse_spdr_csv("GLD", response.text, start),
+        )
 
     def fetch_gldm(self, *, start: date | None = None) -> list[EtfHoldingRow]:
         response = self._get_with_telemetry(

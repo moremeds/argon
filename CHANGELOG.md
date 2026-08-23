@@ -7,6 +7,53 @@ version in lockstep (enforced by `scripts/release/version_sync_check.py`).
 
 ## [Unreleased]
 
+### Added
+
+- **The gold domain state — MC3 Part B's last deferred step, on the condition its own
+  spec named.** Deviation 7 of the USD/gold design deferred
+  `MacroDomainState(domain="gold")` because gold's inputs lived in warm-store tables that
+  carry no `obs_id`, and the store refuses a state whose evidence cannot be pointed at.
+  It also wrote its own overturn condition: *"an ingest that lands the gold sources as
+  `macro_observations`."* `worker/jobs/macro_gold_ingest.py` is that ingest. No migration
+  was required — migration 115 has accepted `domain = 'gold'` since it was written, and so
+  have 125 and 128; the schema was never the blocker, only the ingest.
+  - `macro/gold_state.py` publishes **the gate** — whether the gold/real-yield
+    relationship Lens 2 rests on is currently in force — reading the correlation gauge
+    `cards/regime_gauge.py` already computes rather than recomputing it. The three lenses
+    publish beside it as sub-states with their own confidence, and there is deliberately
+    no precedence rule between them.
+  - `GET /api/macro/gold`, with replay and evidence drill-down, completing
+    inflation → rates → USD → gold. The router previously carried a comment explaining why
+    this endpoint deliberately did not exist; that comment is now the docstring explaining
+    what changed.
+  - Nightly `macro_gold_ingest` at 19:30 ET (massive-0, gated
+    `UW_SCAN_MACRO_GOLD_INGEST_ENABLED`, default **off**), and gold appended to the 19:40
+    state chain **last** — it is the terminal node and reads all three upstreams, so
+    running it earlier would record zero dependency edges every night while looking
+    healthy.
+  - Both preregistered gold scenarios in `tests/fixtures/macro/usd_gold_golden.json` now
+    execute against the engine. They were frozen from live publishers before any of this
+    code existed, and they changed the design twice: the upstream refusal had to invert
+    from causal-role to series-id (gold's own anchor shares `decomposition_component` with
+    two upstream series, so a role-based refusal rejects it), and the measurement window
+    had to become calendar-based (over the fixture's own quarter `GLD_CLOSE` has 64 prints
+    where `DFII10` has 62, so an observation-count window silently mutes the
+    post-2022 contradiction on the shorter leg).
+
+### Fixed
+
+- **The Gold Compass lens-decomposition panel had never rendered a row.**
+  `reports/gold_posture._decomposition_rows_from_lenses` read ten `*_z` attributes off the
+  three lens dataclasses; nine exist nowhere in the tree and the tenth only as a database
+  column, so it returned `[]` on every run since it was written. Deleted rather than
+  repaired: the lenses report native units (tonnes, ounces, percent, basis points) and
+  percentiles, never z-scores, and no model has ever fitted weights over them — summing
+  them into one "contribution" column and sorting by magnitude would rank a reserves flow
+  above a valuation percentile because tonnes are numerically larger than a probability.
+  The API field and the database column are unchanged (`[]` before, `[]` after), so this
+  is not a contract change. A test now fails if any lens grows a real z-score, which is
+  the moment to decide deliberately whether the panel should exist.
+
 ## [0.12.12] — 2026-08-23
 
 

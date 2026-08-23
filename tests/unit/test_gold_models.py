@@ -156,3 +156,33 @@ def test_gold_state_response_round_trips():
     assert "FAVORABLE" in dumped
     assert "L1" in dumped
     assert "China" in dumped
+
+
+def test_no_lens_exposes_a_z_score() -> None:
+    """The premise the removed decomposition builder was written against.
+
+    ``_decomposition_rows_from_lenses`` read ten ``*_z`` attributes off these three
+    dataclasses and returned ``[]`` on every run since it was written, because none of
+    them exists. This test pins WHY it was deleted rather than repaired: the lenses
+    report native units and percentiles, and there is no fitted model that would make
+    them summable into one contribution column.
+
+    If a lens ever grows a real z-score, this fails -- which is the moment to decide
+    deliberately whether the decomposition panel should exist, instead of discovering
+    a silently empty one years later.
+    """
+    from uw_scan.cards.cyclical_zones import CyclicalPosture
+    from uw_scan.cards.structural_flow import StructuralPosture
+    from uw_scan.cards.valuation import ValuationOverlay
+
+    for lens in (StructuralPosture, CyclicalPosture, ValuationOverlay):
+        z_fields = sorted(
+            name
+            for name in getattr(lens, "__annotations__", {})
+            if name.endswith("_z")
+        )
+        assert not z_fields, (
+            f"{lens.__name__} now exposes {z_fields}; the lens decomposition panel was "
+            "removed because no lens produced a z-score. Decide whether to rebuild it "
+            "on a fitted model rather than re-adding an unweighted magnitude sort."
+        )

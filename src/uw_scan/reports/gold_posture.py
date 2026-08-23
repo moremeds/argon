@@ -126,42 +126,6 @@ def _rolling_corr_pairs(
     return out
 
 
-def _decomposition_rows_from_lenses(
-    structural: Any, cyclical: Any, valuation: Any
-) -> list[dict[str, Any]]:
-    """Flatten each lens's headline heuristic z-scores into a decomposition list.
-
-    Values are pulled from already-computed lens snapshots. Where a lens does
-    not yet expose a particular z-score the entry is silently skipped (the v1
-    cards expose only what they can compute). Sorted descending by |contribution|
-    and capped at 12 rows."""
-    rows: list[dict[str, Any]] = []
-    candidates: list[tuple[str, str, Any]] = [
-        ("L1", "CB Δ12M", getattr(structural, "cb_strategic_z", None)),
-        ("L1", "COMEX ROC", getattr(structural, "comex_20d_roc_z", None)),
-        ("L1", "ETF flow", getattr(structural, "etf_flow_z", None)),
-        ("L1", "COT MM", getattr(structural, "cot_mm_z", None)),
-        ("L1", "UW skew", getattr(structural, "uw_skew_z", None)),
-        ("L2", "DFII10", getattr(cyclical, "dfii10_z", None)),
-        ("L2", "GPR", getattr(cyclical, "gpr_z", None)),
-        ("L2", "DXY", getattr(cyclical, "dxy_z", None)),
-        ("L3", "Gold/CPI", getattr(valuation, "real_price_z", None)),
-        ("L3", "Gold/M2", getattr(valuation, "gold_m2_z", None)),
-    ]
-    for lens_id, name, value in candidates:
-        if value is None:
-            continue
-        rows.append(
-            {
-                "lens": lens_id,
-                "factor": name,
-                "contribution": str(Decimal(str(round(float(value), 3)))),
-            }
-        )
-    rows.sort(key=lambda r: abs(float(r["contribution"])), reverse=True)
-    return rows[:12]
-
-
 def _pre_2022_band(
     corr_series: list[tuple[date, Decimal]],
 ) -> dict[str, Any] | None:
@@ -464,9 +428,17 @@ def compute_and_persist_gold_posture(
         if latest_skew is not None:
             uw_25d_skew_sigma = Decimal(str(latest_skew))
 
-    decomposition_rows = _decomposition_rows_from_lenses(
-        structural, cyclical, valuation
-    )
+    # No lens decomposition. The removed builder read ten ``*_z`` attributes off the
+    # three lens dataclasses; nine exist nowhere in the tree and the tenth only as a DB
+    # column, so it returned [] on every run since it was written. Repairing it by
+    # renaming the reads would be worse than the bug: the lenses expose native units
+    # (tonnes, ounces, percent, basis points) and percentiles, never z-scores, and no
+    # model ever fitted weights over them. Summing them into one "contribution" column
+    # and sorting by magnitude would rank a reserves flow above a valuation percentile
+    # because tonnes are numerically larger than a probability -- an allocation-shaped
+    # output backed by nothing, which is what this plan's B6 step 6 says to remove.
+    # The column and the API field stay: both are [] today and [] after.
+    decomposition_rows: list[dict[str, Any]] = []
     gld_history_rows = [
         {
             "obs_date": r["obs_date"].isoformat(),
