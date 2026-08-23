@@ -366,6 +366,16 @@ def _should_schedule_fundamental_ingest(settings: Settings) -> bool:
     return role == "all" or (role == "uw" and settings.worker_index == 0)
 
 
+def _should_schedule_fundamental_ingest_daily(settings: Settings) -> bool:
+    """Same uw-0 pin and the same reason as the monthly sweep it complements:
+    no advisory lock, so a per-role-0 schedule would run N copies of the same
+    calendar pull against one insert-or-touch table."""
+    if not settings.fundamental_ingest_daily_enabled:
+        return False
+    role = settings.worker_role.lower()
+    return role == "all" or (role == "uw" and settings.worker_index == 0)
+
+
 def _should_schedule_fundamental_concentration_capture(settings: Settings) -> bool:
     """Same uw-0 pin and the same reason as the statement ingest: no advisory
     lock, so a per-role-0 schedule would run N copies of a 450-call job against
@@ -860,6 +870,27 @@ def main() -> int:
                         conn=repo.conn, client=uw, schema=settings.db_schema
                     )
         logger.info("fundamental_ingest %s", counters)
+
+    def _fundamental_ingest_daily() -> None:
+        from uw_scan.worker.jobs.fundamental_ingest_daily import (
+            fundamental_ingest_daily,
+        )
+
+        with _external_api_recorder(settings) as recorder:
+            with _uw_client(
+                settings,
+                telemetry_recorder=recorder,
+                job_name="fundamental_ingest_daily",
+            ) as uw:
+                with _repo(settings) as repo:
+                    counters = fundamental_ingest_daily(
+                        conn=repo.conn,
+                        client=uw,
+                        today=datetime.now(ZoneInfo(settings.rth_tz)).date(),
+                        lookback_days=settings.fundamental_ingest_daily_lookback_days,
+                        schema=settings.db_schema,
+                    )
+        logger.info("fundamental_ingest_daily %s", counters)
 
     def _fundamental_concentration_capture() -> None:
         from uw_scan.worker.jobs.fundamental_concentration_capture import (
@@ -1962,6 +1993,26 @@ def main() -> int:
                     ),
                     id="fundamental_ingest",
                     name="Fundamental statement ingest (monthly)",
+                    max_instances=1,
+                    coalesce=True,
+                )
+            # Daily calendar-driven statement pull, 04:20 ET. Complements the
+            # monthly sweep above rather than replacing it: the premarket/
+            # afterhours pair is the CLASSIFIED calendar and misses names whose
+            # report_time UW leaves "unknown" (~2% of the statement-bearing
+            # universe), and the full sweep is the only thing that re-pulls a
+            # period late enough to collect a filing date UW published after we
+            # first stored the row. Runs every day, not weekdays, so a Monday
+            # holiday cannot open a hole the 3-day lookback fails to reach.
+            if _should_schedule_fundamental_ingest_daily(settings):
+                sched.add_job(
+                    _fundamental_ingest_daily,
+                    CronTrigger.from_crontab(
+                        settings.fundamental_ingest_daily_cron,
+                        timezone=settings.rth_tz,
+                    ),
+                    id="fundamental_ingest_daily",
+                    name="Fundamental statement ingest (daily, calendar-driven)",
                     max_instances=1,
                     coalesce=True,
                 )

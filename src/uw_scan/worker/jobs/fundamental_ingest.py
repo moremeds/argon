@@ -18,6 +18,20 @@ validation panel: composite IC 0.059 with the fallback, 0.039 without. So the
 column stores what the provider actually said, NULL where it said nothing, and
 each consumer decides its own lag policy and records that it applied one.
 
+WHY THE PERIOD MATCH IS TOLERANT
+--------------------------------
+The statement endpoints normalise a period to a calendar month-end; `fundamental-
+breakdown` reports the true fiscal period end. AAPL's June quarter is `2026-06-30` in
+one and `2026-06-27` in the other. An exact lookup therefore misses on every period of
+every 52/53-week filer, permanently — measured 2026-08-23 at 129 tickers and 885 periods,
+**zero** of which matched at tolerance 0.
+
+`FILING_DATE_MATCH_TOLERANCE_DAYS` is read off the recovery curve, not chosen: 7 days
+recovers 592 of those periods (1,785 statement rows), 98.5% of everything reachable at
+any tolerance, and no period matched two breakdown rows. Quarters sit ~91 days apart, so
+the window cannot reach a neighbour. Full curve:
+`docs/research/2026-08-23-fundamental-filing-date-recovery/VERDICT.md`.
+
 SELF-GATING
 -----------
 An unseeded tier yields no tickers and the job returns having spent zero calls.
@@ -44,6 +58,12 @@ from uw_scan.storage.fundamental_obs import FundamentalObsRepository
 log = logging.getLogger(__name__)
 
 SOURCE = "uw"
+
+# Read off the recovery curve: 3 days takes 452 of the 885 NULL periods, 5 takes 569,
+# 7 takes 592, and 14 takes only 601 — so the gap between the two spellings runs past 4
+# days (AAPL 3, NVDA 4) for a minority of names, and past 7 for almost none. Well clear
+# of the ~91-day spacing that separates quarters. See the module docstring.
+FILING_DATE_MATCH_TOLERANCE_DAYS = 7
 
 # Slug -> the `statement` value stored on the observation. Short names because
 # they are an argon-side vocabulary, not UW's URL spelling: a second source
@@ -91,6 +111,26 @@ def _filing_dates(client: UwClient, ticker: str) -> dict[date, date]:
     return out
 
 
+def _resolve_filing_date(filed: dict[date, date], period_end: date) -> date | None:
+    """The filing date for `period_end`, tolerating the two endpoints' period spellings.
+
+    Exact first, so a calendar-quarter filer never travels the tolerance path and a
+    recorded period always beats an arithmetic neighbour. Ties resolve to the earlier
+    breakdown period because `min` compares the tuple's second element — arbitrary, but
+    deterministic, which is the property that matters for a reproducible panel.
+    """
+    exact = filed.get(period_end)
+    if exact is not None:
+        return exact
+    nearest = min(
+        ((abs((candidate - period_end).days), candidate) for candidate in filed),
+        default=None,
+    )
+    if nearest is None or nearest[0] > FILING_DATE_MATCH_TOLERANCE_DAYS:
+        return None
+    return filed[nearest[1]]
+
+
 def fundamental_ingest(
     *,
     conn: psycopg.Connection,
@@ -105,9 +145,25 @@ def fundamental_ingest(
     names = tickers if tickers is not None else repo.list_universe(tier)
     if not names:
         log.info("fundamental_ingest: tier %r is empty — nothing to do", tier)
-        return {"tickers": 0, "inserted": 0, "touched": 0, "violations": 0, "failed": 0}
+        return {
+            "tickers": 0,
+            "inserted": 0,
+            "touched": 0,
+            "violations": 0,
+            "failed": 0,
+            "filing_date_tolerance": 0,
+        }
 
-    totals = {"tickers": 0, "inserted": 0, "touched": 0, "violations": 0, "failed": 0}
+    totals = {
+        "tickers": 0,
+        "inserted": 0,
+        "touched": 0,
+        "violations": 0,
+        "failed": 0,
+        # How often the two endpoints' period spellings disagreed. Reported rather than
+        # assumed: if this ever reads 0 the tolerant path has silently stopped firing.
+        "filing_date_tolerance": 0,
+    }
     for ticker in names:
         try:
             filed = _filing_dates(client, ticker)
@@ -130,6 +186,9 @@ def fundamental_ingest(
                     if period_end is None:
                         continue
                     payload = normalize(raw)
+                    resolved = _resolve_filing_date(filed, period_end)
+                    if resolved is not None and period_end not in filed:
+                        totals["filing_date_tolerance"] += 1
                     row = {
                         "source": SOURCE,
                         "ticker": ticker,
@@ -139,7 +198,7 @@ def fundamental_ingest(
                         "content_hash": content_hash(payload),
                         "provider_record_id": None,
                         "filing_accession": None,
-                        "filing_published_at": filed.get(period_end),
+                        "filing_published_at": resolved,
                         "raw_jsonb": payload,
                         "field_map_version": FIELD_MAP_VERSION,
                     }

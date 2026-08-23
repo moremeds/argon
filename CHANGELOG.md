@@ -7,6 +7,53 @@ version in lockstep (enforced by `scripts/release/version_sync_check.py`).
 
 ## [Unreleased]
 
+### Added
+
+- **Statement ingest is now calendar-driven and daily.** `fundamental_ingest_daily`
+  (04:20 ET, uw-0, `UW_SCAN_FUNDAMENTAL_INGEST_DAILY_ENABLED`) reads UW's earnings
+  calendar for the last 4 days, intersects it with the `ranked` universe, and pulls only
+  the names that actually reported — about 6 a day against the monthly sweep's 450.
+  Measured: a statement is retrievable the day the company reports (100% of reports 2–7
+  days old, 98.5% across 704 report events over 120 days), so the monthly cadence's
+  up-to-30-day staleness bought nothing and cost twice as much (~900 UW calls/month
+  against 1,800). The lookback is outage insurance, not a wait for UW to publish.
+  - The monthly sweep stays registered as a backstop, for two independent reasons.
+    `premarket`/`afterhours` are the *classified* calendar — a name UW reports as
+    `report_time: "unknown"` appears in neither, verified for ISRG, SONY, DJCO and POET,
+    ≈2% of the statement-bearing universe — and only a late full re-pull can collect a
+    filing date UW published after we first stored the row.
+  - New `sources/earnings_calendar.py` paginates both slots; the busiest day observed
+    returned 257 rows, so a single-page fetch would have dropped the tail on exactly the
+    days that matter.
+
+### Fixed
+
+- **129 tickers had no filing dates because the two UW endpoints disagree about when a
+  quarter ends.** The statement endpoints normalise a period to a calendar month-end;
+  `fundamental-breakdown` reports the true fiscal period end. AAPL's June quarter is
+  `2026-06-30` in one and `2026-06-27` in the other, so `_filing_dates`' exact dict
+  lookup missed on every period of every 52/53-week filer, permanently — **0 of 885 NULL
+  periods matched at tolerance 0**. Breakdown was never missing the data; it dates 100%
+  of what it carries (AAPL 69/69).
+  - Matching now falls back to the nearest breakdown period within 7 days, exact first.
+    Read off the recovery curve rather than chosen: 7 days recovers 592 periods / 1,785
+    statement rows, 98.5% of everything reachable at any tolerance, with **zero** of the
+    885 periods matching two breakdown rows — quarters sit ~91 days apart, so the window
+    cannot reach a neighbour. AAPL, AMAT, CSCO, INTC, HD, DE, WDC, LITE, ICHR and FN are
+    recovered in full. The run reports a `filing_date_tolerance` counter so the hit rate
+    stays observable instead of assumed.
+- **A filing date that arrived after first ingest was discarded permanently.**
+  `record_statements` ended `ON CONFLICT … DO UPDATE SET last_seen_at = now()`, and
+  `content_hash` excludes the filing date by design — so the later re-pull carrying a
+  newly-published date collided on an identical hash and updated only the timestamp.
+  Live, not hypothetical: breakdown's frontier trails the statement endpoints for 7 of a
+  random 40 names (INFY by 91 days, GFS by 181). The clause now fills a NULL via
+  `COALESCE` and still never revises a date already recorded.
+
+Method, probes and the full tolerance curve:
+`docs/research/2026-08-23-fundamental-filing-date-recovery/VERDICT.md`.
+Plan: `docs/superpowers/plans/2026-08-23-fundamental-calendar-ingest-and-filing-dates.md`.
+
 ## [0.12.15] — 2026-08-23
 
 
