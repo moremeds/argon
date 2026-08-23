@@ -86,7 +86,7 @@ its own process by `scripts/dev.sh`). Toggle via `MASSIVE_WS_ENABLED`
 
 ## Rules
 
-- **Every job opens its own conn** via `_repo(settings)` and closes it in `finally`. No long-lived connections — APScheduler runs jobs from a thread pool.
+- **Every job opens its own conn** via `_repo(settings)`, which is a `with psycopg.connect(...)` block — it **commits** on clean exit and rolls back on an exception. Never go back to `connect()` plus `close()` in a `finally`: closing a psycopg connection discards the transaction. That is invisible for the repository methods that call `self._conn.commit()` themselves and silently fatal for the ones built on `self._conn.transaction()`, which only emits `COMMIT` when it opened the transaction — so any job that reads before it writes leaves the connection mid-transaction and its write block degrades to a savepoint nothing commits. That shape threw away every macro domain state for two nights while the job logged `ok`. No long-lived connections — APScheduler runs jobs from a thread pool.
 - **MASSIVE_API_KEY can be unset.** Jobs that need it should no-op + warn (see `_spy_ohlc_refresh`). Never crash the scheduler.
 - **No duplicated provider work.** If a worker role can run in more than one process, loops over watchlist tickers must either use stable shard ownership or atomically claim queued work.
 - **ET timezone everywhere.** `CronTrigger.from_crontab(..., timezone=settings.rth_tz)`. Don't use UTC for trading-hour crons.
