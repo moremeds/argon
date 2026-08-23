@@ -1,0 +1,648 @@
+{
+  "note": "REAL DTWEXBGS (FRED Broad Dollar Index, daily) observations, frozen 2026-08-23 from the macro evidence store. The 63-observation change over this window is +2.0839% -- above the retired 2.0 threshold but inside the ordinary three quarters of the record, so it is not a directional call.",
+  "series_id": "DTWEXBGS",
+  "frozen_as_of": "2026-08-23",
+  "change_pct_63obs": "2.0839",
+  "rows": [
+    {
+      "period_end": "2026-04-17",
+      "value": "118.0795",
+      "available_at": "2026-04-20T08:00:00+08:00",
+      "unit": "index_jan_2006_100",
+      "source": "fred",
+      "source_kind": "first_party_publisher",
+      "cost_class": "free_publisher",
+      "causal_role": "curve"
+    },
+    {
+      "period_end": "2026-04-20",
+      "value": "118.2374",
+      "available_at": "2026-04-27T08:00:00+08:00",
+      "unit": "index_jan_2006_100",
+      "source": "fred",
+      "source_kind": "first_party_publisher",
+      "cost_class": "free_publisher",
+      "causal_role": "curve"
+    },
+    {
+      "period_end": "2026-04-21",
+      "value": "118.4331",
+      "available_at": "2026-04-27T08:00:00+08:00",
+      "unit": "index_jan_2006_100",
+      "source": "fred",
+      "source_kind": "first_party_publisher",
+      "cost_class": "free_publisher",
+      "causal_role": "curve"
+    },
+    {
+      "period_end": "2026-04-22",
+      "value": "118.6004",
+      "available_at": "2026-04-27T08:00:00+08:00",
+      "unit": "index_jan_2006_100",
+      "source": "fred",
+      "source_kind": "first_party_publisher",
+      "cost_class": "free_publisher",
+      "causal_role": "curve"
+    },
+    {
+      "period_end": "2026-04-23",
+      "value": "118.7155",
+      "available_at": "2026-04-27T08:00:00+08:00",
+      "unit": "index_jan_2006_100",
+      "source": "fred",
+      "source_kind": "first_party_publisher",
+      "cost_class": "free_publisher",
+      "causal_role": "curve"
+    },
+    {
+      "period_end": "2026-04-24",
+      "value": "118.7294",
+      "available_at": "2026-04-27T08:00:00+08:00",
+      "unit": "index_jan_2006_100",
+      "source": "fred",
+      "source_kind": "first_party_publisher",
+      "cost_class": "free_publisher",
+      "causal_role": "curve"
+    },
+    {
+      "period_end": "2026-04-27",
+      "value": "118.5458",
+      "available_at": "2026-05-04T08:00:00+08:00",
+      "unit": "index_jan_2006_100",
+      "source": "fred",
+      "source_kind": "first_party_publisher",
+      "cost_class": "free_publisher",
+      "causal_role": "curve"
+    },
+    {
+      "period_end": "2026-04-28",
+      "value": "118.7717",
+      "available_at": "2026-05-04T08:00:00+08:00",
+      "unit": "index_jan_2006_100",
+      "source": "fred",
+      "source_kind": "first_party_publisher",
+      "cost_class": "free_publisher",
+      "causal_role": "curve"
+    },
+    {
+      "period_end": "2026-04-29",
+      "value": "119.0975",
+      "available_at": "2026-05-04T08:00:00+08:00",
+      "unit": "index_jan_2006_100",
+      "source": "fred",
+      "source_kind": "first_party_publisher",
+      "cost_class": "free_publisher",
+      "causal_role": "curve"
+    },
+    {
+      "period_end": "2026-04-30",
+      "value": "118.671",
+      "available_at": "2026-05-04T08:00:00+08:00",
+      "unit": "index_jan_2006_100",
+      "source": "fred",
+      "source_kind": "first_party_publisher",
+      "cost_class": "free_publisher",
+      "causal_role": "curve"
+    },
+    {
+      "period_end": "2026-05-01",
+      "value": "118.3926",
+      "available_at": "2026-05-04T08:00:00+08:00",
+      "unit": "index_jan_2006_100",
+      "source": "fred",
+      "source_kind": "first_party_publisher",
+      "cost_class": "free_publisher",
+      "causal_role": "curve"
+    },
+    {
+      "period_end": "2026-05-04",
+      "value": "118.8264",
+      "available_at": "2026-05-11T08:00:00+08:00",
+      "unit": "index_jan_2006_100",
+      "source": "fred",
+      "source_kind": "first_party_publisher",
+      "cost_class": "free_publisher",
+      "causal_role": "curve"
+    },
+    {
+      "period_end": "2026-05-05",
+      "value": "118.6207",
+      "available_at": "2026-05-11T08:00:00+08:00",
+      "unit": "index_jan_2006_100",
+      "source": "fred",
+      "source_kind": "first_party_publisher",
+      "cost_class": "free_publisher",
+      "causal_role": "curve"
+    },
+    {
+      "period_end": "2026-05-06",
+      "value": "118.0982",
+      "available_at": "2026-05-11T08:00:00+08:00",
+      "unit": "index_jan_2006_100",
+      "source": "fred",
+      "source_kind": "first_party_publisher",
+      "cost_class": "free_publisher",
+      "causal_role": "curve"
+    },
+    {
+      "period_end": "2026-05-07",
+      "value": "118.0116",
+      "available_at": "2026-05-11T08:00:00+08:00",
+      "unit": "index_jan_2006_100",
+      "source": "fred",
+      "source_kind": "first_party_publisher",
+      "cost_class": "free_publisher",
+      "causal_role": "curve"
+    },
+    {
+      "period_end": "2026-05-08",
+      "value": "118.0392",
+      "available_at": "2026-05-11T08:00:00+08:00",
+      "unit": "index_jan_2006_100",
+      "source": "fred",
+      "source_kind": "first_party_publisher",
+      "cost_class": "free_publisher",
+      "causal_role": "curve"
+    },
+    {
+      "period_end": "2026-05-11",
+      "value": "118.0562",
+      "available_at": "2026-05-18T08:00:00+08:00",
+      "unit": "index_jan_2006_100",
+      "source": "fred",
+      "source_kind": "first_party_publisher",
+      "cost_class": "free_publisher",
+      "causal_role": "curve"
+    },
+    {
+      "period_end": "2026-05-12",
+      "value": "118.5238",
+      "available_at": "2026-05-18T08:00:00+08:00",
+      "unit": "index_jan_2006_100",
+      "source": "fred",
+      "source_kind": "first_party_publisher",
+      "cost_class": "free_publisher",
+      "causal_role": "curve"
+    },
+    {
+      "period_end": "2026-05-13",
+      "value": "118.4737",
+      "available_at": "2026-05-18T08:00:00+08:00",
+      "unit": "index_jan_2006_100",
+      "source": "fred",
+      "source_kind": "first_party_publisher",
+      "cost_class": "free_publisher",
+      "causal_role": "curve"
+    },
+    {
+      "period_end": "2026-05-14",
+      "value": "118.6696",
+      "available_at": "2026-05-18T08:00:00+08:00",
+      "unit": "index_jan_2006_100",
+      "source": "fred",
+      "source_kind": "first_party_publisher",
+      "cost_class": "free_publisher",
+      "causal_role": "curve"
+    },
+    {
+      "period_end": "2026-05-15",
+      "value": "119.2825",
+      "available_at": "2026-05-18T08:00:00+08:00",
+      "unit": "index_jan_2006_100",
+      "source": "fred",
+      "source_kind": "first_party_publisher",
+      "cost_class": "free_publisher",
+      "causal_role": "curve"
+    },
+    {
+      "period_end": "2026-05-18",
+      "value": "119.0574",
+      "available_at": "2026-05-26T08:00:00+08:00",
+      "unit": "index_jan_2006_100",
+      "source": "fred",
+      "source_kind": "first_party_publisher",
+      "cost_class": "free_publisher",
+      "causal_role": "curve"
+    },
+    {
+      "period_end": "2026-05-19",
+      "value": "119.451",
+      "available_at": "2026-05-26T08:00:00+08:00",
+      "unit": "index_jan_2006_100",
+      "source": "fred",
+      "source_kind": "first_party_publisher",
+      "cost_class": "free_publisher",
+      "causal_role": "curve"
+    },
+    {
+      "period_end": "2026-05-20",
+      "value": "119.1624",
+      "available_at": "2026-05-26T08:00:00+08:00",
+      "unit": "index_jan_2006_100",
+      "source": "fred",
+      "source_kind": "first_party_publisher",
+      "cost_class": "free_publisher",
+      "causal_role": "curve"
+    },
+    {
+      "period_end": "2026-05-21",
+      "value": "119.369",
+      "available_at": "2026-05-26T08:00:00+08:00",
+      "unit": "index_jan_2006_100",
+      "source": "fred",
+      "source_kind": "first_party_publisher",
+      "cost_class": "free_publisher",
+      "causal_role": "curve"
+    },
+    {
+      "period_end": "2026-05-22",
+      "value": "119.2868",
+      "available_at": "2026-05-26T08:00:00+08:00",
+      "unit": "index_jan_2006_100",
+      "source": "fred",
+      "source_kind": "first_party_publisher",
+      "cost_class": "free_publisher",
+      "causal_role": "curve"
+    },
+    {
+      "period_end": "2026-05-26",
+      "value": "119.1696",
+      "available_at": "2026-06-01T08:00:00+08:00",
+      "unit": "index_jan_2006_100",
+      "source": "fred",
+      "source_kind": "first_party_publisher",
+      "cost_class": "free_publisher",
+      "causal_role": "curve"
+    },
+    {
+      "period_end": "2026-05-27",
+      "value": "119.1829",
+      "available_at": "2026-06-01T08:00:00+08:00",
+      "unit": "index_jan_2006_100",
+      "source": "fred",
+      "source_kind": "first_party_publisher",
+      "cost_class": "free_publisher",
+      "causal_role": "curve"
+    },
+    {
+      "period_end": "2026-05-28",
+      "value": "119.0318",
+      "available_at": "2026-06-01T08:00:00+08:00",
+      "unit": "index_jan_2006_100",
+      "source": "fred",
+      "source_kind": "first_party_publisher",
+      "cost_class": "free_publisher",
+      "causal_role": "curve"
+    },
+    {
+      "period_end": "2026-05-29",
+      "value": "118.8783",
+      "available_at": "2026-06-01T08:00:00+08:00",
+      "unit": "index_jan_2006_100",
+      "source": "fred",
+      "source_kind": "first_party_publisher",
+      "cost_class": "free_publisher",
+      "causal_role": "curve"
+    },
+    {
+      "period_end": "2026-06-01",
+      "value": "119.1653",
+      "available_at": "2026-06-08T08:00:00+08:00",
+      "unit": "index_jan_2006_100",
+      "source": "fred",
+      "source_kind": "first_party_publisher",
+      "cost_class": "free_publisher",
+      "causal_role": "curve"
+    },
+    {
+      "period_end": "2026-06-02",
+      "value": "119.0359",
+      "available_at": "2026-06-08T08:00:00+08:00",
+      "unit": "index_jan_2006_100",
+      "source": "fred",
+      "source_kind": "first_party_publisher",
+      "cost_class": "free_publisher",
+      "causal_role": "curve"
+    },
+    {
+      "period_end": "2026-06-03",
+      "value": "119.3848",
+      "available_at": "2026-06-08T08:00:00+08:00",
+      "unit": "index_jan_2006_100",
+      "source": "fred",
+      "source_kind": "first_party_publisher",
+      "cost_class": "free_publisher",
+      "causal_role": "curve"
+    },
+    {
+      "period_end": "2026-06-04",
+      "value": "119.3615",
+      "available_at": "2026-06-08T08:00:00+08:00",
+      "unit": "index_jan_2006_100",
+      "source": "fred",
+      "source_kind": "first_party_publisher",
+      "cost_class": "free_publisher",
+      "causal_role": "curve"
+    },
+    {
+      "period_end": "2026-06-05",
+      "value": "120.0831",
+      "available_at": "2026-06-08T08:00:00+08:00",
+      "unit": "index_jan_2006_100",
+      "source": "fred",
+      "source_kind": "first_party_publisher",
+      "cost_class": "free_publisher",
+      "causal_role": "curve"
+    },
+    {
+      "period_end": "2026-06-08",
+      "value": "120.034",
+      "available_at": "2026-06-15T08:00:00+08:00",
+      "unit": "index_jan_2006_100",
+      "source": "fred",
+      "source_kind": "first_party_publisher",
+      "cost_class": "free_publisher",
+      "causal_role": "curve"
+    },
+    {
+      "period_end": "2026-06-09",
+      "value": "119.9617",
+      "available_at": "2026-06-15T08:00:00+08:00",
+      "unit": "index_jan_2006_100",
+      "source": "fred",
+      "source_kind": "first_party_publisher",
+      "cost_class": "free_publisher",
+      "causal_role": "curve"
+    },
+    {
+      "period_end": "2026-06-10",
+      "value": "119.9134",
+      "available_at": "2026-06-15T08:00:00+08:00",
+      "unit": "index_jan_2006_100",
+      "source": "fred",
+      "source_kind": "first_party_publisher",
+      "cost_class": "free_publisher",
+      "causal_role": "curve"
+    },
+    {
+      "period_end": "2026-06-11",
+      "value": "120.1174",
+      "available_at": "2026-06-15T08:00:00+08:00",
+      "unit": "index_jan_2006_100",
+      "source": "fred",
+      "source_kind": "first_party_publisher",
+      "cost_class": "free_publisher",
+      "causal_role": "curve"
+    },
+    {
+      "period_end": "2026-06-12",
+      "value": "119.5073",
+      "available_at": "2026-06-15T08:00:00+08:00",
+      "unit": "index_jan_2006_100",
+      "source": "fred",
+      "source_kind": "first_party_publisher",
+      "cost_class": "free_publisher",
+      "causal_role": "curve"
+    },
+    {
+      "period_end": "2026-06-15",
+      "value": "119.3158",
+      "available_at": "2026-06-22T08:00:00+08:00",
+      "unit": "index_jan_2006_100",
+      "source": "fred",
+      "source_kind": "first_party_publisher",
+      "cost_class": "free_publisher",
+      "causal_role": "curve"
+    },
+    {
+      "period_end": "2026-06-16",
+      "value": "119.256",
+      "available_at": "2026-06-22T08:00:00+08:00",
+      "unit": "index_jan_2006_100",
+      "source": "fred",
+      "source_kind": "first_party_publisher",
+      "cost_class": "free_publisher",
+      "causal_role": "curve"
+    },
+    {
+      "period_end": "2026-06-17",
+      "value": "119.3871",
+      "available_at": "2026-06-22T08:00:00+08:00",
+      "unit": "index_jan_2006_100",
+      "source": "fred",
+      "source_kind": "first_party_publisher",
+      "cost_class": "free_publisher",
+      "causal_role": "curve"
+    },
+    {
+      "period_end": "2026-06-18",
+      "value": "120.3958",
+      "available_at": "2026-06-22T08:00:00+08:00",
+      "unit": "index_jan_2006_100",
+      "source": "fred",
+      "source_kind": "first_party_publisher",
+      "cost_class": "free_publisher",
+      "causal_role": "curve"
+    },
+    {
+      "period_end": "2026-06-22",
+      "value": "120.5463",
+      "available_at": "2026-06-29T08:00:00+08:00",
+      "unit": "index_jan_2006_100",
+      "source": "fred",
+      "source_kind": "first_party_publisher",
+      "cost_class": "free_publisher",
+      "causal_role": "curve"
+    },
+    {
+      "period_end": "2026-06-23",
+      "value": "121.0552",
+      "available_at": "2026-06-29T08:00:00+08:00",
+      "unit": "index_jan_2006_100",
+      "source": "fred",
+      "source_kind": "first_party_publisher",
+      "cost_class": "free_publisher",
+      "causal_role": "curve"
+    },
+    {
+      "period_end": "2026-06-24",
+      "value": "121.412",
+      "available_at": "2026-06-29T08:00:00+08:00",
+      "unit": "index_jan_2006_100",
+      "source": "fred",
+      "source_kind": "first_party_publisher",
+      "cost_class": "free_publisher",
+      "causal_role": "curve"
+    },
+    {
+      "period_end": "2026-06-25",
+      "value": "121.0559",
+      "available_at": "2026-06-29T08:00:00+08:00",
+      "unit": "index_jan_2006_100",
+      "source": "fred",
+      "source_kind": "first_party_publisher",
+      "cost_class": "free_publisher",
+      "causal_role": "curve"
+    },
+    {
+      "period_end": "2026-06-26",
+      "value": "120.8866",
+      "available_at": "2026-06-29T08:00:00+08:00",
+      "unit": "index_jan_2006_100",
+      "source": "fred",
+      "source_kind": "first_party_publisher",
+      "cost_class": "free_publisher",
+      "causal_role": "curve"
+    },
+    {
+      "period_end": "2026-06-29",
+      "value": "120.9525",
+      "available_at": "2026-07-06T08:00:00+08:00",
+      "unit": "index_jan_2006_100",
+      "source": "fred",
+      "source_kind": "first_party_publisher",
+      "cost_class": "free_publisher",
+      "causal_role": "curve"
+    },
+    {
+      "period_end": "2026-06-30",
+      "value": "120.9248",
+      "available_at": "2026-07-06T08:00:00+08:00",
+      "unit": "index_jan_2006_100",
+      "source": "fred",
+      "source_kind": "first_party_publisher",
+      "cost_class": "free_publisher",
+      "causal_role": "curve"
+    },
+    {
+      "period_end": "2026-07-01",
+      "value": "121.1455",
+      "available_at": "2026-07-06T08:00:00+08:00",
+      "unit": "index_jan_2006_100",
+      "source": "fred",
+      "source_kind": "first_party_publisher",
+      "cost_class": "free_publisher",
+      "causal_role": "curve"
+    },
+    {
+      "period_end": "2026-07-02",
+      "value": "120.6902",
+      "available_at": "2026-07-06T08:00:00+08:00",
+      "unit": "index_jan_2006_100",
+      "source": "fred",
+      "source_kind": "first_party_publisher",
+      "cost_class": "free_publisher",
+      "causal_role": "curve"
+    },
+    {
+      "period_end": "2026-07-06",
+      "value": "120.835",
+      "available_at": "2026-07-13T08:00:00+08:00",
+      "unit": "index_jan_2006_100",
+      "source": "fred",
+      "source_kind": "first_party_publisher",
+      "cost_class": "free_publisher",
+      "causal_role": "curve"
+    },
+    {
+      "period_end": "2026-07-07",
+      "value": "120.8145",
+      "available_at": "2026-07-13T08:00:00+08:00",
+      "unit": "index_jan_2006_100",
+      "source": "fred",
+      "source_kind": "first_party_publisher",
+      "cost_class": "free_publisher",
+      "causal_role": "curve"
+    },
+    {
+      "period_end": "2026-07-08",
+      "value": "121.1307",
+      "available_at": "2026-07-13T08:00:00+08:00",
+      "unit": "index_jan_2006_100",
+      "source": "fred",
+      "source_kind": "first_party_publisher",
+      "cost_class": "free_publisher",
+      "causal_role": "curve"
+    },
+    {
+      "period_end": "2026-07-09",
+      "value": "120.753",
+      "available_at": "2026-07-13T08:00:00+08:00",
+      "unit": "index_jan_2006_100",
+      "source": "fred",
+      "source_kind": "first_party_publisher",
+      "cost_class": "free_publisher",
+      "causal_role": "curve"
+    },
+    {
+      "period_end": "2026-07-10",
+      "value": "120.5046",
+      "available_at": "2026-07-13T08:00:00+08:00",
+      "unit": "index_jan_2006_100",
+      "source": "fred",
+      "source_kind": "first_party_publisher",
+      "cost_class": "free_publisher",
+      "causal_role": "curve"
+    },
+    {
+      "period_end": "2026-07-13",
+      "value": "120.7413",
+      "available_at": "2026-07-20T08:00:00+08:00",
+      "unit": "index_jan_2006_100",
+      "source": "fred",
+      "source_kind": "first_party_publisher",
+      "cost_class": "free_publisher",
+      "causal_role": "curve"
+    },
+    {
+      "period_end": "2026-07-14",
+      "value": "120.4728",
+      "available_at": "2026-07-20T08:00:00+08:00",
+      "unit": "index_jan_2006_100",
+      "source": "fred",
+      "source_kind": "first_party_publisher",
+      "cost_class": "free_publisher",
+      "causal_role": "curve"
+    },
+    {
+      "period_end": "2026-07-15",
+      "value": "120.3088",
+      "available_at": "2026-07-20T08:00:00+08:00",
+      "unit": "index_jan_2006_100",
+      "source": "fred",
+      "source_kind": "first_party_publisher",
+      "cost_class": "free_publisher",
+      "causal_role": "curve"
+    },
+    {
+      "period_end": "2026-07-16",
+      "value": "120.331",
+      "available_at": "2026-07-20T08:00:00+08:00",
+      "unit": "index_jan_2006_100",
+      "source": "fred",
+      "source_kind": "first_party_publisher",
+      "cost_class": "free_publisher",
+      "causal_role": "curve"
+    },
+    {
+      "period_end": "2026-07-17",
+      "value": "120.5315",
+      "available_at": "2026-07-20T08:00:00+08:00",
+      "unit": "index_jan_2006_100",
+      "source": "fred",
+      "source_kind": "first_party_publisher",
+      "cost_class": "free_publisher",
+      "causal_role": "curve"
+    },
+    {
+      "period_end": "2026-07-20",
+      "value": "120.5401000000",
+      "available_at": "2026-07-27T08:00:00+08:00",
+      "unit": "index_jan_2006_100",
+      "source": "fred",
+      "source_kind": "first_party_publisher",
+      "cost_class": "free_publisher",
+      "causal_role": "curve"
+    }
+  ]
+}

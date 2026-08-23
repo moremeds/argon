@@ -7,7 +7,43 @@ version in lockstep (enforced by `scripts/release/version_sync_check.py`).
 
 ## [Unreleased]
 
+### Changed
+
+- **The USD state's boundary moved out of the middle of its own distribution.**
+  `momentum_threshold_pct` 2.0% → 3.0%; `USD_ENGINE_VERSION` and `UsdParameters.version`
+  both `usd/1` → `usd/2`. The retired 2.0% sat at the **61st percentile** of the broad
+  dollar's own 63-observation moves, and a classifier whose boundary sits near the median
+  of its inputs crosses that boundary maximally often — crossing density peaks where the
+  density does. Replaying the state monthly over the stored evidence (2021-01..2026-08,
+  68 instants) it flipped **29 times with a longest regime of 6 months**, alternating
+  RANGEBOUND↔STRENGTHENING six times through 2022 alone — a year in which the dollar ran
+  monotonically from ~96 to ~114. That is threshold proximity being reported as regime
+  change.
+  - At 3.0% (the **76th** percentile) the state flips **13 times with a longest regime of
+    14 months**. RANGEBOUND is now the ordinary three quarters of the record and a
+    directional call needs a top-quartile quarterly move. Distribution over 12,330
+    momentum points: median 1.45%, p75 2.91%, p90 4.57%.
+  - **Hysteresis was the first hypothesis and the measurement rejected it.** A dual
+    entry/exit band left flips flat or raised them at *every* entry threshold (at 3.0%:
+    none 13, exit 2.25% → 17, exit 1.50% → 23), because a wider band relocates transitions
+    rather than removing them. The lever is where the boundary sits, not how sticky it is.
+  - Stored `usd/1` states keep their own semantics and stay readable — states are keyed
+    `(domain, as_of, engine_version, inputs_hash)` and a reader filtering on
+    `engine_version` gets one engine's semantics. Verified through the real
+    `compute_usd_state`: 0 `inputs_hash` collisions between the two parameter sets.
+  - This does **not** make the USD state testable: 13 transitions in 68 months is still
+    far short of an MC6-grade gate. It makes the label mean what it says.
+  - Sweep `scripts/research/usd_threshold_sweep.py`, replay census
+    `scripts/research/macro_state_replay_census.py`, verdict
+    `docs/research/2026-08-23-macro-state-replay-flip-census.md`.
+
 ### Added
+
+- **A test that every macro domain's engine version and parameter version move together.**
+  `tests/unit/macro/test_engine_versions.py`. Splitting them lets a recalibrated engine keep
+  publishing under the old engine identity, so a reader asking for one semantics silently
+  gets two. Not hypothetical: the USD recalibration above bumped the parameter version,
+  left the engine version behind, and nothing failed.
 
 - **Statement ingest is now calendar-driven and daily.** `fundamental_ingest_daily`
   (04:20 ET, uw-0, `UW_SCAN_FUNDAMENTAL_INGEST_DAILY_ENABLED`) reads UW's earnings

@@ -314,19 +314,6 @@ class TestMomentumWindow:
         assert velocity.value is None
         assert "different statistic" in velocity.unavailable_reason
 
-    def test_the_threshold_is_the_measured_median_move(self) -> None:
-        """Calibration, asserted so a later edit has to argue with the measurement.
-
-        Across 5,169 observations from 2006-01-02 to 2026-08-14 the median absolute
-        63-observation change is 1.81% and this threshold leaves 53.8% of days
-        RANGEBOUND. A number chosen for feel would drift; this one has a reproduce
-        command behind it.
-        """
-        from uw_scan.macro.usd import DEFAULT_USD_PARAMETERS
-
-        assert DEFAULT_USD_PARAMETERS.momentum_threshold_pct == Decimal("2.0")
-        assert DEFAULT_USD_PARAMETERS.momentum_window_obs == 63
-
     def test_the_anchor_cadence_is_weekly_not_daily(self) -> None:
         """The anchor is REQUIRED, so a wrong cadence deletes the state four days in five."""
         from uw_scan.macro.usd import DEFAULT_USD_PARAMETERS
@@ -458,3 +445,71 @@ class TestTheEngineRefusesAFutureUpstream:
             as_of=as_of,
             upstream=(_upstream(as_of=as_of - timedelta(days=30)),),
         )
+
+
+class TestDirectionalCallRequiresATopQuartileMove:
+    """The boundary belongs in the tail of the move distribution, not at its middle.
+
+    A classifier whose boundary sits near the MEDIAN of its own input distribution
+    crosses that boundary maximally often, because crossing density peaks where the
+    density does.  Measured on the stored evidence: at 2.0% the USD state flipped 29
+    times across 68 monthly replays with a longest regime of 6 months; at 3.0% it flips
+    13 times with a longest regime of 14 months.
+    """
+
+    WINDOW = json.loads(
+        (
+            Path(__file__).parents[2]
+            / "fixtures"
+            / "macro"
+            / "usd_rangebound_window.json"
+        ).read_text(encoding="utf-8")
+    )
+
+    def _rows(self) -> list[DomainObservation]:
+        return [
+            DomainObservation(
+                series_id=self.WINDOW["series_id"],
+                causal_role=row["causal_role"],
+                period_end=date.fromisoformat(row["period_end"]),
+                value=Decimal(row["value"]),
+                unit=row["unit"],
+                publisher_transform="index_level",
+                available_at=datetime.fromisoformat(row["available_at"]),
+                superseded_at=None,
+                source=row["source"],
+                source_kind=row["source_kind"],
+                cost_class=row["cost_class"],
+            )
+            for row in self.WINDOW["rows"]
+        ]
+
+    def test_the_frozen_window_really_is_a_two_percent_move(self) -> None:
+        """Guards the fixture: if this drifts, the test below stops testing the band."""
+        rows = self._rows()
+        first, last = rows[0].value, rows[-1].value
+        change = (last - first) / first * Decimal(100)
+        assert Decimal("2.0") <= change < Decimal("3.0")
+        assert round(change, 4) == Decimal(self.WINDOW["change_pct_63obs"])
+
+    def test_an_ordinary_quarterly_move_is_not_a_directional_call(self) -> None:
+        state = compute_usd_state(self._rows(), as_of=_instant("2026-07-27"))
+        assert state.state == "RANGEBOUND"
+        assert state.direction == "FLAT"
+
+    def test_the_threshold_sits_at_the_upper_quartile_of_the_move_distribution(
+        self,
+    ) -> None:
+        """Calibration, asserted so a later edit has to argue with the measurement.
+
+        Across 12,330 momentum points replayed monthly from the stored evidence
+        (2021-01..2026-08) the median absolute 63-observation change is 1.45% and 3.0%
+        sits at the 76th percentile -- so RANGEBOUND is the ordinary three quarters of
+        the record and a directional call needs a top-quartile quarterly move.
+
+        Reproduce: scripts/research/usd_threshold_sweep.py
+        """
+        from uw_scan.macro.usd import DEFAULT_USD_PARAMETERS
+
+        assert DEFAULT_USD_PARAMETERS.momentum_threshold_pct == Decimal("3.0")
+        assert DEFAULT_USD_PARAMETERS.momentum_window_obs == 63

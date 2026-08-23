@@ -48,7 +48,10 @@ from .contracts import (
     freshness_for,
 )
 
-USD_ENGINE_VERSION = "usd/1"
+#: Bumped to usd/2 when the momentum threshold moved from the median of the move
+#: distribution (2.0%) to its upper quartile (3.0%).  Stored usd/1 states keep their
+#: own semantics and stay readable; a reader filtering on engine_version gets one.
+USD_ENGINE_VERSION = "usd/2"
 
 UsdStateLabel = Literal["STRENGTHENING", "WEAKENING", "RANGEBOUND", "UNKNOWN"]
 
@@ -95,17 +98,26 @@ class UpstreamState:
 class UsdParameters:
     """Versioned thresholds, hashed with the evidence rather than hidden in constants."""
 
-    version: str = "usd/1"
+    version: str = "usd/2"
     #: Observations, not calendar days.  The H.10 releases weekly carrying the week's
     #: daily values, so 63 observations is about a calendar quarter of prints.
     momentum_window_obs: int = 63
     #: Percent change over that window at which the dollar is doing something.
-    #: Calibrated rather than picked: across 5,169 observations from 2006-01-02 to
-    #: 2026-08-14 the MEDIAN absolute 63-observation change is 1.81% and this threshold
-    #: leaves 53.8% of days RANGEBOUND -- so "rangebound" means the quieter half of the
-    #: record by construction, not a number that felt small. p90 is 4.82%.
-    #: Reproduce: uv run python scripts/research/usd_source_probe.py
-    momentum_threshold_pct: Decimal = Decimal("2.0")
+    #: The boundary belongs in the TAIL of the move distribution, not at its middle.  A
+    #: classifier whose boundary sits near the median of its own inputs crosses that
+    #: boundary maximally often, because crossing density peaks where the density does --
+    #: which is what the retired 2.0 did.  Measured over 12,330 momentum points replayed
+    #: monthly from the stored evidence (2021-01..2026-08): median absolute 63-observation
+    #: change 1.45%, p75 2.91%, p90 4.57%.  3.0 sits at the 76th percentile, so RANGEBOUND
+    #: is the ordinary three quarters of the record and a directional call needs a
+    #: top-quartile quarterly move.
+    #:
+    #: What this buys, same window: the state flips 13 times rather than 29, and its
+    #: longest single regime runs 14 months rather than 6.  Hysteresis was measured as the
+    #: alternative and REJECTED -- a dual entry/exit band left flips flat or raised them
+    #: at every entry threshold, because it relocates transitions rather than removing
+    #: them.  Reproduce: uv run python scripts/research/usd_threshold_sweep.py
+    momentum_threshold_pct: Decimal = Decimal("3.0")
     #: The real index is MONTHLY, so the anchor's 63 observations would be 63 months on
     #: it -- five and a quarter years reported under a label that says three months, and
     #: the two "changes" beside each other would not be comparable at all. Three
