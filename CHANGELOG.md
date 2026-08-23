@@ -7,6 +7,9 @@ version in lockstep (enforced by `scripts/release/version_sync_check.py`).
 
 ## [Unreleased]
 
+## [0.12.14] — 2026-08-23
+
+
 ### Fixed
 
 - **A composite score dated three weeks in the future froze the Fundamentals card for 363
@@ -27,7 +30,6 @@ version in lockstep (enforced by `scripts/release/version_sync_check.py`).
   counted in the job's returned totals rather than dropped silently. Migration `129`
   evicts the rows already written, which is safe because scores are fully derived and
   every bucket is rebuilt from the statement panel on each run.
-
 ## [0.12.13] — 2026-08-23
 
 
