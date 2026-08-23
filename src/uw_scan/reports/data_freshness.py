@@ -211,6 +211,22 @@ MONITORED_TABLES: list[MonitoredTable] = [
         None,
         date_col_override="as_of",
     ),
+    # Technicals tab warm store. Registered with the gap healer since 2026-08-16
+    # but never enrolled HERE, so nothing measured its data date: on 2026-08-23
+    # MSTR sat frozen at 2026-07-15 (26 sessions) and APLD/CCJ held zero rows,
+    # all three because apex answers 503 adjusted_unavailable for them.
+    # ponytail: table-level instrument, per-ticker failure. 3 missing out of 171
+    # is 98.2% coverage, so this row will NOT trip LOW_COVERAGE_PCT — it makes
+    # the shortfall countable and catches a TOTAL freeze. The per-ticker alarm
+    # lives where the fact is known: technical_daily_refresh's
+    # source_unavailable counter. Upgrade path if this class of gap recurs:
+    # a per-table low-coverage threshold on MonitoredTable.
+    MonitoredTable(
+        "technical_daily",
+        "watchlist",
+        None,
+        date_col_override="as_of",  # absent from _DATE_COL_PREFERENCE
+    ),
     MonitoredTable("gold_posture_daily", "watchlist", None),  # ticker-less
     MonitoredTable(
         "uw_gold_options_daily",

@@ -55,18 +55,36 @@ def technical_daily_refresh(
     tickers = sorted(set(watch) | {"SPY"})  # SPY = RS benchmark, always refreshed
     # SPY reconciled once: it is both a displayed ticker and the RS benchmark, so
     # the ratio's two legs share the same corrected close series.
-    spy_bars = overlay_recent_ohlc(fetch_daily_bars("SPY"), _recent_ohlc(repo, "SPY"))
-    ok = skipped_thin = failed = 0
+    spy_apex = fetch_daily_bars("SPY")
+    spy_bars = overlay_recent_ohlc(spy_apex, _recent_ohlc(repo, "SPY"))
+    ok = skipped_thin = source_unavailable = failed = 0
     for t in tickers:
         try:
             if t == "SPY":
-                bars = spy_bars
+                apex_bars, bars = spy_apex, spy_bars
                 bench = None
             else:
-                bars = overlay_recent_ohlc(fetch_daily_bars(t), _recent_ohlc(repo, t))
+                apex_bars = fetch_daily_bars(t)
+                bars = overlay_recent_ohlc(apex_bars, _recent_ohlc(repo, t))
                 bench = spy_bars
             snap = build_technical_snapshot(bars, bench)
             if snap is None:
+                if not apex_bars:
+                    # apex served nothing (503 adjusted_unavailable, 404, or a
+                    # transport failure — fetch_daily_bars never raises, so the
+                    # reason is in ITS log line). The ~60-session daily_ohlc
+                    # overlay alone is under the 210-bar floor, so this looks
+                    # exactly like thin history and used to be charged to it.
+                    # That mislabel is why MSTR froze at 2026-07-15 for 26
+                    # sessions with only an INFO line: a name with 2006 rows of
+                    # history does not have "thin history", it has no source.
+                    source_unavailable += 1
+                    log.warning(
+                        "technical_daily_refresh: %s apex returned no bars — "
+                        "series will freeze at its last good date",
+                        t,
+                    )
+                    continue
                 skipped_thin += 1
                 log.info(
                     "technical_daily_refresh: %s thin history (%d bars), skipped",
@@ -108,6 +126,7 @@ def technical_daily_refresh(
     summary = {
         "ok": ok,
         "skipped_thin": skipped_thin,
+        "source_unavailable": source_unavailable,
         "failed": failed,
         "tickers": len(tickers),
     }

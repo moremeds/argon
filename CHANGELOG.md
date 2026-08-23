@@ -28,6 +28,30 @@ version in lockstep (enforced by `scripts/release/version_sync_check.py`).
 
 ### Fixed
 
+- **Three watchlist names' technicals were dead and nothing said so.** apex 0.1.4
+  turned a missing livewire Silver artifact from a bare 500 into
+  `503 adjusted_unavailable`; `fetch_daily_bars` never raises, so it collapsed to
+  `[]`, the ~60-session `daily_ohlc` overlay alone fell under the 210-bar snapshot
+  floor, and `technical_daily_refresh` charged the ticker to `skipped_thin` with an
+  INFO line. Measured on the mini 2026-08-23 against the 171-name active watchlist:
+  MSTR's `technical_daily` frozen at 2026-07-15 (26 sessions), APLD and CCJ holding
+  zero rows. A name with 2006 rows of history does not have "thin history" — it has
+  no source, and the two now count and log separately (`source_unavailable`, WARNING).
+  - `technical_daily` enrolled in `reports/data_freshness.MONITORED_TABLES` with
+    `date_col_override="as_of"` (absent from `_DATE_COL_PREFERENCE`; without it the
+    row renders `date_col='?'` and measures nothing). It was already in the gap-healer
+    REGISTRY — a separate list — which is why it looked covered.
+  - **Ceiling, stated rather than papered over:** 3 missing of 171 is 98.2% coverage,
+    so this row does not trip `LOW_COVERAGE_PCT` (50%). It makes the shortfall
+    countable on `/api/health` and catches a TOTAL freeze; the per-ticker alarm is the
+    job's new `source_unavailable` WARNING, which fires the morning it starts.
+  - New CI gate: every `MONITORED_TABLES` entry must resolve a real data-date column,
+    the freshness-monitor twin of the existing strict-registry gate.
+  - DELL, SMH and XLE also serve a silently stale adjusted tail (200, last bar
+    2026-07-13/14). The 60-session overlay still covers those gaps, so their series
+    are current — they become the same failure once the gap outgrows the window.
+    apex's `/health` reports `silver_last_trade_date` for the whole tree, so
+    per-symbol Silver staleness is invisible there.
 - **129 tickers had no filing dates because the two UW endpoints disagree about when a
   quarter ends.** The statement endpoints normalise a period to a calendar month-end;
   `fundamental-breakdown` reports the true fiscal period end. AAPL's June quarter is
@@ -53,6 +77,28 @@ version in lockstep (enforced by `scripts/release/version_sync_check.py`).
 Method, probes and the full tolerance curve:
 `docs/research/2026-08-23-fundamental-filing-date-recovery/VERDICT.md`.
 Plan: `docs/superpowers/plans/2026-08-23-fundamental-calendar-ingest-and-filing-dates.md`.
+
+### Changed
+
+- **`sources/apex.py` migrated to apex's `/v1/{asset_class}/{symbol}/bars`.** The flat
+  `/bars/{ticker}` alias emits `Deprecation`/`Sunset: Wed, 31 Dec 2026` and resolves
+  every symbol under `asset_class=equity`, so `GET /bars/SPX` was a
+  `404 unknown_symbol` — the vol complex was unreachable from argon.
+  - `fetch_bars` and `fetch_daily_bars` take `asset_class` (default `equity`); pass
+    `volatility` for SPX/VIX/VVIX/COR1M. Verified live: SPX 1d closes 7674.37 on
+    2026-08-21, VVIX 4183 bars from 2010.
+  - `price_mode=adjusted` is now REQUESTED rather than inherited from apex's
+    server-side `effective_price_mode`, so a config flip on the mini can no longer
+    re-base argon's price series mid-stream. Sent for `equity` only — no other class
+    has a Silver tree, and asking for one is a `400 adjusted_not_supported`.
+  - `_iso()` emits offset-aware ISO-8601. apex `/v1` answers `500 internal_error` for
+    a bare `YYYY-MM-DD` start and for a naive ISO datetime; only an explicit UTC
+    offset parses. The flat alias accepted the bare date, so every caller passing a
+    `date` — all of them — would have broken on the migration. Mocked transports
+    cannot catch this; it took a live probe against 0.1.4.
+  - apex's typed `error.code` (`adjusted_unavailable`, `unknown_symbol`, …) now reaches
+    the log line. Every path here still collapses to `[]`, so the code is the only
+    thing separating "apex refused" from "this symbol genuinely has no bars".
 
 ## [0.12.15] — 2026-08-23
 
