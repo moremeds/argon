@@ -7,6 +7,9 @@ version in lockstep (enforced by `scripts/release/version_sync_check.py`).
 
 ## [Unreleased]
 
+## [0.12.16] — 2026-08-23
+
+
 ### Added
 
 - **A macro desk at `/macro`.** The four point-in-time domain states — inflation →
@@ -159,7 +162,6 @@ Plan: `docs/superpowers/plans/2026-08-23-fundamental-calendar-ingest-and-filing-
   - apex's typed `error.code` (`adjusted_unavailable`, `unknown_symbol`, …) now reaches
     the log line. Every path here still collapses to `[]`, so the code is the only
     thing separating "apex refused" from "this symbol genuinely has no bars".
-
 ## [0.12.15] — 2026-08-23
 
 
