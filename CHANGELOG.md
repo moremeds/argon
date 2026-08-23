@@ -7,6 +7,8 @@ version in lockstep (enforced by `scripts/release/version_sync_check.py`).
 
 ## [Unreleased]
 
+## [0.12.11] — 2026-08-23
+
 ### Added
 
 - **A USD transmission state that consumes upstream answers and refuses to guess.** The
@@ -296,7 +298,6 @@ version in lockstep (enforced by `scripts/release/version_sync_check.py`).
   the guard above had no evidence for most of the names that need it. The job now
   covers the fundamental universe as well, at 17:35 ET — 45 minutes before
   `fundamental_refresh`, so the guard is armed on the first day after a deploy.
-
 ## [0.12.10] — 2026-08-20
 
 
