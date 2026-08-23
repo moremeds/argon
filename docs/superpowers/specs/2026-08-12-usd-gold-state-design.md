@@ -81,6 +81,40 @@ document's rulings before implementation started.
    deferred. **Overturned by:** an ingest that lands the gold sources as
    `macro_observations`, at which point the state can cite real evidence.
 
+   > **OVERTURNED 2026-08-23**, on exactly the stated condition.
+   > `worker/jobs/macro_gold_ingest.py` lands `GLD_CLOSE` and `GLD_HOLDINGS_OZ` as
+   > `macro_observations`, so `macro/gold_state.py` cites real `obs_id`s and
+   > `MacroDomainState(domain="gold")` persists. No migration was needed — migration 115
+   > has accepted `domain = 'gold'` since it was written, and 125 and 128 likewise; the
+   > schema was never the blocker, only the ingest.
+   >
+   > **Two of sixteen, not ten of ten.** The overturn is narrower than "ingest gold's ten
+   > sources". Only the two the STATE stands on are citable: the price (its required
+   > anchor) and the ETF tonnage (Lens 1). Lens 2's legs are cited too but BORROWED —
+   > gold points at the rows `RATES_EVIDENCE` and `USD_EVIDENCE` already own, which is
+   > the many-readers case and not a second ingest. Central-bank reserves, exchange
+   > inventory, COT and UW options remain warm-store only and stay in the manifest with
+   > their omission reasons. So the domain state is real and its lineage is complete for
+   > what it stands on; the full sixteen-source promotion is still a milestone.
+   >
+   > Two findings the golden fixture forced, both recorded because they generalise:
+   >
+   > - **The refusal had to invert.** USD refuses upstream evidence by causal ROLE. Gold
+   >   cannot: its anchor `GLD_CLOSE` carries `decomposition_component`, the same role
+   >   `DFII10` and `RTWEXBGS` carry upstream, so a role-based refusal rejects gold's own
+   >   anchor. Gold refuses by series id instead, derived from the owning tuples. And it
+   >   refuses far less: Lens 2 is DEFINED on the real yield and the dollar, so refusing
+   >   them would not protect an invariant, it would delete the lens. What protects the
+   >   double-count rule here is the confidence DENOMINATOR — `required_series` is
+   >   gold-owned only, so a quiet upstream degrades a lens and never the gate.
+   > - **The window had to become calendar-based.** The engine reads four series off
+   >   three publication calendars. Over the fixture's own quarter `GLD_CLOSE` has 64
+   >   prints and `DFII10` has 62, so a window of "63 observations" reads one leg and
+   >   returns None for the other — muting the `gold_against_real_yields_post_2022`
+   >   contradiction for a reason that has nothing to do with the market. 63 CALENDAR
+   >   days is set by the fixture rather than chosen: at 91 the real-yield leg inverts
+   >   sign and the preregistered ADVERSE reading reads UNKNOWN.
+
 8. **The `/gold` provenance change is additive, not feature-flagged.** Plan step B6.3
    asks for a flag with the existing response retained during parity. A flag guards a
    NEW block that can be compared against an old one; this milestone completes an

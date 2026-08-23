@@ -58,7 +58,9 @@ from uw_scan.worker.jobs.macro_market_layer_ingest import (
     macro_market_layer_ingest_job,
 )
 from uw_scan.worker.jobs.macro_series_ingest import macro_fred_series_ingest_job
+from uw_scan.worker.jobs.macro_gold_ingest import macro_gold_ingest_job
 from uw_scan.worker.jobs.macro_state_jobs import (
+    macro_gold_state_job,
     macro_inflation_state_job,
     macro_rates_state_job,
     macro_usd_state_job,
@@ -1529,13 +1531,34 @@ def main() -> int:
             f" failed={','.join(result.failed_feeds)}" if result.failed_feeds else "",
         )
 
+    def _macro_gold_ingest() -> None:
+        if settings.massive_api_key is None:
+            logger.info("macro gold ingest skipped: no massive api key configured")
+            return
+        result = macro_gold_ingest_job(
+            dsn=settings.db_dsn(),
+            massive_api_key=settings.massive_api_key.get_secret_value(),
+            schema=settings.db_schema,
+        )
+        logger.info(
+            "macro gold ingest: %d/%d feeds, %d artifacts, %d created, %d unchanged%s",
+            result.feeds_succeeded,
+            result.feeds_attempted,
+            result.artifacts_seen,
+            result.observations_created,
+            result.observations_unchanged,
+            f", errors={result.errors}" if result.errors else "",
+        )
+
     def _macro_state_compute() -> None:
-        # One connection, all three domains, IN ORDER -- and for USD the order is a
-        # dependency, not a nicety. It reads the stored rates ANSWER, so rates must have
-        # been computed for this instant first or USD runs with no upstream and the
-        # policy contradiction cannot fire.
+        # One connection, all FOUR domains, IN ORDER -- and the order is a dependency,
+        # not a nicety. USD reads the stored rates ANSWER, so rates must have been
+        # computed for this instant first or USD runs with no upstream and the policy
+        # contradiction cannot fire. Gold is the terminal node and reads all three, so it
+        # runs last: put it earlier and it records zero dependency edges every night while
+        # looking perfectly healthy.
         #
-        # ONE as_of for all three, stamped once rather than per job. Letting each call
+        # ONE as_of for all four, stamped once rather than per job. Letting each call
         # now() gives three instants seconds apart, and then "the inflation state and
         # the rates state" are answers to two slightly different questions -- which is
         # exactly the comparison this pass exists to make safe. It also makes USD's
@@ -1547,6 +1570,7 @@ def main() -> int:
                 macro_inflation_state_job,
                 macro_rates_state_job,
                 macro_usd_state_job,
+                macro_gold_state_job,
             ):
                 result = job(repo, as_of=instant)
                 logger.info(
@@ -2437,6 +2461,20 @@ def main() -> int:
                     max_instances=1,
                     coalesce=True,
                 )
+            if settings.macro_gold_ingest_enabled:
+                # 19:30, the last free slot before the 19:40 compute. Ordering matters
+                # the same way the market layer's does: gold's REQUIRED anchor is
+                # GLD_CLOSE, so an ingest scheduled AFTER the compute would leave every
+                # state standing on yesterday's last price -- or, on the first night,
+                # abstaining.
+                sched.add_job(
+                    _macro_gold_ingest,
+                    CronTrigger.from_crontab("30 19 * * *", timezone=settings.rth_tz),
+                    id="macro_gold_ingest",
+                    name="Macro: gold price and ETF tonnage evidence",
+                    max_instances=1,
+                    coalesce=True,
+                )
             if settings.macro_state_compute_enabled:
                 # After every ingest above, and after them by enough that a slow SEP
                 # fetch cannot make tonight's state answer from yesterday's evidence.
@@ -2444,7 +2482,7 @@ def main() -> int:
                     _macro_state_compute,
                     CronTrigger.from_crontab("40 19 * * *", timezone=settings.rth_tz),
                     id="macro_state_compute",
-                    name="Macro: inflation, policy/rates and USD domain states",
+                    name="Macro: inflation, policy/rates, USD and gold domain states",
                     max_instances=1,
                     coalesce=True,
                 )

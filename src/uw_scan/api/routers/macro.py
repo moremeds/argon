@@ -81,12 +81,35 @@ def macro_usd_state(
     return _domain_state(repo, "usd", _resolve_instant(as_of, as_of_ts))
 
 
-#: There is deliberately no ``/macro/gold``. No gold ``MacroDomainState`` is computed --
-#: gold's inputs live in warm-store tables rather than ``macro_observations``, so the
-#: state could cite no evidence and the store refuses an answer nobody can reconstruct
-#: (design spec, deviation 7). A route that can only ever 404 is not an endpoint, it is
-#: a promise. Gold's provenance is served by ``/api/gold/state`` and ``/api/gold/replay``,
-#: which carry the full sixteen-input manifest.
+@router.get("/gold", response_model=MacroDomainStateResponse)
+def macro_gold_state(
+    as_of: date | None = Query(
+        default=None,
+        description="UTC calendar date; returns the state answering for that day-end.",
+    ),
+    as_of_ts: datetime | None = Query(
+        default=None, description="Timezone-aware instant to replay."
+    ),
+    repo: Repository = Depends(get_repo),
+) -> MacroDomainStateResponse:
+    """The gold GATE, not a view on gold.
+
+    This route did not exist until now, and the reason it did not is worth keeping:
+    gold's inputs lived in warm-store tables rather than ``macro_observations``, so no
+    state could cite evidence and the store refuses an answer nobody can reconstruct
+    (design spec, deviation 7). That deviation names its own overturn condition -- "an
+    ingest that lands the gold sources as macro_observations" -- and
+    ``worker/jobs/macro_gold_ingest`` is it.
+
+    Honest about the scope of that overturn: TWO of the manifest's sixteen inputs are
+    citable, the gold price and the ETF tonnage. They are the two the state stands on,
+    which is what makes it persistable. The rest of the manifest -- central-bank
+    reserves, exchange inventory, COT, UW options -- is still warm-store only and is
+    still served, with its omission reasons, by ``/api/gold/state`` and
+    ``/api/gold/replay``. This endpoint does not replace those; it answers a narrower
+    question they never answered.
+    """
+    return _domain_state(repo, "gold", _resolve_instant(as_of, as_of_ts))
 
 
 def _domain_state(

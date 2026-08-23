@@ -32,6 +32,14 @@ from uw_scan.sources.fred_macro import SERIES_CONTRACT
 from uw_scan.storage.repository import Repository
 
 from .contracts import CausalRole, DomainObservation
+from .gold_ingest import (
+    GOLD_FLOW_SERIES,
+    GOLD_FLOW_SOURCE,
+    GOLD_FLOW_UNIT,
+    GOLD_PRICE_SERIES,
+    GOLD_PRICE_SOURCE,
+    GOLD_PRICE_UNIT,
+)
 from .inflation import REQUIRED as INFLATION_REQUIRED
 from .rates_market import (
     MARKET_SERIES_CONTRACT,
@@ -87,6 +95,12 @@ USD_HISTORY_DAYS = 400
 #: points, which spans the 2021-2022 tightening and its unwind, the one episode in the
 #: sample where the nominal and real indices moved by materially different amounts.
 USD_REAL_HISTORY_DAYS = 1830
+
+
+#: Gold's window.  Its engine measures over 63 calendar days and the ETF flow leg needs
+#: enough history to reach back that far after holidays and a missed post, so this is
+#: deliberately several times the window rather than exactly it.
+GOLD_HISTORY_DAYS = 400
 
 
 @dataclass(frozen=True)
@@ -226,6 +240,34 @@ USD_EVIDENCE: tuple[SeriesEvidenceContract, ...] = (
 )
 
 
+#: Gold's own two series and ALL of what gold owns.
+#:
+#: The real yield and the broad dollar are Lens 2's legs and are deliberately absent:
+#: they belong to ``RATES_EVIDENCE`` and ``USD_EVIDENCE``, and gold reads the same stored
+#: rows rather than ingesting a second copy.  ``macro/gold_state.py`` derives its
+#: borrowed-series tagging from those tuples, so adding either here would silently move a
+#: series out of "borrowed" and INTO gold's confidence denominator -- the double-count
+#: showing up as false certainty rather than as a duplicate row.
+GOLD_EVIDENCE: tuple[SeriesEvidenceContract, ...] = (
+    SeriesEvidenceContract(
+        series_id=GOLD_PRICE_SERIES,
+        causal_role="decomposition_component",
+        unit=GOLD_PRICE_UNIT,
+        publisher_transform="level",
+        source=GOLD_PRICE_SOURCE,
+        history_days=GOLD_HISTORY_DAYS,
+    ),
+    SeriesEvidenceContract(
+        series_id=GOLD_FLOW_SERIES,
+        causal_role="positioning",
+        unit=GOLD_FLOW_UNIT,
+        publisher_transform="level",
+        source=GOLD_FLOW_SOURCE,
+        history_days=GOLD_HISTORY_DAYS,
+    ),
+)
+
+
 class EvidenceContractError(ValueError):
     """A stored row does not match the contract the engine was built against."""
 
@@ -288,6 +330,52 @@ def load_usd_observations(
     # and the real index reads five years of monthly ones, and one window would either
     # starve the second or drag five years of daily prints into every ``inputs_hash``.
     return load_domain_observations(repo, USD_EVIDENCE, as_of=as_of)
+
+
+def load_gold_observations(
+    repo: Repository, *, as_of: datetime
+) -> tuple[DomainObservation, ...]:
+    """Gold's OWN rows, plus the upstream-owned legs Lens 2 is defined on.
+
+    One call returning both is deliberate.  The alternative -- gold loading only what it
+    owns and the caller stitching the borrowed legs in -- puts the borrowing decision in
+    the job, where the next reader cannot see it beside the contracts that justify it.
+    """
+    return load_domain_observations(
+        repo,
+        (*GOLD_EVIDENCE, *_gold_borrowed_contracts()),
+        as_of=as_of,
+    )
+
+
+def _gold_borrowed_contracts() -> tuple[SeriesEvidenceContract, ...]:
+    """Lens 2's two legs, taken from their OWNERS' contracts rather than re-declared.
+
+    Copying the declarations here would create the second owner the double-count rule
+    forbids, and the copy would drift the first time rates restated ``DFII10``'s unit.
+    Reaching into the owning tuple is what makes "many readers" literal.
+    """
+    wanted = {"DFII10": RATES_EVIDENCE, "DTWEXBGS": USD_EVIDENCE}
+    out: list[SeriesEvidenceContract] = []
+    for series_id, owner in wanted.items():
+        match = next((c for c in owner if c.series_id == series_id), None)
+        if match is None:
+            raise EvidenceContractError(
+                f"{series_id} is no longer declared by its owning domain, so gold cannot "
+                "borrow it. Lens 2 is defined on this series -- re-declaring it under "
+                "gold would create a second owner rather than fix the gap"
+            )
+        out.append(
+            SeriesEvidenceContract(
+                series_id=match.series_id,
+                causal_role=match.causal_role,
+                unit=match.unit,
+                publisher_transform=match.publisher_transform,
+                source=match.source,
+                history_days=GOLD_HISTORY_DAYS,
+            )
+        )
+    return tuple(out)
 
 
 def _window_start(

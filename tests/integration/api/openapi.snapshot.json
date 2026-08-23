@@ -27582,6 +27582,79 @@
         ]
       }
     },
+    "/api/macro/gold": {
+      "get": {
+        "description": "The gold GATE, not a view on gold.\n\nThis route did not exist until now, and the reason it did not is worth keeping:\ngold's inputs lived in warm-store tables rather than ``macro_observations``, so no\nstate could cite evidence and the store refuses an answer nobody can reconstruct\n(design spec, deviation 7). That deviation names its own overturn condition -- \"an\ningest that lands the gold sources as macro_observations\" -- and\n``worker/jobs/macro_gold_ingest`` is it.\n\nHonest about the scope of that overturn: TWO of the manifest's sixteen inputs are\ncitable, the gold price and the ETF tonnage. They are the two the state stands on,\nwhich is what makes it persistable. The rest of the manifest -- central-bank\nreserves, exchange inventory, COT, UW options -- is still warm-store only and is\nstill served, with its omission reasons, by ``/api/gold/state`` and\n``/api/gold/replay``. This endpoint does not replace those; it answers a narrower\nquestion they never answered.",
+        "operationId": "macro_gold_state_api_macro_gold_get",
+        "parameters": [
+          {
+            "description": "UTC calendar date; returns the state answering for that day-end.",
+            "in": "query",
+            "name": "as_of",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "format": "date",
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "description": "UTC calendar date; returns the state answering for that day-end.",
+              "title": "As Of"
+            }
+          },
+          {
+            "description": "Timezone-aware instant to replay.",
+            "in": "query",
+            "name": "as_of_ts",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "format": "date-time",
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "description": "Timezone-aware instant to replay.",
+              "title": "As Of Ts"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MacroDomainStateResponse"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Macro Gold State",
+        "tags": [
+          "macro",
+          "macro"
+        ]
+      }
+    },
     "/api/macro/inflation": {
       "get": {
         "operationId": "macro_inflation_state_api_macro_inflation_get",

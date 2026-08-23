@@ -211,6 +211,11 @@ class Settings(BaseModel):
     # issues per term before it can call a multi-quarter high, so a first scheduled run
     # on an empty store produces sub-states that correctly say UNKNOWN and nothing else.
     macro_market_layer_ingest_enabled: bool = False
+    # MC3 gold evidence: GLD_CLOSE and GLD_HOLDINGS_OZ promoted from the warm store into
+    # macro_observations.  Off by default like its siblings, and load-bearing rather than
+    # cosmetic: the gold state's REQUIRED anchor is GLD_CLOSE, so with this off the gold
+    # state job abstains every night -- correctly, but silently.
+    macro_gold_ingest_enabled: bool = False
     macro_state_compute_enabled: bool = False
     # Dual-read: attach the policy/rates domain state to the legacy rates snapshot.
     # Separate from the compute flag so the state can accrue a history before the
@@ -746,6 +751,9 @@ class Settings(BaseModel):
             ),
             macro_market_layer_ingest_enabled=_env_bool(
                 "UW_SCAN_MACRO_MARKET_LAYER_INGEST_ENABLED", False
+            ),
+            macro_gold_ingest_enabled=_env_bool(
+                "UW_SCAN_MACRO_GOLD_INGEST_ENABLED", False
             ),
             macro_state_compute_enabled=_env_bool(
                 "UW_SCAN_MACRO_STATE_COMPUTE_ENABLED", False
