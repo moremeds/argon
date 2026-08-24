@@ -31,11 +31,15 @@ cannot. So MC6 is gated on a preflight that the original plan did not contain, a
 does not depend on MC4 — which is why it moves earlier and runs in parallel.
 
 ```text
-P0  F5 gold schedule ────┐
-P0  F2 invalidation  ────┼──> MC4 snapshot ──> (authority already set: risk-monitoring)
-                         │
-P0  MC6 preflight  ──────┘    (parallel; gates MC5/MC6, not MC4)
+P0  F5 gold schedule ─────────> (independent; blocked on a question, see below)
+P0  MC6 preflight  ───────────> DONE 2026-08-24: descriptive_only
+                                 └─> MC5/MC6 closed; MC4 unaffected
+NEXT  MC4 snapshot ───────────> (authority already set: risk-monitoring)
+LATER F2 invalidation ────────> designed; zero production instances; retrofit is cheap
 ```
+
+Revised 2026-08-24. F2 was ordered before MC4 on the assumption that snapshots bake in evidence
+lineage. They do not, once the overlay is point-in-time — see P0-b.
 
 ## P0-a — F5: gold reads a gauge produced on a later schedule
 
@@ -70,9 +74,29 @@ to say an accepted artifact was later found bad.
 - current reads exclude invalidated evidence; **replay does not** (decision 1)
 - a `corrected=true` opt-in on replay is contract-reserved, not implemented
 
-**Exit:** WRESBAL stays physically present, current readers exclude it, the reason is auditable,
-migration replay is idempotent, and belief-preserving replay is covered by a test that would fail if
-a historical `as_of` started excluding it.
+**DESIGNED 2026-08-24, not implemented, and DEPRIORITIZED behind MC4.**
+`docs/superpowers/specs/2026-08-24-macro-evidence-invalidation-design.md`
+
+Two things were measured that change this item:
+
+**Production holds no WRESBAL at all.** The handover's "the *local* evidence store holds 1,173
+WRESBAL rows" is exact, and the word *local* is load-bearing. `option_wizard_local` holds 1,173
+rows (607 periods, 604 vintages, 566 pre-rebase); `option_wizard` holds **0** against 28,941 total
+macro observations. The bad data lives only in a dev database production never reads. The exit
+criterion below is therefore unsatisfiable as written and must be met against the frozen fixture
+in the spec instead.
+
+**The reason this had to precede MC4 dissolves.** That ordering assumed invalidation would be
+baked into snapshot lineage. Under the belief-preserving semantics the operator chose, the overlay
+is point-in-time — `invalidated_at <= as_of`, the same shape as `available_at <= as_of` — so it is
+a read-time filter and nothing is baked in. An immutable snapshot keeps citing exactly what it
+stood on, which is the correct answer. The retrofit is cheap at any point.
+
+**Do MC4 first.** MC4 fixes a live defect; this one has zero production instances.
+
+**Exit (when built):** raw bytes survive, current readers exclude and the audit view does not,
+the reason is auditable, migration replay is idempotent, and a test asserts BOTH directions of the
+belief rule — returned by a replay before `invalidated_at`, absent after.
 
 ## P0-c — MC6 preflight (parallel; does not touch MC4)
 

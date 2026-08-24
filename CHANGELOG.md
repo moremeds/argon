@@ -9,6 +9,42 @@ version in lockstep (enforced by `scripts/release/version_sync_check.py`).
 
 ### Added
 
+- **Evidence invalidation, designed** —
+  `docs/superpowers/specs/2026-08-24-macro-evidence-invalidation-design.md`. Not implemented, and
+  deliberately deprioritized behind MC4; see below.
+  - `macro_observations` is immutable — migration 115's guard rejects every `DELETE` and every
+    `UPDATE` touching anything but `last_seen_at` — so `quality_status` cannot be moved to
+    `quarantined` after the fact. The ledger can say *we never accepted this*; it cannot say
+    *we accepted this and were wrong*. That gap is real and the guard is correct; the fix has to
+    be an additive overlay.
+  - **The belief-preserving decision collapses the design to one predicate.** Making the
+    invalidation itself point-in-time — apply only invalidations whose `invalidated_at <= as_of` —
+    produces both required behaviours from a single rule: a 2021 replay still returns a row a 2026
+    invalidation condemns (which is what Argon believed in 2021), and a read today excludes it. No
+    current-vs-replay branch for a caller to get wrong, and the same shape as the existing
+    `available_at <= as_of`.
+  - Four of the five readers take the predicate. `fetch_macro_observation_history` must **not** —
+    it is the audit view, and filtering it would answer *what did we discard and why* with a view
+    that had already discarded it.
+
+### Changed
+
+- **Measured: production holds no known-bad macro evidence.** The handover's "the *local* evidence
+  store holds 1,173 WRESBAL rows" is exact and the word *local* is load-bearing.
+  `option_wizard_local` holds 1,173 rows (607 periods, 604 vintages, 566 pre-rebase);
+  **`option_wizard` holds 0**, against 28,941 total macro observations. The bad data lives only in
+  a dev database production never reads.
+  - The plan's exit criterion — "WRESBAL remains physically present, current readers exclude it" —
+    is unsatisfiable against production, and implementation must verify against the frozen FRED
+    rebasing fixture instead.
+  - **F2's ordering ahead of MC4 dissolves.** It assumed snapshots bake evidence lineage into
+    immutable rows. Under a point-in-time overlay nothing is baked in: the filter applies at read
+    time from the reader's own `as_of`, and an immutable snapshot keeps citing exactly what it
+    stood on — the correct belief-preserving answer. MC4 fixes a live defect; this has zero
+    production instances, so MC4 goes first.
+
+### Added
+
 - **MC6 preflight — verdict `descriptive_only`.**
   `docs/research/2026-08-24-macro-continuous-feature-preflight/` plus
   `scripts/research/macro_continuous_feature_preflight.py`. Read-only; it replays the engines at
