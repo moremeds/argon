@@ -192,14 +192,30 @@ Storage boundaries:
 | ID | Status | Child plan | Exit gate |
 |---|---|---|---|
 | MC0 | implementation verified | `2026-08-12-macro-mc0-evidence-contract.md` | two migration replays; immutable hash/time/quality/SQL guards; 19-relation read-only inventory self-check; lint/format/diff gates |
-| MC1 | merged | `2026-08-12-macro-mc1-fomc-sep-policy-paths.md` | official FOMC/SEP evidence and four independent policy paths replay PIT — PR #359, v0.12.10 |
+| MC1 | merged | `2026-08-12-macro-mc1-fomc-sep-policy-paths.md` | official FOMC/SEP evidence and four independent policy paths replay PIT — PR #348. Verdict PASS with residuals: two statements publish a tally without a roster, and the 2025-07-30 `Absent and not voting` form is uncaptured |
 | MC2 | merged | `2026-08-12-macro-mc2-inflation-rates-state.md` | inflation/rates states abstain honestly and reproduce from exact observations — PR #359, v0.12.10 |
-| MC3 | in_progress | `2026-08-12-macro-mc3-usd-gold-state.md` | rates market layer resolves to real evidence; USD/Gold states reuse shared inputs and Gold provenance is complete |
-| MC4–MC6 | planned | `2026-08-12-macro-mc4-mc6-context-pm-validation.md` | snapshot, context-only PM integration, then separate PIT/OOS promotion verdict |
+| MC3 | merged | `2026-08-12-macro-mc3-usd-gold-state.md` | rates market layer resolves to real evidence; USD/Gold states reuse shared inputs — PRs #363/#369/#372/#377. **Semantically bounded:** USD observes only the US policy leg (no foreign differential), and Gold's state owns two citable inputs and borrows the rest. Gold provenance is NOT complete; the wider Compass path stays separate |
+| MC3.5 | merged | — | `/macro` renders the four domain states in causal order — PR #378, v0.12.16. Descriptive chain viewer only: it composes four independent latest responses and is **not** MC4's atomic snapshot |
+| MC4 | partial | `2026-08-12-macro-mc4-mc6-context-pm-validation.md` | Task 4's page shell shipped as MC3.5 above. Snapshot schema, assembler, job and API absent |
+| MC5 | hold | `2026-08-12-macro-mc4-mc6-context-pm-validation.md` | not started, and not authorized. Requires an explicit authority decision plus the MC6 preflight below |
+| MC6 | blocked | `2026-08-12-macro-mc4-mc6-context-pm-validation.md` | blocked on a testable object — see the replay census below |
 
 Every child is implemented through its own branch/PR sequence. Status changes only after its stated
 verification evidence exists. Child plans are implementation-ready but do not imply authorization to
 commit or publish.
+
+> **Migration numbers.** This plan's child reserved `117_macro_context_snapshots.sql` for MC4 and
+> `118_company_macro_exposures.sql` for MC5. Both numbers were taken by the Fundamental lane
+> (`117_fundamental_scores.sql`, `118_valuation_anchors.sql`). The tail is `129` as of 2026-08-24, so
+> MC4 starts at `130`. Re-check the tail before writing a migration; do not read a reserved number
+> from either plan.
+
+> **MC6 sequencing changed.** `docs/research/2026-08-23-macro-state-replay-flip-census.md` replayed 68
+> monthly instants (2021-01..2026-08) and found the categorical state label is not a viable validation
+> unit: inflation flips 4 times, rates 8, `usd/2` 13 after the boundary move, and gold cannot replay at
+> all before its retrieval-clock evidence began. A continuous-feature availability and target preflight
+> must run BEFORE MC5 or the MC6 harness. Do not backfill replayed states to manufacture sample size —
+> those rows are immutable and would bake in today's engine version.
 
 ## 7. Dependency and release sequence
 

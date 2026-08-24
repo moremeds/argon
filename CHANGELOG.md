@@ -7,6 +7,55 @@ version in lockstep (enforced by `scripts/release/version_sync_check.py`).
 
 ## [Unreleased]
 
+### Fixed
+
+- **Macro confidence now explains the set it actually measured.** `compute_confidence`
+  drew its terms from two different sets and called all of them *load-bearing*, so USD
+  and Gold each shipped `2/1 load-bearing inputs present` to production — a ratio above
+  its own denominator, because the value counted requirements while the sentence beside
+  it counted every factor consumed. Both states carry one required anchor and one
+  optional input.
+  - **The `revision_penalty` divisor was the real defect, not the sentence.** Its
+    numerator is filtered to the required set by `revised_series`; its divisor counted
+    every factor. A revised USD anchor beside one optional factor therefore scored
+    `1/2` — the term that exists to punish a revision punished it half as hard, and the
+    optional input doing the halving contributes nothing to the state being revised. It
+    read `0` across all four domains only because no series had been revised yet, which
+    is also why no caller-level test could have caught it.
+  - `freshness` and `quality` keep averaging over everything the engine consumed — an
+    optional input the engine read does bear on how reliable the answer is — so what
+    changed there is the claim, not the arithmetic. The quality detail now names the
+    count it averaged and says how many were optional.
+  - **All four engine versions bump** — `inflation/2`, `rates/2`, `usd/3`, `gold/2`.
+    The state *labels* are untouched, but confidence is published on the state record,
+    and a reader comparing it across this change would be comparing two arithmetics.
+    `engine_version` is the selector that keeps them apart; stored states under the old
+    versions stay readable and keep their own semantics.
+  - No current production confidence *value* changes: every affected term is either a
+    sentence or currently `0`.
+  - Two integration tests pinned `"inflation/1"` / `"rates/1"` as literals, which turns
+    a deliberate bump into a failure that reads like a regression. They now assert
+    against the engine constants, which is the thing worth proving — that the API
+    round-trips the engine's identity.
+
+### Changed
+
+- **The macro program plan agrees with the repository again.** It mapped MC1 to PR #359
+  (it was #348), still labelled MC3 `in_progress` after four merged PRs, omitted `usd/2`
+  and `/macro` entirely, and — with its MC4–MC6 child — reserved migrations `117`/`118`,
+  both of which the Fundamental lane had already taken. The tail is `129`, so MC4 starts
+  at `130`. `/macro` is now labelled **MC3.5, a descriptive chain viewer**, not a
+  completed MC4: it composes four independent latest responses and is not an atomic
+  snapshot. MC6's blocked status and the replay census that caused it are recorded
+  inline, so the next reader does not have to rediscover why the sequencing changed.
+
+### Added
+
+- **`docs/handover/2026-08-24-macro-executive-summary-claude-handover.md`** — the
+  reviewed executive status of the macro program: deployed truth, seven binding
+  findings, the delivery sequence, and the completion gates. It was written against
+  `v0.12.16` and had never been committed.
+
 ## [0.12.16] — 2026-08-23
 
 ### Added

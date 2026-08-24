@@ -25,6 +25,7 @@ from tests.integration.worker.test_macro_state_jobs import (
     _ingest_scenario,
 )
 from uw_scan.config import Settings
+from uw_scan.macro.inflation import INFLATION_ENGINE_VERSION
 from uw_scan.storage.repository import Repository
 from uw_scan.worker.jobs.macro_state_jobs import macro_inflation_state_job
 
@@ -64,7 +65,7 @@ class TestReplay:
         assert body["state"] == "WELL_ABOVE_TARGET"
         assert body["direction"] == "FALLING"
         assert body["domain"] == "inflation"
-        assert body["engine_version"] == "inflation/1"
+        assert body["engine_version"] == INFLATION_ENGINE_VERSION
         assert len(body["evidence"]) == 8 * 16
         assert len(body["factors"]) == 8
         first = body["evidence"][0]

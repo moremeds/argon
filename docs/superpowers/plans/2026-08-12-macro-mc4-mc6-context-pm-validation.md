@@ -24,8 +24,10 @@ PM report/card contracts when landed, and `src/uw_scan/backtest/`.
   Re-anchor file paths to the merged PM implementation before coding; do not edit the active P1b
   ingest worktree.
 - MC4, MC5, and MC6 are separate PRs. MC6 failure does not roll back MC4/MC5 descriptive context.
-- Recheck migration numbering; this plan reserves `117_macro_context_snapshots.sql` for MC4 and
-  `118_company_macro_exposures.sql` for MC5.
+- **The reserved migration numbers are void.** This plan reserved `117_macro_context_snapshots.sql`
+  for MC4 and `118_company_macro_exposures.sql` for MC5; the Fundamental lane took both
+  (`117_fundamental_scores.sql`, `118_valuation_anchors.sql`). The tail is `129` as of 2026-08-24, so
+  MC4 starts at `130`. Read the tail from `src/uw_scan/storage/migrations/`, never from this plan.
 
 ## MC4 — versioned context snapshot and macro surface
 

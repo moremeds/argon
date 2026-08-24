@@ -52,7 +52,12 @@ from .rates_rules import (
     year_end_rate,
 )
 
-RATES_ENGINE_VERSION = "rates/1"
+#: Bumped when the shared confidence engine's revision penalty changed divisor, from
+#: every factor consumed to the required set its numerator was already drawn from.  The
+#: state LABEL is untouched, but confidence is published on the state record and a
+#: reader comparing it across this line would be comparing two arithmetics.  Engine
+#: version is the selector that keeps them apart; stored rates/1 states stay readable.
+RATES_ENGINE_VERSION = "rates/2"
 
 RatesStateLabel = Literal["EASING", "ON_HOLD", "TIGHTENING", "INDETERMINATE"]
 
@@ -91,7 +96,7 @@ _ACTION_STATE: dict[str, RatesStateLabel] = {
 class RatesParameters:
     """Versioned thresholds, hashed with the evidence rather than hidden in constants."""
 
-    version: str = "rates/1"
+    version: str = "rates/2"
     #: One eighth of a point -- the finest increment an SEP dot can express, and half
     #: the smallest move the committee actually makes.  Anything coarser would round a
     #: real projected lean to "flat".
