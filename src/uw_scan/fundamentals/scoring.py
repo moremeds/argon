@@ -122,6 +122,7 @@ def inputs_hash(
     features: Mapping[str, float | None],
     company_type: str | None,
     engine: str,
+    evidence_policy: str | None = None,
 ) -> str:
     """Identity of the INPUTS a result was computed from.
 
@@ -129,8 +130,21 @@ def inputs_hash(
     Financials alone would let a company_type flip produce new scores under an
     unchanged hash, leaving the stale row alive and indistinguishable from the
     fresh one — the same silent-and-confident failure class as a missing commit.
+
+    `evidence_policy` names WHICH statement versions were admissible, so a
+    true-PIT replay and a capture-bounded replay of the same quarter cannot
+    collide on `UNIQUE (ticker, as_of, engine_version, inputs_hash)`.
+
+    THE ASYMMETRY IS DELIBERATE: the key is OMITTED when `evidence_policy` is
+    None, which is the current-panel mode. Adding it unconditionally would change
+    the hash of every score row already written — none of which would then be
+    reproducible from its stored inputs, and every one of which would acquire a
+    duplicate sibling on the next nightly run. The existing rows ARE
+    current-vintage results; the migration labels them so, and this keeps them
+    verifiable. Remove the asymmetry only alongside a deliberate rewrite of the
+    historical panel.
     """
-    payload = {
+    payload: dict[str, Any] = {
         "features": {
             k: (None if features.get(k) is None else f"{float(features[k]):.10g}")
             for k in FEATURES
@@ -138,6 +152,8 @@ def inputs_hash(
         "company_type": company_type,
         "engine": engine,
     }
+    if evidence_policy is not None:
+        payload["evidence_policy"] = evidence_policy
     blob = json.dumps(payload, sort_keys=True, separators=(",", ":"))
     return hashlib.sha256(blob.encode()).hexdigest()
 

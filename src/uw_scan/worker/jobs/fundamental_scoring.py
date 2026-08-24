@@ -23,7 +23,7 @@ risk score (the top decile is riskier than the middle), not a per-name forecast
 from __future__ import annotations
 
 import logging
-from datetime import date, datetime, timedelta
+from datetime import UTC, date, datetime, time, timedelta
 from typing import Any
 
 import psycopg
@@ -35,8 +35,19 @@ from uw_scan.fundamentals.scoring import (
     cross_section_z,
     inputs_hash,
 )
+from uw_scan.fundamentals.observation_time import EvidencePolicy
 from uw_scan.storage.fundamental_obs import FundamentalObsRepository
+from uw_scan.storage.fundamental_observation_panels import (
+    current_statement_panel,
+    statement_panel_as_of,
+)
 from uw_scan.storage.fundamental_scores import FundamentalScoresRepository
+
+#: What the `evidence_policy` column holds for a row built from the CURRENT
+#: panel. Not a member of `EvidencePolicy`: that enum is the set of HISTORICAL
+#: admission rules, and adding "current" to it would hand a replay a way to ask
+#: for exactly the rows that must fail closed.
+CURRENT_VINTAGE_POLICY = "current_vintage"
 
 log = logging.getLogger(__name__)
 
@@ -56,11 +67,24 @@ def _knowledge_date(per: dict[str, Any], period: str) -> tuple[date, bool]:
     return (period_end + timedelta(days=FALLBACK_LAG_DAYS), False)
 
 
+def _period_available_at(per: dict[str, Any], period: str) -> date | None:
+    """When every statement of `period` had become available, as a date.
+
+    MAX across the three statements: the period is not usable until its last leg
+    is. Returns None when the panel carried no availability block for it, which
+    only happens if a caller mixes a current panel into a replay.
+    """
+    evidence = (per.get("availability") or {}).get(period) or {}
+    instants = [e["available_at"] for e in evidence.values() if e.get("available_at")]
+    return max(instants).date() if instants else None
+
+
 def _build_buckets(
     feats: dict[str, Any],
     panel_raw: dict[str, Any],
     *,
     knowledge_cutoff: date,
+    availability_wins: bool = False,
 ) -> tuple[dict[str, dict[str, Any]], int]:
     """Group one row per (knowledge quarter, ticker). Returns (buckets, withheld).
 
@@ -86,6 +110,16 @@ def _build_buckets(
         per = panel_raw[ticker]
         for period, values in per_period.items():
             know, known = _knowledge_date(per, period)
+            if availability_wins:
+                # A restated version became knowable when IT was published, not
+                # when the period's ORIGINAL filing was. Bucketing a 2023
+                # restatement under 2020 is the contamination this work removes,
+                # and `filing_published_at` is the same on both versions — so in
+                # a replay the availability claim is the only honest clock.
+                available = _period_available_at(per, period)
+                if available is None:
+                    continue
+                know = available
             if know > knowledge_cutoff:
                 withheld += 1
                 continue
@@ -100,6 +134,11 @@ def _build_buckets(
                 "knowledge_date": know,
                 "filing_date_known": known,
                 "obs_ids": sorted(per["obs_ids"].get(period, [])),
+                "availability_ids": sorted(
+                    e["availability_id"]
+                    for e in ((per.get("availability") or {}).get(period) or {}).values()
+                    if e.get("availability_id") is not None
+                ),
             }
     return buckets, withheld
 
@@ -111,14 +150,48 @@ def fundamental_scoring(
     schema: str = "uw_scan",
     tickers: list[str] | None = None,
     knowledge_cutoff: date | None = None,
+    evidence_policy: EvidencePolicy | str | None = None,
 ) -> dict[str, int]:
     """Score every knowledge-quarter cross-section in the panel. Returns counters.
 
     `knowledge_cutoff` defaults to today and bounds which periods are public
     enough to score. It is a parameter rather than an inline `date.today()` so a
     replay names its own as-of, and so a test does not depend on the wall clock.
+
+    `evidence_policy` selects the statement panel and is the whole point of this
+    signature:
+
+    - **None** — the CURRENT panel, newest version per identity. Unchanged
+      behaviour, written as `evidence_policy='current_vintage'` with a NULL
+      cutoff. This is the scheduled refresh's mode and is not a replay: it stands
+      at no particular time.
+    - **`TRUE_PIT_ONLY` / `CAPTURE_BOUNDED`** — a replay. Only versions the policy
+      can defend at `knowledge_cutoff` are admitted, and each row is bucketed by
+      when ITS version became available rather than by the period's original
+      filing date.
+
+    There is deliberately no historical default. A caller that wants a replay
+    says so; a caller that does not gets today's panel and a row that says so.
+
+    WHAT A REPLAY CANNOT DO
+    -----------------------
+    Running at a LATE cutoff does not faithfully reproduce an EARLY bucket. A
+    name whose 2020 filing was superseded in 2023 appears in the 2023 bucket, not
+    the 2020 one, because the panel returns one version per identity — the best
+    one admissible at the cutoff. To reconstruct the cross-section as it stood in
+    quarter B, run with `knowledge_cutoff` inside B. The alternative — a panel
+    read per bucket — is real work and belongs with M2's run ledger, not here.
     """
     cutoff = knowledge_cutoff or date.today()
+    policy = EvidencePolicy(evidence_policy) if evidence_policy is not None else None
+    policy_name = policy.value if policy is not None else CURRENT_VINTAGE_POLICY
+    # The replay stands at the END of its cutoff day: a filing published that
+    # morning was knowable that day, and a midnight boundary would drop it.
+    as_of_cutoff = (
+        datetime.combine(cutoff, time.max).replace(tzinfo=UTC)
+        if policy is not None
+        else None
+    )
     obs = FundamentalObsRepository(conn, schema=schema)
     scores = FundamentalScoresRepository(conn, schema=schema)
 
@@ -134,6 +207,7 @@ def fundamental_scoring(
             "inserted": 0,
             "skipped_thin": 0,
             "withheld_unpublished": 0,
+            "excluded_no_evidence": 0,
         }
 
     names = tickers if tickers is not None else obs.list_universe(tier)
@@ -145,12 +219,34 @@ def fundamental_scoring(
             "inserted": 0,
             "skipped_thin": 0,
             "withheld_unpublished": 0,
+            "excluded_no_evidence": 0,
         }
 
-    panel_raw = obs.statement_panel(names)
-    feats = build_features(panel_raw)
+    if policy is None:
+        panel_raw = current_statement_panel(conn, names, schema=schema)
+        excluded = 0
+    else:
+        panel_raw = statement_panel_as_of(
+            conn,
+            as_of=as_of_cutoff,
+            evidence_policy=policy,
+            tickers=names,
+            schema=schema,
+        )
+        # What the policy REFUSED, reported rather than implied. A replay that
+        # returns a thin cross-section and says nothing about why looks
+        # identical to a universe that simply has few names.
+        excluded = _excluded_periods(
+            current_statement_panel(conn, names, schema=schema), panel_raw
+        )
 
-    buckets, withheld = _build_buckets(feats, panel_raw, knowledge_cutoff=cutoff)
+    feats = build_features(panel_raw)
+    buckets, withheld = _build_buckets(
+        feats,
+        panel_raw,
+        knowledge_cutoff=cutoff,
+        availability_wins=policy is not None,
+    )
 
     totals = {
         "buckets": 0,
@@ -158,6 +254,7 @@ def fundamental_scoring(
         "inserted": 0,
         "skipped_thin": 0,
         "withheld_unpublished": withheld,
+        "excluded_no_evidence": excluded,
     }
     for bucket in sorted(buckets):
         rows = buckets[bucket]
@@ -183,7 +280,10 @@ def fundamental_scoring(
                     "as_of": as_of,
                     "engine_version": engine,
                     "inputs_hash": inputs_hash(
-                        features=d["features"], company_type=None, engine=engine
+                        features=d["features"],
+                        company_type=None,
+                        engine=engine,
+                        evidence_policy=policy.value if policy else None,
                     ),
                     "period_end": datetime.strptime(
                         d["period"][:10], "%Y-%m-%d"
@@ -194,6 +294,9 @@ def fundamental_scoring(
                     **{f: d["features"].get(f) for f in FEATURES},
                     "features_present": present,
                     "source_obs_ids": d["obs_ids"],
+                    "evidence_policy": policy_name,
+                    "as_of_cutoff": as_of_cutoff,
+                    "availability_ids": d.get("availability_ids") or [],
                 }
             )
         inserted = scores.insert_scores(out)
@@ -201,5 +304,19 @@ def fundamental_scoring(
         totals["scored"] += len(out)
         totals["inserted"] += inserted
 
-    log.info("fundamental_scoring: %s", totals)
+    log.info("fundamental_scoring[%s]: %s", policy_name, totals)
     return totals
+
+
+def _excluded_periods(current: dict[str, Any], admitted: dict[str, Any]) -> int:
+    """(ticker, period) pairs the current panel has that the policy refused."""
+    count = 0
+    for ticker, per in current.items():
+        admitted_periods = set(
+            (admitted.get(ticker) or {}).get("balance-sheets", {})
+        ) | set((admitted.get(ticker) or {}).get("income-statements", {}))
+        have = set(per.get("balance-sheets", {})) | set(
+            per.get("income-statements", {})
+        )
+        count += len(have - admitted_periods)
+    return count

@@ -118,7 +118,7 @@ from uw_scan.fundamentals.valuation import (
 )
 from uw_scan.storage.corporate_actions import CorporateActionsRepository
 from uw_scan.storage.fundamental_anchors import FundamentalAnchorsRepository
-from uw_scan.storage.fundamental_obs import FundamentalObsRepository
+from uw_scan.storage.fundamental_observation_panels import current_statement_panel
 from uw_scan.storage.fundamental_scores import FundamentalScoresRepository
 from uw_scan.worker.jobs.fundamental_scoring import _knowledge_date
 
@@ -596,7 +596,6 @@ def fundamental_anchors(
             "universe from unadjusted bronze"
         )
 
-    obs = FundamentalObsRepository(conn, schema=schema)
     scores = FundamentalScoresRepository(conn, schema=schema)
     anchors_repo = FundamentalAnchorsRepository(conn, schema=schema)
 
@@ -606,7 +605,10 @@ def fundamental_anchors(
         return {"skipped_no_engine": 1}
 
     types = anchors_repo.company_types()
-    panel = obs.statement_panel(tickers)
+    # Current panel, explicitly. Anchors describe a name's own valuation history
+    # as it stands today; gating them on availability evidence would empty the
+    # buy-zone surface for every name whose claims are only capture-bounded.
+    panel = current_statement_panel(conn, tickers, schema=schema)
     universe = sorted(t for t in panel if t in types)
     ca_repo = CorporateActionsRepository(conn, schema=schema)
     splits = ca_repo.split_factors(universe)

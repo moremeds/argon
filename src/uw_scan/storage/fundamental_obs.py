@@ -22,6 +22,7 @@ import psycopg
 from psycopg.types.json import Jsonb
 
 from uw_scan.fundamentals.statements import Violation
+from uw_scan.storage.fundamental_observation_panels import current_statement_panel
 
 # One statement row is ~1 KB of JSONB; 2,000 keeps a chunk comfortably under the
 # parameter ceiling while still amortising round-trips over a 60k-row ingest.
@@ -280,57 +281,26 @@ class FundamentalObsRepository:
     def statement_panel(
         self, tickers: Sequence[str] | None = None, period_type: str = "quarterly"
     ) -> dict[str, dict[str, Any]]:
-        """Tier-1 rows reshaped into the dict `fundamentals.features` consumes.
+        """Compatibility alias for `current_statement_panel` — TODAY's view.
 
-        Newest observation wins per (ticker, period, statement): a restatement is
-        a new immutable row, so "current" is the highest `obs_id` and never an
-        edit to an older one.
+        The implementation moved to `storage/fundamental_observation_panels.py`
+        when the historical reader was added, because this name does not say
+        WHICH question it answers and callers had begun using it for both. It
+        answers "what does Argon believe now": newest accepted version per
+        identity, selected by `obs_id DESC`.
 
-        Production owns this shape so the research scripts and the scoring job
-        read the panel through one implementation — the same reason the feature
-        and composite math moved into `uw_scan.fundamentals`.
+        That is the wrong answer to "what was knowable at time T", because it
+        applies no cutoff: it returns today's panel whatever T is. (The `obs_id`
+        sort is not itself the defect — it is monotonic with capture time by
+        construction. The absence of a cutoff is.) Historical callers must use
+        `statement_panel_as_of` with an explicit evidence policy.
+
+        Kept rather than removed so this PR does not rewrite every current-page
+        caller; new code should call `current_statement_panel` directly.
         """
-        where = ["period_type = %s"]
-        params: list[Any] = [period_type]
-        if tickers is not None:
-            where.append("ticker = ANY(%s)")
-            params.append(list(tickers))
-        sql = f"""
-            SELECT DISTINCT ON (ticker, period_end, statement)
-                   ticker, period_end, statement, raw_jsonb, filing_published_at,
-                   obs_id
-              FROM {self._schema}.fundamental_statement_obs
-             WHERE {" AND ".join(where)}
-             ORDER BY ticker, period_end, statement, obs_id DESC
-        """
-        keys = {
-            "income": "income-statements",
-            "balance": "balance-sheets",
-            "cash_flow": "cash-flows",
-        }
-        out: dict[str, dict[str, Any]] = {}
-        with self.conn.cursor() as cur:
-            cur.execute(sql, params)
-            for ticker, period_end, statement, raw, filed, obs_id in cur.fetchall():
-                key = keys.get(statement)
-                if key is None:
-                    continue
-                per = out.setdefault(
-                    ticker,
-                    {
-                        "income-statements": {},
-                        "balance-sheets": {},
-                        "cash-flows": {},
-                        "filing_dates": {},
-                        "obs_ids": {},
-                    },
-                )
-                period = period_end.isoformat()
-                per[key][period] = raw
-                per["obs_ids"].setdefault(period, []).append(obs_id)
-                if filed:
-                    per["filing_dates"][period] = filed.isoformat()
-        return out
+        return current_statement_panel(
+            self.conn, tickers, period_type, schema=self._schema
+        )
 
     def coverage(self, tier: str) -> list[dict[str, Any]]:
         """Per-ticker ingest coverage for the tier — what actually landed.

@@ -6,7 +6,7 @@ Generated from `REGISTRY` in `src/uw_scan/reports/data_gap_healer.py` (one sourc
 uv run python -c "from uw_scan.reports.data_gap_healer import render_dataset_policy_markdown as r; open('docs/runbooks/data-gap-dataset-policy.md','w').write(r())"
 ```
 
-**154 datasets** across 11 groups.
+**155 datasets** across 11 groups.
 
 ## core_watchlist
 
@@ -34,6 +34,7 @@ uv run python -c "from uw_scan.reports.data_gap_healer import render_dataset_pol
 | fundamental_method_params | excluded | none | none |  | none | immutable parameter rows keyed by engine_version |  |
 | fundamental_method_state | excluded | none | none |  | none | singleton pointer to the active method version |  |
 | fundamental_method_versions | excluded | none | none |  | none | immutable method registry, not a time series |  |
+| fundamental_obs_availability | provenance | none | none |  | none | derived availability evidence for statement content versions (migration 130). Append-only, never rewritten: a rule replay collides on (obs_id, claim_key) and writes nothing. A missing claim is repaired by re-running scripts/backfill/fundamental_observation_availability.py, which spends zero provider budget and is idempotent — an operator action, not a healer adapter. Runbook: docs/runbooks/fundamental-observation-availability.md | 2026-08-24 |
 | fundamental_obs_violations | provenance | none | none |  | event |  |  |
 | fundamental_scores | freshness_only | db | run_once | fundamental_refresh | event | derived from fundamental_statement_obs; worker/jobs/fundamental_refresh re-runs routing -> scoring -> anchors at zero provider spend. The old reason named this job and then declined to wire it. | 2026-08-16 |
 | fundamental_statement_obs | freshness_only | uw | none |  | event | quarterly filings over the fundamental universe (450 tickers as of 2026-08-18; it moves when the seeder runs), not the watchlist. Deliberately NOT wired to the healer: unlike scores/anchors this is a provider INGEST, and worker/jobs/fundamental_refresh explicitly does not ingest. Heal by running scripts/backfill/fundamental_ingest_backfill.py (insert-or-touch, safe to repeat) as a budgeted operator action, not on the nightly cron. | 2026-08-16 |

@@ -1544,6 +1544,37 @@ REGISTRY.extend(
             reason_verified_on=date(2026, 8, 16),
         ),
         DatasetRegistryEntry(
+            "fundamental_obs_availability",
+            "fundamentals",
+            # `provenance`, not freshness or strict. Its rows are DERIVED claims
+            # about statement versions Argon already holds: there is no provider
+            # to re-fetch from, no calendar spine to be short of, and nothing
+            # arrives on a cadence. Its parent `fundamental_statement_obs` IS
+            # provider-fed and carries its own entry; the child inherits none of
+            # that, and a freshness reading here would only ever measure when the
+            # last backfill ran.
+            "provenance",
+            date_col="recorded_at",
+            ticker_col=None,
+            expected_frequency="none",
+            provider="none",
+            granularity="none",
+            healer_adapter=None,
+            source_system="argon",
+            retention_days=None,
+            reason=(
+                "derived availability evidence for statement content versions "
+                "(migration 130). Append-only, never rewritten: a rule replay "
+                "collides on (obs_id, claim_key) and writes nothing. A missing "
+                "claim is repaired by re-running "
+                "scripts/backfill/fundamental_observation_availability.py, which "
+                "spends zero provider budget and is idempotent — an operator "
+                "action, not a healer adapter. Runbook: "
+                "docs/runbooks/fundamental-observation-availability.md"
+            ),
+            reason_verified_on=date(2026, 8, 24),
+        ),
+        DatasetRegistryEntry(
             "revenue_breakdown_obs",
             "fundamentals",
             # freshness_only for the same reason as fundamental_statement_obs:

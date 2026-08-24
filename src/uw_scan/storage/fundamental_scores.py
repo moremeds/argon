@@ -110,7 +110,15 @@ class FundamentalScoresRepository:
                 "composite",
             ]
             + FEATURES
-            + ["features_present", "source_obs_ids"]
+            + [
+                "features_present",
+                "source_obs_ids",
+                # Provenance of the SELECTION, not of the figures: which rule
+                # admitted these versions, at what cutoff, on which claims.
+                "evidence_policy",
+                "as_of_cutoff",
+                "availability_ids",
+            ]
         )
         placeholders = ", ".join(f"%({c})s" for c in cols)
         sql = f"""
@@ -118,9 +126,23 @@ class FundamentalScoresRepository:
                  VALUES ({placeholders})
             ON CONFLICT (ticker, as_of, engine_version, inputs_hash) DO NOTHING
         """
+        # A caller that names no provenance IS writing a current-vintage row —
+        # that is what the current panel produces — so the default is the truth
+        # about the row rather than a placeholder, and every pre-existing caller
+        # keeps working without learning about evidence policies.
+        defaults = {"evidence_policy": "current_vintage", "availability_ids": []}
         before = self._count()
         with self.conn.cursor() as cur:
-            cur.executemany(sql, [{c: r.get(c) for c in cols} for r in rows])
+            cur.executemany(
+                sql,
+                [
+                    {
+                        c: (r.get(c) if r.get(c) is not None else defaults.get(c))
+                        for c in cols
+                    }
+                    for r in rows
+                ],
+            )
         self.conn.commit()
         return self._count() - before
 

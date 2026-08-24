@@ -54,6 +54,9 @@ from uw_scan.fundamentals.statements import (
     normalize,
 )
 from uw_scan.storage.fundamental_obs import FundamentalObsRepository
+from uw_scan.worker.jobs.fundamental_observation_availability import (
+    fundamental_observation_availability,
+)
 
 log = logging.getLogger(__name__)
 
@@ -152,6 +155,7 @@ def fundamental_ingest(
             "violations": 0,
             "failed": 0,
             "filing_date_tolerance": 0,
+            "availability_claims": 0,
         }
 
     totals = {
@@ -163,6 +167,9 @@ def fundamental_ingest(
         # How often the two endpoints' period spellings disagreed. Reported rather than
         # assumed: if this ever reads 0 the tolerant path has silently stopped firing.
         "filing_date_tolerance": 0,
+        # Capture-bounded claims written for versions this run persisted. A run
+        # that inserts rows and claims none has left them invisible to history.
+        "availability_claims": 0,
     }
     for ticker in names:
         try:
@@ -219,6 +226,20 @@ def fundamental_ingest(
                 )
                 if obs_id is not None:
                     totals["violations"] += repo.record_violations(obs_id, violations)
+
+            # Claim availability for what just landed. Scoped to this ticker and
+            # set-based, so it costs one statement per class rather than one per
+            # row, and ON CONFLICT DO NOTHING makes it heal a previous run that
+            # died between the observation and the claim.
+            #
+            # Inside the try on purpose: the observations are already committed,
+            # so a failure here leaves rows that no historical policy can see.
+            # Counting the ticker as FAILED is what gets the operator to re-run,
+            # and the re-run repairs it without writing another fact row.
+            claims = fundamental_observation_availability(
+                conn=conn, schema=schema, tickers=[ticker]
+            )
+            totals["availability_claims"] += claims["capture_inserted"]
 
             totals["tickers"] += 1
             totals["inserted"] += inserted
