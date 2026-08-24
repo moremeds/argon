@@ -1,0 +1,1401 @@
+{
+  "window": {
+    "start": "2021-01-04T00:00:00+00:00",
+    "end": "2026-08-18T00:00:00+00:00",
+    "step_days": 7
+  },
+  "instants_attempted": 294,
+  "instants_covered": {
+    "inflation": 294,
+    "policy_rates": 294,
+    "usd": 294
+  },
+  "errors": {
+    "inflation": {},
+    "policy_rates": {},
+    "usd": {}
+  },
+  "availability": [
+    {
+      "domain": "gold",
+      "series_id": "GLD_CLOSE",
+      "frequency": "daily",
+      "rows": 825,
+      "periods": 275,
+      "avail_instants": 3,
+      "first_period": "2025-07-21",
+      "last_period": "2026-08-21"
+    },
+    {
+      "domain": "gold",
+      "series_id": "GLD_HOLDINGS_OZ",
+      "frequency": "daily",
+      "rows": 274,
+      "periods": 274,
+      "avail_instants": 1,
+      "first_period": "2025-07-21",
+      "last_period": "2026-08-20"
+    },
+    {
+      "domain": "inflation",
+      "series_id": "T10YIE",
+      "frequency": "daily",
+      "rows": 1412,
+      "periods": 1410,
+      "avail_instants": 1401,
+      "first_period": "2021-01-04",
+      "last_period": "2026-08-21"
+    },
+    {
+      "domain": "inflation",
+      "series_id": "CPILFESL",
+      "frequency": "monthly",
+      "rows": 676,
+      "periods": 138,
+      "avail_instants": 145,
+      "first_period": "2015-01-01",
+      "last_period": "2026-07-01"
+    },
+    {
+      "domain": "inflation",
+      "series_id": "CPIAUCSL",
+      "frequency": "monthly",
+      "rows": 680,
+      "periods": 138,
+      "avail_instants": 145,
+      "first_period": "2015-01-01",
+      "last_period": "2026-07-01"
+    },
+    {
+      "domain": "inflation",
+      "series_id": "MEDCPIM158SFRBCLE",
+      "frequency": "monthly",
+      "rows": 1029,
+      "periods": 139,
+      "avail_instants": 138,
+      "first_period": "2015-01-01",
+      "last_period": "2026-07-01"
+    },
+    {
+      "domain": "inflation",
+      "series_id": "TRMMEANCPIM158SFRBCLE",
+      "frequency": "monthly",
+      "rows": 1152,
+      "periods": 139,
+      "avail_instants": 138,
+      "first_period": "2015-01-01",
+      "last_period": "2026-07-01"
+    },
+    {
+      "domain": "inflation",
+      "series_id": "PCEPI",
+      "frequency": "monthly",
+      "rows": 1097,
+      "periods": 138,
+      "avail_instants": 137,
+      "first_period": "2015-01-01",
+      "last_period": "2026-06-01"
+    },
+    {
+      "domain": "inflation",
+      "series_id": "MICH",
+      "frequency": "monthly",
+      "rows": 142,
+      "periods": 138,
+      "avail_instants": 137,
+      "first_period": "2015-01-01",
+      "last_period": "2026-06-01"
+    },
+    {
+      "domain": "inflation",
+      "series_id": "PCEPILFE",
+      "frequency": "monthly",
+      "rows": 1092,
+      "periods": 138,
+      "avail_instants": 137,
+      "first_period": "2015-01-01",
+      "last_period": "2026-06-01"
+    },
+    {
+      "domain": "inflation",
+      "series_id": "CORESTICKM159SFRBATL",
+      "frequency": "monthly",
+      "rows": 858,
+      "periods": 139,
+      "avail_instants": 137,
+      "first_period": "2015-01-01",
+      "last_period": "2026-07-01"
+    },
+    {
+      "domain": "policy_rates",
+      "series_id": "EFFR",
+      "frequency": "daily",
+      "rows": 1414,
+      "periods": 1414,
+      "avail_instants": 1412,
+      "first_period": "2021-01-04",
+      "last_period": "2026-08-20"
+    },
+    {
+      "domain": "policy_rates",
+      "series_id": "SOFR",
+      "frequency": "daily",
+      "rows": 1406,
+      "periods": 1406,
+      "avail_instants": 1405,
+      "first_period": "2021-01-04",
+      "last_period": "2026-08-20"
+    },
+    {
+      "domain": "policy_rates",
+      "series_id": "RRPONTSYD",
+      "frequency": "daily",
+      "rows": 1407,
+      "periods": 1407,
+      "avail_instants": 1402,
+      "first_period": "2021-01-04",
+      "last_period": "2026-08-21"
+    },
+    {
+      "domain": "policy_rates",
+      "series_id": "DFII10",
+      "frequency": "daily",
+      "rows": 1409,
+      "periods": 1409,
+      "avail_instants": 1398,
+      "first_period": "2021-01-04",
+      "last_period": "2026-08-20"
+    },
+    {
+      "domain": "policy_rates",
+      "series_id": "DGS10",
+      "frequency": "daily",
+      "rows": 1411,
+      "periods": 1409,
+      "avail_instants": 1398,
+      "first_period": "2021-01-04",
+      "last_period": "2026-08-20"
+    },
+    {
+      "domain": "policy_rates",
+      "series_id": "7-Year|Note",
+      "frequency": "irregular",
+      "rows": 65,
+      "periods": 65,
+      "avail_instants": 65,
+      "first_period": "2021-03-25",
+      "last_period": "2026-07-28"
+    },
+    {
+      "domain": "policy_rates",
+      "series_id": "5-Year|Note",
+      "frequency": "irregular",
+      "rows": 58,
+      "periods": 58,
+      "avail_instants": 58,
+      "first_period": "2021-08-25",
+      "last_period": "2026-07-27"
+    },
+    {
+      "domain": "policy_rates",
+      "series_id": "30-Year|Bond",
+      "frequency": "irregular",
+      "rows": 58,
+      "periods": 58,
+      "avail_instants": 58,
+      "first_period": "2012-05-10",
+      "last_period": "2026-08-13"
+    },
+    {
+      "domain": "policy_rates",
+      "series_id": "3-Year|Note",
+      "frequency": "irregular",
+      "rows": 36,
+      "periods": 36,
+      "avail_instants": 36,
+      "first_period": "2023-09-11",
+      "last_period": "2026-08-11"
+    },
+    {
+      "domain": "policy_rates",
+      "series_id": "20-Year|Bond",
+      "frequency": "irregular",
+      "rows": 26,
+      "periods": 26,
+      "avail_instants": 26,
+      "first_period": "2020-05-20",
+      "last_period": "2026-08-19"
+    },
+    {
+      "domain": "policy_rates",
+      "series_id": "2-Year|Note",
+      "frequency": "irregular",
+      "rows": 23,
+      "periods": 23,
+      "avail_instants": 23,
+      "first_period": "2024-08-27",
+      "last_period": "2026-07-27"
+    },
+    {
+      "domain": "policy_rates",
+      "series_id": "10-Year|Note",
+      "frequency": "irregular",
+      "rows": 22,
+      "periods": 22,
+      "avail_instants": 22,
+      "first_period": "2021-05-12",
+      "last_period": "2026-08-12"
+    },
+    {
+      "domain": "policy_rates",
+      "series_id": "043602|lev_money_net_pct_oi",
+      "frequency": "weekly",
+      "rows": 17,
+      "periods": 17,
+      "avail_instants": 17,
+      "first_period": "2026-04-28",
+      "last_period": "2026-08-18"
+    },
+    {
+      "domain": "policy_rates",
+      "series_id": "043602|open_interest",
+      "frequency": "weekly",
+      "rows": 17,
+      "periods": 17,
+      "avail_instants": 17,
+      "first_period": "2026-04-28",
+      "last_period": "2026-08-18"
+    },
+    {
+      "domain": "policy_rates",
+      "series_id": "043607|asset_mgr_net",
+      "frequency": "weekly",
+      "rows": 17,
+      "periods": 17,
+      "avail_instants": 17,
+      "first_period": "2026-04-28",
+      "last_period": "2026-08-18"
+    },
+    {
+      "domain": "policy_rates",
+      "series_id": "043607|asset_mgr_net_pct_oi",
+      "frequency": "weekly",
+      "rows": 17,
+      "periods": 17,
+      "avail_instants": 17,
+      "first_period": "2026-04-28",
+      "last_period": "2026-08-18"
+    },
+    {
+      "domain": "policy_rates",
+      "series_id": "043607|dealer_net",
+      "frequency": "weekly",
+      "rows": 17,
+      "periods": 17,
+      "avail_instants": 17,
+      "first_period": "2026-04-28",
+      "last_period": "2026-08-18"
+    },
+    {
+      "domain": "policy_rates",
+      "series_id": "043607|dealer_net_pct_oi",
+      "frequency": "weekly",
+      "rows": 17,
+      "periods": 17,
+      "avail_instants": 17,
+      "first_period": "2026-04-28",
+      "last_period": "2026-08-18"
+    },
+    {
+      "domain": "policy_rates",
+      "series_id": "043607|lev_money_net",
+      "frequency": "weekly",
+      "rows": 17,
+      "periods": 17,
+      "avail_instants": 17,
+      "first_period": "2026-04-28",
+      "last_period": "2026-08-18"
+    },
+    {
+      "domain": "policy_rates",
+      "series_id": "043607|lev_money_net_pct_oi",
+      "frequency": "weekly",
+      "rows": 17,
+      "periods": 17,
+      "avail_instants": 17,
+      "first_period": "2026-04-28",
+      "last_period": "2026-08-18"
+    },
+    {
+      "domain": "policy_rates",
+      "series_id": "043607|open_interest",
+      "frequency": "weekly",
+      "rows": 17,
+      "periods": 17,
+      "avail_instants": 17,
+      "first_period": "2026-04-28",
+      "last_period": "2026-08-18"
+    },
+    {
+      "domain": "policy_rates",
+      "series_id": "044601|dealer_net_pct_oi",
+      "frequency": "weekly",
+      "rows": 17,
+      "periods": 17,
+      "avail_instants": 17,
+      "first_period": "2026-04-28",
+      "last_period": "2026-08-18"
+    },
+    {
+      "domain": "policy_rates",
+      "series_id": "020601|asset_mgr_net",
+      "frequency": "weekly",
+      "rows": 17,
+      "periods": 17,
+      "avail_instants": 17,
+      "first_period": "2026-04-28",
+      "last_period": "2026-08-18"
+    },
+    {
+      "domain": "policy_rates",
+      "series_id": "020601|asset_mgr_net_pct_oi",
+      "frequency": "weekly",
+      "rows": 17,
+      "periods": 17,
+      "avail_instants": 17,
+      "first_period": "2026-04-28",
+      "last_period": "2026-08-18"
+    },
+    {
+      "domain": "policy_rates",
+      "series_id": "020601|dealer_net",
+      "frequency": "weekly",
+      "rows": 17,
+      "periods": 17,
+      "avail_instants": 17,
+      "first_period": "2026-04-28",
+      "last_period": "2026-08-18"
+    },
+    {
+      "domain": "policy_rates",
+      "series_id": "020601|dealer_net_pct_oi",
+      "frequency": "weekly",
+      "rows": 17,
+      "periods": 17,
+      "avail_instants": 17,
+      "first_period": "2026-04-28",
+      "last_period": "2026-08-18"
+    },
+    {
+      "domain": "policy_rates",
+      "series_id": "020601|lev_money_net",
+      "frequency": "weekly",
+      "rows": 17,
+      "periods": 17,
+      "avail_instants": 17,
+      "first_period": "2026-04-28",
+      "last_period": "2026-08-18"
+    },
+    {
+      "domain": "policy_rates",
+      "series_id": "020601|lev_money_net_pct_oi",
+      "frequency": "weekly",
+      "rows": 17,
+      "periods": 17,
+      "avail_instants": 17,
+      "first_period": "2026-04-28",
+      "last_period": "2026-08-18"
+    },
+    {
+      "domain": "policy_rates",
+      "series_id": "020601|open_interest",
+      "frequency": "weekly",
+      "rows": 17,
+      "periods": 17,
+      "avail_instants": 17,
+      "first_period": "2026-04-28",
+      "last_period": "2026-08-18"
+    },
+    {
+      "domain": "policy_rates",
+      "series_id": "020604|asset_mgr_net",
+      "frequency": "weekly",
+      "rows": 17,
+      "periods": 17,
+      "avail_instants": 17,
+      "first_period": "2026-04-28",
+      "last_period": "2026-08-18"
+    },
+    {
+      "domain": "policy_rates",
+      "series_id": "020604|asset_mgr_net_pct_oi",
+      "frequency": "weekly",
+      "rows": 17,
+      "periods": 17,
+      "avail_instants": 17,
+      "first_period": "2026-04-28",
+      "last_period": "2026-08-18"
+    },
+    {
+      "domain": "policy_rates",
+      "series_id": "020604|dealer_net",
+      "frequency": "weekly",
+      "rows": 17,
+      "periods": 17,
+      "avail_instants": 17,
+      "first_period": "2026-04-28",
+      "last_period": "2026-08-18"
+    },
+    {
+      "domain": "policy_rates",
+      "series_id": "020604|dealer_net_pct_oi",
+      "frequency": "weekly",
+      "rows": 17,
+      "periods": 17,
+      "avail_instants": 17,
+      "first_period": "2026-04-28",
+      "last_period": "2026-08-18"
+    },
+    {
+      "domain": "policy_rates",
+      "series_id": "020604|lev_money_net",
+      "frequency": "weekly",
+      "rows": 17,
+      "periods": 17,
+      "avail_instants": 17,
+      "first_period": "2026-04-28",
+      "last_period": "2026-08-18"
+    },
+    {
+      "domain": "policy_rates",
+      "series_id": "020604|lev_money_net_pct_oi",
+      "frequency": "weekly",
+      "rows": 17,
+      "periods": 17,
+      "avail_instants": 17,
+      "first_period": "2026-04-28",
+      "last_period": "2026-08-18"
+    },
+    {
+      "domain": "policy_rates",
+      "series_id": "020604|open_interest",
+      "frequency": "weekly",
+      "rows": 17,
+      "periods": 17,
+      "avail_instants": 17,
+      "first_period": "2026-04-28",
+      "last_period": "2026-08-18"
+    },
+    {
+      "domain": "policy_rates",
+      "series_id": "042601|asset_mgr_net",
+      "frequency": "weekly",
+      "rows": 17,
+      "periods": 17,
+      "avail_instants": 17,
+      "first_period": "2026-04-28",
+      "last_period": "2026-08-18"
+    },
+    {
+      "domain": "policy_rates",
+      "series_id": "044601|asset_mgr_net",
+      "frequency": "weekly",
+      "rows": 17,
+      "periods": 17,
+      "avail_instants": 17,
+      "first_period": "2026-04-28",
+      "last_period": "2026-08-18"
+    },
+    {
+      "domain": "policy_rates",
+      "series_id": "044601|asset_mgr_net_pct_oi",
+      "frequency": "weekly",
+      "rows": 17,
+      "periods": 17,
+      "avail_instants": 17,
+      "first_period": "2026-04-28",
+      "last_period": "2026-08-18"
+    },
+    {
+      "domain": "policy_rates",
+      "series_id": "044601|dealer_net",
+      "frequency": "weekly",
+      "rows": 17,
+      "periods": 17,
+      "avail_instants": 17,
+      "first_period": "2026-04-28",
+      "last_period": "2026-08-18"
+    },
+    {
+      "domain": "policy_rates",
+      "series_id": "044601|lev_money_net",
+      "frequency": "weekly",
+      "rows": 17,
+      "periods": 17,
+      "avail_instants": 17,
+      "first_period": "2026-04-28",
+      "last_period": "2026-08-18"
+    },
+    {
+      "domain": "policy_rates",
+      "series_id": "044601|lev_money_net_pct_oi",
+      "frequency": "weekly",
+      "rows": 17,
+      "periods": 17,
+      "avail_instants": 17,
+      "first_period": "2026-04-28",
+      "last_period": "2026-08-18"
+    },
+    {
+      "domain": "policy_rates",
+      "series_id": "044601|open_interest",
+      "frequency": "weekly",
+      "rows": 17,
+      "periods": 17,
+      "avail_instants": 17,
+      "first_period": "2026-04-28",
+      "last_period": "2026-08-18"
+    },
+    {
+      "domain": "policy_rates",
+      "series_id": "042601|asset_mgr_net_pct_oi",
+      "frequency": "weekly",
+      "rows": 17,
+      "periods": 17,
+      "avail_instants": 17,
+      "first_period": "2026-04-28",
+      "last_period": "2026-08-18"
+    },
+    {
+      "domain": "policy_rates",
+      "series_id": "042601|dealer_net",
+      "frequency": "weekly",
+      "rows": 17,
+      "periods": 17,
+      "avail_instants": 17,
+      "first_period": "2026-04-28",
+      "last_period": "2026-08-18"
+    },
+    {
+      "domain": "policy_rates",
+      "series_id": "042601|dealer_net_pct_oi",
+      "frequency": "weekly",
+      "rows": 17,
+      "periods": 17,
+      "avail_instants": 17,
+      "first_period": "2026-04-28",
+      "last_period": "2026-08-18"
+    },
+    {
+      "domain": "policy_rates",
+      "series_id": "042601|lev_money_net",
+      "frequency": "weekly",
+      "rows": 17,
+      "periods": 17,
+      "avail_instants": 17,
+      "first_period": "2026-04-28",
+      "last_period": "2026-08-18"
+    },
+    {
+      "domain": "policy_rates",
+      "series_id": "042601|lev_money_net_pct_oi",
+      "frequency": "weekly",
+      "rows": 17,
+      "periods": 17,
+      "avail_instants": 17,
+      "first_period": "2026-04-28",
+      "last_period": "2026-08-18"
+    },
+    {
+      "domain": "policy_rates",
+      "series_id": "042601|open_interest",
+      "frequency": "weekly",
+      "rows": 17,
+      "periods": 17,
+      "avail_instants": 17,
+      "first_period": "2026-04-28",
+      "last_period": "2026-08-18"
+    },
+    {
+      "domain": "policy_rates",
+      "series_id": "043602|asset_mgr_net",
+      "frequency": "weekly",
+      "rows": 17,
+      "periods": 17,
+      "avail_instants": 17,
+      "first_period": "2026-04-28",
+      "last_period": "2026-08-18"
+    },
+    {
+      "domain": "policy_rates",
+      "series_id": "043602|asset_mgr_net_pct_oi",
+      "frequency": "weekly",
+      "rows": 17,
+      "periods": 17,
+      "avail_instants": 17,
+      "first_period": "2026-04-28",
+      "last_period": "2026-08-18"
+    },
+    {
+      "domain": "policy_rates",
+      "series_id": "043602|dealer_net",
+      "frequency": "weekly",
+      "rows": 17,
+      "periods": 17,
+      "avail_instants": 17,
+      "first_period": "2026-04-28",
+      "last_period": "2026-08-18"
+    },
+    {
+      "domain": "policy_rates",
+      "series_id": "043602|dealer_net_pct_oi",
+      "frequency": "weekly",
+      "rows": 17,
+      "periods": 17,
+      "avail_instants": 17,
+      "first_period": "2026-04-28",
+      "last_period": "2026-08-18"
+    },
+    {
+      "domain": "policy_rates",
+      "series_id": "043602|lev_money_net",
+      "frequency": "weekly",
+      "rows": 17,
+      "periods": 17,
+      "avail_instants": 17,
+      "first_period": "2026-04-28",
+      "last_period": "2026-08-18"
+    },
+    {
+      "domain": "policy_rates",
+      "series_id": "04360Y|dealer_net",
+      "frequency": "weekly",
+      "rows": 11,
+      "periods": 11,
+      "avail_instants": 11,
+      "first_period": "2026-04-28",
+      "last_period": "2026-08-18"
+    },
+    {
+      "domain": "policy_rates",
+      "series_id": "04360Y|lev_money_net_pct_oi",
+      "frequency": "weekly",
+      "rows": 11,
+      "periods": 11,
+      "avail_instants": 11,
+      "first_period": "2026-04-28",
+      "last_period": "2026-08-18"
+    },
+    {
+      "domain": "policy_rates",
+      "series_id": "04360Y|dealer_net_pct_oi",
+      "frequency": "weekly",
+      "rows": 11,
+      "periods": 11,
+      "avail_instants": 11,
+      "first_period": "2026-04-28",
+      "last_period": "2026-08-18"
+    },
+    {
+      "domain": "policy_rates",
+      "series_id": "04360Y|lev_money_net",
+      "frequency": "weekly",
+      "rows": 11,
+      "periods": 11,
+      "avail_instants": 11,
+      "first_period": "2026-04-28",
+      "last_period": "2026-08-18"
+    },
+    {
+      "domain": "policy_rates",
+      "series_id": "04360Y|asset_mgr_net",
+      "frequency": "weekly",
+      "rows": 11,
+      "periods": 11,
+      "avail_instants": 11,
+      "first_period": "2026-04-28",
+      "last_period": "2026-08-18"
+    },
+    {
+      "domain": "policy_rates",
+      "series_id": "04360Y|open_interest",
+      "frequency": "weekly",
+      "rows": 11,
+      "periods": 11,
+      "avail_instants": 11,
+      "first_period": "2026-04-28",
+      "last_period": "2026-08-18"
+    },
+    {
+      "domain": "policy_rates",
+      "series_id": "04360Y|asset_mgr_net_pct_oi",
+      "frequency": "weekly",
+      "rows": 11,
+      "periods": 11,
+      "avail_instants": 11,
+      "first_period": "2026-04-28",
+      "last_period": "2026-08-18"
+    },
+    {
+      "domain": "usd",
+      "series_id": "DTWEXBGS",
+      "frequency": "daily",
+      "rows": 4241,
+      "periods": 1405,
+      "avail_instants": 293,
+      "first_period": "2021-01-04",
+      "last_period": "2026-08-14"
+    },
+    {
+      "domain": "usd",
+      "series_id": "RTWEXBGS",
+      "frequency": "monthly",
+      "rows": 7237,
+      "periods": 139,
+      "avail_instants": 90,
+      "first_period": "2015-01-01",
+      "last_period": "2026-07-01"
+    }
+  ],
+  "features": [
+    {
+      "domain": "inflation",
+      "feature": "change.CORESTICKM159SFRBATL",
+      "points": 294,
+      "distinct_values": 68,
+      "rho_lag1": 0.9741,
+      "eff_n": 3.9,
+      "constant": false
+    },
+    {
+      "domain": "inflation",
+      "feature": "change.CPIAUCSL",
+      "points": 290,
+      "distinct_values": 70,
+      "rho_lag1": 0.9672,
+      "eff_n": 4.8,
+      "constant": false
+    },
+    {
+      "domain": "inflation",
+      "feature": "change.CPILFESL",
+      "points": 290,
+      "distinct_values": 70,
+      "rho_lag1": 0.9558,
+      "eff_n": 6.5,
+      "constant": false
+    },
+    {
+      "domain": "inflation",
+      "feature": "change.MEDCPIM158SFRBCLE",
+      "points": 294,
+      "distinct_values": 68,
+      "rho_lag1": 0.8326,
+      "eff_n": 26.9,
+      "constant": false
+    },
+    {
+      "domain": "inflation",
+      "feature": "change.MICH",
+      "points": 294,
+      "distinct_values": 31,
+      "rho_lag1": 0.9289,
+      "eff_n": 10.8,
+      "constant": false
+    },
+    {
+      "domain": "inflation",
+      "feature": "change.PCEPI",
+      "points": 290,
+      "distinct_values": 68,
+      "rho_lag1": 0.9682,
+      "eff_n": 4.7,
+      "constant": false
+    },
+    {
+      "domain": "inflation",
+      "feature": "change.PCEPILFE",
+      "points": 290,
+      "distinct_values": 68,
+      "rho_lag1": 0.9605,
+      "eff_n": 5.8,
+      "constant": false
+    },
+    {
+      "domain": "inflation",
+      "feature": "change.TRMMEANCPIM158SFRBCLE",
+      "points": 294,
+      "distinct_values": 68,
+      "rho_lag1": 0.839,
+      "eff_n": 25.7,
+      "constant": false
+    },
+    {
+      "domain": "inflation",
+      "feature": "confidence",
+      "points": 294,
+      "distinct_values": 22,
+      "rho_lag1": 0.863,
+      "eff_n": 21.6,
+      "constant": false
+    },
+    {
+      "domain": "inflation",
+      "feature": "contradiction_count",
+      "points": 294,
+      "distinct_values": 6,
+      "rho_lag1": 0.865,
+      "eff_n": 21.3,
+      "constant": false
+    },
+    {
+      "domain": "inflation",
+      "feature": "level.CORESTICKM159SFRBATL",
+      "points": 294,
+      "distinct_values": 68,
+      "rho_lag1": 0.9912,
+      "eff_n": 1.3,
+      "constant": false
+    },
+    {
+      "domain": "inflation",
+      "feature": "level.CPIAUCSL",
+      "points": 294,
+      "distinct_values": 71,
+      "rho_lag1": 0.9883,
+      "eff_n": 1.7,
+      "constant": false
+    },
+    {
+      "domain": "inflation",
+      "feature": "level.CPILFESL",
+      "points": 294,
+      "distinct_values": 71,
+      "rho_lag1": 0.99,
+      "eff_n": 1.5,
+      "constant": false
+    },
+    {
+      "domain": "inflation",
+      "feature": "level.MEDCPIM158SFRBCLE",
+      "points": 294,
+      "distinct_values": 68,
+      "rho_lag1": 0.935,
+      "eff_n": 9.9,
+      "constant": false
+    },
+    {
+      "domain": "inflation",
+      "feature": "level.MICH",
+      "points": 294,
+      "distinct_values": 30,
+      "rho_lag1": 0.9599,
+      "eff_n": 6.0,
+      "constant": false
+    },
+    {
+      "domain": "inflation",
+      "feature": "level.PCEPI",
+      "points": 294,
+      "distinct_values": 68,
+      "rho_lag1": 0.9817,
+      "eff_n": 2.7,
+      "constant": false
+    },
+    {
+      "domain": "inflation",
+      "feature": "level.PCEPILFE",
+      "points": 294,
+      "distinct_values": 68,
+      "rho_lag1": 0.9779,
+      "eff_n": 3.3,
+      "constant": false
+    },
+    {
+      "domain": "inflation",
+      "feature": "level.TRMMEANCPIM158SFRBCLE",
+      "points": 294,
+      "distinct_values": 68,
+      "rho_lag1": 0.9178,
+      "eff_n": 12.6,
+      "constant": false
+    },
+    {
+      "domain": "inflation",
+      "feature": "term.completeness",
+      "points": 294,
+      "distinct_values": 1,
+      "rho_lag1": 1.0,
+      "eff_n": 1.0,
+      "constant": true
+    },
+    {
+      "domain": "inflation",
+      "feature": "term.contradiction_penalty",
+      "points": 294,
+      "distinct_values": 5,
+      "rho_lag1": 0.8686,
+      "eff_n": 20.7,
+      "constant": false
+    },
+    {
+      "domain": "inflation",
+      "feature": "term.freshness",
+      "points": 294,
+      "distinct_values": 9,
+      "rho_lag1": 0.737,
+      "eff_n": 44.5,
+      "constant": false
+    },
+    {
+      "domain": "inflation",
+      "feature": "term.quality",
+      "points": 294,
+      "distinct_values": 1,
+      "rho_lag1": 1.0,
+      "eff_n": 1.0,
+      "constant": true
+    },
+    {
+      "domain": "inflation",
+      "feature": "term.revision_penalty",
+      "points": 294,
+      "distinct_values": 1,
+      "rho_lag1": 1.0,
+      "eff_n": 1.0,
+      "constant": true
+    },
+    {
+      "domain": "policy_rates",
+      "feature": "confidence",
+      "points": 294,
+      "distinct_values": 2,
+      "rho_lag1": 0.5498,
+      "eff_n": 85.4,
+      "constant": false
+    },
+    {
+      "domain": "policy_rates",
+      "feature": "contradiction_count",
+      "points": 294,
+      "distinct_values": 2,
+      "rho_lag1": 0.5498,
+      "eff_n": 85.4,
+      "constant": false
+    },
+    {
+      "domain": "policy_rates",
+      "feature": "level.043602|asset_mgr_net",
+      "points": 16,
+      "distinct_values": 14,
+      "rho_lag1": 0.7408,
+      "eff_n": 2.4,
+      "constant": false
+    },
+    {
+      "domain": "policy_rates",
+      "feature": "level.043602|asset_mgr_net_pct_oi",
+      "points": 16,
+      "distinct_values": 14,
+      "rho_lag1": 0.6874,
+      "eff_n": 3.0,
+      "constant": false
+    },
+    {
+      "domain": "policy_rates",
+      "feature": "level.043602|dealer_net",
+      "points": 16,
+      "distinct_values": 14,
+      "rho_lag1": 0.3442,
+      "eff_n": 7.8,
+      "constant": false
+    },
+    {
+      "domain": "policy_rates",
+      "feature": "level.043602|dealer_net_pct_oi",
+      "points": 16,
+      "distinct_values": 14,
+      "rho_lag1": 0.538,
+      "eff_n": 4.8,
+      "constant": false
+    },
+    {
+      "domain": "policy_rates",
+      "feature": "level.043602|lev_money_net",
+      "points": 16,
+      "distinct_values": 14,
+      "rho_lag1": 0.7229,
+      "eff_n": 2.6,
+      "constant": false
+    },
+    {
+      "domain": "policy_rates",
+      "feature": "level.043602|lev_money_net_pct_oi",
+      "points": 16,
+      "distinct_values": 14,
+      "rho_lag1": 0.6909,
+      "eff_n": 2.9,
+      "constant": false
+    },
+    {
+      "domain": "policy_rates",
+      "feature": "level.043602|open_interest",
+      "points": 16,
+      "distinct_values": 14,
+      "rho_lag1": 0.4674,
+      "eff_n": 5.8,
+      "constant": false
+    },
+    {
+      "domain": "policy_rates",
+      "feature": "level.10-Year|Note",
+      "points": 276,
+      "distinct_values": 8,
+      "rho_lag1": 0.9922,
+      "eff_n": 1.1,
+      "constant": false
+    },
+    {
+      "domain": "policy_rates",
+      "feature": "level.2-Year|Note",
+      "points": 104,
+      "distinct_values": 1,
+      "rho_lag1": 1.0,
+      "eff_n": 1.0,
+      "constant": true
+    },
+    {
+      "domain": "policy_rates",
+      "feature": "level.20-Year|Bond",
+      "points": 294,
+      "distinct_values": 6,
+      "rho_lag1": 0.9876,
+      "eff_n": 1.8,
+      "constant": false
+    },
+    {
+      "domain": "policy_rates",
+      "feature": "level.3-Year|Note",
+      "points": 154,
+      "distinct_values": 8,
+      "rho_lag1": 0.9533,
+      "eff_n": 3.7,
+      "constant": false
+    },
+    {
+      "domain": "policy_rates",
+      "feature": "level.30-Year|Bond",
+      "points": 294,
+      "distinct_values": 6,
+      "rho_lag1": 0.9887,
+      "eff_n": 1.7,
+      "constant": false
+    },
+    {
+      "domain": "policy_rates",
+      "feature": "level.5-Year|Note",
+      "points": 261,
+      "distinct_values": 18,
+      "rho_lag1": 0.9965,
+      "eff_n": 0.5,
+      "constant": false
+    },
+    {
+      "domain": "policy_rates",
+      "feature": "level.7-Year|Note",
+      "points": 283,
+      "distinct_values": 16,
+      "rho_lag1": 0.9898,
+      "eff_n": 1.5,
+      "constant": false
+    },
+    {
+      "domain": "policy_rates",
+      "feature": "level.DFII10",
+      "points": 293,
+      "distinct_values": 160,
+      "rho_lag1": 0.9881,
+      "eff_n": 1.8,
+      "constant": false
+    },
+    {
+      "domain": "policy_rates",
+      "feature": "level.DGS10",
+      "points": 293,
+      "distinct_values": 169,
+      "rho_lag1": 0.9844,
+      "eff_n": 2.3,
+      "constant": false
+    },
+    {
+      "domain": "policy_rates",
+      "feature": "level.EFFR",
+      "points": 293,
+      "distinct_values": 31,
+      "rho_lag1": 0.994,
+      "eff_n": 0.9,
+      "constant": false
+    },
+    {
+      "domain": "policy_rates",
+      "feature": "level.FOMC_TARGET_RANGE",
+      "points": 294,
+      "distinct_values": 14,
+      "rho_lag1": 0.9941,
+      "eff_n": 0.9,
+      "constant": false
+    },
+    {
+      "domain": "policy_rates",
+      "feature": "level.RRPONTSYD",
+      "points": 294,
+      "distinct_values": 290,
+      "rho_lag1": 0.9923,
+      "eff_n": 1.1,
+      "constant": false
+    },
+    {
+      "domain": "policy_rates",
+      "feature": "level.SEP_FEDERAL_FUNDS_RATE",
+      "points": 294,
+      "distinct_values": 11,
+      "rho_lag1": 0.9905,
+      "eff_n": 1.4,
+      "constant": false
+    },
+    {
+      "domain": "policy_rates",
+      "feature": "level.SOFR",
+      "points": 293,
+      "distinct_values": 90,
+      "rho_lag1": 0.994,
+      "eff_n": 0.9,
+      "constant": false
+    },
+    {
+      "domain": "policy_rates",
+      "feature": "level.T10YIE",
+      "points": 294,
+      "distinct_values": 69,
+      "rho_lag1": 0.8956,
+      "eff_n": 16.2,
+      "constant": false
+    },
+    {
+      "domain": "policy_rates",
+      "feature": "term.completeness",
+      "points": 294,
+      "distinct_values": 1,
+      "rho_lag1": 1.0,
+      "eff_n": 1.0,
+      "constant": true
+    },
+    {
+      "domain": "policy_rates",
+      "feature": "term.contradiction_penalty",
+      "points": 294,
+      "distinct_values": 2,
+      "rho_lag1": 0.5498,
+      "eff_n": 85.4,
+      "constant": false
+    },
+    {
+      "domain": "policy_rates",
+      "feature": "term.freshness",
+      "points": 294,
+      "distinct_values": 1,
+      "rho_lag1": 1.0,
+      "eff_n": 1.0,
+      "constant": true
+    },
+    {
+      "domain": "policy_rates",
+      "feature": "term.market_factors_absent",
+      "points": 294,
+      "distinct_values": 3,
+      "rho_lag1": 0.8766,
+      "eff_n": 19.3,
+      "constant": false
+    },
+    {
+      "domain": "policy_rates",
+      "feature": "term.policy_paths_absent",
+      "points": 294,
+      "distinct_values": 1,
+      "rho_lag1": 1.0,
+      "eff_n": 1.0,
+      "constant": true
+    },
+    {
+      "domain": "policy_rates",
+      "feature": "term.quality",
+      "points": 294,
+      "distinct_values": 1,
+      "rho_lag1": 1.0,
+      "eff_n": 1.0,
+      "constant": true
+    },
+    {
+      "domain": "policy_rates",
+      "feature": "term.revision_penalty",
+      "points": 294,
+      "distinct_values": 1,
+      "rho_lag1": 1.0,
+      "eff_n": 1.0,
+      "constant": true
+    },
+    {
+      "domain": "policy_rates",
+      "feature": "term.sub_state_confidence:plumbing",
+      "points": 294,
+      "distinct_values": 2,
+      "rho_lag1": -0.0,
+      "eff_n": 294.0,
+      "constant": false
+    },
+    {
+      "domain": "policy_rates",
+      "feature": "term.sub_state_confidence:positioning",
+      "points": 294,
+      "distinct_values": 2,
+      "rho_lag1": 0.8333,
+      "eff_n": 26.7,
+      "constant": false
+    },
+    {
+      "domain": "policy_rates",
+      "feature": "term.sub_state_confidence:supply",
+      "points": 294,
+      "distinct_values": 11,
+      "rho_lag1": 0.9735,
+      "eff_n": 3.9,
+      "constant": false
+    },
+    {
+      "domain": "usd",
+      "feature": "change.DTWEXBGS",
+      "points": 280,
+      "distinct_values": 247,
+      "rho_lag1": 0.9127,
+      "eff_n": 12.8,
+      "constant": false
+    },
+    {
+      "domain": "usd",
+      "feature": "change.RTWEXBGS",
+      "points": 294,
+      "distinct_values": 68,
+      "rho_lag1": 0.9357,
+      "eff_n": 9.8,
+      "constant": false
+    },
+    {
+      "domain": "usd",
+      "feature": "confidence",
+      "points": 294,
+      "distinct_values": 5,
+      "rho_lag1": 0.2402,
+      "eff_n": 180.1,
+      "constant": false
+    },
+    {
+      "domain": "usd",
+      "feature": "contradiction_count",
+      "points": 294,
+      "distinct_values": 2,
+      "rho_lag1": 0.8814,
+      "eff_n": 18.5,
+      "constant": false
+    },
+    {
+      "domain": "usd",
+      "feature": "level.DTWEXBGS",
+      "points": 293,
+      "distinct_values": 258,
+      "rho_lag1": 0.9751,
+      "eff_n": 3.7,
+      "constant": false
+    },
+    {
+      "domain": "usd",
+      "feature": "level.RTWEXBGS",
+      "points": 294,
+      "distinct_values": 66,
+      "rho_lag1": 0.9823,
+      "eff_n": 2.6,
+      "constant": false
+    },
+    {
+      "domain": "usd",
+      "feature": "term.completeness",
+      "points": 294,
+      "distinct_values": 2,
+      "rho_lag1": -0.0,
+      "eff_n": 294.0,
+      "constant": false
+    },
+    {
+      "domain": "usd",
+      "feature": "term.contradiction_penalty",
+      "points": 294,
+      "distinct_values": 2,
+      "rho_lag1": 0.8814,
+      "eff_n": 18.5,
+      "constant": false
+    },
+    {
+      "domain": "usd",
+      "feature": "term.freshness",
+      "points": 294,
+      "distinct_values": 2,
+      "rho_lag1": -0.0069,
+      "eff_n": 298.1,
+      "constant": false
+    },
+    {
+      "domain": "usd",
+      "feature": "term.quality",
+      "points": 294,
+      "distinct_values": 1,
+      "rho_lag1": 1.0,
+      "eff_n": 1.0,
+      "constant": true
+    },
+    {
+      "domain": "usd",
+      "feature": "term.real_index_not_substituted",
+      "points": 1,
+      "distinct_values": 1,
+      "rho_lag1": null,
+      "eff_n": 1.0,
+      "constant": true
+    },
+    {
+      "domain": "usd",
+      "feature": "term.required_period_absent_at_as_of",
+      "points": 1,
+      "distinct_values": 1,
+      "rho_lag1": null,
+      "eff_n": 1.0,
+      "constant": true
+    },
+    {
+      "domain": "usd",
+      "feature": "term.revision_penalty",
+      "points": 294,
+      "distinct_values": 1,
+      "rho_lag1": 1.0,
+      "eff_n": 1.0,
+      "constant": true
+    },
+    {
+      "domain": "usd",
+      "feature": "term.upstream_policy_rates",
+      "points": 294,
+      "distinct_values": 1,
+      "rho_lag1": 1.0,
+      "eff_n": 1.0,
+      "constant": true
+    }
+  ]
+}
