@@ -51,6 +51,22 @@ version in lockstep (enforced by `scripts/release/version_sync_check.py`).
 
 ### Added
 
+- **`docs/superpowers/plans/2026-08-24-macro-mc4-mc6-sequenced.md`** — MC4–MC6 re-ordered
+  against what was actually measured, and the two decisions that were open in the handover, now
+  settled: **historical replay preserves what Argon believed at the instant** (invalidation affects
+  current reads; a corrected-history read is a reserved opt-in), and **the authority boundary is
+  risk-monitoring** (report freshness, contradictions, missing domains and dependency
+  incompatibility; never rank, size, recommend, or alter Fundamental PM output).
+  - The MC6 preflight moves earlier and runs **in parallel** with MC4 rather than after it. It reads
+    the evidence store and state records only, so it never needed the snapshot — and it is the item
+    that decides whether MC5/MC6 happen at all. Building MC4 first and then discovering there is
+    nothing to validate is the wrong order.
+  - MC4 is specified as a **refusal layer**: status comes from dependency-edge identity, not
+    timestamp proximity, and a snapshot may never repair an incompatible chain by substituting a
+    fresher upstream. Substitution is how a monitoring layer becomes a fabrication layer.
+  - The older MC4–MC6 plan keeps its task decomposition and carries a banner saying its sequencing
+    is superseded.
+
 - **`docs/handover/2026-08-24-macro-executive-summary-claude-handover.md`** — the
   reviewed executive status of the macro program: deployed truth, seven binding
   findings, the delivery sequence, and the completion gates. It was written against

@@ -1,5 +1,12 @@
 # Macro MC4–MC6 Context Snapshot, PM Integration, and Validation Implementation Plan
 
+> **Sequencing superseded by** `2026-08-24-macro-mc4-mc6-sequenced.md`. The task decomposition below
+> is still good; the ORDER is not, and neither are the migration numbers. This plan assumed MC6 would
+> validate state transitions — the 2026-08-23 replay census measured 4/8/13 flips over 68 months and
+> killed that unit, so MC6 is now gated on a preflight this plan does not contain. Read the sequenced
+> plan for order, gates, and the two settled decisions (belief-preserving replay; risk-monitoring
+> authority) before executing any task here.
+
 > **For Claude:** REQUIRED SUB-SKILL: Use superpowers:executing-plans to implement this plan task-by-task.
 
 **Goal:** assemble the four verified macro domains into a reproducible top-down context snapshot,
