@@ -84,10 +84,29 @@ Reads the evidence store and state records only. Persists the full census before
 - gold is structurally excluded until migration 119 promotes a verified instant for `GLD_CLOSE`
 - **preregister before any fitting:** target, horizon, lag, baseline, minimum-sample gate, kill rule
 
-**Exit:** either a defensible PIT panel with a precise target, or a committed `descriptive_only`
-verdict. Do not fit if the preregistered sample gate fails. Do not backfill replayed states into
-`macro_domain_states` to manufacture sample size — those rows are immutable and would bake in
-today's engine version.
+**DONE 2026-08-24 — verdict `descriptive_only`.**
+`docs/research/2026-08-24-macro-continuous-feature-preflight/VERDICT.md`
+
+The engines replay weekly without complaint (294/294 instants, three domains, zero errors), so the
+flip census's monthly clock was a choice rather than a limit. It did not help. Every economically
+meaningful feature lands between `eff_n` 0.9 and 27 after the AR(1) correction, and the features
+with the LARGEST effective sample are binaries carrying no economic content — `usd term.freshness`
+scores 298 on two distinct values, because high effective sample comes from being noisy, not from
+being informative. `change.DTWEXBGS`, the momentum the whole USD engine rests on, is `eff_n` **12.8**
+over 5.6 years; reaching a merely modest 100 would take 42 years. Longer history does not rescue
+this and neither does faster sampling — that is what the correction measures.
+
+14 of 71 features are constant across all 294 instants, including `term.quality` and
+`term.revision_penalty` in every domain. The latter independently corroborates PR #380: no series
+was revised in a way the term could see across 5.6 years, which is why its broken divisor survived.
+
+**MC6 over state features is closed. Do not build the walk-forward harness for this panel.**
+
+**One candidate survives and is NOT endorsed:** release events replay point-in-time —
+`federal_reserve_fomc` has 55 observations across 55 distinct `available_at` (2020-01-30 onward),
+SEP 25/25, the CPI family 145 release instants from 2015. Discrete non-overlapping releases do not
+suffer the overlap death. n≈55–145 is small and has its own power problem, and surprise definition,
+baseline and horizon are all unspecified. It gets its own preflight or it gets dropped.
 
 ## MC4 — the snapshot is a refusal layer
 
@@ -128,10 +147,11 @@ Four independently reviewable PRs:
 **Exit:** a partial domain failure can never render as a coherent fresh chain; a later evidence
 revision does not change an old snapshot hash; the page no longer fetches four latest states.
 
-## MC5 — held
+## MC5 — held, and now without an empirical basis
 
-Not started, not authorized. Requires the preflight above to produce something other than
-`descriptive_only`, plus a fresh authority decision. If it ever proceeds, it stays removable and must
+Not started, not authorized. It required the preflight above to produce something other than
+`descriptive_only`. It did not. Nothing measured justifies putting macro into the Fundamental PM
+surface, so the hold is no longer procedural — it is the finding. If it ever proceeds, it stays removable and must
 prove byte-invariance of every fundamental fact, score, valuation anchor, and hash with macro on and
 off.
 

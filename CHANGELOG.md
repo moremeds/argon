@@ -7,6 +7,46 @@ version in lockstep (enforced by `scripts/release/version_sync_check.py`).
 
 ## [Unreleased]
 
+### Added
+
+- **MC6 preflight — verdict `descriptive_only`.**
+  `docs/research/2026-08-24-macro-continuous-feature-preflight/` plus
+  `scripts/research/macro_continuous_feature_preflight.py`. Read-only; it replays the engines at
+  historical instants and never touches `macro_domain_states`.
+  - The 2026-08-23 flip census replayed monthly and got 68 points. That clock was a choice — the
+    engines take weekly without complaint (**294/294 instants, three domains, zero errors**). It
+    did not help.
+  - **Information and sample size run in opposite directions here.** The features with the largest
+    effective sample carry none: `usd term.freshness` scores `eff_n` 298 on **two** distinct
+    values, because a high effective sample comes from being noisy rather than informative. Any
+    harness ranking candidates by sample size would select exactly these.
+  - Every economically meaningful feature lands between `eff_n` 0.9 and 27 after the AR(1)
+    correction. `change.DTWEXBGS` — the momentum the entire USD engine rests on, whose threshold
+    PR #377 moved — is **12.8** over 5.6 years. A non-overlapping cross-check independent of the
+    AR(1) model gives ≈22, the same order.
+  - **Longer history does not rescue it and faster sampling is what the correction measures.**
+    Reaching a merely modest `eff_n` of 100 needs 21–57 years for the best features and centuries
+    for the rate levels. The constraint is that these variables move slower than any window a desk
+    will hold, not that our store is short.
+  - 14 of 71 features are constant across all 294 instants, including `term.quality` and
+    `term.revision_penalty` in **every** domain — an independent corroboration of PR #380, since a
+    term that never varied in 5.6 years cannot fail a test that only exercises it.
+  - **One candidate survives and is not endorsed:** release events replay point-in-time —
+    `federal_reserve_fomc` 55 observations across **55** distinct `available_at`, SEP 25/25, CPI
+    family 145 release instants from 2015. Discrete non-overlapping releases escape the overlap
+    death. n≈55–145 is small, surprise/baseline/horizon are unspecified, and it gets its own
+    preflight or it gets dropped.
+  - Gold remains structurally excluded: `GLD_CLOSE` holds 275 periods across **3** availability
+    instants, `GLD_HOLDINGS_OZ` 274 across **1**.
+
+### Changed
+
+- **MC6 over state features is closed, and MC5's hold is now a finding rather than a procedure.**
+  Do not build the walk-forward harness for this panel; the preregistered sample gate fails before
+  a target is even chosen, which is the right place to stop. The risk-monitoring authority boundary
+  is not the conservative option — it is the only one the measurement supports. MC4 proceeds
+  unchanged, which is why the preflight ran in parallel with it rather than after.
+
 ### Fixed
 
 - **Macro confidence now explains the set it actually measured.** `compute_confidence`
