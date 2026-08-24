@@ -1,5 +1,12 @@
 # Macro MC4–MC6 Context Snapshot, PM Integration, and Validation Implementation Plan
 
+> **Sequencing superseded by** `2026-08-24-macro-mc4-mc6-sequenced.md`. The task decomposition below
+> is still good; the ORDER is not, and neither are the migration numbers. This plan assumed MC6 would
+> validate state transitions — the 2026-08-23 replay census measured 4/8/13 flips over 68 months and
+> killed that unit, so MC6 is now gated on a preflight this plan does not contain. Read the sequenced
+> plan for order, gates, and the two settled decisions (belief-preserving replay; risk-monitoring
+> authority) before executing any task here.
+
 > **For Claude:** REQUIRED SUB-SKILL: Use superpowers:executing-plans to implement this plan task-by-task.
 
 **Goal:** assemble the four verified macro domains into a reproducible top-down context snapshot,
@@ -24,8 +31,10 @@ PM report/card contracts when landed, and `src/uw_scan/backtest/`.
   Re-anchor file paths to the merged PM implementation before coding; do not edit the active P1b
   ingest worktree.
 - MC4, MC5, and MC6 are separate PRs. MC6 failure does not roll back MC4/MC5 descriptive context.
-- Recheck migration numbering; this plan reserves `117_macro_context_snapshots.sql` for MC4 and
-  `118_company_macro_exposures.sql` for MC5.
+- **The reserved migration numbers are void.** This plan reserved `117_macro_context_snapshots.sql`
+  for MC4 and `118_company_macro_exposures.sql` for MC5; the Fundamental lane took both
+  (`117_fundamental_scores.sql`, `118_valuation_anchors.sql`). The tail is `129` as of 2026-08-24, so
+  MC4 starts at `130`. Read the tail from `src/uw_scan/storage/migrations/`, never from this plan.
 
 ## MC4 — versioned context snapshot and macro surface
 

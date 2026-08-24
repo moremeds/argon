@@ -51,8 +51,11 @@ def compute_confidence(
     # factor that was NOT required, and len()/len() reported 1/1 complete on a state
     # whose one required input was absent: full confidence in a reading built from a
     # substitute. Counting the intersection cannot express that.
+    # Named once, because four terms below need to say WHICH set they measured and the
+    # last defect here was a value and its own explanation drawn from different ones.
+    present_required = required - len(missing)
     completeness = (
-        Decimal(required - len(missing)) / Decimal(required) if required else Decimal(0)
+        Decimal(present_required) / Decimal(required) if required else Decimal(0)
     )
 
     # The minimum, not a mean: one input that has gone quiet past its own cadence
@@ -67,8 +70,14 @@ def compute_confidence(
     )
 
     revised = revised_series(factors, prior_state, required_series=required_series)
+    # Over the REQUIRED present, matching ``revised``, which ``revised_series`` has
+    # already filtered to the required set.  Dividing a required-only count by every
+    # factor let an optional input the state does not stand on halve the penalty for
+    # revising the input it does.
     revision_penalty = (
-        Decimal(len(revised)) / Decimal(present) if present and revised else Decimal(0)
+        Decimal(len(revised)) / Decimal(present_required)
+        if present_required and revised
+        else Decimal(0)
     )
     contradiction_penalty = min(
         contradiction_penalty_each * len(contradictions), contradiction_penalty_cap
@@ -86,7 +95,7 @@ def compute_confidence(
         ConfidenceTerm(
             "completeness",
             completeness,
-            f"{present}/{required} load-bearing inputs present"
+            f"{present_required}/{required} load-bearing inputs present"
             + (f"; missing {', '.join(missing)}" if missing else ""),
         ),
         ConfidenceTerm(
@@ -99,7 +108,12 @@ def compute_confidence(
         ConfidenceTerm(
             "quality",
             quality,
-            "mean publisher quality weight over present load-bearing inputs",
+            f"mean publisher quality weight over {present} consumed input(s)"
+            + (
+                f"; {present - present_required} of them optional"
+                if present > present_required
+                else ""
+            ),
         ),
         ConfidenceTerm(
             "revision_penalty",

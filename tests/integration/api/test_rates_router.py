@@ -12,6 +12,7 @@ from fastapi.testclient import TestClient
 from uw_scan.api.routers.rates import _mark_stale_snapshot_sources
 from uw_scan.api.deps import get_repo, get_settings
 from uw_scan.api.server import create_app
+from uw_scan.macro.rates import RATES_ENGINE_VERSION
 from uw_scan.config import Settings
 from uw_scan.models import (
     RatesCurvePoint,
@@ -222,7 +223,7 @@ def test_the_flagged_state_block_carries_its_confidence_and_a_route_to_its_evide
     state = body["state"]
     assert state["domain"] == "policy_rates"
     assert state["state"] == "ON_HOLD"
-    assert state["engine_version"] == "rates/1"
+    assert state["engine_version"] == RATES_ENGINE_VERSION
     assert state["confidence_reasons"], (
         "a confidence with no terms cannot be argued with"
     )

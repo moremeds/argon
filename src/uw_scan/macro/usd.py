@@ -51,7 +51,12 @@ from .contracts import (
 #: Bumped to usd/2 when the momentum threshold moved from the median of the move
 #: distribution (2.0%) to its upper quartile (3.0%).  Stored usd/1 states keep their
 #: own semantics and stay readable; a reader filtering on engine_version gets one.
-USD_ENGINE_VERSION = "usd/2"
+#: Bumped when the shared confidence engine's revision penalty changed divisor, from
+#: every factor consumed to the required set its numerator was already drawn from.  The
+#: state LABEL is untouched, but confidence is published on the state record and a
+#: reader comparing it across this line would be comparing two arithmetics.  Engine
+#: version is the selector that keeps them apart; stored usd/2 states stay readable.
+USD_ENGINE_VERSION = "usd/3"
 
 UsdStateLabel = Literal["STRENGTHENING", "WEAKENING", "RANGEBOUND", "UNKNOWN"]
 
@@ -98,7 +103,7 @@ class UpstreamState:
 class UsdParameters:
     """Versioned thresholds, hashed with the evidence rather than hidden in constants."""
 
-    version: str = "usd/2"
+    version: str = "usd/3"
     #: Observations, not calendar days.  The H.10 releases weekly carrying the week's
     #: daily values, so 63 observations is about a calendar quarter of prints.
     momentum_window_obs: int = 63

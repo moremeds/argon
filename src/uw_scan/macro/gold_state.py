@@ -57,7 +57,12 @@ from .contracts import (
 from .evidence_store import INFLATION_EVIDENCE, RATES_EVIDENCE, USD_EVIDENCE
 from .usd import UpstreamState
 
-GOLD_ENGINE_VERSION = "gold/1"
+#: Bumped when the shared confidence engine's revision penalty changed divisor, from
+#: every factor consumed to the required set its numerator was already drawn from.  The
+#: state LABEL is untouched, but confidence is published on the state record and a
+#: reader comparing it across this line would be comparing two arithmetics.  Engine
+#: version is the selector that keeps them apart; stored gold/1 states stay readable.
+GOLD_ENGINE_VERSION = "gold/2"
 
 #: The gate's vocabulary IS the gauge's, uppercased.  Inventing a second set of words for
 #: the same measurement would leave two vocabularies to keep in step, and the one that
@@ -142,7 +147,7 @@ class GoldLensResult:
 class GoldParameters:
     """Versioned thresholds, hashed with the evidence rather than hidden in constants."""
 
-    version: str = "gold/1"
+    version: str = "gold/2"
     #: CALENDAR days, not observation counts, and that distinction is load-bearing.
     #: This engine reads four series off three publication calendars -- GLD trades NYSE
     #: sessions, FRED skips its own holidays, SPDR posts business days -- and over one

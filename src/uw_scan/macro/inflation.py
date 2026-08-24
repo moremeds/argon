@@ -41,7 +41,12 @@ from .transforms import (
     yoy_from_index,
 )
 
-INFLATION_ENGINE_VERSION = "inflation/1"
+#: Bumped when the shared confidence engine's revision penalty changed divisor, from
+#: every factor consumed to the required set its numerator was already drawn from.  The
+#: state LABEL is untouched, but confidence is published on the state record and a
+#: reader comparing it across this line would be comparing two arithmetics.  Engine
+#: version is the selector that keeps them apart; stored inflation/1 states stay readable.
+INFLATION_ENGINE_VERSION = "inflation/2"
 
 InflationStateLabel = Literal[
     "BELOW_TARGET",
@@ -83,7 +88,7 @@ _INDEX_TRANSFORMS = frozenset({"index", "index_level"})
 class InflationParameters:
     """Versioned thresholds, hashed into ``inputs_hash`` rather than hidden in constants."""
 
-    version: str = "inflation/1"
+    version: str = "inflation/2"
     at_target_lower: Decimal = Decimal("1.75")
     at_target_upper: Decimal = Decimal("2.25")
     above_target_upper: Decimal = Decimal("3.00")
