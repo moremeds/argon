@@ -163,7 +163,7 @@ and a later evidence revision cannot change an old snapshot's hash.
 
 Four independently reviewable PRs:
 
-1. contract + migration `130` + repository
+1. contract + migration `130` + repository — **DONE 2026-08-24**, PR pending
 2. assembler + worker job + API (current and `?as_of_ts=` replay)
 3. UI reads one snapshot; replay / delta / lazy evidence drawer
 4. real persisted verification: worker → DB → API → browser

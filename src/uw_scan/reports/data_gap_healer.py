@@ -541,6 +541,34 @@ REGISTRY: list[DatasetRegistryEntry] = [
             "any edit to a stored answer"
         ),
     ),
+    # The context snapshot and its domain edges (migration 130). A snapshot is the same
+    # kind of object as the states it holds -- an immutable record of what we concluded at
+    # an instant -- so it heals the same way they do, which is not at all. Worse: a healer
+    # that invented a missing snapshot would be asserting that four domains once agreed,
+    # which is precisely the claim this table exists to be able to REFUSE.
+    DatasetRegistryEntry(
+        "macro_context_snapshots",
+        "macro_evidence",
+        "provenance",
+        expected_frequency="none",
+        source_system="derived",
+        reason=(
+            "immutable record of a four-domain composition at an instant; reassembly "
+            "belongs to the snapshot job, and inventing one would assert a coherence "
+            "that was never observed"
+        ),
+    ),
+    DatasetRegistryEntry(
+        "macro_context_snapshot_domains",
+        "macro_evidence",
+        "provenance",
+        expected_frequency="none",
+        source_system="derived",
+        reason=(
+            "edges of an immutable snapshot; they are written once with their parent and "
+            "have no independent existence to heal"
+        ),
+    ),
     DatasetRegistryEntry(
         "macro_domain_state_evidence",
         "macro_evidence",

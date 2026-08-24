@@ -9,6 +9,42 @@ version in lockstep (enforced by `scripts/release/version_sync_check.py`).
 
 ### Added
 
+- **The macro context snapshot — contract, schema and storage** (migration `130`). First of
+  four slices; this one is persistence only, and nothing assembles or reads a snapshot yet.
+  - **What was missing.** The four domain states are each individually honest: they record what
+    they stood on, and `macro_domain_state_dependencies` (migration 128) already records
+    state → state edges. No table said the four belong *together*. So `/macro` composes four
+    independent latest reads, and the nightly worker — which does use one `as_of` and the right
+    causal order — catches each domain's exception and continues. **A failed rates job lets USD
+    read the previous rates state** (still satisfying `available_at <= as_of`), persist a new USD
+    state citing it, and gold consume the mixture. Four cards render fresh and nothing can tell.
+  - **The snapshot exists to refuse, never to repair.** It may not substitute a fresher upstream
+    to make a chain look coherent. Substitution is how a monitoring layer becomes a fabrication
+    layer, and it is the one property that must not be traded for a tidier page.
+  - Status will be decided by **dependency-edge identity** — does the upstream `state_id` a
+    downstream actually cited equal the one this snapshot holds for that domain — never by
+    timestamp proximity. Migration 128 already stores those edges, so the check reads them
+    rather than inferring anything from clocks.
+  - Four statuses stay distinguishable on purpose: `complete`, `partial`, `incompatible`,
+    `stale`. *"Rates never ran"* and *"rates ran but USD ignored it"* are both refusals and call
+    for different operator actions, so collapsing them to one "degraded" would destroy the only
+    thing the status is for.
+  - **Absence is the lack of a row, never a row carrying a null** — `state_id` is `NOT NULL`. A
+    nullable one would make every reader decide again what a null meant, and one of them would
+    decide it meant zero.
+  - `inputs_hash` covers the domain state **identities** plus the assembler's parameters, so a
+    nightly rerun over unchanged states is a no-op rather than a second opinion, and a later
+    evidence revision cannot change a stored snapshot's hash — a revision produces a new state
+    rather than editing one.
+  - `fetch_macro_context_snapshot_as_of` returns `None` before any snapshot existed rather than
+    an empty snapshot: an invented *"we knew nothing"* row is a claim Argon never made, and a
+    reader cannot tell one from a real refusal.
+  - Both tables are enrolled in the gap-healer registry as unhealable (151 → **153 datasets**).
+    A healer that invented a missing snapshot would be asserting that four domains once agreed,
+    which is precisely the claim this table exists to be able to refuse.
+
+### Added
+
 - **Evidence invalidation, designed** —
   `docs/superpowers/specs/2026-08-24-macro-evidence-invalidation-design.md`. Not implemented, and
   deliberately deprioritized behind MC4; see below.
