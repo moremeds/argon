@@ -7,6 +7,9 @@ version in lockstep (enforced by `scripts/release/version_sync_check.py`).
 
 ## [Unreleased]
 
+## [0.12.17] — 2026-08-25
+
+
 ### Fixed
 
 - **The gold domain state read yesterday's gauge every single night.** `gold_posture_compute`
@@ -270,7 +273,6 @@ version in lockstep (enforced by `scripts/release/version_sync_check.py`).
   reviewed executive status of the macro program: deployed truth, seven binding
   findings, the delivery sequence, and the completion gates. It was written against
   `v0.12.16` and had never been committed.
-
 ## [0.12.16] — 2026-08-23
 
 ### Added
