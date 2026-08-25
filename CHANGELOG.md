@@ -290,6 +290,32 @@ evidence_policy)`, which fails closed — an observation with no claim never
 
 ### Added
 
+- **Fundamental PM Research Radar + company dimensions v2 (M4).** `models/radar.py` +
+  `api/routers/radar.py` + `web/app/radar/page.tsx` + `web/components/radar/RadarTable.tsx` +
+  `web/tests/e2e/radar-page.spec.ts`. Screenshot: `output/playwright/radar-page.png`.
+  - **A six-member state model, because an empty result is six different situations.** `ok`,
+    `stale_run`, `no_compatible_run`, `no_coverage`, `unsupported_capability`, `failed_run`. Four
+    of them are facts about ARGON and only `no_coverage` is a fact about the company — collapsing
+    them into an empty list is how "the job never ran" gets read as "this company has no
+    fundamentals". Transport errors are deliberately NOT a member: a 500 must not arrive dressed
+    as a data state.
+  - `GET /api/scanner/radar` and `GET /api/stock/{ticker}/fundamentals/dimensions`. Warm-store
+    only — zero UW, zero IB, zero lake.
+  - **No hidden renormalization.** Two names whose aggregates rest on different dimension sets are
+    both returned, each carrying `dimensions_present` and `missing_dimensions`, so the caller sees
+    the denominators instead of a column of numbers that silently mean different things.
+  - **Extreme ranks are surfaced, not suppressed.** Measured on the local panel, |z|>10 is
+    0.03–0.3% of rows per dimension — genuine tails, but they land at the top of a descending sort
+    and the registry already warns the top decile is riskier than the middle. Winsorizing would
+    change validated math and dropping the row would hide a real name, so `extreme_dimensions`
+    flags it and the UI marks it.
+  - The page states its own denominator ("49 of 449 names have no compatible result and are absent
+    from this table"), discloses the ordering's permission, and carries the registry's prohibited
+    readings verbatim. Visual language is neutral by construction — no green/red, no gauge — since
+    the measured basis is a rank IC of 0.039 that earns nothing as a book.
+  - A refused aggregate renders as "refused", never 0.00, which would place it in the middle of
+    the distribution and make a claim.
+
 - **The own-history valuation signal survives a split-consistent price basis — but four of five
   weaken and two die (M3.1/M3.2).**
   `scripts/research/fundamental_valuation_split_basis_rerun.py`; verdict

@@ -51,6 +51,14 @@ from .fundamentals import (
     FundamentalStatementsResponse,
     FundamentalSubscore,
 )
+from .radar import (
+    CompanyDimensionsResponse,
+    FundamentalRunRef,
+    RadarDimension,
+    RadarResponse,
+    RadarRow,
+    RadarScope,
+)
 from .gold import (
     GoldCbCountryHistory,
     GoldCorrelationBand,
@@ -338,6 +346,12 @@ from .vrp_lifecycle import (
 
 __all__ = [
     "_UwBase",
+    "CompanyDimensionsResponse",
+    "FundamentalRunRef",
+    "RadarDimension",
+    "RadarResponse",
+    "RadarRow",
+    "RadarScope",
     "MatrixDirection",
     "MatrixConsistencyTier",
     "VannaConditionalReading",

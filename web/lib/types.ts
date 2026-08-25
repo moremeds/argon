@@ -393,9 +393,11 @@ export interface paths {
          *     own contract and its OpenAPI snapshot stay untouched and the two payloads
          *     can evolve independently.
          *
-         *     Reads through `statement_panel`, the same path the scoring job uses, so
-         *     "which observation is current" cannot diverge between the front of a card
-         *     and its back.
+         *     Reads through `current_statement_panel` — newest version per identity, the
+         *     same path the card's front takes — so "which observation is current" cannot
+         *     diverge between the front of a card and its back. Deliberately NOT the
+         *     as-of reader: this endpoint answers "what do we believe now", and an
+         *     observation carrying no availability evidence must still render here.
          *
          *     404 here means "no statements ingested", which is deliberately NOT the card
          *     endpoint's condition ("no score row"). The two can legitimately disagree —
@@ -1955,6 +1957,51 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/stock/{ticker}/fundamentals/dimensions": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Company Dimensions
+         * @description One name's independent dimensions, or the state explaining their absence.
+         */
+        get: operations["company_dimensions_api_stock__ticker__fundamentals_dimensions_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/scanner/radar": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Radar
+         * @description Cross-universe attention routing, ordered only as the claim registry allows.
+         *
+         *     NO HIDDEN RENORMALIZATION. Two names whose aggregates rest on different
+         *     dimension sets are both returned, each carrying `dimensions_present` and
+         *     `missing_dimensions`, and the caller sees the denominators rather than a
+         *     column of numbers that silently mean different things.
+         */
+        get: operations["radar_api_scanner_radar_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/positioning/screener": {
         parameters: {
             query?: never;
@@ -2685,6 +2732,29 @@ export interface components {
             market_date: string;
             /** Points */
             points?: components["schemas"]["CockpitVrpPoint"][];
+        };
+        /**
+         * CompanyDimensionsResponse
+         * @description Company view v2: dimensions plus the state that explains their absence.
+         */
+        CompanyDimensionsResponse: {
+            /** Ticker */
+            ticker: string;
+            /**
+             * State
+             * @enum {string}
+             */
+            state: "ok" | "stale_run" | "no_compatible_run" | "no_coverage" | "unsupported_capability" | "failed_run";
+            /**
+             * Dimensions
+             * @default []
+             */
+            dimensions: components["schemas"]["RadarDimension"][];
+            run?: components["schemas"]["FundamentalRunRef"] | null;
+            /** Reason */
+            reason?: string | null;
+            /** Evidence Coverage */
+            evidence_coverage?: number | null;
         };
         /** CrashTriggerBlock */
         CrashTriggerBlock: {
@@ -3771,6 +3841,30 @@ export interface components {
             filing_date_known: boolean;
             /** Source Obs Count */
             source_obs_count: number;
+        };
+        /**
+         * FundamentalRunRef
+         * @description Which computation produced this answer.
+         *
+         *     Every number a surface shows must trace to one of these. A response with a
+         *     null `run_id` is answering from the warm store without a ledgered run, which
+         *     a caller is entitled to know.
+         */
+        FundamentalRunRef: {
+            /** Run Id */
+            run_id: number | null;
+            /** Engine Version */
+            engine_version: string | null;
+            /** Evidence Policy */
+            evidence_policy: string;
+            /** As Of */
+            as_of: string | null;
+            /** As Of Cutoff */
+            as_of_cutoff: string | null;
+            /** Computed At */
+            computed_at: string | null;
+            /** Status */
+            status: string | null;
         };
         /**
          * FundamentalStatementsResponse
@@ -6777,6 +6871,140 @@ export interface components {
             running: number;
             /** Oldest Requested At */
             oldest_requested_at?: string | null;
+        };
+        /**
+         * RadarDimension
+         * @description One dimension for one name, with the permission it may exercise.
+         *
+         *     `value` is null when no input was present — never 0.0, which is the
+         *     cross-section MEAN and would render a name with no data as exactly average.
+         *     `inputs_present`/`inputs_expected` are what let a surface show the
+         *     denominator instead of a confident-looking blank.
+         */
+        RadarDimension: {
+            /** Dimension */
+            dimension: string;
+            /** Value */
+            value: number | null;
+            /** Inputs Present */
+            inputs_present: number;
+            /** Inputs Expected */
+            inputs_expected: number;
+            /**
+             * Authority
+             * @enum {string}
+             */
+            authority: "descriptive" | "research_priority" | "directional_monitor";
+            /**
+             * Detail
+             * @default {}
+             */
+            detail: {
+                [key: string]: unknown;
+            };
+        };
+        /**
+         * RadarResponse
+         * @description The Radar data product.
+         *
+         *     `ordering` names the claim registry key that licenses the sort. A client that
+         *     re-sorts on anything else is exceeding a permission, and the field is here so
+         *     that is checkable rather than a convention.
+         */
+        RadarResponse: {
+            scope: components["schemas"]["RadarScope"];
+            /** Rows */
+            rows: components["schemas"]["RadarRow"][];
+            /** Ordering */
+            ordering: string;
+            /**
+             * Ordering Authority
+             * @enum {string}
+             */
+            ordering_authority: "descriptive" | "research_priority" | "directional_monitor";
+            /**
+             * Prohibited
+             * @default []
+             */
+            prohibited: string[];
+            /**
+             * State
+             * @default ok
+             * @enum {string}
+             */
+            state: "ok" | "stale_run" | "no_compatible_run" | "no_coverage" | "unsupported_capability" | "failed_run";
+            /** Reason */
+            reason?: string | null;
+        };
+        /**
+         * RadarRow
+         * @description One name on the Radar.
+         *
+         *     `priority` is separated from the dimensions it aggregates so a client cannot
+         *     accidentally render a descriptive dimension as the sort key.
+         */
+        RadarRow: {
+            /** Ticker */
+            ticker: string;
+            /** Company Type */
+            company_type: string | null;
+            /** Priority */
+            priority: number | null;
+            /**
+             * Priority Authority
+             * @enum {string}
+             */
+            priority_authority: "descriptive" | "research_priority" | "directional_monitor";
+            /** Dimensions Present */
+            dimensions_present: number;
+            /** Dimensions Expected */
+            dimensions_expected: number;
+            /**
+             * Missing Dimensions
+             * @default []
+             */
+            missing_dimensions: string[];
+            /**
+             * Dimensions
+             * @default []
+             */
+            dimensions: components["schemas"]["RadarDimension"][];
+            /** Evidence Coverage */
+            evidence_coverage?: number | null;
+            /** As Of */
+            as_of?: string | null;
+            /** Priority Change */
+            priority_change?: number | null;
+            /**
+             * Extreme Dimensions
+             * @default []
+             */
+            extreme_dimensions: string[];
+        };
+        /**
+         * RadarScope
+         * @description The frozen question this Radar answers.
+         *
+         *     Persisted with the response rather than implied by the request, because a
+         *     screenshot of a Radar with no scope is unfalsifiable — and because mixing two
+         *     as-ofs or two engine versions in one table is the failure this exists to make
+         *     impossible to render by accident.
+         */
+        RadarScope: {
+            /** Universe */
+            universe: string;
+            /** Tier */
+            tier: string;
+            /** As Of */
+            as_of: string | null;
+            /** Evidence Policy */
+            evidence_policy: string;
+            /** Engine Version */
+            engine_version: string | null;
+            /** Names */
+            names: number;
+            /** Names Without Result */
+            names_without_result: number;
         };
         /** RatesCrossMarketPanel */
         RatesCrossMarketPanel: {
@@ -14164,6 +14392,74 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["ValueScanResponse"];
+                };
+            };
+        };
+    };
+    company_dimensions_api_stock__ticker__fundamentals_dimensions_get: {
+        parameters: {
+            query?: {
+                engine_version?: string | null;
+            };
+            header?: never;
+            path: {
+                ticker: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["CompanyDimensionsResponse"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    radar_api_scanner_radar_get: {
+        parameters: {
+            query?: {
+                tier?: string;
+                engine_version?: string | null;
+                limit?: number;
+                /** @description Hide names whose aggregate rested on fewer dimensions. */
+                min_dimensions?: number;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["RadarResponse"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
                 };
             };
         };

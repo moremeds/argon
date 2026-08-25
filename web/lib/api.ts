@@ -1,5 +1,10 @@
 import type { components, paths } from "./types";
 
+export type RadarResponse = components["schemas"]["RadarResponse"];
+export type CompanyDimensionsResponse =
+  components["schemas"]["CompanyDimensionsResponse"];
+export type RadarRow = components["schemas"]["RadarRow"];
+export type RadarDimension = components["schemas"]["RadarDimension"];
 type VrpCandidatesResponse = components["schemas"]["VrpCandidatesResponse"];
 type VrpBacktestResponse = components["schemas"]["VrpBacktestResponse"];
 type VrpPaperResponse = components["schemas"]["VrpPaperResponse"];
@@ -325,6 +330,33 @@ export const api = {
         : "/api/macro/snapshot",
       undefined,
       { allow404: true },
+    ),
+  // The Radar is a read over persisted results — no provider, no lake. `state`
+  // is load-bearing: an empty `rows` is six different situations and only one of
+  // them is a fact about the companies.
+  radar: (params?: {
+    tier?: string;
+    engine_version?: string;
+    limit?: number;
+    min_dimensions?: number;
+  }): Promise<RadarResponse> => {
+    const q = new URLSearchParams();
+    if (params?.tier) q.set("tier", params.tier);
+    if (params?.engine_version) q.set("engine_version", params.engine_version);
+    if (params?.limit != null) q.set("limit", String(params.limit));
+    if (params?.min_dimensions != null)
+      q.set("min_dimensions", String(params.min_dimensions));
+    const qs = q.toString();
+    return _fetch<RadarResponse>(`/api/scanner/radar${qs ? `?${qs}` : ""}`);
+  },
+  companyDimensions: (
+    ticker: string,
+    engineVersion?: string,
+  ): Promise<CompanyDimensionsResponse> =>
+    _fetch<CompanyDimensionsResponse>(
+      `/api/stock/${ticker}/fundamentals/dimensions${
+        engineVersion ? `?engine_version=${encodeURIComponent(engineVersion)}` : ""
+      }`,
     ),
   tradeInsights: (ticker: string): Promise<TradeInsightsResponse> =>
     _fetch<TradeInsightsResponse>(`/api/stock/${ticker}/trade-insights`),
