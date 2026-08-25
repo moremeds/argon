@@ -6,7 +6,7 @@ Generated from `REGISTRY` in `src/uw_scan/reports/data_gap_healer.py` (one sourc
 uv run python -c "from uw_scan.reports.data_gap_healer import render_dataset_policy_markdown as r; open('docs/runbooks/data-gap-dataset-policy.md','w').write(r())"
 ```
 
-**159 datasets** across 11 groups.
+**163 datasets** across 11 groups.
 
 ## core_watchlist
 
@@ -29,6 +29,9 @@ uv run python -c "from uw_scan.reports.data_gap_healer import render_dataset_pol
 
 | table | audit_mode | provider | granularity | adapter | freq | reason | verified |
 |---|---|---|---|---|---|---|---|
+| chain_membership | provenance | none | none |  | none | versioned chain membership (migration 137). Seeded by worker/jobs/research_taxonomy_seed at zero provider spend; a reseed is idempotent (an unchanged placement opens no interval). | 2026-08-25 |
+| chain_segment_alias | provenance | none | none |  | none | published segment->chain mapping rules (migration 139). The recorded judgement half of a derived exposure, so the attribution is auditable rather than baked into a magnitude. | 2026-08-25 |
+| company_exposure | provenance | none | none |  | none | economic chain exposure (migration 138). Derived from revenue_breakdown_obs through published alias rules, or asserted with no magnitude — a CHECK forbids a number on an asserted row. Rebuilt by re-running the seed job; nothing to heal from a provider. | 2026-08-25 |
 | company_identity | provenance | none | none |  | none | historized issuer identity — company_type/sector/CIK as validity intervals (migration 134). fundamental_company_type stays the current-state cache; this is the history behind it. Rebuilt by worker/jobs/fundamental_anchors.seed_company_types, which is idempotent (an unchanged reassignment writes no interval) and spends zero provider budget. | 2026-08-25 |
 | company_sector | operational_state | uw | none |  | liveness | a per-ticker cache of the vendor's current sector, used only to route company_type. `fetched_at` records when we last ASKED, not when a fact was true, so there is no per-date series to be missing and nothing to backfill; a stale row self-heals on the next monthly fill and a name absent from it simply routes to the pooled default, exactly as before the table existed |  |
 | fundamental_company_type | excluded | none | none |  | none | hand-maintainable routing table, not a time series — a missing row means the name is unrouted, which the card states explicitly |  |
@@ -44,6 +47,7 @@ uv run python -c "from uw_scan.reports.data_gap_healer import render_dataset_pol
 | fundamental_scores | freshness_only | db | run_once | fundamental_refresh | event | derived from fundamental_statement_obs; worker/jobs/fundamental_refresh re-runs routing -> scoring -> anchors at zero provider spend. The old reason named this job and then declined to wire it. | 2026-08-16 |
 | fundamental_statement_obs | freshness_only | uw | none |  | event | quarterly filings over the fundamental universe (450 tickers as of 2026-08-18; it moves when the seeder runs), not the watchlist. Deliberately NOT wired to the healer: unlike scores/anchors this is a provider INGEST, and worker/jobs/fundamental_refresh explicitly does not ingest. Heal by running scripts/backfill/fundamental_ingest_backfill.py (insert-or-touch, safe to repeat) as a budgeted operator action, not on the nightly cron. | 2026-08-16 |
 | fundamental_universe | excluded | none | none |  | none | seeded membership list, not a time series; scripts/seed_fundamental_universe.py is the source of truth |  |
+| research_taxonomy_versions | provenance | none | none |  | none | taxonomy version catalogue (migration 137). One row per published taxonomy; nothing to heal. | 2026-08-25 |
 | revenue_breakdown_obs | freshness_only | uw | none |  | event | revenue breakdown by XBRL axis over the fundamental universe. Deliberately NOT wired to the healer: this is a provider INGEST, and its own capture job is the only writer. Heal by re-running worker/jobs/fundamental_concentration_capture (insert-or-touch by content hash, safe to repeat) as a budgeted operator action, not on the nightly cron. Note the provider window may roll: a period that has aged out cannot be healed at all, which is why capture runs monthly rather than quarterly. | 2026-08-18 |
 | sec_cik_map | provenance | none | none |  | none | ticker -> CIK from SEC company_tickers.json (migration 132). Rebuilt wholesale by the index refresh; a stale row costs one issuer's filings, not correctness, because sec_filing_index stores the ticker it was fetched under. | 2026-08-25 |
 | sec_filing_index | provenance | none | none |  | event | SEC EDGAR periodic filings (migration 132), accession-keyed and immutable — a correction is a NEW accession, never an edit, so a replay collides and writes nothing. Repaired by re-running scripts/backfill/sec_publication_evidence.py --index, which spends zero provider budget. Not a healer adapter: there is no calendar spine to be short of. Runbook: docs/runbooks/fundamental-observation-availability.md | 2026-08-25 |

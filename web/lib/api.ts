@@ -1,6 +1,11 @@
 import type { components, paths } from "./types";
 
 export type RadarResponse = components["schemas"]["RadarResponse"];
+export type ChainMatrixResponse = components["schemas"]["ChainMatrixResponse"];
+export type ChainCell = components["schemas"]["ChainCell"];
+export type ChainDrilldownResponse =
+  components["schemas"]["ChainDrilldownResponse"];
+export type ChainMember = components["schemas"]["ChainMember"];
 export type CompanyDimensionsResponse =
   components["schemas"]["CompanyDimensionsResponse"];
 export type RadarRow = components["schemas"]["RadarRow"];
@@ -348,6 +353,32 @@ export const api = {
       q.set("min_dimensions", String(params.min_dimensions));
     const qs = q.toString();
     return _fetch<RadarResponse>(`/api/scanner/radar${qs ? `?${qs}` : ""}`);
+  },
+  chainMatrix: (params?: {
+    taxonomy_version?: string;
+    engine_version?: string;
+    domain?: string;
+  }): Promise<ChainMatrixResponse> => {
+    const q = new URLSearchParams();
+    if (params?.taxonomy_version) q.set("taxonomy_version", params.taxonomy_version);
+    if (params?.engine_version) q.set("engine_version", params.engine_version);
+    if (params?.domain) q.set("domain", params.domain);
+    const qs = q.toString();
+    return _fetch<ChainMatrixResponse>(
+      `/api/research/chains/matrix${qs ? `?${qs}` : ""}`,
+    );
+  },
+  chainMembers: (
+    chain: string,
+    params?: { layer?: string; engine_version?: string },
+  ): Promise<ChainDrilldownResponse> => {
+    const q = new URLSearchParams();
+    if (params?.layer) q.set("layer", params.layer);
+    if (params?.engine_version) q.set("engine_version", params.engine_version);
+    const qs = q.toString();
+    return _fetch<ChainDrilldownResponse>(
+      `/api/research/chains/${encodeURIComponent(chain)}${qs ? `?${qs}` : ""}`,
+    );
   },
   companyDimensions: (
     ticker: string,

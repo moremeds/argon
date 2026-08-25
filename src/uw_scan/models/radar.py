@@ -171,3 +171,73 @@ _preserve_public_module(
     RadarScope,
     RadarResponse,
 )
+
+
+class ChainCell(_UwBase):
+    """One chain × layer cell of the research matrix.
+
+    `members` is the DENOMINATOR and `with_result` the numerator. A cell showing
+    an aggregate without both is unreadable: a mean over 2 of 17 members and a
+    mean over 17 of 17 look identical and mean opposite things.
+    """
+
+    chain: str
+    layer: str
+    domain: str
+    layer_rank: int
+    members: int
+    with_result: int
+    #: Mean priority over members carrying a compatible result. Null when the
+    #: cell abstains — which is a state, not a gap.
+    priority_mean: float | None = None
+    #: Members whose exposure carries a DISCLOSED magnitude. Measured at 4 of 316
+    #: across the seeded taxonomy, so this is usually 0 and that is the finding.
+    with_magnitude: int = 0
+    #: Why the cell abstained, when it did.
+    abstain_reason: str | None = None
+
+
+class ChainMatrixResponse(_UwBase):
+    """The chain × layer matrix under one taxonomy version and one engine.
+
+    Both versions travel with the payload because mixing two taxonomy snapshots
+    or two engine versions in one matrix is the failure this product exists to
+    make impossible to render by accident.
+    """
+
+    taxonomy_version: str
+    engine_version: str | None
+    cells: list[ChainCell]
+    #: Chain-level exposure coverage: members / with_exposure / with_magnitude.
+    coverage: dict = {}
+    state: FundamentalResultState = "ok"
+    reason: str | None = None
+    #: What a chain aggregate may not be read as. Chain membership is measured to
+    #: be a sector by another name, so no propagation claim is licensed.
+    prohibited: list[str] = []
+
+
+class ChainMember(_UwBase):
+    ticker: str
+    layer: str
+    evidence_class: str
+    approved_by: str
+    role: str | None = None
+    direction: str | None = None
+    magnitude: float | None = None
+    magnitude_basis: str | None = None
+    exposure_status: str | None = None
+    source_ref: str | None = None
+    priority: float | None = None
+
+
+class ChainDrilldownResponse(_UwBase):
+    taxonomy_version: str
+    chain: str
+    layer: str | None
+    members: list[ChainMember]
+    state: FundamentalResultState = "ok"
+    reason: str | None = None
+
+
+_preserve_public_module(ChainCell, ChainMatrixResponse, ChainMember, ChainDrilldownResponse)

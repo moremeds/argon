@@ -782,6 +782,134 @@
         "title": "CandidateStructure",
         "type": "object"
       },
+      "ChainCell": {
+        "description": "One chain \u00d7 layer cell of the research matrix.\n\n`members` is the DENOMINATOR and `with_result` the numerator. A cell showing\nan aggregate without both is unreadable: a mean over 2 of 17 members and a\nmean over 17 of 17 look identical and mean opposite things.",
+        "properties": {
+          "abstain_reason": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Abstain Reason"
+          },
+          "chain": {
+            "title": "Chain",
+            "type": "string"
+          },
+          "domain": {
+            "title": "Domain",
+            "type": "string"
+          },
+          "layer": {
+            "title": "Layer",
+            "type": "string"
+          },
+          "layer_rank": {
+            "title": "Layer Rank",
+            "type": "integer"
+          },
+          "members": {
+            "title": "Members",
+            "type": "integer"
+          },
+          "priority_mean": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Priority Mean"
+          },
+          "with_magnitude": {
+            "default": 0,
+            "title": "With Magnitude",
+            "type": "integer"
+          },
+          "with_result": {
+            "title": "With Result",
+            "type": "integer"
+          }
+        },
+        "required": [
+          "chain",
+          "layer",
+          "domain",
+          "layer_rank",
+          "members",
+          "with_result"
+        ],
+        "title": "ChainCell",
+        "type": "object"
+      },
+      "ChainDrilldownResponse": {
+        "properties": {
+          "chain": {
+            "title": "Chain",
+            "type": "string"
+          },
+          "layer": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Layer"
+          },
+          "members": {
+            "items": {
+              "$ref": "#/components/schemas/ChainMember"
+            },
+            "title": "Members",
+            "type": "array"
+          },
+          "reason": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Reason"
+          },
+          "state": {
+            "default": "ok",
+            "enum": [
+              "ok",
+              "stale_run",
+              "no_compatible_run",
+              "no_coverage",
+              "unsupported_capability",
+              "failed_run"
+            ],
+            "title": "State",
+            "type": "string"
+          },
+          "taxonomy_version": {
+            "title": "Taxonomy Version",
+            "type": "string"
+          }
+        },
+        "required": [
+          "taxonomy_version",
+          "chain",
+          "layer",
+          "members"
+        ],
+        "title": "ChainDrilldownResponse",
+        "type": "object"
+      },
       "ChainFlowReadRow": {
         "properties": {
           "call_open_interest": {
@@ -865,6 +993,183 @@
           "strike"
         ],
         "title": "ChainFlowReadRow",
+        "type": "object"
+      },
+      "ChainMatrixResponse": {
+        "description": "The chain \u00d7 layer matrix under one taxonomy version and one engine.\n\nBoth versions travel with the payload because mixing two taxonomy snapshots\nor two engine versions in one matrix is the failure this product exists to\nmake impossible to render by accident.",
+        "properties": {
+          "cells": {
+            "items": {
+              "$ref": "#/components/schemas/ChainCell"
+            },
+            "title": "Cells",
+            "type": "array"
+          },
+          "coverage": {
+            "additionalProperties": true,
+            "default": {},
+            "title": "Coverage",
+            "type": "object"
+          },
+          "engine_version": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Engine Version"
+          },
+          "prohibited": {
+            "default": [],
+            "items": {
+              "type": "string"
+            },
+            "title": "Prohibited",
+            "type": "array"
+          },
+          "reason": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Reason"
+          },
+          "state": {
+            "default": "ok",
+            "enum": [
+              "ok",
+              "stale_run",
+              "no_compatible_run",
+              "no_coverage",
+              "unsupported_capability",
+              "failed_run"
+            ],
+            "title": "State",
+            "type": "string"
+          },
+          "taxonomy_version": {
+            "title": "Taxonomy Version",
+            "type": "string"
+          }
+        },
+        "required": [
+          "taxonomy_version",
+          "engine_version",
+          "cells"
+        ],
+        "title": "ChainMatrixResponse",
+        "type": "object"
+      },
+      "ChainMember": {
+        "properties": {
+          "approved_by": {
+            "title": "Approved By",
+            "type": "string"
+          },
+          "direction": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Direction"
+          },
+          "evidence_class": {
+            "title": "Evidence Class",
+            "type": "string"
+          },
+          "exposure_status": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Exposure Status"
+          },
+          "layer": {
+            "title": "Layer",
+            "type": "string"
+          },
+          "magnitude": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Magnitude"
+          },
+          "magnitude_basis": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Magnitude Basis"
+          },
+          "priority": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Priority"
+          },
+          "role": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Role"
+          },
+          "source_ref": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Source Ref"
+          },
+          "ticker": {
+            "title": "Ticker",
+            "type": "string"
+          }
+        },
+        "required": [
+          "ticker",
+          "layer",
+          "evidence_class",
+          "approved_by"
+        ],
+        "title": "ChainMember",
         "type": "object"
       },
       "ChanlunLifecycleMark": {
@@ -30358,6 +30663,181 @@
         "summary": "Get Vrp Macro Signal Live",
         "tags": [
           "regime"
+        ]
+      }
+    },
+    "/api/research/chains/matrix": {
+      "get": {
+        "description": "chain \u00d7 layer matrix, rolled up from compatible company results.\n\nRead-time rollup, not a cached aggregate: the inputs are already persisted\nand a cache here would be a second place for the as-of to disagree with\nitself.",
+        "operationId": "chain_matrix_api_research_chains_matrix_get",
+        "parameters": [
+          {
+            "in": "query",
+            "name": "taxonomy_version",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Taxonomy Version"
+            }
+          },
+          {
+            "in": "query",
+            "name": "engine_version",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Engine Version"
+            }
+          },
+          {
+            "in": "query",
+            "name": "domain",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Domain"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ChainMatrixResponse"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Chain Matrix",
+        "tags": [
+          "radar",
+          "radar"
+        ]
+      }
+    },
+    "/api/research/chains/{chain}": {
+      "get": {
+        "description": "The names behind a cell, each with its exposure evidence.",
+        "operationId": "chain_members_api_research_chains__chain__get",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "chain",
+            "required": true,
+            "schema": {
+              "title": "Chain",
+              "type": "string"
+            }
+          },
+          {
+            "in": "query",
+            "name": "layer",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Layer"
+            }
+          },
+          {
+            "in": "query",
+            "name": "taxonomy_version",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Taxonomy Version"
+            }
+          },
+          {
+            "in": "query",
+            "name": "engine_version",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Engine Version"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ChainDrilldownResponse"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Chain Members",
+        "tags": [
+          "radar",
+          "radar"
         ]
       }
     },

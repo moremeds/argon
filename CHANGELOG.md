@@ -290,6 +290,37 @@ evidence_policy)`, which fails closed — an observation with no claim never
 
 ### Added
 
+- **Versioned research taxonomy, evidence-backed chain exposure, and the chain matrix (M5).**
+  Migrations `137`/`138`/`139` + `storage/research_taxonomy.py` +
+  `worker/jobs/research_taxonomy_seed.py` + `scripts/backfill/research_taxonomy_seed.py` +
+  `api/routers/radar.py` (`/research/chains/matrix`, `/research/chains/{chain}`) +
+  `web/app/chains/` + `web/components/chains/ChainMatrix.tsx`.
+  Verdict: `docs/research/2026-08-25-chain-exposure-yield/`.
+  - **Chain exposure is 1.3% disclosed: 316 memberships, 316 with a role, 4 with a number.**
+    The dominant XBRL segment tag is the generic `ReportableSegmentMember` (47 tickers); the
+    chain-relevant names appear on one or two filers each. Most companies simply do not disclose
+    segments whose names identify a chain.
+  - **A CHECK constraint is the deliverable.** `magnitude` may be non-NULL only when
+    `status='disclosed'` AND `magnitude_basis` names an evidenced kind, so the 312 rows without a
+    disclosure physically cannot hold a number. Without it those rows would have been filled with
+    plausible hand-typed percentages and every chain aggregate would have inherited the fiction
+    undetectably — a typed 38% renders identically to a disclosed one.
+  - **A derived magnitude is auditable in both halves.** `source_obs_id` names the observation
+    behind the number; `chain_segment_alias` names the published rule behind its attribution to a
+    chain. The judgement is recorded rather than hidden inside the value.
+  - `watchlist_chain` is **mirrored, not migrated** — the shipped filter rail is untouched and
+    every copied row lands as `evidence_class='mirrored'` so the new object inherits no authority
+    the old one never had.
+  - **M5.5 extensibility proof passes:** the optical-communication chain (5 layers, 17 members)
+    was added as ROWS only — no new table, no new job, no scoring fork.
+  - Cells with fewer than 3 members carrying a compatible result **abstain**, because a mean over
+    one name is that name's number wearing a chain's label. Abstaining cells render hatched with
+    their reason, never blank.
+  - No causal claim is licensed: `layer_rank` is a reading order, every `counterparty` is NULL,
+    and the matrix carries that prohibition in its own payload. The measured basis is the
+    capex-demand ledger, whose cross-name relationship collapsed from +0.247 to +0.015 (p=0.44)
+    among same-sector pairs.
+
 - **Fundamental PM Research Radar + company dimensions v2 (M4).** `models/radar.py` +
   `api/routers/radar.py` + `web/app/radar/page.tsx` + `web/components/radar/RadarTable.tsx` +
   `web/tests/e2e/radar-page.spec.ts`. Screenshot: `output/playwright/radar-page.png`.

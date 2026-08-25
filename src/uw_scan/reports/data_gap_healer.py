@@ -1741,6 +1741,86 @@ REGISTRY.extend(
             reason_verified_on=date(2026, 8, 25),
         ),
         DatasetRegistryEntry(
+            "chain_membership",
+            "fundamentals",
+            # `provenance`. Validity intervals over a versioned taxonomy; a row
+            # appears when a placement CHANGES, so freshness would measure how
+            # often the taxonomy is edited.
+            "provenance",
+            date_col="valid_from",
+            ticker_col="ticker",
+            expected_frequency="none",
+            provider="none",
+            granularity="none",
+            healer_adapter=None,
+            source_system="argon",
+            retention_days=None,
+            reason=(
+                "versioned chain membership (migration 137). Seeded by "
+                "worker/jobs/research_taxonomy_seed at zero provider spend; a "
+                "reseed is idempotent (an unchanged placement opens no interval)."
+            ),
+            reason_verified_on=date(2026, 8, 25),
+        ),
+        DatasetRegistryEntry(
+            "company_exposure",
+            "fundamentals",
+            "provenance",
+            date_col="recorded_at",
+            ticker_col="ticker",
+            expected_frequency="none",
+            provider="none",
+            granularity="none",
+            healer_adapter=None,
+            source_system="derived",
+            retention_days=None,
+            reason=(
+                "economic chain exposure (migration 138). Derived from "
+                "revenue_breakdown_obs through published alias rules, or asserted "
+                "with no magnitude — a CHECK forbids a number on an asserted row. "
+                "Rebuilt by re-running the seed job; nothing to heal from a "
+                "provider."
+            ),
+            reason_verified_on=date(2026, 8, 25),
+        ),
+        DatasetRegistryEntry(
+            "chain_segment_alias",
+            "fundamentals",
+            "provenance",
+            date_col="created_at",
+            ticker_col=None,
+            expected_frequency="none",
+            provider="none",
+            granularity="none",
+            healer_adapter=None,
+            source_system="argon",
+            retention_days=None,
+            reason=(
+                "published segment->chain mapping rules (migration 139). The "
+                "recorded judgement half of a derived exposure, so the "
+                "attribution is auditable rather than baked into a magnitude."
+            ),
+            reason_verified_on=date(2026, 8, 25),
+        ),
+        DatasetRegistryEntry(
+            "research_taxonomy_versions",
+            "fundamentals",
+            "provenance",
+            date_col="created_at",
+            ticker_col=None,
+            expected_frequency="none",
+            provider="none",
+            granularity="none",
+            healer_adapter=None,
+            source_system="argon",
+            retention_days=None,
+            reason=(
+                "taxonomy version catalogue (migration 137). One row per "
+                "published taxonomy; nothing to heal."
+            ),
+            reason_verified_on=date(2026, 8, 25),
+        ),
+        DatasetRegistryEntry(
             "revenue_breakdown_obs",
             "fundamentals",
             # freshness_only for the same reason as fundamental_statement_obs:

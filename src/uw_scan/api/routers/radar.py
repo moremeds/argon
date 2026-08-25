@@ -26,6 +26,10 @@ from uw_scan.config import Settings
 from uw_scan.fundamentals.claims import claim_for
 from uw_scan.fundamentals.dimensions import AGGREGATE_DIMENSIONS, DIMENSIONS
 from uw_scan.models import (
+    ChainCell,
+    ChainDrilldownResponse,
+    ChainMatrixResponse,
+    ChainMember,
     CompanyDimensionsResponse,
     FundamentalRunRef,
     RadarDimension,
@@ -36,6 +40,7 @@ from uw_scan.models import (
 from uw_scan.storage.fundamental_dimensions import FundamentalDimensionsRepository
 from uw_scan.storage.repository import Repository
 from uw_scan.storage.fundamental_scores import FundamentalScoresRepository
+from uw_scan.storage.research_taxonomy import ResearchTaxonomyRepository
 
 log = logging.getLogger(__name__)
 
@@ -316,4 +321,217 @@ def radar(
         prohibited=list(claim.prohibited),
         state=state,
         reason=reason,
+    )
+
+
+#: What a chain aggregate may never be read as. Measured, not stylistic: the
+#: capex-demand ledger's cross-name relationship collapsed from +0.247 to +0.015
+#: (p=0.44) once same-SECTOR pairs were compared, which is the finding that a
+#: chain — as membership — is a sector by another name.
+CHAIN_PROHIBITED = [
+    "a causal claim — no edge in this taxonomy has demonstrated forward "
+    "information, so nothing propagates from one layer to another",
+    "a supplier/customer relationship — membership is semantic, and a named "
+    "counterparty requires a named source",
+    "an economic exposure, unless the row carries a disclosed magnitude "
+    "(measured at 4 of 316 members)",
+]
+
+#: A cell needs at least this many members with a compatible result before it
+#: reports a mean. Below it the cell abstains: a mean over one name is that
+#: name's number wearing a chain's label.
+MIN_CELL_MEMBERS = 3
+
+
+@router.get("/research/chains/matrix", response_model=ChainMatrixResponse)
+def chain_matrix(
+    taxonomy_version: str | None = Query(default=None),
+    engine_version: str | None = Query(default=None),
+    domain: str | None = Query(default=None),
+    repo: Repository = Depends(get_repo),
+    settings: Settings = Depends(get_settings),
+) -> ChainMatrixResponse:
+    """chain × layer matrix, rolled up from compatible company results.
+
+    Read-time rollup, not a cached aggregate: the inputs are already persisted
+    and a cache here would be a second place for the as-of to disagree with
+    itself.
+    """
+    conn = repo.conn
+    schema = settings.db_schema
+    tax = ResearchTaxonomyRepository(conn, schema=schema)
+    version = taxonomy_version or tax.active_version()
+    engine = engine_version or FundamentalScoresRepository(
+        conn, schema=schema
+    ).active_version()
+
+    if version is None:
+        return ChainMatrixResponse(
+            taxonomy_version="",
+            engine_version=engine,
+            cells=[],
+            state="unsupported_capability",
+            reason="no active taxonomy version is published",
+            prohibited=CHAIN_PROHIBITED,
+        )
+
+    params: list[object] = [engine, version]
+    domain_clause = ""
+    if domain:
+        domain_clause = " AND c.domain = %s"
+        params.append(domain)
+
+    with conn.cursor() as cur:
+        cur.execute(
+            f"""
+            WITH latest AS (
+                SELECT DISTINCT ON (ticker) ticker, value
+                  FROM {schema}.fundamental_dimensions
+                 WHERE engine_version = %s AND dimension = 'priority'
+                 ORDER BY ticker, as_of DESC
+            )
+            SELECT c.domain, c.chain, c.layer, c.layer_rank,
+                   count(m.membership_id)                              AS members,
+                   count(l.ticker)                                     AS with_result,
+                   avg(l.value)                                        AS priority_mean,
+                   count(DISTINCT e.ticker) FILTER
+                        (WHERE e.magnitude IS NOT NULL)                AS with_magnitude
+              FROM {schema}.research_chains c
+              LEFT JOIN {schema}.chain_membership m
+                     ON m.taxonomy_version = c.taxonomy_version
+                    AND m.chain = c.chain AND m.layer = c.layer
+                    AND m.valid_to IS NULL
+              LEFT JOIN latest l ON l.ticker = m.ticker
+              LEFT JOIN {schema}.company_exposure e
+                     ON e.taxonomy_version = m.taxonomy_version
+                    AND e.chain = m.chain AND e.ticker = m.ticker
+                    AND e.valid_to IS NULL
+             WHERE c.taxonomy_version = %s{domain_clause}
+             GROUP BY c.domain, c.chain, c.layer, c.layer_rank
+             ORDER BY c.domain, c.chain, c.layer_rank, c.layer
+            """,
+            params,
+        )
+        rows = cur.fetchall()
+
+    cells: list[ChainCell] = []
+    for dom, chain, layer, rank, members, with_result, mean, with_mag in rows:
+        abstain = None
+        value = None
+        if members == 0:
+            abstain = "no members in this cell"
+        elif with_result < MIN_CELL_MEMBERS:
+            # A mean over one or two names is those names' number wearing a
+            # chain's label. Abstaining says so; rendering it would not.
+            abstain = (
+                f"only {with_result} of {members} members carry a compatible "
+                f"result ({MIN_CELL_MEMBERS} required)"
+            )
+        else:
+            value = float(mean) if mean is not None else None
+        cells.append(
+            ChainCell(
+                chain=chain,
+                layer=layer,
+                domain=dom,
+                layer_rank=int(rank or 0),
+                members=int(members),
+                with_result=int(with_result),
+                priority_mean=value,
+                with_magnitude=int(with_mag or 0),
+                abstain_reason=abstain,
+            )
+        )
+
+    return ChainMatrixResponse(
+        taxonomy_version=version,
+        engine_version=engine,
+        cells=cells,
+        coverage=tax.exposure_coverage(version),
+        prohibited=CHAIN_PROHIBITED,
+    )
+
+
+@router.get("/research/chains/{chain}", response_model=ChainDrilldownResponse)
+def chain_members(
+    chain: str,
+    layer: str | None = Query(default=None),
+    taxonomy_version: str | None = Query(default=None),
+    engine_version: str | None = Query(default=None),
+    repo: Repository = Depends(get_repo),
+    settings: Settings = Depends(get_settings),
+) -> ChainDrilldownResponse:
+    """The names behind a cell, each with its exposure evidence."""
+    conn = repo.conn
+    schema = settings.db_schema
+    tax = ResearchTaxonomyRepository(conn, schema=schema)
+    version = taxonomy_version or tax.active_version()
+    engine = engine_version or FundamentalScoresRepository(
+        conn, schema=schema
+    ).active_version()
+
+    if version is None:
+        return ChainDrilldownResponse(
+            taxonomy_version="",
+            chain=chain,
+            layer=layer,
+            members=[],
+            state="unsupported_capability",
+            reason="no active taxonomy version is published",
+        )
+
+    where = "m.taxonomy_version = %s AND m.chain = %s AND m.valid_to IS NULL"
+    params: list[object] = [engine, version, chain]
+    if layer:
+        where += " AND m.layer = %s"
+        params.append(layer)
+
+    with conn.cursor() as cur:
+        cur.execute(
+            f"""
+            WITH latest AS (
+                SELECT DISTINCT ON (ticker) ticker, value
+                  FROM {schema}.fundamental_dimensions
+                 WHERE engine_version = %s AND dimension = 'priority'
+                 ORDER BY ticker, as_of DESC
+            )
+            SELECT m.ticker, m.layer, m.evidence_class, m.approved_by,
+                   e.role, e.direction, e.magnitude, e.magnitude_basis,
+                   e.status, e.source_ref, l.value
+              FROM {schema}.chain_membership m
+              LEFT JOIN {schema}.company_exposure e
+                     ON e.taxonomy_version = m.taxonomy_version
+                    AND e.chain = m.chain AND e.ticker = m.ticker
+                    AND e.valid_to IS NULL
+              LEFT JOIN latest l ON l.ticker = m.ticker
+             WHERE {where}
+             ORDER BY m.layer, m.ticker
+            """,
+            params,
+        )
+        rows = cur.fetchall()
+
+    members = [
+        ChainMember(
+            ticker=t,
+            layer=lay,
+            evidence_class=ev,
+            approved_by=by,
+            role=role,
+            direction=direction,
+            magnitude=float(mag) if mag is not None else None,
+            magnitude_basis=basis,
+            exposure_status=status,
+            source_ref=ref,
+            priority=float(pri) if pri is not None else None,
+        )
+        for t, lay, ev, by, role, direction, mag, basis, status, ref, pri in rows
+    ]
+    return ChainDrilldownResponse(
+        taxonomy_version=version,
+        chain=chain,
+        layer=layer,
+        members=members,
+        state="ok" if members else "no_coverage",
+        reason=None if members else f"no members in {chain!r} under {version}",
     )

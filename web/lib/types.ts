@@ -2002,6 +2002,50 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/research/chains/matrix": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Chain Matrix
+         * @description chain × layer matrix, rolled up from compatible company results.
+         *
+         *     Read-time rollup, not a cached aggregate: the inputs are already persisted
+         *     and a cache here would be a second place for the as-of to disagree with
+         *     itself.
+         */
+        get: operations["chain_matrix_api_research_chains_matrix_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/research/chains/{chain}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Chain Members
+         * @description The names behind a cell, each with its exposure evidence.
+         */
+        get: operations["chain_members_api_research_chains__chain__get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/positioning/screener": {
         parameters: {
             query?: never;
@@ -2413,6 +2457,56 @@ export interface components {
              */
             expression_delta: string;
         };
+        /**
+         * ChainCell
+         * @description One chain × layer cell of the research matrix.
+         *
+         *     `members` is the DENOMINATOR and `with_result` the numerator. A cell showing
+         *     an aggregate without both is unreadable: a mean over 2 of 17 members and a
+         *     mean over 17 of 17 look identical and mean opposite things.
+         */
+        ChainCell: {
+            /** Chain */
+            chain: string;
+            /** Layer */
+            layer: string;
+            /** Domain */
+            domain: string;
+            /** Layer Rank */
+            layer_rank: number;
+            /** Members */
+            members: number;
+            /** With Result */
+            with_result: number;
+            /** Priority Mean */
+            priority_mean?: number | null;
+            /**
+             * With Magnitude
+             * @default 0
+             */
+            with_magnitude: number;
+            /** Abstain Reason */
+            abstain_reason?: string | null;
+        };
+        /** ChainDrilldownResponse */
+        ChainDrilldownResponse: {
+            /** Taxonomy Version */
+            taxonomy_version: string;
+            /** Chain */
+            chain: string;
+            /** Layer */
+            layer: string | null;
+            /** Members */
+            members: components["schemas"]["ChainMember"][];
+            /**
+             * State
+             * @default ok
+             * @enum {string}
+             */
+            state: "ok" | "stale_run" | "no_compatible_run" | "no_coverage" | "unsupported_capability" | "failed_run";
+            /** Reason */
+            reason?: string | null;
+        };
         /** ChainFlowReadRow */
         ChainFlowReadRow: {
             /** Strike */
@@ -2442,6 +2536,67 @@ export interface components {
              * @default false
              */
             requires_t1_oi_confirmation: boolean;
+        };
+        /**
+         * ChainMatrixResponse
+         * @description The chain × layer matrix under one taxonomy version and one engine.
+         *
+         *     Both versions travel with the payload because mixing two taxonomy snapshots
+         *     or two engine versions in one matrix is the failure this product exists to
+         *     make impossible to render by accident.
+         */
+        ChainMatrixResponse: {
+            /** Taxonomy Version */
+            taxonomy_version: string;
+            /** Engine Version */
+            engine_version: string | null;
+            /** Cells */
+            cells: components["schemas"]["ChainCell"][];
+            /**
+             * Coverage
+             * @default {}
+             */
+            coverage: {
+                [key: string]: unknown;
+            };
+            /**
+             * State
+             * @default ok
+             * @enum {string}
+             */
+            state: "ok" | "stale_run" | "no_compatible_run" | "no_coverage" | "unsupported_capability" | "failed_run";
+            /** Reason */
+            reason?: string | null;
+            /**
+             * Prohibited
+             * @default []
+             */
+            prohibited: string[];
+        };
+        /** ChainMember */
+        ChainMember: {
+            /** Ticker */
+            ticker: string;
+            /** Layer */
+            layer: string;
+            /** Evidence Class */
+            evidence_class: string;
+            /** Approved By */
+            approved_by: string;
+            /** Role */
+            role?: string | null;
+            /** Direction */
+            direction?: string | null;
+            /** Magnitude */
+            magnitude?: number | null;
+            /** Magnitude Basis */
+            magnitude_basis?: string | null;
+            /** Exposure Status */
+            exposure_status?: string | null;
+            /** Source Ref */
+            source_ref?: string | null;
+            /** Priority */
+            priority?: number | null;
         };
         /**
          * ChanlunLifecycleMark
@@ -14451,6 +14606,74 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["RadarResponse"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    chain_matrix_api_research_chains_matrix_get: {
+        parameters: {
+            query?: {
+                taxonomy_version?: string | null;
+                engine_version?: string | null;
+                domain?: string | null;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ChainMatrixResponse"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    chain_members_api_research_chains__chain__get: {
+        parameters: {
+            query?: {
+                layer?: string | null;
+                taxonomy_version?: string | null;
+                engine_version?: string | null;
+            };
+            header?: never;
+            path: {
+                chain: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ChainDrilldownResponse"];
                 };
             };
             /** @description Validation Error */

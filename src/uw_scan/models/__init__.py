@@ -52,6 +52,10 @@ from .fundamentals import (
     FundamentalSubscore,
 )
 from .radar import (
+    ChainCell,
+    ChainDrilldownResponse,
+    ChainMatrixResponse,
+    ChainMember,
     CompanyDimensionsResponse,
     FundamentalRunRef,
     RadarDimension,
@@ -346,6 +350,10 @@ from .vrp_lifecycle import (
 
 __all__ = [
     "_UwBase",
+    "ChainCell",
+    "ChainDrilldownResponse",
+    "ChainMatrixResponse",
+    "ChainMember",
     "CompanyDimensionsResponse",
     "FundamentalRunRef",
     "RadarDimension",
