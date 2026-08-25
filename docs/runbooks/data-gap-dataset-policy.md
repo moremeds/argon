@@ -6,7 +6,7 @@ Generated from `REGISTRY` in `src/uw_scan/reports/data_gap_healer.py` (one sourc
 uv run python -c "from uw_scan.reports.data_gap_healer import render_dataset_policy_markdown as r; open('docs/runbooks/data-gap-dataset-policy.md','w').write(r())"
 ```
 
-**155 datasets** across 11 groups.
+**159 datasets** across 11 groups.
 
 ## core_watchlist
 
@@ -29,6 +29,7 @@ uv run python -c "from uw_scan.reports.data_gap_healer import render_dataset_pol
 
 | table | audit_mode | provider | granularity | adapter | freq | reason | verified |
 |---|---|---|---|---|---|---|---|
+| company_identity | provenance | none | none |  | none | historized issuer identity — company_type/sector/CIK as validity intervals (migration 134). fundamental_company_type stays the current-state cache; this is the history behind it. Rebuilt by worker/jobs/fundamental_anchors.seed_company_types, which is idempotent (an unchanged reassignment writes no interval) and spends zero provider budget. | 2026-08-25 |
 | company_sector | operational_state | uw | none |  | liveness | a per-ticker cache of the vendor's current sector, used only to route company_type. `fetched_at` records when we last ASKED, not when a fact was true, so there is no per-date series to be missing and nothing to backfill; a stale row self-heals on the next monthly fill and a name absent from it simply routes to the pooled default, exactly as before the table existed |  |
 | fundamental_company_type | excluded | none | none |  | none | hand-maintainable routing table, not a time series — a missing row means the name is unrouted, which the card states explicitly |  |
 | fundamental_method_params | excluded | none | none |  | none | immutable parameter rows keyed by engine_version |  |
@@ -36,10 +37,13 @@ uv run python -c "from uw_scan.reports.data_gap_healer import render_dataset_pol
 | fundamental_method_versions | excluded | none | none |  | none | immutable method registry, not a time series |  |
 | fundamental_obs_availability | provenance | none | none |  | none | derived availability evidence for statement content versions (migration 130). Append-only, never rewritten: a rule replay collides on (obs_id, claim_key) and writes nothing. A missing claim is repaired by re-running scripts/backfill/fundamental_observation_availability.py, which spends zero provider budget and is idempotent — an operator action, not a healer adapter. Runbook: docs/runbooks/fundamental-observation-availability.md | 2026-08-24 |
 | fundamental_obs_violations | provenance | none | none |  | event |  |  |
+| fundamental_result_provenance | provenance | none | none |  | none | typed provenance for fundamental_scores (migration 133). Written by the scoring job under engines whose validity policy is not 'off'; v1 rows are deliberately NOT backfilled so their absence reads as 'legacy' rather than 'cited nothing'. Repaired by re-running the scoring job at zero provider spend. | 2026-08-25 |
 | fundamental_scores | freshness_only | db | run_once | fundamental_refresh | event | derived from fundamental_statement_obs; worker/jobs/fundamental_refresh re-runs routing -> scoring -> anchors at zero provider spend. The old reason named this job and then declined to wire it. | 2026-08-16 |
 | fundamental_statement_obs | freshness_only | uw | none |  | event | quarterly filings over the fundamental universe (450 tickers as of 2026-08-18; it moves when the seeder runs), not the watchlist. Deliberately NOT wired to the healer: unlike scores/anchors this is a provider INGEST, and worker/jobs/fundamental_refresh explicitly does not ingest. Heal by running scripts/backfill/fundamental_ingest_backfill.py (insert-or-touch, safe to repeat) as a budgeted operator action, not on the nightly cron. | 2026-08-16 |
 | fundamental_universe | excluded | none | none |  | none | seeded membership list, not a time series; scripts/seed_fundamental_universe.py is the source of truth |  |
 | revenue_breakdown_obs | freshness_only | uw | none |  | event | revenue breakdown by XBRL axis over the fundamental universe. Deliberately NOT wired to the healer: this is a provider INGEST, and its own capture job is the only writer. Heal by re-running worker/jobs/fundamental_concentration_capture (insert-or-touch by content hash, safe to repeat) as a budgeted operator action, not on the nightly cron. Note the provider window may roll: a period that has aged out cannot be healed at all, which is why capture runs monthly rather than quarterly. | 2026-08-18 |
+| sec_cik_map | provenance | none | none |  | none | ticker -> CIK from SEC company_tickers.json (migration 132). Rebuilt wholesale by the index refresh; a stale row costs one issuer's filings, not correctness, because sec_filing_index stores the ticker it was fetched under. | 2026-08-25 |
+| sec_filing_index | provenance | none | none |  | event | SEC EDGAR periodic filings (migration 132), accession-keyed and immutable — a correction is a NEW accession, never an edit, so a replay collides and writes nothing. Repaired by re-running scripts/backfill/sec_publication_evidence.py --index, which spends zero provider budget. Not a healer adapter: there is no calendar spine to be short of. Runbook: docs/runbooks/fundamental-observation-availability.md | 2026-08-25 |
 | valuation_anchors | freshness_only | db | run_once | fundamental_refresh | event | derived from fundamental_statement_obs + fundamental_company_type; healed by the same worker/jobs/fundamental_refresh chain as fundamental_scores (routing runs FIRST because anchors read company_type). Zero provider spend. | 2026-08-16 |
 
 ## gold_rates_macro

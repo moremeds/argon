@@ -1575,6 +1575,108 @@ REGISTRY.extend(
             reason_verified_on=date(2026, 8, 24),
         ),
         DatasetRegistryEntry(
+            "sec_filing_index",
+            "fundamentals",
+            # `provenance`. This mirrors SEC's own immutable filing record so a
+            # `true_pit` claim stays falsifiable: the accession that licensed the
+            # claim must be inspectable locally, not re-fetched from a host that
+            # may be down. Not `strict`: filings arrive when companies file, and
+            # a session spine would invent a gap for every non-filing day.
+            "provenance",
+            date_col="recorded_at",
+            ticker_col="ticker",
+            expected_frequency="event",
+            # SEC is free and keyless. This must never enter the UW governor.
+            provider="none",
+            granularity="none",
+            healer_adapter=None,
+            source_system="sec",
+            retention_days=None,
+            reason=(
+                "SEC EDGAR periodic filings (migration 132), accession-keyed and "
+                "immutable — a correction is a NEW accession, never an edit, so "
+                "a replay collides and writes nothing. Repaired by re-running "
+                "scripts/backfill/sec_publication_evidence.py --index, which "
+                "spends zero provider budget. Not a healer adapter: there is no "
+                "calendar spine to be short of. Runbook: "
+                "docs/runbooks/fundamental-observation-availability.md"
+            ),
+            reason_verified_on=date(2026, 8, 25),
+        ),
+        DatasetRegistryEntry(
+            "sec_cik_map",
+            "fundamentals",
+            # `provenance` and deliberately mutable — unlike everything else in
+            # this neighbourhood. It is current-state (which CIK does this ticker
+            # mean TODAY), not evidence, so `DO UPDATE` is correct and a
+            # freshness reading would only measure when the map was last pulled.
+            "provenance",
+            date_col="refreshed_at",
+            ticker_col="ticker",
+            expected_frequency="none",
+            provider="none",
+            granularity="none",
+            healer_adapter=None,
+            source_system="sec",
+            retention_days=None,
+            reason=(
+                "ticker -> CIK from SEC company_tickers.json (migration 132). "
+                "Rebuilt wholesale by the index refresh; a stale row costs one "
+                "issuer's filings, not correctness, because sec_filing_index "
+                "stores the ticker it was fetched under."
+            ),
+            reason_verified_on=date(2026, 8, 25),
+        ),
+        DatasetRegistryEntry(
+            "fundamental_result_provenance",
+            "fundamentals",
+            # `provenance` — it IS the provenance. Derived links between results
+            # and the observations they used or withheld; nothing arrives on a
+            # cadence and there is no provider to be short of.
+            "provenance",
+            date_col="recorded_at",
+            ticker_col=None,
+            expected_frequency="none",
+            provider="none",
+            granularity="none",
+            healer_adapter=None,
+            source_system="derived",
+            retention_days=None,
+            reason=(
+                "typed provenance for fundamental_scores (migration 133). Written "
+                "by the scoring job under engines whose validity policy is not "
+                "'off'; v1 rows are deliberately NOT backfilled so their absence "
+                "reads as 'legacy' rather than 'cited nothing'. Repaired by "
+                "re-running the scoring job at zero provider spend."
+            ),
+            reason_verified_on=date(2026, 8, 25),
+        ),
+        DatasetRegistryEntry(
+            "company_identity",
+            "fundamentals",
+            # `provenance`. Validity intervals, not a series: a row appears when
+            # a classification CHANGES, so freshness would measure how often
+            # names get reclassified, which is not a health signal.
+            "provenance",
+            date_col="recorded_at",
+            ticker_col="ticker",
+            expected_frequency="none",
+            provider="none",
+            granularity="none",
+            healer_adapter=None,
+            source_system="derived",
+            retention_days=None,
+            reason=(
+                "historized issuer identity — company_type/sector/CIK as validity "
+                "intervals (migration 134). fundamental_company_type stays the "
+                "current-state cache; this is the history behind it. Rebuilt by "
+                "worker/jobs/fundamental_anchors.seed_company_types, which is "
+                "idempotent (an unchanged reassignment writes no interval) and "
+                "spends zero provider budget."
+            ),
+            reason_verified_on=date(2026, 8, 25),
+        ),
+        DatasetRegistryEntry(
             "revenue_breakdown_obs",
             "fundamentals",
             # freshness_only for the same reason as fundamental_statement_obs:

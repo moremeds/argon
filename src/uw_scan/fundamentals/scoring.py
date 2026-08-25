@@ -40,6 +40,15 @@ MIN_FEATURES = 4
 
 CODE_VERSION = "fundamentals-v1"
 
+#: v2 differs from v1 in ONE respect: recorded integrity violations exclude the
+#: values they impugn from the math, instead of only suppressing them on the
+#: card. The weights are identical. It is a separate code version rather than a
+#: flag because a result must be able to say which method produced it, and
+#: because every v1 row has to keep replaying byte-identically — which it does,
+#: since none of the exclusion code runs under v1.
+#: See `uw_scan.fundamentals.validity.VALIDITY_BY_CODE_VERSION`.
+CODE_VERSION_V2 = "fundamentals-v2"
+
 
 def zscore(vals: Mapping[str, float]) -> dict[str, float]:
     """Population z-score across a cross-section. Zero-variance -> all zeros."""

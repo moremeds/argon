@@ -290,6 +290,47 @@ evidence_policy)`, which fails closed — an observation with no claim never
 
 ### Added
 
+- **SEC publication evidence — replayable fundamental history goes from 8 days to 22 years (M1-A).**
+  `sources/sec_submissions.py` + `fundamentals/publication_evidence.py` +
+  `storage/sec_filing_index.py` + migration `132` + `worker/jobs/{sec_filing_index_refresh,
+  fundamental_publication_evidence}.py` + `scripts/backfill/sec_publication_evidence.py`.
+  Verdict: `docs/research/2026-08-25-sec-publication-evidence/`.
+  - `true_pit` went from **0 to 73,994 claims** over **396 of 401 tickers**, period ends
+    2003-12-31 → 2026-07-31. Before this, every `TRUE_PIT_ONLY` replay was empty at every cutoff
+    and `CAPTURE_BOUNDED` was empty before 2026-08-16, because the whole statement table came from
+    one 8-day backfill and the only availability evidence was "when we fetched it".
+  - **Yield 84.8%** (73,769 of 86,951 identities). Refusals: `no_filing` 10,335 — mostly
+    structural, a 20-F annual filer has no quarterly filing for a quarterly period to match;
+    `amended` 2,210; `no_index` 633; `ambiguous` 3; `multi_version` 1.
+  - **An amendment refuses the whole period, deliberately.** UW serves *current* data, so for an
+    amended period the single version Argon holds may be the restated content. Dating it at the
+    original filing is `filing_published_at`'s trap wearing SEC's authority.
+  - Three things that will bite: `filings.recent` is a WINDOW, and following `filings.files[]`
+    archives is what turns NVDA's 3-year panel into 111 filings over 2006→2026; the macOS system
+    proxy kills `www.sec.gov` with `SSL_ERROR_SYSCALL`, so the client hard-codes
+    `trust_env=False` (same class as `MassiveWsClient`'s `proxy=None`); and SEC's `reportDate`
+    is not `period_end` — a ±7-day tolerance reusing the existing exact-first rule matched 93.9%
+    of NVDA's quarters against 13.4% exact.
+  - Zero provider budget. SEC is free and keyless and never enters the UW governor.
+
+- **Recorded integrity violations now gate the math, not only the card (M1.1).**
+  `fundamentals/validity.py` + `fundamentals-v2` engine version + `worker/jobs/fundamental_scoring.py`.
+  - `violated_fields`' docstring said it plainly: "the raw feature stays as computed and the
+    DISPLAY layer suppresses it". A gross margin of exactly 1.0, known to be a provider echo,
+    still contributed a z-score that moved every other name's rank.
+  - Measured on 28,800 paired rows: **2,386 feature values withheld** across 1,067 periods.
+    Only 1,058 rows (3.7%) directly lost a value, but **94.5% of composites changed** — a z-score
+    is relative to its cross-section's mean and sd, so withholding one name re-centres everyone.
+    Pearson v1 vs v2 = 0.978; individual names move multiple sd (CLDX 2007: −0.05 → −3.33).
+  - **`fundamentals-v1` replays byte-identically** — a v1 rerun after v2 inserts zero rows,
+    because none of the exclusion code runs for it. v2 is registered but NOT activated; switching
+    the default is a measured decision, not a deploy side effect (`--activate-v2`).
+  - The validity policy is read from the ENGINE VERSION, never passed in, so a row cannot claim a
+    method it did not run. An unregistered code version raises rather than inheriting v1's.
+  - Exclusion propagates through the TTM window: a bad `total_revenue` contaminates four
+    quarters, and `rev_growth` reaches eight. Excluding only the violated quarter would leave
+    most of the damage in the math while reporting the field handled.
+
 - **Evidence invalidation, designed** —
   `docs/superpowers/archive/specs/2026-08-24-macro-evidence-invalidation-design.md`. Not implemented, and
   deliberately deprioritized behind MC4; see below.

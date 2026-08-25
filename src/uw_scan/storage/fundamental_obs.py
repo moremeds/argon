@@ -336,3 +336,63 @@ class FundamentalObsRepository:
                 }
                 for r in cur.fetchall()
             ]
+
+    def statement_identities(
+        self,
+        tickers: Sequence[str],
+        *,
+        exclude_claim_key: str | None = None,
+    ) -> list[dict[str, Any]]:
+        """One row per statement IDENTITY, with how many content versions it has.
+
+        An identity is `(source, ticker, period_end, period_type, statement)` —
+        migration 114's unique key minus `content_hash`. `version_count` is the
+        number of distinct hashes stored for it, and it is the first thing the
+        publication rule checks: with two or more, Argon cannot tell which
+        version a filing published, so no publication date may be attached to
+        any of them.
+
+        `exclude_claim_key` skips identities whose every observation already
+        carries that claim, which is what makes a backfill resumable without
+        re-deciding settled rows. It is deliberately ALL rather than ANY: a
+        partially-claimed identity still has work left.
+        """
+        if not tickers:
+            return []
+        having = ""
+        params: list[Any] = [[t.upper() for t in tickers]]
+        if exclude_claim_key:
+            having = """
+             HAVING bool_or(NOT EXISTS (
+                        SELECT 1 FROM {schema}.fundamental_obs_availability a
+                         WHERE a.obs_id = o.obs_id AND a.claim_key = %s))
+            """.format(schema=self._schema)
+            params.append(exclude_claim_key)
+        sql = f"""
+            SELECT o.ticker,
+                   o.period_end,
+                   o.period_type,
+                   o.statement,
+                   o.source,
+                   count(DISTINCT o.content_hash) AS version_count,
+                   array_agg(o.obs_id ORDER BY o.obs_id) AS obs_ids
+              FROM {self._schema}.fundamental_statement_obs o
+             WHERE o.ticker = ANY(%s)
+             GROUP BY o.ticker, o.period_end, o.period_type, o.statement, o.source
+             {having}
+             ORDER BY o.ticker, o.period_end, o.statement
+        """
+        with self.conn.cursor() as cur:
+            cur.execute(sql, params)
+            return [
+                {
+                    "ticker": r[0],
+                    "period_end": r[1],
+                    "period_type": r[2],
+                    "statement": r[3],
+                    "source": r[4],
+                    "version_count": int(r[5]),
+                    "obs_ids": list(r[6]),
+                }
+                for r in cur.fetchall()
+            ]

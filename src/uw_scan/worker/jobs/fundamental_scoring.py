@@ -36,10 +36,23 @@ from uw_scan.fundamentals.scoring import (
     inputs_hash,
 )
 from uw_scan.fundamentals.observation_time import EvidencePolicy
+from uw_scan.fundamentals.validity import (
+    VALIDITY_POLICY_EXCLUDE,
+    apply_validity,
+    excluded_fields,
+    policy_for_engine,
+)
 from uw_scan.storage.fundamental_obs import FundamentalObsRepository
 from uw_scan.storage.fundamental_observation_panels import (
     current_statement_panel,
     statement_panel_as_of,
+)
+from uw_scan.storage.fundamental_provenance import (
+    ROLE_EXCLUDED,
+    ROLE_USED,
+    STAGE_FEATURES,
+    STAGE_PANEL,
+    FundamentalProvenanceRepository,
 )
 from uw_scan.storage.fundamental_scores import FundamentalScoresRepository
 
@@ -143,6 +156,89 @@ def _build_buckets(
     return buckets, withheld
 
 
+def _violated_by_ticker_period(
+    obs: FundamentalObsRepository, panel: dict[str, Any]
+) -> dict[str, dict[str, set[str]]]:
+    """{ticker: {period: {violated field, ...}}} for the panel actually loaded.
+
+    One query for the whole panel. Reads the panel's OWN `obs_ids` rather than
+    re-selecting by ticker, so the violations line up with the exact content
+    versions this run scored — under a replay those are not today's versions.
+    """
+    all_ids = [
+        obs_id
+        for per in panel.values()
+        for ids in (per.get("obs_ids") or {}).values()
+        for obs_id in ids
+    ]
+    if not all_ids:
+        return {}
+    by_obs = obs.violations_by_obs(all_ids)
+    if not by_obs:
+        return {}
+    out: dict[str, dict[str, set[str]]] = {}
+    for ticker, per in panel.items():
+        per_period: dict[str, set[str]] = {}
+        for period, ids in (per.get("obs_ids") or {}).items():
+            fields: set[str] = set()
+            for obs_id in ids:
+                found = by_obs.get(obs_id)
+                if found:
+                    fields |= excluded_fields(found)
+            if fields:
+                per_period[period] = fields
+        if per_period:
+            out[ticker] = per_period
+    return out
+
+
+def _record_provenance(
+    *,
+    provenance: FundamentalProvenanceRepository,
+    result_ids: dict[tuple[str, Any], int],
+    rows: dict[str, dict[str, Any]],
+    violated: dict[str, dict[str, set[str]]],
+    as_of: date,
+) -> int:
+    """Link each score to the observations it used, and those it withheld.
+
+    The `excluded` rows are the ones an array of ids could never express: the
+    observation WAS considered, its values were withheld by an integrity check,
+    and a reader asking "why is this feature na" gets the check name rather than
+    an absence.
+    """
+    links: list[dict[str, Any]] = []
+    for ticker, d in rows.items():
+        result_id = result_ids.get((ticker, as_of))
+        if result_id is None:
+            continue
+        bad_fields = (violated.get(ticker) or {}).get(d["period"]) or set()
+        for obs_id in d["obs_ids"]:
+            links.append(
+                {
+                    "result_id": result_id,
+                    "obs_id": obs_id,
+                    "role": ROLE_USED,
+                    "stage": STAGE_PANEL,
+                    "detail": {"period": d["period"]},
+                }
+            )
+            if bad_fields:
+                links.append(
+                    {
+                        "result_id": result_id,
+                        "obs_id": obs_id,
+                        "role": ROLE_EXCLUDED,
+                        "stage": STAGE_FEATURES,
+                        "detail": {
+                            "period": d["period"],
+                            "withheld_fields": sorted(bad_fields),
+                        },
+                    }
+                )
+    return provenance.record(links)
+
+
 def fundamental_scoring(
     *,
     conn: psycopg.Connection,
@@ -151,6 +247,7 @@ def fundamental_scoring(
     tickers: list[str] | None = None,
     knowledge_cutoff: date | None = None,
     evidence_policy: EvidencePolicy | str | None = None,
+    engine_version: str | None = None,
 ) -> dict[str, int]:
     """Score every knowledge-quarter cross-section in the panel. Returns counters.
 
@@ -195,7 +292,11 @@ def fundamental_scoring(
     obs = FundamentalObsRepository(conn, schema=schema)
     scores = FundamentalScoresRepository(conn, schema=schema)
 
-    engine = scores.active_version()
+    # An explicit engine is how a comparison run scores the SAME panel under two
+    # methods without flipping the production default. It is not a general
+    # escape hatch: the validity policy still comes from the version, so an
+    # override cannot decouple the method from the label.
+    engine = engine_version or scores.active_version()
     if engine is None:
         log.error(
             "fundamental_scoring: no active method version — seed one with "
@@ -241,6 +342,19 @@ def fundamental_scoring(
         )
 
     feats = build_features(panel_raw)
+
+    # M1.1: under an engine whose policy says so, a value the integrity checks
+    # impugn is withheld from the MATH, not only from the card. The policy is
+    # read from the engine version rather than passed in, so a row can never
+    # claim a method it did not run.
+    validity = policy_for_engine(engine)
+    validity_counters = {"values_excluded": 0, "periods_touched": 0}
+    violated_by_period: dict[str, dict[str, set[str]]] = {}
+    prov = FundamentalProvenanceRepository(conn, schema=schema)
+    if validity == VALIDITY_POLICY_EXCLUDE:
+        violated_by_period = _violated_by_ticker_period(obs, panel_raw)
+        feats, validity_counters = apply_validity(feats, violated_by_period)
+
     buckets, withheld = _build_buckets(
         feats,
         panel_raw,
@@ -255,6 +369,9 @@ def fundamental_scoring(
         "skipped_thin": 0,
         "withheld_unpublished": withheld,
         "excluded_no_evidence": excluded,
+        "validity_values_excluded": validity_counters["values_excluded"],
+        "validity_periods_touched": validity_counters["periods_touched"],
+        "provenance_rows": 0,
     }
     for bucket in sorted(buckets):
         rows = buckets[bucket]
@@ -303,6 +420,18 @@ def fundamental_scoring(
         totals["buckets"] += 1
         totals["scored"] += len(out)
         totals["inserted"] += inserted
+
+        # M1.3: typed provenance, under engines that declare a validity policy
+        # other than "off". v1 rows are deliberately NOT backfilled — absence of
+        # rows there must keep reading as `legacy`, not as "cited nothing".
+        if validity == VALIDITY_POLICY_EXCLUDE:
+            totals["provenance_rows"] += _record_provenance(
+                provenance=prov,
+                result_ids=scores.result_ids(out),
+                rows=rows,
+                violated=violated_by_period,
+                as_of=as_of,
+            )
 
     log.info("fundamental_scoring[%s]: %s", policy_name, totals)
     return totals
