@@ -9303,6 +9303,68 @@
         "title": "MacroConfidenceReason",
         "type": "object"
       },
+      "MacroContextSnapshotResponse": {
+        "description": "The four domains as ONE answer, with its refusal intact.\n\nThe snapshot never repairs an incompatible chain by substituting a fresher upstream:\n``domains`` holds exactly what each downstream stood on. Substitution is how a\nmonitoring layer becomes a fabrication layer, so a caller reading this must expect\n``status`` to disagree with how fresh the individual rows look.",
+        "properties": {
+          "as_of": {
+            "format": "date-time",
+            "title": "As Of",
+            "type": "string"
+          },
+          "assembled_at": {
+            "format": "date-time",
+            "title": "Assembled At",
+            "type": "string"
+          },
+          "assembler_version": {
+            "title": "Assembler Version",
+            "type": "string"
+          },
+          "domains": {
+            "items": {
+              "$ref": "#/components/schemas/MacroSnapshotDomainItem"
+            },
+            "title": "Domains",
+            "type": "array"
+          },
+          "inputs_hash": {
+            "title": "Inputs Hash",
+            "type": "string"
+          },
+          "reasons": {
+            "items": {
+              "$ref": "#/components/schemas/MacroSnapshotReasonItem"
+            },
+            "title": "Reasons",
+            "type": "array"
+          },
+          "requested_as_of": {
+            "format": "date-time",
+            "title": "Requested As Of",
+            "type": "string"
+          },
+          "status": {
+            "enum": [
+              "complete",
+              "partial",
+              "incompatible",
+              "stale"
+            ],
+            "title": "Status",
+            "type": "string"
+          }
+        },
+        "required": [
+          "requested_as_of",
+          "as_of",
+          "assembled_at",
+          "status",
+          "assembler_version",
+          "inputs_hash"
+        ],
+        "title": "MacroContextSnapshotResponse",
+        "type": "object"
+      },
       "MacroContradiction": {
         "properties": {
           "detail": {
@@ -9701,6 +9763,111 @@
           "source_kind"
         ],
         "title": "MacroFactorState",
+        "type": "object"
+      },
+      "MacroSnapshotDomainItem": {
+        "description": "One domain's answer as the snapshot holds it.\n\n``state_id`` travels with the answer because the snapshot's claim is about identity:\nit asserts that THIS state, not merely some state of that domain, is the one the\nchain was assembled from.",
+        "properties": {
+          "as_of": {
+            "format": "date-time",
+            "title": "As Of",
+            "type": "string"
+          },
+          "confidence": {
+            "pattern": "^(?!^[-+.]*$)[+-]?0*\\d*\\.?\\d*$",
+            "title": "Confidence",
+            "type": "string"
+          },
+          "direction": {
+            "enum": [
+              "RISING",
+              "FALLING",
+              "FLAT",
+              "UNKNOWN"
+            ],
+            "title": "Direction",
+            "type": "string"
+          },
+          "domain": {
+            "enum": [
+              "inflation",
+              "policy_rates",
+              "usd",
+              "gold",
+              "cross_domain"
+            ],
+            "title": "Domain",
+            "type": "string"
+          },
+          "engine_version": {
+            "title": "Engine Version",
+            "type": "string"
+          },
+          "inputs_hash": {
+            "title": "Inputs Hash",
+            "type": "string"
+          },
+          "ordinal": {
+            "title": "Ordinal",
+            "type": "integer"
+          },
+          "state": {
+            "title": "State",
+            "type": "string"
+          },
+          "state_id": {
+            "title": "State Id",
+            "type": "integer"
+          }
+        },
+        "required": [
+          "domain",
+          "ordinal",
+          "state_id",
+          "state",
+          "direction",
+          "confidence",
+          "as_of",
+          "engine_version",
+          "inputs_hash"
+        ],
+        "title": "MacroSnapshotDomainItem",
+        "type": "object"
+      },
+      "MacroSnapshotReasonItem": {
+        "description": "One domain's refusal, named rather than summarised into the status alone.",
+        "properties": {
+          "detail": {
+            "title": "Detail",
+            "type": "string"
+          },
+          "domain": {
+            "enum": [
+              "inflation",
+              "policy_rates",
+              "usd",
+              "gold",
+              "cross_domain"
+            ],
+            "title": "Domain",
+            "type": "string"
+          },
+          "kind": {
+            "enum": [
+              "absent",
+              "incompatible",
+              "stale"
+            ],
+            "title": "Kind",
+            "type": "string"
+          }
+        },
+        "required": [
+          "domain",
+          "kind",
+          "detail"
+        ],
+        "title": "MacroSnapshotReasonItem",
         "type": "object"
       },
       "MacroStateEvidenceItem": {
@@ -26867,7 +27034,7 @@
   },
   "info": {
     "title": "UW Watchlist API",
-    "version": "0.12.8"
+    "version": "0.12.16"
   },
   "openapi": "3.1.0",
   "paths": {
@@ -27865,6 +28032,79 @@
           }
         },
         "summary": "Macro Rates State",
+        "tags": [
+          "macro",
+          "macro"
+        ]
+      }
+    },
+    "/api/macro/snapshot": {
+      "get": {
+        "description": "The four domains as one answer, with whatever refusal the assembler recorded.\n\nThis is the route the desk should read instead of four independent latest states. The\nfour-request shape cannot notice that USD stood on last night's rates, because every\nrow it fetches is individually current and individually honest; only the snapshot\nholds the claim that they belong together.\n\nA ``complete`` status is not a claim that the macro picture is right -- only that the\nchain is internally coherent. The states remain descriptive.",
+        "operationId": "macro_context_snapshot_api_macro_snapshot_get",
+        "parameters": [
+          {
+            "description": "UTC calendar date; returns the snapshot answering for that day-end.",
+            "in": "query",
+            "name": "as_of",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "format": "date",
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "description": "UTC calendar date; returns the snapshot answering for that day-end.",
+              "title": "As Of"
+            }
+          },
+          {
+            "description": "Timezone-aware instant to replay.",
+            "in": "query",
+            "name": "as_of_ts",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "format": "date-time",
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "description": "Timezone-aware instant to replay.",
+              "title": "As Of Ts"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MacroContextSnapshotResponse"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Macro Context Snapshot",
         "tags": [
           "macro",
           "macro"

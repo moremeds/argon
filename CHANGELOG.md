@@ -9,6 +9,43 @@ version in lockstep (enforced by `scripts/release/version_sync_check.py`).
 
 ### Added
 
+- **The macro context snapshot — assembler, nightly job and `/api/macro/snapshot`.**
+  Second of four slices; the snapshot is now assembled, persisted and served, and the
+  page still reads four independent states until slice 3.
+  - **The defect it closes is invisible from any single row.** Every timestamp in a
+    partially-failed chain is honest and nothing is late. What is wrong is which upstream
+    ANSWER a downstream stood on — so the verdict is decided by dependency-edge
+    **identity** (does the `state_id` USD actually cited equal the one this snapshot
+    holds for rates), never by comparing clocks. A test pins exactly that: four
+    candidates sharing one `as_of`, one of them citing last night's rates, and the
+    assembler refusing to call it `complete`.
+  - **It never substitutes a fresher upstream to make the chain look coherent.** In the
+    incompatible case the fresher rates state is right there and visible; the snapshot
+    stores what USD cited anyway and names the incompatibility. Substitution is how a
+    monitoring layer becomes a fabrication layer, and it is the one property that must
+    not be traded for a tidier page.
+  - `incompatible` outranks `partial` when both apply. *"Rates never ran"* sends an
+    operator to the scheduler and *"rates ran but USD ignored it"* sends them to the
+    data; reporting the milder one would point them at the wrong place.
+  - **`status` is part of `inputs_hash`.** The same four state ids with a different
+    coherence verdict are two different answers, and one identity could only store one
+    of them.
+  - The job reads the stored dependency edges rather than anything the nightly pass holds
+    in memory, so tonight's assembly and a replay of any past instant run identical code.
+    A live-only path would be a second implementation to keep in step.
+  - It runs LAST in the nightly pass and under the **same** `as_of` as the four domains.
+    Every domain job catches its own exception, so the loop reaches the assembler after a
+    partial failure — which is precisely the case the snapshot exists to name.
+  - `GET /api/macro/snapshot` (with `as_of` / `as_of_ts` replay) **404s rather than
+    inventing an empty snapshot** for an instant nobody assembled one for, matching the
+    domain-state routes: "nothing was recorded" and "we recorded a refusal" are different
+    answers and a reader must be able to tell them apart.
+  - A `complete` status asserts only that the chain is internally coherent. It is not a
+    claim that the macro picture is right — the states remain descriptive, per the
+    2026-08-24 preflight.
+  - `web/lib/types.ts` is regenerated in slice 3, where the UI first consumes the route;
+    the API contract itself is gated by the updated `openapi.snapshot.json`.
+
 - **The macro context snapshot — contract, schema and storage** (migration `130`). First of
   four slices; this one is persistence only, and nothing assembles or reads a snapshot yet.
   - **What was missing.** The four domain states are each individually honest: they record what

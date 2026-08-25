@@ -58,6 +58,7 @@ from uw_scan.worker.jobs.macro_market_layer_ingest import (
     macro_market_layer_ingest_job,
 )
 from uw_scan.worker.jobs.macro_series_ingest import macro_fred_series_ingest_job
+from uw_scan.worker.jobs.macro_context_snapshot import macro_context_snapshot_job
 from uw_scan.worker.jobs.macro_gold_ingest import macro_gold_ingest_job
 from uw_scan.worker.jobs.macro_state_jobs import (
     macro_gold_state_job,
@@ -1612,6 +1613,14 @@ def main() -> int:
                     result.confidence,
                     result.evidence_count,
                 )
+            # Assemble LAST and under the SAME instant. Every domain above catches its
+            # own exception so the loop reaches here after a partial failure -- which is
+            # the case the snapshot exists to name. It reads the stored dependency edges
+            # rather than anything this pass holds in memory, so tonight's assembly and a
+            # replay of a past instant run the identical code.
+            macro_context_snapshot_job(
+                repo, as_of=instant, assembled_at=datetime.now(UTC)
+            )
 
     def _pipeline_benchmark_snapshot() -> None:
         pipeline_benchmark_snapshot_job(settings)
