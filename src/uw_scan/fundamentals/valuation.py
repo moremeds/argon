@@ -60,336 +60,69 @@ panel that then underperforms. Ranking a name against ITS OWN history is the
 result above. Any future edit that reaches for a peer distribution to build this
 band is reintroducing a measured-negative signal under a measured-positive name.
 """
-
 from __future__ import annotations
 
-import hashlib
-import json
 import math
 from typing import Any
 
-from uw_scan.fundamentals.features import _f, _ttm
-
-#: Percentile of the name's OWN yield history that defines each level. Cheap is a
-#: HIGH yield, so these descend as the price levels ascend.
-LEVELS: dict[str, float] = {
-    "buy_below": 0.80,
-    "observe_low": 0.65,
-    "observe_mid": 0.50,
-    "observe_high": 0.35,
-    "risk_above": 0.20,
-}
-
-#: Ascending in price. The output contract every method shares (§5.3), and the
-#: order `_self_check` and the storage CHECK constraint both enforce.
-LEVEL_ORDER = ("buy_below", "observe_low", "observe_mid", "observe_high", "risk_above")
-
-#: The route for a name nothing has classified. NOT a sixth company type — it is
-#: the absence of one, and it is spelled out on the card rather than hidden.
-#:
-#: It exists because the classification input does not: 174 of the 257 names in
-#: the ranked universe have no sector in this database at all, and the five types
-#: above are an AI-supply-chain taxonomy with no bucket for a bank or a hospital
-#: even where a sector is known. Leaving those names unrouted showed nothing to a
-#: reader; routing them through an invented type would show a confident band built
-#: from a guess.
-#:
-#: What licenses the default is that the measurement was never per-type. The probe
-#: pooled all 247 scored tickers of THIS universe and found `sales_to_ev` at
-#: +0.0744 — the strongest of the five yields, and stronger than either
-#: type-specific route below. So an unclassified name gets the yield the evidence
-#: actually covers, and `build_anchors` caps its confidence at `medium` and says
-#: which assumption it is standing on.
-UNCLASSIFIED = "unclassified"
-
-#: Deposit- and funding-financed balance sheets: banks, brokers, consumer
-#: lenders, and the asset-management and payment names that share their sector.
-#:
-#: This type deliberately has NO entry in `TYPE_YIELD`, and the absence is the
-#: decision. Every yield here is denominated in enterprise value, and
-#: `EV = market cap + net debt` treats net debt as a CLAIM ON operating assets.
-#: For a deposit-funded firm funding IS the business, and the vendor `debt` field
-#: does not carry deposits at all — so `debt - cash` measures neither leverage nor
-#: anything else stable, and inverting a yield through it yields a price that
-#: means nothing.
-#:
-#: Measured 2026-08-19 over the 11 financials then in the panel
-#: (`docs/research/2026-08-19-valuation-refusal-anatomy/`): `net_debt/market_cap`
-#: ran -0.07 (COF) to 1.73 (GS), straddling the whole non-financial distribution
-#: (p50 0.05, p99 4.72, max 21.61). Five of the eleven were handed a
-#: `medium`-confidence band and six refused — the SAME business model reaching
-#: both outcomes, decided by which side of a numeric guard the name landed on.
-#: That spread is also why no `net_debt` threshold can stand in for the label: one
-#: catching GS/BAC/WFC/JPM also catches EIX, EXC, AES, BXP and ARE, whose EV
-#: yields are legitimate, while missing COF, BLK, SOFI and AXP entirely.
-#:
-#: Any name landing in this type is refused, asset-light ones included, and that
-#: is the intended direction of error: a refusal says "no band", a wrong band
-#: says "buy below 268.92".
-#:
-#: The way out is not an exception to this rule. Every method that breaks here is
-#: EV-denominated; `fcf_yield` divides by MARKET CAP and never reads `net_debt`
-#: (see `EV_DENOMINATED`), so a name routed to `platform_scale` is priced by
-#: something this refusal never covered. PYPL is routed that way for exactly that
-#: reason — `TICKER_TO_TYPE` in the anchors job carries the measurement. A
-#: per-name correction with no such argument belongs in a `manual` assignment,
-#: which `assign` already protects from reseeding.
-FINANCIALS = "financials"
-
-#: Stated on the card verbatim. A refusal that only said "no band" would read as
-#: missing data, and someone would eventually "fix" it by routing the type to a
-#: yield — which is precisely the bug this replaces.
-FINANCIALS_REFUSAL = (
-    "no valuation band for a deposit-funded balance sheet: every method here "
-    "prices a company through its enterprise value, and for a bank, broker or "
-    "lender the funding is the business rather than a claim against it, so "
-    "enterprise value is not a meaningful denominator"
+from uw_scan.fundamentals.valuation_math import (
+    METHOD_NUMERATOR,
+    _over,
+    _shape,
+    anchor_inputs_hash,
+    percentile,
+    price_at_yield,
+    quarter_inputs,
+    rank_percentile,
+    yield_at,
+    yield_drift,
+)
+from uw_scan.fundamentals.valuation_policy import (
+    ANCHOR_RULES_REV,
+    DRIFT_LEAN,
+    DRIFT_MONOTONE,
+    EV_DENOMINATED,
+    FINANCIALS,
+    FINANCIALS_REFUSAL,
+    LEVEL_ORDER,
+    LEVELS,
+    MAX_BAND_WIDTH,
+    MIN_HISTORY,
+    STALE_DAYS,
+    THIN_HISTORY,
+    TYPE_YIELD,
+    UNCLASSIFIED,
+    WINDOW_QUARTERS,
 )
 
-#: `company_type` -> the yield its band is built from. Values are the measured
-#: signals; the comment on each is its market-neutral 2q IC.
-TYPE_YIELD: dict[str, str] = {
-    "chips_cyclical": "sales_to_ev",  # +0.0744 (t 5.77)
-    "software_growth": "sales_to_ev",
-    "high_risk_growth": "sales_to_ev",
-    "platform_scale": "fcf_yield",  # +0.0457 (t 3.64)
-    "power_infra": "ebitda_to_ev",  # +0.0446 (t 3.41)
-    # Pooled-universe default. Same yield as the three types above, for the
-    # reason stated on UNCLASSIFIED: it is the pooled result, not a claim that
-    # this name resembles a semiconductor company.
-    UNCLASSIFIED: "sales_to_ev",
-}
-
-#: Yields denominated in enterprise value rather than market cap. The distinction
-#: is not cosmetic: inverting an EV yield back to a price has to subtract net debt,
-#: and skipping that step misprices every levered name by exactly its net debt.
-EV_DENOMINATED = frozenset({"sales_to_ev", "ebitda_to_ev"})
-
-#: TRAILING quarters the percentiles are drawn from. Five years.
-#:
-#: Not the full history, and the reason is measured. Valuation multiples in this
-#: universe are strongly non-stationary: ASML's `sales_to_ev` median fell from
-#: 0.5089 in its oldest quarter-quartile to 0.0926 in its newest — a 5.5x
-#: structural re-rating — and NVDA's `fcf_yield` 2.8x. A full-history 80th
-#: percentile is therefore a multiple from a regime that has gone, and inverting
-#: it put ASML's `buy_below` at 255.7 against a spot of 1518: not a conservative
-#: level but an unreachable one, which is no information at all.
-#:
-#: It also fixes a second, unrelated break. TSLA's free cash flow was negative in
-#: 36 of its 65 quarters, so most full-history percentiles of `fcf_yield` sit at
-#: or below zero and have NO price inversion — its band rendered with three of
-#: five levels missing. Across the trailing 20 quarters, 0 of 20 are negative.
-#:
-#: The window is measured, not assumed. Re-running the validation probe over
-#: (expanding, 40q, 20q, 12q) keeps the effect at every width — `sales_to_ev`
-#: goes 0.0744 (t 5.77) / 0.0642 / 0.0604 (t 5.45) / 0.0639 — so a trailing
-#: window costs little signal and buys a reachable band. 20 over 12 because a
-#: percentile wants points to resolve: 12 gives a slightly higher t and a much
-#: coarser distribution.
-#: Trace: docs/research/2026-08-12-fundamental-valuation-timeseries/.
-WINDOW_QUARTERS = 20
-
-#: Quarters required WITHIN the window before a percentile means anything.
-#: Matches the research harness's warmup exactly — a band computed off fewer
-#: points would be a band the measurement never covered.
-MIN_HISTORY = 12
-
-#: Below this the band is emitted with `confidence='medium'`. With a 20-quarter
-#: window a full history is 20, so this flags names that cannot fill it.
-THIN_HISTORY = 20
-
-#: A filing older than this makes the numerator stale relative to the price the
-#: band is being compared against.
-STALE_DAYS = 140
-
-#: `risk_above / buy_below` beyond this is refused rather than drawn.
-#:
-#: A band is a decision surface, and one spanning 72x is not one no matter how
-#: correctly each level was computed — which is the whole lesson of the
-#: full-history window: every number was right and the set was useless.
-#:
-#: Measured over the 50 banded names at 20 quarters: median width 1.73x, and the
-#: tail is not a smooth continuum but a different population — NBIS 72x, MSTR 47x,
-#: APLD 17x, DIS 7.0x. Those are names whose own five-year valuation range still
-#: straddles a business transformation (Yandex -> Nebius, a bitcoin treasury), so
-#: the honest answer is that their own history cannot anchor a price, not a band
-#: with 72x between its ends. 4.0 sits in the empty part of the distribution:
-#: it refuses 7 of 50 and touches nothing between 2.5x and 5x except DIS.
-MAX_BAND_WIDTH = 4.0
-
-
-#: Bumped whenever a STRUCTURAL rule changes — a guard added or removed, a level
-#: redefined. Threshold moves do not need it: the constants above are hashed
-#: directly, so changing one already produces a new identity.
-#:
-#: rev 4: the yield window is priced from the lake's SILVER tier, on today's
-#: split basis, instead of raw bronze closes. Nothing in this module moved, but
-#: every historical yield the percentiles are drawn from did: the provider
-#: restates share counts onto today's split basis while bronze stores closes
-#: raw, so a quarter before a split was yielding a number wrong by the split
-#: factor. Not bumping this would be the exact failure the
-#: docstring below describes — the corrected band collides with the wrong one on
-#: `(ticker, as_of, engine_version, inputs_hash)` and `DO NOTHING` keeps BKNG's
-#: $4,702.64 `buy_below` against its $208.25 spot. The inputs hashed here
-#: (`fundamental`, `net_debt`, `shares`, `history_n`) are all unchanged by the
-#: fix, so the identity cannot see it any other way.
-#: rev 3: a refusal reports the window it refused ON rather than a hardcoded 0,
-#: and the width refusal describes the window's measured SHAPE instead of
-#: asserting instability it never tested for.
-#: No guard moved, but what a refusal ROW says about coverage did, and the same
-#: inputs under the old rule collide with the corrected row on the identity key —
-#: `DO NOTHING` would keep the wrong one for the rest of the day.
-#: rev 2: refuse a band with a missing end (`buy_below` / `risk_above` not
-#: invertible). rev 1: the original five-level construction.
-ANCHOR_RULES_REV = 4
-
-
-def anchor_inputs_hash(
-    *,
-    company_type: str,
-    engine: str,
-    fundamental: float | None,
-    net_debt: float | None,
-    shares: float | None,
-    history_n: int,
-) -> str:
-    """Identity of ONE band: its inputs, its routing, and the rules that made it.
-
-    Anchors cannot reuse `scoring.inputs_hash`. That function hashes the seven
-    scoring FEATURES by name, and a band's inputs are none of them — so every
-    anchor row was hashing an all-null feature map and reducing to a function of
-    `company_type` and `engine` alone. Measured 2026-08-12: a run that computed
-    233 bands wrote 0 rows, because the identity could not see that the numbers
-    had changed. That is the silent-and-confident failure the schema comment
-    claims this key prevents, sitting inside the key itself.
-    METHOD RULES ARE PART OF THE IDENTITY, and that is the second half of the
-    bug. The same inputs under a NEW rule are a different result — the
-    missing-end guard turns JPM from a three-level band into a refusal without
-    touching a single input — and `ON CONFLICT DO NOTHING` would drop the
-    correction and keep the wrong row. Hashing the thresholds and the rules
-    revision means a rule change appends the corrected row instead.
-    """
-    payload = {
-        "company_type": company_type,
-        "engine": engine,
-        "inputs": {
-            k: (None if v is None else f"{float(v):.10g}")
-            for k, v in (
-                ("fundamental", fundamental),
-                ("net_debt", net_debt),
-                ("shares", shares),
-                ("history_n", history_n),
-            )
-        },
-        "rules": {
-            "rev": ANCHOR_RULES_REV,
-            "levels": LEVELS,
-            "window": WINDOW_QUARTERS,
-            "min_history": MIN_HISTORY,
-            "thin_history": THIN_HISTORY,
-            "stale_days": STALE_DAYS,
-            "max_band_width": MAX_BAND_WIDTH,
-        },
-    }
-    blob = json.dumps(payload, sort_keys=True, separators=(",", ":"))
-    return hashlib.sha256(blob.encode()).hexdigest()
-
-
-def quarter_inputs(
-    statements: dict[str, dict[str, Any]], periods: list[str], i: int
-) -> dict[str, float | None]:
-    """The figures one quarter's yield is built from.
-
-    Numerators are TTM (four quarters, all-or-nothing — a three-quarter "TTM"
-    understates by ~25% and is indistinguishable from a real decline). Balance
-    sheet items are point-in-time stocks, taken at the quarter itself.
-    """
-    p = periods[i]
-    inc, bs, cf = (
-        statements.get("income-statements", {}),
-        statements.get("balance-sheets", {}),
-        statements.get("cash-flows", {}),
-    )
-    ocf = _ttm(cf, periods, i, "operating_cashflow")
-    capex = _ttm(cf, periods, i, "capital_expenditures")
-    debt = _f(bs.get(p), "short_long_term_debt_total")
-    cash = _f(bs.get(p), "cash_and_cash_equivalents")
-    return {
-        "total_revenue": _ttm(inc, periods, i, "total_revenue"),
-        "ebitda": _ttm(inc, periods, i, "ebitda"),
-        # capex is signed inconsistently by the provider; abs() makes FCF the
-        # same quantity regardless of which convention arrived.
-        "fcf": (ocf - abs(capex)) if None not in (ocf, capex) else None,
-        "shares": _f(bs.get(p), "common_stock_shares_outstanding"),
-        "net_debt": (debt or 0.0) - (cash or 0.0),
-    }
-
-
-#: The numerator each method divides. Kept beside TYPE_YIELD so adding a method
-#: is one entry in each, and a missing pair fails loudly at the lookup.
-METHOD_NUMERATOR = {
-    "sales_to_ev": "total_revenue",
-    "ebitda_to_ev": "ebitda",
-    "fcf_yield": "fcf",
-}
-
-
-def yield_at(
-    method: str, inputs: dict[str, float | None], price: float | None
-) -> float | None:
-    """One quarter's valuation yield at a given share price.
-
-    None whenever any leg is missing or the denominator is non-positive. A
-    net-cash name can carry EV <= 0, which would flip the yield's sign and rank
-    it as infinitely cheap — those quarters are dropped from the history rather
-    than allowed to define its top percentile.
-    """
-    num = inputs.get(METHOD_NUMERATOR[method])
-    shares = inputs.get("shares")
-    if num is None or not shares or shares <= 0 or price is None or price <= 0:
-        return None
-    denom = price * shares
-    if method in EV_DENOMINATED:
-        denom += inputs.get("net_debt") or 0.0
-    return (num / denom) if denom > 0 else None
-
-
-def percentile(sorted_vals: list[float], p: float) -> float:
-    """Linear-interpolated order statistic. `sorted_vals` must be ascending."""
-    if not sorted_vals:
-        raise ValueError("empty")
-    if len(sorted_vals) == 1:
-        return sorted_vals[0]
-    idx = p * (len(sorted_vals) - 1)
-    lo = math.floor(idx)
-    hi = math.ceil(idx)
-    if lo == hi:
-        return sorted_vals[lo]
-    return sorted_vals[lo] + (sorted_vals[hi] - sorted_vals[lo]) * (idx - lo)
-
-
-def rank_percentile(sorted_vals: list[float], value: float) -> float:
-    """Fraction of history at or below `value` — where spot sits in its own range."""
-    if not sorted_vals:
-        raise ValueError("empty")
-    return sum(1 for v in sorted_vals if v <= value) / len(sorted_vals)
-
-
-def price_at_yield(
-    *, target_yield: float, fundamental: float, net_debt: float, shares: float
-) -> float | None:
-    """Invert a yield back to the share price that would produce it.
-
-    None when the target yield is non-positive (the inversion diverges through
-    zero and would emit a wildly large or negative "price"), or when the implied
-    price is itself non-positive — which is a real answer for a name whose net
-    debt already exceeds the enterprise value the target implies, but not a
-    tradeable level, so it is withheld rather than drawn.
-    """
-    if target_yield <= 0 or shares <= 0:
-        return None
-    price = (fundamental / target_yield - net_debt) / shares
-    return price if price > 0 else None
+# Re-exported so `from uw_scan.fundamentals.valuation import X` keeps working for
+# every X this module ever exported. M2.1 moved code, not the public surface.
+__all__ = [
+    "ANCHOR_RULES_REV",
+    "DRIFT_LEAN",
+    "DRIFT_MONOTONE",
+    "EV_DENOMINATED",
+    "FINANCIALS",
+    "FINANCIALS_REFUSAL",
+    "LEVELS",
+    "LEVEL_ORDER",
+    "MAX_BAND_WIDTH",
+    "METHOD_NUMERATOR",
+    "MIN_HISTORY",
+    "STALE_DAYS",
+    "THIN_HISTORY",
+    "TYPE_YIELD",
+    "UNCLASSIFIED",
+    "WINDOW_QUARTERS",
+    "anchor_inputs_hash",
+    "build_anchors",
+    "percentile",
+    "price_at_yield",
+    "quarter_inputs",
+    "rank_percentile",
+    "yield_at",
+    "yield_drift",
+]
 
 
 def build_anchors(
@@ -596,103 +329,6 @@ def build_anchors(
         "confidence": confidence,
         "confidence_reasons": reasons,
     }
-
-
-def yield_drift(window: list[float]) -> float:
-    """Rank correlation of a yield window against time. -1 walks down, +1 up.
-
-    The width gate cannot tell two very different shapes apart, and it states the
-    wrong one. A band spans 17x either because the yield SWINGS — no settled
-    valuation, refusing is right and "too unstable" is the true word — or because
-    it WALKS one way and stays there, which is a window straddling two regimes
-    and the opposite of unstable.
-
-    Measured over the 246-name local panel on 2026-08-18
-    (`docs/research/2026-08-18-valuation-band-refusal/WIDTH_ANATOMY.md`), both
-    shapes appear among the refused: AVGO -0.90, LRCX -0.85, MSTR -0.83 walked
-    down (the multiple expanded), NVDA +0.68 and NFLX +0.66 walked up (the
-    fundamental outgrew the price), ACRE -0.07 and APLD -0.25 genuinely swing.
-
-    This does NOT license moving the threshold, and the same probe is why: the
-    monotone share is 38% among refused names against 36% among those that pass,
-    and a Mann-Whitney on rho gives p=0.16. Shape does not separate wide bands
-    from narrow ones as a population. It separates them ONE NAME AT A TIME, which
-    is the only claim the refusal line needs to make.
-
-    TIES TAKE THE AVERAGE RANK, and skipping that is not a rounding detail. A
-    stable sort hands the earlier index the lower rank inside a tie group, which
-    manufactures an upward trend out of nothing: a perfectly alternating series
-    scored +0.57 before this, and the sentence it drives would have called that
-    window a one-way regime shift.
-
-    The index side has no ties by construction, so with the value side corrected
-    this is the Pearson correlation of the two rank vectors.
-    """
-    n = len(window)
-    if n < 2:
-        return 0.0
-    order = sorted(range(n), key=lambda i: window[i])
-    rank = [0.0] * n
-    start = 0
-    while start < n:
-        stop = start
-        while stop + 1 < n and window[order[stop + 1]] == window[order[start]]:
-            stop += 1
-        shared = (start + stop) / 2
-        for position in range(start, stop + 1):
-            rank[order[position]] = shared
-        start = stop + 1
-    mean = (n - 1) / 2
-    den = sum((i - mean) ** 2 for i in range(n))
-    if den == 0:
-        return 0.0
-    num = sum((i - mean) * (rank[i] - mean) for i in range(n))
-    spread = sum((r - mean) ** 2 for r in rank)
-    if spread == 0:
-        return 0.0
-    return num / (den * spread) ** 0.5
-
-
-#: |rho| bands for describing a yield window. Graded rather than binary on
-#: purpose: NBIS sits at -0.67 and WFC at -0.68, so a single cut at the
-#: conventional 0.7 would print "swings both ways" over two of the strongest
-#: leans in the panel. Nothing here gates anything — these words only choose how
-#: a sentence reads, and the rho is printed beside them either way.
-DRIFT_MONOTONE = 0.7
-DRIFT_LEAN = 0.4
-
-
-def _shape(window: list[float]) -> str:
-    """How the refusal describes the window it is refusing, in measured terms."""
-    rho = yield_drift(window)
-    if abs(rho) < DRIFT_LEAN:
-        return f"swinging both ways with no one-way drift (rho {rho:+.2f})"
-    direction = (
-        "the multiple expanded through it"
-        if rho < 0
-        else "the fundamental outgrew the price through it"
-    )
-    walk = "walking one way" if abs(rho) >= DRIFT_MONOTONE else "leaning one way"
-    return (
-        f"{walk} rather than swinging (rho {rho:+.2f}) — the window covers two "
-        f"valuation regimes, not one, because {direction}"
-    )
-
-
-def _over(value: float, limit: float) -> str:
-    """Format a ratio at the coarsest precision that still reads ABOVE `limit`.
-
-    A marginal refusal has to survive its own rounding. AVGO on 2026-08-18 spans
-    4.04x against a 4.0x limit, and `:.0f` rendered it "spans 4x — too unstable
-    to anchor a price to": a sentence that refutes itself, on the only line the
-    reader has to go on. One decimal fixes AVGO and breaks the next name in at
-    4.004x, so the precision follows the number rather than being guessed once.
-    """
-    for places in (1, 2, 3):
-        text = f"{value:.{places}f}"
-        if float(text) > limit:
-            return text
-    return f"{value:.3f}"
 
 
 def _no_anchor(

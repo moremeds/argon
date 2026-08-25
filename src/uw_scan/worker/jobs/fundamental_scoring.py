@@ -35,6 +35,11 @@ from uw_scan.fundamentals.scoring import (
     cross_section_z,
     inputs_hash,
 )
+from uw_scan.fundamentals.dimensions import (
+    dimension_values,
+    evidence_quality,
+    priority_aggregate,
+)
 from uw_scan.fundamentals.observation_time import EvidencePolicy
 from uw_scan.fundamentals.validity import (
     VALIDITY_POLICY_EXCLUDE,
@@ -43,9 +48,15 @@ from uw_scan.fundamentals.validity import (
     policy_for_engine,
 )
 from uw_scan.storage.fundamental_obs import FundamentalObsRepository
+from uw_scan.storage.fundamental_observation_availability import (
+    FundamentalObsAvailabilityRepository,
+)
 from uw_scan.storage.fundamental_observation_panels import (
     current_statement_panel,
     statement_panel_as_of,
+)
+from uw_scan.storage.fundamental_dimensions import (
+    FundamentalDimensionsRepository,
 )
 from uw_scan.storage.fundamental_provenance import (
     ROLE_EXCLUDED,
@@ -190,6 +201,66 @@ def _violated_by_ticker_period(
         if per_period:
             out[ticker] = per_period
     return out
+
+
+def _record_dimensions(
+    *,
+    dims_repo: FundamentalDimensionsRepository,
+    result_ids: dict[tuple[str, Any], int],
+    rows: dict[str, dict[str, Any]],
+    zs: dict[str, dict[str, float]],
+    as_of: date,
+    engine: str,
+    violated: dict[str, dict[str, set[str]]],
+    true_pit: set[int],
+) -> int:
+    """Persist each name's dimensions from the SAME cross-section as its composite.
+
+    Computed here rather than in a later pass because a z-score only means
+    anything relative to the cross-section it was taken in. Recomputing them
+    later would silently use a different peer set.
+    """
+    out_rows: list[dict[str, Any]] = []
+    for ticker, d in rows.items():
+        result_id = result_ids.get((ticker, as_of))
+        if result_id is None:
+            continue
+        z_for_ticker = {f: zs.get(f, {}).get(ticker) for f in zs}
+        computed = dimension_values(z_for_ticker)
+
+        # Evidence quality is about what Argon KNOWS, not about the business.
+        obs_ids = d.get("obs_ids") or []
+        withheld = len((violated.get(ticker) or {}).get(d["period"]) or set())
+        computed["evidence_quality"] = evidence_quality(
+            # Measured against the claims table, not against this run's
+            # availability_ids: a current-vintage run never consults those, and
+            # reading 0 from their absence reports an artifact as a measurement.
+            true_pit=sum(1 for o in obs_ids if o in true_pit),
+            total=len(obs_ids),
+            excluded_values=withheld,
+        )
+        computed["priority"] = priority_aggregate(computed)
+
+        for dim, payload in computed.items():
+            out_rows.append(
+                {
+                    "result_id": result_id,
+                    "ticker": ticker,
+                    "as_of": as_of,
+                    "engine_version": engine,
+                    "dimension": dim,
+                    "value": payload.get("value"),
+                    "inputs_present": int(payload.get("present") or 0),
+                    "inputs_expected": int(payload.get("expected") or 0),
+                    "authority": payload["authority"],
+                    "detail": {
+                        k: v
+                        for k, v in payload.items()
+                        if k not in {"value", "present", "expected", "authority"}
+                    },
+                }
+            )
+    return dims_repo.record(out_rows)
 
 
 def _record_provenance(
@@ -351,9 +422,21 @@ def fundamental_scoring(
     validity_counters = {"values_excluded": 0, "periods_touched": 0}
     violated_by_period: dict[str, dict[str, set[str]]] = {}
     prov = FundamentalProvenanceRepository(conn, schema=schema)
+    dims = FundamentalDimensionsRepository(conn, schema=schema)
+    true_pit_ids: set[int] = set()
     if validity == VALIDITY_POLICY_EXCLUDE:
         violated_by_period = _violated_by_ticker_period(obs, panel_raw)
         feats, validity_counters = apply_validity(feats, violated_by_period)
+        true_pit_ids = FundamentalObsAvailabilityRepository(
+            conn, schema=schema
+        ).true_pit_obs_ids(
+            [
+                obs_id
+                for per in panel_raw.values()
+                for ids in (per.get("obs_ids") or {}).values()
+                for obs_id in ids
+            ]
+        )
 
     buckets, withheld = _build_buckets(
         feats,
@@ -372,6 +455,7 @@ def fundamental_scoring(
         "validity_values_excluded": validity_counters["values_excluded"],
         "validity_periods_touched": validity_counters["periods_touched"],
         "provenance_rows": 0,
+        "dimension_rows": 0,
     }
     for bucket in sorted(buckets):
         rows = buckets[bucket]
@@ -425,6 +509,16 @@ def fundamental_scoring(
         # other than "off". v1 rows are deliberately NOT backfilled — absence of
         # rows there must keep reading as `legacy`, not as "cited nothing".
         if validity == VALIDITY_POLICY_EXCLUDE:
+            totals["dimension_rows"] += _record_dimensions(
+                dims_repo=dims,
+                result_ids=scores.result_ids(out),
+                rows=rows,
+                zs=zs,
+                as_of=as_of,
+                engine=engine,
+                violated=violated_by_period,
+                true_pit=true_pit_ids,
+            )
             totals["provenance_rows"] += _record_provenance(
                 provenance=prov,
                 result_ids=scores.result_ids(out),

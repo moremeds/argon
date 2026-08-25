@@ -1677,6 +1677,70 @@ REGISTRY.extend(
             reason_verified_on=date(2026, 8, 25),
         ),
         DatasetRegistryEntry(
+            "fundamental_runs",
+            "fundamentals",
+            # `provenance` — the control plane. A run row records the QUESTION
+            # asked of the engine; nothing arrives on a cadence and there is no
+            # provider to be short of.
+            "provenance",
+            date_col="requested_at",
+            ticker_col=None,
+            expected_frequency="none",
+            provider="none",
+            granularity="none",
+            healer_adapter=None,
+            source_system="argon",
+            retention_days=None,
+            reason=(
+                "fundamental run ledger (migration 135): scope, as-of, evidence "
+                "policy, engine version, mode and counters for each engine run. "
+                "Not healable — a missing run is a run that never happened, and "
+                "inventing one would fabricate the provenance the report product "
+                "reads. Wedged rows are cleared by cancel_stale(), not backfilled."
+            ),
+            reason_verified_on=date(2026, 8, 25),
+        ),
+        DatasetRegistryEntry(
+            "fundamental_run_stages",
+            "fundamentals",
+            "provenance",
+            date_col="started_at",
+            ticker_col=None,
+            expected_frequency="none",
+            provider="none",
+            granularity="none",
+            healer_adapter=None,
+            source_system="argon",
+            retention_days=None,
+            reason=(
+                "per-stage state for a fundamental run (migration 135). Child of "
+                "fundamental_runs and healed the same way it is: not at all."
+            ),
+            reason_verified_on=date(2026, 8, 25),
+        ),
+        DatasetRegistryEntry(
+            "fundamental_dimensions",
+            "fundamentals",
+            # freshness_only for the same reason as fundamental_scores: the grain
+            # is (ticker x knowledge QUARTER) over a non-watchlist universe, so a
+            # session spine would invent a gap no filing will ever fill.
+            "freshness_only",
+            date_col="as_of",
+            ticker_col="ticker",
+            expected_frequency="event",
+            provider="db",
+            granularity="run_once",
+            healer_adapter="fundamental_refresh",
+            source_system="derived",
+            reason=(
+                "research-priority dimensions per score result (migration 136), "
+                "each carrying its own spec-6.4 authority. Derived from "
+                "fundamental_scores in the same pass; re-running the scoring job "
+                "rebuilds them at zero provider spend."
+            ),
+            reason_verified_on=date(2026, 8, 25),
+        ),
+        DatasetRegistryEntry(
             "revenue_breakdown_obs",
             "fundamentals",
             # freshness_only for the same reason as fundamental_statement_obs:

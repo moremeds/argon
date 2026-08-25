@@ -331,3 +331,22 @@ class FundamentalObsAvailabilityRepository:
                 f"SELECT count(*) FROM {self._schema}.fundamental_obs_availability"
             )
             return int(cur.fetchone()[0])
+
+    def true_pit_obs_ids(self, obs_ids: Sequence[int]) -> set[int]:
+        """Which of these observations carry a `true_pit` claim.
+
+        Exists so a CURRENT-vintage run can still report honest evidence coverage.
+        Deriving it from the run's own `availability_ids` would read 0 for every
+        current-vintage row — not because the evidence is absent but because that
+        run never consulted it, which is an artifact reported as a measurement.
+        """
+        if not obs_ids:
+            return set()
+        with self.conn.cursor() as cur:
+            cur.execute(
+                f"""SELECT DISTINCT obs_id
+                      FROM {self._schema}.fundamental_obs_availability
+                     WHERE obs_id = ANY(%s) AND evidence_class = 'true_pit'""",
+                (list(obs_ids),),
+            )
+            return {int(r[0]) for r in cur.fetchall()}

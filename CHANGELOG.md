@@ -290,6 +290,52 @@ evidence_policy)`, which fails closed — an observation with no claim never
 
 ### Added
 
+- **Fundamental run ledger — the engine's control plane (M2.4).** Migration `135` +
+  `storage/fundamental_runs.py` + `worker/jobs/fundamental_run.py`.
+  - `fundamental_scores` records an ANSWER; nothing recorded the QUESTION. A run that produced
+    nothing left no trace, so "the panel was empty" and "the job never ran" were
+    indistinguishable afterwards. A run row carries scope, as-of, evidence policy, engine version,
+    mode, per-stage state and counters.
+  - **Idempotency is a request hash, not a timestamp.** `request_hash` covers scope + as_of +
+    evidence policy + engine, and deliberately excludes the clock: a run one second later asking
+    the same question is the same question. `mode='reuse'` matches on it EXACTLY — a "close
+    enough" match would answer the operator's question with someone else's.
+  - Stages are rows, not a status column: "failed at anchors after scoring succeeded" is the
+    difference between re-running everything and re-running one stage. A retry gets a new attempt.
+  - A partial unique index enforces at most one active run per request; `cancel_stale()` clears
+    heartbeat-dead runs, which otherwise block that question forever through the same index.
+  - Verified end to end on a leak-free run: `TRUE_PIT_ONLY` at as_of 2024-06-30 over 25 names
+    chained routing → scoring (1,535 scored, 74 buckets) → anchors (25 written), and a reuse
+    request returned the same run rather than recomputing.
+
+- **Independent research-priority dimensions, each carrying its own permission (M2.3).**
+  `fundamentals/dimensions.py` + migration `136` + `storage/fundamental_dimensions.py`.
+  - Seven dimensions persisted separately, because `authority` is per DIMENSION, not per result.
+    A column layout would force one authority per row — which is exactly how a contradicted sign
+    rides along inside a validated composite.
+  - **Two dimensions are capped at `descriptive` and both caps are load-bearing.**
+    `operating_quality`'s inputs measured INVERTED (high-margin names underperformed, 2026-08-12),
+    and `valuation`'s own-history finding was computed by a script pairing raw closes with shares
+    UW restates to today's split basis, never rerun. Neither may enter the priority aggregate.
+  - `investment_ranking` is refused by CHECK constraint, not merely unused — it needs the GX gate
+    this program does not provide.
+  - Renormalization is explicit: a missing dimension is dropped, the aggregate names which were
+    used and which were missing, and it REFUSES below two present rather than calling one
+    dimension a priority. Treating a missing dimension as 0 would pull every incomplete name
+    toward the middle of the ranking — an artifact of absence that looks like a measurement.
+  - `evidence_quality` is measured against the claims table, not the run's `availability_ids`: a
+    current-vintage run never populates those, so deriving coverage from them reported "this run
+    did not look" as "the evidence is not there". NVDA reads 1.0 (3/3 true_pit), not 0.0.
+
+### Changed
+
+- **`fundamentals/valuation.py` split by domain seam (M2.1).** 987 lines → `valuation.py` (623,
+  `build_anchors` + refusal), `valuation_policy.py` (197, routing and thresholds),
+  `valuation_math.py` (261, arithmetic). Every name is re-exported, so no import site changed.
+  - `anchor_inputs_hash` now reads the rule constants THROUGH the policy module rather than
+    through names bound at import. `from X import CONST` binds once, which makes "changing a rule
+    changes the band identity" unprovable — the exact property a test asserts.
+
 - **SEC publication evidence — replayable fundamental history goes from 8 days to 22 years (M1-A).**
   `sources/sec_submissions.py` + `fundamentals/publication_evidence.py` +
   `storage/sec_filing_index.py` + migration `132` + `worker/jobs/{sec_filing_index_refresh,
