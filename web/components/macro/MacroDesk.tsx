@@ -1,6 +1,11 @@
+import { ChainRefusal } from "./ChainRefusal";
 import { DomainStateCard } from "./DomainStateCard";
-import type { MacroDomainKey, MacroDomainSlot } from "./types";
-import { CAUSAL_ORDER } from "./types";
+import type {
+  MacroContextSnapshot,
+  MacroDomainKey,
+  MacroDomainSlot,
+} from "./types";
+import { CAUSAL_ORDER, DOMAIN_LABEL } from "./types";
 
 /**
  * The four macro domain states, rendered as a chain rather than a scoreboard.
@@ -12,9 +17,16 @@ import { CAUSAL_ORDER } from "./types";
  */
 export function MacroDesk({
   domains,
+  snapshot = null,
 }: {
   domains: Record<string, MacroDomainSlot>;
+  /** The chain-level verdict. ``null`` means none was ever assembled, which is NOT the
+   *  same as a coherent chain and must never render as one. */
+  snapshot?: MacroContextSnapshot | null;
 }) {
+  const refusedBy = new Map(
+    (snapshot?.reasons ?? []).map((reason) => [reason.domain, reason]),
+  );
   return (
     <div
       style={{
@@ -40,13 +52,32 @@ export function MacroDesk({
         </p>
       </header>
 
+      <ChainRefusal snapshot={snapshot} />
+
       <div style={{ display: "grid", gap: 10 }}>
         {CAUSAL_ORDER.map((domain: MacroDomainKey, i) => (
           <div key={domain} style={{ display: "grid", gap: 10 }}>
-            <DomainStateCard
-              domain={domain}
-              slot={domains[domain] ?? { value: null }}
-            />
+            <div style={{ display: "grid", gap: 6 }}>
+              {refusedBy.has(domain) ? (
+                <div
+                  data-testid={`macro-chain-flag-${domain}`}
+                  style={{
+                    fontSize: 12,
+                    color: "var(--danger, #a33)",
+                    padding: "2px 2px 0",
+                  }}
+                >
+                  {/* Prefixed with the domain: the flag sits between two cards, and
+                      without a name it reads as belonging to the one above it. */}
+                  <strong>{DOMAIN_LABEL[domain]}:</strong>{" "}
+                  {refusedBy.get(domain)?.detail}
+                </div>
+              ) : null}
+              <DomainStateCard
+                domain={domain}
+                slot={domains[domain] ?? { value: null }}
+              />
+            </div>
             {i < CAUSAL_ORDER.length - 1 ? (
               <div
                 aria-hidden

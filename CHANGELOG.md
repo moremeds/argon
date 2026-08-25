@@ -9,6 +9,36 @@ version in lockstep (enforced by `scripts/release/version_sync_check.py`).
 
 ### Added
 
+- **The macro desk reads one snapshot, and renders its refusal.** Slices 3 and 4 of MC4,
+  which completes it.
+  - **Option A, deliberately: the banner reports, it does not withhold.** A broken chain
+    shows the verdict AND keeps all four cards. The authority boundary for this layer is
+    risk-monitoring — it may say the chain is broken and where, and it may not decide for
+    the reader that the individual answers have stopped being worth seeing.
+  - The offending domain is flagged on its own card as well as in the banner, prefixed
+    with the domain name: the flag sits between two cards, and without a name it reads as
+    belonging to the one above it.
+  - **A missing snapshot renders as "chain never assembled", never as a clean chain.**
+    Absence of a check is not a passed check, and the four cards below it are then four
+    independent reads with nothing having compared them.
+  - **Verified against real stored data, and it caught a real incompatibility.** In the
+    local store, USD state 22 cites `policy_rates` state **21** while the latest rates
+    answer is state **23** — states 20/21/22 came from one pass at 00:45:14 and state 23
+    from a rates-only rerun at 01:15:44 with no matching USD recompute. Every one of those
+    rows is individually current and individually honest; the four-request page reads 22
+    and 23 side by side as a chain and nothing about a timestamp gives it away. Path
+    exercised end to end: job → `macro_context_snapshots` → `GET /api/macro/snapshot`
+    (`status: incompatible`) → `/macro` rendering the banner, both flags and all four
+    cards. Screenshot: `output/playwright/macro-chain-incompatible-2026-08-25.png`
+    (gitignored by policy).
+  - Caveat recorded rather than buried: that instance is from `option_wizard_local`, where
+    a single-domain rerun is exactly what ad-hoc dev work produces. Whether production
+    carries the same shape is **unverified** — the point it proves is that the detector
+    works on real stored edges, not that production is broken.
+  - `web/lib/types.ts` regenerated. Generated from the live unsorted spec, not from
+    `openapi.snapshot.json`: the snapshot is stored `sort_keys=True`, and generating from
+    it reorders every schema — a 5,005-line diff carrying the same 156 lines of content.
+
 - **The macro context snapshot — assembler, nightly job and `/api/macro/snapshot`.**
   Second of four slices; the snapshot is now assembled, persisted and served, and the
   page still reads four independent states until slice 3.

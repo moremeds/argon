@@ -40,3 +40,24 @@ export const DOMAIN_LEDE: Record<MacroDomainKey, string> = {
   usd: "How policy transmits into the broad dollar.",
   gold: "Whether gold's measured relationships are holding at all.",
 };
+
+export type MacroContextSnapshot =
+  components["schemas"]["MacroContextSnapshotResponse"];
+
+// ``reasons`` and ``domains`` carry Pydantic defaults, so the generated schema marks
+// them optional. Unwrapped here once rather than at every use site.
+export type MacroSnapshotReason =
+  NonNullable<MacroContextSnapshot["reasons"]>[number];
+
+/** What each non-complete status means, in the operator's terms. The two refusals stay
+ *  apart on purpose: "rates never ran" sends you to the scheduler, "rates ran but USD
+ *  ignored it" sends you to the data, and one merged "degraded" would point you at the
+ *  wrong one. */
+export const STATUS_LEDE: Record<string, string> = {
+  partial:
+    "A domain is missing — its job failed or never ran. The domains that did answer are still their own honest answers.",
+  incompatible:
+    "A domain present below stood on an upstream answer that is not the one this snapshot holds. Every card can look current and the chain still be wrong.",
+  stale:
+    "The newest snapshot is older than the expected cadence, so this chain describes an earlier instant than the one you asked about.",
+};

@@ -116,6 +116,7 @@ type RatesSnapshotResponse = Json<"/api/rates/snapshot", "get">;
 type MacroPolicyComparison = Json<"/api/macro/policy", "get">;
 // All four domain states share one response model, so one alias covers the set.
 type MacroDomainStateResponse = Json<"/api/macro/usd", "get">;
+type MacroContextSnapshotResponse = Json<"/api/macro/snapshot", "get">;
 type PositioningSnapshot = Json<"/api/positioning/{ticker}", "get">;
 type PositioningScreenerResponse = Json<"/api/positioning/screener", "get">;
 
@@ -312,6 +313,19 @@ export const api = {
     _fetch<MacroDomainStateResponse | null>(`/api/macro/${domain}`, undefined, {
       allow404: true,
     }),
+  // `allow404` again, and for a sharper reason than the domain reads: a 404 here means no
+  // snapshot was ever assembled for the instant, which the desk must render as "nothing
+  // checked whether these four belong together" -- never as a coherent chain.
+  macroContextSnapshot: (
+    asOfTs?: string,
+  ): Promise<MacroContextSnapshotResponse | null> =>
+    _fetch<MacroContextSnapshotResponse | null>(
+      asOfTs
+        ? `/api/macro/snapshot?as_of_ts=${encodeURIComponent(asOfTs)}`
+        : "/api/macro/snapshot",
+      undefined,
+      { allow404: true },
+    ),
   tradeInsights: (ticker: string): Promise<TradeInsightsResponse> =>
     _fetch<TradeInsightsResponse>(`/api/stock/${ticker}/trade-insights`),
   tradeInsightsAiAnalysis: (
