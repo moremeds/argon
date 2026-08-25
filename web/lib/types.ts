@@ -2046,6 +2046,117 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/stock/{ticker}/research/evidence": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Company Evidence
+         * @description One name's event timeline and deterministic risk facts.
+         */
+        get: operations["company_evidence_api_stock__ticker__research_evidence_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/research/evidence/classes": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Evidence Classes
+         * @description The discovery gate, as data. Live and killed classes with their counts.
+         */
+        get: operations["evidence_classes_api_research_evidence_classes_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/research/reports": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * List Reports
+         * @description The newest version of each report key.
+         */
+        get: operations["list_reports_api_research_reports_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/research/reports/{report_type}/{key}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Get Report
+         * @description Latest version of one report, its delta, and its version history.
+         */
+        get: operations["get_report_api_research_reports__report_type___key__get"];
+        put?: never;
+        /**
+         * Assemble Report
+         * @description Assemble and publish the next version. Deterministic — no model, no network.
+         *
+         *     Republishing unchanged content is a no-op that returns the existing version
+         *     with an empty delta, so a double-click cannot manufacture history.
+         */
+        post: operations["assemble_report_api_research_reports__report_type___key__post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/research/reports/{report_type}/{key}/versions/{version_no}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Get Report Version
+         * @description One frozen version, exactly as it was published.
+         *
+         *     This is the replay path. It reads stored blocks rather than re-assembling,
+         *     because re-assembly under today's data is a DIFFERENT answer wearing an old
+         *     version number.
+         */
+        get: operations["get_report_version_api_research_reports__report_type___key__versions__version_no__get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/positioning/screener": {
         parameters: {
             query?: never;
@@ -2307,6 +2418,39 @@ export interface components {
             worker: number;
             /** Persistence */
             persistence: number;
+        };
+        /** BlockChange */
+        BlockChange: {
+            /** Block Kind */
+            block_kind: string;
+            /** Title */
+            title: string;
+            /**
+             * Changes
+             * @default []
+             */
+            changes: components["schemas"]["BlockValueChange"][];
+        };
+        /** BlockRef */
+        BlockRef: {
+            /** Block Kind */
+            block_kind: string;
+            /** Title */
+            title: string;
+        };
+        /**
+         * BlockValueChange
+         * @description One number that moved. `before`/`after` null means it appeared/vanished.
+         */
+        BlockValueChange: {
+            /** Path */
+            path: string;
+            /** Before */
+            before?: number | null;
+            /** After */
+            after?: number | null;
+            /** Change */
+            change?: number | null;
         };
         /** CanaryHistoryResponse */
         CanaryHistoryResponse: {
@@ -2910,6 +3054,37 @@ export interface components {
             reason?: string | null;
             /** Evidence Coverage */
             evidence_coverage?: number | null;
+        };
+        /**
+         * CompanyEvidenceResponse
+         * @description Events + deterministic risks for one name, with the gate that bounds them.
+         */
+        CompanyEvidenceResponse: {
+            /** Ticker */
+            ticker: string;
+            /**
+             * Events
+             * @default []
+             */
+            events: components["schemas"]["ResearchEvent"][];
+            /**
+             * Risks
+             * @default []
+             */
+            risks: components["schemas"]["RiskFact"][];
+            /**
+             * Killed Classes
+             * @default []
+             */
+            killed_classes: components["schemas"]["EventClassStatus"][];
+            /**
+             * State
+             * @default ok
+             * @enum {string}
+             */
+            state: "ok" | "stale_run" | "no_compatible_run" | "no_coverage" | "unsupported_capability" | "failed_run";
+            /** Reason */
+            reason?: string | null;
         };
         /** CrashTriggerBlock */
         CrashTriggerBlock: {
@@ -3547,6 +3722,25 @@ export interface components {
             iv_z?: string | null;
             /** Rv Z */
             rv_z?: string | null;
+        };
+        /**
+         * EventClassStatus
+         * @description The discovery gate's verdict for one candidate class.
+         *
+         *     A `killed` class is not a missing feature — it is a measured absence of
+         *     source, and `rationale` says which.
+         */
+        EventClassStatus: {
+            /** Event Class */
+            event_class: string;
+            /** Status */
+            status: string;
+            /** Source Table */
+            source_table?: string | null;
+            /** Rationale */
+            rationale: string;
+            /** Measured Rows */
+            measured_rows?: number | null;
         };
         /**
          * ExposuresSummaryRow
@@ -5946,6 +6140,18 @@ export interface components {
             atm_iv_30d_series: components["schemas"]["MagnetIvPoint"][];
         };
         /**
+         * ManifestChange
+         * @description A METHOD change. Reported apart from value moves, and stated first.
+         */
+        ManifestChange: {
+            /** Field */
+            field: string;
+            /** Before */
+            before?: string | null;
+            /** After */
+            after?: string | null;
+        };
+        /**
          * MarketAggregates
          * @description Per-ticker aggregate fields sourced from the bulk-screener endpoint.
          *
@@ -7752,6 +7958,162 @@ export interface components {
              */
             fresh_within_seconds: number;
         };
+        /**
+         * ReportBlock
+         * @description One section. Carries its evidence or its derivation — never neither.
+         *
+         *     `authority` is null for a block that makes no ordering or directional claim.
+         *     The type cannot express `investment_ranking`, which is the program ceiling
+         *     made unrepresentable rather than merely unused.
+         */
+        ReportBlock: {
+            /** Ordinal */
+            ordinal: number;
+            /** Block Kind */
+            block_kind: string;
+            /** Title */
+            title: string;
+            /**
+             * Payload
+             * @default {}
+             */
+            payload: {
+                [key: string]: unknown;
+            };
+            /**
+             * Evidence
+             * @default {}
+             */
+            evidence: {
+                [key: string]: unknown;
+            };
+            /** Derivation */
+            derivation?: string | null;
+            /** Authority */
+            authority?: ("descriptive" | "research_priority" | "directional_monitor") | null;
+        };
+        /**
+         * ReportDeltaModel
+         * @description What changed since the previous version, or that there wasn't one.
+         */
+        ReportDeltaModel: {
+            /** Is First Version */
+            is_first_version: boolean;
+            /**
+             * Manifest
+             * @default []
+             */
+            manifest: components["schemas"]["ManifestChange"][];
+            /**
+             * Added
+             * @default []
+             */
+            added: components["schemas"]["BlockRef"][];
+            /**
+             * Removed
+             * @default []
+             */
+            removed: components["schemas"]["BlockRef"][];
+            /**
+             * Moved
+             * @default []
+             */
+            moved: components["schemas"]["BlockChange"][];
+            /** Summary */
+            summary: string;
+        };
+        /** ReportListResponse */
+        ReportListResponse: {
+            /**
+             * Reports
+             * @default []
+             */
+            reports: components["schemas"]["ReportSummary"][];
+        };
+        /**
+         * ReportManifest
+         * @description The frozen question. Everything needed to reproduce the content.
+         */
+        ReportManifest: {
+            /** Engine Version */
+            engine_version: string | null;
+            /** Taxonomy Version */
+            taxonomy_version: string | null;
+            /** Evidence Policy */
+            evidence_policy: string;
+            /** As Of */
+            as_of: string;
+            /** Assembler Version */
+            assembler_version: string;
+            /**
+             * Scope
+             * @default {}
+             */
+            scope: {
+                [key: string]: unknown;
+            };
+        };
+        /** ReportResponse */
+        ReportResponse: {
+            /**
+             * State
+             * @enum {string}
+             */
+            state: "ok" | "no_report" | "no_coverage" | "failed_run";
+            /** Reason */
+            reason?: string | null;
+            report?: components["schemas"]["ResearchReportModel"] | null;
+            delta?: components["schemas"]["ReportDeltaModel"] | null;
+            /**
+             * Versions
+             * @default []
+             */
+            versions: components["schemas"]["ReportVersionRef"][];
+        };
+        /** ReportSummary */
+        ReportSummary: {
+            /** Report Key */
+            report_key: string;
+            /**
+             * Report Type
+             * @enum {string}
+             */
+            report_type: "company" | "comparison" | "chain" | "watchlist";
+            /** Version No */
+            version_no: number;
+            /** Title */
+            title: string;
+            /**
+             * Status
+             * @enum {string}
+             */
+            status: "draft" | "partial" | "published" | "superseded" | "stale";
+            /**
+             * Created At
+             * Format: date-time
+             */
+            created_at: string;
+        };
+        /**
+         * ReportVersionRef
+         * @description One entry in the version history — enough to fetch or compare it.
+         */
+        ReportVersionRef: {
+            /** Version No */
+            version_no: number;
+            /** Content Hash */
+            content_hash: string;
+            /**
+             * Status
+             * @enum {string}
+             */
+            status: "draft" | "partial" | "published" | "superseded" | "stale";
+            /**
+             * Created At
+             * Format: date-time
+             */
+            created_at: string;
+        };
         /** RescanAllRequest */
         RescanAllRequest: {
             /**
@@ -7759,6 +8121,81 @@ export interface components {
              * @default false
              */
             confirmed: boolean;
+        };
+        /**
+         * ResearchEvent
+         * @description One typed event. Both clocks travel with it.
+         *
+         *     `occurred_at` is when it happened; `first_known_at` is when Argon could know.
+         *     A historical read predicates on the second, or a replay sees events before
+         *     they were knowable.
+         */
+        ResearchEvent: {
+            /** Event Id */
+            event_id: number;
+            /** Event Class */
+            event_class: string;
+            /**
+             * Occurred At
+             * Format: date
+             */
+            occurred_at: string;
+            /**
+             * First Known At
+             * Format: date
+             */
+            first_known_at: string;
+            /** Title */
+            title: string;
+            /**
+             * Detail
+             * @default {}
+             */
+            detail: {
+                [key: string]: unknown;
+            };
+            /** Source Kind */
+            source_kind: string;
+            /** Source Ref */
+            source_ref?: string | null;
+            /** Superseded By */
+            superseded_by?: number | null;
+        };
+        /** ResearchReportModel */
+        ResearchReportModel: {
+            /** Report Id */
+            report_id: number;
+            /** Report Key */
+            report_key: string;
+            /**
+             * Report Type
+             * @enum {string}
+             */
+            report_type: "company" | "comparison" | "chain" | "watchlist";
+            /** Version No */
+            version_no: number;
+            /** Title */
+            title: string;
+            manifest: components["schemas"]["ReportManifest"];
+            /** Content Hash */
+            content_hash: string;
+            /**
+             * Status
+             * @enum {string}
+             */
+            status: "draft" | "partial" | "published" | "superseded" | "stale";
+            /** Superseded By */
+            superseded_by?: number | null;
+            /**
+             * Created At
+             * Format: date-time
+             */
+            created_at: string;
+            /**
+             * Blocks
+             * @default []
+             */
+            blocks: components["schemas"]["ReportBlock"][];
         };
         /**
          * ReturnsBlock
@@ -7772,6 +8209,36 @@ export interface components {
             w1?: string | null;
             /** D30 */
             d30?: string | null;
+        };
+        /**
+         * RiskFact
+         * @description A number against a threshold, and what a breach invalidates.
+         *
+         *     Never prose. A risk expressed only as a sentence cannot be checked, replayed,
+         *     or shown to have improved.
+         */
+        RiskFact: {
+            /** Risk Kind */
+            risk_kind: string;
+            /** Observed Value */
+            observed_value: number | null;
+            /** Threshold */
+            threshold: number | null;
+            /** Breached */
+            breached: boolean;
+            /** Severity */
+            severity: string;
+            /** Statement */
+            statement: string;
+            /** Invalidates */
+            invalidates?: string | null;
+            /** Source Kind */
+            source_kind: string;
+            /**
+             * As Of
+             * Format: date
+             */
+            as_of: string;
         };
         /** RvCorrPoint */
         RvCorrPoint: {
@@ -14674,6 +15141,191 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["ChainDrilldownResponse"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    company_evidence_api_stock__ticker__research_evidence_get: {
+        parameters: {
+            query?: {
+                /** @description Show only what Argon could know by this date. Predicates on first_known_at, never on when the event occurred. */
+                known_by?: string | null;
+                limit?: number;
+            };
+            header?: never;
+            path: {
+                ticker: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["CompanyEvidenceResponse"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    evidence_classes_api_research_evidence_classes_get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["EventClassStatus"][];
+                };
+            };
+        };
+    };
+    list_reports_api_research_reports_get: {
+        parameters: {
+            query?: {
+                limit?: number;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ReportListResponse"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    get_report_api_research_reports__report_type___key__get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                report_type: string;
+                key: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ReportResponse"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    assemble_report_api_research_reports__report_type___key__post: {
+        parameters: {
+            query?: {
+                as_of?: string | null;
+            };
+            header?: never;
+            path: {
+                report_type: string;
+                key: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ReportResponse"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    get_report_version_api_research_reports__report_type___key__versions__version_no__get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                report_type: string;
+                key: string;
+                version_no: number;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ReportResponse"];
                 };
             };
             /** @description Validation Error */

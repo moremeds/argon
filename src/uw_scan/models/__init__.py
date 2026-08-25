@@ -67,6 +67,20 @@ from .radar import (
     RadarRow,
     RadarScope,
 )
+from .reports import (
+    BlockChange,
+    BlockRef,
+    BlockValueChange,
+    ManifestChange,
+    ReportBlock,
+    ReportDeltaModel,
+    ReportListResponse,
+    ReportManifest,
+    ReportResponse,
+    ReportSummary,
+    ReportVersionRef,
+    ResearchReportModel,
+)
 from .gold import (
     GoldCbCountryHistory,
     GoldCorrelationBand,
@@ -657,4 +671,16 @@ __all__ = [
     "VolCharacterRow",
     "VolumesByExchangeRow",
     "VolVrpRow",
+    "BlockChange",
+    "BlockRef",
+    "BlockValueChange",
+    "ManifestChange",
+    "ReportBlock",
+    "ReportDeltaModel",
+    "ReportListResponse",
+    "ReportManifest",
+    "ReportResponse",
+    "ReportSummary",
+    "ReportVersionRef",
+    "ResearchReportModel",
 ]

@@ -457,6 +457,97 @@
         "title": "BenchmarkSubscoresResponse",
         "type": "object"
       },
+      "BlockChange": {
+        "properties": {
+          "block_kind": {
+            "title": "Block Kind",
+            "type": "string"
+          },
+          "changes": {
+            "default": [],
+            "items": {
+              "$ref": "#/components/schemas/BlockValueChange"
+            },
+            "title": "Changes",
+            "type": "array"
+          },
+          "title": {
+            "title": "Title",
+            "type": "string"
+          }
+        },
+        "required": [
+          "block_kind",
+          "title"
+        ],
+        "title": "BlockChange",
+        "type": "object"
+      },
+      "BlockRef": {
+        "properties": {
+          "block_kind": {
+            "title": "Block Kind",
+            "type": "string"
+          },
+          "title": {
+            "title": "Title",
+            "type": "string"
+          }
+        },
+        "required": [
+          "block_kind",
+          "title"
+        ],
+        "title": "BlockRef",
+        "type": "object"
+      },
+      "BlockValueChange": {
+        "description": "One number that moved. `before`/`after` null means it appeared/vanished.",
+        "properties": {
+          "after": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "After"
+          },
+          "before": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Before"
+          },
+          "change": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Change"
+          },
+          "path": {
+            "title": "Path",
+            "type": "string"
+          }
+        },
+        "required": [
+          "path"
+        ],
+        "title": "BlockValueChange",
+        "type": "object"
+      },
       "CanaryHistoryResponse": {
         "properties": {
           "rows": {
@@ -11177,6 +11268,42 @@
         "title": "MagnetsResponse",
         "type": "object"
       },
+      "ManifestChange": {
+        "description": "A METHOD change. Reported apart from value moves, and stated first.",
+        "properties": {
+          "after": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "After"
+          },
+          "before": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Before"
+          },
+          "field": {
+            "title": "Field",
+            "type": "string"
+          }
+        },
+        "required": [
+          "field"
+        ],
+        "title": "ManifestChange",
+        "type": "object"
+      },
       "MarketAggregates": {
         "description": "Per-ticker aggregate fields sourced from the bulk-screener endpoint.\n\nPopulated by pipeline.run_single_stock alongside the existing per-section\nsub-models. Feeds the watchlist card POSITIONING and SKEW blocks.",
         "properties": {
@@ -17205,6 +17332,335 @@
         "title": "RegimeQuotesResponse",
         "type": "object"
       },
+      "ReportBlock": {
+        "description": "One section. Carries its evidence or its derivation \u2014 never neither.\n\n`authority` is null for a block that makes no ordering or directional claim.\nThe type cannot express `investment_ranking`, which is the program ceiling\nmade unrepresentable rather than merely unused.",
+        "properties": {
+          "authority": {
+            "anyOf": [
+              {
+                "enum": [
+                  "descriptive",
+                  "research_priority",
+                  "directional_monitor"
+                ],
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Authority"
+          },
+          "block_kind": {
+            "title": "Block Kind",
+            "type": "string"
+          },
+          "derivation": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Derivation"
+          },
+          "evidence": {
+            "additionalProperties": true,
+            "default": {},
+            "title": "Evidence",
+            "type": "object"
+          },
+          "ordinal": {
+            "title": "Ordinal",
+            "type": "integer"
+          },
+          "payload": {
+            "additionalProperties": true,
+            "default": {},
+            "title": "Payload",
+            "type": "object"
+          },
+          "title": {
+            "title": "Title",
+            "type": "string"
+          }
+        },
+        "required": [
+          "ordinal",
+          "block_kind",
+          "title"
+        ],
+        "title": "ReportBlock",
+        "type": "object"
+      },
+      "ReportDeltaModel": {
+        "description": "What changed since the previous version, or that there wasn't one.",
+        "properties": {
+          "added": {
+            "default": [],
+            "items": {
+              "$ref": "#/components/schemas/BlockRef"
+            },
+            "title": "Added",
+            "type": "array"
+          },
+          "is_first_version": {
+            "title": "Is First Version",
+            "type": "boolean"
+          },
+          "manifest": {
+            "default": [],
+            "items": {
+              "$ref": "#/components/schemas/ManifestChange"
+            },
+            "title": "Manifest",
+            "type": "array"
+          },
+          "moved": {
+            "default": [],
+            "items": {
+              "$ref": "#/components/schemas/BlockChange"
+            },
+            "title": "Moved",
+            "type": "array"
+          },
+          "removed": {
+            "default": [],
+            "items": {
+              "$ref": "#/components/schemas/BlockRef"
+            },
+            "title": "Removed",
+            "type": "array"
+          },
+          "summary": {
+            "title": "Summary",
+            "type": "string"
+          }
+        },
+        "required": [
+          "is_first_version",
+          "summary"
+        ],
+        "title": "ReportDeltaModel",
+        "type": "object"
+      },
+      "ReportListResponse": {
+        "properties": {
+          "reports": {
+            "default": [],
+            "items": {
+              "$ref": "#/components/schemas/ReportSummary"
+            },
+            "title": "Reports",
+            "type": "array"
+          }
+        },
+        "title": "ReportListResponse",
+        "type": "object"
+      },
+      "ReportManifest": {
+        "description": "The frozen question. Everything needed to reproduce the content.",
+        "properties": {
+          "as_of": {
+            "title": "As Of",
+            "type": "string"
+          },
+          "assembler_version": {
+            "title": "Assembler Version",
+            "type": "string"
+          },
+          "engine_version": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Engine Version"
+          },
+          "evidence_policy": {
+            "title": "Evidence Policy",
+            "type": "string"
+          },
+          "scope": {
+            "additionalProperties": true,
+            "default": {},
+            "title": "Scope",
+            "type": "object"
+          },
+          "taxonomy_version": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Taxonomy Version"
+          }
+        },
+        "required": [
+          "engine_version",
+          "taxonomy_version",
+          "evidence_policy",
+          "as_of",
+          "assembler_version"
+        ],
+        "title": "ReportManifest",
+        "type": "object"
+      },
+      "ReportResponse": {
+        "properties": {
+          "delta": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/ReportDeltaModel"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "reason": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Reason"
+          },
+          "report": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/ResearchReportModel"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "state": {
+            "enum": [
+              "ok",
+              "no_report",
+              "no_coverage",
+              "failed_run"
+            ],
+            "title": "State",
+            "type": "string"
+          },
+          "versions": {
+            "default": [],
+            "items": {
+              "$ref": "#/components/schemas/ReportVersionRef"
+            },
+            "title": "Versions",
+            "type": "array"
+          }
+        },
+        "required": [
+          "state"
+        ],
+        "title": "ReportResponse",
+        "type": "object"
+      },
+      "ReportSummary": {
+        "properties": {
+          "created_at": {
+            "format": "date-time",
+            "title": "Created At",
+            "type": "string"
+          },
+          "report_key": {
+            "title": "Report Key",
+            "type": "string"
+          },
+          "report_type": {
+            "enum": [
+              "company",
+              "comparison",
+              "chain",
+              "watchlist"
+            ],
+            "title": "Report Type",
+            "type": "string"
+          },
+          "status": {
+            "enum": [
+              "draft",
+              "partial",
+              "published",
+              "superseded",
+              "stale"
+            ],
+            "title": "Status",
+            "type": "string"
+          },
+          "title": {
+            "title": "Title",
+            "type": "string"
+          },
+          "version_no": {
+            "title": "Version No",
+            "type": "integer"
+          }
+        },
+        "required": [
+          "report_key",
+          "report_type",
+          "version_no",
+          "title",
+          "status",
+          "created_at"
+        ],
+        "title": "ReportSummary",
+        "type": "object"
+      },
+      "ReportVersionRef": {
+        "description": "One entry in the version history \u2014 enough to fetch or compare it.",
+        "properties": {
+          "content_hash": {
+            "title": "Content Hash",
+            "type": "string"
+          },
+          "created_at": {
+            "format": "date-time",
+            "title": "Created At",
+            "type": "string"
+          },
+          "status": {
+            "enum": [
+              "draft",
+              "partial",
+              "published",
+              "superseded",
+              "stale"
+            ],
+            "title": "Status",
+            "type": "string"
+          },
+          "version_no": {
+            "title": "Version No",
+            "type": "integer"
+          }
+        },
+        "required": [
+          "version_no",
+          "content_hash",
+          "status",
+          "created_at"
+        ],
+        "title": "ReportVersionRef",
+        "type": "object"
+      },
       "RescanAllRequest": {
         "properties": {
           "confirmed": {
@@ -17283,6 +17739,91 @@
           "source_kind"
         ],
         "title": "ResearchEvent",
+        "type": "object"
+      },
+      "ResearchReportModel": {
+        "properties": {
+          "blocks": {
+            "default": [],
+            "items": {
+              "$ref": "#/components/schemas/ReportBlock"
+            },
+            "title": "Blocks",
+            "type": "array"
+          },
+          "content_hash": {
+            "title": "Content Hash",
+            "type": "string"
+          },
+          "created_at": {
+            "format": "date-time",
+            "title": "Created At",
+            "type": "string"
+          },
+          "manifest": {
+            "$ref": "#/components/schemas/ReportManifest"
+          },
+          "report_id": {
+            "title": "Report Id",
+            "type": "integer"
+          },
+          "report_key": {
+            "title": "Report Key",
+            "type": "string"
+          },
+          "report_type": {
+            "enum": [
+              "company",
+              "comparison",
+              "chain",
+              "watchlist"
+            ],
+            "title": "Report Type",
+            "type": "string"
+          },
+          "status": {
+            "enum": [
+              "draft",
+              "partial",
+              "published",
+              "superseded",
+              "stale"
+            ],
+            "title": "Status",
+            "type": "string"
+          },
+          "superseded_by": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Superseded By"
+          },
+          "title": {
+            "title": "Title",
+            "type": "string"
+          },
+          "version_no": {
+            "title": "Version No",
+            "type": "integer"
+          }
+        },
+        "required": [
+          "report_id",
+          "report_key",
+          "report_type",
+          "version_no",
+          "title",
+          "manifest",
+          "content_hash",
+          "status",
+          "created_at"
+        ],
+        "title": "ResearchReportModel",
         "type": "object"
       },
       "ReturnsBlock": {
@@ -31117,6 +31658,236 @@
         "tags": [
           "research-evidence",
           "research-evidence"
+        ]
+      }
+    },
+    "/api/research/reports": {
+      "get": {
+        "description": "The newest version of each report key.",
+        "operationId": "list_reports_api_research_reports_get",
+        "parameters": [
+          {
+            "in": "query",
+            "name": "limit",
+            "required": false,
+            "schema": {
+              "default": 25,
+              "maximum": 200,
+              "minimum": 1,
+              "title": "Limit",
+              "type": "integer"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ReportListResponse"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "List Reports",
+        "tags": [
+          "research-reports",
+          "research-reports"
+        ]
+      }
+    },
+    "/api/research/reports/{report_type}/{key}": {
+      "get": {
+        "description": "Latest version of one report, its delta, and its version history.",
+        "operationId": "get_report_api_research_reports__report_type___key__get",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "report_type",
+            "required": true,
+            "schema": {
+              "title": "Report Type",
+              "type": "string"
+            }
+          },
+          {
+            "in": "path",
+            "name": "key",
+            "required": true,
+            "schema": {
+              "title": "Key",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ReportResponse"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Get Report",
+        "tags": [
+          "research-reports",
+          "research-reports"
+        ]
+      },
+      "post": {
+        "description": "Assemble and publish the next version. Deterministic \u2014 no model, no network.\n\nRepublishing unchanged content is a no-op that returns the existing version\nwith an empty delta, so a double-click cannot manufacture history.",
+        "operationId": "assemble_report_api_research_reports__report_type___key__post",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "report_type",
+            "required": true,
+            "schema": {
+              "title": "Report Type",
+              "type": "string"
+            }
+          },
+          {
+            "in": "path",
+            "name": "key",
+            "required": true,
+            "schema": {
+              "title": "Key",
+              "type": "string"
+            }
+          },
+          {
+            "in": "query",
+            "name": "as_of",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "format": "date",
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "As Of"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ReportResponse"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Assemble Report",
+        "tags": [
+          "research-reports",
+          "research-reports"
+        ]
+      }
+    },
+    "/api/research/reports/{report_type}/{key}/versions/{version_no}": {
+      "get": {
+        "description": "One frozen version, exactly as it was published.\n\nThis is the replay path. It reads stored blocks rather than re-assembling,\nbecause re-assembly under today's data is a DIFFERENT answer wearing an old\nversion number.",
+        "operationId": "get_report_version_api_research_reports__report_type___key__versions__version_no__get",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "report_type",
+            "required": true,
+            "schema": {
+              "title": "Report Type",
+              "type": "string"
+            }
+          },
+          {
+            "in": "path",
+            "name": "key",
+            "required": true,
+            "schema": {
+              "title": "Key",
+              "type": "string"
+            }
+          },
+          {
+            "in": "path",
+            "name": "version_no",
+            "required": true,
+            "schema": {
+              "title": "Version No",
+              "type": "integer"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ReportResponse"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Get Report Version",
+        "tags": [
+          "research-reports",
+          "research-reports"
         ]
       }
     },

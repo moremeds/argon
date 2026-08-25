@@ -290,6 +290,34 @@ evidence_policy)`, which fails closed — an observation with no claim never
 
 ### Added
 
+- **Versioned, replayable research reports — the north-star deliverable (M7).**
+  Migration `141` + `storage/research_reports.py` + `fundamentals/report_delta.py` +
+  `worker/jobs/research_report_assemble.py` + `api/routers/research_reports.py` +
+  `web/app/reports/` + `components/reports/ReportView.tsx`.
+  Program completion test: `docs/research/2026-08-25-research-report-completion/`.
+  - **A report is a row, not a rendered page.** Each version freezes its manifest —
+    engine version, taxonomy version, evidence policy, as-of, assembler version — plus a
+    content hash of its assembled blocks. Versions are append-only; a refresh publishes
+    N+1 beside N and supersedes rather than rewrites, so an answer given in August still
+    reads as it did in August after September's data and October's engine arrive. Verified
+    end to end: the optical-communication chain report's v1 still serves its pre-fix
+    numbers after v2 corrected them.
+  - **The delta is the product, and it separates METHOD from WORLD.** A manifest change is
+    listed first and apart from value moves, because a composite that fell because the
+    engine changed is not news about a company. An appearing or disappearing number is
+    always material regardless of magnitude; a bool flip is never a numeric move.
+  - **Every block names its evidence or its derivation** — a CHECK refuses one with
+    neither, and a second CHECK makes `investment_ranking` unrepresentable in the store
+    rather than merely unused. The `unsupported` block is ordinal 1 in every report: the
+    reader meets the killed event classes and the descriptive-only dimensions before the
+    numbers.
+  - **Mixed bases are refused before anything is written.** `check_single_basis` raises if
+    a block's evidence names an engine version, taxonomy version, or as-of that disagrees
+    with the frozen manifest — a report carries one basis or it is two answers stapled
+    together.
+  - **Re-assembling unchanged content publishes nothing** and returns the existing version
+    with an empty delta, so a double-click cannot manufacture history.
+
 - **Typed event ledger, deterministic risk facts, and a discovery gate that kills classes (M6).**
   Migration `140` + `storage/research_events.py` + `worker/jobs/research_events_derive.py` +
   `api/routers/research_evidence.py`.
@@ -316,6 +344,15 @@ evidence_policy)`, which fails closed — an observation with no claim never
     a ledger rather than a table.
 
 ### Fixed
+
+- **A chain report counted placements where its own denominator counted companies.**
+  `chain_membership` is grained `(chain, layer, ticker)`, so a name in two layers appeared
+  twice; the assembler took `with_compatible_result` over rows while `exposure_coverage`
+  deduped to distinct tickers. The optical chain published `with_compatible_result` 19
+  against `members` 17 — a numerator larger than its denominator — and the aggregate
+  priority double-weighted every two-layer name. Every count and the mean are now taken
+  over distinct tickers, with placements reported as their own field rather than left for
+  the reader to discover by subtraction.
 
 - **`risk_summary` silently dropped rows.** It grouped by `(risk_kind, severity)` while keying its
   result dict on `risk_kind` alone, so all but the last severity group were overwritten — every

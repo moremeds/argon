@@ -8,6 +8,12 @@ export type ChainDrilldownResponse =
 export type ChainMember = components["schemas"]["ChainMember"];
 export type CompanyDimensionsResponse =
   components["schemas"]["CompanyDimensionsResponse"];
+export type ReportResponse = components["schemas"]["ReportResponse"];
+export type ReportListResponse = components["schemas"]["ReportListResponse"];
+export type ResearchReportModel =
+  components["schemas"]["ResearchReportModel"];
+export type ReportBlock = components["schemas"]["ReportBlock"];
+export type ReportDeltaModel = components["schemas"]["ReportDeltaModel"];
 export type RadarRow = components["schemas"]["RadarRow"];
 export type RadarDimension = components["schemas"]["RadarDimension"];
 type VrpCandidatesResponse = components["schemas"]["VrpCandidatesResponse"];
@@ -380,6 +386,27 @@ export const api = {
       `/api/research/chains/${encodeURIComponent(chain)}${qs ? `?${qs}` : ""}`,
     );
   },
+  researchReports: (limit = 25): Promise<ReportListResponse> =>
+    _fetch<ReportListResponse>(`/api/research/reports?limit=${limit}`),
+  researchReport: (
+    reportType: "company" | "chain",
+    key: string,
+    version?: number,
+  ): Promise<ReportResponse> =>
+    _fetch<ReportResponse>(
+      `/api/research/reports/${reportType}/${encodeURIComponent(key)}` +
+        (version == null ? "" : `/versions/${version}`),
+    ),
+  assembleResearchReport: (
+    reportType: "company" | "chain",
+    key: string,
+    asOf?: string,
+  ): Promise<ReportResponse> =>
+    _fetch<ReportResponse>(
+      `/api/research/reports/${reportType}/${encodeURIComponent(key)}` +
+        (asOf ? `?as_of=${asOf}` : ""),
+      { method: "POST" },
+    ),
   companyDimensions: (
     ticker: string,
     engineVersion?: string,

@@ -1782,6 +1782,52 @@ REGISTRY.extend(
             reason_verified_on=date(2026, 8, 25),
         ),
         DatasetRegistryEntry(
+            "research_reports",
+            "fundamentals",
+            # `provenance`. A report is an ANSWER, not observed data. A key with
+            # no version is a question nobody asked; there is no provider from
+            # which a missing report could be re-fetched.
+            "provenance",
+            date_col="created_at",
+            ticker_col=None,
+            expected_frequency="event",
+            provider="none",
+            granularity="none",
+            healer_adapter=None,
+            source_system="derived",
+            retention_days=None,
+            reason=(
+                "versioned research reports (migration 141). Append-only: a "
+                "refresh publishes version N+1 beside N and nothing is ever "
+                "rewritten, which is what makes an old version replayable. "
+                "Re-assemble to produce a new version; a predecessor is never "
+                "healed, only superseded."
+            ),
+            reason_verified_on=date(2026, 8, 25),
+        ),
+        DatasetRegistryEntry(
+            "research_report_blocks",
+            "fundamentals",
+            "provenance",
+            # No date column of its own: a block's clock is its report's
+            # `created_at`, and giving it a second one would let a block read
+            # fresh while the version it belongs to reads stale.
+            date_col=None,
+            ticker_col=None,
+            expected_frequency="event",
+            provider="none",
+            granularity="none",
+            healer_adapter=None,
+            source_system="derived",
+            retention_days=None,
+            reason=(
+                "report sections (migration 141), CASCADE children of "
+                "research_reports. Each names its evidence or its derivation; "
+                "a missing block is a report that was never assembled."
+            ),
+            reason_verified_on=date(2026, 8, 25),
+        ),
+        DatasetRegistryEntry(
             "research_event_classes",
             "fundamentals",
             "provenance",

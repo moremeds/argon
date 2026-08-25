@@ -25,6 +25,7 @@ from uw_scan.api.routers import (
     regime_validation,
     radar,
     research_evidence,
+    research_reports,
     scanner,
     skew,
     stock,
@@ -95,6 +96,9 @@ def create_app() -> FastAPI:
     app.include_router(radar.router, prefix="/api", tags=["radar"])
     app.include_router(
         research_evidence.router, prefix="/api", tags=["research-evidence"]
+    )
+    app.include_router(
+        research_reports.router, prefix="/api", tags=["research-reports"]
     )
     app.include_router(positioning.router, prefix="/api", tags=["positioning"])
     app.include_router(vrp.router, prefix="/api", tags=["vrp"])
