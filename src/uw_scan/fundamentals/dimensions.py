@@ -22,12 +22,18 @@ UI can exceed by accident. Two are load-bearing:
   high-margin names underperformed. Argon is entitled to SHOW the margin and not
   to claim a direction for it, and pretending otherwise would smuggle a
   contradicted sign into the aggregate.
-- `valuation` is `descriptive` pending M3. The own-history finding
-  (`sales_to_ev` within-ticker IC +0.0744, t 5.77) was computed by a research
-  script that paired RAW closes with shares UW restates to today's post-split
-  basis — the contamination recorded in the 2026-08-21 verdict. Production
-  anchors were fixed; the research was not rerun. Until it is, the band is
-  something to look at, not something to sort on.
+- `valuation` is `directional_monitor` as of 2026-08-25, raised by MEASUREMENT
+  and not by decision. The own-history finding was recomputed on a
+  split-consistent price basis (the 2026-08-25 rerun) and survived unchanged:
+  `sales_to_ev` within-ticker 2q IC +0.0709 (t 5.55), and +0.0772 (t 6.74) with
+  pure reversal held constant. Among the 121 split-EXPOSED names it was the only
+  one of five signals the correction did not move, while `book_to_price` and
+  `earnings_yield` lost significance outright.
+
+  That licenses a WITHIN-NAME direction and nothing wider. It does NOT enter the
+  priority aggregate, because the aggregate orders names against EACH OTHER and
+  cross-sectional value measured INVERTED in this same universe
+  (`book_to_price` IC -0.0365, t -2.32). A stronger authority is not a wider one.
 
 The default program authority stops at `research_priority`. Nothing here may
 return `investment_ranking`, and a test asserts it.
@@ -84,13 +90,20 @@ DIMENSION_AUTHORITY: dict[str, Authority] = {
     "balance_sheet": Authority.RESEARCH_PRIORITY,
     "cash_conversion": Authority.RESEARCH_PRIORITY,
     "capital_efficiency": Authority.RESEARCH_PRIORITY,
-    "valuation": Authority.DESCRIPTIVE,
+    # Within-name direction only — see the module docstring.
+    "valuation": Authority.DIRECTIONAL_MONITOR,
     "evidence_quality": Authority.DESCRIPTIVE,
 }
 
-#: Dimensions that may enter the priority aggregate. A `descriptive` dimension is
-#: rendered and never summed — including it would let a contradicted sign move
-#: the ordering while the label still said the sign was not claimed.
+#: Dimensions the priority aggregate orders names by. Exactly
+#: `research_priority`, and the equality is deliberate in BOTH directions:
+#:
+#: - a WEAKER dimension is excluded because including a contradicted sign would
+#:   move the ordering while the label still said no sign was claimed;
+#: - a STRONGER one is excluded too. `valuation` is `directional_monitor`, which
+#:   is a license for a WITHIN-NAME direction. The aggregate orders names against
+#:   EACH OTHER, and cross-sectional value measured INVERTED in this universe.
+#:   A stronger authority is not a wider one.
 AGGREGATE_DIMENSIONS = tuple(
     d for d in DIMENSIONS if DIMENSION_AUTHORITY[d] is Authority.RESEARCH_PRIORITY
 )

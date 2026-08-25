@@ -43,13 +43,22 @@ def test_no_dimension_may_claim_investment_ranking():
     assert PROGRAM_CEILING is Authority.RESEARCH_PRIORITY
 
 
-def test_the_two_contradicted_dimensions_are_capped_at_descriptive():
+def test_the_contradicted_dimension_is_capped_at_descriptive():
     assert DIMENSION_AUTHORITY["operating_quality"] is Authority.DESCRIPTIVE
-    assert DIMENSION_AUTHORITY["valuation"] is Authority.DESCRIPTIVE
 
 
-def test_a_descriptive_dimension_never_enters_the_aggregate():
-    """Including it would let a contradicted sign move the ordering."""
+def test_valuation_carries_a_within_name_direction_only():
+    """Raised to directional_monitor 2026-08-25 by the split-basis rerun.
+
+    A stronger authority is not a wider one: it still may not enter the
+    cross-name aggregate, because cross-sectionally value measured INVERTED.
+    """
+    assert DIMENSION_AUTHORITY["valuation"] is Authority.DIRECTIONAL_MONITOR
+    assert "valuation" not in AGGREGATE_DIMENSIONS
+
+
+def test_only_research_priority_dimensions_enter_the_aggregate():
+    """Excluded in BOTH directions — weaker signs and wider-than-licensed ones."""
     assert "operating_quality" not in AGGREGATE_DIMENSIONS
     assert "valuation" not in AGGREGATE_DIMENSIONS
     for dim in AGGREGATE_DIMENSIONS:

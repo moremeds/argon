@@ -290,6 +290,45 @@ evidence_policy)`, which fails closed — an observation with no claim never
 
 ### Added
 
+- **The own-history valuation signal survives a split-consistent price basis — but four of five
+  weaken and two die (M3.1/M3.2).**
+  `scripts/research/fundamental_valuation_split_basis_rerun.py`; verdict
+  `docs/research/2026-08-25-valuation-split-basis-rerun/`.
+  - The original research built market cap as RAW bronze close × `common_stock_shares_outstanding`
+    and stated its premise out loud: *"`common_stock_shares_outstanding` is as-reported"*. **False**
+    — the same repo documents the correction in `load_closes`, and it is re-measured here: TSLA
+    3,372M → 3,369M → 3,101M → 3,540M and BKNG 1,024M → 1,034M → 794M → 770M across periods
+    containing splits, with **no split-sized discontinuity anywhere**. It paired a restated share
+    count with an unrestated price. **121 of 400 names (30.2%) were exposed.**
+  - **`sales_to_ev` is not a split artifact.** +0.0706 (t 5.55) → **+0.0709 (t 5.55)**; holding
+    pure reversal constant +0.0772 (t 6.74). On the split-EXPOSED cohort alone it is the only one
+    of five signals the correction did not move (+0.0637 → +0.0651).
+  - **The contamination was real for the rest.** On that cohort `book_to_price` +0.0505 (t 2.43) →
+    +0.0352 (t 1.67) and `earnings_yield` +0.0554 (t 2.54) → +0.0404 (t 1.90) both lose
+    significance; `fcf_yield` and `ebitda_to_ev` weaken but hold. Neither dead signal is a routed
+    `TYPE_YIELD` method — and this says keep it that way.
+  - All three SHIPPED methods survive, so `/scanner/value`'s foundation stands.
+  - Livewire's silver tier is empty on this machine, so the split-only basis is rebuilt from
+    `uw_scan.corporate_actions` — verified against production's own documented identity: BKNG
+    2026-04-02 returns **167.77** against a raw close of 4,194.31 at a 25.0 factor.
+  - No mechanism is claimed for why `sales_to_ev` is immune while `ebitda_to_ev` is not; both are
+    EV-denominated, so "EV dilutes the error" does not explain it. Measured and unexplained.
+
+- **Product claim registry — permissions as data, not prose (M3.3).** `fundamentals/claims.py`.
+  - Five surfaces, each with its universe, method, authority, allowed behaviour, allowed language,
+    prohibited inference, killing condition, revalidation rule, and the artifact that measured it.
+    A test asserts every `evidence` path **exists on disk**: a claim whose artifact is missing is
+    not a weaker claim, it is an unfalsifiable one.
+  - An unregistered surface raises rather than inheriting the strongest permission on the page.
+
+### Changed
+
+- **`valuation` raised from `descriptive` to `directional_monitor` — by measurement, not decision.**
+  The split-basis rerun is what licensed it. **A stronger authority is not a wider one:** it still
+  may not enter the priority aggregate, because that aggregate orders names against EACH OTHER and
+  cross-sectional value measured INVERTED in this same universe (`book_to_price` IC −0.0365,
+  t −2.32). `/scanner/value` keeps listing and still may never gain a sort.
+
 - **Fundamental run ledger — the engine's control plane (M2.4).** Migration `135` +
   `storage/fundamental_runs.py` + `worker/jobs/fundamental_run.py`.
   - `fundamental_scores` records an ANSWER; nothing recorded the QUESTION. A run that produced
