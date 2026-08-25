@@ -1772,6 +1772,34 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/macro/snapshot": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Macro Context Snapshot
+         * @description The four domains as one answer, with whatever refusal the assembler recorded.
+         *
+         *     This is the route the desk should read instead of four independent latest states. The
+         *     four-request shape cannot notice that USD stood on last night's rates, because every
+         *     row it fetches is individually current and individually honest; only the snapshot
+         *     holds the claim that they belong together.
+         *
+         *     A ``complete`` status is not a claim that the macro picture is right -- only that the
+         *     chain is internally coherent. The states remain descriptive.
+         */
+        get: operations["macro_context_snapshot_api_macro_snapshot_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/scanner": {
         parameters: {
             query?: never;
@@ -5091,6 +5119,45 @@ export interface components {
              */
             kind: "multiplicand" | "penalty" | "informational";
         };
+        /**
+         * MacroContextSnapshotResponse
+         * @description The four domains as ONE answer, with its refusal intact.
+         *
+         *     The snapshot never repairs an incompatible chain by substituting a fresher upstream:
+         *     ``domains`` holds exactly what each downstream stood on. Substitution is how a
+         *     monitoring layer becomes a fabrication layer, so a caller reading this must expect
+         *     ``status`` to disagree with how fresh the individual rows look.
+         */
+        MacroContextSnapshotResponse: {
+            /**
+             * Requested As Of
+             * Format: date-time
+             */
+            requested_as_of: string;
+            /**
+             * As Of
+             * Format: date-time
+             */
+            as_of: string;
+            /**
+             * Assembled At
+             * Format: date-time
+             */
+            assembled_at: string;
+            /**
+             * Status
+             * @enum {string}
+             */
+            status: "complete" | "partial" | "incompatible" | "stale";
+            /** Assembler Version */
+            assembler_version: string;
+            /** Inputs Hash */
+            inputs_hash: string;
+            /** Domains */
+            domains?: components["schemas"]["MacroSnapshotDomainItem"][];
+            /** Reasons */
+            reasons?: components["schemas"]["MacroSnapshotReasonItem"][];
+        };
         /** MacroContradiction */
         MacroContradiction: {
             /** Rule */
@@ -5265,6 +5332,61 @@ export interface components {
              * @enum {string}
              */
             source_kind: "official" | "first_party_publisher" | "entitled_provider" | "third_party_shadow" | "mock" | "static" | "demo";
+        };
+        /**
+         * MacroSnapshotDomainItem
+         * @description One domain's answer as the snapshot holds it.
+         *
+         *     ``state_id`` travels with the answer because the snapshot's claim is about identity:
+         *     it asserts that THIS state, not merely some state of that domain, is the one the
+         *     chain was assembled from.
+         */
+        MacroSnapshotDomainItem: {
+            /**
+             * Domain
+             * @enum {string}
+             */
+            domain: "inflation" | "policy_rates" | "usd" | "gold" | "cross_domain";
+            /** Ordinal */
+            ordinal: number;
+            /** State Id */
+            state_id: number;
+            /** State */
+            state: string;
+            /**
+             * Direction
+             * @enum {string}
+             */
+            direction: "RISING" | "FALLING" | "FLAT" | "UNKNOWN";
+            /** Confidence */
+            confidence: string;
+            /**
+             * As Of
+             * Format: date-time
+             */
+            as_of: string;
+            /** Engine Version */
+            engine_version: string;
+            /** Inputs Hash */
+            inputs_hash: string;
+        };
+        /**
+         * MacroSnapshotReasonItem
+         * @description One domain's refusal, named rather than summarised into the status alone.
+         */
+        MacroSnapshotReasonItem: {
+            /**
+             * Domain
+             * @enum {string}
+             */
+            domain: "inflation" | "policy_rates" | "usd" | "gold" | "cross_domain";
+            /**
+             * Kind
+             * @enum {string}
+             */
+            kind: "absent" | "incompatible" | "stale";
+            /** Detail */
+            detail: string;
         };
         /**
          * MacroStateEvidenceItem
@@ -13829,6 +13951,40 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["MacroDomainStateResponse"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    macro_context_snapshot_api_macro_snapshot_get: {
+        parameters: {
+            query?: {
+                /** @description UTC calendar date; returns the snapshot answering for that day-end. */
+                as_of?: string | null;
+                /** @description Timezone-aware instant to replay. */
+                as_of_ts?: string | null;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["MacroContextSnapshotResponse"];
                 };
             };
             /** @description Validation Error */

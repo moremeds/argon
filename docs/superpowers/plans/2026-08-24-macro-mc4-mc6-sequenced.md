@@ -163,10 +163,21 @@ and a later evidence revision cannot change an old snapshot's hash.
 
 Four independently reviewable PRs:
 
-1. contract + migration `130` + repository — **DONE 2026-08-24**, PR pending
-2. assembler + worker job + API (current and `?as_of_ts=` replay)
-3. UI reads one snapshot; replay / delta / lazy evidence drawer
-4. real persisted verification: worker → DB → API → browser
+1. contract + migration `130` + repository — **DONE 2026-08-24**, PR #384
+2. assembler + worker job + API (current and `?as_of_ts=` replay) — **DONE 2026-08-25**, PR #386
+3. UI reads one snapshot and renders its refusal — **DONE 2026-08-25**
+4. real persisted verification: worker → DB → API → browser — **DONE 2026-08-25**
+
+Slices 3 and 4 shipped together: the verification exists to prove the UI, so splitting them
+would have opened a PR whose only content was evidence for the previous one. The operator
+chose **option A** for a broken chain — banner plus all four cards, never withholding.
+
+The verification caught a real incompatibility rather than a constructed one: USD state 22
+cites `policy_rates` 21 while the latest rates answer is 23, because a rates-only rerun at
+01:15:44 followed a full pass at 00:45:14 with no matching USD recompute. Local store, so
+production is unverified — what it proves is that the detector fires on real stored edges.
+
+**MC4 is complete.** The remaining open items are F5 (gold schedule) and F2 (invalidation).
 
 **Exit:** a partial domain failure can never render as a coherent fresh chain; a later evidence
 revision does not change an old snapshot hash; the page no longer fetches four latest states.
