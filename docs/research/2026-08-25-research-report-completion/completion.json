@@ -4,7 +4,7 @@
   "checks": {
     "deterministic": {
       "pass": true,
-      "content_hash": "0aa3559f96fcd68d19eb37f1cccee77ae524524d0527398fb22b60f09e7c80be"
+      "content_hash": "220fa8537c901bf691a8b86736a77a50ebdf650aaca46e8882c8d243d8533b88"
     },
     "scope_frozen": {
       "pass": true,
@@ -110,11 +110,16 @@
     },
     "versioned_with_delta": {
       "pass": true,
-      "version_no": 2,
+      "version_no": 3,
       "versions": [
         {
-          "v": 2,
+          "v": 3,
           "status": "published",
+          "hash": "220fa8537c901bf691a8b86736a77a50ebdf650aaca46e8882c8d243d8533b88"
+        },
+        {
+          "v": 2,
+          "status": "superseded",
           "hash": "0aa3559f96fcd68d19eb37f1cccee77ae524524d0527398fb22b60f09e7c80be"
         },
         {
@@ -129,51 +134,9 @@
         "blocks": {
           "added": [],
           "removed": [],
-          "moved": [
-            {
-              "block_kind": "chain_aggregate",
-              "title": "Aggregate priority",
-              "changes": [
-                {
-                  "path": "n",
-                  "before": 19.0,
-                  "after": 16.0,
-                  "change": -3.0
-                }
-              ]
-            },
-            {
-              "block_kind": "chain_coverage",
-              "title": "Coverage and denominators",
-              "changes": [
-                {
-                  "path": "with_compatible_result",
-                  "before": 19.0,
-                  "after": 16.0,
-                  "change": -3.0
-                }
-              ]
-            },
-            {
-              "block_kind": "scope",
-              "title": "Optical-Communication \u2014 chain research scope",
-              "changes": [
-                {
-                  "path": "member_placements",
-                  "before": null,
-                  "after": 20.0
-                },
-                {
-                  "path": "members",
-                  "before": 20.0,
-                  "after": 17.0,
-                  "change": -3.0
-                }
-              ]
-            }
-          ]
+          "moved": []
         },
-        "summary": "4 value(s) moved by >= 0.05"
+        "summary": "no material change"
       }
     },
     "old_version_replays": {

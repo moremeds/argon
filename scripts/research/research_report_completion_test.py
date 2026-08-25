@@ -108,7 +108,9 @@ def main() -> int:
                 by_kind["unsupported"]["ordinal"] == 1
                 and len(unsup["killed_event_classes"]) > 0
             ),
-            "killed_event_classes": [c["class"] for c in unsup["killed_event_classes"]],
+            "killed_event_classes": sorted(
+                c for g in unsup["killed_event_classes"] for c in g["classes"]
+            ),
             "descriptive_only": unsup["descriptive_only"],
         }
 

@@ -102,13 +102,23 @@ def _unsupported_block(
     capped = [
         c.key for c in REGISTRY if c.authority.value == "descriptive"
     ]
+    # Grouped by reason, not listed per class. Six classes die of one cause —
+    # "it lives in SEC document text, which Argon does not fetch" — and printing
+    # that sentence six times buries the one thing the reader needs, which is
+    # WHICH capabilities are missing and WHY, in that order.
+    by_reason: dict[str, list[str]] = {}
+    for c in killed:
+        by_reason.setdefault(c["rationale"], []).append(c["event_class"])
     return {
         "ordinal": ordinal,
         "block_kind": "unsupported",
         "title": "What this report cannot answer",
         "payload": {
             "killed_event_classes": [
-                {"class": c["event_class"], "why": c["rationale"]} for c in killed
+                {"classes": sorted(classes), "why": reason}
+                for reason, classes in sorted(
+                    by_reason.items(), key=lambda kv: (-len(kv[1]), kv[0])
+                )
             ],
             "descriptive_only": capped,
             "notes": extra,
