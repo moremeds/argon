@@ -143,7 +143,7 @@ def gold_fred_ingest_job(
 
 
 def gold_gpr_ingest_job(*, dsn: str, lookback_days: int = 45) -> None:
-    """GPR refresh. Schedule: 20:00 ET daily with the default 45-day window.
+    """GPR refresh. Schedule: 18:35 ET Mon-Fri with the default 45-day window.
 
     Warmup CLI overrides lookback_days for the initial backfill. Idempotent
     via ON CONFLICT."""
@@ -573,8 +573,12 @@ def gold_wgc_cb_ingest_job(
 
 
 def gold_posture_compute_job(*, dsn: str, as_of: date | None = None) -> None:
-    """Compute and persist today's gold_posture_daily row. Schedule: 21:00 ET
-    (after all ingest jobs complete)."""
+    """Compute and persist today's gold_posture_daily row. Schedule: 19:10 ET Mon-Fri.
+
+    After every daily ingest it reads (the last is etf_holdings at 18:30) and BEFORE the
+    19:40 macro state compute, which reads the row this writes. The ordering is the
+    contract, not the clock -- see tests/unit/worker/test_gold_state_reads_todays_gauge.py.
+    """
     with psycopg.connect(dsn) as conn:
         repo = Repository(conn, schema="uw_scan")
         target = as_of or _latest_gold_market_date(repo)

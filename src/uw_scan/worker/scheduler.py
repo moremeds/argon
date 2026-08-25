@@ -2546,15 +2546,34 @@ def main() -> int:
                     max_instances=1,
                     coalesce=True,
                 )
+        # 18:35, moved up from 20:00. The posture below must land before the
+        # 19:40 macro state compute, and GPRD is the only daily input that was
+        # scheduled after 18:30. Nothing is lost by fetching earlier: the
+        # publisher's file is a static academic .xls that already runs 2-3 days
+        # behind the fetch (an ingest at 19:00 ET on 2026-08-19 returned an
+        # observation dated 2026-08-17), so the fetch clock was never binding.
         sched.add_job(
             _gold_gpr_ingest,
-            CronTrigger.from_crontab("0 20 * * 0-4", timezone=settings.rth_tz),
+            CronTrigger.from_crontab("35 18 * * 0-4", timezone=settings.rth_tz),
             id="gold_gpr_ingest",
             name="Gold: GPR daily refresh",
         )
+        # 19:10, moved up from 21:00 -- the defect this fixes.
+        #
+        # The gold domain state reads `fetch_gold_posture_as_of(as_of.date())`, and
+        # `gold_posture_compute` stamps its row with the latest GLD_CLOSE date, so an
+        # evening run on day D writes obs_date D. At 21:00 that row did not exist when
+        # the 19:40 state asked for it, so gold stood on the PREVIOUS day's gauge every
+        # night -- not on a bad night, every night. `gauge_age_days` reported the lag
+        # honestly while the schedule itself was creating it.
+        #
+        # 19:10 sits 40 minutes after the last upstream ingest (etf_holdings, 18:30) and
+        # 30 minutes before the state that consumes it. Mon-Fri is kept deliberately:
+        # there is no gold close to compute on a weekend, so the Saturday and Sunday
+        # states legitimately read Friday's gauge and say so.
         sched.add_job(
             _gold_posture_compute,
-            CronTrigger.from_crontab("0 21 * * 0-4", timezone=settings.rth_tz),
+            CronTrigger.from_crontab("10 19 * * 0-4", timezone=settings.rth_tz),
             id="gold_posture_compute",
             name="Gold: posture row compute (post-ingest)",
         )

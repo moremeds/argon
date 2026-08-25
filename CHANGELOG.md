@@ -7,6 +7,26 @@ version in lockstep (enforced by `scripts/release/version_sync_check.py`).
 
 ## [Unreleased]
 
+### Fixed
+
+- **The gold domain state read yesterday's gauge every single night.** `gold_posture_compute`
+  ran at 21:00 ET; the macro state compute that consumes its row runs at 19:40. The posture
+  row for day D is stamped with the latest `GLD_CLOSE` date, so an evening run on D writes
+  `obs_date = D` — which did not exist yet when the state asked for it 80 minutes earlier.
+  Not a failure mode on a bad night: the schedule guaranteed it on every good one, while
+  `gauge_age_days` honestly reported the lag the schedule itself was creating.
+  - GPR ingest moved 20:00 → **18:35**, posture compute 21:00 → **19:10**, both still Mon–Fri.
+    The whole rest of the daily cascade already finished by 18:30.
+  - **Moving GPR earlier was measured, not assumed.** Its publisher file is a static academic
+    `.xls` already running 2–3 days behind the fetch — an ingest at 19:00 ET on 2026-08-19
+    returned an observation dated 2026-08-17. The fetch clock was never the binding constraint.
+  - The test locks the **order**, not the clock: posture after every ingest it reads, before the
+    state that consumes it. Moving the block stays free; inverting it does not.
+  - Two claims made earlier in this work were wrong and are corrected in the plan doc: `0-4` is
+    Mon–Fri (verified against APScheduler 3.11.2), not Sun–Thu, so "Friday never runs" was false;
+    and the blocking question "which close does a posture row cover" was already answered in code
+    by `_latest_gold_market_date`.
+
 ### Added
 
 - **The macro desk reads one snapshot, and renders its refusal.** Slices 3 and 4 of MC4,

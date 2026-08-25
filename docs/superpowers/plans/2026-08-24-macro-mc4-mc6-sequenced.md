@@ -41,23 +41,54 @@ LATER F2 invalidation ────────> designed; zero production instan
 Revised 2026-08-24. F2 was ordered before MC4 on the assumption that snapshots bake in evidence
 lineage. They do not, once the overlay is point-in-time — see P0-b.
 
-## P0-a — F5: gold reads a gauge produced on a later schedule
+## P0-a — F5: gold read a gauge produced on a later schedule — **FIXED 2026-08-25**
+
+Before:
 
 ```text
-19:30 ET  macro gold evidence ingest
-19:40 ET  all four macro domain states     (daily)
-21:00 ET  legacy gold posture compute      (Sun-Thu only)
+18:30 ET  gold etf holdings ingest          (Mon-Fri)  <- last daily posture input but GPR
+19:30 ET  macro gold evidence ingest        (daily)
+19:40 ET  all four macro domain states      (daily)     <- reads the posture
+20:00 ET  gold GPR ingest                   (Mon-Fri)
+21:00 ET  legacy gold posture compute       (Mon-Fri)   <- writes the posture
 ```
 
-Gold state calls `fetch_gold_posture_as_of(as_of.date())`, so the same day's posture cannot exist at
-19:40. `gauge_age_days` reports the lag honestly, but the schedule guarantees it.
+Gold state calls `fetch_gold_posture_as_of(as_of.date())` and `gold_posture_compute` stamps its row
+with the latest `GLD_CLOSE` date, so an evening run on day D writes `obs_date = D`. At 21:00 that row
+did not exist when the 19:40 state asked for it. Gold stood on the PREVIOUS day's gauge **every
+night**, structurally. `gauge_age_days` reported the lag honestly while the schedule created it.
 
-**This cannot be specified until one question is answered:** which market close does each posture row
-cover? The cron is `0 21 * * 0-4`, so Friday evening never runs. Until the covered-close mapping is
-stated, "rerun gold after posture" only relocates an undefined lag. Answer that first, in the spec.
+Two corrections to this item as originally written:
 
-**Exit:** a scheduler-order test, a stated and tested intended lag, and a real persisted smoke
-comparing state `as_of`, gauge observation date, and the allowed lag.
+- **`0-4` is Mon–Fri, not Sun–Thu.** Verified empirically against APScheduler 3.11.2. "Friday evening
+  never runs" was wrong; Saturday and Sunday are the skipped days, and there is no gold close then.
+- **The blocking question was already answered in code.** `gold_posture_compute_job` sets
+  `target = as_of or _latest_gold_market_date(repo)`, so a row covers the latest `GLD_CLOSE` in the
+  store and is self-describing. Nothing needed specifying.
+
+After — GPR to 18:35, posture to 19:10:
+
+```text
+18:30 ET  gold etf holdings ingest          (Mon-Fri)
+18:35 ET  gold GPR ingest                   (Mon-Fri)
+19:10 ET  legacy gold posture compute       (Mon-Fri)   <- writes the posture
+19:30 ET  macro gold evidence ingest        (daily)
+19:40 ET  all four macro domain states      (daily)     <- reads TODAY's posture
+```
+
+Moving GPR up costs nothing, and that was measured rather than assumed: the publisher's file is a
+static academic `.xls` already running 2–3 days behind the fetch — an ingest at 19:00 ET on
+2026-08-19 returned an observation dated **2026-08-17**. The fetch clock was never the binding
+constraint.
+
+Mon–Fri is kept on both. The Saturday and Sunday states legitimately read Friday's gauge and say so.
+
+**Exit:** `tests/unit/worker/test_gold_state_reads_todays_gauge.py` locks the ORDER rather than the
+clock times — posture after its whole ingest cascade, before the state that consumes it — so moving
+the block stays free and inverting it does not. The remaining piece is a real persisted smoke
+comparing state `as_of`, gauge `obs_date` and the allowed lag; it cannot run until a gold domain
+state exists (none has ever been computed — see MC6 preflight, gold is structurally excluded until
+migration 119 promotes a verified instant for `GLD_CLOSE`).
 
 ## P0-b — F2: additive evidence invalidation
 
