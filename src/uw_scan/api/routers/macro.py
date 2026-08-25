@@ -9,7 +9,11 @@ from fastapi import APIRouter, Depends, HTTPException, Query
 
 from uw_scan.api.deps import get_repo
 from uw_scan.macro.policy_report import build_policy_comparison
-from uw_scan.models import MacroDomainStateResponse, PolicyComparison
+from uw_scan.models import (
+    MacroContextSnapshotResponse,
+    MacroDomainStateResponse,
+    PolicyComparison,
+)
 from uw_scan.storage.repository import Repository
 
 router = APIRouter(prefix="/macro", tags=["macro"])
@@ -110,6 +114,67 @@ def macro_gold_state(
     question they never answered.
     """
     return _domain_state(repo, "gold", _resolve_instant(as_of, as_of_ts))
+
+
+@router.get("/snapshot", response_model=MacroContextSnapshotResponse)
+def macro_context_snapshot(
+    as_of: date | None = Query(
+        default=None,
+        description="UTC calendar date; returns the snapshot answering for that day-end.",
+    ),
+    as_of_ts: datetime | None = Query(
+        default=None, description="Timezone-aware instant to replay."
+    ),
+    repo: Repository = Depends(get_repo),
+) -> MacroContextSnapshotResponse:
+    """The four domains as one answer, with whatever refusal the assembler recorded.
+
+    This is the route the desk should read instead of four independent latest states. The
+    four-request shape cannot notice that USD stood on last night's rates, because every
+    row it fetches is individually current and individually honest; only the snapshot
+    holds the claim that they belong together.
+
+    A ``complete`` status is not a claim that the macro picture is right -- only that the
+    chain is internally coherent. The states remain descriptive.
+    """
+    requested_as_of = _resolve_instant(as_of, as_of_ts)
+    row = repo.fetch_macro_context_snapshot_as_of(requested_as_of)
+    if row is None:
+        raise HTTPException(
+            status_code=404,
+            detail=(
+                "no macro context snapshot has been assembled for an instant at or "
+                f"before {requested_as_of.isoformat()}"
+            ),
+        )
+    domains = repo.fetch_macro_context_snapshot_domains(int(row["snapshot_id"]))
+    return MacroContextSnapshotResponse.model_validate(
+        {
+            "requested_as_of": requested_as_of,
+            "as_of": row["as_of"],
+            "assembled_at": row["assembled_at"],
+            "status": row["status"],
+            "assembler_version": row["assembler_version"],
+            "inputs_hash": row["inputs_hash"],
+            "domains": [
+                {
+                    "domain": item["domain"],
+                    "ordinal": item["ordinal"],
+                    "state_id": item["state_id"],
+                    "state": item["state"],
+                    "direction": item["direction"],
+                    "confidence": item["confidence"],
+                    "as_of": item["state_as_of"],
+                    "engine_version": item["engine_version"],
+                    "inputs_hash": item["inputs_hash"],
+                }
+                for item in domains
+            ],
+            # Stored as written by the assembler. Rebuilding them here would be a second
+            # place the refusal is decided, and the two would drift.
+            "reasons": row["status_reasons_jsonb"] or [],
+        }
+    )
 
 
 def _domain_state(
