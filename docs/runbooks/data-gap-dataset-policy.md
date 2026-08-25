@@ -6,7 +6,7 @@ Generated from `REGISTRY` in `src/uw_scan/reports/data_gap_healer.py` (one sourc
 uv run python -c "from uw_scan.reports.data_gap_healer import render_dataset_policy_markdown as r; open('docs/runbooks/data-gap-dataset-policy.md','w').write(r())"
 ```
 
-**151 datasets** across 11 groups.
+**153 datasets** across 11 groups.
 
 ## core_watchlist
 
@@ -69,6 +69,8 @@ uv run python -c "from uw_scan.reports.data_gap_healer import render_dataset_pol
 
 | table | audit_mode | provider | granularity | adapter | freq | reason | verified |
 |---|---|---|---|---|---|---|---|
+| macro_context_snapshot_domains | provenance | none | none |  | none | edges of an immutable snapshot; they are written once with their parent and have no independent existence to heal |  |
+| macro_context_snapshots | provenance | none | none |  | none | immutable record of a four-domain composition at an instant; reassembly belongs to the snapshot job, and inventing one would assert a coherence that was never observed |  |
 | macro_domain_state_dependencies | provenance | none | none |  | none | immutable state-level lineage (migration 128); a synthesized edge would claim one domain consulted another's answer when it never did, which is a worse failure than a missing edge because it reads as provenance |  |
 | macro_domain_state_evidence | provenance | none | none |  | none | immutable observation-level lineage for a state; a synthesized row would claim a state stood on evidence it never saw |  |
 | macro_domain_states | provenance | none | none |  | none | immutable record of a decision at an instant; recomputation belongs to the state job, which stamps its own computed_at, and the write guard rejects any edit to a stored answer |  |
