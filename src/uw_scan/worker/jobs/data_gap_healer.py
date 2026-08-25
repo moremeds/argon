@@ -188,6 +188,7 @@ def execute_into_run(
     today: date,
     specs: dict | None = None,
     active: list[str] | None = None,
+    recorder: object | None = None,
 ) -> tuple[int, dict, RequestBudget, list[CoverageSummary], list[GapItem]]:
     with _single_flight(gap):
         run_id, summaries, items = audit_into_run(
@@ -207,6 +208,7 @@ def execute_into_run(
             today=today,
             budget=RequestBudget(max_uw_calls),
             settings=settings,
+            recorder=recorder,
         )
         outcome = execute_run(ctx, run_id, datasets=datasets, specs=specs)
         finalize_run(
@@ -228,6 +230,7 @@ def resume_run(
     today: date,
     max_uw_calls: int,
     specs: dict | None = None,
+    recorder: object | None = None,
 ) -> tuple[dict, RequestBudget]:
     with _single_flight(gap):
         # Recover items orphaned in 'running' by a killed/timed-out prior run, so
@@ -244,6 +247,7 @@ def resume_run(
             today=today,
             budget=RequestBudget(max_uw_calls),
             settings=settings,
+            recorder=recorder,
         )
         outcome = execute_run(ctx, run_id, specs=specs)
         # Close the run. Without this a resume that SUCCEEDS still left the row
@@ -441,6 +445,29 @@ def _reap_stale_runs(gap: DataGapHealerRepository) -> list[int]:
     return [run_id for run_id, _ in reaped]
 
 
+def _make_recorder(settings: Settings):
+    """The recorder every healer provider client should carry, or None.
+
+    Fails OPEN on purpose: Task 1 is instrumentation, and a healer that refuses
+    to run because its telemetry connection is down would be a worse outage than
+    a blind one. The run-level `telemetry_write_failures` counter is what makes
+    the blindness visible rather than silent. The budget governor wired in later
+    is the piece that must fail CLOSED -- an unknown counter is not permission to
+    spend a shared paid account.
+    """
+    from uw_scan.storage.provider_usage import ExternalApiRequestRecorder
+
+    try:
+        return ExternalApiRequestRecorder(settings.db_dsn(), schema=settings.db_schema)
+    except Exception as exc:
+        logger.warning(
+            "data_gap_healer: telemetry recorder unavailable, spend will be "
+            "invisible to uw_budget this run: %s",
+            repr(exc),
+        )
+        return None
+
+
 def _refresh_targets(datasets: list[str] | None) -> list[str]:
     return [
         e.table_name
@@ -475,7 +502,18 @@ def data_gap_healer_job(
             if _another_run_active(gap):
                 logger.info("data_gap_healer: a prior run is active; skipping")
                 return {"skipped": "run_active"}
-            return _run_nightly(repo, gap, settings, today, out_dir)
+            # Built here, not above: on a night the lock is held or a prior run is
+            # still active this job returns without spending anything, and a
+            # telemetry connection opened for that is a connection opened for
+            # nothing -- ahead of the lock, at that.
+            recorder = _make_recorder(settings)
+            try:
+                return _run_nightly(
+                    repo, gap, settings, today, out_dir, recorder=recorder
+                )
+            finally:
+                if recorder is not None:
+                    recorder.close()
         finally:
             with repo.conn.cursor() as cur:
                 cur.execute("SELECT pg_advisory_unlock(%s)", (_LOCK_KEY,))
@@ -510,6 +548,8 @@ def _run_nightly(
     settings: Settings,
     today: date,
     out_dir: Path,
+    *,
+    recorder: object | None = None,
 ) -> dict:
     start = date.fromisoformat(settings.data_gap_healer_start)
     datasets = [
@@ -541,6 +581,7 @@ def _run_nightly(
             dataset_share=settings.data_gap_healer_dataset_share,
         ),
         settings=settings,
+        recorder=recorder,
     )
     outcome = execute_run(ctx, run_id, datasets=datasets)
     lookback = max(1, (today - start).days)
@@ -557,6 +598,7 @@ def _run_nightly(
             "refresh": refresh,
             "lifecycle": lifecycle,
             "budget_spent": ctx.budget.as_dict(),
+            **(ctx.heartbeat.counters() if ctx.heartbeat is not None else {}),
         },
     )
     evidence = build_evidence(
