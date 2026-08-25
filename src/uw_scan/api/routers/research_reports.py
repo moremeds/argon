@@ -179,7 +179,7 @@ def assemble_report(
     except ValueError as exc:
         # A refused assembly is a data state, not a transport failure: the
         # caller asked a well-formed question Argon declined to answer.
-        log.warning("assemble_report %s refused: %r", report_key, exc)
+        log.warning("assemble_report %s refused: %s", report_key, repr(exc))
         return ReportResponse(state="failed_run", reason=str(exc))
 
     return get_report(report_type, key, repo=repo, settings=settings)
