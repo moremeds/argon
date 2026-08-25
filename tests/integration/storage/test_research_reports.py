@@ -300,3 +300,54 @@ def test_a_chain_report_counts_companies_not_placements(seeded_db_empty_cards):
     assert by_kind["chain_aggregate"]["abstains"] is True
     assert by_kind["chain_aggregate"]["priority_mean"] is None
     assert report["status"] == "partial"
+
+
+def test_a_comparison_never_silently_drops_a_requested_name(seeded_db_empty_cards):
+    """The failure mode a comparison has and the other two do not.
+
+    Dropping the names Argon could not score turns "here are the 3 of 5 we can
+    answer" into "here is the group, ranked" — a complete-looking answer to a
+    question the operator did not ask.
+    """
+    from uw_scan.worker.jobs.research_report_assemble import (
+        assemble_comparison_report,
+    )
+
+    conn, schema = seeded_db_empty_cards.conn, seeded_db_empty_cards._schema
+    report = assemble_comparison_report(
+        conn, ["nvda", "AMD", "AVGO"], schema=schema,
+        as_of=date(2026, 8, 25), publish=False,
+    )
+    by_kind = {b["block_kind"]: b["payload"] for b in report["blocks"]}
+    coverage = by_kind["comparison_coverage"]
+    assert coverage["requested"] == 3
+    assert coverage["with_result"] == 0
+    assert coverage["without_result"] == ["AMD", "AVGO", "NVDA"]
+    assert by_kind["comparison_table"]["n"] == 0
+    assert report["status"] == "partial"
+    assert any("gap in Argon" in n for n in by_kind["unsupported"]["notes"])
+
+
+def test_the_same_group_in_any_order_is_one_report(seeded_db_empty_cards):
+    """Otherwise `NVDA,AMD` and `AMD,NVDA` fork two histories of one question."""
+    from uw_scan.worker.jobs.research_report_assemble import (
+        assemble_comparison_report,
+    )
+
+    conn, schema = seeded_db_empty_cards.conn, seeded_db_empty_cards._schema
+    kw = {"schema": schema, "as_of": date(2026, 8, 25), "publish": False}
+    a = assemble_comparison_report(conn, ["NVDA", "AMD"], **kw)
+    b = assemble_comparison_report(conn, ["amd", "nvda"], **kw)
+    assert a["report_key"] == b["report_key"] == "comparison:AMD-NVDA"
+    assert a["content_hash"] == b["content_hash"]
+
+
+def test_a_comparison_of_nothing_is_refused(seeded_db_empty_cards):
+    from uw_scan.worker.jobs.research_report_assemble import (
+        assemble_comparison_report,
+    )
+
+    with pytest.raises(ValueError, match="at least one ticker"):
+        assemble_comparison_report(
+            seeded_db_empty_cards.conn, [], schema=seeded_db_empty_cards._schema
+        )

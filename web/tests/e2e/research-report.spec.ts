@@ -67,3 +67,40 @@ test("screenshot artifact", async ({ page }) => {
     fullPage: true,
   });
 });
+
+const COMPARISON = "/reports/comparison/NVDA,AMD,AVGO,CRDO,MRVL";
+
+test("a comparison names its denominator and the permission it exercises", async ({
+  page,
+}) => {
+  await page.goto(COMPARISON);
+  await expect(
+    page.getByRole("heading", { name: /comparison/i }).first(),
+  ).toBeVisible();
+  await expect(
+    page.getByRole("heading", { name: "Who is in this comparison" }),
+  ).toBeVisible();
+  await expect(
+    page.getByRole("heading", { name: "Research priority, ordered" }),
+  ).toBeVisible();
+  // The ordering must declare the claim it rests on, right beside itself.
+  await expect(page.getByText("research priority").first()).toBeVisible();
+});
+
+test("co-membership is labelled as classification, not as a link", async ({
+  page,
+}) => {
+  await page.goto(COMPARISON);
+  await expect(
+    page.getByText(/not a measured\s+link between these companies/),
+  ).toBeVisible();
+});
+
+test("comparison screenshot artifact", async ({ page }) => {
+  await page.goto(COMPARISON);
+  await page.getByRole("heading", { name: "Research priority, ordered" }).waitFor();
+  await page.screenshot({
+    path: "../output/playwright/research-report-comparison.png",
+    fullPage: true,
+  });
+});

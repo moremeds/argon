@@ -28583,7 +28583,7 @@
   },
   "info": {
     "title": "UW Watchlist API",
-    "version": "0.12.16"
+    "version": "0.12.17"
   },
   "openapi": "3.1.0",
   "paths": {

@@ -87,6 +87,32 @@ Regression test: `tests/integration/storage/test_research_reports.py::
 test_a_chain_report_counts_companies_not_placements` — AVGO in two layers,
 asserting `with_compatible_result <= members`.
 
+## All three shapes the north star names
+
+§2 asks for three things and the completion test exercises one of them. The other
+two exist and are covered by their own tests:
+
+| Shape | Entry point | Report key |
+|---|---|---|
+| a company | `assemble_company_report` | `company:NVDA` |
+| a group of companies | `assemble_comparison_report` | `comparison:AMD-AVGO-CRDO-MRVL-NVDA` |
+| a narrow industry chain | `assemble_chain_report` | `chain:Optical-Communication` |
+
+The comparison's key is its **sorted** ticker set, so `NVDA,AMD` and `AMD,NVDA`
+version one report rather than forking two histories of one question. Its own
+failure mode is distinct from the other two: dropping the names Argon could not
+score would turn "here are the 3 of 5 we can answer" into "here is the group,
+ranked". Every requested ticker therefore appears in `comparison_coverage`
+whether or not it carries a result, and a name with no priority is absent from
+the ordering rather than sorted as zero — zero is the cross-section MEAN.
+
+Measured on the live stack, AMD/AVGO/CRDO/MRVL/NVDA at 2026-08-25: 5 of 5
+carry a result, 12 of 12 inputs present each, ordered CRDO 0.4199 → NVDA 0.3210
+→ AMD 0.2784 → AVGO 0.0342 → MRVL 0.0017. Three shared chains surfaced, labelled
+in the block itself as *"co-membership is a shared classification, not a measured
+link between these companies"* — the capex-demand ledger measured that
+relationship at +0.247 → **+0.015 (p=0.44)** once sector was held constant.
+
 ## What this does NOT establish
 
 - **Nothing here is a measured edge.** Every check is about honesty of

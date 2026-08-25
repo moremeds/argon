@@ -18,12 +18,12 @@ the limits before the numbers.
 from __future__ import annotations
 
 import logging
+from collections.abc import Sequence
 from datetime import date
 from typing import Any
 
 import psycopg
 
-from uw_scan.fundamentals.claims import REGISTRY
 from uw_scan.fundamentals.dimensions import AGGREGATE_DIMENSIONS
 from uw_scan.storage.fundamental_dimensions import FundamentalDimensionsRepository
 from uw_scan.storage.fundamental_scores import FundamentalScoresRepository
@@ -34,100 +34,13 @@ from uw_scan.storage.research_reports import (
     ResearchReportsRepository,
 )
 from uw_scan.storage.research_taxonomy import ResearchTaxonomyRepository
+from uw_scan.worker.jobs.research_report_scaffold import (
+    _manifest,
+    _unsupported_block,
+    check_single_basis,
+)
 
 log = logging.getLogger(__name__)
-
-
-def _manifest(
-    *,
-    engine_version: str | None,
-    taxonomy_version: str | None,
-    evidence_policy: str,
-    as_of: date,
-    scope: dict[str, Any],
-) -> dict[str, Any]:
-    """The frozen question. Everything needed to reproduce the content."""
-    return {
-        "engine_version": engine_version,
-        "taxonomy_version": taxonomy_version,
-        "evidence_policy": evidence_policy,
-        "as_of": as_of.isoformat(),
-        "scope": scope,
-        # Pinned so a change to the assembler itself invalidates the replay
-        # rather than silently producing different content under the same
-        # manifest.
-        "assembler_version": "report-assembler-v1",
-    }
-
-
-#: Manifest fields a block's evidence may restate. If it restates one, it must
-#: agree — a report that mixes two engine versions or two taxonomy versions is
-#: not one answer, it is two answers stapled together, and the reader has no way
-#: to tell which block came from which.
-_PINNED_FIELDS = ("engine_version", "taxonomy_version")
-
-
-def check_single_basis(
-    manifest: dict[str, Any], blocks: list[dict[str, Any]]
-) -> None:
-    """Refuse a report whose blocks disagree with the manifest. Raises ValueError.
-
-    Called before every publish and before every hash. The alternative — letting
-    it through and noting the mixture in prose — produces a document whose
-    numbers are individually true and jointly meaningless.
-    """
-    for block in blocks:
-        evidence = block.get("evidence") or {}
-        for field in _PINNED_FIELDS:
-            if field not in evidence:
-                continue
-            if evidence[field] != manifest.get(field):
-                raise ValueError(
-                    f"block {block['block_kind']!r} claims {field}="
-                    f"{evidence[field]!r} but the manifest froze "
-                    f"{manifest.get(field)!r}; a report carries ONE basis"
-                )
-        as_of = evidence.get("as_of") or evidence.get("known_by")
-        if as_of is not None and as_of != manifest.get("as_of"):
-            raise ValueError(
-                f"block {block['block_kind']!r} is as-of {as_of!r} but the "
-                f"manifest froze {manifest.get('as_of')!r}"
-            )
-
-
-def _unsupported_block(
-    ordinal: int, events_repo: ResearchEventsRepository, extra: list[str]
-) -> dict[str, Any]:
-    killed = [c for c in events_repo.classes() if c["status"] == "killed"]
-    capped = [
-        c.key for c in REGISTRY if c.authority.value == "descriptive"
-    ]
-    # Grouped by reason, not listed per class. Six classes die of one cause —
-    # "it lives in SEC document text, which Argon does not fetch" — and printing
-    # that sentence six times buries the one thing the reader needs, which is
-    # WHICH capabilities are missing and WHY, in that order.
-    by_reason: dict[str, list[str]] = {}
-    for c in killed:
-        by_reason.setdefault(c["rationale"], []).append(c["event_class"])
-    return {
-        "ordinal": ordinal,
-        "block_kind": "unsupported",
-        "title": "What this report cannot answer",
-        "payload": {
-            "killed_event_classes": [
-                {"classes": sorted(classes), "why": reason}
-                for reason, classes in sorted(
-                    by_reason.items(), key=lambda kv: (-len(kv[1]), kv[0])
-                )
-            ],
-            "descriptive_only": capped,
-            "notes": extra,
-        },
-        "derivation": (
-            "research_event_classes where status='killed', plus claim-registry "
-            "entries capped at descriptive"
-        ),
-    }
 
 
 def assemble_company_report(
@@ -522,5 +435,186 @@ def assemble_chain_report(
     log.info(
         "assemble_chain_report %s v%s changed=%s",
         chain, out.get("version_no"), out.get("changed"),
+    )
+    return out
+
+
+def assemble_comparison_report(
+    conn: psycopg.Connection,
+    tickers: Sequence[str],
+    *,
+    schema: str = "uw_scan",
+    engine_version: str | None = None,
+    as_of: date | None = None,
+    publish: bool = True,
+) -> dict[str, Any]:
+    """Compare a named group of companies side by side.
+
+    The third shape the north star asks for, and the one where an omission does
+    the most damage: a comparison that silently drops the names it could not
+    score reads as a complete ranking of the group the operator asked about. So
+    every requested ticker appears in the coverage block whether or not it
+    carries a result, and the ordered table names its own denominator.
+
+    `report_key` is the SORTED ticker set, so asking the same question twice —
+    in any order — versions one report rather than forking two.
+    """
+    symbols = sorted({t.upper() for t in tickers})
+    if not symbols:
+        raise ValueError("a comparison needs at least one ticker")
+    today = as_of or date.today()
+    scores = FundamentalScoresRepository(conn, schema=schema)
+    engine = engine_version or scores.active_version()
+    dims_repo = FundamentalDimensionsRepository(conn, schema=schema)
+    events_repo = ResearchEventsRepository(conn, schema=schema)
+    tax = ResearchTaxonomyRepository(conn, schema=schema)
+    reports = ResearchReportsRepository(conn, schema=schema)
+    taxonomy = tax.active_version()
+
+    rows: list[dict[str, Any]] = []
+    missing: list[str] = []
+    for symbol in symbols:
+        dims = dims_repo.for_ticker(symbol, engine_version=engine) if engine else {}
+        if not dims:
+            missing.append(symbol)
+            continue
+        rows.append(
+            {
+                "ticker": symbol,
+                "priority": (
+                    float(dims["priority"]["value"])
+                    if dims.get("priority", {}).get("value") is not None
+                    else None
+                ),
+                "dimensions": {
+                    k: (float(v["value"]) if v["value"] is not None else None)
+                    for k, v in sorted(dims.items())
+                    if k != "priority"
+                },
+                "inputs_present": sum(v["inputs_present"] for v in dims.values()),
+                "inputs_expected": sum(v["inputs_expected"] for v in dims.values()),
+            }
+        )
+    # Ordered by priority, which is exactly the permission the composite earned:
+    # it orders names cross-sectionally. A name with no priority sorts last by
+    # ticker rather than as zero — zero is the cross-section MEAN.
+    rows.sort(key=lambda r: (r["priority"] is None, -(r["priority"] or 0.0), r["ticker"]))
+
+    notes: list[str] = []
+    if missing:
+        notes.append(
+            f"{len(missing)} of {len(symbols)} requested names carry no result "
+            f"under engine {engine} ({', '.join(missing)}) — a gap in Argon, "
+            "not a fact about those companies, and they are absent from the "
+            "ordering rather than ranked last"
+        )
+
+    shared = tax.exposures(taxonomy, ticker=None) if taxonomy else []
+    by_chain: dict[str, list[str]] = {}
+    for exposure in shared:
+        if exposure["ticker"] in symbols:
+            by_chain.setdefault(exposure["chain"], []).append(exposure["ticker"])
+    common = sorted(
+        ({"chain": c, "members": sorted(set(t))} for c, t in by_chain.items() if len(set(t)) > 1),
+        key=lambda e: (-len(e["members"]), e["chain"]),
+    )
+
+    blocks: list[dict[str, Any]] = [
+        {
+            "ordinal": 0,
+            "block_kind": "scope",
+            "title": f"Comparison — {', '.join(symbols)}",
+            "payload": {
+                "tickers": symbols,
+                "as_of": today.isoformat(),
+                "engine_version": engine,
+                "taxonomy_version": taxonomy,
+                "requested": len(symbols),
+            },
+            "derivation": "the report manifest, restated for the reader",
+        },
+        _unsupported_block(1, events_repo, notes),
+        {
+            "ordinal": 2,
+            "block_kind": "comparison_coverage",
+            "title": "Who is in this comparison",
+            "payload": {
+                "requested": len(symbols),
+                "with_result": len(rows),
+                "without_result": missing,
+            },
+            "evidence": {
+                "source": "fundamental_dimensions",
+                "engine_version": engine,
+            },
+        },
+        {
+            "ordinal": 3,
+            "block_kind": "comparison_table",
+            "title": "Research priority, ordered",
+            "payload": {"rows": rows, "n": len(rows)},
+            "evidence": {
+                "source": "fundamental_dimensions",
+                "engine_version": engine,
+            },
+            # Ordering names against each other is the composite's measured
+            # permission and the ceiling of this program. Nothing here sizes,
+            # times, or recommends.
+            "authority": "research_priority",
+        },
+        {
+            "ordinal": 4,
+            "block_kind": "chain_exposure",
+            "title": "Chains these names share",
+            "payload": {
+                "shared_chains": common,
+                # Stated so co-membership is never read as a relationship: the
+                # capex-demand ledger measured +0.247 -> +0.015 (p=0.44) once
+                # sector was held constant.
+                "reading": (
+                    "co-membership is a shared classification, not a measured "
+                    "link between these companies"
+                ),
+            },
+            "evidence": {
+                "source": "company_exposure",
+                "taxonomy_version": taxonomy,
+            },
+        },
+    ]
+
+    manifest = _manifest(
+        engine_version=engine,
+        taxonomy_version=taxonomy,
+        evidence_policy="current_vintage",
+        as_of=today,
+        scope={"tickers": symbols},
+    )
+    check_single_basis(manifest, blocks)
+    status = STATUS_PARTIAL if notes else STATUS_PUBLISHED
+    report_key = f"comparison:{'-'.join(symbols)}"
+
+    if not publish:
+        from uw_scan.storage.research_reports import content_hash
+
+        return {
+            "report_key": report_key,
+            "manifest_jsonb": manifest,
+            "blocks": blocks,
+            "content_hash": content_hash(blocks),
+            "status": status,
+        }
+
+    out = reports.publish(
+        report_key=report_key,
+        report_type="comparison",
+        title=f"{' vs '.join(symbols)} comparison",
+        manifest=manifest,
+        blocks=blocks,
+        status=status,
+    )
+    log.info(
+        "assemble_comparison_report %s v%s changed=%s",
+        report_key, out.get("version_no"), out.get("changed"),
     )
     return out

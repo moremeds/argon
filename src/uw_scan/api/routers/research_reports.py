@@ -28,14 +28,26 @@ log = logging.getLogger(__name__)
 
 router = APIRouter(tags=["research-reports"])
 
-_KEY_PREFIX = {"company": "company", "chain": "chain"}
+_KEY_PREFIX = {"company": "company", "chain": "chain", "comparison": "comparison"}
+
+#: A comparison's key is its SORTED ticker set, so `NVDA,AMD` and `AMD,NVDA` are
+#: one report with two versions rather than two reports with one each.
+def _comparison_key(raw: str) -> str:
+    symbols = sorted({t.strip().upper() for t in raw.split(",") if t.strip()})
+    if not symbols:
+        raise HTTPException(400, "a comparison needs at least one ticker")
+    return "-".join(symbols)
 
 
 def _report_key(report_type: str, key: str) -> str:
     if report_type not in _KEY_PREFIX:
         raise HTTPException(
-            404, f"unknown report type {report_type!r}; expected company or chain"
+            404,
+            f"unknown report type {report_type!r}; expected one of "
+            f"{sorted(_KEY_PREFIX)}",
         )
+    if report_type == "comparison":
+        return f"comparison:{_comparison_key(key)}"
     return f"{report_type}:{key.upper() if report_type == 'company' else key}"
 
 
@@ -164,6 +176,7 @@ def assemble_report(
     from uw_scan.worker.jobs.research_report_assemble import (
         assemble_chain_report,
         assemble_company_report,
+        assemble_comparison_report,
     )
 
     report_key = _report_key(report_type, key)
@@ -171,6 +184,13 @@ def assemble_report(
         if report_type == "company":
             assemble_company_report(
                 repo.conn, key, schema=settings.db_schema, as_of=as_of
+            )
+        elif report_type == "comparison":
+            assemble_comparison_report(
+                repo.conn,
+                key.split(","),
+                schema=settings.db_schema,
+                as_of=as_of,
             )
         else:
             assemble_chain_report(

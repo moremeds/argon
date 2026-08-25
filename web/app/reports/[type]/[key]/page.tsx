@@ -13,10 +13,11 @@ export default async function ReportPage({
 }) {
   const { type, key } = await params;
   const { version } = await searchParams;
-  if (type !== "company" && type !== "chain") {
+  if (type !== "company" && type !== "chain" && type !== "comparison") {
     return (
       <div className="p-6 text-sm text-red-300" role="alert">
-        Unknown report type <code>{type}</code>; expected company or chain.
+        Unknown report type <code>{type}</code>; expected company, comparison,
+        or chain.
       </div>
     );
   }

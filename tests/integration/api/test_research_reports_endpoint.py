@@ -144,3 +144,33 @@ def test_the_listing_shows_the_newest_version_of_each_key(
     keys = {r["report_key"]: r for r in body["reports"]}
     assert keys["company:NVDA"]["version_no"] == 2
     assert keys["company:NVDA"]["report_type"] == "company"
+
+
+def test_a_comparison_keys_on_its_sorted_ticker_set(
+    client: TestClient, seeded_db_empty_cards
+):
+    """Two orderings of one question must version one report, not fork two."""
+    first = client.post(
+        f"/api/research/reports/comparison/NVDA,AMD?as_of={date(2026, 8, 25)}"
+    ).json()
+    assert first["report"]["report_key"] == "comparison:AMD-NVDA"
+    assert first["report"]["version_no"] == 1
+
+    again = client.post(
+        f"/api/research/reports/comparison/amd,nvda?as_of={date(2026, 8, 25)}"
+    ).json()
+    assert again["report"]["version_no"] == 1
+    assert len(again["versions"]) == 1
+
+    fetched = client.get("/api/research/reports/comparison/nvda,amd").json()
+    assert fetched["state"] == "ok"
+    coverage = next(
+        b for b in fetched["report"]["blocks"]
+        if b["block_kind"] == "comparison_coverage"
+    )
+    # Both requested names are named as absent rather than quietly dropped.
+    assert coverage["payload"]["without_result"] == ["AMD", "NVDA"]
+
+
+def test_an_empty_comparison_is_a_400(client: TestClient, seeded_db_empty_cards):
+    assert client.get("/api/research/reports/comparison/,,").status_code == 400

@@ -117,12 +117,14 @@ function Payload({ value }: { value: unknown }) {
     return (
       <ul className="space-y-1">
         {value.map((row, i) => (
-          <li key={i} className="text-xs text-zinc-300">
-            {typeof row === "object" && row !== null
-              ? Object.entries(row as Record<string, unknown>)
-                  .map(([k, v]) => `${k}=${v == null ? "na" : String(v)}`)
-                  .join("  ")
-              : String(row)}
+          <li key={i} className="break-words text-xs text-zinc-300">
+            {/* Recurse rather than String() — a nested array flattened into one
+                comma-joined line overflows its column and clips. */}
+            {typeof row === "object" && row !== null ? (
+              <Payload value={row} />
+            ) : (
+              String(row)
+            )}
           </li>
         ))}
       </ul>
@@ -134,7 +136,7 @@ function Payload({ value }: { value: unknown }) {
         {Object.entries(value as Record<string, unknown>).map(([k, v]) => (
           <div key={k}>
             <dt className="text-xs text-zinc-600">{k}</dt>
-            <dd className="text-xs text-zinc-300">
+            <dd className="break-words text-xs text-zinc-300">
               {v == null ? (
                 // `na`, never a blank: a blank reads as zero.
                 <span className="text-zinc-600">na</span>
@@ -149,7 +151,7 @@ function Payload({ value }: { value: unknown }) {
       </dl>
     );
   }
-  return <p className="text-xs text-zinc-300">{String(value)}</p>;
+  return <p className="break-words text-xs text-zinc-300">{String(value)}</p>;
 }
 
 function Block({ block }: { block: ReportBlock }) {
@@ -187,7 +189,7 @@ export function ReportView({
   reportKey,
 }: {
   data: ReportResponse;
-  reportType: "company" | "chain";
+  reportType: "company" | "comparison" | "chain";
   reportKey: string;
 }) {
   const [busy, setBusy] = useState(false);

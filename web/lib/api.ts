@@ -389,7 +389,7 @@ export const api = {
   researchReports: (limit = 25): Promise<ReportListResponse> =>
     _fetch<ReportListResponse>(`/api/research/reports?limit=${limit}`),
   researchReport: (
-    reportType: "company" | "chain",
+    reportType: "company" | "comparison" | "chain",
     key: string,
     version?: number,
   ): Promise<ReportResponse> =>
@@ -398,7 +398,7 @@ export const api = {
         (version == null ? "" : `/versions/${version}`),
     ),
   assembleResearchReport: (
-    reportType: "company" | "chain",
+    reportType: "company" | "comparison" | "chain",
     key: string,
     asOf?: string,
   ): Promise<ReportResponse> =>
