@@ -53,6 +53,10 @@ from .fundamentals import (
 )
 from .radar import (
     ChainCell,
+    CompanyEvidenceResponse,
+    EventClassStatus,
+    ResearchEvent,
+    RiskFact,
     ChainDrilldownResponse,
     ChainMatrixResponse,
     ChainMember,
@@ -351,6 +355,10 @@ from .vrp_lifecycle import (
 __all__ = [
     "_UwBase",
     "ChainCell",
+    "CompanyEvidenceResponse",
+    "EventClassStatus",
+    "ResearchEvent",
+    "RiskFact",
     "ChainDrilldownResponse",
     "ChainMatrixResponse",
     "ChainMember",

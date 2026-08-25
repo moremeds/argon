@@ -241,3 +241,74 @@ class ChainDrilldownResponse(_UwBase):
 
 
 _preserve_public_module(ChainCell, ChainMatrixResponse, ChainMember, ChainDrilldownResponse)
+
+
+class ResearchEvent(_UwBase):
+    """One typed event. Both clocks travel with it.
+
+    `occurred_at` is when it happened; `first_known_at` is when Argon could know.
+    A historical read predicates on the second, or a replay sees events before
+    they were knowable.
+    """
+
+    event_id: int
+    event_class: str
+    occurred_at: date
+    first_known_at: date
+    title: str
+    detail: dict = {}
+    source_kind: str
+    source_ref: str | None = None
+    superseded_by: int | None = None
+
+
+class RiskFact(_UwBase):
+    """A number against a threshold, and what a breach invalidates.
+
+    Never prose. A risk expressed only as a sentence cannot be checked, replayed,
+    or shown to have improved.
+    """
+
+    risk_kind: str
+    observed_value: float | None
+    threshold: float | None
+    breached: bool
+    severity: str
+    statement: str
+    #: Which computation the breach makes untrustworthy. Null = descriptive.
+    invalidates: str | None = None
+    source_kind: str
+    as_of: date
+
+
+class EventClassStatus(_UwBase):
+    """The discovery gate's verdict for one candidate class.
+
+    A `killed` class is not a missing feature — it is a measured absence of
+    source, and `rationale` says which.
+    """
+
+    event_class: str
+    status: str
+    source_table: str | None = None
+    rationale: str
+    measured_rows: int | None = None
+
+
+class CompanyEvidenceResponse(_UwBase):
+    """Events + deterministic risks for one name, with the gate that bounds them."""
+
+    ticker: str
+    events: list[ResearchEvent] = []
+    risks: list[RiskFact] = []
+    #: Classes that cannot produce an event here, and why. Rendered rather than
+    #: omitted: a timeline with no supply-chain events looks complete unless the
+    #: reader is told that class was killed for want of a source.
+    killed_classes: list[EventClassStatus] = []
+    state: FundamentalResultState = "ok"
+    reason: str | None = None
+
+
+_preserve_public_module(
+    ResearchEvent, RiskFact, EventClassStatus, CompanyEvidenceResponse
+)

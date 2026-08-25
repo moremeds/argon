@@ -2348,6 +2348,68 @@
         "title": "CompanyDimensionsResponse",
         "type": "object"
       },
+      "CompanyEvidenceResponse": {
+        "description": "Events + deterministic risks for one name, with the gate that bounds them.",
+        "properties": {
+          "events": {
+            "default": [],
+            "items": {
+              "$ref": "#/components/schemas/ResearchEvent"
+            },
+            "title": "Events",
+            "type": "array"
+          },
+          "killed_classes": {
+            "default": [],
+            "items": {
+              "$ref": "#/components/schemas/EventClassStatus"
+            },
+            "title": "Killed Classes",
+            "type": "array"
+          },
+          "reason": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Reason"
+          },
+          "risks": {
+            "default": [],
+            "items": {
+              "$ref": "#/components/schemas/RiskFact"
+            },
+            "title": "Risks",
+            "type": "array"
+          },
+          "state": {
+            "default": "ok",
+            "enum": [
+              "ok",
+              "stale_run",
+              "no_compatible_run",
+              "no_coverage",
+              "unsupported_capability",
+              "failed_run"
+            ],
+            "title": "State",
+            "type": "string"
+          },
+          "ticker": {
+            "title": "Ticker",
+            "type": "string"
+          }
+        },
+        "required": [
+          "ticker"
+        ],
+        "title": "CompanyEvidenceResponse",
+        "type": "object"
+      },
       "CrashTriggerBlock": {
         "properties": {
           "conditions": {
@@ -4214,6 +4276,52 @@
           "date"
         ],
         "title": "DivergencePoint",
+        "type": "object"
+      },
+      "EventClassStatus": {
+        "description": "The discovery gate's verdict for one candidate class.\n\nA `killed` class is not a missing feature \u2014 it is a measured absence of\nsource, and `rationale` says which.",
+        "properties": {
+          "event_class": {
+            "title": "Event Class",
+            "type": "string"
+          },
+          "measured_rows": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Measured Rows"
+          },
+          "rationale": {
+            "title": "Rationale",
+            "type": "string"
+          },
+          "source_table": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Source Table"
+          },
+          "status": {
+            "title": "Status",
+            "type": "string"
+          }
+        },
+        "required": [
+          "event_class",
+          "status",
+          "rationale"
+        ],
+        "title": "EventClassStatus",
         "type": "object"
       },
       "ExposuresSummaryRow": {
@@ -17108,6 +17216,75 @@
         "title": "RescanAllRequest",
         "type": "object"
       },
+      "ResearchEvent": {
+        "description": "One typed event. Both clocks travel with it.\n\n`occurred_at` is when it happened; `first_known_at` is when Argon could know.\nA historical read predicates on the second, or a replay sees events before\nthey were knowable.",
+        "properties": {
+          "detail": {
+            "additionalProperties": true,
+            "default": {},
+            "title": "Detail",
+            "type": "object"
+          },
+          "event_class": {
+            "title": "Event Class",
+            "type": "string"
+          },
+          "event_id": {
+            "title": "Event Id",
+            "type": "integer"
+          },
+          "first_known_at": {
+            "format": "date",
+            "title": "First Known At",
+            "type": "string"
+          },
+          "occurred_at": {
+            "format": "date",
+            "title": "Occurred At",
+            "type": "string"
+          },
+          "source_kind": {
+            "title": "Source Kind",
+            "type": "string"
+          },
+          "source_ref": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Source Ref"
+          },
+          "superseded_by": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Superseded By"
+          },
+          "title": {
+            "title": "Title",
+            "type": "string"
+          }
+        },
+        "required": [
+          "event_id",
+          "event_class",
+          "occurred_at",
+          "first_known_at",
+          "title",
+          "source_kind"
+        ],
+        "title": "ResearchEvent",
+        "type": "object"
+      },
       "ReturnsBlock": {
         "description": "Wire shape: d1 / w1 / d30. No aliases \u2014 FastAPI would otherwise serialize\nthem as JSON keys and break the frontend contract.",
         "properties": {
@@ -17149,6 +17326,81 @@
           }
         },
         "title": "ReturnsBlock",
+        "type": "object"
+      },
+      "RiskFact": {
+        "description": "A number against a threshold, and what a breach invalidates.\n\nNever prose. A risk expressed only as a sentence cannot be checked, replayed,\nor shown to have improved.",
+        "properties": {
+          "as_of": {
+            "format": "date",
+            "title": "As Of",
+            "type": "string"
+          },
+          "breached": {
+            "title": "Breached",
+            "type": "boolean"
+          },
+          "invalidates": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Invalidates"
+          },
+          "observed_value": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Observed Value"
+          },
+          "risk_kind": {
+            "title": "Risk Kind",
+            "type": "string"
+          },
+          "severity": {
+            "title": "Severity",
+            "type": "string"
+          },
+          "source_kind": {
+            "title": "Source Kind",
+            "type": "string"
+          },
+          "statement": {
+            "title": "Statement",
+            "type": "string"
+          },
+          "threshold": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Threshold"
+          }
+        },
+        "required": [
+          "risk_kind",
+          "observed_value",
+          "threshold",
+          "breached",
+          "severity",
+          "statement",
+          "source_kind",
+          "as_of"
+        ],
+        "title": "RiskFact",
         "type": "object"
       },
       "RvCorrPoint": {
@@ -30841,6 +31093,33 @@
         ]
       }
     },
+    "/api/research/evidence/classes": {
+      "get": {
+        "description": "The discovery gate, as data. Live and killed classes with their counts.",
+        "operationId": "evidence_classes_api_research_evidence_classes_get",
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "items": {
+                    "$ref": "#/components/schemas/EventClassStatus"
+                  },
+                  "title": "Response Evidence Classes Api Research Evidence Classes Get",
+                  "type": "array"
+                }
+              }
+            },
+            "description": "Successful Response"
+          }
+        },
+        "summary": "Evidence Classes",
+        "tags": [
+          "research-evidence",
+          "research-evidence"
+        ]
+      }
+    },
     "/api/scanner": {
       "get": {
         "operationId": "get_scanner_api_scanner_get",
@@ -31626,6 +31905,81 @@
         "summary": "Get Magnets",
         "tags": [
           "stock"
+        ]
+      }
+    },
+    "/api/stock/{ticker}/research/evidence": {
+      "get": {
+        "description": "One name's event timeline and deterministic risk facts.",
+        "operationId": "company_evidence_api_stock__ticker__research_evidence_get",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "ticker",
+            "required": true,
+            "schema": {
+              "title": "Ticker",
+              "type": "string"
+            }
+          },
+          {
+            "description": "Show only what Argon could know by this date. Predicates on first_known_at, never on when the event occurred.",
+            "in": "query",
+            "name": "known_by",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "format": "date",
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "description": "Show only what Argon could know by this date. Predicates on first_known_at, never on when the event occurred.",
+              "title": "Known By"
+            }
+          },
+          {
+            "in": "query",
+            "name": "limit",
+            "required": false,
+            "schema": {
+              "default": 40,
+              "maximum": 200,
+              "minimum": 1,
+              "title": "Limit",
+              "type": "integer"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/CompanyEvidenceResponse"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Company Evidence",
+        "tags": [
+          "research-evidence",
+          "research-evidence"
         ]
       }
     },

@@ -290,6 +290,38 @@ evidence_policy)`, which fails closed — an observation with no claim never
 
 ### Added
 
+- **Typed event ledger, deterministic risk facts, and a discovery gate that kills classes (M6).**
+  Migration `140` + `storage/research_events.py` + `worker/jobs/research_events_derive.py` +
+  `api/routers/research_evidence.py`.
+  Verdict: `docs/research/2026-08-25-evidence-discovery-gate/`.
+  - **Six classes live, eight killed — and the kills are the deliverable.** Live:
+    `statement_published` 45,196, `sec_filing` 37,510, `geographic_disclosure` 7,088,
+    `segment_disclosure` 3,203, `sec_amendment` 1,806, `input_violation` 1,006.
+  - **`restatement` is killed at n=1** — one multi-version identity in 87,177 observations. A
+    class that fires once is an anecdote. Six more (customer concentration, supplier, backlog,
+    capex guidance, debt maturity, management guidance) are killed because they live in SEC
+    document TEXT which Argon does not fetch; `product_regulatory` because it needs a licensed
+    news source.
+  - **A killed class refuses writes** — the repository raises rather than warning. Every company
+    response carries the killed list, so a reader of a supply-chain-free timeline is told why it
+    is supply-chain-free rather than concluding the company has no supply chain.
+  - **Two clocks, enforced.** `occurred_at` is when it happened, `first_known_at` when Argon could
+    know; a CHECK forbids the second preceding the first and every historical read predicates on
+    it. NVDA's April quarter ended 04-26 and published 05-20 — a replay at 05-01 correctly sees
+    nothing.
+  - **Every risk is a number against a threshold plus what a breach invalidates**, never prose.
+    Measured: `unevidenced_company_type` 319 of 449 breached, `stale_result` 73 of 400,
+    `thin_pit_evidence` 54 of 401.
+  - An amendment supersedes its original; the predecessor stays readable, which is what makes it
+    a ledger rather than a table.
+
+### Fixed
+
+- **`risk_summary` silently dropped rows.** It grouped by `(risk_kind, severity)` while keying its
+  result dict on `risk_kind` alone, so all but the last severity group were overwritten — every
+  breach rate read as 100% because the healthy rows landed under `info` and vanished. Now grouped
+  by kind alone: `stale_result` reads 73 breached of 400 evaluated, not 73 of 73.
+
 - **Versioned research taxonomy, evidence-backed chain exposure, and the chain matrix (M5).**
   Migrations `137`/`138`/`139` + `storage/research_taxonomy.py` +
   `worker/jobs/research_taxonomy_seed.py` + `scripts/backfill/research_taxonomy_seed.py` +

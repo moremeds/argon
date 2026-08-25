@@ -1741,6 +1741,66 @@ REGISTRY.extend(
             reason_verified_on=date(2026, 8, 25),
         ),
         DatasetRegistryEntry(
+            "research_events",
+            "fundamentals",
+            # `provenance`. Derived from evidence Argon already holds; a missing
+            # event is a derivation that has not run, not a provider gap.
+            "provenance",
+            date_col="first_known_at",
+            ticker_col="ticker",
+            expected_frequency="event",
+            provider="none",
+            granularity="none",
+            healer_adapter=None,
+            source_system="derived",
+            retention_days=None,
+            reason=(
+                "typed event ledger (migration 140), derived from "
+                "sec_filing_index and fundamental_obs_violations by "
+                "worker/jobs/research_events_derive. Idempotent on its identity "
+                "key; re-run to repair, at zero provider spend."
+            ),
+            reason_verified_on=date(2026, 8, 25),
+        ),
+        DatasetRegistryEntry(
+            "research_risk_facts",
+            "fundamentals",
+            "provenance",
+            date_col="as_of",
+            ticker_col="ticker",
+            expected_frequency="event",
+            provider="none",
+            granularity="none",
+            healer_adapter=None,
+            source_system="derived",
+            retention_days=None,
+            reason=(
+                "deterministic risk facts (migration 140): an observed value "
+                "against a threshold plus what a breach invalidates. Recomputed "
+                "by research_events_derive; nothing to heal from a provider."
+            ),
+            reason_verified_on=date(2026, 8, 25),
+        ),
+        DatasetRegistryEntry(
+            "research_event_classes",
+            "fundamentals",
+            "provenance",
+            date_col="measured_on",
+            ticker_col=None,
+            expected_frequency="none",
+            provider="none",
+            granularity="none",
+            healer_adapter=None,
+            source_system="argon",
+            retention_days=None,
+            reason=(
+                "the discovery gate, persisted (migration 140). One row per "
+                "candidate event class with its live/killed verdict and the row "
+                "count that decided it."
+            ),
+            reason_verified_on=date(2026, 8, 25),
+        ),
+        DatasetRegistryEntry(
             "chain_membership",
             "fundamentals",
             # `provenance`. Validity intervals over a versioned taxonomy; a row
