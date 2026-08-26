@@ -32,6 +32,37 @@ from uw_scan.macro_evidence import (
 #: quarantined artifact takes its observations out of service however it was obtained.
 _ARTIFACT_AVAILABLE = "(a.vintage_bearing OR a.available_at <= %s)"
 
+#: The discovery clock, applied the same way the publication clock already is.
+#:
+#: ``macro_observations`` is immutable by design (migration 115), so an accepted row can
+#: never be re-marked ``quarantined``.  This fragment is how the ledger says "we accepted
+#: this and were wrong" without editing what it accepted: an overlay row carries its own
+#: ``invalidated_at`` -- when WE DISCOVERED the problem, never when the publisher made it --
+#: and every state-feeding read applies ``invalidated_at <= as_of``.
+#:
+#: That single predicate produces BOTH required behaviours, which is why there is no
+#: "current versus replay" branch for a caller to get wrong: replaying 2021 today does not
+#: yet know about a 2026 discovery and returns the row Argon actually stood on, while a read
+#: now knows and excludes it.  Belief at the instant is preserved by arithmetic rather than
+#: by a flag someone has to remember to pass.
+#:
+#: The series_range arm bounds ``period_from``/``period_to`` on the observation's
+#: ``period_end`` and ``vintage_from``/``vintage_to`` on its ``available_at``.  Those two
+#: pairs are not interchangeable: one says WHICH READINGS are bad, the other says WHICH
+#: PUBLICATIONS OF THEM are.  The FRED rebasing needs exactly that separation -- every
+#: period, but only the vintages before the republish.
+_NOT_INVALIDATED = """NOT EXISTS (
+  SELECT 1 FROM {schema}.macro_evidence_invalidations v
+  WHERE v.invalidated_at <= %s
+    AND ( v.obs_id = o.obs_id
+       OR v.artifact_id = o.artifact_id
+       OR ( v.series_id = o.series_id
+        AND (v.period_from  IS NULL OR o.period_end   >= v.period_from)
+        AND (v.period_to    IS NULL OR o.period_end   <= v.period_to)
+        AND (v.vintage_from IS NULL OR o.available_at >= v.vintage_from)
+        AND (v.vintage_to   IS NULL OR o.available_at <= v.vintage_to) ) )
+)"""
+
 
 class _MacroContextMixin:
     _conn: psycopg.Connection
@@ -330,11 +361,12 @@ class _MacroContextMixin:
                   AND o.quality_status IN ('valid', 'partial')
                   AND {_ARTIFACT_AVAILABLE}
                   AND a.quality_status IN ('valid', 'partial')
+                  AND {_NOT_INVALIDATED.format(schema=self._schema)}
                 ORDER BY {rank_sql}, o.available_at DESC,
                          o.first_observed_at DESC, o.obs_id DESC
                 LIMIT 1
                 """,
-                (series_id, period_end, as_of, as_of, *rank_params),
+                (series_id, period_end, as_of, as_of, as_of, *rank_params),
             )
             return cur.fetchone()
 
@@ -353,8 +385,9 @@ class _MacroContextMixin:
             "o.quality_status IN ('valid', 'partial')",
             _ARTIFACT_AVAILABLE,
             "a.quality_status IN ('valid', 'partial')",
+            _NOT_INVALIDATED.format(schema=self._schema),
         ]
-        params: list[Any] = [series_id, as_of, as_of]
+        params: list[Any] = [series_id, as_of, as_of, as_of]
         if from_date is not None:
             clauses.append("o.period_end >= %s")
             params.append(from_date)
@@ -408,12 +441,13 @@ class _MacroContextMixin:
                   AND o.quality_status IN ('valid', 'partial')
                   AND {_ARTIFACT_AVAILABLE}
                   AND a.quality_status IN ('valid', 'partial')
+                  AND {_NOT_INVALIDATED.format(schema=self._schema)}
                 ORDER BY {rank_sql}, o.period_end DESC,
                          o.available_at DESC, o.first_observed_at DESC,
                          o.obs_id DESC
                 LIMIT 1
                 """,
-                (series_id, as_of, as_of, *rank_params),
+                (series_id, as_of, as_of, as_of, *rank_params),
             )
             return cur.fetchone()
 
@@ -455,13 +489,14 @@ class _MacroContextMixin:
                       AND o.quality_status IN ('valid', 'partial')
                       AND {_ARTIFACT_AVAILABLE}
                       AND a.quality_status IN ('valid', 'partial')
+                      AND {_NOT_INVALIDATED.format(schema=self._schema)}
                     ORDER BY o.release_key, {rank_sql}, o.available_at DESC,
                              o.first_observed_at DESC, o.obs_id DESC
                 ) AS releases
                 ORDER BY period_end DESC, available_at DESC, obs_id DESC
                 LIMIT %s
                 """,
-                (series_id, as_of, as_of, *rank_params, limit),
+                (series_id, as_of, as_of, as_of, *rank_params, limit),
             )
             return list(cur.fetchall())
 
@@ -470,13 +505,46 @@ class _MacroContextMixin:
         series_id: str,
         period_end: date,
     ) -> list[dict[str, Any]]:
+        """Every vintage of a period, INCLUDING the ones later found bad.
+
+        The one reader that deliberately does not take ``_NOT_INVALIDATED``.  This is the
+        audit view: filtering it would answer "what did we discard, and why" with a view
+        that had already discarded it, and the reason would be unreachable from anywhere.
+
+        It joins and MARKS instead.  ``invalidated_at`` is NULL for a row nothing condemns;
+        a marked row carries the discovery instant, the reason and the reviewer, so the
+        operator sees the row and the argument against it side by side.
+
+        No ``as_of`` here on purpose: the audit view answers what we know NOW about what we
+        once accepted.  A caller wanting the point-in-time answer wants one of the four
+        readers above, and those apply the clock.
+        """
         with self._conn.cursor(row_factory=dict_row) as cur:
             cur.execute(
                 f"""
-                SELECT o.*, a.source_url, a.source_kind, a.media_type
+                SELECT o.*, a.source_url, a.source_kind, a.media_type,
+                       v.invalidated_at,
+                       v.reason       AS invalidation_reason,
+                       v.reviewer     AS invalidated_by,
+                       v.evidence_url AS invalidation_evidence_url
                 FROM {self._schema}.macro_observations o
                 JOIN {self._schema}.macro_source_artifacts a
                   ON a.artifact_id = o.artifact_id
+                LEFT JOIN LATERAL (
+                    SELECT i.invalidated_at, i.reason, i.reviewer, i.evidence_url
+                    FROM {self._schema}.macro_evidence_invalidations i
+                    WHERE i.obs_id = o.obs_id
+                       OR i.artifact_id = o.artifact_id
+                       OR ( i.series_id = o.series_id
+                        AND (i.period_from  IS NULL OR o.period_end   >= i.period_from)
+                        AND (i.period_to    IS NULL OR o.period_end   <= i.period_to)
+                        AND (i.vintage_from IS NULL OR o.available_at >= i.vintage_from)
+                        AND (i.vintage_to   IS NULL OR o.available_at <= i.vintage_to) )
+                    -- The EARLIEST discovery, because that is when the row stopped being
+                    -- usable. A later duplicate invalidation does not move that instant.
+                    ORDER BY i.invalidated_at ASC, i.invalidation_id ASC
+                    LIMIT 1
+                ) v ON TRUE
                 WHERE o.series_id = %s AND o.period_end = %s
                 ORDER BY o.available_at DESC, o.first_observed_at DESC,
                          o.source, o.obs_id DESC
@@ -484,6 +552,68 @@ class _MacroContextMixin:
                 (series_id, period_end),
             )
             return list(cur.fetchall())
+
+    def insert_macro_evidence_invalidation(
+        self,
+        *,
+        target_kind: str,
+        invalidated_at: datetime,
+        reason: str,
+        reviewer: str,
+        overlay_version: str,
+        artifact_id: int | None = None,
+        obs_id: int | None = None,
+        series_id: str | None = None,
+        period_from: date | None = None,
+        period_to: date | None = None,
+        vintage_from: datetime | None = None,
+        vintage_to: datetime | None = None,
+        evidence_url: str | None = None,
+    ) -> int:
+        """Record that accepted evidence was later found bad.  Never edits the evidence.
+
+        This is an OVERLAY, not a repair.  It removes rows from consideration; it never
+        rewrites a value.  Restating a rebased series is a different mechanism with its own
+        measurement burden (a per-vintage ``publisher_transform``), and conflating the two
+        would let a correction masquerade as a retraction.
+
+        ``invalidated_at`` is the discovery instant and is what every reader compares its
+        own ``as_of`` against, so passing the publisher's error date here would silently
+        rewrite history: replays between the two dates would stop returning a row Argon
+        genuinely believed.
+        """
+        _require_aware("invalidated_at", invalidated_at)
+        _require_aware("vintage_from", vintage_from, optional=True)
+        _require_aware("vintage_to", vintage_to, optional=True)
+        with self._conn.cursor() as cur:
+            cur.execute(
+                f"""
+                INSERT INTO {self._schema}.macro_evidence_invalidations (
+                    target_kind, artifact_id, obs_id, series_id,
+                    period_from, period_to, vintage_from, vintage_to,
+                    invalidated_at, reason, evidence_url, reviewer, overlay_version
+                ) VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s)
+                RETURNING invalidation_id
+                """,
+                (
+                    target_kind,
+                    artifact_id,
+                    obs_id,
+                    series_id,
+                    period_from,
+                    period_to,
+                    vintage_from,
+                    vintage_to,
+                    invalidated_at,
+                    reason,
+                    evidence_url,
+                    reviewer,
+                    overlay_version,
+                ),
+            )
+            row = cur.fetchone()
+        assert row is not None
+        return int(row[0])
 
     def upsert_macro_source_status(
         self,

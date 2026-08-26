@@ -569,6 +569,22 @@ REGISTRY: list[DatasetRegistryEntry] = [
             "have no independent existence to heal"
         ),
     ),
+    # The evidence-invalidation overlay (migration 131). It is the record that a HUMAN
+    # reviewed accepted evidence and condemned it. A healer that invented a row here would
+    # be asserting a review nobody performed -- and unlike most fabrications this one
+    # SUBTRACTS: an invented invalidation silently removes real evidence from every state.
+    DatasetRegistryEntry(
+        "macro_evidence_invalidations",
+        "macro_evidence",
+        "provenance",
+        expected_frequency="none",
+        source_system="derived",
+        reason=(
+            "a reviewer's judgement that accepted evidence was later found bad; there is "
+            "no source to re-fetch it from, and an invented row would remove real "
+            "observations from every point-in-time read after its instant"
+        ),
+    ),
     DatasetRegistryEntry(
         "macro_domain_state_evidence",
         "macro_evidence",
