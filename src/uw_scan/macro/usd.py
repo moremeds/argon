@@ -21,7 +21,7 @@ this index on 1,265 periods against zero for SOFR, EFFR and RRPONTSYD, so
 ``compute_confidence``'s revision penalty fires on USD in normal operation.  A USD state
 carrying revision drag is correct rather than broken and must not be tuned away.
 
-Design: ``docs/superpowers/specs/2026-08-12-usd-gold-state-design.md``.
+Design: ``docs/superpowers/archive/specs/2026-08-12-usd-gold-state-design.md``.
 Sources: ``docs/research/2026-08-12-usd-source-probe/VERDICT.md``.
 """
 

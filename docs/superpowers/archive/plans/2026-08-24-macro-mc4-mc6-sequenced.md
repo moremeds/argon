@@ -131,7 +131,7 @@ to say an accepted artifact was later found bad.
 - a `corrected=true` opt-in on replay is contract-reserved, not implemented
 
 **DESIGNED 2026-08-24, not implemented, and DEPRIORITIZED behind MC4.**
-`docs/superpowers/specs/2026-08-24-macro-evidence-invalidation-design.md`
+`docs/superpowers/archive/specs/2026-08-24-macro-evidence-invalidation-design.md`
 
 Two things were measured that change this item:
 

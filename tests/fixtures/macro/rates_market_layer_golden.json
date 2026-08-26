@@ -1,7 +1,7 @@
 {
  "schema_version": "1",
  "authored_at": "2026-08-21T11:55:25.710329+00:00",
- "spec": "docs/superpowers/specs/2026-08-21-rates-market-layer-design.md",
+ "spec": "docs/superpowers/archive/specs/2026-08-21-rates-market-layer-design.md",
  "provenance": {
   "supply": "TreasuryDirect TA_WS/securities/auctioned. New-issue nominal only: reopening == 'No' and type == securityType. available_at is the publisher's announcementDate, which precedes the auction by about a week.",
   "positioning": "CFTC TFF futures-only, Socrata gpe5-46if, contract 043602 (10Y note future). available_at is the row's :created_at. The payload carries no release field; the existing client derives obs_date+3d, which is wrong on federal-holiday weeks -- see spec 3.2.",

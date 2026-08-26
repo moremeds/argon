@@ -69,6 +69,21 @@ version in lockstep (enforced by `scripts/release/version_sync_check.py`).
   - The only named path that could reopen MC5/MC6 is the release-**event** preflight — a different
     unit of analysis from the monthly state label that both the flip census and the preflight
     rejected. It is unauthorized and unstarted.
+- **The macro program's plans and specs moved to `docs/superpowers/archive/{plans,specs}/`** — seven
+  plans (MC0–MC6 plus the program registry) and six specs, per the archive README: active directories
+  hold work in progress, completed work moves. Every reference was rewritten and verified rather than
+  assumed — a repo-wide scan now resolves every `docs/superpowers/{plans,specs}/*.md` path that any
+  tracked file mentions.
+  - The specs are cited from **production docstrings** (`macro/{inflation,rates,usd,gold,gold_state}.py`),
+    from four generator/probe scripts, from three frozen golden fixtures' `spec` provenance field, and
+    from `tests/unit/research/test_fomc_sep_verdict.py`, which resolves the durability spec as a real
+    `Path` and reads it. Generators and their fixtures moved together, so regenerating a golden is
+    still a no-op.
+  - Two dangling references inside the archived plans are **left as they are**: MC2's plan says to
+    create `2026-08-12-inflation-rates-state-design.md` (it shipped as `2026-08-18-`), and MC5's plan
+    names a `company-macro-exposure-design.md` that was never written because MC5 was killed. Both
+    predate this change. Repointing them at what actually happened would falsify what the plan said —
+    the same reason F2 annotates evidence instead of rewriting it.
 - **MC5 and MC6 are closed, and the macro program's authority boundary is now a measured finding.**
   Operator decision 2026-08-26; plan status updated in `2026-08-12-top-down-macro-context-program.md`
   and `2026-08-24-macro-mc4-mc6-sequenced.md`. Documentation only — no code, schema or behaviour changes.
@@ -90,6 +105,13 @@ version in lockstep (enforced by `scripts/release/version_sync_check.py`).
     preflight is unauthorized and unstarted; surprise definition, baseline and horizon are all unspecified.
 
 ### Fixed
+- **`CLAUDE.md` said schema changes apply out-of-band via the profile-gated migrator. They do not.**
+  The `api` service self-migrates before serving (`python -m uw_scan.storage.migrate_runner && exec
+  uvicorn`, `docker-compose.yml`), so a Watchtower deploy carries its migrations with it; the
+  `migrator` service exists for explicit out-of-band applies, not for the normal path. The runbook
+  (`docs/runbooks/docker-deploy.md`) had this right — only the master policy file was stale, which is
+  the copy an agent reads first. A schema change that must land *before* its code still needs the
+  out-of-band run, and that caveat is now stated where the wrong claim used to be.
 - **The F5 gold-schedule exit was recorded as blocked by a dev-database artifact.** The plan said the
   persisted smoke "cannot run until a gold domain state exists (none has ever been computed)". That was
   measured against `option_wizard_local`. **Production has held gold states since 2026-08-23**, and they
@@ -228,7 +250,7 @@ version in lockstep (enforced by `scripts/release/version_sync_check.py`).
 ### Added
 
 - **Evidence invalidation, designed** —
-  `docs/superpowers/specs/2026-08-24-macro-evidence-invalidation-design.md`. Not implemented, and
+  `docs/superpowers/archive/specs/2026-08-24-macro-evidence-invalidation-design.md`. Not implemented, and
   deliberately deprioritized behind MC4; see below.
   - `macro_observations` is immutable — migration 115's guard rejects every `DELETE` and every
     `UPDATE` touching anything but `last_seen_at` — so `quality_status` cannot be moved to
@@ -345,7 +367,7 @@ version in lockstep (enforced by `scripts/release/version_sync_check.py`).
 
 ### Added
 
-- **`docs/superpowers/plans/2026-08-24-macro-mc4-mc6-sequenced.md`** — MC4–MC6 re-ordered
+- **`docs/superpowers/archive/plans/2026-08-24-macro-mc4-mc6-sequenced.md`** — MC4–MC6 re-ordered
   against what was actually measured, and the two decisions that were open in the handover, now
   settled: **historical replay preserves what Argon believed at the instant** (invalidation affects
   current reads; a corrected-history read is a reserved opt-in), and **the authority boundary is

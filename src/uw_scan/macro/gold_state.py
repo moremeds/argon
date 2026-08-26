@@ -28,7 +28,7 @@ never change a state label (spec 4), and there is deliberately no precedence rul
 Lens 1 and Lens 2 -- collapsing them would throw away the only information the
 disagreement carries.
 
-Design: ``docs/superpowers/specs/2026-08-12-usd-gold-state-design.md`` sections 3, 3.1, 4.
+Design: ``docs/superpowers/archive/specs/2026-08-12-usd-gold-state-design.md`` sections 3, 3.1, 4.
 Golden scenarios: ``tests/fixtures/macro/usd_gold_golden.json``.
 """
 

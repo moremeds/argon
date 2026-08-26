@@ -33,8 +33,8 @@ dataset-registry conventions.
 ### Task 1: Freeze the evidence and time design
 
 **Files:**
-- Create: `docs/superpowers/specs/2026-08-12-macro-evidence-contract-design.md`
-- Modify: `docs/superpowers/plans/2026-08-12-top-down-macro-context-program.md`
+- Create: `docs/superpowers/archive/specs/2026-08-12-macro-evidence-contract-design.md`
+- Modify: `docs/superpowers/archive/plans/2026-08-12-top-down-macro-context-program.md`
 
 **Steps:**
 
@@ -59,7 +59,7 @@ observation unique: (source, series_id, period_end, available_at, content_hash)
 
 **Verification:**
 
-Run `rg -n "available_at|free_official|mock|dual-read" docs/superpowers/specs/2026-08-12-macro-evidence-contract-design.md`.
+Run `rg -n "available_at|free_official|mock|dual-read" docs/superpowers/archive/specs/2026-08-12-macro-evidence-contract-design.md`.
 Expected: each invariant is present and defined once.
 
 ### Task 2: Add failing migration and repository tests
@@ -214,7 +214,7 @@ policy regeneration are changed.
 If and only if commits were explicitly authorized:
 
 ```bash
-git add docs/superpowers/specs/2026-08-12-macro-evidence-contract-design.md docs/superpowers/plans/2026-08-12-top-down-macro-context-program.md src/uw_scan/storage/migrations/115_macro_evidence.sql src/uw_scan/storage/macro_context.py src/uw_scan/storage/repository.py src/uw_scan/models/macro.py src/uw_scan/models/__init__.py src/uw_scan/reports/data_gap_healer.py docs/runbooks/data-gap-dataset-policy.md tests/integration/storage/test_macro_context_repository.py tests/unit/models/test_macro_models.py scripts/research/macro_legacy_inventory.py docs/research/2026-08-12-macro-legacy-inventory
+git add docs/superpowers/archive/specs/2026-08-12-macro-evidence-contract-design.md docs/superpowers/archive/plans/2026-08-12-top-down-macro-context-program.md src/uw_scan/storage/migrations/115_macro_evidence.sql src/uw_scan/storage/macro_context.py src/uw_scan/storage/repository.py src/uw_scan/models/macro.py src/uw_scan/models/__init__.py src/uw_scan/reports/data_gap_healer.py docs/runbooks/data-gap-dataset-policy.md tests/integration/storage/test_macro_context_repository.py tests/unit/models/test_macro_models.py scripts/research/macro_legacy_inventory.py docs/research/2026-08-12-macro-legacy-inventory
 git commit -m "feat(macro): add immutable evidence contract"
 ```
 

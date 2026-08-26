@@ -31,7 +31,7 @@ empty lists today.  They are recorded with a reason, never as an absent key and 
 a fabricated id -- "we do not read this" and "this had no rows" are different facts, and
 both differ from "this was never considered."
 
-Design: ``docs/superpowers/specs/2026-08-12-usd-gold-state-design.md``.
+Design: ``docs/superpowers/archive/specs/2026-08-12-usd-gold-state-design.md``.
 """
 
 from __future__ import annotations

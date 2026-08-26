@@ -1,6 +1,6 @@
 {
  "probed_at": "2026-08-20T16:57:50.254720+00:00",
- "spec": "docs/superpowers/specs/2026-08-21-rates-market-layer-design.md",
+ "spec": "docs/superpowers/archive/specs/2026-08-21-rates-market-layer-design.md",
  "plumbing_fred": {
   "cap": 2000,
   "daily_vintage_start": "2021-01-01",

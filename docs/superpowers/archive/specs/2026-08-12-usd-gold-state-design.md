@@ -4,8 +4,8 @@
 measurements in §2 were taken against live publishers on 2026-08-21 and changed two of this
 document's rulings before implementation started.
 
-**Parent plan:** `docs/superpowers/plans/2026-08-12-macro-mc3-usd-gold-state.md`
-**Part A (upstream):** `docs/superpowers/specs/2026-08-21-rates-market-layer-design.md`
+**Parent plan:** `docs/superpowers/archive/plans/2026-08-12-macro-mc3-usd-gold-state.md`
+**Part A (upstream):** `docs/superpowers/archive/specs/2026-08-21-rates-market-layer-design.md`
 
 ---
 
