@@ -4,7 +4,8 @@
 task decomposition for MC4 is still good; its ORDER, its migration numbers, and its assumption that
 MC6 can validate state flips are not. Read this file for order and gates, that one for task detail.
 
-**Status:** planned. No implementation authorized by this document.
+**Status:** closed 2026-08-26. Everything this document sequenced is either shipped (F5, MC4) or
+formally closed (MC5, MC6). One item remains open and is deliberately unstarted: **F2 invalidation**.
 
 ## Decisions on the record
 
@@ -31,11 +32,14 @@ cannot. So MC6 is gated on a preflight that the original plan did not contain, a
 does not depend on MC4 — which is why it moves earlier and runs in parallel.
 
 ```text
-P0  F5 gold schedule ─────────> (independent; blocked on a question, see below)
+P0  F5 gold schedule ─────────> SHIPPED 2026-08-25, PR #388, v0.12.17
+                                 └─> verified in prod 2026-08-26: gauge age 3d -> 0d
 P0  MC6 preflight  ───────────> DONE 2026-08-24: descriptive_only
-                                 └─> MC5/MC6 closed; MC4 unaffected
-NEXT  MC4 snapshot ───────────> (authority already set: risk-monitoring)
-LATER F2 invalidation ────────> designed; zero production instances; retrofit is cheap
+                                 └─> MC6 CLOSED 2026-08-26 (its own designated verdict)
+                                 └─> MC5 CLOSED 2026-08-26 (no positive reason to build)
+NEXT  MC4 snapshot ───────────> SHIPPED, PRs #384/#386/#387, v0.12.17
+                                 └─> first prod snapshot id 1, complete, 2026-08-25 19:40 ET
+LATER F2 invalidation ────────> STILL OPEN. designed; zero production instances; retrofit is cheap
 ```
 
 Revised 2026-08-24. F2 was ordered before MC4 on the assumption that snapshots bake in evidence
@@ -83,12 +87,32 @@ constraint.
 
 Mon–Fri is kept on both. The Saturday and Sunday states legitimately read Friday's gauge and say so.
 
-**Exit:** `tests/unit/worker/test_gold_state_reads_todays_gauge.py` locks the ORDER rather than the
-clock times — posture after its whole ingest cascade, before the state that consumes it — so moving
-the block stays free and inverting it does not. The remaining piece is a real persisted smoke
-comparing state `as_of`, gauge `obs_date` and the allowed lag; it cannot run until a gold domain
-state exists (none has ever been computed — see MC6 preflight, gold is structurally excluded until
-migration 119 promotes a verified instant for `GLD_CLOSE`).
+**Exit — MET 2026-08-26.** `tests/unit/worker/test_gold_state_reads_todays_gauge.py` locks the ORDER
+rather than the clock times — posture after its whole ingest cascade, before the state that consumes
+it — so moving the block stays free and inverting it does not.
+
+**Correction: the persisted smoke was never blocked.** This section previously said it could not run
+because "no gold domain state has ever been computed". That was measured against `option_wizard_local`,
+a dev database. **Production has held gold states since 2026-08-23**, and they carry the defect and its
+fix directly (`gauge_age_days` term on `macro_domain_states.confidence_reasons_jsonb`, prod
+`option_wizard`, read 2026-08-26):
+
+| state | `as_of` (ET) | engine | gauge age | gauge `obs_date` |
+|---:|---|---|---:|---|
+| 18 | 2026-08-23 Sun 03:41 | `gold/1` | 2 | 2026-08-21 |
+| 22 | 2026-08-23 Sun 04:43 | `gold/1` | 2 | 2026-08-21 |
+| 26 | 2026-08-23 Sun 19:40 | `gold/1` | 2 | 2026-08-21 |
+| 30 | 2026-08-24 Mon 19:40 | `gold/1` | **3** | 2026-08-21 |
+| 34 | 2026-08-25 Tue 19:40 | `gold/2` | **0** | **2026-08-25** |
+
+State 30 is the defect stated in production data rather than inferred from cron strings: a Monday
+19:40 state reading Friday's gauge, because Monday's posture did not run until 21:00 — 80 minutes
+after the state that consumes it. State 34 is the first run under the new schedule: Tuesday 19:10
+wrote the gauge, Tuesday 19:40 read it, age 0.
+
+The gold-state blocker cited here confused two different claims. The MC6 preflight's finding is that
+gold cannot **replay** (`GLD_CLOSE` holds 275 periods across 3 availability instants). Computing
+**tonight's** state needs no such history and was never blocked.
 
 ## P0-b — F2: additive evidence invalidation
 
@@ -156,6 +180,11 @@ this and neither does faster sampling — that is what the correction measures.
 was revised in a way the term could see across 5.6 years, which is why its broken divisor survived.
 
 **MC6 over state features is closed. Do not build the walk-forward harness for this panel.**
+**Formally closed by the operator 2026-08-26.** Note what happened procedurally: `descriptive_only`
+is one of the three verdicts MC6's own Task 12 was designed to publish, so MC6 reached its designated
+exit — it did not stall short of it. The preflight was not in the original plan; it asked a question
+that plan never asked (is there enough sample to test ANYTHING?) and answered it before the expensive
+Task 11 harness was built.
 
 **One candidate survives and is NOT endorsed:** release events replay point-in-time —
 `federal_reserve_fomc` has 55 observations across 55 distinct `available_at` (2020-01-30 onward),
@@ -213,13 +242,23 @@ production is unverified — what it proves is that the detector fires on real s
 **Exit:** a partial domain failure can never render as a coherent fresh chain; a later evidence
 revision does not change an old snapshot hash; the page no longer fetches four latest states.
 
-## MC5 — held, and now without an empirical basis
+## MC5 — CLOSED by the operator 2026-08-26
 
-Not started, not authorized. It required the preflight above to produce something other than
-`descriptive_only`. It did not. Nothing measured justifies putting macro into the Fundamental PM
-surface, so the hold is no longer procedural — it is the finding. If it ever proceeds, it stays removable and must
-prove byte-invariance of every fundamental fact, score, valuation anchor, and hash with macro on and
-off.
+Never started, never authorized, and now closed rather than held. It required the preflight above to
+produce something other than `descriptive_only`. It did not. Nothing measured justifies putting macro
+into the Fundamental PM surface, so the hold stopped being procedural — it is the finding.
+
+**What "closed" means here, precisely.** MC6's own verdict taxonomy defines `descriptive_only` as
+*"retain MC4/MC5; no score/ranking/sizing authority"* — written on the assumption that MC5 would
+already be BUILT by the time MC6 ran, so the sentence means *do not tear out what exists*. MC5 was
+never built, so the live question was **whether to build it**, which that taxonomy does not answer.
+The operator answered it: no. `descriptive_only` does not by itself forbid a context-only MC5 block
+(that block was designed with no scoring authority — the byte-invariance test exists for exactly
+that reason); what closes it is the absence of any positive reason to build it.
+
+If it is ever reopened it stays removable and must prove byte-invariance of every fundamental fact,
+score, valuation anchor, and hash with macro on and off. Its reserved migration `118` is void — the
+Fundamental lane took that number long ago.
 
 ## Gates that survive all of the above
 
