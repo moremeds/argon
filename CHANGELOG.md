@@ -7,6 +7,50 @@ version in lockstep (enforced by `scripts/release/version_sync_check.py`).
 
 ## [Unreleased]
 
+### Added
+- **The macro ledger can now say "we accepted this and were wrong"** — additive, point-in-time
+  evidence invalidation (migration `131`, `macro_evidence_invalidations`). F2, the last open item
+  in the macro program.
+  - **The gap it closes.** `macro_observations` is immutable — migration 115's guard rejects every
+    `DELETE` and every `UPDATE` touching anything but `last_seen_at` — so `quality_status` can never
+    be moved to `quarantined` after the fact. The ledger could say *we never accepted this*; it had
+    no way to say *we accepted this and were wrong*. The guard is correct and is untouched; this is
+    an overlay beside it, not a mutation of it.
+  - **One predicate produces both required behaviours.** The invalidation carries its own
+    point-in-time clock — `invalidated_at <= as_of`, deliberately the same shape as the
+    `available_at <= as_of` that already governs every macro read. A replay of 2021 does not yet
+    know about a 2026 discovery and returns the row Argon genuinely stood on; a read today knows and
+    excludes it. There is no "current versus replay" branch for a caller to get wrong.
+  - **`invalidated_at` is when WE DISCOVERED the problem, never when the publisher made it.** Keying
+    it on the publisher's error date would silently rewrite history: every replay between the two
+    dates would stop returning a row Argon believed for those months.
+  - **Four of the five readers take the predicate; `fetch_macro_observation_history` must not.** It
+    is the audit view, and filtering it would answer *what did we discard and why* with a view that
+    had already discarded it. It joins and MARKS instead — the row, the discovery instant, the
+    reason and the reviewer, side by side.
+  - **`vintage_*` bounds the publication, `period_*` bounds the reading**, and the pair is not
+    interchangeable: one says which readings are bad, the other which publications of them are. The
+    FRED rebasing needs exactly that separation — every period, but only the vintages before the
+    republish. A test asserts both directions, because swapping them in the predicate flips both.
+  - **Range columns are `period_from`/`period_to`, never `period_start`/`period_end`.**
+    `macro_observations.period_end` already exists and the join predicate references both tables, so
+    reusing the name would produce a filter that silently compares a row to itself.
+  - **The tests were rewritten once, and the reason is recorded in the plan.** The first version
+    passed 10 of 13 *with the feature not yet built*: it invalidated the pre-rebasing vintage and
+    asserted the post value came back, but the post row already wins on `available_at DESC`. The fix
+    was a second period held only at its pre-rebasing vintage, where exclusion is the difference
+    between a value and `None`. Every test now names the production change that breaks it.
+  - Verified against the frozen FRED rebasing (`WRESBAL` period 2025-06-04 carrying `3294.381` at
+    vintage 2025-06-05 and `3294381.0` at 2025-11-13, both labelled `millions_usd`), **not** against
+    production — production holds zero known-bad macro observations out of 28,941, so there is
+    nothing there to exclude.
+  - **It does not repair a series.** Invalidation removes evidence from consideration; it never
+    rewrites a value. A per-vintage `publisher_transform` is the recovery path and is a different
+    mechanism with its own measurement burden.
+  - Enrolled in the gap-healer registry as unhealable (153 → **154 datasets**). An invented
+    invalidation is the rare fabrication that SUBTRACTS — it would remove real observations from
+    every point-in-time read after its instant.
+
 ### Changed
 - **MC5 and MC6 are closed, and the macro program's authority boundary is now a measured finding.**
   Operator decision 2026-08-26; plan status updated in `2026-08-12-top-down-macro-context-program.md`

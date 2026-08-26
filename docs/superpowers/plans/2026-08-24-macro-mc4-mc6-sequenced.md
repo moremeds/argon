@@ -4,8 +4,8 @@
 task decomposition for MC4 is still good; its ORDER, its migration numbers, and its assumption that
 MC6 can validate state flips are not. Read this file for order and gates, that one for task detail.
 
-**Status:** closed 2026-08-26. Everything this document sequenced is either shipped (F5, MC4) or
-formally closed (MC5, MC6). One item remains open and is deliberately unstarted: **F2 invalidation**.
+**Status:** COMPLETE 2026-08-26. Everything this document sequenced is shipped (F5, MC4, F2) or
+formally closed (MC5, MC6). Nothing here is open.
 
 ## Decisions on the record
 
@@ -39,7 +39,8 @@ P0  MC6 preflight  ───────────> DONE 2026-08-24: descripti
                                  └─> MC5 CLOSED 2026-08-26 (no positive reason to build)
 NEXT  MC4 snapshot ───────────> SHIPPED, PRs #384/#386/#387, v0.12.17
                                  └─> first prod snapshot id 1, complete, 2026-08-25 19:40 ET
-LATER F2 invalidation ────────> STILL OPEN. designed; zero production instances; retrofit is cheap
+LATER F2 invalidation ────────> SHIPPED 2026-08-26, migration 131
+                                 └─> zero production instances; verified on the frozen fixture
 ```
 
 Revised 2026-08-24. F2 was ordered before MC4 on the assumption that snapshots bake in evidence
@@ -114,7 +115,7 @@ The gold-state blocker cited here confused two different claims. The MC6 preflig
 gold cannot **replay** (`GLD_CLOSE` holds 275 periods across 3 availability instants). Computing
 **tonight's** state needs no such history and was never blocked.
 
-## P0-b — F2: additive evidence invalidation
+## P0-b — F2: additive evidence invalidation — **SHIPPED 2026-08-26**
 
 WRESBAL was rejected because FRED republished its history 1,000x on 2025-11-13 while the contract
 still labels every vintage `millions_usd`. The store holds 1,173 WRESBAL rows, all `valid`; period
@@ -149,9 +150,24 @@ stood on, which is the correct answer. The retrofit is cheap at any point.
 
 **Do MC4 first.** MC4 fixes a live defect; this one has zero production instances.
 
-**Exit (when built):** raw bytes survive, current readers exclude and the audit view does not,
-the reason is auditable, migration replay is idempotent, and a test asserts BOTH directions of the
-belief rule — returned by a replay before `invalidated_at`, absent after.
+**Exit — MET 2026-08-26.** Migration `131` + `macro_context.py`; 16 integration tests over the
+frozen WRESBAL rebasing. Raw bytes survive (the artifact row is byte-identical after invalidation
+and the observation keeps `quality_status = 'valid'`), the four state-feeding readers exclude and
+`fetch_macro_observation_history` does not — it joins and MARKS, so the audit view shows the row,
+the discovery instant, the reason and the reviewer side by side. Both directions of the belief rule
+are asserted, one second apart.
+
+**The tests had to be rewritten once, and that is the part worth reading.** The first version
+passed 10 of 13 with the feature not yet built. It invalidated the PRE-rebasing vintage and then
+asserted the POST value came back — but the post row already wins on `available_at DESC`, so the
+assertion held whether or not anything was excluded. The fix was a second period held ONLY at its
+pre-rebasing vintage (566 periods were rebased; nothing guarantees a post row for each), where
+exclusion is the difference between a value and `None`. Every test now names the production change
+that breaks it.
+
+**Enrolled as unhealable** (154 datasets). An invented invalidation is the rare fabrication that
+SUBTRACTS: it would silently remove real observations from every point-in-time read after its
+instant.
 
 ## P0-c — MC6 preflight (parallel; does not touch MC4)
 

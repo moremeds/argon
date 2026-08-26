@@ -1,7 +1,15 @@
 # Macro evidence invalidation — an additive, point-in-time overlay
 
-**Status:** design. Not implemented. Read §7 before scheduling the work — the finding that
-motivated this spec is not where the handover said it was.
+**Status:** IMPLEMENTED 2026-08-26 — migration `131`, `macro_context.py`. §7 stands and is
+why the verification is against the frozen fixture rather than production data: production
+holds zero known-bad macro observations, so there is nothing there to exclude.
+
+**One deviation from §3, found by the tests.** `vintage_to` is INCLUSIVE (`available_at <=
+vintage_to`), matching the `available_at <= as_of` it is modelled on. That means a range
+cannot express *"everything strictly before instant X"* without naming the last bad vintage
+instead of the first good one. Writing `vintage_to = <the republish instant>` condemns the
+republish itself — the row that FIXED the problem. The overlay is correct; the caller must
+name the last bad vintage. The test fixture does, and says so.
 
 ## 1. The gap
 
