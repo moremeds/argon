@@ -52,6 +52,23 @@ version in lockstep (enforced by `scripts/release/version_sync_check.py`).
     every point-in-time read after its instant.
 
 ### Changed
+- **Phase 1 of the top-down macro program is closed**, scored against the eight completion criteria
+  it wrote for itself on 2026-08-12 (`2026-08-12-top-down-macro-context-program.md` §10). Six are met,
+  two are not, and the two are recorded as *answered* rather than *outstanding*. Documentation only.
+  - **What ships:** a replayable, evidence-cited, refusal-capable description of inflation →
+    policy/rates → USD → gold. Every output replays from exact observations at their exact vintages,
+    the desk refuses as a chain rather than rendering four fresh-looking cards, and no macro number
+    reaches a score, a ranking, a size, or the Fundamental PM surface.
+  - **What does not ship, and why it is not a backlog item:** criteria 6 and 7 — attach and detach a
+    versioned company/chain exposure overlay on a PM report — were gated on MC6, and MC6's preflight
+    returned `descriptive_only`, one of its own three designated verdicts. The criterion reached its
+    exit and the exit said do not build it. Filing that as "incomplete" would misread a measurement
+    as unfinished work.
+  - **The Fundamental PM surface is byte-identical to what it was before this program started**, by
+    construction rather than by feature flag: nothing downstream consumes macro state.
+  - The only named path that could reopen MC5/MC6 is the release-**event** preflight — a different
+    unit of analysis from the monthly state label that both the flip census and the preflight
+    rejected. It is unauthorized and unstarted.
 - **MC5 and MC6 are closed, and the macro program's authority boundary is now a measured finding.**
   Operator decision 2026-08-26; plan status updated in `2026-08-12-top-down-macro-context-program.md`
   and `2026-08-24-macro-mc4-mc6-sequenced.md`. Documentation only — no code, schema or behaviour changes.

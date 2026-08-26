@@ -253,7 +253,7 @@ cites `policy_rates` 21 while the latest rates answer is 23, because a rates-onl
 01:15:44 followed a full pass at 00:45:14 with no matching USD recompute. Local store, so
 production is unverified — what it proves is that the detector fires on real stored edges.
 
-**MC4 is complete.** The remaining open items are F5 (gold schedule) and F2 (invalidation).
+**MC4 is complete.** F5 and F2, open when this was written, both shipped (2026-08-25 / 2026-08-26).
 
 **Exit:** a partial domain failure can never render as a coherent fresh chain; a later evidence
 revision does not change an old snapshot hash; the page no longer fetches four latest states.
