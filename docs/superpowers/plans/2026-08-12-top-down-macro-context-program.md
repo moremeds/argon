@@ -1,9 +1,12 @@
 # Top-Down Macro Context — Program Plan
 
-> **Status:** in progress. MC0 implementation is verified on branch
-> `feat/macro-evidence-contract`; repository and PR history are authoritative for merge status. This
-> is the macro program source of truth and child-plan registry. It does not authorize implementation
-> on the active Fundamental PM ingest branch.
+> **Status:** MC0–MC4 shipped (v0.12.17); MC5 and MC6 closed by the operator 2026-08-26. The
+> descriptive chain is complete and the program carries **no** score, ranking, sizing or PM-integration
+> authority — that boundary is now a measured finding, not a pending decision. One designed-but-unbuilt
+> item remains: **F2 additive evidence invalidation** (`2026-08-24-macro-evidence-invalidation-design.md`),
+> zero production instances. The only path that could reopen MC5/MC6 is a release-**event** preflight,
+> which is unauthorized and unstarted. Repository and PR history are authoritative for merge status.
+> This is the macro program source of truth and child-plan registry.
 
 **Goal:** replace four disconnected dashboards with a reproducible top-down research system that
 explains inflation → policy/rates → USD transmission → gold, preserves every source and vintage,
@@ -196,9 +199,9 @@ Storage boundaries:
 | MC2 | merged | `2026-08-12-macro-mc2-inflation-rates-state.md` | inflation/rates states abstain honestly and reproduce from exact observations — PR #359, v0.12.10 |
 | MC3 | merged | `2026-08-12-macro-mc3-usd-gold-state.md` | rates market layer resolves to real evidence; USD/Gold states reuse shared inputs — PRs #363/#369/#372/#377. **Semantically bounded:** USD observes only the US policy leg (no foreign differential), and Gold's state owns two citable inputs and borrows the rest. Gold provenance is NOT complete; the wider Compass path stays separate |
 | MC3.5 | merged | — | `/macro` renders the four domain states in causal order — PR #378, v0.12.16. Descriptive chain viewer only: it composes four independent latest responses and is **not** MC4's atomic snapshot |
-| MC4 | partial | `2026-08-12-macro-mc4-mc6-context-pm-validation.md` | Task 4's page shell shipped as MC3.5 above. Snapshot schema, assembler, job and API absent |
-| MC5 | hold | `2026-08-12-macro-mc4-mc6-context-pm-validation.md` | not started, and not authorized. Requires an explicit authority decision plus the MC6 preflight below |
-| MC6 | blocked | `2026-08-12-macro-mc4-mc6-context-pm-validation.md` | blocked on a testable object — see the replay census below |
+| MC4 | merged | `2026-08-24-macro-mc4-mc6-sequenced.md` | one persisted snapshot owns the four-domain composition and renders its refusal — PRs #384/#386/#387, v0.12.17. Status comes from dependency-edge identity, never timestamp proximity, and a snapshot may never repair an incompatible chain by substituting a fresher upstream. First production snapshot: id 1, `as_of` 2026-08-25 19:40 ET, `complete`, four domains present |
+| MC5 | killed | `2026-08-12-macro-mc4-mc6-context-pm-validation.md` | **Closed by the operator 2026-08-26**, never started. It required the MC6 preflight to return something other than `descriptive_only`; it did not, so nothing measured justifies putting macro into the Fundamental PM surface. The hold stopped being procedural and became the finding. Reopening requires the release-event preflight below to produce a testable object AND a fresh authority decision |
+| MC6 | killed | `2026-08-12-macro-mc4-mc6-context-pm-validation.md` | **Closed by the operator 2026-08-26.** The preflight (`docs/research/2026-08-24-macro-continuous-feature-preflight/`) produced `descriptive_only`, which is one of MC6's own three designated verdicts — so MC6 reached its exit without building the walk-forward harness, and the harness must not be built for this panel. Every economically meaningful feature lands at `eff_n` 0.9–27 over 5.6 years; `usd change.DTWEXBGS`, which the whole USD engine rests on, is 12.8 and would need 42 years to reach 100. Neither longer history nor faster sampling rescues it — faster sampling is what the AR(1) correction measures |
 
 Every child is implemented through its own branch/PR sequence. Status changes only after its stated
 verification evidence exists. Child plans are implementation-ready but do not imply authorization to
@@ -210,12 +213,16 @@ commit or publish.
 > MC4 starts at `130`. Re-check the tail before writing a migration; do not read a reserved number
 > from either plan.
 
-> **MC6 sequencing changed.** `docs/research/2026-08-23-macro-state-replay-flip-census.md` replayed 68
-> monthly instants (2021-01..2026-08) and found the categorical state label is not a viable validation
-> unit: inflation flips 4 times, rates 8, `usd/2` 13 after the boundary move, and gold cannot replay at
-> all before its retrieval-clock evidence began. A continuous-feature availability and target preflight
-> must run BEFORE MC5 or the MC6 harness. Do not backfill replayed states to manufacture sample size —
-> those rows are immutable and would bake in today's engine version.
+> **MC6 sequencing changed, then MC6 ended.** `docs/research/2026-08-23-macro-state-replay-flip-census.md`
+> replayed 68 monthly instants (2021-01..2026-08) and found the categorical state label is not a viable
+> validation unit: inflation flips 4 times, rates 8, `usd/2` 13 after the boundary move, and gold cannot
+> replay at all before its retrieval-clock evidence began. That forced a continuous-feature availability
+> and target preflight BEFORE MC5 or the MC6 harness — a step the original child plan did not contain.
+> The preflight ran 2026-08-24 (`docs/research/2026-08-24-macro-continuous-feature-preflight/`) and
+> returned `descriptive_only`, closing both. Do not backfill replayed states to manufacture sample size —
+> those rows are immutable, would bake in today's engine version, and the preflight showed sample size
+> is not the binding constraint anyway: **the features with the largest effective sample are the ones
+> carrying no economic content**, because a high `eff_n` comes from being noisy rather than informative.
 
 ## 7. Dependency and release sequence
 

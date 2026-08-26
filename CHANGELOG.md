@@ -7,6 +7,37 @@ version in lockstep (enforced by `scripts/release/version_sync_check.py`).
 
 ## [Unreleased]
 
+### Changed
+- **MC5 and MC6 are closed, and the macro program's authority boundary is now a measured finding.**
+  Operator decision 2026-08-26; plan status updated in `2026-08-12-top-down-macro-context-program.md`
+  and `2026-08-24-macro-mc4-mc6-sequenced.md`. Documentation only — no code, schema or behaviour changes.
+  - **MC6 reached its own designated exit rather than stalling short of it.** `descriptive_only` is one
+    of the three verdicts its Task 12 was written to publish. The preflight that produced it was not in
+    the original plan; it asked a question that plan never asked — is there enough sample to test
+    ANYTHING — and answered it before the expensive walk-forward harness of Task 11 was built.
+  - **Information and sample size run in opposite directions in this panel**, which is why no harness
+    could have been trusted to pick its own target: the three features with the largest effective
+    sample are all two-valued *was the publisher on time* binaries scoring `eff_n` ~294–298, high
+    precisely because they are noisy. Every economically meaningful feature lands at `eff_n` 0.9–27
+    over 5.6 years.
+  - **MC5's closure is a different decision from its verdict, and the distinction is recorded.**
+    `descriptive_only` says *retain MC4/MC5*, written assuming MC5 would already be built when MC6 ran.
+    It never was, so the live question was whether to BUILD it — which that taxonomy does not answer.
+    It is closed for want of a positive reason, not because the verdict forbade it.
+  - Reopening either requires a release-**event** preflight (FOMC 55 observations across 55 distinct
+    `available_at`, SEP 25/25, CPI family 145 release instants) AND a fresh authority decision. That
+    preflight is unauthorized and unstarted; surprise definition, baseline and horizon are all unspecified.
+
+### Fixed
+- **The F5 gold-schedule exit was recorded as blocked by a dev-database artifact.** The plan said the
+  persisted smoke "cannot run until a gold domain state exists (none has ever been computed)". That was
+  measured against `option_wizard_local`. **Production has held gold states since 2026-08-23**, and they
+  carry the defect and its fix directly: state 30 (Mon 2026-08-24 19:40 ET) read a gauge computed for
+  2026-08-21 — three days stale, because the old schedule ran the posture at 21:00, 80 minutes *after*
+  the state that consumes it — and state 34 (Tue 2026-08-25 19:40 ET, first run under the new schedule)
+  reads `obs_date` 2026-08-25, age **0**. The blocker also conflated two claims: the MC6 preflight found
+  gold cannot **replay**, which says nothing about computing tonight's state.
+
 ## [0.12.17] — 2026-08-25
 
 
