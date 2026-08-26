@@ -1,6 +1,6 @@
 {
  "probed_at": "2026-08-21T13:14:41.916074+00:00",
- "spec": "docs/superpowers/specs/2026-08-12-usd-gold-state-design.md",
+ "spec": "docs/superpowers/archive/specs/2026-08-12-usd-gold-state-design.md",
  "vintage_cap": 2000,
  "daily_vintage_start": "2021-01-01",
  "fred_broad_dollar": {

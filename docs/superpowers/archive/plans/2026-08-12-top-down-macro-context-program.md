@@ -1,12 +1,13 @@
 # Top-Down Macro Context — Program Plan
 
-> **Status:** MC0–MC4 shipped (v0.12.17); MC5 and MC6 closed by the operator 2026-08-26. The
-> descriptive chain is complete and the program carries **no** score, ranking, sizing or PM-integration
-> authority — that boundary is now a measured finding, not a pending decision. One designed-but-unbuilt
-> item remains: **F2 additive evidence invalidation** (`2026-08-24-macro-evidence-invalidation-design.md`),
-> zero production instances. The only path that could reopen MC5/MC6 is a release-**event** preflight,
-> which is unauthorized and unstarted. Repository and PR history are authoritative for merge status.
-> This is the macro program source of truth and child-plan registry.
+> **Status:** **PHASE 1 CLOSED 2026-08-26.** MC0–MC4 shipped (v0.12.17), F2 additive evidence
+> invalidation shipped (migration `131`, PR #391), MC5 and MC6 closed by the operator. Nothing in this
+> program is open. The descriptive chain is complete and the program carries **no** score, ranking,
+> sizing or PM-integration authority — that boundary is a measured finding, not a pending decision.
+> The only path that could reopen MC5/MC6 is a release-**event** preflight, which is unauthorized and
+> unstarted. Repository and PR history are authoritative for merge status. This is the macro program
+> source of truth and child-plan registry; the closure verdict against this plan's own completion
+> criteria is §10.
 
 **Goal:** replace four disconnected dashboards with a reproducible top-down research system that
 explains inflation → policy/rates → USD transmission → gold, preserves every source and vintage,
@@ -202,6 +203,7 @@ Storage boundaries:
 | MC4 | merged | `2026-08-24-macro-mc4-mc6-sequenced.md` | one persisted snapshot owns the four-domain composition and renders its refusal — PRs #384/#386/#387, v0.12.17. Status comes from dependency-edge identity, never timestamp proximity, and a snapshot may never repair an incompatible chain by substituting a fresher upstream. First production snapshot: id 1, `as_of` 2026-08-25 19:40 ET, `complete`, four domains present |
 | MC5 | killed | `2026-08-12-macro-mc4-mc6-context-pm-validation.md` | **Closed by the operator 2026-08-26**, never started. It required the MC6 preflight to return something other than `descriptive_only`; it did not, so nothing measured justifies putting macro into the Fundamental PM surface. The hold stopped being procedural and became the finding. Reopening requires the release-event preflight below to produce a testable object AND a fresh authority decision |
 | MC6 | killed | `2026-08-12-macro-mc4-mc6-context-pm-validation.md` | **Closed by the operator 2026-08-26.** The preflight (`docs/research/2026-08-24-macro-continuous-feature-preflight/`) produced `descriptive_only`, which is one of MC6's own three designated verdicts — so MC6 reached its exit without building the walk-forward harness, and the harness must not be built for this panel. Every economically meaningful feature lands at `eff_n` 0.9–27 over 5.6 years; `usd change.DTWEXBGS`, which the whole USD engine rests on, is 12.8 and would need 42 years to reach 100. Neither longer history nor faster sampling rescues it — faster sampling is what the AR(1) correction measures |
+| F2 | shipped | `2026-08-24-macro-mc4-mc6-sequenced.md` §P0-b | additive, point-in-time evidence invalidation — migration `131`, PR #391. Not an MC: a foundation repair found while sequencing MC4. The overlay carries its OWN clock (`invalidated_at <= as_of`, the same shape as `available_at <= as_of`), so a replay of an instant before the discovery still returns the row Argon believed then, and a current read excludes it. It never rewrites a value and the audit view never filters itself. Zero production instances — verified against a frozen FRED rebasing fixture, because there is nothing in the store to exclude |
 
 Every child is implemented through its own branch/PR sequence. Status changes only after its stated
 verification evidence exists. Child plans are implementation-ready but do not imply authorization to
@@ -287,6 +289,39 @@ Argon can then:
 6. attach a versioned company/chain exposure overlay to a Fundamental PM report;
 7. remove that overlay without changing any fundamental number;
 8. decline score/ranking/sizing claims until MC6 and operator approval pass.
+
+### Phase-1 closure verdict (2026-08-26)
+
+Scored against the eight criteria above, as they were written on 2026-08-12:
+
+| # | Criterion | Outcome |
+|---|---|---|
+| 1 | freeze `as_of`, vintages, engine versions, budget | **met** — `macro_context_snapshots` freezes the instant, `inputs_hash` the composition, `assembler_version` the code |
+| 2 | show the domains separately | **met** — `/macro` renders four domain cards in causal order and refuses as a chain, never as four fresh-looking cards |
+| 3 | distinguish actuals, SEP, dealer, market-implied | **met** — MC1 types four independent policy paths and never promotes the third-party futures path to official |
+| 4 | direction, velocity, confidence, contradictions, freshness, unknowns | **met** — each domain abstains rather than guessing; the snapshot's status comes from dependency-edge identity, not timestamp proximity |
+| 5 | replay every output without revisions leaking backward | **met** — `available_at <= as_of` throughout, and after F2 an accepted-then-wrong artifact is excluded going forward without altering what a past replay returns |
+| 6 | attach a versioned exposure overlay to a Fundamental PM report | **not delivered — killed** |
+| 7 | remove that overlay without changing any fundamental number | **not delivered — moot**, nothing is attached |
+| 8 | decline score/ranking/sizing claims until MC6 passes | **met, and now permanent for this panel** |
+
+**6 and 7 were answered, not skipped.** They were gated on MC6, and MC6's preflight returned
+`descriptive_only` — one of MC6's own three designated verdicts. The criterion reached its exit and
+the exit said do not build the overlay. Recording them as "incomplete" would misread a measurement as
+a backlog item: every economically meaningful feature in the panel lands at `eff_n` 0.9–27 over 5.6
+years, and `usd change.DTWEXBGS` — the observation the whole USD engine rests on — is 12.8 and would
+need 42 years to reach 100. Sample size is not the binding constraint; the features with the largest
+effective sample are the ones carrying no economic content.
+
+**What phase 1 therefore delivers is narrower than the 2026-08-12 goal and honest about it:** a
+replayable, evidence-cited, refusal-capable description of inflation → policy/rates → USD → gold,
+with no consumer downstream of it. The Fundamental PM surface is byte-identical to what it was before
+this program started, by construction rather than by flag.
+
+**Carried forward, unstarted and unauthorized:** the release-**event** preflight is the only named
+path that could reopen MC5/MC6. It is a different unit of analysis (a discrete surprise at a known
+timestamp) from the monthly state label the flip census and the preflight both rejected. Nothing in
+this program authorizes starting it.
 
 ## 11. Plan maintenance protocol
 

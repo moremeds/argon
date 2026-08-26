@@ -23,7 +23,7 @@ found FOMC and SEP parser failures, and the historical audit did not discover 20
 
 The approved correction is defined in:
 
-- design: `docs/superpowers/specs/2026-08-13-macro-mc1-historical-release-durability-design.md`;
+- design: `docs/superpowers/archive/specs/2026-08-13-macro-mc1-historical-release-durability-design.md`;
 - executable detail plan:
   `docs/plans/2026-08-13-macro-mc1-historical-release-hardening.md`.
 

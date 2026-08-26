@@ -52,7 +52,7 @@ gives the *discovery* its own clock alongside the *publication* clock.
 ## 3. Schema
 
 Migration number: **read the tail at implementation time.** The tail was `129` on 2026-08-24 and
-`docs/superpowers/plans/2026-08-24-macro-mc4-mc6-sequenced.md` assigns `130` to MC4's snapshot;
+`docs/superpowers/archive/plans/2026-08-24-macro-mc4-mc6-sequenced.md` assigns `130` to MC4's snapshot;
 whichever lands first takes `130`.
 
 ```sql

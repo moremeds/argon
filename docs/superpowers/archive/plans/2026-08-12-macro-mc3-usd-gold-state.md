@@ -93,7 +93,7 @@ a second fails if a sub-state renders without its own confidence term.
 ### Task A1: Preregister the market-layer contract and golden scenarios
 
 **Files:**
-- Create: `docs/superpowers/specs/2026-08-21-rates-market-layer-design.md`
+- Create: `docs/superpowers/archive/specs/2026-08-21-rates-market-layer-design.md`
 - Create: `tests/fixtures/macro/rates_market_layer_golden.json`
 
 Define, before any adapter is written:
@@ -209,7 +209,7 @@ For each: expected sub-state, direction, velocity, confidence reasons and eviden
 ### Task B1: Preregister USD and gold causal roles
 
 **Files:**
-- Create: `docs/superpowers/specs/2026-08-12-usd-gold-state-design.md`
+- Create: `docs/superpowers/archive/specs/2026-08-12-usd-gold-state-design.md`
 - Create: `tests/fixtures/macro/usd_gold_golden.json`
 
 Define:

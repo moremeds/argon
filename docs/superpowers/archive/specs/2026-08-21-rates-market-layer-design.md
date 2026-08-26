@@ -8,7 +8,7 @@ of this document's rulings changed shape before implementation started.
 `positioning`, `plumbing`. `curve` and `decomposition_component` already have evidence and
 are out of scope except where a rule spans them.
 
-**Parent plan:** `docs/superpowers/plans/2026-08-12-macro-mc3-usd-gold-state.md`
+**Parent plan:** `docs/superpowers/archive/plans/2026-08-12-macro-mc3-usd-gold-state.md`
 
 ---
 

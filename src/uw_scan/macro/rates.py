@@ -14,7 +14,7 @@ words "term premium" belong only to the Cleveland Fed's estimated model, which i
 model output with its own vintage and its own uncertainty, not a spread between two
 traded yields.
 
-Design: ``docs/superpowers/specs/2026-08-18-inflation-rates-state-design.md``.
+Design: ``docs/superpowers/archive/specs/2026-08-18-inflation-rates-state-design.md``.
 """
 
 from __future__ import annotations

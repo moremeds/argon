@@ -372,7 +372,7 @@ def main() -> None:
 
     payload = {
         "probed_at": datetime.now(UTC).isoformat(),
-        "spec": "docs/superpowers/specs/2026-08-21-rates-market-layer-design.md",
+        "spec": "docs/superpowers/archive/specs/2026-08-21-rates-market-layer-design.md",
         "plumbing_fred": probe_fred(http, key),
         "supply_treasurydirect": probe_treasury(http),
         "positioning_cftc": probe_cftc(http),
