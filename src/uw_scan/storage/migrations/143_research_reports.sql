@@ -1,4 +1,4 @@
--- 141_research_reports.sql — the durable research object, versioned and
+-- 143_research_reports.sql — the durable research object, versioned and
 -- replayable.
 --
 -- WHY A REPORT IS A ROW AND NOT A RENDERED PAGE
@@ -13,7 +13,7 @@
 -- its assembled blocks. Replay is re-assembly from the manifest plus a hash
 -- comparison, and it works only because every input this reads is versioned and
 -- append-only: statements (114), availability claims (130), scores and
--- dimensions (117/136), taxonomy (137), exposure (138), events (140). A single
+-- dimensions (117/138), taxonomy (137), exposure (138), events (140). A single
 -- in-place update anywhere upstream would make this gate unreachable.
 --
 -- APPEND-ONLY VERSIONS, NOT AN EDITABLE DOCUMENT

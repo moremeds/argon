@@ -1,4 +1,4 @@
-"""Historized issuer identity (migration 134).
+"""Historized issuer identity (migration 136).
 
 `fundamental_company_type` is keyed on ticker alone, so a reclassification is an
 UPDATE and the previous classification is gone. Every score computed under the

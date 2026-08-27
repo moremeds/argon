@@ -76,7 +76,7 @@ class Component:
     result: tuple[str, ...]
     #: Strongest claim the block may make. `None` means the block states facts
     #: and orders nothing. The schema enforces the ceiling separately
-    #: (migrations 137 and 142); this field is the human-readable half.
+    #: (migrations 138 and 143); this field is the human-readable half.
     authority: str | None = None
     #: A component is REQUIRED unless it has nothing to say. `dimensions` is the
     #: only optional one: the assembler drops it when a name carries no computed

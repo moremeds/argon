@@ -8,7 +8,7 @@ Fundamental PM Research System backend (PR #383, `feat/fundamental-pm-research-s
 CI green, `CONFLICTING` with `main` as of 2026-08-26) and the chain-analysis-node design
 (`docs/superpowers/specs/2026-08-26-chain-analysis-node-design.md`, at time of writing
 an **uncommitted file in `.worktrees/fundamental-pm-research-system/`**). It consumes
-that backend — taxonomy (`storage/research_taxonomy.py`, migrations 138–139),
+that backend — taxonomy (`storage/research_taxonomy.py`, migrations 139–140),
 exposure (`company_exposure`), typed events (`storage/research_events.py`), versioned
 reports (`storage/research_reports.py`), the node catalogue
 (`src/uw_scan/fundamentals/chain_nodes.py` + `worker/jobs/research_report_assemble.py`)

@@ -1,4 +1,4 @@
--- 140_research_events.sql — typed event and deterministic-risk ledgers.
+-- 142_research_events.sql — typed event and deterministic-risk ledgers.
 --
 -- WHAT THIS DELIBERATELY DOES NOT STORE
 -- ------------------------------------
@@ -20,7 +20,7 @@
 -- An event happened on one date and Argon learned of it on another. A single
 -- timestamp forces a choice between a replay that sees events before they were
 -- knowable and one that dates everything at discovery. Both are wrong in the
--- same way the statement panel was before migration 130, so the two clocks are
+-- same way the statement panel was before migration 132, so the two clocks are
 -- separate and every historical read predicates on `first_known_at`.
 --
 -- WHY A RISK FACT IS NUMERIC OR IT IS NOT A RISK FACT

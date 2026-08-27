@@ -128,7 +128,7 @@ Treat 93.9% as one ticker's figure, not the universe's. Task 6 measures the real
 | ------------------------------------------------------------- | ----------------------------------------------------------------------------------------------------------------------------------- |
 | `src/uw_scan/sources/sec_submissions.py`                      | HTTP + parse. Fetch `company_tickers.json` and per-CIK submissions (including paginated archives); return typed rows. Never raises. |
 | `src/uw_scan/fundamentals/publication_evidence.py`            | Pure rule: given one identity's versions and the period's filings, return a claim or a refusal reason. No SQL, no HTTP.             |
-| `src/uw_scan/storage/migrations/132_sec_filing_index.sql`     | `sec_filing_index` + `sec_cik_map`. Immutable, content-keyed.                                                                       |
+| `src/uw_scan/storage/migrations/134_sec_filing_index.sql`     | `sec_filing_index` + `sec_cik_map`. Immutable, content-keyed.                                                                       |
 | `src/uw_scan/storage/sec_filing_index.py`                     | Standalone repository for both tables.                                                                                              |
 | `src/uw_scan/worker/jobs/sec_filing_index_refresh.py`         | Fetch → persist the index. Zero provider budget.                                                                                    |
 | `src/uw_scan/worker/jobs/fundamental_publication_evidence.py` | Apply the rule, write `true_pit` claims, return counters by refusal reason.                                                         |
@@ -701,7 +701,7 @@ git commit -m "feat(fundamentals): rule for when SEC evidence justifies true_pit
 
 **Files:**
 
-- Create: `src/uw_scan/storage/migrations/132_sec_filing_index.sql`
+- Create: `src/uw_scan/storage/migrations/134_sec_filing_index.sql`
 - Create: `src/uw_scan/storage/sec_filing_index.py`
 - Create: `tests/integration/storage/test_sec_filing_index.py`
 
@@ -722,7 +722,7 @@ git commit -m "feat(fundamentals): rule for when SEC evidence justifies true_pit
 ls src/uw_scan/storage/migrations | tail -5
 ```
 
-Expected: highest is `131_fundamental_scores_evidence_policy.sql`. If not, take the next
+Expected: highest is `133_fundamental_scores_evidence_policy.sql`. If not, take the next
 free number and update this plan before continuing.
 
 - [ ] **Step 2: Write the failing schema/repository tests**
@@ -820,7 +820,7 @@ Expected: `ModuleNotFoundError: No module named 'uw_scan.storage.sec_filing_inde
 - [ ] **Step 4: Write the migration**
 
 ```sql
--- 132_sec_filing_index.sql — SEC periodic filings as publication evidence, and
+-- 134_sec_filing_index.sql — SEC periodic filings as publication evidence, and
 -- the ticker->CIK map needed to fetch them. Additive and idempotent.
 --
 -- WHY THIS TABLE EXISTS
@@ -885,7 +885,7 @@ CREATE INDEX IF NOT EXISTS ix_sec_filing_index_ticker_period
 - [ ] **Step 5: Implement the repository**
 
 ```python
-"""SEC filing index and CIK map (migration 132).
+"""SEC filing index and CIK map (migration 134).
 
 Standalone repository — new persistence domains get their own module from method
 one (storage split rule, CLAUDE.md). Every writer commits, matching
@@ -1057,7 +1057,7 @@ missing or misspelled.
 - [ ] **Step 9: Commit** _(only with explicit user authorization)_
 
 ```bash
-git add src/uw_scan/storage/migrations/132_sec_filing_index.sql \
+git add src/uw_scan/storage/migrations/134_sec_filing_index.sql \
         src/uw_scan/storage/sec_filing_index.py \
         tests/integration/storage/test_sec_filing_index.py \
         src/uw_scan/reports/data_gap_healer.py \
@@ -1498,7 +1498,7 @@ Expected: `ModuleNotFoundError`.
 Reads only tables Argon already holds — no provider call, no budget. Writes only
 NEW claims under `sec:publication:v1`; the existing capture-bounded claim is left
 exactly where it is, because a stronger claim lands BESIDE its predecessor rather
-than replacing it (migration 130).
+than replacing it (migration 132).
 
 WHY THE COUNTERS NAME EVERY REFUSAL
 -----------------------------------
@@ -1633,7 +1633,7 @@ git commit -m "feat(fundamentals): issue true_pit claims from SEC filing evidenc
 - [ ] **Step 1: Write the script**
 
 ```python
-"""Build the SEC filing index and issue true_pit claims (migration 132).
+"""Build the SEC filing index and issue true_pit claims (migration 134).
 
     uv run python scripts/backfill/sec_publication_evidence.py --index
     uv run python scripts/backfill/sec_publication_evidence.py --claims

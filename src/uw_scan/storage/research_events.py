@@ -1,4 +1,4 @@
-"""Typed event and deterministic-risk ledgers (migration 140)."""
+"""Typed event and deterministic-risk ledgers (migration 142)."""
 
 from __future__ import annotations
 
@@ -141,7 +141,7 @@ class ResearchEventsRepository:
 
         Predicates on `first_known_at`, never on `occurred_at`: a replay that
         filtered on when things HAPPENED would see events before Argon could
-        know them, which is the look-ahead migration 130 exists to prevent.
+        know them, which is the look-ahead migration 132 exists to prevent.
         """
         where = "ticker = %s"
         params: list[Any] = [ticker.upper()]

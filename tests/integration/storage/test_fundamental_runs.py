@@ -1,4 +1,4 @@
-"""The run ledger (migration 135) — what was asked, not just what came back.
+"""The run ledger (migration 137) — what was asked, not just what came back.
 
 `fundamental_scores` records an ANSWER. Without this table, a run that produced
 nothing leaves no trace, so "the panel was empty" and "the job never ran" are

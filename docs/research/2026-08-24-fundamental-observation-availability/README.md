@@ -157,5 +157,5 @@ pre-existing state, now measurable.
 
 - Runbook: `docs/runbooks/fundamental-observation-availability.md`
 - Vocabulary: `src/uw_scan/fundamentals/observation_time.py`
-- Schema: `src/uw_scan/storage/migrations/130_fundamental_obs_availability.sql`
+- Schema: `src/uw_scan/storage/migrations/132_fundamental_obs_availability.sql`
 - Plan: `docs/plans/2026-08-24-fundamental-observation-asof.md`

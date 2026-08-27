@@ -1,4 +1,4 @@
-"""Persisted research-priority dimensions (migration 136). Standalone repository."""
+"""Persisted research-priority dimensions (migration 138). Standalone repository."""
 
 from __future__ import annotations
 

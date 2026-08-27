@@ -1,4 +1,4 @@
-"""Typed provenance for derived fundamental results (migration 133).
+"""Typed provenance for derived fundamental results (migration 135).
 
 `fundamental_scores.source_obs_ids` says which observations a score was computed
 from. It cannot say which were considered and EXCLUDED, which content version
@@ -26,7 +26,7 @@ STAGE_PANEL = "panel"
 STAGE_FEATURES = "features"
 STAGE_SCORING = "scoring"
 
-#: A result whose provenance predates migration 133. Not an error state.
+#: A result whose provenance predates migration 135. Not an error state.
 STATE_LEGACY = "legacy"
 STATE_TYPED = "typed"
 

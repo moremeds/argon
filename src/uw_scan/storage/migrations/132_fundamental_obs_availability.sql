@@ -1,4 +1,4 @@
--- 130_fundamental_obs_availability.sql — append-only availability evidence for
+-- 132_fundamental_obs_availability.sql — append-only availability evidence for
 -- statement content VERSIONS. Additive and idempotent; migration 114 is not
 -- touched and no existing row is rewritten here.
 --

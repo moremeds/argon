@@ -1,4 +1,4 @@
-"""Typed events and deterministic risk facts (migration 140).
+"""Typed events and deterministic risk facts (migration 142).
 
 The gate is the point. Argon ingests no source containing customer
 concentration, supplier relationships, backlog, capex guidance, debt maturity,

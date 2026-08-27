@@ -1,4 +1,4 @@
--- 133_fundamental_result_provenance.sql — typed, enforceable provenance for
+-- 135_fundamental_result_provenance.sql — typed, enforceable provenance for
 -- derived fundamental results. Additive: `fundamental_scores.source_obs_ids`
 -- stays exactly as it is and every existing row keeps working.
 --

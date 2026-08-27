@@ -10,7 +10,7 @@ Three passes, deliberately separable:
    rules. These carry a real magnitude and cite both the observation and the
    alias.
 3. **assert** membership-only exposures for names with no disclosure that maps.
-   Role and direction, never a number — migration 138's CHECK refuses one.
+   Role and direction, never a number — migration 140's CHECK refuses one.
 
 Zero provider budget: every input is already in Postgres.
 """

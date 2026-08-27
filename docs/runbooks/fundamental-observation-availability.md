@@ -1,6 +1,6 @@
 # Fundamental observation availability — operator runbook
 
-Availability claims (`uw_scan.fundamental_obs_availability`, migration 130) record
+Availability claims (`uw_scan.fundamental_obs_availability`, migration 132) record
 **when each statement content version became usable**. They are _derived evidence_
 about rows Argon already holds, not captured data.
 
@@ -89,5 +89,5 @@ A gap is repaired by re-running the backfill above, so this table has no
 ## Related
 
 - Vocabulary and policies: `src/uw_scan/fundamentals/observation_time.py`
-- Schema and rationale: `src/uw_scan/storage/migrations/130_fundamental_obs_availability.sql`
+- Schema and rationale: `src/uw_scan/storage/migrations/132_fundamental_obs_availability.sql`
 - Read contracts: `src/uw_scan/storage/fundamental_observation_panels.py`

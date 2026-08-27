@@ -1,4 +1,4 @@
-"""Historized issuer identity (migration 134). Standalone repository.
+"""Historized issuer identity (migration 136). Standalone repository.
 
 `fundamental_company_type` answers "what type is this name TODAY". This answers
 "what type was it WHEN", which is the question a historical result needs and the

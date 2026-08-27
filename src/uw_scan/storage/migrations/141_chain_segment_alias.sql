@@ -1,4 +1,4 @@
--- 139_chain_segment_alias.sql — the recorded rule that maps a DISCLOSED segment
+-- 141_chain_segment_alias.sql — the recorded rule that maps a DISCLOSED segment
 -- to a chain, so a derived magnitude is auditable in both halves.
 --
 -- THE PROBLEM THIS SOLVES
@@ -10,7 +10,7 @@
 -- either is wrong in a different direction each time:
 --
 --   * calling it `disclosed` hides that a human chose the chain;
---   * calling it `asserted` forfeits the number entirely (migration 138's CHECK
+--   * calling it `asserted` forfeits the number entirely (migration 140's CHECK
 --     forbids a magnitude on an asserted row), which would leave the exposure
 --     table with no measured content at all.
 --

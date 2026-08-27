@@ -1,4 +1,4 @@
-"""The fundamental run ledger (migration 135). Standalone repository.
+"""The fundamental run ledger (migration 137). Standalone repository.
 
 Records the QUESTION — scope, as-of, evidence policy, method version, mode — that
 `fundamental_scores` only ever records the ANSWER to. Every later product (the

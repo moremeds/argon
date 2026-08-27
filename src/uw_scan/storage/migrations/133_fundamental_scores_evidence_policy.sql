@@ -1,4 +1,4 @@
--- 131_fundamental_scores_evidence_policy.sql — record WHICH statement versions a
+-- 133_fundamental_scores_evidence_policy.sql — record WHICH statement versions a
 -- score was computed from, and under what admission rule. Additive, idempotent,
 -- and it rewrites no existing row.
 --

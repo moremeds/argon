@@ -43,7 +43,7 @@ checkpoints only; stop before each commit unless authorization exists.
 `fundamental_statement_obs` remains one row per normalized content version. Add a suggested next
 migration (verify the number immediately before implementation):
 
-`src/uw_scan/storage/migrations/130_fundamental_obs_availability.sql`
+`src/uw_scan/storage/migrations/132_fundamental_obs_availability.sql`
 
 The new `fundamental_obs_availability` table contains at least:
 
@@ -232,7 +232,7 @@ authorization.
 
 **Files:**
 
-- Create: `src/uw_scan/storage/migrations/130_fundamental_obs_availability.sql`
+- Create: `src/uw_scan/storage/migrations/132_fundamental_obs_availability.sql`
 - Modify: `src/uw_scan/storage/migrations/README.md`
 - Modify: `tests/integration/storage/test_fundamental_obs.py`
 - Modify: `tests/integration/storage/test_migrations.py` only if the suite has a targeted convention

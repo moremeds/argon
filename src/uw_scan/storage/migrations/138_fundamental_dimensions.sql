@@ -1,4 +1,4 @@
--- 136_fundamental_dimensions.sql — research-priority dimensions, persisted
+-- 138_fundamental_dimensions.sql — research-priority dimensions, persisted
 -- independently, each carrying the permission it is allowed to exercise.
 --
 -- WHY SEPARATE ROWS AND NOT MORE COLUMNS ON fundamental_scores

@@ -1,5 +1,5 @@
--- 138_company_exposure.sql — ECONOMIC exposure, kept structurally apart from
--- semantic membership (migration 137).
+-- 140_company_exposure.sql — ECONOMIC exposure, kept structurally apart from
+-- semantic membership (migration 139).
 --
 -- THE CONSTRAINT THAT MATTERS
 -- ---------------------------

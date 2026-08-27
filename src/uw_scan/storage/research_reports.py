@@ -1,4 +1,4 @@
-"""Versioned research reports (migration 141). Standalone repository."""
+"""Versioned research reports (migration 143). Standalone repository."""
 
 from __future__ import annotations
 

@@ -88,12 +88,12 @@ git commit -m "docs(research): commit the optical chain PM desk research dir wit
 
 ### Task 2: Renumber the migration collision, rebase, and merge PR #383
 
-Coordination task, no TDD. **Verified collision:** `main` owns `131_macro_evidence_invalidations.sql`; the branch carries its OWN `131_fundamental_obs_availability.sql` through `142_research_reports.sql`. Per the CI gate, the branch chain renumbers to **132–143**.
+Coordination task, no TDD. **Collision as executed:** `main` owns `130_macro_context_snapshots.sql` and `131_macro_evidence_invalidations.sql`. The rebase dropped the branch's earlier merge commits — which had carried a first renumber — so the branch chain came back to disk at **130–141** and collided at BOTH 130 and 131. The chain therefore shifted by **+2** to **132–143**: `132_fundamental_obs_availability.sql` … `143_research_reports.sql`.
 
 **Files:**
 
-- Rename (on the branch): `src/uw_scan/storage/migrations/131_fundamental_obs_availability.sql` → `132_...` … `142_research_reports.sql` → `143_research_reports.sql`
-- Modify: any file referencing the old numbers (grep for `migration 13`, `migrations/13`, `131_`…`142_` across `src/`, `tests/`, `docs/`, `CHANGELOG.md` on the branch)
+- Renamed (on the branch): `130_fundamental_obs_availability.sql` → `132_…` … `141_research_reports.sql` → `143_research_reports.sql` (12 files, `git mv`)
+- Modified: every file referencing the old numbers. **References were NOT uniformly offset** — commits written before the dropped merges cited 130–141, commits written after cited 131–142, so each reference was resolved by the TABLE it names, never by an offset.
 
 - [ ] **Step 1: Rebase the branch on main**
 
@@ -102,9 +102,9 @@ cd .worktrees/fundamental-pm-research-system
 git fetch origin && git rebase origin/main
 ```
 
-Resolve conflicts as they surface. The migration-number conflict resolves by KEEPING main's `131_macro_evidence_invalidations.sql` and renaming every branch-added migration file up by one (131→132, 132→133, … 142→143). `git mv` each file.
+Resolve conflicts as they surface. Keep main's `130_macro_context_snapshots.sql` and `131_macro_evidence_invalidations.sql`; `git mv` every branch-added migration up by two (130→132, 131→133, … 141→143), descending so no target is occupied.
 
-- [ ] **Step 2: Fix references to the renamed numbers.** `grep -rn "13[1-9]_\|14[0-2]_" src tests docs CHANGELOG.md --include="*.py" --include="*.sql" --include="*.md"` on the branch and update every reference that points at a branch-added migration (docstrings citing "migrations 138–139", the chain-node spec file, test comments). Do NOT touch references to main's own 113–131 files.
+- [ ] **Step 2: Fix references to the renamed numbers.** Grep for `1[34][0-9]_` and the prose forms (`migration 138`, `migrations 138–139`) across `src/`, `tests/`, `docs/`, `scripts/`, `web/`, `CHANGELOG.md`, `CLAUDE.md`. Resolve each by the table it names against the canonical map, not by an offset. Do NOT touch references to main's own 113–131 files, and note that `130`/`131` now mean main's macro migrations.
 - [ ] **Step 3: Verify migrations apply clean on a fresh test DB**
 
 Run: `uv run pytest tests/integration/storage/test_research_reports.py -v` (the per-fixture `DROP SCHEMA CASCADE` + re-migrate exercises the full renamed chain)
@@ -184,7 +184,7 @@ def test_seed_replaces_placeholder_layer_with_real_rank(seeded_db_empty_cards):
     assert ranks == EXPECTED
 ```
 
-NOTE — the seeded-DB fixture on `main` may not create `watchlist_chain` rows for these chains; if `mirror_watchlist_chain` mirrors nothing for them, seed two real membership rows first in the test (real tickers from the measured cohort, e.g. `VRT` in Cooling/Thermal and `EQIX` in DC-REIT/Colo — both verified members of the argon universe per the chain-node design's 2026-08-26 measurement table). Adjust column names to migration `138_research_taxonomy.sql`'s actual schema (renumbered to `139_` by Task 2 — read the file, do not trust this plan's memory of it).
+NOTE — the seeded-DB fixture on `main` may not create `watchlist_chain` rows for these chains; if `mirror_watchlist_chain` mirrors nothing for them, seed two real membership rows first in the test (real tickers from the measured cohort, e.g. `VRT` in Cooling/Thermal and `EQIX` in DC-REIT/Colo — both verified members of the argon universe per the chain-node design's 2026-08-26 measurement table). Adjust column names to migration `139_research_taxonomy.sql`'s actual schema (renumbered to `139_` by Task 2 — read the file, do not trust this plan's memory of it).
 
 - [ ] **Step 2: Run test to verify it fails**
 

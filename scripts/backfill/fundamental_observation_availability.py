@@ -1,4 +1,4 @@
-"""Classify availability evidence for stored statement versions (migration 130).
+"""Classify availability evidence for stored statement versions (migration 132).
 
     uv run python scripts/backfill/fundamental_observation_availability.py
         [--tickers NVDA,MSFT] [--batch-size 5000] [--max-batches N] [--counts]

@@ -1,4 +1,4 @@
-"""Availability-evidence claims for statement content versions (migration 130).
+"""Availability-evidence claims for statement content versions (migration 132).
 
 The schema half of these tests is where the vocabulary stops being a convention
 and becomes a rule the database will not let anyone break. Two constraints carry

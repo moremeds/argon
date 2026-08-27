@@ -1,4 +1,4 @@
--- 137_research_taxonomy.sql — a VERSIONED research taxonomy, separate from the
+-- 139_research_taxonomy.sql — a VERSIONED research taxonomy, separate from the
 -- shipped watchlist chain filter, which is not touched.
 --
 -- WHAT `watchlist_chain` CANNOT DO
@@ -21,7 +21,7 @@
 -- capex-demand ledger's cross-name relationship collapsed from +0.247 to +0.015
 -- (p=0.44) once same-SECTOR pairs were compared, which is the finding that a
 -- chain, as membership, is a sector by another name. Exposure lives in
--- migration 138 and may carry a number only when something disclosed one.
+-- migration 140 and may carry a number only when something disclosed one.
 --
 -- WHY validity INTERVALS AND NOT A `removed_at`
 -- ---------------------------------------------
@@ -95,7 +95,7 @@ CREATE TABLE IF NOT EXISTS uw_scan.chain_membership (
 
 COMMENT ON TABLE uw_scan.chain_membership IS
     'Which companies are in a chain layer, under one taxonomy version, over a '
-    'validity interval. SEMANTIC membership only — see migration 138 for '
+    'validity interval. SEMANTIC membership only — see migration 140 for '
     'economic exposure, which is a different claim with a different burden.';
 
 COMMENT ON COLUMN uw_scan.chain_membership.evidence_class IS

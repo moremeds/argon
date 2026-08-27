@@ -38,7 +38,7 @@ coverage by matching loosely.
 
 ## What the schema does about it
 
-Migration 138 carries a CHECK that permits a non-NULL `magnitude` **only** when
+Migration 140 carries a CHECK that permits a non-NULL `magnitude` **only** when
 `status='disclosed'` AND `magnitude_basis` names an evidenced kind. The 312
 rows without a disclosure physically cannot hold a number.
 

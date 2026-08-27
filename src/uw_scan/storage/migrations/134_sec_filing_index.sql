@@ -1,4 +1,4 @@
--- 132_sec_filing_index.sql — SEC EDGAR's filing index, mirrored locally.
+-- 134_sec_filing_index.sql — SEC EDGAR's filing index, mirrored locally.
 --
 -- WHY MIRROR IT AT ALL
 -- --------------------

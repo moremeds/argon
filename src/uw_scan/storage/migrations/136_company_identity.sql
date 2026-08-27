@@ -1,4 +1,4 @@
--- 134_company_identity.sql — governed, HISTORIZED issuer identity.
+-- 136_company_identity.sql — governed, HISTORIZED issuer identity.
 --
 -- WHAT `fundamental_company_type` CANNOT DO
 -- ----------------------------------------
@@ -24,7 +24,7 @@
 -- share 0001754301 (verified 2026-08-25). Their fundamentals are the SAME
 -- filings, so admitting both into one cross-section would double-count the issuer
 -- and hand it twice the weight. SEC's CIK already answers "same issuer?" from
--- evidence Argon now mirrors (migration 132), so no separate list is maintained
+-- evidence Argon now mirrors (migration 134), so no separate list is maintained
 -- and none can drift.
 --
 -- WHY `status` IS SEPARATE FROM `company_type`

@@ -306,10 +306,10 @@ Executed task-by-task from `docs/plans/2026-08-24-fundamental-observation-asof.m
 
 - `fundamentals/observation_time.py` — four evidence classes, two historical
   policies, timestamp validation, versioned rule keys, audit self-checks.
-- Migration `130` — append-only `fundamental_obs_availability`, two CHECK
+- Migration `132` — append-only `fundamental_obs_availability`, two CHECK
   constraints binding the instant to the classes that earn one,
   `UNIQUE (obs_id, claim_key)`.
-- Migration `131` — `evidence_policy` / `as_of_cutoff` / `availability_ids` on
+- Migration `133` — `evidence_policy` / `as_of_cutoff` / `availability_ids` on
   `fundamental_scores`, additive, existing rows default to `current_vintage`.
 - `storage/fundamental_observation_availability.py` — claim persistence, set-based
   keyset seeding, coverage audit. No update path exists in the module.
@@ -358,7 +358,7 @@ Executed task-by-task from `docs/plans/2026-08-24-fundamental-observation-asof.m
 ### Gate status — ALL MET as of 2026-08-24
 
 The final item (production class distribution and unsupported historical spans)
-was authorized and executed. Migrations 130/131 applied to `option_wizard`
+was authorized and executed. Migrations 132/133 applied to `option_wizard`
 out-of-band and re-applied cleanly; classification backfill run (89,758 scanned,
 179,516 claims, 0 unclaimed, 23.6s, zero provider spend); re-run inserted 0;
 `--audit` self-checks passed. Artifact:
@@ -402,5 +402,5 @@ behind it. Rationale and measurements are in the research artifact.
 
 No commit, push, PR, or image deploy. The branch remains
 `feat/fundamental-pm-research-system` at baseline `86161f1d` plus uncommitted work.
-Migrations 130/131 ARE live on production (additive only, backward compatible with
+Migrations 132/133 ARE live on production (additive only, backward compatible with
 the currently deployed image, which ignores both).

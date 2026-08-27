@@ -1,4 +1,4 @@
-"""Typed provenance (migration 133): enforceable, and honest about legacy rows.
+"""Typed provenance (migration 135): enforceable, and honest about legacy rows.
 
 The two tests that carry the milestone are the schema ones. An array of ids can
 name an observation that was deleted or never existed, and nothing complains —

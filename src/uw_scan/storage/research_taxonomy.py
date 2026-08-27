@@ -1,4 +1,4 @@
-"""Versioned research taxonomy and company exposure (migrations 137/138).
+"""Versioned research taxonomy and company exposure (migrations 139/140).
 
 Two tables, one owner, because they are the same research object seen twice:
 `chain_membership` says a company BELONGS to a chain, `company_exposure` says how
@@ -29,7 +29,7 @@ ROLES = (
     "other",
 )
 
-#: Bases that CAN carry a number. Mirrors the CHECK in migration 138 — kept in
+#: Bases that CAN carry a number. Mirrors the CHECK in migration 140 — kept in
 #: sync deliberately so a caller gets a sentence before the database gets a
 #: constraint violation.
 EVIDENCED_BASES = frozenset(

@@ -1,4 +1,4 @@
-"""Versioned taxonomy and exposure (migrations 137/138/139).
+"""Versioned taxonomy and exposure (migrations 139/140/141).
 
 The load-bearing test is `test_an_asserted_exposure_cannot_carry_a_number`. On
 the local store, 316 of 316 chain members have a role-level exposure and only 4

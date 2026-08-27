@@ -1,4 +1,4 @@
-"""Availability-evidence claims for statement content versions (migration 130).
+"""Availability-evidence claims for statement content versions (migration 132).
 
 Standalone repository, never a `Repository` mixin — new persistence domains get
 their own module from method one (storage split rule, CLAUDE.md).
@@ -17,7 +17,7 @@ predecessor, which is what preserves the record of what Argon believed and when.
 
 The corollary is a real constraint on callers: fixing a bad claim means writing a
 new rule version (`…:v2`), not re-running the old one and expecting the value to
-move. Migration 130 documents why that trade is worth making.
+move. Migration 132 documents why that trade is worth making.
 
 WHY THE SEEDING PATH IS ONE STATEMENT
 -------------------------------------
