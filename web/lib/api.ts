@@ -150,6 +150,12 @@ type MacroPolicyComparison = Json<"/api/macro/policy", "get">;
 // All four domain states share one response model, so one alias covers the set.
 type MacroDomainStateResponse = Json<"/api/macro/usd", "get">;
 type MacroContextSnapshotResponse = Json<"/api/macro/snapshot", "get">;
+// `/api/gold/state` and `/api/gold/replay` both answer with `GoldStateResponse`
+// (`api/routers/gold.py`), so the two aliases resolve to the same shape today.
+// Kept separate anyway: if either endpoint's model ever moves, the drift lands
+// as a type error at the call site instead of a silent reshape.
+type GoldStateResponse = Json<"/api/gold/state", "get">;
+type GoldReplayResponse = Json<"/api/gold/replay", "get">;
 type PositioningSnapshot = Json<"/api/positioning/{ticker}", "get">;
 type PositioningScreenerResponse = Json<"/api/positioning/screener", "get">;
 
@@ -379,6 +385,25 @@ export const api = {
       asOfTs
         ? `/api/macro/snapshot?as_of_ts=${encodeURIComponent(asOfTs)}`
         : "/api/macro/snapshot",
+      undefined,
+      { allow404: true },
+    ),
+  // `allow404` is the whole point of routing the gold pages through here. The
+  // router 404s with "no gold posture computed yet" when the engine has not run,
+  // which is a fact about the pipeline and settles to `null`. Every other status
+  // — and every unreachable-API throw — propagates, so the page can say the
+  // request failed instead of showing the never-computed placeholder for a dead
+  // API. The raw fetch these replace collapsed both into one `null`.
+  goldState: (): Promise<GoldStateResponse | null> =>
+    _fetch<GoldStateResponse | null>(`/api/gold/state`, undefined, {
+      allow404: true,
+    }),
+  // Point-in-time sibling of goldState. `as_of` is a QUERY param, not a path
+  // segment (`@router.get("/replay")` in `api/routers/gold.py`); a date with no
+  // posture row 404s, which is again a fact, not a failure.
+  goldReplay: (date: string): Promise<GoldReplayResponse | null> =>
+    _fetch<GoldReplayResponse | null>(
+      `/api/gold/replay?as_of=${encodeURIComponent(date)}`,
       undefined,
       { allow404: true },
     ),
@@ -627,6 +652,7 @@ export type {
   CockpitVrpResponse,
   BenchmarkCurrentResponse,
   BenchmarkHistoryResponse,
+  GoldStateResponse,
   OhlcResponse,
   RegimeDealerResponse,
   RegimeGexResponse,

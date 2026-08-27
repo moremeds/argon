@@ -1,20 +1,24 @@
 import { GoldCompassLayout } from "@/components/gold/GoldCompassLayout";
-import type { components } from "@/lib/types";
+import { GoldPostureNotice } from "@/components/gold/GoldPostureNotice";
+import type { GoldStateResponse } from "@/lib/api";
+import { api } from "@/lib/api";
 
-type State = components["schemas"]["GoldStateResponse"];
-
-async function fetchReplay(date: string): Promise<State | null> {
-  // Runtime NEXT_INTERNAL_API_BASE (not build-inlined): `http://api:8400` in
-  // Docker, unset → localhost under launchd. See docker spec code change #7.
-  const base = process.env.NEXT_INTERNAL_API_BASE ?? "http://127.0.0.1:8400";
+/** Same three-state split as `/gold`: a date the engine never reconstructed
+ *  404s and settles to `value: null`; an unreachable or erroring API lands as
+ *  an error string. Collapsing them would let an outage read as "this date has
+ *  no posture", which is a claim about history the page cannot make. */
+async function settleReplay(date: string): Promise<{
+  value: GoldStateResponse | null;
+  error?: string;
+}> {
   try {
-    const res = await fetch(`${base}/api/gold/replay?as_of=${date}`, {
-      cache: "no-store",
-    });
-    if (!res.ok) return null;
-    return (await res.json()) as State;
-  } catch {
-    return null;
+    return { value: await api.goldReplay(date) };
+  } catch (error) {
+    const detail = error instanceof Error ? error.message : "unknown API error";
+    return {
+      value: null,
+      error: `The gold replay request for ${date} failed: ${detail}`,
+    };
   }
 }
 
@@ -26,26 +30,30 @@ export default async function GoldReplayPage({
   params: Promise<Params>;
 }) {
   const { date } = await params;
-  const state = await fetchReplay(date);
-  if (!state) {
+  const { value, error } = await settleReplay(date);
+
+  if (error) {
     return (
-      <main
-        style={{
-          padding: 32,
-          color: "var(--text-muted, #6b7280)",
-          background: "var(--bg-base, #060810)",
-          minHeight: "100vh",
-          fontFamily: "var(--font-mono)",
-          fontSize: 12,
-          letterSpacing: 1.5,
-          textTransform: "uppercase",
-        }}
-      >
-        GOLD COMPASS REPLAY · no posture row for {date}
-      </main>
+      <GoldPostureNotice
+        tone="failed"
+        headline="Gold Compass replay · posture request failed"
+        detail={error}
+        body="The API could not be read, so whether this date has a posture row is unknown. This is a failure to reach the data, not a statement about it."
+      />
     );
   }
-  return <GoldCompassLayout state={state} replayDate={date} />;
+
+  if (!value) {
+    return (
+      <GoldPostureNotice
+        tone="pending"
+        headline={`Gold Compass replay · no posture row for ${date}`}
+        body="The API answered, and nothing was reconstructed for this date — no posture was ever computed for it, which is not the same as the request failing."
+      />
+    );
+  }
+
+  return <GoldCompassLayout state={value} replayDate={date} />;
 }
 
 export const metadata = { title: "Gold Compass · Replay" };
