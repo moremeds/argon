@@ -58,10 +58,11 @@ Calendar rows are REAL prints verified live via Unusual Whales
   report_time="postmarket" -> afterhours. Grid: expiry=2026-10-16 is the
   ONLY expiry seeded (so it is trivially the covering one), where
   underlying_spot=235.0000 is REAL and EXACTLY equidistant (5.0000) from two
-  real strikes, 230 and 240 -- the only exact strike-tie found anywhere in
-  the 2026-08-26 snapshot (`WHERE abs(strike-spot)` tied across adjacent
-  ranked strikes per ticker/expiry). Proves the ascending tie-break picks
-  230, not 240.
+  real strikes, 230 and 240 -- one of 13 tied ticker/expiry pairs in the
+  2026-08-26 snapshot (`WHERE abs(strike-spot)` tied across adjacent ranked
+  strikes per ticker/expiry; CRDO itself ties on 10 expiries, and SOFI ties
+  18/20 at spot 19.0000 on 3). Proves the ascending tie-break picks 230,
+  not 240.
 
 DEVIATION -- CRWV's calendar pairing is CONSTRUCTED, not a live UW calendar
 fact. CRWV's grid row (expiry=2027-01-15, strike=28, call_iv=
@@ -450,8 +451,9 @@ def test_premarket_end_to_end_covering_expiry_is_report_date_itself(conn):
 
 def test_exact_strike_tie_breaks_ascending(conn):
     """M1 -- CRDO's real 2026-08-26 chain has underlying_spot=235.0000
-    exactly equidistant (5.0000) from two real strikes, 230 and 240 (the
-    only exact tie in the whole snapshot, verified by query). Only the tied
+    exactly equidistant (5.0000) from two real strikes, 230 and 240 (one of
+    13 tied ticker/expiry pairs in the snapshot, verified by query; the tie
+    is real, it is simply not unique). Only the tied
     expiry is seeded, so it is trivially the covering one -- isolating the
     tie-break itself. Correct code picks the strike ASCENDING, i.e. 230."""
     for strike, call_iv, put_iv in [
