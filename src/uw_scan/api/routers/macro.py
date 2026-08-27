@@ -40,7 +40,7 @@ def macro_policy(
     ),
     repo: Repository = Depends(get_repo),
 ) -> PolicyComparison:
-    return build_policy_comparison(repo, as_of=_resolve_instant(as_of, as_of_ts))
+    return build_policy_comparison(repo, as_of=resolve_instant(as_of, as_of_ts))
 
 
 @router.get("/inflation", response_model=MacroDomainStateResponse)
@@ -54,7 +54,7 @@ def macro_inflation_state(
     ),
     repo: Repository = Depends(get_repo),
 ) -> MacroDomainStateResponse:
-    return _domain_state(repo, "inflation", _resolve_instant(as_of, as_of_ts))
+    return _domain_state(repo, "inflation", resolve_instant(as_of, as_of_ts))
 
 
 @router.get("/rates", response_model=MacroDomainStateResponse)
@@ -68,7 +68,7 @@ def macro_rates_state(
     ),
     repo: Repository = Depends(get_repo),
 ) -> MacroDomainStateResponse:
-    return _domain_state(repo, "policy_rates", _resolve_instant(as_of, as_of_ts))
+    return _domain_state(repo, "policy_rates", resolve_instant(as_of, as_of_ts))
 
 
 @router.get("/usd", response_model=MacroDomainStateResponse)
@@ -82,7 +82,7 @@ def macro_usd_state(
     ),
     repo: Repository = Depends(get_repo),
 ) -> MacroDomainStateResponse:
-    return _domain_state(repo, "usd", _resolve_instant(as_of, as_of_ts))
+    return _domain_state(repo, "usd", resolve_instant(as_of, as_of_ts))
 
 
 @router.get("/gold", response_model=MacroDomainStateResponse)
@@ -113,7 +113,7 @@ def macro_gold_state(
     ``/api/gold/replay``. This endpoint does not replace those; it answers a narrower
     question they never answered.
     """
-    return _domain_state(repo, "gold", _resolve_instant(as_of, as_of_ts))
+    return _domain_state(repo, "gold", resolve_instant(as_of, as_of_ts))
 
 
 @router.get("/snapshot", response_model=MacroContextSnapshotResponse)
@@ -137,7 +137,7 @@ def macro_context_snapshot(
     A ``complete`` status is not a claim that the macro picture is right -- only that the
     chain is internally coherent. The states remain descriptive.
     """
-    requested_as_of = _resolve_instant(as_of, as_of_ts)
+    requested_as_of = resolve_instant(as_of, as_of_ts)
     row = repo.fetch_macro_context_snapshot_as_of(requested_as_of)
     if row is None:
         raise HTTPException(
@@ -269,7 +269,14 @@ def state_summary_fields(
     }
 
 
-def _resolve_instant(as_of: date | None, as_of_ts: datetime | None) -> datetime:
+def resolve_instant(as_of: date | None, as_of_ts: datetime | None) -> datetime:
+    """The instant a request is replaying, from the two ways of naming one.
+
+    Public because the rates router replays against the same desk: the macro desk
+    renders four ``/api/macro/*`` cards beside ``/api/rates/snapshot``, and a second
+    copy of this would let one tab accept an ``as_of`` the other rejected -- or, worse,
+    silently read a naive timestamp as UTC on one surface and refuse it on the other.
+    """
     if as_of is not None and as_of_ts is not None:
         raise HTTPException(
             status_code=422, detail="supply either as_of or as_of_ts, not both"

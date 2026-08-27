@@ -1661,7 +1661,14 @@ export interface paths {
             path?: never;
             cookie?: never;
         };
-        /** Rates Snapshot */
+        /**
+         * Rates Snapshot
+         * @description The rates snapshot, live or as it stood at a past instant.
+         *
+         *     The macro desk renders four ``/api/macro/*`` cards beside this one.  Without a
+         *     replay here, a desk asked for a historical date would have shown four historical
+         *     tabs next to one live tab and nothing on screen saying which was which.
+         */
         get: operations["rates_snapshot_api_rates_snapshot_get"];
         put?: never;
         post?: never;
@@ -15299,7 +15306,12 @@ export interface operations {
     };
     rates_snapshot_api_rates_snapshot_get: {
         parameters: {
-            query?: never;
+            query?: {
+                /** @description UTC calendar date; returns the snapshot current at that day-end. */
+                as_of?: string | null;
+                /** @description Timezone-aware instant to replay. */
+                as_of_ts?: string | null;
+            };
             header?: never;
             path?: never;
             cookie?: never;
@@ -15313,6 +15325,15 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["RatesSnapshotResponse"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
                 };
             };
         };
