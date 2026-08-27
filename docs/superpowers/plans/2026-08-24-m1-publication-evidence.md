@@ -716,7 +716,7 @@ git commit -m "feat(fundamentals): rule for when SEC evidence justifies true_pit
     `filings_for(ticker: str) -> list[SecFiling]`,
     `index_counts() -> dict[str, int]`
 
-- [ ] **Step 1: Confirm 132 is free**
+- [ ] **Step 1: Confirm 134 is free**
 
 ```bash
 ls src/uw_scan/storage/migrations | tail -5
@@ -1022,7 +1022,7 @@ add:
             retention_days=None,
             reason=(
                 "SEC periodic filings used as publication evidence (migration "
-                "132). Free, no provider budget. Heal by re-running "
+                "134). Free, no provider budget. Heal by re-running "
                 "scripts/backfill/sec_publication_evidence.py --index."
             ),
             reason_verified_on=date(2026, 8, 24),
