@@ -18,3 +18,11 @@ CREATE TABLE IF NOT EXISTS uw_scan.earnings_calendar (
 
 CREATE INDEX IF NOT EXISTS idx_earnings_calendar_date
   ON uw_scan.earnings_calendar (report_date);
+
+COMMENT ON TABLE uw_scan.earnings_calendar IS
+  'Durable, forward-accruing earnings calendar. `session` NULL is a real third '
+  'value — the ~2% of names UW reports as report_time "unknown", which appear '
+  'in neither the premarket nor the afterhours slot and reach this table via '
+  'the statement-obs discovery path with source=''statement_obs''. Those rows '
+  'carry a FILING date, not a print date, so consumers that need a precise '
+  'print date must exclude them.';
