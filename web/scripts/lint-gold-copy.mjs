@@ -1,7 +1,8 @@
 #!/usr/bin/env node
-// Posture-language CI lint for the GOLD COMPASS UI. Per spec §8.4,
-// build fails if any file under web/components/gold/** or web/app/gold/**
-// contains a banned posture-language substring outside an opt-out comment.
+// Posture-language CI lint for the GOLD COMPASS UI and the macro desk. Per spec §8.4,
+// build fails if any file under web/components/{gold,macro}/** or
+// web/app/{gold,macro}/** contains a banned posture-language substring outside an
+// opt-out comment.
 
 import { promises as fs } from "node:fs";
 import path from "node:path";
@@ -115,7 +116,15 @@ async function* walk(dir) {
 }
 
 async function main() {
-  const roots = [path.resolve("components/gold"), path.resolve("app/gold")];
+  // The macro desk is one posture surface, not a gold one: the gold tab lands under
+  // `/macro`, and the same banned vocabulary has to stay off every tab beside it.
+  // Added additively here — the gold roots stay until the subtree actually moves.
+  const roots = [
+    path.resolve("components/gold"),
+    path.resolve("app/gold"),
+    path.resolve("components/macro"),
+    path.resolve("app/macro"),
+  ];
   let total = 0;
   for (const root of roots) {
     try {
