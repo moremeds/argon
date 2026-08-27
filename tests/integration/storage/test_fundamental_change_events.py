@@ -378,6 +378,23 @@ def test_combined_run_emits_one_of_each_and_is_idempotent(conn):
     assert len(events.events_for("AVGO")) == 1
     assert len(events.events_for("PLTR")) == 1
 
+    # I3: `implied_move_shift`'s detail must carry both nights' covering
+    # expiry/atm_iv/iv_basis, not just the pct — `_avgo_implied_move_pair`
+    # seeds a genuine covering-expiry CHANGE (2026-08-26 -> 2026-09-04)
+    # alongside the IV move, and a reader of the event ledger must be able
+    # to tell the two apart without re-querying `implied_move_daily`.
+    avgo_detail = events.events_for("AVGO")[0]["detail_jsonb"]
+    assert avgo_detail["expiry"] == "2026-09-04"
+    assert avgo_detail["prev_expiry"] == "2026-08-26"
+    assert avgo_detail["iv_basis"] == "both"
+    assert avgo_detail["prev_iv_basis"] == "both"
+    assert avgo_detail["atm_iv"] == pytest.approx(
+        (0.736661443735852 + 0.706997006724508) / 2
+    )
+    assert avgo_detail["prev_atm_iv"] == pytest.approx(
+        (13.1136232997271 + 12.6423544768043) / 2
+    )
+
     rerun = derive_change_events(conn, as_of=date(2026, 8, 26), schema="uw_scan")
     assert rerun == {
         "band_entry": 0,
@@ -622,6 +639,79 @@ def test_coverage_change_ignores_non_chain_member_tickers(conn):
     FundamentalObsRepository(conn, schema="uw_scan").record_statements(
         [_nvda_statement_row()]
     )
+    result = derive_change_events(conn, as_of=date(2026, 8, 26), schema="uw_scan")
+    assert result["coverage_change"] == 0
+
+
+def test_discovery_gate_coverage_change_count_scopes_to_the_active_taxonomy_version(
+    conn,
+):
+    """M7 — `register_discovery_gate`'s own `coverage_change_tickers` count
+    must be scoped to the ACTIVE taxonomy version, matching
+    `_chain_member_tickers` (`fundamental_change_events.py`). A member
+    registered under a taxonomy version that was never activated must not
+    inflate the gate's `measured_rows` — a gate whose entire purpose is
+    that its numbers are honest cannot over-count relative to what the
+    class can actually fire on."""
+    taxonomy = ResearchTaxonomyRepository(conn, schema="uw_scan")
+    taxonomy.publish_version("v-inactive", note="never activated", activate=False)
+    taxonomy.define_chains(
+        "v-inactive",
+        [
+            {
+                "domain": "test_domain",
+                "chain": "test_chain",
+                "layer": "L1",
+                "layer_rank": 1,
+                "description": "test",
+            }
+        ],
+    )
+    taxonomy.add_membership(
+        "v-inactive",
+        chain="test_chain",
+        layer="L1",
+        ticker="NVDA",
+        evidence_class="analyst",
+        approved_by="test",
+    )
+    FundamentalObsRepository(conn, schema="uw_scan").record_statements(
+        [_nvda_statement_row()]
+    )
+    # No taxonomy version is active at all — the gate must count zero.
+    assert taxonomy.active_version() is None
+
+    counts = register_discovery_gate(conn, schema="uw_scan")
+    coverage_change_class = next(
+        c
+        for c in ResearchEventsRepository(conn, schema="uw_scan").classes()
+        if c["event_class"] == "coverage_change"
+    )
+    assert coverage_change_class["measured_rows"] == 0
+    assert counts["coverage_change_tickers"] == 0
+
+
+def test_coverage_change_ignores_a_retired_chain_member(conn):
+    """M3 — the hollow test the branch review found: `_chain_member_tickers`
+    scopes to `valid_to IS NULL`, but no fixture ever retired a membership to
+    prove the predicate does anything. Retire NVDA's membership BEFORE it
+    gets its first statement -- a retired member must not re-enter the
+    `coverage_change` candidate set, or a name the desk has explicitly
+    dropped from a chain would silently keep generating chain-scoped events
+    for it."""
+    register_discovery_gate(conn, schema="uw_scan")
+    _seed_chain_member(conn, "NVDA")
+    with conn.cursor() as cur:
+        cur.execute(
+            """UPDATE uw_scan.chain_membership
+                  SET valid_to = now()
+                WHERE ticker = 'NVDA' AND valid_to IS NULL"""
+        )
+    conn.commit()
+    FundamentalObsRepository(conn, schema="uw_scan").record_statements(
+        [_nvda_statement_row()]
+    )
+
     result = derive_change_events(conn, as_of=date(2026, 8, 26), schema="uw_scan")
     assert result["coverage_change"] == 0
 

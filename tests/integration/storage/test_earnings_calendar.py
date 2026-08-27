@@ -66,6 +66,10 @@ def test_upsert_accrues_and_null_session_fills_late(seeded_db_empty_cards):
     rows = repo.prints_between(date(2026, 7, 1), date(2026, 9, 1))
     by_t = {r["ticker"]: r for r in rows}
     assert by_t["ISRG"]["session"] == "afterhours"
+    # M2: the provenance column must flip to say WHERE the now-known session
+    # came from — a row discovered via statement_obs and later classified
+    # must not keep lying that it is still statement_obs-sourced.
+    assert by_t["ISRG"]["source"] == "uw_calendar"
     # a NULL must never clobber a known session — re-read AFTER the upsert
     assert repo.upsert_rows([dict(NVDA, session=None)]) == 0
     after = {

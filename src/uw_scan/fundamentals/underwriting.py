@@ -66,10 +66,18 @@ DAYS_PER_QUARTER = 91.25
 
 
 def _prior_period(periods: list[str], i: int, lookback: int = 4) -> str | None:
-    """The sorted-period-list entry `lookback` slots before `periods[i]`.
+    """The sorted-period-list entry `lookback` slots AVAILABLE positions
+    before `periods[i]` — index-based, matching `build_features`'
+    `rev_growth` convention (see the module docstring).
 
-    Returns None when fewer than `lookback` periods precede index `i` — a
-    genuine gap must yield None, never a wrong-span ratio.
+    Returns None only when fewer than `lookback` periods precede index `i`
+    at all — a gap at the START of the series. This does NOT guarantee a
+    calendar-YoY span: a gap in the MIDDLE of `periods` (a missed quarter)
+    silently yields `periods[i - lookback]`, which is `lookback` *available*
+    quarters back, not `lookback` calendar quarters — a multi-year change
+    can be labelled YoY. Index-based lookback is the deliberate, existing
+    convention (`build_features`'s `rev_growth` makes the same trade), not a
+    guarantee this function makes on its own.
     """
     if i < lookback:
         return None

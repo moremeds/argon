@@ -69,6 +69,7 @@ from uw_scan.storage.research_events import (
     STATUS_LIVE,
     ResearchEventsRepository,
 )
+from uw_scan.storage.research_taxonomy import ResearchTaxonomyRepository
 
 log = logging.getLogger(__name__)
 
@@ -89,6 +90,14 @@ def register_discovery_gate(
 ) -> dict[str, int]:
     """Measure each candidate class and persist its live/killed verdict."""
     repo = ResearchEventsRepository(conn, schema=schema)
+    # branch-fix-p2, M7: `_chain_member_tickers` (fundamental_change_events.py)
+    # scopes `coverage_change` candidates to the ACTIVE taxonomy version;
+    # this gate's own count must be scoped the same way, or `measured_rows`
+    # over-counts relative to what the class can actually fire on — in a
+    # gate whose entire purpose is that its numbers are honest.
+    active_taxonomy_version = ResearchTaxonomyRepository(
+        conn, schema=schema
+    ).active_version()
     counts: dict[str, int] = {}
     with conn.cursor() as cur:
         for key, sql in (
@@ -139,18 +148,6 @@ def register_discovery_gate(
                 f"SELECT count(*) FROM {schema}.implied_move_daily",
             ),
             (
-                # DISTINCT ticker, not row count: chain_membership is grained
-                # (chain, layer, ticker), so a name in two layers is two rows
-                # and counting rows here would double-count it.
-                "coverage_change_tickers",
-                f"""SELECT count(DISTINCT cm.ticker)
-                      FROM {schema}.chain_membership cm
-                     WHERE cm.valid_to IS NULL
-                       AND EXISTS (
-                           SELECT 1 FROM {schema}.fundamental_statement_obs o
-                            WHERE o.ticker = cm.ticker)""",
-            ),
-            (
                 "fundamental_scores_buckets",
                 f"""SELECT count(*) FROM (
                       SELECT DISTINCT ticker, as_of
@@ -159,6 +156,27 @@ def register_discovery_gate(
         ):
             cur.execute(sql)
             counts[key] = int(cur.fetchone()[0])
+
+        # DISTINCT ticker, not row count: chain_membership is grained
+        # (chain, layer, ticker), so a name in two layers is two rows and
+        # counting rows here would double-count it. Scoped to the ACTIVE
+        # taxonomy version (M7, params rather than an f-string interpolation
+        # since the version is a value, not a schema identifier) — an
+        # unpublished taxonomy means no chain member can candidate at all.
+        if active_taxonomy_version is None:
+            counts["coverage_change_tickers"] = 0
+        else:
+            cur.execute(
+                f"""SELECT count(DISTINCT cm.ticker)
+                      FROM {schema}.chain_membership cm
+                     WHERE cm.taxonomy_version = %s
+                       AND cm.valid_to IS NULL
+                       AND EXISTS (
+                           SELECT 1 FROM {schema}.fundamental_statement_obs o
+                            WHERE o.ticker = cm.ticker)""",
+                (active_taxonomy_version,),
+            )
+            counts["coverage_change_tickers"] = int(cur.fetchone()[0])
 
     today = date.today()
     rows: list[dict[str, Any]] = [

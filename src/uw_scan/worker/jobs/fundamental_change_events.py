@@ -283,6 +283,23 @@ def _implied_move_shift_events(
                     "prev_pct": _num(prev_pct),
                     "today_pct": _num(today_pct),
                     "shift_pp": _num(shift),
+                    # branch-fix-p2, I3: `implied_move_pct` depends on the
+                    # COVERING EXPIRY, which is re-picked every night
+                    # (`implied_move_snapshot.py`) — a new weekly listing, or
+                    # a late `session` fill-in shifting the reaction day, can
+                    # move `expiry` without any IV actually moving. Carrying
+                    # both nights' expiry/atm_iv/iv_basis lets a reader of the
+                    # event ledger tell a genuine vol repricing (expiry
+                    # unchanged, atm_iv moved) apart from a bookkeeping
+                    # artefact (expiry changed) after the fact, instead of
+                    # trusting the title's "implied move shifted" framing on
+                    # faith.
+                    "expiry": today_row["expiry"].isoformat(),
+                    "prev_expiry": prev_row["expiry"].isoformat(),
+                    "atm_iv": _num(today_row["atm_iv"]),
+                    "prev_atm_iv": _num(prev_row["atm_iv"]),
+                    "iv_basis": today_row["iv_basis"],
+                    "prev_iv_basis": prev_row["iv_basis"],
                 },
                 "source_kind": "implied_move_daily",
                 "source_ref": f"{ticker}:{report_date}:{as_of}",
