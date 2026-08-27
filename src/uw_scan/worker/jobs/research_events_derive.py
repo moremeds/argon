@@ -262,11 +262,14 @@ def register_discovery_gate(
         {
             "event_class": "coverage_change",
             "status": STATUS_LIVE,
-            "source_table": "fundamental_statement_obs",
+            "source_table": "fundamental_statement_obs + fundamental_dimensions",
             "rationale": (
-                "a chain-member ticker gained its first ingested statement, "
-                "or its newest compatible fundamental_dimensions result "
-                "crossed the STALE_DAYS threshold"
+                "a chain-member ticker gained its first ingested statement "
+                "(fundamental_statement_obs), or its newest compatible "
+                "fundamental_dimensions result crossed the STALE_DAYS "
+                "threshold. measured_rows covers only the gained_coverage "
+                "denominator (statement-bearing chain members); the "
+                "went_stale direction has no separate count here"
             ),
             "measured_rows": counts["coverage_change_tickers"],
             "measured_on": today,

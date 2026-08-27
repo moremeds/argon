@@ -676,6 +676,75 @@ def test_coverage_change_went_stale_boundary(conn):
     assert rerun["coverage_change"] == 0
 
 
+def test_coverage_change_went_stale_is_idempotent_at_a_later_as_of(conn):
+    """Fix round 1, I3: the boundary test above only reran at the SAME
+    as_of. This proves the property the docstring actually claims -- a
+    rerun at a LATER as_of, with the underlying stale result unchanged, is
+    still a no-op (not merely "the identical night is a no-op"). A
+    source_ref keyed on the run clock instead of the result's own as_of
+    would double-write here."""
+    register_discovery_gate(conn, schema="uw_scan")
+    _seed_chain_member(conn, "MSFT")
+    scores = _register_engine(conn)
+    old_as_of = date(2025, 1, 1)
+    row = _score_row(ticker="MSFT", as_of=old_as_of, ihash="h-stale2")
+    scores.insert_scores([row])
+    result_id = scores.result_ids([row])[("MSFT", old_as_of)]
+    FundamentalDimensionsRepository(conn, schema="uw_scan").record(
+        [
+            {
+                "result_id": result_id,
+                "ticker": "MSFT",
+                "as_of": old_as_of,
+                "engine_version": ENGINE,
+                "dimension": "growth",
+                "value": "0.1",
+                "inputs_present": 1,
+                "inputs_expected": 1,
+                "authority": "descriptive",
+            }
+        ]
+    )
+
+    just_past = old_as_of + timedelta(days=STALE_DAYS + 1)
+    first = derive_change_events(conn, as_of=just_past, schema="uw_scan")
+    assert first["coverage_change"] == 1
+
+    much_later = just_past + timedelta(days=30)
+    rerun = derive_change_events(conn, as_of=much_later, schema="uw_scan")
+    assert rerun["coverage_change"] == 0
+
+
+def test_coverage_change_gained_coverage_survives_a_late_filing_date_backfill(conn):
+    """M1 regression: `record_statements`' COALESCE fills a previously-NULL
+    `filing_published_at` on a later re-pull (CLAUDE.md documents this
+    happening for real), which changes what `occurred` would recompute to
+    while the ticker still has exactly one statement. Once gained_coverage
+    has fired for a ticker, it must never fire again for it -- regardless of
+    any later `occurred_at` drift."""
+    register_discovery_gate(conn, schema="uw_scan")
+    _seed_chain_member(conn, "NVDA")
+    obs = FundamentalObsRepository(conn, schema="uw_scan")
+    obs.record_statements([_nvda_statement_row(filing_published_at=None)])
+
+    first = derive_change_events(conn, as_of=date(2026, 8, 26), schema="uw_scan")
+    assert first["coverage_change"] == 1
+
+    # Late back-fill of the real filing date, same content_hash (payload is
+    # unchanged) -- occurred_at would recompute to an EARLIER date on a
+    # re-derive if this class trusted it as identity.
+    obs.record_statements([_nvda_statement_row()])
+    rerun = derive_change_events(conn, as_of=date(2026, 8, 27), schema="uw_scan")
+    assert rerun["coverage_change"] == 0
+
+    events = [
+        e
+        for e in ResearchEventsRepository(conn, schema="uw_scan").events_for("NVDA")
+        if e["event_class"] == "coverage_change"
+    ]
+    assert len(events) == 1
+
+
 # ---------------------------------------------------------------------------
 # bucket_flip
 # ---------------------------------------------------------------------------
@@ -721,6 +790,107 @@ def test_bucket_flip_fires_only_for_a_strictly_newer_bucket(conn):
         if e["event_class"] == "bucket_flip"
     ]
     assert {e["occurred_at"] for e in events} == {date(2026, 6, 30), date(2026, 9, 30)}
+
+
+def test_bucket_flip_first_known_at_never_precedes_occurred_at(conn):
+    """I1 regression: without a max() guard, a run whose `as_of` precedes
+    the flip's own `occurred_at` (the newest bucket's date) raised
+    `CheckViolation: research_events_known_after_occurred`. Reviewer probe
+    reproduced verbatim: PLTR buckets 2026-03-31/2026-06-30, derive
+    `as_of=2026-05-01` -- strictly BEFORE the newest bucket. This is not
+    theoretical: the committed runner accepts any `--as-of`, and migration
+    129 records 371 real prod rows landing with a FUTURE `as_of` relative to
+    the night they were computed."""
+    register_discovery_gate(conn, schema="uw_scan")
+    scores = _register_engine(conn)
+    scores.insert_scores(
+        [
+            _score_row(ticker="PLTR", as_of=date(2026, 3, 31), ihash="h1"),
+            _score_row(ticker="PLTR", as_of=date(2026, 6, 30), ihash="h2"),
+        ]
+    )
+    result = derive_change_events(conn, as_of=date(2026, 5, 1), schema="uw_scan")
+    assert result["bucket_flip"] == 1
+
+    events = [
+        e
+        for e in ResearchEventsRepository(conn, schema="uw_scan").events_for("PLTR")
+        if e["event_class"] == "bucket_flip"
+    ]
+    assert events[0]["occurred_at"] == date(2026, 6, 30)
+    # max(newest_as_of, as_of) clamps first_known_at UP to occurred_at
+    # rather than raising the CHECK.
+    assert events[0]["first_known_at"] == date(2026, 6, 30)
+
+
+def test_bucket_flip_scoped_to_active_engine_does_not_collide(conn):
+    """I2 regression: two engine versions sharing an identical newest
+    `as_of` for one ticker used to emit two candidate rows colliding on the
+    same `(event_class, ticker, occurred_at, source_ref)` tuple -- one
+    silently discarded by `ON CONFLICT DO NOTHING`, with whichever engine's
+    `detail_jsonb.engine_version` survived being an accident of cursor
+    order. Scoping the query to `active_version()` removes the retired
+    engine from consideration entirely, so only ONE event is even
+    candidate, and it is unambiguously the active engine's."""
+    register_discovery_gate(conn, schema="uw_scan")
+    scores = FundamentalScoresRepository(conn, schema="uw_scan")
+    retired = "test-v0:bbbbbbbb"
+    scores.register_version(
+        engine_version=retired,
+        code_version="test-v0",
+        param_hash="bbbbbbbb",
+        params=dict.fromkeys(FEATURES, 1.0),
+        note="retired, never activated",
+    )
+    scores.insert_scores(
+        [
+            _score_row(
+                ticker="IBM", as_of=date(2026, 3, 31), engine=retired, ihash="o1"
+            ),
+            _score_row(
+                ticker="IBM", as_of=date(2026, 6, 30), engine=retired, ihash="o2"
+            ),
+        ]
+    )
+    _register_engine(conn)  # registers + activates ENGINE
+    scores.insert_scores(
+        [
+            _score_row(ticker="IBM", as_of=date(2026, 3, 31), ihash="e1"),
+            _score_row(ticker="IBM", as_of=date(2026, 6, 30), ihash="e2"),
+        ]
+    )
+
+    result = derive_change_events(conn, as_of=date(2026, 7, 1), schema="uw_scan")
+    assert result["bucket_flip"] == 1  # not 2 -- the retired engine never contributes
+
+    events = [
+        e
+        for e in ResearchEventsRepository(conn, schema="uw_scan").events_for("IBM")
+        if e["event_class"] == "bucket_flip"
+    ]
+    assert len(events) == 1
+    assert events[0]["detail_jsonb"]["engine_version"] == ENGINE
+    assert events[0]["source_ref"] == f"IBM:2026-06-30:{ENGINE}"
+
+
+def test_bucket_flip_is_idempotent_at_a_later_as_of(conn):
+    """I3: a rerun at a LATER as_of (not the same night) with no new bucket
+    must still write zero -- the property `test_bucket_flip_fires_only_
+    for_a_strictly_newer_bucket` never isolated on its own, since its second
+    run also introduced a genuinely new bucket."""
+    register_discovery_gate(conn, schema="uw_scan")
+    scores = _register_engine(conn)
+    scores.insert_scores(
+        [
+            _score_row(ticker="ORCL", as_of=date(2026, 3, 31), ihash="orcl1"),
+            _score_row(ticker="ORCL", as_of=date(2026, 6, 30), ihash="orcl2"),
+        ]
+    )
+    first = derive_change_events(conn, as_of=date(2026, 7, 1), schema="uw_scan")
+    assert first["bucket_flip"] == 1
+
+    rerun = derive_change_events(conn, as_of=date(2026, 8, 15), schema="uw_scan")
+    assert rerun["bucket_flip"] == 0
 
 
 # ---------------------------------------------------------------------------

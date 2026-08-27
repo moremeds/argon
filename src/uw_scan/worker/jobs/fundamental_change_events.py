@@ -55,6 +55,31 @@ for it. Anchoring it to "today" instead would double- (indeed N-) write
 forever. `bucket_flip` is anchored the same way, on the newest `as_of` alone
 — a rerun against an unchanged newest bucket is a no-op; a genuinely newer
 bucket arriving later produces a new, distinct `source_ref`.
+
+`as_of` MEANS SOMETHING DIFFERENT TO EACH CLASS (fix round 1, I4)
+--------------------------------------------------------------------
+`as_of` is NOT a uniform "replay this date" parameter across the five
+classes, and calling this job with anything other than the real, current
+run date is hazardous in two DIFFERENT ways:
+
+- `_implied_move_shift_events` SELECTS by `as_of` (`WHERE market_date =
+  as_of`) — it can only ever see the single most recent night once a later
+  one lands, so a past `as_of` silently yields 0 the moment tonight's row
+  exists, not an error.
+- The other four classes do NOT select by `as_of` at all — they always read
+  the LATEST live state (`in_buy_zone`'s newest snapshot, the newest
+  `fundamental_dimensions`/`fundamental_scores` row) regardless of what
+  `as_of` is. A past `as_of` therefore derives TODAY's facts and stamps them
+  with a BACKDATED `first_known_at` — exactly the lie the two-clock design
+  above exists to prevent.
+
+There is no single fix that makes `as_of` mean the same thing everywhere
+without a much larger rewrite (four classes would need point-in-time
+selection queries they do not have). The mitigation lives in the committed
+runner (`scripts/backfill/fundamental_change_events_run.py`): it refuses
+`--execute` on a non-today `--as-of` unless `--allow-backdate` is passed,
+so backdating requires an explicit, named opt-in rather than an unnoticed
+default.
 """
 
 from __future__ import annotations
@@ -286,15 +311,40 @@ def _chain_member_tickers(conn: psycopg.Connection, *, schema: str) -> list[str]
 
 
 def _gained_coverage_events(
-    conn: psycopg.Connection, *, schema: str
+    conn: psycopg.Connection, *, schema: str, members: list[str]
 ) -> list[dict[str, Any]]:
     """Chain-member tickers whose ONLY `fundamental_statement_obs` row is
-    their first. `source_ref` is keyed on that row's own date, which never
-    changes once a second statement lands — so this fires exactly once per
-    ticker, ever, regardless of how many nightly runs see the same state."""
-    members = _chain_member_tickers(conn, schema=schema)
+    their first.
+
+    `source_ref` still carries `occurred` for readability, but a ticker is
+    excluded from candidacy the moment it has EVER emitted a `gained_
+    coverage` event (fix round 1, M1) — not merely by conflicting on an
+    unchanged `source_ref`. `occurred` is `coalesce(filing_published_at,
+    first_observed_at::date)`, and CLAUDE.md documents that
+    `record_statements` fills a NULL `filing_published_at` via `COALESCE`
+    on conflict when UW publishes the date LATER: while the ticker still
+    has exactly one statement, that back-fill would change both
+    `occurred_at` and `source_ref` on the very next run, and a `source_ref`
+    that no longer matches the first run's row does not collide on
+    `ON CONFLICT` — it inserts a second, duplicate event. Checking
+    `research_events` directly (keyed only on ticker + direction, both
+    immutable) closes that gap regardless of what `occurred_at` recomputes
+    to."""
     if not members:
         return []
+    with conn.cursor() as cur:
+        cur.execute(
+            f"""SELECT DISTINCT ticker FROM {schema}.research_events
+                 WHERE event_class = 'coverage_change'
+                   AND detail_jsonb->>'direction' = 'gained_coverage'
+                   AND ticker = ANY(%s)""",
+            (members,),
+        )
+        already_emitted = {r[0] for r in cur.fetchall()}
+    candidates = [m for m in members if m not in already_emitted]
+    if not candidates:
+        return []
+
     with conn.cursor() as cur:
         cur.execute(
             f"""SELECT ticker,
@@ -305,7 +355,7 @@ def _gained_coverage_events(
                  WHERE ticker = ANY(%s)
                  GROUP BY ticker
                 HAVING count(*) = 1""",
-            (members,),
+            (candidates,),
         )
         results = cur.fetchall()
 
@@ -328,14 +378,13 @@ def _gained_coverage_events(
 
 
 def _went_stale_events(
-    conn: psycopg.Connection, *, schema: str, as_of: date
+    conn: psycopg.Connection, *, schema: str, as_of: date, members: list[str]
 ) -> list[dict[str, Any]]:
     """Chain-member tickers whose newest `fundamental_dimensions` result
     (under the active method version, same STALE_DAYS Radar uses) is older
     than `STALE_DAYS`. `source_ref` is keyed on that result's own `as_of`,
     not on `as_of` (today) — see the module docstring's idempotency note:
     without that, a ticker stuck stale would re-fire every single night."""
-    members = _chain_member_tickers(conn, schema=schema)
     if not members:
         return []
     engine = FundamentalScoresRepository(conn, schema=schema).active_version()
@@ -378,48 +427,72 @@ def _went_stale_events(
 def _coverage_change_events(
     conn: psycopg.Connection, *, schema: str, as_of: date
 ) -> list[dict[str, Any]]:
+    # Computed once (fix round 1, M5) and shared — the taxonomy lookup +
+    # membership query otherwise ran twice, once per direction.
+    members = _chain_member_tickers(conn, schema=schema)
     return [
-        *_gained_coverage_events(conn, schema=schema),
-        *_went_stale_events(conn, schema=schema, as_of=as_of),
+        *_gained_coverage_events(conn, schema=schema, members=members),
+        *_went_stale_events(conn, schema=schema, as_of=as_of, members=members),
     ]
 
 
 def _bucket_flip_events(
-    conn: psycopg.Connection, *, schema: str, as_of: date
+    conn: psycopg.Connection, *, schema: str, engine_version: str, as_of: date
 ) -> list[dict[str, Any]]:
-    """A ticker's newest `fundamental_scores.as_of` bucket moved to one newer
-    than any it had occupied before. `as_of` here is a knowledge-quarter
-    CROSS-SECTION identifier (see storage/fundamental_scores.py), never a
-    freshness timestamp — a name's first-ever bucket is not a flip (there is
-    nothing to have moved FROM), and a bucket older than one already
-    occupied is not a flip either, however recently it was written."""
+    """A ticker's newest `fundamental_scores.as_of` bucket, under the ACTIVE
+    engine version, moved to one newer than any it had occupied before.
+    `as_of` here is a knowledge-quarter CROSS-SECTION identifier (see
+    storage/fundamental_scores.py), never a freshness timestamp — a name's
+    first-ever bucket is not a flip (there is nothing to have moved FROM),
+    and a bucket older than one already occupied is not a flip either,
+    however recently it was written.
+
+    Scoped to `engine_version` (fix round 1, I2): querying across every
+    engine_version let two rows for the SAME ticker under DIFFERENT method
+    versions — one retired, one active — collide on an identical
+    `(event_class, ticker, occurred_at, source_ref)` tuple whenever both
+    happened to share the same newest `as_of` (measured: 378 tickers on
+    `option_wizard_local` shared `max(as_of)` across `fundamentals-v1` and
+    `fundamentals-v2`). `ON CONFLICT DO NOTHING` then silently discarded one
+    of the two, and which engine's `detail_jsonb.engine_version` survived was
+    whatever order the cursor returned. Scoping to one engine_version removes
+    the collision at the source, matching `band_entry`/`band_exit`."""
     with conn.cursor() as cur:
         cur.execute(
             f"""
-            SELECT ticker, engine_version, as_of, rn
+            SELECT ticker, as_of, rn
               FROM (
-                  SELECT ticker, engine_version, as_of,
+                  SELECT ticker, as_of,
                          row_number() OVER (
-                             PARTITION BY ticker, engine_version
-                             ORDER BY as_of DESC
+                             PARTITION BY ticker ORDER BY as_of DESC
                          ) AS rn
-                    FROM (SELECT DISTINCT ticker, engine_version, as_of
-                            FROM {schema}.fundamental_scores) d
+                    FROM (SELECT DISTINCT ticker, as_of
+                            FROM {schema}.fundamental_scores
+                           WHERE engine_version = %s) d
               ) ranked
              WHERE rn <= 2
-            """
+            """,
+            (engine_version,),
         )
-        by_key: dict[tuple[str, str], dict[int, date]] = {}
-        for ticker, engine, bucket_as_of, rn in cur.fetchall():
-            by_key.setdefault((ticker, engine), {})[rn] = bucket_as_of
+        by_ticker: dict[str, dict[int, date]] = {}
+        for ticker, bucket_as_of, rn in cur.fetchall():
+            by_ticker.setdefault(ticker, {})[rn] = bucket_as_of
 
     rows: list[dict[str, Any]] = []
-    for (ticker, engine), buckets in by_key.items():
+    for ticker, buckets in by_ticker.items():
         newest_as_of = buckets.get(1)
         prior_as_of = buckets.get(2)
         if newest_as_of is None or prior_as_of is None:
             # No prior bucket to have flipped from.
             continue
+        # Unreachable by construction, kept as the executable statement of
+        # this class's semantics (fix round 1, reviewer-ruled KEEP): the
+        # inner query is `SELECT DISTINCT ticker, as_of`, so within one
+        # ticker every `as_of` is distinct and NOT NULL, and `ORDER BY as_of
+        # DESC` therefore makes rn=1's date strictly greater than rn=2's
+        # whenever both exist. This guard only fires if that DISTINCT or
+        # ORDER BY is ever weakened — treat a hit here as a query-shape bug,
+        # not a legitimate "older bucket" case.
         if newest_as_of <= prior_as_of:
             continue
         rows.append(
@@ -427,18 +500,30 @@ def _bucket_flip_events(
                 "event_class": "bucket_flip",
                 "ticker": ticker,
                 "occurred_at": newest_as_of,
-                "first_known_at": as_of,
+                # max()'d against the run date (fix round 1, I1): without
+                # this guard, a run whose `as_of` precedes the bucket's own
+                # date — the committed runner's `--as-of <past>`, or a
+                # future-dated `fundamental_scores.as_of` like the 371 rows
+                # migration 129 records landing on prod — raises
+                # `CheckViolation: research_events_known_after_occurred`
+                # instead of writing. `band_entry`/`band_exit`/
+                # `gained_coverage` already carry this guard; `bucket_flip`
+                # was the one class that didn't.
+                "first_known_at": max(newest_as_of, as_of),
                 "title": (
                     f"{ticker} moved to a newer scoring bucket "
                     f"({newest_as_of.isoformat()})"
                 ),
                 "detail": {
-                    "engine_version": engine,
+                    "engine_version": engine_version,
                     "prior_as_of": prior_as_of.isoformat(),
                     "new_as_of": newest_as_of.isoformat(),
                 },
                 "source_kind": "fundamental_scores",
-                "source_ref": f"{ticker}:{newest_as_of}",
+                # engine_version in the ref (fix round 1, I2) so a future
+                # multi-engine deployment can never collide two engines'
+                # flips for the same ticker/date onto one identity key.
+                "source_ref": f"{ticker}:{newest_as_of}:{engine_version}",
             }
         )
     return rows
@@ -471,15 +556,17 @@ def derive_change_events(
                 conn, schema=schema, engine_version=engine_version, as_of=as_of
             )
         )
+        counters["bucket_flip"] = repo.record_events(
+            _bucket_flip_events(
+                conn, schema=schema, engine_version=engine_version, as_of=as_of
+            )
+        )
 
     counters["implied_move_shift"] = repo.record_events(
         _implied_move_shift_events(conn, schema=schema, as_of=as_of)
     )
     counters["coverage_change"] = repo.record_events(
         _coverage_change_events(conn, schema=schema, as_of=as_of)
-    )
-    counters["bucket_flip"] = repo.record_events(
-        _bucket_flip_events(conn, schema=schema, as_of=as_of)
     )
 
     log.info("derive_change_events as_of=%s: %s", as_of, counters)
