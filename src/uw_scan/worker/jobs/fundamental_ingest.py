@@ -142,7 +142,7 @@ def fundamental_ingest(
     period_type: str = "quarterly",
     schema: str = "uw_scan",
     tickers: list[str] | None = None,
-) -> dict[str, int]:
+) -> dict[str, Any]:
     """Ingest every statement period for a universe tier. Returns counters."""
     repo = FundamentalObsRepository(conn, schema=schema)
     names = tickers if tickers is not None else repo.list_universe(tier)
@@ -156,9 +156,10 @@ def fundamental_ingest(
             "failed": 0,
             "filing_date_tolerance": 0,
             "availability_claims": 0,
+            "new_filings": [],
         }
 
-    totals = {
+    totals: dict[str, Any] = {
         "tickers": 0,
         "inserted": 0,
         "touched": 0,
@@ -170,6 +171,14 @@ def fundamental_ingest(
         # Capture-bounded claims written for versions this run persisted. A run
         # that inserts rows and claims none has left them invisible to history.
         "availability_claims": 0,
+        # {"ticker": ..., "filing_published_at": date} for each ticker that landed at
+        # least one genuinely new row this run — consumed by `fundamental_ingest_daily`
+        # to feed the `statement_obs` calendar-discovery path (spec §5-i). `record_statements`
+        # reports counts, not which rows were new, so this takes the MAX filing_published_at
+        # among the ticker's rows THIS run as the new statement's date — a heuristic, but a
+        # safe one: a ticker only lands a new row on the day it reports, and that is always
+        # its most recent period.
+        "new_filings": [],
     }
     for ticker in names:
         try:
@@ -215,6 +224,16 @@ def fundamental_ingest(
                         flagged.append((row, violations))
 
             inserted, touched = repo.record_statements(rows)
+            if inserted > 0:
+                filed_dates = [
+                    row["filing_published_at"]
+                    for row in rows
+                    if row["filing_published_at"] is not None
+                ]
+                if filed_dates:
+                    totals["new_filings"].append(
+                        {"ticker": ticker, "filing_published_at": max(filed_dates)}
+                    )
             for row, violations in flagged:
                 obs_id = repo.obs_id(
                     source=row["source"],

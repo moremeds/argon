@@ -41,7 +41,8 @@ from typing import Any
 import psycopg
 
 from uw_scan.api.client import UwClient
-from uw_scan.sources.earnings_calendar import fetch_calendar_symbols
+from uw_scan.sources.earnings_calendar import fetch_calendar_listings
+from uw_scan.storage.earnings_calendar import EarningsCalendarRepository
 from uw_scan.storage.fundamental_obs import FundamentalObsRepository
 from uw_scan.worker.jobs.fundamental_ingest import fundamental_ingest
 
@@ -56,7 +57,42 @@ _EMPTY: dict[str, int] = {
     "filing_date_tolerance": 0,
     "calendar_symbols": 0,
     "targets": 0,
+    "calendar_rows": 0,
+    "calendar_unknown_rows": 0,
 }
+
+
+def _persist_unknown_statements(
+    calendar_repo: EarningsCalendarRepository, new_filings: list[dict[str, Any]]
+) -> int:
+    """Land the `statement_obs` fallback rows (spec §5-i) for a landed-this-run
+    statement whose `filing_published_at` date has no calendar row for that ticker —
+    the ~2% UW reports `report_time: "unknown"`, invisible to both classified slots
+    (see `sources/earnings_calendar.py`). A ticker that DID appear on the calendar for
+    that exact date is left alone: the calendar row already carries the real session,
+    and re-upserting session=NULL there would just be a no-op touch (COALESCE never
+    lets NULL clobber a known value) — checked explicitly so the intent stays legible
+    rather than relying on that safety net.
+    """
+    if not new_filings:
+        return 0
+    tickers = sorted({filing["ticker"].upper() for filing in new_filings})
+    earliest = min(filing["filing_published_at"] for filing in new_filings)
+    existing = {
+        (row["ticker"], row["report_date"])
+        for row in calendar_repo.next_prints(on_or_after=earliest, tickers=tickers)
+    }
+    unknown_rows = [
+        {
+            "ticker": filing["ticker"],
+            "report_date": filing["filing_published_at"],
+            "session": None,
+            "source": "statement_obs",
+        }
+        for filing in new_filings
+        if (filing["ticker"].upper(), filing["filing_published_at"]) not in existing
+    ]
+    return calendar_repo.upsert_rows(unknown_rows)
 
 
 def fundamental_ingest_daily(
@@ -79,9 +115,29 @@ def fundamental_ingest_daily(
         log.info("fundamental_ingest_daily: tier %r is empty — nothing to do", tier)
         return dict(_EMPTY)
 
+    # `fetch_calendar_listings` replaces the old `fetch_calendar_symbols` call — one
+    # fetch per scanned date, same as before, zero added UW spend — and persists the
+    # durable calendar (spec §5-i) as a side effect of the fetch it was already paying
+    # for. `EarningsCalendarRepository` is only constructed once universe is known
+    # non-empty, so an unseeded tier still reads no calendar at all.
+    calendar_repo = EarningsCalendarRepository(conn, schema=schema)
     symbols: set[str] = set()
+    calendar_rows = 0
     for offset in range(max(0, lookback_days) + 1):
-        symbols |= fetch_calendar_symbols(client, today - timedelta(days=offset))
+        report_date = today - timedelta(days=offset)
+        listings = fetch_calendar_listings(client, report_date)
+        symbols |= {listing.symbol for listing in listings}
+        calendar_rows += calendar_repo.upsert_rows(
+            [
+                {
+                    "ticker": listing.symbol,
+                    "report_date": report_date,
+                    "session": listing.session,
+                    "source": "uw_calendar",
+                }
+                for listing in listings
+            ]
+        )
 
     targets = sorted(symbols & universe)
     if not targets:
@@ -90,11 +146,20 @@ def fundamental_ingest_daily(
             len(symbols),
             tier,
         )
-        return dict(_EMPTY, calendar_symbols=len(symbols))
+        return dict(_EMPTY, calendar_symbols=len(symbols), calendar_rows=calendar_rows)
 
     counters = fundamental_ingest(
         conn=conn, client=client, tier=tier, schema=schema, tickers=targets
     )
-    summary = {**counters, "calendar_symbols": len(symbols), "targets": len(targets)}
+    new_filings = counters.pop("new_filings", [])
+    calendar_unknown_rows = _persist_unknown_statements(calendar_repo, new_filings)
+
+    summary = {
+        **counters,
+        "calendar_symbols": len(symbols),
+        "targets": len(targets),
+        "calendar_rows": calendar_rows,
+        "calendar_unknown_rows": calendar_unknown_rows,
+    }
     log.info("fundamental_ingest_daily %s", summary)
     return summary
