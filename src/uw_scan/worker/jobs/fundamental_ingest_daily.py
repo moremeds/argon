@@ -31,10 +31,10 @@ non-landed report events were permanently non-landed for reasons that are not ti
 default of 3 is a weekend, not a measurement, and it should not be grown to chase a
 missing filing date; that is the backstop's job.
 
-CROSS-STATEMENT NI RECONCILIATION
-----------------------------------
-This job does not call `check_cross_statement_violations` itself — it delegates
-its `targets` straight into `fundamental_ingest`, which runs the cross-check
+CROSS-STATEMENT NI SIGN-FLIP CHECK
+------------------------------------
+This job does not call `check_net_income_sign_flip` itself — it delegates
+its `targets` straight into `fundamental_ingest`, which runs the check
 against every complete (income, cash-flow) pair it re-fetches for those
 tickers, so this job inherits it without a separate call site. What this job
 does NOT guarantee is revisiting a ticker whose cash-flow statement lands

@@ -74,6 +74,12 @@ CHECK_EFFECTS: dict[str, ViolationEffect] = {
     # Negative total liabilities is not a small error; it is a sign flip, and a
     # sign flip anywhere on a balance sheet impugns the whole statement.
     "negative_total_liabilities": ViolationEffect.EXCLUDE_OBSERVATION,
+    # Cash-flow net_income has the opposite sign of the income statement's, at
+    # nearly the same magnitude -- a vendor sign inversion isolated to that one
+    # figure (see `check_net_income_sign_flip`). The rest of the income
+    # statement (revenue, margins, etc.) is unaffected, so only net_income and
+    # its dependents (`roe`) go, not the whole observation.
+    "net_income_sign_flipped_across_statements": ViolationEffect.EXCLUDE_FIELD,
 }
 
 #: How many trailing quarters each feature reads. Mirrors `build_features`:
@@ -174,9 +180,7 @@ def apply_validity(
     counters: dict[str, int] = {"values_excluded": 0, "periods_touched": 0}
     for ticker, by_period in features.items():
         periods = sorted(by_period)
-        withhold = contaminated(
-            periods, violated_by_ticker_period.get(ticker, {})
-        )
+        withhold = contaminated(periods, violated_by_ticker_period.get(ticker, {}))
         out_periods: dict[str, dict[str, float | None]] = {}
         for period in periods:
             drop = withhold.get(period) or set()

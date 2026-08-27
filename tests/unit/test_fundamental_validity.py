@@ -25,8 +25,23 @@ from uw_scan.fundamentals.validity import (
 
 
 def test_every_shipped_check_declares_an_effect():
-    """A check with no declared effect is a check that silently does nothing."""
-    from uw_scan.fundamentals.statements import check_violations
+    """A check with no declared effect is a check that silently does nothing.
+
+    Covers EVERY check-emitting function in `fundamentals/statements.py`, not
+    just `check_violations` — `check_net_income_sign_flip` is a SEPARATE
+    function (a cross-observation check, wired at its own call site in
+    `fundamental_ingest.py`) and was shipped once with no `CHECK_EFFECTS`
+    entry: latent under `fundamentals-v1` (policy off), and a `KeyError` the
+    moment `fundamentals-v2` activates and `effect_for` is actually called on
+    a persisted row. This test exists specifically to make that impossible to
+    repeat — a new check-emitting function added here without a fixture in
+    this test is the thing to watch for in review, not just a missing
+    `CHECK_EFFECTS` line.
+    """
+    from uw_scan.fundamentals.statements import (
+        check_net_income_sign_flip,
+        check_violations,
+    )
 
     payloads = {
         "income": {
@@ -46,7 +61,15 @@ def test_every_shipped_check_declares_an_effect():
         for stmt, payload in payloads.items()
         for v in check_violations(stmt, payload)
     }
+    # Synthetic sign-flip pair: same magnitude (1000), opposite sign.
+    seen |= {
+        v.check_name
+        for v in check_net_income_sign_flip(
+            {"net_income": "1000"}, {"net_income": "-999"}
+        )
+    }
     assert seen, "fixture produced no violations; the guard would be vacuous"
+    assert "net_income_sign_flipped_across_statements" in seen
     for name in seen:
         assert isinstance(effect_for(name), ViolationEffect)
 
@@ -57,7 +80,9 @@ def test_an_unregistered_check_raises_rather_than_defaulting():
 
 
 def test_exclude_field_touches_only_its_own_dependents():
-    fields = excluded_fields({"gross_profit": ["gross_profit_equals_revenue_despite_costs"]})
+    fields = excluded_fields(
+        {"gross_profit": ["gross_profit_equals_revenue_despite_costs"]}
+    )
     assert fields == {"gross_profit"}
     assert features_touching(fields) == {"gross_margin"}
 
@@ -67,9 +92,7 @@ def test_exclude_observation_widens_to_the_whole_statement():
     fields = excluded_fields({"total_assets": ["accounting_identity_reversed"]})
     assert ALL_FEATURE_INPUTS <= fields
     # every feature, because no field on the observation survives
-    assert features_touching(fields) == set(
-        features_touching(set(ALL_FEATURE_INPUTS))
-    )
+    assert features_touching(fields) == set(features_touching(set(ALL_FEATURE_INPUTS)))
 
 
 def test_a_ttm_feature_is_withheld_for_the_whole_window():

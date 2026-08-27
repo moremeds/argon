@@ -21,7 +21,7 @@ from typing import Any
 import psycopg
 from psycopg.types.json import Jsonb
 
-from uw_scan.fundamentals.statements import Violation
+from uw_scan.fundamentals.statements import Violation, net_income_basis_difference
 from uw_scan.storage.fundamental_observation_panels import current_statement_panel
 
 # One statement row is ~1 KB of JSONB; 2,000 keeps a chunk comfortably under the
@@ -163,10 +163,26 @@ class FundamentalObsRepository:
     def record_violations(self, obs_id: int, violations: Sequence[Violation]) -> int:
         """Attach integrity failures to one observation. Idempotent per check.
 
-        `DO NOTHING` rather than `DO UPDATE`: a violation is a verdict about an
-        immutable payload, so re-running the same check over the same row cannot
-        legitimately produce a different answer, and the original `detected_at`
-        is the more useful fact to keep.
+        `DO NOTHING` rather than `DO UPDATE`: for a SINGLE-OBSERVATION check
+        (everything in `statements.check_violations`), a violation is a
+        verdict about an immutable payload, so re-running the same check over
+        the same row cannot legitimately produce a different answer, and the
+        original `detected_at` is the more useful fact to keep.
+
+        That reasoning does NOT hold for a CROSS-OBSERVATION check like
+        `check_net_income_sign_flip`: its verdict depends on a SECOND
+        observation (the paired cash-flow statement) that can itself be
+        restated later, so a genuinely different (correct) answer is
+        possible on a later run and `DO NOTHING` would keep serving the
+        stale one. Accepted as a known limitation rather than built around,
+        because the effective population is 5 rows total across the full
+        local historical store (0.017% of 28,973 pairs) and, measured
+        2026-08-28, all 5 currently carry exactly one content_hash version on
+        BOTH sides — i.e. no restatement has happened to any of them yet in
+        this store. If that changes, this needs a scoped retraction path (a
+        `DELETE ... WHERE obs_id = %s AND check_name = %s` keyed off a run
+        that finds no violation where one was previously recorded), not a
+        change to this method's behavior for every other check.
         """
         if not violations:
             return 0
@@ -278,28 +294,64 @@ class FundamentalObsRepository:
                     new += self.record_violations(obs_id, violations)
             offset += batch
 
-    def worst_ni_offenders(self, limit: int = 10) -> list[dict[str, Any]]:
-        """Tickers with the most net-income cross-statement violations, worst first.
+    def net_income_basis_differences_by_ticker(
+        self, limit: int = 10
+    ) -> list[dict[str, Any]]:
+        """Tickers with the most NI basis differences, most affected first.
 
-        Feeds the desk limits block (P3) by NAME — a ticker whose income and
-        cash-flow statements disagree on net income is named specifically
-        rather than folded into an aggregate "N violations" count nobody can
-        act on.
+        NEVER a violations read — do not add a `check_name` filter over
+        `fundamental_obs_violations` here. `net_income_basis_difference`
+        (`fundamentals/statements.py`) is descriptive: the driver, measured,
+        is overwhelmingly noncontrolling interests / discontinued operations
+        (ASC 230 opens the cash-flow statement from consolidated NI, the
+        income statement's headline is post-NCI, post-discontinued-ops) — a
+        real, correct accounting difference Argon cannot attribute without an
+        NCI field it does not store, not a vendor defect. A ticker showing up
+        here is not an "offender"; it is a company whose income and cash-flow
+        statements are using the accounting convention that model docstring
+        explains, which the desk limits block should be able to read by name
+        without it reading as an integrity failure.
+
+        Computed at READ TIME directly from `fundamental_statement_obs`,
+        never persisted: the verdict for one (ticker, period) pair depends on
+        BOTH statements and can change if either is later restated, so unlike
+        an immutable `fundamental_obs_violations` row this must be
+        recomputed from whatever is in the store right now, every call — it
+        scans the full observation table (paralleling `coverage()` above),
+        so it is a desk-panel read, not a per-request hot path.
         """
         sql = f"""
-            SELECT o.ticker, count(*) AS violation_count
-              FROM {self._schema}.fundamental_obs_violations v
-              JOIN {self._schema}.fundamental_statement_obs o USING (obs_id)
-             WHERE v.check_name = 'net_income_disagrees_across_statements'
-             GROUP BY o.ticker
-             ORDER BY violation_count DESC, o.ticker
-             LIMIT %s
+            WITH inc AS (
+                SELECT DISTINCT ON (ticker, period_end, period_type)
+                       ticker, period_end, period_type, raw_jsonb AS payload
+                  FROM {self._schema}.fundamental_statement_obs
+                 WHERE statement = 'income'
+                 ORDER BY ticker, period_end, period_type, obs_id DESC
+            ),
+            cf AS (
+                SELECT DISTINCT ON (ticker, period_end, period_type)
+                       ticker, period_end, period_type, raw_jsonb AS payload
+                  FROM {self._schema}.fundamental_statement_obs
+                 WHERE statement = 'cash_flow'
+                 ORDER BY ticker, period_end, period_type, obs_id DESC
+            )
+            SELECT inc.ticker, inc.payload, cf.payload
+              FROM inc JOIN cf USING (ticker, period_end, period_type)
         """
+        counts: dict[str, int] = {}
         with self.conn.cursor() as cur:
-            cur.execute(sql, (limit,))
-            return [
-                {"ticker": r[0], "violation_count": int(r[1])} for r in cur.fetchall()
-            ]
+            cur.execute(sql)
+            for ticker, income_payload, cashflow_payload in cur.fetchall():
+                if (
+                    net_income_basis_difference(income_payload, cashflow_payload)
+                    is not None
+                ):
+                    counts[ticker] = counts.get(ticker, 0) + 1
+        ordered = sorted(counts.items(), key=lambda kv: (-kv[1], kv[0]))
+        return [
+            {"ticker": ticker, "basis_difference_count": count}
+            for ticker, count in ordered[:limit]
+        ]
 
     def statement_panel(
         self, tickers: Sequence[str] | None = None, period_type: str = "quarterly"

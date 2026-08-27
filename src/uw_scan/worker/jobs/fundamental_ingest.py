@@ -41,7 +41,7 @@ CROSS-STATEMENT NI RECONCILIATION AND THE MONTHLY SWEEP
 Because this function re-fetches a ticker's ENTIRE statement history every call
 (see above), `rows` always holds every (period, statement) pair the provider
 currently reports for that ticker — not just what changed this run. The
-income-vs-cash-flow net-income cross-check (`check_cross_statement_violations`)
+income-vs-cash-flow net-income sign-flip check (`check_net_income_sign_flip`)
 is wired against that full set, so both this function's callers — the
 calendar-driven `fundamental_ingest_daily` (which delegates here for its
 `targets`) and the monthly full-tier sweep registered in `scheduler.py` —
@@ -64,7 +64,7 @@ from uw_scan.api.client import UwClient
 from uw_scan.api.endpoints import EndpointSlug
 from uw_scan.fundamentals.statements import (
     FIELD_MAP_VERSION,
-    check_cross_statement_violations,
+    check_net_income_sign_flip,
     check_violations,
     content_hash,
     normalize,
@@ -239,19 +239,24 @@ def fundamental_ingest(
                     if violations:
                         flagged.append((row, violations))
 
-            # Cross-statement NI reconciliation needs BOTH statements' payloads
-            # for the same (period_end, period_type) in hand at once — this loop
+            # Cross-statement NI sign-flip needs BOTH statements' payloads for
+            # the same (period_end, period_type) in hand at once — this loop
             # fetches every statement for the whole ticker every run (see the
             # module docstring), so `rows` already holds every pair the provider
             # currently reports, not just what is new this run. A cash-flow
             # statement that lands in a LATER run than its income statement is
             # only caught the NEXT time this function re-ingests the ticker;
-            # `check_cross_statement_violations`'s docstring explains why the
+            # `check_net_income_sign_flip`'s docstring explains why the
             # per-obs `recheck_violations` sweep cannot substitute for that, and
             # the monthly full-tier sweep (unlike the calendar-driven daily job)
             # touches every ticker unconditionally, so it is what guarantees
             # every pair is eventually re-checked regardless of when either
             # statement was first published.
+            #
+            # `net_income_basis_difference` (the DESCRIPTIVE NCI/discontinued-ops
+            # population) is deliberately NOT called here — it is never
+            # persisted, and is instead computed at read time by
+            # `FundamentalObsRepository.net_income_basis_differences_by_ticker`.
             by_period: dict[tuple[date, str], dict[str, dict[str, Any]]] = {}
             for row in rows:
                 by_period.setdefault((row["period_end"], row["period_type"]), {})[
@@ -262,11 +267,11 @@ def fundamental_ingest(
                 cashflow_row = pair.get("cash_flow")
                 if income_row is None or cashflow_row is None:
                     continue
-                cross_violations = check_cross_statement_violations(
+                sign_flip_violations = check_net_income_sign_flip(
                     income_row["raw_jsonb"], cashflow_row["raw_jsonb"]
                 )
-                if cross_violations:
-                    flagged.append((income_row, cross_violations))
+                if sign_flip_violations:
+                    flagged.append((income_row, sign_flip_violations))
 
             inserted, touched = repo.record_statements(rows)
             if inserted > 0:
