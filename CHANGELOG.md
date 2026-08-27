@@ -46,6 +46,12 @@ version in lockstep (enforced by `scripts/release/version_sync_check.py`).
   `net_income_basis_difference`: read-time-only, descriptive, never a `Violation`, never persisted, and
   mutually exclusive with the sign-flip check by construction. Backed by a `CHECK_EFFECTS` completeness
   test rebuilt to enumerate every registered check rather than assert against a fixture-sized subset.
+  **`negative_total_assets` also gains a governed effect** (`ViolationEffect.EXCLUDE_OBSERVATION`,
+  `fundamentals/validity.py`) — a live behaviour change to a pre-existing check, not a side effect of the
+  NI work above: under `fundamentals-v2` this previously raised `KeyError` from `effect_for` (no entry in
+  `CHECK_EFFECTS`); it now silently excludes the whole observation from scoring, the same treatment
+  `negative_total_liabilities` and `accounting_identity_reversed` already get, on the reasoning that
+  `assets` anchors the balance-sheet identity check's own denominator.
 - **Seed the five datacenter build-out chains** (EPC/Construction, Generation/Nuclear,
   Power/Electrical, Cooling/Thermal, DC-REIT/Colo) with real layer ranks — taxonomy rows only, zero
   assembler change, zero vendor calls.
