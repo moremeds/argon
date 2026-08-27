@@ -1,0 +1,486 @@
+"""Change-event classes for the delta rail (spec §5-iv, Task 8).
+
+Five new proposals through the discovery gate (`register_discovery_gate` in
+`worker/jobs/research_events_derive.py`): `band_entry`, `band_exit`,
+`implied_move_shift`, `coverage_change`, `bucket_flip`. All five read tables
+Argon already ingests — valuation_anchors, implied_move_daily,
+fundamental_statement_obs x chain_membership, fundamental_scores — so they
+pass the gate's "no fabrication" bar by construction; see that module's
+docstring for the deliberate deviation (no separate "filing-landed" class,
+since `statement_published`/`sec_filing` already carry that fact) and the
+measured registration counts.
+
+TWO CLOCKS, PER CLASS
+----------------------
+`research_events` carries `occurred_at` (when the fact happened) and
+`first_known_at` (when Argon learned it), with a database CHECK forbidding
+`first_known_at < occurred_at`:
+
+- `band_entry` / `band_exit`: occurred_at = the anchor row's OWN `as_of` (the
+  spot date the band was computed against); first_known_at = this job's
+  `as_of` (the night the derive ran), which is always >= the anchor's as_of
+  because `fundamental_refresh` runs before this job.
+- `implied_move_shift`: occurred_at = first_known_at = tonight's
+  `market_date` — the shift happened and was learned in the same nightly
+  snapshot.
+- `coverage_change` ("gained_coverage"): occurred_at = the statement's own
+  publication date (`filing_published_at`, falling back to
+  `first_observed_at`'s date when the provider gave none); first_known_at =
+  when Argon observed it (`first_observed_at`'s date). `first_observed_at`
+  is always >= `filing_published_at` — we observe a filing after it
+  publishes — so the CHECK holds structurally.
+- `coverage_change` ("went_stale"): occurred_at = the newest compatible
+  result's OWN `as_of` (when it was last computed); first_known_at = this
+  job's `as_of` (the night the desk noticed the age crossed `STALE_DAYS`).
+  Anchored to the result's as_of, not "today" — see idempotency note below.
+- `bucket_flip`: THE ONE CLASS WHERE THE CLOCKS DELIBERATELY DIFFER.
+  occurred_at = the score's OWN `as_of` (the bucket id —
+  `fundamental_scores.as_of` is a knowledge-quarter CROSS-SECTION identifier,
+  never a freshness timestamp, see storage/fundamental_scores.py);
+  first_known_at = this job's `as_of` (the night the desk learned a name had
+  moved to a newer bucket than any it had occupied before). The bucket can
+  be dated well in the past (a backfilled score) while the desk only learns
+  of the flip tonight.
+
+IDEMPOTENCY IS A PROPERTY OF THE source_ref SHAPE, NOT AN ASSUMPTION
+----------------------------------------------------------------------
+`record_events`' `ON CONFLICT (event_class, ticker, occurred_at, source_ref)
+DO NOTHING` means a class re-fires forever unless its `source_ref` is
+anchored to something that stops varying once the underlying fact stops
+changing. `coverage_change`'s "went_stale" direction is the sharp case:
+`source_ref` is keyed on the STALE result's own `as_of`, not on "today" — a
+ticker that stays stale for 200 consecutive nightly runs writes the event
+exactly once, on the night it crossed, and every later run is a true no-op
+for it. Anchoring it to "today" instead would double- (indeed N-) write
+forever. `bucket_flip` is anchored the same way, on the newest `as_of` alone
+— a rerun against an unchanged newest bucket is a no-op; a genuinely newer
+bucket arriving later produces a new, distinct `source_ref`.
+"""
+
+from __future__ import annotations
+
+import logging
+from datetime import date
+from decimal import Decimal
+from typing import Any
+
+import psycopg
+
+from uw_scan.storage.fundamental_anchors import FundamentalAnchorsRepository
+from uw_scan.storage.fundamental_scores import FundamentalScoresRepository
+from uw_scan.storage.implied_move import ImpliedMoveRepository
+from uw_scan.storage.research_events import ResearchEventsRepository
+from uw_scan.storage.research_taxonomy import ResearchTaxonomyRepository
+from uw_scan.worker.jobs.research_events_derive import STALE_DAYS
+
+log = logging.getLogger(__name__)
+
+#: One percentage point. Chosen at the spec's stated threshold, not tuned —
+#: this is the delta rail's first cut, not a validated signal.
+IMPLIED_MOVE_SHIFT_PP = 0.01
+
+# Decimal mirror of the constant above, used for the actual comparison.
+# `implied_move_pct` round-trips as Decimal (NUMERIC column); comparing a
+# float threshold against it would force a lossy float cast on the data side
+# instead — see `_implied_move_shift_events`'s comment on why that is unsafe
+# at exactly this boundary.
+_SHIFT_THRESHOLD = Decimal(str(IMPLIED_MOVE_SHIFT_PP))
+
+
+def _num(value: Any) -> float | None:
+    """Decimal -> float for a jsonb detail payload. `Jsonb` serializes via
+    `json.dumps`, which does not know `Decimal`."""
+    return None if value is None else float(value)
+
+
+def _band_entry_events(
+    conn: psycopg.Connection,
+    *,
+    schema: str,
+    engine_version: str,
+    as_of: date,
+) -> list[dict[str, Any]]:
+    """Rows from `in_buy_zone` with `entered is True`. Rows with `entered is
+    None` (no prior band in the 30-day lookback) emit NOTHING — null is not
+    NEW. `entered is False` (already in zone) is not an entry either. Only an
+    explicit `is True` may fire; anything else — including a bug that lets
+    `None` slip through — must be excluded."""
+    anchors = FundamentalAnchorsRepository(conn, schema=schema)
+    rows: list[dict[str, Any]] = []
+    for r in anchors.in_buy_zone(engine_version):
+        if r["entered"] is not True:
+            continue
+        occurred = r["as_of"]
+        rows.append(
+            {
+                "event_class": "band_entry",
+                "ticker": r["ticker"],
+                "occurred_at": occurred,
+                "first_known_at": max(occurred, as_of),
+                "title": f"{r['ticker']} entered its own-history buy zone",
+                "detail": {
+                    "method": r["method"],
+                    "buy_below": _num(r["buy_below"]),
+                    "spot": _num(r["spot"]),
+                    "engine_version": engine_version,
+                },
+                "source_kind": "valuation_anchors",
+                "source_ref": f"{r['ticker']}:{occurred}:{engine_version}",
+            }
+        )
+    return rows
+
+
+def _band_exit_events(
+    conn: psycopg.Connection,
+    *,
+    schema: str,
+    engine_version: str,
+    as_of: date,
+) -> list[dict[str, Any]]:
+    """Tickers in-zone at the previous `as_of` for this engine and not
+    in-zone (or refused — no usable band) at the newest `as_of`.
+
+    Mirrors `FundamentalAnchorsRepository.in_buy_zone`'s window-function
+    shape exactly (same lookback, same NULL-safe in-zone predicate) but is
+    not delegated to it — `in_buy_zone` returns only rows CURRENTLY in zone,
+    and an exit is, by definition, a row that just left.
+    """
+    in_zone = "(spot IS NOT NULL AND buy_below IS NOT NULL AND spot <= buy_below)"
+    lookback = FundamentalAnchorsRepository.IN_ZONE_LOOKBACK_DAYS
+    sql = f"""
+        WITH latest AS (
+            SELECT max(as_of) AS d FROM {schema}.valuation_anchors
+             WHERE engine_version = %(engine)s
+        ),
+        recent AS (
+            SELECT DISTINCT ON (a.ticker, a.as_of)
+                   a.ticker, a.as_of, a.method, a.buy_below, a.spot
+              FROM {schema}.valuation_anchors a, latest
+             WHERE a.engine_version = %(engine)s
+               AND a.as_of > latest.d - %(lookback)s
+             ORDER BY a.ticker, a.as_of DESC, a.result_id DESC
+        ),
+        flagged AS (
+            SELECT ticker, as_of, method, buy_below, spot,
+                   {in_zone} AS in_zone,
+                   LAG({in_zone}) OVER w AS prev_in_zone,
+                   LAG(as_of) OVER w AS prev_as_of
+              FROM recent
+            WINDOW w AS (PARTITION BY ticker ORDER BY as_of)
+        )
+        SELECT ticker, as_of, method, buy_below, spot
+          FROM flagged, latest
+         WHERE as_of = latest.d
+           AND prev_as_of IS NOT NULL
+           AND prev_in_zone
+           AND NOT in_zone
+    """
+    with conn.cursor() as cur:
+        cur.execute(sql, {"engine": engine_version, "lookback": lookback})
+        cols = [d.name for d in cur.description]
+        results = [dict(zip(cols, r, strict=True)) for r in cur.fetchall()]
+
+    rows: list[dict[str, Any]] = []
+    for r in results:
+        occurred = r["as_of"]
+        rows.append(
+            {
+                "event_class": "band_exit",
+                "ticker": r["ticker"],
+                "occurred_at": occurred,
+                "first_known_at": max(occurred, as_of),
+                "title": f"{r['ticker']} left its own-history buy zone",
+                "detail": {
+                    "method": r["method"],
+                    "buy_below": _num(r["buy_below"]),
+                    "spot": _num(r["spot"]),
+                    "engine_version": engine_version,
+                },
+                "source_kind": "valuation_anchors",
+                "source_ref": f"{r['ticker']}:{occurred}:{engine_version}",
+            }
+        )
+    return rows
+
+
+def _implied_move_shift_events(
+    conn: psycopg.Connection, *, schema: str, as_of: date
+) -> list[dict[str, Any]]:
+    """For every `(ticker, report_date)` that received a snapshot tonight,
+    compare tonight's `implied_move_pct` against the immediately preceding
+    night's for the SAME upcoming print. `history()` is oldest-first, so the
+    last two rows are the ones that matter."""
+    repo = ImpliedMoveRepository(conn, schema=schema)
+    with conn.cursor() as cur:
+        cur.execute(
+            f"""SELECT DISTINCT ticker, report_date
+                  FROM {schema}.implied_move_daily
+                 WHERE market_date = %s""",
+            (as_of,),
+        )
+        pairs = cur.fetchall()
+
+    rows: list[dict[str, Any]] = []
+    for ticker, report_date in pairs:
+        history = repo.history(ticker, report_date)
+        if len(history) < 2:
+            continue
+        today_row, prev_row = history[-1], history[-2]
+        if today_row["market_date"] != as_of:
+            # Defensive: the row that put this pair in `pairs` should be the
+            # newest in its own history.
+            continue
+        # Decimal, not float, for the comparison — see CLAUDE.md's "Decimal
+        # over float for prices, IV, RV, Greeks, scoring". A float cast here
+        # is not cosmetic: `abs(0.11 - 0.10) < 0.01` is TRUE in binary
+        # float (0.009999999999999995), which would silently swallow an
+        # exact-boundary shift. `implied_move_pct` round-trips as Decimal
+        # from the NUMERIC column; comparing in that type avoids the trap.
+        today_pct = Decimal(today_row["implied_move_pct"])
+        prev_pct = Decimal(prev_row["implied_move_pct"])
+        shift = abs(today_pct - prev_pct)
+        if shift < _SHIFT_THRESHOLD:
+            continue
+        rows.append(
+            {
+                "event_class": "implied_move_shift",
+                "ticker": ticker,
+                "occurred_at": as_of,
+                "first_known_at": as_of,
+                "title": (
+                    f"{ticker} implied move shifted {float(shift) * 100:.1f}pp "
+                    f"for the {report_date.isoformat()} print"
+                ),
+                "detail": {
+                    "report_date": report_date.isoformat(),
+                    "prev_market_date": prev_row["market_date"].isoformat(),
+                    "prev_pct": _num(prev_pct),
+                    "today_pct": _num(today_pct),
+                    "shift_pp": _num(shift),
+                },
+                "source_kind": "implied_move_daily",
+                "source_ref": f"{ticker}:{report_date}:{as_of}",
+            }
+        )
+    return rows
+
+
+def _chain_member_tickers(conn: psycopg.Connection, *, schema: str) -> list[str]:
+    """Distinct, currently-open chain members under the ACTIVE taxonomy
+    version. `chain_membership` is grained `(chain, layer, ticker)` — a name
+    in two layers is two rows, so this dedupes to distinct tickers, never a
+    row count (the exact trap the module docstring in
+    `storage/research_taxonomy.py` warns about)."""
+    taxonomy = ResearchTaxonomyRepository(conn, schema=schema)
+    version = taxonomy.active_version()
+    if version is None:
+        return []
+    with conn.cursor() as cur:
+        cur.execute(
+            f"""SELECT DISTINCT ticker FROM {schema}.chain_membership
+                 WHERE taxonomy_version = %s AND valid_to IS NULL""",
+            (version,),
+        )
+        return [r[0] for r in cur.fetchall()]
+
+
+def _gained_coverage_events(
+    conn: psycopg.Connection, *, schema: str
+) -> list[dict[str, Any]]:
+    """Chain-member tickers whose ONLY `fundamental_statement_obs` row is
+    their first. `source_ref` is keyed on that row's own date, which never
+    changes once a second statement lands — so this fires exactly once per
+    ticker, ever, regardless of how many nightly runs see the same state."""
+    members = _chain_member_tickers(conn, schema=schema)
+    if not members:
+        return []
+    with conn.cursor() as cur:
+        cur.execute(
+            f"""SELECT ticker,
+                       min(coalesce(filing_published_at, first_observed_at::date))
+                           AS occurred,
+                       min(first_observed_at::date) AS known
+                  FROM {schema}.fundamental_statement_obs
+                 WHERE ticker = ANY(%s)
+                 GROUP BY ticker
+                HAVING count(*) = 1""",
+            (members,),
+        )
+        results = cur.fetchall()
+
+    rows: list[dict[str, Any]] = []
+    for ticker, occurred, known in results:
+        first_known = max(occurred, known)
+        rows.append(
+            {
+                "event_class": "coverage_change",
+                "ticker": ticker,
+                "occurred_at": occurred,
+                "first_known_at": first_known,
+                "title": f"{ticker} gained its first ingested statement",
+                "detail": {"direction": "gained_coverage"},
+                "source_kind": "fundamental_statement_obs",
+                "source_ref": f"{ticker}:{occurred}:gained_coverage",
+            }
+        )
+    return rows
+
+
+def _went_stale_events(
+    conn: psycopg.Connection, *, schema: str, as_of: date
+) -> list[dict[str, Any]]:
+    """Chain-member tickers whose newest `fundamental_dimensions` result
+    (under the active method version, same STALE_DAYS Radar uses) is older
+    than `STALE_DAYS`. `source_ref` is keyed on that result's own `as_of`,
+    not on `as_of` (today) — see the module docstring's idempotency note:
+    without that, a ticker stuck stale would re-fire every single night."""
+    members = _chain_member_tickers(conn, schema=schema)
+    if not members:
+        return []
+    engine = FundamentalScoresRepository(conn, schema=schema).active_version()
+    if engine is None:
+        return []
+    with conn.cursor() as cur:
+        cur.execute(
+            f"""SELECT ticker, max(as_of)
+                  FROM {schema}.fundamental_dimensions
+                 WHERE engine_version = %s AND ticker = ANY(%s)
+                 GROUP BY ticker""",
+            (engine, members),
+        )
+        results = cur.fetchall()
+
+    rows: list[dict[str, Any]] = []
+    for ticker, newest_as_of in results:
+        age = (as_of - newest_as_of).days
+        if age <= STALE_DAYS:
+            continue
+        rows.append(
+            {
+                "event_class": "coverage_change",
+                "ticker": ticker,
+                "occurred_at": newest_as_of,
+                "first_known_at": as_of,
+                "title": (f"{ticker}'s newest compatible result is {age} days old"),
+                "detail": {
+                    "direction": "went_stale",
+                    "age_days": age,
+                    "threshold_days": STALE_DAYS,
+                },
+                "source_kind": "fundamental_dimensions",
+                "source_ref": f"{ticker}:{newest_as_of}:went_stale",
+            }
+        )
+    return rows
+
+
+def _coverage_change_events(
+    conn: psycopg.Connection, *, schema: str, as_of: date
+) -> list[dict[str, Any]]:
+    return [
+        *_gained_coverage_events(conn, schema=schema),
+        *_went_stale_events(conn, schema=schema, as_of=as_of),
+    ]
+
+
+def _bucket_flip_events(
+    conn: psycopg.Connection, *, schema: str, as_of: date
+) -> list[dict[str, Any]]:
+    """A ticker's newest `fundamental_scores.as_of` bucket moved to one newer
+    than any it had occupied before. `as_of` here is a knowledge-quarter
+    CROSS-SECTION identifier (see storage/fundamental_scores.py), never a
+    freshness timestamp — a name's first-ever bucket is not a flip (there is
+    nothing to have moved FROM), and a bucket older than one already
+    occupied is not a flip either, however recently it was written."""
+    with conn.cursor() as cur:
+        cur.execute(
+            f"""
+            SELECT ticker, engine_version, as_of, rn
+              FROM (
+                  SELECT ticker, engine_version, as_of,
+                         row_number() OVER (
+                             PARTITION BY ticker, engine_version
+                             ORDER BY as_of DESC
+                         ) AS rn
+                    FROM (SELECT DISTINCT ticker, engine_version, as_of
+                            FROM {schema}.fundamental_scores) d
+              ) ranked
+             WHERE rn <= 2
+            """
+        )
+        by_key: dict[tuple[str, str], dict[int, date]] = {}
+        for ticker, engine, bucket_as_of, rn in cur.fetchall():
+            by_key.setdefault((ticker, engine), {})[rn] = bucket_as_of
+
+    rows: list[dict[str, Any]] = []
+    for (ticker, engine), buckets in by_key.items():
+        newest_as_of = buckets.get(1)
+        prior_as_of = buckets.get(2)
+        if newest_as_of is None or prior_as_of is None:
+            # No prior bucket to have flipped from.
+            continue
+        if newest_as_of <= prior_as_of:
+            continue
+        rows.append(
+            {
+                "event_class": "bucket_flip",
+                "ticker": ticker,
+                "occurred_at": newest_as_of,
+                "first_known_at": as_of,
+                "title": (
+                    f"{ticker} moved to a newer scoring bucket "
+                    f"({newest_as_of.isoformat()})"
+                ),
+                "detail": {
+                    "engine_version": engine,
+                    "prior_as_of": prior_as_of.isoformat(),
+                    "new_as_of": newest_as_of.isoformat(),
+                },
+                "source_kind": "fundamental_scores",
+                "source_ref": f"{ticker}:{newest_as_of}",
+            }
+        )
+    return rows
+
+
+def derive_change_events(
+    conn: psycopg.Connection, *, as_of: date, schema: str = "uw_scan"
+) -> dict[str, int]:
+    """Turn tonight's ingested state into typed delta-rail events. Idempotent
+    on each class's identity key — see the module docstring."""
+    repo = ResearchEventsRepository(conn, schema=schema)
+    engine_version = FundamentalScoresRepository(conn, schema=schema).active_version()
+
+    counters: dict[str, int] = {
+        "band_entry": 0,
+        "band_exit": 0,
+        "implied_move_shift": 0,
+        "coverage_change": 0,
+        "bucket_flip": 0,
+    }
+
+    if engine_version is not None:
+        counters["band_entry"] = repo.record_events(
+            _band_entry_events(
+                conn, schema=schema, engine_version=engine_version, as_of=as_of
+            )
+        )
+        counters["band_exit"] = repo.record_events(
+            _band_exit_events(
+                conn, schema=schema, engine_version=engine_version, as_of=as_of
+            )
+        )
+
+    counters["implied_move_shift"] = repo.record_events(
+        _implied_move_shift_events(conn, schema=schema, as_of=as_of)
+    )
+    counters["coverage_change"] = repo.record_events(
+        _coverage_change_events(conn, schema=schema, as_of=as_of)
+    )
+    counters["bucket_flip"] = repo.record_events(
+        _bucket_flip_events(conn, schema=schema, as_of=as_of)
+    )
+
+    log.info("derive_change_events as_of=%s: %s", as_of, counters)
+    return counters

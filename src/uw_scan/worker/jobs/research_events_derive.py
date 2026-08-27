@@ -16,6 +16,25 @@ Live, with the row counts that decided it:
     geographic_disclosure      7,088   revenue_breakdown_obs (geographical)
     input_violation            1,006   fundamental_obs_violations
 
+THE DELTA RAIL, ADDED TASK 8 (2026-08-28)
+------------------------------------------
+Five more classes, all reading tables Argon already ingests —
+valuation_anchors, implied_move_daily, fundamental_statement_obs x
+chain_membership, fundamental_scores — measured at registration time in
+`worker/jobs/fundamental_change_events.py::derive_change_events`:
+
+    band_entry             valuation_anchors (own-history buy-zone entry)
+    band_exit              valuation_anchors (own-history buy-zone exit)
+    implied_move_shift     implied_move_daily (>=1pp night-over-night move)
+    coverage_change        fundamental_statement_obs x chain_membership
+    bucket_flip            fundamental_scores (newer knowledge-quarter bucket)
+
+DELIBERATE DEVIATION: the spec names "filing-landed" as a new class, but
+`statement_published` and `sec_filing` above already carry exactly that fact
+— registering a duplicate would double-write the same event. This module
+registers the four genuinely new classes plus `band_exit` (the spec's
+"band-entry/exit" is two classes because entry and exit are different facts).
+
 Killed:
 
     restatement                    1   ONE multi-version identity in 87,177
@@ -106,6 +125,37 @@ def register_discovery_gate(
                        GROUP BY source, ticker, period_end, period_type, statement
                       HAVING count(DISTINCT content_hash) > 1) x""",
             ),
+            (
+                # Shared by band_entry and band_exit: both are facts about
+                # rows where a usable band exists at all (see
+                # `FundamentalAnchorsRepository.band_coverage`'s "usable"
+                # definition — a REFUSED band has no buy_below).
+                "valuation_anchors_eligible",
+                f"""SELECT count(*) FROM {schema}.valuation_anchors
+                     WHERE buy_below IS NOT NULL AND spot IS NOT NULL""",
+            ),
+            (
+                "implied_move_daily",
+                f"SELECT count(*) FROM {schema}.implied_move_daily",
+            ),
+            (
+                # DISTINCT ticker, not row count: chain_membership is grained
+                # (chain, layer, ticker), so a name in two layers is two rows
+                # and counting rows here would double-count it.
+                "coverage_change_tickers",
+                f"""SELECT count(DISTINCT cm.ticker)
+                      FROM {schema}.chain_membership cm
+                     WHERE cm.valid_to IS NULL
+                       AND EXISTS (
+                           SELECT 1 FROM {schema}.fundamental_statement_obs o
+                            WHERE o.ticker = cm.ticker)""",
+            ),
+            (
+                "fundamental_scores_buckets",
+                f"""SELECT count(*) FROM (
+                      SELECT DISTINCT ticker, as_of
+                        FROM {schema}.fundamental_scores) x""",
+            ),
         ):
             cur.execute(sql)
             counts[key] = int(cur.fetchone()[0])
@@ -174,6 +224,62 @@ def register_discovery_gate(
                 "accrues."
             ),
             "measured_rows": counts["restatement"],
+            "measured_on": today,
+        },
+        {
+            "event_class": "band_entry",
+            "status": STATUS_LIVE,
+            "source_table": "valuation_anchors",
+            "rationale": (
+                "a name's own-history valuation entered its buy zone "
+                "(FundamentalAnchorsRepository.in_buy_zone entered=True)"
+            ),
+            "measured_rows": counts["valuation_anchors_eligible"],
+            "measured_on": today,
+        },
+        {
+            "event_class": "band_exit",
+            "status": STATUS_LIVE,
+            "source_table": "valuation_anchors",
+            "rationale": (
+                "a name's own-history valuation left its buy zone (in-zone at "
+                "the previous as_of, not in-zone or refused at the newest)"
+            ),
+            "measured_rows": counts["valuation_anchors_eligible"],
+            "measured_on": today,
+        },
+        {
+            "event_class": "implied_move_shift",
+            "status": STATUS_LIVE,
+            "source_table": "implied_move_daily",
+            "rationale": (
+                "the options market's implied move for an upcoming print "
+                "shifted >=1pp from the previous night's snapshot"
+            ),
+            "measured_rows": counts["implied_move_daily"],
+            "measured_on": today,
+        },
+        {
+            "event_class": "coverage_change",
+            "status": STATUS_LIVE,
+            "source_table": "fundamental_statement_obs",
+            "rationale": (
+                "a chain-member ticker gained its first ingested statement, "
+                "or its newest compatible fundamental_dimensions result "
+                "crossed the STALE_DAYS threshold"
+            ),
+            "measured_rows": counts["coverage_change_tickers"],
+            "measured_on": today,
+        },
+        {
+            "event_class": "bucket_flip",
+            "status": STATUS_LIVE,
+            "source_table": "fundamental_scores",
+            "rationale": (
+                "a name's newest knowledge-quarter as_of bucket moved to one "
+                "newer than any it had occupied before"
+            ),
+            "measured_rows": counts["fundamental_scores_buckets"],
             "measured_on": today,
         },
     ]
@@ -322,7 +428,9 @@ def derive_risk_facts(
                     "observed_value": round(share, 4),
                     "threshold": TRUE_PIT_FLOOR,
                     "breached": share < TRUE_PIT_FLOOR,
-                    "severity": SEVERITY_WATCH if share < TRUE_PIT_FLOOR else SEVERITY_INFO,
+                    "severity": SEVERITY_WATCH
+                    if share < TRUE_PIT_FLOOR
+                    else SEVERITY_INFO,
                     "statement": (
                         f"{pit} of {total} observations carry a publication date"
                     ),
@@ -386,8 +494,10 @@ def derive_risk_facts(
                         "threshold": STALE_DAYS,
                         "breached": age > STALE_DAYS,
                         "severity": (
-                            SEVERITY_MATERIAL if age > STALE_DAYS * 4
-                            else SEVERITY_WATCH if age > STALE_DAYS
+                            SEVERITY_MATERIAL
+                            if age > STALE_DAYS * 4
+                            else SEVERITY_WATCH
+                            if age > STALE_DAYS
                             else SEVERITY_INFO
                         ),
                         "statement": f"newest compatible result is {age} days old",

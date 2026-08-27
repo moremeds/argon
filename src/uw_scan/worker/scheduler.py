@@ -550,6 +550,18 @@ def _should_schedule_implied_move(settings: Settings) -> bool:
     return role == "all" or (role == "massive" and settings.worker_index == 0)
 
 
+def _should_schedule_fundamental_change_events(settings: Settings) -> bool:
+    """Single owner for the nightly delta-rail derive (Task 8, spec §5-iv).
+    Pure warm-store read over valuation_anchors / implied_move_daily /
+    fundamental_statement_obs / chain_membership / fundamental_scores -- no
+    UW/IB spend -> pin to massive-0, same as its siblings above. Gated
+    separately on `fundamental_change_events_enabled`."""
+    if not settings.fundamental_change_events_enabled:
+        return False
+    role = settings.worker_role.lower()
+    return role == "all" or (role == "massive" and settings.worker_index == 0)
+
+
 def _worker_label(settings: Settings) -> str:
     role = settings.worker_role.lower()
     if role == "all":
@@ -890,6 +902,21 @@ def main() -> int:
                 repo.conn, as_of=as_of, schema=settings.db_schema
             )
         logger.info("implied_move_snapshot %s", result)
+
+    def _fundamental_change_events() -> None:
+        from datetime import datetime as _dt
+        from zoneinfo import ZoneInfo
+
+        from uw_scan.worker.jobs.fundamental_change_events import (
+            derive_change_events,
+        )
+
+        as_of = _dt.now(ZoneInfo(settings.rth_tz)).date()
+        with _repo(settings) as repo:
+            result = derive_change_events(
+                repo.conn, as_of=as_of, schema=settings.db_schema
+            )
+        logger.info("fundamental_change_events %s", result)
 
     def _spx_density_forecast() -> None:
         from uw_scan.worker.jobs.spx_density_forecast import spx_density_forecast_job
@@ -2353,6 +2380,25 @@ def main() -> int:
             CronTrigger.from_crontab("45 20 * * 0-4", timezone=settings.rth_tz),
             id="implied_move_snapshot",
             name="Implied move snapshot (option surface grid)",
+            max_instances=1,
+            coalesce=True,
+        )
+
+    if _should_schedule_fundamental_change_events(settings):
+        # Delta-rail derive at 21:15 ET WEEKDAYS (Task 8, spec §5-iv) — after
+        # the 20:45 implied_move_snapshot and the 18:20 fundamental_refresh
+        # (routing -> subscores -> anchor bands) so band_entry/band_exit and
+        # bucket_flip read tonight's freshest valuation_anchors/
+        # fundamental_scores rows, and after implied_move_snapshot so
+        # implied_move_shift reads tonight's implied_move_daily row rather
+        # than last night's. Pure warm-store read; zero UW/IB spend, so
+        # massive-0 is the right single-flight home, same pin as its
+        # siblings above.
+        sched.add_job(
+            _fundamental_change_events,
+            CronTrigger.from_crontab("15 21 * * 0-4", timezone=settings.rth_tz),
+            id="fundamental_change_events",
+            name="Fundamental delta-rail change events",
             max_instances=1,
             coalesce=True,
         )
