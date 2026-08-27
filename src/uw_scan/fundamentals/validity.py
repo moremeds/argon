@@ -74,6 +74,12 @@ CHECK_EFFECTS: dict[str, ViolationEffect] = {
     # Negative total liabilities is not a small error; it is a sign flip, and a
     # sign flip anywhere on a balance sheet impugns the whole statement.
     "negative_total_liabilities": ViolationEffect.EXCLUDE_OBSERVATION,
+    # Negative total assets is impossible and, like negative total liabilities,
+    # is a sign flip rather than a small error -- and assets is the ANCHOR the
+    # balance-sheet identity check above normalizes by (`gap = (assets - ...) /
+    # abs(assets)`), so a broken assets figure impugns the whole statement, not
+    # just one line.
+    "negative_total_assets": ViolationEffect.EXCLUDE_OBSERVATION,
     # Cash-flow net_income has the opposite sign of the income statement's, at
     # nearly the same magnitude -- a vendor sign inversion isolated to that one
     # figure (see `check_net_income_sign_flip`). The rest of the income

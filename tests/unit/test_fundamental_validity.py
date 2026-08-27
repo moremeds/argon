@@ -27,50 +27,28 @@ from uw_scan.fundamentals.validity import (
 def test_every_shipped_check_declares_an_effect():
     """A check with no declared effect is a check that silently does nothing.
 
-    Covers EVERY check-emitting function in `fundamentals/statements.py`, not
-    just `check_violations` — `check_net_income_sign_flip` is a SEPARATE
-    function (a cross-observation check, wired at its own call site in
-    `fundamental_ingest.py`) and was shipped once with no `CHECK_EFFECTS`
-    entry: latent under `fundamentals-v1` (policy off), and a `KeyError` the
-    moment `fundamentals-v2` activates and `effect_for` is actually called on
-    a persisted row. This test exists specifically to make that impossible to
-    repeat — a new check-emitting function added here without a fixture in
-    this test is the thing to watch for in review, not just a missing
-    `CHECK_EFFECTS` line.
-    """
-    from uw_scan.fundamentals.statements import (
-        check_net_income_sign_flip,
-        check_violations,
-    )
+    ENUMERATION-based, not fixture-triggered. This test used to run a couple
+    of hand-picked payloads through the checkers and assert an effect exists
+    for whatever happened to fire — which only ever proves the fixture's own
+    checks are covered, not the module's. That exact gap shipped for real:
+    `negative_total_assets` (`statements.check_violations`, the balance-sheet
+    branch) had NO `CHECK_EFFECTS` entry, `effect_for("negative_total_assets")`
+    raised in production the instant a real balance sheet reported negative
+    assets, and the fixture here had `assets=50` (positive) so the branch
+    never fired and the test stayed green the whole time.
 
-    payloads = {
-        "income": {
-            "total_revenue": "100",
-            "gross_profit": "100",
-            "cost_of_revenue": "60",
-        },
-        "balance": {
-            "total_assets": "50",
-            "total_liabilities": "-10",
-            "total_shareholder_equity": "100",
-            "common_stock_shares_outstanding": "1",
-        },
-    }
-    seen = {
-        v.check_name
-        for stmt, payload in payloads.items()
-        for v in check_violations(stmt, payload)
-    }
-    # Synthetic sign-flip pair: same magnitude (1000), opposite sign.
-    seen |= {
-        v.check_name
-        for v in check_net_income_sign_flip(
-            {"net_income": "1000"}, {"net_income": "-999"}
-        )
-    }
-    assert seen, "fixture produced no violations; the guard would be vacuous"
-    assert "net_income_sign_flipped_across_statements" in seen
-    for name in seen:
+    `all_check_names()` derives the full set of check_name literals by
+    parsing `statements.py`'s own source with `ast` — it does not run a single
+    checker function, so a check with no covering fixture is caught exactly
+    the same as one with a fixture that happens to trigger it. See its
+    docstring for the full mechanism and why every check_name is guaranteed
+    to be a static string literal.
+    """
+    from uw_scan.fundamentals.statements import all_check_names
+
+    names = all_check_names()
+    assert names, "enumeration found no check names; the AST walk is broken"
+    for name in names:
         assert isinstance(effect_for(name), ViolationEffect)
 
 

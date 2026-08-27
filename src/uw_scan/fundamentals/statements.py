@@ -12,12 +12,14 @@ Run `uv run python -m uw_scan.fundamentals.statements` for the self-check.
 
 from __future__ import annotations
 
+import ast
 import hashlib
 import json
 import re
 from collections.abc import Mapping
 from dataclasses import dataclass
 from decimal import Decimal, InvalidOperation
+from pathlib import Path
 from typing import Any
 
 # Bump when the normalization below changes in any way that alters a hash.
@@ -361,6 +363,42 @@ def net_income_basis_difference(
     return NiBasisDifference(ni_inc, ni_cf)
 
 
+def all_check_names() -> frozenset[str]:
+    """Every `check_name` any `Violation`-emitting function in this module can
+    produce -- derived by parsing this module's OWN source with `ast`, never
+    by running a checker against a fixture.
+
+    This exists because a fixture-triggered enumeration only ever sees the
+    checks its fixture happens to make fire. That is exactly the shape of bug
+    that shipped once already here: `negative_total_assets` (in
+    `check_violations` above) had no entry in `validity.CHECK_EFFECTS` --
+    `effect_for("negative_total_assets")` raised in production the moment a
+    real balance sheet reported negative assets -- and the completeness test
+    that was supposed to catch it never triggered that branch, because its
+    one fixture had `assets=50` (positive). A static walk finds the check
+    whether or not anything in the test suite ever makes it fire.
+
+    Every check_name in this module is passed as `Violation`'s first
+    POSITIONAL argument, and always as a string literal (never built up at
+    runtime), so an `ast.Call` walk matching `Violation(<string literal>,
+    ...)` finds all of them without importing or executing anything beyond
+    parsing this file's text.
+    """
+    tree = ast.parse(Path(__file__).read_text())
+    names: set[str] = set()
+    for node in ast.walk(tree):
+        if (
+            isinstance(node, ast.Call)
+            and isinstance(node.func, ast.Name)
+            and node.func.id == "Violation"
+            and node.args
+            and isinstance(node.args[0], ast.Constant)
+            and isinstance(node.args[0].value, str)
+        ):
+            names.add(node.args[0].value)
+    return frozenset(names)
+
+
 def _self_check() -> None:
     base = {
         "ticker": "NVDA",
@@ -440,6 +478,11 @@ def _self_check() -> None:
     assert check_net_income_sign_flip(nci_income, nci_cf) == []
     gap = net_income_basis_difference(nci_income, nci_cf)
     assert gap == NiBasisDifference(Decimal("881000000"), Decimal("2698000000")), gap
+
+    # Enumeration finds every check_name, including one no fixture above fires.
+    found = all_check_names()
+    assert "negative_total_assets" in found, found  # never triggered above
+    assert "net_income_sign_flipped_across_statements" in found, found
     print("statements self-check ok")
 
 
