@@ -338,6 +338,10 @@ def _state_from_row(
             gpr_value=row.get("gpr_value"),
             gpr_pct_52w=row.get("gpr_pct_52w"),
             factors=row.get("factors_jsonb") or {},
+            # Permanently empty by construction: no producer writes either channel
+            # anywhere in the tree and no column on gold_posture_daily carries them,
+            # so both halves are this em-dash on every request. The field stays on
+            # the contract; the /gold page stopped rendering it.
             two_force_text=GoldTwoForceText(
                 discount_rate="—",
                 hedge_demand="—",

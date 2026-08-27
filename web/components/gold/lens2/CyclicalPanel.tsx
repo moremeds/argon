@@ -6,7 +6,6 @@ import { ArticleZoneCard } from "./ArticleZoneCard";
 import { GprCard } from "./GprCard";
 import { InfExpCard } from "./InfExpCard";
 import { RealRateCard } from "./RealRateCard";
-import { TwoForceNarrative } from "./TwoForceNarrative";
 import { UsdTrendCard } from "./UsdTrendCard";
 
 type C = components["schemas"]["GoldCyclicalPostureModel"];
@@ -66,7 +65,6 @@ export function CyclicalPanel({ cyclical }: { cyclical: C }) {
       </div>
 
       <ArticleZoneCard cyclical={cyclical} />
-      <TwoForceNarrative cyclical={cyclical} />
 
       <p
         style={{

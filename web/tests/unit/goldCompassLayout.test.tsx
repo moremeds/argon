@@ -85,10 +85,11 @@ const FIXTURE: State = {
     gpr_value: "371",
     gpr_pct_52w: "0.64",
     factors: { F1: -0.4, F5: 1.8 },
-    two_force_text: {
-      discount_rate: "tightening — would press gold",
-      hedge_demand: "subdued vol — no panic bid",
-    },
+    // What the router actually sends: both halves are hardcoded em-dashes with no
+    // producer anywhere. The panel that rendered them is gone; the field stays for
+    // contract stability, so the fixture states the real value rather than prose the
+    // API cannot emit.
+    two_force_text: { discount_rate: "—", hedge_demand: "—" },
     narrative_text: "Cyclical posture suspended.",
   },
   valuation: {
@@ -96,7 +97,8 @@ const FIXTURE: State = {
     posture_chip: "STRETCHED",
     real_price_percentile: "0.92",
     gold_m2_ratio_percentile: "0.78",
-    gold_oil_ratio_percentile: "0.89",
+    // Declared on the model, never assigned by any producer -- see models/gold.py.
+    gold_oil_ratio_percentile: null,
     gold_spx_ratio_percentile: "0.64",
     narrative_text: "Mean-reversion risk: SEVERE.",
   },
@@ -134,11 +136,10 @@ const FIXTURE: State = {
       status: "ok",
     },
   ],
-  decomposition_rows: [
-    { lens: "L1", factor: "CB Δ12M", contribution: "1.4" },
-    { lens: "L2", factor: "DFII10", contribution: "-0.4" },
-    { lens: "L3", factor: "Gold/CPI", contribution: "1.8" },
-  ],
+  // Always [] in production: reports/gold_posture.py builds it as a literal empty list
+  // and never appends. The panel that read it is deleted; the field stays for contract
+  // stability, so the fixture holds what the producer actually produces.
+  decomposition_rows: [],
   correlation_history: {
     gold_dfii10: [
       { obs_date: "2024-12-31", value: "-0.12" },
@@ -158,7 +159,7 @@ describe("GoldCompassLayout", () => {
     expect(screen.getByRole("region", { name: /lens 2/i })).toBeTruthy();
     expect(screen.getByRole("region", { name: /lens 3/i })).toBeTruthy();
     expect(
-      screen.getByRole("region", { name: /decomposition|correlation/i }),
+      screen.getByRole("region", { name: /correlation history/i }),
     ).toBeTruthy();
   });
 

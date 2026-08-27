@@ -2,7 +2,6 @@ import type { components } from "@/lib/types";
 
 import { CorrelationHistoryPanel } from "./correlation/CorrelationHistoryPanel";
 import { DataAuditFooter } from "./DataAuditFooter";
-import { LensDecompositionPanel } from "./decomposition/LensDecompositionPanel";
 import { GoldCompassHeader } from "./GoldCompassHeader";
 import { KpiStrip } from "./kpi/KpiStrip";
 import { CyclicalPanel } from "./lens2/CyclicalPanel";
@@ -54,21 +53,16 @@ export function GoldCompassLayout({ state, replayDate }: Props) {
         <ValuationPanel valuation={state.valuation} />
       </section>
 
+      {/* The lens-decomposition panel used to sit beside this one. It read
+          ``state.decomposition_rows``, which the producer leaves empty on every
+          run (see reports/gold_posture.py), so it only ever drew its own empty
+          state. The field stays on the API contract; the render is gone. */}
       <section
         role="region"
-        aria-label="Decomposition and correlation history"
+        aria-label="Correlation history"
         style={sectionStyle}
       >
-        <div
-          style={{
-            display: "grid",
-            gridTemplateColumns: "1fr 1fr",
-            gap: 24,
-          }}
-        >
-          <LensDecompositionPanel rows={state.decomposition_rows} />
-          <CorrelationHistoryPanel history={state.correlation_history} />
-        </div>
+        <CorrelationHistoryPanel history={state.correlation_history} />
       </section>
 
       <DataAuditFooter

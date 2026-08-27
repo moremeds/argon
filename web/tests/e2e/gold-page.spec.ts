@@ -21,14 +21,15 @@ test.describe("GOLD COMPASS /gold", () => {
     ).toBeVisible();
 
     // The five regions are aria-labelled by GoldCompassLayout. KPI strip is
-    // tier 1; lens 1/2/3 follow; decomposition + correlation history is the
-    // last region.
+    // tier 1; lens 1/2/3 follow; correlation history is the last region (it
+    // also held a lens-decomposition panel until that panel's data source was
+    // found to be empty by construction).
     await expect(page.getByRole("region", { name: /kpi/i })).toBeVisible();
     await expect(page.getByRole("region", { name: /lens 1/i })).toBeVisible();
     await expect(page.getByRole("region", { name: /lens 2/i })).toBeVisible();
     await expect(page.getByRole("region", { name: /lens 3/i })).toBeVisible();
     await expect(
-      page.getByRole("region", { name: /decomposition|correlation/i }),
+      page.getByRole("region", { name: /correlation history/i }),
     ).toBeVisible();
 
     // Posture language: page must NOT contain sizing imperatives. Re-asserts

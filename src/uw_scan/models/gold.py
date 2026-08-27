@@ -10,7 +10,6 @@ from pydantic import BaseModel
 
 from ._base import _preserve_public_module
 
-
 PostureChipState = Literal["FAVORABLE", "NEUTRAL", "STRETCHED", "SUSPENDED", "DEGRADED"]
 
 
@@ -97,6 +96,8 @@ class GoldValuationPostureModel(BaseModel):
     posture_chip: PostureChipState
     real_price_percentile: Decimal | None = None
     gold_m2_ratio_percentile: Decimal | None = None
+    # Always None: declared here and assigned nowhere. No oil series is ingested,
+    # compute_valuation_overlay never returns the anchor, and no DB column holds it.
     gold_oil_ratio_percentile: Decimal | None = None
     gold_spx_ratio_percentile: Decimal | None = None
     narrative_text: str
