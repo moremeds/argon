@@ -351,3 +351,125 @@ def test_a_comparison_of_nothing_is_refused(seeded_db_empty_cards):
         assemble_comparison_report(
             seeded_db_empty_cards.conn, [], schema=seeded_db_empty_cards._schema
         )
+
+
+def _seed_two_chains(tax) -> None:
+    """Two chains whose aliases collide by substring — the shape that misfiled.
+
+    `datacenter` (Cloud) is a substring of `datacenterandcommunications`
+    (Optical), so a first-match-wins resolver files Coherent's optical segment
+    under whichever chain the unordered SELECT happened to return first.
+    """
+    tax.publish_version("test-v1", note="alias specificity", activate=True)
+    tax.define_chains(
+        "test-v1",
+        [
+            {"domain": "optical", "chain": "Optical", "layer": "Module", "layer_rank": 10},
+            {"domain": "cloud", "chain": "Cloud", "layer": "Hosting", "layer_rank": 10},
+        ],
+    )
+
+
+def test_the_catalogue_matches_what_the_assembler_actually_emits(seeded_db_empty_cards):
+    """`chain_nodes` declares the node's components; the assembler emits them.
+
+    Two statements of one fact. Without this test the catalogue is documentation
+    that drifts, and the cost/authority fields other code reads become fiction.
+    """
+    from uw_scan.fundamentals import chain_nodes
+    from uw_scan.storage.research_taxonomy import ResearchTaxonomyRepository
+    from uw_scan.worker.jobs.research_report_assemble import (
+        assemble_chain_report,
+        assemble_comparison_report,
+    )
+
+    conn, schema = seeded_db_empty_cards.conn, seeded_db_empty_cards._schema
+    tax = ResearchTaxonomyRepository(conn, schema=schema)
+    _seed_two_chains(tax)
+    for ticker in ("AVGO", "LITE", "COHR"):
+        tax.add_membership(
+            "test-v1", chain="Optical", layer="Module", ticker=ticker,
+            evidence_class="analyst", approved_by="test",
+        )
+
+    kw = {"schema": schema, "as_of": date(2026, 8, 26), "publish": False}
+    emitted = {
+        chain_nodes.CHAIN: assemble_chain_report(conn, "Optical", **kw),
+        chain_nodes.COMPANY: assemble_company_report(conn, "AVGO", **kw),
+        chain_nodes.COMPARISON: assemble_comparison_report(conn, ["AVGO", "LITE"], **kw),
+    }
+    for shape, report in emitted.items():
+        declared = chain_nodes.components_for(shape)
+        order = [c.kind for c in declared]
+        got = [b["block_kind"] for b in report["blocks"]]
+
+        # A SUBSEQUENCE, not an equality: an optional component with nothing to
+        # say is dropped, and the `unsupported` block declares the gap. What may
+        # never happen is a kind the catalogue does not name, or two kinds
+        # emitted out of declared order.
+        assert set(got) <= set(order), f"{shape}: undeclared kinds {set(got) - set(order)}"
+        assert [order.index(k) for k in got] == sorted(
+            order.index(k) for k in got
+        ), f"{shape}: emitted out of declared order — {got}"
+        for component in declared:
+            if component.required:
+                assert component.kind in got, f"{shape}: missing {component.kind}"
+
+        by_kind = {b["block_kind"]: b for b in report["blocks"]}
+        for component in declared:
+            block = by_kind.get(component.kind)
+            if block is None:
+                continue
+            assert block.get("authority") == component.authority, (
+                f"{shape}/{component.kind}: authority "
+                f"{block.get('authority')!r} != declared {component.authority!r}"
+            )
+
+
+def test_every_declared_component_is_free_of_vendor_calls(seeded_db_empty_cards):
+    """A component that starts calling a vendor must say so in its Cost.
+
+    The whole extensibility claim — that a new chain costs no incremental UW
+    spend — rests on this staying true.
+    """
+    from uw_scan.fundamentals import chain_nodes
+
+    charged = [c.kind for c in chain_nodes.CHAIN_COMPONENTS if c.cost.uw_calls]
+    assert charged == [], f"components now charging vendor calls: {charged}"
+
+
+def test_the_exposure_block_and_its_coverage_count_reconcile(seeded_db_empty_cards):
+    """Coverage counts MEMBERS with a magnitude; the block lists ALL of them.
+
+    Shipped as `with_magnitude: 2` immediately above a list of four — the same
+    two-grains-one-ratio defect as the 19-of-17 count, one block apart.
+    """
+    from uw_scan.storage.research_taxonomy import ResearchTaxonomyRepository
+    from uw_scan.worker.jobs.research_report_assemble import assemble_chain_report
+
+    conn, schema = seeded_db_empty_cards.conn, seeded_db_empty_cards._schema
+    tax = ResearchTaxonomyRepository(conn, schema=schema)
+    _seed_two_chains(tax)
+    tax.add_membership(
+        "test-v1", chain="Optical", layer="Module", ticker="COHR",
+        evidence_class="analyst", approved_by="test",
+    )
+    tax.record_exposure([
+        {
+            "taxonomy_version": "test-v1", "ticker": t, "chain": "Optical",
+            "role": "component", "magnitude": mag, "magnitude_basis": "segment_share",
+            "confidence": "high", "status": "disclosed",
+            "source_kind": "revenue_breakdown_obs", "source_ref": f"{t.lower()}:Seg",
+        }
+        for t, mag in (("COHR", 0.75), ("APH", 0.61))  # APH is NOT a member
+    ])
+
+    report = assemble_chain_report(
+        conn, "Optical", schema=schema, as_of=date(2026, 8, 26), publish=False
+    )
+    by_kind = {b["block_kind"]: b["payload"] for b in report["blocks"]}
+    coverage, listed = by_kind["chain_coverage"], by_kind["chain_exposure"]["exposures"]
+    assert coverage["with_magnitude"] == 1
+    assert coverage["magnitudes_non_member"] == 1
+    assert coverage["with_magnitude"] + coverage["magnitudes_non_member"] == len(listed)
+    assert {e["ticker"]: e["is_member"] for e in listed} == {"COHR": True, "APH": False}

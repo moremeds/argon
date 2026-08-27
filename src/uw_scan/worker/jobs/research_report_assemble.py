@@ -338,6 +338,19 @@ def assemble_chain_report(
                 "members": coverage.get("members", len(distinct_members)),
                 "with_exposure": coverage.get("with_exposure", 0),
                 "with_magnitude": coverage.get("with_magnitude", 0),
+                # `with_magnitude` counts MEMBERS carrying a magnitude; the
+                # exposure block below lists every magnitude mapped to the chain,
+                # members or not. Those are different grains, so both are named
+                # here — the alternative is a report whose coverage says 2 and
+                # whose next block prints 4.
+                "magnitudes_non_member": len(
+                    [
+                        e
+                        for e in exposures
+                        if e["magnitude"] is not None
+                        and e["ticker"] not in priority_by_ticker
+                    ]
+                ),
                 "with_compatible_result": len(with_result),
             },
             "evidence": {"source": "chain_membership + company_exposure"},
@@ -391,6 +404,12 @@ def assemble_chain_report(
                         ),
                         "basis": e["magnitude_basis"],
                         "status": e["status"],
+                        # A magnitude mapped to this chain for a company nobody
+                        # placed in it is a claim about the chain that the
+                        # membership does not support. It stays visible and
+                        # labelled rather than being filtered out of sight.
+                        "is_member": e["ticker"] in priority_by_ticker,
+                        "source_ref": e.get("source_ref"),
                     }
                     for e in exposures
                     if e["magnitude"] is not None

@@ -161,7 +161,13 @@ def derive_disclosed_exposure(
     apparent participation by the number of quarters it has filed.
     """
     repo = ResearchTaxonomyRepository(conn, schema=schema)
-    counters = {"candidates": 0, "matched": 0, "written": 0, "no_denominator": 0}
+    counters = {
+        "candidates": 0,
+        "matched": 0,
+        "written": 0,
+        "no_denominator": 0,
+        "ambiguous": 0,
+    }
 
     with conn.cursor() as cur:
         cur.execute(
@@ -204,39 +210,58 @@ def derive_disclosed_exposure(
     for obs_id, ticker, axis, member, value, total in candidates:
         counters["candidates"] += 1
         local = member.split(":")[-1].lower()
-        for chain, pattern, alias_axis, role in aliases:
-            if alias_axis != axis or pattern.lower() not in local:
-                continue
-            counters["matched"] += 1
-            if not total or float(total) <= 0:
-                # No consolidated row means no honest denominator. Recorded as a
-                # gap rather than divided by the sum of siblings, which would
-                # silently answer a different question.
-                counters["no_denominator"] += 1
-                break
-            share = float(value) / float(total)
-            if not (0.0 <= share <= 1.0):
-                counters["no_denominator"] += 1
-                break
-            rows.append(
-                {
-                    "taxonomy_version": version,
-                    "ticker": ticker,
-                    "chain": chain,
-                    "role": role,
-                    "direction": None,
-                    "counterparty": None,
-                    "magnitude": share,
-                    "magnitude_basis": "segment_share",
-                    "confidence": "high",
-                    "status": "disclosed",
-                    "source_kind": "revenue_breakdown_obs",
-                    "source_ref": member,
-                    "source_obs_id": obs_id,
-                    "note": f"alias {pattern!r} on {axis}",
-                }
-            )
-            break
+        # EVERY match, then the most specific one — never the first the database
+        # happened to return. `datacenter` is a substring of
+        # `datacenterandcommunications`, so a first-match-wins loop filed
+        # Coherent's optical segment (74.6% of revenue) under whichever chain the
+        # unordered SELECT listed first. Longest pattern wins because a longer
+        # alias is a narrower claim.
+        hits = [
+            (chain, pattern, role)
+            for chain, pattern, alias_axis, role in aliases
+            if alias_axis == axis and pattern.lower() in local
+        ]
+        if not hits:
+            continue
+        counters["matched"] += 1
+        longest = max(len(p) for _, p, _ in hits)
+        best = [h for h in hits if len(h[1]) == longest]
+        if len({chain for chain, _, _ in best}) > 1:
+            # Two chains stake an equally specific claim on one segment. There is
+            # no evidence here to break the tie, so the derivation writes
+            # nothing: a coin flip would publish a magnitude that reads as
+            # disclosed fact.
+            counters["ambiguous"] += 1
+            continue
+        chain, pattern, role = best[0]
+        if not total or float(total) <= 0:
+            # No consolidated row means no honest denominator. Recorded as a
+            # gap rather than divided by the sum of siblings, which would
+            # silently answer a different question.
+            counters["no_denominator"] += 1
+            continue
+        share = float(value) / float(total)
+        if not (0.0 <= share <= 1.0):
+            counters["no_denominator"] += 1
+            continue
+        rows.append(
+            {
+                "taxonomy_version": version,
+                "ticker": ticker,
+                "chain": chain,
+                "role": role,
+                "direction": None,
+                "counterparty": None,
+                "magnitude": share,
+                "magnitude_basis": "segment_share",
+                "confidence": "high",
+                "status": "disclosed",
+                "source_kind": "revenue_breakdown_obs",
+                "source_ref": member,
+                "source_obs_id": obs_id,
+                "note": f"alias {pattern!r} on {axis}",
+            }
+        )
 
     counters["written"] = repo.record_exposure(rows)
     log.info("derive_disclosed_exposure: %s", counters)

@@ -49,6 +49,14 @@ function num(v: number | null | undefined): string {
   return Number.isInteger(v) ? String(v) : v.toFixed(4);
 }
 
+/** Every scalar leaving a payload goes through here. A score printed at raw
+ *  float precision (0.419931924774829) claims 15 significant digits the
+ *  measurement does not have, and it is the same number the delta block already
+ *  renders as 0.4199 — one value, two spellings, on one page. */
+function scalar(v: unknown): string {
+  return typeof v === "number" ? num(v) : String(v);
+}
+
 function Delta({ delta }: { delta: ReportDeltaModel }) {
   if (delta.is_first_version) {
     return (
@@ -123,7 +131,7 @@ function Payload({ value }: { value: unknown }) {
             {typeof row === "object" && row !== null ? (
               <Payload value={row} />
             ) : (
-              String(row)
+              scalar(row)
             )}
           </li>
         ))}
@@ -131,19 +139,30 @@ function Payload({ value }: { value: unknown }) {
     );
   }
   if (typeof value === "object" && value !== null) {
+    // A nested structure takes the FULL row; only scalars share the columns.
+    // Without this a three-column grid nested inside a three-column cell owns a
+    // NINTH of the width, `break-words` splits mid-word rather than wrapping,
+    // and "balance_sheet" arrives as "balan/ce_sh/eet". The fix is width, not
+    // fewer columns — a table shoved into a third of the page is still wrong
+    // when it is legible.
     return (
       <dl className="grid grid-cols-2 gap-x-4 gap-y-1 sm:grid-cols-3">
         {Object.entries(value as Record<string, unknown>).map(([k, v]) => (
-          <div key={k}>
+          <div
+            key={k}
+            className={
+              typeof v === "object" && v !== null ? "col-span-full" : undefined
+            }
+          >
             <dt className="text-xs text-zinc-600">{k}</dt>
-            <dd className="break-words text-xs text-zinc-300">
+            <dd className="break-words text-xs tabular-nums text-zinc-300">
               {v == null ? (
                 // `na`, never a blank: a blank reads as zero.
                 <span className="text-zinc-600">na</span>
               ) : typeof v === "object" ? (
                 <Payload value={v} />
               ) : (
-                String(v)
+                scalar(v)
               )}
             </dd>
           </div>
@@ -151,7 +170,7 @@ function Payload({ value }: { value: unknown }) {
       </dl>
     );
   }
-  return <p className="break-words text-xs text-zinc-300">{String(value)}</p>;
+  return <p className="break-words text-xs text-zinc-300">{scalar(value)}</p>;
 }
 
 function Block({ block }: { block: ReportBlock }) {
