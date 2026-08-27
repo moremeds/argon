@@ -44,6 +44,9 @@ class _FakeCalendarRepo:
     def next_prints(self, *, on_or_after, tickers=None):
         return []
 
+    def prints_between(self, start, end):
+        return []
+
     def upsert_rows(self, rows):
         rows = list(rows)
         self.upserts.extend(rows)

@@ -65,6 +65,14 @@ class _FakeCalendarRepo:
             if d >= on_or_after and (wanted is None or t in wanted)
         ]
 
+    def prints_between(self, start, end):
+        # Same pool as `next_prints` — a row seeded into `_existing` (a
+        # pre-existing calendar row) or upserted earlier THIS run is visible.
+        pool = set(self._existing) | {
+            (r["ticker"], r["report_date"]) for r in self.upserts
+        }
+        return [{"ticker": t, "report_date": d} for (t, d) in pool if start <= d <= end]
+
 
 @pytest.fixture
 def patched(monkeypatch):
@@ -294,3 +302,76 @@ def test_a_new_filing_matching_a_pre_existing_calendar_row_is_left_alone(patched
     repo = patched["calendar_repo"]
     assert [r for r in repo.upserts if r["source"] == "statement_obs"] == []
     assert out["calendar_unknown_rows_new"] == 0
+
+
+# ---------------------------------------------------------------------------
+# C1 regression: the guard must key on a WINDOW around the filing date, not
+# an exact match — the two clocks (filing date vs. real report date) differ
+# for the normal case, which is exactly what let the phantom-row bug ship.
+# ---------------------------------------------------------------------------
+
+
+def test_a_classified_ticker_whose_filing_date_differs_from_its_report_date_is_left_alone(
+    patched,
+):
+    """The C1 repro case, with real dates. ISRG's real Q2 FY2026 print is
+    `report_date=2026-07-16` (verified live via UW `get_earnings_history`,
+    `tests/integration/storage/test_earnings_calendar.py`'s `ISRG_KNOWN`
+    fixture); its `filing_published_at` for the same period (period_end
+    2026-06-30) is `2026-07-21` (real, queried from
+    `option_wizard_local.uw_scan.fundamental_statement_obs` on 2026-08-28) —
+    a **5-day gap between the two clocks**, the exact shape the branch review
+    reproduced live: a calendar row keyed on the print date, and a filing
+    date the daily job's guard used to compare bit-for-bit against it. Before
+    the fix, this produced a second, phantom `statement_obs` row dated
+    2026-07-21; the fix must recognize ISRG as already-known and write
+    nothing."""
+    isrg_report_date = date(2026, 7, 16)
+    isrg_filing_date = date(2026, 7, 21)
+    patched["calendar"] = {TODAY: [("AAPL", "premarket")]}
+    patched["existing_calendar"] = {("ISRG", isrg_report_date)}
+    patched["new_filings"] = [
+        {"ticker": "ISRG", "filing_published_at": isrg_filing_date}
+    ]
+
+    out = _run(patched, lookback_days=0)
+
+    repo = patched["calendar_repo"]
+    assert [r for r in repo.upserts if r["source"] == "statement_obs"] == [], (
+        "ISRG's real report_date (2026-07-16) is within the measured "
+        "filing-to-print window of its real filing date (2026-07-21) and "
+        "must be recognized as already known — no phantom row"
+    )
+    assert out["calendar_unknown_rows_new"] == 0
+
+
+def test_a_filing_date_outside_the_measured_window_still_lands_via_statement_obs(
+    patched,
+):
+    """The window has an edge: a filing date far enough from every existing
+    calendar row (beyond `FILING_TO_PRINT_WINDOW_DAYS`) is genuinely unknown
+    and must still land — the fix narrows the guard's blast radius, it does
+    not turn it into a no-op that never fires. DJCO's real filing gap (see
+    the filing-date-recovery VERDICT) is `period_end=2026-06-30`,
+    `filing_published_at=2026-08-12`, with no calendar row anywhere near it
+    (DJCO is one of the ~2% UW never classifies) — 100+ days from any
+    existing print in this fixture, far outside the window."""
+    djco_filing_date = date(2026, 8, 12)
+    patched["calendar"] = {TODAY: [("AAPL", "premarket")]}
+    patched["existing_calendar"] = {("ISRG", date(2026, 7, 16))}
+    patched["new_filings"] = [
+        {"ticker": "DJCO", "filing_published_at": djco_filing_date}
+    ]
+
+    out = _run(patched, lookback_days=0)
+
+    repo = patched["calendar_repo"]
+    assert [r for r in repo.upserts if r["source"] == "statement_obs"] == [
+        {
+            "ticker": "DJCO",
+            "report_date": djco_filing_date,
+            "session": None,
+            "source": "statement_obs",
+        }
+    ]
+    assert out["calendar_unknown_rows_new"] == 1

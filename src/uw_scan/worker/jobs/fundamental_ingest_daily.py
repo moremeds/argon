@@ -59,6 +59,21 @@ from uw_scan.worker.jobs.fundamental_ingest import fundamental_ingest
 
 log = logging.getLogger(__name__)
 
+#: How far a filing-publication date can drift from the real report date and
+#: still be recognized as "the same print" by the statement_obs fallback's
+#: already-known guard. MEASURED, not guessed (branch-fix-p2, C1): a live
+#: sample of 26 tickers with both a real report_date (UW `get_earnings_
+#: history`) and a `filing_published_at` (this repo's `fundamental_
+#: statement_obs`, period_end 2026-06-30) found the gap is one-directional
+#: (filing always on-or-after the report) and distributed 15/26 at 0 days,
+#: 6/26 at 1 day, 2/26 at 3 days (GILD, MRK), 1/26 at 5 days (ISRG, the C1
+#: repro case), 1/26 at 8 days (AVB), 1/26 at 9 days (BXP, the observed max).
+#: 10 days covers every sample with margin and stays far short of the ~91-day
+#: gap between a ticker's own consecutive quarters (see the filing-date-
+#: recovery VERDICT's tolerance study), so a window this wide cannot
+#: misidentify a DIFFERENT quarter's print as the one just filed.
+FILING_TO_PRINT_WINDOW_DAYS = 10
+
 _EMPTY: dict[str, int] = {
     "tickers": 0,
     "inserted": 0,
@@ -81,11 +96,23 @@ def persist_unknown_statements(
     """Land the `statement_obs` fallback rows (spec §5-i) for a landed-this-run
     statement whose `filing_published_at` date has no calendar row for that ticker —
     the ~2% UW reports `report_time: "unknown"`, invisible to both classified slots
-    (see `sources/earnings_calendar.py`). A ticker that DID appear on the calendar for
-    that exact date is left alone: the calendar row already carries the real session,
-    and re-upserting session=NULL there would just be a no-op touch (COALESCE never
-    lets NULL clobber a known value) — checked explicitly so the intent stays legible
-    rather than relying on that safety net.
+    (see `sources/earnings_calendar.py`).
+
+    `filing_published_at` is a FILING date, not a print date (branch-fix-p2, C1)
+    — the two coincide for some names and land up to `FILING_TO_PRINT_WINDOW_DAYS`
+    apart for others (measured; see that constant's docstring), so "already known"
+    can never be an exact-date match against the classified calendar's `report_date`:
+    that compares the new row's date against a set keyed on a DIFFERENT clock and
+    almost never matches for a name whose 10-Q lands days after its actual report.
+    A classified ticker is instead recognized as known when ANY existing calendar
+    row for it falls within the measured window of the filing date — covering the
+    real report date whichever side of the filing it lands on, without reaching
+    into a neighboring quarter (quarters sit ~91 days apart; see the window
+    constant). A ticker that IS newly-known this way is left alone entirely: the
+    calendar row already carries the real session, and re-upserting session=NULL
+    there would just be a no-op touch (COALESCE never lets NULL clobber a known
+    value) — checked explicitly so the intent stays legible rather than relying on
+    that safety net.
 
     Public (not `fundamental_ingest_daily`-private) because the daily job's own
     `targets` can only ever be tickers the classified calendar just listed — a
@@ -98,22 +125,31 @@ def persist_unknown_statements(
     """
     if not new_filings:
         return 0
-    tickers = sorted({filing["ticker"].upper() for filing in new_filings})
-    earliest = min(filing["filing_published_at"] for filing in new_filings)
-    existing = {
-        (row["ticker"], row["report_date"])
-        for row in calendar_repo.next_prints(on_or_after=earliest, tickers=tickers)
-    }
-    unknown_rows = [
-        {
-            "ticker": filing["ticker"],
-            "report_date": filing["filing_published_at"],
-            "session": None,
-            "source": "statement_obs",
-        }
-        for filing in new_filings
-        if (filing["ticker"].upper(), filing["filing_published_at"]) not in existing
-    ]
+    filing_dates = [filing["filing_published_at"] for filing in new_filings]
+    window_start = min(filing_dates) - timedelta(days=FILING_TO_PRINT_WINDOW_DAYS)
+    window_end = max(filing_dates) + timedelta(days=FILING_TO_PRINT_WINDOW_DAYS)
+    known_dates_by_ticker: dict[str, list[date]] = {}
+    for row in calendar_repo.prints_between(window_start, window_end):
+        known_dates_by_ticker.setdefault(row["ticker"], []).append(row["report_date"])
+
+    unknown_rows = []
+    for filing in new_filings:
+        ticker = filing["ticker"].upper()
+        filing_date = filing["filing_published_at"]
+        known_dates = known_dates_by_ticker.get(ticker, [])
+        if any(
+            abs((filing_date - known_date).days) <= FILING_TO_PRINT_WINDOW_DAYS
+            for known_date in known_dates
+        ):
+            continue
+        unknown_rows.append(
+            {
+                "ticker": filing["ticker"],
+                "report_date": filing_date,
+                "session": None,
+                "source": "statement_obs",
+            }
+        )
     return calendar_repo.upsert_rows(unknown_rows)
 
 
