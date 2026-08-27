@@ -278,6 +278,29 @@ class FundamentalObsRepository:
                     new += self.record_violations(obs_id, violations)
             offset += batch
 
+    def worst_ni_offenders(self, limit: int = 10) -> list[dict[str, Any]]:
+        """Tickers with the most net-income cross-statement violations, worst first.
+
+        Feeds the desk limits block (P3) by NAME — a ticker whose income and
+        cash-flow statements disagree on net income is named specifically
+        rather than folded into an aggregate "N violations" count nobody can
+        act on.
+        """
+        sql = f"""
+            SELECT o.ticker, count(*) AS violation_count
+              FROM {self._schema}.fundamental_obs_violations v
+              JOIN {self._schema}.fundamental_statement_obs o USING (obs_id)
+             WHERE v.check_name = 'net_income_disagrees_across_statements'
+             GROUP BY o.ticker
+             ORDER BY violation_count DESC, o.ticker
+             LIMIT %s
+        """
+        with self.conn.cursor() as cur:
+            cur.execute(sql, (limit,))
+            return [
+                {"ticker": r[0], "violation_count": int(r[1])} for r in cur.fetchall()
+            ]
+
     def statement_panel(
         self, tickers: Sequence[str] | None = None, period_type: str = "quarterly"
     ) -> dict[str, dict[str, Any]]:

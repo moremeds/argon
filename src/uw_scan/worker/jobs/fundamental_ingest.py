@@ -35,6 +35,21 @@ the window cannot reach a neighbour. Full curve:
 SELF-GATING
 -----------
 An unseeded tier yields no tickers and the job returns having spent zero calls.
+
+CROSS-STATEMENT NI RECONCILIATION AND THE MONTHLY SWEEP
+--------------------------------------------------------
+Because this function re-fetches a ticker's ENTIRE statement history every call
+(see above), `rows` always holds every (period, statement) pair the provider
+currently reports for that ticker — not just what changed this run. The
+income-vs-cash-flow net-income cross-check (`check_cross_statement_violations`)
+is wired against that full set, so both this function's callers — the
+calendar-driven `fundamental_ingest_daily` (which delegates here for its
+`targets`) and the monthly full-tier sweep registered in `scheduler.py` —
+inherit it for free. A cash-flow statement that lands after its matching
+income statement is invisible to the cross-check until the NEXT run that
+includes the ticker; the monthly sweep is what guarantees that happens within
+a month even for a ticker the daily calendar never names again (the ~2% UW
+reports `report_time: "unknown"`, see `fundamental_ingest_daily.py`).
 """
 
 from __future__ import annotations
@@ -49,6 +64,7 @@ from uw_scan.api.client import UwClient
 from uw_scan.api.endpoints import EndpointSlug
 from uw_scan.fundamentals.statements import (
     FIELD_MAP_VERSION,
+    check_cross_statement_violations,
     check_violations,
     content_hash,
     normalize,
@@ -222,6 +238,35 @@ def fundamental_ingest(
                     violations = check_violations(statement, payload)
                     if violations:
                         flagged.append((row, violations))
+
+            # Cross-statement NI reconciliation needs BOTH statements' payloads
+            # for the same (period_end, period_type) in hand at once — this loop
+            # fetches every statement for the whole ticker every run (see the
+            # module docstring), so `rows` already holds every pair the provider
+            # currently reports, not just what is new this run. A cash-flow
+            # statement that lands in a LATER run than its income statement is
+            # only caught the NEXT time this function re-ingests the ticker;
+            # `check_cross_statement_violations`'s docstring explains why the
+            # per-obs `recheck_violations` sweep cannot substitute for that, and
+            # the monthly full-tier sweep (unlike the calendar-driven daily job)
+            # touches every ticker unconditionally, so it is what guarantees
+            # every pair is eventually re-checked regardless of when either
+            # statement was first published.
+            by_period: dict[tuple[date, str], dict[str, dict[str, Any]]] = {}
+            for row in rows:
+                by_period.setdefault((row["period_end"], row["period_type"]), {})[
+                    row["statement"]
+                ] = row
+            for pair in by_period.values():
+                income_row = pair.get("income")
+                cashflow_row = pair.get("cash_flow")
+                if income_row is None or cashflow_row is None:
+                    continue
+                cross_violations = check_cross_statement_violations(
+                    income_row["raw_jsonb"], cashflow_row["raw_jsonb"]
+                )
+                if cross_violations:
+                    flagged.append((income_row, cross_violations))
 
             inserted, touched = repo.record_statements(rows)
             if inserted > 0:

@@ -41,6 +41,13 @@ MIN_PLAUSIBLE_SHARES = Decimal("1000000")
 # rounding in reported figures rather than a disagreement.
 IDENTITY_TOLERANCE = Decimal("0.01")
 
+# Relative tolerance for net-income reconciliation between the income
+# statement and the cash-flow statement's own net-income line. Same numeric
+# value as IDENTITY_TOLERANCE but named separately -- the two checks measure
+# unrelated identities that happen to share a threshold; a future change to
+# one must not silently move the other.
+NI_RECONCILIATION_TOLERANCE = Decimal("0.01")
+
 _NUMERIC = re.compile(r"^-?\d+(\.\d+)?([eE][-+]?\d+)?$")
 
 
@@ -210,6 +217,57 @@ def check_violations(statement: str, payload: Mapping[str, Any]) -> list[Violati
     return out
 
 
+def check_cross_statement_violations(
+    income: Mapping[str, Any], cashflow: Mapping[str, Any]
+) -> list[Violation]:
+    """Net income must agree between the income statement and the cash-flow
+    statement's own net-income reconciliation line, within 1%.
+
+    CROSS-OBSERVATION, unlike every other check in this module: it needs BOTH
+    statements for the same (ticker, period) in hand at once, whereas
+    `check_violations` above evaluates one payload in isolation. That
+    distinction matters operationally: `FundamentalObsRepository.recheck_violations`
+    re-runs `check_violations` one stored row at a time, so it can NEVER apply
+    this check retroactively to a pair whose second statement landed in a
+    later ingest run -- there is no single row to hand it. The only path that
+    reaches a pair completed after the fact is a full re-ingest of that
+    ticker: `fundamental_ingest` always re-fetches a ticker's ENTIRE statement
+    history (see its module docstring), so both the calendar-driven daily job
+    and the monthly full-tier sweep re-derive every (period, statement) pair
+    the provider currently reports each time they touch a ticker, and this
+    check is wired at that single call site so both inherit it. A cash-flow
+    statement that shows up a quarter late is still invisible until the NEXT
+    run that includes the ticker -- the daily job only includes tickers the
+    earnings calendar names that day, so the monthly sweep (which touches the
+    whole tier unconditionally) is what guarantees every ticker gets
+    revisited at least once a month regardless of the calendar.
+
+    The comparison stays in `Decimal` end to end via `_dec` -- this is the
+    exact shape (`abs(a - b) > tolerance * max(abs(a), abs(b))`) that broke
+    once already in this codebase in `float()`, where `0.11 - 0.10 < 0.01` is
+    `True` in binary floating point.
+
+    Attributed to the INCOME observation (`field="net_income"`) because that
+    is the claim being contradicted; the cash-flow figure travels in `detail`
+    for the reader to compare.
+    """
+    ni_inc = _dec(income, "net_income")
+    ni_cf = _dec(cashflow, "net_income")
+    if ni_inc is None or ni_cf is None:
+        return []
+    tolerance = NI_RECONCILIATION_TOLERANCE * max(abs(ni_inc), abs(ni_cf))
+    if abs(ni_inc - ni_cf) > tolerance:
+        return [
+            Violation(
+                "net_income_disagrees_across_statements",
+                "net_income",
+                ni_inc,
+                {"cashflow_net_income": str(ni_cf)},
+            )
+        ]
+    return []
+
+
 def _self_check() -> None:
     base = {
         "ticker": "NVDA",
@@ -267,6 +325,17 @@ def _self_check() -> None:
     } == {"implausible_share_count"}
     # Income statements carry no balance checks.
     assert check_violations("income", clean) == []
+
+    # Cross-statement NI reconciliation: agreeing pair raises nothing.
+    income = {"net_income": "58321000000"}
+    agreeing_cf = {"net_income": "58321000000"}
+    assert check_cross_statement_violations(income, agreeing_cf) == []
+    # A real 2x-magnitude disagreement (CVX 2023-06-30 shape) fires.
+    disagreeing_cf = {"net_income": "-58000000000"}
+    names = {
+        v.check_name for v in check_cross_statement_violations(income, disagreeing_cf)
+    }
+    assert names == {"net_income_disagrees_across_statements"}, names
     print("statements self-check ok")
 
 

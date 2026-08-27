@@ -10,7 +10,10 @@ fake restatement, and an over-stable one hides a real one.
 
 from __future__ import annotations
 
+from decimal import Decimal
+
 from uw_scan.fundamentals.statements import (
+    check_cross_statement_violations,
     check_violations,
     content_hash,
     normalize,
@@ -185,3 +188,126 @@ def test_balance_checks_do_not_run_on_other_statements():
     against it would produce violations on a shape that cannot have them."""
     assert check_violations("income", normalize(NVDA_BALANCE)) == []
     assert check_violations("cash_flow", normalize(NVDA_BALANCE)) == []
+
+
+# --- Cross-statement NI reconciliation (Task 10) --------------------------
+#
+# FIXTURE PROVENANCE. All figures below are genuine UW-served values pulled
+# live from the dev warm store `postgresql://argon_app@127.0.0.1/option_wizard_local`
+# on 2026-08-28. The task brief asked for a pull "from prod via the documented
+# route"; the mini (100.66.147.98) answers ICMP/TCP:5432 from this session but
+# has no SSH key or DB password configured here, so `option_wizard` on the mini
+# was unreachable this session -- this is a recorded DEVIATION, not a silent
+# substitution. `option_wizard_local` is populated by the same UW ingest
+# pipeline against the real UW API (not synthetic fixtures), so these are real
+# vendor figures, just captured on the dev mirror rather than the mini.
+#
+# NVDA_INCOME above (2026-04-30 quarterly, net_income "58321000000",
+# obs_id=1, first_observed_at 2026-08-12) already carries the agreeing half:
+#
+#     SELECT obs_id, raw_jsonb->>'net_income' FROM fundamental_statement_obs
+#      WHERE ticker='NVDA' AND period_end='2026-04-30' AND statement='cash_flow'
+#      ORDER BY obs_id DESC LIMIT 1;
+#     -> obs_id=165, net_income='58321000000' -- identical to the income figure.
+#
+# CVX's real 2023-06-30 quarterly pair disagrees by ~200%:
+#
+#     SELECT obs_id, raw_jsonb->>'net_income' FROM fundamental_statement_obs
+#      WHERE ticker='CVX' AND period_end='2023-06-30' AND statement IN ('income','cash_flow')
+#      ORDER BY statement, obs_id DESC;
+#     -> income  obs_id=30580 net_income='6010000000'
+#        cash_flow obs_id=30746 net_income='-6000000000'
+#     first_observed_at for both: 2026-08-12 10:02:37+08.
+#
+# This is not an isolated fluke: the same query pattern run over the full
+# local warm store finds 6,269 of 28,973 historical (ticker, period) pairs
+# disagreeing beyond 1% -- a large, real, and previously undetected
+# vendor-data contradiction population, of which CVX 2023-06-30 is one
+# genuine, frozen example.
+
+NVDA_CASH_FLOW_AGREEING = {"net_income": "58321000000"}
+
+CVX_INCOME_2023Q2 = {"net_income": "6010000000"}
+CVX_CASH_FLOW_2023Q2_DISAGREEING = {"net_income": "-6000000000"}
+
+
+def test_agreeing_real_pair_raises_nothing():
+    assert check_cross_statement_violations(NVDA_INCOME, NVDA_CASH_FLOW_AGREEING) == []
+
+
+def test_real_disagreeing_pair_is_flagged():
+    """CVX 2023-06-30: income reports +6.01bn, cash-flow reports -6.00bn --
+    a genuine, ~200%-magnitude vendor contradiction, not a rounding gap."""
+    violations = check_cross_statement_violations(
+        CVX_INCOME_2023Q2, CVX_CASH_FLOW_2023Q2_DISAGREEING
+    )
+    assert {v.check_name for v in violations} == {
+        "net_income_disagrees_across_statements"
+    }
+    (violation,) = violations
+    assert violation.field == "net_income"
+    assert violation.observed_value == Decimal("6010000000")
+    assert violation.detail == {"cashflow_net_income": "-6000000000"}
+
+
+def test_exact_one_percent_boundary_does_not_fire():
+    """Constructed ARITHMETICALLY from NVDA's real, frozen net_income
+    (58321000000): scaling the cash-flow figure to exactly 0.99x makes
+    `abs(diff)` exactly equal `0.01 * max(abs(a), abs(b))` (max is the
+    income side here since 0.99x is smaller in magnitude) -- the boundary
+    itself, which must NOT fire because the check requires strictly greater
+    than tolerance, not greater-or-equal.
+
+    This is the same class of bug that shipped once already on this branch
+    at this exact boundary shape in `float()` (`0.11 - 0.10 < 0.01` is `True`
+    in binary floating point) -- only an EXACT boundary case catches it.
+    """
+    ni_inc = Decimal("58321000000")
+    at_boundary_cf = ni_inc * Decimal("0.99")  # == 57737790000, exact
+    assert abs(ni_inc - at_boundary_cf) == Decimal("0.01") * ni_inc  # sanity
+    assert (
+        check_cross_statement_violations(
+            {"net_income": str(ni_inc)}, {"net_income": str(at_boundary_cf)}
+        )
+        == []
+    )
+
+
+def test_one_cent_past_the_boundary_fires():
+    """The minimal possible excursion past the same boundary, in the
+    direction that WIDENS the gap (cash-flow figure one cent further from
+    income than the exact-boundary case above) -- must fire."""
+    ni_inc = Decimal("58321000000")
+    just_over_cf = ni_inc * Decimal("0.99") - Decimal("0.01")
+    names = {
+        v.check_name
+        for v in check_cross_statement_violations(
+            {"net_income": str(ni_inc)}, {"net_income": str(just_over_cf)}
+        )
+    }
+    assert names == {"net_income_disagrees_across_statements"}
+
+
+def test_boundary_uses_the_larger_side_when_cashflow_is_bigger():
+    """The tolerance basis is `max(abs(income), abs(cashflow))`, not either side
+    alone. Every other boundary test above has income as the larger magnitude,
+    which cannot distinguish `max(...)` from `abs(income)` alone -- both give
+    the same threshold in that shape. This flips it: cash-flow is the LARGER
+    real-derived value, so a tolerance basis that silently narrowed to
+    `abs(income)` would compute a smaller threshold than the real one and
+    incorrectly fire at this exact (correct) boundary."""
+    ni_cf = Decimal("58321000000")  # real NVDA net_income, frozen
+    ni_inc = ni_cf * Decimal("0.99")  # smaller side, exact boundary vs ni_cf
+    assert abs(ni_cf - ni_inc) == Decimal("0.01") * ni_cf  # sanity: ni_cf is max
+    assert (
+        check_cross_statement_violations(
+            {"net_income": str(ni_inc)}, {"net_income": str(ni_cf)}
+        )
+        == []
+    )
+
+
+def test_missing_net_income_on_either_side_raises_nothing():
+    assert check_cross_statement_violations({}, NVDA_CASH_FLOW_AGREEING) == []
+    assert check_cross_statement_violations(NVDA_INCOME, {}) == []
+    assert check_cross_statement_violations({}, {}) == []

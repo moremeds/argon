@@ -30,6 +30,17 @@ waiting for UW to publish — F3 measured that there is nothing to wait for, and
 non-landed report events were permanently non-landed for reasons that are not timing. The
 default of 3 is a weekend, not a measurement, and it should not be grown to chase a
 missing filing date; that is the backstop's job.
+
+CROSS-STATEMENT NI RECONCILIATION
+----------------------------------
+This job does not call `check_cross_statement_violations` itself — it delegates
+its `targets` straight into `fundamental_ingest`, which runs the cross-check
+against every complete (income, cash-flow) pair it re-fetches for those
+tickers, so this job inherits it without a separate call site. What this job
+does NOT guarantee is revisiting a ticker whose cash-flow statement lands
+after its income statement and after the ticker drops off the classified
+calendar — see `fundamental_ingest`'s own docstring for why the monthly full
+sweep, not this job, is what closes that gap.
 """
 
 from __future__ import annotations
