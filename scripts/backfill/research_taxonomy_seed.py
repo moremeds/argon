@@ -26,6 +26,7 @@ import sys
 import psycopg
 
 from uw_scan.config import Settings
+from uw_scan.fundamentals.chain_nodes import DATACENTER_CHAINS
 from uw_scan.storage.research_taxonomy import ResearchTaxonomyRepository
 from uw_scan.worker.jobs.research_taxonomy_seed import (
     TAXONOMY_V1,
@@ -33,6 +34,7 @@ from uw_scan.worker.jobs.research_taxonomy_seed import (
     derive_disclosed_exposure,
     mirror_watchlist_chain,
     seed_aliases,
+    seed_chain_spec,
 )
 
 APPROVER = "argon-research"
@@ -104,6 +106,17 @@ def main(argv: list[str] | None = None) -> int:
 
         if not args.measure:
             out["mirror"] = mirror_watchlist_chain(conn, schema=schema)
+
+            # The five datacenter build-out chains, immediately after the mirror
+            # that creates their placeholder layer and before any exposure
+            # derivation reads `chain_membership`. Declared as data in
+            # `chain_nodes`, applied here through the same `define_chains` /
+            # `add_membership` calls every other chain uses — no assembler
+            # change, which is the extension contract those specs exist to test.
+            out["datacenter"] = {
+                spec.chain: seed_chain_spec(conn, spec, schema=schema)
+                for spec in DATACENTER_CHAINS
+            }
 
             # Optical layers + membership through the SAME general calls the
             # mirrored chains use. That symmetry is the extensibility proof.
