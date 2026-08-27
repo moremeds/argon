@@ -228,6 +228,53 @@ version in lockstep (enforced by `scripts/release/version_sync_check.py`).
     `uv run python scripts/backfill/research_taxonomy_seed.py` on the mini after deploy, or the five
     chains stay on their rank-0 `L3` placeholder. Zero provider spend, idempotent — a second run is
     a measured no-op.
+- **The macro desk has a shell at `/macro`, and it grows one tab at a time.** `/rates`, `/macro`
+  and `/gold` are being collapsed into one nine-tab desk. Shipping the whole tab bar first would
+  have put nine links on screen of which eight `404`, for the length of six PRs — and the redirects
+  would have sent two working pages into that hole. The fix is structural rather than a schedule.
+  - **`VALID_TABS` is a registry, and it feeds both halves of the navigation.** The route
+    `notFound()`s on any unregistered slug and the bar renders exactly one link per entry, so the
+    bar cannot link somewhere that 404s and the route cannot answer a slug the bar does not show.
+    A tab becomes reachable in the same commit that makes it real. The content map is keyed by a
+    union derived from the registry itself, so registering a tab with nothing behind it is a
+    compile error rather than a runtime 404. This PR seeds it with tab 08 (Design Notes) alone.
+  - The board's tab number is stored, not implied by array position — registration order is PR
+    order, and PR order is not board order.
+  - **`prefetch={false}` on every link.** A nine-tab bar sits entirely in the viewport, and Next
+    prefetches the *full* route for a dynamic one; on the stock page's bare `prefetch` this would
+    fire nine RSC prefetches into `force-dynamic` server components on every page view.
+  - A `<nav aria-label>` with `aria-current="page"`, not a `role="tablist"`. A link bar whose
+    panels are separate documents is not a tablist, and honest markup beats a role that lies.
+  - Four boundaries, not three: a segment's own `error.tsx` cannot catch a throw from that
+    segment's `layout.tsx`, which is exactly where the tab bar lives.
+  - `/macro` itself is deliberately untouched and still renders today's four domain cards, with an
+    e2e test pinning that — so the desk can be built tab by tab without the page ever 404ing.
+  - The gold posture linter now also scans `components/macro` and `app/macro`; the desk is one
+    posture surface now, and tab 08 is prose inside its scope. Verified non-vacuous by planting a
+    banned word under each new root.
+- **`/api/rates/snapshot` can now answer as of a past instant** — `as_of` (a date) and `as_of_ts` (an
+  aware timestamp), the same contract every `/api/macro/*` route already honours: supplying both is a
+  422, a naive timestamp is a 422, neither is `now`. It was the only endpoint on the macro desk with
+  no point-in-time replay, which meant a replayed desk would have rendered four historical panels
+  beside one live one with nothing on screen saying so.
+  - **The predicate is on `computed_at`, not `snapshot_date`.** `rates_snapshots` is keyed
+    `(snapshot_date, computed_at)` and the two answer different questions: `snapshot_date` is the
+    market date an answer is *about*, `computed_at` is when the answer *came into existence*. A
+    backfill can write a row for an old market date long after the fact, so filtering on
+    `snapshot_date <= T` would hand a replay of May a snapshot assembled in August — reading today's
+    answer into the past. The test is built on a fixture where the newer compute carries the earlier
+    market date, so the two columns rank oppositely and a wrong-column query cannot accidentally pass.
+  - **Replay had to stop lying about staleness.** `_mark_stale_snapshot_sources` compared
+    `now - computed_at > 36h` against wall-clock now, which condemns all of history: every replay
+    would have rewritten every `ok` source to `stale` and appended a scheduler-failure risk to every
+    past date. It now measures against the *requested* instant, and the keyword was renamed `now:` →
+    `at:` so the bug cannot be read back in. Paired tests pin both directions — a replay 58 minutes
+    after compute stays `ok`, a replay four days after compute still reports `stale` — because the
+    fix must not become blanket amnesty.
+  - No migration: `idx_rates_snapshots_latest_compute (computed_at DESC, snapshot_date DESC)`
+    (migration `052`) already serves it. There is also only one statement, not two — "no bound" is
+    spelled `COALESCE(%s::timestamptz, 'infinity')` rather than by assembling the `WHERE` clause in
+    Python, so the live path and the replay path cannot drift apart.
 - **The macro ledger can now say "we accepted this and were wrong"** — additive, point-in-time
   evidence invalidation (migration `131`, `macro_evidence_invalidations`). F2, the last open item
   in the macro program.
@@ -514,6 +561,23 @@ evidence_policy)`, which fails closed — an observation with no claim never
 
 ### Changed
 
+- **Two `/gold` panels that could only ever render an em-dash are gone.** `two_force_text` is
+  hardcoded `"—"`/`"—"` in the router with no producer anywhere in the tree, and `decomposition_rows`
+  has been `[]` on every run since it was written (the reason is already recorded in
+  `reports/gold_posture.py`). They rendered "DISCOUNT-RATE CHANNEL —" and "No decomposition data" on
+  every request, forever. `TwoForceNarrative.tsx`, `LensDecompositionPanel.tsx` and
+  `DecompositionBars.tsx` are deleted; the five `role="region"` landmarks survive, with the fifth
+  relabelled "Correlation history" since it no longer contains a decomposition.
+  - **The API fields stay.** Deleting them is a contract change costing an OpenAPI snapshot update
+    and a `web/lib/types.ts` regen that reorders the whole generated file — for no operator benefit,
+    because what misleads is the rendering, not the field.
+  - **The permanently-empty fields are now marked at their producing site**, rather than being
+    rediscovered by the next reader: `rates.events[]` (`RatesEventItem` has zero construction sites
+    in the entire tree — only the class, one default, and two `__all__` entries),
+    `gold_oil_ratio_percentile` (declared on the model, never assigned), `xau_cny_premium_pct`,
+    `cb_52w_pct`, and `InventorySnapshot.vault_oz`. That last one needed a narrower claim than the
+    rest: the DB column is *not* dead — LBMA rows carry real values and the 30-day momentum reads
+    them — what is dead is the COMEX-labelled snapshot field, which no consumer reads.
 - **Phase 1 of the top-down macro program is closed**, scored against the eight completion criteria
   it wrote for itself on 2026-08-12 (`2026-08-12-top-down-macro-context-program.md` §10). Six are met,
   two are not, and the two are recorded as *answered* rather than *outstanding*. Documentation only.
@@ -633,6 +697,45 @@ evidence_policy)`, which fails closed — an observation with no claim never
   `docs/research/2026-08-26-optical-chain-pm-desk/routing_probe.md`). No engine-version change —
   `company_type` is already part of `valuation_anchors`' own identity hash, so a corrected band appears
   under the existing active version on the next scheduled run.
+- **A dead gold API and an un-run gold engine were the same sight on screen.** `fetchGoldState`
+  returned `null` both for a non-2xx response and for any thrown error, and the page rendered one
+  message for both: *"Posture not yet computed. First scheduled run lands at the next worker
+  tick."* An unreachable API therefore told the operator the engine had not run yet — a claim the
+  page had no basis to make, and one that sends him looking in the wrong place.
+  - Three states now, as the desk requires: answered, request failed, never computed. On these
+    routes a 404 genuinely *is* a statement about the data (`no gold posture computed yet`), so
+    404 maps to absence and every other non-2xx throws. The failure copy says the API could not be
+    read and that whether a posture exists is therefore unknown, instead of guessing which it was.
+  - `/gold` also re-inlined the base-URL resolution `lib/api.ts` already owns, with no
+    `api.goldState()` to call. Both are added, and `/gold/replay/[date]` moves onto them too — it
+    held an identical copy of the same fetch and the same collapse, so fixing only `/gold` would
+    have shipped `goldReplay()` with no callers and left the defect intact one directory down.
+  - `/api/gold/replay` takes `as_of` as a **query** parameter, not a path segment; a test pins that
+    so a future path-segment assumption fails loudly rather than 404ing at runtime.
+- **`/rates` told you confidence was reduced by `×0.00`, beside a confidence of `0.850`.**
+  `ConfidenceTerm` defaults `kind` to `"multiplicand"` (`macro/contracts.py`), and two terms in
+  `macro/rates.py` were constructed without it. The UI trusts `kind` — `StateSection.tsx` files any
+  multiplicand below 1.0 under "Reduced by" — so a term that contributes nothing rendered as the
+  thing that had halved the number.
+  - **Neither term was ever in the product.** `macro/confidence.py` computes confidence from five
+    raw locals and *then* builds the reasons tuple; `macro/rates.py` appends its own terms afterwards
+    without touching the number. Every appended term is outside the arithmetic by construction, and
+    `informational` is what "reported, not counted" has always meant here.
+  - **The second one was invisible rather than wrong.** `policy_paths_absent` carries a *count*
+    (`Decimal(len(missing))`), so its value is always ≥ 1 and it never tripped the `< 1` filter — it
+    appeared in neither UI list, which is why nobody noticed it was mislabelled either.
+  - **The regression test is deliberately blind to term names.** It refolds `confidence_reasons`
+    using only `kind` and requires the result to equal the reported `confidence`; separately it
+    requires anything not `informational` to be a fraction in `[0, 1]`, because a count can never be
+    a multiplier.
+  - **The first version of that test could not fail on half the bug, and adversarial review caught
+    it.** Reverting `kind` on `policy_paths_absent` left the whole suite green: in every shipped
+    scenario exactly one required path is absent, so the term carries `Decimal(1)` — which is a
+    no-op as a multiplicand AND a legal fraction, so neither guard can see it. One is the single
+    count that hides this defect. A second rates scenario holding only `actual` and `market_implied`
+    makes the count 2, and reverting either half of the fix now fails two tests. Measured both ways.
+  - The irony is written into the contract itself: `kind` exists so that consumers need not match on
+    term strings, and `kind` was the field that was wrong.
 - **`CLAUDE.md` said schema changes apply out-of-band via the profile-gated migrator. They do not.**
   The `api` service self-migrates before serving (`python -m uw_scan.storage.migrate_runner && exec
   uvicorn`, `docker-compose.yml`), so a Watchtower deploy carries its migrations with it; the
