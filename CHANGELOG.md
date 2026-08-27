@@ -27,15 +27,25 @@ version in lockstep (enforced by `scripts/release/version_sync_check.py`).
 - **Five change-event classes join the discovery gate for the delta rail** — `band_entry`, `band_exit`,
   `implied_move_shift`, `coverage_change` and `bucket_flip`, each derived in `fundamental_change_events.py`
   from measured counts the gate already tracks live, with a dry-run-by-default backfill runner.
-- **Descriptive underwriting features: days-inventory-outstanding and SBC/revenue.**
-  `underwriting_features()` adds `dio` and `sbc_to_revenue` per ticker/period, deliberately outside
-  `FEATURES` and the scored composite — a third feature (diluted-share-count YoY) was probed and shelved
-  rather than shipped speculatively.
-- **NI cross-statement reconciliation is now a persisted integrity violation, not a silent gap.**
-  `check_cross_statement_violations` flags a >1% net-income disagreement between a ticker's income and
-  cash-flow statements at ingest time (`net_income_disagrees_across_statements`), narrowed post-ship to
-  genuine sign-flip defects and backed by a `CHECK_EFFECTS` completeness test rebuilt to enumerate every
-  registered check rather than assert against a fixture-sized subset.
+- **Descriptive underwriting features: days-inventory-outstanding, SBC/revenue, and
+  shares-outstanding YoY.** `underwriting_features()` (`fundamentals/underwriting.py`) adds `dio` and
+  `sbc_to_revenue` per ticker/period, deliberately outside `FEATURES` and the scored composite. The
+  third feature ships as `shares_outstanding_yoy`, not the diluted weighted-average count the spec
+  named — an exhaustive key probe of the statement store found no diluted/weighted-average share field
+  anywhere, so it is sourced from `common_stock_shares_outstanding` (period-end **basic** shares) and
+  named for what it actually measures: net buyback/issuance activity, not option/RSU/convertible
+  overhang. Live on 420/420 tickers.
+- **A genuine cross-statement net-income sign flip is now a persisted integrity violation; the far more
+  common NCI/discontinued-operations gap is not.** The original check flagged any >1% income-vs-cash-flow
+  net-income disagreement and fired on 6,269 of 28,973 pairs (21.6%) — almost all of them the ordinary
+  accounting difference between consolidated and parent-attributable net income (VZ 2010-09-30's
+  881M-vs-2,698M gap is exactly Vodafone's NCI in Verizon Wireless, both figures correct). It is replaced
+  by `check_net_income_sign_flip`, which fires only when the cash-flow figure has the OPPOSITE SIGN at
+  nearly the same magnitude — a literal vendor inversion that NCI or discontinued ops cannot produce —
+  measured at 5 of 28,973 pairs (CVX ×2, GE, IREN, UMC). The NCI/discontinued-ops population is now
+  `net_income_basis_difference`: read-time-only, descriptive, never a `Violation`, never persisted, and
+  mutually exclusive with the sign-flip check by construction. Backed by a `CHECK_EFFECTS` completeness
+  test rebuilt to enumerate every registered check rather than assert against a fixture-sized subset.
 - **Seed the five datacenter build-out chains** (EPC/Construction, Generation/Nuclear,
   Power/Electrical, Cooling/Thermal, DC-REIT/Colo) with real layer ranks — taxonomy rows only, zero
   assembler change, zero vendor calls.
