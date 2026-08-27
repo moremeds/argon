@@ -2353,14 +2353,19 @@ def main() -> int:
         )
 
     if _should_schedule_earnings_reactions(settings):
-        # Earnings reaction compute at 19:40 ET DAILY — not weekday-only, since
+        # Earnings reaction compute at 19:41 ET DAILY — not weekday-only, since
         # a Monday-holiday print's Tuesday close still needs to be picked up on
         # schedule. Pure warm-store read (calendar x daily_ohlc); zero UW/IB
         # spend, so massive-0 is the right single-flight home, same pin as
-        # regime_live/chanlun_lifecycle above.
+        # regime_live/chanlun_lifecycle above. Shifted one minute off :40
+        # (branch-fix-p2, M10) — vrp_paper_mark and macro_state_compute both
+        # also fire at 19:40 on massive-0; each opens its own connection and
+        # APScheduler's default pool is 10, so this was contention, not
+        # breakage, but a minute's shift buys legibility in the job logs for
+        # free.
         sched.add_job(
             _earnings_reactions_compute,
-            CronTrigger.from_crontab("40 19 * * *", timezone=settings.rth_tz),
+            CronTrigger.from_crontab("41 19 * * *", timezone=settings.rth_tz),
             id="earnings_reactions_compute",
             name="Earnings reaction history (calendar x OHLC)",
             max_instances=1,
