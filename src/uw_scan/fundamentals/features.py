@@ -12,13 +12,15 @@ no direction claim, and `roe` was tested but is named by no rubric row. The
 composite that was validated weights all seven equally — see
 `docs/research/2026-08-12-fundamental-weighting-probe/DECISION.md`.
 
-`underwriting_features` below is a SEPARATE, purely descriptive derivation
-(spec §5-v): DIO, SBC/revenue, diluted-share YoY. It does not join `FEATURES`
-and never will by accident — appending to `FEATURES` moves every cross-
-sectional z-score in the composite and would need an engine-version bump for
-what is a display need, not a scoring need. See the block above
-`underwriting_features` for the raw-key probe outcome (SBC confirmed present,
-diluted share count confirmed ABSENT under any name).
+`uw_scan.fundamentals.underwriting` holds a SEPARATE, purely descriptive
+derivation (spec §5-v): DIO, SBC/revenue, shares-outstanding YoY. It imports
+`_f` from here (the same pattern `valuation_math.py` already uses) and does
+not join `FEATURES` and never will by accident — appending to `FEATURES`
+moves every cross-sectional z-score in the composite and would need an
+engine-version bump for what is a display need, not a scoring need. Split
+into its own module rather than grown here once this file passed its own
+<500-line target and the underwriting block was already a cohesive,
+separately-purposed derivation (fix round 1, 2026-08-28).
 """
 
 from __future__ import annotations
@@ -162,114 +164,6 @@ def build_features(uw: dict[str, Any]) -> dict[str, dict[str, dict[str, float | 
                 and ebitda_ttm > 0
                 else None,
                 "asset_turnover": (rev_ttm / assets) if rev_ttm and assets else None,
-            }
-        feats[t] = pf
-    return feats
-
-
-# ---------------------------------------------------------------------------
-# Underwriting features (spec §5-v) — descriptive only, NOT in FEATURES.
-# ---------------------------------------------------------------------------
-#
-# Raw-key probe, run 2026-08-28 against `option_wizard_local`
-# (`uw_scan.fundamental_statement_obs`, real ingested UW payloads):
-#
-#   SELECT DISTINCT statement, k FROM uw_scan.fundamental_statement_obs,
-#          LATERAL jsonb_object_keys(raw_jsonb) k
-#    WHERE k ILIKE '%stock%' OR k ILIKE '%compensation%'
-#          OR k ILIKE '%dilut%' OR k ILIKE '%share%';
-#
-# Result:
-#   balance    | common_stock_shares_outstanding   (already used by build_features)
-#   balance    | common_stock
-#   balance    | treasury_stock
-#   cash_flow  | dividend_payout_common_stock
-#   cash_flow  | stock_based_compensation           <- SBC, CONFIRMED (419 tickers)
-#
-# No key matching `%dilut%` exists anywhere, on any statement. The income
-# statement carries 23 distinct keys total (checked exhaustively) and NONE of
-# them is a share count of any kind — no diluted average shares, no basic
-# average shares, no EPS. The only share-count field anywhere in the ingested
-# statements is `common_stock_shares_outstanding` on `balance`, and that is a
-# POINT-IN-TIME shares-outstanding snapshot, not the weighted-average diluted
-# count the spec's `share_count_yoy` formula names — a materially different
-# quantity (no weighting for buybacks/issuance timing within the quarter).
-# Rendering it under the `share_count_yoy` label would be exactly the "proxied
-# instead of stated absence" failure this task forbids.
-#
-# So: `diluted_average_shares` (read from income, per the spec's own naming)
-# is looked up honestly below and is absent from EVERY row in the real store.
-# `share_count_yoy` therefore evaluates to None for every ticker/period today.
-# The absence must render on the node page's limits block as "diluted share
-# count not present in the ingested statements" — never as a silent zero,
-# never substituted from `common_stock_shares_outstanding`, and never sourced
-# from `massive_fundamentals.share_count_delta` (a second vendor; spec §4).
-DAYS_PER_QUARTER = 91.25
-
-
-def _prior_period(periods: list[str], i: int, lookback: int = 4) -> str | None:
-    """The sorted-period-list entry `lookback` slots before `periods[i]`.
-
-    Index arithmetic on the SORTED quarterly period list — the same convention
-    `build_features` already uses for `rev_growth`'s "TTM ending four quarters
-    earlier" comparison (`periods[i - 4]`) — never date arithmetic. A filer's
-    fiscal quarter end drifts across a 52/53-week calendar (this repo's SEC
-    join elsewhere needs a +/-7 day match for exactly that reason), so
-    "period_end minus ~365 days" is not guaranteed to land on an entry that
-    exists, and can silently land on the WRONG one when it does. Counting
-    sorted-quarter slots instead has no such failure mode as long as the
-    periods present are consecutive quarters, the same assumption every other
-    TTM/YoY comparison in this module already makes.
-
-    Returns None when fewer than `lookback` periods precede index `i` — a
-    genuine gap must yield None, never a wrong-span ratio.
-    """
-    if i < lookback:
-        return None
-    return periods[i - lookback]
-
-
-def underwriting_features(
-    uw: dict[str, Any],
-) -> dict[str, dict[str, dict[str, float | None]]]:
-    """Per ticker, per period: DIO, SBC/revenue, diluted-share YoY.
-
-    Descriptive display metrics — see the block above for why these are not
-    in `FEATURES`/`build_features`. Same input shape as `build_features`, same
-    `_f` helper, deliberately single-quarter (no TTM smoothing): DIO's
-    numerator is a balance-sheet LEVEL at quarter end, so pairing it with that
-    same quarter's COGS (x 91.25 days/quarter) preserves the quarter-end
-    stocking signal; a TTM denominator would smooth away exactly the
-    divergence this panel exists to show. SBC/revenue follows the same
-    single-quarter basis so the two columns share a denominator period.
-    """
-    feats: dict[str, dict[str, dict[str, float | None]]] = {}
-    for t, per in uw.items():
-        inc, bs, cf = per["income-statements"], per["balance-sheets"], per["cash-flows"]
-        periods = sorted(inc)
-        pf: dict[str, dict[str, float | None]] = {}
-        for i, p in enumerate(periods):
-            inv = _f(bs.get(p), "inventory")
-            cogs_q = _f(inc.get(p), "cost_of_revenue")
-            sbc_q = _f(cf.get(p), "stock_based_compensation")
-            rev_q = _f(inc.get(p), "total_revenue")
-
-            prior_p = _prior_period(periods, i)
-            shares_now = _f(inc.get(p), "diluted_average_shares")
-            shares_prior = (
-                _f(inc.get(prior_p), "diluted_average_shares") if prior_p else None
-            )
-
-            pf[p] = {
-                "dio": (inv / cogs_q * DAYS_PER_QUARTER)
-                if inv is not None and cogs_q
-                else None,
-                "sbc_to_revenue": (sbc_q / rev_q)
-                if sbc_q is not None and rev_q
-                else None,
-                "share_count_yoy": (shares_now / shares_prior - 1)
-                if shares_now is not None and shares_prior
-                else None,
             }
         feats[t] = pf
     return feats
