@@ -529,6 +529,16 @@ def _should_schedule_chanlun_lifecycle(settings: Settings) -> bool:
     return role == "all" or (role == "massive" and settings.worker_index == 0)
 
 
+def _should_schedule_earnings_reactions(settings: Settings) -> bool:
+    """Single owner for the nightly earnings-reaction compute. Pure warm-store
+    read (calendar x daily_ohlc, no UW/IB spend) -> pin to massive-0, same as
+    vrp_markout / chanlun_lifecycle. Gated separately on `earnings_reactions_enabled`."""
+    if not settings.earnings_reactions_enabled:
+        return False
+    role = settings.worker_role.lower()
+    return role == "all" or (role == "massive" and settings.worker_index == 0)
+
+
 def _worker_label(settings: Settings) -> str:
     role = settings.worker_role.lower()
     if role == "all":
@@ -843,6 +853,19 @@ def main() -> int:
     def _vrp_markout_refresh() -> None:
         with _repo(settings) as repo:
             vrp_markout_refresh(repo=repo)
+
+    def _earnings_reactions_compute() -> None:
+        from datetime import datetime as _dt
+        from zoneinfo import ZoneInfo
+
+        from uw_scan.worker.jobs.earnings_reactions import earnings_reactions_compute
+
+        as_of = _dt.now(ZoneInfo(settings.rth_tz)).date()
+        with _repo(settings) as repo:
+            result = earnings_reactions_compute(
+                repo.conn, as_of=as_of, schema=repo._schema
+            )
+        logger.info("earnings_reactions_compute %s", result)
 
     def _spx_density_forecast() -> None:
         from uw_scan.worker.jobs.spx_density_forecast import spx_density_forecast_job
@@ -2274,6 +2297,21 @@ def main() -> int:
             ),
             id="chanlun_lifecycle_scan",
             name="Chanlun daily-mark lifecycle (30m sub-level confirm)",
+            max_instances=1,
+            coalesce=True,
+        )
+
+    if _should_schedule_earnings_reactions(settings):
+        # Earnings reaction compute at 19:40 ET DAILY — not weekday-only, since
+        # a Monday-holiday print's Tuesday close still needs to be picked up on
+        # schedule. Pure warm-store read (calendar x daily_ohlc); zero UW/IB
+        # spend, so massive-0 is the right single-flight home, same pin as
+        # regime_live/chanlun_lifecycle above.
+        sched.add_job(
+            _earnings_reactions_compute,
+            CronTrigger.from_crontab("40 19 * * *", timezone=settings.rth_tz),
+            id="earnings_reactions_compute",
+            name="Earnings reaction history (calendar x OHLC)",
             max_instances=1,
             coalesce=True,
         )

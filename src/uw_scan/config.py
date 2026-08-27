@@ -487,6 +487,13 @@ class Settings(BaseModel):
     #: 04:40 keeps it 30 min clear of the breakdown capture on the 3rd and an
     #: hour clear of the 03:20/03:45/03:50 weekday jobs.
     company_sector_refresh_cron: str = "40 4 * * *"
+    # Per-print earnings reaction history (spec §5-ii): calendar x daily_ohlc,
+    # zero UW/IB spend, pinned to massive-0 at 19:40 ET daily (see scheduler
+    # `_should_schedule_earnings_reactions`). Default ON — same rationale as
+    # the accrual jobs above: a night not computed is a print whose reaction
+    # a future read can no longer distinguish from "not yet known" once the
+    # calendar's lookback window scrolls past it.
+    earnings_reactions_enabled: bool = True
     chanlun_anchor_tol: float = 0.0
     chanlun_stale_sessions: int = 20
     # Empty by DESIGN (2026-07-15 walk-forward probe): all 4 candidate
@@ -1095,6 +1102,9 @@ class Settings(BaseModel):
             ),
             company_sector_refresh_cron=os.environ.get(
                 "UW_SCAN_COMPANY_SECTOR_REFRESH_CRON", "40 4 * * *"
+            ),
+            earnings_reactions_enabled=_env_bool(
+                "UW_SCAN_EARNINGS_REACTIONS_ENABLED", True
             ),
             chanlun_anchor_tol=float(
                 os.environ.get("UW_SCAN_CHANLUN_ANCHOR_TOL", "0.0")
