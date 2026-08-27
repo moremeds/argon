@@ -30,6 +30,13 @@ away.
 Pure warm-store read + compute — zero UW/IB spend, safe to re-run (each
 night's row is an overwrite of that same night's prior attempt, see
 `ImpliedMoveRepository.upsert_rows`).
+
+COUNTER GRAIN: `prints_upcoming`, `covered`, and `not_covered` are all
+counted at the same per-print grain (`covered + not_covered ==
+prints_upcoming` always). A ticker carrying two prints inside the window
+(never observed in practice for quarterly earnings) is counted twice, once
+per print — only the write is deduped to the first (soonest) print, since
+the table's PK is (ticker, market_date) and a second write would collide.
 """
 
 from __future__ import annotations
@@ -89,19 +96,10 @@ def implied_move_snapshot(
     covered = 0
     not_covered = 0
     rows: list[dict] = []
-    seen_tickers: set[str] = set()
+    written_tickers: set[str] = set()
     with conn.cursor() as cur:
         for p in prints:
             ticker = p["ticker"]
-            if ticker in seen_tickers:
-                # PK is (ticker, market_date) -- one row per ticker per
-                # night. A ticker carrying two prints inside the window
-                # (never observed in practice for quarterly earnings) keeps
-                # the SOONEST: `prints` is already sorted by report_date, so
-                # the first occurrence per ticker is the one computed.
-                continue
-            seen_tickers.add(ticker)
-
             reaction_day = _reaction_day(p["report_date"], p["session"])
 
             cur.execute(
@@ -146,7 +144,20 @@ def implied_move_snapshot(
                 BRENNER_SUBRAHMANYAM_CONSTANT * float(atm_iv) * math.sqrt(t_years)
             )
             implied_move_usd = implied_move_pct * float(spot)
+            covered += 1
 
+            if ticker in written_tickers:
+                # PK is (ticker, market_date) -- one row per ticker per
+                # night. A ticker carrying two prints inside the window
+                # (never observed in practice for quarterly earnings) is
+                # still counted in `covered` above, at the SAME per-print
+                # grain as `prints_upcoming` -- but only the FIRST (soonest,
+                # since `prints` is sorted by report_date) gets a row
+                # written; a second write would collide on the PK and
+                # silently overwrite the first. Dedup is a write concern
+                # only, never a counting concern.
+                continue
+            written_tickers.add(ticker)
             rows.append(
                 {
                     "ticker": ticker,
@@ -161,7 +172,6 @@ def implied_move_snapshot(
                     "implied_move_usd": implied_move_usd,
                 }
             )
-            covered += 1
 
     repo.upsert_rows(rows)
     result = {

@@ -30,12 +30,18 @@ Calendar rows are REAL prints verified live via Unusual Whales
 
 - AVGO: `get_upcoming_earnings` reports report_date=2026-09-02,
   report_time="postmarket" -> afterhours, reaction day = report_date + 1 =
-  2026-09-03. Grid: spot=358.3500. THREE too-early expiries seeded
-  (2026-08-26, 2026-08-31, 2026-09-04 -- wait, 2026-09-04 is the real
-  covering expiry, not too-early; the too-early set is 2026-08-26 and
-  2026-08-31) plus the covering expiry 2026-09-04 (first real expiry >=
-  2026-09-03). Nearest strike at 2026-09-04 is 357.5
-  (|358.35-357.5|=0.85 vs |360-358.35|=1.65).
+  2026-09-03. Grid: spot=358.3500. Too-early expiries seeded: 2026-08-26,
+  2026-08-31, AND (fix round 1) 2026-09-02 -- a real AVGO expiry landing
+  EXACTLY on the real report_date. That row is the call-site wiring
+  discriminator: correct code (reaction day = D+1 = 09-03) excludes it
+  (09-02 < 09-03) and covers via 2026-09-04; code that bypassed
+  `_reaction_day` and used `report_date` directly (reaction day = D = 09-02)
+  would instead select 09-02, a different expiry with a different strike
+  and pct. 2026-09-02's only available strikes are far OTM (375-410, no
+  near-spot rows in the real chain that night) -- real, but sparse, which is
+  fine since the correct-path assertions never read from it. Nearest strike
+  at the real covering expiry 2026-09-04 is 357.5 (|358.35-357.5|=0.85 vs
+  |360-358.35|=1.65).
 - ADBE: report_date=2026-09-10, report_time="postmarket" -> afterhours,
   reaction day = 2026-09-11. Grid: spot=277.0200. Expiries 2026-09-04 (too
   early) and 2026-09-11 (the real covering expiry -- an EXACT boundary hit:
@@ -48,6 +54,14 @@ Calendar rows are REAL prints verified live via Unusual Whales
 - MSFT (separate, standalone test): report_date=2026-11-04, report_time=
   "unknown" -> session=None. Used with as_of=2026-10-20 (within the 21-day
   lookahead of this real report_date) and zero seeded surface rows.
+- CRDO: `get_upcoming_earnings` reports report_date=2026-09-01,
+  report_time="postmarket" -> afterhours. Grid: expiry=2026-10-16 is the
+  ONLY expiry seeded (so it is trivially the covering one), where
+  underlying_spot=235.0000 is REAL and EXACTLY equidistant (5.0000) from two
+  real strikes, 230 and 240 -- the only exact strike-tie found anywhere in
+  the 2026-08-26 snapshot (`WHERE abs(strike-spot)` tied across adjacent
+  ranked strikes per ticker/expiry). Proves the ascending tie-break picks
+  230, not 240.
 
 DEVIATION -- CRWV's calendar pairing is CONSTRUCTED, not a live UW calendar
 fact. CRWV's grid row (expiry=2027-01-15, strike=28, call_iv=
@@ -67,7 +81,34 @@ route this real, frozen surface row through the job within the one window
 available. No strike, IV, or spot is invented -- only the report_date is a
 test construct, and it is called out here rather than passed off as live.
 
-No fabricated ticker, strike, IV, or spot appears below.
+DEVIATION (fix round 1) -- a SECOND, distinct CRWV calendar pairing (this
+one report_date=2026-09-04, session=None) is used purely as the call-site
+wiring discriminator for the NULL-session branch. 2026-09-04 is a REAL CRWV
+expiry (coincidence chosen deliberately, not fabricated), so correct code
+(reaction day = D+1 = 09-05) must EXCLUDE it and cover via the next real
+CRWV expiry, 2026-09-11; code that bypassed `_reaction_day` (reaction day =
+D = 09-04) would instead select 09-04 itself. Both expiries' strikes/IVs are
+real, frozen values.
+
+DEVIATION (fix round 1) -- CRM's premarket calendar pairing is CONSTRUCTED.
+CRM's real classified print (report_date=2026-08-26, postmarket) is already
+used nowhere in this file; here CRM is given a report_date=2026-08-28,
+session='premarket' pairing that is NOT what UW reports for CRM (a
+discovery gap: no real in-window ticker on this grid is classified
+`premarket` for a print inside the 21-day lookahead from 2026-08-26 --
+checked across every ticker this file's other scenarios found reporting in
+that window, all are `postmarket`/`unknown`). 2026-08-28 is chosen because
+it is a REAL CRM expiry: correct premarket code (reaction day = D itself =
+08-28) must INCLUDE it as the covering expiry; code that wrongly treated
+this print as afterhours (reaction day = D+1 = 08-29) would skip it and
+cover via the next real CRM expiry, 2026-09-04 -- a different expiry/strike/
+pct pair, which is what makes this an end-to-end (not just pure-function)
+premarket proof. Strikes/IVs at both expiries are real, frozen values.
+
+No fabricated ticker, strike, IV, or spot appears below. Every calendar-row
+deviation above is disclosed with the reason no real alternative existed,
+per the accepted ruling that `earnings_calendar` pairings (not the surface
+grid) may be constructed and documented.
 """
 
 from __future__ import annotations
@@ -163,9 +204,11 @@ def _seed_calendar(conn: psycopg.Connection, *prints: dict) -> None:
 def _seed_avgo_grid(
     conn: psycopg.Connection, *, market_date: date = _MARKET_DATE
 ) -> None:
-    """Real AVGO 2026-08-26 rows: two too-early expiries (2026-08-26 itself,
-    an expiring-today extreme-IV row, and 2026-08-31) + the real covering
-    expiry 2026-09-04 (first expiry >= reaction day 2026-09-03)."""
+    """Real AVGO 2026-08-26 rows: THREE too-early expiries (2026-08-26
+    itself, an expiring-today extreme-IV row; 2026-08-31; and 2026-09-02,
+    which lands EXACTLY on the real report_date -- the call-site wiring
+    discriminator, see the module docstring) + the real covering expiry
+    2026-09-04 (first expiry >= reaction day 2026-09-03)."""
     spot = 358.3500
     too_early = {
         date(2026, 8, 26): [
@@ -177,6 +220,12 @@ def _seed_avgo_grid(
             (355, 0.413732908741587, 0.405837839966126),
             (357.5, 0.416867211848913, 0.39787368859611),
             (360, 0.41869827629254, 0.395626701802496),
+        ],
+        # Sparse real chain: only far-OTM strikes were quoted that expiry
+        # that night. Real values -- never read by the correct-path
+        # assertions, only reachable if the call-site mapping is bypassed.
+        date(2026, 9, 2): [
+            (375, 0.805954226509037, 0.767288896343665),
         ],
     }
     for expiry, rows in too_early.items():
@@ -306,6 +355,156 @@ def test_one_sided_put_iv_null_uses_call_only_basis(conn):
     expected_pct, basis = _expected_move(1.13983701509183, None, 142)
     assert basis == "call_only"
     assert float(row["implied_move_pct"]) == pytest.approx(expected_pct)
+
+
+def test_avgo_afterhours_wiring_excludes_the_day_of_report_expiry(conn):
+    """Fix round 1, I1 -- the call-site discriminator for `afterhours`. AVGO's
+    real report_date (2026-09-02) is ALSO a real AVGO expiry. Correct code
+    (reaction day = D+1 = 09-03) must exclude that day-of expiry and cover
+    via 2026-09-04. A call site that bypassed `_reaction_day` and used
+    `report_date` directly would instead select 2026-09-02 (a sparse,
+    far-OTM chain, strike 375) -- a different expiry, strike, and pct.
+    Mutation-tested directly: see the module's mutation-test log."""
+    _seed_avgo_grid(conn)
+    _seed_calendar(
+        conn,
+        {"ticker": "AVGO", "report_date": date(2026, 9, 2), "session": "afterhours"},
+    )
+
+    result = implied_move_snapshot(conn, as_of=_MARKET_DATE, schema="uw_scan")
+    assert result == {"prints_upcoming": 1, "covered": 1, "not_covered": 0}
+
+    row = ImpliedMoveRepository(conn, schema="uw_scan").latest_for(["AVGO"])["AVGO"]
+    assert row["expiry"] == date(2026, 9, 4)
+    assert row["strike"] == Decimal("357.5")
+
+
+def test_null_session_wiring_excludes_the_day_of_report_expiry(conn):
+    """Fix round 1, I1 -- the call-site discriminator for the `None` session.
+    See the module docstring's DEVIATION note: report_date=2026-09-04 is a
+    constructed pairing chosen because it coincides with a REAL CRWV expiry.
+    Correct code (reaction day = D+1 = 09-05) must exclude that day-of
+    expiry and cover via the next real CRWV expiry, 2026-09-11. A call site
+    that bypassed `_reaction_day` (reaction day = D = 09-04) would instead
+    select 2026-09-04 -- a different expiry, strike, and pct."""
+    for strike, call_iv, put_iv in [
+        (92, 0.83212973065842, 0.787797958292746),
+        (93, 0.831297198407388, 0.787670240131957),
+    ]:
+        _seed_grid_row(conn, "CRWV", date(2026, 9, 4), strike, call_iv, put_iv, 92.5500)
+    for strike, call_iv, put_iv in [
+        (92, 0.781706259018036, 0.747652766678897),
+        (93, 0.77741547724423, 0.752357490452667),
+    ]:
+        _seed_grid_row(
+            conn, "CRWV", date(2026, 9, 11), strike, call_iv, put_iv, 92.5500
+        )
+    _seed_calendar(
+        conn, {"ticker": "CRWV", "report_date": date(2026, 9, 4), "session": None}
+    )
+
+    result = implied_move_snapshot(conn, as_of=_MARKET_DATE, schema="uw_scan")
+    assert result == {"prints_upcoming": 1, "covered": 1, "not_covered": 0}
+
+    row = ImpliedMoveRepository(conn, schema="uw_scan").latest_for(["CRWV"])["CRWV"]
+    assert row["expiry"] == date(2026, 9, 11)
+    assert row["strike"] == Decimal("93")
+
+
+def test_premarket_end_to_end_covering_expiry_is_report_date_itself(conn):
+    """I2 -- end-to-end (through the real job, not just `_reaction_day` in
+    isolation) proof of the premarket branch. See the module docstring's
+    DEVIATION note: CRM's report_date=2026-08-28/session='premarket' pairing
+    here is constructed (no real in-window premarket-classified print exists
+    on this grid), chosen because 2026-08-28 is a REAL CRM expiry. Correct
+    premarket code (reaction day = D itself = 08-28) must INCLUDE it as the
+    covering expiry; code that wrongly treated this as afterhours (reaction
+    day = D+1 = 08-29) would skip it and cover via 2026-09-04 instead --
+    a different expiry/strike/pct, exactly the discriminating shape I1
+    demanded, applied to the untested premarket branch."""
+    spot = 231.3500
+    for strike, call_iv, put_iv in [
+        (230, 1.20841452905286, 1.19050343061415),
+        (232.5, 1.20373937434579, 1.14104608079137),
+    ]:
+        _seed_grid_row(conn, "CRM", date(2026, 8, 28), strike, call_iv, put_iv, spot)
+    for strike, call_iv, put_iv in [
+        (230, 0.679947719171751, 0.656966191351908),
+        (232.5, 0.679077133016208, 0.650302699832787),
+    ]:
+        _seed_grid_row(conn, "CRM", date(2026, 9, 4), strike, call_iv, put_iv, spot)
+    _seed_calendar(
+        conn,
+        {"ticker": "CRM", "report_date": date(2026, 8, 28), "session": "premarket"},
+    )
+
+    result = implied_move_snapshot(conn, as_of=_MARKET_DATE, schema="uw_scan")
+    assert result == {"prints_upcoming": 1, "covered": 1, "not_covered": 0}
+
+    row = ImpliedMoveRepository(conn, schema="uw_scan").latest_for(["CRM"])["CRM"]
+    assert row["expiry"] == date(2026, 8, 28)
+    assert row["strike"] == Decimal("232.5")
+    expected_pct, _ = _expected_move(1.20373937434579, 1.14104608079137, 2)
+    assert float(row["implied_move_pct"]) == pytest.approx(expected_pct)
+
+
+def test_exact_strike_tie_breaks_ascending(conn):
+    """M1 -- CRDO's real 2026-08-26 chain has underlying_spot=235.0000
+    exactly equidistant (5.0000) from two real strikes, 230 and 240 (the
+    only exact tie in the whole snapshot, verified by query). Only the tied
+    expiry is seeded, so it is trivially the covering one -- isolating the
+    tie-break itself. Correct code picks the strike ASCENDING, i.e. 230."""
+    for strike, call_iv, put_iv in [
+        (230, 0.862824396475266, 0.865359373161433),
+        (240, 0.86526278717968, 0.869663329803256),
+    ]:
+        _seed_grid_row(conn, "CRDO", date(2026, 10, 16), strike, call_iv, put_iv, 235.0)
+    _seed_calendar(
+        conn,
+        {"ticker": "CRDO", "report_date": date(2026, 9, 1), "session": "afterhours"},
+    )
+
+    result = implied_move_snapshot(conn, as_of=_MARKET_DATE, schema="uw_scan")
+    assert result == {"prints_upcoming": 1, "covered": 1, "not_covered": 0}
+
+    row = ImpliedMoveRepository(conn, schema="uw_scan").latest_for(["CRDO"])["CRDO"]
+    assert row["strike"] == Decimal("230")
+
+
+def test_missing_spot_at_nearest_strike_is_not_covered(conn):
+    """M2 (partial) -- TSLA's REAL 2026-03-03 grid has every row's
+    `underlying_spot` NULL (a genuine historical data-quality gap, not
+    fabricated: confirmed via an unrestricted query that TSLA's entire
+    2026-03-03 snapshot carries no spot at all, and that NO row anywhere in
+    the whole table -- any ticker, any date -- has both call_iv AND put_iv
+    NULL simultaneously, which is why that sibling sub-case is not tested
+    here: no real example of it exists to test against without fabricating
+    a false absence of a real quote). Uses a different `market_date`
+    (2026-03-03) than every other test in this file -- the only real date
+    this warm store has a spot-less snapshot on."""
+    as_of = date(2026, 3, 3)
+    for strike, call_iv, put_iv in [
+        (80, 2.080868447649956, 2.6486455148991),
+        (90, 2.080868447649956, 2.6486455148991),
+    ]:
+        _seed_grid_row(
+            conn,
+            "TSLA",
+            date(2026, 3, 6),
+            strike,
+            call_iv,
+            put_iv,
+            None,
+            market_date=as_of,
+        )
+    _seed_calendar(
+        conn, {"ticker": "TSLA", "report_date": date(2026, 3, 4), "session": None}
+    )
+
+    result = implied_move_snapshot(conn, as_of=as_of, schema="uw_scan")
+    assert result == {"prints_upcoming": 1, "covered": 0, "not_covered": 1}
+
+    assert ImpliedMoveRepository(conn, schema="uw_scan").latest_for(["TSLA"]) == {}
 
 
 def test_ticker_with_calendar_row_but_no_surface_rows_writes_nothing(conn):
