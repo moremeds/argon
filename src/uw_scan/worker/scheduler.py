@@ -863,7 +863,7 @@ def main() -> int:
         as_of = _dt.now(ZoneInfo(settings.rth_tz)).date()
         with _repo(settings) as repo:
             result = earnings_reactions_compute(
-                repo.conn, as_of=as_of, schema=repo._schema
+                repo.conn, as_of=as_of, schema=settings.db_schema
             )
         logger.info("earnings_reactions_compute %s", result)
 

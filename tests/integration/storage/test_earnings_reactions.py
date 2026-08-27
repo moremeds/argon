@@ -34,9 +34,17 @@ warm-store `daily_ohlc` at authoring time (2026-08-28):
   `session=None` — the state UW's classified calendar actually carried for
   this print at 2026-08-23 (recorded in the filing-date-recovery verdict,
   since resolved to "postmarket"). Closes: 2026-07-15 = 388.9700,
-  2026-07-17 = 345.4200 (2026-07-16 itself, the report day, deliberately not
-  seeded — the NULL-session window never reads it: before wants < D and
-  after wants > D).
+  2026-07-16 = 402.3300, 2026-07-17 = 345.4200 — all three queried from the
+  mini's warm-store `daily_ohlc`. The report day's own close (2026-07-16) IS
+  seeded here, deliberately: the NULL window's strict operators (before < D,
+  after > D) must never read it, and seeding it is what makes the test able
+  to tell a strict operator from a non-strict one — a non-strict operator
+  would pull this exact row into the window and change `pct_move`. Without
+  it, both a strict and a non-strict operator resolve to the same closes,
+  and the test cannot tell the code under test apart from an off-by-one
+  mutation of it — verified directly by mutation testing (temporarily
+  swapping the NULL branch's `<`/`>` for `<=`/`>=` in
+  `worker/jobs/earnings_reactions.py` and confirming this test fails).
 
 No fabricated ticker, date, or price appears below.
 """
@@ -168,10 +176,23 @@ def test_premarket_reaction_before_strictly_prior_after_includes_report_day(conn
 
 def test_null_session_reaction_uses_the_widest_window(conn):
     """ISRG seeded with session=None (the state UW's calendar carried for this
-    print at 2026-08-23): before < D strictly, after > D strictly — the
-    report day itself (2026-07-16) is deliberately never seeded and never
-    read, because neither side of the NULL window includes it."""
-    _seed_ohlc(conn, "ISRG", [("2026-07-15", 388.97), ("2026-07-17", 345.42)])
+    print at 2026-08-23): before < D strictly, after > D strictly.
+
+    The report day's own close (2026-07-16, real: 402.3300) IS seeded here —
+    deliberately, unlike the omission this test used to have. A strict
+    operator never reads it; a non-strict one (`<=`/`>=`) would pull it into
+    the window and change `close_before_date`/`close_after_date` and
+    therefore `pct_move`. That is what makes this test able to discriminate
+    a correct strict implementation from an off-by-one non-strict one —
+    without this row seeded, both resolve to the identical closes and the
+    test cannot tell them apart (proven directly: with the row omitted,
+    swapping the implementation's `<`/`>` for `<=`/`>=` left every assertion
+    below still passing)."""
+    _seed_ohlc(
+        conn,
+        "ISRG",
+        [("2026-07-15", 388.97), ("2026-07-16", 402.33), ("2026-07-17", 345.42)],
+    )
     _seed_calendar(conn, ISRG_JUL)
 
     result = earnings_reactions_compute(conn, as_of=date(2026, 7, 22))
