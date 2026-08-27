@@ -353,3 +353,62 @@ OPTICAL_COMMUNICATION = ChainSpec(
         AliasRule("blueplanetautomation", "integrator"),
     ),
 )
+
+#: The datacenter build-out siblings. Every member is already in the universe;
+#: 42 of 44 carry statements (measured 2026-08-26, DC-REIT/Colo is the gap at
+#: 4 of 6), so these chains cost no incremental UW calls at all.
+#:
+#: ONE REAL LAYER PER CHAIN. The chain IS a layer of the build-out — construction
+#: before generation before distribution before cooling before the operator who
+#: leases the result — and inventing an intra-chain split here would publish a
+#: shape nobody measured. Ranks are sparse, so a split discovered later slots
+#: between two of these without renumbering anything.
+#:
+#: EVERY SPEC IS `ai_infrastructure`, DELIBERATELY. `research_chains`' primary
+#: key is (taxonomy_version, chain, layer), so `domain` is a per-LAYER attribute
+#: and not part of a chain's identity. All five names are already mirrored from
+#: `watchlist_chain` under `ai_infrastructure` with a placeholder layer; a spec
+#: declaring a second domain would leave one chain carrying two layers under two
+#: domains, and `chains(version, domain=...)` would answer with half of it.
+#: `OPTICAL_COMMUNICATION` can carry its own domain only because its spec name
+#: differs from the watchlist's (`Networking/Optical`), so it collides with
+#: nothing. `test_no_chain_carries_two_domains` is the guard.
+DATACENTER_CHAINS: tuple[ChainSpec, ...] = (
+    ChainSpec(
+        domain="ai_infrastructure",
+        chain="EPC/Construction",
+        layers=(
+            Layer(
+                "EPC-Construction",
+                10,
+                "design, engineering, construction of datacenter shells",
+            ),
+        ),
+    ),
+    ChainSpec(
+        domain="ai_infrastructure",
+        chain="Generation/Nuclear",
+        layers=(Layer("Generation", 20, "power generation and nuclear capacity"),),
+    ),
+    ChainSpec(
+        domain="ai_infrastructure",
+        chain="Power/Electrical",
+        layers=(
+            Layer("Power-Electrical", 30, "electrical distribution, switchgear, UPS"),
+        ),
+    ),
+    ChainSpec(
+        domain="ai_infrastructure",
+        chain="Cooling/Thermal",
+        layers=(
+            Layer("Cooling-Thermal", 40, "liquid and air cooling, thermal management"),
+        ),
+    ),
+    ChainSpec(
+        domain="ai_infrastructure",
+        chain="DC-REIT/Colo",
+        layers=(
+            Layer("DC-REIT-Colo", 50, "datacenter REITs and colocation operators"),
+        ),
+    ),
+)

@@ -9,6 +9,26 @@ version in lockstep (enforced by `scripts/release/version_sync_check.py`).
 
 ### Added
 
+- **Seed the five datacenter build-out chains** (EPC/Construction, Generation/Nuclear,
+  Power/Electrical, Cooling/Thermal, DC-REIT/Colo) with real layer ranks — taxonomy rows only, zero
+  assembler change, zero vendor calls.
+  - **The contract this exercises.** `Optical-Communication` was the first chain analysis node;
+    these five are its siblings, and standing them up cost a `ChainSpec` constant each plus one
+    generic `seed_chain_spec` helper. `assemble_chain_report` is untouched, which is the point —
+    `test_the_catalogue_matches_what_the_assembler_actually_emits` passes unmodified.
+  - **One real layer per chain, ranks 10/20/30/40/50.** The chain IS a layer of the build-out;
+    inventing an intra-chain split would publish a shape nobody measured. Ranks are sparse so a
+    split discovered later slots between two of these without renumbering.
+  - **Every spec declares `domain='ai_infrastructure'`, deliberately.** `research_chains`' primary
+    key is `(taxonomy_version, chain, layer)`, so `domain` is a per-LAYER attribute, not part of a
+    chain's identity. All five names are already mirrored from `watchlist_chain` under
+    `ai_infrastructure`; a spec under a second domain would leave one chain carrying two layers
+    across two domains and `chains(version, domain=...)` would answer with half of it. Nothing in
+    the schema forbids that, so `test_no_chain_carries_two_domains` does.
+  - **Memberships are re-homed by retire-and-reinsert, never `UPDATE ... SET layer`** — open
+    membership identity is the partial unique index `chain_membership_open_uq`, which an in-place
+    update collides with. The rank-0 placeholder interval is closed, not deleted, so "was this name
+    in the chain when that report was written" stays answerable.
 - **The macro ledger can now say "we accepted this and were wrong"** — additive, point-in-time
   evidence invalidation (migration `131`, `macro_evidence_invalidations`). F2, the last open item
   in the macro program.

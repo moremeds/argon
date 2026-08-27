@@ -23,7 +23,11 @@ from typing import Any
 
 import psycopg
 
-from uw_scan.storage.research_taxonomy import ResearchTaxonomyRepository
+from uw_scan.fundamentals.chain_nodes import ChainSpec
+from uw_scan.storage.research_taxonomy import (
+    EVIDENCE_MIRRORED,
+    ResearchTaxonomyRepository,
+)
 
 log = logging.getLogger(__name__)
 
@@ -68,9 +72,7 @@ def mirror_watchlist_chain(
         activate=True,
     )
     with conn.cursor() as cur:
-        cur.execute(
-            f"SELECT DISTINCT chain, layer FROM {schema}.watchlist_chain"
-        )
+        cur.execute(f"SELECT DISTINCT chain, layer FROM {schema}.watchlist_chain")
         pairs = cur.fetchall()
         cur.execute(f"SELECT ticker, chain, layer FROM {schema}.watchlist_chain")
         rows = cur.fetchall()
@@ -101,6 +103,84 @@ def mirror_watchlist_chain(
         )
     counters = {"chains": len(pairs), "memberships": len(rows), "opened": added}
     log.info("mirror_watchlist_chain: %s", counters)
+    return counters
+
+
+def seed_chain_spec(
+    conn: psycopg.Connection,
+    spec: ChainSpec,
+    *,
+    schema: str = "uw_scan",
+    version: str = TAXONOMY_V1,
+) -> dict[str, int]:
+    """Give one chain its real layer set and re-home its memberships onto it.
+
+    Standing up a chain analysis node is rows and no assembler logic — the
+    extension contract `chain_nodes` declares. This function is the whole of the
+    "code" half, and it is generic over `ChainSpec`: a sixth chain adds a
+    constant, not a branch.
+
+    Placeholder layers (the rank-0 `L3` the watchlist mirror lays down) are
+    SUPERSEDED, not deleted. The new layer rows land beside them and the
+    memberships move, so "was this name in the chain when that report was
+    written" stays answerable — which is the reason `chain_membership` carries
+    validity intervals instead of a `removed_at`.
+    """
+    repo = ResearchTaxonomyRepository(conn, schema=schema)
+    # Order is load-bearing: `chain_membership` has an FK on
+    # (taxonomy_version, chain, layer) -> `research_chains`, so the target layer
+    # must exist before a membership can name it.
+    repo.define_chains(
+        version,
+        [
+            {
+                "domain": spec.domain,
+                "chain": spec.chain,
+                "layer": layer.layer,
+                "layer_rank": layer.rank,
+                "description": layer.description,
+            }
+            for layer in spec.layers
+        ],
+    )
+    moved = 0
+    if len(spec.layers) == 1:
+        # Retire-and-reinsert, never `UPDATE ... SET layer`: open membership
+        # identity is the partial unique index chain_membership_open_uq
+        # (taxonomy_version, chain, layer, ticker) WHERE valid_to IS NULL, so an
+        # in-place UPDATE collides with a row the same statement has not closed
+        # yet. A multi-layer spec cannot be re-homed automatically at all —
+        # which layer a name belongs to is a research judgement, not a default.
+        target = spec.layers[0].layer
+        with conn.cursor() as cur:
+            cur.execute(
+                f"""SELECT ticker FROM {schema}.chain_membership
+                     WHERE taxonomy_version = %s AND chain = %s
+                       AND layer <> %s AND valid_to IS NULL""",
+                (version, spec.chain, target),
+            )
+            tickers = [t for (t,) in cur.fetchall()]
+            cur.execute(
+                f"""UPDATE {schema}.chain_membership
+                       SET valid_to = now()
+                     WHERE taxonomy_version = %s AND chain = %s
+                       AND layer <> %s AND valid_to IS NULL""",
+                (version, spec.chain, target),
+            )
+        conn.commit()
+        for ticker in tickers:
+            moved += repo.add_membership(
+                version,
+                chain=spec.chain,
+                layer=target,
+                ticker=ticker,
+                evidence_class=EVIDENCE_MIRRORED,
+                approved_by="seed_chain_spec",
+                note=f"re-homed from placeholder layer onto {target}",
+            )
+    conn.commit()
+    counters = {"layers": len(spec.layers), "memberships": moved}
+    log.info("seed_chain_spec %s: %s", spec.chain, counters)
     return counters
 
 
