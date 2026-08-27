@@ -25,10 +25,24 @@ version in lockstep (enforced by `scripts/release/version_sync_check.py`).
     `ai_infrastructure`; a spec under a second domain would leave one chain carrying two layers
     across two domains and `chains(version, domain=...)` would answer with half of it. Nothing in
     the schema forbids that, so `test_no_chain_carries_two_domains` does.
-  - **Memberships are re-homed by retire-and-reinsert, never `UPDATE ... SET layer`** — open
+  - **Memberships are re-homed by reinsert-then-retire, never `UPDATE ... SET layer`** — open
     membership identity is the partial unique index `chain_membership_open_uq`, which an in-place
-    update collides with. The rank-0 placeholder interval is closed, not deleted, so "was this name
-    in the chain when that report was written" stays answerable.
+    update collides with. The order is the failure mode: retiring first leaves a crash window in
+    which the chain has ZERO open memberships and no re-run can heal it, because the recovery scan
+    looks for a placeholder row that is no longer open. Inserting first cannot collide, and a crash
+    leaves the name open on both layers for the next run to finish. The rank-0 placeholder interval
+    is closed, not deleted, so "was this name in the chain when that report was written" stays
+    answerable — and `evidence_class`/`approved_by` are carried across, never rewritten, so
+    pointing this at a chain of `analyst` placements cannot demote a human's assertion to a copy of
+    the watchlist rail.
+  - **`mirror_watchlist_chain` now skips a name already openly a member of the chain under ANY
+    layer.** Its old guard keyed on the layer, which a seed has just changed — so mirror and seed
+    would have churned an interval pair per ticker on every run, contradicting the healer registry's
+    standing claim that an unchanged placement opens no interval.
+  - **Deploy step (manual, not automatic).** Nothing schedules this: run
+    `uv run python scripts/backfill/research_taxonomy_seed.py` on the mini after deploy, or the five
+    chains stay on their rank-0 `L3` placeholder. Zero provider spend, idempotent — a second run is
+    a measured no-op.
 - **The macro ledger can now say "we accepted this and were wrong"** — additive, point-in-time
   evidence invalidation (migration `131`, `macro_evidence_invalidations`). F2, the last open item
   in the macro program.
