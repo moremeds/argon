@@ -17,6 +17,17 @@ the print — see the module CLAUDE.md entry for the worked examples):
   spans both possible windows deliberately, trading a slightly wider window
   for never guessing a session that was never observed.
 
+`source='statement_obs'` calendar rows are EXCLUDED entirely (branch-fix-p2,
+I1), never computed as a NULL-session reaction. Those rows carry a FILING
+date (`fundamental_statement_obs.filing_published_at`), not a print date —
+see `storage/earnings_calendar.py`'s module docstring and `worker/jobs/
+fundamental_ingest_daily.FILING_TO_PRINT_WINDOW_DAYS` for the measured gap
+between the two. A close-price window computed around a filing date is not
+a reaction to anything; it is a two-day drift measurement wearing an
+earnings-reaction's label. `excluded_statement_obs` counts how many prints
+this run skipped for that reason, so the gap in coverage is visible to an
+operator rather than silently absorbed into `skipped_incomplete`.
+
 `close_before` / `close_after` are resolved by querying what `daily_ohlc`
 actually holds for the ticker, NEVER by date arithmetic (`D - 1 day` breaks on
 weekends, holidays, and per-ticker OHLC gaps). A print is skipped — not
@@ -55,8 +66,15 @@ def earnings_reactions_compute(
     prints = cal.prints_between(as_of - timedelta(days=lookback_days), as_of)
     rows: list[dict] = []
     skipped = 0
+    excluded_statement_obs = 0
     with conn.cursor() as cur:
         for p in prints:
+            if p["source"] == "statement_obs":
+                # Branch-fix-p2, I1: this row's date is a FILING date, not a
+                # print date — see the module docstring. Never compute a
+                # reaction against it.
+                excluded_statement_obs += 1
+                continue
             d, session = p["report_date"], p["session"]
             before_op = "<" if session != "afterhours" else "<="
             after_op = ">=" if session == "premarket" else ">"
@@ -90,11 +108,18 @@ def earnings_reactions_compute(
                 }
             )
     written = repo.upsert_rows(rows)
-    result = {"prints": len(prints), "written": written, "skipped_incomplete": skipped}
+    result = {
+        "prints": len(prints),
+        "written": written,
+        "skipped_incomplete": skipped,
+        "excluded_statement_obs": excluded_statement_obs,
+    }
     log.info(
-        "earnings_reactions_compute: %d prints, %d written, %d skipped (no close yet)",
+        "earnings_reactions_compute: %d prints, %d written, %d skipped (no close "
+        "yet), %d excluded (statement_obs, filing date not a print date)",
         result["prints"],
         result["written"],
         result["skipped_incomplete"],
+        result["excluded_statement_obs"],
     )
     return result

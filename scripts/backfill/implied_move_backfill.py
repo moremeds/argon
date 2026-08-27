@@ -46,8 +46,8 @@ import psycopg
 from uw_scan.config import Settings
 from uw_scan.storage.earnings_calendar import EarningsCalendarRepository
 from uw_scan.worker.jobs.implied_move_snapshot import (
-    LOOKAHEAD_DAYS,
     implied_move_snapshot,
+    prints_within_lookahead,
 )
 
 log = logging.getLogger("implied_move_backfill")
@@ -91,12 +91,16 @@ def main() -> int:
                 )
             else:
                 cal = EarningsCalendarRepository(conn, schema=settings.db_schema)
-                horizon = d + timedelta(days=LOOKAHEAD_DAYS)
+                # Shares the job's own horizon filter (branch-fix-p2, I2) —
+                # no second copy of `<= horizon` to drift from the real one.
+                # Also excludes `statement_obs` rows (I1): those carry a
+                # filing date, not a print date, and the job never derives
+                # against them either.
                 prints_upcoming = len(
                     [
                         p
-                        for p in cal.next_prints(on_or_after=d)
-                        if p["report_date"] <= horizon
+                        for p in prints_within_lookahead(cal, as_of=d)
+                        if p["source"] != "statement_obs"
                     ]
                 )
                 result = {

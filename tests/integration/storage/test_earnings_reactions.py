@@ -147,7 +147,12 @@ def test_afterhours_reaction_written_with_exact_pct_move(conn):
     _seed_calendar(conn, NVDA_MAY)
 
     result = earnings_reactions_compute(conn, as_of=date(2026, 5, 25))
-    assert result == {"prints": 1, "written": 1, "skipped_incomplete": 0}
+    assert result == {
+        "prints": 1,
+        "written": 1,
+        "skipped_incomplete": 0,
+        "excluded_statement_obs": 0,
+    }
 
     repo = EarningsReactionsRepository(conn, schema="uw_scan")
     rows = repo.last_reactions("NVDA", n=4)
@@ -156,6 +161,10 @@ def test_afterhours_reaction_written_with_exact_pct_move(conn):
     assert row["close_before_date"] == date(2026, 5, 20)
     assert row["close_after_date"] == date(2026, 5, 21)
     assert float(row["pct_move"]) == pytest.approx(219.51 / 223.47 - 1.0)
+    # M1: a non-NULL session must actually persist as what the calendar
+    # carried, not merely satisfy an `is None` check written for a
+    # different row.
+    assert row["session"] == "afterhours"
 
 
 def test_premarket_reaction_before_strictly_prior_after_includes_report_day(conn):
@@ -165,13 +174,19 @@ def test_premarket_reaction_before_strictly_prior_after_includes_report_day(conn
     _seed_calendar(conn, JPM_JUL)
 
     result = earnings_reactions_compute(conn, as_of=date(2026, 7, 20))
-    assert result == {"prints": 1, "written": 1, "skipped_incomplete": 0}
+    assert result == {
+        "prints": 1,
+        "written": 1,
+        "skipped_incomplete": 0,
+        "excluded_statement_obs": 0,
+    }
 
     repo = EarningsReactionsRepository(conn, schema="uw_scan")
     row = repo.last_reactions("JPM", n=1)[0]
     assert row["close_before_date"] == date(2026, 7, 13)
     assert row["close_after_date"] == date(2026, 7, 14)  # the report day itself
     assert float(row["pct_move"]) == pytest.approx(342.89 / 334.53 - 1.0)
+    assert row["session"] == "premarket"  # M1: a non-NULL session persists as itself
 
 
 def test_null_session_reaction_uses_the_widest_window(conn):
@@ -196,7 +211,12 @@ def test_null_session_reaction_uses_the_widest_window(conn):
     _seed_calendar(conn, ISRG_JUL)
 
     result = earnings_reactions_compute(conn, as_of=date(2026, 7, 22))
-    assert result == {"prints": 1, "written": 1, "skipped_incomplete": 0}
+    assert result == {
+        "prints": 1,
+        "written": 1,
+        "skipped_incomplete": 0,
+        "excluded_statement_obs": 0,
+    }
 
     repo = EarningsReactionsRepository(conn, schema="uw_scan")
     row = repo.last_reactions("ISRG", n=1)[0]
@@ -217,7 +237,12 @@ def test_missing_after_close_is_skipped_and_counted_and_retryable(conn):
     _seed_calendar(conn, NVDA_AUG_PENDING)
 
     first = earnings_reactions_compute(conn, as_of=date(2026, 8, 28))
-    assert first == {"prints": 1, "written": 0, "skipped_incomplete": 1}
+    assert first == {
+        "prints": 1,
+        "written": 0,
+        "skipped_incomplete": 1,
+        "excluded_statement_obs": 0,
+    }
     assert (
         EarningsReactionsRepository(conn, schema="uw_scan").last_reactions("NVDA", n=4)
         == []
@@ -226,7 +251,12 @@ def test_missing_after_close_is_skipped_and_counted_and_retryable(conn):
     # The missing close lands (simulating the next OHLC pull) -> retry resolves it.
     _seed_ohlc(conn, "NVDA", [("2026-08-27", 205.00)])
     second = earnings_reactions_compute(conn, as_of=date(2026, 8, 28))
-    assert second == {"prints": 1, "written": 1, "skipped_incomplete": 0}
+    assert second == {
+        "prints": 1,
+        "written": 1,
+        "skipped_incomplete": 0,
+        "excluded_statement_obs": 0,
+    }
     resolved = EarningsReactionsRepository(conn, schema="uw_scan").last_reactions(
         "NVDA", n=4
     )
@@ -252,7 +282,12 @@ def test_last_reactions_returns_newest_first(conn):
     result = earnings_reactions_compute(
         conn, as_of=date(2026, 5, 25), lookback_days=120
     )
-    assert result == {"prints": 2, "written": 2, "skipped_incomplete": 0}
+    assert result == {
+        "prints": 2,
+        "written": 2,
+        "skipped_incomplete": 0,
+        "excluded_statement_obs": 0,
+    }
 
     rows = EarningsReactionsRepository(conn, schema="uw_scan").last_reactions(
         "NVDA", n=4
@@ -270,7 +305,12 @@ def test_rerun_is_idempotent_written_zero_on_replay(conn):
     first = earnings_reactions_compute(conn, as_of=date(2026, 5, 25))
     assert first["written"] == 1
     second = earnings_reactions_compute(conn, as_of=date(2026, 5, 25))
-    assert second == {"prints": 1, "written": 0, "skipped_incomplete": 0}
+    assert second == {
+        "prints": 1,
+        "written": 0,
+        "skipped_incomplete": 0,
+        "excluded_statement_obs": 0,
+    }
 
 
 def test_reactions_for_groups_by_ticker_newest_first(conn):
@@ -286,3 +326,45 @@ def test_reactions_for_groups_by_ticker_newest_first(conn):
     assert len(grouped["NVDA"]) == 1
     assert len(grouped["JPM"]) == 1
     assert grouped["AAPL"] == []
+
+
+def test_statement_obs_rows_are_excluded_never_computed_as_a_reaction(conn):
+    """Branch-fix-p2, I1/C1: a `source='statement_obs'` calendar row carries
+    a FILING date (`fundamental_statement_obs.filing_published_at`), not a
+    print date — real example: ISRG's period_end 2026-06-30
+    `filing_published_at` is 2026-07-21 (queried from
+    `option_wizard_local.uw_scan.fundamental_statement_obs` on 2026-08-28),
+    five days after its real report_date of 2026-07-16. Even with real OHLC
+    closes present around that filing date, no reaction may be computed
+    against it — that would be a two-day drift measurement labelled as an
+    earnings reaction. The row must be excluded and counted, not silently
+    treated as a print."""
+    cal = EarningsCalendarRepository(conn, schema="uw_scan")
+    isrg_filing_date = date(2026, 7, 21)
+    cal.upsert_rows(
+        [
+            {
+                "ticker": "ISRG",
+                "report_date": isrg_filing_date,
+                "session": None,
+                "source": "statement_obs",
+            }
+        ]
+    )
+    _seed_ohlc(
+        conn,
+        "ISRG",
+        [("2026-07-20", 400.00), ("2026-07-22", 410.00)],
+    )
+
+    result = earnings_reactions_compute(conn, as_of=date(2026, 7, 25))
+    assert result == {
+        "prints": 1,
+        "written": 0,
+        "skipped_incomplete": 0,
+        "excluded_statement_obs": 1,
+    }
+    assert (
+        EarningsReactionsRepository(conn, schema="uw_scan").last_reactions("ISRG", n=4)
+        == []
+    )

@@ -301,7 +301,12 @@ def test_avgo_covering_expiry_skips_multiple_too_early_candidates(conn):
     )
 
     result = implied_move_snapshot(conn, as_of=_MARKET_DATE, schema="uw_scan")
-    assert result == {"prints_upcoming": 1, "covered": 1, "not_covered": 0}
+    assert result == {
+        "prints_upcoming": 1,
+        "covered": 1,
+        "not_covered": 0,
+        "excluded_statement_obs": 0,
+    }
 
     row = ImpliedMoveRepository(conn, schema="uw_scan").latest_for(["AVGO"])["AVGO"]
     assert row["expiry"] == date(2026, 9, 4)
@@ -325,7 +330,12 @@ def test_adbe_afterhours_reaction_day_is_exact_expiry_boundary(conn):
     )
 
     result = implied_move_snapshot(conn, as_of=_MARKET_DATE, schema="uw_scan")
-    assert result == {"prints_upcoming": 1, "covered": 1, "not_covered": 0}
+    assert result == {
+        "prints_upcoming": 1,
+        "covered": 1,
+        "not_covered": 0,
+        "excluded_statement_obs": 0,
+    }
 
     row = ImpliedMoveRepository(conn, schema="uw_scan").latest_for(["ADBE"])["ADBE"]
     assert row["expiry"] == date(2026, 9, 11)
@@ -348,7 +358,12 @@ def test_one_sided_put_iv_null_uses_call_only_basis(conn):
     )
 
     result = implied_move_snapshot(conn, as_of=_MARKET_DATE, schema="uw_scan")
-    assert result == {"prints_upcoming": 1, "covered": 1, "not_covered": 0}
+    assert result == {
+        "prints_upcoming": 1,
+        "covered": 1,
+        "not_covered": 0,
+        "excluded_statement_obs": 0,
+    }
 
     row = ImpliedMoveRepository(conn, schema="uw_scan").latest_for(["CRWV"])["CRWV"]
     assert row["iv_basis"] == "call_only"
@@ -373,7 +388,12 @@ def test_avgo_afterhours_wiring_excludes_the_day_of_report_expiry(conn):
     )
 
     result = implied_move_snapshot(conn, as_of=_MARKET_DATE, schema="uw_scan")
-    assert result == {"prints_upcoming": 1, "covered": 1, "not_covered": 0}
+    assert result == {
+        "prints_upcoming": 1,
+        "covered": 1,
+        "not_covered": 0,
+        "excluded_statement_obs": 0,
+    }
 
     row = ImpliedMoveRepository(conn, schema="uw_scan").latest_for(["AVGO"])["AVGO"]
     assert row["expiry"] == date(2026, 9, 4)
@@ -405,7 +425,12 @@ def test_null_session_wiring_excludes_the_day_of_report_expiry(conn):
     )
 
     result = implied_move_snapshot(conn, as_of=_MARKET_DATE, schema="uw_scan")
-    assert result == {"prints_upcoming": 1, "covered": 1, "not_covered": 0}
+    assert result == {
+        "prints_upcoming": 1,
+        "covered": 1,
+        "not_covered": 0,
+        "excluded_statement_obs": 0,
+    }
 
     row = ImpliedMoveRepository(conn, schema="uw_scan").latest_for(["CRWV"])["CRWV"]
     assert row["expiry"] == date(2026, 9, 11)
@@ -440,7 +465,12 @@ def test_premarket_end_to_end_covering_expiry_is_report_date_itself(conn):
     )
 
     result = implied_move_snapshot(conn, as_of=_MARKET_DATE, schema="uw_scan")
-    assert result == {"prints_upcoming": 1, "covered": 1, "not_covered": 0}
+    assert result == {
+        "prints_upcoming": 1,
+        "covered": 1,
+        "not_covered": 0,
+        "excluded_statement_obs": 0,
+    }
 
     row = ImpliedMoveRepository(conn, schema="uw_scan").latest_for(["CRM"])["CRM"]
     assert row["expiry"] == date(2026, 8, 28)
@@ -467,10 +497,42 @@ def test_exact_strike_tie_breaks_ascending(conn):
     )
 
     result = implied_move_snapshot(conn, as_of=_MARKET_DATE, schema="uw_scan")
-    assert result == {"prints_upcoming": 1, "covered": 1, "not_covered": 0}
+    assert result == {
+        "prints_upcoming": 1,
+        "covered": 1,
+        "not_covered": 0,
+        "excluded_statement_obs": 0,
+    }
 
     row = ImpliedMoveRepository(conn, schema="uw_scan").latest_for(["CRDO"])["CRDO"]
     assert row["strike"] == Decimal("230")
+
+
+def test_zero_dte_covering_expiry_is_not_covered_never_a_zero(conn):
+    """M5 -- the covering expiry can equal `as_of` itself (a premarket print
+    today whose reaction day is today, with an expiry also listed today):
+    `t_years == 0` makes `sqrt(t_years) == 0`, so `implied_move_pct` would
+    be a real, persisted ZERO -- exactly what migration 146's "never a
+    zero" coverage contract forbids. Uses AVGO's real, frozen 2026-08-26
+    same-day expiry row (part of `_seed_avgo_grid`'s `too_early` set,
+    real IVs) paired with a CONSTRUCTED report_date/session (real AVGO's
+    actual print is 2026-09-02 afterhours, not this) chosen specifically to
+    force the reaction day onto `_MARKET_DATE` itself -- disclosed here as a
+    test construct, not a live UW fact."""
+    _seed_avgo_grid(conn)
+    _seed_calendar(
+        conn,
+        {"ticker": "AVGO", "report_date": _MARKET_DATE, "session": "premarket"},
+    )
+
+    result = implied_move_snapshot(conn, as_of=_MARKET_DATE, schema="uw_scan")
+    assert result == {
+        "prints_upcoming": 1,
+        "covered": 0,
+        "not_covered": 1,
+        "excluded_statement_obs": 0,
+    }
+    assert ImpliedMoveRepository(conn, schema="uw_scan").latest_for(["AVGO"]) == {}
 
 
 def test_missing_spot_at_nearest_strike_is_not_covered(conn):
@@ -504,7 +566,12 @@ def test_missing_spot_at_nearest_strike_is_not_covered(conn):
     )
 
     result = implied_move_snapshot(conn, as_of=as_of, schema="uw_scan")
-    assert result == {"prints_upcoming": 1, "covered": 0, "not_covered": 1}
+    assert result == {
+        "prints_upcoming": 1,
+        "covered": 0,
+        "not_covered": 1,
+        "excluded_statement_obs": 0,
+    }
 
     assert ImpliedMoveRepository(conn, schema="uw_scan").latest_for(["TSLA"]) == {}
 
@@ -521,7 +588,12 @@ def test_ticker_with_calendar_row_but_no_surface_rows_writes_nothing(conn):
     as_of = date(2026, 10, 20)  # within 21 days of the real 2026-11-04 report
 
     result = implied_move_snapshot(conn, as_of=as_of, schema="uw_scan")
-    assert result == {"prints_upcoming": 1, "covered": 0, "not_covered": 1}
+    assert result == {
+        "prints_upcoming": 1,
+        "covered": 0,
+        "not_covered": 1,
+        "excluded_statement_obs": 0,
+    }
 
     assert ImpliedMoveRepository(conn, schema="uw_scan").latest_for(["MSFT"]) == {}
 
@@ -542,7 +614,12 @@ def test_multi_ticker_snapshot_aggregates_counters_honestly(conn):
     )
 
     result = implied_move_snapshot(conn, as_of=_MARKET_DATE, schema="uw_scan")
-    assert result == {"prints_upcoming": 3, "covered": 2, "not_covered": 1}
+    assert result == {
+        "prints_upcoming": 3,
+        "covered": 2,
+        "not_covered": 1,
+        "excluded_statement_obs": 0,
+    }
 
     latest = ImpliedMoveRepository(conn, schema="uw_scan").latest_for(
         ["AVGO", "ADBE", "ORCL"]
@@ -620,3 +697,67 @@ def test_reaction_day_null_session_is_report_date_plus_one():
     from uw_scan.worker.jobs.implied_move_snapshot import _reaction_day
 
     assert _reaction_day(date(2026, 10, 29), None) == date(2026, 10, 30)
+
+
+def test_statement_obs_rows_are_excluded_never_derived_against(conn):
+    """Branch-fix-p2, I1: a `source='statement_obs'` calendar row carries a
+    FILING date, not a print date (see `worker/jobs/earnings_calendar`/
+    `fundamental_ingest_daily` docstrings) — an implied-move number derived
+    against it is not implying anything about a real print. Uses AVGO's
+    real, frozen 2026-08-26 grid (`_seed_avgo_grid`) so the IV/strike/spot
+    values are genuine; only the calendar row's `source` is a deliberate
+    test construct (AVGO's real print IS classified `afterhours` — this row
+    is relabeled `statement_obs` purely to exercise the exclusion path, and
+    is disclosed as such here rather than passed off as a live UW fact)."""
+    _seed_avgo_grid(conn)
+    cal = EarningsCalendarRepository(conn, schema="uw_scan")
+    cal.upsert_rows(
+        [
+            {
+                "ticker": "AVGO",
+                "report_date": date(2026, 9, 2),
+                "session": None,
+                "source": "statement_obs",
+            }
+        ]
+    )
+
+    result = implied_move_snapshot(conn, as_of=_MARKET_DATE, schema="uw_scan")
+    assert result == {
+        "prints_upcoming": 0,
+        "covered": 0,
+        "not_covered": 0,
+        "excluded_statement_obs": 1,
+    }
+    assert ImpliedMoveRepository(conn, schema="uw_scan").latest_for(["AVGO"]) == {}
+
+
+def test_a_print_beyond_the_lookahead_horizon_is_excluded(conn):
+    """I2 — the hollow test the branch review found: `LOOKAHEAD_DAYS = 21`
+    had no fixture on the far side of its own boundary. CRWV's real next
+    print (`get_upcoming_earnings`: report_date=2026-11-09, report_time=
+    "unknown") is 75 days out from this file's `_MARKET_DATE` (2026-08-26)
+    — real, frozen, and already documented in this module's docstring as
+    past the 21-day lookahead. No option_surface_grid_daily row is seeded
+    for it (irrelevant to this test: the horizon filter must exclude it
+    before any grid lookup happens)."""
+    cal = EarningsCalendarRepository(conn, schema="uw_scan")
+    cal.upsert_rows(
+        [
+            {
+                "ticker": "CRWV",
+                "report_date": date(2026, 11, 9),
+                "session": None,
+                "source": "uw_calendar",
+            }
+        ]
+    )
+
+    result = implied_move_snapshot(conn, as_of=_MARKET_DATE, schema="uw_scan")
+    assert result == {
+        "prints_upcoming": 0,
+        "covered": 0,
+        "not_covered": 0,
+        "excluded_statement_obs": 0,
+    }
+    assert ImpliedMoveRepository(conn, schema="uw_scan").latest_for(["CRWV"]) == {}

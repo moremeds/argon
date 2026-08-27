@@ -27,6 +27,15 @@ an interpolation, never a nearest-other-date fallback. `not_covered` is
 counted and logged so a silent widening of the gap is visible, not capped
 away.
 
+`source='statement_obs'` calendar rows are EXCLUDED entirely (branch-fix-p2,
+I1), never derived against. Those rows carry a FILING date, not a print
+date (see `storage/earnings_calendar.py` and `worker/jobs/
+fundamental_ingest_daily.FILING_TO_PRINT_WINDOW_DAYS`), so neither
+`_reaction_day` nor the covering-expiry pick can target a real print for
+them — an implied-move number computed against a filing date is not implying
+anything about a print. `excluded_statement_obs` counts how many upcoming
+rows this run skipped for that reason.
+
 Pure warm-store read + compute — zero UW/IB spend, safe to re-run (each
 night's row is an overwrite of that same night's prior attempt, see
 `ImpliedMoveRepository.upsert_rows`).
@@ -82,16 +91,34 @@ def _reaction_day(report_date: date, session: str | None) -> date:
     return report_date + timedelta(days=1)
 
 
+def prints_within_lookahead(
+    cal: EarningsCalendarRepository,
+    *,
+    as_of: date,
+    lookahead_days: int = LOOKAHEAD_DAYS,
+) -> list[dict]:
+    """Calendar prints in `[as_of, as_of + lookahead_days]`, inclusive on
+    both ends. The ONE call site for the horizon filter (branch-fix-p2, I2)
+    — `implied_move_snapshot` and the backfill's dry-run branch both call
+    this rather than each carrying their own copy of `<= horizon`, so a
+    change to the boundary can't drift between the two."""
+    horizon = as_of + timedelta(days=lookahead_days)
+    return [
+        p for p in cal.next_prints(on_or_after=as_of) if p["report_date"] <= horizon
+    ]
+
+
 def implied_move_snapshot(
     conn: psycopg.Connection, *, as_of: date, schema: str = "uw_scan"
 ) -> dict[str, int]:
     cal = EarningsCalendarRepository(conn, schema=schema)
     repo = ImpliedMoveRepository(conn, schema=schema)
 
-    horizon = as_of + timedelta(days=LOOKAHEAD_DAYS)
-    prints = [
-        p for p in cal.next_prints(on_or_after=as_of) if p["report_date"] <= horizon
-    ]
+    all_prints = prints_within_lookahead(cal, as_of=as_of)
+    excluded_statement_obs = sum(
+        1 for p in all_prints if p["source"] == "statement_obs"
+    )
+    prints = [p for p in all_prints if p["source"] != "statement_obs"]
 
     covered = 0
     not_covered = 0
@@ -105,7 +132,8 @@ def implied_move_snapshot(
             cur.execute(
                 f"""SELECT expiry, strike, call_iv, put_iv, underlying_spot
                       FROM {schema}.option_surface_grid_daily
-                     WHERE ticker = %s AND market_date = %s""",
+                     WHERE ticker = %s AND market_date = %s
+                     ORDER BY expiry, strike""",
                 (ticker, as_of),
             )
             grid = cur.fetchall()
@@ -120,6 +148,13 @@ def implied_move_snapshot(
             covering_expiry = covering_expiries[0]
 
             candidates = [r for r in grid if r[0] == covering_expiry]
+            # M4: `underlying_spot` can be NULL on a mixed subset of a
+            # ticker's rows for one night (a real, observed shape — see
+            # TSLA 2026-03-03 in test_implied_move.py, all-NULL there but
+            # mixed cases are not ruled out). This first `spot` is only a
+            # reference point for the nearest-strike sort below; with
+            # `ORDER BY expiry, strike` the pick is at least deterministic
+            # rather than whatever order Postgres happened to return.
             spot = candidates[0][4]
             if spot is None:
                 not_covered += 1
@@ -128,6 +163,12 @@ def implied_move_snapshot(
             # deterministic pick.
             candidates.sort(key=lambda r: (abs(r[1] - spot), r[1]))
             _, strike, call_iv, put_iv, spot = candidates[0]
+            if spot is None:
+                # M4: the WINNING row's own spot can differ from the
+                # reference row's (mixed-NULL underlying_spot) — re-check
+                # after the rebind rather than trusting the first lookup.
+                not_covered += 1
+                continue
 
             if call_iv is not None and put_iv is not None:
                 atm_iv, basis = (call_iv + put_iv) / 2, "both"
@@ -140,6 +181,16 @@ def implied_move_snapshot(
                 continue
 
             t_years = (covering_expiry - as_of).days / 365.0
+            if t_years <= 0:
+                # M5: reachable when the covering expiry equals `as_of`
+                # itself (a premarket print today with an expiry listed
+                # today). sqrt(0) makes implied_move_pct a real, persisted
+                # ZERO -- exactly what migration 146's "never a zero"
+                # coverage contract forbids. A zero-DTE straddle has no
+                # meaningful Brenner-Subrahmanyam approximation; treat it as
+                # a coverage failure, not a value.
+                not_covered += 1
+                continue
             implied_move_pct = (
                 BRENNER_SUBRAHMANYAM_CONSTANT * float(atm_iv) * math.sqrt(t_years)
             )
@@ -178,13 +229,15 @@ def implied_move_snapshot(
         "prints_upcoming": len(prints),
         "covered": covered,
         "not_covered": not_covered,
+        "excluded_statement_obs": excluded_statement_obs,
     }
     log.info(
         "implied_move_snapshot as_of=%s: %d prints upcoming, %d covered, "
-        "%d not_covered",
+        "%d not_covered, %d excluded (statement_obs, filing date not a print date)",
         as_of,
         result["prints_upcoming"],
         result["covered"],
         result["not_covered"],
+        result["excluded_statement_obs"],
     )
     return result
