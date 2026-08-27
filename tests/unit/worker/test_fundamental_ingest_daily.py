@@ -211,7 +211,7 @@ def test_calendar_listings_are_persisted_with_real_session(patched):
         ("AAPL", TODAY, "premarket", "uw_calendar"),
         ("NVDA", TODAY, "afterhours", "uw_calendar"),
     }
-    assert out["calendar_rows"] == 2
+    assert out["calendar_rows_new"] == 2
 
 
 def test_calendar_rows_persist_even_when_no_target_matches(patched):
@@ -224,8 +224,8 @@ def test_calendar_rows_persist_even_when_no_target_matches(patched):
     assert [(r["ticker"], r["report_date"], r["session"]) for r in repo.upserts] == [
         ("BEKE", TODAY, "premarket")
     ]
-    assert out["calendar_rows"] == 1
-    assert out["calendar_unknown_rows"] == 0
+    assert out["calendar_rows_new"] == 1
+    assert out["calendar_unknown_rows_new"] == 0
 
 
 def test_a_new_filing_with_no_matching_calendar_row_lands_via_statement_obs(patched):
@@ -260,7 +260,7 @@ def test_a_new_filing_with_no_matching_calendar_row_lands_via_statement_obs(patc
             "source": "statement_obs",
         }
     ]
-    assert out["calendar_unknown_rows"] == 1
+    assert out["calendar_unknown_rows_new"] == 1
     assert "new_filings" not in out, "internal plumbing must not leak into the summary"
 
 
@@ -276,7 +276,7 @@ def test_a_new_filing_matching_an_existing_calendar_row_is_left_alone(patched):
 
     repo = patched["calendar_repo"]
     assert [r for r in repo.upserts if r["source"] == "statement_obs"] == []
-    assert out["calendar_unknown_rows"] == 0
+    assert out["calendar_unknown_rows_new"] == 0
 
 
 def test_a_new_filing_matching_a_pre_existing_calendar_row_is_left_alone(patched):
@@ -293,4 +293,4 @@ def test_a_new_filing_matching_a_pre_existing_calendar_row_is_left_alone(patched
 
     repo = patched["calendar_repo"]
     assert [r for r in repo.upserts if r["source"] == "statement_obs"] == []
-    assert out["calendar_unknown_rows"] == 0
+    assert out["calendar_unknown_rows_new"] == 0

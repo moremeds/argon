@@ -57,12 +57,14 @@ _EMPTY: dict[str, int] = {
     "filing_date_tolerance": 0,
     "calendar_symbols": 0,
     "targets": 0,
-    "calendar_rows": 0,
-    "calendar_unknown_rows": 0,
+    # NEW rows only (xmax=0), not rows seen — see the field-level comments below
+    # where these are actually assigned.
+    "calendar_rows_new": 0,
+    "calendar_unknown_rows_new": 0,
 }
 
 
-def _persist_unknown_statements(
+def persist_unknown_statements(
     calendar_repo: EarningsCalendarRepository, new_filings: list[dict[str, Any]]
 ) -> int:
     """Land the `statement_obs` fallback rows (spec §5-i) for a landed-this-run
@@ -73,6 +75,15 @@ def _persist_unknown_statements(
     and re-upserting session=NULL there would just be a no-op touch (COALESCE never
     lets NULL clobber a known value) — checked explicitly so the intent stays legible
     rather than relying on that safety net.
+
+    Public (not `fundamental_ingest_daily`-private) because the daily job's own
+    `targets` can only ever be tickers the classified calendar just listed — a
+    ticker UW never lists in either slot can never reach `fundamental_ingest`
+    through THIS job, so it can never appear in `new_filings` here. The monthly
+    backstop sweep (`scheduler.py`'s `_fundamental_ingest`, which ingests the whole
+    tier unfiltered by calendar) is the only caller that can actually hand this a
+    calendar-invisible ticker, and calls this same function after its own
+    `fundamental_ingest(...)`.
     """
     if not new_filings:
         return 0
@@ -122,12 +133,16 @@ def fundamental_ingest_daily(
     # non-empty, so an unseeded tier still reads no calendar at all.
     calendar_repo = EarningsCalendarRepository(conn, schema=schema)
     symbols: set[str] = set()
-    calendar_rows = 0
+    # Rows genuinely NEW to the calendar this run (xmax=0 per Task 4's upsert_rows) —
+    # NOT how many listings were seen. `calendar_symbols` below is the "seen" count;
+    # on a normal re-scan day this stays near-zero for names already on the calendar
+    # from a prior run, which is expected, not a failure.
+    calendar_rows_new = 0
     for offset in range(max(0, lookback_days) + 1):
         report_date = today - timedelta(days=offset)
         listings = fetch_calendar_listings(client, report_date)
         symbols |= {listing.symbol for listing in listings}
-        calendar_rows += calendar_repo.upsert_rows(
+        calendar_rows_new += calendar_repo.upsert_rows(
             [
                 {
                     "ticker": listing.symbol,
@@ -146,20 +161,23 @@ def fundamental_ingest_daily(
             len(symbols),
             tier,
         )
-        return dict(_EMPTY, calendar_symbols=len(symbols), calendar_rows=calendar_rows)
+        return dict(
+            _EMPTY, calendar_symbols=len(symbols), calendar_rows_new=calendar_rows_new
+        )
 
     counters = fundamental_ingest(
         conn=conn, client=client, tier=tier, schema=schema, tickers=targets
     )
     new_filings = counters.pop("new_filings", [])
-    calendar_unknown_rows = _persist_unknown_statements(calendar_repo, new_filings)
+    # Also a NEW-only count (same xmax=0 semantics) — see persist_unknown_statements.
+    calendar_unknown_rows_new = persist_unknown_statements(calendar_repo, new_filings)
 
     summary = {
         **counters,
         "calendar_symbols": len(symbols),
         "targets": len(targets),
-        "calendar_rows": calendar_rows,
-        "calendar_unknown_rows": calendar_unknown_rows,
+        "calendar_rows_new": calendar_rows_new,
+        "calendar_unknown_rows_new": calendar_unknown_rows_new,
     }
     log.info("fundamental_ingest_daily %s", summary)
     return summary

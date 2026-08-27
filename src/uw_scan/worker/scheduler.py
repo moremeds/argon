@@ -22,8 +22,8 @@ from apscheduler.triggers.interval import IntervalTrigger
 
 from uw_scan.api.client import UwClient
 from uw_scan.config import Settings
-from uw_scan.sources.lake_resolver import _r2_fully_configured, resolve_lake_root
 from uw_scan.sources.fed_funds_futures_path import FedFundsFuturesPathProvider
+from uw_scan.sources.lake_resolver import _r2_fully_configured, resolve_lake_root
 from uw_scan.sources.ohlc import MassiveOhlcProvider
 from uw_scan.sources.uw_budget import (
     limits_from_settings,
@@ -53,18 +53,10 @@ from uw_scan.worker.jobs.gold_jobs import (
     gold_uw_options_ingest_job,
     gold_wgc_cb_ingest_job,
 )
-from uw_scan.worker.jobs.ohlc_pull import ohlc_pull_once
-from uw_scan.worker.jobs.macro_market_layer_ingest import (
-    macro_market_layer_ingest_job,
-)
-from uw_scan.worker.jobs.macro_series_ingest import macro_fred_series_ingest_job
 from uw_scan.worker.jobs.macro_context_snapshot import macro_context_snapshot_job
 from uw_scan.worker.jobs.macro_gold_ingest import macro_gold_ingest_job
-from uw_scan.worker.jobs.macro_state_jobs import (
-    macro_gold_state_job,
-    macro_inflation_state_job,
-    macro_rates_state_job,
-    macro_usd_state_job,
+from uw_scan.worker.jobs.macro_market_layer_ingest import (
+    macro_market_layer_ingest_job,
 )
 from uw_scan.worker.jobs.macro_policy_jobs import (
     macro_fomc_statement_ingest_job,
@@ -72,6 +64,14 @@ from uw_scan.worker.jobs.macro_policy_jobs import (
     macro_sep_ingest_job,
     macro_sme_ingest_job,
 )
+from uw_scan.worker.jobs.macro_series_ingest import macro_fred_series_ingest_job
+from uw_scan.worker.jobs.macro_state_jobs import (
+    macro_gold_state_job,
+    macro_inflation_state_job,
+    macro_rates_state_job,
+    macro_usd_state_job,
+)
+from uw_scan.worker.jobs.ohlc_pull import ohlc_pull_once
 from uw_scan.worker.jobs.option_intraday_jobs import (
     refresh_intraday_for_top_oi_movers,
 )
@@ -858,7 +858,11 @@ def main() -> int:
             fundamental_refresh(conn=repo.conn, settings=settings)
 
     def _fundamental_ingest() -> None:
+        from uw_scan.storage.earnings_calendar import EarningsCalendarRepository
         from uw_scan.worker.jobs.fundamental_ingest import fundamental_ingest
+        from uw_scan.worker.jobs.fundamental_ingest_daily import (
+            persist_unknown_statements,
+        )
 
         with _external_api_recorder(settings) as recorder:
             with _uw_client(
@@ -869,6 +873,19 @@ def main() -> int:
                 with _repo(settings) as repo:
                     counters = fundamental_ingest(
                         conn=repo.conn, client=uw, schema=settings.db_schema
+                    )
+                    # Unfiltered by calendar (this ingests the whole tier), so this is
+                    # the only caller that can hand `persist_unknown_statements` a
+                    # ticker UW never lists in either classified slot — the ~2%
+                    # `report_time: "unknown"` population spec §5-i exists for. The
+                    # daily job (`fundamental_ingest_daily.py`) mirrors this same call
+                    # against its own, calendar-filtered `new_filings`.
+                    new_filings = counters.pop("new_filings", [])
+                    calendar_repo = EarningsCalendarRepository(
+                        repo.conn, schema=settings.db_schema
+                    )
+                    counters["calendar_unknown_rows_new"] = persist_unknown_statements(
+                        calendar_repo, new_filings
                     )
         logger.info("fundamental_ingest %s", counters)
 
