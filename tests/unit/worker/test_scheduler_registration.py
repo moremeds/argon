@@ -353,3 +353,64 @@ def test_earnings_reactions_registered_on_all_role_when_enabled(monkeypatch):
         UW_SCAN_EARNINGS_REACTIONS_ENABLED="true",
     )
     assert "earnings_reactions_compute" in ids
+
+
+def test_implied_move_registered_on_primary_massive_when_enabled(monkeypatch):
+    ids = _registered_job_ids(
+        monkeypatch,
+        UW_SCAN_WORKER_ROLE="massive",
+        UW_SCAN_WORKER_INDEX="0",
+        UW_SCAN_WORKER_COUNT="1",
+        UW_SCAN_IMPLIED_MOVE_SNAPSHOT_ENABLED="true",
+    )
+    assert "implied_move_snapshot" in ids
+
+
+def test_implied_move_absent_when_disabled(monkeypatch):
+    ids = _registered_job_ids(
+        monkeypatch,
+        UW_SCAN_WORKER_ROLE="massive",
+        UW_SCAN_WORKER_INDEX="0",
+        UW_SCAN_WORKER_COUNT="1",
+        UW_SCAN_IMPLIED_MOVE_SNAPSHOT_ENABLED="false",
+    )
+    assert "implied_move_snapshot" not in ids
+    assert "fundamental_refresh" in ids  # harness sanity: massive-0 sibling still wires
+
+
+def test_implied_move_absent_on_non_primary_massive(monkeypatch):
+    # Pure warm-store read with an overwrite-on-conflict write, but no
+    # advisory lock — a per-role-0 schedule would run N redundant copies.
+    ids = _registered_job_ids(
+        monkeypatch,
+        UW_SCAN_WORKER_ROLE="massive",
+        UW_SCAN_WORKER_INDEX="1",
+        UW_SCAN_WORKER_COUNT="2",
+        UW_SCAN_IMPLIED_MOVE_SNAPSHOT_ENABLED="true",
+    )
+    assert "implied_move_snapshot" not in ids
+
+
+def test_implied_move_absent_on_uw_role(monkeypatch):
+    # Zero UW spend; the uw workers must never pick it up (would just be a
+    # redundant duplicate write against the same table).
+    ids = _registered_job_ids(
+        monkeypatch,
+        UW_SCAN_WORKER_ROLE="uw",
+        UW_SCAN_WORKER_INDEX="0",
+        UW_SCAN_WORKER_COUNT="1",
+        UW_SCAN_IMPLIED_MOVE_SNAPSHOT_ENABLED="true",
+    )
+    assert "implied_move_snapshot" not in ids
+    assert "full_scan_0" in ids  # harness sanity: sibling uw job still wires
+
+
+def test_implied_move_registered_on_all_role_when_enabled(monkeypatch):
+    ids = _registered_job_ids(
+        monkeypatch,
+        UW_SCAN_WORKER_ROLE="all",
+        UW_SCAN_WORKER_INDEX="0",
+        UW_SCAN_WORKER_COUNT="1",
+        UW_SCAN_IMPLIED_MOVE_SNAPSHOT_ENABLED="true",
+    )
+    assert "implied_move_snapshot" in ids

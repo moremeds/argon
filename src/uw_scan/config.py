@@ -494,6 +494,15 @@ class Settings(BaseModel):
     # a future read can no longer distinguish from "not yet known" once the
     # calendar's lookback window scrolls past it.
     earnings_reactions_enabled: bool = True
+    # Nightly implied-move snapshot (spec §5-iii): Brenner-Subrahmanyam
+    # ATM-straddle approximation over option_surface_grid_daily, for names
+    # with a known print in the next 21 calendar days. Zero UW/IB spend,
+    # pinned to massive-0 at 20:45 ET weekdays -- after the 19:00/19:30
+    # surface-capture jobs so tonight's grid is already written (see
+    # scheduler `_should_schedule_implied_move`). Default ON, same rationale
+    # as earnings_reactions_enabled above: a night not snapshotted is a
+    # forward-looking read the desk can never reconstruct after the fact.
+    implied_move_snapshot_enabled: bool = True
     chanlun_anchor_tol: float = 0.0
     chanlun_stale_sessions: int = 20
     # Empty by DESIGN (2026-07-15 walk-forward probe): all 4 candidate
@@ -1105,6 +1114,9 @@ class Settings(BaseModel):
             ),
             earnings_reactions_enabled=_env_bool(
                 "UW_SCAN_EARNINGS_REACTIONS_ENABLED", True
+            ),
+            implied_move_snapshot_enabled=_env_bool(
+                "UW_SCAN_IMPLIED_MOVE_SNAPSHOT_ENABLED", True
             ),
             chanlun_anchor_tol=float(
                 os.environ.get("UW_SCAN_CHANLUN_ANCHOR_TOL", "0.0")

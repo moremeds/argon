@@ -539,6 +539,17 @@ def _should_schedule_earnings_reactions(settings: Settings) -> bool:
     return role == "all" or (role == "massive" and settings.worker_index == 0)
 
 
+def _should_schedule_implied_move(settings: Settings) -> bool:
+    """Single owner for the nightly implied-move snapshot. Pure warm-store
+    read (calendar x option_surface_grid_daily, no UW/IB spend) -> pin to
+    massive-0, same as earnings_reactions / vrp_markout / chanlun_lifecycle.
+    Gated separately on `implied_move_snapshot_enabled`."""
+    if not settings.implied_move_snapshot_enabled:
+        return False
+    role = settings.worker_role.lower()
+    return role == "all" or (role == "massive" and settings.worker_index == 0)
+
+
 def _worker_label(settings: Settings) -> str:
     role = settings.worker_role.lower()
     if role == "all":
@@ -866,6 +877,19 @@ def main() -> int:
                 repo.conn, as_of=as_of, schema=settings.db_schema
             )
         logger.info("earnings_reactions_compute %s", result)
+
+    def _implied_move_snapshot() -> None:
+        from datetime import datetime as _dt
+        from zoneinfo import ZoneInfo
+
+        from uw_scan.worker.jobs.implied_move_snapshot import implied_move_snapshot
+
+        as_of = _dt.now(ZoneInfo(settings.rth_tz)).date()
+        with _repo(settings) as repo:
+            result = implied_move_snapshot(
+                repo.conn, as_of=as_of, schema=settings.db_schema
+            )
+        logger.info("implied_move_snapshot %s", result)
 
     def _spx_density_forecast() -> None:
         from uw_scan.worker.jobs.spx_density_forecast import spx_density_forecast_job
@@ -2312,6 +2336,23 @@ def main() -> int:
             CronTrigger.from_crontab("40 19 * * *", timezone=settings.rth_tz),
             id="earnings_reactions_compute",
             name="Earnings reaction history (calendar x OHLC)",
+            max_instances=1,
+            coalesce=True,
+        )
+
+    if _should_schedule_implied_move(settings):
+        # Implied-move snapshot at 20:45 ET WEEKDAYS — after the 19:00/19:30
+        # surface-capture jobs so tonight's option_surface_grid_daily rows
+        # are already written, and after the 19:40 earnings-reaction compute
+        # (unrelated table, but keeps the fundamentals-industry-desk jobs in
+        # one block). Pure warm-store read (calendar x surface grid); zero
+        # UW/IB spend, so massive-0 is the right single-flight home, same
+        # pin as earnings_reactions above.
+        sched.add_job(
+            _implied_move_snapshot,
+            CronTrigger.from_crontab("45 20 * * 0-4", timezone=settings.rth_tz),
+            id="implied_move_snapshot",
+            name="Implied move snapshot (option surface grid)",
             max_instances=1,
             coalesce=True,
         )
