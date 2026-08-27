@@ -12,7 +12,10 @@ from __future__ import annotations
 
 from uw_scan.fundamentals.valuation import FINANCIALS, UNCLASSIFIED
 from uw_scan.storage.company_sector import CompanySectorRepository
-from uw_scan.worker.jobs.fundamental_anchors import seed_company_types
+from uw_scan.worker.jobs.fundamental_anchors import (
+    PROBE_OPTICAL_TICKERS,
+    seed_company_types,
+)
 
 
 def _universe(conn, tickers: list[str]) -> None:
@@ -100,9 +103,7 @@ def _only_vendor(conn, ticker: str, vendor_sector: str) -> None:
     nothing, and nothing about the seeded fixture stops that from recurring.
     """
     with conn.cursor() as cur:
-        cur.execute(
-            "SELECT sector FROM uw_scan.watchlist WHERE ticker = %s", (ticker,)
-        )
+        cur.execute("SELECT sector FROM uw_scan.watchlist WHERE ticker = %s", (ticker,))
         row = cur.fetchone()
     assert row is None or row[0] is None, (
         f"{ticker} now carries chain sector {row[0]!r}, so this test would "
@@ -276,6 +277,52 @@ def test_a_hand_correction_still_beats_the_override(seeded_db_empty_cards):
     FundamentalAnchorsRepository(conn).assign("PYPL", FINANCIALS, source="manual")
     seed_company_types(conn)
     assert _type_of(conn, "PYPL")[0] == FINANCIALS
+
+
+def test_every_probe_optical_ticker_escapes_DC_Connect_to_chips_cyclical(
+    seeded_db_empty_cards,
+):
+    """Task 11 (spec §5-vii). Every ticker the probe found misrouted, not a
+    hardcoded sample of it — `PROBE_OPTICAL_TICKERS` is the same set the
+    production map and the routing probe both enumerate, so a ticker added to
+    (or dropped from) that set is covered here without editing this test.
+
+    Real situation, verified against `option_wizard_local` 2026-08-27/28: all
+    seven carry `watchlist.sector = 'DC-Connect'`, which — absent the
+    override — matches `SECTOR_TO_TYPE`'s own `"DC-Connect": "power_infra"`
+    entry directly and routes there, not to the `"Networking/Optical"` entry
+    these names should hit.
+    """
+    conn = seeded_db_empty_cards.conn
+    tickers = sorted(PROBE_OPTICAL_TICKERS)
+    _universe(conn, tickers)
+    for t in tickers:
+        _watchlist(conn, t, "DC-Connect")
+    seed_company_types(conn)
+    for t in tickers:
+        company_type, note = _type_of(conn, t)
+        assert company_type == "chips_cyclical", (
+            f"{t}: expected the ticker override to win over DC-Connect, got "
+            f"{company_type!r}"
+        )
+        assert note == "ticker override (sector='DC-Connect')"
+
+
+def test_DC_Connect_still_routes_power_infra_for_a_name_the_override_does_not_cover(
+    seeded_db_empty_cards,
+):
+    """The override must not leak past the seven it names. GLW (Corning) is a
+    real `DC-Connect` name on the watchlist that is NOT in
+    `PROBE_OPTICAL_TICKERS` — it must keep routing exactly as it did before
+    this change."""
+    conn = seeded_db_empty_cards.conn
+    assert "GLW" not in PROBE_OPTICAL_TICKERS
+    _universe(conn, ["GLW"])
+    _watchlist(conn, "GLW", "DC-Connect")
+    seed_company_types(conn)
+    company_type, note = _type_of(conn, "GLW")
+    assert company_type == "power_infra"
+    assert note == "sector=DC-Connect"
 
 
 def test_a_capped_run_says_so_instead_of_looking_complete(seeded_db_empty_cards):

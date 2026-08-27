@@ -16,8 +16,10 @@ from uw_scan.fundamentals.valuation import (
 )
 from uw_scan.worker.jobs.company_sector_refresh import parse_sector
 from uw_scan.worker.jobs.fundamental_anchors import (
-    TICKER_TO_TYPE,
+    PROBE_OPTICAL_TICKERS,
     SECTOR_TO_TYPE,
+    TICKER_TO_TYPE,
+    TICKER_TO_TYPE_REFUSAL_ESCAPES,
     VENDOR_SECTOR_TO_TYPE,
 )
 
@@ -94,36 +96,77 @@ def test_prefix_matching_cannot_drag_a_neighbour_into_the_refusal():
     assert financial_prefixes == {"Banks", "Fintech"}
 
 
-def test_every_name_override_escapes_via_a_market_cap_method_not_an_exemption():
-    """The load-bearing invariant of `TICKER_TO_TYPE`, and the one that will rot.
+def test_every_refusal_escape_uses_a_market_cap_method_not_an_exemption():
+    """The load-bearing invariant of a REFUSAL-ESCAPE override, and the one
+    that will rot.
 
-    A name is only allowed out of the financials refusal because the type it
-    lands in is priced by MARKET CAP, so the enterprise-value denominator the
-    refusal exists to reject is never computed for it. Route an override to an
-    EV-denominated type and that argument silently evaporates while the entry
-    still looks deliberate — which is the exact failure this whole change
-    replaces, re-created one ticker at a time.
+    Scoped to `TICKER_TO_TYPE_REFUSAL_ESCAPES` deliberately, not to all of
+    `TICKER_TO_TYPE`: a name is only allowed out of the financials refusal
+    because the type it lands in is priced by MARKET CAP, so the
+    enterprise-value denominator the refusal exists to reject is never
+    computed for it. Route an escape to an EV-denominated type and that
+    argument silently evaporates while the entry still looks deliberate —
+    which is the exact failure this whole change replaces, re-created one
+    ticker at a time. A ticker override that is fixing a DIFFERENT bug (the
+    optical names below, none of which is a financial) is not held to this —
+    see `test_the_optical_overrides_are_not_refusal_escapes_and_may_use_ev`.
     """
-    assert TICKER_TO_TYPE, "the map is documented as holding a real entry"
-    for ticker, ctype in TICKER_TO_TYPE.items():
+    assert TICKER_TO_TYPE_REFUSAL_ESCAPES, "documented as holding a real entry"
+    assert TICKER_TO_TYPE_REFUSAL_ESCAPES <= TICKER_TO_TYPE.keys()
+    for ticker in TICKER_TO_TYPE_REFUSAL_ESCAPES:
+        ctype = TICKER_TO_TYPE[ticker]
         method = TYPE_YIELD.get(ctype)
         assert method is not None, f"{ticker} overridden to a type with no yield"
         assert method not in EV_DENOMINATED, (
             f"{ticker} -> {ctype} is priced through enterprise value; the "
-            "override's justification does not hold for it"
+            "refusal-escape justification does not hold for it"
         )
 
 
-def test_PYPL_is_the_override_and_it_beats_both_sector_passes():
+def test_every_ticker_override_lands_on_a_real_method():
+    """Weaker than the refusal-escape guard, but binding on ALL of
+    `TICKER_TO_TYPE`: whatever the override's reason, it must not silently
+    route to a type with no `TYPE_YIELD` entry (that renders as a mysterious
+    refusal rather than the correction it is meant to be)."""
+    assert TICKER_TO_TYPE, "the map is documented as holding a real entry"
+    for ticker, ctype in TICKER_TO_TYPE.items():
+        assert TYPE_YIELD.get(ctype) is not None, (
+            f"{ticker} overridden to {ctype!r}, which has no yield method"
+        )
+
+
+def test_PYPL_is_the_refusal_escape_and_it_beats_both_sector_passes():
     """Named explicitly, because a silent one is a routing bug in disguise.
 
     PYPL carries chain sector `Fintech` AND vendor sector `Financial Services`,
     so BOTH passes would refuse it. The override is the only thing standing
     between it and a lost band, and it is checked first for that reason.
     """
-    assert TICKER_TO_TYPE == {"PYPL": "platform_scale"}
+    assert TICKER_TO_TYPE["PYPL"] == "platform_scale"
+    assert TICKER_TO_TYPE_REFUSAL_ESCAPES == {"PYPL"}
     assert SECTOR_TO_TYPE["Fintech"] == FINANCIALS
     assert VENDOR_SECTOR_TO_TYPE["Financial Services"] == FINANCIALS
+
+
+def test_the_optical_overrides_are_not_refusal_escapes_and_may_use_ev():
+    """Task 11 (spec §5-vii). These seven fix a DIFFERENT bug than PYPL's: a
+    real but wrong `watchlist.sector` tag (`DC-Connect`) shadowing the correct
+    chain-map entry (`"Networking/Optical": "chips_cyclical"`), not an escape
+    from the financials refusal — none of the seven is a financial. Their
+    method (`sales_to_ev`) is EV-denominated, and that is fine: nothing here
+    is trying to keep enterprise value out of the computation, unlike PYPL.
+
+    Enumerated from `PROBE_OPTICAL_TICKERS`
+    (`scripts/research/optical_company_type_probe.py`,
+    `docs/research/2026-08-26-optical-chain-pm-desk/routing_probe.md`), never
+    hardcoded a second time here — a literal list beside the real one is how
+    the two silently drift apart.
+    """
+    assert PROBE_OPTICAL_TICKERS, "the probe found a real, non-empty set"
+    assert PROBE_OPTICAL_TICKERS.isdisjoint(TICKER_TO_TYPE_REFUSAL_ESCAPES)
+    for ticker in PROBE_OPTICAL_TICKERS:
+        assert TICKER_TO_TYPE[ticker] == "chips_cyclical"
+        assert TYPE_YIELD["chips_cyclical"] in EV_DENOMINATED
 
 
 def test_parse_sector_against_the_real_captured_vendor_payload():
