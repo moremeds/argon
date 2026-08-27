@@ -165,3 +165,29 @@ def test_quarters_is_bounded(client):
         client.get("/api/stock/NVDA/fundamentals/statements?quarters=41").status_code
         == 422
     )
+
+
+def test_the_card_back_does_not_require_availability_evidence(
+    client, seeded_db_empty_cards
+):
+    """The compatibility guarantee of the as-of work, asserted at the endpoint.
+
+    Availability claims gate HISTORICAL replays. Today's page is a different
+    question — "what do we believe now" — and an observation carrying no claim
+    at all must still render. The fixture writes zero claims, which is the state
+    of every row before the classification backfill runs, and the state of any
+    row a future ingest bug leaves unclaimed.
+    """
+    _seed(seeded_db_empty_cards)
+    with seeded_db_empty_cards.conn.cursor() as cur:
+        cur.execute(
+            f"SELECT count(*) FROM "
+            f"{seeded_db_empty_cards._schema}.fundamental_obs_availability"
+        )
+        assert cur.fetchone()[0] == 0, "fixture must have no claims for this to mean anything"
+
+    body = client.get("/api/stock/NVDA/fundamentals/statements?quarters=5").json()
+    assert body["period_ends"] == PERIODS
+    gm = next(f for f in body["features"] if f["feature"] == "gross_margin")
+    gp = next(s for s in gm["series"] if s["key"] == "gross_profit")
+    assert gp["values"][-1] == 61157000000.0

@@ -22,6 +22,7 @@ import psycopg
 from psycopg.types.json import Jsonb
 
 from uw_scan.fundamentals.statements import Violation
+from uw_scan.storage.fundamental_observation_panels import current_statement_panel
 
 # One statement row is ~1 KB of JSONB; 2,000 keeps a chunk comfortably under the
 # parameter ceiling while still amortising round-trips over a 60k-row ingest.
@@ -280,57 +281,26 @@ class FundamentalObsRepository:
     def statement_panel(
         self, tickers: Sequence[str] | None = None, period_type: str = "quarterly"
     ) -> dict[str, dict[str, Any]]:
-        """Tier-1 rows reshaped into the dict `fundamentals.features` consumes.
+        """Compatibility alias for `current_statement_panel` — TODAY's view.
 
-        Newest observation wins per (ticker, period, statement): a restatement is
-        a new immutable row, so "current" is the highest `obs_id` and never an
-        edit to an older one.
+        The implementation moved to `storage/fundamental_observation_panels.py`
+        when the historical reader was added, because this name does not say
+        WHICH question it answers and callers had begun using it for both. It
+        answers "what does Argon believe now": newest accepted version per
+        identity, selected by `obs_id DESC`.
 
-        Production owns this shape so the research scripts and the scoring job
-        read the panel through one implementation — the same reason the feature
-        and composite math moved into `uw_scan.fundamentals`.
+        That is the wrong answer to "what was knowable at time T", because it
+        applies no cutoff: it returns today's panel whatever T is. (The `obs_id`
+        sort is not itself the defect — it is monotonic with capture time by
+        construction. The absence of a cutoff is.) Historical callers must use
+        `statement_panel_as_of` with an explicit evidence policy.
+
+        Kept rather than removed so this PR does not rewrite every current-page
+        caller; new code should call `current_statement_panel` directly.
         """
-        where = ["period_type = %s"]
-        params: list[Any] = [period_type]
-        if tickers is not None:
-            where.append("ticker = ANY(%s)")
-            params.append(list(tickers))
-        sql = f"""
-            SELECT DISTINCT ON (ticker, period_end, statement)
-                   ticker, period_end, statement, raw_jsonb, filing_published_at,
-                   obs_id
-              FROM {self._schema}.fundamental_statement_obs
-             WHERE {" AND ".join(where)}
-             ORDER BY ticker, period_end, statement, obs_id DESC
-        """
-        keys = {
-            "income": "income-statements",
-            "balance": "balance-sheets",
-            "cash_flow": "cash-flows",
-        }
-        out: dict[str, dict[str, Any]] = {}
-        with self.conn.cursor() as cur:
-            cur.execute(sql, params)
-            for ticker, period_end, statement, raw, filed, obs_id in cur.fetchall():
-                key = keys.get(statement)
-                if key is None:
-                    continue
-                per = out.setdefault(
-                    ticker,
-                    {
-                        "income-statements": {},
-                        "balance-sheets": {},
-                        "cash-flows": {},
-                        "filing_dates": {},
-                        "obs_ids": {},
-                    },
-                )
-                period = period_end.isoformat()
-                per[key][period] = raw
-                per["obs_ids"].setdefault(period, []).append(obs_id)
-                if filed:
-                    per["filing_dates"][period] = filed.isoformat()
-        return out
+        return current_statement_panel(
+            self.conn, tickers, period_type, schema=self._schema
+        )
 
     def coverage(self, tier: str) -> list[dict[str, Any]]:
         """Per-ticker ingest coverage for the tier — what actually landed.
@@ -363,6 +333,66 @@ class FundamentalObsRepository:
                     "first_period": r[3],
                     "last_period": r[4],
                     "with_filing_date": r[5],
+                }
+                for r in cur.fetchall()
+            ]
+
+    def statement_identities(
+        self,
+        tickers: Sequence[str],
+        *,
+        exclude_claim_key: str | None = None,
+    ) -> list[dict[str, Any]]:
+        """One row per statement IDENTITY, with how many content versions it has.
+
+        An identity is `(source, ticker, period_end, period_type, statement)` —
+        migration 114's unique key minus `content_hash`. `version_count` is the
+        number of distinct hashes stored for it, and it is the first thing the
+        publication rule checks: with two or more, Argon cannot tell which
+        version a filing published, so no publication date may be attached to
+        any of them.
+
+        `exclude_claim_key` skips identities whose every observation already
+        carries that claim, which is what makes a backfill resumable without
+        re-deciding settled rows. It is deliberately ALL rather than ANY: a
+        partially-claimed identity still has work left.
+        """
+        if not tickers:
+            return []
+        having = ""
+        params: list[Any] = [[t.upper() for t in tickers]]
+        if exclude_claim_key:
+            having = """
+             HAVING bool_or(NOT EXISTS (
+                        SELECT 1 FROM {schema}.fundamental_obs_availability a
+                         WHERE a.obs_id = o.obs_id AND a.claim_key = %s))
+            """.format(schema=self._schema)
+            params.append(exclude_claim_key)
+        sql = f"""
+            SELECT o.ticker,
+                   o.period_end,
+                   o.period_type,
+                   o.statement,
+                   o.source,
+                   count(DISTINCT o.content_hash) AS version_count,
+                   array_agg(o.obs_id ORDER BY o.obs_id) AS obs_ids
+              FROM {self._schema}.fundamental_statement_obs o
+             WHERE o.ticker = ANY(%s)
+             GROUP BY o.ticker, o.period_end, o.period_type, o.statement, o.source
+             {having}
+             ORDER BY o.ticker, o.period_end, o.statement
+        """
+        with self.conn.cursor() as cur:
+            cur.execute(sql, params)
+            return [
+                {
+                    "ticker": r[0],
+                    "period_end": r[1],
+                    "period_type": r[2],
+                    "statement": r[3],
+                    "source": r[4],
+                    "version_count": int(r[5]),
+                    "obs_ids": list(r[6]),
                 }
                 for r in cur.fetchall()
             ]

@@ -393,9 +393,11 @@ export interface paths {
          *     own contract and its OpenAPI snapshot stay untouched and the two payloads
          *     can evolve independently.
          *
-         *     Reads through `statement_panel`, the same path the scoring job uses, so
-         *     "which observation is current" cannot diverge between the front of a card
-         *     and its back.
+         *     Reads through `current_statement_panel` — newest version per identity, the
+         *     same path the card's front takes — so "which observation is current" cannot
+         *     diverge between the front of a card and its back. Deliberately NOT the
+         *     as-of reader: this endpoint answers "what do we believe now", and an
+         *     observation carrying no availability evidence must still render here.
          *
          *     404 here means "no statements ingested", which is deliberately NOT the card
          *     endpoint's condition ("no score row"). The two can legitimately disagree —
@@ -1955,6 +1957,206 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/stock/{ticker}/fundamentals/dimensions": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Company Dimensions
+         * @description One name's independent dimensions, or the state explaining their absence.
+         */
+        get: operations["company_dimensions_api_stock__ticker__fundamentals_dimensions_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/scanner/radar": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Radar
+         * @description Cross-universe attention routing, ordered only as the claim registry allows.
+         *
+         *     NO HIDDEN RENORMALIZATION. Two names whose aggregates rest on different
+         *     dimension sets are both returned, each carrying `dimensions_present` and
+         *     `missing_dimensions`, and the caller sees the denominators rather than a
+         *     column of numbers that silently mean different things.
+         */
+        get: operations["radar_api_scanner_radar_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/research/chains/matrix": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Chain Matrix
+         * @description chain × layer matrix, rolled up from compatible company results.
+         *
+         *     Read-time rollup, not a cached aggregate: the inputs are already persisted
+         *     and a cache here would be a second place for the as-of to disagree with
+         *     itself.
+         */
+        get: operations["chain_matrix_api_research_chains_matrix_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/research/chains/{chain}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Chain Members
+         * @description The names behind a cell, each with its exposure evidence.
+         */
+        get: operations["chain_members_api_research_chains__chain__get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/stock/{ticker}/research/evidence": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Company Evidence
+         * @description One name's event timeline and deterministic risk facts.
+         */
+        get: operations["company_evidence_api_stock__ticker__research_evidence_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/research/evidence/classes": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Evidence Classes
+         * @description The discovery gate, as data. Live and killed classes with their counts.
+         */
+        get: operations["evidence_classes_api_research_evidence_classes_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/research/reports": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * List Reports
+         * @description The newest version of each report key.
+         */
+        get: operations["list_reports_api_research_reports_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/research/reports/{report_type}/{key}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Get Report
+         * @description Latest version of one report, its delta, and its version history.
+         */
+        get: operations["get_report_api_research_reports__report_type___key__get"];
+        put?: never;
+        /**
+         * Assemble Report
+         * @description Assemble and publish the next version. Deterministic — no model, no network.
+         *
+         *     Republishing unchanged content is a no-op that returns the existing version
+         *     with an empty delta, so a double-click cannot manufacture history.
+         */
+        post: operations["assemble_report_api_research_reports__report_type___key__post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/research/reports/{report_type}/{key}/versions/{version_no}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Get Report Version
+         * @description One frozen version, exactly as it was published.
+         *
+         *     This is the replay path. It reads stored blocks rather than re-assembling,
+         *     because re-assembly under today's data is a DIFFERENT answer wearing an old
+         *     version number.
+         */
+        get: operations["get_report_version_api_research_reports__report_type___key__versions__version_no__get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/positioning/screener": {
         parameters: {
             query?: never;
@@ -2217,6 +2419,39 @@ export interface components {
             /** Persistence */
             persistence: number;
         };
+        /** BlockChange */
+        BlockChange: {
+            /** Block Kind */
+            block_kind: string;
+            /** Title */
+            title: string;
+            /**
+             * Changes
+             * @default []
+             */
+            changes: components["schemas"]["BlockValueChange"][];
+        };
+        /** BlockRef */
+        BlockRef: {
+            /** Block Kind */
+            block_kind: string;
+            /** Title */
+            title: string;
+        };
+        /**
+         * BlockValueChange
+         * @description One number that moved. `before`/`after` null means it appeared/vanished.
+         */
+        BlockValueChange: {
+            /** Path */
+            path: string;
+            /** Before */
+            before?: number | null;
+            /** After */
+            after?: number | null;
+            /** Change */
+            change?: number | null;
+        };
         /** CanaryHistoryResponse */
         CanaryHistoryResponse: {
             /** Rows */
@@ -2366,6 +2601,56 @@ export interface components {
              */
             expression_delta: string;
         };
+        /**
+         * ChainCell
+         * @description One chain × layer cell of the research matrix.
+         *
+         *     `members` is the DENOMINATOR and `with_result` the numerator. A cell showing
+         *     an aggregate without both is unreadable: a mean over 2 of 17 members and a
+         *     mean over 17 of 17 look identical and mean opposite things.
+         */
+        ChainCell: {
+            /** Chain */
+            chain: string;
+            /** Layer */
+            layer: string;
+            /** Domain */
+            domain: string;
+            /** Layer Rank */
+            layer_rank: number;
+            /** Members */
+            members: number;
+            /** With Result */
+            with_result: number;
+            /** Priority Mean */
+            priority_mean?: number | null;
+            /**
+             * With Magnitude
+             * @default 0
+             */
+            with_magnitude: number;
+            /** Abstain Reason */
+            abstain_reason?: string | null;
+        };
+        /** ChainDrilldownResponse */
+        ChainDrilldownResponse: {
+            /** Taxonomy Version */
+            taxonomy_version: string;
+            /** Chain */
+            chain: string;
+            /** Layer */
+            layer: string | null;
+            /** Members */
+            members: components["schemas"]["ChainMember"][];
+            /**
+             * State
+             * @default ok
+             * @enum {string}
+             */
+            state: "ok" | "stale_run" | "no_compatible_run" | "no_coverage" | "unsupported_capability" | "failed_run";
+            /** Reason */
+            reason?: string | null;
+        };
         /** ChainFlowReadRow */
         ChainFlowReadRow: {
             /** Strike */
@@ -2395,6 +2680,67 @@ export interface components {
              * @default false
              */
             requires_t1_oi_confirmation: boolean;
+        };
+        /**
+         * ChainMatrixResponse
+         * @description The chain × layer matrix under one taxonomy version and one engine.
+         *
+         *     Both versions travel with the payload because mixing two taxonomy snapshots
+         *     or two engine versions in one matrix is the failure this product exists to
+         *     make impossible to render by accident.
+         */
+        ChainMatrixResponse: {
+            /** Taxonomy Version */
+            taxonomy_version: string;
+            /** Engine Version */
+            engine_version: string | null;
+            /** Cells */
+            cells: components["schemas"]["ChainCell"][];
+            /**
+             * Coverage
+             * @default {}
+             */
+            coverage: {
+                [key: string]: unknown;
+            };
+            /**
+             * State
+             * @default ok
+             * @enum {string}
+             */
+            state: "ok" | "stale_run" | "no_compatible_run" | "no_coverage" | "unsupported_capability" | "failed_run";
+            /** Reason */
+            reason?: string | null;
+            /**
+             * Prohibited
+             * @default []
+             */
+            prohibited: string[];
+        };
+        /** ChainMember */
+        ChainMember: {
+            /** Ticker */
+            ticker: string;
+            /** Layer */
+            layer: string;
+            /** Evidence Class */
+            evidence_class: string;
+            /** Approved By */
+            approved_by: string;
+            /** Role */
+            role?: string | null;
+            /** Direction */
+            direction?: string | null;
+            /** Magnitude */
+            magnitude?: number | null;
+            /** Magnitude Basis */
+            magnitude_basis?: string | null;
+            /** Exposure Status */
+            exposure_status?: string | null;
+            /** Source Ref */
+            source_ref?: string | null;
+            /** Priority */
+            priority?: number | null;
         };
         /**
          * ChanlunLifecycleMark
@@ -2685,6 +3031,60 @@ export interface components {
             market_date: string;
             /** Points */
             points?: components["schemas"]["CockpitVrpPoint"][];
+        };
+        /**
+         * CompanyDimensionsResponse
+         * @description Company view v2: dimensions plus the state that explains their absence.
+         */
+        CompanyDimensionsResponse: {
+            /** Ticker */
+            ticker: string;
+            /**
+             * State
+             * @enum {string}
+             */
+            state: "ok" | "stale_run" | "no_compatible_run" | "no_coverage" | "unsupported_capability" | "failed_run";
+            /**
+             * Dimensions
+             * @default []
+             */
+            dimensions: components["schemas"]["RadarDimension"][];
+            run?: components["schemas"]["FundamentalRunRef"] | null;
+            /** Reason */
+            reason?: string | null;
+            /** Evidence Coverage */
+            evidence_coverage?: number | null;
+        };
+        /**
+         * CompanyEvidenceResponse
+         * @description Events + deterministic risks for one name, with the gate that bounds them.
+         */
+        CompanyEvidenceResponse: {
+            /** Ticker */
+            ticker: string;
+            /**
+             * Events
+             * @default []
+             */
+            events: components["schemas"]["ResearchEvent"][];
+            /**
+             * Risks
+             * @default []
+             */
+            risks: components["schemas"]["RiskFact"][];
+            /**
+             * Killed Classes
+             * @default []
+             */
+            killed_classes: components["schemas"]["EventClassStatus"][];
+            /**
+             * State
+             * @default ok
+             * @enum {string}
+             */
+            state: "ok" | "stale_run" | "no_compatible_run" | "no_coverage" | "unsupported_capability" | "failed_run";
+            /** Reason */
+            reason?: string | null;
         };
         /** CrashTriggerBlock */
         CrashTriggerBlock: {
@@ -3324,6 +3724,25 @@ export interface components {
             rv_z?: string | null;
         };
         /**
+         * EventClassStatus
+         * @description The discovery gate's verdict for one candidate class.
+         *
+         *     A `killed` class is not a missing feature — it is a measured absence of
+         *     source, and `rationale` says which.
+         */
+        EventClassStatus: {
+            /** Event Class */
+            event_class: string;
+            /** Status */
+            status: string;
+            /** Source Table */
+            source_table?: string | null;
+            /** Rationale */
+            rationale: string;
+            /** Measured Rows */
+            measured_rows?: number | null;
+        };
+        /**
          * ExposuresSummaryRow
          * @description Per-(expiry) derived summary used to drive the Vanna/Charm sub-tab
          *     headline narrative + 4 tiles. Computed by cards/exposures.py and
@@ -3771,6 +4190,30 @@ export interface components {
             filing_date_known: boolean;
             /** Source Obs Count */
             source_obs_count: number;
+        };
+        /**
+         * FundamentalRunRef
+         * @description Which computation produced this answer.
+         *
+         *     Every number a surface shows must trace to one of these. A response with a
+         *     null `run_id` is answering from the warm store without a ledgered run, which
+         *     a caller is entitled to know.
+         */
+        FundamentalRunRef: {
+            /** Run Id */
+            run_id: number | null;
+            /** Engine Version */
+            engine_version: string | null;
+            /** Evidence Policy */
+            evidence_policy: string;
+            /** As Of */
+            as_of: string | null;
+            /** As Of Cutoff */
+            as_of_cutoff: string | null;
+            /** Computed At */
+            computed_at: string | null;
+            /** Status */
+            status: string | null;
         };
         /**
          * FundamentalStatementsResponse
@@ -5697,6 +6140,18 @@ export interface components {
             atm_iv_30d_series: components["schemas"]["MagnetIvPoint"][];
         };
         /**
+         * ManifestChange
+         * @description A METHOD change. Reported apart from value moves, and stated first.
+         */
+        ManifestChange: {
+            /** Field */
+            field: string;
+            /** Before */
+            before?: string | null;
+            /** After */
+            after?: string | null;
+        };
+        /**
          * MarketAggregates
          * @description Per-ticker aggregate fields sourced from the bulk-screener endpoint.
          *
@@ -6778,6 +7233,140 @@ export interface components {
             /** Oldest Requested At */
             oldest_requested_at?: string | null;
         };
+        /**
+         * RadarDimension
+         * @description One dimension for one name, with the permission it may exercise.
+         *
+         *     `value` is null when no input was present — never 0.0, which is the
+         *     cross-section MEAN and would render a name with no data as exactly average.
+         *     `inputs_present`/`inputs_expected` are what let a surface show the
+         *     denominator instead of a confident-looking blank.
+         */
+        RadarDimension: {
+            /** Dimension */
+            dimension: string;
+            /** Value */
+            value: number | null;
+            /** Inputs Present */
+            inputs_present: number;
+            /** Inputs Expected */
+            inputs_expected: number;
+            /**
+             * Authority
+             * @enum {string}
+             */
+            authority: "descriptive" | "research_priority" | "directional_monitor";
+            /**
+             * Detail
+             * @default {}
+             */
+            detail: {
+                [key: string]: unknown;
+            };
+        };
+        /**
+         * RadarResponse
+         * @description The Radar data product.
+         *
+         *     `ordering` names the claim registry key that licenses the sort. A client that
+         *     re-sorts on anything else is exceeding a permission, and the field is here so
+         *     that is checkable rather than a convention.
+         */
+        RadarResponse: {
+            scope: components["schemas"]["RadarScope"];
+            /** Rows */
+            rows: components["schemas"]["RadarRow"][];
+            /** Ordering */
+            ordering: string;
+            /**
+             * Ordering Authority
+             * @enum {string}
+             */
+            ordering_authority: "descriptive" | "research_priority" | "directional_monitor";
+            /**
+             * Prohibited
+             * @default []
+             */
+            prohibited: string[];
+            /**
+             * State
+             * @default ok
+             * @enum {string}
+             */
+            state: "ok" | "stale_run" | "no_compatible_run" | "no_coverage" | "unsupported_capability" | "failed_run";
+            /** Reason */
+            reason?: string | null;
+        };
+        /**
+         * RadarRow
+         * @description One name on the Radar.
+         *
+         *     `priority` is separated from the dimensions it aggregates so a client cannot
+         *     accidentally render a descriptive dimension as the sort key.
+         */
+        RadarRow: {
+            /** Ticker */
+            ticker: string;
+            /** Company Type */
+            company_type: string | null;
+            /** Priority */
+            priority: number | null;
+            /**
+             * Priority Authority
+             * @enum {string}
+             */
+            priority_authority: "descriptive" | "research_priority" | "directional_monitor";
+            /** Dimensions Present */
+            dimensions_present: number;
+            /** Dimensions Expected */
+            dimensions_expected: number;
+            /**
+             * Missing Dimensions
+             * @default []
+             */
+            missing_dimensions: string[];
+            /**
+             * Dimensions
+             * @default []
+             */
+            dimensions: components["schemas"]["RadarDimension"][];
+            /** Evidence Coverage */
+            evidence_coverage?: number | null;
+            /** As Of */
+            as_of?: string | null;
+            /** Priority Change */
+            priority_change?: number | null;
+            /**
+             * Extreme Dimensions
+             * @default []
+             */
+            extreme_dimensions: string[];
+        };
+        /**
+         * RadarScope
+         * @description The frozen question this Radar answers.
+         *
+         *     Persisted with the response rather than implied by the request, because a
+         *     screenshot of a Radar with no scope is unfalsifiable — and because mixing two
+         *     as-ofs or two engine versions in one table is the failure this exists to make
+         *     impossible to render by accident.
+         */
+        RadarScope: {
+            /** Universe */
+            universe: string;
+            /** Tier */
+            tier: string;
+            /** As Of */
+            as_of: string | null;
+            /** Evidence Policy */
+            evidence_policy: string;
+            /** Engine Version */
+            engine_version: string | null;
+            /** Names */
+            names: number;
+            /** Names Without Result */
+            names_without_result: number;
+        };
         /** RatesCrossMarketPanel */
         RatesCrossMarketPanel: {
             /** Rows */
@@ -7369,6 +7958,162 @@ export interface components {
              */
             fresh_within_seconds: number;
         };
+        /**
+         * ReportBlock
+         * @description One section. Carries its evidence or its derivation — never neither.
+         *
+         *     `authority` is null for a block that makes no ordering or directional claim.
+         *     The type cannot express `investment_ranking`, which is the program ceiling
+         *     made unrepresentable rather than merely unused.
+         */
+        ReportBlock: {
+            /** Ordinal */
+            ordinal: number;
+            /** Block Kind */
+            block_kind: string;
+            /** Title */
+            title: string;
+            /**
+             * Payload
+             * @default {}
+             */
+            payload: {
+                [key: string]: unknown;
+            };
+            /**
+             * Evidence
+             * @default {}
+             */
+            evidence: {
+                [key: string]: unknown;
+            };
+            /** Derivation */
+            derivation?: string | null;
+            /** Authority */
+            authority?: ("descriptive" | "research_priority" | "directional_monitor") | null;
+        };
+        /**
+         * ReportDeltaModel
+         * @description What changed since the previous version, or that there wasn't one.
+         */
+        ReportDeltaModel: {
+            /** Is First Version */
+            is_first_version: boolean;
+            /**
+             * Manifest
+             * @default []
+             */
+            manifest: components["schemas"]["ManifestChange"][];
+            /**
+             * Added
+             * @default []
+             */
+            added: components["schemas"]["BlockRef"][];
+            /**
+             * Removed
+             * @default []
+             */
+            removed: components["schemas"]["BlockRef"][];
+            /**
+             * Moved
+             * @default []
+             */
+            moved: components["schemas"]["BlockChange"][];
+            /** Summary */
+            summary: string;
+        };
+        /** ReportListResponse */
+        ReportListResponse: {
+            /**
+             * Reports
+             * @default []
+             */
+            reports: components["schemas"]["ReportSummary"][];
+        };
+        /**
+         * ReportManifest
+         * @description The frozen question. Everything needed to reproduce the content.
+         */
+        ReportManifest: {
+            /** Engine Version */
+            engine_version: string | null;
+            /** Taxonomy Version */
+            taxonomy_version: string | null;
+            /** Evidence Policy */
+            evidence_policy: string;
+            /** As Of */
+            as_of: string;
+            /** Assembler Version */
+            assembler_version: string;
+            /**
+             * Scope
+             * @default {}
+             */
+            scope: {
+                [key: string]: unknown;
+            };
+        };
+        /** ReportResponse */
+        ReportResponse: {
+            /**
+             * State
+             * @enum {string}
+             */
+            state: "ok" | "no_report" | "no_coverage" | "failed_run";
+            /** Reason */
+            reason?: string | null;
+            report?: components["schemas"]["ResearchReportModel"] | null;
+            delta?: components["schemas"]["ReportDeltaModel"] | null;
+            /**
+             * Versions
+             * @default []
+             */
+            versions: components["schemas"]["ReportVersionRef"][];
+        };
+        /** ReportSummary */
+        ReportSummary: {
+            /** Report Key */
+            report_key: string;
+            /**
+             * Report Type
+             * @enum {string}
+             */
+            report_type: "company" | "comparison" | "chain" | "watchlist";
+            /** Version No */
+            version_no: number;
+            /** Title */
+            title: string;
+            /**
+             * Status
+             * @enum {string}
+             */
+            status: "draft" | "partial" | "published" | "superseded" | "stale";
+            /**
+             * Created At
+             * Format: date-time
+             */
+            created_at: string;
+        };
+        /**
+         * ReportVersionRef
+         * @description One entry in the version history — enough to fetch or compare it.
+         */
+        ReportVersionRef: {
+            /** Version No */
+            version_no: number;
+            /** Content Hash */
+            content_hash: string;
+            /**
+             * Status
+             * @enum {string}
+             */
+            status: "draft" | "partial" | "published" | "superseded" | "stale";
+            /**
+             * Created At
+             * Format: date-time
+             */
+            created_at: string;
+        };
         /** RescanAllRequest */
         RescanAllRequest: {
             /**
@@ -7376,6 +8121,81 @@ export interface components {
              * @default false
              */
             confirmed: boolean;
+        };
+        /**
+         * ResearchEvent
+         * @description One typed event. Both clocks travel with it.
+         *
+         *     `occurred_at` is when it happened; `first_known_at` is when Argon could know.
+         *     A historical read predicates on the second, or a replay sees events before
+         *     they were knowable.
+         */
+        ResearchEvent: {
+            /** Event Id */
+            event_id: number;
+            /** Event Class */
+            event_class: string;
+            /**
+             * Occurred At
+             * Format: date
+             */
+            occurred_at: string;
+            /**
+             * First Known At
+             * Format: date
+             */
+            first_known_at: string;
+            /** Title */
+            title: string;
+            /**
+             * Detail
+             * @default {}
+             */
+            detail: {
+                [key: string]: unknown;
+            };
+            /** Source Kind */
+            source_kind: string;
+            /** Source Ref */
+            source_ref?: string | null;
+            /** Superseded By */
+            superseded_by?: number | null;
+        };
+        /** ResearchReportModel */
+        ResearchReportModel: {
+            /** Report Id */
+            report_id: number;
+            /** Report Key */
+            report_key: string;
+            /**
+             * Report Type
+             * @enum {string}
+             */
+            report_type: "company" | "comparison" | "chain" | "watchlist";
+            /** Version No */
+            version_no: number;
+            /** Title */
+            title: string;
+            manifest: components["schemas"]["ReportManifest"];
+            /** Content Hash */
+            content_hash: string;
+            /**
+             * Status
+             * @enum {string}
+             */
+            status: "draft" | "partial" | "published" | "superseded" | "stale";
+            /** Superseded By */
+            superseded_by?: number | null;
+            /**
+             * Created At
+             * Format: date-time
+             */
+            created_at: string;
+            /**
+             * Blocks
+             * @default []
+             */
+            blocks: components["schemas"]["ReportBlock"][];
         };
         /**
          * ReturnsBlock
@@ -7389,6 +8209,36 @@ export interface components {
             w1?: string | null;
             /** D30 */
             d30?: string | null;
+        };
+        /**
+         * RiskFact
+         * @description A number against a threshold, and what a breach invalidates.
+         *
+         *     Never prose. A risk expressed only as a sentence cannot be checked, replayed,
+         *     or shown to have improved.
+         */
+        RiskFact: {
+            /** Risk Kind */
+            risk_kind: string;
+            /** Observed Value */
+            observed_value: number | null;
+            /** Threshold */
+            threshold: number | null;
+            /** Breached */
+            breached: boolean;
+            /** Severity */
+            severity: string;
+            /** Statement */
+            statement: string;
+            /** Invalidates */
+            invalidates?: string | null;
+            /** Source Kind */
+            source_kind: string;
+            /**
+             * As Of
+             * Format: date
+             */
+            as_of: string;
         };
         /** RvCorrPoint */
         RvCorrPoint: {
@@ -14164,6 +15014,327 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["ValueScanResponse"];
+                };
+            };
+        };
+    };
+    company_dimensions_api_stock__ticker__fundamentals_dimensions_get: {
+        parameters: {
+            query?: {
+                engine_version?: string | null;
+            };
+            header?: never;
+            path: {
+                ticker: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["CompanyDimensionsResponse"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    radar_api_scanner_radar_get: {
+        parameters: {
+            query?: {
+                tier?: string;
+                engine_version?: string | null;
+                limit?: number;
+                /** @description Hide names whose aggregate rested on fewer dimensions. */
+                min_dimensions?: number;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["RadarResponse"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    chain_matrix_api_research_chains_matrix_get: {
+        parameters: {
+            query?: {
+                taxonomy_version?: string | null;
+                engine_version?: string | null;
+                domain?: string | null;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ChainMatrixResponse"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    chain_members_api_research_chains__chain__get: {
+        parameters: {
+            query?: {
+                layer?: string | null;
+                taxonomy_version?: string | null;
+                engine_version?: string | null;
+            };
+            header?: never;
+            path: {
+                chain: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ChainDrilldownResponse"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    company_evidence_api_stock__ticker__research_evidence_get: {
+        parameters: {
+            query?: {
+                /** @description Show only what Argon could know by this date. Predicates on first_known_at, never on when the event occurred. */
+                known_by?: string | null;
+                limit?: number;
+            };
+            header?: never;
+            path: {
+                ticker: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["CompanyEvidenceResponse"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    evidence_classes_api_research_evidence_classes_get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["EventClassStatus"][];
+                };
+            };
+        };
+    };
+    list_reports_api_research_reports_get: {
+        parameters: {
+            query?: {
+                limit?: number;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ReportListResponse"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    get_report_api_research_reports__report_type___key__get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                report_type: string;
+                key: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ReportResponse"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    assemble_report_api_research_reports__report_type___key__post: {
+        parameters: {
+            query?: {
+                as_of?: string | null;
+            };
+            header?: never;
+            path: {
+                report_type: string;
+                key: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ReportResponse"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    get_report_version_api_research_reports__report_type___key__versions__version_no__get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                report_type: string;
+                key: string;
+                version_no: number;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ReportResponse"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
                 };
             };
         };

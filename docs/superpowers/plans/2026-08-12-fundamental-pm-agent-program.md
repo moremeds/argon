@@ -1,8 +1,13 @@
 # Fundamental PM Agent — Program Plan
 
-> **Status:** active program plan. This is the cross-phase roadmap, not a claim that one PR can
-> deliver the system. Every build milestone below gets its own child implementation plan before
-> code starts.
+> **Superseded for future execution (2026-08-24):** use
+> `docs/superpowers/plans/2026-08-24-fundamental-pm-research-system-program.md` and its governing
+> reconciled design. This file remains the historical program record for the original decisions,
+> measured research, and shipped milestones; do not delete or rewrite that evidence.
+
+> **Historical status:** this was the active cross-phase roadmap through 2026-08-23. It is not a
+> claim that one PR can deliver the system. Its completed-work evidence remains authoritative for
+> the dated snapshots it records.
 
 **Goal:** turn Argon into a trustworthy, extensible research surface where an operator can ask about
 a company, an industry chain, or a narrow sub-chain and receive a versioned, evidence-linked report
@@ -1352,8 +1357,9 @@ new program decision after G9, not a silent extension of this one.
 
 ## 15. Plan maintenance protocol
 
-This file is the program-level source of truth. It changes only when evidence, scope, dependency, or
-authority changes.
+This file was the program-level source of truth until the 2026-08-24 reconciliation. Preserve it as
+the dated execution and evidence record; record future scope, dependency, authority, and milestone
+status in `2026-08-24-fundamental-pm-research-system-program.md`.
 
 For every milestone:
 
@@ -1363,7 +1369,8 @@ For every milestone:
 4. update the program gate with actual evidence, not “implemented” prose;
 5. record killed ideas and why;
 6. move completed child plans to `docs/superpowers/archive/plans/` under existing conventions;
-7. keep this program plan active until M8 descriptive harness completion or an explicit stop ruling.
+7. keep the successor program plan active until M9 descriptive harness completion or an explicit
+   stop ruling.
 
 Status vocabulary:
 

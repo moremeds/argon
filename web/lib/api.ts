@@ -1,5 +1,21 @@
 import type { components, paths } from "./types";
 
+export type RadarResponse = components["schemas"]["RadarResponse"];
+export type ChainMatrixResponse = components["schemas"]["ChainMatrixResponse"];
+export type ChainCell = components["schemas"]["ChainCell"];
+export type ChainDrilldownResponse =
+  components["schemas"]["ChainDrilldownResponse"];
+export type ChainMember = components["schemas"]["ChainMember"];
+export type CompanyDimensionsResponse =
+  components["schemas"]["CompanyDimensionsResponse"];
+export type ReportResponse = components["schemas"]["ReportResponse"];
+export type ReportListResponse = components["schemas"]["ReportListResponse"];
+export type ResearchReportModel =
+  components["schemas"]["ResearchReportModel"];
+export type ReportBlock = components["schemas"]["ReportBlock"];
+export type ReportDeltaModel = components["schemas"]["ReportDeltaModel"];
+export type RadarRow = components["schemas"]["RadarRow"];
+export type RadarDimension = components["schemas"]["RadarDimension"];
 type VrpCandidatesResponse = components["schemas"]["VrpCandidatesResponse"];
 type VrpBacktestResponse = components["schemas"]["VrpBacktestResponse"];
 type VrpPaperResponse = components["schemas"]["VrpPaperResponse"];
@@ -325,6 +341,80 @@ export const api = {
         : "/api/macro/snapshot",
       undefined,
       { allow404: true },
+    ),
+  // The Radar is a read over persisted results — no provider, no lake. `state`
+  // is load-bearing: an empty `rows` is six different situations and only one of
+  // them is a fact about the companies.
+  radar: (params?: {
+    tier?: string;
+    engine_version?: string;
+    limit?: number;
+    min_dimensions?: number;
+  }): Promise<RadarResponse> => {
+    const q = new URLSearchParams();
+    if (params?.tier) q.set("tier", params.tier);
+    if (params?.engine_version) q.set("engine_version", params.engine_version);
+    if (params?.limit != null) q.set("limit", String(params.limit));
+    if (params?.min_dimensions != null)
+      q.set("min_dimensions", String(params.min_dimensions));
+    const qs = q.toString();
+    return _fetch<RadarResponse>(`/api/scanner/radar${qs ? `?${qs}` : ""}`);
+  },
+  chainMatrix: (params?: {
+    taxonomy_version?: string;
+    engine_version?: string;
+    domain?: string;
+  }): Promise<ChainMatrixResponse> => {
+    const q = new URLSearchParams();
+    if (params?.taxonomy_version) q.set("taxonomy_version", params.taxonomy_version);
+    if (params?.engine_version) q.set("engine_version", params.engine_version);
+    if (params?.domain) q.set("domain", params.domain);
+    const qs = q.toString();
+    return _fetch<ChainMatrixResponse>(
+      `/api/research/chains/matrix${qs ? `?${qs}` : ""}`,
+    );
+  },
+  chainMembers: (
+    chain: string,
+    params?: { layer?: string; engine_version?: string },
+  ): Promise<ChainDrilldownResponse> => {
+    const q = new URLSearchParams();
+    if (params?.layer) q.set("layer", params.layer);
+    if (params?.engine_version) q.set("engine_version", params.engine_version);
+    const qs = q.toString();
+    return _fetch<ChainDrilldownResponse>(
+      `/api/research/chains/${encodeURIComponent(chain)}${qs ? `?${qs}` : ""}`,
+    );
+  },
+  researchReports: (limit = 25): Promise<ReportListResponse> =>
+    _fetch<ReportListResponse>(`/api/research/reports?limit=${limit}`),
+  researchReport: (
+    reportType: "company" | "comparison" | "chain",
+    key: string,
+    version?: number,
+  ): Promise<ReportResponse> =>
+    _fetch<ReportResponse>(
+      `/api/research/reports/${reportType}/${encodeURIComponent(key)}` +
+        (version == null ? "" : `/versions/${version}`),
+    ),
+  assembleResearchReport: (
+    reportType: "company" | "comparison" | "chain",
+    key: string,
+    asOf?: string,
+  ): Promise<ReportResponse> =>
+    _fetch<ReportResponse>(
+      `/api/research/reports/${reportType}/${encodeURIComponent(key)}` +
+        (asOf ? `?as_of=${asOf}` : ""),
+      { method: "POST" },
+    ),
+  companyDimensions: (
+    ticker: string,
+    engineVersion?: string,
+  ): Promise<CompanyDimensionsResponse> =>
+    _fetch<CompanyDimensionsResponse>(
+      `/api/stock/${ticker}/fundamentals/dimensions${
+        engineVersion ? `?engine_version=${encodeURIComponent(engineVersion)}` : ""
+      }`,
     ),
   tradeInsights: (ticker: string): Promise<TradeInsightsResponse> =>
     _fetch<TradeInsightsResponse>(`/api/stock/${ticker}/trade-insights`),

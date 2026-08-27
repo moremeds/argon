@@ -457,6 +457,97 @@
         "title": "BenchmarkSubscoresResponse",
         "type": "object"
       },
+      "BlockChange": {
+        "properties": {
+          "block_kind": {
+            "title": "Block Kind",
+            "type": "string"
+          },
+          "changes": {
+            "default": [],
+            "items": {
+              "$ref": "#/components/schemas/BlockValueChange"
+            },
+            "title": "Changes",
+            "type": "array"
+          },
+          "title": {
+            "title": "Title",
+            "type": "string"
+          }
+        },
+        "required": [
+          "block_kind",
+          "title"
+        ],
+        "title": "BlockChange",
+        "type": "object"
+      },
+      "BlockRef": {
+        "properties": {
+          "block_kind": {
+            "title": "Block Kind",
+            "type": "string"
+          },
+          "title": {
+            "title": "Title",
+            "type": "string"
+          }
+        },
+        "required": [
+          "block_kind",
+          "title"
+        ],
+        "title": "BlockRef",
+        "type": "object"
+      },
+      "BlockValueChange": {
+        "description": "One number that moved. `before`/`after` null means it appeared/vanished.",
+        "properties": {
+          "after": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "After"
+          },
+          "before": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Before"
+          },
+          "change": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Change"
+          },
+          "path": {
+            "title": "Path",
+            "type": "string"
+          }
+        },
+        "required": [
+          "path"
+        ],
+        "title": "BlockValueChange",
+        "type": "object"
+      },
       "CanaryHistoryResponse": {
         "properties": {
           "rows": {
@@ -782,6 +873,134 @@
         "title": "CandidateStructure",
         "type": "object"
       },
+      "ChainCell": {
+        "description": "One chain \u00d7 layer cell of the research matrix.\n\n`members` is the DENOMINATOR and `with_result` the numerator. A cell showing\nan aggregate without both is unreadable: a mean over 2 of 17 members and a\nmean over 17 of 17 look identical and mean opposite things.",
+        "properties": {
+          "abstain_reason": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Abstain Reason"
+          },
+          "chain": {
+            "title": "Chain",
+            "type": "string"
+          },
+          "domain": {
+            "title": "Domain",
+            "type": "string"
+          },
+          "layer": {
+            "title": "Layer",
+            "type": "string"
+          },
+          "layer_rank": {
+            "title": "Layer Rank",
+            "type": "integer"
+          },
+          "members": {
+            "title": "Members",
+            "type": "integer"
+          },
+          "priority_mean": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Priority Mean"
+          },
+          "with_magnitude": {
+            "default": 0,
+            "title": "With Magnitude",
+            "type": "integer"
+          },
+          "with_result": {
+            "title": "With Result",
+            "type": "integer"
+          }
+        },
+        "required": [
+          "chain",
+          "layer",
+          "domain",
+          "layer_rank",
+          "members",
+          "with_result"
+        ],
+        "title": "ChainCell",
+        "type": "object"
+      },
+      "ChainDrilldownResponse": {
+        "properties": {
+          "chain": {
+            "title": "Chain",
+            "type": "string"
+          },
+          "layer": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Layer"
+          },
+          "members": {
+            "items": {
+              "$ref": "#/components/schemas/ChainMember"
+            },
+            "title": "Members",
+            "type": "array"
+          },
+          "reason": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Reason"
+          },
+          "state": {
+            "default": "ok",
+            "enum": [
+              "ok",
+              "stale_run",
+              "no_compatible_run",
+              "no_coverage",
+              "unsupported_capability",
+              "failed_run"
+            ],
+            "title": "State",
+            "type": "string"
+          },
+          "taxonomy_version": {
+            "title": "Taxonomy Version",
+            "type": "string"
+          }
+        },
+        "required": [
+          "taxonomy_version",
+          "chain",
+          "layer",
+          "members"
+        ],
+        "title": "ChainDrilldownResponse",
+        "type": "object"
+      },
       "ChainFlowReadRow": {
         "properties": {
           "call_open_interest": {
@@ -865,6 +1084,183 @@
           "strike"
         ],
         "title": "ChainFlowReadRow",
+        "type": "object"
+      },
+      "ChainMatrixResponse": {
+        "description": "The chain \u00d7 layer matrix under one taxonomy version and one engine.\n\nBoth versions travel with the payload because mixing two taxonomy snapshots\nor two engine versions in one matrix is the failure this product exists to\nmake impossible to render by accident.",
+        "properties": {
+          "cells": {
+            "items": {
+              "$ref": "#/components/schemas/ChainCell"
+            },
+            "title": "Cells",
+            "type": "array"
+          },
+          "coverage": {
+            "additionalProperties": true,
+            "default": {},
+            "title": "Coverage",
+            "type": "object"
+          },
+          "engine_version": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Engine Version"
+          },
+          "prohibited": {
+            "default": [],
+            "items": {
+              "type": "string"
+            },
+            "title": "Prohibited",
+            "type": "array"
+          },
+          "reason": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Reason"
+          },
+          "state": {
+            "default": "ok",
+            "enum": [
+              "ok",
+              "stale_run",
+              "no_compatible_run",
+              "no_coverage",
+              "unsupported_capability",
+              "failed_run"
+            ],
+            "title": "State",
+            "type": "string"
+          },
+          "taxonomy_version": {
+            "title": "Taxonomy Version",
+            "type": "string"
+          }
+        },
+        "required": [
+          "taxonomy_version",
+          "engine_version",
+          "cells"
+        ],
+        "title": "ChainMatrixResponse",
+        "type": "object"
+      },
+      "ChainMember": {
+        "properties": {
+          "approved_by": {
+            "title": "Approved By",
+            "type": "string"
+          },
+          "direction": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Direction"
+          },
+          "evidence_class": {
+            "title": "Evidence Class",
+            "type": "string"
+          },
+          "exposure_status": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Exposure Status"
+          },
+          "layer": {
+            "title": "Layer",
+            "type": "string"
+          },
+          "magnitude": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Magnitude"
+          },
+          "magnitude_basis": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Magnitude Basis"
+          },
+          "priority": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Priority"
+          },
+          "role": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Role"
+          },
+          "source_ref": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Source Ref"
+          },
+          "ticker": {
+            "title": "Ticker",
+            "type": "string"
+          }
+        },
+        "required": [
+          "ticker",
+          "layer",
+          "evidence_class",
+          "approved_by"
+        ],
+        "title": "ChainMember",
         "type": "object"
       },
       "ChanlunLifecycleMark": {
@@ -1974,6 +2370,135 @@
           "market_date"
         ],
         "title": "CockpitVrpResponse",
+        "type": "object"
+      },
+      "CompanyDimensionsResponse": {
+        "description": "Company view v2: dimensions plus the state that explains their absence.",
+        "properties": {
+          "dimensions": {
+            "default": [],
+            "items": {
+              "$ref": "#/components/schemas/RadarDimension"
+            },
+            "title": "Dimensions",
+            "type": "array"
+          },
+          "evidence_coverage": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Evidence Coverage"
+          },
+          "reason": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Reason"
+          },
+          "run": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/FundamentalRunRef"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "state": {
+            "enum": [
+              "ok",
+              "stale_run",
+              "no_compatible_run",
+              "no_coverage",
+              "unsupported_capability",
+              "failed_run"
+            ],
+            "title": "State",
+            "type": "string"
+          },
+          "ticker": {
+            "title": "Ticker",
+            "type": "string"
+          }
+        },
+        "required": [
+          "ticker",
+          "state"
+        ],
+        "title": "CompanyDimensionsResponse",
+        "type": "object"
+      },
+      "CompanyEvidenceResponse": {
+        "description": "Events + deterministic risks for one name, with the gate that bounds them.",
+        "properties": {
+          "events": {
+            "default": [],
+            "items": {
+              "$ref": "#/components/schemas/ResearchEvent"
+            },
+            "title": "Events",
+            "type": "array"
+          },
+          "killed_classes": {
+            "default": [],
+            "items": {
+              "$ref": "#/components/schemas/EventClassStatus"
+            },
+            "title": "Killed Classes",
+            "type": "array"
+          },
+          "reason": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Reason"
+          },
+          "risks": {
+            "default": [],
+            "items": {
+              "$ref": "#/components/schemas/RiskFact"
+            },
+            "title": "Risks",
+            "type": "array"
+          },
+          "state": {
+            "default": "ok",
+            "enum": [
+              "ok",
+              "stale_run",
+              "no_compatible_run",
+              "no_coverage",
+              "unsupported_capability",
+              "failed_run"
+            ],
+            "title": "State",
+            "type": "string"
+          },
+          "ticker": {
+            "title": "Ticker",
+            "type": "string"
+          }
+        },
+        "required": [
+          "ticker"
+        ],
+        "title": "CompanyEvidenceResponse",
         "type": "object"
       },
       "CrashTriggerBlock": {
@@ -3844,6 +4369,52 @@
         "title": "DivergencePoint",
         "type": "object"
       },
+      "EventClassStatus": {
+        "description": "The discovery gate's verdict for one candidate class.\n\nA `killed` class is not a missing feature \u2014 it is a measured absence of\nsource, and `rationale` says which.",
+        "properties": {
+          "event_class": {
+            "title": "Event Class",
+            "type": "string"
+          },
+          "measured_rows": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Measured Rows"
+          },
+          "rationale": {
+            "title": "Rationale",
+            "type": "string"
+          },
+          "source_table": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Source Table"
+          },
+          "status": {
+            "title": "Status",
+            "type": "string"
+          }
+        },
+        "required": [
+          "event_class",
+          "status",
+          "rationale"
+        ],
+        "title": "EventClassStatus",
+        "type": "object"
+      },
       "ExposuresSummaryRow": {
         "description": "Per-(expiry) derived summary used to drive the Vanna/Charm sub-tab\nheadline narrative + 4 tiles. Computed by cards/exposures.py and\npersisted to uw_scan.exposures_summary.",
         "properties": {
@@ -5142,6 +5713,95 @@
           "source_obs_count"
         ],
         "title": "FundamentalProvenance",
+        "type": "object"
+      },
+      "FundamentalRunRef": {
+        "description": "Which computation produced this answer.\n\nEvery number a surface shows must trace to one of these. A response with a\nnull `run_id` is answering from the warm store without a ledgered run, which\na caller is entitled to know.",
+        "properties": {
+          "as_of": {
+            "anyOf": [
+              {
+                "format": "date",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "As Of"
+          },
+          "as_of_cutoff": {
+            "anyOf": [
+              {
+                "format": "date-time",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "As Of Cutoff"
+          },
+          "computed_at": {
+            "anyOf": [
+              {
+                "format": "date-time",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Computed At"
+          },
+          "engine_version": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Engine Version"
+          },
+          "evidence_policy": {
+            "title": "Evidence Policy",
+            "type": "string"
+          },
+          "run_id": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Run Id"
+          },
+          "status": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Status"
+          }
+        },
+        "required": [
+          "run_id",
+          "engine_version",
+          "evidence_policy",
+          "as_of",
+          "as_of_cutoff",
+          "computed_at",
+          "status"
+        ],
+        "title": "FundamentalRunRef",
         "type": "object"
       },
       "FundamentalStatementsResponse": {
@@ -10608,6 +11268,42 @@
         "title": "MagnetsResponse",
         "type": "object"
       },
+      "ManifestChange": {
+        "description": "A METHOD change. Reported apart from value moves, and stated first.",
+        "properties": {
+          "after": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "After"
+          },
+          "before": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Before"
+          },
+          "field": {
+            "title": "Field",
+            "type": "string"
+          }
+        },
+        "required": [
+          "field"
+        ],
+        "title": "ManifestChange",
+        "type": "object"
+      },
       "MarketAggregates": {
         "description": "Per-ticker aggregate fields sourced from the bulk-screener endpoint.\n\nPopulated by pipeline.run_single_stock alongside the existing per-section\nsub-models. Feeds the watchlist card POSITIONING and SKEW blocks.",
         "properties": {
@@ -14417,6 +15113,301 @@
         "title": "QueueSummary",
         "type": "object"
       },
+      "RadarDimension": {
+        "description": "One dimension for one name, with the permission it may exercise.\n\n`value` is null when no input was present \u2014 never 0.0, which is the\ncross-section MEAN and would render a name with no data as exactly average.\n`inputs_present`/`inputs_expected` are what let a surface show the\ndenominator instead of a confident-looking blank.",
+        "properties": {
+          "authority": {
+            "enum": [
+              "descriptive",
+              "research_priority",
+              "directional_monitor"
+            ],
+            "title": "Authority",
+            "type": "string"
+          },
+          "detail": {
+            "additionalProperties": true,
+            "default": {},
+            "title": "Detail",
+            "type": "object"
+          },
+          "dimension": {
+            "title": "Dimension",
+            "type": "string"
+          },
+          "inputs_expected": {
+            "title": "Inputs Expected",
+            "type": "integer"
+          },
+          "inputs_present": {
+            "title": "Inputs Present",
+            "type": "integer"
+          },
+          "value": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Value"
+          }
+        },
+        "required": [
+          "dimension",
+          "value",
+          "inputs_present",
+          "inputs_expected",
+          "authority"
+        ],
+        "title": "RadarDimension",
+        "type": "object"
+      },
+      "RadarResponse": {
+        "description": "The Radar data product.\n\n`ordering` names the claim registry key that licenses the sort. A client that\nre-sorts on anything else is exceeding a permission, and the field is here so\nthat is checkable rather than a convention.",
+        "properties": {
+          "ordering": {
+            "title": "Ordering",
+            "type": "string"
+          },
+          "ordering_authority": {
+            "enum": [
+              "descriptive",
+              "research_priority",
+              "directional_monitor"
+            ],
+            "title": "Ordering Authority",
+            "type": "string"
+          },
+          "prohibited": {
+            "default": [],
+            "items": {
+              "type": "string"
+            },
+            "title": "Prohibited",
+            "type": "array"
+          },
+          "reason": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Reason"
+          },
+          "rows": {
+            "items": {
+              "$ref": "#/components/schemas/RadarRow"
+            },
+            "title": "Rows",
+            "type": "array"
+          },
+          "scope": {
+            "$ref": "#/components/schemas/RadarScope"
+          },
+          "state": {
+            "default": "ok",
+            "enum": [
+              "ok",
+              "stale_run",
+              "no_compatible_run",
+              "no_coverage",
+              "unsupported_capability",
+              "failed_run"
+            ],
+            "title": "State",
+            "type": "string"
+          }
+        },
+        "required": [
+          "scope",
+          "rows",
+          "ordering",
+          "ordering_authority"
+        ],
+        "title": "RadarResponse",
+        "type": "object"
+      },
+      "RadarRow": {
+        "description": "One name on the Radar.\n\n`priority` is separated from the dimensions it aggregates so a client cannot\naccidentally render a descriptive dimension as the sort key.",
+        "properties": {
+          "as_of": {
+            "anyOf": [
+              {
+                "format": "date",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "As Of"
+          },
+          "company_type": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Company Type"
+          },
+          "dimensions": {
+            "default": [],
+            "items": {
+              "$ref": "#/components/schemas/RadarDimension"
+            },
+            "title": "Dimensions",
+            "type": "array"
+          },
+          "dimensions_expected": {
+            "title": "Dimensions Expected",
+            "type": "integer"
+          },
+          "dimensions_present": {
+            "title": "Dimensions Present",
+            "type": "integer"
+          },
+          "evidence_coverage": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Evidence Coverage"
+          },
+          "extreme_dimensions": {
+            "default": [],
+            "items": {
+              "type": "string"
+            },
+            "title": "Extreme Dimensions",
+            "type": "array"
+          },
+          "missing_dimensions": {
+            "default": [],
+            "items": {
+              "type": "string"
+            },
+            "title": "Missing Dimensions",
+            "type": "array"
+          },
+          "priority": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Priority"
+          },
+          "priority_authority": {
+            "enum": [
+              "descriptive",
+              "research_priority",
+              "directional_monitor"
+            ],
+            "title": "Priority Authority",
+            "type": "string"
+          },
+          "priority_change": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Priority Change"
+          },
+          "ticker": {
+            "title": "Ticker",
+            "type": "string"
+          }
+        },
+        "required": [
+          "ticker",
+          "company_type",
+          "priority",
+          "priority_authority",
+          "dimensions_present",
+          "dimensions_expected"
+        ],
+        "title": "RadarRow",
+        "type": "object"
+      },
+      "RadarScope": {
+        "description": "The frozen question this Radar answers.\n\nPersisted with the response rather than implied by the request, because a\nscreenshot of a Radar with no scope is unfalsifiable \u2014 and because mixing two\nas-ofs or two engine versions in one table is the failure this exists to make\nimpossible to render by accident.",
+        "properties": {
+          "as_of": {
+            "anyOf": [
+              {
+                "format": "date",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "As Of"
+          },
+          "engine_version": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Engine Version"
+          },
+          "evidence_policy": {
+            "title": "Evidence Policy",
+            "type": "string"
+          },
+          "names": {
+            "title": "Names",
+            "type": "integer"
+          },
+          "names_without_result": {
+            "title": "Names Without Result",
+            "type": "integer"
+          },
+          "tier": {
+            "title": "Tier",
+            "type": "string"
+          },
+          "universe": {
+            "title": "Universe",
+            "type": "string"
+          }
+        },
+        "required": [
+          "universe",
+          "tier",
+          "as_of",
+          "evidence_policy",
+          "engine_version",
+          "names",
+          "names_without_result"
+        ],
+        "title": "RadarScope",
+        "type": "object"
+      },
       "RatesCrossMarketPanel": {
         "properties": {
           "rows": {
@@ -16341,6 +17332,335 @@
         "title": "RegimeQuotesResponse",
         "type": "object"
       },
+      "ReportBlock": {
+        "description": "One section. Carries its evidence or its derivation \u2014 never neither.\n\n`authority` is null for a block that makes no ordering or directional claim.\nThe type cannot express `investment_ranking`, which is the program ceiling\nmade unrepresentable rather than merely unused.",
+        "properties": {
+          "authority": {
+            "anyOf": [
+              {
+                "enum": [
+                  "descriptive",
+                  "research_priority",
+                  "directional_monitor"
+                ],
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Authority"
+          },
+          "block_kind": {
+            "title": "Block Kind",
+            "type": "string"
+          },
+          "derivation": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Derivation"
+          },
+          "evidence": {
+            "additionalProperties": true,
+            "default": {},
+            "title": "Evidence",
+            "type": "object"
+          },
+          "ordinal": {
+            "title": "Ordinal",
+            "type": "integer"
+          },
+          "payload": {
+            "additionalProperties": true,
+            "default": {},
+            "title": "Payload",
+            "type": "object"
+          },
+          "title": {
+            "title": "Title",
+            "type": "string"
+          }
+        },
+        "required": [
+          "ordinal",
+          "block_kind",
+          "title"
+        ],
+        "title": "ReportBlock",
+        "type": "object"
+      },
+      "ReportDeltaModel": {
+        "description": "What changed since the previous version, or that there wasn't one.",
+        "properties": {
+          "added": {
+            "default": [],
+            "items": {
+              "$ref": "#/components/schemas/BlockRef"
+            },
+            "title": "Added",
+            "type": "array"
+          },
+          "is_first_version": {
+            "title": "Is First Version",
+            "type": "boolean"
+          },
+          "manifest": {
+            "default": [],
+            "items": {
+              "$ref": "#/components/schemas/ManifestChange"
+            },
+            "title": "Manifest",
+            "type": "array"
+          },
+          "moved": {
+            "default": [],
+            "items": {
+              "$ref": "#/components/schemas/BlockChange"
+            },
+            "title": "Moved",
+            "type": "array"
+          },
+          "removed": {
+            "default": [],
+            "items": {
+              "$ref": "#/components/schemas/BlockRef"
+            },
+            "title": "Removed",
+            "type": "array"
+          },
+          "summary": {
+            "title": "Summary",
+            "type": "string"
+          }
+        },
+        "required": [
+          "is_first_version",
+          "summary"
+        ],
+        "title": "ReportDeltaModel",
+        "type": "object"
+      },
+      "ReportListResponse": {
+        "properties": {
+          "reports": {
+            "default": [],
+            "items": {
+              "$ref": "#/components/schemas/ReportSummary"
+            },
+            "title": "Reports",
+            "type": "array"
+          }
+        },
+        "title": "ReportListResponse",
+        "type": "object"
+      },
+      "ReportManifest": {
+        "description": "The frozen question. Everything needed to reproduce the content.",
+        "properties": {
+          "as_of": {
+            "title": "As Of",
+            "type": "string"
+          },
+          "assembler_version": {
+            "title": "Assembler Version",
+            "type": "string"
+          },
+          "engine_version": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Engine Version"
+          },
+          "evidence_policy": {
+            "title": "Evidence Policy",
+            "type": "string"
+          },
+          "scope": {
+            "additionalProperties": true,
+            "default": {},
+            "title": "Scope",
+            "type": "object"
+          },
+          "taxonomy_version": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Taxonomy Version"
+          }
+        },
+        "required": [
+          "engine_version",
+          "taxonomy_version",
+          "evidence_policy",
+          "as_of",
+          "assembler_version"
+        ],
+        "title": "ReportManifest",
+        "type": "object"
+      },
+      "ReportResponse": {
+        "properties": {
+          "delta": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/ReportDeltaModel"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "reason": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Reason"
+          },
+          "report": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/ResearchReportModel"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "state": {
+            "enum": [
+              "ok",
+              "no_report",
+              "no_coverage",
+              "failed_run"
+            ],
+            "title": "State",
+            "type": "string"
+          },
+          "versions": {
+            "default": [],
+            "items": {
+              "$ref": "#/components/schemas/ReportVersionRef"
+            },
+            "title": "Versions",
+            "type": "array"
+          }
+        },
+        "required": [
+          "state"
+        ],
+        "title": "ReportResponse",
+        "type": "object"
+      },
+      "ReportSummary": {
+        "properties": {
+          "created_at": {
+            "format": "date-time",
+            "title": "Created At",
+            "type": "string"
+          },
+          "report_key": {
+            "title": "Report Key",
+            "type": "string"
+          },
+          "report_type": {
+            "enum": [
+              "company",
+              "comparison",
+              "chain",
+              "watchlist"
+            ],
+            "title": "Report Type",
+            "type": "string"
+          },
+          "status": {
+            "enum": [
+              "draft",
+              "partial",
+              "published",
+              "superseded",
+              "stale"
+            ],
+            "title": "Status",
+            "type": "string"
+          },
+          "title": {
+            "title": "Title",
+            "type": "string"
+          },
+          "version_no": {
+            "title": "Version No",
+            "type": "integer"
+          }
+        },
+        "required": [
+          "report_key",
+          "report_type",
+          "version_no",
+          "title",
+          "status",
+          "created_at"
+        ],
+        "title": "ReportSummary",
+        "type": "object"
+      },
+      "ReportVersionRef": {
+        "description": "One entry in the version history \u2014 enough to fetch or compare it.",
+        "properties": {
+          "content_hash": {
+            "title": "Content Hash",
+            "type": "string"
+          },
+          "created_at": {
+            "format": "date-time",
+            "title": "Created At",
+            "type": "string"
+          },
+          "status": {
+            "enum": [
+              "draft",
+              "partial",
+              "published",
+              "superseded",
+              "stale"
+            ],
+            "title": "Status",
+            "type": "string"
+          },
+          "version_no": {
+            "title": "Version No",
+            "type": "integer"
+          }
+        },
+        "required": [
+          "version_no",
+          "content_hash",
+          "status",
+          "created_at"
+        ],
+        "title": "ReportVersionRef",
+        "type": "object"
+      },
       "RescanAllRequest": {
         "properties": {
           "confirmed": {
@@ -16350,6 +17670,160 @@
           }
         },
         "title": "RescanAllRequest",
+        "type": "object"
+      },
+      "ResearchEvent": {
+        "description": "One typed event. Both clocks travel with it.\n\n`occurred_at` is when it happened; `first_known_at` is when Argon could know.\nA historical read predicates on the second, or a replay sees events before\nthey were knowable.",
+        "properties": {
+          "detail": {
+            "additionalProperties": true,
+            "default": {},
+            "title": "Detail",
+            "type": "object"
+          },
+          "event_class": {
+            "title": "Event Class",
+            "type": "string"
+          },
+          "event_id": {
+            "title": "Event Id",
+            "type": "integer"
+          },
+          "first_known_at": {
+            "format": "date",
+            "title": "First Known At",
+            "type": "string"
+          },
+          "occurred_at": {
+            "format": "date",
+            "title": "Occurred At",
+            "type": "string"
+          },
+          "source_kind": {
+            "title": "Source Kind",
+            "type": "string"
+          },
+          "source_ref": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Source Ref"
+          },
+          "superseded_by": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Superseded By"
+          },
+          "title": {
+            "title": "Title",
+            "type": "string"
+          }
+        },
+        "required": [
+          "event_id",
+          "event_class",
+          "occurred_at",
+          "first_known_at",
+          "title",
+          "source_kind"
+        ],
+        "title": "ResearchEvent",
+        "type": "object"
+      },
+      "ResearchReportModel": {
+        "properties": {
+          "blocks": {
+            "default": [],
+            "items": {
+              "$ref": "#/components/schemas/ReportBlock"
+            },
+            "title": "Blocks",
+            "type": "array"
+          },
+          "content_hash": {
+            "title": "Content Hash",
+            "type": "string"
+          },
+          "created_at": {
+            "format": "date-time",
+            "title": "Created At",
+            "type": "string"
+          },
+          "manifest": {
+            "$ref": "#/components/schemas/ReportManifest"
+          },
+          "report_id": {
+            "title": "Report Id",
+            "type": "integer"
+          },
+          "report_key": {
+            "title": "Report Key",
+            "type": "string"
+          },
+          "report_type": {
+            "enum": [
+              "company",
+              "comparison",
+              "chain",
+              "watchlist"
+            ],
+            "title": "Report Type",
+            "type": "string"
+          },
+          "status": {
+            "enum": [
+              "draft",
+              "partial",
+              "published",
+              "superseded",
+              "stale"
+            ],
+            "title": "Status",
+            "type": "string"
+          },
+          "superseded_by": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Superseded By"
+          },
+          "title": {
+            "title": "Title",
+            "type": "string"
+          },
+          "version_no": {
+            "title": "Version No",
+            "type": "integer"
+          }
+        },
+        "required": [
+          "report_id",
+          "report_key",
+          "report_type",
+          "version_no",
+          "title",
+          "manifest",
+          "content_hash",
+          "status",
+          "created_at"
+        ],
+        "title": "ResearchReportModel",
         "type": "object"
       },
       "ReturnsBlock": {
@@ -16393,6 +17867,81 @@
           }
         },
         "title": "ReturnsBlock",
+        "type": "object"
+      },
+      "RiskFact": {
+        "description": "A number against a threshold, and what a breach invalidates.\n\nNever prose. A risk expressed only as a sentence cannot be checked, replayed,\nor shown to have improved.",
+        "properties": {
+          "as_of": {
+            "format": "date",
+            "title": "As Of",
+            "type": "string"
+          },
+          "breached": {
+            "title": "Breached",
+            "type": "boolean"
+          },
+          "invalidates": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Invalidates"
+          },
+          "observed_value": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Observed Value"
+          },
+          "risk_kind": {
+            "title": "Risk Kind",
+            "type": "string"
+          },
+          "severity": {
+            "title": "Severity",
+            "type": "string"
+          },
+          "source_kind": {
+            "title": "Source Kind",
+            "type": "string"
+          },
+          "statement": {
+            "title": "Statement",
+            "type": "string"
+          },
+          "threshold": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Threshold"
+          }
+        },
+        "required": [
+          "risk_kind",
+          "observed_value",
+          "threshold",
+          "breached",
+          "severity",
+          "statement",
+          "source_kind",
+          "as_of"
+        ],
+        "title": "RiskFact",
         "type": "object"
       },
       "RvCorrPoint": {
@@ -27034,7 +28583,7 @@
   },
   "info": {
     "title": "UW Watchlist API",
-    "version": "0.12.16"
+    "version": "0.12.17"
   },
   "openapi": "3.1.0",
   "paths": {
@@ -29910,6 +31459,438 @@
         ]
       }
     },
+    "/api/research/chains/matrix": {
+      "get": {
+        "description": "chain \u00d7 layer matrix, rolled up from compatible company results.\n\nRead-time rollup, not a cached aggregate: the inputs are already persisted\nand a cache here would be a second place for the as-of to disagree with\nitself.",
+        "operationId": "chain_matrix_api_research_chains_matrix_get",
+        "parameters": [
+          {
+            "in": "query",
+            "name": "taxonomy_version",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Taxonomy Version"
+            }
+          },
+          {
+            "in": "query",
+            "name": "engine_version",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Engine Version"
+            }
+          },
+          {
+            "in": "query",
+            "name": "domain",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Domain"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ChainMatrixResponse"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Chain Matrix",
+        "tags": [
+          "radar",
+          "radar"
+        ]
+      }
+    },
+    "/api/research/chains/{chain}": {
+      "get": {
+        "description": "The names behind a cell, each with its exposure evidence.",
+        "operationId": "chain_members_api_research_chains__chain__get",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "chain",
+            "required": true,
+            "schema": {
+              "title": "Chain",
+              "type": "string"
+            }
+          },
+          {
+            "in": "query",
+            "name": "layer",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Layer"
+            }
+          },
+          {
+            "in": "query",
+            "name": "taxonomy_version",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Taxonomy Version"
+            }
+          },
+          {
+            "in": "query",
+            "name": "engine_version",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Engine Version"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ChainDrilldownResponse"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Chain Members",
+        "tags": [
+          "radar",
+          "radar"
+        ]
+      }
+    },
+    "/api/research/evidence/classes": {
+      "get": {
+        "description": "The discovery gate, as data. Live and killed classes with their counts.",
+        "operationId": "evidence_classes_api_research_evidence_classes_get",
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "items": {
+                    "$ref": "#/components/schemas/EventClassStatus"
+                  },
+                  "title": "Response Evidence Classes Api Research Evidence Classes Get",
+                  "type": "array"
+                }
+              }
+            },
+            "description": "Successful Response"
+          }
+        },
+        "summary": "Evidence Classes",
+        "tags": [
+          "research-evidence",
+          "research-evidence"
+        ]
+      }
+    },
+    "/api/research/reports": {
+      "get": {
+        "description": "The newest version of each report key.",
+        "operationId": "list_reports_api_research_reports_get",
+        "parameters": [
+          {
+            "in": "query",
+            "name": "limit",
+            "required": false,
+            "schema": {
+              "default": 25,
+              "maximum": 200,
+              "minimum": 1,
+              "title": "Limit",
+              "type": "integer"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ReportListResponse"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "List Reports",
+        "tags": [
+          "research-reports",
+          "research-reports"
+        ]
+      }
+    },
+    "/api/research/reports/{report_type}/{key}": {
+      "get": {
+        "description": "Latest version of one report, its delta, and its version history.",
+        "operationId": "get_report_api_research_reports__report_type___key__get",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "report_type",
+            "required": true,
+            "schema": {
+              "title": "Report Type",
+              "type": "string"
+            }
+          },
+          {
+            "in": "path",
+            "name": "key",
+            "required": true,
+            "schema": {
+              "title": "Key",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ReportResponse"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Get Report",
+        "tags": [
+          "research-reports",
+          "research-reports"
+        ]
+      },
+      "post": {
+        "description": "Assemble and publish the next version. Deterministic \u2014 no model, no network.\n\nRepublishing unchanged content is a no-op that returns the existing version\nwith an empty delta, so a double-click cannot manufacture history.",
+        "operationId": "assemble_report_api_research_reports__report_type___key__post",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "report_type",
+            "required": true,
+            "schema": {
+              "title": "Report Type",
+              "type": "string"
+            }
+          },
+          {
+            "in": "path",
+            "name": "key",
+            "required": true,
+            "schema": {
+              "title": "Key",
+              "type": "string"
+            }
+          },
+          {
+            "in": "query",
+            "name": "as_of",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "format": "date",
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "As Of"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ReportResponse"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Assemble Report",
+        "tags": [
+          "research-reports",
+          "research-reports"
+        ]
+      }
+    },
+    "/api/research/reports/{report_type}/{key}/versions/{version_no}": {
+      "get": {
+        "description": "One frozen version, exactly as it was published.\n\nThis is the replay path. It reads stored blocks rather than re-assembling,\nbecause re-assembly under today's data is a DIFFERENT answer wearing an old\nversion number.",
+        "operationId": "get_report_version_api_research_reports__report_type___key__versions__version_no__get",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "report_type",
+            "required": true,
+            "schema": {
+              "title": "Report Type",
+              "type": "string"
+            }
+          },
+          {
+            "in": "path",
+            "name": "key",
+            "required": true,
+            "schema": {
+              "title": "Key",
+              "type": "string"
+            }
+          },
+          {
+            "in": "path",
+            "name": "version_no",
+            "required": true,
+            "schema": {
+              "title": "Version No",
+              "type": "integer"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ReportResponse"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Get Report Version",
+        "tags": [
+          "research-reports",
+          "research-reports"
+        ]
+      }
+    },
     "/api/scanner": {
       "get": {
         "operationId": "get_scanner_api_scanner_get",
@@ -30040,6 +32021,93 @@
         "tags": [
           "scanner",
           "scanner"
+        ]
+      }
+    },
+    "/api/scanner/radar": {
+      "get": {
+        "description": "Cross-universe attention routing, ordered only as the claim registry allows.\n\nNO HIDDEN RENORMALIZATION. Two names whose aggregates rest on different\ndimension sets are both returned, each carrying `dimensions_present` and\n`missing_dimensions`, and the caller sees the denominators rather than a\ncolumn of numbers that silently mean different things.",
+        "operationId": "radar_api_scanner_radar_get",
+        "parameters": [
+          {
+            "in": "query",
+            "name": "tier",
+            "required": false,
+            "schema": {
+              "default": "ranked",
+              "title": "Tier",
+              "type": "string"
+            }
+          },
+          {
+            "in": "query",
+            "name": "engine_version",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Engine Version"
+            }
+          },
+          {
+            "in": "query",
+            "name": "limit",
+            "required": false,
+            "schema": {
+              "default": 200,
+              "maximum": 1000,
+              "minimum": 1,
+              "title": "Limit",
+              "type": "integer"
+            }
+          },
+          {
+            "description": "Hide names whose aggregate rested on fewer dimensions.",
+            "in": "query",
+            "name": "min_dimensions",
+            "required": false,
+            "schema": {
+              "default": 2,
+              "description": "Hide names whose aggregate rested on fewer dimensions.",
+              "maximum": 4,
+              "minimum": 0,
+              "title": "Min Dimensions",
+              "type": "integer"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/RadarResponse"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Radar",
+        "tags": [
+          "radar",
+          "radar"
         ]
       }
     },
@@ -30398,9 +32466,69 @@
         ]
       }
     },
+    "/api/stock/{ticker}/fundamentals/dimensions": {
+      "get": {
+        "description": "One name's independent dimensions, or the state explaining their absence.",
+        "operationId": "company_dimensions_api_stock__ticker__fundamentals_dimensions_get",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "ticker",
+            "required": true,
+            "schema": {
+              "title": "Ticker",
+              "type": "string"
+            }
+          },
+          {
+            "in": "query",
+            "name": "engine_version",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Engine Version"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/CompanyDimensionsResponse"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Company Dimensions",
+        "tags": [
+          "radar",
+          "radar"
+        ]
+      }
+    },
     "/api/stock/{ticker}/fundamentals/statements": {
       "get": {
-        "description": "Per-feature input components behind the card's ratios.\n\nServed separately from the card rather than folded into it, so the card's\nown contract and its OpenAPI snapshot stay untouched and the two payloads\ncan evolve independently.\n\nReads through `statement_panel`, the same path the scoring job uses, so\n\"which observation is current\" cannot diverge between the front of a card\nand its back.\n\n404 here means \"no statements ingested\", which is deliberately NOT the card\nendpoint's condition (\"no score row\"). The two can legitimately disagree \u2014\na name can hold statements and no score yet \u2014 and withholding real figures\nbecause a different table lags would be the dishonest answer.",
+        "description": "Per-feature input components behind the card's ratios.\n\nServed separately from the card rather than folded into it, so the card's\nown contract and its OpenAPI snapshot stay untouched and the two payloads\ncan evolve independently.\n\nReads through `current_statement_panel` \u2014 newest version per identity, the\nsame path the card's front takes \u2014 so \"which observation is current\" cannot\ndiverge between the front of a card and its back. Deliberately NOT the\nas-of reader: this endpoint answers \"what do we believe now\", and an\nobservation carrying no availability evidence must still render here.\n\n404 here means \"no statements ingested\", which is deliberately NOT the card\nendpoint's condition (\"no score row\"). The two can legitimately disagree \u2014\na name can hold statements and no score yet \u2014 and withholding real figures\nbecause a different table lags would be the dishonest answer.",
         "operationId": "get_stock_fundamental_statements_api_stock__ticker__fundamentals_statements_get",
         "parameters": [
           {
@@ -30548,6 +32676,81 @@
         "summary": "Get Magnets",
         "tags": [
           "stock"
+        ]
+      }
+    },
+    "/api/stock/{ticker}/research/evidence": {
+      "get": {
+        "description": "One name's event timeline and deterministic risk facts.",
+        "operationId": "company_evidence_api_stock__ticker__research_evidence_get",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "ticker",
+            "required": true,
+            "schema": {
+              "title": "Ticker",
+              "type": "string"
+            }
+          },
+          {
+            "description": "Show only what Argon could know by this date. Predicates on first_known_at, never on when the event occurred.",
+            "in": "query",
+            "name": "known_by",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "format": "date",
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "description": "Show only what Argon could know by this date. Predicates on first_known_at, never on when the event occurred.",
+              "title": "Known By"
+            }
+          },
+          {
+            "in": "query",
+            "name": "limit",
+            "required": false,
+            "schema": {
+              "default": 40,
+              "maximum": 200,
+              "minimum": 1,
+              "title": "Limit",
+              "type": "integer"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/CompanyEvidenceResponse"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Company Evidence",
+        "tags": [
+          "research-evidence",
+          "research-evidence"
         ]
       }
     },

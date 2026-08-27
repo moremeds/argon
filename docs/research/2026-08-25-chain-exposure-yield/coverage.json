@@ -1,0 +1,199 @@
+{
+  "coverage": {
+    "AI-App/Consumer-Net": {
+      "members": 12,
+      "with_exposure": 12,
+      "with_magnitude": 0
+    },
+    "AI-Cloud/NeoCloud": {
+      "members": 11,
+      "with_exposure": 11,
+      "with_magnitude": 1
+    },
+    "AI-Native-Software": {
+      "members": 6,
+      "with_exposure": 6,
+      "with_magnitude": 0
+    },
+    "Analog/Power-Semi": {
+      "members": 7,
+      "with_exposure": 7,
+      "with_magnitude": 0
+    },
+    "Banks": {
+      "members": 6,
+      "with_exposure": 6,
+      "with_magnitude": 0
+    },
+    "Beta": {
+      "members": 4,
+      "with_exposure": 4,
+      "with_magnitude": 0
+    },
+    "Cloud/Hyperscaler": {
+      "members": 6,
+      "with_exposure": 6,
+      "with_magnitude": 0
+    },
+    "Computer/GPU": {
+      "members": 7,
+      "with_exposure": 7,
+      "with_magnitude": 0
+    },
+    "Consumer": {
+      "members": 8,
+      "with_exposure": 8,
+      "with_magnitude": 0
+    },
+    "Cooling/Thermal": {
+      "members": 7,
+      "with_exposure": 7,
+      "with_magnitude": 0
+    },
+    "Credit": {
+      "members": 2,
+      "with_exposure": 2,
+      "with_magnitude": 0
+    },
+    "Crypto": {
+      "members": 6,
+      "with_exposure": 6,
+      "with_magnitude": 0
+    },
+    "Cybersecurity": {
+      "members": 13,
+      "with_exposure": 13,
+      "with_magnitude": 0
+    },
+    "Data-Platform": {
+      "members": 8,
+      "with_exposure": 8,
+      "with_magnitude": 0
+    },
+    "DC-REIT/Colo": {
+      "members": 6,
+      "with_exposure": 6,
+      "with_magnitude": 0
+    },
+    "Devices/Endpoint": {
+      "members": 5,
+      "with_exposure": 5,
+      "with_magnitude": 0
+    },
+    "DevTools/Observability": {
+      "members": 5,
+      "with_exposure": 5,
+      "with_magnitude": 0
+    },
+    "Energy": {
+      "members": 3,
+      "with_exposure": 3,
+      "with_magnitude": 0
+    },
+    "EPC/Construction": {
+      "members": 8,
+      "with_exposure": 8,
+      "with_magnitude": 0
+    },
+    "Fintech": {
+      "members": 3,
+      "with_exposure": 3,
+      "with_magnitude": 0
+    },
+    "Foundation-Model-Proxy": {
+      "members": 5,
+      "with_exposure": 5,
+      "with_magnitude": 0
+    },
+    "Foundry": {
+      "members": 6,
+      "with_exposure": 6,
+      "with_magnitude": 0
+    },
+    "Generation/Nuclear": {
+      "members": 14,
+      "with_exposure": 14,
+      "with_magnitude": 0
+    },
+    "Healthcare": {
+      "members": 7,
+      "with_exposure": 7,
+      "with_magnitude": 0
+    },
+    "Healthcare-AI/LS-Tools": {
+      "members": 7,
+      "with_exposure": 7,
+      "with_magnitude": 0
+    },
+    "IT-Services/Integration": {
+      "members": 7,
+      "with_exposure": 7,
+      "with_magnitude": 0
+    },
+    "M7": {
+      "members": 8,
+      "with_exposure": 8,
+      "with_magnitude": 0
+    },
+    "Macro": {
+      "members": 3,
+      "with_exposure": 3,
+      "with_magnitude": 0
+    },
+    "Memory/Storage": {
+      "members": 6,
+      "with_exposure": 6,
+      "with_magnitude": 0
+    },
+    "Networking/Optical": {
+      "members": 16,
+      "with_exposure": 16,
+      "with_magnitude": 0
+    },
+    "Optical-Communication": {
+      "members": 17,
+      "with_exposure": 17,
+      "with_magnitude": 1
+    },
+    "Power/Electrical": {
+      "members": 9,
+      "with_exposure": 9,
+      "with_magnitude": 0
+    },
+    "Quantum": {
+      "members": 3,
+      "with_exposure": 3,
+      "with_magnitude": 0
+    },
+    "Robotics/Automation": {
+      "members": 7,
+      "with_exposure": 7,
+      "with_magnitude": 0
+    },
+    "Sector-ETF": {
+      "members": 18,
+      "with_exposure": 18,
+      "with_magnitude": 0
+    },
+    "Semi-Cap/EDA": {
+      "members": 19,
+      "with_exposure": 19,
+      "with_magnitude": 0
+    },
+    "Semi-Logic/ASIC": {
+      "members": 13,
+      "with_exposure": 13,
+      "with_magnitude": 2
+    },
+    "Software/SaaS": {
+      "members": 13,
+      "with_exposure": 13,
+      "with_magnitude": 0
+    },
+    "Space": {
+      "members": 5,
+      "with_exposure": 5,
+      "with_magnitude": 0
+    }
+  }
+}

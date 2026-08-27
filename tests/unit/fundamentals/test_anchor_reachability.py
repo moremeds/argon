@@ -120,7 +120,12 @@ def test_the_rules_are_part_of_a_band_identity():
     append the correction.
     """
     from uw_scan.fundamentals import valuation as V
+    from uw_scan.fundamentals import valuation_policy as P
 
+    # Patch `valuation_policy`, not `valuation`. The M2.1 split moved the
+    # constant to the module that owns the policy; `valuation` re-exports it, and
+    # rebinding a re-export cannot reach the reader. The property under test —
+    # a rule-revision change must change the band identity — is unchanged.
     args = dict(
         company_type="chips_cyclical",
         engine="v1_equal",
@@ -130,17 +135,17 @@ def test_the_rules_are_part_of_a_band_identity():
         history_n=20,
     )
     before = V.anchor_inputs_hash(**args)
-    original = V.ANCHOR_RULES_REV
+    original = P.ANCHOR_RULES_REV
     try:
-        V.ANCHOR_RULES_REV = original + 1
+        P.ANCHOR_RULES_REV = original + 1
         assert V.anchor_inputs_hash(**args) != before
     finally:
-        V.ANCHOR_RULES_REV = original
+        P.ANCHOR_RULES_REV = original
     assert V.anchor_inputs_hash(**args) == before
 
-    original_width = V.MAX_BAND_WIDTH
+    original_width = P.MAX_BAND_WIDTH
     try:
-        V.MAX_BAND_WIDTH = original_width + 1
+        P.MAX_BAND_WIDTH = original_width + 1
         assert V.anchor_inputs_hash(**args) != before, "thresholds count too"
     finally:
-        V.MAX_BAND_WIDTH = original_width
+        P.MAX_BAND_WIDTH = original_width

@@ -1,0 +1,138 @@
+{
+  "classes": [
+    {
+      "event_class": "backlog",
+      "status": "killed",
+      "source_table": null,
+      "rationale": "lives in SEC document TEXT, which Argon does not fetch. Killed rather than represented as supported-but-empty.",
+      "measured_rows": 0,
+      "measured_on": "2026-08-25"
+    },
+    {
+      "event_class": "capex_guidance",
+      "status": "killed",
+      "source_table": null,
+      "rationale": "lives in SEC document TEXT, which Argon does not fetch. Killed rather than represented as supported-but-empty.",
+      "measured_rows": 0,
+      "measured_on": "2026-08-25"
+    },
+    {
+      "event_class": "customer_concentration",
+      "status": "killed",
+      "source_table": null,
+      "rationale": "lives in SEC document TEXT, which Argon does not fetch. Killed rather than represented as supported-but-empty.",
+      "measured_rows": 0,
+      "measured_on": "2026-08-25"
+    },
+    {
+      "event_class": "debt_maturity",
+      "status": "killed",
+      "source_table": null,
+      "rationale": "lives in SEC document TEXT, which Argon does not fetch. Killed rather than represented as supported-but-empty.",
+      "measured_rows": 0,
+      "measured_on": "2026-08-25"
+    },
+    {
+      "event_class": "management_guidance",
+      "status": "killed",
+      "source_table": null,
+      "rationale": "lives in SEC document TEXT, which Argon does not fetch. Killed rather than represented as supported-but-empty.",
+      "measured_rows": 0,
+      "measured_on": "2026-08-25"
+    },
+    {
+      "event_class": "product_regulatory",
+      "status": "killed",
+      "source_table": null,
+      "rationale": "requires a licensed news source. No unlicensed news dependence.",
+      "measured_rows": 0,
+      "measured_on": "2026-08-25"
+    },
+    {
+      "event_class": "restatement",
+      "status": "killed",
+      "source_table": "fundamental_statement_obs",
+      "rationale": "only 1 multi-version identity in the whole store. A class that fires once is an anecdote, not a class. Revive if the count grows once real version history accrues.",
+      "measured_rows": 1,
+      "measured_on": "2026-08-25"
+    },
+    {
+      "event_class": "supplier_relationship",
+      "status": "killed",
+      "source_table": null,
+      "rationale": "lives in SEC document TEXT, which Argon does not fetch. Killed rather than represented as supported-but-empty.",
+      "measured_rows": 0,
+      "measured_on": "2026-08-25"
+    },
+    {
+      "event_class": "geographic_disclosure",
+      "status": "live",
+      "source_table": "revenue_breakdown_obs",
+      "rationale": "geographic revenue broken out on an XBRL axis",
+      "measured_rows": 7088,
+      "measured_on": "2026-08-25"
+    },
+    {
+      "event_class": "input_violation",
+      "status": "live",
+      "source_table": "fundamental_obs_violations",
+      "rationale": "an integrity check rejected a provider figure",
+      "measured_rows": 1006,
+      "measured_on": "2026-08-25"
+    },
+    {
+      "event_class": "sec_amendment",
+      "status": "live",
+      "source_table": "sec_filing_index",
+      "rationale": "an amendment means the period's content cannot be dated, which is a research fact in its own right",
+      "measured_rows": 1806,
+      "measured_on": "2026-08-25"
+    },
+    {
+      "event_class": "sec_filing",
+      "status": "live",
+      "source_table": "sec_filing_index",
+      "rationale": "SEC EDGAR periodic filings, mirrored locally",
+      "measured_rows": 37510,
+      "measured_on": "2026-08-25"
+    },
+    {
+      "event_class": "segment_disclosure",
+      "status": "live",
+      "source_table": "revenue_breakdown_obs",
+      "rationale": "business-segment revenue broken out on an XBRL axis",
+      "measured_rows": 3203,
+      "measured_on": "2026-08-25"
+    },
+    {
+      "event_class": "statement_published",
+      "status": "live",
+      "source_table": "fundamental_statement_obs",
+      "rationale": "a period's statements became available",
+      "measured_rows": 45196,
+      "measured_on": "2026-08-25"
+    }
+  ],
+  "event_counts": {
+    "input_violation": 1006,
+    "sec_amendment": 191,
+    "sec_filing": 10188
+  },
+  "risk_summary": {
+    "stale_result": {
+      "breached": 73,
+      "evaluated": 400,
+      "material": 0
+    },
+    "thin_pit_evidence": {
+      "breached": 54,
+      "evaluated": 401,
+      "material": 0
+    },
+    "unevidenced_company_type": {
+      "breached": 319,
+      "evaluated": 449,
+      "material": 0
+    }
+  }
+}

@@ -8,6 +8,7 @@ version in lockstep (enforced by `scripts/release/version_sync_check.py`).
 ## [Unreleased]
 
 ### Added
+
 - **The macro ledger can now say "we accepted this and were wrong"** — additive, point-in-time
   evidence invalidation (migration `131`, `macro_evidence_invalidations`). F2, the last open item
   in the macro program.
@@ -51,7 +52,249 @@ version in lockstep (enforced by `scripts/release/version_sync_check.py`).
     invalidation is the rare fabrication that SUBTRACTS — it would remove real observations from
     every point-in-time read after its instant.
 
+- **A chain analysis node, declared as data.** `fundamentals/chain_nodes.py` +
+  `docs/superpowers/specs/2026-08-26-chain-analysis-node-design.md`.
+  - Every report component now names its purpose, the tables it reads, its vendor cost,
+    the keys its payload carries and the strongest claim it may make.
+    `test_the_catalogue_matches_what_the_assembler_actually_emits` asserts the assembler
+    emits exactly that — kinds, order and authority — so the catalogue cannot drift into
+    documentation, and `test_every_declared_component_is_free_of_vendor_calls` fails if a
+    component starts spending UW calls.
+  - `SHAPE_ORDER` states emission order per report shape rather than inferring it from
+    declaration order. Inferring it silently agreed with the chain shape and disagreed
+    with the other two, because `chain_exposure` is shared but interleaved differently.
+  - **Adding a chain costs rows, not code.** Measured 2026-08-26: all 44 members of the
+    five datacenter chains (power, cooling, colo, generation, construction) are already in
+    `fundamental_universe`, and 42 of the 44 already carry statements (DC-REIT/Colo is
+    the gap, at 4 of 6), so a new node spends no incremental vendor calls. What those chains lack is a layer set — 38 of 39 were seeded
+    with a single placeholder layer at rank 0, which is why their reports render shapeless.
+
+- **Versioned, replayable research reports — the north-star deliverable (M7).**
+  Migration `143` + `storage/research_reports.py` + `fundamentals/report_delta.py` +
+  `worker/jobs/research_report_assemble.py` + `api/routers/research_reports.py` +
+  `web/app/reports/` + `components/reports/ReportView.tsx`.
+  Program completion test: `docs/research/2026-08-25-research-report-completion/`.
+  - **A report is a row, not a rendered page.** Each version freezes its manifest —
+    engine version, taxonomy version, evidence policy, as-of, assembler version — plus a
+    content hash of its assembled blocks. Versions are append-only; a refresh publishes
+    N+1 beside N and supersedes rather than rewrites, so an answer given in August still
+    reads as it did in August after September's data and October's engine arrive. Verified
+    end to end: the optical-communication chain report's v1 still serves its pre-fix
+    numbers after v2 corrected them.
+  - **The delta is the product, and it separates METHOD from WORLD.** A manifest change is
+    listed first and apart from value moves, because a composite that fell because the
+    engine changed is not news about a company. An appearing or disappearing number is
+    always material regardless of magnitude; a bool flip is never a numeric move.
+  - **Every block names its evidence or its derivation** — a CHECK refuses one with
+    neither, and a second CHECK makes `investment_ranking` unrepresentable in the store
+    rather than merely unused. The `unsupported` block is ordinal 1 in every report: the
+    reader meets the killed event classes and the descriptive-only dimensions before the
+    numbers.
+  - **Mixed bases are refused before anything is written.** `check_single_basis` raises if
+    a block's evidence names an engine version, taxonomy version, or as-of that disagrees
+    with the frozen manifest — a report carries one basis or it is two answers stapled
+    together.
+  - **All three shapes the north star names.** A company, a group of companies, and a
+    narrow industry chain. A comparison keys on its SORTED ticker set, so `NVDA,AMD` and
+    `AMD,NVDA` version one report instead of forking two; and it names every requested
+    ticker in its coverage block whether or not it scored, because dropping the ones Argon
+    cannot answer turns "3 of the 5 you asked about" into "the group, ranked".
+  - **Re-assembling unchanged content publishes nothing** and returns the existing version
+    with an empty delta, so a double-click cannot manufacture history.
+
+- **Typed event ledger, deterministic risk facts, and a discovery gate that kills classes (M6).**
+  Migration `142` + `storage/research_events.py` + `worker/jobs/research_events_derive.py` +
+  `api/routers/research_evidence.py`.
+  Verdict: `docs/research/2026-08-25-evidence-discovery-gate/`.
+  - **Six classes live, eight killed — and the kills are the deliverable.** Live:
+    `statement_published` 45,196, `sec_filing` 37,510, `geographic_disclosure` 7,088,
+    `segment_disclosure` 3,203, `sec_amendment` 1,806, `input_violation` 1,006.
+  - **`restatement` is killed at n=1** — one multi-version identity in 87,177 observations. A
+    class that fires once is an anecdote. Six more (customer concentration, supplier, backlog,
+    capex guidance, debt maturity, management guidance) are killed because they live in SEC
+    document TEXT which Argon does not fetch; `product_regulatory` because it needs a licensed
+    news source.
+  - **A killed class refuses writes** — the repository raises rather than warning. Every company
+    response carries the killed list, so a reader of a supply-chain-free timeline is told why it
+    is supply-chain-free rather than concluding the company has no supply chain.
+  - **Two clocks, enforced.** `occurred_at` is when it happened, `first_known_at` when Argon could
+    know; a CHECK forbids the second preceding the first and every historical read predicates on
+    it. NVDA's April quarter ended 04-26 and published 05-20 — a replay at 05-01 correctly sees
+    nothing.
+  - **Every risk is a number against a threshold plus what a breach invalidates**, never prose.
+    Measured: `unevidenced_company_type` 319 of 449 breached, `stale_result` 73 of 400,
+    `thin_pit_evidence` 54 of 401.
+  - An amendment supersedes its original; the predecessor stays readable, which is what makes it
+    a ledger rather than a table.
+
+- **Versioned research taxonomy, evidence-backed chain exposure, and the chain matrix (M5).**
+  Migrations `139`/`140`/`141` + `storage/research_taxonomy.py` +
+  `worker/jobs/research_taxonomy_seed.py` + `scripts/backfill/research_taxonomy_seed.py` +
+  `api/routers/radar.py` (`/research/chains/matrix`, `/research/chains/{chain}`) +
+  `web/app/chains/` + `web/components/chains/ChainMatrix.tsx`.
+  Verdict: `docs/research/2026-08-25-chain-exposure-yield/`.
+  - **Chain exposure is 1.3% disclosed: 316 memberships, 316 with a role, 4 with a number.**
+    The dominant XBRL segment tag is the generic `ReportableSegmentMember` (47 tickers); the
+    chain-relevant names appear on one or two filers each. Most companies simply do not disclose
+    segments whose names identify a chain.
+  - **A CHECK constraint is the deliverable.** `magnitude` may be non-NULL only when
+    `status='disclosed'` AND `magnitude_basis` names an evidenced kind, so the 312 rows without a
+    disclosure physically cannot hold a number. Without it those rows would have been filled with
+    plausible hand-typed percentages and every chain aggregate would have inherited the fiction
+    undetectably — a typed 38% renders identically to a disclosed one.
+  - **A derived magnitude is auditable in both halves.** `source_obs_id` names the observation
+    behind the number; `chain_segment_alias` names the published rule behind its attribution to a
+    chain. The judgement is recorded rather than hidden inside the value.
+  - `watchlist_chain` is **mirrored, not migrated** — the shipped filter rail is untouched and
+    every copied row lands as `evidence_class='mirrored'` so the new object inherits no authority
+    the old one never had.
+  - **M5.5 extensibility proof passes:** the optical-communication chain (5 layers, 17 members)
+    was added as ROWS only — no new table, no new job, no scoring fork.
+  - Cells with fewer than 3 members carrying a compatible result **abstain**, because a mean over
+    one name is that name's number wearing a chain's label. Abstaining cells render hatched with
+    their reason, never blank.
+  - No causal claim is licensed: `layer_rank` is a reading order, every `counterparty` is NULL,
+    and the matrix carries that prohibition in its own payload. The measured basis is the
+    capex-demand ledger, whose cross-name relationship collapsed from +0.247 to +0.015 (p=0.44)
+    among same-sector pairs.
+
+- **Fundamental PM Research Radar + company dimensions v2 (M4).** `models/radar.py` +
+  `api/routers/radar.py` + `web/app/radar/page.tsx` + `web/components/radar/RadarTable.tsx` +
+  `web/tests/e2e/radar-page.spec.ts`. Screenshot: `output/playwright/radar-page.png`.
+  - **A six-member state model, because an empty result is six different situations.** `ok`,
+    `stale_run`, `no_compatible_run`, `no_coverage`, `unsupported_capability`, `failed_run`. Four
+    of them are facts about ARGON and only `no_coverage` is a fact about the company — collapsing
+    them into an empty list is how "the job never ran" gets read as "this company has no
+    fundamentals". Transport errors are deliberately NOT a member: a 500 must not arrive dressed
+    as a data state.
+  - `GET /api/scanner/radar` and `GET /api/stock/{ticker}/fundamentals/dimensions`. Warm-store
+    only — zero UW, zero IB, zero lake.
+  - **No hidden renormalization.** Two names whose aggregates rest on different dimension sets are
+    both returned, each carrying `dimensions_present` and `missing_dimensions`, so the caller sees
+    the denominators instead of a column of numbers that silently mean different things.
+  - **Extreme ranks are surfaced, not suppressed.** Measured on the local panel, |z|>10 is
+    0.03–0.3% of rows per dimension — genuine tails, but they land at the top of a descending sort
+    and the registry already warns the top decile is riskier than the middle. Winsorizing would
+    change validated math and dropping the row would hide a real name, so `extreme_dimensions`
+    flags it and the UI marks it.
+  - The page states its own denominator ("49 of 449 names have no compatible result and are absent
+    from this table"), discloses the ordering's permission, and carries the registry's prohibited
+    readings verbatim. Visual language is neutral by construction — no green/red, no gauge — since
+    the measured basis is a rank IC of 0.039 that earns nothing as a book.
+  - A refused aggregate renders as "refused", never 0.00, which would place it in the middle of
+    the distribution and make a claim.
+
+- **Product claim registry — permissions as data, not prose (M3.3).** `fundamentals/claims.py`.
+  - Five surfaces, each with its universe, method, authority, allowed behaviour, allowed language,
+    prohibited inference, killing condition, revalidation rule, and the artifact that measured it.
+    A test asserts every `evidence` path **exists on disk**: a claim whose artifact is missing is
+    not a weaker claim, it is an unfalsifiable one.
+  - An unregistered surface raises rather than inheriting the strongest permission on the page.
+
+- **Fundamental run ledger — the engine's control plane (M2.4).** Migration `137` +
+  `storage/fundamental_runs.py` + `worker/jobs/fundamental_run.py`.
+  - `fundamental_scores` records an ANSWER; nothing recorded the QUESTION. A run that produced
+    nothing left no trace, so "the panel was empty" and "the job never ran" were
+    indistinguishable afterwards. A run row carries scope, as-of, evidence policy, engine version,
+    mode, per-stage state and counters.
+  - **Idempotency is a request hash, not a timestamp.** `request_hash` covers scope + as_of +
+    evidence policy + engine, and deliberately excludes the clock: a run one second later asking
+    the same question is the same question. `mode='reuse'` matches on it EXACTLY — a "close
+    enough" match would answer the operator's question with someone else's.
+  - Stages are rows, not a status column: "failed at anchors after scoring succeeded" is the
+    difference between re-running everything and re-running one stage. A retry gets a new attempt.
+  - A partial unique index enforces at most one active run per request; `cancel_stale()` clears
+    heartbeat-dead runs, which otherwise block that question forever through the same index.
+  - Verified end to end on a leak-free run: `TRUE_PIT_ONLY` at as_of 2024-06-30 over 25 names
+    chained routing → scoring (1,535 scored, 74 buckets) → anchors (25 written), and a reuse
+    request returned the same run rather than recomputing.
+
+- **Independent research-priority dimensions, each carrying its own permission (M2.3).**
+  `fundamentals/dimensions.py` + migration `138` + `storage/fundamental_dimensions.py`.
+  - Seven dimensions persisted separately, because `authority` is per DIMENSION, not per result.
+    A column layout would force one authority per row — which is exactly how a contradicted sign
+    rides along inside a validated composite.
+  - **Two dimensions are capped at `descriptive` and both caps are load-bearing.**
+    `operating_quality`'s inputs measured INVERTED (high-margin names underperformed, 2026-08-12),
+    and `valuation`'s own-history finding was computed by a script pairing raw closes with shares
+    UW restates to today's split basis, never rerun. Neither may enter the priority aggregate.
+  - `investment_ranking` is refused by CHECK constraint, not merely unused — it needs the GX gate
+    this program does not provide.
+  - Renormalization is explicit: a missing dimension is dropped, the aggregate names which were
+    used and which were missing, and it REFUSES below two present rather than calling one
+    dimension a priority. Treating a missing dimension as 0 would pull every incomplete name
+    toward the middle of the ranking — an artifact of absence that looks like a measurement.
+  - `evidence_quality` is measured against the claims table, not the run's `availability_ids`: a
+    current-vintage run never populates those, so deriving coverage from them reported "this run
+    did not look" as "the evidence is not there". NVDA reads 1.0 (3/3 true_pit), not 0.0.
+
+- **SEC publication evidence — replayable fundamental history goes from 8 days to 22 years (M1-A).**
+  `sources/sec_submissions.py` + `fundamentals/publication_evidence.py` +
+  `storage/sec_filing_index.py` + migration `134` + `worker/jobs/{sec_filing_index_refresh,
+  fundamental_publication_evidence}.py` + `scripts/backfill/sec_publication_evidence.py`.
+  Verdict: `docs/research/2026-08-25-sec-publication-evidence/`.
+  - `true_pit` went from **0 to 73,994 claims** over **396 of 401 tickers**, period ends
+    2003-12-31 → 2026-07-31. Before this, every `TRUE_PIT_ONLY` replay was empty at every cutoff
+    and `CAPTURE_BOUNDED` was empty before 2026-08-16, because the whole statement table came from
+    one 8-day backfill and the only availability evidence was "when we fetched it".
+  - **Yield 84.8%** (73,769 of 86,951 identities). Refusals: `no_filing` 10,335 — mostly
+    structural, a 20-F annual filer has no quarterly filing for a quarterly period to match;
+    `amended` 2,210; `no_index` 633; `ambiguous` 3; `multi_version` 1.
+  - **An amendment refuses the whole period, deliberately.** UW serves *current* data, so for an
+    amended period the single version Argon holds may be the restated content. Dating it at the
+    original filing is `filing_published_at`'s trap wearing SEC's authority.
+  - Three things that will bite: `filings.recent` is a WINDOW, and following `filings.files[]`
+    archives is what turns NVDA's 3-year panel into 111 filings over 2006→2026; the macOS system
+    proxy kills `www.sec.gov` with `SSL_ERROR_SYSCALL`, so the client hard-codes
+    `trust_env=False` (same class as `MassiveWsClient`'s `proxy=None`); and SEC's `reportDate`
+    is not `period_end` — a ±7-day tolerance reusing the existing exact-first rule matched 93.9%
+    of NVDA's quarters against 13.4% exact.
+  - Zero provider budget. SEC is free and keyless and never enters the UW governor.
+
+- **Statement versions now record WHEN they became usable, and historical scoring
+  must name the evidence it stood on.** `fundamental_statement_obs` was already an
+  honest immutable ledger — a restatement lands beside the original, never over
+  it — but it carried no availability information at all, so `statement_panel()`
+  answered "which version applies at time T" with `ORDER BY obs_id DESC` **and no
+  cutoff**: every historical question got today's panel, and the scoring job built
+  its knowledge-quarter cross-sections on exactly that. Measured against
+  production: over all 200 identities holding more than one content version, the
+  `obs_id` pick and the availability pick disagree **0 times** — and cannot
+  disagree while availability is capture time, because `first_observed_at` and the
+  BIGSERIAL are assigned in the same INSERT. What bit was the missing cutoff, not
+  the ordering; the ordering becomes load-bearing only once a publication date
+  arrives from a source independent of insertion order.
+
+  New append-only `fundamental_obs_availability` (migration 132) holds one claim
+  per (observation, rule) in four classes — `true_pit` (positive publication
+  evidence), `capture_bounded` (Argon holds this content and first saw it then),
+  `current_vintage` (today's page only), `unknown` — with CHECK constraints
+  binding the timestamp to the classes that earn one. Evidence _strengthens_ over
+  time, so a stronger claim INSERTs beside its predecessor rather than updating
+  it; there is no update path in the repository at all.
+
+  The reader split in two: `current_statement_panel` (unchanged newest-version
+  semantics, what the card and anchors use) and `statement_panel_as_of(as_of,
+evidence_policy)`, which fails closed — an observation with no claim never
+  enters a replay. `fundamental_scoring` takes an `evidence_policy` argument with
+  no historical default; a replay buckets each row by when ITS version became
+  available rather than by the period's original filing date, and persists the
+  policy, cutoff and selected claims (migration 133). Existing score rows are
+  untouched and correctly labelled `current_vintage`.
+
+  `filing_published_at` does **not** promote anything to `true_pit`: it describes
+  the _original_ filing for the period, and a later content hash is a different
+  artifact. Promoting on it would take true-PIT coverage from nothing to nearly
+  everything in one run while reintroducing the exact look-ahead this removes.
+  Expect `TRUE_PIT_ONLY` replays to return empty until a publication-evidence
+  adapter exists — that is the correct answer, not a fault.
+
+  Backfill: `scripts/backfill/fundamental_observation_availability.py` (zero
+  provider spend, resumable by keyset, `--audit` writes a self-checking coverage
+  artifact). Runbook `docs/runbooks/fundamental-observation-availability.md`.
+
 ### Changed
+
 - **Phase 1 of the top-down macro program is closed**, scored against the eight completion criteria
   it wrote for itself on 2026-08-12 (`2026-08-12-top-down-macro-context-program.md` §10). Six are met,
   two are not, and the two are recorded as *answered* rather than *outstanding*. Documentation only.
@@ -104,7 +347,63 @@ version in lockstep (enforced by `scripts/release/version_sync_check.py`).
     `available_at`, SEP 25/25, CPI family 145 release instants) AND a fresh authority decision. That
     preflight is unauthorized and unstarted; surprise definition, baseline and horizon are all unspecified.
 
+- **The own-history valuation signal survives a split-consistent price basis — but four of five
+  weaken and two die (M3.1/M3.2).**
+  `scripts/research/fundamental_valuation_split_basis_rerun.py`; verdict
+  `docs/research/2026-08-25-valuation-split-basis-rerun/`.
+  - The original research built market cap as RAW bronze close × `common_stock_shares_outstanding`
+    and stated its premise out loud: *"`common_stock_shares_outstanding` is as-reported"*. **False**
+    — the same repo documents the correction in `load_closes`, and it is re-measured here: TSLA
+    3,372M → 3,369M → 3,101M → 3,540M and BKNG 1,024M → 1,034M → 794M → 770M across periods
+    containing splits, with **no split-sized discontinuity anywhere**. It paired a restated share
+    count with an unrestated price. **121 of 400 names (30.2%) were exposed.**
+  - **`sales_to_ev` is not a split artifact.** +0.0706 (t 5.55) → **+0.0709 (t 5.55)**; holding
+    pure reversal constant +0.0772 (t 6.74). On the split-EXPOSED cohort alone it is the only one
+    of five signals the correction did not move (+0.0637 → +0.0651).
+  - **The contamination was real for the rest.** On that cohort `book_to_price` +0.0505 (t 2.43) →
+    +0.0352 (t 1.67) and `earnings_yield` +0.0554 (t 2.54) → +0.0404 (t 1.90) both lose
+    significance; `fcf_yield` and `ebitda_to_ev` weaken but hold. Neither dead signal is a routed
+    `TYPE_YIELD` method — and this says keep it that way.
+  - All three SHIPPED methods survive, so `/scanner/value`'s foundation stands.
+  - Livewire's silver tier is empty on this machine, so the split-only basis is rebuilt from
+    `uw_scan.corporate_actions` — verified against production's own documented identity: BKNG
+    2026-04-02 returns **167.77** against a raw close of 4,194.31 at a 25.0 factor.
+  - No mechanism is claimed for why `sales_to_ev` is immune while `ebitda_to_ev` is not; both are
+    EV-denominated, so "EV dilutes the error" does not explain it. Measured and unexplained.
+
+- **`valuation` raised from `descriptive` to `directional_monitor` — by measurement, not decision.**
+  The split-basis rerun is what licensed it. **A stronger authority is not a wider one:** it still
+  may not enter the priority aggregate, because that aggregate orders names against EACH OTHER and
+  cross-sectional value measured INVERTED in this same universe (`book_to_price` IC −0.0365,
+  t −2.32). `/scanner/value` keeps listing and still may never gain a sort.
+
+- **`fundamentals/valuation.py` split by domain seam (M2.1).** 987 lines → `valuation.py` (623,
+  `build_anchors` + refusal), `valuation_policy.py` (197, routing and thresholds),
+  `valuation_math.py` (261, arithmetic). Every name is re-exported, so no import site changed.
+  - `anchor_inputs_hash` now reads the rule constants THROUGH the policy module rather than
+    through names bound at import. `from X import CONST` binds once, which makes "changing a rule
+    changes the band identity" unprovable — the exact property a test asserts.
+
+- **Recorded integrity violations now gate the math, not only the card (M1.1).**
+  `fundamentals/validity.py` + `fundamentals-v2` engine version + `worker/jobs/fundamental_scoring.py`.
+  - `violated_fields`' docstring said it plainly: "the raw feature stays as computed and the
+    DISPLAY layer suppresses it". A gross margin of exactly 1.0, known to be a provider echo,
+    still contributed a z-score that moved every other name's rank.
+  - Measured on 28,800 paired rows: **2,386 feature values withheld** across 1,067 periods.
+    Only 1,058 rows (3.7%) directly lost a value, but **94.5% of composites changed** — a z-score
+    is relative to its cross-section's mean and sd, so withholding one name re-centres everyone.
+    Pearson v1 vs v2 = 0.978; individual names move multiple sd (CLDX 2007: −0.05 → −3.33).
+  - **`fundamentals-v1` replays byte-identically** — a v1 rerun after v2 inserts zero rows,
+    because none of the exclusion code runs for it. v2 is registered but NOT activated; switching
+    the default is a measured decision, not a deploy side effect (`--activate-v2`).
+  - The validity policy is read from the ENGINE VERSION, never passed in, so a row cannot claim a
+    method it did not run. An unregistered code version raises rather than inheriting v1's.
+  - Exclusion propagates through the TTM window: a bad `total_revenue` contaminates four
+    quarters, and `rev_growth` reaches eight. Excluding only the violated quarter would leave
+    most of the damage in the math while reporting the field handled.
+
 ### Fixed
+
 - **`CLAUDE.md` said schema changes apply out-of-band via the profile-gated migrator. They do not.**
   The `api` service self-migrates before serving (`python -m uw_scan.storage.migrate_runner && exec
   uvicorn`, `docker-compose.yml`), so a Watchtower deploy carries its migrations with it; the
@@ -120,6 +419,52 @@ version in lockstep (enforced by `scripts/release/version_sync_check.py`).
   the state that consumes it — and state 34 (Tue 2026-08-25 19:40 ET, first run under the new schedule)
   reads `obs_date` 2026-08-25, age **0**. The blocker also conflated two claims: the MC6 preflight found
   gold cannot **replay**, which says nothing about computing tonight's state.
+
+- **The segment-to-chain resolver took the first match from an unordered `SELECT`.**
+  `datacenter` (AI-Cloud/NeoCloud) is a substring of `datacenterandcommunications`
+  (Optical-Communication), so Coherent's Datacom & Communications segment — 74.6% of
+  revenue, the best-evidenced optical exposure Argon holds — was filed under the cloud
+  chain. The same collision put HPE's Data Center Networking segment there too, and
+  because `company_exposure` upserts `ON CONFLICT DO NOTHING`, that 3.0% row then blocked
+  HPE's genuine 72.2% Cloud/AI exposure from ever being written. The resolver now collects
+  every match, takes the **longest pattern** (a longer alias is a narrower claim), and
+  **refuses** an equally specific tie across two chains rather than guessing — a coin flip
+  publishes a magnitude that reads as disclosed fact. Counted as `ambiguous`.
+  Regression: `tests/integration/storage/test_chain_segment_alias.py` (all three fail
+  against the old resolver).
+- **A chain report's coverage count and its exposure list were at different grains.**
+  `with_magnitude` counts members carrying a magnitude; the very next block listed every
+  magnitude mapped to the chain, members or not. The optical report shipped
+  `with_magnitude: 2` immediately above a list of four. Coverage now also carries
+  `magnitudes_non_member`, and each exposure carries `is_member` and its `source_ref`, so
+  a claim about the chain that the membership does not support stays visible and labelled
+  instead of being filtered from sight. Same defect family as the 19-of-17 count above,
+  one block apart.
+- **JNPR retired from the optical chain.** Zero statement observations at any period; the
+  vendor reports null price, no options, null average volume and no next earnings date.
+  Closed with `valid_to` rather than deleted, so the membership history survives.
+
+- **A chain report counted placements where its own denominator counted companies.**
+  `chain_membership` is grained `(chain, layer, ticker)`, so a name in two layers appeared
+  twice; the assembler took `with_compatible_result` over rows while `exposure_coverage`
+  deduped to distinct tickers. The optical chain published `with_compatible_result` 19
+  against `members` 17 — a numerator larger than its denominator — and the aggregate
+  priority double-weighted every two-layer name. Every count and the mean are now taken
+  over distinct tickers, with placements reported as their own field rather than left for
+  the reader to discover by subtraction.
+
+- **The report payload renderer printed raw floats and squeezed nested structures to a
+  ninth of the page.** `Payload` recursed into every object with the same three-column
+  grid, so a comparison row's `dimensions` inherited a third of a third — `break-words`
+  then split mid-word and `balance_sheet` arrived as `balan/ce_sh/eet`. Separately it fell
+  through to `String(v)`, so `priority` read `0.419931924774829` in the table and `0.4199`
+  in the delta block on the same page. A nested structure now takes the full row and every
+  scalar goes through one formatter. Regression test `web/tests/unit/reportView.test.tsx`.
+
+- **`risk_summary` silently dropped rows.** It grouped by `(risk_kind, severity)` while keying its
+  result dict on `risk_kind` alone, so all but the last severity group were overwritten — every
+  breach rate read as 100% because the healthy rows landed under `info` and vanished. Now grouped
+  by kind alone: `stale_result` reads 73 breached of 400 evaluated, not 73 of 73.
 
 ## [0.12.17] — 2026-08-25
 
