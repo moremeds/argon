@@ -5,16 +5,21 @@ the point of this test is what it does NOT touch: no assembler, no schema, no
 scoring fork. If a chain node ever needs one of those, the extension contract is
 broken and this file is where that shows up first.
 
-WHY EVERY SPEC IS `ai_infrastructure` AND NOT A NEW DOMAIN
----------------------------------------------------------
-`research_chains`' primary key is `(taxonomy_version, chain, layer)` — `domain`
-is NOT in the key, so it is a per-LAYER attribute. All five chain names are
-already mirrored from `watchlist_chain` under `domain='ai_infrastructure'` with a
-placeholder layer, so declaring the specs under a second domain would leave one
-chain carrying two layers under two domains and `chains(version, domain=...)`
-would return half a chain. `test_no_chain_carries_two_domains` is the guard.
-`Optical-Communication` escapes the whole question only because its spec name
-differs from the watchlist's `Networking/Optical`.
+WHY EVERY SPEC DECLARES THE DOMAIN THE MIRROR WRITES
+----------------------------------------------------
+`research_taxonomy_seed.CHAIN_DOMAIN` is the source of truth for what domain a
+`watchlist_chain` name carries, and the seed script runs the mirror first and
+these specs second. `research_chains`' primary key is
+`(taxonomy_version, chain, layer)` — `domain` is NOT in the key, so it is a
+per-LAYER attribute and nothing in the schema stops a chain from carrying two.
+All five chain names are mirrored with a placeholder layer, so declaring a spec
+under a domain the mirror did not use would leave one chain carrying two layers
+under two domains and `chains(version, domain=...)` would return half a chain.
+`test_no_chain_carries_two_domains` and
+`test_every_datacenter_spec_declares_the_mirrored_domain` are the guards.
+`Optical-Communication` escapes the whole question only because its spec name is
+not a `watchlist_chain` name (the watchlist spells it `Networking/Optical`), so
+it is unmirrored and may declare any domain.
 """
 
 from __future__ import annotations
@@ -22,7 +27,9 @@ from __future__ import annotations
 from uw_scan.fundamentals.chain_nodes import DATACENTER_CHAINS
 from uw_scan.storage.research_taxonomy import ResearchTaxonomyRepository
 from uw_scan.worker.jobs.research_taxonomy_seed import (
+    CHAIN_DOMAIN,
     TAXONOMY_V1,
+    UNCLASSIFIED,
     mirror_watchlist_chain,
     seed_chain_spec,
 )
@@ -108,8 +115,19 @@ def test_five_datacenter_chains_declared_in_buildout_order():
 
 
 def test_every_datacenter_spec_declares_the_mirrored_domain():
-    """A second domain would split a chain across two `chains()` answers."""
-    assert {c.domain for c in DATACENTER_CHAINS} == {"ai_infrastructure"}
+    """A second domain would split a chain across two `chains()` answers.
+
+    Pinned to the MAP, not to a literal: a literal goes stale the moment a
+    domain moves, and it did — the five chains left `ai_infrastructure` for
+    `dc_buildout` and this assertion kept passing against a branch whose
+    `research_chains` rows disagreed with themselves.
+    """
+    for spec in DATACENTER_CHAINS:
+        assert spec.domain == CHAIN_DOMAIN.get(spec.chain, UNCLASSIFIED), (
+            f"{spec.chain}: spec declares {spec.domain!r} but the mirror writes "
+            f"{CHAIN_DOMAIN.get(spec.chain, UNCLASSIFIED)!r} — a chain split across "
+            f"two domains answers chains(version, domain=...) with half of itself"
+        )
 
 
 def test_seed_replaces_placeholder_layer_with_real_rank(seeded_db_empty_cards):

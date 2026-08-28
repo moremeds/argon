@@ -364,18 +364,23 @@ OPTICAL_COMMUNICATION = ChainSpec(
 #: shape nobody measured. Ranks are sparse, so a split discovered later slots
 #: between two of these without renumbering anything.
 #:
-#: EVERY SPEC IS `ai_infrastructure`, DELIBERATELY. `research_chains`' primary
-#: key is (taxonomy_version, chain, layer), so `domain` is a per-LAYER attribute
-#: and not part of a chain's identity. All five names are already mirrored from
-#: `watchlist_chain` under `ai_infrastructure` with a placeholder layer; a spec
-#: declaring a second domain would leave one chain carrying two layers under two
-#: domains, and `chains(version, domain=...)` would answer with half of it.
-#: `OPTICAL_COMMUNICATION` can carry its own domain only because its spec name
-#: differs from the watchlist's (`Networking/Optical`), so it collides with
-#: nothing. `test_no_chain_carries_two_domains` is the guard.
+#: A SPEC'S `domain` MUST BE THE ONE THE MIRROR WRITES FOR ITS CHAIN NAME.
+#: `research_taxonomy_seed.CHAIN_DOMAIN` is the source of truth: it is what
+#: `mirror_watchlist_chain` stamps on every `watchlist_chain` name, and the seed
+#: script runs the mirror first and these specs second. `research_chains`'
+#: primary key is (taxonomy_version, chain, layer), so `domain` is a per-LAYER
+#: attribute and not part of a chain's identity — nothing in the schema stops a
+#: chain from carrying two. All five names are mirrored with a placeholder
+#: layer, so a spec declaring a domain the mirror did not use would leave one
+#: chain carrying two layers under two domains, and `chains(version, domain=...)`
+#: would answer with half of it. `OPTICAL_COMMUNICATION` is exempt only because
+#: its spec name (`Optical-Communication`) is not a `watchlist_chain` name (the
+#: watchlist spells it `Networking/Optical`): unmirrored, it collides with
+#: nothing and may declare any domain. `test_no_chain_carries_two_domains` and
+#: `test_every_datacenter_spec_declares_the_mirrored_domain` are the guards.
 DATACENTER_CHAINS: tuple[ChainSpec, ...] = (
     ChainSpec(
-        domain="ai_infrastructure",
+        domain="dc_buildout",
         chain="EPC/Construction",
         layers=(
             Layer(
@@ -386,26 +391,26 @@ DATACENTER_CHAINS: tuple[ChainSpec, ...] = (
         ),
     ),
     ChainSpec(
-        domain="ai_infrastructure",
+        domain="dc_buildout",
         chain="Generation/Nuclear",
         layers=(Layer("Generation", 20, "power generation and nuclear capacity"),),
     ),
     ChainSpec(
-        domain="ai_infrastructure",
+        domain="dc_buildout",
         chain="Power/Electrical",
         layers=(
             Layer("Power-Electrical", 30, "electrical distribution, switchgear, UPS"),
         ),
     ),
     ChainSpec(
-        domain="ai_infrastructure",
+        domain="dc_buildout",
         chain="Cooling/Thermal",
         layers=(
             Layer("Cooling-Thermal", 40, "liquid and air cooling, thermal management"),
         ),
     ),
     ChainSpec(
-        domain="ai_infrastructure",
+        domain="dc_buildout",
         chain="DC-REIT/Colo",
         layers=(
             Layer("DC-REIT-Colo", 50, "datacenter REITs and colocation operators"),
