@@ -72,7 +72,7 @@ function ImpliedMove({ row }: { row: DeskCalendarRow }) {
     >
       ±{(row.implied_move_pct * 100).toFixed(1)}%
       <span className="ml-1 text-[10px] text-zinc-600">
-        as of {row.implied_move_asof ?? "—"}
+        as of {row.implied_move_asof}
       </span>
     </span>
   );

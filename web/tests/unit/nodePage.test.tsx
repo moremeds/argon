@@ -241,6 +241,50 @@ function reportOk(): ReportResponse {
   } as unknown as ReportResponse;
 }
 
+/** Same report, but assembled without a `chain_exposure` block -- the shape
+ *  the coordinator's finding says every chain report on prod is in today
+ *  (zero chain reports exist), and the one of `aliasExposures`'s three
+ *  null-producing paths no test previously reached. */
+function reportOkWithoutExposureBlock(): ReportResponse {
+  return {
+    state: "ok",
+    versions: [
+      {
+        version_no: 1,
+        created_at: "2026-08-27T00:00:00Z",
+        status: "published",
+      },
+    ],
+    delta: {
+      is_first_version: true,
+      manifest: [],
+      added: [],
+      removed: [],
+      moved: [],
+      summary: "first version",
+    },
+    report: {
+      report_id: 2,
+      report_key: "chain:Networking/Optical",
+      report_type: "chain",
+      version_no: 1,
+      title: "Networking/Optical",
+      content_hash: "b".repeat(64),
+      status: "published",
+      created_at: "2026-08-27T00:00:00Z",
+      manifest: {
+        engine_version: "fundamentals-v2",
+        taxonomy_version: "taxonomy-v1",
+        evidence_policy: "exclude",
+        as_of: "2026-08-27",
+        assembler_version: "chain/1",
+        scope: { chain: "Networking/Optical" },
+      },
+      blocks: [],
+    },
+  } as unknown as ReportResponse;
+}
+
 // --- Route segment rejoin ---------------------------------------------------
 
 describe("chainFromSegments", () => {
@@ -285,6 +329,14 @@ describe("NodeCalendarStrip", () => {
     expect(within(cohr).queryByTestId("implied-move-not-covered")).toBeNull();
   });
 
+  it("renders the implied-move snapshot date beside a covered move", () => {
+    render(<NodeCalendarStrip data={CALENDAR} />);
+    const cohr = screen.getByTestId("calendar-row-COHR");
+    expect(within(cohr).getByTestId("implied-move").textContent).toMatch(
+      /as of 2026-08-27/,
+    );
+  });
+
   it("renders a visible unknown badge for a null session and keeps the row", () => {
     render(<NodeCalendarStrip data={CALENDAR} />);
     const poet = screen.getByTestId("calendar-row-POET");
@@ -312,6 +364,22 @@ describe("NodeCalendarStrip", () => {
     const cohr = screen.getByTestId("calendar-row-COHR");
     expect(within(cohr).getByTestId("reactions")).toBeTruthy();
     expect(within(cohr).queryByTestId("reactions-absent")).toBeNull();
+  });
+
+  it("draws a visible mark for a measured 0.0 reaction, not a zero-radius circle", () => {
+    // CALENDAR reactions are constructed shapes, per the file header -- there
+    // is no real reaction row to freeze at exactly 0.0 without migrations
+    // 144-146 applied locally. This 0 is added to the array for the sole
+    // purpose of exercising the radius floor.
+    const row = calRow({ ticker: "COHR", reactions: [0, -0.0177] });
+    render(<NodeCalendarStrip data={{ ...CALENDAR, rows: [row] }} />);
+    const svg = screen.getByTestId("reactions");
+    const circles = svg.querySelectorAll("circle");
+    expect(circles.length).toBe(2);
+    // A zero-radius circle still satisfies "the testid exists" -- the point
+    // of the floor is that it draws nothing, so the radius itself, not the
+    // element's presence, is what a removed floor would fail.
+    expect(Number(circles[0].getAttribute("r"))).toBeGreaterThanOrEqual(2);
   });
 
   it("reads an empty chain calendar as an empty node, not as an error", () => {
@@ -389,6 +457,14 @@ describe("NodeUnderwritingPanel", () => {
     expect(ranNothing).not.toBe(holdsNothing);
     expect(ranNothing).toMatch(/run/i);
     expect(holdsNothing).toMatch(/holds no statements/i);
+  });
+
+  it("does not render a stale_run figure as current", () => {
+    render(<NodeUnderwritingPanel rows={UNDERWRITING} />);
+    // CIEN carries state: "stale_run" in the fixture.
+    expect(screen.getByTestId("state-CIEN").textContent).toMatch(
+      /superseded engine version/i,
+    );
   });
 
   it("names a failed underwriting request instead of claiming the node is empty", () => {
@@ -557,6 +633,10 @@ describe("the node page", () => {
   it("replays the stored report and never assembles one", async () => {
     await renderPage();
     expect(screen.getByText(/replays from its stored blocks/i)).toBeTruthy();
+    // The caption text alone is a proxy a stub could carry without being
+    // ReportView. The content hash is derived from the fixture's actual
+    // report and is not something a caption-only substitute would emit.
+    expect(screen.getByText("a".repeat(16))).toBeTruthy();
     expect(assembleResearchReport).not.toHaveBeenCalled();
     expect(screen.queryByTestId("node-report-absent")).toBeNull();
   });
@@ -567,6 +647,41 @@ describe("the node page", () => {
       /61\.5%/,
     );
     expect(screen.queryByTestId("alias-no-report")).toBeNull();
+  });
+
+  it("says no published report backs the alias flags when the report holds no chain_exposure block", async () => {
+    // Only one of `aliasExposures`'s three null-producing paths was
+    // previously reached from the page: `state: "no_report"`. This is the
+    // one where a report exists but was assembled without the block -- the
+    // shape every chain report on prod is in today (zero chain reports
+    // exist there).
+    researchReport.mockResolvedValue(reportOkWithoutExposureBlock());
+    await renderPage();
+    expect(screen.getByTestId("alias-no-report")).toBeTruthy();
+    expect(
+      screen.queryByText(/carries no exposure row for this name/i),
+    ).toBeNull();
+  });
+
+  it("names a failed calendar request as a failure, not as an empty node", async () => {
+    // No page-level test previously made `deskCalendar` reject -- the
+    // component-level test injects `error` directly, which pins only the
+    // component's own rendering, not the page's wiring of it.
+    deskCalendar.mockRejectedValue(
+      new Error("API 503 for /fundamentals/ai-semi/node/calendar: down"),
+    );
+    await renderPage();
+    expect(screen.getByRole("alert").textContent).toMatch(/503/);
+    expect(screen.queryByTestId("node-calendar-empty")).toBeNull();
+  });
+
+  it("names a failed underwriting request as a failure, not as an empty node", async () => {
+    nodeUnderwriting.mockRejectedValue(
+      new Error("API 500 for /fundamentals/ai-semi/node/underwriting: down"),
+    );
+    await renderPage();
+    expect(screen.getByRole("alert").textContent).toMatch(/500/);
+    expect(screen.queryByTestId("node-underwriting-empty")).toBeNull();
   });
 
   it("says no published report backs the node, and still renders the node", async () => {
