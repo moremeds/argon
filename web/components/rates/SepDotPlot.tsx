@@ -1,9 +1,8 @@
-import { WIDE_FRAME } from "./chartGeometry";
+import { WIDE_FRAME } from "@/components/macro/chartGeometry";
 import styles from "./RatesDesk.module.css";
 import { finiteOrNull, toFiniteNumber } from "./format";
 import { plottable, priorReleases, releaseDate } from "./policyPath";
 import type { MacroPolicyPathPoint, PolicyPathSlot } from "./types";
-
 
 const {
   width: WIDTH,
@@ -181,8 +180,12 @@ export function SepDotPlot({
 
           {columns.map((column, index) => {
             const cx = xFor(index);
-            const lower = finiteOrNull(column.point.central_tendency_lower_percent);
-            const upper = finiteOrNull(column.point.central_tendency_upper_percent);
+            const lower = finiteOrNull(
+              column.point.central_tendency_lower_percent,
+            );
+            const upper = finiteOrNull(
+              column.point.central_tendency_upper_percent,
+            );
             const median = finiteOrNull(column.point.rate_percent);
             const half = colW * 0.36;
             return (
@@ -283,7 +286,9 @@ export function SepDotPlot({
 
       <p className={styles.pathProvenance}>
         {path.source} · released {releaseDate(path)}
-        {previous ? ` · dashed line is the ${releaseDate(previous)} median` : ""}
+        {previous
+          ? ` · dashed line is the ${releaseDate(previous)} median`
+          : ""}
       </p>
       {/* The dot plot is published without names. Attaching one -- the Chair's above
           all -- would invent a fact the FOMC deliberately does not publish. */}

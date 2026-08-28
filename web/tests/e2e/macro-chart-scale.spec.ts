@@ -8,7 +8,7 @@ import { expect, test } from "@playwright/test";
  * So effective type size is `font-size × (container_px ÷ viewBox_width)`. Call that ratio
  * k. The board this desk is ported from renders its SEP dot plot at k = 2.02 and its
  * central-bank strip at k = 0.63 — a 20px label beside a 6px one, on the same page, with
- * both files declaring 10. `components/rates/chartGeometry.ts` already solved this in
+ * both files declaring 10. `components/macro/chartGeometry.ts` already solved this in
  * argon by sizing each frame to the container it actually occupies; this gate is what
  * stops the answer from being lost during the port.
  *

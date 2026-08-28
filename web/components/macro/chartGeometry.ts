@@ -1,5 +1,5 @@
 /**
- * Shared frames for the hand-rolled SVG charts on the rates desk.
+ * Shared frames for the hand-rolled SVG charts across the macro desk's tabs.
  *
  * These are sized by `viewBox` and stretched to `width: 100%`, so the viewBox is not a
  * drawing detail -- it is the type scale. Everything inside scales by

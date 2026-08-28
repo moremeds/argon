@@ -1,9 +1,8 @@
-import { WIDE_FRAME, axisTicks } from "./chartGeometry";
+import { WIDE_FRAME, axisTicks } from "@/components/macro/chartGeometry";
 import styles from "./RatesDesk.module.css";
 import { finiteOrNull, toFiniteNumber } from "./format";
 import { plottable, priorReleases, releaseDate } from "./policyPath";
 import type { MacroPolicyPathPoint, PolicyPath, PolicyPathSlot } from "./types";
-
 
 const {
   width: WIDTH,
