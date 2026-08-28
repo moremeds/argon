@@ -10,10 +10,14 @@ import { EtfFlowCard } from "./EtfFlowCard";
 import { FxBasketCard } from "./FxBasketCard";
 import { GoldHoldingsVsPriceChart } from "./GoldHoldingsVsPriceChart";
 import { StructuralPostureText } from "./StructuralPostureText";
-import { UwSkewCard } from "./UwSkewCard";
 
 type S = components["schemas"]["GoldStructuralPostureModel"];
 
+/**
+ * Lens 1 — who is buying. The 25-delta skew tile left this grid on 2026-08-28 for
+ * `ExpressionCostPanel`: the five cards here answer WHO IS BUYING, and the skew answers
+ * WHAT IT COSTS TO TAKE THE VIEW. The board separates them and it was right to.
+ */
 export function StructuralPanel({ structural }: { structural: S }) {
   return (
     <div style={{ display: "flex", flexDirection: "column", gap: 16 }}>
@@ -74,7 +78,6 @@ export function StructuralPanel({ structural }: { structural: S }) {
         <EtfFlowCard structural={structural} />
         <ComexRegimeCard structural={structural} />
         <CotPositioningCard structural={structural} />
-        <UwSkewCard structural={structural} />
         <FxBasketCard structural={structural} />
       </div>
 

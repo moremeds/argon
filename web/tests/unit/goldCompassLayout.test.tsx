@@ -152,15 +152,90 @@ const FIXTURE: State = {
 };
 
 describe("GoldCompassLayout", () => {
-  it("renders the five tiers as discrete regions", () => {
+  it("renders every tier as a discrete region", () => {
     render(<GoldCompassLayout state={FIXTURE} />);
+    expect(screen.getByRole("region", { name: /transmission gauge/i })).toBeTruthy();
     expect(screen.getByRole("region", { name: /kpi/i })).toBeTruthy();
     expect(screen.getByRole("region", { name: /lens 1/i })).toBeTruthy();
+    expect(screen.getByRole("region", { name: /expression cost/i })).toBeTruthy();
     expect(screen.getByRole("region", { name: /lens 2/i })).toBeTruthy();
     expect(screen.getByRole("region", { name: /lens 3/i })).toBeTruthy();
     expect(
       screen.getByRole("region", { name: /correlation history/i }),
     ).toBeTruthy();
+  });
+
+  it("opens the tab on the gauge that governs how to read the rest", () => {
+    // The conformance audit found this tab content-complete and wrongly framed: the
+    // gauge decides whether the cyclical lens means anything, and it was one tile in a
+    // five-tile strip. The board opens the tab on it, so document order is the assertion.
+    const { container } = render(<GoldCompassLayout state={FIXTURE} />);
+    const regions = [...container.querySelectorAll("section[role='region']")].map(
+      (el) => el.getAttribute("aria-label"),
+    );
+    expect(regions[0]).toMatch(/transmission gauge/i);
+    expect(regions.indexOf("Expression cost")).toBeGreaterThan(
+      regions.indexOf("Lens 1 structural flow"),
+    );
+  });
+
+  it("gives every gold section a board question", () => {
+    // The board's acceptance test, carried onto a subtree that does not use BoardPanel:
+    // "every panel must answer at least one, or it gets deleted".
+    const { container } = render(<GoldCompassLayout state={FIXTURE} />);
+    for (const section of container.querySelectorAll("section[role='region']")) {
+      expect(section.getAttribute("data-questions")).toMatch(
+        /^Q[1-7]( Q[1-7])*$/,
+      );
+    }
+  });
+
+  it("reads the gauge as a term structure rather than a level", () => {
+    // The fixture's four windows sit within 0.27 of each other, so this is the
+    // agreement branch. A hardcoded "collapsed" sentence would be wrong here, which is
+    // the point: the read is derived from the numbers, never restated from the board.
+    render(<GoldCompassLayout state={FIXTURE} />);
+    const read = screen.getByTestId("gold-gauge-read").textContent ?? "";
+    expect(read).toMatch(/agree to within/i);
+    expect(read).not.toMatch(/collapsed/i);
+    // The regime still governs the page, and says so.
+    expect(read).toMatch(/informative only/i);
+  });
+
+  it("says 'collapsed' when the near and wide windows actually diverge", () => {
+    const collapsing: State = {
+      ...FIXTURE,
+      gauge: { ...FIXTURE.gauge, corr_60d: "-0.85", corr_504d: "-0.02" },
+    };
+    render(<GoldCompassLayout state={collapsing} />);
+    expect(screen.getByTestId("gold-gauge-read").textContent).toMatch(
+      /collapsed on the 504D/i,
+    );
+  });
+
+  it("prints the skew at two decimals, not at storage precision", () => {
+    // It rendered `-0.0700630226186208σ` in production: a full-precision decimal string
+    // interpolated against a sigma suffix, claiming sixteen figures of measurement.
+    const precise: State = {
+      ...FIXTURE,
+      structural: {
+        ...FIXTURE.structural,
+        uw_25d_skew_sigma: "-0.0700630226186208",
+      },
+    };
+    render(<GoldCompassLayout state={precise} />);
+    const panel = screen.getByRole("region", { name: /expression cost/i });
+    expect(panel.textContent).toContain("-0.07\u03c3");
+    expect(panel.textContent).not.toContain("0700630226186208");
+  });
+
+  it("names the correlation window it has, and the one the board asked for", () => {
+    // The producer computes the history at window=252 only. Silently showing it under a
+    // heading the board wrote for a 60-day series would be the wrong kind of fidelity.
+    render(<GoldCompassLayout state={FIXTURE} />);
+    expect(
+      screen.getByTestId("correlation-history-window-note").textContent,
+    ).toMatch(/60-day correlation/i);
   });
 
   it("renders GOLD COMPASS wordmark", () => {

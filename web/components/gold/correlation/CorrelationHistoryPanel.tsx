@@ -53,6 +53,24 @@ export function CorrelationHistoryPanel({ history }: { history: History }) {
         width={CHART_WIDTH}
         height={CHART_HEIGHT}
       />
+      <p
+        data-testid="correlation-history-window-note"
+        style={{
+          margin: 0,
+          fontSize: 11,
+          lineHeight: 1.6,
+          color: "var(--text-muted, #6b7280)",
+          maxWidth: 900,
+        }}
+      >
+        The board asks this chart for the gauge&rsquo;s 60-day correlation,
+        daily — the cut that shows an anchor decaying rather than an average
+        holding. The producer computes the history at a 252-day window only (
+        <code>gold_posture.py</code>, <code>window=252</code>), so the shorter
+        series does not exist to plot. The heading says which window this is
+        rather than the one that was asked for, and the 60-day level sits in the
+        transmission gauge above.
+      </p>
     </div>
   );
 }
