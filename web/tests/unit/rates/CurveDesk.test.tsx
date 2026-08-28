@@ -65,9 +65,17 @@ describe("CurveDesk", () => {
       expect(screen.getByRole("heading", { name: tier })).toBeTruthy();
     }
 
-    // `/rates` 308s to this tab, so this tab keeps the old page's title lockup.
-    expect(screen.getByText("US Rates Factor Desk")).toBeTruthy();
-    expect(screen.getByText("Treasury Factor Board")).toBeTruthy();
+    // The board's t2 heading. `/rates` 308s here, which used to be the argument for
+    // keeping the old "US Rates Factor Desk" lockup; the board opens t2 with `Rates ·
+    // Curve` and nothing above it, and the old name survives on `DeskEmptyState`, which
+    // is what an inbound link actually reaches when there is no snapshot.
+    expect(
+      screen.getByRole("heading", { name: "Rates · Curve", level: 2 }),
+    ).toBeTruthy();
+    expect(screen.queryByText("Treasury Factor Board")).toBeNull();
+    // No state pill on this tab — the board gives t2 none, because the policy/rates
+    // state belongs to, and is already shown on, tab 01.
+    expect(screen.queryByTestId("rates-desk-state-pill")).toBeNull();
     expect(
       screen.getByText(/Snapshot update · .* HKT · FRED as of 2026-05-20/),
     ).toBeTruthy();

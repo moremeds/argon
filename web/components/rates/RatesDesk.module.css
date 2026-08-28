@@ -1,40 +1,29 @@
+/* `.page` is full-bleed background only; the element also carries `board`, whose
+   max-width/padding own the column. Keeping its own 24px padding here would inset the
+   board wrapper inside it and put tabs 01/02 on a different measure from 03-05. */
 .page {
   min-height: 100vh;
   background: var(--bg-base);
   color: var(--text-primary);
   font-family: var(--font-sans), Inter, system-ui, sans-serif;
-  padding: 24px;
+  padding: 0;
   scroll-behavior: smooth;
 }
 
+/* Not sticky any more. It was, back when it carried a compact lockup and a jump-nav;
+   it now opens with the board's title, tag strip, state pill and a standfirst, and
+   sticking that to the top would pin a paragraph over the content it introduces —
+   under a tab bar that is already sticky. The board's tabs have no sticky header. */
 .header {
-  position: sticky;
-  top: 0;
-  z-index: 10;
   display: grid;
   gap: 10px;
-  padding: 14px 0 10px;
-  margin: 0 auto 18px;
-  max-width: 1440px;
-  background: var(--bg-base);
-  border-bottom: 1px solid var(--border-dim);
+  padding: 0 0 10px;
+  margin: 0 0 18px;
 }
 
-.headerTop {
-  display: flex;
-  align-items: baseline;
-  justify-content: space-between;
-  gap: 24px;
-}
+/* `.headerTop`, `.titleLockup` and the `.header h1` family went with the page lockup —
+   the header now renders the board's `.sec-title`, styled by `app/macro/board.css`. */
 
-.titleLockup {
-  display: flex;
-  align-items: baseline;
-  gap: 14px;
-  min-width: 0;
-}
-
-.header h1,
 .section h2,
 .emptyState h1 {
   margin: 0;
@@ -43,36 +32,16 @@
   letter-spacing: 0;
 }
 
-/* Matches the house page header (`.regime-page-header h1` in globals.css):
-   mono, 18px, 600, uppercase, 0.05em. This desk had grown its own 26px/700
-   lockup with a 0.18em wide-tracked subtitle, so /rates announced itself twice
-   as loudly as every other page in the sidebar. */
-.header h1 {
-  font-family: var(--font-mono), "IBM Plex Mono", monospace;
-  font-size: 18px;
-  font-weight: 600;
-  letter-spacing: 0.05em;
-  text-transform: uppercase;
-  line-height: 1.2;
-  white-space: nowrap;
-}
-
-.header h1 span {
-  color: var(--positive);
-}
-
-.titleLockup p,
+/* The snapshot provenance stamp, now riding on the board's `.sec-title` row. It keeps
+   the mono/muted treatment of the board's `.prov` and is pushed to the far end of the
+   flex row so the title, tags and pill group at the left. */
 .headerMeta {
-  margin: 0;
+  margin: 0 0 0 auto;
   color: var(--text-muted);
   font-family: var(--font-mono), "IBM Plex Mono", monospace;
-  font-size: 11px;
+  font-size: 10.5px;
   font-weight: 400;
   letter-spacing: 0.04em;
-}
-
-.headerMeta {
-  color: var(--text-muted);
   text-align: right;
   white-space: nowrap;
 }
@@ -90,18 +59,26 @@
   font-family: var(--font-mono), "IBM Plex Mono", monospace;
 }
 
+/* The board's `.sec-sub`: muted rather than secondary, 12.5px, and capped at 72ch so a
+   section's standfirst wraps like prose instead of running the full 1240px. */
 .subhead {
-  margin: 8px 0 0;
-  color: var(--text-secondary);
-  font-size: 12px;
+  margin: 6px 0 0;
+  color: var(--text-muted);
+  font-size: 12.5px;
+  line-height: 1.55;
+  max-width: 72ch;
 }
 
+/* The board's `.panel-h h3`: 10px mono, 1.5px tracked, muted. This was 11px in
+   `--positive`, which made every eyebrow on the tab louder than the heading under it —
+   the board reserves teal for the read rail and the confidence result, not for labels. */
 .eyebrow {
   margin: 0 0 6px;
-  color: var(--positive);
-  font-size: 11px;
+  color: var(--text-muted);
+  font-size: 10px;
+  font-weight: 600;
   text-transform: uppercase;
-  letter-spacing: 1px;
+  letter-spacing: 1.5px;
 }
 
 .nav {
@@ -146,13 +123,22 @@
   color: var(--accent-text);
 }
 
+/* A SECTION IS NOT A BOX.
+ *
+ * The board (docs/superpowers/specs/2026-08-27-macro-desk-board.html) puts exactly one
+ * level of boxing on a tab: the surface is flat, `.panel` is the only thing with a
+ * background and a border, and sections are separated by their heading and whitespace
+ * alone. This desk had `.section` carrying `bg-panel` + `border-dim` and then filling
+ * itself with `.slopeCard` / `.policyCard` / `.kpiTile`, each boxed again — a card inside
+ * a card, one level of chrome the board never draws. That nesting is most of why tabs 01
+ * and 02 read as a different product from tabs 03-05 even where their panels agree.
+ *
+ * Width matches the board's `.board` wrapper (1240px) rather than the old 1440px, so a
+ * reader moving between tabs does not watch the column jump.
+ */
 .section {
-  max-width: 1440px;
-  margin: 0 auto 18px;
-  padding: 20px;
-  background: var(--bg-panel);
-  border: 1px solid var(--border-dim);
-  border-radius: 4px;
+  margin: 0 0 26px;
+  padding: 0;
   scroll-margin-top: 104px;
 }
 
@@ -161,24 +147,32 @@
   justify-content: space-between;
   gap: 16px;
   align-items: flex-start;
-  margin-bottom: 16px;
+  margin-bottom: 12px;
 }
 
+/* The board's `.sec-title h2`: 17px/700/.2px. Was 22px. */
 .section h2 {
-  font-size: 22px;
+  font-size: 17px;
+  letter-spacing: 0.2px;
 }
 
+/* The board's `.state` pill. The rgba() literals were the dark theme's `--positive`
+   frozen as numbers, so they stayed teal-on-dark under the light theme; color-mix keeps
+   the same dark rendering and follows the token on the other ground — the same swap
+   board.css records for its own overlays. */
 .statusPill,
 .stance {
   display: inline-flex;
   align-items: center;
-  min-height: 26px;
-  padding: 0 10px;
-  border: 1px solid rgba(5, 173, 152, 0.32);
+  gap: 7px;
+  padding: 4px 10px;
+  border: 1px solid color-mix(in srgb, var(--positive) 38%, transparent);
   border-radius: 3px;
-  background: rgba(5, 173, 152, 0.08);
+  background: color-mix(in srgb, var(--positive) 12%, transparent);
   color: var(--positive);
-  font-size: 11px;
+  font-size: 12px;
+  font-weight: 600;
+  letter-spacing: 0.03em;
   text-transform: uppercase;
   white-space: nowrap;
 }
@@ -192,24 +186,32 @@
 
 .kpiTile {
   border: 1px solid var(--border-dim);
-  border-radius: 4px;
-  padding: 14px;
+  border-radius: 6px;
+  padding: 14px 16px;
   background: var(--bg-panel);
 }
 
+/* Board `.panel-h h3` — the same 10px/1.5px mono label the gold `Tile` already uses and
+   web/CLAUDE.md calls the house canonical. This tile was the one place on the desk that
+   spelled it 11px with no tracking. */
 .kpiTile span,
 .kpiTile small {
   display: block;
   color: var(--text-muted);
-  font-size: 11px;
+  font-size: 10px;
+  font-weight: 600;
+  letter-spacing: 1.5px;
   text-transform: uppercase;
 }
 
+/* Board `.big`. */
 .kpiTile strong {
   display: block;
   margin: 7px 0;
   color: var(--text-primary);
-  font-size: 24px;
+  font-size: 22px;
+  font-weight: 700;
+  line-height: 1.1;
   letter-spacing: 0;
 }
 
@@ -233,7 +235,7 @@
 .tableWrap {
   min-width: 0;
   border: 1px solid var(--border-dim);
-  border-radius: 4px;
+  border-radius: 6px;
   overflow: hidden;
   background: var(--bg-panel);
 }
@@ -250,13 +252,17 @@
   align-items: center;
   padding: 14px 16px 0;
   font-family: var(--font-mono), "IBM Plex Mono", monospace;
-  font-size: 12px;
+  font-size: 10px;
   text-transform: uppercase;
 }
 
+/* Board `.panel-h h3` — a chart's title is a panel heading, so it is muted and tracked
+   like every other one rather than primary at 12px. */
 .chartHeader strong {
-  color: var(--text-primary);
-  letter-spacing: 0.5px;
+  color: var(--text-muted);
+  font-size: 10px;
+  font-weight: 600;
+  letter-spacing: 1.5px;
 }
 
 .chartLegend {
@@ -343,8 +349,9 @@
 
 .curveTable th,
 .curveTable td {
-  padding: 10px 12px;
-  border-bottom: 1px solid var(--border-dim);
+  padding: 7px 10px;
+  border-bottom: 1px solid
+    color-mix(in srgb, var(--border-dim) 60%, transparent);
   text-align: right;
 }
 
@@ -384,39 +391,49 @@
   margin-top: 12px;
 }
 
+/* The board's `.panel`: 6px radius, 14px 16px. Now that `.section` no longer boxes them,
+   these ARE the tab's panels and carry the board's panel chrome. */
 .slopeCard,
 .notePanel,
 .sourceRow {
   border: 1px solid var(--border-dim);
-  border-radius: 4px;
+  border-radius: 6px;
   background: var(--bg-panel);
-  padding: 12px;
+  padding: 14px 16px;
 }
 
 .slopeCard {
   min-height: 112px;
 }
 
+/* Board `.panel-h h3`, `.big`, `.read` — in that order, on the three parts of a card. */
 .slopeCard span {
   display: block;
   color: var(--text-muted);
   font-family: var(--font-mono), "IBM Plex Mono", monospace;
-  font-size: 11px;
+  font-size: 10px;
+  font-weight: 600;
+  letter-spacing: 1.5px;
   text-transform: uppercase;
 }
 
 .slopeCard strong {
   display: block;
-  margin-top: 12px;
+  margin-top: 10px;
   color: var(--text-primary);
-  font-size: 28px;
+  font-family: var(--font-mono), "IBM Plex Mono", monospace;
+  font-size: 22px;
+  font-weight: 700;
+  line-height: 1.1;
 }
 
 .slopeCard p {
   margin: 12px 0 0;
   color: var(--text-secondary);
-  font-size: 13px;
-  line-height: 1.45;
+  border-left: 2px solid #048a7a;
+  padding-left: 9px;
+  font-size: 12.5px;
+  line-height: 1.5;
 }
 
 .decompStack {
@@ -431,9 +448,9 @@
 .decompSources {
   min-width: 0;
   border: 1px solid var(--border-dim);
-  border-radius: 4px;
+  border-radius: 6px;
   background: var(--bg-panel);
-  padding: 18px;
+  padding: 14px 16px;
 }
 
 .decompFormulaTop,
@@ -549,12 +566,15 @@
   min-width: 12px;
 }
 
+/* Board `.read`. The weight came off with the rail: the board makes an interpretive
+   paragraph findable by its 2px accent edge, not by setting the prose semi-bold. */
 .decompRead {
   margin: 18px 0 0;
   color: var(--text-secondary);
-  font-size: 13px;
-  font-weight: 600;
-  line-height: 1.55;
+  border-left: 2px solid #048a7a;
+  padding-left: 9px;
+  font-size: 12.5px;
+  line-height: 1.5;
 }
 
 .ratesReadGrid {
@@ -657,8 +677,9 @@
 
 .decompMoveTable th,
 .decompMoveTable td {
-  padding: 11px 12px;
-  border-bottom: 1px solid var(--border-dim);
+  padding: 7px 10px;
+  border-bottom: 1px solid
+    color-mix(in srgb, var(--border-dim) 60%, transparent);
   text-align: right;
 }
 
@@ -669,7 +690,9 @@
 
 .decompMoveTable thead th {
   color: var(--text-muted);
-  font-size: 11px;
+  font-size: 10px;
+  font-weight: 500;
+  letter-spacing: 1.2px;
   text-transform: uppercase;
 }
 
@@ -866,6 +889,33 @@
   color: var(--text-secondary);
 }
 
+/* Board `.note-refuse`. The board draws a refusal with a DASHED border, deliberately:
+   a solid panel reads as another finding, and the one thing a refusal must not look like
+   is a result. `.notePanel` serves both refusals and empty states here, so only the two
+   `id="refuses"` sections take this variant — an unwired feed is not a refusal, it is a
+   gap, and the board does not dress the two alike. */
+.noteRefuse {
+  border-style: dashed;
+  border-radius: 5px;
+  padding: 11px 13px;
+  background: none;
+  font-size: 12.5px;
+  color: var(--text-muted);
+  line-height: 1.55;
+}
+
+.noteRefuse p {
+  color: var(--text-muted);
+}
+
+.noteRefuse strong {
+  color: var(--warning);
+  font-family: var(--font-mono), "IBM Plex Mono", monospace;
+  font-size: 10.5px;
+  letter-spacing: 0.07em;
+  text-transform: uppercase;
+}
+
 .policyGrid {
   display: grid;
   grid-template-columns: repeat(3, minmax(260px, 1fr));
@@ -880,9 +930,9 @@
   min-height: 360px;
   flex-direction: column;
   border: 1px solid var(--border-dim);
-  border-radius: 4px;
+  border-radius: 6px;
   background: var(--bg-panel);
-  padding: 18px;
+  padding: 14px 16px;
 }
 
 .policyCardTop {
@@ -893,11 +943,15 @@
   margin-bottom: 18px;
 }
 
+/* Board `.panel-h h3`. Each policy lane IS a panel, so its title is a panel heading. */
 .policyCardTop h3 {
   margin: 0;
-  color: var(--text-primary);
-  font-size: 16px;
-  letter-spacing: 0;
+  color: var(--text-muted);
+  font-family: var(--font-mono), "IBM Plex Mono", monospace;
+  font-size: 10px;
+  font-weight: 600;
+  letter-spacing: 1.5px;
+  text-transform: uppercase;
 }
 
 .policyCardTop span,
@@ -1014,12 +1068,14 @@
   text-transform: uppercase;
 }
 
+/* Board `.read`, pinned to the bottom of the card by the existing `margin: auto 0 0`. */
 .policyCard p {
   margin: auto 0 0;
-  padding-top: 18px;
+  padding-top: 14px;
   color: var(--text-secondary);
-  font-size: 13px;
-  font-weight: 650;
+  border-left: 2px solid #048a7a;
+  padding-left: 9px;
+  font-size: 12.5px;
   line-height: 1.5;
 }
 
@@ -1035,9 +1091,9 @@
   gap: 14px;
   min-width: 0;
   border: 1px solid var(--border-dim);
-  border-radius: 4px;
+  border-radius: 6px;
   background: var(--bg-panel);
-  padding: 18px;
+  padding: 14px 16px;
 }
 
 .supplyTableWrap {
@@ -1054,15 +1110,22 @@
   table-layout: fixed;
 }
 
+/* Board `td`: 7px 10px, a 60%-mixed rule so the grid recedes behind the numbers, and
+   normal weight. `font-weight: 800` on every cell was the table shouting its whole
+   contents; the board gives emphasis to the first column only, via colour. */
 .supplyTable th,
 .supplyTable td {
-  padding: 12px 10px;
-  border-bottom: 1px solid var(--border-dim);
-  color: var(--text-primary);
-  font-size: 13px;
-  font-weight: 800;
+  padding: 7px 10px;
+  border-bottom: 1px solid
+    color-mix(in srgb, var(--border-dim) 60%, transparent);
+  color: var(--text-secondary);
+  font-size: 12.5px;
   text-align: right;
   white-space: nowrap;
+}
+
+.supplyTable td:first-child {
+  color: var(--text-primary);
 }
 
 .supplyTable th:nth-child(1),
@@ -1083,8 +1146,9 @@
 
 .supplyTable th {
   color: var(--text-muted);
-  font-size: 11px;
-  letter-spacing: 0.12em;
+  font-size: 10px;
+  font-weight: 500;
+  letter-spacing: 1.2px;
   text-transform: uppercase;
 }
 
@@ -1131,23 +1195,30 @@
 
 .positioningTable th,
 .positioningTable td {
-  padding: 12px 14px;
-  border-bottom: 1px solid var(--border-dim);
+  padding: 7px 10px;
+  border-bottom: 1px solid
+    color-mix(in srgb, var(--border-dim) 60%, transparent);
   text-align: right;
   white-space: nowrap;
 }
 
+/* Board `th`: 10px, 1.2px tracked, weight 500. */
 .positioningTable th {
   color: var(--text-muted);
-  font-size: 11px;
-  letter-spacing: 0.12em;
+  font-size: 10px;
+  font-weight: 500;
+  letter-spacing: 1.2px;
   text-transform: uppercase;
 }
 
+/* Board `td` / `td:first-child` — the row's identity is primary, its numbers secondary. */
 .positioningTable td {
+  color: var(--text-secondary);
+  font-size: 12.5px;
+}
+
+.positioningTable td:first-child {
   color: var(--text-primary);
-  font-size: 13px;
-  font-weight: 800;
 }
 
 .positioningTable th:first-child,
@@ -1167,11 +1238,13 @@
   font-weight: 700;
 }
 
+/* Board `.read`. */
 .positioningRead {
   margin: 0;
   color: var(--text-secondary);
-  font-size: 13px;
-  font-weight: 650;
+  border-left: 2px solid #048a7a;
+  padding-left: 9px;
+  font-size: 12.5px;
   line-height: 1.5;
 }
 
@@ -1288,9 +1361,13 @@
   gap: 6px;
 }
 
+/* Board `.big` — 22px. The desk had this at 30px, which made the state label the largest
+   thing on any tab and half again the size of the same claim on tabs 03/04. */
 .stateHeadline strong {
   font-family: var(--font-mono), "IBM Plex Mono", monospace;
-  font-size: 30px;
+  font-size: 22px;
+  font-weight: 700;
+  line-height: 1.1;
   letter-spacing: 0.5px;
   color: var(--text-primary);
 }
@@ -1342,14 +1419,21 @@
 
 .statePanel {
   border: 1px solid var(--border-dim);
-  border-radius: 4px;
-  padding: 14px;
+  border-radius: 6px;
+  padding: 14px 16px;
 }
 
+/* Board `.panel-h h3`. This was the exact divergence the tabs 03/04 rebuild fixed —
+   13px sans in `--text-secondary` where the board specifies 10px mono uppercase, 1.5px
+   tracked, muted — surviving here because the rates subtree was never in that diff. */
 .statePanel h3 {
-  font-size: 13px;
+  font-family: var(--font-mono), "IBM Plex Mono", monospace;
+  font-size: 10px;
+  font-weight: 600;
+  letter-spacing: 1.5px;
+  text-transform: uppercase;
   margin: 0 0 10px;
-  color: var(--text-secondary);
+  color: var(--text-muted);
 }
 
 .stateRows {
@@ -1477,9 +1561,9 @@
 .pathLane {
   display: grid;
   gap: 8px;
-  padding: 14px;
+  padding: 14px 16px;
   border: 1px solid var(--border-dim);
-  border-radius: 4px;
+  border-radius: 6px;
 }
 
 .pathLane[data-path-status="unavailable"],
@@ -1494,9 +1578,16 @@
   gap: 10px;
 }
 
+/* Board `.panel-h h3` — each policy lane is a panel and its title is a panel heading.
+   This is the last 14px sans heading on the tab. */
 .pathLaneTop h3 {
-  font-size: 14px;
   margin: 0;
+  color: var(--text-muted);
+  font-family: var(--font-mono), "IBM Plex Mono", monospace;
+  font-size: 10px;
+  font-weight: 600;
+  letter-spacing: 1.5px;
+  text-transform: uppercase;
 }
 
 .pathQuestion,
@@ -1713,28 +1804,35 @@
 
 /* Tier bands. The desk is read top-down as answer -> publishers -> market ->
    mechanics -> provenance, and these are the only headings that say so. */
+/* The rule is gone. The board separates groups with whitespace and a heading and draws
+   no divider at all — a hairline running the full column width was the loudest line on
+   the tab, above content that is itself bounded by panel borders. */
 .tier {
-  margin: 34px 0 -6px;
-  padding-bottom: 8px;
-  border-bottom: 1px solid var(--border-dim);
+  margin: 34px 0 14px;
+  padding-bottom: 0;
 }
 
 .tier:first-of-type {
   margin-top: 12px;
 }
 
+/* Board `.panel-h h3` + `.sec-sub`. The title was 13px/2.5px in `--positive`; the board
+   keeps teal for the read rail and the confidence result and sets every label muted. */
 .tierTitle {
   margin: 0;
   font-family: var(--font-mono), "IBM Plex Mono", monospace;
-  font-size: 13px;
-  letter-spacing: 2.5px;
+  font-size: 10px;
+  font-weight: 600;
+  letter-spacing: 1.5px;
   text-transform: uppercase;
-  color: var(--positive);
+  color: var(--text-muted);
 }
 
 .tierLede {
   margin: 4px 0 0;
-  font-size: 12px;
+  font-size: 12.5px;
+  line-height: 1.55;
+  max-width: 72ch;
   color: var(--text-muted);
 }
 

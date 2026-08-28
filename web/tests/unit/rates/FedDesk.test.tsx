@@ -54,11 +54,38 @@ describe("FedDesk", () => {
       expect(screen.getByRole("heading", { name: tier })).toBeTruthy();
     }
 
-    expect(screen.getByText("Fed Policy Desk")).toBeTruthy();
-    expect(screen.getByText("Policy paths and plumbing")).toBeTruthy();
+    // The board's own t1 heading, replacing the "Fed Policy Desk." page lockup: the tab
+    // bar one line above already says these words, and the board's tabs open with an
+    // `<h2>` + question strip + state pill, not a second page title.
+    expect(
+      screen.getByRole("heading", { name: "Fed · Policy", level: 2 }),
+    ).toBeTruthy();
+    for (const q of ["Q1", "Q2", "Q3", "Q5", "Q7"]) {
+      expect(screen.getByText(q)).toBeTruthy();
+    }
     expect(
       screen.getByText(/Snapshot update · .* HKT · FRED as of 2026-05-20/),
     ).toBeTruthy();
+  });
+
+  it("shows the tab's state on the board's pill, in both of its states", () => {
+    // The board puts a state pill on t1's title row. It is three-state for the same
+    // reason the domain tabs' is: a state that was never computed is a different fact
+    // from one this desk simply is not showing, and an absent answer must never be able
+    // to look like an answer — so the empty pill stays neutral and says so in words.
+    const { unmount } = render(<FedDesk snapshot={SNAPSHOT} />);
+    const empty = screen.getByTestId("rates-desk-state-pill");
+    expect(empty.textContent).toContain("the engine has not run");
+    expect(empty.className).toContain("neust");
+    unmount();
+
+    render(<FedDesk snapshot={{ ...SNAPSHOT, state: POLICY_RATES_STATE }} />);
+    const filled = screen.getByTestId("rates-desk-state-pill");
+    // The board's own format: LABEL · DIRECTION · conf N.NN.
+    expect(filled.textContent).toBe("ON_HOLD · FLAT · conf 0.62");
+    // ON_HOLD is not a verdict, so it is not coloured. Only the two labels that name
+    // their own distance from a target are.
+    expect(filled.className).toContain("neust");
   });
 
   it("renders futures move probabilities and low ON RRP in trillions", () => {
@@ -83,7 +110,9 @@ describe("FedDesk", () => {
     // with the page.
     render(<FedDesk snapshot={SNAPSHOT} />);
 
-    const refuses = screen.getByRole("region", { name: /what this tab refuses/i });
+    const refuses = screen.getByRole("region", {
+      name: /what this tab refuses/i,
+    });
     expect(refuses.textContent).toMatch(/No averaging of the four paths/i);
     expect(refuses.textContent).toMatch(/dots stay anonymous/i);
     expect(refuses.textContent).toMatch(/short column is printed short/i);

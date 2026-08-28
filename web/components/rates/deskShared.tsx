@@ -1,3 +1,18 @@
+import type { ReactNode } from "react";
+
+// The one import that crosses from `components/rates` into `components/macro`, and it
+// crosses in the permitted direction. §7's rule is one-way — macro must never import
+// rates — and its remedy for a primitive two subtrees need is exactly this: LIFT it into
+// `components/macro`, which is where the board's grammar already lives (`app/macro/
+// board.css` + `domain/BoardPanel.tsx`). The alternative was a second copy of the section
+// title and the state pill, which is how tabs 01/02 came to look nothing like 03/04 in
+// the first place.
+import {
+  BoardSecTitle,
+  BoardStatePill,
+  type BoardQuestions,
+} from "../macro/domain/BoardPanel";
+
 import styles from "./RatesDesk.module.css";
 import { RatesSection } from "./RatesSection";
 import { fmtSigned, fmtValue, statusLabel } from "./format";
@@ -150,36 +165,65 @@ export function Tile({ tile }: { tile: SummaryTile }) {
 }
 
 /**
- * The desk header: title lockup, snapshot provenance line, and the tier nav.
+ * The desk header, in the board's grammar: `.sec-title` + `.sec-sub`, then the tier nav.
+ *
+ * This was a page lockup — an 18px mono uppercase "FED POLICY DESK." with a subtitle
+ * beside it and the snapshot line opposite. The board has no such thing: its tabs open
+ * with an `<h2>`, the question strip, a state pill where the tab has a state, and a
+ * standfirst. The lockup also said the same words as the tab bar directly above it, so
+ * the desk announced each tab twice, in two different typefaces.
  *
  * The nav is built from the caller's `NAV` rather than a shared list, so each tab
  * anchors only into its own sections.
  */
 export function DeskHeader({
   title,
-  subtitle,
+  questions,
+  standfirst,
   snapshot,
   nav,
   navLabel,
+  showState = false,
 }: {
+  /** The board's own `<h2>` text for this tab — "Fed · Policy", "Rates · Curve". */
   title: string;
-  subtitle: string;
+  questions: BoardQuestions;
+  /** The board's `.sec-sub` standfirst. */
+  standfirst: ReactNode;
   snapshot: Snapshot;
   nav: readonly NavGroup[];
   navLabel: string;
+  /** The board gives t1 a state pill on its title row and t2 none, because t2's tab is
+   *  the market's side and has no state of its own to summarise. */
+  showState?: boolean;
 }) {
   return (
     <header className={styles.header}>
-      <div className={styles.headerTop}>
-        <div className={styles.titleLockup}>
-          <h1>
-            {title}
-            <span>.</span>
-          </h1>
-          <p>{subtitle}</p>
-        </div>
-        <p className={styles.headerMeta}>{snapshotMeta(snapshot)}</p>
-      </div>
+      <BoardSecTitle
+        title={title}
+        questions={questions}
+        aside={
+          <>
+            {showState ? (
+              <BoardStatePill
+                facts={snapshot.state}
+                testId="rates-desk-state-pill"
+                absent="no policy/rates state — the engine has not run for this instant"
+              />
+            ) : null}
+            <span className={styles.headerMeta}>{snapshotMeta(snapshot)}</span>
+          </>
+        }
+      >
+        {standfirst}
+      </BoardSecTitle>
+      {/* RECORDED DEVIATION from the board, and the only one on this header.
+          The board's t1 is eight panels and its t2 is nine; this tab is eighteen sections
+          across four tiers, because the /rates page it was merged from was never
+          compressed to the board's panel count. A jump-nav is not something the board
+          draws — but the board never has a tab long enough to need one, so removing it
+          would be conforming to a design decision the board did not actually make about
+          a tab this size. It goes when the sections do. */}
       <nav className={styles.nav} aria-label={navLabel}>
         {nav.map((group) => (
           <span key={group.id} className={styles.navGroup}>
@@ -213,16 +257,18 @@ export function DeskEmptyState({
   const hasError = Boolean(errorMessage);
   return (
     <div className={styles.page}>
-      <div className={styles.emptyState}>
-        <p className={styles.eyebrow}>{eyebrow}</p>
-        <h1>
-          {hasError ? "Rates API unavailable" : "Rates snapshot not computed"}
-        </h1>
-        <p>
-          {hasError
-            ? errorMessage
-            : "Run the live FRED backfill or wait for the scheduled worker refresh."}
-        </p>
+      <div className="board">
+        <div className={styles.emptyState}>
+          <p className={styles.eyebrow}>{eyebrow}</p>
+          <h1>
+            {hasError ? "Rates API unavailable" : "Rates snapshot not computed"}
+          </h1>
+          <p>
+            {hasError
+              ? errorMessage
+              : "Run the live FRED backfill or wait for the scheduled worker refresh."}
+          </p>
+        </div>
       </div>
     </div>
   );

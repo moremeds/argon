@@ -29,9 +29,13 @@ import type {
  * it, and the positioning and cross-market plumbing that stands beside it. The Fed's own
  * state and the four published policy paths live on tab 01, `FedDesk`.
  *
- * `/rates` 308s here rather than to tab 01 (`next.config.mjs`), so this tab keeps the old
- * page's title lockup: an inbound link that said "US Rates Factor Desk" should land
- * somewhere that still says it.
+ * `/rates` 308s here rather than to tab 01 (`next.config.mjs`). That used to be the reason
+ * this tab kept the old page's "US Rates Factor Desk" lockup — an inbound link should land
+ * somewhere that still says its name. The board settled it the other way on 2026-08-28:
+ * its t2 opens with `Rates · Curve` and nothing above it, and the tab bar one line up
+ * already says the same words, so the lockup was the page announcing itself twice. The
+ * old name survives where it is still load-bearing: `DeskEmptyState`'s eyebrow, which is
+ * what an inbound link reaches when there is no snapshot to show.
  */
 const NAV: readonly NavGroup[] = [
   {
@@ -144,130 +148,147 @@ export function CurveDesk({
 
   return (
     <div className={styles.page}>
-      <DeskHeader
-        title="US Rates Factor Desk"
-        subtitle="Treasury Factor Board"
-        snapshot={snapshot}
-        nav={NAV}
-        navLabel="Rates curve sections"
-      />
+      <div className="board">
+        {/* Board t2. No state pill here, and that is the board's call rather than an
+          omission: this tab is the market's side, and the policy/rates state it would
+          show belongs to — and is already shown on — tab 01. */}
+        <DeskHeader
+          title="Rates · Curve"
+          questions={["Q2", "Q4", "Q5"]}
+          standfirst={
+            <>
+              Split out of the Fed tab deliberately:{" "}
+              <b>
+                what the committee intends and what the term structure is
+                pricing are two different questions
+              </b>
+              . This tab is the market&apos;s side. The curve prints the level,
+              the decompositions say what is inside it, the attribution says who
+              moved it, and the auction table says whether anyone absorbed it.
+            </>
+          }
+          snapshot={snapshot}
+          nav={NAV}
+          navLabel="Rates curve sections"
+        />
 
-      <RatesTier
-        id="tier-market"
-        title="What the market prices"
-        lede="The traded curve, its slopes, and what moved them."
-      />
+        <RatesTier
+          id="tier-market"
+          title="What the market prices"
+          lede="The traded curve, its slopes, and what moved them."
+        />
 
-      <RatesSection id="summary" title="Summary" eyebrow="Live FRED curve">
-        <div className={styles.summaryStack}>
-          <div className={styles.kpiGrid}>
-            {summary.map((tile) => (
-              <Tile key={tile.label} tile={tile} />
+        <RatesSection id="summary" title="Summary" eyebrow="Live FRED curve">
+          <div className={styles.summaryStack}>
+            <div className={styles.kpiGrid}>
+              {summary.map((tile) => (
+                <Tile key={tile.label} tile={tile} />
+              ))}
+            </div>
+          </div>
+        </RatesSection>
+
+        <RatesSection
+          id="curve"
+          title="Yield Curve"
+          eyebrow="Nominal Treasury curve"
+        >
+          <RatesCurveChart points={curve.points ?? []} />
+          <div className={styles.slopeCards}>
+            {(curve.slopes ?? []).map((slope) => (
+              <article
+                key={slope.label}
+                className={styles.slopeCard}
+                data-testid="slope-card"
+              >
+                <span>{slope.label}</span>
+                <strong>{fmtValue(slope.value_bps, "bps", 1)}</strong>
+                <p>{slopeInterpretation(slope)}</p>
+              </article>
             ))}
           </div>
-        </div>
-      </RatesSection>
+        </RatesSection>
 
-      <RatesSection
-        id="curve"
-        title="Yield Curve"
-        eyebrow="Nominal Treasury curve"
-      >
-        <RatesCurveChart points={curve.points ?? []} />
-        <div className={styles.slopeCards}>
-          {(curve.slopes ?? []).map((slope) => (
-            <article
-              key={slope.label}
-              className={styles.slopeCard}
-              data-testid="slope-card"
-            >
-              <span>{slope.label}</span>
-              <strong>{fmtValue(slope.value_bps, "bps", 1)}</strong>
-              <p>{slopeInterpretation(slope)}</p>
-            </article>
-          ))}
-        </div>
-      </RatesSection>
+        <DecompositionSection
+          decomposition={decomposition}
+          policy={policy}
+          slopes={curve.slopes ?? []}
+        />
 
-      <DecompositionSection
-        decomposition={decomposition}
-        policy={policy}
-        slopes={curve.slopes ?? []}
-      />
+        <RatesTier
+          id="tier-mechanics"
+          title="Mechanics"
+          lede="The plumbing a rates view stands on: issuance, positioning and cross-market."
+        />
 
-      <RatesTier
-        id="tier-mechanics"
-        title="Mechanics"
-        lede="The plumbing a rates view stands on: issuance, positioning and cross-market."
-      />
-
-      {/* Moved here from tab 01 on 2026-08-28. The board assigns `Supply SUB-STATE` and
+        {/* Moved here from tab 01 on 2026-08-28. The board assigns `Supply SUB-STATE` and
           `Auction demand` to this tab, and `SupplySection` renders both -- issuance and
           who turned up to buy it are questions about the curve, not about the committee.
           It sat on the Fed tab only because the old `/rates` page grouped it under a
           "Mechanics" heading that tab inherited whole. */}
-      <RatesSection
-        id="supply"
-        title="Supply"
-        status={statusLabel(supply?.status)}
-      >
-        <SupplySection supply={supply} />
-      </RatesSection>
+        <RatesSection
+          id="supply"
+          title="Supply"
+          status={statusLabel(supply?.status)}
+        >
+          <SupplySection supply={supply} />
+        </RatesSection>
 
-      <RatesSection
-        id="positioning"
-        title="Positioning"
-        status={statusLabel(positioning?.status)}
-      >
-        <PositioningSection positioning={positioning} />
-      </RatesSection>
+        <RatesSection
+          id="positioning"
+          title="Positioning"
+          status={statusLabel(positioning?.status)}
+        >
+          <PositioningSection positioning={positioning} />
+        </RatesSection>
 
-      <RatesSection
-        id="cross"
-        title="Cross-Market"
-        status={statusLabel(cross?.status)}
-      >
-        <div className={styles.compactGrid}>
-          {(cross?.rows ?? []).map((tile) => (
-            <Tile key={tile.label} tile={tile} />
-          ))}
-        </div>
-      </RatesSection>
+        <RatesSection
+          id="cross"
+          title="Cross-Market"
+          status={statusLabel(cross?.status)}
+        >
+          <div className={styles.compactGrid}>
+            {(cross?.rows ?? []).map((tile) => (
+              <Tile key={tile.label} tile={tile} />
+            ))}
+          </div>
+        </RatesSection>
 
-      <RatesTier
-        id="tier-provenance"
-        title="Provenance and legacy"
-        lede="Where the numbers came from, and the older rule score kept for comparison only."
-      />
+        <RatesTier
+          id="tier-provenance"
+          title="Provenance and legacy"
+          lede="Where the numbers came from, and the older rule score kept for comparison only."
+        />
 
-      {/* The quarantine. The rule score is not deleted -- it is the only thing an
+        {/* The quarantine. The rule score is not deleted -- it is the only thing an
           operator can hold the policy/rates state up against -- but it is stated as a
           refusal before it is shown, so nobody reads a number this desk does not answer
           with as the answer. */}
-      <RatesSection
-        id="refuses"
-        title="What this tab refuses"
-        status="Experimental legacy"
-      >
-        <div className={styles.notePanel}>
-          <p>
-            This tab reports the traded curve and what moved it. It does not
-            compose those readings into a single score, and it takes no stance
-            from one — no directional duration call, no curve call, and no prose
-            narrating either.
-          </p>
-          <p>
-            The rule score below predates the policy / rates state engine and is
-            kept for exactly one purpose: so an operator can hold the state on
-            the Fed tab up against what the old weights said. It is a legacy
-            artifact under dual-read, not a decision surface — nothing else on
-            this desk reads it, and no view here is derived from it.
-          </p>
-        </div>
-        <RatesScorecard scorecard={scorecard} />
-      </RatesSection>
+        <RatesSection
+          id="refuses"
+          title="What this tab refuses"
+          status="Experimental legacy"
+        >
+          <div className={`${styles.notePanel} ${styles.noteRefuse}`}>
+            <p>
+              This tab reports the traded curve and what moved it. It does not
+              compose those readings into a single score, and it takes no stance
+              from one — no directional duration call, no curve call, and no
+              prose narrating either.
+            </p>
+            <p>
+              The rule score below predates the policy / rates state engine and
+              is kept for exactly one purpose: so an operator can hold the state
+              on the Fed tab up against what the old weights said. It is a
+              legacy artifact under dual-read, not a decision surface — nothing
+              else on this desk reads it, and no view here is derived from it.
+            </p>
+          </div>
+          <RatesScorecard scorecard={scorecard} />
+        </RatesSection>
 
-      <SourceFreshnessSection snapshot={snapshot} />
+        <SourceFreshnessSection snapshot={snapshot} />
+      </div>
     </div>
   );
 }

@@ -1,4 +1,4 @@
-import { BoardRefusal } from "./domain/BoardPanel";
+import { BoardRefusal, BoardStatePill } from "./domain/BoardPanel";
 import type { MacroFactor } from "./domain/FactorTable";
 import { InflationPanels } from "./domain/InflationPanels";
 import { UsdPanels } from "./domain/UsdPanels";
@@ -21,21 +21,6 @@ import { DOMAIN_LABEL, DOMAIN_LEDE } from "./types";
 const TAB_QUESTIONS: Partial<Record<MacroDomainKey, string>> = {
   inflation: "Q1 Q3 Q6 Q7",
   usd: "Q1 Q4 Q7",
-};
-
-/**
- * The board colours the state pill by DISTANCE FROM THE DOMAIN'S OWN REFERENCE POINT —
- * a target for inflation, a working transmission for gold — never by a market view.
- *
- * Only labels the board itself colours are listed, plus the mirror of each: an inflation
- * far BELOW target rendering calm grey while far above renders amber would put a
- * directional bias in the desk's own chrome. Everything else falls through to neutral,
- * because inventing a severity for a label nobody has published would be authoring a
- * house view in a lookup table.
- */
-const STATE_TONE: Record<string, "okst" | "warnst" | "critst"> = {
-  WELL_ABOVE_TARGET: "warnst",
-  WELL_BELOW_TARGET: "warnst",
 };
 
 /** The stalest load-bearing input, for the sub-title's derived clause. */
@@ -171,29 +156,14 @@ function StatePill({
   domain: MacroDomainKey;
   slot: MacroDomainSlot;
 }) {
-  if (slot.value) {
-    const s = slot.value;
-    const conf = Number(s.confidence);
-    return (
-      <span
-        className={`state ${STATE_TONE[s.state] ?? "neust"}`}
-        data-testid={`macro-domain-${domain}`}
-      >
-        {s.state} · {s.direction}
-        {Number.isFinite(conf) ? ` · conf ${conf.toFixed(2)}` : ""}
-      </span>
-    );
-  }
   return (
-    <span
-      className="state neust"
-      data-testid={`macro-domain-${domain}`}
-      style={{ fontWeight: 400 }}
-    >
-      {slot.error
-        ? slot.error
-        : "no state — the engine has not run for this instant"}
-    </span>
+    <BoardStatePill
+      facts={slot.value}
+      testId={`macro-domain-${domain}`}
+      absent={
+        slot.error ?? "no state — the engine has not run for this instant"
+      }
+    />
   );
 }
 
