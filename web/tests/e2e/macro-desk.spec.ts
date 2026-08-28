@@ -26,10 +26,10 @@ import { expect, test, type Page } from "@playwright/test";
  *     requirement is a comment in a plan until a test fails when someone flips the page
  *     to `redirect("/macro/overview")` early.
  *
- * Deliberately NOT here: the `/rates` and `/gold` redirects. `/rates`'s 308 landed with
- * P3 and is owned by `rates-redirect.spec.ts`; `/gold`'s rides P6. What P3 DID change
- * here is the walk's subject — the registry grew from one tab to three, so the
- * non-vacuity anchor below names all three rather than `notes` alone.
+ * Deliberately NOT here: the `/rates` and `/gold` redirects, owned by
+ * `rates-redirect.spec.ts` (P3) and `gold-redirect.spec.ts` (P6). What each slice DOES
+ * change here is the walk's subject — the registry grew from one tab to three in P3 and to
+ * six in P6, so the non-vacuity anchor below names all six rather than `notes` alone.
  */
 
 /** Console-error collector, matching `gold-page.spec.ts:10-13` and `:44`. */
@@ -93,13 +93,14 @@ test.describe("macro desk shell", () => {
     // ordinal"). Pinning the full list again here would make every future tab
     // registration edit this file for nothing, and the walk below already sweeps
     // whatever the registry grew.
-    expect(hrefs.length).toBeGreaterThanOrEqual(5);
+    expect(hrefs.length).toBeGreaterThanOrEqual(6);
     expect(hrefs).toEqual(
       expect.arrayContaining([
         "/macro/fed",
         "/macro/rates",
         "/macro/inflation",
         "/macro/usd",
+        "/macro/gold",
         "/macro/notes",
       ]),
     );

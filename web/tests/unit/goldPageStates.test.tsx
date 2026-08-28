@@ -2,9 +2,17 @@
 import { render, screen } from "@testing-library/react";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 
-import GoldPage from "@/app/gold/page";
+// `app/gold/page.tsx` is gone — `/gold` 308s into the macro desk's tab 05, and the tab is
+// where the three-state settle now lives. `/gold/replay/<date>` is deliberately kept
+// (plan §6), so its page is still imported here unchanged.
+import { GoldTab } from "@/app/macro/[tab]/goldTab";
 import GoldReplayPage from "@/app/gold/replay/[date]/page";
 import { api } from "@/lib/api";
+
+/** Tab 05 rendered live: the request the operator makes by opening `/macro/gold` with no
+ *  `?as_of=`. The replay branch has its own coverage below and in
+ *  `tests/unit/macroReplay.test.ts`. */
+const LIVE = { replay: { kind: "live" } } as const;
 
 vi.mock("@/lib/api", () => ({
   api: { goldState: vi.fn(), goldReplay: vi.fn() },
@@ -25,7 +33,7 @@ function body() {
   return document.body.textContent ?? "";
 }
 
-describe("gold posture page — three states, never two", () => {
+describe("gold posture surfaces — three states, never two", () => {
   beforeEach(() => {
     vi.mocked(api.goldState).mockReset();
     vi.mocked(api.goldReplay).mockReset();
@@ -34,7 +42,7 @@ describe("gold posture page — three states, never two", () => {
   it("renders the cockpit when the API answers with a posture", async () => {
     vi.mocked(api.goldState).mockResolvedValueOnce(POSTURE);
 
-    render(await GoldPage());
+    render(await GoldTab(LIVE));
 
     expect(screen.getByText(/cockpit rendered/)).not.toBeNull();
   });
@@ -42,7 +50,7 @@ describe("gold posture page — three states, never two", () => {
   it("says the posture has not been computed when the API answers with no row", async () => {
     vi.mocked(api.goldState).mockResolvedValueOnce(null);
 
-    render(await GoldPage());
+    render(await GoldTab(LIVE));
 
     expect(body()).toContain("posture not yet computed");
     expect(body()).toContain("the engine has not run");
@@ -55,7 +63,7 @@ describe("gold posture page — three states, never two", () => {
       new Error("API 500 for /api/gold/state: database unavailable"),
     );
 
-    render(await GoldPage());
+    render(await GoldTab(LIVE));
 
     expect(body()).toContain("posture request failed");
     expect(body()).toContain("database unavailable");
@@ -63,6 +71,38 @@ describe("gold posture page — three states, never two", () => {
     // never ran.
     expect(body()).not.toContain("not yet computed");
     expect(body()).toContain("unknown");
+  });
+
+  it("asks the OBSERVATION endpoint when a date is requested, and says so", async () => {
+    // The clock, end to end. A replayed tab 05 must call `/api/gold/replay` rather than
+    // `/api/gold/state`, and the banner over it must not borrow the instant family's
+    // wording — this tab is not replaying what the desk knew, it is naming a market day.
+    vi.mocked(api.goldReplay).mockResolvedValueOnce({
+      obs_date: "2026-08-14",
+      computed_at: "2026-08-14T21:00:00Z",
+    } as never);
+
+    render(await GoldTab({ replay: { kind: "replay", asOf: "2026-08-14" } }));
+
+    expect(api.goldReplay).toHaveBeenCalledWith("2026-08-14");
+    expect(api.goldState).not.toHaveBeenCalled();
+    expect(screen.getByText(/cockpit rendered for 2026-08-14/)).not.toBeNull();
+    const status = screen.getByTestId("macro-replay-status");
+    expect(status.getAttribute("data-replay-clock")).toBe("obs_date");
+    expect(status.textContent).toContain("market day 2026-08-14");
+    expect(status.textContent).not.toContain("end of 2026-08-14 UTC");
+  });
+
+  it("withholds the cockpit for a market day with no row", async () => {
+    // Exact-match endpoint: a day the engine never reconstructed has no answer, and
+    // nothing from a neighbouring day may be drawn under its date.
+    vi.mocked(api.goldReplay).mockResolvedValueOnce(null);
+
+    render(await GoldTab({ replay: { kind: "replay", asOf: "2026-08-14" } }));
+
+    expect(screen.queryByText(/cockpit rendered/)).toBeNull();
+    expect(body()).toContain("No row for that market day");
+    expect(body()).toContain("does not fall back to the day before");
   });
 
   it("keeps the same three states apart on the replay route", async () => {

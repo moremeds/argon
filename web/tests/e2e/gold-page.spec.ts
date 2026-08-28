@@ -3,7 +3,7 @@
 // renders the "not yet computed" placeholder instead of the cockpit.
 import { expect, test } from "@playwright/test";
 
-test.describe("GOLD COMPASS /gold", () => {
+test.describe("GOLD COMPASS /macro/gold", () => {
   test("renders the five-tier cockpit when posture has been computed", async ({
     page,
   }) => {
@@ -12,7 +12,10 @@ test.describe("GOLD COMPASS /gold", () => {
       if (msg.type() === "error") consoleErrors.push(msg.text());
     });
 
-    await page.goto("/gold");
+    // Re-pointed in P6: `/gold` 308s here now (`gold-redirect.spec.ts` owns the redirect
+    // itself). The cockpit is unchanged — this is a presentation move, and the whole
+    // value of keeping this spec is that it would fail if it were not.
+    await page.goto("/macro/gold");
 
     // Wordmark + sub-mark. The h1 is the final-render anchor (dev mode also
     // briefly shows "Loading GOLD COMPASS…" so we have to target the heading).
@@ -39,6 +42,23 @@ test.describe("GOLD COMPASS /gold", () => {
     expect(body.toLowerCase()).not.toMatch(/\bsell\b/);
     expect(body.toLowerCase()).not.toMatch(/\bposition size\b/);
     expect(body.toLowerCase()).not.toMatch(/\bpredicted return\b/);
+
+    // It landed INSIDE the desk, and the tab bar says which tab. Without this the spec
+    // would pass just as happily against a standalone page that still answered here.
+    await expect(page.getByTestId("macro-tab-bar")).toBeVisible();
+    await expect(page.getByTestId("macro-tab-gold")).toHaveAttribute(
+      "aria-current",
+      "page",
+    );
+
+    // The desk's own control is the only date picker on this tab, and it asks the
+    // OBSERVATION-date question rather than the point-in-time one every other tab asks.
+    // Two pickers here would be two questions over one answer, and the header's own
+    // picker navigates off the desk.
+    const control = page.getByTestId("macro-replay-control");
+    await expect(control).toBeVisible();
+    await expect(control).toHaveAttribute("data-replay-clock", "obs_date");
+    await expect(page.getByLabel("REPLAY")).toHaveCount(0);
 
     // No client-side React errors during render.
     expect(consoleErrors.filter((m) => !/favicon/i.test(m))).toEqual([]);

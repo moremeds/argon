@@ -211,6 +211,38 @@ version in lockstep (enforced by `scripts/release/version_sync_check.py`).
     router's guard against a snapshot whose `computed_at` sits a second in the future only
     works if the client does not send a date it was not asked for.
 
+- **The macro desk is now the whole of Gold, Rates and Macro.** Inflation, US Dollar and Gold
+  join as tabs `/macro/inflation` (03), `/macro/usd` (04) and `/macro/gold` (05); `/gold` 308s
+  to the gold tab the way `/rates` already 308s to the curve tab; and the sidebar's three
+  peers collapse to one **Macro** entry. The collapse lands here and not earlier on purpose —
+  a peer may only be removed once its destination tab is registered, and tab 05 is the last
+  of them. `/gold/replay/<date>` is deliberately kept, which is why the redirect matches the
+  exact path and never `/gold/:path*`.
+  - **Tabs 03 and 04 are a presentation merge and nothing else.** One request each, rendering
+    the same `DomainStateCard` the four-card overview already shows for those domains — the
+    same stored answer, confidence terms, contradictions and cited evidence. What the tab
+    adds is a heading and a refusal panel, both prose: a domain on its own page invites the
+    reading that it can be averaged with the other three, and the chain-level claim already
+    has exactly one home.
+  - **The two endpoint families do not key on the same column, and the replay gate now says
+    so.** `/api/rates/snapshot` selects on `computed_at`; `/api/macro/{domain}` selects on
+    `as_of`, and `macro_domain_states` deliberately permits a row's `computed_at` to be
+    _later_ than its own `as_of` — a later recompute of the same instant is "a better answer
+    to the same question". Gating a domain state on `computed_at` would therefore have
+    withheld a correctly backfilled answer and blamed a deploy race that never happened. The
+    gate reads `as_of`; the banner still prints `computed_at`, because that sentence is about
+    a compute time.
+  - **The gold tab declares the obs-date clock, and the answer speaks it too.**
+    `/api/gold/replay` matches the market day exactly, so a day with no row has no answer and
+    never falls back to the day before. `ReplayStatus` now takes the clock as a **required**
+    prop with two copy families: every sentence it had was instant-shaped ("as it stood at the
+    end of X UTC", "a replay that falls forward"), all of it false of an observation row. A
+    default would have let tab 05 render the honest question above the dishonest answer.
+  - The gold cockpit's own date picker is suppressed on the desk — it pushes to
+    `/gold/replay/<date>`, so left on, the tab would carry two pickers and the second would
+    navigate off the desk. `/api/gold/gauge` is still not called from any page: it recomputes
+    262 correlation gauges per request, and the history already rides the state response.
+
 - **Durable earnings-calendar spine** (migration `144`, `earnings_calendar`) — `EarningsCalendarRepository`
   (`upsert_rows`/`next_prints`/`prints_between`) gives the reaction and implied-move jobs below a print-date
   table to read instead of re-deriving one each, PK `(ticker, report_date)` with a nullable `session`.
@@ -746,6 +778,16 @@ evidence_policy)`, which fails closed — an observation with no claim never
     most of the damage in the math while reporting the field handled.
 
 ### Fixed
+
+- **The gold posture lint could report a clean surface over a directory that was not there.**
+  `web/scripts/lint-gold-copy.mjs` caught a missing scope root and skipped it, so the script
+  exited **0 with no output** — and re-homing a page shell under `/macro` is exactly the move
+  that removes a root. A missing root now names itself and exits non-zero, the scope is an
+  exported, tested value rather than a literal inside `main()`, and the violation the lint was
+  already failing on (two banned adjectives in a comment) is gone. `components/rates` stays
+  deliberately out of scope: the legacy rates scorecard is authorised to print its own stance
+  word inside the curve tab's refusal panel, and listing that directory would fail the build
+  over a rendering that was explicitly approved.
 
 - **The macro desk's chart-scale gate was specified wrong, and only running it showed that.**
   Declared in the previous release as `test.fixme` with zero SVGs to measure, it selected
