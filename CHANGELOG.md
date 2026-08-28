@@ -9,6 +9,49 @@ version in lockstep (enforced by `scripts/release/version_sync_check.py`).
 
 ### Added
 
+- **Durable earnings-calendar spine** (migration `144`, `earnings_calendar`) — `EarningsCalendarRepository`
+  (`upsert_rows`/`next_prints`/`prints_between`) gives the reaction and implied-move jobs below a print-date
+  table to read instead of re-deriving one each, PK `(ticker, report_date)` with a nullable `session`.
+- **Calendar persistence now rides the daily statement ingest.** `fetch_calendar_listings` carries each
+  print's session (`premarket`/`afterhours`); any filing whose date UW's classified calendar never
+  surfaced (~2% of prints, reported `report_time: "unknown"`) backfills its own `source='statement_obs'`
+  calendar row instead of staying invisible to the spine.
+- **Realised earnings-reaction history** (migration `145`, `earnings_reactions`) — a daily job computes
+  each print's session-correct before/after close return, one of three window shapes per session
+  (`premarket`/`afterhours`/unclassified), with a backfill script seeding calendar rows from
+  `fundamental_statement_obs` history that predates the calendar table.
+- **Nightly option-implied-move snapshot** (migration `146`, `implied_move_daily`) — for every print in
+  the next 21 days, records the covering expiry's ATM IV, strike and spot against that night's option
+  surface grid, so realised-vs-implied comparisons have a durable per-print trace instead of a
+  point-in-time-only query.
+- **Five change-event classes join the discovery gate for the delta rail** — `band_entry`, `band_exit`,
+  `implied_move_shift`, `coverage_change` and `bucket_flip`, each derived in `fundamental_change_events.py`
+  from measured counts the gate already tracks live, with a dry-run-by-default backfill runner.
+- **Descriptive underwriting features: days-inventory-outstanding, SBC/revenue, and
+  shares-outstanding YoY.** `underwriting_features()` (`fundamentals/underwriting.py`) adds `dio` and
+  `sbc_to_revenue` per ticker/period, deliberately outside `FEATURES` and the scored composite. The
+  third feature ships as `shares_outstanding_yoy`, not the diluted weighted-average count the spec
+  named — an exhaustive key probe of the statement store found no diluted/weighted-average share field
+  anywhere, so it is sourced from `common_stock_shares_outstanding` (period-end **basic** shares) and
+  named for what it actually measures: net buyback/issuance activity, not option/RSU/convertible
+  overhang. Live on 420/420 tickers.
+- **A genuine cross-statement net-income sign flip is now a persisted integrity violation; the far more
+  common NCI/discontinued-operations gap is not.** The original check flagged any >1% income-vs-cash-flow
+  net-income disagreement and fired on 6,269 of 28,973 pairs (21.6%) — almost all of them the ordinary
+  accounting difference between consolidated and parent-attributable net income (VZ 2010-09-30's
+  881M-vs-2,698M gap is exactly Vodafone's NCI in Verizon Wireless, both figures correct). It is replaced
+  by `check_net_income_sign_flip`, which fires only when the cash-flow figure has the OPPOSITE SIGN at
+  nearly the same magnitude — a literal vendor inversion that NCI or discontinued ops cannot produce —
+  measured at 5 of 28,973 pairs (CVX ×2, GE, IREN, UMC). The NCI/discontinued-ops population is now
+  `net_income_basis_difference`: read-time-only, descriptive, never a `Violation`, never persisted, and
+  mutually exclusive with the sign-flip check by construction. Backed by a `CHECK_EFFECTS` completeness
+  test rebuilt to enumerate every registered check rather than assert against a fixture-sized subset.
+  **`negative_total_assets` also gains a governed effect** (`ViolationEffect.EXCLUDE_OBSERVATION`,
+  `fundamentals/validity.py`) — a live behaviour change to a pre-existing check, not a side effect of the
+  NI work above: under `fundamentals-v2` this previously raised `KeyError` from `effect_for` (no entry in
+  `CHECK_EFFECTS`); it now silently excludes the whole observation from scoring, the same treatment
+  `negative_total_liabilities` and `accounting_identity_reversed` already get, on the reasoning that
+  `assets` anchors the balance-sheet identity check's own denominator.
 - **Seed the five datacenter build-out chains** (EPC/Construction, Generation/Nuclear,
   Power/Electrical, Cooling/Thermal, DC-REIT/Colo) with real layer ranks — taxonomy rows only, zero
   assembler change, zero vendor calls.
@@ -438,6 +481,16 @@ evidence_policy)`, which fails closed — an observation with no claim never
 
 ### Fixed
 
+- **Seven optical/networking names were pricing through `power_infra`/`ebitda_to_ev` instead of their
+  own chain's `chips_cyclical`/`sales_to_ev`.** `AAOI`, `ANET`, `COHR`, `CRDO`, `FN`, `LITE` and `MRVL`
+  all carry `watchlist.sector = 'DC-Connect'`, a real tag for other names that happened to shadow
+  `SECTOR_TO_TYPE`'s own `"Networking/Optical": "chips_cyclical"` entry — the map was right and
+  unreachable for them. `TICKER_TO_TYPE` overrides now route all seven correctly; per the research
+  VERDICT, "the percentile is valid, the label is wrong" (measurement:
+  `scripts/research/optical_company_type_probe.py`, persisted at
+  `docs/research/2026-08-26-optical-chain-pm-desk/routing_probe.md`). No engine-version change —
+  `company_type` is already part of `valuation_anchors`' own identity hash, so a corrected band appears
+  under the existing active version on the next scheduled run.
 - **`CLAUDE.md` said schema changes apply out-of-band via the profile-gated migrator. They do not.**
   The `api` service self-migrates before serving (`python -m uw_scan.storage.migrate_runner && exec
   uvicorn`, `docker-compose.yml`), so a Watchtower deploy carries its migrations with it; the

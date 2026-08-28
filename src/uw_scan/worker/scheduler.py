@@ -22,8 +22,8 @@ from apscheduler.triggers.interval import IntervalTrigger
 
 from uw_scan.api.client import UwClient
 from uw_scan.config import Settings
-from uw_scan.sources.lake_resolver import _r2_fully_configured, resolve_lake_root
 from uw_scan.sources.fed_funds_futures_path import FedFundsFuturesPathProvider
+from uw_scan.sources.lake_resolver import _r2_fully_configured, resolve_lake_root
 from uw_scan.sources.ohlc import MassiveOhlcProvider
 from uw_scan.sources.uw_budget import (
     limits_from_settings,
@@ -53,18 +53,10 @@ from uw_scan.worker.jobs.gold_jobs import (
     gold_uw_options_ingest_job,
     gold_wgc_cb_ingest_job,
 )
-from uw_scan.worker.jobs.ohlc_pull import ohlc_pull_once
-from uw_scan.worker.jobs.macro_market_layer_ingest import (
-    macro_market_layer_ingest_job,
-)
-from uw_scan.worker.jobs.macro_series_ingest import macro_fred_series_ingest_job
 from uw_scan.worker.jobs.macro_context_snapshot import macro_context_snapshot_job
 from uw_scan.worker.jobs.macro_gold_ingest import macro_gold_ingest_job
-from uw_scan.worker.jobs.macro_state_jobs import (
-    macro_gold_state_job,
-    macro_inflation_state_job,
-    macro_rates_state_job,
-    macro_usd_state_job,
+from uw_scan.worker.jobs.macro_market_layer_ingest import (
+    macro_market_layer_ingest_job,
 )
 from uw_scan.worker.jobs.macro_policy_jobs import (
     macro_fomc_statement_ingest_job,
@@ -72,6 +64,14 @@ from uw_scan.worker.jobs.macro_policy_jobs import (
     macro_sep_ingest_job,
     macro_sme_ingest_job,
 )
+from uw_scan.worker.jobs.macro_series_ingest import macro_fred_series_ingest_job
+from uw_scan.worker.jobs.macro_state_jobs import (
+    macro_gold_state_job,
+    macro_inflation_state_job,
+    macro_rates_state_job,
+    macro_usd_state_job,
+)
+from uw_scan.worker.jobs.ohlc_pull import ohlc_pull_once
 from uw_scan.worker.jobs.option_intraday_jobs import (
     refresh_intraday_for_top_oi_movers,
 )
@@ -529,6 +529,39 @@ def _should_schedule_chanlun_lifecycle(settings: Settings) -> bool:
     return role == "all" or (role == "massive" and settings.worker_index == 0)
 
 
+def _should_schedule_earnings_reactions(settings: Settings) -> bool:
+    """Single owner for the nightly earnings-reaction compute. Pure warm-store
+    read (calendar x daily_ohlc, no UW/IB spend) -> pin to massive-0, same as
+    vrp_markout / chanlun_lifecycle. Gated separately on `earnings_reactions_enabled`."""
+    if not settings.earnings_reactions_enabled:
+        return False
+    role = settings.worker_role.lower()
+    return role == "all" or (role == "massive" and settings.worker_index == 0)
+
+
+def _should_schedule_implied_move(settings: Settings) -> bool:
+    """Single owner for the nightly implied-move snapshot. Pure warm-store
+    read (calendar x option_surface_grid_daily, no UW/IB spend) -> pin to
+    massive-0, same as earnings_reactions / vrp_markout / chanlun_lifecycle.
+    Gated separately on `implied_move_snapshot_enabled`."""
+    if not settings.implied_move_snapshot_enabled:
+        return False
+    role = settings.worker_role.lower()
+    return role == "all" or (role == "massive" and settings.worker_index == 0)
+
+
+def _should_schedule_fundamental_change_events(settings: Settings) -> bool:
+    """Single owner for the nightly delta-rail derive (Task 8, spec §5-iv).
+    Pure warm-store read over valuation_anchors / implied_move_daily /
+    fundamental_statement_obs / chain_membership / fundamental_scores -- no
+    UW/IB spend -> pin to massive-0, same as its siblings above. Gated
+    separately on `fundamental_change_events_enabled`."""
+    if not settings.fundamental_change_events_enabled:
+        return False
+    role = settings.worker_role.lower()
+    return role == "all" or (role == "massive" and settings.worker_index == 0)
+
+
 def _worker_label(settings: Settings) -> str:
     role = settings.worker_role.lower()
     if role == "all":
@@ -844,6 +877,47 @@ def main() -> int:
         with _repo(settings) as repo:
             vrp_markout_refresh(repo=repo)
 
+    def _earnings_reactions_compute() -> None:
+        from datetime import datetime as _dt
+        from zoneinfo import ZoneInfo
+
+        from uw_scan.worker.jobs.earnings_reactions import earnings_reactions_compute
+
+        as_of = _dt.now(ZoneInfo(settings.rth_tz)).date()
+        with _repo(settings) as repo:
+            result = earnings_reactions_compute(
+                repo.conn, as_of=as_of, schema=settings.db_schema
+            )
+        logger.info("earnings_reactions_compute %s", result)
+
+    def _implied_move_snapshot() -> None:
+        from datetime import datetime as _dt
+        from zoneinfo import ZoneInfo
+
+        from uw_scan.worker.jobs.implied_move_snapshot import implied_move_snapshot
+
+        as_of = _dt.now(ZoneInfo(settings.rth_tz)).date()
+        with _repo(settings) as repo:
+            result = implied_move_snapshot(
+                repo.conn, as_of=as_of, schema=settings.db_schema
+            )
+        logger.info("implied_move_snapshot %s", result)
+
+    def _fundamental_change_events() -> None:
+        from datetime import datetime as _dt
+        from zoneinfo import ZoneInfo
+
+        from uw_scan.worker.jobs.fundamental_change_events import (
+            derive_change_events,
+        )
+
+        as_of = _dt.now(ZoneInfo(settings.rth_tz)).date()
+        with _repo(settings) as repo:
+            result = derive_change_events(
+                repo.conn, as_of=as_of, schema=settings.db_schema
+            )
+        logger.info("fundamental_change_events %s", result)
+
     def _spx_density_forecast() -> None:
         from uw_scan.worker.jobs.spx_density_forecast import spx_density_forecast_job
 
@@ -858,7 +932,11 @@ def main() -> int:
             fundamental_refresh(conn=repo.conn, settings=settings)
 
     def _fundamental_ingest() -> None:
+        from uw_scan.storage.earnings_calendar import EarningsCalendarRepository
         from uw_scan.worker.jobs.fundamental_ingest import fundamental_ingest
+        from uw_scan.worker.jobs.fundamental_ingest_daily import (
+            persist_unknown_statements,
+        )
 
         with _external_api_recorder(settings) as recorder:
             with _uw_client(
@@ -869,6 +947,19 @@ def main() -> int:
                 with _repo(settings) as repo:
                     counters = fundamental_ingest(
                         conn=repo.conn, client=uw, schema=settings.db_schema
+                    )
+                    # Unfiltered by calendar (this ingests the whole tier), so this is
+                    # the only caller that can hand `persist_unknown_statements` a
+                    # ticker UW never lists in either classified slot — the ~2%
+                    # `report_time: "unknown"` population spec §5-i exists for. The
+                    # daily job (`fundamental_ingest_daily.py`) mirrors this same call
+                    # against its own, calendar-filtered `new_filings`.
+                    new_filings = counters.pop("new_filings", [])
+                    calendar_repo = EarningsCalendarRepository(
+                        repo.conn, schema=settings.db_schema
+                    )
+                    counters["calendar_unknown_rows_new"] = persist_unknown_statements(
+                        calendar_repo, new_filings
                     )
         logger.info("fundamental_ingest %s", counters)
 
@@ -2257,6 +2348,62 @@ def main() -> int:
             ),
             id="chanlun_lifecycle_scan",
             name="Chanlun daily-mark lifecycle (30m sub-level confirm)",
+            max_instances=1,
+            coalesce=True,
+        )
+
+    if _should_schedule_earnings_reactions(settings):
+        # Earnings reaction compute at 19:41 ET DAILY — not weekday-only, since
+        # a Monday-holiday print's Tuesday close still needs to be picked up on
+        # schedule. Pure warm-store read (calendar x daily_ohlc); zero UW/IB
+        # spend, so massive-0 is the right single-flight home, same pin as
+        # regime_live/chanlun_lifecycle above. Shifted one minute off :40
+        # (branch-fix-p2, M10) — vrp_paper_mark and macro_state_compute both
+        # also fire at 19:40 on massive-0; each opens its own connection and
+        # APScheduler's default pool is 10, so this was contention, not
+        # breakage, but a minute's shift buys legibility in the job logs for
+        # free.
+        sched.add_job(
+            _earnings_reactions_compute,
+            CronTrigger.from_crontab("41 19 * * *", timezone=settings.rth_tz),
+            id="earnings_reactions_compute",
+            name="Earnings reaction history (calendar x OHLC)",
+            max_instances=1,
+            coalesce=True,
+        )
+
+    if _should_schedule_implied_move(settings):
+        # Implied-move snapshot at 20:45 ET WEEKDAYS — after the 19:00/19:30
+        # surface-capture jobs so tonight's option_surface_grid_daily rows
+        # are already written, and after the 19:40 earnings-reaction compute
+        # (unrelated table, but keeps the fundamentals-industry-desk jobs in
+        # one block). Pure warm-store read (calendar x surface grid); zero
+        # UW/IB spend, so massive-0 is the right single-flight home, same
+        # pin as earnings_reactions above.
+        sched.add_job(
+            _implied_move_snapshot,
+            CronTrigger.from_crontab("45 20 * * 0-4", timezone=settings.rth_tz),
+            id="implied_move_snapshot",
+            name="Implied move snapshot (option surface grid)",
+            max_instances=1,
+            coalesce=True,
+        )
+
+    if _should_schedule_fundamental_change_events(settings):
+        # Delta-rail derive at 21:15 ET WEEKDAYS (Task 8, spec §5-iv) — after
+        # the 20:45 implied_move_snapshot and the 18:20 fundamental_refresh
+        # (routing -> subscores -> anchor bands) so band_entry/band_exit and
+        # bucket_flip read tonight's freshest valuation_anchors/
+        # fundamental_scores rows, and after implied_move_snapshot so
+        # implied_move_shift reads tonight's implied_move_daily row rather
+        # than last night's. Pure warm-store read; zero UW/IB spend, so
+        # massive-0 is the right single-flight home, same pin as its
+        # siblings above.
+        sched.add_job(
+            _fundamental_change_events,
+            CronTrigger.from_crontab("15 21 * * 0-4", timezone=settings.rth_tz),
+            id="fundamental_change_events",
+            name="Fundamental delta-rail change events",
             max_instances=1,
             coalesce=True,
         )

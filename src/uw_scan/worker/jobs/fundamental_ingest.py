@@ -35,6 +35,21 @@ the window cannot reach a neighbour. Full curve:
 SELF-GATING
 -----------
 An unseeded tier yields no tickers and the job returns having spent zero calls.
+
+CROSS-STATEMENT NI RECONCILIATION AND THE MONTHLY SWEEP
+--------------------------------------------------------
+Because this function re-fetches a ticker's ENTIRE statement history every call
+(see above), `rows` always holds every (period, statement) pair the provider
+currently reports for that ticker — not just what changed this run. The
+income-vs-cash-flow net-income sign-flip check (`check_net_income_sign_flip`)
+is wired against that full set, so both this function's callers — the
+calendar-driven `fundamental_ingest_daily` (which delegates here for its
+`targets`) and the monthly full-tier sweep registered in `scheduler.py` —
+inherit it for free. A cash-flow statement that lands after its matching
+income statement is invisible to the cross-check until the NEXT run that
+includes the ticker; the monthly sweep is what guarantees that happens within
+a month even for a ticker the daily calendar never names again (the ~2% UW
+reports `report_time: "unknown"`, see `fundamental_ingest_daily.py`).
 """
 
 from __future__ import annotations
@@ -49,6 +64,7 @@ from uw_scan.api.client import UwClient
 from uw_scan.api.endpoints import EndpointSlug
 from uw_scan.fundamentals.statements import (
     FIELD_MAP_VERSION,
+    check_net_income_sign_flip,
     check_violations,
     content_hash,
     normalize,
@@ -142,7 +158,7 @@ def fundamental_ingest(
     period_type: str = "quarterly",
     schema: str = "uw_scan",
     tickers: list[str] | None = None,
-) -> dict[str, int]:
+) -> dict[str, Any]:
     """Ingest every statement period for a universe tier. Returns counters."""
     repo = FundamentalObsRepository(conn, schema=schema)
     names = tickers if tickers is not None else repo.list_universe(tier)
@@ -156,9 +172,10 @@ def fundamental_ingest(
             "failed": 0,
             "filing_date_tolerance": 0,
             "availability_claims": 0,
+            "new_filings": [],
         }
 
-    totals = {
+    totals: dict[str, Any] = {
         "tickers": 0,
         "inserted": 0,
         "touched": 0,
@@ -170,6 +187,14 @@ def fundamental_ingest(
         # Capture-bounded claims written for versions this run persisted. A run
         # that inserts rows and claims none has left them invisible to history.
         "availability_claims": 0,
+        # {"ticker": ..., "filing_published_at": date} for each ticker that landed at
+        # least one genuinely new row this run — consumed by `fundamental_ingest_daily`
+        # to feed the `statement_obs` calendar-discovery path (spec §5-i). `record_statements`
+        # reports counts, not which rows were new, so this takes the MAX filing_published_at
+        # among the ticker's rows THIS run as the new statement's date — a heuristic, but a
+        # safe one: a ticker only lands a new row on the day it reports, and that is always
+        # its most recent period.
+        "new_filings": [],
     }
     for ticker in names:
         try:
@@ -214,7 +239,51 @@ def fundamental_ingest(
                     if violations:
                         flagged.append((row, violations))
 
+            # Cross-statement NI sign-flip needs BOTH statements' payloads for
+            # the same (period_end, period_type) in hand at once — this loop
+            # fetches every statement for the whole ticker every run (see the
+            # module docstring), so `rows` already holds every pair the provider
+            # currently reports, not just what is new this run. A cash-flow
+            # statement that lands in a LATER run than its income statement is
+            # only caught the NEXT time this function re-ingests the ticker;
+            # `check_net_income_sign_flip`'s docstring explains why the
+            # per-obs `recheck_violations` sweep cannot substitute for that, and
+            # the monthly full-tier sweep (unlike the calendar-driven daily job)
+            # touches every ticker unconditionally, so it is what guarantees
+            # every pair is eventually re-checked regardless of when either
+            # statement was first published.
+            #
+            # `net_income_basis_difference` (the DESCRIPTIVE NCI/discontinued-ops
+            # population) is deliberately NOT called here — it is never
+            # persisted, and is instead computed at read time by
+            # `FundamentalObsRepository.net_income_basis_differences_by_ticker`.
+            by_period: dict[tuple[date, str], dict[str, dict[str, Any]]] = {}
+            for row in rows:
+                by_period.setdefault((row["period_end"], row["period_type"]), {})[
+                    row["statement"]
+                ] = row
+            for pair in by_period.values():
+                income_row = pair.get("income")
+                cashflow_row = pair.get("cash_flow")
+                if income_row is None or cashflow_row is None:
+                    continue
+                sign_flip_violations = check_net_income_sign_flip(
+                    income_row["raw_jsonb"], cashflow_row["raw_jsonb"]
+                )
+                if sign_flip_violations:
+                    flagged.append((income_row, sign_flip_violations))
+
             inserted, touched = repo.record_statements(rows)
+            if inserted > 0:
+                filed_dates = [
+                    row["filing_published_at"]
+                    for row in rows
+                    if row["filing_published_at"] is not None
+                ]
+                if filed_dates:
+                    totals["new_filings"].append(
+                        {"ticker": ticker, "filing_published_at": max(filed_dates)}
+                    )
             for row, violations in flagged:
                 obs_id = repo.obs_id(
                     source=row["source"],

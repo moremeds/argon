@@ -410,10 +410,25 @@ SECTOR_TO_TYPE: dict[str, str] = {
 
 #: Ticker -> company_type, checked BEFORE either sector map.
 #:
-#: For one situation only: a name whose sector label is right about its industry
-#: and wrong about what prices it. Not a general escape hatch — a DB-level
-#: `manual` assignment is that, and it still beats this (`assign` writes
-#: `seeded` here, so a hand correction is never overwritten by a reseed).
+#: Two DISTINCT situations share this map, and the distinction matters for the
+#: guard test below (`test_every_refusal_escape_uses_a_market_cap_method`):
+#:
+#: 1. A name whose sector label is right about its INDUSTRY and wrong about
+#:    what prices it — PYPL is the only entry (see below). That escape is only
+#:    legitimate through a market-cap-denominated method, because the whole
+#:    point is to leave the enterprise-value contamination the refusal exists
+#:    to reject unreached.
+#: 2. A name whose sector label names the WRONG industry outright, because
+#:    `watchlist.sector` holds one tag and a real, unrelated tag shadowed the
+#:    correct one — the seven `PROBE_OPTICAL_TICKERS` below. These do not
+#:    touch the financials refusal at all (none of the seven is a financial),
+#:    so there is no reason their method must avoid enterprise value — it is
+#:    the right denominator for a chip/component maker, which is exactly what
+#:    `chips_cyclical` uses.
+#:
+#: Not a general escape hatch either way — a DB-level `manual` assignment is
+#: that, and it still beats this (`assign` writes `seeded` here, so a hand
+#: correction is never overwritten by a reseed).
 TICKER_TO_TYPE: dict[str, str] = {
     # PYPL's chain sector is `Fintech`, which routes to the financials refusal
     # because deposit- and custodial-funded balance sheets carry no meaningful
@@ -435,7 +450,47 @@ TICKER_TO_TYPE: dict[str, str] = {
     # was measured pooled (+0.0457, t 3.64). Calling PayPal a platform is a
     # judgement about the business, and it is recorded as one.
     "PYPL": "platform_scale",
+    # Task 11 (spec §5-vii). `SECTOR_TO_TYPE` already maps
+    # `"Networking/Optical": "chips_cyclical"`, but these seven carry
+    # `watchlist.sector = "DC-Connect"` instead of `"Networking/Optical"` — a
+    # real tag for other names that happens to shadow the correct one for
+    # them, so the chain map entry is right and unreachable. Measured
+    # 2026-08-27/28 against `option_wizard_local`
+    # (`scripts/research/optical_company_type_probe.py`, persisted at
+    # `docs/research/2026-08-26-optical-chain-pm-desk/routing_probe.md`): all
+    # seven are members of the `Optical-Communication` research chain and were
+    # persisted with `company_type='power_infra'`, `method='ebitda_to_ev'`.
+    # None is a power/electrical-infrastructure business — AAOI (Applied
+    # Optoelectronics), ANET (Arista Networks), COHR (Coherent), CRDO (Credo),
+    # FN (Fabrinet) and LITE (Lumentum) are optical-component or networking-
+    # systems makers; MRVL (Marvell) is DSP/switch silicon. Per the research
+    # VERDICT (`docs/research/2026-08-26-optical-chain-pm-desk/VERDICT.md`,
+    # finding 4): "the percentile is valid, the label is wrong." This fixes the
+    # label; it does not touch the financials refusal, so it is not held to
+    # `EV_DENOMINATED`'s market-cap-only rule — see `PROBE_OPTICAL_TICKERS`.
+    "AAOI": "chips_cyclical",
+    "ANET": "chips_cyclical",
+    "COHR": "chips_cyclical",
+    "CRDO": "chips_cyclical",
+    "FN": "chips_cyclical",
+    "LITE": "chips_cyclical",
+    "MRVL": "chips_cyclical",
 }
+
+#: The subset of `TICKER_TO_TYPE` above whose ORIGINAL sector-implied type was
+#: `FINANCIALS` — i.e. an override whose whole justification is escaping the
+#: refusal. Only these are held to `EV_DENOMINATED`'s market-cap-only rule by
+#: the guard test; see the docstring on `TICKER_TO_TYPE` for why the optical
+#: entries are a different situation and must not be forced through the same
+#: check.
+TICKER_TO_TYPE_REFUSAL_ESCAPES: frozenset[str] = frozenset({"PYPL"})
+
+#: The optical routing fix's own ticker set, named once so the guard test and
+#: any other consumer enumerate it rather than re-deriving or hardcoding a
+#: second copy. Source of truth for these seven is the probe cited above.
+PROBE_OPTICAL_TICKERS: frozenset[str] = frozenset(
+    {"AAOI", "ANET", "COHR", "CRDO", "FN", "LITE", "MRVL"}
+)
 
 #: Vendor sector -> company_type. A SEPARATE map from `SECTOR_TO_TYPE`, and the
 #: separation is load-bearing rather than tidiness: the two vocabularies collide
@@ -484,9 +539,7 @@ def seed_company_types(
     repo = FundamentalAnchorsRepository(conn, schema=schema)
     identity = CompanyIdentityRepository(conn, schema=schema)
     with conn.cursor() as cur:
-        cur.execute(
-            f"""SELECT ticker, cik FROM {schema}.sec_cik_map"""
-        )
+        cur.execute(f"""SELECT ticker, cik FROM {schema}.sec_cik_map""")
         ciks = dict(cur.fetchall())
     with conn.cursor() as cur:
         cur.execute(

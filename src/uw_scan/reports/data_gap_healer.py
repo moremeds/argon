@@ -2073,6 +2073,97 @@ REGISTRY.extend(
                 "scripts/seed_fundamental_universe.py is the source of truth"
             ),
         ),
+        # Data spine, tasks 4/6/7 (spec §5-i/ii/iii). `freshness_only`, not
+        # `strict_ticker_date`, for all three: the grain is (ticker x KNOWN
+        # PRINT), and a ticker with no upcoming/recent earnings correctly has
+        # no row for it -- a strict session denominator would invent a gap no
+        # print will ever fill.
+        DatasetRegistryEntry(
+            "earnings_calendar",
+            "fundamentals",
+            "freshness_only",
+            date_col="report_date",
+            ticker_col="ticker",
+            expected_frequency="event",
+            provider="uw",
+            # No adapter: the daily calendar-driven ingest (fundamental_ingest_daily,
+            # 3-day lookback) and the monthly full-tier sweep already re-fetch and
+            # upsert the classified calendar every time they run, so a missed print
+            # self-heals on the next scheduled run at zero incremental UW cost (the
+            # calendar fetch rides the existing statement-ingest call, per
+            # fundamental_statement_obs's own entry above).
+            granularity="none",
+            healer_adapter=None,
+            source_system="uw",
+            retention_days=None,
+            reason=(
+                "forward-accruing print calendar (migration 144), the spine "
+                "earnings_reactions and implied_move_daily below both read. Session "
+                "NULL for the ~2% UW leaves unclassified is a real third state, not "
+                "a gap."
+            ),
+            reason_verified_on=date(2026, 8, 28),
+        ),
+        DatasetRegistryEntry(
+            "earnings_reactions",
+            "fundamentals",
+            "freshness_only",
+            date_col="report_date",
+            ticker_col="ticker",
+            expected_frequency="event",
+            # Pure warm-store derivation (earnings_calendar x daily_ohlc) --
+            # zero UW/IB spend, unlike earnings_calendar's own provider="uw".
+            provider="db",
+            # No adapter needed: earnings_reactions_compute is ALREADY
+            # self-healing within its own 10-day lookback. It SKIPS -- never
+            # nulls -- a print whose before/after close is not yet in
+            # daily_ohlc, and the calendar row persists, so the identical
+            # print is retried on every subsequent nightly run until the
+            # missing close lands (`skipped_incomplete` counter). Beyond the
+            # 10-day window (e.g. a corporate-action-driven OHLC hole),
+            # scripts/backfill/earnings_reactions_backfill.py is the operator
+            # path -- an existing, dry-run-by-default script, not new wiring.
+            granularity="none",
+            healer_adapter=None,
+            source_system="derived",
+            retention_days=None,
+            reason=(
+                "per-print reaction (migration 145), computed from "
+                "earnings_calendar x daily_ohlc. Deliberately re-attemptable: a "
+                "pending print is ABSENT here, never null, which is what makes "
+                "'retry every night until the price lands' safe."
+            ),
+            reason_verified_on=date(2026, 8, 28),
+        ),
+        DatasetRegistryEntry(
+            "implied_move_daily",
+            "fundamentals",
+            "freshness_only",
+            date_col="market_date",
+            ticker_col="ticker",
+            expected_frequency="event",
+            # Reads option_surface_grid_daily, already captured by that job's
+            # own UW spend -- this snapshot itself makes zero new UW calls.
+            provider="db",
+            # No adapter: per the migration's own table comment, "ABSENCE OF A
+            # ROW IS THE COVERAGE STATEMENT" -- a ticker with a calendar print
+            # but no covering expiry/strike on TONIGHT's option surface grid
+            # gets no row, by design, forever (never a stale carry-forward). A
+            # missed night can only be re-derived if that night's
+            # option_surface_grid_daily rows still exist; if the grid was
+            # never captured, there is nothing for any adapter to read.
+            granularity="none",
+            healer_adapter=None,
+            source_system="derived",
+            retention_days=None,
+            reason=(
+                "nightly implied-move snapshot (migration 146) for names with a "
+                "known print inside the 21-day lookahead. One row per "
+                "(ticker, market_date); a night with no imminent print for a "
+                "ticker correctly writes none."
+            ),
+            reason_verified_on=date(2026, 8, 28),
+        ),
     ]
 )
 

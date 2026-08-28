@@ -695,12 +695,13 @@ Verified raw keys: `inventory` (balance, confirmed in `prod_pull.sh` against pro
 
 **Files:**
 
-- Modify: `src/uw_scan/fundamentals/features.py` (add `underwriting_features`)
+- Modify: `src/uw_scan/fundamentals/features.py` (add `underwriting_features`) — **AS EXECUTED: created `src/uw_scan/fundamentals/underwriting.py` instead**, because adding to `features.py` pushed it past the 500-line module budget; `features.py` returned to 399 lines.
 - Test: `tests/unit/test_underwriting_features.py`
 
 **Interfaces:**
 
 - Produces: `underwriting_features(uw: dict[str, Any]) -> dict[str, dict[str, dict[str, float | None]]]` — same input shape as `build_features` (per ticker: `{"income-statements": {period: row}, "balance-sheets": ..., "cash-flows": ...}`), returning per ticker per period `{"dio": float|None, "sbc_to_revenue": float|None, "share_count_yoy": float|None}` where `dio = inventory / cost_of_revenue_q * 91.25`, `sbc_to_revenue = sbc_q / total_revenue_q`, and `share_count_yoy = diluted_shares / diluted_shares_4q_ago − 1` (None when either endpoint is missing — a 4-quarter gap must yield None, never a wrong-span ratio).
+- **CORRECTED AS EXECUTED — the third key's premise was false.** Step 1's probe found NO diluted-share key anywhere in the UW store: all 80 `(statement, key)` pairs were enumerated and none carries diluted shares at any tier. `share_count_yoy` as briefed is uncomputable. **Shipped instead:** `shares_outstanding_yoy`, sourced from `common_stock_shares_outstanding` (BASIC period-end shares, 420/420 ticker coverage), same 4-quarter-span rule and same None-propagation. The rename is load-bearing, not cosmetic: the figure measures net issuance/buyback, NOT dilution, so the word "diluted" must not appear on it in any model field, column header, tooltip, or caption. Every downstream reference (Tasks 13, 14, and the type-consistency review) was corrected 2026-08-28.
 
 - [ ] **Step 1: PROBE the SBC and diluted-share key names.** On the dev DB (or mini per the documented read-only route):
 
@@ -737,12 +738,12 @@ Spec §5-vi. The income-vs-cashflow net-income check (tolerance 1%) lives only i
 
 - Produces: `check_cross_statement_violations(income: Mapping[str, Any], cashflow: Mapping[str, Any]) -> list[Violation]` — one check, `check_name="net_income_disagrees_across_statements"`, fires when both payloads carry a parseable net income and `abs(ni_inc - ni_cf) > 0.01 * max(abs(ni_inc), abs(ni_cf))`; `Violation.field = "net_income"`, `observed_value = str(ni_inc)`, `detail = {"cashflow_net_income": str(ni_cf)}`.
 - PROBE (like Task 9): the cash-flow payload's NI key — `SELECT DISTINCT k ... WHERE statement='cash' AND k ILIKE '%net_income%'`. Candidate `net_income`; verify, never assume.
-- The desk limits block (P3) reads offenders via the existing `violations_by_obs` / a small new read `worst_ni_offenders(limit=10)` added to `FundamentalObsRepository`-adjacent storage — put the read in `storage/fundamental_obs.py` (it is the violations domain module; this is not `repository.py`).
+- The desk limits block (P3) reads this via a new `net_income_basis_differences_by_ticker` in `storage/fundamental_obs.py` (not `repository.py`). **AS EXECUTED this is NOT a violations read** — the name `worst_ni_offenders` and the word "offenders" were withdrawn: see the correction under Step 4.
 
 - [ ] **Step 1: Failing unit test** — frozen real pair: AUTHORING STEP freeze one real ticker-quarter where income NI ≠ cashflow NI beyond 1% (the research trace names 15; pull one from prod via the documented route) and one agreeing pair. Assert fire/no-fire and the 1% boundary (construct the boundary case arithmetically FROM the frozen real values, e.g. scale the cashflow value to exactly 1.000 and 1.001 of the income value).
 - [ ] **Step 2: Run to verify failure.**
 - [ ] **Step 3: Implement** the checker with the module's existing `_dec` parsing helper; wire into both ingest jobs (income obs_id in hand + the period's cash payload when present in the same batch; when the cash statement arrives in a LATER run, the `recheck_violations` sweep re-evaluating per-obs checks will NOT catch cross-statement pairs — note this in the docstring and have the monthly full sweep call the cross-check for all complete pairs; verify the monthly job's structure in `fundamental_ingest.py` before wiring).
-- [ ] **Step 4: Add `worst_ni_offenders`** read (count of NI violations per ticker, named tickers, worst first — "worst offenders feed the desk limits block by name").
+- [ ] **Step 4 — CORRECTED AS EXECUTED.** The check as briefed fired on **6,269 of 28,973 pairs (21.6%)**, not the ~15 the research trace implied. Measurement killed the premise: cash-flow NI is discrete-quarter (rate is flat by quarter — Q1 21.0%, Q2 22.3%, Q3 21.5%, Q4 21.8%, where a YTD convention would give ~0% then ~100%), annual mixing and sign conventions were ruled out, and the real driver is **noncontrolling interests and discontinued operations**: income-statement `net_income` is attributable-to-parent post-disc-ops, the cash-flow statement opens from consolidated NI including NCI (ASC 230 indirect). 3,153 of the 6,269 match income's own `net_income_from_continuing_operations`; VZ 2010-Q3 is the clean case (2,698M = 881M + 1,817M NCI, Vodafone's 45% of Verizon Wireless) where **both numbers are correct**. It affected 342 of 419 tickers, every REIT with OP units included. Argon stores no NCI field and so cannot attribute the difference. **Shipped instead:** the comparison is narrowed to fire only when cash-flow matches NEITHER income NI line (6,269 → 3,116) and is surfaced as a **descriptive basis difference** off the `record_violations` path, following this repo's "descriptive only" precedent; the genuine violation is a separate **sign-flip** check, **5 of 28,973 (0.017%)** — CVX 2023-Q1/Q2, GE 2022-Q3, IREN 2022-Q2, UMC 2010-Q3.
 - [ ] **Step 5: Run affected tests**, commit
 
 ```bash
@@ -905,9 +906,22 @@ class ChainExposureCoverage(_UwBase):
     with_magnitude: int
 
 class DeskLimitsResponse(_UwBase):
-    ni_reconciliation_pass: int
-    ni_reconciliation_fail: int
-    ni_worst_offenders: list[str]                    # named, worst first
+    # CORRECTED (Task 10 as-executed): the earlier field names here were
+    # `ni_reconciliation_pass` / `ni_reconciliation_fail` / `ni_worst_offenders`.
+    # Task 10's premise — that an income-vs-cash-flow net-income disagreement is
+    # a data-integrity failure — was DISPROVED. Income-statement `net_income` is
+    # attributable-to-parent post-discontinued-ops; the cash-flow statement opens
+    # from consolidated NI INCLUDING NCI (ASC 230 indirect). A disagreement is
+    # usually correct accounting on BOTH sides — measured on 342 of 419 tickers,
+    # worked case VZ 2010-Q3 where 2,698M = 881M + 1,817M NCI. Argon stores no
+    # NCI field and therefore CANNOT attribute the difference. These fields are
+    # DESCRIPTIVE: never name them pass/fail/offender, and never render them as
+    # an integrity error. Do not restore the old names.
+    ni_basis_agree: int                              # the two statements' NI match
+    ni_basis_differ: int                             # they differ — NOT an error
+    ni_largest_basis_differences: list[str]          # named tickers, largest gap first
+    # The one genuine integrity check on this axis — separate, and rare:
+    ni_sign_flip_violations: int                     # measured 5 of 28,973 rows
     withheld_composite: str                          # the fixed sentence from spec §3f — legitimately prose
     # "computed, not prose" (spec §3f): membership semantics as NUMBERS, prose
     # only as a caption the web layer writes over them.
@@ -919,14 +933,21 @@ class NodeUnderwritingRow(_UwBase):
     period_end: date
     dio: float | None
     sbc_to_revenue: float | None
-    share_count_yoy: float | None    # UW-derived (Task 9), diluted shares vs 4q ago
+    # CORRECTED (Task 9 as-executed): was `share_count_yoy` "diluted shares vs
+    # 4q ago". Task 9 verified exhaustively — all 80 (statement, key) pairs in
+    # the UW store — that NO diluted-share key exists at any tier. The shipped
+    # feature is `shares_outstanding_yoy`, sourced from
+    # `common_stock_shares_outstanding` (BASIC period-end shares, 420/420
+    # coverage). Do not restore the old name, and never label this "diluted"
+    # anywhere it reaches a reader: it measures issuance/buyback, not dilution.
+    shares_outstanding_yoy: float | None   # basic period-end shares vs 4q ago
     # Filed-line-item provenance (spec §4 trust requirement #1): the raw values
     # and the filing date travel WITH the figure, not behind another request.
     filing_published_at: date | None
     inventory_raw: str | None        # raw_jsonb value, verbatim string
     cost_of_revenue_raw: str | None
     sbc_raw: str | None
-    diluted_shares_raw: str | None
+    shares_outstanding_raw: str | None   # verbatim `common_stock_shares_outstanding`
     state: str                       # FundamentalResultState for the row's basis
 ```
 
@@ -936,8 +957,8 @@ Endpoints (all read-only, zero vendor calls, warm store only):
 - `GET /fundamentals/{section}/delta?since=<iso>` → `DeltaRailResponse` (default since = 7 days ago; reads `research_events` live classes: `statement_published`, `sec_filing`, `band_entry`, `band_exit`, `implied_move_shift`, `coverage_change`, `bucket_flip`, filtered to section members). **One filing, one rail entry:** `sec_filing` and `statement_published` can both fire for the same print — collapse to one `DeltaRailEvent` when `(ticker, occurred_at)` matches across the two classes, keeping `statement_published` (the richer fact) and recording the suppressed class in `detail["also"]`.
 - `GET /fundamentals/{section}/matrix` → `DeskMatrixResponse` (from `fundamentals_desk_rollup` + `valuation_anchors` + `fundamental_scores` bucket ids for the cohort split; every ticker set built with `SELECT DISTINCT ticker` over `chain_membership` — one ticker in two layers is two rows, per `chain_membership_open_uq`)
 - `GET /fundamentals/{section}/profit-pool` → `list[ProfitPoolLayer]`
-- `GET /fundamentals/{section}/limits` → `DeskLimitsResponse` (`ni_*` from Task 10's `worst_ni_offenders`; `membership_evidence` from a GROUP BY `evidence_class` over open memberships in the section's domains; `exposure_coverage` from `ResearchTaxonomyRepository.exposure_coverage(version)` — verified, `storage/research_taxonomy.py:305`, returns per-chain `members` / `with_exposure` / `with_magnitude`)
-- `GET /fundamentals/node/{chain}/underwriting` → `list[NodeUnderwritingRow]` (via `current_statement_panel` → `underwriting_features` (Task 9) — UW store only, including `share_count_yoy`; raw provenance strings copied verbatim from the panel's `raw_jsonb` + `filing_published_at`; computed per request over ≤20 names — acceptable, and the payloads are already in the warm store)
+- `GET /fundamentals/{section}/limits` → `DeskLimitsResponse` (`ni_*` from Task 10's `FundamentalObsRepository.net_income_basis_differences_by_ticker` — **as executed, Task 10's premise was disproved and this is a DESCRIPTIVE basis difference, never a violations read and never labelled as one.** Income-statement `net_income` is attributable-to-parent post-disc-ops while the cash-flow statement opens from consolidated NI including NCI (ASC 230 indirect), so a disagreement is usually correct accounting on both sides — measured on 342 of 419 tickers, worked case VZ 2010-Q3 where 2,698M = 881M + 1,817M NCI. Argon stores no NCI field and therefore CANNOT attribute the difference, which is why it must not render as an integrity failure. The genuine violation is the separate sign-flip check, 5 of 28,973 rows; `membership_evidence` from a GROUP BY `evidence_class` over open memberships in the section's domains; `exposure_coverage` from `ResearchTaxonomyRepository.exposure_coverage(version)` — verified, `storage/research_taxonomy.py:305`, returns per-chain `members` / `with_exposure` / `with_magnitude`)
+- `GET /fundamentals/{section}/node/underwriting?chain=<name>` → `list[NodeUnderwritingRow]`. **CORRECTED 2026-08-28 — was `GET /fundamentals/node/{chain}/underwriting`, which cannot work.** Every real ai-semi chain name contains a slash (`Networking/Optical`, `Semi-Logic/ASIC`, `Cooling/Thermal`, `Generation/Nuclear`, `EPC/Construction`, `Power/Electrical`, `DC-REIT/Colo`, `Computer/GPU` — verified against `watchlist_chain` on the mini, 20 of 38 chains), and a `%2F`-encoded slash in a FastAPI **path** param returns **404** (verified empirically 2026-08-28: path param `%2F` → 404, query param with a raw slash → 200). `chain` therefore travels as a QUERY parameter, exactly as `/calendar?chain=` already does. Do not reintroduce a chain path segment on any endpoint. Implementation otherwise unchanged: (via `current_statement_panel` → `underwriting_features` (Task 9) — UW store only, including `shares_outstanding_yoy`; raw provenance strings copied verbatim from the panel's `raw_jsonb` + `filing_published_at`; computed per request over ≤20 names — acceptable, and the payloads are already in the warm store)
 
 - [ ] **Step 1: Failing API tests**, including the anti-requirement tests (these are the spec's test-backed guardrails):
 
@@ -1012,7 +1033,12 @@ def test_rows_only_chain_reaches_both_endpoints(desk_client, conn):
     directly via ResearchTaxonomyRepository, then:"""
     r = desk_client.get("/fundamentals/ai-semi/matrix")
     assert "Substation/Transformers" in r.json()["chains"]
-    r2 = desk_client.get("/fundamentals/node/Substation%2FTransformers/underwriting")
+    # `chain` is a QUERY param, never a path segment — a %2F-encoded slash in a
+    # FastAPI path param 404s, and 20 of 38 real chain names contain a slash.
+    r2 = desk_client.get(
+        "/fundamentals/ai-semi/node/underwriting",
+        params={"chain": "Substation/Transformers"},
+    )
     assert r2.status_code == 200
 ```
 
@@ -1041,7 +1067,7 @@ Renders the STORED versioned report (never live re-assembly) + live calendar str
 
 **Files:**
 
-- Create: `web/app/fundamentals/ai-semi/[node]/page.tsx` (RSC; `export const dynamic = "force-dynamic"` like `web/app/reports/page.tsx`)
+- Create: `web/app/fundamentals/ai-semi/[...node]/page.tsx` (RSC; `export const dynamic = "force-dynamic"` like `web/app/reports/page.tsx`). **CATCH-ALL, not `[node]` — corrected 2026-08-28.** 20 of 38 real chain names contain a slash (`Networking/Optical`, `Semi-Logic/ASIC`, …), which a single dynamic segment cannot match. The catch-all receives `params.node: string[]`; rejoin with `"/"` to recover the chain name (`["Networking","Optical"]` → `"Networking/Optical"`), so the URL reads `/fundamentals/ai-semi/Networking/Optical` with no encoding anywhere. Test the rejoin explicitly — a chain whose name has no slash arrives as a one-element array and must still resolve.
 - Create: `web/components/fundamentals/NodeCalendarStrip.tsx`, `web/components/fundamentals/NodeUnderwritingPanel.tsx`, `web/components/fundamentals/NodeAliasQuestions.tsx`, `web/components/fundamentals/NodeLimits.tsx`
 - Modify: `web/lib/api.ts` (add typed fetchers: `deskCalendar(section, chain?)` — the server-side `?chain=` filter from Task 13, membership-resolved, no ticker list crosses the wire — and `nodeUnderwriting(chain)`; mirror the existing `api.researchReports` style)
 - Test: `web/tests/unit/nodePage.test.tsx` (vitest; mirror `web/tests/unit/macroDesk.test.tsx` conventions)
@@ -1050,7 +1076,7 @@ Page composition, top to bottom (the artifact's Q1–Q8 skeleton via report bloc
 
 1. Stored report blocks via `ReportView` for the chain report (`report_key` chain type + node key; the version picker the report route already has — link to it for as-of replay, trust builder #2).
 2. `NodeCalendarStrip`: the section calendar scoped to the node via `deskCalendar(section, chain)` (client island) — date, session badge (`?` badge for NULL session, never hidden), implied move ("not covered" text when null), last-4 reaction dots.
-3. `NodeUnderwritingPanel`: table over `NodeUnderwritingRow` — DIO trajectory, SBC/revenue (or the limits sentence when the Task-9 probe found no key), `share_count_yoy`; every figure's tooltip carries the FILED provenance the row now ships (spec §4 trust requirement #1): ticker, fiscal `period_end`, `filing_published_at`, and the verbatim raw values (`inventory_raw`, `cost_of_revenue_raw`, `sbc_raw`, `diluted_shares_raw`) — the reader sees the filed line items behind the ratio without another request; the ticker links to `/stock/[ticker]` for the full statements panel.
+3. `NodeUnderwritingPanel`: table over `NodeUnderwritingRow` — DIO trajectory, SBC/revenue (or the limits sentence when the Task-9 probe found no key), `shares_outstanding_yoy` (label it "shares outstanding", NEVER "diluted" — Task 9 proved no diluted-share key exists in UW and this is the basic period-end count); every figure's tooltip carries the FILED provenance the row now ships (spec §4 trust requirement #1): ticker, fiscal `period_end`, `filing_published_at`, and the verbatim raw values (`inventory_raw`, `cost_of_revenue_raw`, `sbc_raw`, `shares_outstanding_raw`) — the reader sees the filed line items behind the ratio without another request; the ticker links to `/stock/[ticker]` for the full statements panel.
 4. `NodeAliasQuestions`: static rendering of the open APH/CIEN alias questions (spec §8-1) — surfaced, not silently corrected; content states both candidate tags and that changing a rule changes a published number. Data source: the exposure block of the stored report (`is_member` flags) — the two names are identified by `is_member == false` + the block's alias metadata, with the explanatory copy in the component.
 5. `NodeLimits`: the node's own limits block (spec §4 close): the four underwriting inputs this page does NOT attempt — ASP/mix, capacity, lead times, qualification status — stated as absent rather than proxied; the Task-9 probe outcomes (SBC / diluted-shares key present or "not present in the ingested statements"); and the alias-question caveat ("two exposure magnitudes above ride open alias questions — changing a rule changes these numbers").
 
@@ -1067,6 +1093,8 @@ git commit -m "feat(fundamentals): optical node deep-dive page over the stored r
 ### Task 15: `/fundamentals` index with Radar as triage tab
 
 Thin index (spec §2): redirects to `/fundamentals/ai-semi` as the only section, with Radar folded in as the triage tab rather than a sibling route.
+
+> **EXECUTION ORDER — run this task AFTER Task 16, not before (ruling 2026-08-28).** As written, Task 15 points three redirects (`/fundamentals`, `/radar`, `/chains`) at `/fundamentals/ai-semi`, a route Task 16 has not created yet — every redirect would land on a 404 for the whole interval between the two tasks. Task 15 also instructs the executor to decide `ChainMatrix.tsx`'s disposition "while building Task 16's `ChainMetricMatrix`", which is unanswerable before that component exists. Task 16 has no dependency on Task 15 in the other direction (it creates a route; it does not touch nav or any redirect), so the swap is free. Nothing else changes: keep both tasks' files, tests, and commits exactly as specified.
 
 **Files:**
 
@@ -1105,7 +1133,7 @@ Rendering rules (each one a test):
 - `ChainMetricMatrix`: median + dots (SVG strip per cell); for `metric == "valuation_percentile"` render dots ONLY — the API sends `median: null` and the cell caption frames them as name-level own-history positions, never a chain property; when `cohorts.length > 1` render two labeled cohort groups and NO merged median (`median` still arrives from the API for the dominant cohort — display it under the `reported` cohort label only); empty cells render the hatched abstention with the `state` string, never blank; `coverage_missing` renders the ticker names.
 - `ProfitPoolStrip`: layers side by side ordered by `layer_rank`; NO connecting arrows or lead/lag copy anywhere in the component (test: rendered output contains none of `→`, "leads", "lags").
 - `CapexContextStrip`: **deliberately copy-only — no model field, no fetcher, no data source.** The spec demotes hyperscaler capex BECAUSE it carries zero edge (it is on every sell-side deck); spending a data path on a strip whose whole message is "this number is context, not signal" would re-promote it. The strip is fixed copy including the sign-inversion sentence ("for L4/L5 rising capex is a cost line, not demand — context, not edge") and a link to the stock pages where the filed capex lives. If a later phase wants the number itself, that is a new decision, not this task's.
-- `DeskLimits`: NI pass/fail with named worst offenders; the withheld-composite sentence verbatim from the API; `membership_evidence` rendered as counts per evidence class (disclosed / analyst / mirrored / inferred) and `exposure_coverage` as per-chain members / with-exposure / with-magnitude — prose only as captions over these numbers (spec §3f: computed, not prose).
+- `DeskLimits`: the NI basis split (`ni_basis_agree` / `ni_basis_differ`) rendered as a DESCRIPTIVE accounting-basis difference with the named largest gaps — the caption must say a difference is usually correct on both sides (ASC 230 consolidated-incl-NCI vs attributable-to-parent) and that argon stores no NCI field to attribute it; the word "fail", "offender", "error", or "violation" must not appear over these two numbers (test it). `ni_sign_flip_violations` is the separate genuine check and IS labelled a violation. The withheld-composite sentence verbatim from the API; `membership_evidence` rendered as counts per evidence class (disclosed / analyst / mirrored / inferred) and `exposure_coverage` as per-chain members / with-exposure / with-magnitude — prose only as captions over these numbers (spec §3f: computed, not prose).
 
 - [ ] **Step 1: Failing vitests** for each rule above (mocked typed payloads; one test per rule, including the two-cohorts-never-merged and the no-arrows assertions).
 - [ ] **Step 2: Run to verify failure.**
@@ -1135,7 +1163,7 @@ uv run python scripts/backfill/fundamental_change_events_run.py --as-of 2026-08-
 
 (Adjust dates to the execution day; rollup before change-events so the event derive sees the fresh state.)
 
-- [ ] **Step 3: Browser-verify** (Playwright MCP or manual): `/fundamentals` redirects; `/fundamentals/ai-semi` renders all six sections with real local data or honest abstention states; `/fundamentals/ai-semi/Optical-Communication` renders the stored report (assemble one first via the research-reports assemble endpoint if none exists locally), calendar strip, underwriting panel, alias questions. Screenshots to `output/playwright/` with descriptive names.
+- [ ] **Step 3: Browser-verify** (Playwright MCP or manual): `/fundamentals` redirects; `/fundamentals/ai-semi` renders all six sections with real local data or honest abstention states; `/fundamentals/ai-semi/Networking/Optical` (the REAL chain name — verified in `watchlist_chain`; there is no chain called "Optical-Communication", that is the *domain*) renders the stored report (assemble one first via the research-reports assemble endpoint if none exists locally), calendar strip, underwriting panel, alias questions. Screenshots to `output/playwright/` with descriptive names.
 - [ ] **Step 4: Record findings** in the PR description draft; fix what the smoke surfaces before Task 18.
 
 ### Task 18: CHANGELOG + PR for P3
@@ -1159,6 +1187,6 @@ Wait for CI green; merge only after.
 - **Spec coverage:** §2 routes → Tasks 13–16, with the extension contract now TESTED (Task 13's rows-only chain test) and the `/chains`+`ChainMatrix` fold-in routed (Task 15); §3a–f → Tasks 13/16 (a: delta rail with one-filing-one-entry dedupe, b: calendar with `?chain=` scoping, c: matrix rules incl. DISTINCT-ticker counts and the no-median rule for valuation percentiles, d: profit pool, e: capex strip — deliberately copy-only, decision stated, f: limits — computed membership/exposure numbers, prose only as captions); §3 anti-requirements → Task 13 Step 1 tests + Task 16 rules + two Global Constraints bullets (percentiles-are-name-facts; no desk inventory panel); §4 node additions → Tasks 9/13/14 (DIO + SBC + UW-derived diluted-share YoY, is_member + alias questions, filed-line-item provenance with filing date + raw values on the row, as-of via report versions, NodeLimits block naming the four un-attempted inputs); §5 i–vii → Tasks 4–11 (vii rewritten to the real `register_version`/`activate`/`active_version` mechanism with the engine-wide blast radius stated as a decided, executor-visible point); §6 research-dir commit → Task 1; §7 P1 → Tasks 1–3; §8 open questions → APH/CIEN surfaced not resolved (Task 14), `chain_aggregate` straddle stays a backend open item, DC-REIT/Colo partial coverage renders through named-missing-tickers, `/fundamentals` absorbs Radar (Task 15).
 - **Declared deviations (both judged faithful in review, loose ends closed):** (a) "filing-landed" maps onto the live `statement_published`/`sec_filing` classes, with the double-fire dedupe rule now on the delta endpoint; (b) underwriting features stay out of the scored `FEATURES` list, with the single-quarter (no-TTM) basis now justified, and diluted-share YoY re-sourced from the UW store to keep the node page single-vendor.
 - **Placeholder scan:** the AUTHORING STEP freezes are deliberate no-fabrication gates, not placeholders — each names its exact source and query. No TBD/TODO remain.
-- **Type consistency:** `EarningsCalendarRepository` (Tasks 4/5/6/7/8/17), `ImpliedMoveRepository.history` (7→8), `underwriting_features` returning `dio`/`sbc_to_revenue`/`share_count_yoy` (9→13→14), `NodeUnderwritingRow` provenance fields (13→14), `deskCalendar(section, chain?)` (13→14), runner script names (5/6/7/8/12→17) checked for exact-name agreement.
+- **Type consistency:** `EarningsCalendarRepository` (Tasks 4/5/6/7/8/17), `ImpliedMoveRepository.history` (7→8), `underwriting_features` returning `dio`/`sbc_to_revenue`/`shares_outstanding_yoy` (9→13→14; the plan's original `share_count_yoy`/diluted premise was disproved during Task 9 and every downstream reference was corrected 2026-08-28), `NodeUnderwritingRow` provenance fields (13→14), `deskCalendar(section, chain?)` (13→14), runner script names (5/6/7/8/12→17) checked for exact-name agreement.
 - **Verified-against-code:** migration collision 130 and 131 (both trees listed); `daily_ohlc` (003); `option_surface_grid_daily` (077); `record_events`/`register_discovery_gate`; `in_buy_zone(engine_version)`/`band_coverage`; `record_violations`/`check_violations`; `TICKER_TO_TYPE`/`SECTOR_TO_TYPE`/`seed_company_types` (incl. the already-present optical map entry); `FundamentalScoresRepository.register_version`/`.activate`/`.active_version` + `fundamental_anchors.py:603` + sole caller `scripts/seed_fundamental_method.py:73`; `chain_membership_open_uq` partial unique index; `ResearchTaxonomyRepository.exposure_coverage` (worktree `research_taxonomy.py:305`); `current_statement_panel`/`statement_panel_as_of` in `storage/fundamental_observation_panels.py` with `statement_panel` as the kept alias; `filing_published_at` (114); `massive_fundamentals.share_count_delta` (066 — cited only as the rejected dual-source); `build_features` input shape; `fetch_calendar_symbols`; `/jobs` router has only rescan endpoints; fixture `seeded_db_empty_cards`; `ReportView.tsx`/`RadarTable.tsx`/`reports/page.tsx`; `FundamentalResultState` literals.
 - **Could NOT verify (executor must, at the marked steps):** UW cash-flow SBC, diluted-shares, and cash-flow NI key names (probe steps, Tasks 9/10, with stated honest fallbacks); exact `chain_membership`/`research_chains` column names post-renumber (Task 3 reads the migration); the specific misrouted optical tickers (Task 11 probe); NVDA/ISRG calendar dates for Task 4's fixture (authoring re-verification step); existing API-test bootstrap fixture names (Task 13 reads them first); the seed script's `code_version` fill behavior (Task 11 Step 3 reads it).

@@ -487,6 +487,31 @@ class Settings(BaseModel):
     #: 04:40 keeps it 30 min clear of the breakdown capture on the 3rd and an
     #: hour clear of the 03:20/03:45/03:50 weekday jobs.
     company_sector_refresh_cron: str = "40 4 * * *"
+    # Per-print earnings reaction history (spec §5-ii): calendar x daily_ohlc,
+    # zero UW/IB spend, pinned to massive-0 at 19:40 ET daily (see scheduler
+    # `_should_schedule_earnings_reactions`). Default ON — same rationale as
+    # the accrual jobs above: a night not computed is a print whose reaction
+    # a future read can no longer distinguish from "not yet known" once the
+    # calendar's lookback window scrolls past it.
+    earnings_reactions_enabled: bool = True
+    # Nightly implied-move snapshot (spec §5-iii): Brenner-Subrahmanyam
+    # ATM-straddle approximation over option_surface_grid_daily, for names
+    # with a known print in the next 21 calendar days. Zero UW/IB spend,
+    # pinned to massive-0 at 20:45 ET weekdays -- after the 19:00/19:30
+    # surface-capture jobs so tonight's grid is already written (see
+    # scheduler `_should_schedule_implied_move`). Default ON, same rationale
+    # as earnings_reactions_enabled above: a night not snapshotted is a
+    # forward-looking read the desk can never reconstruct after the fact.
+    implied_move_snapshot_enabled: bool = True
+    # Delta-rail change events (Task 8, spec §5-iv): band_entry/band_exit,
+    # implied_move_shift, coverage_change, bucket_flip through the discovery
+    # gate. Zero UW/IB spend, pinned to massive-0 at 21:15 ET weekdays --
+    # after implied_move_snapshot and fundamental_refresh so every source
+    # table it reads is tonight's, not last night's (see scheduler
+    # `_should_schedule_fundamental_change_events`). Default ON, same
+    # rationale as its siblings above: a night not derived is a change the
+    # desk never learns of once the underlying row is superseded.
+    fundamental_change_events_enabled: bool = True
     chanlun_anchor_tol: float = 0.0
     chanlun_stale_sessions: int = 20
     # Empty by DESIGN (2026-07-15 walk-forward probe): all 4 candidate
@@ -1095,6 +1120,15 @@ class Settings(BaseModel):
             ),
             company_sector_refresh_cron=os.environ.get(
                 "UW_SCAN_COMPANY_SECTOR_REFRESH_CRON", "40 4 * * *"
+            ),
+            earnings_reactions_enabled=_env_bool(
+                "UW_SCAN_EARNINGS_REACTIONS_ENABLED", True
+            ),
+            implied_move_snapshot_enabled=_env_bool(
+                "UW_SCAN_IMPLIED_MOVE_SNAPSHOT_ENABLED", True
+            ),
+            fundamental_change_events_enabled=_env_bool(
+                "UW_SCAN_FUNDAMENTAL_CHANGE_EVENTS_ENABLED", True
             ),
             chanlun_anchor_tol=float(
                 os.environ.get("UW_SCAN_CHANLUN_ANCHOR_TOL", "0.0")

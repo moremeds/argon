@@ -6,7 +6,7 @@ Generated from `REGISTRY` in `src/uw_scan/reports/data_gap_healer.py` (one sourc
 uv run python -c "from uw_scan.reports.data_gap_healer import render_dataset_policy_markdown as r; open('docs/runbooks/data-gap-dataset-policy.md','w').write(r())"
 ```
 
-**171 datasets** across 11 groups.
+**174 datasets** across 11 groups.
 
 ## core_watchlist
 
@@ -34,6 +34,8 @@ uv run python -c "from uw_scan.reports.data_gap_healer import render_dataset_pol
 | company_exposure | provenance | none | none |  | none | economic chain exposure (migration 140). Derived from revenue_breakdown_obs through published alias rules, or asserted with no magnitude — a CHECK forbids a number on an asserted row. Rebuilt by re-running the seed job; nothing to heal from a provider. | 2026-08-25 |
 | company_identity | provenance | none | none |  | none | historized issuer identity — company_type/sector/CIK as validity intervals (migration 136). fundamental_company_type stays the current-state cache; this is the history behind it. Rebuilt by worker/jobs/fundamental_anchors.seed_company_types, which is idempotent (an unchanged reassignment writes no interval) and spends zero provider budget. | 2026-08-25 |
 | company_sector | operational_state | uw | none |  | liveness | a per-ticker cache of the vendor's current sector, used only to route company_type. `fetched_at` records when we last ASKED, not when a fact was true, so there is no per-date series to be missing and nothing to backfill; a stale row self-heals on the next monthly fill and a name absent from it simply routes to the pooled default, exactly as before the table existed |  |
+| earnings_calendar | freshness_only | uw | none |  | event | forward-accruing print calendar (migration 144), the spine earnings_reactions and implied_move_daily below both read. Session NULL for the ~2% UW leaves unclassified is a real third state, not a gap. | 2026-08-28 |
+| earnings_reactions | freshness_only | db | none |  | event | per-print reaction (migration 145), computed from earnings_calendar x daily_ohlc. Deliberately re-attemptable: a pending print is ABSENT here, never null, which is what makes 'retry every night until the price lands' safe. | 2026-08-28 |
 | fundamental_company_type | excluded | none | none |  | none | hand-maintainable routing table, not a time series — a missing row means the name is unrouted, which the card states explicitly |  |
 | fundamental_dimensions | freshness_only | db | run_once | fundamental_refresh | event | research-priority dimensions per score result (migration 138), each carrying its own spec-6.4 authority. Derived from fundamental_scores in the same pass; re-running the scoring job rebuilds them at zero provider spend. | 2026-08-25 |
 | fundamental_method_params | excluded | none | none |  | none | immutable parameter rows keyed by engine_version |  |
@@ -47,6 +49,7 @@ uv run python -c "from uw_scan.reports.data_gap_healer import render_dataset_pol
 | fundamental_scores | freshness_only | db | run_once | fundamental_refresh | event | derived from fundamental_statement_obs; worker/jobs/fundamental_refresh re-runs routing -> scoring -> anchors at zero provider spend. The old reason named this job and then declined to wire it. | 2026-08-16 |
 | fundamental_statement_obs | freshness_only | uw | none |  | event | quarterly filings over the fundamental universe (450 tickers as of 2026-08-18; it moves when the seeder runs), not the watchlist. Deliberately NOT wired to the healer: unlike scores/anchors this is a provider INGEST, and worker/jobs/fundamental_refresh explicitly does not ingest. Heal by running scripts/backfill/fundamental_ingest_backfill.py (insert-or-touch, safe to repeat) as a budgeted operator action, not on the nightly cron. | 2026-08-16 |
 | fundamental_universe | excluded | none | none |  | none | seeded membership list, not a time series; scripts/seed_fundamental_universe.py is the source of truth |  |
+| implied_move_daily | freshness_only | db | none |  | event | nightly implied-move snapshot (migration 146) for names with a known print inside the 21-day lookahead. One row per (ticker, market_date); a night with no imminent print for a ticker correctly writes none. | 2026-08-28 |
 | research_event_classes | provenance | none | none |  | none | the discovery gate, persisted (migration 142). One row per candidate event class with its live/killed verdict and the row count that decided it. | 2026-08-25 |
 | research_events | provenance | none | none |  | event | typed event ledger (migration 142), derived from sec_filing_index and fundamental_obs_violations by worker/jobs/research_events_derive. Idempotent on its identity key; re-run to repair, at zero provider spend. | 2026-08-25 |
 | research_report_blocks | provenance | none | none |  | event | report sections (migration 143), CASCADE children of research_reports. Each names its evidence or its derivation; a missing block is a report that was never assembled. | 2026-08-25 |

@@ -25,29 +25,30 @@ from uw_scan.fundamentals.validity import (
 
 
 def test_every_shipped_check_declares_an_effect():
-    """A check with no declared effect is a check that silently does nothing."""
-    from uw_scan.fundamentals.statements import check_violations
+    """A check with no declared effect is a check that silently does nothing.
 
-    payloads = {
-        "income": {
-            "total_revenue": "100",
-            "gross_profit": "100",
-            "cost_of_revenue": "60",
-        },
-        "balance": {
-            "total_assets": "50",
-            "total_liabilities": "-10",
-            "total_shareholder_equity": "100",
-            "common_stock_shares_outstanding": "1",
-        },
-    }
-    seen = {
-        v.check_name
-        for stmt, payload in payloads.items()
-        for v in check_violations(stmt, payload)
-    }
-    assert seen, "fixture produced no violations; the guard would be vacuous"
-    for name in seen:
+    ENUMERATION-based, not fixture-triggered. This test used to run a couple
+    of hand-picked payloads through the checkers and assert an effect exists
+    for whatever happened to fire — which only ever proves the fixture's own
+    checks are covered, not the module's. That exact gap shipped for real:
+    `negative_total_assets` (`statements.check_violations`, the balance-sheet
+    branch) had NO `CHECK_EFFECTS` entry, `effect_for("negative_total_assets")`
+    raised in production the instant a real balance sheet reported negative
+    assets, and the fixture here had `assets=50` (positive) so the branch
+    never fired and the test stayed green the whole time.
+
+    `all_check_names()` derives the full set of check_name literals by
+    parsing `statements.py`'s own source with `ast` — it does not run a single
+    checker function, so a check with no covering fixture is caught exactly
+    the same as one with a fixture that happens to trigger it. See its
+    docstring for the full mechanism and why every check_name is guaranteed
+    to be a static string literal.
+    """
+    from uw_scan.fundamentals.statements import all_check_names
+
+    names = all_check_names()
+    assert names, "enumeration found no check names; the AST walk is broken"
+    for name in names:
         assert isinstance(effect_for(name), ViolationEffect)
 
 
@@ -57,7 +58,9 @@ def test_an_unregistered_check_raises_rather_than_defaulting():
 
 
 def test_exclude_field_touches_only_its_own_dependents():
-    fields = excluded_fields({"gross_profit": ["gross_profit_equals_revenue_despite_costs"]})
+    fields = excluded_fields(
+        {"gross_profit": ["gross_profit_equals_revenue_despite_costs"]}
+    )
     assert fields == {"gross_profit"}
     assert features_touching(fields) == {"gross_margin"}
 
@@ -67,9 +70,7 @@ def test_exclude_observation_widens_to_the_whole_statement():
     fields = excluded_fields({"total_assets": ["accounting_identity_reversed"]})
     assert ALL_FEATURE_INPUTS <= fields
     # every feature, because no field on the observation survives
-    assert features_touching(fields) == set(
-        features_touching(set(ALL_FEATURE_INPUTS))
-    )
+    assert features_touching(fields) == set(features_touching(set(ALL_FEATURE_INPUTS)))
 
 
 def test_a_ttm_feature_is_withheld_for_the_whole_window():
