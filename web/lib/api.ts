@@ -19,6 +19,14 @@ export type DeskCalendarResponse =
   components["schemas"]["DeskCalendarResponse"];
 export type DeskCalendarRow = components["schemas"]["DeskCalendarRow"];
 export type NodeUnderwritingRow = components["schemas"]["NodeUnderwritingRow"];
+export type DeltaRailResponse = components["schemas"]["DeltaRailResponse"];
+export type DeltaRailEvent = components["schemas"]["DeltaRailEvent"];
+export type DeskMatrixResponse = components["schemas"]["DeskMatrixResponse"];
+export type ChainMetricCell = components["schemas"]["ChainMetricCell"];
+export type MemberDot = components["schemas"]["MemberDot"];
+export type CohortSlice = components["schemas"]["CohortSlice"];
+export type ProfitPoolLayer = components["schemas"]["ProfitPoolLayer"];
+export type DeskLimitsResponse = components["schemas"]["DeskLimitsResponse"];
 type VrpCandidatesResponse = components["schemas"]["VrpCandidatesResponse"];
 type VrpBacktestResponse = components["schemas"]["VrpBacktestResponse"];
 type VrpPaperResponse = components["schemas"]["VrpPaperResponse"];
@@ -445,6 +453,17 @@ export const api = {
       undefined,
       { allow404: true },
     ),
+  deskDelta: (section: string, since?: string): Promise<DeltaRailResponse> =>
+    _fetch<DeltaRailResponse>(
+      `/api/fundamentals/${section}/delta` +
+        (since == null ? "" : `?since=${since}`),
+    ),
+  deskMatrix: (section: string): Promise<DeskMatrixResponse> =>
+    _fetch<DeskMatrixResponse>(`/api/fundamentals/${section}/matrix`),
+  deskProfitPool: (section: string): Promise<ProfitPoolLayer[]> =>
+    _fetch<ProfitPoolLayer[]>(`/api/fundamentals/${section}/profit-pool`),
+  deskLimits: (section: string): Promise<DeskLimitsResponse> =>
+    _fetch<DeskLimitsResponse>(`/api/fundamentals/${section}/limits`),
   researchReports: (limit = 25): Promise<ReportListResponse> =>
     _fetch<ReportListResponse>(`/api/research/reports?limit=${limit}`),
   researchReport: (

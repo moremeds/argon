@@ -28,7 +28,7 @@ const SESSION_LABEL: Record<string, string> = {
   afterhours: "AFT",
 };
 
-function SessionBadge({ session }: { session: string | null }) {
+export function SessionBadge({ session }: { session: string | null }) {
   if (session === null) {
     // Visible, never hidden: an unclassified print is a fact about UW's
     // calendar, and it stays on the row that carries it.
@@ -52,7 +52,7 @@ function SessionBadge({ session }: { session: string | null }) {
   );
 }
 
-function ImpliedMove({ row }: { row: DeskCalendarRow }) {
+export function ImpliedMove({ row }: { row: DeskCalendarRow }) {
   if (row.implied_move_pct === null) {
     return (
       <span
