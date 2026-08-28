@@ -147,10 +147,16 @@ function domainTab(
 ): MacroTabContent {
   return async function DomainTab({ replay }: MacroTabProps) {
     const asOf = replay.kind === "replay" ? replay.asOf : undefined;
-    const state = await settle(
-      () => api.macroDomainState(domain, asOf),
-      `${domain} state API`,
-    );
+    // Tab 03's expectations panel needs the market-implied leg, and that series belongs
+    // to the rates domain — the board's own row says "(single owner)". So it is CITED at
+    // the same instant, settled separately: a rates outage must cost inflation one leg of
+    // one panel, not the whole tab. Tab 04 asks for nothing extra and pays for nothing.
+    const [state, citedRates] = await Promise.all([
+      settle(() => api.macroDomainState(domain, asOf), `${domain} state API`),
+      domain === "inflation"
+        ? settle(() => api.macroDomainState("rates", asOf), "rates state API")
+        : Promise.resolve({ value: null, error: undefined }),
+    ]);
 
     const verdict = replayVerdictForDomainState(replay, {
       asOf: state.value?.as_of,
@@ -166,7 +172,12 @@ function domainTab(
     return (
       <>
         {status}
-        <DomainStateTab domain={domain} slot={slot} />
+        <DomainStateTab
+          domain={domain}
+          slot={slot}
+          citedRates={citedRates.value}
+          citationError={citedRates.error}
+        />
       </>
     );
   };

@@ -1,21 +1,37 @@
 import { DomainStateCard } from "./DomainStateCard";
-import type { MacroDomainKey, MacroDomainSlot } from "./types";
+import { InflationPanels } from "./domain/InflationPanels";
+import { UsdPanels } from "./domain/UsdPanels";
+import type {
+  MacroDomainKey,
+  MacroDomainSlot,
+  MacroDomainState,
+} from "./types";
 import { DOMAIN_LABEL, DOMAIN_LEDE } from "./types";
 
 /**
  * One macro domain, as a whole tab.
  *
- * Tabs 03 (inflation) and 04 (USD) are a PRESENTATION MERGE and nothing else — §1 of the
- * port plan rules out new analytics for tabs 00-05, and §3's binding table gives each of
- * these exactly one request. So the body is `DomainStateCard`, unchanged: the same
- * component `/macro` already renders for these two domains, showing the same stored
- * answer, the same confidence terms, the same contradictions and the same cited evidence.
- * Nothing here recomputes, re-ranks or re-weights any of it.
+ * ### What this used to be, and why it changed
  *
- * What the tab adds over the card is a frame the card cannot carry when it is one of four
- * in a column: a heading, and a refusal. Both are prose.
+ * The first version of this tab was the shared `DomainStateCard` and nothing else,
+ * because §1 of the port plan said tabs 00-05 were a _presentation merge_ with no new
+ * analytics. That line was superseded on 2026-08-28: the board specifies FOUR panels for
+ * inflation and TWO for the dollar, and a conformance audit found zero of the six on the
+ * shipped desk (`docs/research/2026-08-28-macro-desk-board-conformance/`). One generic
+ * card was not a merge of the board's design; it was the absence of it.
  *
- * **The refusal is the part that earns its place.** A domain on its own page invites two
+ * What did NOT change is where the numbers come from. The six panels below add no
+ * endpoint and no derived quantity that the engine does not publish — the audit's own
+ * finding was that the single response each tab already fetched carried every panel.
+ * The one arithmetic on this page is the confidence repair table, which is the published
+ * multiplication with one published term set to its clear value, and it is tagged
+ * `COMPUTED` and shows its formula.
+ *
+ * The one exception to "one request" is inflation's expectations panel, which cites the
+ * rates domain's published breakeven. The board marks that row "(single owner)" for the
+ * same reason this cites rather than recomputes it.
+ *
+ * **The refusal stays, and still earns its place.** A domain on its own page invites two
  * readings the desk does not support — that the number is a verdict about markets, and
  * that it can be put beside the other three and averaged. §9 invariant 1 forbids the
  * second anywhere in the desk's own chrome, and the chain-level claim already has exactly
@@ -26,9 +42,14 @@ import { DOMAIN_LABEL, DOMAIN_LEDE } from "./types";
 export function DomainStateTab({
   domain,
   slot,
+  citedRates = null,
+  citationError,
 }: {
   domain: MacroDomainKey;
   slot: MacroDomainSlot;
+  /** The rates domain's published state, for tab 03's market-implied leg. */
+  citedRates?: MacroDomainState | null;
+  citationError?: string;
 }) {
   return (
     <div
@@ -59,6 +80,27 @@ export function DomainStateTab({
       </header>
 
       <DomainStateCard domain={domain} slot={slot} />
+
+      {/* The board's panels for this domain, below the card that summarises them. Only
+          rendered when there is a state to unfold: with no state the card above already
+          says which of the two silences it is, and six empty frames beneath it would
+          drown that in chrome. Written as two conditions rather than a lookup table —
+          the two domains share no panel, so a registry would be one indirection over
+          two literals. */}
+      {slot.value && domain === "inflation" ? (
+        <div style={{ marginTop: 14 }}>
+          <InflationPanels
+            state={slot.value}
+            citedRates={citedRates}
+            citationError={citationError}
+          />
+        </div>
+      ) : null}
+      {slot.value && domain === "usd" ? (
+        <div style={{ marginTop: 14 }}>
+          <UsdPanels state={slot.value} />
+        </div>
+      ) : null}
 
       <section
         id="refuses"
