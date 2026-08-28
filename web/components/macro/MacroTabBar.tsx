@@ -4,13 +4,18 @@ import Link from "next/link";
 import { usePathname, useSearchParams } from "next/navigation";
 
 import { replayHref } from "./replay";
-import { macroTabHref, macroTabsInBoardOrder } from "./tabs";
+import { macroTabHref, macroTabsForBar } from "./tabs";
 
 /**
  * The macro desk's tab strip.
  *
- * Registry-driven: one link per `VALID_TABS` entry, never a hardcoded list. The route
- * guard reads the same array, so this bar can only ever link somewhere that resolves.
+ * Registry-driven: one link per shipping `VALID_TABS` entry, never a hardcoded list. The
+ * route guard reads the same array, so this bar can only ever link somewhere that
+ * resolves — it renders a SUBSET, never anything the guard would reject.
+ *
+ * The subset is `audience`. Tab 08 (Design Notes) is registered, reachable at
+ * `/macro/notes`, and deliberately absent from this strip: the board's own t8 says "this
+ * tab is for you (the operator) and does not ship on the final page".
  *
  * Two deliberate choices, both of which a copy of an existing bar would get wrong:
  *
@@ -54,7 +59,7 @@ export function MacroTabBar() {
       aria-label="Macro desk tabs"
       data-testid="macro-tab-bar"
     >
-      {macroTabsInBoardOrder().map((tab) => {
+      {macroTabsForBar().map((tab) => {
         const href = macroTabHref(tab.slug);
         // Prefix match as well as equality so a tab that later grows a child route
         // (the gold replay surface is the named candidate) still highlights its own tab

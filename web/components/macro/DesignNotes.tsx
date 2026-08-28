@@ -8,6 +8,10 @@
  *
  * What belongs on this tab: the rules the desk holds itself to, and the reasons. What
  * does not: any number a publisher could have answered instead.
+ *
+ * It is UNLISTED as of 2026-08-28 (`audience: "operator"` in the registry). The board's
+ * own t8 opens by saying so — "this tab is for you (the operator) and does not ship on
+ * the final page" — and the route stays registered so the operator keeps the URL.
  */
 export function DesignNotes() {
   return (
@@ -21,6 +25,13 @@ export function DesignNotes() {
           has to keep proving, and which of its empty slots are deliberate
           rather than broken. These are notes about the desk, not readings from
           it — nothing on this tab is computed, and nothing on it moves.
+        </p>
+        <p style={LEDE}>
+          <strong>This tab is unlisted.</strong> It is reachable at{" "}
+          <code>/macro/notes</code> and is deliberately absent from the tab
+          strip: the design board it was written from says it is for the
+          operator and does not ship on the desk itself. Nothing above the fold
+          of any other tab depends on it.
         </p>
       </header>
 

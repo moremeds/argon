@@ -21,7 +21,9 @@
  * which is derived from this array, so registering a tab with nothing behind it is a
  * compile error rather than a runtime 404.
  *
- * P2 seeds this with tab 08 (Design Notes) alone — static prose, no data path.
+ * P2 seeds this with tab 08 (Design Notes) alone — static prose, no data path. That tab
+ * has since been marked `audience: "operator"`: it is registered and reachable by URL,
+ * and it is not in the strip, because the board says it does not ship on the final page.
  */
 
 import type { ReactElement } from "react";
@@ -56,10 +58,31 @@ export type MacroTabEntry = {
    * while calling an `obs_date` route is the failure §3.1 describes, wearing a label.
    */
   replayClock: MacroReplayClock;
+  /**
+   * Who the tab is FOR. Optional, defaulting to the desk, because the desk is what a tab
+   * is for unless the board says otherwise — and it says so exactly once.
+   *
+   * `"operator"` keeps the route registered and reachable by URL while removing it from
+   * the strip. The board's t8 opens with the instruction: _"This tab is for you (the
+   * operator) and does not ship on the final page."_ Deleting the entry instead would
+   * satisfy the letter of that and lose the tab entirely; leaving it in the bar was the
+   * shipped state and ignored it.
+   *
+   * This does NOT weaken the registry invariant. The bar renders a SUBSET of the
+   * registry, so it still cannot link anywhere that fails to resolve — only fewer places.
+   * The route guard keeps reading the full array, which is what keeps the URL alive.
+   */
+  audience?: "desk" | "operator";
 };
 
 export const VALID_TABS = [
-  { slug: "notes", ordinal: "08", label: "Design Notes", replayClock: "none" },
+  {
+    slug: "notes",
+    ordinal: "08",
+    label: "Design Notes",
+    replayClock: "none",
+    audience: "operator",
+  },
   { slug: "fed", ordinal: "01", label: "Fed · Policy", replayClock: "instant" },
   {
     slug: "rates",
@@ -114,4 +137,15 @@ export function macroTabHref(slug: string): string {
 /** Board order. Zero-padded two-digit strings sort lexicographically as numbers. */
 export function macroTabsInBoardOrder(): readonly MacroTabEntry[] {
   return [...VALID_TABS].sort((a, b) => a.ordinal.localeCompare(b.ordinal));
+}
+
+/**
+ * What the tab strip shows: board order, minus the operator-only tabs.
+ *
+ * Kept apart from `macroTabsInBoardOrder` rather than filtering in place, because the two
+ * questions are different and one of them is the route guard's. Anything that asks "which
+ * tabs exist" must keep getting all of them.
+ */
+export function macroTabsForBar(): readonly MacroTabEntry[] {
+  return macroTabsInBoardOrder().filter((tab) => tab.audience !== "operator");
 }
