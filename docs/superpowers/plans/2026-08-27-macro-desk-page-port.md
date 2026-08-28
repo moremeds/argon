@@ -234,6 +234,55 @@ column stays bare. The board's t4 title says "a dollar pair **in reverse**"; bot
 positive today, so the title stops at "a dollar pair" and the sentence is derived from the two
 signs. Design binds; frozen readings never do.
 
+### THIRD CORRECTION (2026-08-29): the board is the whole page, not the tabs I rebuilt
+
+The second correction fixed the design of tabs 03–05 and stopped there, which left the desk in a
+worse state than a uniformly wrong one: tabs 01 and 02 kept the old `/rates` styling, so the same
+desk rendered two visual languages depending on which tab you were standing on. The operator's
+correction was one line — _"THE FULL PAGE! ALL TABS!"_ — and it is the obvious reading of an
+artifact that has nine tabs in it.
+
+**The divergence on 01/02 was almost entirely one stylesheet, and mostly structural rather than
+typographic.** `RatesDesk.module.css` made `.section` a box — `bg-panel` + `border-dim`, 20px
+padding — and then filled it with `.slopeCard` / `.policyCard` / `.kpiTile`, each boxed again.
+The board puts exactly **one** level of boxing on a tab: the surface is flat and only `.panel`
+has a background. A card inside a card is a whole level of chrome the board never draws, and it
+is most of why the two halves of the desk did not look related even where their panels agreed.
+Under that sat the same three slips the domain components had, frozen at different values — six
+selectors spelling the panel heading six ways (13–16px sans, two of them in `--positive`),
+interpretive paragraphs with no accent rail and set 650/800 weight, and tables at 11–13px with a
+full-strength rule.
+
+**The page lockups went.** "FED POLICY DESK." and "GOLD COMPASS" each said the same words as the
+tab bar one line above them, in a different typeface. `BoardSecTitle` and `BoardStatePill` are
+lifted into `components/macro/domain/BoardPanel.tsx` and imported by `components/rates` — §7's
+rule is one-way (macro must never import rates) and its stated remedy for a primitive two
+subtrees need is exactly that lift. A second copy of the section title is how the desk got here.
+
+**Two recorded deviations, both about content the board has not compressed:**
+
+1. **The tier jump-nav stays on tabs 01/02.** The board's t1 is eight panels and its t2 is nine;
+   these tabs are eighteen sections across four tiers, because the `/rates` page they were merged
+   from was never compressed to the board's panel count. The board never has a tab long enough to
+   need a nav, so removing ours would be conforming to a decision the board did not make about a
+   tab this size. It goes when the sections do.
+2. **Tab 05's question strip is `Q1 Q2 Q4 Q5 Q7`, not the board's advertised `Q1 Q3 Q4 Q5 Q7`.**
+   The tab has an expression-cost panel the board files elsewhere (Q2) and nothing answering Q3.
+   Printing the board's strip would advertise a question no panel on the tab answers — precisely
+   what the acceptance test exists to catch — so the strip is the measured union.
+
+**Two of the three missing tabs are now built.** t7 Factor Export is what the board itself calls
+"pure assembly": four `/api/macro/*` states flattened, nothing computed. t6 Energy ships as the
+proposal the board designed, and introduced a panel kind this desk had not had before — one whose
+numbers are a **dated finding rather than a live read**. Everywhere else here a stale number is a
+bug; there the date is the number's meaning, so the panel carries its measurement date and method
+and says outright that the counts are a citation. That distinction is now in `CLAUDE.md`.
+
+**t0 Overview is still not built here, and deliberately.** It lives on `feat/macro-desk-tab-00`
+(2 commits, unmerged) and building it in this worktree would duplicate that branch and collide on
+`tabs.ts` and `app/macro/[tab]/page.tsx` at merge. That is the one part of "all tabs" this branch
+does not deliver, and the reason is a merge conflict rather than a judgement about the tab.
+
 ### 3.1 Point-in-time replay
 
 `as_of` / `as_of_ts` is accepted by **every** `/api/macro/*` route (`routers/macro.py`

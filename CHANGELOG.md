@@ -151,6 +151,38 @@ version in lockstep (enforced by `scripts/release/version_sync_check.py`).
 
 ### Added
 
+- **Macro desk tab 07 · Factor Export** (`/macro/factors`) — the board's "equity consumes
+  macro" tab, and pure assembly: four `/api/macro/*` states flattened into one table with
+  nothing computed. If a number here disagreed with the same number on the domain's own
+  tab, this page would be the bug. It exists to state a direction contract — equity →
+  reads → macro factor, never the reverse — and it refuses three things with reasons.
+  The four **state labels are not exportable**: they appear as one context-only row,
+  because labels chatter (inflation flipped 4× in 68 months, a classifier boundary at the
+  median chattering maximally) and an equity backtest joining one gets boundary noise, not
+  macro information. The **delivery form stays `PLANNED`** with nothing callable on it.
+  And **no forward-return claim** is made anywhere, the desk's own pre-test having
+  returned `descriptive_only`. Two details are load-bearing: the "Data as-of" column
+  prints `available_at`, not `period_end`, because a backtest joining on the second
+  crosses its own information boundary; and a domain that did not answer is **named** in
+  the read rather than dropped, since a consumer cannot otherwise tell a factor that is
+  absent from one that was never asked for.
+
+- **Macro desk tab 06 · Energy · Proposal** (`/macro/energy`) — the only tab that fetches
+  nothing, shipped as a proposal because energy is the supply-side driver of inflation,
+  the denominator of the gold÷oil anchor and a volatility input on the dollar side. Its
+  one panel carrying numbers is a **dated finding, not a reading**: the inventory is a
+  single enumeration run on 2026-08-26 and nothing re-checks it, so the panel names its
+  date and method in its own provenance line and says outright that the counts are a
+  citation. Elsewhere on this desk a stale number is a bug; here the date is the number's
+  meaning. The finding that matters is the shape — raw contract data is already landing in
+  the lake while the macro store has no energy series at all, which makes step one an
+  ingest rather than an acquisition. Everything forward-looking is `PLANNED` and carries
+  no value, and the tab closes on its own argument: **no energy state label and no fifth
+  domain until one is measured**, because adding a fifth label because four exist is how a
+  desk acquires a state nobody measured. `replayClock: "none"` — only the second tab to
+  declare it — since a date picker over a tab that makes no request answers by doing
+  nothing.
+
 - **The rates desk is now two tabs of the macro desk**, `/macro/fed` (01 · Fed · Policy) and
   `/macro/rates` (02 · Rates · Curve), and `/rates` 308s to the curve tab. `RatesDesk.tsx`
   (602 L) _was_ the page shell, so it could not move unchanged — it is split into `FedDesk`
@@ -716,6 +748,34 @@ evidence_policy)`, which fails closed — an observation with no claim never
     reference point and never by a market view; a label nobody has published renders
     neutral rather than being assigned a severity by guess. The empty slot stays
     three-state, and a missing state never wears a state colour.
+  - **The board is the whole page, so the design port now covers every tab that ships.**
+    Tabs 03–05 were rebuilt against the board while 01 and 02 kept the old `/rates`
+    styling, and the desk read as two products sharing a tab bar. The divergence was
+    almost entirely one stylesheet: `RatesDesk.module.css` made a **section a box** —
+    `bg-panel` + `border-dim`, then filled with boxed cards — where the board puts exactly
+    one level of boxing on a tab and only `.panel` has a background. Six selectors spelled
+    the panel heading six different ways (13–16px sans, some in `--positive`) against the
+    board's one 10px mono uppercase; interpretive paragraphs had no accent rail and were
+    set 650/800 weight, where the board makes a read findable by its 2px edge rather than
+    by bolding the prose. Tables move to the board's 10px header and 60%-mixed rule, the
+    state pill from frozen `rgba()` (the dark theme's `--positive`, wrong under the light
+    one) to `color-mix()`, and refusals to the board's **dashed** callout — a solid panel
+    reads as another finding, and the one thing a refusal must not look like is a result.
+  - **The page lockups are gone from tabs 01, 02 and 05.** "FED POLICY DESK." and "GOLD
+    COMPASS" each said the same words as the tab bar directly above them, in a different
+    typeface; the board's tabs open with an `<h2>`, the question strip, a state pill where
+    the tab has one, and a standfirst. `BoardSecTitle`/`BoardStatePill` are lifted into
+    `components/macro/domain` and imported by `components/rates` — §7's rule is one-way
+    and its stated remedy for a shared primitive is exactly that lift. The GOLD COMPASS
+    wordmark still renders where it is still the only thing naming the page,
+    `/gold/replay/<date>`, and a unit test holds the two chromes apart.
+  - **Gold's interpretive paragraphs gain the board's read rail**, as an inline style
+    rather than the class: they render on two routes and only `/macro` loads `board.css`,
+    so a class would have styled the desk and silently done nothing on the replay route.
+  - **Tab 05's state pill is fetched only in live mode**, which is a clock decision and not
+    an optimisation. That tab's date is an `obs_date` — the market day a reading is about,
+    matched exactly — while `/api/macro/gold` resolves an instant; handing one to the other
+    would put two different questions under one pill. In replay the pill says so in words.
   - **Tab 01 gains the refusal panel it was the only tab shipping without**, carrying four
     invariants that previously existed only as code comments and test assertions.
   - **Issuance moves from tab 01 to tab 02**, where the board puts it. Who is issuing and
