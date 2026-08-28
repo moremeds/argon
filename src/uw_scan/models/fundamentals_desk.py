@@ -29,6 +29,31 @@ than reporting `12/18`, because "12/18" is decoration and "missing: COHR,
 LITE" is actionable. `percentile_state` carries the six-state
 `FundamentalResultState` so a null percentile can say WHICH kind of nothing
 it is — `no_compatible_run` is not `no_coverage`.
+
+EVERY FIELD IN THIS FILE IS REQUIRED. NULLABLE IS NOT OPTIONAL.
+----------------------------------------------------------------
+This is a rule about the whole module, not a property of particular fields,
+and it exists because the natural way to declare a nullable field —
+`x: float | None = None` — silently makes it ABSENT-ALLOWED too. Pydantic
+drops it from the schema's `required` array and `openapi-typescript` emits
+`x?: number | null`: three states where the contract has two.
+
+That is not cosmetic here. `MemberDot.knowledge_date_estimated` is documented
+as three-state with `null` explicitly NOT `false`; adding a fourth reading
+(`undefined`) to a field whose whole problem is that two states are already
+confusable is how a consumer inverts it. The collections are worse than the
+scalars: `reactions?: number[]` makes `row.reactions.length` a runtime crash
+instead of the "no reaction history is held — which is not 'the stock did not
+move'" reading that field's own description demands.
+
+So: nullable scalars are `Field(..., description=...)` or a bare annotation;
+list fields never carry `= []` or `default_factory`. Every assembler passes
+every field explicitly — verified, not assumed — so no default in this file is
+load-bearing, and none should be reintroduced. If a future field's ABSENCE is
+genuinely a different answer from its NULL, that is the one reason to make it
+optional, and it needs a comment saying which two answers it is distinguishing.
+`test_every_desk_field_is_required` enumerates this module's models
+reflectively, so a model added later is covered without being listed anywhere.
 """
 
 from __future__ import annotations
@@ -65,6 +90,7 @@ class DeskCalendarRow(_UwBase):
     ticker: str
     report_date: date
     session: str | None = Field(
+        ...,
         description=(
             "'premarket' | 'afterhours' | null. NULL IS A REAL THIRD VALUE, not "
             "missing data: the ~2% of names UW reports as report_time "
@@ -75,13 +101,6 @@ class DeskCalendarRow(_UwBase):
     chain: str
     layer: str
     layer_rank: int
-    # REQUIRED-BUT-NULLABLE, and the `...` is load-bearing. Giving these a
-    # default drops them out of the schema's `required` array, which makes the
-    # generated TypeScript `implied_move_pct?: number | null` — three states
-    # where the contract has two. `null` here MEANS "not covered by the
-    # option-surface snapshot", so a consumer's `=== null` check would silently
-    # miss `undefined` and the honest-absence guarantee would be re-opened one
-    # layer up, in the type. Match `session` above: describe, never default.
     implied_move_pct: float | None = Field(
         ...,
         description=(
@@ -100,7 +119,7 @@ class DeskCalendarRow(_UwBase):
         ),
     )
     reactions: list[float] = Field(
-        default=[],
+        ...,
         description=(
             "Last <=4 realised print moves, NEWEST FIRST, as fractions "
             "(-0.0177 = -1.77%). An EMPTY list means no reaction history is "
@@ -108,7 +127,7 @@ class DeskCalendarRow(_UwBase):
         ),
     )
     spot_percentile: float | None = Field(
-        default=None,
+        ...,
         description=(
             "OWN-HISTORY YIELD percentile, so HIGH IS CHEAP: 0.80 means this "
             "name is cheaper against its own past than 80% of its own history. "
@@ -117,7 +136,7 @@ class DeskCalendarRow(_UwBase):
         ),
     )
     percentile_state: FundamentalResultState = Field(
-        default="ok",
+        ...,
         description=(
             "'ok' when a percentile is present; otherwise WHICH kind of "
             "absence it is. 'no_compatible_run' (Argon computed nothing) and "
@@ -135,7 +154,7 @@ class DeskCalendarResponse(_UwBase):
     as_of: date
     #: report_date ASC, then layer_rank ASC — chain order is read-through
     #: order, which a generic calendar cannot say. Fixed regardless of filter.
-    rows: list[DeskCalendarRow] = []
+    rows: list[DeskCalendarRow]
 
 
 class DeltaRailEvent(_UwBase):
@@ -152,15 +171,16 @@ class DeltaRailEvent(_UwBase):
     first_known_at: date
     title: str
     #: The event's own payload, plus `also` when a second class fired for the
-    #: same fact and was collapsed into this entry.
-    detail: dict = {}
+    #: same fact and was collapsed into this entry. `{}` when the class carries
+    #: no extras — always emitted, so a reader never branches on its absence.
+    detail: dict
 
 
 class DeltaRailResponse(_UwBase):
     since: date
     #: Ordered `first_known_at` DESC — the desk's KNOWLEDGE clock, not the
     #: world's. "What changed" is a question about what Argon learned.
-    events: list[DeltaRailEvent] = []
+    events: list[DeltaRailEvent]
 
 
 class MemberDot(_UwBase):
@@ -174,7 +194,7 @@ class MemberDot(_UwBase):
     value: float | None
     state: FundamentalResultState
     knowledge_date_estimated: bool | None = Field(
-        default=None,
+        ...,
         description=(
             "THREE-STATE, and null is NOT false. true = this figure's "
             "knowledge date is the period_end + lag ESTIMATE, which errs early "
@@ -199,7 +219,7 @@ class CohortSlice(_UwBase):
     as_of: date
     #: 'reported' for the newest bucket present, 'awaiting' for every older one.
     label: str
-    tickers: list[str] = []
+    tickers: list[str]
 
 
 class ChainMetricCell(_UwBase):
@@ -219,7 +239,7 @@ class ChainMetricCell(_UwBase):
     #: 'rev_yoy' | 'gross_margin' | 'valuation_percentile'
     metric: str
     median: float | None = Field(
-        default=None,
+        ...,
         description=(
             "UNWEIGHTED median of the non-null dot values — never "
             "revenue-weighted. ALWAYS null when metric = "
@@ -228,11 +248,11 @@ class ChainMetricCell(_UwBase):
             "nothing measured. Also null when no member has a value."
         ),
     )
-    dots: list[MemberDot] = []
+    dots: list[MemberDot]
     #: >=2 entries iff the chain's members straddle as_of buckets.
-    cohorts: list[CohortSlice] = []
+    cohorts: list[CohortSlice]
     coverage_missing: list[str] = Field(
-        default=[],
+        ...,
         description=(
             "The DISTINCT tickers with no value for this metric, BY NAME — "
             "never a bare count. '12/18' is decoration; 'missing: COHR' is "
@@ -241,15 +261,15 @@ class ChainMetricCell(_UwBase):
     )
     #: DISTINCT tickers. `chain_membership` is (chain, layer, ticker)-grained,
     #: so a name in two layers is two rows and must count ONCE.
-    members_total: int = 0
+    members_total: int
 
 
 class DeskMatrixResponse(_UwBase):
     section: str
     #: Ordered by each chain's minimum `layer_rank`, ties alphabetically —
     #: never by any metric.
-    chains: list[str] = []
-    cells: list[ChainMetricCell] = []
+    chains: list[str]
+    cells: list[ChainMetricCell]
 
 
 class ProfitPoolLayer(_UwBase):
@@ -261,9 +281,10 @@ class ProfitPoolLayer(_UwBase):
 
     chain: str
     layer_rank: int
-    median_gross_margin: float | None = None
-    median_rev_yoy: float | None = None
-    dots: list[MemberDot] = []
+    #: Null when no member carries the metric — an abstention, never a 0.
+    median_gross_margin: float | None
+    median_rev_yoy: float | None
+    dots: list[MemberDot]
 
 
 class MembershipEvidenceCount(_UwBase):
@@ -303,23 +324,25 @@ class DeskLimitsResponse(_UwBase):
     render them as an integrity error.
     """
 
-    #: The two statements' net income matches.
-    ni_basis_agree: int = 0
+    #: Comparable pairs whose two statements MATCH. Scoped to the section, and
+    #: a sign-flipped pair is counted in neither this nor `ni_basis_differ` —
+    #: it is a violation, and booking it here too would double-count it.
+    ni_basis_agree: int
     #: They differ — NOT an error. See the class docstring.
-    ni_basis_differ: int = 0
+    ni_basis_differ: int
     #: Named tickers, largest number of differing periods first.
-    ni_largest_basis_differences: list[str] = []
+    ni_largest_basis_differences: list[str]
     #: The one GENUINE integrity check on this axis, separate and rare:
     #: a literal sign inversion between the two statements (measured 5 of
     #: 28,973 rows). This one IS a violation and is labelled as such.
-    ni_sign_flip_violations: int = 0
+    ni_sign_flip_violations: int
     #: Spec §3f's fixed sentence — legitimately prose, because the reason a
     #: number is withheld is not itself a number.
-    withheld_composite: str = ""
+    withheld_composite: str
     #: Membership semantics as NUMBERS (spec §3f: computed, not prose); the
     #: web layer writes captions OVER these, never instead of them.
-    membership_evidence: list[MembershipEvidenceCount] = []
-    exposure_coverage: list[ChainExposureCoverage] = []
+    membership_evidence: list[MembershipEvidenceCount]
+    exposure_coverage: list[ChainExposureCoverage]
 
 
 class NodeUnderwritingRow(_UwBase):
@@ -339,10 +362,10 @@ class NodeUnderwritingRow(_UwBase):
 
     ticker: str
     period_end: date
-    dio: float | None = None
-    sbc_to_revenue: float | None = None
+    dio: float | None
+    sbc_to_revenue: float | None
     shares_outstanding_yoy: float | None = Field(
-        default=None,
+        ...,
         description=(
             "Change in BASIC period-end shares outstanding against four "
             "quarters earlier. NOT a diluted share count — no diluted share "
@@ -351,14 +374,16 @@ class NodeUnderwritingRow(_UwBase):
             "label it 'dilution'."
         ),
     )
-    filing_published_at: date | None = None
+    filing_published_at: date | None
     #: Verbatim `raw_jsonb` strings — the filed line items themselves, copied
-    #: not reformatted, so the figure above can be checked against them.
-    inventory_raw: str | None = None
-    cost_of_revenue_raw: str | None = None
-    sbc_raw: str | None = None
-    shares_outstanding_raw: str | None = None
-    state: FundamentalResultState = "ok"
+    #: not reformatted, so the figure above can be checked against them. Null
+    #: means the provider served no such line for this period, which is a fact
+    #: about the filing and must render as such rather than as a blank cell.
+    inventory_raw: str | None
+    cost_of_revenue_raw: str | None
+    sbc_raw: str | None
+    shares_outstanding_raw: str | None
+    state: FundamentalResultState
 
 
 _preserve_public_module(

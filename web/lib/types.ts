@@ -2903,27 +2903,17 @@ export interface components {
              * Median
              * @description UNWEIGHTED median of the non-null dot values — never revenue-weighted. ALWAYS null when metric = 'valuation_percentile': own-history percentiles are NAME facts, so a chain aggregate over them is a claim about the chain that nothing measured. Also null when no member has a value.
              */
-            median?: number | null;
-            /**
-             * Dots
-             * @default []
-             */
+            median: number | null;
+            /** Dots */
             dots: components["schemas"]["MemberDot"][];
-            /**
-             * Cohorts
-             * @default []
-             */
+            /** Cohorts */
             cohorts: components["schemas"]["CohortSlice"][];
             /**
              * Coverage Missing
              * @description The DISTINCT tickers with no value for this metric, BY NAME — never a bare count. '12/18' is decoration; 'missing: COHR' is actionable. An empty list means full coverage.
-             * @default []
              */
             coverage_missing: string[];
-            /**
-             * Members Total
-             * @default 0
-             */
+            /** Members Total */
             members_total: number;
         };
         /**
@@ -3232,10 +3222,7 @@ export interface components {
             as_of: string;
             /** Label */
             label: string;
-            /**
-             * Tickers
-             * @default []
-             */
+            /** Tickers */
             tickers: string[];
         };
         /**
@@ -3818,10 +3805,7 @@ export interface components {
             first_known_at: string;
             /** Title */
             title: string;
-            /**
-             * Detail
-             * @default {}
-             */
+            /** Detail */
             detail: {
                 [key: string]: unknown;
             };
@@ -3833,10 +3817,7 @@ export interface components {
              * Format: date
              */
             since: string;
-            /**
-             * Events
-             * @default []
-             */
+            /** Events */
             events: components["schemas"]["DeltaRailEvent"][];
         };
         /** DeskCalendarResponse */
@@ -3848,10 +3829,7 @@ export interface components {
              * Format: date
              */
             as_of: string;
-            /**
-             * Rows
-             * @default []
-             */
+            /** Rows */
             rows: components["schemas"]["DeskCalendarRow"][];
         };
         /**
@@ -3896,18 +3874,16 @@ export interface components {
             /**
              * Reactions
              * @description Last <=4 realised print moves, NEWEST FIRST, as fractions (-0.0177 = -1.77%). An EMPTY list means no reaction history is held — which is not 'the stock did not move'.
-             * @default []
              */
             reactions: number[];
             /**
              * Spot Percentile
              * @description OWN-HISTORY YIELD percentile, so HIGH IS CHEAP: 0.80 means this name is cheaper against its own past than 80% of its own history. It is NOT a cross-sectional rank and must never order a list — cross-sectional value measured INVERTED in this universe.
              */
-            spot_percentile?: number | null;
+            spot_percentile: number | null;
             /**
              * Percentile State
              * @description 'ok' when a percentile is present; otherwise WHICH kind of absence it is. 'no_compatible_run' (Argon computed nothing) and 'no_coverage' (Argon holds no statements) are different answers and must not render alike; 'unsupported_capability' means the valuation method REFUSED to price this name.
-             * @default ok
              * @enum {string}
              */
             percentile_state: "ok" | "stale_run" | "no_compatible_run" | "no_coverage" | "unsupported_capability" | "failed_run";
@@ -3928,55 +3904,28 @@ export interface components {
          *     render them as an integrity error.
          */
         DeskLimitsResponse: {
-            /**
-             * Ni Basis Agree
-             * @default 0
-             */
+            /** Ni Basis Agree */
             ni_basis_agree: number;
-            /**
-             * Ni Basis Differ
-             * @default 0
-             */
+            /** Ni Basis Differ */
             ni_basis_differ: number;
-            /**
-             * Ni Largest Basis Differences
-             * @default []
-             */
+            /** Ni Largest Basis Differences */
             ni_largest_basis_differences: string[];
-            /**
-             * Ni Sign Flip Violations
-             * @default 0
-             */
+            /** Ni Sign Flip Violations */
             ni_sign_flip_violations: number;
-            /**
-             * Withheld Composite
-             * @default
-             */
+            /** Withheld Composite */
             withheld_composite: string;
-            /**
-             * Membership Evidence
-             * @default []
-             */
+            /** Membership Evidence */
             membership_evidence: components["schemas"]["MembershipEvidenceCount"][];
-            /**
-             * Exposure Coverage
-             * @default []
-             */
+            /** Exposure Coverage */
             exposure_coverage: components["schemas"]["ChainExposureCoverage"][];
         };
         /** DeskMatrixResponse */
         DeskMatrixResponse: {
             /** Section */
             section: string;
-            /**
-             * Chains
-             * @default []
-             */
+            /** Chains */
             chains: string[];
-            /**
-             * Cells
-             * @default []
-             */
+            /** Cells */
             cells: components["schemas"]["ChainMetricCell"][];
         };
         /**
@@ -6886,7 +6835,7 @@ export interface components {
              * Knowledge Date Estimated
              * @description THREE-STATE, and null is NOT false. true = this figure's knowledge date is the period_end + lag ESTIMATE, which errs early for late filers and manufactures look-ahead (measured: composite IC 0.059 with the fallback against 0.039 without). false = a real filing date. null = this dot has no knowledge date at all (a valuation percentile is not a filed figure), which is not a claim that the date is real. Carried so a reader can see it; the desk never filters on it.
              */
-            knowledge_date_estimated?: boolean | null;
+            knowledge_date_estimated: boolean | null;
         };
         /**
          * MembershipEvidenceCount
@@ -6925,27 +6874,26 @@ export interface components {
              */
             period_end: string;
             /** Dio */
-            dio?: number | null;
+            dio: number | null;
             /** Sbc To Revenue */
-            sbc_to_revenue?: number | null;
+            sbc_to_revenue: number | null;
             /**
              * Shares Outstanding Yoy
              * @description Change in BASIC period-end shares outstanding against four quarters earlier. NOT a diluted share count — no diluted share key exists at any tier of the source store — so it measures issuance and buyback, NOT option/RSU/convertible overhang. Never label it 'dilution'.
              */
-            shares_outstanding_yoy?: number | null;
+            shares_outstanding_yoy: number | null;
             /** Filing Published At */
-            filing_published_at?: string | null;
+            filing_published_at: string | null;
             /** Inventory Raw */
-            inventory_raw?: string | null;
+            inventory_raw: string | null;
             /** Cost Of Revenue Raw */
-            cost_of_revenue_raw?: string | null;
+            cost_of_revenue_raw: string | null;
             /** Sbc Raw */
-            sbc_raw?: string | null;
+            sbc_raw: string | null;
             /** Shares Outstanding Raw */
-            shares_outstanding_raw?: string | null;
+            shares_outstanding_raw: string | null;
             /**
              * State
-             * @default ok
              * @enum {string}
              */
             state: "ok" | "stale_run" | "no_compatible_run" | "no_coverage" | "unsupported_capability" | "failed_run";
@@ -7549,13 +7497,10 @@ export interface components {
             /** Layer Rank */
             layer_rank: number;
             /** Median Gross Margin */
-            median_gross_margin?: number | null;
+            median_gross_margin: number | null;
             /** Median Rev Yoy */
-            median_rev_yoy?: number | null;
-            /**
-             * Dots
-             * @default []
-             */
+            median_rev_yoy: number | null;
+            /** Dots */
             dots: components["schemas"]["MemberDot"][];
         };
         /** ProviderUsageBreakdownResponse */

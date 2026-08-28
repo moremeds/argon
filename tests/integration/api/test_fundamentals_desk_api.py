@@ -904,33 +904,55 @@ def test_the_two_invertible_facts_reach_the_generated_types(desk_client):
     assert "NOT a diluted share count" in shares
 
 
-def test_a_nullable_field_is_still_required_in_the_contract(desk_client):
-    """`null` and `undefined` are not the same answer, and on this row the
-    difference is the whole point.
+def _desk_model_names() -> list[str]:
+    """Every response model this module defines, found REFLECTIVELY.
 
-    `implied_move_pct`'s null MEANS "not covered by the option-surface
-    snapshot". Giving it a schema default drops it from `required`, which
-    makes the generated TypeScript `implied_move_pct?: number | null` — so a
-    consumer's `=== null` check silently misses `undefined` and the
-    honest-absence guarantee is re-opened one layer up, in the type. Adding a
-    description must never widen a contract.
+    Enumerated rather than listed so a model added later is covered without
+    anyone remembering to add it here — the defect this test exists for is a
+    rule being broken, not a particular field being wrong.
+    """
+    from pydantic import BaseModel
+
+    from uw_scan.models import _base, fundamentals_desk
+
+    return sorted(
+        name
+        for name, obj in vars(fundamentals_desk).items()
+        if isinstance(obj, type)
+        and issubclass(obj, BaseModel)
+        and obj is not _base._UwBase
+        and not name.startswith("_")
+    )
+
+
+def test_every_desk_field_is_required(desk_client):
+    """NULLABLE IS NOT OPTIONAL, across the whole module.
+
+    `x: float | None = None` is the natural way to declare a nullable field
+    and it silently makes the field absent-allowed as well: Pydantic drops it
+    from `required` and `openapi-typescript` emits `x?: number | null` — three
+    states where the contract has two.
+
+    That is load-bearing here twice over. `MemberDot.knowledge_date_estimated`
+    is documented three-state with `null` explicitly NOT `false`, so a fourth
+    reading is how a consumer inverts it; and `reactions?: number[]` turns
+    `row.reactions.length` into a runtime crash rather than the "no reaction
+    history is held" reading its own description demands.
+
+    Asserting the RULE over every model, rather than the two fields a reviewer
+    happened to name, is the point: patching named instances left twenty-nine
+    other fields widened.
     """
     schemas = desk_client.get("/openapi.json").json()["components"]["schemas"]
-    required = set(schemas["DeskCalendarRow"]["required"])
-    # Every field that carries no default in the model, described or not.
-    assert {
-        "ticker",
-        "report_date",
-        "session",
-        "chain",
-        "layer",
-        "layer_rank",
-        "implied_move_pct",
-        "implied_move_asof",
-    } <= required
-    # ...and the ones that genuinely DO have defaults stayed optional.
-    assert "reactions" not in required
-    assert "spot_percentile" not in required
+    names = _desk_model_names()
+    assert len(names) == 13, names  # the module's full model surface
+    for name in names:
+        schema = schemas[name]
+        optional = sorted(set(schema["properties"]) - set(schema.get("required", [])))
+        # A field may only be optional if its ABSENCE is a different answer
+        # from its NULL. No field in this module qualifies; if one ever does,
+        # allow-list it HERE with the two answers it distinguishes named.
+        assert optional == [], f"{name} has absent-allowed fields: {optional}"
 
 
 def test_profit_pool_model_has_no_edge_field():

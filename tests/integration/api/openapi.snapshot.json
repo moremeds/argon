@@ -1300,7 +1300,6 @@
             "type": "string"
           },
           "cohorts": {
-            "default": [],
             "items": {
               "$ref": "#/components/schemas/CohortSlice"
             },
@@ -1308,7 +1307,6 @@
             "type": "array"
           },
           "coverage_missing": {
-            "default": [],
             "description": "The DISTINCT tickers with no value for this metric, BY NAME \u2014 never a bare count. '12/18' is decoration; 'missing: COHR' is actionable. An empty list means full coverage.",
             "items": {
               "type": "string"
@@ -1317,7 +1315,6 @@
             "type": "array"
           },
           "dots": {
-            "default": [],
             "items": {
               "$ref": "#/components/schemas/MemberDot"
             },
@@ -1337,7 +1334,6 @@
             "title": "Median"
           },
           "members_total": {
-            "default": 0,
             "title": "Members Total",
             "type": "integer"
           },
@@ -1348,7 +1344,12 @@
         },
         "required": [
           "chain",
-          "metric"
+          "metric",
+          "median",
+          "dots",
+          "cohorts",
+          "coverage_missing",
+          "members_total"
         ],
         "title": "ChainMetricCell",
         "type": "object"
@@ -2475,7 +2476,6 @@
             "type": "string"
           },
           "tickers": {
-            "default": [],
             "items": {
               "type": "string"
             },
@@ -2485,7 +2485,8 @@
         },
         "required": [
           "as_of",
-          "label"
+          "label",
+          "tickers"
         ],
         "title": "CohortSlice",
         "type": "object"
@@ -4121,7 +4122,6 @@
         "properties": {
           "detail": {
             "additionalProperties": true,
-            "default": {},
             "title": "Detail",
             "type": "object"
           },
@@ -4153,7 +4153,8 @@
           "ticker",
           "occurred_at",
           "first_known_at",
-          "title"
+          "title",
+          "detail"
         ],
         "title": "DeltaRailEvent",
         "type": "object"
@@ -4161,7 +4162,6 @@
       "DeltaRailResponse": {
         "properties": {
           "events": {
-            "default": [],
             "items": {
               "$ref": "#/components/schemas/DeltaRailEvent"
             },
@@ -4175,7 +4175,8 @@
           }
         },
         "required": [
-          "since"
+          "since",
+          "events"
         ],
         "title": "DeltaRailResponse",
         "type": "object"
@@ -4188,7 +4189,6 @@
             "type": "string"
           },
           "rows": {
-            "default": [],
             "items": {
               "$ref": "#/components/schemas/DeskCalendarRow"
             },
@@ -4202,7 +4202,8 @@
         },
         "required": [
           "section",
-          "as_of"
+          "as_of",
+          "rows"
         ],
         "title": "DeskCalendarResponse",
         "type": "object"
@@ -4248,7 +4249,6 @@
             "type": "integer"
           },
           "percentile_state": {
-            "default": "ok",
             "description": "'ok' when a percentile is present; otherwise WHICH kind of absence it is. 'no_compatible_run' (Argon computed nothing) and 'no_coverage' (Argon holds no statements) are different answers and must not render alike; 'unsupported_capability' means the valuation method REFUSED to price this name.",
             "enum": [
               "ok",
@@ -4262,7 +4262,6 @@
             "type": "string"
           },
           "reactions": {
-            "default": [],
             "description": "Last <=4 realised print moves, NEWEST FIRST, as fractions (-0.0177 = -1.77%). An EMPTY list means no reaction history is held \u2014 which is not 'the stock did not move'.",
             "items": {
               "type": "number"
@@ -4312,7 +4311,10 @@
           "layer",
           "layer_rank",
           "implied_move_pct",
-          "implied_move_asof"
+          "implied_move_asof",
+          "reactions",
+          "spot_percentile",
+          "percentile_state"
         ],
         "title": "DeskCalendarRow",
         "type": "object"
@@ -4321,7 +4323,6 @@
         "description": "What the desk cannot say, computed rather than asserted (spec \u00a73f).\n\nTHE NI FIELDS ARE DESCRIPTIVE AND MUST NEVER BE LABELLED PASS/FAIL.\nTask 10's premise \u2014 that an income-vs-cash-flow net-income disagreement is\na data-integrity failure \u2014 was DISPROVED. Income-statement `net_income` is\nattributable-to-parent post-discontinued-ops; the cash-flow statement\nopens from consolidated NI INCLUDING noncontrolling interests (ASC 230\nindirect). A disagreement is usually correct accounting on BOTH sides \u2014\nmeasured on 342 of 419 tickers, worked case VZ 2010-Q3 where 2,698M =\n881M + 1,817M NCI. Argon stores no NCI field and therefore CANNOT\nattribute the difference. Never name these pass/fail/offender and never\nrender them as an integrity error.",
         "properties": {
           "exposure_coverage": {
-            "default": [],
             "items": {
               "$ref": "#/components/schemas/ChainExposureCoverage"
             },
@@ -4329,7 +4330,6 @@
             "type": "array"
           },
           "membership_evidence": {
-            "default": [],
             "items": {
               "$ref": "#/components/schemas/MembershipEvidenceCount"
             },
@@ -4337,17 +4337,14 @@
             "type": "array"
           },
           "ni_basis_agree": {
-            "default": 0,
             "title": "Ni Basis Agree",
             "type": "integer"
           },
           "ni_basis_differ": {
-            "default": 0,
             "title": "Ni Basis Differ",
             "type": "integer"
           },
           "ni_largest_basis_differences": {
-            "default": [],
             "items": {
               "type": "string"
             },
@@ -4355,23 +4352,29 @@
             "type": "array"
           },
           "ni_sign_flip_violations": {
-            "default": 0,
             "title": "Ni Sign Flip Violations",
             "type": "integer"
           },
           "withheld_composite": {
-            "default": "",
             "title": "Withheld Composite",
             "type": "string"
           }
         },
+        "required": [
+          "ni_basis_agree",
+          "ni_basis_differ",
+          "ni_largest_basis_differences",
+          "ni_sign_flip_violations",
+          "withheld_composite",
+          "membership_evidence",
+          "exposure_coverage"
+        ],
         "title": "DeskLimitsResponse",
         "type": "object"
       },
       "DeskMatrixResponse": {
         "properties": {
           "cells": {
-            "default": [],
             "items": {
               "$ref": "#/components/schemas/ChainMetricCell"
             },
@@ -4379,7 +4382,6 @@
             "type": "array"
           },
           "chains": {
-            "default": [],
             "items": {
               "type": "string"
             },
@@ -4392,7 +4394,9 @@
           }
         },
         "required": [
-          "section"
+          "section",
+          "chains",
+          "cells"
         ],
         "title": "DeskMatrixResponse",
         "type": "object"
@@ -12929,7 +12933,8 @@
         "required": [
           "ticker",
           "value",
-          "state"
+          "state",
+          "knowledge_date_estimated"
         ],
         "title": "MemberDot",
         "type": "object"
@@ -13052,7 +13057,6 @@
             "title": "Shares Outstanding Yoy"
           },
           "state": {
-            "default": "ok",
             "enum": [
               "ok",
               "stale_run",
@@ -13071,7 +13075,16 @@
         },
         "required": [
           "ticker",
-          "period_end"
+          "period_end",
+          "dio",
+          "sbc_to_revenue",
+          "shares_outstanding_yoy",
+          "filing_published_at",
+          "inventory_raw",
+          "cost_of_revenue_raw",
+          "sbc_raw",
+          "shares_outstanding_raw",
+          "state"
         ],
         "title": "NodeUnderwritingRow",
         "type": "object"
@@ -15238,7 +15251,6 @@
             "type": "string"
           },
           "dots": {
-            "default": [],
             "items": {
               "$ref": "#/components/schemas/MemberDot"
             },
@@ -15274,7 +15286,10 @@
         },
         "required": [
           "chain",
-          "layer_rank"
+          "layer_rank",
+          "median_gross_margin",
+          "median_rev_yoy",
+          "dots"
         ],
         "title": "ProfitPoolLayer",
         "type": "object"
