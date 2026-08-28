@@ -47,7 +47,7 @@ function realErrors(errors: string[]): string[] {
 }
 
 test.describe("macro desk shell", () => {
-  test("tab 08 renders under the desk's tab bar", async ({ page }) => {
+  test("tab 08 renders under the desk's tab bar, unlisted", async ({ page }) => {
     const consoleErrors = collectConsoleErrors(page);
 
     const response = await page.goto("/macro/notes");
@@ -63,10 +63,15 @@ test.describe("macro desk shell", () => {
     // The shell around it. The bar lives in `app/macro/layout.tsx`, so its absence here
     // would mean the tab rendered outside the desk rather than inside it.
     await expect(page.getByTestId("macro-tab-bar")).toBeVisible();
-    await expect(page.getByTestId("macro-tab-notes")).toHaveAttribute(
-      "aria-current",
-      "page",
-    );
+
+    // ...but this tab is NOT one of the bar's links. The board's t8 says it is for the
+    // operator and does not ship on the final page, so the route stays reachable by URL
+    // and leaves the strip. Both halves are asserted here because either alone is the
+    // wrong outcome: a 404 would have lost the tab, a link would have shipped it.
+    await expect(page.getByTestId("macro-tab-notes")).toHaveCount(0);
+    await expect(
+      page.locator('[data-testid="macro-tab-bar"] a[aria-current="page"]'),
+    ).toHaveCount(0);
 
     expect(realErrors(consoleErrors)).toEqual([]);
   });
@@ -93,7 +98,7 @@ test.describe("macro desk shell", () => {
     // ordinal"). Pinning the full list again here would make every future tab
     // registration edit this file for nothing, and the walk below already sweeps
     // whatever the registry grew.
-    expect(hrefs.length).toBeGreaterThanOrEqual(6);
+    expect(hrefs.length).toBeGreaterThanOrEqual(5);
     expect(hrefs).toEqual(
       expect.arrayContaining([
         "/macro/fed",
@@ -101,9 +106,10 @@ test.describe("macro desk shell", () => {
         "/macro/inflation",
         "/macro/usd",
         "/macro/gold",
-        "/macro/notes",
       ]),
     );
+    // The operator-only tab is registered and reachable, and must not be here.
+    expect(hrefs).not.toContain("/macro/notes");
     for (const href of hrefs) {
       expect(href).toMatch(/^\/macro\/[^/]+$/);
     }
@@ -193,5 +199,73 @@ test.describe("macro desk shell", () => {
     await expect(bar.locator("[aria-current]")).toHaveCount(0);
 
     expect(realErrors(consoleErrors)).toEqual([]);
+  });
+});
+
+/**
+ * The board's acceptance test, at the level where it failed.
+ *
+ * "The seven questions are the acceptance test: every panel must answer at least one, or
+ * it gets deleted." The port shipped without carrying that rule anywhere, so tabs 03 and
+ * 04 reached production with one generic card each where the board specifies four panels
+ * and two. Unit tests pin the panels against a frozen payload; this walks the live desk,
+ * because what went wrong was nobody looking at the running page.
+ */
+test.describe("board conformance", () => {
+  const EXPECTED: Record<string, string[]> = {
+    inflation: [
+      "confidence-arithmetic",
+      "confidence-repair",
+      "realized-inflation",
+      "inflation-expectations",
+    ],
+    usd: ["dollar-pair", "upstream-citation"],
+  };
+
+  for (const [slug, panels] of Object.entries(EXPECTED)) {
+    test(`/macro/${slug} renders every panel the board specifies`, async ({
+      page,
+    }) => {
+      await page.goto(`/macro/${slug}`);
+      await page.waitForLoadState("networkidle");
+      for (const id of panels) {
+        await expect(page.getByTestId(`board-panel-${id}`)).toBeVisible();
+      }
+    });
+  }
+
+  test("every panel on the desk names a board question", async ({ page }) => {
+    // The tuple type makes an untagged `BoardPanel` a compile error and gold's bands
+    // carry the attribute by hand. Neither reaches the rendered page on its own, so the
+    // rule is checked where a reviewer would check it.
+    for (const slug of ["inflation", "usd", "gold"]) {
+      await page.goto(`/macro/${slug}`);
+      await page.waitForLoadState("networkidle");
+      const tagged = page.locator("[data-questions]");
+      const count = await tagged.count();
+      // A page with no tagged panel would make the loop below vacuously true, which is
+      // the exact outage this exists to catch.
+      expect(count, `/macro/${slug} rendered no tagged panel`).toBeGreaterThan(0);
+      for (const value of await tagged.evaluateAll((nodes) =>
+        nodes.map((node) => node.getAttribute("data-questions") ?? ""),
+      )) {
+        expect(value, `/macro/${slug} has an untagged panel`).toMatch(
+          /^Q[1-7]( Q[1-7])*$/,
+        );
+      }
+    }
+  });
+
+  test("the confidence chain reproduces the number it sits beside", async ({
+    page,
+  }) => {
+    // Against the live engine, not a fixture: if the terms ever stop multiplying to the
+    // published confidence the panel is required to say so in the negative colour, and
+    // this asserts that today it does not have to.
+    await page.goto("/macro/inflation");
+    await page.waitForLoadState("networkidle");
+    await expect(page.getByTestId("confidence-reconciliation")).toContainText(
+      /reproduces the published/i,
+    );
   });
 });

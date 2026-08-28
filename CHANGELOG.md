@@ -663,6 +663,53 @@ evidence_policy)`, which fails closed — an observation with no claim never
   provider spend, resumable by keyset, `--audit` writes a self-checking coverage
   artifact). Runbook `docs/runbooks/fundamental-observation-availability.md`.
 
+- **The macro desk is now built against the design board, which it was not.** The port
+  plan never cited the design artifact, so its own prose — "No new analytics. Tabs 00-05
+  are a presentation merge" — won by default and turned four designed inflation panels and
+  two dollar panels into one generic state card each. The board is now a repo file
+  (`docs/superpowers/specs/2026-08-27-macro-desk-board.html`, sha256-pinned) and the plan
+  says the board wins on disagreement. A conformance audit
+  (`docs/research/2026-08-28-macro-desk-board-conformance/`) measured the gap first: 47
+  board panels across tabs 00-05, 26 present, 6 partial, 15 absent or misplaced.
+  - **Tabs 03 and 04 gain the board's six panels, and no endpoint.** The audit's own
+    finding was that the single response each tab already fetched carried every one of
+    them: `confidence_reasons[]` is the confidence arithmetic, `factors[]` split by
+    `causal_role` is realized inflation and expectations, `contradictions[]` over
+    `evidence[]` is the falsifier window, and USD's `factors[]` are literally the
+    nominal/real pair with the engine's own rule for them sitting in `notes[]`.
+  - **Nothing restates the board's numbers.** The board's t4 title says the dollar pair
+    moves "in reverse"; both legs are currently positive, so the sentence is derived from
+    the two signs at render time and a test pins both branches. Same for gold's
+    "correlation collapse", which is derived from the spread between the narrowest and
+    widest correlation window actually present.
+  - **The confidence chain is reconciled, not assumed.** The product of the published
+    terms is compared against the published confidence, and a disagreement renders in the
+    negative colour rather than printing a tidy chain beside a number it does not produce.
+    A zero-valued term still renders, because omitting it makes "no input was revised"
+    indistinguishable from "revisions are not checked".
+  - **The board's acceptance test is now enforceable.** "Every panel must answer at least
+    one of Q1-Q7, or it gets deleted" reached neither the plan nor the code, so nothing
+    could fail it. `BoardPanel` takes a non-empty tuple of questions, gold's bands carry
+    `data-questions`, and an e2e walks the live desk asserting every panel is tagged.
+  - **Tab 01 gains the refusal panel it was the only tab shipping without**, carrying four
+    invariants that previously existed only as code comments and test assertions.
+  - **Issuance moves from tab 01 to tab 02**, where the board puts it. Who is issuing and
+    who showed up to buy is a curve question; it sat on the Fed tab only because the old
+    `/rates` page grouped it under a heading tab 01 inherited whole.
+  - **Tab 05 opens on the transmission gauge**, as the board does. It decides whether the
+    cyclical lens beneath it means anything — the layout already dimmed that lens when the
+    gauge reads suspended — so a page that made its governing condition discoverable only
+    by scanning a KPI row had buried its own instructions. Expression cost moves out of the
+    lens-1 flow grid into its own band for the same reason: those five cards answer who is
+    buying, and this one answers what it costs to take the view.
+  - **Tab 08 is unlisted.** The board's t8 opens by saying it is for the operator and does
+    not ship on the final page. `/macro/notes` stays registered and reachable by URL; the
+    strip renders a subset, and a test pins that the subset can never contain a route the
+    guard would reject.
+  - Two deferrals are stated on the page rather than dropped: gold's anchor-decay chart
+    wants the gauge's 60-day window and the producer computes that history at 252 days
+    only, and the board's `T5YIFR` 5y5y forward is carried by no published state.
+
 ### Changed
 
 - **Two `/gold` panels that could only ever render an em-dash are gone.** `two_force_text` is
