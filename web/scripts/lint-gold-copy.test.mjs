@@ -1,6 +1,11 @@
 import { describe, expect, it } from "vitest";
 
-import { BANNED, lintFileContents } from "./lint-gold-copy.mjs";
+import {
+  BANNED,
+  ROOTS,
+  findMissingRoots,
+  lintFileContents,
+} from "./lint-gold-copy.mjs";
 
 describe("lintFileContents", () => {
   it("flags every banned category", () => {
@@ -48,5 +53,47 @@ describe("lintFileContents", () => {
     expect(BANNED).toContain("buy");
     expect(BANNED).toContain("predicted return");
     expect(BANNED).toContain("做多");
+  });
+});
+
+/**
+ * The scope, tested as a thing in its own right.
+ *
+ * Until P6 a root that did not exist was caught and `continue`d, so this script exited
+ * **0 with no output** over a scope that had evaporated — and the port plan (§7) named
+ * the move that would do it: re-homing a page shell under `/macro` removes a root. These
+ * tests are the load-bearing half of that fix. Without them the next re-home reintroduces
+ * the same silence, because a lint that reports nothing is indistinguishable from a lint
+ * that found nothing.
+ */
+describe("lint scope", () => {
+  it("names all four roots the desk's posture surface now spans", () => {
+    // Both gold roots stay: §10-B settled that the subtrees do not move, and `app/gold`
+    // still holds `loading.tsx` + `replay/[date]/` after `app/gold/page.tsx` retires into
+    // `/macro/gold`. The two macro roots are the desk itself.
+    expect([...ROOTS].sort()).toEqual([
+      "app/gold",
+      "app/macro",
+      "components/gold",
+      "components/macro",
+    ]);
+    // `components/rates` is deliberately absent — plan §10-I authorises `RatesScorecard`
+    // to print its own stance word inside tab 02's refusal panel, and listing that
+    // directory here would fail the build over a rendering the operator approved.
+    expect(ROOTS).not.toContain("components/rates");
+  });
+
+  it("reports every declared root as present (vitest runs from web/)", async () => {
+    expect(await findMissingRoots()).toEqual([]);
+  });
+
+  it("REPORTS a missing root rather than silently skipping it", async () => {
+    // The regression this exists to catch: a root that has moved must produce a name, not
+    // a clean exit. `main()` turns a non-empty result into a non-zero exit.
+    const missing = await findMissingRoots([
+      "components/gold",
+      "components/gold-moved-somewhere-else",
+    ]);
+    expect(missing).toEqual(["components/gold-moved-somewhere-else"]);
   });
 });

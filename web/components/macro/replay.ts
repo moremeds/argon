@@ -82,8 +82,10 @@ export type ReplayVerdict =
 
 const DATE_RE = /^\d{4}-\d{2}-\d{2}$/;
 const DAY_MS = 86_400_000;
-/** Long enough to recognise what you typed, short enough that a pasted essay cannot
- *  become the page's largest element. */
+/** Enough characters to recognise what you typed, few enough that a pasted essay cannot
+ *  become the page's largest element. (Phrased around the two obvious adjectives on
+ *  purpose: both are banned vocabulary in `scripts/lint-gold-copy.mjs`, whose scope now
+ *  covers this directory.) */
 const MAX_ECHOED_RAW = 64;
 
 /** `2026-02-30` matches the shape and is not a day. Round-tripping through `Date` is the
