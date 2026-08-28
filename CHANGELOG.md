@@ -492,6 +492,21 @@ evidence_policy)`, which fails closed — an observation with no claim never
 
 ### Fixed
 
+- **The report route couldn't address a chain whose name has a slash.** `key` was a plain path
+  parameter on both `GET /research/reports/{report_type}/{key}` and its `/versions/{n}` sibling, and
+  20 of the desk's 38 chain names contain one (`Networking/Optical`, `Semi-Logic/ASIC`, …) — uvicorn
+  unquotes `%2F` to a literal `/` before Starlette routes the request, so a single-segment converter
+  404s on it, latent until the first chain report is assembled. `{key:path}` fixes addressing on all
+  three routes (both GETs and the POST assemble), but registration order is separately load-bearing:
+  `{key:path}` is greedy, so the `/versions/{n}` route must be registered *before* the plain one or it
+  swallows `versions/N` into `key` and answers 200 from the wrong route with a corrupted key instead
+  of ever reaching the version route or 404ing — a wrong answer that looks like a right one, not a
+  crash. Pinned by asserting the resolved version *payload*, not merely a 200 (confirmed by reversing
+  the order and watching the new test go red). `web/lib/api.ts`'s two report-fetch call sites stop
+  percent-encoding the slash (`_rawSlash`, matching the desk's existing query-param pattern); a third,
+  previously-unencoded call site in `ReportView.tsx`'s version-history links now `encodeURIComponent`s
+  the key, which is the opposite fix — that link addresses Next's own single-segment `[key]` route,
+  which (unlike uvicorn) splits on a literal `/` before decoding, so a raw slash there 404s instead.
 - **Seven optical/networking names were pricing through `power_infra`/`ebitda_to_ev` instead of their
   own chain's `chips_cyclical`/`sales_to_ev`.** `AAOI`, `ANET`, `COHR`, `CRDO`, `FN`, `LITE` and `MRVL`
   all carry `watchlist.sector = 'DC-Connect'`, a real tag for other names that happened to shadow

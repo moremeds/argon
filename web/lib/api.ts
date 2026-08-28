@@ -10,8 +10,7 @@ export type CompanyDimensionsResponse =
   components["schemas"]["CompanyDimensionsResponse"];
 export type ReportResponse = components["schemas"]["ReportResponse"];
 export type ReportListResponse = components["schemas"]["ReportListResponse"];
-export type ResearchReportModel =
-  components["schemas"]["ResearchReportModel"];
+export type ResearchReportModel = components["schemas"]["ResearchReportModel"];
 export type ReportBlock = components["schemas"]["ReportBlock"];
 export type ReportDeltaModel = components["schemas"]["ReportDeltaModel"];
 export type RadarRow = components["schemas"]["RadarRow"];
@@ -140,14 +139,24 @@ type MacroContextSnapshotResponse = Json<"/api/macro/snapshot", "get">;
 type PositioningSnapshot = Json<"/api/positioning/{ticker}", "get">;
 type PositioningScreenerResponse = Json<"/api/positioning/screener", "get">;
 
-/** Percent-encode a query-string VALUE but leave `/` raw.
+/** Percent-encode a value but leave `/` raw.
  *
- *  A slash is legal unescaped inside a query (RFC 3986: `query = *( pchar /
- *  "/" / "?" )`), and 20 of the desk's 38 chain names contain one. `%2F` also
- *  works here — a query is unquoted by `parse_qsl` after routing, not before it
- *  — so this is about the URL a human reads in the address bar, not about
- *  correctness. Everything else still goes through `encodeURIComponent`: a
- *  chain name carrying `&` or `#` would otherwise split the query.
+ *  A slash is legal unescaped both inside a query (RFC 3986: `query = *( pchar
+ *  / "/" / "?" )`) and inside a FastAPI path segment typed `{key:path}`, and 20
+ *  of the desk's 38 chain names contain one. `%2F` also decodes to the same
+ *  thing on both routes we call this for — a query is unquoted by `parse_qsl`
+ *  after routing, and uvicorn unquotes the whole raw path (including `%2F`)
+ *  BEFORE Starlette routes it — so this is about the URL a human reads in the
+ *  address bar, not about correctness. Everything else still goes through
+ *  `encodeURIComponent`: a chain name carrying `&` or `#` would otherwise
+ *  split the query.
+ *
+ *  Do NOT reuse this for a link into Next's OWN `/reports/[type]/[key]` page
+ *  (a single dynamic segment, not a catch-all) — Next's router, unlike
+ *  uvicorn, splits the raw pathname on a literal `/` before decoding, so a raw
+ *  slash there 404s and the key must stay `encodeURIComponent`-escaped
+ *  (verified by running `next dev` and requesting both forms: `%2F` in one
+ *  segment renders the page, a literal `/` 404s).
  */
 export function _rawSlash(value: string): string {
   return encodeURIComponent(value).replace(/%2F/g, "/");
@@ -383,7 +392,8 @@ export const api = {
     domain?: string;
   }): Promise<ChainMatrixResponse> => {
     const q = new URLSearchParams();
-    if (params?.taxonomy_version) q.set("taxonomy_version", params.taxonomy_version);
+    if (params?.taxonomy_version)
+      q.set("taxonomy_version", params.taxonomy_version);
     if (params?.engine_version) q.set("engine_version", params.engine_version);
     if (params?.domain) q.set("domain", params.domain);
     const qs = q.toString();
@@ -443,7 +453,7 @@ export const api = {
     version?: number,
   ): Promise<ReportResponse> =>
     _fetch<ReportResponse>(
-      `/api/research/reports/${reportType}/${encodeURIComponent(key)}` +
+      `/api/research/reports/${reportType}/${_rawSlash(key)}` +
         (version == null ? "" : `/versions/${version}`),
     ),
   assembleResearchReport: (
@@ -452,7 +462,7 @@ export const api = {
     asOf?: string,
   ): Promise<ReportResponse> =>
     _fetch<ReportResponse>(
-      `/api/research/reports/${reportType}/${encodeURIComponent(key)}` +
+      `/api/research/reports/${reportType}/${_rawSlash(key)}` +
         (asOf ? `?as_of=${asOf}` : ""),
       { method: "POST" },
     ),
@@ -462,7 +472,9 @@ export const api = {
   ): Promise<CompanyDimensionsResponse> =>
     _fetch<CompanyDimensionsResponse>(
       `/api/stock/${ticker}/fundamentals/dimensions${
-        engineVersion ? `?engine_version=${encodeURIComponent(engineVersion)}` : ""
+        engineVersion
+          ? `?engine_version=${encodeURIComponent(engineVersion)}`
+          : ""
       }`,
     ),
   tradeInsights: (ticker: string): Promise<TradeInsightsResponse> =>
