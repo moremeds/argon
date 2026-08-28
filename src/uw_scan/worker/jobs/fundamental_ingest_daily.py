@@ -59,20 +59,36 @@ from uw_scan.worker.jobs.fundamental_ingest import fundamental_ingest
 
 log = logging.getLogger(__name__)
 
-#: How far a filing-publication date can drift from the real report date and
-#: still be recognized as "the same print" by the statement_obs fallback's
-#: already-known guard. MEASURED, not guessed (branch-fix-p2, C1): a live
-#: sample of 26 tickers with both a real report_date (UW `get_earnings_
-#: history`) and a `filing_published_at` (this repo's `fundamental_
-#: statement_obs`, period_end 2026-06-30) found the gap is one-directional
-#: (filing always on-or-after the report) and distributed 15/26 at 0 days,
-#: 6/26 at 1 day, 2/26 at 3 days (GILD, MRK), 1/26 at 5 days (ISRG, the C1
-#: repro case), 1/26 at 8 days (AVB), 1/26 at 9 days (BXP, the observed max).
-#: 10 days covers every sample with margin and stays far short of the ~91-day
-#: gap between a ticker's own consecutive quarters (see the filing-date-
-#: recovery VERDICT's tolerance study), so a window this wide cannot
-#: misidentify a DIFFERENT quarter's print as the one just filed.
-FILING_TO_PRINT_WINDOW_DAYS = 10
+#: How far BACKWARD a filing-publication date can sit from the real report
+#: date and still be recognized as "the same print." A filing follows its
+#: earnings release — it does not precede it (verified, not assumed: a
+#: pooled 57-ticker live sample spanning three independent draws — the
+#: original 26, UNH, and a fresh 30 — found the gap non-negative in every
+#: case; see FILING_FORWARD_TOLERANCE_DAYS). That means a purely-backward
+#: window can be widened with no risk of reaching the WRONG print, because
+#: quarterly prints sit ~91.25 days apart (`DAYS_PER_QUARTER`,
+#: `fundamentals/underwriting.py`) and a symmetric window is the only shape
+#: that has to stay under half that spacing to stay unambiguous. 45 days is
+#: half of ~91.25 (so it can never be nearer the PRIOR quarter's print than
+#: the current one, even by the old symmetric logic's own math) and clears
+#: every observed gap with real headroom: BXP 9d, ISRG 5d, BAC 17d, BLK 22d,
+#: UNH 25d (the largest, and a non-exotic large-cap — the tail is not
+#: confined to obscure names). Measurement: this fix's own live queries
+#: (option_wizard_local.uw_scan.fundamental_statement_obs, period_end
+#: 2026-06-30, cross-referenced against UW `get_earnings_history`, 2026-08-28).
+FILING_LOOKBACK_DAYS = 45
+
+#: How far FORWARD a filing date is allowed to sit from a real report date —
+#: i.e. how much slack a genuinely FUTURE print gets before it stops looking
+#: like "the same print" as an already-filed statement. Measured at 0/57 in
+#: the pooled sample above: no filing has ever been observed dated before
+#: its own report. A couple of days of slack (not zero) absorbs weekend/
+#: timezone edge cases in either clock without opening the door back up to
+#: matching the wrong quarter — 3 days is under 1% of the ~91.25-day
+#: inter-print spacing, so it cannot reach a neighboring quarter's print
+#: even stacked with FILING_LOOKBACK_DAYS on the other side of a single
+#: filing date.
+FILING_FORWARD_TOLERANCE_DAYS = 3
 
 _EMPTY: dict[str, int] = {
     "tickers": 0,
@@ -99,16 +115,19 @@ def persist_unknown_statements(
     (see `sources/earnings_calendar.py`).
 
     `filing_published_at` is a FILING date, not a print date (branch-fix-p2, C1)
-    — the two coincide for some names and land up to `FILING_TO_PRINT_WINDOW_DAYS`
-    apart for others (measured; see that constant's docstring), so "already known"
-    can never be an exact-date match against the classified calendar's `report_date`:
-    that compares the new row's date against a set keyed on a DIFFERENT clock and
-    almost never matches for a name whose 10-Q lands days after its actual report.
-    A classified ticker is instead recognized as known when ANY existing calendar
-    row for it falls within the measured window of the filing date — covering the
-    real report date whichever side of the filing it lands on, without reaching
-    into a neighboring quarter (quarters sit ~91 days apart; see the window
-    constant). A ticker that IS newly-known this way is left alone entirely: the
+    — the two coincide for some names and drift by up to `FILING_LOOKBACK_DAYS`
+    for others (measured; see that constant's docstring — filing follows print,
+    never the reverse), so "already known" can never be an exact-date match
+    against the classified calendar's `report_date`: that compares the new row's
+    date against a set keyed on a DIFFERENT clock and almost never matches for a
+    name whose 10-Q lands days after its actual report. A classified ticker is
+    instead recognized as known when ANY existing calendar row for it falls
+    within `FILING_LOOKBACK_DAYS` BEFORE the filing date or
+    `FILING_FORWARD_TOLERANCE_DAYS` AFTER it — covering the real report date on
+    whichever side of the filing it lands (almost always before; a few days'
+    slack absorbs the rest), without reaching into a neighboring quarter
+    (quarters sit ~91 days apart; see the window constants). A ticker that IS
+    newly-known this way is left alone entirely: the
     calendar row already carries the real session, and re-upserting session=NULL
     there would just be a no-op touch (COALESCE never lets NULL clobber a known
     value) — checked explicitly so the intent stays legible rather than relying on
@@ -126,8 +145,8 @@ def persist_unknown_statements(
     if not new_filings:
         return 0
     filing_dates = [filing["filing_published_at"] for filing in new_filings]
-    window_start = min(filing_dates) - timedelta(days=FILING_TO_PRINT_WINDOW_DAYS)
-    window_end = max(filing_dates) + timedelta(days=FILING_TO_PRINT_WINDOW_DAYS)
+    window_start = min(filing_dates) - timedelta(days=FILING_LOOKBACK_DAYS)
+    window_end = max(filing_dates) + timedelta(days=FILING_FORWARD_TOLERANCE_DAYS)
     known_dates_by_ticker: dict[str, list[date]] = {}
     for row in calendar_repo.prints_between(window_start, window_end):
         known_dates_by_ticker.setdefault(row["ticker"], []).append(row["report_date"])
@@ -137,8 +156,14 @@ def persist_unknown_statements(
         ticker = filing["ticker"].upper()
         filing_date = filing["filing_published_at"]
         known_dates = known_dates_by_ticker.get(ticker, [])
+        # Asymmetric on purpose: a filing lands ON OR AFTER its print (delta >= 0,
+        # bounded by FILING_LOOKBACK_DAYS), never meaningfully before it (delta < 0,
+        # bounded by the much smaller FILING_FORWARD_TOLERANCE_DAYS) — see both
+        # constants' docstrings for the 57-ticker measurement backing this shape.
         if any(
-            abs((filing_date - known_date).days) <= FILING_TO_PRINT_WINDOW_DAYS
+            -FILING_FORWARD_TOLERANCE_DAYS
+            <= (filing_date - known_date).days
+            <= FILING_LOOKBACK_DAYS
             for known_date in known_dates
         ):
             continue

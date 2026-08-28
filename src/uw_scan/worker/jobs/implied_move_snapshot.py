@@ -29,12 +29,14 @@ away.
 
 `source='statement_obs'` calendar rows are EXCLUDED entirely (branch-fix-p2,
 I1), never derived against. Those rows carry a FILING date, not a print
-date (see `storage/earnings_calendar.py` and `worker/jobs/
-fundamental_ingest_daily.FILING_TO_PRINT_WINDOW_DAYS`), so neither
-`_reaction_day` nor the covering-expiry pick can target a real print for
-them — an implied-move number computed against a filing date is not implying
-anything about a print. `excluded_statement_obs` counts how many upcoming
-rows this run skipped for that reason.
+date, and the gap between the two is one-directional and fat-tailed — a
+filing lands on or after its print, never before, but the observed gap has
+run as wide as 25 days (see `storage/earnings_calendar.py` and `worker/jobs/
+fundamental_ingest_daily.FILING_LOOKBACK_DAYS`) — so neither `_reaction_day`
+nor the covering-expiry pick can target a real print for them — an
+implied-move number computed against a filing date is not implying anything
+about a print. `excluded_statement_obs` counts how many upcoming rows this
+run skipped for that reason.
 
 Pure warm-store read + compute — zero UW/IB spend, safe to re-run (each
 night's row is an overwrite of that same night's prior attempt, see

@@ -21,12 +21,14 @@ the print — see the module CLAUDE.md entry for the worked examples):
 I1), never computed as a NULL-session reaction. Those rows carry a FILING
 date (`fundamental_statement_obs.filing_published_at`), not a print date —
 see `storage/earnings_calendar.py`'s module docstring and `worker/jobs/
-fundamental_ingest_daily.FILING_TO_PRINT_WINDOW_DAYS` for the measured gap
-between the two. A close-price window computed around a filing date is not
-a reaction to anything; it is a two-day drift measurement wearing an
-earnings-reaction's label. `excluded_statement_obs` counts how many prints
-this run skipped for that reason, so the gap in coverage is visible to an
-operator rather than silently absorbed into `skipped_incomplete`.
+fundamental_ingest_daily.FILING_LOOKBACK_DAYS` for the measured gap between
+the two: one-directional (a filing lands on or after its print) and
+fat-tailed (25 days observed), not a small bounded window. A close-price
+window computed around a filing date is not a reaction to anything; it is a
+two-day drift measurement wearing an earnings-reaction's label.
+`excluded_statement_obs` counts how many prints this run skipped for that
+reason, so the gap in coverage is visible to an operator rather than
+silently absorbed into `skipped_incomplete`.
 
 `close_before` / `close_after` are resolved by querying what `daily_ohlc`
 actually holds for the ticker, NEVER by date arithmetic (`D - 1 day` breaks on

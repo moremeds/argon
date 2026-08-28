@@ -349,9 +349,10 @@ def test_a_filing_date_outside_the_measured_window_still_lands_via_statement_obs
     patched,
 ):
     """The window has an edge: a filing date far enough from every existing
-    calendar row (beyond `FILING_TO_PRINT_WINDOW_DAYS`) is genuinely unknown
-    and must still land — the fix narrows the guard's blast radius, it does
-    not turn it into a no-op that never fires. DJCO's real filing gap (see
+    calendar row (beyond `FILING_LOOKBACK_DAYS`/`FILING_FORWARD_TOLERANCE_DAYS`)
+    is genuinely unknown and must still land — the fix narrows the guard's
+    blast radius, it does not turn it into a no-op that never fires. DJCO's
+    real filing gap (see
     the filing-date-recovery VERDICT) is `period_end=2026-06-30`,
     `filing_published_at=2026-08-12`, with no calendar row anywhere near it
     (DJCO is one of the ~2% UW never classifies) — 100+ days from any
@@ -374,4 +375,101 @@ def test_a_filing_date_outside_the_measured_window_still_lands_via_statement_obs
             "source": "statement_obs",
         }
     ]
+    assert out["calendar_unknown_rows_new"] == 1
+
+
+# ---------------------------------------------------------------------------
+# Fix round 2: the ±10-day symmetric window above was FALSIFIED live — an
+# independent sample found UNH at a 25-day filing-to-print gap. Replaced by
+# an asymmetric pair (FILING_LOOKBACK_DAYS=45 back, FILING_FORWARD_
+# TOLERANCE_DAYS=3 forward). These tests prove both halves: the backward
+# window now covers the real 25-day case (and a mutation back to 10 must
+# reproduce the exact phantom it used to produce), and the forward side
+# stays tight enough that a filing before a genuinely FUTURE print is not
+# swallowed by the wider backward reach.
+# ---------------------------------------------------------------------------
+
+
+def test_the_backward_window_covers_unhs_25_day_gap(patched):
+    """UNH's real Q2 FY2026 print is `report_date=2026-07-16` (verified live
+    via UW `get_earnings_history`: fiscal_date_ending 2026-06-30, reported_eps
+    6.38 vs estimated 4.94, premarket); its `filing_published_at` for the same
+    period is `2026-08-10` (real, queried from
+    `option_wizard_local.uw_scan.fundamental_statement_obs` on 2026-08-28) —
+    a 25-day gap, 2.5x the old ±10-day window and the case that falsified it.
+    FILING_LOOKBACK_DAYS=45 must recognize UNH as already known."""
+    unh_report_date = date(2026, 7, 16)
+    unh_filing_date = date(2026, 8, 10)
+    patched["calendar"] = {TODAY: [("AAPL", "premarket")]}
+    patched["existing_calendar"] = {("UNH", unh_report_date)}
+    patched["new_filings"] = [{"ticker": "UNH", "filing_published_at": unh_filing_date}]
+
+    out = _run(patched, lookback_days=0)
+
+    repo = patched["calendar_repo"]
+    assert [r for r in repo.upserts if r["source"] == "statement_obs"] == [], (
+        "UNH's real 25-day filing-to-print gap is within FILING_LOOKBACK_"
+        "DAYS (45) and must be recognized as already known — no phantom row"
+    )
+    assert out["calendar_unknown_rows_new"] == 0
+
+
+def test_reverting_the_lookback_to_10_days_reproduces_the_unh_phantom(
+    patched, monkeypatch
+):
+    """Mutation proof: the test above must go RED, not green-by-accident, on
+    the exact window value this fix replaced. Monkeypatching
+    `FILING_LOOKBACK_DAYS` back to the old falsified 10 must reproduce the
+    verifier's phantom `('UNH', 2026-08-10, None, 'statement_obs')` row on
+    the real 25-day gap."""
+    monkeypatch.setattr(mod, "FILING_LOOKBACK_DAYS", 10)
+    unh_report_date = date(2026, 7, 16)
+    unh_filing_date = date(2026, 8, 10)
+    patched["calendar"] = {TODAY: [("AAPL", "premarket")]}
+    patched["existing_calendar"] = {("UNH", unh_report_date)}
+    patched["new_filings"] = [{"ticker": "UNH", "filing_published_at": unh_filing_date}]
+
+    out = _run(patched, lookback_days=0)
+
+    repo = patched["calendar_repo"]
+    assert [r for r in repo.upserts if r["source"] == "statement_obs"] == [
+        {
+            "ticker": "UNH",
+            "report_date": unh_filing_date,
+            "session": None,
+            "source": "statement_obs",
+        }
+    ], "a 10-day window must reproduce the phantom row on the real 25-day gap"
+    assert out["calendar_unknown_rows_new"] == 1
+
+
+def test_a_filing_before_a_future_print_is_not_swallowed_by_the_backward_window(
+    patched,
+):
+    """Proves the window is ASYMMETRIC, not just widened: a filing dated
+    BEFORE an existing calendar row (the print is in the future relative to
+    the filing) must not match just because it falls inside the wide 45-day
+    backward reach. delta = filing - known = -10 days here; the old
+    symmetric ±10-day guard would have matched (abs(-10) <= 10). The
+    asymmetric guard denies it — FILING_FORWARD_TOLERANCE_DAYS is only 3, so
+    -10 is outside [-3, 45]."""
+    future_report_date = date(2026, 9, 15)
+    early_filing_date = date(2026, 9, 5)  # 10 days BEFORE the print
+    patched["calendar"] = {TODAY: [("AAPL", "premarket")]}
+    patched["existing_calendar"] = {("KEEL", future_report_date)}
+    patched["new_filings"] = [
+        {"ticker": "KEEL", "filing_published_at": early_filing_date}
+    ]
+
+    out = _run(patched, lookback_days=0)
+
+    repo = patched["calendar_repo"]
+    assert [r for r in repo.upserts if r["source"] == "statement_obs"] == [
+        {
+            "ticker": "KEEL",
+            "report_date": early_filing_date,
+            "session": None,
+            "source": "statement_obs",
+        }
+    ], "a filing 10 days before a future print must NOT be treated as known"
     assert out["calendar_unknown_rows_new"] == 1
