@@ -1,11 +1,14 @@
 import { notFound } from "next/navigation";
 
 import { DesignNotes } from "@/components/macro/DesignNotes";
+import { DomainStateTab } from "@/components/macro/DomainStateTab";
 import { ReplayControl } from "@/components/macro/ReplayControl";
 import { ReplayStatus } from "@/components/macro/ReplayStatus";
+import type { MacroDomainSlot } from "@/components/macro/types";
 import {
   parseReplayRequest,
   replayVerdict,
+  replayVerdictForDomainState,
   replayWithholdsContent,
   todayUtcDate,
 } from "@/components/macro/replay";
@@ -66,7 +69,13 @@ async function FedTab({ replay }: MacroTabProps) {
     computedAt: snapshot.value?.computed_at,
     failed: Boolean(snapshot.error),
   });
-  const status = <ReplayStatus verdict={verdict} publisher={RATES_PUBLISHER} />;
+  const status = (
+    <ReplayStatus
+      verdict={verdict}
+      publisher={RATES_PUBLISHER}
+      clock="instant"
+    />
+  );
   if (replayWithholdsContent(verdict)) return status;
 
   return (
@@ -93,7 +102,13 @@ async function CurveTab({ replay }: MacroTabProps) {
     computedAt: snapshot.value?.computed_at,
     failed: Boolean(snapshot.error),
   });
-  const status = <ReplayStatus verdict={verdict} publisher={RATES_PUBLISHER} />;
+  const status = (
+    <ReplayStatus
+      verdict={verdict}
+      publisher={RATES_PUBLISHER}
+      clock="instant"
+    />
+  );
   if (replayWithholdsContent(verdict)) return status;
 
   return (
@@ -102,6 +117,57 @@ async function CurveTab({ replay }: MacroTabProps) {
       <CurveDesk snapshot={snapshot.value} errorMessage={snapshot.error} />
     </>
   );
+}
+
+/**
+ * Tabs 03 and 04 — Inflation and US Dollar. One publisher each, and the same shape twice,
+ * so they share one implementation rather than two copies that drift.
+ *
+ * §3's binding table gives each of these exactly ONE request, and that is the whole tab:
+ * `/api/macro/{domain}` returns the stored state, its confidence terms, its
+ * contradictions, its upstream dependencies and the evidence rows it cited. There is
+ * nothing to settle against a second clock and nothing to compose.
+ *
+ * REPLAY: gated by `replayVerdictForDomainState`, not by `replayVerdict`. The two endpoint
+ * families filter different columns — `/api/rates/snapshot` on `computed_at`,
+ * `/api/macro/*` on `as_of` — and gating a domain state on `computed_at` would withhold a
+ * correctly backfilled answer as though a deploy race had produced it. The reasoning, with
+ * the storage citations, is at the function.
+ *
+ * The `null` value is a real state and not an error: `api.macroDomainState` passes
+ * `allow404`, and `_domain_state` 404s deliberately rather than recomputing — "the honest
+ * reply to 'what did you think in March' is 'nothing was recorded'". So the slot stays
+ * three-state all the way to the card (§9 invariant 2).
+ */
+function domainTab(
+  domain: "inflation" | "usd",
+  publisher: string,
+): MacroTabContent {
+  return async function DomainTab({ replay }: MacroTabProps) {
+    const asOf = replay.kind === "replay" ? replay.asOf : undefined;
+    const state = await settle(
+      () => api.macroDomainState(domain, asOf),
+      `${domain} state API`,
+    );
+
+    const verdict = replayVerdictForDomainState(replay, {
+      asOf: state.value?.as_of,
+      computedAt: state.value?.computed_at,
+      failed: Boolean(state.error),
+    });
+    const status = (
+      <ReplayStatus verdict={verdict} publisher={publisher} clock="instant" />
+    );
+    if (replayWithholdsContent(verdict)) return status;
+
+    const slot: MacroDomainSlot = { value: state.value, error: state.error };
+    return (
+      <>
+        {status}
+        <DomainStateTab domain={domain} slot={slot} />
+      </>
+    );
+  };
 }
 
 /**
@@ -151,6 +217,10 @@ const TAB_CONTENT: Record<MacroTabSlug, MacroTabContent> = {
   notes: DesignNotes,
   fed: FedTab,
   rates: CurveTab,
+  // Named the way an operator would name them, not by endpoint — the string lands
+  // mid-sentence in the replay banner.
+  inflation: domainTab("inflation", "inflation state"),
+  usd: domainTab("usd", "USD state"),
 };
 
 export async function generateMetadata({

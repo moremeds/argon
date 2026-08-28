@@ -6,6 +6,7 @@ import {
   parseReplayRequest,
   replayHref,
   replayVerdict,
+  replayVerdictForDomainState,
   replayWithholdsContent,
   shiftDay,
 } from "@/components/macro/replay";
@@ -40,7 +41,13 @@ describe("parseReplayRequest", () => {
     // The whole point of the third state: a rejected request must stay visible, because
     // "your date was ignored" and "here is the past you asked for" look identical once
     // the page renders.
-    for (const raw of ["notadate", "27/08/2026", "2026-8-27", "yesterday", "0"]) {
+    for (const raw of [
+      "notadate",
+      "27/08/2026",
+      "2026-8-27",
+      "yesterday",
+      "0",
+    ]) {
       expect(parseReplayRequest(raw)).toEqual({ kind: "rejected", raw });
     }
   });
@@ -192,6 +199,102 @@ describe("replayVerdict", () => {
       replayVerdict(replaying, {
         failed: true,
         computedAt: "2026-08-27T01:00:00Z",
+      }),
+    ).toEqual({ kind: "request_failed", asOf: "2026-08-27" });
+  });
+});
+
+describe("replayVerdictForDomainState", () => {
+  const replaying = { kind: "replay", asOf: "2026-08-27" } as const;
+
+  it("GATES ON as_of, not computed_at — a late recompute is still that day's answer", () => {
+    // The defect this function exists to prevent, and the reason tabs 03/04 do not reuse
+    // `replayVerdict`. `/api/macro/{domain}` selects `WHERE as_of <= %s`
+    // (`macro_domain_state.py:222`) and the store deliberately permits `computed_at` to be
+    // LATER than `as_of` — its docstring calls a later recompute of the same instant "a
+    // better answer to the same question" and breaks ties by the later `computed_at`.
+    //
+    // A backfilled state: answers for the 27th, written on the 30th. Gated on
+    // `computed_at` this would be refused as `answered_after` and the desk would blame a
+    // deploy race for an answer it actually holds.
+    expect(
+      replayVerdictForDomainState(replaying, {
+        asOf: "2026-08-27T12:00:00Z",
+        computedAt: "2026-08-30T04:00:00Z",
+      }),
+    ).toEqual({
+      kind: "replaying",
+      asOf: "2026-08-27",
+      // Printed, not gated on: "that answer was computed X" is a sentence about a compute
+      // time, and `as_of` is not one.
+      computedAt: "2026-08-30T04:00:00Z",
+    });
+
+    // Proof the two functions really do disagree on this input, rather than the assertion
+    // above passing for some incidental reason.
+    expect(
+      replayVerdict(replaying, { computedAt: "2026-08-30T04:00:00Z" }),
+    ).toMatchObject({ kind: "answered_after" });
+  });
+
+  it("still REFUSES a state that answers for a later instant", () => {
+    // An API image that ignored `as_of` hands back the newest state, whose `as_of` is
+    // after the day asked for. That is the one refusal this gate must keep.
+    expect(
+      replayVerdictForDomainState(replaying, {
+        asOf: "2026-08-28T00:00:00Z",
+        computedAt: "2026-08-28T04:00:00Z",
+      }),
+    ).toEqual({
+      kind: "answered_after",
+      asOf: "2026-08-27",
+      computedAt: "2026-08-28T04:00:00Z",
+    });
+  });
+
+  it("falls back to the state's own as_of when no compute time came with it", () => {
+    expect(
+      replayVerdictForDomainState(replaying, { asOf: "2026-08-27T12:00:00Z" }),
+    ).toEqual({
+      kind: "replaying",
+      asOf: "2026-08-27",
+      computedAt: "2026-08-27T12:00:00Z",
+    });
+  });
+
+  it("refuses a state whose as_of it cannot read", () => {
+    expect(
+      replayVerdictForDomainState(replaying, {
+        asOf: "sometime",
+        computedAt: "2026-08-27T04:00:00Z",
+      }),
+    ).toEqual({
+      kind: "answered_after",
+      asOf: "2026-08-27",
+      computedAt: "2026-08-27T04:00:00Z",
+    });
+  });
+
+  it("keeps the three kinds of nothing apart, like its rates sibling", () => {
+    expect(
+      replayVerdictForDomainState({ kind: "live" }, { asOf: "x" }),
+    ).toEqual({ kind: "not_replaying" });
+    // A 404 from `_domain_state` is "no state has been computed for an instant at or
+    // before this one" — a fact about the pipeline, which `allow404` turns into a null
+    // value rather than a throw.
+    expect(replayVerdictForDomainState(replaying, {})).toEqual({
+      kind: "unanswered",
+      asOf: "2026-08-27",
+    });
+    expect(replayVerdictForDomainState(replaying, { failed: true })).toEqual({
+      kind: "request_failed",
+      asOf: "2026-08-27",
+    });
+    // A failure wins over whatever came with it.
+    expect(
+      replayVerdictForDomainState(replaying, {
+        failed: true,
+        asOf: "2026-08-27T12:00:00Z",
       }),
     ).toEqual({ kind: "request_failed", asOf: "2026-08-27" });
   });

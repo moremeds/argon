@@ -386,12 +386,21 @@ export const api = {
   // like a failed page, and the desk's whole point is saying which half is missing.
   // `allow404` is load-bearing here: a domain the pipeline has never computed 404s, and
   // that is a fact to render, not an error to throw.
+  // `asOf` is the same UTC calendar date `ratesSnapshot` takes, through the same shared
+  // `resolve_instant`. What it selects is NOT the same column, and the difference is
+  // load-bearing for anything reading the reply: `fetch_macro_domain_state_as_of` is
+  // `WHERE as_of <= %s` (`storage/macro_domain_state.py:222`) — the instant the state
+  // ANSWERS FOR — while the rates snapshot filters on `computed_at`, when the answer was
+  // written. See `replayVerdictForDomainState` for what that means at the banner.
   macroDomainState: (
     domain: "inflation" | "rates" | "usd" | "gold",
+    asOf?: string,
   ): Promise<MacroDomainStateResponse | null> =>
-    _fetch<MacroDomainStateResponse | null>(`/api/macro/${domain}`, undefined, {
-      allow404: true,
-    }),
+    _fetch<MacroDomainStateResponse | null>(
+      `/api/macro/${domain}${asOfQuery(asOf)}`,
+      undefined,
+      { allow404: true },
+    ),
   // `allow404` again, and for a sharper reason than the domain reads: a 404 here means no
   // snapshot was ever assembled for the instant, which the desk must render as "nothing
   // checked whether these four belong together" -- never as a coherent chain.

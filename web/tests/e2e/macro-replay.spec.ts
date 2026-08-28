@@ -18,6 +18,15 @@ import { expect, test, type Page } from "@playwright/test";
 
 const REPLAY_TABS = ["/macro/fed", "/macro/rates"] as const;
 
+/** Tabs 03 and 04. Kept in their own list because they stand on a DIFFERENT publisher —
+ *  `/api/macro/{domain}`, gated on `as_of` rather than `computed_at` — and because the
+ *  "content was withheld" proof below is per-tab: it names the heading each tab renders,
+ *  and a rates heading asserted absent on an inflation tab would pass for free. */
+const DOMAIN_TABS = [
+  { href: "/macro/inflation", heading: /^Inflation$/ },
+  { href: "/macro/usd", heading: /^USD Transmission$/ },
+] as const;
+
 /** Console-error collector, matching `macro-desk.spec.ts:36-42`. */
 function collectConsoleErrors(page: Page): string[] {
   const errors: string[] = [];
@@ -37,7 +46,10 @@ test.describe("macro desk — replay chrome", () => {
   }) => {
     const consoleErrors = collectConsoleErrors(page);
 
-    for (const href of REPLAY_TABS) {
+    for (const href of [
+      ...REPLAY_TABS,
+      ...DOMAIN_TABS.map((tab) => tab.href),
+    ]) {
       await page.goto(href);
       await page.waitForLoadState("networkidle");
 
@@ -102,6 +114,35 @@ test.describe("macro desk — replay chrome", () => {
       ).toHaveCount(0);
 
       expect(liveHasStatus).toBe(0);
+    }
+  });
+
+  test("a domain tab withholds its card for an instant nobody answered", async ({
+    page,
+  }) => {
+    // Tabs 03/04 read `/api/macro/{domain}`, which selects `WHERE as_of <= %s` and 404s
+    // rather than recomputing — "the honest reply to 'what did you think in March' is
+    // 'nothing was recorded'" (`routers/macro.py`). No macro domain state can answer for
+    // 2000-01-01, so `unanswered` is deterministic on any database, empty or not.
+    for (const { href, heading } of DOMAIN_TABS) {
+      await page.goto(href);
+      await page.waitForLoadState("networkidle");
+      expect(await page.getByTestId("macro-replay-status").count()).toBe(0);
+
+      await page.goto(`${href}?as_of=2000-01-01`);
+      await page.waitForLoadState("networkidle");
+
+      const status = page.getByTestId("macro-replay-status");
+      await expect(status).toBeVisible();
+      await expect(status).toHaveAttribute("data-replay-state", "unanswered");
+      // The clock travels to the ANSWER, not only to the question: an obs-date sentence
+      // over an instant-keyed publisher would be §3.1's failure moved one component right.
+      await expect(status).toHaveAttribute("data-replay-clock", "instant");
+
+      // Withheld, not annotated. The tab's own <h1> is what proves the card is gone.
+      await expect(
+        page.getByRole("heading", { name: heading, level: 1 }),
+      ).toHaveCount(0);
     }
   });
 

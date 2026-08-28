@@ -67,6 +67,19 @@ export const VALID_TABS = [
     label: "Rates · Curve",
     replayClock: "instant",
   },
+  // Tabs 03 and 04 read `/api/macro/{inflation,usd}`, which `resolve_instant` resolves the
+  // same way `/api/rates/snapshot` does. The COLUMN each filters on differs — `as_of` here
+  // against `computed_at` there (`macro_domain_state.py:222` vs `rates_repository.py:205`)
+  // — but the operator's question is the same one, "what did the desk know at T", and that
+  // is what this field names. `replayVerdictForDomainState` is where the column difference
+  // is honoured.
+  {
+    slug: "inflation",
+    ordinal: "03",
+    label: "Inflation",
+    replayClock: "instant",
+  },
+  { slug: "usd", ordinal: "04", label: "US Dollar", replayClock: "instant" },
 ] as const satisfies readonly MacroTabEntry[];
 
 /** The registered slugs, as a literal union. `TAB_CONTENT` is keyed by this. */

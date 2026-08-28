@@ -135,7 +135,9 @@ export function parseReplayRequest(
  * the two sides of the wire agreeing about what a bare timestamp means.
  */
 export function parseInstantMs(value: string): number | null {
-  const normalized = /([zZ]|[+-]\d{2}:?\d{2})$/.test(value) ? value : `${value}Z`;
+  const normalized = /([zZ]|[+-]\d{2}:?\d{2})$/.test(value)
+    ? value
+    : `${value}Z`;
   const ms = Date.parse(normalized);
   return Number.isNaN(ms) ? null : ms;
 }
@@ -199,6 +201,68 @@ export function replayVerdict(
   return ms < dayEndExclusiveMs(asOf)
     ? { kind: "replaying", asOf, computedAt }
     : { kind: "answered_after", asOf, computedAt };
+}
+
+/**
+ * What ONE `/api/macro/{domain}` publisher answered — gated on `as_of`, not `computed_at`.
+ *
+ * This exists because `replayVerdict` above encodes the RATES contract, and the two
+ * endpoint families do not key on the same column. §3.1 of the port plan groups them as
+ * one clock ("what did the desk know at T") and for the operator they are; one level
+ * down they are not:
+ *
+ *   | endpoint              | selects on                                                  |
+ *   | --------------------- | ----------------------------------------------------------- |
+ *   | `/api/rates/snapshot` | `WHERE computed_at <= %s` (`rates_repository.py:205`)       |
+ *   | `/api/macro/{domain}` | `WHERE as_of <= %s` (`macro_domain_state.py:222`)           |
+ *
+ * So `computed_at` is the wrong gate here, and not by a hair. `macro_domain_states`
+ * deliberately allows a row's `computed_at` to be LATER than its own `as_of` — the
+ * repository's docstring (`:216-219`) says why: the evidence trigger already refuses any
+ * observation that became available after `as_of`, so a later recompute of the same
+ * instant "can only mean we had ingested more of what was already published then — a
+ * better answer to the same question", and ties are broken by the LATER `computed_at` on
+ * purpose. Gate a replay on that column and a correctly backfilled state is withheld as
+ * `answered_after`: the desk would refuse to show an answer it holds, and blame a deploy
+ * race that did not happen.
+ *
+ * The BANNER still prints `computed_at`, because "that answer was computed X" is a
+ * sentence about a compute time and `as_of` is not one. Gate on what the store promised;
+ * print what the sentence claims. `answered_after` remains reachable and still means what
+ * it says — an API that ignored `as_of` returns today's state, whose `as_of` is after the
+ * instant asked for.
+ */
+export function replayVerdictForDomainState(
+  request: MacroReplayRequest,
+  answer: {
+    /** The state's own `as_of` — the instant it answers for. The gate. */
+    asOf?: string | null;
+    /** The state's `computed_at` — when the engine wrote it. Printed, never gated on. */
+    computedAt?: string | null;
+    failed?: boolean;
+  },
+): ReplayVerdict {
+  if (request.kind !== "replay") return { kind: "not_replaying" };
+  const requested = request.asOf;
+  if (answer.failed) return { kind: "request_failed", asOf: requested };
+
+  const stateAsOf = answer.asOf ?? null;
+  if (stateAsOf === null) return { kind: "unanswered", asOf: requested };
+
+  const ms = parseInstantMs(stateAsOf);
+  // An unreadable `as_of` is unshowable as this instant's answer for the same reason an
+  // unreadable `computed_at` is: nothing on the wire establishes which instant it is.
+  const stamp = answer.computedAt ?? null;
+  if (ms === null) {
+    return { kind: "answered_after", asOf: requested, computedAt: stamp };
+  }
+  return ms < dayEndExclusiveMs(requested)
+    ? { kind: "replaying", asOf: requested, computedAt: stamp ?? stateAsOf }
+    : {
+        kind: "answered_after",
+        asOf: requested,
+        computedAt: stamp ?? stateAsOf,
+      };
 }
 
 /** Whether a verdict means the tab must withhold its content rather than render it under

@@ -93,9 +93,15 @@ test.describe("macro desk shell", () => {
     // ordinal"). Pinning the full list again here would make every future tab
     // registration edit this file for nothing, and the walk below already sweeps
     // whatever the registry grew.
-    expect(hrefs.length).toBeGreaterThanOrEqual(3);
+    expect(hrefs.length).toBeGreaterThanOrEqual(5);
     expect(hrefs).toEqual(
-      expect.arrayContaining(["/macro/fed", "/macro/rates", "/macro/notes"]),
+      expect.arrayContaining([
+        "/macro/fed",
+        "/macro/rates",
+        "/macro/inflation",
+        "/macro/usd",
+        "/macro/notes",
+      ]),
     );
     for (const href of hrefs) {
       expect(href).toMatch(/^\/macro\/[^/]+$/);
