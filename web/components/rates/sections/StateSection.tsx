@@ -1,6 +1,8 @@
+import { ConfidenceArithmetic } from "@/components/macro/ConfidenceArithmetic";
+
 import styles from "../RatesDesk.module.css";
 import { toFiniteNumber } from "../format";
-import type { ConfidenceReason, MacroStateSummary } from "../types";
+import type { MacroStateSummary } from "../types";
 
 // The state is deliberately not a score. It answers four separate questions -- what
 // regime, which way, how fast, and how much of that we actually know -- and each is
@@ -62,62 +64,14 @@ function NoState({ reason }: { reason: string }) {
   );
 }
 
-/**
- * What actually moved the confidence, and nothing else.
- *
- * This replaces a sub-card that listed all six terms at equal weight. Most of them
- * are neutral most of the time -- three multiplicands at 1.00 and two penalties at
- * 0.00 is "nothing reduced it", spelled as five rows a reader has to decode. Worse,
- * a neutral value LOOKS different per term: 1.00 is neutral for a multiplicand and
- * total for a penalty, so the card taught the wrong reading of its own numbers.
- *
- * So: name the terms that dragged, say plainly when none did, and keep the
- * informational terms (which are not in the product at all) visually apart.
- */
-function ConfidenceStrip({ reasons }: { reasons: ConfidenceReason[] }) {
-  if (!reasons.length) return null;
-
-  const drags = reasons.filter((reason) => {
-    const value = toFiniteNumber(reason.value);
-    if (reason.kind === "penalty") return value > 0;
-    if (reason.kind === "multiplicand") return value < 1;
-    return false;
-  });
-  const notes = reasons.filter((reason) => reason.kind === "informational");
-
-  return (
-    <div
-      className={styles.confidenceStrip}
-      data-testid="rates-confidence-strip"
-    >
-      {drags.length ? (
-        <>
-          <span className={styles.confidenceStripLabel}>Reduced by</span>
-          {drags.map((reason) => (
-            <span key={reason.term} className={styles.confidenceDrag}>
-              <strong>{reason.term.replace(/_/g, " ")}</strong>
-              {reason.kind === "penalty"
-                ? ` −${(toFiniteNumber(reason.value) * 100).toFixed(0)}%`
-                : ` ×${toFiniteNumber(reason.value).toFixed(2)}`}
-              <small>{reason.detail}</small>
-            </span>
-          ))}
-        </>
-      ) : (
-        <span className={styles.confidenceStripLabel}>
-          Nothing reduced it — every load-bearing input is present, fresh and
-          uncontradicted.
-        </span>
-      )}
-      {notes.map((note) => (
-        <span key={note.term} className={styles.confidenceNote}>
-          <strong>{note.term.replace(/_/g, " ")}</strong>
-          <small>{note.detail}</small>
-        </span>
-      ))}
-    </div>
-  );
-}
+// The `ConfidenceStrip` that stood here is now
+// `components/macro/ConfidenceArithmetic.tsx`, with its four CSS classes (plan
+// 2026-08-27 §7, P5). It was private to this file while all four macro domains publish
+// the same `MacroConfidenceReason` shape, so the rates state was the only one of the
+// four whose confidence a reader could argue with. Its rendered contract is unchanged
+// here -- same markup, same classes, same `data-testid="rates-confidence-strip"`, which
+// is passed in rather than renamed so `tests/unit/rates/StateSection.test.tsx` keeps
+// asserting the same thing.
 
 export function StateSection({
   state,
@@ -192,7 +146,10 @@ export function StateSection({
         </dl>
       </div>
 
-      <ConfidenceStrip reasons={reasons} />
+      <ConfidenceArithmetic
+        reasons={reasons}
+        testId="rates-confidence-strip"
+      />
 
       <div className={styles.stateColumns}>
         <section className={styles.statePanel}>

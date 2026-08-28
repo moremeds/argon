@@ -1,5 +1,7 @@
 import type { components } from "@/lib/types";
 
+import type { ReplayVerdict } from "./replay";
+
 export type MacroDomainState = components["schemas"]["MacroDomainStateResponse"];
 
 /**
@@ -41,8 +43,49 @@ export const DOMAIN_LEDE: Record<MacroDomainKey, string> = {
   gold: "Whether gold's measured relationships are holding at all.",
 };
 
+/** One term behind a domain's confidence. Read via `kind`, never by term name --
+ *  `ConfidenceArithmetic` documents why, and `models/macro.py:414-418` is the contract. */
+export type MacroConfidenceReason =
+  components["schemas"]["MacroConfidenceReason"];
+
+/** One contradiction rule that fired inside ONE domain. Not to be confused with a
+ *  `MacroSnapshotReason`, which is a defect BETWEEN domains -- the two live in different
+ *  places for a reason and tab 00 keeps them in separate panels. */
+export type MacroContradiction = components["schemas"]["MacroContradiction"];
+
 export type MacroContextSnapshot =
   components["schemas"]["MacroContextSnapshotResponse"];
+
+/**
+ * The chain verdict's slot, three-state for the same reason a domain's is.
+ *
+ * `api.macroContextSnapshot` carries `allow404: true`, so "no snapshot was assembled for
+ * this instant" comes back as `null` WITHOUT throwing, while a dead API throws. The page
+ * this replaced caught the throw and returned `null` too, so both rendered as "chain never
+ * assembled" -- a statement about the assembler made on the evidence of a broken network.
+ * That is §4.6 of the port plan's collapse (`/gold`'s raw fetch shipping two failures as
+ * one message) living on the macro page, and §9 invariant 2 forbids it.
+ */
+export type MacroSnapshotSlot = {
+  value: MacroContextSnapshot | null;
+  error?: string;
+};
+
+/**
+ * One of tab 00's five publishers, with what it answered AND what that answer was for.
+ *
+ * Tabs 01 and 02 stand on one publisher each, so a single `ReplayStatus` above the content
+ * says everything there is to say. Tab 00 stands on five, and they decline separately --
+ * the chain snapshot can be absent for an instant four domains answered, and any one
+ * domain can be absent while the chain is complete. So the verdict travels WITH the slot
+ * rather than being summarised into one desk-level sentence, and the transmission-health
+ * panel is where all five are read side by side.
+ */
+export type MacroOverviewSlot<T> = {
+  value: T | null;
+  error?: string;
+  verdict: ReplayVerdict;
+};
 
 // ``reasons`` and ``domains`` carry Pydantic defaults, so the generated schema marks
 // them optional. Unwrapped here once rather than at every use site.

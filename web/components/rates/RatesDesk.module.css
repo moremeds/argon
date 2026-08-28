@@ -1750,57 +1750,14 @@
   opacity: 0.3;
 }
 
-/* Confidence, inline under the number it explains, rather than a third sub-card
-   competing with Velocity and Contradictions for the same visual weight. */
-.confidenceStrip {
-  display: flex;
-  flex-wrap: wrap;
-  align-items: baseline;
-  gap: 8px 18px;
-  padding: 10px 14px;
-  border: 1px solid var(--border-dim);
-  border-radius: 4px;
-  background: var(--bg-panel);
-}
-
-.confidenceStripLabel {
-  font-family: var(--font-mono), "IBM Plex Mono", monospace;
-  font-size: 10px;
-  letter-spacing: 1.5px;
-  text-transform: uppercase;
-  color: var(--text-muted);
-}
-
-.confidenceDrag,
-.confidenceNote {
-  display: inline-flex;
-  align-items: baseline;
-  gap: 6px;
-  font-size: 12px;
-  color: var(--text-secondary);
-}
-
-.confidenceDrag strong {
-  font-family: var(--font-mono), "IBM Plex Mono", monospace;
-  text-transform: uppercase;
-  letter-spacing: 0.5px;
-  font-size: 11px;
-  color: var(--warning);
-}
-
-.confidenceNote strong {
-  font-family: var(--font-mono), "IBM Plex Mono", monospace;
-  text-transform: uppercase;
-  letter-spacing: 0.5px;
-  font-size: 11px;
-  color: var(--text-muted);
-}
-
-.confidenceDrag small,
-.confidenceNote small {
-  font-size: 11px;
-  color: var(--text-muted);
-}
+/* The confidence strip's four classes -- .confidenceStrip, .confidenceStripLabel,
+   .confidenceDrag, .confidenceNote -- were HERE. They left with the component that
+   consumes them, to `components/macro/ConfidenceArithmetic.module.css` (plan 2026-08-27
+   §7, the two-lift table, P5). All four `/api/macro/*` domains publish the same
+   `MacroConfidenceReason` shape, so the strip is shared desk chrome now rather than a
+   rates-private sub-card; `components/macro/*` may not import from
+   `components/rates/*`, so the styles travel with it rather than being reached across.
+   Do not re-add them here -- a class defined in two modules is two classes that drift. */
 
 /* Tier bands. The desk is read top-down as answer -> publishers -> market ->
    mechanics -> provenance, and these are the only headings that say so. */

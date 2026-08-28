@@ -15,6 +15,7 @@ import {
   EnergyProposedPanels,
   EnergyRoutePanel,
 } from "@/components/macro/domain/EnergyProposal";
+import { OverviewDesk } from "@/components/macro/OverviewDesk";
 import { ReplayControl } from "@/components/macro/ReplayControl";
 import { ReplayStatus } from "@/components/macro/ReplayStatus";
 import type { MacroDomainSlot } from "@/components/macro/types";
@@ -32,6 +33,12 @@ import {
   type MacroTabProps,
   type MacroTabSlug,
 } from "@/components/macro/tabs";
+import type {
+  MacroContextSnapshot,
+  MacroDomainKey,
+  MacroDomainState,
+  MacroOverviewSlot,
+} from "@/components/macro/types";
 import { CurveDesk } from "@/components/rates/CurveDesk";
 import { FedDesk } from "@/components/rates/FedDesk";
 import { settle } from "@/components/rates/deskShared";
@@ -222,6 +229,69 @@ function domainTab(
       </>
     );
   };
+ * Tab 00 — Overview · Daily Loop.
+ *
+ * FIVE publishers, the only tab on the desk with more than three, and the reason is
+ * structural: it is the tab whose subject is the other tabs. `/api/macro/snapshot` for the
+ * chain verdict, plus one call per domain for the four answers it is a verdict about.
+ *
+ * ONE CALL PER DOMAIN rather than a bundle, carried from the `/macro` page this replaces:
+ * the four engines run on separate schedules and any of them can be absent, so a bundling
+ * endpoint would make one missing state look like a failed page — and saying which half is
+ * missing is the whole job. `api.macroDomainState` allows a 404 through as `null`, which
+ * is a fact to render, not an error to throw.
+ *
+ * THE SNAPSHOT IS FETCHED BESIDE THE FOUR, NEVER INSTEAD OF THEM (§9 invariant 8). It
+ * answers the one question none of them can — whether they belong together — and its own
+ * failure renders as an unreachable-chain notice, never as a clean chain.
+ *
+ * REPLAY: all five take the same `as_of` date and all five carry an answer clock. The
+ * verdict is driven by each response's `as_of` (the instant the stored answer answers for)
+ * and NOT by `computed_at`, because these routes select `WHERE as_of <= %s` and tie-break
+ * on the LATER `computed_at` — `storage/macro_domain_state.py:216-219` states that a later
+ * recompute of the same instant is legitimate, so a `computed_at` check would withhold a
+ * state the contract permits. `as_of` is the request's own bound echoed back, so the check
+ * fails exactly when the API did not apply the parameter, which is what it is for.
+ */
+async function OverviewTab({ replay }: MacroTabProps) {
+  const asOf = replay.kind === "replay" ? replay.asOf : undefined;
+  const [inflation, rates, usd, gold, snapshot] = await Promise.all([
+    settle(() => api.macroDomainState("inflation", asOf), "inflation state API"),
+    settle(() => api.macroDomainState("rates", asOf), "policy/rates state API"),
+    settle(() => api.macroDomainState("usd", asOf), "USD state API"),
+    settle(() => api.macroDomainState("gold", asOf), "gold state API"),
+    settle(() => api.macroContextSnapshot(asOf), "macro context snapshot API"),
+  ]);
+
+  /** One settled fetch plus what it answered for. `as_of` is the clock — see above. */
+  const withVerdict = <T extends { as_of: string }>(settled: {
+    value: T | null;
+    error?: string;
+  }): MacroOverviewSlot<T> => ({
+    value: settled.value,
+    error: settled.error,
+    verdict: replayVerdict(replay, {
+      computedAt: settled.value?.as_of,
+      failed: Boolean(settled.error),
+    }),
+  });
+
+  const domains: Record<MacroDomainKey, MacroOverviewSlot<MacroDomainState>> = {
+    inflation: withVerdict(inflation),
+    // The API path segment is `rates`; the domain key the store and the causal order use
+    // is `policy_rates`. Mapped here rather than anywhere downstream, so exactly one place
+    // knows the two vocabularies differ.
+    policy_rates: withVerdict(rates),
+    usd: withVerdict(usd),
+    gold: withVerdict(gold),
+  };
+
+  return (
+    <OverviewDesk
+      domains={domains}
+      snapshot={withVerdict<MacroContextSnapshot>(snapshot)}
+    />
+  );
 }
 
 /**
@@ -400,6 +470,7 @@ const TAB_CONTENT: Record<MacroTabSlug, MacroTabContent> = {
   gold: GoldTab,
   energy: EnergyTab,
   factors: FactorExportTab,
+  overview: OverviewTab,
 };
 
 export async function generateMetadata({

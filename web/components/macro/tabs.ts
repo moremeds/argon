@@ -131,6 +131,16 @@ export const VALID_TABS = [
     label: "Factor Export",
     replayClock: "instant",
   },
+  // Board t0, and the last tab registered rather than the first — registration order is
+  // PR order, and `ordinal` is what puts it in its board slot. Five requests, all
+  // `/api/macro/*`, all resolving through the same `resolve_instant` and all selecting
+  // `WHERE as_of <= %s`, so its question is the instant one that tabs 01-04 and 07 ask.
+  {
+    slug: "overview",
+    ordinal: "00",
+    label: "Overview · Daily Loop",
+    replayClock: "instant",
+  },
 ] as const satisfies readonly MacroTabEntry[];
 
 /** The registered slugs, as a literal union. `TAB_CONTENT` is keyed by this. */

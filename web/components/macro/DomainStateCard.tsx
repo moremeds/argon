@@ -1,3 +1,5 @@
+import { ConfidenceArithmetic } from "./ConfidenceArithmetic";
+import { confidencePct } from "./format";
 import type { MacroDomainKey, MacroDomainSlot } from "./types";
 import { DOMAIN_LABEL, DOMAIN_LEDE } from "./types";
 
@@ -14,12 +16,6 @@ const FRESHNESS_COLOR: Record<string, string> = {
   aging: "var(--warning)",
   stale: "var(--negative)",
 };
-
-function confidencePct(raw: string | number | null | undefined): string {
-  const n = typeof raw === "string" ? Number(raw) : raw;
-  if (n === null || n === undefined || !Number.isFinite(n)) return "—";
-  return `${Math.round(n * 100)}%`;
-}
 
 /**
  * One domain, with what it stood on.
@@ -122,6 +118,20 @@ export function DomainStateCard({
             </span>
           </div>
 
+          {/* The confidence ARITHMETIC, under the number it explains rather than folded
+              into the disclosure below. This card used to list every term raw inside
+              "what this stood on" -- `term value — detail`, with no way to tell whether a
+              value dragged: 1.00 is neutral for a multiplicand and total for a penalty,
+              and an informational term is not in the product at all. That is the reading
+              §4.1 of the port plan records the rates page getting wrong on screen. The
+              strip sorts by `kind` and is shared by all four domains (P5's lift). */}
+          <div style={{ marginTop: 10 }}>
+            <ConfidenceArithmetic
+              reasons={s.confidence_reasons}
+              testId={`macro-confidence-${domain}`}
+            />
+          </div>
+
           {s.velocity.length > 0 ? (
             <div style={{ marginTop: 10, display: "grid", gap: 3 }}>
               {s.velocity.map((v) => (
@@ -199,14 +209,10 @@ export function DomainStateCard({
                   ))}
                 </div>
               ) : null}
-              <div style={{ display: "grid", gap: 3 }}>
-                {s.confidence_reasons.map((r) => (
-                  <div key={r.term} style={{ fontSize: 12, color: "var(--text-secondary)" }}>
-                    <span style={LABEL}>{r.term.replace(/_/g, " ")}</span> {r.value} —{" "}
-                    {r.detail}
-                  </div>
-                ))}
-              </div>
+              {/* The confidence terms are NOT repeated here. They moved up beside the
+                  confidence number, where `ConfidenceArithmetic` renders them by `kind`;
+                  printing the same terms twice, once sorted and once raw, would put the
+                  misreading this card is fixing back on the same page. */}
               {s.notes.length > 0 ? (
                 <div style={{ display: "grid", gap: 3 }}>
                   {s.notes.map((n) => (

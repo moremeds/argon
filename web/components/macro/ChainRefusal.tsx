@@ -13,12 +13,40 @@ import { STATUS_LEDE } from "./types";
  * It reports and does not withhold. The authority boundary for this layer is
  * risk-monitoring: it may say the chain is broken and where, and it may not decide for
  * the reader that the individual answers are no longer worth seeing.
+ *
+ * THREE STATES, not two (§9 invariant 2). `error` is separate from a null `snapshot`
+ * because "the assembler never ran for this instant" and "we could not reach the API" are
+ * different facts about different things, and only the first is a statement about the
+ * chain. They rendered identically until P5: `api.macroContextSnapshot` allows a 404
+ * through as `null`, and the old page caught the throw and returned `null` as well, so a
+ * dead API printed "chain never assembled" -- a claim about the assembler, on the evidence
+ * of a broken network.
  */
 export function ChainRefusal({
   snapshot,
+  error,
 }: {
   snapshot: MacroContextSnapshot | null;
+  /** Set when the REQUEST failed. Never set together with a snapshot. */
+  error?: string;
 }) {
+  if (error) {
+    return (
+      <div
+        data-testid="macro-chain-unreachable"
+        style={{ ...BOX, borderColor: "var(--danger, #a33)" }}
+      >
+        <strong style={LABEL}>Chain verdict unreachable</strong>
+        <p style={BODY}>
+          {error} — so nothing has been read about whether the four answers below belong
+          together. This is a fact about our API, not about the assembler: a chain that
+          was never assembled and a chain we could not ask about are different things, and
+          only the first is a statement about the desk.
+        </p>
+      </div>
+    );
+  }
+
   if (snapshot === null) {
     return (
       <div
