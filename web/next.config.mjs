@@ -38,5 +38,24 @@ const nextConfig = {
       },
     ];
   },
+
+  // /rates is retired into the macro desk (docs/superpowers/plans/
+  // 2026-08-27-macro-desk-page-port.md §8, P3). It lands on /macro/rates
+  // rather than /macro/fed because /rates's own metadata title was "US
+  // Rates Factor Desk" and its most-linked content was the traded curve —
+  // the curve tab is the honest landing spot for an old link, and the Fed
+  // tab is one click away in the tab bar. permanent: true so Next emits a
+  // 308 (not 307) — the plan calls this out explicitly: once this redirect
+  // ships, backing it out needs a second deploy, so the status code is the
+  // part worth pinning in a test.
+  async redirects() {
+    return [
+      {
+        source: "/rates",
+        destination: "/macro/rates",
+        permanent: true,
+      },
+    ];
+  },
 };
 export default nextConfig;
