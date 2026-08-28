@@ -958,7 +958,7 @@ Endpoints (all read-only, zero vendor calls, warm store only):
 - `GET /fundamentals/{section}/matrix` → `DeskMatrixResponse` (from `fundamentals_desk_rollup` + `valuation_anchors` + `fundamental_scores` bucket ids for the cohort split; every ticker set built with `SELECT DISTINCT ticker` over `chain_membership` — one ticker in two layers is two rows, per `chain_membership_open_uq`)
 - `GET /fundamentals/{section}/profit-pool` → `list[ProfitPoolLayer]`
 - `GET /fundamentals/{section}/limits` → `DeskLimitsResponse` (`ni_*` from Task 10's `FundamentalObsRepository.net_income_basis_differences_by_ticker` — **as executed, Task 10's premise was disproved and this is a DESCRIPTIVE basis difference, never a violations read and never labelled as one.** Income-statement `net_income` is attributable-to-parent post-disc-ops while the cash-flow statement opens from consolidated NI including NCI (ASC 230 indirect), so a disagreement is usually correct accounting on both sides — measured on 342 of 419 tickers, worked case VZ 2010-Q3 where 2,698M = 881M + 1,817M NCI. Argon stores no NCI field and therefore CANNOT attribute the difference, which is why it must not render as an integrity failure. The genuine violation is the separate sign-flip check, 5 of 28,973 rows; `membership_evidence` from a GROUP BY `evidence_class` over open memberships in the section's domains; `exposure_coverage` from `ResearchTaxonomyRepository.exposure_coverage(version)` — verified, `storage/research_taxonomy.py:305`, returns per-chain `members` / `with_exposure` / `with_magnitude`)
-- `GET /fundamentals/node/{chain}/underwriting` → `list[NodeUnderwritingRow]` (via `current_statement_panel` → `underwriting_features` (Task 9) — UW store only, including `shares_outstanding_yoy`; raw provenance strings copied verbatim from the panel's `raw_jsonb` + `filing_published_at`; computed per request over ≤20 names — acceptable, and the payloads are already in the warm store)
+- `GET /fundamentals/{section}/node/underwriting?chain=<name>` → `list[NodeUnderwritingRow]`. **CORRECTED 2026-08-28 — was `GET /fundamentals/node/{chain}/underwriting`, which cannot work.** Every real ai-semi chain name contains a slash (`Networking/Optical`, `Semi-Logic/ASIC`, `Cooling/Thermal`, `Generation/Nuclear`, `EPC/Construction`, `Power/Electrical`, `DC-REIT/Colo`, `Computer/GPU` — verified against `watchlist_chain` on the mini, 20 of 38 chains), and a `%2F`-encoded slash in a FastAPI **path** param returns **404** (verified empirically 2026-08-28: path param `%2F` → 404, query param with a raw slash → 200). `chain` therefore travels as a QUERY parameter, exactly as `/calendar?chain=` already does. Do not reintroduce a chain path segment on any endpoint. Implementation otherwise unchanged: (via `current_statement_panel` → `underwriting_features` (Task 9) — UW store only, including `shares_outstanding_yoy`; raw provenance strings copied verbatim from the panel's `raw_jsonb` + `filing_published_at`; computed per request over ≤20 names — acceptable, and the payloads are already in the warm store)
 
 - [ ] **Step 1: Failing API tests**, including the anti-requirement tests (these are the spec's test-backed guardrails):
 
@@ -1033,7 +1033,12 @@ def test_rows_only_chain_reaches_both_endpoints(desk_client, conn):
     directly via ResearchTaxonomyRepository, then:"""
     r = desk_client.get("/fundamentals/ai-semi/matrix")
     assert "Substation/Transformers" in r.json()["chains"]
-    r2 = desk_client.get("/fundamentals/node/Substation%2FTransformers/underwriting")
+    # `chain` is a QUERY param, never a path segment — a %2F-encoded slash in a
+    # FastAPI path param 404s, and 20 of 38 real chain names contain a slash.
+    r2 = desk_client.get(
+        "/fundamentals/ai-semi/node/underwriting",
+        params={"chain": "Substation/Transformers"},
+    )
     assert r2.status_code == 200
 ```
 
@@ -1062,7 +1067,7 @@ Renders the STORED versioned report (never live re-assembly) + live calendar str
 
 **Files:**
 
-- Create: `web/app/fundamentals/ai-semi/[node]/page.tsx` (RSC; `export const dynamic = "force-dynamic"` like `web/app/reports/page.tsx`)
+- Create: `web/app/fundamentals/ai-semi/[...node]/page.tsx` (RSC; `export const dynamic = "force-dynamic"` like `web/app/reports/page.tsx`). **CATCH-ALL, not `[node]` — corrected 2026-08-28.** 20 of 38 real chain names contain a slash (`Networking/Optical`, `Semi-Logic/ASIC`, …), which a single dynamic segment cannot match. The catch-all receives `params.node: string[]`; rejoin with `"/"` to recover the chain name (`["Networking","Optical"]` → `"Networking/Optical"`), so the URL reads `/fundamentals/ai-semi/Networking/Optical` with no encoding anywhere. Test the rejoin explicitly — a chain whose name has no slash arrives as a one-element array and must still resolve.
 - Create: `web/components/fundamentals/NodeCalendarStrip.tsx`, `web/components/fundamentals/NodeUnderwritingPanel.tsx`, `web/components/fundamentals/NodeAliasQuestions.tsx`, `web/components/fundamentals/NodeLimits.tsx`
 - Modify: `web/lib/api.ts` (add typed fetchers: `deskCalendar(section, chain?)` — the server-side `?chain=` filter from Task 13, membership-resolved, no ticker list crosses the wire — and `nodeUnderwriting(chain)`; mirror the existing `api.researchReports` style)
 - Test: `web/tests/unit/nodePage.test.tsx` (vitest; mirror `web/tests/unit/macroDesk.test.tsx` conventions)
@@ -1088,6 +1093,8 @@ git commit -m "feat(fundamentals): optical node deep-dive page over the stored r
 ### Task 15: `/fundamentals` index with Radar as triage tab
 
 Thin index (spec §2): redirects to `/fundamentals/ai-semi` as the only section, with Radar folded in as the triage tab rather than a sibling route.
+
+> **EXECUTION ORDER — run this task AFTER Task 16, not before (ruling 2026-08-28).** As written, Task 15 points three redirects (`/fundamentals`, `/radar`, `/chains`) at `/fundamentals/ai-semi`, a route Task 16 has not created yet — every redirect would land on a 404 for the whole interval between the two tasks. Task 15 also instructs the executor to decide `ChainMatrix.tsx`'s disposition "while building Task 16's `ChainMetricMatrix`", which is unanswerable before that component exists. Task 16 has no dependency on Task 15 in the other direction (it creates a route; it does not touch nav or any redirect), so the swap is free. Nothing else changes: keep both tasks' files, tests, and commits exactly as specified.
 
 **Files:**
 
@@ -1156,7 +1163,7 @@ uv run python scripts/backfill/fundamental_change_events_run.py --as-of 2026-08-
 
 (Adjust dates to the execution day; rollup before change-events so the event derive sees the fresh state.)
 
-- [ ] **Step 3: Browser-verify** (Playwright MCP or manual): `/fundamentals` redirects; `/fundamentals/ai-semi` renders all six sections with real local data or honest abstention states; `/fundamentals/ai-semi/Optical-Communication` renders the stored report (assemble one first via the research-reports assemble endpoint if none exists locally), calendar strip, underwriting panel, alias questions. Screenshots to `output/playwright/` with descriptive names.
+- [ ] **Step 3: Browser-verify** (Playwright MCP or manual): `/fundamentals` redirects; `/fundamentals/ai-semi` renders all six sections with real local data or honest abstention states; `/fundamentals/ai-semi/Networking/Optical` (the REAL chain name — verified in `watchlist_chain`; there is no chain called "Optical-Communication", that is the *domain*) renders the stored report (assemble one first via the research-reports assemble endpoint if none exists locally), calendar strip, underwriting panel, alias questions. Screenshots to `output/playwright/` with descriptive names.
 - [ ] **Step 4: Record findings** in the PR description draft; fix what the smoke surfaces before Task 18.
 
 ### Task 18: CHANGELOG + PR for P3
