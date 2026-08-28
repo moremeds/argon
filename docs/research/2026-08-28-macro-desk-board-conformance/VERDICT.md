@@ -134,3 +134,50 @@ node /path/to/audit.mjs        # scratchpad script; renders 01-05, dumps h1-h4
 ```
 
 Artifact read via `Artifact action:"read" url:".../dde15f29-728e-43e9-86d5-9ab688df4853"`.
+
+---
+
+## Closure — what the build changed (same day)
+
+The audit above is the measurement; this section records what was done about it and what
+was deliberately not. Commits `bee947cd`…`c886b55d` on `feat/macro-desk-tabs-03-05`.
+
+| Audit finding                              | Disposition                                                                              |
+| ------------------------------------------ | ---------------------------------------------------------------------------------------- |
+| t3 Inflation, 0 of 4                        | **Built.** All four render; verified live at `/macro/inflation`.                          |
+| t4 US Dollar, 0 of 2                        | **Built.** Both render; verified live at `/macro/usd`.                                    |
+| t1 missing its refusal panel                | **Built.** Four invariants that existed only as code comments and test assertions.        |
+| t2 missing Supply / Auction demand          | **Moved** from tab 01. One `SupplySection` covers both board panels.                      |
+| t5 framing                                  | **Reordered** to the board's sequence: gauge opens the tab, expression cost gets a band.  |
+| Tab 08 ships against the board              | **Unlisted.** Registered and reachable at `/macro/notes`, absent from the strip.          |
+| Q1–Q7 acceptance test absent                | **Enforced.** Non-empty tuple on `BoardPanel`, `data-questions` on gold, e2e over both.   |
+| t0 Overview, 8 of 16                        | **Not done here** — see below.                                                            |
+
+### The one thing deliberately left
+
+**Tab 00 is not on this branch.** It lives on the sibling `feat/macro-desk-tab-00`
+(2 commits, unmerged), and `VALID_TABS` here has no overview entry at all. Building its
+panels in this worktree would duplicate that branch and collide on `tabs.ts` and
+`app/macro/[tab]/page.tsx` at merge. Of its 7 absences, 3 are buildable against data that
+already exists — the repeated policy paths, the anchor-letting-go read, and the confidence
+repair table — and the third is now a shared component (`ConfidenceRepairPanel`) that tab
+00 can consume when the branches meet. The other 4 need data the desk does not ingest
+(FOMC calendar, GVZ/VIX/HY-OAS deltas, both energy blocks, which the board itself marks as
+proposals).
+
+### Two deferrals, stated on the page rather than dropped
+
+- **Gold's anchor-decay chart** wants the gauge's 60-day correlation daily; the producer
+  computes that history at `window=252` only (`reports/gold_posture.py`). The heading names
+  the window it has and a note names the one that was asked for.
+- **`T5YIFR`** (the board's 5y5y forward row) is carried by no published domain state. The
+  expectations panel names it as missing rather than sourcing it from somewhere uncited.
+
+### Verification
+
+`npm run typecheck` · `npm run lint` · `node scripts/lint-gold-copy.mjs` all clean.
+940 vitest tests pass (up from 930). 37 Playwright specs across
+`macro-desk`/`macro-replay`/`macro-rates-state`/`macro-chart-scale`/`gold-page`/
+`gold-redirect`/`rates-redirect` pass against the running instance.
+
+Screenshots of the final state: `output/playwright/macro-tab-{fed,rates,inflation,usd,gold}.png`.
