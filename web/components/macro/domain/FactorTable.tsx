@@ -1,19 +1,22 @@
 import type { components } from "@/lib/types";
 
-import { MONO_LABEL } from "./BoardPanel";
-
 export type MacroFactor = components["schemas"]["MacroFactorState"];
 
 /**
- * A set of the state's factors, as the board's metric tables render them.
+ * A set of the state's factors, in the board's metric-table grammar:
+ * `Metric | Level | Δ window | Direction | Period`, numerics right-aligned in tabular
+ * mono, direction carrying the delta colour. Styling is `app/macro/board.css`.
  *
  * Two formatting decisions are load-bearing and both are refusals.
  *
- * **The Δ column carries no unit.** `change_over_window` is published without one, and it
- * is NOT in the level's unit: `PCEPILFE` is an index in 2017=100 while its change is
- * +0.03 in percentage points of the year-on-year rate. The velocity block names that unit
- * for the one metric it covers; the factor rows do not carry it at all. So the number is
- * printed signed and bare rather than wearing a unit inferred from the column beside it.
+ * **The Δ column carries no unit — and here the board is deliberately not followed.** The
+ * board's mock prints `−0.28pp`, but that "pp" is a value in a frozen mock, not a field on
+ * the response: `change_over_window` is published without a unit and is NOT in the level's
+ * unit (`PCEPILFE` is an index in 2017=100 while its change is in percentage points of the
+ * year-on-year rate). The velocity block names a unit for the one metric it covers; the
+ * factor rows do not carry it at all. So the number is printed signed and bare rather than
+ * wearing a unit copied off a mock. The board binds its DESIGN; it does not license a unit
+ * the API never sent.
  *
  * **Direction tone is a per-domain argument, never a global.** For inflation a FALLING
  * print is an improvement and the board colours it green, which is the opposite of what
@@ -34,31 +37,14 @@ function fmtDelta(raw: string | null | undefined): string {
   return `${n >= 0 ? "+" : "−"}${Math.abs(n).toFixed(2)}`;
 }
 
-function directionColor(
+function deltaClass(
   direction: MacroFactor["direction"],
   fallingIsGood: boolean,
 ): string {
-  if (direction === "FALLING")
-    return fallingIsGood ? "var(--positive)" : "var(--negative)";
-  if (direction === "RISING")
-    return fallingIsGood ? "var(--negative)" : "var(--positive)";
-  return "var(--text-muted)";
+  if (direction === "FALLING") return fallingIsGood ? "delta-up" : "delta-dn";
+  if (direction === "RISING") return fallingIsGood ? "delta-dn" : "delta-up";
+  return "delta-flat";
 }
-
-const CELL: React.CSSProperties = {
-  padding: "5px 0",
-  borderTop: "1px solid var(--border-dim)",
-  fontSize: 12,
-  color: "var(--text-secondary)",
-};
-
-const NUM: React.CSSProperties = {
-  ...CELL,
-  textAlign: "right",
-  whiteSpace: "nowrap",
-  fontFamily: "var(--font-mono), monospace",
-  color: "var(--text-primary)",
-};
 
 export function FactorTable({
   factors,
@@ -71,65 +57,49 @@ export function FactorTable({
 }) {
   if (factors.length === 0) {
     return (
-      <p style={{ margin: 0, fontSize: 12, color: "var(--text-muted)" }}>
+      <p className="read">
         No factor of this kind is carried on the published state.
       </p>
     );
   }
   return (
-    <div style={{ overflowX: "auto" }}>
-      <table
-        data-testid={testId}
-        style={{ width: "100%", borderCollapse: "collapse", minWidth: 460 }}
-      >
+    <div className="tbl-wrap">
+      <table data-testid={testId}>
         <thead>
           <tr>
-            {["metric", "level", "Δ window", "direction", "period"].map(
-              (h, i) => (
-                <th
-                  key={h}
-                  style={{
-                    ...MONO_LABEL,
-                    textAlign: i === 0 || i === 3 ? "left" : "right",
-                    paddingBottom: 6,
-                    whiteSpace: "nowrap",
-                  }}
-                >
-                  {h}
-                </th>
-              ),
-            )}
+            <th>Metric</th>
+            <th className="num">Level</th>
+            <th className="num">Δ window</th>
+            <th>Direction</th>
+            <th className="num">Period</th>
           </tr>
         </thead>
         <tbody>
           {factors.map((f) => (
             <tr key={`${f.name}-${f.series_id}`}>
-              <td style={CELL}>
-                <span
+              <td>
+                {f.series_id}
+                {/* The unit sits on its own line rather than running on after the id.
+                    In a half-width panel the two together wrap mid-phrase, which reads
+                    as a ragged accident; stacked, the wrap is the layout. */}
+                <small
                   style={{
-                    fontFamily: "var(--font-mono), monospace",
-                    color: "var(--text-primary)",
+                    display: "block",
+                    fontSize: 10,
+                    color: "var(--text-muted)",
                   }}
                 >
-                  {f.series_id}
-                </span>
-                <span style={{ color: "var(--text-muted)" }}>
-                  {" "}
                   {f.unit.replace(/_/g, " ")}
+                </small>
+              </td>
+              <td className="num">{fmtLevel(f)}</td>
+              <td className="num">{fmtDelta(f.change_over_window)}</td>
+              <td>
+                <span className={deltaClass(f.direction, fallingIsGood)}>
+                  {f.direction}
                 </span>
               </td>
-              <td style={NUM}>{fmtLevel(f)}</td>
-              <td style={NUM}>{fmtDelta(f.change_over_window)}</td>
-              <td
-                style={{
-                  ...CELL,
-                  ...MONO_LABEL,
-                  color: directionColor(f.direction, fallingIsGood),
-                }}
-              >
-                {f.direction}
-              </td>
-              <td style={{ ...NUM, color: "var(--text-secondary)" }}>
+              <td className="num">
                 {f.period_end} · {f.age_days}d
               </td>
             </tr>

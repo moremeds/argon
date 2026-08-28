@@ -196,6 +196,44 @@ Engine versions differ between the local dev DB (`inflation/1`, `usd/1`) and the
 board names (`inflation/2 · rates/2 · usd/3 · gold/2`). Verify against the mini before binding
 anything to a version string — a local-DB reading is not evidence about production.
 
+### SECOND CORRECTION (2026-08-28, same day): the information bound, the design did not
+
+The first build against this section shipped all six panels and still did not look like the
+board. It answered every board question while inventing its own typography — a 13px sans panel
+heading where the board specifies **10px mono uppercase at 1.5px tracking**, no `.read` accent
+rail at all, a solid footer where the board specifies a dashed `.prov` rule, and the confidence
+arithmetic as stacked text blocks rather than the board's bordered `.term` boxes with `×`
+operators and a teal `= conf` chip. The header of this plan already said the board binds "both
+the **information** … and the **design**"; only the first half was executed.
+
+**Why it was invisible.** A missing panel fails a question-coverage check. A panel that answers
+the right question in the wrong visual language passes every check there was — nothing in the
+repo could compare rendered output to the spec, because the spec's own stylesheet had never been
+brought across. So the desk's design drifted to argon's house defaults by omission, exactly the
+way §1's prose beat the board by default.
+
+**The fix, and the rule it establishes.** The board's class grammar is ported to
+`web/app/macro/board.css` — `.sec-title` / `.sec-sub` / `.panel` / `.panel-h` / `.tag{.real,.comp,.plan,.q}` /
+`.state{.okst,.warnst,.critst,.neust}` / `.read` / `.prov` / `.arith{.term,.op,.res}` /
+`.note-refuse` / `.big` / `.delta-*` and the table rules — copied class for class from the frozen
+artifact so the two can be **diffed**. Argon's tokens turned out to be the board's tokens
+verbatim (`--bg-panel #0f1519`, `--border-dim #1e293b`, `--info #8b5cf6`, …), so no palette
+was added; the port is grammar only. Three deviations, each recorded in the CSS beside the rule:
+
+1. `rgba()` overlays of a token's dark value become `color-mix()` of the same token, because the
+   board is single-theme dark and argon has a light theme.
+2. Everything is scoped under `.board`, because /macro also serves the gold and rates tabs and
+   the board's bare `table {}` / `td:first-child {}` rules would restyle them.
+3. `.arith` wraps instead of `nowrap`. The board's mock never scrolls at its term widths; ours
+   pushed the `= conf` chip off the right edge behind an overflow scroller, hiding the product —
+   which is the only thing that panel exists to show.
+
+**And the design binding does not license the board's values.** The board's mock prints `−0.28pp`
+in the Δ column; `change_over_window` carries no unit and is not in the level's unit, so the
+column stays bare. The board's t4 title says "a dollar pair **in reverse**"; both legs are
+positive today, so the title stops at "a dollar pair" and the sentence is derived from the two
+signs. Design binds; frozen readings never do.
+
 ### 3.1 Point-in-time replay
 
 `as_of` / `as_of_ts` is accepted by **every** `/api/macro/*` route (`routers/macro.py`

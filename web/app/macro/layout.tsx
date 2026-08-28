@@ -2,6 +2,8 @@ import { Suspense } from "react";
 
 import { MacroTabBar } from "@/components/macro/MacroTabBar";
 
+import "./board.css";
+
 /**
  * The macro desk shell.
  *
@@ -12,6 +14,11 @@ import { MacroTabBar } from "@/components/macro/MacroTabBar";
  *
  * A throw from THIS file is caught by `app/macro/error.tsx`, one level up — a segment's
  * own `error.tsx` does not catch throws from that segment's layout.
+ *
+ * `board.css` is imported here because it is the desk's shared grammar, ported class for
+ * class from the binding spec (`docs/superpowers/specs/2026-08-27-macro-desk-board.html`).
+ * Everything in it is scoped under `.board`, so importing it desk-wide cannot restyle the
+ * gold and rates tabs that also live under this layout and carry their own table chrome.
  *
  * The `<Suspense>` is not decoration. `MacroTabBar` reads `useSearchParams()` so it can
  * carry `?as_of=` across tab switches, and a client component that reads the search params

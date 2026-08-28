@@ -690,7 +690,32 @@ evidence_policy)`, which fails closed — an observation with no claim never
   - **The board's acceptance test is now enforceable.** "Every panel must answer at least
     one of Q1-Q7, or it gets deleted" reached neither the plan nor the code, so nothing
     could fail it. `BoardPanel` takes a non-empty tuple of questions, gold's bands carry
-    `data-questions`, and an e2e walks the live desk asserting every panel is tagged.
+    `data-questions`, and an e2e walks the live desk asserting every panel is tagged. The
+    tab-level question strip is checked against the union of its own panels' tags, so it
+    cannot advertise a question no panel on the tab answers.
+  - **The board's design binds too, and now it is in the repo.** The first pass shipped all
+    six panels and still did not look like the board: it answered every question in argon's
+    house typography — a 13px sans panel heading where the board specifies 10px mono
+    uppercase, no accent rail on the interpretive paragraph, and the confidence arithmetic
+    as stacked text instead of bordered term boxes. Nothing could catch that, because the
+    spec's own stylesheet had never been brought across. `web/app/macro/board.css` is now
+    the board's class grammar ported class for class (`.sec-title` / `.panel-h` / `.read` /
+    `.prov` / `.arith` / `.note-refuse` / `.state` / `.tag`), so spec and implementation can
+    be diffed. Argon's tokens were already the board's tokens verbatim, so no palette was
+    added. Three deviations are recorded beside the rules that make them: `rgba()` overlays
+    become `color-mix()` because argon has a light theme the single-theme board does not;
+    everything is scoped under `.board` so the gold and rates tabs sharing this layout keep
+    their own table chrome; and `.arith` wraps instead of `nowrap`, because at our term
+    widths the board's scroller hid the product the panel exists to show.
+  - **The domain tabs drop the summary card for the board's state pill.** The board's t3/t4
+    have no card — the `.sec-title` pill is the summary and the `.sec-sub` names, in prose,
+    what the card's contradiction and freshness rows carried. Both are now derived from the
+    response (rule names, the stalest load-bearing input and its age) rather than copied
+    from the board, whose figures froze at its capture instant. The card stays on `/macro`,
+    the overview it was built for. The pill is coloured by distance from the domain's own
+    reference point and never by a market view; a label nobody has published renders
+    neutral rather than being assigned a severity by guess. The empty slot stays
+    three-state, and a missing state never wears a state colour.
   - **Tab 01 gains the refusal panel it was the only tab shipping without**, carrying four
     invariants that previously existed only as code comments and test assertions.
   - **Issuance moves from tab 01 to tab 02**, where the board puts it. Who is issuing and
