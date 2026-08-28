@@ -204,6 +204,13 @@ async function _fetch<T>(
   return JSON.parse(text) as T;
 }
 
+/** `?as_of=YYYY-MM-DD`, or nothing at all when live. The empty string is deliberately
+ *  NOT sent: FastAPI would reject `as_of=` as an unparseable date, turning "show me now"
+ *  into a 422 the desk would have to explain. */
+function asOfQuery(asOf?: string): string {
+  return asOf ? `?as_of=${encodeURIComponent(asOf)}` : "";
+}
+
 export const api = {
   watchlist: (
     params: URLSearchParams = new URLSearchParams(),
@@ -352,18 +359,28 @@ export const api = {
     _fetch<PositioningSnapshot>(`/api/positioning/${ticker}`),
   positioningScreener: (): Promise<PositioningScreenerResponse> =>
     _fetch<PositioningScreenerResponse>(`/api/positioning/screener`),
-  ratesSnapshot: (): Promise<RatesSnapshotResponse | null> =>
-    _fetch<RatesSnapshotResponse | null>(`/api/rates/snapshot`, undefined, {
-      allow404: true,
-    }),
+  // `asOf` is a UTC CALENDAR DATE (`YYYY-MM-DD`), not an instant. Both routes also
+  // accept `as_of_ts` for intraday replay; the desk does not ask for one, and the two
+  // are mutually exclusive server-side (`resolve_instant` 422s on both). Omitted rather
+  // than sent empty when live, so the shipped query stays byte-identical — the router
+  // passes `None` down only when no date was actually asked for, which is what keeps a
+  // snapshot whose `computed_at` sits a second in the future from 404ing the page.
+  ratesSnapshot: (asOf?: string): Promise<RatesSnapshotResponse | null> =>
+    _fetch<RatesSnapshotResponse | null>(
+      `/api/rates/snapshot${asOfQuery(asOf)}`,
+      undefined,
+      { allow404: true },
+    ),
   // The four policy paths, each with its own publisher and release date. Kept
   // separate from ratesSnapshot deliberately: they are computed by a different
   // job on a different clock, and folding them into one call would make a stale
   // snapshot look like it carried a fresh FOMC release.
-  macroPolicy: (): Promise<MacroPolicyComparison | null> =>
-    _fetch<MacroPolicyComparison | null>(`/api/macro/policy`, undefined, {
-      allow404: true,
-    }),
+  macroPolicy: (asOf?: string): Promise<MacroPolicyComparison | null> =>
+    _fetch<MacroPolicyComparison | null>(
+      `/api/macro/policy${asOfQuery(asOf)}`,
+      undefined,
+      { allow404: true },
+    ),
   // One call per domain rather than one bundling call. The four engines run on separate
   // schedules and any of them can be absent; a bundle would make one missing state look
   // like a failed page, and the desk's whole point is saying which half is missing.

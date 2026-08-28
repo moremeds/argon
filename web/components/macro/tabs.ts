@@ -24,6 +24,10 @@
  * P2 seeds this with tab 08 (Design Notes) alone — static prose, no data path.
  */
 
+import type { ReactElement } from "react";
+
+import type { MacroReplayClock, MacroReplayRequest } from "./replay";
+
 export type MacroTabEntry = {
   /** URL segment. The tab lives at `/macro/{slug}`. */
   slug: string;
@@ -38,16 +42,48 @@ export type MacroTabEntry = {
   ordinal: string;
   /** Tab-bar label. Rendered uppercase by `.ticker-tab`. */
   label: string;
+  /**
+   * WHICH QUESTION this tab's `as_of` control asks. Required, with no default.
+   *
+   * §3.1 of the plan banned a single desk-wide picker over all five domain tabs until
+   * the gold clock was settled, because `/api/gold/replay` keys on `obs_date` with exact
+   * equality while `/api/rates/snapshot` keys on `computed_at` and `/api/macro/*` on an
+   * instant. §10-H settled it — label it, do not change the API — and this field is that
+   * label. It has no default precisely so tab 05 cannot inherit tab 02's question by
+   * omission: registering a tab without naming its clock does not compile.
+   *
+   * It must name what the tab's endpoint ACTUALLY keys on. A tab that declares `instant`
+   * while calling an `obs_date` route is the failure §3.1 describes, wearing a label.
+   */
+  replayClock: MacroReplayClock;
 };
 
 export const VALID_TABS = [
-  { slug: "notes", ordinal: "08", label: "Design Notes" },
-  { slug: "fed", ordinal: "01", label: "Fed · Policy" },
-  { slug: "rates", ordinal: "02", label: "Rates · Curve" },
+  { slug: "notes", ordinal: "08", label: "Design Notes", replayClock: "none" },
+  { slug: "fed", ordinal: "01", label: "Fed · Policy", replayClock: "instant" },
+  {
+    slug: "rates",
+    ordinal: "02",
+    label: "Rates · Curve",
+    replayClock: "instant",
+  },
 ] as const satisfies readonly MacroTabEntry[];
 
 /** The registered slugs, as a literal union. `TAB_CONTENT` is keyed by this. */
 export type MacroTabSlug = (typeof VALID_TABS)[number]["slug"];
+
+/**
+ * What every tab's content component is handed. See the block above `TAB_CONTENT` in
+ * `app/macro/[tab]/page.tsx` for why it is a props object carrying the REQUEST rather
+ * than a resolved instant, pre-fetched data, or a bare `asOf` string.
+ */
+export type MacroTabProps = { replay: MacroReplayRequest };
+
+/** The value type of `TAB_CONTENT`. A tab may be sync (static prose) or async (it awaits
+ *  its own publishers on the server); both are components, instantiated as JSX. */
+export type MacroTabContent = (
+  props: MacroTabProps,
+) => ReactElement | Promise<ReactElement>;
 
 /** One place that knows the URL shape, so the bar and any test agree on it. */
 export function macroTabHref(slug: string): string {

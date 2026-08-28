@@ -1,8 +1,9 @@
 "use client";
 
 import Link from "next/link";
-import { usePathname } from "next/navigation";
+import { usePathname, useSearchParams } from "next/navigation";
 
+import { replayHref } from "./replay";
 import { macroTabHref, macroTabsInBoardOrder } from "./tabs";
 
 /**
@@ -30,9 +31,22 @@ import { macroTabHref, macroTabsInBoardOrder } from "./tabs";
  *    separate documents reached by navigation, so a tablist role would promise a
  *    widget that does not exist — no panel to own, no arrow-key traversal, no
  *    `aria-controls` that resolves. Honest link markup beats a tablist that lies.
+ *
+ * 3. Every link CARRIES `?as_of=`. A bare `href` would drop the replay date on the first
+ *    tab switch, and the operator would land on a live tab believing he was still
+ *    replaying — §3.1's "a replayed tab beside a live one, with nothing on screen saying
+ *    so", reintroduced by navigation after P4 fixed it at the API and at the banner. §6
+ *    of the plan flagged that propagating it costs `useSearchParams()` and therefore a
+ *    Suspense boundary (`app/macro/layout.tsx` supplies one) and multiplies the prefetch
+ *    set per distinct date — moot here, because of choice 1.
+ *
+ *    The value is forwarded VERBATIM, not re-parsed. A rejected `as_of` must keep being
+ *    rejected on the next tab: silently dropping it on navigation would turn a visible
+ *    refusal into a live page that looks like the replay worked.
  */
 export function MacroTabBar() {
   const pathname = usePathname();
+  const asOf = useSearchParams().get("as_of");
 
   return (
     <nav
@@ -49,7 +63,7 @@ export function MacroTabBar() {
         return (
           <Link
             key={tab.slug}
-            href={href}
+            href={replayHref(href, asOf)}
             prefetch={false}
             aria-current={active ? "page" : undefined}
             className={`ticker-tab macro-tab${active ? " active" : ""}`}

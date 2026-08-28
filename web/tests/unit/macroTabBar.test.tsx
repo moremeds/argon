@@ -1,10 +1,12 @@
 import { render, screen } from "@testing-library/react";
-import { describe, expect, it, vi } from "vitest";
+import { beforeEach, describe, expect, it, vi } from "vitest";
 
 let pathname = "/macro/notes";
+let search = new URLSearchParams();
 
 vi.mock("next/navigation", () => ({
   usePathname: () => pathname,
+  useSearchParams: () => search,
 }));
 
 // Mocked so the test can observe `prefetch`, which next/link deliberately does not
@@ -31,6 +33,11 @@ import { MacroTabBar } from "@/components/macro/MacroTabBar";
 import { VALID_TABS, macroTabHref } from "@/components/macro/tabs";
 
 describe("MacroTabBar", () => {
+  beforeEach(() => {
+    pathname = "/macro/notes";
+    search = new URLSearchParams();
+  });
+
   it("renders exactly one link per registry entry, and nothing else", () => {
     pathname = "/macro/notes";
     render(<MacroTabBar />);
@@ -119,5 +126,36 @@ describe("MacroTabBar", () => {
     expect(screen.getByTestId("macro-tab-notes").className).toContain(
       "macro-tab",
     );
+  });
+
+  it("carries the replay date across every tab switch", () => {
+    // Without this the operator replaying 2026-08-20 on tab 01 clicks tab 02 and lands on
+    // a LIVE tab believing he is still replaying — plan §3.1's "a replayed tab beside a
+    // live one, with nothing on screen saying so", reintroduced by navigation after the
+    // API and the banner had both closed it.
+    search = new URLSearchParams("as_of=2026-08-20");
+    render(<MacroTabBar />);
+    for (const tab of VALID_TABS) {
+      expect(
+        screen.getByTestId(`macro-tab-${tab.slug}`).getAttribute("href"),
+      ).toBe(`${macroTabHref(tab.slug)}?as_of=2026-08-20`);
+    }
+  });
+
+  it("forwards a rejected value verbatim rather than dropping it", () => {
+    // Dropping it on navigation would turn a visible refusal into a live page that looks
+    // like the replay worked. The bar does not re-parse; the destination tab does.
+    search = new URLSearchParams("as_of=yesterday");
+    render(<MacroTabBar />);
+    expect(screen.getByTestId("macro-tab-rates").getAttribute("href")).toBe(
+      "/macro/rates?as_of=yesterday",
+    );
+  });
+
+  it("adds nothing to the href when the desk is live", () => {
+    render(<MacroTabBar />);
+    for (const link of screen.getAllByRole("link")) {
+      expect(link.getAttribute("href")).not.toContain("?");
+    }
   });
 });
