@@ -1001,6 +1001,35 @@
         "title": "ChainDrilldownResponse",
         "type": "object"
       },
+      "ChainExposureCoverage": {
+        "description": "Three denominators, because they answer three different questions and a\nsurface showing only the first invites the reader to assume the third.",
+        "properties": {
+          "chain": {
+            "title": "Chain",
+            "type": "string"
+          },
+          "members": {
+            "title": "Members",
+            "type": "integer"
+          },
+          "with_exposure": {
+            "title": "With Exposure",
+            "type": "integer"
+          },
+          "with_magnitude": {
+            "title": "With Magnitude",
+            "type": "integer"
+          }
+        },
+        "required": [
+          "chain",
+          "members",
+          "with_exposure",
+          "with_magnitude"
+        ],
+        "title": "ChainExposureCoverage",
+        "type": "object"
+      },
       "ChainFlowReadRow": {
         "properties": {
           "call_open_interest": {
@@ -1261,6 +1290,65 @@
           "approved_by"
         ],
         "title": "ChainMember",
+        "type": "object"
+      },
+      "ChainMetricCell": {
+        "description": "One chain \u00d7 metric cell.\n\n`median` is the UNWEIGHTED median of the non-null dot values. Never\nrevenue-weighted: a revenue-weighted \"optical\" margin is one member's\nmargin wearing the chain's label, measured as actively misleading.\n\nFor `metric='valuation_percentile'` the median is ALWAYS None. Own-history\npercentiles are NAME facts; any aggregate over them is the banned \"chain\npercentile distribution\" (spec \u00a73) \u2014 the dots still render, because the\nname-level facts are real.",
+        "properties": {
+          "chain": {
+            "title": "Chain",
+            "type": "string"
+          },
+          "cohorts": {
+            "default": [],
+            "items": {
+              "$ref": "#/components/schemas/CohortSlice"
+            },
+            "title": "Cohorts",
+            "type": "array"
+          },
+          "coverage_missing": {
+            "default": [],
+            "items": {
+              "type": "string"
+            },
+            "title": "Coverage Missing",
+            "type": "array"
+          },
+          "dots": {
+            "default": [],
+            "items": {
+              "$ref": "#/components/schemas/MemberDot"
+            },
+            "title": "Dots",
+            "type": "array"
+          },
+          "median": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Median"
+          },
+          "members_total": {
+            "default": 0,
+            "title": "Members Total",
+            "type": "integer"
+          },
+          "metric": {
+            "title": "Metric",
+            "type": "string"
+          }
+        },
+        "required": [
+          "chain",
+          "metric"
+        ],
+        "title": "ChainMetricCell",
         "type": "object"
       },
       "ChanlunLifecycleMark": {
@@ -2370,6 +2458,34 @@
           "market_date"
         ],
         "title": "CockpitVrpResponse",
+        "type": "object"
+      },
+      "CohortSlice": {
+        "description": "One cross-section bucket a chain's members sit in.\n\n`fundamental_scores.as_of` is a cross-section IDENTIFIER, not a freshness\nstamp. When members straddle two buckets that is reporting season, and\nmerging them would compare names that were never in the same peer group.",
+        "properties": {
+          "as_of": {
+            "format": "date",
+            "title": "As Of",
+            "type": "string"
+          },
+          "label": {
+            "title": "Label",
+            "type": "string"
+          },
+          "tickers": {
+            "default": [],
+            "items": {
+              "type": "string"
+            },
+            "title": "Tickers",
+            "type": "array"
+          }
+        },
+        "required": [
+          "as_of",
+          "label"
+        ],
+        "title": "CohortSlice",
         "type": "object"
       },
       "CompanyDimensionsResponse": {
@@ -3996,6 +4112,281 @@
           }
         },
         "title": "DealerRegimeSignal",
+        "type": "object"
+      },
+      "DeltaRailEvent": {
+        "description": "One entry on the \"what changed since you last looked\" rail.\n\n`first_known_at` is a DATE, not a timestamp: `research_events.first_known_at`\nis a `date` column (migration 142), and rendering it as an instant at\nmidnight would manufacture a precision the ledger does not hold.",
+        "properties": {
+          "detail": {
+            "additionalProperties": true,
+            "default": {},
+            "title": "Detail",
+            "type": "object"
+          },
+          "event_class": {
+            "title": "Event Class",
+            "type": "string"
+          },
+          "first_known_at": {
+            "format": "date",
+            "title": "First Known At",
+            "type": "string"
+          },
+          "occurred_at": {
+            "format": "date",
+            "title": "Occurred At",
+            "type": "string"
+          },
+          "ticker": {
+            "title": "Ticker",
+            "type": "string"
+          },
+          "title": {
+            "title": "Title",
+            "type": "string"
+          }
+        },
+        "required": [
+          "event_class",
+          "ticker",
+          "occurred_at",
+          "first_known_at",
+          "title"
+        ],
+        "title": "DeltaRailEvent",
+        "type": "object"
+      },
+      "DeltaRailResponse": {
+        "properties": {
+          "events": {
+            "default": [],
+            "items": {
+              "$ref": "#/components/schemas/DeltaRailEvent"
+            },
+            "title": "Events",
+            "type": "array"
+          },
+          "since": {
+            "format": "date",
+            "title": "Since",
+            "type": "string"
+          }
+        },
+        "required": [
+          "since"
+        ],
+        "title": "DeltaRailResponse",
+        "type": "object"
+      },
+      "DeskCalendarResponse": {
+        "properties": {
+          "as_of": {
+            "format": "date",
+            "title": "As Of",
+            "type": "string"
+          },
+          "rows": {
+            "default": [],
+            "items": {
+              "$ref": "#/components/schemas/DeskCalendarRow"
+            },
+            "title": "Rows",
+            "type": "array"
+          },
+          "section": {
+            "title": "Section",
+            "type": "string"
+          }
+        },
+        "required": [
+          "section",
+          "as_of"
+        ],
+        "title": "DeskCalendarResponse",
+        "type": "object"
+      },
+      "DeskCalendarRow": {
+        "description": "One upcoming print, placed in the chain.\n\nThe row is grained `(ticker, report_date, chain, layer)` \u2014 membership's own\ngrain. A name in two chains appears twice, each time under the chain whose\nread-through order put it there; collapsing to one row would require\npicking a chain for it, which is a judgement the desk has no basis to make\nand would hide the other membership entirely.",
+        "properties": {
+          "chain": {
+            "title": "Chain",
+            "type": "string"
+          },
+          "implied_move_asof": {
+            "anyOf": [
+              {
+                "format": "date",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Implied Move Asof"
+          },
+          "implied_move_pct": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Implied Move Pct"
+          },
+          "layer": {
+            "title": "Layer",
+            "type": "string"
+          },
+          "layer_rank": {
+            "title": "Layer Rank",
+            "type": "integer"
+          },
+          "percentile_state": {
+            "default": "ok",
+            "enum": [
+              "ok",
+              "stale_run",
+              "no_compatible_run",
+              "no_coverage",
+              "unsupported_capability",
+              "failed_run"
+            ],
+            "title": "Percentile State",
+            "type": "string"
+          },
+          "reactions": {
+            "default": [],
+            "items": {
+              "type": "number"
+            },
+            "title": "Reactions",
+            "type": "array"
+          },
+          "report_date": {
+            "format": "date",
+            "title": "Report Date",
+            "type": "string"
+          },
+          "session": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Session"
+          },
+          "spot_percentile": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Spot Percentile"
+          },
+          "ticker": {
+            "title": "Ticker",
+            "type": "string"
+          }
+        },
+        "required": [
+          "ticker",
+          "report_date",
+          "session",
+          "chain",
+          "layer",
+          "layer_rank",
+          "implied_move_pct",
+          "implied_move_asof"
+        ],
+        "title": "DeskCalendarRow",
+        "type": "object"
+      },
+      "DeskLimitsResponse": {
+        "description": "What the desk cannot say, computed rather than asserted (spec \u00a73f).\n\nTHE NI FIELDS ARE DESCRIPTIVE AND MUST NEVER BE LABELLED PASS/FAIL.\nTask 10's premise \u2014 that an income-vs-cash-flow net-income disagreement is\na data-integrity failure \u2014 was DISPROVED. Income-statement `net_income` is\nattributable-to-parent post-discontinued-ops; the cash-flow statement\nopens from consolidated NI INCLUDING noncontrolling interests (ASC 230\nindirect). A disagreement is usually correct accounting on BOTH sides \u2014\nmeasured on 342 of 419 tickers, worked case VZ 2010-Q3 where 2,698M =\n881M + 1,817M NCI. Argon stores no NCI field and therefore CANNOT\nattribute the difference. Never name these pass/fail/offender and never\nrender them as an integrity error.",
+        "properties": {
+          "exposure_coverage": {
+            "default": [],
+            "items": {
+              "$ref": "#/components/schemas/ChainExposureCoverage"
+            },
+            "title": "Exposure Coverage",
+            "type": "array"
+          },
+          "membership_evidence": {
+            "default": [],
+            "items": {
+              "$ref": "#/components/schemas/MembershipEvidenceCount"
+            },
+            "title": "Membership Evidence",
+            "type": "array"
+          },
+          "ni_basis_agree": {
+            "default": 0,
+            "title": "Ni Basis Agree",
+            "type": "integer"
+          },
+          "ni_basis_differ": {
+            "default": 0,
+            "title": "Ni Basis Differ",
+            "type": "integer"
+          },
+          "ni_largest_basis_differences": {
+            "default": [],
+            "items": {
+              "type": "string"
+            },
+            "title": "Ni Largest Basis Differences",
+            "type": "array"
+          },
+          "ni_sign_flip_violations": {
+            "default": 0,
+            "title": "Ni Sign Flip Violations",
+            "type": "integer"
+          },
+          "withheld_composite": {
+            "default": "",
+            "title": "Withheld Composite",
+            "type": "string"
+          }
+        },
+        "title": "DeskLimitsResponse",
+        "type": "object"
+      },
+      "DeskMatrixResponse": {
+        "properties": {
+          "cells": {
+            "default": [],
+            "items": {
+              "$ref": "#/components/schemas/ChainMetricCell"
+            },
+            "title": "Cells",
+            "type": "array"
+          },
+          "chains": {
+            "default": [],
+            "items": {
+              "type": "string"
+            },
+            "title": "Chains",
+            "type": "array"
+          },
+          "section": {
+            "title": "Section",
+            "type": "string"
+          }
+        },
+        "required": [
+          "section"
+        ],
+        "title": "DeskMatrixResponse",
         "type": "object"
       },
       "DiscoveryCandidate": {
@@ -12484,6 +12875,197 @@
         "title": "MaxPainRow",
         "type": "object"
       },
+      "MemberDot": {
+        "description": "One name's value inside a chain cell. One dot per DISTINCT ticker.\n\n`value` is null when the name has no figure \u2014 never 0.0, which would put a\nname with no data at whatever the reader takes zero to mean.",
+        "properties": {
+          "knowledge_date_estimated": {
+            "anyOf": [
+              {
+                "type": "boolean"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Knowledge Date Estimated"
+          },
+          "state": {
+            "enum": [
+              "ok",
+              "stale_run",
+              "no_compatible_run",
+              "no_coverage",
+              "unsupported_capability",
+              "failed_run"
+            ],
+            "title": "State",
+            "type": "string"
+          },
+          "ticker": {
+            "title": "Ticker",
+            "type": "string"
+          },
+          "value": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Value"
+          }
+        },
+        "required": [
+          "ticker",
+          "value",
+          "state"
+        ],
+        "title": "MemberDot",
+        "type": "object"
+      },
+      "MembershipEvidenceCount": {
+        "description": "How many memberships rest on each class of evidence.\n\nCounted at MEMBERSHIP grain deliberately \u2014 this is a statement about the\ntaxonomy's evidential footing, not about how many companies there are.",
+        "properties": {
+          "evidence_class": {
+            "title": "Evidence Class",
+            "type": "string"
+          },
+          "memberships": {
+            "title": "Memberships",
+            "type": "integer"
+          }
+        },
+        "required": [
+          "evidence_class",
+          "memberships"
+        ],
+        "title": "MembershipEvidenceCount",
+        "type": "object"
+      },
+      "NodeUnderwritingRow": {
+        "description": "One name's underwriting figures WITH their filed line items.\n\nSpec \u00a74 trust requirement #1: the raw values and the filing date travel\nwith the figure rather than behind another request. The PM trust ranking\nput traceability first \u2014 one untraceable number kills the page, while\ntraceability survives several wrong ones.\n\n`shares_outstanding_yoy` is BASIC period-end shares (`common_stock_shares_\noutstanding`, 420/420 coverage), not a diluted weighted-average count \u2014\nno diluted share key exists at any tier of the UW store, verified\nexhaustively. It measures issuance/buyback, not dilution, and the word\n\"diluted\" must never appear over it.",
+        "properties": {
+          "cost_of_revenue_raw": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Cost Of Revenue Raw"
+          },
+          "dio": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Dio"
+          },
+          "filing_published_at": {
+            "anyOf": [
+              {
+                "format": "date",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Filing Published At"
+          },
+          "inventory_raw": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Inventory Raw"
+          },
+          "period_end": {
+            "format": "date",
+            "title": "Period End",
+            "type": "string"
+          },
+          "sbc_raw": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Sbc Raw"
+          },
+          "sbc_to_revenue": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Sbc To Revenue"
+          },
+          "shares_outstanding_raw": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Shares Outstanding Raw"
+          },
+          "shares_outstanding_yoy": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Shares Outstanding Yoy"
+          },
+          "state": {
+            "default": "ok",
+            "enum": [
+              "ok",
+              "stale_run",
+              "no_compatible_run",
+              "no_coverage",
+              "unsupported_capability",
+              "failed_run"
+            ],
+            "title": "State",
+            "type": "string"
+          },
+          "ticker": {
+            "title": "Ticker",
+            "type": "string"
+          }
+        },
+        "required": [
+          "ticker",
+          "period_end"
+        ],
+        "title": "NodeUnderwritingRow",
+        "type": "object"
+      },
       "OhlcRow": {
         "properties": {
           "close": {
@@ -14636,6 +15218,55 @@
           "ticker"
         ],
         "title": "PositioningSnapshot",
+        "type": "object"
+      },
+      "ProfitPoolLayer": {
+        "description": "Where gross profit sits, layer by layer. Descriptive only.\n\nNO field for arrows, edges, propagation, or read-through exists here, by\ndesign \u2014 see the module docstring.",
+        "properties": {
+          "chain": {
+            "title": "Chain",
+            "type": "string"
+          },
+          "dots": {
+            "default": [],
+            "items": {
+              "$ref": "#/components/schemas/MemberDot"
+            },
+            "title": "Dots",
+            "type": "array"
+          },
+          "layer_rank": {
+            "title": "Layer Rank",
+            "type": "integer"
+          },
+          "median_gross_margin": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Median Gross Margin"
+          },
+          "median_rev_yoy": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Median Rev Yoy"
+          }
+        },
+        "required": [
+          "chain",
+          "layer_rank"
+        ],
+        "title": "ProfitPoolLayer",
         "type": "object"
       },
       "ProviderUsageBreakdownResponse": {
@@ -28879,6 +29510,326 @@
         "summary": "Get Cockpit Vrp",
         "tags": [
           "cockpit"
+        ]
+      }
+    },
+    "/api/fundamentals/{section}/calendar": {
+      "get": {
+        "description": "Next prints across the section, upstream to downstream.",
+        "operationId": "desk_calendar_api_fundamentals__section__calendar_get",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "section",
+            "required": true,
+            "schema": {
+              "title": "Section",
+              "type": "string"
+            }
+          },
+          {
+            "description": "Scope to one chain's members, resolved server-side from membership. The ONLY filter \u2014 response order is fixed.",
+            "in": "query",
+            "name": "chain",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "description": "Scope to one chain's members, resolved server-side from membership. The ONLY filter \u2014 response order is fixed.",
+              "title": "Chain"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/DeskCalendarResponse"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Desk Calendar",
+        "tags": [
+          "fundamentals-desk",
+          "fundamentals-desk"
+        ]
+      }
+    },
+    "/api/fundamentals/{section}/delta": {
+      "get": {
+        "description": "What changed since the operator last looked.",
+        "operationId": "desk_delta_api_fundamentals__section__delta_get",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "section",
+            "required": true,
+            "schema": {
+              "title": "Section",
+              "type": "string"
+            }
+          },
+          {
+            "description": "Read events Argon FIRST KNEW on or after this date. A date, not an instant: `research_events.first_known_at` is a date column, and a midnight timestamp would claim a precision the ledger does not hold.",
+            "in": "query",
+            "name": "since",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "format": "date",
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "description": "Read events Argon FIRST KNEW on or after this date. A date, not an instant: `research_events.first_known_at` is a date column, and a midnight timestamp would claim a precision the ledger does not hold.",
+              "title": "Since"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/DeltaRailResponse"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Desk Delta",
+        "tags": [
+          "fundamentals-desk",
+          "fundamentals-desk"
+        ]
+      }
+    },
+    "/api/fundamentals/{section}/limits": {
+      "get": {
+        "description": "What the desk cannot say, computed rather than asserted.",
+        "operationId": "desk_limits_api_fundamentals__section__limits_get",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "section",
+            "required": true,
+            "schema": {
+              "title": "Section",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/DeskLimitsResponse"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Desk Limits",
+        "tags": [
+          "fundamentals-desk",
+          "fundamentals-desk"
+        ]
+      }
+    },
+    "/api/fundamentals/{section}/matrix": {
+      "get": {
+        "description": "chain \u00d7 metric: medians over per-name dots, never weighted.",
+        "operationId": "desk_matrix_api_fundamentals__section__matrix_get",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "section",
+            "required": true,
+            "schema": {
+              "title": "Section",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/DeskMatrixResponse"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Desk Matrix",
+        "tags": [
+          "fundamentals-desk",
+          "fundamentals-desk"
+        ]
+      }
+    },
+    "/api/fundamentals/{section}/node/underwriting": {
+      "get": {
+        "description": "One chain's members with their filed line items alongside.",
+        "operationId": "node_underwriting_api_fundamentals__section__node_underwriting_get",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "section",
+            "required": true,
+            "schema": {
+              "title": "Section",
+              "type": "string"
+            }
+          },
+          {
+            "description": "The chain to underwrite. A QUERY parameter because most real chain names contain a slash and a %2F-encoded path param 404s.",
+            "in": "query",
+            "name": "chain",
+            "required": true,
+            "schema": {
+              "description": "The chain to underwrite. A QUERY parameter because most real chain names contain a slash and a %2F-encoded path param 404s.",
+              "title": "Chain",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "items": {
+                    "$ref": "#/components/schemas/NodeUnderwritingRow"
+                  },
+                  "title": "Response Node Underwriting Api Fundamentals  Section  Node Underwriting Get",
+                  "type": "array"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Node Underwriting",
+        "tags": [
+          "fundamentals-desk",
+          "fundamentals-desk"
+        ]
+      }
+    },
+    "/api/fundamentals/{section}/profit-pool": {
+      "get": {
+        "description": "Layers side by side. Descriptive \u2014 no arrows, by design.",
+        "operationId": "desk_profit_pool_api_fundamentals__section__profit_pool_get",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "section",
+            "required": true,
+            "schema": {
+              "title": "Section",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "items": {
+                    "$ref": "#/components/schemas/ProfitPoolLayer"
+                  },
+                  "title": "Response Desk Profit Pool Api Fundamentals  Section  Profit Pool Get",
+                  "type": "array"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Desk Profit Pool",
+        "tags": [
+          "fundamentals-desk",
+          "fundamentals-desk"
         ]
       }
     },

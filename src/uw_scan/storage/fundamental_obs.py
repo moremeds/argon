@@ -294,6 +294,56 @@ class FundamentalObsRepository:
                     new += self.record_violations(obs_id, violations)
             offset += batch
 
+    def net_income_basis_summary(self, limit: int = 10) -> dict[str, Any]:
+        """`{"agree": n, "differ": n, "by_ticker": [...]}` in ONE table scan.
+
+        The desk limits block needs both halves, and running the scan twice to
+        get them would double the cost of the panel for no new information.
+        The two counts are period-pair counts, not ticker counts: `agree` is
+        pairs whose two statements match on one of the income statement's two
+        net-income lines, `differ` is pairs that do not — which, per
+        `net_income_basis_difference`'s docstring, is usually correct
+        accounting on BOTH sides and must never be reported as a failure.
+        """
+        counts: dict[str, int] = {}
+        agree = differ = 0
+        with self.conn.cursor() as cur:
+            cur.execute(self._NI_BASIS_SQL)
+            for ticker, income_payload, cashflow_payload in cur.fetchall():
+                if (
+                    net_income_basis_difference(income_payload, cashflow_payload)
+                    is not None
+                ):
+                    differ += 1
+                    counts[ticker] = counts.get(ticker, 0) + 1
+                else:
+                    agree += 1
+        ordered = sorted(counts.items(), key=lambda kv: (-kv[1], kv[0]))
+        return {
+            "agree": agree,
+            "differ": differ,
+            "by_ticker": [
+                {"ticker": ticker, "basis_difference_count": count}
+                for ticker, count in ordered[:limit]
+            ],
+        }
+
+    def violation_count(self, check_name: str) -> int:
+        """How many recorded violations carry this check name.
+
+        Separate from the NI BASIS reads above on purpose: a violation is an
+        integrity failure Argon stands behind, while a basis difference is a
+        descriptive accounting gap it cannot attribute. Counting them through
+        one method would be the category error Task 10 was built on.
+        """
+        with self.conn.cursor() as cur:
+            cur.execute(
+                f"""SELECT count(*) FROM {self._schema}.fundamental_obs_violations
+                     WHERE check_name = %s""",
+                (check_name,),
+            )
+            return int(cur.fetchone()[0])
+
     def net_income_basis_differences_by_ticker(
         self, limit: int = 10
     ) -> list[dict[str, Any]]:
@@ -320,7 +370,17 @@ class FundamentalObsRepository:
         scans the full observation table (paralleling `coverage()` above),
         so it is a desk-panel read, not a per-request hot path.
         """
-        sql = f"""
+        return self.net_income_basis_summary(limit)["by_ticker"]
+
+    @property
+    def _NI_BASIS_SQL(self) -> str:
+        """Newest accepted income and cash-flow payload per (ticker, period).
+
+        One definition, two readers (`net_income_basis_summary` and, through
+        it, `net_income_basis_differences_by_ticker`) — a second copy would
+        drift the moment one of them learned about a new statement type.
+        """
+        return f"""
             WITH inc AS (
                 SELECT DISTINCT ON (ticker, period_end, period_type)
                        ticker, period_end, period_type, raw_jsonb AS payload
@@ -338,20 +398,6 @@ class FundamentalObsRepository:
             SELECT inc.ticker, inc.payload, cf.payload
               FROM inc JOIN cf USING (ticker, period_end, period_type)
         """
-        counts: dict[str, int] = {}
-        with self.conn.cursor() as cur:
-            cur.execute(sql)
-            for ticker, income_payload, cashflow_payload in cur.fetchall():
-                if (
-                    net_income_basis_difference(income_payload, cashflow_payload)
-                    is not None
-                ):
-                    counts[ticker] = counts.get(ticker, 0) + 1
-        ordered = sorted(counts.items(), key=lambda kv: (-kv[1], kv[0]))
-        return [
-            {"ticker": ticker, "basis_difference_count": count}
-            for ticker, count in ordered[:limit]
-        ]
 
     def statement_panel(
         self, tickers: Sequence[str] | None = None, period_type: str = "quarterly"

@@ -2046,6 +2046,126 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/fundamentals/{section}/calendar": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Desk Calendar
+         * @description Next prints across the section, upstream to downstream.
+         */
+        get: operations["desk_calendar_api_fundamentals__section__calendar_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/fundamentals/{section}/delta": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Desk Delta
+         * @description What changed since the operator last looked.
+         */
+        get: operations["desk_delta_api_fundamentals__section__delta_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/fundamentals/{section}/matrix": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Desk Matrix
+         * @description chain × metric: medians over per-name dots, never weighted.
+         */
+        get: operations["desk_matrix_api_fundamentals__section__matrix_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/fundamentals/{section}/profit-pool": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Desk Profit Pool
+         * @description Layers side by side. Descriptive — no arrows, by design.
+         */
+        get: operations["desk_profit_pool_api_fundamentals__section__profit_pool_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/fundamentals/{section}/limits": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Desk Limits
+         * @description What the desk cannot say, computed rather than asserted.
+         */
+        get: operations["desk_limits_api_fundamentals__section__limits_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/fundamentals/{section}/node/underwriting": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Node Underwriting
+         * @description One chain's members with their filed line items alongside.
+         */
+        get: operations["node_underwriting_api_fundamentals__section__node_underwriting_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/stock/{ticker}/research/evidence": {
         parameters: {
             query?: never;
@@ -2651,6 +2771,21 @@ export interface components {
             /** Reason */
             reason?: string | null;
         };
+        /**
+         * ChainExposureCoverage
+         * @description Three denominators, because they answer three different questions and a
+         *     surface showing only the first invites the reader to assume the third.
+         */
+        ChainExposureCoverage: {
+            /** Chain */
+            chain: string;
+            /** Members */
+            members: number;
+            /** With Exposure */
+            with_exposure: number;
+            /** With Magnitude */
+            with_magnitude: number;
+        };
         /** ChainFlowReadRow */
         ChainFlowReadRow: {
             /** Strike */
@@ -2741,6 +2876,47 @@ export interface components {
             source_ref?: string | null;
             /** Priority */
             priority?: number | null;
+        };
+        /**
+         * ChainMetricCell
+         * @description One chain × metric cell.
+         *
+         *     `median` is the UNWEIGHTED median of the non-null dot values. Never
+         *     revenue-weighted: a revenue-weighted "optical" margin is one member's
+         *     margin wearing the chain's label, measured as actively misleading.
+         *
+         *     For `metric='valuation_percentile'` the median is ALWAYS None. Own-history
+         *     percentiles are NAME facts; any aggregate over them is the banned "chain
+         *     percentile distribution" (spec §3) — the dots still render, because the
+         *     name-level facts are real.
+         */
+        ChainMetricCell: {
+            /** Chain */
+            chain: string;
+            /** Metric */
+            metric: string;
+            /** Median */
+            median?: number | null;
+            /**
+             * Dots
+             * @default []
+             */
+            dots: components["schemas"]["MemberDot"][];
+            /**
+             * Cohorts
+             * @default []
+             */
+            cohorts: components["schemas"]["CohortSlice"][];
+            /**
+             * Coverage Missing
+             * @default []
+             */
+            coverage_missing: string[];
+            /**
+             * Members Total
+             * @default 0
+             */
+            members_total: number;
         };
         /**
          * ChanlunLifecycleMark
@@ -3031,6 +3207,28 @@ export interface components {
             market_date: string;
             /** Points */
             points?: components["schemas"]["CockpitVrpPoint"][];
+        };
+        /**
+         * CohortSlice
+         * @description One cross-section bucket a chain's members sit in.
+         *
+         *     `fundamental_scores.as_of` is a cross-section IDENTIFIER, not a freshness
+         *     stamp. When members straddle two buckets that is reporting season, and
+         *     merging them would compare names that were never in the same peer group.
+         */
+        CohortSlice: {
+            /**
+             * As Of
+             * Format: date
+             */
+            as_of: string;
+            /** Label */
+            label: string;
+            /**
+             * Tickers
+             * @default []
+             */
+            tickers: string[];
         };
         /**
          * CompanyDimensionsResponse
@@ -3586,6 +3784,178 @@ export interface components {
              * @default
              */
             subtitle: string;
+        };
+        /**
+         * DeltaRailEvent
+         * @description One entry on the "what changed since you last looked" rail.
+         *
+         *     `first_known_at` is a DATE, not a timestamp: `research_events.first_known_at`
+         *     is a `date` column (migration 142), and rendering it as an instant at
+         *     midnight would manufacture a precision the ledger does not hold.
+         */
+        DeltaRailEvent: {
+            /** Event Class */
+            event_class: string;
+            /** Ticker */
+            ticker: string;
+            /**
+             * Occurred At
+             * Format: date
+             */
+            occurred_at: string;
+            /**
+             * First Known At
+             * Format: date
+             */
+            first_known_at: string;
+            /** Title */
+            title: string;
+            /**
+             * Detail
+             * @default {}
+             */
+            detail: {
+                [key: string]: unknown;
+            };
+        };
+        /** DeltaRailResponse */
+        DeltaRailResponse: {
+            /**
+             * Since
+             * Format: date
+             */
+            since: string;
+            /**
+             * Events
+             * @default []
+             */
+            events: components["schemas"]["DeltaRailEvent"][];
+        };
+        /** DeskCalendarResponse */
+        DeskCalendarResponse: {
+            /** Section */
+            section: string;
+            /**
+             * As Of
+             * Format: date
+             */
+            as_of: string;
+            /**
+             * Rows
+             * @default []
+             */
+            rows: components["schemas"]["DeskCalendarRow"][];
+        };
+        /**
+         * DeskCalendarRow
+         * @description One upcoming print, placed in the chain.
+         *
+         *     The row is grained `(ticker, report_date, chain, layer)` — membership's own
+         *     grain. A name in two chains appears twice, each time under the chain whose
+         *     read-through order put it there; collapsing to one row would require
+         *     picking a chain for it, which is a judgement the desk has no basis to make
+         *     and would hide the other membership entirely.
+         */
+        DeskCalendarRow: {
+            /** Ticker */
+            ticker: string;
+            /**
+             * Report Date
+             * Format: date
+             */
+            report_date: string;
+            /** Session */
+            session: string | null;
+            /** Chain */
+            chain: string;
+            /** Layer */
+            layer: string;
+            /** Layer Rank */
+            layer_rank: number;
+            /** Implied Move Pct */
+            implied_move_pct: number | null;
+            /** Implied Move Asof */
+            implied_move_asof: string | null;
+            /**
+             * Reactions
+             * @default []
+             */
+            reactions: number[];
+            /** Spot Percentile */
+            spot_percentile?: number | null;
+            /**
+             * Percentile State
+             * @default ok
+             * @enum {string}
+             */
+            percentile_state: "ok" | "stale_run" | "no_compatible_run" | "no_coverage" | "unsupported_capability" | "failed_run";
+        };
+        /**
+         * DeskLimitsResponse
+         * @description What the desk cannot say, computed rather than asserted (spec §3f).
+         *
+         *     THE NI FIELDS ARE DESCRIPTIVE AND MUST NEVER BE LABELLED PASS/FAIL.
+         *     Task 10's premise — that an income-vs-cash-flow net-income disagreement is
+         *     a data-integrity failure — was DISPROVED. Income-statement `net_income` is
+         *     attributable-to-parent post-discontinued-ops; the cash-flow statement
+         *     opens from consolidated NI INCLUDING noncontrolling interests (ASC 230
+         *     indirect). A disagreement is usually correct accounting on BOTH sides —
+         *     measured on 342 of 419 tickers, worked case VZ 2010-Q3 where 2,698M =
+         *     881M + 1,817M NCI. Argon stores no NCI field and therefore CANNOT
+         *     attribute the difference. Never name these pass/fail/offender and never
+         *     render them as an integrity error.
+         */
+        DeskLimitsResponse: {
+            /**
+             * Ni Basis Agree
+             * @default 0
+             */
+            ni_basis_agree: number;
+            /**
+             * Ni Basis Differ
+             * @default 0
+             */
+            ni_basis_differ: number;
+            /**
+             * Ni Largest Basis Differences
+             * @default []
+             */
+            ni_largest_basis_differences: string[];
+            /**
+             * Ni Sign Flip Violations
+             * @default 0
+             */
+            ni_sign_flip_violations: number;
+            /**
+             * Withheld Composite
+             * @default
+             */
+            withheld_composite: string;
+            /**
+             * Membership Evidence
+             * @default []
+             */
+            membership_evidence: components["schemas"]["MembershipEvidenceCount"][];
+            /**
+             * Exposure Coverage
+             * @default []
+             */
+            exposure_coverage: components["schemas"]["ChainExposureCoverage"][];
+        };
+        /** DeskMatrixResponse */
+        DeskMatrixResponse: {
+            /** Section */
+            section: string;
+            /**
+             * Chains
+             * @default []
+             */
+            chains: string[];
+            /**
+             * Cells
+             * @default []
+             */
+            cells: components["schemas"]["ChainMetricCell"][];
         };
         /**
          * DiscoveryCandidate
@@ -6473,6 +6843,85 @@ export interface components {
             /** Next Lower Strike */
             next_lower_strike?: string | null;
         };
+        /**
+         * MemberDot
+         * @description One name's value inside a chain cell. One dot per DISTINCT ticker.
+         *
+         *     `value` is null when the name has no figure — never 0.0, which would put a
+         *     name with no data at whatever the reader takes zero to mean.
+         */
+        MemberDot: {
+            /** Ticker */
+            ticker: string;
+            /** Value */
+            value: number | null;
+            /**
+             * State
+             * @enum {string}
+             */
+            state: "ok" | "stale_run" | "no_compatible_run" | "no_coverage" | "unsupported_capability" | "failed_run";
+            /** Knowledge Date Estimated */
+            knowledge_date_estimated?: boolean | null;
+        };
+        /**
+         * MembershipEvidenceCount
+         * @description How many memberships rest on each class of evidence.
+         *
+         *     Counted at MEMBERSHIP grain deliberately — this is a statement about the
+         *     taxonomy's evidential footing, not about how many companies there are.
+         */
+        MembershipEvidenceCount: {
+            /** Evidence Class */
+            evidence_class: string;
+            /** Memberships */
+            memberships: number;
+        };
+        /**
+         * NodeUnderwritingRow
+         * @description One name's underwriting figures WITH their filed line items.
+         *
+         *     Spec §4 trust requirement #1: the raw values and the filing date travel
+         *     with the figure rather than behind another request. The PM trust ranking
+         *     put traceability first — one untraceable number kills the page, while
+         *     traceability survives several wrong ones.
+         *
+         *     `shares_outstanding_yoy` is BASIC period-end shares (`common_stock_shares_
+         *     outstanding`, 420/420 coverage), not a diluted weighted-average count —
+         *     no diluted share key exists at any tier of the UW store, verified
+         *     exhaustively. It measures issuance/buyback, not dilution, and the word
+         *     "diluted" must never appear over it.
+         */
+        NodeUnderwritingRow: {
+            /** Ticker */
+            ticker: string;
+            /**
+             * Period End
+             * Format: date
+             */
+            period_end: string;
+            /** Dio */
+            dio?: number | null;
+            /** Sbc To Revenue */
+            sbc_to_revenue?: number | null;
+            /** Shares Outstanding Yoy */
+            shares_outstanding_yoy?: number | null;
+            /** Filing Published At */
+            filing_published_at?: string | null;
+            /** Inventory Raw */
+            inventory_raw?: string | null;
+            /** Cost Of Revenue Raw */
+            cost_of_revenue_raw?: string | null;
+            /** Sbc Raw */
+            sbc_raw?: string | null;
+            /** Shares Outstanding Raw */
+            shares_outstanding_raw?: string | null;
+            /**
+             * State
+             * @default ok
+             * @enum {string}
+             */
+            state: "ok" | "stale_run" | "no_compatible_run" | "no_coverage" | "unsupported_capability" | "failed_run";
+        };
         /** OhlcRow */
         OhlcRow: {
             /**
@@ -7058,6 +7507,28 @@ export interface components {
              *     }
              */
             signals: components["schemas"]["PositioningSignals"];
+        };
+        /**
+         * ProfitPoolLayer
+         * @description Where gross profit sits, layer by layer. Descriptive only.
+         *
+         *     NO field for arrows, edges, propagation, or read-through exists here, by
+         *     design — see the module docstring.
+         */
+        ProfitPoolLayer: {
+            /** Chain */
+            chain: string;
+            /** Layer Rank */
+            layer_rank: number;
+            /** Median Gross Margin */
+            median_gross_margin?: number | null;
+            /** Median Rev Yoy */
+            median_rev_yoy?: number | null;
+            /**
+             * Dots
+             * @default []
+             */
+            dots: components["schemas"]["MemberDot"][];
         };
         /** ProviderUsageBreakdownResponse */
         ProviderUsageBreakdownResponse: {
@@ -15141,6 +15612,201 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["ChainDrilldownResponse"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    desk_calendar_api_fundamentals__section__calendar_get: {
+        parameters: {
+            query?: {
+                /** @description Scope to one chain's members, resolved server-side from membership. The ONLY filter — response order is fixed. */
+                chain?: string | null;
+            };
+            header?: never;
+            path: {
+                section: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["DeskCalendarResponse"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    desk_delta_api_fundamentals__section__delta_get: {
+        parameters: {
+            query?: {
+                /** @description Read events Argon FIRST KNEW on or after this date. A date, not an instant: `research_events.first_known_at` is a date column, and a midnight timestamp would claim a precision the ledger does not hold. */
+                since?: string | null;
+            };
+            header?: never;
+            path: {
+                section: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["DeltaRailResponse"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    desk_matrix_api_fundamentals__section__matrix_get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                section: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["DeskMatrixResponse"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    desk_profit_pool_api_fundamentals__section__profit_pool_get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                section: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ProfitPoolLayer"][];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    desk_limits_api_fundamentals__section__limits_get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                section: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["DeskLimitsResponse"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    node_underwriting_api_fundamentals__section__node_underwriting_get: {
+        parameters: {
+            query: {
+                /** @description The chain to underwrite. A QUERY parameter because most real chain names contain a slash and a %2F-encoded path param 404s. */
+                chain: string;
+            };
+            header?: never;
+            path: {
+                section: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["NodeUnderwritingRow"][];
                 };
             };
             /** @description Validation Error */
