@@ -1,3 +1,4 @@
+import { GOLD_STRUCTURAL_WIDTH } from "@/components/macro/chartGeometry";
 import type { components } from "@/lib/types";
 
 import { PostureChip, type PostureState } from "../chips/PostureChip";
@@ -58,6 +59,8 @@ export function StructuralPanel({ structural }: { structural: S }) {
         goldHistory={structural.gold_history ?? []}
         gldHistory={structural.gld_history ?? []}
         cbCountryHistory={structural.cb_country_history ?? []}
+        width={GOLD_STRUCTURAL_WIDTH}
+        height={Math.round((GOLD_STRUCTURAL_WIDTH * 200) / 1040)}
       />
 
       <div

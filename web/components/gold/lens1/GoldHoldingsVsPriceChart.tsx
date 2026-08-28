@@ -279,6 +279,8 @@ export function GoldHoldingsVsPriceChart({
             width="100%"
             viewBox={`0 0 ${width} ${height}`}
             style={{ display: "block" }}
+            role="img"
+            aria-label={`Gold price against GLD ETF holdings over time${selectedCountries.length > 0 ? `, with central-bank reserves for ${selectedCountries.join(", ")}` : ""}`}
           >
             <g>
               {xTicks.map((t) => (

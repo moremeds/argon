@@ -242,6 +242,18 @@ version in lockstep (enforced by `scripts/release/version_sync_check.py`).
     `/gold/replay/<date>`, so left on, the tab would carry two pickers and the second would
     navigate off the desk. `/api/gold/gauge` is still not called from any page: it recomputes
     262 correlation gauges per request, and the history already rides the state response.
+  - **Two gold charts were silently magnifying their own text, and the desk's scale gate
+    caught both on the way in.** They kept viewBox widths chosen for the old `/gold` page —
+    640 and 1040 units — and the viewBox is the type scale, not a drawing detail: everything
+    inside scales by `containerWidth / viewBoxWidth`, text included. The correlation history
+    chart rendered at **k=1.83**, blowing its 11px labels up to ~20px. Neither chart carried
+    `role="img"`, which `web/components/CLAUDE.md` requires and which the gate needs to see a
+    chart at all, so on `/gold` the problem was not merely unnoticed — it was **unnoticeable**.
+    Both now declare it with a real `aria-label`, and both are sized to the container they are
+    actually rendered into. The structural chart needed a third measurement,
+    `GOLD_STRUCTURAL_WIDTH = 940`: it is a flex child sharing its row with the country picker,
+    so it follows that sibling rather than the shell, and at `WIDE_FRAME` it renders k=0.78
+    while at `NARROW_FRAME` it renders k=1.24 — both measured, both outside the band.
 
 - **Durable earnings-calendar spine** (migration `144`, `earnings_calendar`) — `EarningsCalendarRepository`
   (`upsert_rows`/`next_prints`/`prints_between`) gives the reaction and implied-move jobs below a print-date

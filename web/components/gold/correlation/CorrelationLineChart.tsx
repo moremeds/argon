@@ -72,6 +72,8 @@ export function CorrelationLineChart({
       width="100%"
       viewBox={`0 0 ${width} ${height}`}
       style={{ display: "block" }}
+      role="img"
+      aria-label={`Rolling correlation of gold against ${series.map((s) => s.label).join(", ")}${pre2022Band ? ", with the pre-2022 reference band" : ""}`}
     >
       <g>
         {yTicks.map((t) => (

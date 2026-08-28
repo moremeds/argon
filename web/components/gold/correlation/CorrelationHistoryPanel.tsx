@@ -1,6 +1,15 @@
+import { WIDE_FRAME } from "@/components/macro/chartGeometry";
 import type { components } from "@/lib/types";
 
 import { CorrelationLineChart } from "./CorrelationLineChart";
+
+// The viewBox is the type scale, not a drawing detail: everything inside scales by
+// containerWidth / viewBoxWidth, TEXT INCLUDED. This chart kept its pre-desk 640-unit
+// default while sitting in the ~1200px full-width panel, so it rendered at k=1.83 and
+// magnified its own 11px labels to ~20px. Height preserves the chart's own 8:3 aspect
+// rather than borrowing WIDE_FRAME's, so only the scale changes and not the shape.
+const CHART_WIDTH = WIDE_FRAME.width;
+const CHART_HEIGHT = Math.round((WIDE_FRAME.width * 240) / 640);
 
 type History = components["schemas"]["GoldCorrelationHistory"];
 
@@ -41,6 +50,8 @@ export function CorrelationHistoryPanel({ history }: { history: History }) {
           },
         ]}
         pre2022Band={history.pre_2022_band}
+        width={CHART_WIDTH}
+        height={CHART_HEIGHT}
       />
     </div>
   );
