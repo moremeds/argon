@@ -36,6 +36,60 @@ log = logging.getLogger(__name__)
 
 TAXONOMY_V1 = "argon-research-v1"
 
+UNCLASSIFIED = "unclassified"
+
+#: Chain -> research domain. A chain absent from this map gets UNCLASSIFIED,
+#: never a section domain: an unclassified chain must be VISIBLY unassigned
+#: rather than silently swept onto a desk it does not belong to. These 38
+#: entries are the complete `watchlist_chain` rail as of 2026-08-28 (verified
+#: against the mini). Entries marked `# judgement` are the debatable ones —
+#: deliberately surfaced as one-line data edits, not buried in logic.
+CHAIN_DOMAIN: dict[str, str] = {
+    # --- the optical chain (its own domain; the desk's exemplar node) ---
+    "Networking/Optical": "optical_communication",
+    # --- silicon and compute ---
+    "Semi-Cap/EDA": "ai_infrastructure",
+    "Semi-Logic/ASIC": "ai_infrastructure",
+    "Computer/GPU": "ai_infrastructure",
+    "Memory/Storage": "ai_infrastructure",
+    "Analog/Power-Semi": "ai_infrastructure",
+    "Foundry": "ai_infrastructure",
+    # --- the compute buyers ---
+    "Cloud/Hyperscaler": "ai_infrastructure",
+    "AI-Cloud/NeoCloud": "ai_infrastructure",
+    "Foundation-Model-Proxy": "ai_infrastructure",
+    "AI-Native-Software": "ai_infrastructure",
+    "Data-Platform": "ai_infrastructure",
+    "Software/SaaS": "ai_infrastructure",  # judgement
+    "DevTools/Observability": "ai_infrastructure",  # judgement
+    "Cybersecurity": "ai_infrastructure",  # judgement
+    "AI-App/Consumer-Net": "ai_infrastructure",  # judgement
+    "Healthcare-AI/LS-Tools": "ai_infrastructure",  # judgement
+    "Robotics/Automation": "ai_infrastructure",  # judgement
+    "Devices/Endpoint": "ai_infrastructure",  # judgement
+    "IT-Services/Integration": "ai_infrastructure",  # judgement
+    # --- the physical datacenter buildout (this is what makes dc_buildout real) ---
+    "Generation/Nuclear": "dc_buildout",
+    "Power/Electrical": "dc_buildout",
+    "EPC/Construction": "dc_buildout",
+    "Cooling/Thermal": "dc_buildout",
+    "DC-REIT/Colo": "dc_buildout",
+    # --- everything else: real chains, not part of THIS section ---
+    "Banks": UNCLASSIFIED,
+    "Credit": UNCLASSIFIED,
+    "Fintech": UNCLASSIFIED,
+    "Consumer": UNCLASSIFIED,
+    "Healthcare": UNCLASSIFIED,
+    "Energy": UNCLASSIFIED,
+    "Crypto": UNCLASSIFIED,
+    "Space": UNCLASSIFIED,
+    "Quantum": UNCLASSIFIED,  # judgement: adjacency, not today's AI supply chain
+    "Macro": UNCLASSIFIED,
+    "Sector-ETF": UNCLASSIFIED,
+    "Beta": UNCLASSIFIED,
+    "M7": UNCLASSIFIED,  # a grouping, not a supply-chain node
+}
+
 #: The layer catalogue the mirrored rail becomes. `layer_rank` is a READING
 #: order, upstream to downstream — not a causal edge, and nothing propagates
 #: along it. The measured basis for that restraint: the capex-demand ledger's
@@ -65,7 +119,7 @@ def mirror_watchlist_chain(
     *,
     schema: str = "uw_scan",
     version: str = TAXONOMY_V1,
-    domain: str = "ai_infrastructure",
+    fallback_domain: str = UNCLASSIFIED,
 ) -> dict[str, int]:
     """Copy the shipped chain rail into `version`. The shipped rail is untouched."""
     repo = ResearchTaxonomyRepository(conn, schema=schema)
@@ -92,7 +146,7 @@ def mirror_watchlist_chain(
         version,
         [
             {
-                "domain": domain,
+                "domain": CHAIN_DOMAIN.get(chain, fallback_domain),
                 "chain": chain,
                 "layer": layer,
                 "layer_rank": _rank(layer),
