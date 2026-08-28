@@ -2,7 +2,13 @@
 
 **Status:** DRAFT — awaiting operator sign-off on §10
 **Date:** 2026-08-27
-**Spec:** the 9-tab macro desk board (58 panels, every value REAL from the mini)
+**Spec (binding):** the macro desk board artifact —
+`https://claude.ai/code/artifact/dde15f29-728e-43e9-86d5-9ab688df4853`, frozen into this repo at
+`docs/superpowers/specs/2026-08-27-macro-desk-board.html` (sha256 `b98a32de3041a348…`, 9 tab
+sections `#t0`–`#t8`, 58 panels, every value REAL from the mini). The board is the spec for both
+the **information** (which panels exist and what each answers) and the **design** (tokens,
+layout, copy). **Where this plan and the board disagree, the board wins** — the first revision of
+this plan never cited the artifact at all, which is how the divergence in §1 got through.
 **Phase 1 closure:** `project_macro_phase1_closed` — MC5/MC6 killed; the engine stays descriptive.
 
 ---
@@ -22,11 +28,34 @@ Non-goals, restated so they cannot drift:
   factor, never the reverse.
 - **The SPX `vrp_macro_signal` card is not part of this desk** — its "macro" means
   index-level vol. It stays on `/regime`.
-- **No new analytics.** Tabs 00–05 are a _presentation merge_.
+- **The board binds, and it binds per tab.** _Superseded 2026-08-28: "No new analytics. Tabs
+  00–05 are a presentation merge."_ That line is what turned the board's four inflation panels
+  and two dollar panels into one generic state card each. The conformance audit
+  (`docs/research/2026-08-28-macro-desk-board-conformance/`) measured which half of it was ever
+  true: tabs **01 / 02 / 05 are a presentation merge** (their panels were already built), tabs
+  **00 / 03 / 04 are a build** (0 of 6 board panels reached 03/04; 8 of 16 reached 00). What
+  survives is the narrow sense only — **no new engine and no new derived quantity**: every
+  number a board panel prints must already be extractable from a shipped endpoint, and a panel
+  that would need a new one is deferred with its reason, never invented.
+- **Every panel answers a board question.** The board's own acceptance test binds: _"The seven
+  questions are the acceptance test: every panel must answer at least one, or it gets deleted."_
+  A panel names its Q1–Q7 in its own source; one that names none is a deletion candidate. (The
+  board's Q→panel table numbers tabs 00–04, one short of its own nine sections — re-read the
+  artifact before treating a number inside it as a tab id.)
+- **Tab 08 does not ship.** The board's t8 says so in its first line: _"This tab is for you (the
+  operator) and does not ship on the final page."_ It is currently in the live tab bar.
 
 ---
 
 ## 2. The headline finding: this is mostly a move, not a build
+
+**CORRECTION (2026-08-28, after the conformance audit): this heading held for the source pages
+and was read as holding for the board.** It does not. Measured against the board, 26 of 47
+panels on tabs t0–t5 are present, 6 partial, 15 absent or misplaced — and the absences are not
+spread evenly, they are concentrated in exactly the tabs §3 bound to a single endpoint. §2's own
+closing paragraph already said the panel count was not move-dominated; the audit is the number
+behind it. Read this section as an inventory of what need not be rebuilt, never as a size
+estimate for the remaining work.
 
 All eight panels the board describes as "carried and built" **already exist as argon
 components**. The board re-presented them; it did not invent them.
@@ -136,6 +165,36 @@ with `respondent_count: 26`. IQR bands are server-side; no client math.
 carries Fed plumbing and auction demand, which are `RatesSnapshotResponse` fields
 (`PolicySection`, `SupplySection` — the rates-shaped population in §2), and the
 policy-rates state itself, which is `/api/macro/rates`. Three requests, not one.
+
+### The one-endpoint bindings for 03/04 were right — §1 alone caused the divergence
+
+Measured 2026-08-28 against a running instance: the single response each of tabs 03 and 04
+already fetches **carries every board panel for that tab**. Nothing is missing from the API;
+what was missing was permission to render it. Field-level map, so the build adds no endpoint:
+
+| Board panel                             | Field on the response already fetched                                                         |
+| --------------------------------------- | --------------------------------------------------------------------------------------------- |
+| t3 · arithmetic of confidence           | `confidence_reasons[]` — 3 `multiplicand` + 2 `penalty` terms, each with a `detail` string    |
+| t3 · realized inflation                 | `factors[]` where `causal_role='realized'` (PCEPILFE et al., with `change_over_window`)       |
+| t3 · inflation expectations             | `factors[]` where `causal_role='expectations_survey'`                                         |
+| t3 · falsifier window / repair table    | `contradictions[]` (`rule` + `detail`) over `evidence[]` (139 rows, each with `available_at`) |
+| t4 · nominal vs real, a pair in reverse | `factors[]` = `broad_dollar` (DTWEXBGS) **and** `broad_dollar_real` (RTWEXBGS)                |
+| t4 · upstream citation, chain integrity | `upstream[]` + the `upstream_policy_rates` `informational` term in `confidence_reasons[]`     |
+
+Two traps this map carries with it:
+
+- **The confidence arithmetic must be computed from the terms, never restated from the board.**
+  The board's heading reads "why only 0.37"; the live inflation state answers 0.4177, which the
+  terms reproduce exactly (1.0 × 0.5968 × 1.0, then the 0.3 contradiction penalty). The board's
+  numbers are frozen at its capture instant — bind to the field, never to the board's value.
+- **`notes[]` is authored copy, not a footnote.** USD's note — _"the dollar is measured against
+  the Fed's H.10 nominal broad index; the real index is reported beside it and is never
+  substituted for it"_ — is the nominal/real panel's own rule, written by the engine that
+  produced the pair. Render it with the panel.
+
+Engine versions differ between the local dev DB (`inflation/1`, `usd/1`) and the versions the
+board names (`inflation/2 · rates/2 · usd/3 · gold/2`). Verify against the mini before binding
+anything to a version string — a local-DB reading is not evidence about production.
 
 ### 3.1 Point-in-time replay
 
