@@ -111,6 +111,16 @@ export const VALID_TABS = [
   // type system cannot check that a tab's declared clock matches what its endpoint keys
   // on, so this is the one entry a reviewer must read against the router.
   { slug: "gold", ordinal: "05", label: "Gold", replayClock: "obs_date" },
+  // Board t6. `replayClock: "none"` for the same reason tab 08 has it and no other tab
+  // does: this tab makes no request. Declaring `instant` would put a date picker over a
+  // page with nothing behind it to re-resolve — a control that answers by doing nothing,
+  // which is worse than no control.
+  {
+    slug: "energy",
+    ordinal: "06",
+    label: "Energy · Proposal",
+    replayClock: "none",
+  },
   // Board t7. It reads the same four `/api/macro/*` routes tabs 03/04 do — one instant,
   // four states — so its clock is theirs, and for the same reason: the endpoints resolve
   // an instant and SELECT on `as_of`. There is no fifth clock here to get wrong; the tab

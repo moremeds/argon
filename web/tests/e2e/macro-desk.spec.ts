@@ -225,6 +225,7 @@ test.describe("board conformance", () => {
     ],
     usd: ["dollar-pair", "upstream-citation"],
     factors: ["factor-vector", "factor-delivery", "factor-refusal"],
+    energy: ["energy-inventory", "energy-route", "energy-proposed"],
   };
 
   for (const [slug, panels] of Object.entries(EXPECTED)) {
@@ -243,7 +244,7 @@ test.describe("board conformance", () => {
     // The tuple type makes an untagged `BoardPanel` a compile error and gold's bands
     // carry the attribute by hand. Neither reaches the rendered page on its own, so the
     // rule is checked where a reviewer would check it.
-    for (const slug of ["inflation", "usd", "gold", "factors"]) {
+    for (const slug of ["inflation", "usd", "gold", "factors", "energy"]) {
       await page.goto(`/macro/${slug}`);
       await page.waitForLoadState("networkidle");
       const tagged = page.locator("[data-questions]");

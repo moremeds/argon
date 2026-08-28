@@ -9,6 +9,12 @@ import {
   FactorVectorPanel,
   type FactorExportSlots,
 } from "@/components/macro/domain/FactorExport";
+import {
+  EnergyDisciplinePanel,
+  EnergyInventoryPanel,
+  EnergyProposedPanels,
+  EnergyRoutePanel,
+} from "@/components/macro/domain/EnergyProposal";
 import { ReplayControl } from "@/components/macro/ReplayControl";
 import { ReplayStatus } from "@/components/macro/ReplayStatus";
 import type { MacroDomainSlot } from "@/components/macro/types";
@@ -312,6 +318,47 @@ async function FactorExportTab({ replay }: MacroTabProps) {
   );
 }
 
+/**
+ * Tab 06 — Energy · Proposal. The one tab that fetches nothing.
+ *
+ * It ships as a proposal because the board put it on the desk rather than in a document
+ * nobody opens: energy is the supply-side driver of inflation, the denominator of the
+ * gold÷oil anchor, and a volatility input on the dollar side — three holes the desk
+ * currently cannot see. Every panel is PLANNED except the data inventory, which is a
+ * DATED FINDING and says so in its own provenance line.
+ *
+ * Sync, and it takes the replay prop and ignores it, which is the correct outcome for a
+ * tab whose registry entry declares `replayClock: "none"`.
+ */
+function EnergyTab() {
+  return (
+    <div className="board">
+      <BoardSecTitle title="Energy · Proposal" questions={["Q7"]}>
+        <b>Nothing on this tab is ingested yet.</b> Energy is the fifth
+        dimension on the chain: the supply-side driver of inflation, the
+        denominator of the gold÷oil anchor, and a volatility input on the dollar
+        side. The position argued here is narrow —{" "}
+        <b>
+          feed the inflation node and the gold valuation anchor; becoming a
+          fifth domain state requires its own spec and its own measurement
+        </b>{" "}
+        — and it inherits the desk&apos;s existing non-goals unchanged, making
+        no predictive claim about anything.
+      </BoardSecTitle>
+      <div className="grid g2">
+        <EnergyInventoryPanel />
+        <EnergyRoutePanel />
+        <div style={{ gridColumn: "1/-1" }}>
+          <EnergyProposedPanels />
+        </div>
+      </div>
+      <div style={{ marginTop: 12 }}>
+        <EnergyDisciplinePanel />
+      </div>
+    </div>
+  );
+}
+
 const TAB_CONTENT: Record<MacroTabSlug, MacroTabContent> = {
   // Static prose. It takes the same props as every other tab and ignores them, which is
   // the correct outcome for a tab whose registry entry declares `replayClock: "none"`.
@@ -323,6 +370,7 @@ const TAB_CONTENT: Record<MacroTabSlug, MacroTabContent> = {
   inflation: domainTab("inflation", "inflation state"),
   usd: domainTab("usd", "USD state"),
   gold: GoldTab,
+  energy: EnergyTab,
   factors: FactorExportTab,
 };
 
