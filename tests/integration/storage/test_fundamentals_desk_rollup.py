@@ -187,6 +187,67 @@ def test_a_fallback_knowledge_date_is_stored_as_a_fallback(seeded_db_empty_cards
     assert desk.latest_per_ticker(["NVDA"])["NVDA"]["knowledge_date_known"] is True
 
 
+def test_a_late_filing_date_flips_the_knowledge_date_marker_on_replay(
+    seeded_db_empty_cards,
+):
+    """`knowledge_date_known` must be in `upsert_rows`' `ON CONFLICT ... DO
+    UPDATE SET` list, the same as every other non-key column -- a column left
+    out of that list is write-once: the first run's value sticks and no
+    rerun can ever correct it.
+
+    Night 1 the oldest quarter has no filing date, so its row is written
+    `knowledge_date_known = False` against the `FALLBACK_LAG_DAYS` estimate.
+    The monthly `fundamental_ingest` full re-pull later fills that NULL
+    `filing_published_at` via `record_statements`' documented
+    COALESCE-on-conflict -- a real fact arrives without changing the
+    statement's `content_hash`. A later rollup must then flip BOTH the
+    knowledge date and its marker; if `knowledge_date_known` were missing
+    from the SET list, `knowledge_date` would silently advance to the real
+    filing date while the marker kept claiming it was still an estimate -- a
+    row whose date is real but which a leak-free consumer would filter out
+    as an estimate.
+    """
+    _seed_nvda(seeded_db_empty_cards)
+    fundamentals_desk_rollup(
+        seeded_db_empty_cards.conn, schema=seeded_db_empty_cards._schema
+    )
+
+    desk = _desk_repo(seeded_db_empty_cards)
+    before = {
+        r["period_end"].isoformat(): r for r in desk.trajectory("NVDA", quarters=20)
+    }[OLDEST_PERIOD]
+    assert before["knowledge_date_known"] is False
+
+    # NVDA's real 10-K filing date for the 2024-01-31 (fiscal-Q4/FY2024)
+    # period -- SEC EDGAR accession 0001045810-24-000029, filed 2024-02-21 --
+    # arriving the way the monthly full re-pull's COALESCE-on-conflict fill
+    # does: same content_hash, filing_published_at newly populated.
+    real_filing_date = date(2024, 2, 21)
+    obs = _obs_repo(seeded_db_empty_cards)
+    inserted, touched = obs.record_statements(
+        [
+            _stmt_row(
+                OLDEST_PERIOD,
+                "income",
+                _INC[OLDEST_PERIOD],
+                filing_published_at=real_filing_date,
+            )
+        ]
+    )
+    assert inserted == 0
+    assert touched == 1
+
+    fundamentals_desk_rollup(
+        seeded_db_empty_cards.conn, schema=seeded_db_empty_cards._schema
+    )
+
+    after = {
+        r["period_end"].isoformat(): r for r in desk.trajectory("NVDA", quarters=20)
+    }[OLDEST_PERIOD]
+    assert after["knowledge_date_known"] is True
+    assert after["knowledge_date"] == real_filing_date
+
+
 def test_a_violated_field_nulls_only_its_own_metric(seeded_db_empty_cards):
     """Honest absence, scoped to the metric, not the ticker: gross_profit and
     gross_margin go None for the corrupted quarter, while rev_yoy -- which

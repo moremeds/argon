@@ -24,12 +24,11 @@ it is unmirrored and may declare any domain.
 
 from __future__ import annotations
 
-from uw_scan.fundamentals.chain_nodes import DATACENTER_CHAINS
+from uw_scan.fundamentals.chain_nodes import DATACENTER_CHAINS, OPTICAL_COMMUNICATION
 from uw_scan.storage.research_taxonomy import ResearchTaxonomyRepository
 from uw_scan.worker.jobs.research_taxonomy_seed import (
     CHAIN_DOMAIN,
     TAXONOMY_V1,
-    UNCLASSIFIED,
     mirror_watchlist_chain,
     seed_chain_spec,
 )
@@ -121,11 +120,22 @@ def test_every_datacenter_spec_declares_the_mirrored_domain():
     domain moves, and it did — the five chains left `ai_infrastructure` for
     `dc_buildout` and this assertion kept passing against a branch whose
     `research_chains` rows disagreed with themselves.
+
+    Checks every spec in the module -- `DATACENTER_CHAINS` AND
+    `OPTICAL_COMMUNICATION` -- not just the five build-out chains: a chain
+    absent from `CHAIN_DOMAIN` is UNMIRRORED (its spec name is not a
+    `watchlist_chain` name the mirror ever wrote) and may declare any domain
+    it likes, per `chain_nodes.py`'s own docstring -- `.get(..., UNCLASSIFIED)`
+    would otherwise demand an unmirrored spec answer `unclassified`, the
+    opposite of the rule, and iterating only `DATACENTER_CHAINS` would never
+    check `OPTICAL_COMMUNICATION` at all.
     """
-    for spec in DATACENTER_CHAINS:
-        assert spec.domain == CHAIN_DOMAIN.get(spec.chain, UNCLASSIFIED), (
+    for spec in (OPTICAL_COMMUNICATION, *DATACENTER_CHAINS):
+        if spec.chain not in CHAIN_DOMAIN:
+            continue  # unmirrored: no watchlist_chain name to agree with
+        assert spec.domain == CHAIN_DOMAIN[spec.chain], (
             f"{spec.chain}: spec declares {spec.domain!r} but the mirror writes "
-            f"{CHAIN_DOMAIN.get(spec.chain, UNCLASSIFIED)!r} — a chain split across "
+            f"{CHAIN_DOMAIN[spec.chain]!r} — a chain split across "
             f"two domains answers chains(version, domain=...) with half of itself"
         )
 
