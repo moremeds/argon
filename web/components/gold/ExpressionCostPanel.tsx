@@ -2,6 +2,7 @@ import type { components } from "@/lib/types";
 
 import { Tile } from "./Tile";
 import { PersistOnlyBadge } from "./chips/PersistOnlyBadge";
+import { goldReadStyle } from "./readStyle";
 
 type S = components["schemas"]["GoldStructuralPostureModel"];
 
@@ -54,15 +55,7 @@ export function ExpressionCostPanel({ structural }: { structural: S }) {
         />
       </div>
 
-      <p
-        style={{
-          margin: 0,
-          fontSize: 12,
-          lineHeight: 1.6,
-          color: "var(--text-secondary, #9aa3b2)",
-          maxWidth: 900,
-        }}
-      >
+      <p style={goldReadStyle}>
         {Number.isFinite(n) ? (
           <>
             The 25-delta skew, in standard deviations of its own history. It

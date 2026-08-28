@@ -17,11 +17,17 @@ test.describe("GOLD COMPASS /macro/gold", () => {
     // value of keeping this spec is that it would fail if it were not.
     await page.goto("/macro/gold");
 
-    // Wordmark + sub-mark. The h1 is the final-render anchor (dev mode also
-    // briefly shows "Loading GOLD COMPASS…" so we have to target the heading).
+    // The board's t5 heading. The "GOLD COMPASS" wordmark this used to anchor on was the
+    // standalone page's lockup, and on the desk it said the same word as the tab bar one
+    // line above it; the board opens t5 with `Gold` and a state pill. The wordmark is
+    // still drawn on `/gold/replay/<date>`, and `goldCompassLayout.test.tsx` holds both
+    // halves of that — lockup standalone, board heading on the desk.
+    // `exact` matters: the gauge panel's own h2 is "TRANSMISSION GAUGE · GOLD ↔ DFII10",
+    // which a substring match on "Gold" also selects.
     await expect(
-      page.getByRole("heading", { name: /GOLD COMPASS/i }),
+      page.getByRole("heading", { name: "Gold", exact: true, level: 2 }),
     ).toBeVisible();
+    await expect(page.getByTestId("macro-domain-gold")).toBeVisible();
 
     // The five regions are aria-labelled by GoldCompassLayout. KPI strip is
     // tier 1; lens 1/2/3 follow; correlation history is the last region (it

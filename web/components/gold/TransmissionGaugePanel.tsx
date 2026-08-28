@@ -1,6 +1,7 @@
 import type { components } from "@/lib/types";
 
 import { Tile } from "./Tile";
+import { goldReadStyle } from "./readStyle";
 
 type Gauge = components["schemas"]["GoldGaugeState"];
 
@@ -144,16 +145,7 @@ export function TransmissionGaugePanel({ gauge }: { gauge: Gauge }) {
         ))}
       </div>
 
-      <p
-        data-testid="gold-gauge-read"
-        style={{
-          margin: 0,
-          fontSize: 12,
-          lineHeight: 1.6,
-          color: "var(--text-secondary, #9aa3b2)",
-          maxWidth: 900,
-        }}
-      >
+      <p data-testid="gold-gauge-read" style={goldReadStyle}>
         {spread === null ? (
           <>
             Fewer than two correlation windows are available, so there is no

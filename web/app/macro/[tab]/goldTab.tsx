@@ -1,5 +1,9 @@
 import { GoldCompassLayout } from "@/components/gold/GoldCompassLayout";
 import { GoldPostureNotice } from "@/components/gold/GoldPostureNotice";
+import {
+  BoardSecTitle,
+  BoardStatePill,
+} from "@/components/macro/domain/BoardPanel";
 import { ReplayStatus } from "@/components/macro/ReplayStatus";
 import {
   replayVerdictForObsDate,
@@ -8,6 +12,7 @@ import {
 import type { MacroTabProps } from "@/components/macro/tabs";
 import { settle } from "@/components/rates/deskShared";
 import { api } from "@/lib/api";
+import type { components } from "@/lib/types";
 
 /**
  * Tab 05 — Gold. The one tab on this desk whose date control asks a different question.
@@ -41,12 +46,86 @@ import { api } from "@/lib/api";
  */
 const GOLD_PUBLISHER = "gold posture";
 
+type GoldPosture = components["schemas"]["GoldStateResponse"];
+type GoldDomainState = components["schemas"]["MacroDomainStateResponse"];
+
+/**
+ * The board's t5 heading: `Gold`, the question strip, the domain-state pill, a standfirst.
+ *
+ * ### Why the standfirst is derived and not copied
+ *
+ * The board's own reads `…the gate is SUSPENDED while gold is +13.45% in 3 months … this
+ * week the anchor kept letting go (corr_60d −0.79 → −0.17)`. Every one of those figures
+ * was true at the board's capture instant and none of them is true by virtue of being
+ * printed there. What binds is the FRAMING — the state is a gate, not a price view; the
+ * three lenses never composite — so that is quoted, and the one live fact in the sentence
+ * is read off the gauge this tab already renders.
+ *
+ * ### Why the question strip is not the board's either
+ *
+ * The board advertises `Q1 Q3 Q4 Q5 Q7` for this tab. What this tab's bands actually
+ * carry is `Q1 Q2 Q4 Q5 Q7`: it has an expression-cost panel the board files elsewhere
+ * (Q2), and it has nothing answering Q3. Printing the board's strip over these bands
+ * would advertise a question no panel on the tab answers — the exact failure the
+ * acceptance test exists to catch — so the strip is the measured union and this note is
+ * the record of the difference.
+ */
+function GoldHeading({
+  posture,
+  domain,
+  domainNote,
+}: {
+  posture: GoldPosture;
+  domain: GoldDomainState | null;
+  /** Why there is no pill, when there is no pill. Never blank. */
+  domainNote: string;
+}) {
+  const gate = posture.gauge.state.toUpperCase();
+  return (
+    <BoardSecTitle
+      title="Gold"
+      questions={["Q1", "Q2", "Q4", "Q5", "Q7"]}
+      aside={
+        <BoardStatePill
+          facts={domain}
+          testId="macro-domain-gold"
+          absent={domainNote}
+        />
+      }
+    >
+      Final link, merged with the Gold Compass. The domain state is a{" "}
+      <b>gate</b> — whether the gold/real-yield relationship is operative — and
+      not a view on price; the three lenses publish independently and are{" "}
+      <b>never composited</b>. The gate currently reads <b>{gate}</b>
+      {posture.gauge.state === "suspended" ? (
+        <>
+          , so the cyclical lens below is dimmed and nothing on this tab should
+          be read as gold tracking real rates today.
+        </>
+      ) : (
+        "."
+      )}
+    </BoardSecTitle>
+  );
+}
+
 export async function GoldTab({ replay }: MacroTabProps) {
   const asOf = replay.kind === "replay" ? replay.asOf : null;
-  const posture = await settle(
-    () => (asOf === null ? api.goldState() : api.goldReplay(asOf)),
-    "gold posture API",
-  );
+  // The domain state is fetched ONLY in live mode, and that is a clock decision rather
+  // than an optimisation. This tab's date is an `obs_date` — the market day a reading is
+  // about, matched exactly — while `/api/macro/gold` resolves an INSTANT. Handing this
+  // tab's date to that endpoint would put two different questions under one pill and let
+  // the answer to the second pass for the answer to the first. Live, both mean "newest",
+  // so they agree and the pill is honest.
+  const [posture, domain] = await Promise.all([
+    settle(
+      () => (asOf === null ? api.goldState() : api.goldReplay(asOf)),
+      "gold posture API",
+    ),
+    asOf === null
+      ? settle(() => api.macroDomainState("gold"), "gold state API")
+      : Promise.resolve({ value: null, error: undefined }),
+  ]);
 
   const verdict = replayVerdictForObsDate(replay, {
     obsDate: posture.value?.obs_date,
@@ -94,11 +173,25 @@ export async function GoldTab({ replay }: MacroTabProps) {
   return (
     <>
       {status}
-      <GoldCompassLayout
-        state={posture.value}
-        replayDate={asOf ?? undefined}
-        showReplayPicker={false}
-      />
+      <div className="board">
+        <GoldCompassLayout
+          state={posture.value}
+          replayDate={asOf ?? undefined}
+          showReplayPicker={false}
+          deskHeading={
+            <GoldHeading
+              posture={posture.value}
+              domain={domain.value}
+              domainNote={
+                asOf !== null
+                  ? "domain state not shown for a replayed observation date — this tab's date names a market day, and the state endpoint answers an instant"
+                  : (domain.error ??
+                    "no state — the engine has not run for this instant")
+              }
+            />
+          }
+        />
+      </div>
     </>
   );
 }

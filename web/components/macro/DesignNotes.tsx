@@ -13,27 +13,27 @@
  * own t8 opens by saying so — "this tab is for you (the operator) and does not ship on
  * the final page" — and the route stays registered so the operator keeps the URL.
  */
+import { BoardSecTitle } from "./domain/BoardPanel";
+
 export function DesignNotes() {
   return (
-    <div data-testid="macro-design-notes" style={PAGE}>
-      <header style={{ marginBottom: 20 }}>
-        <h1 style={{ margin: 0, fontSize: 20, fontWeight: 600 }}>
-          Design Notes
-        </h1>
-        <p style={LEDE}>
-          The macro desk&rsquo;s design record: what it refuses to do, what it
-          has to keep proving, and which of its empty slots are deliberate
-          rather than broken. These are notes about the desk, not readings from
-          it — nothing on this tab is computed, and nothing on it moves.
-        </p>
-        <p style={LEDE}>
-          <strong>This tab is unlisted.</strong> It is reachable at{" "}
-          <code>/macro/notes</code> and is deliberately absent from the tab
-          strip: the design board it was written from says it is for the
-          operator and does not ship on the desk itself. Nothing above the fold
-          of any other tab depends on it.
-        </p>
-      </header>
+    <div data-testid="macro-design-notes" className="board" style={PAGE}>
+      {/* The board's `.sec-title` + `.sec-sub`, so this tab opens on the same measure and
+          at the same heading size as the five that ship. It used its own 20px h1 and a
+          1100px column, which put the desk's own design record 60px off the column every
+          other tab sits on — a small thing, and exactly the kind of small thing this tab
+          exists to say the desk does not do. */}
+      <BoardSecTitle title="Design Notes" questions={["Q6", "Q7"]}>
+        The macro desk&rsquo;s design record: what it refuses to do, what it has
+        to keep proving, and which of its empty slots are deliberate rather than
+        broken. These are notes about the desk, not readings from it — nothing
+        on this tab is computed, and nothing on it moves.{" "}
+        <b>This tab is unlisted.</b> It is reachable at{" "}
+        <code>/macro/notes</code> and is deliberately absent from the tab strip:
+        the design board it was written from says it is for the operator and
+        does not ship on the desk itself. Nothing above the fold of any other
+        tab depends on it.
+      </BoardSecTitle>
 
       <Section
         title="Four things this desk will not do"
@@ -258,19 +258,16 @@ function Note({
   );
 }
 
+/* Width, centring and padding come off `.board` now. They must NOT be repeated here:
+   an inline style beats a class regardless of specificity, so leaving `maxWidth: 1100`
+   on this element would silently keep the tab on its own measure while looking, in the
+   source, as though it had been moved onto the desk's. */
 const PAGE = {
-  padding: 24,
-  maxWidth: 1100,
-  margin: "0 auto",
   color: "var(--text-primary)",
 } as const;
 
-const LEDE = {
-  margin: "6px 0 0",
-  fontSize: 13,
-  color: "var(--text-secondary)",
-  maxWidth: 720,
-} as const;
+/* `LEDE` went with the tab's own header — the standfirst is `.sec-sub` now. `SECTION_LEDE`
+   below is a different thing and stays: it introduces each section inside the tab. */
 
 const SECTION = { marginBottom: 24 } as const;
 

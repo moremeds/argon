@@ -463,9 +463,14 @@ test.describe("the desk prescribes nothing", () => {
       return clone.textContent ?? "";
     });
 
-    // Non-vacuity: the desk's title lockup is outside the quarantine in both the
-    // populated and the empty state, so a carve-out that ate the page fails here.
-    expect(outsideQuarantine).toContain("US Rates Factor Desk");
+    // Non-vacuity: something outside the quarantine must survive the carve-out, or this
+    // assertion passes on an empty string. It used to be the "US Rates Factor Desk"
+    // lockup, which the board replaced with its own `.sec-title` — and the replacement
+    // is not a drop-in, because the populated tab says "Rates · Curve" while the empty
+    // state still says the old name in `DeskEmptyState`'s eyebrow. The desk's TAB BAR is
+    // the anchor that holds in both: it lives in `app/macro/layout.tsx`, renders the same
+    // registry label either way, and is never inside `#refuses`.
+    expect(outsideQuarantine).toContain("Rates · Curve");
     expect(outsideQuarantine.toLowerCase()).not.toMatch(/\bbuy\b/);
     expect(outsideQuarantine.toLowerCase()).not.toMatch(/\bsell\b/);
 

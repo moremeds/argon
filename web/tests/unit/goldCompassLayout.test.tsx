@@ -154,10 +154,14 @@ const FIXTURE: State = {
 describe("GoldCompassLayout", () => {
   it("renders every tier as a discrete region", () => {
     render(<GoldCompassLayout state={FIXTURE} />);
-    expect(screen.getByRole("region", { name: /transmission gauge/i })).toBeTruthy();
+    expect(
+      screen.getByRole("region", { name: /transmission gauge/i }),
+    ).toBeTruthy();
     expect(screen.getByRole("region", { name: /kpi/i })).toBeTruthy();
     expect(screen.getByRole("region", { name: /lens 1/i })).toBeTruthy();
-    expect(screen.getByRole("region", { name: /expression cost/i })).toBeTruthy();
+    expect(
+      screen.getByRole("region", { name: /expression cost/i }),
+    ).toBeTruthy();
     expect(screen.getByRole("region", { name: /lens 2/i })).toBeTruthy();
     expect(screen.getByRole("region", { name: /lens 3/i })).toBeTruthy();
     expect(
@@ -170,9 +174,9 @@ describe("GoldCompassLayout", () => {
     // gauge decides whether the cyclical lens means anything, and it was one tile in a
     // five-tile strip. The board opens the tab on it, so document order is the assertion.
     const { container } = render(<GoldCompassLayout state={FIXTURE} />);
-    const regions = [...container.querySelectorAll("section[role='region']")].map(
-      (el) => el.getAttribute("aria-label"),
-    );
+    const regions = [
+      ...container.querySelectorAll("section[role='region']"),
+    ].map((el) => el.getAttribute("aria-label"));
     expect(regions[0]).toMatch(/transmission gauge/i);
     expect(regions.indexOf("Expression cost")).toBeGreaterThan(
       regions.indexOf("Lens 1 structural flow"),
@@ -183,7 +187,9 @@ describe("GoldCompassLayout", () => {
     // The board's acceptance test, carried onto a subtree that does not use BoardPanel:
     // "every panel must answer at least one, or it gets deleted".
     const { container } = render(<GoldCompassLayout state={FIXTURE} />);
-    for (const section of container.querySelectorAll("section[role='region']")) {
+    for (const section of container.querySelectorAll(
+      "section[role='region']",
+    )) {
       expect(section.getAttribute("data-questions")).toMatch(
         /^Q[1-7]( Q[1-7])*$/,
       );
@@ -293,11 +299,37 @@ describe("GoldCompassLayout", () => {
     standalone.unmount();
 
     const onDesk = render(
-      <GoldCompassLayout state={FIXTURE} showReplayPicker={false} />,
+      <GoldCompassLayout
+        state={FIXTURE}
+        showReplayPicker={false}
+        deskHeading={<h2>Gold</h2>}
+      />,
     );
     expect(onDesk.queryByLabelText("REPLAY")).toBeNull();
     // ...and the rest of the cockpit is untouched by the suppression.
-    expect(onDesk.getByRole("heading", { name: /GOLD COMPASS/i })).toBeTruthy();
+    expect(onDesk.getByRole("region", { name: /lens 1/i })).toBeTruthy();
+  });
+
+  it("wears the Gold Compass lockup standalone and the board's heading on the desk", () => {
+    // Two chromes, one body — and the wordmark is the half that must not appear twice.
+    // On the desk it said the same word as the tab bar one line above it, so tab 05 opens
+    // with the board's `.sec-title` instead; on `/gold/replay/<date>` there is no tab bar
+    // to say it, so the lockup stays.
+    const standalone = render(<GoldCompassLayout state={FIXTURE} />);
+    expect(
+      standalone.getByRole("heading", { name: /GOLD COMPASS/i }),
+    ).toBeTruthy();
+    standalone.unmount();
+
+    const onDesk = render(
+      <GoldCompassLayout
+        state={FIXTURE}
+        showReplayPicker={false}
+        deskHeading={<h2>Gold</h2>}
+      />,
+    );
+    expect(onDesk.queryByRole("heading", { name: /GOLD COMPASS/i })).toBeNull();
+    expect(onDesk.getByRole("heading", { name: "Gold" })).toBeTruthy();
   });
 
   it("uses posture language only (no buy/sell/long/short)", () => {

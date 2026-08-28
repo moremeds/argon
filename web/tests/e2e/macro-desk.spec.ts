@@ -47,7 +47,9 @@ function realErrors(errors: string[]): string[] {
 }
 
 test.describe("macro desk shell", () => {
-  test("tab 08 renders under the desk's tab bar, unlisted", async ({ page }) => {
+  test("tab 08 renders under the desk's tab bar, unlisted", async ({
+    page,
+  }) => {
     const consoleErrors = collectConsoleErrors(page);
 
     const response = await page.goto("/macro/notes");
@@ -56,8 +58,10 @@ test.describe("macro desk shell", () => {
 
     // The tab's own content, by the testid `DesignNotes` carries.
     await expect(page.getByTestId("macro-design-notes")).toBeVisible();
+    // level 2, not 1: every tab on this desk opens with the board's `.sec-title`, whose
+    // heading is an <h2> — the <h1> belongs to the desk, not to one tab inside it.
     await expect(
-      page.getByRole("heading", { name: "Design Notes", level: 1 }),
+      page.getByRole("heading", { name: "Design Notes", level: 2 }),
     ).toBeVisible();
 
     // The shell around it. The bar lives in `app/macro/layout.tsx`, so its absence here
@@ -245,7 +249,9 @@ test.describe("board conformance", () => {
       const count = await tagged.count();
       // A page with no tagged panel would make the loop below vacuously true, which is
       // the exact outage this exists to catch.
-      expect(count, `/macro/${slug} rendered no tagged panel`).toBeGreaterThan(0);
+      expect(count, `/macro/${slug} rendered no tagged panel`).toBeGreaterThan(
+        0,
+      );
       for (const value of await tagged.evaluateAll((nodes) =>
         nodes.map((node) => node.getAttribute("data-questions") ?? ""),
       )) {
