@@ -86,7 +86,10 @@ function ConfidenceStrip({ reasons }: { reasons: ConfidenceReason[] }) {
   const notes = reasons.filter((reason) => reason.kind === "informational");
 
   return (
-    <div className={styles.confidenceStrip} data-testid="rates-confidence-strip">
+    <div
+      className={styles.confidenceStrip}
+      data-testid="rates-confidence-strip"
+    >
       {drags.length ? (
         <>
           <span className={styles.confidenceStripLabel}>Reduced by</span>
@@ -128,7 +131,9 @@ export function StateSection({
       <NoState
         reason={
           errorMessage ??
-          "No policy/rates domain state has been stored for this instant. The scorecard below is the legacy rule score and is not a substitute for one."
+          // Not "the scorecard below": this section renders on the Fed tab, where the
+          // legacy rule score is not below it — it is quarantined on the curve tab.
+          "No policy/rates domain state has been stored for this instant. The legacy rule score is not a substitute for one."
         }
       />
     );

@@ -218,73 +218,6 @@
   gap: 14px;
 }
 
-.stanceGrid {
-  display: grid;
-  grid-template-columns: repeat(2, minmax(260px, 1fr));
-  gap: 14px;
-}
-
-.stanceCard {
-  --stance-accent: var(--text-muted);
-  position: relative;
-  min-height: 150px;
-  overflow: hidden;
-  border: 1px solid var(--border-dim);
-  border-radius: 4px;
-  background: var(--bg-panel);
-  padding: 18px;
-}
-
-.stanceWatermark {
-  position: absolute;
-  right: 18px;
-  bottom: 12px;
-  color: var(--stance-accent);
-  font-family: var(--font-mono), "IBM Plex Mono", monospace;
-  font-size: 42px;
-  font-weight: 800;
-  line-height: 1;
-  opacity: 0.08;
-  pointer-events: none;
-  user-select: none;
-}
-
-.stanceCard strong {
-  display: block;
-  margin-top: 16px;
-  color: var(--stance-accent);
-  font-size: 34px;
-  letter-spacing: 0;
-}
-
-.stanceCard p {
-  max-width: 540px;
-  margin: 10px 0 0;
-  color: var(--text-secondary);
-  font-size: 13px;
-  line-height: 1.45;
-}
-
-.stanceLabel {
-  color: var(--text-muted);
-  font-family: var(--font-mono), "IBM Plex Mono", monospace;
-  font-size: 11px;
-  font-weight: 700;
-  text-transform: uppercase;
-}
-
-.stancePositive {
-  --stance-accent: var(--positive);
-}
-
-.stanceNegative {
-  --stance-accent: var(--negative);
-}
-
-.stanceNeutral {
-  --stance-accent: var(--text-secondary);
-}
-
 .curveGrid {
   display: grid;
   grid-template-columns: minmax(320px, 1.4fr) minmax(320px, 0.8fr);
@@ -453,7 +386,6 @@
 
 .slopeCard,
 .notePanel,
-.synthesis,
 .sourceRow {
   border: 1px solid var(--border-dim);
   border-radius: 4px;
@@ -929,8 +861,7 @@
   font-size: 13px;
 }
 
-.notePanel p,
-.synthesis p {
+.notePanel p {
   margin: 6px 0 0;
   color: var(--text-secondary);
 }
@@ -1180,12 +1111,6 @@
   gap: 10px;
 }
 
-.synthesis span {
-  display: inline-block;
-  margin: 8px 8px 0 0;
-  color: var(--warning);
-}
-
 .positioningStack {
   display: grid;
   gap: 14px;
@@ -1300,7 +1225,6 @@
   .header,
   .curveGrid,
   .scorecard,
-  .stanceGrid,
   .decompDetailGrid,
   .decompSourceGrid,
   .ratesReadGrid,

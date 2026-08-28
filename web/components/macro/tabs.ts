@@ -42,6 +42,8 @@ export type MacroTabEntry = {
 
 export const VALID_TABS = [
   { slug: "notes", ordinal: "08", label: "Design Notes" },
+  { slug: "fed", ordinal: "01", label: "Fed · Policy" },
+  { slug: "rates", ordinal: "02", label: "Rates · Curve" },
 ] as const satisfies readonly MacroTabEntry[];
 
 /** The registered slugs, as a literal union. `TAB_CONTENT` is keyed by this. */
