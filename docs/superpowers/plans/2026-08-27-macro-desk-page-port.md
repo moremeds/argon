@@ -181,6 +181,36 @@ a replayed one, but two replayed tabs replaying different things.
 control an **obs-date** and not an as-of, and say on screen that it is a different
 question. Do not ship the picker over all five tabs until one of those is done.
 
+#### TAKEN in P4 (2026-08-28): the label, per §10-H — and how the ban is discharged
+
+`/api/gold/replay` is unchanged. The label is `MacroReplayClock`
+(`web/components/macro/replay.ts`), and the discharge is that it is a **required field of
+every `VALID_TABS` entry with no default and no fallback** (`components/macro/tabs.ts`).
+That matters more than the copy it selects:
+
+- `ReplayControl` renders **nothing** for `replayClock: "none"` and renders _different
+  prose_ for `"instant"` and `"obs_date"` — the second says outright that it is **not** a
+  point-in-time replay, that it names the market day, and that it is matched exactly. A
+  unit test asserts the two texts differ and that the obs-date one does not carry the
+  instant one's promise.
+- Tab 05 therefore cannot join the picker by omission. There is no default to inherit, so
+  P6 must _write_ `replayClock: "obs_date"` — a line a reviewer sees — and the control it
+  gets is the honest one. Registering a tab with no clock does not compile.
+
+So §3.1's ban is not discharged by "we labelled it and will remember" but by making the
+unlabelled case unrepresentable. **The ban's remaining half still binds P6:** a tab whose
+declared clock does not match what its endpoint actually keys on is the same failure
+wearing a label, and nothing in the type system can check that — it is a review item.
+
+**One correction to the table above, found while wiring it.** `/api/macro/policy` is listed
+as keying on an instant, and it does; but the response's `as_of` field is
+`as_of=as_of` — **the requested instant echoed straight back**
+(`macro/policy_report.py:128`). It is not an answer clock, so it cannot drive a banner. On
+tab 01 the banner is driven by `RatesSnapshotResponse.computed_at` alone, and the policy
+publisher's own freshness stays where it already was: the per-lane release dates inside
+`PolicyPathComparison`. A future tab that fetches only `/api/macro/*` has **no `computed_at`
+anywhere in its responses** and will need `state_summary`'s own clock, not this one.
+
 ---
 
 ## 4. Blockers found while verifying
@@ -1085,7 +1115,23 @@ No value in this plan is invented.
   asserts `regime-tab-gex` is active at `:9`, but both `RegimePanel.tsx:37` and
   `app/regime/[[...tab]]/page.tsx:26` default to `"tide"`. Observed statically; the
   suite was **not run**, so this is a discrepancy, not a confirmed failure.
+  **CONFIRMED 2026-08-28 by P4's full e2e run: it fails.** So do the other twelve listed
+  below — and all thirteen fail identically against a build of `main` on the same database,
+  so none of them is this port's doing.
+- **The e2e suite has 13 pre-existing failures, baselined 2026-08-28** (P4's run: 72 passed
+  / 13 failed / 1 skipped; the same 13 by name against a main-checkout build). They are
+  `canary-page` (1), `magnet-view` (4), `regime-page` (3), `technicals-tab` (3) and
+  `volatility-tab` (2). Not an empty-database artifact — `/api/watchlist` and
+  `/api/stock/NVDA/volatility/series` both answer 200 locally. **Every macro, rates and
+  gold spec passes** (29 tests, 1 skipped), the chart-scale gate included. A future slice
+  should not read a red suite as its own regression; diff the failing set, not the count.
 - `web/CLAUDE.md:53` states `lib/types.ts` is 47 KB; it is **492 K** (measured 2026-08-28).
+- **`playwright.config.ts` sets `reuseExistingServer: true` on port 3001, which can silently
+  test the wrong code.** A detached `next-server` from the MAIN checkout was holding 3001
+  during P4's verification; run as-is, the suite would have exercised that build — which has
+  none of this port — and reported it as this branch's result. Verified on an isolated port
+  instead. Worth a `PORT`-aware config, or at least a note in `web/CLAUDE.md`, before
+  another slice trusts a green run.
 
 ---
 

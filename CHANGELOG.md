@@ -153,7 +153,7 @@ version in lockstep (enforced by `scripts/release/version_sync_check.py`).
 
 - **The rates desk is now two tabs of the macro desk**, `/macro/fed` (01 · Fed · Policy) and
   `/macro/rates` (02 · Rates · Curve), and `/rates` 308s to the curve tab. `RatesDesk.tsx`
-  (602 L) *was* the page shell, so it could not move unchanged — it is split into `FedDesk`
+  (602 L) _was_ the page shell, so it could not move unchanged — it is split into `FedDesk`
   (state, policy paths, plumbing, issuance) and `CurveDesk` (summary, curve, decomposition,
   positioning, cross-market), with Source Freshness on both because it is provenance for the
   one snapshot both tabs already fetched.
@@ -166,14 +166,50 @@ version in lockstep (enforced by `scripts/release/version_sync_check.py`).
     would remove the only thing an operator can hold the new state up against.
   - **Neither tab calls `/api/macro/rates`, against the plan's own binding table.** The
     `MacroStateSummary` the state panel renders is the `state` field on
-    `RatesSnapshotResponse`, which `routers/rates.py` attaches *at read time* from the same
+    `RatesSnapshotResponse`, which `routers/rates.py` attaches _at read time_ from the same
     repository read, at the same resolved instant, that `/api/macro/rates` performs.
     `models/rates.py` says the field is not persisted because "copying it here would fork one
     answer into two records that could disagree" — and a second HTTP fetch of the same shape
-    forks one answer into two *requests* that could disagree.
+    forks one answer into two _requests_ that could disagree.
   - `chartGeometry.ts` is lifted to `components/macro/` so later tabs can size their SVGs
     without importing from the rates subtree, which the desk's layering forbids. It travels
     alone: it imports nothing, so unlike the confidence strip it carries no CSS with it.
+
+- **The macro desk can be asked what it knew.** `?as_of=YYYY-MM-DD` now rides the registered
+  tabs, a date control above the tab content states the question once, and each tab states
+  separately what its own publisher answered. The `as_of` parameter has been live on
+  `/api/rates/snapshot` and every `/api/macro/*` route for several releases with nothing
+  calling it; this is the UI that consumes it.
+  - **The banner is driven by the response, never by the request, and that is the whole
+    design.** A pre-P1 `argon-app` image answers `?as_of=2026-01-01` with the **live**
+    snapshot and a 200, because FastAPI ignores a query parameter the route does not declare
+    — measured on the mini, byte-identical to the live call. The API and the web app are
+    separate images pulled independently by Watchtower with no ordering guarantee between
+    them, so a web release _can_ be live against an API that cannot replay. `computed_at` is
+    the only thing on the wire that can tell the difference, so a snapshot computed **after**
+    the instant asked for is **withheld** — the tab renders the refusal instead of the curve,
+    rather than drawing today's data under a replay heading.
+  - **Four outcomes stay four sentences**, extending the desk's answered / request failed /
+    never computed rule with the one a replay adds: no answer existed at that instant, the
+    request failed, the answer is from the wrong instant, and replaying normally. A garbage
+    `as_of` is a fifth thing again — named on screen as ignored, never silently resolved to
+    live data, because "your date was dropped" and "here is the past you asked for" render
+    identically once the numbers are on the page.
+  - **The date survives a tab switch.** Every tab-bar link carries the current `as_of`
+    verbatim (a rejected one included, so the refusal does not evaporate on navigation).
+    Without it, replaying on tab 01 and clicking tab 02 lands on a live tab that looks
+    replayed — the precise failure the banner exists to prevent, reintroduced by the
+    navigation.
+  - **The gold clock is settled as a label, not an API change.** `/api/gold/replay` keys on
+    `obs_date` with exact equality — "what the market did on day T" — while everything else
+    keys on an instant, "what the desk knew at T". One picker over both would put two
+    different questions under one heading. `replayClock` is now a **required** field on every
+    tab registry entry with no default and no fallback, and the control's copy is driven by
+    it, so tab 05 cannot inherit the point-in-time question by omission when it registers.
+  - `api.ratesSnapshot()` and `api.macroPolicy()` take an optional date and **omit the query
+    string entirely** when live, so the shipped live request stays byte-identical — the
+    router's guard against a snapshot whose `computed_at` sits a second in the future only
+    works if the client does not send a date it was not asked for.
 
 - **Durable earnings-calendar spine** (migration `144`, `earnings_calendar`) — `EarningsCalendarRepository`
   (`upsert_rows`/`next_prints`/`prints_between`) gives the reaction and implied-move jobs below a print-date
@@ -265,7 +301,7 @@ version in lockstep (enforced by `scripts/release/version_sync_check.py`).
   - The board's tab number is stored, not implied by array position — registration order is PR
     order, and PR order is not board order.
   - **`prefetch={false}` on every link.** A nine-tab bar sits entirely in the viewport, and Next
-    prefetches the *full* route for a dynamic one; on the stock page's bare `prefetch` this would
+    prefetches the _full_ route for a dynamic one; on the stock page's bare `prefetch` this would
     fire nine RSC prefetches into `force-dynamic` server components on every page view.
   - A `<nav aria-label>` with `aria-current="page"`, not a `role="tablist"`. A link bar whose
     panels are separate documents is not a tablist, and honest markup beats a role that lies.
@@ -283,7 +319,7 @@ version in lockstep (enforced by `scripts/release/version_sync_check.py`).
   beside one live one with nothing on screen saying so.
   - **The predicate is on `computed_at`, not `snapshot_date`.** `rates_snapshots` is keyed
     `(snapshot_date, computed_at)` and the two answer different questions: `snapshot_date` is the
-    market date an answer is *about*, `computed_at` is when the answer *came into existence*. A
+    market date an answer is _about_, `computed_at` is when the answer _came into existence_. A
     backfill can write a row for an old market date long after the fact, so filtering on
     `snapshot_date <= T` would hand a replay of May a snapshot assembled in August — reading today's
     answer into the past. The test is built on a fixture where the newer compute carries the earlier
@@ -291,7 +327,7 @@ version in lockstep (enforced by `scripts/release/version_sync_check.py`).
   - **Replay had to stop lying about staleness.** `_mark_stale_snapshot_sources` compared
     `now - computed_at > 36h` against wall-clock now, which condemns all of history: every replay
     would have rewritten every `ok` source to `stale` and appended a scheduler-failure risk to every
-    past date. It now measures against the *requested* instant, and the keyword was renamed `now:` →
+    past date. It now measures against the _requested_ instant, and the keyword was renamed `now:` →
     `at:` so the bug cannot be read back in. Paired tests pin both directions — a replay 58 minutes
     after compute stays `ok`, a replay four days after compute still reports `stale` — because the
     fix must not become blanket amnesty.
@@ -304,8 +340,8 @@ version in lockstep (enforced by `scripts/release/version_sync_check.py`).
   in the macro program.
   - **The gap it closes.** `macro_observations` is immutable — migration 115's guard rejects every
     `DELETE` and every `UPDATE` touching anything but `last_seen_at` — so `quality_status` can never
-    be moved to `quarantined` after the fact. The ledger could say *we never accepted this*; it had
-    no way to say *we accepted this and were wrong*. The guard is correct and is untouched; this is
+    be moved to `quarantined` after the fact. The ledger could say _we never accepted this_; it had
+    no way to say _we accepted this and were wrong_. The guard is correct and is untouched; this is
     an overlay beside it, not a mutation of it.
   - **One predicate produces both required behaviours.** The invalidation carries its own
     point-in-time clock — `invalidated_at <= as_of`, deliberately the same shape as the
@@ -316,7 +352,7 @@ version in lockstep (enforced by `scripts/release/version_sync_check.py`).
     it on the publisher's error date would silently rewrite history: every replay between the two
     dates would stop returning a row Argon believed for those months.
   - **Four of the five readers take the predicate; `fetch_macro_observation_history` must not.** It
-    is the audit view, and filtering it would answer *what did we discard and why* with a view that
+    is the audit view, and filtering it would answer _what did we discard and why_ with a view that
     had already discarded it. It joins and MARKS instead — the row, the discovery instant, the
     reason and the reviewer, side by side.
   - **`vintage_*` bounds the publication, `period_*` bounds the reading**, and the pair is not
@@ -327,7 +363,7 @@ version in lockstep (enforced by `scripts/release/version_sync_check.py`).
     `macro_observations.period_end` already exists and the join predicate references both tables, so
     reusing the name would produce a filter that silently compares a row to itself.
   - **The tests were rewritten once, and the reason is recorded in the plan.** The first version
-    passed 10 of 13 *with the feature not yet built*: it invalidated the pre-rebasing vintage and
+    passed 10 of 13 _with the feature not yet built_: it invalidated the pre-rebasing vintage and
     asserted the post value came back, but the post row already wins on `available_at DESC`. The fix
     was a second period held only at its pre-rebasing vintage, where exclusion is the difference
     between a value and `None`. Every test now names the production change that breaks it.
@@ -521,7 +557,7 @@ version in lockstep (enforced by `scripts/release/version_sync_check.py`).
 - **SEC publication evidence — replayable fundamental history goes from 8 days to 22 years (M1-A).**
   `sources/sec_submissions.py` + `fundamentals/publication_evidence.py` +
   `storage/sec_filing_index.py` + migration `134` + `worker/jobs/{sec_filing_index_refresh,
-  fundamental_publication_evidence}.py` + `scripts/backfill/sec_publication_evidence.py`.
+fundamental_publication_evidence}.py` + `scripts/backfill/sec_publication_evidence.py`.
   Verdict: `docs/research/2026-08-25-sec-publication-evidence/`.
   - `true_pit` went from **0 to 73,994 claims** over **396 of 401 tickers**, period ends
     2003-12-31 → 2026-07-31. Before this, every `TRUE_PIT_ONLY` replay was empty at every cutoff
@@ -530,7 +566,7 @@ version in lockstep (enforced by `scripts/release/version_sync_check.py`).
   - **Yield 84.8%** (73,769 of 86,951 identities). Refusals: `no_filing` 10,335 — mostly
     structural, a 20-F annual filer has no quarterly filing for a quarterly period to match;
     `amended` 2,210; `no_index` 633; `ambiguous` 3; `multi_version` 1.
-  - **An amendment refuses the whole period, deliberately.** UW serves *current* data, so for an
+  - **An amendment refuses the whole period, deliberately.** UW serves _current_ data, so for an
     amended period the single version Argon holds may be the restated content. Dating it at the
     original filing is `filing_published_at`'s trap wearing SEC's authority.
   - Three things that will bite: `filings.recent` is a WINDOW, and following `filings.files[]`
@@ -600,11 +636,11 @@ evidence_policy)`, which fails closed — an observation with no claim never
     in the entire tree — only the class, one default, and two `__all__` entries),
     `gold_oil_ratio_percentile` (declared on the model, never assigned), `xau_cny_premium_pct`,
     `cb_52w_pct`, and `InventorySnapshot.vault_oz`. That last one needed a narrower claim than the
-    rest: the DB column is *not* dead — LBMA rows carry real values and the 30-day momentum reads
+    rest: the DB column is _not_ dead — LBMA rows carry real values and the 30-day momentum reads
     them — what is dead is the COMEX-labelled snapshot field, which no consumer reads.
 - **Phase 1 of the top-down macro program is closed**, scored against the eight completion criteria
   it wrote for itself on 2026-08-12 (`2026-08-12-top-down-macro-context-program.md` §10). Six are met,
-  two are not, and the two are recorded as *answered* rather than *outstanding*. Documentation only.
+  two are not, and the two are recorded as _answered_ rather than _outstanding_. Documentation only.
   - **What ships:** a replayable, evidence-cited, refusal-capable description of inflation →
     policy/rates → USD → gold. Every output replays from exact observations at their exact vintages,
     the desk refuses as a chain rather than rendering four fresh-looking cards, and no macro number
@@ -643,11 +679,11 @@ evidence_policy)`, which fails closed — an observation with no claim never
     ANYTHING — and answered it before the expensive walk-forward harness of Task 11 was built.
   - **Information and sample size run in opposite directions in this panel**, which is why no harness
     could have been trusted to pick its own target: the three features with the largest effective
-    sample are all two-valued *was the publisher on time* binaries scoring `eff_n` ~294–298, high
+    sample are all two-valued _was the publisher on time_ binaries scoring `eff_n` ~294–298, high
     precisely because they are noisy. Every economically meaningful feature lands at `eff_n` 0.9–27
     over 5.6 years.
   - **MC5's closure is a different decision from its verdict, and the distinction is recorded.**
-    `descriptive_only` says *retain MC4/MC5*, written assuming MC5 would already be built when MC6 ran.
+    `descriptive_only` says _retain MC4/MC5_, written assuming MC5 would already be built when MC6 ran.
     It never was, so the live question was whether to BUILD it — which that taxonomy does not answer.
     It is closed for want of a positive reason, not because the verdict forbade it.
   - Reopening either requires a release-**event** preflight (FOMC 55 observations across 55 distinct
@@ -659,7 +695,7 @@ evidence_policy)`, which fails closed — an observation with no claim never
   `scripts/research/fundamental_valuation_split_basis_rerun.py`; verdict
   `docs/research/2026-08-25-valuation-split-basis-rerun/`.
   - The original research built market cap as RAW bronze close × `common_stock_shares_outstanding`
-    and stated its premise out loud: *"`common_stock_shares_outstanding` is as-reported"*. **False**
+    and stated its premise out loud: _"`common_stock_shares_outstanding` is as-reported"_. **False**
     — the same repo documents the correction in `load_closes`, and it is re-measured here: TSLA
     3,372M → 3,369M → 3,101M → 3,540M and BKNG 1,024M → 1,034M → 794M → 770M across periods
     containing splits, with **no split-sized discontinuity anywhere**. It paired a restated share
@@ -749,11 +785,11 @@ evidence_policy)`, which fails closed — an observation with no claim never
   under the existing active version on the next scheduled run.
 - **A dead gold API and an un-run gold engine were the same sight on screen.** `fetchGoldState`
   returned `null` both for a non-2xx response and for any thrown error, and the page rendered one
-  message for both: *"Posture not yet computed. First scheduled run lands at the next worker
-  tick."* An unreachable API therefore told the operator the engine had not run yet — a claim the
+  message for both: _"Posture not yet computed. First scheduled run lands at the next worker
+  tick."_ An unreachable API therefore told the operator the engine had not run yet — a claim the
   page had no basis to make, and one that sends him looking in the wrong place.
   - Three states now, as the desk requires: answered, request failed, never computed. On these
-    routes a 404 genuinely *is* a statement about the data (`no gold posture computed yet`), so
+    routes a 404 genuinely _is_ a statement about the data (`no gold posture computed yet`), so
     404 maps to absence and every other non-2xx throws. The failure copy says the API could not be
     read and that whether a posture exists is therefore unknown, instead of guessing which it was.
   - `/gold` also re-inlined the base-URL resolution `lib/api.ts` already owns, with no
@@ -768,10 +804,10 @@ evidence_policy)`, which fails closed — an observation with no claim never
   multiplicand below 1.0 under "Reduced by" — so a term that contributes nothing rendered as the
   thing that had halved the number.
   - **Neither term was ever in the product.** `macro/confidence.py` computes confidence from five
-    raw locals and *then* builds the reasons tuple; `macro/rates.py` appends its own terms afterwards
+    raw locals and _then_ builds the reasons tuple; `macro/rates.py` appends its own terms afterwards
     without touching the number. Every appended term is outside the arithmetic by construction, and
     `informational` is what "reported, not counted" has always meant here.
-  - **The second one was invisible rather than wrong.** `policy_paths_absent` carries a *count*
+  - **The second one was invisible rather than wrong.** `policy_paths_absent` carries a _count_
     (`Decimal(len(missing))`), so its value is always ≥ 1 and it never tripped the `< 1` filter — it
     appeared in neither UI list, which is why nobody noticed it was mislabelled either.
   - **The regression test is deliberately blind to term names.** It refolds `confidence_reasons`
@@ -788,16 +824,16 @@ evidence_policy)`, which fails closed — an observation with no claim never
     term strings, and `kind` was the field that was wrong.
 - **`CLAUDE.md` said schema changes apply out-of-band via the profile-gated migrator. They do not.**
   The `api` service self-migrates before serving (`python -m uw_scan.storage.migrate_runner && exec
-  uvicorn`, `docker-compose.yml`), so a Watchtower deploy carries its migrations with it; the
+uvicorn`, `docker-compose.yml`), so a Watchtower deploy carries its migrations with it; the
   `migrator` service exists for explicit out-of-band applies, not for the normal path. The runbook
   (`docs/runbooks/docker-deploy.md`) had this right — only the master policy file was stale, which is
-  the copy an agent reads first. A schema change that must land *before* its code still needs the
+  the copy an agent reads first. A schema change that must land _before_ its code still needs the
   out-of-band run, and that caveat is now stated where the wrong claim used to be.
 - **The F5 gold-schedule exit was recorded as blocked by a dev-database artifact.** The plan said the
   persisted smoke "cannot run until a gold domain state exists (none has ever been computed)". That was
   measured against `option_wizard_local`. **Production has held gold states since 2026-08-23**, and they
   carry the defect and its fix directly: state 30 (Mon 2026-08-24 19:40 ET) read a gauge computed for
-  2026-08-21 — three days stale, because the old schedule ran the posture at 21:00, 80 minutes *after*
+  2026-08-21 — three days stale, because the old schedule ran the posture at 21:00, 80 minutes _after_
   the state that consumes it — and state 34 (Tue 2026-08-25 19:40 ET, first run under the new schedule)
   reads `obs_date` 2026-08-25, age **0**. The blocker also conflated two claims: the MC6 preflight found
   gold cannot **replay**, which says nothing about computing tonight's state.
@@ -848,7 +884,6 @@ evidence_policy)`, which fails closed — an observation with no claim never
   breach rate read as 100% because the healthy rows landed under `info` and vanished. Now grouped
   by kind alone: `stale_result` reads 73 breached of 400 evaluated, not 73 of 73.
 ## [0.12.17] — 2026-08-25
-
 
 ### Fixed
 
@@ -917,8 +952,8 @@ evidence_policy)`, which fails closed — an observation with no claim never
     stores what USD cited anyway and names the incompatibility. Substitution is how a
     monitoring layer becomes a fabrication layer, and it is the one property that must
     not be traded for a tidier page.
-  - `incompatible` outranks `partial` when both apply. *"Rates never ran"* sends an
-    operator to the scheduler and *"rates ran but USD ignored it"* sends them to the
+  - `incompatible` outranks `partial` when both apply. _"Rates never ran"_ sends an
+    operator to the scheduler and _"rates ran but USD ignored it"_ sends them to the
     data; reporting the milder one would point them at the wrong place.
   - **`status` is part of `inputs_hash`.** The same four state ids with a different
     coherence verdict are two different answers, and one identity could only store one
@@ -943,7 +978,7 @@ evidence_policy)`, which fails closed — an observation with no claim never
   four slices; this one is persistence only, and nothing assembles or reads a snapshot yet.
   - **What was missing.** The four domain states are each individually honest: they record what
     they stood on, and `macro_domain_state_dependencies` (migration 128) already records
-    state → state edges. No table said the four belong *together*. So `/macro` composes four
+    state → state edges. No table said the four belong _together_. So `/macro` composes four
     independent latest reads, and the nightly worker — which does use one `as_of` and the right
     causal order — catches each domain's exception and continues. **A failed rates job lets USD
     read the previous rates state** (still satisfying `available_at <= as_of`), persist a new USD
@@ -956,7 +991,7 @@ evidence_policy)`, which fails closed — an observation with no claim never
     timestamp proximity. Migration 128 already stores those edges, so the check reads them
     rather than inferring anything from clocks.
   - Four statuses stay distinguishable on purpose: `complete`, `partial`, `incompatible`,
-    `stale`. *"Rates never ran"* and *"rates ran but USD ignored it"* are both refusals and call
+    `stale`. _"Rates never ran"_ and _"rates ran but USD ignored it"_ are both refusals and call
     for different operator actions, so collapsing them to one "degraded" would destroy the only
     thing the status is for.
   - **Absence is the lack of a row, never a row carrying a null** — `state_id` is `NOT NULL`. A
@@ -967,7 +1002,7 @@ evidence_policy)`, which fails closed — an observation with no claim never
     evidence revision cannot change a stored snapshot's hash — a revision produces a new state
     rather than editing one.
   - `fetch_macro_context_snapshot_as_of` returns `None` before any snapshot existed rather than
-    an empty snapshot: an invented *"we knew nothing"* row is a claim Argon never made, and a
+    an empty snapshot: an invented _"we knew nothing"_ row is a claim Argon never made, and a
     reader cannot tell one from a real refusal.
   - Both tables are enrolled in the gap-healer registry as unhealable (151 → **153 datasets**).
     A healer that invented a missing snapshot would be asserting that four domains once agreed,
@@ -980,8 +1015,8 @@ evidence_policy)`, which fails closed — an observation with no claim never
   deliberately deprioritized behind MC4; see below.
   - `macro_observations` is immutable — migration 115's guard rejects every `DELETE` and every
     `UPDATE` touching anything but `last_seen_at` — so `quality_status` cannot be moved to
-    `quarantined` after the fact. The ledger can say *we never accepted this*; it cannot say
-    *we accepted this and were wrong*. That gap is real and the guard is correct; the fix has to
+    `quarantined` after the fact. The ledger can say _we never accepted this_; it cannot say
+    _we accepted this and were wrong_. That gap is real and the guard is correct; the fix has to
     be an additive overlay.
   - **The belief-preserving decision collapses the design to one predicate.** Making the
     invalidation itself point-in-time — apply only invalidations whose `invalidated_at <= as_of` —
@@ -990,13 +1025,13 @@ evidence_policy)`, which fails closed — an observation with no claim never
     current-vs-replay branch for a caller to get wrong, and the same shape as the existing
     `available_at <= as_of`.
   - Four of the five readers take the predicate. `fetch_macro_observation_history` must **not** —
-    it is the audit view, and filtering it would answer *what did we discard and why* with a view
+    it is the audit view, and filtering it would answer _what did we discard and why_ with a view
     that had already discarded it.
 
 ### Changed
 
-- **Measured: production holds no known-bad macro evidence.** The handover's "the *local* evidence
-  store holds 1,173 WRESBAL rows" is exact and the word *local* is load-bearing.
+- **Measured: production holds no known-bad macro evidence.** The handover's "the _local_ evidence
+  store holds 1,173 WRESBAL rows" is exact and the word _local_ is load-bearing.
   `option_wizard_local` holds 1,173 rows (607 periods, 604 vintages, 566 pre-rebase);
   **`option_wizard` holds 0**, against 28,941 total macro observations. The bad data lives only in
   a dev database production never reads.
@@ -1052,7 +1087,7 @@ evidence_policy)`, which fails closed — an observation with no claim never
 ### Fixed
 
 - **Macro confidence now explains the set it actually measured.** `compute_confidence`
-  drew its terms from two different sets and called all of them *load-bearing*, so USD
+  drew its terms from two different sets and called all of them _load-bearing_, so USD
   and Gold each shipped `2/1 load-bearing inputs present` to production — a ratio above
   its own denominator, because the value counted requirements while the sentence beside
   it counted every factor consumed. Both states carry one required anchor and one
@@ -1069,11 +1104,11 @@ evidence_policy)`, which fails closed — an observation with no claim never
     changed there is the claim, not the arithmetic. The quality detail now names the
     count it averaged and says how many were optional.
   - **All four engine versions bump** — `inflation/2`, `rates/2`, `usd/3`, `gold/2`.
-    The state *labels* are untouched, but confidence is published on the state record,
+    The state _labels_ are untouched, but confidence is published on the state record,
     and a reader comparing it across this change would be comparing two arithmetics.
     `engine_version` is the selector that keeps them apart; stored states under the old
     versions stay readable and keep their own semantics.
-  - No current production confidence *value* changes: every affected term is either a
+  - No current production confidence _value_ changes: every affected term is either a
     sentence or currently `0`.
   - Two integration tests pinned `"inflation/1"` / `"rates/1"` as literals, which turns
     a deliberate bump into a failure that reads like a regression. They now assert
@@ -1113,6 +1148,7 @@ evidence_policy)`, which fails closed — an observation with no claim never
   reviewed executive status of the macro program: deployed truth, seven binding
   findings, the delivery sequence, and the completion gates. It was written against
   `v0.12.16` and had never been committed.
+
 ## [0.12.16] — 2026-08-23
 
 ### Added
@@ -1154,7 +1190,7 @@ evidence_policy)`, which fails closed — an observation with no claim never
   up-to-30-day staleness bought nothing and cost twice as much (~900 UW calls/month
   against 1,800). The lookback is outage insurance, not a wait for UW to publish.
   - The monthly sweep stays registered as a backstop, for two independent reasons.
-    `premarket`/`afterhours` are the *classified* calendar — a name UW reports as
+    `premarket`/`afterhours` are the _classified_ calendar — a name UW reports as
     `report_time: "unknown"` appears in neither, verified for ISRG, SONY, DJCO and POET,
     ≈2% of the statement-bearing universe — and only a late full re-pull can collect a
     filing date UW published after we first stored the row.
@@ -1179,7 +1215,7 @@ evidence_policy)`, which fails closed — an observation with no claim never
     directional call needs a top-quartile quarterly move. Distribution over 12,330
     momentum points: median 1.45%, p75 2.91%, p90 4.57%.
   - **Hysteresis was the first hypothesis and the measurement rejected it.** A dual
-    entry/exit band left flips flat or raised them at *every* entry threshold (at 3.0%:
+    entry/exit band left flips flat or raised them at _every_ entry threshold (at 3.0%:
     none 13, exit 2.25% → 17, exit 1.50% → 23), because a wider band relocates transitions
     rather than removing them. The lever is where the boundary sits, not how sticky it is.
   - Stored `usd/1` states keep their own semantics and stay readable — states are keyed
@@ -1266,7 +1302,6 @@ Plan: `docs/superpowers/plans/2026-08-23-fundamental-calendar-ingest-and-filing-
 
 ## [0.12.15] — 2026-08-23
 
-
 ### Fixed
 
 - **The gold ingest re-inserted its whole price history every run.** `macro_gold_ingest`
@@ -1295,13 +1330,13 @@ Plan: `docs/superpowers/plans/2026-08-23-fundamental-calendar-ingest-and-filing-
 
   Existing duplicate rows are left in place; they carry identical values and the
   newest-vintage read picks correctly, so this is cleanup rather than a correction.
-## [0.12.14] — 2026-08-23
 
+## [0.12.14] — 2026-08-23
 
 ### Fixed
 
 - **A composite score dated three weeks in the future froze the Fundamentals card for 363
-  names.** `as_of` is the cross-section's *latest* knowledge date — the earliest moment
+  names.** `as_of` is the cross-section's _latest_ knowledge date — the earliest moment
   the ranking could legitimately have been computed. When a filer's real filing date is
   still unknown, that date is estimated as `period_end + 45d`, and for a fresh quarter the
   estimate has not arrived yet. Two such names (AMAT and CSCO, `period_end` 2026-07-31)
@@ -1318,8 +1353,8 @@ Plan: `docs/superpowers/plans/2026-08-23-fundamental-calendar-ingest-and-filing-
   counted in the job's returned totals rather than dropped silently. Migration `129`
   evicts the rows already written, which is safe because scores are fully derived and
   every bucket is rebuilt from the statement panel on each run.
-## [0.12.13] — 2026-08-23
 
+## [0.12.13] — 2026-08-23
 
 ### Added
 
@@ -1327,8 +1362,8 @@ Plan: `docs/superpowers/plans/2026-08-23-fundamental-calendar-ingest-and-filing-
   spec named.** Deviation 7 of the USD/gold design deferred
   `MacroDomainState(domain="gold")` because gold's inputs lived in warm-store tables that
   carry no `obs_id`, and the store refuses a state whose evidence cannot be pointed at.
-  It also wrote its own overturn condition: *"an ingest that lands the gold sources as
-  `macro_observations`."* `worker/jobs/macro_gold_ingest.py` is that ingest. No migration
+  It also wrote its own overturn condition: _"an ingest that lands the gold sources as
+  `macro_observations`."_ `worker/jobs/macro_gold_ingest.py` is that ingest. No migration
   was required — migration 115 has accepted `domain = 'gold'` since it was written, and so
   have 125 and 128; the schema was never the blocker, only the ingest.
   - `macro/gold_state.py` publishes **the gate** — whether the gold/real-yield
@@ -1367,8 +1402,8 @@ Plan: `docs/superpowers/plans/2026-08-23-fundamental-calendar-ingest-and-filing-
   The API field and the database column are unchanged (`[]` before, `[]` after), so this
   is not a contract change. A test now fails if any lens grows a real z-score, which is
   the moment to decide deliberately whether the panel should exist.
-## [0.12.12] — 2026-08-23
 
+## [0.12.12] — 2026-08-23
 
 ### Fixed
 
@@ -1378,7 +1413,7 @@ Plan: `docs/superpowers/plans/2026-08-23-fundamental-calendar-ingest-and-filing-
   repository methods that call `self._conn.commit()` themselves, and silently fatal for the
   ones built on `self._conn.transaction()`: that block only emits `COMMIT` when it opened
   the transaction, and every macro domain-state job loads its observations and its own prior
-  answer *before* it writes, so the connection was already mid-transaction and the write
+  answer _before_ it writes, so the connection was already mid-transaction and the write
   degraded to a savepoint that nothing ever committed. Measured on the mini before the fix:
   `macro_domain_states` at **8 rows inserted, 2 alive, 0 deleted**, with the nightly job
   logging `ok` on every run — two nights of inflation and policy-rates states computed
@@ -1391,6 +1426,7 @@ Plan: `docs/superpowers/plans/2026-08-23-fundamental-calendar-ingest-and-filing-
   inflation state job through `scheduler._repo` itself and asserts from a **new** connection;
   it fails against the old helper. A second case raises inside the block and asserts nothing
   persisted, because committing on the way out must not become committing on the way down.
+
 ## [0.12.11] — 2026-08-23
 
 ### Added
@@ -1410,7 +1446,7 @@ Plan: `docs/superpowers/plans/2026-08-23-fundamental-calendar-ingest-and-filing-
 - **`DTWEXBGS` carries a weekly cadence for a series FRED labels daily, and that is the
   load-bearing detail.** The H.10 goes out weekly carrying the week's daily observations
   together — 52.2 vintages a year against ~250 for SOFR. A cadence of 1 would mark the
-  *required* anchor stale Monday through Thursday of an ordinary week, and an abstaining
+  _required_ anchor stale Monday through Thursday of an ordinary week, and an abstaining
   state is not a degraded reading, it is no reading at all. The same measurement gives
   32.7 years of headroom under FRED's 2000-vintage cap, against EFFR's 2.3.
 
@@ -1419,7 +1455,7 @@ Plan: `docs/superpowers/plans/2026-08-23-fundamental-calendar-ingest-and-filing-
   own state and confidence so the edge is traversable rather than merely present. Inside
   `inputs_hash` alone the dependency is in the identity and invisible in the record: you
   could tell a USD state changed when rates did and never ask what rates said. An upstream
-  answering for an instant *after* the downstream's `as_of` is refused as lookahead.
+  answering for an instant _after_ the downstream's `as_of` is refused as lookahead.
 
 - **A BIS cross-check that cannot become evidence.** `sources/bis_eer.py` returns a
   dataclass with no `available_at`, no vintage and no artifact, because a BIS SDMX data
@@ -1459,7 +1495,7 @@ Plan: `docs/superpowers/plans/2026-08-23-fundamental-calendar-ingest-and-filing-
   `len(factors) / len(required_series)` is correct only while every caller pre-filters its
   factors down to the required set — which rates does by an explicit filter and inflation
   does by iterating `REQUIRED`, so the two shipped domains made those numbers identical by
-  accident. A caller passing a factor it merely *reports* got **1/1 complete on a state
+  accident. A caller passing a factor it merely _reports_ got **1/1 complete on a state
   whose one required input was absent**: full confidence in a reading built entirely from
   a substitute. Now counts the intersection; both existing domains are unchanged.
 
@@ -1501,7 +1537,7 @@ Plan: `docs/superpowers/plans/2026-08-23-fundamental-calendar-ingest-and-filing-
 
 - **The rates positioning table has been claiming CFTC data was knowable before it was
   published.** `sources/cftc_tff.py` derived each report's release date as `report_date +
-  3 days`. Measured against Socrata's own `:created_at` over 205 releases, that rule is
+3 days`. Measured against Socrata's own `:created_at` over 205 releases, that rule is
   wrong on 36 of them (17.6%) and **always early** — not one error is conservative. The
   large ones are not holidays: they are two publication outages, the ION Markets incident
   from 2023-01-31 and the government-funding lapse from 2025-09-30, where the rule claims
@@ -1620,7 +1656,7 @@ Plan: `docs/superpowers/plans/2026-08-23-fundamental-calendar-ingest-and-filing-
   backfill and rows from it forward are raw, concatenated without reconciling
   (TSLA steps 203.37 → 609.89 that day, WMT 46.63 → 140.75). An earlier fix here
   clamped every series to that date — but it is livewire's boundary for the
-  *ambiguous* symbols only, and applying it globally cost KLAC, whose bronze
+  _ambiguous_ symbols only, and applying it globally cost KLAC, whose bronze
   basis is clean throughout, forty years of history. Silver carries the
   per-symbol truth: TSLA/WMT/CTAS start exactly 2021-06-11, KLAC starts 1980.
 
@@ -1643,7 +1679,7 @@ Plan: `docs/superpowers/plans/2026-08-23-fundamental-calendar-ingest-and-filing-
   or dividend row) and refuses otherwise, and the ingest itself widened to the
   full scoring universe so that evidence exists. Refusals rise from 4 to 10 on
   the 2026-08-22 store and fall back to 4 after one ingest run (verified by
-  staging that run's splits *and* dividends against production). Three names
+  staging that run's splits _and_ dividends against production). Three names
   (CFLT, CYBR, PSTG) have no split and no dividend at massive at all, so they
   can never satisfy the rule; none of the three carries a band today, so the
   measured coverage cost is zero, but the ceiling is real — an event table
@@ -1682,8 +1718,8 @@ Plan: `docs/superpowers/plans/2026-08-23-fundamental-calendar-ingest-and-filing-
   the guard above had no evidence for most of the names that need it. The job now
   covers the fundamental universe as well, at 17:35 ET — 45 minutes before
   `fundamental_refresh`, so the guard is armed on the first day after a deploy.
-## [0.12.10] — 2026-08-20
 
+## [0.12.10] — 2026-08-20
 
 ### Added
 
@@ -1751,23 +1787,23 @@ Plan: `docs/superpowers/plans/2026-08-23-fundamental-calendar-ingest-and-filing-
   read time.** `GET /api/macro/inflation` and `/api/macro/rates` return the stored
   answer that was in force at the requested instant, with every observation it stood
   on; an instant nobody computed a state for is a 404 rather than a state assembled on
-  the spot. Recomputing a 2024 replay with today's engine would report what we *would*
+  the spot. Recomputing a 2024 replay with today's engine would report what we _would_
   have said, and an audit trail you can regenerate to taste is not an audit trail. The
   reply carries `requested_as_of` and `as_of` separately, so a day-old answer cannot
   present itself as a live one.
 - **Vintage-bearing series ingest, separate from state computation** (`fred_series`
   job, `macro_series_ingest.py`). Two things about it are load-bearing. The request
   spans ALFRED's unbounded vintage window: asking with `realtime_start = realtime_end
-  = today` makes FRED clamp every returned window to the query and report today as the
+= today` makes FRED clamp every returned window to the query and report today as the
   vintage of the 1947 CPI — an artifact of asking, not a fact about publishing, and it
   destroys the one field replay is built on. And a series observation is identified by
   its vintage — `(source, series_id, period_end, available_at)` — not by the payload
   carrying it, because one request returns the whole history: under an identity that
   includes `artifact_id`, a single new monthly print would re-write every unchanged
   month beside it.
-- **Migration `126` splits the availability bound in two.** An artifact that *is* a
+- **Migration `126` splits the availability bound in two.** An artifact that _is_ a
   release (an FOMC statement) still cannot carry an observation older than itself. An
-  artifact that *reports* a publication history (an ALFRED response) may: its whole
+  artifact that _reports_ a publication history (an ALFRED response) may: its whole
   product is telling us today that January 2024 CPI was first published on 2024-02-13,
   and the single rule would have stamped the fetch date on every historical vintage.
   The forward direction is untouched — a vintage may still never postdate the fetch
@@ -1879,7 +1915,7 @@ Plan: `docs/superpowers/plans/2026-08-23-fundamental-calendar-ingest-and-filing-
   **The deployed stack was never affected and its data has no gap** — the mini's
   workers run in Linux containers, where `getproxies()` reads environment variables
   only and the container has none, so `rates_observations` carries all 31 series for
-  every month from May through August. What the bug hit was every *native* macOS run:
+  every month from May through August. What the bug hit was every _native_ macOS run:
   the whole dev loop, and any out-of-band `uv run` script on the mini itself, where
   `getproxies()` does return the host's proxy. Measured on the local database, the run
   goes from 11 required series failing to `failed_series=[]`, 4712 observations, and
@@ -1906,7 +1942,7 @@ Plan: `docs/superpowers/plans/2026-08-23-fundamental-calendar-ingest-and-filing-
   they actually cost was the policy path.
 
 - **"Latest observation" meant "most recently downloaded".** `fetch_latest_macro_-
-  observation_as_of` ordered by `available_at` before `period_end`, which is a fact
+observation_as_of` ordered by `available_at` before `period_end`, which is a fact
   about our fetch schedule rather than the publisher's: backfilling an archive out of
   order made the last file downloaded the current release — the April 2026 dealer
   survey outranked June's — and a revision to a two-year-old period would outrank this
@@ -1951,7 +1987,7 @@ Plan: `docs/superpowers/plans/2026-08-23-fundamental-calendar-ingest-and-filing-
   against the live API — the 2021-01-04 ten-year is stamped published 2021-01-05, its
   real T+1 lag. `policy_rates` now resolves its curve and decomposition factors instead
   of reporting them permanently absent. The bound is a dated asset, not a constant: the
-  2000-vintage cap is on window *width*, so it buys about eight years, and
+  2000-vintage cap is on window _width_, so it buys about eight years, and
   `test_daily_vintage_start_has_not_expired` turns red a year before FRED does.
 
 - **The rates scorecard could manufacture a confident verdict out of entirely missing
@@ -1965,10 +2001,10 @@ Plan: `docs/superpowers/plans/2026-08-23-fundamental-calendar-ingest-and-filing-
   of a view is not a neutral view.
 
 - **Vintage replay lost a full day at every changeover.** FRED's `realtime_end` is the
-  last day a value *was* current, inclusive; treating it as exclusive erased each
+  last day a value _was_ current, inclusive; treating it as exclusive erased each
   vintage for its final day, so a replay landing on 2025-02-11 returned no CPI at all.
-## [0.12.9] — 2026-08-20
 
+## [0.12.9] — 2026-08-20
 
 ### Added
 
@@ -1998,7 +2034,7 @@ Plan: `docs/superpowers/plans/2026-08-23-fundamental-calendar-ingest-and-filing-
   (`valuation_anchors_methodless_is_refusal`, migration 124). Making `method`
   nullable opened a state nothing else checked: `method` NULL with a real
   `buy_below` clears the `buy_below IS NOT NULL` filter in `GET
-  /api/scanner/value`, reaches a non-nullable model field, and fails response
+/api/scanner/value`, reaches a non-nullable model field, and fails response
   validation — 500-ing the endpoint for **every** name in the list, not just the
   malformed one. In the schema rather than in `build_anchors`, on the same
   argument migration 118 gives for `valuation_anchors_band_ascends`: the builder
@@ -2013,7 +2049,7 @@ Plan: `docs/superpowers/plans/2026-08-23-fundamental-calendar-ingest-and-filing-
   no screen in the product showed them. `GET /api/scanner/value` reads the warm
   store only: zero UW calls, zero IB calls.
   **The list is unranked by construction and says so on screen.** Ranking names
-  against each other on value measured *inverted* in this universe
+  against each other on value measured _inverted_ in this universe
   (`book_to_price` 2q IC -0.0365, t -2.32), so ordering by cheapness would point
   at the half of the panel that then underperforms. Rows are ordered
   newly-entered first, then alphabetically, and the endpoint takes no `sort`
@@ -2089,13 +2125,13 @@ Plan: `docs/superpowers/plans/2026-08-23-fundamental-calendar-ingest-and-filing-
   20-quarter name can only step by 0.05. BAX read 0.80 on both dates while its
   spot went 26.73 → 25.91 and crossed its own `buy_below` of 26.54 — which is
   why the new tab keys membership on the band and not on the percentile.
-## [0.12.8] — 2026-08-19
 
+## [0.12.8] — 2026-08-19
 
 ### Fixed
 
 - **A UW budget day that closed above the account guard silently disabled the
-  entire next day.** UW's `official_daily_count` resets a beat *after* 00:00 UTC,
+  entire next day.** UW's `official_daily_count` resets a beat _after_ 00:00 UTC,
   so the first requests of a new budget day still carry the previous day's tail —
   on 2026-08-18 twelve rows recorded 110204..110214 before the counter dropped to
   1 at `00:00:04.227Z`. `read_snapshot` took `MAX(official_daily_count)` over the
@@ -2112,8 +2148,8 @@ Plan: `docs/superpowers/plans/2026-08-23-fundamental-calendar-ingest-and-filing-
   means anything, and it cannot inherit the carry-over. A stale-low read costs at
   most one extra call before the next snapshot, where the old behaviour cost a
   trading day.
-## [0.12.7] — 2026-08-19
 
+## [0.12.7] — 2026-08-19
 
 ### Fixed
 
@@ -2131,7 +2167,7 @@ Plan: `docs/superpowers/plans/2026-08-23-fundamental-calendar-ingest-and-filing-
   report, and a window that spans the whole audit range instead of a bespoke
   lookback. The registry entry moves from `research_artifact`/no-adapter to
   `freshness_only`/`run_once_lookback`: healing the gap was always legitimate,
-  it is *relabelling a forward-issued row* that is not. Bounded so it stays a
+  it is _relabelling a forward-issued row_ that is not. Bounded so it stays a
   gap-filler rather than a seeder — the freshest bar belongs to the issue pass
   prospectively, and nothing older than the earliest cone on record is touched,
   since an unseeded log is `scripts/backfill/spx_density_backfill.py`'s job. The
@@ -2144,7 +2180,7 @@ Plan: `docs/superpowers/plans/2026-08-23-fundamental-calendar-ingest-and-filing-
 
 - **The gap healer now runs Saturday nights too, and spends far harder on the
   nights that cost nothing.** The UW budget day runs 20:00 ET → 20:00 ET and the
-  healer fires *at* 20:00, so a run bills the day that **follows** it. Friday's
+  healer fires _at_ 20:00, so a run bills the day that **follows** it. Friday's
   and Saturday's runs therefore bill Saturday and Sunday — no session, so the
   live pool needs nothing. The cron extends from `0 20 * * 0-4` (Mon–Fri) to
   `0 20 * * 0-5` (Mon–Sat), and those two runs take a separate
@@ -2153,8 +2189,8 @@ Plan: `docs/superpowers/plans/2026-08-23-fundamental-calendar-ingest-and-filing-
   full trading day, and the intuitive "Saturday and Sunday are the weekend"
   reading would hand it a 90k head start against a 105k account guard. Measured
   on UW's own counter over 2026-08: weekday burn 64k–82k, weekends ~1k.
-## [0.12.6] — 2026-08-18
 
+## [0.12.6] — 2026-08-18
 
 ### Added
 
@@ -2181,7 +2217,7 @@ Plan: `docs/superpowers/plans/2026-08-23-fundamental-calendar-ingest-and-filing-
   and an undetected one moves the share by several times its own quarterly step.
   Detection compares a period against its four nearest neighbours rather than
   against the ticker's lifetime median — over NVDA's 25-period history revenue
-  grows 26×, so a recent *quarterly* total clears 2.5× a lifetime median on
+  grows 26×, so a recent _quarterly_ total clears 2.5× a lifetime median on
   growth alone. On the frozen fixtures the local rule flags 7 of 7 annual periods
   with no false positives, against 3 of 6 with 3 false positives for the global
   one, and the periods it drops land exactly on each filer's fiscal year-end.
@@ -2200,11 +2236,11 @@ Plan: `docs/superpowers/plans/2026-08-23-fundamental-calendar-ingest-and-filing-
 - **A refused valuation band no longer reports itself as having no data.**
   `_no_anchor` hardcoded `history_quarters: 0`, so NVDA's card read `0q` beside a
   refusal caused by twenty quarters of FCF yield spanning 17x — the data is there
-  and its spread *is* the finding, but the header sent readers hunting a data gap
+  and its spread _is_ the finding, but the header sent readers hunting a data gap
   that does not exist. A refusal now carries the window it was taken on, and
   stays 0 only for the three gates that fire before any history is read (unknown
   company type, suppressed or non-positive numerator). `ANCHOR_RULES_REV` goes
-  2 → 3 with it: no threshold moved, but what a refusal row *says* did, and the
+  2 → 3 with it: no threshold moved, but what a refusal row _says_ did, and the
   identity key is `ON CONFLICT DO NOTHING`.
 - **The refusal reason leads the panel instead of sitting under an explainer for
   a band that was never drawn.** The header paragraph teaches how to read five
@@ -2219,7 +2255,7 @@ Plan: `docs/superpowers/plans/2026-08-23-fundamental-calendar-ingest-and-filing-
 - **"too unstable to anchor a price to" is withdrawn from the width refusal**,
   because the gate never measured instability. A band spans 17x either because
   the yield swings — genuinely unsettled — or because it walks one way and stays
-  there, which is a window straddling two valuation regimes and the *opposite* of
+  there, which is a window straddling two valuation regimes and the _opposite_ of
   unstable. The refusal now reports the measured shape: `valuation.yield_drift`,
   the rank correlation of a name's own yield against time over the band's own
   window. Of 13 names refused on width, 7 are one-way walks (GE −0.96, AVGO
@@ -2247,8 +2283,8 @@ Plan: `docs/superpowers/plans/2026-08-23-fundamental-calendar-ingest-and-filing-
   lake lands a session's close around midnight New York, hours after the run.
   Check `max(computed_at)` for liveness and compare `max(as_of)` against the
   lake's own last close for correctness.
-## [0.12.5] — 2026-08-18
 
+## [0.12.5] — 2026-08-18
 
 ### Added
 
@@ -2332,8 +2368,8 @@ Plan: `docs/superpowers/plans/2026-08-23-fundamental-calendar-ingest-and-filing-
   makes the observable failure rate structurally zero — the SEP parser sat at 1-of-25 while the
   probe reported healthy. It now parses every discovered release and takes the source state as the
   worst among them.
-## [0.12.4] — 2026-08-18
 
+## [0.12.4] — 2026-08-18
 
 ### Fixed
 
@@ -2342,7 +2378,7 @@ Plan: `docs/superpowers/plans/2026-08-23-fundamental-calendar-ingest-and-filing-
   nothing ever cleared that flag. Two ways in: a run whose process died (SSH
   drop, Watchtower container recreate, OOM) never reached `finish_run`; and
   `resume_run` — the ordinary way an operator drains a backfill — never called
-  it *at all*, so even a fully successful resume left the row `running`. Either
+  it _at all_, so even a fully successful resume left the row `running`. Either
   way every subsequent night returned `{"skipped": "run_active"}` silently. Four
   such runs disabled the healer for a week in 2026-08 while the enable flag,
   cron, adapters and migrations were all correct. `resume_run` now closes its
@@ -2356,7 +2392,7 @@ Plan: `docs/superpowers/plans/2026-08-23-fundamental-calendar-ingest-and-filing-
   and the freshness autoheal already used — and raise `HealerBusy` (CLI exit 2)
   rather than racing. A Postgres session lock is released when the process dies,
   which is exactly the liveness guarantee a `status='running'` row does not
-  give; without it the new reaper could cancel a *live* manual heal, and the
+  give; without it the new reaper could cancel a _live_ manual heal, and the
   nightly would then re-audit the same still-missing gaps into a fresh run and
   heal them alongside it, double-charging the provider budget. Staleness is
   measured by progress (last item driven to a verdict) rather than age, so the
@@ -2364,11 +2400,10 @@ Plan: `docs/superpowers/plans/2026-08-23-fundamental-calendar-ingest-and-filing-
 
 ## [0.12.3] — 2026-08-17
 
-
 ### Fixed
 
 - **Chain memberships no longer strand a tag the data has moved on from.**
-  Inheriting a ticker's chain from `watchlist.sector` only ever *filled gaps* —
+  Inheriting a ticker's chain from `watchlist.sector` only ever _filled gaps_ —
   it never retracted — so correcting a ticker's sector left the old chain
   asserted forever, and no re-seed could clear it. That is why `NOV` kept
   answering the `Healthcare` filter after it was corrected to `Energy`: a
@@ -2383,11 +2418,11 @@ Plan: `docs/superpowers/plans/2026-08-23-fundamental-calendar-ingest-and-filing-
   touching memberships, which is the mutation that stranded `NOV` and `ELV`.
   Both paths now sync that one ticker's rows. Deliberately per-ticker rather
   than a whole-table re-seed: memberships are rebuilt from the taxonomy the
-  *running container* shipped with, so between a merge and a release a
+  _running container_ shipped with, so between a merge and a release a
   full rewrite triggered by an unrelated edit would quietly restore the old
   taxonomy.
-## [0.12.2] — 2026-08-17
 
+## [0.12.2] — 2026-08-17
 
 ### Added
 
@@ -2407,18 +2442,17 @@ Plan: `docs/superpowers/plans/2026-08-23-fundamental-calendar-ingest-and-filing-
   (`uw_scan.pipeline_replay_policy`). Three UW endpoints —
   `/shorts/{ticker}/data`, `/stock/{ticker}/options-volume`,
   `/shorts/{ticker}/interest-float/v2` — answer HTTP 200 with a full, plausible
-  row set for *any* date and return a byte-identical body every time. Only a
+  row set for _any_ date and return a byte-identical body every time. Only a
   response-hash differential separates "served me that session" from "served me
   today again", so `options_volume_daily`, `short_interest_snapshots` and
   `uw_positioning` raise rather than back-date today's numbers. Every refusal
   records the date it was measured. Matrix and method:
   `docs/research/2026-08-16-replay-endpoint-matrix.md`.
 
-
 - **Every one of the 143 registered datasets now carries a decision.** 45 daily
   tables refused to heal on one copy-pasted sentence nobody had probed, and 13
   liveness entries had empty reason strings. 15 adapters are now wired over
-  entrypoints that were *already* date-aware (market tide, top-net-impact,
+  entrypoints that were _already_ date-aware (market tide, top-net-impact,
   CRI/VCG/canary recovery, technicals, corporate actions, fundamentals, both
   lake syncs, both UW event logs, fundamental scores/anchors); the rest carry
   `reason_verified_on` — the date the refusal was actually measured. CI fails on
@@ -2447,7 +2481,7 @@ Plan: `docs/superpowers/plans/2026-08-23-fundamental-calendar-ingest-and-filing-
   concrete cases it was hiding: MARA/RIOT are bitcoin miners that pivoted to AI
   datacenters exactly like the six peers already tagged `AI-Cloud/NeoCloud`, but
   could only be `Crypto`; and SPCX could not be both `M7` and `Space`. Both now
-  hold both. Sector ETFs (SMH/SOXX/SOXL/IGV/MAGS) are deliberately *not*
+  hold both. Sector ETFs (SMH/SOXX/SOXL/IGV/MAGS) are deliberately _not_
   cross-listed into the company chains they track — a chain answers "which
   companies are in this value chain", and a fund tracking it is a different
   question. `inherit_sector_memberships` still runs as the safety net for a
@@ -2470,17 +2504,15 @@ Plan: `docs/superpowers/plans/2026-08-23-fundamental-calendar-ingest-and-filing-
   `DEF/Healthcare` and `L4/Robotics/Automation` — surgical robotics is
   genuinely both — so no active ticker depends on the fallback path.
 
-
-
 - **A same-day fetch memo would have poisoned the replay in both directions.**
   `fetch_option_contracts` and `fetch_greek_exposure_by_expiry` memoize on
-  `(ticker, endpoint, ET-today)`. Under a historical replay a memo *hit* returns
-  today's payload to be stamped with a past date, and a memo *miss* stores the
+  `(ticker, endpoint, ET-today)`. Under a historical replay a memo _hit_ returns
+  today's payload to be stamped with a past date, and a memo _miss_ stores the
   historical payload under today's key and corrupts the live nightly path for the
   rest of the day. Replay now bypasses the memo entirely; the live path keeps it.
 
 - **The gap healer could not see the outage that mattered most.** Its
-  trading-day spine read `market_tide_sentiment_daily` alone — a *captured*
+  trading-day spine read `market_tide_sentiment_daily` alone — a _captured_
   table, so an outage that stopped capture also deleted the dates from the
   expected-session list and every dataset then audited as 100% covered for
   exactly the days that were lost (measured: 1,276 gaps reported against 8,080
@@ -2491,7 +2523,7 @@ Plan: `docs/superpowers/plans/2026-08-23-fundamental-calendar-ingest-and-filing-
   union fixes that audit but not the other reports reading the reference
   directly.
 - **A partial heal made the freshness monitor blinder, not sharper.**
-  `coverage_pct` counts tickers within `grace_days` of the table's *own* newest
+  `coverage_pct` counts tickers within `grace_days` of the table's _own_ newest
   row, so two healed tickers on the newest date pulled `max_data_date` forward
   and the 4-day window then reached back over the hole. New `sessions_missing`
   counts expected sessions that are genuinely under-covered. Measured on
@@ -2511,8 +2543,8 @@ Plan: `docs/superpowers/plans/2026-08-23-fundamental-calendar-ingest-and-filing-
   `gex_snapshots`, and SPY closes. Truncating only the obvious one would stamp a
   past date on a row built from future data, which is what produced four
   byte-identical `vrp_macro_signal_daily` rows during round 1.
-## [0.12.1] — 2026-08-17
 
+## [0.12.1] — 2026-08-17
 
 ### Fixed
 
@@ -2534,7 +2566,7 @@ Plan: `docs/superpowers/plans/2026-08-23-fundamental-calendar-ingest-and-filing-
 
   Two things worth recording for whoever touches this next. First, the
   observer's `root` must be the scrolling ancestor: AppShell scrolls an inner
-  `<main overflow-y:auto>`, and `rootMargin` expands only the *root's* bounds,
+  `<main overflow-y:auto>`, and `rootMargin` expands only the _root's_ bounds,
   never ancestor clip rects — with `root: null` the 600 px preload is silently
   a no-op (a card 300 px below the fold reports `isIntersecting: false`), so
   cards would load only once already on screen. Second, this change is
@@ -2544,8 +2576,8 @@ Plan: `docs/superpowers/plans/2026-08-23-fundamental-calendar-ingest-and-filing-
   with prefetch left on 947 ms). The 9.2 s fan-out is real and measured on the
   deployment; that it is what makes opening a stock page feel slow remains a
   plausible mechanism, not a demonstrated one.
-## [0.12.0] — 2026-08-16
 
+## [0.12.0] — 2026-08-16
 
 ### Added
 
@@ -2638,7 +2670,7 @@ Plan: `docs/superpowers/plans/2026-08-23-fundamental-calendar-ingest-and-filing-
   "levels not invertible" branch was removed rather than left as apparent
   coverage.
 - **Anchor rows were hashing the wrong thing entirely.** They reused
-  `scoring.inputs_hash`, which reads the seven scoring FEATURES *by name* — a
+  `scoring.inputs_hash`, which reads the seven scoring FEATURES _by name_ — a
   band has none of them — so every row reduced to a function of `company_type`
   and `engine` and its actual inputs were never in its identity. Measured: a run
   computed 233 bands and wrote **0**, keeping the wrong JPM row alive under
@@ -2694,7 +2726,7 @@ Plan: `docs/superpowers/plans/2026-08-23-fundamental-calendar-ingest-and-filing-
   **−28,000,000** share count; 5.1% negative liabilities and 15.1% impossible
   share counts across 272 recent rows. The design gained an INGEST validation
   gate and a `fundamental_obs_violations` table in response.
-- **Two spec claims falsified.** Segment/KPI disclosure is *not* "absent at any
+- **Two spec claims falsified.** Segment/KPI disclosure is _not_ "absent at any
   tier" — UW returns XBRL-dimensional segment and geographic revenue for 24/25
   tickers (4,330 rows), after the named-customer graph was measured as
   nonexistent. **Superseded on the product claim**: those rows exist but do not
@@ -2720,15 +2752,15 @@ Plan: `docs/superpowers/plans/2026-08-23-fundamental-calendar-ingest-and-filing-
   indistinguishable from noise at 25.** Method tested before P1b built any
   ingest. `scripts/research/fundamental_universe_breadth_probe.py` measured the
   achievable universe — 245 names carrying both deep lake price history and
-  >= 40 quarters of UW statements, every candidate probed rather than sampled
-  and extrapolated. `fundamental_signal_validation.py --wide` then ran the same
-  code over it: **2q composite rank IC 0.059, t 4.84, hit rate 71.8% over 78
-  quarters**, against IC 0.024, t 0.68 on the 25-name AI cohort. The single
-  most defensible figure is the **0.039 (t 2.67)** measured on observations
-  carrying a real `filing_date`, with no point-in-time fallback and therefore no
-  look-ahead. Effect present in both halves of the sample and decaying
-  (0.072 -> 0.047). Verdict, robustness table and limits:
-  `docs/research/2026-08-11-fundamental-signal-validation/VERDICT.md`.
+  > = 40 quarters of UW statements, every candidate probed rather than sampled
+  > and extrapolated. `fundamental_signal_validation.py --wide` then ran the same
+  > code over it: **2q composite rank IC 0.059, t 4.84, hit rate 71.8% over 78
+  > quarters**, against IC 0.024, t 0.68 on the 25-name AI cohort. The single
+  > most defensible figure is the **0.039 (t 2.67)** measured on observations
+  > carrying a real `filing_date`, with no point-in-time fallback and therefore no
+  > look-ahead. Effect present in both halves of the sample and decaying
+  > (0.072 -> 0.047). Verdict, robustness table and limits:
+  > `docs/research/2026-08-11-fundamental-signal-validation/VERDICT.md`.
 - **Consequence for the product: do not put a sortable composite score on a
   25-name page.** The ordering is validated on a universe argon does not have;
   at watchlist width the cross-section is too thin to measure at any history
@@ -2745,7 +2777,7 @@ Plan: `docs/superpowers/plans/2026-08-23-fundamental-calendar-ingest-and-filing-
   ranking. `scripts/research/fundamental_valuation_control.py` tested it and
   **rejected it**: `op_margin`'s partial rank IC against three price ratios is
   −0.0231 / −0.0306 / −0.0298 versus −0.0270 uncontrolled, and against
-  `book_to_price` both margins get *stronger*. Market cap is built from **raw
+  `book_to_price` both margins get _stronger_. Market cap is built from **raw
   `close` × as-reported shares** — `adj_close` is retroactively split-adjusted
   and would mix reference frames across every split. Ratios are yields
   (fundamental/price), so ranking stays monotone through zero earnings.
@@ -2857,7 +2889,7 @@ Plan: `docs/superpowers/plans/2026-08-23-fundamental-calendar-ingest-and-filing-
   `confidence: high` — indistinguishable on screen from a correct one — and NOK
   the same. Nor is the error a constant that cancels inside a percentile: USDEUR
   ran 0.747→0.859 over 2005–2026, so an unconverted history is distorted by a
-  factor that *moves*, reshaping the distribution the band's percentiles are
+  factor that _moves_, reshaping the distribution the band's percentiles are
   drawn from rather than sliding it. New `fundamentals/fx.py` translates each
   figure at its own statement's rate under the **two-rate rule** (flows at the
   window average, stocks at the close), sourcing dailies from the lake's
@@ -2901,13 +2933,13 @@ Plan: `docs/superpowers/plans/2026-08-23-fundamental-calendar-ingest-and-filing-
   path, and the scheduled job has contributed nothing since migration `066`.
   The job now commits **per successful ticker**, and rolls back on failure:
   Postgres aborts the entire transaction on any error, so without the rollback
-  one bad ticker made every *subsequent* ticker fail with
+  one bad ticker made every _subsequent_ ticker fail with
   `InFailedSqlTransaction`. That second bug was latent behind the first — with
   nothing ever committing, a cascade had nothing to lose.
 - **The integration test could not have caught it.** It asserted on the job's
   own still-open connection, which sees uncommitted rows, so it passed against
   a job that persisted nothing. Assertions now read through a **separately
-  opened connection**, and the new coverage is a *freshness delta* rather than
+  opened connection**, and the new coverage is a _freshness delta_ rather than
   a row count — a count gate would have passed on production's pre-existing 669
   rows without the bug being fixed. Both halves of the fix are verified
   load-bearing: removing the commit fails the fresh-connection test, and
@@ -2955,7 +2987,7 @@ Plan: `docs/superpowers/plans/2026-08-23-fundamental-calendar-ingest-and-filing-
 - **The null is powered, which is what makes it usable.** All eight
   market-neutral detection floors sit at 0.018–0.023 against the **0.039** the
   same composite produces cross-sectionally — so an effect of the size that
-  demonstrably exists *across* names would have been found *within* one. Absent,
+  demonstrably exists _across_ names would have been found _within_ one. Absent,
   not unproven. (Revision 1 of the cross-sectional verdict declared a null
   without asking what its test could detect and was wrong; this does not repeat
   it.)
@@ -3012,7 +3044,7 @@ Plan: `docs/superpowers/plans/2026-08-23-fundamental-calendar-ingest-and-filing-
   is `revenue == 0` rows, degenerate rather than inconsistent).
 - **The raw feature is deliberately NOT nulled.** Editing `features.py` would
   change the validated math and break reproducibility of every published result,
-  so the value stays as computed and the *display* layer suppresses it via
+  so the value stays as computed and the _display_ layer suppresses it via
   `violated_fields()`, joined through `fundamental_scores.source_obs_ids`.
   Verified end to end: CEG renders `na`, NVDA still renders 74.9%.
 - `recheck_violations()` replays checks over stored immutable payloads, because a
@@ -3039,7 +3071,7 @@ Plan: `docs/superpowers/plans/2026-08-23-fundamental-calendar-ingest-and-filing-
   quarters are suppressed starts inboard of the left edge and still reads on the
   same window as its siblings.
 - **A quarter we do not believe is drawn as a GAP, never bridged.** A flagged
-  input becomes `null` *in place* — the line breaks and a dashed rule marks it —
+  input becomes `null` _in place_ — the line breaks and a dashed rule marks it —
   because dropping the point would shift every later quarter left and misdate the
   series, and interpolating across it would produce a smooth, confident, wrong
   chart. CEG's `gross_margin` breaks at exactly the echoed quarter (1 null of 40)
@@ -3073,7 +3105,7 @@ Plan: `docs/superpowers/plans/2026-08-23-fundamental-calendar-ingest-and-filing-
   the reproducibility of every published result, so suppression happens at the
   read and the raw value stays as computed.
 - **The card claims no direction for three of the seven features.**
-  `gross_margin` and `op_margin` measured *inverted* in the 2026-08-12 validation
+  `gross_margin` and `op_margin` measured _inverted_ in the 2026-08-12 validation
   and `roe` is named by no rubric row, so `direction` is carried per feature in
   the API contract and is `null` for those three. It rides with the data rather
   than living in the UI, where a colour ramp could silently reassert a direction
@@ -3093,12 +3125,12 @@ Plan: `docs/superpowers/plans/2026-08-23-fundamental-calendar-ingest-and-filing-
   fiscal-period bug produced.
 - **All validated math moved into `src/uw_scan/fundamentals/`** — feature
   derivation, `zscore` and `composite_scores` now live in production and the
-  research scripts import them, so the shipped composite *is* the validated one
+  research scripts import them, so the shipped composite _is_ the validated one
   rather than a copy that can drift. Verified by re-running the wide validation
   after each move and confirming `validation_wide.json` byte-identical (three
   times).
 - **"Exactly one active method version" is enforced by three mechanisms**, because
-  `CHECK (singleton_id = 1)` constrains the row's *value*, not its *existence* — it
+  `CHECK (singleton_id = 1)` constrains the row's _value_, not its _existence_ — it
   permits `DELETE`, which would leave every computation method-less. A NOT NULL FK
   removes the null case, the CHECK pins identity, and a `BEFORE DELETE` trigger
   removes the empty case. Verified live: the delete raises.
@@ -3110,7 +3142,7 @@ Plan: `docs/superpowers/plans/2026-08-23-fundamental-calendar-ingest-and-filing-
   The ranking's ends are dominated by small biotechs and REITs (ALGN +4.25,
   CLDX −5.22) where a tiny EBITDA or asset base makes a ratio explode. This is
   the likely mechanism behind "extremes sort volatility, not quality".
-  Winsorizing would fix it *and* would make the shipped composite a different,
+  Winsorizing would fix it _and_ would make the shipped composite a different,
   unvalidated one — so it is documented rather than silently changed.
 
 - **Fundamental tier-1 ingest — immutable point-in-time statement observations**
@@ -3187,8 +3219,8 @@ Plan: `docs/superpowers/plans/2026-08-23-fundamental-calendar-ingest-and-filing-
   stale `stock.py:75` file/line citation in
   `docs/research/six-dimension-matrix/08-implementation-gaps.md` (that line has
   been the report cache since well before this change).
-## [0.11.4] — 2026-08-10
 
+## [0.11.4] — 2026-08-10
 
 ### Added
 
@@ -3199,7 +3231,7 @@ Plan: `docs/superpowers/plans/2026-08-23-fundamental-calendar-ingest-and-filing-
   job — it is still the ticker's one PRIMARY tag and decides which section a
   card renders under; the join table carries the full membership set that
   FILTERING selects on. Both exist because a single column cannot express the
-  taxonomy: NVDA is genuinely in `Computer/GPU`, `M7` *and*
+  taxonomy: NVDA is genuinely in `Computer/GPU`, `M7` _and_
   `Foundation-Model-Proxy`, ARM is in three L1 chains, IBM is in both
   `Cloud/Hyperscaler` and `Quantum`. The visible symptom was
   `Foundation-Model-Proxy` reading as **empty** on the dashboard while all five
@@ -3231,8 +3263,8 @@ Plan: `docs/superpowers/plans/2026-08-23-fundamental-calendar-ingest-and-filing-
   the pools being able to over-allocate against it. Measured weekday burn
   before the adds was live ~38.4k / research ~24.9k, i.e. research sat at 83% of
   its ceiling while live used 48% of its own.
-## [0.11.3] — 2026-08-09
 
+## [0.11.3] — 2026-08-09
 
 ### Added
 
@@ -3295,6 +3327,7 @@ Plan: `docs/superpowers/plans/2026-08-23-fundamental-calendar-ingest-and-filing-
   but tagged `M7`, and `watchlist.sector` is a single column, so the button would
   filter to an empty grid despite the data being present. It lands with the chain
   migration.
+
 ## [0.11.2] — 2026-08-09
 
 ### Added
@@ -4085,9 +4118,9 @@ extreme_date, extreme_price)` event log (`storage/chanlun_signal_repository.py`,
   confirmed same-side 30m vertex lands exactly at the daily extreme, no
   later-arriving 30m vertex beats it) → confirmed_native, with breach,
   20-session staleness, and `|ln(open_d/close*{d-1})| > ln(1.5)`split-boundary invalidation guards (S2 divergence-based sub-level confirm
-is stubbed as an unused flag for a future iteration). A nightly`chanlun_lifecycle_scan`job (03:10 ET Tue–Sat, massive-0, gated off by
-default via`UW_SCAN_CHANLUN_LIFECYCLE_ENABLED`) walks the watchlist and
-a new read-only `GET /api/stock/{ticker}/chanlun/lifecycle` endpoint
+  is stubbed as an unused flag for a future iteration). A nightly`chanlun_lifecycle_scan`job (03:10 ET Tue–Sat, massive-0, gated off by
+  default via`UW_SCAN_CHANLUN_LIFECYCLE_ENABLED`) walks the watchlist and
+  a new read-only `GET /api/stock/{ticker}/chanlun/lifecycle` endpoint
   exposes current per-mark state.
 
   The walk-forward validation probe that was to gate which categories get
