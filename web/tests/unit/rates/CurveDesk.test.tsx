@@ -10,6 +10,23 @@ import { POLICY_RATES_STATE, SNAPSHOT, TENORS } from "./fixture";
  * the one composite the desk still shows and the only one it names as such.
  */
 describe("CurveDesk", () => {
+  it("renders persisted Treasury supply data instead of the phase placeholder", () => {
+    // Moved from `FedDesk.test.tsx` on 2026-08-28 with the section itself. The board
+    // assigns `Supply SUB-STATE` and `Auction demand` to this tab; the assertions are
+    // unchanged, because the component and the fixture are the same -- only its home
+    // moved.
+    render(<CurveDesk snapshot={SNAPSHOT} />);
+
+    const supplySection = screen.getByRole("region", { name: /^supply$/i });
+    expect(within(supplySection).getByText("Recent auctions")).toBeTruthy();
+    expect(within(supplySection).getByText("30-Year Bond")).toBeTruthy();
+    expect(within(supplySection).getByText("$25.0bn")).toBeTruthy();
+    expect(within(supplySection).getByText("2.30")).toBeTruthy();
+    expect(within(supplySection).getByText("Public debt")).toBeTruthy();
+    expect(within(supplySection).getByText("$31.37T")).toBeTruthy();
+    expect(screen.queryByText(/Treasury auction feed not wired/)).toBeNull();
+  });
+
   it("renders its own anchors and no anchor belonging to the Fed tab", () => {
     render(<CurveDesk snapshot={SNAPSHOT} />);
 
@@ -17,6 +34,7 @@ describe("CurveDesk", () => {
       "Summary",
       "Curve",
       "Decomposition",
+      "Supply",
       "Positioning",
       "Cross-market",
       "Refusals",
@@ -33,7 +51,6 @@ describe("CurveDesk", () => {
       "Dot plot",
       "Dealer path",
       "Policy",
-      "Supply",
       "Events",
     ]) {
       expect(screen.queryByRole("link", { name: label })).toBeNull();

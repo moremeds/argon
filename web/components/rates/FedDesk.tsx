@@ -12,8 +12,7 @@ import {
 import { statusLabel } from "./format";
 import { PolicySection } from "./sections/PolicySection";
 import { StateSection } from "./sections/StateSection";
-import { SupplySection } from "./sections/SupplySection";
-import type { Policy, PolicyComparison, Snapshot, Supply } from "./types";
+import type { Policy, PolicyComparison, Snapshot } from "./types";
 
 /**
  * Macro desk tab 01 — Fed · Policy.
@@ -26,6 +25,18 @@ import type { Policy, PolicyComparison, Snapshot, Supply } from "./types";
  * wants the state, the four published paths, and the settings underneath them. Making
  * him scroll past a yield-curve chart to reach the dot plot was the old page's ordering,
  * and it ordered by nothing.
+ *
+ * ### Two corrections made on 2026-08-28, both from the board
+ *
+ * **Issuance moved to tab 02.** The board puts `Supply SUB-STATE` and `Auction demand`
+ * on Rates · Curve, and `SupplySection` renders both. It landed here because the old
+ * `/rates` page had it under a "Mechanics" heading this tab inherited wholesale — which
+ * is an argument about where it used to sit, not about which question it answers. It
+ * answers who is issuing and who showed up to buy, and that is a curve question.
+ *
+ * **This tab now states its refusals.** It was the only one of the five shipping without
+ * a refusal panel, which mattered more here than anywhere: this is the tab carrying four
+ * separate published paths that a reader will want to average.
  */
 const NAV: readonly NavGroup[] = [
   {
@@ -48,22 +59,21 @@ const NAV: readonly NavGroup[] = [
     id: "tier-mechanics",
     tier: "Mechanics",
     // The old lede named four panels ("policy settings, issuance, positioning,
-    // cross-market"); two of them now live on tab 02, so the sentence is trimmed to
-    // what this tab actually carries rather than kept verbatim and made false.
-    lede: "The plumbing a policy view stands on: policy settings and issuance.",
-    items: [
-      ["policy", "Policy"],
-      ["supply", "Supply"],
-    ],
+    // cross-market"); three of them now live on tab 02 — issuance joined them on
+    // 2026-08-28, see the block above `FedDesk` — so the sentence is trimmed to what
+    // this tab actually carries rather than kept verbatim and made false.
+    lede: "The plumbing a policy view stands on: the policy settings themselves.",
+    items: [["policy", "Policy"]],
   },
   {
     id: "tier-provenance",
     tier: "Provenance and legacy",
     // Same trim: the legacy rule score is quarantined on tab 02, so this tab's
     // provenance tier is provenance only.
-    lede: "Where the numbers came from.",
+    lede: "Where the numbers came from, and what this tab will not say.",
     items: [
       ["events", "Events"],
+      ["refuses", "Refusals"],
       ["sources", "Sources"],
     ],
   },
@@ -91,7 +101,6 @@ export function FedDesk({
     plumbing: [],
     implied_path: [],
   };
-  const supply = snapshot.supply as Supply | undefined;
 
   return (
     <div className={styles.page}>
@@ -149,7 +158,7 @@ export function FedDesk({
       <RatesTier
         id="tier-mechanics"
         title="Mechanics"
-        lede="The plumbing a policy view stands on: policy settings and issuance."
+        lede="The plumbing a policy view stands on: the policy settings themselves."
       />
 
       <RatesSection
@@ -160,18 +169,10 @@ export function FedDesk({
         <PolicySection policy={policy} />
       </RatesSection>
 
-      <RatesSection
-        id="supply"
-        title="Supply"
-        status={statusLabel(supply?.status)}
-      >
-        <SupplySection supply={supply} />
-      </RatesSection>
-
       <RatesTier
         id="tier-provenance"
         title="Provenance and legacy"
-        lede="Where the numbers came from."
+        lede="Where the numbers came from, and what this tab will not say."
       />
 
       <RatesSection
@@ -187,6 +188,49 @@ export function FedDesk({
           ) : (
             <p>Official events/news source not wired in Phase 1.</p>
           )}
+        </div>
+      </RatesSection>
+
+      {/* The board gives every tab one of these and this tab shipped without it — the
+          only one of the five that did. Each bullet is an invariant that already exists
+          somewhere in `components/rates/*`, stated here so a reader meets it before he
+          reads a chart that depends on it, rather than only in a code comment he will
+          never open. Every claim names where it is enforced; none of them restates a
+          number, because a refusal that goes stale is worse than no refusal. */}
+      <RatesSection id="refuses" title="What this tab refuses">
+        <div className={styles.notePanel}>
+          <p>
+            <strong>No averaging of the four paths.</strong> They are published
+            by four different bodies against four different questions.{" "}
+            <code>PolicyPathComparison.tsx</code> puts it plainly: a blended
+            &ldquo;Fed path&rdquo; would be a number no committee voted on, no
+            dealer forecast, and no market traded.
+          </p>
+          <p>
+            <strong>SEP dots stay anonymous.</strong> The FOMC does not publish
+            attribution, so neither do we — no dot is ever tied to a named
+            official. Hardened rather than intended: unit and e2e tests both
+            assert the rendered block never matches <code>/chair|powell/i</code>
+            .
+          </p>
+          <p>
+            <strong>A short column is printed short.</strong> When a projection
+            year carries fewer participants than the one beside it, the count is
+            rendered as published. Normalising it to a full committee would
+            invent a projection nobody made.
+          </p>
+          <p>
+            <strong>A survey corroborates only its own window.</strong> Each
+            release is plotted against its own release date, so an older survey
+            confirms the direction through the day it was taken and says nothing
+            about the weeks since. That is why the releases are not merged into
+            one line.
+          </p>
+          <p>
+            The curve-side refusals — a slope is not a term premium, and the
+            legacy rule scorecard is under quarantine — moved with their
+            evidence to the Rates · Curve tab.
+          </p>
         </div>
       </RatesSection>
 

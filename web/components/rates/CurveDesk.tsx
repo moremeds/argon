@@ -12,12 +12,14 @@ import {
 import { fmtValue, statusLabel } from "./format";
 import { DecompositionSection } from "./sections/DecompositionSection";
 import { PositioningSection } from "./sections/PositioningSection";
+import { SupplySection } from "./sections/SupplySection";
 import type {
   Decomposition,
   Policy,
   Positioning,
   SlopeMetric,
   Snapshot,
+  Supply,
 } from "./types";
 
 /**
@@ -46,10 +48,12 @@ const NAV: readonly NavGroup[] = [
     id: "tier-mechanics",
     tier: "Mechanics",
     // The old lede named four panels ("policy settings, issuance, positioning,
-    // cross-market"); the first two now live on tab 01, so the sentence names what this
-    // tab actually carries rather than staying verbatim and going false.
-    lede: "The plumbing a rates view stands on: positioning and cross-market.",
+    // cross-market"); policy settings live on tab 01, and issuance came BACK here on
+    // 2026-08-28 because the board puts supply and auction demand on this tab. So the
+    // sentence names what this tab actually carries rather than staying verbatim.
+    lede: "The plumbing a rates view stands on: issuance, positioning and cross-market.",
     items: [
+      ["supply", "Supply"],
       ["positioning", "Positioning"],
       ["cross", "Cross-market"],
     ],
@@ -125,6 +129,7 @@ export function CurveDesk({
     status: "missing",
   }) as Positioning;
   const cross = snapshot.cross_market;
+  const supply = snapshot.supply as Supply | undefined;
   // UNKNOWN, not NEUTRAL: an absent scorecard is the absence of a view, and
   // "NEUTRAL" is a view.
   const scorecard = snapshot.scorecard ?? {
@@ -193,8 +198,21 @@ export function CurveDesk({
       <RatesTier
         id="tier-mechanics"
         title="Mechanics"
-        lede="The plumbing a rates view stands on: positioning and cross-market."
+        lede="The plumbing a rates view stands on: issuance, positioning and cross-market."
       />
+
+      {/* Moved here from tab 01 on 2026-08-28. The board assigns `Supply SUB-STATE` and
+          `Auction demand` to this tab, and `SupplySection` renders both -- issuance and
+          who turned up to buy it are questions about the curve, not about the committee.
+          It sat on the Fed tab only because the old `/rates` page grouped it under a
+          "Mechanics" heading that tab inherited whole. */}
+      <RatesSection
+        id="supply"
+        title="Supply"
+        status={statusLabel(supply?.status)}
+      >
+        <SupplySection supply={supply} />
+      </RatesSection>
 
       <RatesSection
         id="positioning"

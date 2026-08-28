@@ -26,8 +26,8 @@ describe("FedDesk", () => {
       "Dot plot",
       "Dealer path",
       "Policy",
-      "Supply",
       "Events",
+      "Refusals",
       "Sources",
     ]) {
       expect(screen.getByRole("link", { name: label })).toBeTruthy();
@@ -39,9 +39,12 @@ describe("FedDesk", () => {
       "Summary",
       "Curve",
       "Decomposition",
+      // Issuance moved to tab 02 on 2026-08-28 -- the board assigns supply and auction
+      // demand to the curve. An anchor left here would point at a section this tab no
+      // longer renders.
+      "Supply",
       "Positioning",
       "Cross-market",
-      "Refusals",
     ]) {
       expect(screen.queryByRole("link", { name: label })).toBeNull();
     }
@@ -73,17 +76,23 @@ describe("FedDesk", () => {
     expect(within(policySection).getByText("$0.025T")).toBeTruthy();
   });
 
-  it("renders persisted Treasury supply data instead of the phase placeholder", () => {
+  it("states its refusals, including the one this tab exists to need", () => {
+    // The board gives every tab a refusal panel and this was the only one of the five
+    // shipping without it. It matters most here: this is the tab carrying four separately
+    // published paths, and averaging them is the single most natural wrong thing to do
+    // with the page.
     render(<FedDesk snapshot={SNAPSHOT} />);
 
-    const supplySection = screen.getByRole("region", { name: /supply/i });
-    expect(within(supplySection).getByText("Recent auctions")).toBeTruthy();
-    expect(within(supplySection).getByText("30-Year Bond")).toBeTruthy();
-    expect(within(supplySection).getByText("$25.0bn")).toBeTruthy();
-    expect(within(supplySection).getByText("2.30")).toBeTruthy();
-    expect(within(supplySection).getByText("Public debt")).toBeTruthy();
-    expect(within(supplySection).getByText("$31.37T")).toBeTruthy();
-    expect(screen.queryByText(/Treasury auction feed not wired/)).toBeNull();
+    const refuses = screen.getByRole("region", { name: /what this tab refuses/i });
+    expect(refuses.textContent).toMatch(/No averaging of the four paths/i);
+    expect(refuses.textContent).toMatch(/dots stay anonymous/i);
+    expect(refuses.textContent).toMatch(/short column is printed short/i);
+  });
+
+  it("no longer renders issuance, which belongs to the curve tab", () => {
+    render(<FedDesk snapshot={SNAPSHOT} />);
+    expect(screen.queryByRole("region", { name: /^supply$/i })).toBeNull();
+    expect(screen.queryByText("Recent auctions")).toBeNull();
   });
 
   it("renders source freshness so failed refreshes do not look live", () => {
