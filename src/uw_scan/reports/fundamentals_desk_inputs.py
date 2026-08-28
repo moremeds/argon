@@ -49,7 +49,7 @@ def require_chain(
     conn: psycopg.Connection,
     *,
     schema: str,
-    version: str,
+    version: str | None,
     domains: Sequence[str],
     chain: str | None,
 ) -> None:
@@ -61,9 +61,16 @@ def require_chain(
     node. A chain that does exist here and genuinely holds no rows still
     answers `200 []` — *exists but empty* is a real and different answer from
     *does not exist*.
+
+    `version=None` (no active taxonomy) means NO chain exists, so every named
+    chain is unknown. Callers must run this BEFORE their own no-version early
+    return, or the un-taxonomied desk answers `200 []` to a typo — the same
+    false claim this function exists to refuse, reached by a different route.
     """
     if chain is None:
         return
+    if version is None:
+        raise UnknownChain(chain)
     with conn.cursor() as cur:
         cur.execute(
             f"""SELECT 1 FROM {schema}.research_chains

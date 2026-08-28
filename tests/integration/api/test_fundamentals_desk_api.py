@@ -82,7 +82,12 @@ import pytest
 
 from uw_scan.api.routers.fundamentals_desk import SECTIONS
 from uw_scan.fundamentals.features import FALLBACK_LAG_DAYS, FEATURES
-from uw_scan.fundamentals.statements import FIELD_MAP_VERSION, content_hash, normalize
+from uw_scan.fundamentals.statements import (
+    FIELD_MAP_VERSION,
+    check_net_income_sign_flip,
+    content_hash,
+    normalize,
+)
 from uw_scan.reports import fundamentals_desk as desk
 from uw_scan.storage.earnings_calendar import EarningsCalendarRepository
 from uw_scan.storage.earnings_reactions import EarningsReactionsRepository
@@ -100,6 +105,7 @@ APPROVER = "argon-research"
 
 OPTICAL = "Optical-Communication"
 SEMICAP = "Semi-Cap/EDA"
+FOUNDRY = "Foundry"
 GPU = "Computer/GPU"
 BANKS = "Banks"
 
@@ -135,13 +141,18 @@ CHAINS: list[tuple[str, str, str, int, list[str]]] = [
     # Real Semi-Cap/EDA names, deliberately with NO rollup rows: the chain's
     # medians must come back null and both members must be NAMED missing.
     ("ai_infrastructure", SEMICAP, "Equipment", 20, ["AMAT", "LRCX"]),
+    # Real Foundry members. UMC carries the real 2010-09-30 SIGN FLIP, so the
+    # section contains one of the measured five and the limits panel's
+    # agree/violation split is testable on real data.
+    ("ai_infrastructure", FOUNDRY, "Fab", 30, ["UMC", "TSM"]),
     ("ai_infrastructure", GPU, "Compute-Silicon", 40, ["NVDA"]),
     ("unclassified", BANKS, "L3", 0, ["JPM"]),
 ]
 
 #: Ascending `layer_rank`, the only order the matrix may use. Ties break
-#: alphabetically; here the three minima (10, 20, 40) are distinct.
-CHAINS_BY_RANK = [OPTICAL, SEMICAP, GPU]
+#: alphabetically; the four minima (10, 20, 30, 40) are distinct, and so are
+#: rank-ascending, name-ascending and name-descending over this set.
+CHAINS_BY_RANK = [OPTICAL, SEMICAP, FOUNDRY, GPU]
 
 # ---------------------------------------------------------------- calendar
 
@@ -666,6 +677,20 @@ def _statement_row(ticker: str, period: str, statement: str, raw: dict, filed=No
     }
 
 
+#: UMC's REAL 2010-09-30 pair — one of the five sign flips measured across the
+#: full 28,973-pair historical store (opposite sign, magnitude matching within
+#: 1%: 8,720,447k against -8,754,593k). A genuine vendor defect, NOT an
+#: accounting basis gap, and UMC is a real member of the real `Foundry` chain —
+#: so the section contains a sign flip and the limits panel must not book it as
+#: agreement while `ni_sign_flip_violations` books it as a violation.
+UMC_PERIOD = date(2010, 9, 30)
+UMC_INCOME = {
+    "net_income": "8720447000",
+    "net_income_from_continuing_operations": "0",
+}
+UMC_CASH_FLOW_SIGN_FLIPPED = {"net_income": "-8754593000"}
+
+
 def _seed_out_of_section_statements(seeded) -> None:
     """VZ: real statements, real NI basis gap, NO chain membership."""
     FundamentalObsRepository(seeded.conn, schema=seeded._schema).record_statements(
@@ -674,6 +699,29 @@ def _seed_out_of_section_statements(seeded) -> None:
             _statement_row("VZ", VZ_PERIOD.isoformat(), "cash_flow", VZ_CASH_FLOW),
         ]
     )
+
+
+def _seed_sign_flip(seeded) -> None:
+    """UMC's real sign-flipped pair, IN section, with its violation recorded
+    the way `fundamental_ingest` records it — statements alone would leave
+    `violation_count` at zero and the double-booking invisible."""
+    repo = FundamentalObsRepository(seeded.conn, schema=seeded._schema)
+    income = _statement_row("UMC", UMC_PERIOD.isoformat(), "income", UMC_INCOME)
+    cash_flow = _statement_row(
+        "UMC", UMC_PERIOD.isoformat(), "cash_flow", UMC_CASH_FLOW_SIGN_FLIPPED
+    )
+    repo.record_statements([income, cash_flow])
+    violations = check_net_income_sign_flip(income["raw_jsonb"], cash_flow["raw_jsonb"])
+    assert violations, "the frozen UMC pair must still trip the sign-flip check"
+    obs_id = repo.obs_id(
+        source="uw",
+        ticker="UMC",
+        period_end=UMC_PERIOD,
+        period_type="quarterly",
+        statement="income",
+        content_hash=income["content_hash"],
+    )
+    repo.record_violations(obs_id, violations)
 
 
 def _seed_nvda_statements(seeded) -> None:
@@ -745,6 +793,7 @@ def seeded_desk(seeded_db_empty_cards):
     _seed_events(seeded_db_empty_cards)
     _seed_nvda_statements(seeded_db_empty_cards)
     _seed_out_of_section_statements(seeded_db_empty_cards)
+    _seed_sign_flip(seeded_db_empty_cards)
     return seeded_db_empty_cards
 
 
@@ -855,6 +904,35 @@ def test_the_two_invertible_facts_reach_the_generated_types(desk_client):
     assert "NOT a diluted share count" in shares
 
 
+def test_a_nullable_field_is_still_required_in_the_contract(desk_client):
+    """`null` and `undefined` are not the same answer, and on this row the
+    difference is the whole point.
+
+    `implied_move_pct`'s null MEANS "not covered by the option-surface
+    snapshot". Giving it a schema default drops it from `required`, which
+    makes the generated TypeScript `implied_move_pct?: number | null` — so a
+    consumer's `=== null` check silently misses `undefined` and the
+    honest-absence guarantee is re-opened one layer up, in the type. Adding a
+    description must never widen a contract.
+    """
+    schemas = desk_client.get("/openapi.json").json()["components"]["schemas"]
+    required = set(schemas["DeskCalendarRow"]["required"])
+    # Every field that carries no default in the model, described or not.
+    assert {
+        "ticker",
+        "report_date",
+        "session",
+        "chain",
+        "layer",
+        "layer_rank",
+        "implied_move_pct",
+        "implied_move_asof",
+    } <= required
+    # ...and the ones that genuinely DO have defaults stayed optional.
+    assert "reactions" not in required
+    assert "spot_percentile" not in required
+
+
 def test_profit_pool_model_has_no_edge_field():
     from uw_scan.models.fundamentals_desk import ProfitPoolLayer
 
@@ -956,11 +1034,25 @@ def test_an_unclassified_chain_never_reaches_the_ai_semi_desk(desk_client, seede
     assert BANKS not in body["chains"]
     assert "JPM" not in {d["ticker"] for c in body["cells"] for d in c["dots"]}
 
-    cal = desk_client.get("/api/fundamentals/ai-semi/calendar").json()
-    assert "JPM" not in {row["ticker"] for row in cal["rows"]}
+    cal = _calendar(seeded_desk)
+    assert "JPM" not in {row.ticker for row in cal.rows}
+    assert cal.rows, "an empty calendar makes the JPM clause vacuous"
 
-    delta = desk_client.get("/api/fundamentals/ai-semi/delta").json()
+    # EXPLICIT `since`. The default is `today - 7 days`, and the newest seeded
+    # event is 2026-08-25 — so from roughly 2026-09-01 the default window is
+    # empty forever and `JPM not in {}` asserts nothing. The non-emptiness
+    # assertion below is what makes the exclusion a finding rather than a
+    # coincidence.
+    delta = desk_client.get(
+        "/api/fundamentals/ai-semi/delta", params={"since": "2026-01-01"}
+    ).json()
+    assert delta["events"], "an empty rail makes the JPM clause vacuous"
     assert "JPM" not in {e["ticker"] for e in delta["events"]}
+    # JPM's event IS in the ledger — the absence above is the section filter
+    # working, not the fixture being empty.
+    assert ResearchEventsRepository(
+        seeded_desk.conn, schema=seeded_desk._schema
+    ).events_for("JPM")
 
 
 def test_an_unknown_section_is_404_not_an_empty_desk(desk_client):
@@ -1102,6 +1194,31 @@ def test_an_unknown_chain_is_404_on_every_endpoint_that_takes_one(
         r = desk_client.get(path, params={"chain": "Substation/Typo"})
         assert r.status_code == 404, path
         assert "Substation/Typo" in r.json()["detail"]
+
+
+def test_an_unknown_chain_is_404_even_with_no_active_taxonomy(desk_client, seeded_desk):
+    """The no-taxonomy path reached `200 []` by a shorter route.
+
+    With no active version every assembler returned an empty result BEFORE the
+    chain guard ran, so an unknown `?chain=` was answered with an empty desk —
+    the same false claim the 404 exists to refuse, arrived at from the other
+    side. With no taxonomy, NO chain exists, so every named chain is unknown.
+    """
+    with seeded_desk.conn.cursor() as cur:
+        cur.execute(
+            f"UPDATE {seeded_desk._schema}.research_taxonomy_versions "
+            f"SET is_active = false"
+        )
+    seeded_desk.conn.commit()
+
+    for path in (
+        "/api/fundamentals/ai-semi/calendar",
+        "/api/fundamentals/ai-semi/node/underwriting",
+    ):
+        assert desk_client.get(path, params={"chain": OPTICAL}).status_code == 404, path
+    # An UNFILTERED read still answers 200 with nothing: no taxonomy is a
+    # statement about Argon, and the desk is entitled to make it.
+    assert desk_client.get("/api/fundamentals/ai-semi/calendar").status_code == 200
 
 
 def test_a_chain_outside_the_section_is_404_not_an_empty_node(desk_client, seeded_desk):
@@ -1334,7 +1451,7 @@ def test_a_valuation_percentile_dot_has_no_knowledge_date_claim(
 def test_profit_pool_is_layer_ordered_and_median_based(desk_client, seeded_desk):
     layers = desk_client.get("/api/fundamentals/ai-semi/profit-pool").json()
     assert [layer["chain"] for layer in layers] == CHAINS_BY_RANK
-    assert [layer["layer_rank"] for layer in layers] == [10, 20, 40]
+    assert [layer["layer_rank"] for layer in layers] == [10, 20, 30, 40]
     # A chain with no rollup rows abstains rather than reporting 0.
     semicap = next(layer for layer in layers if layer["chain"] == SEMICAP)
     assert semicap["median_gross_margin"] is None
@@ -1398,16 +1515,42 @@ def test_limits_net_income_figures_are_scoped_to_the_section(desk_client, seeded
     assert [r["ticker"] for r in unscoped["by_ticker"]] == ["VZ"]
 
 
+def test_a_sign_flip_is_a_violation_and_never_also_an_agreement(
+    desk_client, seeded_desk
+):
+    """UMC's real 2010-09-30 pair is one of the five sign flips measured across
+    28,973 historical pairs: opposite sign, magnitudes matching within 1%.
+
+    `net_income_basis_difference` returns None for it — deliberately, because a
+    literal sign inversion is a VENDOR DEFECT, not an accounting basis gap — so
+    a reader that folds every None into `agree` books the pair twice: once as
+    evidence the two statements are consistent, and again as a violation. It is
+    comparable and it does NOT match, so it is neither agreement nor a basis
+    difference; it belongs only to `ni_sign_flip_violations`.
+    """
+    body = desk_client.get("/api/fundamentals/ai-semi/limits").json()
+    assert body["ni_sign_flip_violations"] == 1
+    # Only NVDA's genuinely-agreeing pair. UMC's must NOT be here.
+    assert body["ni_basis_agree"] == 1
+    assert body["ni_basis_differ"] == 0
+    assert "UMC" not in body["ni_largest_basis_differences"]
+    # UMC IS in section — the exclusion above is the split working, not a
+    # membership gap.
+    matrix = desk_client.get("/api/fundamentals/ai-semi/matrix").json()
+    assert "UMC" in {d["ticker"] for c in matrix["cells"] for d in c["dots"]}
+
+
 def test_limits_membership_evidence_is_computed_not_prose(desk_client, seeded_desk):
     body = desk_client.get("/api/fundamentals/ai-semi/limits").json()
     counts = {
         e["evidence_class"]: e["memberships"] for e in body["membership_evidence"]
     }
-    # Nine section memberships: 6 in Optical-Communication + 2 in Semi-Cap/EDA
-    # + 1 in Computer/GPU. `Banks`' JPM row is out of section.
-    assert counts == {"analyst": 9}
+    # Eleven section memberships: 6 in Optical-Communication + 2 in
+    # Semi-Cap/EDA + 2 in Foundry + 1 in Computer/GPU. `Banks`' JPM row is out
+    # of section.
+    assert counts == {"analyst": 11}
     coverage = {c["chain"]: c for c in body["exposure_coverage"]}
-    assert set(coverage) == {OPTICAL, SEMICAP, GPU}
+    assert set(coverage) == {OPTICAL, SEMICAP, FOUNDRY, GPU}
     assert coverage[OPTICAL]["members"] == 4  # DISTINCT tickers
     assert coverage[OPTICAL]["with_magnitude"] == 0
 

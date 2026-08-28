@@ -28,6 +28,7 @@ from uw_scan.fundamentals.statements import (
     # can never disagree about whether a figure is present — the cross-module
     # private-helper pattern `fundamentals/underwriting.py` already uses for `_f`.
     _dec,
+    check_net_income_sign_flip,
     net_income_basis_difference,
 )
 from uw_scan.storage.fundamental_observation_panels import current_statement_panel
@@ -317,11 +318,27 @@ class FundamentalObsRepository:
         keeps the whole-universe read for callers whose question really is
         universe-wide.
 
-        The counts are period-pair counts, not ticker counts, and they cover
-        only COMPARABLE pairs — a period where either statement carries no
-        `net_income` at all is neither agreement nor disagreement and is
-        counted as neither. Folding it into `agree` would let missing data
-        inflate a number a reader takes as evidence of consistency.
+        The counts are period-pair counts, not ticker counts, and they split a
+        pair THREE ways, not two — `net_income_basis_difference` returns `None`
+        for two different reasons and treating both as agreement is wrong:
+
+        - **counted in neither**, because the pair is not comparable: either
+          statement carries no `net_income` at all. Folding these into `agree`
+          would let missing data inflate a number the reader takes as evidence
+          of consistency.
+        - **counted in neither**, because the pair is a SIGN FLIP. It is
+          comparable and it does NOT match, so it is not agreement; and it is
+          a vendor defect rather than an accounting basis gap, so it is not a
+          basis difference either. It is already counted, once, by
+          `violation_count(net_income_sign_flipped_across_statements)`, and
+          adding it to `agree` would let the desk's limits panel double-book
+          the same pair as both consistent and violated. Measured 5 of 28,973
+          historical pairs, so this is rare — and a panel that reports one
+          section's single sign flip as an agreement is exactly as wrong as
+          one that reports a thousand.
+        - `agree` / `differ`: the pair is comparable, not sign-flipped, and
+          either matches one of the income statement's two net-income lines or
+          does not.
         """
         counts: dict[str, int] = {}
         agree = differ = 0
@@ -339,6 +356,10 @@ class FundamentalObsRepository:
                     _dec(cashflow_payload, "net_income") is None
                 ):
                     continue  # not comparable — neither agreement nor a gap
+                if check_net_income_sign_flip(income_payload, cashflow_payload):
+                    # A VIOLATION, counted by `violation_count`. Comparable and
+                    # not matching, so calling it agreement double-books it.
+                    continue
                 if (
                     net_income_basis_difference(income_payload, cashflow_payload)
                     is not None

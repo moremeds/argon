@@ -3885,14 +3885,14 @@ export interface components {
             layer_rank: number;
             /**
              * Implied Move Pct
-             * @description null = NOT COVERED for THIS print. A snapshot exists only while a print is inside the nightly job's lookahead window, and a snapshot computed for an earlier print is never carried forward onto a later one. Render null as 'not covered', never as 0.
+             * @description null = NOT COVERED for THIS print. A snapshot exists only while a print is inside the nightly job's lookahead window, and a snapshot computed for an earlier print is never carried forward onto a later one. Render null as 'not covered', never as 0. The field is always PRESENT; only its value may be null.
              */
-            implied_move_pct?: number | null;
+            implied_move_pct: number | null;
             /**
              * Implied Move Asof
-             * @description The market date the implied move was computed on. Present exactly when implied_move_pct is.
+             * @description The market date the implied move was computed on. Present exactly when implied_move_pct is; always emitted, null when not covered.
              */
-            implied_move_asof?: string | null;
+            implied_move_asof: string | null;
             /**
              * Reactions
              * @description Last <=4 realised print moves, NEWEST FIRST, as fractions (-0.0177 = -1.77%). An EMPTY list means no reaction history is held — which is not 'the stock did not move'.

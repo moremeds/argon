@@ -4224,7 +4224,7 @@
                 "type": "null"
               }
             ],
-            "description": "The market date the implied move was computed on. Present exactly when implied_move_pct is.",
+            "description": "The market date the implied move was computed on. Present exactly when implied_move_pct is; always emitted, null when not covered.",
             "title": "Implied Move Asof"
           },
           "implied_move_pct": {
@@ -4236,7 +4236,7 @@
                 "type": "null"
               }
             ],
-            "description": "null = NOT COVERED for THIS print. A snapshot exists only while a print is inside the nightly job's lookahead window, and a snapshot computed for an earlier print is never carried forward onto a later one. Render null as 'not covered', never as 0.",
+            "description": "null = NOT COVERED for THIS print. A snapshot exists only while a print is inside the nightly job's lookahead window, and a snapshot computed for an earlier print is never carried forward onto a later one. Render null as 'not covered', never as 0. The field is always PRESENT; only its value may be null.",
             "title": "Implied Move Pct"
           },
           "layer": {
@@ -4310,7 +4310,9 @@
           "session",
           "chain",
           "layer",
-          "layer_rank"
+          "layer_rank",
+          "implied_move_pct",
+          "implied_move_asof"
         ],
         "title": "DeskCalendarRow",
         "type": "object"

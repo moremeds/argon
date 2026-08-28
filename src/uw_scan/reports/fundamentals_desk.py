@@ -140,9 +140,12 @@ def desk_calendar(
     """
     today = today or date.today()
     version = ResearchTaxonomyRepository(conn, schema=schema).active_version()
+    # BEFORE the no-version early return, not after: with no active taxonomy
+    # no chain exists, so an unknown `?chain=` must still 404 rather than be
+    # answered with an empty desk by a shorter route.
+    require_chain(conn, schema=schema, version=version, domains=domains, chain=chain)
     if version is None:
         return DeskCalendarResponse(section=section, as_of=today, rows=[])
-    require_chain(conn, schema=schema, version=version, domains=domains, chain=chain)
 
     members = memberships(
         conn, schema=schema, version=version, domains=domains, chain=chain
@@ -575,9 +578,10 @@ def node_underwriting(
     requires a period, and inventing one would be worse than omitting it.
     """
     version = ResearchTaxonomyRepository(conn, schema=schema).active_version()
+    # Guard BEFORE the no-version early return — see `desk_calendar`.
+    require_chain(conn, schema=schema, version=version, domains=domains, chain=chain)
     if version is None:
         return []
-    require_chain(conn, schema=schema, version=version, domains=domains, chain=chain)
     tickers = distinct_tickers(
         memberships(conn, schema=schema, version=version, domains=domains, chain=chain)
     )

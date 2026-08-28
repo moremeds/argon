@@ -75,20 +75,28 @@ class DeskCalendarRow(_UwBase):
     chain: str
     layer: str
     layer_rank: int
+    # REQUIRED-BUT-NULLABLE, and the `...` is load-bearing. Giving these a
+    # default drops them out of the schema's `required` array, which makes the
+    # generated TypeScript `implied_move_pct?: number | null` — three states
+    # where the contract has two. `null` here MEANS "not covered by the
+    # option-surface snapshot", so a consumer's `=== null` check would silently
+    # miss `undefined` and the honest-absence guarantee would be re-opened one
+    # layer up, in the type. Match `session` above: describe, never default.
     implied_move_pct: float | None = Field(
-        default=None,
+        ...,
         description=(
             "null = NOT COVERED for THIS print. A snapshot exists only while a "
             "print is inside the nightly job's lookahead window, and a "
             "snapshot computed for an earlier print is never carried forward "
-            "onto a later one. Render null as 'not covered', never as 0."
+            "onto a later one. Render null as 'not covered', never as 0. The "
+            "field is always PRESENT; only its value may be null."
         ),
     )
     implied_move_asof: date | None = Field(
-        default=None,
+        ...,
         description=(
             "The market date the implied move was computed on. Present exactly "
-            "when implied_move_pct is."
+            "when implied_move_pct is; always emitted, null when not covered."
         ),
     )
     reactions: list[float] = Field(
