@@ -26,9 +26,10 @@ import { expect, test, type Page } from "@playwright/test";
  *     requirement is a comment in a plan until a test fails when someone flips the page
  *     to `redirect("/macro/overview")` early.
  *
- * Deliberately NOT here: `/rates` and `/gold`. Their 308s ride P3 and P6 with their
- * destinations, so re-pointing `macro-rates-state.spec.ts` / `gold-page.spec.ts` belongs
- * to those PRs, not this one.
+ * Deliberately NOT here: the `/rates` and `/gold` redirects. `/rates`'s 308 landed with
+ * P3 and is owned by `rates-redirect.spec.ts`; `/gold`'s rides P6. What P3 DID change
+ * here is the walk's subject — the registry grew from one tab to three, so the
+ * non-vacuity anchor below names all three rather than `notes` alone.
  */
 
 /** Console-error collector, matching `gold-page.spec.ts:10-13` and `:44`. */
@@ -82,9 +83,20 @@ test.describe("macro desk shell", () => {
     );
 
     // A bar that rendered nothing would make every assertion below vacuously true, and
-    // this spec would then "pass" through the exact outage it exists to catch.
-    expect(hrefs.length).toBeGreaterThan(0);
-    expect(hrefs).toContain("/macro/notes");
+    // this spec would then "pass" through the exact outage it exists to catch. The three
+    // tabs registered today are named individually for the same reason: `length > 0`
+    // alone would survive a registry that silently lost two of them.
+    //
+    // Deliberately a FLOOR and a containment, not an exact list in board order — that
+    // identity is already held at render level by `tests/unit/macroTabBar.test.tsx`
+    // ("renders exactly one link per registry entry" + "orders the bar by board
+    // ordinal"). Pinning the full list again here would make every future tab
+    // registration edit this file for nothing, and the walk below already sweeps
+    // whatever the registry grew.
+    expect(hrefs.length).toBeGreaterThanOrEqual(3);
+    expect(hrefs).toEqual(
+      expect.arrayContaining(["/macro/fed", "/macro/rates", "/macro/notes"]),
+    );
     for (const href of hrefs) {
       expect(href).toMatch(/^\/macro\/[^/]+$/);
     }
@@ -109,15 +121,46 @@ test.describe("macro desk shell", () => {
     }
   });
 
-  test("a slug the registry does not know is a 404, not an empty shell", async ({
+  test("a slug the registry does not know says so, and renders no tab", async ({
     page,
   }) => {
-    const response = await page.goto("/macro/definitely-not-a-tab");
+    await page.goto("/macro/definitely-not-a-tab");
+    await page.waitForLoadState("networkidle");
 
-    // `app/macro/[tab]/page.tsx` calls `notFound()` on any slug absent from `VALID_TABS`.
-    // Without this, an unregistered tab would render the layout with a blank body and
-    // read as a broken page rather than a missing one.
-    expect(response?.status()).toBe(404);
+    // `app/macro/[tab]/page.tsx` calls `notFound()` on any slug absent from `VALID_TABS`,
+    // and `app/macro/[tab]/not-found.tsx` is what that throw renders.
+    //
+    // ON THE STATUS CODE, measured 2026-08-28 rather than assumed. This assertion used to
+    // read `expect(response?.status()).toBe(404)`. It was written in P2 and never run;
+    // run for the first time in P3 it failed, because the route answers **200**. The
+    // cause is not this desk: `notFound()` cannot set a status once a `force-dynamic`
+    // route has begun streaming, and the response has begun by the time `await params`
+    // resolves. argon's pre-existing `/stock/[ticker]/[tab]` uses the identical
+    // `await params` → `notFound()` shape and answers 200 for an unknown tab too, so this
+    // is repo-wide framework behaviour, not a regression. Verified against BOTH servers
+    // (`next start` and the `output: "standalone"` build) and with `loading.tsx` removed —
+    // 200 in every combination. A true 404 needs the check to run before the stream
+    // starts, i.e. in `middleware.ts`, which is a change to every route in the app and is
+    // therefore not P3's to make.
+    //
+    // So this test asserts the two things that ARE true and that actually protect the
+    // operator: the desk says the tab does not exist, and no tab content rendered. Both
+    // fail loudly if the registry guard breaks. The status gap is recorded above rather
+    // than deleted, because an expectation that was quietly dropped is indistinguishable
+    // from one that was never held.
+    await expect(page.getByText("No such macro tab.")).toBeVisible();
+
+    // Before `not-found.tsx` existed, `notFound()` had no boundary inside the desk and the
+    // route sat on the loading fallback forever — a page that reads as hung rather than as
+    // missing. That is the inverse of what the registry protects against, so it gets its
+    // own assertion: the fallback must be GONE, not merely joined by the refusal.
+    await expect(page.getByText("Loading macro desk tab")).toHaveCount(0);
+
+    // Still `notes` alone now that three tabs are registered, and on purpose: tabs 01
+    // and 02 render `DeskEmptyState` when the rates API has no snapshot, so every anchor
+    // they carry is data-dependent and would make this assertion pass for the wrong
+    // reason. `macro-design-notes` is static prose — present in EVERY data state — which
+    // makes it the one sentinel that can only be absent because no tab rendered.
     await expect(page.getByTestId("macro-design-notes")).toHaveCount(0);
   });
 

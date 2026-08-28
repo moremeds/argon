@@ -16,40 +16,54 @@ import { expect, test } from "@playwright/test";
  * band, the viewport and the numbers quoted below.
  *
  * ─────────────────────────────────────────────────────────────────────────────────────
- * STATUS: `test.fixme` — declared, not run. **P3 deletes the marker.**
+ * STATUS: LIVE since P3. The `test.fixme` marker P2 shipped is gone — tabs 01/02 brought
+ * the charts, so this gate finally has a subject.
  * ─────────────────────────────────────────────────────────────────────────────────────
  *
- * P2 registers exactly one tab (08, Design Notes), and it is prose: there are currently
- * zero `<svg>` elements anywhere under `app/macro/` or `components/macro/`. The assertion
- * that this gate found AT LEAST ONE SVG therefore fails today, by construction and on
- * purpose.
+ * The non-vacuity assertion below (`measurements.length > 0`) was kept rather than
+ * softened all through P2, when it could only fail. A gate written as "every SVG we found
+ * is in band" passes on an empty set — §7's evaporating-scope defect, the one
+ * `web/scripts/lint-gold-copy.mjs` shipped as a silent `continue` over a missing root: a
+ * check that reports success precisely when it has stopped checking anything.
  *
- * That assertion is kept rather than softened, and the distinction matters more than it
- * looks. A gate written as "every SVG we found is in band" passes on an empty set — which
- * is §7's evaporating-scope defect, the one `web/scripts/lint-gold-copy.mjs` shipped as a
- * silent `continue` over a missing root: a check that reports success precisely when it
- * has stopped checking anything. Softening the count assertion would make this file green
- * in P2 and green forever after, including on the day someone deletes every chart. So the
- * body below is written exactly as it will run, and the marker — not the assertion —
- * carries the fact that its subject has not arrived yet.
+ * WHY THE SELECTOR IS `svg[role="img"][viewBox]` AND NOT `svg[viewBox]`.
  *
- * **P3 (`feat/macro-desk-tabs-01-02`) is the PR that removes the `fixme`.** P3 re-homes
- * the rates desk under tabs 01/02, which is where the SVGs arrive; from that commit on,
- * this gate has a non-empty subject and must be green. Changing `test.fixme` back to
- * `test` is a one-word edit and belongs in that same commit.
+ * §5 specifies "every `svg` under `/macro/*`", and P2 implemented that literally. Run for
+ * the first time in P3, it failed 42 times — on argon's own navigation. The sidebar draws
+ * 12 lucide icons on every page, and `/macro/rates` carries 6 more INSIDE `<main>`: each
+ * declares `viewBox="0 0 24 24"` and renders at 16px, so k = 0.667. That is not a defect;
+ * it is what an icon is. Scoping to `main` does not fix it, because six of them are in
+ * there.
+ *
+ * `role="img"` is not a marker invented for this gate — `web/components/CLAUDE.md` already
+ * mandates it on chart SVGs, and all three rates charts carry it (`SepDotPlot.tsx:150`,
+ * `RatesCurveChart.tsx:124`, `DealerPathChart.tsx:213`). Measured, it selects exactly the
+ * three charts and zero icons.
+ *
+ * A selector can go blind, so the second assertion below guards it: any SVG in the content
+ * area big enough to be a chart must DECLARE itself one. The threshold sits in a real gap
+ * — every icon on these routes is 24 units wide and every chart is 760 or 1200, with
+ * nothing between — so a new chart that forgets `role="img"` fails loudly instead of
+ * being skipped in silence, which is the same defect one level up from the one above.
  *
  * ─────────────────────────────────────────────────────────────────────────────────────
- * ALSO OWED BY P3, recorded here so it is not lost with the marker (§5, last paragraph):
+ * FRAME RE-MEASUREMENT — DONE IN P3, at 1440x900, against `npm run start`:
  *
- *   `chartGeometry.ts`'s `WIDE_FRAME` (1200) and `NARROW_FRAME` (760) widths must be
- *   RE-MEASURED IN A REAL BROWSER once the shell's tab bar is in place and before the
- *   charts arrive. They are not constants across this port. `NARROW_FRAME`'s 760 is sized
- *   to a `.curveGrid` cell (`components/rates/RatesDesk.module.css:288`, `minmax(320px,
- *   1.4fr)`) whose width is a FRACTION of the shell — so adding `app/macro/layout.tsx`'s
- *   tab bar, and later P4's replay banner, changes the container without changing the
- *   number the frame was cut to fit. A frame left at a stale width is precisely the
- *   defect this gate detects, which means the port can break the gate the port
- *   introduces. Re-measure, then update `chartGeometry.ts` if they moved.
+ *   WIDE_FRAME  1200x360 | SEP dot plot   | container 1130px | rendered 1128px | k = 0.940
+ *   WIDE_FRAME  1200x360 | dealer path    | container 1130px | rendered 1128px | k = 0.940
+ *   NARROW_FRAME 760x300 | yield curve    | container  708.9 | rendered 706.9  | k = 0.930
+ *
+ * §5 required this because `NARROW_FRAME`'s 760 is cut to a `.curveGrid` cell
+ * (`components/rates/RatesDesk.module.css:221`, `minmax(320px, 1.4fr)`) whose width is a
+ * FRACTION of the shell — so `app/macro/layout.tsx`'s tab bar could have moved it without
+ * moving the number the frame was cut to fit.
+ *
+ * IT DID NOT. §5 predicted k ≈ 0.94 for `WIDE_FRAME` at 1440px and measured 1132px there
+ * before the port; it renders at 1128px after — 0.35%. So the constants are DELIBERATELY
+ * UNCHANGED. Pinning `NARROW_FRAME` to today's 708.9 would hard-code one viewport into a
+ * module whose whole thesis is that the SCALE FACTOR, not the viewBox, is the invariant.
+ * Re-measure again when P4 adds the replay banner — that one adds vertical chrome, but a
+ * banner that wraps at a narrow width would take horizontal space too.
  * ─────────────────────────────────────────────────────────────────────────────────────
  */
 
@@ -82,7 +96,7 @@ type Measurement = {
 };
 
 test.describe("macro desk — chart scale", () => {
-  test.fixme("every /macro/* SVG renders at a scale factor near 1", async ({
+  test("every /macro/* chart renders at a scale factor near 1", async ({
     page,
   }) => {
     // The routes to sweep are read from the tab bar rather than hardcoded, for the same
@@ -105,11 +119,31 @@ test.describe("macro desk — chart scale", () => {
       await page.goto(route);
       await page.waitForLoadState("networkidle");
 
+      // A chart in the content area that never declared itself one would be skipped by
+      // the selector below without a word. Catch that here rather than let the gate go
+      // quietly blind: 200 units sits in the empty gap between every icon on these
+      // routes (24) and every chart (760, 1200).
+      const undeclared = await page.$$eval(
+        "main svg[viewBox]:not([role='img'])",
+        (nodes) =>
+          nodes
+            .map((node) => node.getAttribute("viewBox") ?? "")
+            .filter(
+              (viewBox) => Number(viewBox.trim().split(/[\s,]+/)[2]) >= 200,
+            ),
+      );
+      expect(
+        undeclared,
+        `${route}: an SVG at least 200 units wide sits in <main> without role="img", so ` +
+          `this gate would skip it. web/components/CLAUDE.md requires role="img" on ` +
+          `chart SVGs; add it, or this chart's scale goes unchecked forever.`,
+      ).toEqual([]);
+
       // Only SVGs that DECLARE a viewBox are in scope: an SVG without one is not
       // stretching a coordinate system, so it has no scale factor to hold. Hidden and
       // zero-width SVGs are deliberately NOT filtered out — a chart that renders at 0px
       // is a defect this gate should surface, not one it should excuse away.
-      const found = await page.$$eval("svg[viewBox]", (nodes) =>
+      const found = await page.$$eval('svg[role="img"][viewBox]', (nodes) =>
         nodes.map((node) => {
           const viewBox = node.getAttribute("viewBox") ?? "";
           const parts = viewBox
