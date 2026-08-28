@@ -152,6 +152,41 @@ def test_rollup_matches_build_features_on_real_figures(seeded_db_empty_cards):
     )
 
 
+def test_a_fallback_knowledge_date_is_stored_as_a_fallback(seeded_db_empty_cards):
+    """The look-ahead marker survives the write.
+
+    The fallback errs EARLY for late filers, which manufactures look-ahead --
+    measured cost is composite IC 0.059 with it against 0.039 without (see
+    `fundamental_scoring._knowledge_date`). Stored in the same column, in the
+    same shape, as a real filing date, the two are indistinguishable and the
+    distinction is destroyed at write time -- no later reader can recover it.
+    `knowledge_date_known` is what lets a leak-free consumer filter the
+    estimated rows out.
+    """
+    _seed_nvda(seeded_db_empty_cards)
+    fundamentals_desk_rollup(
+        seeded_db_empty_cards.conn, schema=seeded_db_empty_cards._schema
+    )
+
+    desk = _desk_repo(seeded_db_empty_cards)
+    traj = {
+        r["period_end"].isoformat(): r for r in desk.trajectory("NVDA", quarters=20)
+    }
+    # NVDA's real 10-Q filing date for 2026-04-30 -- a fact, flagged as one.
+    assert traj[NEWEST_PERIOD]["knowledge_date"] == NEWEST_FILING_DATE
+    assert traj[NEWEST_PERIOD]["knowledge_date_known"] is True
+    # No filing date on file for the oldest quarter: period_end + the lag, and
+    # the row says so.
+    assert traj[OLDEST_PERIOD]["knowledge_date"] == date.fromisoformat(
+        OLDEST_PERIOD
+    ) + timedelta(days=FALLBACK_LAG_DAYS)
+    assert traj[OLDEST_PERIOD]["knowledge_date_known"] is False
+
+    # `latest_per_ticker` is the matrix-cell read path and must carry the flag
+    # too -- a marker only one of two readers can see is not a marker.
+    assert desk.latest_per_ticker(["NVDA"])["NVDA"]["knowledge_date_known"] is True
+
+
 def test_a_violated_field_nulls_only_its_own_metric(seeded_db_empty_cards):
     """Honest absence, scoped to the metric, not the ticker: gross_profit and
     gross_margin go None for the corrupted quarter, while rev_yoy -- which
@@ -180,6 +215,14 @@ def test_a_violated_field_nulls_only_its_own_metric(seeded_db_empty_cards):
     assert float(latest["rev_yoy"]) == pytest.approx(
         oracle[NEWEST_PERIOD]["rev_growth"]
     )
+
+    # The suppression is scoped to the flagged PERIOD, not the ticker. Without
+    # this, a bug that nulls gross_margin on every period of a ticker with one
+    # bad quarter passes every assertion above.
+    traj = {
+        r["period_end"].isoformat(): r for r in desk.trajectory("NVDA", quarters=20)
+    }
+    assert traj[OLDEST_PERIOD]["gross_margin"] is not None
 
 
 def test_a_replay_overwrites_rather_than_duplicates(seeded_db_empty_cards):

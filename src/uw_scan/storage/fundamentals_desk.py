@@ -36,22 +36,31 @@ class FundamentalsDeskRepository:
         """Insert-or-replace one row per (ticker, period_end). Returns rows
         genuinely NEW (measured via `xmax = 0`, not assumed from `len(rows)`
         -- a same-night replay must report zero new rows, honestly, even
-        though every row's `computed_at` still advances)."""
+        though every row's `computed_at` still advances).
+
+        Every non-key column is in the DO UPDATE SET list, `knowledge_date_known`
+        included. A column left out of that list is write-once: the first run's
+        value sticks and no rerun can ever correct it, so a period that later
+        acquires a real filing date would keep claiming its knowledge date was
+        estimated.
+        """
         if not rows:
             return 0
         table = f"{self._schema}.fundamentals_desk_rollup"
         sql = f"""
             INSERT INTO {table}
                         (ticker, period_end, rev_yoy, gross_margin, gross_profit,
-                         knowledge_date)
+                         knowledge_date, knowledge_date_known)
                  VALUES (%(ticker)s, %(period_end)s, %(rev_yoy)s, %(gross_margin)s,
-                         %(gross_profit)s, %(knowledge_date)s)
+                         %(gross_profit)s, %(knowledge_date)s,
+                         %(knowledge_date_known)s)
             ON CONFLICT (ticker, period_end) DO UPDATE SET
-                 rev_yoy        = EXCLUDED.rev_yoy,
-                 gross_margin   = EXCLUDED.gross_margin,
-                 gross_profit   = EXCLUDED.gross_profit,
-                 knowledge_date = EXCLUDED.knowledge_date,
-                 computed_at    = now()
+                 rev_yoy              = EXCLUDED.rev_yoy,
+                 gross_margin         = EXCLUDED.gross_margin,
+                 gross_profit         = EXCLUDED.gross_profit,
+                 knowledge_date       = EXCLUDED.knowledge_date,
+                 knowledge_date_known = EXCLUDED.knowledge_date_known,
+                 computed_at          = now()
               RETURNING (xmax = 0) AS inserted
         """
         inserted = 0
@@ -74,7 +83,7 @@ class FundamentalsDeskRepository:
             cur.execute(
                 f"""SELECT DISTINCT ON (ticker)
                            ticker, period_end, rev_yoy, gross_margin, gross_profit,
-                           knowledge_date, computed_at
+                           knowledge_date, knowledge_date_known, computed_at
                       FROM {self._schema}.fundamentals_desk_rollup
                      WHERE ticker = ANY(%s)
                      ORDER BY ticker, period_end DESC""",
@@ -88,7 +97,7 @@ class FundamentalsDeskRepository:
         with self.conn.cursor() as cur:
             cur.execute(
                 f"""SELECT ticker, period_end, rev_yoy, gross_margin, gross_profit,
-                           knowledge_date, computed_at
+                           knowledge_date, knowledge_date_known, computed_at
                       FROM {self._schema}.fundamentals_desk_rollup
                      WHERE ticker = %s
                      ORDER BY period_end DESC

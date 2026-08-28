@@ -30,12 +30,18 @@ scoring depending on which method version is active. This job answers a
 simpler, engine-version-independent question -- "does the card believe this
 raw figure" -- and uses `violated_fields` directly, matching the brief.
 
-KNOWLEDGE_DATE mirrors `fundamental_scoring._knowledge_date`'s fallback: a
-real filing date wins; absent one, `period_end + FALLBACK_LAG_DAYS` (US
-filers must file a 10-Q within ~40-45 days of quarter end, so erring LATE
-cannot manufacture look-ahead). Duplicated rather than imported for the same
-reason as `_checks_for` above -- the scoring module's version is private to
-its own knowledge-quarter bucketing.
+KNOWLEDGE_DATE mirrors `fundamental_scoring._knowledge_date` in FULL, its
+second return value included: a real filing date wins; absent one,
+`period_end + FALLBACK_LAG_DAYS`, and the row records WHICH of the two it got
+in `knowledge_date_known`. The flag is not provenance decoration -- the
+fallback errs EARLY for late filers, which manufactures look-ahead (measured:
+composite IC 0.059 with the fallback against 0.039 without), and it is stored
+in the same column, in the same shape, as a real filing date. Dropping the
+bool destroys the distinction at write time, and no later reader can recover
+it; carrying it is what lets a consumer needing leak-free data filter the
+estimated rows out. Duplicated rather than imported for the same reason as
+`_checks_for` above -- the scoring module's version is private to its own
+knowledge-quarter bucketing.
 """
 
 from __future__ import annotations
@@ -71,11 +77,22 @@ def _f(row: dict | None, key: str) -> float | None:
         return None
 
 
-def _knowledge_date(per: dict[str, Any], period: str, period_end: date) -> date:
+def _knowledge_date(
+    per: dict[str, Any], period: str, period_end: date
+) -> tuple[date, bool]:
+    """(knowledge date, whether it came from a real filing date).
+
+    The bool is not provenance decoration -- it is the only thing that lets a
+    leak-free consumer filter these rows OUT. The fallback errs EARLY for late
+    filers, which manufactures look-ahead (measured: composite IC 0.059 with
+    the fallback against 0.039 without), and it lands in the same column, in
+    the same shape, as a real filing date. Return the date alone and the
+    distinction is destroyed at write time -- no later reader can recover it.
+    """
     filed = per["filing_dates"].get(period)
     if filed:
-        return datetime.strptime(filed[:10], "%Y-%m-%d").date()
-    return period_end + timedelta(days=FALLBACK_LAG_DAYS)
+        return (datetime.strptime(filed[:10], "%Y-%m-%d").date(), True)
+    return (period_end + timedelta(days=FALLBACK_LAG_DAYS), False)
 
 
 def _checks_for(feature: str, violated: dict[str, list[str]]) -> list[str]:
@@ -123,6 +140,8 @@ def fundamentals_desk_rollup(
             if violated.get("gross_profit"):
                 gross_profit = None
 
+            known_date, date_is_real = _knowledge_date(per, period, period_end)
+
             rows.append(
                 {
                     "ticker": ticker,
@@ -130,7 +149,8 @@ def fundamentals_desk_rollup(
                     "rev_yoy": rev_yoy,
                     "gross_margin": gross_margin,
                     "gross_profit": gross_profit,
-                    "knowledge_date": _knowledge_date(per, period, period_end),
+                    "knowledge_date": known_date,
+                    "knowledge_date_known": date_is_real,
                 }
             )
 
