@@ -12,13 +12,15 @@ import {
   Wallet,
   Globe,
   Telescope,
-  Network,
   FileText,
 } from "lucide-react";
 import { HealthPanel } from "./HealthPanel";
 import styles from "./AppShell.module.css";
 
-const NAV = [
+// Exported so the route tree can be asserted in a test: two of these entries
+// now point at redirects, and a nav that keeps a second door to the same room
+// labelled as a different room is how a folded-in surface stays half-folded.
+export const NAV = [
   { href: "/", label: "Dashboard", icon: LayoutDashboard },
   { href: "/scanner", label: "Scanner", icon: ScanLine },
   { href: "/positioning", label: "Positioning", icon: Crosshair },
@@ -28,8 +30,7 @@ const NAV = [
   { href: "/gold", label: "Gold", icon: Coins },
   { href: "/rates", label: "Rates", icon: TrendingUp },
   { href: "/macro", label: "Macro", icon: Globe },
-  { href: "/radar", label: "Radar", icon: Telescope },
-  { href: "/chains", label: "Chains", icon: Network },
+  { href: "/fundamentals", label: "Fundamentals", icon: Telescope },
   { href: "/reports", label: "Reports", icon: FileText },
 ];
 
