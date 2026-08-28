@@ -2,6 +2,13 @@ import { notFound } from "next/navigation";
 
 import { DesignNotes } from "@/components/macro/DesignNotes";
 import { DomainStateTab } from "@/components/macro/DomainStateTab";
+import { BoardSecTitle } from "@/components/macro/domain/BoardPanel";
+import {
+  DeliveryFormPanel,
+  ExportRefusalPanel,
+  FactorVectorPanel,
+  type FactorExportSlots,
+} from "@/components/macro/domain/FactorExport";
 import { ReplayControl } from "@/components/macro/ReplayControl";
 import { ReplayStatus } from "@/components/macro/ReplayStatus";
 import type { MacroDomainSlot } from "@/components/macro/types";
@@ -224,6 +231,87 @@ function domainTab(
  * on `kind` gets a compile error at the site that must decide, where `asOf: string | null`
  * would have kept working while quietly meaning something else.
  */
+/**
+ * Tab 07 — Factor Export.
+ *
+ * FOUR requests, and it is the only tab that makes more than three. That is not a
+ * violation of §3's binding table so much as what this tab IS: the board's own build note
+ * calls the read side "pure assembly", and the thing being assembled is the four domain
+ * states. There is no fifth endpoint and no new analytics — every number here is a number
+ * one of the other tabs already prints.
+ *
+ * Each settles independently, and a domain that fails is NAMED on the page rather than
+ * dropped. An export whose coverage silently depends on which engines happened to be up
+ * is worse than an incomplete one that says so: the consumer joining it cannot tell a
+ * factor that is absent from one that was never asked for.
+ *
+ * The replay gate is the domain-state one, for the same reason tabs 03/04 use it — these
+ * are `/api/macro/*` routes and they select on `as_of`, not `computed_at`. It is driven
+ * by the FIRST domain that answered, because the banner speaks for the request and all
+ * four were made at one instant; if none answered, `replayVerdictForDomainState` sees no
+ * state and the tab's own empty read says so.
+ */
+async function FactorExportTab({ replay }: MacroTabProps) {
+  const asOf = replay.kind === "replay" ? replay.asOf : undefined;
+  const [inflation, rates, usd, gold] = await Promise.all(
+    (["inflation", "rates", "usd", "gold"] as const).map((domain) =>
+      settle(() => api.macroDomainState(domain, asOf), `${domain} state API`),
+    ),
+  );
+  const slots: FactorExportSlots = { inflation, rates, usd, gold };
+  const answered = [inflation, rates, usd, gold].find((s) => s.value)?.value;
+
+  const verdict = replayVerdictForDomainState(replay, {
+    asOf: answered?.as_of,
+    computedAt: answered?.computed_at,
+    failed: !answered,
+  });
+  const status = (
+    <ReplayStatus
+      verdict={verdict}
+      publisher="macro factor vector"
+      clock="instant"
+    />
+  );
+  if (replayWithholdsContent(verdict)) return status;
+
+  return (
+    <>
+      {status}
+      <div className="board">
+        {/* The board's t7 strip is `Q1 Q7`, and here it is also the measured union of the
+            three panels below (Q1 on the vector, Q7 on the delivery form and the
+            refusal) — so for once the advertised strip and the panels agree exactly. */}
+        <BoardSecTitle title="Factor Export" questions={["Q1", "Q7"]}>
+          <b>
+            Direction contract: equity → reads → macro factor, never the
+            reverse.
+          </b>{" "}
+          The macro desk derives no equity exposure. What it guarantees is that
+          the factor is point-in-time correct — available at or before the
+          instant asked for, with evidence the desk has since disowned excluded
+          by the same clock — and the burden of proving predictive power sits in
+          each consumer&apos;s own backtest. That is the only honest division of
+          labour once the desk&apos;s own pre-test came back{" "}
+          <code>descriptive_only</code>.
+        </BoardSecTitle>
+        {/* The board's own t7 layout: one `grid g2` with the vector spanning both
+            columns, and the two prose panels side by side beneath it. The vector's table
+            is five columns wide and does not fit half a column — in a `g2` cell its Type
+            column vanished behind the scroller, which is the column carrying the one
+            distinction the tab exists to make. */}
+        <div className="grid g2">
+          <div style={{ gridColumn: "1/-1" }}>
+            <FactorVectorPanel slots={slots} />
+          </div>
+          <DeliveryFormPanel />
+          <ExportRefusalPanel />
+        </div>
+      </div>
+    </>
+  );
+}
+
 const TAB_CONTENT: Record<MacroTabSlug, MacroTabContent> = {
   // Static prose. It takes the same props as every other tab and ignores them, which is
   // the correct outcome for a tab whose registry entry declares `replayClock: "none"`.
@@ -235,6 +323,7 @@ const TAB_CONTENT: Record<MacroTabSlug, MacroTabContent> = {
   inflation: domainTab("inflation", "inflation state"),
   usd: domainTab("usd", "USD state"),
   gold: GoldTab,
+  factors: FactorExportTab,
 };
 
 export async function generateMetadata({
