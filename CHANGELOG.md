@@ -151,6 +151,30 @@ version in lockstep (enforced by `scripts/release/version_sync_check.py`).
 
 ### Added
 
+- **The rates desk is now two tabs of the macro desk**, `/macro/fed` (01 · Fed · Policy) and
+  `/macro/rates` (02 · Rates · Curve), and `/rates` 308s to the curve tab. `RatesDesk.tsx`
+  (602 L) *was* the page shell, so it could not move unchanged — it is split into `FedDesk`
+  (state, policy paths, plumbing, issuance) and `CurveDesk` (summary, curve, decomposition,
+  positioning, cross-market), with Source Freshness on both because it is provenance for the
+  one snapshot both tabs already fetched.
+  - **Three things the desk forbids were dropped or quarantined on the way across.**
+    `SummaryStances`/`StanceCard` rendered literal `BUY`/`SELL` off the legacy composite —
+    prescription, banned on this desk independently of any composite rule — and are deleted
+    with 77 lines of their CSS. `snapshot.synthesis` stops rendering (the Pydantic field
+    stays; what misleads is the rendering, not the field). `RatesScorecard` is **kept and
+    quarantined** inside a new "What this tab refuses" section on the curve tab: deleting it
+    would remove the only thing an operator can hold the new state up against.
+  - **Neither tab calls `/api/macro/rates`, against the plan's own binding table.** The
+    `MacroStateSummary` the state panel renders is the `state` field on
+    `RatesSnapshotResponse`, which `routers/rates.py` attaches *at read time* from the same
+    repository read, at the same resolved instant, that `/api/macro/rates` performs.
+    `models/rates.py` says the field is not persisted because "copying it here would fork one
+    answer into two records that could disagree" — and a second HTTP fetch of the same shape
+    forks one answer into two *requests* that could disagree.
+  - `chartGeometry.ts` is lifted to `components/macro/` so later tabs can size their SVGs
+    without importing from the rates subtree, which the desk's layering forbids. It travels
+    alone: it imports nothing, so unlike the confidence strip it carries no CSS with it.
+
 - **Durable earnings-calendar spine** (migration `144`, `earnings_calendar`) — `EarningsCalendarRepository`
   (`upsert_rows`/`next_prints`/`prints_between`) gives the reaction and implied-move jobs below a print-date
   table to read instead of re-deriving one each, PK `(ticker, report_date)` with a nullable `session`.
@@ -686,6 +710,32 @@ evidence_policy)`, which fails closed — an observation with no claim never
     most of the damage in the math while reporting the field handled.
 
 ### Fixed
+
+- **The macro desk's chart-scale gate was specified wrong, and only running it showed that.**
+  Declared in the previous release as `test.fixme` with zero SVGs to measure, it selected
+  `svg[viewBox]` document-wide. Run for the first time against real charts it failed **42
+  times — on argon's own navigation**: the sidebar draws 12 lucide icons per page and
+  `/macro/rates` carries 6 more inside `<main>`, each `viewBox="0 0 24 24"` rendered at 16px,
+  so k = 0.667. That is what an icon is, not a defect. The gate now selects
+  `svg[role="img"][viewBox]` — the convention `web/components/CLAUDE.md` already mandates for
+  chart SVGs — and carries a second assertion so the selector cannot go blind: any SVG in the
+  content area at least 200 units wide must declare itself a chart.
+  - **Both frames re-measured in a real browser at 1440×900, as the plan required**, because
+    `NARROW_FRAME`'s 760 is cut to a grid cell that is a fraction of the shell and the new tab
+    bar could have moved it. It did not: the wide strips render at 1128px against 1132px
+    measured before the port (0.35%), k = 0.940, and the curve cell gives k = 0.930. The
+    constants are therefore deliberately unchanged — pinning them to today's pixel widths
+    would hard-code one viewport into a module whose thesis is that the scale factor, not the
+    viewBox, is the invariant.
+- **An unregistered macro tab looked hung rather than missing.** `notFound()` had no boundary
+  inside the desk to land on, so `/macro/<anything>` sat on the loading fallback forever.
+  `app/macro/[tab]/not-found.tsx` now says the tab does not exist — a fourth kind of nothing,
+  kept distinct from the three the desk already separates. The route still answers **200, not
+  404**, and that is framework-wide rather than this desk's: `notFound()` cannot set a status
+  once a `force-dynamic` route has begun streaming, and argon's pre-existing
+  `/stock/[ticker]/[tab]` answers 200 for an unknown tab too. Verified against both servers
+  and with the loading boundary removed. The gap is recorded in the spec with its cause
+  instead of deleted, because an expectation quietly dropped reads the same as one never held.
 
 - **Seven optical/networking names were pricing through `power_infra`/`ebitda_to_ev` instead of their
   own chain's `chips_cyclical`/`sales_to_ev`.** `AAOI`, `ANET`, `COHR`, `CRDO`, `FN`, `LITE` and `MRVL`

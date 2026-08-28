@@ -113,6 +113,20 @@ other tabs.
 | 07 Factor Export         | `/macro/factors`   | none yet — `/api/macro/factors` does not exist (P7)              |
 | 08 Design Notes          | `/macro/notes`     | none                                                             |
 
+**CORRECTION, made while executing P3 (2026-08-28): the `/api/macro/rates` column above is
+wrong for tabs 01 and 02, and neither tab calls it.** `/rates` never called it either. The
+`MacroStateSummary` that `StateSection` renders is the `state` field on
+`RatesSnapshotResponse`, and `routers/rates.py:63-72` attaches it **at read time** by
+calling `fetch_macro_domain_state_as_of("policy_rates", at)` — the same repository read, at
+the same instant `resolve_instant` already resolved, that `/api/macro/rates` performs. So
+the second request would fetch the same row twice per page view and open a window in which
+the two answers disagree. `models/rates.py:253-258` states the reason the field is not
+persisted into the stored snapshot, and it is the same reason one level down: _"copying it
+here would fork one answer into two records that could disagree."_ Tab 01 makes **two**
+requests (`/api/rates/snapshot` + `/api/macro/policy`) and tab 02 makes **one**. A later
+tab that genuinely needs the domain state standalone should read `snapshot.state`, not add
+the call.
+
 **`/api/macro/policy` returns all four policy paths in one call** — verified in prod: all
 four paths present, each with 2 prior vintages; SEP `participant_distribution` as
 `(rate_percent, participant_count)` totalling 18 for 2026; dealer `p25/median/p75`
@@ -918,11 +932,11 @@ requests reach `/api/macro/*`. P2 adds one.
 
 Counted 2026-08-27 with `grep -c "def test_"`, not recalled:
 
-| Spec                                                 | Tests           | What it holds                                                                                                                                                                    |
-| ---------------------------------------------------- | --------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Spec                                                 | Tests                     | What it holds                                                                                                                                                                                                                                                                                                                                                             |
+| ---------------------------------------------------- | ------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
 | `tests/unit/macro/test_confidence_term_kinds.py`     | **3** (new), 11 collected | invariant 10, over the four engines **plus a fifth rates scenario**. The four alone could not fail on the count half of the bug: each has exactly one absent policy path, and `Decimal(1)` is both a no-op multiplicand and a legal fraction. The fifth holds two absent paths so the count is 2 and both guards bite. Fixtures in the new `tests/unit/macro/conftest.py` |
-| `tests/integration/api/test_rates_router.py`         | **13** (6 → 13) | `/api/rates/snapshot` replay: the live path byte-unchanged, `computed_at` selection, and `_mark_stale_snapshot_sources` aged against the requested instant, not the wall clock   |
-| `tests/integration/storage/test_rates_repository.py` | **7** (4 → 7)   | the `computed_at <= %s` predicate, on a fixture where the **newer** compute carries the **earlier** market date — so a query filtering the wrong column cannot accidentally pass |
+| `tests/integration/api/test_rates_router.py`         | **13** (6 → 13)           | `/api/rates/snapshot` replay: the live path byte-unchanged, `computed_at` selection, and `_mark_stale_snapshot_sources` aged against the requested instant, not the wall clock                                                                                                                                                                                            |
+| `tests/integration/storage/test_rates_repository.py` | **7** (4 → 7)             | the `computed_at <= %s` predicate, on a fixture where the **newer** compute carries the **earlier** market date — so a query filtering the wrong column cannot accidentally pass                                                                                                                                                                                          |
 
 These are P4's model one layer down: the replay assertions the desk needs at the UI
 already exist against the same endpoint.
@@ -1014,6 +1028,32 @@ defensible rather than nothing.
 | **F** | Read-only deep link from tab 00 to the `/regime` vol desk?                                                       | **Yes — one link, clearly marked as leaving the macro desk.** §1 keeps the SPX `vrp_macro_signal` card off this desk because its "macro" means index-level vol; a link is not a card, and the alternative is an operator navigating by memory. One link, no embedded value, no shared chrome.                                                                                                                                                              |
 | **G** | Invest in falsifier-threshold measurement ("what CPI print flips the state")?                                    | **Defer to Phase 2.5.** Phase 1 closed with the engine deliberately descriptive (`project_macro_phase1_closed`), and a falsifier threshold is a claim about what _would_ change the answer — a new analytical surface, which §1 rules out for this port.                                                                                                                                                                                                   |
 | **H** | §3.1's gold clock: give `/api/gold/replay` `computed_at` semantics, or label its control an obs-date and say so? | **Label it, do not change the API.** `fetch_gold_posture_for_obs_date` is `WHERE obs_date = %s` with exact equality (`storage/gold.py:862-880`), so `computed_at` semantics is a new query and a new index question, not a second parameter. Labelling costs one string and is honest; §3.1's ban still holds — do not ship the desk-wide picker over all five tabs until one of the two is done. Taken in P4, binding in P6 when tab 05 joins the picker. |
+
+**I — raised by P3's execution 2026-08-28, needs an operator ruling.** §7 drops
+`SummaryStances` because it "renders literal `BUY` / `SELL`", which "breaks invariant 7
+**independently of the composite rule**". The same sentence is true of `RatesScorecard`,
+which §7 keeps: `RatesDurationStance` is
+`Literal["BUY", "SELL", "NEUTRAL", "UNKNOWN"]` (`models/rates.py:18`),
+`rates/scorecard.py:225-227` returns `"BUY"` / `"SELL"` whenever the composite clears
+±0.25 with coverage ≥ 0.5, and `RatesScorecard.tsx:57-59` prints it verbatim as
+`{duration_stance} duration`. So the section titled **"What this tab refuses"**, whose
+prose says the tab takes no stance, can print `SELL duration`. It does not today — prod's
+composite is 0.11, inside the ±0.25 band — which is exactly why nobody has seen it.
+
+Verified it is the only source: `duration_stance` is the sole producer of those two words
+anywhere on the rates data path.
+
+**P3 shipped the narrow, honest thing and did not resolve this**, because resolving it
+means changing what a component renders and §7 says the scorecard question is decided and
+must not be re-opened. The e2e ban is whole-body on tab 01 and scoped to _outside_
+`#refuses` on tab 02, with a non-vacuity anchor proving the carve-out did not swallow the
+page, and the reasoning written into the test.
+
+The plan's own logic points one way — §7 keeps the scorecard so an operator "can compare
+the new state against the old rule score", and the comparison datum is the **score**, not
+the stance word, which is a derived prescription. Suppressing the word while keeping the
+number would satisfy both §7's purpose and invariant 7. That is a rendered-contract change
+with an e2e test pinned to `duration-stance`, so it is the operator's call, not P3's.
 
 ### Settled, with the reason recorded
 
