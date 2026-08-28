@@ -7,6 +7,7 @@ import {
   replayHref,
   replayVerdict,
   replayVerdictForDomainState,
+  replayVerdictForObsDate,
   replayWithholdsContent,
   shiftDay,
 } from "@/components/macro/replay";
@@ -297,6 +298,69 @@ describe("replayVerdictForDomainState", () => {
         asOf: "2026-08-27T12:00:00Z",
       }),
     ).toEqual({ kind: "request_failed", asOf: "2026-08-27" });
+  });
+});
+
+describe("replayVerdictForObsDate", () => {
+  const replaying = { kind: "replay", asOf: "2026-08-27" } as const;
+
+  it("matches the MARKET DAY exactly, and never falls back to an earlier one", () => {
+    // `/api/gold/replay` is `WHERE obs_date = %s`. The day before is a different reading,
+    // not a stale version of this one — which is precisely why this cannot reuse
+    // `replayVerdict`, whose comparison is an at-or-before on an instant and would have
+    // accepted the 26th as the 27th's answer.
+    expect(
+      replayVerdictForObsDate(replaying, {
+        obsDate: "2026-08-27",
+        computedAt: "2026-08-27T23:10:00Z",
+      }),
+    ).toEqual({
+      kind: "replaying",
+      asOf: "2026-08-27",
+      computedAt: "2026-08-27T23:10:00Z",
+    });
+    expect(
+      replayVerdictForObsDate(replaying, {
+        obsDate: "2026-08-26",
+        computedAt: "2026-08-26T23:10:00Z",
+      }),
+    ).toEqual({
+      kind: "answered_after",
+      asOf: "2026-08-27",
+      computedAt: "2026-08-26T23:10:00Z",
+    });
+
+    // The two functions really do disagree on that input, which is the point of having
+    // both: the instant gate reads an earlier day as a perfectly good answer.
+    expect(
+      replayVerdict(replaying, { computedAt: "2026-08-26T23:10:00Z" }),
+    ).toMatchObject({ kind: "replaying" });
+  });
+
+  it("keeps 'no row for that day' apart from 'the request failed'", () => {
+    // `/api/gold/replay` 404s for a day it never reconstructed, which `allow404` turns
+    // into a null value — a fact about the posture history, not about our API.
+    expect(replayVerdictForObsDate(replaying, {})).toEqual({
+      kind: "unanswered",
+      asOf: "2026-08-27",
+    });
+    expect(replayVerdictForObsDate(replaying, { failed: true })).toEqual({
+      kind: "request_failed",
+      asOf: "2026-08-27",
+    });
+    expect(
+      replayVerdictForObsDate({ kind: "live" }, { obsDate: "2026-08-27" }),
+    ).toEqual({ kind: "not_replaying" });
+  });
+
+  it("falls back to the market day itself when no compute time came with the row", () => {
+    expect(
+      replayVerdictForObsDate(replaying, { obsDate: "2026-08-27" }),
+    ).toEqual({
+      kind: "replaying",
+      asOf: "2026-08-27",
+      computedAt: "2026-08-27",
+    });
   });
 });
 

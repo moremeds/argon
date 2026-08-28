@@ -15,12 +15,25 @@ const sectionStyle: React.CSSProperties = {
   borderBottom: "1px solid var(--border-dim, #1b2030)",
 };
 
-type Props = { state: State; replayDate?: string };
+type Props = {
+  state: State;
+  replayDate?: string;
+  /** Forwarded to the header. The macro desk's gold tab sets it `false`: that tab already
+   *  carries `ReplayControl`, and this header's picker navigates away from the desk. */
+  showReplayPicker?: boolean;
+};
 
-export function GoldCompassLayout({ state, replayDate }: Props) {
+export function GoldCompassLayout({
+  state,
+  replayDate,
+  showReplayPicker,
+}: Props) {
   return (
     <main style={{ background: "var(--bg-base, #060810)", minHeight: "100vh" }}>
-      <GoldCompassHeader obsDate={replayDate ?? state.obs_date} />
+      <GoldCompassHeader
+        obsDate={replayDate ?? state.obs_date}
+        showReplayPicker={showReplayPicker}
+      />
 
       <section role="region" aria-label="KPI strip" style={sectionStyle}>
         <KpiStrip state={state} />

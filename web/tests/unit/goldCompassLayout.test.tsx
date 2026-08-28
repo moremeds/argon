@@ -208,6 +208,23 @@ describe("GoldCompassLayout", () => {
     expect((chinaToggle as HTMLInputElement).checked).toBe(true);
   });
 
+  it("carries its own date picker on the standalone page, and drops it on the desk", () => {
+    // `/gold/replay/<date>` has no other control, so the header's picker is the only way
+    // to move. The macro desk's gold tab sits under `ReplayControl` — the desk's one
+    // control, labelled with tab 05's declared `obs_date` clock — and this picker
+    // navigates OFF the desk, so leaving it on would put two questions over one answer.
+    const standalone = render(<GoldCompassLayout state={FIXTURE} />);
+    expect(standalone.getByLabelText("REPLAY")).toBeTruthy();
+    standalone.unmount();
+
+    const onDesk = render(
+      <GoldCompassLayout state={FIXTURE} showReplayPicker={false} />,
+    );
+    expect(onDesk.queryByLabelText("REPLAY")).toBeNull();
+    // ...and the rest of the cockpit is untouched by the suppression.
+    expect(onDesk.getByRole("heading", { name: /GOLD COMPASS/i })).toBeTruthy();
+  });
+
   it("uses posture language only (no buy/sell/long/short)", () => {
     const { container } = render(<GoldCompassLayout state={FIXTURE} />);
     const text = (container.textContent ?? "").toLowerCase();

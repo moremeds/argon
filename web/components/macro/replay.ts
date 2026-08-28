@@ -265,6 +265,49 @@ export function replayVerdictForDomainState(
       };
 }
 
+/**
+ * What `/api/gold/replay` answered — matched on the MARKET DAY, exactly.
+ *
+ * The third clock, and the only one on this desk that is not a point-in-time replay at
+ * all. `fetch_gold_posture_for_obs_date` is `WHERE obs_date = %s` (`storage/gold.py`,
+ * exact equality, `ORDER BY computed_at ASC` for the first non-invalidated row), so:
+ *
+ *   - there is no "at or before". A market day with no row has no answer and does not
+ *     fall back to the day before, which is why the copy for this family must never
+ *     promise that it does;
+ *   - the comparison the verdict makes is EQUALITY on `obs_date`, not an ordering on any
+ *     instant. Passing an obs-date row through `replayVerdict` would accept an EARLIER
+ *     day as "replaying", which is exactly the conflation §3.1 bans.
+ *
+ * `answered_after` should be unreachable here: `as_of` is a REQUIRED query parameter on
+ * that route (`routers/gold.py`), so there is no image of the API that can silently
+ * ignore it and hand back the live row — the deploy race `replayVerdict` exists to catch
+ * cannot happen on this endpoint. It is still checked, because "the response is what
+ * drives the banner" is the rule, and a rule kept only where it is convenient is not one.
+ */
+export function replayVerdictForObsDate(
+  request: MacroReplayRequest,
+  answer: {
+    /** The row's own `obs_date`, `YYYY-MM-DD`. Compared for equality. */
+    obsDate?: string | null;
+    /** The row's `computed_at`. Printed beside the market day, never matched on. */
+    computedAt?: string | null;
+    failed?: boolean;
+  },
+): ReplayVerdict {
+  if (request.kind !== "replay") return { kind: "not_replaying" };
+  const requested = request.asOf;
+  if (answer.failed) return { kind: "request_failed", asOf: requested };
+
+  const obsDate = answer.obsDate ?? null;
+  if (obsDate === null) return { kind: "unanswered", asOf: requested };
+
+  const stamp = answer.computedAt ?? null;
+  return obsDate === requested
+    ? { kind: "replaying", asOf: requested, computedAt: stamp ?? obsDate }
+    : { kind: "answered_after", asOf: requested, computedAt: stamp };
+}
+
 /** Whether a verdict means the tab must withhold its content rather than render it under
  *  a replay heading. Both cases are "this is not that instant's answer". */
 export function replayWithholdsContent(verdict: ReplayVerdict): boolean {

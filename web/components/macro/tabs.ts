@@ -80,6 +80,14 @@ export const VALID_TABS = [
     replayClock: "instant",
   },
   { slug: "usd", ordinal: "04", label: "US Dollar", replayClock: "instant" },
+  // THE obs_date TAB, and the reason this field exists at all. `/api/gold/replay` is
+  // `WHERE obs_date = %s` — exact equality on the market day the reading is ABOUT, not an
+  // at-or-before on when the desk knew it (`storage/gold.py`, via `routers/gold.py`).
+  // §10-H settled it as a labelling decision rather than an API change, and this line is
+  // the label. Declaring `"instant"` here would be §3.1's failure wearing a badge: the
+  // type system cannot check that a tab's declared clock matches what its endpoint keys
+  // on, so this is the one entry a reviewer must read against the router.
+  { slug: "gold", ordinal: "05", label: "Gold", replayClock: "obs_date" },
 ] as const satisfies readonly MacroTabEntry[];
 
 /** The registered slugs, as a literal union. `TAB_CONTENT` is keyed by this. */

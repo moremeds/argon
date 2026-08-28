@@ -355,4 +355,16 @@ describe("the registry declares a clock for every tab", () => {
       "none",
     );
   });
+
+  it("puts the obs-date clock on gold and on nothing else", () => {
+    // The one entry a reviewer has to check against the router, because no type can:
+    // `/api/gold/replay` is `WHERE obs_date = %s` and every other bound endpoint resolves
+    // an instant. A tab that drifted onto `obs_date` — or gold that drifted off it — is
+    // §3.1's failure wearing a label, and this is the assertion that names it.
+    expect(
+      VALID_TABS.filter((tab) => tab.replayClock === "obs_date").map(
+        (tab) => tab.slug,
+      ),
+    ).toEqual(["gold"]);
+  });
 });
