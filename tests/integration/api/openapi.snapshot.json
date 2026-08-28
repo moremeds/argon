@@ -1309,6 +1309,7 @@
           },
           "coverage_missing": {
             "default": [],
+            "description": "The DISTINCT tickers with no value for this metric, BY NAME \u2014 never a bare count. '12/18' is decoration; 'missing: COHR' is actionable. An empty list means full coverage.",
             "items": {
               "type": "string"
             },
@@ -1332,6 +1333,7 @@
                 "type": "null"
               }
             ],
+            "description": "UNWEIGHTED median of the non-null dot values \u2014 never revenue-weighted. ALWAYS null when metric = 'valuation_percentile': own-history percentiles are NAME facts, so a chain aggregate over them is a claim about the chain that nothing measured. Also null when no member has a value.",
             "title": "Median"
           },
           "members_total": {
@@ -4222,6 +4224,7 @@
                 "type": "null"
               }
             ],
+            "description": "The market date the implied move was computed on. Present exactly when implied_move_pct is.",
             "title": "Implied Move Asof"
           },
           "implied_move_pct": {
@@ -4233,6 +4236,7 @@
                 "type": "null"
               }
             ],
+            "description": "null = NOT COVERED for THIS print. A snapshot exists only while a print is inside the nightly job's lookahead window, and a snapshot computed for an earlier print is never carried forward onto a later one. Render null as 'not covered', never as 0.",
             "title": "Implied Move Pct"
           },
           "layer": {
@@ -4245,6 +4249,7 @@
           },
           "percentile_state": {
             "default": "ok",
+            "description": "'ok' when a percentile is present; otherwise WHICH kind of absence it is. 'no_compatible_run' (Argon computed nothing) and 'no_coverage' (Argon holds no statements) are different answers and must not render alike; 'unsupported_capability' means the valuation method REFUSED to price this name.",
             "enum": [
               "ok",
               "stale_run",
@@ -4258,6 +4263,7 @@
           },
           "reactions": {
             "default": [],
+            "description": "Last <=4 realised print moves, NEWEST FIRST, as fractions (-0.0177 = -1.77%). An EMPTY list means no reaction history is held \u2014 which is not 'the stock did not move'.",
             "items": {
               "type": "number"
             },
@@ -4278,6 +4284,7 @@
                 "type": "null"
               }
             ],
+            "description": "'premarket' | 'afterhours' | null. NULL IS A REAL THIRD VALUE, not missing data: the ~2% of names UW reports as report_time 'unknown' appear in neither classified slot. Render it as 'session unknown'; never guess one and never default to a side.",
             "title": "Session"
           },
           "spot_percentile": {
@@ -4289,6 +4296,7 @@
                 "type": "null"
               }
             ],
+            "description": "OWN-HISTORY YIELD percentile, so HIGH IS CHEAP: 0.80 means this name is cheaper against its own past than 80% of its own history. It is NOT a cross-sectional rank and must never order a list \u2014 cross-sectional value measured INVERTED in this universe.",
             "title": "Spot Percentile"
           },
           "ticker": {
@@ -4302,9 +4310,7 @@
           "session",
           "chain",
           "layer",
-          "layer_rank",
-          "implied_move_pct",
-          "implied_move_asof"
+          "layer_rank"
         ],
         "title": "DeskCalendarRow",
         "type": "object"
@@ -12887,6 +12893,7 @@
                 "type": "null"
               }
             ],
+            "description": "THREE-STATE, and null is NOT false. true = this figure's knowledge date is the period_end + lag ESTIMATE, which errs early for late filers and manufactures look-ahead (measured: composite IC 0.059 with the fallback against 0.039 without). false = a real filing date. null = this dot has no knowledge date at all (a valuation percentile is not a filed figure), which is not a claim that the date is real. Carried so a reader can see it; the desk never filters on it.",
             "title": "Knowledge Date Estimated"
           },
           "state": {
@@ -13039,6 +13046,7 @@
                 "type": "null"
               }
             ],
+            "description": "Change in BASIC period-end shares outstanding against four quarters earlier. NOT a diluted share count \u2014 no diluted share key exists at any tier of the source store \u2014 so it measures issuance and buyback, NOT option/RSU/convertible overhang. Never label it 'dilution'.",
             "title": "Shares Outstanding Yoy"
           },
           "state": {
@@ -29515,7 +29523,7 @@
     },
     "/api/fundamentals/{section}/calendar": {
       "get": {
-        "description": "Next prints across the section, upstream to downstream.",
+        "description": "Next prints across the section, upstream to downstream.\n\nThe clock is NOT a parameter: `desk_calendar` defaults it to today, and\nletting a caller move it would let this endpoint answer a question other\nthan \"what prints next\".",
         "operationId": "desk_calendar_api_fundamentals__section__calendar_get",
         "parameters": [
           {

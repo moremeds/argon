@@ -21,7 +21,15 @@ from typing import Any
 import psycopg
 from psycopg.types.json import Jsonb
 
-from uw_scan.fundamentals.statements import Violation, net_income_basis_difference
+from uw_scan.fundamentals.statements import (
+    Violation,
+    # The SAME parser `net_income_basis_difference` uses. Imported rather than
+    # re-implemented so "is this pair comparable at all" and "do the two agree"
+    # can never disagree about whether a figure is present — the cross-module
+    # private-helper pattern `fundamentals/underwriting.py` already uses for `_f`.
+    _dec,
+    net_income_basis_difference,
+)
 from uw_scan.storage.fundamental_observation_panels import current_statement_panel
 
 # One statement row is ~1 KB of JSONB; 2,000 keeps a chunk comfortably under the
@@ -294,22 +302,43 @@ class FundamentalObsRepository:
                     new += self.record_violations(obs_id, violations)
             offset += batch
 
-    def net_income_basis_summary(self, limit: int = 10) -> dict[str, Any]:
+    def net_income_basis_summary(
+        self, limit: int = 10, *, tickers: Sequence[str] | None = None
+    ) -> dict[str, Any]:
         """`{"agree": n, "differ": n, "by_ticker": [...]}` in ONE table scan.
 
         The desk limits block needs both halves, and running the scan twice to
         get them would double the cost of the panel for no new information.
-        The two counts are period-pair counts, not ticker counts: `agree` is
-        pairs whose two statements match on one of the income statement's two
-        net-income lines, `differ` is pairs that do not — which, per
-        `net_income_basis_difference`'s docstring, is usually correct
-        accounting on BOTH sides and must never be reported as a failure.
+
+        `tickers` SCOPES the population. A section-scoped surface asking this
+        unscoped gets universe-wide figures under a section header — it would
+        name VZ and GE on a page titled AI/Semi, which is false in its own
+        frame. Scoping is also strictly less work than the full scan. `None`
+        keeps the whole-universe read for callers whose question really is
+        universe-wide.
+
+        The counts are period-pair counts, not ticker counts, and they cover
+        only COMPARABLE pairs — a period where either statement carries no
+        `net_income` at all is neither agreement nor disagreement and is
+        counted as neither. Folding it into `agree` would let missing data
+        inflate a number a reader takes as evidence of consistency.
         """
         counts: dict[str, int] = {}
         agree = differ = 0
+        sql = self._NI_BASIS_SQL
+        params: list[Any] = []
+        if tickers is not None:
+            if not tickers:
+                return {"agree": 0, "differ": 0, "by_ticker": []}
+            sql += " WHERE inc.ticker = ANY(%s)"
+            params.append([t.upper() for t in tickers])
         with self.conn.cursor() as cur:
-            cur.execute(self._NI_BASIS_SQL)
+            cur.execute(sql, params or None)
             for ticker, income_payload, cashflow_payload in cur.fetchall():
+                if _dec(income_payload, "net_income") is None or (
+                    _dec(cashflow_payload, "net_income") is None
+                ):
+                    continue  # not comparable — neither agreement nor a gap
                 if (
                     net_income_basis_difference(income_payload, cashflow_payload)
                     is not None

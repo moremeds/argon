@@ -35,6 +35,46 @@ import psycopg
 from uw_scan.models.fundamentals_desk import CohortSlice
 
 
+class UnknownChain(LookupError):
+    """A `?chain=` that does not exist on this desk.
+
+    Its own type rather than an empty result, for the reason the section 404
+    already gives: an empty desk is a claim that the thing exists and has
+    nothing in it, which is a different and false statement. A typo in a link
+    would otherwise render as a real, empty node.
+    """
+
+
+def require_chain(
+    conn: psycopg.Connection,
+    *,
+    schema: str,
+    version: str,
+    domains: Sequence[str],
+    chain: str | None,
+) -> None:
+    """Raise `UnknownChain` unless `chain` exists in one of these domains.
+
+    Scoped to the SECTION's domains, not to the taxonomy at large: asking the
+    ai-semi desk for `Banks` is asking for something that does not exist THERE,
+    and answering `200 []` would say the AI/semi desk contains an empty Banks
+    node. A chain that does exist here and genuinely holds no rows still
+    answers `200 []` — *exists but empty* is a real and different answer from
+    *does not exist*.
+    """
+    if chain is None:
+        return
+    with conn.cursor() as cur:
+        cur.execute(
+            f"""SELECT 1 FROM {schema}.research_chains
+                 WHERE taxonomy_version = %s AND domain = ANY(%s) AND chain = %s
+                 LIMIT 1""",
+            (version, list(domains), chain),
+        )
+        if cur.fetchone() is None:
+            raise UnknownChain(chain)
+
+
 def as_float(value: Any) -> float | None:
     """`Decimal`/`None` -> `float`/`None`. Never a 0.0 default: a null here is
     "Argon does not have this", and defaulting it would put a name with no

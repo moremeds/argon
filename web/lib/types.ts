@@ -2056,6 +2056,10 @@ export interface paths {
         /**
          * Desk Calendar
          * @description Next prints across the section, upstream to downstream.
+         *
+         *     The clock is NOT a parameter: `desk_calendar` defaults it to today, and
+         *     letting a caller move it would let this endpoint answer a question other
+         *     than "what prints next".
          */
         get: operations["desk_calendar_api_fundamentals__section__calendar_get"];
         put?: never;
@@ -2895,7 +2899,10 @@ export interface components {
             chain: string;
             /** Metric */
             metric: string;
-            /** Median */
+            /**
+             * Median
+             * @description UNWEIGHTED median of the non-null dot values — never revenue-weighted. ALWAYS null when metric = 'valuation_percentile': own-history percentiles are NAME facts, so a chain aggregate over them is a claim about the chain that nothing measured. Also null when no member has a value.
+             */
             median?: number | null;
             /**
              * Dots
@@ -2909,6 +2916,7 @@ export interface components {
             cohorts: components["schemas"]["CohortSlice"][];
             /**
              * Coverage Missing
+             * @description The DISTINCT tickers with no value for this metric, BY NAME — never a bare count. '12/18' is decoration; 'missing: COHR' is actionable. An empty list means full coverage.
              * @default []
              */
             coverage_missing: string[];
@@ -3864,7 +3872,10 @@ export interface components {
              * Format: date
              */
             report_date: string;
-            /** Session */
+            /**
+             * Session
+             * @description 'premarket' | 'afterhours' | null. NULL IS A REAL THIRD VALUE, not missing data: the ~2% of names UW reports as report_time 'unknown' appear in neither classified slot. Render it as 'session unknown'; never guess one and never default to a side.
+             */
             session: string | null;
             /** Chain */
             chain: string;
@@ -3872,19 +3883,30 @@ export interface components {
             layer: string;
             /** Layer Rank */
             layer_rank: number;
-            /** Implied Move Pct */
-            implied_move_pct: number | null;
-            /** Implied Move Asof */
-            implied_move_asof: string | null;
+            /**
+             * Implied Move Pct
+             * @description null = NOT COVERED for THIS print. A snapshot exists only while a print is inside the nightly job's lookahead window, and a snapshot computed for an earlier print is never carried forward onto a later one. Render null as 'not covered', never as 0.
+             */
+            implied_move_pct?: number | null;
+            /**
+             * Implied Move Asof
+             * @description The market date the implied move was computed on. Present exactly when implied_move_pct is.
+             */
+            implied_move_asof?: string | null;
             /**
              * Reactions
+             * @description Last <=4 realised print moves, NEWEST FIRST, as fractions (-0.0177 = -1.77%). An EMPTY list means no reaction history is held — which is not 'the stock did not move'.
              * @default []
              */
             reactions: number[];
-            /** Spot Percentile */
+            /**
+             * Spot Percentile
+             * @description OWN-HISTORY YIELD percentile, so HIGH IS CHEAP: 0.80 means this name is cheaper against its own past than 80% of its own history. It is NOT a cross-sectional rank and must never order a list — cross-sectional value measured INVERTED in this universe.
+             */
             spot_percentile?: number | null;
             /**
              * Percentile State
+             * @description 'ok' when a percentile is present; otherwise WHICH kind of absence it is. 'no_compatible_run' (Argon computed nothing) and 'no_coverage' (Argon holds no statements) are different answers and must not render alike; 'unsupported_capability' means the valuation method REFUSED to price this name.
              * @default ok
              * @enum {string}
              */
@@ -6860,7 +6882,10 @@ export interface components {
              * @enum {string}
              */
             state: "ok" | "stale_run" | "no_compatible_run" | "no_coverage" | "unsupported_capability" | "failed_run";
-            /** Knowledge Date Estimated */
+            /**
+             * Knowledge Date Estimated
+             * @description THREE-STATE, and null is NOT false. true = this figure's knowledge date is the period_end + lag ESTIMATE, which errs early for late filers and manufactures look-ahead (measured: composite IC 0.059 with the fallback against 0.039 without). false = a real filing date. null = this dot has no knowledge date at all (a valuation percentile is not a filed figure), which is not a claim that the date is real. Carried so a reader can see it; the desk never filters on it.
+             */
             knowledge_date_estimated?: boolean | null;
         };
         /**
@@ -6903,7 +6928,10 @@ export interface components {
             dio?: number | null;
             /** Sbc To Revenue */
             sbc_to_revenue?: number | null;
-            /** Shares Outstanding Yoy */
+            /**
+             * Shares Outstanding Yoy
+             * @description Change in BASIC period-end shares outstanding against four quarters earlier. NOT a diluted share count — no diluted share key exists at any tier of the source store — so it measures issuance and buyback, NOT option/RSU/convertible overhang. Never label it 'dilution'.
+             */
             shares_outstanding_yoy?: number | null;
             /** Filing Published At */
             filing_published_at?: string | null;

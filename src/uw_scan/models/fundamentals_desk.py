@@ -35,8 +35,21 @@ from __future__ import annotations
 
 from datetime import date
 
+from pydantic import Field
+
 from uw_scan.models._base import _preserve_public_module, _UwBase
 from uw_scan.models.radar import FundamentalResultState
+
+# WHY SOME FIELDS CARRY `Field(description=...)` AND MOST DO NOT
+# ---------------------------------------------------------------
+# A `#:` comment documents the field for a Python reader and reaches NOBODY
+# else: it is stripped before OpenAPI, so `web/lib/types.ts` gets an empty
+# description. A class docstring DOES reach the generated types as JSDoc, but
+# only at object level. So any fact whose PLAIN READING IS BACKWARDS FROM ITS
+# MEANING has to travel as `Field(description=...)`, or the web task inverts
+# it. The ones below all failed that test; the rest are documented for the
+# Python reader only, deliberately, because a description on every field is a
+# wall of text the reader stops seeing.
 
 
 class DeskCalendarRow(_UwBase):
@@ -51,25 +64,60 @@ class DeskCalendarRow(_UwBase):
 
     ticker: str
     report_date: date
-    #: 'premarket' | 'afterhours' | None. NULL is a REAL third value — the ~2%
-    #: of names UW reports as `report_time: "unknown"`, which appear in
-    #: neither classified slot. Never guess one.
-    session: str | None
+    session: str | None = Field(
+        description=(
+            "'premarket' | 'afterhours' | null. NULL IS A REAL THIRD VALUE, not "
+            "missing data: the ~2% of names UW reports as report_time "
+            "'unknown' appear in neither classified slot. Render it as "
+            "'session unknown'; never guess one and never default to a side."
+        ),
+    )
     chain: str
     layer: str
     layer_rank: int
-    #: None = not covered by the option-surface snapshot, rendered as such.
-    implied_move_pct: float | None
-    implied_move_asof: date | None
-    #: Last <=4 realised print moves, newest first. An empty list is "no
-    #: reaction history", which is not "flat".
-    reactions: list[float] = []
-    #: Own-history YIELD percentile: 0.80 = CHEAP. Never a cross-sectional
-    #: rank, and never an ordering key.
-    spot_percentile: float | None = None
-    #: "ok" when a percentile is present; otherwise which of the six states
-    #: explains its absence.
-    percentile_state: FundamentalResultState = "ok"
+    implied_move_pct: float | None = Field(
+        default=None,
+        description=(
+            "null = NOT COVERED for THIS print. A snapshot exists only while a "
+            "print is inside the nightly job's lookahead window, and a "
+            "snapshot computed for an earlier print is never carried forward "
+            "onto a later one. Render null as 'not covered', never as 0."
+        ),
+    )
+    implied_move_asof: date | None = Field(
+        default=None,
+        description=(
+            "The market date the implied move was computed on. Present exactly "
+            "when implied_move_pct is."
+        ),
+    )
+    reactions: list[float] = Field(
+        default=[],
+        description=(
+            "Last <=4 realised print moves, NEWEST FIRST, as fractions "
+            "(-0.0177 = -1.77%). An EMPTY list means no reaction history is "
+            "held — which is not 'the stock did not move'."
+        ),
+    )
+    spot_percentile: float | None = Field(
+        default=None,
+        description=(
+            "OWN-HISTORY YIELD percentile, so HIGH IS CHEAP: 0.80 means this "
+            "name is cheaper against its own past than 80% of its own history. "
+            "It is NOT a cross-sectional rank and must never order a list — "
+            "cross-sectional value measured INVERTED in this universe."
+        ),
+    )
+    percentile_state: FundamentalResultState = Field(
+        default="ok",
+        description=(
+            "'ok' when a percentile is present; otherwise WHICH kind of "
+            "absence it is. 'no_compatible_run' (Argon computed nothing) and "
+            "'no_coverage' (Argon holds no statements) are different answers "
+            "and must not render alike; 'unsupported_capability' means the "
+            "valuation method REFUSED to price this name."
+        ),
+    )
 
 
 class DeskCalendarResponse(_UwBase):
@@ -117,19 +165,19 @@ class MemberDot(_UwBase):
     ticker: str
     value: float | None
     state: FundamentalResultState
-    #: Whether this figure's knowledge date was ESTIMATED rather than filed.
-    #: True  = `period_end + FALLBACK_LAG_DAYS`, which errs EARLY for late
-    #:         filers and therefore manufactures look-ahead (measured:
-    #:         composite IC 0.059 with the fallback against 0.039 without).
-    #: False = a real filing date.
-    #: None  = this dot has no knowledge date at all (a valuation percentile
-    #:         is not a filed figure), which is not the same as "filed".
-    #:
-    #: Carried, never filtered on: showing a knowledge-dated figure without
-    #: saying whether the date is real presents an estimate as a fact, while
-    #: filtering the estimated rows out is a research concern no consumer of
-    #: this surface has asked for.
-    knowledge_date_estimated: bool | None = None
+    knowledge_date_estimated: bool | None = Field(
+        default=None,
+        description=(
+            "THREE-STATE, and null is NOT false. true = this figure's "
+            "knowledge date is the period_end + lag ESTIMATE, which errs early "
+            "for late filers and manufactures look-ahead (measured: composite "
+            "IC 0.059 with the fallback against 0.039 without). false = a real "
+            "filing date. null = this dot has no knowledge date at all (a "
+            "valuation percentile is not a filed figure), which is not a claim "
+            "that the date is real. Carried so a reader can see it; the desk "
+            "never filters on it."
+        ),
+    )
 
 
 class CohortSlice(_UwBase):
@@ -162,13 +210,27 @@ class ChainMetricCell(_UwBase):
     chain: str
     #: 'rev_yoy' | 'gross_margin' | 'valuation_percentile'
     metric: str
-    median: float | None = None
+    median: float | None = Field(
+        default=None,
+        description=(
+            "UNWEIGHTED median of the non-null dot values — never "
+            "revenue-weighted. ALWAYS null when metric = "
+            "'valuation_percentile': own-history percentiles are NAME facts, "
+            "so a chain aggregate over them is a claim about the chain that "
+            "nothing measured. Also null when no member has a value."
+        ),
+    )
     dots: list[MemberDot] = []
     #: >=2 entries iff the chain's members straddle as_of buckets.
     cohorts: list[CohortSlice] = []
-    #: NAMED missing DISTINCT tickers — never a bare count. "12/18" is
-    #: decoration; "missing: COHR" is actionable.
-    coverage_missing: list[str] = []
+    coverage_missing: list[str] = Field(
+        default=[],
+        description=(
+            "The DISTINCT tickers with no value for this metric, BY NAME — "
+            "never a bare count. '12/18' is decoration; 'missing: COHR' is "
+            "actionable. An empty list means full coverage."
+        ),
+    )
     #: DISTINCT tickers. `chain_membership` is (chain, layer, ticker)-grained,
     #: so a name in two layers is two rows and must count ONCE.
     members_total: int = 0
@@ -271,7 +333,16 @@ class NodeUnderwritingRow(_UwBase):
     period_end: date
     dio: float | None = None
     sbc_to_revenue: float | None = None
-    shares_outstanding_yoy: float | None = None
+    shares_outstanding_yoy: float | None = Field(
+        default=None,
+        description=(
+            "Change in BASIC period-end shares outstanding against four "
+            "quarters earlier. NOT a diluted share count — no diluted share "
+            "key exists at any tier of the source store — so it measures "
+            "issuance and buyback, NOT option/RSU/convertible overhang. Never "
+            "label it 'dilution'."
+        ),
+    )
     filing_published_at: date | None = None
     #: Verbatim `raw_jsonb` strings — the filed line items themselves, copied
     #: not reformatted, so the figure above can be checked against them.

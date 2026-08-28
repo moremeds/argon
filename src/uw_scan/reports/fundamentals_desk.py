@@ -61,6 +61,7 @@ from uw_scan.reports.fundamentals_desk_inputs import (
     distinct_tickers,
     memberships,
     percentiles,
+    require_chain,
 )
 from uw_scan.storage.earnings_calendar import EarningsCalendarRepository
 from uw_scan.storage.earnings_reactions import EarningsReactionsRepository
@@ -120,6 +121,7 @@ def desk_calendar(
     section: str,
     domains: Sequence[str],
     chain: str | None = None,
+    today: date | None = None,
 ) -> DeskCalendarResponse:
     """Next prints across the section, upstream to downstream.
 
@@ -128,11 +130,19 @@ def desk_calendar(
     appears under each; collapsing it would mean picking a chain for it, which
     is a judgement the desk has no basis to make, and would hide the other
     membership entirely.
+
+    `today` is the desk's clock, injectable so a test can freeze it (the
+    `reports/gamma_levels.py` pattern). It is NOT a request parameter and never
+    reaches OpenAPI: the calendar is "what prints next", and letting a caller
+    move the clock would let it ask a question the surface does not answer.
+    Defaulting it here rather than at the call site keeps the router honest —
+    the router passes nothing.
     """
-    today = date.today()
+    today = today or date.today()
     version = ResearchTaxonomyRepository(conn, schema=schema).active_version()
     if version is None:
         return DeskCalendarResponse(section=section, as_of=today, rows=[])
+    require_chain(conn, schema=schema, version=version, domains=domains, chain=chain)
 
     members = memberships(
         conn, schema=schema, version=version, domains=domains, chain=chain
@@ -157,7 +167,18 @@ def desk_calendar(
 
     rows: list[DeskCalendarRow] = []
     for p in prints:
+        # THE IMPLIED MOVE BELONGS TO ONE PRINT, AND ONLY THAT PRINT.
+        # `implied_move_snapshot` writes a row only while a print is inside its
+        # lookahead window, so for the ~70 days a quarter when a name has no
+        # imminent print its NEWEST row is last quarter's — computed for a
+        # print that has already happened. Attaching it to the next print
+        # renders a stale number as "the market-implied move", which is the
+        # carry-forward this module exists to refuse. `report_date` says which
+        # print the row is for; if it is not this one, the answer is "not
+        # covered".
         move = moves.get(p["ticker"])
+        if move is not None and move["report_date"] != p["report_date"]:
+            move = None
         pct, state = pcts.get(p["ticker"], (None, "no_coverage"))
         for m in by_ticker.get(p["ticker"], []):
             rows.append(
@@ -222,6 +243,14 @@ def _collapse_one_filing(events: list[dict[str, Any]]) -> list[dict[str, Any]]:
         detail = dict(winner.get("detail_jsonb") or {})
         also = sorted({*detail.get("also", []), loser["event_class"]})
         winner["detail_jsonb"] = {**detail, "also": also}
+    # RE-SORT, because the collapse moves a date into another event's slot.
+    # The winner is substituted into the LOSER's position, and the two do not
+    # share a clock: SEC indexing routinely lags statement ingest, so the
+    # surviving `statement_published` carries an OLDER `first_known_at` than
+    # the `sec_filing` slot it now occupies, and the rail comes out ascending
+    # in the middle. Stable, so events sharing a `first_known_at` keep the
+    # `event_id DESC` order the query gave them.
+    kept.sort(key=lambda e: e["first_known_at"], reverse=True)
     return kept
 
 
@@ -476,14 +505,23 @@ def desk_limits(
     reason.
     """
     obs = FundamentalObsRepository(conn, schema=schema)
-    ni = obs.net_income_basis_summary()
     tax = ResearchTaxonomyRepository(conn, schema=schema)
     version = tax.active_version()
+
+    members: list[dict[str, Any]] = []
+    if version is not None:
+        members = memberships(conn, schema=schema, version=version, domains=domains)
+    # SCOPED TO THE SECTION, like every other number in this response. An
+    # unscoped scan would name VZ and GE under a header reading "AI/Semi —
+    # what this desk cannot say": true of the universe, false of this desk, and
+    # nothing on the card would mark the change of population. A section with
+    # no members asks about no tickers and gets zeroes, which is the honest
+    # answer rather than the universe's.
+    ni = obs.net_income_basis_summary(tickers=distinct_tickers(members))
 
     evidence: list[MembershipEvidenceCount] = []
     coverage: list[ChainExposureCoverage] = []
     if version is not None:
-        members = memberships(conn, schema=schema, version=version, domains=domains)
         counts: dict[str, int] = {}
         for m in members:
             counts[m["evidence_class"]] = counts.get(m["evidence_class"], 0) + 1
@@ -539,6 +577,7 @@ def node_underwriting(
     version = ResearchTaxonomyRepository(conn, schema=schema).active_version()
     if version is None:
         return []
+    require_chain(conn, schema=schema, version=version, domains=domains, chain=chain)
     tickers = distinct_tickers(
         memberships(conn, schema=schema, version=version, domains=domains, chain=chain)
     )

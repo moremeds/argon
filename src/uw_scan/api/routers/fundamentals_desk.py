@@ -38,6 +38,7 @@ route's OWN declared parameters, so it cannot drift from the signatures.
 from __future__ import annotations
 
 import logging
+from contextlib import contextmanager
 from datetime import date, timedelta
 
 from fastapi import APIRouter, Depends, HTTPException, Query, Request
@@ -53,6 +54,7 @@ from uw_scan.models import (
     ProfitPoolLayer,
 )
 from uw_scan.reports import fundamentals_desk as desk
+from uw_scan.reports.fundamentals_desk_inputs import UnknownChain
 from uw_scan.storage.repository import Repository
 
 log = logging.getLogger(__name__)
@@ -118,6 +120,26 @@ def _domains(section: str) -> tuple[str, ...]:
     return domains
 
 
+@contextmanager
+def _chain_404(section: str):
+    """Translate an unknown `?chain=` into a 404, for the same reason
+    `_domains` does it one level up: `200 []` for a chain that does not exist
+    says this desk contains that node and it is empty. A chain that DOES exist
+    here and holds no rows still answers `200 []` — *exists but empty* and
+    *does not exist* are different facts and must not render alike."""
+    try:
+        yield
+    except UnknownChain as exc:
+        raise HTTPException(
+            status_code=404,
+            detail=(
+                f"unknown chain {exc.args[0]!r} in section {section!r}; a chain "
+                "reaches this desk by being a research_chains row in one of the "
+                "section's domains"
+            ),
+        ) from exc
+
+
 @router.get("/fundamentals/{section}/calendar", response_model=DeskCalendarResponse)
 def desk_calendar(
     section: str,
@@ -131,14 +153,21 @@ def desk_calendar(
     repo: Repository = Depends(get_repo),
     settings: Settings = Depends(get_settings),
 ) -> DeskCalendarResponse:
-    """Next prints across the section, upstream to downstream."""
-    return desk.desk_calendar(
-        repo.conn,
-        schema=settings.db_schema,
-        section=section,
-        domains=_domains(section),
-        chain=chain,
-    )
+    """Next prints across the section, upstream to downstream.
+
+    The clock is NOT a parameter: `desk_calendar` defaults it to today, and
+    letting a caller move it would let this endpoint answer a question other
+    than "what prints next".
+    """
+    domains = _domains(section)
+    with _chain_404(section):
+        return desk.desk_calendar(
+            repo.conn,
+            schema=settings.db_schema,
+            section=section,
+            domains=domains,
+            chain=chain,
+        )
 
 
 @router.get("/fundamentals/{section}/delta", response_model=DeltaRailResponse)
@@ -220,9 +249,11 @@ def node_underwriting(
     settings: Settings = Depends(get_settings),
 ) -> list[NodeUnderwritingRow]:
     """One chain's members with their filed line items alongside."""
-    return desk.node_underwriting(
-        repo.conn,
-        schema=settings.db_schema,
-        domains=_domains(section),
-        chain=chain,
-    )
+    domains = _domains(section)
+    with _chain_404(section):
+        return desk.node_underwriting(
+            repo.conn,
+            schema=settings.db_schema,
+            domains=domains,
+            chain=chain,
+        )
