@@ -512,6 +512,16 @@ class Settings(BaseModel):
     # rationale as its siblings above: a night not derived is a change the
     # desk never learns of once the underlying row is superseded.
     fundamental_change_events_enabled: bool = True
+    # Desk matrix rollup (Task 12, spec §3c): per-name rev YoY + gross-margin
+    # trajectory from the UW statement store, one row per (ticker,
+    # period_end), so the chain x metric matrix reads it at request time with
+    # zero recompute. Zero UW/IB spend, pinned to massive-0 at 21:30 ET daily
+    # -- after fundamental_change_events (21:15) so this block's jobs stay
+    # ordered even though they read unrelated tables (see scheduler
+    # `_should_schedule_fundamentals_desk_rollup`). Default ON, same
+    # rationale as its siblings above: a night not rolled up is a period the
+    # matrix cannot show until the next run recomputes it.
+    fundamentals_desk_rollup_enabled: bool = True
     chanlun_anchor_tol: float = 0.0
     chanlun_stale_sessions: int = 20
     # Empty by DESIGN (2026-07-15 walk-forward probe): all 4 candidate
@@ -1129,6 +1139,9 @@ class Settings(BaseModel):
             ),
             fundamental_change_events_enabled=_env_bool(
                 "UW_SCAN_FUNDAMENTAL_CHANGE_EVENTS_ENABLED", True
+            ),
+            fundamentals_desk_rollup_enabled=_env_bool(
+                "UW_SCAN_FUNDAMENTALS_DESK_ROLLUP_ENABLED", True
             ),
             chanlun_anchor_tol=float(
                 os.environ.get("UW_SCAN_CHANLUN_ANCHOR_TOL", "0.0")
