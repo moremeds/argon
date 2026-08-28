@@ -7,6 +7,9 @@ version in lockstep (enforced by `scripts/release/version_sync_check.py`).
 
 ## [Unreleased]
 
+## [0.12.18] — 2026-08-28
+
+
 ### Added
 
 - **Durable earnings-calendar spine** (migration `144`, `earnings_calendar`) — `EarningsCalendarRepository`
@@ -552,7 +555,6 @@ evidence_policy)`, which fails closed — an observation with no claim never
   result dict on `risk_kind` alone, so all but the last severity group were overwritten — every
   breach rate read as 100% because the healthy rows landed under `info` and vanished. Now grouped
   by kind alone: `stale_result` reads 73 breached of 400 evaluated, not 73 of 73.
-
 ## [0.12.17] — 2026-08-25
 
 
