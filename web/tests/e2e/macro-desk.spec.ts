@@ -20,11 +20,14 @@ import { expect, test, type Page } from "@playwright/test";
  *     and the router agree.
  *  2. The route guard's other direction — an unregistered slug 404s rather than
  *     rendering an empty shell.
- *  3. `/macro` itself still renders the four domain cards. This is the one that looks
- *     redundant and is not: §8 requires `app/macro/page.tsx` be left ALONE until P5,
- *     precisely so `/macro` never 404s while the bar grows from one tab to nine. That
- *     requirement is a comment in a plan until a test fails when someone flips the page
- *     to `redirect("/macro/overview")` early.
+ *  3. `/macro` redirects into tab 00 and the four domain cards are still reachable. This
+ *     is the one that looks redundant and is not. Through P2-P4 it asserted the opposite
+ *     — that `/macro` still rendered the cards itself — because §8 required
+ *     `app/macro/page.tsx` be left ALONE until P5, precisely so `/macro` never 404'd
+ *     while the bar grew from one tab to nine. P5 is the PR that may flip it, and the
+ *     assertion flips WITH it rather than being deleted: the thing being protected was
+ *     never "this page renders cards", it was "`/macro` is never a dead end and the cards
+ *     are never orphaned", which is exactly what the new form checks.
  *
  * Deliberately NOT here: the `/rates` and `/gold` redirects, owned by
  * `rates-redirect.spec.ts` (P3) and `gold-redirect.spec.ts` (P6). What each slice DOES
@@ -181,28 +184,117 @@ test.describe("macro desk shell", () => {
     await expect(page.getByTestId("macro-design-notes")).toHaveCount(0);
   });
 
-  test("/macro still renders the four domain cards", async ({ page }) => {
+  test("/macro lands on tab 00, with the four domain cards intact", async ({
+    page,
+  }) => {
     const consoleErrors = collectConsoleErrors(page);
 
-    // §8: `app/macro/page.tsx` is left alone until P5, so `/macro` never 404s while the
-    // registry grows from one tab to nine. P5 is the PR that may replace this with
-    // `redirect("/macro/overview")` — and it must do so in the commit that registers tab
-    // 00, which is what this assertion is here to force.
-    const response = await page.goto("/macro");
-    expect(response?.status()).toBe(200);
+    // The flip P5 owns. `app/macro/page.tsx` is now `redirect("/macro/overview")`, and it
+    // is safe only because `overview` is registered in `VALID_TABS` in the same commit —
+    // §8's "no PR may ship a link to a route that does not exist", pointed at the desk's
+    // own root.
+    await page.goto("/macro");
     await page.waitForLoadState("networkidle");
+    expect(new URL(page.url()).pathname).toBe("/macro/overview");
 
+    // NOTHING WAS ORPHANED BY THE FLIP. The four cards that used to live at `/macro` are
+    // rendered by tab 00, and this is the assertion that would fail if a later PR moved
+    // the redirect without moving them.
     for (const domain of ["inflation", "policy_rates", "usd", "gold"]) {
       await expect(page.getByTestId(`macro-domain-${domain}`)).toBeVisible();
     }
 
-    // The shell wraps `/macro` too (the layout sits above both the page and `[tab]`),
-    // and no tab is current here because `/macro` is not itself a registered tab.
+    // ...and the desk's root is now a real tab, so the bar marks it current. Through
+    // P2-P4 the assertion here was the opposite (`aria-current` count 0), because
+    // `/macro` was not itself a registered tab.
     const bar = page.getByTestId("macro-tab-bar");
     await expect(bar).toBeVisible();
-    await expect(bar.locator("[aria-current]")).toHaveCount(0);
+    await expect(page.getByTestId("macro-tab-overview")).toHaveAttribute(
+      "aria-current",
+      "page",
+    );
 
     expect(realErrors(consoleErrors)).toEqual([]);
+  });
+
+  test("tab 00 re-presents the other tabs and computes nothing of its own", async ({
+    page,
+  }) => {
+    // Plan §8's scope bound, at the browser. The panels are named individually because
+    // "the page rendered" is exactly the assertion that would survive tab 00 quietly
+    // losing three of its four panels.
+    await page.goto("/macro/overview");
+    await page.waitForLoadState("networkidle");
+
+    await expect(page.getByTestId("macro-overview")).toBeVisible();
+    for (const panel of [
+      "daily-loop",
+      "cross-domain",
+      "contradictions",
+      "transmission",
+    ]) {
+      await expect(page.getByTestId(`macro-overview-${panel}`)).toBeVisible();
+    }
+
+    // Five publishers, five transmission-health rows. This is the tab's own definition of
+    // itself: `/api/macro/snapshot` plus the four domain states, and nothing else.
+    for (const id of ["snapshot", "inflation", "policy_rates", "usd", "gold"]) {
+      await expect(page.getByTestId(`macro-health-${id}`)).toBeVisible();
+    }
+
+    // The runtime posture ban, whole-body on this tab. Unlike tab 02, tab 00 has no
+    // quarantine carve-out: §10-I's ruling names it explicitly — the stance word may print
+    // only where the model produced it, which is inside `RatesScorecard`, and tab 00
+    // fetches neither endpoint that carries `duration_stance`.
+    const body = (await page.locator("main").innerText()).toLowerCase();
+    for (const banned of [
+      /\bbuy\b/,
+      /\bsell\b/,
+      /duration stance/,
+      /position size/,
+      /predicted return/,
+      /composite/,
+      /master score/,
+    ]) {
+      expect(body, `tab 00 body matched ${banned}`).not.toMatch(banned);
+    }
+    // Non-vacuity: a body that failed to render would pass every ban above.
+    expect(body).toContain("daily loop");
+  });
+
+  test("tab 00's replay date actually reaches all five publishers", async ({
+    page,
+  }) => {
+    // The one thing the unit tests cannot check: that `?as_of=` is wired through
+    // `api.macroDomainState` / `api.macroContextSnapshot` to the real API.
+    //
+    // 2000-01-01 is chosen so the outcome is deterministic on ANY database: no macro state
+    // can predate it, so every one of the five reads must 404 and every verdict must be
+    // `unanswered`. And the test DISCRIMINATES rather than merely passing — if the
+    // parameter were dropped, the API would answer with today's states, whose `as_of` sits
+    // after the instant asked for, and the desk would render the wrong-instant refusal
+    // instead. Both outcomes are visible; only one is correct.
+    await page.goto("/macro/overview?as_of=2000-01-01");
+    await page.waitForLoadState("networkidle");
+
+    const control = page.getByTestId("macro-replay-control");
+    await expect(control).toBeVisible();
+    await expect(control).toHaveAttribute("data-replay-clock", "instant");
+
+    const status = page.getByTestId("macro-replay-status");
+    await expect(status).toBeVisible();
+    await expect(status).toHaveAttribute("data-replay-state", "unanswered");
+    await expect(page.getByTestId("macro-overview-wrong-instant")).toHaveCount(0);
+
+    // `unanswered` is a publisher's own honest answer, not an API defect, so the tab is
+    // NOT blanked — the panels still say which of the five answered. Blanking here would
+    // destroy the only thing tab 00 is for.
+    await expect(page.getByTestId("macro-overview-transmission")).toBeVisible();
+    await expect(page.getByTestId("macro-overview-daily-loop")).toBeVisible();
+    await expect(page.getByTestId("macro-health-snapshot")).toHaveAttribute(
+      "data-answered",
+      "never computed",
+    );
   });
 });
 

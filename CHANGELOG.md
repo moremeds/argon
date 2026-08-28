@@ -151,6 +151,60 @@ version in lockstep (enforced by `scripts/release/version_sync_check.py`).
 
 ### Added
 
+- **The macro desk has a front door.** Tab 00 registers at `/macro/overview` and `/macro`
+  redirects into it. It is the only tab whose subject is the other tabs, and the only one
+  with no existing component to move — which is exactly why it is the one that could
+  quietly have become new analytics. It does not: its five requests are
+  `/api/macro/snapshot` plus the four domain states, and every panel is a layout over a
+  field one of them already publishes. The **daily loop** is the four states in the
+  _engine's_ causal order (inflation → policy/rates → USD → gold), not the tab strip's
+  Fed-first reading order, with no fifth row summarising them. **Cross-domain
+  contradictions** is the snapshot's own verdict, plus the `complete` case the shared
+  refusal renders as nothing — on a tab whose subject _is_ the chain, an empty panel is
+  indistinguishable from one that failed to load, and the affirmation stays as narrow as
+  the router's own: a coherent chain is not a claim that the macro picture is right. The
+  **contradiction feed** gathers every domain's rules in one place and re-ranks none of
+  them, because the engines publish a rule and a detail and no severity to rank by; its
+  count carries its own denominator, since a feed that is quiet because nothing fired and
+  one that is quiet because three engines never ran look identical and only one is good
+  news. **Transmission health** gives all five publishers a row, three-state, with the
+  upstream answers each state cited.
+  - **The replay clock on this tab is `as_of`, not `computed_at` — a correction to the
+    plan.** Every `/api/macro/*` route selects `WHERE as_of <= %s` and tie-breaks on the
+    _later_ `computed_at`, and `storage/macro_domain_state.py` states that a later
+    recompute of the same instant is legitimate. So a macro state may be computed long
+    after the instant it answers for, and a banner driven by `computed_at` would withhold
+    a state the contract permits. `as_of` is the request's own bound echoed back, so the
+    check still fails exactly when the API did not apply the parameter — which is what it
+    is for. `ReplayStatus` gained an `answerClock` prop to name which instant it is
+    reporting. Tabs 01 and 02 keep their sentences — `computed_at` maps to the phrasing
+    they already had — with one exception, measured rather than assumed: the
+    unreadable-timestamp branch now says "a readable timestamp" where it said "a readable
+    computed-at", because that one sentence is shared by both clocks and could no longer
+    name one of them.
+  - **Five publishers, so the withholding rule is different.** Tabs 01 and 02 stand on one
+    publisher each and blank on any refusal. Tab 00 withholds in exactly one case —
+    `answered_after`, which on these routes can only mean `as_of` was dropped, and a
+    parameter dropped for one of five reads was dropped for all five. "No answer at that
+    instant" is a domain's own honest answer and blanks nothing; transmission health
+    survives even the withhold, because it is the diagnosis.
+  - **The confidence strip is now shared by all four domains.** `ConfidenceStrip` was
+    private to the rates page, so the policy/rates state was the only one of four whose
+    confidence a reader could argue with. It is lifted to
+    `components/macro/ConfidenceArithmetic.tsx`, taking its four CSS classes out of
+    `RatesDesk.module.css` into a module of its own; the rates desk's rendered contract is
+    unchanged, test id included. Each domain card now carries it in place of the raw term
+    list inside its disclosure — a value printed with no `kind` beside it teaches the wrong
+    reading of itself, since 1.00 is neutral for a multiplicand and total for a penalty.
+  - **Two collapses of "three states into two" fixed on the way.** The chain verdict's
+    request allows a 404 through as "nothing assembled" _and_ the old page caught a thrown
+    failure the same way, so a dead API printed "chain never assembled" — a claim about the
+    assembler made on the evidence of a broken network.
+  - `MacroDesk.tsx` is retired rather than moved: it was the page shell for a page that no
+    longer exists, and keeping it would be a second assembly of the same four cards. The
+    cards, their chain flags and the chain verdict all moved into tab 00 with more around
+    them, not less.
+
 - **Macro desk tab 07 · Factor Export** (`/macro/factors`) — the board's "equity consumes
   macro" tab, and pure assembly: four `/api/macro/*` states flattened into one table with
   nothing computed. If a number here disagreed with the same number on the domain's own
