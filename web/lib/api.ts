@@ -16,6 +16,10 @@ export type ReportBlock = components["schemas"]["ReportBlock"];
 export type ReportDeltaModel = components["schemas"]["ReportDeltaModel"];
 export type RadarRow = components["schemas"]["RadarRow"];
 export type RadarDimension = components["schemas"]["RadarDimension"];
+export type DeskCalendarResponse =
+  components["schemas"]["DeskCalendarResponse"];
+export type DeskCalendarRow = components["schemas"]["DeskCalendarRow"];
+export type NodeUnderwritingRow = components["schemas"]["NodeUnderwritingRow"];
 type VrpCandidatesResponse = components["schemas"]["VrpCandidatesResponse"];
 type VrpBacktestResponse = components["schemas"]["VrpBacktestResponse"];
 type VrpPaperResponse = components["schemas"]["VrpPaperResponse"];
@@ -135,6 +139,19 @@ type MacroDomainStateResponse = Json<"/api/macro/usd", "get">;
 type MacroContextSnapshotResponse = Json<"/api/macro/snapshot", "get">;
 type PositioningSnapshot = Json<"/api/positioning/{ticker}", "get">;
 type PositioningScreenerResponse = Json<"/api/positioning/screener", "get">;
+
+/** Percent-encode a query-string VALUE but leave `/` raw.
+ *
+ *  A slash is legal unescaped inside a query (RFC 3986: `query = *( pchar /
+ *  "/" / "?" )`), and 20 of the desk's 38 chain names contain one. `%2F` also
+ *  works here — a query is unquoted by `parse_qsl` after routing, not before it
+ *  — so this is about the URL a human reads in the address bar, not about
+ *  correctness. Everything else still goes through `encodeURIComponent`: a
+ *  chain name carrying `&` or `#` would otherwise split the query.
+ */
+export function _rawSlash(value: string): string {
+  return encodeURIComponent(value).replace(/%2F/g, "/");
+}
 
 async function _fetch<T>(
   path: string,
@@ -386,6 +403,38 @@ export const api = {
       `/api/research/chains/${encodeURIComponent(chain)}${qs ? `?${qs}` : ""}`,
     );
   },
+  // --- Fundamentals industry desk (Task 13's read-only surface) -------------
+  //
+  // `chain` is a QUERY parameter on every desk endpoint and must stay one. A
+  // %2F-encoded slash in a FastAPI PATH parameter is 404: uvicorn unquotes the
+  // raw path BEFORE Starlette routes it, so `chain/Networking%2FOptical`
+  // arrives as two segments and matches no single-segment `{key}` route
+  // (re-verified 2026-08-28). In a QUERY string both spellings are accepted and
+  // decode identically; we emit the raw slash because that is the shape Task 13
+  // verified end to end and because it keeps the URL readable.
+  //
+  // `chain` is also the ONLY filter these endpoints accept, deliberately: the
+  // desk LISTS and never RANKS, and `_reject_unknown_query_params` answers 422
+  // rather than silently ignoring a `sort=` that a caller believed was applied.
+  deskCalendar: (
+    section: string,
+    chain?: string,
+  ): Promise<DeskCalendarResponse | null> =>
+    _fetch<DeskCalendarResponse>(
+      `/api/fundamentals/${section}/calendar` +
+        (chain == null ? "" : `?chain=${_rawSlash(chain)}`),
+      undefined,
+      { allow404: true },
+    ),
+  nodeUnderwriting: (
+    section: string,
+    chain: string,
+  ): Promise<NodeUnderwritingRow[] | null> =>
+    _fetch<NodeUnderwritingRow[]>(
+      `/api/fundamentals/${section}/node/underwriting?chain=${_rawSlash(chain)}`,
+      undefined,
+      { allow404: true },
+    ),
   researchReports: (limit = 25): Promise<ReportListResponse> =>
     _fetch<ReportListResponse>(`/api/research/reports?limit=${limit}`),
   researchReport: (

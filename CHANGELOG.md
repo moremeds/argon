@@ -35,6 +35,17 @@ version in lockstep (enforced by `scripts/release/version_sync_check.py`).
   anywhere, so it is sourced from `common_stock_shares_outstanding` (period-end **basic** shares) and
   named for what it actually measures: net buyback/issuance activity, not option/RSU/convertible
   overhang. Live on 420/420 tickers.
+- **Node deep-dive page `/fundamentals/ai-semi/<chain>`** — the first consumer of the desk's read-only
+  API. Composes the stored versioned report (it REPLAYS from stored blocks and never assembles) with a
+  live calendar strip, the underwriting table, the open alias questions and the node's limits block.
+  A CATCH-ALL route, because 20 of 38 chain names contain a slash; `chain` reaches the API as a query
+  parameter for the same reason. Every absence keeps its own identity all the way to the screen: a null
+  implied move reads "not covered" (never `0`, never a dash), a null session gets a visible unknown
+  badge rather than a guess or a hidden row, an empty reaction list says no history is *held*,
+  `no_compatible_run` and `no_coverage` are worded so neither can be read as the other, and an unknown
+  chain answers 404 (`notFound()`) while a real chain holding no rows renders as the empty node it is.
+  Filing provenance is visible in the row as well as in the tooltip — a tooltip is unreachable on touch
+  and to a screen reader. The page lists; it carries no sort, rank or score affordance.
 - **A genuine cross-statement net-income sign flip is now a persisted integrity violation; the far more
   common NCI/discontinued-operations gap is not.** The original check flagged any >1% income-vs-cash-flow
   net-income disagreement and fired on 6,269 of 28,973 pairs (21.6%) — almost all of them the ordinary
