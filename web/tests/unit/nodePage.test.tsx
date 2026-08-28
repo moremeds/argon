@@ -290,7 +290,7 @@ function reportOkWithoutExposureBlock(): ReportResponse {
 describe("chainFromSegments", () => {
   it("rejoins a slash-bearing chain name from its catch-all segments", async () => {
     const { chainFromSegments } =
-      await import("@/app/fundamentals/ai-semi/[...node]/page");
+      await import("@/lib/fundamentalsSection");
     expect(chainFromSegments(["Networking", "Optical"])).toBe(
       "Networking/Optical",
     );
@@ -298,7 +298,7 @@ describe("chainFromSegments", () => {
 
   it("resolves a slash-free chain, which arrives as a one-element array", async () => {
     const { chainFromSegments } =
-      await import("@/app/fundamentals/ai-semi/[...node]/page");
+      await import("@/lib/fundamentalsSection");
     expect(chainFromSegments(["Sector-ETF"])).toBe("Sector-ETF");
   });
 });

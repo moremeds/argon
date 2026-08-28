@@ -7,6 +7,7 @@ import { NodeLimits } from "@/components/fundamentals/NodeLimits";
 import { NodeUnderwritingPanel } from "@/components/fundamentals/NodeUnderwritingPanel";
 import { ReportView } from "@/components/reports/ReportView";
 import { api } from "@/lib/api";
+import { SECTION, chainFromSegments } from "@/lib/fundamentalsSection";
 import type {
   DeskCalendarResponse,
   NodeUnderwritingRow,
@@ -15,20 +16,7 @@ import type {
 
 export const dynamic = "force-dynamic";
 
-/** The one section this route serves. A section is a registry row on the API
- *  side; this page is the `ai-semi` consumer of it. */
-export const SECTION = "ai-semi";
 
-/**
- * A CATCH-ALL route, because 20 of the desk's 38 chain names contain a slash
- * (`Networking/Optical`, `Semi-Logic/ASIC`, `Cooling/Thermal`, …) and a single
- * dynamic segment cannot match one. Next hands the segments already decoded, so
- * rejoining with "/" recovers the chain name exactly, and a chain WITHOUT a
- * slash arrives as a one-element array and resolves the same way.
- */
-export function chainFromSegments(segments: string[]): string {
-  return segments.join("/");
-}
 
 /** `_fetch` throws `API <status> for <path>: <body>` and exposes nothing else.
  *  A 404 from the reports route is structurally different from a missing

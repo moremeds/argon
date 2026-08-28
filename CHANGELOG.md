@@ -35,6 +35,29 @@ version in lockstep (enforced by `scripts/release/version_sync_check.py`).
   anywhere, so it is sourced from `common_stock_shares_outstanding` (period-end **basic** shares) and
   named for what it actually measures: net buyback/issuance activity, not option/RSU/convertible
   overhang. Live on 420/420 tickers.
+- **The fundamentals industry desk: `/fundamentals` -> `/fundamentals/ai-semi` -> node pages.** Six
+  read-only endpoints (`calendar`, `delta`, `matrix`, `profit-pool`, `limits`, `node/underwriting`)
+  over the warm store at zero vendor spend, and the six panels that read them. A section is one
+  registry row and a chain inside it is zero code — taxonomy rows alone make a node appear. Four
+  rules are measurements, not styling: `valuation_percentile` carries NO median (own-history value
+  measured real, within-ticker IC +0.0744 t 5.77, while cross-sectional value measured INVERTED in
+  the same universe, so a chain aggregate over own-history percentiles is a claim nothing supports);
+  cohorts that straddle two `as_of` buckets never merge, because `as_of` is a cross-section
+  IDENTIFIER and the cohort effect measured 1.9x; the profit pool has no arrows, propagation or
+  lead/lag copy, because the capex-demand ledger's cross-name relationship collapsed from +0.247 to
+  +0.015 (p=0.44) once same-sector pairs were compared; and the capex strip deliberately has no
+  fetcher and no model field, since building a data path for the most widely circulated number in
+  the sector would re-promote the figure the spec demoted. An unknown section 404s rather than
+  rendering an empty desk, an unknown `?sort=` answers 422 rather than being silently ignored, and
+  every panel settles independently so one failed endpoint leaves the other five standing.
+- **Nightly desk rollup of per-name revenue YoY and gross margin** (migration `147`,
+  `fundamentals_desk_rollup`), recording whether each row's knowledge date is a real filing date or
+  the period-end estimate — the flag is three-state, and `null` is not `false`.
+- **`/fundamentals` index, with Radar folded in as the triage tab.** `/radar` and `/chains` keep
+  resolving (they are in browser histories and in this repo's docs) and redirect into the desk;
+  the nav carries one Fundamentals entry instead of two pointing at redirects. The all-domain
+  chain x layer matrix at `/chains` is superseded and its component deleted rather than left
+  unreachable — per-chain drilldown at `/chains/[chain]` is untouched.
 - **Node deep-dive page `/fundamentals/ai-semi/<chain>`** — the first consumer of the desk's read-only
   API. Composes the stored versioned report (it REPLAYS from stored blocks and never assembles) with a
   live calendar strip, the underwriting table, the open alias questions and the node's limits block.
@@ -492,6 +515,25 @@ evidence_policy)`, which fails closed — an observation with no claim never
 
 ### Fixed
 
+- **The typed event ledger was inert in production, and the nightly job that feeds the delta rail
+  would have raised on its first real event.** `research_event_classes` held ZERO rows on the mini
+  (measured 2026-08-28), so `record_events` refused every write. `register_discovery_gate` is the
+  only thing that populates that table and it had no caller anywhere — it appeared in two docstrings
+  and was never invoked, while every test called it as fixture setup, so the suite stayed green over
+  a job that could not work. `derive_change_events` now seeds the registry itself; because
+  `register_classes` upserts a FIXED list whose statuses live in code, this is a seed and never a
+  bypass — a killed class is re-registered as killed and keeps refusing writes. The failure was
+  silent by construction: with nothing registered, the desk's delta rail renders "Argon learned
+  nothing new", which reads as a quiet week rather than a dead pipeline.
+- **A chain mid-reporting-season collided its own cohort groups.** `label` is `reported` for the
+  newest `as_of` bucket and `awaiting` for EVERY older one, so a cell legitimately carries two or
+  more `awaiting` cohorts (measured: `Cybersecurity/rev_yoy` returned
+  `['reported','awaiting','awaiting']`). Keying the group on the label alone produced duplicate React
+  keys and a test id matching two elements — passing on any fixture holding one of each, throwing
+  against real data. Keyed on `as_of` now, and the fixture carries the real three-cohort shape.
+- **The chain matrix's dot tooltips broke hydration.** Adjacent JSX text children inside an SVG
+  `<title>` serialize differently on the server than they hydrate on the client, so React discarded
+  and re-rendered the whole matrix subtree on every load.
 - **The report route couldn't address a chain whose name has a slash.** `key` was a plain path
   parameter on both `GET /research/reports/{report_type}/{key}` and its `/versions/{n}` sibling, and
   20 of the desk's 38 chain names contain one (`Networking/Optical`, `Semi-Logic/ASIC`, …) — uvicorn

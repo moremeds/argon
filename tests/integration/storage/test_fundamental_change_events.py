@@ -338,6 +338,56 @@ def _avgo_implied_move_pair(conn: psycopg.Connection) -> None:
 
 
 # ---------------------------------------------------------------------------
+# The registry production actually had
+# ---------------------------------------------------------------------------
+
+
+def test_the_job_seeds_the_class_registry_it_needs(conn):
+    """The one test in this file that does NOT call `register_discovery_gate`.
+
+    Every other test here calls it as setup, and that is exactly how this got
+    to production broken: measured 2026-08-28 on the mini,
+    `research_event_classes` held ZERO rows, because `register_discovery_gate`
+    had no caller anywhere in the codebase — it appeared only in docstrings.
+    So `record_events` refused every write, the typed ledger was inert, and
+    the nightly job would raise `event classes not live: [...]` on its first
+    real event. The suite was green throughout, because the FIXTURE supplied
+    what the environment did not.
+
+    This test therefore starts from prod's real state — a migrated schema with
+    an unseeded registry — and asserts the job makes itself work.
+    """
+    with conn.cursor() as cur:
+        cur.execute("SELECT count(*) FROM uw_scan.research_event_classes")
+        assert cur.fetchone()[0] == 0, "the point of this test is an EMPTY registry"
+
+    scores = _register_engine(conn)
+    scores.insert_scores(
+        [
+            _score_row(ticker="PLTR", as_of=date(2026, 3, 31), ihash="h1"),
+            _score_row(ticker="PLTR", as_of=date(2026, 6, 30), ihash="h2"),
+        ]
+    )
+
+    result = derive_change_events(conn, as_of=date(2026, 8, 26), schema="uw_scan")
+
+    # It wrote, rather than raising ValueError("event classes not live").
+    assert result["bucket_flip"] == 1
+    events = ResearchEventsRepository(conn, schema="uw_scan")
+    assert len(events.events_for("PLTR")) == 1
+
+    # And seeding is not a bypass of the discovery gate: the killed classes
+    # come back KILLED and keep refusing writes. A seed that quietly turned
+    # every class live would pass the assertions above and destroy the gate.
+    with conn.cursor() as cur:
+        cur.execute(
+            "SELECT status FROM uw_scan.research_event_classes"
+            " WHERE event_class = 'restatement'"
+        )
+        assert cur.fetchone()[0] == "killed"
+
+
+# ---------------------------------------------------------------------------
 # Step 1: band_entry + implied_move_shift + bucket_flip, in one run + idempotency
 # ---------------------------------------------------------------------------
 
@@ -988,14 +1038,23 @@ def test_bucket_flip_is_idempotent_at_a_later_as_of(conn):
 # ---------------------------------------------------------------------------
 
 
-def test_gate_refuses_writes_before_it_has_registered_the_five_classes(conn):
-    """Without `register_discovery_gate` having run at all, none of the five
-    new classes are `live` -- `derive_change_events` must raise rather than
-    silently accept the write. Proves the gate binds these five new classes,
-    not just the six that existed before this task. Seeds a genuine
-    band_entry CANDIDATE (a prev/current pair, not a single no-prior row) so
-    the write is actually attempted -- `record_events([])` is a no-op that
-    would pass this test for the wrong reason."""
+def test_the_gate_binds_the_five_new_classes_with_an_explicit_status(conn):
+    """The five new classes are subject to the discovery gate, not exempt from it.
+
+    THIS TEST'S PREMISE CHANGED, deliberately. It used to assert that
+    `derive_change_events` RAISES when `register_discovery_gate` has not been
+    run by hand. That property was real, but its cost was found in production:
+    nothing called `register_discovery_gate` anywhere, `research_event_classes`
+    held zero rows on the mini, and so the nightly job was not "correctly
+    refusing" — it was permanently dead, and the desk's delta rail rendered
+    the refusal as "Argon learned nothing new".
+
+    The job now seeds the registry itself. What the gate actually guarantees —
+    that a class nobody registered cannot write — is unchanged and is pinned by
+    `test_gate_refuses_a_class_it_never_registered` below, which still raises.
+    What this test now pins is the other half: each of the five carries an
+    EXPLICIT recorded verdict rather than being waved through.
+    """
     _register_engine(conn)
     FundamentalAnchorsRepository(conn, schema="uw_scan").insert_anchors(
         [
@@ -1007,8 +1066,26 @@ def test_gate_refuses_writes_before_it_has_registered_the_five_classes(conn):
             ),
         ]
     )
-    with pytest.raises(ValueError, match="not live"):
-        derive_change_events(conn, as_of=date(2026, 5, 15), schema="uw_scan")
+    derive_change_events(conn, as_of=date(2026, 5, 15), schema="uw_scan")
+
+    with conn.cursor() as cur:
+        cur.execute(
+            "SELECT event_class, status FROM uw_scan.research_event_classes"
+            " WHERE event_class = ANY(%s)",
+            (
+                [
+                    "band_entry",
+                    "band_exit",
+                    "implied_move_shift",
+                    "coverage_change",
+                    "bucket_flip",
+                ],
+            ),
+        )
+        verdicts = dict(cur.fetchall())
+    # All five present, each with a status the gate recorded on purpose.
+    assert len(verdicts) == 5, verdicts
+    assert set(verdicts.values()) <= {"live", "killed"}
 
 
 def test_gate_refuses_a_class_it_never_registered(conn):

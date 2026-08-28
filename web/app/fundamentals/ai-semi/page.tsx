@@ -7,15 +7,12 @@ import { DeltaRail } from "@/components/fundamentals/DeltaRail";
 import { DeskLimits } from "@/components/fundamentals/DeskLimits";
 import { ProfitPoolStrip } from "@/components/fundamentals/ProfitPoolStrip";
 import { api } from "@/lib/api";
+import { SECTION } from "@/lib/fundamentalsSection";
 
 export const dynamic = "force-dynamic";
 
-/** The one section this route serves. A section is a registry row on the API
- *  side (`SECTIONS` in `api/routers/fundamentals_desk.py`); this page is the
- *  `ai-semi` consumer of it. */
-export const SECTION = "ai-semi";
 
-export function message(error: unknown): string {
+function message(error: unknown): string {
   return error instanceof Error ? error.message : "unknown API error";
 }
 
@@ -30,7 +27,7 @@ export function message(error: unknown): string {
  *  `?? []` becomes "no upcoming print is held for any member of this section" —
  *  an affirmative coverage claim manufactured out of a failure, and the exact
  *  defect the node page's review caught one layer down. */
-export async function settle<T>(
+async function settle<T>(
   p: Promise<T>,
 ): Promise<
   { value: T; error?: undefined } | { value?: undefined; error: unknown }

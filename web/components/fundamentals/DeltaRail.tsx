@@ -94,7 +94,14 @@ export function DeltaRail({
         </h2>
         {data ? (
           <span className="text-[11px] text-zinc-600">
-            events Argon first knew on or after {data.since}
+            {/* "the N most recently learned", NOT "there are N". The endpoint
+                applies LIMIT 200 and returns no total, so a bare count would
+                be a completeness claim the response cannot support — measured
+                2026-08-28: 200 returned against 462 in the ledger. The rail is
+                ordered first_known_at DESC, so this phrasing is true whether
+                or not the query was capped. */}
+            the {events.length} most recently learned event
+            {events.length === 1 ? "" : "s"} on or after {data.since}
           </span>
         ) : null}
       </div>
@@ -107,7 +114,14 @@ export function DeltaRail({
           empty window, not an empty ledger.
         </p>
       ) : (
-        <ul className="mt-2 divide-y divide-zinc-900 border-y border-zinc-900">
+        // Bounded HEIGHT, never a truncated list: the rail's first run after a
+        // deploy legitimately carries hundreds of events (measured: 418
+        // `bucket_flip` rows on the first local run, 2026-08-28), and letting
+        // them push the other five panels below the fold makes the desk
+        // unreadable on exactly the day it has the most to say. Every event
+        // stays in the DOM and scrolls — dropping the tail would be a silent
+        // cap, and the count in the header says how many there are.
+        <ul className="mt-2 max-h-96 divide-y divide-zinc-900 overflow-y-auto border-y border-zinc-900">
           {events.map((e) => (
             <EventRow
               key={`${e.ticker}-${e.event_class}-${e.occurred_at}`}

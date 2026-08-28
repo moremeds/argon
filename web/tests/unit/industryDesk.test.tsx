@@ -107,9 +107,14 @@ const MATRIX: DeskMatrixResponse = {
         dot({ ticker: "APH", value: 0.550024 }),
         dot({ ticker: "AAOI", value: 0.864202 }),
       ],
+      // THREE cohorts, two of them `awaiting`. `label` is 'reported' for the
+      // newest bucket and 'awaiting' for every older one, so this is the shape
+      // reporting season actually produces — a fixture holding one of each
+      // cannot catch a key or testid that collides on the label.
       cohorts: [
         { as_of: "2026-08-16", label: "reported", tickers: ["APH"] },
         { as_of: "2026-05-17", label: "awaiting", tickers: ["AAOI"] },
+        { as_of: "2026-02-15", label: "awaiting", tickers: ["MRVL"] },
       ],
     }),
     // Every member abstains: no value anywhere, so no median exists.
@@ -335,10 +340,16 @@ describe("ChainMetricMatrix", () => {
   it("splits straddling members into two labeled cohorts and merges no median across them", () => {
     render(<ChainMetricMatrix data={MATRIX} />);
     const c = screen.getByTestId("matrix-cell-Semi-Logic/ASIC-rev_yoy");
-    const reported = within(c).getByTestId("cohort-reported");
-    const awaiting = within(c).getByTestId("cohort-awaiting");
+    const reported = within(c).getByTestId("cohort-reported-2026-08-16");
+    const awaiting = within(c).getByTestId("cohort-awaiting-2026-05-17");
     expect(reported.textContent ?? "").toContain("APH");
     expect(awaiting.textContent ?? "").toContain("AAOI");
+    // BOTH older buckets render as their own group. Merging them, or keying
+    // them on the shared label, loses one cross-section entirely.
+    expect(within(c).getAllByTestId(/^cohort-awaiting-/)).toHaveLength(2);
+    expect(
+      within(c).getByTestId("cohort-awaiting-2026-02-15").textContent ?? "",
+    ).toContain("MRVL");
     // The median belongs to the dominant cohort and is displayed under it —
     // never floating above both, where it would read as their average.
     expect(within(reported).getByTestId("cell-median").textContent ?? "").toContain("55.0%");

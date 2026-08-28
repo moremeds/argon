@@ -2164,6 +2164,38 @@ REGISTRY.extend(
             ),
             reason_verified_on=date(2026, 8, 28),
         ),
+        DatasetRegistryEntry(
+            "fundamentals_desk_rollup",
+            "fundamentals",
+            "freshness_only",
+            date_col="period_end",
+            ticker_col="ticker",
+            # FISCAL periods, not sessions: a name reports roughly quarterly and
+            # the gap between two rows is the company's calendar, never a
+            # missed run.
+            expected_frequency="event",
+            # Pure re-derivation of fundamental_statement_obs already on hand --
+            # zero UW/IB spend.
+            provider="db",
+            # No adapter: the job is a full recompute over every ticker, so a
+            # missed night heals itself on the next run rather than needing a
+            # per-date backfill. `scripts/backfill/fundamentals_desk_rollup_run.py`
+            # is the manual trigger.
+            granularity="none",
+            healer_adapter=None,
+            source_system="derived",
+            retention_days=None,
+            reason=(
+                "nightly rollup (migration 147) of per-name revenue YoY and "
+                "gross margin, one row per (ticker, period_end). Absence of a "
+                "period is the coverage statement: a name whose filings do not "
+                "support a four-quarters-back comparison correctly gets no row, "
+                "and `knowledge_date_known` records whether that row's "
+                "knowledge date is a real filing date or the period-end "
+                "estimate."
+            ),
+            reason_verified_on=date(2026, 8, 28),
+        ),
     ]
 )
 

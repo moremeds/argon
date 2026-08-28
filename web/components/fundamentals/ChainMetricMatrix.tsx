@@ -80,11 +80,16 @@ function Dots({ dots }: { dots: MemberDot[] }) {
           fill="var(--accent-bg, #60a5fa)"
           opacity={0.85}
         >
+          {/* ONE expression, one text node. Adjacent JSX text children inside
+              an SVG <title> serialize differently on the server than they
+              hydrate on the client, which React reports as a hydration
+              mismatch and then re-renders the whole tree over. */}
           <title>
-            {d.ticker}: {pct(d.value as number)}
-            {d.knowledge_date_estimated === true
-              ? " (knowledge date estimated, not filed)"
-              : ""}
+            {`${d.ticker}: ${pct(d.value as number)}${
+              d.knowledge_date_estimated === true
+                ? " (knowledge date estimated, not filed)"
+                : ""
+            }`}
           </title>
         </circle>
       ))}
@@ -128,8 +133,16 @@ function Cell({ cell }: { cell: ChainMetricCell }) {
         <div className="space-y-2">
           {cohorts.map((c) => (
             <div
-              key={c.label}
-              data-testid={`cohort-${c.label}`}
+              // Keyed and identified by as_of, NOT by label alone: `label` is
+              // 'reported' for the newest bucket and 'awaiting' for EVERY older
+              // one, so a chain mid-reporting-season legitimately carries two or
+              // more `awaiting` cohorts (measured: Cybersecurity/rev_yoy came
+              // back ['reported','awaiting','awaiting'] on 2026-08-28). Keying
+              // on the label collides, and a testid that matches two elements
+              // makes `getByTestId` throw against real data while passing on
+              // any fixture that happens to hold one of each.
+              key={`${c.label}-${c.as_of}`}
+              data-testid={`cohort-${c.label}-${c.as_of}`}
               className="rounded border border-zinc-800 px-2 py-1"
             >
               <div className="flex items-baseline gap-2">

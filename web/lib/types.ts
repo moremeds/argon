@@ -2230,6 +2230,30 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/research/reports/{report_type}/{key}/versions/{version_no}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Get Report Version
+         * @description One frozen version, exactly as it was published.
+         *
+         *     This is the replay path. It reads stored blocks rather than re-assembling,
+         *     because re-assembly under today's data is a DIFFERENT answer wearing an old
+         *     version number.
+         */
+        get: operations["get_report_version_api_research_reports__report_type___key__versions__version_no__get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/research/reports/{report_type}/{key}": {
         parameters: {
             query?: never;
@@ -2251,30 +2275,6 @@ export interface paths {
          *     with an empty delta, so a double-click cannot manufacture history.
          */
         post: operations["assemble_report_api_research_reports__report_type___key__post"];
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
-    "/api/research/reports/{report_type}/{key}/versions/{version_no}": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        /**
-         * Get Report Version
-         * @description One frozen version, exactly as it was published.
-         *
-         *     This is the replay path. It reads stored blocks rather than re-assembling,
-         *     because re-assembly under today's data is a DIFFERENT answer wearing an old
-         *     version number.
-         */
-        get: operations["get_report_version_api_research_reports__report_type___key__versions__version_no__get"];
-        put?: never;
-        post?: never;
         delete?: never;
         options?: never;
         head?: never;
@@ -15879,6 +15879,39 @@ export interface operations {
             };
         };
     };
+    get_report_version_api_research_reports__report_type___key__versions__version_no__get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                report_type: string;
+                key: string;
+                version_no: number;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ReportResponse"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
     get_report_api_research_reports__report_type___key__get: {
         parameters: {
             query?: never;
@@ -15920,39 +15953,6 @@ export interface operations {
             path: {
                 report_type: string;
                 key: string;
-            };
-            cookie?: never;
-        };
-        requestBody?: never;
-        responses: {
-            /** @description Successful Response */
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["ReportResponse"];
-                };
-            };
-            /** @description Validation Error */
-            422: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["HTTPValidationError"];
-                };
-            };
-        };
-    };
-    get_report_version_api_research_reports__report_type___key__versions__version_no__get: {
-        parameters: {
-            query?: never;
-            header?: never;
-            path: {
-                report_type: string;
-                key: string;
-                version_no: number;
             };
             cookie?: never;
         };
