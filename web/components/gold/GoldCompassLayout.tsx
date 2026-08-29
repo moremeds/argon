@@ -6,6 +6,7 @@ import type { components } from "@/lib/types";
 import { CorrelationHistoryPanel } from "./correlation/CorrelationHistoryPanel";
 import { ExpressionCostPanel } from "./ExpressionCostPanel";
 import { InputManifestPanel } from "./InputManifestPanel";
+import type { GoldLensDetailSlot } from "./GoldLensDetailDisclosure";
 import { GoldCompassHeader } from "./GoldCompassHeader";
 import { CyclicalPanel } from "./lens2/CyclicalPanel";
 import { CbReservesPanel } from "./lens1/CbReservesPanel";
@@ -14,7 +15,7 @@ import { ThreeLensesPanel } from "./ThreeLensesPanel";
 import { TransmissionGaugePanel } from "./TransmissionGaugePanel";
 
 type State = components["schemas"]["GoldStateResponse"];
-type GaugePoint = components["schemas"]["GoldGaugeTimeSeriesPoint"];
+type GaugePoint = components["schemas"]["GoldGauge60dTimeSeriesPoint"];
 
 type Props = {
   state: State;
@@ -31,7 +32,7 @@ type Props = {
    */
   deskHeading?: ReactNode;
   /**
-   * `/api/gold/gauge` `history_252d`, for the anchor-decay panel.
+   * `/api/gold/gauge` `history_60d`, for the anchor-decay panel.
    *
    * Optional because only ONE of this component's two routes can supply it. The macro
    * desk's live gold tab fetches it beside the posture; `/gold/replay/<date>` cannot,
@@ -40,6 +41,7 @@ type Props = {
    * the panel draws the sparse pairs and says which request it did not make.
    */
   anchorHistory?: GaugePoint[] | null;
+  lensDetails?: GoldLensDetailSlot[];
 };
 
 /**
@@ -73,6 +75,7 @@ export function GoldCompassLayout({
   showReplayPicker,
   deskHeading,
   anchorHistory,
+  lensDetails,
 }: Props) {
   const suspended = state.gauge.state === "suspended";
 
@@ -121,6 +124,7 @@ export function GoldCompassLayout({
           obsDate={state.obs_date}
           computedAt={state.computed_at}
           inputsUsed={state.inputs_used}
+          lensDetails={lensDetails}
         />
       </div>
     </>

@@ -202,7 +202,7 @@ export async function GoldTab({ replay }: MacroTabProps) {
           state={posture.value}
           replayDate={asOf ?? undefined}
           showReplayPicker={false}
-          anchorHistory={gauge.value?.history_252d}
+          anchorHistory={gauge.value?.history_60d}
           deskHeading={
             <GoldHeading
               posture={posture.value}

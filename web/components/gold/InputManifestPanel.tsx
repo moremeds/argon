@@ -1,12 +1,18 @@
 import { BoardPanel } from "@/components/macro/domain/BoardPanel";
 import type { components } from "@/lib/types";
 
+import {
+  GoldLensDetailDisclosure,
+  type GoldLensDetailSlot,
+} from "./GoldLensDetailDisclosure";
+
 type Provenance = components["schemas"]["GoldInputProvenance"];
 
 type Props = {
   obsDate: string;
   computedAt: string;
   inputsUsed: Record<string, Provenance>;
+  lensDetails?: GoldLensDetailSlot[];
 };
 
 /**
@@ -52,7 +58,12 @@ function ageInDays(obs: string, against: string): number | null {
  * figures — 13 of 16, 81%, ~86d, ~100d — were true at its capture instant and are not
  * carried.
  */
-export function InputManifestPanel({ obsDate, computedAt, inputsUsed }: Props) {
+export function InputManifestPanel({
+  obsDate,
+  computedAt,
+  inputsUsed,
+  lensDetails,
+}: Props) {
   const entries = Object.entries(inputsUsed);
   const read = entries.filter(([, p]) => p.obs_date);
   const omitted = entries.filter(([, p]) => !p.obs_date);
@@ -181,6 +192,8 @@ export function InputManifestPanel({ obsDate, computedAt, inputsUsed }: Props) {
           ))}
         </ul>
       )}
+
+      <GoldLensDetailDisclosure slots={lensDetails} />
 
       <p className="cap">
         Lens heuristics · v1 · obs {obsDate} · computed {computedAt}

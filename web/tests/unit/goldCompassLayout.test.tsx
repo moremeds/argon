@@ -1,4 +1,4 @@
-import { fireEvent, render, screen } from "@testing-library/react";
+import { fireEvent, render, screen, waitFor } from "@testing-library/react";
 import { describe, expect, it, vi } from "vitest";
 
 vi.mock("next/navigation", () => ({
@@ -9,6 +9,7 @@ import { GoldCompassLayout } from "@/components/gold/GoldCompassLayout";
 import type { components } from "@/lib/types";
 
 type State = components["schemas"]["GoldStateResponse"];
+type Lens = components["schemas"]["GoldLensResponse"];
 
 const FIXTURE: State = {
   obs_date: "2026-05-17",
@@ -186,6 +187,68 @@ describe("GoldCompassLayout", () => {
     }
   });
 
+  it("binds the richer lens endpoint series into the audit disclosure", () => {
+    const structural: Lens = {
+      lens_id: "structural",
+      posture: FIXTURE.structural,
+      detail: {
+        GLD_holdings_oz: [
+          {
+            obs_date: "2026-05-16",
+            value: "100",
+            as_of: "2026-05-16T20:00:00Z",
+            release_date: null,
+          },
+          {
+            obs_date: "2026-05-17",
+            value: "105",
+            as_of: "2026-05-17T20:00:00Z",
+            release_date: null,
+          },
+        ],
+      },
+    };
+
+    render(
+      <GoldCompassLayout
+        state={FIXTURE}
+        lensDetails={[
+          { lensId: "structural", response: structural },
+          { lensId: "cyclical", response: null, error: "API unavailable" },
+        ]}
+      />,
+    );
+
+    expect(screen.getByText(/lens detail series/i)).toBeTruthy();
+    expect(screen.getByText(/GLD_holdings_oz/)).toBeTruthy();
+    expect(
+      screen
+        .getByTestId("lens-series-GLD_holdings_oz")
+        .getAttribute("data-point-count"),
+    ).toBe("2");
+    expect(screen.getByTestId("gold-lens-details").textContent).toMatch(
+      /cyclical: API unavailable/i,
+    );
+  });
+
+  it("does not request lens detail until the operator opens its disclosure", async () => {
+    const fetchSpy = vi.spyOn(globalThis, "fetch").mockResolvedValue({
+      ok: true,
+      status: 200,
+      text: () =>
+        Promise.resolve(
+          JSON.stringify({ lens_id: "structural", posture: {}, detail: {} }),
+        ),
+    } as Response);
+
+    render(<GoldCompassLayout state={FIXTURE} />);
+    expect(fetchSpy).not.toHaveBeenCalled();
+
+    fireEvent.click(screen.getByTestId("gold-lens-details").querySelector("summary")!);
+    await waitFor(() => expect(fetchSpy).toHaveBeenCalledTimes(3));
+    fetchSpy.mockRestore();
+  });
+
   it("follows the board's own t5 order", () => {
     // The conformance audit found this tab content-complete and wrongly framed: the
     // gauge decides whether the cyclical lens means anything, and it was one tile in a
@@ -262,13 +325,23 @@ describe("GoldCompassLayout", () => {
     expect(panel.textContent).not.toContain("0700630226186208");
   });
 
-  it("names the correlation window it has, and the one the board asked for", () => {
-    // The producer computes the history at window=252 only. Silently showing it under a
-    // heading the board wrote for a 60-day series would be the wrong kind of fidelity.
-    render(<GoldCompassLayout state={FIXTURE} />);
+  it("draws the persisted daily 60-day anchor history the board specifies", () => {
+    render(
+      <GoldCompassLayout
+        state={FIXTURE}
+        anchorHistory={[
+          { obs_date: "2026-05-10", corr_60d: "-0.79" },
+          { obs_date: "2026-05-11", corr_60d: "-0.17" },
+        ]}
+      />,
+    );
+    const panel = screen.getByRole("region", {
+      name: /anchor decay · gauge corr_60d, daily/i,
+    });
+    expect(panel.textContent).toMatch(/2 observations/i);
     expect(
       screen.getByTestId("correlation-history-window-note").textContent,
-    ).toMatch(/60-day correlation/i);
+    ).not.toMatch(/does not exist/i);
   });
 
   it("renders GOLD COMPASS wordmark", () => {

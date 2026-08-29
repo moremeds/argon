@@ -73,18 +73,12 @@ export const NARROW_FRAME = frame(760, 300, {
 });
 
 /**
- * The gold structural panel's chart column, measured at ~940px in a 1512px viewport.
- *
- * A bare width rather than a `ChartFrame`, because `GoldHoldingsVsPriceChart` derives
- * its own padding and would ignore one — inventing padding numbers here to satisfy the
- * type would be a fabricated measurement, which is worse than a narrower export.
- *
- * It needs its own value because neither existing frame fits: at `WIDE_FRAME`'s 1200 the
- * chart renders at k=0.78 and at `NARROW_FRAME`'s 760 at k=1.24, both outside the desk's
- * [0.9, 1.1] band and both measured, not guessed. The column is a flex child sharing its
- * row with the country picker, so its width follows that sibling rather than the shell.
+ * The gold structural panel is one cell of a three-column board row. Its chart flexes
+ * beside (or above) a 220px country picker and measures about 391px on the 1440px macro
+ * canvas. A bare width rather than a `ChartFrame` is intentional because the component
+ * owns its padding; 400 keeps its SVG scale near 1 across that measured container.
  */
-export const GOLD_STRUCTURAL_WIDTH = 940;
+export const GOLD_STRUCTURAL_WIDTH = 400;
 
 export const AXIS_TICK_COUNT = 5;
 

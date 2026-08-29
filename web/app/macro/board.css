@@ -786,6 +786,25 @@
   color: var(--text-muted);
   margin: 6px 0 0;
 }
+
+.board .lens-detail {
+  margin-top: 12px;
+  border-top: 1px dashed var(--border-dim);
+  padding-top: 9px;
+}
+
+.board .lens-detail > summary {
+  cursor: pointer;
+  color: var(--text-muted);
+  font: 600 10px/1.5 var(--font-mono), "IBM Plex Mono", monospace;
+  letter-spacing: 1.2px;
+  text-transform: uppercase;
+}
+
+.board .lens-detail[open] > summary {
+  margin-bottom: 9px;
+  color: var(--text-secondary);
+}
 .board .lgd {
   display: flex;
   flex-wrap: wrap;

@@ -36,7 +36,7 @@ export function CyclicalPanel({
   return (
     <BoardPanel
       id="cyclical"
-      title="L2 cyclical readings"
+      title="L2 cyclical readings (dimmed display)"
       questions={["Q1"]}
       basis="REAL"
       dim={dimmed}
