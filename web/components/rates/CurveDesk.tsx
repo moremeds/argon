@@ -1,3 +1,5 @@
+import type { components } from "@/lib/types";
+
 import { RatesCurveChart } from "./RatesCurveChart";
 import styles from "./RatesDesk.module.css";
 import { RatesScorecard } from "./RatesScorecard";
@@ -10,9 +12,17 @@ import {
   type NavGroup,
 } from "./deskShared";
 import { fmtValue, statusLabel } from "./format";
-import { DecompositionSection } from "./sections/DecompositionSection";
+import {
+  ClevelandDecompositionSection,
+  MoveAttributionSection,
+  NominalDecompositionSection,
+} from "./sections/DecompositionSection";
 import { PositioningSection } from "./sections/PositioningSection";
-import { SupplySection } from "./sections/SupplySection";
+import { SubStateSection } from "./sections/SubStateSection";
+import {
+  AuctionDemandSection,
+  SupplyFiscalSection,
+} from "./sections/SupplySection";
 import type {
   Decomposition,
   Policy,
@@ -45,7 +55,9 @@ const NAV: readonly NavGroup[] = [
     items: [
       ["summary", "Summary"],
       ["curve", "Curve"],
-      ["decomp", "Decomposition"],
+      ["decomp", "Nominal decomposition"],
+      ["decomp-cleveland", "Cleveland 5-term"],
+      ["decomp-attribution", "Move attribution"],
     ],
   },
   {
@@ -57,8 +69,10 @@ const NAV: readonly NavGroup[] = [
     // sentence names what this tab actually carries rather than staying verbatim.
     lede: "The plumbing a rates view stands on: issuance, positioning and cross-market.",
     items: [
-      ["supply", "Supply"],
-      ["positioning", "Positioning"],
+      ["substate-supply", "Supply"],
+      ["substate-positioning", "Positioning"],
+      ["substate-plumbing", "Funding"],
+      ["auctions", "Auction demand"],
       ["cross", "Cross-market"],
     ],
   },
@@ -107,9 +121,19 @@ function slopeInterpretation(slope: SlopeMetric): string {
 export function CurveDesk({
   snapshot,
   errorMessage,
+  subStates,
 }: {
   snapshot: Snapshot | null;
   errorMessage?: string;
+  /**
+   * `sub_states` from `/api/macro/rates`, CITED beside the snapshot.
+   *
+   * A second publisher on a tab whose comment used to say "one publisher", and settled
+   * separately for the same reason tab 03 cites the rates domain: an outage in the state
+   * engine must cost three verdicts, not the whole curve. Empty when that request failed
+   * or the engine has not run — the sub-state panels then show their readings alone.
+   */
+  subStates?: components["schemas"]["MacroSubStateItem"][] | null;
 }) {
   if (!snapshot) {
     return (
@@ -145,6 +169,8 @@ export function CurveDesk({
     status: "missing",
     attribution: [],
   };
+  const subStateFor = (role: string) =>
+    (subStates ?? []).find((s) => s.role === role);
 
   return (
     <div className={styles.page}>
@@ -209,11 +235,16 @@ export function CurveDesk({
           </div>
         </RatesSection>
 
-        <DecompositionSection
+        {/* The board's three decomposition panels. They were one section until
+          2026-08-29, which let a monthly model's output inherit the authority of
+          arithmetic on traded yields. */}
+        <NominalDecompositionSection
           decomposition={decomposition}
           policy={policy}
           slopes={curve.slopes ?? []}
         />
+        <ClevelandDecompositionSection decomposition={decomposition} />
+        <MoveAttributionSection decomposition={decomposition} />
 
         <RatesTier
           id="tier-mechanics"
@@ -221,25 +252,77 @@ export function CurveDesk({
           lede="The plumbing a rates view stands on: issuance, positioning and cross-market."
         />
 
-        {/* Moved here from tab 01 on 2026-08-28. The board assigns `Supply SUB-STATE` and
-          `Auction demand` to this tab, and `SupplySection` renders both -- issuance and
-          who turned up to buy it are questions about the curve, not about the committee.
-          It sat on the Fed tab only because the old `/rates` page grouped it under a
-          "Mechanics" heading that tab inherited whole. */}
-        <RatesSection
-          id="supply"
-          title="Supply"
-          status={statusLabel(supply?.status)}
-        >
-          <SupplySection supply={supply} />
-        </RatesSection>
+        {/* The board's three SUB-STATE panels, in its order. Each pairs the engine's
+          verdict (from `/api/macro/rates`) with the readings it was computed from (from
+          the snapshot) -- see `SubStateSection` for why both belong on screen.
+
+          A sub-state the engine did not publish renders its snapshot readings alone
+          rather than vanishing: the readings are facts about the tape and do not stop
+          being true because the verdict is missing. */}
+        {subStateFor("supply") ? (
+          <SubStateSection subState={subStateFor("supply")!}>
+            <SupplyFiscalSection supply={supply} />
+          </SubStateSection>
+        ) : (
+          <RatesSection
+            id="substate-supply"
+            title="Supply SUB-STATE"
+            status={statusLabel(supply?.status)}
+          >
+            <SupplyFiscalSection supply={supply} />
+          </RatesSection>
+        )}
+
+        {subStateFor("positioning") ? (
+          <SubStateSection subState={subStateFor("positioning")!}>
+            <PositioningSection positioning={positioning} />
+          </SubStateSection>
+        ) : (
+          <RatesSection
+            id="substate-positioning"
+            title="Positioning SUB-STATE · 10Y futures"
+            status={statusLabel(positioning?.status)}
+          >
+            <PositioningSection positioning={positioning} />
+          </RatesSection>
+        )}
+
+        {/* Funding is the board's name for what the engine calls `plumbing`. Tab 01
+          carries a `Plumbing` panel too and they are NOT duplicates: that one is the
+          balance sheet behind the policy rate, this one is whether funding markets are
+          transmitting it. */}
+        {subStateFor("plumbing") ? (
+          <SubStateSection subState={subStateFor("plumbing")!}>
+            <div className={styles.compactGrid}>
+              {(policy.plumbing ?? []).map((tile) => (
+                <Tile key={tile.label} tile={tile} />
+              ))}
+            </div>
+          </SubStateSection>
+        ) : (
+          // Rendered unconditionally, like its two siblings. `NAV` links to this anchor
+          // on every render, so a section that appeared only when the state engine had
+          // published would make the nav link to nowhere exactly when the engine is down.
+          <RatesSection
+            id="substate-plumbing"
+            title="Funding SUB-STATE"
+            status={statusLabel(policy?.status)}
+          >
+            <div className={styles.compactGrid}>
+              {(policy.plumbing ?? []).map((tile) => (
+                <Tile key={tile.label} tile={tile} />
+              ))}
+            </div>
+          </RatesSection>
+        )}
 
         <RatesSection
-          id="positioning"
-          title="Positioning"
-          status={statusLabel(positioning?.status)}
+          id="auctions"
+          title="Auction demand · did anyone show up"
+          eyebrow="TreasuryDirect · recent results"
+          status={statusLabel(supply?.status)}
         >
-          <PositioningSection positioning={positioning} />
+          <AuctionDemandSection supply={supply} />
         </RatesSection>
 
         <RatesSection

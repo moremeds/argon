@@ -10,21 +10,79 @@ import { POLICY_RATES_STATE, SNAPSHOT, TENORS } from "./fixture";
  * the one composite the desk still shows and the only one it names as such.
  */
 describe("CurveDesk", () => {
-  it("renders persisted Treasury supply data instead of the phase placeholder", () => {
-    // Moved from `FedDesk.test.tsx` on 2026-08-28 with the section itself. The board
-    // assigns `Supply SUB-STATE` and `Auction demand` to this tab; the assertions are
-    // unchanged, because the component and the fixture are the same -- only its home
-    // moved.
+  it("separates what the Treasury issued from whether anyone bought it", () => {
+    // Moved from `FedDesk.test.tsx` on 2026-08-28, then split on 2026-08-29. The board
+    // gives tab 02 a `Supply SUB-STATE` panel AND an `Auction demand` panel because they
+    // answer different questions: how much paper is coming, and whether it was absorbed.
+    // Under one heading a strong bid-to-cover and a heavy calendar read as one fact about
+    // supply, and they frequently point opposite ways.
     render(<CurveDesk snapshot={SNAPSHOT} />);
 
-    const supplySection = screen.getByRole("region", { name: /^supply$/i });
-    expect(within(supplySection).getByText("Recent auctions")).toBeTruthy();
-    expect(within(supplySection).getByText("30-Year Bond")).toBeTruthy();
-    expect(within(supplySection).getByText("$25.0bn")).toBeTruthy();
-    expect(within(supplySection).getByText("2.30")).toBeTruthy();
+    const supplySection = screen.getByRole("region", {
+      name: /supply sub-state/i,
+    });
     expect(within(supplySection).getByText("Public debt")).toBeTruthy();
     expect(within(supplySection).getByText("$31.37T")).toBeTruthy();
+    expect(within(supplySection).queryByText("Recent auctions")).toBeNull();
+
+    const auctions = screen.getByRole("region", { name: /auction demand/i });
+    expect(within(auctions).getByText("Recent auctions")).toBeTruthy();
+    expect(within(auctions).getByText("30-Year Bond")).toBeTruthy();
+    expect(within(auctions).getByText("$25.0bn")).toBeTruthy();
+    expect(within(auctions).getByText("2.30")).toBeTruthy();
     expect(screen.queryByText(/Treasury auction feed not wired/)).toBeNull();
+  });
+
+  it("renders the engine's sub-state verdict beside the readings it stands on", () => {
+    // The snapshot carries supply/positioning/funding as READINGS; the engine's verdict
+    // on each lives on `/api/macro/rates` and this tab never fetched it. Showing the
+    // readings alone makes the reader do the engine's job.
+    render(
+      <CurveDesk
+        snapshot={SNAPSHOT}
+        subStates={[
+          {
+            role: "plumbing",
+            state: "AMPLE",
+            direction: "FALLING",
+            confidence: "1",
+            series_ids: ["EFFR", "RRPONTSYD", "SOFR"],
+            latest_period_end: "2026-08-19",
+            unavailable_reason: null,
+            velocity: [
+              {
+                metric: "sofr_effr_spread_change_13w",
+                value: "7.00",
+                unit: "basis_points",
+                window_months: 3,
+                unavailable_reason: null,
+              },
+            ],
+            confidence_reasons: [],
+          },
+        ]}
+      />,
+    );
+
+    // Funding is the board's name for what the engine calls `plumbing` — the same thing
+    // under two vocabularies, and the desk answers to the operator.
+    const funding = screen.getByRole("region", { name: /funding sub-state/i });
+    expect(funding.textContent).toContain("AMPLE · FALLING");
+    expect(funding.textContent).toContain("+7bp");
+    expect(funding.textContent).toContain("EFFR");
+  });
+
+  it("still renders a sub-state's readings when the engine published no verdict", () => {
+    // The readings are facts about the tape and do not stop being true because the state
+    // engine is down. A panel that vanished with its verdict would lose both.
+    render(<CurveDesk snapshot={SNAPSHOT} subStates={[]} />);
+
+    const supplySection = screen.getByRole("region", {
+      name: /supply sub-state/i,
+    });
+    expect(within(supplySection).getByText("$31.37T")).toBeTruthy();
+    // No verdict to show, so no verdict is claimed.
+    expect(supplySection.textContent).not.toContain("IN_RANGE");
   });
 
   it("renders its own anchors and no anchor belonging to the Fed tab", () => {
@@ -33,14 +91,42 @@ describe("CurveDesk", () => {
     for (const label of [
       "Summary",
       "Curve",
-      "Decomposition",
+      // Three decomposition anchors where there was one: the board gives tab 02 three
+      // panels, and they are three because they are three different kinds of claim.
+      "Nominal decomposition",
+      "Cleveland 5-term",
+      "Move attribution",
       "Supply",
       "Positioning",
+      "Funding",
+      "Auction demand",
       "Cross-market",
       "Refusals",
       "Sources",
     ]) {
       expect(screen.getByRole("link", { name: label })).toBeTruthy();
+    }
+
+    // Every NAV anchor must resolve to a section that actually rendered. The three
+    // sub-state panels render whether or not the state engine published a verdict, which
+    // is what keeps this true when it is down — the render above passes no `subStates`.
+    const sectionIds = new Set(
+      Array.from(document.querySelectorAll("section[id]")).map((n) => n.id),
+    );
+    for (const anchor of [
+      "summary",
+      "curve",
+      "decomp",
+      "decomp-cleveland",
+      "decomp-attribution",
+      "substate-supply",
+      "substate-positioning",
+      "substate-plumbing",
+      "auctions",
+      "cross",
+      "refuses",
+    ]) {
+      expect(sectionIds.has(anchor)).toBe(true);
     }
 
     // Each tab's NAV covers only its own sections, so an anchor to a section this tab

@@ -24,22 +24,38 @@ function fmtPercent(value: unknown): string {
   return `${n.toFixed(1)}%`;
 }
 
-export function SupplySection({ supply }: { supply: Supply | undefined }) {
+/** Shared empty state. Both halves went missing together before they were split, and
+ *  they still do: one `supply` publisher feeds them, so a feed outage is one message. */
+function SupplyUnavailable({ supply }: { supply: Supply | undefined }) {
+  return (
+    <div className={styles.notePanel}>
+      <strong>{statusLabel(supply?.status)}</strong>
+      {(supply?.notes?.length
+        ? supply.notes
+        : ["Treasury auction and FiscalData supply feeds are unavailable."]
+      ).map((note) => (
+        <p key={note}>{note}</p>
+      ))}
+    </div>
+  );
+}
+
+/**
+ * Board t2 — "Auction demand · did anyone show up".
+ *
+ * Split from the issuance metrics on 2026-08-29. The board keeps them apart because they
+ * answer different questions: issuance is how much paper the Treasury is bringing, and
+ * this is whether anyone turned up to absorb it. Under one "Supply" heading a strong
+ * bid-to-cover and a heavy calendar read as one fact about supply, and they are two
+ * facts that frequently point opposite ways.
+ */
+export function AuctionDemandSection({
+  supply,
+}: {
+  supply: Supply | undefined;
+}) {
   const recentAuctions = supply?.recent_auctions ?? [];
-  const fiscal = supply?.fiscal ?? [];
-  if (!recentAuctions.length && !fiscal.length) {
-    return (
-      <div className={styles.notePanel}>
-        <strong>{statusLabel(supply?.status)}</strong>
-        {(supply?.notes?.length
-          ? supply.notes
-          : ["Treasury auction and FiscalData supply feeds are unavailable."]
-        ).map((note) => (
-          <p key={note}>{note}</p>
-        ))}
-      </div>
-    );
-  }
+  if (!recentAuctions.length) return <SupplyUnavailable supply={supply} />;
 
   return (
     <div className={styles.supplyGrid}>
@@ -81,10 +97,32 @@ export function SupplySection({ supply }: { supply: Supply | undefined }) {
           <p className={styles.positioningRead}>{supply.supply_read}</p>
         ) : null}
       </article>
+    </div>
+  );
+}
 
+/**
+ * The issuance and fiscal readings that stand under the supply SUB-STATE verdict.
+ *
+ * Rendered inside the sub-state panel rather than as a panel of its own: the board gives
+ * tab 02 a `Supply SUB-STATE` panel and an `Auction demand` panel, and these tiles are
+ * what the first one's verdict is computed from.
+ */
+export function SupplyFiscalSection({
+  supply,
+}: {
+  supply: Supply | undefined;
+}) {
+  const fiscal = supply?.fiscal ?? [];
+  const auctions = supply?.auctions ?? [];
+  if (!fiscal.length && !auctions.length)
+    return <SupplyUnavailable supply={supply} />;
+
+  return (
+    <div className={styles.supplyGrid}>
       <article className={styles.supplyCard}>
         <div className={styles.policyCardTop}>
-          <h3>Issuance & fiscal</h3>
+          <h3>Issuance &amp; fiscal</h3>
           <span>FiscalData + FRED</span>
         </div>
         <div className={styles.supplyMetricGrid}>

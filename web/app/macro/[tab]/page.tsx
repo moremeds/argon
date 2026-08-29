@@ -106,12 +106,28 @@ async function FedTab({ replay }: MacroTabProps) {
   );
 }
 
-/** Tab 02 — Rates · Curve. One publisher: everything this tab renders comes out of the
- *  one rates snapshot, so there is nothing here to settle against a second clock — and
- *  nothing to disagree with the replay banner either. */
+/**
+ * Tab 02 — Rates · Curve.
+ *
+ * TWO publishers since 2026-08-29, where the comment here used to say one.
+ *
+ * The snapshot carries supply, positioning and funding as READINGS. The engine's verdict
+ * on each — `IN_RANGE · FLAT`, and the confidence behind it — lives on `/api/macro/rates`
+ * as `sub_states`, which the board prints as three panels and this tab never fetched. The
+ * two are worth having together: the readings without the verdict make the reader do the
+ * engine's job, and the verdict without the readings hides what it stands on.
+ *
+ * Settled separately, and the banner stays keyed on the SNAPSHOT alone. The two endpoints
+ * select on different columns — `/api/rates/snapshot` on `computed_at`, `/api/macro/*` on
+ * `as_of` — so a banner driven by whichever answered would be a banner that changes its
+ * meaning depending on which publisher was up. The cited half degrades to its readings.
+ */
 async function CurveTab({ replay }: MacroTabProps) {
   const asOf = replay.kind === "replay" ? replay.asOf : undefined;
-  const snapshot = await settle(() => api.ratesSnapshot(asOf), "rates API");
+  const [snapshot, ratesState] = await Promise.all([
+    settle(() => api.ratesSnapshot(asOf), "rates API"),
+    settle(() => api.macroDomainState("rates", asOf), "rates state API"),
+  ]);
 
   const verdict = replayVerdict(replay, {
     computedAt: snapshot.value?.computed_at,
@@ -129,7 +145,11 @@ async function CurveTab({ replay }: MacroTabProps) {
   return (
     <>
       {status}
-      <CurveDesk snapshot={snapshot.value} errorMessage={snapshot.error} />
+      <CurveDesk
+        snapshot={snapshot.value}
+        errorMessage={snapshot.error}
+        subStates={ratesState.value?.sub_states}
+      />
     </>
   );
 }

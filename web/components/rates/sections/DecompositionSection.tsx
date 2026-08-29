@@ -85,9 +85,11 @@ function ratesAttributionRead(row: DecompositionAttribution | undefined): {
 } {
   if (!row) {
     return {
-      headline: "1M rates read is unavailable until the attribution window is populated.",
+      headline:
+        "1M rates read is unavailable until the attribution window is populated.",
       model: "Cleveland model components are missing for this window.",
-      market: "Live FRED curve data still renders, but no model attribution can be made.",
+      market:
+        "Live FRED curve data still renders, but no model attribution can be made.",
     };
   }
 
@@ -102,29 +104,26 @@ function ratesAttributionRead(row: DecompositionAttribution | undefined): {
     bpsNumber(row.expected_short_real_bps) +
     bpsNumber(row.expected_short_inflation_bps);
 
-  const headline =
-    `Over ${row.window}, FRED 10Y ${movementVerb(fredMove)} ${bpsText(
-      fredMove,
-    )}; Cleveland's monthly model explains ${bpsText(
-      modelMove,
-    )}, while the live FRED residual accounts for ${bpsText(residual)}.`;
+  const headline = `Over ${row.window}, FRED 10Y ${movementVerb(fredMove)} ${bpsText(
+    fredMove,
+  )}; Cleveland's monthly model explains ${bpsText(
+    modelMove,
+  )}, while the live FRED residual accounts for ${bpsText(residual)}.`;
 
   let model: string;
   if (Math.abs(modelMove) < 0.5) {
     model =
       "The Cleveland monthly model is broadly unchanged, so the displayed move is mostly a daily-market residual rather than a fresh model signal.";
   } else if (Math.abs(premiumMove) > Math.abs(expectedMove)) {
-    model =
-      `Inside the model, ${componentNarrative(
-        driver.label,
-        driver.value,
-      )}. Premium components are doing more work than expected short-rate components, so read this as risk-premium/supply compensation rather than a clean policy path shift.`;
+    model = `Inside the model, ${componentNarrative(
+      driver.label,
+      driver.value,
+    )}. Premium components are doing more work than expected short-rate components, so read this as risk-premium/supply compensation rather than a clean policy path shift.`;
   } else {
-    model =
-      `Inside the model, ${componentNarrative(
-        driver.label,
-        driver.value,
-      )}. Expected short-rate components dominate, so read this as policy/inflation-expectation repricing before term-premium pressure.`;
+    model = `Inside the model, ${componentNarrative(
+      driver.label,
+      driver.value,
+    )}. Expected short-rate components dominate, so read this as policy/inflation-expectation repricing before term-premium pressure.`;
   }
 
   let market: string;
@@ -436,7 +435,9 @@ function DecompositionAttributionTable({
               <span>{label}</span>
               <i>
                 <b
-                  className={numeric >= 0 ? styles.barPositive : styles.barNegative}
+                  className={
+                    numeric >= 0 ? styles.barPositive : styles.barNegative
+                  }
                   style={{
                     width: `${Math.max(
                       2,
@@ -505,7 +506,9 @@ function DecompositionSourceCards({
         </article>
         <article>
           <span>Market proxy</span>
-          <strong>5Y5Y {fmtValue(decomp.forward_inflation_5y5y, "%", 2)}</strong>
+          <strong>
+            5Y5Y {fmtValue(decomp.forward_inflation_5y5y, "%", 2)}
+          </strong>
           <p>FRED forward inflation compensation remains an impulse check.</p>
         </article>
       </div>
@@ -513,7 +516,20 @@ function DecompositionSourceCards({
   );
 }
 
-export function DecompositionSection({
+/**
+ * The board gives tab 02 THREE decomposition panels where this file used to export one.
+ *
+ * They are three because they are three different claims, and stacking them under a
+ * single "Decomposition" heading let the weakest inherit the authority of the strongest.
+ * The nominal cut is arithmetic on traded yields and is true by construction; the
+ * Cleveland cut is a monthly MODEL with its own vintage and its own uncertainty; the
+ * attribution is a per-window difference that reconciles the two. A reader who cannot
+ * see where one ends and the next begins cannot tell which of those they are looking at.
+ *
+ * The sub-components were already separate. Only the framing changes — plus the anchor
+ * ids, which the tab's own nav links to.
+ */
+export function NominalDecompositionSection({
   decomposition,
   policy,
   slopes,
@@ -525,23 +541,55 @@ export function DecompositionSection({
   return (
     <RatesSection
       id="decomp"
-      title="Decomposition"
-      eyebrow="10Y nominal / real / inflation"
+      title="10Y nominal decomposition · who is moving"
+      eyebrow="Traded yields · real + breakeven, and policy + term compensation"
     >
       <div className={styles.decompStack}>
-        <DecompositionFormula decomp={decomposition} />
         <DecompositionViewCards
           decomp={decomposition}
           policy={policy}
           slopes={slopes}
         />
-        <DecompositionAttributionTable
-          rows={decomposition.attribution ?? []}
-        />
-        <DecompositionSourceCards
-          decomp={decomposition}
-          policy={policy}
-        />
+        {/* The expectations sources sit with the nominal cut rather than in a panel of
+            their own: 5Y5Y and the model-implied nominal are what the two views above
+            are built from, and the board does not give them a panel. */}
+        <DecompositionSourceCards decomp={decomposition} policy={policy} />
+      </div>
+    </RatesSection>
+  );
+}
+
+export function ClevelandDecompositionSection({
+  decomposition,
+}: {
+  decomposition: Decomposition;
+}) {
+  return (
+    <RatesSection
+      id="decomp-cleveland"
+      title="Cleveland 5-term decomposition · the other cut"
+      eyebrow="Cleveland Fed monthly model + the FRED reconciliation term"
+    >
+      <div className={styles.decompStack}>
+        <DecompositionFormula decomp={decomposition} />
+      </div>
+    </RatesSection>
+  );
+}
+
+export function MoveAttributionSection({
+  decomposition,
+}: {
+  decomposition: Decomposition;
+}) {
+  return (
+    <RatesSection
+      id="decomp-attribution"
+      title="10Y move attribution · who moved it, per window"
+      eyebrow="FRED tape vs the monthly model, by window"
+    >
+      <div className={styles.decompStack}>
+        <DecompositionAttributionTable rows={decomposition.attribution ?? []} />
       </div>
     </RatesSection>
   );
