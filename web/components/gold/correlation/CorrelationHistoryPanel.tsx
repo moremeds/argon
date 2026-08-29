@@ -1,4 +1,5 @@
 import { WIDE_FRAME } from "@/components/macro/chartGeometry";
+import { BoardPanel } from "@/components/macro/domain/BoardPanel";
 import type { components } from "@/lib/types";
 
 import { CorrelationLineChart } from "./CorrelationLineChart";
@@ -94,61 +95,67 @@ export function CorrelationHistoryPanel({
   const pairCount = pairs.reduce((n, s) => n + s.points.length, 0);
 
   return (
-    <div style={{ display: "flex", flexDirection: "column", gap: 12 }}>
-      <h2
-        style={{
-          fontFamily: "var(--font-mono)",
-          fontSize: 12,
-          letterSpacing: 1.8,
-          textTransform: "uppercase",
-          color: "var(--text-primary, #cfd2db)",
-          margin: 0,
-        }}
-      >
-        ANCHOR DECAY · 252D ROLLING
-      </h2>
-      <CorrelationLineChart
-        series={[
-          ...(anchor.length > 0
-            ? [
-                {
-                  id: "gauge_anchor",
-                  label: "ANCHOR (GAUGE)",
-                  // Near-neutral ink, at weight, rather than a fourth hue.
-                  //
-                  // Measured with the palette validator against this surface (#060810):
-                  // the obvious candidates fail. `--accent-vivid` #d946a8 separates from
-                  // `--positive` by ΔE 4.6 under deuteranopia — below the floor, and the
-                  // anchor-vs-DFII10 comparison is the one this panel exists to support.
-                  // `--accent-cool` #38bdf8 fails even normal vision (ΔE 14.3 < 15).
-                  //
-                  // `--text-primary` passes CVD at 14.0 and normal vision at 25.3, and
-                  // trips only the chroma floor — the validator correctly saying it reads
-                  // gray. That is the intent: the anchor is not a fourth peer channel, it
-                  // is the series the other three decompose, so it takes the ink the desk
-                  // uses for primary values and `strokeWidth` carries the emphasis.
-                  color: "var(--text-primary, #e2e8f0)",
-                  strokeWidth: 2.25,
-                  points: anchor,
-                },
-              ]
-            : []),
-          ...pairs,
-        ]}
-        pre2022Band={history.pre_2022_band}
-        width={CHART_WIDTH}
-        height={CHART_HEIGHT}
-      />
-      <p
-        data-testid="correlation-history-window-note"
-        style={{
-          margin: 0,
-          fontSize: 11,
-          lineHeight: 1.6,
-          color: "var(--text-muted, #6b7280)",
-          maxWidth: 900,
-        }}
-      >
+    <BoardPanel
+      id="anchor-decay"
+      title="Anchor decay · 252d rolling"
+      questions={["Q4"]}
+      basis="REAL"
+      source={
+        <>
+          /api/gold/gauge history_252d ({anchor.length} obs) + /api/gold/state
+          correlation_history ({pairCount} obs across three pairs)
+        </>
+      }
+    >
+      <div className="lgd">
+        {anchor.length > 0 ? (
+          <span>
+            <i style={{ background: "var(--text-primary)" }} />
+            anchor · gauge 252d
+          </span>
+        ) : null}
+        {pairs.map((p) => (
+          <span key={p.id}>
+            <i style={{ background: p.color }} />
+            {p.label}
+          </span>
+        ))}
+      </div>
+      <div className="chart">
+        <CorrelationLineChart
+          series={[
+            ...(anchor.length > 0
+              ? [
+                  {
+                    id: "gauge_anchor",
+                    label: "ANCHOR (GAUGE)",
+                    // Near-neutral ink, at weight, rather than a fourth hue.
+                    //
+                    // Measured with the palette validator against this surface (#060810):
+                    // the obvious candidates fail. `--accent-vivid` #d946a8 separates from
+                    // `--positive` by ΔE 4.6 under deuteranopia — below the floor, and the
+                    // anchor-vs-DFII10 comparison is the one this panel exists to support.
+                    // `--accent-cool` #38bdf8 fails even normal vision (ΔE 14.3 < 15).
+                    //
+                    // `--text-primary` passes CVD at 14.0 and normal vision at 25.3, and
+                    // trips only the chroma floor — the validator correctly saying it reads
+                    // gray. That is the intent: the anchor is not a fourth peer channel, it
+                    // is the series the other three decompose, so it takes the ink the desk
+                    // uses for primary values and `strokeWidth` carries the emphasis.
+                    color: "var(--text-primary, #e2e8f0)",
+                    strokeWidth: 2.25,
+                    points: anchor,
+                  },
+                ]
+              : []),
+            ...pairs,
+          ]}
+          pre2022Band={history.pre_2022_band}
+          width={CHART_WIDTH}
+          height={CHART_HEIGHT}
+        />
+      </div>
+      <p data-testid="correlation-history-window-note" className="cap">
         The board asks this chart for the gauge&rsquo;s 60-day correlation,
         daily — the cut that shows an anchor decaying rather than an average
         holding. The producer computes the history at a 252-day window only (
@@ -171,6 +178,6 @@ export function CorrelationHistoryPanel({
           </>
         )}
       </p>
-    </div>
+    </BoardPanel>
   );
 }

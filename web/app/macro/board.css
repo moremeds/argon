@@ -389,6 +389,58 @@
   margin-top: 4px;
 }
 
+/* ── masthead chips ────────────────────────────────────────────────────────────
+ *
+ * The board's `.mast-meta` row: small bordered mono chips carrying the facts a tab is
+ * read AGAINST rather than facts it is about — a spot level, a feed's health, a count of
+ * sources. They are metadata, so they are chips and not panels: giving one a panel frame
+ * would put it in the same visual class as a reading and invite it being read as one.
+ *
+ * `.ok` and `.gold` tint the border only. A chip never carries a filled status colour,
+ * because a chip is not a verdict.
+ */
+.board .mast-meta {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  align-items: center;
+}
+.board .chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  font-family: var(--font-mono), monospace;
+  font-size: 10px;
+  padding: 3px 9px;
+  border-radius: 3px;
+  border: 1px solid var(--border-dim);
+  color: var(--text-secondary);
+  background: var(--bg-panel);
+  white-space: nowrap;
+}
+.board .chip .dot {
+  width: 7px;
+  height: 7px;
+  border-radius: 50%;
+  flex-shrink: 0;
+}
+.board .chip.ok {
+  border-color: color-mix(in srgb, var(--positive) 40%, transparent);
+}
+.board .chip.ok .dot {
+  background: var(--positive);
+}
+.board .chip.warn {
+  border-color: color-mix(in srgb, var(--warning) 45%, transparent);
+}
+.board .chip.warn .dot {
+  background: var(--warning);
+}
+.board .chip.gold {
+  border-color: color-mix(in srgb, var(--accent-bg) 45%, transparent);
+  color: var(--accent-bg);
+}
+
 /* ── zone banners ──────────────────────────────────────────────────────────────
  *
  * Tab 00's spine. The board divides the daily loop into four labelled zones — WHAT

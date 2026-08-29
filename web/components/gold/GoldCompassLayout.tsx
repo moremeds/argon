@@ -1,41 +1,20 @@
 import type { ReactNode } from "react";
 
+import { BoardPanel } from "@/components/macro/domain/BoardPanel";
 import type { components } from "@/lib/types";
 
 import { CorrelationHistoryPanel } from "./correlation/CorrelationHistoryPanel";
 import { ExpressionCostPanel } from "./ExpressionCostPanel";
 import { InputManifestPanel } from "./InputManifestPanel";
 import { GoldCompassHeader } from "./GoldCompassHeader";
-import { KpiStrip } from "./kpi/KpiStrip";
 import { CyclicalPanel } from "./lens2/CyclicalPanel";
 import { CbReservesPanel } from "./lens1/CbReservesPanel";
 import { StructuralPanel } from "./lens1/StructuralPanel";
-import { ValuationPanel } from "./lens3/ValuationPanel";
+import { ThreeLensesPanel } from "./ThreeLensesPanel";
 import { TransmissionGaugePanel } from "./TransmissionGaugePanel";
 
 type State = components["schemas"]["GoldStateResponse"];
 type GaugePoint = components["schemas"]["GoldGaugeTimeSeriesPoint"];
-
-/**
- * Two chromes, one body.
- *
- * On the macro desk this is board tab 05, and the board separates its bands with
- * whitespace, not rules: a full-width hairline between every section was the loudest line
- * on the tab, drawn between panels that already carry their own borders. The desk chrome
- * also drops the horizontal padding, because the `.board` wrapper around it owns the
- * column — keeping both would inset gold from the measure every other tab sits on.
- *
- * On the standalone `/gold/replay/<date>` route there is no `.board` wrapper and no tab
- * bar, so the banded chrome and its own padding stay.
- */
-const sectionStyle: React.CSSProperties = {
-  padding: "20px 24px",
-  borderBottom: "1px solid var(--border-dim, #1b2030)",
-};
-
-const deskSectionStyle: React.CSSProperties = {
-  padding: "0 0 22px",
-};
 
 type Props = {
   state: State;
@@ -46,9 +25,9 @@ type Props = {
   /**
    * The board's `.sec-title` + `.sec-sub`, supplied by the macro desk's gold tab.
    *
-   * Its presence is what selects the desk chrome — one prop rather than a `variant` flag
-   * beside it, because there is exactly one decision here and two props would let a
-   * caller ask for board bands under a Gold Compass lockup.
+   * Absent on `/gold/replay/<date>`, which has no tab bar to be titled under and so keeps
+   * the Gold Compass lockup. The BODY below is now identical on both routes — see the
+   * block above the component.
    */
   deskHeading?: ReactNode;
   /**
@@ -64,17 +43,29 @@ type Props = {
 };
 
 /**
- * Reordered on 2026-08-28 to the board's own tab-05 sequence.
+ * Board tab 05, in the board's own layout.
  *
- * The conformance audit found this tab content-complete and wrongly framed: every lens
- * was present, and the question that governs how to read them — is the real-rate channel
- * transmitting at all — was one tile in a five-tile strip. The board opens the tab on it.
- * So does this now.
+ * ### What changed, and why the previous shape was wrong
  *
- * `data-questions` on each band is the board's acceptance test, carried onto a subtree
- * that does not use `BoardPanel`. Gold keeps its own visual idiom (mono section headings
- * on banded rows) rather than borrowing the macro panel frame, but a section that answers
- * none of Q1-Q7 should be as visible here as anywhere.
+ * This used to be nine full-width bands separated by hairlines, each holding a house-styled
+ * panel with its own mono heading. Every lens was present and correctly bound — the
+ * conformance audit found the tab content-complete — and it still looked nothing like the
+ * board, because the board's t5 is a GRID of framed panels: two pairs, then a row of three,
+ * then the manifest across the full measure. A stack of full-width bands makes eight
+ * panels of equal weight and forces the reader down a column; the board's grid puts the
+ * gauge beside the lenses it governs, and the anchor beside what the anchor costs.
+ *
+ * The earlier note here said gold "keeps its own visual idiom rather than borrowing the
+ * macro panel frame". That was the divergence: the desk read as two products sharing a tab
+ * bar. The frame is the shared grammar, so gold wears it.
+ *
+ * ### One design, both routes
+ *
+ * `board.css` is scoped to `.board` and was imported only by `app/macro/layout.tsx`, which
+ * is why gold carried an inline copy of the board's read-rail. `/gold/replay/<date>` now
+ * imports the stylesheet and renders inside `.board` too, so there is one design and the
+ * copy is deleted. The heading is the only thing that still differs between the routes,
+ * because only one of them sits under a tab bar.
  */
 export function GoldCompassLayout({
   state,
@@ -83,123 +74,60 @@ export function GoldCompassLayout({
   deskHeading,
   anchorHistory,
 }: Props) {
-  const onDesk = deskHeading != null;
-  const band = onDesk ? deskSectionStyle : sectionStyle;
+  const suspended = state.gauge.state === "suspended";
+
   return (
-    <main style={{ background: "var(--bg-base, #060810)", minHeight: "100vh" }}>
-      {onDesk ? (
-        deskHeading
-      ) : (
+    <>
+      {deskHeading ?? (
         <GoldCompassHeader
           obsDate={replayDate ?? state.obs_date}
           showReplayPicker={showReplayPicker}
         />
       )}
 
-      {/* The board's opening panel. It governs the two lenses below it -- when the
-          gauge is suspended the cyclical band is dimmed -- so it is stated before them
-          rather than discovered inside a KPI row. */}
-      <section
-        role="region"
-        aria-label="Transmission gauge"
-        data-questions="Q4 Q7"
-        style={band}
-      >
+      {/* The gauge opens the tab and sits BESIDE the lenses it governs, which is the whole
+          argument for the board's pairing: when it reads suspended the cyclical lens is
+          dimmed, and a reader should not have to scroll to discover the condition that
+          decides how to read what follows. */}
+      <div className="grid g2">
         <TransmissionGaugePanel gauge={state.gauge} />
-      </section>
+        <ThreeLensesPanel state={state} />
+      </div>
 
-      <section
-        role="region"
-        aria-label="KPI strip"
-        data-questions="Q1"
-        style={band}
-      >
-        <KpiStrip state={state} />
-      </section>
-
-      {/* The board splits lens 1 in two — official-sector accumulation and western
-          institutional flow are different behaviours with different reads, and the
-          single merged panel promoted the strategic bucket to a headline while the
-          other two rode a sub-line. Order follows the board: central banks first. */}
-      <section
-        role="region"
-        aria-label="Central banks"
-        data-questions="Q5"
-        style={band}
-      >
-        <CbReservesPanel structural={state.structural} />
-      </section>
-
-      <section
-        role="region"
-        aria-label="Western institutional flows"
-        data-questions="Q5"
-        style={band}
-      >
-        <StructuralPanel structural={state.structural} />
-      </section>
-
-      <section
-        role="region"
-        aria-label="Expression cost"
-        data-questions="Q2"
-        style={band}
-      >
-        <ExpressionCostPanel structural={state.structural} />
-      </section>
-
-      <section
-        role="region"
-        aria-label="Lens 2 cyclical posture"
-        data-questions="Q1"
-        style={{
-          ...band,
-          opacity: state.gauge.state === "suspended" ? 0.7 : 1,
-        }}
-      >
-        <CyclicalPanel cyclical={state.cyclical} />
-      </section>
-
-      <section
-        role="region"
-        aria-label="Lens 3 valuation overlay"
-        data-questions="Q1"
-        style={band}
-      >
-        <ValuationPanel valuation={state.valuation} />
-      </section>
-
-      {/* The lens-decomposition panel used to sit beside this one. It read
-          ``state.decomposition_rows``, which the producer leaves empty on every
-          run (see reports/gold_posture.py), so it only ever drew its own empty
-          state. The field stays on the API contract; the render is gone. */}
-      <section
-        role="region"
-        aria-label="Anchor decay"
-        data-questions="Q4"
-        style={band}
-      >
+      <div className="grid g2" style={{ marginTop: 12 }}>
         <CorrelationHistoryPanel
           history={state.correlation_history}
           anchorHistory={anchorHistory}
         />
-      </section>
+        <ExpressionCostPanel structural={state.structural} />
+      </div>
 
-      {/* The board's closing panel, and a panel rather than the footer this was: a
-          manifest that named only the inputs it managed to read presented a partial
-          audit trail as a complete one. */}
-      <section
-        role="region"
-        aria-label="Input manifest"
-        data-questions="Q7"
-        style={band}
-      >
+      {/* The board splits lens 1 in two — official-sector accumulation and western
+          institutional flow are different behaviours with different reads, and the single
+          merged panel promoted the strategic bucket to a headline while the other two rode
+          a sub-line. The dimmed cyclical panel is the third column, which is where the
+          board puts it: adjacent to the flows, not below them. */}
+      <div className="grid g3" style={{ marginTop: 12 }}>
+        <CbReservesPanel structural={state.structural} />
+        <StructuralPanel structural={state.structural} />
+        <CyclicalPanel cyclical={state.cyclical} dimmed={suspended} />
+      </div>
+
+      {/* Full measure, and a panel rather than the footer this was: a manifest that named
+          only the inputs it managed to read presented a partial audit trail as a complete
+          one. */}
+      <div className="grid" style={{ marginTop: 12 }}>
         <InputManifestPanel
           obsDate={state.obs_date}
           computedAt={state.computed_at}
           inputsUsed={state.inputs_used}
         />
-      </section>
-    </main>
+      </div>
+    </>
   );
 }
+
+/** Re-exported so the panels below can wear the board frame without each importing across
+ *  subtrees. `components/gold` -> `components/macro/domain` is the direction the port
+ *  allows; the reverse (macro reaching into a domain subtree) is what §7 forbids. */
+export { BoardPanel };

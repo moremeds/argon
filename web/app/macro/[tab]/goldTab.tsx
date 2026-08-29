@@ -1,4 +1,5 @@
 import { GoldCompassLayout } from "@/components/gold/GoldCompassLayout";
+import { GoldMetaChips } from "@/components/gold/GoldMetaChips";
 import { GoldPostureNotice } from "@/components/gold/GoldPostureNotice";
 import {
   BoardSecTitle,
@@ -95,11 +96,17 @@ function GoldHeading({
       title="Gold"
       questions={["Q1", "Q2", "Q4", "Q5", "Q7"]}
       aside={
-        <BoardStatePill
-          facts={domain}
-          testId="macro-domain-gold"
-          absent={domainNote}
-        />
+        <>
+          <BoardStatePill
+            facts={domain}
+            testId="macro-domain-gold"
+            absent={domainNote}
+          />
+          {/* Spot and feed health, as the board's masthead chips. They were two of the
+              five tiles in the KPI strip this tab no longer has; the other three are
+              stated with more context by the gauge and three-lens panels. */}
+          <GoldMetaChips state={posture} />
+        </>
       }
     >
       Final link, merged with the Gold Compass. The domain state is a{" "}

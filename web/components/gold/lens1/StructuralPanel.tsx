@@ -1,3 +1,4 @@
+import { BoardPanel } from "@/components/macro/domain/BoardPanel";
 import type { components } from "@/lib/types";
 
 import { PostureChip, type PostureState } from "../chips/PostureChip";
@@ -33,50 +34,34 @@ type S = components["schemas"]["GoldStructuralPostureModel"];
  */
 export function StructuralPanel({ structural }: { structural: S }) {
   return (
-    <div style={{ display: "flex", flexDirection: "column", gap: 16 }}>
-      <div
-        style={{
-          display: "flex",
-          alignItems: "baseline",
-          gap: 12,
-          justifyContent: "space-between",
-        }}
-      >
-        <div style={{ display: "flex", alignItems: "center", gap: 12 }}>
-          <h2
-            style={{
-              fontFamily: "var(--font-mono)",
-              fontSize: 12,
-              letterSpacing: 1.8,
-              textTransform: "uppercase",
-              color: "var(--text-primary, #cfd2db)",
-              margin: 0,
-            }}
-          >
-            WESTERN INSTITUTIONAL FLOWS · L1 DETAIL
-          </h2>
-          <PostureChip
-            state={(structural.posture_chip ?? "NEUTRAL") as PostureState}
-          />
-        </div>
-        <span
-          style={{
-            fontFamily: "var(--font-mono)",
-            fontSize: 10,
-            letterSpacing: 1.5,
-            textTransform: "uppercase",
-            color: "var(--text-muted, #6b7280)",
-          }}
-        >
-          {structural.state_label ?? "—"}
-        </span>
+    <BoardPanel
+      id="structural-flows"
+      title="Western institutional flows · L1 detail"
+      questions={["Q5"]}
+      basis="REAL"
+      source={
+        <>
+          /api/gold/state structural · ETF holdings, LBMA, COMEX, CFTC COT and
+          the FX basket, each as its own source published it
+        </>
+      }
+    >
+      {/* The posture chip and state label stay on THIS half of lens 1 rather than moving
+          with the central-bank chart: `state_label` and `posture_chip` are lens-1 wide,
+          and duplicating them onto both panels would show one lens publishing two
+          postures. */}
+      <div className="lgd">
+        <PostureChip
+          state={(structural.posture_chip ?? "NEUTRAL") as PostureState}
+        />
+        <span className="dir">{structural.state_label ?? "—"}</span>
       </div>
 
       <div
         style={{
           display: "grid",
-          gridTemplateColumns: "repeat(3, minmax(0, 1fr))",
-          gap: 12,
+          gridTemplateColumns: "repeat(auto-fit, minmax(150px, 1fr))",
+          gap: 8,
         }}
       >
         <EtfFlowCard structural={structural} />
@@ -87,6 +72,6 @@ export function StructuralPanel({ structural }: { structural: S }) {
       </div>
 
       <StructuralPostureText structural={structural} />
-    </div>
+    </BoardPanel>
   );
 }

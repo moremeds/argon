@@ -1,4 +1,5 @@
 import { GOLD_STRUCTURAL_WIDTH } from "@/components/macro/chartGeometry";
+import { BoardPanel } from "@/components/macro/domain/BoardPanel";
 import type { components } from "@/lib/types";
 
 import { Tile } from "../Tile";
@@ -78,33 +79,34 @@ export function CbReservesPanel({ structural }: { structural: S }) {
   const sellers = known.filter((v) => (v.n as number) < 0);
 
   return (
-    <div style={{ display: "flex", flexDirection: "column", gap: 16 }}>
-      <h2
-        style={{
-          fontFamily: "var(--font-mono)",
-          fontSize: 12,
-          letterSpacing: 1.8,
-          textTransform: "uppercase",
-          color: "var(--text-primary, #cfd2db)",
-          margin: 0,
-        }}
-      >
-        CENTRAL BANKS · 12M NET, THREE BUCKETS
-      </h2>
-
-      <GoldHoldingsVsPriceChart
-        goldHistory={structural.gold_history ?? []}
-        gldHistory={structural.gld_history ?? []}
-        cbCountryHistory={structural.cb_country_history ?? []}
-        width={GOLD_STRUCTURAL_WIDTH}
-        height={Math.round((GOLD_STRUCTURAL_WIDTH * 200) / 1040)}
-      />
+    <BoardPanel
+      id="cb-reserves"
+      title="Central banks · 12M net, three buckets"
+      questions={["Q5"]}
+      basis="REAL"
+      source={
+        <>
+          /api/gold/state structural · WGC official-sector series, summed over
+          12 months per bucket · {known.length} of {BUCKETS.length} buckets
+          reported
+        </>
+      }
+    >
+      <div className="chart">
+        <GoldHoldingsVsPriceChart
+          goldHistory={structural.gold_history ?? []}
+          gldHistory={structural.gld_history ?? []}
+          cbCountryHistory={structural.cb_country_history ?? []}
+          width={GOLD_STRUCTURAL_WIDTH}
+          height={Math.round((GOLD_STRUCTURAL_WIDTH * 200) / 1040)}
+        />
+      </div>
 
       <div
         style={{
           display: "grid",
           gridTemplateColumns: "repeat(3, minmax(0, 1fr))",
-          gap: 12,
+          gap: 8,
         }}
       >
         {values.map((b) => (
@@ -118,17 +120,7 @@ export function CbReservesPanel({ structural }: { structural: S }) {
         ))}
       </div>
 
-      <p
-        data-testid="cb-bucket-read"
-        style={{
-          fontFamily: "var(--font-mono)",
-          fontSize: 11,
-          lineHeight: 1.5,
-          color: "var(--text-secondary, #9aa3b2)",
-          margin: 0,
-          maxWidth: 900,
-        }}
-      >
+      <p data-testid="cb-bucket-read" className="read">
         The &ldquo;central banks are buying gold&rdquo; narrative needs
         unbundling.{" "}
         {known.length === 0 ? (
@@ -164,6 +156,6 @@ export function CbReservesPanel({ structural }: { structural: S }) {
           </>
         )}
       </p>
-    </div>
+    </BoardPanel>
   );
 }

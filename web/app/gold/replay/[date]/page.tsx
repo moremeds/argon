@@ -1,3 +1,10 @@
+// The board's class grammar, which `GoldCompassLayout` now renders on BOTH of its routes.
+//
+// It is scoped to `.board` and was imported only by `app/macro/layout.tsx`, so gold used
+// to carry an inline copy of the board's read-rail for this route alone — a second
+// implementation of one design, kept in step by hand. Importing the stylesheet here and
+// rendering inside `.board` below removes it: one design, two routes, one definition.
+import "@/app/macro/board.css";
 import { GoldCompassLayout } from "@/components/gold/GoldCompassLayout";
 import { GoldPostureNotice } from "@/components/gold/GoldPostureNotice";
 import type { GoldStateResponse } from "@/lib/api";
@@ -53,7 +60,11 @@ export default async function GoldReplayPage({
     );
   }
 
-  return <GoldCompassLayout state={value} replayDate={date} />;
+  return (
+    <div className="board">
+      <GoldCompassLayout state={value} replayDate={date} />
+    </div>
+  );
 }
 
 export const metadata = { title: "Gold Compass · Replay" };

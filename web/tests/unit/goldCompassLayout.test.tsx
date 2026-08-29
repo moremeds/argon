@@ -152,60 +152,72 @@ const FIXTURE: State = {
 };
 
 describe("GoldCompassLayout", () => {
-  it("renders every tier as a discrete region", () => {
+  // REWRITTEN 2026-08-29 to the board's own t5 panel set.
+  //
+  // Two regions this used to require are deliberately gone, and neither is a loss of
+  // information:
+  //
+  //  - the KPI STRIP. The board's t5 has none, and three of its five tiles said with less
+  //    context what the gauge and three-lens panels now say with more. The two that were
+  //    not otherwise stated — spot and feed health — became masthead chips, which is the
+  //    board's own idiom for a fact the tab is read AGAINST rather than one it is about.
+  //  - LENS 3 as its own region. The board folds valuation into "Three lenses", where its
+  //    percentile anchors are the meters; its published narrative rides there too, so the
+  //    engine's own sentence is not dropped along with the panel.
+  it("renders every board panel as a discrete region", () => {
     render(<GoldCompassLayout state={FIXTURE} />);
-    expect(
-      screen.getByRole("region", { name: /transmission gauge/i }),
-    ).toBeTruthy();
-    expect(screen.getByRole("region", { name: /kpi/i })).toBeTruthy();
-    // Lens 1 is TWO regions, not one. The board separates official-sector accumulation
-    // from western institutional flow because they are different behaviours with
-    // different reads; the merged panel promoted the strategic bucket to a headline and
-    // rode the other two in a sub-line.
-    expect(screen.getByRole("region", { name: /central banks/i })).toBeTruthy();
-    expect(
-      screen.getByRole("region", { name: /western institutional flows/i }),
-    ).toBeTruthy();
-    expect(
-      screen.getByRole("region", { name: /expression cost/i }),
-    ).toBeTruthy();
-    expect(screen.getByRole("region", { name: /lens 2/i })).toBeTruthy();
-    expect(screen.getByRole("region", { name: /lens 3/i })).toBeTruthy();
-    expect(screen.getByRole("region", { name: /anchor decay/i })).toBeTruthy();
-    // The manifest is a panel, not a footer: one that named only the inputs it managed
-    // to read presented a partial audit trail as a complete one.
-    expect(
-      screen.getByRole("region", { name: /input manifest/i }),
-    ).toBeTruthy();
+    for (const name of [
+      /transmission gauge/i,
+      /three lenses/i,
+      /anchor decay/i,
+      /expression cost/i,
+      // Lens 1 is TWO panels, not one. The board separates official-sector accumulation
+      // from western institutional flow because they are different behaviours with
+      // different reads; the merged panel promoted the strategic bucket to a headline and
+      // rode the other two in a sub-line.
+      /central banks/i,
+      /western institutional flows/i,
+      /cyclical readings/i,
+      // The manifest is a panel, not a footer: one that named only the inputs it managed
+      // to read presented a partial audit trail as a complete one.
+      /input manifest/i,
+    ]) {
+      expect(screen.getByRole("region", { name })).toBeTruthy();
+    }
   });
 
-  it("opens the tab on the gauge that governs how to read the rest", () => {
+  it("follows the board's own t5 order", () => {
     // The conformance audit found this tab content-complete and wrongly framed: the
     // gauge decides whether the cyclical lens means anything, and it was one tile in a
     // five-tile strip. The board opens the tab on it, so document order is the assertion.
     const { container } = render(<GoldCompassLayout state={FIXTURE} />);
-    const regions = [
-      ...container.querySelectorAll("section[role='region']"),
-    ].map((el) => el.getAttribute("aria-label"));
-    expect(regions[0]).toMatch(/transmission gauge/i);
-    expect(regions.indexOf("Expression cost")).toBeGreaterThan(
-      regions.indexOf("Western institutional flows"),
+    const labels = [...container.querySelectorAll("[role='region']")].map(
+      (el) => el.getAttribute("aria-label"),
     );
+    const at = (re: RegExp) => labels.findIndex((l) => l && re.test(l));
+
+    expect(at(/transmission gauge/i)).toBe(0);
+    // The gauge sits BESIDE the lenses it governs, which is the argument for the pairing.
+    expect(at(/three lenses/i)).toBe(1);
+    expect(at(/expression cost/i)).toBeGreaterThan(at(/anchor decay/i));
     // The board's own t5 order puts central banks before the western flows they are
     // routinely conflated with.
-    expect(regions.indexOf("Western institutional flows")).toBeGreaterThan(
-      regions.indexOf("Central banks"),
+    expect(at(/western institutional flows/i)).toBeGreaterThan(
+      at(/central banks/i),
     );
+    // The manifest closes the tab: an audit trail is read after what it audits.
+    expect(at(/input manifest/i)).toBe(labels.length - 1);
   });
 
-  it("gives every gold section a board question", () => {
-    // The board's acceptance test, carried onto a subtree that does not use BoardPanel:
-    // "every panel must answer at least one, or it gets deleted".
+  it("gives every gold panel a board question", () => {
+    // The board's acceptance test: "every panel must answer at least one, or it gets
+    // deleted". `BoardPanel` makes it a type error to omit; this is the render-side check
+    // that nothing reaches the page around it.
     const { container } = render(<GoldCompassLayout state={FIXTURE} />);
-    for (const section of container.querySelectorAll(
-      "section[role='region']",
-    )) {
-      expect(section.getAttribute("data-questions")).toMatch(
+    const panels = [...container.querySelectorAll("[role='region']")];
+    expect(panels.length).toBeGreaterThan(0);
+    for (const panel of panels) {
+      expect(panel.getAttribute("data-questions")).toMatch(
         /^Q[1-7]( Q[1-7])*$/,
       );
     }
@@ -341,9 +353,7 @@ describe("GoldCompassLayout", () => {
     );
     expect(onDesk.queryByLabelText("REPLAY")).toBeNull();
     // ...and the rest of the cockpit is untouched by the suppression.
-    expect(
-      onDesk.getByRole("region", { name: /central banks/i }),
-    ).toBeTruthy();
+    expect(onDesk.getByRole("region", { name: /central banks/i })).toBeTruthy();
   });
 
   it("wears the Gold Compass lockup standalone and the board's heading on the desk", () => {

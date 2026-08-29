@@ -1,7 +1,7 @@
+import { BoardPanel } from "@/components/macro/domain/BoardPanel";
 import type { components } from "@/lib/types";
 
 import { Tile } from "./Tile";
-import { goldReadStyle } from "./readStyle";
 
 type Gauge = components["schemas"]["GoldGaugeState"];
 
@@ -84,42 +84,36 @@ export function TransmissionGaugePanel({ gauge }: { gauge: Gauge }) {
       : null;
 
   return (
-    <div style={{ display: "flex", flexDirection: "column", gap: 12 }}>
-      <div
-        style={{
-          display: "flex",
-          alignItems: "baseline",
-          gap: 12,
-          flexWrap: "wrap",
-          justifyContent: "space-between",
-        }}
-      >
-        <h2
-          style={{
-            fontFamily: "var(--font-mono)",
-            fontSize: 12,
-            letterSpacing: 1.8,
-            textTransform: "uppercase",
-            color: "var(--text-primary, #cfd2db)",
-            margin: 0,
-          }}
-        >
-          TRANSMISSION GAUGE · GOLD ↔ DFII10
-        </h2>
-        <span
-          style={{
-            fontFamily: "var(--font-mono)",
-            fontSize: 11,
-            letterSpacing: 1.5,
-            color:
-              regime.tone === "warning"
-                ? "var(--warning, #f5a623)"
-                : regime.tone === "positive"
-                  ? "var(--positive, #05ad98)"
-                  : "var(--text-secondary, #9aa3b2)",
-          }}
-        >
-          {regime.label}
+    <BoardPanel
+      id="transmission-gauge"
+      title="Transmission gauge · correlation collapse"
+      questions={["Q4", "Q7"]}
+      basis="REAL"
+      source={
+        <>
+          /api/gold/state gauge · rolling gold ↔ DFII10 correlation at four
+          windows, as the posture engine stored them
+        </>
+      }
+    >
+      <div className="lgd">
+        <span>
+          gate{" "}
+          <b
+            style={{
+              color:
+                regime.tone === "warning"
+                  ? "var(--warning)"
+                  : regime.tone === "positive"
+                    ? "var(--positive)"
+                    : "var(--text-secondary)",
+            }}
+          >
+            {regime.label}
+          </b>
+        </span>
+        <span>
+          {present.length} of {WINDOWS.length} windows computed
         </span>
       </div>
 
@@ -128,7 +122,7 @@ export function TransmissionGaugePanel({ gauge }: { gauge: Gauge }) {
         style={{
           display: "grid",
           gridTemplateColumns: `repeat(${WINDOWS.length}, minmax(0, 1fr))`,
-          gap: 12,
+          gap: 8,
         }}
       >
         {WINDOWS.map((w) => (
@@ -145,7 +139,7 @@ export function TransmissionGaugePanel({ gauge }: { gauge: Gauge }) {
         ))}
       </div>
 
-      <p data-testid="gold-gauge-read" style={goldReadStyle}>
+      <p data-testid="gold-gauge-read" className="read">
         {spread === null ? (
           <>
             Fewer than two correlation windows are available, so there is no
@@ -179,6 +173,6 @@ export function TransmissionGaugePanel({ gauge }: { gauge: Gauge }) {
         )}{" "}
         {regime.body}
       </p>
-    </div>
+    </BoardPanel>
   );
 }

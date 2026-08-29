@@ -1,8 +1,7 @@
+import { BoardPanel } from "@/components/macro/domain/BoardPanel";
 import type { components } from "@/lib/types";
 
-import { Tile } from "./Tile";
 import { PersistOnlyBadge } from "./chips/PersistOnlyBadge";
-import { goldReadStyle } from "./readStyle";
 
 type S = components["schemas"]["GoldStructuralPostureModel"];
 
@@ -23,39 +22,32 @@ export function ExpressionCostPanel({ structural }: { structural: S }) {
   const n = raw === null || raw === undefined ? NaN : Number(raw);
 
   return (
-    <div style={{ display: "flex", flexDirection: "column", gap: 12 }}>
-      <h2
-        style={{
-          fontFamily: "var(--font-mono)",
-          fontSize: 12,
-          letterSpacing: 1.8,
-          textTransform: "uppercase",
-          color: "var(--text-primary, #cfd2db)",
-          margin: 0,
-        }}
-      >
-        EXPRESSION COST · WHAT THE OPTION MARKET CHARGES
-      </h2>
-
-      <div
-        style={{
-          display: "grid",
-          gridTemplateColumns: "repeat(auto-fit, minmax(200px, 240px))",
-          gap: 12,
-        }}
-      >
-        <Tile
-          label="UW 25Δ SKEW"
-          // Two decimals, not the stored precision. The raw field is a full-precision
-          // decimal string and interpolating it printed sixteen significant figures
-          // against a "sigma" suffix -- a claim of measurement precision the reading
-          // does not have.
-          value={Number.isFinite(n) ? `${n.toFixed(2)}σ` : "—"}
-          sub={<PersistOnlyBadge />}
-        />
+    <BoardPanel
+      id="expression-cost"
+      title="Expression cost · what the option market charges"
+      questions={["Q2", "Q7"]}
+      basis="REAL"
+      source={
+        <>
+          /api/gold/state structural.uw_25d_skew_sigma · captured and stored; no
+          model on this desk consumes it
+        </>
+      }
+    >
+      {/* The board's `.big` — one headline number, because the panel answers one
+          question. Two decimals, not the stored precision: the raw field is a
+          full-precision decimal string and interpolating it printed sixteen significant
+          figures against a "sigma" suffix, a claim of measurement precision the reading
+          does not have. */}
+      <div className="big num">
+        {Number.isFinite(n) ? `${n.toFixed(2)}σ` : "—"}{" "}
+        <small>UW 25Δ skew</small>
+      </div>
+      <div>
+        <PersistOnlyBadge />
       </div>
 
-      <p style={goldReadStyle}>
+      <p className="read">
         {Number.isFinite(n) ? (
           <>
             The 25-delta skew, in standard deviations of its own history. It
@@ -73,6 +65,6 @@ export function ExpressionCostPanel({ structural }: { structural: S }) {
         It is stored and displayed; nothing on this desk consumes it, so it
         carries no posture of its own.
       </p>
-    </div>
+    </BoardPanel>
   );
 }

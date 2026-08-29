@@ -1,3 +1,4 @@
+import { BoardPanel } from "@/components/macro/domain/BoardPanel";
 import type { components } from "@/lib/types";
 
 type Provenance = components["schemas"]["GoldInputProvenance"];
@@ -78,45 +79,25 @@ export function InputManifestPanel({ obsDate, computedAt, inputsUsed }: Props) {
     .sort((a, b) => (b.age as number) - (a.age as number));
 
   return (
-    <div style={{ display: "flex", flexDirection: "column", gap: 14 }}>
-      <h2
-        style={{
-          fontFamily: "var(--font-mono)",
-          fontSize: 12,
-          letterSpacing: 1.8,
-          textTransform: "uppercase",
-          color: "var(--text-primary, #cfd2db)",
-          margin: 0,
-        }}
-      >
-        INPUT MANIFEST · WHAT THE LENSES ACTUALLY READ
-      </h2>
-
-      <div
-        data-testid="gold-manifest-coverage"
-        style={{
-          fontFamily: "var(--font-mono)",
-          fontSize: 22,
-          fontWeight: 700,
-          color: "var(--text-primary, #cfd2db)",
-        }}
-      >
+    <BoardPanel
+      id="input-manifest"
+      title="Input manifest · what the lenses actually read"
+      questions={["Q7"]}
+      basis="REAL"
+      source={
+        <>
+          /api/gold/state inputs_used · observation {obsDate}, computed{" "}
+          {computedAt} · declared inputs and their per-series provenance, read
+          and unread alike
+        </>
+      }
+    >
+      <div className="big num" data-testid="gold-manifest-coverage">
         {read.length} read of {entries.length} declared
-        {coverage !== null && (
-          <span
-            style={{
-              fontSize: 13,
-              fontWeight: 400,
-              color: "var(--text-muted, #6b7280)",
-            }}
-          >
-            {" "}
-            = {coverage}% coverage
-          </span>
-        )}
+        {coverage !== null && <small> = {coverage}% coverage</small>}
       </div>
 
-      <p style={{ ...mono, margin: 0, lineHeight: 1.6, maxWidth: 900 }}>
+      <p className="read">
         Every gold reading on this tab is produced from {read.length} inputs.
         {omitted.length > 0 && (
           <>
@@ -141,51 +122,31 @@ export function InputManifestPanel({ obsDate, computedAt, inputsUsed }: Props) {
       </p>
 
       {stale.length > 0 && (
-        <div style={{ overflowX: "auto" }}>
-          <table
-            data-testid="gold-manifest-stale"
-            style={{ ...mono, borderCollapse: "collapse", minWidth: 420 }}
-          >
-            <caption
-              style={{
-                ...mono,
-                textAlign: "left",
-                paddingBottom: 6,
-                color: "var(--text-muted, #6b7280)",
-              }}
-            >
-              READ, AND OLDER THAN {STALE_AFTER_DAYS}D AT THIS OBSERVATION
+        <div className="tbl-wrap">
+          <table data-testid="gold-manifest-stale">
+            <caption style={{ textAlign: "left" }}>
+              <span className="cap">
+                Read, and older than {STALE_AFTER_DAYS}d at this observation
+              </span>
             </caption>
             <thead>
-              <tr style={{ color: "var(--text-muted, #6b7280)" }}>
-                <th style={{ textAlign: "left", padding: "3px 18px 3px 0" }}>
-                  INPUT
-                </th>
-                <th style={{ textAlign: "left", padding: "3px 18px 3px 0" }}>
-                  OBS
-                </th>
-                <th style={{ textAlign: "right", padding: "3px 0" }}>AGE</th>
+              <tr>
+                <th>Input</th>
+                <th>Obs</th>
+                <th className="num">Age</th>
               </tr>
             </thead>
             <tbody>
               {stale.map(({ sid, prov, age }) => (
                 <tr key={sid}>
-                  <td style={{ padding: "3px 18px 3px 0" }}>
+                  <td>
                     {sid}
                     {prov.lens && prov.lens.length > 0 && (
                       <> [{prov.lens.join("/")}]</>
                     )}
                   </td>
-                  <td style={{ padding: "3px 18px 3px 0" }}>{prov.obs_date}</td>
-                  <td
-                    style={{
-                      padding: "3px 0",
-                      textAlign: "right",
-                      fontVariantNumeric: "tabular-nums",
-                    }}
-                  >
-                    ~{age}d
-                  </td>
+                  <td>{prov.obs_date}</td>
+                  <td className="num">~{age}d</td>
                 </tr>
               ))}
             </tbody>
@@ -193,16 +154,15 @@ export function InputManifestPanel({ obsDate, computedAt, inputsUsed }: Props) {
         </div>
       )}
 
+      {/* The two omission lists are kept APART and styled apart, because they are
+          different facts: a required input that was not read is a pipeline gap, and an
+          optional one is a scope decision somebody made on purpose. One merged list would
+          let the first hide inside the second. */}
       {gaps.length > 0 && (
-        <ul
-          data-testid="gold-manifest-gaps"
-          style={{ ...mono, margin: 0, paddingLeft: 18, lineHeight: 1.6 }}
-        >
+        <ul className="tight" data-testid="gold-manifest-gaps">
           {gaps.map(([sid, prov]) => (
             <li key={sid}>
-              <b style={{ color: "var(--negative, #e85d6c)" }}>
-                {sid} · required
-              </b>
+              <b style={{ color: "var(--negative)" }}>{sid} · required</b>
               {prov.omission_reason && <> — {prov.omission_reason}</>}
             </li>
           ))}
@@ -211,14 +171,9 @@ export function InputManifestPanel({ obsDate, computedAt, inputsUsed }: Props) {
 
       {decisions.length > 0 && (
         <ul
+          className="tight"
           data-testid="gold-manifest-decisions"
-          style={{
-            ...mono,
-            margin: 0,
-            paddingLeft: 18,
-            lineHeight: 1.6,
-            color: "var(--text-muted, #6b7280)",
-          }}
+          style={{ color: "var(--text-muted)" }}
         >
           {decisions.map(([sid, prov]) => (
             <li key={sid}>
@@ -233,17 +188,9 @@ export function InputManifestPanel({ obsDate, computedAt, inputsUsed }: Props) {
         </ul>
       )}
 
-      <div
-        style={{
-          fontFamily: "var(--font-mono)",
-          fontSize: 10,
-          letterSpacing: 1.2,
-          textTransform: "uppercase",
-          color: "var(--text-muted, #6b7280)",
-        }}
-      >
-        LENS HEURISTICS · v1 · obs {obsDate} · computed {computedAt}
-      </div>
-    </div>
+      <p className="cap">
+        Lens heuristics · v1 · obs {obsDate} · computed {computedAt}
+      </p>
+    </BoardPanel>
   );
 }

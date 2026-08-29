@@ -57,6 +57,7 @@ export function BoardPanel({
   basis,
   sourceLabel = "Source",
   source,
+  dim = false,
   children,
 }: {
   id: string;
@@ -68,15 +69,34 @@ export function BoardPanel({
   /** What the body stood on: the endpoint and field for `REAL`, the formula for
    *  `COMPUTED`, the absent data path for `PLANNED`. */
   source: ReactNode;
+  /**
+   * The board's `.panel.dim` — 0.68 opacity.
+   *
+   * For one situation only: the panel's readings are still true of their own inputs, but
+   * a condition published ELSEWHERE says they should not be leaned on. Gold's cyclical
+   * lens under a suspended transmission gauge is the case it exists for. It is not a
+   * severity, not a staleness marker, and never a substitute for saying why — a dimmed
+   * panel must still carry the sentence naming what dimmed it, or it reads as broken.
+   */
+  dim?: boolean;
   children: ReactNode;
 }) {
   return (
     <div
       id={id}
-      className="panel"
+      className={dim ? "panel dim" : "panel"}
       data-testid={`board-panel-${id}`}
       data-questions={questions.join(" ")}
       data-basis={basis}
+      data-dim={dim ? "true" : undefined}
+      // The board's markup is a bare `<div class="panel">`. The role and label are added
+      // here because a panel IS a discrete labelled division of the tab's content, and
+      // that is what the landmark is for — a screen reader otherwise gets eleven
+      // unannounced divs where a sighted reader gets eleven framed panels. Nothing about
+      // the visual design changes; `.panel-h h3` already carries the same words, and the
+      // label points at it rather than duplicating a different string.
+      role="region"
+      aria-label={title}
     >
       <div className="panel-h">
         <h3>{title}</h3>
