@@ -13,7 +13,12 @@ import type {
   MacroDomainState,
   MacroOverviewSlot,
 } from "@/components/macro/types";
+import type { components } from "@/lib/types";
 import FIXTURE from "../fixtures/macroDomainStates.json";
+import {
+  POLICY_COMPARISON,
+  POLICY_COMPARISON_WITH_MARKET_PATH,
+} from "./rates/fixture";
 
 /**
  * The macro desk's invariant home, re-pointed by P5 from `MacroDesk` to `OverviewDesk`.
@@ -33,6 +38,7 @@ const D = FIXTURE.domains as unknown as Record<string, MacroDomainState>;
 const LIVE: ReplayVerdict = { kind: "not_replaying" };
 
 type DomainSlots = Record<MacroDomainKey, MacroOverviewSlot<MacroDomainState>>;
+type PolicyComparison = components["schemas"]["PolicyComparison"];
 
 /** One domain publisher's slot. Not generic: `slot(null)` would infer `T = null`. */
 function dom(
@@ -90,7 +96,7 @@ function Desk(props: {
   domains: DomainSlots;
   snapshot: MacroOverviewSlot<MacroContextSnapshot>;
   week?: DomainWeek;
-  policy?: { value: null; error?: string };
+  policy?: { value: PolicyComparison | null; error?: string };
   deltas?: DeltaSeries[];
   gauge?: { value: null; error?: string };
 }) {
@@ -186,6 +192,47 @@ function snapshot(
     ...over,
   } as MacroContextSnapshot;
 }
+
+describe("OverviewDesk — market-implied probability bars", () => {
+  it("renders the same live Frenzy meeting bars as the Fed tab", () => {
+    render(
+      <Desk
+        domains={slots()}
+        snapshot={NO_SNAPSHOT}
+        policy={{ value: POLICY_COMPARISON_WITH_MARKET_PATH }}
+      />,
+    );
+
+    const panel = screen.getByTestId("board-panel-fomc-calendar");
+    expect(
+      within(panel).getAllByTestId("market-implied-probability-bar"),
+    ).toHaveLength(3);
+    expect(
+      within(panel).queryByTestId("macro-market-implied-refusal"),
+    ).toBeNull();
+    expect(panel.textContent).toContain("Hike 25 bp · 55.7 %");
+    expect(panel.textContent).toContain("Hold · 44.3 %");
+    expect(panel.textContent).toContain("frenzy_capital");
+  });
+
+  it("keeps the publisher refusal when the market path is absent", () => {
+    render(
+      <Desk
+        domains={slots()}
+        snapshot={NO_SNAPSHOT}
+        policy={{ value: POLICY_COMPARISON }}
+      />,
+    );
+
+    const refusal = screen.getByTestId("macro-market-implied-refusal");
+    expect(refusal.textContent).toContain(
+      "optional third-party shadow and is not enabled",
+    );
+    expect(
+      screen.queryByTestId("market-implied-probability-bar"),
+    ).toBeNull();
+  });
+});
 
 describe("OverviewDesk — the four domain states", () => {
   it("renders the four domains in causal order, not as four peers", () => {

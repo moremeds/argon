@@ -5,6 +5,7 @@ import { FedDesk } from "@/components/rates/FedDesk";
 import {
   COMPARISON_WITH_REJECTED_PATH,
   POLICY_COMPARISON,
+  POLICY_COMPARISON_WITH_MARKET_PATH,
   POLICY_RATES_STATE,
   SNAPSHOT,
   STALE_POLICY_RATES_STATE,
@@ -188,6 +189,38 @@ describe("FedDesk", () => {
 
     expect(screen.getByText(/Rates API unavailable/)).toBeTruthy();
     expect(screen.getByText(/The rates API request failed/)).toBeTruthy();
+  });
+
+  it("sizes only positive market buckets while preserving the full publisher distribution", () => {
+    render(
+      <FedDesk
+        snapshot={SNAPSHOT}
+        policyComparison={POLICY_COMPARISON_WITH_MARKET_PATH}
+      />,
+    );
+
+    const bars = screen.getAllByTestId("market-implied-probability-bar");
+    expect(bars).toHaveLength(3);
+
+    const first = bars[0];
+    expect(first.getAttribute("aria-label")).toContain("Cut 50 bp 0.0%");
+    expect(first.getAttribute("aria-label")).toContain("Hike 50 bp 0.0%");
+
+    const segments = Array.from(
+      first.querySelectorAll<HTMLElement>("[data-probability-segment]"),
+    );
+    expect(segments).toHaveLength(2);
+    expect(segments.map((segment) => segment.textContent)).toEqual([
+      "Hike 25 bp · 55.7 %",
+      "Hold · 44.3 %",
+    ]);
+    expect(segments.map((segment) => segment.style.flexGrow)).toEqual([
+      "55.7",
+      "44.3",
+    ]);
+    expect(segments.every((segment) => segment.style.flexBasis === "0px")).toBe(
+      true,
+    );
   });
 
   describe("evidence-first presentation", () => {

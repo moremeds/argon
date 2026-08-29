@@ -1,16 +1,17 @@
+import { BoardRead } from "@/components/macro/domain/BoardPanel";
+import { MarketImpliedMeetingBars } from "@/components/macro/MarketImpliedMeetingBars";
+
 import styles from "../RatesDesk.module.css";
-import { fmtValue } from "../format";
 import type { PolicyPathSlot } from "../types";
 
 /**
  * Board t1 — "Per-meeting odds · market-implied" (Q2, Q6).
  *
- * ### Why this panel exists when the data does not
+ * ### Why this panel survives both available and unavailable publisher states
  *
- * `/api/macro/policy` returns `market_implied` as a THREE-STATE slot, and today it is in
- * its third state: `path` is null and `missing_reason` reads "no PIT-eligible market
- * implied policy release". The board still gives it a panel, and shipping without one was
- * the difference between two claims the desk must never confuse:
+ * `/api/macro/policy` returns `market_implied` as a THREE-STATE slot. A live Frenzy path
+ * renders through the same meeting-bar component as Overview; a missing path remains a
+ * named refusal. Keeping both branches prevents the desk from confusing two claims:
  *
  * - **absent panel** — "this desk does not cover market-implied odds"
  * - **panel with a refusal** — "this desk covers them, and the publisher had nothing"
@@ -80,53 +81,19 @@ export function MarketImpliedOddsSection({
   }
 
   return (
-    <div className={styles.supplyTableWrap}>
-      <table className={styles.supplyTable}>
-        <thead>
-          <tr>
-            <th>Meeting</th>
-            <th>Implied rate</th>
-            {/* The board's panel is "per-meeting ODDS", and the odds live in each
-                point's `probability_distribution`. A point that carries none prints the
-                implied rate alone rather than an empty column, because a meeting the
-                publisher priced without a distribution is not a meeting it skipped. */}
-            <th>Distribution</th>
-          </tr>
-        </thead>
-        <tbody>
-          {points.map((point) => (
-            <tr key={point.horizon}>
-              <td>
-                <strong>{point.horizon}</strong>
-                {point.horizon_date && <small>{point.horizon_date}</small>}
-              </td>
-              <td>{fmtValue(point.rate_percent, "%", 2)}</td>
-              <td>
-                {(point.probability_distribution ?? []).length === 0
-                  ? "—"
-                  : (point.probability_distribution ?? [])
-                      .map(
-                        (bucket) =>
-                          `${bucket.label} ${fmtValue(
-                            bucket.probability_percent,
-                            "%",
-                            0,
-                          )}`,
-                      )
-                      .join(" · ")}
-              </td>
-            </tr>
-          ))}
-        </tbody>
-      </table>
-      {slot.path?.release_date && (
-        <p className={styles.positioningRead}>
+    <>
+      <MarketImpliedMeetingBars points={points} />
+      <BoardRead>
+        Each probability bar is the publisher&apos;s per-meeting distribution;
+        the implied rate is the corresponding path point. The stored releases
+        remain separate and are never averaged with committee or dealer views.
+      </BoardRead>
+      {slot.path?.release_date ? (
+        <p className="cap">
           Released {slot.path.release_date} by{" "}
-          {slot.path.source ?? "an unnamed publisher"}. Each release is read
-          against its own date — an older one says nothing about the weeks
-          since.
+          {slot.path.source ?? "an unnamed publisher"}.
         </p>
-      )}
-    </div>
+      ) : null}
+    </>
   );
 }

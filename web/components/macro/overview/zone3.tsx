@@ -1,6 +1,7 @@
 import type { components } from "@/lib/types";
 
 import { ConfidenceArithmetic } from "../ConfidenceArithmetic";
+import { MarketImpliedMeetingBars } from "../MarketImpliedMeetingBars";
 import { plural } from "../format";
 import { BoardPanel, BoardRead, BoardRefusal } from "../domain/BoardPanel";
 import type {
@@ -25,15 +26,12 @@ type PolicyComparison = components["schemas"]["PolicyComparison"];
 /**
  * PANEL 8 · FOMC calendar × what the market prices.
  *
- * ### Half of this panel refuses, and that is the shipped state
+ * ### The panel follows the market-implied publisher's three states
  *
- * The board draws a probability bar per meeting — hike/hold against cut — sourced from the
- * market-implied lane. On this desk that lane publishes `missing_reason` instead of a
- * path, so there are no probabilities to split a bar with. The panel therefore renders
- * the dated meetings it DOES have, from the lanes that published, and states the refusal
- * in the publisher's own words rather than drawing a bar out of the two lanes that
- * remain. A dealer survey is not a market price and a bar built from one, labelled as the
- * other, would be the panel lying about its own source.
+ * The board draws one probability bar per meeting from `market_implied.path.points`.
+ * Frenzy now supplies that path, so this panel shares Fed's renderer. If the path is
+ * absent, the publisher's reason remains visible; dealer and committee expectations are
+ * never substituted under a market-pricing heading.
  */
 export function FomcCalendarPanel({
   policy,
@@ -41,35 +39,25 @@ export function FomcCalendarPanel({
   policy: { value: PolicyComparison | null; error?: string };
 }) {
   const p = policy.value;
-  const dealer = p?.dealer_expectations;
-  const committee = p?.committee_projection;
-  const marketReason = p?.market_implied?.missing_reason;
-  const actualRate = Number(p?.actual?.path?.points?.[0]?.rate_percent);
-
-  /** Dated horizons from whichever lane published them, nearest first. These are meeting
-   *  dates and year-ends, which is what the two lanes publish — not our calendar. */
-  const meetings = (dealer?.path?.points ?? [])
-    .map((pt) => ({
-      horizon: pt.horizon,
-      date: pt.horizon_date ?? null,
-      rate: Number(pt.rate_percent),
-    }))
-    .filter((m) => m.date && Number.isFinite(m.rate))
-    .sort((a, b) => (a.date ?? "").localeCompare(b.date ?? ""))
-    .slice(0, 4);
+  const marketSlot = p?.market_implied;
+  const marketPoints = marketSlot?.path?.points ?? [];
+  const marketReason = marketSlot?.missing_reason;
+  const marketSource = marketSlot?.path?.source ?? "market-implied publisher";
 
   return (
     <BoardPanel
       id="fomc-calendar"
-      title="FOMC calendar × what each lane expects"
+      title="FOMC calendar × what the market prices"
       questions={["Q2", "Q6"]}
       basis="REAL"
       source={
-        <>
-          /api/macro/policy · dealer_expectations horizons (NY Fed SME survey)
-          and the committee&rsquo;s SEP · the market-implied lane publishes no
-          path on this desk
-        </>
+        marketPoints.length > 0 ? (
+          <>
+            /api/macro/policy · market_implied.path.points · {marketSource}
+          </>
+        ) : (
+          <>/api/macro/policy · market_implied.missing_reason</>
+        )
       }
     >
       {!p ? (
@@ -79,63 +67,34 @@ export function FomcCalendarPanel({
         </p>
       ) : (
         <>
-          {meetings.map((m) => {
-            const drift = Number.isFinite(actualRate)
-              ? m.rate - actualRate
-              : null;
-            return (
-              <div className="meet" key={`${m.horizon}-${m.date}`}>
-                <div className="meet-h">
-                  <b>{m.horizon}</b>
-                  <span className="num">
-                    {m.rate.toFixed(3)}%
-                    {drift !== null ? (
-                      <span
-                        className={
-                          drift > 0
-                            ? "delta-up"
-                            : drift < 0
-                              ? "delta-dn"
-                              : "delta-flat"
-                        }
-                      >
-                        {" "}
-                        {drift > 0 ? "+" : drift < 0 ? "−" : "±"}
-                        {Math.abs(drift * 100).toFixed(0)}bp vs current
-                      </span>
-                    ) : null}
-                  </span>
-                </div>
-              </div>
-            );
-          })}
-
-          {meetings.length === 0 ? (
-            <p className="cap">
-              No dated horizon was published by any lane, so there is no
-              calendar to show.
-            </p>
-          ) : null}
-
-          <BoardRefusal
-            kind="HONEST BOUNDARY"
-            testId="macro-market-implied-refusal"
-          >
-            The board draws a per-meeting probability bar here. This desk
-            cannot:{" "}
-            {marketReason ?? "the market-implied lane published no path"}. The
-            dealer and committee lanes above are expectations, not prices, and a
-            bar built from them under a &ldquo;what the market prices&rdquo;
-            heading would misname its own source. The bar returns when the lane
-            does.
-          </BoardRefusal>
-
-          {committee?.path?.release_date ? (
-            <p className="cap">
-              Committee projection as released {committee.path.release_date};
-              dealer survey {dealer?.path?.release_date ?? "undated"}.
-            </p>
-          ) : null}
+          {marketPoints.length > 0 ? (
+            <>
+              <MarketImpliedMeetingBars points={marketPoints} />
+              <BoardRead>
+                These are the publisher&apos;s per-meeting probabilities, not a
+                synthesized probability of ours. Zero-probability outcomes
+                remain in each bar&apos;s accessible distribution without acquiring
+                visual width.
+              </BoardRead>
+              {marketSlot?.path?.release_date ? (
+                <p className="cap">
+                  Released {marketSlot.path.release_date} by {marketSource}.
+                </p>
+              ) : null}
+            </>
+          ) : (
+            <BoardRefusal
+              kind="HONEST BOUNDARY"
+              testId="macro-market-implied-refusal"
+            >
+              The board draws a per-meeting probability bar here. This desk
+              cannot:{" "}
+              {marketReason ?? "the market-implied lane published no path"}. The
+              dealer and committee lanes are expectations, not prices, and a bar
+              built from them under a &ldquo;what the market prices&rdquo; heading
+              would misname its own source. The bar returns when the lane does.
+            </BoardRefusal>
+          )}
         </>
       )}
     </BoardPanel>

@@ -739,20 +739,12 @@
 /* ── meeting probability bars (tab 00 zone 3, tab 01) ────────────────────────
  *
  * One row per dated meeting: a header carrying the date and the priced rate, then a
- * proportional two-segment bar. `.hk` (hike/hold) is warm and `.hd` (cut) is cool, and
- * the cut segment right-aligns its own label so the two numbers sit at the outer edges.
+ * proportional segmented bar. `.hk` is hike/warm, `.hd` is hold/cool, and a future
+ * non-zero `.ct` bucket uses the positive teal vocabulary.
  *
- * `.meet` / `.meet-h` RENDER. `.pbar` DOES NOT, and it is the one board element the desk
- * does not currently draw anywhere — measured by `scripts/board-pixel-compare.mjs`, which
- * reports it as the sole gap in grammar coverage.
- *
- * That is a data fact, verified rather than assumed (2026-08-29): `/api/macro/policy`
- * carries `probability_distribution` on zero of its 21 points across all four lanes, the
- * market-implied lane publishes `missing_reason` instead of a path, and
- * `/api/rates/snapshot` has no `market_implied` block at all. There is no probability on
- * this desk to split a bar with, so both tabs state the refusal in the publisher's own
- * words instead. The rule stays so the bar's return is a markup change and not a second
- * porting job.
+ * These render only when the market-implied publisher supplies per-meeting
+ * `probability_distribution` buckets. A missing path stays an explicit refusal; the UI
+ * never invents percentages merely to keep the approved bars visible.
  */
 .board .meet {
   display: flex;
@@ -792,6 +784,8 @@
   color: var(--accent-text);
   white-space: nowrap;
   overflow: hidden;
+  box-sizing: border-box;
+  min-width: 0;
 }
 .board .pbar .hk {
   background: var(--warning);
@@ -799,6 +793,9 @@
 .board .pbar .hd {
   background: var(--accent-cool);
   justify-content: flex-end;
+}
+.board .pbar .ct {
+  background: var(--positive);
 }
 
 /* ── contradiction feed ──
