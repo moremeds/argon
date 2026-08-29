@@ -315,3 +315,84 @@ Recorded because each was wrong in a way that would have shipped:
    carried the wrong ones, because the panel derives them at render time.
 3. The gold perf deviation (§4.5, "262 correlation gauges per request") measured
    **50ms** on re-test. Real when written, stale when inherited.
+
+---
+
+## §9 The design port — 2026-08-29, second pass
+
+§8 above closed on **panel inventory**: 47/47 board panels present, every one bound
+to live data. That was the wrong finish line. The operator's words:
+
+> "the 1 to 1 same design and data and binding as the artifact"
+
+Binding the information and not the design is invisible to every check that was
+run, which is why it survived a pass that reported 47/47. Measured rather than
+argued: `web/scripts/board-pixel-compare.mjs`.
+
+### What the second pass found
+
+| Tab | Before | Now |
+| --- | --- | --- |
+| t0 Overview | house inline styles, **0** board classes, no zones, no chain rail | 4 zones, 11 `.panel`s, `.chain` rail |
+| t5 Gold | 9 full-width hairline bands, house panel idiom | board grid: g2/g2/g3 + manifest, 8 `BoardPanel`s |
+| t1 Fed | **0** grids — every panel full-width | 3 × `grid g2`, zone banners |
+| t2 Rates | **0** grids — 7839px against the board's 3982 | `g3` + `g3` + `g2`, 6764px |
+| desk-wide | no provenance key, no Q1–Q7 strip | `BoardLegend` in the layout |
+
+`board.css` gained the half of the grammar the first port skipped — `.zone`,
+`.chain`/`.node`/`.arrow`/`.edge-note`, `.contra`, `.conf`, `.meter`, `.meet`/`.pbar`,
+`.chart`, `.cap`, `.lgd`, `.ghost`, `.g4`, `.dir`, `ul.tight`, `.chip`/`.mast-meta`,
+`.legend-strip`/`.pmq`.
+
+### Why the comparison is not a bitmap diff
+
+The board's panels carry mock values frozen at its capture instant; the desk derives
+its own at render time, which is a rule of this port. A pixel subtraction is therefore
+dominated by digits and prose and says nothing about whether the design was ported —
+two pages can differ in every pixel and share a design. The script compares grammar
+coverage, computed style per selector, and full-page screenshots.
+
+### What it caught that reading the code did not
+
+- **The body type scale.** Board 13.5px/1.55, argon 13px/1.5, inherited by everything.
+  The single largest source of drift, and invisible in any per-component review.
+- **Every board table cell was rendering in mono.** `globals.css` styles bare `td` at
+  mono/12px; the board declares neither and inherits sans/12.5px — and an inherited
+  value always loses to a declaration however weak its specificity.
+- **Tabs 01/02 had no grid at all.** The class-coverage check missed this because
+  `.grid.g2` *did* render on the desk — on other tabs. Coverage must be per-tab.
+- **The desk had no key.** Sixty-odd `REAL`/`COMPUTED`/`PLANNED` and `Q1`–`Q7` chips
+  with nothing on the page defining them, while `BoardPanel` encodes those same
+  questions as a required type.
+
+### Result
+
+- Grammar coverage: **40 of 41** probed board elements render.
+- Computed-style diffs: **65 → 15**, all remaining traced to mock-vs-live data or to
+  the two pages opening with a different first instance of a class.
+- Height ratio (live ÷ board): gold 1.03, usd 1.08, overview 1.13, inflation 1.14,
+  energy 1.27, fed 1.34, factors 1.43, rates 1.70. The two outliers are content the
+  board's mock does not carry.
+
+### The one element that does not render, verified
+
+`.pbar`, the per-meeting probability bar. Not an oversight and not deferred:
+`/api/macro/policy` carries `probability_distribution` on **0 of its 21 points across
+all four lanes**, the market-implied lane publishes `missing_reason` instead of a path,
+and `/api/rates/snapshot` has no `market_implied` block. There is no probability on
+this desk to split a bar with, so t0 and t1 state the refusal in the publisher's own
+words. The CSS stays so the bar's return is a markup change.
+
+### Deliberate departures from the board's markup
+
+Both are element choices, not visual ones, and both are recorded beside the code:
+a zone label is an `<h2 class="zl">` and a rates panel is a `<section class="panel">`.
+The class carries every pixel; the element carries a landmark a screen reader can jump
+between.
+
+### Reproduce
+
+```bash
+cd web && node scripts/board-pixel-compare.mjs   # needs the dev server on :3002
+# report.json + 16 screenshots -> output/playwright/board-compare/
+```
