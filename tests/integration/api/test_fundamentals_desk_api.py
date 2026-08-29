@@ -945,7 +945,7 @@ def test_every_desk_field_is_required(desk_client):
     """
     schemas = desk_client.get("/openapi.json").json()["components"]["schemas"]
     names = _desk_model_names()
-    assert len(names) == 13, names  # the module's full model surface
+    assert len(names) == 20, names  # the module's full model surface
     for name in names:
         schema = schemas[name]
         optional = sorted(set(schema["properties"]) - set(schema.get("required", [])))

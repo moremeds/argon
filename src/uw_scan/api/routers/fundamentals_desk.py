@@ -48,12 +48,16 @@ from uw_scan.config import Settings
 from uw_scan.models import (
     DeltaRailResponse,
     DeskCalendarResponse,
+    DeskCapexResponse,
+    DeskCase,
     DeskLimitsResponse,
     DeskMatrixResponse,
     NodeUnderwritingRow,
     ProfitPoolLayer,
+    ScopeGroup,
 )
 from uw_scan.reports import fundamentals_desk as desk
+from uw_scan.reports import fundamentals_desk_spine as spine
 from uw_scan.reports.fundamentals_desk_inputs import UnknownChain
 from uw_scan.storage.repository import Repository
 
@@ -217,6 +221,58 @@ def desk_profit_pool(
 ) -> list[ProfitPoolLayer]:
     """Layers side by side. Descriptive — no arrows, by design."""
     return desk.profit_pool(
+        repo.conn, schema=settings.db_schema, domains=_domains(section)
+    )
+
+
+@router.get("/fundamentals/{section}/capex", response_model=DeskCapexResponse)
+def desk_capex(
+    section: str,
+    repo: Repository = Depends(get_repo),
+    settings: Settings = Depends(get_settings),
+) -> DeskCapexResponse:
+    """The section's customer panel and what it commits to capital spending.
+
+    Context, never edge — the figure is on every sell-side deck in the sector.
+    It is here because it is the desk's PREMISE: every revenue dollar
+    downstream is somebody else's capex, so a page cannot ask whether the
+    money transmits before establishing whether it is still coming.
+    """
+    return spine.desk_capex(
+        repo.conn, schema=settings.db_schema, domains=_domains(section)
+    )
+
+
+@router.get("/fundamentals/{section}/cases", response_model=list[DeskCase])
+def desk_cases(
+    section: str,
+    repo: Repository = Depends(get_repo),
+    settings: Settings = Depends(get_settings),
+) -> list[DeskCase]:
+    """The chains whose stages carry an explicit order, upstream first.
+
+    Both cases in ONE response on purpose. The funnels are drawn on a shared
+    radius scale so their silhouettes are comparable, and a scale computed
+    from a per-case request would be computed from a different population on
+    each page — the comparison would break silently rather than visibly.
+    """
+    return spine.desk_cases(
+        repo.conn, schema=settings.db_schema, domains=_domains(section)
+    )
+
+
+@router.get("/fundamentals/{section}/scope", response_model=list[ScopeGroup])
+def desk_scope(
+    section: str,
+    repo: Repository = Depends(get_repo),
+    settings: Settings = Depends(get_settings),
+) -> list[ScopeGroup]:
+    """The taxonomy groups this section does not cover, under their own names.
+
+    Computed as the complement of the section's domains rather than listed, so
+    the boundary cannot drift from the taxonomy it describes.
+    """
+    return spine.desk_scope(
         repo.conn, schema=settings.db_schema, domains=_domains(section)
     )
 

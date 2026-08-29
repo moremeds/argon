@@ -22,6 +22,7 @@ upsert_rows`, not `EarningsReactionsRepository`'s.
 from __future__ import annotations
 
 from collections.abc import Sequence
+from datetime import date
 from typing import Any
 
 import psycopg
@@ -91,6 +92,127 @@ class FundamentalsDeskRepository:
             )
             cols = [d.name for d in cur.description]
             return {row[0]: dict(zip(cols, row)) for row in cur.fetchall()}
+
+    def non_usd_currencies(self, tickers: Sequence[str]) -> dict[str, list[str]]:
+        """Per ticker, every non-USD currency the store has EVER recorded.
+
+        Two traps live in this one column. `reported_currency` arrives as the
+        literal STRING `'None'` on some observations (AMZN 2026-Q2, verified),
+        which is not SQL NULL and would sort into the result as a currency
+        named "None". And a name is USD-safe only if NO observation of it
+        carries another currency — testing the latest one alone would clear a
+        filer that switched, for exactly the historical periods where the
+        hazard is real.
+
+        Absent from the returned dict means USD-only; the value is never an
+        empty list.
+        """
+        if not tickers:
+            return {}
+        with self.conn.cursor() as cur:
+            cur.execute(
+                f"""SELECT DISTINCT ticker, raw_jsonb->>'reported_currency'
+                      FROM {self._schema}.fundamental_statement_obs
+                     WHERE ticker = ANY(%s)""",
+                ([t.upper() for t in tickers],),
+            )
+            found: dict[str, set[str]] = {}
+            for ticker, currency in cur.fetchall():
+                if currency in (None, "", "None", "USD"):
+                    continue
+                found.setdefault(ticker, set()).add(currency)
+        return {t: sorted(cs) for t, cs in found.items()}
+
+    def quarterly_line_item(
+        self,
+        tickers: Sequence[str],
+        *,
+        statement: str,
+        field: str,
+        since: date,
+    ) -> list[tuple[str, date, str]]:
+        """One filed quarterly line item, as FILED TEXT.
+
+        Returned unparsed on purpose: the store holds whatever the provider
+        served, and a `::numeric` cast in SQL turns one malformed string into
+        a 500 on a page read. The caller parses and drops what it cannot read,
+        which is a coverage fact it can then report.
+
+        `DISTINCT ON (ticker, period_end) ... ORDER BY obs_id DESC` takes the
+        NEWEST observation of each period. The statement store is append-only,
+        so a restated period holds several rows (MSFT 2026-06-30 carries two);
+        without the dedupe the period is double-counted in any sum.
+        """
+        if not tickers:
+            return []
+        with self.conn.cursor() as cur:
+            cur.execute(
+                f"""SELECT DISTINCT ON (ticker, period_end)
+                           ticker, period_end, raw_jsonb->>%s
+                      FROM {self._schema}.fundamental_statement_obs
+                     WHERE statement = %s AND period_type = 'quarterly'
+                       AND ticker = ANY(%s) AND period_end >= %s
+                       AND raw_jsonb->>%s IS NOT NULL
+                     ORDER BY ticker, period_end, obs_id DESC""",
+                (field, statement, [t.upper() for t in tickers], since, field),
+            )
+            return [(r[0], r[1], r[2]) for r in cur.fetchall()]
+
+    def chain_layers(
+        self, *, version: str, domains: Sequence[str]
+    ) -> dict[str, tuple[str, int]]:
+        """Per chain, the layer holding its LOWEST rank: `{chain: (layer, rank)}`.
+
+        Read from `research_chains` and NOT from the membership join, because
+        the two disagree exactly where it matters. The five `dc_buildout`
+        chains each carry an L3 row with NO open members plus a ranked stage
+        row that holds all of them, so a layer derived from memberships labels
+        `Cooling/Thermal` as layer `Cooling-Thermal` instead of `L3` — and the
+        chain map then has no plane to put it on. `layer_rank = 0` is what
+        "sits on a taxonomy layer plane" means; a chain whose lowest rank is
+        positive (`Optical-Communication`) is a case chain and belongs in a
+        funnel, not on a plane.
+        """
+        with self.conn.cursor() as cur:
+            cur.execute(
+                f"""SELECT DISTINCT ON (chain) chain, layer, layer_rank
+                      FROM {self._schema}.research_chains
+                     WHERE taxonomy_version = %s AND domain = ANY(%s)
+                     ORDER BY chain, layer_rank, layer""",
+                (version, list(domains)),
+            )
+            return {r[0]: (r[1], int(r[2] or 0)) for r in cur.fetchall()}
+
+    def chains_outside_domains(
+        self, *, version: str, domains: Sequence[str]
+    ) -> list[dict[str, Any]]:
+        """Open chains in the active taxonomy that this section does NOT cover.
+
+        The boundary is computed, not listed: a chain added to a domain outside
+        the section appears here without a code change, and one that moves INTO
+        the section leaves here without one. Counted at DISTINCT-ticker grain
+        because membership is (chain, layer, ticker)-grained.
+        """
+        with self.conn.cursor() as cur:
+            cur.execute(
+                f"""SELECT c.chain,
+                           array_agg(DISTINCT c.domain ORDER BY c.domain),
+                           count(DISTINCT m.ticker)
+                      FROM {self._schema}.research_chains c
+                      JOIN {self._schema}.chain_membership m
+                        ON m.taxonomy_version = c.taxonomy_version
+                       AND m.chain = c.chain AND m.layer = c.layer
+                       AND m.valid_to IS NULL
+                     WHERE c.taxonomy_version = %s
+                       AND NOT (c.domain = ANY(%s))
+                     GROUP BY c.chain
+                     ORDER BY count(DISTINCT m.ticker) DESC, c.chain""",
+                (version, list(domains)),
+            )
+            return [
+                {"chain": r[0], "domains": list(r[1]), "members": int(r[2])}
+                for r in cur.fetchall()
+            ]
 
     def trajectory(self, ticker: str, quarters: int = 8) -> list[dict[str, Any]]:
         """Newest-first, most recent `quarters` periods for one ticker."""

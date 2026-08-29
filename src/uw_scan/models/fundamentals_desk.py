@@ -236,6 +236,22 @@ class ChainMetricCell(_UwBase):
     """
 
     chain: str
+    #: The layer holding this chain's LOWEST rank ('L1'..'L5' for a chain that
+    #: sits on a taxonomy plane). Carried so the chain map can stack its planes
+    #: without a second request; a property of the chain, not of the metric.
+    layer: str
+    layer_rank: int = Field(
+        ...,
+        description=(
+            "0 means this chain sits on a taxonomy layer PLANE and can be "
+            "placed on the chain map. A POSITIVE rank means it is a case "
+            "chain — a ranked stage of a modelled flow — and belongs in a "
+            "funnel instead. Read from research_chains, not from membership: "
+            "the five dc_buildout chains carry an empty L3 row plus a ranked "
+            "stage row holding every member, so a rank derived from "
+            "memberships would call them stages and leave them off the map."
+        ),
+    )
     #: 'rev_yoy' | 'gross_margin' | 'valuation_percentile'
     metric: str
     median: float | None = Field(
@@ -299,6 +315,25 @@ class MembershipEvidenceCount(_UwBase):
     memberships: int
 
 
+class NonUsdFiler(_UwBase):
+    """One name on this desk that does not file in USD.
+
+    Why this is a LIMIT and not a footnote: summing gross profit across a
+    chain put the Foundry chain at roughly $930B of quarterly gross profit,
+    because TSM and UMC file in TWD and the store holds the FILED figure. So
+    no dollar amount is summed across companies anywhere on this desk, and
+    this list is the measured extent of the reason. Growth rates, margins and
+    percentiles are unaffected — a ratio carries no currency.
+    """
+
+    ticker: str
+    #: Every non-USD currency the store has ever recorded for this name,
+    #: sorted. A name that has filed in two currencies carries both: the
+    #: history is what a replay would read, and collapsing it to the latest
+    #: would understate the hazard for exactly the periods it applies to.
+    currencies: list[str]
+
+
 class ChainExposureCoverage(_UwBase):
     """Three denominators, because they answer three different questions and a
     surface showing only the first invites the reader to assume the third."""
@@ -343,6 +378,9 @@ class DeskLimitsResponse(_UwBase):
     #: web layer writes captions OVER these, never instead of them.
     membership_evidence: list[MembershipEvidenceCount]
     exposure_coverage: list[ChainExposureCoverage]
+    #: The section's non-USD filers, by name. Empty means every name on this
+    #: desk files in USD — which is a real answer, not a missing one.
+    non_usd_filers: list[NonUsdFiler]
 
 
 class NodeUnderwritingRow(_UwBase):
@@ -386,6 +424,155 @@ class NodeUnderwritingRow(_UwBase):
     state: FundamentalResultState
 
 
+class CapexQuarter(_UwBase):
+    """One calendar quarter of the capex panel's combined spend.
+
+    FISCAL QUARTERS ARE ASSIGNED TO THE CALENDAR QUARTER HOLDING THEIR END
+    DATE. That is what lets a May-ending filer sit beside a June-ending one;
+    it is an approximation, and it is the only one on this response.
+    """
+
+    #: '2026Q2' — the CALENDAR quarter containing each filer's period end.
+    quarter: str
+    #: Summed across the panel, in USD. Filed as a positive magnitude by this
+    #: provider (verified), so it is NOT sign-flipped here — a reader who
+    #: expects the cash-flow convention should read this as spend, not flow.
+    capex_usd: float
+    revenue_usd: float | None = Field(
+        ...,
+        description=(
+            "Summed panel revenue for the same quarter, or null when ANY "
+            "panel member is missing an income statement for it. Null rather "
+            "than a partial sum: a ratio whose numerator counts five "
+            "companies and whose denominator counts four is not an intensity, "
+            "it is a bigger number."
+        ),
+    )
+    #: The panel members that filed a capex figure for this quarter, by name.
+    tickers: list[str]
+    #: True iff `tickers` is the whole panel. A false here is why a quarter's
+    #: level may step without anything having changed at the companies.
+    complete: bool
+
+
+class DeskCapexResponse(_UwBase):
+    """The one exogenous input: what the panel commits to capital spending.
+
+    Every revenue dollar in this chain is somebody else's capex, which is why
+    this is the desk's first question rather than an appendix. It is also the
+    single place on the desk where dollar amounts are summed across
+    companies — permitted only because the panel is restricted to USD filers
+    and the excluded names travel with the answer.
+    """
+
+    #: The taxonomy chain the panel is drawn from. Empty `included` means that
+    #: chain holds no USD filer in this section — an answerless question, not
+    #: an answer of zero.
+    chain: str
+    #: Panel members: chain members with no non-USD currency ever recorded.
+    included: list[str]
+    excluded: dict[str, str] = Field(
+        ...,
+        description=(
+            "Chain members left OUT of the panel, mapped to the non-USD "
+            "currency that excluded them. Printed with the figure, never "
+            "behind it: an unexplained five-name panel reads as the whole "
+            "chain."
+        ),
+    )
+    #: Oldest quarter first.
+    quarters: list[CapexQuarter]
+
+
+class CaseStageMember(_UwBase):
+    """One company at one stage of a case chain."""
+
+    ticker: str
+    #: Null means Argon holds no filed quarter for this name — it stays IN its
+    #: stage, marked, and out of the stage median. Never dropped, never zero.
+    rev_yoy: float | None
+    gross_margin: float | None
+    spot_percentile: float | None = Field(
+        ...,
+        description=(
+            "Own-history YIELD percentile: 0.80 means CHEAP against this "
+            "name's own past, not expensive. Never a cross-sectional rank — "
+            "cross-sectional value measured INVERTED in this universe."
+        ),
+    )
+    #: The name's non-USD filing currency, or null for a USD filer. Carried so
+    #: a stage table can flag it without a second request.
+    reported_currency: str | None
+
+
+class CaseStage(_UwBase):
+    """One ranked stage of a case chain."""
+
+    #: The taxonomy layer, e.g. 'Module-Transceiver'. The display label is the
+    #: web layer's business: a label map is editorial and does not belong in a
+    #: contract that a replay has to reproduce.
+    layer: str
+    chain: str
+    rank: int = Field(
+        ...,
+        description=(
+            "`research_chains.layer_rank`. HIGHER IS FURTHER DOWNSTREAM — the "
+            "customer stage carries the largest rank (Customer-Cloud 70, "
+            "DC-REIT/Colo 50). Read the other way, every funnel is upside "
+            "down and every amplification ratio inverts."
+        ),
+    )
+    #: Alphabetical, DISTINCT. Never ordered by any metric.
+    members: list[CaseStageMember]
+    #: UNWEIGHTED median over reporting members; null when none report.
+    median_rev_yoy: float | None
+    median_gross_margin: float | None
+    #: Members carrying a `rev_yoy` — the median's real denominator.
+    reporting: int
+    #: All members, reporting or not.
+    total: int
+
+
+class DeskCase(_UwBase):
+    """A chain whose stages carry an explicit order, so a dollar's path
+    through it is structure rather than inference.
+
+    A domain becomes a case by having `layer_rank > 0` rows, nothing else. A
+    domain with no ranked stages is deliberately absent here: placing chains
+    is what the chain map does, and drawing flow without ranked stages would
+    be inventing the very edges the desk refuses to draw.
+    """
+
+    domain: str
+    #: URL identity for the case, e.g. 'optical'.
+    slug: str
+    label: str
+    #: Ordered by `rank` ASCENDING — upstream first, customer last, the same
+    #: read-through order the rest of the desk uses. A funnel drawing the
+    #: customer on top reverses this itself.
+    stages: list[CaseStage]
+
+
+class ScopeGroup(_UwBase):
+    """A taxonomy group this desk deliberately does not cover.
+
+    NOT 'unclassified' and NOT a residual. These are the desk's own organising
+    tags for names held for reasons unrelated to this chain, and they keep
+    their own names — several (Sector-ETF, M7, Beta, Macro) are
+    portfolio-construction tags with no stages to order, so modelling them as
+    supply chains would be a category error rather than merely unbuilt work.
+    """
+
+    chain: str
+    #: Every domain the chain's layers sit in. A list because a chain CAN span
+    #: domains, and collapsing it to one would name a domain that owns only
+    #: part of it.
+    domains: list[str]
+    #: DISTINCT tickers. Membership is (chain, layer, ticker)-grained, so a
+    #: name in two layers must count once.
+    members: int
+
+
 _preserve_public_module(
     DeskCalendarRow,
     DeskCalendarResponse,
@@ -397,7 +584,14 @@ _preserve_public_module(
     DeskMatrixResponse,
     ProfitPoolLayer,
     MembershipEvidenceCount,
+    NonUsdFiler,
     ChainExposureCoverage,
     DeskLimitsResponse,
     NodeUnderwritingRow,
+    CapexQuarter,
+    DeskCapexResponse,
+    CaseStageMember,
+    CaseStage,
+    DeskCase,
+    ScopeGroup,
 )

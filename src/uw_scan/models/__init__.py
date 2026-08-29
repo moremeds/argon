@@ -52,6 +52,9 @@ from .fundamentals import (
     FundamentalSubscore,
 )
 from .fundamentals_desk import (
+    CapexQuarter,
+    CaseStage,
+    CaseStageMember,
     ChainExposureCoverage,
     ChainMetricCell,
     CohortSlice,
@@ -59,12 +62,16 @@ from .fundamentals_desk import (
     DeltaRailResponse,
     DeskCalendarResponse,
     DeskCalendarRow,
+    DeskCapexResponse,
+    DeskCase,
     DeskLimitsResponse,
     DeskMatrixResponse,
     MemberDot,
     MembershipEvidenceCount,
     NodeUnderwritingRow,
+    NonUsdFiler,
     ProfitPoolLayer,
+    ScopeGroup,
 )
 from .gold import (
     GoldCbCountryHistory,
@@ -710,6 +717,13 @@ __all__ = [
     "ProfitPoolLayer",
     "MembershipEvidenceCount",
     "ChainExposureCoverage",
+    "NonUsdFiler",
     "DeskLimitsResponse",
     "NodeUnderwritingRow",
+    "CapexQuarter",
+    "DeskCapexResponse",
+    "CaseStageMember",
+    "CaseStage",
+    "DeskCase",
+    "ScopeGroup",
 ]

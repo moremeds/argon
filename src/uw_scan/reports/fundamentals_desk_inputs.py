@@ -114,7 +114,8 @@ def memberships(
         params.append(chain)
     with conn.cursor() as cur:
         cur.execute(
-            f"""SELECT c.chain, c.layer, c.layer_rank, m.ticker, m.evidence_class
+            f"""SELECT c.chain, c.layer, c.layer_rank, c.domain,
+                       m.ticker, m.evidence_class
                   FROM {schema}.research_chains c
                   JOIN {schema}.chain_membership m
                     ON m.taxonomy_version = c.taxonomy_version

@@ -51,6 +51,7 @@ from uw_scan.models.fundamentals_desk import (
     MemberDot,
     MembershipEvidenceCount,
     NodeUnderwritingRow,
+    NonUsdFiler,
     ProfitPoolLayer,
 )
 from uw_scan.reports.fundamentals_desk_inputs import (
@@ -367,6 +368,7 @@ def _dots(
 
 def _cell(
     chain: str,
+    layer: tuple[str, int],
     metric: str,
     dots: list[MemberDot],
     slices: list[CohortSlice],
@@ -383,6 +385,8 @@ def _cell(
         median = statistics.median(values)
     return ChainMetricCell(
         chain=chain,
+        layer=layer[0],
+        layer_rank=layer[1],
         metric=metric,
         median=median,
         dots=dots,
@@ -427,15 +431,27 @@ def desk_matrix(
     )
     chains = chain_order(members)
     by_chain = _group_by_chain(members)
+    version = ResearchTaxonomyRepository(conn, schema=schema).active_version()
+    # From the taxonomy, never from the membership rows — see
+    # `FundamentalsDeskRepository.chain_layers`.
+    layers = (
+        FundamentalsDeskRepository(conn, schema=schema).chain_layers(
+            version=version, domains=domains
+        )
+        if version is not None
+        else {}
+    )
 
     cells: list[ChainMetricCell] = []
     for chain in chains:
         tickers = distinct_tickers(by_chain[chain])
         slices = cohorts(by_bucket, tickers)
+        layer = layers[chain]
         for metric in METRICS:
             cells.append(
                 _cell(
                     chain,
+                    layer,
                     metric,
                     _dots(metric, tickers, rollups, pcts),
                     slices,
@@ -520,7 +536,15 @@ def desk_limits(
     # nothing on the card would mark the change of population. A section with
     # no members asks about no tickers and gets zeroes, which is the honest
     # answer rather than the universe's.
-    ni = obs.net_income_basis_summary(tickers=distinct_tickers(members))
+    section_tickers = distinct_tickers(members)
+    ni = obs.net_income_basis_summary(tickers=section_tickers)
+
+    # Scoped the same way, and for the same reason: naming the universe's
+    # non-USD filers under an AI/semi header would be true of the universe and
+    # false of this desk.
+    non_usd = FundamentalsDeskRepository(conn, schema=schema).non_usd_currencies(
+        section_tickers
+    )
 
     evidence: list[MembershipEvidenceCount] = []
     coverage: list[ChainExposureCoverage] = []
@@ -547,6 +571,9 @@ def desk_limits(
         withheld_composite=WITHHELD_COMPOSITE,
         membership_evidence=evidence,
         exposure_coverage=coverage,
+        non_usd_filers=[
+            NonUsdFiler(ticker=t, currencies=cs) for t, cs in sorted(non_usd.items())
+        ],
     )
 
 

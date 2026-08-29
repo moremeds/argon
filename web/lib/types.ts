@@ -2130,6 +2130,79 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/fundamentals/{section}/capex": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Desk Capex
+         * @description The section's customer panel and what it commits to capital spending.
+         *
+         *     Context, never edge — the figure is on every sell-side deck in the sector.
+         *     It is here because it is the desk's PREMISE: every revenue dollar
+         *     downstream is somebody else's capex, so a page cannot ask whether the
+         *     money transmits before establishing whether it is still coming.
+         */
+        get: operations["desk_capex_api_fundamentals__section__capex_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/fundamentals/{section}/cases": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Desk Cases
+         * @description The chains whose stages carry an explicit order, upstream first.
+         *
+         *     Both cases in ONE response on purpose. The funnels are drawn on a shared
+         *     radius scale so their silhouettes are comparable, and a scale computed
+         *     from a per-case request would be computed from a different population on
+         *     each page — the comparison would break silently rather than visibly.
+         */
+        get: operations["desk_cases_api_fundamentals__section__cases_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/fundamentals/{section}/scope": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Desk Scope
+         * @description The taxonomy groups this section does not cover, under their own names.
+         *
+         *     Computed as the complement of the section's domains rather than listed, so
+         *     the boundary cannot drift from the taxonomy it describes.
+         */
+        get: operations["desk_scope_api_fundamentals__section__scope_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/fundamentals/{section}/limits": {
         parameters: {
             query?: never;
@@ -2726,6 +2799,73 @@ export interface components {
             expression_delta: string;
         };
         /**
+         * CapexQuarter
+         * @description One calendar quarter of the capex panel's combined spend.
+         *
+         *     FISCAL QUARTERS ARE ASSIGNED TO THE CALENDAR QUARTER HOLDING THEIR END
+         *     DATE. That is what lets a May-ending filer sit beside a June-ending one;
+         *     it is an approximation, and it is the only one on this response.
+         */
+        CapexQuarter: {
+            /** Quarter */
+            quarter: string;
+            /** Capex Usd */
+            capex_usd: number;
+            /**
+             * Revenue Usd
+             * @description Summed panel revenue for the same quarter, or null when ANY panel member is missing an income statement for it. Null rather than a partial sum: a ratio whose numerator counts five companies and whose denominator counts four is not an intensity, it is a bigger number.
+             */
+            revenue_usd: number | null;
+            /** Tickers */
+            tickers: string[];
+            /** Complete */
+            complete: boolean;
+        };
+        /**
+         * CaseStage
+         * @description One ranked stage of a case chain.
+         */
+        CaseStage: {
+            /** Layer */
+            layer: string;
+            /** Chain */
+            chain: string;
+            /**
+             * Rank
+             * @description `research_chains.layer_rank`. HIGHER IS FURTHER DOWNSTREAM — the customer stage carries the largest rank (Customer-Cloud 70, DC-REIT/Colo 50). Read the other way, every funnel is upside down and every amplification ratio inverts.
+             */
+            rank: number;
+            /** Members */
+            members: components["schemas"]["CaseStageMember"][];
+            /** Median Rev Yoy */
+            median_rev_yoy: number | null;
+            /** Median Gross Margin */
+            median_gross_margin: number | null;
+            /** Reporting */
+            reporting: number;
+            /** Total */
+            total: number;
+        };
+        /**
+         * CaseStageMember
+         * @description One company at one stage of a case chain.
+         */
+        CaseStageMember: {
+            /** Ticker */
+            ticker: string;
+            /** Rev Yoy */
+            rev_yoy: number | null;
+            /** Gross Margin */
+            gross_margin: number | null;
+            /**
+             * Spot Percentile
+             * @description Own-history YIELD percentile: 0.80 means CHEAP against this name's own past, not expensive. Never a cross-sectional rank — cross-sectional value measured INVERTED in this universe.
+             */
+            spot_percentile: number | null;
+            /** Reported Currency */
+            reported_currency: string | null;
+        };
+        /**
          * ChainCell
          * @description One chain × layer cell of the research matrix.
          *
@@ -2897,6 +3037,13 @@ export interface components {
         ChainMetricCell: {
             /** Chain */
             chain: string;
+            /** Layer */
+            layer: string;
+            /**
+             * Layer Rank
+             * @description 0 means this chain sits on a taxonomy layer PLANE and can be placed on the chain map. A POSITIVE rank means it is a case chain — a ranked stage of a modelled flow — and belongs in a funnel instead. Read from research_chains, not from membership: the five dc_buildout chains carry an empty L3 row plus a ranked stage row holding every member, so a rank derived from memberships would call them stages and leave them off the map.
+             */
+            layer_rank: number;
             /** Metric */
             metric: string;
             /**
@@ -3889,6 +4036,51 @@ export interface components {
             percentile_state: "ok" | "stale_run" | "no_compatible_run" | "no_coverage" | "unsupported_capability" | "failed_run";
         };
         /**
+         * DeskCapexResponse
+         * @description The one exogenous input: what the panel commits to capital spending.
+         *
+         *     Every revenue dollar in this chain is somebody else's capex, which is why
+         *     this is the desk's first question rather than an appendix. It is also the
+         *     single place on the desk where dollar amounts are summed across
+         *     companies — permitted only because the panel is restricted to USD filers
+         *     and the excluded names travel with the answer.
+         */
+        DeskCapexResponse: {
+            /** Chain */
+            chain: string;
+            /** Included */
+            included: string[];
+            /**
+             * Excluded
+             * @description Chain members left OUT of the panel, mapped to the non-USD currency that excluded them. Printed with the figure, never behind it: an unexplained five-name panel reads as the whole chain.
+             */
+            excluded: {
+                [key: string]: string;
+            };
+            /** Quarters */
+            quarters: components["schemas"]["CapexQuarter"][];
+        };
+        /**
+         * DeskCase
+         * @description A chain whose stages carry an explicit order, so a dollar's path
+         *     through it is structure rather than inference.
+         *
+         *     A domain becomes a case by having `layer_rank > 0` rows, nothing else. A
+         *     domain with no ranked stages is deliberately absent here: placing chains
+         *     is what the chain map does, and drawing flow without ranked stages would
+         *     be inventing the very edges the desk refuses to draw.
+         */
+        DeskCase: {
+            /** Domain */
+            domain: string;
+            /** Slug */
+            slug: string;
+            /** Label */
+            label: string;
+            /** Stages */
+            stages: components["schemas"]["CaseStage"][];
+        };
+        /**
          * DeskLimitsResponse
          * @description What the desk cannot say, computed rather than asserted (spec §3f).
          *
@@ -3918,6 +4110,8 @@ export interface components {
             membership_evidence: components["schemas"]["MembershipEvidenceCount"][];
             /** Exposure Coverage */
             exposure_coverage: components["schemas"]["ChainExposureCoverage"][];
+            /** Non Usd Filers */
+            non_usd_filers: components["schemas"]["NonUsdFiler"][];
         };
         /** DeskMatrixResponse */
         DeskMatrixResponse: {
@@ -6898,6 +7092,23 @@ export interface components {
              */
             state: "ok" | "stale_run" | "no_compatible_run" | "no_coverage" | "unsupported_capability" | "failed_run";
         };
+        /**
+         * NonUsdFiler
+         * @description One name on this desk that does not file in USD.
+         *
+         *     Why this is a LIMIT and not a footnote: summing gross profit across a
+         *     chain put the Foundry chain at roughly $930B of quarterly gross profit,
+         *     because TSM and UMC file in TWD and the store holds the FILED figure. So
+         *     no dollar amount is summed across companies anywhere on this desk, and
+         *     this list is the measured extent of the reason. Growth rates, margins and
+         *     percentiles are unaffected — a ratio carries no currency.
+         */
+        NonUsdFiler: {
+            /** Ticker */
+            ticker: string;
+            /** Currencies */
+            currencies: string[];
+        };
         /** OhlcRow */
         OhlcRow: {
             /**
@@ -8818,6 +9029,24 @@ export interface components {
              * @enum {string}
              */
             freshness: "live" | "stale" | "unavailable";
+        };
+        /**
+         * ScopeGroup
+         * @description A taxonomy group this desk deliberately does not cover.
+         *
+         *     NOT 'unclassified' and NOT a residual. These are the desk's own organising
+         *     tags for names held for reasons unrelated to this chain, and they keep
+         *     their own names — several (Sector-ETF, M7, Beta, Macro) are
+         *     portfolio-construction tags with no stages to order, so modelling them as
+         *     supply chains would be a category error rather than merely unbuilt work.
+         */
+        ScopeGroup: {
+            /** Chain */
+            chain: string;
+            /** Domains */
+            domains: string[];
+            /** Members */
+            members: number;
         };
         /** SetupBlock */
         SetupBlock: {
@@ -15715,6 +15944,99 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["ProfitPoolLayer"][];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    desk_capex_api_fundamentals__section__capex_get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                section: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["DeskCapexResponse"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    desk_cases_api_fundamentals__section__cases_get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                section: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["DeskCase"][];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    desk_scope_api_fundamentals__section__scope_get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                section: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ScopeGroup"][];
                 };
             };
             /** @description Validation Error */

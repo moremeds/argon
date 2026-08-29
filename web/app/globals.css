@@ -112,6 +112,16 @@
   --performance-chart-grid: var(--chart-grid);
   --performance-chart-benchmark: var(--chart-series-comparison);
   --performance-chart-meta-bg: rgba(241, 245, 249, 0.92);
+  /* The four chart-series accents were declared in the dark block only, so in
+     light theme every consumer of them resolved to the empty string — an
+     invisible stroke, not a fallback. Shipped components already read them
+     (MagnetTiles, TechnicalsTab); the fundamentals chain map needs a
+     five-colour layer ramp and would have shipped the same bug. Darkened here
+     for contrast against white, matching how --extreme/--dislocation shift. */
+  --accent-vol: #7c3aed;
+  --accent-warm: #d4910a;
+  --accent-vivid: #c026a0;
+  --accent-cool: #0284c7;
 }
 
 *,

@@ -27,6 +27,12 @@ export type MemberDot = components["schemas"]["MemberDot"];
 export type CohortSlice = components["schemas"]["CohortSlice"];
 export type ProfitPoolLayer = components["schemas"]["ProfitPoolLayer"];
 export type DeskLimitsResponse = components["schemas"]["DeskLimitsResponse"];
+export type DeskCapexResponse = components["schemas"]["DeskCapexResponse"];
+export type CapexQuarter = components["schemas"]["CapexQuarter"];
+export type DeskCase = components["schemas"]["DeskCase"];
+export type CaseStage = components["schemas"]["CaseStage"];
+export type CaseStageMember = components["schemas"]["CaseStageMember"];
+export type ScopeGroup = components["schemas"]["ScopeGroup"];
 type VrpCandidatesResponse = components["schemas"]["VrpCandidatesResponse"];
 type VrpBacktestResponse = components["schemas"]["VrpBacktestResponse"];
 type VrpPaperResponse = components["schemas"]["VrpPaperResponse"];
@@ -464,6 +470,15 @@ export const api = {
     _fetch<ProfitPoolLayer[]>(`/api/fundamentals/${section}/profit-pool`),
   deskLimits: (section: string): Promise<DeskLimitsResponse> =>
     _fetch<DeskLimitsResponse>(`/api/fundamentals/${section}/limits`),
+  deskCapex: (section: string): Promise<DeskCapexResponse> =>
+    _fetch<DeskCapexResponse>(`/api/fundamentals/${section}/capex`),
+  // Both cases in ONE request, never one per case: the funnels share a radius
+  // scale, and a scale computed from a per-case response would be computed
+  // from a different population on each page.
+  deskCases: (section: string): Promise<DeskCase[]> =>
+    _fetch<DeskCase[]>(`/api/fundamentals/${section}/cases`),
+  deskScope: (section: string): Promise<ScopeGroup[]> =>
+    _fetch<ScopeGroup[]>(`/api/fundamentals/${section}/scope`),
   researchReports: (limit = 25): Promise<ReportListResponse> =>
     _fetch<ReportListResponse>(`/api/research/reports?limit=${limit}`),
   researchReport: (

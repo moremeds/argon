@@ -50,6 +50,94 @@ Copied from the spec and the repo's standing rules; every task's requirements im
 | P2 Tasks 4–11  | `feat/fundamentals-data-spine`                           | one PR                                                                                                                                                                                    |
 | P3 Tasks 12–18 | `feat/fundamentals-desk-pages`                           | one PR                                                                                                                                                                                    |
 
+## Release to the mini (P3 exit — written 2026-08-29 during `/review-cycle`)
+
+Verified against `origin/main` at `43c47aa6 release: v0.12.18`. The branch is
+**16 ahead / 1 behind**, and the one behind is that release bump.
+
+### The blocker to clear first: the CHANGELOG merge
+
+`origin/main`'s release commit moved every previously-`[Unreleased]` bullet down
+under `## [0.12.18] — 2026-08-28` and left `[Unreleased]` empty. This branch still
+carries the pre-bump shape, with the desk's own bullets mixed into the ~650 lines
+that main has since released. **A naive merge resolution either duplicates the
+whole 0.12.18 section or files the desk entry inside a released one** — the exact
+failure `scripts/release/cut.sh` guards against and the reason it guards.
+
+Resolution, in this order:
+
+1. `git merge origin/main` on the feature branch.
+2. Resolve `CHANGELOG.md` by taking **`origin/main`'s file wholesale** (`git checkout --theirs`-equivalent), then re-inserting ONLY the desk's seven `### Added`
+   bullets under the now-empty `## [Unreleased]`.
+3. `VERSION`, `pyproject.toml`, `uv.lock`, `web/package.json` take main's `0.12.18`
+   unchanged — this branch must not bump a version; `cut.sh prepare` owns that.
+4. Confirm with `uv run python scripts/release/version_sync_check.py`.
+
+**Do not edit `CHANGELOG.md` with an editor that triggers the repo's
+format-on-write hook.** Prettier rewrites ~117 lines of already-released history
+(`*italic*` → `_italic_`, continuation-line dedents, one rewrapped chanlun entry),
+which buries the real entry in churn. Write it with a script instead.
+
+### What actually deploys
+
+| Surface | Ships as | Manual step? |
+| --- | --- | --- |
+| Migration `147_fundamentals_desk_rollup.sql` | api self-migrates on boot (`docker-compose.yml`) | no |
+| `fundamentals_desk_rollup` job | scheduled 21:30 ET daily, massive-0, `fundamentals_desk_rollup_enabled` default **true** | no |
+| `fundamental_change_events` job | scheduled, `fundamental_change_events_enabled` default **true** | no |
+| `api/routers/fundamentals_desk.py` (9 endpoints) | read-only, warm store, zero UW/IB spend | no |
+| `research_chains` / `chain_membership` rows | **nothing populates them** | **YES — see below** |
+
+### The one thing that will make the desk render empty
+
+`worker/jobs/research_taxonomy_seed.py` is **not registered in the scheduler** and
+has no backfill cron. Its only entrypoint is the manual script. Migrations 139/140
+create the tables; nothing fills them. Every panel on the desk reads them, so on a
+fresh production database the desk deploys *green and blank*.
+
+Post-deploy, once, inside the mini's api container:
+
+```bash
+docker compose -f /opt/argon/compose.yml exec api \
+  python scripts/backfill/research_taxonomy_seed.py
+```
+
+Then confirm before declaring the deploy good:
+
+```bash
+curl -s localhost:8400/api/fundamentals/ai-semi/scope   | python3 -c 'import json,sys;print("scope groups:",len(json.load(sys.stdin)))'
+curl -s localhost:8400/api/fundamentals/ai-semi/cases   | python3 -c 'import json,sys;print("cases:",[(c["slug"],len(c["stages"])) for c in json.load(sys.stdin)])'
+curl -s localhost:8400/api/fundamentals/ai-semi/matrix  | python3 -c 'import json,sys;print("matrix cells:",len(json.load(sys.stdin)["cells"]))'
+```
+
+Local reference values on `option_wizard_local`, 2026-08-29: scope 13, cases
+`[("datacenter",5),("optical",5)]`, matrix 78 cells, capex 14 quarters / 5 USD
+filers / BABA excluded for CNY. A zero on any of these means the seed did not run.
+
+**The matrix and case medians stay empty until the first 21:30 ET rollup**, even
+after seeding — capex reads statement observations directly and is live
+immediately, the rest is not. Either accept one night's lag or trigger the rollup
+by hand after seeding.
+
+### Sequence
+
+1. Merge `origin/main`, resolve CHANGELOG per above, push branch, `gh pr create`.
+2. CI green — **no merge before that**.
+3. Merge the PR.
+4. `scripts/release/cut.sh prepare patch` → merge the release PR → `cut.sh tag`.
+5. Watchtower pulls `:latest`; api self-migrates 147 on boot.
+6. Run the taxonomy seed (above), then the three curl checks.
+7. Optional: trigger `fundamentals_desk_rollup` rather than waiting for 21:30 ET.
+
+### Not blocking, recorded
+
+- `research_events_derive`, `research_report_scaffold`, `sec_filing_index_refresh`
+  and `fundamental_publication_evidence` are also unscheduled. They are older than
+  this branch and out of its scope, but the desk's evidence surfaces will stay
+  static until they are given schedules or a documented manual cadence.
+- `reports/fundamentals_desk.py` is 651 lines and `models/fundamentals_desk.py` is
+  597 — both over the 500-line target, both under the 1000-line split threshold.
+
 ---
 
 # Phase P1 — land the foundation

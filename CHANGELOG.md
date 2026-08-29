@@ -45,9 +45,10 @@ version in lockstep (enforced by `scripts/release/version_sync_check.py`).
   cohorts that straddle two `as_of` buckets never merge, because `as_of` is a cross-section
   IDENTIFIER and the cohort effect measured 1.9x; the profit pool has no arrows, propagation or
   lead/lag copy, because the capex-demand ledger's cross-name relationship collapsed from +0.247 to
-  +0.015 (p=0.44) once same-sector pairs were compared; and the capex strip deliberately has no
+  +0.015 (p=0.44) once same-sector pairs were compared; and the capex strip deliberately had no
   fetcher and no model field, since building a data path for the most widely circulated number in
-  the sector would re-promote the figure the spec demoted. An unknown section 404s rather than
+  the sector would re-promote the figure the spec demoted (**superseded below** — capex now has a
+  data path as the desk's PREMISE rather than its edge). An unknown section 404s rather than
   rendering an empty desk, an unknown `?sort=` answers 422 rather than being silently ignored, and
   every panel settles independently so one failed endpoint leaves the other five standing.
 - **Nightly desk rollup of per-name revenue YoY and gross margin** (migration `147`,
@@ -403,6 +404,57 @@ evidence_policy)`, which fails closed — an observation with no claim never
   Backfill: `scripts/backfill/fundamental_observation_availability.py` (zero
   provider spend, resumable by keyset, `--audit` writes a self-checking coverage
   artifact). Runbook `docs/runbooks/fundamental-observation-availability.md`.
+
+- **The AI chain desk, rebuilt as a fundamental PM's question ladder.** `/fundamentals/ai-semi` is now
+  five sections in a fixed order, because the order is the argument and question three cannot be
+  answered before question one: *is the money still coming* (hyperscaler capex), *where does it land*
+  (the chain map), *does it transmit* (the case funnels, on their own route), *what am I paying*
+  (own-history valuation), *what would falsify this* (the measured limits). Three new read-only
+  endpoints feed it — `capex`, `cases`, `scope` — plus `layer`/`layer_rank` on every matrix cell and
+  the section's non-USD filers on `limits`, all additive.
+- **Capex gets a data path, reversing its demotion — as the desk's PREMISE, not its edge.** The old
+  argument (the figure is on every sell-side deck, so it cannot be where the edge comes from) still
+  holds and nothing is ranked by it. What changed is structure: every revenue dollar downstream is
+  somebody else's capital expenditure, so it is the only number on the desk not derived from another
+  number on the desk. It is also **the single place a currency amount is summed across companies**,
+  bounded three ways: USD filers only, the excluded name and its currency printed with the figure
+  (BABA/CNY today), and a quarter missing any panel member's revenue reporting a null intensity rather
+  than a partial ratio. The strip's sign warning survives verbatim: for the names that *spend* it,
+  rising capex is a cost line arriving as depreciation.
+- **Three hand-rolled 3D canvas scenes** (`lib/fundamentals/scene.ts`, ~120 lines of perspective
+  projection, no chart library) — one chain map and two stage funnels. The third axis is the
+  deliverable: a PM needs growth, margin and stack position at once, and any two of those on a flat
+  chart hides the third. Measured on the real chain, the map's own finding is that the LAYER explains
+  less than the CHAIN does — 8.9pp between layer medians against 27.6pp inside L1 alone — and that
+  growth and margin are close to unrelated (r = 0.149, t = 0.72 over 25 chains).
+- **Two cases, one shared radius scale, one request, one route** (`/fundamentals/ai-semi/cases`).
+  Optical interconnect amplifies **4.08x** while the datacenter buildout opens to **1.95x**,
+  with 3 of its 4 supplying stages growing more slowly than the customers they supply — the same
+  capital expenditure, two entirely different transmissions, and a reading no sector screen can
+  produce. The shared scale is load-bearing and fails silently when broken, so both funnels render
+  from one component, side by side, from one response; an e2e test asserts the geometry.
+- **The boundary is computed, not listed.** `/fundamentals/ai-semi/scope` returns the taxonomy groups
+  outside the section's domains under **their own names** — never "unclassified", which describes an
+  absence in Argon as an absence in the world. Several (`Sector-ETF`, `M7`, `Beta`, `Macro`) are
+  portfolio-construction tags with no stages to order, so modelling them as supply chains would be a
+  category error rather than merely unbuilt work.
+- **The chain x metric matrix and the profit-pool strip are deleted, not moved.** The 3D map shows the
+  same medians with the layer as a third axis; the flat strip showed a subset of them. The delta rail
+  and print calendar survive as a subordinate "desk log" below the ladder — they answer what changed
+  and what prints next, which no question on the ladder covers.
+- **The daily statement ingest now also reads the calendar FORWARD**
+  (`UW_SCAN_FUNDAMENTAL_INGEST_DAILY_FORWARD_DAYS`, default 14). The scan was
+  backward-only, so `earnings_calendar` never held a row for a print that had
+  not happened yet — measured on 2026-08-29: 2,443 rows, **zero** with
+  `report_date >= CURRENT_DATE`. The desk's "what prints next" panel reads
+  `next_prints(on_or_after=today)`, so it was structurally empty and would have
+  stayed that way, rendering "nothing prints next" out of a question never
+  asked. The two windows stay asymmetric on purpose: the backward one finds
+  statements to ingest, and the forward one ingests nothing — folding its
+  listings into the ingest targets would spend 4 UW calls per name to retrieve a
+  statement that does not exist yet, every run, until the company reported.
+  Costs 2 UW calls per forward day per run (~28/day), reported separately as
+  `calendar_forward_rows_new`.
 
 ### Changed
 

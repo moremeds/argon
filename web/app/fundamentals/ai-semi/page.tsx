@@ -1,16 +1,30 @@
 import { notFound } from "next/navigation";
+import Link from "next/link";
 
-import { CapexContextStrip } from "@/components/fundamentals/CapexContextStrip";
+import { CapexPanel } from "@/components/fundamentals/CapexPanel";
 import { ChainCalendar } from "@/components/fundamentals/ChainCalendar";
-import { ChainMetricMatrix } from "@/components/fundamentals/ChainMetricMatrix";
+import { ChainMapPanel } from "@/components/fundamentals/ChainMapPanel";
 import { DeltaRail } from "@/components/fundamentals/DeltaRail";
 import { DeskLimits } from "@/components/fundamentals/DeskLimits";
-import { ProfitPoolStrip } from "@/components/fundamentals/ProfitPoolStrip";
+import {
+  DeskMasthead,
+  QUESTION_TOKENS,
+} from "@/components/fundamentals/DeskMasthead";
+import {
+  DeskSection,
+  Lede,
+  MONO,
+  Note,
+  PanelError,
+  labelStyle,
+} from "@/components/fundamentals/DeskSection";
+import { ScopeTable } from "@/components/fundamentals/ScopeTable";
+import { ValuationPanel } from "@/components/fundamentals/ValuationPanel";
 import { api } from "@/lib/api";
+import { chainPoints, valuationMarks } from "@/lib/fundamentals/desk";
 import { SECTION } from "@/lib/fundamentalsSection";
 
 export const dynamic = "force-dynamic";
-
 
 function message(error: unknown): string {
   return error instanceof Error ? error.message : "unknown API error";
@@ -20,13 +34,11 @@ function message(error: unknown): string {
  *
  *  EVERY panel settles independently and on purpose. The desk's job is to show
  *  which halves of the picture it holds, so one endpoint failing must leave the
- *  other five standing — a page-level `Promise.all` rejection would replace a
+ *  others standing — a page-level `Promise.all` rejection would replace a
  *  partial answer with no answer, which is strictly less information.
  *
  *  The error must then reach the component. A failed request rendered through
- *  `?? []` becomes "no upcoming print is held for any member of this section" —
- *  an affirmative coverage claim manufactured out of a failure, and the exact
- *  defect the node page's review caught one layer down. */
+ *  `?? []` becomes an affirmative coverage claim manufactured out of a failure. */
 async function settle<T>(
   p: Promise<T>,
 ): Promise<
@@ -39,22 +51,27 @@ async function settle<T>(
   }
 }
 
-const NAV = [
-  ["delta", "Since you looked"],
-  ["calendar", "Next prints"],
-  ["matrix", "Chain × metric"],
-  ["profit-pool", "Profit pool"],
-  ["capex", "Capex context"],
-  ["limits", "Limits"],
-] as const;
-
+/**
+ * Level 1 of the AI/semi chain desk — the question ladder, in order.
+ *
+ * The section order is the argument and is fixed: capex, then the chain map,
+ * then valuation, then limits. Question three cannot be answered before
+ * question one, so this page is a SCROLL and not a tab bar — six tabs each
+ * refetching a fifth of the same answer would make the panels look independent
+ * when they share one as-of and one dependency chain.
+ *
+ * There is no `/fundamentals` universe index above this route; `/fundamentals`
+ * redirects here. A chooser listing one choice implies siblings that do not
+ * exist, and the desk would look like it covers a universe it does not.
+ */
 export default async function AiSemiDeskPage() {
-  const [delta, calendar, matrix, pool, limits] = await Promise.all([
+  const [capex, matrix, limits, scope, delta, calendar] = await Promise.all([
+    settle(api.deskCapex(SECTION)),
+    settle(api.deskMatrix(SECTION)),
+    settle(api.deskLimits(SECTION)),
+    settle(api.deskScope(SECTION)),
     settle(api.deskDelta(SECTION)),
     settle(api.deskCalendar(SECTION)),
-    settle(api.deskMatrix(SECTION)),
-    settle(api.deskProfitPool(SECTION)),
-    settle(api.deskLimits(SECTION)),
   ]);
 
   // `deskCalendar` allows a 404 through as null, because the node page passes a
@@ -63,66 +80,206 @@ export default async function AiSemiDeskPage() {
   // that must not render as "nothing is happening in AI/semi".
   if (calendar.value === null) notFound();
 
-  return (
-    <main className="mx-auto max-w-6xl px-4 py-6">
-      <header>
-        <h1 className="text-lg font-semibold text-zinc-100">
-          AI / semiconductors
-        </h1>
-        <p className="mt-1 text-xs text-zinc-500">
-          Computed from what Argon already holds. Every panel below abstains out
-          loud rather than filling a gap: this desk lists names and their filed
-          figures, and it does not rank them.
-        </p>
-        {/* Anchors, not routes: the desk is one page and the reader scrolls
-            it. Six tabs that each refetch a fifth of the same answer would
-            make the panels look independent when they share one as-of. */}
-        <nav className="mt-3 flex flex-wrap gap-3 border-b border-zinc-900 pb-2">
-          {NAV.map(([id, label]) => (
-            <a
-              key={id}
-              href={`#${id}`}
-              className="text-[11px] uppercase tracking-wide text-zinc-500 hover:text-zinc-300"
-            >
-              {label}
-            </a>
-          ))}
-        </nav>
-      </header>
+  const cells = matrix.value?.cells ?? [];
+  // `null`, not `0`, when the matrix never arrived. `?? []` is the right shape
+  // for a component that renders an empty LIST, and the wrong shape for a
+  // headline COUNT: it turns "we could not ask" into "we asked and the answer
+  // was none", which is the one substitution this desk exists to refuse.
+  const points = matrix.value ? chainPoints(cells) : null;
+  const placed = points ? points.length : null;
+  const universe = matrix.value ? valuationMarks(cells).universe : null;
+  const layers = points ? new Set(points.map((p) => p.layer)).size : null;
 
-      <div id="delta">
+  return (
+    <main
+      style={{ margin: "0 auto", maxWidth: 1180, padding: "24px 20px 64px" }}
+    >
+      <DeskMasthead
+        chains={placed}
+        companies={universe}
+        capexQuarters={capex.value ? capex.value.quarters.length : null}
+        layers={layers}
+      />
+
+      <DeskSection
+        index={1}
+        title="Is the money still coming?"
+        accent={`var(${QUESTION_TOKENS[0]})`}
+        testId="desk-capex"
+      >
+        <Lede>
+          Every revenue dollar in this chain is somebody else&apos;s capital
+          expenditure. That makes hyperscaler capex the one exogenous input —
+          the only number here not derived from another number on the page. It
+          is where the desk opens, and if it rolls over, nothing downstream
+          survives it.
+        </Lede>
+        {capex.error ? (
+          <PanelError what="Capex" error={message(capex.error)} />
+        ) : (
+          <CapexPanel data={capex.value!} />
+        )}
+      </DeskSection>
+
+      <DeskSection
+        index={2}
+        title="Where does it land?"
+        accent={`var(${QUESTION_TOKENS[1]})`}
+        testId="desk-chain-map"
+      >
+        <Lede>
+          The spend lands across the section&apos;s chains. A PM needs three
+          things about each at once — how fast it is growing, how well it is
+          paid, and where it sits in the stack — and any two of those on a flat
+          chart hides the third. So the map is dimensional:{" "}
+          <strong style={{ color: "var(--text-primary)" }}>drag it.</strong>{" "}
+          Growth runs left-to-right, gross margin runs into the depth, and the
+          taxonomy layers are the stacked planes.
+        </Lede>
+        {matrix.error ? (
+          <PanelError what="Chain map" error={message(matrix.error)} />
+        ) : (
+          <ChainMapPanel cells={cells} limits={limits.value ?? null} />
+        )}
+      </DeskSection>
+
+      <DeskSection
+        index={3}
+        title="Does it transmit?"
+        accent={`var(${QUESTION_TOKENS[2]})`}
+        testId="desk-cases-link"
+      >
+        <Lede>
+          The map places chains but draws no arrows between them. Some
+          sub-chains in the taxonomy are different: their stages carry an
+          explicit order, so a dollar&apos;s path through them is structure
+          rather than inference. Those get modelled as flows, on their own
+          screen and on one shared scale.
+        </Lede>
+        <p style={{ marginTop: 14 }}>
+          <Link
+            href="/fundamentals/ai-semi/cases"
+            style={{
+              ...labelStyle,
+              display: "inline-block",
+              padding: "8px 14px",
+              borderRadius: 4,
+              background: "var(--accent-bg)",
+              color: "var(--accent-text)",
+              letterSpacing: 1.2,
+              textDecoration: "none",
+            }}
+          >
+            Open the case funnels →
+          </Link>
+        </p>
+      </DeskSection>
+
+      <DeskSection
+        index={4}
+        title="What am I paying for it?"
+        accent={`var(${QUESTION_TOKENS[3]})`}
+        testId="desk-valuation"
+      >
+        <Lede>
+          One rule governs this section, and it comes from measurement rather
+          than taste: valuation in this store{" "}
+          <strong style={{ color: "var(--text-primary)" }}>
+            times a name against its own history
+          </strong>{" "}
+          (within-ticker <span style={{ fontFamily: MONO }}>sales_to_ev</span>{" "}
+          IC +0.0744, t 5.77) and{" "}
+          <strong style={{ color: "var(--text-primary)" }}>
+            inverts across names
+          </strong>{" "}
+          (cross-sectional{" "}
+          <span style={{ fontFamily: MONO }}>book_to_price</span> IC −0.0365, t
+          −2.32, both frozen from the 2026-08-12 valuation-anchors study rather
+          than recomputed here). So the desk shows each name&apos;s percentile
+          against itself and offers no way to sort the column. Ranking here
+          would be selling a measured negative as a signal.
+        </Lede>
+        {matrix.error ? (
+          <PanelError what="Valuation" error={message(matrix.error)} />
+        ) : (
+          <ValuationPanel cells={cells} />
+        )}
+      </DeskSection>
+
+      <DeskSection
+        index={5}
+        title="What would falsify this?"
+        accent={`var(${QUESTION_TOKENS[4]})`}
+        testId="desk-limits-section"
+      >
+        <Lede>
+          A research surface that cannot be wrong is not research. These are the
+          things that would break the readings above, each measured rather than
+          asserted.
+        </Lede>
+        {limits.error ? (
+          <PanelError what="Limits" error={message(limits.error)} />
+        ) : (
+          <DeskLimits data={limits.value!} />
+        )}
+      </DeskSection>
+
+      <section style={{ marginTop: 46 }} data-testid="desk-boundary">
+        <h2
+          style={{
+            fontFamily: MONO,
+            fontSize: 14,
+            fontWeight: 800,
+            letterSpacing: 1.2,
+            textTransform: "uppercase",
+            color: "var(--text-primary)",
+          }}
+        >
+          The boundary
+        </h2>
+        <Lede>
+          The taxonomy holds more than the AI chain. Those other groups are{" "}
+          <strong style={{ color: "var(--text-primary)" }}>
+            not unclassified and not a residual
+          </strong>{" "}
+          — they are the desk&apos;s own organising tags for names held for
+          reasons that have nothing to do with this chain, and they keep their
+          own names here.
+        </Lede>
+        {scope.error ? (
+          <PanelError what="Scope" error={message(scope.error)} />
+        ) : (
+          <ScopeTable groups={scope.value!} />
+        )}
+      </section>
+
+      <section style={{ marginTop: 46 }} data-testid="desk-log">
+        <h2
+          style={{
+            fontFamily: MONO,
+            fontSize: 14,
+            fontWeight: 800,
+            letterSpacing: 1.2,
+            textTransform: "uppercase",
+            color: "var(--text-primary)",
+          }}
+        >
+          Desk log
+        </h2>
+        <Note>
+          Below the argument, not inside it: what Argon learned since you last
+          looked, and what prints next. Neither answers a question on the ladder
+          — they are how the ladder gets re-asked when the facts move.
+        </Note>
         <DeltaRail
           data={delta.value ?? null}
           error={delta.error ? message(delta.error) : undefined}
         />
-      </div>
-      <div id="calendar">
         <ChainCalendar
           data={calendar.value ?? null}
           error={calendar.error ? message(calendar.error) : undefined}
         />
-      </div>
-      <div id="matrix">
-        <ChainMetricMatrix
-          data={matrix.value ?? null}
-          error={matrix.error ? message(matrix.error) : undefined}
-        />
-      </div>
-      <div id="profit-pool">
-        <ProfitPoolStrip
-          layers={pool.value ?? null}
-          error={pool.error ? message(pool.error) : undefined}
-        />
-      </div>
-      <div id="capex">
-        <CapexContextStrip />
-      </div>
-      <div id="limits">
-        <DeskLimits
-          data={limits.value ?? null}
-          error={limits.error ? message(limits.error) : undefined}
-        />
-      </div>
+      </section>
     </main>
   );
 }
