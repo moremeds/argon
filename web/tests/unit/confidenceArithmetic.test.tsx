@@ -48,7 +48,7 @@ describe("ConfidenceArithmetic", () => {
     const strip = asInformational.getByTestId("macro-confidence-arithmetic");
     expect(strip.textContent).toMatch(/nothing reduced it/i);
     // Still shown — it is the one genuinely informative line — just not as a drag.
-    expect(strip.textContent).toMatch(/market path is a shadow/);
+    expect(strip.textContent).toMatch(/market path is a shadow/i);
   });
 
   it("reads a neutral value correctly for each kind", () => {

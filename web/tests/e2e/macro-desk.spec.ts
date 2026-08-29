@@ -83,6 +83,10 @@ test.describe("macro desk shell", () => {
               tag: element.tagName,
               className: element.getAttribute("class") ?? "",
               testId: element.getAttribute("data-testid") ?? "",
+              panelTestId:
+                element.closest("[data-testid]")?.getAttribute("data-testid") ??
+                "",
+              text: element.textContent?.replace(/\s+/g, " ").trim() ?? "",
               clientWidth: element.clientWidth,
               scrollWidth: element.scrollWidth,
             }));
@@ -133,9 +137,29 @@ test.describe("macro desk shell", () => {
           },
         );
         let text = "";
-        while (walker.nextNode()) text += ` ${walker.currentNode.textContent}`;
+        const variableNodes: Array<{
+          text: string;
+          parent: string;
+          panelTestId: string;
+        }> = [];
+        while (walker.nextNode()) {
+          const value = walker.currentNode.textContent ?? "";
+          text += ` ${value}`;
+          if (/\b[A-Za-z][A-Za-z0-9]*_[A-Za-z0-9_]+\b/.test(value)) {
+            const parent = walker.currentNode.parentElement;
+            variableNodes.push({
+              text: value.replace(/\s+/g, " ").trim(),
+              parent: `${parent?.tagName ?? ""}.${parent?.className ?? ""}`,
+              panelTestId:
+                parent
+                  ?.closest("[data-testid]")
+                  ?.getAttribute("data-testid") ?? "",
+            });
+          }
+        }
         return {
           text: text.replace(/\s+/g, " ").trim(),
+          variableNodes,
           standfirstLengths: [...(main?.querySelectorAll(".sec-sub") ?? [])]
             .filter((element) => element.getClientRects().length > 0)
             .map((element) => (element.textContent ?? "").trim().length),
@@ -147,7 +171,7 @@ test.describe("macro desk shell", () => {
 
       expect(
         presentation.text.match(/\b[A-Za-z][A-Za-z0-9]*_[A-Za-z0-9_]+\b/g) ?? [],
-        `${route} exposes variable-shaped copy`,
+        `${route} exposes variable-shaped copy: ${JSON.stringify(presentation.variableNodes)}`,
       ).toEqual([]);
       expect(presentation.visibleQuestionChips).toBe(0);
       for (const length of presentation.standfirstLengths) {
@@ -409,7 +433,7 @@ test.describe("macro desk shell", () => {
     }
     expect(body).toContain("no composite");
     // Non-vacuity: a body that failed to render would pass every ban above.
-    expect(body).toContain("daily loop");
+    expect(body).toContain("state changes");
   });
 
   test("tab 00's replay date actually reaches all five publishers", async ({
@@ -525,7 +549,7 @@ test.describe("board conformance", () => {
     await page.goto("/macro/inflation");
     await page.waitForLoadState("networkidle");
     await expect(page.getByTestId("confidence-reconciliation")).toContainText(
-      /reproduces the published/i,
+      /reconciles to the displayed factors/i,
     );
   });
 });

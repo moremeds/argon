@@ -1,4 +1,5 @@
 import { BoardRead } from "@/components/macro/domain/BoardPanel";
+import { humanizeText } from "@/components/macro/presentation";
 
 import { fmtValue, toFiniteNumber } from "./format";
 import { isWithheld, releaseDate } from "./policyPath";
@@ -71,7 +72,7 @@ function laneDetail(slot: PolicyPathSlot | null | undefined): string {
   }`;
   const anonymity =
     path.kind === "committee_projection" ? "SEP dots are anonymous" : "";
-  return [
+  return humanizeText([
     path.source,
     `released ${releaseDate(path)}`,
     range,
@@ -81,7 +82,7 @@ function laneDetail(slot: PolicyPathSlot | null | undefined): string {
     freshness,
   ]
     .filter(Boolean)
-    .join(" · ");
+    .join(" · "));
 }
 
 function chartDomain(values: number[]): { min: number; max: number } {
@@ -205,7 +206,7 @@ export function PolicyPathComparison({
                   <text x={X0 + 8} y={y + 4} fill="var(--text-muted)" fontSize="10">
                     {pathStatus === "rejected"
                       ? laneDetail(lane.slot)
-                      : (lane.slot?.missing_reason ?? "unavailable")}
+                      : humanizeText(lane.slot?.missing_reason ?? "unavailable")}
                   </text>
                 )}
               </g>

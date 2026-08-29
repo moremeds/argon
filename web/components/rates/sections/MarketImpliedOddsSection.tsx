@@ -1,5 +1,9 @@
 import { BoardRead } from "@/components/macro/domain/BoardPanel";
 import { MarketImpliedMeetingBars } from "@/components/macro/MarketImpliedMeetingBars";
+import {
+  humanizeIdentifier,
+  humanizeText,
+} from "@/components/macro/presentation";
 
 import styles from "../RatesDesk.module.css";
 import type { PolicyPathSlot } from "../types";
@@ -52,12 +56,14 @@ export function MarketImpliedOddsSection({
       <div className="note-refuse">
         <p>
           <strong>No market-implied path for this instant.</strong>{" "}
-          {slot.missing_reason ??
-            "The publisher returned no point-in-time eligible release."}
+          {humanizeText(
+            slot.missing_reason ??
+              "The publisher returned no point-in-time eligible release.",
+          )}
         </p>
         {freshness && (
           <p>
-            Source <code>{freshness.source ?? "unknown"}</code> ·{" "}
+            Source <code>{humanizeIdentifier(freshness.source ?? "unknown")}</code> ·{" "}
             {freshness.releases_discovered ?? 0} releases discovered,{" "}
             {freshness.releases_succeeded ?? 0} succeeded,{" "}
             {freshness.releases_failed ?? 0} failed
@@ -89,7 +95,7 @@ export function MarketImpliedOddsSection({
       {slot.path?.release_date ? (
         <p className="cap">
           Released {slot.path.release_date} by{" "}
-          {slot.path.source ?? "an unnamed publisher"}.
+          {humanizeIdentifier(slot.path.source ?? "an unnamed publisher")}.
         </p>
       ) : null}
     </>

@@ -1,6 +1,9 @@
 import { ConfidenceArithmetic } from "@/components/macro/ConfidenceArithmetic";
 import { BoardRead } from "@/components/macro/domain/BoardPanel";
-import { humanizeIdentifier } from "@/components/macro/presentation";
+import {
+  humanizeIdentifier,
+  humanizeText,
+} from "@/components/macro/presentation";
 
 import { toFiniteNumber } from "../format";
 import type { MacroStateSummary } from "../types";
@@ -74,7 +77,9 @@ export function StateSection({
                   {humanizeIdentifier(item.metric)}
                 </td>
                 <td className="num">
-                  {item.unavailable_reason ?? fmtVelocity(item.value, item.unit)}
+                  {item.unavailable_reason
+                    ? humanizeText(item.unavailable_reason)
+                    : fmtVelocity(item.value, humanizeIdentifier(item.unit))}
                 </td>
               </tr>
             ))}
@@ -89,7 +94,7 @@ export function StateSection({
               <li key={`${item.rule}:${item.detail}`}>
                 <strong title={item.rule} data-raw-value={item.rule}>
                   {humanizeIdentifier(item.rule)}
-                </strong>{" "}— {item.detail}
+                </strong>{" "}— {humanizeText(item.detail)}
               </li>
             ))}
           </ul>

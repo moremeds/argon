@@ -1,6 +1,7 @@
 import { toNum } from "@/lib/formatters";
 
 import styles from "./ConfidenceArithmetic.module.css";
+import { fieldLabel, humanizeText } from "./presentation";
 import type { MacroConfidenceReason } from "./types";
 
 /**
@@ -84,11 +85,11 @@ export function ConfidenceArithmetic({
           <span className={styles.confidenceStripLabel}>Reduced by</span>
           {drags.map((reason) => (
             <span key={reason.term} className={styles.confidenceDrag}>
-              <strong>{reason.term.replace(/_/g, " ")}</strong>
+              <strong>{fieldLabel(reason.term)}</strong>
               {reason.kind === "penalty"
                 ? ` −${((toNum(reason.value) ?? 0) * 100).toFixed(0)}%`
                 : ` ×${(toNum(reason.value) ?? 0).toFixed(2)}`}
-              <small>{reason.detail}</small>
+              <small>{humanizeText(reason.detail)}</small>
             </span>
           ))}
         </>
@@ -100,8 +101,8 @@ export function ConfidenceArithmetic({
       )}
       {notes.map((note) => (
         <span key={note.term} className={styles.confidenceNote}>
-          <strong>{note.term.replace(/_/g, " ")}</strong>
-          <small>{note.detail}</small>
+          <strong>{fieldLabel(note.term)}</strong>
+          <small>{humanizeText(note.detail)}</small>
         </span>
       ))}
     </div>

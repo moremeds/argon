@@ -354,6 +354,15 @@ version in lockstep (enforced by `scripts/release/version_sync_check.py`).
 
 ### Changed
 
+- **The macro desk is now signal-first instead of review-first.** All nine tabs use short
+  operator-facing titles and standfirsts; question badges and long publisher commentary
+  move out of the reading path, while provenance remains available under **Data details**.
+  Raw enum, series, publisher and engine identifiers are translated at the presentation
+  boundary and retained only as audit metadata. The Method tab is reduced from an embedded
+  design review to four durable references: data types, replay clocks, bindings and limits.
+  Every panel now declares one honest basis — Live, Derived, Planned or Reference — with
+  the dated Energy inventory and static Method guidance explicitly marked Reference.
+
 - **Two `/gold` panels that could only ever render an em-dash are gone.** `two_force_text` is
   hardcoded `"—"`/`"—"` in the router with no producer anywhere in the tree, and `decomposition_rows`
   has been `[]` on every run since it was written (the reason is already recorded in
@@ -373,6 +382,12 @@ version in lockstep (enforced by `scripts/release/version_sync_check.py`).
     them — what is dead is the COMEX-labelled snapshot field, which no consumer reads.
 
 ### Fixed
+
+- **Macro content no longer creates horizontal scroll at supported desktop widths.** The
+  shell, charts, tables, confidence terms and chain cards fit or wrap at 1280, 1440 and
+  1660px while preserving the left navigation and vertical reading flow. A production
+  browser sweep now holds all nine tabs to that contract and also rejects visible
+  variable-shaped identifiers, review badges and unlabeled data-binding panels.
 
 - **The gold posture lint could report a clean surface over a directory that was not there.**
   `web/scripts/lint-gold-copy.mjs` caught a missing scope root and skipped it, so the script

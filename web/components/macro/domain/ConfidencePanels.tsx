@@ -9,7 +9,7 @@ import {
   type ConfidenceChain,
   type ConfidenceReason,
 } from "./confidence";
-import { fieldLabel } from "../presentation";
+import { fieldLabel, humanizeText } from "../presentation";
 
 /** A multiplicand prints as itself; a penalty prints as the subtraction it performs, so
  *  the row reads as one continuous product rather than a mix of two conventions. This is
@@ -113,7 +113,7 @@ export function ConfidenceArithmeticPanel({
         {chain.terms.map((t, i) => (
           <Fragment key={t.term}>
             {i > 0 ? <span className="op">×</span> : null}
-            <span className={termClass(t)} title={t.detail}>
+            <span className={termClass(t)} title={humanizeText(t.detail)}>
               {termFace(t)}
               <small>{fieldLabel(t.term)}</small>
             </span>
@@ -203,7 +203,7 @@ export function ConfidenceRepairPanel({
                 {table.rows.map((row) => (
                   <tr key={row.term}>
                     <td>
-                      {fieldLabel(row.term)} — {row.detail}
+                      {fieldLabel(row.term)} — {humanizeText(row.detail)}
                     </td>
                     <td className="num">
                       {fmtConfidence(table.from)} → {fmtConfidence(row.to)}

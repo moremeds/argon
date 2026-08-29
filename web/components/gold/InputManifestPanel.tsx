@@ -1,5 +1,9 @@
 import { BoardPanel } from "@/components/macro/domain/BoardPanel";
-import { seriesLabel } from "@/components/macro/presentation";
+import {
+  humanizeIdentifier,
+  humanizeText,
+  seriesLabel,
+} from "@/components/macro/presentation";
 import type { components } from "@/lib/types";
 
 import {
@@ -146,7 +150,7 @@ export function InputManifestPanel({
                   <td title={sid} data-raw-value={sid}>
                     {seriesLabel(sid)}
                     {prov.lens && prov.lens.length > 0 && (
-                      <> [{prov.lens.join("/")}]</>
+                      <> [{prov.lens.map(humanizeIdentifier).join("/")}]</>
                     )}
                   </td>
                   <td>{prov.obs_date}</td>
@@ -169,7 +173,9 @@ export function InputManifestPanel({
               <b style={{ color: "var(--negative)" }} title={sid} data-raw-value={sid}>
                 {seriesLabel(sid)} · required
               </b>
-              {prov.omission_reason && <> — {prov.omission_reason}</>}
+              {prov.omission_reason && (
+                <> — {humanizeText(prov.omission_reason)}</>
+              )}
             </li>
           ))}
         </ul>
@@ -182,13 +188,15 @@ export function InputManifestPanel({
           style={{ color: "var(--text-muted)" }}
         >
           {decisions.map(([sid, prov]) => (
-            <li key={sid}>
+            <li
+              key={sid}
+              data-omission-reason={prov.omission_reason ?? undefined}
+            >
               <span title={sid} data-raw-value={sid}>{seriesLabel(sid)}</span>
               {prov.lens && prov.lens.length > 0 && (
-                <> [{prov.lens.join("/")}]</>
+                <> [{prov.lens.map(humanizeIdentifier).join("/")}]</>
               )}{" "}
-              · not read
-              {prov.omission_reason && <> — {prov.omission_reason}</>}
+              · outside the current model
             </li>
           ))}
         </ul>

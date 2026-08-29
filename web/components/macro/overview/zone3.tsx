@@ -3,7 +3,11 @@ import type { components } from "@/lib/types";
 import { ConfidenceArithmetic } from "../ConfidenceArithmetic";
 import { MarketImpliedMeetingBars } from "../MarketImpliedMeetingBars";
 import { plural } from "../format";
-import { fieldLabel, humanizeIdentifier } from "../presentation";
+import {
+  fieldLabel,
+  humanizeIdentifier,
+  humanizeText,
+} from "../presentation";
 import { BoardPanel, BoardRead, BoardRefusal } from "../domain/BoardPanel";
 import type {
   MacroDomainKey,
@@ -179,7 +183,7 @@ export function ConfidenceRepairPanel({
                     >
                       {row.binding.num.toFixed(3)}
                     </td>
-                    <td>{row.binding.detail}</td>
+                    <td>{humanizeText(row.binding.detail)}</td>
                   </>
                 ) : (
                   <td colSpan={3} style={{ color: "var(--text-muted)" }}>

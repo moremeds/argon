@@ -80,39 +80,47 @@ describe("InputManifestPanel", () => {
     // Flattening these into one "missing" list turns a deliberate boundary into a
     // pipeline failure and hides the row that actually wants fixing.
     const gaps = screen.getByTestId("gold-manifest-gaps");
-    expect(gaps.textContent).toContain("exchange_inventory_daily");
-    expect(gaps.textContent).not.toContain("fx");
+    expect(gaps.textContent).toContain("Exchange inventory");
+    expect(gaps.textContent).not.toContain("FX");
+    expect(
+      gaps.querySelector('[data-raw-value="exchange_inventory_daily"]'),
+    ).toBeTruthy();
 
     const decisions = screen.getByTestId("gold-manifest-decisions");
-    expect(decisions.textContent).toContain("fx");
-    expect(decisions.textContent).not.toContain("exchange_inventory_daily");
+    expect(decisions.textContent).toContain("FX");
+    expect(decisions.textContent).not.toContain("Exchange inventory");
   });
 
   it("renders an omission as a decision, never as obs null", () => {
     renderPanel();
     const decisions = screen.getByTestId("gold-manifest-decisions");
-    expect(decisions.textContent).toContain("not read");
+    expect(decisions.textContent).toContain("outside the current model");
     expect(decisions.textContent).not.toContain("null");
   });
 
-  it("gives each omission its reason", () => {
+  it("shows the gap reason and keeps scope-decision internals out of display copy", () => {
     renderPanel();
     expect(screen.getByTestId("gold-manifest-gaps").textContent).toContain(
       "no rows in comex",
     );
-    expect(screen.getByTestId("gold-manifest-decisions").textContent).toContain(
-      "fx_rows=[]",
-    );
+    const decisions = screen.getByTestId("gold-manifest-decisions");
+    expect(decisions.textContent).toContain("outside the current model");
+    expect(decisions.textContent).not.toContain("=[]");
+    expect(
+      decisions.querySelector(
+        '[data-omission-reason="compute_structural_posture is called with fx_rows=[]"]',
+      ),
+    ).toBeTruthy();
   });
 
   it("keeps read inputs out of both omission lists", () => {
     renderPanel();
     expect(screen.getByTestId("gold-manifest-gaps").textContent).not.toContain(
-      "DFII10",
+      "10Y real yield",
     );
     expect(
       screen.getByTestId("gold-manifest-decisions").textContent,
-    ).not.toContain("DFII10");
+    ).not.toContain("10Y real yield");
   });
 
   it("ages a stale read against the observation date, not today", () => {
@@ -133,7 +141,7 @@ describe("InputManifestPanel", () => {
   it("labels each input with the lenses that consume it", () => {
     renderPanel();
     expect(screen.getByTestId("gold-manifest-decisions").textContent).toContain(
-      "[L1]",
+      "[Structural]",
     );
   });
 

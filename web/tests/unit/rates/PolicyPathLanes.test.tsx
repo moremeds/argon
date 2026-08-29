@@ -33,10 +33,12 @@ describe("policy path comparison chart", () => {
   it("retains each publisher's source, release and freshness in its SVG lane", () => {
     render(<PolicyPathComparison comparison={POLICY_COMPARISON} />);
 
-    expect(lane("actual").textContent).toMatch(/fomc_statement/);
+    expect(lane("actual").textContent).toMatch(/FOMC statement/i);
     expect(lane("actual").textContent).toMatch(/released 2026-06-17/);
     expect(lane("actual").textContent).toMatch(/releases parsed/);
-    expect(lane("dealer_expectations").textContent).toMatch(/nyfed_sme/);
+    expect(lane("dealer_expectations").textContent).toMatch(
+      /New York Fed dealer survey/i,
+    );
   });
 
   it("distinguishes a missing publisher from rejected non-publisher evidence", () => {

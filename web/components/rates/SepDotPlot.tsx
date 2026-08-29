@@ -1,5 +1,6 @@
 import { WIDE_FRAME } from "@/components/macro/chartGeometry";
 import { BoardRead } from "@/components/macro/domain/BoardPanel";
+import { humanizeIdentifier } from "@/components/macro/presentation";
 import styles from "./RatesDesk.module.css";
 import { finiteOrNull, toFiniteNumber } from "./format";
 import { plottable, priorReleases, releaseDate } from "./policyPath";
@@ -291,7 +292,7 @@ export function SepDotPlot({
       </div>
 
       <p className="cap">
-        {path.source} · released {releaseDate(path)}
+        {humanizeIdentifier(path.source)} · released {releaseDate(path)}
         {previous
           ? ` · dashed line is the ${releaseDate(previous)} median`
           : ""}

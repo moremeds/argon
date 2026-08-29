@@ -102,10 +102,7 @@ function ChainNode({
   if (!s) {
     return (
       <div className="node" data-testid={`macro-domain-${domain}`}>
-        <h3>
-          {DOMAIN_LABEL[domain]}
-          <span className="dom">{domain}</span>
-        </h3>
+        <h3>{DOMAIN_LABEL[domain]}</h3>
         <span className="state neust" style={{ fontWeight: 400 }}>
           {slot.error ? "request failed" : "never computed"}
         </span>
@@ -127,10 +124,7 @@ function ChainNode({
       data-testid={`macro-domain-${domain}`}
       data-engine-version={s.engine_version}
     >
-      <h3>
-        {DOMAIN_LABEL[domain]}
-        <span className="dom">{domain}</span>
-      </h3>
+      <h3>{DOMAIN_LABEL[domain]}</h3>
       <span className={`state ${STATE_TONE[s.state] ?? "neust"}`} data-raw-value={s.state}>
         {humanizeIdentifier(s.state)}
       </span>
@@ -172,7 +166,7 @@ function ChainNode({
               }`}
             >
               {signed === null ? "—" : signed.toFixed(2)}
-              {v.unit ? ` ${v.unit}` : ""}
+              {v.unit ? ` ${humanizeIdentifier(v.unit)}` : ""}
             </span>
           </div>
         );

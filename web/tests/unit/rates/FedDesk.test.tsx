@@ -285,17 +285,17 @@ describe("FedDesk", () => {
       expect(lanes.length).toBe(4);
 
       const actual = screen.getByTestId("policy-path-lane-actual");
-      expect(actual.textContent).toContain("fomc_statement");
+      expect(actual.textContent).toContain("FOMC statement");
       expect(actual.textContent).toContain("released 2026-06-17");
       expect(actual.textContent).toContain("3.50–3.75%");
       expect(actual.textContent).toContain("Hold");
 
       const sep = screen.getByTestId("policy-path-lane-committee_projection");
-      expect(sep.textContent).toContain("fed_sep");
+      expect(sep.textContent).toContain("Fed projections");
       expect(sep.textContent).toContain("3.800");
 
       const dealer = screen.getByTestId("policy-path-lane-dealer_expectations");
-      expect(dealer.textContent).toContain("nyfed_sme");
+      expect(dealer.textContent).toContain("New York Fed dealer survey");
       expect(dealer.textContent).toContain("released");
     });
 

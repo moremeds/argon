@@ -854,6 +854,6 @@ describe("OverviewDesk — what it may never say", () => {
     // on `kind` alone and must not special-case the term by name, so it will keep printing
     // this until the API image ships the fix, and then stop with no web change at all.
     // This assertion is here so that flip is visible rather than silent.
-    expect(rates.textContent).toMatch(/market path is a shadow ×0\.00/);
+    expect(rates.textContent).toMatch(/market path is a shadow ×0\.00/i);
   });
 });

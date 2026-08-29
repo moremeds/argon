@@ -76,8 +76,8 @@ describe("StateSection confidence strip", () => {
 
     const strip = screen.getByTestId("rates-confidence-strip");
     expect(strip.textContent).toContain("Reduced by");
-    expect(strip.textContent).toContain("completeness");
-    expect(strip.textContent).toContain("contradiction penalty");
+    expect(strip.textContent).toMatch(/completeness/i);
+    expect(strip.textContent).toMatch(/contradiction penalty/i);
     expect(strip.textContent).not.toContain("Nothing reduced it");
   });
 
@@ -107,7 +107,7 @@ describe("StateSection confidence strip", () => {
     const strip = screen.getByTestId("rates-confidence-strip");
     expect(strip.textContent).toContain("Nothing reduced it");
     // Still shown -- it is the one genuinely informative line -- just not as a drag.
-    expect(strip.textContent).toContain("market factors absent");
+    expect(strip.textContent).toMatch(/market factors absent/i);
     expect(strip.textContent).toContain("supply, positioning, plumbing");
   });
 
