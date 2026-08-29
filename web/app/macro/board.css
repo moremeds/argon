@@ -32,6 +32,16 @@
   padding: 18px 24px 36px;
   color: var(--text-primary);
 
+  /* The board's own body type scale.
+   *
+   * Measured, not guessed: `scripts/board-pixel-compare.mjs` reported 13.5px/1.55 against
+   * argon's 13px/1.5 on every element that inherits — which was most of them, and by far
+   * the largest single source of drift between the two pages. Scoped to `.board` rather
+   * than changed in globals.css because it is the DESK's scale, and the rest of the app
+   * has no reason to move. */
+  font-size: 13.5px;
+  line-height: 1.55;
+
   /* The board's `--accent-deep`, which globals.css has no equivalent for. Scoped here
      rather than added to the global palette because the desk is its only consumer, and
      kept as ONE declaration because four rules below want it (the read rail, the chain's
@@ -52,7 +62,9 @@
 .board .sec-title h2 {
   font-size: 17px;
   font-weight: 700;
-  letter-spacing: 0.2px;
+  /* No letter-spacing. The board's 0.2px belongs to `.intro h1`, its masthead lockup —
+     `.sec-title h2` carries none, and the pixel compare caught this being copied onto the
+     wrong rule. */
   margin: 0;
 }
 .board .sec-sub {
@@ -277,6 +289,18 @@
   border-bottom: 1px solid var(--border-dim);
 }
 .board td {
+  /* `inherit`, and both are load-bearing.
+   *
+   * globals.css styles bare `td` at `font-family: var(--font-mono); font-size: 12px` for
+   * the app's other tables. The board's `td` declares NEITHER — it inherits the sans body
+   * face and the 12.5px `table` size — and an inherited value always loses to a
+   * declaration, however weak that declaration's specificity. So every board cell on this
+   * desk silently rendered mono at 12px until the pixel compare measured it.
+   *
+   * `inherit` restores the board's behaviour at a specificity that wins, rather than
+   * restating the values and creating a second place they can drift. */
+  font-family: inherit;
+  font-size: inherit;
   padding: 7px 10px;
   border-bottom: 1px solid
     color-mix(in srgb, var(--border-dim) 60%, transparent);
@@ -389,6 +413,75 @@
   margin-top: 4px;
 }
 
+/* ── the desk legend, and the seven questions ──────────────────────────────────
+ *
+ * The board carries both ONCE, above its tab strip, and the desk shipped without either
+ * — which the class-coverage probe could not see, because it compares elements the two
+ * pages both render and these were on neither list. The full-page visual comparison is
+ * what caught them.
+ *
+ * They are not decoration. Every panel on this desk tags itself `REAL` / `COMPUTED` /
+ * `PLANNED` and `Q1`–`Q7`, and without a key those are sixty-odd unexplained chips: the
+ * reader can see that a panel claims something about its provenance and cannot find out
+ * what. `BoardPanel` even encodes the questions as a required type — the acceptance test
+ * "every panel answers at least one" — and the questions themselves appeared nowhere.
+ */
+.board-legend {
+  max-width: 1240px;
+  margin: 0 auto;
+  padding: 14px 24px 0;
+}
+.board-legend .legend-strip {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 14px;
+  padding: 0 0 12px;
+  font-family: var(--font-mono), monospace;
+  font-size: 10.5px;
+  color: var(--text-muted);
+  align-items: center;
+}
+.board-legend .legend-strip b {
+  color: var(--text-secondary);
+  font-weight: 500;
+}
+.board-legend .pmq {
+  display: grid;
+  grid-template-columns: repeat(7, 1fr);
+  gap: 8px;
+  padding: 0 0 16px;
+}
+.board-legend .pmq .q {
+  background: var(--bg-panel);
+  border: 1px solid var(--border-dim);
+  border-radius: 4px;
+  padding: 9px 10px;
+}
+.board-legend .pmq .q b {
+  display: block;
+  font-family: var(--font-mono), monospace;
+  font-size: 10px;
+  color: var(--accent-bg);
+  letter-spacing: 1.2px;
+  margin-bottom: 3px;
+}
+.board-legend .pmq .q span {
+  font-size: 11.5px;
+  color: var(--text-secondary);
+  line-height: 1.35;
+  display: block;
+}
+@media (max-width: 980px) {
+  .board-legend .pmq {
+    grid-template-columns: repeat(4, 1fr);
+  }
+}
+@media (max-width: 640px) {
+  .board-legend .pmq {
+    grid-template-columns: repeat(2, 1fr);
+  }
+}
+
 /* ── masthead chips ────────────────────────────────────────────────────────────
  *
  * The board's `.mast-meta` row: small bordered mono chips carrying the facts a tab is
@@ -472,6 +565,10 @@
   letter-spacing: 0.05em;
   color: var(--text-primary);
   white-space: nowrap;
+  /* The element is an `<h2>` rather than the board's `<span>` — see `Zone.tsx`. Its
+     default margin would break the banner's baseline alignment, so it is zeroed here
+     rather than at the call site. */
+  margin: 0;
 }
 .board .zone .rule {
   flex: 1;
@@ -520,7 +617,8 @@
   display: flex;
   justify-content: space-between;
   align-items: center;
-  gap: 8px;
+  /* No `gap`. The board relies on `space-between` alone here, and an added gap changes
+     where the domain label sits on a narrow node. Caught by the pixel compare. */
   margin: 0;
 }
 .board .node h3 .dom {
@@ -643,6 +741,18 @@
  * One row per dated meeting: a header carrying the date and the priced rate, then a
  * proportional two-segment bar. `.hk` (hike/hold) is warm and `.hd` (cut) is cool, and
  * the cut segment right-aligns its own label so the two numbers sit at the outer edges.
+ *
+ * `.meet` / `.meet-h` RENDER. `.pbar` DOES NOT, and it is the one board element the desk
+ * does not currently draw anywhere — measured by `scripts/board-pixel-compare.mjs`, which
+ * reports it as the sole gap in grammar coverage.
+ *
+ * That is a data fact, verified rather than assumed (2026-08-29): `/api/macro/policy`
+ * carries `probability_distribution` on zero of its 21 points across all four lanes, the
+ * market-implied lane publishes `missing_reason` instead of a path, and
+ * `/api/rates/snapshot` has no `market_implied` block at all. There is no probability on
+ * this desk to split a bar with, so both tabs state the refusal in the publisher's own
+ * words instead. The rule stays so the bar's return is a markup change and not a second
+ * porting job.
  */
 .board .meet {
   display: flex;

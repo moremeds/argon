@@ -33,7 +33,14 @@ export function Zone({
       data-testid={`macro-zone-${label.toLowerCase().replace(/[^a-z]+/g, "-")}`}
     >
       <span className="zk">{kicker}</span>
-      <span className="zl">{label}</span>
+      {/* An `<h2>`, where the board writes a `<span class="zl">`.
+       *
+       * `.zl` carries every pixel — face, size, weight, tracking, colour — so the two
+       * paint the same. What the element adds is that a zone banner IS the heading of the
+       * band beneath it: it is how a reader skimming the tab knows where WHAT CHANGED ends
+       * and WHAT DISAGREES begins, and a span gives a screen-reader user no way to make
+       * that jump. The rates desks' in-page navs address these bands by name. */}
+      <h2 className="zl">{label}</h2>
       <span className="rule" />
       <span className="zk">{scope}</span>
     </div>

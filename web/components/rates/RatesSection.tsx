@@ -1,31 +1,53 @@
-import styles from "./RatesDesk.module.css";
+import { Zone } from "@/components/macro/overview/Zone";
 
 /**
- * A band heading that groups the sections under it.
+ * The two structural elements tabs 01 and 02 are built from, in the board's own grammar.
  *
- * The desk used to be fifteen sections at one visual weight behind a flat
- * fifteen-item nav, which is a list, not a hierarchy -- the verdict, the publishers
- * who feed it, the market's own pricing and the legacy scorecard all shouted equally
- * and the reader had to know the page to find anything. Tiers answer "what am I
- * looking at" before "which panel".
+ * ### What this replaced, and why
+ *
+ * These were a house hierarchy: `RatesTier` drew a band heading with a lede, and
+ * `RatesSection` drew a bordered `<section>` with its own header row. Every panel was
+ * full-width and stacked, which is why the pixel compare measured tab 02 at 7839px against
+ * the board's 3982 — nearly double the page for the same content, because the board lays
+ * these out as pairs and threes and we laid them out as a column.
+ *
+ * The board has no "tier" element, but it has exactly this device on tab 00: a `.zone`
+ * banner naming a band of panels and what bounds it. So the tier becomes a zone and the
+ * section becomes a `.panel`, and both keep their ids — the in-page nav on these two tabs
+ * links to them, and a design port that broke every anchor would be trading one defect
+ * for another.
  */
 export function RatesTier({
   id,
   title,
   lede,
+  kicker = "Band",
 }: {
   id: string;
   title: string;
   lede: string;
+  /** The zone's left kicker. Defaults to a neutral word rather than a number, because
+   *  unlike tab 00 these bands are not a numbered walk. */
+  kicker?: string;
 }) {
   return (
-    <div className={styles.tier} id={id} data-testid={`rates-tier-${id}`}>
-      <h2 className={styles.tierTitle}>{title}</h2>
-      <p className={styles.tierLede}>{lede}</p>
+    <div id={id} data-testid={`rates-tier-${id}`}>
+      <Zone kicker={kicker} label={title} scope={lede} />
     </div>
   );
 }
 
+/**
+ * One panel.
+ *
+ * `role="region"` + `aria-label` are carried over from the `<section>` this replaced —
+ * the desk's tests query these by accessible name, and more importantly a reader on a
+ * screen reader had a labelled landmark per panel before and must still have one.
+ *
+ * `status` renders as a `.tag`, which is what the board uses for a per-panel state word.
+ * It was a filled pill, and a filled pill in a panel header reads as a verdict about the
+ * panel's subject rather than a note about its data.
+ */
 export function RatesSection({
   id,
   title,
@@ -39,15 +61,24 @@ export function RatesSection({
   status?: string;
   children: React.ReactNode;
 }) {
+  // A `<section>`, where the board writes a `<div class="panel">`.
+  //
+  // The class carries every pixel; the element carries the semantics. `<section>` with
+  // an accessible name IS `role="region"`, and both desks' in-page navs and their tests
+  // address these by `section[id]` — so keeping the element costs nothing visually and
+  // keeps a labelled landmark per panel that a screen reader can jump between.
   return (
-    <section id={id} className={styles.section} aria-labelledby={`${id}-title`}>
-      <div className={styles.sectionHeader}>
-        <div>
-          {eyebrow ? <p className={styles.eyebrow}>{eyebrow}</p> : null}
-          <h2 id={`${id}-title`}>{title}</h2>
-        </div>
-        {status ? <span className={styles.statusPill}>{status}</span> : null}
+    <section
+      id={id}
+      className="panel"
+      aria-label={title}
+      data-testid={`rates-section-${id}`}
+    >
+      <div className="panel-h">
+        <h3 id={`${id}-title`}>{title}</h3>
+        {status ? <span className="tag plan">{status}</span> : null}
       </div>
+      {eyebrow ? <p className="cap">{eyebrow}</p> : null}
       {children}
     </section>
   );

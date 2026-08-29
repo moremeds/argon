@@ -1,5 +1,6 @@
 import { Suspense } from "react";
 
+import { BoardLegend } from "@/components/macro/BoardLegend";
 import { MacroTabBar } from "@/components/macro/MacroTabBar";
 
 import "./board.css";
@@ -37,6 +38,12 @@ export default function MacroLayout({
       <Suspense fallback={null}>
         <MacroTabBar />
       </Suspense>
+      {/* The board prints its provenance key and the seven questions ONCE, above the tab
+          strip, and every tab is read underneath them. This is that placement: the desk is
+          nine routes where the board is one page, so "once, above the tabs" is the layout.
+          Without it the desk renders sixty-odd Q-tags and provenance badges that the page
+          never defines anywhere. */}
+      <BoardLegend />
       {children}
     </div>
   );

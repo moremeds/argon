@@ -238,13 +238,19 @@ export function CurveDesk({
         {/* The board's three decomposition panels. They were one section until
           2026-08-29, which let a monthly model's output inherit the authority of
           arithmetic on traded yields. */}
-        <NominalDecompositionSection
-          decomposition={decomposition}
-          policy={policy}
-          slopes={curve.slopes ?? []}
-        />
-        <ClevelandDecompositionSection decomposition={decomposition} />
-        <MoveAttributionSection decomposition={decomposition} />
+        {/* The board groups the three decompositions rather than stacking them, and the
+          grouping is the claim: they are three different cuts of ONE move, so a
+          column of three reads as a sequence where a row of three reads as
+          alternatives. */}
+        <div className="grid g3">
+          <NominalDecompositionSection
+            decomposition={decomposition}
+            policy={policy}
+            slopes={curve.slopes ?? []}
+          />
+          <ClevelandDecompositionSection decomposition={decomposition} />
+          <MoveAttributionSection decomposition={decomposition} />
+        </div>
 
         <RatesTier
           id="tier-mechanics"
@@ -252,90 +258,96 @@ export function CurveDesk({
           lede="The plumbing a rates view stands on: issuance, positioning and cross-market."
         />
 
-        {/* The board's three SUB-STATE panels, in its order. Each pairs the engine's
-          verdict (from `/api/macro/rates`) with the readings it was computed from (from
-          the snapshot) -- see `SubStateSection` for why both belong on screen.
+        <div className="grid g3">
+          {/* The board's three SUB-STATE panels, in its order. Each pairs the engine's
+            verdict (from `/api/macro/rates`) with the readings it was computed from (from
+            the snapshot) -- see `SubStateSection` for why both belong on screen.
 
-          A sub-state the engine did not publish renders its snapshot readings alone
-          rather than vanishing: the readings are facts about the tape and do not stop
-          being true because the verdict is missing. */}
-        {subStateFor("supply") ? (
-          <SubStateSection subState={subStateFor("supply")!}>
-            <SupplyFiscalSection supply={supply} />
-          </SubStateSection>
-        ) : (
+            A sub-state the engine did not publish renders its snapshot readings alone
+            rather than vanishing: the readings are facts about the tape and do not stop
+            being true because the verdict is missing. */}
+          {subStateFor("supply") ? (
+            <SubStateSection subState={subStateFor("supply")!}>
+              <SupplyFiscalSection supply={supply} />
+            </SubStateSection>
+          ) : (
+            <RatesSection
+              id="substate-supply"
+              title="Supply SUB-STATE"
+              status={statusLabel(supply?.status)}
+            >
+              <SupplyFiscalSection supply={supply} />
+            </RatesSection>
+          )}
+
+          {subStateFor("positioning") ? (
+            <SubStateSection subState={subStateFor("positioning")!}>
+              <PositioningSection positioning={positioning} />
+            </SubStateSection>
+          ) : (
+            <RatesSection
+              id="substate-positioning"
+              title="Positioning SUB-STATE · 10Y futures"
+              status={statusLabel(positioning?.status)}
+            >
+              <PositioningSection positioning={positioning} />
+            </RatesSection>
+          )}
+
+          {/* Funding is the board's name for what the engine calls `plumbing`. Tab 01
+            carries a `Plumbing` panel too and they are NOT duplicates: that one is the
+            balance sheet behind the policy rate, this one is whether funding markets are
+            transmitting it. */}
+          {subStateFor("plumbing") ? (
+            <SubStateSection subState={subStateFor("plumbing")!}>
+              <div className={styles.compactGrid}>
+                {(policy.plumbing ?? []).map((tile) => (
+                  <Tile key={tile.label} tile={tile} />
+                ))}
+              </div>
+            </SubStateSection>
+          ) : (
+            // Rendered unconditionally, like its two siblings. `NAV` links to this anchor
+            // on every render, so a section that appeared only when the state engine had
+            // published would make the nav link to nowhere exactly when the engine is down.
+            <RatesSection
+              id="substate-plumbing"
+              title="Funding SUB-STATE"
+              status={statusLabel(policy?.status)}
+            >
+              <div className={styles.compactGrid}>
+                {(policy.plumbing ?? []).map((tile) => (
+                  <Tile key={tile.label} tile={tile} />
+                ))}
+              </div>
+            </RatesSection>
+          )}
+        </div>
+
+        {/* The board's t2 pairs these; a column of full-width sections is why the
+          board/live pixel compare measured this tab at nearly twice its own spec. */}
+        <div className="grid g2">
           <RatesSection
-            id="substate-supply"
-            title="Supply SUB-STATE"
+            id="auctions"
+            title="Auction demand · did anyone show up"
+            eyebrow="TreasuryDirect · recent results"
             status={statusLabel(supply?.status)}
           >
-            <SupplyFiscalSection supply={supply} />
+            <AuctionDemandSection supply={supply} />
           </RatesSection>
-        )}
 
-        {subStateFor("positioning") ? (
-          <SubStateSection subState={subStateFor("positioning")!}>
-            <PositioningSection positioning={positioning} />
-          </SubStateSection>
-        ) : (
           <RatesSection
-            id="substate-positioning"
-            title="Positioning SUB-STATE · 10Y futures"
-            status={statusLabel(positioning?.status)}
-          >
-            <PositioningSection positioning={positioning} />
-          </RatesSection>
-        )}
-
-        {/* Funding is the board's name for what the engine calls `plumbing`. Tab 01
-          carries a `Plumbing` panel too and they are NOT duplicates: that one is the
-          balance sheet behind the policy rate, this one is whether funding markets are
-          transmitting it. */}
-        {subStateFor("plumbing") ? (
-          <SubStateSection subState={subStateFor("plumbing")!}>
-            <div className={styles.compactGrid}>
-              {(policy.plumbing ?? []).map((tile) => (
-                <Tile key={tile.label} tile={tile} />
-              ))}
-            </div>
-          </SubStateSection>
-        ) : (
-          // Rendered unconditionally, like its two siblings. `NAV` links to this anchor
-          // on every render, so a section that appeared only when the state engine had
-          // published would make the nav link to nowhere exactly when the engine is down.
-          <RatesSection
-            id="substate-plumbing"
-            title="Funding SUB-STATE"
-            status={statusLabel(policy?.status)}
+            id="cross"
+            title="Cross-Market"
+            status={statusLabel(cross?.status)}
           >
             <div className={styles.compactGrid}>
-              {(policy.plumbing ?? []).map((tile) => (
+              {(cross?.rows ?? []).map((tile) => (
                 <Tile key={tile.label} tile={tile} />
               ))}
             </div>
           </RatesSection>
-        )}
-
-        <RatesSection
-          id="auctions"
-          title="Auction demand · did anyone show up"
-          eyebrow="TreasuryDirect · recent results"
-          status={statusLabel(supply?.status)}
-        >
-          <AuctionDemandSection supply={supply} />
-        </RatesSection>
-
-        <RatesSection
-          id="cross"
-          title="Cross-Market"
-          status={statusLabel(cross?.status)}
-        >
-          <div className={styles.compactGrid}>
-            {(cross?.rows ?? []).map((tile) => (
-              <Tile key={tile.label} tile={tile} />
-            ))}
-          </div>
-        </RatesSection>
+        </div>
 
         <RatesTier
           id="tier-provenance"

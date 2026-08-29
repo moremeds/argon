@@ -109,13 +109,19 @@ export function EnergyInventoryPanel() {
               <tr key={row.source}>
                 <td>{row.source}</td>
                 <td>{row.status}</td>
+                {/* `.state` at its own size, not shrunk by an inline override.
+                 *
+                 * The board puts a `.tag` in this cell rather than a `.state`, and the
+                 * inline `fontSize: 10` here was reaching for a tag's size while keeping a
+                 * pill's class — which made the element disagree with its own definition
+                 * and was what the board/live pixel compare caught on t6.
+                 *
+                 * It stays a `.state` rather than becoming a `.tag`: the tag vocabulary is
+                 * a PROVENANCE one (real / computed / planned) and this column's verdicts
+                 * are ok / warning / neutral. Mapping the second onto the first to win a
+                 * font size would change what the cell claims. */}
                 <td>
-                  <span
-                    className={TONE_CLASS[row.tone]}
-                    style={{ fontSize: 10 }}
-                  >
-                    {row.verdict}
-                  </span>
+                  <span className={TONE_CLASS[row.tone]}>{row.verdict}</span>
                 </td>
               </tr>
             ))}
