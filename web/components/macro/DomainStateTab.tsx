@@ -36,7 +36,7 @@ function stalest(state: MacroDomainState): MacroFactor | null {
  *
  * ### What this used to be, and why it changed — twice
  *
- * The first version was the shared `DomainStateCard` and nothing else, because §1 of the
+ * The first version rendered one shared state card and nothing else, because §1 of the
  * port plan said tabs 00–05 were a _presentation merge_ with no new analytics. That line
  * was superseded on 2026-08-28: the board specifies FOUR panels for inflation and TWO for
  * the dollar, and a conformance audit found zero of the six on the shipped desk
