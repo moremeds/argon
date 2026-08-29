@@ -40,7 +40,7 @@ describe("energy data inventory", () => {
 });
 
 describe("the proposal's own boundaries", () => {
-  it("keeps every forward-looking panel PLANNED, with no value anywhere", () => {
+  it("keeps the route PLANNED and renders previews as non-panel ghosts", () => {
     // A PLANNED panel that rendered a number would be the one failure the basis
     // vocabulary exists to prevent: a description of intent wearing the clothes of a
     // measurement.
@@ -50,14 +50,11 @@ describe("the proposal's own boundaries", () => {
         <EnergyProposedPanels />
       </>,
     );
-    for (const id of ["energy-route", "energy-proposed"]) {
-      expect(
-        screen.getByTestId(`board-panel-${id}`).getAttribute("data-basis"),
-      ).toBe("PLANNED");
-    }
-    expect(screen.getByTestId("energy-proposed-table").textContent).toContain(
-      "Lights up after P1",
-    );
+    expect(
+      screen.getByTestId("board-panel-energy-route").getAttribute("data-basis"),
+    ).toBe("PLANNED");
+    expect(screen.queryByTestId("board-panel-energy-proposed")).toBeNull();
+    expect(screen.getAllByTestId("energy-proposed-ghost")).toHaveLength(3);
   });
 
   it("refuses a fifth domain state until one is measured", () => {

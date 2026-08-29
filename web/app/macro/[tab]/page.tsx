@@ -374,10 +374,8 @@ function EnergyTab() {
       <div className="grid g2">
         <EnergyInventoryPanel />
         <EnergyRoutePanel />
-        <div style={{ gridColumn: "1/-1" }}>
-          <EnergyProposedPanels />
-        </div>
       </div>
+      <EnergyProposedPanels />
       <div style={{ marginTop: 12 }}>
         <EnergyDisciplinePanel />
       </div>

@@ -11,15 +11,7 @@ import type {
 } from "../types";
 import { CAUSAL_ORDER, DOMAIN_LABEL, STATUS_LEDE } from "../types";
 
-/**
- * ZONE 2 · WHAT DISAGREES — the board's four middle panels.
- *
- * The board's own kicker for this zone is "the raw material of trades", and the four
- * panels are deliberately two pairs at two levels. Contradictions INSIDE a domain and
- * contradictions BETWEEN domains are different objects published by different engines,
- * and the desk keeps them in separate panels because merging them would make an
- * assembler's verdict look like a domain's finding.
- */
+/** Zone 2 keeps within-domain findings separate from assembler findings. */
 
 type PolicyComparison = components["schemas"]["PolicyComparison"];
 type PolicyLane = PolicyComparison["actual"];
@@ -39,9 +31,7 @@ const LANES: readonly {
   { key: "market_implied", label: "Market · what is priced" },
 ];
 
-/** The lane's nearest-horizon rate, which is the number the board's table compares across
- *  lanes. `null` when the lane published no path — the four lanes decline independently
- *  and one missing lane must never blank the comparison. */
+/** The nearest published rate, or null without blanking the other lanes. */
 function nearestRate(lane: PolicyLane | undefined): {
   rate: number;
   horizon: string;
@@ -65,17 +55,7 @@ function nearestRate(lane: PolicyLane | undefined): {
   return sorted[0];
 }
 
-/**
- * PANEL 4 · Four policy paths · who says what.
- *
- * ### A missing lane is the panel's content, not its failure
- *
- * `market_implied` publishes a `missing_reason` rather than a path on this desk today
- * ("no PIT-eligible market implied policy release"). The board draws four lanes; the
- * honest port draws four ROWS, three carrying a number and one carrying the publisher's
- * own sentence about why it has none. Dropping the row would silently turn a four-way
- * comparison into a three-way one and nothing on the page would say so.
- */
+/** Four rows stay visible even when one publisher declines to provide a path. */
 export function PolicyPathsPanel({
   policy,
 }: {
@@ -187,29 +167,7 @@ export function PolicyPathsPanel({
   );
 }
 
-/* ────────────────────────────────────────────────────────────────────────────
- * PANEL 5 · Contradictions inside a domain
- * ──────────────────────────────────────────────────────────────────────────── */
-
-/**
- * PANEL 5 · Contradiction feed · engine-reported.
- *
- * Every contradiction rule that fired INSIDE a domain, gathered from the four states.
- *
- * ### It is a list. It must never become a ranking
- *
- * The engine publishes a `rule` and a `detail` and nothing else — no weight, no level, no
- * score — so any ordering beyond the producer's would be invented at the browser. The
- * order is the engine's causal order across domains and the engine's emission order
- * within one. Sorting these would tell the reader which contradiction matters most, a
- * judgement no engine on this desk made.
- *
- * ### The count carries its own denominator
- *
- * A quiet feed because nothing fired and a quiet feed because three engines never ran look
- * identical, and only one is good news. So the summary names both numbers and the silent
- * domains are listed rather than silently shrinking the denominator.
- */
+/** Engine order is preserved: the payload publishes no severity to rank by. */
 export function ContradictionFeed({
   domains,
 }: {
@@ -276,21 +234,7 @@ export function ContradictionFeed({
   );
 }
 
-/* ────────────────────────────────────────────────────────────────────────────
- * PANEL 6 · Contradictions between domains
- * ──────────────────────────────────────────────────────────────────────────── */
-
-/**
- * PANEL 6 · Cross-domain contradictions.
- *
- * The assembler's verdict, which is the one question no single domain can answer about
- * itself: do these four belong together. `MacroSnapshotReason` is a defect BETWEEN
- * domains and is not the same object as a domain's own contradiction — the two live in
- * different places and this desk keeps them in different panels.
- *
- * The snapshot's own failure renders as an unassembled chain, never as a clean one: a
- * missing verdict must never be able to look like a passing verdict.
- */
+/** Cross-domain findings come from the assembler, never from a browser re-score. */
 export function CrossDomainPanel({
   snapshot,
 }: {
@@ -302,7 +246,7 @@ export function CrossDomainPanel({
   return (
     <BoardPanel
       id="cross-domain"
-      title="Cross-domain contradictions · the assembler's verdict"
+      title="Cross-domain contradictions · this week"
       questions={["Q3", "Q4"]}
       basis="REAL"
       source={
@@ -389,23 +333,7 @@ export function CrossDomainPanel({
   );
 }
 
-/* ────────────────────────────────────────────────────────────────────────────
- * PANEL 7 · Transmission health
- * ──────────────────────────────────────────────────────────────────────────── */
-
-/**
- * PANEL 7 · Transmission health.
- *
- * Did each of tab 00's publishers answer, and what did it answer for. Two clocks are
- * shown APART on purpose: `as_of` is the instant the stored answer answers for and the
- * only clock the replay request bounds; `computed_at` is provenance and may legitimately
- * be much later, because a later recompute of the same instant is legal. One column
- * carrying both is how the second gets read as the first.
- *
- * The upstream edge list underneath is printed verbatim and checked against nothing —
- * whether a cited upstream is the one the chain holds is the assembler's verdict, above.
- * Re-deciding it here would be a second opinion computed in a browser.
- */
+/** `as_of` and `computed_at` remain separate because they answer different clocks. */
 /** The replay verdict as one word for a table cell. `not_replaying` prints nothing — a
  *  live page has no instant to have answered for, and an empty cell says that better than
  *  the word "live" repeated five times. */
@@ -463,7 +391,7 @@ export function TransmissionHealth({
   return (
     <BoardPanel
       id="transmission"
-      title="Transmission health · did each publisher answer"
+      title="Transmission health · measured link strength"
       questions={["Q4", "Q7"]}
       basis="REAL"
       source={

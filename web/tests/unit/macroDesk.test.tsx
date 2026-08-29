@@ -132,6 +132,31 @@ function Desk(props: {
   );
 }
 
+describe("OverviewDesk — artifact panel contract", () => {
+  it("renders the exact eleven-panel inventory in order", () => {
+    const { container } = render(
+      <Desk domains={slots()} snapshot={snap(snapshot())} />,
+    );
+    expect(
+      [...container.querySelectorAll(".panel > .panel-h h3")].map(
+        (node) => node.textContent,
+      ),
+    ).toEqual([
+      "State flips × confidence moves",
+      "Market deltas · 1 week",
+      "Anchor letting go · gauge corr_60d",
+      "Four policy paths · who says what",
+      "Contradiction feed · engine-reported",
+      "Cross-domain contradictions · this week",
+      "Transmission health · measured link strength",
+      "FOMC calendar × what the market prices",
+      "Confidence repair · what each event fixes",
+      "Off-chain dimension · Energy (proposal)",
+      "Boundary · what is NOT on this desk",
+    ]);
+  });
+});
+
 function snapshot(
   over: Partial<MacroContextSnapshot> = {},
 ): MacroContextSnapshot {

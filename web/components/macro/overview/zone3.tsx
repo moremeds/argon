@@ -152,7 +152,7 @@ export function ConfidenceRepairPanel({
   return (
     <BoardPanel
       id="confidence-repair"
-      title="Confidence repair · which input is holding each domain down"
+      title="Confidence repair · what each event fixes"
       questions={["Q6", "Q7"]}
       basis="REAL"
       source={

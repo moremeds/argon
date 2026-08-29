@@ -98,7 +98,7 @@ function DollarPairPanel({ state }: { state: MacroDomainState }) {
   return (
     <BoardPanel
       id="dollar-pair"
-      title="Nominal vs real · a dollar pair"
+      title="Nominal vs real · a dollar pair in reverse"
       questions={["Q1"]}
       basis="REAL"
       sourceLabel="Pipeline"

@@ -210,40 +210,25 @@ const PROPOSED: readonly { title: string; body: string }[] = [
     body: "Contango or backwardation across the contract months already in the lake. Needs P2, and no spot series can substitute for it.",
   },
   {
-    title: "Natural gas seasonal band",
+    title: "NG seasonal band",
     body: "The current month against its own ten-year same-month distribution. Needs P3, and needs its own shape rather than the oil panel's.",
   },
 ];
 
 export function EnergyProposedPanels() {
   return (
-    <BoardPanel
-      id="energy-proposed"
-      title="What would be drawn, and after which step"
-      questions={["Q7"]}
-      basis="PLANNED"
-      sourceLabel="Status"
-      source="descriptions only — no series is ingested, so no panel below can render a value"
-    >
-      <div className="tbl-wrap">
-        <table data-testid="energy-proposed-table">
-          <thead>
-            <tr>
-              <th>Panel</th>
-              <th>What it would show</th>
-            </tr>
-          </thead>
-          <tbody>
-            {PROPOSED.map((p) => (
-              <tr key={p.title}>
-                <td>{p.title}</td>
-                <td>{p.body}</td>
-              </tr>
-            ))}
-          </tbody>
-        </table>
-      </div>
-    </BoardPanel>
+    <div className="grid g3" style={{ marginTop: 12 }}>
+      {PROPOSED.map((proposal) => (
+        <div
+          className="ghost"
+          data-testid="energy-proposed-ghost"
+          key={proposal.title}
+        >
+          <h3>{proposal.title}</h3>
+          <span>{proposal.body}</span>
+        </div>
+      ))}
+    </div>
   );
 }
 
