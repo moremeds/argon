@@ -112,7 +112,18 @@ from uw_scan.worker.jobs.research_events_derive import (
     register_discovery_gate,
 )
 
-_TEST_DB_NAME = "option_wizard_test_changeevents"
+# Suffixed with the xdist worker id, for the same reason the shared conftest
+# suffixes the pooled test database (see its `pytest_configure`). A module-private
+# database is only safe under a fixed name while ONE worker uses it: `pytest -n auto`
+# defaults to `--dist load`, which hands individual tests from this module to
+# different workers, and this module DROPs its database at teardown — so worker A's
+# teardown deletes the database out from under worker B mid-test. Observed as CI
+# shard 3 failing with `database "option_wizard_test_changeevents" does not exist`;
+# reproduces with `pytest -n 2` on this file alone.
+_XDIST_WORKER = os.environ.get("PYTEST_XDIST_WORKER")
+_TEST_DB_NAME = "option_wizard_test_changeevents" + (
+    f"_{_XDIST_WORKER}" if _XDIST_WORKER else ""
+)
 
 ENGINE = "test-v1:aaaaaaaa"
 

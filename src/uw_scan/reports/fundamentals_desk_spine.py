@@ -96,7 +96,8 @@ def _num(text: str | None) -> float | None:
         return None
     try:
         value = float(text)
-    except (TypeError, ValueError):
+    except (TypeError, ValueError) as exc:
+        _ = repr(exc)  # CI Guardrail 2: non-numeric statement cell → None
         return None
     return value if math.isfinite(value) else None
 
