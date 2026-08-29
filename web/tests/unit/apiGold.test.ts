@@ -51,4 +51,19 @@ describe("gold API client", () => {
 
     expect(spy.mock.calls[0][0]).toContain("/api/gold/replay?as_of=2026-08-14");
   });
+
+  it("requests a typed gold lens detail by its bounded lens id", async () => {
+    const spy = stubFetch({
+      ok: true,
+      status: 200,
+      text: () =>
+        Promise.resolve(
+          JSON.stringify({ lens_id: "structural", posture: {}, detail: {} }),
+        ),
+    });
+
+    await api.goldLens("structural");
+
+    expect(spy.mock.calls[0][0]).toContain("/api/gold/lenses/structural");
+  });
 });

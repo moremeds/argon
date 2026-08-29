@@ -5188,9 +5188,21 @@ export interface components {
             /** Contribution */
             contribution: string;
         };
+        /** GoldGauge60dTimeSeriesPoint */
+        GoldGauge60dTimeSeriesPoint: {
+            /**
+             * Obs Date
+             * Format: date
+             */
+            obs_date: string;
+            /** Corr 60D */
+            corr_60d: string | null;
+        };
         /** GoldGaugeResponse */
         GoldGaugeResponse: {
             current: components["schemas"]["GoldGaugeState"];
+            /** History 60D */
+            history_60d: components["schemas"]["GoldGauge60dTimeSeriesPoint"][];
             /** History 252D */
             history_252d: components["schemas"]["GoldGaugeTimeSeriesPoint"][];
         };

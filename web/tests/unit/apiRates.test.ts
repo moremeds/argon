@@ -47,6 +47,8 @@ describe("rates API client", () => {
     void api.ratesSnapshot("2026-08-20");
     void api.macroPolicy();
     void api.macroPolicy("2026-08-20");
+    void api.macroContextSnapshot();
+    void api.macroContextSnapshot("2026-08-20");
 
     // Relative, because these tests run under jsdom and `lib/api.ts` resolves its base
     // per environment: "" in a browser (the next.config.mjs rewrite proxies it), the
@@ -58,6 +60,8 @@ describe("rates API client", () => {
       "/api/rates/snapshot?as_of=2026-08-20",
       "/api/macro/policy",
       "/api/macro/policy?as_of=2026-08-20",
+      "/api/macro/snapshot",
+      "/api/macro/snapshot?as_of=2026-08-20",
     ]);
   });
 });

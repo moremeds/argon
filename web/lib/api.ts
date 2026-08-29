@@ -157,6 +157,7 @@ type MacroContextSnapshotResponse = Json<"/api/macro/snapshot", "get">;
 type GoldStateResponse = Json<"/api/gold/state", "get">;
 type GoldReplayResponse = Json<"/api/gold/replay", "get">;
 type GoldGaugeResponse = Json<"/api/gold/gauge", "get">;
+type GoldLensResponse = Json<"/api/gold/lenses/{lens_id}", "get">;
 type GoldInputSeriesResponse = Json<"/api/gold/inputs/{series_id}", "get">;
 type PositioningSnapshot = Json<"/api/positioning/{ticker}", "get">;
 type PositioningScreenerResponse = Json<"/api/positioning/screener", "get">;
@@ -407,11 +408,11 @@ export const api = {
   // snapshot was ever assembled for the instant, which the desk must render as "nothing
   // checked whether these four belong together" -- never as a coherent chain.
   macroContextSnapshot: (
-    asOfTs?: string,
+    asOf?: string,
   ): Promise<MacroContextSnapshotResponse | null> =>
     _fetch<MacroContextSnapshotResponse | null>(
-      asOfTs
-        ? `/api/macro/snapshot?as_of_ts=${encodeURIComponent(asOfTs)}`
+      asOf
+        ? `/api/macro/snapshot?as_of=${encodeURIComponent(asOf)}`
         : "/api/macro/snapshot",
       undefined,
       { allow404: true },
@@ -452,6 +453,14 @@ export const api = {
     _fetch<GoldGaugeResponse | null>(`/api/gold/gauge`, undefined, {
       allow404: true,
     }),
+  goldLens: (
+    lensId: "structural" | "cyclical" | "valuation",
+  ): Promise<GoldLensResponse | null> =>
+    _fetch<GoldLensResponse | null>(
+      `/api/gold/lenses/${encodeURIComponent(lensId)}`,
+      undefined,
+      { allow404: true },
+    ),
   // The other route §⑩ P2.2 names as never consumed, and the one the board's t0
   // "Market deltas · 1 week" panel is built on: a dated series of stored daily closes,
   // one series per call, bounded by `from`/`to`.
