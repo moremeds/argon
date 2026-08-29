@@ -31,6 +31,13 @@
   margin: 0 auto;
   padding: 18px 24px 36px;
   color: var(--text-primary);
+
+  /* The board's `--accent-deep`, which globals.css has no equivalent for. Scoped here
+     rather than added to the global palette because the desk is its only consumer, and
+     kept as ONE declaration because four rules below want it (the read rail, the chain's
+     arrows, the tight-list bullet, the zone kicker's sibling). It also happens to be the
+     light theme's --positive, so one value reads correctly on both grounds. */
+  --board-accent-deep: #048a7a;
 }
 
 /* ── section heading ── */
@@ -194,10 +201,7 @@
 .board .read {
   font-size: 12.5px;
   color: var(--text-secondary);
-  /* The board's --accent-deep. Defined here rather than in globals.css because this
-     rail is its only consumer; it also happens to be the light theme's --positive,
-     so one value reads correctly on both grounds. */
-  border-left: 2px solid #048a7a;
+  border-left: 2px solid var(--board-accent-deep);
   padding-left: 9px;
   line-height: 1.5;
   margin: 0;
@@ -383,4 +387,396 @@
 }
 .board .note-refuse li {
   margin-top: 4px;
+}
+
+/* ── zone banners ──────────────────────────────────────────────────────────────
+ *
+ * Tab 00's spine. The board divides the daily loop into four labelled zones — WHAT
+ * CHANGED / WHAT DISAGREES / WHAT'S NEXT / the chain — and the banner is what makes them
+ * read as an ordered walk rather than eleven panels in a pile. The right-hand `zk` is a
+ * SECOND kicker carrying the zone's scope (a date range, a caveat), not decoration.
+ */
+.board .zone {
+  display: flex;
+  align-items: baseline;
+  gap: 12px;
+  margin: 30px 0 12px;
+}
+.board .zone.z1 {
+  margin-top: 12px;
+}
+.board .zone .zk {
+  font-family: var(--font-mono), monospace;
+  font-size: 10px;
+  color: var(--accent-bg);
+  letter-spacing: 1.5px;
+  text-transform: uppercase;
+  white-space: nowrap;
+}
+.board .zone .zl {
+  font-family: var(--font-sans), sans-serif;
+  font-weight: 700;
+  font-size: 14px;
+  letter-spacing: 0.05em;
+  color: var(--text-primary);
+  white-space: nowrap;
+}
+.board .zone .rule {
+  flex: 1;
+  height: 1px;
+  background: var(--border-dim);
+  align-self: center;
+}
+
+/* ── the transmission chain rail ──────────────────────────────────────────────
+ *
+ * Four nodes and three arrows on ONE row. The arrow columns are fixed at 28px so the
+ * nodes share the remaining width evenly however long their state words are; below 980px
+ * the whole thing becomes a single column and the arrows rotate to point down.
+ */
+.board .chain {
+  display: grid;
+  grid-template-columns: 1fr 28px 1fr 28px 1fr 28px 1fr;
+  gap: 0;
+  align-items: stretch;
+  margin: 8px 0 14px;
+}
+.board .chain > * {
+  min-width: 0;
+}
+.board .chain .arrow {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: var(--board-accent-deep);
+  font-size: 18px;
+  font-family: var(--font-mono), monospace;
+}
+.board .node {
+  background: var(--bg-panel);
+  border: 1px solid var(--border-dim);
+  border-radius: 6px;
+  padding: 13px 14px;
+  display: flex;
+  flex-direction: column;
+  gap: 7px;
+}
+.board .node h3 {
+  font-size: 13px;
+  font-weight: 700;
+  letter-spacing: 0.02em;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 8px;
+  margin: 0;
+}
+.board .node h3 .dom {
+  font-family: var(--font-mono), monospace;
+  font-size: 10px;
+  color: var(--text-muted);
+  font-weight: 400;
+}
+.board .node .kv {
+  display: flex;
+  justify-content: space-between;
+  font-size: 12px;
+  color: var(--text-secondary);
+  gap: 8px;
+}
+.board .node .kv .num {
+  color: var(--text-primary);
+}
+@media (max-width: 980px) {
+  .board .chain {
+    grid-template-columns: 1fr;
+    gap: 6px;
+  }
+  .board .chain .arrow {
+    transform: rotate(90deg);
+    padding: 2px 0;
+  }
+}
+.board .edge-note {
+  font-family: var(--font-mono), monospace;
+  font-size: 10px;
+  color: var(--text-muted);
+  text-align: center;
+  padding: 2px 4px;
+}
+
+/* ── confidence bar ── */
+.board .conf {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-family: var(--font-mono), monospace;
+  font-size: 11px;
+  color: var(--text-muted);
+}
+.board .conf .track {
+  flex: 1;
+  height: 5px;
+  background: var(--bg-panel-raised);
+  border-radius: 3px;
+  overflow: hidden;
+}
+.board .conf .fill {
+  height: 100%;
+  background: var(--accent-bg);
+  border-radius: 3px;
+}
+.board .conf .fill.low {
+  background: var(--warning);
+}
+
+/* ── meters: a labelled value pinned on a shared 0..1 track ──────────────────
+ *
+ * The board's idiom for "three readings on one comparable scale" (gold's three lenses).
+ * The `.mid` hairline marks the track's centre, so a pin's side of it is readable without
+ * reading the number.
+ */
+.board .meter {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  font-size: 12px;
+}
+.board .meter .lbl {
+  width: 150px;
+  color: var(--text-secondary);
+  flex-shrink: 0;
+}
+.board .meter .track {
+  flex: 1;
+  height: 6px;
+  background: var(--bg-panel-raised);
+  border-radius: 3px;
+  position: relative;
+}
+.board .meter .pin {
+  position: absolute;
+  top: 50%;
+  transform: translate(-50%, -50%);
+  width: 11px;
+  height: 11px;
+  border-radius: 50%;
+  background: var(--accent-bg);
+  border: 2px solid var(--bg-base);
+}
+.board .meter .pin.blue {
+  background: var(--accent-cool);
+}
+.board .meter .pin.crit {
+  background: var(--negative);
+}
+.board .meter .val {
+  font-family: var(--font-mono), monospace;
+  width: 52px;
+  text-align: right;
+  color: var(--text-primary);
+}
+.board .meter .track .mid {
+  position: absolute;
+  left: 50%;
+  top: -2px;
+  bottom: -2px;
+  width: 1px;
+  background: var(--text-muted);
+  opacity: 0.5;
+}
+
+/* ── meeting probability bars (tab 00 zone 3, tab 01) ────────────────────────
+ *
+ * One row per dated meeting: a header carrying the date and the priced rate, then a
+ * proportional two-segment bar. `.hk` (hike/hold) is warm and `.hd` (cut) is cool, and
+ * the cut segment right-aligns its own label so the two numbers sit at the outer edges.
+ */
+.board .meet {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  margin-bottom: 8px;
+}
+.board .meet-h {
+  display: flex;
+  justify-content: space-between;
+  align-items: baseline;
+  gap: 8px;
+}
+.board .meet-h b {
+  font-family: var(--font-sans), sans-serif;
+  font-size: 12.5px;
+  font-weight: 600;
+  color: var(--text-primary);
+}
+.board .meet-h .num {
+  font-size: 11px;
+  color: var(--text-secondary);
+}
+.board .pbar {
+  display: flex;
+  gap: 2px;
+  height: 18px;
+}
+.board .pbar span {
+  display: flex;
+  align-items: center;
+  padding: 0 7px;
+  border-radius: 2px;
+  font-family: var(--font-mono), monospace;
+  font-size: 10px;
+  font-weight: 600;
+  color: var(--accent-text);
+  white-space: nowrap;
+  overflow: hidden;
+}
+.board .pbar .hk {
+  background: var(--warning);
+}
+.board .pbar .hd {
+  background: var(--accent-cool);
+  justify-content: flex-end;
+}
+
+/* ── contradiction feed ──
+ * Argon's idiom: a warning left border on a raised panel. Deliberately NOT a `.panel` —
+ * these stack several to a panel, and boxing each one again is the "section that is
+ * itself a box" mistake the desk already made once on tabs 01/02. */
+.board .contra {
+  border-left: 2px solid var(--warning);
+  background: var(--bg-panel-raised);
+  border-radius: 0 4px 4px 0;
+  padding: 10px 12px;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+.board .contra b {
+  font-family: var(--font-mono), monospace;
+  font-size: 10.5px;
+  color: var(--warning);
+  letter-spacing: 0.06em;
+}
+.board .contra span {
+  font-size: 12.5px;
+  color: var(--text-secondary);
+}
+.board .contra .why {
+  font-size: 11.5px;
+  color: var(--text-muted);
+}
+
+/* ── chart frame, caption, legend ──
+ * A chart on this desk is a raised inset inside a panel, never a bare SVG on the panel
+ * ground. `.cap` is the caption UNDER it and `.lgd` the legend ABOVE it — the board puts
+ * them on opposite sides so the legend is read before the marks and the source after. */
+.board .chart {
+  background: var(--bg-panel-raised);
+  border: 1px solid var(--border-dim);
+  border-radius: 5px;
+  padding: 10px 12px;
+}
+.board .chart svg {
+  display: block;
+  width: 100%;
+  height: auto;
+}
+.board .chart text {
+  font-family: var(--font-mono), monospace;
+}
+.board .cap {
+  font-family: var(--font-mono), monospace;
+  font-size: 10.5px;
+  color: var(--text-muted);
+  margin: 6px 0 0;
+}
+.board .lgd {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 14px;
+  font-size: 11.5px;
+  color: var(--text-secondary);
+  margin-bottom: 6px;
+}
+.board .lgd i {
+  display: inline-block;
+  width: 10px;
+  height: 3px;
+  border-radius: 2px;
+  margin-right: 5px;
+  vertical-align: 2px;
+}
+
+/* ── ghost: a panel for something that does NOT exist yet ──
+ * Dashed and transparent so it cannot be mistaken for a reading. Tab 00's energy
+ * proposal and tab 06 use it; anything inside is explicitly not a measurement. */
+.board .ghost {
+  border: 1px dashed var(--text-muted);
+  border-radius: 6px;
+  padding: 13px 14px;
+  color: var(--text-muted);
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  background: transparent;
+}
+.board .ghost h3 {
+  font-size: 10.5px;
+  font-family: var(--font-mono), monospace;
+  letter-spacing: 1.2px;
+  text-transform: uppercase;
+  color: var(--text-muted);
+  margin: 0;
+}
+.board .ghost span {
+  font-size: 12px;
+}
+.board .ghost b {
+  color: var(--text-secondary);
+}
+
+/* ── direction micro-label, and the 4-up grid ── */
+.board .dir {
+  font-family: var(--font-mono), monospace;
+  font-size: 10.5px;
+  color: var(--text-muted);
+}
+.board .g4 {
+  grid-template-columns: repeat(4, 1fr);
+}
+@media (max-width: 980px) {
+  .board .g4 {
+    grid-template-columns: 1fr 1fr;
+  }
+}
+@media (max-width: 640px) {
+  .board .g4 {
+    grid-template-columns: 1fr;
+  }
+}
+
+/* ── the board's bullet list ── */
+.board ul.tight {
+  list-style: none;
+  display: flex;
+  flex-direction: column;
+  gap: 7px;
+  margin: 0;
+  padding: 0;
+}
+.board ul.tight li {
+  font-size: 12.5px;
+  color: var(--text-secondary);
+  padding-left: 14px;
+  position: relative;
+}
+.board ul.tight li::before {
+  content: "—";
+  position: absolute;
+  left: 0;
+  color: var(--board-accent-deep);
+}
+.board ul.tight li b {
+  color: var(--text-primary);
 }

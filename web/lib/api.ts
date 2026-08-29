@@ -157,6 +157,7 @@ type MacroContextSnapshotResponse = Json<"/api/macro/snapshot", "get">;
 type GoldStateResponse = Json<"/api/gold/state", "get">;
 type GoldReplayResponse = Json<"/api/gold/replay", "get">;
 type GoldGaugeResponse = Json<"/api/gold/gauge", "get">;
+type GoldInputSeriesResponse = Json<"/api/gold/inputs/{series_id}", "get">;
 type PositioningSnapshot = Json<"/api/positioning/{ticker}", "get">;
 type PositioningScreenerResponse = Json<"/api/positioning/screener", "get">;
 
@@ -451,6 +452,29 @@ export const api = {
     _fetch<GoldGaugeResponse | null>(`/api/gold/gauge`, undefined, {
       allow404: true,
     }),
+  // The other route §⑩ P2.2 names as never consumed, and the one the board's t0
+  // "Market deltas · 1 week" panel is built on: a dated series of stored daily closes,
+  // one series per call, bounded by `from`/`to`.
+  //
+  // `allow404` because an UNKNOWN SERIES ID and an EMPTY SERIES answer the same way here,
+  // and the difference matters to the caller: five of the nine series the board's panel
+  // names are absent from this store (measured 2026-08-29 — SOFR, EFFR, GVZ, HY OAS and
+  // GLD all return zero points), so a caller must render the coverage rather than assume
+  // the panel's row list is the panel's data.
+  goldInputSeries: (
+    seriesId: string,
+    range?: { from?: string; to?: string },
+  ): Promise<GoldInputSeriesResponse | null> => {
+    const qs = new URLSearchParams();
+    if (range?.from) qs.set("from", range.from);
+    if (range?.to) qs.set("to", range.to);
+    const suffix = qs.toString() ? `?${qs}` : "";
+    return _fetch<GoldInputSeriesResponse | null>(
+      `/api/gold/inputs/${encodeURIComponent(seriesId)}${suffix}`,
+      undefined,
+      { allow404: true },
+    );
+  },
   // The Radar is a read over persisted results — no provider, no lake. `state`
   // is load-bearing: an empty `rows` is six different situations and only one of
   // them is a fact about the companies.

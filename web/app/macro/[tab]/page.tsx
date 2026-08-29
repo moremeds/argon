@@ -16,6 +16,11 @@ import {
   EnergyRoutePanel,
 } from "@/components/macro/domain/EnergyProposal";
 import { OverviewDesk } from "@/components/macro/OverviewDesk";
+import {
+  DELTA_SERIES,
+  type DeltaSeries,
+  type DomainWeek,
+} from "@/components/macro/overview/zone1";
 import { ReplayControl } from "@/components/macro/ReplayControl";
 import { ReplayStatus } from "@/components/macro/ReplayStatus";
 import type { MacroDomainSlot } from "@/components/macro/types";
@@ -258,7 +263,37 @@ function domainTab(
  */
 async function OverviewTab({ replay }: MacroTabProps) {
   const asOf = replay.kind === "replay" ? replay.asOf : undefined;
-  const [inflation, rates, usd, gold, snapshot] = await Promise.all([
+
+  /**
+   * The board's zone 1 compares the desk against ITSELF a week earlier, and there is no
+   * state-history endpoint to read that from. Point-in-time replay is what makes it
+   * possible: the same four routes, asked twice, at two instants.
+   *
+   * The window is anchored on the REQUESTED instant when replaying and on today when not,
+   * so a replay of 2026-08-20 compares against 08-13 rather than against last week of
+   * wall-clock time. Anchoring on `Date.now()` in both cases would silently make every
+   * replayed zone-1 a comparison between the replayed instant and the present.
+   */
+  const anchor = asOf ? new Date(`${asOf}T00:00:00Z`) : new Date();
+  const priorDate = new Date(anchor.getTime() - WEEK_MS);
+  const priorAsOf = priorDate.toISOString().slice(0, 10);
+  const priorLabel = priorAsOf.slice(5);
+  const nowLabel = anchor.toISOString().slice(5, 10);
+
+  const [
+    inflation,
+    rates,
+    usd,
+    gold,
+    snapshot,
+    policy,
+    gauge,
+    priorInflation,
+    priorRates,
+    priorUsd,
+    priorGold,
+    ...deltaResults
+  ] = await Promise.all([
     settle(
       () => api.macroDomainState("inflation", asOf),
       "inflation state API",
@@ -267,7 +302,44 @@ async function OverviewTab({ replay }: MacroTabProps) {
     settle(() => api.macroDomainState("usd", asOf), "USD state API"),
     settle(() => api.macroDomainState("gold", asOf), "gold state API"),
     settle(() => api.macroContextSnapshot(asOf), "macro context snapshot API"),
+    settle(() => api.macroPolicy(asOf), "macro policy comparison API"),
+    settle(() => api.goldGauge(), "gold gauge API"),
+    // The prior-instant reads. These deliberately carry NO replay verdict: they are
+    // evidence inside one panel, not a publisher the tab stands on, and giving them a
+    // verdict would let a missing week-ago state withhold the whole tab.
+    settle(
+      () => api.macroDomainState("inflation", priorAsOf),
+      "inflation state API (prior week)",
+    ),
+    settle(
+      () => api.macroDomainState("rates", priorAsOf),
+      "policy/rates state API (prior week)",
+    ),
+    settle(
+      () => api.macroDomainState("usd", priorAsOf),
+      "USD state API (prior week)",
+    ),
+    settle(
+      () => api.macroDomainState("gold", priorAsOf),
+      "gold state API (prior week)",
+    ),
+    ...DELTA_SERIES.map((spec) =>
+      settle(
+        () =>
+          api.goldInputSeries(spec.id, {
+            from: priorAsOf,
+            to: anchor.toISOString().slice(0, 10),
+          }),
+        `${spec.id} series API`,
+      ),
+    ),
   ]);
+
+  const deltas: DeltaSeries[] = DELTA_SERIES.map((spec, i) => ({
+    spec,
+    points: deltaResults[i]?.value?.points ?? [],
+    error: deltaResults[i]?.error,
+  }));
 
   /** One settled fetch plus what it answered for. `as_of` is the clock — see above. */
   /**
@@ -312,16 +384,33 @@ async function OverviewTab({ replay }: MacroTabProps) {
     gold: withVerdict(gold, (v) => v.computed_at),
   };
 
+  const week: DomainWeek = {
+    inflation: { now: domains.inflation, prior: priorInflation },
+    policy_rates: { now: domains.policy_rates, prior: priorRates },
+    usd: { now: domains.usd, prior: priorUsd },
+    gold: { now: domains.gold, prior: priorGold },
+  };
+
   return (
     <OverviewDesk
       domains={domains}
+      week={week}
       snapshot={withVerdict<MacroContextSnapshot>(
         snapshot,
         (v) => v.assembled_at,
       )}
+      policy={policy}
+      deltas={deltas}
+      gauge={gauge}
+      priorLabel={priorLabel}
+      nowLabel={nowLabel}
+      windowLabel="1 week"
     />
   );
 }
+
+/** The zone-1 comparison window. One week, as the board's own zone kicker states. */
+const WEEK_MS = 7 * 24 * 60 * 60 * 1000;
 
 /**
  * Registered slug -> its content.

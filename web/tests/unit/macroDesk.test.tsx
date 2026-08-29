@@ -2,6 +2,10 @@ import { render, screen, within } from "@testing-library/react";
 import { describe, expect, it } from "vitest";
 
 import { OverviewDesk } from "@/components/macro/OverviewDesk";
+import type {
+  DeltaSeries,
+  DomainWeek,
+} from "@/components/macro/overview/zone1";
 import type { ReplayVerdict } from "@/components/macro/replay";
 import type {
   MacroContextSnapshot,
@@ -68,6 +72,60 @@ function noDomains(): DomainSlots {
 
 const NO_SNAPSHOT = snap(null);
 
+/**
+ * `OverviewDesk` with only the two publishers most of these assertions are about.
+ *
+ * Tab 00 gained six more props when it was rebound to the board's own structure (the
+ * week-over-week pair, the policy comparison, the market-delta series, the gold gauge and
+ * the two window labels). Every one of them is REQUIRED on the component, deliberately —
+ * a default would let a wiring bug ship as an empty panel — so the defaults live here in
+ * the test instead, where "this assertion is not about the deltas" is the honest reading.
+ *
+ * The defaults are all EMPTY rather than populated: a test that does not name a publisher
+ * should see that publisher's absent state, not a fixture it did not ask for. The panels
+ * that read them render their own three-state copy, which is what several assertions below
+ * (the chrome scan in particular) actually depend on.
+ */
+function Desk(props: {
+  domains: DomainSlots;
+  snapshot: MacroOverviewSlot<MacroContextSnapshot>;
+  week?: DomainWeek;
+  policy?: { value: null; error?: string };
+  deltas?: DeltaSeries[];
+  gauge?: { value: null; error?: string };
+}) {
+  const {
+    domains,
+    snapshot: snapshotSlot,
+    week,
+    policy,
+    deltas,
+    gauge,
+  } = props;
+  return (
+    <OverviewDesk
+      domains={domains}
+      snapshot={snapshotSlot}
+      // No prior-week read by default: the state-flip panel then says it had nothing to
+      // compare against, which is the correct three-state answer and not a silent "no flip".
+      week={
+        week ?? {
+          inflation: { now: domains.inflation, prior: { value: null } },
+          policy_rates: { now: domains.policy_rates, prior: { value: null } },
+          usd: { now: domains.usd, prior: { value: null } },
+          gold: { now: domains.gold, prior: { value: null } },
+        }
+      }
+      policy={policy ?? { value: null }}
+      deltas={deltas ?? []}
+      gauge={gauge ?? { value: null }}
+      priorLabel="08-17"
+      nowLabel="08-24"
+      windowLabel="1 week"
+    />
+  );
+}
+
 function snapshot(
   over: Partial<MacroContextSnapshot> = {},
 ): MacroContextSnapshot {
@@ -131,7 +189,7 @@ function snapshot(
 
 describe("OverviewDesk — the four domain states", () => {
   it("renders the four domains in causal order, not as four peers", () => {
-    render(<OverviewDesk domains={slots()} snapshot={NO_SNAPSHOT} />);
+    render(<Desk domains={slots()} snapshot={NO_SNAPSHOT} />);
     const cards = screen.getAllByTestId(/^macro-domain-/);
     expect(cards.map((c) => c.getAttribute("data-testid"))).toEqual([
       "macro-domain-inflation",
@@ -142,7 +200,7 @@ describe("OverviewDesk — the four domain states", () => {
   });
 
   it("shows each domain's state and direction", () => {
-    render(<OverviewDesk domains={slots()} snapshot={NO_SNAPSHOT} />);
+    render(<Desk domains={slots()} snapshot={NO_SNAPSHOT} />);
     const usd = screen.getByTestId("macro-domain-usd");
     expect(within(usd).getByText("RANGEBOUND")).toBeTruthy();
     expect(within(usd).getByText(/FLAT/)).toBeTruthy();
@@ -150,7 +208,7 @@ describe("OverviewDesk — the four domain states", () => {
 
   it("names a domain that failed to load rather than blanking it", () => {
     render(
-      <OverviewDesk
+      <Desk
         domains={slots({
           gold: dom(null, { error: "The gold request failed: API 503" }),
         })}
@@ -167,59 +225,78 @@ describe("OverviewDesk — the four domain states", () => {
 
   it("distinguishes a domain that has never been computed from one that errored", () => {
     render(
-      <OverviewDesk
-        domains={slots({ gold: dom(null) })}
-        snapshot={NO_SNAPSHOT}
-      />,
+      <Desk domains={slots({ gold: dom(null) })} snapshot={NO_SNAPSHOT} />,
     );
     const gold = screen.getByTestId("macro-domain-gold");
     expect(within(gold).getByText(/no state has been computed/i)).toBeTruthy();
   });
 
+  // RE-POINTED 2026-08-29 with the board's own structure. The contradictions used to hang
+  // off each domain card; the board gathers them into one zone-2 panel instead, because an
+  // operator scanning for what broke overnight should not have to open four cards to find
+  // out that nothing did. The invariant is unchanged — a contradiction is never hidden
+  // behind the state that carries it — and it is now checked where they actually live.
   it("surfaces contradictions instead of hiding them behind the state", () => {
-    render(<OverviewDesk domains={slots()} snapshot={NO_SNAPSHOT} />);
-    const inflation = screen.getByTestId("macro-domain-inflation");
+    render(<Desk domains={slots()} snapshot={NO_SNAPSHOT} />);
+    const feed = screen.getByTestId("board-panel-contradictions");
     // The frozen inflation state carries 2 contradictions.
-    expect(within(inflation).getByTestId("macro-contradictions")).toBeTruthy();
+    expect(
+      within(feed).getAllByTestId("macro-contradiction-row-inflation"),
+    ).toHaveLength(2);
   });
 
   it("reports the evidence count so a conclusion is never shown bare", () => {
-    render(<OverviewDesk domains={slots()} snapshot={NO_SNAPSHOT} />);
+    render(<Desk domains={slots()} snapshot={NO_SNAPSHOT} />);
     const usd = screen.getByTestId("macro-domain-usd");
-    expect(within(usd).getByTestId("macro-evidence-count").textContent).toMatch(
-      /\d/,
-    );
+    expect(
+      within(usd).getByTestId("macro-evidence-count-usd").textContent,
+    ).toMatch(/\d/);
   });
 
   // The ban is on the DESK synthesizing a verdict of its own. It is deliberately not a
-  // substring scan over the whole render: the gold engine's own note reads "the valuation
-  // lens is a warning: it never becomes a price target, an allocation, or a size", and a
-  // blunt /allocat/i match flags that disclaimer as if it were a recommendation.
+  // blunt substring scan: the gold engine's own note reads "the valuation lens is a
+  // warning: it never becomes a price target, an allocation, or a size", and a plain
+  // /allocat/i match flags that disclaimer as if it were a recommendation.
+  //
+  // WIDENED 2026-08-29, for the same reason one level up. `/composite/i` was on this list
+  // and the board's own standfirst is "There is not, and will never be, a composite
+  // score" — so the blunt pattern failed on the sentence that states the invariant. The
+  // word is banned as a THING PRESENTED, not as a word; and because a refusal is now the
+  // only legal way for it to appear, the test also requires it to appear, which the flat
+  // ban could never do.
   it("adds no master score of its own to the desk chrome", () => {
     const { container } = render(
-      <OverviewDesk domains={noDomains()} snapshot={NO_SNAPSHOT} />,
+      <Desk domains={noDomains()} snapshot={NO_SNAPSHOT} />,
     );
     const text = container.textContent ?? "";
     for (const banned of [
       /master score/i,
-      /composite/i,
       /overall score/i,
-      /allocat/i,
+      /composite (score|reading|index|value)\s*(of|:|=|\d)/i,
+      // An allocation with a NUMBER attached is the thing being banned. The bare word is
+      // now unavoidable: the boundary panel refuses one in as many words, which is the
+      // trap this test's own comment describes for the gold engine's disclaimer.
+      /allocat\w*\s*(of|to|:|=)?\s*\d/i,
       /target weight/i,
-      /probability/i,
+      /probability of/i,
     ]) {
       expect(text).not.toMatch(banned);
     }
+    // The refusals themselves must be on the page. A desk that silently omits a composite
+    // and a desk that has decided never to publish one look identical without these.
+    expect(text).toMatch(/will never be, a composite score/i);
+    expect(text).toMatch(/No composite\./i);
+    expect(text).toMatch(/no allocation on this desk/i);
   });
 
   it("renders exactly one state per domain and no fifth aggregate", () => {
-    render(<OverviewDesk domains={slots()} snapshot={NO_SNAPSHOT} />);
+    render(<Desk domains={slots()} snapshot={NO_SNAPSHOT} />);
     expect(screen.getAllByTestId(/^macro-domain-/)).toHaveLength(4);
     expect(screen.queryByTestId(/score|composite|aggregate/i)).toBeNull();
   });
 
   it("shows the engine version, because two engines are two semantics", () => {
-    render(<OverviewDesk domains={slots()} snapshot={NO_SNAPSHOT} />);
+    render(<Desk domains={slots()} snapshot={NO_SNAPSHOT} />);
     const usd = screen.getByTestId("macro-domain-usd");
     expect(within(usd).getByText(/usd\/\d/)).toBeTruthy();
   });
@@ -234,7 +311,7 @@ describe("OverviewDesk — the four domain states", () => {
 
 describe("OverviewDesk chain coherence", () => {
   it("says nothing is broken when the chain is coherent, and says why that is narrow", () => {
-    render(<OverviewDesk domains={slots()} snapshot={snap(snapshot())} />);
+    render(<Desk domains={slots()} snapshot={snap(snapshot())} />);
     expect(screen.queryByTestId("macro-chain-refusal")).toBeNull();
     // ...but it does not render NOTHING. On a tab whose subject is the chain, an empty
     // panel is indistinguishable from one that failed to load.
@@ -247,7 +324,7 @@ describe("OverviewDesk chain coherence", () => {
 
   it("names an absent domain without hiding the three that answered", () => {
     render(
-      <OverviewDesk
+      <Desk
         domains={slots()}
         snapshot={snap(
           snapshot({
@@ -277,7 +354,7 @@ describe("OverviewDesk chain coherence", () => {
 
   it("distinguishes a broken chain from a merely incomplete one", () => {
     render(
-      <OverviewDesk
+      <Desk
         domains={slots()}
         snapshot={snap(
           snapshot({
@@ -303,7 +380,7 @@ describe("OverviewDesk chain coherence", () => {
 
   it("marks the offending card, so the banner is not the only place to look", () => {
     render(
-      <OverviewDesk
+      <Desk
         domains={slots()}
         snapshot={snap(
           snapshot({
@@ -324,7 +401,7 @@ describe("OverviewDesk chain coherence", () => {
   });
 
   it("says a snapshot was never assembled rather than implying coherence", () => {
-    render(<OverviewDesk domains={slots()} snapshot={NO_SNAPSHOT} />);
+    render(<Desk domains={slots()} snapshot={NO_SNAPSHOT} />);
     const note = screen.getByTestId("macro-chain-unassembled");
     expect(note.textContent).toMatch(/never/i);
     // Absence of a snapshot must never read as a clean chain.
@@ -338,7 +415,7 @@ describe("OverviewDesk chain coherence", () => {
   // a broken network. §9 invariant 2 requires three states, and this is the third.
   it("keeps an unreachable chain apart from one that was never assembled", () => {
     render(
-      <OverviewDesk
+      <Desk
         domains={slots()}
         snapshot={snap(null, {
           error: "The macro context snapshot API request failed: API 503",
@@ -357,7 +434,7 @@ describe("OverviewDesk chain coherence", () => {
   // disclaimer as if it were the recommendation it exists to refuse.
   it("reports the breakage without telling anyone what to do about it", () => {
     render(
-      <OverviewDesk
+      <Desk
         domains={slots()}
         snapshot={snap(
           snapshot({
@@ -393,26 +470,41 @@ describe("OverviewDesk chain coherence", () => {
 // is the one that can quietly become new analytics." These are the assertions that make
 // that sentence enforceable.
 
-describe("OverviewDesk — the daily loop", () => {
+// RE-POINTED 2026-08-29 from a table to the chain rail.
+//
+// Tab 00 used to open with a "daily loop" table — the four domains, one row each. The
+// board does not have one: the four answers appear ONCE, as the nodes of the transmission
+// rail at the anchor of the tab, and the three zones above are the evidence for them. A
+// table of the same four states above the rail is the second rendering the zones exist to
+// replace, so it was deleted rather than kept beside its own replacement.
+//
+// Every assertion below survived that move, because none of them was about a table: the
+// engine's causal order, the absence of a fifth summarising row, and the three states kept
+// apart are properties of how the four domains are PRESENTED, whatever the shape.
+describe("OverviewDesk — the transmission rail", () => {
   it("lists the four domains in the ENGINE's causal order, not the tab strip's", () => {
-    render(<OverviewDesk domains={slots()} snapshot={NO_SNAPSHOT} />);
-    const rows = screen.getAllByTestId(/^macro-loop-/);
-    expect(rows.map((r) => r.getAttribute("data-testid"))).toEqual([
-      "macro-loop-inflation",
-      "macro-loop-policy_rates",
-      "macro-loop-usd",
-      "macro-loop-gold",
+    render(<Desk domains={slots()} snapshot={NO_SNAPSHOT} />);
+    const rail = screen.getByTestId("macro-chain-rail");
+    const nodes = within(rail).getAllByTestId(/^macro-domain-/);
+    expect(nodes.map((n) => n.getAttribute("data-testid"))).toEqual([
+      "macro-domain-inflation",
+      "macro-domain-policy_rates",
+      "macro-domain-usd",
+      "macro-domain-gold",
     ]);
   });
 
-  it("adds no fifth row summarising the four", () => {
-    render(<OverviewDesk domains={slots()} snapshot={NO_SNAPSHOT} />);
-    expect(screen.getAllByTestId(/^macro-loop-/)).toHaveLength(4);
+  it("adds no fifth node summarising the four", () => {
+    render(<Desk domains={slots()} snapshot={NO_SNAPSHOT} />);
+    const rail = screen.getByTestId("macro-chain-rail");
+    expect(within(rail).getAllByTestId(/^macro-domain-/)).toHaveLength(4);
+    // Three arrows for four nodes. A fourth arrow would mean something follows gold.
+    expect(rail.querySelectorAll(".arrow")).toHaveLength(3);
   });
 
-  it("keeps the three states apart per row, including in the loop", () => {
+  it("keeps the three states apart per node", () => {
     render(
-      <OverviewDesk
+      <Desk
         domains={slots({
           gold: dom(null, {
             error: "The gold state API request failed: ECONNREFUSED",
@@ -422,19 +514,31 @@ describe("OverviewDesk — the daily loop", () => {
         snapshot={NO_SNAPSHOT}
       />,
     );
-    expect(screen.getByTestId("macro-loop-gold").textContent).toMatch(
+    expect(screen.getByTestId("macro-domain-gold").textContent).toMatch(
       /ECONNREFUSED/,
     );
-    expect(screen.getByTestId("macro-loop-usd").textContent).toMatch(
+    expect(screen.getByTestId("macro-domain-usd").textContent).toMatch(
       /engine has not run/i,
     );
+  });
+
+  it("says how many nodes answered, so a short rail cannot read as a broken chain", () => {
+    render(
+      <Desk
+        domains={slots({ gold: dom(null), usd: dom(null) })}
+        snapshot={NO_SNAPSHOT}
+      />,
+    );
+    expect(
+      screen.getByTestId("macro-chain-rail").parentElement?.textContent,
+    ).toMatch(/2 of 4 nodes answered/i);
   });
 });
 
 describe("OverviewDesk — the contradiction feed", () => {
   it("gathers every domain's contradictions and attributes each one", () => {
-    render(<OverviewDesk domains={slots()} snapshot={NO_SNAPSHOT} />);
-    const feed = screen.getByTestId("macro-overview-contradictions");
+    render(<Desk domains={slots()} snapshot={NO_SNAPSHOT} />);
+    const feed = screen.getByTestId("board-panel-contradictions");
     // The frozen states carry 2 (inflation) + 1 (rates) + 0 (usd) + 1 (gold).
     expect(
       within(feed).getAllByTestId(/^macro-contradiction-row-/),
@@ -446,7 +550,7 @@ describe("OverviewDesk — the contradiction feed", () => {
 
   it("carries its own denominator, so a quiet feed cannot be read as good news", () => {
     render(
-      <OverviewDesk
+      <Desk
         domains={slots({ usd: dom(null), gold: dom(null) })}
         snapshot={NO_SNAPSHOT}
       />,
@@ -465,8 +569,8 @@ describe("OverviewDesk — the contradiction feed", () => {
     // The engines publish a rule and a detail — no weight, no level, no severity. Any
     // ordering beyond the producer's own would be a judgement invented in the browser,
     // which is plan §8's "a composite wearing a list's clothes".
-    render(<OverviewDesk domains={slots()} snapshot={NO_SNAPSHOT} />);
-    const feed = screen.getByTestId("macro-overview-contradictions");
+    render(<Desk domains={slots()} snapshot={NO_SNAPSHOT} />);
+    const feed = screen.getByTestId("board-panel-contradictions");
     const order = within(feed)
       .getAllByTestId(/^macro-contradiction-row-/)
       .map((n) => n.getAttribute("data-testid"));
@@ -479,9 +583,9 @@ describe("OverviewDesk — the contradiction feed", () => {
   });
 
   it("says an empty feed means nothing was asked when nothing answered", () => {
-    render(<OverviewDesk domains={noDomains()} snapshot={NO_SNAPSHOT} />);
+    render(<Desk domains={noDomains()} snapshot={NO_SNAPSHOT} />);
     expect(
-      screen.getByTestId("macro-overview-contradictions").textContent,
+      screen.getByTestId("board-panel-contradictions").textContent,
     ).toMatch(/nothing was asked, not that nothing fired/i);
   });
 });
@@ -489,7 +593,7 @@ describe("OverviewDesk — the contradiction feed", () => {
 describe("OverviewDesk — transmission health", () => {
   it("gives every one of the five publishers a row, three-state", () => {
     render(
-      <OverviewDesk
+      <Desk
         domains={slots({
           gold: dom(null, {
             error: "The gold state API request failed: API 503",
@@ -516,7 +620,7 @@ describe("OverviewDesk — transmission health", () => {
   });
 
   it("prints the upstream answers a state cited, and checks them against nothing", () => {
-    render(<OverviewDesk domains={slots()} snapshot={NO_SNAPSHOT} />);
+    render(<Desk domains={slots()} snapshot={NO_SNAPSHOT} />);
     const edges = screen.getByTestId("macro-transmission-edges");
     // usd cites policy_rates; gold cites policy_rates, usd and inflation.
     expect(edges.textContent).toMatch(/USD Transmission/);
@@ -531,8 +635,8 @@ describe("OverviewDesk — transmission health", () => {
     // `as_of` is what the replay request bounds; `computed_at` is provenance and may
     // legitimately be much later (storage/macro_domain_state.py:216-219). One column
     // carrying both would let the second be read as the first.
-    render(<OverviewDesk domains={slots()} snapshot={NO_SNAPSHOT} />);
-    const panel = screen.getByTestId("macro-overview-transmission");
+    render(<Desk domains={slots()} snapshot={NO_SNAPSHOT} />);
+    const panel = screen.getByTestId("board-panel-transmission");
     expect(within(panel).getByText("Answers for")).toBeTruthy();
     expect(within(panel).getByText("Computed")).toBeTruthy();
   });
@@ -545,7 +649,7 @@ describe("OverviewDesk — replay", () => {
     // these five reads was dropped on all five, so everything else would be today's desk
     // under a replay heading.
     render(
-      <OverviewDesk
+      <Desk
         domains={slots({
           usd: dom(D.usd, {
             verdict: {
@@ -565,11 +669,11 @@ describe("OverviewDesk — replay", () => {
       />,
     );
     expect(screen.getByTestId("macro-overview-wrong-instant")).toBeTruthy();
-    expect(screen.queryByTestId("macro-overview-daily-loop")).toBeNull();
-    expect(screen.queryByTestId("macro-overview-contradictions")).toBeNull();
+    expect(screen.queryByTestId("macro-chain-rail")).toBeNull();
+    expect(screen.queryByTestId("board-panel-contradictions")).toBeNull();
     expect(screen.queryByTestId(/^macro-domain-/)).toBeNull();
     // The diagnosis stays: it is the only thing that says which publisher misbehaved.
-    expect(screen.getByTestId("macro-overview-transmission")).toBeTruthy();
+    expect(screen.getByTestId("board-panel-transmission")).toBeTruthy();
   });
 
   it("does NOT withhold when a domain simply had no state at that instant", () => {
@@ -577,7 +681,7 @@ describe("OverviewDesk — replay", () => {
     // for it would destroy the only thing tab 00 is for — showing which of the five
     // answered.
     render(
-      <OverviewDesk
+      <Desk
         domains={slots({
           gold: dom(null, {
             verdict: { kind: "unanswered", asOf: "2026-08-24" },
@@ -593,7 +697,7 @@ describe("OverviewDesk — replay", () => {
       />,
     );
     expect(screen.queryByTestId("macro-overview-wrong-instant")).toBeNull();
-    expect(screen.getByTestId("macro-overview-daily-loop")).toBeTruthy();
+    expect(screen.getByTestId("macro-chain-rail")).toBeTruthy();
     expect(screen.getByTestId("macro-health-gold").textContent).toMatch(
       /none at that instant/i,
     );
@@ -601,7 +705,7 @@ describe("OverviewDesk — replay", () => {
 
   it("names the instant the store answered for, never the one that was asked for", () => {
     render(
-      <OverviewDesk
+      <Desk
         domains={slots()}
         snapshot={snap(snapshot(), {
           verdict: {
@@ -633,7 +737,7 @@ describe("OverviewDesk — replay", () => {
   });
 
   it("shows no replay chrome at all when the desk is live", () => {
-    render(<OverviewDesk domains={slots()} snapshot={snap(snapshot())} />);
+    render(<Desk domains={slots()} snapshot={snap(snapshot())} />);
     expect(screen.queryByTestId("macro-replay-status")).toBeNull();
     expect(screen.queryByTestId("macro-overview-wrong-instant")).toBeNull();
   });
@@ -646,7 +750,7 @@ describe("OverviewDesk — what it may never say", () => {
     // nowhere else. Tab 00 is named in that ruling, and it fetches neither of the two
     // endpoints that carry `duration_stance`, so the field is not even in reach.
     const { container } = render(
-      <OverviewDesk domains={slots()} snapshot={snap(snapshot())} />,
+      <Desk domains={slots()} snapshot={snap(snapshot())} />,
     );
     const text = container.textContent ?? "";
     expect(text).not.toMatch(/\bbuy\b|\bsell\b|duration stance|position size/i);
@@ -655,7 +759,7 @@ describe("OverviewDesk — what it may never say", () => {
   it("shows the confidence terms for all four domains, sorted by kind", () => {
     // The lift's whole point: the strip was private to the rates page, so the rates state
     // was the only one of four whose confidence a reader could argue with.
-    render(<OverviewDesk domains={slots()} snapshot={NO_SNAPSHOT} />);
+    render(<Desk domains={slots()} snapshot={NO_SNAPSHOT} />);
     for (const domain of ["inflation", "policy_rates", "usd", "gold"]) {
       expect(screen.getByTestId(`macro-confidence-${domain}`)).toBeTruthy();
     }
