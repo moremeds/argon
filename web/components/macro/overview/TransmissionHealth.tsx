@@ -115,7 +115,7 @@ export function TransmissionHealth({
   );
 }
 
-/** The replay verdict as a short word for a table cell. `not_replaying` prints nothing —
+/** The replay verdict as one word for a table cell. `not_replaying` prints nothing —
  *  a live page has no instant to have answered for, and an empty cell says that better
  *  than the word "live" repeated five times. */
 function verdictWord(verdict: ReplayVerdict): string | null {

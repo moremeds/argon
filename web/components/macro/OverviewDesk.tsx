@@ -40,8 +40,8 @@ import { CAUSAL_ORDER, DOMAIN_LABEL } from "./types";
  *    per-domain contradictions publish no severity at all. An ordering invented here would
  *    be a judgement no engine made.
  *  - **restate, propagate or re-derive `duration_stance`.** Settled by the operator
- *    2026-08-28 (plan §10-I): the word `BUY`/`SELL` may print where the model produced it,
- *    which is inside the quarantined legacy `RatesScorecard` on tab 02, and nowhere else.
+ *    2026-08-28 (plan §10-I): a directional stance word may print only where the model
+ *    produced it — inside the quarantined legacy `RatesScorecard` on tab 02, nowhere else.
  *    Tab 00 is named in that ruling. It fetches neither `/api/rates/snapshot` nor
  *    `/api/macro/policy`, so the field is not even in reach here.
  *
@@ -102,11 +102,12 @@ export function OverviewDesk({
             maxWidth: 780,
           }}
         >
-          Everything on this tab is published by another tab&rsquo;s publisher and
-          rearranged here for a morning read. Nothing is averaged, ranked or scored across
-          the four domains, and there is no fifth number: the desk shows four separately
-          grounded answers and the assembler&rsquo;s verdict on whether they belong
-          together, which is the one thing no single answer can say about itself.
+          Everything on this tab is published by another tab&rsquo;s publisher
+          and rearranged here for a morning read. Nothing is averaged, ranked or
+          scored across the four domains, and there is no fifth number: the desk
+          shows four separately grounded answers and the assembler&rsquo;s
+          verdict on whether they belong together, which is the one thing no
+          single answer can say about itself.
         </p>
       </header>
 
@@ -117,7 +118,12 @@ export function OverviewDesk({
         // `computed_at`, so `as_of` is the clock the request bounds and `computed_at` is
         // provenance. Feeding the verdict `computed_at` here would withhold a state that
         // was legitimately recomputed after the instant it answers for.
-        answerClock="state_as_of"
+        //
+        // `"instant"` is this branch's name for that clock. Tab 00 was written against an
+        // earlier `answerClock="state_as_of"` prop; `ReplayStatus` has since collapsed the
+        // two families into one `clock` taken from the tab's `VALID_TABS` entry, and its
+        // `instantCopy` covers `/api/macro/*` explicitly. Same question, current spelling.
+        clock="instant"
       />
 
       {wrongInstant.length > 0 ? (
@@ -142,12 +148,13 @@ export function OverviewDesk({
               maxWidth: 780,
             }}
           >
-            {wrongInstant.map((p) => p.label).join(", ")} answered with a state from after
-            the instant that was asked for. On these routes the request bounds the
-            answer&rsquo;s own <code>as_of</code>, so that can only mean the parameter was
-            not applied — and if it was dropped for one of these five reads it was dropped
-            for all of them. Everything below would be today&rsquo;s desk under a replay
-            heading, so it is withheld. Transmission health stays, because it is the
+            {wrongInstant.map((p) => p.label).join(", ")} answered with a state
+            from after the instant that was asked for. On these routes the
+            request bounds the answer&rsquo;s own <code>as_of</code>, so that
+            can only mean the parameter was not applied — and if it was dropped
+            for one of these five reads it was dropped for all of them.
+            Everything below would be today&rsquo;s desk under a replay heading,
+            so it is withheld. Transmission health stays, because it is the
             diagnosis.
           </p>
         </section>
@@ -219,9 +226,9 @@ function FullStates({
           maxWidth: 780,
         }}
       >
-        Each state as its own engine published it, with the confidence terms behind the
-        number and the observations it cited. Stored answers replayed, never recomputed at
-        read time.
+        Each state as its own engine published it, with the confidence terms
+        behind the number and the observations it cited. Stored answers
+        replayed, never recomputed at read time.
       </p>
 
       <div style={{ display: "grid", gap: 10 }}>

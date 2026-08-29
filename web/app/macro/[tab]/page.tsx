@@ -229,6 +229,9 @@ function domainTab(
       </>
     );
   };
+}
+
+/**
  * Tab 00 — Overview · Daily Loop.
  *
  * FIVE publishers, the only tab on the desk with more than three, and the reason is
@@ -256,7 +259,10 @@ function domainTab(
 async function OverviewTab({ replay }: MacroTabProps) {
   const asOf = replay.kind === "replay" ? replay.asOf : undefined;
   const [inflation, rates, usd, gold, snapshot] = await Promise.all([
-    settle(() => api.macroDomainState("inflation", asOf), "inflation state API"),
+    settle(
+      () => api.macroDomainState("inflation", asOf),
+      "inflation state API",
+    ),
     settle(() => api.macroDomainState("rates", asOf), "policy/rates state API"),
     settle(() => api.macroDomainState("usd", asOf), "USD state API"),
     settle(() => api.macroDomainState("gold", asOf), "gold state API"),
@@ -264,32 +270,55 @@ async function OverviewTab({ replay }: MacroTabProps) {
   ]);
 
   /** One settled fetch plus what it answered for. `as_of` is the clock — see above. */
-  const withVerdict = <T extends { as_of: string }>(settled: {
-    value: T | null;
-    error?: string;
-  }): MacroOverviewSlot<T> => ({
+  /**
+   * One settled fetch plus the verdict on what it answered for.
+   *
+   * `replayVerdictForDomainState`, not `replayVerdict`, and the two instants are kept
+   * APART. This tab was written on a branch where `ReplayStatus` took an `answerClock`
+   * and this helper passed `as_of` in the field named `computedAt` to select the
+   * "answers for" wording. That prop is gone; `ReplayStatus` now says "That answer was
+   * computed …" for every instant tab, and feeding it an `as_of` under that sentence
+   * would print one instant under the other's name.
+   *
+   * So the gate reads `as_of` — the instant the stored answer answers for, which is what
+   * `/api/macro/*` selects on — and the sentence reads the real `computed_at`. Both are
+   * then true. A state legitimately recomputed after the instant it answers for is still
+   * shown, which is the behaviour `storage/macro_domain_state.py:216-219` requires.
+   *
+   * The snapshot's build instant is `assembled_at`, not `computed_at`; it is passed in by
+   * the caller rather than guessed here, so a shape without one cannot silently report
+   * `undefined` as its provenance.
+   */
+  const withVerdict = <T extends { as_of: string }>(
+    settled: { value: T | null; error?: string },
+    computedAt?: (value: T) => string | undefined,
+  ): MacroOverviewSlot<T> => ({
     value: settled.value,
     error: settled.error,
-    verdict: replayVerdict(replay, {
-      computedAt: settled.value?.as_of,
+    verdict: replayVerdictForDomainState(replay, {
+      asOf: settled.value?.as_of,
+      computedAt: settled.value ? computedAt?.(settled.value) : undefined,
       failed: Boolean(settled.error),
     }),
   });
 
   const domains: Record<MacroDomainKey, MacroOverviewSlot<MacroDomainState>> = {
-    inflation: withVerdict(inflation),
+    inflation: withVerdict(inflation, (v) => v.computed_at),
     // The API path segment is `rates`; the domain key the store and the causal order use
     // is `policy_rates`. Mapped here rather than anywhere downstream, so exactly one place
     // knows the two vocabularies differ.
-    policy_rates: withVerdict(rates),
-    usd: withVerdict(usd),
-    gold: withVerdict(gold),
+    policy_rates: withVerdict(rates, (v) => v.computed_at),
+    usd: withVerdict(usd, (v) => v.computed_at),
+    gold: withVerdict(gold, (v) => v.computed_at),
   };
 
   return (
     <OverviewDesk
       domains={domains}
-      snapshot={withVerdict<MacroContextSnapshot>(snapshot)}
+      snapshot={withVerdict<MacroContextSnapshot>(
+        snapshot,
+        (v) => v.assembled_at,
+      )}
     />
   );
 }

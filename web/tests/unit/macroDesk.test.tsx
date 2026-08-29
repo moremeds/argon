@@ -68,7 +68,9 @@ function noDomains(): DomainSlots {
 
 const NO_SNAPSHOT = snap(null);
 
-function snapshot(over: Partial<MacroContextSnapshot> = {}): MacroContextSnapshot {
+function snapshot(
+  over: Partial<MacroContextSnapshot> = {},
+): MacroContextSnapshot {
   return {
     requested_as_of: "2026-08-24T07:40:00Z",
     as_of: "2026-08-24T07:40:00Z",
@@ -77,10 +79,50 @@ function snapshot(over: Partial<MacroContextSnapshot> = {}): MacroContextSnapsho
     assembler_version: "snapshot/1",
     inputs_hash: "f".repeat(64),
     domains: [
-      { domain: "inflation", ordinal: 0, state_id: 1, state: "ABOVE_TARGET", direction: "FALLING", confidence: "0.71", as_of: "2026-08-24T07:40:00Z", engine_version: "inflation/2", inputs_hash: "a".repeat(64) },
-      { domain: "policy_rates", ordinal: 1, state_id: 2, state: "ON_HOLD", direction: "FLAT", confidence: "0.66", as_of: "2026-08-24T07:40:00Z", engine_version: "rates/2", inputs_hash: "b".repeat(64) },
-      { domain: "usd", ordinal: 2, state_id: 3, state: "RANGEBOUND", direction: "FLAT", confidence: "0.58", as_of: "2026-08-24T07:40:00Z", engine_version: "usd/3", inputs_hash: "c".repeat(64) },
-      { domain: "gold", ordinal: 3, state_id: 4, state: "OPERATIVE", direction: "FLAT", confidence: "0.44", as_of: "2026-08-24T07:40:00Z", engine_version: "gold/2", inputs_hash: "d".repeat(64) },
+      {
+        domain: "inflation",
+        ordinal: 0,
+        state_id: 1,
+        state: "ABOVE_TARGET",
+        direction: "FALLING",
+        confidence: "0.71",
+        as_of: "2026-08-24T07:40:00Z",
+        engine_version: "inflation/2",
+        inputs_hash: "a".repeat(64),
+      },
+      {
+        domain: "policy_rates",
+        ordinal: 1,
+        state_id: 2,
+        state: "ON_HOLD",
+        direction: "FLAT",
+        confidence: "0.66",
+        as_of: "2026-08-24T07:40:00Z",
+        engine_version: "rates/2",
+        inputs_hash: "b".repeat(64),
+      },
+      {
+        domain: "usd",
+        ordinal: 2,
+        state_id: 3,
+        state: "RANGEBOUND",
+        direction: "FLAT",
+        confidence: "0.58",
+        as_of: "2026-08-24T07:40:00Z",
+        engine_version: "usd/3",
+        inputs_hash: "c".repeat(64),
+      },
+      {
+        domain: "gold",
+        ordinal: 3,
+        state_id: 4,
+        state: "OPERATIVE",
+        direction: "FLAT",
+        confidence: "0.44",
+        as_of: "2026-08-24T07:40:00Z",
+        engine_version: "gold/2",
+        inputs_hash: "d".repeat(64),
+      },
     ],
     reasons: [],
     ...over,
@@ -125,7 +167,10 @@ describe("OverviewDesk — the four domain states", () => {
 
   it("distinguishes a domain that has never been computed from one that errored", () => {
     render(
-      <OverviewDesk domains={slots({ gold: dom(null) })} snapshot={NO_SNAPSHOT} />,
+      <OverviewDesk
+        domains={slots({ gold: dom(null) })}
+        snapshot={NO_SNAPSHOT}
+      />,
     );
     const gold = screen.getByTestId("macro-domain-gold");
     expect(within(gold).getByText(/no state has been computed/i)).toBeTruthy();
@@ -189,14 +234,14 @@ describe("OverviewDesk — the four domain states", () => {
 
 describe("OverviewDesk chain coherence", () => {
   it("says nothing is broken when the chain is coherent, and says why that is narrow", () => {
-    render(
-      <OverviewDesk domains={slots()} snapshot={snap(snapshot())} />,
-    );
+    render(<OverviewDesk domains={slots()} snapshot={snap(snapshot())} />);
     expect(screen.queryByTestId("macro-chain-refusal")).toBeNull();
     // ...but it does not render NOTHING. On a tab whose subject is the chain, an empty
     // panel is indistinguishable from one that failed to load.
     const coherent = screen.getByTestId("macro-chain-coherent");
-    expect(coherent.textContent).toMatch(/not a claim that the macro picture is right/i);
+    expect(coherent.textContent).toMatch(
+      /not a claim that the macro picture is right/i,
+    );
     expect(coherent.textContent).toMatch(/internally coherent/i);
   });
 
@@ -211,7 +256,11 @@ describe("OverviewDesk chain coherence", () => {
               (d) => d.domain !== "policy_rates",
             ),
             reasons: [
-              { domain: "policy_rates", kind: "absent", detail: "no policy_rates state at or before this instant" },
+              {
+                domain: "policy_rates",
+                kind: "absent",
+                detail: "no policy_rates state at or before this instant",
+              },
             ],
           }),
         )}
@@ -234,7 +283,12 @@ describe("OverviewDesk chain coherence", () => {
           snapshot({
             status: "incompatible",
             reasons: [
-              { domain: "usd", kind: "incompatible", detail: "usd cited policy_rates state 41, the snapshot holds 47" },
+              {
+                domain: "usd",
+                kind: "incompatible",
+                detail:
+                  "usd cited policy_rates state 41, the snapshot holds 47",
+              },
             ],
           }),
         )}
@@ -242,7 +296,9 @@ describe("OverviewDesk chain coherence", () => {
     );
     const banner = screen.getByTestId("macro-chain-refusal");
     expect(banner.getAttribute("data-status")).toBe("incompatible");
-    expect(within(banner).getByText(/cited policy_rates state 41/)).toBeTruthy();
+    expect(
+      within(banner).getByText(/cited policy_rates state 41/),
+    ).toBeTruthy();
   });
 
   it("marks the offending card, so the banner is not the only place to look", () => {
@@ -253,7 +309,11 @@ describe("OverviewDesk chain coherence", () => {
           snapshot({
             status: "incompatible",
             reasons: [
-              { domain: "usd", kind: "incompatible", detail: "usd cited a superseded policy_rates state" },
+              {
+                domain: "usd",
+                kind: "incompatible",
+                detail: "usd cited a superseded policy_rates state",
+              },
             ],
           }),
         )}
@@ -302,13 +362,26 @@ describe("OverviewDesk chain coherence", () => {
         snapshot={snap(
           snapshot({
             status: "incompatible",
-            reasons: [{ domain: "usd", kind: "incompatible", detail: "usd cited a superseded policy_rates state" }],
+            reasons: [
+              {
+                domain: "usd",
+                kind: "incompatible",
+                detail: "usd cited a superseded policy_rates state",
+              },
+            ],
           }),
         )}
       />,
     );
     const text = screen.getByTestId("macro-chain-refusal").textContent ?? "";
-    for (const banned of [/reduce/i, /hedge/i, /position/i, /allocat/i, /recommend/i, /you should/i]) {
+    for (const banned of [
+      /reduce/i,
+      /hedge/i,
+      /position/i,
+      /allocat/i,
+      /recommend/i,
+      /you should/i,
+    ]) {
       expect(text).not.toMatch(banned);
     }
   });
@@ -341,7 +414,9 @@ describe("OverviewDesk — the daily loop", () => {
     render(
       <OverviewDesk
         domains={slots({
-          gold: dom(null, { error: "The gold state API request failed: ECONNREFUSED" }),
+          gold: dom(null, {
+            error: "The gold state API request failed: ECONNREFUSED",
+          }),
           usd: dom(null),
         })}
         snapshot={NO_SNAPSHOT}
@@ -361,7 +436,9 @@ describe("OverviewDesk — the contradiction feed", () => {
     render(<OverviewDesk domains={slots()} snapshot={NO_SNAPSHOT} />);
     const feed = screen.getByTestId("macro-overview-contradictions");
     // The frozen states carry 2 (inflation) + 1 (rates) + 0 (usd) + 1 (gold).
-    expect(within(feed).getAllByTestId(/^macro-contradiction-row-/)).toHaveLength(4);
+    expect(
+      within(feed).getAllByTestId(/^macro-contradiction-row-/),
+    ).toHaveLength(4);
     expect(
       within(feed).getAllByTestId("macro-contradiction-row-inflation"),
     ).toHaveLength(2);
@@ -379,9 +456,9 @@ describe("OverviewDesk — the contradiction feed", () => {
     expect(screen.getByTestId("macro-contradiction-count").textContent).toMatch(
       /of 4 domains that answered/i,
     );
-    expect(screen.getByTestId("macro-contradiction-unasked").textContent).toMatch(
-      /not because/i,
-    );
+    expect(
+      screen.getByTestId("macro-contradiction-unasked").textContent,
+    ).toMatch(/not because/i);
   });
 
   it("orders by the engine's causal order and re-ranks nothing", () => {
@@ -414,7 +491,9 @@ describe("OverviewDesk — transmission health", () => {
     render(
       <OverviewDesk
         domains={slots({
-          gold: dom(null, { error: "The gold state API request failed: API 503" }),
+          gold: dom(null, {
+            error: "The gold state API request failed: API 503",
+          }),
           usd: dom(null),
         })}
         snapshot={snap(snapshot())}
@@ -430,7 +509,9 @@ describe("OverviewDesk — transmission health", () => {
       screen.getByTestId("macro-health-gold").getAttribute("data-answered"),
     ).toBe("request failed");
     expect(
-      screen.getByTestId("macro-health-inflation").getAttribute("data-answered"),
+      screen
+        .getByTestId("macro-health-inflation")
+        .getAttribute("data-answered"),
     ).toBe("yes");
   });
 
@@ -475,7 +556,11 @@ describe("OverviewDesk — replay", () => {
           }),
         })}
         snapshot={snap(snapshot(), {
-          verdict: { kind: "replaying", asOf: "2026-08-24", computedAt: "2026-08-24T07:40:00Z" },
+          verdict: {
+            kind: "replaying",
+            asOf: "2026-08-24",
+            computedAt: "2026-08-24T07:40:00Z",
+          },
         })}
       />,
     );
@@ -494,18 +579,24 @@ describe("OverviewDesk — replay", () => {
     render(
       <OverviewDesk
         domains={slots({
-          gold: dom(null, { verdict: { kind: "unanswered", asOf: "2026-08-24" } }),
+          gold: dom(null, {
+            verdict: { kind: "unanswered", asOf: "2026-08-24" },
+          }),
         })}
         snapshot={snap(snapshot(), {
-          verdict: { kind: "replaying", asOf: "2026-08-24", computedAt: "2026-08-24T07:40:00Z" },
+          verdict: {
+            kind: "replaying",
+            asOf: "2026-08-24",
+            computedAt: "2026-08-24T07:40:00Z",
+          },
         })}
       />,
     );
     expect(screen.queryByTestId("macro-overview-wrong-instant")).toBeNull();
     expect(screen.getByTestId("macro-overview-daily-loop")).toBeTruthy();
-    expect(
-      screen.getByTestId("macro-health-gold").textContent,
-    ).toMatch(/none at that instant/i);
+    expect(screen.getByTestId("macro-health-gold").textContent).toMatch(
+      /none at that instant/i,
+    );
   });
 
   it("names the instant the store answered for, never the one that was asked for", () => {
@@ -513,16 +604,32 @@ describe("OverviewDesk — replay", () => {
       <OverviewDesk
         domains={slots()}
         snapshot={snap(snapshot(), {
-          verdict: { kind: "replaying", asOf: "2026-08-24", computedAt: "2026-08-22T07:40:00Z" },
+          verdict: {
+            kind: "replaying",
+            asOf: "2026-08-24",
+            computedAt: "2026-08-22T07:40:00Z",
+          },
         })}
       />,
     );
     const status = screen.getByTestId("macro-replay-status");
     expect(status.getAttribute("data-replay-state")).toBe("replaying");
-    // "answers for", not "was computed": on these routes the request bounds `as_of`, and
-    // a state may be recomputed long after the instant it answers for.
-    expect(status.textContent).toMatch(/answers for 2026-08-22 07:40 UTC/);
-    expect(status.textContent).not.toMatch(/was computed/);
+    // REWORDED 2026-08-29 when tab 00 landed beside tabs 03-05.
+    //
+    // This asserted "answers for 2026-08-22", against an `answerClock` prop that no
+    // longer exists: `ReplayStatus` was rebuilt around one copy family per CLOCK
+    // (`instant` / `obs_date`) taken from the tab's registry entry, and the instant
+    // family says "was computed".
+    //
+    // The claim the test was defending survives, and is stronger now, because it moved
+    // into the caller. `OverviewTab` used to pass `as_of` in the field named `computedAt`
+    // to buy the old wording, which meant one instant printed under the other's name. It
+    // now passes both separately — `as_of` to the gate, the real `computed_at` (and the
+    // snapshot's `assembled_at`) to the sentence — so BOTH instants are named correctly:
+    // the day the answer stands for, and when it was built. A state recomputed after the
+    // instant it answers for is still shown, which is the behaviour that mattered.
+    expect(status.textContent).toMatch(/at the end of 2026-08-24 UTC/);
+    expect(status.textContent).toMatch(/was computed 2026-08-22 07:40 UTC/);
   });
 
   it("shows no replay chrome at all when the desk is live", () => {
