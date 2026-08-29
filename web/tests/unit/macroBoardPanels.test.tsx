@@ -184,7 +184,10 @@ describe("the dollar pair reads its own data", () => {
   it("carries the engine's own rule for the pair verbatim", () => {
     render(<DomainStateTab domain="usd" slot={slotOf("usd")} />);
     const panel = screen.getByTestId("board-panel-dollar-pair");
-    expect(panel.textContent).toMatch(/never substituted for it/);
+    expect(panel.querySelector("details")?.textContent).toMatch(
+      /never substituted for it/,
+    );
+    expect(panel.getAttribute("data-basis")).toBe("COMPUTED");
   });
 });
 
@@ -199,8 +202,8 @@ describe("the expectations citation", () => {
     );
     const split = screen.getByTestId("expectations-split");
     // MICH 4.6 against T10YIE, both off the fixture.
-    expect(split.textContent).toMatch(/pp apart/);
-    expect(split.textContent).toMatch(/4\.60% survey/);
+    expect(split.textContent).toMatch(/2\.26pp/);
+    expect(split.textContent).toMatch(/4\.60% versus 2\.34%/);
   });
 
   it("says which half is missing when the rates citation fails", () => {
@@ -227,6 +230,7 @@ describe("the expectations citation", () => {
       />,
     );
     const panel = screen.getByTestId("board-panel-inflation-expectations");
-    expect(within(panel).getByText(/No 0–100 composite/)).toBeTruthy();
+    expect(within(panel).getByText(/remain separate/)).toBeTruthy();
+    expect(panel.getAttribute("data-basis")).toBe("COMPUTED");
   });
 });

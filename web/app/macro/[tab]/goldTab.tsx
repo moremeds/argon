@@ -6,6 +6,7 @@ import {
   BoardStatePill,
 } from "@/components/macro/domain/BoardPanel";
 import { ReplayStatus } from "@/components/macro/ReplayStatus";
+import { humanizeIdentifier } from "@/components/macro/presentation";
 import {
   replayVerdictForObsDate,
   replayWithholdsContent,
@@ -90,7 +91,7 @@ function GoldHeading({
   /** Why there is no pill, when there is no pill. Never blank. */
   domainNote: string;
 }) {
-  const gate = posture.gauge.state.toUpperCase();
+  const gate = humanizeIdentifier(posture.gauge.state);
   return (
     <BoardSecTitle
       title="Gold"
@@ -109,14 +110,11 @@ function GoldHeading({
         </>
       }
     >
-      Final link, merged with the Gold Compass. The domain state is a{" "}
-      <b>gate</b> — whether the gold/real-yield relationship is operative — and
-      not a view on price; the three lenses publish independently and are{" "}
-      <b>never composited</b>. The gate currently reads <b>{gate}</b>
+      Real-yield transmission, structural and cyclical flows, valuation and
+      expression cost. Gate: <b>{gate}</b>
       {posture.gauge.state === "suspended" ? (
         <>
-          , so the cyclical lens below is dimmed and nothing on this tab should
-          be read as gold tracking real rates today.
+          ; the cyclical lens is dimmed while transmission is suspended.
         </>
       ) : (
         "."

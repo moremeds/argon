@@ -82,9 +82,9 @@ export function EnergyInventoryPanel() {
   return (
     <BoardPanel
       id="energy-inventory"
-      title="Data inventory · findings"
+      title="Current coverage"
       questions={["Q7"]}
-      basis="REAL"
+      basis="REFERENCE"
       sourceLabel="Measured"
       source={
         <>
@@ -129,13 +129,8 @@ export function EnergyInventoryPanel() {
         </table>
       </div>
       <BoardRead testId="energy-inventory-read">
-        <b>These counts are a citation, not a reading.</b> They were true when
-        the enumeration ran on {MEASURED_ON} and nothing here re-checks them, so
-        the date is part of the claim rather than a footnote to it. The finding
-        that matters is the shape: the raw contract data is{" "}
-        <b>already landing</b> in the lake while the macro store has no energy
-        series at all, which makes the first step an ingest rather than an
-        acquisition.
+        Dated repository audit, not a live market reading. Raw oil contracts
+        already land in the lake; the macro store still has no energy series.
       </BoardRead>
     </BoardPanel>
   );
@@ -146,17 +141,17 @@ const ROUTE: readonly { step: string; title: string; body: string }[] = [
   {
     step: "P1",
     title: "FRED spot series",
-    body: "WTI, Brent and Henry Hub through the existing macro series ingest channel — zero new infrastructure. Unlocks same-day: levels and year-on-year, the Brent−WTI spread, the gold÷oil valuation anchor whose cell is null today, and a rolling correlation between WTI year-on-year and breakevens, reusing the gold gauge's own transmission methodology.",
+    body: "Ingest WTI, Brent and Henry Hub through the existing macro series path. This unlocks levels, year-on-year changes, Brent−WTI and the gold÷oil anchor.",
   },
   {
     step: "P2",
     title: "Lake futures term structure",
-    body: "The CL and BZ contract months already landing raw become a term-structure panel — contango, backwardation and roll shape. This is the part a spot series cannot give at all, which is why it is a separate step rather than an extension of the first.",
+    body: "Turn existing CL and BZ contract months into contango, backwardation and roll-shape readings.",
   },
   {
     step: "P3",
     title: "Natural gas and its seasonality",
-    body: "Once an NG series lands, the panel is the current month's price percentile inside its own ten-year same-month distribution. Describe first, measure later — seasonality is gas's first-class property, and copying the oil panel onto it would be answering a different question with the same picture.",
+    body: "Compare the current contract with its own ten-year same-month distribution.",
   },
 ];
 
@@ -164,7 +159,7 @@ export function EnergyRoutePanel() {
   return (
     <BoardPanel
       id="energy-route"
-      title="Onboarding route · three steps, each standalone"
+      title="Build path"
       questions={["Q7"]}
       basis="PLANNED"
       sourceLabel="Status"
@@ -190,10 +185,8 @@ export function EnergyRoutePanel() {
         ))}
       </ol>
       <BoardRead>
-        Each step stands alone deliberately. A route whose value arrives only at
-        the end is a route that gets abandoned halfway and leaves nothing; this
-        one lights a specific empty cell at every stage, and the first stage
-        needs no new infrastructure at all.
+        Each step produces a usable reading on its own; P1 needs no new
+        infrastructure.
       </BoardRead>
     </BoardPanel>
   );
@@ -203,15 +196,15 @@ export function EnergyRoutePanel() {
 const PROPOSED: readonly { title: string; body: string }[] = [
   {
     title: "WTI / Brent levels + spread",
-    body: "Two series and a Brent−WTI spread bar. Lights up after P1. The spread itself carries geopolitical information — it is a transport and quality differential before it is anything else.",
+    body: "Two spot series and their spread after P1.",
   },
   {
     title: "Futures term structure",
-    body: "Contango or backwardation across the contract months already in the lake. Needs P2, and no spot series can substitute for it.",
+    body: "Contango or backwardation across existing contract months after P2.",
   },
   {
     title: "NG seasonal band",
-    body: "The current month against its own ten-year same-month distribution. Needs P3, and needs its own shape rather than the oil panel's.",
+    body: "Current gas against its same-month history after P3.",
   },
 ];
 
@@ -235,15 +228,8 @@ export function EnergyProposedPanels() {
 export function EnergyDisciplinePanel() {
   return (
     <BoardRefusal kind="HONEST BOUNDARY" testId="energy-discipline">
-      <b>No energy state label, and no fifth domain, until one is measured.</b>{" "}
-      A label such as SUPPLY_TIGHT or GLUT needs its own spec and its own
-      threshold measurement, exactly as the four existing domains needed theirs.
-      Until that exists this tab could honestly show levels, spreads and
-      percentiles and nothing else. Adding a fifth label because four already
-      exist is how a desk acquires a state nobody measured — and this tab
-      inherits the same non-goals as the rest of the desk: it feeds the
-      inflation node and the gold valuation anchor, and it makes no predictive
-      claim about anything.
+      No energy state until thresholds are measured. Until then this tab may
+      show levels, spreads and percentiles only.
     </BoardRefusal>
   );
 }

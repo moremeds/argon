@@ -108,7 +108,7 @@ describe("DealerPathChart", () => {
     };
     render(<DealerPathChart slot={shrinking} />);
     expect(screen.getAllByTestId("dealer-path-note")[1].textContent).toMatch(
-      /n varies by horizon, 21–26/,
+      /Respondents by horizon: 21–26/,
     );
   });
 

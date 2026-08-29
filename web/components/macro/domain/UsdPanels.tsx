@@ -1,6 +1,7 @@
 import { BoardPanel, BoardRead, BoardRefusal } from "./BoardPanel";
 import type { MacroFactor } from "./FactorTable";
 import type { MacroDomainState } from "../types";
+import { humanizeIdentifier, seriesLabel } from "../presentation";
 
 /**
  * The USD engine's own vocabulary for its two legs, named explicitly rather than
@@ -90,7 +91,6 @@ export function UsdPanels({ state }: { state: MacroDomainState }) {
  */
 function DollarPairPanel({ state }: { state: MacroDomainState }) {
   const legs = resolveLegs(state);
-  const notes = state.notes ?? [];
   const diverging =
     legs.length === 2 &&
     Math.sign(legs[0].change) !== Math.sign(legs[1].change);
@@ -98,15 +98,16 @@ function DollarPairPanel({ state }: { state: MacroDomainState }) {
   return (
     <BoardPanel
       id="dollar-pair"
-      title="Nominal vs real · a dollar pair in reverse"
+      title="Nominal vs real dollar"
       questions={["Q1"]}
-      basis="REAL"
+      basis="COMPUTED"
       sourceLabel="Pipeline"
       source={
         <>
           /api/macro/usd factors[] for the levels, velocity[] for the changes —
           the velocity item is what carries the unit and the window, so the
           change is read from there
+          {state.notes?.[0] ? <> · {state.notes[0]}</> : null}
         </>
       }
     >
@@ -133,7 +134,7 @@ function DollarPairPanel({ state }: { state: MacroDomainState }) {
                 className="num"
                 style={{ fontSize: 10.5, color: "var(--text-muted)" }}
               >
-                {leg.factor.series_id} · {leg.factor.period_end} ·{" "}
+                {seriesLabel(leg.factor.series_id)} · {leg.factor.period_end} ·{" "}
                 {leg.factor.age_days}d
               </div>
             </div>
@@ -161,16 +162,9 @@ function DollarPairPanel({ state }: { state: MacroDomainState }) {
                   {Math.abs(legs[1].change - legs[0].change).toFixed(2)}pp more
                 </>
               ) : null}
-              . The inflation differential is not currently reversing the
-              nominal read.
+              . The inflation differential is not reversing the nominal move.
             </>
-          )}{" "}
-          {notes.length > 0 ? (
-            <>
-              The engine&apos;s own rule for this pair, verbatim: &ldquo;
-              {notes.join(" ")}&rdquo;
-            </>
-          ) : null}
+          )}
         </BoardRead>
       ) : null}
     </BoardPanel>
@@ -194,7 +188,7 @@ function UpstreamCitationPanel({ state }: { state: MacroDomainState }) {
   return (
     <BoardPanel
       id="upstream-citation"
-      title="Upstream citation · chain integrity"
+      title="Rates citation"
       questions={["Q4", "Q7"]}
       basis="REAL"
       source="/api/macro/usd upstream[] — the upstream's own state id, engine version and inputs hash, as this state recorded them"
@@ -207,29 +201,28 @@ function UpstreamCitationPanel({ state }: { state: MacroDomainState }) {
             <thead>
               <tr>
                 <th>Upstream</th>
-                <th>state</th>
-                <th>Citation mode</th>
+                <th>State</th>
+                <th>Citation</th>
               </tr>
             </thead>
             <tbody>
               {upstream.map((u) => (
                 <tr key={u.upstream_state_id}>
                   <td>
-                    {u.domain}{" "}
+                    {humanizeIdentifier(u.domain)}{" "}
                     <span style={{ color: "var(--text-muted)" }}>
-                      as {u.causal_role.replace(/_/g, " ")}
+                      as {humanizeIdentifier(u.causal_role)}
                     </span>
                   </td>
                   <td>
-                    <span className="state neust">{u.state}</span>{" "}
+                    <span className="state neust">
+                      {humanizeIdentifier(u.state)}
+                    </span>{" "}
                     <span className="num" style={{ fontSize: 11 }}>
-                      {u.direction}
+                      {humanizeIdentifier(u.direction)}
                     </span>
                   </td>
-                  <td className="num" style={{ wordBreak: "break-all" }}>
-                    state #{u.upstream_state_id} · {u.engine_version} · inputs{" "}
-                    {u.inputs_hash.slice(0, 12)} · never recomputed
-                  </td>
+                  <td>Stored state reference</td>
                 </tr>
               ))}
             </tbody>
@@ -238,19 +231,14 @@ function UpstreamCitationPanel({ state }: { state: MacroDomainState }) {
       )}
 
       <BoardRead>
-        <b>The identity, not the value, is what is cited.</b> If the rates
-        engine recomputes while this state still names the hash above, the chain
-        verdict on the overview reports the two as incompatible rather than
-        quietly substituting the fresher answer.
+        The stored identity is cited, not recomputed. Overview flags any
+        mismatch with the current Rates state.
       </BoardRead>
 
       <BoardRefusal kind="HONEST BOUNDARY">
-        This engine stands on {factors.length} published series (
-        {factors.map((f) => f.series_id).join(", ") || "none"}) and one upstream
-        state. Bilateral rates, CIP basis and foreign central-bank path
-        differentials are not wired into it — so the state above is a reading of
-        the broad dollar, and is not entitled to be read as a verdict on any
-        specific pair.
+        This engine uses {factors.length} broad-dollar series (
+        {factors.map((f) => seriesLabel(f.series_id)).join(", ") || "none"}) and
+        one Rates state. It is not a verdict on any currency pair.
       </BoardRefusal>
     </BoardPanel>
   );

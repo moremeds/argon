@@ -173,18 +173,12 @@ export function CurveDesk({
           omission: this tab is the market's side, and the policy/rates state it would
           show belongs to — and is already shown on — tab 01. */}
         <DeskHeader
-          title="Rates · Curve"
+          title="Rates"
           questions={["Q2", "Q4", "Q5"]}
           standfirst={
             <>
-              Split out of the Fed tab deliberately:{" "}
-              <b>
-                what the committee intends and what the term structure is
-                pricing are two different questions
-              </b>
-              . This tab is the market&apos;s side. The curve prints the level,
-              the decompositions say what is inside it, the attribution says who
-              moved it, and the auction table says whether anyone absorbed it.
+              Yield-curve levels, their drivers, positioning, funding and
+              auction demand.
             </>
           }
           snapshot={snapshot}
@@ -192,10 +186,10 @@ export function CurveDesk({
 
         <RatesSection
           id="curve"
-          title="Par yield curve · current vs 1W vs 1M"
+          title="Yield curve"
           eyebrow="Nominal Treasury curve"
           questions={["Q2", "Q4"]}
-          basis="REAL"
+          basis="COMPUTED"
           source="/api/rates/snapshot · curve and stored slope deltas"
         >
           <RatesCurveChart points={curve.points ?? []} />
@@ -287,7 +281,7 @@ export function CurveDesk({
           ) : (
             <RatesSection
               id="substate-supply"
-              title="Supply SUB-STATE"
+              title="Supply"
               questions={["Q4", "Q5"]}
               basis="REAL"
               source="/api/rates/snapshot.supply"
@@ -304,7 +298,7 @@ export function CurveDesk({
           ) : (
             <RatesSection
               id="substate-positioning"
-              title="Positioning SUB-STATE · 10Y futures"
+              title="10Y futures positioning"
               questions={["Q5"]}
               basis="REAL"
               source="/api/rates/snapshot.positioning"
@@ -328,7 +322,7 @@ export function CurveDesk({
             // published would make the nav link to nowhere exactly when the engine is down.
             <RatesSection
               id="substate-plumbing"
-              title="Funding SUB-STATE"
+              title="Funding"
               questions={["Q4"]}
               basis="REAL"
               source="/api/rates/snapshot.policy.plumbing"
@@ -341,7 +335,7 @@ export function CurveDesk({
 
         <RatesSection
           id="auctions"
-          title="Auction demand · did anyone show up"
+          title="Auction demand"
           eyebrow="TreasuryDirect · recent results"
           questions={["Q4", "Q5"]}
           basis="REAL"
@@ -356,18 +350,15 @@ export function CurveDesk({
           with as the answer. */}
         <RatesSection
           id="refuses"
-          title="What this tab refuses"
+          title="Limits"
           questions={["Q7"]}
-          basis="REAL"
+          basis="REFERENCE"
           source="code invariants and executable tests"
         >
-          <ul className="tight">
-            <li><b>Slope ≠ term premium</b> — the tab does not compose readings into a score and takes no stance from one; only a named model may estimate duration compensation.</li>
-            <li><b>The model does not overrule the market</b> — monthly Cleveland terms remain a slower lens beside the daily curve.</li>
-            <li><b>Attribution is not published where it cannot speak</b> — unresolved windows stay visible as missing, not zero.</li>
-            <li><b>The legacy scorecard is demoted</b> — it is a legacy artifact kept below for dual-read only and drives no panel on this desk.</li>
-            <li><b>Reconstructed curves are dated by convention</b> — every comparison names its stored delta window.</li>
-          </ul>
+          <p className="read">
+            A slope is not a term premium. Daily market data stays separate from
+            the monthly model; missing attribution remains missing, never zero.
+          </p>
           <details>
             <summary>Experimental legacy scorecard</summary>
             <RatesScorecard scorecard={scorecard} />

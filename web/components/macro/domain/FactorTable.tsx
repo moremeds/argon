@@ -1,4 +1,5 @@
 import type { components } from "@/lib/types";
+import { humanizeIdentifier, seriesLabel } from "../presentation";
 
 export type MacroFactor = components["schemas"]["MacroFactorState"];
 
@@ -78,7 +79,9 @@ export function FactorTable({
           {factors.map((f) => (
             <tr key={`${f.name}-${f.series_id}`}>
               <td>
-                {f.series_id}
+                <span data-raw-value={f.series_id} title={f.series_id}>
+                  {seriesLabel(f.series_id)}
+                </span>
                 {/* The unit sits on its own line rather than running on after the id.
                     In a half-width panel the two together wrap mid-phrase, which reads
                     as a ragged accident; stacked, the wrap is the layout. */}
@@ -89,14 +92,14 @@ export function FactorTable({
                     color: "var(--text-muted)",
                   }}
                 >
-                  {f.unit.replace(/_/g, " ")}
+                  {humanizeIdentifier(f.unit)}
                 </small>
               </td>
               <td className="num">{fmtLevel(f)}</td>
               <td className="num">{fmtDelta(f.change_over_window)}</td>
               <td>
                 <span className={deltaClass(f.direction, fallingIsGood)}>
-                  {f.direction}
+                  {humanizeIdentifier(f.direction)}
                 </span>
               </td>
               <td className="num">

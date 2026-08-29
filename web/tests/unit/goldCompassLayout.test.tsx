@@ -168,20 +168,20 @@ describe("GoldCompassLayout", () => {
   it("renders every board panel as a discrete region", () => {
     render(<GoldCompassLayout state={FIXTURE} />);
     for (const name of [
-      /transmission gauge/i,
+      /real-yield link/i,
       /three lenses/i,
-      /anchor decay/i,
+      /anchor history/i,
       /expression cost/i,
       // Lens 1 is TWO panels, not one. The board separates official-sector accumulation
       // from western institutional flow because they are different behaviours with
       // different reads; the merged panel promoted the strategic bucket to a headline and
       // rode the other two in a sub-line.
-      /central banks/i,
-      /western institutional flows/i,
+      /central-bank flows/i,
+      /institutional flows/i,
       /cyclical readings/i,
       // The manifest is a panel, not a footer: one that named only the inputs it managed
       // to read presented a partial audit trail as a complete one.
-      /input manifest/i,
+      /data coverage/i,
     ]) {
       expect(screen.getByRole("region", { name })).toBeTruthy();
     }
@@ -219,8 +219,8 @@ describe("GoldCompassLayout", () => {
       />,
     );
 
-    expect(screen.getByText(/lens detail series/i)).toBeTruthy();
-    expect(screen.getByText(/GLD_holdings_oz/)).toBeTruthy();
+    expect(screen.getByText(/lens details/i)).toBeTruthy();
+    expect(screen.getByText(/GLD holdings oz/i)).toBeTruthy();
     expect(
       screen
         .getByTestId("lens-series-GLD_holdings_oz")
@@ -259,17 +259,17 @@ describe("GoldCompassLayout", () => {
     );
     const at = (re: RegExp) => labels.findIndex((l) => l && re.test(l));
 
-    expect(at(/transmission gauge/i)).toBe(0);
+    expect(at(/real-yield link/i)).toBe(0);
     // The gauge sits BESIDE the lenses it governs, which is the argument for the pairing.
     expect(at(/three lenses/i)).toBe(1);
-    expect(at(/expression cost/i)).toBeGreaterThan(at(/anchor decay/i));
+    expect(at(/expression cost/i)).toBeGreaterThan(at(/anchor history/i));
     // The board's own t5 order puts central banks before the western flows they are
     // routinely conflated with.
-    expect(at(/western institutional flows/i)).toBeGreaterThan(
-      at(/central banks/i),
+    expect(at(/^institutional flows$/i)).toBeGreaterThan(
+      at(/central-bank flows/i),
     );
     // The manifest closes the tab: an audit trail is read after what it audits.
-    expect(at(/input manifest/i)).toBe(labels.length - 1);
+    expect(at(/data coverage/i)).toBe(labels.length - 1);
   });
 
   it("gives every gold panel a board question", () => {
@@ -292,20 +292,20 @@ describe("GoldCompassLayout", () => {
     // the point: the read is derived from the numbers, never restated from the board.
     render(<GoldCompassLayout state={FIXTURE} />);
     const read = screen.getByTestId("gold-gauge-read").textContent ?? "";
-    expect(read).toMatch(/agree to within/i);
+    expect(read).toMatch(/agree within/i);
     expect(read).not.toMatch(/collapsed/i);
     // The regime still governs the page, and says so.
-    expect(read).toMatch(/informative only/i);
+    expect(read).toMatch(/context only/i);
   });
 
-  it("says 'collapsed' when the near and wide windows actually diverge", () => {
+  it("says the wide window is weak when near and wide diverge", () => {
     const collapsing: State = {
       ...FIXTURE,
       gauge: { ...FIXTURE.gauge, corr_60d: "-0.85", corr_504d: "-0.02" },
     };
     render(<GoldCompassLayout state={collapsing} />);
     expect(screen.getByTestId("gold-gauge-read").textContent).toMatch(
-      /collapsed on the 504D/i,
+      /weak on 504D/i,
     );
   });
 
@@ -336,9 +336,9 @@ describe("GoldCompassLayout", () => {
       />,
     );
     const panel = screen.getByRole("region", {
-      name: /anchor decay · gauge corr_60d, daily/i,
+      name: /anchor history/i,
     });
-    expect(panel.textContent).toMatch(/2 observations/i);
+    expect(panel.textContent).toMatch(/2 anchor points/i);
     expect(
       screen.getByTestId("correlation-history-window-note").textContent,
     ).not.toMatch(/does not exist/i);
@@ -358,7 +358,7 @@ describe("GoldCompassLayout", () => {
 
   it("gives each central-bank bucket its own labelled figure", () => {
     render(<GoldCompassLayout state={FIXTURE} />);
-    const cb = screen.getByRole("region", { name: /central banks/i });
+    const cb = screen.getByRole("region", { name: /central-bank flows/i });
     // Three buckets at equal weight. The previous layout printed the strategic figure as
     // the headline and ran all three together in a sub-line, which answered the
     // comparison the panel exists to let the reader make.
@@ -377,7 +377,7 @@ describe("GoldCompassLayout", () => {
     // fixture has all three positive; the read must not claim a seller.
     render(<GoldCompassLayout state={FIXTURE} />);
     const read = screen.getByTestId("cb-bucket-read").textContent ?? "";
-    expect(read).toMatch(/needs\s+unbundling/i);
+    expect(read).toMatch(/12-month net flows/i);
     expect(read).not.toMatch(/net sellers/i);
     expect(read).toMatch(/strategic accumulators/i);
   });
@@ -426,7 +426,7 @@ describe("GoldCompassLayout", () => {
     );
     expect(onDesk.queryByLabelText("REPLAY")).toBeNull();
     // ...and the rest of the cockpit is untouched by the suppression.
-    expect(onDesk.getByRole("region", { name: /central banks/i })).toBeTruthy();
+    expect(onDesk.getByRole("region", { name: /central-bank flows/i })).toBeTruthy();
   });
 
   it("wears the Gold Compass lockup standalone and the board's heading on the desk", () => {

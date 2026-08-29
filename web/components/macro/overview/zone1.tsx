@@ -2,7 +2,8 @@ import { CorrelationLineChart } from "@/components/gold/correlation/CorrelationL
 import type { components } from "@/lib/types";
 
 import { BoardPanel, BoardRead } from "../domain/BoardPanel";
-import { confidencePct, plural} from "../format";
+import { confidencePct, plural } from "../format";
+import { humanizeIdentifier } from "../presentation";
 import type {
   MacroDomainKey,
   MacroDomainState,
@@ -67,7 +68,7 @@ export function StateFlipsPanel({
   return (
     <BoardPanel
       id="state-flips"
-      title="State flips × confidence moves"
+      title="State changes"
       questions={["Q1"]}
       basis="REAL"
       source={
@@ -98,18 +99,17 @@ export function StateFlipsPanel({
                   {row.now && row.prior ? (
                     row.flipped ? (
                       <>
-                        {row.prior.state} →{" "}
+                        {humanizeIdentifier(row.prior.state)} →{" "}
                         <b style={{ color: "var(--warning)" }}>
-                          {row.now.state}
+                          {humanizeIdentifier(row.now.state)}
                         </b>
                       </>
                     ) : (
-                      <>{row.now.state} · no flip</>
+                      <>{humanizeIdentifier(row.now.state)} · unchanged</>
                     )
                   ) : row.now ? (
                     <span style={{ color: "var(--text-muted)" }}>
-                      {row.now.state} · no stored state at {priorLabel} to
-                      compare against
+                      {humanizeIdentifier(row.now.state)} · no prior state
                     </span>
                   ) : (
                     <span style={{ color: "var(--text-muted)" }}>
@@ -138,24 +138,18 @@ export function StateFlipsPanel({
       <BoardRead testId="macro-flips-read">
         {comparable.length === 0 ? (
           <>
-            No domain could be compared across the week — every prior read came
-            back without a stored state, so this table reports the desk&rsquo;s
-            coverage rather than the world&rsquo;s movement.
+            No domain has a comparable prior state.
           </>
         ) : flips.length === 0 ? (
           <>
-            <b>Zero state flips</b> across{" "}
-            {plural(comparable.length, "comparable domain")} — which is not a week of zero
-            information. Confidence is where the change lives, and it is the
-            column to read: a state that held while its confidence decayed is a
-            domain ageing out of its evidence, not one being re-confirmed.
+            <b>No state changed.</b> Compare confidence to see whether unchanged
+            calls gained or lost support.
           </>
         ) : (
           <>
             <b>{plural(flips.length, "state flip")}</b> across{" "}
             {plural(comparable.length, "comparable domain")}:{" "}
-            {flips.map((f) => DOMAIN_LABEL[f.domain]).join(", ")}. A flip is the
-            engine&rsquo;s own published label changing, not a reading of ours.
+            {flips.map((f) => DOMAIN_LABEL[f.domain]).join(", ")}.
           </>
         )}
       </BoardRead>
@@ -219,10 +213,10 @@ export type DeltaSeriesSpec = {
  * A row silently dropped reads as a row the board never asked for.
  */
 export const DELTA_SERIES: readonly DeltaSeriesSpec[] = [
-  { id: "DGS10", label: "DGS10 · nominal 10y", unit: "bp" },
-  { id: "DFII10", label: "DFII10 · real 10y", unit: "bp" },
-  { id: "T10YIE", label: "T10YIE · breakeven", unit: "bp" },
-  { id: "DTWEXBGS", label: "DTWEXBGS · broad USD", unit: "pct" },
+  { id: "DGS10", label: "10Y Treasury", unit: "bp" },
+  { id: "DFII10", label: "10Y real yield", unit: "bp" },
+  { id: "T10YIE", label: "10Y breakeven", unit: "bp" },
+  { id: "DTWEXBGS", label: "Broad dollar", unit: "pct" },
   { id: "VIXCLS", label: "VIX", unit: "pts" },
 ];
 
@@ -293,7 +287,7 @@ export function MarketDeltasPanel({
   return (
     <BoardPanel
       id="market-deltas"
-      title={`Market deltas · ${windowLabel}`}
+      title={`Market moves · ${windowLabel}`}
       questions={["Q2"]}
       basis="COMPUTED"
       sourceLabel="Formula"
@@ -319,7 +313,7 @@ export function MarketDeltasPanel({
               const move = moveOf(s);
               return (
                 <tr key={s.spec.id} data-testid={`macro-delta-${s.spec.id}`}>
-                  <td>{s.spec.label}</td>
+                  <td title={s.spec.id} data-raw-value={s.spec.id}>{s.spec.label}</td>
                   {move ? (
                     <>
                       <td className="num">
@@ -347,8 +341,8 @@ export function MarketDeltasPanel({
                         {s.error
                           ? s.error
                           : s.points.length === 1
-                            ? "one observation in the window — a level, not a change"
-                            : "not stored — this series has no observations on this desk"}
+                            ? "one observation; no change available"
+                            : "not stored"}
                       </span>
                     </td>
                   )}
@@ -370,27 +364,19 @@ export function MarketDeltasPanel({
                   ? "real-yield-led"
                   : "split evenly between its two legs"}
             </b>{" "}
-            ({beiMove.text} breakeven against {realMove.text} real). Which leg
-            leads says what the move is about — inflation compensation or the
-            discount rate — and the two can move in opposite directions inside
-            the same nominal yield.
+            ({beiMove.text} breakeven vs {realMove.text} real yield).
           </>
         ) : (
           <>
-            The breakeven and real-yield legs cannot both be read over this
-            window, so the desk does not say which led. The nominal
-            yield&rsquo;s move is real either way; its decomposition is what is
-            missing.
+            Breakeven and real-yield history are incomplete, so no driver is
+            assigned.
           </>
         )}
       </BoardRead>
 
       {missing.length > 0 ? (
         <p className="cap" data-testid="macro-deltas-coverage">
-          {served.length} of {series.length} series served ·{" "}
-          {missing.map((m) => m.spec.id).join(", ")} not stored on this desk.
-          The board also names SOFR−EFFR, GVZ, HY OAS and GLD; none reach this
-          endpoint.
+          Coverage {served.length}/{series.length} · missing: {missing.map((m) => m.spec.label).join(", ")}.
         </p>
       ) : null}
     </BoardPanel>
@@ -421,7 +407,7 @@ export function AnchorPanel({
   return (
     <BoardPanel
       id="anchor-decay"
-      title="Anchor letting go · gauge corr_60d"
+      title="Gold–real yield link"
       questions={["Q4"]}
       basis="REAL"
       source={
@@ -467,8 +453,7 @@ export function AnchorPanel({
             />
           </div>
           <p className="cap">
-            gold ↔ real-yield correlation, <b>60-day window</b>, as stored{" "}
-            <span className="tag real">REAL</span>
+            Gold ↔ real-yield correlation · <b>60-day window</b>
           </p>
 
           <BoardRead testId="macro-anchor-read">
@@ -477,14 +462,11 @@ export function AnchorPanel({
                 The measured link reads{" "}
                 <span className="num">{Number(first.value).toFixed(2)}</span> →{" "}
                 <span className="num">{Number(last.value).toFixed(2)}</span>{" "}
-                across the stored history. The board asks this panel for the{" "}
-                <b>60-day</b> cut, which is where a decay shows first; the desk
-                now reads the persisted fast window directly.
+                across the stored history.
               </>
             ) : (
               <>
-                One valued observation is a level, not a decay. The board asks
-                for the 60-day window shown here.
+                One observation is a level, not a trend.
               </>
             )}
           </BoardRead>

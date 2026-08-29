@@ -8,6 +8,7 @@ import type {
   MacroDomainState,
 } from "./types";
 import { DOMAIN_LABEL, DOMAIN_LEDE } from "./types";
+import { humanizeIdentifier, seriesLabel } from "./presentation";
 
 /**
  * The board's tab-level question tags: the union of the questions its panels answer.
@@ -90,16 +91,15 @@ export function DomainStateTab({
 
   return (
     <div className="board" data-testid={`macro-domain-tab-${domain}`}>
-      <div className="sec-title">
-        <h1>{DOMAIN_LABEL[domain]}</h1>
-        {questions ? <span className="tag q">{questions}</span> : null}
+      <div className="sec-title" data-questions={questions}>
+        <h2>{DOMAIN_LABEL[domain]}</h2>
+        {questions ? <span className="sr-only">{questions}</span> : null}
         <StatePill domain={domain} slot={slot} />
       </div>
 
       <p className="sec-sub">
-        {DOMAIN_LEDE[domain]} One point-in-time state, replayed from the store
-        rather than recomputed at read time, carrying the exact observations it
-        stood on.{state ? <DerivedRead state={state} /> : null}
+        {DOMAIN_LEDE[domain]} Stored point-in-time with its original inputs.
+        {state ? <DerivedRead state={state} /> : null}
       </p>
 
       {state && domain === "inflation" ? (
@@ -118,23 +118,8 @@ export function DomainStateTab({
         style={{ marginTop: 12 }}
       >
         <BoardRefusal>
-          <ul>
-            <li>
-              It is descriptive. The state is what the engine recorded, not
-              advice, and it carries no score, allocation or probability of its
-              own.
-            </li>
-            <li>
-              It does not combine this domain with the other three. Whether the
-              four belong together is a separate, stored claim — the chain
-              verdict on the overview — and averaging four differently-grounded
-              answers would hide the contradictions rather than resolve them.
-            </li>
-            <li>
-              The tab order on this desk is a reading order, not a causal one.
-              Nothing here says this domain causes the next tab.
-            </li>
-          </ul>
+          Descriptive only. Cross-domain agreement belongs on Overview; tab
+          order is navigation, not a causal claim.
         </BoardRefusal>
       </section>
     </div>
@@ -184,35 +169,19 @@ function DerivedRead({ state }: { state: MacroDomainState }) {
   const conf = Number(state.confidence);
   return (
     <>
-      {" "}
-      The label says <b>{state.state}</b>
-      {Number.isFinite(conf) ? <> at confidence {conf.toFixed(2)}</> : null}
+      {" "}<b>{humanizeIdentifier(state.state)}</b>
+      {Number.isFinite(conf) ? <> · {Math.round(conf * 100)}% confidence</> : null}
       {rules.length > 0 ? (
         <>
-          {" "}
-          — {rules.length} contradiction rule{rules.length === 1 ? "" : "s"}{" "}
-          firing ({rules.map((r) => r.rule).join(", ")})
+          {" "}· {rules.length} conflict{rules.length === 1 ? "" : "s"}
         </>
       ) : null}
       {old ? (
         <>
-          {rules.length > 0 ? " and" : " —"} the stalest load-bearing input is{" "}
-          {old.series_id} at {old.age_days}d
+          {" "}· stalest input {seriesLabel(old.series_id)} ({old.age_days}d)
         </>
       ) : null}
-      .{" "}
-      {/* Branch on the number rather than asserting the interesting case. A tab whose
-          confidence is 1.00 reading "a confidence below 1 is not a defect" describes a
-          different state than the one on screen, and the sentence must not point at an
-          arithmetic panel that this domain's board section does not have. */}
-      {Number.isFinite(conf) && conf < 1 ? (
-        <>
-          A confidence below 1 is not a defect; it is what those facts cost, and
-          the terms that charged them are published with the state.
-        </>
-      ) : (
-        <>Nothing on this state&apos;s evidence is currently discounting it.</>
-      )}
+      .
     </>
   );
 }

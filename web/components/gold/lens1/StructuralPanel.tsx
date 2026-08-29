@@ -36,7 +36,7 @@ export function StructuralPanel({ structural }: { structural: S }) {
   return (
     <BoardPanel
       id="structural-flows"
-      title="Western institutional flows · L1 detail"
+      title="Institutional flows"
       questions={["Q5"]}
       basis="REAL"
       source={

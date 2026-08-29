@@ -24,7 +24,7 @@ export function ExpressionCostPanel({ structural }: { structural: S }) {
   return (
     <BoardPanel
       id="expression-cost"
-      title="Expression cost · what the option market charges"
+      title="Expression cost"
       questions={["Q2", "Q7"]}
       basis="REAL"
       source={
@@ -50,20 +50,15 @@ export function ExpressionCostPanel({ structural }: { structural: S }) {
       <p className="read">
         {Number.isFinite(n) ? (
           <>
-            The 25-delta skew, in standard deviations of its own history. It
-            says what the option market is charging to express a directional
-            view in gold right now, which is a different question from the flow
-            readings above — those say who is buying, this says what buying
-            costs.
+            25-delta skew versus its own history; this is the current cost of
+            expressing a directional view.
           </>
         ) : (
           <>
-            No skew reading was captured for this observation date, so what the
-            option market is charging is unknown here rather than neutral.
+            No skew was captured for this observation date.
           </>
         )}{" "}
-        It is stored and displayed; nothing on this desk consumes it, so it
-        carries no posture of its own.
+        Stored for context; it does not drive posture.
       </p>
     </BoardPanel>
   );

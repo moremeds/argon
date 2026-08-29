@@ -63,7 +63,7 @@ export function NominalDecompositionSection({
   return (
     <RatesSection
       id="decomp"
-      title="10Y nominal decomposition · who is moving"
+      title="10Y decomposition"
       questions={["Q2"]}
       basis="COMPUTED"
       source="/api/rates/snapshot.decomposition · DGS10 = DFII10 + T10YIE"
@@ -92,7 +92,7 @@ export function ClevelandDecompositionSection({
   return (
     <RatesSection
       id="decomp-cleveland"
-      title="Cleveland 5-term decomposition · the other cut"
+      title="Model decomposition"
       questions={["Q2", "Q4"]}
       basis="COMPUTED"
       source="/api/rates/snapshot.decomposition · Cleveland model plus FRED gap"
@@ -129,9 +129,7 @@ export function ClevelandDecompositionSection({
         <Result value={decomposition.nominal_10y} label="live FRED 10Y" />
       </div>
       <BoardRead>
-        The first four terms are the slower Cleveland model. The FRED gap is the
-        reconciliation term to the live daily DGS10; it prevents a monthly model
-        from impersonating the current tape.
+        Cleveland model terms plus the gap to the live daily 10Y yield.
       </BoardRead>
       <BoardRefusal kind="HONEST BOUNDARY">
         Monthly model, daily market. Model status is {decomposition.status};
@@ -152,7 +150,7 @@ export function MoveAttributionSection({
   return (
     <RatesSection
       id="decomp-attribution"
-      title="10Y move attribution · who moved it, per window"
+      title="Move drivers"
       questions={["Q1", "Q4"]}
       basis="COMPUTED"
       source="/api/rates/snapshot.decomposition.attribution"

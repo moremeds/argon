@@ -101,11 +101,9 @@ export function AuctionDemandSection({
           </table>
         </div>
         <BoardRead>
-          Strongest indirect participation in the displayed set is{" "}
+          Highest indirect participation: {" "}
           <b>{fmtPercent(strongestIndirect.indirect_bidder_pct)}</b> on the{" "}
-          {strongestIndirect.security_term} {strongestIndirect.security_type};
-          bid-to-cover and indirect share are demand evidence, separate from the
-          issuance-size sub-state above.
+          {strongestIndirect.security_term} {strongestIndirect.security_type}.
         </BoardRead>
         <BoardRefusal>
           Auction high rates are printed with each security type; nominal and

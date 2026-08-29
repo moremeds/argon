@@ -116,7 +116,9 @@ describe("StateSection confidence strip", () => {
 
     const block = screen.getByTestId("rates-state-block");
     expect(block.textContent).not.toMatch(/policy \/ rates state/i);
-    // The engine version was the only part of that line that was not a repeat.
-    expect(block.textContent).toContain(POLICY_RATES_STATE.engine_version);
+    // Engine identity remains available for audit without becoming display copy.
+    expect(block.getAttribute("data-engine-version")).toBe(
+      POLICY_RATES_STATE.engine_version,
+    );
   });
 });

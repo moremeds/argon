@@ -142,17 +142,17 @@ describe("OverviewDesk — artifact panel contract", () => {
         (node) => node.textContent,
       ),
     ).toEqual([
-      "State flips × confidence moves",
-      "Market deltas · 1 week",
-      "Anchor letting go · gauge corr_60d",
-      "Four policy paths · who says what",
-      "Contradiction feed · engine-reported",
-      "Cross-domain contradictions · this week",
-      "Transmission health · measured link strength",
-      "FOMC calendar × what the market prices",
-      "Confidence repair · what each event fixes",
-      "Off-chain dimension · Energy (proposal)",
-      "Boundary · what is NOT on this desk",
+      "State changes",
+      "Market moves · 1 week",
+      "Gold–real yield link",
+      "Policy paths",
+      "Domain conflicts",
+      "Chain conflicts",
+      "Data health",
+      "FOMC odds",
+      "Confidence repair",
+      "Energy input · planned",
+      "Desk limits",
     ]);
   });
 });
@@ -237,7 +237,7 @@ describe("OverviewDesk — market-implied probability bars", () => {
     ).toBeNull();
     expect(panel.textContent).toContain("Hike 25 bp · 55.7 %");
     expect(panel.textContent).toContain("Hold · 44.3 %");
-    expect(panel.textContent).toContain("frenzy_capital");
+    expect(panel.textContent).toContain("Frenzy Capital");
   });
 
   it("keeps the publisher refusal when the market path is absent", () => {
@@ -274,8 +274,8 @@ describe("OverviewDesk — the four domain states", () => {
   it("shows each domain's state and direction", () => {
     render(<Desk domains={slots()} snapshot={NO_SNAPSHOT} />);
     const usd = screen.getByTestId("macro-domain-usd");
-    expect(within(usd).getByText("RANGEBOUND")).toBeTruthy();
-    expect(within(usd).getByText(/FLAT/)).toBeTruthy();
+    expect(within(usd).getByText("Range-bound")).toBeTruthy();
+    expect(within(usd).getByText(/Flat/)).toBeTruthy();
   });
 
   it("names a domain that failed to load rather than blanking it", () => {
@@ -291,7 +291,7 @@ describe("OverviewDesk — the four domain states", () => {
     expect(within(gold).getByText(/API 503/)).toBeTruthy();
     // The other three are unaffected -- one dead publisher is not a dead page.
     expect(
-      within(screen.getByTestId("macro-domain-usd")).getByText("RANGEBOUND"),
+      within(screen.getByTestId("macro-domain-usd")).getByText("Range-bound"),
     ).toBeTruthy();
   });
 
@@ -356,9 +356,8 @@ describe("OverviewDesk — the four domain states", () => {
     }
     // The refusals themselves must be on the page. A desk that silently omits a composite
     // and a desk that has decided never to publish one look identical without these.
-    expect(text).toMatch(/will never be, a composite score/i);
-    expect(text).toMatch(/No composite\./i);
-    expect(text).toMatch(/no allocation on this desk/i);
+    expect(text).toMatch(/No composite score/i);
+    expect(text).toMatch(/directional stance or forecast/i);
   });
 
   it("renders exactly one state per domain and no fifth aggregate", () => {
@@ -370,7 +369,7 @@ describe("OverviewDesk — the four domain states", () => {
   it("shows the engine version, because two engines are two semantics", () => {
     render(<Desk domains={slots()} snapshot={NO_SNAPSHOT} />);
     const usd = screen.getByTestId("macro-domain-usd");
-    expect(within(usd).getByText(/usd\/\d/)).toBeTruthy();
+    expect(usd.getAttribute("data-engine-version")).toMatch(/usd\/\d/);
   });
 });
 
@@ -416,11 +415,11 @@ describe("OverviewDesk chain coherence", () => {
       />,
     );
     const banner = screen.getByTestId("macro-chain-refusal");
-    expect(banner.textContent).toMatch(/policy_rates/);
+    expect(banner.textContent).toMatch(/Policy & Rates/);
     // Option A: the cards stay. Reporting is the authority here, not withholding.
     expect(screen.getAllByTestId(/^macro-domain-/)).toHaveLength(4);
     expect(
-      within(screen.getByTestId("macro-domain-usd")).getByText("RANGEBOUND"),
+      within(screen.getByTestId("macro-domain-usd")).getByText("Range-bound"),
     ).toBeTruthy();
   });
 
@@ -446,7 +445,7 @@ describe("OverviewDesk chain coherence", () => {
     const banner = screen.getByTestId("macro-chain-refusal");
     expect(banner.getAttribute("data-status")).toBe("incompatible");
     expect(
-      within(banner).getByText(/cited policy_rates state 41/),
+      within(banner).getByText(/cited Policy & Rates state 41/),
     ).toBeTruthy();
   });
 
@@ -496,7 +495,7 @@ describe("OverviewDesk chain coherence", () => {
     );
     const note = screen.getByTestId("macro-chain-unreachable");
     expect(note.textContent).toMatch(/API 503/);
-    expect(note.textContent).toMatch(/fact about our API/i);
+    expect(note.textContent).toMatch(/chain check is missing/i);
     expect(screen.queryByTestId("macro-chain-unassembled")).toBeNull();
   });
 
@@ -634,7 +633,7 @@ describe("OverviewDesk — the contradiction feed", () => {
     );
     expect(
       screen.getByTestId("macro-contradiction-unasked").textContent,
-    ).toMatch(/not because/i);
+    ).toMatch(/Not evaluated/i);
   });
 
   it("orders by the engine's causal order and re-ranks nothing", () => {
@@ -658,7 +657,7 @@ describe("OverviewDesk — the contradiction feed", () => {
     render(<Desk domains={noDomains()} snapshot={NO_SNAPSHOT} />);
     expect(
       screen.getByTestId("board-panel-contradictions").textContent,
-    ).toMatch(/nothing was asked, not that nothing fired/i);
+    ).toMatch(/No domain answered, so no rule was evaluated/i);
   });
 });
 

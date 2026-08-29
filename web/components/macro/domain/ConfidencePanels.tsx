@@ -9,6 +9,7 @@ import {
   type ConfidenceChain,
   type ConfidenceReason,
 } from "./confidence";
+import { fieldLabel } from "../presentation";
 
 /** A multiplicand prints as itself; a penalty prints as the subtraction it performs, so
  *  the row reads as one continuous product rather than a mix of two conventions. This is
@@ -77,7 +78,7 @@ export function ConfidenceArithmeticPanel({
     return (
       <BoardPanel
         id="confidence-arithmetic"
-        title="The arithmetic of confidence"
+        title="Confidence"
         questions={["Q7"]}
         basis="REAL"
         source={
@@ -98,7 +99,7 @@ export function ConfidenceArithmeticPanel({
   return (
     <BoardPanel
       id="confidence-arithmetic"
-      title={`The arithmetic of confidence · why ${fmtConfidence(chain.reported)}`}
+      title={`Confidence · ${fmtConfidence(chain.reported)}`}
       questions={["Q7"]}
       basis="REAL"
       source={
@@ -114,7 +115,7 @@ export function ConfidenceArithmeticPanel({
             {i > 0 ? <span className="op">×</span> : null}
             <span className={termClass(t)} title={t.detail}>
               {termFace(t)}
-              <small>{t.term.replace(/_/g, " ")}</small>
+              <small>{fieldLabel(t.term)}</small>
             </span>
           </Fragment>
         ))}
@@ -130,7 +131,7 @@ export function ConfidenceArithmeticPanel({
         >
           <span className="op">=</span>
           <span className={chain.reconciles ? "res" : "res bad"}>
-            conf {fmtConfidence(chain.product)}
+            {fmtConfidence(chain.product)}
           </span>
         </span>
       </div>
@@ -138,11 +139,8 @@ export function ConfidenceArithmeticPanel({
       <BoardRead bad={!chain.reconciles} testId="confidence-reconciliation">
         {chain.reconciles ? (
           <>
-            The product reproduces the published {fmtConfidence(chain.reported)}{" "}
-            digit for digit. Confidence here is{" "}
-            <b>auditable multiplication, not a score</b> — every term names the
-            evidence that moved it, so a low number is information about the
-            inputs rather than a verdict about the world.
+            Published confidence reconciles to the displayed factors. It
+            reflects evidence quality, not a market score.
           </>
         ) : (
           <>
@@ -152,15 +150,7 @@ export function ConfidenceArithmeticPanel({
             <b>The chain does not reproduce the number</b>, so read neither as
             proof of the other until the engine and this page are reconciled.
           </>
-        )}{" "}
-        Each term&apos;s evidence, as published:{" "}
-        {chain.terms.map((t, i) => (
-          <Fragment key={t.term}>
-            {i > 0 ? "; " : ""}
-            {t.term.replace(/_/g, " ")} — {t.detail}
-          </Fragment>
-        ))}
-        .
+        )}
       </BoardRead>
     </BoardPanel>
   );
@@ -187,7 +177,7 @@ export function ConfidenceRepairPanel({
   return (
     <BoardPanel
       id="confidence-repair"
-      title="Falsifier window · confidence repair table"
+      title="Confidence sensitivity"
       questions={["Q6"]}
       basis="COMPUTED"
       sourceLabel="Formula"
@@ -205,15 +195,15 @@ export function ConfidenceRepairPanel({
             <table data-testid="confidence-repair-table">
               <thead>
                 <tr>
-                  <th>Event</th>
-                  <th className="num">conf consequence</th>
+                  <th>If this clears</th>
+                  <th className="num">Confidence</th>
                 </tr>
               </thead>
               <tbody>
                 {table.rows.map((row) => (
                   <tr key={row.term}>
                     <td>
-                      {row.term.replace(/_/g, " ")} clears — {row.detail}
+                      {fieldLabel(row.term)} — {row.detail}
                     </td>
                     <td className="num">
                       {fmtConfidence(table.from)} → {fmtConfidence(row.to)}
@@ -233,11 +223,8 @@ export function ConfidenceRepairPanel({
             </table>
           </div>
           <BoardRead>
-            Each row lifts <b>one</b> term to its clear value and leaves the
-            rest as published — so a row is what that single repair is worth,
-            never a forecast that it happens. The precise release-day threshold
-            (what print flips the state label) is not computable from this
-            response and is not guessed at here.
+            Each row clears one factor and leaves the rest unchanged. It shows
+            sensitivity, not the probability or timing of a repair.
           </BoardRead>
         </>
       )}

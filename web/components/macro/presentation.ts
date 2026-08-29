@@ -1,4 +1,4 @@
-export type PresentationBasis = "REAL" | "COMPUTED" | "PLANNED";
+export type PresentationBasis = "REAL" | "COMPUTED" | "PLANNED" | "REFERENCE";
 
 const EXACT_LABELS: Readonly<Record<string, string>> = {
   WELL_ABOVE_TARGET: "Well above target",
@@ -8,6 +8,25 @@ const EXACT_LABELS: Readonly<Record<string, string>> = {
   RANGEBOUND: "Range-bound",
   SUPPLY_TIGHT: "Tight supply",
   DESCRIPTIVE_ONLY: "Descriptive only",
+  frenzy_capital: "Frenzy Capital",
+  new_york_fed_sme: "New York Fed dealer survey",
+  federal_reserve_sep: "Fed projections",
+  federal_reserve_fomc: "FOMC",
+  policy_rates: "Policy & Rates",
+  cpi_pce_divergence: "CPI–PCE divergence",
+  breadth_contradicts_core: "Breadth conflicts with core",
+  percent_annual_rate: "Annual rate",
+  corr_60d: "60-day correlation",
+  MICH: "Michigan survey",
+  T5YIFR: "5Y5Y inflation forward",
+  RTWEXBGS: "Real broad dollar",
+  cb_gold_reserves_monthly: "Central-bank gold reserves",
+  lbma_inventory_daily: "LBMA inventory",
+  exchange_inventory_daily: "Exchange inventory",
+  spx_series: "S&P 500",
+  fx_rows: "Gold FX basket",
+  compute_structural_posture: "Structural model",
+  compute_valuation_overlay: "Valuation model",
   asset_mgr_net_pct_oi_change_4w:
     "Asset managers · 4-week net share change",
   dealer_net_pct_oi_change_4w: "Dealers · 4-week net share change",
@@ -81,6 +100,14 @@ export function humanizeIdentifier(value: string): string {
     .join(" ");
 }
 
+/** Humanize variable-shaped tokens embedded in publisher prose without rewriting it. */
+export function humanizeText(value: string): string {
+  return value.replace(
+    /\b[A-Za-z][A-Za-z0-9]*_[A-Za-z0-9_]+\b/g,
+    (identifier) => humanizeIdentifier(identifier),
+  );
+}
+
 export function fieldLabel(value: string): string {
   return FIELD_LABELS[value] ?? humanizeIdentifier(value);
 }
@@ -90,9 +117,8 @@ export function seriesLabel(value: string): string {
 }
 
 export function basisLabel(value: PresentationBasis): string {
-  return value === "REAL"
-    ? "Live"
-    : value === "COMPUTED"
-      ? "Derived"
-      : "Planned";
+  if (value === "REAL") return "Live";
+  if (value === "COMPUTED") return "Derived";
+  if (value === "REFERENCE") return "Reference";
+  return "Planned";
 }

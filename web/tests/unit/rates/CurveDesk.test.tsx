@@ -17,15 +17,15 @@ describe("CurveDesk", () => {
         (node) => node.textContent,
       ),
     ).toEqual([
-      "Par yield curve · current vs 1W vs 1M",
-      "10Y nominal decomposition · who is moving",
-      "Cleveland 5-term decomposition · the other cut",
-      "10Y move attribution · who moved it, per window",
-      "Supply SUB-STATE",
-      "Positioning SUB-STATE · 10Y futures",
-      "Funding SUB-STATE",
-      "Auction demand · did anyone show up",
-      "What this tab refuses",
+      "Yield curve",
+      "10Y decomposition",
+      "Model decomposition",
+      "Move drivers",
+      "Supply",
+      "10Y futures positioning",
+      "Funding",
+      "Auction demand",
+      "Limits",
     ]);
   });
 
@@ -38,7 +38,7 @@ describe("CurveDesk", () => {
     render(<CurveDesk snapshot={SNAPSHOT} />);
 
     const supplySection = screen.getByRole("region", {
-      name: /supply sub-state/i,
+      name: /^supply$/i,
     });
     expect(within(supplySection).getByText("Public debt")).toBeTruthy();
     expect(within(supplySection).getByText("$31.37T")).toBeTruthy();
@@ -85,8 +85,8 @@ describe("CurveDesk", () => {
 
     // Funding is the board's name for what the engine calls `plumbing` — the same thing
     // under two vocabularies, and the desk answers to the operator.
-    const funding = screen.getByRole("region", { name: /funding sub-state/i });
-    expect(funding.textContent).toContain("AMPLE · FALLING");
+    const funding = screen.getByRole("region", { name: /^funding$/i });
+    expect(funding.textContent).toContain("Ample · Falling");
     expect(funding.textContent).toContain("+7bp");
     expect(funding.textContent).toContain("EFFR");
   });
@@ -97,7 +97,7 @@ describe("CurveDesk", () => {
     render(<CurveDesk snapshot={SNAPSHOT} subStates={[]} />);
 
     const supplySection = screen.getByRole("region", {
-      name: /supply sub-state/i,
+      name: /^supply$/i,
     });
     expect(within(supplySection).getByText("$31.37T")).toBeTruthy();
     // No verdict to show, so no verdict is claimed.
@@ -133,7 +133,7 @@ describe("CurveDesk", () => {
     // Curve` and nothing above it, and the old name survives on `DeskEmptyState`, which
     // is what an inbound link actually reaches when there is no snapshot.
     expect(
-      screen.getByRole("heading", { name: "Rates · Curve", level: 2 }),
+      screen.getByRole("heading", { name: "Rates", level: 2 }),
     ).toBeTruthy();
     expect(screen.queryByText("Treasury Factor Board")).toBeNull();
     // No state pill on this tab — the board gives t2 none, because the policy/rates
@@ -210,7 +210,7 @@ describe("CurveDesk", () => {
     expect(screen.getByText("real term")).toBeTruthy();
     expect(screen.getByText("inflation risk")).toBeTruthy();
     expect(screen.getByText("FRED gap")).toBeTruthy();
-    expect(screen.getByText(/reconciliation term to the live daily DGS10/)).toBeTruthy();
+    expect(screen.getByText(/gap to the live daily 10Y yield/)).toBeTruthy();
     expect(screen.getAllByText("+15.3").length).toBeGreaterThan(0);
     expect(screen.getAllByText("+19.7").length).toBeGreaterThan(0);
     expect(
@@ -264,7 +264,7 @@ describe("CurveDesk", () => {
       render(<CurveDesk snapshot={withState} />);
 
       const refusal = screen.getByRole("region", {
-        name: /what this tab refuses/i,
+        name: /limits/i,
       });
       // Present, not deleted: it is the only thing an operator can hold the new state
       // up against. But it lives INSIDE the refusal that names it a legacy artifact.
@@ -274,9 +274,9 @@ describe("CurveDesk", () => {
         within(scorecard).getByTestId("scorecard-legacy-banner").textContent,
       ).toMatch(/experimental legacy/i);
       // The refusal states it in prose BEFORE the number appears.
-      expect(refusal.textContent).toMatch(/does not compose/i);
-      expect(refusal.textContent).toMatch(/takes no stance/i);
-      expect(refusal.textContent).toMatch(/legacy artifact/i);
+      expect(refusal.textContent).toMatch(/slope is not a term premium/i);
+      expect(refusal.textContent).toMatch(/Daily market data stays separate/i);
+      expect(refusal.textContent).toMatch(/Experimental legacy scorecard/i);
       // Every testid the e2e spec pins survives the move.
       expect(within(refusal).getByTestId("duration-score")).toBeTruthy();
       expect(within(refusal).getByTestId("duration-stance")).toBeTruthy();

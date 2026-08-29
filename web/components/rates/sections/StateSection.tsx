@@ -1,5 +1,6 @@
 import { ConfidenceArithmetic } from "@/components/macro/ConfidenceArithmetic";
 import { BoardRead } from "@/components/macro/domain/BoardPanel";
+import { humanizeIdentifier } from "@/components/macro/presentation";
 
 import { toFiniteNumber } from "../format";
 import type { MacroStateSummary } from "../types";
@@ -35,24 +36,28 @@ export function StateSection({
 
   const contradictions = state.contradictions ?? [];
   return (
-    <div data-testid="rates-state-block">
+    <div data-testid="rates-state-block" data-engine-version={state.engine_version}>
       <ConfidenceArithmetic
         reasons={state.confidence_reasons ?? []}
         testId="rates-confidence-strip"
       />
       <BoardRead>
-        State <b data-testid="rates-state-label">{state.state.replace(/_/g, " ")}</b>
-        {" · "}direction{" "}
-        <b data-testid="rates-state-direction">{state.direction}</b> is published
-        deliberately; UNKNOWN is not NEUTRAL. Confidence is{" "}
+        <b data-testid="rates-state-label" data-raw-value={state.state}>
+          {humanizeIdentifier(state.state)}
+        </b>
+        {" · "}
+        <b data-testid="rates-state-direction" data-raw-value={state.direction}>
+          {humanizeIdentifier(state.direction)}
+        </b>
+        {" · confidence "}
         <b data-testid="rates-state-confidence">{fmtConfidence(state.confidence)}</b>
         {" · "}
         <span data-testid="rates-state-freshness">
           {state.freshness === "stale"
-            ? `Stale · ${state.age_hours.toFixed(1)}h since computed`
+            ? `stale ${state.age_hours.toFixed(1)}h`
             : "fresh"}
         </span>
-        {` · engine ${state.engine_version}. Stood on ${state.evidence_count} observations.`}
+        {` · ${state.evidence_count} observations`}
       </BoardRead>
       <div className="tbl-wrap">
         <table>
@@ -65,7 +70,9 @@ export function StateSection({
           <tbody>
             {(state.velocity ?? []).map((item) => (
               <tr key={item.metric}>
-                <td>{item.metric}</td>
+                <td title={item.metric} data-raw-value={item.metric}>
+                  {humanizeIdentifier(item.metric)}
+                </td>
                 <td className="num">
                   {item.unavailable_reason ?? fmtVelocity(item.value, item.unit)}
                 </td>
@@ -80,7 +87,9 @@ export function StateSection({
           <ul>
             {contradictions.map((item) => (
               <li key={`${item.rule}:${item.detail}`}>
-                <strong>{item.rule}</strong> — {item.detail}
+                <strong title={item.rule} data-raw-value={item.rule}>
+                  {humanizeIdentifier(item.rule)}
+                </strong>{" "}— {item.detail}
               </li>
             ))}
           </ul>

@@ -24,8 +24,9 @@ describe("energy data inventory", () => {
     const panel = screen.getByTestId("board-panel-energy-inventory");
     expect(panel.textContent).toContain("2026-08-26");
     expect(panel.textContent).toContain("not a live check");
+    expect(panel.getAttribute("data-basis")).toBe("REFERENCE");
     expect(screen.getByTestId("energy-inventory-read").textContent).toContain(
-      "a citation, not a reading",
+      "not a live market reading",
     );
   });
 
@@ -63,7 +64,6 @@ describe("the proposal's own boundaries", () => {
     render(<EnergyDisciplinePanel />);
     const note = screen.getByTestId("energy-discipline");
     expect(note.textContent).toContain("HONEST BOUNDARY");
-    expect(note.textContent).toContain("No energy state label");
-    expect(note.textContent).toContain("its own spec");
+    expect(note.textContent).toContain("No energy state until thresholds are measured");
   });
 });

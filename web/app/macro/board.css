@@ -251,6 +251,9 @@
 .board .data-details summary:focus-visible {
   color: var(--text-secondary);
 }
+.board details:not([open]) > :not(summary) {
+  display: none !important;
+}
 .board .data-details-body {
   display: flex;
   flex-wrap: wrap;
@@ -279,6 +282,10 @@
 .board .basis-planned {
   border-style: dashed;
   color: var(--text-secondary);
+}
+.board .basis-reference {
+  border-color: color-mix(in srgb, var(--text-muted) 45%, transparent);
+  color: var(--text-muted);
 }
 
 /* ── the read rail, and the provenance footer ── */

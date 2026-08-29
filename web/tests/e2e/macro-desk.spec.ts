@@ -73,7 +73,9 @@ test.describe("macro desk shell", () => {
 
         const overflow = await page.evaluate(() => {
           const visible = (element: Element) =>
-            element instanceof HTMLElement && element.getClientRects().length > 0;
+            element instanceof HTMLElement &&
+            element.getClientRects().length > 0 &&
+            !element.closest(".sr-only, details:not([open]) > :not(summary)");
           return [...document.querySelectorAll("*")]
             .filter(visible)
             .filter((element) => element.scrollWidth > element.clientWidth + 1)
@@ -91,6 +93,117 @@ test.describe("macro desk shell", () => {
     }
   });
 
+  test("operator copy contains no implementation identifiers or review badges", async ({
+    page,
+  }) => {
+    const routes = [
+      "overview",
+      "fed",
+      "rates",
+      "inflation",
+      "usd",
+      "gold",
+      "energy",
+      "factors",
+      "notes",
+    ];
+
+    for (const route of routes) {
+      await page.goto(`/macro/${route}`);
+      await page.waitForLoadState("networkidle");
+
+      const presentation = await page.evaluate(() => {
+        const main = document.querySelector("main.macro-desk-main");
+        const walker = document.createTreeWalker(
+          main ?? document.body,
+          NodeFilter.SHOW_TEXT,
+          {
+            acceptNode(node) {
+              const parent = node.parentElement;
+              if (!parent || !node.textContent?.trim())
+                return NodeFilter.FILTER_REJECT;
+              if (
+                parent.closest(
+                  "details:not([open]), .sr-only, script, style",
+                ) || parent.getClientRects().length === 0
+              )
+                return NodeFilter.FILTER_REJECT;
+              return NodeFilter.FILTER_ACCEPT;
+            },
+          },
+        );
+        let text = "";
+        while (walker.nextNode()) text += ` ${walker.currentNode.textContent}`;
+        return {
+          text: text.replace(/\s+/g, " ").trim(),
+          standfirstLengths: [...(main?.querySelectorAll(".sec-sub") ?? [])]
+            .filter((element) => element.getClientRects().length > 0)
+            .map((element) => (element.textContent ?? "").trim().length),
+          visibleQuestionChips: [...
+            (main?.querySelectorAll(".tag.q") ?? []),
+          ].filter((element) => element.getClientRects().length > 0).length,
+        };
+      });
+
+      expect(
+        presentation.text.match(/\b[A-Za-z][A-Za-z0-9]*_[A-Za-z0-9_]+\b/g) ?? [],
+        `${route} exposes variable-shaped copy`,
+      ).toEqual([]);
+      expect(presentation.visibleQuestionChips).toBe(0);
+      for (const length of presentation.standfirstLengths) {
+        expect(length, `${route} standfirst is too long`).toBeLessThanOrEqual(
+          240,
+        );
+      }
+    }
+  });
+
+  test("every panel declares an honest binding basis", async ({ page }) => {
+    const routes = [
+      "overview",
+      "fed",
+      "rates",
+      "inflation",
+      "usd",
+      "gold",
+      "energy",
+      "factors",
+      "notes",
+    ];
+    const allowed = new Set(["REAL", "COMPUTED", "PLANNED", "REFERENCE"]);
+
+    for (const route of routes) {
+      await page.goto(`/macro/${route}`);
+      await page.waitForLoadState("networkidle");
+
+      const panels = await page
+        .locator('[data-testid^="board-panel-"]')
+        .evaluateAll((nodes) =>
+          nodes.map((node) => ({
+            id: node.getAttribute("data-testid"),
+            basis: node.getAttribute("data-basis"),
+          })),
+        );
+      expect(panels.length, `${route} has no classified panels`).toBeGreaterThan(0);
+      for (const panel of panels) {
+        expect(
+          allowed.has(panel.basis ?? ""),
+          `${route} ${panel.id} has invalid basis ${panel.basis}`,
+        ).toBe(true);
+      }
+    }
+
+    await page.goto("/macro/energy");
+    await expect(page.getByTestId("board-panel-energy-inventory")).toHaveAttribute(
+      "data-basis",
+      "REFERENCE",
+    );
+    await page.goto("/macro/notes");
+    for (const panel of await page.locator('[data-testid^="board-panel-"]').all()) {
+      await expect(panel).toHaveAttribute("data-basis", "REFERENCE");
+    }
+  });
+
   test("tab 08 renders under the desk's tab bar and stays selectable", async ({
     page,
   }) => {
@@ -105,7 +218,7 @@ test.describe("macro desk shell", () => {
     // level 2, not 1: every tab on this desk opens with the board's `.sec-title`, whose
     // heading is an <h2> — the <h1> belongs to the desk, not to one tab inside it.
     await expect(
-      page.getByRole("heading", { name: "Design Notes", level: 2 }),
+      page.getByRole("heading", { name: "Method", level: 2 }),
     ).toBeVisible();
 
     // The shell around it. The bar lives in `app/macro/layout.tsx`, so its absence here

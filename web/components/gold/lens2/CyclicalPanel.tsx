@@ -36,7 +36,7 @@ export function CyclicalPanel({
   return (
     <BoardPanel
       id="cyclical"
-      title="L2 cyclical readings (dimmed display)"
+      title="Cyclical readings"
       questions={["Q1"]}
       basis="REAL"
       dim={dimmed}
@@ -51,16 +51,13 @@ export function CyclicalPanel({
         <PostureChip
           state={(cyclical.posture_chip ?? "NEUTRAL") as PostureState}
         />
-        <span className="dir">B posture context (event-hedge)</span>
+        <span className="dir">Event-hedge context</span>
       </div>
 
       {dimmed ? (
         <p className="cap" data-testid="gold-cyclical-dim-note">
-          <b style={{ color: "var(--warning)" }}>Dimmed display.</b> The
-          transmission gauge above reads SUSPENDED, so the real-rate
-          relationship these readings are interpreted through is not currently
-          transmitting. The numbers are still true of their own inputs; what is
-          withdrawn is the reason to read them as being about gold.
+          <b style={{ color: "var(--warning)" }}>Context only.</b> Real-yield
+          transmission is suspended; the inputs remain valid but do not drive gold here.
         </p>
       ) : null}
 
@@ -79,7 +76,12 @@ export function CyclicalPanel({
 
       <ArticleZoneCard cyclical={cyclical} />
 
-      <p className="read">{cyclical.narrative_text}</p>
+      {cyclical.narrative_text ? (
+        <details className="data-details">
+          <summary>Publisher note</summary>
+          <p className="cap">{cyclical.narrative_text}</p>
+        </details>
+      ) : null}
     </BoardPanel>
   );
 }

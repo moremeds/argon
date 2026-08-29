@@ -3,6 +3,7 @@ import type { components } from "@/lib/types";
 import { ConfidenceArithmetic } from "../ConfidenceArithmetic";
 import { MarketImpliedMeetingBars } from "../MarketImpliedMeetingBars";
 import { plural } from "../format";
+import { fieldLabel, humanizeIdentifier } from "../presentation";
 import { BoardPanel, BoardRead, BoardRefusal } from "../domain/BoardPanel";
 import type {
   MacroDomainKey,
@@ -47,7 +48,7 @@ export function FomcCalendarPanel({
   return (
     <BoardPanel
       id="fomc-calendar"
-      title="FOMC calendar × what the market prices"
+      title="FOMC odds"
       questions={["Q2", "Q6"]}
       basis="REAL"
       source={
@@ -70,15 +71,10 @@ export function FomcCalendarPanel({
           {marketPoints.length > 0 ? (
             <>
               <MarketImpliedMeetingBars points={marketPoints} />
-              <BoardRead>
-                These are the publisher&apos;s per-meeting probabilities, not a
-                synthesized probability of ours. Zero-probability outcomes
-                remain in each bar&apos;s accessible distribution without acquiring
-                visual width.
-              </BoardRead>
+              <BoardRead>Publisher probabilities by meeting; no synthetic distribution.</BoardRead>
               {marketSlot?.path?.release_date ? (
                 <p className="cap">
-                  Released {marketSlot.path.release_date} by {marketSource}.
+                  Released {marketSlot.path.release_date} by {humanizeIdentifier(marketSource)}.
                 </p>
               ) : null}
             </>
@@ -87,12 +83,8 @@ export function FomcCalendarPanel({
               kind="HONEST BOUNDARY"
               testId="macro-market-implied-refusal"
             >
-              The board draws a per-meeting probability bar here. This desk
-              cannot:{" "}
-              {marketReason ?? "the market-implied lane published no path"}. The
-              dealer and committee lanes are expectations, not prices, and a bar
-              built from them under a &ldquo;what the market prices&rdquo; heading
-              would misname its own source. The bar returns when the lane does.
+              {marketReason ?? "The market-pricing lane published no path"}.
+              Dealer and Fed projections are not substituted.
             </BoardRefusal>
           )}
         </>
@@ -152,7 +144,7 @@ export function ConfidenceRepairPanel({
   return (
     <BoardPanel
       id="confidence-repair"
-      title="Confidence repair · what each event fixes"
+      title="Confidence repair"
       questions={["Q6", "Q7"]}
       basis="REAL"
       source={
@@ -179,7 +171,9 @@ export function ConfidenceRepairPanel({
                 <td>{DOMAIN_LABEL[row.domain]}</td>
                 {row.binding ? (
                   <>
-                    <td>{row.binding.term}</td>
+                    <td title={row.binding.term} data-raw-value={row.binding.term}>
+                      {fieldLabel(row.binding.term)}
+                    </td>
                     <td
                       className={`num ${row.binding.num < 1 ? "delta-dn" : "delta-flat"}`}
                     >
@@ -226,9 +220,7 @@ export function ConfidenceRepairPanel({
       <BoardRead testId="macro-repair-read">
         {degraded.length === 0 ? (
           <>
-            No domain that answered is carrying a multiplicand below 1 — nothing
-            is currently costing confidence. That is a statement about the terms
-            the engines published, not a claim that the evidence is complete.
+            No published confidence factor is below 1.
           </>
         ) : (
           <>
@@ -237,11 +229,9 @@ export function ConfidenceRepairPanel({
             </b>{" "}
             by a named term:{" "}
             {degraded
-              .map((d) => `${DOMAIN_LABEL[d.domain]} (${d.binding!.term})`)
+              .map((d) => `${DOMAIN_LABEL[d.domain]} (${fieldLabel(d.binding!.term)})`)
               .join(", ")}
-            . A freshness term is repairable by a release; a completeness term
-            is repairable by an ingest. Both are addressable, which is why the
-            term is printed rather than only the number it produced.
+            . Freshness needs a release; completeness needs an ingest.
           </>
         )}
       </BoardRead>

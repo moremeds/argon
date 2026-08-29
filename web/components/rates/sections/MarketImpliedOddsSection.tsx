@@ -84,9 +84,7 @@ export function MarketImpliedOddsSection({
     <>
       <MarketImpliedMeetingBars points={points} />
       <BoardRead>
-        Each probability bar is the publisher&apos;s per-meeting distribution;
-        the implied rate is the corresponding path point. The stored releases
-        remain separate and are never averaged with committee or dealer views.
+        Publisher probabilities by meeting; committee and dealer paths stay separate.
       </BoardRead>
       {slot.path?.release_date ? (
         <p className="cap">

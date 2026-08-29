@@ -97,7 +97,7 @@ function respondentNote(rows: Row[]): string {
   // far horizons are answered by fewer dealers than the near ones.
   return lo === hi
     ? `n=${lo} at every horizon.`
-    : `n varies by horizon, ${lo}–${hi}; the far horizons are answered by fewer dealers.`;
+    : `Respondents by horizon: ${lo}–${hi}.`;
 }
 
 /** Year starts inside the plotted range, so the axis is dated rather than ordinal. */
@@ -194,9 +194,7 @@ export function DealerPathChart({
   return (
     <div className={styles.pathChartBlock}>
       <BoardRead>
-        The four-path comparison renders the dealer lane as one near-term dot.
-        This chart unrolls that publisher&apos;s complete dated path and its own
-        release history; no committee or market series is blended into it.
+        Full dealer path and release history; no committee or market series.
       </BoardRead>
       <div className={`${styles.chartPanel} chart`} aria-label="Dealer expectations chart">
         <div className={styles.chartHeader}>
@@ -328,15 +326,13 @@ export function DealerPathChart({
       </p>
       <div className="grid g2">
         <BoardRead testId="dealer-path-note">
-          {respondentNote(rows)} The dated points show where the survey first
-          moves away from the current rate, rather than reducing the release to
-          its first value.
+          {respondentNote(rows)} Dated points show when the survey first moves.
         </BoardRead>
         <BoardRead>
           {series.length > 1
-            ? "Earlier surveys remain separate releases, overlaid only to show movement through their own publication dates."
+            ? "Earlier surveys are overlaid as separate releases."
             : "Only one survey has been ingested, so a revision comparison is not available yet."}{" "}
-          This publisher keeps its own axes and is never averaged against the SEP.
+          Never averaged with Fed projections.
         </BoardRead>
       </div>
     </div>

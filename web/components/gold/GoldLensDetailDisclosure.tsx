@@ -4,6 +4,7 @@ import { useRef, useState } from "react";
 
 import type { components } from "@/lib/types";
 import { api } from "@/lib/api";
+import { humanizeIdentifier, seriesLabel } from "@/components/macro/presentation";
 
 type LensId = "structural" | "cyclical" | "valuation";
 type LensResponse = components["schemas"]["GoldLensResponse"];
@@ -83,15 +84,15 @@ export function GoldLensDetailDisclosure({
       }}
     >
       <summary>
-        Lens detail series · {loading
-          ? "loading /api/gold/lenses/*"
+        Lens details · {loading
+          ? "loading"
           : loadedSlots
-            ? `${series.length} bound from /api/gold/lenses/*`
-            : "expand to load /api/gold/lenses/*"}
+            ? `${series.length} series`
+            : "load on open"}
       </summary>
       {failures.map((slot) => (
         <p className="note-refuse" key={slot.lensId}>
-          <b>{slot.lensId}:</b> {slot.error}
+          <b>{humanizeIdentifier(slot.lensId)}:</b> {slot.error}
         </p>
       ))}
       {loading ? (
@@ -121,7 +122,9 @@ export function GoldLensDetailDisclosure({
                     data-point-count={points.length}
                   >
                     <td>
-                      {lensId} · {name}
+                      <span title={name} data-raw-value={name}>
+                        {humanizeIdentifier(lensId)} · {seriesLabel(name)}
+                      </span>
                     </td>
                     <td>
                       {first?.obs_date ?? "—"} → {latest?.obs_date ?? "—"}

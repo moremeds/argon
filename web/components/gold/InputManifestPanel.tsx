@@ -1,4 +1,5 @@
 import { BoardPanel } from "@/components/macro/domain/BoardPanel";
+import { seriesLabel } from "@/components/macro/presentation";
 import type { components } from "@/lib/types";
 
 import {
@@ -86,7 +87,7 @@ export function InputManifestPanel({
   return (
     <BoardPanel
       id="input-manifest"
-      title="Input manifest · what the lenses actually read"
+      title="Data coverage"
       questions={["Q7"]}
       basis="REAL"
       source={
@@ -103,21 +104,19 @@ export function InputManifestPanel({
       </div>
 
       <p className="read">
-        Every gold reading on this tab is produced from {read.length} inputs.
+        Gold uses {read.length} inputs.
         {omitted.length > 0 && (
           <>
             {" "}
             {omitted.length} more {omitted.length === 1 ? "was" : "were"}{" "}
-            declared and not read, named below with the reason rather than
-            letting the output look complete.
+            declared but not read.
             {gaps.length === 0 ? (
-              <> None of them is a pipeline gap.</>
+              <> None is a pipeline gap.</>
             ) : (
               <>
                 {" "}
                 <b>
-                  {gaps.length} of the {omitted.length}{" "}
-                  {gaps.length === 1 ? "is" : "are"} a gap
+                  {gaps.length} pipeline {gaps.length === 1 ? "gap" : "gaps"}
                 </b>
                 ; the rest are recorded scope decisions.
               </>
@@ -144,8 +143,8 @@ export function InputManifestPanel({
             <tbody>
               {stale.map(({ sid, prov, age }) => (
                 <tr key={sid}>
-                  <td>
-                    {sid}
+                  <td title={sid} data-raw-value={sid}>
+                    {seriesLabel(sid)}
                     {prov.lens && prov.lens.length > 0 && (
                       <> [{prov.lens.join("/")}]</>
                     )}
@@ -167,7 +166,9 @@ export function InputManifestPanel({
         <ul className="tight" data-testid="gold-manifest-gaps">
           {gaps.map(([sid, prov]) => (
             <li key={sid}>
-              <b style={{ color: "var(--negative)" }}>{sid} · required</b>
+              <b style={{ color: "var(--negative)" }} title={sid} data-raw-value={sid}>
+                {seriesLabel(sid)} · required
+              </b>
               {prov.omission_reason && <> — {prov.omission_reason}</>}
             </li>
           ))}
@@ -182,7 +183,7 @@ export function InputManifestPanel({
         >
           {decisions.map(([sid, prov]) => (
             <li key={sid}>
-              {sid}
+              <span title={sid} data-raw-value={sid}>{seriesLabel(sid)}</span>
               {prov.lens && prov.lens.length > 0 && (
                 <> [{prov.lens.join("/")}]</>
               )}{" "}

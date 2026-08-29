@@ -120,15 +120,11 @@ export function OverviewDesk({
   return (
     <div className="board" data-testid="macro-overview">
       <BoardSecTitle
-        title="The Daily Loop"
+        title="Overview"
         questions={["Q1", "Q2", "Q3", "Q4", "Q6"]}
       >
-        The desk opens on the loop a macro PM actually runs every morning:{" "}
-        <b>what changed · what disagrees · what&rsquo;s next</b>. The
-        transmission chain (inflation → policy → USD → gold) anchors the bottom
-        of this tab; each node is an independent engine&rsquo;s output, and
-        downstream cites the upstream <em>published state identity</em>, never
-        raw data. <b>There is not, and will never be, a composite score.</b>
+        State changes, disagreements, next catalysts and chain health. Each
+        domain remains independent; no composite score is produced.
       </BoardSecTitle>
 
       <ReplayStatus
@@ -163,7 +159,7 @@ export function OverviewDesk({
           <Zone
             first
             kicker="Zone 1"
-            label="WHAT CHANGED"
+            label="Changed"
             scope={`${priorLabel} → ${nowLabel}`}
           />
           <div className="grid g3">
@@ -178,7 +174,7 @@ export function OverviewDesk({
 
           <Zone
             kicker="Zone 2"
-            label="WHAT DISAGREES"
+            label="Disagreements"
             scope="the raw material of trades"
           />
           <div className="grid g2">
@@ -192,7 +188,7 @@ export function OverviewDesk({
 
           <Zone
             kicker="Zone 3"
-            label="WHAT'S NEXT"
+            label="Next"
             scope="dated events that confirm or falsify"
           />
           <div className="grid g2">
@@ -202,7 +198,7 @@ export function OverviewDesk({
 
           <Zone
             kicker="Anchor"
-            label="THE CHAIN · TODAY"
+            label="Chain"
             scope="Q1 Q4 · tabs 01–04 unfold each node"
           />
           <ChainRail

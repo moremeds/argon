@@ -2,6 +2,7 @@ import type { MacroDomainSlot } from "../types";
 
 import { BoardPanel, BoardRead, BoardRefusal } from "./BoardPanel";
 import type { MacroFactor } from "./FactorTable";
+import { humanizeIdentifier, seriesLabel } from "../presentation";
 
 /**
  * Board tab 07 — Factor Export · Equity Consumes Macro.
@@ -105,7 +106,7 @@ export function FactorVectorPanel({ slots }: { slots: FactorExportSlots }) {
   return (
     <BoardPanel
       id="factor-vector"
-      title="Macro factor vector · today's snapshot"
+      title="Current factor vector"
       questions={["Q1"]}
       basis="REAL"
       source={
@@ -141,13 +142,15 @@ export function FactorVectorPanel({ slots }: { slots: FactorExportSlots }) {
                       identical to the series id for the positioning ones, so printing it
                       underneath restated the cell in every row; the role it carries
                       reaches the Type column instead, which is where the board puts it. */}
-                  <td>{factor.series_id}</td>
+                  <td title={factor.series_id} data-raw-value={factor.series_id}>
+                    {seriesLabel(factor.series_id)}
+                  </td>
                   <td className="num">{fmtValue(factor)}</td>
                   <td className="num">{fmtDelta(factor)}</td>
                   <td className="num">{fmtAsOf(factor)}</td>
                   <td>
                     continuous · {domain} ·{" "}
-                    {factor.causal_role.replace(/_/g, " ")}
+                    {humanizeIdentifier(factor.causal_role)}
                   </td>
                 </tr>
               ))}
@@ -165,14 +168,7 @@ export function FactorVectorPanel({ slots }: { slots: FactorExportSlots }) {
       )}
 
       <BoardRead testId="factor-vector-read">
-        <b>
-          Continuous variables are the first-class payload; discrete labels are
-          human context only.
-        </b>{" "}
-        The reason is measured rather than stylistic: state labels chatter —
-        inflation flipped four times in 68 months, because a classifier boundary
-        sitting at the median chatters maximally. An equity backtest that joins
-        a chattering label gets boundary noise, not macro information.
+        Continuous values are exportable; discrete state labels are context.
         {missing.length > 0 ? (
           <>
             {" "}
@@ -180,9 +176,7 @@ export function FactorVectorPanel({ slots }: { slots: FactorExportSlots }) {
               {missing.length} of {EXPORT_DOMAINS.length} domains did not answer
             </b>{" "}
             for this instant ({missing.join(", ")}), so this vector is missing
-            their rows — named here rather than dropped, because a consumer
-            cannot see the difference between a factor that is absent and one
-            that was never asked for.
+            their rows.
           </>
         ) : null}
       </BoardRead>
@@ -202,7 +196,7 @@ export function DeliveryFormPanel() {
   return (
     <BoardPanel
       id="factor-delivery"
-      title="Delivery form · proposal"
+      title="Delivery plan"
       questions={["Q7"]}
       basis="PLANNED"
       sourceLabel="Status"
@@ -219,26 +213,17 @@ export function DeliveryFormPanel() {
         data-testid="factor-delivery-list"
       >
         <li>
-          <b>API</b> — one flat JSON row per factor, carrying name, value,
-          availability instant, engine version and an inputs hash, keyed by the
-          instant asked for.
+          <b>API</b> — one point-in-time JSON row per factor.
         </li>
         <li>
-          <b>Materialized table</b> — one daily factor-vector row written after
-          the nightly snapshot, so a backtest joins by date and never crosses an
-          availability instant.
+          <b>Table</b> — one daily vector after the nightly snapshot.
         </li>
         <li>
-          <b>Consumption precedent</b> — a consumer takes these as conditioning
-          columns; significance is tested and reported by that consumer, never
-          here.
+          <b>Consumer</b> — each strategy tests significance independently.
         </li>
       </ul>
       <BoardRead>
-        The read side is assembly — the table above is the proof that every
-        number already exists. The write side is one table and one job, and
-        until both exist this panel is a description of intent and not a
-        capability.
+        Reading works today; the API and materialized table are still planned.
       </BoardRead>
     </BoardPanel>
   );
@@ -251,7 +236,7 @@ export function ExportRefusalPanel() {
   return (
     <BoardPanel
       id="factor-refusal"
-      title="What this export does not promise"
+      title="Limit"
       questions={["Q7"]}
       basis="PLANNED"
       sourceLabel="Basis"
@@ -265,14 +250,9 @@ export function ExportRefusalPanel() {
 function RefusalBody() {
   return (
     <BoardRefusal testId="factor-export-refusal">
-      <b>NO PREDICTIVE CLAIM.</b> The pre-test verdict on these states was{" "}
-      <code>descriptive_only</code>. This vector describes what the macro world
-      looks like now; it claims nothing about any asset&apos;s forward return,
-      and that claim must be earned in a consumer&apos;s own out-of-sample test.
-      The desk publishes the factor and the guarantee that it is point-in-time
-      correct — availability at or before the instant asked for, and evidence
-      the desk has since disowned excluded by the same clock. It does not
-      publish a confidence that some asset will follow.
+      No predictive claim. This vector describes the current macro state;
+      forward-return relevance must be earned in each consumer&apos;s out-of-sample
+      test.
     </BoardRefusal>
   );
 }

@@ -121,7 +121,10 @@ describe("InputManifestPanel", () => {
     // assertion stable; keying it on `Date.now()` would date-bomb on the next calendar
     // roll and quietly re-measure something else.
     const stale = screen.getByTestId("gold-manifest-stale");
-    expect(stale.textContent).toContain("cb_gold_reserves_monthly");
+    expect(
+      stale.querySelector('[data-raw-value="cb_gold_reserves_monthly"]'),
+    ).toBeTruthy();
+    expect(stale.textContent).toContain("Central-bank gold reserves");
     expect(stale.textContent).toContain("~141d");
     // A freshly-read input is not stale and must not appear.
     expect(stale.textContent).not.toContain("DFII10");

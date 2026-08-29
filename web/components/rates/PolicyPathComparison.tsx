@@ -141,12 +141,12 @@ export function PolicyPathComparison({
         );
   const direction =
     actual == null || !availableForward.length
-      ? "Forward-path disagreement cannot be evaluated until the actual lane and at least one forward lane are available."
+      ? "Need the actual rate and one forward path to compare."
       : availableForward.every((lane) => lane.reading!.value >= actual)
-        ? "Every available forward lane sits at or above the current rate: the disagreement is over the level, while the shared direction is upward."
+        ? "All available forward paths are at or above the current rate; they disagree on level."
         : availableForward.every((lane) => lane.reading!.value <= actual)
-          ? "Every available forward lane sits at or below the current rate: the disagreement is over the level, while the shared direction is downward."
-          : "The forward lanes sit on both sides of the current rate, so both level and direction are contested."
+          ? "All available forward paths are at or below the current rate; they disagree on level."
+          : "Forward paths straddle the current rate; level and direction both differ."
 
   return (
     <>

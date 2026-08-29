@@ -314,18 +314,9 @@ async function FactorExportTab({ replay }: MacroTabProps) {
         {/* The board's t7 strip is `Q1 Q7`, and here it is also the measured union of the
             three panels below (Q1 on the vector, Q7 on the delivery form and the
             refusal) — so for once the advertised strip and the panels agree exactly. */}
-        <BoardSecTitle title="Factor Export" questions={["Q1", "Q7"]}>
-          <b>
-            Direction contract: equity → reads → macro factor, never the
-            reverse.
-          </b>{" "}
-          The macro desk derives no equity exposure. What it guarantees is that
-          the factor is point-in-time correct — available at or before the
-          instant asked for, with evidence the desk has since disowned excluded
-          by the same clock — and the burden of proving predictive power sits in
-          each consumer&apos;s own backtest. That is the only honest division of
-          labour once the desk&apos;s own pre-test came back{" "}
-          <code>descriptive_only</code>.
+        <BoardSecTitle title="Factors" questions={["Q1", "Q7"]}>
+          Point-in-time macro inputs for downstream research. The desk publishes
+          context, not equity exposure or predictive confidence.
         </BoardSecTitle>
         {/* The board's own t7 layout: one `grid g2` with the vector spanning both
             columns, and the two prose panels side by side beneath it. The vector's table
@@ -359,17 +350,9 @@ async function FactorExportTab({ replay }: MacroTabProps) {
 function EnergyTab() {
   return (
     <div className="board">
-      <BoardSecTitle title="Energy · Proposal" questions={["Q7"]}>
-        <b>Nothing on this tab is ingested yet.</b> Energy is the fifth
-        dimension on the chain: the supply-side driver of inflation, the
-        denominator of the gold÷oil anchor, and a volatility input on the dollar
-        side. The position argued here is narrow —{" "}
-        <b>
-          feed the inflation node and the gold valuation anchor; becoming a
-          fifth domain state requires its own spec and its own measurement
-        </b>{" "}
-        — and it inherits the desk&apos;s existing non-goals unchanged, making
-        no predictive claim about anything.
+      <BoardSecTitle title="Energy" questions={["Q7"]}>
+        Planned supply-side inputs for inflation and gold. No live energy state
+        exists yet.
       </BoardSecTitle>
       <div className="grid g2">
         <EnergyInventoryPanel />

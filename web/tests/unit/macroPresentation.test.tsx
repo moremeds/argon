@@ -11,6 +11,7 @@ import {
   basisLabel,
   fieldLabel,
   humanizeIdentifier,
+  humanizeText,
   seriesLabel,
 } from "@/components/macro/presentation";
 
@@ -25,6 +26,9 @@ describe("macro presentation vocabulary", () => {
       "Asset managers · 4-week net share change",
     );
     expect(fieldLabel("confidence_reasons")).toBe("Confidence drivers");
+    expect(humanizeText("usd cited policy_rates state")).toBe(
+      "usd cited Policy & Rates state",
+    );
   });
 
   it("uses market labels for known series and readable fallbacks", () => {
@@ -38,6 +42,7 @@ describe("macro presentation vocabulary", () => {
     expect(basisLabel("REAL")).toBe("Live");
     expect(basisLabel("COMPUTED")).toBe("Derived");
     expect(basisLabel("PLANNED")).toBe("Planned");
+    expect(basisLabel("REFERENCE")).toBe("Reference");
   });
 
   it("keeps source evidence in a closed data disclosure", () => {

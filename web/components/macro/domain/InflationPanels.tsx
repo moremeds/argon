@@ -5,6 +5,7 @@ import {
 } from "./ConfidencePanels";
 import { FactorTable, seriesList, type MacroFactor } from "./FactorTable";
 import type { MacroDomainState } from "../types";
+import { seriesLabel } from "../presentation";
 
 /** What the board's "realized inflation" table carries: the prints themselves plus the
  *  two cuts that say how broad they are. */
@@ -84,11 +85,8 @@ export function InflationPanels({
             testId="inflation-realized-table"
           />
           <BoardRead>
-            Direction is coloured for a macro reader, not a price chart:{" "}
-            <b>falling inflation is green here</b> because it is an improvement,
-            independent of what green means on any asset on this desk. The Δ
-            column is <code>change_over_window</code> exactly as published — the
-            engine attaches no unit to it, so none is invented here.
+            Falling inflation is marked as improvement. Change is shown exactly
+            as published; no missing unit is inferred.
           </BoardRead>
         </BoardPanel>
 
@@ -143,7 +141,7 @@ function ExpectationsPanel({
       id="inflation-expectations"
       title="Inflation expectations"
       questions={["Q1", "Q3"]}
-      basis="REAL"
+      basis="COMPUTED"
       sourceLabel="Pipeline"
       source={
         <>
@@ -165,7 +163,9 @@ function ExpectationsPanel({
           <tbody>
             {survey.map((f) => (
               <tr key={f.series_id}>
-                <td>{f.series_id} survey</td>
+                <td title={f.series_id} data-raw-value={f.series_id}>
+                  {seriesLabel(f.series_id)}
+                </td>
                 <td className="num">{fmtPercent(f.value)}</td>
                 <td>
                   {f.period_end} · {f.age_days}d old — its age is one of the
@@ -175,7 +175,7 @@ function ExpectationsPanel({
             ))}
             {citationError ? (
               <tr data-testid="expectations-citation-error">
-                <td>{BREAKEVEN_SERIES} breakeven</td>
+                <td>{seriesLabel(BREAKEVEN_SERIES)}</td>
                 <td className="num delta-dn">—</td>
                 <td>
                   <span className="delta-dn">
@@ -187,17 +187,15 @@ function ExpectationsPanel({
               </tr>
             ) : breakeven ? (
               <tr>
-                <td>{BREAKEVEN_SERIES} 10y breakeven</td>
+                <td>{seriesLabel(BREAKEVEN_SERIES)}</td>
                 <td className="num">{fmtPercent(breakeven.value)}</td>
                 <td>
-                  borrowed from the rates domain (single owner) ·{" "}
-                  {breakeven.period_end} · {citedRates?.engine_version} as of{" "}
-                  {citedRates?.as_of.slice(0, 10)}
+                  rates-owned series · {breakeven.period_end}
                 </td>
               </tr>
             ) : (
               <tr>
-                <td>{BREAKEVEN_SERIES} 10y breakeven</td>
+                <td>{seriesLabel(BREAKEVEN_SERIES)}</td>
                 <td className="num">—</td>
                 <td>
                   the rates state answered and carries no {BREAKEVEN_SERIES}{" "}
@@ -207,13 +205,13 @@ function ExpectationsPanel({
             )}
             {forward ? (
               <tr>
-                <td>{FORWARD_SERIES} 5y5y forward</td>
+                <td>{seriesLabel(FORWARD_SERIES)}</td>
                 <td className="num">{fmtPercent(forward.value)}</td>
                 <td>cited from the rates domain · {forward.period_end}</td>
               </tr>
             ) : (
               <tr>
-                <td>{FORWARD_SERIES} 5y5y forward</td>
+                <td>{seriesLabel(FORWARD_SERIES)}</td>
                 <td className="num">—</td>
                 <td>
                   on the board, but no published state carries it — named as
@@ -227,18 +225,15 @@ function ExpectationsPanel({
 
       {gap === null ? null : (
         <BoardRead testId="expectations-split">
-          Household and market expectations are{" "}
-          <b>{Math.abs(gap).toFixed(2)}pp apart</b> ({surveyLevel.toFixed(2)}%
-          survey against {marketLevel.toFixed(2)}% priced). They are two
-          different populations answering two different questions, and the size
-          of that gap is the context a single state label cannot carry.
+          Household and market expectations differ by{" "}
+          <b>{Math.abs(gap).toFixed(2)}pp</b> ({surveyLevel.toFixed(2)}% versus{" "}
+          {marketLevel.toFixed(2)}%).
         </BoardRead>
       )}
 
       <BoardRefusal>
-        No 0–100 composite of these readings. Averaging a survey against a
-        priced breakeven produces one tidy number by destroying the only thing
-        on this panel worth reading, which is that the two disagree.
+        Survey and market pricing remain separate; averaging them would erase
+        the disagreement.
       </BoardRefusal>
     </BoardPanel>
   );

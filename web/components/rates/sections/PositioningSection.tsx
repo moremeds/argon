@@ -1,5 +1,3 @@
-import { BoardRead } from "@/components/macro/domain/BoardPanel";
-
 import { statusLabel, toFiniteNumber } from "../format";
 import type { Positioning } from "../types";
 
@@ -45,10 +43,12 @@ export function PositioningSection({
           </span>
         </div>
       ))}
-      <BoardRead>
-        {positioning.positioning_read ??
-          "CFTC TFF Treasury futures positioning is unavailable."}
-      </BoardRead>
+      {positioning.positioning_read ? (
+        <details className="data-details">
+          <summary>Publisher note</summary>
+          <p className="cap">{positioning.positioning_read}</p>
+        </details>
+      ) : null}
       <p className="cap">
         {row.contract_name} · observation {row.obs_date ?? "n/a"} · release{" "}
         {row.release_date ?? "n/a"}

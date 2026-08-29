@@ -27,14 +27,14 @@ describe("FedDesk", () => {
         (node) => node.textContent,
       ),
     ).toEqual([
-      "Four policy paths · who says what",
-      "Per-meeting odds · market-implied",
-      "Dealer expectations · the 3.63 dot, unrolled",
-      "Committee projections · the 3.80 dot, unrolled",
-      "State & confidence · the engine's own proof",
-      "Plumbing · the balance sheet behind the rate",
+      "Policy paths",
+      "Meeting odds",
+      "Dealer path",
+      "Fed projections",
+      "Policy state",
+      "Liquidity",
       "Next events",
-      "What this tab refuses",
+      "Limits",
     ]);
   });
 
@@ -64,9 +64,11 @@ describe("FedDesk", () => {
     // bar one line above already says these words, and the board's tabs open with an
     // `<h2>` + question strip + state pill, not a second page title.
     expect(
-      screen.getByRole("heading", { name: "Fed · Policy", level: 2 }),
+      screen.getByRole("heading", { name: "Fed", level: 2 }),
     ).toBeTruthy();
-    expect(screen.getByText("Q1 Q2 Q3 Q5 Q7")).toBeTruthy();
+    expect(document.querySelector(".sec-title")?.getAttribute("data-questions")).toBe(
+      "Q1 Q2 Q3 Q5 Q7",
+    );
     expect(screen.queryByText(/Snapshot update/)).toBeNull();
   });
 
@@ -84,7 +86,8 @@ describe("FedDesk", () => {
     render(<FedDesk snapshot={{ ...SNAPSHOT, state: POLICY_RATES_STATE }} />);
     const filled = screen.getByTestId("rates-desk-state-pill");
     // The board's own format: LABEL · DIRECTION · conf N.NN.
-    expect(filled.textContent).toBe("ON_HOLD · FLAT · conf 0.62");
+    expect(filled.textContent).toBe("On hold · Flat · 62% confidence");
+    expect(filled.getAttribute("data-raw-value")).toBe("ON_HOLD|FLAT");
     // ON_HOLD is not a verdict, so it is not coloured. Only the two labels that name
     // their own distance from a target are.
     expect(filled.className).toContain("neust");
@@ -94,7 +97,7 @@ describe("FedDesk", () => {
     render(<FedDesk snapshot={SNAPSHOT} />);
 
     const policySection = screen.getByRole("region", {
-      name: /plumbing · the balance sheet/i,
+      name: /liquidity/i,
     });
     expect(within(policySection).queryByText("Fed funds futures")).toBeNull();
     expect(within(policySection).getByText("ON RRP")).toBeTruthy();
@@ -109,11 +112,11 @@ describe("FedDesk", () => {
     render(<FedDesk snapshot={SNAPSHOT} />);
 
     const refuses = screen.getByRole("region", {
-      name: /what this tab refuses/i,
+      name: /limits/i,
     });
-    expect(refuses.textContent).toMatch(/No averaging of the four paths/i);
-    expect(refuses.textContent).toMatch(/dots stay anonymous/i);
-    expect(refuses.textContent).toMatch(/short column is printed short/i);
+    expect(refuses.textContent).toMatch(/Paths are never averaged/i);
+    expect(refuses.textContent).toMatch(/SEP dots remain anonymous/i);
+    expect(refuses.textContent).toMatch(/participant count/i);
   });
 
   it("no longer renders issuance, which belongs to the curve tab", () => {
@@ -213,15 +216,15 @@ describe("FedDesk", () => {
       );
 
       expect(screen.getByTestId("rates-state-label").textContent).toBe(
-        "ON HOLD",
+        "On hold",
       );
       expect(screen.getByTestId("rates-state-direction").textContent).toContain(
-        "FLAT",
+        "Flat",
       );
       expect(screen.getByTestId("rates-state-confidence").textContent).toBe(
         "62%",
       );
-      expect(screen.getByText("target_range_midpoint_change")).toBeTruthy();
+      expect(screen.getByText("Target range midpoint change")).toBeTruthy();
       // A velocity that could not be computed says why instead of showing 0.00.
       expect(
         screen.getByText("DFII10 has no observation in force at this instant."),
@@ -235,7 +238,7 @@ describe("FedDesk", () => {
         ),
       ).toBeTruthy();
       expect(screen.getByTestId("rates-state-block").textContent).toMatch(
-        /Stood on 9 observations/,
+        /9 observations/,
       );
     });
 
@@ -262,10 +265,10 @@ describe("FedDesk", () => {
       );
 
       expect(screen.getByTestId("rates-state-freshness").textContent).toMatch(
-        /Stale · 96\.0h/,
+        /stale 96\.0h/,
       );
       expect(screen.getByTestId("rates-state-label").textContent).toBe(
-        "ON HOLD",
+        "On hold",
       );
     });
   });

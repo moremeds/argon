@@ -32,7 +32,7 @@ export function Zone({
       className={first ? "zone z1" : "zone"}
       data-testid={`macro-zone-${label.toLowerCase().replace(/[^a-z]+/g, "-")}`}
     >
-      <span className="zk">{kicker}</span>
+      <span className="sr-only">{kicker}</span>
       {/* An `<h2>`, where the board writes a `<span class="zl">`.
        *
        * `.zl` carries every pixel — face, size, weight, tracking, colour — so the two

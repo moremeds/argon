@@ -81,7 +81,7 @@ export function CbReservesPanel({ structural }: { structural: S }) {
   return (
     <BoardPanel
       id="cb-reserves"
-      title="Central banks · 12M net, three buckets"
+      title="Central-bank flows"
       questions={["Q5"]}
       basis="REAL"
       source={
@@ -121,13 +121,10 @@ export function CbReservesPanel({ structural }: { structural: S }) {
       </div>
 
       <p data-testid="cb-bucket-read" className="read">
-        The &ldquo;central banks are buying gold&rdquo; narrative needs
-        unbundling.{" "}
+        12-month net flows.{" "}
         {known.length === 0 ? (
           <>
-            No bucket has a 12-month total for this observation, so there is
-            nothing to unbundle yet — the three tiles above say which are
-            missing.
+            No bucket has a 12-month total.
           </>
         ) : (
           <>
@@ -150,9 +147,7 @@ export function CbReservesPanel({ structural }: { structural: S }) {
                 were net sellers
               </>
             )}
-            . The buckets are reported apart because they are different
-            behaviours — reserve rebalancing is not narrative escalation — and a
-            single net figure across all three would hide exactly that.
+            . Behaviour buckets remain separate.
           </>
         )}
       </p>

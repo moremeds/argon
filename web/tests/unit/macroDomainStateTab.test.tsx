@@ -36,7 +36,7 @@ describe("DomainStateTab", () => {
     // The heading names the domain, so a tab reached by URL is identifiable without the
     // tab bar above it.
     expect(
-      screen.getByRole("heading", { name: "Inflation", level: 1 }),
+      screen.getByRole("heading", { name: "Inflation", level: 2 }),
     ).toBeTruthy();
   });
 
@@ -50,14 +50,14 @@ describe("DomainStateTab", () => {
       .querySelector(".sec-sub");
     const text = sub?.textContent ?? "";
     const rules = D.inflation.contradictions ?? [];
-    expect(text).toContain(`${rules.length} contradiction rule`);
-    for (const r of rules) expect(text).toContain(r.rule);
+    expect(text).toContain(`${rules.length} conflicts`);
     // The stalest input is named, and it is the max over the published factors rather
     // than a series picked by hand.
     const oldest = (D.inflation.factors ?? []).reduce((a, b) =>
       b.age_days > a.age_days ? b : a,
     );
-    expect(text).toContain(`${oldest.series_id} at ${oldest.age_days}d`);
+    expect(text).toContain(`${oldest.age_days}d`);
+    expect(text).not.toContain(oldest.series_id);
   });
 
   it("advertises exactly the questions its panels answer", () => {
@@ -71,12 +71,12 @@ describe("DomainStateTab", () => {
       const view = render(<DomainStateTab domain={domain} slot={{ value }} />);
       const root = view.getByTestId(`macro-domain-tab-${domain}`);
       const union = new Set<string>();
-      for (const p of root.querySelectorAll("[data-questions]")) {
+      for (const p of root.querySelectorAll("[data-testid^='board-panel-']")) {
         for (const q of (p.getAttribute("data-questions") ?? "").split(/\s+/))
           if (q) union.add(q);
       }
       const advertised = new Set(
-        (root.querySelector(".sec-title .tag.q")?.textContent ?? "").split(
+        (root.querySelector(".sec-title")?.getAttribute("data-questions") ?? "").split(
           /\s+/,
         ),
       );
@@ -116,9 +116,9 @@ describe("DomainStateTab", () => {
     const refuses = screen.getByTestId("macro-domain-refuses-usd");
     // §1 / §9 invariant 1: the tab may not imply the four domains can be averaged, and
     // the chain-level claim has exactly one home.
-    expect(refuses.textContent).toMatch(/does not combine this domain/i);
-    expect(refuses.textContent).toMatch(/reading order, not a causal one/i);
-    expect(refuses.textContent).toMatch(/no score, allocation or probability/i);
+    expect(refuses.textContent).toMatch(/Descriptive only/i);
+    expect(refuses.textContent).toMatch(/belongs on Overview/i);
+    expect(refuses.textContent).toMatch(/navigation, not a causal claim/i);
   });
 
   it("never prescribes", () => {

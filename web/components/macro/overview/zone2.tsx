@@ -1,7 +1,8 @@
 import type { components } from "@/lib/types";
 
 import { BoardPanel, BoardRead } from "../domain/BoardPanel";
-import { instantUtc, plural} from "../format";
+import { instantUtc, plural } from "../format";
+import { humanizeIdentifier, humanizeText } from "../presentation";
 import type { ReplayVerdict } from "../replay";
 import type {
   MacroContextSnapshot,
@@ -25,10 +26,10 @@ const LANES: readonly {
   >;
   label: string;
 }[] = [
-  { key: "actual", label: "Actual · the committee has done" },
-  { key: "committee_projection", label: "Committee · SEP projection" },
-  { key: "dealer_expectations", label: "Dealers · NY Fed survey" },
-  { key: "market_implied", label: "Market · what is priced" },
+  { key: "actual", label: "Actual" },
+  { key: "committee_projection", label: "Fed projections" },
+  { key: "dealer_expectations", label: "Dealer survey" },
+  { key: "market_implied", label: "Market pricing" },
 ];
 
 /** The nearest published rate, or null without blanking the other lanes. */
@@ -77,9 +78,9 @@ export function PolicyPathsPanel({
   return (
     <BoardPanel
       id="policy-paths"
-      title="Four policy paths · who says what"
+      title="Policy paths"
       questions={["Q2", "Q3"]}
-      basis="REAL"
+      basis="COMPUTED"
       sourceLabel="Pipeline"
       source={
         <>
@@ -145,19 +146,15 @@ export function PolicyPathsPanel({
           <BoardRead testId="macro-policy-read">
             {spread !== null ? (
               <>
-                {served.length} of {rows.length} lanes published a
-                nearest-horizon rate, and they span{" "}
+                {served.length}/{rows.length} paths available · widest gap{" "}
                 <b>
                   <span className="num">{(spread * 100).toFixed(0)}bp</span>
                 </b>
-                . The spread IS the disagreement — it is what the lanes were
-                separated for, and the desk reports it without deciding which
-                lane is right.
+                . No path is treated as the answer.
               </>
             ) : (
               <>
-                Fewer than two lanes published a rate, so there is no spread to
-                report. A comparison needs two things to compare.
+                Fewer than two paths published a rate; no gap is available.
               </>
             )}
           </BoardRead>
@@ -185,7 +182,7 @@ export function ContradictionFeed({
   return (
     <BoardPanel
       id="contradictions"
-      title="Contradiction feed · engine-reported"
+      title="Domain conflicts"
       questions={["Q3"]}
       basis="REAL"
       source={
@@ -207,27 +204,23 @@ export function ContradictionFeed({
           data-testid={`macro-contradiction-row-${row.domain}`}
         >
           <b>
-            {DOMAIN_LABEL[row.domain]} · {row.rule.replace(/_/g, " ")}
+            {DOMAIN_LABEL[row.domain]} · {humanizeIdentifier(row.rule)}
           </b>
-          <span>{row.detail}</span>
+          <span data-raw-value={row.detail}>{humanizeText(row.detail)}</span>
         </div>
       ))}
 
       {rows.length === 0 ? (
         <p className="cap">
           {answered.length > 0
-            ? "No contradiction rule fired inside any domain that answered. That is a statement about the rules that ran, not a claim that the macro picture is consistent."
-            : "No domain answered, so no contradiction rule was evaluated. An empty feed here means nothing was asked, not that nothing fired."}
+            ? "No domain rule fired; this is not a claim that the macro picture is consistent."
+            : "No domain answered, so no rule was evaluated."}
         </p>
       ) : null}
 
       {silent.length > 0 ? (
         <p className="cap" data-testid="macro-contradiction-unasked">
-          Not represented: {silent.map((d) => DOMAIN_LABEL[d]).join(", ")} —{" "}
-          {silent.length === 1 ? "it contributed" : "they contributed"} no rows
-          because {silent.length === 1 ? "it has" : "they have"} no state to
-          evaluate at this instant, not because{" "}
-          {silent.length === 1 ? "it is" : "they are"} uncontradicted.
+          Not evaluated: {silent.map((d) => DOMAIN_LABEL[d]).join(", ")}.
         </p>
       ) : null}
     </BoardPanel>
@@ -246,7 +239,7 @@ export function CrossDomainPanel({
   return (
     <BoardPanel
       id="cross-domain"
-      title="Cross-domain contradictions · this week"
+      title="Chain conflicts"
       questions={["Q3", "Q4"]}
       basis="REAL"
       source={
@@ -267,23 +260,20 @@ export function CrossDomainPanel({
           <b>Chain unreachable · request failed</b>
           <span>{snapshot.error}</span>
           <span className="why">
-            This is a fact about our API, not the assembler declining. The four
-            nodes on the rail may still be perfectly good answers; what is
-            missing is the check on whether they belong together.
+            Domain states may still be valid; only the chain check is missing.
           </span>
         </div>
       ) : !s ? (
         <div className="contra" data-testid="macro-chain-unassembled">
           <b>Chain unassembled · never computed</b>
           <span>
-            No snapshot was assembled for this instant, so nothing has checked
-            whether the four domains belong together.
+            No snapshot exists for this instant.
           </span>
         </div>
       ) : (
         <>
           <p className="cap">
-            status <b style={{ color: "var(--text-primary)" }}>{s.status}</b> ·{" "}
+            status <b style={{ color: "var(--text-primary)" }}>{humanizeIdentifier(s.status)}</b> ·{" "}
             {plural(reasons.length, "finding")}
           </p>
 
@@ -302,10 +292,9 @@ export function CrossDomainPanel({
                 >
                   <b>
                     {DOMAIN_LABEL[reason.domain as MacroDomainKey] ??
-                      reason.domain}{" "}
-                    · {reason.kind}
+                      humanizeIdentifier(reason.domain)} · {humanizeIdentifier(reason.kind)}
                   </b>
-                  <span>{reason.detail}</span>
+                  <span data-raw-value={reason.detail}>{humanizeText(reason.detail)}</span>
                 </div>
               ))}
             </div>
@@ -317,13 +306,10 @@ export function CrossDomainPanel({
             <div className="contra" data-testid="macro-chain-coherent">
               <b>No finding · internally coherent</b>
               <span>
-                The assembler held every domain it expected and found nothing to
-                report between them, so the chain is <b>internally coherent</b>{" "}
-                at this instant.
+                The chain is <b>internally coherent</b> under the checks that ran.
               </span>
               <span className="why">
-                That is a statement about the checks that ran — it is not a
-                claim that the macro picture is right.
+                This is not a claim that the macro picture is right.
               </span>
             </div>
           )}
@@ -391,7 +377,7 @@ export function TransmissionHealth({
   return (
     <BoardPanel
       id="transmission"
-      title="Transmission health · measured link strength"
+      title="Data health"
       questions={["Q4", "Q7"]}
       basis="REAL"
       source={
@@ -456,7 +442,7 @@ export function TransmissionHealth({
                   </td>
                   <td className="num">
                     {p.freshness
-                      ? `${p.freshness} · ${Math.round(p.ageHours ?? 0)}h`
+                      ? `${humanizeIdentifier(p.freshness)} · ${Math.round(p.ageHours ?? 0)}h`
                       : "—"}
                   </td>
                 </tr>
@@ -477,20 +463,15 @@ export function TransmissionHealth({
             </b>{" "}
             by downstream domains:{" "}
             {edges
-              .map(
-                ({ domain, edge }) =>
-                  `${DOMAIN_LABEL[domain]} ← ${edge.domain} #${edge.upstream_state_id} (${edge.state})`,
+              .map(({ domain, edge }) =>
+                `${DOMAIN_LABEL[domain]} ← ${humanizeIdentifier(edge.domain)} (${humanizeIdentifier(edge.state)})`,
               )
               .join(" · ")}
-            . Whether a cited answer is the one the chain holds is the
-            assembler&rsquo;s verdict, not this panel&rsquo;s.
+            .
           </>
         ) : (
           <>
-            No domain that answered cited an upstream answer. Inflation and
-            policy stand on observations alone, so an empty edge list is their
-            normal shape and not a broken link — only a transmission domain has
-            any.
+            No answered domain cited an upstream state.
           </>
         )}
       </BoardRead>

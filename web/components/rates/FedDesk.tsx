@@ -20,16 +20,6 @@ type MacroDomainState = components["schemas"]["MacroDomainStateResponse"];
 /** The router's own constant for where the state detail lives (`routers/rates.py`). */
 const STATE_DETAIL_PATH = "/api/macro/rates";
 
-function firstPathRate(
-  slot:
-    | { path?: { points?: { rate_percent: string | number }[] } | null }
-    | null
-    | undefined,
-): string {
-  const value = Number(slot?.path?.points?.[0]?.rate_percent);
-  return Number.isFinite(value) ? value.toFixed(2) : "unavailable";
-}
-
 /**
  * Macro desk tab 01 — Fed · Policy.
  *
@@ -117,17 +107,13 @@ export function FedDesk({
           reviewer-facing prose about the port rather than something an operator reading
           the Fed tab needs. */}
         <DeskHeader
-          title="Fed · Policy"
+          title="Fed"
           questions={["Q1", "Q2", "Q3", "Q5", "Q7"]}
           showState
           standfirst={
             <>
-              This tab answers <b>what the committee intends</b>; the term
-              structure it produces lives next door in <b>02 Rates · Curve</b>.
-              The spine of this tab:{" "}
-              <b>four policy paths shown separately, never averaged</b> — a
-              blended &ldquo;Fed path&rdquo; would be a number no committee
-              voted on, no dealer forecast, and no market traded.
+              Committee, dealer and market paths shown separately, with policy
+              state, liquidity and next events.
             </>
           }
           snapshot={snapshot}
@@ -139,9 +125,9 @@ export function FedDesk({
         <div className="grid g2">
           <RatesSection
             id="paths"
-            title="Four policy paths · who says what"
+            title="Policy paths"
             questions={["Q2"]}
-            basis="REAL"
+            basis="COMPUTED"
             source="/api/macro/policy · four publisher lanes, never averaged"
           >
             <PolicyPathComparison
@@ -157,7 +143,7 @@ export function FedDesk({
             for why that distinction is load-bearing on exactly this lane. */}
           <RatesSection
             id="market-implied"
-            title="Per-meeting odds · market-implied"
+            title="Meeting odds"
             eyebrow="The only lane a market actually traded"
             questions={["Q2", "Q6"]}
             basis="REAL"
@@ -173,7 +159,7 @@ export function FedDesk({
             shared frame would draw the comparison this desk refuses to make. */}
           <RatesSection
             id="dealer-plot"
-            title={`Dealer expectations · the ${firstPathRate(policyComparison?.dealer_expectations)} dot, unrolled`}
+            title="Dealer path"
             eyebrow="Primary-dealer survey · each release against its own date"
             questions={["Q2", "Q3", "Q6"]}
             basis="REAL"
@@ -184,7 +170,7 @@ export function FedDesk({
 
           <RatesSection
             id="sep-plot"
-            title={`Committee projections · the ${firstPathRate(policyComparison?.committee_projection)} dot, unrolled`}
+            title="Fed projections"
             eyebrow="FOMC SEP · dots stay anonymous"
             questions={["Q1", "Q3"]}
             basis="REAL"
@@ -199,7 +185,7 @@ export function FedDesk({
         <div className="grid g2">
           <RatesSection
           id="state"
-          title="State & confidence · the engine's own proof"
+          title="Policy state"
           eyebrow="Point-in-time evidence"
           questions={["Q1", "Q7"]}
           basis="COMPUTED"
@@ -210,7 +196,7 @@ export function FedDesk({
 
           <RatesSection
           id="policy"
-          title="Plumbing · the balance sheet behind the rate"
+          title="Liquidity"
           questions={["Q4"]}
           basis="REAL"
           source="/api/rates/snapshot.policy"
@@ -261,44 +247,14 @@ export function FedDesk({
           number, because a refusal that goes stale is worse than no refusal. */}
           <RatesSection
             id="refuses"
-            title="What this tab refuses"
+            title="Limits"
             questions={["Q7"]}
-            basis="REAL"
+            basis="REFERENCE"
             source="code invariants and executable tests"
           >
-            <ul className="tight">
-              <li>
-                <b>No averaging of the four paths.</b> They are
-                published by four different bodies against four different
-                questions. <code>PolicyPathComparison.tsx</code> puts it
-                plainly: a blended &ldquo;Fed path&rdquo; would be a number no
-                committee voted on, no dealer forecast, and no market traded.
-              </li>
-              <li>
-                <b>SEP dots stay anonymous.</b> The FOMC does not
-                publish attribution, so neither do we — no dot is ever tied to a
-                named official. Hardened rather than intended: unit and e2e
-                tests both assert the rendered block never matches{" "}
-                <code>/chair|powell/i</code>.
-              </li>
-              <li>
-                <b>A short column is printed short.</b> When a
-                projection year carries fewer participants than the one beside
-                it, the count is rendered as published. Normalising it to a full
-                committee would invent a projection nobody made.
-              </li>
-              <li>
-                <b>A survey corroborates only its own window.</b> Each
-                release is plotted against its own release date, so an older
-                survey confirms the direction through the day it was taken and
-                says nothing about the weeks since. That is why the releases are
-                not merged into one line.
-              </li>
-            </ul>
-            <p className="cap">
-                The curve-side refusals — a slope is not a term premium, and the
-                legacy rule scorecard is under quarantine — moved with their
-                evidence to the Rates · Curve tab.
+            <p className="read">
+              Paths are never averaged; SEP dots remain anonymous; each survey
+              release keeps its own date and participant count.
             </p>
           </RatesSection>
         </div>

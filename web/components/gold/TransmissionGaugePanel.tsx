@@ -38,17 +38,17 @@ const REGIME_COPY: Record<
   operative: {
     label: "OPERATIVE",
     tone: "positive",
-    body: "The real-rate channel is transmitting, so the cyclical lens below is reading a relationship that currently holds.",
+    body: "The real-rate channel is transmitting.",
   },
   partial: {
     label: "PARTIAL",
     tone: "default",
-    body: "The real-rate channel is transmitting on some windows and not others. Treat the cyclical lens as weakened rather than either sound or void.",
+    body: "Transmission is mixed across windows.",
   },
   suspended: {
     label: "SUSPENDED",
     tone: "warning",
-    body: "The real-rate channel is not transmitting. The cyclical lens below is informative only — it is dimmed for that reason, and nothing on this page should be read as gold tracking real rates today.",
+    body: "The real-rate channel is not transmitting; the cyclical lens is context only.",
   },
 };
 
@@ -86,7 +86,7 @@ export function TransmissionGaugePanel({ gauge }: { gauge: Gauge }) {
   return (
     <BoardPanel
       id="transmission-gauge"
-      title="Transmission gauge · correlation collapse"
+      title="Real-yield link"
       questions={["Q4", "Q7"]}
       basis="REAL"
       source={
@@ -147,28 +147,21 @@ export function TransmissionGaugePanel({ gauge }: { gauge: Gauge }) {
           </>
         ) : spread > 0.3 ? (
           <>
-            The relationship holds on the {narrowest.label} window (
-            {fmt(narrowest.value)}) and has{" "}
+            The link is firm on {narrowest.label} ({fmt(narrowest.value)}) but{" "}
             <strong style={{ color: "var(--text-primary, #cfd2db)" }}>
-              collapsed on the {widest.label}
+              weak on {widest.label}
             </strong>{" "}
-            ({fmt(widest.value)}). A narrow window firm against a wide window
-            near zero is what a regime that ended part-way through the lookback
-            looks like — the wider number averages across two different worlds,
-            rather than being a weaker version of the nearer one.
+            ({fmt(widest.value)}), consistent with a recent regime change.
           </>
         ) : spread < -0.3 ? (
           <>
-            The relationship is firmer on the {widest.label} window (
-            {fmt(widest.value)}) than on the {narrowest.label} (
-            {fmt(narrowest.value)}), so what is decaying is the recent
-            association, not the historical one.
+            The historical link ({widest.label} {fmt(widest.value)}) is firmer
+            than the recent one ({narrowest.label} {fmt(narrowest.value)}).
           </>
         ) : (
           <>
-            The {narrowest.label} and {widest.label} windows agree to within{" "}
-            {Math.abs(spread).toFixed(2)}, so the relationship is behaving
-            consistently across the lookback.
+            {narrowest.label} and {widest.label} agree within{" "}
+            {Math.abs(spread).toFixed(2)}.
           </>
         )}{" "}
         {regime.body}

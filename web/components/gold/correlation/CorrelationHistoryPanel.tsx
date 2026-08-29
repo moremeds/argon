@@ -73,7 +73,7 @@ export function CorrelationHistoryPanel({
   return (
     <BoardPanel
       id="anchor-decay"
-      title="Anchor decay · gauge corr_60d, daily"
+      title="Anchor history"
       questions={["Q4"]}
       basis="REAL"
       source={
@@ -132,20 +132,14 @@ export function CorrelationHistoryPanel({
         />
       </div>
       <p data-testid="correlation-history-window-note" className="cap">
-        The anchor is the persisted 60-day rolling correlation at daily
-        resolution — the cut that can show a relationship decaying instead of
-        averaging two regimes together.{" "}
+        Daily 60-day gold–real yield correlation.{" "}
         {anchor.length > 0 ? (
           <>
-            The anchor line carries <b>{anchor.length}</b> observations against <b>{pairCount}</b> across the three decomposed pairs,
-            which is why it is drawn as the primary series.
+            <b>{anchor.length}</b> anchor points · <b>{pairCount}</b> channel points.
           </>
         ) : (
           <>
-            The persisted 60-day gauge history could not be read, so only
-            the three decomposed pairs are drawn — <b>{pairCount}</b>{" "}
-            observations in total. This is a missing request, not a missing
-            series.
+            Anchor history unavailable; showing <b>{pairCount}</b> channel points.
           </>
         )}
       </p>

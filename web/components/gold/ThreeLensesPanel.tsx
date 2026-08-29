@@ -73,7 +73,7 @@ export function ThreeLensesPanel({ state }: { state: State }) {
   return (
     <BoardPanel
       id="three-lenses"
-      title="Three lenses · each publishes, none composites"
+      title="Three lenses"
       questions={["Q1", "Q5"]}
       basis="REAL"
       source={
@@ -140,9 +140,10 @@ export function ThreeLensesPanel({ state }: { state: State }) {
           valuation panel the board does not have: the flag in the table above is a label,
           and this is the engine's own words about what the label rests on. */}
       {state.valuation.narrative_text ? (
-        <p className="cap" data-testid="gold-valuation-narrative">
-          {state.valuation.narrative_text}
-        </p>
+        <details className="data-details" data-testid="gold-valuation-narrative">
+          <summary>Publisher note</summary>
+          <p className="cap">{state.valuation.narrative_text}</p>
+        </details>
       ) : null}
 
       <BoardRead testId="gold-lenses-read">
@@ -167,15 +168,10 @@ export function ThreeLensesPanel({ state }: { state: State }) {
                   .filter((a) => a.value === null)
                   .map((a) => a.label)
                   .join(", ")}
-                ) — each lights up on its own once the series behind it lands,
-                and until then the track is drawn empty rather than pinned at
-                zero.
+                ) — missing anchors stay empty rather than reading as zero.
               </>
             )}{" "}
-            The three readings above are <b>not combined</b>: they are measured
-            in different units against different histories, and a single gold
-            verdict averaging them would be a number no engine on this desk
-            produced.
+            The lenses remain separate because their units and histories differ.
           </>
         )}
       </BoardRead>

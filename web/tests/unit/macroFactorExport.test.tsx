@@ -81,7 +81,9 @@ describe("macro factor vector", () => {
     render(<FactorVectorPanel slots={ALL} />);
     const first = (D.inflation.factors ?? [])[0];
     const at = first.available_at.slice(0, 10);
-    const row = screen.getByText(first.series_id).closest("tr");
+    const row = document
+      .querySelector(`[data-raw-value="${first.series_id}"]`)
+      ?.closest("tr");
     expect(row?.textContent).toContain(at);
   });
 });
@@ -99,7 +101,7 @@ describe("the export's own boundaries", () => {
   it("refuses any forward-return claim, in the panel the board gives it", () => {
     render(<ExportRefusalPanel />);
     expect(screen.getByTestId("factor-export-refusal").textContent).toContain(
-      "NO PREDICTIVE CLAIM",
+      "No predictive claim",
     );
     expect(
       screen

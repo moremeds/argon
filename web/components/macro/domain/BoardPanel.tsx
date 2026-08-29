@@ -35,6 +35,7 @@ import { humanizeIdentifier } from "../presentation";
  *   - `COMPUTED` — arithmetic performed here, on numbers that came off an endpoint. The
  *     panel must show its formula; the repair table is the case this exists for.
  *   - `PLANNED` — no data path. Prose describing what would be measured, never a value.
+ *   - `REFERENCE` — a dated, static audit or method note; never presented as live.
  *
  * There is deliberately no `ESTIMATED`. A number nobody published and nobody computed
  * from published inputs has no home on this desk. The tag renders at the END of the
@@ -45,7 +46,7 @@ export type BoardQuestion = "Q1" | "Q2" | "Q3" | "Q4" | "Q5" | "Q6" | "Q7";
 /** At least one. See the block above — this is the acceptance test, as a type. */
 export type BoardQuestions = readonly [BoardQuestion, ...BoardQuestion[]];
 
-export type PanelBasis = "REAL" | "COMPUTED" | "PLANNED";
+export type PanelBasis = "REAL" | "COMPUTED" | "PLANNED" | "REFERENCE";
 
 export function BoardPanel({
   id,

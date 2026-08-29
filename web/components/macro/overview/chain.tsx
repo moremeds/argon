@@ -1,4 +1,5 @@
 import { BoardPanel, BoardRefusal } from "../domain/BoardPanel";
+import { humanizeIdentifier, humanizeText } from "../presentation";
 import type {
   MacroDomainKey,
   MacroDomainState,
@@ -121,16 +122,20 @@ function ChainNode({
     .slice(0, KV_ROWS);
 
   return (
-    <div className="node" data-testid={`macro-domain-${domain}`}>
+    <div
+      className="node"
+      data-testid={`macro-domain-${domain}`}
+      data-engine-version={s.engine_version}
+    >
       <h3>
         {DOMAIN_LABEL[domain]}
-        <span className="dom">{s.engine_version}</span>
+        <span className="dom">{domain}</span>
       </h3>
-      <span className={`state ${STATE_TONE[s.state] ?? "neust"}`}>
-        {s.state}
+      <span className={`state ${STATE_TONE[s.state] ?? "neust"}`} data-raw-value={s.state}>
+        {humanizeIdentifier(s.state)}
       </span>
-      <span className="dir">
-        direction {s.direction} <span className="tag real">REAL</span>
+      <span className="dir" data-raw-value={s.direction}>
+        {humanizeIdentifier(s.direction)}
       </span>
       {flag ? (
         <span
@@ -138,7 +143,7 @@ function ChainNode({
           data-testid={`macro-chain-flag-${domain}`}
           style={{ color: "var(--warning)" }}
         >
-          {flag}
+          {humanizeText(flag)}
         </span>
       ) : null}
       <ConfBar confidence={s.confidence} />
@@ -154,7 +159,7 @@ function ChainNode({
         const signed = Number.isFinite(n) ? n : null;
         return (
           <div className="kv" key={v.metric}>
-            <span>{v.metric.replace(/_/g, " ")}</span>
+            <span title={v.metric} data-raw-value={v.metric}>{humanizeIdentifier(v.metric)}</span>
             <span
               className={`num ${
                 signed === null
@@ -241,7 +246,7 @@ export function EnergyProposalPanel() {
   return (
     <BoardPanel
       id="energy-proposal"
-      title="Off-chain dimension · Energy (proposal)"
+      title="Energy input · planned"
       questions={["Q6"]}
       basis="PLANNED"
       sourceLabel="Absent path"
@@ -254,16 +259,12 @@ export function EnergyProposalPanel() {
       }
     >
       <div className="ghost" data-testid="macro-energy-ghost">
-        <h3>Energy → the inflation node · a fifth dimension</h3>
+        <h3>Energy → Inflation</h3>
         <span>
-          WTI, Brent and natural gas (with seasonality) would join the chain{" "}
-          <b>upstream of inflation</b>, not beside it — an energy shock is an
-          inflation input, and modelling it as a peer would double-count it
-          against the core measures the inflation engine already reads.
+          WTI, Brent and seasonal natural gas belong <b>upstream of inflation</b>.
         </span>
         <span>
-          Nothing is drawn because nothing is stored. When a series lands, this
-          ghost becomes a node and this panel is deleted.
+          No state is shown until the inputs and thresholds exist.
         </span>
       </div>
     </BoardPanel>
@@ -282,38 +283,15 @@ export function BoundaryPanel() {
   return (
     <BoardPanel
       id="boundary"
-      title="Boundary · what is NOT on this desk"
+      title="Desk limits"
       questions={["Q7"]}
       basis="PLANNED"
       sourceLabel="Policy"
       source={<>the desk&rsquo;s own standing rules, not a data limitation</>}
     >
       <BoardRefusal kind="REFUSAL" testId="macro-boundary-refusal">
-        There is no macro score, no regime label and no allocation on this desk,
-        and there will not be one.
-        <ul>
-          <li>
-            <b>No composite.</b> Averaging four differently-grounded answers
-            hides exactly the disagreements zone 2 exists to show. Four states
-            in causal order is four states; a fifth number summarising them
-            would be a judgement no engine made.
-          </li>
-          <li>
-            <b>No re-ranking.</b> The per-domain contradictions publish no
-            severity, so an ordering beyond the producer&rsquo;s would be
-            invented in a browser and would disagree with the engine the first
-            time either changed.
-          </li>
-          <li>
-            <b>No directional stance.</b> A stance word may print only where the
-            model that produced it prints it. This tab fetches neither the route
-            that carries one nor the field, so the word is not in reach here.
-          </li>
-          <li>
-            <b>No forecast.</b> Zone 3 is dated events and named stale inputs.
-            Nothing on this tab predicts a rate, a print or a level.
-          </li>
-        </ul>
+        No composite score, re-ranking, directional stance or forecast. Each
+        domain keeps its own publisher, unit and confidence.
       </BoardRefusal>
     </BoardPanel>
   );

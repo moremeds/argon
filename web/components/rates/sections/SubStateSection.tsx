@@ -3,6 +3,10 @@ import type { BoardQuestions } from "@/components/macro/domain/BoardPanel";
 
 import styles from "../RatesDesk.module.css";
 import { RatesSection } from "../RatesSection";
+import {
+  humanizeIdentifier,
+  seriesLabel,
+} from "@/components/macro/presentation";
 
 type SubState = components["schemas"]["MacroSubStateItem"];
 type VelocityItem = NonNullable<SubState["velocity"]>[number];
@@ -30,15 +34,15 @@ type VelocityItem = NonNullable<SubState["velocity"]>[number];
  */
 const ROLE_TITLES: Record<string, { title: string; eyebrow: string }> = {
   supply: {
-    title: "Supply SUB-STATE",
+    title: "Supply",
     eyebrow: "Coupon issuance across the curve",
   },
   positioning: {
-    title: "Positioning SUB-STATE · 10Y futures",
+    title: "10Y futures positioning",
     eyebrow: "CFTC TFF · net % open interest by participant",
   },
   plumbing: {
-    title: "Funding SUB-STATE",
+    title: "Funding",
     eyebrow: "SOFR − EFFR, and the balances behind it",
   },
 };
@@ -64,7 +68,10 @@ function fmtVelocity(v: VelocityItem): string {
  *  so the whole id is shown and the pipe is spaced, rather than guessing which side to
  *  drop and being wrong on one of the two families. */
 function readableSeries(id: string): string {
-  return id.replace("|", " · ");
+  const [scope, metric] = id.split("|");
+  if (!metric) return seriesLabel(id);
+  if (/^\d+$/.test(scope)) return humanizeIdentifier(metric);
+  return `${humanizeIdentifier(scope)} · ${humanizeIdentifier(metric)}`;
 }
 
 function stateTone(state: string): string {
@@ -109,7 +116,8 @@ export function SubStateSection({
       showQuestions={false}
     >
       <span className={stateTone(subState.state)}>
-        {subState.state} · {subState.direction}
+        {humanizeIdentifier(subState.state)} ·{" "}
+        {humanizeIdentifier(subState.direction)}
       </span>
       {subState.unavailable_reason ? (
         // A sub-state that could not be computed says why. UNKNOWN is not NEUTRAL, and
@@ -133,11 +141,11 @@ export function SubStateSection({
             ))}
           </div>
           <p className="cap">
-            {series.length} load-bearing{" "}
-            {series.length === 1 ? "series" : "series"} —{" "}
-            {series.map(readableSeries).join(", ")}. Latest observation{" "}
-            {subState.latest_period_end ?? "n/a"}; engine confidence{" "}
-            {subState.confidence ?? "n/a"}.
+            {series.length} source series · latest{" "}
+            {subState.latest_period_end ?? "n/a"} · confidence{" "}
+            {subState.confidence == null
+              ? "n/a"
+              : `${Math.round(Number(subState.confidence) * 100)}%`}.
           </p>
           {children}
         </>
