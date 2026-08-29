@@ -7,148 +7,6 @@ version in lockstep (enforced by `scripts/release/version_sync_check.py`).
 
 ## [Unreleased]
 
-## [0.13.0] — 2026-08-29
-
-
-### Added
-
-- **The fundamentals industry desk: `/fundamentals` -> `/fundamentals/ai-semi` -> node pages.** Six
-  read-only endpoints (`calendar`, `delta`, `matrix`, `profit-pool`, `limits`, `node/underwriting`)
-  over the warm store at zero vendor spend, and the six panels that read them. A section is one
-  registry row and a chain inside it is zero code — taxonomy rows alone make a node appear. Four
-  rules are measurements, not styling: `valuation_percentile` carries NO median (own-history value
-  measured real, within-ticker IC +0.0744 t 5.77, while cross-sectional value measured INVERTED in
-  the same universe, so a chain aggregate over own-history percentiles is a claim nothing supports);
-  cohorts that straddle two `as_of` buckets never merge, because `as_of` is a cross-section
-  IDENTIFIER and the cohort effect measured 1.9x; the profit pool has no arrows, propagation or
-  lead/lag copy, because the capex-demand ledger's cross-name relationship collapsed from +0.247 to
-  +0.015 (p=0.44) once same-sector pairs were compared; and the capex strip deliberately has no
-  fetcher and no model field, since building a data path for the most widely circulated number in
-  the sector would re-promote the figure the spec demoted. An unknown section 404s rather than
-  rendering an empty desk, an unknown `?sort=` answers 422 rather than being silently ignored, and
-  every panel settles independently so one failed endpoint leaves the other five standing.
-
-- **Nightly desk rollup of per-name revenue YoY and gross margin** (migration `147`,
-  `fundamentals_desk_rollup`), recording whether each row's knowledge date is a real filing date or
-  the period-end estimate — the flag is three-state, and `null` is not `false`.
-
-- **`/fundamentals` index, with Radar folded in as the triage tab.** `/radar` and `/chains` keep
-  resolving (they are in browser histories and in this repo's docs) and redirect into the desk;
-  the nav carries one Fundamentals entry instead of two pointing at redirects. The all-domain
-  chain x layer matrix at `/chains` is superseded and its component deleted rather than left
-  unreachable — per-chain drilldown at `/chains/[chain]` is untouched.
-
-- **Node deep-dive page `/fundamentals/ai-semi/<chain>`** — the first consumer of the desk's read-only
-  API. Composes the stored versioned report (it REPLAYS from stored blocks and never assembles) with a
-  live calendar strip, the underwriting table, the open alias questions and the node's limits block.
-  A CATCH-ALL route, because 20 of 38 chain names contain a slash; `chain` reaches the API as a query
-  parameter for the same reason. Every absence keeps its own identity all the way to the screen: a null
-  implied move reads "not covered" (never `0`, never a dash), a null session gets a visible unknown
-  badge rather than a guess or a hidden row, an empty reaction list says no history is *held*,
-  `no_compatible_run` and `no_coverage` are worded so neither can be read as the other, and an unknown
-  chain answers 404 (`notFound()`) while a real chain holding no rows renders as the empty node it is.
-  Filing provenance is visible in the row as well as in the tooltip — a tooltip is unreachable on touch
-  and to a screen reader. The page lists; it carries no sort, rank or score affordance.
-
-- **The AI chain desk, rebuilt as a fundamental PM's question ladder.** `/fundamentals/ai-semi` is now
-  five sections in a fixed order, because the order is the argument and question three cannot be
-  answered before question one: *is the money still coming* (hyperscaler capex), *where does it land*
-  (the chain map), *does it transmit* (the case funnels, on their own route), *what am I paying*
-  (own-history valuation), *what would falsify this* (the measured limits). Three new read-only
-  endpoints feed it — `capex`, `cases`, `scope` — plus `layer`/`layer_rank` on every matrix cell and
-  the section's non-USD filers on `limits`, all additive.
-
-- **Capex gets a data path, reversing its demotion — as the desk's PREMISE, not its edge.** The old
-  argument (the figure is on every sell-side deck, so it cannot be where the edge comes from) still
-  holds and nothing is ranked by it. What changed is structure: every revenue dollar downstream is
-  somebody else's capital expenditure, so it is the only number on the desk not derived from another
-  number on the desk. It is also **the single place a currency amount is summed across companies**,
-  bounded three ways: USD filers only, the excluded name and its currency printed with the figure
-  (BABA/CNY today), and a quarter missing any panel member's revenue reporting a null intensity rather
-  than a partial ratio. The strip's sign warning survives verbatim: for the names that *spend* it,
-  rising capex is a cost line arriving as depreciation.
-
-- **Three hand-rolled 3D canvas scenes** (`lib/fundamentals/scene.ts`, ~120 lines of perspective
-  projection, no chart library) — one chain map and two stage funnels. The third axis is the
-  deliverable: a PM needs growth, margin and stack position at once, and any two of those on a flat
-  chart hides the third. Measured on the real chain, the map's own finding is that the LAYER explains
-  less than the CHAIN does — 8.9pp between layer medians against 27.6pp inside L1 alone — and that
-  growth and margin are close to unrelated (r = 0.149, t = 0.72 over 25 chains).
-
-- **Two cases, one shared radius scale, one request, one route** (`/fundamentals/ai-semi/cases`).
-  Optical interconnect amplifies **4.08x** while the datacenter buildout opens to **1.95x**,
-  with 3 of its 4 supplying stages growing more slowly than the customers they supply — the same
-  capital expenditure, two entirely different transmissions, and a reading no sector screen can
-  produce. The shared scale is load-bearing and fails silently when broken, so both funnels render
-  from one component, side by side, from one response; an e2e test asserts the geometry.
-
-- **The boundary is computed, not listed.** `/fundamentals/ai-semi/scope` returns the taxonomy groups
-  outside the section's domains under **their own names** — never "unclassified", which describes an
-  absence in Argon as an absence in the world. Several (`Sector-ETF`, `M7`, `Beta`, `Macro`) are
-  portfolio-construction tags with no stages to order, so modelling them as supply chains would be a
-  category error rather than merely unbuilt work.
-
-- **The chain x metric matrix and the profit-pool strip are deleted, not moved.** The 3D map shows the
-  same medians with the layer as a third axis; the flat strip showed a subset of them. The delta rail
-  and print calendar survive as a subordinate "desk log" below the ladder — they answer what changed
-  and what prints next, which no question on the ladder covers.
-
-- **The daily statement ingest now also reads the calendar FORWARD**
-  (`UW_SCAN_FUNDAMENTAL_INGEST_DAILY_FORWARD_DAYS`, default 14). The scan was
-  backward-only, so `earnings_calendar` never held a row for a print that had
-  not happened yet — measured on 2026-08-29: 2,443 rows, **zero** with
-  `report_date >= CURRENT_DATE`. The desk's "what prints next" panel reads
-  `next_prints(on_or_after=today)`, so it was structurally empty and would have
-  stayed that way, rendering "nothing prints next" out of a question never
-  asked. The two windows stay asymmetric on purpose: the backward one finds
-  statements to ingest, and the forward one ingests nothing — folding its
-  listings into the ingest targets would spend 4 UW calls per name to retrieve a
-  statement that does not exist yet, every run, until the company reported.
-  Costs 2 UW calls per forward day per run (~28/day), reported separately as
-  `calendar_forward_rows_new`.
-
-### Fixed
-
-- **The typed event ledger was inert in production, and the nightly job that feeds the delta rail
-  would have raised on its first real event.** `research_event_classes` held ZERO rows on the mini
-  (measured 2026-08-28), so `record_events` refused every write. `register_discovery_gate` is the
-  only thing that populates that table and it had no caller anywhere — it appeared in two docstrings
-  and was never invoked, while every test called it as fixture setup, so the suite stayed green over
-  a job that could not work. `derive_change_events` now seeds the registry itself; because
-  `register_classes` upserts a FIXED list whose statuses live in code, this is a seed and never a
-  bypass — a killed class is re-registered as killed and keeps refusing writes. The failure was
-  silent by construction: with nothing registered, the desk's delta rail renders "Argon learned
-  nothing new", which reads as a quiet week rather than a dead pipeline.
-
-- **A chain mid-reporting-season collided its own cohort groups.** `label` is `reported` for the
-  newest `as_of` bucket and `awaiting` for EVERY older one, so a cell legitimately carries two or
-  more `awaiting` cohorts (measured: `Cybersecurity/rev_yoy` returned
-  `['reported','awaiting','awaiting']`). Keying the group on the label alone produced duplicate React
-  keys and a test id matching two elements — passing on any fixture holding one of each, throwing
-  against real data. Keyed on `as_of` now, and the fixture carries the real three-cohort shape.
-
-- **The chain matrix's dot tooltips broke hydration.** Adjacent JSX text children inside an SVG
-  `<title>` serialize differently on the server than they hydrate on the client, so React discarded
-  and re-rendered the whole matrix subtree on every load.
-
-- **The report route couldn't address a chain whose name has a slash.** `key` was a plain path
-  parameter on both `GET /research/reports/{report_type}/{key}` and its `/versions/{n}` sibling, and
-  20 of the desk's 38 chain names contain one (`Networking/Optical`, `Semi-Logic/ASIC`, …) — uvicorn
-  unquotes `%2F` to a literal `/` before Starlette routes the request, so a single-segment converter
-  404s on it, latent until the first chain report is assembled. `{key:path}` fixes addressing on all
-  three routes (both GETs and the POST assemble), but registration order is separately load-bearing:
-  `{key:path}` is greedy, so the `/versions/{n}` route must be registered *before* the plain one or it
-  swallows `versions/N` into `key` and answers 200 from the wrong route with a corrupted key instead
-  of ever reaching the version route or 404ing — a wrong answer that looks like a right one, not a
-  crash. Pinned by asserting the resolved version *payload*, not merely a 200 (confirmed by reversing
-  the order and watching the new test go red). `web/lib/api.ts`'s two report-fetch call sites stop
-  percent-encoding the slash (`_rawSlash`, matching the desk's existing query-param pattern); a third,
-  previously-unencoded call site in `ReportView.tsx`'s version-history links now `encodeURIComponent`s
-  the key, which is the opposite fix — that link addresses Next's own single-segment `[key]` route,
-  which (unlike uvicorn) splits on a literal `/` before decoding, so a raw slash there 404s instead.
-## [0.12.18] — 2026-08-28
-
-
 ### Added
 
 - **The macro desk has a front door.** Tab 00 registers at `/macro/overview` and `/macro`
@@ -341,6 +199,394 @@ version in lockstep (enforced by `scripts/release/version_sync_check.py`).
     so it follows that sibling rather than the shell, and at `WIDE_FRAME` it renders k=0.78
     while at `NARROW_FRAME` it renders k=1.24 — both measured, both outside the band.
 
+- **The macro desk has a shell at `/macro`, and it grows one tab at a time.** `/rates`, `/macro`
+  and `/gold` are being collapsed into one nine-tab desk. Shipping the whole tab bar first would
+  have put nine links on screen of which eight `404`, for the length of six PRs — and the redirects
+  would have sent two working pages into that hole. The fix is structural rather than a schedule.
+  - **`VALID_TABS` is a registry, and it feeds both halves of the navigation.** The route
+    `notFound()`s on any unregistered slug and the bar renders exactly one link per entry, so the
+    bar cannot link somewhere that 404s and the route cannot answer a slug the bar does not show.
+    A tab becomes reachable in the same commit that makes it real. The content map is keyed by a
+    union derived from the registry itself, so registering a tab with nothing behind it is a
+    compile error rather than a runtime 404. This PR seeds it with tab 08 (Design Notes) alone.
+  - The board's tab number is stored, not implied by array position — registration order is PR
+    order, and PR order is not board order.
+  - **`prefetch={false}` on every link.** A nine-tab bar sits entirely in the viewport, and Next
+    prefetches the _full_ route for a dynamic one; on the stock page's bare `prefetch` this would
+    fire nine RSC prefetches into `force-dynamic` server components on every page view.
+  - A `<nav aria-label>` with `aria-current="page"`, not a `role="tablist"`. A link bar whose
+    panels are separate documents is not a tablist, and honest markup beats a role that lies.
+  - Four boundaries, not three: a segment's own `error.tsx` cannot catch a throw from that
+    segment's `layout.tsx`, which is exactly where the tab bar lives.
+  - `/macro` itself is deliberately untouched and still renders today's four domain cards, with an
+    e2e test pinning that — so the desk can be built tab by tab without the page ever 404ing.
+  - The gold posture linter now also scans `components/macro` and `app/macro`; the desk is one
+    posture surface now, and tab 08 is prose inside its scope. Verified non-vacuous by planting a
+    banned word under each new root.
+- **`/api/rates/snapshot` can now answer as of a past instant** — `as_of` (a date) and `as_of_ts` (an
+  aware timestamp), the same contract every `/api/macro/*` route already honours: supplying both is a
+  422, a naive timestamp is a 422, neither is `now`. It was the only endpoint on the macro desk with
+  no point-in-time replay, which meant a replayed desk would have rendered four historical panels
+  beside one live one with nothing on screen saying so.
+  - **The predicate is on `computed_at`, not `snapshot_date`.** `rates_snapshots` is keyed
+    `(snapshot_date, computed_at)` and the two answer different questions: `snapshot_date` is the
+    market date an answer is _about_, `computed_at` is when the answer _came into existence_. A
+    backfill can write a row for an old market date long after the fact, so filtering on
+    `snapshot_date <= T` would hand a replay of May a snapshot assembled in August — reading today's
+    answer into the past. The test is built on a fixture where the newer compute carries the earlier
+    market date, so the two columns rank oppositely and a wrong-column query cannot accidentally pass.
+  - **Replay had to stop lying about staleness.** `_mark_stale_snapshot_sources` compared
+    `now - computed_at > 36h` against wall-clock now, which condemns all of history: every replay
+    would have rewritten every `ok` source to `stale` and appended a scheduler-failure risk to every
+    past date. It now measures against the _requested_ instant, and the keyword was renamed `now:` →
+    `at:` so the bug cannot be read back in. Paired tests pin both directions — a replay 58 minutes
+    after compute stays `ok`, a replay four days after compute still reports `stale` — because the
+    fix must not become blanket amnesty.
+  - No migration: `idx_rates_snapshots_latest_compute (computed_at DESC, snapshot_date DESC)`
+    (migration `052`) already serves it. There is also only one statement, not two — "no bound" is
+    spelled `COALESCE(%s::timestamptz, 'infinity')` rather than by assembling the `WHERE` clause in
+    Python, so the live path and the replay path cannot drift apart.
+- **The macro desk is now built against the design board, which it was not.** The port
+  plan never cited the design artifact, so its own prose — "No new analytics. Tabs 00-05
+  are a presentation merge" — won by default and turned four designed inflation panels and
+  two dollar panels into one generic state card each. The board is now a repo file
+  (`docs/superpowers/specs/2026-08-27-macro-desk-board.html`, sha256-pinned) and the plan
+  says the board wins on disagreement. A conformance audit
+  (`docs/research/2026-08-28-macro-desk-board-conformance/`) measured the gap first: 47
+  board panels across tabs 00-05, 26 present, 6 partial, 15 absent or misplaced.
+  - **Tabs 03 and 04 gain the board's six panels, and no endpoint.** The audit's own
+    finding was that the single response each tab already fetched carried every one of
+    them: `confidence_reasons[]` is the confidence arithmetic, `factors[]` split by
+    `causal_role` is realized inflation and expectations, `contradictions[]` over
+    `evidence[]` is the falsifier window, and USD's `factors[]` are literally the
+    nominal/real pair with the engine's own rule for them sitting in `notes[]`.
+  - **Nothing restates the board's numbers.** The board's t4 title says the dollar pair
+    moves "in reverse"; both legs are currently positive, so the sentence is derived from
+    the two signs at render time and a test pins both branches. Same for gold's
+    "correlation collapse", which is derived from the spread between the narrowest and
+    widest correlation window actually present.
+  - **The confidence chain is reconciled, not assumed.** The product of the published
+    terms is compared against the published confidence, and a disagreement renders in the
+    negative colour rather than printing a tidy chain beside a number it does not produce.
+    A zero-valued term still renders, because omitting it makes "no input was revised"
+    indistinguishable from "revisions are not checked".
+  - **The board's acceptance test is now enforceable.** "Every panel must answer at least
+    one of Q1-Q7, or it gets deleted" reached neither the plan nor the code, so nothing
+    could fail it. `BoardPanel` takes a non-empty tuple of questions, gold's bands carry
+    `data-questions`, and an e2e walks the live desk asserting every panel is tagged. The
+    tab-level question strip is checked against the union of its own panels' tags, so it
+    cannot advertise a question no panel on the tab answers.
+  - **The board's design binds too, and now it is in the repo.** The first pass shipped all
+    six panels and still did not look like the board: it answered every question in argon's
+    house typography — a 13px sans panel heading where the board specifies 10px mono
+    uppercase, no accent rail on the interpretive paragraph, and the confidence arithmetic
+    as stacked text instead of bordered term boxes. Nothing could catch that, because the
+    spec's own stylesheet had never been brought across. `web/app/macro/board.css` is now
+    the board's class grammar ported class for class (`.sec-title` / `.panel-h` / `.read` /
+    `.prov` / `.arith` / `.note-refuse` / `.state` / `.tag`), so spec and implementation can
+    be diffed. Argon's tokens were already the board's tokens verbatim, so no palette was
+    added. Three deviations are recorded beside the rules that make them: `rgba()` overlays
+    become `color-mix()` because argon has a light theme the single-theme board does not;
+    everything is scoped under `.board` so the gold and rates tabs sharing this layout keep
+    their own table chrome; and `.arith` wraps instead of `nowrap`, because at our term
+    widths the board's scroller hid the product the panel exists to show.
+  - **The domain tabs drop the summary card for the board's state pill.** The board's t3/t4
+    have no card — the `.sec-title` pill is the summary and the `.sec-sub` names, in prose,
+    what the card's contradiction and freshness rows carried. Both are now derived from the
+    response (rule names, the stalest load-bearing input and its age) rather than copied
+    from the board, whose figures froze at its capture instant. The card stays on `/macro`,
+    the overview it was built for. The pill is coloured by distance from the domain's own
+    reference point and never by a market view; a label nobody has published renders
+    neutral rather than being assigned a severity by guess. The empty slot stays
+    three-state, and a missing state never wears a state colour.
+  - **The board is the whole page, so the design port now covers every tab that ships.**
+    Tabs 03–05 were rebuilt against the board while 01 and 02 kept the old `/rates`
+    styling, and the desk read as two products sharing a tab bar. The divergence was
+    almost entirely one stylesheet: `RatesDesk.module.css` made a **section a box** —
+    `bg-panel` + `border-dim`, then filled with boxed cards — where the board puts exactly
+    one level of boxing on a tab and only `.panel` has a background. Six selectors spelled
+    the panel heading six different ways (13–16px sans, some in `--positive`) against the
+    board's one 10px mono uppercase; interpretive paragraphs had no accent rail and were
+    set 650/800 weight, where the board makes a read findable by its 2px edge rather than
+    by bolding the prose. Tables move to the board's 10px header and 60%-mixed rule, the
+    state pill from frozen `rgba()` (the dark theme's `--positive`, wrong under the light
+    one) to `color-mix()`, and refusals to the board's **dashed** callout — a solid panel
+    reads as another finding, and the one thing a refusal must not look like is a result.
+  - **The page lockups are gone from tabs 01, 02 and 05.** "FED POLICY DESK." and "GOLD
+    COMPASS" each said the same words as the tab bar directly above them, in a different
+    typeface; the board's tabs open with an `<h2>`, the question strip, a state pill where
+    the tab has one, and a standfirst. `BoardSecTitle`/`BoardStatePill` are lifted into
+    `components/macro/domain` and imported by `components/rates` — §7's rule is one-way
+    and its stated remedy for a shared primitive is exactly that lift. The GOLD COMPASS
+    wordmark still renders where it is still the only thing naming the page,
+    `/gold/replay/<date>`, and a unit test holds the two chromes apart.
+  - **Gold's interpretive paragraphs gain the board's read rail**, as an inline style
+    rather than the class: they render on two routes and only `/macro` loads `board.css`,
+    so a class would have styled the desk and silently done nothing on the replay route.
+  - **Tab 05's state pill is fetched only in live mode**, which is a clock decision and not
+    an optimisation. That tab's date is an `obs_date` — the market day a reading is about,
+    matched exactly — while `/api/macro/gold` resolves an instant; handing one to the other
+    would put two different questions under one pill. In replay the pill says so in words.
+  - **Tab 01 gains the refusal panel it was the only tab shipping without**, carrying four
+    invariants that previously existed only as code comments and test assertions.
+  - **Issuance moves from tab 01 to tab 02**, where the board puts it. Who is issuing and
+    who showed up to buy is a curve question; it sat on the Fed tab only because the old
+    `/rates` page grouped it under a heading tab 01 inherited whole.
+  - **Tab 05 opens on the transmission gauge**, as the board does. It decides whether the
+    cyclical lens beneath it means anything — the layout already dimmed that lens when the
+    gauge reads suspended — so a page that made its governing condition discoverable only
+    by scanning a KPI row had buried its own instructions. Expression cost moves out of the
+    lens-1 flow grid into its own band for the same reason: those five cards answer who is
+    buying, and this one answers what it costs to take the view.
+  - **Tab 08 is unlisted.** The board's t8 opens by saying it is for the operator and does
+    not ship on the final page. `/macro/notes` stays registered and reachable by URL; the
+    strip renders a subset, and a test pins that the subset can never contain a route the
+    guard would reject.
+  - Two deferrals are stated on the page rather than dropped: gold's anchor-decay chart
+    wants the gauge's 60-day window and the producer computes that history at 252 days
+    only, and the board's `T5YIFR` 5y5y forward is carried by no published state.
+
+### Changed
+
+- **Two `/gold` panels that could only ever render an em-dash are gone.** `two_force_text` is
+  hardcoded `"—"`/`"—"` in the router with no producer anywhere in the tree, and `decomposition_rows`
+  has been `[]` on every run since it was written (the reason is already recorded in
+  `reports/gold_posture.py`). They rendered "DISCOUNT-RATE CHANNEL —" and "No decomposition data" on
+  every request, forever. `TwoForceNarrative.tsx`, `LensDecompositionPanel.tsx` and
+  `DecompositionBars.tsx` are deleted; the five `role="region"` landmarks survive, with the fifth
+  relabelled "Correlation history" since it no longer contains a decomposition.
+  - **The API fields stay.** Deleting them is a contract change costing an OpenAPI snapshot update
+    and a `web/lib/types.ts` regen that reorders the whole generated file — for no operator benefit,
+    because what misleads is the rendering, not the field.
+  - **The permanently-empty fields are now marked at their producing site**, rather than being
+    rediscovered by the next reader: `rates.events[]` (`RatesEventItem` has zero construction sites
+    in the entire tree — only the class, one default, and two `__all__` entries),
+    `gold_oil_ratio_percentile` (declared on the model, never assigned), `xau_cny_premium_pct`,
+    `cb_52w_pct`, and `InventorySnapshot.vault_oz`. That last one needed a narrower claim than the
+    rest: the DB column is _not_ dead — LBMA rows carry real values and the 30-day momentum reads
+    them — what is dead is the COMEX-labelled snapshot field, which no consumer reads.
+
+### Fixed
+
+- **The gold posture lint could report a clean surface over a directory that was not there.**
+  `web/scripts/lint-gold-copy.mjs` caught a missing scope root and skipped it, so the script
+  exited **0 with no output** — and re-homing a page shell under `/macro` is exactly the move
+  that removes a root. A missing root now names itself and exits non-zero, the scope is an
+  exported, tested value rather than a literal inside `main()`, and the violation the lint was
+  already failing on (two banned adjectives in a comment) is gone. `components/rates` stays
+  deliberately out of scope: the legacy rates scorecard is authorised to print its own stance
+  word inside the curve tab's refusal panel, and listing that directory would fail the build
+  over a rendering that was explicitly approved.
+
+- **The macro desk's chart-scale gate was specified wrong, and only running it showed that.**
+  Declared in the previous release as `test.fixme` with zero SVGs to measure, it selected
+  `svg[viewBox]` document-wide. Run for the first time against real charts it failed **42
+  times — on argon's own navigation**: the sidebar draws 12 lucide icons per page and
+  `/macro/rates` carries 6 more inside `<main>`, each `viewBox="0 0 24 24"` rendered at 16px,
+  so k = 0.667. That is what an icon is, not a defect. The gate now selects
+  `svg[role="img"][viewBox]` — the convention `web/components/CLAUDE.md` already mandates for
+  chart SVGs — and carries a second assertion so the selector cannot go blind: any SVG in the
+  content area at least 200 units wide must declare itself a chart.
+  - **Both frames re-measured in a real browser at 1440×900, as the plan required**, because
+    `NARROW_FRAME`'s 760 is cut to a grid cell that is a fraction of the shell and the new tab
+    bar could have moved it. It did not: the wide strips render at 1128px against 1132px
+    measured before the port (0.35%), k = 0.940, and the curve cell gives k = 0.930. The
+    constants are therefore deliberately unchanged — pinning them to today's pixel widths
+    would hard-code one viewport into a module whose thesis is that the scale factor, not the
+    viewBox, is the invariant.
+- **An unregistered macro tab looked hung rather than missing.** `notFound()` had no boundary
+  inside the desk to land on, so `/macro/<anything>` sat on the loading fallback forever.
+  `app/macro/[tab]/not-found.tsx` now says the tab does not exist — a fourth kind of nothing,
+  kept distinct from the three the desk already separates. The route still answers **200, not
+  404**, and that is framework-wide rather than this desk's: `notFound()` cannot set a status
+  once a `force-dynamic` route has begun streaming, and argon's pre-existing
+  `/stock/[ticker]/[tab]` answers 200 for an unknown tab too. Verified against both servers
+  and with the loading boundary removed. The gap is recorded in the spec with its cause
+  instead of deleted, because an expectation quietly dropped reads the same as one never held.
+
+- **A dead gold API and an un-run gold engine were the same sight on screen.** `fetchGoldState`
+  returned `null` both for a non-2xx response and for any thrown error, and the page rendered one
+  message for both: _"Posture not yet computed. First scheduled run lands at the next worker
+  tick."_ An unreachable API therefore told the operator the engine had not run yet — a claim the
+  page had no basis to make, and one that sends him looking in the wrong place.
+  - Three states now, as the desk requires: answered, request failed, never computed. On these
+    routes a 404 genuinely _is_ a statement about the data (`no gold posture computed yet`), so
+    404 maps to absence and every other non-2xx throws. The failure copy says the API could not be
+    read and that whether a posture exists is therefore unknown, instead of guessing which it was.
+  - `/gold` also re-inlined the base-URL resolution `lib/api.ts` already owns, with no
+    `api.goldState()` to call. Both are added, and `/gold/replay/[date]` moves onto them too — it
+    held an identical copy of the same fetch and the same collapse, so fixing only `/gold` would
+    have shipped `goldReplay()` with no callers and left the defect intact one directory down.
+  - `/api/gold/replay` takes `as_of` as a **query** parameter, not a path segment; a test pins that
+    so a future path-segment assumption fails loudly rather than 404ing at runtime.
+- **`/rates` told you confidence was reduced by `×0.00`, beside a confidence of `0.850`.**
+  `ConfidenceTerm` defaults `kind` to `"multiplicand"` (`macro/contracts.py`), and two terms in
+  `macro/rates.py` were constructed without it. The UI trusts `kind` — `StateSection.tsx` files any
+  multiplicand below 1.0 under "Reduced by" — so a term that contributes nothing rendered as the
+  thing that had halved the number.
+  - **Neither term was ever in the product.** `macro/confidence.py` computes confidence from five
+    raw locals and _then_ builds the reasons tuple; `macro/rates.py` appends its own terms afterwards
+    without touching the number. Every appended term is outside the arithmetic by construction, and
+    `informational` is what "reported, not counted" has always meant here.
+  - **The second one was invisible rather than wrong.** `policy_paths_absent` carries a _count_
+    (`Decimal(len(missing))`), so its value is always ≥ 1 and it never tripped the `< 1` filter — it
+    appeared in neither UI list, which is why nobody noticed it was mislabelled either.
+  - **The regression test is deliberately blind to term names.** It refolds `confidence_reasons`
+    using only `kind` and requires the result to equal the reported `confidence`; separately it
+    requires anything not `informational` to be a fraction in `[0, 1]`, because a count can never be
+    a multiplier.
+  - **The first version of that test could not fail on half the bug, and adversarial review caught
+    it.** Reverting `kind` on `policy_paths_absent` left the whole suite green: in every shipped
+    scenario exactly one required path is absent, so the term carries `Decimal(1)` — which is a
+    no-op as a multiplicand AND a legal fraction, so neither guard can see it. One is the single
+    count that hides this defect. A second rates scenario holding only `actual` and `market_implied`
+    makes the count 2, and reverting either half of the fix now fails two tests. Measured both ways.
+  - The irony is written into the contract itself: `kind` exists so that consumers need not match on
+    term strings, and `kind` was the field that was wrong.
+
+## [0.13.0] — 2026-08-29
+
+### Added
+
+- **The fundamentals industry desk: `/fundamentals` -> `/fundamentals/ai-semi` -> node pages.** Six
+  read-only endpoints (`calendar`, `delta`, `matrix`, `profit-pool`, `limits`, `node/underwriting`)
+  over the warm store at zero vendor spend, and the six panels that read them. A section is one
+  registry row and a chain inside it is zero code — taxonomy rows alone make a node appear. Four
+  rules are measurements, not styling: `valuation_percentile` carries NO median (own-history value
+  measured real, within-ticker IC +0.0744 t 5.77, while cross-sectional value measured INVERTED in
+  the same universe, so a chain aggregate over own-history percentiles is a claim nothing supports);
+  cohorts that straddle two `as_of` buckets never merge, because `as_of` is a cross-section
+  IDENTIFIER and the cohort effect measured 1.9x; the profit pool has no arrows, propagation or
+  lead/lag copy, because the capex-demand ledger's cross-name relationship collapsed from +0.247 to
+  +0.015 (p=0.44) once same-sector pairs were compared; and the capex strip deliberately has no
+  fetcher and no model field, since building a data path for the most widely circulated number in
+  the sector would re-promote the figure the spec demoted. An unknown section 404s rather than
+  rendering an empty desk, an unknown `?sort=` answers 422 rather than being silently ignored, and
+  every panel settles independently so one failed endpoint leaves the other five standing.
+
+- **Nightly desk rollup of per-name revenue YoY and gross margin** (migration `147`,
+  `fundamentals_desk_rollup`), recording whether each row's knowledge date is a real filing date or
+  the period-end estimate — the flag is three-state, and `null` is not `false`.
+
+- **`/fundamentals` index, with Radar folded in as the triage tab.** `/radar` and `/chains` keep
+  resolving (they are in browser histories and in this repo's docs) and redirect into the desk;
+  the nav carries one Fundamentals entry instead of two pointing at redirects. The all-domain
+  chain x layer matrix at `/chains` is superseded and its component deleted rather than left
+  unreachable — per-chain drilldown at `/chains/[chain]` is untouched.
+
+- **Node deep-dive page `/fundamentals/ai-semi/<chain>`** — the first consumer of the desk's read-only
+  API. Composes the stored versioned report (it REPLAYS from stored blocks and never assembles) with a
+  live calendar strip, the underwriting table, the open alias questions and the node's limits block.
+  A CATCH-ALL route, because 20 of 38 chain names contain a slash; `chain` reaches the API as a query
+  parameter for the same reason. Every absence keeps its own identity all the way to the screen: a null
+  implied move reads "not covered" (never `0`, never a dash), a null session gets a visible unknown
+  badge rather than a guess or a hidden row, an empty reaction list says no history is _held_,
+  `no_compatible_run` and `no_coverage` are worded so neither can be read as the other, and an unknown
+  chain answers 404 (`notFound()`) while a real chain holding no rows renders as the empty node it is.
+  Filing provenance is visible in the row as well as in the tooltip — a tooltip is unreachable on touch
+  and to a screen reader. The page lists; it carries no sort, rank or score affordance.
+
+- **The AI chain desk, rebuilt as a fundamental PM's question ladder.** `/fundamentals/ai-semi` is now
+  five sections in a fixed order, because the order is the argument and question three cannot be
+  answered before question one: _is the money still coming_ (hyperscaler capex), _where does it land_
+  (the chain map), _does it transmit_ (the case funnels, on their own route), _what am I paying_
+  (own-history valuation), _what would falsify this_ (the measured limits). Three new read-only
+  endpoints feed it — `capex`, `cases`, `scope` — plus `layer`/`layer_rank` on every matrix cell and
+  the section's non-USD filers on `limits`, all additive.
+
+- **Capex gets a data path, reversing its demotion — as the desk's PREMISE, not its edge.** The old
+  argument (the figure is on every sell-side deck, so it cannot be where the edge comes from) still
+  holds and nothing is ranked by it. What changed is structure: every revenue dollar downstream is
+  somebody else's capital expenditure, so it is the only number on the desk not derived from another
+  number on the desk. It is also **the single place a currency amount is summed across companies**,
+  bounded three ways: USD filers only, the excluded name and its currency printed with the figure
+  (BABA/CNY today), and a quarter missing any panel member's revenue reporting a null intensity rather
+  than a partial ratio. The strip's sign warning survives verbatim: for the names that _spend_ it,
+  rising capex is a cost line arriving as depreciation.
+
+- **Three hand-rolled 3D canvas scenes** (`lib/fundamentals/scene.ts`, ~120 lines of perspective
+  projection, no chart library) — one chain map and two stage funnels. The third axis is the
+  deliverable: a PM needs growth, margin and stack position at once, and any two of those on a flat
+  chart hides the third. Measured on the real chain, the map's own finding is that the LAYER explains
+  less than the CHAIN does — 8.9pp between layer medians against 27.6pp inside L1 alone — and that
+  growth and margin are close to unrelated (r = 0.149, t = 0.72 over 25 chains).
+
+- **Two cases, one shared radius scale, one request, one route** (`/fundamentals/ai-semi/cases`).
+  Optical interconnect amplifies **4.08x** while the datacenter buildout opens to **1.95x**,
+  with 3 of its 4 supplying stages growing more slowly than the customers they supply — the same
+  capital expenditure, two entirely different transmissions, and a reading no sector screen can
+  produce. The shared scale is load-bearing and fails silently when broken, so both funnels render
+  from one component, side by side, from one response; an e2e test asserts the geometry.
+
+- **The boundary is computed, not listed.** `/fundamentals/ai-semi/scope` returns the taxonomy groups
+  outside the section's domains under **their own names** — never "unclassified", which describes an
+  absence in Argon as an absence in the world. Several (`Sector-ETF`, `M7`, `Beta`, `Macro`) are
+  portfolio-construction tags with no stages to order, so modelling them as supply chains would be a
+  category error rather than merely unbuilt work.
+
+- **The chain x metric matrix and the profit-pool strip are deleted, not moved.** The 3D map shows the
+  same medians with the layer as a third axis; the flat strip showed a subset of them. The delta rail
+  and print calendar survive as a subordinate "desk log" below the ladder — they answer what changed
+  and what prints next, which no question on the ladder covers.
+
+- **The daily statement ingest now also reads the calendar FORWARD**
+  (`UW_SCAN_FUNDAMENTAL_INGEST_DAILY_FORWARD_DAYS`, default 14). The scan was
+  backward-only, so `earnings_calendar` never held a row for a print that had
+  not happened yet — measured on 2026-08-29: 2,443 rows, **zero** with
+  `report_date >= CURRENT_DATE`. The desk's "what prints next" panel reads
+  `next_prints(on_or_after=today)`, so it was structurally empty and would have
+  stayed that way, rendering "nothing prints next" out of a question never
+  asked. The two windows stay asymmetric on purpose: the backward one finds
+  statements to ingest, and the forward one ingests nothing — folding its
+  listings into the ingest targets would spend 4 UW calls per name to retrieve a
+  statement that does not exist yet, every run, until the company reported.
+  Costs 2 UW calls per forward day per run (~28/day), reported separately as
+  `calendar_forward_rows_new`.
+
+### Fixed
+
+- **The typed event ledger was inert in production, and the nightly job that feeds the delta rail
+  would have raised on its first real event.** `research_event_classes` held ZERO rows on the mini
+  (measured 2026-08-28), so `record_events` refused every write. `register_discovery_gate` is the
+  only thing that populates that table and it had no caller anywhere — it appeared in two docstrings
+  and was never invoked, while every test called it as fixture setup, so the suite stayed green over
+  a job that could not work. `derive_change_events` now seeds the registry itself; because
+  `register_classes` upserts a FIXED list whose statuses live in code, this is a seed and never a
+  bypass — a killed class is re-registered as killed and keeps refusing writes. The failure was
+  silent by construction: with nothing registered, the desk's delta rail renders "Argon learned
+  nothing new", which reads as a quiet week rather than a dead pipeline.
+
+- **A chain mid-reporting-season collided its own cohort groups.** `label` is `reported` for the
+  newest `as_of` bucket and `awaiting` for EVERY older one, so a cell legitimately carries two or
+  more `awaiting` cohorts (measured: `Cybersecurity/rev_yoy` returned
+  `['reported','awaiting','awaiting']`). Keying the group on the label alone produced duplicate React
+  keys and a test id matching two elements — passing on any fixture holding one of each, throwing
+  against real data. Keyed on `as_of` now, and the fixture carries the real three-cohort shape.
+
+- **The chain matrix's dot tooltips broke hydration.** Adjacent JSX text children inside an SVG
+  `<title>` serialize differently on the server than they hydrate on the client, so React discarded
+  and re-rendered the whole matrix subtree on every load.
+
+- **The report route couldn't address a chain whose name has a slash.** `key` was a plain path
+  parameter on both `GET /research/reports/{report_type}/{key}` and its `/versions/{n}` sibling, and
+  20 of the desk's 38 chain names contain one (`Networking/Optical`, `Semi-Logic/ASIC`, …) — uvicorn
+  unquotes `%2F` to a literal `/` before Starlette routes the request, so a single-segment converter
+  404s on it, latent until the first chain report is assembled. `{key:path}` fixes addressing on all
+  three routes (both GETs and the POST assemble), but registration order is separately load-bearing:
+  `{key:path}` is greedy, so the `/versions/{n}` route must be registered _before_ the plain one or it
+  swallows `versions/N` into `key` and answers 200 from the wrong route with a corrupted key instead
+  of ever reaching the version route or 404ing — a wrong answer that looks like a right one, not a
+  crash. Pinned by asserting the resolved version _payload_, not merely a 200 (confirmed by reversing
+  the order and watching the new test go red). `web/lib/api.ts`'s two report-fetch call sites stop
+  percent-encoding the slash (`_rawSlash`, matching the desk's existing query-param pattern); a third,
+  previously-unencoded call site in `ReportView.tsx`'s version-history links now `encodeURIComponent`s
+  the key, which is the opposite fix — that link addresses Next's own single-segment `[key]` route,
+  which (unlike uvicorn) splits on a literal `/` before decoding, so a raw slash there 404s instead.
+
+## [0.12.18] — 2026-08-28
+
+### Added
+
 - **Durable earnings-calendar spine** (migration `144`, `earnings_calendar`) — `EarningsCalendarRepository`
   (`upsert_rows`/`next_prints`/`prints_between`) gives the reaction and implied-move jobs below a print-date
   table to read instead of re-deriving one each, PK `(ticker, report_date)` with a nullable `session`.
@@ -418,53 +664,6 @@ version in lockstep (enforced by `scripts/release/version_sync_check.py`).
     `uv run python scripts/backfill/research_taxonomy_seed.py` on the mini after deploy, or the five
     chains stay on their rank-0 `L3` placeholder. Zero provider spend, idempotent — a second run is
     a measured no-op.
-- **The macro desk has a shell at `/macro`, and it grows one tab at a time.** `/rates`, `/macro`
-  and `/gold` are being collapsed into one nine-tab desk. Shipping the whole tab bar first would
-  have put nine links on screen of which eight `404`, for the length of six PRs — and the redirects
-  would have sent two working pages into that hole. The fix is structural rather than a schedule.
-  - **`VALID_TABS` is a registry, and it feeds both halves of the navigation.** The route
-    `notFound()`s on any unregistered slug and the bar renders exactly one link per entry, so the
-    bar cannot link somewhere that 404s and the route cannot answer a slug the bar does not show.
-    A tab becomes reachable in the same commit that makes it real. The content map is keyed by a
-    union derived from the registry itself, so registering a tab with nothing behind it is a
-    compile error rather than a runtime 404. This PR seeds it with tab 08 (Design Notes) alone.
-  - The board's tab number is stored, not implied by array position — registration order is PR
-    order, and PR order is not board order.
-  - **`prefetch={false}` on every link.** A nine-tab bar sits entirely in the viewport, and Next
-    prefetches the _full_ route for a dynamic one; on the stock page's bare `prefetch` this would
-    fire nine RSC prefetches into `force-dynamic` server components on every page view.
-  - A `<nav aria-label>` with `aria-current="page"`, not a `role="tablist"`. A link bar whose
-    panels are separate documents is not a tablist, and honest markup beats a role that lies.
-  - Four boundaries, not three: a segment's own `error.tsx` cannot catch a throw from that
-    segment's `layout.tsx`, which is exactly where the tab bar lives.
-  - `/macro` itself is deliberately untouched and still renders today's four domain cards, with an
-    e2e test pinning that — so the desk can be built tab by tab without the page ever 404ing.
-  - The gold posture linter now also scans `components/macro` and `app/macro`; the desk is one
-    posture surface now, and tab 08 is prose inside its scope. Verified non-vacuous by planting a
-    banned word under each new root.
-- **`/api/rates/snapshot` can now answer as of a past instant** — `as_of` (a date) and `as_of_ts` (an
-  aware timestamp), the same contract every `/api/macro/*` route already honours: supplying both is a
-  422, a naive timestamp is a 422, neither is `now`. It was the only endpoint on the macro desk with
-  no point-in-time replay, which meant a replayed desk would have rendered four historical panels
-  beside one live one with nothing on screen saying so.
-  - **The predicate is on `computed_at`, not `snapshot_date`.** `rates_snapshots` is keyed
-    `(snapshot_date, computed_at)` and the two answer different questions: `snapshot_date` is the
-    market date an answer is _about_, `computed_at` is when the answer _came into existence_. A
-    backfill can write a row for an old market date long after the fact, so filtering on
-    `snapshot_date <= T` would hand a replay of May a snapshot assembled in August — reading today's
-    answer into the past. The test is built on a fixture where the newer compute carries the earlier
-    market date, so the two columns rank oppositely and a wrong-column query cannot accidentally pass.
-  - **Replay had to stop lying about staleness.** `_mark_stale_snapshot_sources` compared
-    `now - computed_at > 36h` against wall-clock now, which condemns all of history: every replay
-    would have rewritten every `ok` source to `stale` and appended a scheduler-failure risk to every
-    past date. It now measures against the _requested_ instant, and the keyword was renamed `now:` →
-    `at:` so the bug cannot be read back in. Paired tests pin both directions — a replay 58 minutes
-    after compute stays `ok`, a replay four days after compute still reports `stale` — because the
-    fix must not become blanket amnesty.
-  - No migration: `idx_rates_snapshots_latest_compute (computed_at DESC, snapshot_date DESC)`
-    (migration `052`) already serves it. There is also only one statement, not two — "no bound" is
-    spelled `COALESCE(%s::timestamptz, 'infinity')` rather than by assembling the `WHERE` clause in
-    Python, so the live path and the replay path cannot drift apart.
 - **The macro ledger can now say "we accepted this and were wrong"** — additive, point-in-time
   evidence invalidation (migration `131`, `macro_evidence_invalidations`). F2, the last open item
   in the macro program.
@@ -749,125 +948,8 @@ evidence_policy)`, which fails closed — an observation with no claim never
   provider spend, resumable by keyset, `--audit` writes a self-checking coverage
   artifact). Runbook `docs/runbooks/fundamental-observation-availability.md`.
 
-- **The macro desk is now built against the design board, which it was not.** The port
-  plan never cited the design artifact, so its own prose — "No new analytics. Tabs 00-05
-  are a presentation merge" — won by default and turned four designed inflation panels and
-  two dollar panels into one generic state card each. The board is now a repo file
-  (`docs/superpowers/specs/2026-08-27-macro-desk-board.html`, sha256-pinned) and the plan
-  says the board wins on disagreement. A conformance audit
-  (`docs/research/2026-08-28-macro-desk-board-conformance/`) measured the gap first: 47
-  board panels across tabs 00-05, 26 present, 6 partial, 15 absent or misplaced.
-  - **Tabs 03 and 04 gain the board's six panels, and no endpoint.** The audit's own
-    finding was that the single response each tab already fetched carried every one of
-    them: `confidence_reasons[]` is the confidence arithmetic, `factors[]` split by
-    `causal_role` is realized inflation and expectations, `contradictions[]` over
-    `evidence[]` is the falsifier window, and USD's `factors[]` are literally the
-    nominal/real pair with the engine's own rule for them sitting in `notes[]`.
-  - **Nothing restates the board's numbers.** The board's t4 title says the dollar pair
-    moves "in reverse"; both legs are currently positive, so the sentence is derived from
-    the two signs at render time and a test pins both branches. Same for gold's
-    "correlation collapse", which is derived from the spread between the narrowest and
-    widest correlation window actually present.
-  - **The confidence chain is reconciled, not assumed.** The product of the published
-    terms is compared against the published confidence, and a disagreement renders in the
-    negative colour rather than printing a tidy chain beside a number it does not produce.
-    A zero-valued term still renders, because omitting it makes "no input was revised"
-    indistinguishable from "revisions are not checked".
-  - **The board's acceptance test is now enforceable.** "Every panel must answer at least
-    one of Q1-Q7, or it gets deleted" reached neither the plan nor the code, so nothing
-    could fail it. `BoardPanel` takes a non-empty tuple of questions, gold's bands carry
-    `data-questions`, and an e2e walks the live desk asserting every panel is tagged. The
-    tab-level question strip is checked against the union of its own panels' tags, so it
-    cannot advertise a question no panel on the tab answers.
-  - **The board's design binds too, and now it is in the repo.** The first pass shipped all
-    six panels and still did not look like the board: it answered every question in argon's
-    house typography — a 13px sans panel heading where the board specifies 10px mono
-    uppercase, no accent rail on the interpretive paragraph, and the confidence arithmetic
-    as stacked text instead of bordered term boxes. Nothing could catch that, because the
-    spec's own stylesheet had never been brought across. `web/app/macro/board.css` is now
-    the board's class grammar ported class for class (`.sec-title` / `.panel-h` / `.read` /
-    `.prov` / `.arith` / `.note-refuse` / `.state` / `.tag`), so spec and implementation can
-    be diffed. Argon's tokens were already the board's tokens verbatim, so no palette was
-    added. Three deviations are recorded beside the rules that make them: `rgba()` overlays
-    become `color-mix()` because argon has a light theme the single-theme board does not;
-    everything is scoped under `.board` so the gold and rates tabs sharing this layout keep
-    their own table chrome; and `.arith` wraps instead of `nowrap`, because at our term
-    widths the board's scroller hid the product the panel exists to show.
-  - **The domain tabs drop the summary card for the board's state pill.** The board's t3/t4
-    have no card — the `.sec-title` pill is the summary and the `.sec-sub` names, in prose,
-    what the card's contradiction and freshness rows carried. Both are now derived from the
-    response (rule names, the stalest load-bearing input and its age) rather than copied
-    from the board, whose figures froze at its capture instant. The card stays on `/macro`,
-    the overview it was built for. The pill is coloured by distance from the domain's own
-    reference point and never by a market view; a label nobody has published renders
-    neutral rather than being assigned a severity by guess. The empty slot stays
-    three-state, and a missing state never wears a state colour.
-  - **The board is the whole page, so the design port now covers every tab that ships.**
-    Tabs 03–05 were rebuilt against the board while 01 and 02 kept the old `/rates`
-    styling, and the desk read as two products sharing a tab bar. The divergence was
-    almost entirely one stylesheet: `RatesDesk.module.css` made a **section a box** —
-    `bg-panel` + `border-dim`, then filled with boxed cards — where the board puts exactly
-    one level of boxing on a tab and only `.panel` has a background. Six selectors spelled
-    the panel heading six different ways (13–16px sans, some in `--positive`) against the
-    board's one 10px mono uppercase; interpretive paragraphs had no accent rail and were
-    set 650/800 weight, where the board makes a read findable by its 2px edge rather than
-    by bolding the prose. Tables move to the board's 10px header and 60%-mixed rule, the
-    state pill from frozen `rgba()` (the dark theme's `--positive`, wrong under the light
-    one) to `color-mix()`, and refusals to the board's **dashed** callout — a solid panel
-    reads as another finding, and the one thing a refusal must not look like is a result.
-  - **The page lockups are gone from tabs 01, 02 and 05.** "FED POLICY DESK." and "GOLD
-    COMPASS" each said the same words as the tab bar directly above them, in a different
-    typeface; the board's tabs open with an `<h2>`, the question strip, a state pill where
-    the tab has one, and a standfirst. `BoardSecTitle`/`BoardStatePill` are lifted into
-    `components/macro/domain` and imported by `components/rates` — §7's rule is one-way
-    and its stated remedy for a shared primitive is exactly that lift. The GOLD COMPASS
-    wordmark still renders where it is still the only thing naming the page,
-    `/gold/replay/<date>`, and a unit test holds the two chromes apart.
-  - **Gold's interpretive paragraphs gain the board's read rail**, as an inline style
-    rather than the class: they render on two routes and only `/macro` loads `board.css`,
-    so a class would have styled the desk and silently done nothing on the replay route.
-  - **Tab 05's state pill is fetched only in live mode**, which is a clock decision and not
-    an optimisation. That tab's date is an `obs_date` — the market day a reading is about,
-    matched exactly — while `/api/macro/gold` resolves an instant; handing one to the other
-    would put two different questions under one pill. In replay the pill says so in words.
-  - **Tab 01 gains the refusal panel it was the only tab shipping without**, carrying four
-    invariants that previously existed only as code comments and test assertions.
-  - **Issuance moves from tab 01 to tab 02**, where the board puts it. Who is issuing and
-    who showed up to buy is a curve question; it sat on the Fed tab only because the old
-    `/rates` page grouped it under a heading tab 01 inherited whole.
-  - **Tab 05 opens on the transmission gauge**, as the board does. It decides whether the
-    cyclical lens beneath it means anything — the layout already dimmed that lens when the
-    gauge reads suspended — so a page that made its governing condition discoverable only
-    by scanning a KPI row had buried its own instructions. Expression cost moves out of the
-    lens-1 flow grid into its own band for the same reason: those five cards answer who is
-    buying, and this one answers what it costs to take the view.
-  - **Tab 08 is unlisted.** The board's t8 opens by saying it is for the operator and does
-    not ship on the final page. `/macro/notes` stays registered and reachable by URL; the
-    strip renders a subset, and a test pins that the subset can never contain a route the
-    guard would reject.
-  - Two deferrals are stated on the page rather than dropped: gold's anchor-decay chart
-    wants the gauge's 60-day window and the producer computes that history at 252 days
-    only, and the board's `T5YIFR` 5y5y forward is carried by no published state.
-
 ### Changed
 
-- **Two `/gold` panels that could only ever render an em-dash are gone.** `two_force_text` is
-  hardcoded `"—"`/`"—"` in the router with no producer anywhere in the tree, and `decomposition_rows`
-  has been `[]` on every run since it was written (the reason is already recorded in
-  `reports/gold_posture.py`). They rendered "DISCOUNT-RATE CHANNEL —" and "No decomposition data" on
-  every request, forever. `TwoForceNarrative.tsx`, `LensDecompositionPanel.tsx` and
-  `DecompositionBars.tsx` are deleted; the five `role="region"` landmarks survive, with the fifth
-  relabelled "Correlation history" since it no longer contains a decomposition.
-  - **The API fields stay.** Deleting them is a contract change costing an OpenAPI snapshot update
-    and a `web/lib/types.ts` regen that reorders the whole generated file — for no operator benefit,
-    because what misleads is the rendering, not the field.
-  - **The permanently-empty fields are now marked at their producing site**, rather than being
-    rediscovered by the next reader: `rates.events[]` (`RatesEventItem` has zero construction sites
-    in the entire tree — only the class, one default, and two `__all__` entries),
-    `gold_oil_ratio_percentile` (declared on the model, never assigned), `xau_cny_premium_pct`,
-    `cb_52w_pct`, and `InventorySnapshot.vault_oz`. That last one needed a narrower claim than the
-    rest: the DB column is _not_ dead — LBMA rows carry real values and the 30-day momentum reads
-    them — what is dead is the COMEX-labelled snapshot field, which no consumer reads.
 - **Phase 1 of the top-down macro program is closed**, scored against the eight completion criteria
   it wrote for itself on 2026-08-12 (`2026-08-12-top-down-macro-context-program.md` §10). Six are met,
   two are not, and the two are recorded as _answered_ rather than _outstanding_. Documentation only.
@@ -977,42 +1059,6 @@ evidence_policy)`, which fails closed — an observation with no claim never
 
 ### Fixed
 
-- **The gold posture lint could report a clean surface over a directory that was not there.**
-  `web/scripts/lint-gold-copy.mjs` caught a missing scope root and skipped it, so the script
-  exited **0 with no output** — and re-homing a page shell under `/macro` is exactly the move
-  that removes a root. A missing root now names itself and exits non-zero, the scope is an
-  exported, tested value rather than a literal inside `main()`, and the violation the lint was
-  already failing on (two banned adjectives in a comment) is gone. `components/rates` stays
-  deliberately out of scope: the legacy rates scorecard is authorised to print its own stance
-  word inside the curve tab's refusal panel, and listing that directory would fail the build
-  over a rendering that was explicitly approved.
-
-- **The macro desk's chart-scale gate was specified wrong, and only running it showed that.**
-  Declared in the previous release as `test.fixme` with zero SVGs to measure, it selected
-  `svg[viewBox]` document-wide. Run for the first time against real charts it failed **42
-  times — on argon's own navigation**: the sidebar draws 12 lucide icons per page and
-  `/macro/rates` carries 6 more inside `<main>`, each `viewBox="0 0 24 24"` rendered at 16px,
-  so k = 0.667. That is what an icon is, not a defect. The gate now selects
-  `svg[role="img"][viewBox]` — the convention `web/components/CLAUDE.md` already mandates for
-  chart SVGs — and carries a second assertion so the selector cannot go blind: any SVG in the
-  content area at least 200 units wide must declare itself a chart.
-  - **Both frames re-measured in a real browser at 1440×900, as the plan required**, because
-    `NARROW_FRAME`'s 760 is cut to a grid cell that is a fraction of the shell and the new tab
-    bar could have moved it. It did not: the wide strips render at 1128px against 1132px
-    measured before the port (0.35%), k = 0.940, and the curve cell gives k = 0.930. The
-    constants are therefore deliberately unchanged — pinning them to today's pixel widths
-    would hard-code one viewport into a module whose thesis is that the scale factor, not the
-    viewBox, is the invariant.
-- **An unregistered macro tab looked hung rather than missing.** `notFound()` had no boundary
-  inside the desk to land on, so `/macro/<anything>` sat on the loading fallback forever.
-  `app/macro/[tab]/not-found.tsx` now says the tab does not exist — a fourth kind of nothing,
-  kept distinct from the three the desk already separates. The route still answers **200, not
-  404**, and that is framework-wide rather than this desk's: `notFound()` cannot set a status
-  once a `force-dynamic` route has begun streaming, and argon's pre-existing
-  `/stock/[ticker]/[tab]` answers 200 for an unknown tab too. Verified against both servers
-  and with the loading boundary removed. The gap is recorded in the spec with its cause
-  instead of deleted, because an expectation quietly dropped reads the same as one never held.
-
 - **Seven optical/networking names were pricing through `power_infra`/`ebitda_to_ev` instead of their
   own chain's `chips_cyclical`/`sales_to_ev`.** `AAOI`, `ANET`, `COHR`, `CRDO`, `FN`, `LITE` and `MRVL`
   all carry `watchlist.sector = 'DC-Connect'`, a real tag for other names that happened to shadow
@@ -1023,45 +1069,6 @@ evidence_policy)`, which fails closed — an observation with no claim never
   `docs/research/2026-08-26-optical-chain-pm-desk/routing_probe.md`). No engine-version change —
   `company_type` is already part of `valuation_anchors`' own identity hash, so a corrected band appears
   under the existing active version on the next scheduled run.
-- **A dead gold API and an un-run gold engine were the same sight on screen.** `fetchGoldState`
-  returned `null` both for a non-2xx response and for any thrown error, and the page rendered one
-  message for both: _"Posture not yet computed. First scheduled run lands at the next worker
-  tick."_ An unreachable API therefore told the operator the engine had not run yet — a claim the
-  page had no basis to make, and one that sends him looking in the wrong place.
-  - Three states now, as the desk requires: answered, request failed, never computed. On these
-    routes a 404 genuinely _is_ a statement about the data (`no gold posture computed yet`), so
-    404 maps to absence and every other non-2xx throws. The failure copy says the API could not be
-    read and that whether a posture exists is therefore unknown, instead of guessing which it was.
-  - `/gold` also re-inlined the base-URL resolution `lib/api.ts` already owns, with no
-    `api.goldState()` to call. Both are added, and `/gold/replay/[date]` moves onto them too — it
-    held an identical copy of the same fetch and the same collapse, so fixing only `/gold` would
-    have shipped `goldReplay()` with no callers and left the defect intact one directory down.
-  - `/api/gold/replay` takes `as_of` as a **query** parameter, not a path segment; a test pins that
-    so a future path-segment assumption fails loudly rather than 404ing at runtime.
-- **`/rates` told you confidence was reduced by `×0.00`, beside a confidence of `0.850`.**
-  `ConfidenceTerm` defaults `kind` to `"multiplicand"` (`macro/contracts.py`), and two terms in
-  `macro/rates.py` were constructed without it. The UI trusts `kind` — `StateSection.tsx` files any
-  multiplicand below 1.0 under "Reduced by" — so a term that contributes nothing rendered as the
-  thing that had halved the number.
-  - **Neither term was ever in the product.** `macro/confidence.py` computes confidence from five
-    raw locals and _then_ builds the reasons tuple; `macro/rates.py` appends its own terms afterwards
-    without touching the number. Every appended term is outside the arithmetic by construction, and
-    `informational` is what "reported, not counted" has always meant here.
-  - **The second one was invisible rather than wrong.** `policy_paths_absent` carries a _count_
-    (`Decimal(len(missing))`), so its value is always ≥ 1 and it never tripped the `< 1` filter — it
-    appeared in neither UI list, which is why nobody noticed it was mislabelled either.
-  - **The regression test is deliberately blind to term names.** It refolds `confidence_reasons`
-    using only `kind` and requires the result to equal the reported `confidence`; separately it
-    requires anything not `informational` to be a fraction in `[0, 1]`, because a count can never be
-    a multiplier.
-  - **The first version of that test could not fail on half the bug, and adversarial review caught
-    it.** Reverting `kind` on `policy_paths_absent` left the whole suite green: in every shipped
-    scenario exactly one required path is absent, so the term carries `Decimal(1)` — which is a
-    no-op as a multiplicand AND a legal fraction, so neither guard can see it. One is the single
-    count that hides this defect. A second rates scenario holding only `actual` and `market_implied`
-    makes the count 2, and reverting either half of the fix now fails two tests. Measured both ways.
-  - The irony is written into the contract itself: `kind` exists so that consumers need not match on
-    term strings, and `kind` was the field that was wrong.
 - **`CLAUDE.md` said schema changes apply out-of-band via the profile-gated migrator. They do not.**
   The `api` service self-migrates before serving (`python -m uw_scan.storage.migrate_runner && exec
 uvicorn`, `docker-compose.yml`), so a Watchtower deploy carries its migrations with it; the
@@ -1123,6 +1130,7 @@ uvicorn`, `docker-compose.yml`), so a Watchtower deploy carries its migrations w
   result dict on `risk_kind` alone, so all but the last severity group were overwritten — every
   breach rate read as 100% because the healthy rows landed under `info` and vanished. Now grouped
   by kind alone: `stale_result` reads 73 breached of 400 evaluated, not 73 of 73.
+
 ## [0.12.17] — 2026-08-25
 
 ### Fixed

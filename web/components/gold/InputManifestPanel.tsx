@@ -28,12 +28,6 @@ function ageInDays(obs: string, against: string): number | null {
   return Math.round((b - a) / 86_400_000);
 }
 
-const mono: React.CSSProperties = {
-  fontFamily: "var(--font-mono)",
-  fontSize: 11,
-  color: "var(--text-secondary, #9aa3b2)",
-};
-
 /**
  * Board t5 — "Input manifest · what the lenses actually read" (Q7).
  *
