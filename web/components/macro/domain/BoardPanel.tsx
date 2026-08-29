@@ -58,6 +58,7 @@ export function BoardPanel({
   sourceLabel = "Source",
   source,
   dim = false,
+  showQuestions = true,
   children,
 }: {
   id: string;
@@ -79,6 +80,9 @@ export function BoardPanel({
    * panel must still carry the sentence naming what dimmed it, or it reads as broken.
    */
   dim?: boolean;
+  /** Preserve the acceptance metadata without drawing a duplicate badge when the
+   *  approved panel uses another header-state device (the Rates sub-state trio). */
+  showQuestions?: boolean;
   children: ReactNode;
 }) {
   return (
@@ -100,13 +104,16 @@ export function BoardPanel({
     >
       <div className="panel-h">
         <h3>{title}</h3>
-        <span className="qs">
-          {questions.map((q) => (
-            <span key={q} className="tag q" title={BOARD_QUESTION_LABEL[q]}>
-              {q}
+        {showQuestions ? (
+          <span className="qs">
+            <span
+              className="tag q"
+              title={questions.map((q) => BOARD_QUESTION_LABEL[q]).join(" · ")}
+            >
+              {questions.join(" ")}
             </span>
-          ))}
-        </span>
+          </span>
+        ) : null}
       </div>
 
       {children}
@@ -207,11 +214,12 @@ export function BoardSecTitle({
       <div className="sec-title">
         <h2>{title}</h2>
         <span className="qs">
-          {questions.map((q) => (
-            <span key={q} className="tag q" title={BOARD_QUESTION_LABEL[q]}>
-              {q}
-            </span>
-          ))}
+          <span
+            className="tag q"
+            title={questions.map((q) => BOARD_QUESTION_LABEL[q]).join(" · ")}
+          >
+            {questions.join(" ")}
+          </span>
         </span>
         {aside}
       </div>

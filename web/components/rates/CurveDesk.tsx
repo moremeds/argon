@@ -1,17 +1,12 @@
 import type { components } from "@/lib/types";
+import { BoardRead } from "@/components/macro/domain/BoardPanel";
 
 import { RatesCurveChart } from "./RatesCurveChart";
 import styles from "./RatesDesk.module.css";
 import { RatesScorecard } from "./RatesScorecard";
-import { RatesSection, RatesTier } from "./RatesSection";
-import {
-  DeskEmptyState,
-  DeskHeader,
-  SourceFreshnessSection,
-  Tile,
-  type NavGroup,
-} from "./deskShared";
-import { fmtValue, statusLabel } from "./format";
+import { RatesSection } from "./RatesSection";
+import { DeskEmptyState, DeskHeader } from "./deskShared";
+import { fmtValue } from "./format";
 import {
   ClevelandDecompositionSection,
   MoveAttributionSection,
@@ -47,46 +42,6 @@ import type {
  * old name survives where it is still load-bearing: `DeskEmptyState`'s eyebrow, which is
  * what an inbound link reaches when there is no snapshot to show.
  */
-const NAV: readonly NavGroup[] = [
-  {
-    id: "tier-market",
-    tier: "What the market prices",
-    lede: "The traded curve, its slopes, and what moved them.",
-    items: [
-      ["summary", "Summary"],
-      ["curve", "Curve"],
-      ["decomp", "Nominal decomposition"],
-      ["decomp-cleveland", "Cleveland 5-term"],
-      ["decomp-attribution", "Move attribution"],
-    ],
-  },
-  {
-    id: "tier-mechanics",
-    tier: "Mechanics",
-    // The old lede named four panels ("policy settings, issuance, positioning,
-    // cross-market"); policy settings live on tab 01, and issuance came BACK here on
-    // 2026-08-28 because the board puts supply and auction demand on this tab. So the
-    // sentence names what this tab actually carries rather than staying verbatim.
-    lede: "The plumbing a rates view stands on: issuance, positioning and cross-market.",
-    items: [
-      ["substate-supply", "Supply"],
-      ["substate-positioning", "Positioning"],
-      ["substate-plumbing", "Funding"],
-      ["auctions", "Auction demand"],
-      ["cross", "Cross-market"],
-    ],
-  },
-  {
-    id: "tier-provenance",
-    tier: "Provenance and legacy",
-    lede: "Where the numbers came from, and the older rule score kept for comparison only.",
-    items: [
-      ["refuses", "Refusals"],
-      ["sources", "Sources"],
-    ],
-  },
-];
-
 function slopeInterpretation(slope: SlopeMetric): string {
   const value = Number(slope.value_bps);
   if (!Number.isFinite(value))
@@ -111,6 +66,45 @@ function slopeInterpretation(slope: SlopeMetric): string {
   if (value < 90)
     return "Normal positive slope; long-end yield pickup is meaningful.";
   return "Steep spread; the long end is well above the front end.";
+}
+
+function FundingReadings({ policy }: { policy: Policy }) {
+  const spread =
+    policy.sofr == null || policy.effr == null
+      ? null
+      : (Number(policy.sofr) - Number(policy.effr)) * 100;
+  return (
+    <>
+      <div className="big">
+        {spread == null ? "n/a" : fmtValue(spread, "bps", 0)}
+        <small> SOFR − EFFR</small>
+      </div>
+      <div className="tbl-wrap">
+        <table>
+          <thead>
+            <tr>
+              <th>Aggregate</th>
+              <th className="num">Level</th>
+              <th>Qualifier</th>
+            </tr>
+          </thead>
+          <tbody>
+            {(policy.plumbing ?? []).map((row) => (
+              <tr key={row.label}>
+                <td>{row.label}</td>
+                <td className="num">{fmtValue(row.value, row.unit, 2)}</td>
+                <td>{row.qualifier ?? "—"}</td>
+              </tr>
+            ))}
+          </tbody>
+        </table>
+      </div>
+      <BoardRead>
+        {policy.plumbing_read ??
+          "Funding transmission cannot be interpreted until the plumbing series are available."}
+      </BoardRead>
+    </>
+  );
 }
 
 // A slope is the difference between two traded yields and nothing else.  Naming it a
@@ -144,7 +138,6 @@ export function CurveDesk({
     );
   }
 
-  const summary = snapshot.summary ?? [];
   const curve = snapshot.curve ?? { points: [], slopes: [] };
   const policy: Policy = snapshot.policy ?? {
     status: "partial",
@@ -156,7 +149,6 @@ export function CurveDesk({
     details: [],
     status: "missing",
   }) as Positioning;
-  const cross = snapshot.cross_market;
   const supply = snapshot.supply as Supply | undefined;
   // UNKNOWN, not NEUTRAL: an absent scorecard is the absence of a view, and
   // "NEUTRAL" is a view.
@@ -171,6 +163,8 @@ export function CurveDesk({
   };
   const subStateFor = (role: string) =>
     (subStates ?? []).find((s) => s.role === role);
+  const twoYear = (curve.points ?? []).find((point) => point.tenor === "2Y");
+  const tenYear = (curve.points ?? []).find((point) => point.tenor === "10Y");
 
   return (
     <div className={styles.page}>
@@ -194,44 +188,70 @@ export function CurveDesk({
             </>
           }
           snapshot={snapshot}
-          nav={NAV}
-          navLabel="Rates curve sections"
         />
-
-        <RatesTier
-          id="tier-market"
-          title="What the market prices"
-          lede="The traded curve, its slopes, and what moved them."
-        />
-
-        <RatesSection id="summary" title="Summary" eyebrow="Live FRED curve">
-          <div className={styles.summaryStack}>
-            <div className={styles.kpiGrid}>
-              {summary.map((tile) => (
-                <Tile key={tile.label} tile={tile} />
-              ))}
-            </div>
-          </div>
-        </RatesSection>
 
         <RatesSection
           id="curve"
-          title="Yield Curve"
+          title="Par yield curve · current vs 1W vs 1M"
           eyebrow="Nominal Treasury curve"
+          questions={["Q2", "Q4"]}
+          basis="REAL"
+          source="/api/rates/snapshot · curve and stored slope deltas"
         >
           <RatesCurveChart points={curve.points ?? []} />
           <div className={styles.slopeCards}>
             {(curve.slopes ?? []).map((slope) => (
               <article
                 key={slope.label}
-                className={styles.slopeCard}
+                className={`${styles.slopeCard} chart`}
                 data-testid="slope-card"
               >
                 <span>{slope.label}</span>
-                <strong>{fmtValue(slope.value_bps, "bps", 1)}</strong>
+                <strong className="big">
+                  {fmtValue(slope.value_bps, "bps", 1)}
+                </strong>
                 <p>{slopeInterpretation(slope)}</p>
               </article>
             ))}
+          </div>
+          <div className="grid g2">
+            <BoardRead>
+              The curve is a set of stored Treasury yields. Its level and shape
+              are facts about the tape; the decomposition panels below state
+              separately what is inside the 10Y point.
+            </BoardRead>
+            <div>
+              {[
+                [tenYear?.delta_1w_bps, twoYear?.delta_1w_bps, "1W"],
+                [tenYear?.delta_1m_bps, twoYear?.delta_1m_bps, "1M"],
+              ].map(([longEnd, frontEnd, window]) => (
+                <div className="arith" key={window}>
+                  <span className="term">
+                    {fmtValue(longEnd, "bps", 1)}
+                    <small>Δ10Y {window}</small>
+                  </span>
+                  <span className="op">−</span>
+                  <span className="term">
+                    {fmtValue(frontEnd, "bps", 1)}
+                    <small>Δ2Y {window}</small>
+                  </span>
+                  <span className="op">=</span>
+                  <span className="res">
+                    2s10s{" "}
+                    {fmtValue(
+                      Number(longEnd ?? 0) - Number(frontEnd ?? 0),
+                      "bps",
+                      1,
+                    )}
+                  </span>
+                </div>
+              ))}
+              <BoardRead>
+                Every spread shown here is a difference of two stored deltas.
+                Reconstruction cancels the level and exposes the move; a slope
+                is never relabelled as a term premium.
+              </BoardRead>
+            </div>
           </div>
         </RatesSection>
 
@@ -242,21 +262,15 @@ export function CurveDesk({
           grouping is the claim: they are three different cuts of ONE move, so a
           column of three reads as a sequence where a row of three reads as
           alternatives. */}
-        <div className="grid g3">
+        <div className="grid g2">
           <NominalDecompositionSection
             decomposition={decomposition}
             policy={policy}
             slopes={curve.slopes ?? []}
           />
           <ClevelandDecompositionSection decomposition={decomposition} />
-          <MoveAttributionSection decomposition={decomposition} />
         </div>
-
-        <RatesTier
-          id="tier-mechanics"
-          title="Mechanics"
-          lede="The plumbing a rates view stands on: issuance, positioning and cross-market."
-        />
+        <MoveAttributionSection decomposition={decomposition} />
 
         <div className="grid g3">
           {/* The board's three SUB-STATE panels, in its order. Each pairs the engine's
@@ -274,7 +288,10 @@ export function CurveDesk({
             <RatesSection
               id="substate-supply"
               title="Supply SUB-STATE"
-              status={statusLabel(supply?.status)}
+              questions={["Q4", "Q5"]}
+              basis="REAL"
+              source="/api/rates/snapshot.supply"
+              showQuestions={false}
             >
               <SupplyFiscalSection supply={supply} />
             </RatesSection>
@@ -288,7 +305,10 @@ export function CurveDesk({
             <RatesSection
               id="substate-positioning"
               title="Positioning SUB-STATE · 10Y futures"
-              status={statusLabel(positioning?.status)}
+              questions={["Q5"]}
+              basis="REAL"
+              source="/api/rates/snapshot.positioning"
+              showQuestions={false}
             >
               <PositioningSection positioning={positioning} />
             </RatesSection>
@@ -300,11 +320,7 @@ export function CurveDesk({
             transmitting it. */}
           {subStateFor("plumbing") ? (
             <SubStateSection subState={subStateFor("plumbing")!}>
-              <div className={styles.compactGrid}>
-                {(policy.plumbing ?? []).map((tile) => (
-                  <Tile key={tile.label} tile={tile} />
-                ))}
-              </div>
+              <FundingReadings policy={policy} />
             </SubStateSection>
           ) : (
             // Rendered unconditionally, like its two siblings. `NAV` links to this anchor
@@ -313,47 +329,26 @@ export function CurveDesk({
             <RatesSection
               id="substate-plumbing"
               title="Funding SUB-STATE"
-              status={statusLabel(policy?.status)}
+              questions={["Q4"]}
+              basis="REAL"
+              source="/api/rates/snapshot.policy.plumbing"
+              showQuestions={false}
             >
-              <div className={styles.compactGrid}>
-                {(policy.plumbing ?? []).map((tile) => (
-                  <Tile key={tile.label} tile={tile} />
-                ))}
-              </div>
+              <FundingReadings policy={policy} />
             </RatesSection>
           )}
         </div>
 
-        {/* The board's t2 pairs these; a column of full-width sections is why the
-          board/live pixel compare measured this tab at nearly twice its own spec. */}
-        <div className="grid g2">
-          <RatesSection
-            id="auctions"
-            title="Auction demand · did anyone show up"
-            eyebrow="TreasuryDirect · recent results"
-            status={statusLabel(supply?.status)}
-          >
-            <AuctionDemandSection supply={supply} />
-          </RatesSection>
-
-          <RatesSection
-            id="cross"
-            title="Cross-Market"
-            status={statusLabel(cross?.status)}
-          >
-            <div className={styles.compactGrid}>
-              {(cross?.rows ?? []).map((tile) => (
-                <Tile key={tile.label} tile={tile} />
-              ))}
-            </div>
-          </RatesSection>
-        </div>
-
-        <RatesTier
-          id="tier-provenance"
-          title="Provenance and legacy"
-          lede="Where the numbers came from, and the older rule score kept for comparison only."
-        />
+        <RatesSection
+          id="auctions"
+          title="Auction demand · did anyone show up"
+          eyebrow="TreasuryDirect · recent results"
+          questions={["Q4", "Q5"]}
+          basis="REAL"
+          source="/api/rates/snapshot.supply.recent_auctions"
+        >
+          <AuctionDemandSection supply={supply} />
+        </RatesSection>
 
         {/* The quarantine. The rule score is not deleted -- it is the only thing an
           operator can hold the policy/rates state up against -- but it is stated as a
@@ -362,27 +357,22 @@ export function CurveDesk({
         <RatesSection
           id="refuses"
           title="What this tab refuses"
-          status="Experimental legacy"
+          questions={["Q7"]}
+          basis="REAL"
+          source="code invariants and executable tests"
         >
-          <div className={`${styles.notePanel} ${styles.noteRefuse}`}>
-            <p>
-              This tab reports the traded curve and what moved it. It does not
-              compose those readings into a single score, and it takes no stance
-              from one — no directional duration call, no curve call, and no
-              prose narrating either.
-            </p>
-            <p>
-              The rule score below predates the policy / rates state engine and
-              is kept for exactly one purpose: so an operator can hold the state
-              on the Fed tab up against what the old weights said. It is a
-              legacy artifact under dual-read, not a decision surface — nothing
-              else on this desk reads it, and no view here is derived from it.
-            </p>
-          </div>
-          <RatesScorecard scorecard={scorecard} />
+          <ul className="tight">
+            <li><b>Slope ≠ term premium</b> — the tab does not compose readings into a score and takes no stance from one; only a named model may estimate duration compensation.</li>
+            <li><b>The model does not overrule the market</b> — monthly Cleveland terms remain a slower lens beside the daily curve.</li>
+            <li><b>Attribution is not published where it cannot speak</b> — unresolved windows stay visible as missing, not zero.</li>
+            <li><b>The legacy scorecard is demoted</b> — it is a legacy artifact kept below for dual-read only and drives no panel on this desk.</li>
+            <li><b>Reconstructed curves are dated by convention</b> — every comparison names its stored delta window.</li>
+          </ul>
+          <details>
+            <summary>Experimental legacy scorecard</summary>
+            <RatesScorecard scorecard={scorecard} />
+          </details>
         </RatesSection>
-
-        <SourceFreshnessSection snapshot={snapshot} />
       </div>
     </div>
   );

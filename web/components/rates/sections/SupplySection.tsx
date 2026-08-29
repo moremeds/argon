@@ -1,4 +1,5 @@
 import styles from "../RatesDesk.module.css";
+import { BoardRead, BoardRefusal } from "@/components/macro/domain/BoardPanel";
 import { fmtValue, statusLabel, toFiniteNumber } from "../format";
 import type { SummaryTile, Supply } from "../types";
 
@@ -56,6 +57,12 @@ export function AuctionDemandSection({
 }) {
   const recentAuctions = supply?.recent_auctions ?? [];
   if (!recentAuctions.length) return <SupplyUnavailable supply={supply} />;
+  const strongestIndirect = recentAuctions.reduce((best, row) =>
+    toFiniteNumber(row.indirect_bidder_pct, -Infinity) >
+    toFiniteNumber(best.indirect_bidder_pct, -Infinity)
+      ? row
+      : best,
+  );
 
   return (
     <div className={styles.supplyGrid}>
@@ -93,9 +100,18 @@ export function AuctionDemandSection({
             </tbody>
           </table>
         </div>
-        {supply?.supply_read ? (
-          <p className={styles.positioningRead}>{supply.supply_read}</p>
-        ) : null}
+        <BoardRead>
+          Strongest indirect participation in the displayed set is{" "}
+          <b>{fmtPercent(strongestIndirect.indirect_bidder_pct)}</b> on the{" "}
+          {strongestIndirect.security_term} {strongestIndirect.security_type};
+          bid-to-cover and indirect share are demand evidence, separate from the
+          issuance-size sub-state above.
+        </BoardRead>
+        <BoardRefusal>
+          Auction high rates are printed with each security type; nominal and
+          inflation-protected securities are not compared as though their rates
+          were on the same basis.
+        </BoardRefusal>
       </article>
     </div>
   );
@@ -125,6 +141,10 @@ export function SupplyFiscalSection({
           <h3>Issuance &amp; fiscal</h3>
           <span>FiscalData + FRED</span>
         </div>
+        <div className="big">
+          {[...fiscal, ...auctions].filter((tile) => tile.status !== "ok").length}
+          <small> of {fiscal.length + auctions.length} supply readings unavailable</small>
+        </div>
         <div className={styles.supplyMetricGrid}>
           {fiscal.map((tile) => (
             <article className={styles.kpiTile} key={tile.label}>
@@ -141,6 +161,9 @@ export function SupplyFiscalSection({
             </article>
           ))}
         </div>
+        {supply?.supply_read ? (
+          <BoardRead>{supply.supply_read}</BoardRead>
+        ) : null}
       </article>
     </div>
   );

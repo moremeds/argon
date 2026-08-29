@@ -117,6 +117,13 @@ test.describe("curve tab — the quarantined legacy scorecard", () => {
     // the difference between quarantined and reinstated.
     await expect(
       page.locator("#refuses").getByTestId("rates-scorecard"),
+    ).toBeHidden();
+    await page
+      .locator("#refuses details")
+      .getByText("Experimental legacy scorecard")
+      .click();
+    await expect(
+      page.locator("#refuses").getByTestId("rates-scorecard"),
     ).toBeVisible();
     await expect(page.locator("#refuses")).toContainText(
       /what this tab refuses/i,
@@ -290,7 +297,7 @@ test.describe("rates desk — replay", () => {
  * survives being folded into one list.
  */
 test.describe("desk information hierarchy", () => {
-  test("the fed tab's sections sit under its own four named tiers", async ({
+  test("the fed tab follows the board's exact panel order", async ({
     page,
   }) => {
     await fedTab(page);
@@ -298,27 +305,22 @@ test.describe("desk information hierarchy", () => {
       test.skip(true, "no rates snapshot in this environment");
     }
 
-    const tiers = page.locator('[data-testid^="rates-tier-"]');
-    await expect(tiers).toHaveCount(4);
-    await expect(page.getByTestId("rates-tier-tier-answer")).toContainText(
-      /the answer/i,
-    );
-
-    // The verdict comes before the publishers that feed it, which come before the
-    // plumbing, which comes before provenance. A flat page can satisfy every other
-    // assertion in this file and still bury the state under the dot plot.
     const order = await page
-      .locator('[data-testid^="rates-tier-"] h2')
-      .allTextContents();
-    expect(order.map((t) => t.trim().toLowerCase())).toEqual([
-      "the answer",
-      "who says what",
-      "mechanics",
-      "provenance and legacy",
+      .locator("main [role='region'].panel")
+      .evaluateAll((nodes) => nodes.map((node) => node.id));
+    expect(order).toEqual([
+      "paths",
+      "market-implied",
+      "dealer-plot",
+      "sep-plot",
+      "state",
+      "policy",
+      "events",
+      "refuses",
     ]);
   });
 
-  test("the curve tab's sections sit under its own three named tiers", async ({
+  test("the curve tab follows the board's exact panel order", async ({
     page,
   }) => {
     await curveTab(page);
@@ -326,22 +328,19 @@ test.describe("desk information hierarchy", () => {
       test.skip(true, "no rates snapshot in this environment");
     }
 
-    const tiers = page.locator('[data-testid^="rates-tier-"]');
-    await expect(tiers).toHaveCount(3);
-    await expect(page.getByTestId("rates-tier-tier-market")).toContainText(
-      /what the market prices/i,
-    );
-
-    // "Provenance and legacy" LAST is the whole quarantine: the legacy rule score
-    // lives in that tier, and a page that hoisted it above the traded curve would be
-    // presenting the score as the answer again.
     const order = await page
-      .locator('[data-testid^="rates-tier-"] h2')
-      .allTextContents();
-    expect(order.map((t) => t.trim().toLowerCase())).toEqual([
-      "what the market prices",
-      "mechanics",
-      "provenance and legacy",
+      .locator("main [role='region'].panel")
+      .evaluateAll((nodes) => nodes.map((node) => node.id));
+    expect(order).toEqual([
+      "curve",
+      "decomp",
+      "decomp-cleveland",
+      "decomp-attribution",
+      "substate-supply",
+      "substate-positioning",
+      "substate-plumbing",
+      "auctions",
+      "refuses",
     ]);
   });
 });
@@ -394,9 +393,8 @@ test.describe("fed tab — policy path plots", () => {
     // current one -- the same rule that keeps the four publishers apart.
     const priors = block.getByTestId("dealer-path-median-prior");
     if ((await priors.count()) > 0) {
-      await expect(block.getByTestId("dealer-path-note")).toContainText(
-        /separate releases shown for movement, never merged/i,
-      );
+      await expect(block).toContainText(/remain separate releases/i);
+      await expect(block).toContainText(/never averaged against the SEP/i);
       await expect(block).toContainText(/earlier survey/i);
     }
   });

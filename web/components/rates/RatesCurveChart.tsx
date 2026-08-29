@@ -104,11 +104,11 @@ export function RatesCurveChart({ points }: { points: CurvePoint[] }) {
 
   return (
     <div className={styles.curveGrid}>
-      <div className={styles.chartPanel} aria-label="Yield curve chart">
+      <div className={`${styles.chartPanel} chart`} aria-label="Yield curve chart">
         <div className={styles.chartHeader}>
           <strong>PAR yield curve overlay</strong>
           <div
-            className={styles.chartLegend}
+            className={`${styles.chartLegend} lgd`}
             aria-label="Yield curve comparison legend"
           >
             {series.map((curve) => (
@@ -212,15 +212,15 @@ export function RatesCurveChart({ points }: { points: CurvePoint[] }) {
           <tbody>
             {points.map((point) => (
               <tr key={point.tenor}>
-                <th scope="row">{point.tenor}</th>
-                <td>{fmtValue(point.value, "%")}</td>
-                <td className={deltaClass(point.delta_1d_bps)}>
+                <td>{point.tenor}</td>
+                <td className="num">{fmtValue(point.value, "%")}</td>
+                <td className={`num ${deltaClass(point.delta_1d_bps)}`}>
                   {fmtSigned(point.delta_1d_bps, "bps")}
                 </td>
-                <td className={deltaClass(point.delta_1w_bps)}>
+                <td className={`num ${deltaClass(point.delta_1w_bps)}`}>
                   {fmtSigned(point.delta_1w_bps, "bps")}
                 </td>
-                <td className={deltaClass(point.delta_1m_bps)}>
+                <td className={`num ${deltaClass(point.delta_1m_bps)}`}>
                   {fmtSigned(point.delta_1m_bps, "bps")}
                 </td>
               </tr>

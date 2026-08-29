@@ -24,7 +24,6 @@
 /* `.headerTop`, `.titleLockup` and the `.header h1` family went with the page lockup —
    the header now renders the board's `.sec-title`, styled by `app/macro/board.css`. */
 
-.section h2,
 .emptyState h1 {
   margin: 0;
   color: var(--text-primary);
@@ -32,41 +31,14 @@
   letter-spacing: 0;
 }
 
-/* The snapshot provenance stamp, now riding on the board's `.sec-title` row. It keeps
-   the mono/muted treatment of the board's `.prov` and is pushed to the far end of the
-   flex row so the title, tags and pill group at the left. */
-.headerMeta {
-  margin: 0 0 0 auto;
-  color: var(--text-muted);
-  font-family: var(--font-mono), "IBM Plex Mono", monospace;
-  font-size: 10.5px;
-  font-weight: 400;
-  letter-spacing: 0.04em;
-  text-align: right;
-  white-space: nowrap;
-}
-
-.subhead,
 .eyebrow,
 .kpiTile span,
 .kpiTile small,
-.statusPill,
 .stance,
 .svgLabel,
 .curveTable,
-.weightInput span,
 .groupScore {
   font-family: var(--font-mono), "IBM Plex Mono", monospace;
-}
-
-/* The board's `.sec-sub`: muted rather than secondary, 12.5px, and capped at 72ch so a
-   section's standfirst wraps like prose instead of running the full 1240px. */
-.subhead {
-  margin: 6px 0 0;
-  color: var(--text-muted);
-  font-size: 12.5px;
-  line-height: 1.55;
-  max-width: 72ch;
 }
 
 /* The board's `.panel-h h3`: 10px mono, 1.5px tracked, muted. This was 11px in
@@ -81,86 +53,10 @@
   letter-spacing: 1.5px;
 }
 
-.nav {
-  display: flex;
-  /* Wraps rather than scrolls. The strip used to be `nowrap` + `overflow-x: auto`
-     with the scrollbar hidden, so anything past the viewport edge was reachable
-     only by a horizontal scroll with no affordance saying it was there -- and
-     grouping into five tiers made the strip longer, not shorter. */
-  flex-wrap: wrap;
-  justify-content: flex-start;
-  gap: 4px 8px;
-}
-
-.nav a {
-  color: var(--text-muted);
-  text-decoration: none;
-  font-family: var(--font-mono), "IBM Plex Mono", monospace;
-  font-size: 11px;
-  font-weight: 400;
-  letter-spacing: 0.04em;
-  border: 1px solid transparent;
-  border-radius: 3px;
-  background: transparent;
-  padding: 4px 7px;
-  white-space: nowrap;
-  transition:
-    border-color 160ms var(--ease-out),
-    color 160ms var(--ease-out),
-    background 160ms var(--ease-out);
-}
-
-.nav a:hover,
-.navActive {
-  color: var(--text-primary);
-  background: var(--bg-hover);
-  border-color: var(--border-focus);
-}
-
-.navActive {
-  background: var(--accent-bg);
-  border-color: var(--accent-bg);
-  color: var(--accent-text);
-}
-
-/* A SECTION IS NOT A BOX.
- *
- * The board (docs/superpowers/specs/2026-08-27-macro-desk-board.html) puts exactly one
- * level of boxing on a tab: the surface is flat, `.panel` is the only thing with a
- * background and a border, and sections are separated by their heading and whitespace
- * alone. This desk had `.section` carrying `bg-panel` + `border-dim` and then filling
- * itself with `.slopeCard` / `.policyCard` / `.kpiTile`, each boxed again — a card inside
- * a card, one level of chrome the board never draws. That nesting is most of why tabs 01
- * and 02 read as a different product from tabs 03-05 even where their panels agree.
- *
- * Width matches the board's `.board` wrapper (1240px) rather than the old 1440px, so a
- * reader moving between tabs does not watch the column jump.
- */
-.section {
-  margin: 0 0 26px;
-  padding: 0;
-  scroll-margin-top: 104px;
-}
-
-.sectionHeader {
-  display: flex;
-  justify-content: space-between;
-  gap: 16px;
-  align-items: flex-start;
-  margin-bottom: 12px;
-}
-
-/* The board's `.sec-title h2`: 17px/700/.2px. Was 22px. */
-.section h2 {
-  font-size: 17px;
-  letter-spacing: 0.2px;
-}
-
 /* The board's `.state` pill. The rgba() literals were the dark theme's `--positive`
    frozen as numbers, so they stayed teal-on-dark under the light theme; color-mix keeps
    the same dark rendering and follows the token on the other ground — the same swap
    board.css records for its own overlays. */
-.statusPill,
 .stance {
   display: inline-flex;
   align-items: center;
@@ -177,7 +73,6 @@
   white-space: nowrap;
 }
 
-.kpiGrid,
 .compactGrid {
   display: grid;
   grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
@@ -213,11 +108,6 @@
   font-weight: 700;
   line-height: 1.1;
   letter-spacing: 0;
-}
-
-.summaryStack {
-  display: grid;
-  gap: 14px;
 }
 
 .curveGrid {
@@ -394,8 +284,7 @@
 /* The board's `.panel`: 6px radius, 14px 16px. Now that `.section` no longer boxes them,
    these ARE the tab's panels and carry the board's panel chrome. */
 .slopeCard,
-.notePanel,
-.sourceRow {
+.notePanel {
   border: 1px solid var(--border-dim);
   border-radius: 6px;
   background: var(--bg-panel);
@@ -434,354 +323,6 @@
   padding-left: 9px;
   font-size: 12.5px;
   line-height: 1.5;
-}
-
-.decompStack {
-  display: grid;
-  gap: 16px;
-  min-width: 0;
-}
-
-.decompFormula,
-.decompDetailCard,
-.decompAttribution,
-.decompSources {
-  min-width: 0;
-  border: 1px solid var(--border-dim);
-  border-radius: 6px;
-  background: var(--bg-panel);
-  padding: 14px 16px;
-}
-
-.decompFormulaTop,
-.decompDetailTop {
-  display: flex;
-  flex-wrap: wrap;
-  justify-content: space-between;
-  gap: 16px;
-  align-items: baseline;
-  margin-bottom: 18px;
-  min-width: 0;
-}
-
-.decompFormulaTop h3,
-.decompDetailTop h3 {
-  margin: 0;
-  color: var(--text-primary);
-  font-size: 15px;
-  letter-spacing: 0;
-}
-
-.decompFormulaTop span,
-.decompDetailTop span,
-.decompTile span,
-.decompTile small,
-.decompRows dt,
-.decompMoveTable,
-.decompBarRow span,
-.decompSourceGrid span {
-  font-family: var(--font-mono), "IBM Plex Mono", monospace;
-}
-
-.decompFormulaTop span,
-.decompDetailTop span {
-  color: var(--text-muted);
-  font-size: 11px;
-  font-weight: 700;
-  letter-spacing: 0.12em;
-  text-transform: uppercase;
-}
-
-.decompEquation {
-  display: grid;
-  grid-template-columns: minmax(0, 1.08fr) repeat(5, minmax(0, 1fr));
-  gap: 5px;
-  align-items: stretch;
-  min-width: 0;
-}
-
-.decompTerm {
-  display: grid;
-  grid-template-columns: auto minmax(0, 1fr);
-  gap: 5px;
-  align-items: center;
-  min-width: 0;
-}
-
-.decompTile {
-  display: grid;
-  grid-template-rows: 26px 38px minmax(40px, auto) 16px;
-  min-width: 0;
-  min-height: 124px;
-  border: 1px solid var(--border-dim);
-  border-radius: 4px;
-  background: var(--bg-base);
-  padding: 9px;
-  align-items: start;
-}
-
-.decompTilePrimary {
-  border-color: rgba(232, 93, 108, 0.38);
-}
-
-.decompTileAccent {
-  border-color: rgba(5, 173, 152, 0.38);
-}
-
-.decompTile span,
-.decompTile small {
-  display: block;
-  color: var(--text-muted);
-  font-size: 8px;
-  font-weight: 700;
-  text-transform: uppercase;
-}
-
-.decompTile small {
-  margin-top: 3px;
-  color: var(--text-secondary);
-  text-transform: none;
-}
-
-.decompTile strong {
-  display: block;
-  align-self: end;
-  margin: 0 0 8px;
-  color: var(--text-primary);
-  font-size: 21px;
-  line-height: 1;
-}
-
-.decompTile p {
-  margin: 0;
-  color: var(--text-secondary);
-  font-size: 10px;
-}
-
-.decompOperator {
-  color: var(--negative);
-  font-size: 18px;
-  font-weight: 800;
-  text-align: center;
-  min-width: 12px;
-}
-
-/* Board `.read`. The weight came off with the rail: the board makes an interpretive
-   paragraph findable by its 2px accent edge, not by setting the prose semi-bold. */
-.decompRead {
-  margin: 18px 0 0;
-  color: var(--text-secondary);
-  border-left: 2px solid #048a7a;
-  padding-left: 9px;
-  font-size: 12.5px;
-  line-height: 1.5;
-}
-
-.ratesReadGrid {
-  display: grid;
-  grid-template-columns: repeat(3, minmax(220px, 1fr));
-  gap: 12px;
-  margin-top: 16px;
-}
-
-.ratesReadGrid article {
-  min-width: 0;
-  border: 1px solid var(--border-dim);
-  border-radius: 4px;
-  background: var(--bg-base);
-  padding: 14px;
-}
-
-.ratesReadGrid span {
-  display: block;
-  color: var(--positive);
-  font-size: 11px;
-  font-weight: 800;
-  letter-spacing: 0.08em;
-  text-transform: uppercase;
-}
-
-.ratesReadGrid p {
-  margin: 10px 0 0;
-  color: var(--text-secondary);
-  font-size: 13px;
-  font-weight: 650;
-  line-height: 1.48;
-}
-
-.decompDetailGrid {
-  display: grid;
-  grid-template-columns: repeat(2, minmax(320px, 1fr));
-  gap: 16px;
-  min-width: 0;
-}
-
-.decompIdentity {
-  margin: 6px 0 16px;
-  padding: 14px 0;
-  border-top: 1px dashed var(--border-dim);
-  border-bottom: 1px solid var(--border-dim);
-  color: var(--text-primary);
-  font-family: var(--font-mono), "IBM Plex Mono", monospace;
-  font-size: 18px;
-  font-weight: 800;
-  text-align: center;
-}
-
-.decompRows {
-  margin: 0;
-}
-
-.decompRows div {
-  display: flex;
-  justify-content: space-between;
-  gap: 16px;
-  padding: 12px 0;
-  border-bottom: 1px solid var(--border-dim);
-}
-
-.decompRows dt {
-  color: var(--text-secondary);
-  font-size: 12px;
-  font-weight: 700;
-}
-
-.decompRows dd {
-  margin: 0;
-  color: var(--text-primary);
-  font-size: 14px;
-  font-weight: 800;
-  white-space: nowrap;
-}
-
-.decompDetailCard p {
-  margin: 14px 0 0;
-  color: var(--text-secondary);
-  font-size: 13px;
-  line-height: 1.5;
-}
-
-.decompTableWrap {
-  min-width: 0;
-  max-width: 100%;
-  overflow-x: auto;
-}
-
-.decompMoveTable {
-  width: 100%;
-  min-width: 720px;
-  border-collapse: collapse;
-  color: var(--text-primary);
-  font-size: 12px;
-}
-
-.decompMoveTable th,
-.decompMoveTable td {
-  padding: 7px 10px;
-  border-bottom: 1px solid
-    color-mix(in srgb, var(--border-dim) 60%, transparent);
-  text-align: right;
-}
-
-.decompMoveTable th:first-child,
-.decompMoveTable td:first-child {
-  text-align: left;
-}
-
-.decompMoveTable thead th {
-  color: var(--text-muted);
-  font-size: 10px;
-  font-weight: 500;
-  letter-spacing: 1.2px;
-  text-transform: uppercase;
-}
-
-.decompMoveTable tbody th {
-  color: var(--text-primary);
-}
-
-.decompBars {
-  display: grid;
-  gap: 12px;
-  margin-top: 20px;
-}
-
-.decompBarRow {
-  display: grid;
-  grid-template-columns: 140px 1fr 56px;
-  gap: 14px;
-  align-items: center;
-}
-
-.decompBarRow span {
-  color: var(--text-secondary);
-  font-size: 12px;
-  font-weight: 700;
-}
-
-.decompBarRow i {
-  display: block;
-  height: 10px;
-  overflow: hidden;
-  border-radius: 2px;
-  background: var(--bg-base);
-}
-
-.decompBarRow b {
-  display: block;
-  height: 100%;
-  border-radius: inherit;
-}
-
-.barPositive {
-  background: var(--negative);
-}
-
-.barNegative {
-  background: var(--positive);
-}
-
-.decompBarRow strong {
-  color: var(--text-primary);
-  font-size: 13px;
-  text-align: right;
-}
-
-.decompSourceGrid {
-  display: grid;
-  grid-template-columns: repeat(3, minmax(220px, 1fr));
-  gap: 14px;
-  min-width: 0;
-}
-
-.decompSourceGrid article {
-  min-height: 128px;
-  border: 1px solid var(--border-dim);
-  border-radius: 4px;
-  background: var(--bg-base);
-  padding: 16px;
-}
-
-.decompSourceGrid span {
-  display: block;
-  color: var(--negative);
-  font-size: 11px;
-  font-weight: 800;
-  text-transform: uppercase;
-}
-
-.decompSourceGrid strong {
-  display: block;
-  margin: 16px 0 10px;
-  color: var(--text-primary);
-  font-size: 20px;
-}
-
-.decompSourceGrid p {
-  margin: 0;
-  color: var(--text-secondary);
-  font-size: 13px;
-  line-height: 1.45;
 }
 
 .scorecard {
@@ -840,23 +381,6 @@
   cursor: pointer;
 }
 
-.weightInput {
-  display: grid;
-  gap: 4px;
-  color: var(--text-muted);
-  font-size: 10px;
-  text-transform: uppercase;
-}
-
-.weightInput input {
-  width: 68px;
-  padding: 7px 8px;
-  border: 1px solid var(--border-dim);
-  border-radius: 4px;
-  background: var(--bg-base);
-  color: var(--text-primary);
-}
-
 .staticWeight {
   color: var(--text-muted);
   font: 700 0.78rem var(--font-mono);
@@ -889,52 +413,6 @@
   color: var(--text-secondary);
 }
 
-/* Board `.note-refuse`. The board draws a refusal with a DASHED border, deliberately:
-   a solid panel reads as another finding, and the one thing a refusal must not look like
-   is a result. `.notePanel` serves both refusals and empty states here, so only the two
-   `id="refuses"` sections take this variant — an unwired feed is not a refusal, it is a
-   gap, and the board does not dress the two alike. */
-.noteRefuse {
-  border-style: dashed;
-  border-radius: 5px;
-  padding: 11px 13px;
-  background: none;
-  font-size: 12.5px;
-  color: var(--text-muted);
-  line-height: 1.55;
-}
-
-.noteRefuse p {
-  color: var(--text-muted);
-}
-
-.noteRefuse strong {
-  color: var(--warning);
-  font-family: var(--font-mono), "IBM Plex Mono", monospace;
-  font-size: 10.5px;
-  letter-spacing: 0.07em;
-  text-transform: uppercase;
-}
-
-.policyGrid {
-  display: grid;
-  grid-template-columns: repeat(3, minmax(260px, 1fr));
-  gap: 14px;
-  align-items: stretch;
-}
-
-.policyCard {
-  display: flex;
-  overflow: hidden;
-  min-width: 0;
-  min-height: 360px;
-  flex-direction: column;
-  border: 1px solid var(--border-dim);
-  border-radius: 6px;
-  background: var(--bg-panel);
-  padding: 14px 16px;
-}
-
 .policyCardTop {
   display: flex;
   align-items: baseline;
@@ -954,11 +432,7 @@
   text-transform: uppercase;
 }
 
-.policyCardTop span,
-.policyRows dt,
-.pathPill span,
-.pathPill small,
-.policyMissing {
+.policyCardTop span {
   font-family: var(--font-mono), "IBM Plex Mono", monospace;
 }
 
@@ -969,114 +443,6 @@
   letter-spacing: 0.12em;
   text-transform: uppercase;
   white-space: nowrap;
-}
-
-.policyRows {
-  margin: 0;
-}
-
-.policyRows div {
-  display: grid;
-  grid-template-columns: minmax(100px, 0.8fr) minmax(0, 1fr);
-  gap: 14px;
-  align-items: baseline;
-  padding: 11px 0;
-  border-bottom: 1px solid var(--border-dim);
-}
-
-.policyRows dt {
-  color: var(--text-secondary);
-  font-size: 12px;
-  font-weight: 800;
-  text-transform: uppercase;
-}
-
-.policyRows dd {
-  margin: 0;
-  color: var(--text-primary);
-  font-size: 15px;
-  font-weight: 800;
-  text-align: right;
-}
-
-.policyRows dd small {
-  display: block;
-  margin-top: 3px;
-  color: var(--text-muted);
-  font-size: 11px;
-  font-weight: 700;
-}
-
-.policyPathGrid {
-  display: grid;
-  grid-template-columns: repeat(5, minmax(0, 1fr));
-  gap: 6px;
-  min-width: 0;
-  max-width: 100%;
-}
-
-.pathPill {
-  display: grid;
-  gap: 6px;
-  min-width: 0;
-  border: 1px solid var(--border-dim);
-  border-radius: 4px;
-  background: var(--bg-base);
-  padding: 11px 6px;
-  text-align: center;
-}
-
-.pathPill span,
-.pathPill small {
-  color: var(--text-muted);
-  font-size: 11px;
-  font-weight: 800;
-  text-transform: uppercase;
-}
-
-.pathPill strong {
-  color: var(--text-primary);
-  font-size: 22px;
-  line-height: 1;
-  overflow-wrap: anywhere;
-}
-
-.pathPill i {
-  display: block;
-  height: 5px;
-  overflow: hidden;
-  border-radius: 2px;
-  background: var(--bg-hover);
-}
-
-.pathPill b {
-  display: block;
-  height: 100%;
-  border-radius: inherit;
-  background: var(--negative);
-}
-
-.policyMissing {
-  display: grid;
-  min-height: 130px;
-  place-items: center;
-  border: 1px dashed var(--border-dim);
-  border-radius: 4px;
-  color: var(--text-muted);
-  font-size: 12px;
-  font-weight: 800;
-  text-transform: uppercase;
-}
-
-/* Board `.read`, pinned to the bottom of the card by the existing `margin: auto 0 0`. */
-.policyCard p {
-  margin: auto 0 0;
-  padding-top: 14px;
-  color: var(--text-secondary);
-  border-left: 2px solid #048a7a;
-  padding-left: 9px;
-  font-size: 12.5px;
-  line-height: 1.5;
 }
 
 .supplyGrid {
@@ -1175,112 +541,6 @@
   gap: 10px;
 }
 
-.positioningStack {
-  display: grid;
-  gap: 14px;
-}
-
-.positioningTableWrap {
-  overflow-x: auto;
-  border: 1px solid var(--border-dim);
-  border-radius: 4px;
-}
-
-.positioningTable {
-  width: 100%;
-  min-width: 840px;
-  border-collapse: collapse;
-  font-family: var(--font-mono), "IBM Plex Mono", monospace;
-}
-
-.positioningTable th,
-.positioningTable td {
-  padding: 7px 10px;
-  border-bottom: 1px solid
-    color-mix(in srgb, var(--border-dim) 60%, transparent);
-  text-align: right;
-  white-space: nowrap;
-}
-
-/* Board `th`: 10px, 1.2px tracked, weight 500. */
-.positioningTable th {
-  color: var(--text-muted);
-  font-size: 10px;
-  font-weight: 500;
-  letter-spacing: 1.2px;
-  text-transform: uppercase;
-}
-
-/* Board `td` / `td:first-child` — the row's identity is primary, its numbers secondary. */
-.positioningTable td {
-  color: var(--text-secondary);
-  font-size: 12.5px;
-}
-
-.positioningTable td:first-child {
-  color: var(--text-primary);
-}
-
-.positioningTable th:first-child,
-.positioningTable td:first-child {
-  text-align: left;
-}
-
-.positioningTable tr:last-child td {
-  border-bottom: 0;
-}
-
-.positioningTable small {
-  display: block;
-  margin-top: 4px;
-  color: var(--text-muted);
-  font-size: 11px;
-  font-weight: 700;
-}
-
-/* Board `.read`. */
-.positioningRead {
-  margin: 0;
-  color: var(--text-secondary);
-  border-left: 2px solid #048a7a;
-  padding-left: 9px;
-  font-size: 12.5px;
-  line-height: 1.5;
-}
-
-.sourceGrid {
-  display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(210px, 1fr));
-  gap: 10px;
-}
-
-.sourceRow {
-  display: grid;
-  gap: 6px;
-}
-
-.sourceRow strong,
-.sourceRow span,
-.sourceRow a {
-  min-width: 0;
-  overflow-wrap: anywhere;
-}
-
-.sourceRow span,
-.sourceRow a {
-  color: var(--text-secondary);
-  font-size: 12px;
-}
-
-.sourceRow a {
-  color: var(--positive);
-  text-decoration: none;
-}
-
-.sourceRow a:hover {
-  text-decoration: underline;
-}
-
 .emptyState {
   max-width: 760px;
   margin: 16vh auto 0;
@@ -1298,27 +558,12 @@
   .header,
   .curveGrid,
   .scorecard,
-  .decompDetailGrid,
-  .decompSourceGrid,
-  .ratesReadGrid,
-  .policyGrid,
   .supplyGrid {
     grid-template-columns: 1fr;
   }
 
   .header {
     display: grid;
-  }
-
-  .decompEquation {
-    grid-template-columns: 1fr;
-  }
-
-  .decompFormulaTop,
-  .decompDetailTop {
-    align-items: flex-start;
-    flex-direction: column;
-    gap: 6px;
   }
 
   .nav {
@@ -1330,170 +575,18 @@
     grid-template-columns: 1fr;
   }
 
-  .policyPathGrid {
-    grid-template-columns: repeat(2, minmax(100px, 1fr));
-  }
-
   .supplyMetricGrid {
     grid-template-columns: repeat(2, minmax(0, 1fr));
   }
 }
 
-/* ---- Point-in-time domain state (MC2) ---------------------------------- */
-
-.stateBlock {
-  display: grid;
-  gap: 16px;
-}
-
-.stateHero {
-  display: flex;
-  flex-wrap: wrap;
-  justify-content: space-between;
-  align-items: flex-start;
-  gap: 20px;
-  padding-bottom: 14px;
-  border-bottom: 1px solid var(--border-dim);
-}
-
-.stateHeadline {
-  display: grid;
-  gap: 6px;
-}
-
-/* Board `.big` — 22px. The desk had this at 30px, which made the state label the largest
-   thing on any tab and half again the size of the same claim on tabs 03/04. */
-.stateHeadline strong {
-  font-family: var(--font-mono), "IBM Plex Mono", monospace;
-  font-size: 22px;
-  font-weight: 700;
-  line-height: 1.1;
-  letter-spacing: 0.5px;
-  color: var(--text-primary);
-}
-
-.stateDirection {
-  font-family: var(--font-mono), "IBM Plex Mono", monospace;
-  font-size: 12px;
-  letter-spacing: 1.5px;
-  text-transform: uppercase;
-}
-
-.stateMeta {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 22px;
-  margin: 0;
-}
-
-.stateMeta dt,
-.stateRows dt,
-.stateFooter,
 .stateEmptyNote,
-.legacyBanner,
-.pathIntro,
-.pathQuestion,
-.pathProvenance,
-.pathFreshness,
-.pathNote,
-.pathSourceKind {
+.legacyBanner {
   font-family: var(--font-mono), "IBM Plex Mono", monospace;
   font-size: 10px;
   letter-spacing: 1.5px;
   text-transform: uppercase;
   color: var(--text-muted);
-}
-
-.stateMeta dd {
-  margin: 4px 0 0;
-  font-family: var(--font-mono), "IBM Plex Mono", monospace;
-  font-size: 16px;
-  color: var(--text-primary);
-}
-
-.stateColumns {
-  display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(260px, 1fr));
-  gap: 14px;
-}
-
-.statePanel {
-  border: 1px solid var(--border-dim);
-  border-radius: 6px;
-  padding: 14px 16px;
-}
-
-/* Board `.panel-h h3`. This was the exact divergence the tabs 03/04 rebuild fixed —
-   13px sans in `--text-secondary` where the board specifies 10px mono uppercase, 1.5px
-   tracked, muted — surviving here because the rates subtree was never in that diff. */
-.statePanel h3 {
-  font-family: var(--font-mono), "IBM Plex Mono", monospace;
-  font-size: 10px;
-  font-weight: 600;
-  letter-spacing: 1.5px;
-  text-transform: uppercase;
-  margin: 0 0 10px;
-  color: var(--text-muted);
-}
-
-.stateRows {
-  display: grid;
-  gap: 10px;
-  margin: 0;
-}
-
-.stateRows div {
-  display: grid;
-  gap: 3px;
-}
-
-.stateRows dt small {
-  display: block;
-  text-transform: none;
-  letter-spacing: 0.5px;
-  color: var(--text-muted);
-}
-
-.stateRows dd {
-  margin: 0;
-  font-size: 13px;
-  color: var(--text-primary);
-}
-
-.stateContradictions {
-  list-style: none;
-  display: grid;
-  gap: 8px;
-  margin: 0;
-  padding: 0;
-}
-
-.stateContradictions li {
-  display: grid;
-  gap: 3px;
-  padding: 8px 10px;
-  border-left: 2px solid var(--warning);
-  background: rgba(233, 168, 62, 0.06);
-  font-size: 13px;
-  color: var(--text-primary);
-}
-
-.stateContradictions strong {
-  font-family: var(--font-mono), "IBM Plex Mono", monospace;
-  font-size: 10px;
-  letter-spacing: 1.5px;
-  text-transform: uppercase;
-  color: var(--warning);
-}
-
-.stateNotes {
-  list-style: none;
-  display: grid;
-  gap: 6px;
-  margin: 0;
-  padding: 0;
-  font-size: 13px;
-  color: var(--text-secondary);
 }
 
 .stateEmptyNote {
@@ -1501,10 +594,6 @@
   letter-spacing: 0.3px;
   font-size: 12px;
   line-height: 1.5;
-}
-
-.stateFooter a {
-  color: var(--accent-bg);
 }
 
 .stateMissing {
@@ -1536,128 +625,6 @@
   border: 1px dashed var(--border-dim);
   border-radius: 3px;
   color: var(--text-muted);
-}
-
-/* ---- Four policy paths, four lanes ------------------------------------- */
-
-.pathComparison {
-  display: grid;
-  gap: 14px;
-}
-
-.pathIntro {
-  text-transform: none;
-  letter-spacing: 0.3px;
-  font-size: 12px;
-}
-
-.pathLanes {
-  display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
-  gap: 12px;
-  align-items: start;
-}
-
-.pathLane {
-  display: grid;
-  gap: 8px;
-  padding: 14px 16px;
-  border: 1px solid var(--border-dim);
-  border-radius: 6px;
-}
-
-.pathLane[data-path-status="unavailable"],
-.pathLane[data-path-status="rejected"] {
-  border-style: dashed;
-}
-
-.pathLaneTop {
-  display: flex;
-  justify-content: space-between;
-  align-items: baseline;
-  gap: 10px;
-}
-
-/* Board `.panel-h h3` — each policy lane is a panel and its title is a panel heading.
-   This is the last 14px sans heading on the tab. */
-.pathLaneTop h3 {
-  margin: 0;
-  color: var(--text-muted);
-  font-family: var(--font-mono), "IBM Plex Mono", monospace;
-  font-size: 10px;
-  font-weight: 600;
-  letter-spacing: 1.5px;
-  text-transform: uppercase;
-}
-
-.pathQuestion,
-.pathProvenance {
-  text-transform: none;
-  letter-spacing: 0.3px;
-  font-size: 11px;
-  margin: 0;
-}
-
-.pathPoints {
-  list-style: none;
-  display: grid;
-  gap: 8px;
-  margin: 0;
-  padding: 0;
-}
-
-.pathPoints li {
-  display: grid;
-  gap: 2px;
-  padding-top: 8px;
-  border-top: 1px solid var(--border-dim);
-}
-
-.pathPoints span {
-  font-family: var(--font-mono), "IBM Plex Mono", monospace;
-  font-size: 10px;
-  letter-spacing: 1.5px;
-  text-transform: uppercase;
-  color: var(--text-muted);
-}
-
-.pathPoints strong {
-  font-family: var(--font-mono), "IBM Plex Mono", monospace;
-  font-size: 17px;
-  color: var(--text-primary);
-}
-
-.pathPoints small {
-  font-size: 11px;
-  color: var(--text-secondary);
-  line-height: 1.45;
-}
-
-.pathNote,
-.pathMissing,
-.pathRejected {
-  text-transform: none;
-  letter-spacing: 0.3px;
-  font-size: 11px;
-  line-height: 1.5;
-  margin: 0;
-  color: var(--text-muted);
-}
-
-.pathRejected {
-  padding: 8px 10px;
-  border-left: 2px solid var(--negative);
-  background: rgba(214, 85, 85, 0.07);
-  color: var(--text-primary);
-}
-
-.pathFreshness {
-  text-transform: none;
-  letter-spacing: 0.3px;
-  font-size: 10px;
-  margin: 0;
-  padding-top: 8px;
-  border-top: 1px solid var(--border-dim);
 }
 
 /* --- Policy path charts (SEP dot plot, dealer survey path) ------------------ */
@@ -1727,19 +694,8 @@
   stroke-opacity: 0.28;
 }
 
-.dealerMedian {
-  stroke: var(--positive);
-}
-
 .dealerDot {
   fill: var(--positive);
-}
-
-.dealerMedianSwatch {
-  width: 22px;
-  height: 3px;
-  border-radius: 2px;
-  background: var(--positive);
 }
 
 .dealerBandSwatch {
@@ -1758,119 +714,3 @@
    rates-private sub-card; `components/macro/*` may not import from
    `components/rates/*`, so the styles travel with it rather than being reached across.
    Do not re-add them here -- a class defined in two modules is two classes that drift. */
-
-/* Tier bands. The desk is read top-down as answer -> publishers -> market ->
-   mechanics -> provenance, and these are the only headings that say so. */
-/* The rule is gone. The board separates groups with whitespace and a heading and draws
-   no divider at all — a hairline running the full column width was the loudest line on
-   the tab, above content that is itself bounded by panel borders. */
-.tier {
-  margin: 34px 0 14px;
-  padding-bottom: 0;
-}
-
-.tier:first-of-type {
-  margin-top: 12px;
-}
-
-/* Board `.panel-h h3` + `.sec-sub`. The title was 13px/2.5px in `--positive`; the board
-   keeps teal for the read rail and the confidence result and sets every label muted. */
-.tierTitle {
-  margin: 0;
-  font-family: var(--font-mono), "IBM Plex Mono", monospace;
-  font-size: 10px;
-  font-weight: 600;
-  letter-spacing: 1.5px;
-  text-transform: uppercase;
-  color: var(--text-muted);
-}
-
-.tierLede {
-  margin: 4px 0 0;
-  font-size: 12.5px;
-  line-height: 1.55;
-  max-width: 72ch;
-  color: var(--text-muted);
-}
-
-.navGroup {
-  display: inline-flex;
-  align-items: baseline;
-  gap: 10px;
-  padding-right: 14px;
-  margin-right: 4px;
-  border-right: 1px solid var(--border-dim);
-}
-
-.navGroup:last-child {
-  border-right: none;
-}
-
-.navGroupLabel {
-  font-weight: 600;
-  color: var(--text-secondary) !important;
-  text-transform: uppercase;
-  letter-spacing: 0.08em;
-}
-
-/* The two plotting publishers, side by side inside the policy-paths section but
-   in separate frames -- one shared axis would read as a comparison. */
-.pathPlots {
-  display: grid;
-  grid-template-columns: 1fr;
-  gap: 26px;
-  margin-top: 24px;
-}
-
-.pathPlot > h3 {
-  margin: 0 0 10px;
-  font-family: var(--font-mono), "IBM Plex Mono", monospace;
-  font-size: 12px;
-  letter-spacing: 1.5px;
-  text-transform: uppercase;
-  color: var(--text-secondary);
-}
-
-/* A charted lane's headline, in place of re-listing every horizon the plot draws. */
-.pathSummary {
-  display: flex;
-  flex-wrap: wrap;
-  align-items: baseline;
-  gap: 4px 10px;
-  padding-top: 8px;
-}
-
-.pathSummaryHorizon {
-  font-family: var(--font-mono), "IBM Plex Mono", monospace;
-  font-size: 10px;
-  letter-spacing: 1.5px;
-  text-transform: uppercase;
-  color: var(--text-muted);
-  flex-basis: 100%;
-}
-
-.pathSummaryValue {
-  font-family: var(--font-mono), "IBM Plex Mono", monospace;
-  font-size: 22px;
-  font-weight: 700;
-  color: var(--text-primary);
-}
-
-.pathSummaryLink {
-  font-size: 11px;
-  color: var(--positive);
-  text-decoration: none;
-}
-
-.pathSummaryLink:hover {
-  text-decoration: underline;
-}
-
-/* Why a lane's newest release predates the newest FOMC decision. Muted: it explains
-   an expected gap, it does not report a fault. */
-.pathBehind {
-  margin: 6px 0 0;
-  font-size: 11px;
-  line-height: 1.4;
-  color: var(--text-muted);
-}

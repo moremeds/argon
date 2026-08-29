@@ -1,4 +1,5 @@
 import type { components } from "@/lib/types";
+import type { BoardQuestions } from "@/components/macro/domain/BoardPanel";
 
 import styles from "../RatesDesk.module.css";
 import { RatesSection } from "../RatesSection";
@@ -66,6 +67,16 @@ function readableSeries(id: string): string {
   return id.replace("|", " · ");
 }
 
+function stateTone(state: string): string {
+  const normalized = state.toUpperCase();
+  if (normalized === "UNKNOWN") return "state neust";
+  if (normalized.includes("STRESS") || normalized.includes("OUT"))
+    return "state critst";
+  if (normalized.includes("WARN") || normalized.includes("TIGHT"))
+    return "state warnst";
+  return "state okst";
+}
+
 export function SubStateSection({
   subState,
   children,
@@ -80,14 +91,26 @@ export function SubStateSection({
   const title = meta?.title ?? `${subState.role} SUB-STATE`;
   const velocity = subState.velocity ?? [];
   const series = subState.series_ids ?? [];
+  const questions: BoardQuestions =
+    subState.role === "supply"
+      ? ["Q4", "Q5"]
+      : subState.role === "positioning"
+        ? ["Q5"]
+        : ["Q4"];
 
   return (
     <RatesSection
       id={`substate-${subState.role}`}
       title={title}
       eyebrow={meta?.eyebrow}
-      status={`${subState.state} · ${subState.direction}`}
+      questions={questions}
+      basis="COMPUTED"
+      source={`/api/macro/rates.sub_states[role=${subState.role}]`}
+      showQuestions={false}
     >
+      <span className={stateTone(subState.state)}>
+        {subState.state} · {subState.direction}
+      </span>
       {subState.unavailable_reason ? (
         // A sub-state that could not be computed says why. UNKNOWN is not NEUTRAL, and
         // an empty panel is not a calm one.
@@ -109,7 +132,7 @@ export function SubStateSection({
               </article>
             ))}
           </div>
-          <p className={styles.positioningRead}>
+          <p className="cap">
             {series.length} load-bearing{" "}
             {series.length === 1 ? "series" : "series"} —{" "}
             {series.map(readableSeries).join(", ")}. Latest observation{" "}

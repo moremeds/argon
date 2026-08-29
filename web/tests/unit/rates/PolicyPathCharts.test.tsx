@@ -44,7 +44,7 @@ describe("SepDotPlot", () => {
     // distribution. It must still appear -- a dropped column is a dropped year.
     render(<SepDotPlot slot={SEP} />);
 
-    expect(screen.getByText("2027")).toBeTruthy();
+    expect(screen.getAllByText("2027")).toHaveLength(2);
     expect(screen.getByText("0 dots")).toBeTruthy();
   });
 

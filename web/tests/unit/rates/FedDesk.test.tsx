@@ -18,28 +18,33 @@ import {
  * narration).
  */
 describe("FedDesk", () => {
-  it("renders its own anchors and no anchor belonging to the curve tab", () => {
+  it("matches the artifact's eight-panel inventory and order", () => {
+    const { container } = render(
+      <FedDesk snapshot={SNAPSHOT} policyComparison={POLICY_COMPARISON} />,
+    );
+    expect(
+      [...container.querySelectorAll(".panel > .panel-h h3")].map(
+        (node) => node.textContent,
+      ),
+    ).toEqual([
+      "Four policy paths · who says what",
+      "Per-meeting odds · market-implied",
+      "Dealer expectations · the 3.63 dot, unrolled",
+      "Committee projections · the 3.80 dot, unrolled",
+      "State & confidence · the engine's own proof",
+      "Plumbing · the balance sheet behind the rate",
+      "Next events",
+      "What this tab refuses",
+    ]);
+  });
+
+  it("uses the artifact heading and panel anchors without an extra jump-nav", () => {
     render(<FedDesk snapshot={SNAPSHOT} />);
 
-    for (const label of [
-      "Four lanes",
-      // The board gives the market-implied lane its own panel; it shipped without one,
-      // which read as "this desk does not cover market-implied odds".
-      "Per-meeting odds",
-      "Dot plot",
-      "Dealer path",
-      "State & confidence",
-      "Plumbing",
-      "Next events",
-      "Refusals",
-      "Sources",
-    ]) {
-      expect(screen.getByRole("link", { name: label })).toBeTruthy();
-    }
-
-    // Every NAV anchor resolves to a section that actually rendered.
     const sectionIds = new Set(
-      Array.from(document.querySelectorAll("section[id]")).map((n) => n.id),
+      Array.from(document.querySelectorAll('[role="region"][id]')).map(
+        (n) => n.id,
+      ),
     );
     for (const anchor of [
       "paths",
@@ -53,27 +58,7 @@ describe("FedDesk", () => {
     ]) {
       expect(sectionIds.has(anchor)).toBe(true);
     }
-
-    // Each tab's NAV covers only its own sections, so an anchor to a section this tab
-    // does not render would be a link to nowhere.
-    for (const label of [
-      "Summary",
-      "Curve",
-      "Decomposition",
-      // Issuance moved to tab 02 on 2026-08-28 -- the board assigns supply and auction
-      // demand to the curve. An anchor left here would point at a section this tab no
-      // longer renders.
-      "Supply",
-      "Positioning",
-      "Cross-market",
-    ]) {
-      expect(screen.queryByRole("link", { name: label })).toBeNull();
-    }
-
-    for (const tier of ["The answer", "Who says what", "Mechanics"]) {
-      expect(screen.getByRole("link", { name: tier })).toBeTruthy();
-      expect(screen.getByRole("heading", { name: tier })).toBeTruthy();
-    }
+    expect(screen.queryAllByRole("link")).toHaveLength(0);
 
     // The board's own t1 heading, replacing the "Fed Policy Desk." page lockup: the tab
     // bar one line above already says these words, and the board's tabs open with an
@@ -81,12 +66,8 @@ describe("FedDesk", () => {
     expect(
       screen.getByRole("heading", { name: "Fed · Policy", level: 2 }),
     ).toBeTruthy();
-    for (const q of ["Q1", "Q2", "Q3", "Q5", "Q7"]) {
-      expect(screen.getByText(q)).toBeTruthy();
-    }
-    expect(
-      screen.getByText(/Snapshot update · .* HKT · FRED as of 2026-05-20/),
-    ).toBeTruthy();
+    expect(screen.getByText("Q1 Q2 Q3 Q5 Q7")).toBeTruthy();
+    expect(screen.queryByText(/Snapshot update/)).toBeNull();
   });
 
   it("shows the tab's state on the board's pill, in both of its states", () => {
@@ -109,21 +90,15 @@ describe("FedDesk", () => {
     expect(filled.className).toContain("neust");
   });
 
-  it("renders futures move probabilities and low ON RRP in trillions", () => {
+  it("renders the approved plumbing table without a duplicate futures mini-panel", () => {
     render(<FedDesk snapshot={SNAPSHOT} />);
 
     const policySection = screen.getByRole("region", {
       name: /plumbing · the balance sheet/i,
     });
-    expect(within(policySection).getByText("Fed funds futures")).toBeTruthy();
-    expect(within(policySection).getByText("6/17")).toBeTruthy();
-    expect(within(policySection).getByText("7/29")).toBeTruthy();
-    expect(
-      within(policySection).getByText(
-        "Frenzy Capital Fed Watch assigns 53.9% to hold at the next meeting.",
-      ),
-    ).toBeTruthy();
-    expect(within(policySection).getByText("$0.025T")).toBeTruthy();
+    expect(within(policySection).queryByText("Fed funds futures")).toBeNull();
+    expect(within(policySection).getByText("ON RRP")).toBeTruthy();
+    expect(within(policySection).getByText("0.025 $T")).toBeTruthy();
   });
 
   it("states its refusals, including the one this tab exists to need", () => {
@@ -147,33 +122,9 @@ describe("FedDesk", () => {
     expect(screen.queryByText("Recent auctions")).toBeNull();
   });
 
-  it("renders source freshness so failed refreshes do not look live", () => {
-    // Provenance for the one snapshot this tab already fetched. It renders on both
-    // tabs on purpose: the policy and supply panels here read the same FRED feed, so
-    // hiding it would make a stale publisher invisible on the tab that depends on it.
+  it("does not add a standalone source-freshness panel absent from the artifact", () => {
     render(<FedDesk snapshot={SNAPSHOT} />);
-
-    expect(screen.getByText("10Y Treasury")).toBeTruthy();
-    expect(
-      screen.getByText("Cleveland Fed 10Y expected inflation"),
-    ).toBeTruthy();
-    expect(screen.getByText("Stale")).toBeTruthy();
-    expect(screen.getByText("FRED / Board of Governors")).toBeTruthy();
-    expect(
-      screen.getByText("Cleveland Fed Inflation Expectations"),
-    ).toBeTruthy();
-    expect(screen.getByRole("link", { name: "FRED DGS10" })).toHaveProperty(
-      "href",
-      "https://fred.stlouisfed.org/series/DGS10",
-    );
-    expect(
-      screen.getByRole("link", {
-        name: "Cleveland Fed CLEVE_EXPECTED_INFLATION_10Y",
-      }),
-    ).toHaveProperty(
-      "href",
-      "https://www.clevelandfed.org/indicators-and-data/inflation-expectations",
-    );
+    expect(screen.queryByRole("region", { name: /source freshness/i })).toBeNull();
   });
 
   it("renders an explicit empty state when no snapshot exists", () => {
@@ -242,9 +193,9 @@ describe("FedDesk", () => {
         <FedDesk snapshot={withState} policyComparison={POLICY_COMPARISON} />,
       );
 
-      const ids = Array.from(container.querySelectorAll("section[id]")).map(
-        (node) => node.id,
-      );
+      const ids = Array.from(
+        container.querySelectorAll('[role="region"][id]'),
+      ).map((node) => node.id);
       expect(ids.indexOf("paths")).toBe(0);
       expect(ids.indexOf("state")).toBeGreaterThan(ids.indexOf("paths"));
       expect(ids.indexOf("state")).toBeGreaterThan(
@@ -283,7 +234,9 @@ describe("FedDesk", () => {
           /17bp above the dealer median/,
         ),
       ).toBeTruthy();
-      expect(screen.getByText(/Stood on 9 observations/)).toBeTruthy();
+      expect(screen.getByTestId("rates-state-block").textContent).toMatch(
+        /Stood on 9 observations/,
+      );
     });
 
     it("says a state was not computed rather than showing a neutral one", () => {
@@ -336,17 +289,10 @@ describe("FedDesk", () => {
 
       const sep = screen.getByTestId("policy-path-lane-committee_projection");
       expect(sep.textContent).toContain("fed_sep");
-      expect(sep.textContent).toContain("3.80 %");
-      // Horizon detail lives in the dot plot below; the lane keeps the near-term
-      // number and points at the chart rather than rendering the release twice.
-      expect(sep.textContent).toContain("plotted below");
+      expect(sep.textContent).toContain("3.800");
 
       const dealer = screen.getByTestId("policy-path-lane-dealer_expectations");
       expect(dealer.textContent).toContain("nyfed_sme");
-      expect(dealer.textContent).toContain("plotted below");
-      // Respondent counts moved to the chart's note ("n varies by horizon, ...")
-      // along with the per-horizon rows. The lane keeps the release identity, which
-      // is the thing only a lane shows.
       expect(dealer.textContent).toContain("released");
     });
 
@@ -366,11 +312,11 @@ describe("FedDesk", () => {
       );
       expect(lanes.map((lane) => lane.getAttribute("data-testid"))).toEqual([
         "policy-path-lane-actual",
-        "policy-path-lane-committee_projection",
         "policy-path-lane-dealer_expectations",
+        "policy-path-lane-committee_projection",
         "policy-path-lane-market_implied",
       ]);
-      for (const rate of ["3.50–3.75%", "3.80 %", "3.63 %"]) {
+      for (const rate of ["3.50–3.75%", "3.800", "3.630"]) {
         expect(
           lanes.filter((lane) => (lane.textContent ?? "").includes(rate))
             .length,

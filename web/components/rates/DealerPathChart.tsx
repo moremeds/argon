@@ -1,4 +1,5 @@
 import { WIDE_FRAME, axisTicks } from "@/components/macro/chartGeometry";
+import { BoardRead } from "@/components/macro/domain/BoardPanel";
 import styles from "./RatesDesk.module.css";
 import { finiteOrNull, toFiniteNumber } from "./format";
 import { plottable, priorReleases, releaseDate } from "./policyPath";
@@ -192,10 +193,15 @@ export function DealerPathChart({
 
   return (
     <div className={styles.pathChartBlock}>
-      <div className={styles.chartPanel} aria-label="Dealer expectations chart">
+      <BoardRead>
+        The four-path comparison renders the dealer lane as one near-term dot.
+        This chart unrolls that publisher&apos;s complete dated path and its own
+        release history; no committee or market series is blended into it.
+      </BoardRead>
+      <div className={`${styles.chartPanel} chart`} aria-label="Dealer expectations chart">
         <div className={styles.chartHeader}>
           <strong>Expected policy rate by meeting date</strong>
-          <div className={styles.chartLegend}>
+          <div className={`${styles.chartLegend} lgd`}>
             {series.map((item) => (
               <span key={item.path.source_record_id}>
                 <i className={item.className} />
@@ -314,20 +320,25 @@ export function DealerPathChart({
         </svg>
       </div>
 
-      <p className={styles.pathProvenance}>
+      <p className="cap">
         {path.source} · released {releaseDate(path)}
         {series.length > 1
           ? ` · ${series.length - 1} earlier survey${series.length > 2 ? "s" : ""} overlaid`
           : ""}
       </p>
-      <p className={styles.pathNote} data-testid="dealer-path-note">
-        {`${respondentNote(rows)} `}
-        {series.length > 1
-          ? "Earlier surveys are separate releases shown for movement, never merged into the latest one. "
-          : "Only one survey has been ingested, so there is nothing to compare it against yet. "}
-        Plotted on its own axes — this survey is never merged with, or averaged
-        against, the committee&apos;s own projection.
-      </p>
+      <div className="grid g2">
+        <BoardRead testId="dealer-path-note">
+          {respondentNote(rows)} The dated points show where the survey first
+          moves away from the current rate, rather than reducing the release to
+          its first value.
+        </BoardRead>
+        <BoardRead>
+          {series.length > 1
+            ? "Earlier surveys remain separate releases, overlaid only to show movement through their own publication dates."
+            : "Only one survey has been ingested, so a revision comparison is not available yet."}{" "}
+          This publisher keeps its own axes and is never averaged against the SEP.
+        </BoardRead>
+      </div>
     </div>
   );
 }

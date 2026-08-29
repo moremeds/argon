@@ -49,7 +49,7 @@ export function MarketImpliedOddsSection({
 
   if (points.length === 0) {
     return (
-      <div className={`${styles.notePanel} ${styles.noteRefuse}`}>
+      <div className="note-refuse">
         <p>
           <strong>No market-implied path for this instant.</strong>{" "}
           {slot.missing_reason ??

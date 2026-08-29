@@ -1,15 +1,9 @@
 import { DealerPathChart } from "./DealerPathChart";
 import { PolicyPathComparison } from "./PolicyPathComparison";
 import styles from "./RatesDesk.module.css";
-import { RatesSection, RatesTier } from "./RatesSection";
+import { RatesSection } from "./RatesSection";
 import { SepDotPlot } from "./SepDotPlot";
-import {
-  DeskEmptyState,
-  DeskHeader,
-  SourceFreshnessSection,
-  type NavGroup,
-} from "./deskShared";
-import { statusLabel } from "./format";
+import { DeskEmptyState, DeskHeader } from "./deskShared";
 import { MarketImpliedOddsSection } from "./sections/MarketImpliedOddsSection";
 import { PolicySection } from "./sections/PolicySection";
 import { StateSection } from "./sections/StateSection";
@@ -25,6 +19,16 @@ type MacroDomainState = components["schemas"]["MacroDomainStateResponse"];
 
 /** The router's own constant for where the state detail lives (`routers/rates.py`). */
 const STATE_DETAIL_PATH = "/api/macro/rates";
+
+function firstPathRate(
+  slot:
+    | { path?: { points?: { rate_percent: string | number }[] } | null }
+    | null
+    | undefined,
+): string {
+  const value = Number(slot?.path?.points?.[0]?.rate_percent);
+  return Number.isFinite(value) ? value.toFixed(2) : "unavailable";
+}
 
 /**
  * Macro desk tab 01 — Fed · Policy.
@@ -50,52 +54,6 @@ const STATE_DETAIL_PATH = "/api/macro/rates";
  * a refusal panel, which mattered more here than anywhere: this is the tab carrying four
  * separate published paths that a reader will want to average.
  */
-// NAV order follows DOCUMENT order, and both changed on 2026-08-29. The board puts the
-// four publishers first and the state after them: the state is a reading OF those lanes,
-// and printing it first invites it to be read as a fifth opinion rather than a verdict on
-// the other four.
-const NAV: readonly NavGroup[] = [
-  {
-    id: "tier-publishers",
-    tier: "Who says what",
-    lede: "Each publisher on its own axes, and how far it has moved since its last release.",
-    items: [
-      ["paths", "Four lanes"],
-      ["market-implied", "Per-meeting odds"],
-      ["dealer-plot", "Dealer path"],
-      ["sep-plot", "Dot plot"],
-    ],
-  },
-  {
-    id: "tier-answer",
-    tier: "The answer",
-    lede: "What this desk says about policy right now, and how sure it is.",
-    items: [["state", "State & confidence"]],
-  },
-  {
-    id: "tier-mechanics",
-    tier: "Mechanics",
-    // The old lede named four panels ("policy settings, issuance, positioning,
-    // cross-market"); three of them now live on tab 02 — issuance joined them on
-    // 2026-08-28, see the block above `FedDesk` — so the sentence is trimmed to what
-    // this tab actually carries rather than kept verbatim and made false.
-    lede: "The plumbing a policy view stands on: the policy settings themselves.",
-    items: [["policy", "Plumbing"]],
-  },
-  {
-    id: "tier-provenance",
-    tier: "Provenance and legacy",
-    // Same trim: the legacy rule score is quarantined on tab 02, so this tab's
-    // provenance tier is provenance only.
-    lede: "Where the numbers came from, and what this tab will not say.",
-    items: [
-      ["events", "Next events"],
-      ["refuses", "Refusals"],
-      ["sources", "Sources"],
-    ],
-  },
-];
-
 export function FedDesk({
   snapshot,
   errorMessage,
@@ -173,21 +131,19 @@ export function FedDesk({
             </>
           }
           snapshot={snapshot}
-          nav={NAV}
-          navLabel="Fed policy sections"
-        />
-
-        <RatesTier
-          id="tier-publishers"
-          title="Who says what"
-          lede="Each publisher on its own axes, and how far it has moved since its last release."
         />
 
         {/* The board's t1 is a sequence of `grid g2` rows, not a column of full-width
           sections — which is why the board/live pixel compare measured this tab 41%
           taller than its own spec for the same content. The pairings are the board's. */}
         <div className="grid g2">
-          <RatesSection id="paths" title="Four policy paths · who says what">
+          <RatesSection
+            id="paths"
+            title="Four policy paths · who says what"
+            questions={["Q2"]}
+            basis="REAL"
+            source="/api/macro/policy · four publisher lanes, never averaged"
+          >
             <PolicyPathComparison
               comparison={policyComparison}
               errorMessage={policyComparisonError}
@@ -203,84 +159,98 @@ export function FedDesk({
             id="market-implied"
             title="Per-meeting odds · market-implied"
             eyebrow="The only lane a market actually traded"
+            questions={["Q2", "Q6"]}
+            basis="REAL"
+            source="/api/macro/policy · market_implied"
           >
             <MarketImpliedOddsSection slot={policyComparison?.market_implied} />
           </RatesSection>
         </div>
 
-        <div className="grid g2">
+        {/* Two publishers, two full-width panels, two sets of axes. */}
           {/* Two publishers, two panels, two sets of axes. They were one section holding
             both plots; the board separates them, and the separation is the point -- a
             shared frame would draw the comparison this desk refuses to make. */}
           <RatesSection
             id="dealer-plot"
-            title="Dealer expectations · unrolled"
+            title={`Dealer expectations · the ${firstPathRate(policyComparison?.dealer_expectations)} dot, unrolled`}
             eyebrow="Primary-dealer survey · each release against its own date"
+            questions={["Q2", "Q3", "Q6"]}
+            basis="REAL"
+            source="/api/macro/policy · dealer_expectations"
           >
             <DealerPathChart slot={policyComparison?.dealer_expectations} />
           </RatesSection>
 
           <RatesSection
             id="sep-plot"
-            title="Committee projections · unrolled"
+            title={`Committee projections · the ${firstPathRate(policyComparison?.committee_projection)} dot, unrolled`}
             eyebrow="FOMC SEP · dots stay anonymous"
+            questions={["Q1", "Q3"]}
+            basis="REAL"
+            source="/api/macro/policy · committee_projection"
           >
             <SepDotPlot slot={policyComparison?.committee_projection} />
           </RatesSection>
-        </div>
-
-        <RatesTier
-          id="tier-answer"
-          title="The answer"
-          lede="What this desk says about policy right now, and how sure it is."
-        />
 
         {/* The board puts the state AFTER the publishers, not before, and it is right to:
           the state is a reading OF those four lanes, and printing it first invites it to
           be read as a fifth opinion rather than a verdict on the other four. */}
-        <RatesSection
+        <div className="grid g2">
+          <RatesSection
           id="state"
           title="State & confidence · the engine's own proof"
           eyebrow="Point-in-time evidence"
+          questions={["Q1", "Q7"]}
+          basis="COMPUTED"
+          source="/api/rates/snapshot.state; fallback /api/macro/rates"
         >
           <StateSection state={stateSummary} />
-        </RatesSection>
+          </RatesSection>
 
-        <RatesTier
-          id="tier-mechanics"
-          title="Mechanics"
-          lede="The plumbing a policy view stands on: the policy settings themselves."
-        />
-
-        <RatesSection
+          <RatesSection
           id="policy"
           title="Plumbing · the balance sheet behind the rate"
-          status={statusLabel(policy?.status)}
+          questions={["Q4"]}
+          basis="REAL"
+          source="/api/rates/snapshot.policy"
         >
           <PolicySection policy={policy} />
-        </RatesSection>
-
-        <RatesTier
-          id="tier-provenance"
-          title="Provenance and legacy"
-          lede="Where the numbers came from, and what this tab will not say."
-        />
+          </RatesSection>
+        </div>
 
         <div className="grid g2">
           <RatesSection
             id="events"
             title="Next events"
-            status={snapshot.events?.length ? "Live" : "Unavailable"}
+            questions={["Q6"]}
+            basis="REAL"
+            source="/api/rates/snapshot.events"
           >
-            <div className={styles.notePanel}>
-              {snapshot.events?.length ? (
-                snapshot.events.map((event) => (
-                  <p key={event.label}>{event.label}</p>
-                ))
-              ) : (
-                <p>Official events/news source not wired in Phase 1.</p>
-              )}
-            </div>
+            {snapshot.events?.length ? (
+              <div className="tbl-wrap">
+                <table>
+                  <thead>
+                    <tr>
+                      <th>Date</th>
+                      <th>Event</th>
+                      <th>What it can move</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {snapshot.events.map((event) => (
+                      <tr key={`${event.event_date}-${event.label}`}>
+                        <td className="num">{event.event_date ?? "—"}</td>
+                        <td>{event.label}</td>
+                        <td>{event.source ?? `${event.importance} importance`}</td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+            ) : (
+              <p className="read">Official events/news source not wired in Phase 1.</p>
+            )}
           </RatesSection>
 
           {/* The board gives every tab one of these and this tab shipped without it — the
@@ -289,45 +259,49 @@ export function FedDesk({
           reads a chart that depends on it, rather than only in a code comment he will
           never open. Every claim names where it is enforced; none of them restates a
           number, because a refusal that goes stale is worse than no refusal. */}
-          <RatesSection id="refuses" title="What this tab refuses">
-            <div className={`${styles.notePanel} ${styles.noteRefuse}`}>
-              <p>
-                <strong>No averaging of the four paths.</strong> They are
+          <RatesSection
+            id="refuses"
+            title="What this tab refuses"
+            questions={["Q7"]}
+            basis="REAL"
+            source="code invariants and executable tests"
+          >
+            <ul className="tight">
+              <li>
+                <b>No averaging of the four paths.</b> They are
                 published by four different bodies against four different
                 questions. <code>PolicyPathComparison.tsx</code> puts it
                 plainly: a blended &ldquo;Fed path&rdquo; would be a number no
                 committee voted on, no dealer forecast, and no market traded.
-              </p>
-              <p>
-                <strong>SEP dots stay anonymous.</strong> The FOMC does not
+              </li>
+              <li>
+                <b>SEP dots stay anonymous.</b> The FOMC does not
                 publish attribution, so neither do we — no dot is ever tied to a
                 named official. Hardened rather than intended: unit and e2e
                 tests both assert the rendered block never matches{" "}
                 <code>/chair|powell/i</code>.
-              </p>
-              <p>
-                <strong>A short column is printed short.</strong> When a
+              </li>
+              <li>
+                <b>A short column is printed short.</b> When a
                 projection year carries fewer participants than the one beside
                 it, the count is rendered as published. Normalising it to a full
                 committee would invent a projection nobody made.
-              </p>
-              <p>
-                <strong>A survey corroborates only its own window.</strong> Each
+              </li>
+              <li>
+                <b>A survey corroborates only its own window.</b> Each
                 release is plotted against its own release date, so an older
                 survey confirms the direction through the day it was taken and
                 says nothing about the weeks since. That is why the releases are
                 not merged into one line.
-              </p>
-              <p>
+              </li>
+            </ul>
+            <p className="cap">
                 The curve-side refusals — a slope is not a term premium, and the
                 legacy rule scorecard is under quarantine — moved with their
                 evidence to the Rates · Curve tab.
-              </p>
-            </div>
+            </p>
           </RatesSection>
         </div>
-
-        <SourceFreshnessSection snapshot={snapshot} />
       </div>
     </div>
   );

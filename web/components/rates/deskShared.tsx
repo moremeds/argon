@@ -14,8 +14,7 @@ import {
 } from "../macro/domain/BoardPanel";
 
 import styles from "./RatesDesk.module.css";
-import { RatesSection } from "./RatesSection";
-import { fmtSigned, fmtValue, statusLabel } from "./format";
+import { fmtSigned, fmtValue } from "./format";
 import { toFiniteNumber } from "./format";
 import type { Snapshot, SummaryTile } from "./types";
 
@@ -54,89 +53,6 @@ export async function settle<T>(
     const detail = error instanceof Error ? error.message : "unknown API error";
     return { value: null, error: `The ${label} request failed: ${detail}` };
   }
-}
-
-/** One tier of a desk's in-page nav. Each desk owns its own array: `NAV` drives the
- *  anchors, so a desk may only advertise the sections it actually renders. */
-export type NavGroup = {
-  id: string;
-  tier: string;
-  lede: string;
-  items: readonly (readonly [string, string])[];
-};
-
-const FED_BOARD_SERIES = new Set([
-  "DGS1MO",
-  "DGS3MO",
-  "DGS6MO",
-  "DGS1",
-  "DGS2",
-  "DGS3",
-  "DGS5",
-  "DGS7",
-  "DGS10",
-  "DGS20",
-  "DGS30",
-  "DFII5",
-  "DFII7",
-  "DFII10",
-  "DFII20",
-  "DFII30",
-  "WALCL",
-  "WRESBAL",
-  "WTREGEN",
-]);
-
-const ST_LOUIS_FED_SERIES = new Set(["T5YIE", "T10YIE", "T5YIFR"]);
-
-function isClevelandFedSeries(seriesId: string): boolean {
-  return seriesId.startsWith("CLEVE_");
-}
-
-export function sourcePublisher(seriesId: string): string {
-  if (isClevelandFedSeries(seriesId)) {
-    return "Cleveland Fed Inflation Expectations";
-  }
-  if (FED_BOARD_SERIES.has(seriesId)) return "FRED / Board of Governors";
-  if (ST_LOUIS_FED_SERIES.has(seriesId)) return "FRED / St. Louis Fed";
-  if (seriesId === "EFFR" || seriesId === "SOFR" || seriesId === "RRPONTSYD") {
-    return "FRED / New York Fed";
-  }
-  return "FRED";
-}
-
-export function fredSeriesUrl(seriesId: string): string {
-  if (isClevelandFedSeries(seriesId)) {
-    return "https://www.clevelandfed.org/indicators-and-data/inflation-expectations";
-  }
-  return `https://fred.stlouisfed.org/series/${encodeURIComponent(seriesId)}`;
-}
-
-export function sourceLinkLabel(seriesId: string): string {
-  if (isClevelandFedSeries(seriesId)) return `Cleveland Fed ${seriesId}`;
-  return `FRED ${seriesId}`;
-}
-
-function formatComputedAt(value: string): string {
-  const date = new Date(value);
-  if (Number.isNaN(date.getTime())) return "computed time unavailable";
-  return new Intl.DateTimeFormat("en-CA", {
-    timeZone: "Asia/Hong_Kong",
-    year: "numeric",
-    month: "2-digit",
-    day: "2-digit",
-    hour: "2-digit",
-    minute: "2-digit",
-    hour12: false,
-  })
-    .format(date)
-    .replace(",", "");
-}
-
-function snapshotMeta(snapshot: Snapshot): string {
-  return `Snapshot update · ${formatComputedAt(
-    snapshot.computed_at,
-  )} HKT · FRED as of ${snapshot.as_of}`;
 }
 
 function deltaClass(value: unknown): string {
@@ -181,8 +97,6 @@ export function DeskHeader({
   questions,
   standfirst,
   snapshot,
-  nav,
-  navLabel,
   showState = false,
 }: {
   /** The board's own `<h2>` text for this tab — "Fed · Policy", "Rates · Curve". */
@@ -191,8 +105,6 @@ export function DeskHeader({
   /** The board's `.sec-sub` standfirst. */
   standfirst: ReactNode;
   snapshot: Snapshot;
-  nav: readonly NavGroup[];
-  navLabel: string;
   /** The board gives t1 a state pill on its title row and t2 none, because t2's tab is
    *  the market's side and has no state of its own to summarise. */
   showState?: boolean;
@@ -211,33 +123,11 @@ export function DeskHeader({
                 absent="no policy/rates state — the engine has not run for this instant"
               />
             ) : null}
-            <span className={styles.headerMeta}>{snapshotMeta(snapshot)}</span>
           </>
         }
       >
         {standfirst}
       </BoardSecTitle>
-      {/* RECORDED DEVIATION from the board, and the only one on this header.
-          The board's t1 is eight panels and its t2 is nine; this tab is eighteen sections
-          across four tiers, because the /rates page it was merged from was never
-          compressed to the board's panel count. A jump-nav is not something the board
-          draws — but the board never has a tab long enough to need one, so removing it
-          would be conforming to a design decision the board did not actually make about
-          a tab this size. It goes when the sections do. */}
-      <nav className={styles.nav} aria-label={navLabel}>
-        {nav.map((group) => (
-          <span key={group.id} className={styles.navGroup}>
-            <a href={`#${group.id}`} className={styles.navGroupLabel}>
-              {group.tier}
-            </a>
-            {group.items.map(([id, label]) => (
-              <a key={id} href={`#${id}`}>
-                {label}
-              </a>
-            ))}
-          </span>
-        ))}
-      </nav>
     </header>
   );
 }
@@ -283,26 +173,3 @@ export function DeskEmptyState({
  * same FRED feed, so a stale publisher would go invisible on the tab that depends on
  * it. Two anchors named `sources` never collide because these are two documents.
  */
-export function SourceFreshnessSection({ snapshot }: { snapshot: Snapshot }) {
-  return (
-    <RatesSection
-      id="sources"
-      title="Source Freshness"
-      eyebrow="FRED observations"
-    >
-      <div className={styles.sourceGrid}>
-        {(snapshot.source_freshness ?? []).map((source) => (
-          <div key={source.id} className={styles.sourceRow}>
-            <strong>{source.label || source.id}</strong>
-            <span>{sourcePublisher(source.id)}</span>
-            <span>Latest obs {source.latest_obs_date ?? "n/a"}</span>
-            <span>{statusLabel(source.status)}</span>
-            <a href={fredSeriesUrl(source.id)} target="_blank" rel="noreferrer">
-              {sourceLinkLabel(source.id)}
-            </a>
-          </div>
-        ))}
-      </div>
-    </RatesSection>
-  );
-}

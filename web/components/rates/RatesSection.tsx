@@ -1,4 +1,9 @@
 import { Zone } from "@/components/macro/overview/Zone";
+import {
+  BoardPanel,
+  type BoardQuestions,
+  type PanelBasis,
+} from "@/components/macro/domain/BoardPanel";
 
 /**
  * The two structural elements tabs 01 and 02 are built from, in the board's own grammar.
@@ -52,34 +57,35 @@ export function RatesSection({
   id,
   title,
   eyebrow,
-  status,
+  questions,
+  basis,
+  source,
+  sourceLabel,
+  showQuestions,
   children,
 }: {
   id: string;
   title: string;
   eyebrow?: string;
-  status?: string;
+  questions: BoardQuestions;
+  basis: PanelBasis;
+  source: React.ReactNode;
+  sourceLabel?: string;
+  showQuestions?: boolean;
   children: React.ReactNode;
 }) {
-  // A `<section>`, where the board writes a `<div class="panel">`.
-  //
-  // The class carries every pixel; the element carries the semantics. `<section>` with
-  // an accessible name IS `role="region"`, and both desks' in-page navs and their tests
-  // address these by `section[id]` — so keeping the element costs nothing visually and
-  // keeps a labelled landmark per panel that a screen reader can jump between.
   return (
-    <section
+    <BoardPanel
       id={id}
-      className="panel"
-      aria-label={title}
-      data-testid={`rates-section-${id}`}
+      title={title}
+      questions={questions}
+      basis={basis}
+      source={source}
+      sourceLabel={sourceLabel}
+      showQuestions={showQuestions}
     >
-      <div className="panel-h">
-        <h3 id={`${id}-title`}>{title}</h3>
-        {status ? <span className="tag plan">{status}</span> : null}
-      </div>
       {eyebrow ? <p className="cap">{eyebrow}</p> : null}
       {children}
-    </section>
+    </BoardPanel>
   );
 }
