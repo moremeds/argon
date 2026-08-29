@@ -2,6 +2,7 @@ import { describe, expect, it } from "vitest";
 
 import {
   BANNED,
+  EXCLUDED_FILES,
   ROOTS,
   findMissingRoots,
   lintFileContents,
@@ -81,6 +82,12 @@ describe("lint scope", () => {
     // to print its own stance word inside tab 02's refusal panel, and listing that
     // directory here would fail the build over a rendering the operator approved.
     expect(ROOTS).not.toContain("components/rates");
+  });
+
+  it("exempts only the byte-pinned operator design reference", () => {
+    expect([...EXCLUDED_FILES]).toEqual([
+      "components/macro/designNotesReference.ts",
+    ]);
   });
 
   it("reports every declared root as present (vitest runs from web/)", async () => {

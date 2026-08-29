@@ -142,6 +142,14 @@ export const ROOTS = [
   "app/macro",
 ];
 
+// Exact, operator-only copy extracted from the SHA-pinned design artifact. It is rendered
+// only on Design Notes and is byte-tested against that artifact; treating review prose
+// such as "raw material of trades" as live posture copy would require corrupting the
+// reference. Keep this exemption file-specific so no runtime component inherits it.
+export const EXCLUDED_FILES = new Set([
+  "components/macro/designNotesReference.ts",
+]);
+
 /**
  * Which of `roots` do not exist on disk, resolved against the current directory.
  *
@@ -182,6 +190,8 @@ async function main() {
   let total = 0;
   for (const root of ROOTS.map((root) => path.resolve(root))) {
     for await (const file of walk(root)) {
+      const relativeFile = path.relative(process.cwd(), file).split(path.sep).join("/");
+      if (EXCLUDED_FILES.has(relativeFile)) continue;
       if (
         file.endsWith("lint-gold-copy.mjs") ||
         file.endsWith("lint-gold-copy.test.mjs")
