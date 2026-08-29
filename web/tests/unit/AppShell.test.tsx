@@ -24,7 +24,7 @@ describe("AppShell", () => {
     expect(screen.getByRole("main").textContent).toContain("Dashboard content");
   });
 
-  it("keeps the Argon sidebar and shifts an uncompressed macro canvas beside it", () => {
+  it("keeps the Argon sidebar beside a fluid macro canvas", () => {
     pathname = "/macro/rates";
 
     const { container } = render(<AppShell>Rates content</AppShell>);
@@ -33,6 +33,9 @@ describe("AppShell", () => {
     expect(container.firstElementChild?.className).toContain("macroShell");
     expect(screen.getByRole("main").className).toContain("macroMain");
     expect(container.firstElementChild?.textContent).toContain("Rates content");
+    expect(container.firstElementChild?.getAttribute("data-layout")).toBe(
+      "sidebar-fluid-main",
+    );
   });
 
   it("lists ONE macro entry, and highlights it for every tab under it", () => {

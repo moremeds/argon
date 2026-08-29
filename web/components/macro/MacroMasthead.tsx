@@ -1,10 +1,8 @@
-import { BoardLegend } from "./BoardLegend";
 import { MacroReplayMenu } from "./MacroReplayMenu";
 
 type Props = {
   snapshotStatus: string;
   snapshotAsOf: string | null;
-  sourceLabel: string;
   today: string;
 };
 
@@ -29,43 +27,29 @@ function formatAsOf(value: string | null): string {
 export function MacroMasthead({
   snapshotStatus,
   snapshotAsOf,
-  sourceLabel,
   today,
 }: Props) {
   const available = snapshotStatus !== "unavailable";
+  const statusLabel = snapshotStatus.replaceAll("_", " ");
   return (
-    <>
-      <header className="appbar">
-        <div className="wrap">
-          <div className="appbar-inner">
-            <span className="brand">
-              <span>ARGON</span> <em>—</em> MACRO
+    <header className="appbar">
+      <div className="wrap">
+        <div className="appbar-inner">
+          <div className="macro-title">
+            <h1>Macro</h1>
+            <p>Inflation → Policy → Dollar → Gold</p>
+          </div>
+          <div className="mast-meta">
+            <span className={`chip${available ? " ok" : ""}`}>
+              <span className="dot" />chain {statusLabel}
             </span>
-            <div className="mast-meta">
-              <span className={`chip${available ? " ok" : ""}`}>
-                <span className="dot" />chain snapshot: {snapshotStatus}
-              </span>
-              <MacroReplayMenu
-                liveAsOfLabel={formatAsOf(snapshotAsOf)}
-                today={today}
-              />
-              <span className="chip gold">{sourceLabel}</span>
-            </div>
+            <MacroReplayMenu
+              liveAsOfLabel={formatAsOf(snapshotAsOf)}
+              today={today}
+            />
           </div>
-        </div>
-      </header>
-      <div className="intro">
-        <div className="wrap">
-          <div className="kicker">
-            Macro Phase 2 Integration Proposal · Review Draft
-          </div>
-          <h1>
-            Macro Desk{" "}
-            <span className="thin">/ Fed → Inflation → USD → Gold</span>
-          </h1>
-          <BoardLegend />
         </div>
       </div>
-    </>
+    </header>
   );
 }

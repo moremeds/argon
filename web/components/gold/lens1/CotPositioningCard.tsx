@@ -18,7 +18,14 @@ export function CotPositioningCard({ structural }: { structural: S }) {
       label="COT MM NET · 5Y %ILE"
       value={pct(structural.cot_mm_net_pct)}
       sub={
-        <span style={{ display: "flex", gap: 6, alignItems: "center" }}>
+        <span
+          style={{
+            display: "flex",
+            flexWrap: "wrap",
+            gap: 6,
+            alignItems: "center",
+          }}
+        >
           <HeuristicBadge reason="release-lagged, T+3 enforced" />
           Δ4W {structural.cot_mm_4w_change_sigma ?? "—"}σ
         </span>

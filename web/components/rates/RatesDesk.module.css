@@ -75,11 +75,12 @@
 
 .compactGrid {
   display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+  grid-template-columns: repeat(2, minmax(0, 1fr));
   gap: 12px;
 }
 
 .kpiTile {
+  min-width: 0;
   border: 1px solid var(--border-dim);
   border-radius: 6px;
   padding: 14px 16px;
@@ -97,6 +98,7 @@
   font-weight: 600;
   letter-spacing: 1.5px;
   text-transform: uppercase;
+  overflow-wrap: anywhere;
 }
 
 /* Board `.big`. */
@@ -108,6 +110,7 @@
   font-weight: 700;
   line-height: 1.1;
   letter-spacing: 0;
+  overflow-wrap: anywhere;
 }
 
 .curveGrid {
@@ -447,7 +450,7 @@
 
 .supplyGrid {
   display: grid;
-  grid-template-columns: minmax(0, 1.05fr) minmax(0, 0.95fr);
+  grid-template-columns: minmax(0, 1fr);
   gap: 14px;
   align-items: stretch;
 }
@@ -463,7 +466,8 @@
 }
 
 .supplyTableWrap {
-  overflow-x: auto;
+  min-width: 0;
+  overflow: visible;
   border: 1px solid var(--border-dim);
   border-radius: 4px;
 }
@@ -487,7 +491,8 @@
   color: var(--text-secondary);
   font-size: 12.5px;
   text-align: right;
-  white-space: nowrap;
+  white-space: normal;
+  overflow-wrap: anywhere;
 }
 
 .supplyTable td:first-child {

@@ -49,7 +49,6 @@ export default async function MacroLayout({
       <MacroMasthead
         snapshotStatus={snapshot?.status ?? "unavailable"}
         snapshotAsOf={snapshot?.as_of ?? null}
-        sourceLabel="argon · macro API snapshot"
         today={todayUtcDate()}
       />
       <Suspense fallback={null}>

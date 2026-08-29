@@ -68,7 +68,6 @@ export function MacroTabBar() {
                 className={`tab${active ? " active" : ""}`}
                 data-testid={`macro-tab-${tab.slug}`}
               >
-                <span className="n">{tab.ordinal}</span>
                 {tab.label}
               </Link>
             );

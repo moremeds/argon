@@ -10,7 +10,7 @@ export function AppShell({ children }: { children: React.ReactNode }) {
 
   if (isMacroDesk) {
     return (
-      <div className={styles.macroShell}>
+      <div className={styles.macroShell} data-layout="sidebar-fluid-main">
         <Sidebar />
         <main className={styles.macroMain}>{children}</main>
       </div>

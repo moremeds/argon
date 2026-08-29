@@ -50,6 +50,47 @@ function realErrors(errors: string[]): string[] {
 }
 
 test.describe("macro desk shell", () => {
+  test("every tab stays fully visible with no horizontal scroll", async ({
+    page,
+  }) => {
+    const routes = [
+      "overview",
+      "fed",
+      "rates",
+      "inflation",
+      "usd",
+      "gold",
+      "energy",
+      "factors",
+      "notes",
+    ];
+
+    for (const width of [1280, 1440, 1660]) {
+      await page.setViewportSize({ width, height: 900 });
+      for (const route of routes) {
+        await page.goto(`/macro/${route}`);
+        await page.waitForLoadState("networkidle");
+
+        const overflow = await page.evaluate(() => {
+          const visible = (element: Element) =>
+            element instanceof HTMLElement && element.getClientRects().length > 0;
+          return [...document.querySelectorAll("*")]
+            .filter(visible)
+            .filter((element) => element.scrollWidth > element.clientWidth + 1)
+            .map((element) => ({
+              tag: element.tagName,
+              className: element.getAttribute("class") ?? "",
+              testId: element.getAttribute("data-testid") ?? "",
+              clientWidth: element.clientWidth,
+              scrollWidth: element.scrollWidth,
+            }));
+        });
+
+        expect(overflow, `${route} overflowed at ${width}px`).toEqual([]);
+      }
+    }
+  });
+
   test("tab 08 renders under the desk's tab bar and stays selectable", async ({
     page,
   }) => {

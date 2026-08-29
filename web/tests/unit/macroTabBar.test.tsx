@@ -59,16 +59,24 @@ describe("MacroTabBar", () => {
     for (const tab of BAR) {
       expect(screen.getByTestId(`macro-tab-${tab.slug}`)).toHaveProperty(
         "textContent",
-        `${tab.ordinal}${tab.label}`,
+        tab.label,
       );
     }
   });
 
-  it("shows the Design Notes tab from the approved nine-tab artifact", () => {
+  it("uses concise operator-facing labels", () => {
     render(<MacroTabBar />);
     expect(screen.getByTestId("macro-tab-notes")).toHaveProperty(
       "textContent",
-      "08Design Notes",
+      "Method",
+    );
+    expect(screen.getByTestId("macro-tab-overview")).toHaveProperty(
+      "textContent",
+      "Overview",
+    );
+    expect(screen.getByTestId("macro-tab-usd")).toHaveProperty(
+      "textContent",
+      "Dollar",
     );
     expect(VALID_TABS.some((tab) => tab.slug === "notes")).toBe(true);
   });
@@ -145,9 +153,7 @@ describe("MacroTabBar", () => {
     expect(nav.firstElementChild?.className).toBe("wrap");
     expect(nav.firstElementChild?.firstElementChild?.className).toBe("tabs");
     expect(screen.getByTestId("macro-tab-fed").className).toContain("tab");
-    expect(screen.getByTestId("macro-tab-fed").querySelector(".n")?.textContent).toBe(
-      "01",
-    );
+    expect(screen.getByTestId("macro-tab-fed").querySelector(".n")).toBeNull();
   });
 
   it("carries the replay date across every tab switch", () => {

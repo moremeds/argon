@@ -15,14 +15,14 @@ export const VALID_TABS = [
   {
     slug: "overview",
     ordinal: "00",
-    label: "Overview · Daily Loop",
+    label: "Overview",
     replayClock: "instant",
   },
-  { slug: "fed", ordinal: "01", label: "Fed · Policy", replayClock: "instant" },
+  { slug: "fed", ordinal: "01", label: "Fed", replayClock: "instant" },
   {
     slug: "rates",
     ordinal: "02",
-    label: "Rates · Curve",
+    label: "Rates",
     replayClock: "instant",
   },
   {
@@ -31,24 +31,24 @@ export const VALID_TABS = [
     label: "Inflation",
     replayClock: "instant",
   },
-  { slug: "usd", ordinal: "04", label: "US Dollar", replayClock: "instant" },
+  { slug: "usd", ordinal: "04", label: "Dollar", replayClock: "instant" },
   { slug: "gold", ordinal: "05", label: "Gold", replayClock: "obs_date" },
   {
     slug: "energy",
     ordinal: "06",
-    label: "Energy · Proposal",
+    label: "Energy",
     replayClock: "none",
   },
   {
     slug: "factors",
     ordinal: "07",
-    label: "Factor Export",
+    label: "Factors",
     replayClock: "instant",
   },
   {
     slug: "notes",
     ordinal: "08",
-    label: "Design Notes",
+    label: "Method",
     replayClock: "none",
   },
 ] as const satisfies readonly MacroTabEntry[];
