@@ -244,11 +244,16 @@ async function main() {
     // while the board's came back 3-4k tall, which makes the pair useless to compare.
     // Growing the viewport to the desk's own height is what actually gets the whole tab.
     const tall = await live.evaluate(() => {
-      const el = document.querySelector(".board") ?? document.body;
-      return Math.min(
-        12000,
-        Math.ceil(el.getBoundingClientRect().height) + 160,
+      // The LAST bottom edge across every `.board`, not the first element's height. The
+      // desk renders more than one — the legend in the layout carries the class too,
+      // because it is board-styled content and needs `.board .tag` — so a `querySelector`
+      // measures the legend and reports every tab as 325px tall.
+      const els = [...document.querySelectorAll(".board")];
+      if (els.length === 0) return 1000;
+      const bottom = Math.max(
+        ...els.map((e) => e.getBoundingClientRect().bottom + window.scrollY),
       );
+      return Math.min(12000, Math.ceil(bottom) + 120);
     });
     await live.setViewportSize({ width: 1440, height: tall });
     await live.waitForTimeout(250);
