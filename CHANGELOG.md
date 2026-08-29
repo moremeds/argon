@@ -98,9 +98,10 @@ version in lockstep (enforced by `scripts/release/version_sync_check.py`).
 - **The rates desk is now two tabs of the macro desk**, `/macro/fed` (01 · Fed · Policy) and
   `/macro/rates` (02 · Rates · Curve), and `/rates` 308s to the curve tab. `RatesDesk.tsx`
   (602 L) _was_ the page shell, so it could not move unchanged — it is split into `FedDesk`
-  (state, policy paths, plumbing, issuance) and `CurveDesk` (summary, curve, decomposition,
-  positioning, cross-market), with Source Freshness on both because it is provenance for the
-  one snapshot both tabs already fetched.
+  (policy paths, per-meeting odds, dealer/SEP detail, state, plumbing, next events, refusals)
+  and `CurveDesk` (curve, decomposition, supply/auctions, positioning, sub-states, refusals).
+  Source freshness remains attached to the panels that consume it instead of rendering as a
+  duplicate standalone section on both tabs.
   - **Three things the desk forbids were dropped or quarantined on the way across.**
     `SummaryStances`/`StanceCard` rendered literal `BUY`/`SELL` off the legacy composite —
     prescription, banned on this desk independently of any composite rule — and are deleted
@@ -115,6 +116,11 @@ version in lockstep (enforced by `scripts/release/version_sync_check.py`).
     `models/rates.py` says the field is not persisted because "copying it here would fork one
     answer into two records that could disagree" — and a second HTTP fetch of the same shape
     forks one answer into two _requests_ that could disagree.
+  - **Market-implied meeting odds now use the existing Frenzy shadow ingestion.** The
+    source remains visibly third-party with unknown delay, and the page refuses when it
+    is unavailable. Frenzy's continuously updated HTML has one stable publisher-record
+    identity: request-varying Cloudflare bytes are retained as separate exact artifacts,
+    while an unchanged normalized probability distribution remains one policy fact.
   - `chartGeometry.ts` is lifted to `components/macro/` so later tabs can size their SVGs
     without importing from the rates subtree, which the desk's layering forbids. It travels
     alone: it imports nothing, so unlike the confidence strip it carries no CSS with it.

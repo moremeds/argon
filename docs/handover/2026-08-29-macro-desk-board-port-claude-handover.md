@@ -1,202 +1,172 @@
-# Macro Analysis Desk — board port — Claude Code Executive Handover
+# Macro Analysis Desk — pixel-exact remediation handover
 
-> **Reactivation prompt:** Continue Argon's Macro Analysis desk from this handoff. Read repository
-> `CLAUDE.md`, the board spec (`docs/superpowers/specs/2026-08-27-macro-desk-board.html`), the port
-> plan and the binding plan before editing code. Reverify Git and test state; do not rely on chat
-> history. The board is the spec — where the plan and the board disagree, the board wins. Stop
-> before commit/push/PR or production mutation unless the user separately authorizes it.
+> **Reactivation prompt:** Continue PR #399 from this document. Re-read repository
+> `CLAUDE.md`, inspect the current worktree, and re-run the relevant gates before changing
+> anything. The SHA-pinned board is the design authority, with one operator-approved product
+> override: retain Argon's left sidebar and use Regime-style 32px gutters. The remediation is
+> committed locally. Do not push, mutate the PR, or deploy without separate user authorization.
 
-## 1. Executive summary
+## Goal
 
-Argon had three separate macro surfaces — `/gold`, `/rates`, `/macro` — each with its own idiom,
-its own replay story, and its own answer to "what did you know, and when". This branch merges them
-into **one nine-tab Macro Analysis desk at `/macro`**, built against a design board the operator
-supplied as the binding spec.
+Finish the nine-tab Macro Analysis desk at `/macro/*` as a live-data port of the approved
+Claude board: preserve its hierarchy, panel inventory, typography, provenance, data bindings,
+and replay honesty while keeping Argon's 220px sidebar. The application geometry is:
+
+`220px sidebar + 1440px macro canvas`, with `32px` left/right gutters inside the canvas.
+
+## Current source state
 
 - repository: `/Users/chenxi/projects/argon`
 - worktree: `/Users/chenxi/projects/argon/.worktrees/feat-macro-desk-tabs-03-05`
 - branch: `feat/macro-desk-tabs-03-05`
-- rebased onto: `68d1fbf7` (`release: v0.13.0`, 2026-08-29)
-- 45 commits, 141 files, +26.4k / −2.9k
+- PR: `#399`, open, base `main`
+- remote branch tip before remediation: `97262085`
+- committed implementation tip before this documentation milestone: `b2f92913`
+- branch state: 11 local remediation commits ahead of the remote branch; **nothing was pushed**
+- approved reference:
+  `docs/superpowers/specs/2026-08-27-macro-desk-board.html`
+- reference SHA-256:
+  `b98a32de3041a348aa8e86f5c4cc2cb9480b000752bdd6b26a2dead7b08f4029`
+- remediation design:
+  `docs/superpowers/specs/2026-08-29-macro-desk-pixel-exact-remediation-design.md`
+- remediation plan:
+  `docs/superpowers/plans/2026-08-29-macro-desk-pixel-exact-remediation.md`
 
-**Zero new endpoints.** Every panel on the desk is a layout over a field the API already
-published. Three data paths that existed but nothing consumed are now bound: `/api/gold/gauge`,
-`/api/macro/rates` `sub_states`, and `/api/macro/policy` `market_implied`.
+The GitHub PR body predates this remediation and is stale. It still says the sidebar was
+collapsed, Gold lens/input endpoints are unconsumed, 60d gauge history is unavailable, Python
+has one local failure, and production E2E has not run. None of those statements is current.
 
-The backend diff is 8 files, +111 / −25 — `?as_of=` / `?as_of_ts=` on `/api/rates/snapshot`, a
-confidence-term `kind` correction in `macro/rates.py`, and three small additive fields. Everything
-else is the web tier.
+The local remediation series is intentionally split into independently verified milestones:
 
-## 2. Read these documents in order
+1. `8a46f558` — shared market-implied probability bars
+2. `00611675` — stable Frenzy page identity
+3. `1aa1f07d` — persisted Gold gauge history
+4. `892ee0bf` — isolated Xenon query settings test
+5. `a61cc071` — typed replay and Gold data bindings
+6. `170506b5` — full board shell and Overview loader
+7. `4a9e047d` — Overview and Energy panel alignment
+8. `a9abb319` — Fed and Curve board refactor
+9. `c0452a67` — Gold lens detail and 60d history
+10. `d9342ad9` — byte-pinned Design Notes
+11. `b2f92913` — full-board visual contract and browser gates
 
-1. `docs/superpowers/specs/2026-08-27-macro-desk-board.html` — **the spec**, sha256-pinned in the
-   repo. Nine tabs, 47 shippable panels, seven PM questions, its own class grammar.
-2. `docs/superpowers/plans/2026-08-27-macro-desk-page-port.md` — the port plan (P1–P6). Its
-   superseded "No new analytics / presentation merge" line is what shipped tabs 03/04 as one
-   generic card each; §10 records the corrections.
-3. `docs/research/2026-08-28-macro-desk-board-conformance/VERDICT.md` — the audit that measured the
-   gap before any of it was closed: 47 panels, 26 present, 6 partial, 15 absent or misplaced.
-4. `docs/superpowers/plans/2026-08-29-macro-desk-board-full-binding.md` — the binding plan.
-   **§8 closes the information port; §9 closes the design port.** Read both; §8 alone is the
-   mistake this branch made once already.
+## Closed in the remediation
 
-## 3. What shipped
+### Shell and design
 
-### The nine tabs
+- Restored the normal Argon sidebar on every Macro route.
+- Kept the complete 1440px board canvas to the sidebar's right instead of compressing it.
+- Replaced the artifact's centered 1240px wrap with Regime-style 32px gutters, per operator
+  direction; the comparator applies the same explicit override to the immutable reference.
+- Added the exact masthead, provenance legend, Q1–Q7 strip, sticky nine-tab bar, replay menu,
+  and footer. Design Notes is visible as tab 08.
+- Rebuilt Fed and Rates into the reference panel order and grid grammar.
+- Removed obsolete Rates layouts and dead CSS. The committed implementation remediation changes
+  83 files with 3,370 additions and 4,856 deletions: **1,486 net lines removed** even after adding
+  tests, types, and the visual comparator.
+- Split the route loader and reduced the two oversized Overview zone modules to under 500 lines.
 
-| Tab                      | Route                       | Panels | Replay clock  | Origin                       |
-| ------------------------ | --------------------------- | -----: | ------------- | ---------------------------- |
-| 00 Overview · Daily Loop | `/macro/overview`, `/macro` |     11 | `as_of`       | net new                      |
-| 01 Fed · Policy          | `/macro/fed`                |      8 | `computed_at` | from `/rates`                |
-| 02 Rates · Curve         | `/macro/rates`              |      9 | `computed_at` | from `/rates`                |
-| 03 Inflation             | `/macro/inflation`          |      4 | `as_of`       | from `/macro`                |
-| 04 US Dollar             | `/macro/usd`                |      2 | `as_of`       | from `/macro`                |
-| 05 Gold                  | `/macro/gold`               |      8 | `obs_date`    | from `/gold`                 |
-| 06 Energy · Proposal     | `/macro/energy`             |      2 | —             | net new                      |
-| 07 Factor Export         | `/macro/factors`            |      3 | —             | net new                      |
-| 08 Design Notes          | `/macro/notes`              |      — | —             | operator-only, off the strip |
+### Correctness and data binding
 
-`/gold` and `/rates` are permanent 308s into the desk. `/gold/replay/<date>` is deliberately kept
-and deliberately unlisted. The sidebar carries one Macro entry where it carried three.
+- Fixed Overview replay to call `/api/macro/snapshot?as_of=YYYY-MM-DD`; the former
+  `as_of_ts` call was both the wrong clock and a naive value.
+- Added persisted daily `history_60d` to `/api/gold/gauge`, sourced from
+  `gold_posture_daily` with one active first-compute observation per market date.
+- Gold and Overview now draw the requested 60d history. Overview bounds the returned history
+  to the replay date, so a historical page cannot display future anchor points.
+- Added typed `/api/gold/lenses/{lens_id}` access. The Input Manifest loads all three lens
+  detail series only when the operator expands the disclosure; the default page makes zero
+  hidden lens requests.
+- `/api/gold/inputs/{series_id}` remains bound in Overview's dated market-delta panel.
+- The four-path market probability bar renders the persisted Frenzy Capital Fed Watch
+  `probability_distribution` when the approved shadow ingest is active; it retains
+  `third_party_shadow`, `free_third_party_shadow`, and `delay_status=unknown` labels. If the
+  source is unavailable, the honest refusal remains and no probability is invented.
+- A live repeat exposed request-varying Cloudflare bytes in the otherwise unchanged Frenzy
+  HTML. The source now gives the continuously updated page one stable `source_record_id`:
+  every exact response remains an artifact, but the semantic policy upsert links cosmetic
+  variants to one observation instead of inventing another market view.
+- Made the option-surface settings test independent of the developer's inherited
+  `XENON_QUERY_API_URL` / key values, removing the previous local false negative.
 
-### Three registries that cannot drift
+### Chart scale after the gutter change
 
-- **`web/components/macro/tabs.ts` is a REGISTRY, not a schedule.** One array feeds both the route
-  guard (`notFound()` on an unregistered slug) and the tab bar, so the bar cannot link to a route
-  that 404s and the route cannot answer a slug the bar does not show. Adding a tab without adding
-  its content to `TAB_CONTENT` is a compile error.
-- **`replayClock` has no default.** It must name what the tab's endpoint _actually_ keys on:
-  `/api/macro/*` selects on `as_of`, `/api/rates/snapshot` on `computed_at`, `/api/gold/replay` on
-  `obs_date` with exact equality. Three verdict functions in `replay.ts`, two copy families in
-  `ReplayStatus`. Nothing type-checks the declaration against the router — this is the one place a
-  wrong answer is silent.
-- **`BoardPanel.questions` is a non-empty tuple.** The board's own acceptance test says every panel
-  must answer at least one of Q1–Q7 or it gets deleted. A panel that answers none does not compile.
+- The wider Regime-style content area exposed three stale coordinate frames. Updated the Fed
+  policy comparison, Gold correlation history, and Gold structural chart frames to their
+  measured containers.
+- The production browser chart-scale gate now passes across every Macro tab at the canonical
+  `1660x1000` app viewport (`220 + 1440`).
 
-### The design port (§9) — why the second pass existed
+## Verification evidence
 
-The first pass reported **47/47 panels bound** and was still wrong. It matched panel _inventory_;
-it did not match _design_. Tab 00 rendered zero board classes. Tabs 01 and 02 used no grid at all.
-The desk printed sixty-odd `REAL`/`Q4` chips and never defined them anywhere.
+Run from the worktree unless a command says `cd web`:
 
-The fix was to stop arguing about design from source and measure it:
-`web/scripts/board-pixel-compare.mjs`. **It is not a bitmap diff** — the board's numbers are mock
-values frozen at its capture instant while the desk derives its own at render time, so a pixel
-subtraction is dominated by digits and says nothing. It compares grammar coverage, computed style
-per selector, and full-page screenshots.
+- `uv run pytest` → **4465 passed, 0 failed, 14 skipped**
+- `cd web && npm run test` → **140 files, 1091 tests passed**
+- `cd web && npm run typecheck` → passed
+- `cd web && npm run lint` → passed, zero warnings
+- `cd web && npm run lint:gold-copy` → passed
+- exact staged snapshot: `cd web && npx next build --webpack` → Next production build passed
+- isolated production Playwright, seven Macro/Gold spec files → **41 passed**
+- `git diff --check` → passed
+- `uv run python scripts/release/version_sync_check.py` → `OK: 0.13.0`
+- `cd web && LIVE_BASE=<isolated production server> node scripts/board-pixel-compare.mjs`
+  → all 9 tabs captured under `output/playwright/board-compare/`
 
-Four findings that code review had not produced:
+The latest comparator report contains 3,481 raw occurrence differences: 3,016 geometry,
+85 count, and 380 style. This is not a bitmap pass/fail number. It pairs same-selector elements
+by index, so a live table with a different row count cascades every later y-coordinate and counts
+the same data-dependent shift repeatedly. The paired screenshots were visually reviewed. Notes
+is near-exact (8 raw differences); Gold is 131px taller than the frozen mock because it exposes
+real lens/audit depth. Do not report the raw 3,481 as 3,481 independent design defects.
 
-1. **The body type scale** — board 13.5px/1.55 against argon's 13px/1.5, inherited by everything.
-   The largest single source of drift, invisible in any per-component read.
-2. **Every board table cell rendered in mono.** `globals.css` styles bare `td`; the board declares
-   neither face nor size and _inherits_ sans/12.5px — and an inherited value always loses to a
-   declaration, however weak its specificity.
-3. **Tabs 01/02 had no grid.** The class-coverage probe missed it because `.grid.g2` _did_ render —
-   on other tabs. Coverage must be per-tab or it hides exactly this.
-4. **The desk had no key.** `BoardLegend` now renders the provenance key and the Q1–Q7 strip once
-   in the layout, which is the nine-route equivalent of the board's "once, above the tabs".
+A full-repository Playwright sweep was also attempted: 84 of 104 tests passed. One failure was
+an obsolete Gold five-tier assertion and is fixed in the visual-contract milestone. The other
+19 failures are outside the Macro/Gold port (Chains, Regime, Technicals, Volatility, and one
+stateful rescan flow) and were not changed or claimed clean by this work. The focused 41-test
+production suite above is the integration gate for this remediation.
 
-## 4. Evidence
+## PR size and simplification review
 
-Every claim below is reproducible from the branch tip.
+The local branch before this documentation milestone differs from `origin/main` by 171 files,
++27,751 / −5,617. The apparent “30k lines” is not all runtime code:
 
-| Claim                                 | Evidence                                                  | Re-verify                                                        |
-| ------------------------------------- | --------------------------------------------------------- | ---------------------------------------------------------------- |
-| 47/47 board panels present and bound  | plan §8 table, per tab                                    | fetch each tab, match the board's panel titles                   |
-| 40 of 41 probed board elements render | `board-pixel-compare` grammar probe                       | `cd web && node scripts/board-pixel-compare.mjs`                 |
-| Computed-style diffs 65 → 15          | `output/playwright/board-compare/report.json`             | same command                                                     |
-| All 9 routes + gold replay + API 200  | curl sweep, 2026-08-29 post-rebase                        | `curl -o /dev/null -w '%{http_code}' localhost:3002/macro/<tab>` |
-| Types                                 | clean                                                     | `cd web && npm run typecheck`                                    |
-| Web unit tests                        | **138 files / 1077 tests pass**                           | `cd web && npm run test`                                         |
-| eslint                                | clean, zero warnings                                      | `cd web && npm run lint`                                         |
-| Posture lint                          | clean                                                     | `cd web && node scripts/lint-gold-copy.mjs`                      |
-| Python                                | **4463 passed, 14 skipped, 1 pre-existing local failure** | `uv run pytest`                                                  |
-| Version sync                          | `OK: 0.13.0`                                              | `uv run python scripts/release/version_sync_check.py`            |
+- frozen board HTML: 6,891 added lines; retain as the signed source authority;
+- original implementation plan: 1,315 added lines;
+- audit, handover, tests, generated OpenAPI/types, and screenshots tooling make up a large share;
+- the 11 committed remediation milestones remove 4,856 lines while adding 3,370, net
+  **1,486 lines deleted**.
 
-**The one Python failure is not this branch and will not appear in CI.**
-`tests/unit/test_settings_option_surface.py::test_settings_reads_option_surface_flags` asserts the
-_default_ `xenon_query_api_url`; this worktree's `.env` sets it to the mini. `tests/conftest.py`
-documents this failure by name as "a purely local false negative — CI has no `.env`, so it never
-sees this". Reproduced deterministically with one variable:
+The main simplification was `RatesDesk.module.css` and the duplicated Rates section/state/path
+implementations. The largest remaining Macro runtime stylesheet is `board.css` (896 lines),
+which is the shared board design system; the largest Rates stylesheet is ~716 lines. Do not delete
+the frozen HTML or static Design Notes reference merely to improve the diff statistic: they are
+the auditable design contract and are byte/inventory tested.
 
-```bash
-XENON_QUERY_API_URL=http://100.66.147.98:8321 uv run pytest tests/unit/test_settings_option_surface.py
-```
+## Intentional boundaries
 
-Passes in isolation; passes across `tests/unit` (2690 tests, no `.env` leak in that path).
+- No migrations, new secrets, or new environment-variable names. The existing
+  `UW_SCAN_MACRO_MARKET_SHADOW_INGEST_ENABLED` switch was activated locally and on the Mac mini;
+  one initial Frenzy fetch was persisted in each database and the mini's prior env file was backed
+  up before the worker restart.
+- No composite macro score, allocation, price target, or invented market probability.
+- Energy stays a proposal, upstream of inflation; it is not promoted to a fifth domain state.
+- `/gold/replay/<date>` remains available and unlisted.
+- The old `/gold` and `/rates` entries redirect into the Macro desk.
+- The sidebar remains; do not revert to the earlier sidebar-free shell.
+- The 32px gutter is an approved override to the frozen board's centered wrap.
 
-## 5. What is NOT done
+## Remaining work before integration
 
-- **`.pbar` — the per-meeting probability bar — does not render, and cannot.** Verified, not
-  assumed: `/api/macro/policy` carries `probability_distribution` on **0 of its 21 points across
-  all four lanes**, the market-implied lane publishes `missing_reason` instead of a path, and
-  `/api/rates/snapshot` has no `market_implied` block. Tabs 00 and 01 state the refusal in the
-  publisher's own words. The CSS stays, so the bar's return is a markup change.
-- **`/api/gold/lenses/*` and `/api/gold/inputs/*` remain unconsumed.** `inputs/{id}` carries real
-  depth (`DFII10`, 1293 points) and would turn the input manifest from a list into inspectable
-  series.
-- **The board's t5 anchor-decay panel cannot be built as specified.** Not a port gap — the desk
-  neither computes nor retains a 60-day correlation series; the producer computes 252d only. The
-  fix is in `reports/gold_posture.py`, not in the web tier.
-- **15 residual computed-style diffs**, each checked rather than filtered: all are mock-vs-live
-  data, or the two pages opening on a different first instance of a class.
-- **t2 (1.70×) and t7 (1.43×) are taller than the board** because they carry content its mock does
-  not.
-- **No e2e run against a production build.** Unit and route-level checks only; the Playwright specs
-  exist (`web/tests/e2e/macro-*.spec.ts`) but have not been run against `next build`.
-- **Everything verified against `option_wizard_local`, never the mini.**
+1. Refresh the GitHub PR body with the facts above only after the user authorizes PR mutation.
+2. Push only the feature branch after explicit authorization, then let PR/CI verify. Never push
+   directly to `main`.
+3. Before claiming merge readiness, re-run the full gates above and inspect the paired Overview,
+   Fed, Rates, Gold, and Notes screenshots at the canonical viewport.
 
-## 6. Traps for whoever continues
-
-- **A design spec binds its design, not only its information.** This branch shipped 47/47 panels
-  bound to live data and still looked nothing like the board. Any check that counts panels will
-  pass over that gap silently.
-- **`.tag` is not one thing.** `.tag.real` is teal, `.tag.q` violet. A bare `querySelector(".tag")`
-  reports a colour difference that is really "the two pages open with a different kind of tag".
-- **`fullPage: true` measures document scroll height.** `AppShell` scrolls an inner `<main>`, so
-  full-page capture returns viewport-height images. Grow the viewport to the desk's own height
-  instead — and take the max bottom edge across _all_ `.board` elements, because `BoardLegend`
-  carries the class too.
-- **The board's values are frozen at its capture instant and must never be restated.** Its t4 title
-  says the dollar pair moves "in reverse" and both legs are currently positive. Every such sentence
-  is derived at render time (`dollar-pair-read`, `gold-gauge-read`) and tested in both branches.
-- **The posture lint walks the filesystem, not the import graph.** It scans `components/{gold,macro}`
-  - `app/{gold,macro}` and bans `long`/`short`/`trade`/`enter`/`buy`/`sell` in **comments as well as
-    prose**. `components/rates` is out of scope on purpose.
-- **No composite, ever.** Averaging four differently-grounded domain answers hides the
-  contradictions the cards exist to show. A test asserts the desk's own chrome carries no
-  score/allocation/probability — and it had to be widened, because the board's own standfirst says
-  "There is not, and will never be, a composite score". Ban the thing _presented_, not the word.
-- **The changelog trap, which bit this branch.** Rebasing onto a release moves `## [Unreleased]`
-  and puts a dated header in its old position. Git auto-merges cleanly and files your entries under
-  the **released** section. Check `## [Unreleased]` is non-empty after any rebase over a release.
-
-## 7. Deploy notes
-
-- **No migrations.** Nothing to apply out of band.
-- **No new environment variables**, no new secrets, no new vendor spend. The desk's every read is
-  an endpoint that already existed.
-- `/gold` and `/rates` become permanent (308) redirects. Bookmarks and browser history keep
-  working; the sidebar stops offering three doors to one room.
-- `/gold/replay/<date>` is kept and unlisted — the desk's gold tab carries the same replay through
-  `?as_of=`.
-
-## 8. Reproduce every gate
-
-```bash
-cd /Users/chenxi/projects/argon/.worktrees/feat-macro-desk-tabs-03-05
-
-uv run pytest                                    # 4463 pass (1 local .env false negative)
-uv run python scripts/release/version_sync_check.py
-
-cd web
-npm run typecheck
-npm run test                                     # 138 files / 1077 tests
-npm run lint
-node scripts/lint-gold-copy.mjs                  # posture lint
-
-# design conformance — needs the dev server on :3002
-node scripts/board-pixel-compare.mjs
-# -> output/playwright/board-compare/report.json + 16 screenshots
-```
+Frenzy is the approved current market-implied source. Local `/macro/fed` renders all three stored
+meeting distributions; the Mac mini API also serves them, but deployed `v0.13.0` predates this PR
+and therefore has no `/macro/fed` route yet. The production page will consume the already-persisted
+path after the PR follows the normal merge and release process. Frenzy remains a non-load-bearing
+shadow with unknown delay; an outage must restore the refusal state rather than borrowing an
+official or dealer path.
