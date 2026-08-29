@@ -21,16 +21,36 @@ describe("FedDesk", () => {
     render(<FedDesk snapshot={SNAPSHOT} />);
 
     for (const label of [
-      "State",
       "Four lanes",
+      // The board gives the market-implied lane its own panel; it shipped without one,
+      // which read as "this desk does not cover market-implied odds".
+      "Per-meeting odds",
       "Dot plot",
       "Dealer path",
-      "Policy",
-      "Events",
+      "State & confidence",
+      "Plumbing",
+      "Next events",
       "Refusals",
       "Sources",
     ]) {
       expect(screen.getByRole("link", { name: label })).toBeTruthy();
+    }
+
+    // Every NAV anchor resolves to a section that actually rendered.
+    const sectionIds = new Set(
+      Array.from(document.querySelectorAll("section[id]")).map((n) => n.id),
+    );
+    for (const anchor of [
+      "paths",
+      "market-implied",
+      "dealer-plot",
+      "sep-plot",
+      "state",
+      "policy",
+      "events",
+      "refuses",
+    ]) {
+      expect(sectionIds.has(anchor)).toBe(true);
     }
 
     // Each tab's NAV covers only its own sections, so an anchor to a section this tab
@@ -91,7 +111,9 @@ describe("FedDesk", () => {
   it("renders futures move probabilities and low ON RRP in trillions", () => {
     render(<FedDesk snapshot={SNAPSHOT} />);
 
-    const policySection = screen.getByRole("region", { name: /^policy$/i });
+    const policySection = screen.getByRole("region", {
+      name: /plumbing · the balance sheet/i,
+    });
     expect(within(policySection).getByText("Fed funds futures")).toBeTruthy();
     expect(within(policySection).getByText("6/17")).toBeTruthy();
     expect(within(policySection).getByText("7/29")).toBeTruthy();
@@ -171,7 +193,18 @@ describe("FedDesk", () => {
   describe("evidence-first presentation", () => {
     const withState = { ...SNAPSHOT, state: POLICY_RATES_STATE };
 
-    it("leads with the domain state, ahead of the publishers who feed it", () => {
+    it("states the four publishers first, then the engine's reading of them", () => {
+      // REVERSED on 2026-08-29, and deliberately. This asserted the opposite — state
+      // first, "evidence-first presentation" — which was the port plan's call. The board
+      // puts `State & confidence · the engine's own proof` fifth, after all four
+      // publisher panels, and where the plan and the board disagree the board wins
+      // (CLAUDE.md).
+      //
+      // The board is also right on the merits: the state is a reading OF those four
+      // lanes, and printing it above them invites it to be read as a fifth opinion
+      // standing beside the committee's and the dealers' rather than as a verdict on
+      // them. "The engine's own proof" only means anything after the reader has seen
+      // what it is proving something about.
       const { container } = render(
         <FedDesk snapshot={withState} policyComparison={POLICY_COMPARISON} />,
       );
@@ -179,8 +212,14 @@ describe("FedDesk", () => {
       const ids = Array.from(container.querySelectorAll("section[id]")).map(
         (node) => node.id,
       );
-      expect(ids.indexOf("state")).toBe(0);
-      expect(ids.indexOf("paths")).toBe(1);
+      expect(ids.indexOf("paths")).toBe(0);
+      expect(ids.indexOf("state")).toBeGreaterThan(ids.indexOf("paths"));
+      expect(ids.indexOf("state")).toBeGreaterThan(
+        ids.indexOf("market-implied"),
+      );
+      expect(ids.indexOf("state")).toBeGreaterThan(ids.indexOf("dealer-plot"));
+      expect(ids.indexOf("state")).toBeGreaterThan(ids.indexOf("sep-plot"));
+      // Still ahead of the mechanics it does not depend on.
       expect(ids.indexOf("state")).toBeLessThan(ids.indexOf("policy"));
     });
 

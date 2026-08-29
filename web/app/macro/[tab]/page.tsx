@@ -75,9 +75,16 @@ const RATES_PUBLISHER = "rates snapshot";
  */
 async function FedTab({ replay }: MacroTabProps) {
   const asOf = replay.kind === "replay" ? replay.asOf : undefined;
-  const [snapshot, policy] = await Promise.all([
+  const [snapshot, policy, ratesState] = await Promise.all([
     settle(() => api.ratesSnapshot(asOf), "rates API"),
     settle(() => api.macroPolicy(asOf), "macro policy API"),
+    // The board's named fallback for the state panel, cited at the same instant and
+    // settled separately. See `FedDesk`'s `ratesState` prop: the snapshot's own state
+    // block is gated behind a flag that defaults OFF, and with it off the board's
+    // "State & confidence" panel had nothing to render. The docstring above still holds
+    // where it applies — when the flag IS on, the snapshot's block wins and this is
+    // ignored, so no answer is ever forked into two requests.
+    settle(() => api.macroDomainState("rates", asOf), "rates state API"),
   ]);
 
   const verdict = replayVerdict(replay, {
@@ -101,6 +108,7 @@ async function FedTab({ replay }: MacroTabProps) {
         errorMessage={snapshot.error}
         policyComparison={policy.value}
         policyComparisonError={policy.error}
+        ratesState={ratesState.value}
       />
     </>
   );

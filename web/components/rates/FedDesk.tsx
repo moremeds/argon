@@ -10,9 +10,21 @@ import {
   type NavGroup,
 } from "./deskShared";
 import { statusLabel } from "./format";
+import { MarketImpliedOddsSection } from "./sections/MarketImpliedOddsSection";
 import { PolicySection } from "./sections/PolicySection";
 import { StateSection } from "./sections/StateSection";
-import type { Policy, PolicyComparison, Snapshot } from "./types";
+import type {
+  MacroStateSummary,
+  Policy,
+  PolicyComparison,
+  Snapshot,
+} from "./types";
+import type { components } from "@/lib/types";
+
+type MacroDomainState = components["schemas"]["MacroDomainStateResponse"];
+
+/** The router's own constant for where the state detail lives (`routers/rates.py`). */
+const STATE_DETAIL_PATH = "/api/macro/rates";
 
 /**
  * Macro desk tab 01 — Fed · Policy.
@@ -38,22 +50,27 @@ import type { Policy, PolicyComparison, Snapshot } from "./types";
  * a refusal panel, which mattered more here than anywhere: this is the tab carrying four
  * separate published paths that a reader will want to average.
  */
+// NAV order follows DOCUMENT order, and both changed on 2026-08-29. The board puts the
+// four publishers first and the state after them: the state is a reading OF those lanes,
+// and printing it first invites it to be read as a fifth opinion rather than a verdict on
+// the other four.
 const NAV: readonly NavGroup[] = [
-  {
-    id: "tier-answer",
-    tier: "The answer",
-    lede: "What this desk says about policy right now, and how sure it is.",
-    items: [["state", "State"]],
-  },
   {
     id: "tier-publishers",
     tier: "Who says what",
     lede: "Each publisher on its own axes, and how far it has moved since its last release.",
     items: [
       ["paths", "Four lanes"],
-      ["sep-plot", "Dot plot"],
+      ["market-implied", "Per-meeting odds"],
       ["dealer-plot", "Dealer path"],
+      ["sep-plot", "Dot plot"],
     ],
+  },
+  {
+    id: "tier-answer",
+    tier: "The answer",
+    lede: "What this desk says about policy right now, and how sure it is.",
+    items: [["state", "State & confidence"]],
   },
   {
     id: "tier-mechanics",
@@ -63,7 +80,7 @@ const NAV: readonly NavGroup[] = [
     // 2026-08-28, see the block above `FedDesk` — so the sentence is trimmed to what
     // this tab actually carries rather than kept verbatim and made false.
     lede: "The plumbing a policy view stands on: the policy settings themselves.",
-    items: [["policy", "Policy"]],
+    items: [["policy", "Plumbing"]],
   },
   {
     id: "tier-provenance",
@@ -72,7 +89,7 @@ const NAV: readonly NavGroup[] = [
     // provenance tier is provenance only.
     lede: "Where the numbers came from, and what this tab will not say.",
     items: [
-      ["events", "Events"],
+      ["events", "Next events"],
       ["refuses", "Refusals"],
       ["sources", "Sources"],
     ],
@@ -84,11 +101,27 @@ export function FedDesk({
   errorMessage,
   policyComparison,
   policyComparisonError,
+  ratesState,
 }: {
   snapshot: Snapshot | null;
   errorMessage?: string;
   policyComparison?: PolicyComparison | null;
   policyComparisonError?: string;
+  /**
+   * `/api/macro/rates`, cited as the FALLBACK source for the state panel.
+   *
+   * `RatesSnapshotResponse.state` is gated behind `settings.rates_snapshot_state_block_
+   * enabled`, which defaults FALSE (`config.py`). With it off the snapshot returns
+   * `state: null` and the board's "State & confidence · the engine's own proof" panel had
+   * nothing to prove anything with — a board panel permanently empty by configuration
+   * rather than by fact.
+   *
+   * The board names this exact route for that case: "if that flag is off the same state
+   * is still reachable via `/api/macro/rates`". Preferring the snapshot's own block when
+   * present keeps the single-fetch design the page argues for; the citation only fills a
+   * hole, and cannot fork an answer that is not there to fork.
+   */
+  ratesState?: MacroDomainState | null;
 }) {
   if (!snapshot) {
     return (
@@ -101,6 +134,20 @@ export function FedDesk({
     plumbing: [],
     implied_path: [],
   };
+
+  // `MacroDomainStateResponse` is a superset of `MacroStateSummary` but for two fields:
+  // it carries the evidence ROWS where the summary carries their count, and it has no
+  // `detail_path` because it IS the detail. Both are derived rather than defaulted, so
+  // the panel cannot claim an evidence count it did not get.
+  const stateSummary: MacroStateSummary | null =
+    snapshot.state ??
+    (ratesState
+      ? {
+          ...ratesState,
+          evidence_count: ratesState.evidence?.length ?? 0,
+          detail_path: STATE_DETAIL_PATH,
+        }
+      : null);
 
   return (
     <div className={styles.page}>
@@ -131,46 +178,65 @@ export function FedDesk({
         />
 
         <RatesTier
-          id="tier-answer"
-          title="The answer"
-          lede="What this desk says about policy right now, and how sure it is."
-        />
-
-        <RatesSection
-          id="state"
-          title="Policy / Rates State"
-          eyebrow="Point-in-time evidence"
-        >
-          <StateSection state={snapshot.state} />
-        </RatesSection>
-
-        <RatesTier
           id="tier-publishers"
           title="Who says what"
           lede="Each publisher on its own axes, and how far it has moved since its last release."
         />
 
-        <RatesSection id="paths" title="Policy Paths">
+        <RatesSection id="paths" title="Four policy paths · who says what">
           <PolicyPathComparison
             comparison={policyComparison}
             errorMessage={policyComparisonError}
           />
+        </RatesSection>
 
-          {/* The two publishers that plot, inside the same section as the four lanes
-            they belong to -- they ARE two of those lanes, and splitting them into
-            sibling sections asked the reader to hold that connection themselves.
-            Still two blocks with two sets of axes: sharing a frame would draw a
-            comparison this desk refuses to make. */}
-          <div className={styles.pathPlots}>
-            <div id="sep-plot" className={styles.pathPlot}>
-              <h3>Committee projection (SEP)</h3>
-              <SepDotPlot slot={policyComparison?.committee_projection} />
-            </div>
-            <div id="dealer-plot" className={styles.pathPlot}>
-              <h3>Dealer expectations</h3>
-              <DealerPathChart slot={policyComparison?.dealer_expectations} />
-            </div>
-          </div>
+        {/* The board gives the market-implied lane its own panel and this tab shipped
+          without one. `market_implied` is a three-state slot currently in its third
+          state, and an absent panel says "this desk does not cover market-implied odds"
+          where the truth is "it does, and the publisher had nothing" -- see the component
+          for why that distinction is load-bearing on exactly this lane. */}
+        <RatesSection
+          id="market-implied"
+          title="Per-meeting odds · market-implied"
+          eyebrow="The only lane a market actually traded"
+        >
+          <MarketImpliedOddsSection slot={policyComparison?.market_implied} />
+        </RatesSection>
+
+        {/* Two publishers, two panels, two sets of axes. They were one section holding
+          both plots; the board separates them, and the separation is the point -- a
+          shared frame would draw the comparison this desk refuses to make. */}
+        <RatesSection
+          id="dealer-plot"
+          title="Dealer expectations · unrolled"
+          eyebrow="Primary-dealer survey · each release against its own date"
+        >
+          <DealerPathChart slot={policyComparison?.dealer_expectations} />
+        </RatesSection>
+
+        <RatesSection
+          id="sep-plot"
+          title="Committee projections · unrolled"
+          eyebrow="FOMC SEP · dots stay anonymous"
+        >
+          <SepDotPlot slot={policyComparison?.committee_projection} />
+        </RatesSection>
+
+        <RatesTier
+          id="tier-answer"
+          title="The answer"
+          lede="What this desk says about policy right now, and how sure it is."
+        />
+
+        {/* The board puts the state AFTER the publishers, not before, and it is right to:
+          the state is a reading OF those four lanes, and printing it first invites it to
+          be read as a fifth opinion rather than a verdict on the other four. */}
+        <RatesSection
+          id="state"
+          title="State & confidence · the engine's own proof"
+          eyebrow="Point-in-time evidence"
+        >
+          <StateSection state={stateSummary} />
         </RatesSection>
 
         <RatesTier
@@ -181,7 +247,7 @@ export function FedDesk({
 
         <RatesSection
           id="policy"
-          title="Policy"
+          title="Plumbing · the balance sheet behind the rate"
           status={statusLabel(policy?.status)}
         >
           <PolicySection policy={policy} />
@@ -195,7 +261,7 @@ export function FedDesk({
 
         <RatesSection
           id="events"
-          title="Events"
+          title="Next events"
           status={snapshot.events?.length ? "Live" : "Unavailable"}
         >
           <div className={styles.notePanel}>
