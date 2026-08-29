@@ -7,6 +7,9 @@ version in lockstep (enforced by `scripts/release/version_sync_check.py`).
 
 ## [Unreleased]
 
+## [0.13.0] — 2026-08-29
+
+
 ### Added
 
 - **The fundamentals industry desk: `/fundamentals` -> `/fundamentals/ai-semi` -> node pages.** Six
@@ -143,8 +146,6 @@ version in lockstep (enforced by `scripts/release/version_sync_check.py`).
   previously-unencoded call site in `ReportView.tsx`'s version-history links now `encodeURIComponent`s
   the key, which is the opposite fix — that link addresses Next's own single-segment `[key]` route,
   which (unlike uvicorn) splits on a literal `/` before decoding, so a raw slash there 404s instead.
-
-
 ## [0.12.18] — 2026-08-28
 
 
