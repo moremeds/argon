@@ -110,6 +110,21 @@ contract too far for a presentation redesign.
 - Long tokens use safe breaking. Numeric cells may remain tabular but cannot force the
   table wider than its panel.
 
+### Atomic line groups
+
+- One datum is one visual group: label, value, unit, direction, formula operator, and
+  formula result must not split internally when their combined intrinsic width fits the
+  card.
+- Formula terms use one horizontal face (`label · value`) rather than stacking a value
+  over its label. Operators travel with the term that follows, and the equals sign travels
+  with the result.
+- A row may wrap only after its available width is genuinely exhausted. Before wrapping,
+  reduce decorative gap/padding and let the group consume unused row or column space.
+- If a group still cannot fit, move the whole group to the next line. Never split its
+  value from its unit and never introduce horizontal scrolling to preserve one line.
+- Browser tests measure rendered line boxes at 1280, 1440, and 1660px. A group occupying
+  multiple line boxes while its row has enough spare width is a regression.
+
 ## Dynamic-binding contract
 
 Every displayed analytical value must be classified as:

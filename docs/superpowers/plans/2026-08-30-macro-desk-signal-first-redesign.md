@@ -117,3 +117,22 @@ tab. Treat data provenance as structured metadata rather than repeated primary c
 4. Remove unnecessary code exposed by the review.
 5. Add the Unreleased changelog entry.
 6. Commit verification/remediation and changelog as the final meaningful milestone.
+
+## Task 7: Keep same-information card content on one line
+
+**Files:**
+- Modify: `web/tests/e2e/macro-desk.spec.ts`
+- Modify: `web/app/macro/board.css`
+- Modify: `web/components/macro/domain/ConfidencePanels.tsx`
+- Modify: `web/components/macro/ConfidenceArithmetic.module.css`
+- Modify: relevant card/table components found by the browser audit
+
+1. Add a failing production-browser assertion that atomic label/value/unit and formula
+   groups do not occupy multiple rendered lines when their row has enough spare width.
+2. Run that assertion at 1280px and confirm it fails on the current stacked formula terms
+   and avoidable table/card wrapping.
+3. Render formula terms as single inline groups and pair operators with the following term.
+4. Add shared atomic-group styles to other affected cards without adding `overflow-x`.
+5. Re-run the 1280/1440/1660 no-overflow sweep and visually inspect the affected tabs.
+6. Run all unit tests, typecheck, lint, and production build.
+7. Commit: `fix(macro): keep atomic card information on one line`
