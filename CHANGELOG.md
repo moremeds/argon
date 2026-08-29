@@ -354,6 +354,15 @@ version in lockstep (enforced by `scripts/release/version_sync_check.py`).
 
 ### Changed
 
+- **Macro cards now keep one information unit on one line whenever it fits.** Formula
+  operators travel with the following factor; labels, values and units share a baseline;
+  two-column tables allocate width by content instead of splitting short fields; and the
+  rates sub-state grids give long KPI labels enough room before wrapping. Inflation series
+  ids now render as concise operator labels such as **Core PCE**, **Median CPI** and
+  **Sticky core CPI**, while the raw ids remain in audit metadata. Browser coverage holds
+  this rule together with the existing zero-horizontal-scroll contract at 1280, 1440 and
+  1660px.
+
 - **The macro desk is now signal-first instead of review-first.** All nine tabs use short
   operator-facing titles and standfirsts; question badges and long publisher commentary
   move out of the reading path, while provenance remains available under **Data details**.

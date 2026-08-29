@@ -38,6 +38,19 @@ describe("macro presentation vocabulary", () => {
     expect(seriesLabel("custom_series_name")).toBe("Custom series name");
   });
 
+  it("uses concise operator labels for inflation series and units", () => {
+    expect(seriesLabel("PCEPILFE")).toBe("Core PCE");
+    expect(seriesLabel("TRMMEANCPIM158SFRBCLE")).toBe("Trimmed-mean CPI");
+    expect(seriesLabel("CORESTICKM159SFRBATL")).toBe("Sticky core CPI");
+    expect(humanizeIdentifier("index_2017_100_sa")).toBe("2017=100 SA");
+    expect(humanizeIdentifier("percent_change_annual_rate")).toBe(
+      "Annualized",
+    );
+    expect(humanizeIdentifier("percent_change_from_year_ago")).toBe(
+      "Year over year",
+    );
+  });
+
   it("renames provenance for an operator", () => {
     expect(basisLabel("REAL")).toBe("Live");
     expect(basisLabel("COMPUTED")).toBe("Derived");

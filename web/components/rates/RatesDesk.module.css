@@ -75,12 +75,18 @@
 
 .compactGrid {
   display: grid;
-  grid-template-columns: repeat(2, minmax(0, 1fr));
+  /* Velocity labels carry the participant, window and transformation. A second
+     nested column saves little height but turns those labels into fragments. */
+  grid-template-columns: 1fr;
   gap: 12px;
 }
 
 .kpiTile {
   min-width: 0;
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  gap: 5px 10px;
   border: 1px solid var(--border-dim);
   border-radius: 6px;
   padding: 14px 16px;
@@ -92,25 +98,27 @@
    spelled it 11px with no tracking. */
 .kpiTile span,
 .kpiTile small {
-  display: block;
+  display: inline;
   color: var(--text-muted);
   font-size: 10px;
   font-weight: 600;
   letter-spacing: 1.5px;
   text-transform: uppercase;
-  overflow-wrap: anywhere;
+  overflow-wrap: normal;
+  white-space: nowrap;
 }
 
 /* Board `.big`. */
 .kpiTile strong {
-  display: block;
-  margin: 7px 0;
+  display: inline;
+  margin: 0;
   color: var(--text-primary);
   font-size: 22px;
   font-weight: 700;
   line-height: 1.1;
   letter-spacing: 0;
-  overflow-wrap: anywhere;
+  overflow-wrap: normal;
+  white-space: nowrap;
 }
 
 .curveGrid {
@@ -296,6 +304,10 @@
 
 .slopeCard {
   min-height: 112px;
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  align-items: baseline;
+  gap: 8px 12px;
 }
 
 /* Board `.panel-h h3`, `.big`, `.read` — in that order, on the three parts of a card. */
@@ -311,16 +323,18 @@
 
 .slopeCard strong {
   display: block;
-  margin-top: 10px;
+  margin-top: 0;
   color: var(--text-primary);
   font-family: var(--font-mono), "IBM Plex Mono", monospace;
   font-size: 22px;
   font-weight: 700;
   line-height: 1.1;
+  white-space: nowrap;
 }
 
 .slopeCard p {
-  margin: 12px 0 0;
+  grid-column: 1 / -1;
+  margin: 0;
   color: var(--text-secondary);
   border-left: 2px solid #048a7a;
   padding-left: 9px;
@@ -542,7 +556,10 @@
 
 .supplyMetricGrid {
   display: grid;
-  grid-template-columns: repeat(3, minmax(0, 1fr));
+  /* These cards carry a label, value and status. Three columns inside the outer
+     three-column sub-state grid left only ~90px of content width and forced even
+     `TGA $0.96T` onto two lines. Two columns preserve the information unit. */
+  grid-template-columns: repeat(2, minmax(0, 1fr));
   gap: 10px;
 }
 

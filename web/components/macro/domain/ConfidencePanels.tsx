@@ -1,5 +1,3 @@
-import { Fragment } from "react";
-
 import { BoardPanel, BoardRead } from "./BoardPanel";
 import {
   confidenceChain,
@@ -111,24 +109,17 @@ export function ConfidenceArithmeticPanel({
     >
       <div className="arith" data-testid="confidence-chain">
         {chain.terms.map((t, i) => (
-          <Fragment key={t.term}>
+          <span className="arith-factor" key={t.term}>
             {i > 0 ? <span className="op">×</span> : null}
             <span className={termClass(t)} title={humanizeText(t.detail)}>
               {termFace(t)}
               <small>{fieldLabel(t.term)}</small>
             </span>
-          </Fragment>
+          </span>
         ))}
         {/* The `=` and the product travel as one item so a wrap can never strand the
             operator on the line above its own answer. */}
-        <span
-          style={{
-            display: "flex",
-            gap: 5,
-            alignItems: "center",
-            flex: "0 0 auto",
-          }}
-        >
+        <span className="arith-result">
           <span className="op">=</span>
           <span className={chain.reconciles ? "res" : "res bad"}>
             {fmtConfidence(chain.product)}
@@ -192,7 +183,10 @@ export function ConfidenceRepairPanel({
       ) : (
         <>
           <div className="tbl-wrap">
-            <table data-testid="confidence-repair-table">
+            <table
+              className="pair-table"
+              data-testid="confidence-repair-table"
+            >
               <thead>
                 <tr>
                   <th>If this clears</th>

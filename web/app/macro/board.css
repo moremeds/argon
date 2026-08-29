@@ -177,7 +177,7 @@
     grid-template-columns: 1fr;
   }
 }
-@media (max-width: 1400px) {
+@media (max-width: 1500px) {
   .board .g3 {
     grid-template-columns: 1fr;
   }
@@ -401,6 +401,29 @@
 .board tr:last-child td {
   border-bottom: none;
 }
+.board table.pair-table {
+  table-layout: auto;
+}
+.board table.factor-table {
+  table-layout: auto;
+}
+.board .factor-table th:not(:first-child),
+.board .factor-table td:not(:first-child) {
+  white-space: nowrap;
+}
+.board .pair-table th:last-child,
+.board .pair-table td:last-child {
+  width: 1%;
+  white-space: nowrap;
+}
+.board .metric-name,
+.board .metric-unit {
+  white-space: nowrap;
+}
+.board .metric-unit {
+  color: var(--text-muted);
+  font-size: 10px;
+}
 
 /* ── the arithmetic chain ── */
 .board .arith {
@@ -418,6 +441,13 @@
   overflow: visible;
   padding-bottom: 2px;
 }
+.board .arith-factor,
+.board .arith-result {
+  display: inline-flex;
+  flex: 0 0 auto;
+  align-items: stretch;
+  gap: 5px;
+}
 .board .arith .term {
   background: var(--bg-panel-raised);
   border: 1px solid var(--border-dim);
@@ -427,15 +457,18 @@
   white-space: nowrap;
   flex: 0 0 auto;
   display: flex;
-  flex-direction: column;
+  flex-direction: row;
+  align-items: baseline;
+  gap: 5px;
   justify-content: center;
 }
 .board .arith .term small {
-  display: block;
+  display: inline;
+  order: -1;
   font-size: 8.5px;
   color: var(--text-muted);
   letter-spacing: 0.02em;
-  margin-top: 2px;
+  margin-top: 0;
   white-space: nowrap;
 }
 /* The board colours a degraded term's border by which kind of term degraded it —

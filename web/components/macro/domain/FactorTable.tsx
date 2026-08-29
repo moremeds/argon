@@ -65,7 +65,7 @@ export function FactorTable({
   }
   return (
     <div className="tbl-wrap">
-      <table data-testid={testId}>
+      <table className="factor-table" data-testid={testId}>
         <thead>
           <tr>
             <th>Metric</th>
@@ -79,19 +79,15 @@ export function FactorTable({
           {factors.map((f) => (
             <tr key={`${f.name}-${f.series_id}`}>
               <td>
-                <span data-raw-value={f.series_id} title={f.series_id}>
+                <span
+                  className="metric-name"
+                  data-raw-value={f.series_id}
+                  title={f.series_id}
+                >
                   {seriesLabel(f.series_id)}
                 </span>
-                {/* The unit sits on its own line rather than running on after the id.
-                    In a half-width panel the two together wrap mid-phrase, which reads
-                    as a ragged accident; stacked, the wrap is the layout. */}
-                <small
-                  style={{
-                    display: "block",
-                    fontSize: 10,
-                    color: "var(--text-muted)",
-                  }}
-                >
+                <small className="metric-unit">
+                  {" · "}
                   {humanizeIdentifier(f.unit)}
                 </small>
               </td>

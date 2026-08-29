@@ -22,6 +22,10 @@ const EXACT_LABELS: Readonly<Record<string, string>> = {
   cpi_pce_divergence: "CPI–PCE divergence",
   breadth_contradicts_core: "Breadth conflicts with core",
   percent_annual_rate: "Annual rate",
+  index_2017_100_sa: "2017=100 SA",
+  index_1982_84_100_sa: "1982–84=100 SA",
+  percent_change_annual_rate: "Annualized",
+  percent_change_from_year_ago: "Year over year",
   corr_60d: "60-day correlation",
   MICH: "Michigan survey",
   T5YIFR: "5Y5Y inflation forward",
@@ -55,6 +59,13 @@ const FIELD_LABELS: Readonly<Record<string, string>> = {
 };
 
 const SERIES_LABELS: Readonly<Record<string, string>> = {
+  PCEPILFE: "Core PCE",
+  PCEPI: "Headline PCE",
+  CPILFESL: "Core CPI",
+  CPIAUCSL: "Headline CPI",
+  MEDCPIM158SFRBCLE: "Median CPI",
+  TRMMEANCPIM158SFRBCLE: "Trimmed-mean CPI",
+  CORESTICKM159SFRBATL: "Sticky core CPI",
   DGS10: "10Y Treasury",
   DFII10: "10Y real yield",
   T10YIE: "10Y breakeven",

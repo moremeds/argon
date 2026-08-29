@@ -182,6 +182,202 @@ test.describe("macro desk shell", () => {
     }
   });
 
+  test("same-information groups use one line whenever their intrinsic width fits", async ({
+    page,
+  }) => {
+    await page.setViewportSize({ width: 1280, height: 900 });
+    await page.goto("/macro/inflation");
+    await page.waitForLoadState("networkidle");
+
+    const splitGroups = await page.evaluate(() => {
+      const textRect = (node: Node): DOMRect | null => {
+        const range = document.createRange();
+        range.selectNodeContents(node);
+        const rects = [...range.getClientRects()].filter(
+          (rect) => rect.width > 0 && rect.height > 0,
+        );
+        return rects.length === 1 ? rects[0] : null;
+      };
+      // Same baseline does not mean the glyph boxes have the same top: the muted label
+      // is intentionally smaller than the value. Text on one line overlaps vertically;
+      // text on two flex rows does not.
+      const sameLine = (rects: DOMRect[]) =>
+        Math.max(...rects.map((rect) => rect.top)) <
+        Math.min(...rects.map((rect) => rect.bottom));
+      const failures: Array<{ kind: string; text: string }> = [];
+
+      for (const chain of document.querySelectorAll<HTMLElement>(".board .arith")) {
+        const terms = [...chain.querySelectorAll<HTMLElement>(".term")];
+        const pieces = terms.flatMap((term) => {
+          const value = [...term.childNodes].find(
+            (node) => node.nodeType === Node.TEXT_NODE && node.textContent?.trim(),
+          );
+          const label = term.querySelector("small");
+          const valueRect = value ? textRect(value) : null;
+          const labelRect = label ? textRect(label) : null;
+          return valueRect && labelRect ? [{ term, valueRect, labelRect }] : [];
+        });
+        const intrinsicWidth = pieces.reduce(
+          (sum, piece) =>
+            sum + piece.valueRect.width + piece.labelRect.width + 18,
+          0,
+        );
+        if (intrinsicWidth <= chain.clientWidth) {
+          for (const piece of pieces) {
+            if (!sameLine([piece.valueRect, piece.labelRect])) {
+              failures.push({
+                kind: "formula term",
+                text: piece.term.textContent?.replace(/\s+/g, " ").trim() ?? "",
+              });
+            }
+          }
+        }
+      }
+
+      for (const cell of document.querySelectorAll<HTMLElement>(
+        '[data-testid="inflation-realized-table"] tbody td:first-child',
+      )) {
+        const label = cell.querySelector<HTMLElement>("span");
+        const unit = cell.querySelector<HTMLElement>("small");
+        const labelRect = label ? textRect(label) : null;
+        const unitRect = unit ? textRect(unit) : null;
+        if (!labelRect || !unitRect) continue;
+        const intrinsicWidth = labelRect.width + unitRect.width + 8;
+        if (
+          intrinsicWidth <= cell.clientWidth &&
+          !sameLine([labelRect, unitRect])
+        ) {
+          failures.push({
+            kind: "metric and unit",
+            text: cell.textContent?.replace(/\s+/g, " ").trim() ?? "",
+          });
+        }
+      }
+
+      return failures;
+    });
+
+    expect.soft(splitGroups).toEqual([]);
+
+    await page.setViewportSize({ width: 1660, height: 900 });
+    const avoidableTableWraps = await page.evaluate(() => {
+      const failures: string[] = [];
+      for (const row of document.querySelectorAll<HTMLTableRowElement>(
+        '[data-testid="confidence-repair-table"] tbody tr',
+      )) {
+        const [description, value] = [...row.cells];
+        if (!description || !value) continue;
+        const descriptionRange = document.createRange();
+        descriptionRange.selectNodeContents(description);
+        const descriptionRects = [...descriptionRange.getClientRects()].filter(
+          (rect) => rect.width > 0 && rect.height > 0,
+        );
+        const valueRange = document.createRange();
+        valueRange.selectNodeContents(value);
+        const valueWidth = valueRange.getBoundingClientRect().width;
+        const intrinsicDescriptionWidth = descriptionRects.reduce(
+          (sum, rect) => sum + rect.width,
+          0,
+        );
+        const availableDescriptionWidth = row.clientWidth - valueWidth - 48;
+        const lineTops = new Set(
+          descriptionRects.map((rect) => Math.round(rect.top)),
+        );
+        if (
+          lineTops.size > 1 &&
+          intrinsicDescriptionWidth <= availableDescriptionWidth
+        ) {
+          failures.push(
+            description.textContent?.replace(/\s+/g, " ").trim() ?? "",
+          );
+        }
+      }
+      return failures;
+    });
+
+    expect.soft(avoidableTableWraps).toEqual([]);
+
+    const splitWideFactorRows = await page.evaluate(() => {
+      const failures: string[] = [];
+      for (const row of document.querySelectorAll<HTMLTableRowElement>(
+        '[data-testid="inflation-realized-table"] tbody tr',
+      )) {
+        const metric = row.cells[0];
+        const period = row.cells[4];
+        if (!metric || !period) continue;
+        for (const [kind, cell] of [
+          ["metric", metric],
+          ["period", period],
+        ] as const) {
+          const range = document.createRange();
+          range.selectNodeContents(cell);
+          const rects = [...range.getClientRects()]
+            .filter((rect) => rect.width > 0 && rect.height > 0)
+            .sort((a, b) => a.top - b.top);
+          const lineBands: Array<{ top: number; bottom: number }> = [];
+          for (const rect of rects) {
+            const band = lineBands.find(
+              (candidate) =>
+                Math.max(candidate.top, rect.top) <
+                Math.min(candidate.bottom, rect.bottom),
+            );
+            if (band) {
+              band.top = Math.min(band.top, rect.top);
+              band.bottom = Math.max(band.bottom, rect.bottom);
+            } else {
+              lineBands.push({ top: rect.top, bottom: rect.bottom });
+            }
+          }
+          if (lineBands.length > 1) {
+            failures.push(
+              `${kind}: ${cell.textContent?.replace(/\s+/g, " ").trim() ?? ""}`,
+            );
+          }
+        }
+      }
+      return failures;
+    });
+
+    expect.soft(splitWideFactorRows).toEqual([]);
+
+    await page.goto("/macro/rates");
+    await page.waitForLoadState("networkidle");
+    const splitCardHeadlines = await page.evaluate(() => {
+      const failures: string[] = [];
+      const cards = document.querySelectorAll<HTMLElement>(
+        '[data-testid="slope-card"], article[class*="kpiTile"]',
+      );
+      for (const card of cards) {
+        const label = card.querySelector<HTMLElement>(":scope > span");
+        const value = card.querySelector<HTMLElement>(":scope > strong");
+        if (!label || !value) continue;
+        const labelRange = document.createRange();
+        labelRange.selectNodeContents(label);
+        const valueRange = document.createRange();
+        valueRange.selectNodeContents(value);
+        const labelRect = labelRange.getBoundingClientRect();
+        const valueRect = valueRange.getBoundingClientRect();
+        const style = getComputedStyle(card);
+        const contentWidth =
+          card.clientWidth -
+          parseFloat(style.paddingLeft) -
+          parseFloat(style.paddingRight);
+        const verticallyOverlap =
+          Math.max(labelRect.top, valueRect.top) <
+          Math.min(labelRect.bottom, valueRect.bottom);
+        if (
+          labelRect.width + valueRect.width + 16 <= contentWidth &&
+          !verticallyOverlap
+        ) {
+          failures.push(card.textContent?.replace(/\s+/g, " ").trim() ?? "");
+        }
+      }
+      return failures;
+    });
+
+    expect(splitCardHeadlines).toEqual([]);
+  });
+
   test("every panel declares an honest binding basis", async ({ page }) => {
     const routes = [
       "overview",

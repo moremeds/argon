@@ -220,23 +220,29 @@ export function CurveDesk({
                 [tenYear?.delta_1m_bps, twoYear?.delta_1m_bps, "1M"],
               ].map(([longEnd, frontEnd, window]) => (
                 <div className="arith" key={window}>
-                  <span className="term">
-                    {fmtValue(longEnd, "bps", 1)}
-                    <small>Δ10Y {window}</small>
+                  <span className="arith-factor">
+                    <span className="term">
+                      {fmtValue(longEnd, "bps", 1)}
+                      <small>Δ10Y {window}</small>
+                    </span>
                   </span>
-                  <span className="op">−</span>
-                  <span className="term">
-                    {fmtValue(frontEnd, "bps", 1)}
-                    <small>Δ2Y {window}</small>
+                  <span className="arith-factor">
+                    <span className="op">−</span>
+                    <span className="term">
+                      {fmtValue(frontEnd, "bps", 1)}
+                      <small>Δ2Y {window}</small>
+                    </span>
                   </span>
-                  <span className="op">=</span>
-                  <span className="res">
-                    2s10s{" "}
-                    {fmtValue(
-                      Number(longEnd ?? 0) - Number(frontEnd ?? 0),
-                      "bps",
-                      1,
-                    )}
+                  <span className="arith-result">
+                    <span className="op">=</span>
+                    <span className="res">
+                      2s10s{" "}
+                      {fmtValue(
+                        Number(longEnd ?? 0) - Number(frontEnd ?? 0),
+                        "bps",
+                        1,
+                      )}
+                    </span>
                   </span>
                 </div>
               ))}
