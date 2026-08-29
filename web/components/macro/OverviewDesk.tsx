@@ -32,7 +32,7 @@ import { CAUSAL_ORDER, DOMAIN_LABEL } from "./types";
 
 type PolicyComparison = components["schemas"]["PolicyComparison"];
 type GaugeResponse = {
-  history_252d?: components["schemas"]["GoldGaugeTimeSeriesPoint"][];
+  history_60d?: components["schemas"]["GoldGauge60dTimeSeriesPoint"][];
 };
 
 /**

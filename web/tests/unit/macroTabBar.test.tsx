@@ -36,10 +36,6 @@ import {
   macroTabsForBar,
 } from "@/components/macro/tabs";
 
-// What the strip is EXPECTED to show. Not `VALID_TABS`: tab 08 is registered and
-// reachable at /macro/notes, and is deliberately absent from the strip because the
-// board's t8 says it does not ship on the final page. The subset relation between the
-// two is asserted below rather than assumed.
 const BAR = macroTabsForBar();
 
 describe("MacroTabBar", () => {
@@ -63,18 +59,17 @@ describe("MacroTabBar", () => {
     for (const tab of BAR) {
       expect(screen.getByTestId(`macro-tab-${tab.slug}`)).toHaveProperty(
         "textContent",
-        tab.label,
+        `${tab.ordinal}${tab.label}`,
       );
     }
   });
 
-  it("hides the operator-only tab without unregistering it", () => {
-    // The board's t8: "This tab is for you (the operator) and does not ship on the final
-    // page." Deleting the registry entry would have satisfied that and lost the route;
-    // leaving it in the strip was the shipped state and ignored it. So it stays
-    // registered — /macro/notes still resolves — and stays out of the bar.
+  it("shows the Design Notes tab from the approved nine-tab artifact", () => {
     render(<MacroTabBar />);
-    expect(screen.queryByTestId("macro-tab-notes")).toBeNull();
+    expect(screen.getByTestId("macro-tab-notes")).toHaveProperty(
+      "textContent",
+      "08Design Notes",
+    );
     expect(VALID_TABS.some((tab) => tab.slug === "notes")).toBe(true);
   });
 
@@ -142,19 +137,16 @@ describe("MacroTabBar", () => {
     expect(rendered).toEqual(byOrdinal);
   });
 
-  it("carries the shared tab-strip classes rather than a private copy", () => {
+  it("uses the artifact tabbar hierarchy and classes", () => {
     pathname = "/macro/fed";
     render(<MacroTabBar />);
-    // The metrics live in .ticker-tabs/.ticker-tab; .macro-* carries only the two
-    // deltas a link-based bar needs (wrap, text-decoration).
-    expect(screen.getByTestId("macro-tab-bar").className).toBe(
-      "ticker-tabs macro-tabs",
-    );
-    expect(screen.getByTestId("macro-tab-fed").className).toContain(
-      "ticker-tab",
-    );
-    expect(screen.getByTestId("macro-tab-fed").className).toContain(
-      "macro-tab",
+    const nav = screen.getByTestId("macro-tab-bar");
+    expect(nav.className).toBe("tabbar");
+    expect(nav.firstElementChild?.className).toBe("wrap");
+    expect(nav.firstElementChild?.firstElementChild?.className).toBe("tabs");
+    expect(screen.getByTestId("macro-tab-fed").className).toContain("tab");
+    expect(screen.getByTestId("macro-tab-fed").querySelector(".n")?.textContent).toBe(
+      "01",
     );
   });
 

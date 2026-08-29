@@ -40,6 +40,13 @@ function realErrors(errors: string[]): string[] {
   return errors.filter((message) => !/favicon/i.test(message));
 }
 
+async function openReplayMenu(page: Page) {
+  const menu = page.getByTestId("macro-replay-menu");
+  if ((await menu.getAttribute("open")) === null) {
+    await menu.locator("summary").click();
+  }
+}
+
 test.describe("macro desk — replay chrome", () => {
   test("a live tab carries the control but no replay banner", async ({
     page,
@@ -52,6 +59,7 @@ test.describe("macro desk — replay chrome", () => {
     ]) {
       await page.goto(href);
       await page.waitForLoadState("networkidle");
+      await openReplayMenu(page);
 
       // The question is always on screen; the claim to be replaying is not.
       const control = page.getByTestId("macro-replay-control");
@@ -102,6 +110,7 @@ test.describe("macro desk — replay chrome", () => {
       // `argon-app` image without P1 answers a replay with the live snapshot and a 200
       // (§8, measured on the mini), and this is the assertion that catches it.
       await expect(status).toHaveAttribute("data-replay-state", "unanswered");
+      await openReplayMenu(page);
       await expect(page.getByTestId("macro-replay-live")).toBeVisible();
 
       // The desk's own header must be gone. `DeskHeader` renders these two titles, so
@@ -191,6 +200,7 @@ test.describe("macro desk — replay chrome", () => {
   }) => {
     await page.goto("/macro/rates");
     await page.waitForLoadState("networkidle");
+    await openReplayMenu(page);
 
     const today = new Date().toISOString().slice(0, 10);
     await expect(page.getByTestId("macro-replay-date")).toHaveAttribute(

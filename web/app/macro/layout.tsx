@@ -1,8 +1,12 @@
 import { Suspense } from "react";
 
-import { BoardLegend } from "@/components/macro/BoardLegend";
+import { MacroMasthead } from "@/components/macro/MacroMasthead";
+import { MacroFooter } from "@/components/macro/MacroFooter";
 import { MacroTabBar } from "@/components/macro/MacroTabBar";
+import { todayUtcDate } from "@/components/macro/replay";
+import { api } from "@/lib/api";
 
+import "./shell.css";
 import "./board.css";
 
 /**
@@ -28,23 +32,31 @@ import "./board.css";
  * it is here so that a future statically-rendered route added under `/macro` fails on its
  * own merits rather than being silently downgraded by the shell.
  */
-export default function MacroLayout({
+export default async function MacroLayout({
   children,
 }: {
   children: React.ReactNode;
 }) {
+  let snapshot: Awaited<ReturnType<typeof api.macroContextSnapshot>> = null;
+  try {
+    snapshot = await api.macroContextSnapshot();
+  } catch {
+    snapshot = null;
+  }
+
   return (
-    <div style={{ minHeight: "100%", background: "var(--bg-base)" }}>
+    <div className="macro-desk-shell">
+      <MacroMasthead
+        snapshotStatus={snapshot?.status ?? "unavailable"}
+        snapshotAsOf={snapshot?.as_of ?? null}
+        sourceLabel="argon · macro API snapshot"
+        today={todayUtcDate()}
+      />
       <Suspense fallback={null}>
         <MacroTabBar />
       </Suspense>
-      {/* The board prints its provenance key and the seven questions ONCE, above the tab
-          strip, and every tab is read underneath them. This is that placement: the desk is
-          nine routes where the board is one page, so "once, above the tabs" is the layout.
-          Without it the desk renders sixty-odd Q-tags and provenance badges that the page
-          never defines anywhere. */}
-      <BoardLegend />
-      {children}
+      <main className="wrap macro-desk-main">{children}</main>
+      <MacroFooter snapshotAsOf={snapshot?.as_of ?? null} />
     </div>
   );
 }

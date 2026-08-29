@@ -35,7 +35,7 @@ const QUESTIONS: readonly { q: BoardQuestion; name: string; ask: string }[] = [
 
 export function BoardLegend() {
   return (
-    <div className="board-legend board" data-testid="macro-board-legend">
+    <>
       <div className="legend-strip">
         <span>
           <b>Provenance:</b>
@@ -67,6 +67,6 @@ export function BoardLegend() {
           </div>
         ))}
       </div>
-    </div>
+    </>
   );
 }

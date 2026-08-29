@@ -1,0 +1,251 @@
+/* ── The macro board's complete page shell ────────────────────────────────── */
+.macro-desk-shell {
+  /* The approved board is a fixed, single-theme canvas. Keep these tokens
+     local so the surrounding Argon shell can continue to follow user theme. */
+  --bg-base: #0a0f14;
+  --bg-panel: #0f1519;
+  --bg-panel-raised: #151c22;
+  --border-dim: #1e293b;
+  --text-primary: #e2e8f0;
+  --text-secondary: #94a3b8;
+  --text-muted: #475569;
+  --accent-bg: #05ad98;
+  --accent-text: #0a0f14;
+  --accent-deep: #048a7a;
+  --positive: #05ad98;
+  --negative: #e85d6c;
+  --warning: #f5a623;
+  --info: #8b5cf6;
+  --neutral: #94a3b8;
+  --accent-cool: #38bdf8;
+  --accent-warm: #f5a623;
+  min-height: 100%;
+  background: var(--bg-base);
+  color: var(--text-primary);
+  font-size: 13.5px;
+  line-height: 1.55;
+  -webkit-font-smoothing: antialiased;
+}
+.macro-desk-shell .wrap {
+  width: 100%;
+  max-width: none;
+  margin: 0;
+  padding: 0 32px;
+}
+.macro-desk-shell .appbar {
+  height: 48px;
+  border-bottom: 1px solid var(--border-dim);
+  background: var(--bg-base);
+}
+.macro-desk-shell .appbar-inner {
+  height: 48px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+}
+.macro-desk-shell .brand {
+  font-family: var(--font-mono), monospace;
+  font-size: 12px;
+  font-weight: 600;
+  letter-spacing: 2px;
+  color: var(--text-primary);
+}
+.macro-desk-shell .brand em {
+  font-style: normal;
+  color: var(--accent-bg);
+}
+.macro-desk-shell .mast-meta {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  align-items: center;
+}
+.macro-desk-shell .chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  font-family: var(--font-mono), monospace;
+  font-size: 10px;
+  padding: 3px 9px;
+  border-radius: 3px;
+  border: 1px solid var(--border-dim);
+  color: var(--text-secondary);
+  background: var(--bg-panel);
+}
+.macro-desk-shell .chip .dot {
+  width: 7px;
+  height: 7px;
+  border-radius: 50%;
+}
+.macro-desk-shell .chip.ok {
+  border-color: color-mix(in srgb, var(--positive) 40%, transparent);
+}
+.macro-desk-shell .chip.ok .dot {
+  background: var(--positive);
+}
+.macro-desk-shell .chip.gold {
+  border-color: color-mix(in srgb, var(--accent-bg) 45%, transparent);
+  color: var(--accent-bg);
+}
+.macro-desk-shell .macro-replay-menu {
+  position: relative;
+}
+.macro-desk-shell .macro-replay-menu > summary {
+  list-style: none;
+  cursor: pointer;
+}
+.macro-desk-shell .macro-replay-menu > summary::-webkit-details-marker {
+  display: none;
+}
+.macro-desk-shell .macro-replay-popover {
+  position: absolute;
+  z-index: 80;
+  top: calc(100% + 6px);
+  right: 0;
+  width: 760px;
+  max-width: calc(100vw - 48px);
+  border: 1px solid var(--border-dim);
+  box-shadow: 0 16px 40px rgb(0 0 0 / 45%);
+}
+.macro-desk-shell .macro-replay-menu:not([open]) .macro-replay-popover {
+  display: none;
+}
+.macro-desk-shell .intro {
+  border-bottom: 1px solid var(--border-dim);
+  background: linear-gradient(180deg, #0d1318 0%, var(--bg-base) 100%);
+}
+.macro-desk-shell .kicker {
+  font-family: var(--font-mono), monospace;
+  font-size: 10px;
+  letter-spacing: 1.5px;
+  color: var(--accent-bg);
+  text-transform: uppercase;
+  padding-top: 18px;
+  margin-bottom: 6px;
+}
+.macro-desk-shell .intro h1 {
+  font-size: 20px;
+  font-weight: 700;
+  letter-spacing: 0.2px;
+  margin: 0;
+}
+.macro-desk-shell .intro h1 .thin {
+  color: var(--text-muted);
+  font-weight: 500;
+}
+.macro-desk-shell .legend-strip {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 14px;
+  padding: 10px 0 14px;
+  font-family: var(--font-mono), monospace;
+  font-size: 10.5px;
+  color: var(--text-muted);
+}
+.macro-desk-shell .legend-strip b {
+  color: var(--text-secondary);
+  font-weight: 500;
+}
+.macro-desk-shell .pmq {
+  display: grid;
+  grid-template-columns: repeat(7, 1fr);
+  gap: 8px;
+  padding: 4px 0 18px;
+}
+.macro-desk-shell .pmq .q {
+  background: var(--bg-panel);
+  border: 1px solid var(--border-dim);
+  border-radius: 4px;
+  padding: 9px 10px;
+}
+.macro-desk-shell .pmq .q b {
+  display: block;
+  font-family: var(--font-mono), monospace;
+  font-size: 10px;
+  color: var(--accent-bg);
+  letter-spacing: 1.2px;
+  margin-bottom: 3px;
+}
+.macro-desk-shell .pmq .q span {
+  font-size: 11.5px;
+  color: var(--text-secondary);
+  line-height: 1.35;
+  display: block;
+}
+.macro-desk-shell .tabbar {
+  position: sticky;
+  top: 0;
+  z-index: 40;
+  background: color-mix(in srgb, var(--bg-base) 94%, transparent);
+  backdrop-filter: blur(6px);
+  border-bottom: 1px solid var(--border-dim);
+}
+.macro-desk-shell .tabs {
+  display: flex;
+  gap: 2px;
+  overflow-x: auto;
+  scrollbar-width: none;
+}
+.macro-desk-shell .tabs::-webkit-scrollbar {
+  display: none;
+}
+.macro-desk-shell .tab {
+  appearance: none;
+  background: none;
+  border: none;
+  border-bottom: 2px solid transparent;
+  color: var(--text-muted);
+  font-family: var(--font-mono), monospace;
+  font-weight: 500;
+  font-size: 11px;
+  letter-spacing: 1px;
+  text-transform: uppercase;
+  padding: 13px 13px 11px;
+  cursor: pointer;
+  white-space: nowrap;
+  text-decoration: none;
+  line-height: normal;
+}
+.macro-desk-shell .tab:hover {
+  color: var(--text-secondary);
+}
+.macro-desk-shell .tab:focus-visible {
+  outline: 2px solid var(--accent-bg);
+  outline-offset: -2px;
+}
+.macro-desk-shell .tab[aria-current="page"] {
+  color: var(--accent-bg);
+  border-bottom-color: var(--accent-bg);
+}
+.macro-desk-shell .tab .n {
+  font-size: 10px;
+  color: var(--text-muted);
+  margin-right: 5px;
+}
+.macro-desk-shell .macro-desk-main .board {
+  max-width: none;
+  margin: 0;
+  padding: 0;
+}
+.macro-desk-shell footer {
+  border-top: 1px solid var(--border-dim);
+  padding: 20px 0 40px;
+  color: var(--text-muted);
+  font-family: var(--font-mono), monospace;
+  font-size: 10.5px;
+  line-height: 1.8;
+}
+.macro-desk-shell footer code {
+  color: var(--text-secondary);
+}
+@media (max-width: 980px) {
+  .macro-desk-shell .pmq {
+    grid-template-columns: repeat(4, 1fr);
+  }
+}
+@media (max-width: 640px) {
+  .macro-desk-shell .pmq {
+    grid-template-columns: repeat(2, 1fr);
+  }
+}

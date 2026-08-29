@@ -401,33 +401,19 @@ export function MarketDeltasPanel({
  * PANEL 3 · The anchor
  * ──────────────────────────────────────────────────────────────────────────── */
 
-type GaugePoint = components["schemas"]["GoldGaugeTimeSeriesPoint"];
+type GaugePoint = components["schemas"]["GoldGauge60dTimeSeriesPoint"];
 type CorrelationPoint = components["schemas"]["GoldCorrelationPoint"];
 
-/**
- * PANEL 3 · Anchor letting go.
- *
- * ### The board asks for a window this desk does not compute
- *
- * The board titles this panel `gauge corr_60d` and its read quotes a 60-day series moving
- * −0.79 → −0.17 in twelve sessions. `GoldGaugeTimeSeriesPoint` carries `corr_252d` and
- * nothing else — the producer (`reports/gold_posture.py`) computes at one window — so the
- * 60-day cut is absent from every point of every series the API serves.
- *
- * That is a gap in the PRODUCER, not something the web layer may paper over. Drawing the
- * 252-day series under a 60-day heading would be the one thing worse than the missing
- * panel: a real line wearing the wrong label. So the panel renders the window that exists,
- * says so in its own caption, and names where the fix belongs.
- */
+/** The persisted daily 60-day gauge history requested by the artifact. */
 export function AnchorPanel({
   gauge,
 }: {
-  gauge: { value: { history_252d?: GaugePoint[] } | null; error?: string };
+  gauge: { value: { history_60d?: GaugePoint[] } | null; error?: string };
 }) {
-  const points = gauge.value?.history_252d ?? [];
+  const points = gauge.value?.history_60d ?? [];
   const anchor: CorrelationPoint[] = points
-    .filter((p): p is GaugePoint & { corr_252d: string } => p.corr_252d != null)
-    .map((p) => ({ obs_date: p.obs_date, value: p.corr_252d }));
+    .filter((p): p is GaugePoint & { corr_60d: string } => p.corr_60d != null)
+    .map((p) => ({ obs_date: p.obs_date, value: p.corr_60d }));
 
   const first = anchor[0];
   const last = anchor[anchor.length - 1];
@@ -435,12 +421,12 @@ export function AnchorPanel({
   return (
     <BoardPanel
       id="anchor-decay"
-      title="Anchor letting go · gauge corr_252d"
+      title="Anchor letting go · gauge corr_60d"
       questions={["Q4"]}
       basis="REAL"
       source={
         <>
-          /api/gold/gauge · history_252d,{" "}
+          /api/gold/gauge · history_60d,{" "}
           {plural(anchor.length, "valued observation")} of {points.length} dated rows
           {first && last ? (
             <>
@@ -464,12 +450,12 @@ export function AnchorPanel({
         <>
           <div className="chart">
             <CorrelationLineChart
-              width={640}
-              height={190}
+              width={400}
+              height={119}
               series={[
                 {
-                  id: "corr252",
-                  label: "gold ↔ real yield · 252d",
+                  id: "corr60",
+                  label: "gold ↔ real yield · 60d",
                   // Near-neutral ink at heavier weight: this is the anchor, not one of
                   // several channels, and the palette validator rejected the vivid
                   // alternatives against --positive under deuteranopia (ΔE 4.6).
@@ -481,7 +467,7 @@ export function AnchorPanel({
             />
           </div>
           <p className="cap">
-            gold ↔ real-yield correlation, <b>252-day window</b>, as stored{" "}
+            gold ↔ real-yield correlation, <b>60-day window</b>, as stored{" "}
             <span className="tag real">REAL</span>
           </p>
 
@@ -493,13 +479,12 @@ export function AnchorPanel({
                 <span className="num">{Number(last.value).toFixed(2)}</span>{" "}
                 across the stored history. The board asks this panel for the{" "}
                 <b>60-day</b> cut, which is where a decay shows first; the desk
-                computes only 252 days, so what is drawn is the slow window and
-                the fast one does not exist to draw.
+                now reads the persisted fast window directly.
               </>
             ) : (
               <>
                 One valued observation is a level, not a decay. The board asks
-                for the 60-day window here and the desk computes only 252 days.
+                for the 60-day window shown here.
               </>
             )}
           </BoardRead>

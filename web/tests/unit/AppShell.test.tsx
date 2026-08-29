@@ -12,6 +12,7 @@ vi.mock("@/components/shared/HealthPanel", () => ({
 }));
 
 import { AppShell } from "@/components/shared/AppShell";
+import { Sidebar } from "@/components/shared/Sidebar";
 
 describe("AppShell", () => {
   it("renders the Argon sidebar on normal routes", () => {
@@ -23,18 +24,15 @@ describe("AppShell", () => {
     expect(screen.getByRole("main").textContent).toContain("Dashboard content");
   });
 
-  it("renders a macro desk tab inside the normal Argon shell", () => {
-    // Was `/rates`, which is now a 308 into this tab. Re-pointed rather than deleted: the
-    // assertion is that a desk route still gets the standard shell, and that is as true
-    // of `/macro/rates` as it was of `/rates`.
+  it("keeps the Argon sidebar and shifts an uncompressed macro canvas beside it", () => {
     pathname = "/macro/rates";
 
-    render(<AppShell>Rates content</AppShell>);
+    const { container } = render(<AppShell>Rates content</AppShell>);
 
     expect(screen.getByText("ARGON")).toBeTruthy();
-    const main = screen.getByRole("main");
-    expect(main.textContent).toContain("Rates content");
-    expect(main.className).toContain("main");
+    expect(container.firstElementChild?.className).toContain("macroShell");
+    expect(screen.getByRole("main").className).toContain("macroMain");
+    expect(container.firstElementChild?.textContent).toContain("Rates content");
   });
 
   it("lists ONE macro entry, and highlights it for every tab under it", () => {
@@ -44,7 +42,7 @@ describe("AppShell", () => {
     // destination tab is registered — tabs 02 and 05 both are, in this PR and the last.
     pathname = "/macro/gold";
 
-    render(<AppShell>Gold content</AppShell>);
+    render(<Sidebar />);
 
     expect(screen.queryByRole("link", { name: /^Gold$/ })).toBeNull();
     expect(screen.queryByRole("link", { name: /^Rates$/ })).toBeNull();

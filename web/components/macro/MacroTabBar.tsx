@@ -9,13 +9,8 @@ import { macroTabHref, macroTabsForBar } from "./tabs";
 /**
  * The macro desk's tab strip.
  *
- * Registry-driven: one link per shipping `VALID_TABS` entry, never a hardcoded list. The
- * route guard reads the same array, so this bar can only ever link somewhere that
- * resolves — it renders a SUBSET, never anything the guard would reject.
- *
- * The subset is `audience`. Tab 08 (Design Notes) is registered, reachable at
- * `/macro/notes`, and deliberately absent from this strip: the board's own t8 says "this
- * tab is for you (the operator) and does not ship on the final page".
+ * Registry-driven: one link per artifact tab, never a second hardcoded list. The route
+ * guard reads the same array, so every visible destination resolves.
  *
  * Two deliberate choices, both of which a copy of an existing bar would get wrong:
  *
@@ -55,29 +50,31 @@ export function MacroTabBar() {
 
   return (
     <nav
-      className="ticker-tabs macro-tabs"
+      className="tabbar"
       aria-label="Macro desk tabs"
       data-testid="macro-tab-bar"
     >
-      {macroTabsForBar().map((tab) => {
-        const href = macroTabHref(tab.slug);
-        // Prefix match as well as equality so a tab that later grows a child route
-        // (the gold replay surface is the named candidate) still highlights its own tab
-        // rather than none.
-        const active = pathname === href || pathname.startsWith(`${href}/`);
-        return (
-          <Link
-            key={tab.slug}
-            href={replayHref(href, asOf)}
-            prefetch={false}
-            aria-current={active ? "page" : undefined}
-            className={`ticker-tab macro-tab${active ? " active" : ""}`}
-            data-testid={`macro-tab-${tab.slug}`}
-          >
-            {tab.label}
-          </Link>
-        );
-      })}
+      <div className="wrap">
+        <div className="tabs">
+          {macroTabsForBar().map((tab) => {
+            const href = macroTabHref(tab.slug);
+            const active = pathname === href || pathname.startsWith(`${href}/`);
+            return (
+              <Link
+                key={tab.slug}
+                href={replayHref(href, asOf)}
+                prefetch={false}
+                aria-current={active ? "page" : undefined}
+                className={`tab${active ? " active" : ""}`}
+                data-testid={`macro-tab-${tab.slug}`}
+              >
+                <span className="n">{tab.ordinal}</span>
+                {tab.label}
+              </Link>
+            );
+          })}
+        </div>
+      </div>
     </nav>
   );
 }

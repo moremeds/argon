@@ -11,6 +11,24 @@
   overflow-y: auto;
 }
 
+.macroShell {
+  display: flex;
+  width: 100vw;
+  height: 100vh;
+  overflow-x: auto;
+  overflow-y: hidden;
+  background: var(--bg-base);
+}
+
+.macroMain {
+  flex: 0 0 1440px;
+  width: 1440px;
+  min-width: 1440px;
+  height: 100vh;
+  overflow-y: auto;
+  background: var(--bg-base);
+}
+
 .sidebar {
   width: 220px;
   flex-shrink: 0;
