@@ -1,8 +1,8 @@
 import { expect, test } from "@playwright/test";
 
 /**
- * `/gold` → `/macro/gold`, per `docs/superpowers/plans/2026-08-27-macro-desk-page-port.md`
- * §8 (P6). Modelled on `rates-redirect.spec.ts`, which owns the same contract for `/rates`.
+ * `/gold` → `/macro/gold`. Modelled on `rates-redirect.spec.ts`, which owns the same
+ * contract for `/rates`.
  *
  * Three assertions, and the third is the one this desk needs that the rates redirect did
  * not:
@@ -13,7 +13,7 @@ import { expect, test } from "@playwright/test";
  *     cannot distinguish a 308 from a 302 or a `router.replace()` in a `useEffect`. The
  *     plan calls this out by name — once `/gold` redirects, backing it out needs a second
  *     deploy, so the status code is the part worth pinning.
- *  3. **`/gold/replay/<date>` still answers.** §6 keeps that route, and the redirect is
+ *  3. **`/gold/replay/<date>` still answers.** The replay route remains public, and the redirect is
  *     written `source: "/gold"` — the EXACT path — precisely so a `/gold/:path*` wildcard
  *     cannot swallow it. That is a one-character difference in a config file with no
  *     visible symptom until somebody follows a deep link, which is exactly the kind of

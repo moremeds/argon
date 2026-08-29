@@ -1,8 +1,8 @@
 import { expect, test } from "@playwright/test";
 
 /**
- * `/rates` → `/macro/rates`, per `docs/superpowers/plans/2026-08-27-macro-desk-page-port.md`
- * §8 (P3): the rates desk is retired into the macro desk's curve tab, and the old URL must
+ * `/rates` → `/macro/rates`: the rates desk is retired into the macro desk's curve tab,
+ * and the old URL must
  * keep working as a **permanent** redirect rather than quietly 404ing.
  *
  * Two assertions, deliberately split:

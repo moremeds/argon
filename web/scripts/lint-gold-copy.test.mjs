@@ -69,25 +69,22 @@ describe("lintFileContents", () => {
  */
 describe("lint scope", () => {
   it("names all four roots the desk's posture surface now spans", () => {
-    // Both gold roots stay: §10-B settled that the subtrees do not move, and `app/gold`
-    // still holds `loading.tsx` + `replay/[date]/` after `app/gold/page.tsx` retires into
-    // `/macro/gold`. The two macro roots are the desk itself.
+    // Both gold roots stay: `app/gold` still holds `loading.tsx` + `replay/[date]/` after
+    // `app/gold/page.tsx` retires into `/macro/gold`. The two macro roots are the desk.
     expect([...ROOTS].sort()).toEqual([
       "app/gold",
       "app/macro",
       "components/gold",
       "components/macro",
     ]);
-    // `components/rates` is deliberately absent — plan §10-I authorises `RatesScorecard`
-    // to print its own stance word inside tab 02's refusal panel, and listing that
+    // `components/rates` is deliberately absent — `RatesScorecard` may print its own
+    // stance word inside tab 02's refusal panel, and listing that
     // directory here would fail the build over a rendering the operator approved.
     expect(ROOTS).not.toContain("components/rates");
   });
 
-  it("exempts only the byte-pinned operator design reference", () => {
-    expect([...EXCLUDED_FILES]).toEqual([
-      "components/macro/designNotesReference.ts",
-    ]);
+  it("has no file-specific exemptions", () => {
+    expect([...EXCLUDED_FILES]).toEqual([]);
   });
 
   it("reports every declared root as present (vitest runs from web/)", async () => {

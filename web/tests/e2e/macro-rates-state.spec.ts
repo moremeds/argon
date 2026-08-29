@@ -5,8 +5,7 @@ import { expect, test, type Page } from "@playwright/test";
  * the real API.
  *
  * `/rates` 308s to `/macro/rates` (`next.config.mjs`), and the page it used to serve is
- * two pages now (plan `docs/superpowers/plans/2026-08-27-macro-desk-page-port.md` §7,
- * "SETTLED 2026-08-27"):
+ * two pages now:
  *
  *   - `/macro/fed`   — `FedDesk`: the policy / rates STATE, the four published policy
  *                      paths, and the two publishers that plot (SEP dots, dealer path).

@@ -16,10 +16,9 @@ import FIXTURE from "../fixtures/macroDomainStates.json";
  * The board's panels for tabs 03 and 04, against the same frozen production payload the
  * rest of the macro suite uses.
  *
- * These six panels exist because a conformance audit found ZERO of them shipped
- * (`docs/research/2026-08-28-macro-desk-board-conformance/`). So the first assertion is
+ * These six panels replaced the original two generic summaries. The first assertion is
  * simply that they are there and carry their board question — the acceptance test the
- * port lost.
+ * initial port lost.
  */
 const D = FIXTURE.domains as unknown as Record<string, MacroDomainState>;
 

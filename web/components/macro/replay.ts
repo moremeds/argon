@@ -1,8 +1,7 @@
 /**
  * Point-in-time replay for the macro desk: what was ASKED, and what the store ANSWERED.
  *
- * The plan (`docs/superpowers/plans/2026-08-27-macro-desk-page-port.md` §3.1) names the
- * failure this module exists to prevent, and it is not "the date picker does not work":
+ * The failure this module exists to prevent is not "the date picker does not work":
  *
  *   > A replayed tab 01/03/04/05 beside a **live** tab 02, with nothing on screen saying
  *   > so, is the worst failure mode a point-in-time desk has.
@@ -15,7 +14,7 @@
  *     asks different publishers and any of them can decline separately.
  *
  * A banner driven by the request would say "replaying 2026-01-01" over whatever the API
- * happened to return. §8 of the plan measured why that is not hypothetical: a pre-P1
+ * happened to return. This is not hypothetical: an older
  * `argon-app` image answers `?as_of=2026-01-01` with the LIVE snapshot and a 200, because
  * FastAPI ignores a query parameter the route does not declare. The two images are pulled
  * independently by Watchtower with no ordering guarantee between them, so a web image
@@ -25,7 +24,7 @@
  *
  * ### Three clocks, and this module speaks for exactly one of them
  *
- * §3.1 records three different meanings of "as of" among the surfaces tabs 01-05 bind:
+ * The bound surfaces use three different meanings of "as of":
  *
  *   | surface               | keys on                                        |
  *   | --------------------- | ---------------------------------------------- |

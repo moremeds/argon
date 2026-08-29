@@ -36,11 +36,9 @@ function stalest(state: MacroDomainState): MacroFactor | null {
  *
  * ### What this used to be, and why it changed — twice
  *
- * The first version rendered one shared state card and nothing else, because §1 of the
- * port plan said tabs 00–05 were a _presentation merge_ with no new analytics. That line
- * was superseded on 2026-08-28: the board specifies FOUR panels for inflation and TWO for
- * the dollar, and a conformance audit found zero of the six on the shipped desk
- * (`docs/research/2026-08-28-macro-desk-board-conformance/`).
+ * The first version rendered one shared state card and nothing else. It was superseded
+ * on 2026-08-28 after review found that the inflation and dollar tabs needed six distinct
+ * questions answered rather than two generic summaries.
  *
  * The second version added those six panels but kept argon's own typography and kept the
  * summary card above them. That was still not the board: the board binds its DESIGN as
@@ -51,8 +49,8 @@ function stalest(state: MacroDomainState): MacroFactor | null {
  * into the sub-title, which is where the board puts them.
  *
  * What did NOT change across either revision is where the numbers come from. The panels
- * add no endpoint and no derived quantity the engine does not publish — the audit's own
- * finding was that the single response each tab already fetched carried every panel. The
+ * add no endpoint and no derived quantity the engine does not publish — the single
+ * response each tab already fetched carries every panel. The
  * one arithmetic on this page is the confidence repair table, which is the published
  * multiplication with one published term set to its clear value, tagged `COMPUTED` and
  * showing its formula.

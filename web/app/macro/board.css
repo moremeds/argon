@@ -1,7 +1,7 @@
-/* ── The macro board's design grammar ────────────────────────────────────────
+/* ── The macro desk's design grammar ─────────────────────────────────────────
  *
- * Ported from the binding spec: docs/superpowers/specs/2026-08-27-macro-desk-board.html
- * (sha256 b98a32de3041a348aa8e86f5c4cc2cb9480b000752bdd6b26a2dead7b08f4029).
+ * Maintained against the signal-first product contract:
+ * docs/superpowers/specs/2026-08-30-macro-desk-signal-first-design.md.
  *
  * The board and argon share a design system — the spec's own token block is argon's
  * globals.css values verbatim (--bg-panel #0f1519, --border-dim #1e293b, --info #8b5cf6,
@@ -34,11 +34,9 @@
 
   /* The board's own body type scale.
    *
-   * Measured, not guessed: `scripts/board-pixel-compare.mjs` reported 13.5px/1.55 against
-   * argon's 13px/1.5 on every element that inherits — which was most of them, and by far
-   * the largest single source of drift between the two pages. Scoped to `.board` rather
-   * than changed in globals.css because it is the DESK's scale, and the rest of the app
-   * has no reason to move. */
+   * This scale was established during the original visual comparison and is now protected
+   * by the desk's browser suite. It stays scoped to `.board` because it is the DESK's
+   * scale, and the rest of the app has no reason to move. */
   font-size: 13.5px;
   line-height: 1.55;
 

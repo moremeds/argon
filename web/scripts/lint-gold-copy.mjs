@@ -142,22 +142,18 @@ export const ROOTS = [
   "app/macro",
 ];
 
-// Exact, operator-only copy extracted from the SHA-pinned design artifact. It is rendered
-// only on Design Notes and is byte-tested against that artifact; treating review prose
-// such as "raw material of trades" as live posture copy would require corrupting the
-// reference. Keep this exemption file-specific so no runtime component inherits it.
-export const EXCLUDED_FILES = new Set([
-  "components/macro/designNotesReference.ts",
-]);
+// The signal-first Method tab contains no embedded design-reference transcript, so every
+// file under the declared roots is now in scope. Keep the set explicit: a future exemption
+// must be reviewed and tested rather than hidden in the filesystem walk.
+export const EXCLUDED_FILES = new Set();
 
 /**
  * Which of `roots` do not exist on disk, resolved against the current directory.
  *
  * Separated out and exported so the *scope* of this lint is itself testable. Before P6
  * `main()` caught a missing root and `continue`d, so the script exited **0 with no
- * output** over a scope that had evaporated — and the port plan (§7) names exactly when
- * that would have happened: re-homing `app/gold/page.tsx` under `/macro` is the move that
- * removes a root, and it lands in this very PR. A lint whose scope can disappear without
+ * output** over a scope that had evaporated. Re-homing `app/gold/page.tsx` under `/macro`
+ * is exactly the kind of move that can remove a root. A lint whose scope can disappear without
  * a message is not a lint; it is a green check mark over nothing.
  */
 export async function findMissingRoots(roots = ROOTS) {

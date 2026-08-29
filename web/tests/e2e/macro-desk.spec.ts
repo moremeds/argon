@@ -3,8 +3,8 @@ import { expect, test, type Page } from "@playwright/test";
 /**
  * The macro desk shell, in a real browser.
  *
- * This file closes the gap §9 of `docs/superpowers/plans/2026-08-27-macro-desk-page-port.md`
- * recorded: sweeping every `page.goto(` under `web/tests/e2e/` found NO spec that
+ * This file closes the original browser-coverage gap: sweeping every `page.goto(` under
+ * `web/tests/e2e/` found NO spec that
  * navigates to `/macro`. The closest were `/rates` and `/gold`, and only API requests
  * reached `/api/macro/*` — so the desk's own routes had no browser coverage at all while
  * the port was about to start moving them.
@@ -22,7 +22,7 @@ import { expect, test, type Page } from "@playwright/test";
  *     rendering an empty shell.
  *  3. `/macro` redirects into tab 00 and the four domain cards are still reachable. This
  *     is the one that looks redundant and is not. Through P2-P4 it asserted the opposite
- *     — that `/macro` still rendered the cards itself — because §8 required
+ *     — that `/macro` still rendered the cards itself — because the staged port required
  *     `app/macro/page.tsx` be left ALONE until P5, precisely so `/macro` never 404'd
  *     while the bar grew from one tab to nine. P5 is the PR that may flip it, and the
  *     assertion flips WITH it rather than being deleted: the thing being protected was

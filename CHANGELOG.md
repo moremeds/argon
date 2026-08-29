@@ -252,13 +252,11 @@ version in lockstep (enforced by `scripts/release/version_sync_check.py`).
     (migration `052`) already serves it. There is also only one statement, not two — "no bound" is
     spelled `COALESCE(%s::timestamptz, 'infinity')` rather than by assembling the `WHERE` clause in
     Python, so the live path and the replay path cannot drift apart.
-- **The macro desk is now built against the design board, which it was not.** The port
-  plan never cited the design artifact, so its own prose — "No new analytics. Tabs 00-05
-  are a presentation merge" — won by default and turned four designed inflation panels and
-  two dollar panels into one generic state card each. The board is now a repo file
-  (`docs/superpowers/specs/2026-08-27-macro-desk-board.html`, sha256-pinned) and the plan
-  says the board wins on disagreement. A conformance audit
-  (`docs/research/2026-08-28-macro-desk-board-conformance/`) measured the gap first: 47
+- **The macro desk is now built against the approved design, which it was not.** The first
+  port plan never cited artifact `dde15f29-728e-43e9-86d5-9ab688df4853`, so its own prose
+  — "No new analytics. Tabs 00-05 are a presentation merge" — won by default and turned
+  four designed inflation panels and two dollar panels into one generic state card each.
+  The initial conformance audit measured the gap first: 47
   board panels across tabs 00-05, 26 present, 6 partial, 15 absent or misplaced.
   - **Tabs 03 and 04 gain the board's six panels, and no endpoint.** The audit's own
     finding was that the single response each tab already fetched carried every one of

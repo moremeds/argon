@@ -6,6 +6,12 @@
 
 **Scope:** `/macro` shell and every `/macro/[tab]` presentation surface
 
+**Supersedes:** the 2026-08-27 captured board, its conformance audit, and the
+2026-08-29 pixel-remediation plans and handover. Those intermediate implementation
+artifacts were removed after this redesign shipped so they cannot compete with the
+current product contract. This document plus the executable browser and component tests
+is the maintained authority.
+
 ## Problem
 
 The current desk is faithful to the approved Claude artifact, but that fidelity preserved

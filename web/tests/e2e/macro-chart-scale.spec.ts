@@ -6,14 +6,11 @@ import { expect, test } from "@playwright/test";
  * `.chart svg { width: 100%; height: auto }` over a fixed `viewBox` stretches the SVG's
  * INTERNAL coordinate system to its container, and `font-size` lives inside that system.
  * So effective type size is `font-size × (container_px ÷ viewBox_width)`. Call that ratio
- * k. The board this desk is ported from renders its SEP dot plot at k = 2.02 and its
- * central-bank strip at k = 0.63 — a 20px label beside a 6px one, on the same page, with
- * both files declaring 10. `components/macro/chartGeometry.ts` already solved this in
+ * k. The original comparison exposed an SEP dot plot at k = 2.02 and a central-bank
+ * strip at k = 0.63 — a 20px label beside a 6px one, on the same page, with both files
+ * declaring 10. `components/macro/chartGeometry.ts` already solved this in
  * argon by sizing each frame to the container it actually occupies; this gate is what
  * stops the answer from being lost during the port.
- *
- * §5 of `docs/superpowers/plans/2026-08-27-macro-desk-page-port.md` is the source for the
- * band, the viewport and the numbers quoted below.
  *
  * ─────────────────────────────────────────────────────────────────────────────────────
  * STATUS: LIVE since P3. The `test.fixme` marker P2 shipped is gone — tabs 01/02 brought
