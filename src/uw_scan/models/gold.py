@@ -179,8 +179,14 @@ class GoldGaugeTimeSeriesPoint(BaseModel):
     corr_252d: Decimal | None
 
 
+class GoldGauge60dTimeSeriesPoint(BaseModel):
+    obs_date: date
+    corr_60d: Decimal | None
+
+
 class GoldGaugeResponse(BaseModel):
     current: GoldGaugeState
+    history_60d: list[GoldGauge60dTimeSeriesPoint]
     history_252d: list[GoldGaugeTimeSeriesPoint]
 
 

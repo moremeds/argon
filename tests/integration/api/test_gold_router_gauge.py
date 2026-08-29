@@ -75,6 +75,7 @@ def test_gauge_endpoint_returns_current_corr_history(
     body = response.json()
     assert "current" in body
     assert "state" in body["current"]
+    assert isinstance(body["history_60d"], list)
     assert isinstance(body["history_252d"], list)
 
 

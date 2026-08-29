@@ -8072,6 +8072,33 @@
         "title": "GoldDecompositionRow",
         "type": "object"
       },
+      "GoldGauge60dTimeSeriesPoint": {
+        "properties": {
+          "corr_60d": {
+            "anyOf": [
+              {
+                "pattern": "^(?!^[-+.]*$)[+-]?0*\\d*\\.?\\d*$",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Corr 60D"
+          },
+          "obs_date": {
+            "format": "date",
+            "title": "Obs Date",
+            "type": "string"
+          }
+        },
+        "required": [
+          "obs_date",
+          "corr_60d"
+        ],
+        "title": "GoldGauge60dTimeSeriesPoint",
+        "type": "object"
+      },
       "GoldGaugeResponse": {
         "properties": {
           "current": {
@@ -8083,10 +8110,18 @@
             },
             "title": "History 252D",
             "type": "array"
+          },
+          "history_60d": {
+            "items": {
+              "$ref": "#/components/schemas/GoldGauge60dTimeSeriesPoint"
+            },
+            "title": "History 60D",
+            "type": "array"
           }
         },
         "required": [
           "current",
+          "history_60d",
           "history_252d"
         ],
         "title": "GoldGaugeResponse",

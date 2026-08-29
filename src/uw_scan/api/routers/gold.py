@@ -27,6 +27,7 @@ from uw_scan.models import (
     GoldCyclicalPostureModel,
     GoldDataFreshnessSource,
     GoldDecompositionRow,
+    GoldGauge60dTimeSeriesPoint,
     GoldGaugeResponse,
     GoldGaugeState,
     GoldGaugeTimeSeriesPoint,
@@ -377,16 +378,21 @@ def get_gauge(repo: Repository = Depends(get_repo)) -> GoldGaugeResponse:
     dfii10_series = [(r["obs_date"], r["value"]) for r in dfii10_rows]
     current = compute_correlation_gauge(gold_series, dfii10_series, as_of=today)
 
-    history: list[GoldGaugeTimeSeriesPoint] = []
-    cursor = today - timedelta(days=5 * 365)
-    while cursor <= today:
-        snapshot = compute_correlation_gauge(gold_series, dfii10_series, as_of=cursor)
-        history.append(
-            GoldGaugeTimeSeriesPoint(
-                obs_date=cursor, corr_252d=snapshot.corr_252d_level
-            )
+    rows = repo.fetch_gold_gauge_history(
+        from_date=today - timedelta(days=5 * 365), to_date=today
+    )
+    history_60d = [
+        GoldGauge60dTimeSeriesPoint(
+            obs_date=row["obs_date"], corr_60d=row["gauge_corr_60d"]
         )
-        cursor += timedelta(days=7)
+        for row in rows
+    ]
+    history_252d = [
+        GoldGaugeTimeSeriesPoint(
+            obs_date=row["obs_date"], corr_252d=row["gauge_corr_252d"]
+        )
+        for row in rows
+    ]
 
     return GoldGaugeResponse(
         current=GoldGaugeState(
@@ -397,7 +403,8 @@ def get_gauge(repo: Repository = Depends(get_repo)) -> GoldGaugeResponse:
             corr_252d_returns=current.corr_252d_returns,
             state=current.state,
         ),
-        history_252d=history,
+        history_60d=history_60d,
+        history_252d=history_252d,
     )
 
 

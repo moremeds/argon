@@ -829,6 +829,40 @@ class _GoldMixin:
             cols = [c.name for c in cur.description]
             return dict(zip(cols, row, strict=True))
 
+    def fetch_gold_gauge_history(
+        self,
+        *,
+        from_date: _date | None = None,
+        to_date: _date | None = None,
+    ) -> list[dict[str, Any]]:
+        """Return the first active persisted gauge reading for each market day."""
+        clauses = ["row_status = 'active'"]
+        params: list[Any] = []
+        if from_date is not None:
+            clauses.append("obs_date >= %s")
+            params.append(from_date)
+        if to_date is not None:
+            clauses.append("obs_date <= %s")
+            params.append(to_date)
+        where = " AND ".join(clauses)
+        with self._conn.cursor() as cur:
+            cur.execute(
+                f"""
+                SELECT obs_date, gauge_corr_60d, gauge_corr_252d
+                FROM (
+                  SELECT DISTINCT ON (obs_date)
+                    obs_date, computed_at, gauge_corr_60d, gauge_corr_252d
+                  FROM {self._schema}.gold_posture_daily
+                  WHERE {where}
+                  ORDER BY obs_date ASC, computed_at ASC
+                ) AS first_daily
+                ORDER BY obs_date ASC
+                """,
+                params,
+            )
+            cols = [c.name for c in cur.description]
+            return [dict(zip(cols, row, strict=True)) for row in cur.fetchall()]
+
     def fetch_gold_posture_as_of(self, as_of: _date) -> dict[str, Any] | None:
         """The newest active posture row for a date AT OR BEFORE ``as_of``.
 

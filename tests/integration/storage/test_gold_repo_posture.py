@@ -64,6 +64,45 @@ def test_insert_and_fetch_gold_posture_latest(repo: Repository) -> None:
     assert latest["factors_jsonb"]["F5"] == 1.8
 
 
+def test_fetch_gold_gauge_history_uses_first_active_compute_per_day(
+    repo: Repository,
+) -> None:
+    repo.insert_gold_posture_daily(
+        **_kwargs_for_posture(
+            obs_date=date(2026, 5, 10),
+            computed_at=datetime(2026, 5, 11, 21, tzinfo=UTC),
+            gauge_corr_60d=Decimal("-0.79"),
+            gauge_corr_252d=Decimal("-0.42"),
+        )
+    )
+    repo.insert_gold_posture_daily(
+        **_kwargs_for_posture(
+            obs_date=date(2026, 5, 10),
+            computed_at=datetime(2026, 5, 20, 21, tzinfo=UTC),
+            gauge_corr_60d=Decimal("0.99"),
+            gauge_corr_252d=Decimal("0.88"),
+        )
+    )
+    repo.insert_gold_posture_daily(
+        **_kwargs_for_posture(
+            obs_date=date(2026, 5, 11),
+            computed_at=datetime(2026, 5, 12, 21, tzinfo=UTC),
+            gauge_corr_60d=Decimal("-0.17"),
+            gauge_corr_252d=Decimal("-0.31"),
+        )
+    )
+
+    rows = repo.fetch_gold_gauge_history(
+        from_date=date(2026, 5, 10), to_date=date(2026, 5, 11)
+    )
+
+    assert [(row["obs_date"], row["gauge_corr_60d"]) for row in rows] == [
+        (date(2026, 5, 10), Decimal("-0.79")),
+        (date(2026, 5, 11), Decimal("-0.17")),
+    ]
+    assert rows[0]["gauge_corr_252d"] == Decimal("-0.42")
+
+
 def test_latest_skips_invalidated_rows(repo: Repository) -> None:
     repo.insert_gold_posture_daily(
         **_kwargs_for_posture(
