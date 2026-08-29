@@ -1,6 +1,6 @@
 # Macro desk — bind every board panel to live data
 
-**Status:** proposed
+**Status:** EXECUTED 2026-08-29 — 47/47 board panels live
 **Spec:** `docs/superpowers/specs/2026-08-27-macro-desk-board.html` (sha-pinned board artifact)
 **Predecessor:** `docs/superpowers/plans/2026-08-27-macro-desk-page-port.md`
 **Audit:** `docs/research/2026-08-28-macro-desk-board-conformance/VERDICT.md`
@@ -263,3 +263,55 @@ The board's own test, which reached neither the previous plan nor the code:
 | t5 "corr_60d, daily"                    | plot corr_252d, labelled                   | Producer computes `window=252` only; the 60d cut does not exist |
 | t8 ships as a tab                       | reachable at `/macro/notes`, off the strip | The board's own t8 says it does not ship              |
 | t0 built on this branch                 | built on `feat/macro-desk-tab-00`          | Registry collision; D2                                |
+
+
+---
+
+## 8. Outcome — measured 2026-08-29
+
+All 47 shippable board panels render on the live desk. Verified by fetching each
+tab from the running dev server and matching the board's own panel titles, not by
+reading the diff.
+
+| Tab            | Board | Before | After | Commit     |
+| -------------- | ----: | -----: | ----: | ---------- |
+| t0 Overview    |    11 |      0 |    11 | `4fa16ccf` + `46617a7c` |
+| t1 Fed         |     8 |      0 |     8 | `b4fca2c4` |
+| t2 Rates       |     9 |      0 |     9 | `9b73f2f9` |
+| t3 Inflation   |     4 |      4 |     4 | (already conformant) |
+| t4 USD         |     2 |      2 |     2 | (already conformant) |
+| t5 Gold        |     8 |      2 |     8 | `11088f1a` |
+| t6 Energy      |     2 |      2 |     2 | (already conformant) |
+| t7 Factors     |     3 |      3 |     3 | (already conformant) |
+| **Total**      |**47** | **11** |**47** |            |
+
+Zero new endpoints, as predicted. Three previously-unconsumed data paths are now
+bound: `/api/gold/gauge`, `/api/macro/rates` `sub_states`, and `/api/macro/policy`
+`market_implied`.
+
+Gates at the final commit: typecheck clean, **984 unit tests pass**, posture lint
+clean, eslint clean, all 9 routes HTTP 200.
+
+### What is NOT done
+
+- **`/api/gold/lenses/*` and `/api/gold/inputs/*` remain unconsumed.** The board's
+  §⑩ P2.2 names three unconsumed gold routes; one is now bound. `inputs/{id}`
+  carries real depth (`DFII10` 1293 points) and would turn the input manifest from
+  a list into a set of inspectable series. Deferred, not forgotten.
+- **The board's t5 anchor-decay panel cannot be built as specified.** Not a port
+  gap — the desk neither computes nor retains a 60-day correlation series. The fix
+  is in `reports/gold_posture.py`.
+- **No e2e run against a production build.** Unit and route-level checks only.
+- **Everything verified against `option_wizard_local`, never the mini.**
+
+### Three corrections this plan made to itself
+
+Recorded because each was wrong in a way that would have shipped:
+
+1. `/api/rates/snapshot?as_of=` was called MISSING by the board and **exists**;
+   any work sequenced around that blocker was dead work.
+2. "261 points instead of 3" was stated twice and is **19 vs 11** — the gauge's
+   261 dates carry 19 values. The page printed the right numbers while the plan
+   carried the wrong ones, because the panel derives them at render time.
+3. The gold perf deviation (§4.5, "262 correlation gauges per request") measured
+   **50ms** on re-test. Real when written, stale when inherited.
