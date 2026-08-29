@@ -50,7 +50,7 @@ function realErrors(errors: string[]): string[] {
 }
 
 test.describe("macro desk shell", () => {
-  test("tab 08 renders under the desk's tab bar, unlisted", async ({
+  test("tab 08 renders under the desk's tab bar and stays selectable", async ({
     page,
   }) => {
     const consoleErrors = collectConsoleErrors(page);
@@ -71,14 +71,12 @@ test.describe("macro desk shell", () => {
     // would mean the tab rendered outside the desk rather than inside it.
     await expect(page.getByTestId("macro-tab-bar")).toBeVisible();
 
-    // ...but this tab is NOT one of the bar's links. The board's t8 says it is for the
-    // operator and does not ship on the final page, so the route stays reachable by URL
-    // and leaves the strip. Both halves are asserted here because either alone is the
-    // wrong outcome: a 404 would have lost the tab, a link would have shipped it.
-    await expect(page.getByTestId("macro-tab-notes")).toHaveCount(0);
+    // The approved board includes tab 08 in the strip. It remains operator-facing copy,
+    // but the pixel port keeps the board's complete navigation hierarchy.
+    await expect(page.getByTestId("macro-tab-notes")).toHaveCount(1);
     await expect(
       page.locator('[data-testid="macro-tab-bar"] a[aria-current="page"]'),
-    ).toHaveCount(0);
+    ).toHaveCount(1);
 
     expect(realErrors(consoleErrors)).toEqual([]);
   });
@@ -115,8 +113,7 @@ test.describe("macro desk shell", () => {
         "/macro/gold",
       ]),
     );
-    // The operator-only tab is registered and reachable, and must not be here.
-    expect(hrefs).not.toContain("/macro/notes");
+    expect(hrefs).toContain("/macro/notes");
     for (const href of hrefs) {
       expect(href).toMatch(/^\/macro\/[^/]+$/);
     }
@@ -227,13 +224,9 @@ test.describe("macro desk shell", () => {
     await page.waitForLoadState("networkidle");
 
     await expect(page.getByTestId("macro-overview")).toBeVisible();
-    for (const panel of [
-      "daily-loop",
-      "cross-domain",
-      "contradictions",
-      "transmission",
-    ]) {
-      await expect(page.getByTestId(`macro-overview-${panel}`)).toBeVisible();
+    await expect(page.getByTestId("macro-chain-rail")).toBeVisible();
+    for (const panel of ["cross-domain", "contradictions", "transmission"]) {
+      await expect(page.getByTestId(`board-panel-${panel}`)).toBeVisible();
     }
 
     // Five publishers, five transmission-health rows. This is the tab's own definition of
@@ -245,19 +238,22 @@ test.describe("macro desk shell", () => {
     // The runtime posture ban, whole-body on this tab. Unlike tab 02, tab 00 has no
     // quarantine carve-out: §10-I's ruling names it explicitly — the stance word may print
     // only where the model produced it, which is inside `RatesScorecard`, and tab 00
-    // fetches neither endpoint that carries `duration_stance`.
-    const body = (await page.locator("main").innerText()).toLowerCase();
+    // fetches neither endpoint that carries `duration_stance`. "No composite" is allowed
+    // because it is the board's explicit refusal, not a computed score.
+    const body = (
+      await page.locator("main.macro-desk-main").innerText()
+    ).toLowerCase();
     for (const banned of [
       /\bbuy\b/,
       /\bsell\b/,
       /duration stance/,
       /position size/,
       /predicted return/,
-      /composite/,
       /master score/,
     ]) {
       expect(body, `tab 00 body matched ${banned}`).not.toMatch(banned);
     }
+    expect(body).toContain("no composite");
     // Non-vacuity: a body that failed to render would pass every ban above.
     expect(body).toContain("daily loop");
   });
@@ -277,6 +273,7 @@ test.describe("macro desk shell", () => {
     await page.goto("/macro/overview?as_of=2000-01-01");
     await page.waitForLoadState("networkidle");
 
+    await page.getByTestId("macro-replay-menu").locator("summary").click();
     const control = page.getByTestId("macro-replay-control");
     await expect(control).toBeVisible();
     await expect(control).toHaveAttribute("data-replay-clock", "instant");
@@ -289,12 +286,21 @@ test.describe("macro desk shell", () => {
     // `unanswered` is a publisher's own honest answer, not an API defect, so the tab is
     // NOT blanked — the panels still say which of the five answered. Blanking here would
     // destroy the only thing tab 00 is for.
-    await expect(page.getByTestId("macro-overview-transmission")).toBeVisible();
-    await expect(page.getByTestId("macro-overview-daily-loop")).toBeVisible();
+    await expect(page.getByTestId("board-panel-transmission")).toBeVisible();
+    await expect(page.getByTestId("macro-chain-rail")).toBeVisible();
     await expect(page.getByTestId("macro-health-snapshot")).toHaveAttribute(
       "data-answered",
       "never computed",
     );
+
+    // `/api/gold/gauge` publishes a history rather than taking `as_of`. The overview may
+    // use that persisted history, but it must bound it to the requested instant; otherwise
+    // this 2000 replay draws today's anchor under a historical heading.
+    await expect(
+      page
+        .getByTestId("board-panel-anchor-decay")
+        .locator('svg[role="img"]'),
+    ).toHaveCount(0);
   });
 });
 
@@ -317,7 +323,7 @@ test.describe("board conformance", () => {
     ],
     usd: ["dollar-pair", "upstream-citation"],
     factors: ["factor-vector", "factor-delivery", "factor-refusal"],
-    energy: ["energy-inventory", "energy-route", "energy-proposed"],
+    energy: ["energy-inventory", "energy-route"],
   };
 
   for (const [slug, panels] of Object.entries(EXPECTED)) {

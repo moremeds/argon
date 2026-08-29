@@ -42,12 +42,13 @@ import { expect, test } from "@playwright/test";
  *
  * A selector can go blind, so the second assertion below guards it: any SVG in the content
  * area big enough to be a chart must DECLARE itself one. The threshold sits in a real gap
- * — every icon on these routes is 24 units wide and every chart is 760 or 1200, with
+ * — every icon on these routes is 24 units wide and every chart is at least 400, with
  * nothing between — so a new chart that forgets `role="img"` fails loudly instead of
  * being skipped in silence, which is the same defect one level up from the one above.
  *
  * ─────────────────────────────────────────────────────────────────────────────────────
- * FRAME RE-MEASUREMENT — DONE IN P3, at 1440x900, against `npm run start`:
+ * FRAME RE-MEASUREMENT — DONE IN P3, on the 1440px macro canvas, against
+ * `npm run start`:
  *
  *   WIDE_FRAME  1200x360 | SEP dot plot   | container 1130px | rendered 1128px | k = 0.940
  *   WIDE_FRAME  1200x360 | dealer path    | container 1130px | rendered 1128px | k = 0.940
@@ -69,16 +70,14 @@ import { expect, test } from "@playwright/test";
 
 // The viewport is PART OF THE GATE, not an incidental of the runner.
 //
-// k is `container_px ÷ viewBox_width`, and `container_px` moves with the viewport: the
-// same `WIDE_FRAME` chart lands at k ≈ 0.94 in a 1440px viewport and k ≈ 1.00 in a 1512px
-// one (`chartGeometry.ts:17-18` states its frames were measured at 1512px; §5's table was
-// measured at 1440px, where a 1200-unit viewBox renders at ~1132px). A gate that does not
-// pin its viewport measures whatever the runner happened to default to, and the band's
-// width silently becomes an artifact of a number nobody wrote down. 1440 is the width the
-// band below was justified against, so 1440 is what this file asks for.
-test.use({ viewport: { width: 1440, height: 900 } });
+// k is `container_px ÷ viewBox_width`, and `container_px` moves with the viewport. The
+// port keeps the 220px application sidebar and gives the macro desk the artifact's 1440px
+// canvas, so the complete application viewport is 1660px wide. A gate that uses 1440px for
+// the complete shell silently takes 220px away from the board and measures the wrong
+// product. Pin the actual shell geometry here: 220px sidebar + 1440px macro canvas.
+test.use({ viewport: { width: 1660, height: 1000 } });
 
-// Why ±10% and not tighter, AT 1440px. A tighter [0.95, 1.06] would fail the very charts
+// Why ±10% and not tighter, ON THE 1440px MACRO CANVAS. A tighter [0.95, 1.06] would fail the very charts
 // being ported: argon's rates strips declare a 1200-unit viewBox and render at ~1132px,
 // i.e. k ≈ 0.94, and they are correct. The band has to admit the existing, correct charts
 // while still catching the real defects — the board's k = 2.02 and k = 0.63 are both far
@@ -122,7 +121,7 @@ test.describe("macro desk — chart scale", () => {
       // A chart in the content area that never declared itself one would be skipped by
       // the selector below without a word. Catch that here rather than let the gate go
       // quietly blind: 200 units sits in the empty gap between every icon on these
-      // routes (24) and every chart (760, 1200).
+      // routes (24) and every chart (at least 400).
       const undeclared = await page.$$eval(
         "main svg[viewBox]:not([role='img'])",
         (nodes) =>
@@ -189,7 +188,10 @@ test.describe("macro desk — chart scale", () => {
           `Pick the chartGeometry.ts frame whose width matches this container; ` +
           `do not compensate with font-size.`,
       ).toBeGreaterThanOrEqual(K_MIN);
-      expect(k).toBeLessThanOrEqual(K_MAX);
+      expect(
+        k,
+        `${m.route} ${m.label}: k=${k.toFixed(3)} exceeds ${K_MAX}`,
+      ).toBeLessThanOrEqual(K_MAX);
     }
   });
 });

@@ -1,10 +1,13 @@
 import { defineConfig } from "@playwright/test";
 
+const webPort = process.env.PLAYWRIGHT_WEB_PORT ?? "3001";
+const webBaseUrl = `http://127.0.0.1:${webPort}`;
+
 export default defineConfig({
   testDir: "./tests/e2e",
   timeout: 30_000,
   use: {
-    baseURL: "http://127.0.0.1:3001",
+    baseURL: webBaseUrl,
     screenshot: "only-on-failure",
   },
   // /watchlist is a server component that fetches FastAPI during SSR, so the
@@ -14,9 +17,9 @@ export default defineConfig({
     {
       // Production start (next start) — dev mode's HMR WebSocket fails in
       // Playwright's headless Chromium and blocks React hydration.
-      command: "npm run start",
-      url: "http://127.0.0.1:3001",
-      reuseExistingServer: true,
+      command: `npx next start --port ${webPort}`,
+      url: webBaseUrl,
+      reuseExistingServer: process.env.PLAYWRIGHT_WEB_PORT === undefined,
       timeout: 120_000,
     },
     {

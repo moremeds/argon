@@ -4,7 +4,7 @@
 import { expect, test } from "@playwright/test";
 
 test.describe("GOLD COMPASS /macro/gold", () => {
-  test("renders the five-tier cockpit when posture has been computed", async ({
+  test("renders the approved eight-panel board when posture has been computed", async ({
     page,
   }) => {
     const consoleErrors: string[] = [];
@@ -29,17 +29,23 @@ test.describe("GOLD COMPASS /macro/gold", () => {
     ).toBeVisible();
     await expect(page.getByTestId("macro-domain-gold")).toBeVisible();
 
-    // The five regions are aria-labelled by GoldCompassLayout. KPI strip is
-    // tier 1; lens 1/2/3 follow; correlation history is the last region (it
-    // also held a lens-decomposition panel until that panel's data source was
-    // found to be empty by construction).
-    await expect(page.getByRole("region", { name: /kpi/i })).toBeVisible();
-    await expect(page.getByRole("region", { name: /lens 1/i })).toBeVisible();
-    await expect(page.getByRole("region", { name: /lens 2/i })).toBeVisible();
-    await expect(page.getByRole("region", { name: /lens 3/i })).toBeVisible();
-    await expect(
-      page.getByRole("region", { name: /correlation history/i }),
-    ).toBeVisible();
+    // The artifact replaces the old five-tier shell with eight board panels. Keep the
+    // order in the browser gate: it encodes which lenses are governed by the gauge and
+    // leaves the input manifest last, after the readings it audits.
+    expect(
+      await page.locator('[data-testid^="board-panel-"]').evaluateAll((nodes) =>
+        nodes.map((node) => node.getAttribute("data-testid")),
+      ),
+    ).toEqual([
+      "board-panel-transmission-gauge",
+      "board-panel-three-lenses",
+      "board-panel-anchor-decay",
+      "board-panel-expression-cost",
+      "board-panel-cb-reserves",
+      "board-panel-structural-flows",
+      "board-panel-cyclical",
+      "board-panel-input-manifest",
+    ]);
 
     // Posture language: page must NOT contain sizing imperatives. Re-asserts
     // the runtime invariant that posture-lint enforces at build time.
@@ -61,6 +67,7 @@ test.describe("GOLD COMPASS /macro/gold", () => {
     // OBSERVATION-date question rather than the point-in-time one every other tab asks.
     // Two pickers here would be two questions over one answer, and the header's own
     // picker navigates off the desk.
+    await page.getByTestId("macro-replay-menu").locator("summary").click();
     const control = page.getByTestId("macro-replay-control");
     await expect(control).toBeVisible();
     await expect(control).toHaveAttribute("data-replay-clock", "obs_date");

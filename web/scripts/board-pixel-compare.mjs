@@ -1,43 +1,4 @@
-/**
- * Board-vs-live design conformance check.
- *
- * ## Why this is not a raw pixel diff
- *
- * The obvious reading of "pixel comparison" is `board.png XOR live.png`, and it would
- * report almost nothing useful. The board's panels carry MOCK values frozen at its capture
- * instant and the live desk derives its own at render time — that is a rule of this port,
- * not a defect — so a bitmap subtraction is dominated by digits and prose and says nothing
- * about whether the design was ported. Two pages can differ in every pixel and share a
- * design; two can be pixel-close and disagree on every token.
- *
- * So the comparison is made where the design actually lives:
- *
- *   1. GRAMMAR COVERAGE — every class the board's stylesheet defines and uses, against
- *      whether the live desk uses it. A class the board renders and the live page never
- *      does is a design element that was not ported.
- *   2. COMPUTED STYLE — for each selector present on both sides, the resolved values the
- *      browser actually paints. This is the pixel-level check, one layer above pixels:
- *      it compares what would be painted rather than what the stylesheet claims.
- *   3. SCREENSHOTS — full-page, both sides, for the eye to catch what neither can:
- *      proportion, rhythm, whether a grid reads as a grid.
- *
- * ## Two normalisations, both load-bearing
- *
- * Without them the report is 300 lines of noise and nobody reads it twice.
- *
- *   - SELECTORS, NOT CLASSES. `.tag` matches `.tag.real` (teal) and `.tag.q` (violet), and
- *     a bare `querySelector` picks whichever comes first in each document — so the probe
- *     reports a colour difference that is really "the two pages open with a different kind
- *     of tag". Every entry below is specific enough to name ONE thing.
- *   - COLOUR SPACE. argon renders the board's `rgba()` overlays as `color-mix()`, a
- *     recorded deviation (the board is single-theme dark; argon has a light theme). Chrome
- *     serialises the result as `color(srgb …)`, which is the same paint in a different
- *     notation. Both sides are normalised to 8-bit rgba before comparison, so a real
- *     colour change still shows and a notation change does not.
- *
- * Run: node scripts/board-pixel-compare.mjs
- * Output: output/playwright/board-compare/
- */
+/** Full-canvas artifact conformance probe. Run with the dev server on :3002. */
 import { chromium } from "@playwright/test";
 import { mkdirSync, writeFileSync } from "node:fs";
 import { resolve } from "node:path";
@@ -47,8 +8,6 @@ const BOARD =
   resolve("../docs/superpowers/specs/2026-08-27-macro-desk-board.html");
 const LIVE = process.env.LIVE_BASE ?? "http://127.0.0.1:3002";
 const OUT = resolve("../output/playwright/board-compare");
-
-/** Board tab id -> the live route that ports it. t8 does not ship on the strip. */
 const TABS = [
   ["t0", "overview"],
   ["t1", "fed"],
@@ -58,10 +17,12 @@ const TABS = [
   ["t5", "gold"],
   ["t6", "energy"],
   ["t7", "factors"],
+  ["t8", "notes"],
 ];
 
-/** The properties that decide whether an element looks like itself. */
 const PROPS = [
+  "display",
+  "position",
   "fontFamily",
   "fontSize",
   "fontWeight",
@@ -71,277 +32,236 @@ const PROPS = [
   "color",
   "backgroundColor",
   "borderTopWidth",
-  "borderLeftWidth",
   "borderTopColor",
+  "borderLeftWidth",
   "borderLeftColor",
   "borderTopLeftRadius",
   "paddingTop",
+  "paddingRight",
+  "paddingBottom",
   "paddingLeft",
   "gap",
-  "display",
   "opacity",
 ];
 
-/**
- * What to compare. Each entry names ONE visual thing.
- *
- * The board's own shell (`.appbar`, `.tabbar`, `.wrap`, `.pmq`, `.intro`) is excluded:
- * argon supplies its own chrome around the desk and the board's masthead is not what was
- * being ported. What is here is the CONTENT grammar — the part that has to match.
- */
 const SELECTORS = [
+  ["appbar", ".appbar"],
+  ["appbar-inner", ".appbar-inner"],
+  ["intro", ".intro"],
+  ["legend-strip", ".legend-strip"],
+  ["pm-question", ".pmq .q"],
+  ["tabbar", ".tabbar"],
+  ["tab", ".tabs > .tab"],
+  ["main-wrap", "main.wrap"],
+  ["footer", "footer"],
   ["section-title", ".sec-title h2"],
   ["section-standfirst", "p.sec-sub"],
+  ["zone", ".zone"],
   ["panel", ".panel"],
-  ["panel-heading", ".panel-h h3"],
-  ["read-rail", "p.read, div.read"],
+  ["panel-heading", ".panel > .panel-h > h3"],
+  ["read-rail", ".read"],
   ["provenance", ".prov"],
   ["tag-real", ".tag.real"],
+  ["tag-computed", ".tag.comp"],
+  ["tag-planned", ".tag.plan"],
   ["tag-question", ".tag.q"],
-  ["table-header-cell", "th"],
-  ["table-cell", "td"],
-  ["table-numeric-cell", "td.num"],
-  ["big-number", ".big"],
   ["state-pill", ".state"],
   ["grid-2up", ".grid.g2"],
   ["grid-3up", ".grid.g3"],
-  ["refusal-note", ".note-refuse"],
+  ["table", "table"],
+  ["table-header", "th"],
+  ["table-cell", "td"],
+  ["numeric-cell", "td.num"],
+  ["big-number", ".big"],
+  ["refusal", ".note-refuse"],
   ["arith-term", ".arith .term"],
   ["arith-result", ".arith .res"],
-  ["zone-banner", ".zone"],
-  ["zone-kicker", ".zone .zk"],
-  ["zone-label", ".zone .zl"],
   ["chain-node", ".node"],
-  ["chain-node-heading", ".node h3"],
-  ["chain-kv", ".node .kv"],
-  ["confidence-bar", ".conf"],
-  ["confidence-track", ".conf .track"],
-  ["meter-label", ".meter .lbl"],
-  ["meter-track", ".meter .track"],
-  ["meter-value", ".meter .val"],
+  ["confidence", ".conf"],
+  ["meter", ".meter"],
   ["contradiction", ".contra"],
-  ["contradiction-heading", ".contra b"],
-  ["chart-frame", ".chart"],
+  ["chart", ".chart"],
   ["caption", ".cap"],
   ["legend", ".lgd"],
-  ["ghost-panel", ".ghost"],
+  ["ghost", ".ghost"],
   ["chip", ".chip"],
-  ["edge-note", ".edge-note"],
-  ["meeting-row", ".meet"],
+  ["meeting", ".meet"],
   ["probability-bar", ".pbar"],
-  ["direction-label", ".dir"],
+  ["direction", ".dir"],
   ["tight-list-item", "ul.tight li"],
 ];
 
-const probeSource = `
-window.__probe = (entries, props) => {
-  const norm = (v) => {
-    if (typeof v !== "string") return v;
-    // color(srgb r g b / a) -> rgba(R, G, B, a). argon renders the board's rgba()
-    // overlays through color-mix(), which Chrome serialises in srgb notation. Same
-    // paint, different spelling.
-    const m = v.match(/^color\\(srgb ([\\d.]+) ([\\d.]+) ([\\d.]+)(?: \\/ ([\\d.]+))?\\)$/);
-    if (m) {
-      const to255 = (x) => Math.round(parseFloat(x) * 255);
-      const a = m[4] === undefined ? 1 : Math.round(parseFloat(m[4]) * 100) / 100;
-      return a === 1
-        ? \`rgb(\${to255(m[1])}, \${to255(m[2])}, \${to255(m[3])})\`
-        : \`rgba(\${to255(m[1])}, \${to255(m[2])}, \${to255(m[3])}, \${a})\`;
-    }
-    const r = v.match(/^rgba?\\(([\\d.]+),\\s*([\\d.]+),\\s*([\\d.]+)(?:,\\s*([\\d.]+))?\\)$/);
-    if (r) {
-      const a = r[4] === undefined ? 1 : Math.round(parseFloat(r[4]) * 100) / 100;
-      const c = (x) => Math.round(parseFloat(x));
-      return a === 1
-        ? \`rgb(\${c(r[1])}, \${c(r[2])}, \${c(r[3])})\`
-        : \`rgba(\${c(r[1])}, \${c(r[2])}, \${c(r[3])}, \${a})\`;
-    }
-    return v;
-  };
-  const out = {};
-  for (const [name, sel] of entries) {
-    let el = null;
-    try { el = document.querySelector(sel); } catch { el = null; }
-    if (!el) { out[name] = null; continue; }
-    const cs = getComputedStyle(el);
-    const rec = {};
-    for (const p of props) rec[p] = norm(cs[p]);
-    // The first font family only. The board and argon declare different FALLBACK chains
-    // and both resolve to the same face; a difference after the first entry is invisible
-    // unless that face fails to load, and is reported separately rather than 40 times.
-    rec.fontFamily = (rec.fontFamily || "").split(",")[0].trim().replace(/^"|"$/g, "");
-    out[name] = rec;
-  }
-  return out;
-};
-`;
+async function capture(page, rootSelector) {
+  return page.evaluate(
+    ({ rootSelector, selectors, props }) => {
+      const root = document.querySelector(rootSelector);
+      if (!root) throw new Error(`missing comparison root ${rootSelector}`);
+      const rootRect = root.getBoundingClientRect();
+      const normalizeColor = (value) => {
+        const m = value.match(
+          /^color\(srgb ([\d.]+) ([\d.]+) ([\d.]+)(?: \/ ([\d.]+))?\)$/,
+        );
+        if (!m) return value;
+        const channel = (x) => Math.round(Number(x) * 255);
+        const alpha = m[4] === undefined ? 1 : Number(m[4]);
+        return alpha === 1
+          ? `rgb(${channel(m[1])}, ${channel(m[2])}, ${channel(m[3])})`
+          : `rgba(${channel(m[1])}, ${channel(m[2])}, ${channel(m[3])}, ${Math.round(alpha * 100) / 100})`;
+      };
+      const result = {};
+      for (const [name, selector] of selectors) {
+        const nodes = [...root.querySelectorAll(selector)].filter(
+          (node) => node.getClientRects().length > 0,
+        );
+        result[name] = nodes.map((node) => {
+          const rect = node.getBoundingClientRect();
+          const style = getComputedStyle(node);
+          const computed = {};
+          for (const prop of props) computed[prop] = normalizeColor(style[prop]);
+          computed.fontFamily = (computed.fontFamily ?? "")
+            .split(",")[0]
+            .trim()
+            .replace(/^"|"$/g, "");
+          return {
+            text: (node.textContent ?? "").replace(/\s+/g, " ").trim(),
+            rect: {
+              x: Math.round((rect.left - rootRect.left) * 100) / 100,
+              y: Math.round((rect.top - rootRect.top) * 100) / 100,
+              width: Math.round(rect.width * 100) / 100,
+              height: Math.round(rect.height * 100) / 100,
+            },
+            computed,
+          };
+        });
+      }
+      return {
+        root: {
+          x: rootRect.left,
+          y: rootRect.top,
+          width: rootRect.width,
+          height: rootRect.height,
+        },
+        selectors: result,
+      };
+    },
+    { rootSelector, selectors: SELECTORS, props: PROPS },
+  );
+}
 
-/** A property whose value cannot mean anything on this element. */
-const MEANINGLESS = (prop, rec) =>
-  (prop.startsWith("borderTop") &&
-    prop !== "borderTopWidth" &&
-    rec.borderTopWidth === "0px") ||
-  (prop.startsWith("borderLeft") &&
-    prop !== "borderLeftWidth" &&
-    rec.borderLeftWidth === "0px") ||
-  (prop === "gap" && !["flex", "grid", "inline-flex"].includes(rec.display));
+function compare(board, live, tab) {
+  const differences = [];
+  const isMeaningfulStyle = (property, item) => {
+    if (property === "gap" && !["flex", "inline-flex", "grid", "inline-grid"].includes(item.computed.display)) {
+      return false;
+    }
+    if (property === "borderTopColor" && item.computed.borderTopWidth === "0px") {
+      return false;
+    }
+    if (property === "borderLeftColor" && item.computed.borderLeftWidth === "0px") {
+      return false;
+    }
+    return true;
+  };
+  for (const [name] of SELECTORS) {
+    const expected = board.selectors[name] ?? [];
+    const actual = live.selectors[name] ?? [];
+    if (expected.length !== actual.length) {
+      differences.push({ tab, selector: name, kind: "count", expected: expected.length, actual: actual.length });
+    }
+    for (let index = 0; index < Math.min(expected.length, actual.length); index += 1) {
+      for (const prop of PROPS) {
+        if (!isMeaningfulStyle(prop, expected[index]) && !isMeaningfulStyle(prop, actual[index])) continue;
+        if (expected[index].computed[prop] !== actual[index].computed[prop]) {
+          differences.push({
+            tab,
+            selector: name,
+            index,
+            kind: "style",
+            property: prop,
+            expected: expected[index].computed[prop],
+            actual: actual[index].computed[prop],
+          });
+        }
+      }
+      for (const prop of ["x", "y", "width", "height"]) {
+        if (Math.abs(expected[index].rect[prop] - actual[index].rect[prop]) > 0.5) {
+          differences.push({
+            tab,
+            selector: name,
+            index,
+            kind: "geometry",
+            property: prop,
+            expected: expected[index].rect[prop],
+            actual: actual[index].rect[prop],
+          });
+        }
+      }
+    }
+  }
+  return differences;
+}
 
 async function main() {
   mkdirSync(OUT, { recursive: true });
   const browser = await chromium.launch();
-  const ctx = await browser.newContext({
+  const boardContext = await browser.newContext({
     viewport: { width: 1440, height: 1000 },
     deviceScaleFactor: 1,
     colorScheme: "dark",
   });
-  await ctx.addInitScript(probeSource);
+  const liveContext = await browser.newContext({
+    viewport: { width: 1660, height: 1000 },
+    deviceScaleFactor: 1,
+    colorScheme: "dark",
+  });
+  const boardPage = await boardContext.newPage();
+  const livePage = await liveContext.newPage();
+  await boardPage.goto(`file://${BOARD}`);
+  // Product override approved after the artifact was signed off: retain the
+  // 1440px canvas, but use the Regime page's 32px gutters instead of centering a
+  // 1240px wrap. Apply the same transform to the immutable reference at compare
+  // time so component geometry remains a real gate rather than 4,000 known-noise
+  // width deltas.
+  await boardPage.addStyleTag({
+    content: ".wrap{width:100%!important;max-width:none!important;margin:0!important;padding-left:32px!important;padding-right:32px!important}",
+  });
 
-  const boardStyles = {};
-  const board = await ctx.newPage();
-  await board.goto(`file://${BOARD}`);
-  await board.waitForTimeout(400);
-  for (const [tid, slug] of TABS) {
-    // Force ONE panel visible. The board hides tabpanels with `display:none`, and a
-    // computed style read off a hidden subtree is the hidden value, not the painted one.
-    await board.evaluate((id) => {
-      document
-        .querySelectorAll('section[role="tabpanel"]')
-        .forEach((s) => s.classList.remove("on"));
-      document.getElementById(id)?.classList.add("on");
-    }, tid);
-    await board.waitForTimeout(120);
-    boardStyles[tid] = await board.evaluate(
-      ([e, p]) => window.__probe(e, p),
-      [SELECTORS, PROPS],
-    );
-    await board.screenshot({
-      path: `${OUT}/board-${tid}-${slug}.png`,
-      fullPage: true,
-    });
-  }
-  await board.close();
+  const report = { reference: BOARD, live: LIVE, viewport: { board: [1440, 1000], app: [1660, 1000], sidebar: 220, gutterOverride: 32 }, tabs: {}, differences: [] };
+  for (const [tabId, slug] of TABS) {
+    await boardPage.evaluate((id) => {
+      const target = document.querySelector(`.tab[data-t="${id}"]`);
+      if (!(target instanceof HTMLElement)) throw new Error(`missing reference tab ${id}`);
+      target.click();
+    }, tabId);
+    const boardCapture = await capture(boardPage, "body");
+    await boardPage.screenshot({ path: `${OUT}/board-${tabId}-${slug}.png`, fullPage: true });
 
-  const liveStyles = {};
-  const live = await ctx.newPage();
-  for (const [tid, slug] of TABS) {
-    const res = await live.goto(`${LIVE}/macro/${slug}`, {
-      waitUntil: "networkidle",
+    const response = await livePage.goto(`${LIVE}/macro/${slug}`, { waitUntil: "networkidle" });
+    if (!response?.ok()) throw new Error(`/macro/${slug} returned ${response?.status()}`);
+    const liveCapture = await capture(livePage, ".macro-desk-shell");
+    const canvasHeight = Math.min(12000, Math.ceil(liveCapture.root.height));
+    await livePage.setViewportSize({ width: 1660, height: canvasHeight });
+    await livePage.screenshot({
+      path: `${OUT}/live-${tabId}-${slug}.png`,
+      clip: { x: 220, y: 0, width: 1440, height: canvasHeight },
     });
-    if (!res || !res.ok()) {
-      liveStyles[tid] = {};
-      console.error(
-        `live /macro/${slug}: HTTP ${res ? res.status() : "no response"}`,
-      );
-      continue;
-    }
-    await live.waitForTimeout(250);
-    liveStyles[tid] = await live.evaluate(
-      ([e, p]) => window.__probe(e, p),
-      [SELECTORS, PROPS],
-    );
-    // `fullPage` captures the DOCUMENT's scroll height, and argon's AppShell scrolls an
-    // inner `<main>` instead — so every live capture came back exactly viewport-height
-    // while the board's came back 3-4k tall, which makes the pair useless to compare.
-    // Growing the viewport to the desk's own height is what actually gets the whole tab.
-    const tall = await live.evaluate(() => {
-      // The LAST bottom edge across every `.board`, not the first element's height. The
-      // desk renders more than one — the legend in the layout carries the class too,
-      // because it is board-styled content and needs `.board .tag` — so a `querySelector`
-      // measures the legend and reports every tab as 325px tall.
-      const els = [...document.querySelectorAll(".board")];
-      if (els.length === 0) return 1000;
-      const bottom = Math.max(
-        ...els.map((e) => e.getBoundingClientRect().bottom + window.scrollY),
-      );
-      return Math.min(12000, Math.ceil(bottom) + 120);
-    });
-    await live.setViewportSize({ width: 1440, height: tall });
-    await live.waitForTimeout(250);
-    await live.screenshot({ path: `${OUT}/live-${tid}-${slug}.png` });
-    await live.setViewportSize({ width: 1440, height: 1000 });
+    await livePage.setViewportSize({ width: 1660, height: 1000 });
+
+    const differences = compare(boardCapture, liveCapture, `${tabId}/${slug}`);
+    report.tabs[tabId] = { slug, board: boardCapture, live: liveCapture, differenceCount: differences.length };
+    report.differences.push(...differences);
   }
-  await live.close();
+
   await browser.close();
-
-  const boardUses = new Set();
-  const liveUses = new Set();
-  for (const [tid] of TABS) {
-    for (const [name] of SELECTORS) {
-      if (boardStyles[tid]?.[name]) boardUses.add(name);
-      if (liveStyles[tid]?.[name]) liveUses.add(name);
-    }
-  }
-
-  // One row per (selector, property) where the two sides disagree, with the tabs it was
-  // seen on. Reported once rather than per tab: the same token wrong on eight tabs is one
-  // finding, and printing it eight times buries the other seven.
-  const diffs = new Map();
-  for (const [tid, slug] of TABS) {
-    for (const [name] of SELECTORS) {
-      const b = boardStyles[tid]?.[name];
-      const l = liveStyles[tid]?.[name];
-      if (!b || !l) continue;
-      for (const p of PROPS) {
-        if (MEANINGLESS(p, b) || MEANINGLESS(p, l)) continue;
-        if (b[p] === l[p]) continue;
-        const key = `${name}|${p}|${b[p]}|${l[p]}`;
-        if (!diffs.has(key))
-          diffs.set(key, {
-            sel: name,
-            prop: p,
-            board: b[p],
-            live: l[p],
-            tabs: [],
-          });
-        diffs.get(key).tabs.push(`${tid}/${slug}`);
-      }
-    }
-  }
-
-  const report = {
-    coverage: {
-      renderedOnBoard: [...boardUses].sort(),
-      renderedOnLive: [...liveUses].sort(),
-      notPortedToLive: [...boardUses].filter((c) => !liveUses.has(c)).sort(),
-      onLiveOnly: [...liveUses].filter((c) => !boardUses.has(c)).sort(),
-    },
-    diffs: [...diffs.values()],
-  };
   writeFileSync(`${OUT}/report.json`, JSON.stringify(report, null, 2));
-
-  console.log("=== 1. GRAMMAR COVERAGE ===");
-  console.log(
-    `board renders ${boardUses.size} of ${SELECTORS.length} probed elements; live renders ${liveUses.size}`,
-  );
-  console.log(
-    "on the board, NOT on live:",
-    report.coverage.notPortedToLive.join(", ") || "(none)",
-  );
-  console.log(
-    "on live, not on the board:",
-    report.coverage.onLiveOnly.join(", ") || "(none)",
-  );
-
-  console.log("\n=== 2. COMPUTED-STYLE DIFFS ===");
-  if (report.diffs.length === 0) {
-    console.log("none");
-  }
-  const bySel = {};
-  for (const d of report.diffs) (bySel[d.sel] ??= []).push(d);
-  for (const [sel, ds] of Object.entries(bySel)) {
-    console.log(
-      `\n${sel}  (${ds[0].tabs.length} tab${ds[0].tabs.length === 1 ? "" : "s"})`,
-    );
-    for (const d of ds)
-      console.log(`   ${d.prop}: board=${d.board}  live=${d.live}`);
-  }
-  console.log(
-    `\n${report.diffs.length} distinct diffs across ${Object.keys(bySel).length} elements`,
-  );
-  console.log(`screenshots + report.json -> ${OUT}`);
+  const counts = report.differences.reduce((acc, item) => {
+    acc[item.kind] = (acc[item.kind] ?? 0) + 1;
+    return acc;
+  }, {});
+  console.log(JSON.stringify({ tabs: TABS.length, differences: report.differences.length, byKind: counts, output: OUT }, null, 2));
 }
 
-main().catch((e) => {
-  console.error(e);
+main().catch((error) => {
+  console.error(error);
   process.exit(1);
 });
