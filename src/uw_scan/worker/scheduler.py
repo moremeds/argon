@@ -1000,6 +1000,7 @@ def main() -> int:
                         client=uw,
                         today=datetime.now(ZoneInfo(settings.rth_tz)).date(),
                         lookback_days=settings.fundamental_ingest_daily_lookback_days,
+                        forward_days=settings.fundamental_ingest_daily_forward_days,
                         schema=settings.db_schema,
                     )
         logger.info("fundamental_ingest_daily %s", counters)

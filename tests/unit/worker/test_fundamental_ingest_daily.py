@@ -12,7 +12,7 @@ matching calendar row gets the `session=NULL, source='statement_obs'` fallback.
 
 from __future__ import annotations
 
-from datetime import date
+from datetime import date, timedelta
 
 import pytest
 
@@ -120,6 +120,13 @@ def patched(monkeypatch):
 
 
 def _run(state, **kw):
+    # `forward_days=0` unless a test says otherwise: every test below this line
+    # is about the BACKWARD window (which dates get scanned for landed filings,
+    # and how a filing date matches a print date), and the production default of
+    # 14 would put 14 extra dates into `state["dates"]` in each of them —
+    # drowning the assertion each one actually makes. The forward leg has its
+    # own tests at the bottom of this file, which pass it explicitly.
+    kw.setdefault("forward_days", 0)
     return mod.fundamental_ingest_daily(
         conn=object(), client=object(), today=TODAY, **kw
     )
@@ -473,3 +480,77 @@ def test_a_filing_before_a_future_print_is_not_swallowed_by_the_backward_window(
         }
     ], "a filing 10 days before a future print must NOT be treated as known"
     assert out["calendar_unknown_rows_new"] == 1
+
+
+# --- The forward leg -------------------------------------------------------
+#
+# The desk's "what prints next" panel reads `next_prints(on_or_after=today)`.
+# Before this leg existed the job scanned `today - offset` only, so the
+# calendar's newest row was always yesterday's and that panel was structurally
+# empty forever — rendering "nothing prints next" out of a question never asked.
+# Measured on `option_wizard_local`, 2026-08-29: 2,443 rows spanning
+# 2026-07-01..2026-08-28, and 0 with `report_date >= CURRENT_DATE`.
+
+
+def test_the_forward_leg_records_prints_that_have_not_happened_yet(patched):
+    """The load-bearing claim: a scheduled print AHEAD of today reaches the
+    calendar. Revert the forward loop and this fails — no row, and the desk
+    calendar goes blank."""
+    next_week = TODAY + timedelta(days=5)
+    patched["calendar"] = {next_week: [("NVDA", "afterhours")]}
+
+    out = _run(patched, lookback_days=0, forward_days=7)
+
+    assert {
+        "ticker": "NVDA",
+        "report_date": next_week,
+        "session": "afterhours",
+        "source": "uw_calendar",
+    } in patched["calendar_repo"].upserts
+    assert out["calendar_forward_rows_new"] == 1
+
+
+def test_the_forward_leg_never_sends_an_unreported_name_to_ingest(patched):
+    """A print that has not happened has no statement to retrieve. Folding
+    forward listings into `symbols` would spend 4 UW calls per name to fetch
+    nothing — and would do it every single run until the company reported."""
+    patched["calendar"] = {
+        TODAY: [("AAPL", "premarket")],
+        TODAY + timedelta(days=3): [("NVDA", "afterhours")],
+    }
+
+    _run(patched, lookback_days=0, forward_days=7)
+
+    assert patched["ingested"] == ["AAPL"], "NVDA has not reported yet"
+
+
+def test_the_forward_window_reaches_exactly_forward_days_and_never_today(patched):
+    _run(patched, lookback_days=0, forward_days=3)
+
+    assert patched["dates"] == [
+        TODAY,  # the backward leg's only date at lookback_days=0
+        TODAY + timedelta(days=1),
+        TODAY + timedelta(days=2),
+        TODAY + timedelta(days=3),
+    ], "today belongs to the backward leg; the forward leg must not re-fetch it"
+
+
+def test_a_zero_forward_window_reads_no_future_date(patched):
+    """The switch has to actually switch off — this is what every backward-window
+    test above relies on via `_run`'s default."""
+    _run(patched, lookback_days=0, forward_days=0)
+    assert patched["dates"] == [TODAY]
+
+
+def test_the_forward_leg_still_runs_when_nothing_reported_today(patched):
+    """The early return for an empty `targets` fires BEFORE the ingest call but
+    AFTER both calendar legs, so a quiet day must still extend the forward view
+    — and must still report it. A counter dropped from that return path would
+    read as 'we recorded no upcoming prints'."""
+    ahead = TODAY + timedelta(days=2)
+    patched["calendar"] = {ahead: [("WMT", "premarket")]}
+
+    out = _run(patched, lookback_days=0, forward_days=4)
+
+    assert out["targets"] == 0
+    assert out["calendar_forward_rows_new"] == 1

@@ -464,6 +464,16 @@ class Settings(BaseModel):
     fundamental_ingest_daily_enabled: bool = True
     fundamental_ingest_daily_cron: str = "20 4 * * *"
     fundamental_ingest_daily_lookback_days: int = 3
+    # How far AHEAD the same run reads the calendar. The lookback exists to find
+    # statements that have landed; this exists so `earnings_calendar` holds rows
+    # for prints that have NOT happened yet — the only thing the desk's "what
+    # prints next" panel can read (`next_prints` filters `report_date >=`
+    # today). Without it the backward-only scan leaves that panel structurally
+    # empty forever, which reads as "nothing prints next" rather than "we never
+    # asked". Costs 2 UW calls per forward day per run (~28/day at 14), against
+    # a 120k/day budget. Two weeks covers the gap between runs many times over
+    # while staying inside the horizon UW actually schedules.
+    fundamental_ingest_daily_forward_days: int = 14
     # Revenue-breakdown capture (monthly, uw-0). Default ON for the same reason
     # the job exists at all: it is an ACCRUAL job. The signal it feeds is
     # descriptive and does not pay, but if the provider's breakdown history
@@ -1118,6 +1128,9 @@ class Settings(BaseModel):
             ),
             fundamental_ingest_daily_lookback_days=int(
                 os.environ.get("UW_SCAN_FUNDAMENTAL_INGEST_DAILY_LOOKBACK_DAYS", "3")
+            ),
+            fundamental_ingest_daily_forward_days=int(
+                os.environ.get("UW_SCAN_FUNDAMENTAL_INGEST_DAILY_FORWARD_DAYS", "14")
             ),
             fundamental_concentration_capture_enabled=_env_bool(
                 "UW_SCAN_FUNDAMENTAL_CONCENTRATION_CAPTURE_ENABLED", True
