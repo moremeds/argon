@@ -1,5 +1,8 @@
 import type { ReactNode } from "react";
 
+import { DataDetails } from "../DataDetails";
+import { humanizeIdentifier } from "../presentation";
+
 /**
  * The frame every board panel wears — the board's own `.panel`, class for class.
  *
@@ -43,12 +46,6 @@ export type BoardQuestion = "Q1" | "Q2" | "Q3" | "Q4" | "Q5" | "Q6" | "Q7";
 export type BoardQuestions = readonly [BoardQuestion, ...BoardQuestion[]];
 
 export type PanelBasis = "REAL" | "COMPUTED" | "PLANNED";
-
-const BASIS_CLASS: Record<PanelBasis, string> = {
-  REAL: "tag real",
-  COMPUTED: "tag comp",
-  PLANNED: "tag plan",
-};
 
 export function BoardPanel({
   id,
@@ -105,23 +102,20 @@ export function BoardPanel({
       <div className="panel-h">
         <h3>{title}</h3>
         {showQuestions ? (
-          <span className="qs">
-            <span
-              className="tag q"
-              title={questions.map((q) => BOARD_QUESTION_LABEL[q]).join(" · ")}
-            >
-              {questions.join(" ")}
-            </span>
+          <span className="sr-only">
+            {questions.map((q) => BOARD_QUESTION_LABEL[q]).join(" · ")}
           </span>
         ) : null}
       </div>
 
       {children}
 
-      <div className="prov">
-        <b>{sourceLabel}</b> {source}{" "}
-        <span className={BASIS_CLASS[basis]}>{basis}</span>
-      </div>
+      <DataDetails
+        basis={basis}
+        questions={questions}
+        sourceLabel={sourceLabel}
+        source={source}
+      />
     </div>
   );
 }
@@ -211,15 +205,10 @@ export function BoardSecTitle({
 }) {
   return (
     <>
-      <div className="sec-title">
+      <div className="sec-title" data-questions={questions.join(" ")}>
         <h2>{title}</h2>
-        <span className="qs">
-          <span
-            className="tag q"
-            title={questions.map((q) => BOARD_QUESTION_LABEL[q]).join(" · ")}
-          >
-            {questions.join(" ")}
-          </span>
+        <span className="sr-only">
+          {questions.map((q) => BOARD_QUESTION_LABEL[q]).join(" · ")}
         </span>
         {aside}
       </div>
@@ -282,9 +271,11 @@ export function BoardStatePill({
     <span
       className={`state ${STATE_TONE[facts.state] ?? "neust"}`}
       data-testid={testId}
+      data-raw-value={`${facts.state}|${facts.direction}`}
+      title={`${facts.state} · ${facts.direction}`}
     >
-      {facts.state} · {facts.direction}
-      {Number.isFinite(conf) ? ` · conf ${conf.toFixed(2)}` : ""}
+      {humanizeIdentifier(facts.state)} · {humanizeIdentifier(facts.direction)}
+      {Number.isFinite(conf) ? ` · ${Math.round(conf * 100)}% confidence` : ""}
     </span>
   );
 }

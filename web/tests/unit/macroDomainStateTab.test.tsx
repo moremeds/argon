@@ -25,7 +25,12 @@ describe("DomainStateTab", () => {
     // The board's `.sec-title` compresses the state into one pill: label · direction ·
     // confidence. The card this replaced stays on /macro, the overview it was built for.
     expect(pill.className).toContain("state");
-    expect(pill.textContent).toMatch(/WELL_ABOVE_TARGET · FLAT · conf 0\.\d\d/);
+    expect(pill.textContent).toMatch(
+      /Well above target · Flat · \d+% confidence/,
+    );
+    expect(pill.getAttribute("data-raw-value")).toBe(
+      "WELL_ABOVE_TARGET|FLAT",
+    );
     // Coloured by distance from the domain's own target, never by a market view.
     expect(pill.className).toContain("warnst");
     // The heading names the domain, so a tab reached by URL is identifiable without the

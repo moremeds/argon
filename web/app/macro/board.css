@@ -231,6 +231,56 @@
   flex-shrink: 0;
 }
 
+/* Technical evidence stays adjacent to the panel but outside the primary reading path. */
+.board .data-details {
+  margin-top: auto;
+  border-top: 1px dashed var(--border-dim);
+  padding-top: 7px;
+  color: var(--text-muted);
+  font-family: var(--font-mono), monospace;
+  font-size: 10.5px;
+}
+.board .data-details summary {
+  width: max-content;
+  max-width: 100%;
+  cursor: pointer;
+  color: var(--text-muted);
+  list-style-position: inside;
+}
+.board .data-details summary:hover,
+.board .data-details summary:focus-visible {
+  color: var(--text-secondary);
+}
+.board .data-details-body {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px 10px;
+  padding-top: 7px;
+  line-height: 1.6;
+}
+.board .data-details-body b {
+  color: var(--text-secondary);
+  font-weight: 500;
+}
+.board .basis {
+  align-self: flex-start;
+  border: 1px solid var(--border-dim);
+  border-radius: 2px;
+  padding: 0 5px;
+}
+.board .basis-real {
+  border-color: color-mix(in srgb, var(--positive) 35%, transparent);
+  color: var(--positive);
+}
+.board .basis-computed {
+  border-color: color-mix(in srgb, var(--accent-cool) 35%, transparent);
+  color: var(--accent-cool);
+}
+.board .basis-planned {
+  border-style: dashed;
+  color: var(--text-secondary);
+}
+
 /* ── the read rail, and the provenance footer ── */
 .board .read {
   font-size: 12.5px;
