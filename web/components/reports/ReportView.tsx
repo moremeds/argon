@@ -94,7 +94,9 @@ function Delta({ delta }: { delta: ReportDeltaModel }) {
                 {c.change == null ? null : (
                   <span
                     className={
-                      c.change >= 0 ? "ml-2 text-emerald-400" : "ml-2 text-red-400"
+                      c.change >= 0
+                        ? "ml-2 text-emerald-400"
+                        : "ml-2 text-red-400"
                     }
                   >
                     {c.change >= 0 ? "+" : ""}
@@ -264,12 +266,13 @@ export function ReportView({
         </div>
       </div>
       <p className="mt-1 text-[11px] text-zinc-600">
-        content hash <code>{report.content_hash.slice(0, 16)}</code>{" "}
-        — an old version replays from its stored blocks, never from
-        today&apos;s data.
+        content hash <code>{report.content_hash.slice(0, 16)}</code> — an old
+        version replays from its stored blocks, never from today&apos;s data.
       </p>
 
-      <Manifest manifest={report.manifest as unknown as Record<string, unknown>} />
+      <Manifest
+        manifest={report.manifest as unknown as Record<string, unknown>}
+      />
       {data.delta ? <Delta delta={data.delta} /> : null}
 
       {data.versions.length > 1 ? (
@@ -277,7 +280,7 @@ export function ReportView({
           {data.versions.map((v) => (
             <a
               key={v.version_no}
-              href={`/reports/${reportType}/${reportKey}?version=${v.version_no}`}
+              href={`/reports/${reportType}/${encodeURIComponent(reportKey)}?version=${v.version_no}`}
               className={
                 v.version_no === report.version_no
                   ? "rounded bg-zinc-800 px-2 py-1 text-zinc-200"

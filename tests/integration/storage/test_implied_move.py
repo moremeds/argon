@@ -132,7 +132,12 @@ from uw_scan.worker.jobs.implied_move_snapshot import (
     implied_move_snapshot,
 )
 
-_TEST_DB_NAME = "option_wizard_test_impliedmove"
+# Per-xdist-worker: a module-private database dropped at teardown races itself under
+# `-n auto`. Full rationale in tests/integration/storage/test_fundamental_change_events.py.
+_XDIST_WORKER = os.environ.get("PYTEST_XDIST_WORKER")
+_TEST_DB_NAME = "option_wizard_test_impliedmove" + (
+    f"_{_XDIST_WORKER}" if _XDIST_WORKER else ""
+)
 _MARKET_DATE = date(2026, 8, 26)
 
 

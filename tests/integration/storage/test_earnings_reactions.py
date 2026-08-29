@@ -64,7 +64,12 @@ from uw_scan.storage.earnings_reactions import EarningsReactionsRepository
 from uw_scan.storage.migrate_runner import apply_migrations
 from uw_scan.worker.jobs.earnings_reactions import earnings_reactions_compute
 
-_TEST_DB_NAME = "option_wizard_test_reactions"
+# Per-xdist-worker: a module-private database dropped at teardown races itself under
+# `-n auto`. Full rationale in tests/integration/storage/test_fundamental_change_events.py.
+_XDIST_WORKER = os.environ.get("PYTEST_XDIST_WORKER")
+_TEST_DB_NAME = "option_wizard_test_reactions" + (
+    f"_{_XDIST_WORKER}" if _XDIST_WORKER else ""
+)
 
 # Real prints, frozen (see module docstring for verification provenance).
 NVDA_MAY = {"ticker": "NVDA", "report_date": date(2026, 5, 20), "session": "afterhours"}

@@ -873,6 +873,181 @@
         "title": "CandidateStructure",
         "type": "object"
       },
+      "CapexQuarter": {
+        "description": "One calendar quarter of the capex panel's combined spend.\n\nFISCAL QUARTERS ARE ASSIGNED TO THE CALENDAR QUARTER HOLDING THEIR END\nDATE. That is what lets a May-ending filer sit beside a June-ending one;\nit is an approximation, and it is the only one on this response.",
+        "properties": {
+          "capex_usd": {
+            "title": "Capex Usd",
+            "type": "number"
+          },
+          "complete": {
+            "title": "Complete",
+            "type": "boolean"
+          },
+          "quarter": {
+            "title": "Quarter",
+            "type": "string"
+          },
+          "revenue_usd": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "description": "Summed panel revenue for the same quarter, or null when ANY panel member is missing an income statement for it. Null rather than a partial sum: a ratio whose numerator counts five companies and whose denominator counts four is not an intensity, it is a bigger number.",
+            "title": "Revenue Usd"
+          },
+          "tickers": {
+            "items": {
+              "type": "string"
+            },
+            "title": "Tickers",
+            "type": "array"
+          }
+        },
+        "required": [
+          "quarter",
+          "capex_usd",
+          "revenue_usd",
+          "tickers",
+          "complete"
+        ],
+        "title": "CapexQuarter",
+        "type": "object"
+      },
+      "CaseStage": {
+        "description": "One ranked stage of a case chain.",
+        "properties": {
+          "chain": {
+            "title": "Chain",
+            "type": "string"
+          },
+          "layer": {
+            "title": "Layer",
+            "type": "string"
+          },
+          "median_gross_margin": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Median Gross Margin"
+          },
+          "median_rev_yoy": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Median Rev Yoy"
+          },
+          "members": {
+            "items": {
+              "$ref": "#/components/schemas/CaseStageMember"
+            },
+            "title": "Members",
+            "type": "array"
+          },
+          "rank": {
+            "description": "`research_chains.layer_rank`. HIGHER IS FURTHER DOWNSTREAM \u2014 the customer stage carries the largest rank (Customer-Cloud 70, DC-REIT/Colo 50). Read the other way, every funnel is upside down and every amplification ratio inverts.",
+            "title": "Rank",
+            "type": "integer"
+          },
+          "reporting": {
+            "title": "Reporting",
+            "type": "integer"
+          },
+          "total": {
+            "title": "Total",
+            "type": "integer"
+          }
+        },
+        "required": [
+          "layer",
+          "chain",
+          "rank",
+          "members",
+          "median_rev_yoy",
+          "median_gross_margin",
+          "reporting",
+          "total"
+        ],
+        "title": "CaseStage",
+        "type": "object"
+      },
+      "CaseStageMember": {
+        "description": "One company at one stage of a case chain.",
+        "properties": {
+          "gross_margin": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Gross Margin"
+          },
+          "reported_currency": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Reported Currency"
+          },
+          "rev_yoy": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Rev Yoy"
+          },
+          "spot_percentile": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "description": "Own-history YIELD percentile: 0.80 means CHEAP against this name's own past, not expensive. Never a cross-sectional rank \u2014 cross-sectional value measured INVERTED in this universe.",
+            "title": "Spot Percentile"
+          },
+          "ticker": {
+            "title": "Ticker",
+            "type": "string"
+          }
+        },
+        "required": [
+          "ticker",
+          "rev_yoy",
+          "gross_margin",
+          "spot_percentile",
+          "reported_currency"
+        ],
+        "title": "CaseStageMember",
+        "type": "object"
+      },
       "ChainCell": {
         "description": "One chain \u00d7 layer cell of the research matrix.\n\n`members` is the DENOMINATOR and `with_result` the numerator. A cell showing\nan aggregate without both is unreadable: a mean over 2 of 17 members and a\nmean over 17 of 17 look identical and mean opposite things.",
         "properties": {
@@ -999,6 +1174,35 @@
           "members"
         ],
         "title": "ChainDrilldownResponse",
+        "type": "object"
+      },
+      "ChainExposureCoverage": {
+        "description": "Three denominators, because they answer three different questions and a\nsurface showing only the first invites the reader to assume the third.",
+        "properties": {
+          "chain": {
+            "title": "Chain",
+            "type": "string"
+          },
+          "members": {
+            "title": "Members",
+            "type": "integer"
+          },
+          "with_exposure": {
+            "title": "With Exposure",
+            "type": "integer"
+          },
+          "with_magnitude": {
+            "title": "With Magnitude",
+            "type": "integer"
+          }
+        },
+        "required": [
+          "chain",
+          "members",
+          "with_exposure",
+          "with_magnitude"
+        ],
+        "title": "ChainExposureCoverage",
         "type": "object"
       },
       "ChainFlowReadRow": {
@@ -1261,6 +1465,79 @@
           "approved_by"
         ],
         "title": "ChainMember",
+        "type": "object"
+      },
+      "ChainMetricCell": {
+        "description": "One chain \u00d7 metric cell.\n\n`median` is the UNWEIGHTED median of the non-null dot values. Never\nrevenue-weighted: a revenue-weighted \"optical\" margin is one member's\nmargin wearing the chain's label, measured as actively misleading.\n\nFor `metric='valuation_percentile'` the median is ALWAYS None. Own-history\npercentiles are NAME facts; any aggregate over them is the banned \"chain\npercentile distribution\" (spec \u00a73) \u2014 the dots still render, because the\nname-level facts are real.",
+        "properties": {
+          "chain": {
+            "title": "Chain",
+            "type": "string"
+          },
+          "cohorts": {
+            "items": {
+              "$ref": "#/components/schemas/CohortSlice"
+            },
+            "title": "Cohorts",
+            "type": "array"
+          },
+          "coverage_missing": {
+            "description": "The DISTINCT tickers with no value for this metric, BY NAME \u2014 never a bare count. '12/18' is decoration; 'missing: COHR' is actionable. An empty list means full coverage.",
+            "items": {
+              "type": "string"
+            },
+            "title": "Coverage Missing",
+            "type": "array"
+          },
+          "dots": {
+            "items": {
+              "$ref": "#/components/schemas/MemberDot"
+            },
+            "title": "Dots",
+            "type": "array"
+          },
+          "layer": {
+            "title": "Layer",
+            "type": "string"
+          },
+          "layer_rank": {
+            "description": "0 means this chain sits on a taxonomy layer PLANE and can be placed on the chain map. A POSITIVE rank means it is a case chain \u2014 a ranked stage of a modelled flow \u2014 and belongs in a funnel instead. Read from research_chains, not from membership: the five dc_buildout chains carry an empty L3 row plus a ranked stage row holding every member, so a rank derived from memberships would call them stages and leave them off the map.",
+            "title": "Layer Rank",
+            "type": "integer"
+          },
+          "median": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "description": "UNWEIGHTED median of the non-null dot values \u2014 never revenue-weighted. ALWAYS null when metric = 'valuation_percentile': own-history percentiles are NAME facts, so a chain aggregate over them is a claim about the chain that nothing measured. Also null when no member has a value.",
+            "title": "Median"
+          },
+          "members_total": {
+            "title": "Members Total",
+            "type": "integer"
+          },
+          "metric": {
+            "title": "Metric",
+            "type": "string"
+          }
+        },
+        "required": [
+          "chain",
+          "layer",
+          "layer_rank",
+          "metric",
+          "median",
+          "dots",
+          "cohorts",
+          "coverage_missing",
+          "members_total"
+        ],
+        "title": "ChainMetricCell",
         "type": "object"
       },
       "ChanlunLifecycleMark": {
@@ -2370,6 +2647,34 @@
           "market_date"
         ],
         "title": "CockpitVrpResponse",
+        "type": "object"
+      },
+      "CohortSlice": {
+        "description": "One cross-section bucket a chain's members sit in.\n\n`fundamental_scores.as_of` is a cross-section IDENTIFIER, not a freshness\nstamp. When members straddle two buckets that is reporting season, and\nmerging them would compare names that were never in the same peer group.",
+        "properties": {
+          "as_of": {
+            "format": "date",
+            "title": "As Of",
+            "type": "string"
+          },
+          "label": {
+            "title": "Label",
+            "type": "string"
+          },
+          "tickers": {
+            "items": {
+              "type": "string"
+            },
+            "title": "Tickers",
+            "type": "array"
+          }
+        },
+        "required": [
+          "as_of",
+          "label",
+          "tickers"
+        ],
+        "title": "CohortSlice",
         "type": "object"
       },
       "CompanyDimensionsResponse": {
@@ -3996,6 +4301,369 @@
           }
         },
         "title": "DealerRegimeSignal",
+        "type": "object"
+      },
+      "DeltaRailEvent": {
+        "description": "One entry on the \"what changed since you last looked\" rail.\n\n`first_known_at` is a DATE, not a timestamp: `research_events.first_known_at`\nis a `date` column (migration 142), and rendering it as an instant at\nmidnight would manufacture a precision the ledger does not hold.",
+        "properties": {
+          "detail": {
+            "additionalProperties": true,
+            "title": "Detail",
+            "type": "object"
+          },
+          "event_class": {
+            "title": "Event Class",
+            "type": "string"
+          },
+          "first_known_at": {
+            "format": "date",
+            "title": "First Known At",
+            "type": "string"
+          },
+          "occurred_at": {
+            "format": "date",
+            "title": "Occurred At",
+            "type": "string"
+          },
+          "ticker": {
+            "title": "Ticker",
+            "type": "string"
+          },
+          "title": {
+            "title": "Title",
+            "type": "string"
+          }
+        },
+        "required": [
+          "event_class",
+          "ticker",
+          "occurred_at",
+          "first_known_at",
+          "title",
+          "detail"
+        ],
+        "title": "DeltaRailEvent",
+        "type": "object"
+      },
+      "DeltaRailResponse": {
+        "properties": {
+          "events": {
+            "items": {
+              "$ref": "#/components/schemas/DeltaRailEvent"
+            },
+            "title": "Events",
+            "type": "array"
+          },
+          "since": {
+            "format": "date",
+            "title": "Since",
+            "type": "string"
+          }
+        },
+        "required": [
+          "since",
+          "events"
+        ],
+        "title": "DeltaRailResponse",
+        "type": "object"
+      },
+      "DeskCalendarResponse": {
+        "properties": {
+          "as_of": {
+            "format": "date",
+            "title": "As Of",
+            "type": "string"
+          },
+          "rows": {
+            "items": {
+              "$ref": "#/components/schemas/DeskCalendarRow"
+            },
+            "title": "Rows",
+            "type": "array"
+          },
+          "section": {
+            "title": "Section",
+            "type": "string"
+          }
+        },
+        "required": [
+          "section",
+          "as_of",
+          "rows"
+        ],
+        "title": "DeskCalendarResponse",
+        "type": "object"
+      },
+      "DeskCalendarRow": {
+        "description": "One upcoming print, placed in the chain.\n\nThe row is grained `(ticker, report_date, chain, layer)` \u2014 membership's own\ngrain. A name in two chains appears twice, each time under the chain whose\nread-through order put it there; collapsing to one row would require\npicking a chain for it, which is a judgement the desk has no basis to make\nand would hide the other membership entirely.",
+        "properties": {
+          "chain": {
+            "title": "Chain",
+            "type": "string"
+          },
+          "implied_move_asof": {
+            "anyOf": [
+              {
+                "format": "date",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "description": "The market date the implied move was computed on. Present exactly when implied_move_pct is; always emitted, null when not covered.",
+            "title": "Implied Move Asof"
+          },
+          "implied_move_pct": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "description": "null = NOT COVERED for THIS print. A snapshot exists only while a print is inside the nightly job's lookahead window, and a snapshot computed for an earlier print is never carried forward onto a later one. Render null as 'not covered', never as 0. The field is always PRESENT; only its value may be null.",
+            "title": "Implied Move Pct"
+          },
+          "layer": {
+            "title": "Layer",
+            "type": "string"
+          },
+          "layer_rank": {
+            "title": "Layer Rank",
+            "type": "integer"
+          },
+          "percentile_state": {
+            "description": "'ok' when a percentile is present; otherwise WHICH kind of absence it is. 'no_compatible_run' (Argon computed nothing) and 'no_coverage' (Argon holds no statements) are different answers and must not render alike; 'unsupported_capability' means the valuation method REFUSED to price this name.",
+            "enum": [
+              "ok",
+              "stale_run",
+              "no_compatible_run",
+              "no_coverage",
+              "unsupported_capability",
+              "failed_run"
+            ],
+            "title": "Percentile State",
+            "type": "string"
+          },
+          "reactions": {
+            "description": "Last <=4 realised print moves, NEWEST FIRST, as fractions (-0.0177 = -1.77%). An EMPTY list means no reaction history is held \u2014 which is not 'the stock did not move'.",
+            "items": {
+              "type": "number"
+            },
+            "title": "Reactions",
+            "type": "array"
+          },
+          "report_date": {
+            "format": "date",
+            "title": "Report Date",
+            "type": "string"
+          },
+          "session": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "description": "'premarket' | 'afterhours' | null. NULL IS A REAL THIRD VALUE, not missing data: the ~2% of names UW reports as report_time 'unknown' appear in neither classified slot. Render it as 'session unknown'; never guess one and never default to a side.",
+            "title": "Session"
+          },
+          "spot_percentile": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "description": "OWN-HISTORY YIELD percentile, so HIGH IS CHEAP: 0.80 means this name is cheaper against its own past than 80% of its own history. It is NOT a cross-sectional rank and must never order a list \u2014 cross-sectional value measured INVERTED in this universe.",
+            "title": "Spot Percentile"
+          },
+          "ticker": {
+            "title": "Ticker",
+            "type": "string"
+          }
+        },
+        "required": [
+          "ticker",
+          "report_date",
+          "session",
+          "chain",
+          "layer",
+          "layer_rank",
+          "implied_move_pct",
+          "implied_move_asof",
+          "reactions",
+          "spot_percentile",
+          "percentile_state"
+        ],
+        "title": "DeskCalendarRow",
+        "type": "object"
+      },
+      "DeskCapexResponse": {
+        "description": "The one exogenous input: what the panel commits to capital spending.\n\nEvery revenue dollar in this chain is somebody else's capex, which is why\nthis is the desk's first question rather than an appendix. It is also the\nsingle place on the desk where dollar amounts are summed across\ncompanies \u2014 permitted only because the panel is restricted to USD filers\nand the excluded names travel with the answer.",
+        "properties": {
+          "chain": {
+            "title": "Chain",
+            "type": "string"
+          },
+          "excluded": {
+            "additionalProperties": {
+              "type": "string"
+            },
+            "description": "Chain members left OUT of the panel, mapped to the non-USD currency that excluded them. Printed with the figure, never behind it: an unexplained five-name panel reads as the whole chain.",
+            "title": "Excluded",
+            "type": "object"
+          },
+          "included": {
+            "items": {
+              "type": "string"
+            },
+            "title": "Included",
+            "type": "array"
+          },
+          "quarters": {
+            "items": {
+              "$ref": "#/components/schemas/CapexQuarter"
+            },
+            "title": "Quarters",
+            "type": "array"
+          }
+        },
+        "required": [
+          "chain",
+          "included",
+          "excluded",
+          "quarters"
+        ],
+        "title": "DeskCapexResponse",
+        "type": "object"
+      },
+      "DeskCase": {
+        "description": "A chain whose stages carry an explicit order, so a dollar's path\nthrough it is structure rather than inference.\n\nA domain becomes a case by having `layer_rank > 0` rows, nothing else. A\ndomain with no ranked stages is deliberately absent here: placing chains\nis what the chain map does, and drawing flow without ranked stages would\nbe inventing the very edges the desk refuses to draw.",
+        "properties": {
+          "domain": {
+            "title": "Domain",
+            "type": "string"
+          },
+          "label": {
+            "title": "Label",
+            "type": "string"
+          },
+          "slug": {
+            "title": "Slug",
+            "type": "string"
+          },
+          "stages": {
+            "items": {
+              "$ref": "#/components/schemas/CaseStage"
+            },
+            "title": "Stages",
+            "type": "array"
+          }
+        },
+        "required": [
+          "domain",
+          "slug",
+          "label",
+          "stages"
+        ],
+        "title": "DeskCase",
+        "type": "object"
+      },
+      "DeskLimitsResponse": {
+        "description": "What the desk cannot say, computed rather than asserted (spec \u00a73f).\n\nTHE NI FIELDS ARE DESCRIPTIVE AND MUST NEVER BE LABELLED PASS/FAIL.\nTask 10's premise \u2014 that an income-vs-cash-flow net-income disagreement is\na data-integrity failure \u2014 was DISPROVED. Income-statement `net_income` is\nattributable-to-parent post-discontinued-ops; the cash-flow statement\nopens from consolidated NI INCLUDING noncontrolling interests (ASC 230\nindirect). A disagreement is usually correct accounting on BOTH sides \u2014\nmeasured on 342 of 419 tickers, worked case VZ 2010-Q3 where 2,698M =\n881M + 1,817M NCI. Argon stores no NCI field and therefore CANNOT\nattribute the difference. Never name these pass/fail/offender and never\nrender them as an integrity error.",
+        "properties": {
+          "exposure_coverage": {
+            "items": {
+              "$ref": "#/components/schemas/ChainExposureCoverage"
+            },
+            "title": "Exposure Coverage",
+            "type": "array"
+          },
+          "membership_evidence": {
+            "items": {
+              "$ref": "#/components/schemas/MembershipEvidenceCount"
+            },
+            "title": "Membership Evidence",
+            "type": "array"
+          },
+          "ni_basis_agree": {
+            "title": "Ni Basis Agree",
+            "type": "integer"
+          },
+          "ni_basis_differ": {
+            "title": "Ni Basis Differ",
+            "type": "integer"
+          },
+          "ni_largest_basis_differences": {
+            "items": {
+              "type": "string"
+            },
+            "title": "Ni Largest Basis Differences",
+            "type": "array"
+          },
+          "ni_sign_flip_violations": {
+            "title": "Ni Sign Flip Violations",
+            "type": "integer"
+          },
+          "non_usd_filers": {
+            "items": {
+              "$ref": "#/components/schemas/NonUsdFiler"
+            },
+            "title": "Non Usd Filers",
+            "type": "array"
+          },
+          "withheld_composite": {
+            "title": "Withheld Composite",
+            "type": "string"
+          }
+        },
+        "required": [
+          "ni_basis_agree",
+          "ni_basis_differ",
+          "ni_largest_basis_differences",
+          "ni_sign_flip_violations",
+          "withheld_composite",
+          "membership_evidence",
+          "exposure_coverage",
+          "non_usd_filers"
+        ],
+        "title": "DeskLimitsResponse",
+        "type": "object"
+      },
+      "DeskMatrixResponse": {
+        "properties": {
+          "cells": {
+            "items": {
+              "$ref": "#/components/schemas/ChainMetricCell"
+            },
+            "title": "Cells",
+            "type": "array"
+          },
+          "chains": {
+            "items": {
+              "type": "string"
+            },
+            "title": "Chains",
+            "type": "array"
+          },
+          "section": {
+            "title": "Section",
+            "type": "string"
+          }
+        },
+        "required": [
+          "section",
+          "chains",
+          "cells"
+        ],
+        "title": "DeskMatrixResponse",
         "type": "object"
       },
       "DiscoveryCandidate": {
@@ -12484,6 +13152,230 @@
         "title": "MaxPainRow",
         "type": "object"
       },
+      "MemberDot": {
+        "description": "One name's value inside a chain cell. One dot per DISTINCT ticker.\n\n`value` is null when the name has no figure \u2014 never 0.0, which would put a\nname with no data at whatever the reader takes zero to mean.",
+        "properties": {
+          "knowledge_date_estimated": {
+            "anyOf": [
+              {
+                "type": "boolean"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "description": "THREE-STATE, and null is NOT false. true = this figure's knowledge date is the period_end + lag ESTIMATE, which errs early for late filers and manufactures look-ahead (measured: composite IC 0.059 with the fallback against 0.039 without). false = a real filing date. null = this dot has no knowledge date at all (a valuation percentile is not a filed figure), which is not a claim that the date is real. Carried so a reader can see it; the desk never filters on it.",
+            "title": "Knowledge Date Estimated"
+          },
+          "state": {
+            "enum": [
+              "ok",
+              "stale_run",
+              "no_compatible_run",
+              "no_coverage",
+              "unsupported_capability",
+              "failed_run"
+            ],
+            "title": "State",
+            "type": "string"
+          },
+          "ticker": {
+            "title": "Ticker",
+            "type": "string"
+          },
+          "value": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Value"
+          }
+        },
+        "required": [
+          "ticker",
+          "value",
+          "state",
+          "knowledge_date_estimated"
+        ],
+        "title": "MemberDot",
+        "type": "object"
+      },
+      "MembershipEvidenceCount": {
+        "description": "How many memberships rest on each class of evidence.\n\nCounted at MEMBERSHIP grain deliberately \u2014 this is a statement about the\ntaxonomy's evidential footing, not about how many companies there are.",
+        "properties": {
+          "evidence_class": {
+            "title": "Evidence Class",
+            "type": "string"
+          },
+          "memberships": {
+            "title": "Memberships",
+            "type": "integer"
+          }
+        },
+        "required": [
+          "evidence_class",
+          "memberships"
+        ],
+        "title": "MembershipEvidenceCount",
+        "type": "object"
+      },
+      "NodeUnderwritingRow": {
+        "description": "One name's underwriting figures WITH their filed line items.\n\nSpec \u00a74 trust requirement #1: the raw values and the filing date travel\nwith the figure rather than behind another request. The PM trust ranking\nput traceability first \u2014 one untraceable number kills the page, while\ntraceability survives several wrong ones.\n\n`shares_outstanding_yoy` is BASIC period-end shares (`common_stock_shares_\noutstanding`, 420/420 coverage), not a diluted weighted-average count \u2014\nno diluted share key exists at any tier of the UW store, verified\nexhaustively. It measures issuance/buyback, not dilution, and the word\n\"diluted\" must never appear over it.",
+        "properties": {
+          "cost_of_revenue_raw": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Cost Of Revenue Raw"
+          },
+          "dio": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Dio"
+          },
+          "filing_published_at": {
+            "anyOf": [
+              {
+                "format": "date",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Filing Published At"
+          },
+          "inventory_raw": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Inventory Raw"
+          },
+          "period_end": {
+            "format": "date",
+            "title": "Period End",
+            "type": "string"
+          },
+          "sbc_raw": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Sbc Raw"
+          },
+          "sbc_to_revenue": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Sbc To Revenue"
+          },
+          "shares_outstanding_raw": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Shares Outstanding Raw"
+          },
+          "shares_outstanding_yoy": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "description": "Change in BASIC period-end shares outstanding against four quarters earlier. NOT a diluted share count \u2014 no diluted share key exists at any tier of the source store \u2014 so it measures issuance and buyback, NOT option/RSU/convertible overhang. Never label it 'dilution'.",
+            "title": "Shares Outstanding Yoy"
+          },
+          "state": {
+            "enum": [
+              "ok",
+              "stale_run",
+              "no_compatible_run",
+              "no_coverage",
+              "unsupported_capability",
+              "failed_run"
+            ],
+            "title": "State",
+            "type": "string"
+          },
+          "ticker": {
+            "title": "Ticker",
+            "type": "string"
+          }
+        },
+        "required": [
+          "ticker",
+          "period_end",
+          "dio",
+          "sbc_to_revenue",
+          "shares_outstanding_yoy",
+          "filing_published_at",
+          "inventory_raw",
+          "cost_of_revenue_raw",
+          "sbc_raw",
+          "shares_outstanding_raw",
+          "state"
+        ],
+        "title": "NodeUnderwritingRow",
+        "type": "object"
+      },
+      "NonUsdFiler": {
+        "description": "One name on this desk that does not file in USD.\n\nWhy this is a LIMIT and not a footnote: summing gross profit across a\nchain put the Foundry chain at roughly $930B of quarterly gross profit,\nbecause TSM and UMC file in TWD and the store holds the FILED figure. So\nno dollar amount is summed across companies anywhere on this desk, and\nthis list is the measured extent of the reason. Growth rates, margins and\npercentiles are unaffected \u2014 a ratio carries no currency.",
+        "properties": {
+          "currencies": {
+            "items": {
+              "type": "string"
+            },
+            "title": "Currencies",
+            "type": "array"
+          },
+          "ticker": {
+            "title": "Ticker",
+            "type": "string"
+          }
+        },
+        "required": [
+          "ticker",
+          "currencies"
+        ],
+        "title": "NonUsdFiler",
+        "type": "object"
+      },
       "OhlcRow": {
         "properties": {
           "close": {
@@ -14636,6 +15528,57 @@
           "ticker"
         ],
         "title": "PositioningSnapshot",
+        "type": "object"
+      },
+      "ProfitPoolLayer": {
+        "description": "Where gross profit sits, layer by layer. Descriptive only.\n\nNO field for arrows, edges, propagation, or read-through exists here, by\ndesign \u2014 see the module docstring.",
+        "properties": {
+          "chain": {
+            "title": "Chain",
+            "type": "string"
+          },
+          "dots": {
+            "items": {
+              "$ref": "#/components/schemas/MemberDot"
+            },
+            "title": "Dots",
+            "type": "array"
+          },
+          "layer_rank": {
+            "title": "Layer Rank",
+            "type": "integer"
+          },
+          "median_gross_margin": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Median Gross Margin"
+          },
+          "median_rev_yoy": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Median Rev Yoy"
+          }
+        },
+        "required": [
+          "chain",
+          "layer_rank",
+          "median_gross_margin",
+          "median_rev_yoy",
+          "dots"
+        ],
+        "title": "ProfitPoolLayer",
         "type": "object"
       },
       "ProviderUsageBreakdownResponse": {
@@ -18310,6 +19253,33 @@
           "freshness"
         ],
         "title": "ScannerSignalHit",
+        "type": "object"
+      },
+      "ScopeGroup": {
+        "description": "A taxonomy group this desk deliberately does not cover.\n\nNOT 'unclassified' and NOT a residual. These are the desk's own organising\ntags for names held for reasons unrelated to this chain, and they keep\ntheir own names \u2014 several (Sector-ETF, M7, Beta, Macro) are\nportfolio-construction tags with no stages to order, so modelling them as\nsupply chains would be a category error rather than merely unbuilt work.",
+        "properties": {
+          "chain": {
+            "title": "Chain",
+            "type": "string"
+          },
+          "domains": {
+            "items": {
+              "type": "string"
+            },
+            "title": "Domains",
+            "type": "array"
+          },
+          "members": {
+            "title": "Members",
+            "type": "integer"
+          }
+        },
+        "required": [
+          "chain",
+          "domains",
+          "members"
+        ],
+        "title": "ScopeGroup",
         "type": "object"
       },
       "SetupBlock": {
@@ -28879,6 +29849,466 @@
         "summary": "Get Cockpit Vrp",
         "tags": [
           "cockpit"
+        ]
+      }
+    },
+    "/api/fundamentals/{section}/calendar": {
+      "get": {
+        "description": "Next prints across the section, upstream to downstream.\n\nThe clock is NOT a parameter: `desk_calendar` defaults it to today, and\nletting a caller move it would let this endpoint answer a question other\nthan \"what prints next\".",
+        "operationId": "desk_calendar_api_fundamentals__section__calendar_get",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "section",
+            "required": true,
+            "schema": {
+              "title": "Section",
+              "type": "string"
+            }
+          },
+          {
+            "description": "Scope to one chain's members, resolved server-side from membership. The ONLY filter \u2014 response order is fixed.",
+            "in": "query",
+            "name": "chain",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "description": "Scope to one chain's members, resolved server-side from membership. The ONLY filter \u2014 response order is fixed.",
+              "title": "Chain"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/DeskCalendarResponse"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Desk Calendar",
+        "tags": [
+          "fundamentals-desk",
+          "fundamentals-desk"
+        ]
+      }
+    },
+    "/api/fundamentals/{section}/capex": {
+      "get": {
+        "description": "The section's customer panel and what it commits to capital spending.\n\nContext, never edge \u2014 the figure is on every sell-side deck in the sector.\nIt is here because it is the desk's PREMISE: every revenue dollar\ndownstream is somebody else's capex, so a page cannot ask whether the\nmoney transmits before establishing whether it is still coming.",
+        "operationId": "desk_capex_api_fundamentals__section__capex_get",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "section",
+            "required": true,
+            "schema": {
+              "title": "Section",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/DeskCapexResponse"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Desk Capex",
+        "tags": [
+          "fundamentals-desk",
+          "fundamentals-desk"
+        ]
+      }
+    },
+    "/api/fundamentals/{section}/cases": {
+      "get": {
+        "description": "The chains whose stages carry an explicit order, upstream first.\n\nBoth cases in ONE response on purpose. The funnels are drawn on a shared\nradius scale so their silhouettes are comparable, and a scale computed\nfrom a per-case request would be computed from a different population on\neach page \u2014 the comparison would break silently rather than visibly.",
+        "operationId": "desk_cases_api_fundamentals__section__cases_get",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "section",
+            "required": true,
+            "schema": {
+              "title": "Section",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "items": {
+                    "$ref": "#/components/schemas/DeskCase"
+                  },
+                  "title": "Response Desk Cases Api Fundamentals  Section  Cases Get",
+                  "type": "array"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Desk Cases",
+        "tags": [
+          "fundamentals-desk",
+          "fundamentals-desk"
+        ]
+      }
+    },
+    "/api/fundamentals/{section}/delta": {
+      "get": {
+        "description": "What changed since the operator last looked.",
+        "operationId": "desk_delta_api_fundamentals__section__delta_get",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "section",
+            "required": true,
+            "schema": {
+              "title": "Section",
+              "type": "string"
+            }
+          },
+          {
+            "description": "Read events Argon FIRST KNEW on or after this date. A date, not an instant: `research_events.first_known_at` is a date column, and a midnight timestamp would claim a precision the ledger does not hold.",
+            "in": "query",
+            "name": "since",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "format": "date",
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "description": "Read events Argon FIRST KNEW on or after this date. A date, not an instant: `research_events.first_known_at` is a date column, and a midnight timestamp would claim a precision the ledger does not hold.",
+              "title": "Since"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/DeltaRailResponse"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Desk Delta",
+        "tags": [
+          "fundamentals-desk",
+          "fundamentals-desk"
+        ]
+      }
+    },
+    "/api/fundamentals/{section}/limits": {
+      "get": {
+        "description": "What the desk cannot say, computed rather than asserted.",
+        "operationId": "desk_limits_api_fundamentals__section__limits_get",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "section",
+            "required": true,
+            "schema": {
+              "title": "Section",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/DeskLimitsResponse"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Desk Limits",
+        "tags": [
+          "fundamentals-desk",
+          "fundamentals-desk"
+        ]
+      }
+    },
+    "/api/fundamentals/{section}/matrix": {
+      "get": {
+        "description": "chain \u00d7 metric: medians over per-name dots, never weighted.",
+        "operationId": "desk_matrix_api_fundamentals__section__matrix_get",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "section",
+            "required": true,
+            "schema": {
+              "title": "Section",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/DeskMatrixResponse"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Desk Matrix",
+        "tags": [
+          "fundamentals-desk",
+          "fundamentals-desk"
+        ]
+      }
+    },
+    "/api/fundamentals/{section}/node/underwriting": {
+      "get": {
+        "description": "One chain's members with their filed line items alongside.",
+        "operationId": "node_underwriting_api_fundamentals__section__node_underwriting_get",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "section",
+            "required": true,
+            "schema": {
+              "title": "Section",
+              "type": "string"
+            }
+          },
+          {
+            "description": "The chain to underwrite. A QUERY parameter because most real chain names contain a slash and a %2F-encoded path param 404s.",
+            "in": "query",
+            "name": "chain",
+            "required": true,
+            "schema": {
+              "description": "The chain to underwrite. A QUERY parameter because most real chain names contain a slash and a %2F-encoded path param 404s.",
+              "title": "Chain",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "items": {
+                    "$ref": "#/components/schemas/NodeUnderwritingRow"
+                  },
+                  "title": "Response Node Underwriting Api Fundamentals  Section  Node Underwriting Get",
+                  "type": "array"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Node Underwriting",
+        "tags": [
+          "fundamentals-desk",
+          "fundamentals-desk"
+        ]
+      }
+    },
+    "/api/fundamentals/{section}/profit-pool": {
+      "get": {
+        "description": "Layers side by side. Descriptive \u2014 no arrows, by design.",
+        "operationId": "desk_profit_pool_api_fundamentals__section__profit_pool_get",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "section",
+            "required": true,
+            "schema": {
+              "title": "Section",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "items": {
+                    "$ref": "#/components/schemas/ProfitPoolLayer"
+                  },
+                  "title": "Response Desk Profit Pool Api Fundamentals  Section  Profit Pool Get",
+                  "type": "array"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Desk Profit Pool",
+        "tags": [
+          "fundamentals-desk",
+          "fundamentals-desk"
+        ]
+      }
+    },
+    "/api/fundamentals/{section}/scope": {
+      "get": {
+        "description": "The taxonomy groups this section does not cover, under their own names.\n\nComputed as the complement of the section's domains rather than listed, so\nthe boundary cannot drift from the taxonomy it describes.",
+        "operationId": "desk_scope_api_fundamentals__section__scope_get",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "section",
+            "required": true,
+            "schema": {
+              "title": "Section",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "items": {
+                    "$ref": "#/components/schemas/ScopeGroup"
+                  },
+                  "title": "Response Desk Scope Api Fundamentals  Section  Scope Get",
+                  "type": "array"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Desk Scope",
+        "tags": [
+          "fundamentals-desk",
+          "fundamentals-desk"
         ]
       }
     },

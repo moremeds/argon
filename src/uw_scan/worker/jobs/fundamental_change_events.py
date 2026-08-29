@@ -96,7 +96,10 @@ from uw_scan.storage.fundamental_scores import FundamentalScoresRepository
 from uw_scan.storage.implied_move import ImpliedMoveRepository
 from uw_scan.storage.research_events import ResearchEventsRepository
 from uw_scan.storage.research_taxonomy import ResearchTaxonomyRepository
-from uw_scan.worker.jobs.research_events_derive import STALE_DAYS
+from uw_scan.worker.jobs.research_events_derive import (
+    STALE_DAYS,
+    register_discovery_gate,
+)
 
 log = logging.getLogger(__name__)
 
@@ -551,6 +554,27 @@ def derive_change_events(
 ) -> dict[str, int]:
     """Turn tonight's ingested state into typed delta-rail events. Idempotent
     on each class's identity key — see the module docstring."""
+    # SEED THE REGISTRY FIRST, because in production it was EMPTY.
+    #
+    # Measured 2026-08-28 on the mini: `research_event_classes` held 0 rows, so
+    # every class was unregistered and `record_events` refused every write —
+    # the typed ledger was inert and this job would raise
+    # `event classes not live: [...]` the moment any class produced a row.
+    # `register_discovery_gate` is the only thing that populates the table and
+    # it had NO caller anywhere: it was referenced in two docstrings, including
+    # this module's, and never invoked. The unit tests all passed because their
+    # fixtures registered the classes production does not.
+    #
+    # The failure was silent by construction. With no class registered, the
+    # desk's delta rail renders "Argon learned nothing new about this section",
+    # which reads as a quiet week rather than a dead pipeline.
+    #
+    # Registering here rather than in a deploy step: `register_classes` is an
+    # upsert over a FIXED list whose statuses live in code, so running it is a
+    # seed and never a bypass of the discovery gate — a killed class is
+    # re-registered as killed, and keeps refusing writes.
+    register_discovery_gate(conn, schema=schema)
+
     repo = ResearchEventsRepository(conn, schema=schema)
     engine_version = FundamentalScoresRepository(conn, schema=schema).active_version()
 

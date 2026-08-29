@@ -562,6 +562,17 @@ def _should_schedule_fundamental_change_events(settings: Settings) -> bool:
     return role == "all" or (role == "massive" and settings.worker_index == 0)
 
 
+def _should_schedule_fundamentals_desk_rollup(settings: Settings) -> bool:
+    """Single owner for the nightly desk matrix rollup (Task 12, spec §3c).
+    Pure warm-store read (the statement panel + its recorded violations) --
+    no UW/IB spend -> pin to massive-0, same as its industry-desk siblings
+    above. Gated separately on `fundamentals_desk_rollup_enabled`."""
+    if not settings.fundamentals_desk_rollup_enabled:
+        return False
+    role = settings.worker_role.lower()
+    return role == "all" or (role == "massive" and settings.worker_index == 0)
+
+
 def _worker_label(settings: Settings) -> str:
     role = settings.worker_role.lower()
     if role == "all":
@@ -918,6 +929,15 @@ def main() -> int:
             )
         logger.info("fundamental_change_events %s", result)
 
+    def _fundamentals_desk_rollup() -> None:
+        from uw_scan.worker.jobs.fundamentals_desk_rollup import (
+            fundamentals_desk_rollup,
+        )
+
+        with _repo(settings) as repo:
+            result = fundamentals_desk_rollup(repo.conn, schema=settings.db_schema)
+        logger.info("fundamentals_desk_rollup %s", result)
+
     def _spx_density_forecast() -> None:
         from uw_scan.worker.jobs.spx_density_forecast import spx_density_forecast_job
 
@@ -980,6 +1000,7 @@ def main() -> int:
                         client=uw,
                         today=datetime.now(ZoneInfo(settings.rth_tz)).date(),
                         lookback_days=settings.fundamental_ingest_daily_lookback_days,
+                        forward_days=settings.fundamental_ingest_daily_forward_days,
                         schema=settings.db_schema,
                     )
         logger.info("fundamental_ingest_daily %s", counters)
@@ -2404,6 +2425,23 @@ def main() -> int:
             CronTrigger.from_crontab("15 21 * * 0-4", timezone=settings.rth_tz),
             id="fundamental_change_events",
             name="Fundamental delta-rail change events",
+            max_instances=1,
+            coalesce=True,
+        )
+
+    if _should_schedule_fundamentals_desk_rollup(settings):
+        # Desk matrix rollup at 21:30 ET DAILY (Task 12, spec §3c) -- not
+        # weekday-only, since the statement store and its violations can
+        # change any day (a `recheck_violations` replay, a late restatement)
+        # and the matrix should reflect that the next morning regardless of
+        # what day it landed. Pure warm-store read (statement panel +
+        # violations); zero UW/IB spend, so massive-0 is the right
+        # single-flight home, same pin as its industry-desk siblings above.
+        sched.add_job(
+            _fundamentals_desk_rollup,
+            CronTrigger.from_crontab("30 21 * * *", timezone=settings.rth_tz),
+            id="fundamentals_desk_rollup",
+            name="Fundamentals desk matrix rollup (rev YoY, gross margin)",
             max_instances=1,
             coalesce=True,
         )

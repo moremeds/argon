@@ -50,6 +50,94 @@ Copied from the spec and the repo's standing rules; every task's requirements im
 | P2 Tasks 4–11  | `feat/fundamentals-data-spine`                           | one PR                                                                                                                                                                                    |
 | P3 Tasks 12–18 | `feat/fundamentals-desk-pages`                           | one PR                                                                                                                                                                                    |
 
+## Release to the mini (P3 exit — written 2026-08-29 during `/review-cycle`)
+
+Verified against `origin/main` at `43c47aa6 release: v0.12.18`. The branch is
+**16 ahead / 1 behind**, and the one behind is that release bump.
+
+### The blocker to clear first: the CHANGELOG merge
+
+`origin/main`'s release commit moved every previously-`[Unreleased]` bullet down
+under `## [0.12.18] — 2026-08-28` and left `[Unreleased]` empty. This branch still
+carries the pre-bump shape, with the desk's own bullets mixed into the ~650 lines
+that main has since released. **A naive merge resolution either duplicates the
+whole 0.12.18 section or files the desk entry inside a released one** — the exact
+failure `scripts/release/cut.sh` guards against and the reason it guards.
+
+Resolution, in this order:
+
+1. `git merge origin/main` on the feature branch.
+2. Resolve `CHANGELOG.md` by taking **`origin/main`'s file wholesale** (`git checkout --theirs`-equivalent), then re-inserting ONLY the desk's seven `### Added`
+   bullets under the now-empty `## [Unreleased]`.
+3. `VERSION`, `pyproject.toml`, `uv.lock`, `web/package.json` take main's `0.12.18`
+   unchanged — this branch must not bump a version; `cut.sh prepare` owns that.
+4. Confirm with `uv run python scripts/release/version_sync_check.py`.
+
+**Do not edit `CHANGELOG.md` with an editor that triggers the repo's
+format-on-write hook.** Prettier rewrites ~117 lines of already-released history
+(`*italic*` → `_italic_`, continuation-line dedents, one rewrapped chanlun entry),
+which buries the real entry in churn. Write it with a script instead.
+
+### What actually deploys
+
+| Surface | Ships as | Manual step? |
+| --- | --- | --- |
+| Migration `147_fundamentals_desk_rollup.sql` | api self-migrates on boot (`docker-compose.yml`) | no |
+| `fundamentals_desk_rollup` job | scheduled 21:30 ET daily, massive-0, `fundamentals_desk_rollup_enabled` default **true** | no |
+| `fundamental_change_events` job | scheduled, `fundamental_change_events_enabled` default **true** | no |
+| `api/routers/fundamentals_desk.py` (9 endpoints) | read-only, warm store, zero UW/IB spend | no |
+| `research_chains` / `chain_membership` rows | **nothing populates them** | **YES — see below** |
+
+### The one thing that will make the desk render empty
+
+`worker/jobs/research_taxonomy_seed.py` is **not registered in the scheduler** and
+has no backfill cron. Its only entrypoint is the manual script. Migrations 139/140
+create the tables; nothing fills them. Every panel on the desk reads them, so on a
+fresh production database the desk deploys *green and blank*.
+
+Post-deploy, once, inside the mini's api container:
+
+```bash
+docker compose -f /opt/argon/compose.yml exec api \
+  python scripts/backfill/research_taxonomy_seed.py
+```
+
+Then confirm before declaring the deploy good:
+
+```bash
+curl -s localhost:8400/api/fundamentals/ai-semi/scope   | python3 -c 'import json,sys;print("scope groups:",len(json.load(sys.stdin)))'
+curl -s localhost:8400/api/fundamentals/ai-semi/cases   | python3 -c 'import json,sys;print("cases:",[(c["slug"],len(c["stages"])) for c in json.load(sys.stdin)])'
+curl -s localhost:8400/api/fundamentals/ai-semi/matrix  | python3 -c 'import json,sys;print("matrix cells:",len(json.load(sys.stdin)["cells"]))'
+```
+
+Local reference values on `option_wizard_local`, 2026-08-29: scope 13, cases
+`[("datacenter",5),("optical",5)]`, matrix 78 cells, capex 14 quarters / 5 USD
+filers / BABA excluded for CNY. A zero on any of these means the seed did not run.
+
+**The matrix and case medians stay empty until the first 21:30 ET rollup**, even
+after seeding — capex reads statement observations directly and is live
+immediately, the rest is not. Either accept one night's lag or trigger the rollup
+by hand after seeding.
+
+### Sequence
+
+1. Merge `origin/main`, resolve CHANGELOG per above, push branch, `gh pr create`.
+2. CI green — **no merge before that**.
+3. Merge the PR.
+4. `scripts/release/cut.sh prepare patch` → merge the release PR → `cut.sh tag`.
+5. Watchtower pulls `:latest`; api self-migrates 147 on boot.
+6. Run the taxonomy seed (above), then the three curl checks.
+7. Optional: trigger `fundamentals_desk_rollup` rather than waiting for 21:30 ET.
+
+### Not blocking, recorded
+
+- `research_events_derive`, `research_report_scaffold`, `sec_filing_index_refresh`
+  and `fundamental_publication_evidence` are also unscheduled. They are older than
+  this branch and out of its scope, but the desk's evidence surfaces will stay
+  static until they are given schedules or a documented manual cadence.
+- `reports/fundamentals_desk.py` is 651 lines and `models/fundamentals_desk.py` is
+  597 — both over the 500-line target, both under the 1000-line split threshold.
+
 ---
 
 # Phase P1 — land the foundation
@@ -1047,7 +1135,7 @@ def test_rows_only_chain_reaches_both_endpoints(desk_client, conn):
 Plus positive-path tests per endpoint over seeded frozen data (reuse the seeds built in Tasks 4–12's tests via shared fixtures/helpers — extract a `tests/integration/api/_desk_seeds.py` if duplication grows). `desk_client` / `seeded_desk` / `seeded_two_buckets` / `seeded_dual_layer`: build these fixtures in the test file following the existing API-test bootstrap you found in Step-0 reading.
 
 - [ ] **Step 2: Run to verify failure.**
-- [ ] **Step 3: Implement models + router.** Router pattern: copy the conventions of `api/routers/stock.py` (repository construction, response_model annotations, no mutation except none-at-all here). Registration in `server.py` beside the others. The `{section}` value is validated against a declared registry constant `SECTIONS = {"ai-semi": ("ai_infrastructure", "dc_buildout", "optical_communication")}` in the router module — a new section is a registry row, not new handlers (extension contract). NOTE for the 422 test: FastAPI ignores unknown query params by default — add a small router-level dependency that compares `request.query_params` against the endpoint's declared params and raises 422 on extras, so "no sort parameter" is enforced structurally rather than silently ignored.
+- [ ] **Step 3: Implement models + router.** Router pattern: copy the conventions of `api/routers/stock.py` (repository construction, response_model annotations, no mutation except none-at-all here). Registration in `server.py` beside the others. The `{section}` value is validated against a declared registry constant `SECTIONS = {"ai-semi": ("ai_infrastructure", "dc_buildout", "optical_communication")}` in the router module — a new section is a registry row, not new handlers (extension contract). **This filter only discriminates because Task 19 ran first** — before it, every chain in the rail carried `ai_infrastructure` and this tuple selected all 38, putting Banks and Sector-ETF on the AI/semi desk. Do not start this task until Task 19 is committed; verify with `SELECT DISTINCT domain FROM uw_scan.research_chains` returning more than two values. NOTE for the 422 test: FastAPI ignores unknown query params by default — add a small router-level dependency that compares `request.query_params` against the endpoint's declared params and raises 422 on extras, so "no sort parameter" is enforced structurally rather than silently ignored.
 - [ ] **Step 4: Run to verify pass**
 
 Run: `uv run pytest tests/integration/api/test_fundamentals_desk_api.py -v`
@@ -1163,7 +1251,7 @@ uv run python scripts/backfill/fundamental_change_events_run.py --as-of 2026-08-
 
 (Adjust dates to the execution day; rollup before change-events so the event derive sees the fresh state.)
 
-- [ ] **Step 3: Browser-verify** (Playwright MCP or manual): `/fundamentals` redirects; `/fundamentals/ai-semi` renders all six sections with real local data or honest abstention states; `/fundamentals/ai-semi/Networking/Optical` (the REAL chain name — verified in `watchlist_chain`; there is no chain called "Optical-Communication", that is the *domain*) renders the stored report (assemble one first via the research-reports assemble endpoint if none exists locally), calendar strip, underwriting panel, alias questions. Screenshots to `output/playwright/` with descriptive names.
+- [ ] **Step 3: Browser-verify** (Playwright MCP or manual): `/fundamentals` redirects; `/fundamentals/ai-semi` renders all six sections with real local data or honest abstention states; `/fundamentals/ai-semi/Networking/Optical` (the REAL chain name — verified in `watchlist_chain`; there is no chain called "Optical-Communication", that is the _domain_) renders the stored report (assemble one first via the research-reports assemble endpoint if none exists locally), calendar strip, underwriting panel, alias questions. Screenshots to `output/playwright/` with descriptive names.
 - [ ] **Step 4: Record findings** in the PR description draft; fix what the smoke surfaces before Task 18.
 
 ### Task 18: CHANGELOG + PR for P3
@@ -1179,6 +1267,209 @@ git push -u origin feat/fundamentals-desk-pages && gh pr create --fill
 ```
 
 Wait for CI green; merge only after.
+
+### Task 19: Make `domain` discriminate — the section filter's missing premise
+
+> **EXECUTION ORDER: run this task immediately after Task 12 and BEFORE Task 13.**
+> It is numbered 19 only so `scripts/task-brief` extracts it cleanly (the extractor
+> matches `Task <n>` and would merge a `12b` heading into Task 12's brief).
+
+**Why this exists.** Task 13 filters a section to a set of `domain` values. That
+premise is false today. `mirror_watchlist_chain` stamps ONE hardcoded literal onto
+every chain it mirrors — `src/uw_scan/worker/jobs/research_taxonomy_seed.py:68`,
+`domain: str = "ai_infrastructure"` — applied uniformly at `:81-88` with no
+per-chain lookup. `watchlist_chain` has no domain column and the seed invents the
+same constant for all 38 chains. The live vocabulary is exactly
+`{ai_infrastructure, optical_communication}`; `dc_buildout` was never implemented.
+
+So `WHERE domain IN (...)` matches **every chain in the rail**, and
+`/fundamentals/ai-semi` would render **Banks, Credit, Consumer, Healthcare, Crypto,
+Fintech, Energy, Macro, Sector-ETF, Beta, M7 and Space** beside `Networking/Optical`
+and `Semi-Logic/ASIC`. Not an empty desk — a _mislabelled_ one, which is worse:
+it looks intentional.
+
+**Files:**
+
+- Modify: `src/uw_scan/worker/jobs/research_taxonomy_seed.py`
+- Test: `tests/integration/storage/test_research_taxonomy_domains.py`
+
+**Interfaces:**
+
+- Produces: module-level `CHAIN_DOMAIN: dict[str, str]` and `UNCLASSIFIED = "unclassified"`.
+  `mirror_watchlist_chain`'s `domain: str = "ai_infrastructure"` parameter is
+  REPLACED by `fallback_domain: str = UNCLASSIFIED`. Consumed by Task 13's
+  `SECTIONS = {"ai-semi": ("ai_infrastructure", "optical_communication", "dc_buildout")}`.
+- The only caller is `scripts/backfill/research_taxonomy_seed.py:106`, which calls
+  it bare — no signature update needed there, but re-run it to re-seed.
+
+- [ ] **Step 1: VERIFY the upsert actually rewrites `domain` on existing rows.**
+      Read `define_chains` in `src/uw_scan/storage/research_taxonomy.py` and confirm
+      `domain` appears in its `ON CONFLICT (taxonomy_version, chain, layer) DO UPDATE
+SET` list. **A column left out of that list is write-once** — the map would then
+      apply only to chains that do not exist yet and silently skip all 38 that do,
+      which is precisely the failure this task exists to prevent. If `domain` is
+      missing from the SET list, add it, and say so in the commit message.
+
+- [ ] **Step 2: Write the failing integration test.**
+
+```python
+def test_section_domains_exclude_the_non_ai_chains(seeded_taxonomy_conn):
+    """The whole point: a domain filter must SEPARATE. Before this task every
+    chain carried 'ai_infrastructure', so this filter returned all 38."""
+    from uw_scan.worker.jobs.research_taxonomy_seed import mirror_watchlist_chain
+    mirror_watchlist_chain(seeded_taxonomy_conn, schema="uw_scan")
+    with seeded_taxonomy_conn.cursor() as cur:
+        cur.execute(
+            """SELECT DISTINCT chain FROM uw_scan.research_chains
+                WHERE domain IN ('ai_infrastructure','optical_communication','dc_buildout')"""
+        )
+        selected = {r[0] for r in cur.fetchall()}
+    assert "Networking/Optical" in selected
+    assert "Semi-Logic/ASIC" in selected
+    assert "Generation/Nuclear" in selected
+    for excluded in ("Banks", "Credit", "Crypto", "Sector-ETF", "Macro", "Space"):
+        assert excluded not in selected, f"{excluded} must not reach the AI/semi desk"
+
+
+def test_an_unmapped_chain_lands_in_unclassified_not_ai_infrastructure(seeded_taxonomy_conn):
+    """A chain nobody has classified must be VISIBLY unclassified. Defaulting it
+    into the AI bucket is how Banks ended up on an AI/semi desk in the first place."""
+    from uw_scan.worker.jobs.research_taxonomy_seed import (
+        CHAIN_DOMAIN, UNCLASSIFIED, mirror_watchlist_chain,
+    )
+    with seeded_taxonomy_conn.cursor() as cur:
+        cur.execute(
+            "INSERT INTO uw_scan.watchlist_chain (ticker, chain, layer) VALUES (%s,%s,%s)",
+            ("VRT", "Brand-New-Unmapped-Chain", "L3"),
+        )
+    assert "Brand-New-Unmapped-Chain" not in CHAIN_DOMAIN
+    mirror_watchlist_chain(seeded_taxonomy_conn, schema="uw_scan")
+    with seeded_taxonomy_conn.cursor() as cur:
+        cur.execute(
+            "SELECT domain FROM uw_scan.research_chains WHERE chain = %s",
+            ("Brand-New-Unmapped-Chain",),
+        )
+        assert cur.fetchone()[0] == UNCLASSIFIED
+
+
+def test_reseeding_rewrites_an_existing_rows_domain(seeded_taxonomy_conn):
+    """Guards the ON CONFLICT SET list (Step 1). Seed a chain with the WRONG
+    domain first, then re-mirror and assert the map won."""
+    from uw_scan.worker.jobs.research_taxonomy_seed import mirror_watchlist_chain
+    with seeded_taxonomy_conn.cursor() as cur:
+        cur.execute(
+            """UPDATE uw_scan.research_chains SET domain = 'wrong_on_purpose'
+                WHERE chain = 'Networking/Optical'"""
+        )
+    mirror_watchlist_chain(seeded_taxonomy_conn, schema="uw_scan")
+    with seeded_taxonomy_conn.cursor() as cur:
+        cur.execute(
+            "SELECT DISTINCT domain FROM uw_scan.research_chains WHERE chain = %s",
+            ("Networking/Optical",),
+        )
+        assert [r[0] for r in cur.fetchall()] == ["optical_communication"]
+```
+
+- [ ] **Step 3: Run to verify failure.** `uv run pytest tests/integration/storage/test_research_taxonomy_domains.py -v`
+      Expected: the first test FAILS with Banks/Credit/Crypto present in `selected`.
+
+- [ ] **Step 4: Implement.** Replace the uniform default with the map below.
+      These 38 entries are the complete `watchlist_chain` rail as of 2026-08-28
+      (verified against the mini). Entries marked `# judgement` are the debatable
+      ones — deliberately surfaced as one-line data edits, not buried in logic.
+
+```python
+UNCLASSIFIED = "unclassified"
+
+#: Chain -> research domain. A chain absent from this map gets UNCLASSIFIED,
+#: never a section domain: an unclassified chain must be VISIBLY unassigned
+#: rather than silently swept onto a desk it does not belong to.
+CHAIN_DOMAIN: dict[str, str] = {
+    # --- the optical chain (its own domain; the desk's exemplar node) ---
+    "Networking/Optical": "optical_communication",
+    # --- silicon and compute ---
+    "Semi-Cap/EDA": "ai_infrastructure",
+    "Semi-Logic/ASIC": "ai_infrastructure",
+    "Computer/GPU": "ai_infrastructure",
+    "Memory/Storage": "ai_infrastructure",
+    "Analog/Power-Semi": "ai_infrastructure",
+    "Foundry": "ai_infrastructure",
+    # --- the compute buyers ---
+    "Cloud/Hyperscaler": "ai_infrastructure",
+    "AI-Cloud/NeoCloud": "ai_infrastructure",
+    "Foundation-Model-Proxy": "ai_infrastructure",
+    "AI-Native-Software": "ai_infrastructure",
+    "Data-Platform": "ai_infrastructure",
+    "Software/SaaS": "ai_infrastructure",          # judgement
+    "DevTools/Observability": "ai_infrastructure",  # judgement
+    "Cybersecurity": "ai_infrastructure",           # judgement
+    "AI-App/Consumer-Net": "ai_infrastructure",     # judgement
+    "Healthcare-AI/LS-Tools": "ai_infrastructure",  # judgement
+    "Robotics/Automation": "ai_infrastructure",     # judgement
+    "Devices/Endpoint": "ai_infrastructure",        # judgement
+    "IT-Services/Integration": "ai_infrastructure", # judgement
+    # --- the physical datacenter buildout (this is what makes dc_buildout real) ---
+    "Generation/Nuclear": "dc_buildout",
+    "Power/Electrical": "dc_buildout",
+    "EPC/Construction": "dc_buildout",
+    "Cooling/Thermal": "dc_buildout",
+    "DC-REIT/Colo": "dc_buildout",
+    # --- everything else: real chains, not part of THIS section ---
+    "Banks": UNCLASSIFIED,
+    "Credit": UNCLASSIFIED,
+    "Fintech": UNCLASSIFIED,
+    "Consumer": UNCLASSIFIED,
+    "Healthcare": UNCLASSIFIED,
+    "Energy": UNCLASSIFIED,
+    "Crypto": UNCLASSIFIED,
+    "Space": UNCLASSIFIED,
+    "Quantum": UNCLASSIFIED,   # judgement: adjacency, not today's AI supply chain
+    "Macro": UNCLASSIFIED,
+    "Sector-ETF": UNCLASSIFIED,
+    "Beta": UNCLASSIFIED,
+    "M7": UNCLASSIFIED,        # a grouping, not a supply-chain node
+}
+```
+
+and in `mirror_watchlist_chain`, replace the `domain` parameter and its use:
+
+```python
+def mirror_watchlist_chain(
+    conn: psycopg.Connection,
+    *,
+    schema: str = "uw_scan",
+    version: str = TAXONOMY_V1,
+    fallback_domain: str = UNCLASSIFIED,
+) -> dict[str, int]:
+```
+
+```python
+            {
+                "domain": CHAIN_DOMAIN.get(chain, fallback_domain),
+                "chain": chain,
+                ...
+            }
+```
+
+- [ ] **Step 5: Run to verify pass.**
+
+- [ ] **Step 6: MUTATION TEST (required, per this branch's standing technique).**
+      Change `fallback_domain` back to `"ai_infrastructure"`. Re-run:
+      `test_an_unmapped_chain_lands_in_unclassified_not_ai_infrastructure` MUST go
+      RED. Separately, delete the `"Banks": UNCLASSIFIED` entry — the first test must
+      still pass (Banks falls through to the fallback). Restore both, confirm green.
+      Record both outcomes in the task report.
+
+- [ ] **Step 7: Report the unmapped set.** Run the seed against the local DB and
+      print any chain in `watchlist_chain` absent from `CHAIN_DOMAIN`. Expect zero
+      today; a non-empty list is a finding for the report, not a failure.
+
+- [ ] **Step 8: Commit**
+
+```bash
+git add -A src tests
+git commit -m "fix(fundamentals): give research domains discriminating power"
+```
 
 ---
 

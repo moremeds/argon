@@ -102,15 +102,15 @@ def test_an_old_version_serves_its_frozen_content(client: TestClient, two_versio
     assert body["report"]["version_no"] == 1
     assert body["report"]["status"] == "superseded"
     assert body["report"]["manifest"]["engine_version"] == "fundamentals-v2:aaaaaaaa"
-    dims = next(
-        b for b in body["report"]["blocks"] if b["block_kind"] == "dimensions"
-    )
+    dims = next(b for b in body["report"]["blocks"] if b["block_kind"] == "dimensions")
     assert dims["payload"]["priority"] == 1.20
     assert body["delta"]["is_first_version"] is True
 
 
 def test_a_missing_version_is_a_404(client: TestClient, two_versions):
-    assert client.get("/api/research/reports/company/NVDA/versions/9").status_code == 404
+    assert (
+        client.get("/api/research/reports/company/NVDA/versions/9").status_code == 404
+    )
 
 
 def test_an_unknown_report_type_is_a_404(client: TestClient, seeded_db_empty_cards):
@@ -165,7 +165,8 @@ def test_a_comparison_keys_on_its_sorted_ticker_set(
     fetched = client.get("/api/research/reports/comparison/nvda,amd").json()
     assert fetched["state"] == "ok"
     coverage = next(
-        b for b in fetched["report"]["blocks"]
+        b
+        for b in fetched["report"]["blocks"]
         if b["block_kind"] == "comparison_coverage"
     )
     # Both requested names are named as absent rather than quietly dropped.
@@ -174,3 +175,101 @@ def test_a_comparison_keys_on_its_sorted_ticker_set(
 
 def test_an_empty_comparison_is_a_400(client: TestClient, seeded_db_empty_cards):
     assert client.get("/api/research/reports/comparison/,,").status_code == 400
+
+
+# --- Task 20: a chain key can hold a slash --------------------------------
+#
+# 20 of the desk's 38 chain names contain one (`Networking/Optical`,
+# `Semi-Logic/ASIC`, …). `{key}` as a plain path param 404s on a real slash
+# because uvicorn unquotes `%2F` to a literal `/` before Starlette routes the
+# request, so the slash arrives as an extra path segment no single-segment
+# converter matches. `{key:path}` fixes addressing, but route REGISTRATION
+# ORDER is separately load-bearing: `{key:path}` is greedy, so if the plain
+# route is registered before `/versions/{n}`, it swallows `versions/N` into
+# `key` and answers 200 from the wrong route with a corrupted key instead of
+# ever reaching the version route.
+
+SLASH_CHAIN = "Networking/Optical"
+
+
+def test_a_slash_bearing_chain_key_resolves_on_the_plain_route(
+    client: TestClient, seeded_db_empty_cards
+):
+    published = client.post(
+        f"/api/research/reports/chain/{SLASH_CHAIN}?as_of={date(2026, 8, 25)}"
+    ).json()
+    assert published["state"] == "ok"
+    assert published["report"]["report_key"] == "chain:Networking/Optical"
+
+    read = client.get(f"/api/research/reports/chain/{SLASH_CHAIN}")
+    assert read.status_code == 200
+    body = read.json()
+    assert body["state"] == "ok"
+    assert body["report"]["report_key"] == "chain:Networking/Optical"
+    assert body["report"]["manifest"]["scope"] == {"chain": "Networking/Optical"}
+
+
+def test_a_slash_bearing_chain_key_resolves_on_the_versions_route_with_key_and_n_intact(
+    client: TestClient, seeded_db_empty_cards
+):
+    """The ordering mutation this pins: with the plain route registered
+    first, `{key:path}` on `.../versions/1` swallows the whole suffix into
+    `key`, no report exists under that corrupted key, and the response comes
+    back `state: "no_report"` instead of the version payload asserted here.
+    A status-code-only assertion cannot see this — both orderings answer 200.
+    """
+    client.post(f"/api/research/reports/chain/{SLASH_CHAIN}?as_of={date(2026, 8, 25)}")
+
+    resp = client.get(f"/api/research/reports/chain/{SLASH_CHAIN}/versions/1")
+    assert resp.status_code == 200
+    body = resp.json()
+    assert body["state"] == "ok"
+    assert body["report"]["report_key"] == "chain:Networking/Optical"
+    assert body["report"]["version_no"] == 1
+
+
+def test_a_slash_free_chain_key_still_works_on_both_routes(
+    client: TestClient, seeded_db_empty_cards
+):
+    """The one-segment case is the easy thing to break with a greedy
+    converter or a reordered route."""
+    client.post(f"/api/research/reports/chain/Semiconductors?as_of={date(2026, 8, 25)}")
+
+    plain = client.get("/api/research/reports/chain/Semiconductors").json()
+    assert plain["state"] == "ok"
+    assert plain["report"]["report_key"] == "chain:Semiconductors"
+
+    versioned = client.get(
+        "/api/research/reports/chain/Semiconductors/versions/1"
+    ).json()
+    assert versioned["state"] == "ok"
+    assert versioned["report"]["report_key"] == "chain:Semiconductors"
+    assert versioned["report"]["version_no"] == 1
+
+
+def test_a_slash_bearing_chain_with_no_report_still_reads_200_no_report(
+    client: TestClient, seeded_db_empty_cards
+):
+    """A 200 `no_report` and a 404 unaddressable are different facts. Fixing
+    addressing must not turn the no-report-yet state into a 404."""
+    r = client.get(f"/api/research/reports/chain/{SLASH_CHAIN}")
+    assert r.status_code == 200
+    body = r.json()
+    assert body["state"] == "no_report"
+    assert body["report"] is None
+    assert "chain:Networking/Optical" in body["reason"]
+
+
+def test_assembling_a_slash_bearing_chain_via_post_does_not_404(
+    client: TestClient, seeded_db_empty_cards
+):
+    """The POST route shares the identical `{key}` defect. Left unfixed, the
+    desk that is about to assemble the first-ever chain report would 404 on
+    exactly the 20 names this task exists for."""
+    r = client.post(
+        f"/api/research/reports/chain/{SLASH_CHAIN}?as_of={date(2026, 8, 25)}"
+    )
+    assert r.status_code == 200
+    body = r.json()
+    assert body["state"] == "ok"
+    assert body["report"]["report_key"] == "chain:Networking/Optical"

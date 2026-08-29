@@ -64,6 +64,7 @@ its headline (1,579,000,000). Must be neither a violation nor a basis gap:
 from __future__ import annotations
 
 import json
+import os
 from collections.abc import Iterator
 
 import psycopg
@@ -75,7 +76,12 @@ from uw_scan.storage.fundamental_obs import FundamentalObsRepository
 from uw_scan.storage.migrate_runner import apply_migrations
 from uw_scan.worker.jobs.fundamental_ingest import fundamental_ingest
 
-_TEST_DB_NAME = "option_wizard_test_nireconcile"
+# Per-xdist-worker: a module-private database dropped at teardown races itself under
+# `-n auto`. Full rationale in tests/integration/storage/test_fundamental_change_events.py.
+_XDIST_WORKER = os.environ.get("PYTEST_XDIST_WORKER")
+_TEST_DB_NAME = "option_wizard_test_nireconcile" + (
+    f"_{_XDIST_WORKER}" if _XDIST_WORKER else ""
+)
 
 CHECK_NAME = "net_income_sign_flipped_across_statements"
 

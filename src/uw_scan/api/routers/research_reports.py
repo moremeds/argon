@@ -30,6 +30,7 @@ router = APIRouter(tags=["research-reports"])
 
 _KEY_PREFIX = {"company": "company", "chain": "chain", "comparison": "comparison"}
 
+
 #: A comparison's key is its SORTED ticker set, so `NVDA,AMD` and `AMD,NVDA` are
 #: one report with two versions rather than two reports with one each.
 def _comparison_key(raw: str) -> str:
@@ -89,7 +90,52 @@ def list_reports(
     return ReportListResponse(reports=reports.recent(limit=limit))
 
 
-@router.get("/research/reports/{report_type}/{key}", response_model=ReportResponse)
+# `key` uses the `:path` converter because 20 of the desk's 38 chain names
+# contain a slash (`Networking/Optical`, `Semi-Logic/ASIC`, …) and a plain
+# `{key}` segment 404s on one: uvicorn unquotes `%2F` to a real `/` before
+# Starlette routes the request, so the slash arrives as an extra path segment
+# that a single-segment converter cannot match.
+#
+# REGISTRATION ORDER BELOW IS LOAD-BEARING AND FAILS SILENTLY IF REVERSED.
+# `{key:path}` is greedy and unanchored at the end of the URL, so if the plain
+# route (`.../{key}`) is registered before the `/versions/{version_no}` route,
+# it swallows `versions/3` into `key` and matches FIRST — `.../versions/3`
+# then returns 200 from the WRONG route with a corrupted key
+# (`key='Networking/Optical/versions/3'`) instead of ever reaching the version
+# route or 404ing. Not a crash: a wrong answer that looks like a right one.
+# Do not "tidy" these back into alphabetical/declaration order.
+@router.get(
+    "/research/reports/{report_type}/{key:path}/versions/{version_no}",
+    response_model=ReportResponse,
+)
+def get_report_version(
+    report_type: str,
+    key: str,
+    version_no: int,
+    repo: Repository = Depends(get_repo),
+    settings: Settings = Depends(get_settings),
+) -> ReportResponse:
+    """One frozen version, exactly as it was published.
+
+    This is the replay path. It reads stored blocks rather than re-assembling,
+    because re-assembly under today's data is a DIFFERENT answer wearing an old
+    version number.
+    """
+    reports = ResearchReportsRepository(repo.conn, schema=settings.db_schema)
+    report_key = _report_key(report_type, key)
+    row = reports.version(report_key, version_no)
+    if row is None:
+        raise HTTPException(404, f"{report_key} has no version {version_no}")
+    previous = reports.version(report_key, version_no - 1) if version_no > 1 else None
+    return ReportResponse(
+        state="ok",
+        report=_as_model(row),
+        delta=_delta_model(previous, row),
+        versions=reports.versions(report_key),
+    )
+
+
+@router.get("/research/reports/{report_type}/{key:path}", response_model=ReportResponse)
 def get_report(
     report_type: str,
     key: str,
@@ -123,40 +169,14 @@ def get_report(
     )
 
 
-@router.get(
-    "/research/reports/{report_type}/{key}/versions/{version_no}",
-    response_model=ReportResponse,
+#: Same `:path` reason as the GET pair above — a slash-bearing chain name must
+#: reach `assemble_chain_report` intact, or the desk that is about to assemble
+#: the first-ever chain report would 404 on exactly the names this fix exists
+#: for. No ordering hazard here: POST and GET occupy separate method spaces, so
+#: this route never competes with the GET routes above for a match.
+@router.post(
+    "/research/reports/{report_type}/{key:path}", response_model=ReportResponse
 )
-def get_report_version(
-    report_type: str,
-    key: str,
-    version_no: int,
-    repo: Repository = Depends(get_repo),
-    settings: Settings = Depends(get_settings),
-) -> ReportResponse:
-    """One frozen version, exactly as it was published.
-
-    This is the replay path. It reads stored blocks rather than re-assembling,
-    because re-assembly under today's data is a DIFFERENT answer wearing an old
-    version number.
-    """
-    reports = ResearchReportsRepository(repo.conn, schema=settings.db_schema)
-    report_key = _report_key(report_type, key)
-    row = reports.version(report_key, version_no)
-    if row is None:
-        raise HTTPException(404, f"{report_key} has no version {version_no}")
-    previous = (
-        reports.version(report_key, version_no - 1) if version_no > 1 else None
-    )
-    return ReportResponse(
-        state="ok",
-        report=_as_model(row),
-        delta=_delta_model(previous, row),
-        versions=reports.versions(report_key),
-    )
-
-
-@router.post("/research/reports/{report_type}/{key}", response_model=ReportResponse)
 def assemble_report(
     report_type: str,
     key: str,

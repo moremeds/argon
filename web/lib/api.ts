@@ -10,12 +10,29 @@ export type CompanyDimensionsResponse =
   components["schemas"]["CompanyDimensionsResponse"];
 export type ReportResponse = components["schemas"]["ReportResponse"];
 export type ReportListResponse = components["schemas"]["ReportListResponse"];
-export type ResearchReportModel =
-  components["schemas"]["ResearchReportModel"];
+export type ResearchReportModel = components["schemas"]["ResearchReportModel"];
 export type ReportBlock = components["schemas"]["ReportBlock"];
 export type ReportDeltaModel = components["schemas"]["ReportDeltaModel"];
 export type RadarRow = components["schemas"]["RadarRow"];
 export type RadarDimension = components["schemas"]["RadarDimension"];
+export type DeskCalendarResponse =
+  components["schemas"]["DeskCalendarResponse"];
+export type DeskCalendarRow = components["schemas"]["DeskCalendarRow"];
+export type NodeUnderwritingRow = components["schemas"]["NodeUnderwritingRow"];
+export type DeltaRailResponse = components["schemas"]["DeltaRailResponse"];
+export type DeltaRailEvent = components["schemas"]["DeltaRailEvent"];
+export type DeskMatrixResponse = components["schemas"]["DeskMatrixResponse"];
+export type ChainMetricCell = components["schemas"]["ChainMetricCell"];
+export type MemberDot = components["schemas"]["MemberDot"];
+export type CohortSlice = components["schemas"]["CohortSlice"];
+export type ProfitPoolLayer = components["schemas"]["ProfitPoolLayer"];
+export type DeskLimitsResponse = components["schemas"]["DeskLimitsResponse"];
+export type DeskCapexResponse = components["schemas"]["DeskCapexResponse"];
+export type CapexQuarter = components["schemas"]["CapexQuarter"];
+export type DeskCase = components["schemas"]["DeskCase"];
+export type CaseStage = components["schemas"]["CaseStage"];
+export type CaseStageMember = components["schemas"]["CaseStageMember"];
+export type ScopeGroup = components["schemas"]["ScopeGroup"];
 type VrpCandidatesResponse = components["schemas"]["VrpCandidatesResponse"];
 type VrpBacktestResponse = components["schemas"]["VrpBacktestResponse"];
 type VrpPaperResponse = components["schemas"]["VrpPaperResponse"];
@@ -135,6 +152,29 @@ type MacroDomainStateResponse = Json<"/api/macro/usd", "get">;
 type MacroContextSnapshotResponse = Json<"/api/macro/snapshot", "get">;
 type PositioningSnapshot = Json<"/api/positioning/{ticker}", "get">;
 type PositioningScreenerResponse = Json<"/api/positioning/screener", "get">;
+
+/** Percent-encode a value but leave `/` raw.
+ *
+ *  A slash is legal unescaped both inside a query (RFC 3986: `query = *( pchar
+ *  / "/" / "?" )`) and inside a FastAPI path segment typed `{key:path}`, and 20
+ *  of the desk's 38 chain names contain one. `%2F` also decodes to the same
+ *  thing on both routes we call this for — a query is unquoted by `parse_qsl`
+ *  after routing, and uvicorn unquotes the whole raw path (including `%2F`)
+ *  BEFORE Starlette routes it — so this is about the URL a human reads in the
+ *  address bar, not about correctness. Everything else still goes through
+ *  `encodeURIComponent`: a chain name carrying `&` or `#` would otherwise
+ *  split the query.
+ *
+ *  Do NOT reuse this for a link into Next's OWN `/reports/[type]/[key]` page
+ *  (a single dynamic segment, not a catch-all) — Next's router, unlike
+ *  uvicorn, splits the raw pathname on a literal `/` before decoding, so a raw
+ *  slash there 404s and the key must stay `encodeURIComponent`-escaped
+ *  (verified by running `next dev` and requesting both forms: `%2F` in one
+ *  segment renders the page, a literal `/` 404s).
+ */
+export function _rawSlash(value: string): string {
+  return encodeURIComponent(value).replace(/%2F/g, "/");
+}
 
 async function _fetch<T>(
   path: string,
@@ -366,7 +406,8 @@ export const api = {
     domain?: string;
   }): Promise<ChainMatrixResponse> => {
     const q = new URLSearchParams();
-    if (params?.taxonomy_version) q.set("taxonomy_version", params.taxonomy_version);
+    if (params?.taxonomy_version)
+      q.set("taxonomy_version", params.taxonomy_version);
     if (params?.engine_version) q.set("engine_version", params.engine_version);
     if (params?.domain) q.set("domain", params.domain);
     const qs = q.toString();
@@ -386,6 +427,58 @@ export const api = {
       `/api/research/chains/${encodeURIComponent(chain)}${qs ? `?${qs}` : ""}`,
     );
   },
+  // --- Fundamentals industry desk (Task 13's read-only surface) -------------
+  //
+  // `chain` is a QUERY parameter on every desk endpoint and must stay one. A
+  // %2F-encoded slash in a FastAPI PATH parameter is 404: uvicorn unquotes the
+  // raw path BEFORE Starlette routes it, so `chain/Networking%2FOptical`
+  // arrives as two segments and matches no single-segment `{key}` route
+  // (re-verified 2026-08-28). In a QUERY string both spellings are accepted and
+  // decode identically; we emit the raw slash because that is the shape Task 13
+  // verified end to end and because it keeps the URL readable.
+  //
+  // `chain` is also the ONLY filter these endpoints accept, deliberately: the
+  // desk LISTS and never RANKS, and `_reject_unknown_query_params` answers 422
+  // rather than silently ignoring a `sort=` that a caller believed was applied.
+  deskCalendar: (
+    section: string,
+    chain?: string,
+  ): Promise<DeskCalendarResponse | null> =>
+    _fetch<DeskCalendarResponse>(
+      `/api/fundamentals/${section}/calendar` +
+        (chain == null ? "" : `?chain=${_rawSlash(chain)}`),
+      undefined,
+      { allow404: true },
+    ),
+  nodeUnderwriting: (
+    section: string,
+    chain: string,
+  ): Promise<NodeUnderwritingRow[] | null> =>
+    _fetch<NodeUnderwritingRow[]>(
+      `/api/fundamentals/${section}/node/underwriting?chain=${_rawSlash(chain)}`,
+      undefined,
+      { allow404: true },
+    ),
+  deskDelta: (section: string, since?: string): Promise<DeltaRailResponse> =>
+    _fetch<DeltaRailResponse>(
+      `/api/fundamentals/${section}/delta` +
+        (since == null ? "" : `?since=${since}`),
+    ),
+  deskMatrix: (section: string): Promise<DeskMatrixResponse> =>
+    _fetch<DeskMatrixResponse>(`/api/fundamentals/${section}/matrix`),
+  deskProfitPool: (section: string): Promise<ProfitPoolLayer[]> =>
+    _fetch<ProfitPoolLayer[]>(`/api/fundamentals/${section}/profit-pool`),
+  deskLimits: (section: string): Promise<DeskLimitsResponse> =>
+    _fetch<DeskLimitsResponse>(`/api/fundamentals/${section}/limits`),
+  deskCapex: (section: string): Promise<DeskCapexResponse> =>
+    _fetch<DeskCapexResponse>(`/api/fundamentals/${section}/capex`),
+  // Both cases in ONE request, never one per case: the funnels share a radius
+  // scale, and a scale computed from a per-case response would be computed
+  // from a different population on each page.
+  deskCases: (section: string): Promise<DeskCase[]> =>
+    _fetch<DeskCase[]>(`/api/fundamentals/${section}/cases`),
+  deskScope: (section: string): Promise<ScopeGroup[]> =>
+    _fetch<ScopeGroup[]>(`/api/fundamentals/${section}/scope`),
   researchReports: (limit = 25): Promise<ReportListResponse> =>
     _fetch<ReportListResponse>(`/api/research/reports?limit=${limit}`),
   researchReport: (
@@ -394,7 +487,7 @@ export const api = {
     version?: number,
   ): Promise<ReportResponse> =>
     _fetch<ReportResponse>(
-      `/api/research/reports/${reportType}/${encodeURIComponent(key)}` +
+      `/api/research/reports/${reportType}/${_rawSlash(key)}` +
         (version == null ? "" : `/versions/${version}`),
     ),
   assembleResearchReport: (
@@ -403,7 +496,7 @@ export const api = {
     asOf?: string,
   ): Promise<ReportResponse> =>
     _fetch<ReportResponse>(
-      `/api/research/reports/${reportType}/${encodeURIComponent(key)}` +
+      `/api/research/reports/${reportType}/${_rawSlash(key)}` +
         (asOf ? `?as_of=${asOf}` : ""),
       { method: "POST" },
     ),
@@ -413,7 +506,9 @@ export const api = {
   ): Promise<CompanyDimensionsResponse> =>
     _fetch<CompanyDimensionsResponse>(
       `/api/stock/${ticker}/fundamentals/dimensions${
-        engineVersion ? `?engine_version=${encodeURIComponent(engineVersion)}` : ""
+        engineVersion
+          ? `?engine_version=${encodeURIComponent(engineVersion)}`
+          : ""
       }`,
     ),
   tradeInsights: (ticker: string): Promise<TradeInsightsResponse> =>

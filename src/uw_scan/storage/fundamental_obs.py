@@ -21,7 +21,16 @@ from typing import Any
 import psycopg
 from psycopg.types.json import Jsonb
 
-from uw_scan.fundamentals.statements import Violation, net_income_basis_difference
+from uw_scan.fundamentals.statements import (
+    Violation,
+    # The SAME parser `net_income_basis_difference` uses. Imported rather than
+    # re-implemented so "is this pair comparable at all" and "do the two agree"
+    # can never disagree about whether a figure is present — the cross-module
+    # private-helper pattern `fundamentals/underwriting.py` already uses for `_f`.
+    _dec,
+    check_net_income_sign_flip,
+    net_income_basis_difference,
+)
 from uw_scan.storage.fundamental_observation_panels import current_statement_panel
 
 # One statement row is ~1 KB of JSONB; 2,000 keeps a chunk comfortably under the
@@ -294,6 +303,97 @@ class FundamentalObsRepository:
                     new += self.record_violations(obs_id, violations)
             offset += batch
 
+    def net_income_basis_summary(
+        self, limit: int = 10, *, tickers: Sequence[str] | None = None
+    ) -> dict[str, Any]:
+        """`{"agree": n, "differ": n, "by_ticker": [...]}` in ONE table scan.
+
+        The desk limits block needs both halves, and running the scan twice to
+        get them would double the cost of the panel for no new information.
+
+        `tickers` SCOPES the population. A section-scoped surface asking this
+        unscoped gets universe-wide figures under a section header — it would
+        name VZ and GE on a page titled AI/Semi, which is false in its own
+        frame. Scoping is also strictly less work than the full scan. `None`
+        keeps the whole-universe read for callers whose question really is
+        universe-wide.
+
+        The counts are period-pair counts, not ticker counts, and they split a
+        pair THREE ways, not two — `net_income_basis_difference` returns `None`
+        for two different reasons and treating both as agreement is wrong:
+
+        - **counted in neither**, because the pair is not comparable: either
+          statement carries no `net_income` at all. Folding these into `agree`
+          would let missing data inflate a number the reader takes as evidence
+          of consistency.
+        - **counted in neither**, because the pair is a SIGN FLIP. It is
+          comparable and it does NOT match, so it is not agreement; and it is
+          a vendor defect rather than an accounting basis gap, so it is not a
+          basis difference either. It is already counted, once, by
+          `violation_count(net_income_sign_flipped_across_statements)`, and
+          adding it to `agree` would let the desk's limits panel double-book
+          the same pair as both consistent and violated. Measured 5 of 28,973
+          historical pairs, so this is rare — and a panel that reports one
+          section's single sign flip as an agreement is exactly as wrong as
+          one that reports a thousand.
+        - `agree` / `differ`: the pair is comparable, not sign-flipped, and
+          either matches one of the income statement's two net-income lines or
+          does not.
+        """
+        counts: dict[str, int] = {}
+        agree = differ = 0
+        sql = self._NI_BASIS_SQL
+        params: list[Any] = []
+        if tickers is not None:
+            if not tickers:
+                return {"agree": 0, "differ": 0, "by_ticker": []}
+            sql += " WHERE inc.ticker = ANY(%s)"
+            params.append([t.upper() for t in tickers])
+        with self.conn.cursor() as cur:
+            cur.execute(sql, params or None)
+            for ticker, income_payload, cashflow_payload in cur.fetchall():
+                if _dec(income_payload, "net_income") is None or (
+                    _dec(cashflow_payload, "net_income") is None
+                ):
+                    continue  # not comparable — neither agreement nor a gap
+                if check_net_income_sign_flip(income_payload, cashflow_payload):
+                    # A VIOLATION, counted by `violation_count`. Comparable and
+                    # not matching, so calling it agreement double-books it.
+                    continue
+                if (
+                    net_income_basis_difference(income_payload, cashflow_payload)
+                    is not None
+                ):
+                    differ += 1
+                    counts[ticker] = counts.get(ticker, 0) + 1
+                else:
+                    agree += 1
+        ordered = sorted(counts.items(), key=lambda kv: (-kv[1], kv[0]))
+        return {
+            "agree": agree,
+            "differ": differ,
+            "by_ticker": [
+                {"ticker": ticker, "basis_difference_count": count}
+                for ticker, count in ordered[:limit]
+            ],
+        }
+
+    def violation_count(self, check_name: str) -> int:
+        """How many recorded violations carry this check name.
+
+        Separate from the NI BASIS reads above on purpose: a violation is an
+        integrity failure Argon stands behind, while a basis difference is a
+        descriptive accounting gap it cannot attribute. Counting them through
+        one method would be the category error Task 10 was built on.
+        """
+        with self.conn.cursor() as cur:
+            cur.execute(
+                f"""SELECT count(*) FROM {self._schema}.fundamental_obs_violations
+                     WHERE check_name = %s""",
+                (check_name,),
+            )
+            return int(cur.fetchone()[0])
+
     def net_income_basis_differences_by_ticker(
         self, limit: int = 10
     ) -> list[dict[str, Any]]:
@@ -320,7 +420,17 @@ class FundamentalObsRepository:
         scans the full observation table (paralleling `coverage()` above),
         so it is a desk-panel read, not a per-request hot path.
         """
-        sql = f"""
+        return self.net_income_basis_summary(limit)["by_ticker"]
+
+    @property
+    def _NI_BASIS_SQL(self) -> str:
+        """Newest accepted income and cash-flow payload per (ticker, period).
+
+        One definition, two readers (`net_income_basis_summary` and, through
+        it, `net_income_basis_differences_by_ticker`) — a second copy would
+        drift the moment one of them learned about a new statement type.
+        """
+        return f"""
             WITH inc AS (
                 SELECT DISTINCT ON (ticker, period_end, period_type)
                        ticker, period_end, period_type, raw_jsonb AS payload
@@ -338,20 +448,6 @@ class FundamentalObsRepository:
             SELECT inc.ticker, inc.payload, cf.payload
               FROM inc JOIN cf USING (ticker, period_end, period_type)
         """
-        counts: dict[str, int] = {}
-        with self.conn.cursor() as cur:
-            cur.execute(sql)
-            for ticker, income_payload, cashflow_payload in cur.fetchall():
-                if (
-                    net_income_basis_difference(income_payload, cashflow_payload)
-                    is not None
-                ):
-                    counts[ticker] = counts.get(ticker, 0) + 1
-        ordered = sorted(counts.items(), key=lambda kv: (-kv[1], kv[0]))
-        return [
-            {"ticker": ticker, "basis_difference_count": count}
-            for ticker, count in ordered[:limit]
-        ]
 
     def statement_panel(
         self, tickers: Sequence[str] | None = None, period_type: str = "quarterly"

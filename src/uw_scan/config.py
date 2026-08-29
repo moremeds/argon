@@ -464,6 +464,16 @@ class Settings(BaseModel):
     fundamental_ingest_daily_enabled: bool = True
     fundamental_ingest_daily_cron: str = "20 4 * * *"
     fundamental_ingest_daily_lookback_days: int = 3
+    # How far AHEAD the same run reads the calendar. The lookback exists to find
+    # statements that have landed; this exists so `earnings_calendar` holds rows
+    # for prints that have NOT happened yet — the only thing the desk's "what
+    # prints next" panel can read (`next_prints` filters `report_date >=`
+    # today). Without it the backward-only scan leaves that panel structurally
+    # empty forever, which reads as "nothing prints next" rather than "we never
+    # asked". Costs 2 UW calls per forward day per run (~28/day at 14), against
+    # a 120k/day budget. Two weeks covers the gap between runs many times over
+    # while staying inside the horizon UW actually schedules.
+    fundamental_ingest_daily_forward_days: int = 14
     # Revenue-breakdown capture (monthly, uw-0). Default ON for the same reason
     # the job exists at all: it is an ACCRUAL job. The signal it feeds is
     # descriptive and does not pay, but if the provider's breakdown history
@@ -512,6 +522,16 @@ class Settings(BaseModel):
     # rationale as its siblings above: a night not derived is a change the
     # desk never learns of once the underlying row is superseded.
     fundamental_change_events_enabled: bool = True
+    # Desk matrix rollup (Task 12, spec §3c): per-name rev YoY + gross-margin
+    # trajectory from the UW statement store, one row per (ticker,
+    # period_end), so the chain x metric matrix reads it at request time with
+    # zero recompute. Zero UW/IB spend, pinned to massive-0 at 21:30 ET daily
+    # -- after fundamental_change_events (21:15) so this block's jobs stay
+    # ordered even though they read unrelated tables (see scheduler
+    # `_should_schedule_fundamentals_desk_rollup`). Default ON, same
+    # rationale as its siblings above: a night not rolled up is a period the
+    # matrix cannot show until the next run recomputes it.
+    fundamentals_desk_rollup_enabled: bool = True
     chanlun_anchor_tol: float = 0.0
     chanlun_stale_sessions: int = 20
     # Empty by DESIGN (2026-07-15 walk-forward probe): all 4 candidate
@@ -1109,6 +1129,9 @@ class Settings(BaseModel):
             fundamental_ingest_daily_lookback_days=int(
                 os.environ.get("UW_SCAN_FUNDAMENTAL_INGEST_DAILY_LOOKBACK_DAYS", "3")
             ),
+            fundamental_ingest_daily_forward_days=int(
+                os.environ.get("UW_SCAN_FUNDAMENTAL_INGEST_DAILY_FORWARD_DAYS", "14")
+            ),
             fundamental_concentration_capture_enabled=_env_bool(
                 "UW_SCAN_FUNDAMENTAL_CONCENTRATION_CAPTURE_ENABLED", True
             ),
@@ -1129,6 +1152,9 @@ class Settings(BaseModel):
             ),
             fundamental_change_events_enabled=_env_bool(
                 "UW_SCAN_FUNDAMENTAL_CHANGE_EVENTS_ENABLED", True
+            ),
+            fundamentals_desk_rollup_enabled=_env_bool(
+                "UW_SCAN_FUNDAMENTALS_DESK_ROLLUP_ENABLED", True
             ),
             chanlun_anchor_tol=float(
                 os.environ.get("UW_SCAN_CHANLUN_ANCHOR_TOL", "0.0")

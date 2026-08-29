@@ -102,6 +102,10 @@ _EMPTY: dict[str, int] = {
     # NEW rows only (xmax=0), not rows seen — see the field-level comments below
     # where these are actually assigned.
     "calendar_rows_new": 0,
+    # Rows for prints that have NOT happened yet — the desk calendar's only
+    # source. Separate from `calendar_rows_new` because a run can legitimately
+    # learn nothing new about the past while still extending the forward view.
+    "calendar_forward_rows_new": 0,
     "calendar_unknown_rows_new": 0,
 }
 
@@ -184,10 +188,27 @@ def fundamental_ingest_daily(
     client: UwClient,
     today: date,
     lookback_days: int = 3,
+    forward_days: int = 14,
     tier: str = "ranked",
     schema: str = "uw_scan",
 ) -> dict[str, Any]:
-    """Ingest statements for universe names on the last `lookback_days`+1 calendars.
+    """Ingest statements for universe names on the last `lookback_days`+1 calendars,
+    and record the next `forward_days` of scheduled prints.
+
+    THE TWO WINDOWS ANSWER DIFFERENT QUESTIONS AND ARE NOT SYMMETRIC.
+    The BACKWARD window finds statements to ingest: a company files on or after
+    it prints, so only a past date can name a ticker whose filing is now
+    retrievable. The FORWARD window ingests nothing — a print that has not
+    happened has no statement — and exists solely to keep `earnings_calendar`
+    holding rows the desk's "what prints next" panel can read, since
+    `EarningsCalendarRepository.next_prints` filters `report_date >= today`. A
+    backward-only scan makes that panel permanently empty, which renders as
+    "nothing prints next" rather than "we never asked" — the same
+    failure-as-affirmative-claim substitution the desk exists to refuse.
+
+    That asymmetry is why forward listings are deliberately NOT folded into
+    `symbols`: adding them would send `fundamental_ingest` after companies that
+    have not reported, spending 4 UW calls each to retrieve nothing.
 
     `today` is injected rather than read from the clock so a replay and a test mean the
     same thing by it.
@@ -226,6 +247,24 @@ def fundamental_ingest_daily(
             ]
         )
 
+    # Forward leg: calendar only. `symbols` is untouched on purpose — see the
+    # docstring's asymmetry note. Counted separately so a log line distinguishes
+    # "we learned about new filings" from "we learned about upcoming prints".
+    calendar_forward_rows_new = 0
+    for ahead in range(1, max(0, forward_days) + 1):
+        report_date = today + timedelta(days=ahead)
+        calendar_forward_rows_new += calendar_repo.upsert_rows(
+            [
+                {
+                    "ticker": listing.symbol,
+                    "report_date": report_date,
+                    "session": listing.session,
+                    "source": "uw_calendar",
+                }
+                for listing in fetch_calendar_listings(client, report_date)
+            ]
+        )
+
     targets = sorted(symbols & universe)
     if not targets:
         log.info(
@@ -234,7 +273,10 @@ def fundamental_ingest_daily(
             tier,
         )
         return dict(
-            _EMPTY, calendar_symbols=len(symbols), calendar_rows_new=calendar_rows_new
+            _EMPTY,
+            calendar_symbols=len(symbols),
+            calendar_rows_new=calendar_rows_new,
+            calendar_forward_rows_new=calendar_forward_rows_new,
         )
 
     counters = fundamental_ingest(
@@ -249,6 +291,7 @@ def fundamental_ingest_daily(
         "calendar_symbols": len(symbols),
         "targets": len(targets),
         "calendar_rows_new": calendar_rows_new,
+        "calendar_forward_rows_new": calendar_forward_rows_new,
         "calendar_unknown_rows_new": calendar_unknown_rows_new,
     }
     log.info("fundamental_ingest_daily %s", summary)

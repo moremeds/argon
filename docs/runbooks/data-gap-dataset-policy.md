@@ -6,7 +6,7 @@ Generated from `REGISTRY` in `src/uw_scan/reports/data_gap_healer.py` (one sourc
 uv run python -c "from uw_scan.reports.data_gap_healer import render_dataset_policy_markdown as r; open('docs/runbooks/data-gap-dataset-policy.md','w').write(r())"
 ```
 
-**174 datasets** across 11 groups.
+**175 datasets** across 11 groups.
 
 ## core_watchlist
 
@@ -49,6 +49,7 @@ uv run python -c "from uw_scan.reports.data_gap_healer import render_dataset_pol
 | fundamental_scores | freshness_only | db | run_once | fundamental_refresh | event | derived from fundamental_statement_obs; worker/jobs/fundamental_refresh re-runs routing -> scoring -> anchors at zero provider spend. The old reason named this job and then declined to wire it. | 2026-08-16 |
 | fundamental_statement_obs | freshness_only | uw | none |  | event | quarterly filings over the fundamental universe (450 tickers as of 2026-08-18; it moves when the seeder runs), not the watchlist. Deliberately NOT wired to the healer: unlike scores/anchors this is a provider INGEST, and worker/jobs/fundamental_refresh explicitly does not ingest. Heal by running scripts/backfill/fundamental_ingest_backfill.py (insert-or-touch, safe to repeat) as a budgeted operator action, not on the nightly cron. | 2026-08-16 |
 | fundamental_universe | excluded | none | none |  | none | seeded membership list, not a time series; scripts/seed_fundamental_universe.py is the source of truth |  |
+| fundamentals_desk_rollup | freshness_only | db | none |  | event | nightly rollup (migration 147) of per-name revenue YoY and gross margin, one row per (ticker, period_end). Absence of a period is the coverage statement: a name whose filings do not support a four-quarters-back comparison correctly gets no row, and `knowledge_date_known` records whether that row's knowledge date is a real filing date or the period-end estimate. | 2026-08-28 |
 | implied_move_daily | freshness_only | db | none |  | event | nightly implied-move snapshot (migration 146) for names with a known print inside the 21-day lookahead. One row per (ticker, market_date); a night with no imminent print for a ticker correctly writes none. | 2026-08-28 |
 | research_event_classes | provenance | none | none |  | none | the discovery gate, persisted (migration 142). One row per candidate event class with its live/killed verdict and the row count that decided it. | 2026-08-25 |
 | research_events | provenance | none | none |  | event | typed event ledger (migration 142), derived from sec_filing_index and fundamental_obs_violations by worker/jobs/research_events_derive. Idempotent on its identity key; re-run to repair, at zero provider spend. | 2026-08-25 |

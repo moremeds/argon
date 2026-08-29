@@ -7,6 +7,144 @@ version in lockstep (enforced by `scripts/release/version_sync_check.py`).
 
 ## [Unreleased]
 
+### Added
+
+- **The fundamentals industry desk: `/fundamentals` -> `/fundamentals/ai-semi` -> node pages.** Six
+  read-only endpoints (`calendar`, `delta`, `matrix`, `profit-pool`, `limits`, `node/underwriting`)
+  over the warm store at zero vendor spend, and the six panels that read them. A section is one
+  registry row and a chain inside it is zero code — taxonomy rows alone make a node appear. Four
+  rules are measurements, not styling: `valuation_percentile` carries NO median (own-history value
+  measured real, within-ticker IC +0.0744 t 5.77, while cross-sectional value measured INVERTED in
+  the same universe, so a chain aggregate over own-history percentiles is a claim nothing supports);
+  cohorts that straddle two `as_of` buckets never merge, because `as_of` is a cross-section
+  IDENTIFIER and the cohort effect measured 1.9x; the profit pool has no arrows, propagation or
+  lead/lag copy, because the capex-demand ledger's cross-name relationship collapsed from +0.247 to
+  +0.015 (p=0.44) once same-sector pairs were compared; and the capex strip deliberately has no
+  fetcher and no model field, since building a data path for the most widely circulated number in
+  the sector would re-promote the figure the spec demoted. An unknown section 404s rather than
+  rendering an empty desk, an unknown `?sort=` answers 422 rather than being silently ignored, and
+  every panel settles independently so one failed endpoint leaves the other five standing.
+
+- **Nightly desk rollup of per-name revenue YoY and gross margin** (migration `147`,
+  `fundamentals_desk_rollup`), recording whether each row's knowledge date is a real filing date or
+  the period-end estimate — the flag is three-state, and `null` is not `false`.
+
+- **`/fundamentals` index, with Radar folded in as the triage tab.** `/radar` and `/chains` keep
+  resolving (they are in browser histories and in this repo's docs) and redirect into the desk;
+  the nav carries one Fundamentals entry instead of two pointing at redirects. The all-domain
+  chain x layer matrix at `/chains` is superseded and its component deleted rather than left
+  unreachable — per-chain drilldown at `/chains/[chain]` is untouched.
+
+- **Node deep-dive page `/fundamentals/ai-semi/<chain>`** — the first consumer of the desk's read-only
+  API. Composes the stored versioned report (it REPLAYS from stored blocks and never assembles) with a
+  live calendar strip, the underwriting table, the open alias questions and the node's limits block.
+  A CATCH-ALL route, because 20 of 38 chain names contain a slash; `chain` reaches the API as a query
+  parameter for the same reason. Every absence keeps its own identity all the way to the screen: a null
+  implied move reads "not covered" (never `0`, never a dash), a null session gets a visible unknown
+  badge rather than a guess or a hidden row, an empty reaction list says no history is *held*,
+  `no_compatible_run` and `no_coverage` are worded so neither can be read as the other, and an unknown
+  chain answers 404 (`notFound()`) while a real chain holding no rows renders as the empty node it is.
+  Filing provenance is visible in the row as well as in the tooltip — a tooltip is unreachable on touch
+  and to a screen reader. The page lists; it carries no sort, rank or score affordance.
+
+- **The AI chain desk, rebuilt as a fundamental PM's question ladder.** `/fundamentals/ai-semi` is now
+  five sections in a fixed order, because the order is the argument and question three cannot be
+  answered before question one: *is the money still coming* (hyperscaler capex), *where does it land*
+  (the chain map), *does it transmit* (the case funnels, on their own route), *what am I paying*
+  (own-history valuation), *what would falsify this* (the measured limits). Three new read-only
+  endpoints feed it — `capex`, `cases`, `scope` — plus `layer`/`layer_rank` on every matrix cell and
+  the section's non-USD filers on `limits`, all additive.
+
+- **Capex gets a data path, reversing its demotion — as the desk's PREMISE, not its edge.** The old
+  argument (the figure is on every sell-side deck, so it cannot be where the edge comes from) still
+  holds and nothing is ranked by it. What changed is structure: every revenue dollar downstream is
+  somebody else's capital expenditure, so it is the only number on the desk not derived from another
+  number on the desk. It is also **the single place a currency amount is summed across companies**,
+  bounded three ways: USD filers only, the excluded name and its currency printed with the figure
+  (BABA/CNY today), and a quarter missing any panel member's revenue reporting a null intensity rather
+  than a partial ratio. The strip's sign warning survives verbatim: for the names that *spend* it,
+  rising capex is a cost line arriving as depreciation.
+
+- **Three hand-rolled 3D canvas scenes** (`lib/fundamentals/scene.ts`, ~120 lines of perspective
+  projection, no chart library) — one chain map and two stage funnels. The third axis is the
+  deliverable: a PM needs growth, margin and stack position at once, and any two of those on a flat
+  chart hides the third. Measured on the real chain, the map's own finding is that the LAYER explains
+  less than the CHAIN does — 8.9pp between layer medians against 27.6pp inside L1 alone — and that
+  growth and margin are close to unrelated (r = 0.149, t = 0.72 over 25 chains).
+
+- **Two cases, one shared radius scale, one request, one route** (`/fundamentals/ai-semi/cases`).
+  Optical interconnect amplifies **4.08x** while the datacenter buildout opens to **1.95x**,
+  with 3 of its 4 supplying stages growing more slowly than the customers they supply — the same
+  capital expenditure, two entirely different transmissions, and a reading no sector screen can
+  produce. The shared scale is load-bearing and fails silently when broken, so both funnels render
+  from one component, side by side, from one response; an e2e test asserts the geometry.
+
+- **The boundary is computed, not listed.** `/fundamentals/ai-semi/scope` returns the taxonomy groups
+  outside the section's domains under **their own names** — never "unclassified", which describes an
+  absence in Argon as an absence in the world. Several (`Sector-ETF`, `M7`, `Beta`, `Macro`) are
+  portfolio-construction tags with no stages to order, so modelling them as supply chains would be a
+  category error rather than merely unbuilt work.
+
+- **The chain x metric matrix and the profit-pool strip are deleted, not moved.** The 3D map shows the
+  same medians with the layer as a third axis; the flat strip showed a subset of them. The delta rail
+  and print calendar survive as a subordinate "desk log" below the ladder — they answer what changed
+  and what prints next, which no question on the ladder covers.
+
+- **The daily statement ingest now also reads the calendar FORWARD**
+  (`UW_SCAN_FUNDAMENTAL_INGEST_DAILY_FORWARD_DAYS`, default 14). The scan was
+  backward-only, so `earnings_calendar` never held a row for a print that had
+  not happened yet — measured on 2026-08-29: 2,443 rows, **zero** with
+  `report_date >= CURRENT_DATE`. The desk's "what prints next" panel reads
+  `next_prints(on_or_after=today)`, so it was structurally empty and would have
+  stayed that way, rendering "nothing prints next" out of a question never
+  asked. The two windows stay asymmetric on purpose: the backward one finds
+  statements to ingest, and the forward one ingests nothing — folding its
+  listings into the ingest targets would spend 4 UW calls per name to retrieve a
+  statement that does not exist yet, every run, until the company reported.
+  Costs 2 UW calls per forward day per run (~28/day), reported separately as
+  `calendar_forward_rows_new`.
+
+### Fixed
+
+- **The typed event ledger was inert in production, and the nightly job that feeds the delta rail
+  would have raised on its first real event.** `research_event_classes` held ZERO rows on the mini
+  (measured 2026-08-28), so `record_events` refused every write. `register_discovery_gate` is the
+  only thing that populates that table and it had no caller anywhere — it appeared in two docstrings
+  and was never invoked, while every test called it as fixture setup, so the suite stayed green over
+  a job that could not work. `derive_change_events` now seeds the registry itself; because
+  `register_classes` upserts a FIXED list whose statuses live in code, this is a seed and never a
+  bypass — a killed class is re-registered as killed and keeps refusing writes. The failure was
+  silent by construction: with nothing registered, the desk's delta rail renders "Argon learned
+  nothing new", which reads as a quiet week rather than a dead pipeline.
+
+- **A chain mid-reporting-season collided its own cohort groups.** `label` is `reported` for the
+  newest `as_of` bucket and `awaiting` for EVERY older one, so a cell legitimately carries two or
+  more `awaiting` cohorts (measured: `Cybersecurity/rev_yoy` returned
+  `['reported','awaiting','awaiting']`). Keying the group on the label alone produced duplicate React
+  keys and a test id matching two elements — passing on any fixture holding one of each, throwing
+  against real data. Keyed on `as_of` now, and the fixture carries the real three-cohort shape.
+
+- **The chain matrix's dot tooltips broke hydration.** Adjacent JSX text children inside an SVG
+  `<title>` serialize differently on the server than they hydrate on the client, so React discarded
+  and re-rendered the whole matrix subtree on every load.
+
+- **The report route couldn't address a chain whose name has a slash.** `key` was a plain path
+  parameter on both `GET /research/reports/{report_type}/{key}` and its `/versions/{n}` sibling, and
+  20 of the desk's 38 chain names contain one (`Networking/Optical`, `Semi-Logic/ASIC`, …) — uvicorn
+  unquotes `%2F` to a literal `/` before Starlette routes the request, so a single-segment converter
+  404s on it, latent until the first chain report is assembled. `{key:path}` fixes addressing on all
+  three routes (both GETs and the POST assemble), but registration order is separately load-bearing:
+  `{key:path}` is greedy, so the `/versions/{n}` route must be registered *before* the plain one or it
+  swallows `versions/N` into `key` and answers 200 from the wrong route with a corrupted key instead
+  of ever reaching the version route or 404ing — a wrong answer that looks like a right one, not a
+  crash. Pinned by asserting the resolved version *payload*, not merely a 200 (confirmed by reversing
+  the order and watching the new test go red). `web/lib/api.ts`'s two report-fetch call sites stop
+  percent-encoding the slash (`_rawSlash`, matching the desk's existing query-param pattern); a third,
+  previously-unencoded call site in `ReportView.tsx`'s version-history links now `encodeURIComponent`s
+  the key, which is the opposite fix — that link addresses Next's own single-segment `[key]` route,
+  which (unlike uvicorn) splits on a literal `/` before decoding, so a raw slash there 404s instead.
+
+
 ## [0.12.18] — 2026-08-28
 
 
