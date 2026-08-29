@@ -1,22 +1,35 @@
-import { GOLD_STRUCTURAL_WIDTH } from "@/components/macro/chartGeometry";
 import type { components } from "@/lib/types";
 
 import { PostureChip, type PostureState } from "../chips/PostureChip";
 
-import { CbReservesCard } from "./CbReservesCard";
 import { ComexRegimeCard } from "./ComexRegimeCard";
 import { CotPositioningCard } from "./CotPositioningCard";
 import { EtfFlowCard } from "./EtfFlowCard";
 import { FxBasketCard } from "./FxBasketCard";
-import { GoldHoldingsVsPriceChart } from "./GoldHoldingsVsPriceChart";
+import { LbmaMomentumCard } from "./LbmaMomentumCard";
 import { StructuralPostureText } from "./StructuralPostureText";
 
 type S = components["schemas"]["GoldStructuralPostureModel"];
 
 /**
- * Lens 1 — who is buying. The 25-delta skew tile left this grid on 2026-08-28 for
- * `ExpressionCostPanel`: the five cards here answer WHO IS BUYING, and the skew answers
- * WHAT IT COSTS TO TAKE THE VIEW. The board separates them and it was right to.
+ * Board t5 — "Western institutional flows · L1 detail" (Q5).
+ *
+ * Lens 1 answers WHO IS BUYING, and the board splits that answer in two: official-sector
+ * accumulation is one behaviour and western institutional flow is another, so they are
+ * separate panels with separate reads. Two tiles left this grid for that reason:
+ *
+ * - The CB reserves tile and the holdings-vs-price chart moved to `CbReservesPanel` on
+ *   2026-08-29, where the three buckets get equal weight instead of one headline and a
+ *   run-on sub-line.
+ * - The 25-delta skew tile left on 2026-08-28 for `ExpressionCostPanel` — these cards say
+ *   who is buying, and the skew says what it costs to take the view.
+ *
+ * `LbmaMomentumCard` arrived in the same pass. The board carries an LBMA row here and the
+ * field was on every response, rendered by nothing.
+ *
+ * The posture chip and state label stay on this panel rather than moving with the chart:
+ * `state_label` and `posture_chip` are lens-1 wide, and duplicating them onto both halves
+ * would show one lens publishing two postures.
  */
 export function StructuralPanel({ structural }: { structural: S }) {
   return (
@@ -40,7 +53,7 @@ export function StructuralPanel({ structural }: { structural: S }) {
               margin: 0,
             }}
           >
-            LENS 1 · STRUCTURAL FLOW
+            WESTERN INSTITUTIONAL FLOWS · L1 DETAIL
           </h2>
           <PostureChip
             state={(structural.posture_chip ?? "NEUTRAL") as PostureState}
@@ -59,14 +72,6 @@ export function StructuralPanel({ structural }: { structural: S }) {
         </span>
       </div>
 
-      <GoldHoldingsVsPriceChart
-        goldHistory={structural.gold_history ?? []}
-        gldHistory={structural.gld_history ?? []}
-        cbCountryHistory={structural.cb_country_history ?? []}
-        width={GOLD_STRUCTURAL_WIDTH}
-        height={Math.round((GOLD_STRUCTURAL_WIDTH * 200) / 1040)}
-      />
-
       <div
         style={{
           display: "grid",
@@ -74,8 +79,8 @@ export function StructuralPanel({ structural }: { structural: S }) {
           gap: 12,
         }}
       >
-        <CbReservesCard structural={structural} />
         <EtfFlowCard structural={structural} />
+        <LbmaMomentumCard structural={structural} />
         <ComexRegimeCard structural={structural} />
         <CotPositioningCard structural={structural} />
         <FxBasketCard structural={structural} />

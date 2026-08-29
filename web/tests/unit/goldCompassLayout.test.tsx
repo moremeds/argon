@@ -158,14 +158,24 @@ describe("GoldCompassLayout", () => {
       screen.getByRole("region", { name: /transmission gauge/i }),
     ).toBeTruthy();
     expect(screen.getByRole("region", { name: /kpi/i })).toBeTruthy();
-    expect(screen.getByRole("region", { name: /lens 1/i })).toBeTruthy();
+    // Lens 1 is TWO regions, not one. The board separates official-sector accumulation
+    // from western institutional flow because they are different behaviours with
+    // different reads; the merged panel promoted the strategic bucket to a headline and
+    // rode the other two in a sub-line.
+    expect(screen.getByRole("region", { name: /central banks/i })).toBeTruthy();
+    expect(
+      screen.getByRole("region", { name: /western institutional flows/i }),
+    ).toBeTruthy();
     expect(
       screen.getByRole("region", { name: /expression cost/i }),
     ).toBeTruthy();
     expect(screen.getByRole("region", { name: /lens 2/i })).toBeTruthy();
     expect(screen.getByRole("region", { name: /lens 3/i })).toBeTruthy();
+    expect(screen.getByRole("region", { name: /anchor decay/i })).toBeTruthy();
+    // The manifest is a panel, not a footer: one that named only the inputs it managed
+    // to read presented a partial audit trail as a complete one.
     expect(
-      screen.getByRole("region", { name: /correlation history/i }),
+      screen.getByRole("region", { name: /input manifest/i }),
     ).toBeTruthy();
   });
 
@@ -179,7 +189,12 @@ describe("GoldCompassLayout", () => {
     ].map((el) => el.getAttribute("aria-label"));
     expect(regions[0]).toMatch(/transmission gauge/i);
     expect(regions.indexOf("Expression cost")).toBeGreaterThan(
-      regions.indexOf("Lens 1 structural flow"),
+      regions.indexOf("Western institutional flows"),
+    );
+    // The board's own t5 order puts central banks before the western flows they are
+    // routinely conflated with.
+    expect(regions.indexOf("Western institutional flows")).toBeGreaterThan(
+      regions.indexOf("Central banks"),
     );
   });
 
@@ -256,11 +271,30 @@ describe("GoldCompassLayout", () => {
     expect(screen.getByText(/30D net flow/)).toBeTruthy();
   });
 
-  it("spells out central-bank reserve units", () => {
+  it("gives each central-bank bucket its own labelled figure", () => {
     render(<GoldCompassLayout state={FIXTURE} />);
-    expect(screen.getAllByText(/210 tonnes/).length).toBeGreaterThan(0);
-    expect(screen.getByText(/TACTICAL 12 tonnes/)).toBeTruthy();
-    expect(screen.getByText(/DIVERSIFIER 34 tonnes/)).toBeTruthy();
+    const cb = screen.getByRole("region", { name: /central banks/i });
+    // Three buckets at equal weight. The previous layout printed the strategic figure as
+    // the headline and ran all three together in a sub-line, which answered the
+    // comparison the panel exists to let the reader make.
+    expect(cb.textContent).toMatch(/Strategic accumulators/i);
+    expect(cb.textContent).toMatch(/Tactical defenders/i);
+    expect(cb.textContent).toMatch(/Reserve diversifiers/i);
+    expect(cb.textContent).toContain("+210.0t");
+    expect(cb.textContent).toContain("+12.0t");
+    expect(cb.textContent).toContain("+34.0t");
+  });
+
+  it("derives the bucket read from the signs present, never from the board's", () => {
+    // The board's own sentence says the strategic bucket was a net SELLER and the
+    // diversifiers did the buying. That was true at its capture instant and inverts on
+    // any WGC release, so the sentence is built from the signs actually present. The
+    // fixture has all three positive; the read must not claim a seller.
+    render(<GoldCompassLayout state={FIXTURE} />);
+    const read = screen.getByTestId("cb-bucket-read").textContent ?? "";
+    expect(read).toMatch(/needs\s+unbundling/i);
+    expect(read).not.toMatch(/net sellers/i);
+    expect(read).toMatch(/strategic accumulators/i);
   });
 
   it("labels converted UW flow clearly when holdings are unavailable", () => {
@@ -307,7 +341,9 @@ describe("GoldCompassLayout", () => {
     );
     expect(onDesk.queryByLabelText("REPLAY")).toBeNull();
     // ...and the rest of the cockpit is untouched by the suppression.
-    expect(onDesk.getByRole("region", { name: /lens 1/i })).toBeTruthy();
+    expect(
+      onDesk.getByRole("region", { name: /central banks/i }),
+    ).toBeTruthy();
   });
 
   it("wears the Gold Compass lockup standalone and the board's heading on the desk", () => {

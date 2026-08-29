@@ -15,6 +15,16 @@ type SeriesSpec = {
   label: string;
   color: string;
   points: Series;
+  /**
+   * Stroke weight, defaulting to the 1.5 every peer series uses.
+   *
+   * It exists for one case: the anchor series is drawn in a near-neutral ink so it does
+   * not compete with the three coloured channels that decompose it, and a neutral line
+   * at peer weight reads as a fourth category that failed to get a hue. Weight is the
+   * secondary encoding that says primary — which the palette validator also requires,
+   * since the neutral trips its chroma floor by design.
+   */
+  strokeWidth?: number;
 };
 
 type Props = {
@@ -113,7 +123,7 @@ export function CorrelationLineChart({
             d={pathFromPoints(points)}
             fill="none"
             stroke={s.color}
-            strokeWidth={1.5}
+            strokeWidth={s.strokeWidth ?? 1.5}
           />
         );
       })}

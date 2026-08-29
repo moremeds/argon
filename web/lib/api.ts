@@ -156,6 +156,7 @@ type MacroContextSnapshotResponse = Json<"/api/macro/snapshot", "get">;
 // as a type error at the call site instead of a silent reshape.
 type GoldStateResponse = Json<"/api/gold/state", "get">;
 type GoldReplayResponse = Json<"/api/gold/replay", "get">;
+type GoldGaugeResponse = Json<"/api/gold/gauge", "get">;
 type PositioningSnapshot = Json<"/api/positioning/{ticker}", "get">;
 type PositioningScreenerResponse = Json<"/api/positioning/screener", "get">;
 
@@ -433,6 +434,23 @@ export const api = {
       undefined,
       { allow404: true },
     ),
+  // The board's §⑨ build note asks for exactly this wrapper rather than another raw
+  // fetch, and §⑩ P2.2 lists the route as one of three the desk never consumed.
+  //
+  // What it carries is NOT what the board's t5 panel asks for, and the difference is
+  // worth stating at the call site: `GoldGaugeTimeSeriesPoint` is `{obs_date,
+  // corr_252d}`, so the 60-day cut the board names is absent from every one of its
+  // points. What it does carry is DEPTH — 261 observations against the 3-5 that arrive
+  // inside `goldState().correlation_history`, which is the whole reason to spend a
+  // second request on it.
+  //
+  // The port plan's §4.5 declined this route as expensive ("262 correlation gauges per
+  // request"). Re-measured 2026-08-29: 50ms, against 29ms for `/api/gold/state`. The
+  // reason no longer holds; the note stays so it is not re-derived a third time.
+  goldGauge: (): Promise<GoldGaugeResponse | null> =>
+    _fetch<GoldGaugeResponse | null>(`/api/gold/gauge`, undefined, {
+      allow404: true,
+    }),
   // The Radar is a read over persisted results — no provider, no lake. `state`
   // is load-bearing: an empty `rows` is six different situations and only one of
   // them is a fact about the companies.

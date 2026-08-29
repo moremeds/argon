@@ -40,9 +40,18 @@ import type { components } from "@/lib/types";
  * to `/gold/replay/<date>`. Left on, this tab would show two pickers, and the second would
  * navigate off the desk.
  *
- * It deliberately does NOT call `/api/gold/gauge` — §4.5 of the plan measured that route
- * recomputing 262 correlation gauges per request, and `correlation_history` already
- * arrives inside the state response.
+ * It DOES call `/api/gold/gauge`, reversing §4.5 of the port plan. That section declined
+ * the route as expensive — "recomputing 262 correlation gauges per request" — and
+ * settled for the `correlation_history` that arrives inside the state response.
+ * Re-measured 2026-08-29: the route answers in ~50ms against ~29ms for
+ * `/api/gold/state`. The cost was real when measured and is not material now.
+ *
+ * What it buys is depth, not the board's resolution. `history_252d` carries ~261
+ * observations where `correlation_history` carries 3-5, which is the difference between
+ * a line that can show an anchor decaying and three segments that can only show a
+ * direction. It does NOT carry `corr_60d` — no point of it does — so the board's
+ * "corr_60d, daily" heading still cannot be honoured; `CorrelationHistoryPanel` names
+ * the window it draws and states the gap.
  */
 const GOLD_PUBLISHER = "gold posture";
 
@@ -117,13 +126,21 @@ export async function GoldTab({ replay }: MacroTabProps) {
   // tab's date to that endpoint would put two different questions under one pill and let
   // the answer to the second pass for the answer to the first. Live, both mean "newest",
   // so they agree and the pill is honest.
-  const [posture, domain] = await Promise.all([
+  const [posture, domain, gauge] = await Promise.all([
     settle(
       () => (asOf === null ? api.goldState() : api.goldReplay(asOf)),
       "gold posture API",
     ),
     asOf === null
       ? settle(() => api.macroDomainState("gold"), "gold state API")
+      : Promise.resolve({ value: null, error: undefined }),
+    // The anchor-decay panel's dense series, and live-only for the same clock reason as
+    // the domain state above: `/api/gold/gauge` takes no date, so under replay it would
+    // answer a question about today inside a tab that has named a past observation date.
+    // Settled separately — a gauge outage must cost one panel's primary line, not the
+    // tab, which is why it is not folded into the posture request.
+    asOf === null
+      ? settle(() => api.goldGauge(), "gold gauge API")
       : Promise.resolve({ value: null, error: undefined }),
   ]);
 
@@ -178,6 +195,7 @@ export async function GoldTab({ replay }: MacroTabProps) {
           state={posture.value}
           replayDate={asOf ?? undefined}
           showReplayPicker={false}
+          anchorHistory={gauge.value?.history_252d}
           deskHeading={
             <GoldHeading
               posture={posture.value}

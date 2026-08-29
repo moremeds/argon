@@ -3,16 +3,18 @@ import type { ReactNode } from "react";
 import type { components } from "@/lib/types";
 
 import { CorrelationHistoryPanel } from "./correlation/CorrelationHistoryPanel";
-import { DataAuditFooter } from "./DataAuditFooter";
 import { ExpressionCostPanel } from "./ExpressionCostPanel";
+import { InputManifestPanel } from "./InputManifestPanel";
 import { GoldCompassHeader } from "./GoldCompassHeader";
 import { KpiStrip } from "./kpi/KpiStrip";
 import { CyclicalPanel } from "./lens2/CyclicalPanel";
+import { CbReservesPanel } from "./lens1/CbReservesPanel";
 import { StructuralPanel } from "./lens1/StructuralPanel";
 import { ValuationPanel } from "./lens3/ValuationPanel";
 import { TransmissionGaugePanel } from "./TransmissionGaugePanel";
 
 type State = components["schemas"]["GoldStateResponse"];
+type GaugePoint = components["schemas"]["GoldGaugeTimeSeriesPoint"];
 
 /**
  * Two chromes, one body.
@@ -49,6 +51,16 @@ type Props = {
    * caller ask for board bands under a Gold Compass lockup.
    */
   deskHeading?: ReactNode;
+  /**
+   * `/api/gold/gauge` `history_252d`, for the anchor-decay panel.
+   *
+   * Optional because only ONE of this component's two routes can supply it. The macro
+   * desk's live gold tab fetches it beside the posture; `/gold/replay/<date>` cannot,
+   * because the gauge route takes no date and answering a replayed observation with the
+   * live anchor history would date-mismatch the one panel whose subject is time. Absent,
+   * the panel draws the sparse pairs and says which request it did not make.
+   */
+  anchorHistory?: GaugePoint[] | null;
 };
 
 /**
@@ -69,6 +81,7 @@ export function GoldCompassLayout({
   replayDate,
   showReplayPicker,
   deskHeading,
+  anchorHistory,
 }: Props) {
   const onDesk = deskHeading != null;
   const band = onDesk ? deskSectionStyle : sectionStyle;
@@ -104,9 +117,22 @@ export function GoldCompassLayout({
         <KpiStrip state={state} />
       </section>
 
+      {/* The board splits lens 1 in two — official-sector accumulation and western
+          institutional flow are different behaviours with different reads, and the
+          single merged panel promoted the strategic bucket to a headline while the
+          other two rode a sub-line. Order follows the board: central banks first. */}
       <section
         role="region"
-        aria-label="Lens 1 structural flow"
+        aria-label="Central banks"
+        data-questions="Q5"
+        style={band}
+      >
+        <CbReservesPanel structural={state.structural} />
+      </section>
+
+      <section
+        role="region"
+        aria-label="Western institutional flows"
         data-questions="Q5"
         style={band}
       >
@@ -149,18 +175,31 @@ export function GoldCompassLayout({
           state. The field stays on the API contract; the render is gone. */}
       <section
         role="region"
-        aria-label="Correlation history"
+        aria-label="Anchor decay"
         data-questions="Q4"
         style={band}
       >
-        <CorrelationHistoryPanel history={state.correlation_history} />
+        <CorrelationHistoryPanel
+          history={state.correlation_history}
+          anchorHistory={anchorHistory}
+        />
       </section>
 
-      <DataAuditFooter
-        obsDate={state.obs_date}
-        computedAt={state.computed_at}
-        inputsUsed={state.inputs_used}
-      />
+      {/* The board's closing panel, and a panel rather than the footer this was: a
+          manifest that named only the inputs it managed to read presented a partial
+          audit trail as a complete one. */}
+      <section
+        role="region"
+        aria-label="Input manifest"
+        data-questions="Q7"
+        style={band}
+      >
+        <InputManifestPanel
+          obsDate={state.obs_date}
+          computedAt={state.computed_at}
+          inputsUsed={state.inputs_used}
+        />
+      </section>
     </main>
   );
 }
