@@ -38,5 +38,35 @@ const nextConfig = {
       },
     ];
   },
+
+  // /rates is retired into the macro desk. It lands on /macro/rates
+  // rather than /macro/fed because /rates's own metadata title was "US
+  // Rates Factor Desk" and its most-linked content was the traded curve —
+  // the curve tab is the honest landing spot for an old link, and the Fed
+  // tab is one click away in the tab bar. permanent: true so Next emits a
+  // 308 (not 307): once this redirect ships, backing it out needs a second
+  // deploy, so the status code is the
+  // part worth pinning in a test.
+  //
+  // /gold follows in P6, now that /macro/gold exists to receive it. The source is the
+  // EXACT path and never `/gold/:path*`: `/gold/replay/[date]` is deliberately kept (§6
+  // of the plan — the only working PIT surface before the desk had one, and still the
+  // deep link `GoldCompassHeader`'s own picker pushes to), and a wildcard would swallow
+  // it. Next passes query values through automatically, so `/gold?as_of=X` lands on
+  // `/macro/gold?as_of=X` with no extra config.
+  async redirects() {
+    return [
+      {
+        source: "/rates",
+        destination: "/macro/rates",
+        permanent: true,
+      },
+      {
+        source: "/gold",
+        destination: "/macro/gold",
+        permanent: true,
+      },
+    ];
+  },
 };
 export default nextConfig;

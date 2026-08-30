@@ -1,0 +1,191 @@
+/* ── The macro board's complete page shell ────────────────────────────────── */
+.macro-desk-shell {
+  /* The approved board is a fixed, single-theme canvas. Keep these tokens
+     local so the surrounding Argon shell can continue to follow user theme. */
+  --bg-base: #0a0f14;
+  --bg-panel: #0f1519;
+  --bg-panel-raised: #151c22;
+  --border-dim: #1e293b;
+  --text-primary: #e2e8f0;
+  --text-secondary: #94a3b8;
+  --text-muted: #475569;
+  --accent-bg: #05ad98;
+  --accent-text: #0a0f14;
+  --accent-deep: #048a7a;
+  --positive: #05ad98;
+  --negative: #e85d6c;
+  --warning: #f5a623;
+  --info: #8b5cf6;
+  --neutral: #94a3b8;
+  --accent-cool: #38bdf8;
+  --accent-warm: #f5a623;
+  min-height: 100%;
+  background: var(--bg-base);
+  color: var(--text-primary);
+  font-size: 13.5px;
+  line-height: 1.55;
+  -webkit-font-smoothing: antialiased;
+}
+.macro-desk-shell .wrap {
+  width: 100%;
+  max-width: none;
+  margin: 0;
+  padding: 0 24px;
+  box-sizing: border-box;
+}
+.macro-desk-shell .appbar {
+  min-height: 74px;
+  border-bottom: 1px solid var(--border-dim);
+  background: linear-gradient(180deg, #0d1318 0%, var(--bg-base) 100%);
+}
+.macro-desk-shell .appbar-inner {
+  min-height: 74px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+}
+.macro-desk-shell .macro-title {
+  min-width: 0;
+}
+.macro-desk-shell .macro-title h1 {
+  margin: 0;
+  font-size: 22px;
+  line-height: 1.2;
+  font-weight: 700;
+  letter-spacing: 0.1px;
+}
+.macro-desk-shell .macro-title p {
+  margin: 4px 0 0;
+  color: var(--text-muted);
+  font-size: 12px;
+}
+.macro-desk-shell .mast-meta {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  align-items: center;
+}
+.macro-desk-shell .chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  font-family: var(--font-mono), monospace;
+  font-size: 10px;
+  padding: 3px 9px;
+  border-radius: 3px;
+  border: 1px solid var(--border-dim);
+  color: var(--text-secondary);
+  background: var(--bg-panel);
+}
+.macro-desk-shell .chip .dot {
+  width: 7px;
+  height: 7px;
+  border-radius: 50%;
+}
+.macro-desk-shell .chip.ok {
+  border-color: color-mix(in srgb, var(--positive) 40%, transparent);
+}
+.macro-desk-shell .chip.ok .dot {
+  background: var(--positive);
+}
+.macro-desk-shell .macro-replay-menu {
+  position: relative;
+}
+.macro-desk-shell .macro-replay-menu > summary {
+  list-style: none;
+  cursor: pointer;
+}
+.macro-desk-shell .macro-replay-menu > summary::-webkit-details-marker {
+  display: none;
+}
+.macro-desk-shell .macro-replay-popover {
+  position: absolute;
+  z-index: 80;
+  top: calc(100% + 6px);
+  right: 0;
+  width: 760px;
+  max-width: calc(100vw - 48px);
+  border: 1px solid var(--border-dim);
+  box-shadow: 0 16px 40px rgb(0 0 0 / 45%);
+}
+.macro-desk-shell .macro-replay-menu:not([open]) .macro-replay-popover {
+  display: none;
+}
+.macro-desk-shell .tabbar {
+  position: sticky;
+  top: 0;
+  z-index: 40;
+  background: color-mix(in srgb, var(--bg-base) 94%, transparent);
+  backdrop-filter: blur(6px);
+  border-bottom: 1px solid var(--border-dim);
+}
+.macro-desk-shell .tabs {
+  display: grid;
+  grid-template-columns: repeat(9, minmax(0, 1fr));
+  gap: 0;
+}
+.macro-desk-shell .tab {
+  appearance: none;
+  background: none;
+  border: none;
+  border-bottom: 2px solid transparent;
+  color: var(--text-muted);
+  font-family: var(--font-mono), monospace;
+  font-weight: 500;
+  font-size: 11px;
+  letter-spacing: 1px;
+  text-transform: uppercase;
+  padding: 11px 4px 9px;
+  cursor: pointer;
+  white-space: normal;
+  text-decoration: none;
+  line-height: normal;
+  text-align: center;
+  min-width: 0;
+}
+.macro-desk-shell .tab:hover {
+  color: var(--text-secondary);
+}
+.macro-desk-shell .tab:focus-visible {
+  outline: 2px solid var(--accent-bg);
+  outline-offset: -2px;
+}
+.macro-desk-shell .tab[aria-current="page"] {
+  color: var(--accent-bg);
+  border-bottom-color: var(--accent-bg);
+}
+.macro-desk-shell .macro-desk-main .board {
+  max-width: none;
+  margin: 0;
+  padding: 0;
+}
+.macro-desk-shell footer {
+  border-top: 1px solid var(--border-dim);
+  padding: 20px 0 40px;
+  color: var(--text-muted);
+  font-family: var(--font-mono), monospace;
+  font-size: 10.5px;
+  line-height: 1.8;
+}
+.macro-desk-shell footer code {
+  color: var(--text-secondary);
+}
+@media (max-width: 900px) {
+  .macro-desk-shell .tabs {
+    grid-template-columns: repeat(5, minmax(0, 1fr));
+  }
+}
+@media (max-width: 640px) {
+  .macro-desk-shell .wrap {
+    padding-inline: 16px;
+  }
+  .macro-desk-shell .appbar-inner {
+    align-items: flex-start;
+    flex-direction: column;
+    padding-block: 14px;
+  }
+  .macro-desk-shell .tabs {
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+  }
+}

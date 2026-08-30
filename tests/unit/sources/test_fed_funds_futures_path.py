@@ -74,6 +74,24 @@ def test_fedwatch_snapshot_retains_exact_html_and_full_distribution() -> None:
     }
 
 
+def test_fedwatch_artifact_identity_ignores_request_varying_cloudflare_bytes() -> None:
+    retrieved_at = datetime(2026, 8, 29, 15, tzinfo=UTC)
+    first = FedFundsFuturesSourceBundle.from_bytes(
+        source_url="https://www.frenzycap.com/fedwatch",
+        raw_bytes=FED_WATCH_HTML.encode() + b"<!-- cloudflare-ray:a -->",
+        retrieved_at=retrieved_at,
+    )
+    second = FedFundsFuturesSourceBundle.from_bytes(
+        source_url="https://www.frenzycap.com/fedwatch",
+        raw_bytes=FED_WATCH_HTML.encode() + b"<!-- cloudflare-ray:b -->",
+        retrieved_at=retrieved_at,
+    )
+
+    assert first.artifact.content_hash != second.artifact.content_hash
+    assert first.artifact.source_record_id == second.artifact.source_record_id
+    assert first.artifact.source_record_id == "frenzy-fedwatch"
+
+
 def test_fed_funds_futures_path_provider_rejects_empty_parse() -> None:
     response = httpx.Response(
         200,

@@ -8072,6 +8072,33 @@
         "title": "GoldDecompositionRow",
         "type": "object"
       },
+      "GoldGauge60dTimeSeriesPoint": {
+        "properties": {
+          "corr_60d": {
+            "anyOf": [
+              {
+                "pattern": "^(?!^[-+.]*$)[+-]?0*\\d*\\.?\\d*$",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Corr 60D"
+          },
+          "obs_date": {
+            "format": "date",
+            "title": "Obs Date",
+            "type": "string"
+          }
+        },
+        "required": [
+          "obs_date",
+          "corr_60d"
+        ],
+        "title": "GoldGauge60dTimeSeriesPoint",
+        "type": "object"
+      },
       "GoldGaugeResponse": {
         "properties": {
           "current": {
@@ -8083,10 +8110,18 @@
             },
             "title": "History 252D",
             "type": "array"
+          },
+          "history_60d": {
+            "items": {
+              "$ref": "#/components/schemas/GoldGauge60dTimeSeriesPoint"
+            },
+            "title": "History 60D",
+            "type": "array"
           }
         },
         "required": [
           "current",
+          "history_60d",
           "history_252d"
         ],
         "title": "GoldGaugeResponse",
@@ -31680,7 +31715,48 @@
     },
     "/api/rates/snapshot": {
       "get": {
+        "description": "The rates snapshot, live or as it stood at a past instant.\n\nThe macro desk renders four ``/api/macro/*`` cards beside this one.  Without a\nreplay here, a desk asked for a historical date would have shown four historical\ntabs next to one live tab and nothing on screen saying which was which.",
         "operationId": "rates_snapshot_api_rates_snapshot_get",
+        "parameters": [
+          {
+            "description": "UTC calendar date; returns the snapshot current at that day-end.",
+            "in": "query",
+            "name": "as_of",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "format": "date",
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "description": "UTC calendar date; returns the snapshot current at that day-end.",
+              "title": "As Of"
+            }
+          },
+          {
+            "description": "Timezone-aware instant to replay.",
+            "in": "query",
+            "name": "as_of_ts",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "format": "date-time",
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "description": "Timezone-aware instant to replay.",
+              "title": "As Of Ts"
+            }
+          }
+        ],
         "responses": {
           "200": {
             "content": {
@@ -31691,6 +31767,16 @@
               }
             },
             "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
           }
         },
         "summary": "Rates Snapshot",

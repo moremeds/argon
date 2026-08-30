@@ -83,7 +83,11 @@ class FedFundsFuturesSourceBundle:
             artifact=MacroSourceArtifact(
                 source=SOURCE,
                 source_kind="third_party_shadow",
-                source_record_id=f"frenzy-fedwatch:{content_hash}",
+                # The publisher exposes one continuously updated page, not a release
+                # identifier. Keep that document identity stable: request-varying
+                # Cloudflare bytes belong in content_hash, while the normalized policy
+                # value decides whether the page carries a new fact.
+                source_record_id="frenzy-fedwatch",
                 source_url=source_url,
                 published_at=None,
                 available_at=retrieved_at,

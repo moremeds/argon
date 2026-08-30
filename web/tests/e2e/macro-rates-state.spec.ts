@@ -1,7 +1,21 @@
-import { expect, test } from "@playwright/test";
+import { expect, test, type Page } from "@playwright/test";
 
 /**
- * The /rates desk under MC2, in a real browser against the real API.
+ * The rates desk under MC2 — now two tabs of the macro desk — in a real browser against
+ * the real API.
+ *
+ * `/rates` 308s to `/macro/rates` (`next.config.mjs`), and the page it used to serve is
+ * two pages now:
+ *
+ *   - `/macro/fed`   — `FedDesk`: the policy / rates STATE, the four published policy
+ *                      paths, and the two publishers that plot (SEP dots, dealer path).
+ *   - `/macro/rates` — `CurveDesk`: the traded curve and what moved it, with the legacy
+ *                      rule scorecard quarantined inside "What this tab refuses".
+ *
+ * So every test below names the tab that owns its subject, through one of the two helpers.
+ * A single shared helper is exactly what broke when the split landed: the state block and
+ * the policy paths moved to `/macro/fed`, and the redirect kept delivering them to the
+ * curve tab, where they no longer exist.
  *
  * These assertions are deliberately written to hold in *every* data state this
  * environment can be in — with a computed state or without one, with four policy
@@ -14,20 +28,34 @@ import { expect, test } from "@playwright/test";
  * and says so rather than passing vacuously.
  */
 
-async function ratesPage(page: import("@playwright/test").Page) {
-  await page.goto("/rates");
+/** Tab 01 — Fed · Policy. Owns the state, the four lanes, and both path plots. */
+async function fedTab(page: Page) {
+  await page.goto("/macro/fed");
   await page.waitForLoadState("networkidle");
 }
 
-test.describe("rates desk — evidence-first state", () => {
+/** Tab 02 — Rates · Curve. Owns the traded curve and the quarantined legacy scorecard. */
+async function curveTab(page: Page) {
+  await page.goto("/macro/rates");
+  await page.waitForLoadState("networkidle");
+}
+
+/**
+ * Both desks render `DeskEmptyState` when no snapshot exists, and it draws NO tiers and
+ * NO sections — so a structural assertion about either has no subject in that state.
+ * This is the one skip both hierarchy tests need, and it is the pre-existing one.
+ */
+const NO_SNAPSHOT = /Rates (snapshot not computed|API unavailable)/;
+
+test.describe("fed tab — evidence-first state", () => {
   test("shows a stored state or says none was computed, never a neutral stand-in", async ({
     page,
   }) => {
-    await ratesPage(page);
+    await fedTab(page);
     if (
       (await page
         .getByRole("heading", {
-          name: /Rates (snapshot not computed|API unavailable)/,
+          name: NO_SNAPSHOT,
         })
         .count()) > 0
     ) {
@@ -56,13 +84,49 @@ test.describe("rates desk — evidence-first state", () => {
     }
   });
 
+  test("a state that exists never repeats its own title as an eyebrow", async ({
+    page,
+  }) => {
+    await fedTab(page);
+    const block = page.getByTestId("rates-state-block");
+    if ((await block.count()) === 0) {
+      test.skip(true, "no stored state in this environment");
+    }
+    // "Policy / Rates State" is the section heading. Printing it again one line
+    // below spent the most valuable line on the page saying nothing new.
+    const repeated = block.locator("text=/^policy \\/ rates state/i");
+    await expect(repeated).toHaveCount(0);
+  });
+});
+
+test.describe("curve tab — the quarantined legacy scorecard", () => {
   test("the legacy scorecard is labelled experimental and takes no stance without a score", async ({
     page,
   }) => {
-    await ratesPage(page);
+    await curveTab(page);
     if ((await page.getByTestId("rates-scorecard").count()) === 0) {
       test.skip(true, "no rates snapshot in this environment");
     }
+
+    // The scorecard survived the split, DEMOTED: §7 keeps it as the only thing an
+    // operator can hold the Fed tab's state up against, but moves it inside the
+    // refusal panel so nobody reads a number this desk does not answer with as the
+    // answer. Asserting the containment is what stops a later PR from quietly
+    // promoting it back into the desk's own chrome — the testids alone cannot tell
+    // the difference between quarantined and reinstated.
+    await expect(
+      page.locator("#refuses").getByTestId("rates-scorecard"),
+    ).toBeHidden();
+    await page
+      .locator("#refuses details")
+      .getByText("Experimental legacy scorecard")
+      .click();
+    await expect(
+      page.locator("#refuses").getByTestId("rates-scorecard"),
+    ).toBeVisible();
+    await expect(page.locator("#refuses")).toContainText(
+      /what this tab refuses/i,
+    );
 
     await expect(page.getByTestId("scorecard-legacy-banner")).toContainText(
       /experimental legacy/i,
@@ -82,9 +146,9 @@ test.describe("rates desk — evidence-first state", () => {
   });
 });
 
-test.describe("rates desk — policy paths", () => {
+test.describe("fed tab — policy paths", () => {
   test("renders four lanes and never merges them", async ({ page }) => {
-    await ratesPage(page);
+    await fedTab(page);
     if ((await page.getByTestId("policy-path-comparison").count()) === 0) {
       await expect(page.getByTestId("policy-paths-missing")).toContainText(
         /unavailable/i,
@@ -110,7 +174,7 @@ test.describe("rates desk — policy paths", () => {
   test("every lane either carries a source and release date or states why it is empty", async ({
     page,
   }) => {
-    await ratesPage(page);
+    await fedTab(page);
     if ((await page.getByTestId("policy-path-comparison").count()) === 0) {
       test.skip(true, "no policy comparison in this environment");
     }
@@ -134,7 +198,7 @@ test.describe("rates desk — policy paths", () => {
   test("an SEP lane never attributes a dot to a named participant", async ({
     page,
   }) => {
-    await ratesPage(page);
+    await fedTab(page);
     const sep = page.getByTestId("policy-path-lane-committee_projection");
     if ((await sep.count()) === 0) {
       test.skip(true, "no policy comparison in this environment");
@@ -217,62 +281,74 @@ test.describe("rates desk — replay", () => {
   });
 });
 
-test.describe("rates desk — information hierarchy", () => {
-  test("sections sit under named tiers rather than one flat list", async ({
+/**
+ * Information hierarchy, once per tab.
+ *
+ * This was ONE test asserting five tiers in one exact order, back when the desk was one
+ * page. There is no five-tier page any more, and the honest replacement is not a softer
+ * assertion — "at least one tier" would pass on a flat page with a stray heading, which
+ * is the defect the original existed to catch. It is TWO exact assertions, because each
+ * tab now has its own tier list and each list is short enough to write down.
+ *
+ * The split is also where the ordering claim gets its teeth back: the Fed tab must put
+ * the verdict before the publishers that feed it, and the curve tab must put the traded
+ * curve before the mechanics and the mechanics before the legacy score. Neither claim
+ * survives being folded into one list.
+ */
+test.describe("desk information hierarchy", () => {
+  test("the fed tab follows the board's exact panel order", async ({
     page,
   }) => {
-    await ratesPage(page);
-    if (
-      (await page
-        .getByRole("heading", {
-          name: /Rates (snapshot not computed|API unavailable)/,
-        })
-        .count()) > 0
-    ) {
+    await fedTab(page);
+    if ((await page.getByRole("heading", { name: NO_SNAPSHOT }).count()) > 0) {
       test.skip(true, "no rates snapshot in this environment");
     }
 
-    const tiers = page.locator('[data-testid^="rates-tier-"]');
-    await expect(tiers).toHaveCount(5);
-    await expect(page.getByTestId("rates-tier-tier-answer")).toContainText(
-      /the answer/i,
-    );
-
-    // The verdict comes before the publishers that feed it, which come before the
-    // legacy scorecard. A flat page can satisfy every other assertion on this file
-    // and still bury the state under the rule score.
     const order = await page
-      .locator('[data-testid^="rates-tier-"] h2')
-      .allTextContents();
-    expect(order.map((t) => t.trim().toLowerCase())).toEqual([
-      "the answer",
-      "who says what",
-      "what the market prices",
-      "mechanics",
-      "provenance and legacy",
+      .locator("main [role='region'].panel")
+      .evaluateAll((nodes) => nodes.map((node) => node.id));
+    expect(order).toEqual([
+      "paths",
+      "market-implied",
+      "dealer-plot",
+      "sep-plot",
+      "state",
+      "policy",
+      "events",
+      "refuses",
     ]);
   });
 
-  test("a state that exists never repeats its own title as an eyebrow", async ({
+  test("the curve tab follows the board's exact panel order", async ({
     page,
   }) => {
-    await ratesPage(page);
-    const block = page.getByTestId("rates-state-block");
-    if ((await block.count()) === 0) {
-      test.skip(true, "no stored state in this environment");
+    await curveTab(page);
+    if ((await page.getByRole("heading", { name: NO_SNAPSHOT }).count()) > 0) {
+      test.skip(true, "no rates snapshot in this environment");
     }
-    // "Policy / Rates State" is the section heading. Printing it again one line
-    // below spent the most valuable line on the page saying nothing new.
-    const repeated = block.locator("text=/^policy \\/ rates state/i");
-    await expect(repeated).toHaveCount(0);
+
+    const order = await page
+      .locator("main [role='region'].panel")
+      .evaluateAll((nodes) => nodes.map((node) => node.id));
+    expect(order).toEqual([
+      "curve",
+      "decomp",
+      "decomp-cleveland",
+      "decomp-attribution",
+      "substate-supply",
+      "substate-positioning",
+      "substate-plumbing",
+      "auctions",
+      "refuses",
+    ]);
   });
 });
 
-test.describe("rates desk — policy path plots", () => {
+test.describe("fed tab — policy path plots", () => {
   test("the SEP block plots dots and still refuses to name a participant", async ({
     page,
   }) => {
-    await ratesPage(page);
+    await fedTab(page);
     const block = page.locator("#sep-plot");
     await expect(block).toBeVisible();
 
@@ -293,7 +369,7 @@ test.describe("rates desk — policy path plots", () => {
   test("the dealer block plots a path with its dispersion band", async ({
     page,
   }) => {
-    await ratesPage(page);
+    await fedTab(page);
     const block = page.locator("#dealer-plot");
     await expect(block).toBeVisible();
 
@@ -316,9 +392,8 @@ test.describe("rates desk — policy path plots", () => {
     // current one -- the same rule that keeps the four publishers apart.
     const priors = block.getByTestId("dealer-path-median-prior");
     if ((await priors.count()) > 0) {
-      await expect(block.getByTestId("dealer-path-note")).toContainText(
-        /separate releases shown for movement, never merged/i,
-      );
+      await expect(block).toContainText(/remain separate releases/i);
+      await expect(block).toContainText(/never averaged against the SEP/i);
       await expect(block).toContainText(/earlier survey/i);
     }
   });
@@ -328,10 +403,77 @@ test.describe("rates desk — policy path plots", () => {
   }) => {
     // Structural, not textual: one <svg> each, in their own sections. A shared frame
     // would read as a comparison this desk refuses to draw.
-    await ratesPage(page);
+    await fedTab(page);
 
     await expect(page.locator("#sep-plot svg")).toHaveCount(1);
     await expect(page.locator("#dealer-plot svg")).toHaveCount(1);
     await expect(page.locator("#sep-plot #dealer-plot")).toHaveCount(0);
+  });
+});
+
+/**
+ * The three things §7 settled, as an outer guard.
+ *
+ * `SummaryStances` / `StanceCard` / `stanceDescription` are deleted and
+ * `snapshot.synthesis` is no longer rendered — both because a refusal describes and
+ * never prescribes (§9 invariant 7), and the stance cards printed the literal words
+ * `BUY` and `SELL` in a watermark. This is the same ban `gold-page.spec.ts:38-41`
+ * enforces on the gold desk, applied to the two tabs that inherited the rates page.
+ *
+ * These are the two tests in this file that need NO data: an empty desk has no stance
+ * cards and no synthesis either, so they hold in every state rather than skipping.
+ */
+test.describe("the desk prescribes nothing", () => {
+  test("the fed tab never says BUY or SELL", async ({ page }) => {
+    await fedTab(page);
+
+    const body = (await page.textContent("body")) ?? "";
+    expect(body.toLowerCase()).not.toMatch(/\bbuy\b/);
+    expect(body.toLowerCase()).not.toMatch(/\bsell\b/);
+
+    // The two components that carried those words, by the anchors they rendered.
+    await expect(page.getByTestId("legacy-stance-grid")).toHaveCount(0);
+    await expect(page.locator("#synthesis")).toHaveCount(0);
+  });
+
+  test("the curve tab never says BUY or SELL outside the quarantine", async ({
+    page,
+  }) => {
+    await curveTab(page);
+
+    // WHY THIS IS SCOPED AND THE FED TAB'S IS NOT. `RatesScorecard` survived the split
+    // (§7: kept, demoted into "What this tab refuses"), and its `duration_stance` is a
+    // `Literal["BUY", "SELL", "NEUTRAL", "UNKNOWN"]` — `rates/scorecard.py:225-227`
+    // returns the first two whenever the composite clears ±0.25 with enough coverage,
+    // and `RatesScorecard.tsx:57-59` prints it verbatim as "<stance> duration". So a
+    // whole-body ban here is not a strict gate, it is a gate that fires on legitimate
+    // data the settlement deliberately kept. The honest form is the settlement's own
+    // sentence: the desk's CHROME prescribes nothing, and the one artifact that still
+    // carries a stance is fenced inside `#refuses` and labelled a legacy artifact.
+    //
+    // A missing `#refuses` makes this assertion STRICTER (nothing is removed), not
+    // weaker, so the carve-out cannot evaporate the check — and the anchor below
+    // proves it did not swallow the page either.
+    const outsideQuarantine = await page.evaluate(() => {
+      const clone = document.body.cloneNode(true) as HTMLElement;
+      clone.querySelector("#refuses")?.remove();
+      return clone.textContent ?? "";
+    });
+
+    // Non-vacuity: something outside the quarantine must survive the carve-out, or this
+    // assertion passes on an empty string. It used to be the "US Rates Factor Desk"
+    // lockup, which the board replaced with its own `.sec-title` — and the replacement
+    // is not a drop-in, because the populated tab says "Rates · Curve" while the empty
+    // state still says the old name in `DeskEmptyState`'s eyebrow. The desk's TAB BAR is
+    // the anchor that holds in both: it lives in `app/macro/layout.tsx`, renders the same
+    // registry label either way, and is never inside `#refuses`.
+    expect(outsideQuarantine).toContain("Rates · Curve");
+    expect(outsideQuarantine.toLowerCase()).not.toMatch(/\bbuy\b/);
+    expect(outsideQuarantine.toLowerCase()).not.toMatch(/\bsell\b/);
+
+    // The two components that carried those words, by the anchors they rendered.
+    // Neither is inside the quarantine, so these are unscoped.
+    await expect(page.getByTestId("legacy-stance-grid")).toHaveCount(0);
+    await expect(page.locator("#synthesis")).toHaveCount(0);
   });
 });

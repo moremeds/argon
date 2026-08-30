@@ -7493,3 +7493,32 @@ tr {
     opacity: 1;
   }
 }
+
+/* Macro desk tabs — the strip above /macro/*.
+   Composed on .ticker-tabs / .ticker-tab rather than redeclaring their metrics:
+   .scanner-tab already records that this strip's scale is shared across pages and
+   that only its active colour ever differs, never the scale. These two classes carry
+   the only two deltas a LINK-based bar needs and a <button>-based one does not.
+
+   1. flex-wrap. .ticker-tabs is display:flex with a bottom border and nothing else, so
+      /regime already needs an inline flexWrap override at seven tabs
+      (RegimePanel.tsx:80). This desk grows to nine. Wrap rather than overflow-x:auto:
+      a flat underlined strip gives no visual cue that it scrolls, while the one bar in
+      this app that does scroll horizontally (CockpitTabs.tsx:52) is boxed buttons whose
+      clipped edges ARE the cue. A nav whose whole job is to show the desk's nine
+      surfaces must not hide four of them behind a gesture with no affordance. Wrapping
+      only engages on narrow viewports; at desk widths the nine sit on one row.
+   2. text-decoration. .ticker-tab is a <button> reset — background:transparent,
+      border:none, and no text-decoration, because every other consumer is a <button>.
+      On an <a> that leaves the anchor's decoration to whatever the cascade supplies,
+      which is exactly why stock/TabBar.tsx:43 sets it inline. Declared once here
+      instead of becoming a third inline override.
+
+   The 24px gutter matches the macro desk content below it (MacroDesk.tsx). */
+.macro-tabs {
+  flex-wrap: wrap;
+  padding: 0 24px;
+}
+.macro-tab {
+  text-decoration: none;
+}

@@ -1,0 +1,60 @@
+import { Suspense } from "react";
+
+import { MacroMasthead } from "@/components/macro/MacroMasthead";
+import { MacroFooter } from "@/components/macro/MacroFooter";
+import { MacroTabBar } from "@/components/macro/MacroTabBar";
+import { todayUtcDate } from "@/components/macro/replay";
+import { api } from "@/lib/api";
+
+import "./shell.css";
+import "./board.css";
+
+/**
+ * The macro desk shell.
+ *
+ * The tab bar lives here rather than inside each tab so that switching tabs does not
+ * re-render it, matching `app/stock/[ticker]/layout.tsx:42`. No padding is added around
+ * `children`: each tab (and today's `app/macro/page.tsx`, which this layout now wraps)
+ * owns its own gutter, which is how every other page under `AppShell` works.
+ *
+ * A throw from THIS file is caught by `app/macro/error.tsx`, one level up — a segment's
+ * own `error.tsx` does not catch throws from that segment's layout.
+ *
+ * `board.css` is imported here because it is the desk's shared grammar. Everything in it
+ * is scoped under `.board`, so importing it desk-wide cannot restyle the gold and rates
+ * tabs that also live under this layout and carry their own table chrome.
+ *
+ * The `<Suspense>` is not decoration. `MacroTabBar` reads `useSearchParams()` so it can
+ * carry `?as_of=` across tab switches, and a client component that reads the search params
+ * must sit under a boundary or it opts its whole route out of static rendering. Every
+ * route on this desk is already `force-dynamic`, so the boundary changes nothing today —
+ * it is here so that a future statically-rendered route added under `/macro` fails on its
+ * own merits rather than being silently downgraded by the shell.
+ */
+export default async function MacroLayout({
+  children,
+}: {
+  children: React.ReactNode;
+}) {
+  let snapshot: Awaited<ReturnType<typeof api.macroContextSnapshot>> = null;
+  try {
+    snapshot = await api.macroContextSnapshot();
+  } catch {
+    snapshot = null;
+  }
+
+  return (
+    <div className="macro-desk-shell">
+      <MacroMasthead
+        snapshotStatus={snapshot?.status ?? "unavailable"}
+        snapshotAsOf={snapshot?.as_of ?? null}
+        today={todayUtcDate()}
+      />
+      <Suspense fallback={null}>
+        <MacroTabBar />
+      </Suspense>
+      <main className="wrap macro-desk-main">{children}</main>
+      <MacroFooter snapshotAsOf={snapshot?.as_of ?? null} />
+    </div>
+  );
+}

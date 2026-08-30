@@ -1,9 +1,10 @@
-import { WIDE_FRAME } from "./chartGeometry";
+import { WIDE_FRAME } from "@/components/macro/chartGeometry";
+import { BoardRead } from "@/components/macro/domain/BoardPanel";
+import { humanizeIdentifier } from "@/components/macro/presentation";
 import styles from "./RatesDesk.module.css";
 import { finiteOrNull, toFiniteNumber } from "./format";
 import { plottable, priorReleases, releaseDate } from "./policyPath";
 import type { MacroPolicyPathPoint, PolicyPathSlot } from "./types";
-
 
 const {
   width: WIDTH,
@@ -122,10 +123,15 @@ export function SepDotPlot({
 
   return (
     <div className={styles.pathChartBlock}>
-      <div className={styles.chartPanel} aria-label="SEP dot plot">
+      <BoardRead>
+        The four-path comparison shows one committee median. This chart restores
+        every anonymous participant projection, including a short horizon column
+        when the publisher printed one.
+      </BoardRead>
+      <div className={`${styles.chartPanel} chart`} aria-label="SEP dot plot">
         <div className={styles.chartHeader}>
           <strong>Participant projections · {participants} participants</strong>
-          <div className={styles.chartLegend}>
+          <div className={`${styles.chartLegend} lgd`}>
             <span>
               <i className={styles.sepDotSwatch} />
               One participant
@@ -181,8 +187,12 @@ export function SepDotPlot({
 
           {columns.map((column, index) => {
             const cx = xFor(index);
-            const lower = finiteOrNull(column.point.central_tendency_lower_percent);
-            const upper = finiteOrNull(column.point.central_tendency_upper_percent);
+            const lower = finiteOrNull(
+              column.point.central_tendency_lower_percent,
+            );
+            const upper = finiteOrNull(
+              column.point.central_tendency_upper_percent,
+            );
             const median = finiteOrNull(column.point.rate_percent);
             const half = colW * 0.36;
             return (
@@ -281,16 +291,40 @@ export function SepDotPlot({
         </svg>
       </div>
 
-      <p className={styles.pathProvenance}>
-        {path.source} · released {releaseDate(path)}
-        {previous ? ` · dashed line is the ${releaseDate(previous)} median` : ""}
+      <p className="cap">
+        {humanizeIdentifier(path.source)} · released {releaseDate(path)}
+        {previous
+          ? ` · dashed line is the ${releaseDate(previous)} median`
+          : ""}
       </p>
       {/* The dot plot is published without names. Attaching one -- the Chair's above
           all -- would invent a fact the FOMC deliberately does not publish. */}
-      <p className={styles.pathNote} data-testid="sep-plot-anonymity-note">
-        SEP dots are anonymous. Dot position within a year is spacing, not
-        identity, and no dot on this chart is attributed to a named participant.
-      </p>
+      <div className="grid g2">
+        <div className="tbl-wrap">
+          <table>
+            <thead>
+              <tr>
+                <th>Horizon</th>
+                <th className="num">Median</th>
+                <th className="num">Participants</th>
+              </tr>
+            </thead>
+            <tbody>
+              {columns.map((column) => (
+                <tr key={column.point.horizon}>
+                  <td>{column.point.horizon}</td>
+                  <td className="num">{toFiniteNumber(column.point.rate_percent).toFixed(2)}%</td>
+                  <td className="num">{column.dots.reduce((n, dot) => n + dot.count, 0)}</td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
+        <BoardRead testId="sep-plot-anonymity-note">
+          SEP dots are anonymous. Dot position within a year is spacing, not
+          identity, and no dot on this chart is attributed to a named participant.
+        </BoardRead>
+      </div>
     </div>
   );
 }

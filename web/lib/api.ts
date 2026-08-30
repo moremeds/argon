@@ -150,6 +150,15 @@ type MacroPolicyComparison = Json<"/api/macro/policy", "get">;
 // All four domain states share one response model, so one alias covers the set.
 type MacroDomainStateResponse = Json<"/api/macro/usd", "get">;
 type MacroContextSnapshotResponse = Json<"/api/macro/snapshot", "get">;
+// `/api/gold/state` and `/api/gold/replay` both answer with `GoldStateResponse`
+// (`api/routers/gold.py`), so the two aliases resolve to the same shape today.
+// Kept separate anyway: if either endpoint's model ever moves, the drift lands
+// as a type error at the call site instead of a silent reshape.
+type GoldStateResponse = Json<"/api/gold/state", "get">;
+type GoldReplayResponse = Json<"/api/gold/replay", "get">;
+type GoldGaugeResponse = Json<"/api/gold/gauge", "get">;
+type GoldLensResponse = Json<"/api/gold/lenses/{lens_id}", "get">;
+type GoldInputSeriesResponse = Json<"/api/gold/inputs/{series_id}", "get">;
 type PositioningSnapshot = Json<"/api/positioning/{ticker}", "get">;
 type PositioningScreenerResponse = Json<"/api/positioning/screener", "get">;
 
@@ -196,6 +205,13 @@ async function _fetch<T>(
   const text = await r.text();
   if (!text) return undefined as unknown as T;
   return JSON.parse(text) as T;
+}
+
+/** `?as_of=YYYY-MM-DD`, or nothing at all when live. The empty string is deliberately
+ *  NOT sent: FastAPI would reject `as_of=` as an unparseable date, turning "show me now"
+ *  into a 422 the desk would have to explain. */
+function asOfQuery(asOf?: string): string {
+  return asOf ? `?as_of=${encodeURIComponent(asOf)}` : "";
 }
 
 export const api = {
@@ -346,42 +362,133 @@ export const api = {
     _fetch<PositioningSnapshot>(`/api/positioning/${ticker}`),
   positioningScreener: (): Promise<PositioningScreenerResponse> =>
     _fetch<PositioningScreenerResponse>(`/api/positioning/screener`),
-  ratesSnapshot: (): Promise<RatesSnapshotResponse | null> =>
-    _fetch<RatesSnapshotResponse | null>(`/api/rates/snapshot`, undefined, {
-      allow404: true,
-    }),
+  // `asOf` is a UTC CALENDAR DATE (`YYYY-MM-DD`), not an instant. Both routes also
+  // accept `as_of_ts` for intraday replay; the desk does not ask for one, and the two
+  // are mutually exclusive server-side (`resolve_instant` 422s on both). Omitted rather
+  // than sent empty when live, so the shipped query stays byte-identical — the router
+  // passes `None` down only when no date was actually asked for, which is what keeps a
+  // snapshot whose `computed_at` sits a second in the future from 404ing the page.
+  ratesSnapshot: (asOf?: string): Promise<RatesSnapshotResponse | null> =>
+    _fetch<RatesSnapshotResponse | null>(
+      `/api/rates/snapshot${asOfQuery(asOf)}`,
+      undefined,
+      { allow404: true },
+    ),
   // The four policy paths, each with its own publisher and release date. Kept
   // separate from ratesSnapshot deliberately: they are computed by a different
   // job on a different clock, and folding them into one call would make a stale
   // snapshot look like it carried a fresh FOMC release.
-  macroPolicy: (): Promise<MacroPolicyComparison | null> =>
-    _fetch<MacroPolicyComparison | null>(`/api/macro/policy`, undefined, {
-      allow404: true,
-    }),
+  macroPolicy: (asOf?: string): Promise<MacroPolicyComparison | null> =>
+    _fetch<MacroPolicyComparison | null>(
+      `/api/macro/policy${asOfQuery(asOf)}`,
+      undefined,
+      { allow404: true },
+    ),
   // One call per domain rather than one bundling call. The four engines run on separate
   // schedules and any of them can be absent; a bundle would make one missing state look
   // like a failed page, and the desk's whole point is saying which half is missing.
   // `allow404` is load-bearing here: a domain the pipeline has never computed 404s, and
   // that is a fact to render, not an error to throw.
+  // `asOf` is the same UTC calendar date `ratesSnapshot` takes, through the same shared
+  // `resolve_instant`. What it selects is NOT the same column, and the difference is
+  // load-bearing for anything reading the reply: `fetch_macro_domain_state_as_of` is
+  // `WHERE as_of <= %s` (`storage/macro_domain_state.py:222`) — the instant the state
+  // ANSWERS FOR — while the rates snapshot filters on `computed_at`, when the answer was
+  // written. See `replayVerdictForDomainState` for what that means at the banner.
   macroDomainState: (
     domain: "inflation" | "rates" | "usd" | "gold",
+    asOf?: string,
   ): Promise<MacroDomainStateResponse | null> =>
-    _fetch<MacroDomainStateResponse | null>(`/api/macro/${domain}`, undefined, {
-      allow404: true,
-    }),
+    _fetch<MacroDomainStateResponse | null>(
+      `/api/macro/${domain}${asOfQuery(asOf)}`,
+      undefined,
+      { allow404: true },
+    ),
   // `allow404` again, and for a sharper reason than the domain reads: a 404 here means no
   // snapshot was ever assembled for the instant, which the desk must render as "nothing
   // checked whether these four belong together" -- never as a coherent chain.
   macroContextSnapshot: (
-    asOfTs?: string,
+    asOf?: string,
   ): Promise<MacroContextSnapshotResponse | null> =>
     _fetch<MacroContextSnapshotResponse | null>(
-      asOfTs
-        ? `/api/macro/snapshot?as_of_ts=${encodeURIComponent(asOfTs)}`
+      asOf
+        ? `/api/macro/snapshot?as_of=${encodeURIComponent(asOf)}`
         : "/api/macro/snapshot",
       undefined,
       { allow404: true },
     ),
+  // `allow404` is the whole point of routing the gold pages through here. The
+  // router 404s with "no gold posture computed yet" when the engine has not run,
+  // which is a fact about the pipeline and settles to `null`. Every other status
+  // — and every unreachable-API throw — propagates, so the page can say the
+  // request failed instead of showing the never-computed placeholder for a dead
+  // API. The raw fetch these replace collapsed both into one `null`.
+  goldState: (): Promise<GoldStateResponse | null> =>
+    _fetch<GoldStateResponse | null>(`/api/gold/state`, undefined, {
+      allow404: true,
+    }),
+  // Point-in-time sibling of goldState. `as_of` is a QUERY param, not a path
+  // segment (`@router.get("/replay")` in `api/routers/gold.py`); a date with no
+  // posture row 404s, which is again a fact, not a failure.
+  goldReplay: (date: string): Promise<GoldReplayResponse | null> =>
+    _fetch<GoldReplayResponse | null>(
+      `/api/gold/replay?as_of=${encodeURIComponent(date)}`,
+      undefined,
+      { allow404: true },
+    ),
+  // The board's §⑨ build note asks for exactly this wrapper rather than another raw
+  // fetch, and §⑩ P2.2 lists the route as one of three the desk never consumed.
+  //
+  // What it carries is NOT what the board's t5 panel asks for, and the difference is
+  // worth stating at the call site: `GoldGaugeTimeSeriesPoint` is `{obs_date,
+  // corr_252d}`, so the 60-day cut the board names is absent from every one of its
+  // points. What it does carry is DEPTH — 261 observations against the 3-5 that arrive
+  // inside `goldState().correlation_history`, which is the whole reason to spend a
+  // second request on it.
+  //
+  // The port plan's §4.5 declined this route as expensive ("262 correlation gauges per
+  // request"). Re-measured 2026-08-29: 50ms, against 29ms for `/api/gold/state`. The
+  // reason no longer holds; the note stays so it is not re-derived a third time.
+  goldGauge: (asOf?: string): Promise<GoldGaugeResponse | null> =>
+    _fetch<GoldGaugeResponse | null>(
+      `/api/gold/gauge${asOfQuery(asOf)}`,
+      undefined,
+      {
+        allow404: true,
+      },
+    ),
+  goldLens: (
+    lensId: "structural" | "cyclical" | "valuation",
+  ): Promise<GoldLensResponse | null> =>
+    _fetch<GoldLensResponse | null>(
+      `/api/gold/lenses/${encodeURIComponent(lensId)}`,
+      undefined,
+      { allow404: true },
+    ),
+  // The other route §⑩ P2.2 names as never consumed, and the one the board's t0
+  // "Market deltas · 1 week" panel is built on: a dated series of stored daily closes,
+  // one series per call, bounded by `from`/`to`.
+  //
+  // `allow404` because an UNKNOWN SERIES ID and an EMPTY SERIES answer the same way here,
+  // and the difference matters to the caller: five of the nine series the board's panel
+  // names are absent from this store (measured 2026-08-29 — SOFR, EFFR, GVZ, HY OAS and
+  // GLD all return zero points), so a caller must render the coverage rather than assume
+  // the panel's row list is the panel's data.
+  goldInputSeries: (
+    seriesId: string,
+    range?: { from?: string; to?: string; asOf?: string },
+  ): Promise<GoldInputSeriesResponse | null> => {
+    const qs = new URLSearchParams();
+    if (range?.from) qs.set("from", range.from);
+    if (range?.to) qs.set("to", range.to);
+    if (range?.asOf) qs.set("as_of", range.asOf);
+    const suffix = qs.toString() ? `?${qs}` : "";
+    return _fetch<GoldInputSeriesResponse | null>(
+      `/api/gold/inputs/${encodeURIComponent(seriesId)}${suffix}`,
+      undefined,
+      { allow404: true },
+    );
+  },
   // The Radar is a read over persisted results — no provider, no lake. `state`
   // is load-bearing: an empty `rows` is six different situations and only one of
   // them is a fact about the companies.
@@ -627,6 +734,7 @@ export type {
   CockpitVrpResponse,
   BenchmarkCurrentResponse,
   BenchmarkHistoryResponse,
+  GoldStateResponse,
   OhlcResponse,
   RegimeDealerResponse,
   RegimeGexResponse,

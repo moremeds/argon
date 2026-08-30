@@ -1,81 +1,77 @@
+import { BoardPanel } from "@/components/macro/domain/BoardPanel";
 import type { components } from "@/lib/types";
 
 import { PostureChip, type PostureState } from "../chips/PostureChip";
 
-import { CbReservesCard } from "./CbReservesCard";
 import { ComexRegimeCard } from "./ComexRegimeCard";
 import { CotPositioningCard } from "./CotPositioningCard";
 import { EtfFlowCard } from "./EtfFlowCard";
 import { FxBasketCard } from "./FxBasketCard";
-import { GoldHoldingsVsPriceChart } from "./GoldHoldingsVsPriceChart";
+import { LbmaMomentumCard } from "./LbmaMomentumCard";
 import { StructuralPostureText } from "./StructuralPostureText";
-import { UwSkewCard } from "./UwSkewCard";
 
 type S = components["schemas"]["GoldStructuralPostureModel"];
 
+/**
+ * Board t5 — "Western institutional flows · L1 detail" (Q5).
+ *
+ * Lens 1 answers WHO IS BUYING, and the board splits that answer in two: official-sector
+ * accumulation is one behaviour and western institutional flow is another, so they are
+ * separate panels with separate reads. Two tiles left this grid for that reason:
+ *
+ * - The CB reserves tile and the holdings-vs-price chart moved to `CbReservesPanel` on
+ *   2026-08-29, where the three buckets get equal weight instead of one headline and a
+ *   run-on sub-line.
+ * - The 25-delta skew tile left on 2026-08-28 for `ExpressionCostPanel` — these cards say
+ *   who is buying, and the skew says what it costs to take the view.
+ *
+ * `LbmaMomentumCard` arrived in the same pass. The board carries an LBMA row here and the
+ * field was on every response, rendered by nothing.
+ *
+ * The posture chip and state label stay on this panel rather than moving with the chart:
+ * `state_label` and `posture_chip` are lens-1 wide, and duplicating them onto both halves
+ * would show one lens publishing two postures.
+ */
 export function StructuralPanel({ structural }: { structural: S }) {
   return (
-    <div style={{ display: "flex", flexDirection: "column", gap: 16 }}>
-      <div
-        style={{
-          display: "flex",
-          alignItems: "baseline",
-          gap: 12,
-          justifyContent: "space-between",
-        }}
-      >
-        <div style={{ display: "flex", alignItems: "center", gap: 12 }}>
-          <h2
-            style={{
-              fontFamily: "var(--font-mono)",
-              fontSize: 12,
-              letterSpacing: 1.8,
-              textTransform: "uppercase",
-              color: "var(--text-primary, #cfd2db)",
-              margin: 0,
-            }}
-          >
-            LENS 1 · STRUCTURAL FLOW
-          </h2>
-          <PostureChip
-            state={(structural.posture_chip ?? "NEUTRAL") as PostureState}
-          />
-        </div>
-        <span
-          style={{
-            fontFamily: "var(--font-mono)",
-            fontSize: 10,
-            letterSpacing: 1.5,
-            textTransform: "uppercase",
-            color: "var(--text-muted, #6b7280)",
-          }}
-        >
-          {structural.state_label ?? "—"}
-        </span>
+    <BoardPanel
+      id="structural-flows"
+      title="Institutional flows"
+      questions={["Q5"]}
+      basis="REAL"
+      source={
+        <>
+          /api/gold/state structural · ETF holdings, LBMA, COMEX, CFTC COT and
+          the FX basket, each as its own source published it
+        </>
+      }
+    >
+      {/* The posture chip and state label stay on THIS half of lens 1 rather than moving
+          with the central-bank chart: `state_label` and `posture_chip` are lens-1 wide,
+          and duplicating them onto both panels would show one lens publishing two
+          postures. */}
+      <div className="lgd">
+        <PostureChip
+          state={(structural.posture_chip ?? "NEUTRAL") as PostureState}
+        />
+        <span className="dir">{structural.state_label ?? "—"}</span>
       </div>
-
-      <GoldHoldingsVsPriceChart
-        goldHistory={structural.gold_history ?? []}
-        gldHistory={structural.gld_history ?? []}
-        cbCountryHistory={structural.cb_country_history ?? []}
-      />
 
       <div
         style={{
           display: "grid",
-          gridTemplateColumns: "repeat(3, minmax(0, 1fr))",
-          gap: 12,
+          gridTemplateColumns: "repeat(auto-fit, minmax(150px, 1fr))",
+          gap: 8,
         }}
       >
-        <CbReservesCard structural={structural} />
         <EtfFlowCard structural={structural} />
+        <LbmaMomentumCard structural={structural} />
         <ComexRegimeCard structural={structural} />
         <CotPositioningCard structural={structural} />
-        <UwSkewCard structural={structural} />
         <FxBasketCard structural={structural} />
       </div>
 
       <StructuralPostureText structural={structural} />
-    </div>
+    </BoardPanel>
   );
 }

@@ -44,7 +44,7 @@ describe("SepDotPlot", () => {
     // distribution. It must still appear -- a dropped column is a dropped year.
     render(<SepDotPlot slot={SEP} />);
 
-    expect(screen.getByText("2027")).toBeTruthy();
+    expect(screen.getAllByText("2027")).toHaveLength(2);
     expect(screen.getByText("0 dots")).toBeTruthy();
   });
 
@@ -108,7 +108,7 @@ describe("DealerPathChart", () => {
     };
     render(<DealerPathChart slot={shrinking} />);
     expect(screen.getAllByTestId("dealer-path-note")[1].textContent).toMatch(
-      /n varies by horizon, 21–26/,
+      /Respondents by horizon: 21–26/,
     );
   });
 

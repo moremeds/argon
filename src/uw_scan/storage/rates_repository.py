@@ -183,15 +183,35 @@ class _RatesMixin:
                 ),
             )
 
-    def fetch_latest_rates_snapshot(self) -> dict[str, Any] | None:
+    def fetch_latest_rates_snapshot(
+        self, *, as_of: datetime | None = None
+    ) -> dict[str, Any] | None:
+        """The newest snapshot, or the newest one that EXISTED at ``as_of``.
+
+        The predicate is on ``computed_at``, not ``snapshot_date``.  The question a
+        replay asks is "what could the desk have known at instant T", and
+        ``snapshot_date`` is the market date an answer is ABOUT -- the job that produces
+        it runs after the close, and a backfill can write a row for a market date months
+        after the fact.  Filtering on ``snapshot_date <= T`` would hand a replay of
+        2026-05-20 a snapshot assembled in August, which is reading today's answer into
+        the past.  ``computed_at`` is when the answer came into existence, which is the
+        only column that can say what was on the desk.
+
+        ``as_of=None`` means "no bound", spelled as ``'infinity'`` rather than as a
+        second query, so there is one statement and one plan instead of two.  The
+        ordering is unchanged either way, so ``snapshot_date`` still breaks a tie
+        between two rows computed at the same instant.
+        """
         with self._conn.cursor() as cur:
             cur.execute(
                 f"""
                 SELECT snapshot_date, computed_at, payload, source_freshness
                 FROM {self._schema}.rates_snapshots
+                WHERE computed_at <= COALESCE(%s::timestamptz, 'infinity')
                 ORDER BY computed_at DESC, snapshot_date DESC
                 LIMIT 1
-                """
+                """,
+                (as_of,),
             )
             row = cur.fetchone()
             if row is None:

@@ -18,6 +18,7 @@ from typing import Any, Literal
 from fastapi import APIRouter, Depends, HTTPException, Query
 
 from uw_scan.api.deps import get_repo
+from uw_scan.api.routers.macro import resolve_instant
 from uw_scan.cards.regime_gauge import compute_correlation_gauge
 from uw_scan.models import (
     GoldCbCountryHistory,
@@ -27,6 +28,7 @@ from uw_scan.models import (
     GoldCyclicalPostureModel,
     GoldDataFreshnessSource,
     GoldDecompositionRow,
+    GoldGauge60dTimeSeriesPoint,
     GoldGaugeResponse,
     GoldGaugeState,
     GoldGaugeTimeSeriesPoint,
@@ -338,6 +340,10 @@ def _state_from_row(
             gpr_value=row.get("gpr_value"),
             gpr_pct_52w=row.get("gpr_pct_52w"),
             factors=row.get("factors_jsonb") or {},
+            # Permanently empty by construction: no producer writes either channel
+            # anywhere in the tree and no column on gold_posture_daily carries them,
+            # so both halves are this em-dash on every request. The field stays on
+            # the contract; the /gold page stopped rendering it.
             two_force_text=GoldTwoForceText(
                 discount_rate="—",
                 hedge_demand="—",
@@ -365,24 +371,42 @@ def _state_from_row(
 
 
 @router.get("/gauge", response_model=GoldGaugeResponse)
-def get_gauge(repo: Repository = Depends(get_repo)) -> GoldGaugeResponse:
-    today = date.today()
-    gold_rows = repo.fetch_macro_series_daily("GLD_CLOSE", to_date=today)
-    dfii10_rows = repo.fetch_macro_series_daily("DFII10", to_date=today)
+def get_gauge(
+    as_of: date | None = Query(
+        None,
+        description="UTC calendar date; replay includes evidence available by day-end.",
+    ),
+    repo: Repository = Depends(get_repo),
+) -> GoldGaugeResponse:
+    today = as_of or date.today()
+    as_of_max = resolve_instant(as_of, None) if as_of is not None else None
+    gold_rows = repo.fetch_macro_series_daily(
+        "GLD_CLOSE", to_date=today, as_of_max=as_of_max
+    )
+    dfii10_rows = repo.fetch_macro_series_daily(
+        "DFII10", to_date=today, as_of_max=as_of_max
+    )
     gold_series = [(r["obs_date"], r["value"]) for r in gold_rows]
     dfii10_series = [(r["obs_date"], r["value"]) for r in dfii10_rows]
     current = compute_correlation_gauge(gold_series, dfii10_series, as_of=today)
 
-    history: list[GoldGaugeTimeSeriesPoint] = []
-    cursor = today - timedelta(days=5 * 365)
-    while cursor <= today:
-        snapshot = compute_correlation_gauge(gold_series, dfii10_series, as_of=cursor)
-        history.append(
-            GoldGaugeTimeSeriesPoint(
-                obs_date=cursor, corr_252d=snapshot.corr_252d_level
-            )
+    rows = repo.fetch_gold_gauge_history(
+        from_date=today - timedelta(days=5 * 365),
+        to_date=today,
+        as_of_max=as_of_max,
+    )
+    history_60d = [
+        GoldGauge60dTimeSeriesPoint(
+            obs_date=row["obs_date"], corr_60d=row["gauge_corr_60d"]
         )
-        cursor += timedelta(days=7)
+        for row in rows
+    ]
+    history_252d = [
+        GoldGaugeTimeSeriesPoint(
+            obs_date=row["obs_date"], corr_252d=row["gauge_corr_252d"]
+        )
+        for row in rows
+    ]
 
     return GoldGaugeResponse(
         current=GoldGaugeState(
@@ -393,7 +417,8 @@ def get_gauge(repo: Repository = Depends(get_repo)) -> GoldGaugeResponse:
             corr_252d_returns=current.corr_252d_returns,
             state=current.state,
         ),
-        history_252d=history,
+        history_60d=history_60d,
+        history_252d=history_252d,
     )
 
 
@@ -402,10 +427,17 @@ def get_input_series(
     series_id: str,
     from_date: date | None = Query(None, alias="from"),
     to_date: date | None = Query(None, alias="to"),
+    as_of: date | None = Query(
+        None,
+        description="UTC calendar date; replay includes vintages available by day-end.",
+    ),
     repo: Repository = Depends(get_repo),
 ) -> GoldInputSeriesResponse:
     rows = repo.fetch_macro_series_daily(
-        series_id, from_date=from_date, to_date=to_date
+        series_id,
+        from_date=from_date,
+        to_date=to_date,
+        as_of_max=resolve_instant(as_of, None) if as_of is not None else None,
     )
     points = [
         GoldInputSeriesPoint(

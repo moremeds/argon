@@ -12,6 +12,7 @@ vi.mock("@/components/shared/HealthPanel", () => ({
 }));
 
 import { AppShell } from "@/components/shared/AppShell";
+import { Sidebar } from "@/components/shared/Sidebar";
 
 describe("AppShell", () => {
   it("renders the Argon sidebar on normal routes", () => {
@@ -23,15 +24,33 @@ describe("AppShell", () => {
     expect(screen.getByRole("main").textContent).toContain("Dashboard content");
   });
 
-  it("renders /rates inside the normal Argon shell", () => {
-    pathname = "/rates";
+  it("keeps the Argon sidebar beside a fluid macro canvas", () => {
+    pathname = "/macro/rates";
 
-    render(<AppShell>Rates content</AppShell>);
+    const { container } = render(<AppShell>Rates content</AppShell>);
 
     expect(screen.getByText("ARGON")).toBeTruthy();
-    expect(screen.getByRole("link", { name: /Rates/ })).toBeTruthy();
-    const main = screen.getByRole("main");
-    expect(main.textContent).toContain("Rates content");
-    expect(main.className).toContain("main");
+    expect(container.firstElementChild?.className).toContain("macroShell");
+    expect(screen.getByRole("main").className).toContain("macroMain");
+    expect(container.firstElementChild?.textContent).toContain("Rates content");
+    expect(container.firstElementChild?.getAttribute("data-layout")).toBe(
+      "sidebar-fluid-main",
+    );
+  });
+
+  it("lists ONE macro entry, and highlights it for every tab under it", () => {
+    // The sidebar collapse. Gold, Rates and Macro were three peers; `/gold` and `/rates`
+    // both 308 into the desk now, so the two removed entries would have been links to
+    // redirects. The plan's ordering rule is that a peer may only be removed once its
+    // destination tab is registered — tabs 02 and 05 both are, in this PR and the last.
+    pathname = "/macro/gold";
+
+    render(<Sidebar />);
+
+    expect(screen.queryByRole("link", { name: /^Gold$/ })).toBeNull();
+    expect(screen.queryByRole("link", { name: /^Rates$/ })).toBeNull();
+    const macro = screen.getByRole("link", { name: /Macro/ });
+    // `startsWith` is what makes one entry cover nine tabs.
+    expect(macro.className).toContain("linkActive");
   });
 });

@@ -1,0 +1,175 @@
+import type { ReactNode } from "react";
+
+// The one import that crosses from `components/rates` into `components/macro`, and it
+// crosses in the permitted direction. §7's rule is one-way — macro must never import
+// rates — and its remedy for a primitive two subtrees need is exactly this: LIFT it into
+// `components/macro`, which is where the board's grammar already lives (`app/macro/
+// board.css` + `domain/BoardPanel.tsx`). The alternative was a second copy of the section
+// title and the state pill, which is how tabs 01/02 came to look nothing like 03/04 in
+// the first place.
+import {
+  BoardSecTitle,
+  BoardStatePill,
+  type BoardQuestions,
+} from "../macro/domain/BoardPanel";
+
+import styles from "./RatesDesk.module.css";
+import { fmtSigned, fmtValue } from "./format";
+import { toFiniteNumber } from "./format";
+import type { Snapshot, SummaryTile } from "./types";
+
+/**
+ * What `FedDesk` (macro tab 01) and `CurveDesk` (macro tab 02) both need.
+ *
+ * The old `/rates` page was one component, `RatesDesk.tsx`, that WAS the page shell.
+ * Splitting it across two routes duplicated four things -- the page header, the empty
+ * state, the KPI tile, and source freshness -- so they live here rather than in two
+ * copies that drift.
+ *
+ * These stay under `components/rates/` on purpose: both desks render
+ * `components/rates/sections/*`, and `components/macro/*` must never import from
+ * `components/rates/*` (plan 2026-08-27 §7). A primitive that a third macro tab needs
+ * gets LIFTED into `components/macro/`, taking its CSS with it -- it is not
+ * cross-imported from here.
+ */
+
+/**
+ * Settle one publisher's fetch instead of letting it throw.
+ *
+ * Carried verbatim from `app/rates/page.tsx`, where the comment beside the two calls
+ * explained why they settle independently: the snapshot and the policy comparison come
+ * from different jobs, so if the policy release ingest is down the curve is still a
+ * fact and the tab should say which half is missing rather than blanking both. The
+ * same holds now that the two halves are two routes -- tab 01 makes both calls, and one
+ * dead publisher there must still cost one panel, not the tab.
+ */
+export async function settle<T>(
+  load: () => Promise<T | null>,
+  label: string,
+): Promise<{ value: T | null; error?: string }> {
+  try {
+    return { value: await load() };
+  } catch (error) {
+    const detail = error instanceof Error ? error.message : "unknown API error";
+    return { value: null, error: `The ${label} request failed: ${detail}` };
+  }
+}
+
+function deltaClass(value: unknown): string {
+  const n = toFiniteNumber(value, Number.NaN);
+  if (!Number.isFinite(n) || n === 0) return styles.deltaNeutral;
+  return n > 0 ? styles.deltaPositive : styles.deltaNegative;
+}
+
+function deltaUnit(tile: SummaryTile): string {
+  if (tile.unit === "%" || tile.unit === "bps") return "bps 1D";
+  return tile.unit ? `${tile.unit} 1D` : "1D";
+}
+
+export function Tile({ tile }: { tile: SummaryTile }) {
+  return (
+    <article className={styles.kpiTile}>
+      <span>{tile.label}</span>
+      <strong>
+        {fmtValue(tile.value, tile.unit, tile.unit === "bps" ? 1 : 2)}
+      </strong>
+      <small className={deltaClass(tile.delta_1d)}>
+        {fmtSigned(tile.delta_1d, deltaUnit(tile))}
+      </small>
+    </article>
+  );
+}
+
+/**
+ * The desk header, in the board's grammar: `.sec-title` + `.sec-sub`, then the tier nav.
+ *
+ * This was a page lockup — an 18px mono uppercase "FED POLICY DESK." with a subtitle
+ * beside it and the snapshot line opposite. The board has no such thing: its tabs open
+ * with an `<h2>`, the question strip, a state pill where the tab has a state, and a
+ * standfirst. The lockup also said the same words as the tab bar directly above it, so
+ * the desk announced each tab twice, in two different typefaces.
+ *
+ * The nav is built from the caller's `NAV` rather than a shared list, so each tab
+ * anchors only into its own sections.
+ */
+export function DeskHeader({
+  title,
+  questions,
+  standfirst,
+  snapshot,
+  showState = false,
+}: {
+  /** The board's own `<h2>` text for this tab — "Fed · Policy", "Rates · Curve". */
+  title: string;
+  questions: BoardQuestions;
+  /** The board's `.sec-sub` standfirst. */
+  standfirst: ReactNode;
+  snapshot: Snapshot;
+  /** The board gives t1 a state pill on its title row and t2 none, because t2's tab is
+   *  the market's side and has no state of its own to summarise. */
+  showState?: boolean;
+}) {
+  return (
+    <header className={styles.header}>
+      <BoardSecTitle
+        title={title}
+        questions={questions}
+        aside={
+          <>
+            {showState ? (
+              <BoardStatePill
+                facts={snapshot.state}
+                testId="rates-desk-state-pill"
+                absent="no policy/rates state — the engine has not run for this instant"
+              />
+            ) : null}
+          </>
+        }
+      >
+        {standfirst}
+      </BoardSecTitle>
+    </header>
+  );
+}
+
+/**
+ * No snapshot. The two failures stay distinct: the API answering with an error is not
+ * the same fact as the worker never having computed a snapshot, and the headings differ
+ * so a browser test can tell which one it is looking at.
+ */
+export function DeskEmptyState({
+  eyebrow,
+  errorMessage,
+}: {
+  eyebrow: string;
+  errorMessage?: string;
+}) {
+  const hasError = Boolean(errorMessage);
+  return (
+    <div className={styles.page}>
+      <div className="board">
+        <div className={styles.emptyState}>
+          <p className={styles.eyebrow}>{eyebrow}</p>
+          <h1>
+            {hasError ? "Rates API unavailable" : "Rates snapshot not computed"}
+          </h1>
+          <p>
+            {hasError
+              ? errorMessage
+              : "Run the live FRED backfill or wait for the scheduled worker refresh."}
+          </p>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+/**
+ * Source freshness, rendered on BOTH desks deliberately.
+ *
+ * It is provenance for the one `RatesSnapshotResponse` that each tab already fetched,
+ * so showing it twice costs nothing — no extra request, no second clock. Hiding it from
+ * tab 01 would be the expensive choice: the policy and supply panels there read the
+ * same FRED feed, so a stale publisher would go invisible on the tab that depends on
+ * it. Two anchors named `sources` never collide because these are two documents.
+ */
