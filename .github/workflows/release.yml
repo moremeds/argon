@@ -4,181 +4,113 @@ on:
   push:
     tags: ["v*"]
 
+# Final releases mutate two shared :latest tags. Never let separate tag runs execute
+# concurrently. The cutter is intentionally sequential: do not queue multiple tags.
+concurrency:
+  group: argon-release
+  cancel-in-progress: false
+
 permissions:
   contents: read
+  actions: read
 
 jobs:
   verify:
-    name: verify (tagged commit)
+    name: verify tagged commit provenance
     runs-on: ubuntu-latest
-    services:
-      postgres:
-        image: postgres:15
-        env:
-          POSTGRES_USER: postgres
-          POSTGRES_PASSWORD: postgres
-          POSTGRES_DB: postgres
-        ports:
-          - 5432:5432
-        options: >-
-          --health-cmd "pg_isready -U postgres"
-          --health-interval 5s
-          --health-timeout 5s
-          --health-retries 10
-    env:
-      UW_SCAN_DB_HOST: 127.0.0.1
-      UW_SCAN_DB_PORT: 5432
-      UW_SCAN_DB_NAME: option_wizard_local
-      UW_SCAN_DB_SCHEMA: uw_scan
-      UW_SCAN_DB_USER: postgres
-      UW_SCAN_DB_PASSWORD: postgres
-      UW_SCAN_TEST_DB_NAME: option_wizard_test
+    outputs:
+      version: ${{ steps.release.outputs.version }}
+      is-prerelease: ${{ steps.release.outputs.prerelease }}
     steps:
       - uses: actions/checkout@v4
         with:
           fetch-depth: 0
 
-      - name: Install uv
-        uses: astral-sh/setup-uv@v3
-        with:
-          version: "latest"
-          enable-cache: true
-          cache-dependency-glob: uv.lock
+      - name: Require tagged commit to come from main
+        run: |
+          set -euo pipefail
+          git fetch --no-tags origin main
+          git merge-base --is-ancestor "$GITHUB_SHA" origin/main
 
-      # Runs BEFORE `uv sync` on purpose: `uv sync` auto-repairs uv.lock's editable
-      # self-version to match pyproject, which would mask a stale committed lock. We
-      # want the release to fail on the committed state. version_sync_check is
-      # stdlib-only, so system python3 (no uv) reads the lock exactly as committed.
-      - name: Version sync check (committed lock, pre-sync)
+      # CI is the single full-suite authority. The release PR merge starts a main
+      # push run; cut.sh waits for it before tagging, and this repeats the exact-SHA
+      # check as defense in depth for manually pushed tags. No coverage is removed:
+      # the same immutable commit must have passed every ci.yml job once.
+      - name: Require successful exact-SHA main CI
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          python3 scripts/release/require_ci_success.py \
+            --repo "$GITHUB_REPOSITORY" \
+            --sha "$GITHUB_SHA" \
+            --workflow ci.yml \
+            --branch main \
+            --timeout-seconds 1800
+
+      # Stdlib-only and deliberately before any dependency sync: validate committed
+      # VERSION/pyproject/package/lock bytes without uv auto-repairing the lock.
+      - name: Version sync check (committed state)
         run: python3 scripts/release/version_sync_check.py
 
-      - name: Sync deps
-        run: uv sync --extra postgres
-
-      - name: Assert tag matches VERSION (allow prerelease suffix)
-        # Catches a hand-pushed mistag (e.g. v0.5.0 on a VERSION=0.1.0 commit),
-        # which would otherwise publish an empty-notes release and make the poller
-        # deploy a tag whose checked-out VERSION disagrees. cut.sh tags v$(cat
-        # VERSION) so the sanctioned path always matches; prerelease tags
-        # (v0.1.0-rc1) are allowed as VERSION + "-<suffix>".
+      - name: Validate tag, changelog, and classify release
+        id: release
+        env:
+          TAG_NAME: ${{ github.ref_name }}
         run: |
-          TAGVER="${GITHUB_REF_NAME#v}"
-          FILEVER="$(cat VERSION)"
-          if [[ "$TAGVER" != "$FILEVER" && "$TAGVER" != "$FILEVER"-* ]]; then
-            echo "tag $GITHUB_REF_NAME does not match VERSION=$FILEVER (expected v$FILEVER or v$FILEVER-<pre>)" >&2
+          set -euo pipefail
+          FILE_VERSION="$(cat VERSION)"
+          MAIN_VERSION="$(git show origin/main:VERSION)"
+          python3 scripts/release/validate_release.py \
+            --tag-name "$TAG_NAME" \
+            --file-version "$FILE_VERSION" \
+            --main-version "$MAIN_VERSION" \
+            --github-output "$GITHUB_OUTPUT"
+
+          TAG_VERSION="${TAG_NAME#v}"
+          BASE_VERSION="${TAG_VERSION%%-*}"
+          source scripts/release/_lib.sh
+          NOTES="$(extract_changelog_section CHANGELOG.md "$BASE_VERSION")"
+          if [[ -z "${NOTES//[[:space:]]/}" ]]; then
+            echo "CHANGELOG section for $BASE_VERSION is empty" >&2
             exit 1
           fi
-          echo "tag/VERSION OK: $GITHUB_REF_NAME vs $FILEVER"
 
-      - name: Ruff
-        run: uv run ruff check src/ tests/ scripts/
-
-      - name: AST except handler check (Guardrail 2)
-        run: uv run python scripts/_lint_except.py src
-
-      - name: Guardrail greps (3, 5, 9)
-        run: |
-          set -e
-          ! grep -rE 'class _Fake(Cursor|Connection)' tests/integration/ || (echo "Guardrail 5 violation"; exit 1)
-          ! grep -rE '"\|".join\(' src/ || (echo "Guardrail 9 violation"; exit 1)
-          ! grep -rE 'from tests' src/ || (echo "Guardrail 3 violation"; exit 1)
-          ! grep -rE 'from uw_scan\.fixtures' src/ || (echo "Guardrail 3 violation"; exit 1)
-          echo "guardrail greps clean"
-
-      - name: Migration prefix guard
-        run: uv run python scripts/check_migration_prefixes.py
-
-      - name: Create option_wizard_local + option_wizard_test DBs
-        run: |
-          PGPASSWORD=postgres psql -h 127.0.0.1 -U postgres -d postgres -c "CREATE DATABASE option_wizard_local"
-          PGPASSWORD=postgres psql -h 127.0.0.1 -U postgres -d postgres -c "CREATE DATABASE option_wizard_test"
-
-      - name: Unit tests
-        run: uv run pytest tests/unit/ -v
-
-      - name: Integration tests (no live API)
-        run: uv run pytest tests/integration/ -v
-
-      - uses: actions/setup-node@v4
-        with:
-          node-version: "22"
-          cache: npm
-          cache-dependency-path: web/package-lock.json
-
-      - name: Install web deps
-        working-directory: web
-        run: npm ci
-
-      - name: Typecheck
-        working-directory: web
-        run: npm run typecheck
-
-      - name: Web unit tests
-        working-directory: web
-        run: npm run test
-
-      - name: Lint
-        working-directory: web
-        run: npm run lint
-
-      - name: Build
-        working-directory: web
-        run: npm run build
-
-  publish:
-    name: publish GitHub Release
+  image-preflight:
+    name: require new immutable image tags
     needs: verify
     runs-on: ubuntu-latest
     permissions:
-      contents: write
+      contents: read
+      packages: read
     steps:
       - uses: actions/checkout@v4
-
-      - name: Extract CHANGELOG section
-        id: changelog
-        run: |
-          # Strip any prerelease suffix (v0.1.0-rc1 -> 0.1.0) so a prerelease
-          # release carries its base version's CHANGELOG notes rather than empty
-          # notes (CHANGELOG headers track final versions only).
-          RAW="${GITHUB_REF_NAME#v}"
-          VERSION="${RAW%%-*}"
-          source scripts/release/_lib.sh
-          {
-            echo 'body<<EOF'
-            extract_changelog_section CHANGELOG.md "$VERSION"
-            echo 'EOF'
-          } >> "$GITHUB_OUTPUT"
-
-      - name: Classify release
-        id: rel
-        run: |
-          VERSION="${GITHUB_REF_NAME#v}"
-          if [[ "$VERSION" == *-* ]]; then
-            echo "prerelease=true" >> "$GITHUB_OUTPUT"
-          else
-            echo "prerelease=false" >> "$GITHUB_OUTPUT"
-          fi
-
-      - uses: softprops/action-gh-release@v3
+      - uses: docker/setup-buildx-action@v3
+      - uses: docker/login-action@v3
         with:
-          name: ${{ github.ref_name }}
-          body: ${{ steps.changelog.outputs.body }}
-          draft: false
-          prerelease: ${{ steps.rel.outputs.prerelease }}
-          make_latest: ${{ steps.rel.outputs.prerelease == 'false' }}
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
 
-  ghcr-push:
-    # Build + push the two argon images (app, web) to GHCR. Native arm64 runner
-    # — free on this PUBLIC repo, and deploys target the Apple Silicon mini, so
-    # build natively (no QEMU). The mini's single engine-wide Watchtower (in
-    # /opt/xenon/compose.yml, WATCHTOWER_LABEL_ENABLE=true) auto-deploys whatever
-    # :latest points at; a prerelease tag (hyphen) must never float :latest.
-    needs: verify
+      # Version tags are immutable release evidence. A rerun must never replace
+      # them with bytes rebuilt from drifted external inputs.
+      - name: Require both version tags to be absent
+        env:
+          RELEASE_VERSION: ${{ needs.verify.outputs.version }}
+        run: |
+          python3 scripts/release/promote_images.py require-absent \
+            --owner "$GITHUB_REPOSITORY_OWNER" \
+            --version "$RELEASE_VERSION" \
+            --images argon-app argon-web
+
+  build-images:
+    name: build immutable image (${{ matrix.image }})
+    needs: [verify, image-preflight]
     runs-on: ubuntu-24.04-arm
     permissions:
       contents: read
       packages: write
     strategy:
+      fail-fast: false
       matrix:
         include:
           - image: argon-app
@@ -193,35 +125,131 @@ jobs:
           registry: ghcr.io
           username: ${{ github.actor }}
           password: ${{ secrets.GITHUB_TOKEN }}
-      - name: Resolve image tags
+
+      - name: Resolve immutable image tag
         id: meta
+        env:
+          IMAGE_NAME: ${{ matrix.image }}
+          RELEASE_VERSION: ${{ needs.verify.outputs.version }}
         run: |
-          VERSION="${GITHUB_REF_NAME#v}"
-          REPO_OWNER="${GITHUB_REPOSITORY_OWNER,,}"
-          IMAGE="ghcr.io/${REPO_OWNER}/${{ matrix.image }}"
-          # Always publish the immutable version tag. Float :latest ONLY for
-          # final releases — a prerelease (hyphen, e.g. v0.9.0-rc1) must never
-          # become :latest, or the mini's Watchtower would auto-deploy it.
-          TAGS="${IMAGE}:${VERSION}"
-          if [[ "$VERSION" != *-* ]]; then
-            TAGS="${TAGS}"$'\n'"${IMAGE}:latest"
-          fi
-          {
-            echo "version=${VERSION}"
-            echo "tags<<TAGS_EOF"
-            echo "${TAGS}"
-            echo "TAGS_EOF"
-          } >> "$GITHUB_OUTPUT"
+          OWNER="${GITHUB_REPOSITORY_OWNER,,}"
+          echo "tag=ghcr.io/${OWNER}/${IMAGE_NAME}:${RELEASE_VERSION}" >> "$GITHUB_OUTPUT"
+
+      # Push only the immutable version here. Neither matrix leg can move :latest
+      # until both legs have succeeded and the promotion job has preflighted them.
       - uses: docker/build-push-action@v6
+        id: build
         with:
           context: .
           file: ${{ matrix.dockerfile }}
           platforms: linux/arm64
           push: true
-          tags: ${{ steps.meta.outputs.tags }}
+          tags: ${{ steps.meta.outputs.tag }}
           labels: |
             org.opencontainers.image.source=https://github.com/${{ github.repository }}
             org.opencontainers.image.revision=${{ github.sha }}
-            org.opencontainers.image.version=${{ steps.meta.outputs.version }}
+            org.opencontainers.image.version=${{ needs.verify.outputs.version }}
           cache-from: type=gha,scope=${{ matrix.image }}
           cache-to: type=gha,scope=${{ matrix.image }},mode=max
+
+      - name: Record build-produced digest
+        env:
+          IMAGE_NAME: ${{ matrix.image }}
+          IMAGE_DIGEST: ${{ steps.build.outputs.digest }}
+        run: |
+          set -euo pipefail
+          [[ "$IMAGE_DIGEST" =~ ^sha256:[0-9a-f]{64}$ ]]
+          mkdir -p image-digest
+          printf '%s\n' "$IMAGE_DIGEST" > "image-digest/$IMAGE_NAME"
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: image-digest-${{ matrix.image }}
+          path: image-digest/${{ matrix.image }}
+          if-no-files-found: error
+          retention-days: 1
+
+  promote-latest:
+    name: promote complete final image set to latest
+    needs: [verify, build-images]
+    if: ${{ needs.verify.outputs.is-prerelease == 'false' }}
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      packages: write
+    steps:
+      - uses: actions/checkout@v4
+      - uses: docker/setup-buildx-action@v3
+      - uses: docker/login-action@v3
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
+      - uses: actions/download-artifact@v4
+        with:
+          pattern: image-digest-*
+          path: image-digests
+          merge-multiple: true
+
+      - name: Promote both images with rollback
+        env:
+          RELEASE_VERSION: ${{ needs.verify.outputs.version }}
+        run: |
+          python3 scripts/release/promote_images.py promote \
+            --owner "$GITHUB_REPOSITORY_OWNER" \
+            --version "$RELEASE_VERSION" \
+            --digest-dir image-digests \
+            --images argon-app argon-web
+
+  publish:
+    name: publish GitHub Release after images
+    needs: [verify, build-images, promote-latest]
+    if: >-
+      ${{ always() &&
+          needs.verify.result == 'success' &&
+          needs.build-images.result == 'success' &&
+          (needs.verify.outputs.is-prerelease == 'true' ||
+           needs.promote-latest.result == 'success') }}
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Extract CHANGELOG section
+        id: changelog
+        env:
+          RELEASE_VERSION: ${{ needs.verify.outputs.version }}
+        run: |
+          BASE_VERSION="$RELEASE_VERSION"
+          BASE_VERSION="${BASE_VERSION%%-*}"
+          source scripts/release/_lib.sh
+          {
+            echo 'body<<EOF'
+            extract_changelog_section CHANGELOG.md "$BASE_VERSION"
+            echo 'EOF'
+          } >> "$GITHUB_OUTPUT"
+
+      - uses: softprops/action-gh-release@v3
+        with:
+          name: ${{ github.ref_name }}
+          body: ${{ steps.changelog.outputs.body }}
+          draft: false
+          prerelease: ${{ needs.verify.outputs.is-prerelease }}
+          make_latest: ${{ needs.verify.outputs.is-prerelease == 'false' }}
+
+      - name: Record deployment boundary
+        env:
+          IS_PRERELEASE: ${{ needs.verify.outputs.is-prerelease }}
+        run: |
+          {
+            echo "### Release artifacts published"
+            echo
+            echo "Immutable images and the GitHub Release are complete."
+            if [[ "$IS_PRERELEASE" == "false" ]]; then
+              echo "Both :latest tags were promoted; Watchtower deployment is asynchronous and is not verified by this workflow."
+            else
+              echo "Prerelease: :latest was not changed and Watchtower will not deploy it."
+            fi
+          } >> "$GITHUB_STEP_SUMMARY"

@@ -16,17 +16,23 @@ AI Codex/Claude workers are dropped in phase 1 (issue #248); DeepSeek survives.
 
 ## Images
 
-Two images, built + pushed by the `ghcr-push` job in `release.yml` on every tag
-(native `ubuntu-24.04-arm`, no QEMU):
+Two images, built + pushed by the `build-images` matrix in `release.yml` on every
+tag (native `ubuntu-24.04-arm`, no QEMU):
 
 - `ghcr.io/moremeds/argon-app` — api / workers / ws-consumer / migrator (one
   Python image; each service overrides `command:`). `.venv` on PATH → no
   `uv run` in-container.
 - `ghcr.io/moremeds/argon-web` — Next.js 16 standalone.
 
-`:X.Y.Z` is always published; `:latest` floats only for final releases
-(prerelease tags with a hyphen are excluded, so Watchtower never auto-deploys an
-rc). Local build smoke: `docker-compose build` (or per-image
+Before either build, the workflow requires both requested `:X.Y.Z` tags to be absent;
+an existing version tag is never overwritten by a rerun. Each matrix leg records its
+build-produced digest. A final release requires the complete version pair to resolve
+to those exact digests, then a separate promotion job moves both `:latest` tags; if
+a retag fails, it attempts to restore every touched image's previous digest. The
+GitHub Release is published only after that succeeds. Historical release tags are
+rejected once `origin/main:VERSION` advances. Prerelease tags with a hyphen skip
+promotion, so Watchtower never auto-deploys an rc. Local build smoke:
+`docker-compose build` (or per-image
 `docker build -f docker/app.Dockerfile -t argon-app:dev .`).
 
 ## Compose topology
@@ -59,7 +65,7 @@ override. `NEXT_INTERNAL_API_BASE=http://api:8400` is set in compose, not `.env`
 ## Cutover — phased, reversible
 
 ### Phase 0 — prep (done in this PR)
-Code + Dockerfiles + compose + `ghcr-push` merged; images published on the first
+Code + Dockerfiles + compose + GHCR build jobs merged; images published on the first
 tag after merge. Local smoke on the MacBook against `option_wizard_local`.
 
 ### Phase 1 — mini setup (no cutover yet)
@@ -112,8 +118,8 @@ were moved out of `~/Library/LaunchAgents` into `/opt/argon/retired-launchd-plis
 resurrecting them on reboot. Only `com.argon.backup` remains host-native (there
 is **one** backup plist, not two). On reboot the containers return via Docker's
 `restart: unless-stopped`, same as xenon/apex. Deploys now flow through the
-engine-wide Watchtower (new `:latest` image → auto-recreate), so the launchd
-`deploy-poller` + `macmini-prod.sh` path in `release.md` is superseded.
+engine-wide Watchtower (new `:latest` image → auto-recreate); the old launchd
+`deploy-poller` + `macmini-prod.sh` files are historical only.
 
 ## Rollback (any point)
 
@@ -134,6 +140,10 @@ docker-compose up -d`.
 - **Watchtower alerts route to xenon's ntfy topic** (`ntfy.sh/xenon-deploy-…`,
   titled "Xenon auto-deploy") — argon container updates show up there, branded as
   xenon. One shared deploy channel for the mini; expected, not a bug.
+- **GitHub Actions does not verify the live Watchtower result.** A green Release
+  workflow proves exact-SHA CI, immutable image publication, final tag promotion,
+  and GitHub Release publication. Confirm the mini separately with the health and
+  SSR checks above; do not read "Release artifacts published" as a deploy ACK.
 - **Env rotation** still needs a recreate: `docker-compose up -d --force-recreate
   <svc>` (same freeze-at-fork semantics as the launchd workers).
 - **Schema changes auto-apply on deploy.** The `api` service self-migrates

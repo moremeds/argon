@@ -89,10 +89,9 @@ PY
 
   # Re-lock so uv.lock's editable self-version matches the bumped pyproject. Without
   # this the committed lock lags (lock says $current, pyproject says $next); the first
-  # `uv run` on any host then rewrites that one line, dirtying the tree, and the
-  # mac-mini deploy poller refuses to deploy on a dirty tree — silently wedging prod on
-  # the last-deployed release. version_sync_check (below, and pre-sync in CI) enforces
-  # the match. See docs/runbooks/release.md.
+  # `uv run` then rewrites that one line and the frozen Docker build no longer reflects
+  # the reviewed bytes. version_sync_check (below, and pre-sync in CI) enforces the
+  # match. See docs/runbooks/release.md.
   uv lock
 
   uv run python scripts/release/version_sync_check.py || die "version_sync_check failed after bump"
@@ -113,10 +112,23 @@ version="$(cat VERSION)"
 git rev-parse "v$version" >/dev/null 2>&1 && die "tag v$version already exists"
 grep -q "^## \[$version\]" CHANGELOG.md || die "CHANGELOG has no section for $version"
 
+# The release PR merge starts main-push CI asynchronously. Local/main SHA equality
+# proves provenance but not that the exact commit passed every required gate, so wait
+# for that immutable CI result before creating a tag. release.yml repeats this check
+# as defense in depth for manually pushed tags.
+release_sha="$(git rev-parse HEAD)"
+say "Waiting for exact-SHA main CI success: $release_sha"
+uv run python scripts/release/require_ci_success.py \
+  --repo moremeds/argon \
+  --sha "$release_sha" \
+  --workflow ci.yml \
+  --branch main \
+  --timeout-seconds 1800 || die "exact-SHA main CI gate failed"
+
 section="$(extract_changelog_section CHANGELOG.md "$version")"
 say "Tagging v$version"
 git tag -a "v$version" -m "v$version
 
 $section"
 git push origin "v$version"
-say "Pushed tag v$version — release.yml verifies + publishes; the mini poller deploys after publish."
+say "Pushed tag v$version — release.yml builds the immutable image set, promotes final :latest tags, then publishes; Watchtower deployment is asynchronous."

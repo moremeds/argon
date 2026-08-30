@@ -62,30 +62,38 @@ def seed_vol_index_full_history(
     vix3m = np.clip(16.0 + rng.standard_normal(n).cumsum() * 0.5, 11.0, 55.0)
     cor1m = np.clip(50.0 + rng.standard_normal(n).cumsum() * 0.4, 20.0, 90.0)
 
+    stage = "_canary_v2a_vol_index_seed"
     with conn.cursor() as cur:
-        for i, d in enumerate(dates):
-            for symbol, close in (
-                ("SPX", spx[i]),
-                ("VIX", vix[i]),
-                ("VVIX", vvix[i]),
-                ("VIX3M", vix3m[i]),
-                ("COR1M", cor1m[i]),
-            ):
-                cur.execute(
-                    f"INSERT INTO {schema}.vol_index_daily "
-                    f"(symbol, trade_date, open, high, low, close, adj_close, volume) "
-                    f"VALUES (%s, %s, %s, %s, %s, %s, %s, 0) "
-                    f"ON CONFLICT (symbol, trade_date) DO NOTHING",
-                    (
-                        symbol,
-                        d,
-                        float(close),
-                        float(close),
-                        float(close),
-                        float(close),
-                        float(close),
-                    ),
-                )
+        # COPY removes ~5 * n client/server INSERT round trips while the merge keeps
+        # the helper's original ON CONFLICT DO NOTHING semantics. ON COMMIT DROP
+        # makes repeated calls on the same test connection deterministic.
+        cur.execute(
+            f'CREATE TEMP TABLE "{stage}" '
+            f"(LIKE {schema}.vol_index_daily INCLUDING DEFAULTS) ON COMMIT DROP"
+        )
+        with cur.copy(
+            f'COPY "{stage}" '
+            "(symbol, trade_date, open, high, low, close, adj_close, volume) "
+            "FROM STDIN"
+        ) as copy:
+            for i, d in enumerate(dates):
+                for symbol, close in (
+                    ("SPX", spx[i]),
+                    ("VIX", vix[i]),
+                    ("VVIX", vvix[i]),
+                    ("VIX3M", vix3m[i]),
+                    ("COR1M", cor1m[i]),
+                ):
+                    value = float(close)
+                    copy.write_row(
+                        (symbol, d, value, value, value, value, value, 0)
+                    )
+        cur.execute(
+            f"INSERT INTO {schema}.vol_index_daily "
+            "(symbol, trade_date, open, high, low, close, adj_close, volume) "
+            f'SELECT symbol, trade_date, open, high, low, close, adj_close, volume FROM "{stage}" '
+            "ON CONFLICT (symbol, trade_date) DO NOTHING"
+        )
     conn.commit()
     return dates
 
