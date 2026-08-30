@@ -120,16 +120,20 @@ pytest/xdist/pytest-split, psycopg 3, PostgreSQL 15, Vitest/Next.js.
 
 1. Record the v0.13.1 baseline integration node IDs; expected 1,658.
 2. Run the complete integration suite with `-n auto --store-durations`; do not filter,
-   deselect, shorten history, or exclude slow tests.
-3. Record post-change node IDs and require zero baseline removals; expect one added
+   deselect, shorten history, or exclude slow tests. Treat this as a candidate
+   scheduling manifest, not coverage evidence.
+3. Reject a candidate captured under mismatched concurrency if lock/checkpoint waits
+   poison individual durations. Keep the last GitHub-calibrated baseline and add the
+   new test's measured duration when that is the safer scheduler input.
+4. Record post-change node IDs and require zero baseline removals; expect one added
    real-Postgres batching regression test (1,659 total).
-4. Run the complete Python static/unit gate, four integration shard commands, web
+5. Run the complete Python static/unit gate, four integration shard commands, web
    typecheck/test/lint/build, and technicals Playwright regression.
-5. Validate YAML/actionlint, Docker promotion helper tests, shell syntax, and clean
+6. Validate YAML/actionlint, Docker promotion helper tests, shell syntax, and clean
    version synchronization.
-6. Inspect the final diff for any test deletion, skip-marker addition, or coverage
+7. Inspect the final diff for any test deletion, skip-marker addition, or coverage
    reduction.
-7. Report results and residual deployment-verification limitation; do not commit,
+8. Report results and residual deployment-verification limitation; do not commit,
    push, open a PR, or deploy without user approval.
 
 ### Task 8: Adversarial release hardening

@@ -21,7 +21,9 @@ version in lockstep (enforced by `scripts/release/version_sync_check.py`).
 - **Canary integration setup and AUC computation are faster without shorter history
   or reduced assertions.** Synthetic vol-index history uses Postgres COPY plus the
   same conflict-safe merge semantics, and AUC uses an exactly tie-preserving
-  O(n log n) rank pass instead of the O(n²) pairwise loop.
+  O(n log n) rank pass instead of the O(n²) pairwise loop. Duration scheduling keeps
+  the GitHub-calibrated baseline plus the new test measurement; a regression guard
+  rejects local lock/checkpoint waits masquerading as 60+ second single-test costs.
 
 ## [0.13.1] — 2026-08-30
 
