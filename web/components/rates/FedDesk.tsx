@@ -154,54 +154,54 @@ export function FedDesk({
         </div>
 
         {/* Two publishers, two full-width panels, two sets of axes. */}
-          {/* Two publishers, two panels, two sets of axes. They were one section holding
+        {/* Two publishers, two panels, two sets of axes. They were one section holding
             both plots; the board separates them, and the separation is the point -- a
             shared frame would draw the comparison this desk refuses to make. */}
-          <RatesSection
-            id="dealer-plot"
-            title="Dealer path"
-            eyebrow="Primary-dealer survey · each release against its own date"
-            questions={["Q2", "Q3", "Q6"]}
-            basis="REAL"
-            source="/api/macro/policy · dealer_expectations"
-          >
-            <DealerPathChart slot={policyComparison?.dealer_expectations} />
-          </RatesSection>
+        <RatesSection
+          id="dealer-plot"
+          title="Dealer path"
+          eyebrow="Primary-dealer survey · each release against its own date"
+          questions={["Q2", "Q3", "Q6"]}
+          basis="REAL"
+          source="/api/macro/policy · dealer_expectations"
+        >
+          <DealerPathChart slot={policyComparison?.dealer_expectations} />
+        </RatesSection>
 
-          <RatesSection
-            id="sep-plot"
-            title="Fed projections"
-            eyebrow="FOMC SEP · dots stay anonymous"
-            questions={["Q1", "Q3"]}
-            basis="REAL"
-            source="/api/macro/policy · committee_projection"
-          >
-            <SepDotPlot slot={policyComparison?.committee_projection} />
-          </RatesSection>
+        <RatesSection
+          id="sep-plot"
+          title="Fed projections"
+          eyebrow="FOMC SEP · dots stay anonymous"
+          questions={["Q1", "Q3"]}
+          basis="REAL"
+          source="/api/macro/policy · committee_projection"
+        >
+          <SepDotPlot slot={policyComparison?.committee_projection} />
+        </RatesSection>
 
         {/* The board puts the state AFTER the publishers, not before, and it is right to:
           the state is a reading OF those four lanes, and printing it first invites it to
           be read as a fifth opinion rather than a verdict on the other four. */}
         <div className="grid g2">
           <RatesSection
-          id="state"
-          title="Policy state"
-          eyebrow="Point-in-time evidence"
-          questions={["Q1", "Q7"]}
-          basis="COMPUTED"
-          source="/api/rates/snapshot.state; fallback /api/macro/rates"
-        >
-          <StateSection state={stateSummary} />
+            id="state"
+            title="Policy state"
+            eyebrow="Point-in-time evidence"
+            questions={["Q1", "Q7"]}
+            basis="COMPUTED"
+            source="/api/rates/snapshot.state; fallback /api/macro/rates"
+          >
+            <StateSection state={stateSummary} />
           </RatesSection>
 
           <RatesSection
-          id="policy"
-          title="Liquidity"
-          questions={["Q4"]}
-          basis="REAL"
-          source="/api/rates/snapshot.policy"
-        >
-          <PolicySection policy={policy} />
+            id="policy"
+            title="Liquidity"
+            questions={["Q4"]}
+            basis="REAL"
+            source="/api/rates/snapshot.policy"
+          >
+            <PolicySection policy={policy} />
           </RatesSection>
         </div>
 
@@ -210,8 +210,8 @@ export function FedDesk({
             id="events"
             title="Next events"
             questions={["Q6"]}
-            basis="REAL"
-            source="/api/rates/snapshot.events"
+            basis="PLANNED"
+            source="/api/rates/snapshot.events · no producer wired"
           >
             {snapshot.events?.length ? (
               <div className="tbl-wrap">
@@ -228,14 +228,18 @@ export function FedDesk({
                       <tr key={`${event.event_date}-${event.label}`}>
                         <td className="num">{event.event_date ?? "—"}</td>
                         <td>{event.label}</td>
-                        <td>{event.source ?? `${event.importance} importance`}</td>
+                        <td>
+                          {event.source ?? `${event.importance} importance`}
+                        </td>
                       </tr>
                     ))}
                   </tbody>
                 </table>
               </div>
             ) : (
-              <p className="read">Official events/news source not wired in Phase 1.</p>
+              <p className="read">
+                Official events/news source not wired in Phase 1.
+              </p>
             )}
           </RatesSection>
 

@@ -18,6 +18,7 @@ vi.mock("next/link", () => ({
 }));
 
 import { MacroMasthead } from "@/components/macro/MacroMasthead";
+import { MacroFooter } from "@/components/macro/MacroFooter";
 
 describe("MacroMasthead", () => {
   it("renders a compact operator header above the tab strip", () => {
@@ -34,7 +35,7 @@ describe("MacroMasthead", () => {
     expect(container.firstElementChild?.className).toBe("appbar");
     expect(screen.getByRole("heading", { level: 1 }).textContent).toBe("Macro");
     expect(screen.getByText("Inflation → Policy → Dollar → Gold")).toBeTruthy();
-    expect(screen.getByText(/chain complete/i)).toBeTruthy();
+    expect(screen.getByText(/live chain complete/i)).toBeTruthy();
     expect(screen.getByText(/2026-08-26 07:40 UTC\+8/)).toBeTruthy();
     const replayMenu = screen.getByTestId("macro-replay-menu");
     expect(replayMenu.tagName).toBe("DETAILS");
@@ -53,9 +54,15 @@ describe("MacroMasthead", () => {
         today="2026-08-29"
       />,
     );
-    expect(screen.getByText(/chain unavailable/i)).toBeTruthy();
-    expect(container.querySelectorAll(".mast-meta .chip")[1]?.textContent).toMatch(
-      /as_of unavailable/i,
-    );
+    expect(screen.getByText(/live chain unavailable/i)).toBeTruthy();
+    expect(
+      container.querySelectorAll(".mast-meta .chip")[1]?.textContent,
+    ).toMatch(/as_of unavailable/i);
+  });
+
+  it("labels the layout footer as live even beside a replayed tab", () => {
+    render(<MacroFooter snapshotAsOf="2026-08-25T23:40:00Z" />);
+
+    expect(screen.getByText(/Live snapshot 2026-08-25T23:40:00Z/)).toBeTruthy();
   });
 });

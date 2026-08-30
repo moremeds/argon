@@ -24,11 +24,7 @@ function formatAsOf(value: string | null): string {
   return `${part("year")}-${part("month")}-${part("day")} ${part("hour")}:${part("minute")} UTC+8`;
 }
 
-export function MacroMasthead({
-  snapshotStatus,
-  snapshotAsOf,
-  today,
-}: Props) {
+export function MacroMasthead({ snapshotStatus, snapshotAsOf, today }: Props) {
   const available = snapshotStatus !== "unavailable";
   const statusLabel = snapshotStatus.replaceAll("_", " ");
   return (
@@ -41,7 +37,8 @@ export function MacroMasthead({
           </div>
           <div className="mast-meta">
             <span className={`chip${available ? " ok" : ""}`}>
-              <span className="dot" />chain {statusLabel}
+              <span className="dot" />
+              live chain {statusLabel}
             </span>
             <MacroReplayMenu
               liveAsOfLabel={formatAsOf(snapshotAsOf)}

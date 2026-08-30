@@ -38,6 +38,14 @@ describe("FedDesk", () => {
     ]);
   });
 
+  it("marks the unwired event calendar as planned, not real data", () => {
+    render(<FedDesk snapshot={SNAPSHOT} />);
+
+    const events = screen.getByRole("region", { name: /next events/i });
+    expect(events.getAttribute("data-basis")).toBe("PLANNED");
+    expect(events.textContent).toMatch(/no producer wired/i);
+  });
+
   it("uses the artifact heading and panel anchors without an extra jump-nav", () => {
     render(<FedDesk snapshot={SNAPSHOT} />);
 
@@ -63,12 +71,10 @@ describe("FedDesk", () => {
     // The board's own t1 heading, replacing the "Fed Policy Desk." page lockup: the tab
     // bar one line above already says these words, and the board's tabs open with an
     // `<h2>` + question strip + state pill, not a second page title.
+    expect(screen.getByRole("heading", { name: "Fed", level: 2 })).toBeTruthy();
     expect(
-      screen.getByRole("heading", { name: "Fed", level: 2 }),
-    ).toBeTruthy();
-    expect(document.querySelector(".sec-title")?.getAttribute("data-questions")).toBe(
-      "Q1 Q2 Q3 Q5 Q7",
-    );
+      document.querySelector(".sec-title")?.getAttribute("data-questions"),
+    ).toBe("Q1 Q2 Q3 Q5 Q7");
     expect(screen.queryByText(/Snapshot update/)).toBeNull();
   });
 
@@ -127,7 +133,9 @@ describe("FedDesk", () => {
 
   it("does not add a standalone source-freshness panel absent from the artifact", () => {
     render(<FedDesk snapshot={SNAPSHOT} />);
-    expect(screen.queryByRole("region", { name: /source freshness/i })).toBeNull();
+    expect(
+      screen.queryByRole("region", { name: /source freshness/i }),
+    ).toBeNull();
   });
 
   it("renders an explicit empty state when no snapshot exists", () => {
