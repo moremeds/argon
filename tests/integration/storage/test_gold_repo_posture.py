@@ -12,6 +12,8 @@ from uw_scan.storage.repository import Repository
 @pytest.fixture
 def repo(seeded_db_empty_cards) -> Repository:
     return seeded_db_empty_cards
+
+
 def _kwargs_for_posture(**overrides):
     base = dict(
         obs_date=date(2026, 5, 16),
@@ -101,6 +103,35 @@ def test_fetch_gold_gauge_history_uses_first_active_compute_per_day(
         (date(2026, 5, 11), Decimal("-0.17")),
     ]
     assert rows[0]["gauge_corr_252d"] == Decimal("-0.42")
+
+
+def test_fetch_gold_gauge_history_excludes_rows_computed_after_replay_instant(
+    repo: Repository,
+) -> None:
+    repo.insert_gold_posture_daily(
+        **_kwargs_for_posture(
+            obs_date=date(2026, 5, 10),
+            computed_at=datetime(2026, 5, 11, 21, tzinfo=UTC),
+            gauge_corr_60d=Decimal("-0.79"),
+        )
+    )
+    repo.insert_gold_posture_daily(
+        **_kwargs_for_posture(
+            obs_date=date(2026, 5, 11),
+            computed_at=datetime(2026, 5, 13, 21, tzinfo=UTC),
+            gauge_corr_60d=Decimal("0.91"),
+        )
+    )
+
+    rows = repo.fetch_gold_gauge_history(
+        from_date=date(2026, 5, 10),
+        to_date=date(2026, 5, 11),
+        as_of_max=datetime(2026, 5, 12, 23, 59, tzinfo=UTC),
+    )
+
+    assert [(row["obs_date"], row["gauge_corr_60d"]) for row in rows] == [
+        (date(2026, 5, 10), Decimal("-0.79"))
+    ]
 
 
 def test_latest_skips_invalidated_rows(repo: Repository) -> None:

@@ -371,16 +371,29 @@ def _state_from_row(
 
 
 @router.get("/gauge", response_model=GoldGaugeResponse)
-def get_gauge(repo: Repository = Depends(get_repo)) -> GoldGaugeResponse:
-    today = date.today()
-    gold_rows = repo.fetch_macro_series_daily("GLD_CLOSE", to_date=today)
-    dfii10_rows = repo.fetch_macro_series_daily("DFII10", to_date=today)
+def get_gauge(
+    as_of: date | None = Query(
+        None,
+        description="UTC calendar date; replay includes evidence available by day-end.",
+    ),
+    repo: Repository = Depends(get_repo),
+) -> GoldGaugeResponse:
+    today = as_of or date.today()
+    as_of_max = resolve_instant(as_of, None) if as_of is not None else None
+    gold_rows = repo.fetch_macro_series_daily(
+        "GLD_CLOSE", to_date=today, as_of_max=as_of_max
+    )
+    dfii10_rows = repo.fetch_macro_series_daily(
+        "DFII10", to_date=today, as_of_max=as_of_max
+    )
     gold_series = [(r["obs_date"], r["value"]) for r in gold_rows]
     dfii10_series = [(r["obs_date"], r["value"]) for r in dfii10_rows]
     current = compute_correlation_gauge(gold_series, dfii10_series, as_of=today)
 
     rows = repo.fetch_gold_gauge_history(
-        from_date=today - timedelta(days=5 * 365), to_date=today
+        from_date=today - timedelta(days=5 * 365),
+        to_date=today,
+        as_of_max=as_of_max,
     )
     history_60d = [
         GoldGauge60dTimeSeriesPoint(

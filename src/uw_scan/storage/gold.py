@@ -12,7 +12,6 @@ import psycopg
 from psycopg.types.json import Jsonb
 
 
-
 class _GoldMixin:
     _conn: psycopg.Connection
     _schema: str
@@ -834,6 +833,7 @@ class _GoldMixin:
         *,
         from_date: _date | None = None,
         to_date: _date | None = None,
+        as_of_max: datetime | None = None,
     ) -> list[dict[str, Any]]:
         """Return the first active persisted gauge reading for each market day."""
         clauses = ["row_status = 'active'"]
@@ -844,6 +844,9 @@ class _GoldMixin:
         if to_date is not None:
             clauses.append("obs_date <= %s")
             params.append(to_date)
+        if as_of_max is not None:
+            clauses.append("computed_at <= %s")
+            params.append(as_of_max)
         where = " AND ".join(clauses)
         with self._conn.cursor() as cur:
             cur.execute(

@@ -79,6 +79,35 @@ def test_gauge_endpoint_returns_current_corr_history(
     assert isinstance(body["history_252d"], list)
 
 
+def test_gauge_endpoint_bounds_series_and_history_to_replay_day_end(
+    app_with_seed: TestClient,
+) -> None:
+    class RecordingRepo:
+        def __init__(self) -> None:
+            self.series_calls: list[dict[str, object]] = []
+            self.history_call: dict[str, object] = {}
+
+        def fetch_macro_series_daily(self, series_id: str, **kwargs):
+            self.series_calls.append({"series_id": series_id, **kwargs})
+            return []
+
+        def fetch_gold_gauge_history(self, **kwargs):
+            self.history_call = kwargs
+            return []
+
+    repo = RecordingRepo()
+    app_with_seed.app.dependency_overrides[get_repo] = lambda: repo
+
+    response = app_with_seed.get("/api/gold/gauge?as_of=2025-01-02")
+
+    assert response.status_code == 200
+    expected_instant = datetime(2025, 1, 2, 23, 59, 59, 999999, tzinfo=UTC)
+    assert {call["to_date"] for call in repo.series_calls} == {date(2025, 1, 2)}
+    assert {call["as_of_max"] for call in repo.series_calls} == {expected_instant}
+    assert repo.history_call["to_date"] == date(2025, 1, 2)
+    assert repo.history_call["as_of_max"] == expected_instant
+
+
 def test_inputs_endpoint_returns_series_points(app_with_seed: TestClient) -> None:
     response = app_with_seed.get("/api/gold/inputs/DFII10?from=2025-01-01")
     assert response.status_code == 200

@@ -71,7 +71,8 @@ describe("gold API client", () => {
     const spy = stubFetch({
       ok: true,
       status: 200,
-      text: () => Promise.resolve(JSON.stringify({ series_id: "DFII10", points: [] })),
+      text: () =>
+        Promise.resolve(JSON.stringify({ series_id: "DFII10", points: [] })),
     });
 
     await api.goldInputSeries("DFII10", {
@@ -86,5 +87,20 @@ describe("gold API client", () => {
 
     expect(spy.mock.calls[0][0]).toContain("as_of=2026-08-22");
     expect(spy.mock.calls[1][0]).not.toContain("as_of=");
+  });
+
+  it("bounds the replayed gauge but leaves the live gauge unbounded", async () => {
+    const spy = stubFetch({
+      ok: true,
+      status: 200,
+      text: () =>
+        Promise.resolve(JSON.stringify({ current: {}, history_252d: [] })),
+    });
+
+    await api.goldGauge("2026-08-22");
+    await api.goldGauge();
+
+    expect(spy.mock.calls[0][0]).toContain("/api/gold/gauge?as_of=2026-08-22");
+    expect(spy.mock.calls[1][0]).toBe("/api/gold/gauge");
   });
 });

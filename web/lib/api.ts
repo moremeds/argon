@@ -449,10 +449,14 @@ export const api = {
   // The port plan's §4.5 declined this route as expensive ("262 correlation gauges per
   // request"). Re-measured 2026-08-29: 50ms, against 29ms for `/api/gold/state`. The
   // reason no longer holds; the note stays so it is not re-derived a third time.
-  goldGauge: (): Promise<GoldGaugeResponse | null> =>
-    _fetch<GoldGaugeResponse | null>(`/api/gold/gauge`, undefined, {
-      allow404: true,
-    }),
+  goldGauge: (asOf?: string): Promise<GoldGaugeResponse | null> =>
+    _fetch<GoldGaugeResponse | null>(
+      `/api/gold/gauge${asOfQuery(asOf)}`,
+      undefined,
+      {
+        allow404: true,
+      },
+    ),
   goldLens: (
     lensId: "structural" | "cyclical" | "valuation",
   ): Promise<GoldLensResponse | null> =>
