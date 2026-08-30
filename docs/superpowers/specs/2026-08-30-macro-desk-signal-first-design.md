@@ -156,3 +156,28 @@ classification and reject frozen analytical values in planned panels.
 4. The browser sweep finds no visible snake_case identifiers on operator tabs.
 5. Screenshots of Overview, Fed, Inflation, Gold, and Method are reviewed against Regime's
    hierarchy and information density.
+
+## Release correctness addendum
+
+The final production audit adds four requirements to the dynamic-binding contract:
+
+1. **Replay market series are vintage-bounded.** Observation-date windows answer which
+   market days belong in a chart; they do not answer which vintage the desk knew. The
+   gold-input and persisted-gauge readers must also apply the replay day-end as an
+   `as_of`/`computed_at` ceiling. Live requests continue to omit that ceiling.
+2. **The web remains compatible with the previous API image.** `argon-app` and
+   `argon-web` publish independently and Watchtower does not guarantee their update
+   order. A missing newly-added response field must degrade to an empty, named slot
+   rather than throw while the old API is still serving.
+3. **Live shell state is labelled live during replay.** The layout-level chain snapshot
+   intentionally remains a current operational read. Its chip and footer must say
+   `Live chain` and `Live snapshot` so the adjacent replay date cannot make it look like
+   a historical answer.
+4. **A response field with no producer is not Live.** The rates event list is empty by
+   construction. Until an event producer exists, its panel is `Planned` even though the
+   stable response contract retains the field.
+
+No requirement above needs a schema migration or seed. Persisted gold posture rows and
+rates snapshots already carry the columns and history needed for the new reads. The
+corrected confidence-term metadata becomes current through the normal ordered macro-state
+worker pass after deployment, never through direct production SQL.
