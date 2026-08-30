@@ -178,3 +178,19 @@ PR after CI, then run `scripts/release/cut.sh tag`.
 
 Finally verify production version, DB health, Gold gauge history, rates replay bounds,
 Frenzy distributions, current confidence-term kinds, and all nine Macro routes.
+
+## Completion record
+
+Completed 2026-08-30. Tasks 1–4 followed RED/GREEN TDD and were saved as separate
+milestone commits. Task 3 used a focused `overviewTabBinding` unit boundary rather than
+modifying the broad desk renderer test: it directly exercises the async route component,
+captures the props handed to presentation, and reproduces the old-API missing-field crash.
+
+Release gate evidence before push:
+
+- backend: 4470 passed, 0 failed, 14 skipped;
+- web: 142 files and 1104 tests passed;
+- TypeScript, ESLint, Ruff, and the Next.js production build passed;
+- real-browser sweep: all nine tabs at 1280, 1440, and 1660px, with zero horizontal
+  overflow, error boundaries, console errors, or page errors;
+- replay Overview showed the layout's `live chain` and `Live snapshot` labels explicitly.
