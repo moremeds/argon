@@ -472,11 +472,12 @@ export const api = {
   // the panel's row list is the panel's data.
   goldInputSeries: (
     seriesId: string,
-    range?: { from?: string; to?: string },
+    range?: { from?: string; to?: string; asOf?: string },
   ): Promise<GoldInputSeriesResponse | null> => {
     const qs = new URLSearchParams();
     if (range?.from) qs.set("from", range.from);
     if (range?.to) qs.set("to", range.to);
+    if (range?.asOf) qs.set("as_of", range.asOf);
     const suffix = qs.toString() ? `?${qs}` : "";
     return _fetch<GoldInputSeriesResponse | null>(
       `/api/gold/inputs/${encodeURIComponent(seriesId)}${suffix}`,

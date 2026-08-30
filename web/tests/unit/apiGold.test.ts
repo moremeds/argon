@@ -66,4 +66,25 @@ describe("gold API client", () => {
 
     expect(spy.mock.calls[0][0]).toContain("/api/gold/lenses/structural");
   });
+
+  it("bounds replayed input vintages but leaves live input requests unbounded", async () => {
+    const spy = stubFetch({
+      ok: true,
+      status: 200,
+      text: () => Promise.resolve(JSON.stringify({ series_id: "DFII10", points: [] })),
+    });
+
+    await api.goldInputSeries("DFII10", {
+      from: "2026-08-15",
+      to: "2026-08-22",
+      asOf: "2026-08-22",
+    });
+    await api.goldInputSeries("DFII10", {
+      from: "2026-08-15",
+      to: "2026-08-22",
+    });
+
+    expect(spy.mock.calls[0][0]).toContain("as_of=2026-08-22");
+    expect(spy.mock.calls[1][0]).not.toContain("as_of=");
+  });
 });

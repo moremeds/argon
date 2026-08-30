@@ -87,6 +87,38 @@ def test_inputs_endpoint_returns_series_points(app_with_seed: TestClient) -> Non
     assert len(body["points"]) > 100
 
 
+def test_inputs_endpoint_replay_excludes_vintages_seen_after_day_end(
+    app_with_seed: TestClient,
+) -> None:
+    app = app_with_seed.app
+    settings = app.dependency_overrides[get_settings]()
+    with psycopg.connect(settings.db_dsn()) as conn:
+        repo = Repository(conn, schema=settings.db_schema)
+        repo.insert_macro_series_daily(
+            "DFII10",
+            date(2025, 1, 1),
+            Decimal("9.99"),
+            datetime(2025, 1, 3, tzinfo=UTC),
+            None,
+            "FRED",
+            None,
+        )
+        conn.commit()
+
+    response = app_with_seed.get(
+        "/api/gold/inputs/DFII10?from=2025-01-01&to=2025-01-01&as_of=2025-01-02"
+    )
+
+    assert response.status_code == 200
+    points = response.json()["points"]
+    assert [(point["obs_date"], point["value"]) for point in points] == [
+        ("2025-01-01", "2.0")
+    ]
+    assert datetime.fromisoformat(points[0]["as_of"]).astimezone(UTC) == datetime(
+        2025, 1, 1, tzinfo=UTC
+    )
+
+
 def test_inputs_endpoint_unknown_series_returns_empty(
     app_with_seed: TestClient,
 ) -> None:

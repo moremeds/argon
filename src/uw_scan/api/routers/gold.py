@@ -18,6 +18,7 @@ from typing import Any, Literal
 from fastapi import APIRouter, Depends, HTTPException, Query
 
 from uw_scan.api.deps import get_repo
+from uw_scan.api.routers.macro import resolve_instant
 from uw_scan.cards.regime_gauge import compute_correlation_gauge
 from uw_scan.models import (
     GoldCbCountryHistory,
@@ -413,10 +414,17 @@ def get_input_series(
     series_id: str,
     from_date: date | None = Query(None, alias="from"),
     to_date: date | None = Query(None, alias="to"),
+    as_of: date | None = Query(
+        None,
+        description="UTC calendar date; replay includes vintages available by day-end.",
+    ),
     repo: Repository = Depends(get_repo),
 ) -> GoldInputSeriesResponse:
     rows = repo.fetch_macro_series_daily(
-        series_id, from_date=from_date, to_date=to_date
+        series_id,
+        from_date=from_date,
+        to_date=to_date,
+        as_of_max=resolve_instant(as_of, None) if as_of is not None else None,
     )
     points = [
         GoldInputSeriesPoint(
