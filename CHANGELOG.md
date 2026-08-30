@@ -7,6 +7,22 @@ version in lockstep (enforced by `scripts/release/version_sync_check.py`).
 
 ## [Unreleased]
 
+### Changed
+
+- **Release waits for the exact merged SHA's full main CI instead of serially
+  rerunning a drifting subset.** No tests are removed or skipped: the unchanged
+  main-push suite remains the single authority, while tag validation rechecks its
+  immutable result. Both arm64 images now publish immutable version tags before a
+  final-only, rollback-capable `:latest` promotion; the GitHub Release is published
+  last, and prereleases still never move `:latest`. Strict SemVer/current-main
+  validation blocks historical release replay; an existing version image tag is
+  never overwritten, and final promotion accepts only the exact digests emitted by
+  the current build jobs.
+- **Canary integration setup and AUC computation are faster without shorter history
+  or reduced assertions.** Synthetic vol-index history uses Postgres COPY plus the
+  same conflict-safe merge semantics, and AUC uses an exactly tie-preserving
+  O(n log n) rank pass instead of the O(n²) pairwise loop.
+
 ## [0.13.1] — 2026-08-30
 
 
