@@ -7,6 +7,9 @@ version in lockstep (enforced by `scripts/release/version_sync_check.py`).
 
 ## [Unreleased]
 
+## [0.13.1] — 2026-08-30
+
+
 ### Added
 
 - **The macro desk has a front door.** Tab 00 registers at `/macro/overview` and `/macro`
@@ -481,7 +484,6 @@ version in lockstep (enforced by `scripts/release/version_sync_check.py`).
     makes the count 2, and reverting either half of the fix now fails two tests. Measured both ways.
   - The irony is written into the contract itself: `kind` exists so that consumers need not match on
     term strings, and `kind` was the field that was wrong.
-
 ## [0.13.0] — 2026-08-29
 
 ### Added
