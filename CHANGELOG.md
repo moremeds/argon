@@ -390,6 +390,16 @@ version in lockstep (enforced by `scripts/release/version_sync_check.py`).
 
 ### Fixed
 
+- **Macro replay now binds every Gold input it displays to the requested instant.**
+  `/api/gold/inputs/{series_id}` rejects vintages first seen after the replay day's UTC
+  close, while `/api/gold/gauge` applies that same cutoff to both its source series and
+  persisted gauge history. Overview passes the date to both routes and treats a missing
+  `history_60d` as empty coverage, so a Web image deployed briefly beside the previous API
+  cannot crash. The always-live layout chain and footer now say **live** even beside a
+  replayed tab, and the Fed event calendar says **Planned · no producer wired** instead of
+  presenting its permanently empty field as real data. This is a read-contract change
+  only: no schema migration, seed, or production backfill is required.
+
 - **Macro content no longer creates horizontal scroll at supported desktop widths.** The
   shell, charts, tables, confidence terms and chain cards fit or wrap at 1280, 1440 and
   1660px while preserving the left navigation and vertical reading flow. A production

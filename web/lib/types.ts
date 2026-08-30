@@ -15181,7 +15181,10 @@ export interface operations {
     };
     get_gauge_api_gold_gauge_get: {
         parameters: {
-            query?: never;
+            query?: {
+                /** @description UTC calendar date; replay includes evidence available by day-end. */
+                as_of?: string | null;
+            };
             header?: never;
             path?: never;
             cookie?: never;
@@ -15197,6 +15200,15 @@ export interface operations {
                     "application/json": components["schemas"]["GoldGaugeResponse"];
                 };
             };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
         };
     };
     get_input_series_api_gold_inputs__series_id__get: {
@@ -15204,6 +15216,8 @@ export interface operations {
             query?: {
                 from?: string | null;
                 to?: string | null;
+                /** @description UTC calendar date; replay includes vintages available by day-end. */
+                as_of?: string | null;
             };
             header?: never;
             path: {
