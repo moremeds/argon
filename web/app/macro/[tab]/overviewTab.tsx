@@ -4,9 +4,7 @@ import {
   type DeltaSeries,
   type DomainWeek,
 } from "@/components/macro/overview/zone1";
-import {
-  replayVerdictForDomainState,
-} from "@/components/macro/replay";
+import { replayVerdictForDomainState } from "@/components/macro/replay";
 import type { MacroTabProps } from "@/components/macro/tabs";
 import type {
   MacroContextSnapshot,
@@ -84,7 +82,7 @@ export async function OverviewTab({ replay }: MacroTabProps) {
     settle(() => api.macroDomainState("gold", asOf), "gold state API"),
     settle(() => api.macroContextSnapshot(asOf), "macro context snapshot API"),
     settle(() => api.macroPolicy(asOf), "macro policy comparison API"),
-    settle(() => api.goldGauge(), "gold gauge API"),
+    settle(() => api.goldGauge(asOf), "gold gauge API"),
     // The prior-instant reads. These deliberately carry NO replay verdict: they are
     // evidence inside one panel, not a publisher the tab stands on, and giving them a
     // verdict would let a missing week-ago state withhold the whole tab.
@@ -110,6 +108,7 @@ export async function OverviewTab({ replay }: MacroTabProps) {
           api.goldInputSeries(spec.id, {
             from: priorAsOf,
             to: anchor.toISOString().slice(0, 10),
+            asOf,
           }),
         `${spec.id} series API`,
       ),
@@ -122,13 +121,13 @@ export async function OverviewTab({ replay }: MacroTabProps) {
     error: deltaResults[i]?.error,
   }));
 
-  // The gauge endpoint publishes persisted history but has no `as_of` parameter. This
-  // tab consumes only that history, so make the replay boundary explicit before the
-  // value reaches presentation: a 2020 page must never draw a point learned in 2026.
+  // The API applies the replay instant to both source vintages and persisted gauge rows.
+  // Keep the presentation boundary too: it protects a mixed-image deploy and makes an
+  // old API response without `history_60d` settle to honest empty coverage, not a crash.
   const gaugeAtInstant = {
     value: gauge.value
       ? {
-          history_60d: gauge.value.history_60d.filter(
+          history_60d: (gauge.value.history_60d ?? []).filter(
             (point) => asOf === undefined || point.obs_date <= asOf,
           ),
         }
