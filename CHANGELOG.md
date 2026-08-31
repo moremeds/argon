@@ -27,6 +27,31 @@ version in lockstep (enforced by `scripts/release/version_sync_check.py`).
 
 ### Fixed
 
+- **The gap healer now records its own spend and its own progress.** Both were
+  invisible, and each blindness hid a different defect.
+  - `HealContext` built its UW and massive clients with `job_name=` but no
+    `telemetry_recorder`, so `external_api_requests` had never held a single healer
+    row. That table is where `sources/uw_budget.read_snapshot` derives *both* the pool
+    spend and the account counter from, so an untelemetered healer was not merely
+    unobserved by the account governor — it was arithmetically invisible to it, and a
+    budget guard wired in ahead of this fix would have read zero and permitted
+    everything. The recorder is now threaded through the context and reaches the
+    nightly job, `execute_into_run` and `resume_run` alike.
+  - Progress lived only in stdout. Nightly runs 103–106 each stopped 50–88 minutes in
+    having touched 1–2 of 23 datasets, with zero failures and their UW cap barely used;
+    by the time anyone looked, Watchtower had recreated the worker and the logs were
+    gone, so *where* they stopped had no answer anywhere. Every dispatcher now emits a
+    per-item stage beat at INFO — the worker runs `basicConfig(level=INFO)`, so a DEBUG
+    trace would have produced nothing — and persists the last one to
+    `data_gap_runs.summary_jsonb.heartbeat`, which outlives the container. The
+    claim-stage beat is diagnostic by its absence: a run that never emits one stalled
+    inside `claim_next_items`, not in a provider.
+  - `ExternalApiRequestRecorder` swallowed every write failure, so a recorder that died
+    at hour two stopped writing telemetry while the heal walked on. It now reconnects
+    once — a night-long run outlives its own idle connection — and counts failures into
+    the run summary as `telemetry_write_failures`. It still never raises: telemetry must
+    not be able to kill the work it measures.
+
 - **One ticker with no history could fail every dataset in a night's replay.** UW
   answers `data: null` -- not `data: []` -- for a ticker it has no rows for on the
   requested date, and both normalizer paths read that as a malformed body and raised.
