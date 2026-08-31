@@ -25,6 +25,19 @@ version in lockstep (enforced by `scripts/release/version_sync_check.py`).
   the GitHub-calibrated baseline plus the new test measurement; a regression guard
   rejects local lock/checkpoint waits masquerading as 60+ second single-test costs.
 
+### Added
+
+- **Handover: the fundamentals industry desk at v0.13.0**
+  (`docs/handover/2026-08-29-fundamentals-industry-desk-handover.md`). Records the deployed truth
+  verified against production on 2026-08-29 — eight endpoints live, table counts, the four gaps and
+  the gate on each — and the one thing no health check can report: the desk **deploys green and
+  blank**. Migrations create its tables and nothing fills them, so four things had to be run by hand
+  before any panel showed a row, and a rebuilt database repeats that exactly. Also carries the two
+  findings the release surfaced: UW _does_ serve forward earnings schedules (the empty "Next prints"
+  panel was a backward-only scan, not a vendor limit), and `research_event_classes` was empty in
+  production while the whole suite was green, because a fixture supplied registry state the
+  deployment never created.
+
 ## [0.13.1] — 2026-08-30
 
 
