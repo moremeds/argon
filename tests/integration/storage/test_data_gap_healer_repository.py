@@ -153,6 +153,35 @@ def test_gap_healer_health_summary(seeded_db_empty_cards):
     assert h["last_verified_at"] is None
 
 
+def test_gap_healer_health_counts_stranded_claims_as_open(seeded_db_empty_cards):
+    """Items the healer claimed and never finished are open gaps.
+
+    claim_next_items moves 'planned' to 'running' and will not re-claim that
+    status, so a run killed mid-flight strands its whole remainder there. Leaving
+    'running' out of the open count made the number smallest exactly when the
+    backlog was largest: after a deploy recreated the worker on 2026-08-30, run
+    113 held 70,206 unprocessed items and /api/health reported 63.
+    """
+    repo = _repo(seeded_db_empty_cards)
+    run_id = repo.create_run(
+        mode="execute", start_date=None, end_date=None, datasets=["daily_ohlc"]
+    )
+    repo.upsert_items(
+        run_id,
+        [
+            GapItem("daily_ohlc", "2026-06-22|A", date(2026, 6, 22), "A", 1, 0),
+            GapItem("daily_ohlc", "2026-06-23|B", date(2026, 6, 23), "B", 1, 0),
+        ],
+    )
+    assert len(repo.claim_next_items(run_id, limit=2)) == 2  # healer takes them...
+    # ...and dies here, without driving either to a verdict.
+
+    h = repo.gap_healer_health()
+    assert h["counts"].get("planned", 0) == 0
+    assert h["counts"]["running"] == 2
+    assert h["open_by_dataset"]["daily_ohlc"] == 2
+
+
 def test_unregistered_excludes_seeded_tables(seeded_db_empty_cards):
     repo = _repo(seeded_db_empty_cards)
     repo.sync_dataset_registry(REGISTRY)

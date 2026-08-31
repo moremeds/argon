@@ -27,6 +27,17 @@ version in lockstep (enforced by `scripts/release/version_sync_check.py`).
 
 ### Fixed
 
+- **`/api/health` reported the smallest gap backlog exactly when it was largest.**
+  `open_gaps` summed `planned + skipped_budget + failed` -- the three statuses
+  `claim_next_items` will re-claim -- and so answered "what would the healer pick up
+  next", not "what is still undone". Items the healer had already claimed sit in
+  `running`, which it will not re-claim, so a run killed mid-flight strands its whole
+  remainder in the one status the count ignored. When a deploy recreated the worker on
+  2026-08-30, run 113 held **70,206 unprocessed items and health reported 63**, for the
+  45 hours until the next nightly reaped it. `running` now counts toward `open_gaps`
+  and appears in `open_by_dataset`, and is also surfaced on its own so an in-flight
+  run reads apart from an abandoned one.
+
 - **The gap healer now records its own spend and its own progress.** Both were
   invisible, and each blindness hid a different defect.
   - `HealContext` built its UW and massive clients with `job_name=` but no

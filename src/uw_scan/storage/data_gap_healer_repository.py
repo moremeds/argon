@@ -302,7 +302,12 @@ class DataGapHealerRepository:
                 SELECT dataset, COUNT(*)::int
                   FROM data_gap_items
                  WHERE run_id = %s
-                   AND status IN ('planned', 'skipped_budget', 'failed')
+                   -- 'running' belongs here even though claim_next_items will not
+                   -- re-claim it: these are items the healer took and never drove
+                   -- to a verdict. During a live run that is a small in-flight
+                   -- window; after a killed one it is the entire remainder, which
+                   -- is exactly when this number is read.
+                   AND status IN ('planned', 'skipped_budget', 'failed', 'running')
                  GROUP BY dataset
                  ORDER BY 2 DESC
                 """,

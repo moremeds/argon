@@ -115,7 +115,12 @@ class HealthGapHealer(BaseModel):
     no_data: int = 0
     failed: int = 0
     skipped_budget: int = 0
-    open_gaps: int = 0  # planned + skipped_budget + failed in the latest run
+    running: int = 0
+    # Everything in the latest run not driven to a verdict. Includes 'running':
+    # a run killed mid-flight strands its whole remainder there, so excluding it
+    # made the number smallest exactly when the backlog was largest -- 63 reported
+    # against 70,206 unprocessed after a deploy recreated the worker (2026-08-30).
+    open_gaps: int = 0
     open_by_dataset: dict[str, int] = Field(default_factory=dict)
     last_verified_at: datetime | None = None
 
@@ -441,11 +446,13 @@ def health(
         healed=_gh_counts.get("healed", 0),
         no_data=_gh_counts.get("no_data", 0),
         failed=_gh_counts.get("failed", 0),
+        running=_gh_counts.get("running", 0),
         skipped_budget=_gh_counts.get("skipped_budget", 0),
         open_gaps=(
             _gh_counts.get("planned", 0)
             + _gh_counts.get("skipped_budget", 0)
             + _gh_counts.get("failed", 0)
+            + _gh_counts.get("running", 0)
         ),
         open_by_dataset=_gh["open_by_dataset"],
         last_verified_at=_gh["last_verified_at"],

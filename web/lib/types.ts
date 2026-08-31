@@ -5855,6 +5855,11 @@ export interface components {
              */
             skipped_budget: number;
             /**
+             * Running
+             * @default 0
+             */
+            running: number;
+            /**
              * Open Gaps
              * @default 0
              */

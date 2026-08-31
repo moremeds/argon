@@ -9885,6 +9885,11 @@
             "title": "Open Gaps",
             "type": "integer"
           },
+          "running": {
+            "default": 0,
+            "title": "Running",
+            "type": "integer"
+          },
           "skipped_budget": {
             "default": 0,
             "title": "Skipped Budget",

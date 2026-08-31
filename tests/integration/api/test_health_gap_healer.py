@@ -19,8 +19,10 @@ def test_health_includes_gap_healer_block(client):
         "no_data",
         "failed",
         "skipped_budget",
+        "running",
         "last_verified_at",
     } <= set(gh.keys())
     # empty state defaults
     assert gh["open_gaps"] == 0
+    assert gh["running"] == 0
     assert gh["open_by_dataset"] == {}
