@@ -50,11 +50,18 @@ class NormalizationError(Exception):
 
 
 def _data_list(payload: dict) -> list[dict]:
+    """UW answers `data: null` -- not `data: []` -- for a ticker with no history on
+    the requested date, so null is an absence, not a malformed body. Raising on it
+    fails the whole pipeline replay for that date: KEEL's 63 dates in 2026-01-02..
+    04-02 each killed every dataset in the replay, not just the empty one.
+    """
     if "data" not in payload:
         raise NormalizationError(
             f"payload missing 'data' key; got {list(payload.keys())}"
         )
     raw = payload["data"]
+    if raw is None:
+        return []
     if not isinstance(raw, list):
         raise NormalizationError(
             f"payload['data'] expected list, got {type(raw).__name__}"
@@ -243,6 +250,8 @@ def normalize_volatility_stats(payload: dict) -> list[VolStatsRow]:
             f"payload missing 'data' key; got {list(payload.keys())}"
         )
     raw = payload["data"]
+    if raw is None:
+        return []
     if isinstance(raw, dict):
         return [VolStatsRow(**raw)]
     if isinstance(raw, list):

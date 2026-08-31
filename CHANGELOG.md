@@ -52,6 +52,15 @@ version in lockstep (enforced by `scripts/release/version_sync_check.py`).
     the run summary as `telemetry_write_failures`. It still never raises: telemetry must
     not be able to kill the work it measures.
 
+- **One ticker with no history could fail every dataset in a night's replay.** UW
+  answers `data: null` -- not `data: []` -- for a ticker it has no rows for on the
+  requested date, and both normalizer paths read that as a malformed body and raised.
+  Because `interpolated_iv_snapshots` heals through `pipeline_replay`, the raise
+  killed the whole replay for that ticker/date rather than the one absent dataset:
+  KEEL's 63 dates across 2026-01-02..2026-04-02 failed every night and were retried
+  every night, permanently. Null is now an absence and yields no rows; a wrong type
+  is still a contract violation and still raises.
+
 ## [0.13.1] — 2026-08-30
 
 
