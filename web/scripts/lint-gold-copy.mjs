@@ -1,7 +1,8 @@
 #!/usr/bin/env node
-// Posture-language CI lint for the GOLD COMPASS UI. Per spec §8.4,
-// build fails if any file under web/components/gold/** or web/app/gold/**
-// contains a banned posture-language substring outside an opt-out comment.
+// Posture-language CI lint for the GOLD COMPASS UI and the macro desk. Per spec §8.4,
+// build fails if any file under web/components/{gold,macro}/** or
+// web/app/{gold,macro}/** contains a banned posture-language substring outside an
+// opt-out comment.
 
 import { promises as fs } from "node:fs";
 import path from "node:path";
@@ -114,16 +115,79 @@ async function* walk(dir) {
   }
 }
 
-async function main() {
-  const roots = [path.resolve("components/gold"), path.resolve("app/gold")];
-  let total = 0;
+/**
+ * The directories this lint speaks for, relative to `web/`.
+ *
+ * The macro desk is one posture surface, not a gold one: the gold tab lands under
+ * `/macro`, and the same banned vocabulary has to stay off every tab beside it. P2 added
+ * the two macro roots additively; P6 keeps all four, because §10-B of the port plan
+ * settled that the subtrees do NOT move — only the page shells do, and `app/gold` still
+ * holds `loading.tsx` and `replay/[date]/` after `app/gold/page.tsx` is retired into
+ * `/macro/gold`.
+ *
+ * Deliberately NOT here: `components/rates`. `RatesScorecard` prints `BUY` / `SELL`
+ * verbatim from `RatesDurationStance` (`models/rates.py:18`), and the operator settled
+ * on 2026-08-28 (plan §10-I) that it may — it is the legacy rule score, quarantined
+ * inside tab 02's "what this tab refuses" panel, reporting its own output. Adding
+ * `components/rates` here would fail the build over a rendering that is explicitly
+ * authorised. The linter and that ruling are complementary: this enforces the condition
+ * the ruling attached — the word never appears where the model did not produce it —
+ * everywhere OUTSIDE the one quarantine, and `macro-rates-state.spec.ts` enforces the
+ * quarantine's own boundary at runtime.
+ */
+export const ROOTS = [
+  "components/gold",
+  "app/gold",
+  "components/macro",
+  "app/macro",
+];
+
+// The signal-first Method tab contains no embedded design-reference transcript, so every
+// file under the declared roots is now in scope. Keep the set explicit: a future exemption
+// must be reviewed and tested rather than hidden in the filesystem walk.
+export const EXCLUDED_FILES = new Set();
+
+/**
+ * Which of `roots` do not exist on disk, resolved against the current directory.
+ *
+ * Separated out and exported so the *scope* of this lint is itself testable. Before P6
+ * `main()` caught a missing root and `continue`d, so the script exited **0 with no
+ * output** over a scope that had evaporated. Re-homing `app/gold/page.tsx` under `/macro`
+ * is exactly the kind of move that can remove a root. A lint whose scope can disappear without
+ * a message is not a lint; it is a green check mark over nothing.
+ */
+export async function findMissingRoots(roots = ROOTS) {
+  const missing = [];
   for (const root of roots) {
     try {
-      await fs.access(root);
+      await fs.access(path.resolve(root));
     } catch {
-      continue;
+      missing.push(root);
     }
+  }
+  return missing;
+}
+
+async function main() {
+  const missing = await findMissingRoots();
+  if (missing.length > 0) {
+    for (const root of missing) {
+      console.error(
+        `lint-gold-copy: scope root '${root}' does not exist (resolved to ${path.resolve(root)}).`,
+      );
+    }
+    console.error(
+      "\nRefusing to report a clean posture surface over a directory that is not there. " +
+        "If a root moved, update ROOTS in web/scripts/lint-gold-copy.mjs in the same commit that moved it.",
+    );
+    process.exit(1);
+  }
+
+  let total = 0;
+  for (const root of ROOTS.map((root) => path.resolve(root))) {
     for await (const file of walk(root)) {
+      const relativeFile = path.relative(process.cwd(), file).split(path.sep).join("/");
+      if (EXCLUDED_FILES.has(relativeFile)) continue;
       if (
         file.endsWith("lint-gold-copy.mjs") ||
         file.endsWith("lint-gold-copy.test.mjs")

@@ -1,0 +1,164 @@
+{
+  "chain": "Optical-Communication",
+  "as_of": "2026-08-25",
+  "checks": {
+    "deterministic": {
+      "pass": true,
+      "content_hash": "220fa8537c901bf691a8b86736a77a50ebdf650aaca46e8882c8d243d8533b88"
+    },
+    "scope_frozen": {
+      "pass": true,
+      "manifest": {
+        "engine_version": "fundamentals-v2:77aea364",
+        "taxonomy_version": "argon-research-v1",
+        "evidence_policy": "current_vintage",
+        "as_of": "2026-08-25",
+        "scope": {
+          "chain": "Optical-Communication"
+        },
+        "assembler_version": "report-assembler-v1"
+      }
+    },
+    "coverage_disclosed": {
+      "pass": true,
+      "coverage": {
+        "members": 17,
+        "with_exposure": 17,
+        "with_magnitude": 1,
+        "with_compatible_result": 16
+      },
+      "member_placements": 20
+    },
+    "unsupported_declared": {
+      "pass": true,
+      "killed_event_classes": [
+        "backlog",
+        "capex_guidance",
+        "customer_concentration",
+        "debt_maturity",
+        "management_guidance",
+        "product_regulatory",
+        "restatement",
+        "supplier_relationship"
+      ],
+      "descriptive_only": [
+        "operating_quality",
+        "revenue_concentration",
+        "evidence_quality"
+      ]
+    },
+    "within_claim_permission": {
+      "pass": true,
+      "block_authorities": {
+        "scope": null,
+        "unsupported": null,
+        "chain_coverage": null,
+        "chain_members": "research_priority",
+        "chain_aggregate": "research_priority",
+        "chain_exposure": null
+      },
+      "program_ceiling": "research_priority",
+      "registry": {
+        "composite": "research_priority",
+        "valuation_own_history": "directional_monitor",
+        "operating_quality": "descriptive",
+        "revenue_concentration": "descriptive",
+        "evidence_quality": "descriptive"
+      }
+    },
+    "provenance_preserved": {
+      "pass": true,
+      "blocks": [
+        {
+          "kind": "scope",
+          "evidence": null,
+          "derivation": "the report manifest, restated for the reader"
+        },
+        {
+          "kind": "unsupported",
+          "evidence": null,
+          "derivation": "research_event_classes where status='killed', plus claim-registry entries capped at descriptive"
+        },
+        {
+          "kind": "chain_coverage",
+          "evidence": {
+            "source": "chain_membership + company_exposure"
+          },
+          "derivation": null
+        },
+        {
+          "kind": "chain_members",
+          "evidence": {
+            "source": "chain_membership",
+            "taxonomy_version": "argon-research-v1"
+          },
+          "derivation": null
+        },
+        {
+          "kind": "chain_aggregate",
+          "evidence": null,
+          "derivation": "mean of the priority dimension over DISTINCT members carrying a compatible result, one vote per company; abstains below 3"
+        },
+        {
+          "kind": "chain_exposure",
+          "evidence": {
+            "source": "company_exposure"
+          },
+          "derivation": null
+        }
+      ]
+    },
+    "versioned_with_delta": {
+      "pass": true,
+      "version_no": 3,
+      "versions": [
+        {
+          "v": 3,
+          "status": "published",
+          "hash": "220fa8537c901bf691a8b86736a77a50ebdf650aaca46e8882c8d243d8533b88"
+        },
+        {
+          "v": 2,
+          "status": "superseded",
+          "hash": "0aa3559f96fcd68d19eb37f1cccee77ae524524d0527398fb22b60f09e7c80be"
+        },
+        {
+          "v": 1,
+          "status": "superseded",
+          "hash": "4dd820509a338d39fae04ae72539768f1123c33157e11ee9c58f8e0e42a0c26c"
+        }
+      ],
+      "delta": {
+        "is_first_version": false,
+        "manifest": [],
+        "blocks": {
+          "added": [],
+          "removed": [],
+          "moved": []
+        },
+        "summary": "no material change"
+      }
+    },
+    "old_version_replays": {
+      "pass": true,
+      "v1_hash": "4dd820509a338d39fae04ae72539768f1123c33157e11ee9c58f8e0e42a0c26c",
+      "v1_status": "superseded"
+    },
+    "reproducible_without_models": {
+      "pass": true,
+      "checked_for": [
+        "anthropic",
+        "openai",
+        "deepseek",
+        "httpx",
+        "requests",
+        "subprocess"
+      ]
+    },
+    "no_trade_decision": {
+      "pass": true,
+      "hits": []
+    }
+  },
+  "all_pass": true
+}

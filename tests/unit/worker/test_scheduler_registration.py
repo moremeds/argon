@@ -27,8 +27,14 @@ class _FakeSignal:
         return None
 
 
-def _registered_job_ids(monkeypatch, **env) -> set[str]:
-    ids: list[str] = []
+def _registered_jobs(monkeypatch, **env) -> dict[str, object]:
+    """id -> the trigger it was registered with.
+
+    `_registered_job_ids` answers "did it wire"; this also answers "when does it
+    fire", which a set of ids cannot. The trigger is `add_job`'s second
+    positional argument in every `scheduler.py` call site.
+    """
+    jobs: dict[str, object] = {}
 
     class _FakeSched:
         def __init__(self, *_a, **_k) -> None:
@@ -37,8 +43,13 @@ def _registered_job_ids(monkeypatch, **env) -> set[str]:
         def add_listener(self, *_a, **_k) -> None:
             pass
 
-        def add_job(self, *_a, **kwargs) -> None:
-            ids.append(kwargs.get("id"))
+        def add_job(self, *args, **kwargs) -> None:
+            job_id = kwargs.get("id")
+            if job_id is not None:
+                trigger = kwargs.get("trigger")
+                if trigger is None and len(args) > 1:
+                    trigger = args[1]
+                jobs[job_id] = trigger
 
         def start(self) -> None:
             raise _StopStart
@@ -53,7 +64,11 @@ def _registered_job_ids(monkeypatch, **env) -> set[str]:
 
     with pytest.raises(_StopStart):
         scheduler.main()
-    return {i for i in ids if i is not None}
+    return jobs
+
+
+def _registered_job_ids(monkeypatch, **env) -> set[str]:
+    return set(_registered_jobs(monkeypatch, **env))
 
 
 def test_discovery_scan_registered_on_primary_uw_when_enabled(monkeypatch):
@@ -292,3 +307,273 @@ def test_fundamental_concentration_capture_absent_on_massive_role(monkeypatch):
     )
     assert "fundamental_concentration_capture" not in ids
     assert "fundamental_refresh" in ids  # harness sanity: massive-0 sibling wires
+
+
+def test_earnings_reactions_registered_on_primary_massive_when_enabled(monkeypatch):
+    ids = _registered_job_ids(
+        monkeypatch,
+        UW_SCAN_WORKER_ROLE="massive",
+        UW_SCAN_WORKER_INDEX="0",
+        UW_SCAN_WORKER_COUNT="1",
+        UW_SCAN_EARNINGS_REACTIONS_ENABLED="true",
+    )
+    assert "earnings_reactions_compute" in ids
+
+
+def test_earnings_reactions_absent_when_disabled(monkeypatch):
+    ids = _registered_job_ids(
+        monkeypatch,
+        UW_SCAN_WORKER_ROLE="massive",
+        UW_SCAN_WORKER_INDEX="0",
+        UW_SCAN_WORKER_COUNT="1",
+        UW_SCAN_EARNINGS_REACTIONS_ENABLED="false",
+    )
+    assert "earnings_reactions_compute" not in ids
+    assert "fundamental_refresh" in ids  # harness sanity: massive-0 sibling still wires
+
+
+def test_earnings_reactions_absent_on_non_primary_massive(monkeypatch):
+    # Pure warm-store read with append-on-conflict-do-nothing writes, but no
+    # advisory lock — a per-role-0 schedule would run N redundant copies.
+    ids = _registered_job_ids(
+        monkeypatch,
+        UW_SCAN_WORKER_ROLE="massive",
+        UW_SCAN_WORKER_INDEX="1",
+        UW_SCAN_WORKER_COUNT="2",
+        UW_SCAN_EARNINGS_REACTIONS_ENABLED="true",
+    )
+    assert "earnings_reactions_compute" not in ids
+
+
+def test_earnings_reactions_absent_on_uw_role(monkeypatch):
+    # Zero UW spend; the uw workers must never pick it up (would just be a
+    # redundant duplicate write against the same table).
+    ids = _registered_job_ids(
+        monkeypatch,
+        UW_SCAN_WORKER_ROLE="uw",
+        UW_SCAN_WORKER_INDEX="0",
+        UW_SCAN_WORKER_COUNT="1",
+        UW_SCAN_EARNINGS_REACTIONS_ENABLED="true",
+    )
+    assert "earnings_reactions_compute" not in ids
+    assert "full_scan_0" in ids  # harness sanity: sibling uw job still wires
+
+
+def test_earnings_reactions_registered_on_all_role_when_enabled(monkeypatch):
+    ids = _registered_job_ids(
+        monkeypatch,
+        UW_SCAN_WORKER_ROLE="all",
+        UW_SCAN_WORKER_INDEX="0",
+        UW_SCAN_WORKER_COUNT="1",
+        UW_SCAN_EARNINGS_REACTIONS_ENABLED="true",
+    )
+    assert "earnings_reactions_compute" in ids
+
+
+def test_implied_move_registered_on_primary_massive_when_enabled(monkeypatch):
+    ids = _registered_job_ids(
+        monkeypatch,
+        UW_SCAN_WORKER_ROLE="massive",
+        UW_SCAN_WORKER_INDEX="0",
+        UW_SCAN_WORKER_COUNT="1",
+        UW_SCAN_IMPLIED_MOVE_SNAPSHOT_ENABLED="true",
+    )
+    assert "implied_move_snapshot" in ids
+
+
+def test_implied_move_absent_when_disabled(monkeypatch):
+    ids = _registered_job_ids(
+        monkeypatch,
+        UW_SCAN_WORKER_ROLE="massive",
+        UW_SCAN_WORKER_INDEX="0",
+        UW_SCAN_WORKER_COUNT="1",
+        UW_SCAN_IMPLIED_MOVE_SNAPSHOT_ENABLED="false",
+    )
+    assert "implied_move_snapshot" not in ids
+    assert "fundamental_refresh" in ids  # harness sanity: massive-0 sibling still wires
+
+
+def test_implied_move_absent_on_non_primary_massive(monkeypatch):
+    # Pure warm-store read with an overwrite-on-conflict write, but no
+    # advisory lock — a per-role-0 schedule would run N redundant copies.
+    ids = _registered_job_ids(
+        monkeypatch,
+        UW_SCAN_WORKER_ROLE="massive",
+        UW_SCAN_WORKER_INDEX="1",
+        UW_SCAN_WORKER_COUNT="2",
+        UW_SCAN_IMPLIED_MOVE_SNAPSHOT_ENABLED="true",
+    )
+    assert "implied_move_snapshot" not in ids
+
+
+def test_implied_move_absent_on_uw_role(monkeypatch):
+    # Zero UW spend; the uw workers must never pick it up (would just be a
+    # redundant duplicate write against the same table).
+    ids = _registered_job_ids(
+        monkeypatch,
+        UW_SCAN_WORKER_ROLE="uw",
+        UW_SCAN_WORKER_INDEX="0",
+        UW_SCAN_WORKER_COUNT="1",
+        UW_SCAN_IMPLIED_MOVE_SNAPSHOT_ENABLED="true",
+    )
+    assert "implied_move_snapshot" not in ids
+    assert "full_scan_0" in ids  # harness sanity: sibling uw job still wires
+
+
+def test_implied_move_registered_on_all_role_when_enabled(monkeypatch):
+    ids = _registered_job_ids(
+        monkeypatch,
+        UW_SCAN_WORKER_ROLE="all",
+        UW_SCAN_WORKER_INDEX="0",
+        UW_SCAN_WORKER_COUNT="1",
+        UW_SCAN_IMPLIED_MOVE_SNAPSHOT_ENABLED="true",
+    )
+    assert "implied_move_snapshot" in ids
+
+
+def test_fundamental_change_events_registered_on_primary_massive_when_enabled(
+    monkeypatch,
+):
+    ids = _registered_job_ids(
+        monkeypatch,
+        UW_SCAN_WORKER_ROLE="massive",
+        UW_SCAN_WORKER_INDEX="0",
+        UW_SCAN_WORKER_COUNT="1",
+        UW_SCAN_FUNDAMENTAL_CHANGE_EVENTS_ENABLED="true",
+    )
+    assert "fundamental_change_events" in ids
+
+
+def test_fundamental_change_events_absent_when_disabled(monkeypatch):
+    ids = _registered_job_ids(
+        monkeypatch,
+        UW_SCAN_WORKER_ROLE="massive",
+        UW_SCAN_WORKER_INDEX="0",
+        UW_SCAN_WORKER_COUNT="1",
+        UW_SCAN_FUNDAMENTAL_CHANGE_EVENTS_ENABLED="false",
+    )
+    assert "fundamental_change_events" not in ids
+    assert "fundamental_refresh" in ids  # harness sanity: massive-0 sibling still wires
+
+
+def test_fundamental_change_events_absent_on_non_primary_massive(monkeypatch):
+    # Pure warm-store read with ON CONFLICT DO NOTHING writes, but no
+    # advisory lock — a per-role-0 schedule would run N redundant copies.
+    ids = _registered_job_ids(
+        monkeypatch,
+        UW_SCAN_WORKER_ROLE="massive",
+        UW_SCAN_WORKER_INDEX="1",
+        UW_SCAN_WORKER_COUNT="2",
+        UW_SCAN_FUNDAMENTAL_CHANGE_EVENTS_ENABLED="true",
+    )
+    assert "fundamental_change_events" not in ids
+
+
+def test_fundamental_change_events_absent_on_uw_role(monkeypatch):
+    # Zero UW spend; the uw workers must never pick it up (would just be a
+    # redundant duplicate write against the same table).
+    ids = _registered_job_ids(
+        monkeypatch,
+        UW_SCAN_WORKER_ROLE="uw",
+        UW_SCAN_WORKER_INDEX="0",
+        UW_SCAN_WORKER_COUNT="1",
+        UW_SCAN_FUNDAMENTAL_CHANGE_EVENTS_ENABLED="true",
+    )
+    assert "fundamental_change_events" not in ids
+    assert "full_scan_0" in ids  # harness sanity: sibling uw job still wires
+
+
+def test_fundamental_change_events_registered_on_all_role_when_enabled(monkeypatch):
+    ids = _registered_job_ids(
+        monkeypatch,
+        UW_SCAN_WORKER_ROLE="all",
+        UW_SCAN_WORKER_INDEX="0",
+        UW_SCAN_WORKER_COUNT="1",
+        UW_SCAN_FUNDAMENTAL_CHANGE_EVENTS_ENABLED="true",
+    )
+    assert "fundamental_change_events" in ids
+
+
+def test_fundamentals_desk_rollup_registered_on_primary_massive_when_enabled(
+    monkeypatch,
+):
+    ids = _registered_job_ids(
+        monkeypatch,
+        UW_SCAN_WORKER_ROLE="massive",
+        UW_SCAN_WORKER_INDEX="0",
+        UW_SCAN_WORKER_COUNT="1",
+        UW_SCAN_FUNDAMENTALS_DESK_ROLLUP_ENABLED="true",
+    )
+    assert "fundamentals_desk_rollup" in ids
+
+
+def test_fundamentals_desk_rollup_absent_when_disabled(monkeypatch):
+    ids = _registered_job_ids(
+        monkeypatch,
+        UW_SCAN_WORKER_ROLE="massive",
+        UW_SCAN_WORKER_INDEX="0",
+        UW_SCAN_WORKER_COUNT="1",
+        UW_SCAN_FUNDAMENTALS_DESK_ROLLUP_ENABLED="false",
+    )
+    assert "fundamentals_desk_rollup" not in ids
+    assert "fundamental_refresh" in ids  # harness sanity: massive-0 sibling still wires
+
+
+def test_fundamentals_desk_rollup_absent_on_non_primary_massive(monkeypatch):
+    # Full-universe recompute with an overwrite-on-conflict write, but no
+    # advisory lock — a per-role-0 schedule would run N redundant copies.
+    ids = _registered_job_ids(
+        monkeypatch,
+        UW_SCAN_WORKER_ROLE="massive",
+        UW_SCAN_WORKER_INDEX="1",
+        UW_SCAN_WORKER_COUNT="2",
+        UW_SCAN_FUNDAMENTALS_DESK_ROLLUP_ENABLED="true",
+    )
+    assert "fundamentals_desk_rollup" not in ids
+
+
+def test_fundamentals_desk_rollup_absent_on_uw_role(monkeypatch):
+    # Zero UW spend; the uw workers must never pick it up (would just be a
+    # redundant duplicate write against the same table).
+    ids = _registered_job_ids(
+        monkeypatch,
+        UW_SCAN_WORKER_ROLE="uw",
+        UW_SCAN_WORKER_INDEX="0",
+        UW_SCAN_WORKER_COUNT="1",
+        UW_SCAN_FUNDAMENTALS_DESK_ROLLUP_ENABLED="true",
+    )
+    assert "fundamentals_desk_rollup" not in ids
+    assert "full_scan_0" in ids  # harness sanity: sibling uw job still wires
+
+
+def test_fundamentals_desk_rollup_registered_on_all_role_when_enabled(monkeypatch):
+    ids = _registered_job_ids(
+        monkeypatch,
+        UW_SCAN_WORKER_ROLE="all",
+        UW_SCAN_WORKER_INDEX="0",
+        UW_SCAN_WORKER_COUNT="1",
+        UW_SCAN_FUNDAMENTALS_DESK_ROLLUP_ENABLED="true",
+    )
+    assert "fundamentals_desk_rollup" in ids
+
+
+def test_fundamentals_desk_rollup_fires_at_2130_et_every_day(monkeypatch):
+    """21:30 ET DAILY, not weekday-only (Task 12, spec §3c).
+
+    The day-of-week field is the load-bearing half: the statement store and its
+    violations can change on any day (a `recheck_violations` replay, a late
+    restatement), so a `0-4` cron would leave a weekend change unrolled until
+    Monday night.
+    """
+    trigger = _registered_jobs(
+        monkeypatch,
+        UW_SCAN_WORKER_ROLE="massive",
+        UW_SCAN_WORKER_INDEX="0",
+        UW_SCAN_WORKER_COUNT="1",
+        UW_SCAN_FUNDAMENTALS_DESK_ROLLUP_ENABLED="true",
+    )["fundamentals_desk_rollup"]
+    fields = {f.name: str(f) for f in trigger.fields}
+    assert fields["hour"] == "21"
+    assert fields["minute"] == "30"
+    assert fields["day_of_week"] == "*"
+    assert str(trigger.timezone) == "America/New_York"

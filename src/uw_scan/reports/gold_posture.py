@@ -273,6 +273,10 @@ def compute_and_persist_gold_posture(
             exchange="COMEX",
             obs_date=r["obs_date"],
             registered_oz=r.get("registered_oz"),
+            # Literal None on every row, deliberately: these snapshots are labelled
+            # exchange="COMEX" and compute_structural_posture reads only registered_oz
+            # off them. The LBMA vault_oz that IS in the table is read directly from the
+            # DB rows by _lbma_30d_momentum_t above, never through this dataclass.
             vault_oz=None,
         )
         for r in inv_db
@@ -508,6 +512,10 @@ def compute_and_persist_gold_posture(
         lbma_30d_momentum_t=lbma_30d_momentum_t,
         uw_25d_skew_sigma=uw_25d_skew_sigma,
         fx_basket_dxy_z=fx_basket_dxy_z,
+        # Both columns exist (migration 044) and both are written as a literal None on
+        # every run: no Shanghai/loco-London premium leg is ingested, and no 52-week
+        # percentile is derived off the central-bank series. The write is what makes the
+        # gap explicit -- omitting the kwargs would leave the same NULL less legibly.
         xau_cny_premium_pct=None,
         cb_52w_pct=None,
         cot_mm_4w_change_sigma=cot_mm_4w_change_sigma,

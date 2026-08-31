@@ -128,9 +128,9 @@ v0.12.16 is deployed, `/macro` returns 200, and the latest stored USD state uses
 ## 4. Required reading, in order
 
 1. `CLAUDE.md` — project rules and live architecture.
-2. `docs/superpowers/plans/2026-08-12-top-down-macro-context-program.md` — intended program, but
+2. `docs/superpowers/archive/plans/2026-08-12-top-down-macro-context-program.md` — intended program, but
    reconcile its stale status table against this handoff and Git history.
-3. `docs/superpowers/plans/2026-08-12-macro-mc4-mc6-context-pm-validation.md` — original MC4–MC6
+3. `docs/superpowers/archive/plans/2026-08-12-macro-mc4-mc6-context-pm-validation.md` — original MC4–MC6
    design; do not execute its migration numbers or original sequencing literally.
 4. `docs/research/2026-08-23-macro-state-replay-flip-census.md` — the binding empirical preflight
    that changes MC5/MC6 sequencing.
@@ -138,7 +138,7 @@ v0.12.16 is deployed, `/macro` returns 200, and the latest stored USD state uses
    residual limitations.
 6. `docs/research/2026-08-21-rates-market-layer-probe/VERDICT.md` — WRESBAL unit rebase and rates
    source decisions.
-7. `docs/superpowers/specs/2026-08-12-usd-gold-state-design.md` — USD/Gold scope limits and design
+7. `docs/superpowers/archive/specs/2026-08-12-usd-gold-state-design.md` — USD/Gold scope limits and design
    deviations.
 8. `src/uw_scan/macro/`, `src/uw_scan/worker/jobs/macro_state_jobs.py`,
    `src/uw_scan/worker/scheduler.py`, `src/uw_scan/api/routers/macro.py`, and

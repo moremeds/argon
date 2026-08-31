@@ -110,7 +110,15 @@ class FundamentalScoresRepository:
                 "composite",
             ]
             + FEATURES
-            + ["features_present", "source_obs_ids"]
+            + [
+                "features_present",
+                "source_obs_ids",
+                # Provenance of the SELECTION, not of the figures: which rule
+                # admitted these versions, at what cutoff, on which claims.
+                "evidence_policy",
+                "as_of_cutoff",
+                "availability_ids",
+            ]
         )
         placeholders = ", ".join(f"%({c})s" for c in cols)
         sql = f"""
@@ -118,9 +126,23 @@ class FundamentalScoresRepository:
                  VALUES ({placeholders})
             ON CONFLICT (ticker, as_of, engine_version, inputs_hash) DO NOTHING
         """
+        # A caller that names no provenance IS writing a current-vintage row —
+        # that is what the current panel produces — so the default is the truth
+        # about the row rather than a placeholder, and every pre-existing caller
+        # keeps working without learning about evidence policies.
+        defaults = {"evidence_policy": "current_vintage", "availability_ids": []}
         before = self._count()
         with self.conn.cursor() as cur:
-            cur.executemany(sql, [{c: r.get(c) for c in cols} for r in rows])
+            cur.executemany(
+                sql,
+                [
+                    {
+                        c: (r.get(c) if r.get(c) is not None else defaults.get(c))
+                        for c in cols
+                    }
+                    for r in rows
+                ],
+            )
         self.conn.commit()
         return self._count() - before
 
@@ -128,6 +150,31 @@ class FundamentalScoresRepository:
         with self.conn.cursor() as cur:
             cur.execute(f"SELECT count(*) FROM {self._schema}.fundamental_scores")
             return int(cur.fetchone()[0])
+
+    def result_ids(
+        self, rows: Sequence[Mapping[str, Any]]
+    ) -> dict[tuple[str, Any], int]:
+        """(ticker, as_of) -> result_id for rows just written OR already present.
+
+        Read back rather than `RETURNING`, because `ON CONFLICT DO NOTHING`
+        returns nothing for a row that already existed — and a rerun that wrote
+        no scores still needs to attach provenance to the results that are there.
+        """
+        if not rows:
+            return {}
+        keys = {(r["ticker"], r["as_of"], r["engine_version"], r["inputs_hash"])
+                for r in rows}
+        sql = f"""
+            SELECT ticker, as_of, result_id
+              FROM {self._schema}.fundamental_scores
+             WHERE (ticker, as_of, engine_version, inputs_hash)
+                   IN (SELECT * FROM unnest(%s::text[], %s::date[], %s::text[],
+                                            %s::text[]))
+        """
+        tickers, as_ofs, engines, hashes = (list(x) for x in zip(*keys, strict=True))
+        with self.conn.cursor() as cur:
+            cur.execute(sql, (tickers, as_ofs, engines, hashes))
+            return {(t, a): int(rid) for t, a, rid in cur.fetchall()}
 
     def latest_for_ticker(
         self, ticker: str, engine_version: str | None = None

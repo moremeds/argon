@@ -300,7 +300,13 @@ def _entry_lagged_label(rows: list[dict], horizon_td: int, threshold: float) -> 
 
 
 def _auc(scores: list[float], labels: list) -> float:
-    """Pairwise AUC with explicit None filtering."""
+    """Tie-preserving rank AUC with explicit ``None`` filtering.
+
+    Equal-score groups receive the same half-credit as the former positive ×
+    negative pairwise loop, but sorting reduces the normal path from O(P*N) to
+    O(n log n). NaN scores retain the legacy unordered-comparison behavior through
+    the small pairwise fallback.
+    """
     pairs = [(s, lbl) for s, lbl in zip(scores, labels) if lbl is not None]
     if not pairs:
         return float("nan")
@@ -308,14 +314,37 @@ def _auc(scores: list[float], labels: list) -> float:
     neg = [s for s, lbl in pairs if lbl == 0]
     if not pos or not neg:
         return float("nan")
-    wins = ties = 0
-    for ps in pos:
-        for ns in neg:
-            if ps > ns:
-                wins += 1
-            elif ps == ns:
-                ties += 1
-    return (wins + 0.5 * ties) / (len(pos) * len(neg))
+
+    binary_pairs = [(s, lbl) for s, lbl in pairs if lbl in (0, 1)]
+    if any(score != score for score, _label in binary_pairs):
+        wins = ties = 0
+        for positive in pos:
+            for negative in neg:
+                if positive > negative:
+                    wins += 1
+                elif positive == negative:
+                    ties += 1
+        return (wins + 0.5 * ties) / (len(pos) * len(neg))
+
+    ordered = sorted(binary_pairs, key=lambda pair: pair[0])
+    wins_twice = 0
+    negatives_before = 0
+    index = 0
+    while index < len(ordered):
+        group_end = index + 1
+        score = ordered[index][0]
+        while group_end < len(ordered) and ordered[group_end][0] == score:
+            group_end += 1
+        group = ordered[index:group_end]
+        positives_in_group = sum(1 for _score, label in group if label == 1)
+        negatives_in_group = len(group) - positives_in_group
+        wins_twice += (
+            2 * positives_in_group * negatives_before
+            + positives_in_group * negatives_in_group
+        )
+        negatives_before += negatives_in_group
+        index = group_end
+    return wins_twice / (2 * len(pos) * len(neg))
 
 
 def _block_bootstrap_ci_low(

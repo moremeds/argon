@@ -15,7 +15,7 @@ PLAN = VERDICT.parents[2] / "plans/2026-08-13-macro-mc1-historical-release-harde
 REPO = VERDICT.parents[3]
 DESIGN = (
     VERDICT.parents[2]
-    / "superpowers/specs/2026-08-13-macro-mc1-historical-release-durability-design.md"
+    / "superpowers/archive/specs/2026-08-13-macro-mc1-historical-release-durability-design.md"
 )
 
 

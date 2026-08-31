@@ -1,4 +1,4 @@
-import { fireEvent, render, screen } from "@testing-library/react";
+import { fireEvent, render, screen, waitFor } from "@testing-library/react";
 import { describe, expect, it, vi } from "vitest";
 
 vi.mock("next/navigation", () => ({
@@ -9,6 +9,7 @@ import { GoldCompassLayout } from "@/components/gold/GoldCompassLayout";
 import type { components } from "@/lib/types";
 
 type State = components["schemas"]["GoldStateResponse"];
+type Lens = components["schemas"]["GoldLensResponse"];
 
 const FIXTURE: State = {
   obs_date: "2026-05-17",
@@ -85,10 +86,11 @@ const FIXTURE: State = {
     gpr_value: "371",
     gpr_pct_52w: "0.64",
     factors: { F1: -0.4, F5: 1.8 },
-    two_force_text: {
-      discount_rate: "tightening — would press gold",
-      hedge_demand: "subdued vol — no panic bid",
-    },
+    // What the router actually sends: both halves are hardcoded em-dashes with no
+    // producer anywhere. The panel that rendered them is gone; the field stays for
+    // contract stability, so the fixture states the real value rather than prose the
+    // API cannot emit.
+    two_force_text: { discount_rate: "—", hedge_demand: "—" },
     narrative_text: "Cyclical posture suspended.",
   },
   valuation: {
@@ -96,7 +98,8 @@ const FIXTURE: State = {
     posture_chip: "STRETCHED",
     real_price_percentile: "0.92",
     gold_m2_ratio_percentile: "0.78",
-    gold_oil_ratio_percentile: "0.89",
+    // Declared on the model, never assigned by any producer -- see models/gold.py.
+    gold_oil_ratio_percentile: null,
     gold_spx_ratio_percentile: "0.64",
     narrative_text: "Mean-reversion risk: SEVERE.",
   },
@@ -134,11 +137,10 @@ const FIXTURE: State = {
       status: "ok",
     },
   ],
-  decomposition_rows: [
-    { lens: "L1", factor: "CB Δ12M", contribution: "1.4" },
-    { lens: "L2", factor: "DFII10", contribution: "-0.4" },
-    { lens: "L3", factor: "Gold/CPI", contribution: "1.8" },
-  ],
+  // Always [] in production: reports/gold_posture.py builds it as a literal empty list
+  // and never appends. The panel that read it is deleted; the field stays for contract
+  // stability, so the fixture holds what the producer actually produces.
+  decomposition_rows: [],
   correlation_history: {
     gold_dfii10: [
       { obs_date: "2024-12-31", value: "-0.12" },
@@ -151,15 +153,195 @@ const FIXTURE: State = {
 };
 
 describe("GoldCompassLayout", () => {
-  it("renders the five tiers as discrete regions", () => {
+  // REWRITTEN 2026-08-29 to the board's own t5 panel set.
+  //
+  // Two regions this used to require are deliberately gone, and neither is a loss of
+  // information:
+  //
+  //  - the KPI STRIP. The board's t5 has none, and three of its five tiles said with less
+  //    context what the gauge and three-lens panels now say with more. The two that were
+  //    not otherwise stated — spot and feed health — became masthead chips, which is the
+  //    board's own idiom for a fact the tab is read AGAINST rather than one it is about.
+  //  - LENS 3 as its own region. The board folds valuation into "Three lenses", where its
+  //    percentile anchors are the meters; its published narrative rides there too, so the
+  //    engine's own sentence is not dropped along with the panel.
+  it("renders every board panel as a discrete region", () => {
     render(<GoldCompassLayout state={FIXTURE} />);
-    expect(screen.getByRole("region", { name: /kpi/i })).toBeTruthy();
-    expect(screen.getByRole("region", { name: /lens 1/i })).toBeTruthy();
-    expect(screen.getByRole("region", { name: /lens 2/i })).toBeTruthy();
-    expect(screen.getByRole("region", { name: /lens 3/i })).toBeTruthy();
+    for (const name of [
+      /real-yield link/i,
+      /three lenses/i,
+      /anchor history/i,
+      /expression cost/i,
+      // Lens 1 is TWO panels, not one. The board separates official-sector accumulation
+      // from western institutional flow because they are different behaviours with
+      // different reads; the merged panel promoted the strategic bucket to a headline and
+      // rode the other two in a sub-line.
+      /central-bank flows/i,
+      /institutional flows/i,
+      /cyclical readings/i,
+      // The manifest is a panel, not a footer: one that named only the inputs it managed
+      // to read presented a partial audit trail as a complete one.
+      /data coverage/i,
+    ]) {
+      expect(screen.getByRole("region", { name })).toBeTruthy();
+    }
+  });
+
+  it("binds the richer lens endpoint series into the audit disclosure", () => {
+    const structural: Lens = {
+      lens_id: "structural",
+      posture: FIXTURE.structural,
+      detail: {
+        GLD_holdings_oz: [
+          {
+            obs_date: "2026-05-16",
+            value: "100",
+            as_of: "2026-05-16T20:00:00Z",
+            release_date: null,
+          },
+          {
+            obs_date: "2026-05-17",
+            value: "105",
+            as_of: "2026-05-17T20:00:00Z",
+            release_date: null,
+          },
+        ],
+      },
+    };
+
+    render(
+      <GoldCompassLayout
+        state={FIXTURE}
+        lensDetails={[
+          { lensId: "structural", response: structural },
+          { lensId: "cyclical", response: null, error: "API unavailable" },
+        ]}
+      />,
+    );
+
+    expect(screen.getByText(/lens details/i)).toBeTruthy();
+    expect(screen.getByText(/GLD holdings oz/i)).toBeTruthy();
     expect(
-      screen.getByRole("region", { name: /decomposition|correlation/i }),
-    ).toBeTruthy();
+      screen
+        .getByTestId("lens-series-GLD_holdings_oz")
+        .getAttribute("data-point-count"),
+    ).toBe("2");
+    expect(screen.getByTestId("gold-lens-details").textContent).toMatch(
+      /cyclical: API unavailable/i,
+    );
+  });
+
+  it("does not request lens detail until the operator opens its disclosure", async () => {
+    const fetchSpy = vi.spyOn(globalThis, "fetch").mockResolvedValue({
+      ok: true,
+      status: 200,
+      text: () =>
+        Promise.resolve(
+          JSON.stringify({ lens_id: "structural", posture: {}, detail: {} }),
+        ),
+    } as Response);
+
+    render(<GoldCompassLayout state={FIXTURE} />);
+    expect(fetchSpy).not.toHaveBeenCalled();
+
+    fireEvent.click(screen.getByTestId("gold-lens-details").querySelector("summary")!);
+    await waitFor(() => expect(fetchSpy).toHaveBeenCalledTimes(3));
+    fetchSpy.mockRestore();
+  });
+
+  it("follows the board's own t5 order", () => {
+    // The conformance audit found this tab content-complete and wrongly framed: the
+    // gauge decides whether the cyclical lens means anything, and it was one tile in a
+    // five-tile strip. The board opens the tab on it, so document order is the assertion.
+    const { container } = render(<GoldCompassLayout state={FIXTURE} />);
+    const labels = [...container.querySelectorAll("[role='region']")].map(
+      (el) => el.getAttribute("aria-label"),
+    );
+    const at = (re: RegExp) => labels.findIndex((l) => l && re.test(l));
+
+    expect(at(/real-yield link/i)).toBe(0);
+    // The gauge sits BESIDE the lenses it governs, which is the argument for the pairing.
+    expect(at(/three lenses/i)).toBe(1);
+    expect(at(/expression cost/i)).toBeGreaterThan(at(/anchor history/i));
+    // The board's own t5 order puts central banks before the western flows they are
+    // routinely conflated with.
+    expect(at(/^institutional flows$/i)).toBeGreaterThan(
+      at(/central-bank flows/i),
+    );
+    // The manifest closes the tab: an audit trail is read after what it audits.
+    expect(at(/data coverage/i)).toBe(labels.length - 1);
+  });
+
+  it("gives every gold panel a board question", () => {
+    // The board's acceptance test: "every panel must answer at least one, or it gets
+    // deleted". `BoardPanel` makes it a type error to omit; this is the render-side check
+    // that nothing reaches the page around it.
+    const { container } = render(<GoldCompassLayout state={FIXTURE} />);
+    const panels = [...container.querySelectorAll("[role='region']")];
+    expect(panels.length).toBeGreaterThan(0);
+    for (const panel of panels) {
+      expect(panel.getAttribute("data-questions")).toMatch(
+        /^Q[1-7]( Q[1-7])*$/,
+      );
+    }
+  });
+
+  it("reads the gauge as a term structure rather than a level", () => {
+    // The fixture's four windows sit within 0.27 of each other, so this is the
+    // agreement branch. A hardcoded "collapsed" sentence would be wrong here, which is
+    // the point: the read is derived from the numbers, never restated from the board.
+    render(<GoldCompassLayout state={FIXTURE} />);
+    const read = screen.getByTestId("gold-gauge-read").textContent ?? "";
+    expect(read).toMatch(/agree within/i);
+    expect(read).not.toMatch(/collapsed/i);
+    // The regime still governs the page, and says so.
+    expect(read).toMatch(/context only/i);
+  });
+
+  it("says the wide window is weak when near and wide diverge", () => {
+    const collapsing: State = {
+      ...FIXTURE,
+      gauge: { ...FIXTURE.gauge, corr_60d: "-0.85", corr_504d: "-0.02" },
+    };
+    render(<GoldCompassLayout state={collapsing} />);
+    expect(screen.getByTestId("gold-gauge-read").textContent).toMatch(
+      /weak on 504D/i,
+    );
+  });
+
+  it("prints the skew at two decimals, not at storage precision", () => {
+    // It rendered `-0.0700630226186208σ` in production: a full-precision decimal string
+    // interpolated against a sigma suffix, claiming sixteen figures of measurement.
+    const precise: State = {
+      ...FIXTURE,
+      structural: {
+        ...FIXTURE.structural,
+        uw_25d_skew_sigma: "-0.0700630226186208",
+      },
+    };
+    render(<GoldCompassLayout state={precise} />);
+    const panel = screen.getByRole("region", { name: /expression cost/i });
+    expect(panel.textContent).toContain("-0.07\u03c3");
+    expect(panel.textContent).not.toContain("0700630226186208");
+  });
+
+  it("draws the persisted daily 60-day anchor history the board specifies", () => {
+    render(
+      <GoldCompassLayout
+        state={FIXTURE}
+        anchorHistory={[
+          { obs_date: "2026-05-10", corr_60d: "-0.79" },
+          { obs_date: "2026-05-11", corr_60d: "-0.17" },
+        ]}
+      />,
+    );
+    const panel = screen.getByRole("region", {
+      name: /anchor history/i,
+    });
+    expect(panel.textContent).toMatch(/2 anchor points/i);
+    expect(
+      screen.getByTestId("correlation-history-window-note").textContent,
+    ).not.toMatch(/does not exist/i);
   });
 
   it("renders GOLD COMPASS wordmark", () => {
@@ -174,11 +356,30 @@ describe("GoldCompassLayout", () => {
     expect(screen.getByText(/30D net flow/)).toBeTruthy();
   });
 
-  it("spells out central-bank reserve units", () => {
+  it("gives each central-bank bucket its own labelled figure", () => {
     render(<GoldCompassLayout state={FIXTURE} />);
-    expect(screen.getAllByText(/210 tonnes/).length).toBeGreaterThan(0);
-    expect(screen.getByText(/TACTICAL 12 tonnes/)).toBeTruthy();
-    expect(screen.getByText(/DIVERSIFIER 34 tonnes/)).toBeTruthy();
+    const cb = screen.getByRole("region", { name: /central-bank flows/i });
+    // Three buckets at equal weight. The previous layout printed the strategic figure as
+    // the headline and ran all three together in a sub-line, which answered the
+    // comparison the panel exists to let the reader make.
+    expect(cb.textContent).toMatch(/Strategic accumulators/i);
+    expect(cb.textContent).toMatch(/Tactical defenders/i);
+    expect(cb.textContent).toMatch(/Reserve diversifiers/i);
+    expect(cb.textContent).toContain("+210.0t");
+    expect(cb.textContent).toContain("+12.0t");
+    expect(cb.textContent).toContain("+34.0t");
+  });
+
+  it("derives the bucket read from the signs present, never from the board's", () => {
+    // The board's own sentence says the strategic bucket was a net SELLER and the
+    // diversifiers did the buying. That was true at its capture instant and inverts on
+    // any WGC release, so the sentence is built from the signs actually present. The
+    // fixture has all three positive; the read must not claim a seller.
+    render(<GoldCompassLayout state={FIXTURE} />);
+    const read = screen.getByTestId("cb-bucket-read").textContent ?? "";
+    expect(read).toMatch(/12-month net flows/i);
+    expect(read).not.toMatch(/net sellers/i);
+    expect(read).toMatch(/strategic accumulators/i);
   });
 
   it("labels converted UW flow clearly when holdings are unavailable", () => {
@@ -205,6 +406,49 @@ describe("GoldCompassLayout", () => {
     expect((chinaToggle as HTMLInputElement).checked).toBe(false);
     fireEvent.click(chinaToggle);
     expect((chinaToggle as HTMLInputElement).checked).toBe(true);
+  });
+
+  it("carries its own date picker on the standalone page, and drops it on the desk", () => {
+    // `/gold/replay/<date>` has no other control, so the header's picker is the only way
+    // to move. The macro desk's gold tab sits under `ReplayControl` — the desk's one
+    // control, labelled with tab 05's declared `obs_date` clock — and this picker
+    // navigates OFF the desk, so leaving it on would put two questions over one answer.
+    const standalone = render(<GoldCompassLayout state={FIXTURE} />);
+    expect(standalone.getByLabelText("REPLAY")).toBeTruthy();
+    standalone.unmount();
+
+    const onDesk = render(
+      <GoldCompassLayout
+        state={FIXTURE}
+        showReplayPicker={false}
+        deskHeading={<h2>Gold</h2>}
+      />,
+    );
+    expect(onDesk.queryByLabelText("REPLAY")).toBeNull();
+    // ...and the rest of the cockpit is untouched by the suppression.
+    expect(onDesk.getByRole("region", { name: /central-bank flows/i })).toBeTruthy();
+  });
+
+  it("wears the Gold Compass lockup standalone and the board's heading on the desk", () => {
+    // Two chromes, one body — and the wordmark is the half that must not appear twice.
+    // On the desk it said the same word as the tab bar one line above it, so tab 05 opens
+    // with the board's `.sec-title` instead; on `/gold/replay/<date>` there is no tab bar
+    // to say it, so the lockup stays.
+    const standalone = render(<GoldCompassLayout state={FIXTURE} />);
+    expect(
+      standalone.getByRole("heading", { name: /GOLD COMPASS/i }),
+    ).toBeTruthy();
+    standalone.unmount();
+
+    const onDesk = render(
+      <GoldCompassLayout
+        state={FIXTURE}
+        showReplayPicker={false}
+        deskHeading={<h2>Gold</h2>}
+      />,
+    );
+    expect(onDesk.queryByRole("heading", { name: /GOLD COMPASS/i })).toBeNull();
+    expect(onDesk.getByRole("heading", { name: "Gold" })).toBeTruthy();
   });
 
   it("uses posture language only (no buy/sell/long/short)", () => {

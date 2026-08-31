@@ -1,5 +1,38 @@
 import type { components, paths } from "./types";
 
+export type RadarResponse = components["schemas"]["RadarResponse"];
+export type ChainMatrixResponse = components["schemas"]["ChainMatrixResponse"];
+export type ChainCell = components["schemas"]["ChainCell"];
+export type ChainDrilldownResponse =
+  components["schemas"]["ChainDrilldownResponse"];
+export type ChainMember = components["schemas"]["ChainMember"];
+export type CompanyDimensionsResponse =
+  components["schemas"]["CompanyDimensionsResponse"];
+export type ReportResponse = components["schemas"]["ReportResponse"];
+export type ReportListResponse = components["schemas"]["ReportListResponse"];
+export type ResearchReportModel = components["schemas"]["ResearchReportModel"];
+export type ReportBlock = components["schemas"]["ReportBlock"];
+export type ReportDeltaModel = components["schemas"]["ReportDeltaModel"];
+export type RadarRow = components["schemas"]["RadarRow"];
+export type RadarDimension = components["schemas"]["RadarDimension"];
+export type DeskCalendarResponse =
+  components["schemas"]["DeskCalendarResponse"];
+export type DeskCalendarRow = components["schemas"]["DeskCalendarRow"];
+export type NodeUnderwritingRow = components["schemas"]["NodeUnderwritingRow"];
+export type DeltaRailResponse = components["schemas"]["DeltaRailResponse"];
+export type DeltaRailEvent = components["schemas"]["DeltaRailEvent"];
+export type DeskMatrixResponse = components["schemas"]["DeskMatrixResponse"];
+export type ChainMetricCell = components["schemas"]["ChainMetricCell"];
+export type MemberDot = components["schemas"]["MemberDot"];
+export type CohortSlice = components["schemas"]["CohortSlice"];
+export type ProfitPoolLayer = components["schemas"]["ProfitPoolLayer"];
+export type DeskLimitsResponse = components["schemas"]["DeskLimitsResponse"];
+export type DeskCapexResponse = components["schemas"]["DeskCapexResponse"];
+export type CapexQuarter = components["schemas"]["CapexQuarter"];
+export type DeskCase = components["schemas"]["DeskCase"];
+export type CaseStage = components["schemas"]["CaseStage"];
+export type CaseStageMember = components["schemas"]["CaseStageMember"];
+export type ScopeGroup = components["schemas"]["ScopeGroup"];
 type VrpCandidatesResponse = components["schemas"]["VrpCandidatesResponse"];
 type VrpBacktestResponse = components["schemas"]["VrpBacktestResponse"];
 type VrpPaperResponse = components["schemas"]["VrpPaperResponse"];
@@ -116,8 +149,41 @@ type RatesSnapshotResponse = Json<"/api/rates/snapshot", "get">;
 type MacroPolicyComparison = Json<"/api/macro/policy", "get">;
 // All four domain states share one response model, so one alias covers the set.
 type MacroDomainStateResponse = Json<"/api/macro/usd", "get">;
+type MacroContextSnapshotResponse = Json<"/api/macro/snapshot", "get">;
+// `/api/gold/state` and `/api/gold/replay` both answer with `GoldStateResponse`
+// (`api/routers/gold.py`), so the two aliases resolve to the same shape today.
+// Kept separate anyway: if either endpoint's model ever moves, the drift lands
+// as a type error at the call site instead of a silent reshape.
+type GoldStateResponse = Json<"/api/gold/state", "get">;
+type GoldReplayResponse = Json<"/api/gold/replay", "get">;
+type GoldGaugeResponse = Json<"/api/gold/gauge", "get">;
+type GoldLensResponse = Json<"/api/gold/lenses/{lens_id}", "get">;
+type GoldInputSeriesResponse = Json<"/api/gold/inputs/{series_id}", "get">;
 type PositioningSnapshot = Json<"/api/positioning/{ticker}", "get">;
 type PositioningScreenerResponse = Json<"/api/positioning/screener", "get">;
+
+/** Percent-encode a value but leave `/` raw.
+ *
+ *  A slash is legal unescaped both inside a query (RFC 3986: `query = *( pchar
+ *  / "/" / "?" )`) and inside a FastAPI path segment typed `{key:path}`, and 20
+ *  of the desk's 38 chain names contain one. `%2F` also decodes to the same
+ *  thing on both routes we call this for — a query is unquoted by `parse_qsl`
+ *  after routing, and uvicorn unquotes the whole raw path (including `%2F`)
+ *  BEFORE Starlette routes it — so this is about the URL a human reads in the
+ *  address bar, not about correctness. Everything else still goes through
+ *  `encodeURIComponent`: a chain name carrying `&` or `#` would otherwise
+ *  split the query.
+ *
+ *  Do NOT reuse this for a link into Next's OWN `/reports/[type]/[key]` page
+ *  (a single dynamic segment, not a catch-all) — Next's router, unlike
+ *  uvicorn, splits the raw pathname on a literal `/` before decoding, so a raw
+ *  slash there 404s and the key must stay `encodeURIComponent`-escaped
+ *  (verified by running `next dev` and requesting both forms: `%2F` in one
+ *  segment renders the page, a literal `/` 404s).
+ */
+export function _rawSlash(value: string): string {
+  return encodeURIComponent(value).replace(/%2F/g, "/");
+}
 
 async function _fetch<T>(
   path: string,
@@ -139,6 +205,13 @@ async function _fetch<T>(
   const text = await r.text();
   if (!text) return undefined as unknown as T;
   return JSON.parse(text) as T;
+}
+
+/** `?as_of=YYYY-MM-DD`, or nothing at all when live. The empty string is deliberately
+ *  NOT sent: FastAPI would reject `as_of=` as an unparseable date, turning "show me now"
+ *  into a 422 the desk would have to explain. */
+function asOfQuery(asOf?: string): string {
+  return asOf ? `?as_of=${encodeURIComponent(asOf)}` : "";
 }
 
 export const api = {
@@ -289,29 +362,262 @@ export const api = {
     _fetch<PositioningSnapshot>(`/api/positioning/${ticker}`),
   positioningScreener: (): Promise<PositioningScreenerResponse> =>
     _fetch<PositioningScreenerResponse>(`/api/positioning/screener`),
-  ratesSnapshot: (): Promise<RatesSnapshotResponse | null> =>
-    _fetch<RatesSnapshotResponse | null>(`/api/rates/snapshot`, undefined, {
-      allow404: true,
-    }),
+  // `asOf` is a UTC CALENDAR DATE (`YYYY-MM-DD`), not an instant. Both routes also
+  // accept `as_of_ts` for intraday replay; the desk does not ask for one, and the two
+  // are mutually exclusive server-side (`resolve_instant` 422s on both). Omitted rather
+  // than sent empty when live, so the shipped query stays byte-identical — the router
+  // passes `None` down only when no date was actually asked for, which is what keeps a
+  // snapshot whose `computed_at` sits a second in the future from 404ing the page.
+  ratesSnapshot: (asOf?: string): Promise<RatesSnapshotResponse | null> =>
+    _fetch<RatesSnapshotResponse | null>(
+      `/api/rates/snapshot${asOfQuery(asOf)}`,
+      undefined,
+      { allow404: true },
+    ),
   // The four policy paths, each with its own publisher and release date. Kept
   // separate from ratesSnapshot deliberately: they are computed by a different
   // job on a different clock, and folding them into one call would make a stale
   // snapshot look like it carried a fresh FOMC release.
-  macroPolicy: (): Promise<MacroPolicyComparison | null> =>
-    _fetch<MacroPolicyComparison | null>(`/api/macro/policy`, undefined, {
-      allow404: true,
-    }),
+  macroPolicy: (asOf?: string): Promise<MacroPolicyComparison | null> =>
+    _fetch<MacroPolicyComparison | null>(
+      `/api/macro/policy${asOfQuery(asOf)}`,
+      undefined,
+      { allow404: true },
+    ),
   // One call per domain rather than one bundling call. The four engines run on separate
   // schedules and any of them can be absent; a bundle would make one missing state look
   // like a failed page, and the desk's whole point is saying which half is missing.
   // `allow404` is load-bearing here: a domain the pipeline has never computed 404s, and
   // that is a fact to render, not an error to throw.
+  // `asOf` is the same UTC calendar date `ratesSnapshot` takes, through the same shared
+  // `resolve_instant`. What it selects is NOT the same column, and the difference is
+  // load-bearing for anything reading the reply: `fetch_macro_domain_state_as_of` is
+  // `WHERE as_of <= %s` (`storage/macro_domain_state.py:222`) — the instant the state
+  // ANSWERS FOR — while the rates snapshot filters on `computed_at`, when the answer was
+  // written. See `replayVerdictForDomainState` for what that means at the banner.
   macroDomainState: (
     domain: "inflation" | "rates" | "usd" | "gold",
+    asOf?: string,
   ): Promise<MacroDomainStateResponse | null> =>
-    _fetch<MacroDomainStateResponse | null>(`/api/macro/${domain}`, undefined, {
+    _fetch<MacroDomainStateResponse | null>(
+      `/api/macro/${domain}${asOfQuery(asOf)}`,
+      undefined,
+      { allow404: true },
+    ),
+  // `allow404` again, and for a sharper reason than the domain reads: a 404 here means no
+  // snapshot was ever assembled for the instant, which the desk must render as "nothing
+  // checked whether these four belong together" -- never as a coherent chain.
+  macroContextSnapshot: (
+    asOf?: string,
+  ): Promise<MacroContextSnapshotResponse | null> =>
+    _fetch<MacroContextSnapshotResponse | null>(
+      asOf
+        ? `/api/macro/snapshot?as_of=${encodeURIComponent(asOf)}`
+        : "/api/macro/snapshot",
+      undefined,
+      { allow404: true },
+    ),
+  // `allow404` is the whole point of routing the gold pages through here. The
+  // router 404s with "no gold posture computed yet" when the engine has not run,
+  // which is a fact about the pipeline and settles to `null`. Every other status
+  // — and every unreachable-API throw — propagates, so the page can say the
+  // request failed instead of showing the never-computed placeholder for a dead
+  // API. The raw fetch these replace collapsed both into one `null`.
+  goldState: (): Promise<GoldStateResponse | null> =>
+    _fetch<GoldStateResponse | null>(`/api/gold/state`, undefined, {
       allow404: true,
     }),
+  // Point-in-time sibling of goldState. `as_of` is a QUERY param, not a path
+  // segment (`@router.get("/replay")` in `api/routers/gold.py`); a date with no
+  // posture row 404s, which is again a fact, not a failure.
+  goldReplay: (date: string): Promise<GoldReplayResponse | null> =>
+    _fetch<GoldReplayResponse | null>(
+      `/api/gold/replay?as_of=${encodeURIComponent(date)}`,
+      undefined,
+      { allow404: true },
+    ),
+  // The board's §⑨ build note asks for exactly this wrapper rather than another raw
+  // fetch, and §⑩ P2.2 lists the route as one of three the desk never consumed.
+  //
+  // What it carries is NOT what the board's t5 panel asks for, and the difference is
+  // worth stating at the call site: `GoldGaugeTimeSeriesPoint` is `{obs_date,
+  // corr_252d}`, so the 60-day cut the board names is absent from every one of its
+  // points. What it does carry is DEPTH — 261 observations against the 3-5 that arrive
+  // inside `goldState().correlation_history`, which is the whole reason to spend a
+  // second request on it.
+  //
+  // The port plan's §4.5 declined this route as expensive ("262 correlation gauges per
+  // request"). Re-measured 2026-08-29: 50ms, against 29ms for `/api/gold/state`. The
+  // reason no longer holds; the note stays so it is not re-derived a third time.
+  goldGauge: (asOf?: string): Promise<GoldGaugeResponse | null> =>
+    _fetch<GoldGaugeResponse | null>(
+      `/api/gold/gauge${asOfQuery(asOf)}`,
+      undefined,
+      {
+        allow404: true,
+      },
+    ),
+  goldLens: (
+    lensId: "structural" | "cyclical" | "valuation",
+  ): Promise<GoldLensResponse | null> =>
+    _fetch<GoldLensResponse | null>(
+      `/api/gold/lenses/${encodeURIComponent(lensId)}`,
+      undefined,
+      { allow404: true },
+    ),
+  // The other route §⑩ P2.2 names as never consumed, and the one the board's t0
+  // "Market deltas · 1 week" panel is built on: a dated series of stored daily closes,
+  // one series per call, bounded by `from`/`to`.
+  //
+  // `allow404` because an UNKNOWN SERIES ID and an EMPTY SERIES answer the same way here,
+  // and the difference matters to the caller: five of the nine series the board's panel
+  // names are absent from this store (measured 2026-08-29 — SOFR, EFFR, GVZ, HY OAS and
+  // GLD all return zero points), so a caller must render the coverage rather than assume
+  // the panel's row list is the panel's data.
+  goldInputSeries: (
+    seriesId: string,
+    range?: { from?: string; to?: string; asOf?: string },
+  ): Promise<GoldInputSeriesResponse | null> => {
+    const qs = new URLSearchParams();
+    if (range?.from) qs.set("from", range.from);
+    if (range?.to) qs.set("to", range.to);
+    if (range?.asOf) qs.set("as_of", range.asOf);
+    const suffix = qs.toString() ? `?${qs}` : "";
+    return _fetch<GoldInputSeriesResponse | null>(
+      `/api/gold/inputs/${encodeURIComponent(seriesId)}${suffix}`,
+      undefined,
+      { allow404: true },
+    );
+  },
+  // The Radar is a read over persisted results — no provider, no lake. `state`
+  // is load-bearing: an empty `rows` is six different situations and only one of
+  // them is a fact about the companies.
+  radar: (params?: {
+    tier?: string;
+    engine_version?: string;
+    limit?: number;
+    min_dimensions?: number;
+  }): Promise<RadarResponse> => {
+    const q = new URLSearchParams();
+    if (params?.tier) q.set("tier", params.tier);
+    if (params?.engine_version) q.set("engine_version", params.engine_version);
+    if (params?.limit != null) q.set("limit", String(params.limit));
+    if (params?.min_dimensions != null)
+      q.set("min_dimensions", String(params.min_dimensions));
+    const qs = q.toString();
+    return _fetch<RadarResponse>(`/api/scanner/radar${qs ? `?${qs}` : ""}`);
+  },
+  chainMatrix: (params?: {
+    taxonomy_version?: string;
+    engine_version?: string;
+    domain?: string;
+  }): Promise<ChainMatrixResponse> => {
+    const q = new URLSearchParams();
+    if (params?.taxonomy_version)
+      q.set("taxonomy_version", params.taxonomy_version);
+    if (params?.engine_version) q.set("engine_version", params.engine_version);
+    if (params?.domain) q.set("domain", params.domain);
+    const qs = q.toString();
+    return _fetch<ChainMatrixResponse>(
+      `/api/research/chains/matrix${qs ? `?${qs}` : ""}`,
+    );
+  },
+  chainMembers: (
+    chain: string,
+    params?: { layer?: string; engine_version?: string },
+  ): Promise<ChainDrilldownResponse> => {
+    const q = new URLSearchParams();
+    if (params?.layer) q.set("layer", params.layer);
+    if (params?.engine_version) q.set("engine_version", params.engine_version);
+    const qs = q.toString();
+    return _fetch<ChainDrilldownResponse>(
+      `/api/research/chains/${encodeURIComponent(chain)}${qs ? `?${qs}` : ""}`,
+    );
+  },
+  // --- Fundamentals industry desk (Task 13's read-only surface) -------------
+  //
+  // `chain` is a QUERY parameter on every desk endpoint and must stay one. A
+  // %2F-encoded slash in a FastAPI PATH parameter is 404: uvicorn unquotes the
+  // raw path BEFORE Starlette routes it, so `chain/Networking%2FOptical`
+  // arrives as two segments and matches no single-segment `{key}` route
+  // (re-verified 2026-08-28). In a QUERY string both spellings are accepted and
+  // decode identically; we emit the raw slash because that is the shape Task 13
+  // verified end to end and because it keeps the URL readable.
+  //
+  // `chain` is also the ONLY filter these endpoints accept, deliberately: the
+  // desk LISTS and never RANKS, and `_reject_unknown_query_params` answers 422
+  // rather than silently ignoring a `sort=` that a caller believed was applied.
+  deskCalendar: (
+    section: string,
+    chain?: string,
+  ): Promise<DeskCalendarResponse | null> =>
+    _fetch<DeskCalendarResponse>(
+      `/api/fundamentals/${section}/calendar` +
+        (chain == null ? "" : `?chain=${_rawSlash(chain)}`),
+      undefined,
+      { allow404: true },
+    ),
+  nodeUnderwriting: (
+    section: string,
+    chain: string,
+  ): Promise<NodeUnderwritingRow[] | null> =>
+    _fetch<NodeUnderwritingRow[]>(
+      `/api/fundamentals/${section}/node/underwriting?chain=${_rawSlash(chain)}`,
+      undefined,
+      { allow404: true },
+    ),
+  deskDelta: (section: string, since?: string): Promise<DeltaRailResponse> =>
+    _fetch<DeltaRailResponse>(
+      `/api/fundamentals/${section}/delta` +
+        (since == null ? "" : `?since=${since}`),
+    ),
+  deskMatrix: (section: string): Promise<DeskMatrixResponse> =>
+    _fetch<DeskMatrixResponse>(`/api/fundamentals/${section}/matrix`),
+  deskProfitPool: (section: string): Promise<ProfitPoolLayer[]> =>
+    _fetch<ProfitPoolLayer[]>(`/api/fundamentals/${section}/profit-pool`),
+  deskLimits: (section: string): Promise<DeskLimitsResponse> =>
+    _fetch<DeskLimitsResponse>(`/api/fundamentals/${section}/limits`),
+  deskCapex: (section: string): Promise<DeskCapexResponse> =>
+    _fetch<DeskCapexResponse>(`/api/fundamentals/${section}/capex`),
+  // Both cases in ONE request, never one per case: the funnels share a radius
+  // scale, and a scale computed from a per-case response would be computed
+  // from a different population on each page.
+  deskCases: (section: string): Promise<DeskCase[]> =>
+    _fetch<DeskCase[]>(`/api/fundamentals/${section}/cases`),
+  deskScope: (section: string): Promise<ScopeGroup[]> =>
+    _fetch<ScopeGroup[]>(`/api/fundamentals/${section}/scope`),
+  researchReports: (limit = 25): Promise<ReportListResponse> =>
+    _fetch<ReportListResponse>(`/api/research/reports?limit=${limit}`),
+  researchReport: (
+    reportType: "company" | "comparison" | "chain",
+    key: string,
+    version?: number,
+  ): Promise<ReportResponse> =>
+    _fetch<ReportResponse>(
+      `/api/research/reports/${reportType}/${_rawSlash(key)}` +
+        (version == null ? "" : `/versions/${version}`),
+    ),
+  assembleResearchReport: (
+    reportType: "company" | "comparison" | "chain",
+    key: string,
+    asOf?: string,
+  ): Promise<ReportResponse> =>
+    _fetch<ReportResponse>(
+      `/api/research/reports/${reportType}/${_rawSlash(key)}` +
+        (asOf ? `?as_of=${asOf}` : ""),
+      { method: "POST" },
+    ),
+  companyDimensions: (
+    ticker: string,
+    engineVersion?: string,
+  ): Promise<CompanyDimensionsResponse> =>
+    _fetch<CompanyDimensionsResponse>(
+      `/api/stock/${ticker}/fundamentals/dimensions${
+        engineVersion
+          ? `?engine_version=${encodeURIComponent(engineVersion)}`
+          : ""
+      }`,
+    ),
   tradeInsights: (ticker: string): Promise<TradeInsightsResponse> =>
     _fetch<TradeInsightsResponse>(`/api/stock/${ticker}/trade-insights`),
   tradeInsightsAiAnalysis: (
@@ -428,6 +734,7 @@ export type {
   CockpitVrpResponse,
   BenchmarkCurrentResponse,
   BenchmarkHistoryResponse,
+  GoldStateResponse,
   OhlcResponse,
   RegimeDealerResponse,
   RegimeGexResponse,

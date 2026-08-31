@@ -25,7 +25,7 @@ from dotenv import load_dotenv
 
 ROOT = Path(__file__).resolve().parents[2]
 OUT = ROOT / "tests" / "fixtures" / "macro" / "rates_market_layer_golden.json"
-SPEC = "docs/superpowers/specs/2026-08-21-rates-market-layer-design.md"
+SPEC = "docs/superpowers/archive/specs/2026-08-21-rates-market-layer-design.md"
 
 TREASURY = "https://www.treasurydirect.gov/TA_WS/securities/auctioned"
 CFTC = "https://publicreporting.cftc.gov/resource/gpe5-46if.json"

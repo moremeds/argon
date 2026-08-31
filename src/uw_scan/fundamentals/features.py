@@ -11,6 +11,16 @@ confirmed direction, two (`gross_margin`, `op_margin`) measured INVERTED and car
 no direction claim, and `roe` was tested but is named by no rubric row. The
 composite that was validated weights all seven equally — see
 `docs/research/2026-08-12-fundamental-weighting-probe/DECISION.md`.
+
+`uw_scan.fundamentals.underwriting` holds a SEPARATE, purely descriptive
+derivation (spec §5-v): DIO, SBC/revenue, shares-outstanding YoY. It imports
+`_f` from here (the same pattern `valuation_math.py` already uses) and does
+not join `FEATURES` and never will by accident — appending to `FEATURES`
+moves every cross-sectional z-score in the composite and would need an
+engine-version bump for what is a display need, not a scoring need. Split
+into its own module rather than grown here once this file passed its own
+<500-line target and the underwriting block was already a cohesive,
+separately-purposed derivation (fix round 1, 2026-08-28).
 """
 
 from __future__ import annotations

@@ -229,7 +229,7 @@ def main() -> int:
     }
     result = {
         "probed_at": datetime.now(UTC).isoformat(),
-        "spec": "docs/superpowers/specs/2026-08-12-usd-gold-state-design.md",
+        "spec": "docs/superpowers/archive/specs/2026-08-12-usd-gold-state-design.md",
         "vintage_cap": VINTAGE_CAP,
         "daily_vintage_start": DAILY_VINTAGE_START.isoformat(),
         "fred_broad_dollar": fred,

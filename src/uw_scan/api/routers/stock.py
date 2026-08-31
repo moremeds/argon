@@ -442,9 +442,11 @@ def get_stock_fundamental_statements(
     own contract and its OpenAPI snapshot stay untouched and the two payloads
     can evolve independently.
 
-    Reads through `statement_panel`, the same path the scoring job uses, so
-    "which observation is current" cannot diverge between the front of a card
-    and its back.
+    Reads through `current_statement_panel` — newest version per identity, the
+    same path the card's front takes — so "which observation is current" cannot
+    diverge between the front of a card and its back. Deliberately NOT the
+    as-of reader: this endpoint answers "what do we believe now", and an
+    observation carrying no availability evidence must still render here.
 
     404 here means "no statements ingested", which is deliberately NOT the card
     endpoint's condition ("no score row"). The two can legitimately disagree —
@@ -452,11 +454,12 @@ def get_stock_fundamental_statements(
     because a different table lags would be the dishonest answer.
     """
     from uw_scan.fundamentals.features import build_feature_details
-    from uw_scan.storage.fundamental_obs import FundamentalObsRepository
+    from uw_scan.storage.fundamental_observation_panels import (
+        current_statement_panel,
+    )
 
     t = ticker.upper()
-    obs = FundamentalObsRepository(repo.conn, schema=settings.db_schema)
-    panel = obs.statement_panel([t])
+    panel = current_statement_panel(repo.conn, [t], schema=settings.db_schema)
     entry = panel.get(t)
     if not entry or not entry["income-statements"]:
         raise HTTPException(status_code=404, detail=f"no statements for {t}")

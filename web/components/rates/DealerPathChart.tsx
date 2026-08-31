@@ -1,9 +1,10 @@
-import { WIDE_FRAME, axisTicks } from "./chartGeometry";
+import { WIDE_FRAME, axisTicks } from "@/components/macro/chartGeometry";
+import { BoardRead } from "@/components/macro/domain/BoardPanel";
+import { humanizeIdentifier } from "@/components/macro/presentation";
 import styles from "./RatesDesk.module.css";
 import { finiteOrNull, toFiniteNumber } from "./format";
 import { plottable, priorReleases, releaseDate } from "./policyPath";
 import type { MacroPolicyPathPoint, PolicyPath, PolicyPathSlot } from "./types";
-
 
 const {
   width: WIDTH,
@@ -97,7 +98,7 @@ function respondentNote(rows: Row[]): string {
   // far horizons are answered by fewer dealers than the near ones.
   return lo === hi
     ? `n=${lo} at every horizon.`
-    : `n varies by horizon, ${lo}–${hi}; the far horizons are answered by fewer dealers.`;
+    : `Respondents by horizon: ${lo}–${hi}.`;
 }
 
 /** Year starts inside the plotted range, so the axis is dated rather than ordinal. */
@@ -193,10 +194,13 @@ export function DealerPathChart({
 
   return (
     <div className={styles.pathChartBlock}>
-      <div className={styles.chartPanel} aria-label="Dealer expectations chart">
+      <BoardRead>
+        Full dealer path and release history; no committee or market series.
+      </BoardRead>
+      <div className={`${styles.chartPanel} chart`} aria-label="Dealer expectations chart">
         <div className={styles.chartHeader}>
           <strong>Expected policy rate by meeting date</strong>
-          <div className={styles.chartLegend}>
+          <div className={`${styles.chartLegend} lgd`}>
             {series.map((item) => (
               <span key={item.path.source_record_id}>
                 <i className={item.className} />
@@ -315,20 +319,23 @@ export function DealerPathChart({
         </svg>
       </div>
 
-      <p className={styles.pathProvenance}>
-        {path.source} · released {releaseDate(path)}
+      <p className="cap">
+        {humanizeIdentifier(path.source)} · released {releaseDate(path)}
         {series.length > 1
           ? ` · ${series.length - 1} earlier survey${series.length > 2 ? "s" : ""} overlaid`
           : ""}
       </p>
-      <p className={styles.pathNote} data-testid="dealer-path-note">
-        {`${respondentNote(rows)} `}
-        {series.length > 1
-          ? "Earlier surveys are separate releases shown for movement, never merged into the latest one. "
-          : "Only one survey has been ingested, so there is nothing to compare it against yet. "}
-        Plotted on its own axes — this survey is never merged with, or averaged
-        against, the committee&apos;s own projection.
-      </p>
+      <div className="grid g2">
+        <BoardRead testId="dealer-path-note">
+          {respondentNote(rows)} Dated points show when the survey first moves.
+        </BoardRead>
+        <BoardRead>
+          {series.length > 1
+            ? "Earlier surveys are overlaid as separate releases."
+            : "Only one survey has been ingested, so a revision comparison is not available yet."}{" "}
+          Never averaged with Fed projections.
+        </BoardRead>
+      </div>
     </div>
   );
 }

@@ -9,7 +9,11 @@ from fastapi import APIRouter, Depends, HTTPException, Query
 
 from uw_scan.api.deps import get_repo
 from uw_scan.macro.policy_report import build_policy_comparison
-from uw_scan.models import MacroDomainStateResponse, PolicyComparison
+from uw_scan.models import (
+    MacroContextSnapshotResponse,
+    MacroDomainStateResponse,
+    PolicyComparison,
+)
 from uw_scan.storage.repository import Repository
 
 router = APIRouter(prefix="/macro", tags=["macro"])
@@ -36,7 +40,7 @@ def macro_policy(
     ),
     repo: Repository = Depends(get_repo),
 ) -> PolicyComparison:
-    return build_policy_comparison(repo, as_of=_resolve_instant(as_of, as_of_ts))
+    return build_policy_comparison(repo, as_of=resolve_instant(as_of, as_of_ts))
 
 
 @router.get("/inflation", response_model=MacroDomainStateResponse)
@@ -50,7 +54,7 @@ def macro_inflation_state(
     ),
     repo: Repository = Depends(get_repo),
 ) -> MacroDomainStateResponse:
-    return _domain_state(repo, "inflation", _resolve_instant(as_of, as_of_ts))
+    return _domain_state(repo, "inflation", resolve_instant(as_of, as_of_ts))
 
 
 @router.get("/rates", response_model=MacroDomainStateResponse)
@@ -64,7 +68,7 @@ def macro_rates_state(
     ),
     repo: Repository = Depends(get_repo),
 ) -> MacroDomainStateResponse:
-    return _domain_state(repo, "policy_rates", _resolve_instant(as_of, as_of_ts))
+    return _domain_state(repo, "policy_rates", resolve_instant(as_of, as_of_ts))
 
 
 @router.get("/usd", response_model=MacroDomainStateResponse)
@@ -78,7 +82,7 @@ def macro_usd_state(
     ),
     repo: Repository = Depends(get_repo),
 ) -> MacroDomainStateResponse:
-    return _domain_state(repo, "usd", _resolve_instant(as_of, as_of_ts))
+    return _domain_state(repo, "usd", resolve_instant(as_of, as_of_ts))
 
 
 @router.get("/gold", response_model=MacroDomainStateResponse)
@@ -109,7 +113,68 @@ def macro_gold_state(
     ``/api/gold/replay``. This endpoint does not replace those; it answers a narrower
     question they never answered.
     """
-    return _domain_state(repo, "gold", _resolve_instant(as_of, as_of_ts))
+    return _domain_state(repo, "gold", resolve_instant(as_of, as_of_ts))
+
+
+@router.get("/snapshot", response_model=MacroContextSnapshotResponse)
+def macro_context_snapshot(
+    as_of: date | None = Query(
+        default=None,
+        description="UTC calendar date; returns the snapshot answering for that day-end.",
+    ),
+    as_of_ts: datetime | None = Query(
+        default=None, description="Timezone-aware instant to replay."
+    ),
+    repo: Repository = Depends(get_repo),
+) -> MacroContextSnapshotResponse:
+    """The four domains as one answer, with whatever refusal the assembler recorded.
+
+    This is the route the desk should read instead of four independent latest states. The
+    four-request shape cannot notice that USD stood on last night's rates, because every
+    row it fetches is individually current and individually honest; only the snapshot
+    holds the claim that they belong together.
+
+    A ``complete`` status is not a claim that the macro picture is right -- only that the
+    chain is internally coherent. The states remain descriptive.
+    """
+    requested_as_of = resolve_instant(as_of, as_of_ts)
+    row = repo.fetch_macro_context_snapshot_as_of(requested_as_of)
+    if row is None:
+        raise HTTPException(
+            status_code=404,
+            detail=(
+                "no macro context snapshot has been assembled for an instant at or "
+                f"before {requested_as_of.isoformat()}"
+            ),
+        )
+    domains = repo.fetch_macro_context_snapshot_domains(int(row["snapshot_id"]))
+    return MacroContextSnapshotResponse.model_validate(
+        {
+            "requested_as_of": requested_as_of,
+            "as_of": row["as_of"],
+            "assembled_at": row["assembled_at"],
+            "status": row["status"],
+            "assembler_version": row["assembler_version"],
+            "inputs_hash": row["inputs_hash"],
+            "domains": [
+                {
+                    "domain": item["domain"],
+                    "ordinal": item["ordinal"],
+                    "state_id": item["state_id"],
+                    "state": item["state"],
+                    "direction": item["direction"],
+                    "confidence": item["confidence"],
+                    "as_of": item["state_as_of"],
+                    "engine_version": item["engine_version"],
+                    "inputs_hash": item["inputs_hash"],
+                }
+                for item in domains
+            ],
+            # Stored as written by the assembler. Rebuilding them here would be a second
+            # place the refusal is decided, and the two would drift.
+            "reasons": row["status_reasons_jsonb"] or [],
+        }
+    )
 
 
 def _domain_state(
@@ -204,7 +269,14 @@ def state_summary_fields(
     }
 
 
-def _resolve_instant(as_of: date | None, as_of_ts: datetime | None) -> datetime:
+def resolve_instant(as_of: date | None, as_of_ts: datetime | None) -> datetime:
+    """The instant a request is replaying, from the two ways of naming one.
+
+    Public because the rates router replays against the same desk: the macro desk
+    renders four ``/api/macro/*`` cards beside ``/api/rates/snapshot``, and a second
+    copy of this would let one tab accept an ``as_of`` the other rejected -- or, worse,
+    silently read a naive timestamp as UTC on one surface and refuse it on the other.
+    """
     if as_of is not None and as_of_ts is not None:
         raise HTTPException(
             status_code=422, detail="supply either as_of or as_of_ts, not both"

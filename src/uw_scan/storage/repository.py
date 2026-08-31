@@ -34,6 +34,7 @@ from .health import _HealthMixin
 from .jobs import _JobsMixin
 from .market_data import _MarketDataMixin
 from .macro_context import _MacroContextMixin
+from .macro_context_snapshot import _MacroContextSnapshotMixin
 from .macro_domain_state import _MacroDomainStateMixin
 from .macro_series_observations import _MacroSeriesObservationMixin
 from .macro_policy_observations import _MacroPolicyObservationMixin
@@ -124,6 +125,7 @@ class Repository(
     _JobsMixin,
     _MarketDataMixin,
     _MacroContextMixin,
+    _MacroContextSnapshotMixin,
     _MacroDomainStateMixin,
     _MacroPolicyObservationMixin,
     _MacroSeriesObservationMixin,

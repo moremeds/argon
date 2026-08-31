@@ -21,7 +21,17 @@ from typing import Any
 import psycopg
 from psycopg.types.json import Jsonb
 
-from uw_scan.fundamentals.statements import Violation
+from uw_scan.fundamentals.statements import (
+    Violation,
+    # The SAME parser `net_income_basis_difference` uses. Imported rather than
+    # re-implemented so "is this pair comparable at all" and "do the two agree"
+    # can never disagree about whether a figure is present — the cross-module
+    # private-helper pattern `fundamentals/underwriting.py` already uses for `_f`.
+    _dec,
+    check_net_income_sign_flip,
+    net_income_basis_difference,
+)
+from uw_scan.storage.fundamental_observation_panels import current_statement_panel
 
 # One statement row is ~1 KB of JSONB; 2,000 keeps a chunk comfortably under the
 # parameter ceiling while still amortising round-trips over a 60k-row ingest.
@@ -162,10 +172,26 @@ class FundamentalObsRepository:
     def record_violations(self, obs_id: int, violations: Sequence[Violation]) -> int:
         """Attach integrity failures to one observation. Idempotent per check.
 
-        `DO NOTHING` rather than `DO UPDATE`: a violation is a verdict about an
-        immutable payload, so re-running the same check over the same row cannot
-        legitimately produce a different answer, and the original `detected_at`
-        is the more useful fact to keep.
+        `DO NOTHING` rather than `DO UPDATE`: for a SINGLE-OBSERVATION check
+        (everything in `statements.check_violations`), a violation is a
+        verdict about an immutable payload, so re-running the same check over
+        the same row cannot legitimately produce a different answer, and the
+        original `detected_at` is the more useful fact to keep.
+
+        That reasoning does NOT hold for a CROSS-OBSERVATION check like
+        `check_net_income_sign_flip`: its verdict depends on a SECOND
+        observation (the paired cash-flow statement) that can itself be
+        restated later, so a genuinely different (correct) answer is
+        possible on a later run and `DO NOTHING` would keep serving the
+        stale one. Accepted as a known limitation rather than built around,
+        because the effective population is 5 rows total across the full
+        local historical store (0.017% of 28,973 pairs) and, measured
+        2026-08-28, all 5 currently carry exactly one content_hash version on
+        BOTH sides — i.e. no restatement has happened to any of them yet in
+        this store. If that changes, this needs a scoped retraction path (a
+        `DELETE ... WHERE obs_id = %s AND check_name = %s` keyed off a run
+        that finds no violation where one was previously recorded), not a
+        change to this method's behavior for every other check.
         """
         if not violations:
             return 0
@@ -277,60 +303,175 @@ class FundamentalObsRepository:
                     new += self.record_violations(obs_id, violations)
             offset += batch
 
+    def net_income_basis_summary(
+        self, limit: int = 10, *, tickers: Sequence[str] | None = None
+    ) -> dict[str, Any]:
+        """`{"agree": n, "differ": n, "by_ticker": [...]}` in ONE table scan.
+
+        The desk limits block needs both halves, and running the scan twice to
+        get them would double the cost of the panel for no new information.
+
+        `tickers` SCOPES the population. A section-scoped surface asking this
+        unscoped gets universe-wide figures under a section header — it would
+        name VZ and GE on a page titled AI/Semi, which is false in its own
+        frame. Scoping is also strictly less work than the full scan. `None`
+        keeps the whole-universe read for callers whose question really is
+        universe-wide.
+
+        The counts are period-pair counts, not ticker counts, and they split a
+        pair THREE ways, not two — `net_income_basis_difference` returns `None`
+        for two different reasons and treating both as agreement is wrong:
+
+        - **counted in neither**, because the pair is not comparable: either
+          statement carries no `net_income` at all. Folding these into `agree`
+          would let missing data inflate a number the reader takes as evidence
+          of consistency.
+        - **counted in neither**, because the pair is a SIGN FLIP. It is
+          comparable and it does NOT match, so it is not agreement; and it is
+          a vendor defect rather than an accounting basis gap, so it is not a
+          basis difference either. It is already counted, once, by
+          `violation_count(net_income_sign_flipped_across_statements)`, and
+          adding it to `agree` would let the desk's limits panel double-book
+          the same pair as both consistent and violated. Measured 5 of 28,973
+          historical pairs, so this is rare — and a panel that reports one
+          section's single sign flip as an agreement is exactly as wrong as
+          one that reports a thousand.
+        - `agree` / `differ`: the pair is comparable, not sign-flipped, and
+          either matches one of the income statement's two net-income lines or
+          does not.
+        """
+        counts: dict[str, int] = {}
+        agree = differ = 0
+        sql = self._NI_BASIS_SQL
+        params: list[Any] = []
+        if tickers is not None:
+            if not tickers:
+                return {"agree": 0, "differ": 0, "by_ticker": []}
+            sql += " WHERE inc.ticker = ANY(%s)"
+            params.append([t.upper() for t in tickers])
+        with self.conn.cursor() as cur:
+            cur.execute(sql, params or None)
+            for ticker, income_payload, cashflow_payload in cur.fetchall():
+                if _dec(income_payload, "net_income") is None or (
+                    _dec(cashflow_payload, "net_income") is None
+                ):
+                    continue  # not comparable — neither agreement nor a gap
+                if check_net_income_sign_flip(income_payload, cashflow_payload):
+                    # A VIOLATION, counted by `violation_count`. Comparable and
+                    # not matching, so calling it agreement double-books it.
+                    continue
+                if (
+                    net_income_basis_difference(income_payload, cashflow_payload)
+                    is not None
+                ):
+                    differ += 1
+                    counts[ticker] = counts.get(ticker, 0) + 1
+                else:
+                    agree += 1
+        ordered = sorted(counts.items(), key=lambda kv: (-kv[1], kv[0]))
+        return {
+            "agree": agree,
+            "differ": differ,
+            "by_ticker": [
+                {"ticker": ticker, "basis_difference_count": count}
+                for ticker, count in ordered[:limit]
+            ],
+        }
+
+    def violation_count(self, check_name: str) -> int:
+        """How many recorded violations carry this check name.
+
+        Separate from the NI BASIS reads above on purpose: a violation is an
+        integrity failure Argon stands behind, while a basis difference is a
+        descriptive accounting gap it cannot attribute. Counting them through
+        one method would be the category error Task 10 was built on.
+        """
+        with self.conn.cursor() as cur:
+            cur.execute(
+                f"""SELECT count(*) FROM {self._schema}.fundamental_obs_violations
+                     WHERE check_name = %s""",
+                (check_name,),
+            )
+            return int(cur.fetchone()[0])
+
+    def net_income_basis_differences_by_ticker(
+        self, limit: int = 10
+    ) -> list[dict[str, Any]]:
+        """Tickers with the most NI basis differences, most affected first.
+
+        NEVER a violations read — do not add a `check_name` filter over
+        `fundamental_obs_violations` here. `net_income_basis_difference`
+        (`fundamentals/statements.py`) is descriptive: the driver, measured,
+        is overwhelmingly noncontrolling interests / discontinued operations
+        (ASC 230 opens the cash-flow statement from consolidated NI, the
+        income statement's headline is post-NCI, post-discontinued-ops) — a
+        real, correct accounting difference Argon cannot attribute without an
+        NCI field it does not store, not a vendor defect. A ticker showing up
+        here is not an "offender"; it is a company whose income and cash-flow
+        statements are using the accounting convention that model docstring
+        explains, which the desk limits block should be able to read by name
+        without it reading as an integrity failure.
+
+        Computed at READ TIME directly from `fundamental_statement_obs`,
+        never persisted: the verdict for one (ticker, period) pair depends on
+        BOTH statements and can change if either is later restated, so unlike
+        an immutable `fundamental_obs_violations` row this must be
+        recomputed from whatever is in the store right now, every call — it
+        scans the full observation table (paralleling `coverage()` above),
+        so it is a desk-panel read, not a per-request hot path.
+        """
+        return self.net_income_basis_summary(limit)["by_ticker"]
+
+    @property
+    def _NI_BASIS_SQL(self) -> str:
+        """Newest accepted income and cash-flow payload per (ticker, period).
+
+        One definition, two readers (`net_income_basis_summary` and, through
+        it, `net_income_basis_differences_by_ticker`) — a second copy would
+        drift the moment one of them learned about a new statement type.
+        """
+        return f"""
+            WITH inc AS (
+                SELECT DISTINCT ON (ticker, period_end, period_type)
+                       ticker, period_end, period_type, raw_jsonb AS payload
+                  FROM {self._schema}.fundamental_statement_obs
+                 WHERE statement = 'income'
+                 ORDER BY ticker, period_end, period_type, obs_id DESC
+            ),
+            cf AS (
+                SELECT DISTINCT ON (ticker, period_end, period_type)
+                       ticker, period_end, period_type, raw_jsonb AS payload
+                  FROM {self._schema}.fundamental_statement_obs
+                 WHERE statement = 'cash_flow'
+                 ORDER BY ticker, period_end, period_type, obs_id DESC
+            )
+            SELECT inc.ticker, inc.payload, cf.payload
+              FROM inc JOIN cf USING (ticker, period_end, period_type)
+        """
+
     def statement_panel(
         self, tickers: Sequence[str] | None = None, period_type: str = "quarterly"
     ) -> dict[str, dict[str, Any]]:
-        """Tier-1 rows reshaped into the dict `fundamentals.features` consumes.
+        """Compatibility alias for `current_statement_panel` — TODAY's view.
 
-        Newest observation wins per (ticker, period, statement): a restatement is
-        a new immutable row, so "current" is the highest `obs_id` and never an
-        edit to an older one.
+        The implementation moved to `storage/fundamental_observation_panels.py`
+        when the historical reader was added, because this name does not say
+        WHICH question it answers and callers had begun using it for both. It
+        answers "what does Argon believe now": newest accepted version per
+        identity, selected by `obs_id DESC`.
 
-        Production owns this shape so the research scripts and the scoring job
-        read the panel through one implementation — the same reason the feature
-        and composite math moved into `uw_scan.fundamentals`.
+        That is the wrong answer to "what was knowable at time T", because it
+        applies no cutoff: it returns today's panel whatever T is. (The `obs_id`
+        sort is not itself the defect — it is monotonic with capture time by
+        construction. The absence of a cutoff is.) Historical callers must use
+        `statement_panel_as_of` with an explicit evidence policy.
+
+        Kept rather than removed so this PR does not rewrite every current-page
+        caller; new code should call `current_statement_panel` directly.
         """
-        where = ["period_type = %s"]
-        params: list[Any] = [period_type]
-        if tickers is not None:
-            where.append("ticker = ANY(%s)")
-            params.append(list(tickers))
-        sql = f"""
-            SELECT DISTINCT ON (ticker, period_end, statement)
-                   ticker, period_end, statement, raw_jsonb, filing_published_at,
-                   obs_id
-              FROM {self._schema}.fundamental_statement_obs
-             WHERE {" AND ".join(where)}
-             ORDER BY ticker, period_end, statement, obs_id DESC
-        """
-        keys = {
-            "income": "income-statements",
-            "balance": "balance-sheets",
-            "cash_flow": "cash-flows",
-        }
-        out: dict[str, dict[str, Any]] = {}
-        with self.conn.cursor() as cur:
-            cur.execute(sql, params)
-            for ticker, period_end, statement, raw, filed, obs_id in cur.fetchall():
-                key = keys.get(statement)
-                if key is None:
-                    continue
-                per = out.setdefault(
-                    ticker,
-                    {
-                        "income-statements": {},
-                        "balance-sheets": {},
-                        "cash-flows": {},
-                        "filing_dates": {},
-                        "obs_ids": {},
-                    },
-                )
-                period = period_end.isoformat()
-                per[key][period] = raw
-                per["obs_ids"].setdefault(period, []).append(obs_id)
-                if filed:
-                    per["filing_dates"][period] = filed.isoformat()
-        return out
+        return current_statement_panel(
+            self.conn, tickers, period_type, schema=self._schema
+        )
 
     def coverage(self, tier: str) -> list[dict[str, Any]]:
         """Per-ticker ingest coverage for the tier — what actually landed.
@@ -363,6 +504,66 @@ class FundamentalObsRepository:
                     "first_period": r[3],
                     "last_period": r[4],
                     "with_filing_date": r[5],
+                }
+                for r in cur.fetchall()
+            ]
+
+    def statement_identities(
+        self,
+        tickers: Sequence[str],
+        *,
+        exclude_claim_key: str | None = None,
+    ) -> list[dict[str, Any]]:
+        """One row per statement IDENTITY, with how many content versions it has.
+
+        An identity is `(source, ticker, period_end, period_type, statement)` —
+        migration 114's unique key minus `content_hash`. `version_count` is the
+        number of distinct hashes stored for it, and it is the first thing the
+        publication rule checks: with two or more, Argon cannot tell which
+        version a filing published, so no publication date may be attached to
+        any of them.
+
+        `exclude_claim_key` skips identities whose every observation already
+        carries that claim, which is what makes a backfill resumable without
+        re-deciding settled rows. It is deliberately ALL rather than ANY: a
+        partially-claimed identity still has work left.
+        """
+        if not tickers:
+            return []
+        having = ""
+        params: list[Any] = [[t.upper() for t in tickers]]
+        if exclude_claim_key:
+            having = """
+             HAVING bool_or(NOT EXISTS (
+                        SELECT 1 FROM {schema}.fundamental_obs_availability a
+                         WHERE a.obs_id = o.obs_id AND a.claim_key = %s))
+            """.format(schema=self._schema)
+            params.append(exclude_claim_key)
+        sql = f"""
+            SELECT o.ticker,
+                   o.period_end,
+                   o.period_type,
+                   o.statement,
+                   o.source,
+                   count(DISTINCT o.content_hash) AS version_count,
+                   array_agg(o.obs_id ORDER BY o.obs_id) AS obs_ids
+              FROM {self._schema}.fundamental_statement_obs o
+             WHERE o.ticker = ANY(%s)
+             GROUP BY o.ticker, o.period_end, o.period_type, o.statement, o.source
+             {having}
+             ORDER BY o.ticker, o.period_end, o.statement
+        """
+        with self.conn.cursor() as cur:
+            cur.execute(sql, params)
+            return [
+                {
+                    "ticker": r[0],
+                    "period_end": r[1],
+                    "period_type": r[2],
+                    "statement": r[3],
+                    "source": r[4],
+                    "version_count": int(r[5]),
+                    "obs_ids": list(r[6]),
                 }
                 for r in cur.fetchall()
             ]

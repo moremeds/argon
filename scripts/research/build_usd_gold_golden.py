@@ -32,7 +32,7 @@ from uw_scan.sources.etf_holdings import EtfHoldingsProvider
 
 ROOT = Path(__file__).resolve().parents[2]
 OUT = ROOT / "tests" / "fixtures" / "macro" / "usd_gold_golden.json"
-SPEC = "docs/superpowers/specs/2026-08-12-usd-gold-state-design.md"
+SPEC = "docs/superpowers/archive/specs/2026-08-12-usd-gold-state-design.md"
 
 FRED = "https://api.stlouisfed.org/fred/series/observations"
 MASSIVE = "https://api.massive.com"

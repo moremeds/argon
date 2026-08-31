@@ -1,6 +1,6 @@
 # VERDICT — rates market-layer sources
 
-Probed 2026-08-20 against live endpoints. Spec: `docs/superpowers/specs/2026-08-21-rates-market-layer-design.md`.
+Probed 2026-08-20 against live endpoints. Spec: `docs/superpowers/archive/specs/2026-08-21-rates-market-layer-design.md`.
 
 ## Plumbing — all four selected
 

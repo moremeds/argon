@@ -9,6 +9,7 @@ import pytest
 
 from uw_scan.config import Settings
 from uw_scan.macro.policy_report import build_policy_comparison
+from uw_scan.sources.fed_funds_futures_path import FedFundsFuturesSourceBundle
 from uw_scan.sources.fomc_statement import FomcStatementBundle
 from uw_scan.storage.repository import Repository
 from uw_scan.worker.jobs.macro_policy_jobs import (
@@ -340,6 +341,51 @@ def test_market_shadow_persists_exact_html_unknown_delay_and_distribution(
         }
         artifact = repo.fetch_macro_artifact(market.evidence_refs[0].artifact_id)
         assert artifact["raw_bytes"].startswith(b"\n        <script>")
+
+
+def test_market_shadow_dynamic_html_is_another_witness_not_another_fact(
+    seeded_db_empty_cards,
+) -> None:
+    settings = _settings()
+
+    class _ChangedMarketProvider(_MarketProvider):
+        def fetch_bundle(self, *, retrieved_at):
+            bundle = super().fetch_bundle(retrieved_at=retrieved_at)
+            assert bundle.artifact.raw_bytes is not None
+            return FedFundsFuturesSourceBundle.from_bytes(
+                source_url=bundle.artifact.source_url or "",
+                raw_bytes=bundle.artifact.raw_bytes + b"<!-- cloudflare-ray:changed -->",
+                retrieved_at=retrieved_at,
+            )
+
+    first = macro_market_implied_ingest_job(
+        dsn=settings.db_dsn(),
+        provider_factory=_MarketProvider,
+        current_target_range="3.50-3.75%",
+        observed_at=OBSERVED_AT,
+    )
+    second = macro_market_implied_ingest_job(
+        dsn=settings.db_dsn(),
+        provider_factory=_ChangedMarketProvider,
+        current_target_range="3.50-3.75%",
+        observed_at=OBSERVED_AT.replace(hour=13),
+    )
+
+    assert first.observations_seen == 1
+    assert second.observations_seen == 0
+    assert _counts(settings) == (2, 1)
+    with psycopg.connect(settings.db_dsn()) as conn:
+        repo = Repository(conn, schema="uw_scan")
+        row = repo.fetch_latest_macro_observation_as_of(
+            "POLICY_PATH_MARKET_IMPLIED",
+            OBSERVED_AT.replace(hour=14),
+            preferred_sources=["frenzy_capital"],
+        )
+        lineage = repo.fetch_macro_observation_artifacts(row["obs_id"])
+        assert [item["relation"] for item in lineage] == [
+            "parsed_from",
+            "parsed_from",
+        ]
 
 
 _2022_STATEMENT = "fomc-statement:monetary20220316a"

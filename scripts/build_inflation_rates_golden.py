@@ -596,7 +596,7 @@ def build(fred: Fred) -> dict[str, Any]:
     return {
         "schema_version": "1",
         "authored_at": datetime.now(UTC).isoformat(),
-        "spec": "docs/superpowers/specs/2026-08-18-inflation-rates-state-design.md",
+        "spec": "docs/superpowers/archive/specs/2026-08-18-inflation-rates-state-design.md",
         "provenance": {
             "realized_and_market_series": "FRED/ALFRED, vintage-aware",
             "why_not_bls_or_bea": (

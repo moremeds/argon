@@ -1,7 +1,7 @@
 {
   "schema_version": "1",
   "authored_at": "2026-08-18T10:19:32.367719+00:00",
-  "spec": "docs/superpowers/specs/2026-08-18-inflation-rates-state-design.md",
+  "spec": "docs/superpowers/archive/specs/2026-08-18-inflation-rates-state-design.md",
   "provenance": {
     "realized_and_market_series": "FRED/ALFRED, vintage-aware",
     "why_not_bls_or_bea": "BLS returns HTTP 403 on every host from this network; BEA returns HTTP 200 with a zero-length body without a UserID.  Neither publishes vintages.  See docs/research/2026-08-18-mc2-inflation-source-probe/.",

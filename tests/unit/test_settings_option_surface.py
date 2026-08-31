@@ -6,6 +6,8 @@ from uw_scan.config import Settings
 def test_settings_reads_option_surface_flags(monkeypatch, tmp_path):
     env = tmp_path / "empty.env"
     env.write_text("")
+    monkeypatch.delenv("XENON_QUERY_API_URL", raising=False)
+    monkeypatch.delenv("XENON_QUERY_API_KEY", raising=False)
     monkeypatch.setenv("UW_SCAN_API_KEY", "x")
     monkeypatch.setenv("UW_SCAN_DB_HOST", "127.0.0.1")
     monkeypatch.setenv("UW_SCAN_DB_NAME", "option_wizard_local")

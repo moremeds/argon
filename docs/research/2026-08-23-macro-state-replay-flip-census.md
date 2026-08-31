@@ -6,7 +6,7 @@
 
 ## Why this ran
 
-`docs/superpowers/plans/2026-08-12-macro-mc4-mc6-context-pm-validation.md` sequences
+`docs/superpowers/archive/plans/2026-08-12-macro-mc4-mc6-context-pm-validation.md` sequences
 MC4 (context snapshot) → MC5 (PM overlay) → MC6 (empirical gate). MC6 is where the
 program is supposed to earn the right to influence anything. Before building two
 products on top of the four domain states, one question is worth answering: **is a
@@ -184,8 +184,8 @@ testable anyway.
 
 ## Related
 
-- `docs/superpowers/plans/2026-08-12-top-down-macro-context-program.md` (program source of truth)
-- `docs/superpowers/plans/2026-08-12-macro-mc4-mc6-context-pm-validation.md` (the plan this reorders)
+- `docs/superpowers/archive/plans/2026-08-12-top-down-macro-context-program.md` (program source of truth)
+- `docs/superpowers/archive/plans/2026-08-12-macro-mc4-mc6-context-pm-validation.md` (the plan this reorders)
 - Precedent for measuring before building: `docs/research/2026-07-28-theta-harvester-weight-sweep.md`
   (score orders, selected set does not pay) and `docs/research/2026-08-12-fundamental-*/`
   (composite orders cross-sectionally, cannot time one name).

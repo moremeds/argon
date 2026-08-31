@@ -1,7 +1,7 @@
 {
  "schema_version": "1",
  "authored_at": "2026-08-21T15:20:15.752933+00:00",
- "spec": "docs/superpowers/specs/2026-08-12-usd-gold-state-design.md",
+ "spec": "docs/superpowers/archive/specs/2026-08-12-usd-gold-state-design.md",
  "provenance": {
   "anchor": "DTWEXBGS, the Fed H.10 nominal broad dollar, via FRED/ALFRED. Chosen in docs/research/2026-08-12-usd-source-probe/VERDICT.md as the only broad-dollar index that is both current and vintage-bearing. available_at is the vintage's realtime_start; superseded_at is the day it stopped being the published value, null while it still is.",
   "real_index": "RTWEXBGS, the CPI-deflated sibling. Present in scenario 4 to prove it is NOT substituted for the absent nominal anchor -- a different question, not a fallback.",

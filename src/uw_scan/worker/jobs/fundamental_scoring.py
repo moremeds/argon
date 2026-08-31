@@ -23,7 +23,7 @@ risk score (the top decile is riskier than the middle), not a per-name forecast
 from __future__ import annotations
 
 import logging
-from datetime import date, datetime, timedelta
+from datetime import UTC, date, datetime, time, timedelta
 from typing import Any
 
 import psycopg
@@ -35,8 +35,43 @@ from uw_scan.fundamentals.scoring import (
     cross_section_z,
     inputs_hash,
 )
+from uw_scan.fundamentals.dimensions import (
+    dimension_values,
+    evidence_quality,
+    priority_aggregate,
+)
+from uw_scan.fundamentals.observation_time import EvidencePolicy
+from uw_scan.fundamentals.validity import (
+    VALIDITY_POLICY_EXCLUDE,
+    apply_validity,
+    excluded_fields,
+    policy_for_engine,
+)
 from uw_scan.storage.fundamental_obs import FundamentalObsRepository
+from uw_scan.storage.fundamental_observation_availability import (
+    FundamentalObsAvailabilityRepository,
+)
+from uw_scan.storage.fundamental_observation_panels import (
+    current_statement_panel,
+    statement_panel_as_of,
+)
+from uw_scan.storage.fundamental_dimensions import (
+    FundamentalDimensionsRepository,
+)
+from uw_scan.storage.fundamental_provenance import (
+    ROLE_EXCLUDED,
+    ROLE_USED,
+    STAGE_FEATURES,
+    STAGE_PANEL,
+    FundamentalProvenanceRepository,
+)
 from uw_scan.storage.fundamental_scores import FundamentalScoresRepository
+
+#: What the `evidence_policy` column holds for a row built from the CURRENT
+#: panel. Not a member of `EvidencePolicy`: that enum is the set of HISTORICAL
+#: admission rules, and adding "current" to it would hand a replay a way to ask
+#: for exactly the rows that must fail closed.
+CURRENT_VINTAGE_POLICY = "current_vintage"
 
 log = logging.getLogger(__name__)
 
@@ -56,11 +91,24 @@ def _knowledge_date(per: dict[str, Any], period: str) -> tuple[date, bool]:
     return (period_end + timedelta(days=FALLBACK_LAG_DAYS), False)
 
 
+def _period_available_at(per: dict[str, Any], period: str) -> date | None:
+    """When every statement of `period` had become available, as a date.
+
+    MAX across the three statements: the period is not usable until its last leg
+    is. Returns None when the panel carried no availability block for it, which
+    only happens if a caller mixes a current panel into a replay.
+    """
+    evidence = (per.get("availability") or {}).get(period) or {}
+    instants = [e["available_at"] for e in evidence.values() if e.get("available_at")]
+    return max(instants).date() if instants else None
+
+
 def _build_buckets(
     feats: dict[str, Any],
     panel_raw: dict[str, Any],
     *,
     knowledge_cutoff: date,
+    availability_wins: bool = False,
 ) -> tuple[dict[str, dict[str, Any]], int]:
     """Group one row per (knowledge quarter, ticker). Returns (buckets, withheld).
 
@@ -86,6 +134,16 @@ def _build_buckets(
         per = panel_raw[ticker]
         for period, values in per_period.items():
             know, known = _knowledge_date(per, period)
+            if availability_wins:
+                # A restated version became knowable when IT was published, not
+                # when the period's ORIGINAL filing was. Bucketing a 2023
+                # restatement under 2020 is the contamination this work removes,
+                # and `filing_published_at` is the same on both versions — so in
+                # a replay the availability claim is the only honest clock.
+                available = _period_available_at(per, period)
+                if available is None:
+                    continue
+                know = available
             if know > knowledge_cutoff:
                 withheld += 1
                 continue
@@ -100,8 +158,156 @@ def _build_buckets(
                 "knowledge_date": know,
                 "filing_date_known": known,
                 "obs_ids": sorted(per["obs_ids"].get(period, [])),
+                "availability_ids": sorted(
+                    e["availability_id"]
+                    for e in ((per.get("availability") or {}).get(period) or {}).values()
+                    if e.get("availability_id") is not None
+                ),
             }
     return buckets, withheld
+
+
+def _violated_by_ticker_period(
+    obs: FundamentalObsRepository, panel: dict[str, Any]
+) -> dict[str, dict[str, set[str]]]:
+    """{ticker: {period: {violated field, ...}}} for the panel actually loaded.
+
+    One query for the whole panel. Reads the panel's OWN `obs_ids` rather than
+    re-selecting by ticker, so the violations line up with the exact content
+    versions this run scored — under a replay those are not today's versions.
+    """
+    all_ids = [
+        obs_id
+        for per in panel.values()
+        for ids in (per.get("obs_ids") or {}).values()
+        for obs_id in ids
+    ]
+    if not all_ids:
+        return {}
+    by_obs = obs.violations_by_obs(all_ids)
+    if not by_obs:
+        return {}
+    out: dict[str, dict[str, set[str]]] = {}
+    for ticker, per in panel.items():
+        per_period: dict[str, set[str]] = {}
+        for period, ids in (per.get("obs_ids") or {}).items():
+            fields: set[str] = set()
+            for obs_id in ids:
+                found = by_obs.get(obs_id)
+                if found:
+                    fields |= excluded_fields(found)
+            if fields:
+                per_period[period] = fields
+        if per_period:
+            out[ticker] = per_period
+    return out
+
+
+def _record_dimensions(
+    *,
+    dims_repo: FundamentalDimensionsRepository,
+    result_ids: dict[tuple[str, Any], int],
+    rows: dict[str, dict[str, Any]],
+    zs: dict[str, dict[str, float]],
+    as_of: date,
+    engine: str,
+    violated: dict[str, dict[str, set[str]]],
+    true_pit: set[int],
+) -> int:
+    """Persist each name's dimensions from the SAME cross-section as its composite.
+
+    Computed here rather than in a later pass because a z-score only means
+    anything relative to the cross-section it was taken in. Recomputing them
+    later would silently use a different peer set.
+    """
+    out_rows: list[dict[str, Any]] = []
+    for ticker, d in rows.items():
+        result_id = result_ids.get((ticker, as_of))
+        if result_id is None:
+            continue
+        z_for_ticker = {f: zs.get(f, {}).get(ticker) for f in zs}
+        computed = dimension_values(z_for_ticker)
+
+        # Evidence quality is about what Argon KNOWS, not about the business.
+        obs_ids = d.get("obs_ids") or []
+        withheld = len((violated.get(ticker) or {}).get(d["period"]) or set())
+        computed["evidence_quality"] = evidence_quality(
+            # Measured against the claims table, not against this run's
+            # availability_ids: a current-vintage run never consults those, and
+            # reading 0 from their absence reports an artifact as a measurement.
+            true_pit=sum(1 for o in obs_ids if o in true_pit),
+            total=len(obs_ids),
+            excluded_values=withheld,
+        )
+        computed["priority"] = priority_aggregate(computed)
+
+        for dim, payload in computed.items():
+            out_rows.append(
+                {
+                    "result_id": result_id,
+                    "ticker": ticker,
+                    "as_of": as_of,
+                    "engine_version": engine,
+                    "dimension": dim,
+                    "value": payload.get("value"),
+                    "inputs_present": int(payload.get("present") or 0),
+                    "inputs_expected": int(payload.get("expected") or 0),
+                    "authority": payload["authority"],
+                    "detail": {
+                        k: v
+                        for k, v in payload.items()
+                        if k not in {"value", "present", "expected", "authority"}
+                    },
+                }
+            )
+    return dims_repo.record(out_rows)
+
+
+def _record_provenance(
+    *,
+    provenance: FundamentalProvenanceRepository,
+    result_ids: dict[tuple[str, Any], int],
+    rows: dict[str, dict[str, Any]],
+    violated: dict[str, dict[str, set[str]]],
+    as_of: date,
+) -> int:
+    """Link each score to the observations it used, and those it withheld.
+
+    The `excluded` rows are the ones an array of ids could never express: the
+    observation WAS considered, its values were withheld by an integrity check,
+    and a reader asking "why is this feature na" gets the check name rather than
+    an absence.
+    """
+    links: list[dict[str, Any]] = []
+    for ticker, d in rows.items():
+        result_id = result_ids.get((ticker, as_of))
+        if result_id is None:
+            continue
+        bad_fields = (violated.get(ticker) or {}).get(d["period"]) or set()
+        for obs_id in d["obs_ids"]:
+            links.append(
+                {
+                    "result_id": result_id,
+                    "obs_id": obs_id,
+                    "role": ROLE_USED,
+                    "stage": STAGE_PANEL,
+                    "detail": {"period": d["period"]},
+                }
+            )
+            if bad_fields:
+                links.append(
+                    {
+                        "result_id": result_id,
+                        "obs_id": obs_id,
+                        "role": ROLE_EXCLUDED,
+                        "stage": STAGE_FEATURES,
+                        "detail": {
+                            "period": d["period"],
+                            "withheld_fields": sorted(bad_fields),
+                        },
+                    }
+                )
+    return provenance.record(links)
 
 
 def fundamental_scoring(
@@ -111,18 +317,57 @@ def fundamental_scoring(
     schema: str = "uw_scan",
     tickers: list[str] | None = None,
     knowledge_cutoff: date | None = None,
+    evidence_policy: EvidencePolicy | str | None = None,
+    engine_version: str | None = None,
 ) -> dict[str, int]:
     """Score every knowledge-quarter cross-section in the panel. Returns counters.
 
     `knowledge_cutoff` defaults to today and bounds which periods are public
     enough to score. It is a parameter rather than an inline `date.today()` so a
     replay names its own as-of, and so a test does not depend on the wall clock.
+
+    `evidence_policy` selects the statement panel and is the whole point of this
+    signature:
+
+    - **None** — the CURRENT panel, newest version per identity. Unchanged
+      behaviour, written as `evidence_policy='current_vintage'` with a NULL
+      cutoff. This is the scheduled refresh's mode and is not a replay: it stands
+      at no particular time.
+    - **`TRUE_PIT_ONLY` / `CAPTURE_BOUNDED`** — a replay. Only versions the policy
+      can defend at `knowledge_cutoff` are admitted, and each row is bucketed by
+      when ITS version became available rather than by the period's original
+      filing date.
+
+    There is deliberately no historical default. A caller that wants a replay
+    says so; a caller that does not gets today's panel and a row that says so.
+
+    WHAT A REPLAY CANNOT DO
+    -----------------------
+    Running at a LATE cutoff does not faithfully reproduce an EARLY bucket. A
+    name whose 2020 filing was superseded in 2023 appears in the 2023 bucket, not
+    the 2020 one, because the panel returns one version per identity — the best
+    one admissible at the cutoff. To reconstruct the cross-section as it stood in
+    quarter B, run with `knowledge_cutoff` inside B. The alternative — a panel
+    read per bucket — is real work and belongs with M2's run ledger, not here.
     """
     cutoff = knowledge_cutoff or date.today()
+    policy = EvidencePolicy(evidence_policy) if evidence_policy is not None else None
+    policy_name = policy.value if policy is not None else CURRENT_VINTAGE_POLICY
+    # The replay stands at the END of its cutoff day: a filing published that
+    # morning was knowable that day, and a midnight boundary would drop it.
+    as_of_cutoff = (
+        datetime.combine(cutoff, time.max).replace(tzinfo=UTC)
+        if policy is not None
+        else None
+    )
     obs = FundamentalObsRepository(conn, schema=schema)
     scores = FundamentalScoresRepository(conn, schema=schema)
 
-    engine = scores.active_version()
+    # An explicit engine is how a comparison run scores the SAME panel under two
+    # methods without flipping the production default. It is not a general
+    # escape hatch: the validity policy still comes from the version, so an
+    # override cannot decouple the method from the label.
+    engine = engine_version or scores.active_version()
     if engine is None:
         log.error(
             "fundamental_scoring: no active method version — seed one with "
@@ -134,6 +379,7 @@ def fundamental_scoring(
             "inserted": 0,
             "skipped_thin": 0,
             "withheld_unpublished": 0,
+            "excluded_no_evidence": 0,
         }
 
     names = tickers if tickers is not None else obs.list_universe(tier)
@@ -145,12 +391,59 @@ def fundamental_scoring(
             "inserted": 0,
             "skipped_thin": 0,
             "withheld_unpublished": 0,
+            "excluded_no_evidence": 0,
         }
 
-    panel_raw = obs.statement_panel(names)
+    if policy is None:
+        panel_raw = current_statement_panel(conn, names, schema=schema)
+        excluded = 0
+    else:
+        panel_raw = statement_panel_as_of(
+            conn,
+            as_of=as_of_cutoff,
+            evidence_policy=policy,
+            tickers=names,
+            schema=schema,
+        )
+        # What the policy REFUSED, reported rather than implied. A replay that
+        # returns a thin cross-section and says nothing about why looks
+        # identical to a universe that simply has few names.
+        excluded = _excluded_periods(
+            current_statement_panel(conn, names, schema=schema), panel_raw
+        )
+
     feats = build_features(panel_raw)
 
-    buckets, withheld = _build_buckets(feats, panel_raw, knowledge_cutoff=cutoff)
+    # M1.1: under an engine whose policy says so, a value the integrity checks
+    # impugn is withheld from the MATH, not only from the card. The policy is
+    # read from the engine version rather than passed in, so a row can never
+    # claim a method it did not run.
+    validity = policy_for_engine(engine)
+    validity_counters = {"values_excluded": 0, "periods_touched": 0}
+    violated_by_period: dict[str, dict[str, set[str]]] = {}
+    prov = FundamentalProvenanceRepository(conn, schema=schema)
+    dims = FundamentalDimensionsRepository(conn, schema=schema)
+    true_pit_ids: set[int] = set()
+    if validity == VALIDITY_POLICY_EXCLUDE:
+        violated_by_period = _violated_by_ticker_period(obs, panel_raw)
+        feats, validity_counters = apply_validity(feats, violated_by_period)
+        true_pit_ids = FundamentalObsAvailabilityRepository(
+            conn, schema=schema
+        ).true_pit_obs_ids(
+            [
+                obs_id
+                for per in panel_raw.values()
+                for ids in (per.get("obs_ids") or {}).values()
+                for obs_id in ids
+            ]
+        )
+
+    buckets, withheld = _build_buckets(
+        feats,
+        panel_raw,
+        knowledge_cutoff=cutoff,
+        availability_wins=policy is not None,
+    )
 
     totals = {
         "buckets": 0,
@@ -158,6 +451,11 @@ def fundamental_scoring(
         "inserted": 0,
         "skipped_thin": 0,
         "withheld_unpublished": withheld,
+        "excluded_no_evidence": excluded,
+        "validity_values_excluded": validity_counters["values_excluded"],
+        "validity_periods_touched": validity_counters["periods_touched"],
+        "provenance_rows": 0,
+        "dimension_rows": 0,
     }
     for bucket in sorted(buckets):
         rows = buckets[bucket]
@@ -183,7 +481,10 @@ def fundamental_scoring(
                     "as_of": as_of,
                     "engine_version": engine,
                     "inputs_hash": inputs_hash(
-                        features=d["features"], company_type=None, engine=engine
+                        features=d["features"],
+                        company_type=None,
+                        engine=engine,
+                        evidence_policy=policy.value if policy else None,
                     ),
                     "period_end": datetime.strptime(
                         d["period"][:10], "%Y-%m-%d"
@@ -194,6 +495,9 @@ def fundamental_scoring(
                     **{f: d["features"].get(f) for f in FEATURES},
                     "features_present": present,
                     "source_obs_ids": d["obs_ids"],
+                    "evidence_policy": policy_name,
+                    "as_of_cutoff": as_of_cutoff,
+                    "availability_ids": d.get("availability_ids") or [],
                 }
             )
         inserted = scores.insert_scores(out)
@@ -201,5 +505,41 @@ def fundamental_scoring(
         totals["scored"] += len(out)
         totals["inserted"] += inserted
 
-    log.info("fundamental_scoring: %s", totals)
+        # M1.3: typed provenance, under engines that declare a validity policy
+        # other than "off". v1 rows are deliberately NOT backfilled — absence of
+        # rows there must keep reading as `legacy`, not as "cited nothing".
+        if validity == VALIDITY_POLICY_EXCLUDE:
+            totals["dimension_rows"] += _record_dimensions(
+                dims_repo=dims,
+                result_ids=scores.result_ids(out),
+                rows=rows,
+                zs=zs,
+                as_of=as_of,
+                engine=engine,
+                violated=violated_by_period,
+                true_pit=true_pit_ids,
+            )
+            totals["provenance_rows"] += _record_provenance(
+                provenance=prov,
+                result_ids=scores.result_ids(out),
+                rows=rows,
+                violated=violated_by_period,
+                as_of=as_of,
+            )
+
+    log.info("fundamental_scoring[%s]: %s", policy_name, totals)
     return totals
+
+
+def _excluded_periods(current: dict[str, Any], admitted: dict[str, Any]) -> int:
+    """(ticker, period) pairs the current panel has that the policy refused."""
+    count = 0
+    for ticker, per in current.items():
+        admitted_periods = set(
+            (admitted.get(ticker) or {}).get("balance-sheets", {})
+        ) | set((admitted.get(ticker) or {}).get("income-statements", {}))
+        have = set(per.get("balance-sheets", {})) | set(
+            per.get("income-statements", {})
+        )
+        count += len(have - admitted_periods)
+    return count

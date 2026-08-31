@@ -20,7 +20,12 @@ import psycopg
 
 from uw_scan.config import Settings
 from uw_scan.fundamentals.features import FEATURES
-from uw_scan.fundamentals.scoring import CODE_VERSION, engine_version, param_hash
+from uw_scan.fundamentals.scoring import (
+    CODE_VERSION,
+    CODE_VERSION_V2,
+    engine_version,
+    param_hash,
+)
 from uw_scan.storage.fundamental_scores import FundamentalScoresRepository
 
 # The validated construction. Nothing else may claim its IC.
@@ -44,6 +49,18 @@ RUBRIC = {
 # out-of-sample test before it could ever be activated.
 NO_MARGINS = {f: (0.0 if f in ("gross_margin", "op_margin") else 1.0) for f in FEATURES}
 
+# v2 is v1's weights under v1's validated construction, with ONE change: values
+# an integrity check impugns are withheld from the math rather than only from the
+# card. Registered under CODE_VERSION_V2 so every v1 row keeps replaying
+# byte-identically; the exclusion code does not run for them.
+CANDIDATES_V2 = {
+    "v2_equal": (
+        EQUAL,
+        "equal weight + validity exclusions (M1.1); v1 weights, v1 math, "
+        "violated inputs withheld",
+    ),
+}
+
 CANDIDATES = {
     "v1_equal": (EQUAL, "VALIDATED: equal weight, IC 0.039 leak-free t 2.67"),
     "v1_rubric": (RUBRIC, "INACTIVE: spec §5.2 seeds; paired t 1.79 vs equal — n.s."),
@@ -53,7 +70,13 @@ CANDIDATES = {
     ),
 }
 
+# v1_equal stays ACTIVE. v2 is registered but NOT activated: switching the
+# default would change every score the card and Value surface read, and that
+# switch is a measured decision (does excluding violated inputs change the
+# ranking, and by how much) rather than a deploy side effect. `--activate-v2`
+# makes it explicit.
 ACTIVE = "v1_equal"
+ACTIVE_V2 = "v2_equal"
 
 
 def main() -> int:
@@ -82,7 +105,25 @@ def main() -> int:
             if name == ACTIVE:
                 active_engine = engine
 
+        v2_engine = None
+        for name, (params, note) in CANDIDATES_V2.items():
+            engine = engine_version(params, CODE_VERSION_V2)
+            repo.register_version(
+                engine_version=engine,
+                code_version=CODE_VERSION_V2,
+                param_hash=param_hash(params),
+                params=params,
+                note=f"{name} — {note}",
+            )
+            print(f"         {name:14} {engine}")
+            if name == ACTIVE_V2:
+                v2_engine = engine
+
         assert active_engine, f"{ACTIVE} not among candidates"
+        assert v2_engine, f"{ACTIVE_V2} not among v2 candidates"
+        if "--activate-v2" in sys.argv:
+            active_engine = v2_engine
+            print(f"\n  activating v2 on request: {v2_engine}")
         repo.activate(active_engine)
         print(f"\nactive engine_version: {repo.active_version()}")
     return 0

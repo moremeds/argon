@@ -16,11 +16,21 @@ Peak days return more than one page — 202 premarket and 257 afterhours rows on
 2026-08-06. A single-page fetch would silently drop the tail on exactly the days that
 matter most, which is the failure shape this repo keeps paying for: not a crash, a
 quiet subtraction.
+
+WHY `fetch_calendar_listings` EXISTS BESIDE `fetch_calendar_symbols`
+---------------------------------------------------------------------
+`fetch_calendar_symbols` collapses both slots into one `set[str]`, which is exactly what
+the original scan-target lookup needed and exactly what throws away the one fact the
+durable calendar (spec §5-i) needs to persist: which slot a name was listed in.
+`fetch_calendar_listings` is the shared implementation — `fetch_calendar_symbols` is now
+`{l.symbol for l in fetch_calendar_listings(...)}`, so its own pagination, per-slot
+failure isolation, and page-budget behaviour are inherited rather than duplicated.
 """
 
 from __future__ import annotations
 
 import logging
+from dataclasses import dataclass
 from datetime import date
 
 from uw_scan.api.client import UwClient
@@ -33,20 +43,35 @@ SLOTS: tuple[EndpointSlug, ...] = (
     EndpointSlug.EARNINGS_AFTERHOURS,
 )
 
+# The session label persisted for each slot. Keys are exactly `SLOTS` — anything that
+# iterates one should be able to trust it covers the other.
+SESSION_BY_SLOT: dict[EndpointSlug, str] = {
+    EndpointSlug.EARNINGS_PREMARKET: "premarket",
+    EndpointSlug.EARNINGS_AFTERHOURS: "afterhours",
+}
+
 PAGE_SIZE = 100  # UW's documented maximum
 MAX_PAGES = 8  # 800 names/slot/day, ~3x the busiest day observed
 
 
-def fetch_calendar_symbols(
+@dataclass(frozen=True)
+class CalendarListing:
+    symbol: str
+    session: str  # "premarket" | "afterhours"
+
+
+def fetch_calendar_listings(
     client: UwClient, report_date: date, *, max_pages: int = MAX_PAGES
-) -> set[str]:
-    """Every symbol UW lists as reporting on `report_date`.
+) -> list[CalendarListing]:
+    """Every (symbol, session) UW lists as reporting on `report_date`.
 
     Never raises. A slot that errors costs that slot's names for that day, which the
     backstop sweep recovers; letting it propagate would cost the whole run.
     """
-    symbols: set[str] = set()
+    listings: list[CalendarListing] = []
+    seen: set[tuple[str, str]] = set()
     for slot in SLOTS:
+        session = SESSION_BY_SLOT[slot]
         for page in range(max_pages):
             try:
                 resp, _ = client.get(
@@ -69,11 +94,15 @@ def fetch_calendar_symbols(
                 )
                 break
             rows = resp.json().get("data") or []
-            symbols.update(
-                str(row["symbol"]).strip().upper()
-                for row in rows
-                if row.get("symbol")
-            )
+            for row in rows:
+                if not row.get("symbol"):
+                    continue
+                symbol = str(row["symbol"]).strip().upper()
+                key = (symbol, session)
+                if key in seen:
+                    continue
+                seen.add(key)
+                listings.append(CalendarListing(symbol=symbol, session=session))
             if len(rows) < PAGE_SIZE:
                 break
         else:
@@ -85,4 +114,17 @@ def fetch_calendar_symbols(
                 max_pages,
                 report_date,
             )
-    return symbols
+    return listings
+
+
+def fetch_calendar_symbols(
+    client: UwClient, report_date: date, *, max_pages: int = MAX_PAGES
+) -> set[str]:
+    """Every symbol UW lists as reporting on `report_date`, session collapsed.
+
+    Never raises — see `fetch_calendar_listings`, whose loop body this delegates to.
+    """
+    return {
+        listing.symbol
+        for listing in fetch_calendar_listings(client, report_date, max_pages=max_pages)
+    }

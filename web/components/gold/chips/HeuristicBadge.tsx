@@ -15,7 +15,8 @@ export function HeuristicBadge({
           "color-mix(in srgb, var(--warning, #f5a623) 12%, transparent)",
         color: "var(--warning, #f5a623)",
         borderRadius: 2,
-        whiteSpace: "nowrap",
+        whiteSpace: "normal",
+        overflowWrap: "anywhere",
       }}
     >
       [{reason}]

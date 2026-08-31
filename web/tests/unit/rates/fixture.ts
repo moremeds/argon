@@ -494,6 +494,81 @@ export const POLICY_COMPARISON: PolicyComparison = {
 };
 
 /**
+ * The live free Frenzy shadow used by both board probability-bar panels. Zero buckets are
+ * intentional: the publisher reports the complete outcome grid, but a 0% outcome must
+ * not acquire visible width merely because its label has padding.
+ */
+export const POLICY_COMPARISON_WITH_MARKET_PATH: PolicyComparison = {
+  ...POLICY_COMPARISON,
+  market_implied: {
+    kind: "market_implied",
+    freshness: {
+      ...OFFICIAL_FRESHNESS,
+      source: "frenzy_fed_watch",
+    },
+    path: {
+      kind: "market_implied",
+      source: "frenzy_capital",
+      source_kind: "third_party_shadow",
+      source_record_id: "frenzy-fed-watch:2026-08-29",
+      release_date: "2026-08-29",
+      published_at: "2026-08-29T08:00:00Z",
+      available_at: "2026-08-29T08:05:00Z",
+      cost_class: "free_third_party_shadow",
+      delay_status: "unknown",
+      points: [
+        {
+          horizon: "2026-09-16",
+          horizon_date: "2026-09-16",
+          rate_percent: "3.7693",
+          participant_distribution: [],
+          probability_distribution: [
+            { label: "Cut 50 bp", probability_percent: "0.0" },
+            { label: "Cut 25 bp", probability_percent: "0.0" },
+            { label: "Hike 25 bp", probability_percent: "55.7" },
+            { label: "Hike 50 bp", probability_percent: "0.0" },
+            { label: "Hold", probability_percent: "44.3" },
+          ],
+          voted_for: [],
+          voted_against: [],
+        },
+        {
+          horizon: "2026-10-28",
+          horizon_date: "2026-10-28",
+          rate_percent: "3.8550",
+          participant_distribution: [],
+          probability_distribution: [
+            { label: "Cut 50 bp", probability_percent: "0.0" },
+            { label: "Cut 25 bp", probability_percent: "0.0" },
+            { label: "Hike 25 bp", probability_percent: "34.3" },
+            { label: "Hike 50 bp", probability_percent: "0.0" },
+            { label: "Hold", probability_percent: "65.7" },
+          ],
+          voted_for: [],
+          voted_against: [],
+        },
+        {
+          horizon: "2026-12-09",
+          horizon_date: "2026-12-09",
+          rate_percent: "4.0200",
+          participant_distribution: [],
+          probability_distribution: [
+            { label: "Cut 50 bp", probability_percent: "0.0" },
+            { label: "Cut 25 bp", probability_percent: "0.0" },
+            { label: "Hike 25 bp", probability_percent: "66.0" },
+            { label: "Hike 50 bp", probability_percent: "0.0" },
+            { label: "Hold", probability_percent: "34.0" },
+          ],
+          voted_for: [],
+          voted_against: [],
+        },
+      ],
+      evidence_refs: [],
+    },
+  },
+};
+
+/**
  * A path carrying a non-publisher source. Representable in the contract, so the UI has
  * to refuse it rather than assume upstream never emits one. No market value is invented
  * here — the point is precisely that the lane's numbers must not be shown.

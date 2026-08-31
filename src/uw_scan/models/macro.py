@@ -553,6 +553,64 @@ class MacroDomainStateResponse(_UwBase):
     upstream: list[MacroUpstreamState] = Field(default_factory=list)
 
 
+#: What the assembler concluded about the four domains TOGETHER. ``partial`` and
+#: ``incompatible`` are both refusals and are kept apart on purpose: "rates never ran"
+#: sends an operator to the scheduler, "rates ran but USD ignored it" sends them to the
+#: data. Collapsing them into one "degraded" would destroy the only thing the status is
+#: for.
+MacroSnapshotStatus = Literal["complete", "partial", "incompatible", "stale"]
+
+#: Why one domain kept the snapshot from being ``complete``.
+MacroSnapshotReasonKind = Literal["absent", "incompatible", "stale"]
+
+
+class MacroSnapshotDomainItem(_UwBase):
+    """One domain's answer as the snapshot holds it.
+
+    ``state_id`` travels with the answer because the snapshot's claim is about identity:
+    it asserts that THIS state, not merely some state of that domain, is the one the
+    chain was assembled from.
+    """
+
+    domain: MacroDomain
+    ordinal: int
+    state_id: int
+    state: str
+    direction: MacroDirection
+    confidence: Decimal
+    as_of: AwareDatetime
+    engine_version: str
+    inputs_hash: str
+
+
+class MacroSnapshotReasonItem(_UwBase):
+    """One domain's refusal, named rather than summarised into the status alone."""
+
+    domain: MacroDomain
+    kind: MacroSnapshotReasonKind
+    detail: str
+
+
+class MacroContextSnapshotResponse(_UwBase):
+    """The four domains as ONE answer, with its refusal intact.
+
+    The snapshot never repairs an incompatible chain by substituting a fresher upstream:
+    ``domains`` holds exactly what each downstream stood on. Substitution is how a
+    monitoring layer becomes a fabrication layer, so a caller reading this must expect
+    ``status`` to disagree with how fresh the individual rows look.
+    """
+
+    requested_as_of: AwareDatetime
+    as_of: AwareDatetime
+    assembled_at: AwareDatetime
+    status: MacroSnapshotStatus
+    assembler_version: str
+    inputs_hash: str
+    domains: list[MacroSnapshotDomainItem] = Field(default_factory=list)
+    #: Empty exactly when ``status`` is ``complete``.
+    reasons: list[MacroSnapshotReasonItem] = Field(default_factory=list)
+
+
 class MacroStateSummary(_UwBase):
     """The state without its lineage, for surfaces that already carry a large payload.
 
@@ -603,4 +661,7 @@ _preserve_public_module(
     MacroStateEvidenceItem,
     MacroDomainStateResponse,
     MacroStateSummary,
+    MacroSnapshotDomainItem,
+    MacroSnapshotReasonItem,
+    MacroContextSnapshotResponse,
 )

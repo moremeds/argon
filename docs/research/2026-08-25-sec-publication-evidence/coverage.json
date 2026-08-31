@@ -1,0 +1,58 @@
+{
+  "sec_index": {
+    "filings": 37510,
+    "tickers": 420,
+    "amendments": 1806
+  },
+  "claim_counts": {
+    "capture_bounded": 87177,
+    "current_vintage": 87177,
+    "true_pit": 73994
+  },
+  "true_pit_span": {
+    "period_end": [
+      "2003-12-31",
+      "2026-07-31"
+    ],
+    "available_at": [
+      "2004-06-18",
+      "2026-08-22"
+    ],
+    "tickers": 396
+  },
+  "per_ticker_coverage": {
+    "zero": 5,
+    "under_50pct": 49,
+    "50_to_90pct": 107,
+    "over_90pct": 240,
+    "tickers": 401
+  },
+  "run_counters": {
+    "identities": 86951,
+    "matched": 73769,
+    "claims_written": 73769,
+    "no_index": 633,
+    "multi_version": 1,
+    "amended": 2210,
+    "ambiguous": 3,
+    "no_filing": 10335,
+    "filed_before_period": 0
+  },
+  "replay_depth": {
+    "2015-06-30": {
+      "buckets": 38,
+      "scored": 9592,
+      "excluded_no_evidence": 19464
+    },
+    "2020-06-30": {
+      "buckets": 58,
+      "scored": 15626,
+      "excluded_no_evidence": 13369
+    },
+    "2024-06-30": {
+      "buckets": 74,
+      "scored": 21175,
+      "excluded_no_evidence": 7772
+    }
+  }
+}

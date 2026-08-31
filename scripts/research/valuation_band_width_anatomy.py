@@ -54,7 +54,7 @@ from uw_scan.fundamentals.valuation import (
     yield_drift,
 )
 from uw_scan.storage.fundamental_anchors import FundamentalAnchorsRepository
-from uw_scan.storage.fundamental_obs import FundamentalObsRepository
+from uw_scan.storage.fundamental_observation_panels import current_statement_panel
 from uw_scan.worker.jobs.fundamental_anchors import (
     _history,
     load_raw_closes,
@@ -64,9 +64,8 @@ from uw_scan.worker.jobs.fundamental_anchors import (
 
 def anatomy(conn, settings: Settings) -> list[dict[str, Any]]:
     schema = settings.db_schema
-    obs = FundamentalObsRepository(conn, schema=schema)
     types = FundamentalAnchorsRepository(conn, schema=schema).company_types()
-    panel = obs.statement_panel(None)
+    panel = current_statement_panel(conn, None, schema=settings.db_schema)
     universe = sorted(t for t in panel if t in types)
     closes = load_raw_closes(settings.lake_credit_etf_root, universe)
     currencies = {

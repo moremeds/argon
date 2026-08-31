@@ -1,0 +1,106 @@
+import { afterEach, describe, expect, it, vi } from "vitest";
+
+import { api } from "@/lib/api";
+
+function stubFetch(response: unknown) {
+  const spy = vi.fn().mockResolvedValue(response);
+  vi.stubGlobal("fetch", spy);
+  return spy;
+}
+
+describe("gold API client", () => {
+  afterEach(() => {
+    vi.unstubAllGlobals();
+  });
+
+  it("settles a 404 to null — the engine has not run is a fact, not an error", async () => {
+    stubFetch({ ok: false, status: 404, text: () => Promise.resolve("") });
+
+    await expect(api.goldState()).resolves.toBeNull();
+  });
+
+  it("rejects a non-404 so the page can say the request failed", async () => {
+    stubFetch({
+      ok: false,
+      status: 500,
+      text: () => Promise.resolve("database unavailable"),
+    });
+
+    await expect(api.goldState()).rejects.toThrow(
+      "API 500 for /api/gold/state: database unavailable",
+    );
+  });
+
+  it("rejects when the API cannot be reached at all", async () => {
+    vi.stubGlobal(
+      "fetch",
+      vi.fn().mockRejectedValue(new TypeError("fetch failed")),
+    );
+
+    await expect(api.goldState()).rejects.toThrow("fetch failed");
+  });
+
+  it("sends the replay date as the as_of QUERY param, not a path segment", async () => {
+    const spy = stubFetch({
+      ok: true,
+      status: 200,
+      text: () => Promise.resolve("{}"),
+    });
+
+    await api.goldReplay("2026-08-14");
+
+    expect(spy.mock.calls[0][0]).toContain("/api/gold/replay?as_of=2026-08-14");
+  });
+
+  it("requests a typed gold lens detail by its bounded lens id", async () => {
+    const spy = stubFetch({
+      ok: true,
+      status: 200,
+      text: () =>
+        Promise.resolve(
+          JSON.stringify({ lens_id: "structural", posture: {}, detail: {} }),
+        ),
+    });
+
+    await api.goldLens("structural");
+
+    expect(spy.mock.calls[0][0]).toContain("/api/gold/lenses/structural");
+  });
+
+  it("bounds replayed input vintages but leaves live input requests unbounded", async () => {
+    const spy = stubFetch({
+      ok: true,
+      status: 200,
+      text: () =>
+        Promise.resolve(JSON.stringify({ series_id: "DFII10", points: [] })),
+    });
+
+    await api.goldInputSeries("DFII10", {
+      from: "2026-08-15",
+      to: "2026-08-22",
+      asOf: "2026-08-22",
+    });
+    await api.goldInputSeries("DFII10", {
+      from: "2026-08-15",
+      to: "2026-08-22",
+    });
+
+    expect(spy.mock.calls[0][0]).toContain("as_of=2026-08-22");
+    expect(spy.mock.calls[1][0]).not.toContain("as_of=");
+  });
+
+  it("bounds the replayed gauge but leaves the live gauge unbounded", async () => {
+    const spy = stubFetch({
+      ok: true,
+      status: 200,
+      text: () =>
+        Promise.resolve(JSON.stringify({ current: {}, history_252d: [] })),
+    });
+
+    await api.goldGauge("2026-08-22");
+    await api.goldGauge();
+
+    expect(spy.mock.calls[0][0]).toContain("/api/gold/gauge?as_of=2026-08-22");
+    expect(spy.mock.calls[1][0]).toBe("/api/gold/gauge");
+  });
+});

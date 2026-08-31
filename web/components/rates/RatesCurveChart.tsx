@@ -1,5 +1,5 @@
 import type { components } from "@/lib/types";
-import { NARROW_FRAME } from "./chartGeometry";
+import { NARROW_FRAME } from "@/components/macro/chartGeometry";
 import styles from "./RatesDesk.module.css";
 import { fmtSigned, fmtValue, toFiniteNumber } from "./format";
 
@@ -74,7 +74,7 @@ export function RatesCurveChart({ points }: { points: CurvePoint[] }) {
   const span = Math.max(max - min, 0.25);
   // Sized to the grid cell this chart actually occupies, not to the full-width
   // panels, so its scale factor lands near 1 like theirs and the three charts share
-  // one rendered type size. See ./chartGeometry.ts -- equal viewBox in unequal
+  // one rendered type size. See @/components/macro/chartGeometry.ts -- equal viewBox in unequal
   // containers is exactly what made these disagree.
   const width = NARROW_FRAME.width;
   const height = NARROW_FRAME.height;
@@ -104,11 +104,11 @@ export function RatesCurveChart({ points }: { points: CurvePoint[] }) {
 
   return (
     <div className={styles.curveGrid}>
-      <div className={styles.chartPanel} aria-label="Yield curve chart">
+      <div className={`${styles.chartPanel} chart`} aria-label="Yield curve chart">
         <div className={styles.chartHeader}>
           <strong>PAR yield curve overlay</strong>
           <div
-            className={styles.chartLegend}
+            className={`${styles.chartLegend} lgd`}
             aria-label="Yield curve comparison legend"
           >
             {series.map((curve) => (
@@ -212,15 +212,15 @@ export function RatesCurveChart({ points }: { points: CurvePoint[] }) {
           <tbody>
             {points.map((point) => (
               <tr key={point.tenor}>
-                <th scope="row">{point.tenor}</th>
-                <td>{fmtValue(point.value, "%")}</td>
-                <td className={deltaClass(point.delta_1d_bps)}>
+                <td>{point.tenor}</td>
+                <td className="num">{fmtValue(point.value, "%")}</td>
+                <td className={`num ${deltaClass(point.delta_1d_bps)}`}>
                   {fmtSigned(point.delta_1d_bps, "bps")}
                 </td>
-                <td className={deltaClass(point.delta_1w_bps)}>
+                <td className={`num ${deltaClass(point.delta_1w_bps)}`}>
                   {fmtSigned(point.delta_1w_bps, "bps")}
                 </td>
-                <td className={deltaClass(point.delta_1m_bps)}>
+                <td className={`num ${deltaClass(point.delta_1m_bps)}`}>
                   {fmtSigned(point.delta_1m_bps, "bps")}
                 </td>
               </tr>

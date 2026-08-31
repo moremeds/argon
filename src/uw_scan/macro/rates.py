@@ -14,7 +14,7 @@ words "term premium" belong only to the Cleveland Fed's estimated model, which i
 model output with its own vintage and its own uncertainty, not a spread between two
 traded yields.
 
-Design: ``docs/superpowers/specs/2026-08-18-inflation-rates-state-design.md``.
+Design: ``docs/superpowers/archive/specs/2026-08-18-inflation-rates-state-design.md``.
 """
 
 from __future__ import annotations
@@ -40,17 +40,17 @@ from .contracts import (
     compute_inputs_hash,
     freshness_for,
 )
-from .rates_sub_states import build_sub_states
 from .rates_rules import (
     YieldAttribution,
     attribute_nominal_change,
     forward_spreads,
-    market_contradictions,
     horizon_years,
+    market_contradictions,
     policy_contradictions,
     rates_velocity,
     year_end_rate,
 )
+from .rates_sub_states import build_sub_states
 
 #: Bumped when the shared confidence engine's revision penalty changed divisor, from
 #: every factor consumed to the required set its numerator was already drawn from.  The
@@ -523,6 +523,13 @@ def _coverage_notes(
                     f"no PIT-eligible release for: {', '.join(missing)}; each absence "
                     "lowers confidence and is never filled from another path"
                 ),
+                # A COUNT of absent paths, exactly like ``market_factors_absent``
+                # below.  The absence is already priced -- it lands in the
+                # ``completeness`` multiplicand inside ``compute_confidence`` -- and
+                # this term only NAMES which paths were missing.  Left as the default
+                # multiplicand it claimed to be a second, uncounted haircut of
+                # x1.00/x2.00 on a number it never touched.
+                kind="informational",
             )
         )
     if "market_implied" in by_kind:
@@ -534,6 +541,12 @@ def _coverage_notes(
                     f"{by_kind['market_implied'].source} is a third-party shadow; it is "
                     "reported and compared, but contributes no confidence"
                 ),
+                # The term says in words that it "contributes no confidence", and the
+                # default multiplicand said in NUMBERS that it multiplied the state by
+                # zero.  Every consumer believes the number: /rates rendered this under
+                # "Reduced by" as "x0.00" beside a confidence of 0.850 that the shadow
+                # had no part in.  Informational is what "reported, not counted" is.
+                kind="informational",
             )
         )
     roles = {factor.causal_role for factor in factors}

@@ -30,6 +30,17 @@ waiting for UW to publish — F3 measured that there is nothing to wait for, and
 non-landed report events were permanently non-landed for reasons that are not timing. The
 default of 3 is a weekend, not a measurement, and it should not be grown to chase a
 missing filing date; that is the backstop's job.
+
+CROSS-STATEMENT NI SIGN-FLIP CHECK
+------------------------------------
+This job does not call `check_net_income_sign_flip` itself — it delegates
+its `targets` straight into `fundamental_ingest`, which runs the check
+against every complete (income, cash-flow) pair it re-fetches for those
+tickers, so this job inherits it without a separate call site. What this job
+does NOT guarantee is revisiting a ticker whose cash-flow statement lands
+after its income statement and after the ticker drops off the classified
+calendar — see `fundamental_ingest`'s own docstring for why the monthly full
+sweep, not this job, is what closes that gap.
 """
 
 from __future__ import annotations
@@ -41,11 +52,43 @@ from typing import Any
 import psycopg
 
 from uw_scan.api.client import UwClient
-from uw_scan.sources.earnings_calendar import fetch_calendar_symbols
+from uw_scan.sources.earnings_calendar import fetch_calendar_listings
+from uw_scan.storage.earnings_calendar import EarningsCalendarRepository
 from uw_scan.storage.fundamental_obs import FundamentalObsRepository
 from uw_scan.worker.jobs.fundamental_ingest import fundamental_ingest
 
 log = logging.getLogger(__name__)
+
+#: How far BACKWARD a filing-publication date can sit from the real report
+#: date and still be recognized as "the same print." A filing follows its
+#: earnings release — it does not precede it (verified, not assumed: a
+#: pooled 57-ticker live sample spanning three independent draws — the
+#: original 26, UNH, and a fresh 30 — found the gap non-negative in every
+#: case; see FILING_FORWARD_TOLERANCE_DAYS). That means a purely-backward
+#: window can be widened with no risk of reaching the WRONG print, because
+#: quarterly prints sit ~91.25 days apart (`DAYS_PER_QUARTER`,
+#: `fundamentals/underwriting.py`) and a symmetric window is the only shape
+#: that has to stay under half that spacing to stay unambiguous. 45 days is
+#: half of ~91.25 (so it can never be nearer the PRIOR quarter's print than
+#: the current one, even by the old symmetric logic's own math) and clears
+#: every observed gap with real headroom: BXP 9d, ISRG 5d, BAC 17d, BLK 22d,
+#: UNH 25d (the largest, and a non-exotic large-cap — the tail is not
+#: confined to obscure names). Measurement: this fix's own live queries
+#: (option_wizard_local.uw_scan.fundamental_statement_obs, period_end
+#: 2026-06-30, cross-referenced against UW `get_earnings_history`, 2026-08-28).
+FILING_LOOKBACK_DAYS = 45
+
+#: How far FORWARD a filing date is allowed to sit from a real report date —
+#: i.e. how much slack a genuinely FUTURE print gets before it stops looking
+#: like "the same print" as an already-filed statement. Measured at 0/57 in
+#: the pooled sample above: no filing has ever been observed dated before
+#: its own report. A couple of days of slack (not zero) absorbs weekend/
+#: timezone edge cases in either clock without opening the door back up to
+#: matching the wrong quarter — 3 days is under 1% of the ~91.25-day
+#: inter-print spacing, so it cannot reach a neighboring quarter's print
+#: even stacked with FILING_LOOKBACK_DAYS on the other side of a single
+#: filing date.
+FILING_FORWARD_TOLERANCE_DAYS = 3
 
 _EMPTY: dict[str, int] = {
     "tickers": 0,
@@ -56,7 +99,87 @@ _EMPTY: dict[str, int] = {
     "filing_date_tolerance": 0,
     "calendar_symbols": 0,
     "targets": 0,
+    # NEW rows only (xmax=0), not rows seen — see the field-level comments below
+    # where these are actually assigned.
+    "calendar_rows_new": 0,
+    # Rows for prints that have NOT happened yet — the desk calendar's only
+    # source. Separate from `calendar_rows_new` because a run can legitimately
+    # learn nothing new about the past while still extending the forward view.
+    "calendar_forward_rows_new": 0,
+    "calendar_unknown_rows_new": 0,
 }
+
+
+def persist_unknown_statements(
+    calendar_repo: EarningsCalendarRepository, new_filings: list[dict[str, Any]]
+) -> int:
+    """Land the `statement_obs` fallback rows (spec §5-i) for a landed-this-run
+    statement whose `filing_published_at` date has no calendar row for that ticker —
+    the ~2% UW reports `report_time: "unknown"`, invisible to both classified slots
+    (see `sources/earnings_calendar.py`).
+
+    `filing_published_at` is a FILING date, not a print date (branch-fix-p2, C1)
+    — the two coincide for some names and drift by up to `FILING_LOOKBACK_DAYS`
+    for others (measured; see that constant's docstring — filing follows print,
+    never the reverse), so "already known" can never be an exact-date match
+    against the classified calendar's `report_date`: that compares the new row's
+    date against a set keyed on a DIFFERENT clock and almost never matches for a
+    name whose 10-Q lands days after its actual report. A classified ticker is
+    instead recognized as known when ANY existing calendar row for it falls
+    within `FILING_LOOKBACK_DAYS` BEFORE the filing date or
+    `FILING_FORWARD_TOLERANCE_DAYS` AFTER it — covering the real report date on
+    whichever side of the filing it lands (almost always before; a few days'
+    slack absorbs the rest), without reaching into a neighboring quarter
+    (quarters sit ~91 days apart; see the window constants). A ticker that IS
+    newly-known this way is left alone entirely: the
+    calendar row already carries the real session, and re-upserting session=NULL
+    there would just be a no-op touch (COALESCE never lets NULL clobber a known
+    value) — checked explicitly so the intent stays legible rather than relying on
+    that safety net.
+
+    Public (not `fundamental_ingest_daily`-private) because the daily job's own
+    `targets` can only ever be tickers the classified calendar just listed — a
+    ticker UW never lists in either slot can never reach `fundamental_ingest`
+    through THIS job, so it can never appear in `new_filings` here. The monthly
+    backstop sweep (`scheduler.py`'s `_fundamental_ingest`, which ingests the whole
+    tier unfiltered by calendar) is the only caller that can actually hand this a
+    calendar-invisible ticker, and calls this same function after its own
+    `fundamental_ingest(...)`.
+    """
+    if not new_filings:
+        return 0
+    filing_dates = [filing["filing_published_at"] for filing in new_filings]
+    window_start = min(filing_dates) - timedelta(days=FILING_LOOKBACK_DAYS)
+    window_end = max(filing_dates) + timedelta(days=FILING_FORWARD_TOLERANCE_DAYS)
+    known_dates_by_ticker: dict[str, list[date]] = {}
+    for row in calendar_repo.prints_between(window_start, window_end):
+        known_dates_by_ticker.setdefault(row["ticker"], []).append(row["report_date"])
+
+    unknown_rows = []
+    for filing in new_filings:
+        ticker = filing["ticker"].upper()
+        filing_date = filing["filing_published_at"]
+        known_dates = known_dates_by_ticker.get(ticker, [])
+        # Asymmetric on purpose: a filing lands ON OR AFTER its print (delta >= 0,
+        # bounded by FILING_LOOKBACK_DAYS), never meaningfully before it (delta < 0,
+        # bounded by the much smaller FILING_FORWARD_TOLERANCE_DAYS) — see both
+        # constants' docstrings for the 57-ticker measurement backing this shape.
+        if any(
+            -FILING_FORWARD_TOLERANCE_DAYS
+            <= (filing_date - known_date).days
+            <= FILING_LOOKBACK_DAYS
+            for known_date in known_dates
+        ):
+            continue
+        unknown_rows.append(
+            {
+                "ticker": filing["ticker"],
+                "report_date": filing_date,
+                "session": None,
+                "source": "statement_obs",
+            }
+        )
+    return calendar_repo.upsert_rows(unknown_rows)
 
 
 def fundamental_ingest_daily(
@@ -65,10 +188,27 @@ def fundamental_ingest_daily(
     client: UwClient,
     today: date,
     lookback_days: int = 3,
+    forward_days: int = 14,
     tier: str = "ranked",
     schema: str = "uw_scan",
 ) -> dict[str, Any]:
-    """Ingest statements for universe names on the last `lookback_days`+1 calendars.
+    """Ingest statements for universe names on the last `lookback_days`+1 calendars,
+    and record the next `forward_days` of scheduled prints.
+
+    THE TWO WINDOWS ANSWER DIFFERENT QUESTIONS AND ARE NOT SYMMETRIC.
+    The BACKWARD window finds statements to ingest: a company files on or after
+    it prints, so only a past date can name a ticker whose filing is now
+    retrievable. The FORWARD window ingests nothing — a print that has not
+    happened has no statement — and exists solely to keep `earnings_calendar`
+    holding rows the desk's "what prints next" panel can read, since
+    `EarningsCalendarRepository.next_prints` filters `report_date >= today`. A
+    backward-only scan makes that panel permanently empty, which renders as
+    "nothing prints next" rather than "we never asked" — the same
+    failure-as-affirmative-claim substitution the desk exists to refuse.
+
+    That asymmetry is why forward listings are deliberately NOT folded into
+    `symbols`: adding them would send `fundamental_ingest` after companies that
+    have not reported, spending 4 UW calls each to retrieve nothing.
 
     `today` is injected rather than read from the clock so a replay and a test mean the
     same thing by it.
@@ -79,9 +219,51 @@ def fundamental_ingest_daily(
         log.info("fundamental_ingest_daily: tier %r is empty — nothing to do", tier)
         return dict(_EMPTY)
 
+    # `fetch_calendar_listings` replaces the old `fetch_calendar_symbols` call — one
+    # fetch per scanned date, same as before, zero added UW spend — and persists the
+    # durable calendar (spec §5-i) as a side effect of the fetch it was already paying
+    # for. `EarningsCalendarRepository` is only constructed once universe is known
+    # non-empty, so an unseeded tier still reads no calendar at all.
+    calendar_repo = EarningsCalendarRepository(conn, schema=schema)
     symbols: set[str] = set()
+    # Rows genuinely NEW to the calendar this run (xmax=0 per Task 4's upsert_rows) —
+    # NOT how many listings were seen. `calendar_symbols` below is the "seen" count;
+    # on a normal re-scan day this stays near-zero for names already on the calendar
+    # from a prior run, which is expected, not a failure.
+    calendar_rows_new = 0
     for offset in range(max(0, lookback_days) + 1):
-        symbols |= fetch_calendar_symbols(client, today - timedelta(days=offset))
+        report_date = today - timedelta(days=offset)
+        listings = fetch_calendar_listings(client, report_date)
+        symbols |= {listing.symbol for listing in listings}
+        calendar_rows_new += calendar_repo.upsert_rows(
+            [
+                {
+                    "ticker": listing.symbol,
+                    "report_date": report_date,
+                    "session": listing.session,
+                    "source": "uw_calendar",
+                }
+                for listing in listings
+            ]
+        )
+
+    # Forward leg: calendar only. `symbols` is untouched on purpose — see the
+    # docstring's asymmetry note. Counted separately so a log line distinguishes
+    # "we learned about new filings" from "we learned about upcoming prints".
+    calendar_forward_rows_new = 0
+    for ahead in range(1, max(0, forward_days) + 1):
+        report_date = today + timedelta(days=ahead)
+        calendar_forward_rows_new += calendar_repo.upsert_rows(
+            [
+                {
+                    "ticker": listing.symbol,
+                    "report_date": report_date,
+                    "session": listing.session,
+                    "source": "uw_calendar",
+                }
+                for listing in fetch_calendar_listings(client, report_date)
+            ]
+        )
 
     targets = sorted(symbols & universe)
     if not targets:
@@ -90,11 +272,27 @@ def fundamental_ingest_daily(
             len(symbols),
             tier,
         )
-        return dict(_EMPTY, calendar_symbols=len(symbols))
+        return dict(
+            _EMPTY,
+            calendar_symbols=len(symbols),
+            calendar_rows_new=calendar_rows_new,
+            calendar_forward_rows_new=calendar_forward_rows_new,
+        )
 
     counters = fundamental_ingest(
         conn=conn, client=client, tier=tier, schema=schema, tickers=targets
     )
-    summary = {**counters, "calendar_symbols": len(symbols), "targets": len(targets)}
+    new_filings = counters.pop("new_filings", [])
+    # Also a NEW-only count (same xmax=0 semantics) — see persist_unknown_statements.
+    calendar_unknown_rows_new = persist_unknown_statements(calendar_repo, new_filings)
+
+    summary = {
+        **counters,
+        "calendar_symbols": len(symbols),
+        "targets": len(targets),
+        "calendar_rows_new": calendar_rows_new,
+        "calendar_forward_rows_new": calendar_forward_rows_new,
+        "calendar_unknown_rows_new": calendar_unknown_rows_new,
+    }
     log.info("fundamental_ingest_daily %s", summary)
     return summary

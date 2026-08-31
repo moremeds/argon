@@ -9,7 +9,7 @@ level being thresholded.
 
 Every transform is computed here rather than in a source module, and only from
 observations that were the published values at ``as_of``.  Design and preregistered
-scenarios: ``docs/superpowers/specs/2026-08-18-inflation-rates-state-design.md``.
+scenarios: ``docs/superpowers/archive/specs/2026-08-18-inflation-rates-state-design.md``.
 """
 
 from __future__ import annotations

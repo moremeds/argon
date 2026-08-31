@@ -123,6 +123,11 @@ def build_rates_snapshot(
             ],
             status="partial",
         ),
+        # Empty by construction, not by outage.  `RatesEventItem` has zero
+        # construction sites anywhere in src/ or tests/ -- only the class at
+        # models/rates.py, this default, and two __all__ entries.  The field is
+        # kept so the response shape stays stable; a consumer must read it as
+        # "this desk has no event feed", never as "no events are scheduled".
         events=[],
         synthesis=RatesSynthesisPanel(
             duration_view=_duration_text(
