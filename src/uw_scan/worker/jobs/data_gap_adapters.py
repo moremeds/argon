@@ -34,6 +34,13 @@ from uw_scan.reports.data_gap_healer import (
     DatasetRegistryEntry,
     _detect_col,
 )
+from uw_scan.worker.jobs.data_gap_telemetry import (
+    STAGE_ADAPTER,
+    STAGE_CLAIMED,
+    STAGE_MARKED,
+    STAGE_PROVIDER_RETURNED,
+    HealHeartbeat,
+)
 from uw_scan.worker.jobs.uw_alpha_capture import (
     capture_dark_lit_for,
     capture_intraday_flow_for,
@@ -42,6 +49,30 @@ from uw_scan.worker.jobs.uw_alpha_capture import (
 logger = logging.getLogger(__name__)
 
 _BUCKETS = ("uw", "massive", "external", "db")
+
+
+def _beat(ctx, stage: str, entry, it: dict | None = None, **extra) -> None:
+    """One progress beat, if this context has a heartbeat attached.
+
+    Optional so the many unit tests that build a bare HealContext keep working;
+    `execute_run` attaches one for every real run.
+    """
+    if ctx.heartbeat is None:
+        return
+    it = it or {}
+    ctx.heartbeat.stage(
+        stage,
+        dataset=entry.table_name,
+        item_id=it.get("id"),
+        ticker=it.get("ticker"),
+        data_date=it.get("data_date"),
+        # ESTIMATED units, not real calls -- `est_per_item` is what the private
+        # budget charges, and it is the number measured to diverge from UW's own
+        # counter by roughly 15x on the replay adapters. Carrying it beside the
+        # telemetry rows is what makes that divergence measurable per dataset.
+        uw_est_spent=ctx.budget.spent.get("uw"),
+        **extra,
+    )
 
 
 class RequestBudget:
@@ -100,6 +131,14 @@ class HealContext:
     today: date
     budget: RequestBudget
     settings: object | None = None  # uw_scan.config.Settings (real adapters only)
+    # Telemetry recorder for every provider client this context builds. Without
+    # it the healer's UW spend never reaches `external_api_requests`, which is
+    # the table `sources/uw_budget.read_snapshot` derives BOTH the pool spend and
+    # the account counter from -- so an untelemetered healer is not merely
+    # unobserved by the governor, it is arithmetically invisible to it.
+    recorder: object | None = None
+    heartbeat: object | None = None  # HealHeartbeat; created by execute_run
+    run_id: int | None = None
     registry_by_table: dict[str, DatasetRegistryEntry] = field(default_factory=dict)
     _uw: object | None = field(default=None, repr=False)
     # (ticker, date) pairs already replayed in THIS heal run. One
@@ -120,6 +159,7 @@ class HealContext:
                 api_key=self.settings.api_key.get_secret_value(),
                 base_url=self.settings.base_url,
                 timeout=self.settings.request_timeout_seconds,
+                telemetry_recorder=self.recorder,
                 job_name="data_gap_healer",
             )
         return self._uw
@@ -136,6 +176,7 @@ class HealContext:
                 api_key=self.settings.massive_api_key.get_secret_value(),
                 base_url=self.settings.massive_base_url,
                 timeout=self.settings.request_timeout_seconds,
+                telemetry_recorder=self.recorder,
                 job_name="data_gap_healer",
             )
         return self._massive
@@ -818,6 +859,16 @@ def run_refresh_adapters(
         if not ctx.budget.can_spend(spec.provider, spec.est_per_item):
             out[dataset] = "skipped_budget"
             continue
+        if ctx.heartbeat is not None:
+            # The refresh phase runs AFTER execute_run in the nightly job, so
+            # without a beat here a run that got that far and then hung would
+            # leave a last-known stage that points at the wrong phase entirely.
+            ctx.heartbeat.stage(
+                STAGE_ADAPTER,
+                dataset=dataset,
+                phase="refresh",
+                uw_est_spent=ctx.budget.spent.get("uw"),
+            )
         try:
             if spec.granularity == "run_once_lookback":
                 spec.run(ctx, lookback_days)
@@ -825,6 +876,13 @@ def run_refresh_adapters(
                 spec.run(ctx)
             ctx.budget.record(spec.provider, spec.est_per_item)
             out[dataset] = "refreshed"
+            if ctx.heartbeat is not None:
+                ctx.heartbeat.stage(
+                    STAGE_MARKED,
+                    dataset=dataset,
+                    phase="refresh",
+                    uw_est_spent=ctx.budget.spent.get("uw"),
+                )
         except Exception as exc:  # noqa: BLE001
             logger.exception("refresh failed %s: %s", dataset, repr(exc))
             out[dataset] = "failed"
@@ -878,6 +936,7 @@ def _dispatch_per_ticker_date(ctx, entry, spec, items, outcome) -> None:
             outcome["skipped_budget"] += 1
             exhausted = True
             continue
+        _beat(ctx, STAGE_ADAPTER, entry, it)
         try:
             spec.run(ctx, it["ticker"], it["data_date"])
             ctx.budget.record(spec.provider, spec.est_per_item)
@@ -888,7 +947,9 @@ def _dispatch_per_ticker_date(ctx, entry, spec, items, outcome) -> None:
             ctx.gap.mark_item_failed(it["id"], last_error=repr(exc)[:500])
             outcome["failed"] += 1
             continue
+        _beat(ctx, STAGE_PROVIDER_RETURNED, entry, it)
         _verify_and_mark(ctx, entry, spec, it, outcome)
+        _beat(ctx, STAGE_MARKED, entry, it)
 
 
 def _dispatch_per_ticker_range(ctx, entry, spec, items, outcome) -> None:
@@ -902,6 +963,7 @@ def _dispatch_per_ticker_range(ctx, entry, spec, items, outcome) -> None:
                 ctx.gap.mark_item_skipped_budget(it["id"])
                 outcome["skipped_budget"] += 1
             continue
+        _beat(ctx, STAGE_ADAPTER, entry, tk_items[0], span=len(tk_items))
         try:
             spec.run(ctx, ticker, min(dates), max(dates))
             ctx.budget.record(spec.provider, spec.est_per_item)
@@ -913,12 +975,15 @@ def _dispatch_per_ticker_range(ctx, entry, spec, items, outcome) -> None:
                 ctx.gap.mark_item_failed(it["id"], last_error=repr(exc)[:500])
                 outcome["failed"] += 1
             continue
+        _beat(ctx, STAGE_PROVIDER_RETURNED, entry, tk_items[0], span=len(tk_items))
         for it in tk_items:
             _verify_and_mark(ctx, entry, spec, it, outcome)
+            _beat(ctx, STAGE_MARKED, entry, it)
 
 
 def _dispatch_run_once(ctx, entry, spec, items, outcome) -> None:
     dates = [it["data_date"] for it in items if it["data_date"]]
+    _beat(ctx, STAGE_ADAPTER, entry, items[0] if items else None, span=len(items))
     try:
         if spec.granularity == "run_once_lookback":
             lookback = max(1, (ctx.today - min(dates)).days + 2) if dates else 45
@@ -932,8 +997,10 @@ def _dispatch_run_once(ctx, entry, spec, items, outcome) -> None:
             ctx.gap.mark_item_failed(it["id"], last_error=repr(exc)[:500])
             outcome["failed"] += 1
         return
+    _beat(ctx, STAGE_PROVIDER_RETURNED, entry, items[0] if items else None)
     for it in items:
         _verify_and_mark(ctx, entry, spec, it, outcome, no_data_reason="not_recomputed")
+        _beat(ctx, STAGE_MARKED, entry, it)
 
 
 def _verify_and_mark(
@@ -1009,6 +1076,9 @@ def execute_run(
     fails, are recorded (no_data) rather than silently dropped.
     """
     specs = specs if specs is not None else HEAL_SPECS
+    ctx.run_id = run_id
+    if ctx.heartbeat is None:
+        ctx.heartbeat = HealHeartbeat(ctx.gap, run_id, recorder=ctx.recorder)
     claimed = ctx.gap.claim_next_items(
         run_id,
         limit=max_items if max_items is not None else 10_000_000,
@@ -1017,6 +1087,15 @@ def execute_run(
     groups: dict[str, list[dict]] = defaultdict(list)
     for it in claimed:
         groups[it["dataset"]].append(it)
+    # One beat before any dataset is entered. Its ABSENCE is diagnostic too: a run
+    # that never reaches this stalled inside claim_next_items, which on a 175k-item
+    # backlog is a single unbounded query, not the provider.
+    ctx.heartbeat.stage(
+        STAGE_CLAIMED,
+        dataset="*",
+        claimed=len(claimed),
+        datasets_pending=len(groups),
+    )
 
     outcome: Counter[str] = Counter()
     for dataset, items in groups.items():

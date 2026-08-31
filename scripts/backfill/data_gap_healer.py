@@ -34,6 +34,7 @@ from uw_scan.worker.jobs.data_gap_healer import (  # noqa: F401
     OUTPUT_DIR,
     HealerBusy,
     audit_into_run,
+    _make_recorder,
     execute_into_run,
     finalize_run,
     per_dataset_summary,
@@ -148,6 +149,7 @@ def cmd_execute(args: argparse.Namespace, settings: Settings) -> int:
         )
         return 0
     repo, gap = _open(settings)
+    recorder = _make_recorder(settings)
     try:
         start = _parse_date(args.start)
         end = _parse_date(args.end) if args.end else date.today()
@@ -160,6 +162,7 @@ def cmd_execute(args: argparse.Namespace, settings: Settings) -> int:
             datasets=_datasets_arg(args.datasets),
             max_uw_calls=args.max_uw_calls,
             today=date.today(),
+            recorder=recorder,
         )
         print(
             json.dumps(
@@ -175,11 +178,14 @@ def cmd_execute(args: argparse.Namespace, settings: Settings) -> int:
         )
         return 0
     finally:
+        if recorder is not None:
+            recorder.close()
         repo.conn.close()
 
 
 def cmd_resume(args: argparse.Namespace, settings: Settings) -> int:
     repo, gap = _open(settings)
+    recorder = _make_recorder(settings)
     try:
         outcome, budget = resume_run(
             repo,
@@ -188,6 +194,7 @@ def cmd_resume(args: argparse.Namespace, settings: Settings) -> int:
             args.run_id,
             today=date.today(),
             max_uw_calls=args.max_uw_calls,
+            recorder=recorder,
         )
         print(
             json.dumps(
@@ -202,6 +209,8 @@ def cmd_resume(args: argparse.Namespace, settings: Settings) -> int:
         )
         return 0
     finally:
+        if recorder is not None:
+            recorder.close()
         repo.conn.close()
 
 
