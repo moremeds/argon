@@ -7,6 +7,9 @@ version in lockstep (enforced by `scripts/release/version_sync_check.py`).
 
 ## [Unreleased]
 
+## [0.13.2] — 2026-08-31
+
+
 ### Changed
 
 - **Release waits for the exact merged SHA's full main CI instead of serially
@@ -71,7 +74,6 @@ version in lockstep (enforced by `scripts/release/version_sync_check.py`).
   KEEL's 63 dates across 2026-01-02..2026-04-02 failed every night and were retried
   every night, permanently. Null is now an absence and yields no rows; a wrong type
   is still a contract violation and still raises.
-
 ## [0.13.1] — 2026-08-30
 
 
