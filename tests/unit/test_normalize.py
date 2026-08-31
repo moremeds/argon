@@ -60,6 +60,25 @@ def test_normalize_volatility_stats():
     assert latest.iv_rank is not None
 
 
+def test_null_data_is_absence_not_a_malformed_payload():
+    """UW sends `data: null` for a ticker with no history on the date. Both the
+    list path and volatility_stats' dict-or-list path must read that as empty, or
+    one absent dataset fails the entire pipeline replay for the date (KEEL,
+    2026-01-02..04-02, 63 dates)."""
+    assert normalize.normalize_volatility_stats({"data": None}) == []
+    assert normalize.normalize_interpolated_iv({"data": None}) == []
+
+
+def test_genuinely_malformed_data_still_raises():
+    """Absence is null; a wrong type is still a contract violation."""
+    with pytest.raises(normalize.NormalizationError):
+        normalize.normalize_volatility_stats({"data": "not-a-payload"})
+    with pytest.raises(normalize.NormalizationError):
+        normalize.normalize_interpolated_iv({"data": "not-a-payload"})
+    with pytest.raises(normalize.NormalizationError):
+        normalize.normalize_volatility_stats({})
+
+
 def test_normalize_realized_volatility():
     body = _load("realized_volatility")
     rows = normalize.normalize_realized_volatility(body)
