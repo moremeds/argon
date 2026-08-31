@@ -7,6 +7,7 @@
 **Base:** `68d1fbf7` (`v0.13.0`, merged by PR #397; the desk itself is `745d52d2`, PR #396)
 **Status:** shipped, deployed, and verified in production. Documentation handover only — this
 document authorizes no further implementation.
+**Re-verified 2026-08-31** against `v0.13.1`: health `ok`, and all eight desk endpoints still answer 200. The desk survived the next release unchanged.
 
 ## Reactivation prompt
 
@@ -67,18 +68,18 @@ All eight desk endpoints return HTTP 200 with content:
 
 Table state in `option_wizard` on the mini:
 
-| Table                      |   Rows | Note                                                 |
-| -------------------------- | -----: | ---------------------------------------------------- |
-| `research_chains`          |     48 |                                                      |
-| `chain_membership`         |    367 | 39 distinct chains, 284 distinct tickers             |
-| `company_exposure`         |    328 | **14 disclosed with a magnitude**, 314 asserted      |
-| `research_event_classes`   |     19 | was 0 before the first `register_discovery_gate` run |
-| `research_events`          |    427 | `bucket_flip` 419, `band_exit` 7, `band_entry` 1     |
-| `fundamentals_desk_rollup` | 29,894 | 419 distinct tickers                                 |
-| `earnings_calendar`        |    238 | **128 dated today or later**                         |
-| `earnings_reactions`       |      9 | thin                                                 |
-| `implied_move_daily`       |  **0** | fills at tonight's 20:45 ET job                      |
-| `research_reports`         |  **0** | node pages replay stored reports; none exist yet     |
+| Table                      |   Rows | Note                                                                                 |
+| -------------------------- | -----: | ------------------------------------------------------------------------------------ |
+| `research_chains`          |     48 |                                                                                      |
+| `chain_membership`         |    367 | 39 distinct chains, 284 distinct tickers                                             |
+| `company_exposure`         |    328 | **14 disclosed with a magnitude**, 314 asserted                                      |
+| `research_event_classes`   |     19 | was 0 before the first `register_discovery_gate` run                                 |
+| `research_events`          |    427 | `bucket_flip` 419, `band_exit` 7, `band_entry` 1                                     |
+| `fundamentals_desk_rollup` | 29,894 | 419 distinct tickers                                                                 |
+| `earnings_calendar`        |    238 | **128 dated today or later**                                                         |
+| `earnings_reactions`       |      9 | thin                                                                                 |
+| `implied_move_daily`       |  **0** | still 0 on 2026-08-31 — §5 has the reason, and it is not the one this row first gave |
+| `research_reports`         |  **0** | node pages replay stored reports; none exist yet                                     |
 
 `chain_membership.evidence_class` is `mirrored` 347 / `analyst` 20 — nothing at membership level is
 `disclosed`. Disclosure lives on `company_exposure`, where a magnitude requires
@@ -129,13 +130,13 @@ happened has no statement, and ingesting one spends 4 UW calls per name to retri
 
 ## 5. Known gaps, each with its own gate
 
-| Gap                                  | Why                                                                                                                                                                                                                   | Gate before acting                                                                                                                                       |
-| ------------------------------------ | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| `implied_move_daily` = 0 rows        | `implied_move_snapshot` reads `option_surface_grid_daily WHERE market_date = as_of`; today's surface is captured at 19:00 ET. Its own 20:45 ET slot sits after that capture. Running it earlier returns honest zeros. | **None — this is not a defect.** It fills tonight. Do not "fix" a job by moving it ahead of its input.                                                   |
-| `research_reports` = 0 rows          | `research_report_scaffold` / `_assemble` have no scheduler entry. Node pages REPLAY stored blocks and never re-assemble, so with no reports they render their empty state correctly.                                  | Decide a cadence (or a documented manual trigger) before scheduling. Assembly under today's data is a different answer wearing an old version number.    |
-| `earnings_reactions` = 9 rows        | Accrues forward from 19:41 ET nightly; the backfill script exists but has not been run at scale.                                                                                                                      | Backfill is bounded and zero-vendor-cost, but confirm scope first.                                                                                       |
-| 14 of 328 exposures disclosed (4.3%) | A magnitude requires a real disclosure and a named basis. Most memberships are `mirrored` from the watchlist chain taxonomy.                                                                                          | This is the measured yield, not a bug. Raising it means reading filings, not relaxing the CHECK.                                                         |
-| Four unscheduled research jobs       | `research_events_derive`, `research_report_scaffold`/`_assemble`, `sec_filing_index_refresh`, `fundamental_publication_evidence` — all predate this branch and were out of its scope.                                 | The desk's evidence surfaces stay static until these get schedules or a documented manual cadence. Scheduling them is a separate, unauthorized decision. |
+| Gap                                  | Why                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                          | Gate before acting                                                                                                                                                                                                                                                                                                                        |
+| ------------------------------------ | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `implied_move_daily` = 0 rows        | Two causes, and the second was missed on first writing. **Timing:** `implied_move_snapshot` reads `option_surface_grid_daily WHERE market_date = as_of` and today's surface is captured at 19:00 ET, so a run before that returns honest zeros; its own 20:45 ET slot sits after the capture, and its cron is `45 20 * * 0-4` — **weekdays only**, so a weekend produces no row and no defect. **Structural, and the larger one:** the surface universe and the print universe barely overlap. Measured 2026-08-31 — 198 tickers in the latest surface grid, 134 forward-calendar tickers, **intersection 10**. The surface covers the watchlist plus the research cohort; the earnings calendar is drawn from the whole statement universe. | Do not "fix" this by moving the job ahead of its input. Coverage is capped near **7%** of upcoming prints by that intersection, so the column will stay mostly "not covered" even on a perfect night — expect a thin column, not a filling one. Raising it means widening surface capture (which costs UW budget), not touching this job. |
+| `research_reports` = 0 rows          | `research_report_scaffold` / `_assemble` have no scheduler entry. Node pages REPLAY stored blocks and never re-assemble, so with no reports they render their empty state correctly.                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                         | Decide a cadence (or a documented manual trigger) before scheduling. Assembly under today's data is a different answer wearing an old version number.                                                                                                                                                                                     |
+| `earnings_reactions` = 9 rows        | Accrues forward from 19:41 ET nightly; the backfill script exists but has not been run at scale.                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                             | Backfill is bounded and zero-vendor-cost, but confirm scope first.                                                                                                                                                                                                                                                                        |
+| 14 of 328 exposures disclosed (4.3%) | A magnitude requires a real disclosure and a named basis. Most memberships are `mirrored` from the watchlist chain taxonomy.                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                 | This is the measured yield, not a bug. Raising it means reading filings, not relaxing the CHECK.                                                                                                                                                                                                                                          |
+| Four unscheduled research jobs       | `research_events_derive`, `research_report_scaffold`/`_assemble`, `sec_filing_index_refresh`, `fundamental_publication_evidence` — all predate this branch and were out of its scope.                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                        | The desk's evidence surfaces stay static until these get schedules or a documented manual cadence. Scheduling them is a separate, unauthorized decision.                                                                                                                                                                                  |
 
 Scheduled and working (all `massive-0`, all zero UW/IB spend, each gated by its own setting):
 
@@ -185,10 +186,14 @@ These are measurements. Reversing one in the UI is reversing a research result.
 
 ## 8. Ordered next steps (none authorized by this document)
 
-1. Confirm tonight's crons close the loop with no manual help: `implied_move_snapshot` 20:45 ET,
+1. Confirm the crons close the loop with no manual help: `implied_move_snapshot` 20:45 ET,
    `fundamental_change_events` 21:15 ET, `fundamentals_desk_rollup` 21:30 ET,
-   `fundamental_ingest_daily` 04:20 ET. Re-read the counts in §2 tomorrow; every one should have
-   moved without intervention.
+   `fundamental_ingest_daily` 04:20 ET. **Check on a weekday, and check the right ones** — the
+   first two are `* * 0-4` and do not run at a weekend, so an unchanged count on a Monday morning
+   is the schedule working, not a failure. As of 2026-08-31 the two daily jobs had both moved on
+   their own (`earnings_calendar` forward rows 128 → 134; the rollup logged a clean
+   `written: 0` on a weekend, which is the correct no-op), and the two weekday jobs had not yet
+   had a weekday. Partially confirmed, not fully.
 2. Decide the report-assembly cadence, then schedule `research_report_scaffold`/`_assemble` — this
    is what takes node pages from "empty by design" to substantive.
 3. Decide whether `sec_filing_index_refresh` and `fundamental_publication_evidence` get schedules;
