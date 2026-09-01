@@ -1,13 +1,13 @@
 "use client";
 
 /**
- * The funnels — a dollar's path through the two chains whose stages are ranked.
+ * Stage growth comparison — the chains whose stages the taxonomy ranks.
  *
- * Each ring is one stage, and its RADIUS IS THAT STAGE'S MEDIAN REVENUE
- * GROWTH. Both cases are drawn on ONE SHARED SCALE, so the two objects are
- * directly comparable: a chain that amplifies flares open toward the bottom, a
- * chain that absorbs stays a cylinder. The customer sits on top and the dollar
- * travels downward.
+ * Each ring is one stage, and its RADIUS IS THAT STAGE'S MEDIAN REVENUE GROWTH
+ * (TTM YoY). Both cases are drawn on ONE SHARED SCALE, so the two objects are
+ * directly comparable. The taxonomy's rank order sets the stacking order and
+ * nothing more: it is not a procurement chain, no payment is traced between
+ * stages, and two stages may simply be parallel suppliers.
  *
  * THE SHARED SCALE IS LOAD-BEARING AND SILENT WHEN BROKEN. `radius()` is one
  * function over both cases and `GROWTH_CAP` is a constant, deliberately: a cap
@@ -25,11 +25,8 @@ import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import type { CaseStageMember, DeskCase } from "@/lib/api";
 import {
   DASH,
-  belowCustomer,
   GROWTH_CAP,
   MID,
-  RARR,
-  TIMES,
   alpha,
   onThemeChange,
   pct,
@@ -38,12 +35,13 @@ import {
   caseToken,
   stageLabel,
   summariseCase,
+  valuationPhrase,
   type CaseSummary,
   type DeskPalette,
 } from "@/lib/fundamentals/desk";
 import { createScene, type SceneHandle } from "@/lib/fundamentals/scene";
 
-import { Finding, MONO, VizButton, VizFrame, labelStyle } from "./DeskSection";
+import { MONO, Note, VizButton, VizFrame, labelStyle } from "./DeskSection";
 
 const HEIGHT = 470;
 const RADIUS_MIN = 0.12;
@@ -118,8 +116,9 @@ export function CaseFunnels({ cases }: { cases: DeskCase[] }) {
       <VizFrame
         caption={
           <>
-            Stage funnels {MID} ring = stage median growth {MID} dot = one
-            company at its own growth
+            Stage growth comparison {MID} ring = stage equal-weight median
+            revenue growth (TTM YoY) {MID} dot = one company at its own TTM
+            growth
           </>
         }
         controls={
@@ -137,32 +136,26 @@ export function CaseFunnels({ cases }: { cases: DeskCase[] }) {
               </span>
               <span>{hover.stage}</span>
               <span>
-                revenue growth{" "}
+                revenue growth (TTM YoY, %){" "}
                 <b style={{ color: "var(--text-primary)" }}>
                   {hover.member.rev_yoy == null
-                    ? "no filed quarter"
+                    ? "TTM growth unavailable"
                     : sgn(hover.member.rev_yoy)}
                 </b>
               </span>
               {hover.member.gross_margin != null ? (
                 <span>
-                  gross margin{" "}
+                  reported gross margin (latest quarter, %){" "}
                   <b style={{ color: "var(--text-primary)" }}>
                     {pct(hover.member.gross_margin)}
                   </b>
                 </span>
               ) : null}
               <span>
-                {hover.member.spot_percentile == null ? (
-                  "no valuation band"
-                ) : (
-                  <>
-                    own-history percentile{" "}
-                    <b style={{ color: "var(--text-primary)" }}>
-                      {hover.member.spot_percentile.toFixed(2)}
-                    </b>
-                  </>
-                )}
+                valuation vs own history{" "}
+                <b style={{ color: "var(--text-primary)" }}>
+                  {valuationPhrase(hover.member.spot_percentile)}
+                </b>
               </span>
               {hover.member.reported_currency ? (
                 <span style={{ color: "var(--warning)" }}>
@@ -199,7 +192,15 @@ export function CaseFunnels({ cases }: { cases: DeskCase[] }) {
         </div>
       </VizFrame>
 
-      <FunnelFindings drawable={drawable} />
+      <Note>
+        The radius is a truncated display mapping over 0% to +80% TTM growth:
+        a stage or company outside that range is drawn at the rim, and
+        a company with no TTM growth sits on its stage&apos;s own ring as a
+        hollow mark rather than at the centre. Negative, missing and
+        off-scale values are all in the stage table below. The rings are
+        stacked in the taxonomy&apos;s rank order, which is an ordering of
+        stages and not a traced flow of money between them.
+      </Note>
     </>
   );
 }
@@ -426,16 +427,9 @@ function Funnel({
             color: "var(--text-secondary)",
           }}
         >
-          {summary.amplification == null ? (
-            <>amplification not computable {DASH} no customer median</>
-          ) : (
-            <>
-              {summary.amplification.toFixed(2)}
-              {TIMES} amplification {MID}{" "}
-              {sgn(summary.customer.median_rev_yoy, 0)} at the customer {RARR}{" "}
-              {sgn(summary.upstream.median_rev_yoy, 0)} upstream
-            </>
-          )}
+          customer group {sgn(summary.customer.median_rev_yoy, 0)} {MID}{" "}
+          upstream group {sgn(summary.upstream.median_rev_yoy, 0)} {MID} TTM
+          YoY medians
         </div>
       </div>
       <canvas
@@ -450,121 +444,5 @@ function Funnel({
         }}
       />
     </div>
-  );
-}
-
-/** "Barely opens" needs BOTH a wide gap to the other case and a weak absolute
- *  amplification. On the relative test alone, 20x against 10x would call a
- *  ten-fold amplification "barely" — true of the comparison, false of the
- *  chain, and it is the chain the sentence names. 1.5x is the same threshold
- *  the case card uses for "completely differently"; below it a chain has
- *  passed roughly half its customers' growth upstream, which is not "barely".
- */
-function barelyOpens(strongAmp: number, weakAmp: number): boolean {
-  return strongAmp / weakAmp >= 1.5 && weakAmp < 1.5;
-}
-
-function FunnelFindings({
-  drawable,
-}: {
-  drawable: { kase: DeskCase; s: CaseSummary }[];
-}) {
-  const withAmp = drawable
-    .filter((x) => x.s.amplification != null)
-    .sort(
-      (a, b) => (b.s.amplification as number) - (a.s.amplification as number),
-    );
-  if (withAmp.length < 2) return null;
-  const strong = withAmp[0];
-  const weak = withAmp[withAmp.length - 1];
-  const below = belowCustomer(weak.s);
-
-  // Walk the STRONGER case downstream-to-upstream and find where growth falls
-  // rather than rises. Drawing the dip is the point: a smoothed version
-  // implies "always buy further upstream", which this data does not support.
-  // A dip is a REVERSAL, so it needs a rise before it. Filtering on "lower
-  // than the stage before" alone makes the second stage of a monotonically
-  // falling chain a dip, and the heading — "growth rises and then falls" —
-  // would describe a chain that only ever fell.
-  const dips = strong.s.downstreamFirst
-    .map((stage, i) => ({
-      stage,
-      prev: strong.s.downstreamFirst[i - 1],
-      before: strong.s.downstreamFirst[i - 2],
-    }))
-    .filter(
-      (x) =>
-        x.prev?.median_rev_yoy != null &&
-        x.before?.median_rev_yoy != null &&
-        x.stage.median_rev_yoy != null &&
-        x.prev.median_rev_yoy > x.before.median_rev_yoy &&
-        x.stage.median_rev_yoy < x.prev.median_rev_yoy,
-    );
-
-  return (
-    <>
-      <Finding label="Finding — the same dollar, two transmissions">
-        Both objects use one radius scale, so their shapes are directly
-        comparable.{" "}
-        <strong style={{ color: "var(--text-secondary)" }}>
-          {strong.kase.label}
-        </strong>{" "}
-        flares: its customers grew{" "}
-        <b>{sgn(strong.s.customer.median_rev_yoy)}</b> and the components they
-        ultimately consume grew <b>{sgn(strong.s.upstream.median_rev_yoy)}</b>,
-        an amplification of{" "}
-        <b>
-          {(strong.s.amplification as number).toFixed(2)}
-          {TIMES}
-        </b>
-        .{" "}
-        <strong style={{ color: "var(--text-secondary)" }}>
-          {weak.kase.label}
-        </strong>{" "}
-        {barelyOpens(
-          strong.s.amplification as number,
-          weak.s.amplification as number,
-        )
-          ? "barely opens at all"
-          : "opens less"}{" "}
-        {DASH}{" "}
-        <b>
-          {(weak.s.amplification as number).toFixed(2)}
-          {TIMES}
-        </b>
-        {below.length ? (
-          <>
-            {" "}
-            {DASH} and {below.length} of its {weak.s.downstreamFirst.length - 1}{" "}
-            supplying stages grow more slowly than the customer stage
-          </>
-        ) : null}
-        . Same capital expenditure, measurably different transmissions. This is
-        the reading a sector screen structurally cannot produce, and it is the
-        whole reason the desk models chains at all.
-      </Finding>
-
-      {dips.length ? (
-        <Finding tone="warn" label="Finding — and it is not monotonic">
-          Amplification is not a gradient you can ride stage by stage. Walking{" "}
-          {strong.kase.label.toLowerCase()} down from the customer, growth rises
-          and then <em>falls</em> at{" "}
-          {dips.map((d, i) => (
-            <span key={d.stage.layer}>
-              {i > 0 ? " and " : ""}
-              <strong style={{ color: "var(--text-secondary)" }}>
-                {stageLabel(d.stage.layer)}
-              </strong>{" "}
-              ({sgn(d.stage.median_rev_yoy)}, under the{" "}
-              {stageLabel(d.prev.layer).toLowerCase()} it feeds at{" "}
-              {sgn(d.prev.median_rev_yoy)})
-            </span>
-          ))}
-          . The desk draws the dip rather than smoothing it, because the smooth
-          version implies a trade {DASH} always buy further upstream {DASH} that
-          this data does not support.
-        </Finding>
-      ) : null}
-    </>
   );
 }

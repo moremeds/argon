@@ -1,10 +1,14 @@
 /**
  * Stage detail — every member of every stage, named.
  *
- * A company with no filed quarter is NAMED, flagged, and excluded from the
- * stage median. Never dropped, never imputed to zero: dropping it would make
- * the stage look smaller than it is, and zeroing it would make an absence in
- * Argon read as a collapse at a real business.
+ * A company with no TTM growth in the store is NAMED, flagged, and excluded
+ * from the stage median. Never dropped, never imputed to zero: dropping it
+ * would make the stage look smaller than it is, and zeroing it would make an
+ * absence in Argon read as a collapse at a real business.
+ *
+ * EVERY ROW IS THAT COMPANY'S LATEST AVAILABLE RECORD, so two rows may sit on
+ * different fiscal periods; this is not a synchronised quarter. The API
+ * carries no per-row period, so none is printed rather than defaulted.
  *
  * Ticker cells link to the stock page, which is where a figure's filing date
  * and its raw line items live. The stage median prints its own coverage
@@ -23,6 +27,7 @@ import {
   caseToken,
   stageLabel,
   summariseCase,
+  valuationPhrase,
 } from "@/lib/fundamentals/desk";
 
 import {
@@ -133,8 +138,8 @@ function StageRows({ stage }: { stage: CaseStage }) {
                     color: "var(--text-muted)",
                   }}
                 >
-                  median {sgn(stage.median_rev_yoy)} {MID} {stage.reporting}/
-                  {stage.total} reported
+                  median {sgn(stage.median_rev_yoy)} {MID} growth available{" "}
+                  {stage.reporting}/{stage.total}
                 </span>
               </>
             ) : null}
@@ -149,7 +154,9 @@ function StageRows({ stage }: { stage: CaseStage }) {
           </td>
           <td style={num}>
             {m.rev_yoy == null ? (
-              <span style={{ color: "var(--warning)" }}>no filed quarter</span>
+              <span style={{ color: "var(--warning)" }}>
+                TTM growth unavailable
+              </span>
             ) : (
               sgn(m.rev_yoy)
             )}
@@ -158,7 +165,7 @@ function StageRows({ stage }: { stage: CaseStage }) {
             {m.gross_margin == null ? DASH : pct(m.gross_margin)}
           </td>
           <td style={num}>
-            {m.spot_percentile == null ? DASH : m.spot_percentile.toFixed(2)}
+            {valuationPhrase(m.spot_percentile)}
           </td>
           <td style={td}>{flags(m)}</td>
         </tr>
@@ -181,9 +188,11 @@ export function CaseStageTables({ cases }: { cases: DeskCase[] }) {
   return (
     <div data-testid="case-stage-tables">
       <Note>
-        Each stage lists every member. A company with no filed quarter in the
-        store is flagged and excluded from the stage median {DASH} never
-        dropped, never imputed to zero.
+        Each stage lists every member at its own latest available record, so
+        two rows may sit on different fiscal periods. A company with no TTM
+        growth in the store is flagged and excluded from the stage median{" "}
+        {DASH} never dropped, never imputed to zero. Stage medians are the
+        equal-weight median of the members carrying that metric.
       </Note>
 
       {cases.map((kase, i) => {
@@ -215,9 +224,15 @@ export function CaseStageTables({ cases }: { cases: DeskCase[] }) {
                   <tr>
                     <th style={th}>Stage</th>
                     <th style={th}>Company</th>
-                    <th style={{ ...th, textAlign: "right" }}>Rev growth</th>
-                    <th style={{ ...th, textAlign: "right" }}>Gross margin</th>
-                    <th style={{ ...th, textAlign: "right" }}>Own-hist pct</th>
+                    <th style={{ ...th, textAlign: "right" }}>
+                      Revenue growth (TTM YoY, %)
+                    </th>
+                    <th style={{ ...th, textAlign: "right" }}>
+                      Reported gross margin (latest quarter, %)
+                    </th>
+                    <th style={{ ...th, textAlign: "right" }}>
+                      Valuation vs own history
+                    </th>
                     <th style={th}>Flags</th>
                   </tr>
                 </thead>
@@ -236,7 +251,7 @@ export function CaseStageTables({ cases }: { cases: DeskCase[] }) {
         <Num>{noBand.length}</Num> of the <Num>{members.length}</Num> companies
         across the cases carry no valuation band, so the funnels say where
         growth is and stay deliberately silent on what it costs.{" "}
-        <Num>{absent.length}</Num> have no filed quarter at all
+        <Num>{absent.length}</Num> have no TTM growth available
         {absent.length ? ` (${absent.map((m) => m.ticker).join(", ")})` : ""}:
         they sit in their stage as hollow marks, excluded from the median but
         never removed from the chain.{" "}

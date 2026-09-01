@@ -28,6 +28,9 @@ import {
   onThemeChange,
   readPalette,
   valuationMarks,
+  valuationPhrase,
+  VALUATION_CHEAP,
+  VALUATION_RICH,
   type DeskPalette,
   type ValuationMark,
 } from "@/lib/fundamentals/desk";
@@ -36,10 +39,11 @@ import { MONO, Note, Num, VizFrame } from "./DeskSection";
 
 const HEIGHT = 176;
 const PAD = { l: 28, r: 28, t: 22, b: 36 };
-/** A name at or above this is cheap against its own past; at or below the
- *  other, rich. Both are label thresholds for reading, never a screen. */
-const CHEAP = 0.7;
-const RICH = 0.3;
+/** Label thresholds for reading, never a screen. Shared with the stage table
+ *  and the funnel readout through `valuationPhrase`, so one surface can never
+ *  call a name rich while another calls it mid-range. */
+const CHEAP = VALUATION_CHEAP;
+const RICH = VALUATION_RICH;
 
 interface Dot {
   x: number;
@@ -91,7 +95,7 @@ export function ValuationPanel({ cells }: { cells: ChainMetricCell[] }) {
       ctx.stroke();
       ctx.fillStyle = c.faint;
       ctx.textAlign = "center";
-      ctx.fillText((g / 10).toFixed(1), x, base + 7);
+      ctx.fillText(`P${g * 10}`, x, base + 7);
     }
     // The words, not just the axis. A bare 0.80 reads as expensive to anyone
     // who has met a price percentile before.
@@ -167,10 +171,9 @@ export function ValuationPanel({ cells }: { cells: ChainMetricCell[] }) {
     return (
       <Note>
         None of the <Num>{universe}</Num> companies on this desk carries an
-        own-history valuation band. A band needs enough of a name&apos;s own
-        filed history to place today&apos;s yield inside, and this chain has not
-        filed for long enough. The desk says so rather than reaching for a
-        cross-sectional rank, which measured INVERTED in this same universe.
+        own-history valuation band, so the reading is unavailable. The desk
+        says so rather than reaching for a cross-sectional rank, which measured
+        INVERTED in this same universe.
       </Note>
     );
   }
@@ -193,16 +196,10 @@ export function ValuationPanel({ cells }: { cells: ChainMetricCell[] }) {
               <span>
                 own-history yield percentile{" "}
                 <b style={{ color: "var(--text-primary)" }}>
-                  {hover.percentile.toFixed(2)}
+                  {valuationPhrase(hover.percentile)}
                 </b>
               </span>
-              <span>
-                {hover.percentile >= CHEAP
-                  ? "cheap against its own past"
-                  : hover.percentile <= RICH
-                    ? "rich against its own past"
-                    : "mid-range against its own past"}
-              </span>
+              <span>relative to its own history, not to its peers</span>
             </>
           ) : (
             <>
@@ -214,7 +211,7 @@ export function ValuationPanel({ cells }: { cells: ChainMetricCell[] }) {
               <span>
                 median{" "}
                 <b style={{ color: "var(--text-primary)" }}>
-                  {mid?.toFixed(2)}
+                  {valuationPhrase(mid)}
                 </b>
               </span>
               <span>
@@ -259,10 +256,9 @@ export function ValuationPanel({ cells }: { cells: ChainMetricCell[] }) {
           Coverage is the honest headline here.
         </strong>{" "}
         Only <Num>{marks.length}</Num> of <Num>{universe}</Num> companies on the
-        chain map carry a band at all {DASH} a band needs enough own history to
-        place today&apos;s yield inside, and much of this chain has not filed
-        for long enough. Among those that do, the median sits at{" "}
-        <Num>{mid?.toFixed(2)}</Num>:{" "}
+        chain map carry a band at all {DASH} the rest are simply unavailable
+        here, and this panel does not say why. Among those that do, the median
+        sits at <Num>{valuationPhrase(mid)}</Num>:{" "}
         {mid != null && mid < 0.5 ? (
           <>
             the typical covered name is <em>richer</em> than it has usually been
@@ -275,8 +271,9 @@ export function ValuationPanel({ cells }: { cells: ChainMetricCell[] }) {
           </>
         )}
         , <Num>{nRich}</Num> rich against <Num>{nCheap}</Num> cheap. The
-        percentile is a <em>yield</em> percentile {DASH} 0.80 means cheap, not
-        expensive {DASH} which is the most misreadable number on this desk, so
+        percentile is a <em>yield</em> percentile against the name&apos;s own
+        history {DASH} P80 means cheap relative to its own past, not an 80%
+        discount {DASH} which is the most misreadable number on this desk, so
         it never appears as a bare figure without the word beside it. There is
         no way to sort this strip, deliberately.
       </Note>

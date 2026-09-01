@@ -325,24 +325,24 @@ export function ChainMapPanel({
                 {LAYER_LABELS[hover.layer] ?? hover.layer} ({hover.layer})
               </span>
               <span>
-                growth{" "}
+                revenue growth (TTM YoY, %){" "}
                 <b style={{ color: "var(--text-primary)" }}>
                   {sgn(hover.revYoy)}
                 </b>
               </span>
               <span>
-                gross margin{" "}
+                reported gross margin (latest quarter, %){" "}
                 <b style={{ color: "var(--text-primary)" }}>
                   {pct(hover.grossMargin)}
                 </b>
               </span>
               <span>
+                growth available{" "}
                 <b style={{ color: "var(--text-primary)" }}>
                   {hover.reporting}
-                </b>{" "}
-                of{" "}
-                <b style={{ color: "var(--text-primary)" }}>{hover.members}</b>{" "}
-                reported
+                </b>
+                /
+                <b style={{ color: "var(--text-primary)" }}>{hover.members}</b>
               </span>
             </>
           ) : (
@@ -382,25 +382,21 @@ export function ChainMapPanel({
       inWidest.length > 1 &&
       between > 0 &&
       widest.spread > between ? (
-        <Finding label="Finding — the layer explains less than the chain does">
+        <Finding label="Finding — the ranges overlap across layers">
           Flatten it to <em>Growth {TIMES} layer</em> and the five planes
           overlap heavily. The gap between the fastest and slowest layer median
-          is <Num>{(between * 100).toFixed(1)}pp</Num>. Inside{" "}
+          is <Num>{(between * 100).toFixed(1)}pp</Num> (percentage points).
+          Inside{" "}
           <strong style={{ color: "var(--text-secondary)" }}>
             {widest.layer}
           </strong>{" "}
-          alone it is <Num>{(widest.spread * 100).toFixed(1)}pp</Num> {DASH}{" "}
-          {inWidest[0].chain} at <Num>{sgn(inWidest[0].revYoy)}</Num> down to{" "}
-          {inWidest[inWidest.length - 1].chain} at{" "}
+          alone the range is <Num>{(widest.spread * 100).toFixed(1)}pp</Num>{" "}
+          {DASH} {inWidest[0].chain} at <Num>{sgn(inWidest[0].revYoy)}</Num>{" "}
+          down to {inWidest[inWidest.length - 1].chain} at{" "}
           <Num>{sgn(inWidest[inWidest.length - 1].revYoy)}</Num> {DASH} same
-          layer, each name at its own latest filed quarter. Knowing a company
-          sits upstream tells you roughly{" "}
-          <Num>
-            {(widest.spread / between).toFixed(1)}
-            {TIMES}
-          </Num>{" "}
-          less than knowing which chain it is in. That is the argument for
-          running this desk at chain grain instead of sector grain.
+          layer, each name at its own latest available record. Both figures are
+          descriptions of this sample&apos;s spread; neither measures how much
+          a layer or a chain explains.
         </Finding>
       ) : null}
 
@@ -409,13 +405,14 @@ export function ChainMapPanel({
           tone="warn"
           label={
             Math.abs(corr.t) < 2
-              ? "Finding — growth and margin are close to unrelated"
-              : "Finding — growth and margin move together in this panel"
+              ? "Finding — growth and margin are close to unrelated in this sample"
+              : "Finding — growth and margin move together in this sample"
           }
         >
           Flatten it to <em>Growth {TIMES} margin</em> and the cloud{" "}
           {Math.abs(corr.t) < 2 ? "has no tilt" : "tilts"}:{" "}
-          <Num>r = {corr.r.toFixed(3)}</Num> across {corr.n} chains,{" "}
+          <Num>r = {corr.r.toFixed(3)}</Num> across the {corr.n} chains in
+          this sample,{" "}
           <Num>t = {corr.t.toFixed(2)}</Num> {DASH}{" "}
           {Math.abs(corr.t) < 2
             ? "indistinguishable from none"
@@ -424,9 +421,10 @@ export function ChainMapPanel({
           and grows <Num>{sgn(byMargin[0].revYoy)}</Num>;{" "}
           {byMargin[byMargin.length - 1].chain} earns{" "}
           <Num>{pct(byMargin[byMargin.length - 1].grossMargin)}</Num> and grows{" "}
-          <Num>{sgn(byMargin[byMargin.length - 1].revYoy)}</Num>. Being close to
-          the AI dollar and being paid well for it are separate questions, and
-          the desk refuses to blend them into one score.
+          <Num>{sgn(byMargin[byMargin.length - 1].revYoy)}</Num>. This is a
+          correlation within the chains held here and nothing more {DASH} it is
+          not a rule about the industry, and the desk refuses to blend growth
+          and margin into one score.
         </Finding>
       ) : null}
 

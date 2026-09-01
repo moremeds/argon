@@ -1,22 +1,22 @@
 "use client";
 
 /**
- * Question 1 — is the money still coming?
+ * Question 1 — how is sample capex changing?
  *
- * Every revenue dollar downstream on this desk is somebody else's capital
- * expenditure, which makes this the one number here not derived from another
- * number here. It is the desk's PREMISE, not its edge: the figure is on every
- * sell-side deck in the sector, and nothing on this desk is ranked by it.
+ * The sample is whichever members of the current taxonomy chain file capex in
+ * USD. It is NOT the full set of AI buyers and it is not the same sample as
+ * the case customer groups, so a figure here does not describe them. The
+ * amount is the vendor cash-flow statement's `capital_expenditures` field with
+ * no lease adjustment, and it is total company capex rather than AI spend.
  *
  * THE SIGN WARNING, KEPT FROM THE STRIP THIS PANEL REPLACES. For the names
  * that SPEND the capex it is a cost line, not evidence of demand — it reaches
  * their income statement as depreciation. Rising capex read as bullish for the
  * spender inverts its meaning.
  *
- * The LEVEL is not the story; the INTENSITY is. A chain fed by a third of its
- * customers' revenue is not fed by a budget line, it is fed by a decision that
- * can be revisited in a single quarter — which is the whole reason this is
- * question one rather than an appendix.
+ * The LEVEL is not the story; the INTENSITY is — the sample's capex against
+ * the same sample's revenue, which is why this is question one rather than an
+ * appendix.
  */
 
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
@@ -134,9 +134,9 @@ export function CapexPanel({ data }: { data: DeskCapexResponse }) {
   const yearAgo = base ? priorYear(base.quarter) : null;
   /** A growth multiple, or `null` through a zero base.
    *
-   *  The same refusal `summariseCase` makes for amplification: a ratio through
-   *  zero is arithmetic, not growth, and `Infinity×` on the desk's opening
-   *  tile would be the most confident-looking number on the page. */
+   *  A ratio through zero is arithmetic, not growth, and `Infinity×` on the
+   *  desk's opening tile would be the most confident-looking number on the
+   *  page. */
   const times = (now: number | null, then: number | null): string | null =>
     now != null && then != null && then > 0 ? `${(now / then).toFixed(1)}${TIMES}` : null;
   const capexTimes = times(base?.capex_usd ?? null, first?.capex_usd ?? null);
@@ -290,10 +290,11 @@ export function CapexPanel({ data }: { data: DeskCapexResponse }) {
   if (quarters.length === 0) {
     return (
       <Note>
-        No member of <span style={{ fontFamily: MONO }}>{data.chain}</span>{" "}
-        files in USD, so this desk cannot state a combined capital-expenditure
-        figure for it at all. That is an unanswered question, not an answer of
-        zero — a converted total would be this desk inventing an exchange rate.
+        This sample holds no usable quarterly capex data for{" "}
+        <span style={{ fontFamily: MONO }}>{data.chain}</span>, so the desk
+        states no combined figure. That is an unanswered question, not an
+        answer of zero, and it says nothing about which currencies the chain
+        files in.
       </Note>
     );
   }
@@ -351,7 +352,7 @@ export function CapexPanel({ data }: { data: DeskCapexResponse }) {
           }
         />
         <Tile
-          label="share of revenue"
+          label="sample capex / sample revenue (%)"
           value={pct(intensityNow)}
           sub={
             intensityThen == null
@@ -364,8 +365,8 @@ export function CapexPanel({ data }: { data: DeskCapexResponse }) {
       <VizFrame
         caption={
           <>
-            Quarterly capital expenditure {MID} {data.included.length} USD
-            filers, bars {MID} capex as a share of their revenue, line
+            Quarterly capital expenditure, USD bn {MID} {data.included.length}{" "}
+            USD filers, bars {MID} sample capex / sample revenue (%), line
           </>
         }
         readout={<CapexReadout q={shown} prior={shownPrior} />}
@@ -394,7 +395,8 @@ export function CapexPanel({ data }: { data: DeskCapexResponse }) {
         {data.included.length} companies committed{" "}
         <Num>{pct(intensityNow)}</Num> of their combined quarterly revenue to
         capital expenditure in {base ? base.quarter : DASH}, against{" "}
-        <Num>{pct(intensityThen)}</Num> in {first.quarter}.
+        <Num>{pct(intensityThen)}</Num> in {first.quarter}. Amounts are in
+        USD bn (1 bn = 1,000,000,000), positive for spending.
         {capexTimes ? (
           <>
             {" "}
@@ -407,10 +409,7 @@ export function CapexPanel({ data }: { data: DeskCapexResponse }) {
             ) : null}
             .
           </>
-        ) : null}{" "}
-        A chain fed by that share of its customers&apos; revenue is not fed by
-        a budget line. It is fed by a decision that can be revisited in a single
-        quarter, which is why this is question one and not an appendix.
+        ) : null}
       </Finding>
 
       <Note>
@@ -428,11 +427,18 @@ export function CapexPanel({ data }: { data: DeskCapexResponse }) {
           </span>
         ))}
         {Object.keys(data.excluded).length ? ", and " : ""}
-        this desk does not convert currencies. Fiscal quarters are assigned to
-        the calendar quarter containing their end date, which is what lets a
-        May-ending filer sit beside a June-ending one. And read the direction
-        with care: for the names that <em>spend</em> this, rising capex is a
-        cost line arriving as depreciation, not evidence of their own demand.
+        this desk does not convert currencies. That membership is what defines
+        the sample: it is the current taxonomy chain, not the full set of AI
+        buyers, and it should not be assumed to be the same sample as the case
+        customer groups. The amount is the vendor&apos;s cash-flow{" "}
+        <span style={{ fontFamily: MONO }}>capital_expenditures</span> field
+        with no lease or financing adjustment applied here, and it is total
+        company capital expenditure rather than AI spend. Fiscal quarters are
+        assigned to the calendar quarter containing their end date, which is
+        what lets a May-ending filer sit beside a June-ending one. And read the
+        direction with care: for the names that <em>spend</em> this, rising
+        capex is a cost line arriving as depreciation, not evidence of their
+        own demand.
       </Note>
     </>
   );
