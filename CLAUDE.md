@@ -35,7 +35,7 @@ Postgres schema `uw_scan`, owned by role `argon_app` (NOSUPERUSER). UW (Unusual 
 | Host                        | DB name               | Writer                      | Reset                                   |
 | --------------------------- | --------------------- | --------------------------- | --------------------------------------- |
 | `127.0.0.1` on the Mac mini | `option_wizard`       | macmini launchd stack only  | persistent (prodlike)                   |
-| `127.0.0.1` (MacBook / CI)  | `option_wizard_local` | local `bash scripts/dev.sh` | persistent (dev-owned)                  |
+| `127.0.0.1` (MacBook / CI)  | `option_wizard_local` | local `control-argon up` | persistent (dev-owned)                  |
 | either host                 | `option_wizard_test`  | `uv run pytest`             | wiped per-fixture (DROP SCHEMA CASCADE) |
 
 The Mac mini `.env` uses `UW_SCAN_DB_HOST=127.0.0.1`, `UW_SCAN_DB_NAME=option_wizard`, and `UW_SCAN_ALLOW_DB_MISMATCH=1` for the same-host prodlike route. MacBook runs fully local by default. To point at the mini for a browse session, `.env.local` must override BOTH `UW_SCAN_DB_HOST=100.66.147.98` AND `UW_SCAN_DB_NAME=option_wizard` (otherwise the tripwire blocks mini+local-name). See `docs/superpowers/specs/2026-06-01-mac-mini-stack-migration-design.md`.
@@ -179,7 +179,7 @@ Worker roles: `ai-codex`, `ai-claude`, and `ai-deepseek` (provider-pinned, recom
 - **Never add `Co-Authored-By: Claude` trailers** to commits
 - **CHANGELOG rides the feature PR.** Add the `[Unreleased]` entry on the feature branch BEFORE merging — code, tests, docs, and changelog in one PR. Only the `cut.sh prepare` version-bump PR is legitimately separate
 - **Worktrees live in `.worktrees/<branch-slug>/`** — the project-root `.worktrees/` directory is the only canonical location (already gitignored). When done, `git worktree remove <path>` — stale worktrees holding `main` block `git checkout main` in the primary repo
-- **Smoke tests run the real worker path** — API enqueue → DB row → worker claims → DB result → web UI renders. Never a one-off `/tmp` script calling the function directly; the user validates via the web page. If the worker predates your edit, restart the stack first (APScheduler doesn't hot-reload)
+- **Smoke tests run the real worker path** — API enqueue → DB row → worker claims → DB result → web UI renders. Never a one-off `/tmp` script calling the function directly; the user validates via the web page. If the worker predates your edit, restart the stack first — `uv run control-argon down && uv run control-argon up`, which returns only once a worker heartbeat postdates the relaunch (APScheduler doesn't hot-reload)
 - **R2 lake is primary for EOD/backfill reads** (new backtest/backfill code reads R2 parquet via `sources/lake.py`, falls back to the local mirror); Postgres warm store stays the API request-time read path. Outputs still persist to Postgres
 - **Migrations are idempotent** (`IF NOT EXISTS`, `ON CONFLICT DO NOTHING`). No tracking table — re-running is a no-op
 - **Live API tests** are marked `live` and need `UW_SCAN_API_KEY`; default `pytest` excludes them

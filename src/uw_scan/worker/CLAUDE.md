@@ -100,7 +100,7 @@ its own process by `scripts/dev.sh`). Toggle via `MASSIVE_WS_ENABLED`
 - **Idempotent.** A job that runs twice in a minute (e.g., after a restart) must produce the same DB state.
 - **No business logic in `scheduler.py`** — it just wires triggers to functions. Heavy lifting lives in `jobs/*.py` and `volatility_jobs.py`.
 - **Signals: SIGTERM/SIGINT** trigger `sched.shutdown(wait=False)` then `sys.exit(0)`. Don't introduce blocking cleanup.
-- **Workers don't hot-reload.** uvicorn `--reload` refreshes only the API process; APScheduler workers keep running the module they imported at fork. If an edit "doesn't take effect", first run `/bin/ps -axww -o pid,etime,command | grep uw_scan` and compare `etime` to your edit time — restart the `concurrently` parent (`bash scripts/dev.sh`), not individual workers. Also check for duplicate `concurrently` parents (two = two competing dev stacks). Same applies to env rotation (`DEEPSEEK_API_KEY`, `XENON_*`, …): env is frozen at fork.
+- **Workers don't hot-reload.** uvicorn `--reload` refreshes only the API process; APScheduler workers keep running the module they imported at fork. If an edit "doesn't take effect", run `uv run control-argon down && uv run control-argon up` — `down` stops the whole stack (workers included; a port-scoped kill leaves them running) and `up` blocks until a worker heartbeat written *after* the relaunch appears, which is the only evidence that your edit is the code now executing. `uv run control-argon doctor` lists the running processes with ages and checkouts; two `dev.sh` supervisors means two competing dev stacks — `down --all` clears every checkout's. Same applies to env rotation (`DEEPSEEK_API_KEY`, `XENON_*`, …): env is frozen at fork.
 
 ## Provider concurrency model
 
