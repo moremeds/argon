@@ -11,20 +11,20 @@ Don't conflate them.
 
 ## Files
 
-- `server.py` — app factory, mounts 17 routers under `/api`: `health, benchmark, watchlist, stock, ohlc, cockpit, jobs, volatility, skew, provider_usage, trade_insights, regime, regime_validation, gold, rates, scanner, vrp` (the `include_router` block in `server.py` is authoritative)
+- `server.py` — app factory, mounts 24 routers under `/api`: `health, benchmark, watchlist, stock, ohlc, cockpit, jobs, volatility, skew, provider_usage, trade_insights, regime, regime_validation, gold, rates, macro, scanner, radar, fundamentals_desk, research_evidence, research_reports, positioning, vrp, positions` (the `include_router` block in `server.py` is authoritative)
 - `client.py` — `UwClient(httpx)` with retry/throttle; one entry per UW endpoint
 - `endpoints.py` — `EndpointSlug` enum + `build_path()` — the only place UW URL paths live
 - `deps.py` — FastAPI dependencies (DB session, settings)
 - `schemas.py` — request/response shapes specific to our HTTP surface (not the DB models)
-- `models/` — router-local request/response models too niche for `uw_scan.models` (canary, regime_validation, scanner, vrp_macro_entry, watchlist)
+- `models/` — router-local request/response models too niche for `uw_scan.models` (canary, regime_validation, scanner, theta_harvester, vrp_macro_entry, watchlist)
 - `routers/*.py` — read-only over the warm store; one file per router listed above
 
 ## Rules
 
 - **Routers are read-only.** Long-running work (rescan, full-scan kickoff, vol backfill) goes through `routers/jobs.py` and the worker.
 - **No business logic in routers** — call into `reports/*` or `cards/*`. A router method should be a thin wrapper that resolves params → calls assembler → returns the model.
-- **Mutations use `pg_try_advisory_lock`** for single-flight (see `routers/jobs.py` + `routers/volatility.py` backfill kicker).
-- **CORS** allows loopback (`127.0.0.1` / `localhost`) on ports `300{1,2,3}` for local dev, plus the Tailscale CGNAT range (`100.x.x.x`) on the same ports for cross-machine browse against the mini stack (Phase 4, see `docs/superpowers/specs/2026-06-01-mac-mini-stack-migration-design.md`). Implemented as an `allow_origin_regex` in `server.py`. Don't widen further (public domains, broader IP ranges, HTTPS) without an architectural reason — the Tailnet-only assumption is what keeps this trust boundary tight.
+- **Mutations use `pg_try_advisory_lock`** for single-flight (see `routers/{stock,scanner,volatility}.py`); `routers/jobs.py` instead enqueues a DB row via `repo.enqueue_rescan_job` for the worker to pick up.
+- **CORS** is permissive by design (`allow_origin_regex=r".*"` in `server.py`) — the real trust boundary is the network layer (the private Tailnet), not the origin string.
 - **`openapi.json` is the API contract.** After any model/router change run `cd web && npm run gen:types` to regenerate `web/lib/types.ts`.
 
 ## UW client (`client.py`)

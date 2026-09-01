@@ -1,6 +1,6 @@
 # web/components — React components
 
-## Eight subtrees
+## 14 subtrees
 
 ```
 components/
@@ -12,7 +12,13 @@ components/
 │   └── panels/    # the actual chart / tile components consumed by tabs
 ├── regime/        # /regime subtabs (MultiPanelGrid, CRI/VCG/GEX/Canary/GRG/MarketTide/MacroShortVol)
 ├── gold/          # /gold cockpit tiers
+├── macro/         # macro desk chrome — tabs.ts VALID_TABS registry + domain/ per-domain panels + overview/ scenes
 ├── rates/         # /rates panels
+├── fundamentals/  # AI chain desk panels (CapexPanel, ChainMapPanel, ValuationPanel, CaseCards, DeskLimits, …)
+├── radar/         # RadarTable — research-priority triage table
+├── reports/       # ReportView — versioned research report renderer
+├── positioning/   # PositioningScreenerTable
+├── positions/     # PositionsPanel + PnlChart
 ├── scanner/       # /scanner candidates + discovery
 └── vrp/           # /vrp panels
 ```
@@ -34,3 +40,4 @@ components/
   - `vrp` / `skew_25d` are signed decimals → `fmtSigned`
 - **No charting library.** Hand-rolled SVG using `lib/svgChart.ts` helpers. **Two documented exceptions** using `lightweight-charts` (tiny imperative canvas lib) for candles/zoom/crosshair: (2026-07-10) the Technicals price pane (`panels/TechnicalsPriceChart.tsx`); (2026-08-02) the SPX density cone (`regime/DensityConeChart.tsx`, primitives in `lib/lwc/densityProfile.ts` + the shared `bandsIndicator.ts`). Do not extend it to further panels without a spec.
 - **Accessibility:** `role="img"` on chart SVGs, meaningful `<title>` where the tile encodes signed info.
+- **Styling split:** `fundamentals/`, `radar/`, and `reports/` use Tailwind utility classes; `macro/`, `rates/`, and `gold/` use bespoke global CSS classes (`app/macro/board.css`, CSS modules) instead — the "hand-rolled SVG" rule above is about chart rendering, not component styling.

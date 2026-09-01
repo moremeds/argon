@@ -1,6 +1,6 @@
 # docs/research/gold-sdf-framework — Gold SDF research
 
-Pre-spec research for the `/gold` GOLD COMPASS endpoint. **Read [`README.md`](./README.md) first** — it's the entry point and reading map for the 14 sub-documents in this directory.
+Pre-spec research for the `/gold` GOLD COMPASS endpoint. **Read [`README.md`](./README.md) first** — it's the entry point and reading map for the 15 sub-documents in this directory.
 
 ## What this directory is
 
@@ -22,17 +22,17 @@ Lenses share variance — they are complementary, **not orthogonal**. Position s
 
 | Lens | Sub-document | Code path | Status |
 |---|---|---|---|
-| 1 | `05-structural-flow-factors.md` | `sources/etf_holdings.py`, `sources/comex.py`, `sources/lbma.py`, `sources/cftc_cot.py`, `sources/wgc_etf.py`, `sources/uw_gold_options.py` | Mostly live (Phase A1); `wgc_cb.py` deferred |
+| 1 | `05-structural-flow-factors.md` | `sources/etf_holdings.py`, `sources/comex.py`, `sources/lbma.py`, `sources/cftc_cot.py`, `sources/wgc_etf.py`, `sources/uw_gold_options.py` | Mostly live (Phase A1); `wgc_cb.py` job registered (`gold_wgc_cb_ingest`, monthly `0 17 10 * *`) but self-skips without `WGC_CB_RESERVES_WORKBOOK_PATH`/`WGC_GOLDHUB_COOKIE` |
 | 2 | `06-cyclical-factors.md` | `sources/fred.py`, `sources/gpr.py` | Live (FRED + GPR) |
 | 3 | `07-valuation-overlay.md` | computed in `worker/jobs/gold_jobs.py::gold_posture_compute_job` | Live |
 
-Routing into the cockpit: `api/routers/gold.py` → `storage/gold_etf.py` (+ other gold repositories) → `web/app/gold/` and `web/components/gold/` (lens1/lens2/lens3 component groups mirror the research lenses).
+Routing into the cockpit: `api/routers/gold.py` → `storage/gold_etf.py` (+ other gold repositories) → the live page is `web/app/macro/[tab]/goldTab.tsx` (macro desk tab 05; `/gold` 308s there) rendering `web/components/gold/` (lens1/lens2/lens3 component groups mirror the research lenses); `web/app/gold/replay/[date]/` remains as its own kept route.
 
 ## Deferred sources (Phase A1 → v2)
 
 Five of the eight anonymous-CSV sources designed for v1 had moved or paywalled by 2026-05-17 implementation time. Tracking + re-wire plan: [`11-deferred-sources-phase-a1.md`](./11-deferred-sources-phase-a1.md). Most-likely fixes lean on official APIs (Socrata, IMF IFS, SEC N-PORT) rather than scraping issuer pages.
 
-The provider files for deferred sources (e.g., `wgc_cb.py`) stay in the tree so re-wiring is a one-source change, not a structural refactor. Until that lands, the structural-lens CB tiles and the corresponding tables (`cb_gold_reserves_monthly`) stay empty by design.
+`wgc_cb.py` is not among the deferred sources above — `gold_wgc_cb_ingest_job` (`worker/jobs/gold_jobs.py`) is registered in `scheduler.py` on a monthly cron (`CronTrigger.from_crontab("0 17 10 * *")`, id `gold_wgc_cb_ingest`) and only self-skips, leaving `cb_gold_reserves_monthly` empty, when neither `WGC_CB_RESERVES_WORKBOOK_PATH` nor `WGC_GOLDHUB_COOKIE` is set. The provider files for the sources actually deferred above stay in the tree so re-wiring is a one-source change, not a structural refactor.
 
 ## When working in this directory
 

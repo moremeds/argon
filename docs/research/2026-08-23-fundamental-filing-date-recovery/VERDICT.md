@@ -156,3 +156,64 @@ fresher. Keeping the monthly sweep as backstop puts the total at ~2,700/month.
 - Whether the ~2% calendar blind spot is stable or drifts with UW's classification.
 - The 3 non-landed 12-week filers (AZO, COST, FEIM) are diagnosed from their fiscal
   calendars, not confirmed against their filings.
+
+---
+
+## Production outcome — 2026-08-23, v0.12.16
+
+Both fixes deployed to the mini (all 9 containers recreated on `argon-app:latest`,
+`/app/VERSION` = 0.12.16), then one monthly `fundamental_ingest` run through the
+scheduler's own helpers inside `argon-worker-uw-0-1`.
+
+```
+{"tickers": 450, "inserted": 0, "touched": 89553,
+ "violations": 0, "failed": 0, "filing_date_tolerance": 8520}
+```
+
+| `fundamental_statement_obs` | before | after | delta |
+|---|---:|---:|---:|
+| total rows | 89,758 | 89,758 | 0 |
+| rows with NULL `filing_published_at` | 43,210 | 34,690 | **−8,520** |
+| … as % of panel | 48.14% | 38.65% | −9.49pp |
+| distinct (ticker, period_end) with NULL | 14,550 | 11,721 | **−2,829** |
+| tickers holding ≥1 NULL | 418 | 418 | 0 |
+
+**The `filing_date_tolerance` counter equals the NULL delta exactly (8,520).** Every
+tolerance-path resolution filled a NULL; none landed on a row that already held a date.
+That is the counter doing its job — the hit rate is measured, not assumed (open question 1,
+now answered: the tolerance never fired where exact matching already worked).
+
+`inserted: 0` on a 450-ticker full re-pull is the second thing worth reading. The panel
+did not grow by a single row, which is `content_hash` correctly excluding UW's
+`inserted_at`/`updated_at` — a re-pull of unchanged statements is a no-op, and the dates
+arrived purely through the new `COALESCE` on the `DO UPDATE` path.
+
+AAPL landed at 207 dated / 42 NULL — **exactly** the 42 the local single-ticker validation
+predicted before deploy.
+
+### The estimate was low by 4.8x, and the reason is cohort scoping
+
+This section's plan predicted ~592 periods / ~1,785 rows. Actual: 2,829 periods / 8,520
+rows. The probe measured the 129 tickers it sampled; production ingests 450. Nothing about
+the *mechanism* was wrong — the per-ticker recovery matched AAPL to the row — but the
+population was a third of the real one, so the total was a third-ish of the real total.
+A recovery estimate read off a sample is a statement about the sample. Scale it by the
+universe before quoting it as a total, or quote it per-ticker.
+
+### The residual 34,690 NULLs are a vendor-history limit, not a bug
+
+| period era | still NULL | dated | NULL % |
+|---|---:|---:|---:|
+| 2020 and later | 2,868 | 29,434 | **8.9%** |
+| before 2020 | 31,822 | 25,634 | **55.4%** |
+
+92% of the remaining NULLs sit before 2020, where `fundamental-breakdown` simply carries
+no history to match against. The modern panel — the part any signal is measured on — is
+now 91.1% dated. This is why `tickers_with_nulls` did not move: every one of the 418 has
+pre-2020 rows breakdown cannot date, so no ticker goes fully clean, and that number was
+never going to be the measurement. The row and period counts are.
+
+**Reproduce:** deploy ≥ v0.12.16, then inside `argon-worker-uw-0-1`:
+`/app/.venv/bin/python -c` over `fundamental_ingest(conn=…, client=…, schema=…)` built from
+`uw_scan.worker.scheduler._repo/_external_api_recorder/_uw_client` — the same closure
+`_fundamental_ingest` runs. Cost 1,800 UW calls, ~9 min wall clock.

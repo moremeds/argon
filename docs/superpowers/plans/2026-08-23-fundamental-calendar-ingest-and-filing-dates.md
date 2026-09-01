@@ -142,23 +142,37 @@ CHANGELOG.md                                     MODIFY  [Unreleased]
       of 3 days.
 - [x] Keep `fundamental_ingest` (monthly) registered and unchanged — D2.
 
-## Task 5: Backfill the recovered dates — BLOCKED ON DEPLOY
+## Task 5: Backfill the recovered dates — DONE (2026-08-23, v0.12.16)
 
-Verified locally instead: `fundamental_ingest(tickers=['AAPL'])` through the
+Pre-deploy local validation: `fundamental_ingest(tickers=['AAPL'])` through the
 scheduler's own helpers took AAPL from 222 NULL filing dates to 42 (180 filled,
 matching the run's `filing_date_tolerance` counter exactly), with `inserted: 0` —
-no phantom restatements. The prod delta still needs the image on the mini.
+no phantom restatements. **Prod landed AAPL on exactly 42.**
 
-- [ ] Re-run the monthly ingest once against prod after the fix and record the delta in
-      `filing_published_at IS NULL` counts. Expected: ~592 periods / ~1,785 rows filled.
-- [ ] Record before/after in the CHANGELOG entry and the research VERDICT.
+- [x] Re-run the monthly ingest once against prod after the fix and record the delta in
+      `filing_published_at IS NULL` counts. Expected ~592 periods / ~1,785 rows filled;
+      **actual 2,829 periods / 8,520 rows** — the estimate was read off a 129-ticker probe
+      cohort against a 450-ticker production universe, so it undercounted 4.8x. The
+      mechanism matched per-ticker; only the population was wrong.
+- [x] Record before/after in the research VERDICT (`## Production outcome — 2026-08-23`).
+      **Not** in the CHANGELOG: 0.12.16 is already tagged and released, and this was an
+      operational backfill rather than a code change, so amending a released section
+      would rewrite shipped release notes to describe something that is not in the diff.
+
+Panel went 43,210 → 34,690 NULL rows (48.14% → 38.65%). The residual is a vendor-history
+limit, not a defect: 2020-and-later periods are 91.1% dated, pre-2020 only 44.6%, because
+`fundamental-breakdown` carries no pre-2020 history to match against.
 
 ## Open questions to resolve during execution
 
-1. **Does the ±7 tolerance ever fire on a name where exact matching already worked?**
-   It should not — exact is tried first — but the run should log tolerance hits so the
-   rate is observable rather than assumed.
+1. ~~**Does the ±7 tolerance ever fire on a name where exact matching already worked?**~~
+   **ANSWERED, no.** The prod run's `filing_date_tolerance` counter (8,520) equals the
+   NULL-row delta (8,520) exactly, so every tolerance-path hit filled a NULL and none
+   landed on an already-dated row.
 2. **Does the calendar's blind spot drift?** Re-run `coverage_probe.py` after a quarter;
    if the ~2% grows, the backstop's cadence is the lever.
-3. **Does a better-dated panel change the composite's measured IC?** Out of scope here;
-   the re-measurement becomes possible once Task 5's backfill lands.
+3. **Does a better-dated panel change the composite's measured IC?** Out of scope here,
+   but **now unblocked** — Task 5 landed, and the 2020+ panel went from partially dated to
+   91.1% dated. The composite's +0.039 rank IC was measured on rows carrying a real
+   `filing_date`; a re-measurement now runs on ~29,434 dated modern rows instead of the
+   smaller set that survived the broken join.

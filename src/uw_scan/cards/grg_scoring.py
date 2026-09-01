@@ -5,7 +5,7 @@ SPY-vs-TLT cross-asset dealer-gamma divergence. No DB, no network: takes
 the UW greek-exposure history rows (date + net_gex per asset) plus
 pre-resolved spot/flip, returns the snapshot payload dict.
 
-DESCRIPTIVE indicator — see docs/research/grg-gamma-rotation-gap/CLAUDE.md.
+DESCRIPTIVE indicator — see docs/research/grg-gamma-rotation-gap/README.md.
 Not validated as predictive.
 """
 
@@ -319,7 +319,7 @@ def _annotate_event_backtest(
     after a top-watch, the low after a bottom-watch within ``fwd_window``);
     ``extreme_gap_pct`` is how much further SPY moved after the signal. Both
     quantify the LEAD (early-warning) behaviour — these are not coincident turn
-    markers. See docs/research/grg-gamma-rotation-gap/CLAUDE.md. Uses the SPY
+    markers. See docs/research/grg-gamma-rotation-gap/README.md. Uses the SPY
     close series in ``prices``; degrades to None where price data is missing or
     the forward window is truncated at the series end.
     """
