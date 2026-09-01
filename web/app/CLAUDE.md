@@ -9,19 +9,25 @@ app/
 ├── stock/[ticker]/       # Per-ticker detail page
 │   ├── layout.tsx        # Header + TabBar
 │   ├── page.tsx          # redirect() → /stock/<T>/market-structure
-│   └── [tab]/page.tsx    # Tab router: market-structure | volatility | skew | flow | trade-insights | trade-plan (trade-plan renders the AI FrameworkTab; the deterministic TradePlanTab is retired)
+│   └── [tab]/page.tsx    # Tab router: market-structure | volatility | skew | flow | trade-insights | trade-plan | technicals | fundamentals (trade-plan renders the AI FrameworkTab; the deterministic TradePlanTab is retired)
 ├── scanner/              # /scanner — detector candidates + discovery (force-dynamic)
 ├── regime/[[...tab]]/    # /regime — CRI, VCG, GEX, Canary, GRG, MarketTide, MacroShortVol subtabs
 ├── macro/                # /macro — the macro desk (Gold + Rates + Macro, merged)
 │   ├── layout.tsx        # <MacroTabBar/>, registry-driven; + error.tsx above it
 │   ├── page.tsx          # /macro — the four domain cards (P5 flips this to a redirect)
-│   ├── [tab]/page.tsx    # Tab router: fed | rates | inflation | usd | gold | notes
+│   ├── [tab]/page.tsx    # Tab router: overview | fed | rates | inflation | usd | gold | energy | factors | notes
 │   └── [tab]/goldTab.tsx # tab 05's server component — co-located, not a route
 ├── gold/                 # NO page.tsx: /gold 308s to /macro/gold (next.config.mjs)
 │   └── replay/[date]/    # /gold/replay/<YYYY-MM-DD> — KEPT, deliberately unlisted in the sidebar
+├── chains/               # /chains — page redirects to /fundamentals/ai-semi; [chain]/ — per-chain drilldown
+├── fundamentals/         # /fundamentals — the AI chain desk: ai-semi/, ai-semi/[...node]/, ai-semi/cases/, radar/ (triage tab)
+├── positioning/          # /positioning — read-only screener over the banked uw_positioning table
+├── positions/            # /positions — VRP macro entry-capture positions + P&L
+├── radar/                # /radar — redirect() → /fundamentals/radar (kept for old links)
+├── reports/              # /reports — versioned research reports; [type]/[key]/ — report detail
 ├── vrp/                  # /vrp — VRP research panels
 ├── cockpit/[ticker]/     # /cockpit/<SPX|SPY|QQQ|IWM> — index dealer state research
-├── watchlist/            # /watchlist (currently a thin variant of /)
+├── watchlist/            # /watchlist — permanent redirect("/")
 └── admin/                # /admin — health + scheduler controls
 ```
 

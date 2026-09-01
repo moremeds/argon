@@ -6,15 +6,24 @@ Single namespace `uw_scan`. Everything publishable runs from here.
 
 ```
 uw_scan/
-├── config.py            # Settings (pydantic-settings) — env → typed config
+├── config.py            # plain pydantic BaseModel Settings, populated via Settings.from_env() — env → typed config
 ├── models/              # Pydantic v2 row/response contracts, split by domain
 ├── normalize.py         # raw UW JSON → typed models (NormalizationError on miss)
 ├── pipeline.py          # legacy scan pipeline (still used by full_scan job)
-├── scoring.py           # numerical scoring used by the scan/cards
+├── scoring.py           # numerical scoring used only by the legacy pipeline.py scan path
+├── alerts.py            # one-webhook ops alert sink (Discord/Pushover-compatible JSON POST)
+├── macro_evidence.py    # canonical content identities for immutable macro evidence
+├── pipeline_replay_policy.py  # which datasets may be re-fetched under a historical market_date
+├── watchlist_taxonomy.py      # watchlist industry-chain taxonomy — the single source of truth
+├── version.py           # single source of truth for the running release version
 ├── api/                 # FastAPI app + routers + UW HTTP client
 ├── backtest/            # walk-forward backtest harness (own CLAUDE.md)
 ├── benchmark/           # pipeline benchmark harness
 ├── cards/               # per-ticker analytical derivers (pure functions on rows)
+├── chanlun/             # 缠论 (Chanlun) stroke/中枢/买卖点 port — field-for-field port of web/lib/chanlun.ts
+├── density/             # GJR-GARCH bootstrap density cone, vendored verbatim from signal-lab
+├── fundamentals/        # fundamental PM lane — statement normalization → scoring → valuation → card
+├── macro/               # cross-domain point-in-time macro assemblers (MC0–MC3 domain states)
 ├── rates/               # US-rates domain (curve, policy, positioning, supply)
 ├── reports/             # report assemblers (stitch DB rows → response models)
 ├── scanner/             # detector/ranking/discovery pipeline (feeds /scanner)

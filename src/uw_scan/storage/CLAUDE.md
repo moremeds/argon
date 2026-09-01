@@ -6,10 +6,10 @@
 - `_base.py` — `_BaseMixin` (Repository `__init__` + `conn` property). MUST be LAST in MRO.
 - `_helpers.py` — pure utility functions (`_d`, `_nullable_int/float`, `provider_day_bounds`, `redact_params`, `status_family_for`).
 - `rows.py` — frozen `@dataclass` row types + `WatchlistCardRow`.
-- `<domain>.py` — ~30 per-domain mixins composed into `Repository` (audit, flow, gex, gold, options, skew, vrp_*, …). The import block in `repository.py` is the authoritative list.
-- `*_repository.py` — **standalone repositories** NOT composed into `Repository` (e.g. `backtest_repository`, `data_freshness_repository`, `data_gap_healer_repository`, the `*_snapshot_repository` family, `signals_repository`, `vol_index_repository`, `ws_consumer_state`, …). This is the preferred shape for new domains — see "Adding a new domain" below.
+- `<domain>.py` — ~39 per-domain mixins composed into `Repository` (audit, flow, gex, gold, options, skew, vrp_*, …). The import block in `repository.py` is the authoritative list.
+- `*_repository.py` — **standalone repositories** NOT composed into `Repository` (e.g. `backtest_repository`, `data_freshness_repository`, `data_gap_healer_repository`, the `*_snapshot_repository` family, `signals_repository`, `vol_index_repository`, …). This is the preferred shape for new domains — see "Adding a new domain" below. Not every standalone repository carries the `_repository.py` suffix (e.g. `fundamental_obs.py`, `watchlist_chain.py`, `fundamentals_desk.py`).
 - `provider_usage.py` — `ExternalApiRequestRecorder` (out-of-band telemetry writer). Not part of `Repository`.
-- `migrate_runner.py` — in-process migration applier used by tests.
+- `migrate_runner.py` — in-process migration applier used by tests; also the production self-migration entrypoint (`python -m uw_scan.storage.migrate_runner` in `docker-compose.yml`'s `api` service boot and the profile-gated `migrator` service).
 - `migrations/*.sql` — applied lexically by `scripts/migrate.sh`
 
 ## Mixin pattern (post-2026-05-16 PR-1 split)
@@ -18,7 +18,7 @@
 
 ```python
 class Repository(
-    _AuditMixin, _CockpitMixin, ..., _WatchlistMixin,   # ~30 domain mixins — see repository.py
+    _AuditMixin, _CockpitMixin, ..., _WatchlistMixin,   # ~39 domain mixins — see repository.py
     _BaseMixin,  # MUST be last — owns __init__ and the conn property
 ):
     # New methods go in the appropriate mixin file, NOT here.
@@ -54,7 +54,7 @@ Conventions for the mixin pattern:
   - `ON CONFLICT DO NOTHING` for seeds
 - **Header every file** with `SET search_path TO uw_scan, public;`
 - **Re-running on a migrated DB is a no-op.** Test this locally before committing.
-- New migration → next lexical number (currently in the `09x_…` range). Don't renumber existing files.
+- New migration → next number after the highest in `storage/migrations/`. Don't renumber existing files.
 
 ## When the schema changes
 

@@ -29,10 +29,12 @@ tests/
 - **No mocked DB / fake cursors.** Integration tests use `pytest-postgresql` to spin up a real Postgres; the project policy explicitly bans `unittest.mock` of cursors.
 - **Migrations run once per pytest session.** `tests/integration/conftest.py` applies every migration in-process via `uw_scan.storage.migrate_runner.apply_migrations` exactly once per session; the `seeded_db_empty_cards` fixture then restores the post-migration baseline per test by `TRUNCATE ... CASCADE` + `COPY`. Migrations must stay idempotent (covered in `src/uw_scan/storage/CLAUDE.md`).
 - **Parallelism (CI).** CI shards the integration suite 4 ways by recorded per-test duration (`pytest-split`, balanced via the committed `.test_durations`) and parallelises each shard across cores (`pytest-xdist -n auto`). Every test still runs — the split is purely wall-clock balancing. Run it locally the same way: `uv run pytest tests/integration/ -n auto` (and `--splits N --group M` to mirror a shard). Under xdist each worker gets its OWN database `option_wizard_test_gw0`, `_gw1`, … (a per-worker SCHEMA can't isolate — migrations hardcode `SET search_path TO uw_scan`); `conftest.pytest_configure` suffixes `UW_SCAN_TEST_DB_NAME` per worker and `CREATE DATABASE`s it on demand (needs CREATEDB). `_enforce_db_isolation` allows the `option_wizard_test_*` prefix as the same test tier. Serial runs (no `-n`) are unchanged — they use the bare `option_wizard_test`. Regenerate the balance file after adding/removing slow tests: `uv run pytest tests/integration/ -n auto --store-durations`.
-- **`asyncio_mode = "auto"`** is enabled via `pytest-asyncio` — bare `async def test_…` works.
-- **Fixture data** lives next to the test that uses it. Don't add a global fixtures dump.
+- **No `asyncio_mode` is set** (default `strict`) — async tests need an explicit `@pytest.mark.asyncio` marker (22 tests use it, across `tests/unit/sources/{test_massive_ws,test_xenon_ws}.py` and `tests/integration/worker/{test_xenon_failover,test_xenon_ws_consumer,test_massive_ws_consumer}.py`).
+- **The `integration` marker** (registered in `pyproject.toml`) is applied per-module via `pytestmark = pytest.mark.integration`. To run one test: `uv run pytest tests/unit/path/to/test_file.py::test_name`. To run one marker: `uv run pytest -m integration`. `uv run pytest tests/unit/` is the no-DB fast path.
+- **Fixture data** lives next to the test that uses it (see also `tests/fixtures/` for shared frozen fixtures). Don't add a global fixtures dump.
 - **CI Guardrail 2** scans every `except` block for `.exception(...)`, `repr(exc)`, `traceback`, or `raise`. If a test introduces a try/except handler in production code, satisfy the guardrail (usually `log.debug(..., repr(exc))`).
 
 ## Web tests
 
 Frontend tests live under `web/tests/` (vitest unit + playwright e2e), not here.
+```

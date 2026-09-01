@@ -45,7 +45,7 @@ def _spot_flip_from_gex(
     persisted flip — ``levels.gex_flip.strike``, exactly what the GEX tab shows
     — for one flip definition app-wide. This is an INTENTIONAL deviation from
     radon, which recomputes a last-neg→pos-crossing-at/below-spot flip from
-    by-strike rows; see docs/research/grg-gamma-rotation-gap/CLAUDE.md. Returns
+    by-strike rows; see docs/research/grg-gamma-rotation-gap/README.md. Returns
     ``(None, None)`` when no snapshot exists (e.g. TLT before its first GEX
     scan → flip renders ``---``, matching radon).
     """
