@@ -353,7 +353,7 @@ def cmd_sync(args: argparse.Namespace) -> int:
                 )
             except psycopg.Error as exc:
                 dst.rollback()
-                emit(FAIL, f"{name}: {exc.__class__.__name__}: {exc}")
+                emit(FAIL, f"{name}: {repr(exc)}")
                 continue
             total += rows
             if rows == 0 and how != "full":
@@ -380,22 +380,36 @@ def cmd_sync(args: argparse.Namespace) -> int:
 # --------------------------------------------------------------------------
 
 
-def http_json(url: str, timeout: float = 5.0) -> dict | None:
-    try:
-        with urllib.request.urlopen(url, timeout=timeout) as resp:
-            return json.load(resp)
-    except (urllib.error.URLError, OSError, ValueError):
-        return None
+@dataclass(frozen=True)
+class Probe:
+    """One HTTP probe. `detail` carries WHY it failed, never an empty shrug.
+
+    A diagnostic that reports "unreachable" and drops the reason makes the
+    operator re-run the request by hand to learn what a tool already knew.
+    """
+
+    status: int | None
+    body: dict | None
+    detail: str
+
+    def __bool__(self) -> bool:
+        return self.status == 200
 
 
-def http_ok(url: str, timeout: float = 5.0) -> int | None:
+def probe(url: str, timeout: float = 5.0) -> Probe:
     try:
         with urllib.request.urlopen(url, timeout=timeout) as resp:
-            return resp.status
+            raw = resp.read()
+            status = resp.status
     except urllib.error.HTTPError as exc:
-        return exc.code
-    except (urllib.error.URLError, OSError):
-        return None
+        return Probe(exc.code, None, repr(exc))
+    except (urllib.error.URLError, OSError) as exc:
+        return Probe(None, None, repr(exc))
+    try:
+        return Probe(status, json.loads(raw), "")
+    except ValueError as exc:
+        # A 200 that is not JSON is still a reachable page (the web root, say).
+        return Probe(status, None, repr(exc))
 
 
 def cmd_doctor(args: argparse.Namespace) -> int:
@@ -404,22 +418,23 @@ def cmd_doctor(args: argparse.Namespace) -> int:
     # A code default is not deployed state — print what is actually addressed.
     emit(OK, f"db target  {local.db_host}/{local.db_name} schema={local.db_schema}")
 
+    api_health = f"http://127.0.0.1:{args.api_port}/api/health"
     for name, url in (
         ("web", f"http://127.0.0.1:{args.web_port}/"),
-        ("api", f"http://127.0.0.1:{args.api_port}/api/health"),
+        ("api", api_health),
     ):
-        status = http_ok(url)
-        if status == 200:
+        result = probe(url)
+        if result:
             emit(OK, f"{name:<4}       {url} -> 200")
         else:
             failures += 1
             emit(
                 FAIL,
-                f"{name:<4}       {url} -> {status or 'unreachable'} "
-                f"(start it: bash scripts/dev.sh)",
+                f"{name:<4}       {url} -> {result.status or 'unreachable'} "
+                f"{result.detail} (start it: bash scripts/dev.sh)",
             )
 
-    health = http_json(f"http://127.0.0.1:{args.api_port}/api/health")
+    health = probe(api_health).body
     if health:
         # /api/health answering 200 proves a process is listening, NOT that it is
         # running this checkout's code. A stale uvicorn serves a healthy /health
@@ -458,7 +473,7 @@ def cmd_doctor(args: argparse.Namespace) -> int:
     try:
         conn = psycopg.connect(local.db_dsn(), connect_timeout=5)
     except psycopg.Error as exc:
-        emit(FAIL, f"db         unreachable: {exc}")
+        emit(FAIL, f"db         unreachable: {repr(exc)}")
         return 1
 
     with conn:
@@ -523,8 +538,9 @@ def cmd_smoke(args: argparse.Namespace) -> int:
     ticker = args.ticker.upper()
     api = f"http://127.0.0.1:{args.api_port}"
 
-    if http_ok(f"{api}/api/health") != 200:
-        emit(FAIL, f"api not up at {api} — bash scripts/dev.sh")
+    health = probe(f"{api}/api/health")
+    if not health:
+        emit(FAIL, f"api not up at {api} {health.detail} — bash scripts/dev.sh")
         return 1
 
     req = urllib.request.Request(f"{api}/api/watchlist/{ticker}/rescan", method="POST")
@@ -532,7 +548,7 @@ def cmd_smoke(args: argparse.Namespace) -> int:
         with urllib.request.urlopen(req, timeout=15) as resp:
             job = json.load(resp)
     except urllib.error.HTTPError as exc:
-        emit(FAIL, f"enqueue {ticker}: HTTP {exc.code} {exc.read()[:200]!r}")
+        emit(FAIL, f"enqueue {ticker}: {repr(exc)} {exc.read()[:200]!r}")
         return 1
     job_id = job["job_id"]
     emit(OK, f"enqueued   job {job_id} for {ticker}")
@@ -541,7 +557,7 @@ def cmd_smoke(args: argparse.Namespace) -> int:
     status = job.get("status")
     while time.monotonic() < deadline:
         time.sleep(3)
-        state = http_json(f"{api}/api/jobs/{job_id}")
+        state = probe(f"{api}/api/jobs/{job_id}").body
         if state is None:
             continue
         status = state.get("status")
@@ -561,9 +577,12 @@ def cmd_smoke(args: argparse.Namespace) -> int:
         return 1
 
     page = f"http://127.0.0.1:{args.web_port}/stock/{ticker}"
-    code = http_ok(page, timeout=30)
-    if code != 200:
-        emit(FAIL, f"web        {page} -> {code or 'unreachable'}")
+    rendered = probe(page, timeout=30)
+    if not rendered:
+        emit(
+            FAIL,
+            f"web        {page} -> {rendered.status or 'unreachable'} {rendered.detail}",
+        )
         return 1
     emit(OK, f"web        {page} -> 200")
     return 0
