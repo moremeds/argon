@@ -47,7 +47,15 @@ npm run typecheck    # tsc --noEmit
 npm run lint
 npm run test         # vitest
 npm run test:e2e     # playwright
+npm run test:e2e:technicals  # playwright --config playwright.technicals.config.ts (CI gate)
 npm run gen:types    # regenerate lib/types.ts from FastAPI openapi.json
 ```
+
+Two configs, deliberately: `playwright.config.ts` boots its own web+API stack,
+`playwright.technicals.config.ts` boots the fixture-API stack instead (Playwright's
+`webServer` is config-level and cannot be set per project, so a second stack needs a
+second file). To run against servers you started yourself — a worktree stack, a
+canary build on another port — use the default config with
+`PW_NO_WEBSERVER=1 PLAYWRIGHT_WEB_PORT=<port>` rather than adding a config file.
 
 After any backend model change, run `gen:types` and commit the diff. `lib/types.ts` is checked in (47 KB) — drift between API and client = bug.

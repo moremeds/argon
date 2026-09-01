@@ -7,6 +7,17 @@ version in lockstep (enforced by `scripts/release/version_sync_check.py`).
 
 ## [Unreleased]
 
+### Changed
+
+- **Playwright e2e collapses from five configs to two.**
+  `playwright.config.canary.ts`, `playwright.config.canary-screenshot.ts` and
+  `playwright.worktree.config.ts` are deleted — all three differed from the default
+  config only by `baseURL` and by not wanting a `webServer`, which the default config
+  now expresses with `PW_NO_WEBSERVER=1` alongside the existing `PLAYWRIGHT_WEB_PORT`.
+  `playwright.technicals.config.ts` stays: it boots a different server stack, and
+  Playwright's `webServer` is a config-level field that cannot be set per project.
+  `npm run test:e2e` and the `test:e2e:technicals` CI gate are unchanged.
+
 ## [0.13.2] — 2026-08-31
 
 
