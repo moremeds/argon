@@ -202,3 +202,91 @@ The line count goes UP (one ~700-line module plus its test). What goes down is t
 number of **entry points**: one command to learn instead of five scripts, one
 env-var convention instead of four config files, and one place a screenshot can
 land.
+
+## Addendum: `up` / `down` (added after the first build)
+
+The original four subcommands answered "is the stack healthy" and deliberately
+left starting it to `dev.sh`, on the reasoning that wrapping an existing script
+deletes nothing and is therefore amplification. That reasoning counted files and
+not failures, and it was wrong.
+
+### What the machine actually looked like
+
+Measured on 2026-09-01, on a working laptop, with no incident in progress:
+
+| age | port | role | origin |
+| --- | --- | --- | --- |
+| 4d06h | 3001 | `next start` on `.next/standalone` | main checkout |
+| 3d17h | 8477 | uvicorn | `.worktrees/fundamentals-desk-pages` |
+| 3d15h | 3012 | `next start` | `.worktrees/fundamentals-desk-pages` |
+| 3d14h | 8400 | uvicorn | `.worktrees/feat-macro-desk-tabs-03-05` **(worktree deleted)** |
+| 2d14h | 39030 | `next start` | `.worktrees/feat-macro-desk-tabs-03-05` **(worktree deleted)** |
+
+No workers were running at all. Two of the four originating worktrees had
+already been `git worktree remove`d; their processes kept running against
+`.venv` directories that no longer existed.
+
+The four-day-old entry is the expensive one. It held **3001**, argon's default
+web port, running a build produced four days earlier — no HMR, no relation to
+any subsequent commit — and it answered 200 for every one of those four days.
+An agent that edited code, started a stack, and curled `:3001` got a green
+light for a build that predated its own change. A stale process that errors is
+a nuisance; one that answers correctly is a trap, and this is the failure mode
+that makes agents burn a long tail of tokens without converging: the signal
+they are steering by is not connected to the thing they changed.
+
+### Why `dev.sh` cannot be driven programmatically
+
+1. `exec npx concurrently` — foreground, never exits, ~26 log lines/sec
+   interleaved across 7 processes. A caller either blocks until its own timeout
+   or backgrounds it and then pays to read the firehose.
+2. No readiness signal. Startup is staggered by hardcoded `sleep 15/20/22/24/26`;
+   "is it up" is only answerable from outside, by polling.
+3. No stop. Restarting means `ps | grep | kill` by hand, which is why the table
+   above exists.
+4. `concurrently` is not run with `--kill-others`, so one dead process leaves the
+   rest serving. A half-stack presents as a healthy one.
+
+### The shape of the fix
+
+`up` adds no new judgement of its own. The readiness predicate already existed
+inside `doctor`; it was extracted to `StackState` and is now the single
+definition both commands use, so they cannot drift apart about what "ready"
+means. `up` spawns `dev.sh` detached with its log in `output/dev/`, polls that
+predicate, and prints one line per state change.
+
+Three findings from building it, each of which changed the design:
+
+- **`up` needs a stronger worker check than `doctor` can make.** `doctor` sees
+  one instant and can only ask whether the heartbeat is recent. `up` knows when
+  it launched, so it asks whether the heartbeat was written *after* that.
+  Without this, the row a worker wrote before the restart clears the 15-minute
+  bar and `up` reports ready while `dev.sh` is still in its `sleep 20` — measured
+  at 19 s, with no worker process in existence.
+- **Enumerate by role, not by listening port.** Ports were the visible symptom,
+  so they were the first index tried. But 5 of the stack's 7 processes bind no
+  socket: a port-driven `down` stops web and API and leaves 4 schedulers and the
+  WS consumer orphaned, manufacturing exactly what it was run to clean up.
+  Processes are enumerated by command role and attributed to a checkout by cwd,
+  with ports demoted to metadata.
+- **Role matching is an allow-list, and deliberately the opposite choice from
+  `sync`'s deny-list.** Being inside the argon tree does not make a process
+  argon's: uv-installed MCP servers run with the repo as their cwd and listen on
+  ports of their own. The list direction follows the cost of being wrong — a
+  missed orphan is caught on the next run, a wrongly matched process is someone's
+  killed editor or agent session. `sync` faces the opposite asymmetry (a missed
+  table is an invisible data hole) and so takes the opposite default.
+
+Two smaller things that had to be measured rather than assumed: `uv run` does
+not forward `SIGTERM`, so terminating the wrapper leaves uvicorn holding the
+port — the tree rooted at each pid is signalled explicitly, and descendants are
+killed rather than trusting a process group we did not create. And `lsof`'s
+LISTEN rows append a `(LISTEN)` state column, so the address is not the last
+field.
+
+### What it retires
+
+The per-caller ritual: background `dev.sh`, tail the log, curl the port, guess.
+It was never written down anywhere, which is why every agent re-derived it and
+why it never got better. It is now one command, one line of output, one exit
+code.

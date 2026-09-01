@@ -53,9 +53,28 @@ The Mac mini `.env` uses `UW_SCAN_DB_HOST=127.0.0.1`, `UW_SCAN_DB_NAME=option_wi
 ```bash
 uv sync --extra postgres          # install
 bash scripts/migrate.sh           # apply SQL migrations (idempotent)
-bash scripts/dev.sh               # run web, API, 2 UW workers, and 2 massive workers
-uv run control-argon --help       # verify/control the stack — the rest of this list
+uv run control-argon up            # start the stack and WAIT until it is serving
+uv run control-argon down --all    # stop every stale stack, any worktree
+uv run control-argon --help        # verify/control the stack — the rest of this list
 ```
+
+**Start the stack with `up`, not `dev.sh` directly.** `dev.sh` still does the
+work and `up` execs it, but it runs in the foreground, emits ~26 log lines/sec,
+and offers no readiness signal, so every caller has to invent its own way to
+find out whether the stack came up. `up` detaches it, sends the log to
+`output/dev/`, and blocks until the stack is actually serving: web 200, API 200,
+the API's version equal to `VERSION`, and a worker heartbeat written *after* the
+launch. It exits non-zero if any of that fails to happen.
+
+It refuses to start on top of something else and names what is in the way. This
+matters more than it sounds: on 2026-09-01 this machine had five orphaned stacks
+from four worktrees, two of them already deleted, the oldest four days old. One
+was `next start` serving a four-day-old `.next/standalone` build on port 3001 —
+argon's default web port — answering 200 the whole time. Anything that started a
+stack, curled :3001, and got a 200 was validating a four-day-old build and
+calling it a pass. `down` exists because nothing ever stopped them: it sweeps by
+role and attributes each process to the checkout it was started from, so
+`--all` cleans the fleet without touching the stack you meant to keep.
 
 `control-argon` is the agent-usable entry point: `doctor` (is the stack up, is it
 running THIS checkout's code, is the data fresh), `sync` (pull the mini's recent

@@ -30,6 +30,14 @@ from pathlib import Path
 import psycopg
 
 from uw_scan.config import Settings, _enforce_db_isolation
+from uw_scan.control_stack import (
+    WORKER_LAG_MAX,
+    argon_procs,
+    cmd_down,
+    cmd_up,
+    probe,
+    read_stack,
+)
 
 REPO_ROOT = Path(__file__).resolve().parents[2]
 SCREENSHOT_DIR = REPO_ROOT / "output" / "playwright"
@@ -380,95 +388,76 @@ def cmd_sync(args: argparse.Namespace) -> int:
 # --------------------------------------------------------------------------
 
 
-@dataclass(frozen=True)
-class Probe:
-    """One HTTP probe. `detail` carries WHY it failed, never an empty shrug.
-
-    A diagnostic that reports "unreachable" and drops the reason makes the
-    operator re-run the request by hand to learn what a tool already knew.
-    """
-
-    status: int | None
-    body: dict | None
-    detail: str
-
-    def __bool__(self) -> bool:
-        return self.status == 200
-
-
-def probe(url: str, timeout: float = 5.0) -> Probe:
-    try:
-        with urllib.request.urlopen(url, timeout=timeout) as resp:
-            raw = resp.read()
-            status = resp.status
-    except urllib.error.HTTPError as exc:
-        return Probe(exc.code, None, repr(exc))
-    except (urllib.error.URLError, OSError) as exc:
-        return Probe(None, None, repr(exc))
-    try:
-        return Probe(status, json.loads(raw), "")
-    except ValueError as exc:
-        # A 200 that is not JSON is still a reachable page (the web root, say).
-        return Probe(status, None, repr(exc))
-
-
 def cmd_doctor(args: argparse.Namespace) -> int:
     failures = 0
     local = local_settings()
     # A code default is not deployed state — print what is actually addressed.
     emit(OK, f"db target  {local.db_host}/{local.db_name} schema={local.db_schema}")
 
-    api_health = f"http://127.0.0.1:{args.api_port}/api/health"
-    for name, url in (
-        ("web", f"http://127.0.0.1:{args.web_port}/"),
-        ("api", api_health),
+    # Same predicate `up` waits on, so the two can never disagree about "ready".
+    state = read_stack(args.web_port, args.api_port, REPO_ROOT)
+    for name, result, port in (
+        ("web", state.web, args.web_port),
+        ("api", state.api, args.api_port),
     ):
-        result = probe(url)
         if result:
-            emit(OK, f"{name:<4}       {url} -> 200")
+            emit(OK, f"{name:<4}       127.0.0.1:{port} -> 200")
         else:
             failures += 1
             emit(
                 FAIL,
-                f"{name:<4}       {url} -> {result.status or 'unreachable'} "
-                f"{result.detail} (start it: bash scripts/dev.sh)",
+                f"{name:<4}       127.0.0.1:{port} -> {result.status or 'unreachable'} "
+                f"{result.detail} (start it: uv run control-argon up)",
             )
 
-    health = probe(api_health).body
-    if health:
+    if state.api:
         # /api/health answering 200 proves a process is listening, NOT that it is
         # running this checkout's code. A stale uvicorn serves a healthy /health
         # and 500s on every real endpoint — the exact shape of the 2026-08 "three
         # stalled endpoints" incident, which was a whole-stack outage wearing a
         # green health check.
-        repo_version = (REPO_ROOT / "VERSION").read_text().strip()
-        running = str(health.get("version") or "?")
-        if running != repo_version:
+        if state.running_version != state.repo_version:
             failures += 1
             emit(
                 FAIL,
-                f"api ver    serving {running}, repo is {repo_version} — "
-                "restart the stack (APScheduler and uvicorn do not hot-reload)",
+                f"api ver    serving {state.running_version}, repo is "
+                f"{state.repo_version} — restart: uv run control-argon up --force",
             )
         else:
-            emit(OK, f"api ver    {running}")
+            emit(OK, f"api ver    {state.running_version}")
 
-        lag = health.get("worker_lag_seconds")
-        if lag is None:
+        if state.worker_lag is None:
             emit(WARN, "worker     no heartbeat reported")
-        elif lag > 900:
+        elif state.worker_lag > WORKER_LAG_MAX:
             failures += 1
             emit(
                 FAIL,
-                f"worker     heartbeat {lag / 3600:.1f}h old "
-                f"({health.get('scheduler_heartbeat_name') or 'unknown'}) — "
+                f"worker     heartbeat {state.worker_lag / 3600:.1f}h old — "
                 "no worker is running",
             )
         else:
-            emit(OK, f"worker     heartbeat {lag:.0f}s old")
+            emit(OK, f"worker     heartbeat {state.worker_lag:.0f}s old")
 
-        ws = (health.get("ws_consumer") or {}).get("active_source")
-        emit(OK if ws else WARN, f"ws feed    active_source={ws or 'none'}")
+        emit(
+            OK if state.ws_source else WARN,
+            f"ws feed    active_source={state.ws_source or 'none'}",
+        )
+
+    # Orphans from other checkouts are the failure this tool exists to make
+    # visible: they answer 200 from code that is days old and no longer on disk.
+    strays = [
+        p
+        for p in argon_procs()
+        if not p.cwd.startswith(str(REPO_ROOT))
+        and {args.web_port, args.api_port} & set(p.ports)
+    ]
+    for stray in strays:
+        emit(
+            WARN,
+            f"stray      :{','.join(str(x) for x in stray.ports)} held by pid "
+            f"{stray.pid} ({stray.role}, {stray.age_human}) from {stray.cwd} — "
+            "`control-argon down --all`",
+        )
 
     try:
         conn = psycopg.connect(local.db_dsn(), connect_timeout=5)
@@ -540,7 +529,7 @@ def cmd_smoke(args: argparse.Namespace) -> int:
 
     health = probe(f"{api}/api/health")
     if not health:
-        emit(FAIL, f"api not up at {api} {health.detail} — bash scripts/dev.sh")
+        emit(FAIL, f"api not up at {api} {health.detail} — uv run control-argon up")
         return 1
 
     req = urllib.request.Request(f"{api}/api/watchlist/{ticker}/rescan", method="POST")
@@ -572,7 +561,7 @@ def cmd_smoke(args: argparse.Namespace) -> int:
         emit(
             FAIL,
             f"worker     job still {status!r} after {args.timeout}s — is a "
-            "worker running? (bash scripts/dev.sh; APScheduler does not hot-reload)",
+            "worker running? (control-argon up; APScheduler does not hot-reload)",
         )
         return 1
 
@@ -657,9 +646,10 @@ def build_parser() -> argparse.ArgumentParser:
         description="Verify and control the local argon stack.",
         epilog=(
             "day-to-day:\n"
-            "  bash scripts/dev.sh                  web + API + workers + WS consumer\n"
+            "  uv run control-argon up              start the stack, wait until it serves\n"
+            "  uv run control-argon down --all      stop every stale stack\n"
             "  bash scripts/migrate.sh              apply SQL migrations (idempotent)\n"
-            "  uv run control-argon doctor          is the stack up, is the data fresh\n"
+            "  uv run control-argon doctor          is it up, is it CURRENT, is data fresh\n"
             "  uv run control-argon sync            pull the mini's recent data down\n"
             "  uv run control-argon smoke AAPL      enqueue -> worker -> web, end to end\n"
             "  uv run pytest tests/unit/            fast tests\n"
@@ -679,6 +669,30 @@ def build_parser() -> argparse.ArgumentParser:
         "doctor", parents=[ports], help="stack liveness, DB tier, data freshness"
     )
     d.set_defaults(func=cmd_doctor)
+
+    u = sub.add_parser(
+        "up", parents=[ports], help="start the stack and WAIT until it is serving"
+    )
+    u.add_argument(
+        "--force",
+        action="store_true",
+        help="stop whatever holds the ports first, including other checkouts",
+    )
+    u.add_argument("--full", action="store_true", help="DEV_FULL=1 (AI workers)")
+    u.add_argument("--timeout", type=int, default=240)
+    u.set_defaults(func=cmd_up)
+
+    w = sub.add_parser("down", help="stop this checkout's stack")
+    w.add_argument(
+        "--all",
+        action="store_true",
+        help="every argon stack process, any worktree (orphan sweep)",
+    )
+    w.add_argument(
+        "--older-than", type=float, metavar="HOURS", help="only ones this old"
+    )
+    w.add_argument("--dry-run", action="store_true", help="list, kill nothing")
+    w.set_defaults(func=cmd_down)
 
     s = sub.add_parser("sync", help=f"pull {MINI_DB} from the mini into {LOCAL_DB}")
     s.add_argument("--days", type=int, default=7, help="date window (default 7)")

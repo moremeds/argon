@@ -25,6 +25,21 @@ version in lockstep (enforced by `scripts/release/version_sync_check.py`).
     `INSERT … ON CONFLICT DO NOTHING`, so it is idempotent and cannot trip the FK
     pins on cited macro evidence. Retires pointing `.env.local` at the mini for a
     browse session.
+  - `up` — starts `dev.sh` detached, log to `output/dev/`, and blocks until the
+    stack is genuinely serving: web 200, API 200, API version equal to `VERSION`,
+    and a worker heartbeat written **after** the launch (the last one matters —
+    the heartbeat a worker wrote before a restart clears the 15-minute freshness
+    bar, and `up` reported ready at 19 s while `dev.sh` was still sleeping before
+    it spawned any worker). Refuses to start over a port that is already held and
+    names the pid, role, age, and originating checkout; `--force` stops them
+    first. Replaces the per-caller ritual of backgrounding `dev.sh`, tailing its
+    ~26 lines/sec of log, and guessing when to stop waiting.
+  - `down [--all] [--older-than H] [--dry-run]` — stops stack processes,
+    enumerated by role and attributed to a checkout by cwd, so `--all` sweeps
+    orphans across worktrees without touching unrelated processes that merely run
+    inside the repo. Enumerating by role rather than by listening port is
+    load-bearing: 5 of the stack's 7 processes bind no socket, so a port-driven
+    sweep stops web and API and leaves the workers behind.
   - `smoke <ticker>` — API enqueue → worker claim → job done → web page, the real
     chain from the smoke-test standing rule.
   - `screenshot <name>` — output path fixed under `output/playwright/`, so a
