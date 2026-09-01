@@ -7,6 +7,57 @@ version in lockstep (enforced by `scripts/release/version_sync_check.py`).
 
 ## [Unreleased]
 
+### Added
+
+- **`uv run control-argon` — one entry point for verifying and controlling the
+  local stack**, so an agent can check its own work instead of handing the
+  verification back to the operator.
+  - `doctor` — ports, DB tier, WS feed, data freshness, and two checks a plain
+    liveness probe cannot make: whether the API is serving **this checkout's
+    version**, and whether the worker heartbeat is alive. Found the local stack
+    answering `/api/health` 200 while running v0.13.0 of a v0.13.2 tree with an
+    87-hour-dead worker.
+  - `sync [--days 7]` — streams the mini's recent rows into
+    `option_wizard_local` over Tailscale (`COPY TO STDOUT` → `COPY FROM STDIN`,
+    no ssh, no dump file). Deny-list rather than allow-list, so a new table syncs
+    by default; date column auto-detected, observation dates preferred over write
+    stamps; tables under 64 MB copied whole. Additive only — `TEMP` table then
+    `INSERT … ON CONFLICT DO NOTHING`, so it is idempotent and cannot trip the FK
+    pins on cited macro evidence. Retires pointing `.env.local` at the mini for a
+    browse session.
+  - `up` — starts `dev.sh` detached, log to `output/dev/`, and blocks until the
+    stack is genuinely serving: web 200, API 200, API version equal to `VERSION`,
+    and a worker heartbeat written **after** the launch (the last one matters —
+    the heartbeat a worker wrote before a restart clears the 15-minute freshness
+    bar, and `up` reported ready at 19 s while `dev.sh` was still sleeping before
+    it spawned any worker). Refuses to start over a port that is already held and
+    names the pid, role, age, and originating checkout; `--force` stops them
+    first. Replaces the per-caller ritual of backgrounding `dev.sh`, tailing its
+    ~26 lines/sec of log, and guessing when to stop waiting.
+  - `down [--all] [--older-than H] [--dry-run]` — stops stack processes,
+    enumerated by role and attributed to a checkout by cwd, so `--all` sweeps
+    orphans across worktrees without touching unrelated processes that merely run
+    inside the repo. Enumerating by role rather than by listening port is
+    load-bearing: 5 of the stack's 7 processes bind no socket, so a port-driven
+    sweep stops web and API and leaves the workers behind.
+  - `smoke <ticker>` — API enqueue → worker claim → job done → web page, the real
+    chain from the smoke-test standing rule.
+  - `screenshot <name>` — output path fixed under `output/playwright/`, so a
+    repo-root screenshot is structurally impossible rather than just discouraged.
+
+### Changed
+
+- **Playwright e2e collapses from five configs to two.**
+  `playwright.config.canary.ts`, `playwright.config.canary-screenshot.ts` and
+  `playwright.worktree.config.ts` are deleted — all three differed from the default
+  config only by `baseURL` and by not wanting a `webServer`, which the default config
+  now expresses with `PW_NO_WEBSERVER=1` alongside the existing `PLAYWRIGHT_WEB_PORT`.
+  `playwright.technicals.config.ts` stays: it boots a different server stack, and
+  Playwright's `webServer` is a config-level field that cannot be set per project.
+  `npm run test:e2e` and the `test:e2e:technicals` CI gate are unchanged.
+- `## Daily commands` in `CLAUDE.md` is 14 lines shorter; `control-argon --help`
+  carries it.
+
 ## [0.13.2] — 2026-08-31
 
 
