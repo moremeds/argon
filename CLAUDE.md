@@ -54,10 +54,16 @@ The Mac mini `.env` uses `UW_SCAN_DB_HOST=127.0.0.1`, `UW_SCAN_DB_NAME=option_wi
 uv sync --extra postgres          # install
 bash scripts/migrate.sh           # apply SQL migrations (idempotent)
 bash scripts/dev.sh               # run web, API, 2 UW workers, and 2 massive workers
-uv run pytest                     # python tests
-cd web && npm run test            # vitest
-cd web && npm run gen:types       # regenerate types.ts after API change
+uv run control-argon --help       # verify/control the stack — the rest of this list
 ```
+
+`control-argon` is the agent-usable entry point: `doctor` (is the stack up, is it
+running THIS checkout's code, is the data fresh), `sync` (pull the mini's recent
+data into `option_wizard_local`, retiring the `.env.local`-points-at-the-mini
+browse hack), `smoke <ticker>` (API enqueue → worker → DB → web page, the real
+chain), `screenshot <name>` (into `output/playwright/`, never the repo root).
+Source `src/uw_scan/control_argon.py`; design
+`docs/superpowers/specs/2026-09-01-control-argon-design.md`.
 
 ## Release procedure
 

@@ -7,6 +7,29 @@ version in lockstep (enforced by `scripts/release/version_sync_check.py`).
 
 ## [Unreleased]
 
+### Added
+
+- **`uv run control-argon` — one entry point for verifying and controlling the
+  local stack**, so an agent can check its own work instead of handing the
+  verification back to the operator.
+  - `doctor` — ports, DB tier, WS feed, data freshness, and two checks a plain
+    liveness probe cannot make: whether the API is serving **this checkout's
+    version**, and whether the worker heartbeat is alive. Found the local stack
+    answering `/api/health` 200 while running v0.13.0 of a v0.13.2 tree with an
+    87-hour-dead worker.
+  - `sync [--days 7]` — streams the mini's recent rows into
+    `option_wizard_local` over Tailscale (`COPY TO STDOUT` → `COPY FROM STDIN`,
+    no ssh, no dump file). Deny-list rather than allow-list, so a new table syncs
+    by default; date column auto-detected, observation dates preferred over write
+    stamps; tables under 64 MB copied whole. Additive only — `TEMP` table then
+    `INSERT … ON CONFLICT DO NOTHING`, so it is idempotent and cannot trip the FK
+    pins on cited macro evidence. Retires pointing `.env.local` at the mini for a
+    browse session.
+  - `smoke <ticker>` — API enqueue → worker claim → job done → web page, the real
+    chain from the smoke-test standing rule.
+  - `screenshot <name>` — output path fixed under `output/playwright/`, so a
+    repo-root screenshot is structurally impossible rather than just discouraged.
+
 ### Changed
 
 - **Playwright e2e collapses from five configs to two.**
@@ -17,6 +40,8 @@ version in lockstep (enforced by `scripts/release/version_sync_check.py`).
   `playwright.technicals.config.ts` stays: it boots a different server stack, and
   Playwright's `webServer` is a config-level field that cannot be set per project.
   `npm run test:e2e` and the `test:e2e:technicals` CI gate are unchanged.
+- `## Daily commands` in `CLAUDE.md` is 14 lines shorter; `control-argon --help`
+  carries it.
 
 ## [0.13.2] — 2026-08-31
 
