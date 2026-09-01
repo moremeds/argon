@@ -3,6 +3,8 @@ import { expect, test } from "@playwright/test";
 test("Canary history layout — full screenshot for visual verification", async ({
   page,
 }) => {
+  // Full-page screenshot of a chart-heavy tab; needs more than the 30s default.
+  test.setTimeout(60_000);
   await page.setViewportSize({ width: 1440, height: 2000 });
   await page.goto("/regime");
   await page.getByTestId("regime-tab-canary").click();
