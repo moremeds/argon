@@ -103,16 +103,15 @@ export default async function AiSemiDeskPage() {
 
       <DeskSection
         index={1}
-        title="Is the money still coming?"
+        title="How is sample capex changing?"
         accent={`var(${QUESTION_TOKENS[0]})`}
         testId="desk-capex"
       >
         <Lede>
-          Every revenue dollar in this chain is somebody else&apos;s capital
-          expenditure. That makes hyperscaler capex the one exogenous input —
-          the only number here not derived from another number on the page. It
-          is where the desk opens, and if it rolls over, nothing downstream
-          survives it.
+          Quarterly capital expenditure for the members of this sample that
+          file in USD, in USD bn, beside the same sample&apos;s capex as a share
+          of its own revenue. The sample is a taxonomy chain, not the full set
+          of AI buyers, and it is not the same sample as the case groups below.
         </Lede>
         {capex.error ? (
           <PanelError what="Capex" error={message(capex.error)} />
@@ -123,18 +122,20 @@ export default async function AiSemiDeskPage() {
 
       <DeskSection
         index={2}
-        title="Where does it land?"
+        title="How do industry groups compare?"
         accent={`var(${QUESTION_TOKENS[1]})`}
         testId="desk-chain-map"
       >
         <Lede>
-          The spend lands across the section&apos;s chains. A PM needs three
-          things about each at once — how fast it is growing, how well it is
-          paid, and where it sits in the stack — and any two of those on a flat
-          chart hides the third. So the map is dimensional:{" "}
+          A PM needs three things about each chain at once — how fast it is
+          growing, how well it is paid, and where it sits in the taxonomy — and
+          any two of those on a flat chart hides the third. So the map is
+          dimensional:{" "}
           <strong style={{ color: "var(--text-primary)" }}>drag it.</strong>{" "}
-          Growth runs left-to-right, gross margin runs into the depth, and the
-          taxonomy layers are the stacked planes.
+          Revenue growth (TTM YoY) runs left-to-right, reported gross margin
+          (latest quarter) runs into the depth, and the taxonomy layers are the
+          stacked planes. Each chain figure is the equal-weight median of its
+          members carrying that metric.
         </Lede>
         {matrix.error ? (
           <PanelError what="Chain map" error={message(matrix.error)} />
@@ -145,16 +146,15 @@ export default async function AiSemiDeskPage() {
 
       <DeskSection
         index={3}
-        title="Does it transmit?"
+        title="How do case groups compare?"
         accent={`var(${QUESTION_TOKENS[2]})`}
         testId="desk-cases-link"
       >
         <Lede>
           The map places chains but draws no arrows between them. Some
-          sub-chains in the taxonomy are different: their stages carry an
-          explicit order, so a dollar&apos;s path through them is structure
-          rather than inference. Those get modelled as flows, on their own
-          screen and on one shared scale.
+          sub-chains in the taxonomy carry an explicit stage order, so their
+          groups can be laid out side by side on one shared scale. The order is
+          the taxonomy&apos;s, not a traced procurement chain.
         </Lede>
         <p style={{ marginTop: 14 }}>
           <Link
@@ -170,14 +170,14 @@ export default async function AiSemiDeskPage() {
               textDecoration: "none",
             }}
           >
-            Open the case funnels →
+            Open the case groups →
           </Link>
         </p>
       </DeskSection>
 
       <DeskSection
         index={4}
-        title="What am I paying for it?"
+        title="Where is valuation versus own history?"
         accent={`var(${QUESTION_TOKENS[3]})`}
         testId="desk-valuation"
       >
@@ -208,14 +208,13 @@ export default async function AiSemiDeskPage() {
 
       <DeskSection
         index={5}
-        title="What would falsify this?"
+        title="What are the data limits?"
         accent={`var(${QUESTION_TOKENS[4]})`}
         testId="desk-limits-section"
       >
         <Lede>
-          A research surface that cannot be wrong is not research. These are the
-          things that would break the readings above, each measured rather than
-          asserted.
+          The measured boundaries of the readings above: what the store does
+          not hold, what a median leaves out, and what a percentile is not.
         </Lede>
         {limits.error ? (
           <PanelError what="Limits" error={message(limits.error)} />

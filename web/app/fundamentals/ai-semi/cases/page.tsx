@@ -15,15 +15,14 @@ import { SECTION } from "@/lib/fundamentalsSection";
 export const dynamic = "force-dynamic";
 
 /**
- * Question 3 — does the money transmit?
+ * Question 3 — how do case groups compare?
  *
- * BOTH CASES LIVE ON THIS ONE ROUTE, DELIBERATELY. The funnels are drawn on a
- * shared radius scale, and the shared scale IS the finding: one chain flares
- * open and the other stays a cylinder under the same capital expenditure.
- * Split across `/cases/optical` and `/cases/datacenter`, each page would
- * compute a scale from its own population, the two silhouettes would stop
- * being comparable, and nothing on either screen would show it. So there is
- * one request, one scale, and one page.
+ * BOTH CASES LIVE ON THIS ONE ROUTE, DELIBERATELY. The two objects are drawn
+ * on a shared radius scale, and the shared scale is what makes them
+ * comparable. Split across `/cases/optical` and `/cases/datacenter`, each page
+ * would compute a scale from its own population, the two silhouettes would
+ * stop being comparable, and nothing on either screen would show it. So there
+ * is one request, one scale, and one page.
  *
  * This route is a STATIC segment and therefore wins over the sibling
  * `[...node]` catch-all that serves per-chain deep dives. A taxonomy chain
@@ -63,14 +62,14 @@ export default async function AiSemiCasesPage() {
           color: "var(--text-primary)",
         }}
       >
-        Does it transmit?
+        How do case groups compare?
       </h1>
 
       <Lede>
         Level 1 places the chains but draws no arrows between them. Some
-        sub-chains in the taxonomy are different: their stages carry an explicit
-        order, so a dollar&apos;s path through them is structure, not inference.
-        They were not picked for being interesting
+        sub-chains in the taxonomy carry an explicit stage order, so their
+        groups can be compared stage by stage. They were not picked for being
+        interesting
         {cases ? (
           <>
             {" "}
@@ -82,8 +81,11 @@ export default async function AiSemiCasesPage() {
             them is drawn below
           </>
         ) : null}
-        . Where the taxonomy does not rank stages, drawing a flow would invent
-        the arrows the chain map deliberately refuses to draw.
+        . Where the taxonomy does not rank stages, laying stages out in an
+        order would invent the structure the chain map deliberately refuses to
+        draw. The order shown is the taxonomy&apos;s ranking of stages, not a
+        traced path of money, and neighbouring groups may be parallel
+        suppliers rather than buyer and seller.
       </Lede>
 
       {error !== null ? (
@@ -103,17 +105,17 @@ export default async function AiSemiCasesPage() {
               color: "var(--text-primary)",
             }}
           >
-            The funnel
+            Stage growth comparison
           </h2>
           <Lede>
             Each ring is one stage. Its{" "}
             <strong style={{ color: "var(--text-primary)" }}>
-              radius is that stage&apos;s median revenue growth
+              radius is that stage&apos;s equal-weight median revenue growth
+              (TTM YoY)
             </strong>{" "}
             — and both cases are drawn on one shared scale, so the two objects
-            are directly comparable. The customer sits on top; the dollar
-            travels downward. A chain that amplifies flares open toward the
-            bottom. A chain that absorbs stays a cylinder.
+            are directly comparable. The customer group sits on top and the
+            stages descend in the taxonomy&apos;s rank order.
           </Lede>
           <CaseFunnels cases={cases!} />
 

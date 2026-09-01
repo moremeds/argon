@@ -10,6 +10,7 @@ import { DeskMasthead } from "@/components/fundamentals/DeskMasthead";
 import { ScopeTable } from "@/components/fundamentals/ScopeTable";
 import {
   chainPoints,
+  sgn,
   summariseCase,
   valuationMarks,
 } from "@/lib/fundamentals/desk";
@@ -663,26 +664,6 @@ describe("summariseCase", () => {
     expect(optical.upstream.layer).toBe("Upstream-Components");
   });
 
-  it("computes amplification as upstream over customer", () => {
-    const optical = summariseCase(CASES[1].stages)!;
-    const expected =
-      (optical.upstream.median_rev_yoy as number) /
-      (optical.customer.median_rev_yoy as number);
-    expect(optical.amplification).toBeCloseTo(expected, 10);
-    // The measured optical reading, reproduced from the full real chain.
-    expect(optical.amplification).toBeCloseTo(4.078, 2);
-  });
-
-  it("refuses a ratio when the customer median is not positive", () => {
-    // Dividing through zero or a negative denominator is arithmetic, not
-    // amplification, and it would print a confident number for nonsense.
-    const flat = summariseCase([
-      stage("Upstream-Components", 10, OPT, [member("AAOI", 0.6, 0.2)]),
-      stage("Customer-Cloud", 70, OPT, [member("AMZN", -0.1, 0.5)]),
-    ])!;
-    expect(flat.amplification).toBeNull();
-  });
-
   it("counts a dual-listed company once, and says how many there are", () => {
     // AAOI, COHR and LITE really sit in BOTH Upstream-Components and
     // Module-Transceiver.
@@ -697,28 +678,30 @@ describe("summariseCase", () => {
 // --- CaseCards --------------------------------------------------------------
 
 describe("CaseCards", () => {
-  it("shows both cases and the amplification each one carries", () => {
+  it("shows each group's own TTM revenue growth, not a ratio between them", () => {
     render(<CaseCards cases={CASES} />);
     const cards = screen.getByTestId("case-cards");
     const text = cards.textContent ?? "";
     expect(text).toContain("Optical interconnect");
     expect(text).toContain("Datacenter buildout");
-    expect(text).toContain("4.08");
+    expect(text).toContain("Customer-group revenue growth (TTM YoY, %)");
+    // The two medians stand side by side, each labelled with its own group.
+    const optical = summariseCase(CASES[1].stages)!;
+    expect(text).toContain(sgn(optical.customer.median_rev_yoy));
+    expect(text).toContain(sgn(optical.upstream.median_rev_yoy));
+    // And the unverified transmission claim is gone: no ratio, no headline
+    // multiple, no "amplification".
+    expect(text).not.toContain("4.08");
+    expect(text).not.toMatch(/amplification/i);
+    expect(text).not.toContain("\u00d7");
   });
 
-  it("says how many supplying stages sit BELOW their own customer", () => {
-    // The finding that no sector screen can produce: proximity to the AI
-    // dollar does not guarantee participation in it.
+  it("states the sample limits the card cannot resolve", () => {
     render(<CaseCards cases={CASES} />);
-    const dc = summariseCase(CASES[0].stages)!;
-    const cm = dc.customer.median_rev_yoy as number;
-    const below = dc.downstreamFirst
-      .slice(1)
-      .filter((s) => (s.median_rev_yoy as number) < cm);
-    expect(below.length).toBeGreaterThan(0);
-    expect(screen.getByTestId("case-cards").textContent ?? "").toContain(
-      `${below.length} of the ${dc.downstreamFirst.length - 1} supplying stages`,
-    );
+    const text = screen.getByTestId("case-cards").textContent ?? "";
+    expect(text).toMatch(/more than one group/i);
+    expect(text).toMatch(/company-level/i);
+    expect(text).toMatch(/capex panel/i);
   });
 });
 
@@ -761,84 +744,14 @@ describe("DeskMasthead", () => {
   });
 });
 
-describe("prose retreats when its condition stops holding", () => {
-  /** Same shape as CASES, but every supplying stage OUTGROWS its customer. */
-  const NO_LAG: DeskCase[] = [
-    {
-      domain: "optical_communication",
-      slug: "optical",
-      label: "Optical interconnect",
-      stages: [
-        stage("Upstream-Components", 10, OPT, [member("AVGO", 0.6, 0.7)]),
-        stage("Module-Transceiver", 30, OPT, [member("COHR", 0.5, 0.4)]),
-        stage("Customer-Cloud", 70, OPT, [member("MSFT", 0.1, 0.7)]),
-      ],
-    },
-    {
-      domain: "dc_buildout",
-      slug: "datacenter",
-      label: "Datacenter buildout",
-      stages: [
-        stage("Power-Electrical", 20, "Power/Electrical", [
-          member("ETN", 0.3, 0.38),
-        ]),
-        stage("DC-REIT-Colo", 50, "DC-REIT/Colo", [member("EQIX", 0.1, 0.5)]),
-      ],
-    },
-  ];
-
-  it("drops the 'slower than the customers it supplies' clause when none is", () => {
-    // The word is an assertion; the number beside it would stay correct while
-    // the word went false. Nothing on screen would show the difference.
-    render(<CaseCards cases={NO_LAG} />);
-    const text = screen.getByTestId("case-cards").textContent ?? "";
-    expect(text).not.toContain("slower than the customers it supplies");
-    expect(text).not.toMatch(/\b0 of the \d+ supplying stages/);
-  });
-
-  it("still prints both amplifications when no stage lags", () => {
-    // Retreating from a claim must not take the measurement with it.
-    render(<CaseCards cases={NO_LAG} />);
-    expect(screen.getByTestId("case-cards").textContent ?? "").toContain(
-      "6.00",
-    );
-  });
-
-  it("stops calling the cases 'completely different' when they converge", () => {
-    const CLOSE: DeskCase[] = [
-      NO_LAG[0],
-      {
-        ...NO_LAG[1],
-        stages: [
-          stage("Power-Electrical", 20, "Power/Electrical", [
-            member("ETN", 0.55, 0.38),
-          ]),
-          stage("DC-REIT-Colo", 50, "DC-REIT/Colo", [member("EQIX", 0.1, 0.5)]),
-        ],
-      },
-    ];
-    render(<CaseCards cases={CLOSE} />);
-    const text = screen.getByTestId("case-cards").textContent ?? "";
-    expect(text).toContain("measurably different rates");
-    expect(text).not.toContain("completely differently");
-  });
-
-  it("keeps 'completely differently' while the gap is real", () => {
-    render(<CaseCards cases={CASES} />);
-    expect(screen.getByTestId("case-cards").textContent ?? "").toContain(
-      "completely differently",
-    );
-  });
-});
-
 // --- CaseStageTables --------------------------------------------------------
 
 describe("CaseStageTables", () => {
-  it("names a company with no filed quarter instead of dropping or zeroing it", () => {
+  it("names a company with no TTM growth instead of dropping or zeroing it", () => {
     render(<CaseStageTables cases={CASES} />);
     const tables = screen.getByTestId("case-stage-tables");
     expect(within(tables).getAllByText("JNPR").length).toBeGreaterThan(0);
-    expect(tables.textContent ?? "").toContain("no filed quarter");
+    expect(tables.textContent ?? "").toContain("TTM growth unavailable");
     // The load-bearing half: it must not have been rendered as +0.0%.
     const row = within(tables).getAllByText("JNPR")[0].closest("tr");
     expect(row?.textContent ?? "").not.toMatch(/\+0\.0%/);
@@ -848,7 +761,7 @@ describe("CaseStageTables", () => {
     render(<CaseStageTables cases={CASES} />);
     // Systems-Networking is 3 of 4 reporting because JNPR abstains.
     expect(screen.getByTestId("case-stage-tables").textContent ?? "").toContain(
-      "3/4 reported",
+      "growth available 3/4",
     );
   });
 

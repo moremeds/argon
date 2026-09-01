@@ -164,6 +164,28 @@ export function sgn(v: number | null | undefined, digits = 1): string {
   return `${v >= 0 ? "+" : ""}${(v * 100).toFixed(digits)}%`;
 }
 
+/**
+ * An own-history valuation percentile, spelled so its direction cannot invert.
+ *
+ * ONE helper for three callers (the stage table, the funnel readout and the
+ * valuation strip). A bare `0.80` reads as expensive to anyone who has met a
+ * price percentile before; this is a YIELD percentile, so 0.80 is CHEAP. Three
+ * private copies is three chances for one surface to say the opposite of
+ * another about the same number.
+ *
+ * `null` is "unavailable" and nothing more: the API does not say WHY a name
+ * carries no band, so neither does this.
+ */
+export function valuationPhrase(p: number | null | undefined): string {
+  if (p == null) return "unavailable";
+  const word = p >= VALUATION_CHEAP ? "cheap" : p <= VALUATION_RICH ? "rich" : "mid-range";
+  return `P${Number((p * 100).toFixed(1))} ${MID} ${word}`;
+}
+
+/** Label thresholds for reading a percentile, never a screen. */
+export const VALUATION_CHEAP = 0.7;
+export const VALUATION_RICH = 0.3;
+
 /** Dollars, in billions. Only ever applied to the USD-filer capex panel. */
 export function usdB(v: number, digits = 1): string {
   return `$${(v / 1e9).toFixed(digits)}B`;
@@ -304,10 +326,6 @@ export interface CaseSummary {
   downstreamFirst: CaseStage[];
   customer: CaseStage;
   upstream: CaseStage;
-  /** Upstream median growth divided by the customer's. Null if either is
-   *  missing or the customer's is not positive — a ratio through zero or a
-   *  negative denominator is arithmetic, not amplification. */
-  amplification: number | null;
   distinctCompanies: number;
   memberships: number;
   /** How many COMPANIES appear at more than one stage of the same case —
@@ -315,28 +333,10 @@ export interface CaseSummary {
   dualListed: number;
 }
 
-/**
- * Supplying stages growing more slowly than the customer they supply.
- *
- * SHARED, because both the case card and the funnel finding print its COUNT —
- * "N of M supplying stages sit below their own customer" — and two copies of
- * the comparison could print different N for the same case with nothing on
- * screen to say which one was right. The customer stage itself is excluded:
- * it does not supply itself, and including it would make N off by one
- * whenever a case's customers happened to be its slowest stage.
- */
-export function belowCustomer(summary: CaseSummary): CaseStage[] {
-  const cm = summary.customer.median_rev_yoy;
-  if (cm == null) return [];
-  return summary.downstreamFirst
-    .slice(1)
-    .filter((s) => s.median_rev_yoy != null && s.median_rev_yoy < cm);
-}
-
 export function summariseCase(stages: CaseStage[]): CaseSummary | null {
   if (stages.length < 2) return null;
-  // The API orders upstream-first (rank ascending); the funnel puts the
-  // customer on top so the dollar travels downward.
+  // The API orders upstream-first (rank ascending); the display puts the
+  // customer group on top. That is a drawing order, not a traced flow.
   const downstreamFirst = [...stages].sort((a, b) => b.rank - a.rank);
   const customer = downstreamFirst[0];
   const upstream = downstreamFirst[downstreamFirst.length - 1];
@@ -353,13 +353,10 @@ export function summariseCase(stages: CaseStage[]): CaseSummary | null {
   }
   const tickers = seenAt;
   const repeated = [...seenAt.values()].filter((n) => n > 1).length;
-  const cm = customer.median_rev_yoy;
-  const um = upstream.median_rev_yoy;
   return {
     downstreamFirst,
     customer,
     upstream,
-    amplification: cm != null && um != null && cm > 0 ? um / cm : null,
     distinctCompanies: tickers.size,
     memberships,
     dualListed: repeated,

@@ -1,7 +1,7 @@
 /**
- * Question 4 — what would falsify this?
+ * Question 5 — what are the data limits?
  *
- * A research surface that cannot be wrong is not research. Every row here is
+ * Every row here is
  * MEASURED rather than asserted: the numbers come from `/limits`, and the web
  * layer writes captions OVER them, never instead of them.
  *

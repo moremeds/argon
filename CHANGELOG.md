@@ -7,6 +7,23 @@ version in lockstep (enforced by `scripts/release/version_sync_check.py`).
 
 ## [Unreleased]
 
+### Changed
+
+- **The AI chain desk states what it measures instead of claiming money
+  transmission.** `/fundamentals/ai-semi` and its cases page drop the
+  upstream-over-customer "amplification" multiple and the transmission /
+  dollar-flow narrative built on it; each group's own TTM revenue-growth median
+  is shown side by side instead. The five section titles now name the questions
+  the data can answer, and the chain map's growth ranges are reported as
+  descriptions of this sample rather than as explanatory power.
+- **Desk figures carry their unit, time basis and sample everywhere they
+  appear.** Revenue growth is labelled TTM YoY, gross margin as the latest
+  reported quarter, capex in USD bn against the same sample's revenue, and
+  own-history valuation as `P<n> · rich/cheap/mid-range` (P0-P100 axis).
+  Missing values read "TTM growth unavailable" / "growth available n/N" /
+  "unavailable" and are still never coerced to zero. Display-semantics only:
+  no metric, API, schema or stored data was recomputed.
+
 ## [0.13.2] — 2026-08-31
 
 

@@ -49,11 +49,11 @@ test("the question ladder renders in order, and every scene paints", async ({
     .locator('[data-testid^="desk-"] h2')
     .allInnerTexts();
   expect(headings.slice(0, 5)).toEqual([
-    "IS THE MONEY STILL COMING?",
-    "WHERE DOES IT LAND?",
-    "DOES IT TRANSMIT?",
-    "WHAT AM I PAYING FOR IT?",
-    "WHAT WOULD FALSIFY THIS?",
+    "HOW IS SAMPLE CAPEX CHANGING?",
+    "HOW DO INDUSTRY GROUPS COMPARE?",
+    "HOW DO CASE GROUPS COMPARE?",
+    "WHERE IS VALUATION VERSUS OWN HISTORY?",
+    "WHAT ARE THE DATA LIMITS?",
   ]);
   await expect(
     page.getByTestId("desk-chain-map").locator("canvas"),
@@ -170,6 +170,6 @@ test("the desk never offers a way to sort by valuation", async ({ page }) => {
     expect(label.toLowerCase()).not.toMatch(/\bsort\b|\brank\b|cheapest/);
   }
   await expect(
-    page.getByText(/0\.80 means cheap, not expensive/),
+    page.getByText(/P80 means cheap relative to its own past/),
   ).toBeVisible();
 });

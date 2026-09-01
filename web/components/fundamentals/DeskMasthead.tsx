@@ -2,11 +2,9 @@
  * The desk's masthead: what it is for, what it holds, and the question order.
  *
  * The five questions are rendered as a numbered rail because THE ORDER IS THE
- * ARGUMENT. A sector screen sorts companies; a chain desk follows one dollar
- * from the balance sheet that commits it to the companies that book it as
- * revenue, and reports where that transmission breaks. You cannot answer
- * question three before question one, so the page is built in that order and
- * the rail says so before the reader scrolls.
+ * ARGUMENT: the sample's spending first, then how its groups compare, then
+ * what they cost, then what the data cannot say. The rail's titles must match
+ * the section headings below it word for word.
  *
  * The stamp's last cell is `vendor calls: 0`. It is not a boast — it is the
  * property that makes this surface replayable: every number below was
@@ -18,24 +16,24 @@ import { MONO, labelStyle, panelStyle } from "./DeskSection";
 
 export const QUESTIONS: [string, string][] = [
   [
-    "Is the money still coming?",
-    "Hyperscaler capex is the only number here not derived from another number here.",
+    "How is sample capex changing?",
+    "Quarterly capital expenditure, USD bn, for the USD filers in this sample.",
   ],
   [
-    "Where does it land?",
-    "Every chain placed by growth, margin and position at once.",
+    "How do industry groups compare?",
+    "Every chain placed by growth, margin and taxonomy layer at once.",
   ],
   [
-    "Does it transmit?",
-    "A dollar's path through the chains whose stages carry an explicit order.",
+    "How do case groups compare?",
+    "Stage-by-stage growth for the chains whose stages the taxonomy ranks.",
   ],
   [
-    "What am I paying?",
+    "Where is valuation versus own history?",
     "Each name against its own valuation history. Never against its peers.",
   ],
   [
-    "What would falsify it?",
-    "The measured things that would break every reading above.",
+    "What are the data limits?",
+    "The measured boundaries of every reading above.",
   ],
 ];
 
@@ -123,7 +121,7 @@ export function DeskMasthead({
           color: "var(--text-secondary)",
         }}
       >
-        One industry, traced from the dollar that pays for it
+Company-level operating metrics across selected AI-related industry groups
       </p>
 
       <div
@@ -150,15 +148,14 @@ export function DeskMasthead({
           color: "var(--text-secondary)",
         }}
       >
-        A sector screen sorts companies. A chain desk does something a screen
-        cannot: it follows one dollar of spending from the balance sheet that
-        commits it to the companies that book it as revenue — and reports where
-        that transmission breaks. So the scope is narrow on purpose. This is not
-        a coverage universe and it does not rank names against each other. It is{" "}
+        Company-level growth, reported margins and own-history valuation across
+        selected AI-related industry groups.{" "}
         <strong style={{ color: "var(--text-primary)" }}>
-          one industrial chain — AI and semiconductors — modelled end to end
-        </strong>
-        , built in the order a fundamental PM has to ask the questions.
+          This page does not trace payments and does not establish causal
+          transmission between groups.
+        </strong>{" "}
+        The scope is narrow on purpose: it is not a coverage universe and it
+        does not rank names against each other.
       </p>
 
       <ol
