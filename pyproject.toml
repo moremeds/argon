@@ -26,6 +26,11 @@ dependencies = [
   "arch==8.0.0",
 ]
 
+[project.scripts]
+# One entry point for verifying and controlling the local stack:
+#   uv run control-argon doctor | sync | smoke <ticker> | screenshot <name>
+control-argon = "uw_scan.control_argon:main"
+
 [project.optional-dependencies]
 postgres = [
   "psycopg[binary,pool]>=3.2",

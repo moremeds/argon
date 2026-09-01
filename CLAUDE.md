@@ -35,7 +35,7 @@ Postgres schema `uw_scan`, owned by role `argon_app` (NOSUPERUSER). UW (Unusual 
 | Host                        | DB name               | Writer                      | Reset                                   |
 | --------------------------- | --------------------- | --------------------------- | --------------------------------------- |
 | `127.0.0.1` on the Mac mini | `option_wizard`       | macmini launchd stack only  | persistent (prodlike)                   |
-| `127.0.0.1` (MacBook / CI)  | `option_wizard_local` | local `bash scripts/dev.sh` | persistent (dev-owned)                  |
+| `127.0.0.1` (MacBook / CI)  | `option_wizard_local` | local `control-argon up` | persistent (dev-owned)                  |
 | either host                 | `option_wizard_test`  | `uv run pytest`             | wiped per-fixture (DROP SCHEMA CASCADE) |
 
 The Mac mini `.env` uses `UW_SCAN_DB_HOST=127.0.0.1`, `UW_SCAN_DB_NAME=option_wizard`, and `UW_SCAN_ALLOW_DB_MISMATCH=1` for the same-host prodlike route. MacBook runs fully local by default. To point at the mini for a browse session, `.env.local` must override BOTH `UW_SCAN_DB_HOST=100.66.147.98` AND `UW_SCAN_DB_NAME=option_wizard` (otherwise the tripwire blocks mini+local-name). See `docs/superpowers/specs/2026-06-01-mac-mini-stack-migration-design.md`.
@@ -53,11 +53,36 @@ The Mac mini `.env` uses `UW_SCAN_DB_HOST=127.0.0.1`, `UW_SCAN_DB_NAME=option_wi
 ```bash
 uv sync --extra postgres          # install
 bash scripts/migrate.sh           # apply SQL migrations (idempotent)
-bash scripts/dev.sh               # run web, API, 2 UW workers, and 2 massive workers
-uv run pytest                     # python tests
-cd web && npm run test            # vitest
-cd web && npm run gen:types       # regenerate types.ts after API change
+uv run control-argon up            # start the stack and WAIT until it is serving
+uv run control-argon down --all    # stop every stale stack, any worktree
+uv run control-argon --help        # verify/control the stack — the rest of this list
 ```
+
+**Start the stack with `up`, not `dev.sh` directly.** `dev.sh` still does the
+work and `up` execs it, but it runs in the foreground, emits ~26 log lines/sec,
+and offers no readiness signal, so every caller has to invent its own way to
+find out whether the stack came up. `up` detaches it, sends the log to
+`output/dev/`, and blocks until the stack is actually serving: web 200, API 200,
+the API's version equal to `VERSION`, and a worker heartbeat written *after* the
+launch. It exits non-zero if any of that fails to happen.
+
+It refuses to start on top of something else and names what is in the way. This
+matters more than it sounds: on 2026-09-01 this machine had five orphaned stacks
+from four worktrees, two of them already deleted, the oldest four days old. One
+was `next start` serving a four-day-old `.next/standalone` build on port 3001 —
+argon's default web port — answering 200 the whole time. Anything that started a
+stack, curled :3001, and got a 200 was validating a four-day-old build and
+calling it a pass. `down` exists because nothing ever stopped them: it sweeps by
+role and attributes each process to the checkout it was started from, so
+`--all` cleans the fleet without touching the stack you meant to keep.
+
+`control-argon` is the agent-usable entry point: `doctor` (is the stack up, is it
+running THIS checkout's code, is the data fresh), `sync` (pull the mini's recent
+data into `option_wizard_local`, retiring the `.env.local`-points-at-the-mini
+browse hack), `smoke <ticker>` (API enqueue → worker → DB → web page, the real
+chain), `screenshot <name>` (into `output/playwright/`, never the repo root).
+Source `src/uw_scan/control_argon.py`; design
+`docs/superpowers/specs/2026-09-01-control-argon-design.md`.
 
 ## Release procedure
 
@@ -154,7 +179,7 @@ Worker roles: `ai-codex`, `ai-claude`, and `ai-deepseek` (provider-pinned, recom
 - **Never add `Co-Authored-By: Claude` trailers** to commits
 - **CHANGELOG rides the feature PR.** Add the `[Unreleased]` entry on the feature branch BEFORE merging — code, tests, docs, and changelog in one PR. Only the `cut.sh prepare` version-bump PR is legitimately separate
 - **Worktrees live in `.worktrees/<branch-slug>/`** — the project-root `.worktrees/` directory is the only canonical location (already gitignored). When done, `git worktree remove <path>` — stale worktrees holding `main` block `git checkout main` in the primary repo
-- **Smoke tests run the real worker path** — API enqueue → DB row → worker claims → DB result → web UI renders. Never a one-off `/tmp` script calling the function directly; the user validates via the web page. If the worker predates your edit, restart the stack first (APScheduler doesn't hot-reload)
+- **Smoke tests run the real worker path** — API enqueue → DB row → worker claims → DB result → web UI renders. Never a one-off `/tmp` script calling the function directly; the user validates via the web page. If the worker predates your edit, restart the stack first — `uv run control-argon down && uv run control-argon up`, which returns only once a worker heartbeat postdates the relaunch (APScheduler doesn't hot-reload)
 - **R2 lake is primary for EOD/backfill reads** (new backtest/backfill code reads R2 parquet via `sources/lake.py`, falls back to the local mirror); Postgres warm store stays the API request-time read path. Outputs still persist to Postgres
 - **Migrations are idempotent** (`IF NOT EXISTS`, `ON CONFLICT DO NOTHING`). No tracking table — re-running is a no-op
 - **Live API tests** are marked `live` and need `UW_SCAN_API_KEY`; default `pytest` excludes them
