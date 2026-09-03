@@ -7,6 +7,9 @@ version in lockstep (enforced by `scripts/release/version_sync_check.py`).
 
 ## [Unreleased]
 
+## [0.13.3] — 2026-09-03
+
+
 ### Added
 
 - **`uv run control-argon` — one entry point for verifying and controlling the
@@ -69,7 +72,6 @@ version in lockstep (enforced by `scripts/release/version_sync_check.py`).
   July 1st." `periodLabel()` now renders the reference period as `Jul 2026` and
   the cell reads `Jul 2026 · pub 7d ago`, with a tooltip carrying both raw
   timestamps. `web/components/macro/domain/{FactorTable,InflationPanels}.tsx`.
-
 ## [0.13.2] — 2026-08-31
 
 ### Changed
