@@ -5,7 +5,7 @@ import {
 } from "./ConfidencePanels";
 import { FactorTable, seriesList, type MacroFactor } from "./FactorTable";
 import type { MacroDomainState } from "../types";
-import { seriesLabel } from "../presentation";
+import { periodLabel, seriesLabel } from "../presentation";
 
 /** What the board's "realized inflation" table carries: the prints themselves plus the
  *  two cuts that say how broad they are. */
@@ -167,9 +167,11 @@ function ExpectationsPanel({
                   {seriesLabel(f.series_id)}
                 </td>
                 <td className="num">{fmtPercent(f.value)}</td>
-                <td>
-                  {f.period_end} · {f.age_days}d old — its age is one of the
-                  freshness terms in the chain at left
+                <td
+                  title={`Covers ${f.period_end}, published ${f.available_at}`}
+                >
+                  {periodLabel(f.period_end)} · published {f.age_days}d ago —
+                  its age is one of the freshness terms in the chain at left
                 </td>
               </tr>
             ))}
@@ -189,9 +191,7 @@ function ExpectationsPanel({
               <tr>
                 <td>{seriesLabel(BREAKEVEN_SERIES)}</td>
                 <td className="num">{fmtPercent(breakeven.value)}</td>
-                <td>
-                  rates-owned series · {breakeven.period_end}
-                </td>
+                <td>rates-owned series · {breakeven.period_end}</td>
               </tr>
             ) : (
               <tr>
