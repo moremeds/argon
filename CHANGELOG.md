@@ -58,8 +58,19 @@ version in lockstep (enforced by `scripts/release/version_sync_check.py`).
 - `## Daily commands` in `CLAUDE.md` is 14 lines shorter; `control-argon --help`
   carries it.
 
-## [0.13.2] — 2026-08-31
+### Fixed
 
+- **Macro factor tables read a stale print as fresh.** Every domain-state factor
+  row (`Core PCE`, `Headline PCE`, the inflation survey table, …) printed
+  `{period_end} · {age_days}d` with no label — e.g. `2026-07-01 · 7d`. `age_days`
+  counts days since the print was _published_ (`available_at`), not since
+  `period_end`, so July's PCE — normal to still be the latest reading in early
+  September, since BEA runs about a month behind — read as "7-day-old data from
+  July 1st." `periodLabel()` now renders the reference period as `Jul 2026` and
+  the cell reads `Jul 2026 · pub 7d ago`, with a tooltip carrying both raw
+  timestamps. `web/components/macro/domain/{FactorTable,InflationPanels}.tsx`.
+
+## [0.13.2] — 2026-08-31
 
 ### Changed
 
@@ -96,7 +107,7 @@ version in lockstep (enforced by `scripts/release/version_sync_check.py`).
   invisible, and each blindness hid a different defect.
   - `HealContext` built its UW and massive clients with `job_name=` but no
     `telemetry_recorder`, so `external_api_requests` had never held a single healer
-    row. That table is where `sources/uw_budget.read_snapshot` derives *both* the pool
+    row. That table is where `sources/uw_budget.read_snapshot` derives _both_ the pool
     spend and the account counter from, so an untelemetered healer was not merely
     unobserved by the account governor — it was arithmetically invisible to it, and a
     budget guard wired in ahead of this fix would have read zero and permitted
@@ -105,7 +116,7 @@ version in lockstep (enforced by `scripts/release/version_sync_check.py`).
   - Progress lived only in stdout. Nightly runs 103–106 each stopped 50–88 minutes in
     having touched 1–2 of 23 datasets, with zero failures and their UW cap barely used;
     by the time anyone looked, Watchtower had recreated the worker and the logs were
-    gone, so *where* they stopped had no answer anywhere. Every dispatcher now emits a
+    gone, so _where_ they stopped had no answer anywhere. Every dispatcher now emits a
     per-item stage beat at INFO — the worker runs `basicConfig(level=INFO)`, so a DEBUG
     trace would have produced nothing — and persists the last one to
     `data_gap_runs.summary_jsonb.heartbeat`, which outlives the container. The
@@ -125,8 +136,8 @@ version in lockstep (enforced by `scripts/release/version_sync_check.py`).
   KEEL's 63 dates across 2026-01-02..2026-04-02 failed every night and were retried
   every night, permanently. Null is now an absence and yields no rows; a wrong type
   is still a contract violation and still raises.
-## [0.13.1] — 2026-08-30
 
+## [0.13.1] — 2026-08-30
 
 ### Added
 
@@ -602,6 +613,7 @@ version in lockstep (enforced by `scripts/release/version_sync_check.py`).
     makes the count 2, and reverting either half of the fix now fails two tests. Measured both ways.
   - The irony is written into the contract itself: `kind` exists so that consumers need not match on
     term strings, and `kind` was the field that was wrong.
+
 ## [0.13.0] — 2026-08-29
 
 ### Added

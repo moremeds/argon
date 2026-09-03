@@ -1,5 +1,5 @@
 import type { components } from "@/lib/types";
-import { humanizeIdentifier, seriesLabel } from "../presentation";
+import { humanizeIdentifier, periodLabel, seriesLabel } from "../presentation";
 
 export type MacroFactor = components["schemas"]["MacroFactorState"];
 
@@ -72,7 +72,7 @@ export function FactorTable({
             <th className="num">Level</th>
             <th className="num">Δ window</th>
             <th>Direction</th>
-            <th className="num">Period</th>
+            <th className="num">Period · Published</th>
           </tr>
         </thead>
         <tbody>
@@ -98,8 +98,11 @@ export function FactorTable({
                   {humanizeIdentifier(f.direction)}
                 </span>
               </td>
-              <td className="num">
-                {f.period_end} · {f.age_days}d
+              <td
+                className="num"
+                title={`Covers ${f.period_end}, published ${f.available_at}`}
+              >
+                {periodLabel(f.period_end)} · pub {f.age_days}d ago
               </td>
             </tr>
           ))}

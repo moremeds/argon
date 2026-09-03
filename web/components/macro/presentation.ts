@@ -37,11 +37,9 @@ const EXACT_LABELS: Readonly<Record<string, string>> = {
   fx_rows: "Gold FX basket",
   compute_structural_posture: "Structural model",
   compute_valuation_overlay: "Valuation model",
-  asset_mgr_net_pct_oi_change_4w:
-    "Asset managers · 4-week net share change",
+  asset_mgr_net_pct_oi_change_4w: "Asset managers · 4-week net share change",
   dealer_net_pct_oi_change_4w: "Dealers · 4-week net share change",
-  lev_money_net_pct_oi_change_4w:
-    "Leveraged funds · 4-week net share change",
+  lev_money_net_pct_oi_change_4w: "Leveraged funds · 4-week net share change",
   sofr_effr_spread_change_4w: "SOFR–EFFR spread · 4-week change",
   sofr_effr_spread_change_13w: "SOFR–EFFR spread · 13-week change",
 };
@@ -100,7 +98,8 @@ const ACRONYMS = new Set([
 function sentenceWord(word: string, index: number): string {
   const lower = word.toLowerCase();
   if (ACRONYMS.has(lower)) return lower.toUpperCase();
-  if (/^\d+[dwmy]$/.test(lower)) return lower.replace(/[dwmy]$/, (unit) => unit.toUpperCase());
+  if (/^\d+[dwmy]$/.test(lower))
+    return lower.replace(/[dwmy]$/, (unit) => unit.toUpperCase());
   if (index === 0) return lower.charAt(0).toUpperCase() + lower.slice(1);
   return lower;
 }
@@ -138,4 +137,20 @@ export function basisLabel(value: PresentationBasis): string {
   if (value === "COMPUTED") return "Derived";
   if (value === "REFERENCE") return "Reference";
   return "Planned";
+}
+
+/** "2026-07-01" -> "Jul 2026" — the period a monthly/quarterly stat covers.
+ *  Never pair this with `age_days` unlabeled: `age_days` is days since the
+ *  print was PUBLISHED (`available_at`), not since this period ended, and a
+ *  bare "2026-07-01 · 7d" reads as "this is 7-day-old July 1st data" when a
+ *  July print is normally ~4-8 weeks old by the time it is published at all.
+ */
+export function periodLabel(periodEnd: string): string {
+  const d = new Date(`${periodEnd}T00:00:00Z`);
+  if (Number.isNaN(d.getTime())) return periodEnd;
+  return d.toLocaleDateString("en-US", {
+    month: "short",
+    year: "numeric",
+    timeZone: "UTC",
+  });
 }
