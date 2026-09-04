@@ -31,11 +31,17 @@ export default async function FlashDayPage({
   let index: AgentRunWeekResponse;
   let weeks: AgentRunWeekListResponse;
   let run: AgentRunResponse | null;
+  let prior: AgentRunResponse | null;
   try {
-    [index, weeks, run] = await Promise.all([
+    [index, weeks, run, prior] = await Promise.all([
       api.agentRunWeek(FLASH_TENANT, weekKey),
       api.agentRunWeeks(FLASH_TENANT),
       api.agentRun(FLASH_TENANT, kind, runDay),
+      // The close view's delta table needs the intraday run itself, not its
+      // index row: index rows deliberately carry no document.
+      kind === "close"
+        ? api.agentRun(FLASH_TENANT, "intraday", runDay)
+        : Promise.resolve(null),
     ]);
   } catch (error) {
     const detail = error instanceof Error ? error.message : "unknown API error";
@@ -54,6 +60,7 @@ export default async function FlashDayPage({
       runs={index.runs}
       weeks={weeks.weeks}
       run={run}
+      prior={prior}
     />
   );
 }

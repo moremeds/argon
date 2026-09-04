@@ -4,10 +4,8 @@ import { KIND_LABEL, todayEt, type DayKind } from "@/lib/flash/kinds";
 import { FlashTopbar } from "./FlashTopbar";
 import { NoRunRecorded, PlaceholderBand } from "./EmptyStates";
 import { PhaseTabs } from "./PhaseTabs";
-import { Lead } from "./Lead";
 import { PremarketView } from "./PremarketView";
-import { SectionsPanel } from "./SectionsPanel";
-import { TapeStrip } from "./TapeStrip";
+import { SupplementView } from "./SupplementView";
 import { WeekStrip } from "./WeekStrip";
 import { SUPPORTED_SCHEMA_VERSION, asBriefView } from "./view";
 import styles from "./flash.module.css";
@@ -30,6 +28,7 @@ export function FlashDayPage({
   runs,
   weeks,
   run,
+  prior,
 }: {
   weekKey: string;
   day: string;
@@ -37,8 +36,11 @@ export function FlashDayPage({
   runs: AgentRunIndexRow[];
   weeks: AgentRunWeek[];
   run: AgentRunResponse | null;
+  /** The intraday run, when this is the close view — for the gamma delta. */
+  prior?: AgentRunResponse | null;
 }) {
   const view = run ? asBriefView(run) : null;
+  const priorView = prior ? asBriefView(prior) : null;
 
   return (
     <main className={styles.flash}>
@@ -66,50 +68,17 @@ export function FlashDayPage({
       ) : kind === "premarket" ? (
         <PremarketView view={view} />
       ) : (
-        <SupplementBody view={view} kind={kind} />
+        <SupplementView
+          view={view}
+          kind={kind}
+          weekKey={weekKey}
+          day={day}
+          runs={runs}
+          priorGex={priorView?.gex}
+          priorAsOf={priorView?.asOf}
+        />
       )}
     </main>
   );
 }
 
-/**
- * A supplement's shared opening: its own tape, its own read.
- *
- * It never wears the premarket labels. "Today in one sentence" over a 17:00Z
- * transcript would claim the day's call was made at 17:00Z, and the whole
- * point of a supplement is that it settles the morning's call rather than
- * replacing it.
- */
-function SupplementBody({
-  view,
-  kind,
-}: {
-  view: NonNullable<ReturnType<typeof asBriefView>>;
-  kind: DayKind;
-}) {
-  const lead = view.lead ?? view.headline;
-  const label: [string, string] =
-    kind === "close" ? ["Close", "read"] : ["Intraday", "read"];
-  return (
-    <>
-      {view.tape ? (
-        <TapeStrip items={view.tape} sourceLine={view.tapeSource} />
-      ) : null}
-      {lead ? (
-        <div style={{ marginTop: 12 }}>
-          <Lead label={label} text={lead} size="supplement" />
-        </div>
-      ) : null}
-      {view.sections && view.sections.length > 0 ? (
-        <div style={{ marginTop: 12 }}>
-          <SectionsPanel
-            title="Run sections"
-            tail="full transcript, this run"
-            sections={view.sections}
-            scroll
-          />
-        </div>
-      ) : null}
-    </>
-  );
-}
