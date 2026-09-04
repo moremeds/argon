@@ -712,8 +712,8 @@
   border-bottom: none;
 }
 
-.flash td.n,
-.flash th.n {
+.flash td:global(.n),
+.flash th:global(.n) {
   text-align: right;
   font-family: var(--font-mono);
   font-variant-numeric: tabular-nums;
