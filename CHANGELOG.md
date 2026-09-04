@@ -7,11 +7,13 @@ version in lockstep (enforced by `scripts/release/version_sync_check.py`).
 
 ## [Unreleased]
 
+## [0.13.4] — 2026-09-04
+
+
 ### Changed
 
 - Site meta description is now "Recursive Self-improvement Agent Analytics"
   (`web/app/layout.tsx`).
-
 ## [0.13.3] — 2026-09-03
 
 
