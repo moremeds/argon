@@ -10,7 +10,7 @@ import { AppShell } from "@/components/shared/AppShell";
 
 export const metadata = {
   title: "Argon",
-  description: "Per-ticker options analytics, watchlist-driven",
+  description: "Recursive Self-improvement Agent Analytics",
   icons: { icon: "/favicon.svg" },
 };
 
