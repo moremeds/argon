@@ -3,6 +3,8 @@ import type { AgentRunResponse, AgentRunWeekResponse } from "@/lib/api";
 import type { AgentRunWeekListResponse } from "@/lib/api";
 import { DAY_KINDS, FLASH_TENANT, isDayKind } from "@/lib/flash/kinds";
 
+import { FlashDayPage as FlashDayView } from "@/components/flash/FlashDayPage";
+
 export const dynamic = "force-dynamic";
 
 /**
@@ -45,11 +47,13 @@ export default async function FlashDayPage({
   }
 
   return (
-    <main data-testid="flash-day" data-week={weekKey} data-phase={kind}>
-      <p hidden>
-        {index.runs.length} runs · {weeks.weeks.length} recorded weeks ·
-        {run ? ` ${run.run_id}` : " no run"}
-      </p>
-    </main>
+    <FlashDayView
+      weekKey={weekKey}
+      day={runDay}
+      kind={kind}
+      runs={index.runs}
+      weeks={weeks.weeks}
+      run={run}
+    />
   );
 }

@@ -83,6 +83,52 @@ export interface GammaLevel {
   value: number;
 }
 
+/** One row of the day's event calendar, as the run recorded it. */
+export interface ScheduleItem {
+  /** "Today" / "Tomorrow" — printed once, on the row that opens the group. */
+  group?: string;
+  time: string;
+  event: string;
+  /** Consensus / prior, as one string. Absent is not zero. */
+  consensus?: string;
+}
+
+/** One dated meeting on the futures-implied policy path. */
+export interface PolicyStep {
+  date: string;
+  implied: string;
+  band?: string;
+  call?: string;
+  probability?: string;
+}
+
+export interface PolicyPath {
+  steps: PolicyStep[];
+  /**
+   * Printed verbatim. NEVER rewritten to "CME FedWatch": the recorded source
+   * is Frenzy futures-implied, and relabelling it is a data-integrity fault.
+   */
+  source: string;
+}
+
+/** A tracked candidate as a supplement found it: id, state, prose. */
+export interface StatusItem {
+  title: string;
+  /** 不变 / 加强 / 反转 / "not armed" — the tenant's word, not argon's. */
+  state?: string;
+  body: string;
+}
+
+/** One dealer-gamma row, as strings: they are the run's own formatting. */
+export interface GexRow {
+  ticker: string;
+  spot?: string;
+  flip?: string;
+  magnet?: string;
+  callWall?: string;
+  putWall?: string;
+}
+
 export interface GammaProfile {
   ticker: string;
   spot?: string | number;
@@ -99,7 +145,8 @@ export interface BriefView {
   tape?: TapeItem[];
   tapeSource?: string;
   lead?: string;
-  schedule?: Section[];
+  schedule?: ScheduleItem[];
+  policy?: PolicyPath;
   overnight?: string[];
   sections?: Section[];
   coverage?: Section;
@@ -109,6 +156,15 @@ export interface BriefView {
   riskList?: Section[];
   decision?: { label: string; value: string }[];
   degradation?: string[];
+  /** The helium run id, printed beside the faults it produced. */
+  runId?: string;
+  /** Supplements only: tracked candidates, dealer-gamma levels, the recap. */
+  status?: StatusItem[];
+  gex?: GexRow[];
+  /** A structure proposed by a supplement, with the reviewer's note. */
+  proposal?: CandidateView;
+  proposalNote?: string;
+  recap?: Section[];
   empty?: boolean;
   charts?: Record<string, unknown>;
   edited?: string;
