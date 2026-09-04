@@ -2486,10 +2486,279 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/agent-runs": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Ingest Agent Run
+         * @description 201 on a new run, 200 when this run_id was already stored.
+         */
+        post: operations["ingest_agent_run_api_agent_runs_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/agent-runs/weeks": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * List Agent Run Weeks
+         * @description Only weeks that have a run: a week with no rows is not a destination.
+         */
+        get: operations["list_agent_run_weeks_api_agent_runs_weeks_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/agent-runs/week/{week_key}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Get Agent Run Week */
+        get: operations["get_agent_run_week_api_agent_runs_week__week_key__get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/agent-runs/latest": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Get Latest Agent Run */
+        get: operations["get_latest_agent_run_api_agent_runs_latest_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/agent-runs/run/{kind}/{run_day}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Get Agent Run */
+        get: operations["get_agent_run_api_agent_runs_run__kind___run_day__get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
 }
 export type webhooks = Record<string, never>;
 export interface components {
     schemas: {
+        /**
+         * AgentRunIndexRow
+         * @description A navigation row. Deliberately carries no document.
+         */
+        AgentRunIndexRow: {
+            /**
+             * Run Day
+             * Format: date
+             */
+            run_day: string;
+            /** Kind */
+            kind: string;
+            /** Run Id */
+            run_id: string;
+            /** Version No */
+            version_no: number;
+            /** Outcome */
+            outcome: string;
+            /** Headline */
+            headline: string;
+            /** Code Sha */
+            code_sha: string;
+            /** Schema Version */
+            schema_version: number;
+            /**
+             * Created At
+             * Format: date-time
+             */
+            created_at: string;
+        };
+        /**
+         * AgentRunIngest
+         * @description One run, as the writer sends it.
+         */
+        AgentRunIngest: {
+            /** Tenant */
+            tenant: string;
+            /** Kind */
+            kind: string;
+            /**
+             * Run Day
+             * Format: date
+             */
+            run_day: string;
+            /** Week Key */
+            week_key?: string | null;
+            /** Run Id */
+            run_id: string;
+            /** Code Sha */
+            code_sha: string;
+            /** Schema Version */
+            schema_version: number;
+            /**
+             * Outcome
+             * @enum {string}
+             */
+            outcome: "completed" | "DEGRADED" | "FAILED";
+            /**
+             * Headline
+             * @default
+             */
+            headline: string;
+            /** View */
+            view: {
+                [key: string]: unknown;
+            };
+            /** Report */
+            report?: {
+                [key: string]: unknown;
+            };
+        };
+        /**
+         * AgentRunIngestResult
+         * @description `created=False` is the answer to a blind retry, not an error.
+         */
+        AgentRunIngestResult: {
+            /** Tenant */
+            tenant: string;
+            /** Kind */
+            kind: string;
+            /**
+             * Run Day
+             * Format: date
+             */
+            run_day: string;
+            /** Week Key */
+            week_key: string;
+            /** Version No */
+            version_no: number;
+            /** Created */
+            created: boolean;
+        };
+        /** AgentRunResponse */
+        AgentRunResponse: {
+            /** Tenant */
+            tenant: string;
+            /** Week Key */
+            week_key: string;
+            /**
+             * Run Day
+             * Format: date
+             */
+            run_day: string;
+            /** Kind */
+            kind: string;
+            /** Run Id */
+            run_id: string;
+            /** Version No */
+            version_no: number;
+            /** Outcome */
+            outcome: string;
+            /** Headline */
+            headline: string;
+            /** Code Sha */
+            code_sha: string;
+            /** Schema Version */
+            schema_version: number;
+            /**
+             * Created At
+             * Format: date-time
+             */
+            created_at: string;
+            /**
+             * View
+             * @default {}
+             */
+            view: {
+                [key: string]: unknown;
+            };
+            /**
+             * Report
+             * @default {}
+             */
+            report: {
+                [key: string]: unknown;
+            };
+        };
+        /** AgentRunWeek */
+        AgentRunWeek: {
+            /** Week Key */
+            week_key: string;
+            /**
+             * First Day
+             * Format: date
+             */
+            first_day: string;
+            /**
+             * Last Day
+             * Format: date
+             */
+            last_day: string;
+            /** Run Count */
+            run_count: number;
+            /** Day Count */
+            day_count: number;
+        };
+        /** AgentRunWeekListResponse */
+        AgentRunWeekListResponse: {
+            /** Tenant */
+            tenant: string;
+            /**
+             * Weeks
+             * @default []
+             */
+            weeks: components["schemas"]["AgentRunWeek"][];
+        };
+        /** AgentRunWeekResponse */
+        AgentRunWeekResponse: {
+            /** Tenant */
+            tenant: string;
+            /** Week Key */
+            week_key: string;
+            /**
+             * Runs
+             * @default []
+             */
+            runs: components["schemas"]["AgentRunIndexRow"][];
+        };
         /** BenchmarkCurrentResponse */
         BenchmarkCurrentResponse: {
             /**
@@ -16535,6 +16804,173 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["VrpMacroPositionDetail"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    ingest_agent_run_api_agent_runs_post: {
+        parameters: {
+            query?: never;
+            header?: {
+                authorization?: string | null;
+            };
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["AgentRunIngest"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["AgentRunIngestResult"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    list_agent_run_weeks_api_agent_runs_weeks_get: {
+        parameters: {
+            query: {
+                tenant: string;
+                limit?: number;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["AgentRunWeekListResponse"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    get_agent_run_week_api_agent_runs_week__week_key__get: {
+        parameters: {
+            query: {
+                tenant: string;
+            };
+            header?: never;
+            path: {
+                week_key: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["AgentRunWeekResponse"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    get_latest_agent_run_api_agent_runs_latest_get: {
+        parameters: {
+            query: {
+                tenant: string;
+                kind?: string | null;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["AgentRunResponse"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    get_agent_run_api_agent_runs_run__kind___run_day__get: {
+        parameters: {
+            query: {
+                tenant: string;
+                version?: number | null;
+            };
+            header?: never;
+            path: {
+                kind: string;
+                run_day: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["AgentRunResponse"];
                 };
             };
             /** @description Validation Error */

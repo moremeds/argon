@@ -1,6 +1,348 @@
 {
   "components": {
     "schemas": {
+      "AgentRunIndexRow": {
+        "description": "A navigation row. Deliberately carries no document.",
+        "properties": {
+          "code_sha": {
+            "title": "Code Sha",
+            "type": "string"
+          },
+          "created_at": {
+            "format": "date-time",
+            "title": "Created At",
+            "type": "string"
+          },
+          "headline": {
+            "title": "Headline",
+            "type": "string"
+          },
+          "kind": {
+            "title": "Kind",
+            "type": "string"
+          },
+          "outcome": {
+            "title": "Outcome",
+            "type": "string"
+          },
+          "run_day": {
+            "format": "date",
+            "title": "Run Day",
+            "type": "string"
+          },
+          "run_id": {
+            "title": "Run Id",
+            "type": "string"
+          },
+          "schema_version": {
+            "title": "Schema Version",
+            "type": "integer"
+          },
+          "version_no": {
+            "title": "Version No",
+            "type": "integer"
+          }
+        },
+        "required": [
+          "run_day",
+          "kind",
+          "run_id",
+          "version_no",
+          "outcome",
+          "headline",
+          "code_sha",
+          "schema_version",
+          "created_at"
+        ],
+        "title": "AgentRunIndexRow",
+        "type": "object"
+      },
+      "AgentRunIngest": {
+        "description": "One run, as the writer sends it.",
+        "properties": {
+          "code_sha": {
+            "maxLength": 64,
+            "minLength": 1,
+            "title": "Code Sha",
+            "type": "string"
+          },
+          "headline": {
+            "default": "",
+            "maxLength": 2000,
+            "title": "Headline",
+            "type": "string"
+          },
+          "kind": {
+            "pattern": "^[a-z0-9][a-z0-9-]{0,31}$",
+            "title": "Kind",
+            "type": "string"
+          },
+          "outcome": {
+            "enum": [
+              "completed",
+              "DEGRADED",
+              "FAILED"
+            ],
+            "title": "Outcome",
+            "type": "string"
+          },
+          "report": {
+            "additionalProperties": true,
+            "title": "Report",
+            "type": "object"
+          },
+          "run_day": {
+            "format": "date",
+            "title": "Run Day",
+            "type": "string"
+          },
+          "run_id": {
+            "maxLength": 200,
+            "minLength": 1,
+            "title": "Run Id",
+            "type": "string"
+          },
+          "schema_version": {
+            "minimum": 1.0,
+            "title": "Schema Version",
+            "type": "integer"
+          },
+          "tenant": {
+            "pattern": "^[a-z0-9][a-z0-9-]{0,63}$",
+            "title": "Tenant",
+            "type": "string"
+          },
+          "view": {
+            "additionalProperties": true,
+            "minProperties": 1,
+            "title": "View",
+            "type": "object"
+          },
+          "week_key": {
+            "anyOf": [
+              {
+                "pattern": "^\\d{4}-W\\d{2}$",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Week Key"
+          }
+        },
+        "required": [
+          "tenant",
+          "kind",
+          "run_day",
+          "run_id",
+          "code_sha",
+          "schema_version",
+          "outcome",
+          "view"
+        ],
+        "title": "AgentRunIngest",
+        "type": "object"
+      },
+      "AgentRunIngestResult": {
+        "description": "`created=False` is the answer to a blind retry, not an error.",
+        "properties": {
+          "created": {
+            "title": "Created",
+            "type": "boolean"
+          },
+          "kind": {
+            "title": "Kind",
+            "type": "string"
+          },
+          "run_day": {
+            "format": "date",
+            "title": "Run Day",
+            "type": "string"
+          },
+          "tenant": {
+            "title": "Tenant",
+            "type": "string"
+          },
+          "version_no": {
+            "title": "Version No",
+            "type": "integer"
+          },
+          "week_key": {
+            "title": "Week Key",
+            "type": "string"
+          }
+        },
+        "required": [
+          "tenant",
+          "kind",
+          "run_day",
+          "week_key",
+          "version_no",
+          "created"
+        ],
+        "title": "AgentRunIngestResult",
+        "type": "object"
+      },
+      "AgentRunResponse": {
+        "properties": {
+          "code_sha": {
+            "title": "Code Sha",
+            "type": "string"
+          },
+          "created_at": {
+            "format": "date-time",
+            "title": "Created At",
+            "type": "string"
+          },
+          "headline": {
+            "title": "Headline",
+            "type": "string"
+          },
+          "kind": {
+            "title": "Kind",
+            "type": "string"
+          },
+          "outcome": {
+            "title": "Outcome",
+            "type": "string"
+          },
+          "report": {
+            "additionalProperties": true,
+            "default": {},
+            "title": "Report",
+            "type": "object"
+          },
+          "run_day": {
+            "format": "date",
+            "title": "Run Day",
+            "type": "string"
+          },
+          "run_id": {
+            "title": "Run Id",
+            "type": "string"
+          },
+          "schema_version": {
+            "title": "Schema Version",
+            "type": "integer"
+          },
+          "tenant": {
+            "title": "Tenant",
+            "type": "string"
+          },
+          "version_no": {
+            "title": "Version No",
+            "type": "integer"
+          },
+          "view": {
+            "additionalProperties": true,
+            "default": {},
+            "title": "View",
+            "type": "object"
+          },
+          "week_key": {
+            "title": "Week Key",
+            "type": "string"
+          }
+        },
+        "required": [
+          "tenant",
+          "week_key",
+          "run_day",
+          "kind",
+          "run_id",
+          "version_no",
+          "outcome",
+          "headline",
+          "code_sha",
+          "schema_version",
+          "created_at"
+        ],
+        "title": "AgentRunResponse",
+        "type": "object"
+      },
+      "AgentRunWeek": {
+        "properties": {
+          "day_count": {
+            "title": "Day Count",
+            "type": "integer"
+          },
+          "first_day": {
+            "format": "date",
+            "title": "First Day",
+            "type": "string"
+          },
+          "last_day": {
+            "format": "date",
+            "title": "Last Day",
+            "type": "string"
+          },
+          "run_count": {
+            "title": "Run Count",
+            "type": "integer"
+          },
+          "week_key": {
+            "title": "Week Key",
+            "type": "string"
+          }
+        },
+        "required": [
+          "week_key",
+          "first_day",
+          "last_day",
+          "run_count",
+          "day_count"
+        ],
+        "title": "AgentRunWeek",
+        "type": "object"
+      },
+      "AgentRunWeekListResponse": {
+        "properties": {
+          "tenant": {
+            "title": "Tenant",
+            "type": "string"
+          },
+          "weeks": {
+            "default": [],
+            "items": {
+              "$ref": "#/components/schemas/AgentRunWeek"
+            },
+            "title": "Weeks",
+            "type": "array"
+          }
+        },
+        "required": [
+          "tenant"
+        ],
+        "title": "AgentRunWeekListResponse",
+        "type": "object"
+      },
+      "AgentRunWeekResponse": {
+        "properties": {
+          "runs": {
+            "default": [],
+            "items": {
+              "$ref": "#/components/schemas/AgentRunIndexRow"
+            },
+            "title": "Runs",
+            "type": "array"
+          },
+          "tenant": {
+            "title": "Tenant",
+            "type": "string"
+          },
+          "week_key": {
+            "title": "Week Key",
+            "type": "string"
+          }
+        },
+        "required": [
+          "tenant",
+          "week_key"
+        ],
+        "title": "AgentRunWeekResponse",
+        "type": "object"
+      },
       "BenchmarkCurrentResponse": {
         "properties": {
           "bottleneck": {
@@ -29597,6 +29939,313 @@
   },
   "openapi": "3.1.0",
   "paths": {
+    "/api/agent-runs": {
+      "post": {
+        "description": "201 on a new run, 200 when this run_id was already stored.",
+        "operationId": "ingest_agent_run_api_agent_runs_post",
+        "parameters": [
+          {
+            "in": "header",
+            "name": "authorization",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Authorization"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/AgentRunIngest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/AgentRunIngestResult"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Ingest Agent Run",
+        "tags": [
+          "agent-runs",
+          "agent-runs"
+        ]
+      }
+    },
+    "/api/agent-runs/latest": {
+      "get": {
+        "operationId": "get_latest_agent_run_api_agent_runs_latest_get",
+        "parameters": [
+          {
+            "in": "query",
+            "name": "tenant",
+            "required": true,
+            "schema": {
+              "title": "Tenant",
+              "type": "string"
+            }
+          },
+          {
+            "in": "query",
+            "name": "kind",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Kind"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/AgentRunResponse"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Get Latest Agent Run",
+        "tags": [
+          "agent-runs",
+          "agent-runs"
+        ]
+      }
+    },
+    "/api/agent-runs/run/{kind}/{run_day}": {
+      "get": {
+        "operationId": "get_agent_run_api_agent_runs_run__kind___run_day__get",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "kind",
+            "required": true,
+            "schema": {
+              "title": "Kind",
+              "type": "string"
+            }
+          },
+          {
+            "in": "path",
+            "name": "run_day",
+            "required": true,
+            "schema": {
+              "format": "date",
+              "title": "Run Day",
+              "type": "string"
+            }
+          },
+          {
+            "in": "query",
+            "name": "tenant",
+            "required": true,
+            "schema": {
+              "title": "Tenant",
+              "type": "string"
+            }
+          },
+          {
+            "in": "query",
+            "name": "version",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "minimum": 1,
+                  "type": "integer"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Version"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/AgentRunResponse"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Get Agent Run",
+        "tags": [
+          "agent-runs",
+          "agent-runs"
+        ]
+      }
+    },
+    "/api/agent-runs/week/{week_key}": {
+      "get": {
+        "operationId": "get_agent_run_week_api_agent_runs_week__week_key__get",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "week_key",
+            "required": true,
+            "schema": {
+              "title": "Week Key",
+              "type": "string"
+            }
+          },
+          {
+            "in": "query",
+            "name": "tenant",
+            "required": true,
+            "schema": {
+              "title": "Tenant",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/AgentRunWeekResponse"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Get Agent Run Week",
+        "tags": [
+          "agent-runs",
+          "agent-runs"
+        ]
+      }
+    },
+    "/api/agent-runs/weeks": {
+      "get": {
+        "description": "Only weeks that have a run: a week with no rows is not a destination.",
+        "operationId": "list_agent_run_weeks_api_agent_runs_weeks_get",
+        "parameters": [
+          {
+            "in": "query",
+            "name": "tenant",
+            "required": true,
+            "schema": {
+              "title": "Tenant",
+              "type": "string"
+            }
+          },
+          {
+            "in": "query",
+            "name": "limit",
+            "required": false,
+            "schema": {
+              "default": 52,
+              "maximum": 520,
+              "minimum": 1,
+              "title": "Limit",
+              "type": "integer"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/AgentRunWeekListResponse"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "List Agent Run Weeks",
+        "tags": [
+          "agent-runs",
+          "agent-runs"
+        ]
+      }
+    },
     "/api/cockpit/{ticker}/dealer": {
       "get": {
         "operationId": "get_cockpit_dealer_api_cockpit__ticker__dealer_get",
@@ -30355,6 +31004,27 @@
     "/api/gold/gauge": {
       "get": {
         "operationId": "get_gauge_api_gold_gauge_get",
+        "parameters": [
+          {
+            "description": "UTC calendar date; replay includes evidence available by day-end.",
+            "in": "query",
+            "name": "as_of",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "format": "date",
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "description": "UTC calendar date; replay includes evidence available by day-end.",
+              "title": "As Of"
+            }
+          }
+        ],
         "responses": {
           "200": {
             "content": {
@@ -30365,6 +31035,16 @@
               }
             },
             "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
           }
         },
         "summary": "Get Gauge",
@@ -30419,6 +31099,25 @@
                 }
               ],
               "title": "To"
+            }
+          },
+          {
+            "description": "UTC calendar date; replay includes vintages available by day-end.",
+            "in": "query",
+            "name": "as_of",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "format": "date",
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "description": "UTC calendar date; replay includes vintages available by day-end.",
+              "title": "As Of"
             }
           }
         ],

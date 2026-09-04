@@ -10,6 +10,7 @@ from fastapi import FastAPI, Request
 from fastapi.middleware.cors import CORSMiddleware
 
 from uw_scan.api.routers import (
+    agent_runs,
     benchmark,
     cockpit,
     fundamentals_desk,
@@ -107,6 +108,7 @@ def create_app() -> FastAPI:
     app.include_router(positioning.router, prefix="/api", tags=["positioning"])
     app.include_router(vrp.router, prefix="/api", tags=["vrp"])
     app.include_router(positions.router, prefix="/api", tags=["positions"])
+    app.include_router(agent_runs.router, prefix="/api", tags=["agent-runs"])
     return app
 
 
