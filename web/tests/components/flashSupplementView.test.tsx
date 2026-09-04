@@ -79,7 +79,9 @@ describe("SupplementView", () => {
     expect(container.textContent).toMatch(
       /No premarket run was recorded for this day, so this supplement stands alone\./,
     );
-    expect(screen.queryByRole("link", { name: /premarket report/i })).toBeNull();
+    expect(
+      screen.queryByRole("link", { name: /premarket report/i }),
+    ).toBeNull();
   });
 
   it("surfaces the run's own recorded faults", () => {
@@ -151,7 +153,7 @@ describe("SupplementView", () => {
         priorAsOf="2026-09-03T17:00:06Z"
       />,
     );
-    expect(container.textContent).toContain("What changed");
+    expect(container.textContent).toContain("Level shifts");
     // Spot 772.92 → 772.66 is −0.26; the sign is a real minus, not a hyphen.
     expect(container.textContent).toContain("−0.26");
   });

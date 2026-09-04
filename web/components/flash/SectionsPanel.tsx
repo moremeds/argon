@@ -1,6 +1,14 @@
+import { Body } from "./Body";
 import { Panel } from "./Panel";
 import type { Section } from "./view";
 import styles from "./flash.module.css";
+
+/**
+ * A body past this many characters is an essay, not a note, and reads badly in
+ * a 340px column — it takes two. The threshold is a layout judgement, not a
+ * claim about the section.
+ */
+const WIDE_BODY = 900;
 
 /** The run's prose, headings and all, in the order it wrote them. */
 export function SectionsPanel({
@@ -17,35 +25,21 @@ export function SectionsPanel({
   pre?: boolean;
 }) {
   const body = (
-    <div className={styles.stack}>
+    <div className={styles.secgrid}>
       {sections.map((s, i) => (
-        <div key={`${s.title}-${i}`}>
-          <h4
-            style={{
-              margin: "0 0 4px",
-              fontSize: 12.5,
-              fontWeight: 700,
-              color: "var(--text-primary)",
-            }}
-          >
-            {s.title}
-          </h4>
+        <article
+          key={`${s.title}-${i}`}
+          className={`${styles.seccard}${
+            (s.body?.length ?? 0) > WIDE_BODY ? ` ${styles.secwide}` : ""
+          }`}
+        >
+          <h4>{s.title}</h4>
           {pre ? (
             <p className={styles.pre}>{s.body}</p>
           ) : (
-            <p
-              style={{
-                margin: 0,
-                fontSize: 12.5,
-                lineHeight: 1.6,
-                color: "var(--text-secondary)",
-                maxWidth: "110ch",
-              }}
-            >
-              {s.body}
-            </p>
+            <Body text={s.body} />
           )}
-        </div>
+        </article>
       ))}
     </div>
   );

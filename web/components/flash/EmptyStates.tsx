@@ -63,10 +63,10 @@ export function NoRunRecorded({
 const RAIL_PANELS = [
   "Overnight",
   "Today's schedule",
-  "Rates & policy path",
+  "Policy path",
   "Gamma profile",
-  "Risk register",
-  "Data coverage",
+  "Passed over",
+  "Sources & as-of",
 ];
 
 /**

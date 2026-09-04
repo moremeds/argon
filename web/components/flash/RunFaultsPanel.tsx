@@ -15,7 +15,7 @@ export function RunFaultsPanel({
   faults: string[];
 }) {
   return (
-    <Panel title="Run" tail="recorded faults">
+    <Panel title="Run health" tail="faults this run">
       {runId ? (
         <span
           className={styles.mono}

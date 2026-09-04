@@ -2,6 +2,7 @@ import Link from "next/link";
 
 import type { AgentRunIndexRow } from "@/lib/api";
 
+import { Body } from "./Body";
 import { CandidateCard } from "./CandidateCard";
 import { DecisionBlock } from "./DecisionBlock";
 import { GexDeltaTable } from "./GexDeltaTable";
@@ -13,7 +14,12 @@ import { RunFaultsPanel } from "./RunFaultsPanel";
 import { SectionsPanel } from "./SectionsPanel";
 import { StatePill } from "./StatePill";
 import { TapeStrip } from "./TapeStrip";
-import { faultList, type BriefView, type GexRow, type StatusItem } from "./view";
+import {
+  faultList,
+  type BriefView,
+  type GexRow,
+  type StatusItem,
+} from "./view";
 import styles from "./flash.module.css";
 
 /**
@@ -102,7 +108,7 @@ export function SupplementView({
 
           {view.proposal ? (
             <Panel
-              title="New structure proposed at the close"
+              title="Proposed at the close"
               tail="survived risk review"
               bodyClassName=""
             >
@@ -114,14 +120,14 @@ export function SupplementView({
           ) : null}
 
           {view.decision && view.decision.length > 0 ? (
-            <Panel title={`${kind} decision block`} bodyClassName="">
+            <Panel title="The call" tail={kind} bodyClassName="">
               <DecisionBlock rows={view.decision} />
             </Panel>
           ) : null}
 
           {view.sections && view.sections.length > 0 ? (
             <SectionsPanel
-              title="Run sections"
+              title="The read"
               tail="full transcript, this run"
               sections={view.sections}
               scroll
@@ -140,9 +146,12 @@ export function SupplementView({
         </div>
 
         <div className={styles.colR}>
-          {priorGex && priorGex.length > 0 && view.gex && view.gex.length > 0 ? (
+          {priorGex &&
+          priorGex.length > 0 &&
+          view.gex &&
+          view.gex.length > 0 ? (
             <Panel
-              title="What changed · gamma levels"
+              title="Level shifts"
               tail={
                 priorAsOf && view.asOf
                   ? `intraday ${priorAsOf} → close ${view.asOf}`
@@ -153,7 +162,7 @@ export function SupplementView({
             </Panel>
           ) : view.gex && view.gex.length > 0 ? (
             <Panel
-              title="Dealer gamma levels"
+              title="Gamma levels"
               tail={view.asOf ? `gex-reporter · ${view.asOf}` : undefined}
             >
               <GexLevelsTable rows={view.gex} />
@@ -164,7 +173,10 @@ export function SupplementView({
             <RiskRegisterPanel entries={view.riskList} />
           ) : null}
 
-          <RunFaultsPanel runId={view.runId} faults={faultList(view.degradation)} />
+          <RunFaultsPanel
+            runId={view.runId}
+            faults={faultList(view.degradation)}
+          />
         </div>
       </div>
     </>
@@ -196,17 +208,7 @@ function StatusBlock({ item, last }: { item: StatusItem; last: boolean }) {
           </span>
         ) : null}
       </div>
-      <p
-        style={{
-          margin: 0,
-          color: "var(--text-secondary)",
-          fontSize: 12.5,
-          lineHeight: 1.55,
-          maxWidth: "96ch",
-        }}
-      >
-        {item.body}
-      </p>
+      <Body text={item.body} />
     </div>
   );
 }

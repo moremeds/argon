@@ -544,11 +544,12 @@
 /* ---------- decision block ---------- */
 .dec {
   display: grid;
-  grid-template-columns: 110px minmax(0, 1fr);
+  grid-template-columns: 128px minmax(0, 1fr);
 }
 
+/* The cells are direct grid children — a wrapper element here would take these
+   rules and leave the cells unpadded and unaligned. */
 .dec > div {
-  padding: 8px 12px;
   border-bottom: 1px solid var(--border-dim);
 }
 
@@ -557,17 +558,18 @@
 }
 
 .decKey {
+  /* Stretched, not `align-self: start` — a start-aligned key cell stops short
+     of the row and its border no longer meets the value's. The text sits at
+     the top because the cell is a block, which is all "top-aligned" needs. */
+  padding: 10px 12px;
   background: var(--bg-base);
-  font-family: var(--font-mono);
-  font-size: 10px;
-  font-weight: 700;
-  letter-spacing: 1.2px;
-  text-transform: uppercase;
-  color: var(--text-muted);
   border-right: 1px solid var(--border-dim);
 }
 
 .decValue {
+  padding: 10px 14px;
+  font-size: 13px;
+  line-height: 1.5;
   max-width: 100ch;
 }
 
@@ -737,6 +739,101 @@
   line-height: 1.65;
   color: var(--text-secondary);
   margin: 0;
+}
+
+/* ---------- run prose ---------- */
+/* Stack a wide table when its panel is narrow (the right rail), instead of
+   clipping columns behind a scrollbar. Container query: no JS, no measuring. */
+.body {
+  container-type: inline-size;
+}
+
+@container (max-width: 560px) {
+  .bodyTable thead {
+    display: none;
+  }
+  .bodyTable tr {
+    display: block;
+    padding: 6px 0;
+    border-bottom: 1px solid rgba(30, 41, 59, 0.55);
+  }
+  .bodyTable td {
+    display: block;
+    border-bottom: none;
+    padding: 1px 0;
+  }
+  .bodyTable td:first-child {
+    font-weight: 600;
+    color: var(--text-primary);
+  }
+  .bodyTable td:not(:first-child)::before {
+    content: attr(data-label) " ";
+    font-family: var(--font-mono);
+    font-size: 9.5px;
+    letter-spacing: 1.2px;
+    text-transform: uppercase;
+    color: var(--text-muted);
+  }
+}
+
+.body {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  min-width: 0;
+}
+
+.bodyText {
+  margin: 0;
+  font-size: 13px;
+  line-height: 1.55;
+  color: var(--text-secondary);
+  max-width: 80ch;
+}
+
+.bodyList {
+  margin: 0;
+  padding-left: 16px;
+  font-size: 13px;
+  line-height: 1.5;
+  color: var(--text-secondary);
+  max-width: 80ch;
+}
+
+.bodyList li + li {
+  margin-top: 3px;
+}
+
+/* ---------- section cards ---------- */
+.secgrid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(340px, 1fr));
+  /* An implicit track (a wide card in a one-column grid) is sized 1fr, not
+     max-content, so a span-2 card can never widen the page. */
+  grid-auto-columns: minmax(0, 1fr);
+  gap: 12px;
+}
+
+.seccard {
+  background: var(--bg-base);
+  border: 1px solid var(--border-dim);
+  border-radius: 4px;
+  padding: 12px 14px;
+  min-width: 0;
+}
+
+.seccard > h4 {
+  margin: 0 0 6px;
+  font-size: 13px;
+  font-weight: 600;
+  line-height: 1.35;
+  color: var(--text-primary);
+}
+
+@media (min-width: 900px) {
+  .secwide {
+    grid-column: span 2;
+  }
 }
 
 /* ---------- state pill ---------- */

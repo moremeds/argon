@@ -28,7 +28,10 @@ const FOOTER =
 export function PremarketView({ view }: { view: BriefView }) {
   if (view.empty) {
     return (
-      <p className={styles.provenance} style={{ display: "block", padding: 12 }}>
+      <p
+        className={styles.provenance}
+        style={{ display: "block", padding: 12 }}
+      >
         This run completed but recorded no content for {view.date}.
       </p>
     );
@@ -57,15 +60,24 @@ export function PremarketView({ view }: { view: BriefView }) {
       <div className={styles.cols}>
         <div className={styles.colL}>
           {view.decision && view.decision.length > 0 ? (
-            <Panel title="Bottom line · decision block" bodyClassName="">
+            <Panel title="The call" bodyClassName="">
               <DecisionBlock rows={view.decision} />
             </Panel>
           ) : null}
 
           {view.candidates && view.candidates.length > 0 ? (
             <div>
-              <div className={styles.lbl} style={{ padding: "2px 0 8px" }}>
-                Candidates · per contract, no size
+              <div
+                className={styles.lbl}
+                style={{
+                  padding: "2px 0 8px",
+                  display: "flex",
+                  alignItems: "center",
+                  gap: 8,
+                }}
+              >
+                Structures
+                <span className={styles.tail}>per contract, no size</span>
               </div>
               <div className={styles.stack}>
                 {view.candidates.map((c) => (
@@ -76,7 +88,7 @@ export function PremarketView({ view }: { view: BriefView }) {
           ) : null}
 
           {view.sections && view.sections.length > 0 ? (
-            <SectionsPanel title="Sections" sections={view.sections} />
+            <SectionsPanel title="The read" sections={view.sections} />
           ) : null}
         </div>
 
@@ -90,7 +102,10 @@ export function PremarketView({ view }: { view: BriefView }) {
             <GammaProfilePanel profiles={view.gamma} />
           ) : null}
           {view.riskList && view.riskList.length > 0 ? (
-            <RiskRegisterPanel entries={view.riskList} tail="dropped this run" />
+            <RiskRegisterPanel
+              entries={view.riskList}
+              tail="dropped this run"
+            />
           ) : null}
           {view.coverage ? <CoveragePanel coverage={view.coverage} /> : null}
         </div>

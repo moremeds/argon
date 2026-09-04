@@ -11,7 +11,7 @@ export function RiskRegisterPanel({
   tail?: string;
 }) {
   return (
-    <Panel title="Risk register" tail={tail}>
+    <Panel title="Passed over" tail={tail}>
       <table>
         <thead>
           <tr>

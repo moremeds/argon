@@ -32,15 +32,15 @@ export function WeeklyView({
   return (
     <>
       <Panel
-        title="Five daily one-liners"
+        title="The week, one line a day"
         tail={`${first} → ${last}`}
         bodyClassName=""
       >
         {days.map(({ date, dow }) => {
           const forDay = runs.filter((r) => String(r.run_day) === date);
           const oneLiner =
-            forDay.find((r) => r.kind === "premarket" && r.headline)?.headline ??
-            "";
+            forDay.find((r) => r.kind === "premarket" && r.headline)
+              ?.headline ?? "";
           return (
             <div
               key={date}
@@ -85,14 +85,16 @@ export function WeeklyView({
 
       <div className={styles.cols}>
         <div className={styles.colL}>
-          {weeklyView && weeklyView.sections && weeklyView.sections.length > 0 ? (
+          {weeklyView &&
+          weeklyView.sections &&
+          weeklyView.sections.length > 0 ? (
             <SectionsPanel
-              title="Outlook · week ahead"
+              title="Week ahead"
               tail={weeklyView.asOf}
               sections={weeklyView.sections}
             />
           ) : (
-            <Panel title="Outlook · week ahead" tail="not yet available">
+            <Panel title="Week ahead" tail="not yet available">
               <SlotEmpty
                 headline="Generated Sunday morning"
                 body="The outlook block is written by the weekly job, which runs Sunday 08:00 ET. Until it has run for this week there is nothing to show."

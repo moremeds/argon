@@ -11,7 +11,7 @@ import styles from "./flash.module.css";
  */
 export function PolicyPathPanel({ path }: { path: PolicyPath }) {
   return (
-    <Panel title="Rates & policy path">
+    <Panel title="Policy path">
       <div
         className={styles.tape}
         style={{
@@ -21,7 +21,10 @@ export function PolicyPathPanel({ path }: { path: PolicyPath }) {
         {path.steps.map((step) => (
           <div key={step.date} className={styles.tile}>
             <span className={styles.lbl}>{step.date}</span>
-            <span className={styles.mono} style={{ fontSize: 15, fontWeight: 700 }}>
+            <span
+              className={styles.mono}
+              style={{ fontSize: 15, fontWeight: 700 }}
+            >
               {step.implied}
             </span>
             {step.band ? (
