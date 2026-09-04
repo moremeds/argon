@@ -4,7 +4,8 @@ import { fileURLToPath } from "node:url";
 
 import { describe, expect, it } from "vitest";
 
-import { faultList } from "@/components/flash/view";
+import { faultList, viewTickers } from "@/components/flash/view";
+import type { BriefView } from "@/components/flash/view";
 
 const HERE = dirname(fileURLToPath(import.meta.url));
 const intraday = JSON.parse(
@@ -33,5 +34,36 @@ describe("faultList", () => {
     expect(faultList(undefined)).toEqual([]);
     expect(faultList("")).toEqual([]);
     expect(faultList({ x: 1 })).toEqual([]);
+  });
+});
+
+/**
+ * The same lesson one field over: helium's document is nullable everywhere the
+ * interface says it is not. The real close run of 2026-09-03 ships two
+ * `riskList` entries whose `title` is null, and the first draft of this
+ * collector called `.split()` on them and took the page down.
+ */
+describe("viewTickers", () => {
+  it("survives null titles and tickers in a real-shaped view", () => {
+    const view = {
+      date: "2026-09-03",
+      tape: [
+        { label: "SPY", value: "772.33" },
+        { label: "DXY", value: "97" },
+      ],
+      riskList: [
+        { title: null as unknown as string, body: "" },
+        { title: null as unknown as string, body: "" },
+      ],
+      status: [{ title: "QQQ-2026-09-03-1", state: "不变", body: "" }],
+    } satisfies Partial<BriefView> as BriefView;
+
+    const tickers = viewTickers(view);
+    expect(tickers.has("SPY")).toBe(true);
+    // Taken from the id's leading symbol, not from the whole id.
+    expect(tickers.has("QQQ")).toBe(true);
+    // On the static list even though this view never structured it.
+    expect(tickers.has("NVDA")).toBe(true);
+    expect(tickers.has("")).toBe(false);
   });
 });

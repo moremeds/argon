@@ -2,7 +2,12 @@ import { Panel } from "./Panel";
 import type { Section } from "./view";
 import styles from "./flash.module.css";
 
-/** What the run considered and dropped, and why. */
+/**
+ * What the run considered and dropped, and why.
+ *
+ * The ticker is a ticker and stays monospaced; the reason is a sentence and is
+ * set in the body sans, against the global `td` monospace default.
+ */
 export function RiskRegisterPanel({
   entries,
   tail,
@@ -28,7 +33,12 @@ export function RiskRegisterPanel({
               >
                 {e.title}
               </td>
-              <td style={{ color: "var(--text-secondary)" }}>{e.body}</td>
+              <td
+                className={styles.sans}
+                style={{ color: "var(--text-secondary)" }}
+              >
+                {e.body}
+              </td>
             </tr>
           ))}
         </tbody>

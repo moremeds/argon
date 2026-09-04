@@ -16,6 +16,7 @@ import { StatePill } from "./StatePill";
 import { TapeStrip } from "./TapeStrip";
 import {
   faultList,
+  viewTickers,
   type BriefView,
   type GexRow,
   type StatusItem,
@@ -52,6 +53,7 @@ export function SupplementView({
     (r) => String(r.run_day) === day && r.kind === "premarket",
   );
   const lead = view.lead ?? view.headline;
+  const tickers = viewTickers(view);
   const label: [string, string] =
     kind === "close" ? ["Close", "read"] : ["Intraday", "read"];
   const statusTitle =
@@ -101,6 +103,7 @@ export function SupplementView({
                   key={`${item.title}-${i}`}
                   item={item}
                   last={i === view.status!.length - 1}
+                  tickers={tickers}
                 />
               ))}
             </Panel>
@@ -131,6 +134,7 @@ export function SupplementView({
               tail="full transcript, this run"
               sections={view.sections}
               scroll
+              tickers={tickers}
             />
           ) : null}
 
@@ -183,7 +187,15 @@ export function SupplementView({
   );
 }
 
-function StatusBlock({ item, last }: { item: StatusItem; last: boolean }) {
+function StatusBlock({
+  item,
+  last,
+  tickers,
+}: {
+  item: StatusItem;
+  last: boolean;
+  tickers?: ReadonlySet<string>;
+}) {
   return (
     <div
       style={{
@@ -208,7 +220,7 @@ function StatusBlock({ item, last }: { item: StatusItem; last: boolean }) {
           </span>
         ) : null}
       </div>
-      <Body text={item.body} />
+      <Body text={item.body} tickers={tickers} />
     </div>
   );
 }

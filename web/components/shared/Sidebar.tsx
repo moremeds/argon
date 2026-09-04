@@ -35,14 +35,22 @@ import styles from "./AppShell.module.css";
 // unlisted deep surface — and the desk's own gold tab carries the same replay through
 // `?as_of=`, so nothing is unreachable, only unlisted.
 //
-// Flash is the one entry with a subtitle. It is second, immediately under
-// Dashboard, because that is where the operator put it: the daily brief is
-// read before anything is scanned. `sub` is optional on purpose — a second
-// subtitled entry would be a nav that explains itself, which is a nav that has
-// stopped being scannable.
-export const NAV = [
+// Flash is second, immediately under Dashboard, because that is where the
+// operator put it: the daily brief is read before anything is scanned. No
+// entry carries a `sub` any more — the nav lists rooms, and a room that has to
+// explain itself in the nav is a nav that has stopped being scannable. The
+// field and its rendering branch stay for the day one earns a subtitle.
+type NavEntry = {
+  href: string;
+  label: string;
+  icon: typeof LayoutDashboard;
+  /** Optional second line under the label. No entry uses one today. */
+  sub?: string;
+};
+
+export const NAV: NavEntry[] = [
   { href: "/", label: "Dashboard", icon: LayoutDashboard },
-  { href: "/flash", label: "Flash", icon: Zap, sub: "agent news flash" },
+  { href: "/flash", label: "Flash", icon: Zap },
   { href: "/scanner", label: "Scanner", icon: ScanLine },
   { href: "/positioning", label: "Positioning", icon: Crosshair },
   { href: "/cockpit/SPY", label: "Cockpit", icon: Radar },
@@ -51,12 +59,7 @@ export const NAV = [
   { href: "/macro", label: "Macro", icon: Globe },
   { href: "/fundamentals", label: "Fundamentals", icon: Telescope },
   { href: "/reports", label: "Reports", icon: FileText },
-] satisfies {
-  href: string;
-  label: string;
-  icon: typeof LayoutDashboard;
-  sub?: string;
-}[];
+];
 
 export function Sidebar() {
   const pathname = usePathname();
@@ -69,8 +72,7 @@ export function Sidebar() {
 
       <nav className={styles.nav}>
         {NAV.map((entry) => {
-          const { href, label, icon: Icon } = entry;
-          const sub = "sub" in entry ? entry.sub : undefined;
+          const { href, label, icon: Icon, sub } = entry;
           const active =
             href === "/" ? pathname === "/" : pathname.startsWith(href);
           return (

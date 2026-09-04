@@ -1,4 +1,5 @@
 import type { AgentRunResponse } from "@/lib/api";
+import { tickerSet } from "@/lib/flash/tickers";
 
 /**
  * option-wizard's `view_jsonb`, mirrored by hand.
@@ -191,8 +192,38 @@ export function asBriefView(run: AgentRunResponse): BriefView | null {
   };
 }
 
+/**
+ * Every ticker this view is already about.
+ *
+ * Built from the STRUCTURED fields — the tape, the candidates and their
+ * proposal, the gamma and gex rows, the status blocks, the passed-over list —
+ * because those are the names the run named on purpose. Prose is never mined
+ * for new symbols: that is exactly the guess `lib/flash/tickers.ts` refuses to
+ * make. Status and risk titles are ids as often as tickers (`QQQ-2026-09-03-1`
+ * is one), so the leading symbol is taken and the rest dropped; a title that
+ * is not a symbol contributes nothing.
+ */
+export function viewTickers(view: BriefView): Set<string> {
+  const found: string[] = [];
+  // EVERY field here is nullable in practice even where the interface says it
+  // is not: this view is helium's document, not argon's object. The close run
+  // of 2026-09-03 ships two `riskList` entries with a null `title`, and a bare
+  // `.split()` on one of them takes the whole page down.
+  const lead = (value: unknown) => String(value ?? "").split(/[-\s]/)[0];
+  for (const item of view.tape ?? []) found.push(lead(item?.label));
+  for (const c of view.candidates ?? []) found.push(lead(c?.ticker));
+  if (view.proposal) found.push(lead(view.proposal.ticker));
+  for (const g of view.gamma ?? []) found.push(lead(g?.ticker));
+  for (const g of view.gex ?? []) found.push(lead(g?.ticker));
+  for (const s of view.status ?? []) found.push(lead(s?.title));
+  for (const r of view.riskList ?? []) found.push(lead(r?.title));
+  return tickerSet(found);
+}
+
 /** Normalize `degradation` so a string, array, or garbage never takes the page down. */
 export function faultList(d: unknown): string[] {
   if (typeof d === "string") return d ? [d] : [];
-  return Array.isArray(d) ? d.filter((x): x is string => typeof x === "string") : [];
+  return Array.isArray(d)
+    ? d.filter((x): x is string => typeof x === "string")
+    : [];
 }

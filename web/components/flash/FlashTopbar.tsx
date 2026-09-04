@@ -7,9 +7,7 @@ export function FlashTopbar({ today }: { today: string }) {
     <div className={styles.topbar}>
       <div>
         <div className={styles.route}>FLASH</div>
-        <div className={styles.routeSub}>
-          Daily option-wizard flashes, grouped by trading week.
-        </div>
+        <div className={styles.routeSub}>agent news flash</div>
       </div>
       <div className={styles.meta}>
         <div>

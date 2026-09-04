@@ -11,7 +11,7 @@ import { RiskRegisterPanel } from "./RiskRegisterPanel";
 import { SchedulePanel } from "./SchedulePanel";
 import { SectionsPanel } from "./SectionsPanel";
 import { TapeStrip } from "./TapeStrip";
-import { faultList, type BriefView } from "./view";
+import { faultList, viewTickers, type BriefView } from "./view";
 import styles from "./flash.module.css";
 
 const FOOTER =
@@ -38,6 +38,7 @@ export function PremarketView({ view }: { view: BriefView }) {
   }
 
   const lead = view.lead ?? view.headline;
+  const tickers = viewTickers(view);
 
   return (
     <>
@@ -88,7 +89,11 @@ export function PremarketView({ view }: { view: BriefView }) {
           ) : null}
 
           {view.sections && view.sections.length > 0 ? (
-            <SectionsPanel title="The read" sections={view.sections} />
+            <SectionsPanel
+              title="The read"
+              sections={view.sections}
+              tickers={tickers}
+            />
           ) : null}
         </div>
 
@@ -107,7 +112,9 @@ export function PremarketView({ view }: { view: BriefView }) {
               tail="dropped this run"
             />
           ) : null}
-          {view.coverage ? <CoveragePanel coverage={view.coverage} /> : null}
+          {view.coverage ? (
+            <CoveragePanel coverage={view.coverage} tickers={tickers} />
+          ) : null}
         </div>
       </div>
 

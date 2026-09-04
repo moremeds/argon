@@ -11,10 +11,16 @@ import type { Section } from "./view";
  * only recognises the pipe table helium writes and falls back to paragraphs,
  * so a changed shape degrades to plain text instead of a tidy, wrong table.
  */
-export function CoveragePanel({ coverage }: { coverage: Section }) {
+export function CoveragePanel({
+  coverage,
+  tickers,
+}: {
+  coverage: Section;
+  tickers?: ReadonlySet<string>;
+}) {
   return (
     <Panel title="Sources & as-of" tail={coverage.title || undefined}>
-      <Body text={coverage.body} />
+      <Body text={coverage.body} tickers={tickers} />
     </Panel>
   );
 }

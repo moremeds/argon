@@ -3,7 +3,7 @@ import { weekDays, weekRange } from "@/lib/flash/kinds";
 
 import { Panel } from "./Panel";
 import { SectionsPanel } from "./SectionsPanel";
-import { asBriefView } from "./view";
+import { asBriefView, viewTickers } from "./view";
 import styles from "./flash.module.css";
 
 /**
@@ -92,6 +92,7 @@ export function WeeklyView({
               title="Week ahead"
               tail={weeklyView.asOf}
               sections={weeklyView.sections}
+              tickers={viewTickers(weeklyView)}
             />
           ) : (
             <Panel title="Week ahead" tail="not yet available">

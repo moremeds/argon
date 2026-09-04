@@ -77,6 +77,34 @@ describe("parseBlocks", () => {
     expect(last.text).toContain("非农");
   });
 
+  it("cuts helium's run-together settlement records into one item each", () => {
+    // The close run of 2026-09-03 wrote all three settlements as one block, so
+    // the paragraph rule joins them into a single wall of prose. The record id
+    // is the only seam, and it is dropped once it has done its work.
+    const body = close.view.sections.find(
+      (s) => s.title === "Settlements not in the ledger, dropped",
+    )!.body;
+    const blocks = parseBlocks(body);
+    expect(blocks).toHaveLength(1);
+
+    const list = blocks[0];
+    if (list.type !== "ul") throw new Error("expected a ul block");
+    expect(list.items).toHaveLength(3);
+    expect(list.items[0].startsWith("QQQ 不变 — Entry 716 above")).toBe(true);
+    expect(list.items[0].endsWith("Close price 717.67.")).toBe(true);
+    expect(list.items[1].startsWith("SPY 不变 —")).toBe(true);
+    expect(list.items[2].startsWith("SLV 加强 —")).toBe(true);
+    // The ids themselves are helium's keys, not the reader's text.
+    for (const item of list.items) {
+      expect(item).not.toContain("2026-09-03-");
+    }
+  });
+
+  it("leaves a paragraph mentioning ONE record alone", () => {
+    const one = "QQQ-2026-09-03-1 QQQ 不变 — held above entry.";
+    expect(parseBlocks(one)).toEqual([{ type: "p", text: one }]);
+  });
+
   it("keeps an unrecognised body whole, as one paragraph", () => {
     const blocks = parseBlocks(intraday.view.coverage.body);
     expect(blocks).toHaveLength(1);

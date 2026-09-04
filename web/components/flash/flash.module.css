@@ -804,13 +804,46 @@
   margin-top: 3px;
 }
 
+/* `app/globals.css` sets `td { font-family: var(--font-mono) }` for the desk's
+   numeric tables, and an element selector reaches every table on the page —
+   including the coverage grid, whose cells are sentences. That is where the
+   monospaced "Sources & as-of" body came from. Monospace is for labels,
+   numbers, tickers, ids, timestamps and status marks; a running sentence is
+   body text wherever it is printed. A cell that IS a bare value opts back in
+   per cell (`.num`), so this is a default, not a blanket. */
+.bodyTable td {
+  font-family: var(--font-sans);
+  font-size: 12.5px;
+}
+
+.bodyTable td.num {
+  font-family: var(--font-mono);
+  font-variant-numeric: tabular-nums;
+}
+
+/* The same override for a sentence in a table argon builds itself — a schedule
+   event, a passed-over reason. */
+.sans {
+  font-family: var(--font-sans);
+}
+
+/* A ticker inside a sentence. Monospaced and a shade heavier so a name can be
+   found by eye in a paragraph — no background, no border, no colour of its
+   own: it is emphasis inside prose, not a badge sitting on top of it. */
+.tick {
+  font-family: var(--font-mono);
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--text-primary);
+}
+
 /* ---------- section cards ---------- */
+/* One full-width column, always. The two-column auto-fit paired a short card
+   with a long one and read as a layout accident; a section's length is the
+   run's, not a reason to give it a different width. */
 .secgrid {
   display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(340px, 1fr));
-  /* An implicit track (a wide card in a one-column grid) is sized 1fr, not
-     max-content, so a span-2 card can never widen the page. */
-  grid-auto-columns: minmax(0, 1fr);
+  grid-template-columns: minmax(0, 1fr);
   gap: 12px;
 }
 
@@ -828,12 +861,6 @@
   font-weight: 600;
   line-height: 1.35;
   color: var(--text-primary);
-}
-
-@media (min-width: 900px) {
-  .secwide {
-    grid-column: span 2;
-  }
 }
 
 /* ---------- state pill ---------- */

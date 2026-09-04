@@ -41,15 +41,17 @@ test.beforeAll(async ({ request }) => {
   }
 });
 
-test("the sidebar carries Flash and it lands on a recorded week", async ({
+test("the sidebar carries Flash and it lands on the newest recorded day", async ({
   page,
 }) => {
   await page.goto("/");
   const link = page.locator('nav a[href="/flash"]');
   await expect(link).toContainText("Flash");
-  await expect(link).toContainText("agent news flash");
   await link.click();
-  await expect(page).toHaveURL(/\/flash\/\d{4}-W\d{2}$/);
+  // `/flash` is a doorway onto a DAY, not a week. 2026-09-03 is the newest
+  // seeded run_day and `close` is the latest phase seeded on it, so the
+  // doorway must open on the day's last word, not on its premarket.
+  await expect(page).toHaveURL(`/flash/${WEEK}/${DAY}?phase=close`);
 });
 
 test("the week strip lights only the phases that were recorded", async ({
@@ -77,7 +79,9 @@ test("the premarket page renders the report and never a position size", async ({
   page,
 }) => {
   await page.goto(`/flash/${WEEK}/${DAY}?phase=premarket`);
-  await expect(page.getByText(/Real yields did the work/).first()).toBeVisible();
+  await expect(
+    page.getByText(/Real yields did the work/).first(),
+  ).toBeVisible();
   await expect(page.getByTestId("decision-key").first()).toBeVisible();
   await expect(
     page.getByRole("img", { name: /Profit and loss at expiry/ }).first(),
@@ -104,20 +108,29 @@ test("supplements render helium's single-sentence degradation, not a crash", asy
   for (const phase of ["intraday", "close"]) {
     await page.goto(`/flash/${WEEK}/${DAY}?phase=${phase}`);
     await expect(
-      page.getByText("Data degraded: provider provider-deepseek-dsh unavailable", {
-        exact: false,
-      }),
+      page.getByText(
+        "Data degraded: provider provider-deepseek-dsh unavailable",
+        {
+          exact: false,
+        },
+      ),
     ).toBeVisible();
   }
 });
 
-test("a day with no run says so, and says what it queried", async ({ page }) => {
+test("a day with no run says so, and says what it queried", async ({
+  page,
+}) => {
   await page.goto(`/flash/${WEEK}/${EMPTY_DAY}?phase=premarket`);
-  await expect(page.getByText("No run recorded", { exact: true })).toBeVisible();
+  await expect(
+    page.getByText("No run recorded", { exact: true }),
+  ).toBeVisible();
   await expect(page.getByText(/helium audit — 0 runs/)).toBeVisible();
 });
 
-test("the desktop layout does not scroll sideways at 1440", async ({ page }) => {
+test("the desktop layout does not scroll sideways at 1440", async ({
+  page,
+}) => {
   await page.setViewportSize({ width: 1440, height: 900 });
   await page.goto(`/flash/${WEEK}/${DAY}?phase=premarket`);
   const overflow = await page.evaluate(
