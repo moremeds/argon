@@ -11,6 +11,7 @@ import {
   Globe,
   Telescope,
   FileText,
+  Zap,
 } from "lucide-react";
 import { HealthPanel } from "./HealthPanel";
 import styles from "./AppShell.module.css";
@@ -33,8 +34,15 @@ import styles from "./AppShell.module.css";
 // matches no entry, so it highlights nothing. §6 named that as the choice — a deliberately
 // unlisted deep surface — and the desk's own gold tab carries the same replay through
 // `?as_of=`, so nothing is unreachable, only unlisted.
+//
+// Flash is the one entry with a subtitle. It is second, immediately under
+// Dashboard, because that is where the operator put it: the daily brief is
+// read before anything is scanned. `sub` is optional on purpose — a second
+// subtitled entry would be a nav that explains itself, which is a nav that has
+// stopped being scannable.
 export const NAV = [
   { href: "/", label: "Dashboard", icon: LayoutDashboard },
+  { href: "/flash", label: "Flash", icon: Zap, sub: "agent news flash" },
   { href: "/scanner", label: "Scanner", icon: ScanLine },
   { href: "/positioning", label: "Positioning", icon: Crosshair },
   { href: "/cockpit/SPY", label: "Cockpit", icon: Radar },
@@ -43,7 +51,12 @@ export const NAV = [
   { href: "/macro", label: "Macro", icon: Globe },
   { href: "/fundamentals", label: "Fundamentals", icon: Telescope },
   { href: "/reports", label: "Reports", icon: FileText },
-];
+] satisfies {
+  href: string;
+  label: string;
+  icon: typeof LayoutDashboard;
+  sub?: string;
+}[];
 
 export function Sidebar() {
   const pathname = usePathname();
@@ -55,19 +68,29 @@ export function Sidebar() {
       </div>
 
       <nav className={styles.nav}>
-        {NAV.map(({ href, label, icon: Icon }) => {
+        {NAV.map((entry) => {
+          const { href, label, icon: Icon } = entry;
+          const sub = "sub" in entry ? entry.sub : undefined;
           const active =
             href === "/" ? pathname === "/" : pathname.startsWith(href);
           return (
             <Link
               key={href}
               href={href}
+              aria-current={active ? "page" : undefined}
               className={[styles.link, active ? styles.linkActive : ""].join(
                 " ",
               )}
             >
               <Icon size={16} strokeWidth={1.5} />
-              {label}
+              {sub ? (
+                <span className={styles.linkStack}>
+                  {label}
+                  <span className={styles.linkSub}>{sub}</span>
+                </span>
+              ) : (
+                label
+              )}
             </Link>
           );
         })}

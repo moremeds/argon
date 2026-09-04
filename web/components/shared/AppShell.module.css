@@ -82,6 +82,22 @@
   white-space: nowrap;
 }
 
+/* The Flash entry is two lines. `align-items: center` still centres it as a
+   block, so nothing needed relaxing — only a stack for the label + subtitle. */
+.linkStack {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  min-width: 0;
+}
+
+.linkSub {
+  font-family: var(--font-mono);
+  font-size: 9px;
+  letter-spacing: 0.4px;
+  color: var(--text-muted);
+}
+
 .linkActive {
   color: var(--text-primary);
   background: var(--bg-active, rgba(255, 255, 255, 0.04));
@@ -136,6 +152,10 @@
 
   .linkActive {
     border-bottom-color: var(--text-primary);
+  }
+
+  .linkSub {
+    display: none;
   }
 
   .health {

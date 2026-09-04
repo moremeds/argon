@@ -33,6 +33,13 @@ export type DeskCase = components["schemas"]["DeskCase"];
 export type CaseStage = components["schemas"]["CaseStage"];
 export type CaseStageMember = components["schemas"]["CaseStageMember"];
 export type ScopeGroup = components["schemas"]["ScopeGroup"];
+export type AgentRunWeekListResponse =
+  components["schemas"]["AgentRunWeekListResponse"];
+export type AgentRunWeek = components["schemas"]["AgentRunWeek"];
+export type AgentRunWeekResponse =
+  components["schemas"]["AgentRunWeekResponse"];
+export type AgentRunIndexRow = components["schemas"]["AgentRunIndexRow"];
+export type AgentRunResponse = components["schemas"]["AgentRunResponse"];
 type VrpCandidatesResponse = components["schemas"]["VrpCandidatesResponse"];
 type VrpBacktestResponse = components["schemas"]["VrpBacktestResponse"];
 type VrpPaperResponse = components["schemas"]["VrpPaperResponse"];
@@ -723,6 +730,52 @@ export const api = {
     _fetch<VrpMacroPositionsResponse>(`/api/positions`),
   positionDetail: (entryId: number): Promise<VrpMacroPositionDetail> =>
     _fetch<VrpMacroPositionDetail>(`/api/positions/${entryId}`),
+
+  // Agent runs — the generic helium transport. `tenant` is a parameter here
+  // and not a constant because the endpoint is not Flash's: a second tenant is
+  // a second caller, not a second route. Flash passes FLASH_TENANT.
+  // Every segment and query value is encoded: a tenant or kind is writer-chosen
+  // text, and the store's CHECK constraints are the only thing that has ever
+  // narrowed it.
+  agentRunWeeks: (
+    tenant: string,
+    limit = 52,
+  ): Promise<AgentRunWeekListResponse> =>
+    _fetch<AgentRunWeekListResponse>(
+      `/api/agent-runs/weeks?tenant=${encodeURIComponent(tenant)}&limit=${limit}`,
+    ),
+  agentRunWeek: (
+    tenant: string,
+    weekKey: string,
+  ): Promise<AgentRunWeekResponse> =>
+    _fetch<AgentRunWeekResponse>(
+      `/api/agent-runs/week/${encodeURIComponent(weekKey)}` +
+        `?tenant=${encodeURIComponent(tenant)}`,
+    ),
+  /** `null` on 404 — an absent run is an empty state, never an error page. */
+  agentRun: (
+    tenant: string,
+    kind: string,
+    day: string,
+    version?: number,
+  ): Promise<AgentRunResponse | null> =>
+    _fetch<AgentRunResponse | null>(
+      `/api/agent-runs/run/${encodeURIComponent(kind)}/${encodeURIComponent(day)}` +
+        `?tenant=${encodeURIComponent(tenant)}` +
+        (version == null ? "" : `&version=${version}`),
+      undefined,
+      { allow404: true },
+    ),
+  agentRunLatest: (
+    tenant: string,
+    kind?: string,
+  ): Promise<AgentRunResponse | null> =>
+    _fetch<AgentRunResponse | null>(
+      `/api/agent-runs/latest?tenant=${encodeURIComponent(tenant)}` +
+        (kind == null ? "" : `&kind=${encodeURIComponent(kind)}`),
+      undefined,
+      { allow404: true },
+    ),
 };
 
 export type {
