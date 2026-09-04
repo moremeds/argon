@@ -7,6 +7,35 @@ version in lockstep (enforced by `scripts/release/version_sync_check.py`).
 
 ## [Unreleased]
 
+### Added
+
+- **Flash — the option-wizard daily brief as a page in argon**, sidebar entry
+  under Dashboard, grouped by trading week.
+  - **Generic agent-run transport** (migration `148_agent_runs.sql`,
+    `storage/agent_runs.py`, `models/agent_runs.py`,
+    `api/routers/agent_runs.py`): append-only and versioned, keyed by
+    `(tenant, kind, run_day, version_no)`, idempotent on `(tenant, run_id)`.
+    `POST /api/agent-runs` sits behind `UW_SCAN_AGENT_INGEST_TOKEN` (unset
+    means disabled, never open); reads are `/weeks`, `/week/{week_key}`,
+    `/run/{kind}/{run_day}` and `/latest`, every one parameterised by
+    `tenant`. `kind` is opaque and `view_jsonb` is never interpreted — a unit
+    test fails the build if a tenant word leaks into those four files.
+  - **The Flash view** (`web/app/flash/**`, `web/components/flash/**`,
+    `web/lib/flash/**`): week strip with per-phase pips, premarket report,
+    intraday and close supplements, weekly summary with the `Frank 复盘` slot,
+    and hand-rolled SVG for the payoff curve and the dealer-gamma bars. Week
+    and Frank rows are resolved through the week index, not by date
+    arithmetic — helium files a W36 Frank under `run_day 2026-09-07`.
+  - Empty states carry the audit they ran (`helium audit — 0 runs for tenant
+    option-wizard, phase premarket, date 2026-08-31`), and an unrenderable
+    `schema_version` names the version that arrived and the one this build
+    draws rather than rendering blank.
+  - Design spec: `docs/superpowers/specs/2026-09-05-flash-design.md`.
+  - **Deploy step:** `UW_SCAN_AGENT_INGEST_TOKEN` must be added to
+    `/opt/argon/.env` on the mini followed by `docker-compose up -d api web`
+    (Watchtower does not re-read `env_file`). Migration 148 self-applies on
+    api boot.
+
 ## [0.13.4] — 2026-09-04
 
 

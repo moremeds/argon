@@ -6,7 +6,7 @@ Generated from `REGISTRY` in `src/uw_scan/reports/data_gap_healer.py` (one sourc
 uv run python -c "from uw_scan.reports.data_gap_healer import render_dataset_policy_markdown as r; open('docs/runbooks/data-gap-dataset-policy.md','w').write(r())"
 ```
 
-**175 datasets** across 11 groups.
+**176 datasets** across 11 groups.
 
 ## core_watchlist
 
@@ -106,6 +106,7 @@ uv run python -c "from uw_scan.reports.data_gap_healer import render_dataset_pol
 
 | table | audit_mode | provider | granularity | adapter | freq | reason | verified |
 |---|---|---|---|---|---|---|---|
+| agent_runs | provenance | none | none |  | event | agent run ledger (migration 148), pushed by helium over POST /api/agent-runs and append-only: a re-push of the same run is a no-op and a re-run lands as version N+1 beside N. Argon never fetches these; a missing (tenant, kind, run_day) is a run that never happened, and fabricating one would forge the record the Flash page replays. Re-push from helium's transcript store. | 2026-09-04 |
 | api_request_audit | provenance | none | none |  | none |  |  |
 | chanlun_signal_events | provenance | none | none |  | none |  |  |
 | data_freshness_snapshots | provenance | none | none |  | none |  |  |

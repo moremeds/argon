@@ -1,0 +1,842 @@
+<!--
+  argon FLASH mock — source note on candidate ids
+  ------------------------------------------------------------------
+  The three recorded option-wizard transcripts of 2026-09-03 disagree
+  with each other. The premarket run issued three put debit spreads
+  (QQQ 710/665, SPY 765/745, IWM 294/280) under ids QQQ-2026-09-03-1,
+  SPY-2026-09-03-2, IWM-2026-09-03-3. The intraday drift-watcher and the
+  close markout step of the same date tracked *bull call spreads*
+  (QQQ 716/722, SPY 772/778) plus an SLV-2026-09-03-3 leg under those
+  same first two ids — i.e. the ids do not resolve to the same
+  structures across runs in the recorded data.
+  Per the user's instruction this mock assumes id continuity: the
+  intraday and close candidate-status rows below have been rewritten to
+  track the three premarket structures by id and by legs. Every spot,
+  gamma level and closing price in those rows is still the recorded
+  number from the intraday/close transcripts; the status wording is a
+  comparison of a recorded spot against a recorded entry/invalidation
+  level, never an invented P&L. The SLV structure proposed in the close
+  run is kept where it belongs — as a new candidate of that run.
+-->
+<title>Argon Flash</title>
+<style>
+:root{
+  --bg-base:#0a0f14; --bg-panel:#0f1519; --bg-raised:#151c22;
+  --border-dim:#1e293b; --border-focus:#05ad98;
+  --text-primary:#e2e8f0; --text-secondary:#94a3b8; --text-muted:#475569;
+  --positive:#05ad98; --positive-strong:#0fcfb5; --negative:#e85d6c;
+  --warn:#f5a623; --vol:#8b5cf6; --vivid:#d946a8;
+  --chart-grid:rgba(148,163,184,.16); --chart-axis:#1e293b;
+  --fill-pos:rgba(5,173,152,.20); --fill-neg:rgba(232,93,108,.16);
+  --mono:"IBM Plex Mono",ui-monospace,SFMono-Regular,Menlo,monospace;
+  --sans:Inter,-apple-system,system-ui,"Segoe UI",sans-serif;
+  --r-xs:2px; --r-sm:3px; --r-md:4px; --r-lg:8px;
+  --rail:420px;
+}
+*{box-sizing:border-box}
+body{margin:0;background:var(--bg-base);color:var(--text-primary);font-family:var(--sans);font-size:13px;line-height:1.5;-webkit-font-smoothing:antialiased}
+button{font:inherit;color:inherit;background:none;border:none;padding:0;cursor:pointer;text-align:left}
+:focus-visible{outline:2px solid var(--positive);outline-offset:1px}
+table{border-collapse:collapse;width:100%}
+.mono{font-family:var(--mono);font-variant-numeric:tabular-nums}
+.lbl{font-family:var(--mono);font-size:10px;font-weight:700;letter-spacing:1.5px;text-transform:uppercase;color:var(--text-muted)}
+.num{font-family:var(--mono);font-variant-numeric:tabular-nums;font-weight:700}
+.pos{color:var(--positive)} .neg{color:var(--negative)} .amb{color:var(--warn)} .vio{color:var(--vol)}
+.sec{color:var(--text-secondary)} .mut{color:var(--text-muted)}
+
+/* ---------- shell ---------- */
+.app{min-height:100vh}
+.sidebar{position:fixed;inset:0 auto 0 0;width:220px;background:var(--bg-panel);border-right:1px solid var(--border-dim);display:flex;flex-direction:column;padding:16px 0;z-index:5}
+.brand{padding:0 16px 18px;display:flex;align-items:baseline;gap:8px}
+.brand b{font-family:var(--mono);font-size:16px;font-weight:700;letter-spacing:2px;color:var(--text-primary)}
+.brand span{font-family:var(--mono);font-size:9px;letter-spacing:1.2px;color:var(--text-muted)}
+.navgrp{padding:0 8px}
+.navgrp .lbl{padding:10px 8px 6px;display:block}
+.nav{display:block;width:100%;padding:6px 8px;border-radius:var(--r-sm);font-family:var(--mono);font-size:12px;letter-spacing:.4px;color:var(--text-secondary)}
+.nav:hover{background:var(--bg-raised);color:var(--text-primary)}
+.nav[aria-current="page"]{background:var(--bg-raised);color:var(--text-primary);box-shadow:inset 0 0 0 1px var(--border-focus)}
+.sidefoot{margin-top:auto;padding:12px 16px 0;border-top:1px solid var(--border-dim);display:flex;flex-direction:column;gap:3px}
+
+.main{margin-left:220px;padding:16px 24px 56px;max-width:2000px}
+.topbar{display:flex;align-items:flex-end;gap:24px;flex-wrap:wrap;padding-bottom:12px;border-bottom:1px solid var(--border-dim)}
+.route{font-family:var(--mono);font-size:24px;font-weight:700;letter-spacing:1px;line-height:1.1}
+.topbar .meta{margin-left:auto;display:flex;gap:22px;text-align:right}
+.topbar .meta div{display:flex;flex-direction:column;gap:2px;align-items:flex-end}
+
+/* ---------- week strip ---------- */
+.weekhead{display:flex;align-items:center;gap:10px;padding:14px 0 8px}
+.wknav{font-family:var(--mono);font-size:12px;color:var(--text-muted);border:1px solid var(--border-dim);border-radius:var(--r-sm);padding:2px 8px}
+.wknav:hover:not(:disabled){color:var(--text-primary)}
+.wknav:disabled{opacity:.4;cursor:default}
+.wkrange{font-family:var(--mono);font-size:12px;font-weight:700;letter-spacing:.6px}
+.strip{display:grid;grid-template-columns:repeat(6,1fr);gap:8px}
+.dcard{background:var(--bg-panel);border:1px solid var(--border-dim);border-radius:var(--r-md);padding:9px 10px;display:flex;flex-direction:column;gap:7px;min-height:96px;transition:background .12s,border-color .12s}
+.dcard:hover{background:var(--bg-raised)}
+.dcard[aria-pressed="true"]{background:var(--bg-raised);border-color:var(--positive)}
+.dcard .dh{display:flex;align-items:center;justify-content:space-between;gap:6px}
+.dcard .dow{font-family:var(--mono);font-size:10px;font-weight:700;letter-spacing:1.5px;color:var(--text-secondary)}
+.dcard[aria-pressed="true"] .dow{color:var(--text-primary)}
+.dcard .dt{font-family:var(--mono);font-size:11px;color:var(--text-muted)}
+.one{font-size:11.5px;line-height:1.42;color:var(--text-secondary);display:-webkit-box;-webkit-line-clamp:3;-webkit-box-orient:vertical;overflow:hidden}
+.one.norun{color:var(--text-muted);font-family:var(--mono);font-size:10.5px;letter-spacing:.4px}
+.pips{display:flex;gap:3px;margin-top:auto}
+.pip{font-family:var(--mono);font-size:9px;font-weight:700;letter-spacing:.5px;width:16px;height:14px;display:grid;place-items:center;border-radius:var(--r-xs);border:1px solid var(--border-dim);color:var(--text-muted)}
+.pip.on{border-color:transparent;background:var(--positive);color:var(--bg-base)}
+.dcard.wk{border-style:dashed}
+
+/* ---------- phase tabs ---------- */
+.phbar{display:flex;align-items:center;gap:6px;margin:18px 0 12px;padding-bottom:0;border-bottom:1px solid var(--border-dim)}
+.ph{font-family:var(--mono);font-size:11px;font-weight:700;letter-spacing:1.2px;text-transform:uppercase;padding:7px 12px;color:var(--text-muted);border-bottom:2px solid transparent;margin-bottom:-1px}
+.ph:hover:not(:disabled){color:var(--text-secondary)}
+.ph[aria-selected="true"]{color:var(--text-primary);border-bottom-color:var(--positive)}
+.ph:disabled{color:#2f3b47;cursor:default}
+.ph .dot{display:inline-block;width:5px;height:5px;border-radius:50%;background:var(--positive);margin-right:6px;vertical-align:middle}
+.ph:disabled .dot{background:#2f3b47}
+.phbar .asof{margin-left:auto;padding-bottom:6px}
+
+/* ---------- panels ---------- */
+.panel{background:var(--bg-panel);border:1px solid var(--border-dim);border-radius:var(--r-md)}
+.panel>h3{margin:0;padding:9px 12px;border-bottom:1px solid var(--border-dim);font-family:var(--mono);font-size:10px;font-weight:700;letter-spacing:1.5px;text-transform:uppercase;color:var(--text-muted);display:flex;align-items:center;gap:8px}
+.panel>h3 .tail{margin-left:auto;letter-spacing:.4px;text-transform:none;font-weight:400;color:var(--text-muted)}
+.pbody{padding:12px}
+.stack{display:flex;flex-direction:column;gap:12px}
+
+/* tape */
+.tape{display:grid;grid-template-columns:repeat(6,minmax(0,1fr));gap:8px}
+.tile{background:var(--bg-panel);border:1px solid var(--border-dim);border-radius:var(--r-md);padding:9px 11px;display:flex;flex-direction:column;gap:3px}
+.tile .v{font-family:var(--mono);font-variant-numeric:tabular-nums;font-weight:700;font-size:20px;line-height:1.05;letter-spacing:-.2px}
+.tile .src{font-family:var(--mono);font-size:9.5px;color:var(--text-muted);letter-spacing:.2px}
+.tapesrc{margin:8px 0 0;font-family:var(--mono);font-size:10.5px;line-height:1.55;color:var(--text-muted);max-width:150ch}
+.tile .chg{font-family:var(--mono);font-size:11px;font-weight:700;font-variant-numeric:tabular-nums}
+
+/* lead */
+.lead{background:var(--bg-panel);border:1px solid var(--border-dim);border-radius:var(--r-md);padding:14px 16px;display:flex;gap:16px;align-items:flex-start}
+.lead .lbl{padding-top:4px;white-space:nowrap}
+.lead p{margin:0;font-size:17px;line-height:1.45;max-width:96ch;text-wrap:pretty}
+
+/* layout */
+.cols{display:grid;grid-template-columns:minmax(0,1fr) var(--rail);gap:14px;align-items:start;margin-top:12px}
+.colL,.colR{display:flex;flex-direction:column;gap:12px;min-width:0}
+
+/* decision */
+.dec{display:grid;grid-template-columns:110px minmax(0,1fr);gap:0}
+.dec>div{padding:8px 12px;border-bottom:1px solid var(--border-dim)}
+.dec>div:nth-last-child(-n+2){border-bottom:none}
+.dec .k{background:var(--bg-base);font-family:var(--mono);font-size:10px;font-weight:700;letter-spacing:1.2px;text-transform:uppercase;color:var(--text-muted);border-right:1px solid var(--border-dim)}
+.dec .v{max-width:100ch}
+.dec .call{font-size:14.5px;line-height:1.45}
+
+/* candidates */
+.cand{background:var(--bg-panel);border:1px solid var(--border-dim);border-radius:var(--r-md);overflow:hidden}
+.candhead{display:flex;align-items:center;gap:10px;flex-wrap:wrap;padding:10px 12px;border-bottom:1px solid var(--border-dim)}
+.tkr{font-family:var(--mono);font-size:17px;font-weight:700;letter-spacing:.6px}
+.chip{font-family:var(--mono);font-size:10px;font-weight:700;letter-spacing:1px;text-transform:uppercase;border:1px solid var(--border-dim);color:var(--text-secondary);border-radius:var(--r-sm);padding:2px 7px}
+.lvls{margin-left:auto;display:flex;gap:16px}
+.lvls div{display:flex;flex-direction:column;gap:1px;align-items:flex-end}
+.candbody{display:grid;grid-template-columns:minmax(300px,340px) minmax(0,1fr);gap:0}
+.legwrap{padding:12px;border-right:1px solid var(--border-dim)}
+.pnlwrap{padding:12px}
+.pnlwrap svg{max-width:600px}
+.colR svg{max-width:420px}
+th{font-family:var(--mono);font-size:9.5px;font-weight:700;letter-spacing:1.2px;text-transform:uppercase;color:var(--text-muted);text-align:left;padding:0 8px 5px 0;border-bottom:1px solid var(--border-dim)}
+td{padding:5px 8px 5px 0;border-bottom:1px solid rgba(30,41,59,.55);font-size:12px}
+tr:last-child td{border-bottom:none}
+td.n,th.n{text-align:right;font-family:var(--mono);font-variant-numeric:tabular-nums;padding-right:14px}
+tr>*:last-child{padding-right:0}
+.pricing{display:grid;grid-template-columns:repeat(3,1fr);gap:8px;margin-top:10px;padding-top:10px;border-top:1px solid var(--border-dim)}
+.pricing div{display:flex;flex-direction:column;gap:2px}
+.rationale{padding:10px 12px;border-top:1px solid var(--border-dim);color:var(--text-secondary);font-size:12.5px;line-height:1.5;display:flex;gap:12px;align-items:flex-start}
+.rationale p{margin:0;max-width:110ch}
+.cid{margin-left:auto;white-space:nowrap;font-family:var(--mono);font-size:10px;color:var(--text-muted)}
+
+/* prose */
+.prose h4{margin:0 0 5px;font-size:13.5px;font-weight:700;line-height:1.35;text-wrap:balance}
+.prose p{margin:0;color:var(--text-secondary);font-size:12.5px;line-height:1.6;max-width:88ch}
+.prose>div+div{margin-top:14px;padding-top:14px;border-top:1px solid var(--border-dim)}
+
+/* right rail bits */
+.kv{display:flex;justify-content:space-between;gap:10px;padding:5px 0;border-bottom:1px solid rgba(30,41,59,.55)}
+.kv:last-child{border-bottom:none}
+.path{display:grid;grid-template-columns:repeat(3,1fr);gap:8px}
+.path div{border:1px solid var(--border-dim);border-radius:var(--r-sm);padding:8px;display:flex;flex-direction:column;gap:3px;background:var(--bg-base)}
+.gx+.gx{margin-top:12px;padding-top:12px;border-top:1px solid var(--border-dim)}
+.gxh{display:flex;justify-content:space-between;align-items:baseline;margin-bottom:6px}
+.cov td:first-child{width:44%}
+.ok{color:var(--positive);font-family:var(--mono);font-weight:700}
+.skip{color:var(--text-muted);font-family:var(--mono);font-size:11px}
+.note{padding:9px 12px;font-size:11.5px;line-height:1.5;color:var(--text-muted);border-top:1px solid var(--border-dim)}
+
+/* empty states */
+.empty{background:var(--bg-panel);border:1px solid var(--border-dim);border-radius:var(--r-md);padding:34px 20px;display:flex;flex-direction:column;align-items:center;gap:8px;text-align:center}
+.empty .big{font-family:var(--mono);font-size:12px;font-weight:700;letter-spacing:2px;text-transform:uppercase;color:var(--text-secondary)}
+.empty p{margin:0;color:var(--text-muted);font-size:12px;max-width:56ch}
+.skel{opacity:.42;pointer-events:none;user-select:none}
+.skel .panel>h3{color:var(--text-muted)}
+.ghost{height:9px;border-radius:var(--r-xs);background:var(--border-dim)}
+.ghostbox{border:1px dashed var(--border-dim);border-radius:var(--r-md);background:repeating-linear-gradient(135deg,transparent 0 7px,rgba(30,41,59,.35) 7px 8px)}
+.band{border:1px dashed var(--warn);border-radius:var(--r-md);background:rgba(245,166,35,.05);padding:11px 13px;display:flex;gap:13px;align-items:flex-start}
+.band p{margin:0;font-size:12.5px;line-height:1.55;color:var(--text-secondary);max-width:104ch}
+.band .lbl{color:var(--warn);white-space:nowrap;padding-top:2px}
+
+/* weekly */
+.wkrow{display:grid;grid-template-columns:172px minmax(0,1fr);gap:0;align-items:stretch}
+.wkrow>div{padding:10px 12px;border-bottom:1px solid var(--border-dim)}
+.wkrow:last-of-type>div{border-bottom:none}
+.wkrow .d{background:var(--bg-base);border-right:1px solid var(--border-dim);display:flex;align-items:baseline;gap:10px;white-space:nowrap}
+.wkrow .tw{display:flex;align-items:baseline;gap:16px}
+.wkrow .runs{margin-left:auto;white-space:nowrap;font-size:10px;letter-spacing:.5px}
+.wkrow .t{font-size:12.5px;line-height:1.55;color:var(--text-secondary);max-width:110ch}
+.wkrow .t.none{font-family:var(--mono);font-size:11px;letter-spacing:.5px;color:var(--text-muted)}
+
+/* supplements */
+.supgrid{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,440px);gap:14px;align-items:start;margin-top:12px}
+.scroll{max-height:560px;overflow-y:auto}
+.scroll::-webkit-scrollbar{width:8px}
+.scroll::-webkit-scrollbar-thumb{background:var(--border-dim);border-radius:4px}
+.deltas th,.deltas td{font-size:11.5px}
+.pre{white-space:pre-wrap;font-size:12.5px;line-height:1.65;color:var(--text-secondary);margin:0}
+.state{font-family:var(--mono);font-size:11px;font-weight:700;letter-spacing:.6px;padding:1px 7px;border-radius:var(--r-sm);border:1px solid var(--border-dim);white-space:nowrap}
+.state.hold{color:var(--text-secondary)}
+.state.up{color:var(--positive);border-color:rgba(5,173,152,.45)}
+.arrow{color:var(--text-muted);padding:0 5px}
+svg{display:block;max-width:100%;height:auto}
+svg text{font-family:var(--mono);font-variant-numeric:tabular-nums}
+.scrollx{overflow-x:auto}
+
+@media (max-width:1440px){
+  :root{--rail:360px}
+  .candbody{grid-template-columns:minmax(0,1fr)}
+  .legwrap{border-right:none;border-bottom:1px solid var(--border-dim)}
+}
+@media (max-width:1240px){
+  .cols,.supgrid{grid-template-columns:minmax(0,1fr)}
+  .strip{grid-template-columns:repeat(3,1fr)}
+}
+@media (prefers-reduced-motion:reduce){*{transition:none!important}}
+</style>
+
+<div class="app">
+  <aside class="sidebar">
+    <div class="brand"><b>argon</b><span>COCKPIT</span></div>
+    <nav class="navgrp">
+      <span class="lbl">Research</span>
+      <button class="nav" type="button">Dashboard</button>
+      <button class="nav" type="button" aria-current="page">Flash</button>
+      <button class="nav" type="button">Scanner</button>
+      <button class="nav" type="button">Positioning</button>
+      <button class="nav" type="button">Cockpit</button>
+      <button class="nav" type="button">Radar</button>
+      <button class="nav" type="button">Macro</button>
+      <span class="lbl">Book</span>
+      <button class="nav" type="button">Positions</button>
+      <button class="nav" type="button">Reports</button>
+    </nav>
+    <div class="sidefoot">
+      <span class="lbl">Source</span>
+      <span class="mono sec" style="font-size:11px">helium · option-wizard</span>
+      <span class="mono mut" style="font-size:10px">3 runs recorded this week</span>
+    </div>
+  </aside>
+
+  <main class="main">
+    <div class="topbar">
+      <div>
+        <div class="route">FLASH</div>
+        <div class="mut" style="font-size:12px;margin-top:2px">agent news flash</div>
+      </div>
+      <div class="meta">
+        <div><span class="lbl">Tenant</span><span class="mono" style="font-size:12px">option-wizard</span></div>
+        <div><span class="lbl">Phases</span><span class="mono" style="font-size:12px">premarket · intraday · close</span></div>
+        <div><span class="lbl">Today</span><span class="mono" style="font-size:12px">2026-09-04</span></div>
+      </div>
+    </div>
+
+    <div class="weekhead">
+      <span class="lbl">Week</span>
+      <button class="wknav" type="button" disabled title="No earlier week recorded">&#8249;</button>
+      <span class="wkrange">2026-08-31 &rarr; 2026-09-04</span>
+      <button class="wknav" type="button" disabled title="No later week recorded">&#8250;</button>
+      <span class="mut mono" style="font-size:11px;margin-left:6px">W36 &middot; 1 of 5 days has a recorded run</span>
+    </div>
+    <div class="strip" id="strip"></div>
+
+    <div id="stage"></div>
+  </main>
+</div>
+
+<script>
+"use strict";
+/* ==========================================================================
+   All figures below are transcribed verbatim from three recorded
+   option-wizard runs of 2026-09-03 (premarket / intraday / close).
+   Nothing is invented, rounded or interpolated. Payoff curves are computed
+   from the recorded legs and net debit only.
+   ========================================================================== */
+
+const PRE = {
+  asOf: "2026-09-03T17:01:15.101Z",
+  /* Change column: ONLY the two deltas the premarket run actually recorded.
+     ow_spot returned last price with no daily change for the six equity
+     tiles, and no change was recorded for DGS10 or HY OAS, so those read
+     "—". Nothing here is computed from another phase's tape. */
+  tape: [
+    {k:"SPY", v:"772.80", c:null, src:"ow_spot, last price only — no daily change recorded"},
+    {k:"QQQ", v:"717.47", c:null, src:"ow_spot, last price only — no daily change recorded"},
+    {k:"IWM", v:"294.93", c:null, src:"ow_spot, last price only — no daily change recorded"},
+    {k:"10Y", v:"4.79%", c:null, src:"DGS10, 2026-09-01, ~2d behind — no change recorded"},
+    {k:"DFII10", v:"2.44%", c:"+12bp", src:"DFII10 10y real yield, 2026-09-01, ~2d behind"},
+    {k:"VIX", v:"16.34", c:"+1.42", src:"VIXCLS, 14.92 on 08-31 → 16.34 on 09-01, ~2d behind"},
+    {k:"HY OAS", v:"2.65%", c:null, src:"BAMLH0A0HYM2, 2026-09-01, series fallback — no change recorded"}
+  ],
+  tapeSrc: "Sources &middot; SPY QQQ NVDA MSFT AVGO IWM — ow_spot, last price only, the run recorded no daily change. 10Y — DGS10 4.79%, 2026-09-01, ~2d behind. DFII10 — 10y real yield 2.44%, +12bp, 2026-09-01. VIX — VIXCLS, 14.92 on 08-31 to 16.34 on 09-01, +1.42 vol points. HY OAS — BAMLH0A0HYM2 2.65%, 2026-09-01, series fallback, fredDirect unavailable.",
+  one: "Real yields did the work — DFII10 ran +12bp to 2.44% while VIX broke its August 14-handle pin to 16.34 into tomorrow's payroll.",
+  decision: [
+    ["Call","Bearish tilt across index duration into payroll; keep three defined-risk put-debit spreads and drop the redundant single name.",1],
+    ["Action","Enter QQQ 710/665, SPY 765/745 and IWM 294/280 put-debit spreads on a break below each short-side entry level.",0],
+    ["Aggression","Low-to-moderate — every position is defined-risk with sub-$800 max loss per spread; the real risk is stacking correlated index shorts, so size the book.",0],
+    ["Why now","Rising real yields (DFII10 +12bp to 2.44%) tax duration and VIX is bid to 16.34 into tomorrow's payroll.",0],
+    ["Max risk","Per spread QQQ $774, SPY $400, IWM $343 — treat the combined ~$1,517 as a single correlated debit a strong payroll print stops out together.",0],
+    ["Invalidation","QQQ above 720, SPY above 770, IWM above 297 — each spread dies on a reclaim of its Call Wall.",0],
+    ["Next trigger","Tomorrow's 08:30 ET payroll; entries arm only on a break below QQQ 710 / SPY 765 / IWM 294.",0],
+    ["Confidence","Moderate — no ow_ib_positions call, so existing book exposure and buying-power fit are unverified, and GEX/skew anchors are trusted from the design layer.",0]
+  ],
+  overnight: "AVGO: Broadcom guided 4Q revenue to ~$34.8B vs. $35.05B estimate and fell ~6.8% after hours.",
+  schedule: [
+    {g:"Today", t:"15:00 ET", e:"Fed's Hammack (Cleveland) &amp; Goolsbee (Chicago) special remarks, 'Connecting Communities'", c:""},
+    {g:"Tomorrow", t:"08:30 ET", e:"Employment Report (NFP)", c:"+50k / &minus;23k"},
+    {g:"", t:"08:30 ET", e:"Unemployment Rate", c:"4.1% / 4.1%"},
+    {g:"", t:"08:30 ET", e:"Avg Hourly Earnings, M/M%", c:"0.2% / 0.1%"},
+    {g:"", t:"08:30 ET", e:"Avg Hourly Earnings, Y/Y%", c:"3% / 3.1%"}
+  ],
+  policy: [
+    {d:"9/16", r:"3.78", band:"3.75-4.00%", call:"HIKE", p:"60%"},
+    {d:"10/28", r:"3.855", band:"3.50-3.75%", call:"HOLD", p:"70%"},
+    {d:"12/9", r:"4.015", band:"3.75-4.00%", call:"HIKE", p:"64%"}
+  ],
+  sections: [
+    {t:"Rates are the first cause, and this time the levels line up",
+     b:"Yesterday stood down: both bearish spreads carried 'above' invalidations spot had already touched — SPY 773.16 against spot 773.18, QQQ 717.465 against spot 717.53 — so each opened through its own stop. What changed is not the direction but the entry geometry."},
+    {t:"The most anomalous move is vol divorcing from a green tape",
+     b:"VIXCLS jumped from 14.92 (08-31) to 16.34 (09-01), +1.42 vol points, its sharpest one-day rise in the 30-day window, while the 10Y made new local highs and spot held green. The bar it faced was August's pinned 14-handle (14.25 on 08-14, 14.43 on 08-28) on the assumption the Fed path was benign."},
+    {t:"The beat-and-raise-that-closed-down tag is left unassigned",
+     b:"The label needs the beat, the raise and the red close verified together, and this run has none of the three. The headline feed (ow_uw_headlines, newest 2026-09-03T16:58:01Z) carried no watchlist earnings beat — the tape was M&amp;A and geopolitics, including an $AAPL £2B London suit at 2026-09-03T16:17:51Z over App Tracking Transparency."},
+    {t:"Reaction function: the market is waiting on 08:30 ET, not the speakers",
+     b:"Cleveland's Hammack and Chicago's Goolsbee speak at 15:00 ET / 2026-09-03T19:00:00Z, but the function is already written into the strip. Frenzy's futures-implied path (snapshot 2026-09-02, NOT CME FedWatch) puts 16 September at 60% HIKE 25bp / 40% Hold, implied 3.78%; October flips to 70% Hold; December swings back to 64% HIKE, implied 4.015%. It is asymmetric around one input."},
+    {t:"Scenarios: base case is the hot print, held loosely because the crowd is opposite",
+     b:"Path A — hot payroll (&gt;+50k or AHE M/M ≥0.3%): rates lead, DGS10 pushes off 4.79% toward 4.85–4.90% as the September hike firms past 60%, and the duration tax lands on QQQ (717.47) and the megacap complex first, IWM (294.93) via floating-rate liabilities second, VIX gapping from 16.34 toward 18–19 last."}
+  ],
+  candidates: [
+    {id:"QQQ-2026-09-03-1", tkr:"QQQ", exp:"2026-10-02", dte:29, kind:"put_debit_spread", spot:717.29,
+     entry:"710&darr;", target:"—", inval:"720&uarr;",
+     legs:[["buy","put",710.00,"2026-10-02","10.45"],["sell","put",665.00,"2026-10-02","2.71"]],
+     net:7.74, width:45.00, maxGain:3726.00, maxLoss:774.00, be:702.26,
+     why:"Highest-duration index and the cleanest expression of the real-yield thesis (DFII10 +12bp to 2.44%), with VIX bid into tomorrow's payroll."},
+    {id:"SPY-2026-09-03-2", tkr:"SPY", exp:"2026-10-02", dte:29, kind:"put_debit_spread", spot:772.87,
+     entry:"765&darr;", target:"—", inval:"770&uarr;",
+     legs:[["buy","put",765.00,"2026-10-02","7.37"],["sell","put",745.00,"2026-10-02","3.37"]],
+     net:4.00, width:20.00, maxGain:1600.00, maxLoss:400.00, be:761.00,
+     why:"Index anchor with NORMAL put-skew and a validated -2.6%/20d separation. Long the 765 Put Wall / Accel-down level (~1% below spot 772.87) — losing it flips dealers short-gamma with the 766 flip just above; the 745 short caps cost."},
+    {id:"IWM-2026-09-03-3", tkr:"IWM", exp:"2026-10-02", dte:29, kind:"put_debit_spread", spot:294.99,
+     entry:"294&darr;", target:"—", inval:"297&uarr;",
+     legs:[["buy","put",294.00,"2026-10-02","5.05"],["sell","put",280.00,"2026-10-02","1.62"]],
+     net:3.43, width:14.00, maxGain:1057.00, maxLoss:343.00, be:290.57,
+     why:"Genuinely differentiated driver: small caps carry floating-rate liability sensitivity to the real-rate back-up, and argon flags RICH put-skew (rr_z +0.66) with a validated -3.9%/20d separation."}
+  ],
+  gamma: [
+    {tkr:"QQQ", spot:"717.43", rows:[
+      {k:710.00,l:"Call Wall",r:"resistance",v:13785},{k:710.00,l:"Put Wall",r:"support",v:13785},
+      {k:665.00,l:"Gamma Flip",r:"flip",v:0},{k:660.00,l:"Accel &uarr;",r:"accelerator",v:0}]},
+    {tkr:"SPY", spot:"772.77", rows:[
+      {k:770.00,l:"Call Wall",r:"resistance",v:75478},{k:766.00,l:"Gamma Flip",r:"flip",v:7083},
+      {k:765.00,l:"Put Wall",r:"support",v:-33718},{k:765.00,l:"Accel &uarr;",r:"accelerator",v:-33718}]},
+    {tkr:"IWM", spot:"294.01", rows:[
+      {k:297.00,l:"Call Wall",r:"resistance",v:61950},{k:295.00,l:"Gamma Flip",r:"flip",v:33447},
+      {k:294.00,l:"Put Wall",r:"support",v:-42153},{k:294.00,l:"Accel &uarr;",r:"accelerator",v:-42153}]}
+  ],
+  risk: [["NVDA","Dropped as a redundant, correlated expression of the same rising-real-yields megacap-duration thesis already carried by QQQ and SPY."]],
+  coverage: [
+    ["Rates","ok","partial, 10Y trend only (DGS10 4.79, 2026-09-01, ~2d behind); no live tick, no 2Y/30Y, no 2s10s"],
+    ["Credit HY OAS","ok","2.65% via series fallback, fredDirect unavailable"],
+    ["Credit CCC OAS","skip","skipped, no source"],
+    ["Tape/spot","ok","last-price only, no daily change; VIX unpriced (422)"],
+    ["Flow/GEX","ok","current 09-03 intraday tide, thinned ≤80 prints"],
+    ["Events","ok","asOf 2026-09-03T17:01:15.101Z"],
+    ["Policy path","ok","Frenzy futures-implied (snapshot 2026-09-02, NOT CME FedWatch)"],
+    ["Commodities","skip","skipped, no numeric close (TradingView app down)"]
+  ]
+};
+
+const INTRA = {
+  run:"run-5cc65a12-a112-49fb-8566-ca01dc09ecc4",
+  asOf:"2026-09-03T17:00:06Z",
+  headline:"Curve bull-steepens as 2Y sheds 3.5bp into Friday's payroll, gold rips to $4,486 — and Broadcom's soft Q4 guide sinks it 3% against a green SMH tape, the tell that the AI-capex bar has outrun even the winners.",
+  tape:[["SPY","772.92","+7.76",1],["QQQ","717.62","+8.38",1],["IWM","294.99","+0.98",1],["VIX","14.61","-0.58",1],
+        ["10Y","4.752","-0.028",1],["2Y","4.336","-0.035",1],["30Y","5.234","-0.026",1],["5Y","4.500","-0.036",1],
+        ["DXY","98.864","-0.712",0],["Gold","4486.163","+2.23%",1],["Silver","66.9752","+2.53%",1],["WTI","91.56","+0.60%",1]],
+  tapeSrc:"Sources &middot; equities and VIX — ow_spot / gex-reporter, run as-of 2026-09-03T17:00:06Z. Rates — ow_macro_rates liveNow (TradingView), fetchedAt 2026-09-03T17:00:20.911Z; changes in index points. DXY, metals and WTI — ow_tv_commodities, asOf 2026-09-03T17:00:26.278Z; metals and WTI changes are percent, every other change is absolute.",
+  gex:[["SPY","772.92","772.53","771","773","768","3866855435.86"],
+       ["QQQ","717.57","717.52","718","718","714","915505167.38"]],
+  /* Rewritten to track the three structures the premarket run issued
+     (see the note at the top of this file). Every spot below is the
+     recorded intraday number; each status is a comparison of that spot
+     against the recorded entry / invalidation level. No P&L is stated —
+     the run recorded none for these ids. */
+  drift:[
+    {t:"QQQ-2026-09-03-1 — put debit 710/665, entry 710&darr;, inval 720&uarr;", s:"not armed", up:0,
+     b:"Entry is a break <em>below</em> 710 and spot is 717.57 (gex, as of 2026-09-03T17:00:06Z) — 7.57 above the trigger, so the spread has not armed. Price is pinned above the entry rather than falling toward it: the 718 gamma magnet and 718 call wall sit just overhead with the gamma flip at 717.52 directly under spot. The 720 invalidation is 2.43 above spot and untouched. Session tape moved away from the trigger, QQQ +8.38 to 717.62."},
+    {t:"SPY-2026-09-03-2 — put debit 765/745, entry 765&darr;, inval 770&uarr;", s:"not armed", up:0,
+     b:"Entry is a break below 765; spot 772.92 (gex, as of 2026-09-03T17:00:06Z) is 7.92 above it, jammed at the 773 call wall with the 771 gamma magnet just under. Not armed. Note the geometry the premarket run shipped: the 770 invalidation was already below spot (772.87) at issue and remains below it at 772.92 — as written the structure is simultaneously un-triggered and past its own stated stop. Session tape SPY +7.76 to 772.92."},
+    {t:"IWM-2026-09-03-3 — put debit 294/280, entry 294&darr;, inval 297&uarr;", s:"not armed", up:0,
+     b:"Closest of the three to arming and still not armed: IWM 294.99 on the 17:00Z tape (+0.98 on the session) is 0.99 above the 294 entry, with the 297 invalidation 2.01 above. The gex-reporter covered SPY and QQQ only this run, so there is no intraday dealer-gamma row for IWM — the premarket Put Wall / Accel-down at 294 is the last recorded level for it."},
+    {t:"Verdict", s:"", up:0,
+     b:"None of the three armed. All three are break-below entries and all three indexes sat above their trigger through the 17:00Z window — QQQ 717.57 vs 710, SPY 772.92 vs 765, IWM 294.99 vs 294 — while the tape rallied away from every one of them (SPY +7.76, QQQ +8.38, IWM +0.98). No invalidation was reached either, except in the sense that SPY's 770 stop was mis-set below spot from the start. Checked against gex spot for SPY 772.92 / QQQ 717.57 and the 17:00Z tape for IWM 294.99."}
+  ],
+  sections:[
+    {t:"Rates are the first cause", b:"The 2Y sits at 4.336% (−3.5bp) and the 10Y at 4.752% (−2.8bp) on TradingView's live curve (ow_macro_rates liveNow, fetchedAt 2026-09-03T17:00:20.911Z). The front end is leading the rally, so the 2s10s steepens to +41.6bp — a bull-steepener the day before payrolls, the front end pulling down harder than the belly. Note the shape is inverted-turned-positive at the long end: the 30Y at 5.234% (−2.6bp) sits well above the 10Y. This is the 'good' direction for duration — everything is richer — but the level still bites. Rank by cash-flow duration, from most-helped-to-most-exposed: the longest-duration equity — unprofitable-until-2030 growth, the crypto-treasury and small-cap complex (IWM +0.98 to 294.99) — gets the biggest present-value tailwind from lower discount rates and is why the front-end rally matters; long-bond proxies (TLT 82.325, +0.375) get a direct mark-up; mega-cap tech (QQQ +8.38) rides it comfortably. The hurt is muted today because rates fell across the whole curve — but the 30Y above 5.2% is the reminder that the term-premium floor under long-duration cash flows has not moved."},
+    {t:"Today's largest divergence", b:"Broadcom. AVGO trades 356.37, down −10.87 (~−3%), while the entire semi and mega-cap tape it anchors is green: SMH's sector complex bid, NVDA +3.07 to 227.48, MRVL +5.27 to 211.75, ALAB +5.60 to 279.73, XLK +2.25 to 185.845, QQQ +8.38. A name falling 3% inside a rallying group it is a bellwether of is the anomaly. The cause is the expectations bar, not sentiment: Broadcom did not miss on the print, it guided the top line light. Per Unusual Whales, 2026-09-02T20:17:34Z — 'BROADCOM SEES 4Q REV. ABOUT $34.8B, EST. $35.05B' — and 2026-09-02T20:20:20Z — 'BROADCOM TUMBLES 6.8% AFTER 4Q REVENUE OUTLOOK MISSES ESTIMATE.' The bar for the AI-infrastructure leaders is now set at beat-AND-raise; a merely-in-line-to-soft revenue outlook, against a stock that had front-run tens of billions of AI chip financing, is enough to sink it while its peers rally on the same AI-capex thesis. The sell-side confirms the re-rate: Unusual Whales, 2026-09-03T13:40:29Z — 'BofA Global Research cuts Broadcom's price objective to $460 from $530.' The divergence is the market marking down the marginal dollar of AI revenue at the one name where the expectations bar had climbed highest."},
+    {t:"Good news, priced down = pricing power exhausted", b:"No clean beat-and-raise-that-closed-down name surfaces in today's coverage. The one large decliner into a green tape, Broadcom, is a guide-DOWN (Q4 revenue outlook of ~$34.8B below the ~$35.05B estimate, per Unusual Whales 2026-09-02T20:17:34Z), not a beat-and-raise — so it does not carry this tag; it is treated as the divergence above. Absent a beat-and-raise print marked down today, the pricing-power-exhausted signal does not fire. Flagging the absence rather than forcing a name onto the tag: the tell to watch tomorrow is whether an in-line-or-better payroll fails to lift the long-duration complex."},
+    {t:"Reaction function", b:"Two Fed voices are dated for today — Cleveland's Hammack and Chicago's Goolsbee, 'Connecting Communities' remarks at 2026-09-03T19:00:00Z (ow_uw_calendar, asOf 2026-09-03T17:00:23.127Z) — but the reaction is read off the tape, not guessed forward. What the front end is already pricing: the futures-implied path (ow_argon_policy_path, Frenzy Capital fed-funds futures via argon, snapshot 2026-09-02 — futures-implied via Frenzy Capital, NOT CME FedWatch) has the 9/16 meeting at a 60% HIKE / 40% Hold, implied rate 3.78%, target 3.75–4.00%; then 10/28 leaning HOLD at 70%; then 12/9 back to a 64% HIKE. That is a market pricing a Fed still in a tightening-bias reaction function — the input that matters is inflation/labor running hot enough to justify hikes, not cuts. Yet today the 2Y richened 3.5bp and the curve bull-steepened, and gold ripped +2.23% to $4,486 with silver +2.53% and DXY −0.71 to 98.864 (ow_tv_commodities, asOf 2026-09-03T17:00:26.278Z; ow_macro_rates liveNow) — a real-asset, weaker-dollar bid that reads as the market fading the hike-path stiffness ahead of tomorrow's 08:30 ET payroll (consensus +50k jobs, prior −23k; unemployment 4.1% vs 4.1% prior; AHE +0.2% m/m). The reaction function in one line: the front end says a soft labor print pulls the September hike odds down fast, and the gold/dollar move is the early vote for that."},
+    {t:"Layer coverage", b:"SESSION NOTE (pitfall 07): Unusual Whales' market/sector/ETF tide rows this run carry date '2026-09-03' — the tool returned today's dated session, with tidePrints 'thinned across the session to <=80 prints per tide' and the ETF (SMH) tide returning all-null underlying/premium rows. Treat flow as thinly-sampled, and the SMH ETF-tide as unavailable. | RATES — ow_macro_rates liveNow (TradingView), fetchedAt 2026-09-03T17:00:20.911Z — ✓ (2Y 4.336, 10Y 4.752, 30Y 5.234, 2s10s +41.6). | CREDIT — BAMLH0A0HYM2 fredDirect, as-of 2026-09-02, HY OAS 2.66 — ✓. CCC OAS: skipped. | TAPE — ow_spot, fetchedAt 2026-09-03T17:00:29.764Z — ✓. | FLOW/GEX — ow_uw_market_state marketTide, date 2026-09-03 (thinned, ≤80 prints/tide; SMH etfTide null) — ✓ with caveat. | EVENTS — ow_uw_calendar, 2026-09-03T17:00:23.127Z — ✓. | POLICY PATH — ow_argon_policy_path, snapshot 2026-09-02 — ✓."}
+  ],
+  faults:["provider unavailable: provider-deepseek-dsh — no built lib/provider.js","tool unconfigured: ow_ib_positions (OW_IB_API_BASE unset)","ow_spot skipped in universe step — needs parameters this step cannot supply"]
+};
+
+const CLOSE = {
+  run:"run-e7862a41-c198-4f67-8de6-c9a32cdcd1fa",
+  asOf:"2026-09-03T20:14:56Z",
+  headline:"Curve steepens as 10Y holds 4.77% into tomorrow's payrolls; a 60% futures-implied HIKE for 9/16 sits under an equity tape that keeps bidding calls — SPY +8.01 to 773.17, gold rips 1.9% to a 4,471 record.",
+  tape:[["SPY","773.17","+8.01",1],["QQQ","717.67","+8.43",1],["IWM","295.19","+1.18",1],["VIX","14.32","-0.87",1],
+        ["10Y","4.772","-0.008",1],["2Y","4.34","-0.031",1],["30Y","5.253","-0.007",1],["DXY","98.977","-0.599",1],["Gold","4471.34","+1.89%",1]],
+  tapeSrc:"Sources &middot; equities and VIX — ow_spot at the 2026-09-03 close, run as-of 2026-09-03T20:14:56Z. Rates — ow_macro_rates liveNow, closing read 16:15 ET; changes in index points. DXY and gold — ow_tv_commodities, asOf 2026-09-03T20:15:31Z; the gold change is percent, every other change is absolute.",
+  gex:[["SPY","772.66","778.08","773","773","772","5691013830.33"],
+       ["QQQ","717.11","716.38","717","719","716","998390037.29"]],
+  /* Same three structures, settled at the close. Closing prices and gex
+     levels are the recorded close-run numbers; the status is a comparison
+     against the recorded entry / invalidation levels. */
+  markout:[
+    {id:"QQQ-2026-09-03-1 &middot; put debit 710/665", tkr:"QQQ", s:"not armed", up:0, b:"Entry 710&darr;, close 717.67 (+8.43 on the session) — 7.67 above the trigger, so the close settles the structure unarmed. Invalidation 720&uarr; not reached, 2.33 above the close. Closing gex spot 717.11 with the flip at 716.38, magnet 717, call wall 719, put wall 716: the level this spread needs to break is a full point below the closing put wall."},
+    {id:"SPY-2026-09-03-2 &middot; put debit 765/745", tkr:"SPY", s:"not armed", up:0, b:"Entry 765&darr;, close 773.17 (+8.01) — 8.17 above the trigger, unarmed. The 770&uarr; invalidation sits 3.17 below the close, as it already sat below spot (772.87) when the structure was issued. Closing gex spot 772.66, flip 778.08, magnet 773, call wall 773, put wall 772."},
+    {id:"IWM-2026-09-03-3 &middot; put debit 294/280", tkr:"IWM", s:"not armed", up:0, b:"Entry 294&darr;, close 295.19 (+1.18) — 1.19 above the trigger, the nearest of the three and still unarmed; invalidation 297&uarr; is 1.81 above the close. No gex row for IWM in the close run."}
+  ],
+  newCand:{id:"SLV — close phase", tkr:"SLV", exp:"2026-09-30", kind:"call debit spread", spot:60.55,
+    entry:"61&uarr;", target:"63", inval:"60&darr;", add:"60.50",
+    legs:[["buy","call",60,"2026-09-30","3.15"],["sell","call",61,"2026-09-30","2.72"]],
+    net:0.43, width:1.00, maxGain:57.00, maxLoss:43.00, be:60.43,
+    why:"SLV spot 60.55 (+1.48 on the day). Argon flags SLV 25d skew CHEAP with structural call-skew — upside optionality is on sale. Tight defined-risk call spread pinned between the argon Put Wall (60) and Call Wall (61). Long strike 60 sits on the Put Wall (distPct -0.91, ITM), short 61 on the Call Wall (distPct +0.74, OTM). Priced: net debit 0.43/share, maxLoss $43/spread, maxGain $57/spread, breakeven 60.43, takeProfit $28.50, stop $43. As a debit spread the max loss is the debit paid regardless of any downside gap."},
+  reviewNote:"Risk-reviewer struck the design step's claim that SLV 'ripped +2.48% to 66.95' — ow_spot returns 60.55, and a 61 call would be deep ITM at 66.95, not OTM +0.74%. The figure was unsupported by any tool and was removed; the structure was kept.",
+  decision:[
+    ["Call","One clean SLV call debit spread survives review; the rationale's 66.95 spot claim was false and struck against the live 60.55.",1],
+    ["Action","Buy SLV 60/61 call debit spread (Sep 30 expiry) for 0.43 debit; enter on a move above 61, add at 60.50.",0],
+    ["Aggression","Low — defined risk, $43 max loss per spread, one-point-wide debit spread.",0],
+    ["Why now","Argon 25d skew is CHEAP with structural call-skew; SLV up +1.48 on the day and structure sits between the Put Wall (60) and Call Wall (61).",0],
+    ["Max risk","$43 per spread — the debit paid; capped even on a downside gap since it is a long debit spread.",0],
+    ["Invalidation","Spot below 60 (the argon Put Wall / long strike).",0],
+    ["Next trigger","Spot above 61 (short strike / Call Wall) to enter; add at 60.50; target 63.",0],
+    ["Confidence","Medium. Verified spot, strikes, earnings (ETF, none), and pricing. Skipped layers: argon metrics not re-pulled this pass (skew claim carried from design), and IB positions/sizing not checked.",0]
+  ],
+  risk:[["GLD","Dropped in design phase for anchor reasons; not resubmitted for review."],
+        ["GOOGL","Dropped in design phase for anchor reasons; not resubmitted for review."]],
+  recap:[
+    {t:"今日故事", b:"今天的第一因是利率与明天的就业报告。收盘时（2026-09-03 16:15 ET），前端走低：2Y 4.34%（−3.1bp），10Y守在4.772%（−0.8bp），30Y 5.253%（−0.7bp）——曲线牛陡，2s10s扩至43.2bp。但这不是宽松环境：30Y在5.25%之上，argon的Frenzy Capital联邦基金期货（快照2026-09-02，非CME FedWatch）给9/16 FOMC定价60%概率加息25bp至3.75-4.00%、40%不变。全部前端都盘绕在明天08:30 ET的非农上（预期+50,000 vs 前值−23,000；失业率4.1% vs 4.1%；时薪+0.2% m/m vs +0.1%）。\n\n今日最干净的背离是黄金：+1.89%至4,471.34的纪录级水平（ow_tv_commodities，asOf 2026-09-03T20:15:31Z），白银同步+2.48%至66.95、铜+1.18%。异常之处不在于黄金上涨，而在于它在DXY下跌到98.977（−0.599）且10Y TIPS实际利率（DFII10）高达2.44%（FRED直连，asOf 2026-09-01）的日子里创纪录——黄金迎着上升的实际利率逆风仍然冲高，打破了教科书式的反向关系，读作抢在明天非农前的避险/贬值买盘。\n\n今天的招牌财报LULU是个反例，不构成beat-and-raise：据Unusual Whales 2026-09-03T20:13:19Z，Q2营收$2.42B低于$2.46B预期，EPS $2.92 vs 预期$1.80（EPS超预期但营收不及），可比销售ex-FX下滑9% vs 预期上升4.28%；且2026-09-03T20:08:34Z财测下调（FY EPS $9.48-$9.73，此前$10.95-$11.15）——是miss-and-cut而非beat-and-raise，且LULU仍报121.77（+1.70，ow_spot 2026-09-03T20:15:46Z）并未下跌。今天没有触发\"定价能力耗尽\"的名字。"},
+    {t:"今日市场", b:"股票磁带全线走强、波动率被压碎，与偏鹰的利率定价形成张力。SPY +8.01至773.17，QQQ +8.43至717.67，IWM +1.18至295.19，VIX被砸到14.32（−0.87）。资金流是买call主导：09-03实盘净call溢价到16:00 ET约建到+$466M（ow_uw_market_state marketTide，date 2026-09-03）——在一个五五开偏加息的概率和一个非农缺口面前，磁带并未为鹰派尾部定位。\n\nGEX侧，SPY现价772.66，gamma flip在778.08之上、gamma磁铁773、call wall 773、put wall 772——现价被夹在call/put墙之间贴着磁铁。QQQ现价717.11，gamma flip在716.38、磁铁717、call wall 719、put wall 716（as of 2026-09-03T20:14:56Z）。\n\n对早间三个候选结构的结算：三者都是“跌破触发”的put debit spread，收盘时无一触发。QQQ（触发710下方）收717.67，高出触发位7.67，止损720未破；SPY（触发765下方）收773.17，高出8.17，其770的止损位在发出时就已低于现价772.87，收盘依然如此；IWM（触发294下方）收295.19，高出1.19，是三者中离触发最近的一个，止损297未破。\n\n早间框架把这一天读对了。它明确点出了核心张力——call-heavy的磁带迎着60%加息概率和非农缺口过夜——并把黄金的逆实际利率纪录标为当日最干净的背离；两者都如实展开。早间还主动拒绝为LULU强行安上beat-and-raise标签，收盘价证实了这一克制。真正的裁决要等明天08:30 ET的非农：热数据坐实9/16加息、压升2Y并压平43bp的2s10s；软数据则延续今天开启的牛陡。"}
+  ],
+  faults:["provider unavailable: provider-deepseek-dsh — no built lib/provider.js","tool unconfigured: ow_ib_positions (OW_IB_API_BASE unset)"]
+};
+
+const WEEK = {
+  range:"2026-08-31 → 2026-09-04",
+  days:[
+    {key:"mon", dow:"MON", date:"2026-08-31", md:"08-31", runs:{}},
+    {key:"tue", dow:"TUE", date:"2026-09-01", md:"09-01", runs:{}},
+    {key:"wed", dow:"WED", date:"2026-09-02", md:"09-02", runs:{}},
+    {key:"thu", dow:"THU", date:"2026-09-03", md:"09-03", runs:{premarket:PRE, intraday:INTRA, close:CLOSE}},
+    {key:"fri", dow:"FRI", date:"2026-09-04", md:"09-04", runs:{}}
+  ]
+};
+</script>
+
+<script>
+"use strict";
+const $ = (s,r)=> (r||document).querySelector(s);
+const el = (t,c,h)=>{const n=document.createElement(t); if(c)n.className=c; if(h!=null)n.innerHTML=h; return n;};
+const fmtUSD = n => (n<0?"−":"+") + "$" + Math.abs(n).toLocaleString("en-US",{minimumFractionDigits:2,maximumFractionDigits:2});
+const fmtInt = n => (n<0?"−":"+") + Math.abs(n).toLocaleString("en-US");
+const sgn = s => /^[-−]/.test(String(s)) ? "neg" : "pos";
+
+/* ---------------- payoff curve ------------------------------------------
+   Piecewise-linear P&L at expiry, computed from the recorded legs and net
+   debit only:  pnl(S) = 100 * ( intrinsic(long) - intrinsic(short) - net )  */
+function intrinsic(right, K, S){ return right==="put" ? Math.max(K-S,0) : Math.max(S-K,0); }
+function pnlAt(c, S){
+  let v = 0;
+  for(const [act,right,K] of c.legs) v += (act==="buy"?1:-1) * intrinsic(right,K,S);
+  return (v - c.net) * 100;
+}
+function payoffSVG(c){
+  const W=520,H=196, mL=52,mR=14,mT=16,mB=28;
+  const iw=W-mL-mR, ih=H-mT-mB;
+  const strikes = c.legs.map(l=>l[2]);
+  const pts = strikes.concat([c.spot, c.be]);
+  const lo0=Math.min.apply(null,pts), hi0=Math.max.apply(null,pts);
+  const pad=0.18*(hi0-lo0), xlo=lo0-pad, xhi=hi0+pad;
+  const ypad=0.08*(c.maxGain+c.maxLoss), ylo=-c.maxLoss-ypad, yhi=c.maxGain+ypad;
+  const X = s => mL + (s-xlo)/(xhi-xlo)*iw;
+  const Y = p => mT + (yhi-p)/(yhi-ylo)*ih;
+  const y0 = Y(0);
+
+  const brks = Array.from(new Set([xlo].concat(strikes.filter(k=>k>xlo&&k<xhi)).concat([c.be,xhi])))
+                 .sort((a,b)=>a-b);
+  const curve = brks.map(s=>({x:X(s), y:Y(pnlAt(c,s)), p:pnlAt(c,s)}));
+
+  let g = "";
+  /* grid + zero line */
+  g += `<line x1="${mL}" y1="${Y(c.maxGain)}" x2="${W-mR}" y2="${Y(c.maxGain)}" stroke="var(--chart-grid)" stroke-width="1"/>`;
+  g += `<line x1="${mL}" y1="${Y(-c.maxLoss)}" x2="${W-mR}" y2="${Y(-c.maxLoss)}" stroke="var(--chart-grid)" stroke-width="1"/>`;
+  g += `<line x1="${mL}" y1="${y0}" x2="${W-mR}" y2="${y0}" stroke="var(--chart-axis)" stroke-width="1"/>`;
+
+  /* signed areas + signed line, split at every sign change */
+  for(let i=0;i<curve.length-1;i++){
+    const a=curve[i], b=curve[i+1];
+    const segs = (a.p>=0)===(b.p>=0) ? [[a,b]] : (function(){
+      const t=(0-a.p)/(b.p-a.p), mx=a.x+(b.x-a.x)*t;
+      return [[a,{x:mx,y:y0,p:0}],[{x:mx,y:y0,p:0},b]];
+    })();
+    for(const [p,q] of segs){
+      const up = (p.p+q.p)>=0;
+      g += `<polygon points="${p.x},${p.y} ${q.x},${q.y} ${q.x},${y0} ${p.x},${y0}" fill="${up?'var(--fill-pos)':'var(--fill-neg)'}"/>`;
+      g += `<line x1="${p.x}" y1="${p.y}" x2="${q.x}" y2="${q.y}" stroke="${up?'var(--positive)':'var(--negative)'}" stroke-width="2" stroke-linecap="round"/>`;
+    }
+  }
+  /* strike ticks */
+  for(const k of strikes){
+    if(k<=xlo||k>=xhi) continue;
+    g += `<line x1="${X(k)}" y1="${mT}" x2="${X(k)}" y2="${mT+ih}" stroke="var(--chart-grid)" stroke-width="1"/>`;
+    g += `<text x="${X(k)}" y="${mT+ih+13}" fill="var(--text-muted)" font-family="var(--mono)" font-size="10" text-anchor="middle">${k.toFixed(2)}</text>`;
+  }
+  /* breakeven + spot markers (dashed, labelled — never colour-only) */
+  g += `<line x1="${X(c.be)}" y1="${mT}" x2="${X(c.be)}" y2="${mT+ih}" stroke="var(--warn)" stroke-width="1" stroke-dasharray="3 3"/>`;
+  g += `<line x1="${X(c.spot)}" y1="${mT}" x2="${X(c.spot)}" y2="${mT+ih}" stroke="var(--text-secondary)" stroke-width="1" stroke-dasharray="2 4"/>`;
+  const beLeft = X(c.be) < X(c.spot);
+  g += `<text x="${X(c.be)+(beLeft?-5:5)}" y="${mT+11}" fill="var(--warn)" font-family="var(--mono)" font-size="10" text-anchor="${beLeft?'end':'start'}">BE ${c.be.toFixed(2)}</text>`;
+  g += `<text x="${X(c.spot)+(beLeft?5:-5)}" y="${mT+11}" fill="var(--text-secondary)" font-family="var(--mono)" font-size="10" text-anchor="${beLeft?'start':'end'}">SPOT ${c.spot.toFixed(2)}</text>`;
+  /* y labels */
+  g += `<text x="${mL-8}" y="${Y(c.maxGain)+4}" fill="var(--positive)" font-family="var(--mono)" font-size="10" font-weight="700" text-anchor="end">${fmtInt(c.maxGain)}</text>`;
+  g += `<text x="${mL-8}" y="${y0+4}" fill="var(--text-muted)" font-family="var(--mono)" font-size="10" text-anchor="end">0</text>`;
+  g += `<text x="${mL-8}" y="${Y(-c.maxLoss)+4}" fill="var(--negative)" font-family="var(--mono)" font-size="10" font-weight="700" text-anchor="end">${fmtInt(-c.maxLoss)}</text>`;
+  return `<svg viewBox="0 0 ${W} ${H}" width="100%" role="img" aria-label="Profit and loss at expiry versus spot for the ${c.tkr} ${c.kind}. Maximum gain ${c.maxGain} dollars above the ${c.be} breakeven, maximum loss ${c.maxLoss} dollars below it, per contract.">${g}</svg>`;
+}
+
+/* ---------------- gamma bars ------------------------------------------- */
+function gammaSVG(gp){
+  const rows=[], seen=new Set();
+  for(const r of gp.rows){ const key=r.k+"|"+r.l; if(seen.has(key)) continue; seen.add(key); rows.push(r); }
+  const W=360, rowH=24, H=rows.length*rowH+14;
+  const bx=132, bw=176, cx=bx+bw/2;
+  const maxAbs=Math.max.apply(null, rows.map(r=>Math.abs(r.v)).concat([1]));
+  let g = `<line x1="${cx}" y1="4" x2="${cx}" y2="${rows.length*rowH+2}" stroke="var(--chart-axis)" stroke-width="1"/>`;
+  rows.forEach((r,i)=>{
+    const y=i*rowH+4, h=13;
+    const w=Math.abs(r.v)/maxAbs*(bw/2-4);
+    const pos=r.v>=0;
+    g += `<text x="0" y="${y+10}" fill="var(--text-primary)" font-family="var(--mono)" font-size="11" font-weight="700">${r.k.toFixed(2)}</text>`;
+    g += `<text x="58" y="${y+10}" fill="var(--text-muted)" font-family="var(--mono)" font-size="9.5">${r.l}</text>`;
+    if(r.v===0){
+      g += `<rect x="${cx-1}" y="${y}" width="2" height="${h}" fill="var(--text-muted)"/>`;
+    } else if(pos){
+      g += `<rect x="${cx+1}" y="${y}" width="${w}" height="${h}" rx="1.5" fill="var(--positive)" opacity="0.85"/>`;
+    } else {
+      g += `<rect x="${cx-1-w}" y="${y}" width="${w}" height="${h}" rx="1.5" fill="var(--negative)" opacity="0.85"/>`;
+    }
+    g += `<text x="${W}" y="${y+10}" fill="${r.v===0?'var(--text-muted)':(pos?'var(--positive)':'var(--negative)')}" font-family="var(--mono)" font-size="10" font-weight="700" text-anchor="end">${r.v===0?'0':fmtInt(r.v)}</text>`;
+  });
+  g += `<text x="${cx}" y="${rows.length*rowH+12}" fill="var(--text-muted)" font-family="var(--mono)" font-size="9" text-anchor="middle">− short gamma · 0 · long gamma +</text>`;
+  return `<svg viewBox="0 0 ${W} ${H}" width="100%" role="img" aria-label="Dealer gamma by strike for ${gp.tkr}. Bars left of the zero axis are negative gamma, bars right are positive.">${g}</svg>`;
+}
+
+/* ---------------- small builders ---------------------------------------- */
+function panel(title, tail, bodyHTML, bodyClass){
+  return `<section class="panel"><h3>${title}${tail?`<span class="tail">${tail}</span>`:""}</h3><div class="${bodyClass||"pbody"}">${bodyHTML}</div></section>`;
+}
+/* One tile shape in every phase: label, value, signed change.
+   A tile whose source carries no change renders an em dash, muted —
+   it is never back-filled from another phase. Provenance lives on the
+   tile's title= tooltip and in the sources line under the row.        */
+function tapeHTML(rows, srcLine){
+  const cells = rows.map(r=>{
+    const k = Array.isArray(r) ? r[0] : r.k;
+    const v = Array.isArray(r) ? r[1] : r.v;
+    const c = Array.isArray(r) ? r[2] : r.c;
+    const src = Array.isArray(r) ? "" : (r.src||"");
+    const chg = (c==null||c==="")
+      ? `<span class="chg mut" aria-label="no change recorded">&mdash;</span>`
+      : `<span class="chg ${sgn(c)}">${String(c).replace(/^-/,"−")}</span>`;
+    return `<div class="tile"${src?` title="${src}"`:""}><span class="lbl">${k}</span><span class="v">${v}</span>${chg}</div>`;
+  }).join("");
+  const cols=Math.ceil(rows.length/Math.ceil(rows.length/7)); return `<div class="tape" style="grid-template-columns:repeat(${cols},minmax(0,1fr))">${cells}</div>`;
+}
+function decisionHTML(rows){
+  return `<div class="dec">` + rows.map(([k,v,lead])=>
+    `<div class="k">${k}</div><div class="v${lead?" call":""}">${v}</div>`).join("") + `</div>`;
+}
+function candidateHTML(c, compact){
+  const legs = `<table><thead><tr><th>Action</th><th>Right</th><th class="n">Strike</th><th>Expiry</th><th class="n">Mid</th></tr></thead><tbody>` +
+    c.legs.map(([a,r,k,e,m])=>`<tr><td class="mono ${a==="buy"?"pos":"neg"}">${a}</td><td class="mono sec">${r}</td><td class="n">${k.toFixed(2)}</td><td class="mono mut">${e}</td><td class="n">${m}</td></tr>`).join("") +
+    `</tbody></table>
+    <div class="pricing">
+      <div><span class="lbl">Net debit</span><span class="num" style="font-size:16px">$${c.net.toFixed(2)}</span><span class="src mut mono" style="font-size:9.5px">per share</span></div>
+      <div><span class="lbl">Max gain</span><span class="num pos" style="font-size:16px">${fmtUSD(c.maxGain)}</span><span class="src mut mono" style="font-size:9.5px">per contract</span></div>
+      <div><span class="lbl">Max loss</span><span class="num neg" style="font-size:16px">${fmtUSD(-c.maxLoss)}</span><span class="src mut mono" style="font-size:9.5px">per contract</span></div>
+    </div>`;
+  return `<article class="cand">
+    <div class="candhead">
+      <span class="tkr">${c.tkr}</span>
+      <span class="chip">${c.kind.replace(/_/g," ")}</span>
+      <span class="mono mut" style="font-size:11px">Exp ${c.exp}${c.dte?" · "+c.dte+" DTE":""} · Spot ${c.spot.toFixed(2)} · Width ${c.width.toFixed(2)}</span>
+      <div class="lvls">
+        <div><span class="lbl">Entry</span><span class="num" style="font-size:13px">${c.entry}</span></div>
+        ${c.add?`<div><span class="lbl">Add</span><span class="num sec" style="font-size:13px">${c.add}</span></div>`:""}
+        <div><span class="lbl">Target</span><span class="num sec" style="font-size:13px">${c.target}</span></div>
+        <div><span class="lbl">Invalidation</span><span class="num neg" style="font-size:13px">${c.inval}</span></div>
+      </div>
+    </div>
+    <div class="candbody">
+      <div class="legwrap">${legs}</div>
+      <div class="pnlwrap"><span class="lbl" style="display:block;margin-bottom:2px">Payoff at expiry vs spot &middot; $ per contract</span>${payoffSVG(c)}</div>
+    </div>
+    <div class="rationale"><p>${c.why}</p><span class="cid">${c.id}</span></div>
+  </article>`;
+}
+function proseHTML(sections){
+  return `<div class="prose">` + sections.map(s=>`<div><h4>${s.t}</h4><p>${s.b}</p></div>`).join("") + `</div>`;
+}
+function faultsHTML(list){
+  return `<ul style="margin:0;padding-left:16px;color:var(--text-muted);font-size:11.5px;line-height:1.7">` +
+    list.map(f=>`<li>${f}</li>`).join("") + `</ul>`;
+}
+function gexTable(rows){
+  return `<div class="scrollx"><table class="deltas"><thead><tr><th>Ticker</th><th class="n">Spot</th><th class="n">Flip</th><th class="n">Magnet</th><th class="n">Call wall</th><th class="n">Put wall</th></tr></thead><tbody>` +
+    rows.map(r=>`<tr><td class="mono" style="font-weight:700">${r[0]}</td><td class="n">${r[1]}</td><td class="n">${r[2]}</td><td class="n">${r[3]}</td><td class="n pos">${r[4]}</td><td class="n neg">${r[5]}</td></tr>`).join("") +
+    `</tbody></table></div>`;
+}
+
+/* ---------------- premarket view ---------------------------------------- */
+function viewPremarket(d){
+  const p = d.runs.premarket;
+  const sched = `<table><thead><tr><th>Time</th><th>Event</th><th class="n">Cons / prior</th></tr></thead><tbody>` +
+    p.schedule.map(s=>`<tr>${s.g?`<td class="mono" style="white-space:nowrap"><span class="lbl" style="display:block;color:var(--text-muted)">${s.g}</span>${s.t}</td>`:`<td class="mono sec" style="white-space:nowrap">${s.t}</td>`}<td class="sec">${s.e}</td><td class="n sec" style="white-space:nowrap">${s.c||"&mdash;"}</td></tr>`).join("") +
+    `</tbody></table>`;
+  const policy = `<div class="path">` + p.policy.map(x=>
+    `<div><span class="lbl">${x.d}</span><span class="num" style="font-size:15px">${x.r}</span><span class="mono mut" style="font-size:9.5px">${x.band}</span><span class="mono ${x.call==="HIKE"?"neg":"sec"}" style="font-size:10.5px;font-weight:700;letter-spacing:.6px">${x.call} ${x.p}</span></div>`).join("") + `</div>`;
+  const gamma = p.gamma.map(gp=>
+    `<div class="gx"><div class="gxh"><span class="mono" style="font-size:13px;font-weight:700">${gp.tkr}</span><span class="mono mut" style="font-size:10px">Spot ${gp.spot}</span></div>${gammaSVG(gp)}</div>`).join("");
+  const risk = `<table><thead><tr><th>Ticker</th><th>Reason dropped</th></tr></thead><tbody>` +
+    p.risk.map(([t,r])=>`<tr><td class="mono" style="font-weight:700;vertical-align:top">${t}</td><td class="sec">${r}</td></tr>`).join("") + `</tbody></table>`;
+  const cov = `<table class="cov"><tbody>` + p.coverage.map(([k,st,note])=>
+    `<tr><td class="mono" style="vertical-align:top">${k}</td><td style="vertical-align:top;width:22px">${st==="ok"?'<span class="ok">&#10003;</span>':'<span class="skip">&mdash;</span>'}</td><td class="mut" style="font-size:11.5px">${note}</td></tr>`).join("") + `</tbody></table>`;
+
+  return `
+  ${tapeHTML(p.tape,p.tapeSrc)}
+  <div class="lead" style="margin-top:12px"><span class="lbl">Today in<br>one sentence</span><p>${p.one}</p></div>
+  <div class="cols">
+    <div class="colL">
+      ${panel("Bottom line &middot; decision block","",decisionHTML(p.decision),"")}
+      <div>
+        <div class="lbl" style="padding:2px 0 8px">Candidates &middot; per contract, no size</div>
+        <div class="stack">${p.candidates.map(c=>candidateHTML(c)).join("")}</div>
+      </div>
+      ${panel("Sections","",proseHTML(p.sections))}
+    </div>
+    <div class="colR">
+      ${panel("Overnight","",`<p style="margin:0;color:var(--text-secondary);font-size:12.5px;line-height:1.55">${p.overnight}</p>`)}
+      ${panel("Today's schedule","",sched)}
+      ${panel("Rates &amp; policy path","",policy + `<p class="mut" style="margin:9px 0 0;font-size:11px;line-height:1.5">Fed-funds futures via argon, snapshot 2026-09-02; not CME FedWatch.</p>`)}
+      ${panel("Gamma profile","dealer gamma per strike",gamma + `<p class="mut" style="margin:12px 0 0;font-size:11px;line-height:1.5">A bar is its size, its side of the axis the sign. Left of zero is negative gamma, where hedging amplifies rather than damps. Duplicate strike rows from argon are collapsed.</p>`)}
+      ${panel("Risk register","dropped this run",risk)}
+      ${panel("Data coverage","",cov)}
+    </div>
+  </div>
+  <p class="mut" style="font-size:11.5px;margin:14px 0 0">All structures are defined-risk. No quantities, position sizes or account information appear anywhere in this flash.</p>`;
+}
+
+/* ---------------- intraday / close supplements --------------------------- */
+
+function viewIntraday(d){
+  const r = d.runs.intraday;
+  const drift = r.drift.map((x,i)=>
+    `<div style="padding:10px 0;${i===r.drift.length-1?"":"border-bottom:1px solid rgba(30,41,59,.55)"}">
+       <div style="display:flex;gap:10px;align-items:baseline;margin-bottom:4px">
+         <span class="mono" style="font-size:12px;font-weight:700">${x.t}</span>
+         ${x.s?`<span class="state ${x.up?"up":"hold"}" style="margin-left:auto">${x.s}</span>`:""}
+       </div>
+       <p style="margin:0;color:var(--text-secondary);font-size:12.5px;line-height:1.55;max-width:96ch">${x.b}</p>
+     </div>`).join("");
+  return `
+  ${tapeHTML(r.tape,r.tapeSrc)}
+  <div class="lead" style="margin-top:12px"><span class="lbl">Intraday<br>read</span><p style="font-size:15px">${r.headline}</p></div>
+  <div class="supgrid">
+    <div class="colL">
+      ${panel("Candidate status &middot; drift watch","as of "+r.asOf,drift)}
+      ${panel("Run sections","full transcript, this run",`<div class="scroll">${proseHTML(r.sections)}</div>`)}
+    </div>
+    <div class="colR">
+      ${panel("Dealer gamma levels","gex-reporter &middot; "+r.asOf,gexTable(r.gex))}
+      ${panel("Run","recorded faults",`<span class="mono mut" style="font-size:11px;word-break:break-all;display:block;margin-bottom:8px">${r.run}</span>`+faultsHTML(r.faults))}
+    </div>
+  </div>`;
+}
+
+function viewClose(d){
+  const r = d.runs.close;
+  const pre = d.runs.intraday.gex, cls = r.gex;
+  const fields = ["Spot","Gamma flip","Magnet","Call wall","Put wall"];
+  let deltaRows = "";
+  for(let t=0;t<cls.length;t++){
+    for(let f=1;f<=5;f++){
+      const a = parseFloat(pre[t][f]), b = parseFloat(cls[t][f]), dv = b-a;
+      const chg = (dv===0) ? "0.00" : (dv>0?"+":"−") + Math.abs(dv).toFixed(2);
+      deltaRows += `<tr><td class="mono" style="font-weight:700">${f===1?cls[t][0]:""}</td><td class="mut" style="font-size:11.5px">${fields[f-1]}</td><td class="n mut">${pre[t][f]}</td><td class="n"><span class="arrow">&rarr;</span>${cls[t][f]}</td><td class="n ${dv===0?"mut":(dv>0?"pos":"neg")}">${chg}</td></tr>`;
+    }
+  }
+  const markout = r.markout.map((m,i)=>
+    `<div style="padding:10px 0;${i===r.markout.length-1?"":"border-bottom:1px solid rgba(30,41,59,.55)"}">
+       <div style="display:flex;gap:10px;align-items:baseline;margin-bottom:4px">
+         <span class="mono" style="font-size:12px;font-weight:700">${m.id}</span>
+         <span class="state ${m.up?"up":"hold"}" style="margin-left:auto">${m.s}</span>
+       </div>
+       <p style="margin:0;color:var(--text-secondary);font-size:12.5px;line-height:1.55;max-width:96ch">${m.b}</p>
+     </div>`).join("");
+  const risk = `<table><tbody>` + r.risk.map(([t,x])=>`<tr><td class="mono" style="font-weight:700;vertical-align:top">${t}</td><td class="sec" style="font-size:12px">${x}</td></tr>`).join("") + `</tbody></table>`;
+  const recap = `<div class="prose">` + r.recap.map(s=>`<div><h4>${s.t}</h4><p class="pre">${s.b}</p></div>`).join("") + `</div>`;
+  return `
+  ${tapeHTML(r.tape,r.tapeSrc)}
+  <div class="lead" style="margin-top:12px"><span class="lbl">Close<br>read</span><p style="font-size:15px">${r.headline}</p></div>
+  <div class="supgrid">
+    <div class="colL">
+      ${panel("Candidate status &middot; markout at the close","",markout)}
+      ${panel("New structure proposed at the close","survived risk review",candidateHTML(r.newCand) + `<div class="note">${r.reviewNote}</div>`,"")}
+      ${panel("Close decision block","",decisionHTML(r.decision),"")}
+      ${panel("Recap","recap-writer",`<div class="scroll">${recap}</div>`)}
+    </div>
+    <div class="colR">
+      ${panel("What changed &middot; gamma levels","intraday 17:00Z &rarr; close 20:14Z",`<div class="scrollx"><table class="deltas"><thead><tr><th>Ticker</th><th>Level</th><th class="n">17:00Z</th><th class="n">Close</th><th class="n">&Delta;</th></tr></thead><tbody>${deltaRows}</tbody></table></div>`)}
+      ${panel("Risk register","dropped in design",risk)}
+      ${panel("Run","recorded faults",`<span class="mono mut" style="font-size:11px;word-break:break-all;display:block;margin-bottom:8px">${r.run}</span>`+faultsHTML(r.faults))}
+    </div>
+  </div>`;
+}
+
+/* ---------------- empty states ------------------------------------------ */
+function skeletonPremarket(){
+  const tiles = Array(9).fill(0).map(()=>`<div class="tile" style="min-height:58px"><div class="ghost" style="width:34px"></div><div class="ghost" style="width:70%;height:16px;margin-top:6px"></div></div>`).join("");
+  const rail = ["Overnight","Today's schedule","Rates &amp; policy path","Gamma profile","Risk register","Data coverage"]
+    .map(t=>`<section class="panel"><h3>${t}</h3><div class="pbody"><div class="ghostbox" style="height:${t==="Gamma profile"?110:52}px"></div></div></section>`).join("");
+  return `<div class="skel" aria-hidden="true">
+    <div class="tape">${tiles}</div>
+    <div class="lead" style="margin-top:12px"><span class="lbl">Today in<br>one sentence</span><div style="flex:1"><div class="ghost" style="width:78%;height:13px"></div><div class="ghost" style="width:46%;height:13px;margin-top:8px"></div></div></div>
+    <div class="cols">
+      <div class="colL">
+        <section class="panel"><h3>Bottom line &middot; decision block</h3><div class="pbody"><div class="ghostbox" style="height:132px"></div></div></section>
+        <div><div class="lbl" style="padding:2px 0 8px">Candidates</div><div class="ghostbox" style="height:150px"></div></div>
+        <section class="panel"><h3>Sections</h3><div class="pbody"><div class="ghostbox" style="height:90px"></div></div></section>
+      </div>
+      <div class="colR">${rail}</div>
+    </div>
+  </div>`;
+}
+function viewEmptyDay(d, phase){
+  const isFuture = d.date === "2026-09-04";
+  const msg = isFuture
+    ? `The ${phase} run for ${d.date} has not been recorded yet. Nothing is shown in its place.`
+    : `No option-wizard ${phase} run was recorded for ${d.date}. The layout below is the empty shell, not a rendered flash.`;
+  return `<div class="empty" style="margin-bottom:12px">
+      <span class="big">No run recorded</span>
+      <p>${msg}</p>
+      <p class="mono" style="font-size:11px;color:var(--text-muted)">helium audit &mdash; 0 runs for tenant option-wizard, phase ${phase}, date ${d.date}</p>
+    </div>` + skeletonPremarket();
+}
+
+/* ---------------- weekly view ------------------------------------------- */
+function viewWeek(){
+  const rows = WEEK.days.map(d=>{
+    const p = d.runs.premarket;
+    return `<div class="wkrow">
+      <div class="d"><span class="dow">${d.dow}</span><span class="dt">${d.date}</span></div>
+      <div class="tw">${p?`<div class="t">${p.one}</div>`:`<div class="t none">no run recorded</div>`}<span class="runs mono ${p?"pos":"mut"}">${p?"3 runs":"0 runs"}</span></div>
+    </div>`;
+  }).join("");
+  return `
+  <div class="band" style="margin-bottom:12px">
+    <span class="lbl">Layout<br>placeholder</span>
+    <p><strong style="color:var(--text-primary)">This view is not generated yet.</strong> When the weekly job runs it will hold three things: the five daily one-liners stacked below (each pulled from that day's premarket "today in one sentence"); an <strong style="color:var(--text-primary)">Outlook</strong> block written after Friday's close covering the week ahead; and a slot for <strong style="color:var(--text-primary)">Frank 复盘</strong>, the external weekly review, which attaches to this weekly summary rather than to any single day. Only the Thursday row below carries real content — it is the only day of this week with a recorded run.</p>
+  </div>
+  ${panel("Five daily one-liners","2026-08-31 &rarr; 2026-09-04",rows,"")}
+  <div class="cols" style="margin-top:12px">
+    <div class="colL">
+      <section class="panel"><h3>Outlook &middot; week ahead<span class="tail">not yet available</span></h3><div class="pbody">
+        <div class="empty" style="border:none;background:none;padding:26px 12px">
+          <span class="big">Generated Friday after close</span>
+          <p>The outlook block is written by the weekly job once Friday's close run has landed. As of 2026-09-04 that run has not been recorded, so there is nothing to show.</p>
+        </div>
+        <div class="skel" aria-hidden="true"><div class="ghostbox" style="height:88px"></div></div>
+      </div></section>
+    </div>
+    <div class="colR">
+      <section class="panel"><h3>Frank &#22797;&#30424;<span class="tail">supplement slot</span></h3><div class="pbody">
+        <div class="empty" style="border:none;background:none;padding:22px 12px">
+          <span class="big">No review attached</span>
+          <p>An external weekly review, attached to the weekly summary on Monday. None recorded for this week.</p>
+        </div>
+        <div class="skel" aria-hidden="true"><div class="ghostbox" style="height:70px"></div></div>
+      </div></section>
+    </div>
+  </div>`;
+}
+
+/* ---------------- controller -------------------------------------------- */
+const PHASES = [["premarket","Premarket"],["intraday","Intraday"],["close","Close"]];
+let sel = {day:"thu", phase:"premarket"};
+
+function renderStrip(){
+  const s = $("#strip"); s.innerHTML = "";
+  for(const d of WEEK.days){
+    const p = d.runs.premarket;
+    const b = el("button","dcard");
+    b.type="button"; b.setAttribute("aria-pressed", String(sel.day===d.key));
+    b.innerHTML = `<div class="dh"><span class="dow">${d.dow}</span><span class="dt">${d.md}</span></div>
+      <div class="one${p?"":" norun"}">${p?p.one:"no run recorded"}</div>
+      <div class="pips">${PHASES.map(([k,l])=>`<span class="pip${d.runs[k]?" on":""}" title="${l}">${l[0]}</span>`).join("")}</div>`;
+    b.addEventListener("click",()=>{ sel.day=d.key; if(!WEEK.days.find(x=>x.key===d.key).runs[sel.phase]) sel.phase="premarket"; render(); });
+    s.appendChild(b);
+  }
+  const w = el("button","dcard wk");
+  w.type="button"; w.setAttribute("aria-pressed", String(sel.day==="week"));
+  w.innerHTML = `<div class="dh"><span class="dow">WEEK</span><span class="dt">W36</span></div>
+    <div class="one norun">summary &amp; outlook &mdash; generated Friday after close</div>
+    <div class="pips"><span class="pip" title="Weekly summary">S</span><span class="pip" title="Outlook">O</span><span class="pip" title="Frank fupan">F</span></div>`;
+  w.addEventListener("click",()=>{ sel.day="week"; render(); });
+  s.appendChild(w);
+}
+
+function render(){
+  renderStrip();
+  const stage = $("#stage");
+  if(sel.day==="week"){ stage.innerHTML = `<div class="phbar"><span class="ph" aria-selected="true">Weekly summary &amp; outlook</span><span class="asof lbl">not generated</span></div>` + viewWeek(); return; }
+  const d = WEEK.days.find(x=>x.key===sel.day);
+  const has = k => !!d.runs[k];
+  const asOf = d.runs[sel.phase] ? (d.runs[sel.phase].asOf || "") : "";
+  let bar = `<div class="phbar">` + PHASES.map(([k,l])=>
+      `<button class="ph" type="button" role="tab" data-ph="${k}" aria-selected="${sel.phase===k}" ${has(k)?"":"disabled"}><span class="dot"></span>${l}${k!=="premarket"?"":""}</button>`).join("")
+    + `<span class="asof lbl">${asOf?("as of "+asOf):("no run recorded for "+d.date)}</span></div>`;
+  let body;
+  if(!has(sel.phase)) body = viewEmptyDay(d, sel.phase);
+  else if(sel.phase==="premarket") body = viewPremarket(d);
+  else if(sel.phase==="intraday") body = viewIntraday(d);
+  else body = viewClose(d);
+  stage.innerHTML = bar + body;
+  stage.querySelectorAll(".ph[data-ph]").forEach(b=>{
+    if(b.disabled) return;
+    b.addEventListener("click",()=>{ sel.phase = b.dataset.ph; render(); });
+  });
+}
+render();
+</script>

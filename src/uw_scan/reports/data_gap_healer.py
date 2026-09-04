@@ -458,6 +458,27 @@ REGISTRY: list[DatasetRegistryEntry] = [
         "provenance",
         expected_frequency="none",
     ),
+    DatasetRegistryEntry(
+        "agent_runs",
+        "operational_provenance",
+        "provenance",
+        date_col="run_day",
+        ticker_col=None,
+        expected_frequency="event",
+        provider="none",
+        granularity="none",
+        healer_adapter=None,
+        source_system="helium",
+        reason=(
+            "agent run ledger (migration 148), pushed by helium over "
+            "POST /api/agent-runs and append-only: a re-push of the same run "
+            "is a no-op and a re-run lands as version N+1 beside N. Argon "
+            "never fetches these; a missing (tenant, kind, run_day) is a run "
+            "that never happened, and fabricating one would forge the record "
+            "the Flash page replays. Re-push from helium's transcript store."
+        ),
+        reason_verified_on=date(2026, 9, 4),
+    ),
     # Immutable macro evidence substrate (migration 115). These rows preserve
     # exact source payloads and publication-time observations for PIT replay;
     # gap healing must never rewrite or synthesize their history.

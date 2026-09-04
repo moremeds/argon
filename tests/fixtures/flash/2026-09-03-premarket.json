@@ -1,0 +1,414 @@
+{
+  "tenant": "option-wizard",
+  "kind": "premarket",
+  "run_day": "2026-09-03",
+  "week_key": "2026-W36",
+  "run_id": "run-flash-e2e-2026-09-03-premarket",
+  "code_sha": "e2e-seed",
+  "schema_version": 1,
+  "outcome": "completed",
+  "headline": "Real yields did the work — DFII10 ran +12bp to 2.44% while VIX broke its August 14-handle pin to 16.34 into tomorrow's payroll.",
+  "view": {
+    "schemaVersion": 1,
+    "date": "2026-09-03",
+    "tenant": "option-wizard",
+    "asOf": "2026-09-03T17:01:15.101Z",
+    "headline": "Real yields did the work — DFII10 ran +12bp to 2.44% while VIX broke its August 14-handle pin to 16.34 into tomorrow's payroll.",
+    "lead": "Real yields did the work — DFII10 ran +12bp to 2.44% while VIX broke its August 14-handle pin to 16.34 into tomorrow's payroll.",
+    "tape": [
+      {
+        "label": "SPY",
+        "value": "772.80",
+        "source": "ow_spot, last price only — no daily change recorded"
+      },
+      {
+        "label": "QQQ",
+        "value": "717.47",
+        "source": "ow_spot, last price only — no daily change recorded"
+      },
+      {
+        "label": "IWM",
+        "value": "294.93",
+        "source": "ow_spot, last price only — no daily change recorded"
+      },
+      {
+        "label": "10Y",
+        "value": "4.79%",
+        "source": "DGS10, 2026-09-01, ~2d behind — no change recorded"
+      },
+      {
+        "label": "DFII10",
+        "value": "2.44%",
+        "change": "+12bp",
+        "source": "DFII10 10y real yield, 2026-09-01, ~2d behind"
+      },
+      {
+        "label": "VIX",
+        "value": "16.34",
+        "change": "+1.42",
+        "source": "VIXCLS, 14.92 on 08-31 → 16.34 on 09-01, ~2d behind"
+      },
+      {
+        "label": "HY OAS",
+        "value": "2.65%",
+        "source": "BAMLH0A0HYM2, 2026-09-01, series fallback — no change recorded"
+      }
+    ],
+    "tapeSource": "Sources · SPY QQQ NVDA MSFT AVGO IWM — ow_spot, last price only, the run recorded no daily change. 10Y — DGS10 4.79%, 2026-09-01, ~2d behind. DFII10 — 10y real yield 2.44%, +12bp, 2026-09-01. VIX — VIXCLS, 14.92 on 08-31 to 16.34 on 09-01, +1.42 vol points. HY OAS — BAMLH0A0HYM2 2.65%, 2026-09-01, series fallback, fredDirect unavailable.",
+    "decision": [
+      {
+        "label": "Call",
+        "value": "Bearish tilt across index duration into payroll; keep three defined-risk put-debit spreads and drop the redundant single name."
+      },
+      {
+        "label": "Action",
+        "value": "Enter QQQ 710/665, SPY 765/745 and IWM 294/280 put-debit spreads on a break below each short-side entry level."
+      },
+      {
+        "label": "Aggression",
+        "value": "Low-to-moderate — every position is defined-risk with sub-$800 max loss per spread; the real risk is stacking correlated index shorts, so size the book."
+      },
+      {
+        "label": "Why now",
+        "value": "Rising real yields (DFII10 +12bp to 2.44%) tax duration and VIX is bid to 16.34 into tomorrow's payroll."
+      },
+      {
+        "label": "Max risk",
+        "value": "Per spread QQQ $774, SPY $400, IWM $343 — treat the combined ~$1,517 as a single correlated debit a strong payroll print stops out together."
+      },
+      {
+        "label": "Invalidation",
+        "value": "QQQ above 720, SPY above 770, IWM above 297 — each spread dies on a reclaim of its Call Wall."
+      },
+      {
+        "label": "Next trigger",
+        "value": "Tomorrow's 08:30 ET payroll; entries arm only on a break below QQQ 710 / SPY 765 / IWM 294."
+      },
+      {
+        "label": "Confidence",
+        "value": "Moderate — no ow_ib_positions call, so existing book exposure and buying-power fit are unverified, and GEX/skew anchors are trusted from the design layer."
+      }
+    ],
+    "overnight": [
+      "AVGO: Broadcom guided 4Q revenue to ~$34.8B vs. $35.05B estimate and fell ~6.8% after hours."
+    ],
+    "schedule": [
+      {
+        "group": "Today",
+        "time": "15:00 ET",
+        "event": "Fed's Hammack (Cleveland) & Goolsbee (Chicago) special remarks, 'Connecting Communities'"
+      },
+      {
+        "group": "Tomorrow",
+        "time": "08:30 ET",
+        "event": "Employment Report (NFP)",
+        "consensus": "+50k / −23k"
+      },
+      {
+        "time": "08:30 ET",
+        "event": "Unemployment Rate",
+        "consensus": "4.1% / 4.1%"
+      },
+      {
+        "time": "08:30 ET",
+        "event": "Avg Hourly Earnings, M/M%",
+        "consensus": "0.2% / 0.1%"
+      },
+      {
+        "time": "08:30 ET",
+        "event": "Avg Hourly Earnings, Y/Y%",
+        "consensus": "3% / 3.1%"
+      }
+    ],
+    "policy": {
+      "steps": [
+        {
+          "date": "9/16",
+          "implied": "3.78",
+          "band": "3.75-4.00%",
+          "call": "HIKE",
+          "probability": "60%"
+        },
+        {
+          "date": "10/28",
+          "implied": "3.855",
+          "band": "3.50-3.75%",
+          "call": "HOLD",
+          "probability": "70%"
+        },
+        {
+          "date": "12/9",
+          "implied": "4.015",
+          "band": "3.75-4.00%",
+          "call": "HIKE",
+          "probability": "64%"
+        }
+      ],
+      "source": "Fed-funds futures via argon, snapshot 2026-09-02; not CME FedWatch."
+    },
+    "sections": [
+      {
+        "title": "Rates are the first cause, and this time the levels line up",
+        "body": "Yesterday stood down: both bearish spreads carried 'above' invalidations spot had already touched — SPY 773.16 against spot 773.18, QQQ 717.465 against spot 717.53 — so each opened through its own stop. What changed is not the direction but the entry geometry."
+      },
+      {
+        "title": "The most anomalous move is vol divorcing from a green tape",
+        "body": "VIXCLS jumped from 14.92 (08-31) to 16.34 (09-01), +1.42 vol points, its sharpest one-day rise in the 30-day window, while the 10Y made new local highs and spot held green. The bar it faced was August's pinned 14-handle (14.25 on 08-14, 14.43 on 08-28) on the assumption the Fed path was benign."
+      },
+      {
+        "title": "The beat-and-raise-that-closed-down tag is left unassigned",
+        "body": "The label needs the beat, the raise and the red close verified together, and this run has none of the three. The headline feed (ow_uw_headlines, newest 2026-09-03T16:58:01Z) carried no watchlist earnings beat — the tape was M&A and geopolitics, including an $AAPL £2B London suit at 2026-09-03T16:17:51Z over App Tracking Transparency."
+      },
+      {
+        "title": "Reaction function: the market is waiting on 08:30 ET, not the speakers",
+        "body": "Cleveland's Hammack and Chicago's Goolsbee speak at 15:00 ET / 2026-09-03T19:00:00Z, but the function is already written into the strip. Frenzy's futures-implied path (snapshot 2026-09-02, NOT CME FedWatch) puts 16 September at 60% HIKE 25bp / 40% Hold, implied 3.78%; October flips to 70% Hold; December swings back to 64% HIKE, implied 4.015%. It is asymmetric around one input."
+      },
+      {
+        "title": "Scenarios: base case is the hot print, held loosely because the crowd is opposite",
+        "body": "Path A — hot payroll (>+50k or AHE M/M ≥0.3%): rates lead, DGS10 pushes off 4.79% toward 4.85–4.90% as the September hike firms past 60%, and the duration tax lands on QQQ (717.47) and the megacap complex first, IWM (294.93) via floating-rate liabilities second, VIX gapping from 16.34 toward 18–19 last."
+      }
+    ],
+    "candidates": [
+      {
+        "id": "QQQ-2026-09-03-1",
+        "ticker": "QQQ",
+        "strategy": "put_debit_spread",
+        "expiry": "2026-10-02",
+        "dte": 29,
+        "spot": 717.29,
+        "width": 45.0,
+        "legs": [
+          {
+            "action": "buy",
+            "right": "put",
+            "strike": 710.0,
+            "expiry": "2026-10-02",
+            "mid": 10.45
+          },
+          {
+            "action": "sell",
+            "right": "put",
+            "strike": 665.0,
+            "expiry": "2026-10-02",
+            "mid": 2.71
+          }
+        ],
+        "pricing": {
+          "kind": "priced",
+          "net": 7.74,
+          "maxGain": 3726.0,
+          "maxLoss": 774.0,
+          "breakevens": [
+            702.26
+          ],
+          "pnlAt": []
+        },
+        "entry": {
+          "level": 710,
+          "side": "below"
+        },
+        "invalidation": [
+          {
+            "level": 720,
+            "side": "above"
+          }
+        ],
+        "rationale": "Highest-duration index and the cleanest expression of the real-yield thesis (DFII10 +12bp to 2.44%), with VIX bid into tomorrow's payroll."
+      },
+      {
+        "id": "SPY-2026-09-03-2",
+        "ticker": "SPY",
+        "strategy": "put_debit_spread",
+        "expiry": "2026-10-02",
+        "dte": 29,
+        "spot": 772.87,
+        "width": 20.0,
+        "legs": [
+          {
+            "action": "buy",
+            "right": "put",
+            "strike": 765.0,
+            "expiry": "2026-10-02",
+            "mid": 7.37
+          },
+          {
+            "action": "sell",
+            "right": "put",
+            "strike": 745.0,
+            "expiry": "2026-10-02",
+            "mid": 3.37
+          }
+        ],
+        "pricing": {
+          "kind": "priced",
+          "net": 4.0,
+          "maxGain": 1600.0,
+          "maxLoss": 400.0,
+          "breakevens": [
+            761.0
+          ],
+          "pnlAt": []
+        },
+        "entry": {
+          "level": 765,
+          "side": "below"
+        },
+        "invalidation": [
+          {
+            "level": 770,
+            "side": "above"
+          }
+        ],
+        "rationale": "Index anchor with NORMAL put-skew and a validated -2.6%/20d separation. Long the 765 Put Wall / Accel-down level (~1% below spot 772.87) — losing it flips dealers short-gamma with the 766 flip just above; the 745 short caps cost."
+      },
+      {
+        "id": "IWM-2026-09-03-3",
+        "ticker": "IWM",
+        "strategy": "put_debit_spread",
+        "expiry": "2026-10-02",
+        "dte": 29,
+        "spot": 294.99,
+        "width": 14.0,
+        "legs": [
+          {
+            "action": "buy",
+            "right": "put",
+            "strike": 294.0,
+            "expiry": "2026-10-02",
+            "mid": 5.05
+          },
+          {
+            "action": "sell",
+            "right": "put",
+            "strike": 280.0,
+            "expiry": "2026-10-02",
+            "mid": 1.62
+          }
+        ],
+        "pricing": {
+          "kind": "priced",
+          "net": 3.43,
+          "maxGain": 1057.0,
+          "maxLoss": 343.0,
+          "breakevens": [
+            290.57
+          ],
+          "pnlAt": []
+        },
+        "entry": {
+          "level": 294,
+          "side": "below"
+        },
+        "invalidation": [
+          {
+            "level": 297,
+            "side": "above"
+          }
+        ],
+        "rationale": "Genuinely differentiated driver: small caps carry floating-rate liability sensitivity to the real-rate back-up, and argon flags RICH put-skew (rr_z +0.66) with a validated -3.9%/20d separation."
+      }
+    ],
+    "gamma": [
+      {
+        "ticker": "QQQ",
+        "spot": "717.43",
+        "levels": [
+          {
+            "strike": 710.0,
+            "label": "Call Wall",
+            "role": "resistance",
+            "value": 13785
+          },
+          {
+            "strike": 710.0,
+            "label": "Put Wall",
+            "role": "support",
+            "value": 13785
+          },
+          {
+            "strike": 665.0,
+            "label": "Gamma Flip",
+            "role": "flip",
+            "value": 0
+          },
+          {
+            "strike": 660.0,
+            "label": "Accel ↑",
+            "role": "accelerator",
+            "value": 0
+          }
+        ]
+      },
+      {
+        "ticker": "SPY",
+        "spot": "772.77",
+        "levels": [
+          {
+            "strike": 770.0,
+            "label": "Call Wall",
+            "role": "resistance",
+            "value": 75478
+          },
+          {
+            "strike": 766.0,
+            "label": "Gamma Flip",
+            "role": "flip",
+            "value": 7083
+          },
+          {
+            "strike": 765.0,
+            "label": "Put Wall",
+            "role": "support",
+            "value": -33718
+          },
+          {
+            "strike": 765.0,
+            "label": "Accel ↑",
+            "role": "accelerator",
+            "value": -33718
+          }
+        ]
+      },
+      {
+        "ticker": "IWM",
+        "spot": "294.01",
+        "levels": [
+          {
+            "strike": 297.0,
+            "label": "Call Wall",
+            "role": "resistance",
+            "value": 61950
+          },
+          {
+            "strike": 295.0,
+            "label": "Gamma Flip",
+            "role": "flip",
+            "value": 33447
+          },
+          {
+            "strike": 294.0,
+            "label": "Put Wall",
+            "role": "support",
+            "value": -42153
+          },
+          {
+            "strike": 294.0,
+            "label": "Accel ↑",
+            "role": "accelerator",
+            "value": -42153
+          }
+        ]
+      }
+    ],
+    "riskList": [
+      {
+        "title": "NVDA",
+        "body": "Dropped as a redundant, correlated expression of the same rising-real-yields megacap-duration thesis already carried by QQQ and SPY."
+      }
+    ],
+    "coverage": {
+      "title": "Data coverage",
+      "body": "Rates            ok    partial, 10Y trend only (DGS10 4.79, 2026-09-01, ~2d behind); no live tick, no 2Y/30Y, no 2s10s\nCredit HY OAS    ok    2.65% via series fallback, fredDirect unavailable\nCredit CCC OAS   skip  skipped, no source\nTape/spot        ok    last-price only, no daily change; VIX unpriced (422)\nFlow/GEX         ok    current 09-03 intraday tide, thinned ≤80 prints\nEvents           ok    asOf 2026-09-03T17:01:15.101Z\nPolicy path      ok    Frenzy futures-implied (snapshot 2026-09-02, NOT CME FedWatch)\nCommodities      skip  skipped, no numeric close (TradingView app down)"
+    }
+  }
+}

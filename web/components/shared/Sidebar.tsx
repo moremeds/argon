@@ -11,6 +11,7 @@ import {
   Globe,
   Telescope,
   FileText,
+  Zap,
 } from "lucide-react";
 import { HealthPanel } from "./HealthPanel";
 import styles from "./AppShell.module.css";
@@ -33,8 +34,23 @@ import styles from "./AppShell.module.css";
 // matches no entry, so it highlights nothing. §6 named that as the choice — a deliberately
 // unlisted deep surface — and the desk's own gold tab carries the same replay through
 // `?as_of=`, so nothing is unreachable, only unlisted.
-export const NAV = [
+//
+// Flash is second, immediately under Dashboard, because that is where the
+// operator put it: the daily brief is read before anything is scanned. No
+// entry carries a `sub` any more — the nav lists rooms, and a room that has to
+// explain itself in the nav is a nav that has stopped being scannable. The
+// field and its rendering branch stay for the day one earns a subtitle.
+type NavEntry = {
+  href: string;
+  label: string;
+  icon: typeof LayoutDashboard;
+  /** Optional second line under the label. No entry uses one today. */
+  sub?: string;
+};
+
+export const NAV: NavEntry[] = [
   { href: "/", label: "Dashboard", icon: LayoutDashboard },
+  { href: "/flash", label: "Flash", icon: Zap },
   { href: "/scanner", label: "Scanner", icon: ScanLine },
   { href: "/positioning", label: "Positioning", icon: Crosshair },
   { href: "/cockpit/SPY", label: "Cockpit", icon: Radar },
@@ -55,19 +71,28 @@ export function Sidebar() {
       </div>
 
       <nav className={styles.nav}>
-        {NAV.map(({ href, label, icon: Icon }) => {
+        {NAV.map((entry) => {
+          const { href, label, icon: Icon, sub } = entry;
           const active =
             href === "/" ? pathname === "/" : pathname.startsWith(href);
           return (
             <Link
               key={href}
               href={href}
+              aria-current={active ? "page" : undefined}
               className={[styles.link, active ? styles.linkActive : ""].join(
                 " ",
               )}
             >
               <Icon size={16} strokeWidth={1.5} />
-              {label}
+              {sub ? (
+                <span className={styles.linkStack}>
+                  {label}
+                  <span className={styles.linkSub}>{sub}</span>
+                </span>
+              ) : (
+                label
+              )}
             </Link>
           );
         })}
