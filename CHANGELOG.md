@@ -7,6 +7,9 @@ version in lockstep (enforced by `scripts/release/version_sync_check.py`).
 
 ## [Unreleased]
 
+## [0.13.5] — 2026-09-04
+
+
 ### Added
 
 - **Flash — the option-wizard daily brief as a page in argon**, sidebar entry
@@ -35,7 +38,6 @@ version in lockstep (enforced by `scripts/release/version_sync_check.py`).
     `/opt/argon/.env` on the mini followed by `docker-compose up -d api web`
     (Watchtower does not re-read `env_file`). Migration 148 self-applies on
     api boot.
-
 ## [0.13.4] — 2026-09-04
 
 
