@@ -1,0 +1,187 @@
+{
+    "tenant": "option-wizard",
+    "week_key": "2026-W36",
+    "run_day": "2026-09-03",
+    "kind": "intraday",
+    "run_id": "run-5cc65a12-a112-49fb-8566-ca01dc09ecc4",
+    "version_no": 1,
+    "outcome": "completed",
+    "headline": "Curve bull-steepens as 2Y sheds 3.5bp into Friday's payroll, gold rips to $4,486 \u2014 and Broadcom's soft Q4 guide sinks it 3% against a green SMH tape, the tell that the AI-capex bar has outrun even the winners.",
+    "code_sha": "8d26e0a",
+    "schema_version": 1,
+    "created_at": "2026-09-04T15:19:29.992138+08:00",
+    "view": {
+        "date": "2026-09-03",
+        "tape": [
+            {
+                "label": "SPY",
+                "value": "772.92",
+                "change": "+7.76",
+                "positive": true
+            },
+            {
+                "label": "QQQ",
+                "value": "717.62",
+                "change": "+8.38",
+                "positive": true
+            },
+            {
+                "label": "IWM",
+                "value": "294.99",
+                "change": "+0.98",
+                "positive": true
+            },
+            {
+                "label": "VIX",
+                "value": "14.61",
+                "change": "-0.58",
+                "positive": true
+            },
+            {
+                "label": "10Y",
+                "value": "4.752",
+                "change": "-0.028",
+                "positive": true
+            },
+            {
+                "label": "2Y",
+                "value": "4.336",
+                "change": "-0.035",
+                "positive": true
+            },
+            {
+                "label": "30Y",
+                "value": "5.234",
+                "change": "-0.026",
+                "positive": true
+            },
+            {
+                "label": "5Y",
+                "value": "4.500",
+                "change": "-0.036",
+                "positive": true
+            },
+            {
+                "label": "DXY",
+                "value": "98.864",
+                "change": "-0.712",
+                "positive": false
+            },
+            {
+                "label": "Gold",
+                "value": "4486.163",
+                "change": "+2.23%",
+                "positive": true
+            },
+            {
+                "label": "Silver",
+                "value": "66.9752",
+                "change": "+2.53%",
+                "positive": true
+            },
+            {
+                "label": "WTI",
+                "value": "91.56",
+                "change": "+0.60%",
+                "positive": true
+            }
+        ],
+        "charts": {
+            "gex": []
+        },
+        "regime": {
+            "paragraph": "AVGO is a guide-down (revenue outlook miss), not a beat-and-raise \u2014 so it belongs in the divergence section, not section (3). No clear beat-and-raise-but-down name in my data. Now writing the final JSON."
+        },
+        "tenant": "option-wizard",
+        "outcome": "completed",
+        "coverage": {
+            "body": "SESSION NOTE (pitfall 07): Unusual Whales' market/sector/ETF tide rows this run carry date '2026-09-03' \u2014 the tool returned today's dated session, with tidePrints 'thinned across the session to <=80 prints per tide' and the ETF (SMH) tide returning all-null underlying/premium rows. Treat flow as thinly-sampled, and the SMH ETF-tide as unavailable. | RATES \u2014 SOURCE ow_macro_rates liveNow (TradingView), AS-OF fetchedAt 2026-09-03T17:00:20.911Z \u2014 \u2713 (2Y 4.336, 10Y 4.752, 30Y 5.234, 2s10s +41.6). | CREDIT \u2014 SOURCE ow_macro_rates BAMLH0A0HYM2 fredDirect (FRED direct, ~1-2 day lag), AS-OF 2026-09-02, HY OAS 2.66 \u2014 \u2713. CCC OAS: skipped \u2014 no CCC OAS source. | TAPE \u2014 SOURCE ow_spot (TradingView), AS-OF fetchedAt 2026-09-03T17:00:29.764Z \u2014 \u2713 (SPY 772.92 +7.76, QQQ 717.62 +8.38, AVGO 356.37 \u221210.87). | FLOW/GEX \u2014 SOURCE ow_uw_market_state marketTide, AS-OF date 2026-09-03 (thinned, \u226480 prints/tide; SMH etfTide null) \u2014 \u2713 with caveat; no GEX feed available this run. | EVENTS \u2014 SOURCE ow_uw_calendar, AS-OF 2026-09-03T17:00:23.127Z \u2014 \u2713. | POLICY PATH \u2014 SOURCE ow_argon_policy_path (Frenzy Capital fed-funds futures via argon, futures-implied NOT CME FedWatch), snapshot 2026-09-02 \u2014 \u2713 (9/16 60% Hike; 10/28 70% Hold; 12/9 64% Hike).",
+            "title": "Layer Coverage"
+        },
+        "headline": "Curve bull-steepens as 2Y sheds 3.5bp into Friday's payroll, gold rips to $4,486 \u2014 and Broadcom's soft Q4 guide sinks it 3% against a green SMH tape, the tell that the AI-capex bar has outrun even the winners.",
+        "riskList": [],
+        "schedule": [
+            {
+                "et": "2026-09-03 15:00 ET",
+                "utc": "2026-09-03T19:00:00Z",
+                "event": "Fed's Hammack (Cleveland) & Goolsbee (Chicago) special remarks, 'Connecting Communities' online event",
+                "group": "Today"
+            },
+            {
+                "et": "2026-09-04 08:30 ET",
+                "utc": "2026-09-04T12:30:00Z",
+                "event": "Employment Report (NFP)",
+                "group": "Tomorrow",
+                "prior": "-23000",
+                "consensus": "50000"
+            },
+            {
+                "et": "2026-09-04 08:30 ET",
+                "utc": "2026-09-04T12:30:00Z",
+                "event": "Unemployment Rate",
+                "group": "Tomorrow",
+                "prior": "4.1%",
+                "consensus": "4.1%"
+            },
+            {
+                "et": "2026-09-04 08:30 ET",
+                "utc": "2026-09-04T12:30:00Z",
+                "event": "Avg Hourly Earnings, M/M%",
+                "group": "Tomorrow",
+                "prior": "0.1%",
+                "consensus": "0.2%"
+            },
+            {
+                "et": "2026-09-04 08:30 ET",
+                "utc": "2026-09-04T12:30:00Z",
+                "event": "Avg Hourly Earnings, Y/Y%",
+                "group": "Tomorrow",
+                "prior": "3.1%",
+                "consensus": "3%"
+            }
+        ],
+        "sections": [
+            {
+                "body": "The 2Y sits at 4.336% (\u22123.5bp) and the 10Y at 4.752% (\u22122.8bp) on TradingView's live curve (ow_macro_rates liveNow, fetchedAt 2026-09-03T17:00:20.911Z). The front end is leading the rally, so the 2s10s steepens to +41.6bp \u2014 a bull-steepener the day before payrolls, the front end pulling down harder than the belly. Note the shape is inverted-turned-positive at the long end: the 30Y at 5.234% (\u22122.6bp) sits well above the 10Y. This is the 'good' direction for duration \u2014 everything is richer \u2014 but the level still bites. Rank by cash-flow duration, from most-helped-to-most-exposed: the longest-duration equity \u2014 unprofitable-until-2030 growth, the crypto-treasury and small-cap complex (IWM +0.98 to 294.99) \u2014 gets the biggest present-value tailwind from lower discount rates and is why the front-end rally matters; long-bond proxies (TLT 82.325, +0.375) get a direct mark-up; mega-cap tech (QQQ +8.38) rides it comfortably. The hurt is muted today because rates fell across the whole curve \u2014 but the 30Y above 5.2% is the reminder that the term-premium floor under long-duration cash flows has not moved.",
+                "title": "Rates are the first cause"
+            },
+            {
+                "body": "Broadcom. AVGO trades 356.37, down \u221210.87 (~\u22123%), while the entire semi and mega-cap tape it anchors is green: SMH's sector complex bid, NVDA +3.07 to 227.48, MRVL +5.27 to 211.75, ALAB +5.60 to 279.73, XLK +2.25 to 185.845, QQQ +8.38. A name falling 3% inside a rallying group it is a bellwether of is the anomaly. The cause is the expectations bar, not sentiment: Broadcom did not miss on the print, it guided the top line light. Per Unusual Whales, 2026-09-02T20:17:34Z \u2014 'BROADCOM SEES 4Q REV. ABOUT $34.8B, EST. $35.05B' \u2014 and 2026-09-02T20:20:20Z \u2014 'BROADCOM TUMBLES 6.8% AFTER 4Q REVENUE OUTLOOK MISSES ESTIMATE.' The bar for the AI-infrastructure leaders is now set at beat-AND-raise; a merely-in-line-to-soft revenue outlook, against a stock that had front-run tens of billions of AI chip financing, is enough to sink it while its peers rally on the same AI-capex thesis. The sell-side confirms the re-rate: Unusual Whales, 2026-09-03T13:40:29Z \u2014 'BofA Global Research cuts Broadcom's price objective to $460 from $530.' The divergence is the market marking down the marginal dollar of AI revenue at the one name where the expectations bar had climbed highest.",
+                "title": "Today's largest divergence"
+            },
+            {
+                "body": "No clean beat-and-raise-that-closed-down name surfaces in today's coverage. The one large decliner into a green tape, Broadcom, is a guide-DOWN (Q4 revenue outlook of ~$34.8B below the ~$35.05B estimate, per Unusual Whales 2026-09-02T20:17:34Z), not a beat-and-raise \u2014 so it does not carry this tag; it is treated as the divergence above. Absent a beat-and-raise print marked down today, the pricing-power-exhausted signal does not fire. Flagging the absence rather than forcing a name onto the tag: the tell to watch tomorrow is whether an in-line-or-better payroll fails to lift the long-duration complex.",
+                "title": "Good news, priced down = pricing power exhausted"
+            },
+            {
+                "body": "Two Fed voices are dated for today \u2014 Cleveland's Hammack and Chicago's Goolsbee, 'Connecting Communities' remarks at 2026-09-03T19:00:00Z (ow_uw_calendar, asOf 2026-09-03T17:00:23.127Z) \u2014 but the reaction is read off the tape, not guessed forward. What the front end is already pricing: the futures-implied path (ow_argon_policy_path, Frenzy Capital fed-funds futures via argon, snapshot 2026-09-02 \u2014 futures-implied via Frenzy Capital, NOT CME FedWatch) has the 9/16 meeting at a 60% HIKE / 40% Hold, implied rate 3.78%, target 3.75\u20134.00%; then 10/28 leaning HOLD at 70%; then 12/9 back to a 64% HIKE. That is a market pricing a Fed still in a tightening-bias reaction function \u2014 the input that matters is inflation/labor running hot enough to justify hikes, not cuts. Yet today the 2Y richened 3.5bp and the curve bull-steepened, and gold ripped +2.23% to $4,486 with silver +2.53% and DXY \u22120.71 to 98.864 (ow_tv_commodities, asOf 2026-09-03T17:00:26.278Z; ow_macro_rates liveNow) \u2014 a real-asset, weaker-dollar bid that reads as the market fading the hike-path stiffness ahead of tomorrow's 08:30 ET payroll (consensus +50k jobs, prior \u221223k; unemployment 4.1% vs 4.1% prior; AHE +0.2% m/m). The reaction function in one line: the front end says a soft labor print pulls the September hike odds down fast, and the gold/dollar move is the early vote for that.",
+                "title": "Reaction function"
+            },
+            {
+                "body": "\u4e0d\u53d8. Entry was 716 above; spot 717.57 (gex, as of 2026-09-03T17:00:06Z) holds just above the long strike but sits below the 718 gamma magnet and 718 call wall, with the gamma flip at 717.52 right under spot \u2014 pinned, not driving toward the 722 short strike. Invalidation 710 nowhere near. No meaningful move toward or away from target; thesis intact but stalled at the pin.",
+                "title": "QQQ-2026-09-03-1 \u2014 bull call 716/722, inval 710 below"
+            },
+            {
+                "body": "\u4e0d\u53d8. Entry 772 above; spot 772.92 (gex, as of 2026-09-03T17:00:06Z) is barely above the long strike and jammed at the 773 call wall with the 771 gamma magnet pulling down \u2014 5+ points short of the 778 short strike. Invalidation 765 untouched. Same pin as QQQ: holding above entry, no progress toward target.",
+                "title": "SPY-2026-09-03-2 \u2014 bull call 772/778, inval 765 below"
+            },
+            {
+                "body": "\u52a0\u5f3a. Entry 61 above; SLV 60.565 (ow_spot, fetchedAt 2026-09-03T17:01:35.025Z), up +1.495 on the session \u2014 silver ripping +2.53% (spot $66.98) on the same falling-dollar/real-yield bid (DXY \u22120.71 to 98.864). Price has climbed toward the 61 trigger and 61.92 breakeven from below, still above the 60 invalidation. Movement is toward target; the metals-convexity thesis strengthened intraday.",
+                "title": "SLV-2026-09-03-3 \u2014 bull call 61/64, inval 60 below"
+            },
+            {
+                "body": "\u65e0\u53d8\u5316 on the two index legs (QQQ, SPY) \u2014 both pinned at their walls, entries held, invalidations far off; one improvement (SLV) toward its trigger. No \u53cd\u8f6c, so no \u5e73\u4ed3\u5efa\u8bae fires. Checked against gex spot for SPY 772.92 / QQQ 717.57 and ow_spot for SLV 60.565.",
+                "title": "Verdict"
+            }
+        ],
+        "overnight": [],
+        "candidates": [],
+        "degradation": "Data degraded: provider provider-deepseek-dsh unavailable (no built lib/provider.js)",
+        "schemaVersion": 1
+    },
+    "report": {
+        "body": "# intraday 2026-09-03\n\n- run: `run-5cc65a12-a112-49fb-8566-ca01dc09ecc4`\n- tenant: `option-wizard`\n- audit: `helium audit run-5cc65a12-a112-49fb-8566-ca01dc09ecc4`\n\n**Outcome:** completed, 4 steps.\n- provider unavailable: provider-deepseek-dsh \u2014 no built lib/provider.js\n- **tool unconfigured:** ow_ib_positions (OW_IB_API_BASE unset)\n\n## universe \u2014 universe-builder\n- ow_tv_watchlist \u2014 ok, 1211 bytes\now_spot: skipped, needs parameters this step cannot supply\n- **ow_ib_positions** \u2014 OW_IB_API_BASE is unset; ow_ib_positions has no live route\n\n## gex \u2014 gex-reporter\n`dsh:claude-haiku-4-5`\n\n| Ticker | Spot | Gamma Flip | Gamma Magnet | Call Wall | Put Wall | Nearby Flips | Spot Gamma (per 1% OI) |\n|--------|------|-----------|--------------|-----------|----------|--------------|----------------------|\n| SPY | 772.92 | 772.53 | 771 | 773 | 768 | 772.53, 775.58, 776.56, 768.29, 777.93 | 3866855435.86 |\n| QQQ | 717.57 | 717.52 | 718 | 718 | 714 | 717.52, 717.44, 715.99, 714.43, 721.39 | 915505167.38 |\n\nas of 2026-09-03T17:00:06.000000Z (SPY, QQQ)\n\n## regime \u2014 regime-analyst\n`dsh:claude-opus-4-8`\n\nAVGO is a guide-down (revenue outlook miss), not a beat-and-raise \u2014 so it belongs in the divergence section, not section (3). No clear beat-and-raise-but-down name in my data. Now writing the final JSON.\n\n```json\n{\n  \"headline\": \"Curve bull-steepens as 2Y sheds 3.5bp into Friday's payroll, gold rips to $4,486 \u2014 and Broadcom's soft Q4 guide sinks it 3% against a green SMH tape, the tell that the AI-capex bar has outrun even the winners.\",\n  \"tape\": [\n    {\"label\": \"SPY\", \"value\": \"772.92\", \"change\": \"+7.76\", \"positive\": true},\n    {\"label\": \"QQQ\", \"value\": \"717.62\", \"change\": \"+8.38\", \"positive\": true},\n    {\"label\": \"IWM\", \"value\": \"294.99\", \"change\": \"+0.98\", \"positive\": true},\n    {\"label\": \"VIX\", \"value\": \"14.61\", \"change\": \"-0.58\", \"positive\": true},\n    {\"label\": \"10Y\", \"value\": \"4.752\", \"change\": \"-0.028\", \"positive\": true},\n    {\"label\": \"2Y\", \"value\": \"4.336\", \"change\": \"-0.035\", \"positive\": true},\n    {\"label\": \"30Y\", \"value\": \"5.234\", \"change\": \"-0.026\", \"positive\": true},\n    {\"label\": \"5Y\", \"value\": \"4.500\", \"change\": \"-0.036\", \"positive\": true},\n    {\"label\": \"DXY\", \"value\": \"98.864\", \"change\": \"-0.712\", \"positive\": false},\n    {\"label\": \"Gold\", \"value\": \"4486.163\", \"change\": \"+2.23%\", \"positive\": true},\n    {\"label\": \"Silver\", \"value\": \"66.9752\", \"change\": \"+2.53%\", \"positive\": true},\n    {\"label\": \"WTI\", \"value\": \"91.56\", \"change\": \"+0.60%\", \"positive\": true}\n  ],\n  \"schedule\": [\n    {\"utc\": \"2026-09-03T19:00:00Z\", \"et\": \"2026-09-03 15:00 ET\", \"event\": \"Fed's Hammack (Cleveland) & Goolsbee (Chicago) special remarks, 'Connecting Communities' online event\", \"consensus\": null, \"prior\": null, \"group\": \"Today\"},\n    {\"utc\": \"2026-09-04T12:30:00Z\", \"et\": \"2026-09-04 08:30 ET\", \"event\": \"Employment Report (NFP)\", \"consensus\": \"50000\", \"prior\": \"-23000\", \"group\": \"Tomorrow\"},\n    {\"utc\": \"2026-09-04T12:30:00Z\", \"et\": \"2026-09-04 08:30 ET\", \"event\": \"Unemployment Rate\", \"consensus\": \"4.1%\", \"prior\": \"4.1%\", \"group\": \"Tomorrow\"},\n    {\"utc\": \"2026-09-04T12:30:00Z\", \"et\": \"2026-09-04 08:30 ET\", \"event\": \"Avg Hourly Earnings, M/M%\", \"consensus\": \"0.2%\", \"prior\": \"0.1%\", \"group\": \"Tomorrow\"},\n    {\"utc\": \"2026-09-04T12:30:00Z\", \"et\": \"2026-09-04 08:30 ET\", \"event\": \"Avg Hourly Earnings, Y/Y%\", \"consensus\": \"3%\", \"prior\": \"3.1%\", \"group\": \"Tomorrow\"}\n  ],\n  \"sections\": [\n    {\n      \"title\": \"Rates are the first cause\",\n      \"body\": \"The 2Y sits at 4.336% (\u22123.5bp) and the 10Y at 4.752% (\u22122.8bp) on TradingView's live curve (ow_macro_rates liveNow, fetchedAt 2026-09-03T17:00:20.911Z). The front end is leading the rally, so the 2s10s steepens to +41.6bp \u2014 a bull-steepener the day before payrolls, the front end pulling down harder than the belly. Note the shape is inverted-turned-positive at the long end: the 30Y at 5.234% (\u22122.6bp) sits well above the 10Y. This is the 'good' direction for duration \u2014 everything is richer \u2014 but the level still bites. Rank by cash-flow duration, from most-helped-to-most-exposed: the longest-duration equity \u2014 unprofitable-until-2030 growth, the crypto-treasury and small-cap complex (IWM +0.98 to 294.99) \u2014 gets the biggest present-value tailwind from lower discount rates and is why the front-end rally matters; long-bond proxies (TLT 82.325, +0.375) get a direct mark-up; mega-cap tech (QQQ +8.38) rides it comfortably. The hurt is muted today because rates fell across the whole curve \u2014 but the 30Y above 5.2% is the reminder that the term-premium floor under long-duration cash flows has not moved.\"\n    },\n    {\n      \"title\": \"Today's largest divergence\",\n      \"body\": \"Broadcom. AVGO trades 356.37, down \u221210.87 (~\u22123%), while the entire semi and mega-cap tape it anchors is green: SMH's sector complex bid, NVDA +3.07 to 227.48, MRVL +5.27 to 211.75, ALAB +5.60 to 279.73, XLK +2.25 to 185.845, QQQ +8.38. A name falling 3% inside a rallying group it is a bellwether of is the anomaly. The cause is the expectations bar, not sentiment: Broadcom did not miss on the print, it guided the top line light. Per Unusual Whales, 2026-09-02T20:17:34Z \u2014 'BROADCOM SEES 4Q REV. ABOUT $34.8B, EST. $35.05B' \u2014 and 2026-09-02T20:20:20Z \u2014 'BROADCOM TUMBLES 6.8% AFTER 4Q REVENUE OUTLOOK MISSES ESTIMATE.' The bar for the AI-infrastructure leaders is now set at beat-AND-raise; a merely-in-line-to-soft revenue outlook, against a stock that had front-run tens of billions of AI chip financing, is enough to sink it while its peers rally on the same AI-capex thesis. The sell-side confirms the re-rate: Unusual Whales, 2026-09-03T13:40:29Z \u2014 'BofA Global Research cuts Broadcom's price objective to $460 from $530.' The divergence is the market marking down the marginal dollar of AI revenue at the one name where the expectations bar had climbed highest.\"\n    },\n    {\n      \"title\": \"Good news, priced down = pricing power exhausted\",\n      \"body\": \"No clean beat-and-raise-that-closed-down name surfaces in today's coverage. The one large decliner into a green tape, Broadcom, is a guide-DOWN (Q4 revenue outlook of ~$34.8B below the ~$35.05B estimate, per Unusual Whales 2026-09-02T20:17:34Z), not a beat-and-raise \u2014 so it does not carry this tag; it is treated as the divergence above. Absent a beat-and-raise print marked down today, the pricing-power-exhausted signal does not fire. Flagging the absence rather than forcing a name onto the tag: the tell to watch tomorrow is whether an in-line-or-better payroll fails to lift the long-duration complex.\"\n    },\n    {\n      \"title\": \"Reaction function\",\n      \"body\": \"Two Fed voices are dated for today \u2014 Cleveland's Hammack and Chicago's Goolsbee, 'Connecting Communities' remarks at 2026-09-03T19:00:00Z (ow_uw_calendar, asOf 2026-09-03T17:00:23.127Z) \u2014 but the reaction is read off the tape, not guessed forward. What the front end is already pricing: the futures-implied path (ow_argon_policy_path, Frenzy Capital fed-funds futures via argon, snapshot 2026-09-02 \u2014 futures-implied via Frenzy Capital, NOT CME FedWatch) has the 9/16 meeting at a 60% HIKE / 40% Hold, implied rate 3.78%, target 3.75\u20134.00%; then 10/28 leaning HOLD at 70%; then 12/9 back to a 64% HIKE. That is a market pricing a Fed still in a tightening-bias reaction function \u2014 the input that matters is inflation/labor running hot enough to justify hikes, not cuts. Yet today the 2Y richened 3.5bp and the curve bull-steepened, and gold ripped +2.23% to $4,486 with silver +2.53% and DXY \u22120.71 to 98.864 (ow_tv_commodities, asOf 2026-09-03T17:00:26.278Z; ow_macro_rates liveNow) \u2014 a real-asset, weaker-dollar bid that reads as the market fading the hike-path stiffness ahead of tomorrow's 08:30 ET payroll (consensus +50k jobs, prior \u221223k; unemployment 4.1% vs 4.1% prior; AHE +0.2% m/m). The reaction function in one line: the front end says a soft labor print pulls the September hike odds down fast, and the gold/dollar move is the early vote for that.\"\n    },\n    {\n      \"title\": \"Layer Coverage\",\n      \"body\": \"SESSION NOTE (pitfall 07): Unusual Whales' market/sector/ETF tide rows this run carry date '2026-09-03' \u2014 the tool returned today's dated session, with tidePrints 'thinned across the session to <=80 prints per tide' and the ETF (SMH) tide returning all-null underlying/premium rows. Treat flow as thinly-sampled, and the SMH ETF-tide as unavailable. | RATES \u2014 SOURCE ow_macro_rates liveNow (TradingView), AS-OF fetchedAt 2026-09-03T17:00:20.911Z \u2014 \u2713 (2Y 4.336, 10Y 4.752, 30Y 5.234, 2s10s +41.6). | CREDIT \u2014 SOURCE ow_macro_rates BAMLH0A0HYM2 fredDirect (FRED direct, ~1-2 day lag), AS-OF 2026-09-02, HY OAS 2.66 \u2014 \u2713. CCC OAS: skipped \u2014 no CCC OAS source. | TAPE \u2014 SOURCE ow_spot (TradingView), AS-OF fetchedAt 2026-09-03T17:00:29.764Z \u2014 \u2713 (SPY 772.92 +7.76, QQQ 717.62 +8.38, AVGO 356.37 \u221210.87). | FLOW/GEX \u2014 SOURCE ow_uw_market_state marketTide, AS-OF date 2026-09-03 (thinned, \u226480 prints/tide; SMH etfTide null) \u2014 \u2713 with caveat; no GEX feed available this run. | EVENTS \u2014 SOURCE ow_uw_calendar, AS-OF 2026-09-03T17:00:23.127Z \u2014 \u2713. | POLICY PATH \u2014 SOURCE ow_argon_policy_path (Frenzy Capital fed-funds futures via argon, futures-implied NOT CME FedWatch), snapshot 2026-09-02 \u2014 \u2713 (9/16 60% Hike; 10/28 70% Hold; 12/9 64% Hike).\"\n    }\n  ]\n}\n```\n\n## drift \u2014 drift-watcher\n`dsh:claude-opus-4-8`\n\n```json\n{\"sections\":[{\"title\":\"QQQ-2026-09-03-1 \u2014 bull call 716/722, inval 710 below\",\"body\":\"\u4e0d\u53d8. Entry was 716 above; spot 717.57 (gex, as of 2026-09-03T17:00:06Z) holds just above the long strike but sits below the 718 gamma magnet and 718 call wall, with the gamma flip at 717.52 right under spot \u2014 pinned, not driving toward the 722 short strike. Invalidation 710 nowhere near. No meaningful move toward or away from target; thesis intact but stalled at the pin.\"},{\"title\":\"SPY-2026-09-03-2 \u2014 bull call 772/778, inval 765 below\",\"body\":\"\u4e0d\u53d8. Entry 772 above; spot 772.92 (gex, as of 2026-09-03T17:00:06Z) is barely above the long strike and jammed at the 773 call wall with the 771 gamma magnet pulling down \u2014 5+ points short of the 778 short strike. Invalidation 765 untouched. Same pin as QQQ: holding above entry, no progress toward target.\"},{\"title\":\"SLV-2026-09-03-3 \u2014 bull call 61/64, inval 60 below\",\"body\":\"\u52a0\u5f3a. Entry 61 above; SLV 60.565 (ow_spot, fetchedAt 2026-09-03T17:01:35.025Z), up +1.495 on the session \u2014 silver ripping +2.53% (spot $66.98) on the same falling-dollar/real-yield bid (DXY \u22120.71 to 98.864). Price has climbed toward the 61 trigger and 61.92 breakeven from below, still above the 60 invalidation. Movement is toward target; the metals-convexity thesis strengthened intraday.\"},{\"title\":\"Verdict\",\"body\":\"\u65e0\u53d8\u5316 on the two index legs (QQQ, SPY) \u2014 both pinned at their walls, entries held, invalidations far off; one improvement (SLV) toward its trigger. No \u53cd\u8f6c, so no \u5e73\u4ed3\u5efa\u8bae fires. Checked against gex spot for SPY 772.92 / QQQ 717.57 and ow_spot for SLV 60.565.\"}]}\n```\n\nFull per-step tokens and cost: `helium audit run-5cc65a12-a112-49fb-8566-ca01dc09ecc4`\n",
+        "subject": "[TEST] intraday 2026-09-03",
+        "artifacts": []
+    }
+}

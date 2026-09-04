@@ -11,7 +11,7 @@ import { RiskRegisterPanel } from "./RiskRegisterPanel";
 import { SchedulePanel } from "./SchedulePanel";
 import { SectionsPanel } from "./SectionsPanel";
 import { TapeStrip } from "./TapeStrip";
-import type { BriefView } from "./view";
+import { faultList, type BriefView } from "./view";
 import styles from "./flash.module.css";
 
 const FOOTER =
@@ -46,10 +46,10 @@ export function PremarketView({ view }: { view: BriefView }) {
           <Lead label={["Today in", "one sentence"]} text={lead} />
         </div>
       ) : null}
-      {view.degradation && view.degradation.length > 0 ? (
+      {faultList(view.degradation).length > 0 ? (
         <div style={{ marginTop: 12 }}>
           <PlaceholderBand label="Run degraded">
-            {view.degradation.join(" · ")}
+            {faultList(view.degradation).join(" · ")}
           </PlaceholderBand>
         </div>
       ) : null}

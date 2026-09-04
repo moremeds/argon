@@ -155,7 +155,8 @@ export interface BriefView {
   gamma?: GammaProfile[];
   riskList?: Section[];
   decision?: { label: string; value: string }[];
-  degradation?: string[];
+  /** helium emits ONE joined sentence (schema_version 1); the mock guessed an array. Read via `faultList`. */
+  degradation?: string | string[];
   /** The helium run id, printed beside the faults it produced. */
   runId?: string;
   /** Supplements only: tracked candidates, dealer-gamma levels, the recap. */
@@ -188,4 +189,10 @@ export function asBriefView(run: AgentRunResponse): BriefView | null {
     outcome: view.outcome ?? run.outcome,
     tenant: view.tenant ?? run.tenant,
   };
+}
+
+/** Normalize `degradation` so a string, array, or garbage never takes the page down. */
+export function faultList(d: unknown): string[] {
+  if (typeof d === "string") return d ? [d] : [];
+  return Array.isArray(d) ? d.filter((x): x is string => typeof x === "string") : [];
 }

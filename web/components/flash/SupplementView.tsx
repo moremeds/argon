@@ -13,7 +13,7 @@ import { RunFaultsPanel } from "./RunFaultsPanel";
 import { SectionsPanel } from "./SectionsPanel";
 import { StatePill } from "./StatePill";
 import { TapeStrip } from "./TapeStrip";
-import type { BriefView, GexRow, StatusItem } from "./view";
+import { faultList, type BriefView, type GexRow, type StatusItem } from "./view";
 import styles from "./flash.module.css";
 
 /**
@@ -164,7 +164,7 @@ export function SupplementView({
             <RiskRegisterPanel entries={view.riskList} />
           ) : null}
 
-          <RunFaultsPanel runId={view.runId} faults={view.degradation ?? []} />
+          <RunFaultsPanel runId={view.runId} faults={faultList(view.degradation)} />
         </div>
       </div>
     </>

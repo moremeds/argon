@@ -14,25 +14,31 @@ import { expect, test } from "@playwright/test";
 const API = "http://127.0.0.1:8400";
 const TOKEN = process.env.UW_SCAN_AGENT_INGEST_TOKEN ?? "flash-e2e-local-token";
 const HERE = dirname(fileURLToPath(import.meta.url));
-const RUN = JSON.parse(
-  readFileSync(
-    resolve(HERE, "../../../tests/fixtures/flash/2026-09-03-premarket.json"),
-    "utf8",
-  ),
-) as Record<string, unknown>;
+const fixture = (kind: string) =>
+  JSON.parse(
+    readFileSync(
+      resolve(HERE, `../../../tests/fixtures/flash/2026-09-03-${kind}.json`),
+      "utf8",
+    ),
+  ) as Record<string, unknown>;
+// premarket is the seed envelope; intraday/close are the real helium rows as
+// GET /api/agent-runs/run/{kind}/{day} returned them (extra keys are ignored).
+const RUNS = ["premarket", "intraday", "close"].map(fixture);
 
 const WEEK = "2026-W36";
 const DAY = "2026-09-03";
 const EMPTY_DAY = "2026-08-31";
 
 test.beforeAll(async ({ request }) => {
-  const res = await request.post(`${API}/api/agent-runs`, {
-    headers: { Authorization: `Bearer ${TOKEN}` },
-    data: RUN,
-  });
-  // 201 on the first post of a session, 200 on every re-run: the ingest is
-  // idempotent on (tenant, run_id) and a re-run must not be a failure.
-  expect([200, 201]).toContain(res.status());
+  for (const run of RUNS) {
+    const res = await request.post(`${API}/api/agent-runs`, {
+      headers: { Authorization: `Bearer ${TOKEN}` },
+      data: run,
+    });
+    // 201 on the first post of a session, 200 on every re-run: the ingest is
+    // idempotent on (tenant, run_id) and a re-run must not be a failure.
+    expect([200, 201]).toContain(res.status());
+  }
 });
 
 test("the sidebar carries Flash and it lands on a recorded week", async ({
@@ -57,11 +63,11 @@ test("the week strip lights only the phases that were recorded", async ({
   );
   await expect(card.getByTestId("pip-intraday")).toHaveAttribute(
     "data-on",
-    "false",
+    "true",
   );
   await expect(card.getByTestId("pip-close")).toHaveAttribute(
     "data-on",
-    "false",
+    "true",
   );
   await card.click();
   await expect(page).toHaveURL(new RegExp(`/flash/${WEEK}/${DAY}`));
@@ -90,6 +96,19 @@ test("the premarket page renders the report and never a position size", async ({
       /All structures are defined-risk\. No quantities, position sizes/,
     ),
   ).toBeVisible();
+});
+
+test("supplements render helium's single-sentence degradation, not a crash", async ({
+  page,
+}) => {
+  for (const phase of ["intraday", "close"]) {
+    await page.goto(`/flash/${WEEK}/${DAY}?phase=${phase}`);
+    await expect(
+      page.getByText("Data degraded: provider provider-deepseek-dsh unavailable", {
+        exact: false,
+      }),
+    ).toBeVisible();
+  }
 });
 
 test("a day with no run says so, and says what it queried", async ({ page }) => {
