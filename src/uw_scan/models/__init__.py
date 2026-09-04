@@ -11,6 +11,15 @@ from ._base import (
     VannaConditionalReading,
     _UwBase,
 )
+from .agent_runs import (
+    AgentRunIndexRow,
+    AgentRunIngest,
+    AgentRunIngestResult,
+    AgentRunResponse,
+    AgentRunWeek,
+    AgentRunWeekListResponse,
+    AgentRunWeekResponse,
+)
 from .chanlun import (
     ChanlunLifecycleMark,
     ChanlunLifecycleResponse,
@@ -391,6 +400,13 @@ from .vrp_lifecycle import (
 
 __all__ = [
     "_UwBase",
+    "AgentRunIndexRow",
+    "AgentRunIngest",
+    "AgentRunIngestResult",
+    "AgentRunResponse",
+    "AgentRunWeek",
+    "AgentRunWeekListResponse",
+    "AgentRunWeekResponse",
     "ChainCell",
     "CompanyEvidenceResponse",
     "EventClassStatus",

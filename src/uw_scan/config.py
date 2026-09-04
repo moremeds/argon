@@ -585,6 +585,10 @@ class Settings(BaseModel):
     # on localhost. MacBook dev points over Tailscale: http://100.66.147.98:8321.
     xenon_query_api_url: str = "http://127.0.0.1:8321"
     xenon_query_api_key: SecretStr | None = None
+    #: Shared bearer token for POST /api/agent-runs. UNSET MEANS DISABLED
+    #: (503), never open — the one write surface whose failure mode is a
+    #: document a person reads as a briefing.
+    agent_ingest_token: SecretStr | None = None
 
     # --- VRP tradable iron-condor + backtest (plan 2026-06-22) ----------------
     # hold is in TRADING days to stay unit-consistent with the harvest measurement
@@ -1198,6 +1202,11 @@ class Settings(BaseModel):
             xenon_query_api_key=(
                 SecretStr(v)
                 if (v := os.environ.get("XENON_QUERY_API_KEY", "").strip())
+                else None
+            ),
+            agent_ingest_token=(
+                SecretStr(v)
+                if (v := os.environ.get("UW_SCAN_AGENT_INGEST_TOKEN", "").strip())
                 else None
             ),
             vrp_hold_days=int(os.environ.get("UW_SCAN_VRP_HOLD_DAYS", "20")),
