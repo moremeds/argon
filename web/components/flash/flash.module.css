@@ -834,8 +834,12 @@
   }
 }
 
+/* Scoped to `.flash`, not a bare `*`: a CSS module rejects a selector with no
+   local class as impure, and every transition in this design lives inside the
+   Flash page anyway. */
 @media (prefers-reduced-motion: reduce) {
-  * {
+  .flash,
+  .flash * {
     transition: none !important;
   }
 }

@@ -19,6 +19,13 @@ const webServers = [
     command:
       "uv run --project .. uvicorn uw_scan.api.server:app --host 127.0.0.1 --port 8400",
     url: "http://127.0.0.1:8400/api/health",
+    // Test-only value. The Flash e2e seeds a row through the real ingest
+    // endpoint, which is disabled (503) when no token is configured; it
+    // belongs here rather than in a checked-in .env.
+    env: {
+      UW_SCAN_AGENT_INGEST_TOKEN:
+        process.env.UW_SCAN_AGENT_INGEST_TOKEN ?? "flash-e2e-local-token",
+    },
     reuseExistingServer: true,
     timeout: 60_000,
   },
