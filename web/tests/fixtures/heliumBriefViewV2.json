@@ -1,0 +1,206 @@
+{
+ "schemaVersion": 2,
+ "date": "2026-09-02",
+ "tenant": "option-wizard",
+ "outcome": "completed",
+ "headline": "",
+ "tape": [],
+ "schedule": [],
+ "overnight": [],
+ "sections": [
+  {
+   "title": "今日 regime",
+   "body": "**Direction bias: cautiously risk-off / defensive.** The whole Treasury curve is live-bid today — 2y at **4.371%**, 10y **4.772%**."
+  },
+  {
+   "title": "Base case",
+   "body": "Curve stays bid into the number; risk drifts lower."
+  }
+ ],
+ "regime": {
+  "paragraph": "**Direction bias: cautiously risk-off / defensive.** The whole Treasury curve is live-bid today — 2y at **4.371%**, 10y **4.772%**.",
+  "direction": "cautiously risk-off / defensive",
+  "volatility": "neutral-to-firming, cheap but rising",
+  "hedge": "keep hedges on, modest"
+ },
+ "candidates": [
+  {
+   "id": "SPY-2026-09-02-premarket-1",
+   "invalidation": [
+    {
+     "level": 750,
+     "side": "above"
+    }
+   ],
+   "ticker": "SPY",
+   "strategy": "put_credit_spread_hedge",
+   "expiry": "2026-09-30",
+   "dte": 28,
+   "legs": [
+    {
+     "right": "put",
+     "action": "buy",
+     "strike": 740,
+     "expiry": "2026-09-30",
+     "ratio": 1,
+     "mid": 5.14
+    },
+    {
+     "right": "put",
+     "action": "sell",
+     "strike": 750,
+     "expiry": "2026-09-30",
+     "ratio": 1,
+     "mid": 6.42
+    }
+   ],
+   "pricing": {
+    "kind": "priced",
+    "net": 1.28,
+    "maxGain": 128,
+    "maxLoss": 872,
+    "breakevens": [
+     748.72
+    ],
+    "pnlAt": [
+     {
+      "pct": null,
+      "spot": 740,
+      "pnl": -872
+     },
+     {
+      "pct": null,
+      "spot": 750,
+      "pnl": 128
+     }
+    ]
+   },
+   "width": 10,
+   "target": {
+    "level": 740,
+    "side": "below"
+   },
+   "thesis": "Defensive hedge aligned with bearish-tilt regime.",
+   "resolutionDeadline": "2026-09-30",
+   "rationale": "Defensive hedge aligned with bearish-tilt regime.",
+   "unchecked": "no tool spot; not verified"
+  },
+  {
+   "id": "QQQ-2026-09-02-premarket-2",
+   "invalidation": [
+    {
+     "level": 695,
+     "side": "above"
+    }
+   ],
+   "ticker": "QQQ",
+   "strategy": "put_debit_spread_hedge",
+   "expiry": "2026-09-30",
+   "dte": 28,
+   "legs": [
+    {
+     "right": "put",
+     "action": "buy",
+     "strike": 695,
+     "expiry": "2026-09-30",
+     "ratio": 1,
+     "mid": 9.57
+    },
+    {
+     "right": "put",
+     "action": "sell",
+     "strike": 680,
+     "expiry": "2026-09-30",
+     "ratio": 1,
+     "mid": 6.26
+    }
+   ],
+   "pricing": {
+    "kind": "priced",
+    "net": -3.31,
+    "maxGain": 1169,
+    "maxLoss": 331,
+    "breakevens": [
+     691.69
+    ],
+    "pnlAt": [
+     {
+      "pct": null,
+      "spot": 680,
+      "pnl": 1169
+     },
+     {
+      "pct": null,
+      "spot": 695,
+      "pnl": -331
+     }
+    ]
+   },
+   "width": 15,
+   "thesis": "",
+   "resolutionDeadline": "2026-09-30",
+   "rationale": "Tech hedge: elevated IV rank (24%), sensitive to yield moves.",
+   "unchecked": "no tool spot; not verified"
+  },
+  {
+   "id": "TLT-2026-09-02-premarket-3",
+   "invalidation": [
+    {
+     "level": 81,
+     "side": "above"
+    }
+   ],
+   "ticker": "TLT",
+   "strategy": "put_credit_spread_hedge",
+   "expiry": "2026-09-30",
+   "dte": 28,
+   "legs": [
+    {
+     "right": "put",
+     "action": "buy",
+     "strike": 80,
+     "expiry": "2026-09-30",
+     "ratio": 1
+    },
+    {
+     "right": "put",
+     "action": "sell",
+     "strike": 81,
+     "expiry": "2026-09-30",
+     "ratio": 1,
+     "mid": 0.56
+    }
+   ],
+   "pricing": {
+    "kind": "unpriced",
+    "reason": "Unpriced: put 80 has no mid"
+   },
+   "width": 1,
+   "thesis": "",
+   "resolutionDeadline": "2026-09-30",
+   "rationale": "Bond duration hedge: minimal cost insurance.",
+   "unchecked": "no tool spot; not verified"
+  }
+ ],
+ "riskList": [
+  {
+   "ticker": "GLD",
+   "reason": "Call spread income overlay creates portfolio concentration in GLD."
+  }
+ ],
+ "charts": {
+  "gex": []
+ },
+ "spyForecast": {
+  "scorable": true,
+  "forecast": {
+   "referenceClose": {
+    "date": "2026-09-01",
+    "value": 761.78
+   },
+   "t1Down": 0.42,
+   "t5Down": 0.47
+  }
+ },
+ "runLabel": "premarket"
+}
