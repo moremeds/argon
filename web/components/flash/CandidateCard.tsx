@@ -164,8 +164,9 @@ export function CandidateCard({ candidate }: { candidate: CandidateView }) {
         </div>
       </div>
 
-      {c.rationale || c.id ? (
+      {c.thesis || c.rationale || c.id ? (
         <div className={styles.rationale}>
+          {c.thesis ? <p>{c.thesis}</p> : null}
           {c.rationale ? <p>{c.rationale}</p> : null}
           <span className={styles.cid}>{c.id}</span>
         </div>
