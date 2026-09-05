@@ -14,8 +14,14 @@ function usd(n: number): string {
   );
 }
 
-function level(x?: Invalidation | Invalidation[]): string {
+/**
+ * A level, a pair of levels, or — from a v1 document — the sentence the run
+ * wrote instead of a level. A sentence is printed as it arrived: it is the
+ * only thing that document has, and an em dash over the top of it was the bug.
+ */
+function level(x?: Invalidation | Invalidation[] | string): string {
   if (!x) return "—";
+  if (typeof x === "string") return x;
   const list = Array.isArray(x) ? x : [x];
   if (list.length === 0) return "—";
   return list.map((i) => `${i.level} ${i.side}`).join(" / ");
