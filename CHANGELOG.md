@@ -7,6 +7,21 @@ version in lockstep (enforced by `scripts/release/version_sync_check.py`).
 
 ## [Unreleased]
 
+### Fixed
+
+- **Flash — a candidate target that is a level now prints as a level.** Every
+  card read `TARGET —` because helium sends a sentence into a field the mirror
+  renders as `{level, side}`. `web/components/flash/view.ts` now accepts
+  `schema_version` 1 **and** 2 (`SUPPORTED_SCHEMA_VERSIONS`) — the two repos
+  deploy independently, so refusing v1 during the window where argon is ahead
+  would blank a page over a field that is only differently spelled. v2's
+  `target: {level, side}`, `thesis`, `entry.deadlineBars` and
+  `resolutionDeadline` are carried through; `CandidateCard` prints whichever
+  target spelling arrived and shows the thesis above the rationale.
+  `web/tests/fixtures/heliumBriefViewV2.json` is helium's own producer output,
+  copied byte-for-byte, so the consumer test fails when the real document
+  stops rendering.
+
 ## [0.13.5] — 2026-09-04
 
 
