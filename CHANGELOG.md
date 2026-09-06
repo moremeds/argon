@@ -7,6 +7,9 @@ version in lockstep (enforced by `scripts/release/version_sync_check.py`).
 
 ## [Unreleased]
 
+## [0.13.6] — 2026-09-06
+
+
 ### Fixed
 
 - **Flash — a candidate target that is a level now prints as a level.** Every
@@ -21,7 +24,6 @@ version in lockstep (enforced by `scripts/release/version_sync_check.py`).
   `web/tests/fixtures/heliumBriefViewV2.json` is helium's own producer output,
   copied byte-for-byte, so the consumer test fails when the real document
   stops rendering.
-
 ## [0.13.5] — 2026-09-04
 
 
