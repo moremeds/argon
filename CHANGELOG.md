@@ -24,8 +24,24 @@ version in lockstep (enforced by `scripts/release/version_sync_check.py`).
   n/h and the intervals are optimistic — the caveat is carried in the run's
   `notes` column, not just the docstring.
 
-## [0.13.6] — 2026-09-06
+### Fixed
 
+- **Flash week strip: the weekly card follows the run, not the Friday cell** —
+  the week page renders the newest `weekly` run wherever it landed (helium files
+  a week-scoped run under its own `run_day`; W36's outlook landed on Sunday
+  2026-09-06), but the strip above it looked for a weekly on the Friday and
+  decided the card's text from a truthy `headline`. A weekly that was ingested,
+  updated in place and rendering five sections below still read "not generated
+  yet" with its pip dark. The card now reads the same index row the body does
+  (`newestOfKind` moved to `web/lib/flash/kinds.ts`, one copy shared by the page
+  and the strip), lights the pip on the run's existence, and says
+  "no headline recorded" — not "not generated yet" — for a recorded run that
+  carries no headline. The five day cards carried the same conflation: a
+  premarket run ingested with an empty `headline` read "no premarket run" over
+  a run that exists. They now say "no headline recorded" too, and keep
+  "no premarket run" for the day where none was filed.
+
+## [0.13.6] — 2026-09-06
 
 ### Fixed
 
@@ -41,8 +57,8 @@ version in lockstep (enforced by `scripts/release/version_sync_check.py`).
   `web/tests/fixtures/heliumBriefViewV2.json` is helium's own producer output,
   copied byte-for-byte, so the consumer test fails when the real document
   stops rendering.
-## [0.13.5] — 2026-09-04
 
+## [0.13.5] — 2026-09-04
 
 ### Added
 
@@ -64,7 +80,7 @@ version in lockstep (enforced by `scripts/release/version_sync_check.py`).
     and Frank rows are resolved through the week index, not by date
     arithmetic — helium files a W36 Frank under `run_day 2026-09-07`.
   - Empty states carry the audit they ran (`helium audit — 0 runs for tenant
-    option-wizard, phase premarket, date 2026-08-31`), and an unrenderable
+option-wizard, phase premarket, date 2026-08-31`), and an unrenderable
     `schema_version` names the version that arrived and the one this build
     draws rather than rendering blank.
   - Design spec: `docs/superpowers/specs/2026-09-05-flash-design.md`.
@@ -72,15 +88,15 @@ version in lockstep (enforced by `scripts/release/version_sync_check.py`).
     `/opt/argon/.env` on the mini followed by `docker-compose up -d api web`
     (Watchtower does not re-read `env_file`). Migration 148 self-applies on
     api boot.
-## [0.13.4] — 2026-09-04
 
+## [0.13.4] — 2026-09-04
 
 ### Changed
 
 - Site meta description is now "Recursive Self-improvement Agent Analytics"
   (`web/app/layout.tsx`).
-## [0.13.3] — 2026-09-03
 
+## [0.13.3] — 2026-09-03
 
 ### Added
 
@@ -144,6 +160,7 @@ version in lockstep (enforced by `scripts/release/version_sync_check.py`).
   July 1st." `periodLabel()` now renders the reference period as `Jul 2026` and
   the cell reads `Jul 2026 · pub 7d ago`, with a tooltip carrying both raw
   timestamps. `web/components/macro/domain/{FactorTable,InflationPanels}.tsx`.
+
 ## [0.13.2] — 2026-08-31
 
 ### Changed

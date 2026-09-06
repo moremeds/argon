@@ -1,7 +1,13 @@
 import Link from "next/link";
 
 import type { AgentRunIndexRow, AgentRunWeek } from "@/lib/api";
-import { DAY_KINDS, PIP_LABEL, weekDays, weekRange } from "@/lib/flash/kinds";
+import {
+  DAY_KINDS,
+  PIP_LABEL,
+  newestOfKind,
+  weekDays,
+  weekRange,
+} from "@/lib/flash/kinds";
 
 import styles from "./flash.module.css";
 
@@ -37,12 +43,16 @@ export function WeekStrip({
     byDay.get(day)!.add(run.kind);
   }
   const headlineOf = (day: string, kind: string) =>
-    runs.find(
-      (r) => String(r.run_day) === day && r.kind === kind && r.headline,
-    )?.headline ?? "";
+    runs.find((r) => String(r.run_day) === day && r.kind === kind && r.headline)
+      ?.headline ?? "";
 
   const recordedDays = days.filter(({ date }) => byDay.has(date)).length;
-  const weeklyHeadline = headlineOf(last, "weekly");
+  // The weekly card follows the run the week PAGE renders — the newest weekly
+  // in the index, on whatever day it landed — not the Friday cell. Keying the
+  // card on `last` printed "not generated yet" over a rendered outlook, and
+  // keying its text on a truthy headline printed it again for a run that
+  // simply carries no headline. Existence and headline are two facts.
+  const weeklyRun = newestOfKind(runs, "weekly");
 
   // The list arrives newest-first, so the EARLIER week is index + 1.
   const here = weeks.findIndex((w) => w.week_key === weekKey);
@@ -78,6 +88,10 @@ export function WeekStrip({
         {days.map(({ date, dow }) => {
           const kinds = byDay.get(date);
           const headline = headlineOf(date, "premarket");
+          // Same separation as the weekly card: a premarket run that carries
+          // no headline still HAPPENED, so it must not read "no premarket
+          // run" — that sentence is reserved for a day where none was filed.
+          const hasPremarket = kinds?.has("premarket") ?? false;
           return (
             <Link
               key={date}
@@ -90,11 +104,15 @@ export function WeekStrip({
                 <span className={styles.dow}>{dow}</span>
                 <span className={styles.dt}>{date.slice(5)}</span>
               </span>
-              {kinds && headline ? (
+              {headline ? (
                 <span className={styles.one}>{headline}</span>
               ) : (
                 <span className={`${styles.one} ${styles.norun}`}>
-                  {kinds ? "no premarket run" : "no run recorded"}
+                  {hasPremarket
+                    ? "no headline recorded"
+                    : kinds
+                      ? "no premarket run"
+                      : "no run recorded"}
                 </span>
               )}
               <span className={styles.pips}>
@@ -124,18 +142,18 @@ export function WeekStrip({
             <span className={styles.dow}>WEEK</span>
             <span className={styles.dt}>{weekNo}</span>
           </span>
-          {weeklyHeadline ? (
-            <span className={styles.one}>{weeklyHeadline}</span>
+          {weeklyRun?.headline ? (
+            <span className={styles.one}>{weeklyRun.headline}</span>
           ) : (
             <span className={`${styles.one} ${styles.norun}`}>
-              not generated yet
+              {weeklyRun ? "no headline recorded" : "not generated yet"}
             </span>
           )}
           <span className={styles.pips}>
             <span
               className={styles.pip}
               data-testid="pip-weekly"
-              data-on={String(byDay.get(last)?.has("weekly") ?? false)}
+              data-on={String(weeklyRun != null)}
               title="weekly"
             >
               S

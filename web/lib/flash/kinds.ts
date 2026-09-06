@@ -11,6 +11,8 @@
  * into the previous Sunday and silently shifts the whole week strip.
  */
 
+import type { AgentRunIndexRow } from "@/lib/api";
+
 export const FLASH_TENANT = "option-wizard";
 
 /** The three phases of one trading day. `weekly` and `frank` are NOT DayKinds. */
@@ -109,4 +111,32 @@ export function todayEt(now: Date = new Date()): string {
     month: "2-digit",
     day: "2-digit",
   }).format(now);
+}
+
+/**
+ * The newest recorded row of one kind in a week's index.
+ *
+ * THE WEEK'S RUNS ARE NOT FILED UNDER FRIDAY. helium sends `week_key`
+ * explicitly and files each run under its own `run_day` — a Frank 复盘 for
+ * W36 carries run_day 2026-09-07, the Monday AFTER the week it reviews, and
+ * the weekly outlook of W36 landed on Sunday 2026-09-06. Looking for a
+ * week-scoped run on the Friday finds nothing and reports "not generated yet"
+ * over a run that exists. The index is the only authority on which day a
+ * week-scoped run actually landed on, so the strip and the page body must both
+ * read it through here — a second private copy of this rule is how the header
+ * and the body came to disagree in the first place.
+ */
+export function newestOfKind(
+  runs: AgentRunIndexRow[],
+  kind: string,
+): AgentRunIndexRow | undefined {
+  return runs
+    .filter((r) => r.kind === kind)
+    .sort((a, b) =>
+      String(a.run_day) === String(b.run_day)
+        ? b.version_no - a.version_no
+        : String(a.run_day) < String(b.run_day)
+          ? 1
+          : -1,
+    )[0];
 }
