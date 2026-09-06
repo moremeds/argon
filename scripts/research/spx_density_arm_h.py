@@ -49,8 +49,21 @@ Reproduce (the mini's prod DB is the only tier that carries the 83 as_of rows):
 Reads:  uw_scan.spx_density_forecast (settled rows only), uw_scan.vol_index_daily,
         uw_scan.backtest_sweep_{runs,results} (run 3, for the side-by-side)
 Writes: uw_scan.backtest_sweep_runs / _results ONLY, strategy
-        'spx-density-calibration-arm-H'. NEVER spx_density_forecast — the published log
+        'spx-density-calibration-arm-<arm>' ('-arm-H' by default; a multi-character arm key
+        is lower-cased into the slug, so --arm SKEWT persists as
+        'spx-density-calibration-arm-skewt'). NEVER spx_density_forecast — the published log
         is arm G's by definition and this script has no business rewriting it.
+
+`--arm` generalises the same replay to any row of `density/fit.ARMS`: runs 4-6 used it for
+H, F and a G seed-offset noise floor. `--arm SKEWT` is the argon-added ASYMMETRIC arm — arm
+G's configuration with Hansen (1994)'s skewed t in the GJR likelihood. One thing to hold on
+to when reading its result: `gjr_std_boot_cone` draws its innovations by BLOCK BOOTSTRAP
+from the empirical standardized-residual pool, so no innovation family ever becomes the
+shape of a simulated path. A family can only move omega/alpha/gamma/beta — and through them
+the variance path, v_next and the residuals that get resampled. The run therefore records
+the fitted parameter RANGES (params_grid.fitted_param_ranges): a skew that never moves off
+its symmetric start, or sits on a bound, means the asymmetry was never identified and the
+metric delta belongs to the variance parameters, not to the family.
 """
 
 from __future__ import annotations
@@ -58,6 +71,7 @@ from __future__ import annotations
 import argparse
 import importlib.util
 import logging
+import statistics
 import subprocess
 import sys
 from collections.abc import Mapping, Sequence
@@ -99,8 +113,16 @@ STRATEGY_PREFIX = "spx-density-calibration-arm-"
 
 
 def strategy_for(arm: str, seed_offset: int) -> str:
-    """'spx-density-calibration-arm-H'; '-seed1' suffix marks a noise-floor control."""
-    return f"{STRATEGY_PREFIX}{arm}" + (f"-seed{seed_offset}" if seed_offset else "")
+    """'spx-density-calibration-arm-H'; '-seed1' suffix marks a noise-floor control.
+
+    Single-letter arm keys keep their case: runs 4-6 are persisted as '-arm-H', '-arm-F'
+    and '-arm-G-seed1', and those exact strings are the only join key back to them, so the
+    slug rule may not rewrite them. A multi-character key (the argon-added 'SKEWT') is
+    lower-cased into the slug, because a strategy string is a slug and 'SKEWT' shouting
+    inside one would be the only upper-case word in the table.
+    """
+    slug = arm if len(arm) == 1 else arm.lower()
+    return f"{STRATEGY_PREFIX}{slug}" + (f"-seed{seed_offset}" if seed_offset else "")
 
 
 STRATEGY = strategy_for(ARM, 0)
@@ -191,8 +213,15 @@ def replay_arm(
     *,
     arm: str = ARM,
     seed_offset: int = 0,
-) -> dict[tuple[date, int], dict]:
-    """(as_of, h) -> {'anchor_close', 'q05'..'q95', 'density_bins_jsonb', 'fallback_used'}.
+) -> tuple[dict[tuple[date, int], dict], dict[date, dict[str, float] | None]]:
+    """`((as_of, h) -> cell, as_of -> fitted params)`.
+
+    A cell is {'anchor_close', 'q05'..'q95', 'density_bins_jsonb', 'fallback_used'}. The
+    second return value is `ForecastResult.params` per session — the fitted GJR parameters
+    plus whatever the innovation family adds (arm H: `nu`; arm SKEWT: `eta`, `lambda`),
+    or None on a night the fit was rejected and the labelled EWMA fallback ran. It exists
+    so a run can report whether the family's extra parameters were actually IDENTIFIED
+    rather than pinned at a bound.
 
     Uses `compute_forecast`'s own as_of truncation — the same call the backfill script
     makes — so the seed is the v13 panel-index convention and the replay is bit-faithful
@@ -201,6 +230,7 @@ def replay_arm(
     """
     bar_dates = {d for d, _ in bars}
     out: dict[tuple[date, int], dict] = {}
+    fitted: dict[date, dict[str, float] | None] = {}
     for n, as_of in enumerate(as_ofs, start=1):
         if as_of not in bar_dates:
             raise MissingInputError(
@@ -216,6 +246,7 @@ def replay_arm(
             cell["density_bins_jsonb"] = row["density_bins_jsonb"]
             cell["fallback_used"] = result.fallback_used
             out[(as_of, int(row["h"]))] = cell
+        fitted[as_of] = result.params
         log.info(
             "replayed %d/%d as_of=%s arm=%s seed=%d fallback=%s",
             n,
@@ -225,7 +256,7 @@ def replay_arm(
             result.seed,
             result.fallback_used,
         )
-    return out
+    return out, fitted
 
 
 def merge_rows(
@@ -264,6 +295,102 @@ def merge_rows(
             raise MissingInputError(f"published realised_return is NULL at {key}")
         merged.append(row)
     return merged
+
+
+# --------------------------------------------------------------------------------------
+# fitted-parameter spread
+# --------------------------------------------------------------------------------------
+
+#: |lambda| at or above this counts as pinned on Hansen's (-1, 1) bound.
+SKEW_BOUND_EPS = 1e-3
+
+
+def param_ranges(
+    fitted: Mapping[date, dict | None],
+) -> dict[str, dict[str, float | int]]:
+    """param -> {n, min, median, max} across the as_of sessions that produced a fit.
+
+    WHY THIS IS PART OF THE RECORD, not a debug print: an innovation family's extra
+    parameter that never moves carries no information. If the fitted skew is the same
+    number every session, or sits on a bound, then the likelihood never identified an
+    asymmetry and any metric delta must be attributed to the variance parameters it
+    dragged along — not to the family. The range is what lets a reader tell those apart,
+    so it is persisted in params_grid rather than only printed.
+
+    `_sessions` records the fitted/fallback split: a range over 80 of 83 sessions is a
+    different claim from a range over all 83.
+    """
+    ranges: dict[str, dict[str, float | int]] = {}
+    keys = sorted({k for pr in fitted.values() if pr for k in pr})
+    for k in keys:
+        vals = sorted(
+            float(pr[k]) for pr in fitted.values() if pr is not None and k in pr
+        )
+        if not vals:
+            continue
+        entry: dict[str, float | int] = {
+            "n": len(vals),
+            "min": vals[0],
+            "median": statistics.median(vals),
+            "max": vals[-1],
+        }
+        if k == "lambda":
+            entry["n_pinned_at_bound"] = sum(
+                1 for v in vals if abs(v) >= 1.0 - SKEW_BOUND_EPS
+            )
+            entry["n_exactly_symmetric"] = sum(1 for v in vals if v == 0.0)
+            entry["n_negative"] = sum(1 for v in vals if v < 0.0)
+        ranges[k] = entry
+    ranges["_sessions"] = {
+        "n": len(fitted),
+        "fitted": sum(1 for pr in fitted.values() if pr is not None),
+        "fallback": sum(1 for pr in fitted.values() if pr is None),
+    }
+    return ranges
+
+
+def print_param_ranges(ranges: Mapping[str, Mapping[str, float | int]]) -> None:
+    sess = ranges.get("_sessions", {})
+    print()
+    print(
+        f"### Fitted parameters across as_of "
+        f"({sess.get('fitted', 0)} fitted / {sess.get('n', 0)} sessions, "
+        f"{sess.get('fallback', 0)} fallback)"
+    )
+    print()
+    print("| param | n | min | median | max | note |")
+    print("| --- | --- | --- | --- | --- | --- |")
+    for k, e in ranges.items():
+        if k == "_sessions":
+            continue
+        note = ""
+        if k == "lambda":
+            note = (
+                f"pinned at bound: {e.get('n_pinned_at_bound', 0)}, "
+                f"exactly 0: {e.get('n_exactly_symmetric', 0)}, "
+                f"negative: {e.get('n_negative', 0)}"
+            )
+        print(
+            f"| {k} | {e['n']} | {float(e['min']):.6f} | {float(e['median']):.6f} "
+            f"| {float(e['max']):.6f} | {note} |"
+        )
+    print()
+
+
+def fitted_summary_line(ranges: Mapping[str, Mapping[str, float | int]]) -> str:
+    """One sentence for `notes`, so the durable row states the spread without a join."""
+    parts = [
+        f"{k} [{float(e['min']):.4f}, {float(e['median']):.4f}, {float(e['max']):.4f}]"
+        for k, e in ranges.items()
+        if k != "_sessions"
+    ]
+    sess = ranges.get("_sessions", {})
+    return (
+        "FITTED PARAMETER SPREAD (min, median, max) over "
+        f"{sess.get('fitted', 0)}/{sess.get('n', 0)} fitted sessions: "
+        + "; ".join(parts)
+        + ". Full detail in params_grid.fitted_param_ranges."
+    )
 
 
 # --------------------------------------------------------------------------------------
@@ -330,7 +457,7 @@ def print_summary(
     print()
 
 
-def notes_for(arm: str, seed_offset: int) -> str:
+def notes_for(arm: str, seed_offset: int, fitted_line: str = "") -> str:
     spec = ARMS[arm]
     control = (
         f" NOISE-FLOOR CONTROL: same arm as production, every cone seed is "
@@ -366,6 +493,7 @@ def notes_for(arm: str, seed_offset: int) -> str:
         "Arm G was itself selected by signal-lab's v13 run on an earlier window; a win here "
         "is a reason to run a proper selection study, never on its own a reason to switch "
         "the published arm. "
+        f"{fitted_line} "
         "Reads spx_density_forecast (never writes it); writes backtest_sweep_* only."
     )
 
@@ -438,7 +566,10 @@ def main() -> int:
                 "no SPX series in vol_index_daily — the replay has no input"
             )
 
-        replayed = replay_arm(bars, as_ofs, arm=args.arm, seed_offset=args.seed_offset)
+        replayed, fitted = replay_arm(
+            bars, as_ofs, arm=args.arm, seed_offset=args.seed_offset
+        )
+        ranges = param_ranges(fitted)
         merged = merge_rows(published, replayed)
         scored: list[Scored] = [score_row(r) for r in merged]
         n_fallback = sum(1 for c in replayed.values() if c["fallback_used"])
@@ -461,6 +592,9 @@ def main() -> int:
             "quantile_levels": [tau for tau, _ in LEVELS],
             "pit_deciles": 10,
             "aggregations": ["origin_x_h", "h_pooled", "origin_pooled"],
+            # The estimator's own output, not a knob: which parameters the family added and
+            # how far they actually moved across the window. See `param_ranges`.
+            "fitted_param_ranges": ranges,
         }
 
         if args.dry_run:
@@ -490,12 +624,15 @@ def main() -> int:
                 git_sha=sha,
                 data_start=min(r.as_of for r in scored),
                 data_end=max(r.as_of for r in scored),
-                notes=notes_for(args.arm, args.seed_offset),
+                notes=notes_for(
+                    args.arm, args.seed_offset, fitted_line=fitted_summary_line(ranges)
+                ),
             )
             results, run_id = out["results"], out["run_id"]
             log.info("run_id=%s ok=%s error=%s", run_id, out["n_ok"], out["n_error"])
 
     print_tables(results)
+    print_param_ranges(ranges)
     if args.limit_as_of is None:
         print_summary(
             results, baseline, baseline_run_id=args.baseline_run_id, arm=args.arm
