@@ -1,0 +1,6 @@
+strategy,days,breadth,mean_raw,mean_exc,hit_exc,sharpe_exc_no
+MOM (top-quintile momentum),221,16.5,0.1432,0.0815,0.833,5.81
+MOM_CHASE (top-mom & CHASE),221,7.4,0.1855,0.1238,0.751,3.87
+MOM_NC (top-mom & NORMAL&CHASE),214,4.0,0.1977,0.135,0.701,3.25
+"NC_ALL (NORMAL&CHASE, any mom)",219,9.2,0.1184,0.0568,0.699,1.47
+CHASE_ALL (any mom),221,18.8,0.1123,0.0506,0.742,3.75
