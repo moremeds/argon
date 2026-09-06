@@ -50,6 +50,11 @@ MULTI_STARTS: tuple[tuple[float, float, float, float], ...] = (
 )
 #: §3.2. Student-t carries a trailing `nu` the Normal model does not.
 T_START_NU = 8.0
+#: ARGON-ADDED (not signal-lab, not part of v13): the skewed-t family's start for Hansen's
+#: skewness parameter. 0.0 is the SYMMETRIC point — at lambda = 0 arch's `SkewStudent`
+#: reduces exactly to `StudentsT`, so the skewed arm starts from the symmetric t and any
+#: fitted asymmetry is something the likelihood moved to, never something the start assumed.
+SKEWT_START_LAMBDA = 0.0
 
 CHANNEL_OK = "ok"
 CHANNEL_TOO_SHORT = "too_short"
@@ -59,6 +64,8 @@ CHANNEL_NON_FINITE = "non_finite"
 CHANNEL_INVALID_PARAMS = "invalid_params"
 CHANNEL_NON_STATIONARY = "non_stationary"
 CHANNEL_BAD_NU = "bad_nu"
+#: ARGON-ADDED: Hansen skewness outside (-1, 1), where the skewed-t density is undefined.
+CHANNEL_BAD_SKEW = "bad_skew"
 CHANNEL_NON_FINITE_LL = "non_finite_loglik"
 
 MAX_FAILURE_CARRY_DAYS = 10

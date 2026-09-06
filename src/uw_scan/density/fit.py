@@ -2,9 +2,12 @@
 
 Source: signal-lab @ 0f893513, research/runs/_v8_estimator.py + research/runs/_v8_arms.py
 (+ fit_gjr from scripts/forward_paths.py — dead code on arm G, kept so _fit stays verbatim).
-Only this header and imports differ from source; every body below is byte-identical
-(the sole permitted edits: two function-local `from scripts.forward_paths import ...`
-lines deleted — both names are module-level imports here). Frozen behaviours the parity
+Only this header, the imports, and the ARGON-ADDED "skewt" family differ from source;
+every body below is byte-identical on the vendored `normal`/`t` paths (the sole permitted
+edits: two function-local `from scripts.forward_paths import ...` lines deleted — both
+names are module-level imports here). The skewt additions are branch-guarded on
+`family == "skewt"`, so no vendored code path changes behaviour; the golden parity test
+(arm G, Normal) is the standing proof. Frozen behaviours the parity
 test pins: all 5 starts evaluated unconditionally (no early exit); select_attempt argmax
 over admissible loglik, ties within LOGLIK_TOL -> lowest grid index via min over the
 eligible set; _attempt catches bare Exception around model.fit.
@@ -19,6 +22,7 @@ import numpy as np
 from uw_scan.density.cone import GJR_MIN_OBS, _to_pct_log
 from uw_scan.density.constants import (
     CHANNEL_BAD_NU,
+    CHANNEL_BAD_SKEW,
     CHANNEL_EXCEPTION,
     CHANNEL_INVALID_PARAMS,
     CHANNEL_NON_FINITE,
@@ -30,8 +34,15 @@ from uw_scan.density.constants import (
     LOGLIK_TOL,
     MAX_FAILURE_CARRY_DAYS,
     MULTI_STARTS,
+    SKEWT_START_LAMBDA,
     T_START_NU,
 )
+
+#: ARGON-ADDED. The innovation families `fit_v8` accepts. `normal`/`t` are v13's;
+#: `skewt` is Hansen (1994)'s skewed t (arch's `SkewStudent`), parameterised by `eta`
+#: (degrees of freedom, arch bound [2.05, 300]) and `lambda` (skewness, bound [-1, 1],
+#: SYMMETRIC AT 0 where the density is exactly Student-t with nu = eta).
+FAMILIES = ("normal", "t", "skewt")
 
 @dataclass(frozen=True)
 class Attempt:
@@ -52,11 +63,18 @@ def _guard(p: dict, family: str) -> tuple[bool, str, float]:
     vals = [p["omega"], p["alpha"], p["gamma"], p["beta"]]
     if family == "t":
         vals.append(p.get("nu", float("nan")))
+    if family == "skewt":
+        vals += [p.get("eta", float("nan")), p.get("lambda", float("nan"))]
     if not all(np.isfinite(v) for v in vals):
         return False, CHANNEL_NON_FINITE, float("nan")
     if p["omega"] <= 0.0 or p["alpha"] < 0.0 or p["beta"] < 0.0 or p["alpha"] + p["gamma"] < 0.0:
         return False, CHANNEL_INVALID_PARAMS, float("nan")
     # E[I(r<0)] = 1/2 for a symmetric innovation, so a GJR's persistence is alpha + gamma/2 + beta.
+    # Kept UNCHANGED for skewt, deliberately: under an asymmetric innovation the exact term is
+    # the half second moment E[z^2 * 1{z<0}], which is not 1/2 — but `cone.gjr_var_path` (frozen,
+    # vendored, shared by every arm) seeds its recursion with omega / (1 - alpha - gamma/2 - beta),
+    # so a guard using a DIFFERENT persistence could admit a fit whose simulator seed is negative.
+    # The screen stays consistent with the simulator; the approximation is documented, not hidden.
     pers = p["alpha"] + p["gamma"] / 2.0 + p["beta"]
     if pers >= 1.0:
         return False, CHANNEL_NON_STATIONARY, float(pers)
@@ -65,20 +83,34 @@ def _guard(p: dict, family: str) -> tuple[bool, str, float]:
     # are finite for any nu > 0; the constraint is about the normalisation, not their existence.
     if family == "t" and not (2.0 < p["nu"] < np.inf):
         return False, CHANNEL_BAD_NU, float(pers)
+    # ARGON-ADDED, skewt only. `eta` is the same normalisation constraint as `nu` above.
+    # `lambda` is Hansen's skewness: the density's b = sqrt(1 + 3*lambda^2 - a^2)
+    # normalisation collapses at |lambda| = 1, so the OPEN interval is the admissible set
+    # and a fit pinned on the bound is rejected rather than published.
+    if family == "skewt":
+        if not (2.0 < p["eta"] < np.inf):
+            return False, CHANNEL_BAD_NU, float(pers)
+        if not (-1.0 < p["lambda"] < 1.0):
+            return False, CHANNEL_BAD_SKEW, float(pers)
     return True, CHANNEL_OK, float(pers)
 
 
 def _attempt(hist: np.ndarray, family: str, grid_index: int, starts) -> Attempt:
-    from arch.univariate import GARCH, Normal, StudentsT, ZeroMean
+    from arch.univariate import GARCH, Normal, SkewStudent, StudentsT, ZeroMean
 
     nan = float("nan")
     r_pct = _to_pct_log(hist)
     if r_pct.size < GJR_MIN_OBS:
         return Attempt(grid_index, False, CHANNEL_TOO_SHORT, nan, nan, False, None)
+    dist = Normal()
+    if family == "t":
+        dist = StudentsT()
+    elif family == "skewt":
+        dist = SkewStudent()  # ARGON-ADDED: Hansen (1994), params (eta, lambda)
     model = ZeroMean(
         r_pct,
         volatility=GARCH(p=1, o=1, q=1),
-        distribution=StudentsT() if family == "t" else Normal(),
+        distribution=dist,
     )
     try:
         kw = {} if starts is None else {"starting_values": np.asarray(starts, dtype=float)}
@@ -95,6 +127,12 @@ def _attempt(hist: np.ndarray, family: str, grid_index: int, starts) -> Attempt:
     }
     if family == "t":
         p["nu"] = float(res.params.get("nu", nan))
+    if family == "skewt":
+        # arch names them exactly "eta" and "lambda"; keep its names so the persisted
+        # params_jsonb is readable against the library that produced them. Extra keys are
+        # inert downstream — `gjr_var_path` / `_gjr_simulate` read omega/alpha/gamma/beta only.
+        p["eta"] = float(res.params.get("eta", nan))
+        p["lambda"] = float(res.params.get("lambda", nan))
     loglik = float(getattr(res, "loglikelihood", nan))
     ok, channel, pers = _guard(p, family)
     if not np.isfinite(loglik):
@@ -129,6 +167,20 @@ def select_attempt(attempts: list[Attempt], *, loglik_tol: float = LOGLIK_TOL) -
     return min(eligible, key=lambda a: a.grid_index)
 
 
+def _start_for(family: str, sv: tuple[float, float, float, float]):
+    """The distribution's starting values appended to a variance start (§3.2's grid).
+
+    ARGON-ADDED for `skewt` only; `normal` and `t` return exactly what the vendored
+    comprehension returned. The skew start is the SYMMETRIC point, so multi-start does not
+    seed an asymmetry the data did not ask for.
+    """
+    if family == "t":
+        return (*sv, T_START_NU)
+    if family == "skewt":
+        return (*sv, T_START_NU, SKEWT_START_LAMBDA)
+    return sv
+
+
 def fit_v8(
     hist: np.ndarray,
     *,
@@ -144,12 +196,12 @@ def fit_v8(
 
     Selection is `select_attempt`'s two-step eligible-set rule.
     """
-    if family not in ("normal", "t"):
-        raise ValueError(f"family must be 'normal' or 't', got {family!r}")
+    if family not in FAMILIES:
+        raise ValueError(f"family must be one of {FAMILIES}, got {family!r}")
 
     grid: list = [None]  # index 0 == the arch package's own default starting values
     if multi_start:
-        grid += [(*sv, T_START_NU) if family == "t" else sv for sv in MULTI_STARTS]
+        grid += [_start_for(family, sv) for sv in MULTI_STARTS]
 
     attempts = [_attempt(hist, family, i, sv) for i, sv in enumerate(grid)]
     won = select_attempt(attempts, loglik_tol=loglik_tol)
@@ -217,6 +269,11 @@ ARMS: dict[str, ArmSpec] = {
     "F": ArmSpec("t", True, False, 0),
     "G": ArmSpec("normal", True, True, MAX_FAILURE_CARRY_DAYS),
     "H": ArmSpec("t", True, True, MAX_FAILURE_CARRY_DAYS),
+    # ARGON-ADDED research arm: arm G's configuration with an ASYMMETRIC innovation
+    # (Hansen skewed-t) in the likelihood. Multi-character key on purpose — it is not one
+    # of signal-lab's lettered v8 arms and must not read as one. Research-only; `forecast.ARM`
+    # stays "G".
+    "SKEWT": ArmSpec("skewt", True, True, MAX_FAILURE_CARRY_DAYS),
 }
 
 
