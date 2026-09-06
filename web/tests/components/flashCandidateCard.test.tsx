@@ -69,3 +69,35 @@ describe("CandidateCard", () => {
     expect(container.textContent).not.toContain("Max gain");
   });
 });
+
+describe("target and thesis", () => {
+  const v2 = {
+    ...QQQ_SPREAD,
+    target: { level: 748, side: "below" as const },
+    thesis: "QQQ fades into the September gamma shelf",
+  };
+
+  it("prints a typed target as a level", () => {
+    const { container } = render(<CandidateCard candidate={v2} />);
+    expect(container.textContent).toContain("748 below");
+  });
+
+  it("prints the thesis sentence", () => {
+    const { container } = render(<CandidateCard candidate={v2} />);
+    expect(container.textContent).toContain(
+      "QQQ fades into the September gamma shelf",
+    );
+  });
+
+  it("prints a v1 prose target verbatim instead of an em dash", () => {
+    const v1 = { ...QQQ_SPREAD, target: "fades into the gamma shelf" };
+    const { container } = render(<CandidateCard candidate={v1} />);
+    expect(container.textContent).toContain("fades into the gamma shelf");
+  });
+
+  it("prints an em dash and no undefined when there is no target at all", () => {
+    const { container } = render(<CandidateCard candidate={QQQ_SPREAD} />);
+    expect(container.textContent).toContain("—");
+    expect(container.textContent).not.toContain("undefined");
+  });
+});

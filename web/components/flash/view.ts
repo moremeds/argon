@@ -14,8 +14,18 @@ import { tickerSet } from "@/lib/flash/tickers";
  * leaves an honest hole where it does not.
  */
 
-/** The shape this build knows how to draw. */
-export const SUPPORTED_SCHEMA_VERSION = 1;
+/**
+ * The shapes this build knows how to draw.
+ *
+ * TWO of them, deliberately. The producer and this consumer deploy on separate
+ * schedules, so there is always a window where one is ahead: v1 puts the target
+ * in prose and v2 puts it in `{level, side}` with the sentence moved to
+ * `thesis`. Refusing v1 during that window would blank a page over a field
+ * that is only differently spelled.
+ */
+export const SUPPORTED_SCHEMA_VERSIONS: readonly number[] = [1, 2];
+/** @deprecated The newest shape; prefer `SUPPORTED_SCHEMA_VERSIONS`. */
+export const SUPPORTED_SCHEMA_VERSION = 2;
 
 export interface Leg {
   right: "call" | "put";
@@ -55,8 +65,13 @@ export interface CandidateView {
   pricing: Pricing;
   width?: number;
   invalidation?: Invalidation[];
-  target?: Invalidation;
-  entry?: Invalidation;
+  /** v2 writes a level and a side; v1 wrote a sentence. Both render. */
+  target?: Invalidation | string;
+  /** v2 only: what the run said it expects, in prose. */
+  thesis?: string;
+  /** v2 only: the date after which nothing can resolve. Display only. */
+  resolutionDeadline?: string;
+  entry?: Invalidation & { deadlineBars?: number };
   unchecked?: string;
   spot?: number;
   rationale?: string;
@@ -180,7 +195,7 @@ export interface BriefView {
  * that is the whole reason `schema_version` is a column and not a comment.
  */
 export function asBriefView(run: AgentRunResponse): BriefView | null {
-  if (run.schema_version !== SUPPORTED_SCHEMA_VERSION) return null;
+  if (!SUPPORTED_SCHEMA_VERSIONS.includes(run.schema_version)) return null;
   const view = run.view as Partial<BriefView> | null | undefined;
   if (!view || typeof view !== "object") return null;
   return {

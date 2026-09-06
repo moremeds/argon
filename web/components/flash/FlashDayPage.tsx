@@ -7,7 +7,7 @@ import { PhaseTabs } from "./PhaseTabs";
 import { PremarketView } from "./PremarketView";
 import { SupplementView } from "./SupplementView";
 import { WeekStrip } from "./WeekStrip";
-import { SUPPORTED_SCHEMA_VERSION, asBriefView } from "./view";
+import { SUPPORTED_SCHEMA_VERSIONS, asBriefView } from "./view";
 import styles from "./flash.module.css";
 
 /**
@@ -63,7 +63,7 @@ export function FlashDayPage({
         <NoRunRecorded day={day} kind={kind} isFuture={day > todayEt()} />
       ) : !view ? (
         <PlaceholderBand label="Unrenderable version">
-          {`The ${KIND_LABEL[kind] ?? kind} run for ${day} arrived as schema version ${run.schema_version}; this build of argon renders version ${SUPPORTED_SCHEMA_VERSION}. The run is stored and nothing is lost — the fix is an argon deploy, not a re-run.`}
+          {`The ${KIND_LABEL[kind] ?? kind} run for ${day} arrived as schema version ${run.schema_version}; this build of argon renders version(s) ${SUPPORTED_SCHEMA_VERSIONS.join(", ")}. The run is stored and nothing is lost — the fix is an argon deploy, not a re-run.`}
         </PlaceholderBand>
       ) : kind === "premarket" ? (
         <PremarketView view={view} />
