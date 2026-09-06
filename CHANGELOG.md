@@ -7,6 +7,23 @@ version in lockstep (enforced by `scripts/release/version_sync_check.py`).
 
 ## [Unreleased]
 
+### Added
+
+- **SPX density cone calibration 复盘** — `scripts/research/spx_density_calibration.py`.
+  `spx_density_forecast` settles each row as `realised_return` + `inside_band80`
+  and nothing else, so the only calibration number the desk had was the 80%
+  hit rate. The script adds coverage at 50/80/90% with Wilson 95% intervals for
+  the GJR cone **and** the stored EWMA `baseline_q*`, pinball loss per quantile
+  level for both plus the model/baseline ratio, the PIT `u = F(realised)` read
+  off `density_bins_jsonb` with a decile histogram and a KS test against
+  Uniform(0,1), and `P(down) = F(0)` scored by Brier. Aggregates per
+  (origin, h), per h pooled and per origin pooled; persists one
+  `backtest_sweep_runs` row (`strategy='spx_density_calibration'`) plus one
+  `backtest_sweep_results` row per cell. Read-only against
+  `spx_density_forecast`. The h > 1 windows overlap, so effective n is roughly
+  n/h and the intervals are optimistic — the caveat is carried in the run's
+  `notes` column, not just the docstring.
+
 ## [0.13.6] — 2026-09-06
 
 
