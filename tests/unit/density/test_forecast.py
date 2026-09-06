@@ -13,6 +13,7 @@ import pytest
 import uw_scan.density.forecast as fc
 from tests.unit.density._parity import Drift
 from uw_scan.density.constants import seed_for
+from uw_scan.density.fit import ARMS
 from uw_scan.density.forecast import (
     PanelMismatchError,
     compute_forecast,
@@ -245,3 +246,40 @@ def test_density_bins_survive_the_fallback_arm(monkeypatch) -> None:
     result = compute_forecast(_bars())
     assert result.fallback_used is True
     assert all(row["density_bins_jsonb"] is not None for row in result.rows)
+
+
+def test_arm_kwarg_dispatches_to_the_named_arm(monkeypatch) -> None:
+    """`arm=` picks a row of `fit.ARMS`; the module default stays the v13-frozen G.
+
+    Reuses the frozen panel + the golden's fresh bars — the same real input the golden
+    test fits — but intercepts `_fit` so the assertion is about DISPATCH rather than
+    about a second (slow) Student-t maximum likelihood. Returning no params routes the
+    run through the labelled EWMA fallback, which is real code, not a stub cone.
+
+    `provenance["arm"]` is asserted because that field is what makes a persisted row
+    attributable to an estimator: dispatching correctly but recording "G" would put an
+    arm-H cone in the log under arm G's name.
+    """
+    bars = _bars()
+    seen: list[object] = []
+
+    def _spy(spec, hist):
+        seen.append(spec)
+        return None, []
+
+    monkeypatch.setattr(fc, "_fit", _spy)
+
+    h_result = compute_forecast(bars, arm="H")
+    assert len(seen) == 1 and seen[0] is ARMS["H"]
+    assert h_result.provenance["arm"] == "H"
+    assert h_result.fallback_used is True
+
+    seen.clear()
+    g_result = compute_forecast(bars)
+    assert len(seen) == 1 and seen[0] is ARMS["G"]
+    assert g_result.provenance["arm"] == "G"
+
+    seen.clear()
+    with pytest.raises(ValueError, match="unknown arm"):
+        compute_forecast(bars, arm="not-an-arm")
+    assert seen == []

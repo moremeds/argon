@@ -130,7 +130,11 @@ def _density_bins(draws: np.ndarray) -> dict[str, Any] | None:
 
 
 def compute_forecast(
-    bars: Sequence[tuple[date, float]], *, as_of: date | None = None
+    bars: Sequence[tuple[date, float]],
+    *,
+    as_of: date | None = None,
+    arm: str = ARM,
+    seed_offset: int = 0,
 ) -> ForecastResult:
     """bars: full SPX (trade_date, close) ascending, starting at PANEL_FIRST_DATE.
 
@@ -144,7 +148,17 @@ def compute_forecast(
     panel index for that date and seed_for(i) is unchanged. The rail then runs over the
     overlap. The "shorter than the panel" refusal applies only to a live run (as_of=None),
     where a short series means a stale mirror, not a deliberate rewind.
+
+    `arm` selects a row of `fit.ARMS` and defaults to the module-level, v13-validated
+    `ARM` ("G"). It changes the ESTIMATOR only — the panel rail, the seed frame, the
+    cone simulator, the EWMA fallback and the arm-A baseline are all shared, so an
+    alternative arm is scored against exactly the same reference. Research callers pass
+    it explicitly (e.g. arm "H", Student-t innovations in the likelihood); every
+    production call site leaves it alone. The chosen arm is recorded in
+    `provenance["arm"]`, which is what makes a stored row attributable to an estimator.
     """
+    if arm not in ARMS:
+        raise ValueError(f"unknown arm {arm!r}; known arms: {sorted(ARMS)}")
     panel = load_frozen_panel()
     p_dates = [d.date() for d in pd.to_datetime(panel["trade_date"])]
     p_closes = panel["close"].to_numpy(dtype=float)
@@ -197,9 +211,10 @@ def compute_forecast(
     anchor_date = dates_r[i]
     anchor_close = float(closes_r[i])
     hist = r[: i + 1]
-    cone_seed = int(seed_for(i))
+    # seed_offset: research-only Monte-Carlo noise-floor knob; production stays 0.
+    cone_seed = int(seed_for(i)) + seed_offset
 
-    spec = ARMS[ARM]
+    spec = ARMS[arm]
     params, _attempts = _fit(spec, hist)
     fallback_used = False
     cone = None
@@ -267,11 +282,12 @@ def compute_forecast(
         )
 
     provenance = {
-        "arm": ARM,
+        "arm": arm,
         "panel_sha256": PANEL_SHA256,
         "series_index": i,
         "n_returns": int(hist.size),
         "cone_seed": cone_seed,
+        "seed_offset": seed_offset,
         # What was ACTUALLY checked, not what a full-length series would have checked.
         # A reconstructed run rewound inside the panel compares m < n days and has no
         # bars beyond the panel at all — reporting `n` and a negative count would make
