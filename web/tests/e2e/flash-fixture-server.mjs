@@ -7,7 +7,7 @@ import { createServer } from 'node:http';
 const rows = process.argv.slice(2).map((path) => {
   const row = JSON.parse(readFileSync(path, 'utf8'));
   if (!row.run_id || !row.view || !row.week_key) throw new Error(`not a channel payload: ${path}`);
-  return { ...row, version_no: 1, created_at: `${row.run_day}T23:59:00Z` };
+  return { ...row, version_no: 1, created_at: row.run_day };
 });
 if (!rows.length) throw new Error('provide exported Flash payloads');
 const index = rows.map((row) => Object.fromEntries(Object.entries(row).filter(([key]) => key !== 'view' && key !== 'report')));

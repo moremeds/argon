@@ -61,7 +61,7 @@ export function FlashDayPage({
         day={day}
         runs={runs}
         selected={kind}
-        asOf={view?.asOf ?? run?.created_at}
+        asOf={view?.asOf}
       />
 
       <div

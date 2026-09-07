@@ -61,10 +61,14 @@ export function SupplementView({
   const tickers = viewTickers(view);
   const claimRepeated = Boolean(
     view.oneThing?.body?.trim() &&
-    view.sections?.some((section) =>
-      section.title !== "Supporting coverage" &&
-      section.body.includes(view.oneThing!.body!.trim()),
+    view.sections?.some(
+      (section) =>
+        section.title !== "Supporting coverage" &&
+        section.body.includes(view.oneThing!.body!.trim()),
     ),
+  );
+  const formalMarket = ["Market review", "Outlook"].every((title) =>
+    view.sections?.some((section) => section.title === title),
   );
   const label: [string, string] =
     kind === "close" ? ["Close", "read"] : ["Intraday", "read"];
@@ -116,7 +120,14 @@ export function SupplementView({
 
         <div className={styles.colL}>
           <OneThingPanel
-            oneThing={claimRepeated ? undefined : view.oneThing}
+            oneThing={
+              formalMarket
+                ? view.oneThing
+                : claimRepeated
+                  ? undefined
+                  : view.oneThing
+            }
+            collapsed={formalMarket}
             checks={view.checks}
             changeMyMind={view.changeMyMind}
             tickers={tickers}
