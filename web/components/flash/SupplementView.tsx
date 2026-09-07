@@ -59,6 +59,13 @@ export function SupplementView({
   );
   const lead = view.lead ?? view.headline;
   const tickers = viewTickers(view);
+  const claimRepeated = Boolean(
+    view.oneThing?.body?.trim() &&
+    view.sections?.some((section) =>
+      section.title !== "Supporting coverage" &&
+      section.body.includes(view.oneThing!.body!.trim()),
+    ),
+  );
   const label: [string, string] =
     kind === "close" ? ["Close", "read"] : ["Intraday", "read"];
   const statusTitle =
@@ -109,7 +116,7 @@ export function SupplementView({
 
         <div className={styles.colL}>
           <OneThingPanel
-            oneThing={view.oneThing}
+            oneThing={claimRepeated ? undefined : view.oneThing}
             checks={view.checks}
             changeMyMind={view.changeMyMind}
             tickers={tickers}

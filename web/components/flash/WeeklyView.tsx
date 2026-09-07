@@ -79,16 +79,11 @@ export function WeeklyView({
                 <RotationPanel rotation={weeklyView.rotation} />
               ) : null}
               {coverage.length > 0 ? (
-                <details className={styles.panel}>
-                  <summary className={styles.appendixSummary}>
-                    Supporting coverage
-                  </summary>
-                  <SectionsPanel
-                    title="Recorded evidence"
-                    sections={coverage}
-                    tickers={weeklyTickers ?? undefined}
-                  />
-                </details>
+                <SectionsPanel
+                  title="Supporting evidence"
+                  sections={coverage}
+                  tickers={weeklyTickers ?? undefined}
+                />
               ) : null}
               {weeklyView.footer ? (
                 <FooterPanel

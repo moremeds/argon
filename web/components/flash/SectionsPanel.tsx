@@ -21,16 +21,24 @@ export function SectionsPanel({
 }) {
   const body = (
     <div className={styles.secgrid}>
-      {sections.map((s, i) => (
-        <article key={`${s.title}-${i}`} className={styles.seccard}>
-          <h4>{s.title}</h4>
-          {pre ? (
-            <p className={styles.pre}>{s.body}</p>
-          ) : (
-            <Body text={s.body} tickers={tickers} />
-          )}
-        </article>
-      ))}
+      {sections.map((s, i) => {
+        const prose = pre ? (
+          <p className={styles.pre}>{s.body}</p>
+        ) : (
+          <Body text={s.body} tickers={tickers} />
+        );
+        return s.title === "Supporting coverage" ? (
+          <details key={`${s.title}-${i}`} className={styles.seccard}>
+            <summary className={styles.appendixSummary}>{s.title}</summary>
+            {prose}
+          </details>
+        ) : (
+          <article key={`${s.title}-${i}`} className={styles.seccard}>
+            <h4>{s.title}</h4>
+            {prose}
+          </article>
+        );
+      })}
     </div>
   );
   return (

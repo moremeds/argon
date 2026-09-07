@@ -44,6 +44,13 @@ export function PremarketView({ view }: { view: BriefView }) {
 
   const lead = view.lead ?? view.headline;
   const tickers = viewTickers(view);
+  const claimRepeated = Boolean(
+    view.oneThing?.body?.trim() &&
+    view.sections?.some((section) =>
+      section.title !== "Supporting coverage" &&
+      section.body.includes(view.oneThing!.body!.trim()),
+    ),
+  );
   // v3 keeps two fault lists: `degradation` is one sentence about the run,
   // `faults` is the per-item refusals. Both are the run's, so both print.
   const faults = [...faultList(view.degradation), ...(view.faults ?? [])];
@@ -62,7 +69,7 @@ export function PremarketView({ view }: { view: BriefView }) {
       <div className={styles.article}>
         <div className={styles.colL}>
           <OneThingPanel
-            oneThing={view.oneThing}
+            oneThing={claimRepeated ? undefined : view.oneThing}
             checks={view.checks}
             changeMyMind={view.changeMyMind}
             tickers={tickers}

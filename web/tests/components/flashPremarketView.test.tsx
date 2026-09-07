@@ -84,4 +84,24 @@ describe("PremarketView", () => {
       text.indexOf("Source health sentinel"),
     );
   });
+  it("collapses supporting rows and prints an identical claim only once", () => {
+    const { container } = render(
+      <PremarketView
+        view={{
+          ...PREMARKET_VIEW,
+          oneThing: { title: "The one thing", body: "Repeated market claim." },
+          sections: [
+            { title: "Market review", body: "Repeated market claim." },
+            { title: "Supporting coverage", body: "Premarket raw rows." },
+          ],
+        }}
+      />,
+    );
+    expect(container.textContent?.match(/Repeated market claim/g)).toHaveLength(
+      1,
+    );
+    expect(
+      screen.getByText("Premarket raw rows.").closest("details")?.open,
+    ).toBe(false);
+  });
 });

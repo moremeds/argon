@@ -234,4 +234,26 @@ describe("SupplementView", () => {
       screen.getByText("Increment sentinel.").closest(`.${styles.scroll}`),
     ).toBeNull();
   });
+  it.each(["intraday", "close"] as const)(
+    "collapses %s supporting coverage",
+    (kind) => {
+      render(
+        <SupplementView
+          view={{
+            ...INTRADAY,
+            sections: [
+              { title: "Supporting coverage", body: "Supplement raw rows." },
+            ],
+          }}
+          kind={kind}
+          weekKey="2026-W36"
+          day="2026-09-03"
+          runs={[]}
+        />,
+      );
+      expect(
+        screen.getByText("Supplement raw rows.").closest("details")?.open,
+      ).toBe(false);
+    },
+  );
 });
