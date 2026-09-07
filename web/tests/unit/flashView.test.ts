@@ -10,10 +10,22 @@ import V2 from "../fixtures/heliumBriefViewV2.json";
 import WEEKLY from "../fixtures/heliumBriefViewV3Weekly.json";
 
 it("capture provenance ignores JSON key order but detects changed or missing body rows", () => {
-  const original = { headline: "Same title", sections: [{ title: "Market", body: "Original evidence" }] };
-  expect(viewDigest({ sections: original.sections, headline: original.headline })).toBe(viewDigest(original));
-  expect(viewDigest({ ...original, sections: [] })).not.toBe(viewDigest(original));
-  expect(viewDigest({ ...original, sections: [{ title: "Market", body: "Different evidence" }] })).not.toBe(viewDigest(original));
+  const original = {
+    headline: "Same title",
+    sections: [{ title: "Market", body: "Original evidence" }],
+  };
+  expect(
+    viewDigest({ sections: original.sections, headline: original.headline }),
+  ).toBe(viewDigest(original));
+  expect(viewDigest({ ...original, sections: [] })).not.toBe(
+    viewDigest(original),
+  );
+  expect(
+    viewDigest({
+      ...original,
+      sections: [{ title: "Market", body: "Different evidence" }],
+    }),
+  ).not.toBe(viewDigest(original));
 });
 
 function run(schema_version: number, view: unknown) {

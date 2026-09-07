@@ -1,4 +1,8 @@
-import type { AgentRunIndexRow, AgentRunResponse, AgentRunWeek } from "@/lib/api";
+import type {
+  AgentRunIndexRow,
+  AgentRunResponse,
+  AgentRunWeek,
+} from "@/lib/api";
 import { KIND_LABEL, todayEt, type DayKind } from "@/lib/flash/kinds";
 import { viewDigest } from "@/lib/flash/view-digest";
 
@@ -60,26 +64,30 @@ export function FlashDayPage({
         asOf={view?.asOf ?? run?.created_at}
       />
 
-      <div data-testid="flash-report" data-run-id={run?.run_id} data-view-sha256={run ? viewDigest(run.view) : undefined}>
-      {!run ? (
-        <NoRunRecorded day={day} kind={kind} isFuture={day > todayEt()} />
-      ) : !view ? (
-        <PlaceholderBand label="Unrenderable version">
-          {`The ${KIND_LABEL[kind] ?? kind} run for ${day} arrived as schema version ${run.schema_version}; this build of argon renders version(s) ${SUPPORTED_SCHEMA_VERSIONS.join(", ")}. The run is stored and nothing is lost — the fix is an argon deploy, not a re-run.`}
-        </PlaceholderBand>
-      ) : kind === "premarket" ? (
-        <PremarketView view={view} />
-      ) : (
-        <SupplementView
-          view={view}
-          kind={kind}
-          weekKey={weekKey}
-          day={day}
-          runs={runs}
-          priorGex={priorView?.gex}
-          priorAsOf={priorView?.asOf}
-        />
-      )}
+      <div
+        data-testid="flash-report"
+        data-run-id={run?.run_id}
+        data-view-sha256={run ? viewDigest(run.view) : undefined}
+      >
+        {!run ? (
+          <NoRunRecorded day={day} kind={kind} isFuture={day > todayEt()} />
+        ) : !view ? (
+          <PlaceholderBand label="Unrenderable version">
+            {`The ${KIND_LABEL[kind] ?? kind} run for ${day} arrived as schema version ${run.schema_version}; this build of argon renders version(s) ${SUPPORTED_SCHEMA_VERSIONS.join(", ")}. The run is stored and nothing is lost — the fix is an argon deploy, not a re-run.`}
+          </PlaceholderBand>
+        ) : kind === "premarket" ? (
+          <PremarketView view={view} />
+        ) : (
+          <SupplementView
+            view={view}
+            kind={kind}
+            weekKey={weekKey}
+            day={day}
+            runs={runs}
+            priorGex={priorView?.gex}
+            priorAsOf={priorView?.asOf}
+          />
+        )}
       </div>
     </main>
   );
