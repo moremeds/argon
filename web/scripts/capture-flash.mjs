@@ -29,7 +29,7 @@ try {
   writeFileSync(join(output, 'page.md'), text + '\n');
   writeFileSync(join(output, 'page.html'), await page.content());
   // Expand only app scroll containers while photographing the complete article.
-  const style = 'html, body, .app-shell, .main, .content { height: auto !important; overflow: visible !important; }';
+  const style = ':has([data-testid="flash-report"]) { height: auto !important; max-height: none !important; overflow: visible !important; }';
   await page.screenshot({ path: join(output, 'desktop.png'), fullPage: true, style });
   await page.setViewportSize({ width: 390, height: 844 });
   await page.screenshot({ path: join(output, 'mobile.png'), fullPage: true, style });
