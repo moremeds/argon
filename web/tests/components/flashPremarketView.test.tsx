@@ -41,7 +41,9 @@ describe("PremarketView", () => {
 
     const degraded: BriefView = {
       ...PREMARKET_VIEW,
-      degradation: ["tool unconfigured: ow_ib_positions (OW_IB_API_BASE unset)"],
+      degradation: [
+        "tool unconfigured: ow_ib_positions (OW_IB_API_BASE unset)",
+      ],
     };
     const degradedRender = render(<PremarketView view={degraded} />);
     expect(
@@ -59,8 +61,27 @@ describe("PremarketView", () => {
     };
     const { container } = render(<PremarketView view={empty} />);
     expect(screen.getByText(/recorded no content/i)).toBeTruthy();
-    expect(container.querySelectorAll('[data-testid="decision-key"]')).toHaveLength(
-      0,
+    expect(
+      container.querySelectorAll('[data-testid="decision-key"]'),
+    ).toHaveLength(0);
+  });
+  it("reads the market before candidates and source health", () => {
+    const { container } = render(
+      <PremarketView
+        view={{
+          ...PREMARKET_VIEW,
+          sections: [{ title: "Market thesis", body: "Editorial sentinel." }],
+          degradation: ["Source health sentinel"],
+        }}
+      />,
+    );
+    const text = container.textContent ?? "";
+    expect(text.indexOf("Editorial sentinel")).toBeGreaterThan(-1);
+    expect(text.indexOf("Editorial sentinel")).toBeLessThan(
+      text.indexOf("Structures"),
+    );
+    expect(text.indexOf("Editorial sentinel")).toBeLessThan(
+      text.indexOf("Source health sentinel"),
     );
   });
 });

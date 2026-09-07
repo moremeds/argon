@@ -1,5 +1,6 @@
 import type { AgentRunIndexRow, AgentRunResponse, AgentRunWeek } from "@/lib/api";
 import { KIND_LABEL, todayEt, type DayKind } from "@/lib/flash/kinds";
+import { viewDigest } from "@/lib/flash/view-digest";
 
 import { FlashTopbar } from "./FlashTopbar";
 import { NoRunRecorded, PlaceholderBand } from "./EmptyStates";
@@ -59,6 +60,7 @@ export function FlashDayPage({
         asOf={view?.asOf ?? run?.created_at}
       />
 
+      <div data-testid="flash-report" data-run-id={run?.run_id} data-view-sha256={run ? viewDigest(run.view) : undefined}>
       {!run ? (
         <NoRunRecorded day={day} kind={kind} isFuture={day > todayEt()} />
       ) : !view ? (
@@ -78,7 +80,7 @@ export function FlashDayPage({
           priorAsOf={priorView?.asOf}
         />
       )}
+      </div>
     </main>
   );
 }
-

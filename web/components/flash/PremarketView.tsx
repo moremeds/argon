@@ -58,15 +58,8 @@ export function PremarketView({ view }: { view: BriefView }) {
           <Lead label={["Today in", "one sentence"]} text={lead} />
         </div>
       ) : null}
-      {faults.length > 0 ? (
-        <div style={{ marginTop: 12 }}>
-          <PlaceholderBand label="Run degraded">
-            {faults.join(" · ")}
-          </PlaceholderBand>
-        </div>
-      ) : null}
 
-      <div className={styles.cols}>
+      <div className={styles.article}>
         <div className={styles.colL}>
           <OneThingPanel
             oneThing={view.oneThing}
@@ -74,6 +67,18 @@ export function PremarketView({ view }: { view: BriefView }) {
             changeMyMind={view.changeMyMind}
             tickers={tickers}
           />
+
+          <OvernightPanel items={view.overnight ?? []} />
+          {view.schedule && view.schedule.length > 0 ? (
+            <SchedulePanel items={view.schedule} />
+          ) : null}
+          {view.sections && view.sections.length > 0 ? (
+            <SectionsPanel
+              title="The read"
+              sections={view.sections}
+              tickers={tickers}
+            />
+          ) : null}
 
           {view.decision && view.decision.length > 0 ? (
             <Panel title="The call" bodyClassName="">
@@ -103,14 +108,6 @@ export function PremarketView({ view }: { view: BriefView }) {
             </div>
           ) : null}
 
-          {view.sections && view.sections.length > 0 ? (
-            <SectionsPanel
-              title="The read"
-              sections={view.sections}
-              tickers={tickers}
-            />
-          ) : null}
-
           {view.focus && view.focus.rows?.length ? (
             <FocusPanel focus={view.focus} />
           ) : null}
@@ -125,10 +122,6 @@ export function PremarketView({ view }: { view: BriefView }) {
         </div>
 
         <div className={styles.colR}>
-          <OvernightPanel items={view.overnight ?? []} />
-          {view.schedule && view.schedule.length > 0 ? (
-            <SchedulePanel items={view.schedule} />
-          ) : null}
           {view.policy ? <PolicyPathPanel path={view.policy} /> : null}
           {view.gamma && view.gamma.length > 0 ? (
             <GammaProfilePanel profiles={view.gamma} />
@@ -147,6 +140,14 @@ export function PremarketView({ view }: { view: BriefView }) {
           ) : null}
         </div>
       </div>
+
+      {faults.length > 0 ? (
+        <div style={{ marginTop: 12 }}>
+          <PlaceholderBand label="Run degraded">
+            {faults.join(" · ")}
+          </PlaceholderBand>
+        </div>
+      ) : null}
 
       <p
         style={{

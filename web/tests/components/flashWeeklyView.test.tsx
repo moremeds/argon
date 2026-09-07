@@ -71,7 +71,7 @@ describe("WeeklyView", () => {
     expect(container.textContent).not.toContain("Friday after close");
   });
 
-  it("renders the v3 review blocks under the outlook, Frank column intact", () => {
+  it("preserves recorded v3 blocks without an empty Frank column", () => {
     render(
       <WeeklyView
         weekKey="2026-W36"
@@ -88,14 +88,96 @@ describe("WeeklyView", () => {
     expect(screen.getByText("Run health")).toBeTruthy();
     // the version band the page used to show for a v3 run
     expect(screen.queryByText(/Unrenderable version/)).toBeNull();
-    expect(screen.getByText("Frank 复盘")).toBeTruthy();
+    expect(screen.queryByText("Frank 复盘")).toBeNull();
   });
 
-  it("shows the Frank slot as an honest empty state", () => {
+  it("omits the Frank slot when no external supplement exists", () => {
     render(
       <WeeklyView weekKey="2026-W36" runs={RUNS} weekly={null} frank={null} />,
     );
-    expect(screen.getByText("Frank 复盘")).toBeTruthy();
-    expect(screen.getByText("No review attached")).toBeTruthy();
+    expect(screen.queryByText("Frank 复盘")).toBeNull();
+    expect(screen.queryByText("No review attached")).toBeNull();
+  });
+  it("puts the market article before the day index and keeps internal sections private", () => {
+    const weekly = {
+      ...WEEKLY_RUN,
+      view: {
+        ...WEEKLY_V3,
+        headline: "Rates reset the week",
+        sections: [{ title: "Market review", body: "Market thesis sentinel." }],
+        otherSections: [{ title: "Internal", body: "PRIVATE SCORE SENTINEL" }],
+      },
+    } as unknown as AgentRunResponse;
+    const frank = {
+      ...weekly,
+      view: {
+        ...WEEKLY_V3,
+        sections: [
+          {
+            title: "External perspective",
+            body: "Frank perspective sentinel.",
+          },
+        ],
+      },
+    } as unknown as AgentRunResponse;
+    const { container } = render(
+      <WeeklyView
+        weekKey="2026-W36"
+        runs={RUNS}
+        weekly={weekly}
+        frank={frank}
+      />,
+    );
+    const text = container.textContent ?? "";
+    expect(text.indexOf("Rates reset the week")).toBeLessThan(
+      text.indexOf("Market thesis sentinel"),
+    );
+    expect(text.indexOf("Market thesis sentinel")).toBeLessThan(
+      text.indexOf("The week, one line a day"),
+    );
+    expect(text.indexOf("Market thesis sentinel")).toBeLessThan(
+      text.indexOf("Frank perspective sentinel"),
+    );
+    expect(text).not.toContain("PRIVATE SCORE SENTINEL");
+  });
+  it("shows a repeated lead once and keeps raw supporting coverage collapsed", () => {
+    const weekly = {
+      ...WEEKLY_RUN,
+      view: {
+        ...WEEKLY_V3,
+        headline: "Unique market conclusion.",
+        sections: [
+          {
+            title: "Market review",
+            body: "Unique market conclusion. Main news remains visible.",
+          },
+          { title: "Outlook", body: "Next week's conditions." },
+          {
+            title: "Supporting coverage",
+            body: "Complete raw coverage sentinel.",
+          },
+        ],
+      },
+    } as unknown as AgentRunResponse;
+    const { container } = render(
+      <WeeklyView weekKey="2026-W36" runs={[]} weekly={weekly} frank={null} />,
+    );
+    expect(
+      container.textContent?.match(/Unique market conclusion/g),
+    ).toHaveLength(1);
+    expect(
+      screen.getByText(/Main news remains visible/).closest("details"),
+    ).toBeNull();
+    const appendix = screen
+      .getByText("Complete raw coverage sentinel.")
+      .closest("details");
+    expect(appendix).not.toBeNull();
+    expect(appendix?.open).toBe(false);
+    expect(appendix?.querySelector("summary")?.textContent).toBe(
+      "Supporting coverage",
+    );
+    expect(
+      screen.getByText("Next week's conditions.").closest("details"),
+    ).toBeNull();
   });
 });

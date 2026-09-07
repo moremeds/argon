@@ -1,5 +1,6 @@
 import type { AgentRunIndexRow, AgentRunResponse, AgentRunWeek } from "@/lib/api";
 import { todayEt } from "@/lib/flash/kinds";
+import { viewDigest } from "@/lib/flash/view-digest";
 
 import { FlashTopbar } from "./FlashTopbar";
 import { WeekStrip } from "./WeekStrip";
@@ -24,7 +25,7 @@ export function FlashWeekPage({
     <main className={styles.flash}>
       <FlashTopbar today={todayEt()} />
       <WeekStrip weekKey={weekKey} runs={runs} weeks={weeks} />
-      <div style={{ marginTop: 18 }}>
+      <div data-testid="flash-report" data-run-id={weekly?.run_id} data-view-sha256={weekly ? viewDigest(weekly.view) : undefined} style={{ marginTop: 18 }}>
         <WeeklyView
           weekKey={weekKey}
           runs={runs}
