@@ -3,7 +3,19 @@ import { describe, expect, it } from "vitest";
 
 import { SupplementView } from "@/components/flash/SupplementView";
 import type { AgentRunIndexRow } from "@/lib/api";
-import type { BriefView } from "@/components/flash/view";
+import { asBriefView, type BriefView } from "@/components/flash/view";
+
+import CLOSE_V3 from "../fixtures/heliumBriefViewV3Close.json";
+
+/** The recorded option-wizard close run of 2026-09-04, verbatim. */
+const CLOSE_V3_VIEW = asBriefView({
+  schema_version: 3,
+  view: CLOSE_V3,
+  run_day: "2026-09-04",
+  headline: "h",
+  outcome: "completed",
+  tenant: "option-wizard",
+} as never)!;
 
 const PREMARKET_ROW = {
   run_day: "2026-09-03",
@@ -45,6 +57,47 @@ const INTRADAY: BriefView = {
   ],
   degradation: ["tool unconfigured: ow_ib_positions (OW_IB_API_BASE unset)"],
 };
+
+describe("SupplementView · v3", () => {
+  it("opens with the claim, then its checks, then what it left out", () => {
+    const { container } = render(
+      <SupplementView
+        view={CLOSE_V3_VIEW}
+        kind="close"
+        weekKey="2026-W36"
+        day="2026-09-04"
+        runs={[PREMARKET_ROW]}
+      />,
+    );
+    const text = container.textContent ?? "";
+    expect(text).toContain("The one thing");
+    expect(text).toContain("Yesterday: no prior checks.");
+    expect(text).toContain("Everything else");
+    // the order IS the argument: the claim precedes the leftovers
+    expect(text.indexOf("The one thing")).toBeLessThan(
+      text.indexOf("Everything else"),
+    );
+    expect(screen.getByText("Focus")).toBeTruthy();
+    expect(screen.getByText("Themes")).toBeTruthy();
+    expect(screen.getByText("Sources & as-of")).toBeTruthy();
+  });
+
+  it("prints the per-item faults beside the run's degradation sentence", () => {
+    const { container } = render(
+      <SupplementView
+        view={CLOSE_V3_VIEW}
+        kind="close"
+        weekKey="2026-W36"
+        day="2026-09-04"
+        runs={[PREMARKET_ROW]}
+      />,
+    );
+    expect(container.textContent).toContain(
+      "focus TSLA: not on the computed list",
+    );
+    expect(container.textContent).toContain("gate flash-budget refused");
+  });
+});
 
 describe("SupplementView", () => {
   it("says it is a supplement and links back to the day's premarket report", () => {

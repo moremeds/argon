@@ -116,12 +116,21 @@ describe("parseBlocks", () => {
     expect(only.text).toContain("POLICY PATH — SOURCE ow_argon_policy_path");
   });
 
-  it("reads a dash list, and single newlines inside a paragraph as spaces", () => {
+  it("reads a dash list, and a single newline as a block seam", () => {
     expect(parseBlocks("- one\n- two\n- three")).toEqual([
       { type: "ul", items: ["one", "two", "three"] },
     ]);
+    // helium writes block-level markdown joined by single newlines (schema 3):
+    // a bare line is its own statement, never a soft wrap of the previous one.
     expect(parseBlocks("first line\nsecond line")).toEqual([
-      { type: "p", text: "first line second line" },
+      { type: "p", text: "first line" },
+      { type: "p", text: "second line" },
+    ]);
+    // A heading line over a bullet run — §3/§5 of the weekly review — is one
+    // paragraph followed by one list, not a paragraph with inline " - ".
+    expect(parseBlocks("3a macro\n- SPX — CONTINUE\n- VIX — FADE")).toEqual([
+      { type: "p", text: "3a macro" },
+      { type: "ul", items: ["SPX — CONTINUE", "VIX — FADE"] },
     ]);
     expect(parseBlocks("")).toEqual([]);
     expect(parseBlocks("   \n\n  ")).toEqual([]);

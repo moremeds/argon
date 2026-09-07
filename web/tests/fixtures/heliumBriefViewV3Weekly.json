@@ -1,0 +1,348 @@
+{
+  "date": "2026-09-06",
+  "tape": [],
+  "focus": {
+    "rows": [
+      {
+        "why": "Earnings 2026-09-10 post; 6.93% IV expects guidance revision.",
+        "event": "earnings (post) 2026-09-10",
+        "ivRank": 68.84,
+        "sticky": true,
+        "ticker": "ADBE",
+        "openCall": "2026-09-04-close-focus-ADBE"
+      },
+      {
+        "why": "Earnings 2026-09-10 post; 9.86% IV expects cloud spending tone.",
+        "event": "earnings (post) 2026-09-10",
+        "ivRank": 58.63,
+        "sticky": true,
+        "ticker": "ORCL",
+        "openCall": "2026-09-04-close-focus-ORCL"
+      },
+      {
+        "why": "Earnings 2026-09-30 post; 12.37% IV expects cycle confirmation.",
+        "event": "earnings (post) 2026-09-30",
+        "ivRank": 30.94,
+        "sticky": true,
+        "ticker": "MU",
+        "openCall": "2026-09-04-close-focus-MU"
+      },
+      {
+        "why": "Earnings 2026-10-14 pre; 10.22% IV expects capex trajectory.",
+        "event": "earnings (pre) 2026-10-14",
+        "ivRank": 27.98,
+        "sticky": true,
+        "ticker": "ASML",
+        "openCall": "2026-09-04-close-focus-ASML"
+      },
+      {
+        "why": "Earnings 2026-10-15; 7.86% IV expects volume recovery.",
+        "event": "earnings 2026-10-15",
+        "ivRank": 5.07,
+        "sticky": true,
+        "ticker": "TSM",
+        "openCall": "2026-09-04-close-focus-TSM"
+      },
+      {
+        "why": "",
+        "event": "earnings 2026-10-28",
+        "ivRank": 12.73,
+        "ticker": "TSLA"
+      },
+      {
+        "why": "",
+        "event": "earnings 2026-12-10",
+        "ivRank": 0,
+        "ticker": "AVGO"
+      },
+      {
+        "why": "",
+        "event": "earnings 2026-10-20",
+        "ivRank": 18.48,
+        "ticker": "TXN"
+      },
+      {
+        "why": "",
+        "event": "earnings (post) 2026-10-21",
+        "ivRank": 21.64,
+        "ticker": "IBM"
+      },
+      {
+        "why": "",
+        "event": "earnings 2026-10-22",
+        "ivRank": 28.96,
+        "ticker": "INTC"
+      },
+      {
+        "why": "",
+        "event": "earnings 2026-10-26",
+        "ivRank": 27.94,
+        "ticker": "CDNS"
+      },
+      {
+        "why": "",
+        "event": "earnings 2026-10-27",
+        "ivRank": 36.59,
+        "ticker": "STX"
+      },
+      {
+        "why": "",
+        "event": "earnings 2026-10-27",
+        "ivRank": 31.13,
+        "ticker": "TER"
+      },
+      {
+        "why": "",
+        "event": "earnings 2026-10-28",
+        "ivRank": 34.73,
+        "ticker": "LRCX"
+      },
+      {
+        "why": "",
+        "event": "earnings 2026-10-29",
+        "ivRank": 45.06,
+        "ticker": "AAPL"
+      }
+    ],
+    "churn": 0,
+    "period": "weekly"
+  },
+  "charts": {
+    "gex": []
+  },
+  "faults": [
+    "下周展望 restates the level 14.32, which section 3 already printed"
+  ],
+  "footer": {
+    "asOf": [
+      "ow_argon_policy_path — 2026-09-04",
+      "ow_spot — 2026-09-06T21:26:56.344Z",
+      "ow_uw_calendar — 2026-09-06T21:26:55.646Z",
+      "ow_argon_watchlist — 2026-09-05T03:11:02.482278+08:00",
+      "ow_uw_earnings — 2026-09-06T21:27:09.485Z"
+    ],
+    "notes": [
+      "bars: 50 of 50 basket symbols answered",
+      "bars: SPY's newest bar is 2026-09-04, so every basket row is as of 2026-09-04 rather than 2026-09-06",
+      "no answer from ow_tv_commodities: ow_tv_commodities: ow_tv_commodities: no commodity answered with a numeric close; is the TradingView app running?"
+    ],
+    "coverage": [
+      "macro — ow_macro_rates",
+      "policy — ow_argon_policy_path",
+      "gex — ow_uw_gex",
+      "spot — ow_spot",
+      "tide — ow_uw_market_state",
+      "calendar — ow_uw_calendar",
+      "commodities — ow_tv_commodities: ow_tv_commodities: ow_tv_commodities: no commodity answered with a numeric close; is the TradingView app running?",
+      "watchlist — ow_argon_watchlist",
+      "earnings — ow_uw_earnings",
+      "ivTerm — ow_uw_iv_term",
+      "actions — ow_massive_actions"
+    ]
+  },
+  "regime": {
+    "paragraph": ""
+  },
+  "tenant": "option-wizard",
+  "themes": [
+    {
+      "id": "el-nino-ag-2026",
+      "why": "Agriculture basket +6.5% excess vs SPY in week one; NOAA ONI and CBOT triggers intact; MOS, NTR, DE participants accelerate.",
+      "kill": "ONI < +0.5 two months running, or instruments underperform SPY by 10% over 60 sessions",
+      "token": "strengthen",
+      "killMet": false,
+      "excess1w": "+6.5%",
+      "leadership": "confirms",
+      "excessSinceEntered": "+0.0%"
+    }
+  ],
+  "appBase": "http://127.0.0.1:3001",
+  "outcome": "completed",
+  "headline": "0 scored of 24 issued · 3 not called · all 24 calls issued since 2026-09-06; none removed",
+  "riskList": [],
+  "rotation": {
+    "asOf": "2026-09-04",
+    "rows": [
+      {
+        "w1": 6.6,
+        "w4": 12.9,
+        "w12": 15.7,
+        "label": "el-nino-ag-2026",
+        "symbol": "theme:el-nino-ag-2026",
+        "excess1w": 6.5,
+        "excess4w": 13.3,
+        "excess12w": 11.6
+      },
+      {
+        "w1": 0.9,
+        "w4": -0.4,
+        "w12": 1.5,
+        "label": "XLK",
+        "symbol": "XLK",
+        "excess1w": 0.7,
+        "excess4w": 0,
+        "excess12w": -2.6
+      },
+      {
+        "w1": 0.8,
+        "w4": -1.2,
+        "w12": -2.6,
+        "label": "XLU",
+        "symbol": "XLU",
+        "excess1w": 0.7,
+        "excess4w": -0.8,
+        "excess12w": -6.7
+      },
+      {
+        "w1": 0.2,
+        "w4": 3.5,
+        "w12": 12,
+        "label": "XLV",
+        "symbol": "XLV",
+        "excess1w": 0.1,
+        "excess4w": 3.9,
+        "excess12w": 7.9
+      },
+      {
+        "w1": 0,
+        "w4": 0.9,
+        "w12": 9.3,
+        "label": "XLF",
+        "symbol": "XLF",
+        "excess1w": -0.1,
+        "excess4w": 1.3,
+        "excess12w": 5.2
+      },
+      {
+        "w1": -0.8,
+        "w4": 0.7,
+        "w12": 0.6,
+        "label": "XLC",
+        "symbol": "XLC",
+        "excess1w": -1,
+        "excess4w": 1.1,
+        "excess12w": -3.5
+      },
+      {
+        "w1": -1,
+        "w4": -0.6,
+        "w12": -0.8,
+        "label": "XLP",
+        "symbol": "XLP",
+        "excess1w": -1.1,
+        "excess4w": -0.2,
+        "excess12w": -4.9
+      },
+      {
+        "w1": -1.1,
+        "w4": -5.4,
+        "w12": -0.3,
+        "label": "XLI",
+        "symbol": "XLI",
+        "excess1w": -1.2,
+        "excess4w": -5,
+        "excess12w": -4.4
+      },
+      {
+        "w1": -1.2,
+        "w4": -2.3,
+        "w12": -2.3,
+        "label": "XLRE",
+        "symbol": "XLRE",
+        "excess1w": -1.3,
+        "excess4w": -1.9,
+        "excess12w": -6.4
+      },
+      {
+        "w1": -1.4,
+        "w4": -0.8,
+        "w12": 0.9,
+        "label": "XLB",
+        "symbol": "XLB",
+        "excess1w": -1.5,
+        "excess4w": -0.4,
+        "excess12w": -3.2
+      },
+      {
+        "w1": -2,
+        "w4": -4.1,
+        "w12": -1.3,
+        "label": "XLY",
+        "symbol": "XLY",
+        "excess1w": -2.1,
+        "excess4w": -3.7,
+        "excess12w": -5.4
+      },
+      {
+        "w1": null,
+        "w4": null,
+        "w12": null,
+        "label": "XLE",
+        "symbol": "XLE",
+        "excess1w": null,
+        "excess4w": null,
+        "untested": "no bar on 2026-09-04; newest 2026-07-13",
+        "excess12w": null
+      }
+    ],
+    "benchmark": "SPY"
+  },
+  "runLabel": "weekly",
+  "schedule": [],
+  "sections": [
+    {
+      "body": "0 scored of 24 issued · 3 not called · all 24 calls issued since 2026-09-06; none removed\ncallHitRate — · verdictBrier — · focusHitRate 0.00 · coverageGaps 3 · focusChurn 0\n2026-09-04-close-verdict-rates.long · issued 2026-09-06 close · pending · said p=0.6 · got pending\n2026-09-04-close-verdict-policy.path · issued 2026-09-06 close · pending · said p=0.55 · got pending\n2026-09-04-close-verdict-credit · issued 2026-09-06 close · pending · said p=0.65 · got pending\n2026-09-04-close-verdict-vol · issued 2026-09-06 close · pending · said p=0.6 · got pending\n2026-09-04-close-verdict-dealer.positioning · issued 2026-09-06 close · pending · said p=0.6 · got pending\n2026-09-04-close-verdict-flow · issued 2026-09-06 close · pending · said p=0.65 · got pending\n2026-09-04-close-verdict-fx · issued 2026-09-06 close · pending · said p=0.55 · got pending\n2026-09-04-close-verdict-equity.internals · issued 2026-09-06 close · pending · said p=0.6 · got pending\n2026-09-04-close-verdict-sector:Computer/GPU · issued 2026-09-06 close · pending · said p=0.6 · got pending\n2026-09-04-close-verdict-sector:Semi-Logic/ASIC · issued 2026-09-06 close · pending · said p=0.55 · got pending\n2026-09-04-close-verdict-sector:Foundry · issued 2026-09-06 close · pending · said p=0.65 · got pending\n2026-09-04-close-verdict-sector:Semi-Cap/EDA · issued 2026-09-06 close · pending · said p=0.55 · got pending\n2026-09-04-close-verdict-sector:Memory/Storage · issued 2026-09-06 close · pending · said p=0.65 · got pending\n2026-09-04-close-verdict-sector:Cybersecurity · issued 2026-09-06 close · pending · said p=0.6 · got pending\n2026-09-04-close-verdict-sector:Software/SaaS · issued 2026-09-06 close · pending · said p=0.6 · got pending\n2026-09-04-close-verdict-sector:Cloud/Hyperscaler · issued 2026-09-06 close · pending · said p=0.55 · got pending\n2026-09-04-close-verdict-sector:Foundation-Model-Proxy · issued 2026-09-06 close · pending · said p=0.55 · got pending\n2026-09-04-close-verdict-sector:Devices/Endpoint · issued 2026-09-06 close · pending · said p=0.55 · got pending\n2026-09-04-close-verdict-theme:el-nino-ag-2026 · issued 2026-09-06 close · pending · said p=0.6 · got pending\n2026-09-04-close-focus-ADBE · issued 2026-09-06 close · pending · said p=0.5 · got pending\n2026-09-04-close-focus-ORCL · issued 2026-09-06 close · pending · said p=0.5 · got pending\n2026-09-04-close-focus-MU · issued 2026-09-06 close · pending · said p=0.5 · got pending\n2026-09-04-close-focus-ASML · issued 2026-09-06 close · pending · said p=0.5 · got pending\n2026-09-04-close-focus-TSM · issued 2026-09-06 close · pending · said p=0.5 · got pending\nfocus: 0 of 5 names moved at least their implied move · 5 still open\ncalibration: said p≈0.59 · hit 0.00 (19) — over-confident\nwhat we left out: 3 rows",
+      "title": "1 · Scorecard"
+    },
+    {
+      "body": "No commitments settled this week. The open call on rates.long (2026-09-04-close-verdict-rates.long, DGS10) is the first to settle after 1 open session. Yesterday's checks scored 2 misses and 1 not-observed: vol failed to extend below 14.25 or snap back toward 15, holding at 14.32; the 9/16 hike probability coin-flip did not resolve; and rates held at 4.77 rather than grinding to a monthly high. Credit held above the 3-session standing threshold at 2.65. Memory/Storage led weekly, gaining 7.6%, while Cybersecurity lagged at -6.9%; the new El Nino agriculture theme posted 6.5% excess in its first week. Foundry members outperformed with 5.4%, while Semi-Cap/EDA underperformed at -1.5%. Among open focus admits, ADBE and ORCL settle on 2026-09-11 post-earnings; MU settles 2026-10-01; ASML and TSM settle around mid-October.\nnot to quote: fx — datum as of 2026-08-28 is older than this period",
+      "title": "2 · 上周复盘"
+    },
+    {
+      "body": "3a macro\n- rates.front — no datum this period — UNTESTED\n- rates.long — 4.77 → -2 bp — CONTINUE (1bp..3bp) — 2 bp decline holds below monthly high. — settles: Settles 2026-09-07 after 1 open session.\n- curve.shape — no datum this period — UNTESTED\n- policy.path — 55.7 → +5.0 pp — CONTINUE (2.5pp..7.5pp) — Hike probability rose 5.0 pp; coin-flip persists. — settles: FOMC 9/16 resolves by 2026-09-17.\n- credit — 2.65 → -1 bp — CONTINUE (1bp..2bp) — 1 bp tightening; standing threshold intact. — settles: Breaches >2.65 would signal stress.\n- vol — 14.32 → -0.88 pts — CONTINUE (0.44pts..1.32pts) — Compression holds; yesterday failed both edges. — settles: Below 14 or above 16 resets volatility regime.\n- dealer.positioning — 768.35 → +1.20 pts — CONTINUE (0.60pts..1.80pts) — Gamma flip eases dealer short pressure. — settles: 1.20 pt move toward gamma neutrality.\n- flow — 39758465 → +0 USD — STRENGTHEN (no prior move) — Premium flat signals equilibrium; bid/ask stable. — settles: Unchanged net premium sustains risk-on posture.\n- commodities — no datum this period — UNTESTED\n- fx — 118.7 → +0.4 index pts — CONTINUE — 0.4 index pt strength on dollar bid. — settles: DTWEXBGS elevation limits commodity rally room.\n- equity.internals — 769.55 → SPY 769.55 · QQQ 717.5 · IWM 295.39 — CONTINUE — SPY held; QQQ/IWM show size underperformance. — settles: Breadth tilt from mega-cap to mid/small.\n- calls.open — 24 — printed from the ledger\n3b sectors\n- sector:Computer/GPU — 3.4 → +3.3% vs SPY (6 of 6) — STRENGTHEN (>4.9% = 1.5x prior |Δ| 3.3%) — GPU stack led at +3.3% vs SPY weekly. — settles: NVDA, AMD, ARM outpaced broad-based rally. — members: NVDA, AMD, ARM, DELL, HPE, HPQ\n- sector:Semi-Logic/ASIC — 1.8 → +1.7% vs SPY (6 of 6) — CONTINUE (0.8%..2.5%) — ASIC gained +1.7% vs SPY; modest. — settles: Broad chip participation but not leadership. — members: AVGO, ARM, MCHP, MRVL, QCOM, TXN\n- sector:Foundry — 5.4 → +5.3% vs SPY (4 of 4) — STRENGTHEN (>8.0% = 1.5x prior |Δ| 5.3%) — Foundry +5.3% vs SPY; cycle accelerates. — settles: INTC, TSEM, TSM, UMC all members up. — members: INTC, TSEM, TSM, UMC\n- sector:Semi-Cap/EDA — -1.5 → -1.6% vs SPY (8 of 8) — FADE (<0.8%) — EDA -1.6% vs SPY; equipment demand softens. — settles: AMAT, ASML, KLAC, LRCX relative weakness. — members: AMAT, ARM, ASML, CDNS, KLAC, LRCX, SNPS, TER\n- sector:Memory/Storage — 7.6 → +7.5% vs SPY (4 of 4) — STRENGTHEN (>11.2% = 1.5x prior |Δ| 7.5%) — Memory led at +7.5% vs SPY weekly. — settles: STX, WDC, MU, SNDK all members up. — members: STX, WDC, MU, SNDK\n- sector:Cybersecurity — -6.9 → -7.0% vs SPY (4 of 4) — FADE (<3.5%) — Cyber -7.0% vs SPY; relative underperform. — settles: NET, S, CRWD, PANW all members down. — members: NET, S, CRWD, PANW\n- sector:Software/SaaS — -4.7 → -4.8% vs SPY (6 of 6) — FADE (<2.4%) — SaaS -4.8% vs SPY; spending caution. — settles: ADBE, NOW, SHOP, ZM, CRM underperformed. — members: ADBE, FIG, NOW, SHOP, ZM, CRM\n- sector:Cloud/Hyperscaler — -1.3 → -1.4% vs SPY (6 of 6) — FADE (<0.7%) — Cloud -1.4% vs SPY; AI capex pause. — settles: GOOGL, AMZN, MSFT, ORCL modest underperform. — members: GOOGL, AMZN, BABA, IBM, MSFT, ORCL\n- sector:Foundation-Model-Proxy — 0.9 → +0.8% vs SPY (5 of 5) — CONTINUE (0.4%..1.2%) — AI proxy +0.8% vs SPY; flat tone. — settles: NVDA, MSFT, GOOGL, AMZN, META mixed. — members: GOOGL, AMZN, NVDA, MSFT, META\n- sector:Devices/Endpoint — 0.8 → +0.7% vs SPY (2 of 2) — CONTINUE (0.3%..1.0%) — Devices +0.7% vs SPY; minimal move. — settles: TSLA, AAPL both members track broad market. — members: TSLA, AAPL\n3c themes\n- theme:el-nino-ag-2026 — +6.5% (1w) · +0.0% (since 2026-09-06) — STRENGTHEN (>9.8% = 1.5x prior |Δ| 6.5%) — DBA, MOS, NTR, DE posted +6.5% excess. — settles: NOAA ONI +0.5 and CBOT spread confirm thesis.\n  kill armed: ONI < +0.5 two months running, or instruments underperform SPY by 10% over 60 sessions\n  evidence: operator-checked\n3d rotation\n  theme:el-nino-ag-2026 · 1w +6.6% · 4w +12.9% · 12w +15.7% · excess 1w +6.5%\n  XLK · 1w +0.9% · 4w -0.4% · 12w +1.5% · excess 1w +0.7%\n  XLU · 1w +0.8% · 4w -1.2% · 12w -2.6% · excess 1w +0.7%\n  XLV · 1w +0.2% · 4w +3.5% · 12w +12.0% · excess 1w +0.1%\n  XLF · 1w +0.0% · 4w +0.9% · 12w +9.3% · excess 1w -0.1%\n  XLC · 1w -0.8% · 4w +0.7% · 12w +0.6% · excess 1w -1.0%\n  XLP · 1w -1.0% · 4w -0.6% · 12w -0.8% · excess 1w -1.1%\n  XLI · 1w -1.1% · 4w -5.4% · 12w -0.3% · excess 1w -1.2%\n  XLRE · 1w -1.2% · 4w -2.3% · 12w -2.3% · excess 1w -1.3%\n  XLB · 1w -1.4% · 4w -0.8% · 12w +0.9% · excess 1w -1.5%\n  XLY · 1w -2.0% · 4w -4.1% · 12w -1.3% · excess 1w -2.1%\n  XLE · untested — no bar on 2026-09-04; newest 2026-07-13\n  benchmark SPY · 1w +0.1% · 4w -0.4% · 12w +4.1% · as of 2026-09-04\nleft out: rates.front — DGS2 not ingested\nleft out: curve.shape — DGS2 not ingested; 2s10s cannot be computed\nleft out: commodities — no payload",
+      "title": "3 · Coverage"
+    },
+    {
+      "body": "Hike probability moved 5.0 pp higher, suggesting incremental shift toward policy tightening. Vol compression to 14.32 reflects contained volatility despite macro uncertainty; the standing on credit remains unbreached. Foundry's outperformance suggests chip supply confidence, while Semi-Cap/EDA weakness indicates equipment demand caution. Cybersecurity's relative underperformance contradicts near-term security spending momentum. El Nino agriculture thesis confirms early: the equal-weight basket of DBA, MOS, NTR, DE delivered 6.5 pp of excess, validating the NOAA ONI and CBOT evidence triggers. SPY 769.55 maintained Friday close levels; QQQ 717.5 and IWM 295.39 show small-cap relative softness. Flow remained flat at 39758465, signaling equilibrium in options premium. Gamma positioning at 768.35 flipped 1.20 pts higher, easing dealer short pressure. Fed broad index strength at 118.7 continued the dollar bid, limiting commodity upside.\nel-nino-ag-2026: confirms — Agriculture basket +6.5% excess vs SPY in week one; NOAA ONI and CBOT triggers intact; MOS, NTR, DE participants accelerate.",
+      "title": "4 · 下周展望"
+    },
+    {
+      "body": "- 2026-09-10 · earnings · ADBE earnings (post) · forecast implied move 6.9333% · post — settles: 2026-09-11\n- 2026-09-10 · earnings · ORCL earnings (post) · forecast implied move 9.8619% · post — settles: 2026-09-11\n- 2026-09-16 · policy path · FOMC 9/16 · forecast HIKE 55.7% · prev 3.75-4.00% — settles: 2026-09-16\n- 2026-09-30 · earnings · MU earnings (post) · forecast implied move 12.373% · post — settles: 2026-10-01\n- 2026-10-14 · earnings · ASML earnings (pre) · forecast implied move 10.2247% · pre — settles: 2026-10-14\n- 2026-10-15 · earnings · TSM earnings · forecast implied move 7.8571% — settles: 2026-10-15\n- 2026-10-20 · earnings · TXN earnings · forecast implied move 10.4077% — settles: 2026-10-20\n- 2026-10-21 · earnings · IBM earnings (post) · forecast implied move 9.8496% · post — settles: 2026-10-22\n- 2026-10-22 · earnings · INTC earnings · forecast implied move 16.4926% — settles: 2026-10-22\n- 2026-10-26 · earnings · CDNS earnings · forecast implied move 13.2014% — settles: 2026-10-26\n- 2026-10-27 · earnings · STX earnings · forecast implied move 22.2932% — settles: 2026-10-27\n- 2026-10-27 · earnings · TER earnings · forecast implied move 22.3448% — settles: 2026-10-27\n- 2026-10-28 · policy path · FOMC 10/28 · forecast HOLD 71.7% · prev 3.50-3.75% — settles: 2026-10-28\n- 2026-10-28 · earnings · TSLA earnings · forecast implied move 13.6494% — settles: 2026-10-28\n- 2026-10-28 · earnings · LRCX earnings · forecast implied move 19.7353% — settles: 2026-10-28\n- 2026-10-29 · earnings · AAPL earnings · forecast implied move 8.3771% — settles: 2026-10-29\n- 2026-12-09 · policy path · FOMC 12/9 · forecast HIKE 54% · prev 3.75-4.00% — settles: 2026-12-09\n- 2026-12-10 · earnings · AVGO earnings · forecast implied move 15.1457% — settles: 2026-12-10\nADBE and ORCL earnings post 2026-09-10; implied moves 6.93% and 9.86% set high bars for tech execution. FOMC 9/16 with 55.7% hike probability will reset terminal rate expectations. MU earnings 2026-09-30 at 12.37% implied move tests memory cycle strength. ASML earnings 2026-10-14 (pre, 10.22% move) and TSM 2026-10-15 (7.86% move) define Q4 capex confidence.",
+      "title": "5 · Dated catalysts"
+    },
+    {
+      "body": "rank · ticker · event · IV rank · implied move · open call · why\n| 1 | ADBE | earnings (post) 2026-09-10 | 69 | 6.9% | 2026-09-04-close-focus-ADBE | Earnings 2026-09-10 post; 6.93% IV expects guidance revision. | sticky\n| 2 | ORCL | earnings (post) 2026-09-10 | 59 | 9.9% | 2026-09-04-close-focus-ORCL | Earnings 2026-09-10 post; 9.86% IV expects cloud spending tone. | sticky\n| 3 | MU | earnings (post) 2026-09-30 | 31 | 12.4% | 2026-09-04-close-focus-MU | Earnings 2026-09-30 post; 12.37% IV expects cycle confirmation. | sticky\n| 4 | ASML | earnings (pre) 2026-10-14 | 28 | 10.2% | 2026-09-04-close-focus-ASML | Earnings 2026-10-14 pre; 10.22% IV expects capex trajectory. | sticky\n| 5 | TSM | earnings 2026-10-15 | 5 | 7.9% | 2026-09-04-close-focus-TSM | Earnings 2026-10-15; 7.86% IV expects volume recovery. | sticky\n| 6 | TSLA | earnings 2026-10-28 | 13 | 13.6% | — | — |\n| 7 | AVGO | earnings 2026-12-10 | 0 | 15.1% | — | — |\n| 8 | TXN | earnings 2026-10-20 | 18 | 10.4% | — | — |\n| 9 | IBM | earnings (post) 2026-10-21 | 22 | 9.8% | — | — |\n| 10 | INTC | earnings 2026-10-22 | 29 | 16.5% | — | — |\n| 11 | CDNS | earnings 2026-10-26 | 28 | 13.2% | — | — |\n| 12 | STX | earnings 2026-10-27 | 37 | 22.3% | — | — |\n| 13 | TER | earnings 2026-10-27 | 31 | 22.3% | — | — |\n| 14 | LRCX | earnings 2026-10-28 | 35 | 19.7% | — | — |\n| 15 | AAPL | earnings 2026-10-29 | 45 | 8.4% | — | — |\nweights: declared prior 2026-09-06",
+      "title": "6 · Focus"
+    },
+    {
+      "body": "2026-09-04-close-verdict-rates.long · issued 2026-09-06 close · pending\n2026-09-04-close-verdict-policy.path · issued 2026-09-06 close · pending\n2026-09-04-close-verdict-credit · issued 2026-09-06 close · pending\n2026-09-04-close-verdict-vol · issued 2026-09-06 close · pending\n2026-09-04-close-verdict-dealer.positioning · issued 2026-09-06 close · pending\n2026-09-04-close-verdict-flow · issued 2026-09-06 close · pending\n2026-09-04-close-verdict-fx · issued 2026-09-06 close · pending\n2026-09-04-close-verdict-equity.internals · issued 2026-09-06 close · pending\n2026-09-04-close-verdict-sector:Computer/GPU · issued 2026-09-06 close · pending\n2026-09-04-close-verdict-sector:Semi-Logic/ASIC · issued 2026-09-06 close · pending\n2026-09-04-close-verdict-sector:Foundry · issued 2026-09-06 close · pending\n2026-09-04-close-verdict-sector:Semi-Cap/EDA · issued 2026-09-06 close · pending\n2026-09-04-close-verdict-sector:Memory/Storage · issued 2026-09-06 close · pending\n2026-09-04-close-verdict-sector:Cybersecurity · issued 2026-09-06 close · pending\n2026-09-04-close-verdict-sector:Software/SaaS · issued 2026-09-06 close · pending\n2026-09-04-close-verdict-sector:Cloud/Hyperscaler · issued 2026-09-06 close · pending\n2026-09-04-close-verdict-sector:Foundation-Model-Proxy · issued 2026-09-06 close · pending\n2026-09-04-close-verdict-sector:Devices/Endpoint · issued 2026-09-06 close · pending\n2026-09-04-close-verdict-theme:el-nino-ag-2026 · issued 2026-09-06 close · pending\n2026-09-04-close-focus-ADBE · issued 2026-09-06 close · pending\n2026-09-04-close-focus-ORCL · issued 2026-09-06 close · pending\n2026-09-04-close-focus-MU · issued 2026-09-06 close · pending\n2026-09-04-close-focus-ASML · issued 2026-09-06 close · pending\n2026-09-04-close-focus-TSM · issued 2026-09-06 close · pending",
+      "title": "7 · Open calls"
+    },
+    {
+      "body": "Only one of five sessions in this window carries a report and a regime record: 2026-09-04 close. The other four ran without a persisted regime block — record missing, not sessions unwritten. With a single scored session there is no repeated channel to name.",
+      "title": "5 sessions, 2026-08-31 to 2026-09-04"
+    },
+    {
+      "body": "Across the ten sessions, exactly one carries a regime record — 2026-09-04 close — and the other nine ran without a persisted regime block. Those nine report as regime-record-missing, not as sessions that were never written.",
+      "title": "10 sessions, 2026-08-24 to 2026-09-04"
+    },
+    {
+      "body": "Process statistics first. Of twenty-one sessions, one carries a report and a regime record (2026-09-04 close); the remaining twenty ran without a persisted regime block and report as record-missing, not as sessions unwritten. Mode histogram: persistence 1, ratio 0, invalidation 0, no-data 0. Checks hit 0, miss 0, notObserved 0, scored 0.",
+      "title": "21 sessions, 2026-08-07 to 2026-09-04"
+    }
+  ],
+  "overnight": [],
+  "candidates": [],
+  "spyForecast": {
+    "forecast": {
+      "t1Down": 0.52,
+      "t5Down": 0.55,
+      "referenceClose": {
+        "date": "2026-09-04",
+        "value": 770.19
+      }
+    },
+    "scorable": true
+  },
+  "schemaVersion": 3
+}

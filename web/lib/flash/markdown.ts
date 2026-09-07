@@ -87,19 +87,38 @@ export function parseBlocks(text: string): Block[] {
       }
     }
 
-    if (lines.every((l) => l.startsWith("- "))) {
-      blocks.push({ type: "ul", items: lines.map((l) => l.slice(2).trim()) });
-      continue;
+    // Schema-3 bodies are block-level markdown joined by SINGLE newlines: a bare
+    // heading line followed by "- " bullets, or several bare lines that are each
+    // their own statement. Group consecutive lines by kind — a bullet run is one
+    // list, a table run is one table, and every bare line is its own paragraph.
+    // v2 bodies never soft-wrap prose (checked against the frozen v2 fixture), so
+    // this only changes what used to collapse into one "wall of text".
+    const kindOf = (l: string) =>
+      l.startsWith("- ") ? "ul" : l.startsWith("|") ? "table" : "p";
+    let i = 0;
+    while (i < lines.length) {
+      const kind = kindOf(lines[i]);
+      let j = i;
+      while (j < lines.length && kindOf(lines[j]) === kind) j++;
+      const run = lines.slice(i, j);
+      i = j;
+      if (kind === "ul") {
+        blocks.push({ type: "ul", items: run.map((l) => l.slice(2).trim()) });
+      } else if (kind === "table") {
+        const rows = run.map(splitRow).filter((cells) => !isSeparatorRow(cells));
+        if (rows.length > 0) {
+          const [header, ...body] = rows;
+          blocks.push({ type: "table", header, rows: body });
+        }
+      } else {
+        // Run-together settlement records (a real v2 shape) span lines, so the
+        // record seam is looked for on the joined run first; otherwise each
+        // bare line is its own statement.
+        const records = splitRecords(run.join(" "));
+        if (records) blocks.push(...records);
+        else for (const text of run) blocks.push({ type: "p", text });
+      }
     }
-
-    const text = lines.join(" ");
-    const records = splitRecords(text);
-    if (records) {
-      blocks.push(...records);
-      continue;
-    }
-
-    blocks.push({ type: "p", text });
   }
 
   return blocks;
