@@ -1,40 +1,14 @@
 import { api } from "@/lib/api";
 import type {
-  AgentRunIndexRow,
   AgentRunResponse,
   AgentRunWeekListResponse,
   AgentRunWeekResponse,
 } from "@/lib/api";
-import { FLASH_TENANT } from "@/lib/flash/kinds";
+import { FLASH_TENANT, newestOfKind } from "@/lib/flash/kinds";
 
 import { FlashWeekPage } from "@/components/flash/FlashWeekPage";
 
 export const dynamic = "force-dynamic";
-
-/**
- * The newest recorded row of one kind in this week's index.
- *
- * THE WEEK'S RUNS ARE NOT FILED UNDER FRIDAY. helium sends `week_key`
- * explicitly and files each run under its own `run_day` — a Frank 复盘 for
- * W36 carries run_day 2026-09-07, the Monday AFTER the week it reviews. Asking
- * the API for `(frank, friday)` finds nothing and renders "no review attached"
- * over a review that exists. The index is the only authority on which day a
- * week-scoped run actually landed on.
- */
-function newestOfKind(
-  runs: AgentRunIndexRow[],
-  kind: string,
-): AgentRunIndexRow | undefined {
-  return runs
-    .filter((r) => r.kind === kind)
-    .sort((a, b) =>
-      String(a.run_day) === String(b.run_day)
-        ? b.version_no - a.version_no
-        : String(a.run_day) < String(b.run_day)
-          ? 1
-          : -1,
-    )[0];
-}
 
 /**
  * The week view: five days, the weekly summary, and the Frank supplement.

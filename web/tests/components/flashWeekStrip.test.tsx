@@ -35,17 +35,11 @@ const WEEK_36: AgentRunWeek = {
   day_count: 1,
 };
 
-const RUNS = [
-  row("premarket", HEADLINE),
-  row("intraday"),
-  row("close"),
-];
+const RUNS = [row("premarket", HEADLINE), row("intraday"), row("close")];
 
 describe("WeekStrip", () => {
   it("renders five weekdays plus the weekly card", () => {
-    render(
-      <WeekStrip weekKey="2026-W36" runs={RUNS} weeks={[WEEK_36]} />,
-    );
+    render(<WeekStrip weekKey="2026-W36" runs={RUNS} weeks={[WEEK_36]} />);
 
     for (const dow of ["MON", "TUE", "WED", "THU", "FRI"]) {
       expect(screen.getByText(dow)).toBeTruthy();
@@ -85,6 +79,36 @@ describe("WeekStrip", () => {
     expect(
       within(screen.getByTestId("flash-day-2026-09-03")).getByText(HEADLINE),
     ).toBeTruthy();
+  });
+
+  /**
+   * A day card conflated the same two facts the weekly card did: a premarket
+   * run that was recorded with an empty `headline` printed "no premarket run"
+   * over a run that exists. Existence is the pip; the headline is the text.
+   */
+  it("says `no headline recorded` for a headline-less premarket run", () => {
+    render(
+      <WeekStrip
+        weekKey="2026-W36"
+        runs={[
+          row("premarket"),
+          row("close"),
+          { ...row("close"), run_day: "2026-09-02" },
+        ]}
+        weeks={[WEEK_36]}
+      />,
+    );
+
+    const thu = within(screen.getByTestId("flash-day-2026-09-03"));
+    expect(thu.getByText("no headline recorded")).toBeTruthy();
+    expect(thu.queryByText("no premarket run")).toBeNull();
+    expect(thu.getByTestId("pip-premarket").getAttribute("data-on")).toBe(
+      "true",
+    );
+
+    // A day whose only run is a close still says so — that label was right.
+    const wed = within(screen.getByTestId("flash-day-2026-09-02"));
+    expect(wed.getByText("no premarket run")).toBeTruthy();
   });
 
   it("says `no run recorded` on a day that has none", () => {
@@ -133,11 +157,7 @@ describe("WeekStrip", () => {
     };
     // The list arrives newest-first, so "earlier" is index + 1.
     render(
-      <WeekStrip
-        weekKey="2026-W36"
-        runs={RUNS}
-        weeks={[WEEK_36, earlier]}
-      />,
+      <WeekStrip weekKey="2026-W36" runs={RUNS} weeks={[WEEK_36, earlier]} />,
     );
 
     const prev = screen.getByTestId("flash-week-prev");
@@ -154,5 +174,57 @@ describe("WeekStrip", () => {
       screen.getByText("W36 · 1 of 5 days has a recorded run"),
     ).toBeTruthy();
     expect(screen.getByText("2026-08-31 → 2026-09-04")).toBeTruthy();
+  });
+});
+
+/**
+ * The weekly card must follow the run the WEEK PAGE renders.
+ *
+ * Reproduces the option-wizard row of 2026-W36: the weekly landed on Sunday
+ * 2026-09-06 with an empty `headline` and a five-section document. The body
+ * drew the sections while the card above it read "not generated yet".
+ */
+describe("WeekStrip weekly card", () => {
+  const weeklyRow: AgentRunIndexRow = {
+    ...row("weekly"),
+    run_day: "2026-09-06",
+    run_id: "run-735e656b-ca40-4f50-a0d9-63cf25d1c8d2",
+  };
+
+  it("lights the weekly pip for a run filed off the Friday", () => {
+    render(
+      <WeekStrip
+        weekKey="2026-W36"
+        runs={[...RUNS, weeklyRow]}
+        weeks={[WEEK_36]}
+      />,
+    );
+
+    const card = within(screen.getByTestId("flash-day-weekly"));
+    expect(card.getByTestId("pip-weekly").getAttribute("data-on")).toBe("true");
+    expect(card.queryByText("not generated yet")).toBeNull();
+  });
+
+  it("prints the weekly headline when the run carries one", () => {
+    render(
+      <WeekStrip
+        weekKey="2026-W36"
+        runs={[...RUNS, { ...weeklyRow, headline: "Week ahead: payrolls" }]}
+        weeks={[WEEK_36]}
+      />,
+    );
+
+    const card = within(screen.getByTestId("flash-day-weekly"));
+    expect(card.getByText("Week ahead: payrolls")).toBeTruthy();
+  });
+
+  it("still says `not generated yet` when no weekly run exists", () => {
+    render(<WeekStrip weekKey="2026-W36" runs={RUNS} weeks={[WEEK_36]} />);
+
+    const card = within(screen.getByTestId("flash-day-weekly"));
+    expect(card.getByText("not generated yet")).toBeTruthy();
+    expect(card.getByTestId("pip-weekly").getAttribute("data-on")).toBe(
+      "false",
+    );
   });
 });
