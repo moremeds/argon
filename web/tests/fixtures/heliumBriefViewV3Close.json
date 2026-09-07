@@ -1,0 +1,302 @@
+{
+  "date": "2026-09-04",
+  "tape": [
+    {
+      "label": "VIX",
+      "value": "14.32",
+      "change": "-0.88 pts",
+      "positive": true
+    },
+    {
+      "label": "10Y",
+      "value": "4.77",
+      "change": "-2 bp",
+      "positive": true
+    },
+    {
+      "label": "HY OAS",
+      "value": "2.65",
+      "change": "-1 bp",
+      "positive": true
+    },
+    {
+      "label": "USD (broad)",
+      "value": "118.7",
+      "change": "+0.4 idx pts",
+      "positive": false
+    }
+  ],
+  "cause": {
+    "located": false
+  },
+  "focus": {
+    "rows": [
+      {
+        "why": "Earnings post-close 9/10, 3 sessions out; IV rank 68.84 makes the reaction matter more.",
+        "event": "earnings (post) 2026-09-10",
+        "ivRank": 68.84,
+        "ticker": "ADBE"
+      },
+      {
+        "why": "Earnings post-close 9/10; a 9.8619% implied move and IV rank 58.63 raise the stakes.",
+        "event": "earnings (post) 2026-09-10",
+        "ivRank": 58.63,
+        "ticker": "ORCL"
+      },
+      {
+        "why": "Earnings post-close 9/30, 17 sessions out; memory strength this week makes it worth watching.",
+        "event": "earnings (post) 2026-09-30",
+        "ivRank": 30.94,
+        "ticker": "MU"
+      },
+      {
+        "why": "",
+        "event": "earnings (pre) 2026-10-14",
+        "ivRank": 27.98,
+        "ticker": "ASML"
+      },
+      {
+        "why": "",
+        "event": "earnings 2026-10-15",
+        "ivRank": 5.07,
+        "ticker": "TSM"
+      }
+    ],
+    "churn": 0,
+    "period": "daily"
+  },
+  "charts": {
+    "gex": [],
+    "policyPath": {
+      "meetings": [
+        {
+          "label": "9/16",
+          "stance": "HOLD",
+          "impliedRate": "3.7532",
+          "probability": 50.7,
+          "targetRange": "3.50-3.75%"
+        },
+        {
+          "label": "10/28",
+          "stance": "HOLD",
+          "impliedRate": "3.825",
+          "probability": 71.3,
+          "targetRange": "3.50-3.75%"
+        },
+        {
+          "label": "12/9",
+          "stance": "HIKE",
+          "impliedRate": "3.97",
+          "probability": 58,
+          "targetRange": "3.75-4.00%"
+        }
+      ],
+      "snapshotDate": "2026-09-03"
+    }
+  },
+  "checks": [
+    {
+      "text": "Does the compression extend below 14.25 or snap back toward 15.",
+      "level": "14.32",
+      "series": "VIXCLS"
+    },
+    {
+      "text": "Does the coin-flip resolve toward hold or hike into the meeting.",
+      "level": "50.7",
+      "series": "9/16 hold probability"
+    },
+    {
+      "text": "Holds below 4.79 or grinds back to the monthly high.",
+      "level": "4.77",
+      "series": "DGS10"
+    }
+  ],
+  "edited": true,
+  "faults": [
+    "focus TSLA: not on the computed list — the line is discarded",
+    "focus AVGO: not on the computed list — the line is discarded"
+  ],
+  "footer": {
+    "asOf": [
+      "ow_argon_policy_path — 2026-09-03",
+      "ow_spot — 2026-09-06T21:24:27.639Z",
+      "ow_uw_calendar — 2026-09-04T20:15:00.000Z",
+      "ow_argon_watchlist — 2026-09-05T03:11:02.482278+08:00",
+      "ow_uw_earnings — 2026-09-06T21:24:40.521Z"
+    ],
+    "notes": [
+      "bars: 50 of 50 basket symbols answered",
+      "no answer from ow_tv_commodities: ow_tv_commodities: ow_tv_commodities: no commodity answered with a numeric close; is the TradingView app running?"
+    ],
+    "coverage": [
+      "macro — ow_macro_rates",
+      "policy — ow_argon_policy_path",
+      "gex — ow_uw_gex",
+      "spot — ow_spot",
+      "tide — ow_uw_market_state",
+      "calendar — ow_uw_calendar",
+      "commodities — ow_tv_commodities: ow_tv_commodities: ow_tv_commodities: no commodity answered with a numeric close; is the TradingView app running?",
+      "watchlist — ow_argon_watchlist",
+      "earnings — ow_uw_earnings",
+      "ivTerm — ow_uw_iv_term",
+      "actions — ow_massive_actions"
+    ]
+  },
+  "regime": {
+    "paragraph": "{\"headline\":\"Vol keeps bleeding — the VIX at 14.32 is the calmest close in three weeks, even as futures price a near coin-flip for a September hike\",\"tape\":[{\"label\":\"VIX\",\"value\":\"14.32\",\"change\":\"-0.88 pts\",\"positive\":true},{\"label\":\"10Y\",\"value\":\"4.77\",\"change\":\"-2 bp\",\"positive\":true},{\"label\":\"HY OAS\",\"value\":\"2.65\",\"change\":\"-1 bp\",\"positive\":true},{\"label\":\"USD (broad)\",\"value\":\"118.7\",\"change\":\"+0.4 idx pts\",\"positive\":false}],\"schedule\":[{\"et\":\"2026-09-10 (post)\",\"event\":\"ADBE earnings\",\"consensus\":\"implied move 6.9333%\",\"group\":\"Next week\"},{\"et\":\"2026-09-10 (post)\",\"event\":\"ORCL earnings\",\"consensus\":\"implied move 9.8619%\",\"group\":\"Next week\"},{\"et\":\"2026-09-16\",\"event\":\"FOMC 9/16 decision\",\"consensus\":\"HOLD 50.7%\",\"prior\":\"3.50-3.75%\",\"group\":\"Two weeks out\"},{\"et\":\"2026-09-30 (post)\",\"event\":\"MU earnings\",\"consensus\":\"implied move 12.373%\",\"group\":\"Later\"},{\"et\":\"2026-10-28\",\"event\":\"FOMC 10/28 decision\",\"consensus\":\"HOLD 71.3%\",\"prior\":\"3.50-3.75%\",\"group\":\"Later\"},{\"et\":\"2026-12-09\",\"event\":\"FOMC 12/9 decision\",\"consensus\":\"HIKE 58%\",\"prior\":\"3.75-4.00%\",\"group\":\"Later\"}],\"cause\":{\"located\":false,\"searched\":[\"Fed\"]},\"sections\":[{\"title\":\"Volatility, not rates, is the regime today — the VIX bled to its calmest close in three weeks\",\"body\":\"The read today is a grind lower in fear, not a rates event. VIXCLS closed at 14.32 on 2026-09-03, down 0.88 pts from 15.2 the prior session — the largest single-session move in the ranked set and roughly 1.3x this channel's own 20-session median. It is the lowest close since 14.25 on 2026-08-14. The move fits a bid-for-risk tape: SPY's gamma flip sat at 768.35 into the close (from 769.55), with dealers positioned to dampen rather than amplify moves. Rates barely participated — DGS10 slipped 2 bp to 4.77 (2026-09-03) and HY OAS eased 1 bp to 2.65 (2026-09-03, argon macro series, 3-day lag) — neither cleared the 5 bp bar that would make the curve the story. When vol compresses this far while credit and rates sit still, the regime is complacency, and the ones exposed are anyone short volatility premium into a September FOMC that is not resolved.\"},{\"title\":\"The divergence: a 14-handle VIX sits next to a September meeting the market cannot call — 50.7% hold, 49.3% hike\",\"body\":\"That calm is hard to square with the policy path, and that is the anomaly worth naming. Futures-implied odds via Frenzy Capital (not CME FedWatch), snapshot 2026-09-03, put the 9/16 FOMC at a 50.7% hold versus a 49.3% hike 25 bp — a genuine coin flip on a live meeting under two weeks out, with the range at 3.50-3.75%. The path only hardens from there: 10/28 reads HOLD 71.3%, and 12/9 tips to HIKE 58% (implied rate 3.97). A VIX at 14.32 is not the price of a market braced for a near-even hike in eleven days; it is the price of one that has decided the outcome does not matter for spot. One of those two reads is wrong, and the gap between them is the single most notable feature of today's tape.\"},{\"title\":\"Flow context: the tide is the prior session's — Sept 4 net premium turned decisively positive by the close\",\"body\":\"Note this is the 2026-09-04 session's tide, frozen outside RTH, not a live premarket read. Across that session market net call premium swung from deeply negative near midday (-92.7M at 12:15 ET) to firmly positive into the close, ending near +80.4M at 16:10 ET — the buy-the-dip signature that matches the vol compression above. Sector tide (Technology) ran heavily call-led all session, closing around +288.7M net call premium at 20:00 UTC against net put premium of -63.6M. That one-sided call demand is consistent with the 14-handle VIX and the dealer-dampened gamma print, and it says the marginal flow into the close was reaching for upside, not protection.\"}]}"
+  },
+  "tenant": "option-wizard",
+  "themes": [
+    {
+      "id": "el-nino-ag-2026",
+      "kill": "ONI < +0.5 two months running, or instruments underperform SPY by 10% over 60 sessions",
+      "token": "strengthen",
+      "killMet": false,
+      "excess1w": "+6.5%",
+      "excessSinceEntered": "+0.0%"
+    }
+  ],
+  "appBase": "http://127.0.0.1:3001",
+  "outcome": "completed",
+  "decision": [
+    {
+      "label": "Call",
+      "value": "No trade"
+    },
+    {
+      "label": "Action",
+      "value": "Stand down — file nothing and re-run when live sources return"
+    },
+    {
+      "label": "Aggression",
+      "value": "None"
+    },
+    {
+      "label": "WhyNow",
+      "value": "No live spot to anchor a strike and no per-leg mid to price; the design pass correctly produced zero proposals."
+    },
+    {
+      "label": "MaxRisk",
+      "value": "None — no position is taken."
+    },
+    {
+      "label": "Invalidation",
+      "value": "N/A — no thesis to settle; there is no spot to compare against."
+    },
+    {
+      "label": "NextTrigger",
+      "value": "Re-run against live data so spot, chains and earnings return current values; only EOD metrics survived and cannot build a defined-risk proposal alone."
+    },
+    {
+      "label": "Confidence",
+      "value": "Low — skipped layers: spot, strike check, chain mids, earnings, argon levels."
+    }
+  ],
+  "headline": "Volatility bled to 14.32 while a live September FOMC sits at a coin-flip.",
+  "oneThing": {
+    "why": "no single move stood out; VIXCLS has led for 0 sessions",
+    "body": "No prior record on disk — first note filed today. Yesterday: no prior checks. VIXCLS closed 14.32 on 2026-09-03, down 0.88 pts from 15.2 — the largest single-channel move in today's set and the calmest close in three weeks. This is the persistence read: no single event stood out, so the ranking rewards the channel that keeps leading, and vol has now led for zero sessions running. The mechanism is dealer-dampened gamma with SPY's flip at 768.35 and a close-of-session tide reaching for upside, not protection.",
+    "title": "The one thing",
+    "checksLine": "Yesterday: no prior checks."
+  },
+  "riskList": [],
+  "runLabel": "close",
+  "schedule": [
+    {
+      "et": "2026-09-10 (post)",
+      "event": "ADBE earnings",
+      "group": "Next week",
+      "consensus": "implied move 6.9333%"
+    },
+    {
+      "et": "2026-09-10 (post)",
+      "event": "ORCL earnings",
+      "group": "Next week",
+      "consensus": "implied move 9.8619%"
+    },
+    {
+      "et": "2026-09-16",
+      "event": "FOMC 9/16 decision",
+      "group": "Two weeks out",
+      "prior": "3.50-3.75%",
+      "consensus": "HOLD 50.7%"
+    },
+    {
+      "et": "2026-09-30 (post)",
+      "event": "MU earnings",
+      "group": "Later",
+      "consensus": "implied move 12.373%"
+    },
+    {
+      "et": "2026-10-28",
+      "event": "FOMC 10/28 decision",
+      "group": "Later",
+      "prior": "3.50-3.75%",
+      "consensus": "HOLD 71.3%"
+    },
+    {
+      "et": "2026-12-09",
+      "event": "FOMC 12/9 decision",
+      "group": "Later",
+      "prior": "3.75-4.00%",
+      "consensus": "HIKE 58%"
+    }
+  ],
+  "sections": [
+    {
+      "body": "0 scored of 0 issued · 3 not called · all 0 calls issued; none removed\ncallHitRate — · verdictBrier — · focusHitRate — · coverageGaps 3 · focusChurn 0\nno call has come due yet\nfocus: 0 of 0 names moved at least their implied move · 0 still open\nwhat we left out: 3 rows",
+      "title": "1 · Scorecard"
+    },
+    {
+      "body": "First note on disk, so no scorecard to reconcile. What the day says: vol led on a persistence read while rates and credit sat still — DGS10 eased 2 bp, HY OAS 1 bp, neither clearing the 5 bp bar. The flow channel confirmed the calm: net premium swung from deeply negative near midday to firmly positive into the close, the buy-the-dip signature. Dealer positioning shifted only 1.20 pts. The single divergence worth carrying forward is a 14-handle vol sitting next to a live-meeting coin flip.\nnot to quote: fx — datum as of 2026-08-28 is older than this period",
+      "title": "2 · 上周复盘"
+    },
+    {
+      "body": "3a macro\n- rates.front — no datum this period — UNTESTED\n- rates.long — 4.77 → -2 bp — CONTINUE (1bp..3bp) — eased inside its bar, no break — settles: 10Y vs 4.79 monthly high\n- curve.shape — no datum this period — UNTESTED\n- policy.path — 50.7 → — — CONTINUE — live meeting stays a coin flip — settles: 9/16 odds into the meeting\n- credit — 2.65 → -1 bp — CONTINUE (1bp..2bp) — eased 1 bp, well inside range — settles: HY OAS vs 2.60 cycle tight\n- vol — 14.32 → -0.88 pts — CONTINUE (0.44pts..1.32pts) — calmest close in three weeks — settles: VIX below 14.25 or reversal\n- dealer.positioning — 768.35 → +1.20 pts — CONTINUE (0.60pts..1.80pts) — flip barely moved, dampening — settles: SPY flip vs spot\n- flow — 39758465 → — — STRENGTHEN — swung positive into the close — settles: net premium next session\n- commodities — no datum this period — UNTESTED\n- fx — 118.7 → +0.4 index pts — CONTINUE — broad index firmed slightly — settles: broad USD trend\n- equity.internals — 769.55 → SPY 769.55 · QQQ 717.5 · IWM 295.39 — CONTINUE — large-cap bid intact — settles: SPY, QQQ, IWM breadth\n- calls.open — 0 — printed from the ledger\n3b sectors\n- sector:Computer/GPU — 3.4 → +3.3% vs SPY (6 of 6) — STRENGTHEN (>4.9% = 1.5x prior |Δ| 3.3%) — all six members beat SPY — settles: GPU weekly excess — members: NVDA, AMD, ARM, DELL, HPE, HPQ\n- sector:Semi-Logic/ASIC — 1.8 → +1.7% vs SPY (6 of 6) — CONTINUE (0.8%..2.5%) — modest lead, all members — settles: ASIC weekly excess — members: AVGO, ARM, MCHP, MRVL, QCOM, TXN\n- sector:Foundry — 5.4 → +5.3% vs SPY (4 of 4) — STRENGTHEN (>8.0% = 1.5x prior |Δ| 5.3%) — strongest semi group this week — settles: Foundry weekly excess — members: INTC, TSEM, TSM, UMC\n- sector:Semi-Cap/EDA — -1.5 → -1.6% vs SPY (8 of 8) — FADE (<0.8%) — lags SPY, all eight members — settles: EDA weekly excess — members: AMAT, ARM, ASML, CDNS, KLAC, LRCX, SNPS, TER\n- sector:Memory/Storage — 7.6 → +7.5% vs SPY (4 of 4) — STRENGTHEN (>11.2% = 1.5x prior |Δ| 7.5%) — leads all sectors this week — settles: Memory weekly excess — members: STX, WDC, MU, SNDK\n- sector:Cybersecurity — -6.9 → -7.0% vs SPY (4 of 4) — FADE (<3.5%) — worst laggard, all four members — settles: Cyber weekly excess — members: NET, S, CRWD, PANW\n- sector:Software/SaaS — -4.7 → -4.8% vs SPY (6 of 6) — FADE (<2.4%) — lags hard, all six members — settles: SaaS weekly excess — members: ADBE, FIG, NOW, SHOP, ZM, CRM\n- sector:Cloud/Hyperscaler — -1.3 → -1.4% vs SPY (6 of 6) — FADE (<0.7%) — slight lag to SPY — settles: Cloud weekly excess — members: GOOGL, AMZN, BABA, IBM, MSFT, ORCL\n- sector:Foundation-Model-Proxy — 0.9 → +0.8% vs SPY (5 of 5) — CONTINUE (0.4%..1.2%) — marginally ahead of SPY — settles: FMP weekly excess — members: GOOGL, AMZN, NVDA, MSFT, META\n- sector:Devices/Endpoint — 0.8 → +0.7% vs SPY (2 of 2) — CONTINUE (0.3%..1.0%) — both members edge SPY — settles: Devices weekly excess — members: TSLA, AAPL\n3c themes\n- theme:el-nino-ag-2026 — +6.5% (1w) · +0.0% (since 2026-09-06) — STRENGTHEN (>9.8% = 1.5x prior |Δ| 6.5%) — first excess week, +6.5 vs SPY — settles: second excess week\n  kill armed: ONI < +0.5 two months running, or instruments underperform SPY by 10% over 60 sessions\n  evidence: operator-checked\nleft out: rates.front — DGS2 not ingested\nleft out: curve.shape — DGS2 not ingested; 2s10s cannot be computed\nleft out: commodities — no payload",
+      "title": "3 · Coverage"
+    },
+    {
+      "body": "The tension into next week is one number against another: a calm vol channel versus a September meeting the policy.path row cannot call. One of those reads is wrong. Watch whether the vol row extends its compression or snaps back as the meeting closes in — persistence ranking will keep it as lead only if it keeps leading. Rates.long and credit both sat inside their bars today; a break of either flips the regime from complacency to a rates event and demotes vol. Rotation favors Foundry and Memory/Storage this week, both far ahead of SPY, while Cybersecurity and Software/SaaS lag hard — the semi-cyclical bid is intact and worth confirming. The el-nino-ag theme printed its first excess week and needs a second to earn conviction. Nothing to size until live sources return a spot and a chain; the book stays flat.",
+      "title": "4 · 下周展望"
+    },
+    {
+      "body": "- 2026-09-10 · earnings · ADBE earnings (post) · forecast implied move 6.9333% · post — settles: 2026-09-11\n- 2026-09-10 · earnings · ORCL earnings (post) · forecast implied move 9.8619% · post — settles: 2026-09-11\n- 2026-09-16 · policy path · FOMC 9/16 · forecast HOLD 50.7% · prev 3.50-3.75% — settles: 2026-09-16\n- 2026-09-30 · earnings · MU earnings (post) · forecast implied move 12.373% · post — settles: 2026-10-01\n- 2026-10-14 · earnings · ASML earnings (pre) · forecast implied move 10.2247% · pre — settles: 2026-10-14\n- 2026-10-15 · earnings · TSM earnings · forecast implied move 7.8571% — settles: 2026-10-15\n- 2026-10-20 · earnings · TXN earnings · forecast implied move 10.4077% — settles: 2026-10-20\n- 2026-10-21 · earnings · IBM earnings (post) · forecast implied move 9.8496% · post — settles: 2026-10-22\n- 2026-10-22 · earnings · INTC earnings · forecast implied move 16.4926% — settles: 2026-10-22\n- 2026-10-26 · earnings · CDNS earnings · forecast implied move 13.2014% — settles: 2026-10-26\n- 2026-10-27 · earnings · STX earnings · forecast implied move 22.2932% — settles: 2026-10-27\n- 2026-10-27 · earnings · TER earnings · forecast implied move 22.3448% — settles: 2026-10-27\n- 2026-10-28 · policy path · FOMC 10/28 · forecast HOLD 71.3% · prev 3.50-3.75% — settles: 2026-10-28\n- 2026-10-28 · earnings · TSLA earnings · forecast implied move 13.6494% — settles: 2026-10-28\n- 2026-10-28 · earnings · LRCX earnings · forecast implied move 19.7353% — settles: 2026-10-28\n- 2026-10-29 · earnings · AAPL earnings · forecast implied move 8.3771% — settles: 2026-10-29\n- 2026-12-09 · policy path · FOMC 12/9 · forecast HIKE 58% · prev 3.75-4.00% — settles: 2026-12-09\n- 2026-12-10 · earnings · AVGO earnings · forecast implied move 15.1457% — settles: 2026-12-10\nADBE (implied move 6.9333%) and ORCL (9.8619%) both report post-close 2026-09-10. FOMC 9/16 decision reads HOLD 50.7% — the live meeting under two weeks out. MU reports post-close 2026-09-30 at 12.373% implied.",
+      "title": "5 · Dated catalysts"
+    },
+    {
+      "body": "rank · ticker · event · IV rank · implied move · open call · why\n| 1 | ADBE | earnings (post) 2026-09-10 | 69 | 6.9% | — | Earnings post-close 9/10, 3 sessions out; IV rank 68.84 makes the reaction matter more. |\n| 2 | ORCL | earnings (post) 2026-09-10 | 59 | 9.9% | — | Earnings post-close 9/10; a 9.8619% implied move and IV rank 58.63 raise the stakes. |\n| 3 | MU | earnings (post) 2026-09-30 | 31 | 12.4% | — | Earnings post-close 9/30, 17 sessions out; memory strength this week makes it worth watching. |\n| 4 | ASML | earnings (pre) 2026-10-14 | 28 | 10.2% | — | — |\n| 5 | TSM | earnings 2026-10-15 | 5 | 7.9% | — | — |\nweights: declared prior 2026-09-06",
+      "title": "6 · Focus"
+    },
+    {
+      "body": "nothing outstanding",
+      "title": "7 · Open calls"
+    },
+    {
+      "body": "The read today is a grind lower in fear, not a rates event. VIXCLS closed at 14.32 on 2026-09-03, down 0.88 pts from 15.2 the prior session — the largest single-session move in the ranked set and roughly 1.3x this channel's own 20-session median. It is the lowest close since 14.25 on 2026-08-14.",
+      "title": "Volatility, not rates, is the regime today — the VIX bled to its calmest close in three weeks"
+    },
+    {
+      "body": "That calm is hard to square with the policy path, and that is the anomaly worth naming. Futures-implied odds via Frenzy Capital (not CME FedWatch), snapshot 2026-09-03, put the 9/16 FOMC at a 50.7% hold versus a 49.3% hike 25 bp — a genuine coin flip on a live meeting under two weeks out, with the range at 3.50-3.75%.",
+      "title": "The divergence: a 14-handle VIX sits next to a September meeting the market cannot call — 50.7% hold, 49.3% hike"
+    },
+    {
+      "body": "Note this is the 2026-09-04 session's tide, frozen outside RTH, not a live premarket read. Across that session market net call premium swung from deeply negative near midday (-92.7M at 12:15 ET) to firmly positive into the close, ending near +80.4M at 16:10 ET — the buy-the-dip signature that matches the vol compression above.",
+      "title": "Flow context: the tide is the prior session's — Sept 4 net premium turned decisively positive by the close"
+    }
+  ],
+  "overnight": [],
+  "candidates": [],
+  "degradation": "Data degraded: gate flash-budget refused (3 of 3 sections over 60 words (150, 134, 107)); gate meta-leak refused (1 meta leak: section 3 body /\\bfrozen\\b/ \"-04 session's tide, frozen outside RTH, not a \"); gate flash-budget refused (oneThing 108 of 90)",
+  "changeMyMind": {
+    "text": "HY OAS sustained wider than 2.65% for three sessions, or DGS10 back through 4.79%, breaks the calm-complacency read and says rates, not vol, is the regime.",
+    "series": "BAMLH0A0HYM2",
+    "horizon": "3 sessions",
+    "threshold": ">2.65"
+  },
+  "schemaVersion": 3,
+  "everythingElse": [
+    "USD broad index 118.7, +0.4 idx pts (2026-08-28).",
+    "10/28 FOMC reads HOLD 71.3%; 12/9 tips HIKE 58%.",
+    "Sector tide ran call-led all session, closing near +288.7M."
+  ]
+}

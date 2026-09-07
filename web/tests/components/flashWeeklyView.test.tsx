@@ -2,7 +2,24 @@ import { render, screen } from "@testing-library/react";
 import { describe, expect, it } from "vitest";
 
 import { WeeklyView } from "@/components/flash/WeeklyView";
-import type { AgentRunIndexRow } from "@/lib/api";
+import type { AgentRunIndexRow, AgentRunResponse } from "@/lib/api";
+
+import WEEKLY_V3 from "../fixtures/heliumBriefViewV3Weekly.json";
+
+/** The recorded option-wizard weekly run of 2026-09-06, verbatim. */
+const WEEKLY_RUN = {
+  run_day: "2026-09-06",
+  kind: "weekly",
+  run_id: "run-bf4b1795-b627-4df8-a5fe-b744ffb8e0d1",
+  version_no: 1,
+  outcome: "completed",
+  headline: "",
+  code_sha: "abc1234",
+  schema_version: 3,
+  created_at: "2026-09-06T21:27:00Z",
+  tenant: "option-wizard",
+  view: WEEKLY_V3,
+} as unknown as AgentRunResponse;
 
 const row = (kind: string): AgentRunIndexRow => ({
   run_day: "2026-09-03",
@@ -52,6 +69,26 @@ describe("WeeklyView", () => {
     );
     expect(screen.getByText("Generated Sunday morning")).toBeTruthy();
     expect(container.textContent).not.toContain("Friday after close");
+  });
+
+  it("renders the v3 review blocks under the outlook, Frank column intact", () => {
+    render(
+      <WeeklyView
+        weekKey="2026-W36"
+        runs={RUNS}
+        weekly={WEEKLY_RUN}
+        frank={null}
+      />,
+    );
+    expect(screen.getByText("1 · Scorecard")).toBeTruthy();
+    expect(screen.getByText("Focus")).toBeTruthy();
+    expect(screen.getByText("Themes")).toBeTruthy();
+    expect(screen.getByText("Rotation")).toBeTruthy();
+    expect(screen.getByText("Sources & as-of")).toBeTruthy();
+    expect(screen.getByText("Run health")).toBeTruthy();
+    // the version band the page used to show for a v3 run
+    expect(screen.queryByText(/Unrenderable version/)).toBeNull();
+    expect(screen.getByText("Frank 复盘")).toBeTruthy();
   });
 
   it("shows the Frank slot as an honest empty state", () => {
