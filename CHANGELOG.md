@@ -9,6 +9,16 @@ version in lockstep (enforced by `scripts/release/version_sync_check.py`).
 
 ### Added
 
+- **SPX density cone arm counterfactuals** — `scripts/research/spx_density_arm_h.py`
+  replays every published `spx_density_forecast` as_of through
+  `compute_forecast(..., arm=, seed_offset=)` (two new research-only kwargs; production
+  default `G` / `0` untouched), joins the published outcome and EWMA baseline read-only,
+  scores with the calibration script's own metric functions, and persists a
+  `backtest_sweep_runs` row per arm named `spx-density-calibration-arm-<X>`. Runs 4
+  (arm H, Student-t), 5 (arm G, seed+1 noise floor), 6 (arm F, t without retry/carry)
+  all sit next to run 3. Verdict flat: holdout q05 ratio moves 0.014 vs a 0.03 bar
+  whose Monte-Carlo noise floor is ~0.002; the reconstructed set worsens; F ≡ H on
+  this window because the retry ladder never fired. `ARM` stays `G`.
 - **SPX density cone calibration 复盘** — `scripts/research/spx_density_calibration.py`.
   `spx_density_forecast` settles each row as `realised_return` + `inside_band80`
   and nothing else, so the only calibration number the desk had was the 80%
