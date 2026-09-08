@@ -2,8 +2,12 @@ import { CandidateCard } from "./CandidateCard";
 import { CoveragePanel } from "./CoveragePanel";
 import { DecisionBlock } from "./DecisionBlock";
 import { PlaceholderBand } from "./EmptyStates";
+import { EverythingElsePanel } from "./EverythingElsePanel";
+import { FocusPanel } from "./FocusPanel";
+import { FooterPanel } from "./FooterPanel";
 import { GammaProfilePanel } from "./GammaProfilePanel";
 import { Lead } from "./Lead";
+import { OneThingPanel } from "./OneThingPanel";
 import { OvernightPanel } from "./OvernightPanel";
 import { Panel } from "./Panel";
 import { PolicyPathPanel } from "./PolicyPathPanel";
@@ -11,6 +15,7 @@ import { RiskRegisterPanel } from "./RiskRegisterPanel";
 import { SchedulePanel } from "./SchedulePanel";
 import { SectionsPanel } from "./SectionsPanel";
 import { TapeStrip } from "./TapeStrip";
+import { ThemesPanel } from "./ThemesPanel";
 import { faultList, viewTickers, type BriefView } from "./view";
 import styles from "./flash.module.css";
 
@@ -39,6 +44,9 @@ export function PremarketView({ view }: { view: BriefView }) {
 
   const lead = view.lead ?? view.headline;
   const tickers = viewTickers(view);
+  // v3 keeps two fault lists: `degradation` is one sentence about the run,
+  // `faults` is the per-item refusals. Both are the run's, so both print.
+  const faults = [...faultList(view.degradation), ...(view.faults ?? [])];
 
   return (
     <>
@@ -50,16 +58,23 @@ export function PremarketView({ view }: { view: BriefView }) {
           <Lead label={["Today in", "one sentence"]} text={lead} />
         </div>
       ) : null}
-      {faultList(view.degradation).length > 0 ? (
+      {faults.length > 0 ? (
         <div style={{ marginTop: 12 }}>
           <PlaceholderBand label="Run degraded">
-            {faultList(view.degradation).join(" · ")}
+            {faults.join(" · ")}
           </PlaceholderBand>
         </div>
       ) : null}
 
       <div className={styles.cols}>
         <div className={styles.colL}>
+          <OneThingPanel
+            oneThing={view.oneThing}
+            checks={view.checks}
+            changeMyMind={view.changeMyMind}
+            tickers={tickers}
+          />
+
           {view.decision && view.decision.length > 0 ? (
             <Panel title="The call" bodyClassName="">
               <DecisionBlock rows={view.decision} />
@@ -95,6 +110,18 @@ export function PremarketView({ view }: { view: BriefView }) {
               tickers={tickers}
             />
           ) : null}
+
+          {view.focus && view.focus.rows?.length ? (
+            <FocusPanel focus={view.focus} />
+          ) : null}
+
+          {view.themes && view.themes.length > 0 ? (
+            <ThemesPanel themes={view.themes} />
+          ) : null}
+
+          {view.everythingElse && view.everythingElse.length > 0 ? (
+            <EverythingElsePanel items={view.everythingElse} />
+          ) : null}
         </div>
 
         <div className={styles.colR}>
@@ -114,6 +141,9 @@ export function PremarketView({ view }: { view: BriefView }) {
           ) : null}
           {view.coverage ? (
             <CoveragePanel coverage={view.coverage} tickers={tickers} />
+          ) : null}
+          {view.footer ? (
+            <FooterPanel footer={view.footer} staleness={view.staleness} />
           ) : null}
         </div>
       </div>

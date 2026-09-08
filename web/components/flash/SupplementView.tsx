@@ -5,15 +5,20 @@ import type { AgentRunIndexRow } from "@/lib/api";
 import { Body } from "./Body";
 import { CandidateCard } from "./CandidateCard";
 import { DecisionBlock } from "./DecisionBlock";
+import { EverythingElsePanel } from "./EverythingElsePanel";
+import { FocusPanel } from "./FocusPanel";
+import { FooterPanel } from "./FooterPanel";
 import { GexDeltaTable } from "./GexDeltaTable";
 import { GexLevelsTable } from "./GexLevelsTable";
 import { Lead } from "./Lead";
+import { OneThingPanel } from "./OneThingPanel";
 import { Panel } from "./Panel";
 import { RiskRegisterPanel } from "./RiskRegisterPanel";
 import { RunFaultsPanel } from "./RunFaultsPanel";
 import { SectionsPanel } from "./SectionsPanel";
 import { StatePill } from "./StatePill";
 import { TapeStrip } from "./TapeStrip";
+import { ThemesPanel } from "./ThemesPanel";
 import {
   faultList,
   viewTickers,
@@ -93,6 +98,25 @@ export function SupplementView({
 
       <div className={styles.supgrid}>
         <div className={styles.colL}>
+          <OneThingPanel
+            oneThing={view.oneThing}
+            checks={view.checks}
+            changeMyMind={view.changeMyMind}
+            tickers={tickers}
+          />
+
+          {view.focus && view.focus.rows?.length ? (
+            <FocusPanel focus={view.focus} />
+          ) : null}
+
+          {view.themes && view.themes.length > 0 ? (
+            <ThemesPanel themes={view.themes} />
+          ) : null}
+
+          {view.everythingElse && view.everythingElse.length > 0 ? (
+            <EverythingElsePanel items={view.everythingElse} />
+          ) : null}
+
           {view.status && view.status.length > 0 ? (
             <Panel
               title={statusTitle}
@@ -179,8 +203,12 @@ export function SupplementView({
 
           <RunFaultsPanel
             runId={view.runId}
-            faults={faultList(view.degradation)}
+            faults={[...faultList(view.degradation), ...(view.faults ?? [])]}
           />
+
+          {view.footer ? (
+            <FooterPanel footer={view.footer} staleness={view.staleness} />
+          ) : null}
         </div>
       </div>
     </>

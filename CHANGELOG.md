@@ -9,6 +9,32 @@ version in lockstep (enforced by `scripts/release/version_sync_check.py`).
 
 ### Added
 
+- **Flash renders helium's schema-version 3 brief view** — `SUPPORTED_SCHEMA_VERSIONS`
+  is now `[1, 2, 3]`, so the weekly and daily Flash pages draw the v3 review
+  document instead of the "Unrenderable version" band. `BriefView` gains the
+  hand-written v3 keys (`focus`, `themes`, `rotation`, `footer`, `faults`,
+  `oneThing`, `checks`, `changeMyMind`, `everythingElse`, plus the previously
+  unmodelled `staleness`, `spyForecast`, `runLabel`, `appBase`, `cause`), and
+  each group gets one panel: `FocusPanel` (rank / ticker / event / IV rank /
+  open call, with the run's churn and its carried-over marks), `ThemesPanel`
+  (verdict token, both excess strings, the kill condition and whether it was
+  met), `RotationPanel` (excess vs the run's benchmark; a symbol whose bars did
+  not arrive prints **untested** in every cell with the reason underneath,
+  never a flat zero), `FooterPanel` (coverage / as-of / notes / stale inputs,
+  verbatim), `OneThingPanel` (the claim, its three checks and the
+  change-my-mind condition) and `EverythingElsePanel`. `RunFaultsPanel` now
+  prints v3's per-item `faults` beside the `degradation` sentence. Order
+  follows helium's own argument: the claim first, the leftovers last.
+  Coverage verdicts (`CONTINUE` / `STRENGTHEN` / `FADE` / `REVERSE` /
+  `UNTESTED`) are set apart as chips inside the review prose — the closed list
+  decides, so a renamed verdict prints as written rather than vanishing. There
+  is deliberately no per-check hit/miss pill: no stored run carries a per-check
+  verdict, and helium scores yesterday's checks in one sentence
+  (`oneThing.checksLine`), which is printed instead. v2 and v1 documents render
+  exactly as before — `asBriefView` on a v2 document is still a pass-through.
+  Frozen fixtures are the real rows: the weekly run of 2026-09-06 and the close
+  run of 2026-09-04.
+
 - **SPX density cone calibration 复盘** — `scripts/research/spx_density_calibration.py`.
   `spx_density_forecast` settles each row as `realised_return` + `inside_band80`
   and nothing else, so the only calibration number the desk had was the 80%

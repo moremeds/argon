@@ -19,27 +19,60 @@ const ATOMIC_CELL =
 const STATIC_ONLY = tickerSet();
 
 /**
- * A ticker inside a sentence, set apart from the sentence.
+ * A coverage verdict, as v3's review sections write it: one bare uppercase
+ * word per layer. Closed set on purpose — anything else stays plain text, so
+ * a verdict helium renames prints as written instead of vanishing into a chip
+ * argon guessed at.
+ */
+const COVERAGE_TOKENS: Record<string, "up" | "down" | "hold"> = {
+  CONTINUE: "up",
+  STRENGTHEN: "up",
+  FADE: "down",
+  REVERSE: "down",
+  UNTESTED: "hold",
+};
+
+/** A ticker OR a coverage verdict. Longest alternative first, or `\b[A-Z]{1,5}\b` eats CONTI. */
+const PROSE_TOKEN = new RegExp(
+  `\\b(?:${Object.keys(COVERAGE_TOKENS).join("|")})\\b|${TICKER_TOKEN.source}`,
+  "g",
+);
+
+/**
+ * A ticker or a coverage verdict inside a sentence, set apart from it.
  *
- * The prose is the run's and is never rewritten — only wrapped. Membership in
- * the page's ticker set decides; the token pattern alone would make a symbol
- * out of every "ET", "OAS" or "RTH" helium writes. Nothing else in the string
- * moves, so a paragraph reads the same whether or not a name was recognised.
+ * The prose is the run's and is never rewritten — only wrapped. For a ticker,
+ * membership in the page's ticker set decides; the token pattern alone would
+ * make a symbol out of every "ET", "OAS" or "RTH" helium writes. For a
+ * verdict, the closed list above decides. Nothing else in the string moves, so
+ * a paragraph reads the same whether or not a token was recognised.
  */
 function highlight(text: string, tickers: ReadonlySet<string>): ReactNode {
-  TICKER_TOKEN.lastIndex = 0;
+  PROSE_TOKEN.lastIndex = 0;
   const out: ReactNode[] = [];
   let cursor = 0;
   let match: RegExpExecArray | null;
-  while ((match = TICKER_TOKEN.exec(text)) !== null) {
-    if (!tickers.has(match[0])) continue;
+  while ((match = PROSE_TOKEN.exec(text)) !== null) {
+    const token = match[0];
+    const cov = COVERAGE_TOKENS[token];
+    if (!cov && !tickers.has(token)) continue;
     if (match.index > cursor) out.push(text.slice(cursor, match.index));
     out.push(
-      <span key={`${match.index}-${match[0]}`} className={styles.tick}>
-        {match[0]}
-      </span>,
+      cov ? (
+        <span
+          key={`${match.index}-${token}`}
+          className={styles.cov}
+          data-cov={cov}
+        >
+          {token}
+        </span>
+      ) : (
+        <span key={`${match.index}-${token}`} className={styles.tick}>
+          {token}
+        </span>
+      ),
     );
-    cursor = match.index + match[0].length;
+    cursor = match.index + token.length;
   }
   if (out.length === 0) return text;
   if (cursor < text.length) out.push(text.slice(cursor));

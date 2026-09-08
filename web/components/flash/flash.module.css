@@ -967,3 +967,91 @@
     transition: none !important;
   }
 }
+
+/* ---------- v3 review blocks ---------- */
+
+/* A focus name the run carried over rather than picked fresh. A dot, not a
+   word: the column is already a list of tickers and a second word per row
+   would compete with the symbol it qualifies. */
+.sticky {
+  margin-left: 5px;
+  font-size: 8px;
+  vertical-align: middle;
+  color: var(--accent-warm);
+}
+
+/* The three checks. Numbered because helium issues exactly three and scores
+   them as a set — a bulleted list would read as three unrelated notes. */
+.checks {
+  margin: 0;
+  padding-left: 18px;
+  font-size: 12.5px;
+  line-height: 1.5;
+  color: var(--text-secondary);
+}
+
+.checks > li + li {
+  margin-top: 7px;
+}
+
+.checkHead {
+  display: flex;
+  gap: 8px;
+  align-items: baseline;
+  font-size: 11.5px;
+}
+
+.checkLevel {
+  color: var(--text-muted);
+  font-size: 11px;
+}
+
+.checkText {
+  display: block;
+  max-width: 80ch;
+}
+
+/* The condition that would break the read. Bordered off from the claim above
+   it: it is the run arguing against itself, not more of the same argument. */
+.cmm {
+  margin-top: 12px;
+  padding: 9px 11px;
+  border: 1px solid var(--border-dim);
+  border-left: 2px solid var(--negative);
+  border-radius: 3px;
+  font-size: 12.5px;
+  line-height: 1.5;
+  color: var(--text-secondary);
+}
+
+.cmmMeta {
+  margin-top: 5px;
+  font-family: var(--font-mono);
+  font-size: 10.5px;
+  color: var(--text-muted);
+}
+
+/* A coverage verdict inside a run's prose: CONTINUE / STRENGTHEN / FADE /
+   REVERSE / UNTESTED. Set apart the way a ticker is — the word is the run's
+   own, printed as written, only made findable down a list of twelve layers. */
+.cov {
+  font-family: var(--font-mono);
+  font-size: 10.5px;
+  font-weight: 700;
+  letter-spacing: 0.5px;
+  padding: 0 5px;
+  border: 1px solid var(--border-dim);
+  border-radius: 3px;
+  color: var(--text-secondary);
+  white-space: nowrap;
+}
+
+.cov[data-cov="up"] {
+  color: var(--positive);
+  border-color: rgba(5, 173, 152, 0.45);
+}
+
+.cov[data-cov="down"] {
+  color: var(--negative);
+  border-color: rgba(232, 93, 108, 0.45);
+}

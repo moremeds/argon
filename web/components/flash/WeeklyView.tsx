@@ -1,9 +1,14 @@
 import type { AgentRunIndexRow, AgentRunResponse } from "@/lib/api";
 import { weekDays, weekRange } from "@/lib/flash/kinds";
 
+import { FocusPanel } from "./FocusPanel";
+import { FooterPanel } from "./FooterPanel";
 import { Panel } from "./Panel";
+import { RotationPanel } from "./RotationPanel";
+import { RunFaultsPanel } from "./RunFaultsPanel";
 import { SectionsPanel } from "./SectionsPanel";
-import { asBriefView, viewTickers } from "./view";
+import { ThemesPanel } from "./ThemesPanel";
+import { asBriefView, faultList, viewTickers } from "./view";
 import styles from "./flash.module.css";
 
 /**
@@ -28,6 +33,12 @@ export function WeeklyView({
   const { first, last } = weekRange(weekKey);
   const weeklyView = weekly ? asBriefView(weekly) : null;
   const frankView = frank ? asBriefView(frank) : null;
+  const weeklyTickers = weeklyView ? viewTickers(weeklyView) : null;
+  // v3 keeps two fault lists: `degradation` is one sentence about the run,
+  // `faults` is the per-item refusals. Both are the run's, so both print.
+  const weeklyFaults = weeklyView
+    ? [...faultList(weeklyView.degradation), ...(weeklyView.faults ?? [])]
+    : [];
 
   return (
     <>
@@ -88,12 +99,35 @@ export function WeeklyView({
           {weeklyView &&
           weeklyView.sections &&
           weeklyView.sections.length > 0 ? (
-            <SectionsPanel
-              title="Week ahead"
-              tail={weeklyView.asOf}
-              sections={weeklyView.sections}
-              tickers={viewTickers(weeklyView)}
-            />
+            <>
+              <SectionsPanel
+                title="Week ahead"
+                tail={weeklyView.asOf}
+                sections={weeklyView.sections}
+                tickers={weeklyTickers ?? undefined}
+              />
+              {weeklyView.focus && weeklyView.focus.rows?.length ? (
+                <FocusPanel focus={weeklyView.focus} />
+              ) : null}
+              {weeklyView.themes && weeklyView.themes.length > 0 ? (
+                <ThemesPanel themes={weeklyView.themes} />
+              ) : null}
+              {weeklyView.rotation && weeklyView.rotation.rows?.length ? (
+                <RotationPanel rotation={weeklyView.rotation} />
+              ) : null}
+              {weeklyView.footer ? (
+                <FooterPanel
+                  footer={weeklyView.footer}
+                  staleness={weeklyView.staleness}
+                />
+              ) : null}
+              {weeklyFaults.length > 0 ? (
+                <RunFaultsPanel
+                  runId={weeklyView.runId}
+                  faults={weeklyFaults}
+                />
+              ) : null}
+            </>
           ) : (
             <Panel title="Week ahead" tail="not yet available">
               <SlotEmpty
