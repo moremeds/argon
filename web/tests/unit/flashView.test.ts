@@ -1,4 +1,5 @@
 import { describe, expect, it } from "vitest";
+import { viewDigest } from "@/lib/flash/view-digest";
 
 import {
   SUPPORTED_SCHEMA_VERSIONS,
@@ -7,6 +8,25 @@ import {
 import CLOSE from "../fixtures/heliumBriefViewV3Close.json";
 import V2 from "../fixtures/heliumBriefViewV2.json";
 import WEEKLY from "../fixtures/heliumBriefViewV3Weekly.json";
+
+it("capture provenance ignores JSON key order but detects changed or missing body rows", () => {
+  const original = {
+    headline: "Same title",
+    sections: [{ title: "Market", body: "Original evidence" }],
+  };
+  expect(
+    viewDigest({ sections: original.sections, headline: original.headline }),
+  ).toBe(viewDigest(original));
+  expect(viewDigest({ ...original, sections: [] })).not.toBe(
+    viewDigest(original),
+  );
+  expect(
+    viewDigest({
+      ...original,
+      sections: [{ title: "Market", body: "Different evidence" }],
+    }),
+  ).not.toBe(viewDigest(original));
+});
 
 function run(schema_version: number, view: unknown) {
   return {

@@ -59,6 +59,17 @@ export function SupplementView({
   );
   const lead = view.lead ?? view.headline;
   const tickers = viewTickers(view);
+  const claimRepeated = Boolean(
+    view.oneThing?.body?.trim() &&
+    view.sections?.some(
+      (section) =>
+        section.title !== "Supporting coverage" &&
+        section.body.includes(view.oneThing!.body!.trim()),
+    ),
+  );
+  const formalMarket = ["Market review", "Outlook"].every((title) =>
+    view.sections?.some((section) => section.title === title),
+  );
   const label: [string, string] =
     kind === "close" ? ["Close", "read"] : ["Intraday", "read"];
   const statusTitle =
@@ -85,8 +96,10 @@ export function SupplementView({
             <Link href={`/flash/${weekKey}/${day}?phase=premarket`}>
               premarket report
             </Link>{" "}
-            of {day}. The {kind} run is a separate transcript; it settles and
-            revises the premarket call rather than replacing it.
+            of {day}.{" "}
+            {kind === "close"
+              ? "How the day resolved and what carries into tomorrow."
+              : "Material changes since the morning and what they mean."}
           </p>
         ) : (
           <p>
@@ -96,10 +109,25 @@ export function SupplementView({
         )}
       </div>
 
-      <div className={styles.supgrid}>
+      <div className={styles.article}>
+        {view.sections && view.sections.length > 0 ? (
+          <SectionsPanel
+            title={kind === "close" ? "How the day resolved" : "What changed"}
+            sections={view.sections}
+            tickers={tickers}
+          />
+        ) : null}
+
         <div className={styles.colL}>
           <OneThingPanel
-            oneThing={view.oneThing}
+            oneThing={
+              formalMarket
+                ? view.oneThing
+                : claimRepeated
+                  ? undefined
+                  : view.oneThing
+            }
+            collapsed={formalMarket}
             checks={view.checks}
             changeMyMind={view.changeMyMind}
             tickers={tickers}
@@ -150,16 +178,6 @@ export function SupplementView({
             <Panel title="The call" tail={kind} bodyClassName="">
               <DecisionBlock rows={view.decision} />
             </Panel>
-          ) : null}
-
-          {view.sections && view.sections.length > 0 ? (
-            <SectionsPanel
-              title="The read"
-              tail="full transcript, this run"
-              sections={view.sections}
-              scroll
-              tickers={tickers}
-            />
           ) : null}
 
           {view.recap && view.recap.length > 0 ? (

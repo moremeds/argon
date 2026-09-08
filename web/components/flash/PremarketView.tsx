@@ -44,6 +44,17 @@ export function PremarketView({ view }: { view: BriefView }) {
 
   const lead = view.lead ?? view.headline;
   const tickers = viewTickers(view);
+  const claimRepeated = Boolean(
+    view.oneThing?.body?.trim() &&
+    view.sections?.some(
+      (section) =>
+        section.title !== "Supporting coverage" &&
+        section.body.includes(view.oneThing!.body!.trim()),
+    ),
+  );
+  const formalMarket = ["Market review", "Outlook"].every((title) =>
+    view.sections?.some((section) => section.title === title),
+  );
   // v3 keeps two fault lists: `degradation` is one sentence about the run,
   // `faults` is the per-item refusals. Both are the run's, so both print.
   const faults = [...faultList(view.degradation), ...(view.faults ?? [])];
@@ -58,22 +69,43 @@ export function PremarketView({ view }: { view: BriefView }) {
           <Lead label={["Today in", "one sentence"]} text={lead} />
         </div>
       ) : null}
-      {faults.length > 0 ? (
-        <div style={{ marginTop: 12 }}>
-          <PlaceholderBand label="Run degraded">
-            {faults.join(" · ")}
-          </PlaceholderBand>
-        </div>
-      ) : null}
 
-      <div className={styles.cols}>
+      <div className={styles.article}>
         <div className={styles.colL}>
+          {formalMarket && view.sections && view.sections.length > 0 ? (
+            <SectionsPanel
+              title="The read"
+              sections={view.sections}
+              tickers={tickers}
+            />
+          ) : null}
+
           <OneThingPanel
-            oneThing={view.oneThing}
+            oneThing={
+              formalMarket
+                ? view.oneThing
+                : claimRepeated
+                  ? undefined
+                  : view.oneThing
+            }
+            collapsed={formalMarket}
             checks={view.checks}
             changeMyMind={view.changeMyMind}
             tickers={tickers}
           />
+
+          <OvernightPanel items={view.overnight ?? []} />
+          {view.schedule && view.schedule.length > 0 ? (
+            <SchedulePanel items={view.schedule} />
+          ) : null}
+
+          {!formalMarket && view.sections && view.sections.length > 0 ? (
+            <SectionsPanel
+              title="The read"
+              sections={view.sections}
+              tickers={tickers}
+            />
+          ) : null}
 
           {view.decision && view.decision.length > 0 ? (
             <Panel title="The call" bodyClassName="">
@@ -103,14 +135,6 @@ export function PremarketView({ view }: { view: BriefView }) {
             </div>
           ) : null}
 
-          {view.sections && view.sections.length > 0 ? (
-            <SectionsPanel
-              title="The read"
-              sections={view.sections}
-              tickers={tickers}
-            />
-          ) : null}
-
           {view.focus && view.focus.rows?.length ? (
             <FocusPanel focus={view.focus} />
           ) : null}
@@ -125,10 +149,6 @@ export function PremarketView({ view }: { view: BriefView }) {
         </div>
 
         <div className={styles.colR}>
-          <OvernightPanel items={view.overnight ?? []} />
-          {view.schedule && view.schedule.length > 0 ? (
-            <SchedulePanel items={view.schedule} />
-          ) : null}
           {view.policy ? <PolicyPathPanel path={view.policy} /> : null}
           {view.gamma && view.gamma.length > 0 ? (
             <GammaProfilePanel profiles={view.gamma} />
@@ -147,6 +167,14 @@ export function PremarketView({ view }: { view: BriefView }) {
           ) : null}
         </div>
       </div>
+
+      {faults.length > 0 ? (
+        <div style={{ marginTop: 12 }}>
+          <PlaceholderBand label="Run degraded">
+            {faults.join(" · ")}
+          </PlaceholderBand>
+        </div>
+      ) : null}
 
       <p
         style={{

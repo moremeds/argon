@@ -37,9 +37,22 @@ export function DecisionBlock({
 }: {
   rows: { label: string; value: string }[];
 }) {
+  const noAction = rows.some(
+    (row) =>
+      row.label.toLowerCase() === "action" &&
+      row.value.trim().toLowerCase() === "none",
+  );
+  const shown = noAction
+    ? rows.filter(
+        (row) =>
+          !["", "none", "n/a", "—", "-", "not applicable"].includes(
+            row.value.trim().toLowerCase(),
+          ),
+      )
+    : rows;
   return (
     <div className={styles.dec}>
-      {rows.map((row, i) => (
+      {shown.map((row, i) => (
         <Fragment key={`${row.label}-${i}`}>
           <div
             className={`${styles.lbl} ${styles.decKey}`}

@@ -1,6 +1,7 @@
 import { render, screen, within } from "@testing-library/react";
 import { describe, expect, it } from "vitest";
 
+import styles from "@/components/flash/flash.module.css";
 import { SupplementView } from "@/components/flash/SupplementView";
 import type { AgentRunIndexRow } from "@/lib/api";
 import { asBriefView, type BriefView } from "@/components/flash/view";
@@ -210,4 +211,49 @@ describe("SupplementView", () => {
     // Spot 772.92 → 772.66 is −0.26; the sign is a real minus, not a hyphen.
     expect(container.textContent).toContain("−0.26");
   });
+  it("puts incremental prose before candidate status without a transcript scroll box", () => {
+    const { container } = render(
+      <SupplementView
+        view={{
+          ...INTRADAY,
+          sections: [{ title: "New information", body: "Increment sentinel." }],
+        }}
+        kind="intraday"
+        weekKey="2026-W36"
+        day="2026-09-03"
+        runs={[PREMARKET_ROW]}
+      />,
+    );
+    const text = container.textContent ?? "";
+    expect(text.indexOf("Increment sentinel")).toBeGreaterThan(-1);
+    expect(text.indexOf("Increment sentinel")).toBeLessThan(
+      text.indexOf("Candidate status"),
+    );
+    expect(text).not.toContain("full transcript");
+    expect(
+      screen.getByText("Increment sentinel.").closest(`.${styles.scroll}`),
+    ).toBeNull();
+  });
+  it.each(["intraday", "close"] as const)(
+    "collapses %s supporting coverage",
+    (kind) => {
+      render(
+        <SupplementView
+          view={{
+            ...INTRADAY,
+            sections: [
+              { title: "Supporting coverage", body: "Supplement raw rows." },
+            ],
+          }}
+          kind={kind}
+          weekKey="2026-W36"
+          day="2026-09-03"
+          runs={[]}
+        />,
+      );
+      expect(
+        screen.getByText("Supplement raw rows.").closest("details")?.open,
+      ).toBe(false);
+    },
+  );
 });

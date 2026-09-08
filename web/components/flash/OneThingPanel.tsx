@@ -50,11 +50,13 @@ export function OneThingPanel({
   checks,
   changeMyMind,
   tickers,
+  collapsed = false,
 }: {
   oneThing?: OneThing;
   checks?: Check[];
   changeMyMind?: ChangeMyMind;
   tickers?: ReadonlySet<string>;
+  collapsed?: boolean;
 }) {
   if (!oneThing && !(checks && checks.length > 0) && !changeMyMind) return null;
 
@@ -66,7 +68,7 @@ export function OneThingPanel({
       ? oneThing.checksLine
       : null;
 
-  return (
+  const panel = (
     <Panel
       title={oneThing?.title || "The one thing"}
       tail={oneThing?.why || undefined}
@@ -116,5 +118,15 @@ export function OneThingPanel({
         </div>
       ) : null}
     </Panel>
+  );
+  return collapsed ? (
+    <details className={styles.panel}>
+      <summary className={styles.appendixSummary}>
+        Additional evidence and checks
+      </summary>
+      {panel}
+    </details>
+  ) : (
+    panel
   );
 }

@@ -401,6 +401,21 @@
   font-size: 15px;
 }
 
+/* The newsletter reads in one column; supporting panels follow the article. */
+.article {
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+  max-width: 980px;
+  margin: 12px auto 0;
+}
+
+.appendixSummary {
+  padding: 12px 14px;
+  cursor: pointer;
+  color: var(--text-secondary);
+}
+
 /* ---------- two-column body ---------- */
 .cols {
   display: grid;
@@ -789,6 +804,14 @@
   line-height: 1.55;
   color: var(--text-secondary);
   max-width: 80ch;
+}
+
+.bodyHeading {
+  margin: 4px 0 -2px;
+  font-size: 12px;
+  font-weight: 600;
+  line-height: 1.4;
+  color: var(--text-primary);
 }
 
 .bodyList {
