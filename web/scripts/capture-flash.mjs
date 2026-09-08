@@ -25,7 +25,8 @@ try {
   if (await report.getAttribute('data-run-id') !== evidence.run.runId) throw new Error('page run does not match source');
   if (await report.getAttribute('data-view-sha256') !== viewDigest(evidence.view)) throw new Error('page view does not match source');
   const text = await report.innerText();
-  if (!text.trim() || (evidence.view.headline && !text.includes(evidence.view.headline))) throw new Error('missing source headline');
+  const headline = evidence.view.headline?.replace(/^## /gm, '');
+  if (!text.trim() || (headline && !text.includes(headline))) throw new Error('missing source headline');
   writeFileSync(join(output, 'page.md'), text + '\n');
   writeFileSync(join(output, 'page.html'), await page.content());
   // Expand only app scroll containers while photographing the complete article.
