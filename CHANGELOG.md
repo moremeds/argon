@@ -7,6 +7,15 @@ version in lockstep (enforced by `scripts/release/version_sync_check.py`).
 
 ## [Unreleased]
 
+### Changed
+
+- **Flash leads with the market article** — weekly and daily pages put the market
+  review and outlook first, support topic subheadings, and keep coverage and
+  supporting panels in closed details blocks. Internal weekly self-review,
+  repeated leads and empty supplements stay out of the public article; source
+  dates and run refusals remain visible. Local page capture now verifies the
+  exact run and view digest at desktop and mobile widths.
+
 ### Added
 
 - **Flash renders helium's schema-version 3 brief view** — `SUPPORTED_SCHEMA_VERSIONS`
