@@ -1,0 +1,5 @@
+sentiment,corr_vs_trailing20d,corr_vs_forward20d,n
+mean_rrz level,-0.47,0.105,236
+net_fear level,-0.625,0.197,265
+Δmean_rrz,-0.085,-0.01,235
+Δnet_fear,-0.162,0.031,264
