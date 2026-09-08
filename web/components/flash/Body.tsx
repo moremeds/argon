@@ -149,6 +149,13 @@ export function Body({
             </ul>
           );
         }
+        if (block.type === "h") {
+          return (
+            <h5 key={i} className={styles.bodyHeading}>
+              {highlight(block.text, tickers)}
+            </h5>
+          );
+        }
         return (
           <p key={i} className={styles.bodyText}>
             {highlight(block.text, tickers)}

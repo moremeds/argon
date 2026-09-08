@@ -46,6 +46,11 @@ export function WeeklyView({
   const headlineRepeated = Boolean(
     headline && market[0]?.body.trim().startsWith(headline),
   );
+  const hasMarketDetail = Boolean(
+    weeklyView?.focus?.rows?.length ||
+    weeklyView?.themes?.length ||
+    weeklyView?.rotation?.rows?.length,
+  );
   // v3 keeps two fault lists: `degradation` is one sentence about the run,
   // `faults` is the per-item refusals. Both are the run's, so both print.
   const weeklyFaults = weeklyView
@@ -69,14 +74,21 @@ export function WeeklyView({
                 sections={market}
                 tickers={weeklyTickers ?? undefined}
               />
-              {weeklyView.focus && weeklyView.focus.rows?.length ? (
-                <FocusPanel focus={weeklyView.focus} />
-              ) : null}
-              {weeklyView.themes && weeklyView.themes.length > 0 ? (
-                <ThemesPanel themes={weeklyView.themes} />
-              ) : null}
-              {weeklyView.rotation && weeklyView.rotation.rows?.length ? (
-                <RotationPanel rotation={weeklyView.rotation} />
+              {hasMarketDetail ? (
+                <details className={styles.seccard}>
+                  <summary className={styles.appendixSummary}>
+                    Focus, themes and rotation
+                  </summary>
+                  {weeklyView.focus && weeklyView.focus.rows?.length ? (
+                    <FocusPanel focus={weeklyView.focus} />
+                  ) : null}
+                  {weeklyView.themes && weeklyView.themes.length > 0 ? (
+                    <ThemesPanel themes={weeklyView.themes} />
+                  ) : null}
+                  {weeklyView.rotation && weeklyView.rotation.rows?.length ? (
+                    <RotationPanel rotation={weeklyView.rotation} />
+                  ) : null}
+                </details>
               ) : null}
               {coverage.length > 0 ? (
                 <SectionsPanel

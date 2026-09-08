@@ -91,6 +91,35 @@ describe("WeeklyView", () => {
     expect(screen.queryByText("Frank 复盘")).toBeNull();
   });
 
+  it("keeps market prose visible while dense weekly detail starts collapsed", () => {
+    const weekly = {
+      ...WEEKLY_RUN,
+      view: {
+        ...WEEKLY_V3,
+        sections: [{ title: "Market review", body: "Market prose sentinel." }],
+      },
+    } as unknown as AgentRunResponse;
+    render(
+      <WeeklyView
+        weekKey="2026-W36"
+        runs={RUNS}
+        weekly={weekly}
+        frank={null}
+      />,
+    );
+    const detail = screen
+      .getByText("Focus, themes and rotation")
+      .closest("details");
+    expect(detail).not.toBeNull();
+    expect(detail?.open).toBe(false);
+    expect(detail?.textContent).toContain("Focus");
+    expect(detail?.textContent).toContain("Themes");
+    expect(detail?.textContent).toContain("Rotation");
+    expect(
+      screen.getByText("Market prose sentinel.").closest("details"),
+    ).toBeNull();
+  });
+
   it("omits the Frank slot when no external supplement exists", () => {
     render(
       <WeeklyView weekKey="2026-W36" runs={RUNS} weekly={null} frank={null} />,

@@ -177,6 +177,17 @@ describe("EverythingElsePanel", () => {
 });
 
 describe("Body coverage verdicts", () => {
+  it("renders a markdown topic subhead before its evidence paragraph", () => {
+    render(<Body text={"## Rates\nThe 10Y ended higher after payrolls."} />);
+    expect(
+      screen.getByRole("heading", { level: 5, name: "Rates" }),
+    ).toBeTruthy();
+    expect(
+      screen.getByText("The 10Y ended higher after payrolls."),
+    ).toBeTruthy();
+    expect(screen.queryByText("## Rates")).toBeNull();
+  });
+
   it("sets a coverage verdict apart without rewriting the line", () => {
     const coverage = WEEKLY.sections!.find((s) => s.title === "3 · Coverage")!;
     const { container } = render(<Body text={coverage.body} />);

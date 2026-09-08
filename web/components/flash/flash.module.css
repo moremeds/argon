@@ -806,6 +806,14 @@
   max-width: 80ch;
 }
 
+.bodyHeading {
+  margin: 4px 0 -2px;
+  font-size: 12px;
+  font-weight: 600;
+  line-height: 1.4;
+  color: var(--text-primary);
+}
+
 .bodyList {
   margin: 0;
   padding-left: 16px;

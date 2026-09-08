@@ -4,11 +4,12 @@
  * A run's body is prose the tenant composed: mostly paragraphs, sometimes a
  * pipe table (the coverage layer/source/as-of grid), occasionally a dash list,
  * and sometimes a run of settlement records helium wrote as one block. This
- * parser recognises exactly those four and falls back to a paragraph for
+ * parser recognises exactly those five and falls back to a paragraph for
  * everything else — a body it cannot read is still printed in full, never
  * dropped and never reshaped into a tidier claim than the run made.
  */
 export type Block =
+  | { type: "h"; text: string }
   | { type: "p"; text: string }
   | { type: "table"; header: string[]; rows: string[][] }
   | { type: "ul"; items: string[] };
@@ -94,7 +95,13 @@ export function parseBlocks(text: string): Block[] {
     // v2 bodies never soft-wrap prose (checked against the frozen v2 fixture), so
     // this only changes what used to collapse into one "wall of text".
     const kindOf = (l: string) =>
-      l.startsWith("- ") ? "ul" : l.startsWith("|") ? "table" : "p";
+      l.startsWith("## ")
+        ? "h"
+        : l.startsWith("- ")
+          ? "ul"
+          : l.startsWith("|")
+            ? "table"
+            : "p";
     let i = 0;
     while (i < lines.length) {
       const kind = kindOf(lines[i]);
@@ -102,10 +109,15 @@ export function parseBlocks(text: string): Block[] {
       while (j < lines.length && kindOf(lines[j]) === kind) j++;
       const run = lines.slice(i, j);
       i = j;
-      if (kind === "ul") {
+      if (kind === "h") {
+        for (const text of run)
+          blocks.push({ type: "h", text: text.slice(3).trim() });
+      } else if (kind === "ul") {
         blocks.push({ type: "ul", items: run.map((l) => l.slice(2).trim()) });
       } else if (kind === "table") {
-        const rows = run.map(splitRow).filter((cells) => !isSeparatorRow(cells));
+        const rows = run
+          .map(splitRow)
+          .filter((cells) => !isSeparatorRow(cells));
         if (rows.length > 0) {
           const [header, ...body] = rows;
           blocks.push({ type: "table", header, rows: body });
