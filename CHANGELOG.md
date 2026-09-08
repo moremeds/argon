@@ -7,6 +7,9 @@ version in lockstep (enforced by `scripts/release/version_sync_check.py`).
 
 ## [Unreleased]
 
+## [0.13.7] — 2026-09-08
+
+
 ### Changed
 
 - **Flash leads with the market article** — weekly and daily pages put the market
@@ -75,7 +78,6 @@ version in lockstep (enforced by `scripts/release/version_sync_check.py`).
   premarket run ingested with an empty `headline` read "no premarket run" over
   a run that exists. They now say "no headline recorded" too, and keep
   "no premarket run" for the day where none was filed.
-
 ## [0.13.6] — 2026-09-06
 
 ### Fixed
