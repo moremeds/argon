@@ -12,8 +12,11 @@ from uw_scan.macro.policy_report import build_policy_comparison
 from uw_scan.models import (
     MacroContextSnapshotResponse,
     MacroDomainStateResponse,
+    MacroReleaseCalendarResponse,
     PolicyComparison,
 )
+from uw_scan.reports.macro_releases import week_releases
+from uw_scan.storage.macro_release_calendar import MacroReleaseCalendarRepository
 from uw_scan.storage.repository import Repository
 
 router = APIRouter(prefix="/macro", tags=["macro"])
@@ -41,6 +44,18 @@ def macro_policy(
     repo: Repository = Depends(get_repo),
 ) -> PolicyComparison:
     return build_policy_comparison(repo, as_of=resolve_instant(as_of, as_of_ts))
+
+
+@router.get("/releases", response_model=MacroReleaseCalendarResponse)
+def macro_releases(
+    week: date | None = Query(
+        default=None,
+        description="Any date in the target week (Mon-Sun, UTC). Defaults to the current week.",
+    ),
+    repo: Repository = Depends(get_repo),
+) -> MacroReleaseCalendarResponse:
+    releases_repo = MacroReleaseCalendarRepository(repo.conn, schema=repo._schema)
+    return week_releases(releases_repo, week or datetime.now(UTC).date())
 
 
 @router.get("/inflation", response_model=MacroDomainStateResponse)

@@ -294,6 +294,22 @@ REGISTRY: list[DatasetRegistryEntry] = [
         expected_frequency="none",
         reason="user-triggered anchor state; written only on click, no expected cadence",
     ),
+    DatasetRegistryEntry(
+        # UW /api/market/economic-calendar exposes only the current+next
+        # week with no date parameter -- a missed capture day's window is
+        # gone, never re-fetchable from this source. No ticker dimension.
+        "macro_release_calendar",
+        "core_watchlist",
+        "excluded",
+        date_col="scheduled_at",
+        expected_frequency="none",
+        reason=(
+            "UW's economic-calendar endpoint has no history/date param "
+            "(current+next week only); a missed capture cannot be backfilled "
+            "from this source"
+        ),
+        reason_verified_on=date(2026, 9, 9),
+    ),
     # --- derived volatility (db-to-db) ---
     DatasetRegistryEntry(
         "vrp_daily",

@@ -6,7 +6,7 @@ Generated from `REGISTRY` in `src/uw_scan/reports/data_gap_healer.py` (one sourc
 uv run python -c "from uw_scan.reports.data_gap_healer import render_dataset_policy_markdown as r; open('docs/runbooks/data-gap-dataset-policy.md','w').write(r())"
 ```
 
-**176 datasets** across 11 groups.
+**177 datasets** across 11 groups.
 
 ## core_watchlist
 
@@ -14,6 +14,7 @@ uv run python -c "from uw_scan.reports.data_gap_healer import render_dataset_pol
 |---|---|---|---|---|---|---|---|
 | daily_ohlc | strict_ticker_date | massive | per_ticker_range | daily_ohlc | equity_session |  |  |
 | intraday_quote | freshness_only | none | none |  | liveness | live state, not a time series: a row asserts what is true NOW and is rewritten in place. A missing row means the condition does not hold, not that history was lost — there is nothing to backfill. | 2026-08-16 |
+| macro_release_calendar | excluded | none | none |  | none | UW's economic-calendar endpoint has no history/date param (current+next week only); a missed capture cannot be backfilled from this source | 2026-09-09 |
 | technical_live | freshness_only | none | none |  | liveness | live state, not a time series: a row asserts what is true NOW and is rewritten in place. A missing row means the condition does not hold, not that history was lost — there is nothing to backfill. | 2026-08-16 |
 | technical_vwap_anchor | excluded | none | none |  | none | user-triggered anchor state; written only on click, no expected cadence |  |
 

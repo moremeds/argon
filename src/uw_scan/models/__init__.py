@@ -147,6 +147,10 @@ from .macro import (
     PolicyReleaseFailure,
     PolicySourceFreshness,
 )
+from .macro_releases import (
+    MacroReleaseCalendarResponse,
+    MacroReleaseRow,
+)
 from .magnets import (
     MagnetCandle,
     MagnetConeBand,
@@ -427,6 +431,8 @@ __all__ = [
     "CharmRegime",
     "SkewRegime",
     "FlowFootprintLabel",
+    "MacroReleaseRow",
+    "MacroReleaseCalendarResponse",
     "MacroDomain",
     "MacroSourceKind",
     "MacroQualityStatus",

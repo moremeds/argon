@@ -1167,6 +1167,26 @@ def main() -> int:
                         repo=repo, client=uw, settings=settings
                     )
 
+    def _macro_release_calendar_capture() -> None:
+        # Economic-release calendar: one UW call (current+next week) + a FRED
+        # fill pass over past unfilled mapped rows. See reports/macro_releases.py.
+        from uw_scan.worker.jobs.macro_release_calendar import (
+            macro_release_calendar_capture,
+        )
+
+        fred_key = (
+            settings.fred_api_key.get_secret_value() if settings.fred_api_key else None
+        )
+        with _external_api_recorder(settings) as recorder:
+            with _uw_client(
+                settings,
+                telemetry_recorder=recorder,
+                job_name="macro_release_calendar_capture",
+            ) as uw:
+                with _repo(settings) as repo:
+                    summary = macro_release_calendar_capture(repo, uw, fred_key)
+        logger.info("macro_release_calendar_capture %s", summary)
+
     def _make_uw_alpha_capture(wrapper, job_name: str):
         # UW historical-alpha nightly capture (5 datasets). Each wrapper is
         # advisory-locked for single-flight; env freezes at fork, so the flag is
@@ -2028,6 +2048,17 @@ def main() -> int:
                 max_instances=1,
                 coalesce=True,
             )
+            # Economic-release calendar capture + FRED actual fill — pinned to
+            # uw-0, gated by UW_SCAN_MACRO_RELEASE_CALENDAR_ENABLED. 1 UW call/day.
+            if settings.macro_release_calendar_enabled:
+                sched.add_job(
+                    _macro_release_calendar_capture,
+                    CronTrigger.from_crontab("35 18 * * 0-4", timezone=settings.rth_tz),
+                    id="macro_release_calendar_capture",
+                    name="Economic-release calendar capture + FRED fill",
+                    max_instances=1,
+                    coalesce=True,
+                )
             # UW historical-alpha nightly capture (5 datasets) — pinned to uw-0,
             # gated by UW_SCAN_UW_ALPHA_CAPTURE_ENABLED. Staggered 18:35-18:55 ET,
             # after the 18:30 greek refresh, before the 20:00 healer / 21:00
