@@ -7,6 +7,9 @@ version in lockstep (enforced by `scripts/release/version_sync_check.py`).
 
 ## [Unreleased]
 
+## [0.13.8] — 2026-09-10
+
+
 ### Added
 
 - **`GET /macro/releases`** — weekly economic-release calendar (event/type/
@@ -17,7 +20,6 @@ version in lockstep (enforced by `scripts/release/version_sync_check.py`).
   `actual`/`series_id` null is the coverage statement for every unmapped
   event, never a fabricated number. Gated off by default
   (`UW_SCAN_MACRO_RELEASE_CALENDAR_ENABLED`); 1 UW call/day on uw-0.
-
 ## [0.13.7] — 2026-09-08
 
 ### Changed
