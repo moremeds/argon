@@ -7,8 +7,18 @@ version in lockstep (enforced by `scripts/release/version_sync_check.py`).
 
 ## [Unreleased]
 
-## [0.13.7] — 2026-09-08
+### Added
 
+- **`GET /macro/releases`** — weekly economic-release calendar (event/type/
+  reported_period/scheduled_at/forecast/prior), captured nightly from UW's
+  `/api/market/economic-calendar` and enriched with a FRED actual/revision/
+  published_at fill for the small set of events with a manually verified
+  event→FRED-series unit match (currently: Unemployment rate → `UNRATE`).
+  `actual`/`series_id` null is the coverage statement for every unmapped
+  event, never a fabricated number. Gated off by default
+  (`UW_SCAN_MACRO_RELEASE_CALENDAR_ENABLED`); 1 UW call/day on uw-0.
+
+## [0.13.7] — 2026-09-08
 
 ### Changed
 
@@ -78,6 +88,7 @@ version in lockstep (enforced by `scripts/release/version_sync_check.py`).
   premarket run ingested with an empty `headline` read "no premarket run" over
   a run that exists. They now say "no headline recorded" too, and keep
   "no premarket run" for the day where none was filed.
+
 ## [0.13.6] — 2026-09-06
 
 ### Fixed

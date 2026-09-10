@@ -11475,6 +11475,125 @@
         "title": "MacroFactorState",
         "type": "object"
       },
+      "MacroReleaseCalendarResponse": {
+        "properties": {
+          "releases": {
+            "items": {
+              "$ref": "#/components/schemas/MacroReleaseRow"
+            },
+            "title": "Releases",
+            "type": "array"
+          },
+          "week_end": {
+            "format": "date",
+            "title": "Week End",
+            "type": "string"
+          },
+          "week_start": {
+            "format": "date",
+            "title": "Week Start",
+            "type": "string"
+          }
+        },
+        "required": [
+          "week_start",
+          "week_end",
+          "releases"
+        ],
+        "title": "MacroReleaseCalendarResponse",
+        "type": "object"
+      },
+      "MacroReleaseRow": {
+        "properties": {
+          "actual": {
+            "anyOf": [
+              {
+                "pattern": "^(?!^[-+.]*$)[+-]?0*\\d*\\.?\\d*$",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Actual"
+          },
+          "event": {
+            "title": "Event",
+            "type": "string"
+          },
+          "forecast": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Forecast"
+          },
+          "prior": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Prior"
+          },
+          "published_at": {
+            "anyOf": [
+              {
+                "format": "date-time",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Published At"
+          },
+          "reported_period": {
+            "title": "Reported Period",
+            "type": "string"
+          },
+          "revision": {
+            "default": false,
+            "title": "Revision",
+            "type": "boolean"
+          },
+          "scheduled_at": {
+            "format": "date-time",
+            "title": "Scheduled At",
+            "type": "string"
+          },
+          "series_id": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Series Id"
+          },
+          "type": {
+            "title": "Type",
+            "type": "string"
+          }
+        },
+        "required": [
+          "event",
+          "type",
+          "reported_period",
+          "scheduled_at"
+        ],
+        "title": "MacroReleaseRow",
+        "type": "object"
+      },
       "MacroSnapshotDomainItem": {
         "description": "One domain's answer as the snapshot holds it.\n\n``state_id`` travels with the answer because the snapshot's claim is about identity:\nit asserts that THIS state, not merely some state of that domain, is the one the\nchain was assembled from.",
         "properties": {
@@ -29935,7 +30054,7 @@
   },
   "info": {
     "title": "UW Watchlist API",
-    "version": "0.12.17"
+    "version": "0.13.7"
   },
   "openapi": "3.1.0",
   "paths": {
@@ -31750,6 +31869,59 @@
           }
         },
         "summary": "Macro Rates State",
+        "tags": [
+          "macro",
+          "macro"
+        ]
+      }
+    },
+    "/api/macro/releases": {
+      "get": {
+        "operationId": "macro_releases_api_macro_releases_get",
+        "parameters": [
+          {
+            "description": "Any date in the target week (Mon-Sun, UTC). Defaults to the current week.",
+            "in": "query",
+            "name": "week",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "format": "date",
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "description": "Any date in the target week (Mon-Sun, UTC). Defaults to the current week.",
+              "title": "Week"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MacroReleaseCalendarResponse"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Macro Releases",
         "tags": [
           "macro",
           "macro"

@@ -214,7 +214,9 @@ def fetch_iv_rank(
     # market_date replays a past session; measured to be honoured 2026-08-16
     # (docs/research/2026-08-16-replay-endpoint-matrix.md). None = live path.
     params = {"date": market_date.isoformat()} if market_date is not None else None
-    body = _fetch_json(client, repo, run_id, EndpointSlug.IV_RANK, ticker, params=params)
+    body = _fetch_json(
+        client, repo, run_id, EndpointSlug.IV_RANK, ticker, params=params
+    )
     return normalize.normalize_iv_rank(body)
 
 
@@ -252,7 +254,9 @@ def fetch_term_structure(
     # market_date replays a past session; measured to be honoured 2026-08-16
     # (docs/research/2026-08-16-replay-endpoint-matrix.md). None = live path.
     params = {"date": market_date.isoformat()} if market_date is not None else None
-    body = _fetch_json(client, repo, run_id, EndpointSlug.TERM_STRUCTURE, ticker, params=params)
+    body = _fetch_json(
+        client, repo, run_id, EndpointSlug.TERM_STRUCTURE, ticker, params=params
+    )
     return normalize.normalize_term_structure(body)
 
 
@@ -266,7 +270,9 @@ def fetch_interpolated_iv(
     # market_date replays a past session; measured to be honoured 2026-08-16
     # (docs/research/2026-08-16-replay-endpoint-matrix.md). None = live path.
     params = {"date": market_date.isoformat()} if market_date is not None else None
-    body = _fetch_json(client, repo, run_id, EndpointSlug.INTERPOLATED_IV, ticker, params=params)
+    body = _fetch_json(
+        client, repo, run_id, EndpointSlug.INTERPOLATED_IV, ticker, params=params
+    )
     return normalize.normalize_interpolated_iv(body)
 
 
@@ -497,7 +503,9 @@ def fetch_oi_per_strike(
     # market_date replays a past session; measured to be honoured 2026-08-16
     # (docs/research/2026-08-16-replay-endpoint-matrix.md). None = live path.
     params = {"date": market_date.isoformat()} if market_date is not None else None
-    body = _fetch_json(client, repo, run_id, EndpointSlug.OI_PER_STRIKE, ticker, params=params)
+    body = _fetch_json(
+        client, repo, run_id, EndpointSlug.OI_PER_STRIKE, ticker, params=params
+    )
     return normalize.normalize_oi_per_strike(body)
 
 
@@ -511,7 +519,9 @@ def fetch_oi_change(
     # market_date replays a past session; measured to be honoured 2026-08-16
     # (docs/research/2026-08-16-replay-endpoint-matrix.md). None = live path.
     params = {"date": market_date.isoformat()} if market_date is not None else None
-    body = _fetch_json(client, repo, run_id, EndpointSlug.OI_CHANGE, ticker, params=params)
+    body = _fetch_json(
+        client, repo, run_id, EndpointSlug.OI_CHANGE, ticker, params=params
+    )
     return normalize.normalize_oi_change(body)
 
 
@@ -525,7 +535,9 @@ def fetch_max_pain(
     # market_date replays a past session; measured to be honoured 2026-08-16
     # (docs/research/2026-08-16-replay-endpoint-matrix.md). None = live path.
     params = {"date": market_date.isoformat()} if market_date is not None else None
-    body = _fetch_json(client, repo, run_id, EndpointSlug.MAX_PAIN, ticker, params=params)
+    body = _fetch_json(
+        client, repo, run_id, EndpointSlug.MAX_PAIN, ticker, params=params
+    )
     return normalize.normalize_max_pain(body)
 
 
@@ -667,7 +679,9 @@ def fetch_darkpool_ticker(
     # market_date replays a past session; measured to be honoured 2026-08-16
     # (docs/research/2026-08-16-replay-endpoint-matrix.md). None = live path.
     params = {"date": market_date.isoformat()} if market_date is not None else None
-    body = _fetch_json(client, repo, run_id, EndpointSlug.DARKPOOL_TICKER, ticker, params=params)
+    body = _fetch_json(
+        client, repo, run_id, EndpointSlug.DARKPOOL_TICKER, ticker, params=params
+    )
     return normalize.normalize_darkpool_ticker(body)
 
 
@@ -919,6 +933,51 @@ def fetch_top_net_impact(
         except (KeyError, ValueError, TypeError, InvalidOperation) as exc:
             raise normalize.NormalizationError(
                 f"top-net-impact: malformed row {r!r}"
+            ) from exc
+    return out
+
+
+def fetch_economic_calendar(
+    client: UwClient, repo: Repository, run_id: int
+) -> list[dict]:
+    """The economic calendar for the current & next week (UW's own window --
+    no date params, no history). One call covers every event; the caller
+    persists a row per (event, time) so history accrues capture over capture.
+
+    `forecast`/`prev` are UW's own free-text values (may carry '%', 'K', or be
+    blank) -- kept as-is, never parsed into a number here. Parsing/units live
+    in the reports layer's verified event->FRED-series mapping only.
+    """
+    body = _fetch_json(
+        client, repo, run_id, EndpointSlug.ECONOMIC_CALENDAR, None, params=None
+    )
+    rows = body.get("data") if isinstance(body, dict) else None
+    if not isinstance(rows, list):
+        raise normalize.NormalizationError(
+            f"economic-calendar: expected 'data' list, got {type(rows).__name__}"
+        )
+    out: list[dict] = []
+    for r in rows:
+        try:
+            out.append(
+                {
+                    "event": str(r["event"]),
+                    "type": str(r["type"]),
+                    "reported_period": str(r["reported_period"]),
+                    "scheduled_at": datetime.fromisoformat(
+                        str(r["time"]).replace("Z", "+00:00")
+                    ),
+                    "forecast": (str(r["forecast"]).strip() or None)
+                    if r.get("forecast") is not None
+                    else None,
+                    "prior": (str(r["prev"]).strip() or None)
+                    if r.get("prev") is not None
+                    else None,
+                }
+            )
+        except (KeyError, ValueError, TypeError) as exc:
+            raise normalize.NormalizationError(
+                f"economic-calendar: malformed row {r!r}"
             ) from exc
     return out
 

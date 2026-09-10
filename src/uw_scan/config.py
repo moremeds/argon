@@ -445,6 +445,9 @@ class Settings(BaseModel):
     spx_density_enabled: bool = False
     # Chanlun Phase B lifecycle engine (nightly 03:10 ET Tue-Sat, massive-0).
     chanlun_lifecycle_enabled: bool = False
+    # Economic-release calendar capture + FRED actual fill (daily, uw-0,
+    # 1 UW call/day). See reports/macro_releases.py.
+    macro_release_calendar_enabled: bool = False
     # Fundamental lane recompute — routing + subscores + valuation anchors
     # (nightly 18:20 ET, massive-0). Zero UW/IB spend: Postgres + local parquet
     # only. Default ON because the alternative is a card that silently stops
@@ -1114,6 +1117,9 @@ class Settings(BaseModel):
             spx_density_enabled=_env_bool("UW_SCAN_SPX_DENSITY_ENABLED", False),
             chanlun_lifecycle_enabled=_env_bool(
                 "UW_SCAN_CHANLUN_LIFECYCLE_ENABLED", False
+            ),
+            macro_release_calendar_enabled=_env_bool(
+                "UW_SCAN_MACRO_RELEASE_CALENDAR_ENABLED", False
             ),
             fundamental_refresh_enabled=_env_bool(
                 "UW_SCAN_FUNDAMENTAL_REFRESH_ENABLED", True

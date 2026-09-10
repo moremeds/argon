@@ -51,6 +51,7 @@ class EndpointSlug(StrEnum):
     EARNINGS_AFTERHOURS = "earnings_afterhours"
     MARKET_TIDE = "market_tide"
     TOP_NET_IMPACT = "top_net_impact"
+    ECONOMIC_CALENDAR = "economic_calendar"
     # UW historical-alpha datasets (real but absent from the curated UW reference;
     # see docs/superpowers/specs/2026-07-24-uw-historical-alpha-capture-healing-design.md §12)
     GEX_LEVELS = "gex_levels"
@@ -223,6 +224,11 @@ REGISTRY: dict[EndpointSlug, Endpoint] = {
     EndpointSlug.TOP_NET_IMPACT: Endpoint(
         EndpointSlug.TOP_NET_IMPACT,
         "/api/market/top-net-impact",
+        (),
+    ),
+    EndpointSlug.ECONOMIC_CALENDAR: Endpoint(
+        EndpointSlug.ECONOMIC_CALENDAR,
+        "/api/market/economic-calendar",
         (),
     ),
     # UW historical-alpha datasets. `date`/`limit` are optional selectors -> ().
