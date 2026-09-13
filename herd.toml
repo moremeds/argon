@@ -1,0 +1,26 @@
+# herd.toml — herdr workers this repo's lead may drive. See cstack/skills/herd.
+# Peer sessions are not listed: every live session under ~/projects is a peer.
+# never: prod DB option_wizard (only option_wizard_test may be dropped), .env*, .streamlit/secrets.toml, no direct push to the main branch
+
+[[worker]]
+name = "reviewer"
+kind = "cursor"
+role = "cross-lineage reviewer, read-only"
+machine = "local"
+args = ["--force", "--model", "cursor-grok-4.6-high"]
+
+[[worker]]
+name = "implementer"
+kind = "devin"
+role = "scoped implementation with tests, one plan task per dispatch"
+machine = "local"
+args = ["--permission-mode", "auto"]
+preapproved = ["ls", "cat", "find", "head", "wc", "git log", "git status", "git diff", "uv run ruff check src/ tests/ scripts/", "uv run pytest tests/unit/", "cd web && npm run typecheck", "cd web && npm run lint"]
+
+[[worker]]
+name = "mini-runner"
+kind = "devin"
+role = "verify the Watchtower-deployed stack on the production box; read-only unless the plan says otherwise"
+machine = "macmini"            # `herdr machine list`; control via: ssh macmini herdr agent ...
+args = ["--permission-mode", "auto"]
+preapproved = ["ls", "cat", "head", "wc", "docker ps", "docker logs", "curl -s http://127.0.0.1"]
