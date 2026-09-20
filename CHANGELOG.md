@@ -7,6 +7,9 @@ version in lockstep (enforced by `scripts/release/version_sync_check.py`).
 
 ## [Unreleased]
 
+## [0.13.9] — 2026-09-21
+
+
 ### Fixed
 
 - **Short-Vol / VRP card: strikes now match the displayed delta.** A TRADE's bull
@@ -42,7 +45,6 @@ version in lockstep (enforced by `scripts/release/version_sync_check.py`).
   being priced. The live SPX path values the grid at the live date rather than
   the (possibly days-old) EOD row's date; every EOD statistical field is
   unchanged.
-
 ## [0.13.8] — 2026-09-10
 
 
