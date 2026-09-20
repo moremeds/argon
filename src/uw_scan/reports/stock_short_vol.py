@@ -179,8 +179,16 @@ def decide_short_vol(
             **common,
         )
     chain_spot = _finite(chain.get("spot"))
-    if chain_spot is None:
-        chain_spot = spot
+    if chain_spot is None or chain_spot <= 0:
+        # Never substitute the caller's spot: the legs' deltas were captured
+        # against the snapshot's own spot, so pricing off any other basis breaks
+        # the strike↔delta agreement this whole path exists to guarantee.
+        return StockShortVol(
+            action="SKIP",
+            skip_reason="captured chain has no spot",
+            weight=Decimal("0"),
+            **common,
+        )
     sel = select_chain_bull_put_spread(
         chain["legs"],
         chain_spot,
@@ -209,6 +217,10 @@ def decide_short_vol(
         put_width=_dec(st.put_width),
         credit=_dec(st.credit),
         max_loss=_dec(st.max_loss),
+        short_put_delta=_dec(sel.short_delta),
+        long_put_delta=_dec(sel.wing_delta),
+        chain_captured_on=chain["captured_on"],
+        expiry=chain["expiry"],
         **common,
     )
 

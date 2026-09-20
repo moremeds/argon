@@ -10212,6 +10212,14 @@ export interface components {
             short_delta: string;
             /** Wing Delta */
             wing_delta: string;
+            /** Short Put Delta */
+            short_put_delta?: string | null;
+            /** Long Put Delta */
+            long_put_delta?: string | null;
+            /** Chain Captured On */
+            chain_captured_on?: string | null;
+            /** Expiry */
+            expiry?: string | null;
         };
         /**
          * StrikeExposureRow

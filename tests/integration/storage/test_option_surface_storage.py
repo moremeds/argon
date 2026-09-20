@@ -108,6 +108,44 @@ def test_fetch_put_chain_near_dte_picks_closest_expiry_and_walks_back(
     assert strikes == {Decimal("350"), Decimal("310")}  # far_expiry row excluded
 
 
+def test_fetch_put_chain_near_dte_none_when_capture_is_stale(seeded_db_empty_cards):
+    repo = seeded_db_empty_cards
+    captured = date(2026, 6, 24)
+    repo.upsert_option_surface_grid(
+        "TSLA",
+        captured,
+        Decimal("382.35"),
+        [
+            _put_row("350", date(2026, 8, 7), "0.473", "-0.25"),
+            _put_row("310", date(2026, 8, 7), "0.55", "-0.125"),
+        ],
+    )
+    repo.conn.commit()
+
+    # 10 days past the capture — beyond the 4-day staleness bound.
+    assert repo.fetch_put_chain_near_dte("TSLA", date(2026, 7, 4), 45) is None
+
+
+def test_fetch_put_chain_near_dte_none_when_only_expired_expiries(
+    seeded_db_empty_cards,
+):
+    repo = seeded_db_empty_cards
+    captured = date(2026, 6, 24)
+    expired = date(2026, 6, 26)  # on/before the as_of below
+    repo.upsert_option_surface_grid(
+        "TSLA",
+        captured,
+        Decimal("382.35"),
+        [
+            _put_row("350", expired, "0.473", "-0.25"),
+            _put_row("310", expired, "0.55", "-0.125"),
+        ],
+    )
+    repo.conn.commit()
+
+    assert repo.fetch_put_chain_near_dte("TSLA", date(2026, 6, 26), 45) is None
+
+
 def test_fetch_put_chain_near_dte_none_when_nothing_captured(seeded_db_empty_cards):
     repo = seeded_db_empty_cards
     assert repo.fetch_put_chain_near_dte("NOSUCHTICK", date(2026, 6, 24), 45) is None

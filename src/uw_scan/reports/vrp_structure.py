@@ -11,11 +11,14 @@ Design: docs/superpowers/plans/2026-06-22-vrp-tradable-condor-backtest.md
 
 from __future__ import annotations
 
+import logging
 import math
 from collections.abc import Iterable, Mapping
 from dataclasses import dataclass
 from statistics import NormalDist
 from typing import Any
+
+log = logging.getLogger(__name__)
 
 _N = NormalDist()  # standard normal; .cdf / .inv_cdf
 
@@ -229,7 +232,8 @@ def legs_from_strike_ivs(
     for k, iv in strike_ivs.items():
         try:
             strike, sigma = float(k), float(iv)
-        except (TypeError, ValueError):
+        except (TypeError, ValueError) as exc:
+            log.debug("dropping unparseable leg: %s", repr(exc))
             continue
         if strike <= 0 or sigma <= 0:
             continue
@@ -262,8 +266,10 @@ def select_bull_put_spread(
     for k, iv, d in legs:
         try:
             strike, sigma, dmag = float(k), float(iv), abs(float(d))
-        except (TypeError, ValueError):
-            continue  # a leg with a missing strike/iv/delta is simply not listed
+        except (TypeError, ValueError) as exc:
+            # a leg with a missing strike/iv/delta is simply not listed
+            log.debug("dropping unparseable leg: %s", repr(exc))
+            continue
         if strike > 0 and sigma > 0:
             usable.append((strike, sigma, dmag))
     if len(usable) < 2:

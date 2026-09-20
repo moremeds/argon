@@ -6,9 +6,13 @@ inputs (spot 7637.76, ATM iv 0.1544, r 0.04). Nothing here touches the network
 or the DB.
 """
 
-from datetime import date
+from datetime import date, timedelta
 
-from uw_scan.reports.vrp_macro_signal import WINNER, current_macro_signal
+from uw_scan.reports.vrp_macro_signal import (
+    WINNER,
+    current_macro_signal,
+    current_macro_signal_live,
+)
 from uw_scan.reports.vrp_structure import (
     build_bull_put_spread,
     legs_from_strike_ivs,
@@ -148,3 +152,65 @@ def test_current_macro_signal_falls_back_and_says_so(monkeypatch):
     assert sig.strike_grid_date is None
     assert sig.expiry is None
     assert sig.short_put % 25 != 0  # a modeled, continuous strike
+
+
+class _RecordingRepo:
+    """Records the `for_date` every grid lookup was made at."""
+
+    def __init__(self, grid):
+        self._grid = grid
+        self.grid_dates: list = []
+
+    def fetch_vrp_macro_entry_grid(self, name, for_date, **_kw):
+        self.grid_dates.append(for_date)
+        return self._grid
+
+
+LIVE_DATE = AS_OF + timedelta(days=3)
+
+
+class _StubLoadedLong:
+    """252 EOD rows ending at AS_OF — enough history for a live vrp_z."""
+
+    rows = [
+        {
+            "market_date": AS_OF - timedelta(days=251 - i),
+            "iv": ATM_IV,
+            "rv": 0.10,
+            "vrp": 0.0 if i % 2 else 0.02,
+            "vrp_z_20": 1.2,
+        }
+        for i in range(252)
+    ]
+    adj = [(AS_OF, SPOT)]
+    pidx = {AS_OF: 0}
+    events: list = []
+
+
+def test_live_path_values_the_grid_at_the_live_date(monkeypatch):
+    """The live signal must price at the LIVE date, not the (possibly days-old)
+    EOD row's market_date — the grid staleness window and T both key off it."""
+    monkeypatch.setattr(
+        "uw_scan.reports.vrp_macro_signal.load_index_vol",
+        lambda repo, name, **kw: _StubLoadedLong(),
+    )
+    grid = {
+        "for_date": LIVE_DATE,
+        "chosen_expiry": EXPIRY,
+        "strikes": [float(k) for k in STRIKE_IVS],
+        "strike_ivs": STRIKE_IVS,
+    }
+    repo = _RecordingRepo(grid)
+    sig = current_macro_signal_live(
+        repo,
+        _StubSettings(),
+        "SPX",
+        WINNER,
+        live_spot=SPOT,
+        live_iv=ATM_IV,
+        as_of=LIVE_DATE,
+    )
+    assert sig.action == "TRADE"
+    assert repo.grid_dates == [LIVE_DATE]  # not eod["market_date"] == AS_OF
+    assert sig.as_of == AS_OF  # statistical fields stay on the EOD row
+    assert sig.strike_basis == "listed_skew"

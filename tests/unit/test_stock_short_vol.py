@@ -230,6 +230,45 @@ def test_skip_when_no_captured_chain():
     assert sig.short_put is None
 
 
+def test_skip_when_captured_chain_has_no_spot():
+    # The snapshot's own spot is the only basis whose deltas match the captured
+    # legs — with it missing we must SKIP, never substitute the caller's spot.
+    sig = decide_short_vol(
+        as_of=AS_OF,
+        spot=SPOT,
+        iv=IV,
+        rv=RV,
+        vrp=0.073,
+        vrp_z_20=1.6,
+        gate_ok=True,
+        next_earnings_date=CLEAR_EARNINGS,
+        chain={**CHAIN, "spot": None},
+    )
+    assert sig.action == "SKIP"
+    assert sig.skip_reason == "captured chain has no spot"
+    assert sig.short_put is None
+
+
+def test_trade_reports_the_deltas_the_selected_strikes_actually_carry():
+    sig = decide_short_vol(
+        as_of=AS_OF,
+        spot=SPOT,
+        iv=IV,
+        rv=RV,
+        vrp=0.073,
+        vrp_z_20=1.6,
+        gate_ok=True,
+        next_earnings_date=CLEAR_EARNINGS,
+        chain=CHAIN,
+    )
+    assert sig.action == "TRADE"
+    # the fixture deltas of the SELECTED legs (350 / 310), not the targets
+    assert sig.short_put_delta == Decimal("0.25")
+    assert sig.long_put_delta == Decimal("0.125")
+    assert sig.chain_captured_on == AS_OF
+    assert sig.expiry == EXPIRY
+
+
 def test_skip_when_no_listed_strike_below_the_short_leg():
     thin_chain = {
         "captured_on": AS_OF,

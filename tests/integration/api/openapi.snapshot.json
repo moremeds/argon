@@ -21591,6 +21591,18 @@
             "title": "Basis",
             "type": "string"
           },
+          "chain_captured_on": {
+            "anyOf": [
+              {
+                "format": "date",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Chain Captured On"
+          },
           "credit": {
             "anyOf": [
               {
@@ -21602,6 +21614,18 @@
               }
             ],
             "title": "Credit"
+          },
+          "expiry": {
+            "anyOf": [
+              {
+                "format": "date",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Expiry"
           },
           "hold_days": {
             "title": "Hold Days",
@@ -21630,6 +21654,18 @@
               }
             ],
             "title": "Long Put"
+          },
+          "long_put_delta": {
+            "anyOf": [
+              {
+                "pattern": "^(?!^[-+.]*$)[+-]?0*\\d*\\.?\\d*$",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Long Put Delta"
           },
           "max_loss": {
             "anyOf": [
@@ -21683,6 +21719,18 @@
               }
             ],
             "title": "Short Put"
+          },
+          "short_put_delta": {
+            "anyOf": [
+              {
+                "pattern": "^(?!^[-+.]*$)[+-]?0*\\d*\\.?\\d*$",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Short Put Delta"
           },
           "skip_reason": {
             "anyOf": [

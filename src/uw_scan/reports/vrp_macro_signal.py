@@ -29,9 +29,11 @@ import logging
 from collections import defaultdict
 from dataclasses import dataclass
 from datetime import date as _date
+from datetime import datetime
 from math import sqrt
 from statistics import fmean, pstdev
 from typing import Any
+from zoneinfo import ZoneInfo
 
 from uw_scan.reports.vrp_macro_drawdown import _Loaded, load_index_vol
 from uw_scan.reports.vrp_macro_harvest import _settle
@@ -437,7 +439,13 @@ def current_macro_signal_live(
         cfg,
         spot=live_spot,
         iv=live_iv,
-        as_of=eod["market_date"],
+        # Value the structure at the LIVE date: the grid lookup's staleness window
+        # and T both key off it. The EOD row's market_date can be several days back
+        # (a vol-data gap walks it back), which would price a stale, too-long T.
+        # Every statistical field above stays on eod["market_date"].
+        as_of=as_of
+        if as_of is not None
+        else datetime.now(ZoneInfo("America/New_York")).date(),
     )
     return MacroSignal(
         weight=weight,

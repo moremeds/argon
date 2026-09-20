@@ -86,6 +86,12 @@ class StockShortVol(_UwBase):
     hold_days: int
     short_delta: Decimal
     wing_delta: Decimal
+    # short_delta/wing_delta are the TARGET deltas asked for; short_put_delta/
+    # long_put_delta are the deltas the selected listed strikes actually carry.
+    short_put_delta: Decimal | None = None
+    long_put_delta: Decimal | None = None
+    chain_captured_on: _date | None = None
+    expiry: _date | None = None
 
 
 class StockHistoryRow(_UwBase):

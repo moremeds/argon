@@ -35,7 +35,13 @@ version in lockstep (enforced by `scripts/release/version_sync_check.py`).
   (QQQ/IWM) still falls back to the flat-vol model but is now labeled as such on
   the card, with its deltas null rather than untrue. The card tooltip no longer
   claims the flat-vol credit is a conservative floor. The `bt_*` backtest columns
-  are unchanged — `backtest_laddered` remains flat-vol by design.
+  are unchanged — `backtest_laddered` remains flat-vol by design. The
+  single-name card now also shows the deltas the selected strikes actually carry
+  plus the expiry and the chain's capture date, and a captured chain older than
+  4 days, already expired, or carrying no captured spot now SKIPs instead of
+  being priced. The live SPX path values the grid at the live date rather than
+  the (possibly days-old) EOD row's date; every EOD statistical field is
+  unchanged.
 
 ## [0.13.8] — 2026-09-10
 

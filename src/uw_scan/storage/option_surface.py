@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 from datetime import date as _date
+from datetime import timedelta
 from decimal import Decimal
 from typing import Any, Iterable
 
@@ -141,24 +142,37 @@ class _OptionSurfaceMixin:
             return dict(zip(cols, row, strict=False))
 
     def fetch_put_chain_near_dte(
-        self, ticker: str, as_of: _date, target_dte: int
+        self,
+        ticker: str,
+        as_of: _date,
+        target_dte: int,
+        *,
+        max_staleness_days: int = 4,
     ) -> dict[str, Any] | None:
-        """Put legs from the most recently captured chain on/before `as_of`, for the
-        expiry closest to `target_dte` calendar days out. Both the legs' strikes/IV/
-        delta AND the returned spot come from that ONE captured snapshot — callers
-        must price off `["spot"]`, never a separately-fetched live/EOD spot, or the
-        strike and the displayed delta stop agreeing (see stock_short_vol.py).
+        """Put legs from the most recently captured chain in the window
+        [as_of - max_staleness_days, as_of], for the expiry closest to `target_dte`
+        calendar days out and still strictly after `as_of`. Both the legs' strikes/
+        IV/delta AND the returned spot come from that ONE captured snapshot —
+        callers must price off `["spot"]`, never a separately-fetched live/EOD spot,
+        or the strike and the displayed delta stop agreeing (see stock_short_vol.py).
+
+        The staleness bound mirrors `fetch_vrp_macro_entry_grid`: one missed nightly
+        capture may reuse yesterday's real chain, but a chain many days old prices
+        a materially different DTE off stale IV — better to return None than to
+        price an off-strategy structure. `expiry > as_of` likewise rejects an
+        already-expired expiry sitting inside the window.
 
         Returns {"captured_on", "expiry", "spot", "legs": [{"strike","iv","delta"}]}
-        sorted by strike, or None when nothing has been captured for this ticker by
-        `as_of` (new listing, or a capture gap).
+        sorted by strike, or None when nothing usable has been captured for this
+        ticker (new listing, capture gap, or only stale/expired rows).
         """
         t = ticker.upper()
+        oldest = as_of - timedelta(days=max_staleness_days)
         with self._conn.cursor(row_factory=dict_row) as cur:
             cur.execute(
                 f"SELECT MAX(market_date) AS d FROM {self._schema}.option_surface_grid_daily "
-                "WHERE ticker=%s AND market_date<=%s",
-                (t, as_of),
+                "WHERE ticker=%s AND market_date BETWEEN %s AND %s",
+                (t, oldest, as_of),
             )
             row = cur.fetchone()
             captured_on = row["d"] if row else None
@@ -167,10 +181,10 @@ class _OptionSurfaceMixin:
             cur.execute(
                 f"SELECT expiry, strike, put_iv, put_delta, underlying_spot "
                 f"FROM {self._schema}.option_surface_grid_daily "
-                "WHERE ticker=%s AND market_date=%s "
+                "WHERE ticker=%s AND market_date=%s AND expiry > %s "
                 "AND put_iv IS NOT NULL AND put_delta IS NOT NULL "
                 "ORDER BY abs((expiry - %s) - %s), strike",
-                (t, captured_on, captured_on, target_dte),
+                (t, captured_on, as_of, captured_on, target_dte),
             )
             rows = cur.fetchall()
             if not rows:
