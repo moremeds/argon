@@ -22,7 +22,7 @@ export default function MacroShortVolCard() {
     <div className="gex-bias-title" style={{ marginBottom: 0 }}>
       MACRO SHORT-VOL · SPX
       <InfoTooltip
-        text="Sell index VRP via a bull put spread (0.25Δ short / 0.125Δ wing, ~30-trading-day hold, weekly). Gated and SIZED by vrp_z (IV − RV20, z-scored vs trailing 252d): weight = how much of base risk to deploy — 0 at vrp_z≤0 (SKIP), ramping to 1.0 (full size) at vrp_z≥0.5. Credit is flat-vol modeled (conservative floor; real put-skew credit is higher). Backtest Sharpe is in-sample-tuned over 2006–2026 — discount to ~1.3–1.6 live."
+        text="Sell index VRP via a bull put spread (0.25Δ short / 0.125Δ wing, ~30-trading-day hold, weekly). Gated and SIZED by vrp_z (IV − RV20, z-scored vs trailing 252d): weight = how much of base risk to deploy — 0 at vrp_z≤0 (SKIP), ramping to 1.0 (full size) at vrp_z≥0.5. Strikes are the LISTED strikes nearest the target deltas, taken from the nightly SPX strike grid and priced off each leg's own IV, so the delta shown is the delta the strike actually carries. A name with no grid falls back to a flat-vol model (tagged) whose wing sits too shallow under put skew. Backtest Sharpe is in-sample-tuned over 2006–2026 — discount to ~1.3–1.6 live."
         triggerTestId="macro-shortvol-tooltip-trigger"
         contentTestId="macro-shortvol-tooltip-content"
       />
@@ -54,12 +54,19 @@ export default function MacroShortVolCard() {
 
   const trade = s.action === "TRADE";
   const color = trade ? "var(--positive)" : "var(--text-muted)";
+  // 'listed_skew' → real listed strikes with the deltas they ACTUALLY carry;
+  // anything else is a flat-vol model whose wing sits too shallow under put
+  // skew, and must be tagged rather than read as a tradeable listed strike.
+  const listed = s.strike_basis === "listed_skew";
   const reasons = trade
     ? [
         `vrp_z ${f(s.vrp_z)} · weight ${f(s.weight)} (size)`,
-        `Sell ${f(s.short_put, 0)} / buy ${f(s.long_put, 0)} put`,
+        listed
+          ? `Sell ${f(s.short_put, 0)} (${f(s.short_put_delta)}Δ) / buy ${f(s.long_put, 0)} (${f(s.long_put_delta)}Δ) put`
+          : `Sell ${f(s.short_put, 0)} / buy ${f(s.long_put, 0)} put · flat-vol model`,
+        listed && s.expiry ? `Expiry ${s.expiry} · listed strikes` : null,
         `Credit ${f(s.credit)} · max loss ${f(s.max_loss)} per spread`,
-      ]
+      ].filter((r): r is string => r !== null)
     : [
         `vrp_z ${f(s.vrp_z)} · weight ${f(s.weight)}`,
         `IV ${pct(s.iv)} / RV20 ${pct(s.rv20)}`,

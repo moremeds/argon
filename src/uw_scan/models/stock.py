@@ -65,7 +65,8 @@ class StockShortVol(_UwBase):
     the single-name sibling of the SPX MacroSignal. EOD basis (latest vrp_daily row).
     action=TRADE only when vol is rich (vrp_z_20 >= 1.0) AND the ticker's sector is in
     the sellable set AND earnings are clear of the hold window; else SKIP with a reason.
-    Strikes/credit/max_loss are flat-vol modeled (conservative floor)."""
+    Strikes are real listed strikes nearest the target deltas from the captured option
+    chain; credit/max_loss are priced off each leg's own captured IV."""
 
     as_of: _date
     basis: str = "eod"

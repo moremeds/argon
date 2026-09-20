@@ -86,6 +86,11 @@ def vrp_macro_signal_refresh(
                 bt_annror=_finite(bt.get("annror")),
                 bt_calmar=_finite(bt.get("calmar")),
                 config=config,
+                short_put_delta=sig.short_put_delta,
+                long_put_delta=sig.long_put_delta,
+                strike_basis=sig.strike_basis,
+                strike_grid_date=sig.strike_grid_date,
+                expiry=sig.expiry,
             )
             persisted += 1
             log.info(

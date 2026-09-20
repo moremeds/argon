@@ -21575,7 +21575,7 @@
         "type": "object"
       },
       "StockShortVol": {
-        "description": "Per-ticker short-vol (sell-premium) readout for the Market Structure tab \u2014\nthe single-name sibling of the SPX MacroSignal. EOD basis (latest vrp_daily row).\naction=TRADE only when vol is rich (vrp_z_20 >= 1.0) AND the ticker's sector is in\nthe sellable set AND earnings are clear of the hold window; else SKIP with a reason.\nStrikes/credit/max_loss are flat-vol modeled (conservative floor).",
+        "description": "Per-ticker short-vol (sell-premium) readout for the Market Structure tab \u2014\nthe single-name sibling of the SPX MacroSignal. EOD basis (latest vrp_daily row).\naction=TRADE only when vol is rich (vrp_z_20 >= 1.0) AND the ticker's sector is in\nthe sellable set AND earnings are clear of the hold window; else SKIP with a reason.\nStrikes are real listed strikes nearest the target deltas from the captured option\nchain; credit/max_loss are priced off each leg's own captured IV.",
         "properties": {
           "action": {
             "title": "Action",
@@ -28924,7 +28924,7 @@
         "type": "object"
       },
       "VrpMacroSignalRow": {
-        "description": "Latest VRP macro short-vol signal for one index. action=TRADE iff weight>0\n(ramp+ vrp-z sizing); strikes/credit/max_loss are flat-vol modeled (conservative\nfloor \u2014 real put skew pays more). Compare `as_of` to `snapshot_date` for staleness:\n`as_of` is the vol-data date, `snapshot_date` is when the job ran.",
+        "description": "Latest VRP macro short-vol signal for one index. action=TRADE iff weight>0\n(ramp+ vrp-z sizing); `strike_basis` says whether the strikes are real listed\nones (per-leg IV) or flat-vol modeled \u2014 see the field comments below.\nCompare `as_of` to `snapshot_date` for staleness:\n`as_of` is the vol-data date, `snapshot_date` is when the job ran.",
         "properties": {
           "action": {
             "title": "Action",
@@ -29001,6 +29001,18 @@
             ],
             "title": "Credit"
           },
+          "expiry": {
+            "anyOf": [
+              {
+                "format": "date",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Expiry"
+          },
           "hold_days": {
             "title": "Hold Days",
             "type": "integer"
@@ -29019,6 +29031,17 @@
               }
             ],
             "title": "Long Put"
+          },
+          "long_put_delta": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Long Put Delta"
           },
           "max_loss": {
             "anyOf": [
@@ -29072,6 +29095,17 @@
             ],
             "title": "Short Put"
           },
+          "short_put_delta": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Short Put Delta"
+          },
           "snapshot_date": {
             "format": "date",
             "title": "Snapshot Date",
@@ -29080,6 +29114,29 @@
           "spot": {
             "title": "Spot",
             "type": "number"
+          },
+          "strike_basis": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Strike Basis"
+          },
+          "strike_grid_date": {
+            "anyOf": [
+              {
+                "format": "date",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Strike Grid Date"
           },
           "vrp": {
             "anyOf": [

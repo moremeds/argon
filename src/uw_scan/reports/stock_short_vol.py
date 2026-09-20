@@ -1,9 +1,12 @@
 """Per-ticker short-vol readout — single-name sibling of the SPX MacroSignal.
 
 Reshapes the latest persisted vrp_daily row (iv/rv/vrp_z_20) into a TRADE/SKIP
-action with a flat-vol-modeled bull put spread, gated by the sellable-by-sector
-rule. Pure read-time derivation: vrp_daily is the already-persisted analytical
-result, refreshed nightly by worker.volatility_jobs.nightly_vol_analytics_rollup.
+action, gated by the sellable-by-sector rule. A TRADE's bull put spread is built
+from the captured option_surface_grid_daily chain (real listed strikes nearest
+the target deltas, mirroring scanners.theta_harvester's selection), not a
+flat-vol model — so the displayed delta always matches the priced strike. Pure
+read-time derivation: vrp_daily and option_surface_grid_daily are both
+already-persisted analytical results, refreshed nightly by worker jobs.
 """
 
 from __future__ import annotations
@@ -18,7 +21,10 @@ from uw_scan.models import StockShortVol
 from uw_scan.reports.vrp_gate import evaluate_gate
 from uw_scan.reports.vrp_macro_signal import WINNER, MacroSignalConfig, size_weight
 from uw_scan.reports.vrp_markout import RICH_Z  # single source for the richness cutoff
-from uw_scan.reports.vrp_structure import build_bull_put_spread
+from uw_scan.reports.vrp_structure import (
+    SelectedBullPutSpread,
+    select_bull_put_spread,
+)
 
 log = logging.getLogger(__name__)
 
@@ -57,6 +63,32 @@ def _usable_iv(row: dict) -> bool:
     return iv is not None and iv > 0
 
 
+def select_chain_bull_put_spread(
+    legs: list[dict],
+    spot: float,
+    expiry: _date,
+    as_of: _date,
+    r: float,
+    *,
+    short_delta: float,
+    wing_delta: float,
+) -> SelectedBullPutSpread | None:
+    """Adapt captured chain rows (strike/iv/delta dicts) to the shared skew-aware
+    selector `vrp_structure.select_bull_put_spread` — real listed strikes nearest
+    the target deltas, each leg priced off its OWN captured IV, instead of
+    inverting one flat ATM vol. The strike and the displayed delta then agree by
+    construction."""
+    T = max((expiry - as_of).days, 1) / 365.0
+    return select_bull_put_spread(
+        [(leg["strike"], leg["iv"], leg["delta"]) for leg in legs],
+        spot,
+        T,
+        r,
+        short_delta=short_delta,
+        wing_delta=wing_delta,
+    )
+
+
 def decide_short_vol(
     *,
     as_of: _date,
@@ -71,8 +103,14 @@ def decide_short_vol(
     require_earnings: bool = True,
     risk_free_rate: float = RISK_FREE_RATE,
     cfg: MacroSignalConfig = WINNER,
+    chain: dict | None = None,
 ) -> StockShortVol:
     """Map one ticker's latest VRP row → TRADE/SKIP readout. Pure: no I/O.
+
+    `chain` is the pre-fetched option_surface_grid_daily snapshot from
+    Repository.fetch_put_chain_near_dte (captured_on/expiry/spot/legs), or None
+    when nothing has been captured. It supplies the real listed strikes a TRADE
+    is priced off — see `_select_bull_put_spread`.
 
     `gate_ok` is the result of reports.vrp_gate.passes_gate (sellable bucket). TRADE
     additionally requires vol rich (z>=RICH_Z) and a usable IV+spot. For single names
@@ -129,26 +167,39 @@ def decide_short_vol(
             action="SKIP", skip_reason=reason, weight=Decimal("0"), **common
         )
 
-    # tradeable — spot/iv are finite & positive here. Build the modeled spread;
-    # degenerate strikes fall back to SKIP.
-    try:
-        st = build_bull_put_spread(
-            spot,
-            iv,
-            cfg.hold_days / 252.0,
-            risk_free_rate,
-            short_delta=cfg.short_delta,
-            wing_delta=cfg.wing_delta,
-        )
-    except ValueError as exc:
-        log.debug("degenerate short-vol spread strikes: %s", repr(exc))
+    # tradeable — spot/iv are finite & positive here. Select real listed strikes
+    # nearest the target deltas from the captured chain, priced off that SAME
+    # snapshot's own spot (never the caller's `spot`, which can be a different,
+    # fresher date than the vol data above) — see _select_bull_put_spread.
+    if chain is None or not chain.get("legs"):
         return StockShortVol(
             action="SKIP",
-            skip_reason="degenerate spread strikes",
+            skip_reason="no captured option chain",
             weight=Decimal("0"),
             **common,
         )
+    chain_spot = _finite(chain.get("spot"))
+    if chain_spot is None:
+        chain_spot = spot
+    sel = select_chain_bull_put_spread(
+        chain["legs"],
+        chain_spot,
+        chain["expiry"],
+        chain["captured_on"],
+        risk_free_rate,
+        short_delta=cfg.short_delta,
+        wing_delta=cfg.wing_delta,
+    )
+    if sel is None:
+        return StockShortVol(
+            action="SKIP",
+            skip_reason="no listed strikes near target delta",
+            weight=Decimal("0"),
+            **common,
+        )
+    st = sel.spread
 
+    common["spot"] = _dec(chain_spot)  # the basis the strikes were actually priced off
     return StockShortVol(
         action="TRADE",
         skip_reason=None,
@@ -187,6 +238,9 @@ def build_short_vol(repo, ticker: str, spot: float | None) -> StockShortVol | No
     # Only single names carry the earnings landmine; indices/ETFs don't report
     # (vrp_gate makes the same split).
     require_earnings = gate is not None and gate.asset_class == "single_name"
+    # Local Postgres read (not a vendor call) — cheap enough to fetch unconditionally
+    # rather than duplicate the richness/gate/earnings gating above just to skip it.
+    chain = repo.fetch_put_chain_near_dte(ticker, row["market_date"], HOLD_CAL_DAYS)
     return decide_short_vol(
         as_of=row["market_date"],
         spot=spot,
@@ -198,4 +252,5 @@ def build_short_vol(repo, ticker: str, spot: float | None) -> StockShortVol | No
         next_earnings_date=repo.fetch_latest_next_earnings_date(ticker),
         gate_skip_reason=gate_skip_reason,
         require_earnings=require_earnings,
+        chain=chain,
     )

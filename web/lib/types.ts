@@ -1695,6 +1695,23 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/macro/releases": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Macro Releases */
+        get: operations["macro_releases_api_macro_releases_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/macro/inflation": {
         parameters: {
             query?: never;
@@ -6604,6 +6621,50 @@ export interface components {
              */
             source_kind: "official" | "first_party_publisher" | "entitled_provider" | "third_party_shadow" | "mock" | "static" | "demo";
         };
+        /** MacroReleaseCalendarResponse */
+        MacroReleaseCalendarResponse: {
+            /**
+             * Week Start
+             * Format: date
+             */
+            week_start: string;
+            /**
+             * Week End
+             * Format: date
+             */
+            week_end: string;
+            /** Releases */
+            releases: components["schemas"]["MacroReleaseRow"][];
+        };
+        /** MacroReleaseRow */
+        MacroReleaseRow: {
+            /** Event */
+            event: string;
+            /** Type */
+            type: string;
+            /** Reported Period */
+            reported_period: string;
+            /**
+             * Scheduled At
+             * Format: date-time
+             */
+            scheduled_at: string;
+            /** Forecast */
+            forecast?: string | null;
+            /** Prior */
+            prior?: string | null;
+            /** Series Id */
+            series_id?: string | null;
+            /** Actual */
+            actual?: string | null;
+            /**
+             * Revision
+             * @default false
+             */
+            revision: boolean;
+            /** Published At */
+            published_at?: string | null;
+        };
         /**
          * MacroSnapshotDomainItem
          * @description One domain's answer as the snapshot holds it.
@@ -10105,7 +10166,8 @@ export interface components {
          *     the single-name sibling of the SPX MacroSignal. EOD basis (latest vrp_daily row).
          *     action=TRADE only when vol is rich (vrp_z_20 >= 1.0) AND the ticker's sector is in
          *     the sellable set AND earnings are clear of the hold window; else SKIP with a reason.
-         *     Strikes/credit/max_loss are flat-vol modeled (conservative floor).
+         *     Strikes are real listed strikes nearest the target deltas from the captured option
+         *     chain; credit/max_loss are priced off each leg's own captured IV.
          */
         StockShortVol: {
             /**
@@ -12807,8 +12869,9 @@ export interface components {
         /**
          * VrpMacroSignalRow
          * @description Latest VRP macro short-vol signal for one index. action=TRADE iff weight>0
-         *     (ramp+ vrp-z sizing); strikes/credit/max_loss are flat-vol modeled (conservative
-         *     floor — real put skew pays more). Compare `as_of` to `snapshot_date` for staleness:
+         *     (ramp+ vrp-z sizing); `strike_basis` says whether the strikes are real listed
+         *     ones (per-leg IV) or flat-vol modeled — see the field comments below.
+         *     Compare `as_of` to `snapshot_date` for staleness:
          *     `as_of` is the vol-data date, `snapshot_date` is when the job ran.
          */
         VrpMacroSignalRow: {
@@ -12864,6 +12927,16 @@ export interface components {
             bt_annror?: number | null;
             /** Bt Calmar */
             bt_calmar?: number | null;
+            /** Short Put Delta */
+            short_put_delta?: number | null;
+            /** Long Put Delta */
+            long_put_delta?: number | null;
+            /** Strike Basis */
+            strike_basis?: string | null;
+            /** Strike Grid Date */
+            strike_grid_date?: string | null;
+            /** Expiry */
+            expiry?: string | null;
         };
         /** VrpPaperPositionRow */
         VrpPaperPositionRow: {
@@ -15659,6 +15732,38 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["PolicyComparison"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    macro_releases_api_macro_releases_get: {
+        parameters: {
+            query?: {
+                /** @description Any date in the target week (Mon-Sun, UTC). Defaults to the current week. */
+                week?: string | null;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["MacroReleaseCalendarResponse"];
                 };
             };
             /** @description Validation Error */

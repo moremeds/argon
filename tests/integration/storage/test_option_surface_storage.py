@@ -68,3 +68,46 @@ def test_fetch_atm_strike_returns_nearest(seeded_db_empty_cards):
     )
     assert atm is not None and atm["strike"] == Decimal("250")
     assert atm["call_iv"] == Decimal("0.50")
+
+
+def _put_row(strike: str, expiry: date, piv: str, pdelta: str) -> dict:
+    return {
+        "expiry": expiry,
+        "strike": Decimal(strike),
+        "put_iv": Decimal(piv),
+        "put_delta": Decimal(pdelta),
+    }
+
+
+def test_fetch_put_chain_near_dte_picks_closest_expiry_and_walks_back(
+    seeded_db_empty_cards,
+):
+    repo = seeded_db_empty_cards
+    captured = date(2026, 6, 24)
+    near_expiry = date(2026, 8, 7)  # 44 calendar days out — closer to target 45
+    far_expiry = date(2026, 9, 18)  # 86 days out
+    repo.upsert_option_surface_grid(
+        "TSLA",
+        captured,
+        Decimal("382.35"),
+        [
+            _put_row("350", near_expiry, "0.473", "-0.25"),
+            _put_row("310", near_expiry, "0.55", "-0.125"),
+            _put_row("300", far_expiry, "0.60", "-0.10"),
+        ],
+    )
+    repo.conn.commit()
+
+    # as_of two days after the capture (no capture ran on that date) → walks back.
+    chain = repo.fetch_put_chain_near_dte("TSLA", date(2026, 6, 26), 45)
+    assert chain is not None
+    assert chain["captured_on"] == captured
+    assert chain["expiry"] == near_expiry
+    assert chain["spot"] == Decimal("382.35")
+    strikes = {leg["strike"] for leg in chain["legs"]}
+    assert strikes == {Decimal("350"), Decimal("310")}  # far_expiry row excluded
+
+
+def test_fetch_put_chain_near_dte_none_when_nothing_captured(seeded_db_empty_cards):
+    repo = seeded_db_empty_cards
+    assert repo.fetch_put_chain_near_dte("NOSUCHTICK", date(2026, 6, 24), 45) is None
