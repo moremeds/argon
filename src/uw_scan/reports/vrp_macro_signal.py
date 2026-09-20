@@ -29,13 +29,21 @@ import logging
 from collections import defaultdict
 from dataclasses import dataclass
 from datetime import date as _date
+from datetime import datetime
 from math import sqrt
 from statistics import fmean, pstdev
 from typing import Any
+from zoneinfo import ZoneInfo
 
 from uw_scan.reports.vrp_macro_drawdown import _Loaded, load_index_vol
 from uw_scan.reports.vrp_macro_harvest import _settle
-from uw_scan.reports.vrp_structure import CostModel, build_bull_put_spread
+from uw_scan.reports.vrp_structure import (
+    BullPutSpread,
+    CostModel,
+    build_bull_put_spread,
+    legs_from_strike_ivs,
+    select_bull_put_spread,
+)
 
 log = logging.getLogger(__name__)
 
@@ -182,8 +190,19 @@ def backtest_laddered(
 @dataclass(frozen=True)
 class MacroSignal:
     """The actionable weekly readout. `action` is TRADE iff `weight > 0`; on SKIP the
-    structure fields are None. Strikes/credit/max_loss are flat-vol modeled (the real
-    put-skew credit is >= this), so treat `credit` as a conservative floor."""
+    structure fields are None.
+
+    `strike_basis` says how the strikes were obtained, and it is never silent:
+
+    - ``"listed_skew"`` — real listed strikes from the nightly
+      `vrp_macro_entry_grid`, each leg priced off its OWN captured IV.
+      `short_put_delta` / `long_put_delta` are then the deltas those strikes
+      ACTUALLY carry, and `expiry` / `strike_grid_date` name the grid used.
+    - ``"flat_vol_model"`` — no grid for this name (QQQ/IWM have none), so the
+      strikes come from inverting one flat ATM vol. Under put skew the wing
+      lands too shallow (its true delta is well above the target), so these are
+      modeled strikes, not tradeable listed ones; the deltas are None.
+    """
 
     name: str
     as_of: _date
@@ -202,6 +221,71 @@ class MacroSignal:
     hold_days: int
     short_delta: float
     wing_delta: float
+    short_put_delta: float | None = None
+    long_put_delta: float | None = None
+    strike_basis: str | None = None
+    strike_grid_date: _date | None = None
+    expiry: _date | None = None
+
+
+def _resolve_spread(
+    repo,
+    settings,
+    name: str,
+    cfg: MacroSignalConfig,
+    *,
+    spot: float,
+    iv: float,
+    as_of: _date,
+) -> tuple[BullPutSpread, dict[str, Any]]:
+    """Strikes for a TRADE, skew-aware when we have a real chain to read.
+
+    Preferred: the nightly `vrp_macro_entry_grid` (the same cache the entry-capture
+    path reads) supplies the listed strikes plus each strike's own IV → the legs
+    sit where the target deltas ACTUALLY are. Fallback: `build_bull_put_spread`,
+    one flat ATM vol, labeled `flat_vol_model` so nobody reads its wing as a
+    delta-true listed strike."""
+    r = settings.vrp_risk_free_rate
+    grid = repo.fetch_vrp_macro_entry_grid(name, as_of)
+    if grid and grid.get("strike_ivs"):
+        expiry = grid["chosen_expiry"]
+        T = max((expiry - as_of).days, 1) / 365.0
+        sel = select_bull_put_spread(
+            legs_from_strike_ivs(spot, T, r, grid["strike_ivs"]),
+            spot,
+            T,
+            r,
+            short_delta=cfg.short_delta,
+            wing_delta=cfg.wing_delta,
+        )
+        if sel is not None:
+            return sel.spread, {
+                "short_put_delta": sel.short_delta,
+                "long_put_delta": sel.wing_delta,
+                "strike_basis": "listed_skew",
+                "strike_grid_date": grid["for_date"],
+                "expiry": expiry,
+            }
+        log.warning(
+            "%s: strike grid %s could not bracket the wing — flat-vol fallback",
+            name,
+            grid.get("for_date"),
+        )
+    st = build_bull_put_spread(
+        spot,
+        iv,
+        cfg.hold_days / 252.0,
+        r,
+        short_delta=cfg.short_delta,
+        wing_delta=cfg.wing_delta,
+    )
+    return st, {
+        "short_put_delta": None,
+        "long_put_delta": None,
+        "strike_basis": "flat_vol_model",
+        "strike_grid_date": None,
+        "expiry": None,
+    }
 
 
 def current_macro_signal(
@@ -259,16 +343,10 @@ def current_macro_signal(
             put_width=None,
             **common,
         )
-    st = build_bull_put_spread(
-        spot,
-        iv,
-        cfg.hold_days / 252.0,
-        settings.vrp_risk_free_rate,
-        short_delta=cfg.short_delta,
-        wing_delta=cfg.wing_delta,
-    )
+    st, strikes = _resolve_spread(repo, settings, name, cfg, spot=spot, iv=iv, as_of=d)
     return MacroSignal(
         weight=w,
+        **strikes,
         action="TRADE",
         short_put=st.short_put,
         long_put=st.long_put,
@@ -354,16 +432,24 @@ def current_macro_signal_live(
             put_width=None,
             **common,
         )
-    st = build_bull_put_spread(
-        live_spot,
-        live_iv,
-        cfg.hold_days / 252.0,
-        settings.vrp_risk_free_rate,
-        short_delta=cfg.short_delta,
-        wing_delta=cfg.wing_delta,
+    st, strikes = _resolve_spread(
+        repo,
+        settings,
+        name,
+        cfg,
+        spot=live_spot,
+        iv=live_iv,
+        # Value the structure at the LIVE date: the grid lookup's staleness window
+        # and T both key off it. The EOD row's market_date can be several days back
+        # (a vol-data gap walks it back), which would price a stale, too-long T.
+        # Every statistical field above stays on eod["market_date"].
+        as_of=as_of
+        if as_of is not None
+        else datetime.now(ZoneInfo("America/New_York")).date(),
     )
     return MacroSignal(
         weight=weight,
+        **strikes,
         action="TRADE",
         short_put=st.short_put,
         long_put=st.long_put,

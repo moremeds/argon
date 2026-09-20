@@ -7,6 +7,42 @@ version in lockstep (enforced by `scripts/release/version_sync_check.py`).
 
 ## [Unreleased]
 
+### Fixed
+
+- **Short-Vol / VRP card: strikes now match the displayed delta.** A TRADE's bull
+  put spread was priced by inverting a single flat ATM IV (`vrp_structure.
+  strike_for_delta`), so the solved strike's real listed delta never matched the
+  target delta shown on the card — worse the further OTM (wing leg). Strikes are
+  now selected from the captured `option_surface_grid_daily` chain, nearest the
+  target delta by real vendor-reported delta (mirroring `theta_harvester`'s
+  chain-lookup pattern), and priced off each leg's own captured IV — strike and
+  delta agree by construction. Also fixes a silent cross-date bug where the
+  walk-back to the latest *usable-IV* `vrp_daily` row could price strikes off a
+  different day's IV than the spot passed in; the chain fetch now keys spot/IV/
+  strikes off one single captured snapshot date. New `Repository.
+  fetch_put_chain_near_dte`. A ticker with no captured chain now SKIPs
+  (`"no captured option chain"`) rather than falling back to the old model.
+  The same flat-vol inversion drove the SPX **Macro Short-Vol** card, which is
+  why it showed a wing ~140 points above the skew-aware wing in the entry
+  guidance directly below it (2026-09-18: the "0.125Δ" wing at 7228 really
+  carried 0.163Δ; 0.125Δ is at 7115). `current_macro_signal`/`_live` now resolve
+  strikes from the nightly `vrp_macro_entry_grid` through one shared selector
+  (`vrp_structure.select_bull_put_spread` + `legs_from_strike_ivs`, also used by
+  the single-name card): listed strikes, each leg priced off its own IV, and the
+  card shows the delta each strike ACTUALLY carries plus the expiry. New
+  `strike_basis` provenance (`listed_skew` | `flat_vol_model`) is persisted
+  (migration `150`) and surfaced in `VrpMacroSignalRow`; a name with no grid
+  (QQQ/IWM) still falls back to the flat-vol model but is now labeled as such on
+  the card, with its deltas null rather than untrue. The card tooltip no longer
+  claims the flat-vol credit is a conservative floor. The `bt_*` backtest columns
+  are unchanged — `backtest_laddered` remains flat-vol by design. The
+  single-name card now also shows the deltas the selected strikes actually carry
+  plus the expiry and the chain's capture date, and a captured chain older than
+  4 days, already expired, or carrying no captured spot now SKIPs instead of
+  being priced. The live SPX path values the grid at the live date rather than
+  the (possibly days-old) EOD row's date; every EOD statistical field is
+  unchanged.
+
 ## [0.13.8] — 2026-09-10
 
 

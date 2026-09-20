@@ -62,6 +62,28 @@ describe("ShortVolPanel", () => {
     expect(screen.getByText(/spot 382\.35/)).toBeTruthy();
   });
 
+  it("shows the deltas the selected strikes actually carry, plus expiry/chain", () => {
+    // targets are 0.25/0.125; the listed strikes picked actually carry 0.32/0.16
+    const sv = {
+      ...tradeSv,
+      short_put_delta: "0.32",
+      long_put_delta: "0.16",
+      chain_captured_on: "2026-06-24",
+      expiry: "2026-08-08",
+    };
+    render(<ShortVolPanel report={withShortVol(sv)} />);
+    expect(
+      screen.getByText(/Sell 360 \(0\.32Δ\) \/ buy 340 \(0\.16Δ\) put/),
+    ).toBeTruthy();
+    expect(
+      screen.getByText(/Expiry 2026-08-08 · chain 2026-06-24/),
+    ).toBeTruthy();
+    // the footer keeps the TARGET deltas
+    expect(
+      screen.getByText(/Bull put spread 0\.25Δ\/0\.125Δ · ~30d hold/),
+    ).toBeTruthy();
+  });
+
   it("renders SKIP with the reason and IV/RV", () => {
     render(<ShortVolPanel report={withShortVol(skipSv)} />);
     expect(screen.getByTestId("short-vol-action").textContent).toBe("SKIP");

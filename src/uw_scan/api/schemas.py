@@ -42,7 +42,11 @@ from .models.watchlist import (
 )
 from .models.watchlist import (
     WatchlistCard as WatchlistCard,
+)
+from .models.watchlist import (
     WatchlistChainInfo as WatchlistChainInfo,
+)
+from .models.watchlist import (
     WatchlistChainsResponse as WatchlistChainsResponse,
 )
 from .models.watchlist import (
@@ -411,8 +415,9 @@ class VrpHarvestResponse(BaseModel):
 
 class VrpMacroSignalRow(BaseModel):
     """Latest VRP macro short-vol signal for one index. action=TRADE iff weight>0
-    (ramp+ vrp-z sizing); strikes/credit/max_loss are flat-vol modeled (conservative
-    floor — real put skew pays more). Compare `as_of` to `snapshot_date` for staleness:
+    (ramp+ vrp-z sizing); `strike_basis` says whether the strikes are real listed
+    ones (per-leg IV) or flat-vol modeled — see the field comments below.
+    Compare `as_of` to `snapshot_date` for staleness:
     `as_of` is the vol-data date, `snapshot_date` is when the job ran."""
 
     name: str
@@ -438,6 +443,16 @@ class VrpMacroSignalRow(BaseModel):
     bt_maxdd: float | None = None
     bt_annror: float | None = None
     bt_calmar: float | None = None
+    # Strike provenance. strike_basis='listed_skew' → short_put/long_put are REAL
+    # listed strikes from the nightly grid, priced off each leg's own IV, and
+    # short_put_delta/long_put_delta are the deltas they ACTUALLY carry.
+    # 'flat_vol_model' → modeled strikes from one flat ATM vol (no grid for this
+    # name); the deltas are NULL rather than the untrue target deltas.
+    short_put_delta: float | None = None
+    long_put_delta: float | None = None
+    strike_basis: str | None = None
+    strike_grid_date: date | None = None
+    expiry: date | None = None
 
 
 class VrpMacroSignalResponse(BaseModel):

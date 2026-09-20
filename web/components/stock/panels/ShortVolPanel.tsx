@@ -56,12 +56,21 @@ export function ShortVolPanel({ report }: { report: Report }) {
   const color = trade ? "var(--positive)" : "var(--text-muted)";
   // weight is structurally pinned (1.0 on every TRADE, 0 on every SKIP), so it carries
   // no information — vrp_z is the real richness signal.
+  // short_put_delta/long_put_delta are the deltas the SELECTED listed strikes
+  // actually carry — show those next to the strikes; the footer keeps the target
+  // deltas the selection aimed at.
+  const actualDeltas = toNum(s.short_put_delta) != null;
   const reasons = trade
     ? [
         `vrp_z ${fmtDecimal(toNum(s.vrp_z), 2)}`,
-        `Sell ${fmtDecimal(toNum(s.short_put), 0)} / buy ${fmtDecimal(toNum(s.long_put), 0)} put`,
+        actualDeltas
+          ? `Sell ${fmtDecimal(toNum(s.short_put), 0)} (${fmtDecimal(toNum(s.short_put_delta), 2)}Δ) / buy ${fmtDecimal(toNum(s.long_put), 0)} (${fmtDecimal(toNum(s.long_put_delta), 2)}Δ) put`
+          : `Sell ${fmtDecimal(toNum(s.short_put), 0)} / buy ${fmtDecimal(toNum(s.long_put), 0)} put`,
+        s.expiry
+          ? `Expiry ${s.expiry} · chain ${s.chain_captured_on ?? "—"}`
+          : null,
         `Credit ${fmtDecimal(toNum(s.credit), 2)} · max loss ${fmtDecimal(toNum(s.max_loss), 2)} per spread`,
-      ]
+      ].filter((r): r is string => r !== null)
     : [
         `vrp_z ${fmtDecimal(toNum(s.vrp_z), 2)}`,
         `IV ${fmtPct(toNum(s.iv), 1)} / RV20 ${fmtPct(toNum(s.rv20), 1)}`,

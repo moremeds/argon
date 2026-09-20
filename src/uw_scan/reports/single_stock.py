@@ -412,9 +412,11 @@ def assemble_single_stock_report(
     )
 
     # Per-ticker short-vol readout (sell-premium TRADE/SKIP + modeled spread).
-    # Modeled off the EOD-close market_structure.spot (consistent with the EOD
-    # vrp_daily as_of + the card's "EOD SNAPSHOT" label); the router's
-    # _with_latest_spot only patches the header display spot, not this card.
+    # `spot` here only seeds the cheap usable-quote pre-check; a TRADE prices
+    # its legs off the captured option-chain snapshot's OWN spot/date (see
+    # stock_short_vol._select_bull_put_spread), so it can never disagree with
+    # its own strikes even though the router's _with_latest_spot only patches
+    # the header display spot, not this card (EOD basis by design).
     # Non-critical — never let it take down the page (cf. pipeline.py:94).
     try:
         short_vol = build_short_vol(

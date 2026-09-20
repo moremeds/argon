@@ -11,9 +11,14 @@ Design: docs/superpowers/plans/2026-06-22-vrp-tradable-condor-backtest.md
 
 from __future__ import annotations
 
+import logging
 import math
+from collections.abc import Iterable, Mapping
 from dataclasses import dataclass
 from statistics import NormalDist
+from typing import Any
+
+log = logging.getLogger(__name__)
 
 _N = NormalDist()  # standard normal; .cdf / .inv_cdf
 
@@ -203,6 +208,92 @@ def build_bull_put_spread(
     credit = sp_p - lp_p
     put_width = sp - lp
     return BullPutSpread(sp, lp, credit, put_width, put_width - credit, (sp_p, lp_p))
+
+
+@dataclass(frozen=True)
+class SelectedBullPutSpread:
+    """A bull put spread built from REAL listed strikes, with the deltas those
+    strikes actually carry — not the target deltas that were asked for."""
+
+    spread: BullPutSpread
+    short_delta: float  # actual |put delta| at the chosen short strike
+    wing_delta: float  # actual |put delta| at the chosen wing strike
+    short_iv: float
+    wing_iv: float
+
+
+def legs_from_strike_ivs(
+    spot: float, T: float, r: float, strike_ivs: Mapping[Any, Any]
+) -> list[tuple[float, float, float]]:
+    """{strike: iv} → sorted [(strike, iv, |put delta|)], each delta computed from
+    that strike's OWN iv (skew-aware). Keys may be str (jsonb) or numeric; strikes
+    or IVs that are non-positive / non-numeric are dropped."""
+    legs: list[tuple[float, float, float]] = []
+    for k, iv in strike_ivs.items():
+        try:
+            strike, sigma = float(k), float(iv)
+        except (TypeError, ValueError) as exc:
+            log.debug("dropping unparseable leg: %s", repr(exc))
+            continue
+        if strike <= 0 or sigma <= 0:
+            continue
+        legs.append(
+            (strike, sigma, -bs_delta(spot, strike, T, r, sigma, is_call=False))
+        )
+    legs.sort()
+    return legs
+
+
+def select_bull_put_spread(
+    legs: Iterable[tuple[float, float, float]],
+    spot: float,
+    T: float,
+    r: float,
+    *,
+    short_delta: float,
+    wing_delta: float,
+) -> SelectedBullPutSpread | None:
+    """Pick the listed put nearest `short_delta`, then — among strikes strictly
+    below it — the one nearest `wing_delta`; price both off their OWN IV.
+
+    `legs` is an iterable of (strike, iv, |put delta|). Pure; no DB. This is the
+    skew-aware alternative to `build_bull_put_spread`, which inverts ONE flat ATM
+    vol and therefore places the wing too shallow wherever put skew is real. None
+    when there are fewer than two usable legs, or no listed strike sits below the
+    chosen short leg.
+    """
+    usable: list[tuple[float, float, float]] = []
+    for k, iv, d in legs:
+        try:
+            strike, sigma, dmag = float(k), float(iv), abs(float(d))
+        except (TypeError, ValueError) as exc:
+            # a leg with a missing strike/iv/delta is simply not listed
+            log.debug("dropping unparseable leg: %s", repr(exc))
+            continue
+        if strike > 0 and sigma > 0:
+            usable.append((strike, sigma, dmag))
+    if len(usable) < 2:
+        return None
+    short_leg = min(usable, key=lambda leg: abs(leg[2] - short_delta))
+    wings = [leg for leg in usable if leg[0] < short_leg[0]]
+    if not wings:
+        return None
+    wing_leg = min(wings, key=lambda leg: abs(leg[2] - wing_delta))
+    sp, sp_iv, sp_d = short_leg
+    lp, lp_iv, lp_d = wing_leg
+    sp_p = bs_price(spot, sp, T, r, sp_iv, is_call=False)
+    lp_p = bs_price(spot, lp, T, r, lp_iv, is_call=False)
+    credit = sp_p - lp_p
+    put_width = sp - lp
+    return SelectedBullPutSpread(
+        spread=BullPutSpread(
+            sp, lp, credit, put_width, put_width - credit, (sp_p, lp_p)
+        ),
+        short_delta=sp_d,
+        wing_delta=lp_d,
+        short_iv=sp_iv,
+        wing_iv=lp_iv,
+    )
 
 
 @dataclass(frozen=True)

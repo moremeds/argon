@@ -35,6 +35,11 @@ _COLUMNS = (
     "bt_calmar",
     "config_jsonb",
     "basis",
+    "short_put_delta",
+    "long_put_delta",
+    "strike_basis",
+    "strike_grid_date",
+    "expiry",
 )
 
 
@@ -70,6 +75,11 @@ class _VrpMacroSignalMixin:
         bt_calmar: float | None,
         config: dict[str, Any] | None,
         basis: str = "eod",
+        short_put_delta: float | None = None,
+        long_put_delta: float | None = None,
+        strike_basis: str | None = None,
+        strike_grid_date: _date | None = None,
+        expiry: _date | None = None,
     ) -> None:
         """Insert/update the (name, snapshot_date, basis) signal snapshot. Idempotent —
         re-running same-day same-basis overwrites the row in place. `basis='eod'` is the
@@ -116,6 +126,11 @@ class _VrpMacroSignalMixin:
                     bt_calmar,
                     Jsonb(config) if config is not None else None,
                     basis,
+                    short_put_delta,
+                    long_put_delta,
+                    strike_basis,
+                    strike_grid_date,
+                    expiry,
                 ),
             )
 

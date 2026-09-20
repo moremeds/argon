@@ -100,6 +100,11 @@ def regime_live_scan_once(
                 bt_calmar=None,
                 config=None,
                 basis="live",
+                short_put_delta=sig.short_put_delta,
+                long_put_delta=sig.long_put_delta,
+                strike_basis=sig.strike_basis,
+                strike_grid_date=sig.strike_grid_date,
+                expiry=sig.expiry,
             )
             repo.conn.commit()
             vrp_status = "ok"
