@@ -17,6 +17,8 @@ VCG is **descriptive**, not predictive: it does not forecast crashes the way CRI
 
 VCG is also **regime-state**, not point-in-time: a single day's z is noisy. The label (`NORMAL`, `WATCH`, `EDR`, `RISK_OFF`, `BOUNCE`, `PANIC`, `SUPPRESSED`) is what matters; the underlying continuous score is sidecar context.
 
+> **Forward-return positioning** (added 2026-05-28 per `vcg-forward-return-probes-2026-05-28.md`): **VCG stress states should not be interpreted as bearish forward-return signals.** Historically, PANIC and RISK_OFF days have positive mean forward SPX returns at 20d and 60d respectively — they mark *coincident vol-stress capitulation*, not future drawdowns. Do not sell on VCG stress. Do not use VCG alone as a drawdown warning. See §6.8 for the empirical probe results and §6.9 for the BOUNCE caveat.
+
 ## 2. Mathematical specification
 
 ### 2.1 Rolling regression
@@ -299,6 +301,40 @@ The 21-day OLS is in *trading* days, not calendar days. Holidays change the back
 ### 6.7 HYG dividend noise — partially mitigated, not eliminated
 
 `COALESCE(adj_close, close)` handles the dividend-adjusted price, but adj_close itself depends on the data vendor's adjustment. Subtle differences between vendor adjustments can produce small residual spikes around HYG ex-dividend dates. This is observable in the daily payload but does not (in V1) propagate to interpretation labels because the per-day spikes are typically smaller than the `VCG_TRIGGER = 2.0` threshold.
+
+### 6.8 Stress states are coincident capitulation, not forward-bearish (added 2026-05-28)
+
+The 13-probe forward-return analysis (full note: `vcg-forward-return-probes-2026-05-28.md`) on `run_id=31` (4,710 days, 18.5yr at COMPOSITE_VERSION=2) found:
+
+| Label | n | mean fwd 5d | mean fwd 20d | mean fwd 60d | win% 20d | win% 60d |
+|---|---|---|---|---|---|---|
+| PANIC | 83 | +0.2% | **+2.88%** | +2.29% | 53.0% | 41.0% |
+| RISK_OFF | 133 | +0.2% | +0.15% | **+3.04%** | 67.7% | 74.4% |
+| NORMAL | 2,070 | — | +0.80% | +2.51% | 66.1% | 73.3% |
+| BOUNCE | 5 | — | −1.89% | −8.15% | 60.0% | 20.0% |
+
+**Interpretation:**
+- PANIC mean +2.88% / 20d is *tail-driven*: median +0.34%, p10 −8.82%, p90 +17.66%. Real positive expected value but extreme variance — not a small-stakes hit-rate edge.
+- RISK_OFF 60d return is statistically indistinguishable from NORMAL baseline drift (+3.04 vs +2.51, n=133).
+- BOUNCE n=5 is too small and dominated by 2008 GFC days — see §6.9.
+
+**Trading implication:**
+- Treat PANIC as a *high-variance stress-dip-buy candidate*, not a sell signal.
+- Treat RISK_OFF as *not adding bearish information* at trade horizons ≥ 20d.
+- For drawdown warning, pair VCG with **leading** signals (term-structure, dealer-gamma, credit canaries). VCG ∩ CRI is "lagged + lagged" and adds no forward edge — Probe 13E confirmed credit-led events that VCG misses do not draw down forward.
+
+**Slow-grind drawdowns:** Probe 5 found 80.7% of "SPX −10% from 60d high" days were `NORMAL` / `SUPPRESSED` in v2. Worst `SUPPRESSED` drawdown reached −26.5%. VCG is not designed to detect price drawdowns without vol stress; this is a coverage gap that motivates a *separate* price-regime overlay rather than a VCG math change (see `vcg-roadmap-2026-05-28.md`).
+
+### 6.9 BOUNCE is not a validated forward-rebound signal (added 2026-05-28)
+
+The `BOUNCE` label fires at `vcg < −3.5` (the strict negative-z tail; see §6.5). In the v2 backtest, n=5 distinct BOUNCE days exist over 18.5 years, of which two are 2008 GFC dates (the Lehman day itself + Bear Stearns aftermath; see §6.3 for the Lehman ±5d window where day 0 = BOUNCE). Mean forward 60d return is −8.15%, dominated by these two GFC dates.
+
+**Reading discipline:**
+- BOUNCE is *not* a reliable "post-crisis rebound" signal at v2.
+- Treat as a *crisis-transition diagnostic* — the regression coefficients flipping into a stress-aligned configuration mid-event — not as a trade direction.
+- Do not pitch BOUNCE as "buy the bottom" in any product surface; the n is too small and the sample too era-specific.
+
+A future revision could rename the label (e.g. `POST_STRESS_TRANSITION`) to remove the misleading "rebound" framing, but the math should not change before more independent BOUNCE-class events accumulate.
 
 ## 7. Version history
 
