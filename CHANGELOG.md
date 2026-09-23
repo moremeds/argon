@@ -19,8 +19,18 @@ version in lockstep (enforced by `scripts/release/version_sync_check.py`).
   only the observation `reported_period` names, as FRED's first print (an ALFRED vintage window
   opening on the release date), and leaves the row unfilled until that exact period is
   published. A recapture after `scheduled_at` no longer overwrites the stored `forecast`/`prior`,
-  so the consensus stays the one the release was measured against. The feature is off by
-  default (`UW_SCAN_MACRO_RELEASE_CALENDAR_ENABLED`).
+  so the consensus stays the one the release was measured against. The flag defaults off but is
+  on on the mini (`UW_SCAN_MACRO_RELEASE_CALENDAR_ENABLED=1`); none of its 38 rows had an actual
+  filled yet, so no wrong value reached prod.
+- **September 2026 dot plot ingests again.** The SEP parser read "one of these 18 participants
+  did not submit projections for 2028 and 2029" as an abstention for 2028 only, so 2029 expected
+  18 dots against the 17 published and the nightly `macro_sep_ingest` rejected the whole
+  2026-09-16 release every night from 2026-09-17 (`macro_source_status` degraded, 7 consecutive
+  failures). The abstention grammar now accepts a list of horizons, and the dot plot no longer
+  blocks a release at all: a missing or unreadable Figure 2, or a prose/dot participant-count
+  disagreement, is recorded in the observation's `dot_plot_audit` while Table 1 (medians, ranges)
+  is persisted. Participants may stop submitting dots and the Fed may drop Figure 2 entirely. The
+  real September page and PDF are frozen as fixtures.
 
 ## [0.13.9] — 2026-09-21
 

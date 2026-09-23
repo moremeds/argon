@@ -119,7 +119,9 @@ def test_sep_rejects_missing_required_tables() -> None:
         parse_sep_release(_bundle(accessible_bytes=malformed))
 
 
-def test_sep_rejects_inconsistent_participant_totals() -> None:
+def test_sep_records_a_prose_dot_count_disagreement_without_rejecting() -> None:
+    """From 2026 the Chair submits no dots, so a count disagreement is audited,
+    never a reason to drop the release's Table 1."""
     soup = BeautifulSoup(
         (FIXTURES / "fed_sep_2026_06.html").read_bytes(), "html.parser"
     )
@@ -131,8 +133,10 @@ def test_sep_rejects_inconsistent_participant_totals() -> None:
     )
     row_3625.find_all(["th", "td"])[1].string = "7"
 
-    with pytest.raises(NormalizationError, match="participant total"):
-        parse_sep_release(_bundle(accessible_bytes=soup.encode("utf-8")))
+    release = parse_sep_release(_bundle(accessible_bytes=soup.encode("utf-8")))
+
+    assert _policy(release, "2026").median == Decimal("3.8")
+    assert any("participant total" in note for note in release.dot_plot_audit)
 
 
 def test_sep_discovers_exact_2020_golden_candidates_from_meeting_markers() -> None:
@@ -374,6 +378,7 @@ _HISTORICAL = {
     "fed_sep_2020_12": (date(2020, 12, 16), "fomcprojtabl20201216"),
     "fed_sep_2023_03": (date(2023, 3, 22), "fomcprojtabl20230322"),
     "fed_sep_2026_03": (date(2026, 3, 18), "fomcprojtabl20260318"),
+    "fed_sep_2026_09": (date(2026, 9, 16), "fomcprojtabl20260916"),
 }
 
 
@@ -543,7 +548,7 @@ def test_sep_rejects_partially_blank_projection_cells() -> None:
         )
 
 
-def test_sep_rejects_unknown_non_empty_dot_cell() -> None:
+def test_sep_unreadable_dot_table_keeps_table_1_without_dots() -> None:
     soup = BeautifulSoup(
         (FIXTURES / "fed_sep_2026_03.html").read_bytes(), "html.parser"
     )
@@ -555,14 +560,35 @@ def test_sep_rejects_unknown_non_empty_dot_cell() -> None:
     )
     dot_table.find_all("tr")[1].find_all(["th", "td"])[1].string = "n/a"
 
-    with pytest.raises(NormalizationError, match="dot count"):
-        parse_sep_release(
-            _historical_bundle("fed_sep_2026_03", accessible_bytes=soup.encode("utf-8"))
-        )
+    release = parse_sep_release(
+        _historical_bundle("fed_sep_2026_03", accessible_bytes=soup.encode("utf-8"))
+    )
+
+    assert all(not item.participant_distribution for item in release.projections)
+    assert _horizons(release) == ["2026", "2027", "2028", "Longer run"]
+    assert any("dot count" in note for note in release.dot_plot_audit)
 
 
-def test_sep_requires_prose_total_to_match_this_release_meeting() -> None:
-    """June 2026 also states March's total; only its own may be enforced."""
+def test_sep_without_a_dot_plot_still_persists_table_1() -> None:
+    """The Fed may drop Figure 2 altogether; the medians must still land."""
+    soup = BeautifulSoup(
+        (FIXTURES / "fed_sep_2026_09.html").read_bytes(), "html.parser"
+    )
+    for heading in soup.find_all(["h3", "h4", "h5", "h6"]):
+        if heading.get_text(" ", strip=True).startswith("Figure 2."):
+            heading.string = "Figure withdrawn"
+
+    release = parse_sep_release(
+        _historical_bundle("fed_sep_2026_09", accessible_bytes=soup.encode("utf-8"))
+    )
+
+    assert _horizons(release) == ["2026", "2027", "2028", "2029", "Longer run"]
+    assert all(not item.participant_distribution for item in release.projections)
+    assert release.dot_plot_audit == ("Figure 2 dot table not published",)
+
+
+def test_sep_audits_prose_total_against_this_release_meeting() -> None:
+    """June 2026 also states March's total; only its own is compared."""
     raw = (
         (FIXTURES / "fed_sep_2026_06.html")
         .read_bytes()
@@ -576,8 +602,11 @@ def test_sep_requires_prose_total_to_match_this_release_meeting() -> None:
     )
     assert b"Seventeen participants" in raw
 
-    with pytest.raises(NormalizationError, match="participant total"):
-        parse_sep_release(_bundle(accessible_bytes=raw))
+    release = parse_sep_release(_bundle(accessible_bytes=raw))
+
+    assert "SEP 2026 participant total 18 != 17" in release.dot_plot_audit
+    # The untouched page compares against June's own 18, not March's total.
+    assert parse_sep_release(_bundle()).dot_plot_audit == ()
 
 
 def test_sep_abstention_survives_a_sentence_break_after_the_declaration() -> None:
@@ -600,19 +629,40 @@ def test_sep_abstention_survives_a_sentence_break_after_the_declaration() -> Non
     assert _dot_total(release, "2028") == 17
 
 
-def test_sep_rejects_an_abstention_citing_another_release_total() -> None:
+def test_sep_abstention_naming_several_horizons_reduces_each_of_them() -> None:
+    """September 2026: "one of these 18 participants did not submit projections
+    for 2028 and 2029".  Reading only the first year left 2029 expecting 18
+    dots against the 17 published, and every nightly ingest rejected the
+    release from 2026-09-17 on."""
+    release = parse_sep_release(_historical_bundle("fed_sep_2026_09"))
+
+    assert release.prose_total_declared is True
+    assert _horizons(release) == ["2026", "2027", "2028", "2029", "Longer run"]
+    assert release.dot_plot_audit == ()
+    assert {h: _dot_total(release, h) for h in _horizons(release)} == {
+        "2026": 18,
+        "2027": 18,
+        "2028": 17,
+        "2029": 17,
+        "Longer run": 18,
+    }
+
+
+def test_sep_audits_an_abstention_citing_another_release_total() -> None:
     raw = (
         (FIXTURES / "fed_sep_2026_06.html")
         .read_bytes()
         .replace(b"one of these 18 participants", b"one of these 19 participants")
     )
 
-    with pytest.raises(NormalizationError, match="abstention cites 19"):
-        parse_sep_release(_bundle(accessible_bytes=raw))
+    release = parse_sep_release(_bundle(accessible_bytes=raw))
+
+    assert release.prose_total_declared is False
+    assert any("abstention cites 19" in note for note in release.dot_plot_audit)
 
 
-def test_sep_rejects_an_unreadable_participant_declaration() -> None:
-    """A declaration the grammar cannot read must fail, not disable the check."""
+def test_sep_audits_an_unreadable_participant_declaration() -> None:
+    """A declaration the grammar cannot read is recorded, not silently dropped."""
     raw = (
         (FIXTURES / "fed_sep_2026_06.html")
         .read_bytes()
@@ -622,8 +672,9 @@ def test_sep_rejects_an_unreadable_participant_declaration() -> None:
         )
     )
 
-    with pytest.raises(NormalizationError, match="cannot read"):
-        parse_sep_release(_bundle(accessible_bytes=raw))
+    release = parse_sep_release(_bundle(accessible_bytes=raw))
+
+    assert any("cannot read" in note for note in release.dot_plot_audit)
 
 
 def test_sep_ignores_the_restated_prior_release_rows() -> None:

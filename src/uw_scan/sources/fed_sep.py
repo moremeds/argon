@@ -103,6 +103,11 @@ class SepRelease:
     #: archive pages do not, so the Figure 2 dot table is the primary count and
     #: the prose is an independent cross-check only when it is published.
     prose_total_declared: bool = False
+    #: Why the dot distribution is absent or disagrees with the prose.  The dot
+    #: plot never blocks a release: participants may stop submitting dots and
+    #: the Fed may drop Figure 2 entirely, so Table 1 is persisted either way
+    #: and each dot-side problem is kept here as a durable audit trace.
+    dot_plot_audit: tuple[str, ...] = ()
 
     @property
     def timezone_label_matches_calendar(self) -> bool:
@@ -169,28 +174,12 @@ def parse_sep_release(bundle: SepSourceBundle) -> SepRelease:
     soup = BeautifulSoup(raw, "html.parser")
 
     projections = parse_summary_table(find_summary_table(soup))
-    distributions = parse_dot_table(find_dot_table(soup))
-
     policy_horizons = tuple(
         item.horizon for item in projections if item.variable == "federal_funds_rate"
     )
-    if tuple(distributions) != policy_horizons:
-        raise NormalizationError(
-            "SEP Figure 2 horizons do not match the published policy horizons: "
-            f"{list(distributions)} != {list(policy_horizons)}"
-        )
-
-    declared_totals = prose_participant_totals(
-        soup, meeting_date=bundle.meeting_date, horizons=policy_horizons
+    distributions, declared_totals, audit = _dot_distributions(
+        soup, meeting_date=bundle.meeting_date, policy_horizons=policy_horizons
     )
-    if declared_totals is not None:
-        for horizon, points in distributions.items():
-            actual_total = sum(point.participant_count for point in points)
-            expected_total = declared_totals[horizon]
-            if actual_total != expected_total:
-                raise NormalizationError(
-                    f"SEP {horizon} participant total {actual_total} != {expected_total}"
-                )
 
     output = tuple(
         SepProjection(
@@ -224,7 +213,57 @@ def parse_sep_release(bundle: SepSourceBundle) -> SepRelease:
         declared_timezone=stamp.declared_timezone,
         calendar_timezone=stamp.calendar_timezone,
         prose_total_declared=declared_totals is not None,
+        dot_plot_audit=audit,
     )
+
+
+def _dot_distributions(
+    soup: BeautifulSoup, *, meeting_date: date, policy_horizons: tuple[str, ...]
+) -> tuple[
+    dict[str, tuple[SepDistributionPoint, ...]], dict[str, int] | None, tuple[str, ...]
+]:
+    """Figure 2 per horizon, the prose totals, and every dot-side problem.
+
+    Nothing here raises: a missing or unreadable dot plot yields no
+    distributions, and a prose/dot count disagreement is recorded rather than
+    rejecting a release whose Table 1 parsed.
+    """
+    audit: list[str] = []
+    table = find_dot_table(soup)
+    distributions: dict[str, tuple[SepDistributionPoint, ...]] = {}
+    if table is None:
+        audit.append("Figure 2 dot table not published")
+    else:
+        try:
+            distributions = parse_dot_table(table)
+        except NormalizationError as exc:
+            audit.append(f"Figure 2 unreadable: {repr(exc)}")
+    if distributions and tuple(distributions) != policy_horizons:
+        audit.append(
+            "Figure 2 horizons differ from Table 1: "
+            f"{list(distributions)} != {list(policy_horizons)}"
+        )
+
+    try:
+        declared_totals = prose_participant_totals(
+            soup, meeting_date=meeting_date, horizons=policy_horizons
+        )
+    except NormalizationError as exc:
+        audit.append(f"prose participant total unreadable: {repr(exc)}")
+        declared_totals = None
+    if declared_totals is not None:
+        for horizon, points in distributions.items():
+            if horizon not in declared_totals:
+                continue
+            actual_total = sum(point.participant_count for point in points)
+            if actual_total != declared_totals[horizon]:
+                audit.append(
+                    f"SEP {horizon} participant total {actual_total} != "
+                    f"{declared_totals[horizon]}"
+                )
+    for note in audit:
+        logger.warning("fed_sep %s: %s", meeting_date.isoformat(), note)
+    return distributions, declared_totals, tuple(audit)
 
 
 def _artifact(

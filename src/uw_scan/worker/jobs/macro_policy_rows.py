@@ -114,6 +114,10 @@ def _sep_observation(
         "declared_timezone": release.declared_timezone,
         "calendar_timezone": release.calendar_timezone,
     }
+    # Only when non-empty, so releases without a dot-side problem keep their
+    # existing observation value byte-for-byte.
+    if release.dot_plot_audit:
+        value["dot_plot_audit"] = list(release.dot_plot_audit)
     return _observation_base(
         artifact_id=artifact_id,
         artifact=artifact,
