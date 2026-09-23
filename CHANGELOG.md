@@ -25,8 +25,11 @@ version in lockstep (enforced by `scripts/release/version_sync_check.py`).
   did not submit projections for 2028 and 2029" as an abstention for 2028 only, so 2029 expected
   18 dots against the 17 published and the nightly `macro_sep_ingest` rejected the whole
   2026-09-16 release every night from 2026-09-17 (`macro_source_status` degraded, 7 consecutive
-  failures). The abstention grammar now accepts a list of horizons. The real September page and
-  PDF are frozen as fixtures. The release lands on the first nightly run after deploy.
+  failures). The abstention grammar now accepts a list of horizons, and the dot plot no longer
+  blocks a release at all: a missing or unreadable Figure 2, or a prose/dot participant-count
+  disagreement, is recorded in the observation's `dot_plot_audit` while Table 1 (medians, ranges)
+  is persisted. Participants may stop submitting dots and the Fed may drop Figure 2 entirely. The
+  real September page and PDF are frozen as fixtures.
 
 ## [0.13.9] — 2026-09-21
 

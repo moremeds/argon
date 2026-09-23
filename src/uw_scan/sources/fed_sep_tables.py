@@ -13,8 +13,8 @@ a relaxed selector:
   always use U+002D, so ranges are matched against an anchored numeric grammar
   instead of split on a dash;
 * only one page in the archive states participant totals in prose, so the
-  Figure 2 dot table is the primary count source and prose is a cross-check
-  that is enforced only when it names this release's own meeting.
+  Figure 2 dot table is the only count source and prose is an audit
+  cross-check read only when it names this release's own meeting.
 """
 
 from __future__ import annotations
@@ -122,11 +122,9 @@ def find_summary_table(soup: BeautifulSoup) -> Tag:
     raise NormalizationError("SEP Table 1 table is missing")
 
 
-def find_dot_table(soup: BeautifulSoup) -> Tag:
-    table = _find_table(soup, heading_prefix=DOT_HEADING_PREFIX)
-    if table is None:
-        raise NormalizationError("SEP Figure 2 table is missing")
-    return table
+def find_dot_table(soup: BeautifulSoup) -> Tag | None:
+    """Figure 2, or None when the release publishes no dot plot."""
+    return _find_table(soup, heading_prefix=DOT_HEADING_PREFIX)
 
 
 def _find_table(soup: BeautifulSoup, *, heading_prefix: str) -> Tag | None:
