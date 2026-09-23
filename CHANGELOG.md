@@ -14,6 +14,13 @@ version in lockstep (enforced by `scripts/release/version_sync_check.py`).
   external volume, and `~/projects/argon` on the mini became a symlink onto one that day. Both
   backup plists now log to `~/Library/Logs/`, and the nightly job runs from `$HOME`, since it
   does not read the repo. Re-render the plist on the mini to pick this up.
+- **Release calendar actuals are point-in-time.** `fill_actuals` filled every release with FRED's
+  newest observation, so a late run or backfill recorded a later period's value. It now fills
+  only the observation `reported_period` names, as FRED's first print (an ALFRED vintage window
+  opening on the release date), and leaves the row unfilled until that exact period is
+  published. A recapture after `scheduled_at` no longer overwrites the stored `forecast`/`prior`,
+  so the consensus stays the one the release was measured against. The feature is off by
+  default (`UW_SCAN_MACRO_RELEASE_CALENDAR_ENABLED`).
 
 ## [0.13.9] — 2026-09-21
 

@@ -5,7 +5,7 @@ revision detection is keyed off the first-recorded actual, never the latest.
 
 from __future__ import annotations
 
-from datetime import UTC, datetime
+from datetime import UTC, datetime, timedelta
 from decimal import Decimal
 
 from uw_scan.storage.macro_release_calendar import MacroReleaseCalendarRepository
@@ -36,15 +36,32 @@ def test_capture_replay_reports_zero_new_rows(seeded_db_empty_cards):
     assert repo.upsert_captured_rows([_captured_row()]) == 0
 
 
-def test_capture_replay_refreshes_forecast_in_place(seeded_db_empty_cards):
+def test_capture_replay_refreshes_forecast_before_the_print(seeded_db_empty_cards):
     repo = _repo(seeded_db_empty_cards)
-    repo.upsert_captured_rows([_captured_row(forecast="4.3%")])
-    repo.upsert_captured_rows([_captured_row(forecast="4.4%")])
+    # Relative to the DB clock: a fixed date here would date-bomb the moment
+    # it passes, since post-release forecasts freeze.
+    upcoming = datetime.now(UTC).replace(microsecond=0) + timedelta(days=30)
+    repo.upsert_captured_rows([_captured_row(scheduled_at=upcoming, forecast="4.3%")])
+    repo.upsert_captured_rows([_captured_row(scheduled_at=upcoming, forecast="4.4%")])
+
+    [row] = repo.week(start=upcoming, end=upcoming + timedelta(seconds=1))
+    assert row["forecast"] == "4.4%"
+
+
+def test_capture_after_the_print_keeps_the_pre_release_consensus(
+    seeded_db_empty_cards,
+):
+    """A recapture after `scheduled_at` (UW revising prior/forecast post-
+    release) must not overwrite the consensus the release was measured
+    against."""
+    repo = _repo(seeded_db_empty_cards)
+    repo.upsert_captured_rows([_captured_row(forecast="4.3%", prior="4.2%")])
+    repo.upsert_captured_rows([_captured_row(forecast="4.4%", prior="4.1%")])
 
     [row] = repo.week(
         start=datetime(2026, 9, 1, tzinfo=UTC), end=datetime(2026, 9, 8, tzinfo=UTC)
     )
-    assert row["forecast"] == "4.4%"
+    assert (row["forecast"], row["prior"]) == ("4.3%", "4.2%")
 
 
 def test_unfilled_mapped_only_returns_known_events_before_the_cutoff(
