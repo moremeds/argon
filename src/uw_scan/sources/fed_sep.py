@@ -237,7 +237,7 @@ def _dot_distributions(
         try:
             distributions = parse_dot_table(table)
         except NormalizationError as exc:
-            audit.append(f"Figure 2 unreadable: {exc}")
+            audit.append(f"Figure 2 unreadable: {repr(exc)}")
     if distributions and tuple(distributions) != policy_horizons:
         audit.append(
             "Figure 2 horizons differ from Table 1: "
@@ -249,7 +249,7 @@ def _dot_distributions(
             soup, meeting_date=meeting_date, horizons=policy_horizons
         )
     except NormalizationError as exc:
-        audit.append(f"prose participant total unreadable: {exc}")
+        audit.append(f"prose participant total unreadable: {repr(exc)}")
         declared_totals = None
     if declared_totals is not None:
         for horizon, points in distributions.items():
