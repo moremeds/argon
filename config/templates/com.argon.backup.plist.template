@@ -13,7 +13,7 @@
     </array>
 
     <key>WorkingDirectory</key>
-    <string>__PROJECT_DIR__</string>
+    <string>/Users/__USER__</string>
 
     <key>EnvironmentVariables</key>
     <dict>
@@ -34,10 +34,12 @@
     <key>RunAtLoad</key>
     <false/>
 
+    <!-- launchd cannot open a Standard*Path on an external volume (exit 78 EX_CONFIG,
+         the job never starts), and the project dir may live on one. Keep logs on the boot disk. -->
     <key>StandardOutPath</key>
-    <string>__PROJECT_DIR__/logs/backup.out.log</string>
+    <string>/Users/__USER__/Library/Logs/com.argon.backup.out.log</string>
 
     <key>StandardErrorPath</key>
-    <string>__PROJECT_DIR__/logs/backup.err.log</string>
+    <string>/Users/__USER__/Library/Logs/com.argon.backup.err.log</string>
 </dict>
 </plist>

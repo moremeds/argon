@@ -36,10 +36,12 @@
     <key>RunAtLoad</key>
     <false/>
 
+    <!-- launchd cannot open a Standard*Path on an external volume (exit 78 EX_CONFIG,
+         the job never starts), and the project dir may live on one. Keep logs on the boot disk. -->
     <key>StandardOutPath</key>
-    <string>__PROJECT_DIR__/logs/backup-r2.out.log</string>
+    <string>/Users/__USER__/Library/Logs/com.argon.backup-r2.out.log</string>
 
     <key>StandardErrorPath</key>
-    <string>__PROJECT_DIR__/logs/backup-r2.err.log</string>
+    <string>/Users/__USER__/Library/Logs/com.argon.backup-r2.err.log</string>
 </dict>
 </plist>
