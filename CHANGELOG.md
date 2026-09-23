@@ -7,6 +7,9 @@ version in lockstep (enforced by `scripts/release/version_sync_check.py`).
 
 ## [Unreleased]
 
+## [0.13.10] — 2026-09-23
+
+
 ### Fixed
 
 - **Nightly Postgres backup runs again.** `com.argon.backup` had not produced a dump since
@@ -31,7 +34,6 @@ version in lockstep (enforced by `scripts/release/version_sync_check.py`).
   disagreement, is recorded in the observation's `dot_plot_audit` while Table 1 (medians, ranges)
   is persisted. Participants may stop submitting dots and the Fed may drop Figure 2 entirely. The
   real September page and PDF are frozen as fixtures.
-
 ## [0.13.9] — 2026-09-21
 
 
