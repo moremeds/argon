@@ -6,8 +6,10 @@ domain) -- not composed into `Repository`.
 Two disjoint write paths on the same row:
 
 - `upsert_captured_rows` (the UW capture job) owns event/type/reported_period/
-  forecast/prior -- UW's own fields, safe to overwrite on every capture since
-  UW may correct a forecast before the print.
+  forecast/prior -- UW's own fields. forecast/prior refresh on every capture
+  BEFORE the print (UW may correct a forecast) and freeze once `scheduled_at`
+  has passed, so the stored consensus is the one the release was measured
+  against, not a post-release revision.
 - `fill_actual` (the FRED enrichment job) owns series_id/actual/
   actual_first_seen/revision/published_at exclusively. A capture replay must
   never touch these -- there is no re-derivation of a published actual from a
@@ -44,8 +46,12 @@ class MacroReleaseCalendarRepository:
             ON CONFLICT (event, scheduled_at) DO UPDATE SET
                  type            = EXCLUDED.type,
                  reported_period = EXCLUDED.reported_period,
-                 forecast        = EXCLUDED.forecast,
-                 prior           = EXCLUDED.prior,
+                 forecast        = CASE WHEN now() < {table}.scheduled_at
+                                        THEN EXCLUDED.forecast
+                                        ELSE {table}.forecast END,
+                 prior           = CASE WHEN now() < {table}.scheduled_at
+                                        THEN EXCLUDED.prior
+                                        ELSE {table}.prior END,
                  captured_at     = now()
               RETURNING (xmax = 0) AS inserted
         """

@@ -126,8 +126,13 @@ class FredProvider:
         *,
         start: date | None = None,
         end: date | None = None,
+        realtime_start: date | None = None,
+        realtime_end: date | None = None,
     ) -> list[FredObservation]:
-        """Fetch observations from the official FRED JSON API."""
+        """Fetch observations from the official FRED JSON API. Omitting
+        ``realtime_start``/``realtime_end`` returns only the current vintage;
+        passing them selects an ALFRED vintage window (one row per value an
+        observation held inside it)."""
         if not self._api_key:
             raise RuntimeError("FRED API key is required for JSON observations")
         params: dict[str, Any] = {
@@ -139,6 +144,10 @@ class FredProvider:
             params["observation_start"] = start.isoformat()
         if end is not None:
             params["observation_end"] = end.isoformat()
+        if realtime_start is not None:
+            params["realtime_start"] = realtime_start.isoformat()
+        if realtime_end is not None:
+            params["realtime_end"] = realtime_end.isoformat()
         response = self._get_with_telemetry(
             self._api_base_url,
             self.API_ENDPOINT_PATH,
