@@ -124,3 +124,19 @@ def test_services_list_matches_template_set() -> None:
         f"  missing from services.list: {sorted(expected - set(labels))}\n"
         f"  extra in services.list: {sorted(set(labels) - expected)}"
     )
+
+
+@pytest.mark.parametrize(
+    "template_name",
+    ["com.argon.backup.plist.template", "com.argon.backup-r2.plist.template"],
+)
+def test_backup_logs_stay_on_boot_disk(template_name: str) -> None:
+    """launchd exits 78 (EX_CONFIG) without starting the job when a Standard*Path
+    sits on an external volume, and the project dir may be one (it is on the mini)."""
+    root = ET.fromstring((TEMPLATES_DIR / template_name).read_text())
+    plist_dict = root.find("dict")
+    assert plist_dict is not None
+    keys = list(plist_dict)
+    for i, el in enumerate(keys):
+        if el.tag == "key" and el.text in ("StandardOutPath", "StandardErrorPath"):
+            assert (keys[i + 1].text or "").startswith("/Users/__USER__/Library/Logs/")

@@ -7,6 +7,14 @@ version in lockstep (enforced by `scripts/release/version_sync_check.py`).
 
 ## [Unreleased]
 
+### Fixed
+
+- **Nightly Postgres backup runs again.** `com.argon.backup` had not produced a dump since
+  2026-07-23: launchd exits 78 (EX_CONFIG) without starting a job whose log file sits on an
+  external volume, and `~/projects/argon` on the mini became a symlink onto one that day. Both
+  backup plists now log to `~/Library/Logs/`, and the nightly job runs from `$HOME`, since it
+  does not read the repo. Re-render the plist on the mini to pick this up.
+
 ## [0.13.9] — 2026-09-21
 
 
