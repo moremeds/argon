@@ -9,6 +9,7 @@ domain state (no confidence score, no evidence chain, no composite).
 from __future__ import annotations
 
 import logging
+from calendar import month_name
 from datetime import UTC, date, datetime, timedelta
 
 from uw_scan.models import MacroReleaseCalendarResponse, MacroReleaseRow
@@ -25,6 +26,9 @@ logger = logging.getLogger(__name__)
 EVENT_SERIES_MAP: dict[str, str] = {
     "unemployment rate": "UNRATE",
 }
+
+
+_MONTHS: dict[str, int] = {name.lower(): i for i, name in enumerate(month_name) if name}
 
 
 def week_bounds(week_start: date) -> tuple[datetime, datetime]:
@@ -66,11 +70,8 @@ def _target_obs_date(reported_period: str, scheduled_at: datetime) -> date | Non
     own month (a December print released in January is the prior year's).
     Anything that isn't a bare English month name, or that names the
     release's own month, returns None -- unfilled, never guessed."""
-    try:
-        month = datetime.strptime(reported_period.strip(), "%B").month
-    except ValueError:
-        return None
-    if month == scheduled_at.month:
+    month = _MONTHS.get(reported_period.strip().lower())
+    if month is None or month == scheduled_at.month:
         return None
     year = scheduled_at.year if month < scheduled_at.month else scheduled_at.year - 1
     return date(year, month, 1)
