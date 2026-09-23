@@ -374,6 +374,7 @@ _HISTORICAL = {
     "fed_sep_2020_12": (date(2020, 12, 16), "fomcprojtabl20201216"),
     "fed_sep_2023_03": (date(2023, 3, 22), "fomcprojtabl20230322"),
     "fed_sep_2026_03": (date(2026, 3, 18), "fomcprojtabl20260318"),
+    "fed_sep_2026_09": (date(2026, 9, 16), "fomcprojtabl20260916"),
 }
 
 
@@ -598,6 +599,24 @@ def test_sep_abstention_survives_a_sentence_break_after_the_declaration() -> Non
 
     assert release.prose_total_declared is True
     assert _dot_total(release, "2028") == 17
+
+
+def test_sep_abstention_naming_several_horizons_reduces_each_of_them() -> None:
+    """September 2026: "one of these 18 participants did not submit projections
+    for 2028 and 2029".  Reading only the first year left 2029 expecting 18
+    dots against the 17 published, and every nightly ingest rejected the
+    release from 2026-09-17 on."""
+    release = parse_sep_release(_historical_bundle("fed_sep_2026_09"))
+
+    assert release.prose_total_declared is True
+    assert _horizons(release) == ["2026", "2027", "2028", "2029", "Longer run"]
+    assert {h: _dot_total(release, h) for h in _horizons(release)} == {
+        "2026": 18,
+        "2027": 18,
+        "2028": 17,
+        "2029": 17,
+        "Longer run": 18,
+    }
 
 
 def test_sep_rejects_an_abstention_citing_another_release_total() -> None:

@@ -50,11 +50,15 @@ _DECLARATION_RE: Final = re.compile(
     r"([A-Za-z]+|\d+) participants submitted information in conjunction with the "
     r"([A-Z][a-z]+) (\d{1,2})[–-](\d{1,2}), (\d{4}), meeting",
 )
+_HORIZON: Final = r"(?:\d{4}|the longer run)"
+#: The horizon list may name several ("for 2028 and 2029", September 2026); each
+#: named horizon loses the abstainers, so the whole list is captured and split.
 _ABSTENTION_RE: Final = re.compile(
     r"([A-Za-z]+|\d+) of these (\d+) participants did not submit projections for "
-    r"(\d{4}|the longer run)",
+    rf"({_HORIZON}(?:(?:,\s*|,?\s+and\s+){_HORIZON})*)",
     flags=re.IGNORECASE,
 )
+_HORIZON_RE: Final = re.compile(_HORIZON, flags=re.IGNORECASE)
 #: The count declaration always reads "<count> participants submitted information".
 #: The unrelated boilerplate "meeting participants submitted their projections of the
 #: most likely outcomes" carries no count, so the fail-closed detector keys on the
@@ -297,7 +301,7 @@ def prose_participant_totals(
         # next period: the publisher joins them with either "." or ";", so a
         # sentence slice either drops them or runs on into another release's.
         end = matches[index + 1].start() if index + 1 < len(matches) else len(text)
-        for raw_count, raw_total, raw_horizon in _ABSTENTION_RE.findall(
+        for raw_count, raw_total, raw_horizons in _ABSTENTION_RE.findall(
             text[match.end() : end]
         ):
             if _integer_word(raw_total) != total:
@@ -305,14 +309,17 @@ def prose_participant_totals(
                     f"SEP abstention cites {raw_total} participants but this "
                     f"release declares {total}"
                 )
-            horizon = (
-                LONGER_RUN if raw_horizon.lower() == "the longer run" else raw_horizon
-            )
-            if horizon not in totals:
-                raise NormalizationError(
-                    f"SEP abstention names an unpublished horizon {horizon!r}"
+            for raw_horizon in _HORIZON_RE.findall(raw_horizons):
+                horizon = (
+                    LONGER_RUN
+                    if raw_horizon.lower() == "the longer run"
+                    else raw_horizon
                 )
-            totals[horizon] -= _integer_word(raw_count)
+                if horizon not in totals:
+                    raise NormalizationError(
+                        f"SEP abstention names an unpublished horizon {horizon!r}"
+                    )
+                totals[horizon] -= _integer_word(raw_count)
         return totals
     if _DECLARATION_HINT_RE.search(text):
         raise NormalizationError(
