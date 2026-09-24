@@ -7,10 +7,12 @@ version in lockstep (enforced by `scripts/release/version_sync_check.py`).
 
 ## [Unreleased]
 
+## [0.13.11] — 2026-09-24
+
+
 ### Fixed
 
 - **VRP lookahead: UW's `realized_volatility` is forward RV.** Its value at `t` is the 21-return window over returns t..t+20 (verified exactly on AAPL/KO/NVDA/SPY), yet `vrp_daily.rv/vrp/vrp_z_20`, the matrix-state `vrp_state`/`vrp_zscore_60d/252d`, and the cockpit VRP chart all read it as a time-t value. RV is now always trailing 21d from `daily_ohlc` closes (massive, split-adjusted; UW's own `price` is raw across some splits; SPX, which has no `daily_ohlc`, falls back to UW's price) via `cards/vol_series.trailing_rv` and its SQL twin in `fetch_matrix_realized_vol_history`, and `single_stock` no longer falls back to UW's RV. `scripts/backfill_vrp_daily.py` now deletes and rebuilds all `vrp_daily` history. On the local DB the VRP-harvest RICH verdict drops from HARVEST_SELLABLE to NONE for single_name, index_macro and sector_etf (credit survives, n=129), and sellable sectors drop from 36/37 to 4/36, so the short-vol TRADE gate closes for most names once prod recomputes. `2026-07-07-flow-vs-rviv-verdict` is marked invalid. Evidence: `docs/research/2026-09-24-uw-rv-forward-lookahead/`.
-
 ## [0.13.10] — 2026-09-23
 
 ### Fixed
