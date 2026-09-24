@@ -14,6 +14,21 @@ from uw_scan.worker.volatility_jobs import (
 )
 
 
+def _seed_closes(repo, ticker: str, rows: list[RealizedVolRow]) -> None:
+    # The rollup derives RV from daily_ohlc (massive, split-adjusted), not UW.
+    for r in rows:
+        repo.upsert_daily_ohlc(
+            ticker=ticker,
+            date=r.date,
+            open=None,
+            high=None,
+            low=None,
+            close=r.price,
+            volume=None,
+            source="massive.com",
+        )
+
+
 def test_daily_spy_ohlc_refresh_writes_today(seeded_db_empty_cards, monkeypatch):
     repo = seeded_db_empty_cards
     today = date.today()
@@ -62,6 +77,7 @@ def test_nightly_vol_analytics_rollup_persists_for_watchlist_tickers(
         for i in range(60)
     ]
     repo.upsert_realized_vol_rows("TSLA", rv_rows)
+    _seed_closes(repo, "TSLA", rv_rows)
 
     spy_bars = [
         OhlcBar(
@@ -82,6 +98,8 @@ def test_nightly_vol_analytics_rollup_persists_for_watchlist_tickers(
 
     vrp = repo.fetch_vrp_daily_series("TSLA", limit=100)
     assert len(vrp) > 0
+    # UW's 0.40 is FORWARD RV — it must never land in vrp_daily.rv.
+    assert all(r["rv"] != Decimal("0.40") for r in vrp)
     stock_an = repo.fetch_stock_analytics_series("TSLA", limit=100)
     assert len(stock_an) > 0
 
@@ -89,10 +107,10 @@ def test_nightly_vol_analytics_rollup_persists_for_watchlist_tickers(
 def test_nightly_vol_analytics_rollup_fills_rv_when_uw_rv_null(
     seeded_db_with_cards,
 ):
-    """Regression: UW's realized_volatility column trails for weeks (stored
-    NULL). That made vrp = iv - rv NaN and silently froze vrp_daily for ~90% of
-    the watchlist (2026-05-22 onward). The rollup must fill RV from the fresh
-    price column so vrp_daily is still written."""
+    """Regression: UW's realized_volatility is NULL for its last ~20 rows (it is
+    forward RV). That once froze vrp_daily for ~90% of the watchlist (2026-05-22
+    onward). The rollup derives trailing RV from daily_ohlc, so vrp_daily is
+    still written."""
     repo = seeded_db_with_cards
 
     today = date.today()
@@ -108,6 +126,7 @@ def test_nightly_vol_analytics_rollup_fills_rv_when_uw_rv_null(
         for i in range(60)
     ]
     repo.upsert_realized_vol_rows("TSLA", rv_rows)
+    _seed_closes(repo, "TSLA", rv_rows)
     repo.conn.commit()
 
     nightly_vol_analytics_rollup(repo=repo)

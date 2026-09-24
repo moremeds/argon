@@ -1392,7 +1392,7 @@ REGISTRY.extend(
                 "DERIVED, not UW-retention: reports/volatility_series.py builds "
                 "it from greeks_by_expiry_strike via build_iv_smile_snapshot_rows "
                 "inside run_volatility_backfill (NOT the nightly vol rollup — "
-                "that imports only _fill_rv_from_price / persist_stock_analytics "
+                "that imports only persist_stock_analytics "
                 "/ persist_vrp_daily). Cascades off greeks_by_expiry_strike; "
                 "wired in Task 7. 700,540 rows, newest 2026-08-16 — live, not "
                 "legacy."

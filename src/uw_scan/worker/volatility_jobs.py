@@ -48,26 +48,32 @@ def daily_spy_ohlc_refresh(
     log.info("daily_spy_ohlc_refresh: upserted %d rows", len(bars))
 
 
-def nightly_vol_analytics_rollup(*, repo: Repository) -> None:
+def _closes(repo: Repository, ticker: str, days: int) -> list[tuple]:
+    # daily_ohlc (massive) is split-adjusted; `days` calendar days > trading rows.
+    return [
+        (r.date, float(r.close))
+        for r in repo.list_daily_ohlc(ticker, limit=days)
+        if r.close is not None
+    ]
+
+
+def nightly_vol_analytics_rollup(*, repo: Repository, days: int = 365) -> None:
     cards = repo.list_watchlist_cards()
     tickers = [c.ticker for c in cards]
     spy_history = repo.fetch_index_ohlc_series("SPY")
     # Inline import — avoids circular at module load (worker → reports → worker).
     from uw_scan.reports.volatility_series import (
-        _fill_rv_from_price,
         persist_stock_analytics,
         persist_vrp_daily,
     )
 
     for ticker in tickers:
-        rv_history = repo.fetch_realized_vol_history(ticker, days=365)
+        rv_history = repo.fetch_realized_vol_history(ticker, days=days)
         if not rv_history:
             continue
-        # UW's realized_volatility column trails by weeks (null since ~2026-05-22),
-        # which made vrp = iv - rv NaN and silently froze vrp_daily for ~90% of the
-        # watchlist. Fill RV from the fresh price column — same convention the report
-        # read-path (volatility_series) already uses — before deriving VRP.
-        rv_history = _fill_rv_from_price(rv_history)
+        # UW's realized_volatility is FORWARD RV (window t..t+20) — lookahead as a
+        # time-t value. Replace it with trailing RV from split-adjusted closes.
+        rv_history = vol_series.trailing_rv(rv_history, _closes(repo, ticker, days))
         vrp_df = vol_series.compute_vrp_series(rv_history)
         iv_of_iv_df = vol_series.compute_iv_of_iv(rv_history)
         rvol_df = vol_series.compute_rvol_and_percentile(

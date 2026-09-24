@@ -9,10 +9,49 @@ from __future__ import annotations
 
 import logging
 import math
+from collections.abc import Sequence
+from datetime import date
 
+import numpy as np
 import pandas as pd
 
 log = logging.getLogger(__name__)
+
+
+def trailing_rv(
+    rv_rows: list[dict], closes: Sequence[tuple[date, float]], *, window: int = 21
+) -> list[dict]:
+    """Replace `realized_volatility` with TRAILING RV from split-adjusted closes.
+
+    UW's `realized_volatility` at market_date t is FORWARD-looking: the 21-return
+    window over returns t..t+20 (verified 2026-09-24, MAE 0.0000 on AAPL/KO/NVDA/
+    SPY). Its last ~20 rows are null because that future has not happened yet.
+    Read as a time-t value it is lookahead, so it is never used here: every row
+    gets the 21d annualized stdev of log returns ending at t, or None.
+
+    `closes` is the ticker's `daily_ohlc` (massive, split-adjusted) series. UW's
+    own `price` column is NOT usable: it is raw across some splits (KLAC reads
+    2411.64 the day before its 10:1 split, CRWD drops 494 → 165) but adjusted
+    across others. Dates without a close get None. A ticker with no closes at
+    all (SPX: massive serves no index bars) falls back to UW's `price`, which is
+    safe there because indexes have no splits.
+
+    Returns a NEW list of dicts; input is not mutated.
+    """
+    if not closes:
+        closes = [
+            (r["market_date"], float(r["price"]))
+            for r in rv_rows
+            if r.get("price") is not None
+        ]
+    px = pd.Series(dict(closes), dtype=float).sort_index()
+    px = px.where(px > 0)
+    rv = (np.log(px).diff().rolling(window, min_periods=window).std()) * math.sqrt(252)
+    by_day = rv.dropna().to_dict()
+    out = [dict(r) for r in rv_rows]
+    for r in out:
+        r["realized_volatility"] = by_day.get(r["market_date"])
+    return out
 
 
 def compute_vrp_series(

@@ -20,7 +20,7 @@ tests/
 │   └── worker/     # job runners end-to-end
 ├── live/           # hits the real UW API; needs UW_SCAN_API_KEY
 │   └── test_uw_smoke.py, test_flow_tab_live.py
-└── test_*.py       # a few legacy standalone module tests (test_smile_trim.py, test_fill_rv_from_price.py) — new tests go in the tree above
+└── test_*.py       # a few legacy standalone module tests (test_smile_trim.py) — new tests go in the tree above
 
 ## Rules
 

@@ -16,6 +16,18 @@ from uw_scan.models import (
     TermStructureRow,
 )
 
+# Real SPY closes (massive daily_ohlc), the 60 sessions ending 2026-05-15, frozen
+# as of 2026-09-24, laid onto the fixture's 60 day slots and rescaled so the last
+# close is 100 (the fixture's strike grid). The matrix reads TRAILING RV from
+# daily_ohlc — scale-invariant — so without closes RV would be null.
+_SPY_RAW = [
+    Decimal(p)
+    for p in "689.43, 682.39, 687.35, 693.15, 689.3, 685.99, 686.38, 680.33, 685.13, 681.31, 672.38, 678.27, 677.18, 676.33, 666.06, 662.29, 669.03, 670.79, 661.43, 659.8, 648.57, 655.38, 653.18, 656.82, 645.09, 634.09, 631.97, 650.34, 655.24, 655.83, 658.93, 659.22, 676.01, 679.91, 679.46, 686.1, 694.46, 699.94, 701.66, 710.14, 708.72, 704.08, 711.21, 708.45, 713.94, 715.17, 711.69, 711.58, 718.66, 720.65, 718.01, 723.77, 733.83, 731.58, 737.62, 739.3, 738.18, 742.31, 748.17, 739.17".split(
+        ", "
+    )
+]
+SPY_CLOSES = [p * 100 / _SPY_RAW[-1] for p in _SPY_RAW]
+
 
 def test_matrix_state_builds_and_persists_from_source_tables(seeded_db_empty_cards):
     repo = seeded_db_empty_cards
@@ -237,6 +249,13 @@ def _seed_matrix_sources(repo, *, ticker: str, market_date: date, greeks: bool =
             )
         ],
     )
+    with repo.conn.cursor() as cur:
+        for i, close in enumerate(SPY_CLOSES):
+            cur.execute(
+                f"INSERT INTO {repo._schema}.daily_ohlc (ticker, date, close, source) "
+                "VALUES (%s, %s, %s, 'massive.com')",
+                (ticker, market_date - timedelta(days=59 - i), close),
+            )
     repo.upsert_realized_vol_rows(
         ticker,
         [

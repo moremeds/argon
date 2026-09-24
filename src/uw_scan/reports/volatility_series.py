@@ -8,7 +8,6 @@ backfill routine that pulls UW source data on first request.
 from __future__ import annotations
 
 import logging
-import math
 from datetime import date as _date
 from decimal import Decimal
 from typing import Any
@@ -46,41 +45,6 @@ log = logging.getLogger(__name__)
 
 
 # ----------------------------- helpers --------------------------------------
-
-
-def _fill_rv_from_price(rv_rows: list[dict], *, window: int = 21) -> list[dict]:
-    """Where UW lacks realized_volatility, derive it from the price column.
-
-    UW's RV endpoint commonly trails by several weeks. The price column is
-    fully populated, so we can compute 21d annualized stdev of log returns
-    locally — same convention as compute_rvol_and_percentile — and use it
-    to fill the gap. Does not overwrite UW's own RV when present (UW values
-    are authoritative; this is only fallback).
-
-    Returns a NEW list of dicts; input is not mutated.
-    """
-    if not rv_rows:
-        return list(rv_rows)
-    out = [dict(r) for r in rv_rows]
-    prices = [
-        float(r["price"]) if r.get("price") is not None else float("nan") for r in out
-    ]
-    # Daily log returns, rolling 21d stdev × sqrt(252).
-    log_rets: list[float] = [float("nan")]
-    for i in range(1, len(prices)):
-        prev, curr = prices[i - 1], prices[i]
-        if prev > 0 and curr > 0:
-            log_rets.append(math.log(curr / prev))
-        else:
-            log_rets.append(float("nan"))
-    s = pd.Series(log_rets)
-    rolling_std = s.rolling(window, min_periods=window).std() * math.sqrt(252)
-    for i, r in enumerate(out):
-        if r.get("realized_volatility") is None:
-            v = rolling_std.iloc[i]
-            if pd.notna(v):
-                r["realized_volatility"] = float(v)
-    return out
 
 
 def _dec(v: Any) -> Decimal | None:
@@ -390,7 +354,14 @@ def assemble_volatility_series(
     header = _build_header(repo, ticker)
     today = _date.today()
 
-    rv_history = _fill_rv_from_price(repo.fetch_realized_vol_history(ticker, days=365))
+    rv_history = vol_series.trailing_rv(
+        repo.fetch_realized_vol_history(ticker, days=365),
+        [
+            (r.date, float(r.close))
+            for r in repo.list_daily_ohlc(ticker, limit=400)
+            if r.close is not None
+        ],
+    )
     spy_history = repo.fetch_index_ohlc_series("SPY")
 
     hv_iv = [

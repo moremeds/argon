@@ -170,7 +170,6 @@ def build_volatility_profile(
     repo: Repository, run_id: int, ticker: str
 ) -> VolatilityProfile:
     vol_stats = repo.fetch_volatility_stats_latest(ticker) or {}
-    realized = repo.fetch_realized_vol_latest(ticker) or {}
     interp = repo.fetch_interpolated_iv_30d(run_id, ticker) or {}
     skew = repo.fetch_skew_latest(ticker) or {}
     term = repo.fetch_iv_term_rows(run_id, ticker)
@@ -187,8 +186,7 @@ def build_volatility_profile(
         iv_rank=_to_decimal(vol_stats.get("iv_rank")),
         iv_low_52w=_to_decimal(vol_stats.get("iv_low")),
         iv_high_52w=_to_decimal(vol_stats.get("iv_high")),
-        rv=_to_decimal(vol_stats.get("rv"))
-        or _to_decimal(realized.get("realized_volatility")),
+        rv=_to_decimal(vol_stats.get("rv")),
         rv_low_52w=_to_decimal(vol_stats.get("rv_low")),
         rv_high_52w=_to_decimal(vol_stats.get("rv_high")),
         # iv_rank from /volatility/stats is empirically equal to iv_rank_1y from
