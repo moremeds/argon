@@ -78,7 +78,7 @@ def forward_realized_vol(
 ) -> float | None:
     """Annualized realized vol over the POSITIONAL window [i, i+horizon] from a
     (already-adjusted) price series — sample stdev (ddof=1) of daily log returns
-    × sqrt(252). Matches reports/volatility_series.py::_fill_rv_from_price (pandas
+    × sqrt(252). Matches cards/vol_series.py::trailing_rv (pandas
     .rolling().std() is ddof=1) so it is unit-consistent with vrp_daily's IV−RV.
     None if the window runs past the tail or any price is non-positive.
 

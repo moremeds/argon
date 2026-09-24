@@ -7,8 +7,11 @@ version in lockstep (enforced by `scripts/release/version_sync_check.py`).
 
 ## [Unreleased]
 
-## [0.13.10] — 2026-09-23
+### Fixed
 
+- **VRP lookahead: UW's `realized_volatility` is forward RV.** Its value at `t` is the 21-return window over returns t..t+20 (verified exactly on AAPL/KO/NVDA/SPY), yet `vrp_daily.rv/vrp/vrp_z_20`, the matrix-state `vrp_state`/`vrp_zscore_60d/252d`, and the cockpit VRP chart all read it as a time-t value. RV is now always trailing 21d from `daily_ohlc` closes (massive, split-adjusted; UW's own `price` is raw across some splits; SPX, which has no `daily_ohlc`, falls back to UW's price) via `cards/vol_series.trailing_rv` and its SQL twin in `fetch_matrix_realized_vol_history`, and `single_stock` no longer falls back to UW's RV. `scripts/backfill_vrp_daily.py` now deletes and rebuilds all `vrp_daily` history. On the local DB the VRP-harvest RICH verdict drops from HARVEST_SELLABLE to NONE for single_name, index_macro and sector_etf (credit survives, n=129), and sellable sectors drop from 36/37 to 4/36, so the short-vol TRADE gate closes for most names once prod recomputes. `2026-07-07-flow-vs-rviv-verdict` is marked invalid. Evidence: `docs/research/2026-09-24-uw-rv-forward-lookahead/`.
+
+## [0.13.10] — 2026-09-23
 
 ### Fixed
 
@@ -34,23 +37,23 @@ version in lockstep (enforced by `scripts/release/version_sync_check.py`).
   disagreement, is recorded in the observation's `dot_plot_audit` while Table 1 (medians, ranges)
   is persisted. Participants may stop submitting dots and the Fed may drop Figure 2 entirely. The
   real September page and PDF are frozen as fixtures.
-## [0.13.9] — 2026-09-21
 
+## [0.13.9] — 2026-09-21
 
 ### Fixed
 
 - **Short-Vol / VRP card: strikes now match the displayed delta.** A TRADE's bull
   put spread was priced by inverting a single flat ATM IV (`vrp_structure.
-  strike_for_delta`), so the solved strike's real listed delta never matched the
+strike_for_delta`), so the solved strike's real listed delta never matched the
   target delta shown on the card — worse the further OTM (wing leg). Strikes are
   now selected from the captured `option_surface_grid_daily` chain, nearest the
   target delta by real vendor-reported delta (mirroring `theta_harvester`'s
   chain-lookup pattern), and priced off each leg's own captured IV — strike and
   delta agree by construction. Also fixes a silent cross-date bug where the
-  walk-back to the latest *usable-IV* `vrp_daily` row could price strikes off a
+  walk-back to the latest _usable-IV_ `vrp_daily` row could price strikes off a
   different day's IV than the spot passed in; the chain fetch now keys spot/IV/
   strikes off one single captured snapshot date. New `Repository.
-  fetch_put_chain_near_dte`. A ticker with no captured chain now SKIPs
+fetch_put_chain_near_dte`. A ticker with no captured chain now SKIPs
   (`"no captured option chain"`) rather than falling back to the old model.
   The same flat-vol inversion drove the SPX **Macro Short-Vol** card, which is
   why it showed a wing ~140 points above the skew-aware wing in the entry
@@ -72,8 +75,8 @@ version in lockstep (enforced by `scripts/release/version_sync_check.py`).
   being priced. The live SPX path values the grid at the live date rather than
   the (possibly days-old) EOD row's date; every EOD statistical field is
   unchanged.
-## [0.13.8] — 2026-09-10
 
+## [0.13.8] — 2026-09-10
 
 ### Added
 
@@ -85,6 +88,7 @@ version in lockstep (enforced by `scripts/release/version_sync_check.py`).
   `actual`/`series_id` null is the coverage statement for every unmapped
   event, never a fabricated number. Gated off by default
   (`UW_SCAN_MACRO_RELEASE_CALENDAR_ENABLED`); 1 UW call/day on uw-0.
+
 ## [0.13.7] — 2026-09-08
 
 ### Changed

@@ -182,16 +182,49 @@ class _MatrixStateMixin:
     def fetch_matrix_realized_vol_history(
         self, *, ticker: str, market_date: _date, days: int = 90
     ) -> list[dict[str, Any]]:
+        # UW's stored realized_volatility is FORWARD RV (window t..t+20) — lookahead
+        # as a time-t value — so it is never read. `realized_volatility` here is
+        # TRAILING 21d RV over daily_ohlc closes (massive, split-adjusted; UW's own
+        # price is raw across some splits), the SQL twin of
+        # cards.vol_series.trailing_rv. The close scan reaches 45 extra calendar
+        # days back so the first requested row already has 21 returns behind it.
+        # A ticker with no daily_ohlc at all (SPX: massive serves no index bars)
+        # falls back to UW's price — still trailing; indexes have no splits.
         sql = (
-            f"SELECT market_date, price, implied_volatility, realized_volatility "
-            f"FROM {self._schema}.realized_volatility_history "
-            "WHERE ticker = %s "
-            "  AND market_date <= %s "
-            "  AND market_date >= (%s::date - (%s || ' days')::interval) "
-            "ORDER BY market_date ASC"
+            "SELECT h.market_date, h.price, h.implied_volatility, "
+            "  o.realized_volatility "
+            f"FROM {self._schema}.realized_volatility_history h "
+            "LEFT JOIN ("
+            "  SELECT date, "
+            "    CASE WHEN count(r) OVER w = 21 "
+            "         THEN stddev_samp(r) OVER w * sqrt(252::numeric) END "
+            "      AS realized_volatility "
+            "  FROM ("
+            "    SELECT date, "
+            "      CASE WHEN close > 0 AND lag(close) OVER (ORDER BY date) > 0 "
+            "           THEN ln(close / lag(close) OVER (ORDER BY date)) END AS r "
+            "    FROM ("
+            f"      SELECT date, close FROM {self._schema}.daily_ohlc "
+            "      WHERE ticker = %s AND date <= %s "
+            "        AND date >= (%s::date - ((%s + 45) || ' days')::interval)"
+            "      UNION ALL "
+            f"      SELECT market_date, price FROM {self._schema}.realized_volatility_history "
+            "      WHERE ticker = %s AND market_date <= %s "
+            "        AND market_date >= (%s::date - ((%s + 45) || ' days')::interval)"
+            f"        AND NOT EXISTS (SELECT 1 FROM {self._schema}.daily_ohlc WHERE ticker = %s)"
+            "    ) c"
+            "  ) x "
+            "  WINDOW w AS (ORDER BY date ROWS BETWEEN 20 PRECEDING AND CURRENT ROW)"
+            ") o ON o.date = h.market_date "
+            "WHERE h.ticker = %s "
+            "  AND h.market_date <= %s "
+            "  AND h.market_date >= (%s::date - (%s || ' days')::interval) "
+            "ORDER BY h.market_date ASC"
         )
+        w = (ticker, market_date, market_date, days)
+        params = (*w, *w, ticker, *w)
         with self._conn.cursor() as cur:
-            cur.execute(sql, (ticker, market_date, market_date, days))
+            cur.execute(sql, params)
             cols = [d.name for d in cur.description or []]
             return [dict(zip(cols, row, strict=False)) for row in cur.fetchall()]
 

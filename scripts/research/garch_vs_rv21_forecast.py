@@ -4,7 +4,7 @@
 WHY
 ---
 argon's VRP is ``vrp = iv - rv`` where ``rv`` is a *trailing 21d* realized vol
-(``reports/volatility_series.py::_fill_rv_from_price``, window=21). The IV leg
+(``cards/vol_series.py::trailing_rv``, window=21). The IV leg
 looks ~30d FORWARD. That is a horizon mismatch: a backward window cannot know
 that a vol spike mean-reverts, so ``vrp`` is mechanically depressed right after
 any vol burst.

@@ -3,11 +3,14 @@ active watchlist by invoking the fixed nightly vol-analytics rollup once.
 
 Recovers the 2026-05-22+ vrp_daily freeze: UW's realized_volatility column went
 null, which made vrp = iv - rv NaN, so persist_vrp_daily wrote nothing for ~90%
-of the watchlist. The rollup now fills RV from the fresh price column
-(_fill_rv_from_price). This runner just calls the rollup — it reads
-realized_volatility_history + SPY OHLC from the DB and upserts vrp_daily.
+of the watchlist. The rollup now derives trailing RV from daily_ohlc closes
+(cards/vol_series.trailing_rv) — UW's own value is forward RV. This runner calls the rollup; it reads
+realized_volatility_history + daily_ohlc from the DB and upserts vrp_daily.
 
-Pure DB->DB: ZERO UW/massive calls. Idempotent (upserts) — safe to re-run, and
+2026-09-24: also the lookahead repair — deletes every vrp_daily row, then rebuilds
+all history with trailing RV.
+
+Pure DB->DB: ZERO UW/massive calls. Idempotent (delete + rebuild) — safe to re-run, and
 the nightly 18:00 ET cron will keep it fresh going forward.
 
 Reproduce (targets whatever .env.local points at — for the mini that is
@@ -34,7 +37,13 @@ def main() -> None:
     settings = Settings.from_env()
     with psycopg.connect(settings.db_dsn()) as conn:
         repo = Repository(conn, schema=settings.db_schema)
-        nightly_vol_analytics_rollup(repo=repo)
+        # Full rebuild, one transaction (the rollup commits once at the end): rows
+        # the rollup cannot re-derive — the first 21 sessions of each series, and
+        # tickers no longer on the watchlist — would otherwise keep the old
+        # forward-RV values.
+        with conn.cursor() as cur:
+            cur.execute(f"DELETE FROM {settings.db_schema}.vrp_daily")
+        nightly_vol_analytics_rollup(repo=repo, days=3650)
 
 
 if __name__ == "__main__":

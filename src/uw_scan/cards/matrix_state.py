@@ -611,10 +611,10 @@ def _latest_implied_move_pct(rows: list[dict], market_date: date) -> Decimal | N
 
 
 def _latest_rv_30d(rows: list[dict], market_date: date) -> Decimal | None:
-    # UW returns realized_volatility as NULL for the most recent ~3 days
-    # (RV is a backward-looking aggregate). Walk back to the latest non-null
-    # RV value at or before market_date so derived state fields don't all
-    # silently go null on the day the snapshot is run.
+    # rows' realized_volatility is trailing RV from daily_ohlc closes
+    # (fetch_matrix_realized_vol_history), null where no close has landed.
+    # Walk back to the latest non-null value at or before market_date so derived
+    # state fields don't all go null when today's close has not landed yet.
     for row in reversed(rows):
         if row.get("market_date") is None or row["market_date"] > market_date:
             continue
@@ -719,8 +719,7 @@ def _vrp_values(
     iv_rows: list[dict], rv_rows: list[dict], market_date: date, *, window: int
 ) -> tuple[Decimal | None, Decimal | None]:
     series = _joined_vrp_series(iv_rows, rv_rows)
-    # UW's RV endpoint returns null for the most recent ~3 days, so the
-    # joined IV-RV series typically has no row for today. Use the latest
+    # Today's row may lack a price (so no trailing RV) or an IV. Use the latest
     # point at-or-before market_date instead of requiring exact match.
     current = next(
         (value for day, value in reversed(series) if day <= market_date), None

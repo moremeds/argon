@@ -19,5 +19,5 @@ The seam between **DB rows** and **API response models**. Routers call assembler
 - **Persist outputs.** Anything labeled "analytical result" (regime, VRP, vol rollups) is written back to Postgres in the same call — see the standing feedback memory. Returning data without persisting is a regression.
 - **Filter expiries to `year_end = date(today.year + 1, 12, 31)`** for term structure / smile (covers the rest of this year + all of next; matches the front-end legend).
 - **Cap smile points** to `±35%` of spot (`_clip_smile_to_spot_range`) before trimming flat wings — see `_build_smile`.
-- **Fill RV from price** when UW's `realized-volatility` endpoint returns nulls — `_fill_rv_from_price(rv_rows, window=21)`.
+- **RV is always trailing, from `daily_ohlc` closes** (massive, split-adjusted — UW's own `price` is raw across some splits) — `cards/vol_series.trailing_rv(rv_rows, closes, window=21)`. Never read UW's `realized_volatility` as a time-t value: it is FORWARD RV (returns t..t+20), i.e. lookahead.
 - **Emit `cutoff_corr`** from `_build_regime_quadrant` so the frontend draws its divider at the classifier's actual cutoff, not a hardcoded 0.5.
