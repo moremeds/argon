@@ -14,40 +14,10 @@ export function deviationColor(cls: string): string {
   return "var(--info)";
 }
 
-function leanColor(lean: string): string {
-  if (lean === "BULLISH_TILT") return "var(--positive)";
-  if (lean === "BEARISH_TILT") return "var(--negative)";
-  return "var(--text-muted)";
-}
-
-function leanLabel(lean: string): string {
-  if (lean === "BULLISH_TILT") return "BULLISH";
-  if (lean === "BEARISH_TILT") return "BEARISH";
-  return "NEUTRAL";
-}
-
 function rvLabel(cls: string): string {
   if (cls === "RICH") return "FADE / FINANCE";
   if (cls === "CHEAP") return "OWN OPTIONALITY";
   return "NO EDGE";
-}
-
-// A gated-lean basis is always "validated — <clause>; <clause>". Lift the
-// leading "validated" status into a right-aligned badge on the confidence row,
-// and break the reason at its semicolon into two readable lines. NEUTRAL bases
-// are plain reason strings (some of which contain " — "), so the badge triggers
-// only on the literal "validated — " prefix — those render as a single line.
-function parseEvidenceBasis(basis: string): {
-  status: string | null;
-  lines: string[];
-} {
-  const prefix = "validated — ";
-  if (!basis.startsWith(prefix)) return { status: null, lines: [basis] };
-  const rest = basis.slice(prefix.length).trim();
-  const semi = rest.indexOf("; ");
-  const lines =
-    semi >= 0 ? [rest.slice(0, semi + 1), rest.slice(semi + 2)] : [rest];
-  return { status: "validated", lines };
 }
 
 const labelStyle: React.CSSProperties = {
@@ -132,7 +102,7 @@ function Row({
   );
 }
 
-function EvidenceRow({ label, value }: { label: string; value: string }) {
+function ContextRow({ label, value }: { label: string; value: string }) {
   return (
     <div
       style={{
@@ -152,69 +122,15 @@ function EvidenceRow({ label, value }: { label: string; value: string }) {
   );
 }
 
-function StructureDetail({
-  detail,
-}: {
-  detail: NonNullable<
-    SkewAnalysisResponse["read"]["directional_lean"]["structure_detail"]
-  >;
-}) {
-  if (detail.status !== "ready" || !detail.legs?.length) return null;
-  return (
-    <div
-      data-testid="skew-structure-detail"
-      style={{
-        borderTop: "1px solid var(--border-dim, var(--line-grid))",
-        marginTop: "8px",
-        paddingTop: "8px",
-      }}
-    >
-      <div style={{ ...labelStyle, marginBottom: "6px" }}>
-        Structure · {detail.kind.replace(/_/g, "-")}
-        {detail.dte_target ? ` · ${detail.dte_target}DTE` : ""}
-      </div>
-      {detail.legs.map((leg, i) => (
-        <div
-          key={i}
-          style={{
-            display: "flex",
-            justifyContent: "space-between",
-            fontFamily: "var(--font-mono)",
-            fontSize: "11px",
-            padding: "2px 0",
-          }}
-        >
-          <span style={{ color: "var(--text-muted)" }}>
-            {leg.action} {leg.right}
-          </span>
-          <span style={{ color: "var(--text-secondary)" }}>
-            {leg.strike != null ? String(leg.strike) : "—"}
-            {leg.actual_delta != null
-              ? ` (Δ ${fmtSigned(toNum(leg.actual_delta) ?? 0, 2)})`
-              : ""}
-          </span>
-        </div>
-      ))}
-      {detail.note ? (
-        <div
-          style={{
-            fontFamily: "var(--font-mono)",
-            fontSize: "10px",
-            color: "var(--text-muted)",
-            marginTop: "5px",
-            lineHeight: 1.4,
-          }}
-        >
-          {detail.note}
-        </div>
-      ) : null}
-    </div>
-  );
-}
-
+// Descriptor only. The prior directional lean / forward-return "verdict" (and
+// its "validated" badge and suggested option structure) was removed after the
+// skew-directional probe found it carries no forward edge — the read was beta +
+// momentum, the index verdict even sign-inverted, and "validated" was false
+// confidence from a bull-only sample. Skew still legitimately describes *current
+// positioning*, which is all this panel now claims.
+// See docs/research/skew-directional/README.md.
 export function SkewSignalDetail({ data }: { data: SkewAnalysisResponse }) {
   const read = data.read;
-  const lean = read.directional_lean;
   // Explanation prose comes from the backend-built bullets (single source of
   // truth, unit-tested); look up each body by its label prefix so we don't
   // depend on array order.
@@ -224,28 +140,15 @@ export function SkewSignalDetail({ data }: { data: SkewAnalysisResponse }) {
   }
   const z = toNum(data.rr_z_180d);
   const pct = toNum(data.rr_pct_252d);
-  const evidence = parseEvidenceBasis(lean.basis ?? "");
 
   return (
     <div className="section" data-testid="skew-signal-detail">
       <div className="section-header">
         <div className="section-title">
           <Zap size={14} />
-          Signal Detail
-          <InfoTooltip text="First-principles skew read: deviation vs the ticker's own baseline, what's driving it, whether spot-vol corroborates, and the relative-value implication. The directional lean (top-right) is evidence-gated to the markout — NEUTRAL unless a validated bucket verdict and the borrow/earnings/regime gates all pass." />
+          Skew Read
+          <InfoTooltip text="Descriptive read of current options positioning: how 25Δ skew deviates from the ticker's own baseline, what's driving it, whether spot–vol corroborates, and the rich/cheap relative-value implication. This describes positioning as it stands — it is not a forecast of forward returns." />
         </div>
-        <span
-          className="pill"
-          style={{
-            background: `${leanColor(lean.lean)}22`,
-            color: leanColor(lean.lean),
-            border: `1px solid ${leanColor(lean.lean)}55`,
-            fontSize: "9px",
-          }}
-          data-testid="skew-lean-pill"
-        >
-          {leanLabel(lean.lean)}
-        </span>
       </div>
 
       <div
@@ -287,7 +190,7 @@ export function SkewSignalDetail({ data }: { data: SkewAnalysisResponse }) {
           />
         </div>
 
-        {/* Right: evidence behind the lean */}
+        {/* Right: factual context for the setup — not a forecast */}
         <div className="metric-card" style={{ padding: "12px 16px" }}>
           <div
             style={{
@@ -296,79 +199,11 @@ export function SkewSignalDetail({ data }: { data: SkewAnalysisResponse }) {
               marginBottom: "8px",
             }}
           >
-            Evidence
+            Context
           </div>
-          <div style={{ display: "flex", alignItems: "baseline", gap: "8px" }}>
-            <span
-              style={{
-                ...valueStyle,
-                fontSize: "16px",
-                color: leanColor(lean.lean),
-              }}
-            >
-              {leanLabel(lean.lean)}
-            </span>
-            <span
-              style={{
-                fontFamily: "var(--font-mono)",
-                fontSize: "10px",
-                color: "var(--text-muted)",
-              }}
-            >
-              confidence: {lean.confidence}
-            </span>
-            {evidence.status ? (
-              <span
-                data-testid="skew-lean-status"
-                style={{
-                  marginLeft: "auto",
-                  flexShrink: 0,
-                  fontFamily: "var(--font-mono)",
-                  fontSize: "9px",
-                  textTransform: "uppercase",
-                  letterSpacing: "0.08em",
-                  color: "var(--positive)",
-                  background:
-                    "color-mix(in srgb, var(--positive) 14%, transparent)",
-                  border:
-                    "1px solid color-mix(in srgb, var(--positive) 40%, transparent)",
-                  borderRadius: "3px",
-                  padding: "1px 6px",
-                }}
-              >
-                {evidence.status}
-              </span>
-            ) : null}
-          </div>
-          <div
-            style={{
-              fontFamily: "var(--font-mono)",
-              fontSize: "11px",
-              color: "var(--text-secondary)",
-              marginTop: "6px",
-              marginBottom: "10px",
-              lineHeight: 1.5,
-            }}
-            data-testid="skew-lean-basis"
-          >
-            {evidence.lines.map((line, i) => (
-              <div key={i}>{line}</div>
-            ))}
-          </div>
-          <div
-            style={{
-              borderTop: "1px solid var(--border-dim, var(--line-grid))",
-              paddingTop: "8px",
-            }}
-          >
-            <EvidenceRow label="borrow" value={data.borrow_flag} />
-            <EvidenceRow label="earnings" value={read.earnings_gate} />
-            <EvidenceRow label="express" value={lean.express || "—"} />
-            <EvidenceRow label="regime" value={data.regime} />
-            {lean.structure_detail ? (
-              <StructureDetail detail={lean.structure_detail} />
-            ) : null}
-          </div>
+          <ContextRow label="borrow" value={data.borrow_flag} />
+          <ContextRow label="earnings" value={read.earnings_gate} />
+          <ContextRow label="regime" value={data.regime} />
         </div>
       </div>
     </div>
