@@ -18,6 +18,22 @@ import pandas as pd
 log = logging.getLogger(__name__)
 
 
+def split_safe_prices(
+    rv_rows: list[dict], closes: Sequence[tuple[date, float]]
+) -> list[tuple[date, float]]:
+    """`daily_ohlc` closes, or UW's `price` for a ticker with no closes at all.
+
+    UW's `price` is raw across some splits, so it is used only when there is
+    nothing else. Today that means SPX: massive serves no index bars, and an
+    index has no splits.
+    """
+    return list(closes) or [
+        (r["market_date"], float(r["price"]))
+        for r in rv_rows
+        if r.get("price") is not None
+    ]
+
+
 def trailing_rv(
     rv_rows: list[dict], closes: Sequence[tuple[date, float]], *, window: int = 21
 ) -> list[dict]:
@@ -38,13 +54,7 @@ def trailing_rv(
 
     Returns a NEW list of dicts; input is not mutated.
     """
-    if not closes:
-        closes = [
-            (r["market_date"], float(r["price"]))
-            for r in rv_rows
-            if r.get("price") is not None
-        ]
-    px = pd.Series(dict(closes), dtype=float).sort_index()
+    px = pd.Series(dict(split_safe_prices(rv_rows, closes)), dtype=float).sort_index()
     px = px.where(px > 0)
     rv = (np.log(px).diff().rolling(window, min_periods=window).std()) * math.sqrt(252)
     by_day = rv.dropna().to_dict()
