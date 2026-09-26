@@ -6,6 +6,7 @@ import {
   LiveSpotsProvider,
   useLiveSpot,
 } from "@/components/watchlist/LiveSpotsProvider";
+import { api } from "@/lib/api";
 
 vi.mock("@/lib/api", () => ({
   api: {
@@ -84,5 +85,36 @@ describe("LiveSpotsProvider", () => {
     // Live spot is 445.99 from the vi.mock above — server-rendered prop
     // was 100. The header must reflect the live value.
     expect(screen.getByText("$445.99")).not.toBeNull();
+  });
+
+  it("never overlaps spot requests when a response outlives the poll period", async () => {
+    vi.useFakeTimers();
+    Object.defineProperty(document, "hidden", {
+      configurable: true,
+      value: false,
+    });
+    const pending: Array<(v: { spots: [] }) => void> = [];
+    // Earlier tests in this file already called the module-level mock.
+    vi.mocked(api.watchlistSpots).mockClear();
+    vi.mocked(api.watchlistSpots).mockImplementation(
+      () => new Promise((resolve) => pending.push(resolve)) as never,
+    );
+    render(
+      <LiveSpotsProvider>
+        <span />
+      </LiveSpotsProvider>,
+    );
+    await act(async () => {
+      await vi.advanceTimersByTimeAsync(5000);
+    });
+    expect(api.watchlistSpots).toHaveBeenCalledTimes(1);
+    await act(async () => {
+      pending[0]({ spots: [] });
+    });
+    await act(async () => {
+      await vi.advanceTimersByTimeAsync(2500);
+    });
+    expect(api.watchlistSpots).toHaveBeenCalledTimes(2);
+    vi.useRealTimers();
   });
 });

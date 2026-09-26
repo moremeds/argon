@@ -33,10 +33,12 @@ export function LiveSpotsProvider({ children }: { children: ReactNode }) {
 
   useEffect(() => {
     let cancelled = false;
+    let inFlight = false; // one request at a time; a slow API must not stack polls
     const fetchOnce = async () => {
       // Skip while the tab is hidden — no point hammering the API for a
       // page nobody is looking at; resumes on the next visible tick.
-      if (document.hidden) return;
+      if (document.hidden || inFlight) return;
+      inFlight = true;
       try {
         const res = await api.watchlistSpots();
         if (cancelled) return;
@@ -44,6 +46,8 @@ export function LiveSpotsProvider({ children }: { children: ReactNode }) {
       } catch {
         // Transient fetch failure: keep the last map (or the server-rendered
         // values); the next tick retries.
+      } finally {
+        inFlight = false;
       }
     };
     fetchOnce();

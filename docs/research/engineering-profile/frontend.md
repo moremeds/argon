@@ -31,13 +31,7 @@ The fixture returns a minimal stock report for synthetic `MOCKPROF`, null market
 
 ## Reproduce
 
-Run from this worktree's project root with its existing dependency symlink:
-
-```sh
-rtk proxy ./web/node_modules/.bin/vitest run --config scripts/profile_review/frontend.config.mts --reporter=verbose
-```
-
-The external Vitest config aliases only installed dependencies and the worktree web directory; cache output goes to `output/profile-review/frontend/vite-cache`. Initial harness setup needed an explicit `next/navigation` alias so the mock and component resolve the same module from outside `web/`; no product code change was needed.
+Component reproductions were converted into regression tests: `web/tests/unit/scanAllButton.test.tsx`, `liveSpots.test.tsx`, `stockTabBar.test.tsx`.
 
 For browser reproduction, use separate terminals. First build (serialize with other CPU measurements):
 
