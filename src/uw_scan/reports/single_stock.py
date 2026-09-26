@@ -128,7 +128,6 @@ def _build_flow_snapshot(
 
 def _build_market_structure(
     repo: Repository,
-    run_id: int,
     ticker: str,
     max_pain_rows: list[MaxPainRow],
     *,
@@ -320,7 +319,7 @@ def assemble_single_stock_report(
     exposures_agg = repo.fetch_exposures_aggregate(run_id, ticker) or {}
     rv_latest = repo.fetch_realized_vol_latest(ticker)
     market_structure = _build_market_structure(
-        repo, run_id, ticker, max_pain_rows, exposures=exposures_agg, rv=rv_latest
+        repo, ticker, max_pain_rows, exposures=exposures_agg, rv=rv_latest
     )
     vol = build_volatility_profile(repo, run_id, ticker)
     vrp = build_vrp(vol)

@@ -21,7 +21,7 @@ export function ScanAllButton() {
     if (phase !== "polling" || pendingIds.length === 0) return;
     if (deadlineAt.current === null) deadlineAt.current = Date.now() + 600_000;
     const t = setInterval(async () => {
-      if (Date.now() > (deadlineAt.current ?? 0)) {
+      if (deadlineAt.current !== null && Date.now() > deadlineAt.current) {
         clearInterval(t);
         deadlineAt.current = null;
         setPhase("failed");

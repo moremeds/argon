@@ -351,7 +351,6 @@ def test_assembly_reads_each_dealer_primitive_once():
     from types import SimpleNamespace
     from unittest.mock import patch
 
-    from uw_scan.cards import dealer_regime
 
     repo = _StubRepo()
     # The stub's latest_run_id is 0, which short-circuits gather_inputs before
@@ -372,8 +371,9 @@ def test_assembly_reads_each_dealer_primitive_once():
 
         setattr(repo, name, counted)
     fake_hist = SimpleNamespace(fetch_history=lambda _t, days: [])
-    with patch.object(
-        dealer_regime, "GreekExposureDailyRepository", lambda *_a, **_k: fake_hist
+    with patch(
+        "uw_scan.storage.greek_exposure_repository.GreekExposureDailyRepository",
+        lambda *_a, **_k: fake_hist,
     ):
         assemble_single_stock_report("AAPL", run_id=42, repo=repo)  # type: ignore[arg-type]
     assert counts == {

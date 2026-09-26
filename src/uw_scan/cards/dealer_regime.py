@@ -22,8 +22,6 @@ from decimal import Decimal
 from typing import Any
 from zoneinfo import ZoneInfo
 
-from uw_scan.storage.greek_exposure_repository import GreekExposureDailyRepository
-
 # Normalization scales — tuned for the dollar-gamma magnitudes seen in
 # production (`SUM(call_gex+put_gex)` for SPY/NVDA/AAPL/TSLA is in the
 # 80k–650k range, verified 2026-05-21). tanh keeps the signal smooth.
@@ -485,6 +483,7 @@ def gather_inputs(
     """
     from uw_scan.cards.gex import compute_market_structure_levels
     from uw_scan.models import StrikeGexBucket
+    from uw_scan.storage.greek_exposure_repository import GreekExposureDailyRepository
 
     t = ticker.upper()
     today = today or _et_today()
@@ -502,31 +501,19 @@ def gather_inputs(
             "today": today,
         }
 
-    pre = prefetched if prefetched and prefetched.get("run_id") == run_id else {}
-    strike_curve_raw = (
-        pre["strike_gex_curve"]
-        if "strike_gex_curve" in pre
-        else repo.get_strike_gex_curve(run_id)
-    ) or []
-    exposures = (
-        pre["exposures_summary"]
-        if "exposures_summary" in pre
-        else repo.fetch_exposures_summary(run_id, t)
-    ) or []
-
-    rv_row = (
-        pre["realized_vol"]
-        if "realized_vol" in pre
-        else repo.fetch_realized_vol_latest(t)
-    ) or {}
+    if prefetched and prefetched.get("run_id") == run_id:
+        strike_curve_raw = prefetched["strike_gex_curve"] or []
+        exposures = prefetched["exposures_summary"] or []
+        rv_row = prefetched["realized_vol"] or {}
+        exp_agg = prefetched["exposures_aggregate"] or {}
+    else:
+        strike_curve_raw = repo.get_strike_gex_curve(run_id) or []
+        exposures = repo.fetch_exposures_summary(run_id, t) or []
+        rv_row = repo.fetch_realized_vol_latest(t) or {}
+        exp_agg = repo.fetch_exposures_aggregate(run_id, t) or {}
     spot_raw = rv_row.get("price")
     spot_f = _to_float(spot_raw)
 
-    exp_agg = (
-        pre["exposures_aggregate"]
-        if "exposures_aggregate" in pre
-        else repo.fetch_exposures_aggregate(run_id, t)
-    ) or {}
     total_call_gex = exp_agg.get("total_call_gex")
     total_put_gex = exp_agg.get("total_put_gex")
     net_gex_f: float | None = None

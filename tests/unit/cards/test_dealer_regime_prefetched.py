@@ -48,7 +48,10 @@ PRE = {
 
 def _gather(repo, prefetched):
     fake_hist = SimpleNamespace(fetch_history=lambda _t, days: [])
-    with patch.object(mod, "GreekExposureDailyRepository", lambda *_a, **_k: fake_hist):
+    with patch(
+        "uw_scan.storage.greek_exposure_repository.GreekExposureDailyRepository",
+        lambda *_a, **_k: fake_hist,
+    ):
         return mod.gather_inputs(repo, ticker="AAPL", today=date(2026, 9, 25), prefetched=prefetched)
 
 

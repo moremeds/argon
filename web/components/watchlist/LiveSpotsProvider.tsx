@@ -33,7 +33,9 @@ export function LiveSpotsProvider({ children }: { children: ReactNode }) {
 
   useEffect(() => {
     let cancelled = false;
-    let inFlight = false; // one request at a time; a slow API must not stack polls
+    // ponytail: one request at a time; a fetch that never settles parks polling
+    // until reload — add AbortSignal.timeout on the client if that ever bites.
+    let inFlight = false;
     const fetchOnce = async () => {
       // Skip while the tab is hidden — no point hammering the API for a
       // page nobody is looking at; resumes on the next visible tick.
