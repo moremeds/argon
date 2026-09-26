@@ -11,6 +11,24 @@ from uw_scan.sources.ohlc import OhlcProvider
 
 logger = logging.getLogger(__name__)
 
+# massive returns split-adjusted closes, but only for the window requested. After a
+# split, stored closes older than the window stay unadjusted, and the series jumps
+# at the window edge (CRWD 402 -> 99.6 on prod, 2026-04). A fetched close that
+# disagrees with the stored one for the same date means the provider restated
+# history, so the ticker's whole stored range is re-pulled.
+_RESTATE_TOLERANCE = 0.01
+
+
+def _restated(repo, ticker: str, bars) -> bool:
+    stored = {
+        r.date: r.close for r in repo.list_daily_ohlc(ticker, limit=len(bars) + 10)
+    }
+    return any(
+        stored.get(b.date)
+        and abs(float(b.close) / float(stored[b.date]) - 1) > _RESTATE_TOLERANCE
+        for b in bars
+    )
+
 
 def ohlc_pull_once(
     repo,
@@ -28,6 +46,14 @@ def ohlc_pull_once(
             continue
         try:
             bars = provider.fetch_daily(w.ticker, start, end)
+            if bars and _restated(repo, w.ticker, bars):
+                first = min(start, repo.earliest_daily_ohlc_date(w.ticker) or start)
+                logger.warning(
+                    "ohlc_pull %s: provider restated history (split?), re-pulling from %s",
+                    w.ticker,
+                    first,
+                )
+                bars = provider.fetch_daily(w.ticker, first, end)
             for bar in bars:
                 repo.upsert_daily_ohlc(
                     ticker=bar.ticker,

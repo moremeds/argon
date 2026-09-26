@@ -7,12 +7,17 @@ version in lockstep (enforced by `scripts/release/version_sync_check.py`).
 
 ## [Unreleased]
 
-## [0.13.11] — 2026-09-24
+### Fixed
 
+- **Split seams no longer build up in `daily_ohlc`.** massive returns split-adjusted closes, but the nightly `ohlc_pull` asks only for the last ~80 days. After a split, older stored closes stayed unadjusted, and the series jumped at the window edge (CRWD 402 → 99.6 on prod), which put about 21 days of absurd RV into `vrp_daily`. The pull now compares fetched closes with stored ones for the same dates. On a mismatch above 1%, it re-pulls the ticker's whole stored history, which costs one extra massive call and only when a split lands.
+- **`stock_analytics_daily` rvol and SPY correlation use split-safe closes.** `rvol_21`, `rvol_pctile` and `spy_corr_21` were computed from UW's `price`, which is raw across some splits (KLAC's rvol read about 5 for 21 rows after its 10:1 split). They now use the same `daily_ohlc` closes as trailing RV. SPX, which has no `daily_ohlc`, still falls back to UW's price.
+
+## [0.13.11] — 2026-09-24
 
 ### Fixed
 
 - **VRP lookahead: UW's `realized_volatility` is forward RV.** Its value at `t` is the 21-return window over returns t..t+20 (verified exactly on AAPL/KO/NVDA/SPY), yet `vrp_daily.rv/vrp/vrp_z_20`, the matrix-state `vrp_state`/`vrp_zscore_60d/252d`, and the cockpit VRP chart all read it as a time-t value. RV is now always trailing 21d from `daily_ohlc` closes (massive, split-adjusted; UW's own `price` is raw across some splits; SPX, which has no `daily_ohlc`, falls back to UW's price) via `cards/vol_series.trailing_rv` and its SQL twin in `fetch_matrix_realized_vol_history`, and `single_stock` no longer falls back to UW's RV. `scripts/backfill_vrp_daily.py` now deletes and rebuilds all `vrp_daily` history. On the local DB the VRP-harvest RICH verdict drops from HARVEST_SELLABLE to NONE for single_name, index_macro and sector_etf (credit survives, n=129), and sellable sectors drop from 36/37 to 4/36, so the short-vol TRADE gate closes for most names once prod recomputes. `2026-07-07-flow-vs-rviv-verdict` is marked invalid. Evidence: `docs/research/2026-09-24-uw-rv-forward-lookahead/`.
+
 ## [0.13.10] — 2026-09-23
 
 ### Fixed

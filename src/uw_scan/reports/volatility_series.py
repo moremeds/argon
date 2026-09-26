@@ -354,14 +354,16 @@ def assemble_volatility_series(
     header = _build_header(repo, ticker)
     today = _date.today()
 
-    rv_history = vol_series.trailing_rv(
-        repo.fetch_realized_vol_history(ticker, days=365),
+    rv_history = repo.fetch_realized_vol_history(ticker, days=365)
+    closes = vol_series.split_safe_prices(
+        rv_history,
         [
             (r.date, float(r.close))
             for r in repo.list_daily_ohlc(ticker, limit=400)
             if r.close is not None
         ],
     )
+    rv_history = vol_series.trailing_rv(rv_history, closes)
     spy_history = repo.fetch_index_ohlc_series("SPY")
 
     hv_iv = [
@@ -377,13 +379,10 @@ def assemble_volatility_series(
 
     vrp_df = vol_series.compute_vrp_series(rv_history)
     iv_of_iv_df = vol_series.compute_iv_of_iv(rv_history)
-    rvol_df = vol_series.compute_rvol_and_percentile(
-        [{"market_date": r["market_date"], "price": r["price"]} for r in rv_history]
-    )
-    corr_df = vol_series.compute_stock_spy_corr(
-        [{"market_date": r["market_date"], "price": r["price"]} for r in rv_history],
-        spy_history,
-    )
+    # rvol / SPY-corr from the same split-safe closes, not UW's raw `price`.
+    prices = [{"market_date": d, "price": c} for d, c in closes]
+    rvol_df = vol_series.compute_rvol_and_percentile(prices)
+    corr_df = vol_series.compute_stock_spy_corr(prices, spy_history)
     z_df = vol_series.compute_iv_rv_z_overlay(rv_history)
 
     if persist_derived:
