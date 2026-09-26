@@ -2,7 +2,6 @@
 
 from __future__ import annotations
 
-from dataclasses import dataclass
 from datetime import date, datetime, timedelta, timezone
 from typing import Annotated, Literal
 
@@ -11,6 +10,7 @@ from pydantic import BaseModel, Field
 
 from uw_scan.api.deps import get_repo, get_settings
 from uw_scan.config import Settings
+from uw_scan.storage.health import apply_record_health_thresholds
 from uw_scan.storage.repository import Repository, provider_day_bounds
 from uw_scan.version import app_version
 from uw_scan.worker.schedule_expectations import expected_market_cron_fires_between
@@ -67,6 +67,8 @@ class HealthResponse(BaseModel):
     queue_drain_rate_per_minute: float | None = None
     record_health_ok: bool | None = None
     record_health: list["RecordHealthCheck"] = Field(default_factory=list)
+    # Oldest computed_at among the snapshot rows served in record_health.
+    record_health_computed_at: datetime | None = None
     workers: list["WorkerHealth"] = Field(default_factory=list)
     ws_consumer: "WsConsumerHealth | None" = None
     trade_insights_ai: "TradeInsightsAiHealth | None" = None
@@ -196,67 +198,78 @@ class RecordHealthCheck(BaseModel):
     ok: bool
 
 
-# The per-table record-health scan (COUNT/COUNT DISTINCT/MAX over a sliding
-# window across every discovered table) costs ~15-20s cold. The TTL MUST exceed
-# that runtime — at 15s the cache expired before it could ever serve warm, so a
-# fresh 20s query fired on nearly every 5s HealthPanel poll, stacking concurrent
-# scans on one DB and blowing the browser fetch timeout (the "API OFFLINE"
-# flicker). Coverage is a slow-moving daily-window signal; 2min staleness is
-# fine. ponytail: single-flight/stale-while-revalidate if this still stalls.
-_RECORD_HEALTH_CACHE_TTL_SECONDS = 120.0
-_RecordHealthCacheKey = tuple[
-    tuple[str, ...] | None,
-    float,
-    float,
-    int,
-    float,
-]
+# /api/health reads the record-health counts the uw-0 `record_health_snapshot`
+# job persists every 15 min (migration 151) — it never sweeps the tables itself.
+# A snapshot older than 3 job intervals (or none at all) means the job is not
+# running; the check then reads UNKNOWN (record_health_ok=None), not a PASS
+# computed from frozen counts.
+_RECORD_HEALTH_SNAPSHOT_MAX_AGE = timedelta(minutes=45)
 
 
-@dataclass(frozen=True)
-class _RecordHealthCacheEntry:
-    cached_at: datetime
-    record_health_ok: bool
-    record_health: tuple[RecordHealthCheck, ...]
-
-
-_record_health_cache: dict[_RecordHealthCacheKey, _RecordHealthCacheEntry] = {}
-
-
-def _record_health_cache_get(
-    key: _RecordHealthCacheKey,
+def _snapshot_record_health(
+    repo: Repository,
     *,
     now_utc: datetime,
-) -> tuple[bool, list[RecordHealthCheck]] | None:
-    entry = _record_health_cache.get(key)
-    if entry is None:
-        return None
-    age = (now_utc - entry.cached_at).total_seconds()
-    if age < 0 or age > _RECORD_HEALTH_CACHE_TTL_SECONDS:
-        _record_health_cache.pop(key, None)
-        return None
+    watchlist_size: int,
+    selected_tables: list[str] | None,
+    min_coverage: float,
+) -> tuple[dict, str | None, str | None]:
+    """Record-health response fields from the persisted snapshot.
+
+    Returns ``(fields, reason, note)``: ``reason`` is set when coverage fails
+    (flips the top-level ok), ``note`` when the snapshot is stale or missing
+    (informational only — a missing snapshot must not read as a false ALERT,
+    and must not read as a PASS either, so the record check is UNKNOWN)."""
+    snapshot = repo.list_record_health_snapshot(selected_tables)
+    if selected_tables is not None and snapshot:
+        unknown = sorted(set(selected_tables) - {row.table for row in snapshot})
+        if unknown:
+            raise HTTPException(
+                status_code=400,
+                detail=f"unknown record health table(s): {', '.join(unknown)}",
+            )
+    computed = [row.computed_at for row in snapshot if row.computed_at is not None]
+    newest = max(computed, default=None)
+    if newest is None or now_utc - newest > _RECORD_HEALTH_SNAPSHOT_MAX_AGE:
+        return (
+            {
+                "record_health_ok": None,
+                "record_health": [],
+                "record_health_computed_at": min(computed, default=None),
+            },
+            None,
+            "record health snapshot stale/missing",
+        )
+    record_health = [
+        RecordHealthCheck(
+            table=row.table,
+            window_start=row.window_start,
+            expected_tickers=row.expected_tickers,
+            expected_min_tickers=row.expected_min_tickers,
+            actual_tickers=row.actual_tickers,
+            expected_min_rows=row.expected_min_rows,
+            actual_rows=row.actual_rows,
+            latest_at=row.latest_at,
+            ok=row.ok,
+        )
+        for row in apply_record_health_thresholds(
+            snapshot, expected_tickers=watchlist_size, min_coverage=min_coverage
+        )
+    ]
+    record_ok = all(check.ok for check in record_health)
+    reason = None
+    if not record_ok:
+        failing = ", ".join(check.table for check in record_health if not check.ok)
+        reason = f"record coverage below expected: {failing}"
     return (
-        entry.record_health_ok,
-        [check.model_copy() for check in entry.record_health],
+        {
+            "record_health_ok": record_ok,
+            "record_health": record_health,
+            "record_health_computed_at": min(computed),
+        },
+        reason,
+        None,
     )
-
-
-def _record_health_cache_set(
-    key: _RecordHealthCacheKey,
-    *,
-    now_utc: datetime,
-    record_health_ok: bool,
-    record_health: list[RecordHealthCheck],
-) -> None:
-    _record_health_cache[key] = _RecordHealthCacheEntry(
-        cached_at=now_utc,
-        record_health_ok=record_health_ok,
-        record_health=tuple(check.model_copy() for check in record_health),
-    )
-
-
-def _record_health_cache_clear_for_tests() -> None:
-    _record_health_cache.clear()
 
 
 def _record_window_scans_expected(
@@ -607,8 +620,9 @@ def health(
         "ws_consumer": ws_consumer,
         "trade_insights_ai": ai_block,
     }
-    record_fields = {"record_health_ok": None, "record_health": []}
+    record_fields: dict = {"record_health_ok": None, "record_health": []}
     record_reason = None
+    record_note = None
     # Market-calendar aware: coverage is only expected when scans were due. If no
     # full-scan cron was scheduled to fire within the record window (weekend,
     # holiday, overnight), an empty window is healthy — not an ALERT. Mirrors the
@@ -620,59 +634,13 @@ def health(
     if record_window_hours is not None and not record_scans_expected:
         record_fields = {"record_health_ok": True, "record_health": []}
     elif record_window_hours is not None:
-        selected_tables = _parse_record_tables(record_tables)
-        cache_key: _RecordHealthCacheKey = (
-            tuple(selected_tables) if selected_tables is not None else None,
-            record_window_hours,
-            record_min_coverage,
-            watchlist_size,
-            settings.record_health_daily_window_hours,
+        record_fields, record_reason, record_note = _snapshot_record_health(
+            repo,
+            now_utc=now_utc,
+            watchlist_size=watchlist_size,
+            selected_tables=_parse_record_tables(record_tables),
+            min_coverage=record_min_coverage,
         )
-        cached_record_health = _record_health_cache_get(cache_key, now_utc=now_utc)
-        if cached_record_health is None:
-            try:
-                record_rows = repo.list_record_health(
-                    since=now_utc - timedelta(hours=record_window_hours),
-                    # Daily tables (nightly vol rollup, daily snapshots) refresh
-                    # once per day, so they need a wider window to count as fresh.
-                    daily_since=now_utc
-                    - timedelta(hours=settings.record_health_daily_window_hours),
-                    expected_tickers=watchlist_size,
-                    min_coverage=record_min_coverage,
-                    tables=selected_tables,
-                )
-            except ValueError as exc:
-                raise HTTPException(status_code=400, detail=str(exc)) from exc
-            record_health = [
-                RecordHealthCheck(
-                    table=row.table,
-                    window_start=row.window_start,
-                    expected_tickers=row.expected_tickers,
-                    expected_min_tickers=row.expected_min_tickers,
-                    actual_tickers=row.actual_tickers,
-                    expected_min_rows=row.expected_min_rows,
-                    actual_rows=row.actual_rows,
-                    latest_at=row.latest_at,
-                    ok=row.ok,
-                )
-                for row in record_rows
-            ]
-            record_ok = all(check.ok for check in record_health)
-            _record_health_cache_set(
-                cache_key,
-                now_utc=now_utc,
-                record_health_ok=record_ok,
-                record_health=record_health,
-            )
-        else:
-            record_ok, record_health = cached_record_health
-        record_fields = {
-            "record_health_ok": record_ok,
-            "record_health": record_health,
-        }
-        if not record_ok:
-            failing = ", ".join(check.table for check in record_health if not check.ok)
-            record_reason = f"record coverage below expected: {failing}"
 
     last_scan = repo.get_last_full_scan_finished_at()
     if last_scan is None:
@@ -736,6 +704,7 @@ def health(
         db=db_status,
         scheduler_lag_seconds=lag,
         last_full_scan_at=last_scan,
+        reason=record_note,
         watchlist_size=watchlist_size,
         **provider_fields,
         **heartbeat_fields,

@@ -154,6 +154,11 @@ class Settings(BaseModel):
     # update once per day (cockpit + nightly vol rollup). Anything below
     # 24h would always alert on those tables; 26h gives a small grace gap.
     record_health_daily_window_hours: int = 26
+    # Sliding window the record_health_snapshot job counts over for every other
+    # record-health table. Matches web HealthPanel RECORD_WINDOW_HOURS (8); the
+    # API's record_window_hours now only gates "were scans expected", the counts
+    # come from the snapshot computed with this window.
+    record_health_window_hours: float = 8.0
     ohlc_pull_cron: str = "30 17 * * 0-4"
     positioning_refresh_cron: str = "0 6 * * 0-4"
     fundamentals_refresh_cron: str = "0 19 * * 0-4"
@@ -719,6 +724,9 @@ class Settings(BaseModel):
             ),
             health_full_scan_missed_grace_hours=float(
                 os.environ.get("UW_SCAN_HEALTH_FULL_SCAN_MISSED_GRACE_HOURS", "1.0")
+            ),
+            record_health_window_hours=float(
+                os.environ.get("RECORD_HEALTH_WINDOW_HOURS", "8")
             ),
             ohlc_pull_cron=os.environ.get("UW_SCAN_OHLC_PULL_CRON", "30 17 * * 0-4"),
             positioning_refresh_cron=os.environ.get(

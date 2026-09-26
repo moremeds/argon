@@ -298,3 +298,90 @@ def test_scheduler_cron_literals_do_not_use_apscheduler_tuesday_to_saturday_rang
     ]
 
     assert offenders == []
+
+
+def _listener_spy(monkeypatch):
+    """Route _handle_job_event's DB writes to an in-memory call log."""
+    from contextlib import nullcontext
+    from types import SimpleNamespace
+
+    import uw_scan.storage.ops_health as ops_health
+    import uw_scan.worker.scheduler as scheduler
+
+    calls: list[tuple[str, str]] = []
+
+    class _FakeRepo:
+        def __init__(self, _conn) -> None:
+            pass
+
+        def record_success(self, job_name: str) -> None:
+            calls.append(("success", job_name))
+
+        def record_failure(self, job_name: str, _error: str) -> None:
+            calls.append(("failure", job_name))
+
+        def list_streaks(self):
+            return []
+
+    monkeypatch.setattr(
+        scheduler,
+        "_ops_conn",
+        lambda: nullcontext(SimpleNamespace(commit=lambda: None)),
+    )
+    monkeypatch.setattr(ops_health, "JobFailuresRepository", _FakeRepo)
+    monkeypatch.setattr(scheduler, "_tick_jobs_recorded_clean", set())
+    return scheduler, calls
+
+
+def test_job_listener_skips_repeat_tick_job_successes(monkeypatch) -> None:
+    from types import SimpleNamespace
+
+    scheduler, calls = _listener_spy(monkeypatch)
+    ok = SimpleNamespace(job_id="worker_heartbeat", exception=None)
+
+    for _ in range(5):
+        scheduler._handle_job_event(ok)
+
+    # Only the first success of the process is written (clears any streak a
+    # previous process left behind); the other four open no connection.
+    assert calls == [("success", "worker_heartbeat")]
+
+
+def test_job_listener_records_tick_failure_and_the_success_that_resets_it(
+    monkeypatch,
+) -> None:
+    from types import SimpleNamespace
+
+    scheduler, calls = _listener_spy(monkeypatch)
+    ok = SimpleNamespace(job_id="rescan_tick", exception=None)
+    boom = SimpleNamespace(job_id="rescan_tick", exception=RuntimeError("boom"))
+
+    for event in (ok, ok, boom, boom, ok, ok):
+        scheduler._handle_job_event(event)
+
+    assert calls == [
+        ("success", "rescan_tick"),
+        ("failure", "rescan_tick"),
+        ("failure", "rescan_tick"),
+        ("success", "rescan_tick"),
+    ]
+
+
+def test_job_listener_records_every_non_tick_success(monkeypatch) -> None:
+    from types import SimpleNamespace
+
+    scheduler, calls = _listener_spy(monkeypatch)
+    ok = SimpleNamespace(job_id="full_scan", exception=None)
+
+    scheduler._handle_job_event(ok)
+    scheduler._handle_job_event(ok)
+
+    assert calls == [("success", "full_scan"), ("success", "full_scan")]
+
+
+def test_tick_job_ids_match_registered_interval_jobs() -> None:
+    import uw_scan.worker.scheduler as scheduler
+
+    source = Path(scheduler.__file__).read_text()
+    for job_id in scheduler._TICK_JOB_IDS:
+        assert f'id="{job_id}"' in source, job_id

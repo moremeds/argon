@@ -182,6 +182,23 @@ class RecordHealthRow:
 
 
 @dataclass(frozen=True)
+class RecordHealthRawRow:
+    """Raw per-table counts inside a window — no thresholds applied.
+
+    What the ``record_health_snapshot`` job persists; readers turn it into a
+    :class:`RecordHealthRow` with ``storage.health.apply_record_health_thresholds``.
+    ``computed_at`` is ``None`` for a freshly computed row that was not read back
+    from the snapshot table."""
+
+    table: str
+    window_start: datetime
+    actual_rows: int
+    actual_tickers: int
+    latest_at: datetime | None
+    computed_at: datetime | None = None
+
+
+@dataclass(frozen=True)
 class PipelineBenchmarkSnapshotRow:
     id: int
     captured_at: datetime

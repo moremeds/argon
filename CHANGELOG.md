@@ -7,6 +7,11 @@ version in lockstep (enforced by `scripts/release/version_sync_check.py`).
 
 ## [Unreleased]
 
+### Changed
+
+- **`/api/health` record coverage reads a persisted snapshot instead of sweeping ~25 tables per request.** Prod `pg_stat_statements` over 31 days showed 17,720 sweeps per table from the 5 s HealthPanel poll (option_contract_snapshots 6.3 s mean / 262 s max, ~48 TB read, ~182,000 s of DB time). A new uw-0 job `record_health_snapshot` (every 15 min, window `RECORD_HEALTH_WINDOW_HOURS`, default 8) writes raw counts to `record_health_snapshot` (migration 151, which also adds `inserted_at` BRIN indexes on the nine large rule tables); the API applies watchlist × `record_min_coverage` at read time, drops its 120 s in-process cache, adds `record_health_computed_at`, and reports `record_health_ok = null` when the snapshot is missing or older than 45 min.
+- **Worker heartbeat every 15 s (was 1 s), and tick-job successes no longer upsert `job_failures` each run.** `worker_heartbeat`, `rescan_tick` and the `trade_insights_ai_tick*` jobs record a success only on the first run of a process and after a failure; failures still always record. HealthPanel's scheduler/worker ONLINE threshold is now 45 s (rescan stays 5 s).
+
 ### Fixed
 
 - **Split seams no longer build up in `daily_ohlc`.** massive returns split-adjusted closes, but the nightly `ohlc_pull` asks only for the last ~80 days. After a split, older stored closes stayed unadjusted, and the series jumped at the window edge (CRWD 402 → 99.6 on prod), which put about 21 days of absurd RV into `vrp_daily`. The pull now compares fetched closes with stored ones for the same dates. On a mismatch above 1%, it re-pulls the ticker's whole stored history, which costs one extra massive call and only when a split lands.
