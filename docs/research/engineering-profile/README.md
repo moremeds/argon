@@ -51,4 +51,4 @@ latest-MACD 第一次观测为 3,388.134 ms，并发生物理读；未清理数�
 - 任务正式结果：`output/profile-review/jobs-research/{validation.json,timing.json}`；独立复核 `jobs-research/lead-validation/`。
 - 前端：`output/profile-review/frontend/`；截图 `output/playwright/profile-review/mock-stock-prefetch.png`。
 
-原始捕获含真实内部数据与运行环境信息，保留于忽略目录，不纳入公共提交。当前工作是诊断完成，不是修复完成。下一步最小实施批次应为上述窄 SQL 优化与确定性逻辑修复，然后计算复用，最后才调整请求时持久化边界；不需要新增服务、数据库或框架。
+原始捕获含真实内部数据与运行环境信息，保留于忽略目录，不纳入公共提交。2026-09-27 起，上述八项均已在同一分支修复，计划见 `docs/superpowers/plans/2026-09-27-profile-review-fixes.md`；测量数字未重跑，只在测试中固定了输出等价性。下一步最小实施批次应为上述窄 SQL 优化与确定性逻辑修复，然后计算复用，最后才调整请求时持久化边界；不需要新增服务、数据库或框架。

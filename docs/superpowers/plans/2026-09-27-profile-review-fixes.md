@@ -628,7 +628,7 @@ git commit -m "perf(technicals): nightly refresh builds each ticker's series onc
 **Interfaces:**
 
 - Consumes: `load_index_vol(repo, name, *, lake_root=None, rv_window=20, z_window=252) -> _Loaded`; `_build_loaded(spot, vol, *, rv_window, z_window)`.
-- Produces: `load_index_vol(..., since: date | None = None)`. When `since` is set, every source read starts at `max(spec["start"], since)`. New module constant `SIGNAL_LOOKBACK_DAYS = 420` (calendar days; ≈290 sessions > the 20 + 252 + 1 rows the latest row's rv and 252-window z need).
+- Produces: `load_index_vol(..., since: date | None = None)`. When `since` is set, every source read starts at `max(spec["start"], since)`. New module constant `SIGNAL_LOOKBACK_DAYS = 480` (calendar days; ≈330 sessions > the 20 + 252 + 1 rows the latest row's rv and 252-window z need).
 
 Callers that need full history (`run_index_drawdown`, `backtest_laddered` via the worker job) keep calling without `since`. Only `current_macro_signal` and `current_macro_signal_live` pass `since=(as_of or today) - SIGNAL_LOOKBACK_DAYS`. The bound is relative to `as_of` so replays still work (Review Focus 2).
 
