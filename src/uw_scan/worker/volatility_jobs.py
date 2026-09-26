@@ -73,19 +73,14 @@ def nightly_vol_analytics_rollup(*, repo: Repository, days: int = 365) -> None:
             continue
         # UW's realized_volatility is FORWARD RV (window t..t+20) — lookahead as a
         # time-t value. Replace it with trailing RV from split-adjusted closes.
-        rv_history = vol_series.trailing_rv(rv_history, _closes(repo, ticker, days))
+        closes = vol_series.split_safe_prices(rv_history, _closes(repo, ticker, days))
+        rv_history = vol_series.trailing_rv(rv_history, closes)
         vrp_df = vol_series.compute_vrp_series(rv_history)
         iv_of_iv_df = vol_series.compute_iv_of_iv(rv_history)
-        rvol_df = vol_series.compute_rvol_and_percentile(
-            [{"market_date": r["market_date"], "price": r["price"]} for r in rv_history]
-        )
-        corr_df = vol_series.compute_stock_spy_corr(
-            [
-                {"market_date": r["market_date"], "price": r["price"]}
-                for r in rv_history
-            ],
-            spy_history,
-        )
+        # rvol / SPY-corr from the same split-safe closes, not UW's raw `price`.
+        prices = [{"market_date": d, "price": c} for d, c in closes]
+        rvol_df = vol_series.compute_rvol_and_percentile(prices)
+        corr_df = vol_series.compute_stock_spy_corr(prices, spy_history)
         persist_vrp_daily(repo, ticker, vrp_df)
         persist_stock_analytics(repo, ticker, iv_of_iv_df, rvol_df, corr_df)
     repo.conn.commit()

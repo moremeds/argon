@@ -57,6 +57,14 @@ class _MarketDataMixin:
             )
             return [DailyOhlcRow(*row) for row in cur.fetchall()]
 
+    def earliest_daily_ohlc_date(self, ticker: str) -> _date | None:
+        with self._conn.cursor() as cur:
+            cur.execute(
+                f"SELECT min(date) FROM {self._schema}.daily_ohlc WHERE ticker=%s",
+                (ticker,),
+            )
+            return cur.fetchone()[0]
+
     # ---- intraday_quote ----
     def upsert_intraday_quote(
         self,
