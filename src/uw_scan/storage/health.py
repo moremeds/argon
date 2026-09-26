@@ -1,10 +1,16 @@
 """Health observability: per-table record coverage, watchlist count,
 worker heartbeats, stock history rollup.
 
-list_record_health auto-discovers all uw_scan tables and reports how many
+compute_record_health_raw auto-discovers all uw_scan tables and counts how many
 rows landed in the rolling window for each table that looks tickered (has
-both a timestamp and ticker column). The 3 _RECORD_HEALTH_* constants
-filter what counts as 'tickered' and which tables to skip."""
+both a timestamp and ticker column). The _RECORD_HEALTH_* constants
+filter what counts as 'tickered' and which tables to skip.
+
+That sweep is expensive (option_contract_snapshots alone is tens of GB), so the
+API never runs it: the ``record_health_snapshot`` worker job computes the raw
+counts on an interval and persists them (``upsert_record_health_snapshot``); the
+API reads them back (``list_record_health_snapshot``) and applies thresholds
+with the pure ``apply_record_health_thresholds``."""
 
 from __future__ import annotations
 
@@ -15,7 +21,7 @@ from datetime import datetime
 import psycopg
 from psycopg import sql as psql
 
-from .rows import RecordHealthRow
+from .rows import RecordHealthRawRow, RecordHealthRow
 
 _RECORD_HEALTH_TIMESTAMP_COLUMNS = ("updated_at", "inserted_at")
 _RECORD_HEALTH_TICKER_COLUMNS = ("ticker", "underlying_symbol")
@@ -89,6 +95,40 @@ _RECORD_HEALTH_DAILY_TABLES = {
 }
 
 
+def apply_record_health_thresholds(
+    raw_rows: Iterable[RecordHealthRawRow],
+    *,
+    expected_tickers: int,
+    min_coverage: float,
+) -> list[RecordHealthRow]:
+    """Turn raw window counts into pass/fail rows against the watchlist size.
+
+    Pure, so the thresholds follow the caller's ``min_coverage`` and the current
+    watchlist size even when the counts come from a persisted snapshot. Every
+    rule requires at least one row per covered ticker."""
+    expected_min_tickers = (
+        0 if expected_tickers <= 0 else math.ceil(expected_tickers * min_coverage)
+    )
+    expected_min_rows = expected_min_tickers
+    return [
+        RecordHealthRow(
+            table=raw.table,
+            window_start=raw.window_start,
+            expected_tickers=expected_tickers,
+            expected_min_tickers=expected_min_tickers,
+            actual_tickers=raw.actual_tickers,
+            expected_min_rows=expected_min_rows,
+            actual_rows=raw.actual_rows,
+            latest_at=raw.latest_at,
+            ok=(
+                raw.actual_tickers >= expected_min_tickers
+                and raw.actual_rows >= expected_min_rows
+            ),
+        )
+        for raw in raw_rows
+    ]
+
+
 class _HealthMixin:
     _conn: psycopg.Connection
     _schema: str
@@ -148,7 +188,8 @@ class _HealthMixin:
             row = cur.fetchone()
         return int(row[0]) if row else 0
 
-    def _discover_record_health_rules(self) -> dict[str, tuple[str, str, int]]:
+    def _discover_record_health_rules(self) -> dict[str, tuple[str, str]]:
+        """table -> (timestamp_col, ticker_col) for every record-health table."""
         with self._conn.cursor() as cur:
             cur.execute(
                 """
@@ -160,7 +201,7 @@ class _HealthMixin:
                 """,
                 (self._schema,),
             )
-            discovered: dict[str, tuple[str, str, int]] = {}
+            discovered: dict[str, tuple[str, str]] = {}
             for table, column_list in cur.fetchall():
                 table_name = str(table)
                 if table_name in _RECORD_HEALTH_EXCLUDED_TABLES:
@@ -183,31 +224,30 @@ class _HealthMixin:
                     None,
                 )
                 if timestamp_col is not None and ticker_col is not None:
-                    discovered[table_name] = (timestamp_col, ticker_col, 1)
+                    discovered[table_name] = (timestamp_col, ticker_col)
             return discovered
 
-    def list_record_health(
+    def compute_record_health_raw(
         self,
         *,
         since: datetime,
-        expected_tickers: int,
-        min_coverage: float = 0.9,
         tables: Iterable[str] | None = None,
         daily_since: datetime | None = None,
-    ) -> list[RecordHealthRow]:
+    ) -> list[RecordHealthRawRow]:
+        """The expensive sweep: COUNT/COUNT DISTINCT/MAX per table in the window.
+
+        Only the ``record_health_snapshot`` job (and the benchmark collector's
+        one cheap table) should call this — never a request path."""
         rules = self._discover_record_health_rules()
         selected = list(tables) if tables is not None else list(rules)
         unknown = sorted(set(selected) - set(rules))
         if unknown:
             raise ValueError(f"unknown record health table(s): {', '.join(unknown)}")
 
-        expected_min_tickers = (
-            0 if expected_tickers <= 0 else math.ceil(expected_tickers * min_coverage)
-        )
-        rows: list[RecordHealthRow] = []
+        rows: list[RecordHealthRawRow] = []
         with self._conn.cursor() as cur:
             for table in selected:
-                timestamp_col, ticker_col, min_rows_per_ticker = rules[table]
+                timestamp_col, ticker_col = rules[table]
                 # Tables populated by once-per-day jobs (cockpit, vol rollup)
                 # cannot satisfy an 8h sliding window — they need a 24h+ one.
                 effective_since = (
@@ -236,25 +276,104 @@ class _HealthMixin:
                     (effective_since,),
                 )
                 actual_rows, actual_tickers, latest_at = cur.fetchone() or (0, 0, None)
-                expected_min_rows = expected_min_tickers * min_rows_per_ticker
-                ok = (
-                    int(actual_tickers or 0) >= expected_min_tickers
-                    and int(actual_rows or 0) >= expected_min_rows
-                )
                 rows.append(
-                    RecordHealthRow(
+                    RecordHealthRawRow(
                         table=table,
                         window_start=effective_since,
-                        expected_tickers=expected_tickers,
-                        expected_min_tickers=expected_min_tickers,
-                        actual_tickers=int(actual_tickers or 0),
-                        expected_min_rows=expected_min_rows,
                         actual_rows=int(actual_rows or 0),
+                        actual_tickers=int(actual_tickers or 0),
                         latest_at=latest_at,
-                        ok=ok,
                     )
                 )
         return rows
+
+    def list_record_health(
+        self,
+        *,
+        since: datetime,
+        expected_tickers: int,
+        min_coverage: float = 0.9,
+        tables: Iterable[str] | None = None,
+        daily_since: datetime | None = None,
+    ) -> list[RecordHealthRow]:
+        """Compute + threshold in one call (live sweep; not for request paths)."""
+        return apply_record_health_thresholds(
+            self.compute_record_health_raw(
+                since=since, tables=tables, daily_since=daily_since
+            ),
+            expected_tickers=expected_tickers,
+            min_coverage=min_coverage,
+        )
+
+    # ---- record_health_snapshot (migration 151) ----
+    def upsert_record_health_snapshot(self, rows: Iterable[RecordHealthRawRow]) -> int:
+        """Replace the snapshot with ``rows`` (one per table) and commit.
+
+        Tables absent from ``rows`` are deleted: the job always passes the full
+        discovered set, so a dropped or newly excluded table must not linger
+        with frozen counts."""
+        payload = [
+            (r.table, r.window_start, r.actual_rows, r.actual_tickers, r.latest_at)
+            for r in rows
+        ]
+        table = psql.Identifier(self._schema, "record_health_snapshot")
+        with self._conn.cursor() as cur:
+            if payload:
+                cur.executemany(
+                    psql.SQL(
+                        """
+                        INSERT INTO {table} (
+                            table_name, window_start, actual_rows, actual_tickers,
+                            latest_at, computed_at
+                        )
+                        VALUES (%s, %s, %s, %s, %s, now())
+                        ON CONFLICT (table_name) DO UPDATE SET
+                            window_start = EXCLUDED.window_start,
+                            actual_rows = EXCLUDED.actual_rows,
+                            actual_tickers = EXCLUDED.actual_tickers,
+                            latest_at = EXCLUDED.latest_at,
+                            computed_at = EXCLUDED.computed_at
+                        """
+                    ).format(table=table),
+                    payload,
+                )
+            cur.execute(
+                psql.SQL("DELETE FROM {table} WHERE table_name <> ALL(%s)").format(
+                    table=table
+                ),
+                ([p[0] for p in payload],),
+            )
+        self._conn.commit()
+        return len(payload)
+
+    def list_record_health_snapshot(
+        self, tables: Iterable[str] | None = None
+    ) -> list[RecordHealthRawRow]:
+        selected = list(tables) if tables is not None else None
+        with self._conn.cursor() as cur:
+            cur.execute(
+                psql.SQL(
+                    """
+                    SELECT table_name, window_start, actual_rows, actual_tickers,
+                           latest_at, computed_at
+                    FROM {table}
+                    WHERE %s::text[] IS NULL OR table_name = ANY(%s::text[])
+                    ORDER BY table_name
+                    """
+                ).format(table=psql.Identifier(self._schema, "record_health_snapshot")),
+                (selected, selected),
+            )
+            return [
+                RecordHealthRawRow(
+                    table=r[0],
+                    window_start=r[1],
+                    actual_rows=int(r[2]),
+                    actual_tickers=int(r[3]),
+                    latest_at=r[4],
+                    computed_at=r[5],
+                )
+                for r in cur.fetchall()
+            ]
 
     # ---- worker_heartbeat ----
     def upsert_heartbeat(self, job_name: str) -> None:

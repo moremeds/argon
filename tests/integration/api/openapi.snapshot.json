@@ -10420,6 +10420,18 @@
             "title": "Record Health",
             "type": "array"
           },
+          "record_health_computed_at": {
+            "anyOf": [
+              {
+                "format": "date-time",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Record Health Computed At"
+          },
           "record_health_ok": {
             "anyOf": [
               {

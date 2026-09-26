@@ -707,6 +707,13 @@ REGISTRY: list[DatasetRegistryEntry] = [
         expected_frequency="none",
         reason="live per-job failure-streak state; scheduler-maintained, nothing to backfill/heal",
     ),
+    DatasetRegistryEntry(
+        "record_health_snapshot",
+        "operational_provenance",
+        "excluded",
+        expected_frequency="none",
+        reason="latest per-table record-health counts, overwritten every 15 min by the record_health_snapshot job; no history to backfill/heal",
+    ),
     # Research cohort membership (migration 110). Caught by the temporal-table
     # heuristic only because `selected_on` is a date column, but there is no
     # series here: one row per (cohort, ticker) recording when that ticker was

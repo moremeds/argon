@@ -13,6 +13,10 @@ type PanelView = "status" | "benchmark";
 const HEALTH_FETCH_TIMEOUT_MS = 8000;
 const HEALTH_FAILURE_LIMIT = 3;
 const HEARTBEAT_HEALTHY_LAG_S = 5;
+// The per-worker `worker_heartbeat` job beats every 15 s (was 1 s), so the
+// scheduler dot and the uw/ai worker rows allow 3 intervals. rescan_tick still
+// beats every second and keeps the 5 s threshold.
+const WORKER_HEARTBEAT_HEALTHY_LAG_S = 45;
 // Massive workers beat on the daily OHLC cadence, not the 5s worker tick, so
 // they get their own generous threshold. (Was SPOT_REFRESH_HEALTHY_LAG_S, back
 // when the retired spot_refresh job set the cadence.)
@@ -112,7 +116,7 @@ function workerGroupStatus(workers: WorkerHealth[]): {
     const healthyLag =
       worker.role === "massive"
         ? MASSIVE_HEALTHY_LAG_S
-        : HEARTBEAT_HEALTHY_LAG_S;
+        : WORKER_HEARTBEAT_HEALTHY_LAG_S;
     return heartbeatStatus(worker.lag_seconds, healthyLag).label === "ONLINE";
   }).length;
   if (online === workers.length) {
@@ -460,7 +464,10 @@ export function HealthPanel() {
     h == null
       ? { label: "OFFLINE", color: "var(--negative)" }
       : { label: "ONLINE", color: "var(--positive)" };
-  const schedulerStatus = heartbeatStatus(h?.scheduler_heartbeat_lag_seconds);
+  const schedulerStatus = heartbeatStatus(
+    h?.scheduler_heartbeat_lag_seconds,
+    WORKER_HEARTBEAT_HEALTHY_LAG_S,
+  );
   const rescanStatus = heartbeatStatus(h?.rescan_heartbeat_lag_seconds);
   const workerRows = h?.workers ?? [];
   const uwWorkers = workerRows.filter((worker) => worker.role === "uw");

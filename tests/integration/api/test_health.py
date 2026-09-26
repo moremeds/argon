@@ -8,16 +8,17 @@ from decimal import Decimal
 import pytest
 
 import uw_scan.api.routers.health as health_router
-from uw_scan.api.routers.health import _record_health_cache_clear_for_tests, health
+from uw_scan.api.routers.health import health
 from uw_scan.config import Settings
 from uw_scan.version import app_version
+from uw_scan.worker.jobs.record_health_snapshot import refresh_record_health_snapshot
 
 
-@pytest.fixture(autouse=True)
-def clear_record_health_cache():
-    _record_health_cache_clear_for_tests()
-    yield
-    _record_health_cache_clear_for_tests()
+def _refresh_record_health_snapshot(repo) -> None:
+    """Run the worker job's compute+persist step; /api/health only reads it."""
+    refresh_record_health_snapshot(
+        repo, now_utc=datetime.now(UTC), window_hours=8, daily_window_hours=26
+    )
 
 
 @pytest.fixture(autouse=True)
@@ -143,7 +144,15 @@ def test_health_autoheal_circuit_broken_excludes_table_without_healer_adapter(
 
     today = date(2026, 7, 2)
     row = FreshnessRow(
-        "flow_alerts_daily_rollup", "date", "watchlist", 100, 0, 0.0, date(2026, 6, 1), 31, True
+        "flow_alerts_daily_rollup",
+        "date",
+        "watchlist",
+        100,
+        0,
+        0.0,
+        date(2026, 6, 1),
+        31,
+        True,
     )
     for i in range(4):
         fr.upsert_snapshot(today - timedelta(days=i), [row])
@@ -365,6 +374,7 @@ def test_health_includes_massive_provider_usage_stats_when_source_is_massive(
 def test_health_record_check_alerts_on_low_recent_ticker_coverage(
     client, seeded_db_with_cards
 ):
+    _refresh_record_health_snapshot(seeded_db_with_cards)
     r = client.get(
         "/api/health?record_window_hours=8&record_min_coverage=0.9"
         "&record_tables=watchlist_card"
@@ -423,6 +433,7 @@ def test_health_record_check_passes_when_selected_table_covers_watchlist(
             spot=Decimal("100.00"),
         )
 
+    _refresh_record_health_snapshot(repo)
     r = client.get("/api/health?record_window_hours=8&record_tables=watchlist_card")
 
     assert r.status_code == 200
@@ -433,7 +444,7 @@ def test_health_record_check_passes_when_selected_table_covers_watchlist(
     assert body["record_health"][0]["actual_tickers"] == repo.count_active_watchlist()
 
 
-def test_health_record_check_cache_is_bounded_and_clearable(
+def test_health_record_check_serves_snapshot_until_job_refreshes(
     client, seeded_db_empty_cards
 ):
     repo = seeded_db_empty_cards
@@ -449,6 +460,7 @@ def test_health_record_check_cache_is_bounded_and_clearable(
         )
 
     url = "/api/health?record_window_hours=8&record_tables=watchlist_card"
+    _refresh_record_health_snapshot(repo)
     first = client.get(url)
     assert first.status_code == 200
     first_body = first.json()
@@ -479,7 +491,8 @@ def test_health_record_check_cache_is_bounded_and_clearable(
     assert second_body["record_health_ok"] is True
     assert second_body["record_health"] == first_body["record_health"]
 
-    _record_health_cache_clear_for_tests()
+    # The API never sweeps the tables; only the job's next run sees the change.
+    _refresh_record_health_snapshot(repo)
     third = client.get(url)
     assert third.status_code == 200
     third_body = third.json()
@@ -512,6 +525,7 @@ def test_health_record_check_discovers_new_ticker_timestamp_tables(
     repo.conn.commit()
 
     try:
+        _refresh_record_health_snapshot(repo)
         r = client.get(
             "/api/health?record_window_hours=8&record_tables=synthetic_endpoint_snapshots"
         )
@@ -564,6 +578,7 @@ def test_health_daily_window_passes_nightly_table_aged_under_26h(
             ],
         )
     repo.conn.commit()
+    _refresh_record_health_snapshot(repo)
 
     r = client.get("/api/health?record_window_hours=8&record_tables=iv_rank_history")
 
@@ -580,6 +595,7 @@ def test_health_excluded_tables_omitted_from_record_health(
 ):
     """Cockpit-only + sparse tables should be filtered out of discovery so
     they cannot trigger a false coverage alert."""
+    _refresh_record_health_snapshot(seeded_db_empty_cards)
     r = client.get("/api/health?record_window_hours=8")
     body = r.json()
     surfaced = {row["table"] for row in body["record_health"]}
@@ -592,6 +608,43 @@ def test_health_excluded_tables_omitted_from_record_health(
     }
     leaked = surfaced & excluded
     assert not leaked, f"excluded tables leaked into record_health: {leaked}"
+
+
+def test_health_record_check_unknown_when_snapshot_missing(
+    client, seeded_db_empty_cards
+):
+    """No snapshot yet (job never ran): the record check is UNKNOWN, not PASS."""
+    r = client.get("/api/health?record_window_hours=8&record_tables=watchlist_card")
+
+    assert r.status_code == 200
+    body = r.json()
+    assert body["record_health_ok"] is None
+    assert body["record_health"] == []
+    assert body["record_health_computed_at"] is None
+
+
+def test_record_health_snapshot_replaces_whole_set(seeded_db_empty_cards):
+    repo = seeded_db_empty_cards
+    _refresh_record_health_snapshot(repo)
+    tables = {row.table for row in repo.list_record_health_snapshot()}
+    assert "watchlist_card" in tables
+    assert all(
+        row.computed_at is not None for row in repo.list_record_health_snapshot()
+    )
+
+    repo.upsert_record_health_snapshot(
+        [
+            row
+            for row in repo.list_record_health_snapshot()
+            if row.table == "watchlist_card"
+        ]
+    )
+    assert [row.table for row in repo.list_record_health_snapshot()] == [
+        "watchlist_card"
+    ]
+    assert [
+        row.table for row in repo.list_record_health_snapshot(["watchlist_card"])
+    ] == ["watchlist_card"]
 
 
 def test_health_unhealthy_when_no_scans(client, seeded_db_empty_cards):

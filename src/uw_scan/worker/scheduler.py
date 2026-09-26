@@ -86,6 +86,7 @@ from uw_scan.worker.jobs.option_surface_research_catchup import (
 from uw_scan.worker.jobs.pipeline_benchmark import pipeline_benchmark_snapshot_job
 from uw_scan.worker.jobs.positioning_jobs import positioning_refresh_once
 from uw_scan.worker.jobs.rates_jobs import rates_fred_ingest_job
+from uw_scan.worker.jobs.record_health_snapshot import record_health_snapshot_job
 from uw_scan.worker.jobs.rescan_loop import rescan_tick
 from uw_scan.worker.jobs.skew_analytics import (
     nightly_skew_analytics_rollup,
@@ -125,8 +126,8 @@ logging.basicConfig(
     format="%(asctime)s [%(levelname)s] %(name)s: %(message)s",
 )
 # Suppress APScheduler's per-execution bookkeeping ("Running job…" / "executed
-# successfully") — these fire every second per worker (heartbeat + rescan_tick)
-# and flood concurrently→Warp at ~12–26 lines/sec, saturating the render loop.
+# successfully") — rescan_tick fires every second per worker (the heartbeat
+# every 15 s) and would flood concurrently→Warp, saturating the render loop.
 # WARNING still surfaces missed-firing, executor overload, and error events.
 logging.getLogger("apscheduler").setLevel(logging.WARNING)
 logger = logging.getLogger("uw_scan.worker")
@@ -705,13 +706,38 @@ class _NoOhlc:
         pass
 
 
+# Interval "tick" jobs that fire every few seconds. Recording every success of
+# these upserted job_failures (one fresh connection each) several times a
+# second fleet-wide. A success is only recorded when it can change the row: the
+# first success of the process (clears a streak left by a previous process) and
+# the first success after a failure (resets the streak). Failures always record.
+_TICK_JOB_IDS = frozenset(
+    {
+        "worker_heartbeat",
+        "rescan_tick",
+        "trade_insights_ai_tick",
+        "trade_insights_ai_tick_codex",
+        "trade_insights_ai_tick_claude",
+        "trade_insights_ai_tick_deepseek",
+    }
+)
+# Tick jobs whose last recorded state in this process is success.
+_tick_jobs_recorded_clean: set[str] = set()
+
+
 def _handle_job_event(event) -> None:
     from uw_scan.storage.ops_health import JobFailuresRepository
 
+    failed = getattr(event, "exception", None) is not None
+    if event.job_id in _TICK_JOB_IDS:
+        if not failed and event.job_id in _tick_jobs_recorded_clean:
+            return
+        if failed:
+            _tick_jobs_recorded_clean.discard(event.job_id)
     try:
         with _ops_conn() as conn:
             repo = JobFailuresRepository(conn)
-            if getattr(event, "exception", None) is not None:
+            if failed:
                 repo.record_failure(event.job_id, str(event.exception))
                 streak = next(
                     (s for s in repo.list_streaks() if s.job_name == event.job_id), None
@@ -726,6 +752,8 @@ def _handle_job_event(event) -> None:
             else:
                 repo.record_success(event.job_id)
             conn.commit()
+        if not failed and event.job_id in _TICK_JOB_IDS:
+            _tick_jobs_recorded_clean.add(event.job_id)
     except Exception as exc:  # ops telemetry must never crash the scheduler
         logger.warning(
             "job-failure listener could not record event for %s: %s",
@@ -1757,9 +1785,11 @@ def main() -> int:
     def _pipeline_benchmark_snapshot() -> None:
         pipeline_benchmark_snapshot_job(settings)
 
+    # 15 s, not 1 s: every consumer treats a beat as stale only after minutes
+    # (benchmark collector 5 min, AI pools 5 min); the health panel shows lag.
     sched.add_job(
         lambda: _record_worker_heartbeat(settings),
-        IntervalTrigger(seconds=1),
+        IntervalTrigger(seconds=15),
         id="worker_heartbeat",
         name="Worker heartbeat",
         max_instances=1,
@@ -2353,6 +2383,17 @@ def main() -> int:
             name="Pipeline benchmark snapshot",
             max_instances=1,
             coalesce=True,
+        )
+        # Same singleton owner. Persists the record-health counts /api/health
+        # reads, so the API never sweeps the big tables itself.
+        sched.add_job(
+            lambda: record_health_snapshot_job(settings),
+            IntervalTrigger(minutes=15),
+            id="record_health_snapshot",
+            name="Record health snapshot",
+            max_instances=1,
+            coalesce=True,
+            misfire_grace_time=300,
         )
 
     if _should_schedule_regime_live(settings):

@@ -577,3 +577,40 @@ def test_fundamentals_desk_rollup_fires_at_2130_et_every_day(monkeypatch):
     assert fields["minute"] == "30"
     assert fields["day_of_week"] == "*"
     assert str(trigger.timezone) == "America/New_York"
+
+
+def test_record_health_snapshot_registered_every_15_min_on_primary_uw_only(
+    monkeypatch,
+):
+    primary = _registered_jobs(
+        monkeypatch,
+        UW_SCAN_WORKER_ROLE="uw",
+        UW_SCAN_WORKER_INDEX="0",
+        UW_SCAN_WORKER_COUNT="2",
+    )
+    assert primary["record_health_snapshot"].interval.total_seconds() == 15 * 60
+
+    secondary = _registered_job_ids(
+        monkeypatch,
+        UW_SCAN_WORKER_ROLE="uw",
+        UW_SCAN_WORKER_INDEX="1",
+        UW_SCAN_WORKER_COUNT="2",
+    )
+    assert "record_health_snapshot" not in secondary
+    massive = _registered_job_ids(
+        monkeypatch,
+        UW_SCAN_WORKER_ROLE="massive",
+        UW_SCAN_WORKER_INDEX="0",
+        UW_SCAN_WORKER_COUNT="1",
+    )
+    assert "record_health_snapshot" not in massive
+
+
+def test_worker_heartbeat_beats_every_15_seconds(monkeypatch):
+    trigger = _registered_jobs(
+        monkeypatch,
+        UW_SCAN_WORKER_ROLE="massive",
+        UW_SCAN_WORKER_INDEX="0",
+        UW_SCAN_WORKER_COUNT="1",
+    )["worker_heartbeat"]
+    assert trigger.interval.total_seconds() == 15

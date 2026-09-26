@@ -6221,6 +6221,8 @@ export interface components {
             record_health_ok?: boolean | null;
             /** Record Health */
             record_health?: components["schemas"]["RecordHealthCheck"][];
+            /** Record Health Computed At */
+            record_health_computed_at?: string | null;
             /** Workers */
             workers?: components["schemas"]["WorkerHealth"][];
             ws_consumer?: components["schemas"]["WsConsumerHealth"] | null;
