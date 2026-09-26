@@ -29,13 +29,17 @@ import logging
 from collections import defaultdict
 from dataclasses import dataclass
 from datetime import date as _date
-from datetime import datetime
+from datetime import datetime, timedelta
 from math import sqrt
 from statistics import fmean, pstdev
 from typing import Any
 from zoneinfo import ZoneInfo
 
-from uw_scan.reports.vrp_macro_drawdown import _Loaded, load_index_vol
+from uw_scan.reports.vrp_macro_drawdown import (
+    SIGNAL_LOOKBACK_DAYS,
+    _Loaded,
+    load_index_vol,
+)
 from uw_scan.reports.vrp_macro_harvest import _settle
 from uw_scan.reports.vrp_structure import (
     BullPutSpread,
@@ -288,6 +292,22 @@ def _resolve_spread(
     }
 
 
+# rv warm-up (20) + z window (252) + the first log-return's prior close.
+_MIN_WINDOW_ROWS = 20 + 252 + 1
+
+
+def _load_signal_window(repo, name: str, *, as_of: _date | None, lake_root) -> _Loaded:
+    """Bounded load for the signal paths (the full index history is ~5k rows and
+    only the tail matters). Falls back to the full load when the window is too
+    thin — stale or holey vol_index_daily — so the bound can only save time,
+    never change the answer or raise where the full load would not."""
+    since = (as_of or _date.today()) - timedelta(days=SIGNAL_LOOKBACK_DAYS)
+    loaded = load_index_vol(repo, name, lake_root=lake_root, since=since)
+    if len(loaded.rows) < _MIN_WINDOW_ROWS:
+        loaded = load_index_vol(repo, name, lake_root=lake_root)
+    return loaded
+
+
 def current_macro_signal(
     repo,
     settings,
@@ -301,7 +321,7 @@ def current_macro_signal(
     latest available close). Picks the most recent row with usable IV+spot on or
     before the cutoff, maps vrp_z → size weight, and (if trading) builds the modeled
     bull put spread to quote strikes/credit/max-loss for a manual or automated fill."""
-    loaded = load_index_vol(repo, name, lake_root=lake_root)
+    loaded = _load_signal_window(repo, name, as_of=as_of, lake_root=lake_root)
     spot_map = dict(loaded.adj)
     chosen: dict | None = None
     for row in reversed(loaded.rows):
@@ -385,7 +405,7 @@ def current_macro_signal_live(
         raise ValueError(
             f"{name}: non-positive live quote (spot={live_spot}, iv={live_iv})"
         )
-    loaded = load_index_vol(repo, name, lake_root=lake_root)
+    loaded = _load_signal_window(repo, name, as_of=as_of, lake_root=lake_root)
     # latest EOD row with a usable rv (rv is None for the first rv_window days);
     # capture its index directly — do NOT use list.index() (rows are dicts → ambiguous).
     eod = None

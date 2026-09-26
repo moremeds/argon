@@ -193,10 +193,18 @@ class TechnicalsRepository:
             return dict(zip(cols, row, strict=True))
 
     def fetch_latest_macd_all(self) -> list[dict]:
+        # ponytail: DISTINCT ON walked all ~268k history rows (89 ms warm);
+        # enumerate tickers, then one PK-ordered LIMIT 1 each (20 ms). Same rows.
         sql = """
-            SELECT DISTINCT ON (ticker) ticker, macd_hist_atr
-              FROM technical_daily
-             ORDER BY ticker, as_of DESC
+            SELECT tickers.ticker, latest.macd_hist_atr
+              FROM (SELECT DISTINCT ticker FROM technical_daily) tickers
+              CROSS JOIN LATERAL (
+                  SELECT macd_hist_atr FROM technical_daily d
+                   WHERE d.ticker = tickers.ticker
+                   ORDER BY d.as_of DESC
+                   LIMIT 1
+              ) latest
+             ORDER BY tickers.ticker
         """
         with self._conn.cursor() as cur:
             cur.execute(sql)

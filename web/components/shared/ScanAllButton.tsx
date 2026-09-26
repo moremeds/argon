@@ -12,29 +12,40 @@ export function ScanAllButton() {
   const [pendingIds, setPendingIds] = useState<string[]>([]);
   const [total, setTotal] = useState(0);
 
+  // Wall-clock deadline for the whole scan. Lives in a ref because the
+  // effect below re-runs on every setPendingIds; a `const startedAt` inside
+  // it reset the 10-minute limit every 2 s, so a zombie job polled forever.
+  const deadlineAt = useRef<number | null>(null);
+
   useEffect(() => {
     if (phase !== "polling" || pendingIds.length === 0) return;
-    // Bail after 10 min so a zombie 'running' job can't keep this polling
-    // indefinitely. A full 97-ticker scan typically finishes well under this.
-    const startedAt = Date.now();
+    if (deadlineAt.current === null) deadlineAt.current = Date.now() + 600_000;
     const t = setInterval(async () => {
-      if (Date.now() - startedAt > 600_000) {
+      if (deadlineAt.current !== null && Date.now() > deadlineAt.current) {
         clearInterval(t);
+        deadlineAt.current = null;
         setPhase("failed");
         router.refresh();
         return;
       }
       try {
         const results = await Promise.all(
-          pendingIds.map((id) => api.job(id).catch(() => null)),
+          pendingIds.map((id) =>
+            api
+              .job(id)
+              .catch(() => ({ job_id: id, status: "unknown" as const })),
+          ),
         );
+        // A rejected status read is NOT a finished job: keep it pending and
+        // retry next tick. Only "done"/"failed" retire an id.
         const stillPending = results
-          .filter((r) => r && r.status !== "done" && r.status !== "failed")
-          .map((r) => r!.job_id);
+          .filter((r) => r.status !== "done" && r.status !== "failed")
+          .map((r) => r.job_id);
         setPendingIds(stillPending);
         if (stillPending.length === 0) {
           clearInterval(t);
-          const anyFailed = results.some((r) => r?.status === "failed");
+          deadlineAt.current = null;
+          const anyFailed = results.some((r) => r.status === "failed");
           setPhase(anyFailed ? "failed" : "done");
           router.refresh();
         }

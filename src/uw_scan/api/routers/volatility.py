@@ -161,4 +161,9 @@ def get_volatility_series(
         else:
             status = "running"
             background_tasks.add_task(_kick_backfill, t)
-    return assemble_volatility_series(ticker=t, repo=repo, backfill_status=status)
+    # Read path is read-only: derived vrp_daily/stock_analytics rows are written
+    # by nightly_vol_analytics_rollup, not by whoever opens the page (one GET
+    # was issuing ~594 upserts + a commit).
+    return assemble_volatility_series(
+        ticker=t, repo=repo, backfill_status=status, persist_derived=False
+    )

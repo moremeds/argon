@@ -7,6 +7,20 @@ version in lockstep (enforced by `scripts/release/version_sync_check.py`).
 
 ## [Unreleased]
 
+### Fixed
+
+- **Scan-all button: the 10-minute polling deadline reset on every tick**, so a zombie `running` job kept the button polling forever; a rejected status GET was counted as a finished job and the button showed "scanned". The deadline now lives in a ref, a failed read keeps its job pending, and the live-spot poller keeps at most one request in flight.
+- **Option-surface backfill compared captured-row COUNT to the card count.** Equal counts with different members (a ticker added, another removed) skipped the missing ticker for that date forever; it now compares the ticker set.
+- **`GET /stock/{ticker}/volatility/series` no longer upserts derived `vrp_daily`/`stock_analytics` rows** (one read issued ~594 upserts and a commit). `nightly_vol_analytics_rollup` owns those rows for watchlist tickers; an off-watchlist ticker is no longer populated by opening its page.
+
+### Performance
+
+- Latest-MACD watchlist lookup probes one PK row per ticker instead of `DISTINCT ON` over ~268k history rows (89 → 20 ms warm, prod EXPLAIN, identical 170 rows).
+- VRP macro signal paths (`current_macro_signal`, `current_macro_signal_live`, the 5-min `regime_live_scan` leg) load a 480-calendar-day window instead of the full index history (492 → 6 ms offline, same latest row), falling back to the full load when the window holds fewer than the 273 rows the z-score needs; backtests and the drawdown report keep full history.
+- Nightly `technical_daily_refresh` builds each ticker's series once (was twice: once inside the snapshot, once for the upsert).
+- Single-stock report assembly passes the strike-GEX curve, exposures summary, realized-vol and exposures aggregate it already read into the dealer-regime overlay, removing four duplicate SELECTs per report; the overlay still resolves its own latest run.
+- Stock page tabs render with `prefetch={false}`; a first visit no longer prefetches seven unvisited tab routes (16 requests incl. 5 full reports in the production-build fixture).
+
 ## [0.13.12] — 2026-09-26
 
 
