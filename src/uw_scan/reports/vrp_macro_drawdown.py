@@ -175,6 +175,13 @@ def _build_loaded(
     return _Loaded(adj=adj, pidx=pidx, rows=rows, events=[])
 
 
+# Calendar-day lookback that still yields the latest row's rv (20 sessions) and
+# its 252-value z-window with ~60 sessions of margin (~330 sessions; a gap in
+# vol_index_daily would otherwise silently zero the size weight). Signal paths
+# read only this much; backtests/drawdown reports load from the spec start.
+SIGNAL_LOOKBACK_DAYS = 480
+
+
 def load_index_vol(
     repo,
     name: str,
@@ -182,10 +189,16 @@ def load_index_vol(
     lake_root: pathlib.Path | None = None,
     rv_window: int = 20,
     z_window: int = 252,
+    since: _date | None = None,
 ) -> _Loaded:
-    """Build a `_Loaded` for an index from its IV proxy + spot source (INDEX_SPECS)."""
+    """Build a `_Loaded` for an index from its IV proxy + spot source (INDEX_SPECS).
+    `since` bounds every source read to max(spec start, since); rows before the
+    first rv_window/z_window sessions of the window carry rv/z = None, exactly
+    as the first rows of a full load do."""
     spec = INDEX_SPECS[name]
     start = spec["start"]
+    if since is not None and since > start:
+        start = since
     vol = _vol_index_close(repo, spec["vol"], start)
     if spec["spot_source"] == "vol_index":
         spot = _vol_index_close(repo, spec["spot_symbol"], start)

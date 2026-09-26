@@ -345,3 +345,40 @@ def test_assemble_single_stock_report_populates_sections():
     assert report.option_chain_per_strike[0].call_oi == 10_000
     # next_earnings_date promoted from the flow alert
     assert report.next_earnings_date == _date(2026, 7, 1)
+
+
+def test_assembly_reads_each_dealer_primitive_once():
+    from types import SimpleNamespace
+    from unittest.mock import patch
+
+    from uw_scan.cards import dealer_regime
+
+    repo = _StubRepo()
+    # The stub's latest_run_id is 0, which short-circuits gather_inputs before
+    # any read; give this report a real run so the dealer overlay path runs.
+    repo.latest_run_id = lambda _t: 42  # type: ignore[method-assign]
+    counts: dict[str, int] = {}
+    for name in (
+        "get_strike_gex_curve",
+        "fetch_exposures_summary",
+        "fetch_realized_vol_latest",
+        "fetch_exposures_aggregate",
+    ):
+        orig = getattr(repo, name)
+
+        def counted(*a, _n=name, _o=orig, **k):
+            counts[_n] = counts.get(_n, 0) + 1
+            return _o(*a, **k)
+
+        setattr(repo, name, counted)
+    fake_hist = SimpleNamespace(fetch_history=lambda _t, days: [])
+    with patch.object(
+        dealer_regime, "GreekExposureDailyRepository", lambda *_a, **_k: fake_hist
+    ):
+        assemble_single_stock_report("AAPL", run_id=42, repo=repo)  # type: ignore[arg-type]
+    assert counts == {
+        "get_strike_gex_curve": 1,
+        "fetch_exposures_summary": 1,
+        "fetch_realized_vol_latest": 1,
+        "fetch_exposures_aggregate": 1,
+    }

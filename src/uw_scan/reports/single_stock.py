@@ -127,9 +127,14 @@ def _build_flow_snapshot(
 
 
 def _build_market_structure(
-    repo: Repository, run_id: int, ticker: str, max_pain_rows: list[MaxPainRow]
+    repo: Repository,
+    run_id: int,
+    ticker: str,
+    max_pain_rows: list[MaxPainRow],
+    *,
+    exposures: dict,
+    rv: dict | None,
 ) -> MarketStructure:
-    exposures = repo.fetch_exposures_aggregate(run_id, ticker) or {}
     total_call_gex = _to_decimal(exposures.get("total_call_gex"))
     total_put_gex = _to_decimal(exposures.get("total_put_gex"))
     net_gex = None
@@ -146,7 +151,6 @@ def _build_market_structure(
 
     # Spot from realized_vol latest price as fallback; from max_pain close otherwise
     spot = None
-    rv = repo.fetch_realized_vol_latest(ticker)
     if rv and rv.get("price") is not None:
         spot = _to_decimal(rv["price"])
     elif max_pain_rows and max_pain_rows[0].close is not None:
@@ -313,7 +317,11 @@ def assemble_single_stock_report(
             )
         )
 
-    market_structure = _build_market_structure(repo, run_id, ticker, max_pain_rows)
+    exposures_agg = repo.fetch_exposures_aggregate(run_id, ticker) or {}
+    rv_latest = repo.fetch_realized_vol_latest(ticker)
+    market_structure = _build_market_structure(
+        repo, run_id, ticker, max_pain_rows, exposures=exposures_agg, rv=rv_latest
+    )
     vol = build_volatility_profile(repo, run_id, ticker)
     vrp = build_vrp(vol)
 
@@ -428,7 +436,17 @@ def assemble_single_stock_report(
 
     # Dealer regime — same gather_inputs helper the /regime/dealer endpoint
     # uses, so both paths share one source of truth.
-    dr_inputs = gather_inputs(repo, ticker=ticker)
+    dr_inputs = gather_inputs(
+        repo,
+        ticker=ticker,
+        prefetched={
+            "run_id": run_id,
+            "strike_gex_curve": curve_raw,
+            "exposures_summary": summary_raw,
+            "realized_vol": rv_latest,
+            "exposures_aggregate": exposures_agg,
+        },
+    )
     dr_out = compute_dealer_regime(
         ticker=ticker.upper(),
         spot=dr_inputs["spot"],

@@ -22,6 +22,8 @@ from decimal import Decimal
 from typing import Any
 from zoneinfo import ZoneInfo
 
+from uw_scan.storage.greek_exposure_repository import GreekExposureDailyRepository
+
 # Normalization scales — tuned for the dollar-gamma magnitudes seen in
 # production (`SUM(call_gex+put_gex)` for SPY/NVDA/AAPL/TSLA is in the
 # 80k–650k range, verified 2026-05-21). tanh keeps the signal smooth.
@@ -456,7 +458,13 @@ def _prev_close_net_gex(history_rows: list[dict], today: _date) -> float | None:
     return None
 
 
-def gather_inputs(repo: Any, *, ticker: str, today: _date | None = None) -> dict:
+def gather_inputs(
+    repo: Any,
+    *,
+    ticker: str,
+    today: _date | None = None,
+    prefetched: dict | None = None,
+) -> dict:
     """Single source of truth for ``compute_dealer_regime`` inputs.
 
     Both the report assembler and the /regime/dealer endpoint call this so
@@ -469,10 +477,14 @@ def gather_inputs(repo: Any, *, ticker: str, today: _date | None = None) -> dict
     Returns: ``run_id``, ``spot``, ``net_gex``, ``prev_close_net_gex``,
     ``per_expiry_vanna``, ``per_expiry_charm``, ``strike_gex_curve``,
     ``levels``, ``today``. ``run_id`` is 0 if no scan exists.
+
+    `prefetched`: rows the report assembler already read for ITS run
+    (`run_id`, `strike_gex_curve`, `exposures_summary`, `realized_vol`,
+    `exposures_aggregate`). Used only when that run_id is also the latest run,
+    so the dealer overlay keeps its "latest" semantics on a historical replay.
     """
     from uw_scan.cards.gex import compute_market_structure_levels
     from uw_scan.models import StrikeGexBucket
-    from uw_scan.storage.greek_exposure_repository import GreekExposureDailyRepository
 
     t = ticker.upper()
     today = today or _et_today()
@@ -490,14 +502,31 @@ def gather_inputs(repo: Any, *, ticker: str, today: _date | None = None) -> dict
             "today": today,
         }
 
-    strike_curve_raw = repo.get_strike_gex_curve(run_id) or []
-    exposures = repo.fetch_exposures_summary(run_id, t) or []
+    pre = prefetched if prefetched and prefetched.get("run_id") == run_id else {}
+    strike_curve_raw = (
+        pre["strike_gex_curve"]
+        if "strike_gex_curve" in pre
+        else repo.get_strike_gex_curve(run_id)
+    ) or []
+    exposures = (
+        pre["exposures_summary"]
+        if "exposures_summary" in pre
+        else repo.fetch_exposures_summary(run_id, t)
+    ) or []
 
-    rv_row = repo.fetch_realized_vol_latest(t) or {}
+    rv_row = (
+        pre["realized_vol"]
+        if "realized_vol" in pre
+        else repo.fetch_realized_vol_latest(t)
+    ) or {}
     spot_raw = rv_row.get("price")
     spot_f = _to_float(spot_raw)
 
-    exp_agg = repo.fetch_exposures_aggregate(run_id, t) or {}
+    exp_agg = (
+        pre["exposures_aggregate"]
+        if "exposures_aggregate" in pre
+        else repo.fetch_exposures_aggregate(run_id, t)
+    ) or {}
     total_call_gex = exp_agg.get("total_call_gex")
     total_put_gex = exp_agg.get("total_put_gex")
     net_gex_f: float | None = None
