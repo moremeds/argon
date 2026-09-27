@@ -18,8 +18,8 @@ version in lockstep (enforced by `scripts/release/version_sync_check.py`).
 - Latest-MACD watchlist lookup probes one PK row per ticker instead of `DISTINCT ON` over ~268k history rows (89 → 20 ms warm, prod EXPLAIN, identical 170 rows).
 - VRP macro signal paths (`current_macro_signal`, `current_macro_signal_live`, the 5-min `regime_live_scan` leg) load a 480-calendar-day window instead of the full index history (492 → 6 ms offline, same latest row), falling back to the full load when the window holds fewer than the 273 rows the z-score needs; backtests and the drawdown report keep full history.
 - Nightly `technical_daily_refresh` builds each ticker's series once (was twice: once inside the snapshot, once for the upsert).
-- Single-stock report assembly passes the strike-GEX curve, exposures summary, realized-vol and exposures aggregate it already read into the dealer-regime overlay, removing four duplicate SELECTs per report; the overlay still resolves its own latest run.
-- Stock page tabs render with `prefetch={false}`; a first visit no longer prefetches seven unvisited tab routes (16 requests incl. 5 full reports in the production-build fixture).
+- Single-stock report assembly passes the strike-GEX curve, exposures summary, realized-vol and exposures aggregate it already read into the dealer-regime overlay, removing all five duplicate SELECTs per report (the overlay now reuses the assembler's run id instead of re-resolving the latest run).
+- Stock page tabs render with `prefetch={false}`; a first visit no longer prefetches seven unvisited tab routes. Re-measured in the production-build fixture: 16 backend requests incl. 5 full report reads → 7 requests incl. 1 report read.
 
 ## [0.13.12] — 2026-09-26
 

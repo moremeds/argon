@@ -18,7 +18,8 @@ try {
   await page.screenshot({ path: new URL("mock-stock-prefetch.png", screenshots).pathname, fullPage: true });
   fs.writeFileSync(new URL("browser-events.json", output), JSON.stringify({ fixture: true, noNavigationClicks: true, links, events }, null, 2));
   const prefetched = new Set(events.filter(e => e.kind === "request" && e.headers["next-router-prefetch"] === "1" && new URL(e.url).pathname.startsWith("/stock/MOCKPROF/")).map(e => new URL(e.url).pathname));
-  assert.equal(prefetched.size, 7, "all seven unvisited stock tabs must be prefetched");
+  // tab prefetch disabled (TabBar prefetch={false})
+  assert.equal(prefetched.size, 0, "no stock tab may be prefetched");
   const rows = fs.readFileSync(logFile, "utf8").slice(before).trim().split("\n").filter(Boolean).map(JSON.parse);
   const counts = {};
   for (const r of rows) counts[r.url] = (counts[r.url] ?? 0) + 1;

@@ -476,10 +476,11 @@ def gather_inputs(
     ``per_expiry_vanna``, ``per_expiry_charm``, ``strike_gex_curve``,
     ``levels``, ``today``. ``run_id`` is 0 if no scan exists.
 
-    `prefetched`: rows the report assembler already read for ITS run
+    `prefetched`: rows the report assembler already read for its run
     (`run_id`, `strike_gex_curve`, `exposures_summary`, `realized_vol`,
-    `exposures_aggregate`). Used only when that run_id is also the latest run,
-    so the dealer overlay keeps its "latest" semantics on a historical replay.
+    `exposures_aggregate`). When given, the overlay is computed for that run
+    and ``latest_run_id`` is not queried again: the assembler resolved the
+    latest run a few milliseconds earlier in the same request.
     """
     from uw_scan.cards.gex import compute_market_structure_levels
     from uw_scan.models import StrikeGexBucket
@@ -487,7 +488,7 @@ def gather_inputs(
 
     t = ticker.upper()
     today = today or _et_today()
-    run_id = repo.latest_run_id(t)
+    run_id = prefetched["run_id"] if prefetched else repo.latest_run_id(t)
     if run_id == 0:
         return {
             "run_id": 0,
@@ -501,7 +502,7 @@ def gather_inputs(
             "today": today,
         }
 
-    if prefetched and prefetched.get("run_id") == run_id:
+    if prefetched:
         strike_curve_raw = prefetched["strike_gex_curve"] or []
         exposures = prefetched["exposures_summary"] or []
         rv_row = prefetched["realized_vol"] or {}

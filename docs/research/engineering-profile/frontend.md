@@ -62,6 +62,19 @@ The script asserts exactly seven distinct unvisited stock tab prefetch paths and
 
 ## Still unmeasured
 
-Production payload sizes, report serialization/copy CPU, actual response latency, real concurrent users, impact of setting `prefetch={false}`, and any backend pressure from real job counts. No claimed speedup. The narrow next implementation candidates remain the confirmed scan polling corrections and stock prefetch setting, subject to the lead's Task 2 review gate.
+Production payload sizes, report serialization/copy CPU, actual response latency, real concurrent users, and any backend pressure from real job counts. No claimed speedup. The narrow next implementation candidates remain the confirmed scan polling corrections and stock prefetch setting, subject to the lead's Task 2 review gate.
 
 Commit: none. Task complete; awaiting lead gate.
+
+## Post-fix re-measurement (2026-09-27)
+
+Same fixture (`frontend-stub.mjs` + `next build --webpack` + `next start :3317` + `frontend-browser.mjs`), one capture, after `TabBar.tsx` `prefetch={false}` landed. The browser script now asserts zero stock-tab prefetches.
+
+| Metric | Diagnostic | Post-fix |
+| --- | --- | --- |
+| Backend requests on one visit | 16 | 7 |
+| `/api/stock/MOCKPROF` report GETs | 5 | 1 (server-side RSC fetch) |
+| Stock-tab prefetch requests | 7 | 0 |
+| Skew / volatility / history / positioning requests | 1 each | 0 |
+
+Remaining 7: report ×1, `/api/health` ×2, `/api/watchlist/spots` ×3, trade-insights latest ×1. Sidebar navigation still prefetches 10 routes twice each; none of those reached the backend and the diagnostic never counted them, so there is no before number. `output/profile-review/frontend/{stub-counts,browser-events}.json` now hold the post-fix capture; `stub-requests.jsonl` is append-only and contains all captures.
