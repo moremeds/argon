@@ -124,7 +124,7 @@ def company_sector_refresh(
             log.error(
                 "company_sector_refresh: vendored sp500 list invalid (%s); "
                 "asking the fundamental universe only this run",
-                exc,
+                repr(exc),
             )
         else:
             log.info(

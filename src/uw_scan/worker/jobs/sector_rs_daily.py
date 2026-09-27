@@ -239,7 +239,7 @@ def run_sector_rs(
             counters["membership_invalid"] = 1
             log.error(
                 "sector_rs: vendored sp500 list invalid (%s); gics rows skipped for %d sessions",
-                exc,
+                repr(exc),
                 len(sessions),
             )
         else:
