@@ -285,6 +285,16 @@ MONITORED_TABLES: list[MonitoredTable] = [
         None,
         date_col_override="event_date",
     ),
+    # Sector RS + breadth (migration 152): nightly 21:30 ET Mon–Fri, gated
+    # UW_SCAN_SECTOR_RS_ENABLED (default off, so this row reads stale until
+    # the flag flips on the mini after the backfill). Ticker-less, keyed
+    # as_of + group; `as_of` is absent from _DATE_COL_PREFERENCE.
+    MonitoredTable(
+        "sector_rs_daily",
+        "watchlist",  # ticker-less
+        None,
+        date_col_override="as_of",
+    ),
 ]
 
 
