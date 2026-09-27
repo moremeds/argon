@@ -85,6 +85,8 @@ FALLBACK_SYMBOLS: frozenset[str] = frozenset({BENCHMARK, *SPDR_SECTOR_ETFS.value
 GROUP_KINDS: tuple[str, ...] = ("gics", "chain")
 #: 253 sessions is about 367 calendar days; 400 clears the holidays with margin.
 LOOKBACK_CALENDAR_DAYS = 400
+#: Calendar days the nightly recomputes (≈5 sessions); see sector_rs_daily.
+NIGHTLY_RECOMPUTE_DAYS = 7
 _MIN_BENCH_CLOSES = max(WINDOWS.values()) + 1
 
 Closes = dict[str, list[tuple[date, float]]]
@@ -294,10 +296,15 @@ def sector_rs_daily(
     as_of: date,
     fetch_closes: ClosesFetcher = fetch_bulk_daily_closes,
 ) -> dict[str, int]:
-    """Nightly entry point: one session's rows, both group kinds."""
+    """Nightly entry point: the last week's sessions, both group kinds.
+
+    Recomputing a trailing week (not just as_of) means a night on which apex has
+    not yet published today's bar, or a chunk failed, heals on the next run; the
+    upsert converges and the table is excluded from the gap healer.
+    """
     return run_sector_rs(
         repo=repo,
         schema=schema,
-        dates=[as_of],
+        dates=[as_of - timedelta(days=d) for d in range(NIGHTLY_RECOMPUTE_DAYS)],
         fetch_closes=fetch_closes,
     )

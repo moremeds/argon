@@ -159,3 +159,12 @@ def test_transport_error_and_garbage_never_raise():
     assert (
         fetch_bulk_daily_closes([], start=_START, end=_END, client=_client(boom)) == {}
     )
+
+
+def test_daily_close_date_is_the_utc_session_whatever_the_offset():
+    from uw_scan.sources.apex import _parse_daily_closes
+
+    # 2026-09-18 00:00 UTC stamped in New York time is still the 09-18 session.
+    # 761.69 = SPY adjusted close 2026-09-18 (tests/unit/reports/fixtures/).
+    out = _parse_daily_closes([{"time": "2026-09-17T20:00:00-04:00", "close": 761.69}])
+    assert list(out) == [date(2026, 9, 18)]

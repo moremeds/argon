@@ -378,7 +378,7 @@ def _parse_daily_closes(bars: object) -> dict[date, float]:
         if t is None or c is None:
             continue
         try:
-            out[datetime.fromisoformat(t).date()] = float(c)
+            out[datetime.fromisoformat(t).astimezone(timezone.utc).date()] = float(c)
         except (ValueError, TypeError) as exc:
             logger.debug("apex daily bar parse skip: %s", repr(exc))
     return out

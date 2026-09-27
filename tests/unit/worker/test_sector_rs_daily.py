@@ -110,6 +110,9 @@ class _Repo:
 @pytest.fixture
 def wired(monkeypatch):
     _Store.rows = []
+    # One session per run keeps the per-test counts readable; the trailing-week
+    # recompute has its own test below.
+    monkeypatch.setattr(job, "NIGHTLY_RECOMPUTE_DAYS", 1)
     monkeypatch.setattr(job, "SectorRsRepository", _Store)
     monkeypatch.setattr(job, "CompanySectorRepository", _Sectors)
     monkeypatch.setattr(job, "WatchlistChainRepository", _chains({}))
@@ -234,3 +237,16 @@ def test_build_gics_groups_keeps_the_eleven_and_counts_the_rest():
     assert [g.key for g in groups] == list(job.SPDR_SECTOR_ETFS)
     assert next(g for g in groups if g.key == "Technology").members == ("AAPL",)
     assert unclassified == 2  # GE NULL sector, PKG never asked
+
+
+def test_nightly_recomputes_the_trailing_week_so_a_missed_session_heals(
+    wired, monkeypatch
+):
+    monkeypatch.setattr(job, "NIGHTLY_RECOMPUTE_DAYS", 7)
+    monkeypatch.setattr(job, "sp500_members", lambda: ("AAPL", "MSFT", "NVDA"))
+    c = _run()  # Fri 2026-09-18 back to Sat 09-12, which snaps to Fri 09-11
+    assert c["sessions"] == 6
+    assert c["gics_rows"] == 6 * 11
+    assert {r.as_of for r in _Store.rows} == {
+        date(2026, 9, 11), *(date(2026, 9, d) for d in range(14, 19))
+    }
