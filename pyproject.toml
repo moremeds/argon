@@ -79,6 +79,9 @@ where = ["src"]
 # checks the DB series against it before publishing a cone), so it must ship in the
 # wheel — without it the container refuses every run on the digest check.
 "uw_scan.density" = ["data/*.parquet"]
+# Vendored S&P 500 list for sector RS breadth, read at RUNTIME by
+# sources/sp500_members.py; must ship in the wheel.
+"uw_scan.sources" = ["data/*.json"]
 
 [tool.pytest.ini_options]
 testpaths = ["tests"]
