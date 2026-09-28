@@ -7,6 +7,11 @@ version in lockstep (enforced by `scripts/release/version_sync_check.py`).
 
 ## [Unreleased]
 
+### Changed
+
+- Removed two unused web components (`CbReservesCard` and regime `ChartPanel`) after confirming no live imports.
+- Shared the five provider GET telemetry implementations and the two AI analysis-input pruning, freshness, hashing, and schema traversals while retaining their existing provider and lane contracts.
+
 ### Fixed
 
 - **Scan-all button: the 10-minute polling deadline reset on every tick**, so a zombie `running` job kept the button polling forever; a rejected status GET was counted as a finished job and the button showed "scanned". The deadline now lives in a ref, a failed read keeps its job pending, and the live-spot poller keeps at most one request in flight.
