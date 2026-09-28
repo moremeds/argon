@@ -1,4 +1,4 @@
-"""gather_inputs reuses the run and rows the report assembler already read."""
+"""gather_inputs reuses rows the report already read — but only for the latest run."""
 
 from __future__ import annotations
 
@@ -57,19 +57,29 @@ def _gather(repo, prefetched):
         )
 
 
-def test_prefetched_skips_every_read_including_latest_run_id():
+PRIMITIVE_READS = {
+    "get_strike_gex_curve",
+    "fetch_exposures_summary",
+    "fetch_realized_vol_latest",
+    "fetch_exposures_aggregate",
+}
+
+
+def test_same_run_skips_the_four_reads():
     repo = _Repo(latest=7)
     out = _gather(repo, PRE)
     assert out["run_id"] == 7
     assert out["spot"] == 100.0 and out["net_gex"] == 0.5
-    assert repo.calls == []
+    assert repo.calls == ["latest_run_id"]
 
 
-def test_prefetched_run_id_wins_over_latest():
+def test_historical_run_loads_latest_primitives():
     repo = _Repo(latest=8)
     out = _gather(repo, PRE)
-    assert out["run_id"] == 7
-    assert repo.calls == []
+    assert out["run_id"] == 8
+    assert repo.calls[0] == "latest_run_id"
+    assert set(repo.calls[1:]) == PRIMITIVE_READS
+    assert len(repo.calls) == 5
 
 
 def test_no_prefetched_is_unchanged():
