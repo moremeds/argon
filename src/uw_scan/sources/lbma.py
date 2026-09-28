@@ -15,15 +15,15 @@ import logging
 import re
 from collections.abc import Callable
 from dataclasses import dataclass
-from datetime import UTC, date, datetime
+from datetime import date, datetime
 from decimal import Decimal, InvalidOperation
 from typing import Any
 
 import httpx
 from openpyxl import load_workbook
 
+from uw_scan.sources.http_telemetry import get_with_telemetry
 from uw_scan.storage.provider_usage import ExternalApiRequestEvent
-from uw_scan.storage.repository import redact_params, status_family_for
 
 logger = logging.getLogger(__name__)
 
@@ -90,66 +90,21 @@ class LbmaProvider:
         return _parse_workbook(workbook_response.content, start=start)
 
     def _get_with_telemetry(self, url: str, params: dict[str, Any]) -> httpx.Response:
-        started_at = datetime.now(UTC)
-        try:
-            response = self._client.get(url, params=params)
-        except httpx.HTTPError as exc:
-            finished_at = datetime.now(UTC)
-            self._record_request(
-                self._build_event(
-                    started_at,
-                    finished_at,
-                    params,
-                    status_code=None,
-                    error_message=repr(exc)[:1000],
-                )
-            )
-            raise
-        finished_at = datetime.now(UTC)
-        self._record_request(
-            self._build_event(
-                started_at,
-                finished_at,
-                params,
-                status_code=response.status_code,
-                error_message=(
-                    response.text[:1000] if response.status_code >= 400 else None
-                ),
-            )
+        return get_with_telemetry(
+            self._client,
+            url,
+            params,
+            provider=self.PROVIDER,
+            endpoint_key=self.ENDPOINT_KEY,
+            endpoint_path=self.ENDPOINT_PATH,
+            record_request=self._record_request,
         )
-        return response
 
     def _record_request(self, event: ExternalApiRequestEvent) -> None:
         if self._record_request_fn is not None:
             self._record_request_fn(self, event)
         else:
             logger.debug("lbma telemetry %r", event)
-
-    def _build_event(
-        self,
-        started_at: datetime,
-        finished_at: datetime,
-        params: dict[str, Any],
-        *,
-        status_code: int | None,
-        error_message: str | None,
-    ) -> ExternalApiRequestEvent:
-        return ExternalApiRequestEvent(
-            provider=self.PROVIDER,
-            endpoint_key=self.ENDPOINT_KEY,
-            method="GET",
-            path=self.ENDPOINT_PATH,
-            path_template=self.ENDPOINT_PATH,
-            params=redact_params(params),
-            status_code=status_code,
-            status_family=status_family_for(
-                status_code, transport_error=status_code is None
-            ),
-            started_at=started_at,
-            finished_at=finished_at,
-            latency_ms=max(0, int((finished_at - started_at).total_seconds() * 1000)),
-            error_message=error_message,
-        )
 
 
 def _parse_workbook(content: bytes, *, start: date | None) -> list[LbmaVaultRow]:
