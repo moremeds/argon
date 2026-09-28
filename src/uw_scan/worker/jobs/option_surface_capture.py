@@ -169,7 +169,8 @@ def option_surface_backfill(
                 (market_date,),
             )
             done = {row[0] for row in cur.fetchall()}
-        if len(done) >= len(cards):
+        missing = [card for card in cards if card.ticker.upper() not in done]
+        if not missing:
             log.info("backfill: %s fully captured — skipping", date_iso)
             continue
         if max_dates is not None and dates_filled >= max_dates:
@@ -179,13 +180,11 @@ def option_surface_backfill(
         log.info(
             "backfill: capturing %s (%d/%d tickers remaining)",
             date_iso,
-            len(cards) - len(done),
+            len(missing),
             len(cards),
         )
-        for card in cards:
+        for card in missing:
             ticker = card.ticker
-            if ticker.upper() in done:
-                continue
             if (
                 quota_limit is not None
                 and (client.rate_limit.daily_count or 0) >= quota_limit

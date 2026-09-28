@@ -825,14 +825,21 @@ def build_technical_series(
 
 
 def build_technical_snapshot(
-    bars: list[dict], spy_bars: list[dict] | None = None
+    bars: list[dict],
+    spy_bars: list[dict] | None = None,
+    *,
+    series: pd.DataFrame | None = None,
 ) -> dict | None:
     """Latest-day rich snapshot. None when <210 bars (200 SMA + slack) —
-    callers surface 'too thin' rather than a silently wrong z."""
+    callers surface 'too thin' rather than a silently wrong z.
+    `series`: a frame already produced by build_technical_series(bars, spy_bars)
+    for these exact inputs; skips the rebuild (the nightly job persists the
+    same frame, so it builds once and passes it here)."""
     df = bars_frame(bars)
     if len(df) < 210:
         return None
-    series = build_technical_series(bars, spy_bars)
+    if series is None:
+        series = build_technical_series(bars, spy_bars)
     close = df["close"]
     kin = ma_kinematics(df)
     pivot = last_pivot_index(df)

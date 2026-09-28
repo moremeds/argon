@@ -100,11 +100,22 @@ def test_fetch_latest_missing_ticker(seeded_db_empty_cards):
 def test_fetch_latest_macd_all(seeded_db_empty_cards):
     trepo = TechnicalsRepository(seeded_db_empty_cards.conn)
     trepo.upsert_series("AAA", [_row(date(2026, 7, 7), 100.0)])
-    trepo.upsert_series(
-        "BBB", [_row(date(2026, 7, 6), 100.0), _row(date(2026, 7, 7), 101.0)]
-    )
+    older = _row(date(2026, 7, 6), 100.0)
+    older["macd_hist_atr"] = -9.0
+    newer = _row(date(2026, 7, 7), 101.0)
+    newer["macd_hist_atr"] = 0.25
+    trepo.upsert_series("BBB", [older, newer])
+    nul = _row(date(2026, 7, 7), 50.0)
+    nul["macd_hist_atr"] = None
+    trepo.upsert_series("CCC", [nul])
+
     rows = trepo.fetch_latest_macd_all()
-    assert {r["ticker"] for r in rows} >= {"AAA", "BBB"}
+    by_ticker = {r["ticker"]: r["macd_hist_atr"] for r in rows}
+
+    assert by_ticker["AAA"] == 0.1  # _row default
+    assert by_ticker["BBB"] == 0.25  # the 07-07 row, not the 07-06 row
+    assert "CCC" in by_ticker and by_ticker["CCC"] is None
+    assert [r["ticker"] for r in rows] == sorted(r["ticker"] for r in rows)
 
 
 def test_upsert_and_fetch_ohlcv_roundtrip(seeded_db_empty_cards):
