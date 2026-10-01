@@ -7,6 +7,9 @@ version in lockstep (enforced by `scripts/release/version_sync_check.py`).
 
 ## [Unreleased]
 
+## [0.13.13] — 2026-10-01
+
+
 ### Added
 
 - **`sector_rs_daily`: sector relative strength and breadth, research-first (migration 152).** One row per session for each of the 11 GICS sectors (SPDR ETF return minus SPY, in percentage points; breadth = share of current S&P 500 members beating SPY, applied to every session, so it is survivorship-biased by construction) and each `watchlist_chain` chain (equal-weighted), over 1m/3m/6m/12m. The new massive-0 job `sector_rs_daily` runs at 21:30 ET Mon–Fri. It is gated by `UW_SCAN_SECTOR_RS_ENABLED`, default **off**; flip it on the mini after `scripts/backfill/sector_rs_backfill.py --start 1998-12-22` lands (after the nightly Silver rebuild publishes the livewire #157 ETF history). It costs no UW calls: apex's bulk adjusted-bars route `GET /v1/equity/bars` (delisted names have no Silver and stay unpriced), and a `daily_ohlc` fallback for SPY and the ETFs only. Rows whose 12m coverage falls below 80% are written and flagged `degraded`. `company_sector_refresh` now also fills sectors for current S&P 500 members (about 330 UW calls, once). `scripts/research/sector_rs_breadth_probe.py` implements the pre-registered §6 test. S&P 500 membership is a vendored list (`src/uw_scan/sources/data/sp500_members.json`, refreshed from livewire `presets/sp500.json` by `scripts/research/sync_sp500_members.py`). The reason: apex's membership route returned null symbols and dead tickers, and was missing META and XOM, on 2026-09-26. No UI ships until that probe passes. Spec: `docs/superpowers/specs/2026-09-26-sector-rs-daily-design.md`.
@@ -24,7 +27,6 @@ version in lockstep (enforced by `scripts/release/version_sync_check.py`).
 - Nightly `technical_daily_refresh` builds each ticker's series once (was twice: once inside the snapshot, once for the upsert).
 - Single-stock report assembly passes the strike-GEX curve, exposures summary, realized-vol and exposures aggregate it already read into the dealer-regime overlay, removing four duplicate SELECTs per report when the report's run is the latest run; the overlay still resolves its own latest run, so a historical `/stock/{ticker}/runs/{run_id}` report keeps the latest dealer overlay.
 - Stock page tabs render with `prefetch={false}`; a first visit no longer prefetches seven unvisited tab routes. Re-measured in the production-build fixture: 16 backend requests incl. 5 full report reads → 7 requests incl. 1 report read.
-
 ## [0.13.12] — 2026-09-26
 
 ### Changed
