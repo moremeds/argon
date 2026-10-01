@@ -31,7 +31,7 @@ export function TabBar({ ticker }: { ticker: string }) {
           <Link
             key={slug}
             href={href}
-            prefetch
+            prefetch={false}
             style={{
               padding: "10px 16px",
               fontFamily: "var(--font-mono)",

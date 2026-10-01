@@ -67,7 +67,8 @@ def technical_daily_refresh(
                 apex_bars = fetch_daily_bars(t)
                 bars = overlay_recent_ohlc(apex_bars, _recent_ohlc(repo, t))
                 bench = spy_bars
-            snap = build_technical_snapshot(bars, bench)
+            series = build_technical_series(bars, bench)
+            snap = build_technical_snapshot(bars, bench, series=series)
             if snap is None:
                 if not apex_bars:
                     # apex served nothing (503 adjusted_unavailable, 404, or a
@@ -92,7 +93,6 @@ def technical_daily_refresh(
                     len(bars),
                 )
                 continue
-            series = build_technical_series(bars, bench)
             trepo.upsert_series(t, series_records(series))
             detail = {
                 k: snap[k]
