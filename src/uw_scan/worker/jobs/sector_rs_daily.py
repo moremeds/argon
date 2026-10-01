@@ -75,11 +75,10 @@ SPDR_SECTOR_ETFS: dict[str, str] = {
     "Real Estate": "XLRE",
     "Utilities": "XLU",
 }
-#: First trustworthy session of an ETF's adjusted history (spec §4). XLF's
-#: XLRE spin-off is double-booked in livewire Silver (false +31% jump on
-#: 2016-09-19); drop the entry and re-run the backfill with --force for XLF
-#: once livewire #157 fixes the seam.
-ETF_RS_VALID_FROM: dict[str, date] = {"XLF": date(2016, 9, 19)}
+#: First trustworthy session of an ETF's adjusted history (spec §4). Empty
+#: since Silver rev 88 fixed XLF's XLRE spin-off seam (the false +31% jump on
+#: 2016-09-19); add an entry if a fund's served history is again wrong.
+ETF_RS_VALID_FROM: dict[str, date] = {}
 #: The only symbols allowed to fall back to daily_ohlc (spec §4).
 FALLBACK_SYMBOLS: frozenset[str] = frozenset({BENCHMARK, *SPDR_SECTOR_ETFS.values()})
 GROUP_KINDS: tuple[str, ...] = ("gics", "chain")

@@ -132,7 +132,7 @@ bars:
 | ---------------------- | ---------- | ------------------------------------------------------------------------- |
 | SPY                    | 1993-01-29 |                                                                           |
 | XLV XLI XLP            | 1998-12-22 | 4 sessions after the 1998-12-16 launch; clean                             |
-| XLF                    | 1998-12-22 | **wrong before 2016-09-19**: the XLRE spin-off is booked as both a $4.44 dividend and a 1.139 split, a false +31% jump on 2016-09-19 |
+| XLF                    | 1998-12-22 | **was wrong before 2016-09-19, fixed in rev 88 (2026-10-01)**: the XLRE spin-off is booked as both a $4.44 dividend and a 1.139 split, a false +31% jump on 2016-09-19 |
 | XLK XLY XLB XLU XLE    | 2021-06-11 | still the old seed: IB served pre-2025 bars already adjusted for the 2025-12-05 2:1 split, livewire labelled them raw, Silver's seam check cut them; fix in progress under #157 |
 | XLRE                   | 2015-10-08 | 1 session after launch; clean                                             |
 | XLC                    | 2018-06-19 | 1 session after launch; clean                                             |
@@ -143,13 +143,14 @@ The five cut funds need no code: apex returns no adjusted bars before
 re-run fills it once Silver republishes. XLF does need code, because its bad
 history is served as if it were good: each `gics` group carries an optional
 `rs_valid_from` date, and any RS window whose start anchor precedes it is
-NULL (so the row is `degraded`). The only entry is XLF → 2016-09-19; it
-is removed, and XLF re-run with `--force`, when livewire fixes the seam.
+NULL (so the row is `degraded`). The only entry was XLF → 2016-09-19.
+**Update 2026-10-01:** Silver rev 88 fixed the XLF seam (2016-09-16 → 09-19
+moves +0.7%, no daily move over 17% outside 2008-09), so the entry is removed
+before the first backfill and no `--force` re-run is needed.
 
 Nothing fills the first 1–4 sessions (IB has no earlier bars, massive stops
 at 5 years); they are irrelevant at a 252-day window. So `etf`-weighted RS
-runs ~27 years for the clean funds and from 2016-09-19 for XLF (until the
-seam fix). What does NOT run that long is breadth: the
+runs ~27 years for all nine 1998 funds (XLF included since rev 88). What does NOT run that long is breadth: the
 vendored current list applied to 1999 prices names that were not listed then,
 so early `n_priced/n_members` is low and those rows are `degraded` (< 80%)
 and excluded from the probe. The probe reports the first date each group
@@ -253,8 +254,7 @@ backfill (named as the upgrade path in §4).
    current close for both group kinds (`chain` rows from the earliest date
    its members price). `rs_12m IS NOT NULL` on ≥ 95% of `gics` rows from each
    fund's first_date + 252 sessions (≈2000-01 for the nine 1998 funds,
-   2016-10 for XLRE, 2019-07 for XLC; for XLF from `rs_valid_from` + 252
-   sessions ≈ 2017-09 while the seam entry stands): that is the ETF leg,
+   2016-10 for XLRE, 2019-07 for XLC): that is the ETF leg,
    which has no coverage problem. The `degraded` share (the breadth leg) is REPORTED per
    group per year, not gated — its early years are thin by construction and
    the §6 effective start is where it becomes usable. An empty group is also
