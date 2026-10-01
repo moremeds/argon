@@ -614,3 +614,41 @@ def test_worker_heartbeat_beats_every_15_seconds(monkeypatch):
         UW_SCAN_WORKER_COUNT="1",
     )["worker_heartbeat"]
     assert trigger.interval.total_seconds() == 15
+
+
+def test_sector_rs_daily_registered_on_primary_massive_when_enabled(monkeypatch):
+    jobs = _registered_jobs(
+        monkeypatch,
+        UW_SCAN_WORKER_ROLE="massive",
+        UW_SCAN_WORKER_INDEX="0",
+        UW_SCAN_WORKER_COUNT="1",
+        UW_SCAN_SECTOR_RS_ENABLED="true",
+    )
+    assert "sector_rs_daily" in jobs
+    trig = str(jobs["sector_rs_daily"])
+    assert "day_of_week='mon-fri'" in trig
+    assert "hour='21'" in trig and "minute='30'" in trig
+
+
+def test_sector_rs_daily_absent_by_default(monkeypatch):
+    monkeypatch.delenv("UW_SCAN_SECTOR_RS_ENABLED", raising=False)
+    ids = _registered_job_ids(
+        monkeypatch,
+        UW_SCAN_WORKER_ROLE="massive",
+        UW_SCAN_WORKER_INDEX="0",
+        UW_SCAN_WORKER_COUNT="1",
+    )
+    assert "sector_rs_daily" not in ids
+    assert "fundamental_refresh" in ids  # harness sanity: a massive-0 sibling still wires
+
+
+def test_sector_rs_daily_absent_off_massive_0(monkeypatch):
+    for role, index, count in (("massive", "1", "2"), ("uw", "0", "1")):
+        ids = _registered_job_ids(
+            monkeypatch,
+            UW_SCAN_WORKER_ROLE=role,
+            UW_SCAN_WORKER_INDEX=index,
+            UW_SCAN_WORKER_COUNT=count,
+            UW_SCAN_SECTOR_RS_ENABLED="true",
+        )
+        assert "sector_rs_daily" not in ids, (role, index)

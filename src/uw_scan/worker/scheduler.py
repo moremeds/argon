@@ -574,6 +574,17 @@ def _should_schedule_fundamentals_desk_rollup(settings: Settings) -> bool:
     return role == "all" or (role == "massive" and settings.worker_index == 0)
 
 
+def _should_schedule_sector_rs_daily(settings: Settings) -> bool:
+    """Single owner for the nightly sector RS + breadth upserts. apex bars plus
+    a daily_ohlc fallback, no UW/IB spend → pin to massive-0, same as
+    earnings_reactions / chanlun_lifecycle. Gated on `sector_rs_enabled`
+    (default off until the backfill lands on the mini)."""
+    if not settings.sector_rs_enabled:
+        return False
+    role = settings.worker_role.lower()
+    return role == "all" or (role == "massive" and settings.worker_index == 0)
+
+
 def _worker_label(settings: Settings) -> str:
     role = settings.worker_role.lower()
     if role == "all":
@@ -1061,7 +1072,10 @@ def main() -> int:
             ) as uw:
                 with _repo(settings) as repo:
                     counters = company_sector_refresh(
-                        conn=repo.conn, client=uw, schema=settings.db_schema
+                        conn=repo.conn,
+                        client=uw,
+                        schema=settings.db_schema,
+                        include_sp500=True,
                     )
         logger.info("company_sector_refresh %s", counters)
 
@@ -1072,6 +1086,19 @@ def main() -> int:
     def _theta_harvester_markout() -> None:
         with _repo(settings) as repo:
             theta_harvester_markout(repo=repo, settings=settings)
+
+    def _sector_rs_daily() -> None:
+        from datetime import datetime as _dt
+        from zoneinfo import ZoneInfo
+
+        from uw_scan.worker.jobs.sector_rs_daily import sector_rs_daily
+
+        as_of = _dt.now(ZoneInfo(settings.rth_tz)).date()
+        with _repo(settings) as repo:
+            counters = sector_rs_daily(
+                repo=repo, schema=settings.db_schema, as_of=as_of
+            )
+        logger.info("sector_rs_daily %s", counters)
 
     def _technical_daily_refresh() -> None:
         with _repo(settings) as repo:
@@ -2461,6 +2488,21 @@ def main() -> int:
             CronTrigger.from_crontab("41 19 * * *", timezone=settings.rth_tz),
             id="earnings_reactions_compute",
             name="Earnings reaction history (calendar x OHLC)",
+            max_instances=1,
+            coalesce=True,
+        )
+
+    if _should_schedule_sector_rs_daily(settings):
+        # Sector RS + breadth at 21:30 ET Mon–Fri: after ohlc_pull (17:30), so
+        # the daily_ohlc fallback holds tonight's SPY/ETF closes, and after the
+        # 21:00 freshness monitor. Zero UW spend → massive-0.
+        sched.add_job(
+            _sector_rs_daily,
+            CronTrigger(
+                hour=21, minute=30, day_of_week="mon-fri", timezone=settings.rth_tz
+            ),
+            id="sector_rs_daily",
+            name="Sector RS + breadth (gics ETFs + watchlist chains)",
             max_instances=1,
             coalesce=True,
         )

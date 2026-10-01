@@ -40,6 +40,18 @@ chain sector the map has no rule for (`Consumer`, `Healthcare`) still falls
 through to the vendor pass — 337 of the 450 can reach it. Fetching only the
 sectorless names would blind exactly that fallthrough. The 113 whose chain
 sector does match a rule are the only wasted calls, once each, forever.
+
+S&P 500 WIDENING (sector RS breadth, spec 2026-09-26 §4)
+--------------------------------------------------------
+When the scheduler passes `include_sp500=True`, the vendored current S&P 500
+list (sources/sp500_members.py, 503 names) is unioned into the universe.
+That costs an estimated ~330 calls on the first run after deploy (members
+minus the overlap), inside DEFAULT_MAX_CALLS, and zero afterwards. A list
+that fails validation logs an error, and the run falls back to the
+fundamental universe. A
+ticker UW answers non-200 for (for example a class-share symbol spelled
+differently at UW) is `failed`, not recorded, and is re-asked each run, as
+for any other failure.
 """
 
 from __future__ import annotations
@@ -51,6 +63,7 @@ import psycopg
 
 from uw_scan.api.client import UwClient
 from uw_scan.api.endpoints import EndpointSlug
+from uw_scan.sources.sp500_members import Sp500ListInvalid, sp500_members
 from uw_scan.storage.company_sector import CompanySectorRepository
 
 log = logging.getLogger(__name__)
@@ -93,13 +106,34 @@ def company_sector_refresh(
     client: UwClient,
     schema: str = "uw_scan",
     max_calls: int = DEFAULT_MAX_CALLS,
+    include_sp500: bool = False,
 ) -> dict[str, int]:
-    """Fill missing vendor sectors. Returns counters."""
+    """Fill missing vendor sectors. Returns counters.
+
+    `include_sp500=True` (the scheduler passes it) unions the vendored current
+    S&P 500 list into the universe. It stays opt-in even though the list is
+    static: the existing tests size `max_calls` for the fundamental universe
+    alone.
+    """
     repo = CompanySectorRepository(conn, schema=schema)
+    extra: tuple[str, ...] = ()
+    if include_sp500:
+        try:
+            extra = sp500_members()
+        except Sp500ListInvalid as exc:
+            log.error(
+                "company_sector_refresh: vendored sp500 list invalid (%s); "
+                "asking the fundamental universe only this run",
+                repr(exc),
+            )
+        else:
+            log.info(
+                "company_sector_refresh: +%d sp500 members in universe", len(extra)
+            )
     # One over the cap, so "there was more" is observable rather than inferred
     # from `len(names) == max_calls` — which is also what a universe of exactly
     # `max_calls` looks like.
-    names = repo.tickers_needing_fetch(max_calls + 1)
+    names = repo.tickers_needing_fetch(max_calls + 1, extra=extra)
     totals = {"asked": 0, "classified": 0, "unclassified": 0, "failed": 0, "capped": 0}
     if not names:
         log.info("company_sector_refresh: nothing to fetch; %s", repo.coverage())

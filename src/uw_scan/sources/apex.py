@@ -20,6 +20,7 @@ from __future__ import annotations
 
 import logging
 import os
+from collections.abc import Iterable
 from datetime import date, datetime, timedelta, timezone
 
 import httpx
@@ -347,3 +348,117 @@ def fetch_bars(
     finally:
         if own:
             c.close()
+
+
+# ---------------------------------------------------------------------------
+# Many-symbol daily closes (sector RS)
+# ---------------------------------------------------------------------------
+
+#: apex GET /v1/equity/bars accepts at most 200 symbols per call (400 above).
+BULK_MAX_SYMBOLS = 200
+
+
+def _utc_bound(d: date, *, end: bool) -> str:
+    """Explicit-Z day bound. apex answers 400 invalid_parameter for a bare date
+    or a naive timestamp ("start must carry a UTC offset"). `end` runs to
+    23:59:59, so the end session's bar (stamped at UTC midnight) is included."""
+    return f"{d.isoformat()}T23:59:59Z" if end else f"{d.isoformat()}T00:00:00Z"
+
+
+def _parse_daily_closes(bars: object) -> dict[date, float]:
+    """{session_date: close} from apex daily bar dicts (time = UTC midnight)."""
+    out: dict[date, float] = {}
+    if not isinstance(bars, list):
+        return out
+    for b in bars:
+        if not isinstance(b, dict):
+            continue
+        t = b.get("time")
+        c = b.get("close")
+        if t is None or c is None:
+            continue
+        try:
+            out[datetime.fromisoformat(t).astimezone(timezone.utc).date()] = float(c)
+        except (ValueError, TypeError) as exc:
+            logger.debug("apex daily bar parse skip: %s", repr(exc))
+    return out
+
+
+def fetch_bulk_daily_closes(
+    symbols: Iterable[str],
+    *,
+    start: date,
+    end: date,
+    timeout: float = 30.0,
+    client: httpx.Client | None = None,
+) -> dict[str, dict[date, float]]:
+    """Adjusted daily closes for many equity symbols over apex's bulk route.
+
+    GET /v1/equity/bars in chunks of BULK_MAX_SYMBOLS. One Silver revision is
+    pinned per call. `limit=0` with an explicit start returns every row in the
+    window. `listing=any` is sent, but under price_mode=adjusted apex files a
+    delisted name under `missing` ("no Silver for delisted names"): livewire
+    adjusts only listed names. Such a name is ABSENT from the result. The
+    caller counts it as unpriced, never as a zero return, and it is not
+    re-fetched raw (spec §4 ruling).
+
+    Never-raise: a transport error, a non-200 answer or a malformed body costs
+    only that chunk.
+    """
+    wanted = list(dict.fromkeys(s.strip().upper() for s in symbols if s and s.strip()))
+    out: dict[str, dict[date, float]] = {}
+    if not wanted:
+        return out
+    own = client is None
+    c = client or httpx.Client(timeout=timeout)
+    missing_total = 0
+    try:
+        for i in range(0, len(wanted), BULK_MAX_SYMBOLS):
+            chunk = wanted[i : i + BULK_MAX_SYMBOLS]
+            try:
+                resp = c.get(
+                    f"{_apex_url()}/v1/equity/bars",
+                    params={
+                        "symbols": ",".join(chunk),
+                        "timeframe": "1d",
+                        "start": _utc_bound(start, end=False),
+                        "end": _utc_bound(end, end=True),
+                        "limit": 0,
+                        "price_mode": "adjusted",
+                        "listing": "any",
+                    },
+                )
+                resp.raise_for_status()
+                body = resp.json()
+            except (httpx.HTTPError, ValueError) as exc:
+                logger.warning(
+                    "apex bulk bars failed for %d symbols from %s: %s (apex code=%s)",
+                    len(chunk),
+                    chunk[0],
+                    repr(exc),
+                    _err_code(exc),
+                )
+                continue
+            series = body.get("symbols") if isinstance(body, dict) else None
+            if not isinstance(series, dict):
+                logger.warning("apex bulk bars malformed for chunk from %s", chunk[0])
+                continue
+            for sym, entry in series.items():
+                closes = _parse_daily_closes(entry.get("bars") if isinstance(entry, dict) else None)
+                if closes:
+                    out[str(sym).upper()] = closes
+            missing = body.get("missing")
+            if isinstance(missing, dict):
+                missing_total += len(missing)
+                for sym, reason in missing.items():
+                    logger.debug("apex bulk bars missing %s: %s", sym, reason)
+    finally:
+        if own:
+            c.close()
+    if missing_total:
+        logger.info(
+            "apex bulk bars: %d of %d symbols in `missing` (unpriced, not zero)",
+            missing_total,
+            len(wanted),
+        )
+    return out

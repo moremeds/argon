@@ -310,6 +310,23 @@ REGISTRY: list[DatasetRegistryEntry] = [
         ),
         reason_verified_on=date(2026, 9, 9),
     ),
+    DatasetRegistryEntry(
+        # Sector RS + breadth (migration 152). Derived from apex adjusted bars at
+        # zero provider cost. Not healer-enrolled by design (spec 2026-09-26 §5):
+        # the resumable backfill script shares the nightly job's compute core
+        # and IS the heal.
+        "sector_rs_daily",
+        "regime_marketwide",
+        "excluded",
+        date_col="as_of",
+        ticker_col=None,
+        expected_frequency="none",
+        reason=(
+            "derived from apex bars; the heal is scripts/backfill/"
+            "sector_rs_backfill.py (resumable, same compute core as the nightly "
+            "job), not a healer adapter; freshness is watched via MONITORED_TABLES"
+        ),
+    ),
     # --- derived volatility (db-to-db) ---
     DatasetRegistryEntry(
         "vrp_daily",

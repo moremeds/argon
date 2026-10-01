@@ -10,6 +10,7 @@ Table shape and the reason a NULL sector is stored rather than skipped:
 
 from __future__ import annotations
 
+from collections.abc import Sequence
 from typing import Any
 
 import psycopg
@@ -41,32 +42,50 @@ class CompanySectorRepository:
             )
         self.conn.commit()
 
-    def tickers_needing_fetch(self, limit: int) -> list[str]:
-        """Universe names with no sector row yet.
+    def tickers_needing_fetch(self, limit: int, extra: Sequence[str] = ()) -> list[str]:
+        """Universe names with no sector row yet, plus `extra` names with none.
 
-        Joined on `upper(f.ticker)` because `upsert` stores the uppercase form.
-        Every ticker in the universe is uppercase today and nothing enforces it;
-        a lowercase one would be asked, written uppercase, then fail this join
-        and be asked again every month forever — one UW call per name, silently.
+        `extra` is how current S&P 500 members join the universe (sector RS
+        breadth, spec 2026-09-26 §4). It is a UNION, so a name in both is asked
+        once. Both legs are uppercased because `upsert` stores the uppercase
+        form. A lowercase ticker would otherwise be asked, written uppercase,
+        then fail this join and be asked again every run, one UW call per name,
+        silently.
 
         Only names absent from the table: a recorded NULL means the vendor was
-        asked and had no sector, and re-asking it every run would spend the
-        budget on the one answer that cannot change the routing. A periodic
-        re-ask belongs in a separate refresh pass keyed on `fetched_at` — not
+        asked and had no sector. Re-asking it every run would spend the budget
+        on the one answer that cannot change the routing. A periodic re-ask
+        belongs in a separate refresh pass keyed on `fetched_at`. It is not
         built, and not indexed for, until something needs it.
         """
         with self.conn.cursor() as cur:
             cur.execute(
-                f"""SELECT DISTINCT f.ticker
-                      FROM {self._schema}.fundamental_universe f
-                      LEFT JOIN {self._schema}.company_sector c
-                             ON c.ticker = upper(f.ticker)
-                     WHERE f.removed_at IS NULL AND c.ticker IS NULL
-                     ORDER BY f.ticker
+                f"""SELECT u.ticker
+                      FROM (SELECT upper(f.ticker) AS ticker
+                              FROM {self._schema}.fundamental_universe f
+                             WHERE f.removed_at IS NULL
+                            UNION
+                            SELECT upper(x) FROM unnest(%s::text[]) AS x) u
+                      LEFT JOIN {self._schema}.company_sector c ON c.ticker = u.ticker
+                     WHERE c.ticker IS NULL
+                     ORDER BY u.ticker
                      LIMIT %s""",
-                (limit,),
+                (list(extra), limit),
             )
             return [r[0] for r in cur.fetchall()]
+
+    def sectors_for(self, tickers: Sequence[str]) -> dict[str, str | None]:
+        """{TICKER: sector} for names that have a row. An absent key means never
+        asked; a None value means asked, and the vendor had no sector."""
+        if not tickers:
+            return {}
+        with self.conn.cursor() as cur:
+            cur.execute(
+                f"""SELECT ticker, sector FROM {self._schema}.company_sector
+                     WHERE ticker = ANY(%s)""",
+                ([t.upper() for t in tickers],),
+            )
+            return {t: s for t, s in cur.fetchall()}
 
     def coverage(self) -> dict[str, Any]:
         """`(universe, with a row, with a non-null sector)` — for the job log.
