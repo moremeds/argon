@@ -7,6 +7,10 @@ version in lockstep (enforced by `scripts/release/version_sync_check.py`).
 
 ## [Unreleased]
 
+### Changed
+
+- **Agent MCP public hostname is `argon-mcp.rsiarc.com`** (was documented as `mcp.rsiarc.com`): runbook and compose comments now match the live tunnel; the runbook notes that the env key must be exactly `TUNNEL_TOKEN`.
+
 ## [0.13.14] — 2026-10-02
 
 
