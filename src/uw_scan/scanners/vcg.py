@@ -30,7 +30,7 @@ from uw_scan.scanners.live_quotes import (
     quotes_payload,
     splice_session_value,
 )
-from uw_scan.storage.mcp_events import emit_on_change
+from uw_scan.storage.mcp_events import emit_on_change, last_emitted_state
 from uw_scan.storage.vcg_snapshot_repository import VcgSnapshotRepository
 from uw_scan.storage.vol_index_repository import VolIndexRepository
 
@@ -142,13 +142,21 @@ def run(
 
     payload = vcg_scoring.run_analysis(aligned, common_dates, proxy=proxy)
     snap_repo = VcgSnapshotRepository(conn, schema=schema)
-    # Read the previous persisted regime BEFORE insert_snapshot — it
-    # self-commits, so a read afterwards would compare the new row to itself
-    # and never emit. Gap-recovery runs (as_of set) never emit.
+    # Anchor `prev` on the event stream: the last regime actually EMITTED. The
+    # snapshot commits before the emit runs, so a failed emit leaves the
+    # snapshot ahead of the stream and comparing against it would lose the
+    # flip. Only when the triple has never emitted fall back to the previous
+    # persisted regime — still read BEFORE insert_snapshot, which self-
+    # commits, so a read afterwards would compare the new row to itself and
+    # never emit. Gap-recovery runs (as_of set) never emit.
     prev_regime = None
     if as_of is None:
-        prev = snap_repo.fetch_latest(proxy=proxy, basis="eod")
-        prev_regime = ((prev or {}).get("signal") or {}).get("regime")
+        prev_regime = last_emitted_state(
+            conn, kind="vcg_regime", subject=proxy, basis="eod"
+        )
+        if prev_regime is None:
+            prev = snap_repo.fetch_latest(proxy=proxy, basis="eod")
+            prev_regime = ((prev or {}).get("signal") or {}).get("regime")
     data_date = _date.fromisoformat(payload["date"])
     row_id = snap_repo.insert_snapshot(payload=payload, data_date=data_date)
     if as_of is None:
@@ -242,14 +250,25 @@ def run_live(
     if persist:
         slim = {k: v for k, v in payload.items() if k != "history"}
         snap_repo = VcgSnapshotRepository(conn, schema=schema)
-        # Prev read before the self-committing insert (same rule as run()).
-        prev = snap_repo.fetch_latest(proxy=proxy, basis="live")
-        prev_regime = ((prev or {}).get("signal") or {}).get("regime")
+        # Prev anchors on the last emitted live regime (self-healing — see
+        # run()); the snapshot fallback still reads before the self-committing
+        # insert (same rule as run()).
+        prev_regime = last_emitted_state(
+            conn, kind="vcg_regime", subject=proxy, basis="live"
+        )
+        if prev_regime is None:
+            prev = snap_repo.fetch_latest(proxy=proxy, basis="live")
+            prev_regime = ((prev or {}).get("signal") or {}).get("regime")
         row_id = snap_repo.insert_snapshot(
             payload=slim, data_date=session_date, basis="live"
         )
         try:
             with conn.transaction():
+                # The cooldown passes through unchanged, but is now benign on
+                # suppression: `prev` stays at the last emitted regime, so a
+                # cooldown-suppressed flip re-attempts each tick and emits
+                # once the window passes if the state still differs —
+                # intended, the flip is delayed rather than dropped.
                 emit_on_change(
                     conn,
                     kind="vcg_regime",

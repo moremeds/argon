@@ -26,7 +26,7 @@ from uw_scan.reports.vrp_macro_signal import (
     backtest_laddered,
     current_macro_signal,
 )
-from uw_scan.storage.mcp_events import emit_on_change
+from uw_scan.storage.mcp_events import emit_on_change, last_emitted_state
 from uw_scan.storage.repository import Repository
 
 log = logging.getLogger(__name__)
@@ -64,11 +64,20 @@ def vrp_macro_signal_refresh(
             loaded = load_index_vol(repo, name)
             bt = backtest_laddered(loaded, settings, cfg)
             sig = current_macro_signal(repo, settings, name, cfg)
-            # Previous persisted action read BEFORE the upsert (the event's
-            # "from"); emitting mid-loop would still be inside this long tx —
-            # so changes are collected and emitted just before the commit.
-            prev_rows = repo.fetch_latest_vrp_macro_signals([name], basis="eod")
-            prev_action = prev_rows[0]["action"] if prev_rows else None
+            # Anchor `prev` on the event stream (the event's "from" is the
+            # last action actually EMITTED, not the last upserted one): the
+            # upsert commits before the emit runs, so a failed emit leaves the
+            # row ahead of the stream and comparing against it would lose the
+            # flip. Only when the triple has never emitted fall back to the
+            # previous persisted action — still read BEFORE the upsert.
+            # Emitting mid-loop would still be inside this long tx — so
+            # changes are collected and emitted just before the commit.
+            prev_action = last_emitted_state(
+                repo.conn, kind="vrp_macro_signal", subject=name, basis="eod"
+            )
+            if prev_action is None:
+                prev_rows = repo.fetch_latest_vrp_macro_signals([name], basis="eod")
+                prev_action = prev_rows[0]["action"] if prev_rows else None
             repo.upsert_vrp_macro_signal(
                 name=name,
                 snapshot_date=snapshot_date,
