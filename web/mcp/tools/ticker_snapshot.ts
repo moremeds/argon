@@ -154,11 +154,9 @@ function cockpitSection(
 }
 
 const inputSchema = {
-  // .optional() keeps McpTool<typeof inputSchema> assignable to the registry's
-  // McpTool (z.infer arg contravariance); required-ness is enforced in-handler.
   ticker: z
     .string()
-    .optional()
+    .min(1)
     .describe("Ticker symbol (upper-cased automatically), e.g. SPY"),
 };
 
@@ -176,7 +174,8 @@ export const tool: McpTool<typeof inputSchema> = {
     "tickers `cockpit` is null.",
   inputSchema,
   handler: async (args, ctx: ToolCtx) => {
-    const T = args.ticker?.trim().toUpperCase();
+    const T = args.ticker.trim().toUpperCase();
+    // ponytail: whitespace-only slips past .min(1); one guard instead of a refine.
     if (!T) throw new Error("ticker_snapshot: 'ticker' is required");
     const cockpitGated = COCKPIT_TICKERS.has(T);
 
