@@ -43,6 +43,19 @@ one-shot `migrator`). Every app service carries
 `com.centurylinklabs.watchtower.enable: "true"`, `extra_hosts:
 ["host.docker.internal:host-gateway"]`, and `env_file: [/opt/argon/.env]`.
 
+**web publishes loopback-only** (`127.0.0.1:3001:3001`): the LAN can no
+longer reach `/api/*` writes through `:3001` — web used to listen on
+`0.0.0.0`, which exposed every mutating API route to the LAN. Tailnet access
+is the intended path instead: on the mini, run once —
+
+```bash
+tailscale serve --bg 3001
+```
+
+so tailnet devices reach web at `https://macmini.tail20094b.ts.net` (Tailscale
+TLS cert + proxy → `127.0.0.1:3001`). Plain `http://<mini-ip>:3001` is closed
+on purpose; api `:8400` was already loopback-only.
+
 ## `/opt/argon/.env` — key remaps from the launchd `.env`
 
 | Var | container value |

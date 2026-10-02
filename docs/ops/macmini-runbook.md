@@ -126,7 +126,7 @@ done < ~/projects/argon/config/services.list'
 From MacBook over Tailscale:
 ```
 curl -fsS http://100.66.147.98:8400/api/health | jq .
-curl -fsSI http://100.66.147.98:3001 | head -1
+curl -fsSI https://macmini.tail20094b.ts.net | head -1   # web is loopback-only on :3001; tailscale serve fronts it
 psql -h 100.66.147.98 -U argon_app -d option_wizard -c "SELECT COUNT(*) FROM uw_scan.scan_runs"
 ```
 
