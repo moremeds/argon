@@ -16,6 +16,8 @@ import {
 import {
   priorComponentScore,
   priorHistoryRow,
+  spxMedianFiltered,
+  vixDelta3dSeries,
 } from "@/lib/regime/derive/cri";
 import type { GexData } from "@/lib/regime/useGex";
 import type { VolBackdropData } from "@/lib/regime/useVolBackdrop";
@@ -54,6 +56,7 @@ type Out = {
 function makeCtx(opts: {
   fail?: string[];
   dropLive?: string[]; // vcg | vrp-macro-signal live endpoints throw → EOD
+  criLive?: unknown; // override the /regime/cri/live payload
 } = {}) {
   const calls: Record<string, number> = {};
   const apiGet: ToolCtx["apiGet"] = async (path) => {
@@ -74,7 +77,7 @@ function makeCtx(opts: {
       case "/regime/vol-backdrop":
         return VB;
       case "/regime/cri/live":
-        return CRIL;
+        return opts.criLive ?? CRIL;
       case "/regime/cri/history":
         return { rows: CRIH_ROWS };
       case "/regime/vcg/live":
@@ -213,9 +216,37 @@ describe("cri section", () => {
       correlation: 0,
       momentum: 3.6,
     });
-    expect(out.cri.vix_delta_3d as number).toBeCloseTo(-2.39, 10);
-    expect(out.cri.spx_last).toBe(7650.5);
+    // Tile scalars come from the live payload's own fields — exactly what
+    // CriSubTab renders (data.vix_delta_3d, data.spy, data.spx_source).
+    expect(out.cri.vix_delta_3d).toBe(CRIL.vix_delta_3d);
+    expect(out.cri.spy).toBe(CRIL.spy);
+    expect(out.cri.spx_source).toBe(CRIL.spx_source);
+    // The 90d history-derived series remain, named as series — they're what
+    // the tiles' in-card sparklines render.
+    expect(out.cri.vix_delta_3d_series).toEqual(vixDelta3dSeries(CRIH_ROWS));
+    expect(out.cri.spx_filtered_series).toEqual(
+      spxMedianFiltered(CRIH_ROWS).series,
+    );
     expect(out.cri.history_as_of).toBe("2026-09-18");
+  });
+
+  it("tile scalars track the payload, not the history-derived last", async () => {
+    // A payload whose own fields diverge from the history-derived last would
+    // expose a history read — pin the payload fields as the source.
+    const { ctx } = makeCtx({
+      criLive: {
+        ...CRIL,
+        vix_delta_3d: 9.99,
+        spy: 1.0,
+        spx_source: "SPY",
+      },
+    });
+    const out = (await tool.handler({}, ctx)) as Out;
+    expect(out.cri.vix_delta_3d).toBe(9.99);
+    expect(out.cri.spy).toBe(1.0);
+    expect(out.cri.spx_source).toBe("SPY");
+    // The series are untouched — still the history derivation.
+    expect(out.cri.vix_delta_3d_series).toEqual(vixDelta3dSeries(CRIH_ROWS));
   });
 });
 

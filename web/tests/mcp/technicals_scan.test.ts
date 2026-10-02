@@ -3,6 +3,7 @@
 // UI makes: mergeLiveHead → technicalsOverlays → the T1b verdict/distribution
 // helpers — run directly on the same payloads.
 import { describe, expect, it, vi } from "vitest";
+import { z } from "zod";
 import type { Columnar, ToolCtx } from "@/mcp/types";
 import type {
   MagnetsResponse,
@@ -54,6 +55,7 @@ const WATCHLIST = {
 
 type StubOpts = {
   eod?: Record<string, unknown>;
+  live?: Record<string, unknown>;
   tickers?: string[];
   failEod?: string[];
   failLive?: string[];
@@ -62,16 +64,19 @@ type StubOpts = {
 
 function makeCtx(opts: StubOpts = {}) {
   const eod = opts.eod ?? EOD;
+  const live = opts.live ?? LIVE;
   const roster = opts.tickers ?? WATCHLIST.tickers.map((t) => t.ticker);
   const stats = {
     inflight: 0,
     maxInflight: 0,
+    paths: [] as string[],
     eodGets: [] as string[],
     liveGets: [] as string[],
     magnetGets: [] as string[],
     keyCalls: 0,
   };
   const apiGet: ToolCtx["apiGet"] = async (path) => {
+    stats.paths.push(path);
     stats.inflight++;
     stats.maxInflight = Math.max(stats.maxInflight, stats.inflight);
     try {
@@ -94,7 +99,7 @@ function makeCtx(opts: StubOpts = {}) {
         stats.liveGets.push(m[1]);
         if (opts.failLive?.includes(m[1]))
           throw new Error(`live boom ${m[1]}`);
-        return LIVE[m[1]];
+        return live[m[1]];
       }
       m = /^\/stock\/([^/]+)\/magnets$/.exec(path);
       if (m) {
@@ -109,7 +114,10 @@ function makeCtx(opts: StubOpts = {}) {
   const db = {
     query: async (sql: string) => {
       stats.keyCalls++;
+      // The invalidation key must cover both tables the /technicals payload
+      // is built from — dailies AND the user-set VWAP anchors.
       expect(sql).toContain("uw_scan.technical_daily");
+      expect(sql).toContain("uw_scan.technical_vwap_anchor");
       return { rows: [{ k: opts.key?.() ?? "k1" }] };
     },
   };
@@ -374,5 +382,145 @@ describe("technicals_scan", () => {
     await expect(
       mod.scanTicker(ctx, "AAPL", { fields: ["nope"] }),
     ).rejects.toThrow(/unknown field/);
+  });
+
+  it("(i) a vwap-anchor-only key change drops the EOD cache", async () => {
+    const tool = await loadTool();
+    // Key shape is "<max inserted_at>|<count>:<max computed_at>". Move only
+    // the anchor half — POST/DELETE vwap-anchor must invalidate too.
+    let anchor = "3:2026-10-01";
+    const { ctx, stats } = makeCtx({ key: () => `daily1|${anchor}` });
+    await tool.handler({}, ctx);
+    anchor = "3:2026-10-02";
+    const spyNow = vi.spyOn(Date, "now").mockReturnValue(Date.now() + 61_000);
+    try {
+      await tool.handler({}, ctx);
+    } finally {
+      spyNow.mockRestore();
+    }
+    expect(stats.keyCalls).toBe(2);
+    expect(stats.eodGets).toHaveLength(6); // cache dropped → all refetched
+    // An anchor delete (count moves, max doesn't) invalidates too. The clock
+    // must clear the 60 s throttle against the *mocked* eodKeyAt, so the jump
+    // is 130 s of real now.
+    anchor = "2:2026-10-02";
+    const spyNow2 = vi.spyOn(Date, "now").mockReturnValue(Date.now() + 130_000);
+    try {
+      await tool.handler({}, ctx);
+    } finally {
+      spyNow2.mockRestore();
+    }
+    expect(stats.eodGets).toHaveLength(9);
+  });
+
+  it("(j) merges a live head captured after the scan started", async () => {
+    const tool = await loadTool();
+    const t0 = Date.parse("2026-09-18T15:00:00Z"); // 11:00 ET, 2026-09-18
+    const captured = new Date(t0 + 60_000).toISOString();
+    const { ctx } = makeCtx({
+      live: {
+        AAPL: {
+          ...LIVE.AAPL,
+          available: true,
+          captured_at: captured,
+          spot: 999.99,
+        },
+      },
+    });
+    // Scan start reads t0 — BEFORE the capture lands. The merge clock reads
+    // t0+120s, after the live payload arrived; a scan-start clock would give
+    // the capture a negative age and drop it.
+    const spyNow = vi
+      .spyOn(Date, "now")
+      .mockReturnValueOnce(t0)
+      .mockReturnValue(t0 + 120_000);
+    try {
+      const out = (await tool.handler(
+        { tickers: ["AAPL"], fields: ["price", "live_captured_at"] },
+        ctx,
+      )) as Columnar;
+      expect(cell(out, out.rows[0], "live_captured_at")).toBe(captured);
+      expect(cell(out, out.rows[0], "price")).toBe(999.99);
+    } finally {
+      spyNow.mockRestore();
+    }
+  });
+
+  it("(k) sma fields survive a fresh live row: sma200 from header, rest from last EOD bar", async () => {
+    const tool = await loadTool();
+    // Fresh capture (real now) → the merge appends a provisional live row
+    // that carries none of sma20/sma50/sma200/rs_ratio.
+    const { ctx } = makeCtx({
+      live: {
+        AAPL: {
+          ...LIVE.AAPL,
+          available: true,
+          captured_at: new Date().toISOString(),
+        },
+      },
+    });
+    const out = (await tool.handler(
+      { tickers: ["AAPL"], fields: ["sma20", "sma50", "sma200", "rs_ratio"] },
+      ctx,
+    )) as Columnar;
+    const row = out.rows[0];
+    expect(row[1]).toBeNull();
+    const eodLast = EOD.AAPL.series!.at(-1)!;
+    expect(cell(out, row, "sma20")).toBe(eodLast.sma20);
+    expect(cell(out, row, "sma50")).toBe(eodLast.sma50);
+    expect(cell(out, row, "sma200")).toBe(EOD.AAPL.header!.sma200);
+    expect(cell(out, row, "rs_ratio")).toBe(eodLast.rs_ratio);
+    for (const f of ["sma20", "sma50", "sma200", "rs_ratio"])
+      expect(cell(out, row, f)).not.toBeNull();
+  });
+
+  it("(l) a traversal probe in tickers rejects the call before any apiGet", async () => {
+    const tool = await loadTool();
+    const { ctx, stats } = makeCtx();
+    for (const probe of ["../%68%65%61%6c%74%68#", "../health", "a/b", ".."]) {
+      await expect(
+        tool.handler({ tickers: [probe] }, ctx),
+      ).rejects.toThrow(/invalid ticker/);
+    }
+    // Nothing was fetched — the probe never reached a URL.
+    expect(stats.paths).toEqual([]);
+    expect(stats.keyCalls).toBe(0);
+    // The input schema rejects the same probes (what the SDK enforces).
+    const schema = z.object(tool.inputSchema);
+    expect(
+      schema.safeParse({ tickers: ["../%68%65%61%6c%74%68#"] }).success,
+    ).toBe(false);
+    expect(schema.safeParse({ tickers: ["a/b"] }).success).toBe(false);
+    expect(schema.safeParse({ tickers: ["brk.b", "^VIX"] }).success).toBe(true);
+  });
+
+  it("(m) a bad watchlist ticker becomes that row's error, not a failed scan", async () => {
+    const tool = await loadTool();
+    const { ctx, stats } = makeCtx({ tickers: ["AAPL", "../health"] });
+    const out = (await tool.handler({}, ctx)) as Columnar;
+    const byTicker = new Map(out.rows.map((r) => [r[0], r]));
+    expect(byTicker.get("AAPL")![1]).toBeNull();
+    const bad = byTicker.get("../health")!;
+    expect(bad[1]).toMatch(/invalid ticker/);
+    expect(bad.slice(2).every((c) => c === null)).toBe(true);
+    // No request path ever carried the poisoned value.
+    expect(
+      stats.paths.every((p) => !p.includes("..") && !p.includes("health")),
+    ).toBe(true);
+  });
+
+  it("(n) scanTicker validates its ticker before any fetch", async () => {
+    const mod = await (async () => {
+      vi.resetModules();
+      return await import("@/mcp/tools/technicals_scan");
+    })();
+    const { ctx, stats } = makeCtx();
+    await expect(mod.scanTicker(ctx, "../health")).rejects.toThrow(
+      /invalid ticker/,
+    );
+    await expect(mod.scanTicker(ctx, "%2e%2e/x")).rejects.toThrow(
+      /invalid ticker/,
+    );
+    expect(stats.paths).toEqual([]);
   });
 });

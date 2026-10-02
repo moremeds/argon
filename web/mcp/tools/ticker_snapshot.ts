@@ -4,6 +4,7 @@
 // section returns { error } and never fails the call.
 import { z } from "zod";
 import type { McpTool, ToolCtx } from "../types";
+import { normalizeTicker, TICKER_RE } from "../lib/ticker";
 import { scanTicker } from "./technicals_scan";
 import type {
   CockpitDealerResponse,
@@ -157,6 +158,7 @@ const inputSchema = {
   ticker: z
     .string()
     .min(1)
+    .regex(TICKER_RE)
     .describe("Ticker symbol (upper-cased automatically), e.g. SPY"),
 };
 
@@ -174,27 +176,28 @@ export const tool: McpTool<typeof inputSchema> = {
     "tickers `cockpit` is null.",
   inputSchema,
   handler: async (args, ctx: ToolCtx) => {
-    const T = args.ticker.trim().toUpperCase();
-    // ponytail: whitespace-only slips past .min(1); one guard instead of a refine.
-    if (!T) throw new Error("ticker_snapshot: 'ticker' is required");
+    const T = normalizeTicker(args.ticker);
+    // Path segments are normalized already; encodeURIComponent is defence in
+    // depth for anything that slips past the charset.
+    const E = encodeURIComponent(T);
     const cockpitGated = COCKPIT_TICKERS.has(T);
 
     const technicalsP = section(
       scanTicker(ctx, T, { fields: ["*"], timeframe: "1y" }),
     );
     const tradeInsightsP = section(
-      ctx.apiGet(`/stock/${T}/trade-insights`) as Promise<TradeInsightsResponse>,
+      ctx.apiGet(`/stock/${E}/trade-insights`) as Promise<TradeInsightsResponse>,
     );
     const stockP = section(
-      ctx.apiGet(`/stock/${T}`) as Promise<SingleStockReport>,
+      ctx.apiGet(`/stock/${E}`) as Promise<SingleStockReport>,
     );
     const cockpitP = cockpitGated
       ? section(
           Promise.all([
-            ctx.apiGet(`/cockpit/${T}/vrp`) as Promise<CockpitVrpResponse>,
-            ctx.apiGet(`/cockpit/${T}/dealer`) as Promise<CockpitDealerResponse>,
+            ctx.apiGet(`/cockpit/${E}/vrp`) as Promise<CockpitVrpResponse>,
+            ctx.apiGet(`/cockpit/${E}/dealer`) as Promise<CockpitDealerResponse>,
             ctx.apiGet(
-              `/cockpit/${T}/state`,
+              `/cockpit/${E}/state`,
             ) as Promise<CockpitStateResponse | null>,
           ]),
         )

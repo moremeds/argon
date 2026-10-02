@@ -122,10 +122,17 @@ function criSection(
     prior_components: Object.fromEntries(
       SLOTS.map((slot) => [slot, priorComponentScore(prior, slot)]),
     ),
-    vix_delta_3d: vixDelta3d.length ? vixDelta3d[vixDelta3d.length - 1] : null,
-    spx_last: spxFiltered.series.length
-      ? spxFiltered.series[spxFiltered.series.length - 1]
-      : null,
+    // The tiles render the live payload's own fields — data.vix_delta_3d and
+    // data.spy under the data.spx_source label — not the last value of the
+    // 90d history-derived series.
+    vix_delta_3d: live.vix_delta_3d ?? null,
+    spy: live.spy ?? null,
+    spx_source: live.spx_source ?? null,
+    // The history-derived series are kept because the page renders them as
+    // the tiles' in-card sparklines; named as series so they can't be read
+    // as the tile scalars.
+    vix_delta_3d_series: vixDelta3d,
+    spx_filtered_series: spxFiltered.series,
     history_as_of: rows.length ? (rows[rows.length - 1].date ?? null) : null,
   };
 }
@@ -172,7 +179,9 @@ export const tool: McpTool<typeof inputSchema> = {
     "SPX splice, day change, retagged profile), vol_backdrop (live VIX/VIX3M " +
     "term-structure ratio or EOD fallback, per-symbol last + % change for " +
     "VIX/VIX3M/VVIX/COR1M), cri (current score/level/components + basis, " +
-    "prior-day component scores, 90d VIX Δ3d and median-filtered SPX), vcg " +
+    "prior-day component scores, the payload's vix_delta_3d + spy/spx_source " +
+    "tile values, and the 90d VIX-Δ3d / median-filtered-SPX sparkline " +
+    "series), vcg " +
     "and vrp_macro (live payload, falling back to the EOD snapshot when live " +
     "is unavailable). /regime/quotes is fetched once and shared. A failed " +
     "section returns { error } without failing the call.",
