@@ -186,7 +186,8 @@ export const tool: McpTool<typeof inputSchema> = {
       scanTicker(ctx, T, { fields: ["*"], timeframe: "1y" }),
     );
     const tradeInsightsP = section(
-      ctx.apiGet(`/stock/${E}/trade-insights`) as Promise<TradeInsightsResponse>,
+      // /preview: same TradeInsightsResponse, build-only. The plain GET persists a snapshot.
+      ctx.apiGet(`/stock/${E}/trade-insights/preview`) as Promise<TradeInsightsResponse>,
     );
     const stockP = section(
       ctx.apiGet(`/stock/${E}`) as Promise<SingleStockReport>,

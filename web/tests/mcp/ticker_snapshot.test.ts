@@ -1,6 +1,6 @@
 // ticker_snapshot — stub ToolCtx serves the frozen fixtures; the assertions
 // pin section shape, the SPX/SPY/QQQ/IWM cockpit gate, per-section error
-// isolation, fetch sharing (one /stock GET, one /trade-insights GET), and
+// isolation, fetch sharing (one /stock GET, one /trade-insights/preview GET), and
 // value parity with the lib functions the UI now calls.
 import { describe, expect, it, vi } from "vitest";
 import { z } from "zod";
@@ -84,7 +84,7 @@ function makeCtx(fail: string[] = []) {
     if (m) return LIVE[m[1] as keyof typeof LIVE];
     m = /^\/stock\/([^/]+)\/magnets$/.exec(path);
     if (m) return MAGNET[m[1] as keyof typeof MAGNET];
-    m = /^\/stock\/([^/]+)\/trade-insights$/.exec(path);
+    m = /^\/stock\/([^/]+)\/trade-insights\/preview$/.exec(path);
     if (m) return TI[m[1] as keyof typeof TI];
     m = /^\/stock\/([^/]+)$/.exec(path);
     if (m) return STOCK[m[1] as keyof typeof STOCK];
@@ -133,7 +133,9 @@ describe("ticker_snapshot", () => {
     expect(out.cockpit).toBeNull(); // AAPL is not a cockpit ticker
     // Fetch sharing: one GET each for the shared payloads.
     expect(calls["/stock/AAPL"]).toBe(1);
-    expect(calls["/stock/AAPL/trade-insights"]).toBe(1);
+    expect(calls["/stock/AAPL/trade-insights/preview"]).toBe(1);
+    // The persisting route is never called.
+    expect(calls["/stock/AAPL/trade-insights"]).toBeUndefined();
     // No cockpit GETs for a non-cockpit ticker.
     expect(Object.keys(calls).some((p) => p.startsWith("/cockpit/"))).toBe(
       false,
