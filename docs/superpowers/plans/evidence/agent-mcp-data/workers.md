@@ -13,3 +13,13 @@
 | Approvals | approve-once only, for edits to owned paths, via a guarded loop (logs in the lead scratchpad). Declined: session-wide grants on `/private/tmp/claude-501`, `~/projects/argon/.git` and `~/Library/Application Support`. One out-of-scope write approved once: the scratch `tests/lib/watchlist/probe.test.ts`, deleted before report |
 | Gotcha | herdr reported `done` while Devin was still "Thinking". The pane text ("esc twice to interrupt") was the reliable busy signal |
 | Closed | after T5 acceptance and T6 green; no outstanding work needs its context |
+
+## Second worker (Astra round-2 fixes)
+
+| Field | Value |
+| --- | --- |
+| Worker | `argon-b-impl2`, herdr pane `wD:pB`, same worktree and sandbox flags |
+| Model | requested `swe-2-max`; observed "SWE-2 Max". Canonical: SWE. Reviewer: Opus (lead) |
+| Task | T7: the 5 Astra round-2 findings (ticker validation, vwap-anchor cache key, per-ticker freshness, sma sources, cri tile fields). The lead accepted it with no rejections and committed it as 46c70c8a |
+| Lead-only follow-up | ed638a8e: ticker_snapshot uses `/trade-insights/preview` (the route A added in task 8) |
+| Closed | after T7 acceptance; no outstanding work needs its context |
