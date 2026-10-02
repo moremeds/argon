@@ -18,16 +18,26 @@ event stream (`GET /mcp` with `Accept: text/event-stream`).
    type **HTTP**, URL `mcp:8500` (the compose service name + port — the tunnel
    runs on the compose network). Save.
 
-## 2. /opt/argon/.env
+## 2. /opt/argon/mcp.env (NOT .env)
 
-Add two lines (both consumed via `env_file:` — no secrets in compose):
+The mcp + cloudflared services read ONLY this file — keep it separate from
+`/opt/argon/.env`, which holds the `argon_app` DB password and provider keys
+the public-facing containers must not carry:
 
 ```
-TUNNEL_TOKEN=<token from step 1>
+install -m 600 /dev/null /opt/argon/mcp.env   # root-only, like .env
+cat >> /opt/argon/mcp.env <<'EOF'
 MCP_DATABASE_URL=postgres://argon_mcp:<password>@host.docker.internal:5432/option_wizard
+TUNNEL_TOKEN=<token from step 1>
+EOF
 ```
+
+Do NOT put either var in `/opt/argon/.env` — the other services already have
+their own env and the mcp pair deliberately does not read it.
 
 `ARGON_API_URL` defaults to `http://api:8400` in compose — do not override.
+Sizing note: if a `mem_limit` is ever added to the mcp service keep it
+>= 512 MB — the technicals warm cache alone runs ~170 MB.
 
 ## 3. Database role (one time, run as superuser on the mini)
 
