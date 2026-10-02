@@ -1,9 +1,18 @@
-# Agent MCP — integrated local verification (A + B + C, after review rounds 1–3)
+# Agent MCP — integrated local verification (A + B + C, after review rounds 1–5)
 
 Branch `feat/agent-mcp` @ `c4140efa`, 2026-10-02, MacBook. Includes the fixes for
 Codex Astra rounds 1 (A+C) and 2 (B) and the joint Astra + Claude Fable round 3:
 A `37f05b33`, `c0105a20`, `16299b45`, `f4223bfa`, `4eabad28`; B `46c70c8a`,
 `ed638a8e`, `ac8ddde6`; C `d6bafba5`.
+
+Round 4 → 5 delta (`c4140efa..99e81104`: C `4c6ef9c5` event recovery under the
+lock, A `682ef156` guard test, runbook/evidence docs) is Python + docs only, so
+the Python gates were re-run at `99e81104`: ruff exit 0, unit **2942 passed**,
+integration **1742 passed, 9 skipped**. The web/MCP rows below are from `c4140efa`
+(no web/MCP file changed since). Round 5: Claude Fable APPROVE (two LOW residuals);
+Codex Astra CHANGES NEEDED on one residual — transaction-start `now()` cannot order a
+snapshot write against another scan's emit when a failed emit overlaps it — accepted
+as disclosed best-effort delivery (CHANGELOG).
 
 ## CI-equivalent gates
 

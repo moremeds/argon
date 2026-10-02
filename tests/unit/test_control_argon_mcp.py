@@ -24,12 +24,19 @@ def test_create_token_refuses_a_blank_label_before_touching_the_db():
 
 def test_mcp_token_parses_create_with_label():
     args = build_parser().parse_args(["mcp-token", "create", "grok"])
-    assert (args.command, args.mcp_action, args.label) == ("mcp-token", "create", "grok")
+    assert (args.command, args.mcp_action, args.label) == (
+        "mcp-token",
+        "create",
+        "grok",
+    )
     assert args.func is cmd_mcp_token
 
 
 def test_mcp_token_parses_revoke_and_list():
-    assert build_parser().parse_args(["mcp-token", "revoke", "openai"]).mcp_action == "revoke"
+    assert (
+        build_parser().parse_args(["mcp-token", "revoke", "openai"]).mcp_action
+        == "revoke"
+    )
     listed = build_parser().parse_args(["mcp-token", "list"])
     assert listed.mcp_action == "list" and listed.func is cmd_mcp_token
 

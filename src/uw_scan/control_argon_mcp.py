@@ -44,16 +44,13 @@ def create_token(
     try:
         with conn.cursor() as cur:
             cur.execute(
-                f"INSERT INTO {schema}.mcp_token (label, token_hash) "
-                "VALUES (%s, %s)",
+                f"INSERT INTO {schema}.mcp_token (label, token_hash) VALUES (%s, %s)",
                 (label, hash_token(token)),
             )
         conn.commit()
     except psycopg.errors.UniqueViolation:
         conn.rollback()
-        raise ValueError(
-            f"label {label!r} already exists — pick a new one"
-        ) from None
+        raise ValueError(f"label {label!r} already exists — pick a new one") from None
     return token
 
 
