@@ -11,6 +11,10 @@ version in lockstep (enforced by `scripts/release/version_sync_check.py`).
 
 - **Agent MCP public hostname is `argon-mcp.rsiarc.com`** (was documented as `mcp.rsiarc.com`): runbook and compose comments now match the live tunnel; the runbook notes that the env key must be exactly `TUNNEL_TOKEN`.
 
+### Fixed
+
+- **Pipeline benchmark snapshots no longer drop on a clock race.** `ws_tick_age_seconds`, `last_full_scan_age_seconds` and `oldest_queue_age_seconds` went negative when a tick, a finished full scan or a queued job was stamped a moment after the collector's `now_utc`, which violated the `>= 0` CHECKs and lost the whole snapshot. They now clamp to `max(0, …)`, the same fix `scheduler_heartbeat_lag_seconds` already had.
+
 ## [0.13.14] — 2026-10-02
 
 

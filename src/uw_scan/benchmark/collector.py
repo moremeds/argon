@@ -70,7 +70,9 @@ def build_pipeline_benchmark_inputs(
         scanner_dead_count=freshness.dead,
         scanner_never_scanned_count=freshness.never_scanned,
         last_full_scan_age_seconds=(
-            (now_utc - last_scan).total_seconds() if last_scan is not None else None
+            max(0.0, (now_utc - last_scan).total_seconds())
+            if last_scan is not None
+            else None
         ),
         expected_full_scan_miss_count=len(expected_full_scans),
         full_scan_expected_lag_seconds=(
@@ -82,7 +84,7 @@ def build_pipeline_benchmark_inputs(
         scan_duration_p95_seconds=scan_durations.p95_seconds,
         queue_depth=queue.total,
         oldest_queue_age_seconds=(
-            (now_utc - queue.oldest_requested_at).total_seconds()
+            max(0.0, (now_utc - queue.oldest_requested_at).total_seconds())
             if queue.oldest_requested_at is not None
             else None
         ),
@@ -106,7 +108,7 @@ def build_pipeline_benchmark_inputs(
         massive_worker_online_count=massive_online,
         massive_worker_expected_count=settings.massive_worker_count,
         ws_tick_age_seconds=(
-            (now_utc - ws_state.last_tick_at).total_seconds()
+            max(0.0, (now_utc - ws_state.last_tick_at).total_seconds())
             if ws_state is not None and ws_state.last_tick_at is not None
             else None
         ),
