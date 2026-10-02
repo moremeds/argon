@@ -5,6 +5,7 @@ rows). The producer now clamps to max(0, ...); the constraint stays."""
 
 from __future__ import annotations
 
+import dataclasses
 from datetime import UTC, datetime, timedelta
 
 import psycopg
@@ -73,6 +74,24 @@ def test_future_ws_tick_age_clamps_to_zero(seeded_db_empty_cards):
         now_utc=_NOW,
     )
     assert inputs.ws_tick_age_seconds == 0.0
+
+
+def test_future_scan_and_queue_ages_clamp_to_zero(seeded_db_empty_cards, monkeypatch):
+    repo = seeded_db_empty_cards
+    # same race: a full scan finishes / a job is queued after now_utc
+    future = _NOW + timedelta(seconds=5)
+    queue = dataclasses.replace(
+        repo.get_rescan_queue_summary(), oldest_requested_at=future
+    )
+    monkeypatch.setattr(repo, "get_last_full_scan_finished_at", lambda: future)
+    monkeypatch.setattr(repo, "get_rescan_queue_summary", lambda: queue)
+    inputs = build_pipeline_benchmark_inputs(
+        repo,
+        Settings(api_key="test", uw_worker_count=1, massive_worker_count=1),
+        now_utc=_NOW,
+    )
+    assert inputs.last_full_scan_age_seconds == 0.0
+    assert inputs.oldest_queue_age_seconds == 0.0
 
 
 def test_snapshot_persists_with_clamped_lag_and_constraint_is_real(

@@ -13,7 +13,7 @@ version in lockstep (enforced by `scripts/release/version_sync_check.py`).
 
 ### Fixed
 
-- **Pipeline benchmark snapshots no longer drop on a WS clock race.** `ws_tick_age_seconds` went negative when the WS writer stamped a tick a moment after the collector's `now_utc`, which violated the `>= 0` CHECK and lost the whole snapshot. It now clamps to `max(0, …)`, the same fix `scheduler_heartbeat_lag_seconds` already had.
+- **Pipeline benchmark snapshots no longer drop on a clock race.** `ws_tick_age_seconds`, `last_full_scan_age_seconds` and `oldest_queue_age_seconds` went negative when a tick, a finished full scan or a queued job was stamped a moment after the collector's `now_utc`, which violated the `>= 0` CHECKs and lost the whole snapshot. They now clamp to `max(0, …)`, the same fix `scheduler_heartbeat_lag_seconds` already had.
 
 ## [0.13.14] — 2026-10-02
 
