@@ -106,7 +106,7 @@ def build_pipeline_benchmark_inputs(
         massive_worker_online_count=massive_online,
         massive_worker_expected_count=settings.massive_worker_count,
         ws_tick_age_seconds=(
-            (now_utc - ws_state.last_tick_at).total_seconds()
+            max(0.0, (now_utc - ws_state.last_tick_at).total_seconds())
             if ws_state is not None and ws_state.last_tick_at is not None
             else None
         ),

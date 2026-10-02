@@ -57,6 +57,24 @@ def test_future_heartbeat_lag_clamps_to_zero(seeded_db_empty_cards):
     assert inputs.scheduler_heartbeat_lag_seconds == 0.0
 
 
+def test_future_ws_tick_age_clamps_to_zero(seeded_db_empty_cards):
+    repo = seeded_db_empty_cards
+    # same clock race on the WS writer: last tick stamped after now_utc
+    repo.record_ws_heartbeat(
+        last_tick_at=_NOW + timedelta(seconds=5),
+        last_flush_at=_NOW,
+        ticks_received_delta=1,
+        ticks_flushed_delta=1,
+    )
+    repo.conn.commit()
+    inputs = build_pipeline_benchmark_inputs(
+        repo,
+        Settings(api_key="test", uw_worker_count=1, massive_worker_count=1),
+        now_utc=_NOW,
+    )
+    assert inputs.ws_tick_age_seconds == 0.0
+
+
 def test_snapshot_persists_with_clamped_lag_and_constraint_is_real(
     seeded_db_empty_cards,
 ):
