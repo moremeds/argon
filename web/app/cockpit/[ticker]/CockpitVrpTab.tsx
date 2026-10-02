@@ -2,6 +2,7 @@ import type { CockpitStateResponse, CockpitVrpResponse } from "@/lib/api";
 import { useMemo } from "react";
 import type React from "react";
 import { fmtDecimal, fmtSigned, toNum } from "@/lib/formatters";
+import { vrpBand, vrpStats, vrpZ } from "@/lib/snapshot/cockpitVrp";
 import {
   MultiLineChart,
   panelStyle,
@@ -60,18 +61,11 @@ export function CockpitVrpTab({
     );
   }
 
-  const vrpValues = points
-    .map((point) => toNum(point.vrp))
-    .filter((value): value is number => value != null);
-  const stats = meanStd(vrpValues);
-  const band =
-    stats.std > 0
-      ? {
-          min: stats.mean - 0.5 * stats.std,
-          max: stats.mean + 0.5 * stats.std,
-          color: "rgba(245,166,35,0.12)",
-        }
-      : undefined;
+  const stats = vrpStats(points);
+  const bandBase = vrpBand(stats);
+  const band = bandBase
+    ? { ...bandBase, color: "rgba(245,166,35,0.12)" }
+    : undefined;
   const latest = points[points.length - 1] ?? null;
   const state = stateData?.state ?? null;
 
@@ -134,10 +128,7 @@ export function CockpitVrpTab({
             <tbody>
               {points.slice(-18).map((point) => {
                 const vrp = toNum(point.vrp);
-                const z =
-                  vrp != null && stats.std > 0
-                    ? (vrp - stats.mean) / stats.std
-                    : null;
+                const z = vrpZ(vrp, stats);
                 return (
                   <tr key={point.market_date}>
                     <td style={tdStyle}>{point.market_date}</td>
@@ -212,14 +203,6 @@ function Metric({ label, value }: { label: string; value: string }) {
       </div>
     </div>
   );
-}
-
-function meanStd(values: number[]) {
-  if (!values.length) return { mean: 0, std: 0 };
-  const mean = values.reduce((sum, value) => sum + value, 0) / values.length;
-  const variance =
-    values.reduce((sum, value) => sum + (value - mean) ** 2, 0) / values.length;
-  return { mean, std: Math.sqrt(variance) };
 }
 
 const emptyStyle: React.CSSProperties = {

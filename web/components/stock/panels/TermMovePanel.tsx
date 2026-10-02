@@ -1,14 +1,13 @@
 import type { TradeInsightsResponse } from "@/lib/api";
 import { DataTable } from "./DataTable";
 import { InsightPanel, InsightStatusBanner } from "./InsightPanel";
+import { termMoveRead } from "@/lib/snapshot/termMove";
 
 type Row = TradeInsightsResponse["term_structure_table"][number];
 
 const fmtMoney = (v: unknown) => (v == null ? "-" : `$${Number(v).toFixed(2)}`);
 const fmtPercent = (v: unknown) =>
   v == null ? "-" : `${(Number(v) * 100).toFixed(2)}%`;
-const n = (v: string | number | null | undefined) =>
-  v == null ? null : Number(v);
 
 function Highlight({
   label,
@@ -121,34 +120,21 @@ export function TermMovePanel({ rows }: { rows: Row[] }) {
     );
   }
 
-  const byExpiry = [...rows].sort((a, b) => {
-    const aDte = a.dte ?? 9999;
-    const bDte = b.dte ?? 9999;
-    return aDte - bDte;
-  });
-  const front = byExpiry[0];
-  const back = byExpiry.find((row) => row.expiry !== front.expiry) ?? null;
-  const highestDaily = [...rows].sort(
-    (a, b) =>
-      (n(b.daily_implied_move_perc) ?? -1) -
-      (n(a.daily_implied_move_perc) ?? -1),
-  )[0];
-  const frontDaily = n(front.daily_implied_move_perc);
-  const backDaily = back ? n(back.daily_implied_move_perc) : null;
-  const curveRead =
-    frontDaily != null && backDaily != null && frontDaily > backDaily
-      ? "Front elevated"
-      : frontDaily != null && backDaily != null && frontDaily < backDaily
-        ? "Back elevated"
-        : "Flat / unclear";
-  const highlightedCount = Math.min(rows.length, 6);
-  const highlightedRows = byExpiry.slice(0, highlightedCount);
-  const frontMove = fmtPercent(front.implied_move_perc);
+  const {
+    front,
+    highestDaily,
+    frontDaily,
+    backDaily,
+    curveRead,
+    highlightedCount,
+    highlightedRows,
+  } = termMoveRead(rows);
+  const frontMove = fmtPercent(front?.implied_move_perc);
   const frontDailyText = frontDaily == null ? "-" : fmtPercent(frontDaily);
   const backDailyText = backDaily == null ? null : fmtPercent(backDaily);
   const termRead =
     curveRead === "Front elevated" && backDailyText
-      ? `Front expiry (${front.expiry}, ${front.dte ?? "?"} DTE) implies ${frontMove} total, or ${frontDailyText} per day, above the next expiry at ${backDailyText} per day.`
+      ? `Front expiry (${front?.expiry}, ${front?.dte ?? "?"} DTE) implies ${frontMove} total, or ${frontDailyText} per day, above the next expiry at ${backDailyText} per day.`
       : curveRead === "Back elevated" && backDailyText
         ? `Front expiry implies ${frontDailyText} per day, below the next expiry at ${backDailyText} per day, so term pressure is farther out.`
         : `Front expiry implies ${frontMove} total, or ${frontDailyText} per day. The curve does not show a clear front/back edge.`;

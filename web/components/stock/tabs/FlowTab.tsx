@@ -8,6 +8,7 @@ import { OiMoversTable } from "../panels/OiMoversTable";
 import { StrikeProfilePanel } from "../panels/StrikeProfilePanel";
 import { TopAlertsTable } from "../panels/TopAlertsTable";
 import { toNum } from "@/lib/formatters";
+import { flowTimelineSeries } from "@/lib/snapshot/flowTimeline";
 
 type Report = components["schemas"]["SingleStockReport"];
 type OptionsDailyRow = components["schemas"]["OptionsDailyRow"];
@@ -462,31 +463,8 @@ function TimelineSection({
     );
   }
 
-  const dates = timeline.map((r) => r.date);
-  const totalVol = timeline.map((r) =>
-    r.call_volume == null || r.put_volume == null
-      ? null
-      : r.call_volume + r.put_volume,
-  );
-  // P/C ratio: only the DENOMINATOR (call_volume) must be non-zero. A real
-  // put_volume of 0 should chart as 0, not get filtered out as missing.
-  const pcVol = timeline.map((r) =>
-    r.call_volume != null && r.call_volume !== 0 && r.put_volume != null
-      ? r.put_volume / r.call_volume
-      : null,
-  );
-  const totalOi = timeline.map((r) =>
-    r.call_open_interest == null || r.put_open_interest == null
-      ? null
-      : r.call_open_interest + r.put_open_interest,
-  );
-  const pcOi = timeline.map((r) =>
-    r.call_open_interest != null &&
-    r.call_open_interest !== 0 &&
-    r.put_open_interest != null
-      ? r.put_open_interest / r.call_open_interest
-      : null,
-  );
+  const { dates, totalVol, pcVol, totalOi, pcOi } =
+    flowTimelineSeries(timeline);
   const earnings = nextEarnings ? [nextEarnings] : [];
 
   return (
