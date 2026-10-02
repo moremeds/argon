@@ -6,7 +6,7 @@ Generated from `REGISTRY` in `src/uw_scan/reports/data_gap_healer.py` (one sourc
 uv run python -c "from uw_scan.reports.data_gap_healer import render_dataset_policy_markdown as r; open('docs/runbooks/data-gap-dataset-policy.md','w').write(r())"
 ```
 
-**179 datasets** across 11 groups.
+**183 datasets** across 11 groups.
 
 ## core_watchlist
 
@@ -118,6 +118,10 @@ uv run python -c "from uw_scan.reports.data_gap_healer import render_dataset_pol
 | external_api_requests | provenance | none | none |  | none |  |  |
 | job_failures | excluded | none | none |  | none | live per-job failure-streak state; scheduler-maintained, nothing to backfill/heal |  |
 | jobs | provenance | none | none |  | none |  |  |
+| mcp_access_log | excluded | none | none |  | none | per-call MCP audit log; append-only operational provenance, nothing to backfill/heal |  |
+| mcp_event | excluded | none | none |  | none | append-only agent event stream with its own 30-day retention job; not market data |  |
+| mcp_event_cursor | excluded | none | none |  | none | per-token replay cursor for get_events; consumer state, not a time series |  |
+| mcp_token | excluded | none | none |  | none | bearer-token registry for the agent MCP server; auth state, not a time series |  |
 | pipeline_benchmark_snapshots | provenance | none | none |  | none |  |  |
 | raw_payloads | provenance | none | none |  | none |  |  |
 | record_health_snapshot | excluded | none | none |  | none | latest per-table record-health counts, overwritten every 15 min by the record_health_snapshot job; no history to backfill/heal |  |

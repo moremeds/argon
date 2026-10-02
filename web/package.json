@@ -6,6 +6,7 @@
   "scripts": {
     "dev": "next dev --port 3001",
     "build": "next build",
+    "build:mcp": "esbuild mcp/server.ts --bundle --platform=node --format=esm --banner:js=\"import { createRequire } from 'node:module'; const require = createRequire(import.meta.url);\" --external:pg-native --external:lightweight-charts --external:fancy-canvas --outfile=.mcp-dist/server.mjs",
     "start": "next start --port 3001",
     "typecheck": "tsc --noEmit",
     "lint": "eslint .",

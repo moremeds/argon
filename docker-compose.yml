@@ -129,6 +129,56 @@ services:
     <<: [*app-image, *common]
     command: ["python", "-m", "uw_scan.worker.massive_ws_consumer"]
 
+  # Agent MCP — read-only remote interface for cloud/local agents. Same image
+  # as web (mcp-server.mjs is the esbuild bundle next to server.js); NOT the
+  # Next server. Loopback-only publish — the single public path is the
+  # cloudflared named tunnel below → https://mcp.rsiarc.com/mcp.
+  # Auth/connect/tunnel steps: docs/runbooks/agent-mcp.md.
+  mcp:
+    image: ghcr.io/moremeds/argon-web:latest
+    build:
+      context: .
+      dockerfile: docker/web.Dockerfile
+    # Deliberately NOT *common: this container is public-facing (Cloudflare
+    # tunnel), so it must not hold the app secrets — /opt/argon/.env carries
+    # the argon_app DB password + provider keys, which would make argon_mcp
+    # pointless. mcp.env holds exactly MCP_DATABASE_URL (argon_mcp role) and
+    # TUNNEL_TOKEN (read by cloudflared). No lake mount needed either.
+    restart: unless-stopped
+    env_file: [/opt/argon/mcp.env]
+    extra_hosts:
+      - "host.docker.internal:host-gateway"
+    labels:
+      com.centurylinklabs.watchtower.enable: "true"
+    command: ["node", "mcp-server.mjs"]
+    environment:
+      ARGON_API_URL: http://api:8400
+      MCP_PORT: "8500"
+    ports:
+      - "127.0.0.1:8500:8500"
+    depends_on:
+      api:
+        condition: service_healthy
+    healthcheck:
+      # Explicit IPv4 (same alpine ::1 hazard as web's, noted above).
+      test: ["CMD", "wget", "-qO", "/dev/null", "http://127.0.0.1:8500/healthz"]
+      interval: 30s
+      timeout: 5s
+      retries: 5
+      start_period: 30s
+
+  # Cloudflare named tunnel — the ONLY public ingress for the MCP server
+  # (web/api stay off the internet). Dashboard route: public hostname
+  # mcp.rsiarc.com → http://mcp:8500. TUNNEL_TOKEN from env_file; tag pinned —
+  # bump deliberately, --no-autoupdate keeps it from self-upgrading.
+  cloudflared:
+    image: cloudflare/cloudflared:2026.9.3
+    command: tunnel --no-autoupdate run
+    env_file: [/opt/argon/mcp.env]
+    restart: unless-stopped
+    depends_on:
+      - mcp
+
   # APScheduler workers. Each role shards its work by (INDEX, COUNT); COUNT must
   # equal the number of instances of that role or index-1 fails validation on
   # boot. ponytail: no healthcheck — restart:unless-stopped + in-app
