@@ -10,6 +10,7 @@ would compare the row to itself and never emit).
 from __future__ import annotations
 
 import os
+from dataclasses import replace
 from datetime import date, datetime, timedelta, timezone
 from decimal import Decimal
 
@@ -18,7 +19,11 @@ import pytest
 
 from tests.integration.reports.test_vrp_macro_signal import _seed_spx_vix_varied
 from uw_scan import alerts
+from uw_scan.cards.cri_scoring import run_analysis as _cri_run_analysis
 from uw_scan.config import Settings
+from uw_scan.reports.vrp_macro_signal import (
+    current_macro_signal as _vrp_current_macro_signal,
+)
 from uw_scan.scanners import cri as cri_scanner
 from uw_scan.scanners import vcg as vcg_scanner
 from uw_scan.scanners.live_quotes import LiveQuote
@@ -168,6 +173,38 @@ def _fail_emit_once(monkeypatch: pytest.MonkeyPatch, target: str) -> None:
     monkeypatch.setattr(target, _flaky)
 
 
+def _force_cri_levels(monkeypatch: pytest.MonkeyPatch, levels: list[str]) -> None:
+    """Wrap the real cri_scoring.run_analysis but stamp ``cri.level`` from
+    ``levels`` (in call order; the last entry repeats) — the level knob
+    without faking the pipeline or the persisted payload."""
+    calls = {"i": 0}
+
+    def _wrapped(*args, **kwargs):
+        payload = _cri_run_analysis(*args, **kwargs)
+        payload["cri"]["level"] = levels[min(calls["i"], len(levels) - 1)]
+        calls["i"] += 1
+        return payload
+
+    monkeypatch.setattr("uw_scan.cards.cri_scoring.run_analysis", _wrapped)
+
+
+def _force_vrp_actions(monkeypatch: pytest.MonkeyPatch, actions: list[str]) -> None:
+    """Wrap the real current_macro_signal but stamp ``action`` from
+    ``actions`` (in call order; the last entry repeats) — the action knob
+    without faking the job or the persisted row."""
+    calls = {"i": 0}
+
+    def _wrapped(*args, **kwargs):
+        sig = _vrp_current_macro_signal(*args, **kwargs)
+        action = actions[min(calls["i"], len(actions) - 1)]
+        calls["i"] += 1
+        return replace(sig, action=action)
+
+    monkeypatch.setattr(
+        "uw_scan.worker.jobs.vrp_macro_signal.current_macro_signal", _wrapped
+    )
+
+
 _LIVE_QUOTED = datetime(2026, 6, 12, 15, 30, tzinfo=timezone.utc)  # Friday RTH
 
 
@@ -244,6 +281,105 @@ def test_cri_eod_emit_failure_recovers_from_event_stream(
     # Steady state: once the flip is emitted the stream is the anchor again.
     assert cri_scanner.run(repo.conn, schema=repo._schema) is not None
     assert len(_events(repo.conn)) == 2
+
+
+def test_cri_eod_emit_failure_recovers_the_missed_step(
+    seeded_db_empty_cards, monkeypatch
+) -> None:
+    """LOW emitted; a scan lands HIGH but its emit dies (the snapshot
+    commits anyway); the next scan is back at LOW. The stream must announce
+    BOTH steps in order — the missed LOW→HIGH flagged ``recovered``, then
+    the current HIGH→LOW."""
+    repo = seeded_db_empty_cards
+    _seed_cri_inputs(repo)
+    _seed_prior_cri(repo, "LOW", basis="eod")
+    _seed_emitted_event(
+        repo.conn,
+        kind="cri_regime",
+        subject="CRI",
+        basis="eod",
+        from_="NORMAL",
+        to="LOW",
+    )
+    _force_cri_levels(monkeypatch, ["HIGH", "LOW", "LOW"])
+    _fail_emit_once(monkeypatch, "uw_scan.scanners.cri.emit_on_change")
+
+    # HIGH snapshot commits; the emit dies → still just the seeded event.
+    assert cri_scanner.run(repo.conn, schema=repo._schema) is not None
+    assert len(_events(repo.conn)) == 1
+
+    # snapshot_prev=HIGH sits ahead of anchor=LOW → missed step first, then
+    # the current transition.
+    assert cri_scanner.run(repo.conn, schema=repo._schema) is not None
+    events = _events(repo.conn)
+    assert len(events) == 3
+    assert events[1][3] == {"from": "LOW", "to": "HIGH", "recovered": True}
+    assert events[2][0:3] == ("cri_regime", "CRI", "eod")
+    assert events[2][3]["from"] == "HIGH"
+    assert events[2][3]["to"] == "LOW"
+
+    # Steady state at LOW: one more scan adds nothing.
+    assert cri_scanner.run(repo.conn, schema=repo._schema) is not None
+    assert len(_events(repo.conn)) == 3
+
+
+def test_cri_eod_backfilled_older_date_is_not_a_missed_transition(
+    seeded_db_empty_cards, monkeypatch
+) -> None:
+    """The gap healer's as_of run writes an OLDER data_date with a fresh
+    scanned_at. ``snapshot_prev`` keys on data_date, so the backfill must
+    not read as a missed transition on the next regular scan."""
+    repo = seeded_db_empty_cards
+    _seed_cri_inputs(repo)
+    _seed_prior_cri(repo, "LOW", basis="eod")
+    _seed_emitted_event(
+        repo.conn,
+        kind="cri_regime",
+        subject="CRI",
+        basis="eod",
+        from_="NORMAL",
+        to="LOW",
+    )
+    _force_cri_levels(monkeypatch, ["LOW", "HIGH", "LOW"])
+
+    # Regular scan at LOW — equals the anchor; nothing emits.
+    assert cri_scanner.run(repo.conn, schema=repo._schema) is not None
+    assert len(_events(repo.conn)) == 1
+
+    # Gap-healer shape: an as_of run lands an OLDER data_date at a different
+    # level (with a fresh scanned_at) and never emits.
+    as_of = _CRI_SEED_START + timedelta(days=_CRI_SEED_DAYS - 10)
+    assert cri_scanner.run(repo.conn, schema=repo._schema, as_of=as_of) is not None
+    assert len(_events(repo.conn)) == 1
+
+    # Next regular scan at LOW: snapshot_prev is the newest row by DATA DATE
+    # (the earlier LOW row), not the fresh-scanned_at HIGH backfill — an
+    # scanned_at-ordered read would fire a phantom recovered pair here.
+    assert cri_scanner.run(repo.conn, schema=repo._schema) is not None
+    assert len(_events(repo.conn)) == 1
+
+
+def test_cri_eod_same_day_rerun_same_level_emits_nothing(
+    seeded_db_empty_cards, monkeypatch
+) -> None:
+    """A same-day re-run computing the level already on the stream is a
+    genuine no-op — snapshot_prev equals the anchor, no recovered step."""
+    repo = seeded_db_empty_cards
+    _seed_cri_inputs(repo)
+    _seed_prior_cri(repo, "LOW", basis="eod")
+    _seed_emitted_event(
+        repo.conn,
+        kind="cri_regime",
+        subject="CRI",
+        basis="eod",
+        from_="NORMAL",
+        to="LOW",
+    )
+    _force_cri_levels(monkeypatch, ["LOW", "LOW"])
+
+    assert cri_scanner.run(repo.conn, schema=repo._schema) is not None
+    assert cri_scanner.run(repo.conn, schema=repo._schema) is not None
+    assert len(_events(repo.conn)) == 1
 
 
 def test_cri_live_emits_on_level_change(seeded_db_empty_cards) -> None:
@@ -684,6 +820,56 @@ def test_vrp_eod_emit_failure_recovers_from_event_stream(
 
     vrp_macro_signal_refresh(**run_kw)
     assert len(_events(repo.conn)) == 2
+
+
+def test_vrp_eod_emit_failure_recovers_the_missed_step(
+    seeded_db_empty_cards, monkeypatch
+) -> None:
+    """SKIP emitted; a refresh lands TRADE but its emit dies (the upsert
+    commits anyway); the next refresh is back at SKIP. The stream must
+    announce BOTH steps in order — missed SKIP→TRADE ``recovered``, then
+    TRADE→SKIP."""
+    repo = seeded_db_empty_cards
+    _seed_spx_vix_varied(repo)
+    settings = Settings.from_env()
+    run_kw = {
+        "repo": repo,
+        "settings": settings,
+        "snapshot_date": date(2026, 6, 22),
+        "names": ("SPX",),
+    }
+    _force_vrp_actions(monkeypatch, ["SKIP", "TRADE", "SKIP", "SKIP"])
+
+    # First refresh lands the stored row at SKIP; first-ever — no event.
+    assert vrp_macro_signal_refresh(**run_kw)["persisted"] == 1
+    assert _events(repo.conn) == []
+    _seed_emitted_event(
+        repo.conn,
+        kind="vrp_macro_signal",
+        subject="SPX",
+        basis="eod",
+        from_="TRADE",
+        to="SKIP",
+    )
+    _fail_emit_once(monkeypatch, "uw_scan.worker.jobs.vrp_macro_signal.emit_on_change")
+
+    # The TRADE upsert commits; the emit dies → still just the seeded event.
+    assert vrp_macro_signal_refresh(**run_kw)["persisted"] == 1
+    assert len(_events(repo.conn)) == 1
+
+    # snapshot_prev=TRADE sits ahead of anchor=SKIP → missed step first,
+    # then the current transition.
+    assert vrp_macro_signal_refresh(**run_kw)["persisted"] == 1
+    events = _events(repo.conn)
+    assert len(events) == 3
+    assert events[1][0:3] == ("vrp_macro_signal", "SPX", "eod")
+    assert events[1][3] == {"from": "SKIP", "to": "TRADE", "recovered": True}
+    assert events[2][0:3] == ("vrp_macro_signal", "SPX", "eod")
+    assert events[2][3]["from"] == "TRADE"
+    assert events[2][3]["to"] == "SKIP"
+
+    assert vrp_macro_signal_refresh(**run_kw)["persisted"] == 1
+    assert len(_events(repo.conn)) == 3
 
 
 def test_regime_live_vrp_leg_emits_on_action_change(seeded_db_empty_cards) -> None:

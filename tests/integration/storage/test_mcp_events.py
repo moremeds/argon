@@ -121,26 +121,129 @@ def test_emit_on_change_fires_only_on_a_real_change(seeded_db_empty_cards):
     kw = {"kind": "cri_regime", "subject": "CRI", "basis": "eod"}
     # A first-ever row is not a change; a degraded scan must not emit a flip
     # to null; equal states do not emit.
-    assert emit_on_change(conn, prev=None, new="ELEVATED", payload={}, **kw) is None
-    assert emit_on_change(conn, prev="NORMAL", new=None, payload={}, **kw) is None
-    assert emit_on_change(conn, prev="NORMAL", new="NORMAL", payload={}, **kw) is None
+    assert (
+        emit_on_change(conn, snapshot_prev=None, new="ELEVATED", payload={}, **kw) == []
+    )
+    assert (
+        emit_on_change(conn, snapshot_prev="NORMAL", new=None, payload={}, **kw) == []
+    )
+    assert (
+        emit_on_change(conn, snapshot_prev="NORMAL", new="NORMAL", payload={}, **kw)
+        == []
+    )
     conn.commit()
     assert _count(conn) == 0
 
-    new_id = emit_on_change(
-        conn, prev="NORMAL", new="ELEVATED", payload={"score": 42.0}, **kw
+    ids = emit_on_change(
+        conn, snapshot_prev="NORMAL", new="ELEVATED", payload={"score": 42.0}, **kw
     )
-    assert new_id is not None
     conn.commit()
+    assert len(ids) == 1
     with conn.cursor() as cur:
-        cur.execute("SELECT payload FROM uw_scan.mcp_event WHERE id = %s", (new_id,))
+        cur.execute("SELECT payload FROM uw_scan.mcp_event WHERE id = %s", (ids[0],))
         payload = cur.fetchone()[0]
     assert payload == {"score": 42.0, "from": "NORMAL", "to": "ELEVATED"}
     assert _count(conn) == 1
 
 
+def test_emit_on_change_recovers_a_missed_transition(seeded_db_empty_cards):
+    """An emit that died after its snapshot committed leaves the persisted
+    state (B) ahead of the stream (A): the dead scan's snapshot row carries a
+    write time LATER than the anchor event's emitted_at — the timestamp guard
+    that tells a missed transition apart from a stale racer. The next call
+    sees snapshot_prev=B written after anchor=A and announces the missed
+    A→B step first (``recovered: true``), then the current B→C — the stream
+    stays continuous for subscribers."""
+    conn = seeded_db_empty_cards.conn
+    kw = {"kind": "cri_regime", "subject": "CRI", "basis": "eod"}
+    emit_event(conn, payload={"from": "NORMAL", "to": "A"}, **kw)
+    conn.commit()
+    with conn.cursor() as cur:
+        cur.execute("SELECT emitted_at FROM uw_scan.mcp_event ORDER BY id DESC LIMIT 1")
+        anchor_emitted_at = cur.fetchone()[0]
+    conn.commit()
+    # The dead emit's snapshot row was written after the anchor event.
+    snapshot_prev_at = anchor_emitted_at + timedelta(seconds=1)
+
+    ids = emit_on_change(
+        conn,
+        snapshot_prev="B",
+        snapshot_prev_at=snapshot_prev_at,
+        new="C",
+        payload={},
+        **kw,
+    )
+    conn.commit()
+    assert len(ids) == 2
+    with conn.cursor() as cur:
+        cur.execute(
+            "SELECT payload FROM uw_scan.mcp_event WHERE id = ANY(%s) ORDER BY id",
+            (ids,),
+        )
+        payloads = [r[0] for r in cur.fetchall()]
+    assert payloads == [
+        {"from": "A", "to": "B", "recovered": True},
+        {"from": "B", "to": "C"},
+    ]
+
+
+def test_emit_on_change_without_snapshot_write_time_skips_recovery(
+    seeded_db_empty_cards,
+):
+    """``snapshot_prev_at=None`` (a caller that can't date its prev read) can
+    never prove the snapshot outran the stream — no recovered step — but the
+    normal anchor-compare still emits the real change."""
+    conn = seeded_db_empty_cards.conn
+    kw = {"kind": "cri_regime", "subject": "CRI", "basis": "eod"}
+    emit_event(conn, payload={"from": "NORMAL", "to": "A"}, **kw)
+    conn.commit()
+    ids = emit_on_change(conn, snapshot_prev="B", new="C", payload={}, **kw)
+    conn.commit()
+    assert len(ids) == 1
+    with conn.cursor() as cur:
+        cur.execute("SELECT payload FROM uw_scan.mcp_event WHERE id = %s", (ids[0],))
+        assert cur.fetchone()[0] == {"from": "A", "to": "C"}
+
+
+def test_emit_on_change_serializes_racing_callers(seeded_db_empty_cards):
+    """Two callers holding the same stale snapshot_prev — the racing manual
+    scan + cron shape — must not both fire the flip, on the EOD path
+    (cooldown=None). Snapshot A was written at T0; racer 1 emits A→B; racer 2
+    re-reads the anchor under the advisory lock, sees the winner's committed
+    A→B (emitted AFTER T0), and the timestamp guard proves its snapshot_prev
+    is a stale pre-write read, not a missed transition: no recovered B→A and
+    no duplicate — exactly one event total."""
+    conn = seeded_db_empty_cards.conn
+    kw = {"kind": "cri_regime", "subject": "CRI", "basis": "eod"}
+    with conn.cursor() as cur:
+        cur.execute("SELECT now()")
+        snapshot_a_written_at = cur.fetchone()[0]
+    conn.commit()
+    first = emit_on_change(
+        conn,
+        snapshot_prev="A",
+        snapshot_prev_at=snapshot_a_written_at,
+        new="B",
+        payload={},
+        **kw,
+    )
+    conn.commit()
+    second = emit_on_change(
+        conn,
+        snapshot_prev="A",
+        snapshot_prev_at=snapshot_a_written_at,
+        new="B",
+        payload={},
+        **kw,
+    )
+    conn.commit()
+    assert len(first) == 1
+    assert second == []
+    assert _count(conn) == 1
+
+
 def test_last_emitted_state_returns_newest_to(seeded_db_empty_cards):
-    """`prev` anchor for self-healing emits: the newest event row's `to` wins;
+    """Anchor for self-healing emits: the newest event row's `to` wins;
     a triple with no events — or whose newest row carries no `to` — is None."""
     conn = seeded_db_empty_cards.conn
     kw = {"kind": "cri_regime", "subject": "CRI", "basis": "eod"}
