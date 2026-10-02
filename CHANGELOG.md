@@ -7,6 +7,9 @@ version in lockstep (enforced by `scripts/release/version_sync_check.py`).
 
 ## [Unreleased]
 
+## [0.13.14] — 2026-10-02
+
+
 ### Security
 
 - **web container publishes loopback-only (`127.0.0.1:3001`).** `"3001:3001"` bound every host interface, and Next.js proxies `/api/*` to FastAPI unauthenticated, so any device on the mini's LAN could call all 18 mutating API routes. Tailnet access now goes through `tailscale serve --bg 3001` on the mini (`https://macmini.tail20094b.ts.net`). **Deploy step:** apply the same port change to the live `/opt/argon/compose.yml` and run `tailscale serve --bg 3001` once, or web becomes unreachable from other devices. Runbook: `docs/runbooks/docker-deploy.md`.
@@ -18,7 +21,6 @@ version in lockstep (enforced by `scripts/release/version_sync_check.py`).
 ### Changed
 
 - **Technicals, regime and stock-panel derivations moved from components into `web/lib/{technicals,snapshot,regime/derive,watchlist}`** so the MCP tools and the pages share one implementation. Rendered output is unchanged (old-vs-new text identical on 48 page/tab views); the price chart now computes chanlun, volume profile and FVG even when their toggles are off.
-
 ## [0.13.13] — 2026-10-01
 
 
