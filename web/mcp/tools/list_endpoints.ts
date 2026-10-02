@@ -1,11 +1,12 @@
+import { endpointsCache } from "../lib/endpoints";
 import type { McpTool } from "../types";
 
-// Stub — owner per spec. Replace the handler.
 export const tool: McpTool = {
   name: "list_endpoints",
-  description: "TODO",
+  description:
+    "List the allowlisted GET endpoints of the Argon API as " +
+    "[{path, summary, params}]. Pass a listed path to the read tool; " +
+    "{placeholder} segments are filled from read's params argument.",
   inputSchema: {},
-  handler: async () => {
-    throw new Error("list_endpoints: not implemented");
-  },
+  handler: async () => endpointsCache.get(),
 };
