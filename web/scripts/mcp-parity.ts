@@ -73,12 +73,19 @@ for (const t of tickers) {
     localStorage.setItem("technicals:chanlun", "1");
     localStorage.setItem("technicals:view", "chart");
   });
-  const bodies = new Map<string, unknown>();
-  page.on("response", async (res) => {
-    const m = res.url().match(/\/api(\/stock\/[^/]+\/technicals(?:\/live)?)$/);
-    if (m && res.ok()) bodies.set(m[1], await res.json().catch(() => null));
-  });
+  // Await the page's own two responses (registered before goto) so the body
+  // comparison can never race the panel read.
+  const eodRes = page.waitForResponse(
+    (r) => r.url().endsWith(`/api/stock/${t}/technicals`) && r.ok(),
+  );
+  const liveRes = page.waitForResponse(
+    (r) => r.url().endsWith(`/api/stock/${t}/technicals/live`) && r.ok(),
+  );
   await page.goto(`${WEB}/stock/${t}/technicals`);
+  const bodies = new Map<string, unknown>([
+    [`/stock/${t}/technicals`, await (await eodRes).json()],
+    [`/stock/${t}/technicals/live`, await (await liveRes).json()],
+  ]);
   const panel = page.getByTestId("volume-profile-stats");
   await panel.waitFor({ timeout: 30_000 });
   const text = await panel.innerText();
