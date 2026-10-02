@@ -18,16 +18,21 @@ event stream (`GET /mcp` with `Accept: text/event-stream`).
    type **HTTP**, URL `mcp:8500` (the compose service name + port — the tunnel
    runs on the compose network). Save.
 
-## 2. /opt/argon/mcp.env (NOT .env)
+## 2. /opt/argon/mcp.env + /opt/argon/cloudflared.env (NOT .env)
 
-The mcp + cloudflared services read ONLY this file — keep it separate from
-`/opt/argon/.env`, which holds the `argon_app` DB password and provider keys
-the public-facing containers must not carry:
+Two files, one secret each — the mcp service needs only its DB DSN and
+cloudflared needs only the tunnel token, so neither container carries a
+secret it doesn't use. Both stay separate from `/opt/argon/.env`, which holds
+the `argon_app` DB password and provider keys the public-facing containers
+must not carry:
 
 ```
-install -m 600 /dev/null /opt/argon/mcp.env   # root-only, like .env
+install -m 600 /dev/null /opt/argon/mcp.env          # root-only, like .env
+install -m 600 /dev/null /opt/argon/cloudflared.env
 cat >> /opt/argon/mcp.env <<'EOF'
 MCP_DATABASE_URL=postgres://argon_mcp:<password>@host.docker.internal:5432/option_wizard
+EOF
+cat >> /opt/argon/cloudflared.env <<'EOF'
 TUNNEL_TOKEN=<token from step 1>
 EOF
 ```
@@ -58,7 +63,14 @@ the role script fails if run first. Order:
 
    ```
    psql -v ON_ERROR_STOP=1 -U postgres -d option_wizard -f scripts/ops/mcp_role.sql
-   \password argon_mcp          # set the password that goes in MCP_DATABASE_URL
+   ```
+
+   then set its password interactively (the value that goes into
+   `MCP_DATABASE_URL` — never on a command line, never in a file here):
+
+   ```
+   psql -U postgres -d option_wizard
+   \password argon_mcp
    ```
 
 4. Verify the grants:
@@ -74,6 +86,11 @@ The role is `LOGIN`, SELECT-only on `uw_scan` (existing + future tables via
 `ALTER DEFAULT PRIVILEGES FOR ROLE argon_app`), plus the two writes above.
 
 ## 4. Bring the services up
+
+`compose.yml` changes are NOT auto-deployed — the mini runs
+`/opt/argon/compose.yml`, mirrored by hand from the repo's
+`docker-compose.yml` (see `docs/runbooks/docker-deploy.md`). Make sure the
+`mcp` and `cloudflared` service blocks exist there before this step.
 
 ```
 cd /opt/argon
@@ -115,6 +132,6 @@ token's durable cursor), then `list_endpoints` for the readable GET surface.
 | --- | --- |
 | 401 on everything | token revoked or wrong — `mcp-token list` on the mini |
 | 502 from Cloudflare | `docker compose ps mcp` unhealthy → `docker compose logs mcp` |
-| tunnel container down | `TUNNEL_TOKEN` unset/wrong in `.env` |
+| tunnel container down | `TUNNEL_TOKEN` unset/wrong in `cloudflared.env` |
 | reads return empty | `MCP_DATABASE_URL` points at a DB without migrations 153+154 |
 | SELECT works, calls 500 | argon_mcp missing `INSERT mcp_access_log` — re-run step 3 |

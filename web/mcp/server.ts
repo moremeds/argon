@@ -20,7 +20,11 @@ import { pathToFileURL } from "node:url";
 
 import { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
 import { StreamableHTTPServerTransport } from "@modelcontextprotocol/sdk/server/streamableHttp.js";
-import { isInitializeRequest, type CallToolResult } from "@modelcontextprotocol/sdk/types.js";
+import {
+  CallToolRequestSchema,
+  isInitializeRequest,
+  type CallToolResult,
+} from "@modelcontextprotocol/sdk/types.js";
 import pg from "pg";
 
 import { subscribeEvents } from "./events";
@@ -84,7 +88,10 @@ export function makeApiGet(apiBase: string): ToolCtx["apiGet"] {
     if (url.pathname !== `/api${path}`) {
       throw new Error(`apiGet: path normalization mismatch — refusing '${path}'`);
     }
-    const res = await fetch(url, { method: "GET" });
+    const res = await fetch(url, {
+      method: "GET",
+      signal: AbortSignal.timeout(30_000),
+    });
     if (!res.ok) throw new Error(`apiGet ${path} → ${res.status}`);
     return res.json();
   };
@@ -109,6 +116,10 @@ export type AccessLogEntry = {
 
 export type AccessLogSink = (entry: AccessLogEntry) => Promise<void>;
 
+/** Stamped on the SDK `extra` by wrapToolHandler so the tools/call wrapper can
+ *  tell handler-reached calls (already logged) from pre-handler rejections. */
+const ACCESS_LOGGED = Symbol("argon.mcp.accessLogged");
+
 export function makeAccessLogSink(pool: pg.Pool): AccessLogSink {
   return async (e) => {
     await pool.query(
@@ -132,8 +143,9 @@ export function wrapToolHandler(
   tool: McpTool,
   ctx: ToolCtx,
   log: AccessLogSink,
-): (args: unknown) => Promise<CallToolResult> {
-  return async (args) => {
+): (args: unknown, extra?: object) => Promise<CallToolResult> {
+  return async (args, extra) => {
+    if (extra) (extra as Record<PropertyKey, unknown>)[ACCESS_LOGGED] = true;
     const started = Date.now();
     let status: AccessLogEntry["status"] = "ok";
     let payload: unknown;
@@ -174,6 +186,47 @@ export function wrapToolHandler(
 
 export function buildMcpServer(ctx: ToolCtx, log: AccessLogSink): McpServer {
   const server = new McpServer({ name: "argon-mcp", version: "0.1.0" });
+  // "One row per tool call" also covers calls the SDK rejects BEFORE a tool
+  // handler runs (unknown tool, disabled tool, schema-invalid args) — those
+  // come back as isError results, never reaching wrapToolHandler. Wrap the
+  // registered tools/call request handler to log them; the ACCESS_LOGGED
+  // marker keeps calls that did reach a handler single-logged.
+  const proto = server.server;
+  const origSet = proto.setRequestHandler.bind(proto);
+  proto.setRequestHandler = ((schema: unknown, handler: unknown) =>
+    origSet(
+      schema as never,
+      (schema === CallToolRequestSchema
+        ? async (
+            request: { params?: { name?: unknown; arguments?: unknown } },
+            extra: object,
+          ) => {
+            const started = Date.now();
+            const result = (await (handler as (r: unknown, e: unknown) => Promise<unknown>)(
+              request,
+              extra,
+            )) as CallToolResult;
+            if (
+              result?.isError === true &&
+              !(extra as Record<PropertyKey, unknown>)[ACCESS_LOGGED]
+            ) {
+              try {
+                await log({
+                  tokenLabel: ctx.tokenLabel,
+                  tool: String(request.params?.name ?? "unknown"),
+                  args: request.params?.arguments,
+                  status: "error",
+                  responseBytes: 0,
+                  durationMs: Date.now() - started,
+                });
+              } catch (err) {
+                console.error("mcp_access_log write failed", err);
+              }
+            }
+            return result;
+          }
+        : handler) as never,
+    )) as typeof proto.setRequestHandler;
   for (const tool of TOOLS) {
     server.registerTool(
       tool.name,
@@ -190,8 +243,10 @@ export type Session = {
   ctx: ToolCtx;
   label: string;
   lastSeen: number;
-  /** A live standalone SSE stream keeps its session alive past the idle limit. */
-  sseOpen: boolean;
+  /** Live standalone SSE streams keep the session alive past the idle limit.
+   *  A counter, not a bool: a rejected second GET (SDK 409) must not clear
+   *  stream 1's exemption — it counts only after its own 200 opens. */
+  sseStreams: number;
 };
 
 export class SessionStore {
@@ -227,7 +282,7 @@ export class SessionStore {
   sweep(): void {
     const t = this.now();
     for (const [sid, s] of this.sessions) {
-      if (s.sseOpen || t - s.lastSeen <= this.idleMs) continue;
+      if (s.sseStreams > 0 || t - s.lastSeen <= this.idleMs) continue;
       this.sessions.delete(sid);
       void s.transport
         .close()
@@ -339,7 +394,7 @@ export function makeRequestHandler(deps: HandlerDeps, opts: HandlerOptions = {})
           ctx,
           label,
           lastSeen: now(),
-          sseOpen: false,
+          sseStreams: 0,
         };
         transport.onclose = () => {
           if (transport.sessionId) store.delete(transport.sessionId);
@@ -389,10 +444,13 @@ export function makeRequestHandler(deps: HandlerDeps, opts: HandlerOptions = {})
             clearInterval(keepalive);
           }
         }, SSE_KEEPALIVE_MS);
-        session.sseOpen = true; // a live stream exempts the session from sweeps
+        let counted = false; // stream actually opened (200) — see sseStreams
         res.on("close", () => {
           resClosed = true;
-          session.sseOpen = false;
+          if (counted) {
+            session.sseStreams -= 1;
+            counted = false;
+          }
           session.lastSeen = now(); // dead-socket sessions become sweepable from now
           clearInterval(keepalive);
           unsubscribe?.();
@@ -405,9 +463,20 @@ export function makeRequestHandler(deps: HandlerDeps, opts: HandlerOptions = {})
           );
         } catch (err) {
           console.error("subscribeEvents failed", err);
+          // No subscription → do NOT open the SSE stream; answer 503 so the
+          // client reconnects (and, if nothing reopened, sweeps normally).
+          clearInterval(keepalive);
+          if (!resClosed) writeJson(res, 503, { error: "event stream unavailable" });
+          return;
         }
         if (resClosed) unsubscribe?.(); // client left during subscribe — tear down now
         await session.transport.handleRequest(req, res);
+        // Count only a stream that actually opened (a second GET gets a 409
+        // from the SDK and must not decrement stream 1's exemption on close).
+        if (!resClosed && res.statusCode === 200) {
+          session.sseStreams += 1;
+          counted = true;
+        }
         return;
       }
 

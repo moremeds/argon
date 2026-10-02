@@ -22,6 +22,10 @@ type Hub = {
   subs: Set<Subscriber>;
   /** Serializes per-notification SELECTs so fan-out order stays == id order. */
   chain: Promise<void>;
+  /** Bound handlers — removed before release so a reused pooled client
+   *  doesn't accumulate a second hub's listeners. */
+  onNotification: (msg: { channel?: string; payload?: string }) => void;
+  onError: (err: Error) => void;
 };
 
 let hub: Hub | null = null;
@@ -51,11 +55,11 @@ function onNotification(
     });
 }
 
-function teardown(h: Hub, err?: Error): void {
-  if (hub !== h) return; // already torn down
-  hub = null;
-  for (const s of [...h.subs]) s.close(); // end every subscriber stream
-  h.subs.clear();
+function detachAndRelease(h: Hub, err?: Error): void {
+  // pg.Pool reuses the client on the next connect() — listeners left attached
+  // would stack a stale hub's handlers onto the next one. Remove ours first.
+  h.client.off("notification", h.onNotification);
+  h.client.off("error", h.onError);
   try {
     h.client.release(err);
   } catch {
@@ -63,23 +67,31 @@ function teardown(h: Hub, err?: Error): void {
   }
 }
 
+function teardown(h: Hub, err?: Error): void {
+  if (hub !== h) return; // already torn down
+  hub = null;
+  for (const s of [...h.subs]) s.close(); // end every subscriber stream
+  h.subs.clear();
+  detachAndRelease(h, err);
+}
+
 async function startHub(ctx: ToolCtx): Promise<Hub> {
   if (hub) return hub;
   starting ??= (async () => {
     const client = await ctx.db.connect();
-    const h: Hub = { client, subs: new Set(), chain: Promise.resolve() };
-    client.on("notification", (m: { channel?: string; payload?: string }) =>
-      onNotification(h, m),
-    );
-    client.on("error", (err: Error) => teardown(h, err));
+    const h: Hub = {
+      client,
+      subs: new Set(),
+      chain: Promise.resolve(),
+      onNotification: (m) => onNotification(h, m),
+      onError: (err) => teardown(h, err),
+    };
+    client.on("notification", h.onNotification);
+    client.on("error", h.onError);
     try {
       await client.query("LISTEN mcp_event");
     } catch (err) {
-      try {
-        client.release(err instanceof Error ? err : new Error(String(err)));
-      } catch {
-        // already released
-      }
+      detachAndRelease(h, err instanceof Error ? err : new Error(String(err)));
       throw err;
     }
     hub = h;
@@ -108,11 +120,7 @@ export const subscribeEvents: EventStreamHook = async (ctx, send, close) => {
         try {
           await h.client.query("UNLISTEN mcp_event");
         } finally {
-          try {
-            h.client.release();
-          } catch {
-            // already released
-          }
+          detachAndRelease(h);
         }
       })().catch(() => {});
     }
@@ -122,12 +130,9 @@ export const subscribeEvents: EventStreamHook = async (ctx, send, close) => {
 /** Vitest hook: drop the module-level hub between tests. */
 export function resetEventsHubForTests(): void {
   if (hub) {
-    for (const s of [...hub.subs]) s.close();
-    try {
-      hub.client.release();
-    } catch {
-      // already released
-    }
+    const h = hub;
+    for (const s of [...h.subs]) s.close();
+    detachAndRelease(h);
   }
   hub = null;
   starting = null;

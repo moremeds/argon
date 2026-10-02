@@ -144,4 +144,26 @@ describe("subscribeEvents hub", () => {
     un();
     await vi.waitFor(() => expect(c.releasedWith).toHaveLength(1));
   });
+
+  it("removes listeners before release — reused client never stacks hubs", async () => {
+    const c = new FakeClient();
+    const c2 = ctx(c, vi.fn(async () => c));
+    const base = c.listenerCount("notification");
+    // Three subscribe/unsubscribe cycles on the same pooled client.
+    for (let i = 0; i < 3; i++) {
+      const un = await subscribeEvents(c2, vi.fn(), vi.fn());
+      un();
+      await vi.waitFor(() =>
+        expect(c.listenerCount("notification")).toBe(base),
+      );
+    }
+    // The 4th hub is the ONLY one listening: one notification → one SELECT.
+    const send = vi.fn();
+    await subscribeEvents(c2, send, vi.fn());
+    c.selectRows = [event];
+    c.emit("notification", { channel: "mcp_event", payload: "9" });
+    await vi.waitFor(() => expect(send).toHaveBeenCalledWith(event));
+    expect(c.queries.filter((q) => q.text.startsWith("SELECT"))).toHaveLength(1);
+    expect(c.listenerCount("error")).toBe(1); // one hub's worth, not four
+  });
 });

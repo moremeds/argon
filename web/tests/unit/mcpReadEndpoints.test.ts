@@ -196,6 +196,32 @@ describe("read tool", () => {
     }
     expect(getSpy).not.toHaveBeenCalled();
   });
+
+  it("accepts values that encodeURIComponent escapes, rejects traversal via params", async () => {
+    vi.spyOn(endpointsCache, "get").mockResolvedValue(eps);
+    const apiGet = vi.fn(async () => ({}));
+    // '^', '&', '%' are legal in a param VALUE — they encode to %XX and stay
+    // one segment; the resolved-path '%' check no longer fires on our own
+    // encoding.
+    for (const ticker of ["^VIX", "A&B", "50%", "BRK.B"]) {
+      await read.handler(
+        { path: "/stock/{ticker}/technicals", params: { ticker } },
+        { ...ctx, apiGet },
+      );
+    }
+    expect(apiGet).toHaveBeenCalledWith("/stock/%5EVIX/technicals", {});
+    expect(apiGet).toHaveBeenCalledWith("/stock/A%26B/technicals", {});
+    expect(apiGet).toHaveBeenCalledWith("/stock/50%25/technicals", {});
+    // Traversal via params still fails: '/', '\', control chars, dot segments.
+    for (const ticker of ["AAPL/x", "..\\x", "../x", "a\nb", ".", "..", ""]) {
+      await expect(
+        read.handler(
+          { path: "/stock/{ticker}/technicals", params: { ticker } },
+          ctx,
+        ),
+      ).rejects.toThrow(/invalid (value|path)/);
+    }
+  });
 });
 
 describe("list_endpoints tool", () => {

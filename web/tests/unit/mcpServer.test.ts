@@ -126,11 +126,11 @@ describe("revocation is immediate (no auth cache)", () => {
 });
 
 describe("SessionStore.sweep", () => {
-  function fakeSession(lastSeen: number, sseOpen = false) {
+  function fakeSession(lastSeen: number, sseStreams = 0) {
     return {
       transport: { close: vi.fn(async () => {}), sessionId: "x" },
       lastSeen,
-      sseOpen,
+      sseStreams,
     } as unknown as Session;
   }
 
@@ -139,7 +139,7 @@ describe("SessionStore.sweep", () => {
     const store = new SessionStore(() => now, 30 * 60_000);
     const old = fakeSession(now - 31 * 60_000);
     const fresh = fakeSession(now - 60_000);
-    const streaming = fakeSession(now - 40 * 60_000, /* sseOpen */ true);
+    const streaming = fakeSession(now - 40 * 60_000, /* sseStreams */ 1);
     store.set("old", old);
     store.set("fresh", fresh);
     store.set("streaming", streaming);
@@ -239,7 +239,8 @@ describe("makeApiGet", () => {
     const [url, init] = spy.mock.calls[0];
     expect(url).toBeInstanceOf(URL);
     expect(url.href).toBe("http://api:8400/api/health?a=1&b=x+y");
-    expect(init).toEqual({ method: "GET" });
+    expect(init.method).toBe("GET");
+    expect(init.signal).toBeInstanceOf(AbortSignal); // 30s timeout, not hung-forever
   });
 
   it("throws on a non-2xx response", async () => {
@@ -366,5 +367,138 @@ describe("SSE event stream", () => {
     resolveSub(unsub);
     await vi.waitFor(() => expect(unsub).toHaveBeenCalledTimes(1));
     await sse;
+  });
+
+  it("answers 503 instead of opening the stream when subscribeEvents throws", async () => {
+    const hook = vi.fn(async () => {
+      throw new Error("pg down");
+    });
+    const handler = makeRequestHandler(
+      {
+        pool: { query: vi.fn(async () => ({ rows: [{}] })) } as never,
+        labelForToken: async () => "grok",
+        apiGet: async () => ({}),
+      },
+      { subscribeEvents: hook },
+    );
+    server = createServer(handler);
+    await new Promise<void>((r) => server!.listen(0, r));
+    const base = `http://127.0.0.1:${(server.address() as AddressInfo).port}`;
+
+    const init = await fetch(`${base}/mcp`, { method: "POST", headers: headers(), body: initBody });
+    const sid = init.headers.get("mcp-session-id")!;
+    const sse = await fetch(`${base}/mcp`, { headers: headers(sid) });
+    expect(sse.status).toBe(503);
+  });
+
+  it("a rejected second GET closes only its own subscription", async () => {
+    const unsubs: ReturnType<typeof vi.fn>[] = [];
+    const hook = vi.fn(async () => {
+      const u = vi.fn();
+      unsubs.push(u);
+      return u;
+    });
+    const handler = makeRequestHandler(
+      {
+        pool: { query: vi.fn(async () => ({ rows: [{}] })) } as never,
+        labelForToken: async () => "grok",
+        apiGet: async () => ({}),
+      },
+      { subscribeEvents: hook },
+    );
+    server = createServer(handler);
+    await new Promise<void>((r) => server!.listen(0, r));
+    const base = `http://127.0.0.1:${(server.address() as AddressInfo).port}`;
+
+    const init = await fetch(`${base}/mcp`, { method: "POST", headers: headers(), body: initBody });
+    const sid = init.headers.get("mcp-session-id")!;
+
+    const sse1 = await fetch(`${base}/mcp`, { headers: headers(sid) });
+    expect(sse1.status).toBe(200);
+    // Second standalone GET — the SDK rejects it (409); its close must not
+    // unwind stream 1's subscription.
+    const sse2 = await fetch(`${base}/mcp`, { headers: headers(sid) });
+    await vi.waitFor(() => expect(unsubs.length).toBe(2));
+    await vi.waitFor(() => expect(unsubs[1]).toHaveBeenCalled());
+    expect(unsubs[0]).not.toHaveBeenCalled();
+    await sse1.body?.cancel(); // now stream 1 goes away → its own unsub
+    await vi.waitFor(() => expect(unsubs[0]).toHaveBeenCalled());
+    expect(sse2.status).not.toBe(200);
+  });
+});
+
+describe("SDK-rejected tool calls still write one access-log row", () => {
+  let server: ReturnType<typeof createServer> | undefined;
+  afterEach(async () => {
+    await new Promise((r) => server?.close(r));
+    server = undefined;
+  });
+
+  const initBody = JSON.stringify({
+    jsonrpc: "2.0",
+    id: 1,
+    method: "initialize",
+    params: {
+      protocolVersion: "2025-03-26",
+      capabilities: {},
+      clientInfo: { name: "t", version: "0" },
+    },
+  });
+  const headers = (sid?: string) => ({
+    "content-type": "application/json",
+    accept: "application/json, text/event-stream",
+    authorization: "Bearer good-token",
+    ...(sid ? { "mcp-session-id": sid } : {}),
+  });
+
+  it("unknown tool + schema-invalid + handler-fail each log exactly one error row", async () => {
+    const inserts: unknown[][] = [];
+    const poolQuery = vi.fn(async (text: string, params?: unknown[]) => {
+      if (text.includes("mcp_access_log")) inserts.push(params ?? []);
+      return { rows: [] };
+    });
+    const handler = makeRequestHandler({
+      pool: { query: poolQuery } as never,
+      labelForToken: async () => "grok",
+      apiGet: async () => ({}),
+    });
+    server = createServer(handler);
+    await new Promise<void>((r) => server!.listen(0, r));
+    const base = `http://127.0.0.1:${(server.address() as AddressInfo).port}`;
+    const init = await fetch(`${base}/mcp`, { method: "POST", headers: headers(), body: initBody });
+    const sid = init.headers.get("mcp-session-id")!;
+
+    const call = async (id: number, name: string, args: unknown) => {
+      const res = await fetch(`${base}/mcp`, {
+        method: "POST",
+        headers: headers(sid),
+        body: JSON.stringify({
+          jsonrpc: "2.0",
+          id,
+          method: "tools/call",
+          params: { name, arguments: args },
+        }),
+      });
+      const text = await res.text();
+      // Session-scoped replies are SSE-framed: "event: message\ndata: {...}"
+      const data = text.split("\n").find((l) => l.startsWith("data:"));
+      return JSON.parse(data!.slice(5)) as { result?: { isError?: boolean } };
+    };
+
+    // Unknown tool → SDK InvalidParams → isError, no handler ran → 1 row.
+    const r1 = await call(2, "nope_tool", {});
+    expect(r1.result?.isError).toBe(true);
+    // Schema-invalid → validation error before the handler → 1 row.
+    const r2 = await call(3, "read", {});
+    expect(r2.result?.isError).toBe(true);
+    // Handler reached and failed (openapi fetch unavailable) → wrapToolHandler
+    // logs once; the ACCESS_LOGGED marker must stop the outer wrapper's row.
+    const r3 = await call(4, "read", { path: "/x" });
+    expect(r3.result?.isError).toBe(true);
+
+    const byTool = (n: string) => inserts.filter((p) => p[1] === n);
+    expect(byTool("nope_tool")).toHaveLength(1);
+    expect(byTool("read")).toHaveLength(2); // schema-invalid + handler-fail
+    for (const row of inserts) expect(row[3]).toBe("error");
   });
 });

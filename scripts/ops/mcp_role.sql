@@ -6,14 +6,17 @@
 --
 -- The role is created with NO password — the operator sets it out-of-band
 -- (`\password argon_mcp` inside psql, or ALTER ROLE … PASSWORD) and the value
--- goes into /opt/argon/.env as MCP_DATABASE_URL. A password is never
+-- goes into /opt/argon/mcp.env as MCP_DATABASE_URL. A password is never
 -- committed here.
 --
 -- Rights: SELECT on every existing + future uw_scan table (read-only over the
 -- whole business surface), and exactly two writes — mcp_access_log (one row
 -- per tool call) and mcp_event_cursor (per-token event replay cursor). A
--- `SELECT` statement that mutates via CTE/function still fails: the role has
--- no INSERT/UPDATE/DELETE/EXECUTE elsewhere.
+-- `SELECT` statement that mutates via CTE still fails on DML rights. EXECUTE
+-- is NOT revocable here: PUBLIC holds EXECUTE on functions by default, so
+-- argon_mcp can call any function — but no function it can reach is SECURITY
+-- DEFINER, so a mutating function runs with argon_mcp's own read-only rights
+-- and fails on its first write. The MCP server only issues fixed SQL anyway.
 --
 -- Idempotent: DO-block guards CREATE ROLE; GRANTs are re-runnable.
 

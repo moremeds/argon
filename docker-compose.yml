@@ -142,8 +142,9 @@ services:
     # Deliberately NOT *common: this container is public-facing (Cloudflare
     # tunnel), so it must not hold the app secrets — /opt/argon/.env carries
     # the argon_app DB password + provider keys, which would make argon_mcp
-    # pointless. mcp.env holds exactly MCP_DATABASE_URL (argon_mcp role) and
-    # TUNNEL_TOKEN (read by cloudflared). No lake mount needed either.
+    # pointless. mcp.env holds ONLY MCP_DATABASE_URL (argon_mcp role) — the
+    # tunnel token lives in cloudflared.env, which this service never sees.
+    # No lake mount needed either.
     restart: unless-stopped
     env_file: [/opt/argon/mcp.env]
     extra_hosts:
@@ -169,12 +170,13 @@ services:
 
   # Cloudflare named tunnel — the ONLY public ingress for the MCP server
   # (web/api stay off the internet). Dashboard route: public hostname
-  # mcp.rsiarc.com → http://mcp:8500. TUNNEL_TOKEN from env_file; tag pinned —
-  # bump deliberately, --no-autoupdate keeps it from self-upgrading.
+  # mcp.rsiarc.com → http://mcp:8500. Its own env file holds ONLY TUNNEL_TOKEN
+  # — the connector doesn't need the argon_mcp DSN and must not carry it.
+  # Tag pinned — bump deliberately, --no-autoupdate keeps self-upgrades off.
   cloudflared:
     image: cloudflare/cloudflared:2026.9.3
     command: tunnel --no-autoupdate run
-    env_file: [/opt/argon/mcp.env]
+    env_file: [/opt/argon/cloudflared.env]
     restart: unless-stopped
     depends_on:
       - mcp
