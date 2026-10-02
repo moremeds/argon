@@ -19,6 +19,7 @@ import pytest
 from uw_scan.storage.mcp_events import (
     emit_event,
     emit_on_change,
+    last_emitted_state,
     purge_old_events,
 )
 
@@ -136,6 +137,37 @@ def test_emit_on_change_fires_only_on_a_real_change(seeded_db_empty_cards):
         payload = cur.fetchone()[0]
     assert payload == {"score": 42.0, "from": "NORMAL", "to": "ELEVATED"}
     assert _count(conn) == 1
+
+
+def test_last_emitted_state_returns_newest_to(seeded_db_empty_cards):
+    """`prev` anchor for self-healing emits: the newest event row's `to` wins;
+    a triple with no events — or whose newest row carries no `to` — is None."""
+    conn = seeded_db_empty_cards.conn
+    kw = {"kind": "cri_regime", "subject": "CRI", "basis": "eod"}
+    assert last_emitted_state(conn, **kw) is None
+
+    emit_event(conn, payload={"from": None, "to": "LOW"}, **kw)
+    emit_event(conn, payload={"from": "LOW", "to": "HIGH"}, **kw)
+    # A neighbouring triple must not leak into this one's anchor.
+    emit_event(
+        conn,
+        kind="cri_regime",
+        subject="CRI",
+        basis="live",
+        payload={"to": "CRITICAL"},
+    )
+    conn.commit()
+    assert last_emitted_state(conn, **kw) == "HIGH"
+    assert (
+        last_emitted_state(conn, kind="cri_regime", subject="CRI", basis="live")
+        == "CRITICAL"
+    )
+
+    # The newest row carries no `to` → None → caller falls back to the
+    # previous persisted snapshot.
+    emit_event(conn, payload={"note": "no state carried"}, **kw)
+    conn.commit()
+    assert last_emitted_state(conn, **kw) is None
 
 
 def test_purge_removes_only_rows_older_than_the_window(seeded_db_empty_cards):

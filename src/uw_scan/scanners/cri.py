@@ -31,7 +31,7 @@ from uw_scan.scanners.live_quotes import (
     splice_session_value,
 )
 from uw_scan.storage.cri_snapshot_repository import CriSnapshotRepository
-from uw_scan.storage.mcp_events import emit_on_change
+from uw_scan.storage.mcp_events import emit_on_change, last_emitted_state
 from uw_scan.storage.repository import Repository
 from uw_scan.storage.vol_index_repository import VolIndexRepository
 
@@ -180,13 +180,21 @@ def run(
     payload = cri_scoring.run_analysis(aligned, common_dates)
 
     snap_repo = CriSnapshotRepository(conn, schema=schema)
-    # Read the previous persisted level BEFORE insert_snapshot — it
-    # self-commits, so a read afterwards would compare the new row to itself
-    # and never emit. Gap-recovery runs (as_of set) never emit.
+    # Anchor `prev` on the event stream: the last level actually EMITTED. The
+    # snapshot commits before the emit runs, so a failed emit leaves the
+    # snapshot ahead of the stream and comparing against it would lose the
+    # flip. Only when the triple has never emitted fall back to the previous
+    # persisted level — still read BEFORE insert_snapshot, which self-commits,
+    # so a read afterwards would compare the new row to itself and never emit.
+    # Gap-recovery runs (as_of set) never emit.
     prev_level = None
     if as_of is None:
-        prev = snap_repo.fetch_latest(basis="eod")
-        prev_level = ((prev or {}).get("cri") or {}).get("level")
+        prev_level = last_emitted_state(
+            conn, kind="cri_regime", subject="CRI", basis="eod"
+        )
+        if prev_level is None:
+            prev = snap_repo.fetch_latest(basis="eod")
+            prev_level = ((prev or {}).get("cri") or {}).get("level")
     data_date = _date.fromisoformat(payload["date"])
     row_id = snap_repo.insert_snapshot(payload=payload, data_date=data_date)
     if as_of is None:
@@ -300,14 +308,25 @@ def run_live(
     if persist:
         slim = {k: v for k, v in payload.items() if k not in ("history", "spy_closes")}
         snap_repo = CriSnapshotRepository(conn, schema=schema)
-        # Prev read before the self-committing insert (same rule as run()).
-        prev = snap_repo.fetch_latest(basis="live")
-        prev_level = ((prev or {}).get("cri") or {}).get("level")
+        # Prev anchors on the last emitted live level (self-healing — see
+        # run()); the snapshot fallback still reads before the self-committing
+        # insert (same rule as run()).
+        prev_level = last_emitted_state(
+            conn, kind="cri_regime", subject="CRI", basis="live"
+        )
+        if prev_level is None:
+            prev = snap_repo.fetch_latest(basis="live")
+            prev_level = ((prev or {}).get("cri") or {}).get("level")
         row_id = snap_repo.insert_snapshot(
             payload=slim, data_date=session_date, basis="live"
         )
         try:
             with conn.transaction():
+                # The cooldown passes through unchanged, but is now benign on
+                # suppression: `prev` stays at the last emitted level, so a
+                # cooldown-suppressed flip re-attempts each tick and emits
+                # once the window passes if the state still differs —
+                # intended, the flip is delayed rather than dropped.
                 emit_on_change(
                     conn,
                     kind="cri_regime",

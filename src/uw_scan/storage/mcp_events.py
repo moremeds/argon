@@ -100,6 +100,43 @@ def emit_on_change(
     )
 
 
+def last_emitted_state(
+    conn: psycopg.Connection,
+    *,
+    kind: str,
+    subject: str,
+    basis: str,
+) -> Any | None:
+    """Return ``payload->'to'`` of the newest ``mcp_event`` row for the triple.
+
+    ``None`` when the triple has never emitted (or the newest row carries no
+    ``to``). Emitters resolve ``prev`` from this FIRST and only fall back to
+    the previous persisted snapshot when it is ``None``. The snapshot row
+    commits before the emit runs, so a failed emit used to leave the snapshot
+    ahead of the stream: the next scan read the new state as ``prev`` and
+    ``emit_on_change`` no-oped — the flip was lost for SSE and get_events.
+    Anchoring ``prev`` on the event stream makes the emit self-healing: the
+    missed flip re-attempts on the next scan, from the last state subscribers
+    were actually told about.
+    """
+    # ponytail: residual ceiling — if the very FIRST event for a triple fails
+    # to emit, no stream row exists to anchor on; the snapshot fallback then
+    # compares the new state to itself and that one flip is still lost.
+    with conn.cursor() as cur:
+        cur.execute(
+            f"""
+            SELECT payload->'to'
+              FROM {_SCHEMA}.mcp_event
+             WHERE kind = %s AND subject = %s AND basis = %s
+             ORDER BY id DESC
+             LIMIT 1
+            """,
+            (kind, subject, basis),
+        )
+        row = cur.fetchone()
+    return row[0] if row is not None else None
+
+
 def purge_old_events(conn: psycopg.Connection, days: int = 30) -> int:
     """Delete `mcp_event` rows older than `days`; returns the deleted count.
 
