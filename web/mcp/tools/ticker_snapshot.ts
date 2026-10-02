@@ -154,12 +154,31 @@ function cockpitSection(
   };
 }
 
+const SECTIONS = [
+  "technicals",
+  "chain_flow",
+  "term_move",
+  "flow_timeline",
+  "gamma_bar",
+  "charm",
+  "vanna",
+  "cockpit",
+] as const;
+
 const inputSchema = {
   ticker: z
     .string()
     .min(1)
     .regex(TICKER_RE)
     .describe("Ticker symbol (upper-cased automatically), e.g. SPY"),
+  sections: z
+    .array(z.enum(SECTIONS))
+    .min(1)
+    .optional()
+    .describe(
+      "Return only these sections (plus ticker); unrequested upstream fetches " +
+        "are skipped. Omit for the full snapshot.",
+    ),
 };
 
 export const tool: McpTool<typeof inputSchema> = {
@@ -173,7 +192,10 @@ export const tool: McpTool<typeof inputSchema> = {
     "section returns { error } without failing the call. " +
     "Cockpit sections (VRP stats/band/z, dealer vanna/charm totals and peaks, " +
     "state pass-through) exist only for SPX, SPY, QQQ and IWM; for other " +
-    "tickers `cockpit` is null.",
+    "tickers `cockpit` is null. Full response is ~60-75 KB, about 2/3 of it " +
+    "`technicals` (~40-55 KB); pass `sections` (any of technicals, " +
+    "chain_flow, term_move, flow_timeline, gamma_bar, charm, vanna, cockpit) " +
+    "to narrow it — the other sections are each under ~10 KB.",
   inputSchema,
   handler: async (args, ctx: ToolCtx) => {
     const T = normalizeTicker(args.ticker);
@@ -181,18 +203,24 @@ export const tool: McpTool<typeof inputSchema> = {
     // depth for anything that slips past the charset.
     const E = encodeURIComponent(T);
     const cockpitGated = COCKPIT_TICKERS.has(T);
+    const want = new Set<string>(args.sections ?? SECTIONS);
+    const wants = (...keys: string[]) => keys.some((k) => want.has(k));
+    // Skipped fetches resolve to an empty section; their keys are dropped below.
+    const skip = Promise.resolve({ error: "not requested" } as { value?: never; error?: string });
 
-    const technicalsP = section(
-      scanTicker(ctx, T, { fields: ["*"], timeframe: "1y" }),
-    );
-    const tradeInsightsP = section(
-      // /preview: same TradeInsightsResponse, build-only. The plain GET persists a snapshot.
-      ctx.apiGet(`/stock/${E}/trade-insights/preview`) as Promise<TradeInsightsResponse>,
-    );
-    const stockP = section(
-      ctx.apiGet(`/stock/${E}`) as Promise<SingleStockReport>,
-    );
-    const cockpitP = cockpitGated
+    const technicalsP = wants("technicals")
+      ? section(scanTicker(ctx, T, { fields: ["*"], timeframe: "1y" }))
+      : skip;
+    const tradeInsightsP = wants("chain_flow", "term_move")
+      ? section(
+          // /preview: same TradeInsightsResponse, build-only. The plain GET persists a snapshot.
+          ctx.apiGet(`/stock/${E}/trade-insights/preview`) as Promise<TradeInsightsResponse>,
+        )
+      : skip;
+    const stockP = wants("flow_timeline", "gamma_bar", "charm", "vanna")
+      ? section(ctx.apiGet(`/stock/${E}`) as Promise<SingleStockReport>)
+      : skip;
+    const cockpitP = cockpitGated && wants("cockpit")
       ? section(
           Promise.all([
             ctx.apiGet(`/cockpit/${E}/vrp`) as Promise<CockpitVrpResponse>,
@@ -219,7 +247,7 @@ export const tool: McpTool<typeof inputSchema> = {
     }
 
     const stockOk = stock.value;
-    return {
+    const full: Record<string, unknown> = {
       ticker: T,
       technicals: technicals.value
         ? technicalsSection(technicals.value as Record<string, unknown>)
@@ -236,5 +264,9 @@ export const tool: McpTool<typeof inputSchema> = {
       vanna: stockOk ? greekSection(stockOk, "vanna") : err(stock.error),
       cockpit: cockpitOut,
     };
+    if (!args.sections) return full;
+    return Object.fromEntries(
+      Object.entries(full).filter(([k]) => k === "ticker" || want.has(k)),
+    );
   },
 };

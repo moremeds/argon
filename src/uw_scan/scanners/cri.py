@@ -18,6 +18,7 @@ import logging
 from collections.abc import Mapping
 from datetime import date as _date
 from datetime import datetime, timedelta
+from typing import Any
 
 import numpy as np
 from psycopg import Connection
@@ -111,9 +112,10 @@ def _align(
 
 def _latest_eod_level(
     conn: Connection, schema: str
-) -> tuple[str | None, datetime | None]:
-    """Level + ``scanned_at`` of the newest EOD snapshot by DATA DATE, then
-    scanned_at — ``(None, None)`` when the table is empty.
+) -> tuple[str | None, datetime | None, dict[str, Any]]:
+    """Level + ``scanned_at`` + event context (``data_date``, ``score``) of
+    the newest EOD snapshot by DATA DATE, then scanned_at —
+    ``(None, None, {})`` when the table is empty.
 
     ``fetch_latest`` orders by scanned_at, which would surface a gap-healed
     backfill (old data_date, fresh scanned_at) as ``snapshot_prev`` — that
@@ -121,10 +123,12 @@ def _latest_eod_level(
     stream tracks the newest data date, so the snapshot anchor must too.
     ``scanned_at`` rides along as ``snapshot_prev_at``: the write timestamp
     that lets emit_on_change tell a missed transition apart from a racing
-    caller's stale pre-write read.
+    caller's stale pre-write read. The context rides along as
+    ``snapshot_prev_payload`` for a recovered event.
     """
     sql = f"""
-        SELECT payload->'cri'->>'level', scanned_at
+        SELECT payload->'cri'->>'level', scanned_at, data_date,
+               payload->'cri'->'score'
           FROM {schema}.cri_snapshots
          WHERE basis = 'eod' AND data_date IS NOT NULL
          ORDER BY data_date DESC, scanned_at DESC
@@ -133,7 +137,9 @@ def _latest_eod_level(
     with conn.cursor() as cur:
         cur.execute(sql)
         row = cur.fetchone()
-    return (row[0], row[1]) if row is not None else (None, None)
+    if row is None:
+        return None, None, {}
+    return row[0], row[1], {"data_date": row[2].isoformat(), "score": row[3]}
 
 
 def run(
@@ -214,8 +220,11 @@ def run(
     # Gap-recovery runs (as_of set) never emit.
     snapshot_prev: str | None = None
     snapshot_prev_at: datetime | None = None
+    snapshot_prev_payload: dict[str, Any] = {}
     if as_of is None:
-        snapshot_prev, snapshot_prev_at = _latest_eod_level(conn, schema)
+        snapshot_prev, snapshot_prev_at, snapshot_prev_payload = _latest_eod_level(
+            conn, schema
+        )
     data_date = _date.fromisoformat(payload["date"])
     row_id = snap_repo.insert_snapshot(payload=payload, data_date=data_date)
     if as_of is None:
@@ -230,6 +239,7 @@ def run(
                     basis="eod",
                     snapshot_prev=snapshot_prev,
                     snapshot_prev_at=snapshot_prev_at,
+                    snapshot_prev_payload=snapshot_prev_payload,
                     new=payload["cri"]["level"],
                     payload={
                         "data_date": data_date.isoformat(),

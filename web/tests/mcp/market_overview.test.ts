@@ -2,6 +2,7 @@
 // and the dashboardData split — /watchlist/chains failure degrades,
 // /watchlist failure propagates.
 import { describe, expect, test } from "vitest";
+import { z } from "zod";
 import type { Pool } from "pg";
 import type { ToolCtx } from "@/mcp/types";
 import { tool } from "@/mcp/tools/market_overview";
@@ -35,8 +36,9 @@ const happyCtx = () =>
     throw new Error(`unexpected ${path}`);
   });
 
-// eslint-disable-next-line @typescript-eslint/no-explicit-any
-const call = (ctx: ToolCtx) => tool.handler({}, ctx) as Promise<any>;
+const call = (ctx: ToolCtx, args: Record<string, unknown> = {}) =>
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  tool.handler(args as never, ctx) as Promise<any>;
 
 describe("market_overview", () => {
   test("shape: columnar fields plus chains, scheduler lag, and queue", async () => {
@@ -123,5 +125,32 @@ describe("market_overview", () => {
         }).ctx,
       ),
     ).rejects.toThrow("watchlist boom");
+  });
+
+  test("columns keeps ticker first and only the requested columns", async () => {
+    const full = await call(happyCtx().ctx);
+    const res = await call(happyCtx().ctx, { columns: ["returns", "spot"] });
+    expect(res.columns).toEqual(["ticker", "spot", "returns"]);
+    expect(res.rows).toEqual(
+      full.rows.map((r: unknown[]) => [r[0], r[6], r[14]]),
+    );
+    expect(res.chains).toEqual(chainsFixture.chains);
+  });
+
+  test("tickers filters rows (upper-cased) in landing-page order", async () => {
+    const full = await call(happyCtx().ctx);
+    const res = await call(happyCtx().ctx, { tickers: ["nvda", "spy"] });
+    const want = full.rows.filter((r: unknown[]) =>
+      ["NVDA", "SPY"].includes(r[0] as string),
+    );
+    expect(want).toHaveLength(2);
+    expect(res.rows).toEqual(want);
+    expect(res.columns).toEqual(full.columns);
+  });
+
+  test("schema rejects an unknown column", () => {
+    const schema = z.object(tool.inputSchema);
+    expect(schema.safeParse({ columns: ["bogus"] }).success).toBe(false);
+    expect(schema.safeParse({ columns: ["spot"], tickers: ["SPY"] }).success).toBe(true);
   });
 });

@@ -169,8 +169,9 @@ def test_emit_on_change_recovers_a_missed_transition(seeded_db_empty_cards):
         conn,
         snapshot_prev="B",
         snapshot_prev_at=snapshot_prev_at,
+        snapshot_prev_payload={"data_date": "2026-06-11", "score": 55.0, "x": None},
         new="C",
-        payload={},
+        payload={"data_date": "2026-06-12", "score": 61.0},
         **kw,
     )
     conn.commit()
@@ -181,9 +182,17 @@ def test_emit_on_change_recovers_a_missed_transition(seeded_db_empty_cards):
             (ids,),
         )
         payloads = [r[0] for r in cur.fetchall()]
+    # The recovered step carries the PREV row's context (None keys dropped);
+    # the normal event carries its own, unchanged.
     assert payloads == [
-        {"from": "A", "to": "B", "recovered": True},
-        {"from": "B", "to": "C"},
+        {
+            "data_date": "2026-06-11",
+            "score": 55.0,
+            "from": "A",
+            "to": "B",
+            "recovered": True,
+        },
+        {"data_date": "2026-06-12", "score": 61.0, "from": "B", "to": "C"},
     ]
 
 

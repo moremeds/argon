@@ -267,4 +267,64 @@ describe("ticker_snapshot", () => {
     ).toBe(false);
     expect(schema.safeParse({ ticker: "brk.b" }).success).toBe(true);
   });
+
+  it("omitted sections = full key set in canonical order", async () => {
+    const tool = await loadTool();
+    const out = (await tool.handler({ ticker: "SPY" }, makeCtx().ctx)) as Snap;
+    expect(Object.keys(out)).toEqual([
+      "ticker",
+      "technicals",
+      "chain_flow",
+      "term_move",
+      "flow_timeline",
+      "gamma_bar",
+      "charm",
+      "vanna",
+      "cockpit",
+    ]);
+  });
+
+  it("sections returns only those keys and skips the other fetches", async () => {
+    const tool = await loadTool();
+    const { ctx, calls } = makeCtx();
+    const out = (await tool.handler(
+      { ticker: "SPY", sections: ["term_move", "chain_flow"] },
+      ctx,
+    )) as Snap;
+    // Canonical order, not request order.
+    expect(Object.keys(out)).toEqual(["ticker", "chain_flow", "term_move"]);
+    expect(out.chain_flow).not.toHaveProperty("error");
+    expect(Object.keys(calls)).toEqual(["/stock/SPY/trade-insights/preview"]);
+  });
+
+  it("sections: [cockpit] fetches only cockpit; non-cockpit ticker → null, zero GETs", async () => {
+    const tool = await loadTool();
+    const spy = makeCtx();
+    const out = (await tool.handler(
+      { ticker: "SPY", sections: ["cockpit"] },
+      spy.ctx,
+    )) as Snap;
+    expect(Object.keys(out)).toEqual(["ticker", "cockpit"]);
+    expect(out.cockpit).not.toHaveProperty("error");
+    expect(Object.keys(spy.calls).sort()).toEqual([
+      "/cockpit/SPY/dealer",
+      "/cockpit/SPY/state",
+      "/cockpit/SPY/vrp",
+    ]);
+    const aapl = makeCtx();
+    const out2 = (await tool.handler(
+      { ticker: "AAPL", sections: ["cockpit"] },
+      aapl.ctx,
+    )) as Snap;
+    expect(out2).toEqual({ ticker: "AAPL", cockpit: null });
+    expect(aapl.calls).toEqual({});
+  });
+
+  it("schema rejects an unknown or empty sections list", async () => {
+    const tool = await loadTool();
+    const schema = z.object(tool.inputSchema);
+    expect(schema.safeParse({ ticker: "SPY", sections: ["bogus"] }).success).toBe(false);
+    expect(schema.safeParse({ ticker: "SPY", sections: [] }).success).toBe(false);
+    expect(schema.safeParse({ ticker: "SPY", sections: ["vanna"] }).success).toBe(true);
+  });
 });

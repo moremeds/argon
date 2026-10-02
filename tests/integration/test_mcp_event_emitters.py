@@ -307,14 +307,31 @@ def test_cri_eod_emit_failure_recovers_the_missed_step(
     # HIGH snapshot commits; the emit dies → still just the seeded event.
     assert cri_scanner.run(repo.conn, schema=repo._schema) is not None
     assert len(_events(repo.conn)) == 1
+    # The HIGH row's own context — what the recovered step must carry.
+    with repo.conn.cursor() as cur:
+        cur.execute(
+            "SELECT data_date, (payload->'cri'->>'score')::float8"
+            "  FROM uw_scan.cri_snapshots WHERE basis = 'eod'"
+            " ORDER BY scanned_at DESC LIMIT 1"
+        )
+        high_date, high_score = cur.fetchone()
+    repo.conn.commit()
 
     # snapshot_prev=HIGH sits ahead of anchor=LOW → missed step first, then
     # the current transition.
     assert cri_scanner.run(repo.conn, schema=repo._schema) is not None
     events = _events(repo.conn)
     assert len(events) == 3
-    assert events[1][3] == {"from": "LOW", "to": "HIGH", "recovered": True}
+    assert events[1][3] == {
+        "data_date": high_date.isoformat(),
+        "score": high_score,
+        "from": "LOW",
+        "to": "HIGH",
+        "recovered": True,
+    }
     assert events[2][0:3] == ("cri_regime", "CRI", "eod")
+    # The normal event keeps its own shape: this scan's context, no flag.
+    assert set(events[2][3]) == {"data_date", "score", "from", "to"}
     assert events[2][3]["from"] == "HIGH"
     assert events[2][3]["to"] == "LOW"
 
@@ -856,6 +873,8 @@ def test_vrp_eod_emit_failure_recovers_the_missed_step(
     # The TRADE upsert commits; the emit dies → still just the seeded event.
     assert vrp_macro_signal_refresh(**run_kw)["persisted"] == 1
     assert len(_events(repo.conn)) == 1
+    trade_row = repo.fetch_latest_vrp_macro_signals(["SPX"], basis="eod")[0]
+    repo.conn.commit()
 
     # snapshot_prev=TRADE sits ahead of anchor=SKIP → missed step first,
     # then the current transition.
@@ -863,8 +882,16 @@ def test_vrp_eod_emit_failure_recovers_the_missed_step(
     events = _events(repo.conn)
     assert len(events) == 3
     assert events[1][0:3] == ("vrp_macro_signal", "SPX", "eod")
-    assert events[1][3] == {"from": "SKIP", "to": "TRADE", "recovered": True}
+    assert events[1][3] == {
+        "as_of": trade_row["as_of"].isoformat(),
+        "vrp_z": float(trade_row["vrp_z"]),
+        "weight": float(trade_row["weight"]),
+        "from": "SKIP",
+        "to": "TRADE",
+        "recovered": True,
+    }
     assert events[2][0:3] == ("vrp_macro_signal", "SPX", "eod")
+    assert set(events[2][3]) == {"as_of", "vrp_z", "weight", "from", "to"}
     assert events[2][3]["from"] == "TRADE"
     assert events[2][3]["to"] == "SKIP"
 

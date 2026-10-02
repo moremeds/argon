@@ -1,4 +1,5 @@
-import type { AnyMcpTool, Columnar, ToolCtx } from "../types";
+import { z } from "zod";
+import type { Columnar, McpTool, ToolCtx } from "../types";
 import type { components } from "@/lib/types";
 import { orderCards } from "@/lib/watchlist/cardOrder";
 
@@ -40,7 +41,20 @@ async function fetchChains(ctx: ToolCtx) {
   }
 }
 
-export const tool: AnyMcpTool = {
+const inputSchema = {
+  columns: z
+    .array(z.enum(COLUMNS))
+    .min(1)
+    .optional()
+    .describe("Return only these columns (ticker is always kept). Omit for all."),
+  tickers: z
+    .array(z.string().min(1))
+    .min(1)
+    .optional()
+    .describe("Return only these tickers (upper-cased); landing-page order is kept."),
+};
+
+export const tool: McpTool<typeof inputSchema> = {
   name: "market_overview",
   description:
     "Watchlist card grid for the landing page. Columns: ticker, sector, " +
@@ -50,17 +64,28 @@ export const tool: AnyMcpTool = {
     "values, and the row order equals the landing page's grid order " +
     "(pinned first, then size within each sector; priority sectors first). " +
     "Also returns the filter-rail chains, scheduler_lag_seconds, and the " +
-    "scan queue summary.",
-  inputSchema: {},
-  handler: async (_args, ctx) => {
+    "scan queue summary. Full response is ~95 KB for ~170 tickers; pass " +
+    "`columns` (ticker is always kept; a one-column call is 6-13 KB, except " +
+    "gamma ~32 KB and positioning ~22 KB) and/or `tickers` to narrow it.",
+  inputSchema,
+  handler: async (args, ctx) => {
     // Same split as lib/dashboardData.ts: the rail is chrome, the grid is the
     // page — a chains failure degrades to chains: [] + chains_error, while a
     // watchlist failure propagates as the tool error.
     const chainsP = fetchChains(ctx);
     const data = (await ctx.apiGet("/watchlist")) as WatchlistResponse;
 
-    const ordered = orderCards(data.tickers ?? []);
-    const rows = ordered.map(({ card, group }) => [
+    const only = args.tickers
+      ? new Set(args.tickers.map((t) => t.trim().toUpperCase()))
+      : null;
+    const ordered = orderCards(data.tickers ?? []).filter(
+      ({ card }) => !only || only.has(card.ticker),
+    );
+    const columns = args.columns
+      ? COLUMNS.filter((c) => c === "ticker" || args.columns!.includes(c))
+      : [...COLUMNS];
+    const keep = columns.map((c) => COLUMNS.indexOf(c));
+    const fullRows = ordered.map(({ card, group }) => [
       card.ticker,
       card.sector,
       group,
@@ -80,6 +105,7 @@ export const tool: AnyMcpTool = {
       card.skew,
       card.positioning,
     ]);
+    const rows = args.columns ? fullRows.map((r) => keep.map((i) => r[i])) : fullRows;
 
     const live = ordered.reduce<string | null>(
       (m, { card }) =>
@@ -97,7 +123,7 @@ export const tool: AnyMcpTool = {
       chains_error?: string;
     } = {
       as_of: { eod: data.scanned_at_max ?? null, live },
-      columns: [...COLUMNS],
+      columns,
       rows,
       ...(await chainsP),
       scheduler_lag_seconds: data.scheduler_lag_seconds ?? null,
