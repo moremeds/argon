@@ -9,11 +9,9 @@ side-effecting GET without denylisting it fails this test.
 
 from __future__ import annotations
 
-import inspect
 import re
 from pathlib import Path
 
-from fastapi import BackgroundTasks
 from fastapi.routing import APIRoute
 
 from uw_scan.api.server import create_app
@@ -45,10 +43,18 @@ def _side_effecting_get_paths() -> set[str]:
     for route in app.routes:
         if not isinstance(route, APIRoute) or "GET" not in route.methods:
             continue
-        params = inspect.signature(route.endpoint).parameters.values()
-        if any(p.annotation is BackgroundTasks for p in params):
+        # FastAPI's resolved dependant, not inspect.signature: every router uses
+        # `from __future__ import annotations`, so a raw signature carries the
+        # STRING "BackgroundTasks" and an identity check never matches.
+        if route.dependant.background_tasks_param_name:
             out.add(route.path.removeprefix("/api"))
     return out
+
+
+def test_detector_finds_known_background_task_get() -> None:
+    """Keeps the guard below from passing vacuously: the detector must see the
+    one GET known to schedule a background task (UW backfill)."""
+    assert "/stock/{ticker}/volatility/series" in _side_effecting_get_paths()
 
 
 def test_side_effecting_gets_are_denylisted() -> None:
