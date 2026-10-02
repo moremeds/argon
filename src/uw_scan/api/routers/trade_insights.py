@@ -90,10 +90,12 @@ def _build_blast_macro_payload(repo: Repository) -> dict[str, Any] | None:
 def _build_trade_insights(
     ticker: str,
     repo: Repository,
-) -> tuple[TradeInsightsResponse, dict[str, Any]]:
+) -> tuple[TradeInsightsResponse, dict[str, Any], int]:
     """404 + assemble, no persistence — the read-only half of
-    ``_build_and_persist_trade_insights``. Returns the response and its JSON
-    payload so callers that do persist reuse the exact bytes."""
+    ``_build_and_persist_trade_insights``. Returns the response, its JSON
+    payload and the run_id it was assembled from so the persisting caller
+    stores the snapshot under exactly that run (a second latest_run_id read
+    could race a concurrently-committed full_scan under READ COMMITTED)."""
     run_id = repo.latest_run_id(ticker)
     if run_id == 0:
         raise HTTPException(status_code=404, detail=f"no runs for {ticker}")
@@ -106,17 +108,14 @@ def _build_trade_insights(
         as_of=report.generated_at,
         spot=report.market_structure.spot,
     )
-    return response, response.model_dump(mode="json")
+    return response, response.model_dump(mode="json"), run_id
 
 
 def _build_and_persist_trade_insights(
     ticker: str,
     repo: Repository,
 ) -> tuple[TradeInsightsResponse, int, str]:
-    response, payload = _build_trade_insights(ticker, repo)
-    # _build_trade_insights already 404'd, so the run exists; re-read the id
-    # inside the same transaction (identical value) to feed the upserts.
-    run_id = repo.latest_run_id(ticker)
+    response, payload, run_id = _build_trade_insights(ticker, repo)
     input_hash = _stable_payload_hash(payload)
     snapshot_id = repo.upsert_trade_insight_snapshot(
         run_id=run_id,
@@ -254,7 +253,7 @@ def get_trade_insights_preview(
     same assembled body, but never upserts a snapshot, never replaces
     candidates, never commits."""
     t = ticker.upper()
-    response, _payload = _build_trade_insights(t, repo)
+    response, _payload, _run_id = _build_trade_insights(t, repo)
     return response
 
 
