@@ -1,7 +1,7 @@
 # Agent MCP — operator runbook
 
 Remote, read-only MCP server for cloud agents (Grok, OpenAI) and local agents.
-One public endpoint — `https://mcp.rsiarc.com/mcp` — fronted by a Cloudflare
+One public endpoint — `https://argon-mcp.rsiarc.com/mcp` — fronted by a Cloudflare
 named tunnel. Everything else (web :3001, api :8400) stays off the internet.
 
 Surface: 7 tools (`list_endpoints`, `read`, `technicals_scan`,
@@ -14,7 +14,7 @@ event stream (`GET /mcp` with `Accept: text/event-stream`).
    (e.g. `argon-mcp`).
 2. Copy the **tunnel token** Cloudflare shows — it is the only credential the
    connector needs (cert.pem is not used with token mode).
-3. Public hostname → **Add**: subdomain `mcp`, domain `rsiarc.com` → service
+3. Public hostname → **Add**: subdomain `argon-mcp`, domain `rsiarc.com` → service
    type **HTTP**, URL `mcp:8500` (the compose service name + port — the tunnel
    runs on the compose network). Save.
 
@@ -36,6 +36,9 @@ cat >> /opt/argon/cloudflared.env <<'EOF'
 TUNNEL_TOKEN=<token from step 1>
 EOF
 ```
+
+The key must be exactly `TUNNEL_TOKEN` — cloudflared reads no other name, and a
+different key leaves the tunnel `Inactive` in the dashboard.
 
 Do NOT put either var in `/opt/argon/.env` — the other services already have
 their own env and the mcp pair deliberately does not read it.
@@ -95,7 +98,7 @@ The role is `LOGIN`, SELECT-only on `uw_scan` (existing + future tables via
 
 ```
 cd /opt/argon
-docker-compose up -d mcp cloudflared
+docker-compose -f compose.yml up -d mcp cloudflared   # also recreates api if its config drifted (~30 s)
 docker-compose ps            # mcp healthy, cloudflared running
 curl -s http://127.0.0.1:8500/healthz   # {"ok":true} on the mini itself
 ```
@@ -119,7 +122,7 @@ receiving events and is closed on the next event).
 
 Every agent gets the same URL + its own bearer token:
 
-- URL: `https://mcp.rsiarc.com/mcp`
+- URL: `https://argon-mcp.rsiarc.com/mcp`
 - Header: `Authorization: Bearer <token from step 5>`
 
 Grok / OpenAI "custom MCP connector" UI: paste the URL, add the Authorization

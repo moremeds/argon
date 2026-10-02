@@ -132,7 +132,7 @@ services:
   # Agent MCP — read-only remote interface for cloud/local agents. Same image
   # as web (mcp-server.mjs is the esbuild bundle next to server.js); NOT the
   # Next server. Loopback-only publish — the single public path is the
-  # cloudflared named tunnel below → https://mcp.rsiarc.com/mcp.
+  # cloudflared named tunnel below → https://argon-mcp.rsiarc.com/mcp.
   # Auth/connect/tunnel steps: docs/runbooks/agent-mcp.md.
   mcp:
     image: ghcr.io/moremeds/argon-web:latest
@@ -170,7 +170,7 @@ services:
 
   # Cloudflare named tunnel — the ONLY public ingress for the MCP server
   # (web/api stay off the internet). Dashboard route: public hostname
-  # mcp.rsiarc.com → http://mcp:8500. Its own env file holds ONLY TUNNEL_TOKEN
+  # argon-mcp.rsiarc.com → http://mcp:8500. Its own env file holds ONLY TUNNEL_TOKEN
   # — the connector doesn't need the argon_mcp DSN and must not carry it.
   # Tag pinned — bump deliberately, --no-autoupdate keeps self-upgrades off.
   cloudflared:
