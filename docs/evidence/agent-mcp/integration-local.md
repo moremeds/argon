@@ -1,19 +1,20 @@
-# Agent MCP — integrated local verification (A + B + C, after review fixes)
+# Agent MCP — integrated local verification (A + B + C, after review rounds 1–3)
 
-Branch `feat/agent-mcp` @ `187b02ce`, 2026-10-02, MacBook. Includes the fixes for
-Codex Astra review rounds 1 (A+C) and 2 (B): A task 7 `37f05b33`, task 8
-`c0105a20` + `16299b45`, B `46c70c8a` + `ed638a8e`.
+Branch `feat/agent-mcp` @ `c4140efa`, 2026-10-02, MacBook. Includes the fixes for
+Codex Astra rounds 1 (A+C) and 2 (B) and the joint Astra + Claude Fable round 3:
+A `37f05b33`, `c0105a20`, `16299b45`, `f4223bfa`, `4eabad28`; B `46c70c8a`,
+`ed638a8e`, `ac8ddde6`; C `d6bafba5`.
 
 ## CI-equivalent gates
 
 | Gate        | Command                                                                                                        | Result                 |
 | ----------- | -------------------------------------------------------------------------------------------------------------- | ---------------------- |
 | ruff        | `uv run ruff check src/ tests/ scripts/`                                                                       | exit 0                 |
-| unit        | `uv run pytest tests/unit -q`                                                                                  | 2939 passed            |
-| integration | `UW_SCAN_DB_USER=chenxi UW_SCAN_TEST_DB_NAME=option_wizard_test_integ uv run pytest tests/integration -q -n 4` | 1729 passed, 9 skipped |
+| unit        | `uv run pytest tests/unit -q`                                                                                  | 2941 passed            |
+| integration | `UW_SCAN_DB_USER=chenxi UW_SCAN_TEST_DB_NAME=option_wizard_test_integ uv run pytest tests/integration -q -n 4` | 1735 passed, 9 skipped |
 | typecheck   | `npm run typecheck`                                                                                            | exit 0                 |
 | lint        | `npm run lint`                                                                                                 | exit 0                 |
-| vitest      | `npx vitest run`                                                                                               | 188 files, 1498 passed |
+| vitest      | `npx vitest run`                                                                                               | 188 files, 1507 passed |
 | bundle      | `npm run build:mcp`                                                                                            | exit 0                 |
 | image       | `docker build -f docker/web.Dockerfile .`                                                                      | exit 0                 |
 | e2e (CI)    | `npm run test:e2e:technicals`                                                                                  | 7 passed               |
@@ -30,7 +31,7 @@ no token                           401
 bad token                          401
 initialize                         200 server=argon-mcp
 tools/list                         list_endpoints,read,technicals_scan,ticker_snapshot,regime_state,market_overview,get_events
-list_endpoints                     111 GET; trade-insights listed=false preview listed=true
+list_endpoints                     110 GET; trade-insights listed=false preview listed=true
 read /health, /watchlist           ok
 read "/nope/x"                     ERROR not an allowlisted GET endpoint
 read "/stock/%2e%2e/health"        ERROR invalid path
@@ -40,31 +41,35 @@ read "/stock/..\\health"           ERROR invalid path
 read "/stock/AAPL?x=1"             ERROR invalid path
 read "/stock/AAPL#f"               ERROR invalid path
 read "/stock/AAPL/trade-insights"  ERROR not an allowlisted GET endpoint
+read volatility/series             ERROR not an allowlisted GET endpoint (BackgroundTasks backfill)
+read template ticker=^VIX          reaches API as /stock/%5EVIX (404: no local data)
+read template ticker=..            ERROR invalid value for path param 'ticker'
+read path=42 (schema-invalid)      ERROR input validation (and access-logged)
 read preview AAPL                  ok
 technicals_scan AAPL,NVDA,SPY      ok
 ticker_snapshot AAPL / NVDA / SPY  ok
-trade_insight_snapshots rows       before=83755 after=83755
+trade_insight_snapshots rows       before=83761 after=83761
 ticker_snapshot ../health          ERROR input validation (ticker pattern)
 technicals_scan ../health          ERROR input validation (ticker pattern)
 regime_state                       ok
 market_overview                    ok
+technicals_scan * markers (AAPL)   hve_markers=9 low_vol_markers=270 vp_lvn=5 vp_zones=5
 SSE open                           200
 SSE got event                      true
-get_events #2                      {"events":[],"cursor":"10","more":false}
+2nd SSE on same session            409
+get_events #2                      {"events":[],"cursor":"24","more":false}
 12 SSE streams open                200 x12
 argon_mcp backends                 2          (one shared LISTEN client + one query)
-tools/list under 12 streams        200 in 5ms
+tools/list under 12 streams        200 in 3ms
 fan-out to all 12                  12
 SSE got event after revoke         false
 SSE stream ended after revoke      true
 after revoke, same sid             401
-access_log rows (one token)        error:8 ok:12
+access_log rows (one token)        error:14 ok:13   (= every call, incl. 3 schema-invalid)
 ```
 
 Writes as `argon_mcp` (psql): `permission denied` on `watchlist`, `mcp_token`,
-`mcp_access_log` (DELETE), `mcp_event`, `trade_insight_snapshots`. Schema-invalid
-tool calls are rejected by the SDK before the logging wrapper and leave no
-access-log row (accepted; they reach no data).
+`mcp_access_log` (DELETE), `mcp_event`, `trade_insight_snapshots`.
 
 ## UI components (old vs new render)
 
@@ -78,8 +83,8 @@ ages and clock times masked:
   skew, flow, fundamentals, trade-insights, trade-plan)
 - clicked sub-tabs: technicals → magnet, market-structure → charm, vanna
 
-36 views, all identical, zero page errors on either build. Report:
-`output/playwright/mcp-ui-diff/report*.json` (local).
+48 views, all identical, zero page errors on either build. Report:
+`output/playwright/mcp-ui-diff/report2.json` (local).
 
 Parity (`web/scripts/mcp-parity.ts`, API :8401, web :3092, AAPL NVDA SPY): exit 0,
 `vpMatch: true` for all three.
