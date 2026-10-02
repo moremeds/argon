@@ -8,10 +8,12 @@
 //   GET  /healthz
 //
 // Auth: Authorization: Bearer <token> → sha256 hex → mcp_token lookup
-// (revoked_at IS NULL), cached 60 s. Every tool call writes one
-// mcp_access_log row. apiGet is the only HTTP call this module makes and it is
-// GET-only — there is no other verb, so the read-only guarantee is auditable
-// by reading this file.
+// (revoked_at IS NULL), one lookup per request so revocation is immediate.
+// Every tool call writes one mcp_access_log row. apiGet is the only HTTP call
+// this module makes and it is GET-only — there is no other verb, so the
+// read-only guarantee is auditable by reading this file.
+// Sessions idle > SESSION_IDLE_MS with no live SSE stream are closed by an
+// unref'd sweeper — cloud agents open a session per run and rarely DELETE.
 import { createHash, randomUUID } from "node:crypto";
 import { createServer, type IncomingMessage, type ServerResponse } from "node:http";
 import { pathToFileURL } from "node:url";
@@ -27,7 +29,8 @@ import type { McpTool, ToolCtx } from "./types";
 
 const MCP_PATH = "/mcp";
 const HEALTHZ_PATH = "/healthz";
-const AUTH_CACHE_TTL_MS = 60_000;
+const SESSION_IDLE_MS = 30 * 60_000;
+const SESSION_SWEEP_MS = 60_000;
 const SSE_KEEPALIVE_MS = 30_000; // Cloudflare drops idle tunnels at ~125 s
 const MAX_BODY_BYTES = 1_048_576;
 // JSON-RPC method pushed over the standalone SSE stream by send().
@@ -50,40 +53,19 @@ export function tokenHash(token: string): string {
   return createHash("sha256").update(token).digest("hex");
 }
 
-export type TokenLookup = (hash: string) => Promise<string | null>;
+export type LabelForToken = (token: string) => Promise<string | null>;
 
-/** sha256 → label for active tokens; null for unknown/revoked. */
-export function makeTokenLookup(pool: pg.Pool): TokenLookup {
-  return async (hash) => {
+/** sha256 → label for active tokens; null for unknown/revoked. Called once per
+ *  request — revocation takes effect on the next request, not within a cache
+ *  window. */
+export function makeLabelForToken(pool: pg.Pool): LabelForToken {
+  return async (token) => {
     const r = await pool.query<{ label: string }>(
       "SELECT label FROM uw_scan.mcp_token WHERE token_hash = $1 AND revoked_at IS NULL",
-      [hash],
+      [tokenHash(token)],
     );
     return r.rows[0]?.label ?? null;
   };
-}
-
-/**
- * Positive-only 60 s cache: a minted token stops hitting the DB; a revoked one
- * can linger until expiry (spec accepts this) and is never re-cached.
- */
-export class TokenAuthCache {
-  constructor(
-    private readonly lookup: TokenLookup,
-    private readonly ttlMs: number = AUTH_CACHE_TTL_MS,
-    private readonly now: () => number = Date.now,
-  ) {}
-
-  private cache = new Map<string, { label: string; expiresAt: number }>();
-
-  async labelForToken(token: string): Promise<string | null> {
-    const hash = tokenHash(token);
-    const hit = this.cache.get(hash);
-    if (hit && hit.expiresAt > this.now()) return hit.label;
-    const label = await this.lookup(hash);
-    if (label) this.cache.set(hash, { label, expiresAt: this.now() + this.ttlMs });
-    return label;
-  }
 }
 
 // ---------------------------------------------------------------------------
@@ -195,17 +177,68 @@ export function buildMcpServer(ctx: ToolCtx, log: AccessLogSink): McpServer {
   return server;
 }
 
-type Session = {
+export type Session = {
   transport: StreamableHTTPServerTransport;
   server: McpServer;
   ctx: ToolCtx;
   label: string;
+  lastSeen: number;
+  /** A live standalone SSE stream keeps its session alive past the idle limit. */
+  sseOpen: boolean;
 };
+
+export class SessionStore {
+  constructor(
+    private readonly now: () => number = Date.now,
+    private readonly idleMs: number = SESSION_IDLE_MS,
+  ) {}
+
+  private sessions = new Map<string, Session>();
+
+  get(id: string): Session | undefined {
+    return this.sessions.get(id);
+  }
+
+  set(id: string, session: Session): void {
+    this.sessions.set(id, session);
+  }
+
+  touch(id: string): void {
+    const s = this.sessions.get(id);
+    if (s) s.lastSeen = this.now();
+  }
+
+  delete(id: string): void {
+    this.sessions.delete(id);
+  }
+
+  get size(): number {
+    return this.sessions.size;
+  }
+
+  /** Close + drop every session idle past idleMs; live SSE streams exempt. */
+  sweep(): void {
+    const t = this.now();
+    for (const [sid, s] of this.sessions) {
+      if (s.sseOpen || t - s.lastSeen <= this.idleMs) continue;
+      this.sessions.delete(sid);
+      void s.transport
+        .close()
+        .catch((err) => console.error(`session ${sid} close failed`, err));
+    }
+  }
+}
 
 export type HandlerDeps = {
   pool: pg.Pool;
-  auth: TokenAuthCache;
+  labelForToken: LabelForToken;
   apiGet: ToolCtx["apiGet"];
+};
+
+export type HandlerOptions = {
+  now?: () => number;
+  sessionIdleMs?: number;
+  sessionSweepMs?: number;
 };
 
 function writeJson(res: ServerResponse, status: number, body: unknown): void {
@@ -230,8 +263,14 @@ function isInitialize(body: unknown): boolean {
   return msgs.some((m) => isInitializeRequest(m));
 }
 
-export function makeRequestHandler(deps: HandlerDeps) {
-  const sessions = new Map<string, Session>();
+export function makeRequestHandler(deps: HandlerDeps, opts: HandlerOptions = {}) {
+  const now = opts.now ?? Date.now;
+  const store = new SessionStore(now, opts.sessionIdleMs ?? SESSION_IDLE_MS);
+  const sweeper = setInterval(
+    () => store.sweep(),
+    opts.sessionSweepMs ?? SESSION_SWEEP_MS,
+  );
+  sweeper.unref(); // never keep the process alive for cleanup work
 
   return async (req: IncomingMessage, res: ServerResponse): Promise<void> => {
     try {
@@ -245,7 +284,7 @@ export function makeRequestHandler(deps: HandlerDeps) {
         return;
       }
       const token = parseBearer(req);
-      const label = token ? await deps.auth.labelForToken(token) : null;
+      const label = token ? await deps.labelForToken(token) : null;
       if (!label) {
         res.writeHead(401, {
           "Content-Type": "application/json",
@@ -256,7 +295,7 @@ export function makeRequestHandler(deps: HandlerDeps) {
       }
 
       const sessionId = req.headers["mcp-session-id"] as string | undefined;
-      const session = sessionId ? sessions.get(sessionId) : undefined;
+      const session = sessionId ? store.get(sessionId) : undefined;
       if (sessionId && !session) {
         writeJson(res, 404, { error: "unknown session" });
         return;
@@ -265,6 +304,7 @@ export function makeRequestHandler(deps: HandlerDeps) {
         writeJson(res, 403, { error: "session belongs to a different token" });
         return;
       }
+      if (sessionId) store.touch(sessionId);
 
       if (req.method === "POST") {
         const body = await readJsonBody(req);
@@ -282,12 +322,19 @@ export function makeRequestHandler(deps: HandlerDeps) {
         const transport = new StreamableHTTPServerTransport({
           sessionIdGenerator: () => randomUUID(),
           onsessioninitialized: (sid) => {
-            sessions.set(sid, record);
+            store.set(sid, record);
           },
         });
-        const record: Session = { transport, server, ctx, label };
+        const record: Session = {
+          transport,
+          server,
+          ctx,
+          label,
+          lastSeen: now(),
+          sseOpen: false,
+        };
         transport.onclose = () => {
-          if (transport.sessionId) sessions.delete(transport.sessionId);
+          if (transport.sessionId) store.delete(transport.sessionId);
         };
         await server.connect(transport);
         await transport.handleRequest(req, res, body);
@@ -321,7 +368,10 @@ export function makeRequestHandler(deps: HandlerDeps) {
             clearInterval(keepalive);
           }
         }, SSE_KEEPALIVE_MS);
+        session.sseOpen = true; // a live stream exempts the session from sweeps
         res.on("close", () => {
+          session.sseOpen = false;
+          session.lastSeen = now(); // dead-socket sessions become sweepable from now
           clearInterval(keepalive);
           unsubscribe?.();
         });
@@ -361,7 +411,7 @@ export async function main(): Promise<void> {
   const pool = new pg.Pool({ connectionString: databaseUrl });
   const handler = makeRequestHandler({
     pool,
-    auth: new TokenAuthCache(makeTokenLookup(pool)),
+    labelForToken: makeLabelForToken(pool),
     apiGet: makeApiGet(apiBase),
   });
   const http = createServer(handler);

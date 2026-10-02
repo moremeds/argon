@@ -1,15 +1,19 @@
 import { createHash } from "node:crypto";
-import type { IncomingMessage } from "node:http";
+import { createServer, type IncomingMessage } from "node:http";
+import type { AddressInfo } from "node:net";
 
-import { describe, expect, it, vi } from "vitest";
+import { afterEach, describe, expect, it, vi } from "vitest";
 
 import {
   makeApiGet,
+  makeLabelForToken,
+  makeRequestHandler,
   parseBearer,
-  TokenAuthCache,
+  SessionStore,
   tokenHash,
   wrapToolHandler,
   type AccessLogEntry,
+  type Session,
 } from "@/mcp/server";
 import type { McpTool, ToolCtx } from "@/mcp/types";
 
@@ -43,33 +47,122 @@ describe("tokenHash", () => {
   });
 });
 
-describe("TokenAuthCache", () => {
-  it("resolves the label once and serves the second call from cache", async () => {
-    const lookup = vi.fn().mockResolvedValue("grok");
-    const auth = new TokenAuthCache(lookup);
-    expect(await auth.labelForToken("t1")).toBe("grok");
-    expect(await auth.labelForToken("t1")).toBe("grok");
-    expect(lookup).toHaveBeenCalledTimes(1);
-    expect(lookup).toHaveBeenCalledWith(tokenHash("t1"));
+describe("makeLabelForToken", () => {
+  it("queries sha256 vs mcp_token and returns the label or null", async () => {
+    const query = vi
+      .fn()
+      .mockResolvedValueOnce({ rows: [{ label: "grok" }] })
+      .mockResolvedValueOnce({ rows: [] });
+    const labelFor = makeLabelForToken({ query } as never);
+    await expect(labelFor("good")).resolves.toBe("grok");
+    expect(query).toHaveBeenCalledWith(expect.stringContaining("revoked_at IS NULL"), [
+      tokenHash("good"),
+    ]);
+    await expect(labelFor("bad")).resolves.toBeNull();
   });
-  it("re-queries after the 60 s ttl", async () => {
-    const lookup = vi.fn().mockResolvedValue("grok");
-    let now = 1_000;
-    const auth = new TokenAuthCache(lookup, 60_000, () => now);
-    await auth.labelForToken("t1");
-    now += 59_999;
-    await auth.labelForToken("t1");
-    expect(lookup).toHaveBeenCalledTimes(1);
-    now += 2;
-    await auth.labelForToken("t1");
-    expect(lookup).toHaveBeenCalledTimes(2);
+});
+
+describe("revocation is immediate (no auth cache)", () => {
+  let server: ReturnType<typeof createServer> | undefined;
+  afterEach(async () => {
+    await new Promise((r) => server?.close(r));
+    server = undefined;
   });
-  it("returns null for unknown/revoked tokens and never caches them", async () => {
-    const lookup = vi.fn().mockResolvedValue(null);
-    const auth = new TokenAuthCache(lookup);
-    expect(await auth.labelForToken("bad")).toBeNull();
-    expect(await auth.labelForToken("bad")).toBeNull();
-    expect(lookup).toHaveBeenCalledTimes(2);
+
+  const initBody = JSON.stringify({
+    jsonrpc: "2.0",
+    id: 1,
+    method: "initialize",
+    params: {
+      protocolVersion: "2025-03-26",
+      capabilities: {},
+      clientInfo: { name: "t", version: "0" },
+    },
+  });
+  const mcpHeaders = (token: string, sid?: string) => ({
+    "content-type": "application/json",
+    accept: "application/json, text/event-stream",
+    authorization: `Bearer ${token}`,
+    ...(sid ? { "mcp-session-id": sid } : {}),
+  });
+
+  it("valid → revoked → next request 401s, even on a live session", async () => {
+    const valid = new Set(["good-token"]);
+    const handler = makeRequestHandler({
+      pool: { query: vi.fn() } as never,
+      labelForToken: async (t) => (valid.has(t) ? "grok" : null),
+      apiGet: async () => ({}),
+    });
+    server = createServer(handler);
+    await new Promise<void>((r) => server!.listen(0, r));
+    const base = `http://127.0.0.1:${(server.address() as AddressInfo).port}`;
+
+    const init = await fetch(`${base}/mcp`, {
+      method: "POST",
+      headers: mcpHeaders("good-token"),
+      body: initBody,
+    });
+    expect(init.status).toBe(200);
+    const sid = init.headers.get("mcp-session-id")!;
+    expect(sid).toBeTruthy();
+
+    valid.delete("good-token"); // token revoked in mcp_token
+
+    // The next request — on the still-open session — is rejected immediately.
+    const call = await fetch(`${base}/mcp`, {
+      method: "POST",
+      headers: mcpHeaders("good-token", sid),
+      body: JSON.stringify({ jsonrpc: "2.0", id: 2, method: "tools/list" }),
+    });
+    expect(call.status).toBe(401);
+    // And a fresh initialize with the same token is rejected too.
+    const reinit = await fetch(`${base}/mcp`, {
+      method: "POST",
+      headers: mcpHeaders("good-token"),
+      body: initBody,
+    });
+    expect(reinit.status).toBe(401);
+  });
+});
+
+describe("SessionStore.sweep", () => {
+  function fakeSession(lastSeen: number, sseOpen = false) {
+    return {
+      transport: { close: vi.fn(async () => {}), sessionId: "x" },
+      lastSeen,
+      sseOpen,
+    } as unknown as Session;
+  }
+
+  it("closes + drops sessions idle past the limit, keeps live ones", () => {
+    let now = 1_000_000;
+    const store = new SessionStore(() => now, 30 * 60_000);
+    const old = fakeSession(now - 31 * 60_000);
+    const fresh = fakeSession(now - 60_000);
+    const streaming = fakeSession(now - 40 * 60_000, /* sseOpen */ true);
+    store.set("old", old);
+    store.set("fresh", fresh);
+    store.set("streaming", streaming);
+
+    store.sweep();
+
+    expect(old.transport.close).toHaveBeenCalledOnce();
+    expect(store.get("old")).toBeUndefined();
+    expect(store.get("fresh")).toBe(fresh);
+    expect(store.get("streaming")).toBe(streaming); // live SSE exempt
+    expect(fresh.transport.close).not.toHaveBeenCalled();
+    expect(store.size).toBe(2);
+  });
+
+  it("touch() keeps a session alive", () => {
+    let now = 1_000_000;
+    const store = new SessionStore(() => now, 30 * 60_000);
+    const s = fakeSession(now - 29 * 60_000);
+    store.set("s", s);
+    now += 2 * 60_000; // would be 31 min idle without activity
+    store.touch("s");
+    store.sweep();
+    expect(store.get("s")).toBe(s);
   });
 });
 
