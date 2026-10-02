@@ -759,6 +759,38 @@ REGISTRY: list[DatasetRegistryEntry] = [
         expected_frequency="none",
         reason="chain membership, not a time series; added_at is a seed stamp, not a cadence",
     ),
+    # Agent MCP tables (migrations 153/154): auth tokens, an access audit log,
+    # and the agent-facing event stream + replay cursor. All are argon's own
+    # operational records — none is a market-data series, so there is nothing
+    # to backfill or heal.
+    DatasetRegistryEntry(
+        "mcp_token",
+        "operational_provenance",
+        "excluded",
+        expected_frequency="none",
+        reason="bearer-token registry for the agent MCP server; auth state, not a time series",
+    ),
+    DatasetRegistryEntry(
+        "mcp_access_log",
+        "operational_provenance",
+        "excluded",
+        expected_frequency="none",
+        reason="per-call MCP audit log; append-only operational provenance, nothing to backfill/heal",
+    ),
+    DatasetRegistryEntry(
+        "mcp_event",
+        "operational_provenance",
+        "excluded",
+        expected_frequency="none",
+        reason="append-only agent event stream with its own 30-day retention job; not market data",
+    ),
+    DatasetRegistryEntry(
+        "mcp_event_cursor",
+        "operational_provenance",
+        "excluded",
+        expected_frequency="none",
+        reason="per-token replay cursor for get_events; consumer state, not a time series",
+    ),
 ]
 
 
