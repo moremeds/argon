@@ -23,3 +23,12 @@
 | Task | T7: the 5 Astra round-2 findings (ticker validation, vwap-anchor cache key, per-ticker freshness, sma sources, cri tile fields). The lead accepted it with no rejections and committed it as 46c70c8a |
 | Lead-only follow-up | ed638a8e: ticker_snapshot uses `/trade-insights/preview` (the route A added in task 8) |
 | Closed | after T7 acceptance; no outstanding work needs its context |
+
+## Third worker (final-review finding)
+
+| Field | Value |
+| --- | --- |
+| Worker | `argon-b-impl3`, herdr pane `w2:pM` |
+| Model | requested `swe-2-max`; observed "SWE-2 Max". Canonical: SWE. Reviewer: Opus (lead) |
+| Task | T8: expose `hve_markers`, `low_vol_markers`, `vp_lvn` and `vp_zones` under `"*"` (spec line 22; Astra MEDIUM). The compact default is unchanged. The lead accepted it with no rejections |
+| Closed | after T8 acceptance |

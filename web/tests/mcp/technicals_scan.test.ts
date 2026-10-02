@@ -523,4 +523,100 @@ describe("technicals_scan", () => {
     );
     expect(stats.paths).toEqual([]);
   });
+
+  it("(o) fields=* exposes the full marker lists and VP level lists", async () => {
+    const tool = await loadTool();
+    const { ctx } = makeCtx();
+    const out = (await tool.handler(
+      { tickers: TICKERS, fields: ["*"] },
+      ctx,
+    )) as Columnar;
+    for (const f of [
+      "hve_markers",
+      "low_vol_markers",
+      "vp_lvn",
+      "vp_zones",
+    ])
+      expect(out.columns).toContain(f);
+    const byTicker = new Map(out.rows.map((r) => [r[0] as string, r]));
+    const tt = (m: { time: string; text: string }) => ({
+      time: m.time,
+      text: m.text,
+    });
+    for (const t of TICKERS) {
+      const row = byTicker.get(t)!;
+      expect(row[1]).toBeNull();
+      const ov = technicalsOverlays(
+        mergeLiveHead(EOD[t], LIVE[t], Date.now()),
+        "1y",
+      );
+      expect(cell(out, row, "hve_markers")).toEqual(
+        ov.markers.highVol.map(tt),
+      );
+      expect(cell(out, row, "low_vol_markers")).toEqual(
+        ov.markers.lowVol.map(tt),
+      );
+      expect(cell(out, row, "vp_lvn")).toEqual(ov.vp.lvn);
+      expect(cell(out, row, "vp_zones")).toEqual(ov.vp.zones);
+    }
+  });
+
+  it("(p) AAPL marker counts pinned to the fixture's literal sizes", async () => {
+    const tool = await loadTool();
+    const { ctx } = makeCtx();
+    const out = (await tool.handler(
+      { tickers: ["AAPL"], fields: ["hve_markers", "low_vol_markers"] },
+      ctx,
+    )) as Columnar;
+    const row = out.rows[0];
+    expect(row[1]).toBeNull();
+    // Observed on the frozen 2026-09-18 AAPL fixture.
+    expect(cell(out, row, "hve_markers")).toHaveLength(2);
+    expect(cell(out, row, "low_vol_markers")).toHaveLength(108);
+  });
+
+  it("(q) the default column list is exactly the compact set", async () => {
+    const tool = await loadTool();
+    const { ctx } = makeCtx();
+    const out = (await tool.handler({}, ctx)) as Columnar;
+    // Literal copy of DEFAULT_FIELDS — a change to the compact set fails here.
+    expect(out.columns).toEqual([
+      "ticker",
+      "error",
+      "eod_as_of",
+      "live_captured_at",
+      "price",
+      "z",
+      "z_band",
+      "dist_pct",
+      "composite",
+      "rsi14",
+      "rv20",
+      "macd_signal",
+      "kinematics",
+      "alignment",
+      "ema5",
+      "ema20",
+      "ema50",
+      "bb_upper",
+      "bb_lower",
+      "atr_upper",
+      "atr_lower",
+      "vol_ma50",
+      "hve_last",
+      "chanlun_last_point",
+      "chanlun_last_zhongshu",
+      "chanlun_points_n",
+      "vp_poc",
+      "vp_vah",
+      "vp_val",
+      "vp_nearest_s",
+      "vp_nearest_r",
+      "vp_bias",
+      "fvg_n",
+      "fvg_nearest",
+      "ret_skew",
+      "ret_sd",
+    ]);
+  });
 });
