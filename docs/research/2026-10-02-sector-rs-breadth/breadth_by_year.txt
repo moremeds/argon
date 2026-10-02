@@ -1,0 +1,323 @@
+       group_key        | year | non_degraded_share | mean_priced_share |  n  
+------------------------+------+--------------------+-------------------+-----
+ Basic Materials        | 1998 |              0.000 |             0.550 |   7
+ Basic Materials        | 1999 |              0.000 |             0.550 | 252
+ Basic Materials        | 2000 |              0.000 |             0.550 | 252
+ Basic Materials        | 2001 |              0.000 |             0.550 | 248
+ Basic Materials        | 2002 |              0.000 |             0.550 | 252
+ Basic Materials        | 2003 |              0.000 |             0.550 | 252
+ Basic Materials        | 2004 |              0.000 |             0.550 | 251
+ Basic Materials        | 2005 |              0.000 |             0.560 | 252
+ Basic Materials        | 2006 |              0.000 |             0.620 | 251
+ Basic Materials        | 2007 |              0.000 |             0.649 | 250
+ Basic Materials        | 2008 |              0.000 |             0.649 | 253
+ Basic Materials        | 2009 |              0.000 |             0.650 | 252
+ Basic Materials        | 2010 |              0.000 |             0.650 | 252
+ Basic Materials        | 2011 |              0.000 |             0.661 | 252
+ Basic Materials        | 2012 |              0.000 |             0.700 | 250
+ Basic Materials        | 2013 |              0.000 |             0.700 | 252
+ Basic Materials        | 2014 |              0.000 |             0.700 | 252
+ Basic Materials        | 2015 |              0.000 |             0.700 | 252
+ Basic Materials        | 2016 |              0.000 |             0.700 | 252
+ Basic Materials        | 2017 |              0.000 |             0.700 | 251
+ Basic Materials        | 2018 |              0.000 |             0.716 | 251
+ Basic Materials        | 2019 |              0.163 |             0.758 | 252
+ Basic Materials        | 2020 |              1.000 |             0.870 | 253
+ Basic Materials        | 2021 |              1.000 |             0.900 | 252
+ Basic Materials        | 2022 |              1.000 |             0.931 | 251
+ Basic Materials        | 2023 |              1.000 |             0.950 | 250
+ Basic Materials        | 2024 |              1.000 |             0.950 | 252
+ Basic Materials        | 2025 |              1.000 |             0.950 | 250
+ Basic Materials        | 2026 |              1.000 |             0.950 | 187
+ Communication Services | 1998 |              0.000 |             0.255 |   7
+ Communication Services | 1999 |              0.000 |             0.261 | 252
+ Communication Services | 2000 |              0.000 |             0.270 | 252
+ Communication Services | 2001 |              0.000 |             0.304 | 248
+ Communication Services | 2002 |              0.000 |             0.301 | 252
+ Communication Services | 2003 |              0.000 |             0.328 | 252
+ Communication Services | 2004 |              0.000 |             0.348 | 251
+ Communication Services | 2005 |              0.000 |             0.364 | 252
+ Communication Services | 2006 |              0.000 |             0.406 | 251
+ Communication Services | 2007 |              0.000 |             0.464 | 250
+ Communication Services | 2008 |              0.000 |             0.448 | 253
+ Communication Services | 2009 |              0.000 |             0.444 | 252
+ Communication Services | 2010 |              0.000 |             0.447 | 252
+ Communication Services | 2011 |              0.000 |             0.458 | 252
+ Communication Services | 2012 |              0.000 |             0.487 | 250
+ Communication Services | 2013 |              0.000 |             0.515 | 252
+ Communication Services | 2014 |              0.000 |             0.595 | 252
+ Communication Services | 2015 |              0.000 |             0.686 | 252
+ Communication Services | 2016 |              0.000 |             0.696 | 252
+ Communication Services | 2017 |              0.000 |             0.696 | 251
+ Communication Services | 2018 |              0.000 |             0.696 | 251
+ Communication Services | 2019 |              0.000 |             0.696 | 252
+ Communication Services | 2020 |              0.000 |             0.766 | 253
+ Communication Services | 2021 |              0.063 |             0.785 | 252
+ Communication Services | 2022 |              0.996 |             0.826 | 251
+ Communication Services | 2023 |              1.000 |             0.826 | 250
+ Communication Services | 2024 |              1.000 |             0.826 | 252
+ Communication Services | 2025 |              1.000 |             0.860 | 250
+ Communication Services | 2026 |              1.000 |             0.878 | 187
+ Consumer Cyclical      | 1998 |              0.000 |             0.510 |   7
+ Consumer Cyclical      | 1999 |              0.000 |             0.515 | 252
+ Consumer Cyclical      | 2000 |              0.000 |             0.543 | 252
+ Consumer Cyclical      | 2001 |              0.000 |             0.569 | 248
+ Consumer Cyclical      | 2002 |              0.000 |             0.587 | 252
+ Consumer Cyclical      | 2003 |              0.000 |             0.591 | 252
+ Consumer Cyclical      | 2004 |              0.000 |             0.608 | 251
+ Consumer Cyclical      | 2005 |              0.000 |             0.636 | 252
+ Consumer Cyclical      | 2006 |              0.000 |             0.675 | 251
+ Consumer Cyclical      | 2007 |              0.000 |             0.703 | 250
+ Consumer Cyclical      | 2008 |              0.000 |             0.717 | 253
+ Consumer Cyclical      | 2009 |              0.000 |             0.745 | 252
+ Consumer Cyclical      | 2010 |              0.000 |             0.745 | 252
+ Consumer Cyclical      | 2011 |              0.000 |             0.748 | 252
+ Consumer Cyclical      | 2012 |              0.112 |             0.786 | 250
+ Consumer Cyclical      | 2013 |              1.000 |             0.804 | 252
+ Consumer Cyclical      | 2014 |              1.000 |             0.827 | 252
+ Consumer Cyclical      | 2015 |              1.000 |             0.863 | 252
+ Consumer Cyclical      | 2016 |              1.000 |             0.863 | 252
+ Consumer Cyclical      | 2017 |              1.000 |             0.863 | 251
+ Consumer Cyclical      | 2018 |              1.000 |             0.863 | 251
+ Consumer Cyclical      | 2019 |              1.000 |             0.863 | 252
+ Consumer Cyclical      | 2020 |              1.000 |             0.863 | 253
+ Consumer Cyclical      | 2021 |              1.000 |             0.864 | 252
+ Consumer Cyclical      | 2022 |              1.000 |             0.937 | 251
+ Consumer Cyclical      | 2023 |              1.000 |             0.980 | 250
+ Consumer Cyclical      | 2024 |              1.000 |             0.980 | 252
+ Consumer Cyclical      | 2025 |              1.000 |             0.990 | 250
+ Consumer Cyclical      | 2026 |              1.000 |             1.000 | 187
+ Consumer Defensive     | 1998 |              0.000 |             0.618 |   7
+ Consumer Defensive     | 1999 |              0.000 |             0.618 | 252
+ Consumer Defensive     | 2000 |              0.000 |             0.618 | 252
+ Consumer Defensive     | 2001 |              0.000 |             0.627 | 248
+ Consumer Defensive     | 2002 |              0.000 |             0.675 | 252
+ Consumer Defensive     | 2003 |              0.000 |             0.706 | 252
+ Consumer Defensive     | 2004 |              0.000 |             0.706 | 251
+ Consumer Defensive     | 2005 |              0.000 |             0.706 | 252
+ Consumer Defensive     | 2006 |              0.000 |             0.706 | 251
+ Consumer Defensive     | 2007 |              0.000 |             0.704 | 250
+ Consumer Defensive     | 2008 |              0.000 |             0.704 | 253
+ Consumer Defensive     | 2009 |              0.000 |             0.750 | 252
+ Consumer Defensive     | 2010 |              0.000 |             0.769 | 252
+ Consumer Defensive     | 2011 |              0.000 |             0.794 | 252
+ Consumer Defensive     | 2012 |              0.000 |             0.794 | 250
+ Consumer Defensive     | 2013 |              0.000 |             0.794 | 252
+ Consumer Defensive     | 2014 |              0.000 |             0.794 | 252
+ Consumer Defensive     | 2015 |              0.000 |             0.794 | 252
+ Consumer Defensive     | 2016 |              0.552 |             0.825 | 252
+ Consumer Defensive     | 2017 |              1.000 |             0.853 | 251
+ Consumer Defensive     | 2018 |              1.000 |             0.854 | 251
+ Consumer Defensive     | 2019 |              1.000 |             0.882 | 252
+ Consumer Defensive     | 2020 |              1.000 |             0.882 | 253
+ Consumer Defensive     | 2021 |              0.996 |             0.882 | 252
+ Consumer Defensive     | 2022 |              0.996 |             0.932 | 251
+ Consumer Defensive     | 2023 |              1.000 |             0.971 | 250
+ Consumer Defensive     | 2024 |              1.000 |             0.990 | 252
+ Consumer Defensive     | 2025 |              1.000 |             1.000 | 250
+ Consumer Defensive     | 2026 |              1.000 |             0.996 | 187
+ Energy                 | 1998 |              0.000 |             0.571 |   7
+ Energy                 | 1999 |              0.000 |             0.571 | 252
+ Energy                 | 2000 |              0.000 |             0.571 | 252
+ Energy                 | 2001 |              0.000 |             0.571 | 248
+ Energy                 | 2002 |              0.000 |             0.614 | 252
+ Energy                 | 2003 |              0.000 |             0.619 | 252
+ Energy                 | 2004 |              0.000 |             0.619 | 251
+ Energy                 | 2005 |              0.000 |             0.619 | 252
+ Energy                 | 2006 |              0.000 |             0.619 | 251
+ Energy                 | 2007 |              0.000 |             0.618 | 250
+ Energy                 | 2008 |              0.000 |             0.618 | 253
+ Energy                 | 2009 |              0.000 |             0.619 | 252
+ Energy                 | 2010 |              0.000 |             0.619 | 252
+ Energy                 | 2011 |              0.000 |             0.622 | 252
+ Energy                 | 2012 |              0.000 |             0.734 | 250
+ Energy                 | 2013 |              0.718 |             0.806 | 252
+ Energy                 | 2014 |              1.000 |             0.857 | 252
+ Energy                 | 2015 |              1.000 |             0.857 | 252
+ Energy                 | 2016 |              1.000 |             0.857 | 252
+ Energy                 | 2017 |              1.000 |             0.857 | 251
+ Energy                 | 2018 |              1.000 |             0.881 | 251
+ Energy                 | 2019 |              1.000 |             0.905 | 252
+ Energy                 | 2020 |              1.000 |             0.905 | 253
+ Energy                 | 2021 |              1.000 |             0.905 | 252
+ Energy                 | 2022 |              1.000 |             0.994 | 251
+ Energy                 | 2023 |              1.000 |             1.000 | 250
+ Energy                 | 2024 |              1.000 |             1.000 | 252
+ Energy                 | 2025 |              1.000 |             1.000 | 250
+ Energy                 | 2026 |              1.000 |             0.997 | 187
+ Financial Services     | 1998 |              0.000 |             0.483 |   7
+ Financial Services     | 1999 |              0.000 |             0.485 | 252
+ Financial Services     | 2000 |              0.000 |             0.509 | 252
+ Financial Services     | 2001 |              0.000 |             0.546 | 248
+ Financial Services     | 2002 |              0.000 |             0.574 | 252
+ Financial Services     | 2003 |              0.000 |             0.579 | 252
+ Financial Services     | 2004 |              0.000 |             0.574 | 251
+ Financial Services     | 2005 |              0.000 |             0.608 | 252
+ Financial Services     | 2006 |              0.000 |             0.624 | 251
+ Financial Services     | 2007 |              0.000 |             0.655 | 250
+ Financial Services     | 2008 |              0.000 |             0.691 | 253
+ Financial Services     | 2009 |              0.000 |             0.732 | 252
+ Financial Services     | 2010 |              0.000 |             0.749 | 252
+ Financial Services     | 2011 |              0.472 |             0.792 | 252
+ Financial Services     | 2012 |              1.000 |             0.809 | 250
+ Financial Services     | 2013 |              1.000 |             0.809 | 252
+ Financial Services     | 2014 |              1.000 |             0.809 | 252
+ Financial Services     | 2015 |              1.000 |             0.829 | 252
+ Financial Services     | 2016 |              1.000 |             0.860 | 252
+ Financial Services     | 2017 |              1.000 |             0.883 | 251
+ Financial Services     | 2018 |              1.000 |             0.898 | 251
+ Financial Services     | 2019 |              1.000 |             0.912 | 252
+ Financial Services     | 2020 |              1.000 |             0.912 | 253
+ Financial Services     | 2021 |              1.000 |             0.912 | 252
+ Financial Services     | 2022 |              1.000 |             0.949 | 251
+ Financial Services     | 2023 |              1.000 |             0.985 | 250
+ Financial Services     | 2024 |              1.000 |             0.985 | 252
+ Financial Services     | 2025 |              1.000 |             0.985 | 250
+ Financial Services     | 2026 |              1.000 |             0.984 | 187
+ Healthcare             | 1998 |              0.000 |             0.627 |   7
+ Healthcare             | 1999 |              0.000 |             0.627 | 252
+ Healthcare             | 2000 |              0.000 |             0.629 | 252
+ Healthcare             | 2001 |              0.000 |             0.666 | 248
+ Healthcare             | 2002 |              0.000 |             0.704 | 252
+ Healthcare             | 2003 |              0.000 |             0.746 | 252
+ Healthcare             | 2004 |              0.000 |             0.746 | 251
+ Healthcare             | 2005 |              0.000 |             0.746 | 252
+ Healthcare             | 2006 |              0.000 |             0.746 | 251
+ Healthcare             | 2007 |              0.000 |             0.744 | 250
+ Healthcare             | 2008 |              0.000 |             0.755 | 253
+ Healthcare             | 2009 |              0.000 |             0.763 | 252
+ Healthcare             | 2010 |              0.000 |             0.780 | 252
+ Healthcare             | 2011 |              0.000 |             0.780 | 252
+ Healthcare             | 2012 |              0.000 |             0.793 | 250
+ Healthcare             | 2013 |              0.060 |             0.798 | 252
+ Healthcare             | 2014 |              1.000 |             0.840 | 252
+ Healthcare             | 2015 |              1.000 |             0.847 | 252
+ Healthcare             | 2016 |              1.000 |             0.847 | 252
+ Healthcare             | 2017 |              1.000 |             0.847 | 251
+ Healthcare             | 2018 |              1.000 |             0.847 | 251
+ Healthcare             | 2019 |              1.000 |             0.849 | 252
+ Healthcare             | 2020 |              1.000 |             0.864 | 253
+ Healthcare             | 2021 |              0.996 |             0.863 | 252
+ Healthcare             | 2022 |              0.996 |             0.912 | 251
+ Healthcare             | 2023 |              1.000 |             0.950 | 250
+ Healthcare             | 2024 |              1.000 |             0.966 | 252
+ Healthcare             | 2025 |              1.000 |             0.979 | 250
+ Healthcare             | 2026 |              1.000 |             0.978 | 187
+ Industrials            | 1998 |              0.000 |             0.580 |   7
+ Industrials            | 1999 |              0.000 |             0.600 | 252
+ Industrials            | 2000 |              0.000 |             0.607 | 252
+ Industrials            | 2001 |              0.000 |             0.620 | 248
+ Industrials            | 2002 |              0.000 |             0.632 | 252
+ Industrials            | 2003 |              0.000 |             0.633 | 252
+ Industrials            | 2004 |              0.000 |             0.641 | 251
+ Industrials            | 2005 |              0.000 |             0.646 | 252
+ Industrials            | 2006 |              0.000 |             0.652 | 251
+ Industrials            | 2007 |              0.000 |             0.675 | 250
+ Industrials            | 2008 |              0.000 |             0.694 | 253
+ Industrials            | 2009 |              0.000 |             0.711 | 252
+ Industrials            | 2010 |              0.000 |             0.724 | 252
+ Industrials            | 2011 |              0.000 |             0.745 | 252
+ Industrials            | 2012 |              0.000 |             0.759 | 250
+ Industrials            | 2013 |              0.000 |             0.772 | 252
+ Industrials            | 2014 |              0.000 |             0.774 | 252
+ Industrials            | 2015 |              0.000 |             0.785 | 252
+ Industrials            | 2016 |              0.000 |             0.779 | 252
+ Industrials            | 2017 |              0.000 |             0.779 | 251
+ Industrials            | 2018 |              0.000 |             0.793 | 251
+ Industrials            | 2019 |              0.310 |             0.801 | 252
+ Industrials            | 2020 |              1.000 |             0.810 | 253
+ Industrials            | 2021 |              0.996 |             0.830 | 252
+ Industrials            | 2022 |              0.996 |             0.893 | 251
+ Industrials            | 2023 |              1.000 |             0.937 | 250
+ Industrials            | 2024 |              1.000 |             0.940 | 252
+ Industrials            | 2025 |              1.000 |             0.949 | 250
+ Industrials            | 2026 |              1.000 |             0.948 | 187
+ Real Estate            | 1998 |              0.000 |             0.500 |   7
+ Real Estate            | 1999 |              0.000 |             0.557 | 252
+ Real Estate            | 2000 |              0.000 |             0.646 | 252
+ Real Estate            | 2001 |              0.000 |             0.667 | 248
+ Real Estate            | 2002 |              0.000 |             0.667 | 252
+ Real Estate            | 2003 |              0.000 |             0.667 | 252
+ Real Estate            | 2004 |              0.000 |             0.700 | 251
+ Real Estate            | 2005 |              0.000 |             0.738 | 252
+ Real Estate            | 2006 |              0.000 |             0.800 | 251
+ Real Estate            | 2007 |              0.000 |             0.798 | 250
+ Real Estate            | 2008 |              0.000 |             0.798 | 253
+ Real Estate            | 2009 |              0.000 |             0.800 | 252
+ Real Estate            | 2010 |              0.000 |             0.800 | 252
+ Real Estate            | 2011 |              0.000 |             0.800 | 252
+ Real Estate            | 2012 |              0.000 |             0.819 | 250
+ Real Estate            | 2013 |              0.000 |             0.833 | 252
+ Real Estate            | 2014 |              0.000 |             0.833 | 252
+ Real Estate            | 2015 |              0.000 |             0.833 | 252
+ Real Estate            | 2016 |              0.234 |             0.833 | 252
+ Real Estate            | 2017 |              1.000 |             0.833 | 251
+ Real Estate            | 2018 |              1.000 |             0.865 | 251
+ Real Estate            | 2019 |              1.000 |             0.900 | 252
+ Real Estate            | 2020 |              1.000 |             0.900 | 253
+ Real Estate            | 2021 |              0.996 |             0.900 | 252
+ Real Estate            | 2022 |              0.996 |             0.900 | 251
+ Real Estate            | 2023 |              1.000 |             0.900 | 250
+ Real Estate            | 2024 |              1.000 |             0.900 | 252
+ Real Estate            | 2025 |              1.000 |             0.900 | 250
+ Real Estate            | 2026 |              1.000 |             0.898 | 187
+ Technology             | 1998 |              0.000 |             0.384 |   7
+ Technology             | 1999 |              0.000 |             0.401 | 252
+ Technology             | 2000 |              0.000 |             0.428 | 252
+ Technology             | 2001 |              0.000 |             0.468 | 248
+ Technology             | 2002 |              0.000 |             0.500 | 252
+ Technology             | 2003 |              0.000 |             0.505 | 252
+ Technology             | 2004 |              0.000 |             0.500 | 251
+ Technology             | 2005 |              0.000 |             0.525 | 252
+ Technology             | 2006 |              0.000 |             0.547 | 251
+ Technology             | 2007 |              0.000 |             0.547 | 250
+ Technology             | 2008 |              0.000 |             0.582 | 253
+ Technology             | 2009 |              0.000 |             0.593 | 252
+ Technology             | 2010 |              0.000 |             0.593 | 252
+ Technology             | 2011 |              0.000 |             0.610 | 252
+ Technology             | 2012 |              0.000 |             0.628 | 250
+ Technology             | 2013 |              0.000 |             0.660 | 252
+ Technology             | 2014 |              0.000 |             0.683 | 252
+ Technology             | 2015 |              0.000 |             0.707 | 252
+ Technology             | 2016 |              0.000 |             0.745 | 252
+ Technology             | 2017 |              0.279 |             0.788 | 251
+ Technology             | 2018 |              0.996 |             0.806 | 251
+ Technology             | 2019 |              1.000 |             0.814 | 252
+ Technology             | 2020 |              1.000 |             0.831 | 253
+ Technology             | 2021 |              1.000 |             0.852 | 252
+ Technology             | 2022 |              1.000 |             0.929 | 251
+ Technology             | 2023 |              1.000 |             0.977 | 250
+ Technology             | 2024 |              1.000 |             0.977 | 252
+ Technology             | 2025 |              1.000 |             0.977 | 250
+ Technology             | 2026 |              1.000 |             0.986 | 187
+ Utilities              | 1998 |              0.000 |             0.531 |   7
+ Utilities              | 1999 |              0.000 |             0.563 | 252
+ Utilities              | 2000 |              0.000 |             0.563 | 252
+ Utilities              | 2001 |              0.000 |             0.563 | 248
+ Utilities              | 2002 |              0.000 |             0.563 | 252
+ Utilities              | 2003 |              0.000 |             0.563 | 252
+ Utilities              | 2004 |              0.000 |             0.565 | 251
+ Utilities              | 2005 |              0.000 |             0.652 | 252
+ Utilities              | 2006 |              0.000 |             0.656 | 251
+ Utilities              | 2007 |              0.000 |             0.674 | 250
+ Utilities              | 2008 |              0.000 |             0.686 | 253
+ Utilities              | 2009 |              0.000 |             0.709 | 252
+ Utilities              | 2010 |              0.000 |             0.719 | 252
+ Utilities              | 2011 |              0.000 |             0.737 | 252
+ Utilities              | 2012 |              0.000 |             0.750 | 250
+ Utilities              | 2013 |              0.000 |             0.750 | 252
+ Utilities              | 2014 |              0.000 |             0.750 | 252
+ Utilities              | 2015 |              0.000 |             0.750 | 252
+ Utilities              | 2016 |              0.000 |             0.750 | 252
+ Utilities              | 2017 |              0.000 |             0.757 | 251
+ Utilities              | 2018 |              0.000 |             0.781 | 251
+ Utilities              | 2019 |              0.996 |             0.830 | 252
+ Utilities              | 2020 |              1.000 |             0.844 | 253
+ Utilities              | 2021 |              1.000 |             0.844 | 252
+ Utilities              | 2022 |              1.000 |             0.879 | 251
+ Utilities              | 2023 |              1.000 |             0.936 | 250
+ Utilities              | 2024 |              1.000 |             0.938 | 252
+ Utilities              | 2025 |              1.000 |             0.961 | 250
+ Utilities              | 2026 |              1.000 |             0.969 | 187
+(319 rows)
+
