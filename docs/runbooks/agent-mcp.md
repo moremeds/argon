@@ -55,21 +55,22 @@ the role script fails if run first. Order:
 2. Verify the tables exist:
 
    ```
-   psql -U postgres -d option_wizard -c '\dt uw_scan.mcp_*'
+   psql -d option_wizard -c '\dt uw_scan.mcp_*'
    # expect: mcp_token, mcp_access_log, mcp_event, mcp_event_cursor
    ```
 
-3. Create the role as superuser:
+3. Create the role as the Postgres superuser (on the mini that is the login
+   user `moremeds`; there is no `postgres` role there):
 
    ```
-   psql -v ON_ERROR_STOP=1 -U postgres -d option_wizard -f scripts/ops/mcp_role.sql
+   psql -v ON_ERROR_STOP=1 -d option_wizard -f scripts/ops/mcp_role.sql
    ```
 
    then set its password interactively (the value that goes into
    `MCP_DATABASE_URL` — never on a command line, never in a file here):
 
    ```
-   psql -U postgres -d option_wizard
+   psql -d option_wizard
    \password argon_mcp
    ```
 
@@ -94,8 +95,8 @@ The role is `LOGIN`, SELECT-only on `uw_scan` (existing + future tables via
 
 ```
 cd /opt/argon
-docker compose up -d mcp cloudflared
-docker compose ps            # mcp healthy, cloudflared running
+docker-compose up -d mcp cloudflared
+docker-compose ps            # mcp healthy, cloudflared running
 curl -s http://127.0.0.1:8500/healthz   # {"ok":true} on the mini itself
 ```
 
@@ -104,10 +105,10 @@ curl -s http://127.0.0.1:8500/healthz   # {"ok":true} on the mini itself
 Inside the **api** container (control-argon ships in the app image):
 
 ```
-docker compose exec api python -m uw_scan.control_argon mcp-token create grok
+docker-compose exec api python -m uw_scan.control_argon mcp-token create grok
 # prints the raw token ONCE — hand it to the agent config, then it is gone
-docker compose exec api python -m uw_scan.control_argon mcp-token list
-docker compose exec api python -m uw_scan.control_argon mcp-token revoke grok
+docker-compose exec api python -m uw_scan.control_argon mcp-token list
+docker-compose exec api python -m uw_scan.control_argon mcp-token revoke grok
 ```
 
 Revocation takes effect on the token's **next request** (no cache window —
@@ -131,7 +132,7 @@ token's durable cursor), then `list_endpoints` for the readable GET surface.
 | Symptom | Check |
 | --- | --- |
 | 401 on everything | token revoked or wrong — `mcp-token list` on the mini |
-| 502 from Cloudflare | `docker compose ps mcp` unhealthy → `docker compose logs mcp` |
+| 502 from Cloudflare | `docker-compose ps mcp` unhealthy → `docker-compose logs mcp` |
 | tunnel container down | `TUNNEL_TOKEN` unset/wrong in `cloudflared.env` |
 | reads return empty | `MCP_DATABASE_URL` points at a DB without migrations 153+154 |
 | SELECT works, calls 500 | argon_mcp missing `INSERT mcp_access_log` — re-run step 3 |
