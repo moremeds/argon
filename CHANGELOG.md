@@ -7,6 +7,10 @@ version in lockstep (enforced by `scripts/release/version_sync_check.py`).
 
 ## [Unreleased]
 
+### Added
+
+- **Agent MCP size controls.** `ticker_snapshot` takes an optional `sections` list (technicals, chain_flow, term_move, flow_timeline, gamma_bar, charm, vanna, cockpit) and skips the upstream fetches for sections it does not return. `market_overview` takes optional `columns` (ticker is always kept) and `tickers` (landing-page order is kept). When these args are omitted, the output is the same as before. Measured compact-JSON sizes: full `ticker_snapshot` ~60–75 KB (`technicals` alone is 40–55 KB), full `market_overview` ~94 KB for 171 tickers, a 5-column call 25.6 KB.
+
 ### Changed
 
 - **Agent MCP public hostname is `argon-mcp.rsiarc.com`** (was documented as `mcp.rsiarc.com`): runbook and compose comments now match the live tunnel; the runbook notes that the env key must be exactly `TUNNEL_TOKEN`.
@@ -14,6 +18,7 @@ version in lockstep (enforced by `scripts/release/version_sync_check.py`).
 ### Fixed
 
 - **Pipeline benchmark snapshots no longer drop on a clock race.** `ws_tick_age_seconds`, `last_full_scan_age_seconds` and `oldest_queue_age_seconds` went negative when a tick, a finished full scan or a queued job was stamped a moment after the collector's `now_utc`, which violated the `>= 0` CHECKs and lost the whole snapshot. They now clamp to `max(0, …)`, the same fix `scheduler_heartbeat_lag_seconds` already had.
+- **Recovered MCP events carry the previous snapshot's context.** A transition recovered from history (`recovered: true`) now also carries the fields of the snapshot it was recovered from: CRI `data_date` + `score`, VCG `data_date` + `interpretation`, VRP macro `as_of` + `vrp_z` + `weight`. An agent can now tell which session a missed transition belongs to.
 
 ## [0.13.14] — 2026-10-02
 
