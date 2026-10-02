@@ -106,7 +106,7 @@ services:
       # 127.0.0.1 (= the web container itself).
       NEXT_INTERNAL_API_BASE: http://api:8400
     ports:
-      - "3001:3001"
+      - "127.0.0.1:3001:3001"   # loopback-only: LAN reaches web via tailscale serve
     depends_on:
       api:
         condition: service_healthy
