@@ -8,9 +8,18 @@ function badPath(path: string): boolean {
   // percent-encoded dot segments (%2e%2e → ..) inside fetch, which would
   // bypass the literal checks below. Encoded values arrive via `params`
   // (encodeURIComponent'd) instead.
+  // '\' normalizes to '/' under WHATWG, '?'/'#' would cut the path short, and
+  // control chars are never valid — rejected alongside the dot-segment checks.
   return (
     path.includes("%") ||
+    path.includes("\\") ||
+    path.includes("?") ||
+    path.includes("#") ||
     path.includes("//") ||
+    [...path].some((c) => {
+      const n = c.codePointAt(0)!;
+      return n < 0x20 || n === 0x7f;
+    }) ||
     path.split("/").some((s) => s === "." || s === "..")
   );
 }
@@ -39,7 +48,7 @@ export const tool: McpTool = {
     const { path, params } = args as ReadArgs;
     if (badPath(path)) {
       throw new Error(
-        `read: invalid path '${path}' ('%', '.', '..' or '//' not allowed)`,
+        `read: invalid path '${path}' ('%', '\\', '?', '#', '.', '..' or '//' not allowed)`,
       );
     }
     // Convenience: /api-prefixed paths are the same endpoints (apiGet re-adds it).

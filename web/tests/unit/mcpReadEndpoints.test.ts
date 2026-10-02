@@ -68,6 +68,16 @@ describe("parseOpenApiEndpoints", () => {
     expect(parsed.find((e) => e.path === "/no-get")).toBeUndefined();
   });
 
+  it("excludes DENYLIST entries (trade-insights GET writes to the DB)", () => {
+    const parsed = parseOpenApiEndpoints({
+      paths: {
+        "/api/stock/{ticker}/trade-insights": { get: { summary: "x" } },
+        "/api/health": { get: {} },
+      },
+    });
+    expect(parsed.map((e) => e.path)).toEqual(["/health"]);
+  });
+
   it("throws on a doc without paths", () => {
     expect(() => parseOpenApiEndpoints({})).toThrow("paths");
   });
@@ -170,6 +180,20 @@ describe("read tool", () => {
         ctx,
       ),
     ).rejects.toThrow(/invalid value/);
+    // '\' normalizes to '/' under WHATWG ('/a\..\'-style traversal),
+    // '?'/'#' would truncate the path before fetch.
+    await expect(read.handler({ path: "/stock/..\\health" }, ctx)).rejects
+      .toThrow(/invalid path/);
+    await expect(read.handler({ path: "/stock/AAPL?x=1" }, ctx)).rejects
+      .toThrow(/invalid path/);
+    await expect(read.handler({ path: "/stock/AAPL#f" }, ctx)).rejects
+      .toThrow(/invalid path/);
+    // Control chars (<0x20 and DEL) are never valid in a path.
+    for (const c of ["\n", "\r", "\t", "\x00", "\x1f", "\x7f"]) {
+      await expect(
+        read.handler({ path: `/stock/AAPL${c}technicals` }, ctx),
+      ).rejects.toThrow(/invalid path/);
+    }
     expect(getSpy).not.toHaveBeenCalled();
   });
 });

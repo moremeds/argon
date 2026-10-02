@@ -229,18 +229,142 @@ describe("wrapToolHandler access log", () => {
 });
 
 describe("makeApiGet", () => {
+  afterEach(() => vi.unstubAllGlobals());
+
   it("issues a GET to {base}/api{path} with stringified params", async () => {
     const spy = vi.fn().mockResolvedValue({ ok: true, json: async () => ({ n: 1 }) });
     vi.stubGlobal("fetch", spy);
     const get = makeApiGet("http://api:8400");
     await expect(get("/health", { a: 1, b: "x y" })).resolves.toEqual({ n: 1 });
-    expect(spy).toHaveBeenCalledWith("http://api:8400/api/health?a=1&b=x+y", { method: "GET" });
-    vi.unstubAllGlobals();
+    const [url, init] = spy.mock.calls[0];
+    expect(url).toBeInstanceOf(URL);
+    expect(url.href).toBe("http://api:8400/api/health?a=1&b=x+y");
+    expect(init).toEqual({ method: "GET" });
   });
 
   it("throws on a non-2xx response", async () => {
     vi.stubGlobal("fetch", vi.fn().mockResolvedValue({ ok: false, status: 503 }));
     await expect(makeApiGet("http://api:8400")("/x")).rejects.toThrow("503");
-    vi.unstubAllGlobals();
+  });
+
+  it("refuses paths whose URL-normalized pathname differs from the request", async () => {
+    const spy = vi.fn().mockResolvedValue({ ok: true, json: async () => ({}) });
+    vi.stubGlobal("fetch", spy);
+    const get = makeApiGet("http://api:8400");
+    // WHATWG resolves dot segments/backslashes and truncates at '?'/'#' — the
+    // parsed pathname no longer equals what was asked for → hard reject.
+    for (const p of ["/stock/../x", "/stock/..\\x", "/a?b", "/a#b", "/%2e%2e/x"]) {
+      await expect(get(p)).rejects.toThrow(/normalization mismatch/);
+    }
+    expect(spy).not.toHaveBeenCalled();
+  });
+});
+
+describe("SSE event stream", () => {
+  let server: ReturnType<typeof createServer> | undefined;
+  afterEach(async () => {
+    await new Promise((r) => server?.close(r));
+    server = undefined;
+  });
+
+  const initBody = JSON.stringify({
+    jsonrpc: "2.0",
+    id: 1,
+    method: "initialize",
+    params: {
+      protocolVersion: "2025-03-26",
+      capabilities: {},
+      clientInfo: { name: "t", version: "0" },
+    },
+  });
+  const headers = (sid?: string) => ({
+    "content-type": "application/json",
+    accept: "application/json, text/event-stream",
+    authorization: "Bearer good-token",
+    ...(sid ? { "mcp-session-id": sid } : {}),
+  });
+
+  it("re-checks revocation before each event; revoked → unsubscribed + session deleted", async () => {
+    let labelActive = true;
+    // pool.query serves both the access log and the per-event revocation check.
+    const poolQuery = vi.fn(async (text: string) =>
+      text.startsWith("SELECT 1") ? { rows: labelActive ? [{ "?column?": 1 }] : [] } : { rows: [] },
+    );
+    let sendEvent: ((e: unknown) => void) | undefined;
+    const unsub = vi.fn();
+    const hook = vi.fn(async (_c: ToolCtx, send: (e: unknown) => void) => {
+      sendEvent = send;
+      return unsub;
+    });
+    const handler = makeRequestHandler(
+      {
+        pool: { query: poolQuery } as never,
+        labelForToken: async (t) => (t === "good-token" ? "grok" : null),
+        apiGet: async () => ({}),
+      },
+      { subscribeEvents: hook },
+    );
+    server = createServer(handler);
+    await new Promise<void>((r) => server!.listen(0, r));
+    const base = `http://127.0.0.1:${(server.address() as AddressInfo).port}`;
+
+    const init = await fetch(`${base}/mcp`, { method: "POST", headers: headers(), body: initBody });
+    const sid = init.headers.get("mcp-session-id")!;
+    const sse = await fetch(`${base}/mcp`, { headers: headers(sid) });
+    expect(sse.status).toBe(200);
+    await vi.waitFor(() => expect(sendEvent).toBeDefined());
+
+    // Token active → the event reaches the stream as an argon_event frame.
+    const reader = sse.body!.getReader();
+    sendEvent!({ id: 1 });
+    const chunk = await reader.read();
+    expect(new TextDecoder().decode(chunk.value)).toContain("argon_event");
+
+    // Revoked → the next event is dropped, the subscriber unsubscribed and
+    // the session deleted (a follow-up call on it gets 404, not data).
+    labelActive = false;
+    sendEvent!({ id: 2 });
+    await vi.waitFor(() => expect(unsub).toHaveBeenCalled());
+    await vi.waitFor(async () => {
+      const call = await fetch(`${base}/mcp`, {
+        method: "POST",
+        headers: headers(sid),
+        body: JSON.stringify({ jsonrpc: "2.0", id: 3, method: "tools/list" }),
+      });
+      expect(call.status).toBe(404);
+    });
+  });
+
+  it("unsubscribes when the client disconnects while subscribeEvents is pending", async () => {
+    let resolveSub!: (fn: () => void) => void;
+    const gate = new Promise<() => void>((r) => (resolveSub = r));
+    const unsub = vi.fn();
+    const hook = vi.fn(async () => {
+      await gate;
+      return unsub;
+    });
+    const handler = makeRequestHandler(
+      {
+        pool: { query: vi.fn(async () => ({ rows: [{}] })) } as never,
+        labelForToken: async () => "grok",
+        apiGet: async () => ({}),
+      },
+      { subscribeEvents: hook },
+    );
+    server = createServer(handler);
+    await new Promise<void>((r) => server!.listen(0, r));
+    const base = `http://127.0.0.1:${(server.address() as AddressInfo).port}`;
+
+    const init = await fetch(`${base}/mcp`, { method: "POST", headers: headers(), body: initBody });
+    const sid = init.headers.get("mcp-session-id")!;
+
+    const ac = new AbortController();
+    const sse = fetch(`${base}/mcp`, { headers: headers(sid), signal: ac.signal }).catch(() => null);
+    await vi.waitFor(() => expect(hook).toHaveBeenCalled());
+    ac.abort(); // client gone before subscribeEvents resolved
+    await new Promise((r) => setTimeout(r, 50)); // let res 'close' fire
+    resolveSub(unsub);
+    await vi.waitFor(() => expect(unsub).toHaveBeenCalledTimes(1));
+    await sse;
   });
 });

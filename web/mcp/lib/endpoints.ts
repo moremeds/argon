@@ -16,9 +16,13 @@ export type EndpointInfo = {
   params: EndpointParam[];
 };
 
-/** Operator denylist: exact (post-/api-strip) path templates to exclude. Empty
- *  unless an operator names paths here. */
-export const DENYLIST: ReadonlySet<string> = new Set<string>();
+/** Operator denylist: exact (post-/api-strip) path templates to exclude.
+ *  - /stock/{ticker}/trade-insights: its GET handler BUILDS and persists a
+ *    snapshot (repo.conn.commit(), routers/trade_insights.py:220) — a GET that
+ *    writes, so it cannot stay on a read-only allowlist. */
+export const DENYLIST: ReadonlySet<string> = new Set<string>([
+  "/stock/{ticker}/trade-insights",
+]);
 
 type OpenApiOperation = {
   summary?: string;

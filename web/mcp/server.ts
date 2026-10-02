@@ -25,7 +25,7 @@ import pg from "pg";
 
 import { subscribeEvents } from "./events";
 import { TOOLS } from "./tools/index";
-import type { McpTool, ToolCtx } from "./types";
+import type { EventStreamHook, McpTool, ToolCtx } from "./types";
 
 const MCP_PATH = "/mcp";
 const HEALTHZ_PATH = "/healthz";
@@ -77,7 +77,14 @@ export function makeApiGet(apiBase: string): ToolCtx["apiGet"] {
     const qs = params
       ? "?" + new URLSearchParams(Object.entries(params).map(([k, v]) => [k, String(v)]))
       : "";
-    const res = await fetch(`${apiBase}/api${path}${qs}`, { method: "GET" });
+    const url = new URL(`${apiBase}/api${path}${qs}`);
+    // Defense-in-depth against URL-parser normalization (e.g. a path that
+    // slipped a dot segment or backslash past read's checks): the parsed
+    // pathname must equal exactly what was asked for, else the request dies.
+    if (url.pathname !== `/api${path}`) {
+      throw new Error(`apiGet: path normalization mismatch — refusing '${path}'`);
+    }
+    const res = await fetch(url, { method: "GET" });
     if (!res.ok) throw new Error(`apiGet ${path} → ${res.status}`);
     return res.json();
   };
@@ -239,6 +246,7 @@ export type HandlerOptions = {
   now?: () => number;
   sessionIdleMs?: number;
   sessionSweepMs?: number;
+  subscribeEvents?: EventStreamHook;
 };
 
 function writeJson(res: ServerResponse, status: number, body: unknown): void {
@@ -349,18 +357,31 @@ export function makeRequestHandler(deps: HandlerDeps, opts: HandlerOptions = {})
         // Standalone SSE stream: events fan-out + keepalive. send() delivers a
         // JSON-RPC notification to this stream; close() ends it so the client
         // reconnects (f74bfb6d). Missed events stay in mcp_event via get_events.
+        let unsubscribe: (() => void) | undefined;
+        let resClosed = false;
+        // send() re-checks the session's token label is still active BEFORE
+        // pushing — a revoked token must not keep receiving events (the
+        // per-request auth already rejects its next request; this closes the
+        // push side too). Events are rare, one indexed lookup each is fine.
         const send = (event: unknown) => {
-          void session.transport
-            .send({ jsonrpc: "2.0", method: SSE_EVENT_METHOD, params: { event } })
-            .catch((err) => console.error("sse send failed", err));
+          void (async () => {
+            const r = await deps.pool.query(
+              "SELECT 1 FROM uw_scan.mcp_token WHERE label = $1 AND revoked_at IS NULL",
+              [session.label],
+            );
+            if (r.rows.length === 0) {
+              unsubscribe?.(); // drop the subscriber
+              void session.transport.close().catch(() => {}); // onclose deletes the session
+              return;
+            }
+            await session.transport
+              .send({ jsonrpc: "2.0", method: SSE_EVENT_METHOD, params: { event } })
+              .catch((err) => console.error("sse send failed", err));
+          })().catch((err) => console.error("sse send failed", err));
         };
         const close = () => session.transport.closeStandaloneSSEStream();
-        let unsubscribe: (() => void) | undefined;
-        try {
-          unsubscribe = await subscribeEvents(session.ctx, send, close);
-        } catch (err) {
-          console.error("subscribeEvents failed", err);
-        }
+        // Register close BEFORE awaiting subscribeEvents: if the client hung up
+        // while setup was pending we must not leave a subscriber behind.
         const keepalive = setInterval(() => {
           try {
             res.write(": keepalive\n\n");
@@ -370,11 +391,22 @@ export function makeRequestHandler(deps: HandlerDeps, opts: HandlerOptions = {})
         }, SSE_KEEPALIVE_MS);
         session.sseOpen = true; // a live stream exempts the session from sweeps
         res.on("close", () => {
+          resClosed = true;
           session.sseOpen = false;
           session.lastSeen = now(); // dead-socket sessions become sweepable from now
           clearInterval(keepalive);
           unsubscribe?.();
         });
+        try {
+          unsubscribe = await (opts.subscribeEvents ?? subscribeEvents)(
+            session.ctx,
+            send,
+            close,
+          );
+        } catch (err) {
+          console.error("subscribeEvents failed", err);
+        }
+        if (resClosed) unsubscribe?.(); // client left during subscribe — tear down now
         await session.transport.handleRequest(req, res);
         return;
       }
@@ -408,7 +440,10 @@ export async function main(): Promise<void> {
   const apiBase = process.env.ARGON_API_URL ?? "http://api:8400";
   const port = Number(process.env.MCP_PORT ?? 8500);
 
-  const pool = new pg.Pool({ connectionString: databaseUrl });
+  const pool = new pg.Pool({
+    connectionString: databaseUrl,
+    connectionTimeoutMillis: 5000, // fail fast instead of queueing forever
+  });
   const handler = makeRequestHandler({
     pool,
     labelForToken: makeLabelForToken(pool),

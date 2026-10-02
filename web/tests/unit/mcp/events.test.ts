@@ -1,14 +1,13 @@
 import { EventEmitter } from "node:events";
 
-import { describe, expect, it, vi } from "vitest";
-import type { Pool } from "pg";
+import { beforeEach, describe, expect, it, vi } from "vitest";
 
-import { subscribeEvents } from "@/mcp/events";
-import type { ToolCtx } from "@/mcp/types";
+import { resetEventsHubForTests, subscribeEvents } from "../../../mcp/events";
+import type { ToolCtx } from "../../../mcp/types";
 
 type Query = { text: string; params?: unknown[] };
 
-/** EventEmitter so the hook's .on("notification"/"error") wiring is real. */
+// Fake dedicated listener client: one pg.Client checked out once per hub.
 class FakeClient extends EventEmitter {
   queries: Query[] = [];
   releasedWith: (Error | undefined)[] = [];
@@ -25,107 +24,124 @@ class FakeClient extends EventEmitter {
   }
 }
 
-const ctx = (client: FakeClient): ToolCtx => ({
-  db: { connect: async () => client } as unknown as Pool,
-  apiGet: vi.fn(),
-  tokenLabel: "t1",
+function ctx(client: FakeClient, connect?: ReturnType<typeof vi.fn>): ToolCtx {
+  return {
+    db: {
+      connect: connect ?? vi.fn(async () => client),
+    } as unknown as ToolCtx["db"],
+    apiGet: async () => ({}),
+    tokenLabel: "t",
+  };
+}
+
+const event = {
+  id: "9",
+  kind: "cri",
+  subject: "global",
+  basis: null,
+  payload: {},
+  emitted_at: new Date("2026-01-01T00:00:00Z"),
+};
+
+beforeEach(() => {
+  resetEventsHubForTests();
 });
 
-const eventRow = (id: string) => ({
-  id,
-  kind: "cri_regime",
-  subject: "CRI",
-  basis: "eod",
-  payload: { from: "LOW", to: "ELEVATED" },
-  emitted_at: "2026-10-02T01:00:00.000Z",
-});
-
-describe("subscribeEvents", () => {
-  it("issues LISTEN on a dedicated client before returning", async () => {
-    const client = new FakeClient();
-    await subscribeEvents(ctx(client), vi.fn(), vi.fn());
-    expect(client.queries.map((q) => q.text)).toEqual(["LISTEN mcp_event"]);
-    expect(client.releasedWith).toEqual([]);
+describe("subscribeEvents hub", () => {
+  it("checks out ONE dedicated client, LISTENs once", async () => {
+    const c = new FakeClient();
+    const connect = vi.fn(async () => c);
+    const un1 = await subscribeEvents(ctx(c, connect), vi.fn(), vi.fn());
+    expect(connect).toHaveBeenCalledTimes(1);
+    expect(c.queries[0]?.text).toBe("LISTEN mcp_event");
+    un1();
   });
 
-  it("notification → SELECT by id → send(row) with string id, unwrapped", async () => {
-    const client = new FakeClient();
-    client.selectRows = [eventRow("42")];
-    const send = vi.fn();
-    const close = vi.fn();
-    await subscribeEvents(ctx(client), send, close);
+  it("two subscribers share the single client and fan out", async () => {
+    const c = new FakeClient();
+    const connect = vi.fn(async () => c);
+    const c2 = ctx(c, connect);
+    const send1 = vi.fn();
+    const send2 = vi.fn();
+    const un1 = await subscribeEvents(c2, send1, vi.fn());
+    const un2 = await subscribeEvents(c2, send2, vi.fn());
+    expect(connect).toHaveBeenCalledTimes(1);
+    expect(c.queries.filter((q) => q.text === "LISTEN mcp_event")).toHaveLength(1);
 
-    client.emit("notification", { channel: "mcp_event", payload: "42" });
-    await vi.waitFor(() => expect(send).toHaveBeenCalledTimes(1));
-
-    const select = client.queries.find((q) => q.text.startsWith("SELECT"))!;
-    expect(select.text).toContain("FROM uw_scan.mcp_event");
-    expect(select.params).toEqual(["42"]);
-    expect(send).toHaveBeenCalledWith({
-      id: "42",
-      kind: "cri_regime",
-      subject: "CRI",
-      basis: "eod",
-      payload: { from: "LOW", to: "ELEVATED" },
-      emitted_at: "2026-10-02T01:00:00.000Z",
+    c.selectRows = [event];
+    c.emit("notification", { channel: "mcp_event", payload: "9" });
+    await vi.waitFor(() => {
+      expect(send1).toHaveBeenCalledWith(event);
+      expect(send2).toHaveBeenCalledWith(event);
     });
-    expect(close).not.toHaveBeenCalled();
+    // ONE SELECT total — the row is fetched once then fanned out in-process.
+    expect(c.queries.filter((q) => q.text.startsWith("SELECT"))).toHaveLength(1);
+    un1();
+    un2();
   });
 
-  it("ignores notifications on other channels or without payload", async () => {
-    const client = new FakeClient();
+  it("unsubscribing one subscriber keeps the hub alive for the other", async () => {
+    const c = new FakeClient();
+    const c2 = ctx(c);
+    const send1 = vi.fn();
+    const send2 = vi.fn();
+    const un1 = await subscribeEvents(c2, send1, vi.fn());
+    const un2 = await subscribeEvents(c2, send2, vi.fn());
+    un1();
+    expect(c.queries.some((q) => q.text === "UNLISTEN mcp_event")).toBe(false);
+    c.selectRows = [event];
+    c.emit("notification", { channel: "mcp_event", payload: "9" });
+    await vi.waitFor(() => expect(send2).toHaveBeenCalledWith(event));
+    expect(send1).not.toHaveBeenCalled();
+    un2();
+  });
+
+  it("releases the client after the last subscriber leaves (UNLISTEN first)", async () => {
+    const c = new FakeClient();
+    const un = await subscribeEvents(ctx(c), vi.fn(), vi.fn());
+    un();
+    await vi.waitFor(() => expect(c.releasedWith).toEqual([undefined]));
+    expect(c.queries[1]?.text).toBe("UNLISTEN mcp_event");
+  });
+
+  it("client 'error' closes every subscriber stream and releases with err", async () => {
+    const c = new FakeClient();
+    const c2 = ctx(c);
+    const close1 = vi.fn();
+    const close2 = vi.fn();
+    await subscribeEvents(c2, vi.fn(), close1);
+    await subscribeEvents(c2, vi.fn(), close2);
+    c.emit("error", new Error("conn dropped"));
+    expect(close1).toHaveBeenCalledTimes(1);
+    expect(close2).toHaveBeenCalledTimes(1);
+    await vi.waitFor(() => expect(c.releasedWith[0]).toBeInstanceOf(Error));
+  });
+
+  it("after a hub teardown, the next subscriber starts a fresh hub", async () => {
+    const c = new FakeClient();
+    await subscribeEvents(ctx(c), vi.fn(), vi.fn());
+    c.emit("error", new Error("boom"));
+    const c2 = new FakeClient();
+    await subscribeEvents(ctx(c2), vi.fn(), vi.fn());
+    expect(c2.queries[0]?.text).toBe("LISTEN mcp_event");
+  });
+
+  it("ignores other channels and missing payloads", async () => {
+    const c = new FakeClient();
     const send = vi.fn();
-    await subscribeEvents(ctx(client), send, vi.fn());
-
-    client.emit("notification", { channel: "other", payload: "1" });
-    client.emit("notification", { channel: "mcp_event", payload: null });
+    const un = await subscribeEvents(ctx(c), send, vi.fn());
+    c.emit("notification", { channel: "other", payload: "9" });
+    c.emit("notification", { channel: "mcp_event" });
     await Promise.resolve();
-
-    expect(client.queries.filter((q) => q.text.startsWith("SELECT"))).toEqual([]);
     expect(send).not.toHaveBeenCalled();
+    un();
   });
 
-  it("on client error: releases with the error and calls close()", async () => {
-    const client = new FakeClient();
-    const close = vi.fn();
-    await subscribeEvents(ctx(client), vi.fn(), close);
-
-    const boom = new Error("conn died");
-    client.emit("error", boom);
-
-    expect(client.releasedWith).toEqual([boom]);
-    expect(close).toHaveBeenCalledTimes(1);
-  });
-
-  it("unsubscribe = UNLISTEN then release, and is idempotent", async () => {
-    const client = new FakeClient();
-    const close = vi.fn();
-    const unsub = await subscribeEvents(ctx(client), vi.fn(), close);
-
-    unsub();
-    await vi.waitFor(() => expect(client.releasedWith).toEqual([undefined]));
-    unsub(); // second call is a no-op
-
-    const unlistens = client.queries.filter((q) =>
-      q.text.includes("UNLISTEN"),
-    );
-    expect(unlistens).toHaveLength(1);
-    expect(client.releasedWith).toEqual([undefined]);
-    expect(close).not.toHaveBeenCalled();
-  });
-
-  it("unsubscribe after an error teardown is a no-op", async () => {
-    const client = new FakeClient();
-    const close = vi.fn();
-    const unsub = await subscribeEvents(ctx(client), vi.fn(), close);
-
-    client.emit("error", new Error("boom"));
-    unsub();
-    await Promise.resolve();
-
-    expect(client.queries.filter((q) => q.text.includes("UNLISTEN"))).toEqual(
-      [],
-    );
-    expect(client.releasedWith).toHaveLength(1);
+  it("unsubscribe is idempotent", async () => {
+    const c = new FakeClient();
+    const un = await subscribeEvents(ctx(c), vi.fn(), vi.fn());
+    un();
+    un();
+    await vi.waitFor(() => expect(c.releasedWith).toHaveLength(1));
   });
 });

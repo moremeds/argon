@@ -39,17 +39,39 @@ their own env and the mcp pair deliberately does not read it.
 Sizing note: if a `mem_limit` is ever added to the mcp service keep it
 >= 512 MB — the technicals warm cache alone runs ~170 MB.
 
-## 3. Database role (one time, run as superuser on the mini)
+## 3. Database: migrations BEFORE the role (one time, on the mini)
 
-```
-psql -U postgres -d option_wizard -f scripts/ops/mcp_role.sql
-\password argon_mcp          # set the password that goes in MCP_DATABASE_URL
-```
+`mcp_role.sql` grants on `mcp_access_log`, `mcp_event_cursor` and the
+access-log sequence — those objects only exist after migrations 153+154, so
+the role script fails if run first. Order:
+
+1. Deploy the release so the api service's self-migrate applies 153+154
+   (or run the migrator by hand).
+2. Verify the tables exist:
+
+   ```
+   psql -U postgres -d option_wizard -c '\dt uw_scan.mcp_*'
+   # expect: mcp_token, mcp_access_log, mcp_event, mcp_event_cursor
+   ```
+
+3. Create the role as superuser:
+
+   ```
+   psql -v ON_ERROR_STOP=1 -U postgres -d option_wizard -f scripts/ops/mcp_role.sql
+   \password argon_mcp          # set the password that goes in MCP_DATABASE_URL
+   ```
+
+4. Verify the grants:
+
+   ```
+   SELECT has_table_privilege('argon_mcp','uw_scan.mcp_access_log','INSERT');
+   SELECT has_table_privilege('argon_mcp','uw_scan.mcp_event_cursor','SELECT,INSERT,UPDATE');
+   SELECT has_table_privilege('argon_mcp','uw_scan.watchlist','SELECT');
+   SELECT has_table_privilege('argon_mcp','uw_scan.watchlist','INSERT');   -- must be f
+   ```
 
 The role is `LOGIN`, SELECT-only on `uw_scan` (existing + future tables via
-`ALTER DEFAULT PRIVILEGES FOR ROLE argon_app`), plus two writes:
-`INSERT mcp_access_log`, `SELECT/INSERT/UPDATE mcp_event_cursor`. Migrations
-153+154 are applied by the api service's self-migrate on next deploy.
+`ALTER DEFAULT PRIVILEGES FOR ROLE argon_app`), plus the two writes above.
 
 ## 4. Bring the services up
 
@@ -72,7 +94,8 @@ docker compose exec api python -m uw_scan.control_argon mcp-token revoke grok
 ```
 
 Revocation takes effect on the token's **next request** (no cache window —
-even an already-open session gets 401).
+even an already-open session gets 401, and an open SSE event stream stops
+receiving events and is closed on the next event).
 
 ## 6. Agent configuration
 
