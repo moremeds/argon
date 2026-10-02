@@ -6,6 +6,7 @@
 import { z } from "zod";
 import type { Columnar, McpTool, ToolCtx } from "../types";
 import { makePool } from "../lib/pool";
+import { normalizeTicker, TICKER_RE } from "../lib/ticker";
 import type {
   MagnetsResponse,
   TechnicalsLiveResponse,
@@ -34,11 +35,14 @@ import {
 } from "@/lib/magnetTiles";
 
 // ── EOD cache ─────────────────────────────────────────────────────────────
-// The /technicals payload is daily-bar history — static within a scan session
-// until the nightly refresh (or an on-demand /technicals/refresh) rewrites
-// technical_daily. The invalidation key is max(inserted_at); the upsert sets
-// inserted_at = now() on conflict, so both paths move the key. Re-checked at
-// most once per 60 s; a key change drops the whole map.
+// The /technicals payload is daily-bar history PLUS the user's VWAP anchor —
+// static within a scan session until the nightly refresh (or an on-demand
+// /technicals/refresh) rewrites technical_daily, or a POST/DELETE
+// vwap-anchor rewrites technical_vwap_anchor. The invalidation key covers
+// both tables in one query: max(inserted_at) for the dailies (the upsert
+// sets inserted_at = now() on conflict) and count:max(computed_at) for the
+// anchors — the count catches deletes, which don't move the max. Re-checked
+// at most once per 60 s; a key change drops the whole map.
 const EOD_CACHE = new Map<string, TechnicalsResponse>();
 const KEY_TTL_MS = 60_000;
 let eodKey: string | null = null;
@@ -51,7 +55,10 @@ async function refreshEodKey(ctx: ToolCtx, now: number): Promise<void> {
   // pending key query instead of racing it.
   eodKeyInFlight ??= (async () => {
     const res = (await ctx.db.query(
-      "SELECT max(inserted_at) AS k FROM uw_scan.technical_daily",
+      "SELECT (SELECT max(inserted_at) FROM uw_scan.technical_daily)::text" +
+        " || '|' || (SELECT count(*)::text || ':' ||" +
+        " coalesce(max(computed_at)::text, '')" +
+        " FROM uw_scan.technical_vwap_anchor) AS k",
     )) as { rows?: { k: unknown }[] };
     const k = res?.rows?.[0]?.k;
     const key = k == null ? "" : String(k);
@@ -159,10 +166,15 @@ const FIELD_GETTERS: Record<string, (x: RowCtx) => unknown> = {
   ret_skew: (x) => x.dist.skew,
   ret_sd: (x) => x.dist.sd,
   // — extra fields, by name or "*" —
-  sma20: (x) => last(x.data.series ?? [])?.sma20 ?? null,
-  sma50: (x) => last(x.data.series ?? [])?.sma50 ?? null,
-  sma200: (x) => last(x.data.series ?? [])?.sma200 ?? null,
-  rs_ratio: (x) => last(x.data.series ?? [])?.rs_ratio ?? null,
+  // sma200 is the KPI-strip tile value, read from the merged header
+  // (data.header.sma200) exactly like the page. sma20/sma50/rs_ratio have no
+  // header field and the spliced live row doesn't carry them (the live
+  // payload is only the fast-moving subset), so they read the last EOD bar —
+  // the same value the charts show at the head, where the live row is a gap.
+  sma20: (x) => last(x.eod.series ?? [])?.sma20 ?? null,
+  sma50: (x) => last(x.eod.series ?? [])?.sma50 ?? null,
+  sma200: (x) => x.data.header?.sma200 ?? null,
+  rs_ratio: (x) => last(x.eod.series ?? [])?.rs_ratio ?? null,
   detail: (x) => x.data.detail ?? null,
   forward_returns: (x) => x.data.forward_returns ?? null,
   vwap_anchor: (x) => x.data.vwap_anchor ?? null,
@@ -248,22 +260,28 @@ function resolveFields(requested: string[] | undefined): string[] {
 // scanTicker: EOD (cached) → live (never cached, failure → null) →
 // mergeLiveHead → overlays/verdicts/distribution → magnets on demand.
 // Throws on a hard failure; callers format the error row.
+// `ticker` must already be normalized (normalizeTicker); the path segment is
+// encodeURIComponent'd anyway as defence in depth.
 async function loadTicker(
   ctx: ToolCtx,
   ticker: string,
-  opts: { now: number; timeframe: Timeframe; wantMagnet: boolean },
+  opts: { timeframe: Timeframe; wantMagnet: boolean },
 ): Promise<RowCtx> {
+  const T = encodeURIComponent(ticker);
   let eod = EOD_CACHE.get(ticker);
   if (!eod) {
     eod = (await LIMIT(() =>
-      ctx.apiGet(`/stock/${ticker}/technicals`),
+      ctx.apiGet(`/stock/${T}/technicals`),
     )) as TechnicalsResponse;
     EOD_CACHE.set(ticker, eod);
   }
   const live = (await LIMIT(() =>
-    ctx.apiGet(`/stock/${ticker}/technicals/live`),
+    ctx.apiGet(`/stock/${T}/technicals/live`),
   ).catch(() => null)) as TechnicalsLiveResponse | null;
-  const data = mergeLiveHead(eod, live, opts.now);
+  // The freshness clock is read per ticker, after THAT ticker's live payload
+  // arrived — the page evaluates at render. A scan-start `now` would give a
+  // mid-scan capture a negative age and drop it.
+  const data = mergeLiveHead(eod, live, Date.now());
   const ov = technicalsOverlays(data, opts.timeframe);
   const dist = returnDistribution(data.series ?? []);
   const det = (data.detail ?? null) as TechDetail | null;
@@ -273,7 +291,7 @@ async function loadTicker(
   let magnet: RowCtx["magnet"] = null;
   if (opts.wantMagnet) {
     const mg = (await LIMIT(() =>
-      ctx.apiGet(`/stock/${ticker}/magnets`),
+      ctx.apiGet(`/stock/${T}/magnets`),
     )) as MagnetsResponse;
     magnet = {
       tile: volumeTile(mg.candles),
@@ -299,11 +317,11 @@ export async function scanTicker(
 ): Promise<ScanTickerRow> {
   const now = Date.now();
   const fields = resolveFields(opts.fields);
-  const t = ticker.toUpperCase();
+  // Directly callable, so it validates too — never upper-case alone.
+  const t = normalizeTicker(ticker);
   await refreshEodKey(ctx, now);
   try {
     const x = await loadTicker(ctx, t, {
-      now,
       timeframe: opts.timeframe ?? "1y",
       wantMagnet: fields.some((f) => f.startsWith("magnet_")),
     });
@@ -322,7 +340,7 @@ export async function scanTicker(
 }
 
 const inputSchema = {
-  tickers: z.array(z.string()).optional(),
+  tickers: z.array(z.string().regex(TICKER_RE)).optional(),
   fields: z.array(z.string()).optional(),
   timeframe: z.enum(["full", "1y", "ytd", "3m"]).optional(),
 };
@@ -351,9 +369,13 @@ export const tool: McpTool<typeof inputSchema> = {
     const timeframe: Timeframe = args.timeframe ?? "1y";
     const fields = resolveFields(args.fields);
 
+    // Caller-supplied tickers: normalize eagerly so a bad value rejects the
+    // call — the same rejection the zod schema applies on the MCP path.
+    // Watchlist-derived tickers instead normalize per row below: a poisoned
+    // watchlist entry becomes that row's error, not a failed scan.
     const tickers =
       args.tickers != null
-        ? args.tickers.map((t) => t.toUpperCase())
+        ? args.tickers.map(normalizeTicker)
         : (((
             (await LIMIT(() => ctx.apiGet("/watchlist"))) as {
               tickers?: { ticker?: string }[];
@@ -370,10 +392,12 @@ export const tool: McpTool<typeof inputSchema> = {
       liveCapturedAt: string | null;
     };
     const rows = await Promise.all(
-      tickers.map(async (ticker): Promise<Row> => {
+      tickers.map(async (raw): Promise<Row> => {
         try {
+          // Idempotent for the already-validated args.tickers path; this is
+          // the validation for watchlist-derived values.
+          const ticker = normalizeTicker(raw);
           const x = await loadTicker(ctx, ticker, {
-            now,
             timeframe,
             wantMagnet,
           });
@@ -385,7 +409,7 @@ export const tool: McpTool<typeof inputSchema> = {
         } catch (e) {
           return {
             cells: [
-              ticker,
+              raw,
               e instanceof Error ? e.message : String(e),
               ...fields.map(() => null),
             ],

@@ -3,6 +3,7 @@
 // isolation, fetch sharing (one /stock GET, one /trade-insights GET), and
 // value parity with the lib functions the UI now calls.
 import { describe, expect, it, vi } from "vitest";
+import { z } from "zod";
 import type { ToolCtx } from "@/mcp/types";
 import type {
   CockpitDealerResponse,
@@ -246,5 +247,22 @@ describe("ticker_snapshot", () => {
     });
     expect(out.technicals).toHaveProperty("ema20");
     expect(out.technicals).toHaveProperty("chanlun_points_n");
+  });
+
+  it("rejects a traversal probe in ticker before any apiGet", async () => {
+    const tool = await loadTool();
+    const { ctx, calls } = makeCtx();
+    for (const probe of ["../%68%65%61%6c%74%68#", "../health", "a/b", ".."]) {
+      await expect(tool.handler({ ticker: probe }, ctx)).rejects.toThrow(
+        /invalid ticker/,
+      );
+    }
+    expect(calls).toEqual({}); // the probe never reached a URL
+    // The input schema rejects it too (what the SDK enforces on the wire).
+    const schema = z.object(tool.inputSchema);
+    expect(
+      schema.safeParse({ ticker: "../%68%65%61%6c%74%68#" }).success,
+    ).toBe(false);
+    expect(schema.safeParse({ ticker: "brk.b" }).success).toBe(true);
   });
 });
