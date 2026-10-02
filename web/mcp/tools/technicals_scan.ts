@@ -180,12 +180,22 @@ const FIELD_GETTERS: Record<string, (x: RowCtx) => unknown> = {
   vwap_anchor: (x) => x.data.vwap_anchor ?? null,
   macd_watchlist_pctile: (x) => x.data.macd_watchlist_pctile ?? null,
   chanlun: (x) => x.ov.chanlun.result,
+  // Full-history marker lists (hve_last is only the newest) — the overlay's
+  // order, no display cut, reduced to {time, text}.
+  hve_markers: (x) =>
+    x.ov.markers.highVol.map((m) => ({ time: m.time, text: m.text })),
+  low_vol_markers: (x) =>
+    x.ov.markers.lowVol.map((m) => ({ time: m.time, text: m.text })),
   vp: (x) => ({
     profile: x.ov.vp.profile,
     zones: x.ov.vp.zones,
     lvn: x.ov.vp.lvn,
     stats: x.ov.vp.stats,
   }),
+  // The level lists the compact vp_* scalars summarize: LVN prices and the
+  // S/R shelf zones.
+  vp_lvn: (x) => x.ov.vp.lvn,
+  vp_zones: (x) => x.ov.vp.zones,
   fvg_gaps: (x) => x.ov.fvg.gaps,
   return_distribution: (x) => x.dist,
   // Magnet tile values — fetched per ticker only when a magnet_* field is on.
