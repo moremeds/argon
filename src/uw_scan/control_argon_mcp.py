@@ -99,7 +99,7 @@ def cmd_mcp_token(args: argparse.Namespace) -> int:
             try:
                 token = create_token(conn, args.label, schema=settings.db_schema)
             except ValueError as exc:
-                emit(FAIL, str(exc))
+                emit(FAIL, repr(exc))
                 return 1
             emit(
                 OK,
@@ -112,7 +112,7 @@ def cmd_mcp_token(args: argparse.Namespace) -> int:
             try:
                 outcome = revoke_token(conn, args.label, schema=settings.db_schema)
             except ValueError as exc:
-                emit(FAIL, str(exc))
+                emit(FAIL, repr(exc))
                 return 1
             emit(OK, f"mcp token {args.label!r}: {outcome.replace('_', ' ')}")
             return 0
