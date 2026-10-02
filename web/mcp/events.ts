@@ -35,7 +35,7 @@ export const subscribeEvents: EventStreamHook = async (ctx, send, close) => {
           [id],
         );
         const row = res.rows[0];
-        if (row) send({ ...row, id: String(row.id) });
+        if (row && !torn) send({ ...row, id: String(row.id) });
       })
       .catch(() => {
         // A failed fetch only drops the push; get_events replays it.

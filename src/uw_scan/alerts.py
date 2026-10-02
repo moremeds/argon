@@ -34,7 +34,10 @@ def _emit_ops_event(title: str, message: str) -> None:
     not ride the caller's transaction — a job's later rollback would retract an
     alert that already went out.
     """
-    with _ops_conn() as conn:
+    with _ops_conn() as conn, conn.transaction():
+        # _ops_conn is autocommit: without an explicit transaction each statement
+        # commits alone, the advisory lock drops before the INSERT, and an ops id
+        # could commit ahead of a lower uncommitted one (get_events would skip it).
         emit_event(
             conn,
             kind="ops",
