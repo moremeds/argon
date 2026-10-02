@@ -4,7 +4,15 @@ import { endpointsCache, matchEndpoint } from "../lib/endpoints";
 import type { McpTool } from "../types";
 
 function badPath(path: string): boolean {
-  return path.includes("..") || path.includes("//");
+  // '%' must be rejected outright: WHATWG URL normalization decodes
+  // percent-encoded dot segments (%2e%2e → ..) inside fetch, which would
+  // bypass the literal checks below. Encoded values arrive via `params`
+  // (encodeURIComponent'd) instead.
+  return (
+    path.includes("%") ||
+    path.includes("//") ||
+    path.split("/").some((s) => s === "." || s === "..")
+  );
 }
 
 type ReadArgs = {
@@ -30,7 +38,9 @@ export const tool: McpTool = {
   handler: async (args, ctx) => {
     const { path, params } = args as ReadArgs;
     if (badPath(path)) {
-      throw new Error(`read: invalid path '${path}' ('..' or '//' not allowed)`);
+      throw new Error(
+        `read: invalid path '${path}' ('%', '.', '..' or '//' not allowed)`,
+      );
     }
     // Convenience: /api-prefixed paths are the same endpoints (apiGet re-adds it).
     let resolved =
@@ -43,8 +53,12 @@ export const tool: McpTool = {
       if (v === undefined) {
         throw new Error(`read: missing value for path param '${name}'`);
       }
+      const s = String(v);
+      if (s === "." || s === "..") {
+        throw new Error(`read: invalid value for path param '${name}'`);
+      }
       delete query[name];
-      return encodeURIComponent(String(v));
+      return encodeURIComponent(s);
     });
     if (badPath(resolved) || resolved.includes("{") || resolved.includes("}")) {
       throw new Error(`read: invalid path '${resolved}'`);

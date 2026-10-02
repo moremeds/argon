@@ -137,9 +137,30 @@ describe("read tool", () => {
     await expect(read.handler({ path: "/a//b" }, ctx)).rejects.toThrow(
       /invalid path/,
     );
+    // '%' anywhere in the raw path is rejected — WHATWG would decode %2e%2e
+    // to '..' inside fetch and bypass the allowlist.
+    await expect(
+      read.handler({ path: "/stock/%2e%2e/technicals" }, ctx),
+    ).rejects.toThrow(/invalid path/);
+    await expect(read.handler({ path: "/st%6fck/x" }, ctx)).rejects.toThrow(
+      /invalid path/,
+    );
+    // A literal '.' segment traverses too (WHATWG normalizes '/./' away).
+    await expect(read.handler({ path: "/stock/./technicals" }, ctx)).rejects
+      .toThrow(/invalid path/);
     await expect(
       read.handler({ path: "/stock/{ticker}/technicals" }, ctx),
     ).rejects.toThrow(/missing value.*ticker/);
+    // '.'/'..' as placeholder VALUES traverse the same way — dots pass
+    // encodeURIComponent unencoded.
+    for (const ticker of [".", ".."]) {
+      await expect(
+        read.handler(
+          { path: "/stock/{ticker}/technicals", params: { ticker } },
+          ctx,
+        ),
+      ).rejects.toThrow(/invalid (value|path)/);
+    }
     await expect(
       read.handler(
         {
@@ -148,7 +169,7 @@ describe("read tool", () => {
         },
         ctx,
       ),
-    ).rejects.toThrow(/invalid path/);
+    ).rejects.toThrow(/invalid value/);
     expect(getSpy).not.toHaveBeenCalled();
   });
 });
