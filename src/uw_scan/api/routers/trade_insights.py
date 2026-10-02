@@ -87,10 +87,13 @@ def _build_blast_macro_payload(repo: Repository) -> dict[str, Any] | None:
     return out
 
 
-def _build_and_persist_trade_insights(
+def _build_trade_insights(
     ticker: str,
     repo: Repository,
-) -> tuple[TradeInsightsResponse, int, str]:
+) -> tuple[TradeInsightsResponse, dict[str, Any]]:
+    """404 + assemble, no persistence — the read-only half of
+    ``_build_and_persist_trade_insights``. Returns the response and its JSON
+    payload so callers that do persist reuse the exact bytes."""
     run_id = repo.latest_run_id(ticker)
     if run_id == 0:
         raise HTTPException(status_code=404, detail=f"no runs for {ticker}")
@@ -103,7 +106,17 @@ def _build_and_persist_trade_insights(
         as_of=report.generated_at,
         spot=report.market_structure.spot,
     )
-    payload = response.model_dump(mode="json")
+    return response, response.model_dump(mode="json")
+
+
+def _build_and_persist_trade_insights(
+    ticker: str,
+    repo: Repository,
+) -> tuple[TradeInsightsResponse, int, str]:
+    response, payload = _build_trade_insights(ticker, repo)
+    # _build_trade_insights already 404'd, so the run exists; re-read the id
+    # inside the same transaction (identical value) to feed the upserts.
+    run_id = repo.latest_run_id(ticker)
     input_hash = _stable_payload_hash(payload)
     snapshot_id = repo.upsert_trade_insight_snapshot(
         run_id=run_id,
@@ -227,6 +240,21 @@ def get_trade_insights(
     t = ticker.upper()
     response, _snapshot_id, _input_hash = _build_and_persist_trade_insights(t, repo)
     repo.conn.commit()
+    return response
+
+
+@router.get(
+    "/stock/{ticker}/trade-insights/preview",
+    response_model=TradeInsightsResponse,
+)
+def get_trade_insights_preview(
+    ticker: str, repo: Repository = Depends(get_repo)
+) -> TradeInsightsResponse:
+    """Read-only twin of GET /stock/{ticker}/trade-insights for the agent MCP:
+    same assembled body, but never upserts a snapshot, never replaces
+    candidates, never commits."""
+    t = ticker.upper()
+    response, _payload = _build_trade_insights(t, repo)
     return response
 
 

@@ -770,6 +770,28 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/stock/{ticker}/trade-insights/preview": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Get Trade Insights Preview
+         * @description Read-only twin of GET /stock/{ticker}/trade-insights for the agent MCP:
+         *     same assembled body, but never upserts a snapshot, never replaces
+         *     candidates, never commits.
+         */
+        get: operations["get_trade_insights_preview_api_stock__ticker__trade_insights_preview_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/stock/{ticker}/trade-insights/ai-analysis": {
         parameters: {
             query?: never;
@@ -14504,6 +14526,37 @@ export interface operations {
         };
     };
     get_trade_insights_api_stock__ticker__trade_insights_get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                ticker: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["TradeInsightsResponse"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    get_trade_insights_preview_api_stock__ticker__trade_insights_preview_get: {
         parameters: {
             query?: never;
             header?: never;
