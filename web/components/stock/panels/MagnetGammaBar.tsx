@@ -2,8 +2,8 @@ import type { components } from "@/lib/types";
 import {
   fmtSignedCompactMoney,
   fmtSignedPct,
-  toNum,
 } from "@/lib/formatters";
+import { gammaBarTiles } from "@/lib/snapshot/gammaBar";
 
 type Report = components["schemas"]["SingleStockReport"];
 
@@ -71,33 +71,16 @@ export function MagnetGammaBar({ report }: { report: Report }) {
   const regime = report.dealer_regime;
   if (!regime) return null;
 
-  const spot = toNum(report.market_structure?.spot);
-  const netGex = toNum(report.market_structure?.net_gex);
-  const prevClose = toNum(regime.prev_close_net_gex);
-  const odte = toNum(regime.odte_net_gex);
-
-  const lv = report.market_structure_levels;
-  const callWall = lv?.call_wall ? toNum(lv.call_wall.strike) : null;
-  const callWallGex = lv?.call_wall ? toNum(lv.call_wall.net_gex) : null;
-  const putWall = lv?.put_wall ? toNum(lv.put_wall.strike) : null;
-  const putWallGex = lv?.put_wall ? toNum(lv.put_wall.net_gex) : null;
-  const flip = lv?.gex_flip ? toNum(lv.gex_flip.strike) : null;
-
-  // Top wall = larger |gex|; ties go to the call wall.
-  const useCallTop =
-    (callWallGex != null ? Math.abs(callWallGex) : 0) >=
-    (putWallGex != null ? Math.abs(putWallGex) : 0);
-  const topWallStrike = useCallTop ? callWall : putWall;
-  const topWallGex = useCallTop ? callWallGex : putWallGex;
-
-  const deltaVsPrev =
-    netGex != null && prevClose != null ? netGex - prevClose : null;
-  const deltaPct =
-    netGex != null && prevClose != null && prevClose !== 0
-      ? deltaVsPrev! / Math.abs(prevClose)
-      : null;
-  const flipDistPct =
-    flip != null && spot != null && spot > 0 ? (flip - spot) / spot : null;
+  const {
+    netGex,
+    odte,
+    topWallStrike,
+    topWallGex,
+    deltaVsPrev,
+    deltaPct,
+    flip,
+    flipDistPct,
+  } = gammaBarTiles(report);
 
   return (
     <div style={panelStyle} data-testid="magnet-gamma-bar">

@@ -3,6 +3,11 @@ import { fmtDecimal, fmtPct, fmtSigned } from "@/lib/formatters";
 import { AnalyticalSeriesPanel } from "./AnalyticalSeriesPanel";
 import { Tile, type TechDetail } from "./TechnicalsTiles";
 import { linearScale, pathFromPoints, type Point } from "@/lib/svgChart";
+import { sigmoidRejectReason } from "@/lib/technicals/verdicts";
+
+// Moved to lib/technicals/verdicts.ts (pure, Node-usable); re-exported so
+// existing importers keep working.
+export { sigmoidRejectReason };
 
 /** The per-request sigmoid fit, drawn as actual-price (muted) vs the fitted
  * logistic (accent). Both arrays are the same length (segment since the last
@@ -56,31 +61,6 @@ export function SigmoidFitChart({
       />
     </svg>
   );
-}
-
-/** Why the sigmoid fit was rejected, in plain English. Derived from the two R²
- * values the payload already carries + the backend's validity gate
- * (r2_sig ≥ 0.80 AND r2_sig ≥ r2_lin + 0.05 AND k > 0). The old copy hardcoded
- * only the beats-linear clause, so on an absolute-fit miss it printed the false
- * "0.31 ≤ 0.05 + 0.05" — this names the clause that actually failed.
- * ponytail: the 0.80 mirrors fit_sigmoid()'s gate — copy-only; drift here just
- * softens wording, never a data bug. */
-export function sigmoidRejectReason(
-  r2Sig: number | null | undefined,
-  r2Lin: number | null | undefined,
-): string {
-  const pct = (x: number) => `${Math.round(x * 100)}%`;
-  if (r2Sig == null)
-    return "not enough clean history since the last pivot to fit a curve";
-  if (r2Sig < 0.8)
-    return `the move is too choppy for a clean S-curve — the fit explains only ${pct(r2Sig)} of it (an S-curve needs ≥ 80%)`;
-  // Without r2_linear we can't tell the beats-linear clause from the k clause —
-  // so don't assert either; stay generic rather than blame the wrong one.
-  if (r2Lin == null)
-    return "the S-curve doesn't clear the bar over a plain trend line";
-  if (r2Sig < r2Lin + 0.05)
-    return `a straight line already explains it about as well (S-curve ${pct(r2Sig)} vs linear ${pct(r2Lin)}) — the trend is roughly linear, not an S`;
-  return "the fitted curve bends the wrong way (decelerating into the pivot)";
 }
 
 const grid: React.CSSProperties = {

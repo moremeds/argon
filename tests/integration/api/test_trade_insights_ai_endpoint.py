@@ -566,3 +566,49 @@ def test_trade_insights_ai_post_providers_empty_list_falls_back_to_all_enabled(
     # the UI's "Run with everything" path with `providers=[]` doesn't no-op.
     providers = {a["provider"] for a in response.json()["analyses"]}
     assert providers == {"codex", "claude"}
+
+
+def test_trade_insights_preview_is_read_only(
+    seeded_db_empty_cards,
+    monkeypatch,
+):
+    """GET /preview returns the same body as the persisting GET but writes
+    nothing — no trade_insight_snapshots / trade_insight_candidates rows, no
+    commit."""
+    repo = seeded_db_empty_cards
+    _seed_run(repo)
+    _patch_api_sources(monkeypatch)
+    client = _client_for_settings(_settings_for_repo(repo))
+
+    def _counts() -> tuple[int, int]:
+        with repo.conn.cursor() as cur:
+            cur.execute(
+                f"SELECT count(*) FROM {repo._schema}.trade_insight_snapshots"
+            )
+            snaps = int(cur.fetchone()[0])
+            cur.execute(
+                f"SELECT count(*) FROM {repo._schema}.trade_insight_candidates"
+            )
+            cands = int(cur.fetchone()[0])
+        return snaps, cands
+
+    before = _counts()
+    preview = client.get("/api/stock/TSLA/trade-insights/preview")
+    assert preview.status_code == 200
+    assert _counts() == before  # preview wrote nothing
+
+    persisted = client.get("/api/stock/TSLA/trade-insights")
+    assert persisted.status_code == 200
+    assert preview.json() == persisted.json()  # same assembled body
+    snaps_after, _cands_after = _counts()
+    assert snaps_after == before[0] + 1  # the persisting GET DID write
+
+
+def test_trade_insights_preview_404_without_runs(
+    seeded_db_empty_cards,
+    monkeypatch,
+):
+    repo = seeded_db_empty_cards
+    _patch_api_sources(monkeypatch)
+    client = _client_for_settings(_settings_for_repo(repo))
+    assert client.get("/api/stock/ZZZZ/trade-insights/preview").status_code == 404

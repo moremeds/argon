@@ -35572,6 +35572,49 @@
         ]
       }
     },
+    "/api/stock/{ticker}/trade-insights/preview": {
+      "get": {
+        "description": "Read-only twin of GET /stock/{ticker}/trade-insights for the agent MCP:\nsame assembled body, but never upserts a snapshot, never replaces\ncandidates, never commits.",
+        "operationId": "get_trade_insights_preview_api_stock__ticker__trade_insights_preview_get",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "ticker",
+            "required": true,
+            "schema": {
+              "title": "Ticker",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/TradeInsightsResponse"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Get Trade Insights Preview",
+        "tags": [
+          "trade-insights"
+        ]
+      }
+    },
     "/api/stock/{ticker}/trade-insights/ai-analysis": {
       "post": {
         "description": "Enqueue one Trade Insights AI analysis per enabled provider.\n\nResponse contains one stub per provider with status + reused + model.\nDisabled providers are omitted from the response (not included with a\n'disabled' status \u2014 the UI tab handles this via /latest = null).\n\n``kind`` selects the lane: ``insights`` (v5.3 card) or ``blast``\n(trade-blast framework prompt).",

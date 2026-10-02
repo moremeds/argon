@@ -6,6 +6,7 @@
   "scripts": {
     "dev": "next dev --port 3001",
     "build": "next build",
+    "build:mcp": "esbuild mcp/server.ts --bundle --platform=node --format=esm --banner:js=\"import { createRequire } from 'node:module'; const require = createRequire(import.meta.url);\" --external:pg-native --external:lightweight-charts --external:fancy-canvas --outfile=.mcp-dist/server.mjs",
     "start": "next start --port 3001",
     "typecheck": "tsc --noEmit",
     "lint": "eslint .",
@@ -18,24 +19,29 @@
   "dependencies": {
     "@fontsource/ibm-plex-mono": "^5.2.7",
     "@fontsource/inter": "^5.2.7",
+    "@modelcontextprotocol/sdk": "^1.31.0",
     "@types/d3": "^7.4.3",
     "d3": "^7.9.0",
     "fancy-canvas": "2.1.0",
     "lightweight-charts": "^5.2.0",
     "lucide-react": "^0.544.0",
     "next": "16.2.6",
+    "pg": "^8.23.1",
     "react": "^19.2.4",
-    "react-dom": "^19.2.4"
+    "react-dom": "^19.2.4",
+    "zod": "^4.6.5"
   },
   "devDependencies": {
     "@playwright/test": "^1.58.2",
     "@testing-library/dom": "^10.4.1",
     "@testing-library/react": "^16.3.2",
     "@types/node": "^22.10.0",
+    "@types/pg": "^8.23.1",
     "@types/react": "^19.0.0",
     "@types/react-dom": "^19.0.0",
     "autoprefixer": "^10.4.20",
     "concurrently": "^9.2.1",
+    "esbuild": "^0.28.2",
     "eslint": "^9.21.0",
     "eslint-config-next": "^16.1.6",
     "jsdom": "^25.0.1",

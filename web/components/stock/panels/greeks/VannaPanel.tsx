@@ -3,6 +3,12 @@
 import { useMemo, useState } from "react";
 import type { components } from "@/lib/types";
 import { fmtMoneyAbbrev } from "@/lib/formatters";
+import {
+  defaultExpiry,
+  netExposureCurve,
+  netExposureTone,
+  sortByExpiry,
+} from "@/lib/snapshot/greeksNet";
 import { CallPutExposureChart } from "./CallPutExposureChart";
 import { ExpiryDropdown } from "./ExpiryDropdown";
 import { ExposureTile } from "./ExposureTile";
@@ -31,19 +37,12 @@ const toSpot = (v: string | number | null | undefined): number | null => {
 };
 
 export function VannaPanel({ ticker, strikeExposures, summary }: Props) {
-  const sortedSummary = useMemo(
-    () => [...summary].sort((a, b) => (a.expiry < b.expiry ? -1 : 1)),
-    [summary],
+  const sortedSummary = useMemo(() => sortByExpiry(summary), [summary]);
+  const initialExpiry = useMemo(
+    () => defaultExpiry(sortedSummary),
+    [sortedSummary],
   );
-  const defaultExpiry = useMemo(() => {
-    const live = sortedSummary
-      .filter((r) => r.dte == null || (r.dte as number) >= 0)
-      .sort(
-        (a, b) => ((a.dte ?? 99999) as number) - ((b.dte ?? 99999) as number),
-      );
-    return (live[0] ?? sortedSummary[0])?.expiry ?? null;
-  }, [sortedSummary]);
-  const [selected, setSelected] = useState<string | null>(defaultExpiry);
+  const [selected, setSelected] = useState<string | null>(initialExpiry);
 
   if (sortedSummary.length === 0) {
     return (
@@ -59,13 +58,7 @@ export function VannaPanel({ ticker, strikeExposures, summary }: Props) {
     (r) => r.expiry === summaryRow.expiry,
   );
 
-  const netCurve = rowsForExpiry
-    .map((r) => ({
-      strike: toNum(r.strike) ?? NaN,
-      netValue: (toNum(r.call_vanna) ?? 0) + (toNum(r.put_vanna) ?? 0),
-    }))
-    .filter((p) => Number.isFinite(p.strike))
-    .sort((a, b) => a.strike - b.strike);
+  const netCurve = netExposureCurve(rowsForExpiry, "vanna");
 
   const callPutCurve = rowsForExpiry
     .map((r) => ({
@@ -80,12 +73,7 @@ export function VannaPanel({ ticker, strikeExposures, summary }: Props) {
   const spot = toSpot(summaryRow.spot);
   const flip = toNum(summaryRow.vanna_flip);
   const netVanna = toNum(summaryRow.net_vanna);
-  const tone =
-    netVanna == null || Math.abs(netVanna) < 1000
-      ? "muted"
-      : netVanna > 0
-        ? "positive"
-        : "negative";
+  const tone = netExposureTone(netVanna);
 
   return (
     <div style={{ display: "flex", flexDirection: "column", gap: 12 }}>

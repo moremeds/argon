@@ -1,0 +1,137 @@
+{
+  "api": "http://127.0.0.1:8499",
+  "web": "http://127.0.0.1:3091",
+  "as_of": {
+    "eod": "2026-09-18",
+    "live": null
+  },
+  "ok": true,
+  "report": {
+    "AAPL": {
+      "sameEodPayload": true,
+      "sameLivePayload": true,
+      "vpMatch": true,
+      "ui": {
+        "poc": "254.92",
+        "vah": "339.37",
+        "val": "232.83",
+        "nearest_r": "–",
+        "nearest_s": "309.49",
+        "bias": "balanced"
+      },
+      "tool": {
+        "poc": "254.92",
+        "vah": "339.37",
+        "val": "232.83",
+        "nearest_r": "–",
+        "nearest_s": "309.49",
+        "bias": "balanced"
+      },
+      "toolRow": {
+        "ticker": "AAPL",
+        "error": null,
+        "eod_as_of": "2026-09-18",
+        "live_captured_at": null,
+        "ema20": 325.01683477793944,
+        "chanlun_points_n": 14,
+        "chanlun_last_point": {
+          "time": "2026-08-12",
+          "type": "3B",
+          "price": 300.57,
+          "confirmed": true,
+          "resonant": false
+        },
+        "vp_poc": 254.91644272092208,
+        "vp_vah": 339.37259812874913,
+        "vp_val": 232.82790976810577,
+        "vp_nearest_s": 309.48811236905647,
+        "vp_nearest_r": null,
+        "vp_bias": "balanced"
+      }
+    },
+    "NVDA": {
+      "sameEodPayload": true,
+      "sameLivePayload": true,
+      "vpMatch": true,
+      "ui": {
+        "poc": "183.05",
+        "vah": "219.53",
+        "val": "167.75",
+        "nearest_r": "–",
+        "nearest_s": "183.05",
+        "bias": "bullish"
+      },
+      "tool": {
+        "poc": "183.05",
+        "vah": "219.53",
+        "val": "167.75",
+        "nearest_r": "–",
+        "nearest_s": "183.05",
+        "bias": "bullish"
+      },
+      "toolRow": {
+        "ticker": "NVDA",
+        "error": null,
+        "eod_as_of": "2026-09-18",
+        "live_captured_at": null,
+        "ema20": 218.50341205721912,
+        "chanlun_points_n": 16,
+        "chanlun_last_point": {
+          "time": "2026-05-04",
+          "type": "3B",
+          "price": 194.29588350499523,
+          "confirmed": true,
+          "resonant": false
+        },
+        "vp_poc": 183.05068931318914,
+        "vp_vah": 219.52726417312257,
+        "vp_val": 167.7540611461203,
+        "vp_nearest_s": 183.05068931318917,
+        "vp_nearest_r": null,
+        "vp_bias": "bullish"
+      }
+    },
+    "SPY": {
+      "sameEodPayload": true,
+      "sameLivePayload": true,
+      "vpMatch": true,
+      "ui": {
+        "poc": "675.13",
+        "vah": "695.98",
+        "val": "580.16",
+        "nearest_r": "–",
+        "nearest_s": "675.13",
+        "bias": "bullish"
+      },
+      "tool": {
+        "poc": "675.13",
+        "vah": "695.98",
+        "val": "580.16",
+        "nearest_r": "–",
+        "nearest_s": "675.13",
+        "bias": "bullish"
+      },
+      "toolRow": {
+        "ticker": "SPY",
+        "error": null,
+        "eod_as_of": "2026-09-18",
+        "live_captured_at": null,
+        "ema20": 762.8305686924726,
+        "chanlun_points_n": 19,
+        "chanlun_last_point": {
+          "time": "2026-08-28",
+          "type": "2S",
+          "price": 775.3,
+          "confirmed": true,
+          "resonant": false
+        },
+        "vp_poc": 675.1332868347823,
+        "vp_vah": 695.9806294678258,
+        "vp_val": 580.1620592842506,
+        "vp_nearest_s": 675.1332868347823,
+        "vp_nearest_r": null,
+        "vp_bias": "bullish"
+      }
+    }
+  }
+}

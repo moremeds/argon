@@ -22,9 +22,11 @@ from uw_scan.reports.vrp_macro_drawdown import load_index_vol
 from uw_scan.reports.vrp_macro_signal import (
     WINNER,
     MacroSignalConfig,
+    MacroSignal,
     backtest_laddered,
     current_macro_signal,
 )
+from uw_scan.storage.mcp_events import emit_on_change
 from uw_scan.storage.repository import Repository
 
 log = logging.getLogger(__name__)
@@ -56,11 +58,22 @@ def vrp_macro_signal_refresh(
     config = asdict(cfg)
     persisted = 0
     failed: list[str] = []
+    changes: list[tuple[str, str | None, datetime | None, MacroSignal]] = []
     for name in names:
         try:
             loaded = load_index_vol(repo, name)
             bt = backtest_laddered(loaded, settings, cfg)
             sig = current_macro_signal(repo, settings, name, cfg)
+            # `snapshot_prev` is the previous persisted action — keyed by
+            # snapshot_date — still read BEFORE the upsert; its `created_at`
+            # (reset to now() by the upsert's ON CONFLICT) is the write time
+            # emit_on_change's timestamp guard needs. emit_on_change resolves
+            # the anchor (the last EMITTED action) itself, under the advisory
+            # lock. Emitting mid-loop would still be inside this long tx — so
+            # changes are collected and emitted just before the commit.
+            prev_rows = repo.fetch_latest_vrp_macro_signals([name], basis="eod")
+            snapshot_prev = prev_rows[0]["action"] if prev_rows else None
+            snapshot_prev_at = prev_rows[0]["created_at"] if prev_rows else None
             repo.upsert_vrp_macro_signal(
                 name=name,
                 snapshot_date=snapshot_date,
@@ -92,6 +105,7 @@ def vrp_macro_signal_refresh(
                 strike_grid_date=sig.strike_grid_date,
                 expiry=sig.expiry,
             )
+            changes.append((name, snapshot_prev, snapshot_prev_at, sig))
             persisted += 1
             log.info(
                 "vrp_macro_signal %s: as_of=%s action=%s weight=%.3f sharpe=%s",
@@ -104,6 +118,28 @@ def vrp_macro_signal_refresh(
         except Exception as exc:  # noqa: BLE001 - per-name isolation; log and continue
             failed.append(name)
             log.warning("vrp_macro_signal %s: skipped — %s", name, repr(exc))
+    for name, snapshot_prev, snapshot_prev_at, sig in changes:
+        # Each emit rides a SAVEPOINT inside the pending tx: a failed emit
+        # rolls back only the event row — it can never cost the upserts
+        # already staged, nor the commit below.
+        try:
+            with repo.conn.transaction():
+                emit_on_change(
+                    repo.conn,
+                    kind="vrp_macro_signal",
+                    subject=name,
+                    basis="eod",
+                    snapshot_prev=snapshot_prev,
+                    snapshot_prev_at=snapshot_prev_at,
+                    new=sig.action,
+                    payload={
+                        "as_of": sig.as_of.isoformat() if sig.as_of else None,
+                        "vrp_z": float(sig.vrp_z) if sig.vrp_z is not None else None,
+                        "weight": float(sig.weight),
+                    },
+                )
+        except Exception as exc:  # noqa: BLE001
+            log.warning("vrp_macro_signal %s: event emit failed — %s", name, repr(exc))
     repo.conn.commit()
     counts = {"persisted": persisted, "failed": failed, "snapshot_date": snapshot_date}
     log.info(

@@ -11,7 +11,12 @@ import {
 } from "@/lib/regime/useGex";
 import { useGexIntraday } from "@/lib/regime/useGexIntraday";
 import { MarketState } from "@/lib/regime/useMarketHours";
-import { quoteIsFresh, useRegimeQuotes } from "@/lib/regime/useRegimeQuotes";
+import { useRegimeQuotes } from "@/lib/regime/useRegimeQuotes";
+import {
+  gexSpotRead,
+  liveSpotSelection,
+  retagProfileForSpot,
+} from "@/lib/regime/derive/gex";
 import InfoTooltip from "./InfoTooltip";
 import GexCurvatureChart from "@/components/shared/GexCurvatureChart";
 import { HistoryChart } from "./HistoryChart";
@@ -98,56 +103,9 @@ export function SpotFreshnessPill({
 
 /* ─── Live-spot profile re-anchor ─────────────────────── */
 
-/**
- * Recompute each bucket's distance from a live spot and re-place the SPOT
- * tag on the nearest strike, mirroring the backend's tag_profile precedence
- * (SPOT first, GEX FLIP overrides, levels fill the remaining strikes) so a
- * spot move can't strand a stale SPOT row. Exported for unit testing.
- */
-export function retagProfileForSpot(
-  profile: GexBucket[],
-  liveSpot: number,
-  levels:
-    | {
-        gex_flip?: GexLevel;
-        max_magnet?: GexLevel;
-        second_magnet?: GexLevel;
-        max_accelerator?: GexLevel;
-        put_wall?: GexLevel;
-        call_wall?: GexLevel;
-      }
-    | null
-    | undefined,
-): GexBucket[] {
-  if (!profile.length) return profile;
-  let nearest: number | null = null;
-  let minDist = Infinity;
-  for (const b of profile) {
-    const d = Math.abs(b.strike - liveSpot);
-    if (d < minDist) {
-      minDist = d;
-      nearest = b.strike;
-    }
-  }
-  const tagMap = new Map<number, string>();
-  if (nearest != null) tagMap.set(nearest, "SPOT");
-  if (levels?.gex_flip) tagMap.set(levels.gex_flip.strike, "GEX FLIP");
-  const labelled: [GexLevel, string][] = [
-    [levels?.max_magnet ?? null, "MAX MAGNET"],
-    [levels?.second_magnet ?? null, "SECOND MAGNET"],
-    [levels?.max_accelerator ?? null, "MAX ACCELERATOR"],
-    [levels?.put_wall ?? null, "PUT WALL"],
-    [levels?.call_wall ?? null, "CALL WALL"],
-  ];
-  for (const [level, label] of labelled) {
-    if (level && !tagMap.has(level.strike)) tagMap.set(level.strike, label);
-  }
-  return profile.map((b) => ({
-    ...b,
-    pct_from_spot: ((b.strike - liveSpot) / liveSpot) * 100,
-    tag: tagMap.get(b.strike) ?? null,
-  }));
-}
+// retagProfileForSpot moved verbatim to @/lib/regime/derive/gex; re-exported
+// here so existing imports (tests/unit/GexLiveProfile.test.tsx) keep working.
+export { retagProfileForSpot };
 
 /* ─── Level Card ──────────────────────────────────────── */
 
@@ -190,29 +148,26 @@ export default function GexSubTab({ marketState }: GexSubTabProps) {
   const { data: intraday } = useGexIntraday(marketState ?? null, "SPX", 5);
   const { data: quotes } = useRegimeQuotes();
 
-  // Live SPX splice: when the WS quote is fresh, the SPOT card and the
-  // profile chart tick with it; everything else stays on the scan snapshot.
-  // The quote must also not predate the snapshot's own tick (tape_time) —
-  // a stalled WS feed inside the freshness window must not move spot
-  // backwards past a newer scan.
-  const spxQuote = data?.ticker === "SPX" ? quotes?.quotes?.SPX : undefined;
-  const quoteAtMs = spxQuote?.quoted_at ? Date.parse(spxQuote.quoted_at) : NaN;
-  const tapeMs = data?.tape_time ? Date.parse(data.tape_time) : NaN;
-  const quoteNotBehindTape =
-    !Number.isFinite(quoteAtMs) || !Number.isFinite(tapeMs)
-      ? true
-      : quoteAtMs >= tapeMs;
-  const liveSpot =
-    spxQuote &&
-    quoteNotBehindTape &&
-    quoteIsFresh(spxQuote.quoted_at, quotes?.fresh_within_seconds)
-      ? spxQuote.price
-      : null;
+  // Live SPX splice + spot/day-change derivations live in
+  // @/lib/regime/derive/gex (verbatim); the clock stays inside the lib call,
+  // like the original quoteIsFresh. The calls take primitives/a primitive
+  // literal so `data` — a useMemo dep — never reaches an opaque callee.
+  const { liveSpot, spotTapeTime } = liveSpotSelection(
+    data?.ticker,
+    data?.tape_time,
+    quotes,
+  );
 
   const liveProfile: GexBucket[] = useMemo(() => {
     const profile = data?.profile ?? [];
     if (liveSpot == null || !profile.length) return profile;
-    return retagProfileForSpot(profile, liveSpot, data?.levels);
+    // Fresh copies keep `data` out of the cross-file call — the compiler
+    // treats dep-derived objects handed to an opaque callee as mutable.
+    return retagProfileForSpot(
+      [...profile],
+      liveSpot,
+      data?.levels ? { ...data.levels } : null,
+    );
   }, [data, liveSpot]);
 
   if (loading && !data) {
@@ -299,19 +254,15 @@ export default function GexSubTab({ marketState }: GexSubTabProps) {
       ? quotesAsOfMs
       : Date.parse(lastSync ?? data.scan_time);
 
-  const displaySpot = liveSpot ?? data.spot;
-  // prev_close of 0 means "missing", not a real reference price.
-  const prevClose =
-    data.prev_close != null && data.prev_close > 0 ? data.prev_close : null;
-  const dayChange =
-    liveSpot != null && prevClose != null
-      ? liveSpot - prevClose
-      : data.day_change;
-  const dayChangePct =
-    liveSpot != null && prevClose != null
-      ? ((liveSpot - prevClose) / prevClose) * 100
-      : data.day_change_pct;
-  const spotTapeTime = liveSpot != null ? spxQuote?.quoted_at : data.tape_time;
+  const { displaySpot, dayChange, dayChangePct } = gexSpotRead(
+    {
+      spot: data.spot,
+      prev_close: data.prev_close,
+      day_change: data.day_change,
+      day_change_pct: data.day_change_pct,
+    },
+    liveSpot,
+  );
 
   const netGexColor = data.net_gex >= 0 ? "var(--signal-core)" : "var(--fault)";
   const netDexColor = data.net_dex >= 0 ? "var(--signal-core)" : "var(--fault)";

@@ -1,6 +1,14 @@
 import type { TechnicalsResponse } from "@/lib/api";
 import { fmtDecimal, fmtPct } from "@/lib/formatters";
+import {
+  alignmentBadge,
+  kinematicsReading,
+} from "@/lib/technicals/verdicts";
 import { OscillatorChart } from "./OscillatorChart";
+
+// Moved to lib/technicals/verdicts.ts (pure, Node-usable); re-exported so
+// existing importers keep working.
+export { kinematicsReading };
 
 type Row = TechnicalsResponse["series"][number];
 
@@ -81,32 +89,6 @@ export function TechnicalsVolChart({ data }: { data: TechnicalsResponse }) {
   );
 }
 
-// Plain-English take on the three MA slopes: how many are statistically
-// reliable (|t| >= 2) and whether they point the same way. Complements the
-// ALIGN badge (which reports stack order, not velocity).
-export function kinematicsReading(
-  t20: number | null | undefined,
-  t50: number | null | undefined,
-  t200: number | null | undefined,
-): string | null {
-  const known = [t20, t50, t200].filter(
-    (t): t is number => typeof t === "number",
-  );
-  if (known.length < 3) return null;
-  const sig = known.filter((t) => Math.abs(t) >= 2);
-  if (sig.length === 0)
-    return "Reading: no MA slope is statistically reliable — no trend.";
-  const up = sig.filter((t) => t > 0).length;
-  const down = sig.filter((t) => t < 0).length;
-  if (up > 0 && down > 0)
-    return `Reading: slopes disagree (${sig.length}/3 reliable) — no clean trend.`;
-  const conf = sig.length === 3 ? "all three MAs" : `${sig.length}/3 MAs`;
-  const dir = up > 0 ? "rising" : "falling";
-  const strength = sig.length === 3 ? "confirmed" : "tentative";
-  const verdict = up > 0 ? "uptrend" : "downtrend";
-  return `Reading: ${conf} ${dir}, statistically reliable — ${strength} ${verdict}.`;
-}
-
 export function TechnicalsKinematicsChart({
   data,
 }: {
@@ -138,28 +120,28 @@ export function TechnicalsKinematicsChart({
       : `${name} · t ${Math.abs(t) >= 10 ? t.toFixed(0) : t.toFixed(1)}`;
   // Alignment badge: label the direction (BULL/BEAR/MIXED) and color it by sign
   // so a bearish stack reads red at a glance — |a| shows how many of the 3 MAs
-  // are stacked that way.
-  const a = kin.alignment;
-  const badge =
-    a == null ? undefined : (
+  // are stacked that way. The label/count come from lib/technicals/verdicts.
+  const badge = alignmentBadge(kin.alignment);
+  const badgeEl =
+    badge == null ? undefined : (
       <span
         style={{
           color:
-            a > 0
+            badge.label === "BULL"
               ? "var(--positive)"
-              : a < 0
+              : badge.label === "BEAR"
                 ? "var(--negative)"
                 : "var(--text-muted)",
         }}
       >
-        {a > 0 ? "BULL" : a < 0 ? "BEAR" : "MIXED"} ALIGN {Math.abs(a)}/3
+        {badge.text}
       </span>
     );
   return (
     <OscillatorChart
       title="MA Kinematics — slope of each average"
       subtitle="ATR-normalized velocity · weighted by trend reliability"
-      headline={badge}
+      headline={badgeEl}
       dates={datesOf(s)}
       lines={[
         {

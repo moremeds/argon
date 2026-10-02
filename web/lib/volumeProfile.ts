@@ -278,3 +278,45 @@ export function findLvnLevels(
   }
   return found;
 }
+
+/** What the profile currently says — pushed to React for the stats readout. */
+export type VolumeProfileStats = {
+  poc: number;
+  vah: number;
+  val: number;
+  nearestSupport: number | null;
+  nearestResistance: number | null;
+  bias: "bullish" | "bearish" | "balanced";
+  supportCount: number;
+  resistanceCount: number;
+  lastPrice: number;
+};
+
+export function buildStats(
+  profile: VolumeProfile,
+  zones: readonly SrZone[],
+  lastPrice: number,
+): VolumeProfileStats {
+  const vah = profile.bins[profile.vahIdx].high;
+  const val = profile.bins[profile.valIdx].low;
+  const supports = zones.filter((z) => z.side === "support");
+  const resistances = zones.filter((z) => z.side === "resistance");
+  return {
+    poc: profile.pocPrice,
+    vah,
+    val,
+    // Nearest = the one price would reach first, so highest support / lowest
+    // resistance.
+    nearestSupport: supports.length
+      ? Math.max(...supports.map((z) => z.price))
+      : null,
+    nearestResistance: resistances.length
+      ? Math.min(...resistances.map((z) => z.price))
+      : null,
+    bias:
+      lastPrice > vah ? "bullish" : lastPrice < val ? "bearish" : "balanced",
+    supportCount: supports.length,
+    resistanceCount: resistances.length,
+    lastPrice,
+  };
+}

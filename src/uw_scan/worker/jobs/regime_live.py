@@ -10,7 +10,7 @@ intraday record.
 from __future__ import annotations
 
 import logging
-from datetime import datetime
+from datetime import datetime, timedelta
 from zoneinfo import ZoneInfo
 
 from uw_scan.config import Settings
@@ -18,6 +18,7 @@ from uw_scan.reports.vrp_macro_signal import WINNER, current_macro_signal_live
 from uw_scan.scanners import cri as cri_scanner
 from uw_scan.scanners import vcg as vcg_scanner
 from uw_scan.scanners.live_quotes import load_live_quotes
+from uw_scan.storage.mcp_events import emit_on_change
 from uw_scan.storage.repository import Repository
 
 logger = logging.getLogger(__name__)
@@ -74,6 +75,12 @@ def regime_live_scan_once(
                 live_spot=float(spx_q.price),
                 live_iv=float(vix_q.price) / 100.0,
             )
+            # `snapshot_prev` is the previous persisted live action, still
+            # read BEFORE the upsert; emit_on_change resolves the anchor (the
+            # last EMITTED action) itself, under the advisory lock. The
+            # existing commit below covers both rows in one tx.
+            prev_rows = repo.fetch_latest_vrp_macro_signals(["SPX"], basis="live")
+            snapshot_prev = prev_rows[0]["action"] if prev_rows else None
             repo.upsert_vrp_macro_signal(
                 name="SPX",
                 snapshot_date=datetime.now(ZoneInfo(settings.rth_tz)).date(),
@@ -106,6 +113,33 @@ def regime_live_scan_once(
                 strike_grid_date=sig.strike_grid_date,
                 expiry=sig.expiry,
             )
+            # Emit in a SAVEPOINT inside this tx: a failed emit rolls back
+            # only the event row — it must not cost the live upsert or flip
+            # the leg to "failed". The cooldown passes through unchanged, but
+            # is benign on suppression: the anchor stays at the last emitted
+            # action, so a cooldown-suppressed flip re-attempts each tick and
+            # emits once the window passes if the state still differs —
+            # intended, the flip is delayed rather than dropped.
+            try:
+                with repo.conn.transaction():
+                    emit_on_change(
+                        repo.conn,
+                        kind="vrp_macro_signal",
+                        subject="SPX",
+                        basis="live",
+                        snapshot_prev=snapshot_prev,
+                        new=sig.action,
+                        payload={
+                            "as_of": sig.as_of.isoformat() if sig.as_of else None,
+                            "vrp_z": float(sig.vrp_z)
+                            if sig.vrp_z is not None
+                            else None,
+                            "weight": float(sig.weight),
+                        },
+                        cooldown=timedelta(hours=1),
+                    )
+            except Exception as exc:  # noqa: BLE001
+                logger.warning("regime_live_vrp_emit_failed err=%s", repr(exc))
             repo.conn.commit()
             vrp_status = "ok"
         except Exception as exc:  # noqa: BLE001 — per-leg isolation

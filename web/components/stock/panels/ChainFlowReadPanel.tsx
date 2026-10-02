@@ -1,11 +1,9 @@
 import type { TradeInsightsResponse } from "@/lib/api";
+import { chainFlowRead } from "@/lib/snapshot/chainFlow";
 import { DataTable } from "./DataTable";
 import { InsightPanel, InsightStatusBanner } from "./InsightPanel";
 
 type Row = TradeInsightsResponse["flow_table"][number];
-
-const n = (v: string | number | null | undefined) =>
-  v == null ? 0 : Number(v);
 
 function Highlight({
   label,
@@ -108,54 +106,16 @@ export function ChainFlowReadPanel({ rows }: { rows: Row[] }) {
     );
   }
 
-  const totalCallVolume = rows.reduce(
-    (sum, row) => sum + n(row.call_volume),
-    0,
-  );
-  const totalPutVolume = rows.reduce((sum, row) => sum + n(row.put_volume), 0);
-  const tapeRatio =
-    totalPutVolume > 0 ? totalCallVolume / totalPutVolume : null;
-  const t1Count = rows.filter((row) => row.requires_t1_oi_confirmation).length;
-  const strongest = [...rows].sort(
-    (a, b) =>
-      n(b.call_volume) +
-      n(b.put_volume) +
-      n(b.call_open_interest) +
-      n(b.put_open_interest) -
-      (n(a.call_volume) +
-        n(a.put_volume) +
-        n(a.call_open_interest) +
-        n(a.put_open_interest)),
-  )[0];
-  const highlightedRows = [...rows]
-    .sort((a, b) => {
-      const bScore =
-        n(b.call_volume) +
-        n(b.put_volume) +
-        (b.requires_t1_oi_confirmation ? 100000 : 0);
-      const aScore =
-        n(a.call_volume) +
-        n(a.put_volume) +
-        (a.requires_t1_oi_confirmation ? 100000 : 0);
-      return bScore - aScore;
-    })
-    .slice(0, 8);
+  const {
+    tapeRatio,
+    t1Count,
+    strongest,
+    highlightedRows,
+    flowRead,
+    activityRead,
+    confirmationRead,
+  } = chainFlowRead(rows);
   const highlightedCount = highlightedRows.length;
-  const flowRead =
-    tapeRatio == null
-      ? "Put volume is unavailable, so call/put balance is inconclusive."
-      : tapeRatio >= 1.2
-        ? `Calls traded ${tapeRatio.toFixed(2)}x puts across available rows, so flow leans call-heavy.`
-        : tapeRatio <= 0.8
-          ? `Calls traded ${tapeRatio.toFixed(2)}x puts across available rows, so flow leans put-heavy.`
-          : `Call and put volume are roughly balanced at ${tapeRatio.toFixed(2)}x.`;
-  const activityRead = strongest
-    ? `The busiest strike is ${strongest.strike}, which is the first place to inspect for pinning or crowding.`
-    : "No single strike stands out from the available rows.";
-  const confirmationRead =
-    t1Count > 0
-      ? `${t1Count} strike${t1Count === 1 ? " needs" : "s need"} next-day OI confirmation before treating volume as new positioning.`
-      : "No highlighted strikes need next-day OI confirmation.";
 
   return (
     <InsightPanel

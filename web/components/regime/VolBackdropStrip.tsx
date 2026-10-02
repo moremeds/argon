@@ -3,7 +3,6 @@
 import { fmtDecimal } from "@/lib/formatters";
 import CardSparkline from "./primitives/CardSparkline";
 import {
-  quoteIsFresh,
   useRegimeQuotes,
   type RegimeQuotesResponse,
 } from "@/lib/regime/useRegimeQuotes";
@@ -11,6 +10,11 @@ import {
   useVolBackdrop,
   type VolBackdropData,
 } from "@/lib/regime/useVolBackdrop";
+import {
+  termStructureRead,
+  ratioSeries as termRatioSeries,
+  symbolRead,
+} from "@/lib/regime/derive/volBackdrop";
 
 const SYMBOLS = ["VIX", "VIX3M", "VVIX", "COR1M"] as const;
 
@@ -28,19 +32,6 @@ const tooltips: Record<(typeof SYMBOLS)[number], string> = {
   COR1M: "1-month implied correlation among S&P components",
 };
 
-function lastClose(points: { close: number }[] | undefined): number | null {
-  if (!points || !points.length) return null;
-  return points[points.length - 1].close;
-}
-
-function pctChange(points: { close: number }[] | undefined): number | null {
-  if (!points || points.length < 2) return null;
-  const prev = points[points.length - 2].close;
-  const last = points[points.length - 1].close;
-  if (!prev) return null;
-  return ((last - prev) / prev) * 100;
-}
-
 export function VolBackdropStripView({
   data,
   quotes,
@@ -51,34 +42,13 @@ export function VolBackdropStripView({
   if (!data) return null;
 
   // Live term structure when both legs are fresh; falls back to daily ratio.
-  const freshWindow = quotes?.fresh_within_seconds;
-  const qv = quotes?.quotes?.VIX;
-  const q3 = quotes?.quotes?.VIX3M;
-  const liveRatio =
-    qv &&
-    q3 &&
-    quoteIsFresh(qv.quoted_at, freshWindow) &&
-    quoteIsFresh(q3.quoted_at, freshWindow) &&
-    q3.price
-      ? qv.price / q3.price
-      : null;
-  const ratio = liveRatio ?? data.term_structure_ratio;
-  const state =
-    ratio != null
-      ? ratio < 1
-        ? "contango"
-        : "backwardation"
-      : data.term_structure_state;
+  // Derivations live in @/lib/regime/derive/volBackdrop (verbatim); the clock
+  // stays inside the lib calls, like the original quoteIsFresh.
+  const { liveRatio, ratio, state } = termStructureRead(data, quotes);
 
   // Daily VIX/VIX3M ratio series for the term-structure sparkline, joined by
   // date (the two series can have mismatched holidays/backfill gaps).
-  const vix3mByDate = new Map(
-    (data.series.VIX3M ?? []).map((p) => [p.date, p.close]),
-  );
-  const ratioSeries = (data.series.VIX ?? []).map((p) => {
-    const v3 = vix3mByDate.get(p.date);
-    return v3 ? p.close / v3 : null;
-  });
+  const ratioSeries = termRatioSeries(data);
 
   const cardStyle = {
     border: "1px solid var(--border-dim)",
@@ -96,16 +66,9 @@ export function VolBackdropStripView({
       }}
     >
       {SYMBOLS.map((s) => {
-        const q = quotes?.quotes?.[s];
-        const live = q != null && quoteIsFresh(q.quoted_at, freshWindow);
-        const dailyClose = lastClose(data.series[s]);
         // Live: current quote with change vs last daily close (intraday
         // ret_1d convention, same as TickerCards). Daily: close-over-close.
-        const close = live ? q.price : dailyClose;
-        const chg =
-          live && dailyClose
-            ? ((q.price - dailyClose) / dailyClose) * 100
-            : pctChange(data.series[s]);
+        const { live, close, chg } = symbolRead(s, data, quotes);
         return (
           <div key={s} title={tooltips[s]} style={cardStyle}>
             <div

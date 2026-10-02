@@ -585,6 +585,14 @@ def _should_schedule_sector_rs_daily(settings: Settings) -> bool:
     return role == "all" or (role == "massive" and settings.worker_index == 0)
 
 
+def _should_schedule_mcp_event_retention(settings: Settings) -> bool:
+    """Single owner for the nightly mcp_event purge. Pure warm-store
+    housekeeping DELETE — no UW/IB spend → pin to massive-0, same as
+    sector_rs_daily. No enable flag: pure housekeeping (agent-mcp plan M3)."""
+    role = settings.worker_role.lower()
+    return role == "all" or (role == "massive" and settings.worker_index == 0)
+
+
 def _worker_label(settings: Settings) -> str:
     role = settings.worker_role.lower()
     if role == "all":
@@ -1099,6 +1107,14 @@ def main() -> int:
                 repo=repo, schema=settings.db_schema, as_of=as_of
             )
         logger.info("sector_rs_daily %s", counters)
+
+    def _mcp_event_retention() -> None:
+        from uw_scan.storage.mcp_events import purge_old_events
+
+        with _repo(settings) as repo:
+            deleted = purge_old_events(repo.conn, days=30)
+            repo.conn.commit()
+        logger.info("mcp_event_retention deleted=%d", deleted)
 
     def _technical_daily_refresh() -> None:
         with _repo(settings) as repo:
@@ -2503,6 +2519,19 @@ def main() -> int:
             ),
             id="sector_rs_daily",
             name="Sector RS + breadth (gics ETFs + watchlist chains)",
+            max_instances=1,
+            coalesce=True,
+        )
+
+    if _should_schedule_mcp_event_retention(settings):
+        # mcp_event pruning at 04:10 ET DAILY — pure housekeeping DELETE on an
+        # append-only table; zero UW/IB spend → massive-0, same pin as
+        # sector_rs_daily. Well clear of the RTH open and the nightly batch.
+        sched.add_job(
+            _mcp_event_retention,
+            CronTrigger(hour=4, minute=10, timezone=settings.rth_tz),
+            id="mcp_event_retention",
+            name="MCP event retention (purge >30d)",
             max_instances=1,
             coalesce=True,
         )

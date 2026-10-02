@@ -3,6 +3,13 @@ import { useMemo } from "react";
 import type React from "react";
 import { fmtDecimal, fmtMoney, fmtSigned, toNum } from "@/lib/formatters";
 import {
+  exposureValue,
+  groupByExpiry,
+  netValue,
+  peaks,
+  totals,
+} from "@/lib/snapshot/cockpitDealer";
+import {
   MultiLineChart,
   panelStyle,
   panelTitleStyle,
@@ -11,7 +18,6 @@ import {
   thStyle,
 } from "./CockpitChart";
 
-type DealerPoint = NonNullable<NonNullable<CockpitDealerResponse>["points"]>[number];
 type DealerMetrics = NonNullable<NonNullable<CockpitDealerResponse>["metrics"]>;
 
 export function CockpitDealerTab({
@@ -413,86 +419,6 @@ function formatGammaRegime(value: DealerMetrics["gamma_regime"]): string {
 
 function formatLabel(value: string | null | undefined): string {
   return value ? value.replaceAll("_", " ").toUpperCase() : "—";
-}
-
-function groupByExpiry(points: DealerPoint[]): [string, DealerPoint[]][] {
-  const map = new Map<string, DealerPoint[]>();
-  for (const point of points) {
-    const key = String(point.expiry);
-    const rows = map.get(key) ?? [];
-    rows.push(point);
-    map.set(key, rows);
-  }
-  return Array.from(map.entries())
-    .sort(([a], [b]) => a.localeCompare(b))
-    .map(([expiry, rows]) => [
-      expiry,
-      rows
-        .slice()
-        .sort((a, b) => (toNum(a.strike) ?? 0) - (toNum(b.strike) ?? 0)),
-    ]);
-}
-
-function totals(points: DealerPoint[]) {
-  return points.reduce(
-    (acc, point) => ({
-      vanna: acc.vanna + (netValue(point, "vanna") ?? 0),
-      charm: acc.charm + (netValue(point, "charm") ?? 0),
-    }),
-    { vanna: 0, charm: 0 },
-  );
-}
-
-function peaks(points: DealerPoint[]) {
-  const peakVanna = maxAbs(points, "vanna");
-  const peakCharm = maxAbs(points, "charm");
-  return {
-    vannaStrike: peakVanna ? toNum(peakVanna.strike) : null,
-    charmStrike: peakCharm ? toNum(peakCharm.strike) : null,
-  };
-}
-
-function maxAbs(points: DealerPoint[], kind: "vanna" | "charm") {
-  let best: DealerPoint | null = null;
-  let bestMagnitude = -1;
-  for (const point of points) {
-    const value = netValue(point, kind);
-    const magnitude = value == null ? -1 : Math.abs(value);
-    if (magnitude > bestMagnitude) {
-      best = point;
-      bestMagnitude = magnitude;
-    }
-  }
-  return best;
-}
-
-function exposureValue(
-  point: DealerPoint,
-  side: "call" | "put",
-  kind: "vanna" | "charm",
-): number | null {
-  if (side === "call" && kind === "vanna") return toNum(point.exposure_call_vanna);
-  if (side === "put" && kind === "vanna") return toNum(point.exposure_put_vanna);
-  if (side === "call" && kind === "charm") return toNum(point.exposure_call_charm);
-  return toNum(point.exposure_put_charm);
-}
-
-function netValue(point: DealerPoint, kind: "vanna" | "charm"): number | null {
-  const callExposure =
-    kind === "vanna"
-      ? toNum(point.exposure_call_vanna)
-      : toNum(point.exposure_call_charm);
-  const putExposure =
-    kind === "vanna"
-      ? toNum(point.exposure_put_vanna)
-      : toNum(point.exposure_put_charm);
-  if (callExposure != null || putExposure != null) {
-    return (callExposure ?? 0) + (putExposure ?? 0);
-  }
-  const callRaw = kind === "vanna" ? toNum(point.call_vanna) : toNum(point.call_charm);
-  const putRaw = kind === "vanna" ? toNum(point.put_vanna) : toNum(point.put_charm);
-  if (callRaw == null && putRaw == null) return null;
-  return (callRaw ?? 0) + (putRaw ?? 0);
 }
 
 function EmptyPanel({ ticker }: { ticker: string }) {

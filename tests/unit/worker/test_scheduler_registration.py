@@ -639,7 +639,9 @@ def test_sector_rs_daily_absent_by_default(monkeypatch):
         UW_SCAN_WORKER_COUNT="1",
     )
     assert "sector_rs_daily" not in ids
-    assert "fundamental_refresh" in ids  # harness sanity: a massive-0 sibling still wires
+    assert (
+        "fundamental_refresh" in ids
+    )  # harness sanity: a massive-0 sibling still wires
 
 
 def test_sector_rs_daily_absent_off_massive_0(monkeypatch):
@@ -652,3 +654,42 @@ def test_sector_rs_daily_absent_off_massive_0(monkeypatch):
             UW_SCAN_SECTOR_RS_ENABLED="true",
         )
         assert "sector_rs_daily" not in ids, (role, index)
+
+
+def test_mcp_event_retention_registered_on_primary_massive(monkeypatch):
+    # No enable flag — pure housekeeping, always on for the pinned worker.
+    jobs = _registered_jobs(
+        monkeypatch,
+        UW_SCAN_WORKER_ROLE="massive",
+        UW_SCAN_WORKER_INDEX="0",
+        UW_SCAN_WORKER_COUNT="1",
+    )
+    assert "mcp_event_retention" in jobs
+    trig = str(jobs["mcp_event_retention"])
+    assert "hour='4'" in trig and "minute='10'" in trig
+    assert "day_of_week" not in trig  # daily, not weekday-only
+
+
+def test_mcp_event_retention_registered_on_all_role(monkeypatch):
+    ids = _registered_job_ids(
+        monkeypatch,
+        UW_SCAN_WORKER_ROLE="all",
+        UW_SCAN_WORKER_INDEX="0",
+        UW_SCAN_WORKER_COUNT="1",
+    )
+    assert "mcp_event_retention" in ids
+
+
+def test_mcp_event_retention_absent_off_massive_0(monkeypatch):
+    for role, index, count in (
+        ("massive", "1", "2"),
+        ("uw", "0", "1"),
+        ("ai", "0", "1"),
+    ):
+        ids = _registered_job_ids(
+            monkeypatch,
+            UW_SCAN_WORKER_ROLE=role,
+            UW_SCAN_WORKER_INDEX=index,
+            UW_SCAN_WORKER_COUNT=count,
+        )
+        assert "mcp_event_retention" not in ids, (role, index)

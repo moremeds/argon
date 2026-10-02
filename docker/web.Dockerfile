@@ -37,6 +37,10 @@ ENV NEXT_INTERNAL_API_BASE=$NEXT_INTERNAL_API_BASE
 ENV NEXT_TELEMETRY_DISABLED=1
 RUN npx next build
 
+# MCP server bundle — self-contained ESM (pg inlined via the createRequire
+# banner; pg-native/lightweight-charts/fancy-canvas left external, unused).
+RUN npm run build:mcp
+
 # ---- runtime ----
 FROM node:22-alpine AS runtime
 RUN apk add --no-cache libc6-compat tini
@@ -47,6 +51,8 @@ WORKDIR /app
 COPY --from=builder /app/web/.next/standalone ./
 COPY --from=builder /app/web/.next/static ./.next/static
 COPY --from=builder /app/web/public ./public
+# MCP server bundle — the compose `mcp` service runs `node mcp-server.mjs`.
+COPY --from=builder /app/web/.mcp-dist/server.mjs ./mcp-server.mjs
 
 ENV NODE_ENV=production \
     PORT=3001 \

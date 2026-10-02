@@ -4,7 +4,7 @@ import { useEffect, useState, type ReactNode } from "react";
 
 import { api, type MagnetsResponse, type TechnicalsResponse } from "@/lib/api";
 import { AnalyticalSeriesPanel } from "@/components/stock/panels/AnalyticalSeriesPanel";
-import { sma, velocity } from "@/lib/magnetTiles";
+import { kinematicsLeg, volumeTile } from "@/lib/magnetTiles";
 import MagnetChart from "./MagnetChart";
 import MagnetRead from "./MagnetRead";
 import MagnetTable from "./MagnetTable";
@@ -20,10 +20,6 @@ const BAND_NOTE: Record<number, string> = {
 
 /** Sessions the RSI / momentum / IV tile charts cover. */
 const TILE_BARS = 90;
-/** Volume bars get a shorter window — 90 bars at tile width are 1px slivers. */
-const VOL_BARS = 34;
-/** Sessions per kinematics leg (velocity now vs velocity one leg ago). */
-const KIN = 5;
 
 export default function MagnetSubTab({
   ticker,
@@ -86,27 +82,11 @@ export default function MagnetSubTab({
 
   // Volume comes off the CANDLES, not technicals.series — the two sources sit on
   // different as_of dates (see the panel subtitle), and the bars must line up
-  // with the chart directly above them.
-  const volBars = data.candles.slice(-VOL_BARS).map((c) => ({
-    volume: c.volume,
-    up: c.close >= c.open,
-  }));
-  const volMa = sma(
-    data.candles.map((c) => c.volume),
-    20,
-  ).slice(-VOL_BARS);
-  const lastVol = data.candles.at(-1)?.volume ?? null;
-  const lastVolMa = volMa.at(-1) ?? null;
-
-  // Kinematics, spec §1.1 layer 6: 1st and 2nd derivative of price. Descriptive
-  // only — no threshold is applied and no ACCEL/DECEL verdict is printed,
-  // because picking those cut-offs would be inventing a signal the reference
-  // never validated either.
-  const closes = data.candles.map((c) => c.close);
-  const n = closes.length;
-  const v = velocity(closes, n - 1 - KIN, n - 1);
-  const vPrev = velocity(closes, n - 1 - 2 * KIN, n - 1 - KIN);
-  const accel = v != null && vPrev != null ? (v - vPrev) / KIN : null;
+  // with the chart directly above them. Tile prep (34-bar slice, SMA20, ratio)
+  // and the kinematics leg (1st/2nd derivative of price) live in
+  // lib/magnetTiles.ts, shared with the Node MCP tool.
+  const vol = volumeTile(data.candles);
+  const kin = kinematicsLeg(data.candles.map((c) => c.close));
 
   const ivSeries = data.atm_iv_30d_series.map((p) => p.iv * 100);
 
@@ -122,12 +102,11 @@ export default function MagnetSubTab({
   }[] = [
     {
       label: "VOLUME",
-      headline: lastVol != null ? `${(lastVol / 1e6).toFixed(1)}M` : "na",
+      headline:
+        vol.lastVol != null ? `${(vol.lastVol / 1e6).toFixed(1)}M` : "na",
       delta:
-        lastVol != null && lastVolMa
-          ? `${(lastVol / lastVolMa).toFixed(2)}× avg`
-          : null,
-      chart: <VolumeChart bars={volBars} ma={volMa} />,
+        vol.ratio != null ? `${vol.ratio.toFixed(2)}× avg` : null,
+      chart: <VolumeChart bars={vol.bars} ma={vol.ma} />,
     },
     {
       label: "RSI 14",
@@ -144,8 +123,8 @@ export default function MagnetSubTab({
           ? `${row.macd_slope3 >= 0 ? "▲" : "▼"} 3d`
           : null,
       caption:
-        v != null
-          ? `v ${sgn(v)}%/d${accel != null ? ` · a ${sgn(accel)}%/d²` : ""}`
+        kin.v != null
+          ? `v ${sgn(kin.v)}%/d${kin.accel != null ? ` · a ${sgn(kin.accel)}%/d²` : ""}`
           : null,
       chart: (
         <MomentumChart

@@ -87,10 +87,15 @@ def _build_blast_macro_payload(repo: Repository) -> dict[str, Any] | None:
     return out
 
 
-def _build_and_persist_trade_insights(
+def _build_trade_insights(
     ticker: str,
     repo: Repository,
-) -> tuple[TradeInsightsResponse, int, str]:
+) -> tuple[TradeInsightsResponse, dict[str, Any], int]:
+    """404 + assemble, no persistence — the read-only half of
+    ``_build_and_persist_trade_insights``. Returns the response, its JSON
+    payload and the run_id it was assembled from so the persisting caller
+    stores the snapshot under exactly that run (a second latest_run_id read
+    could race a concurrently-committed full_scan under READ COMMITTED)."""
     run_id = repo.latest_run_id(ticker)
     if run_id == 0:
         raise HTTPException(status_code=404, detail=f"no runs for {ticker}")
@@ -103,7 +108,14 @@ def _build_and_persist_trade_insights(
         as_of=report.generated_at,
         spot=report.market_structure.spot,
     )
-    payload = response.model_dump(mode="json")
+    return response, response.model_dump(mode="json"), run_id
+
+
+def _build_and_persist_trade_insights(
+    ticker: str,
+    repo: Repository,
+) -> tuple[TradeInsightsResponse, int, str]:
+    response, payload, run_id = _build_trade_insights(ticker, repo)
     input_hash = _stable_payload_hash(payload)
     snapshot_id = repo.upsert_trade_insight_snapshot(
         run_id=run_id,
@@ -227,6 +239,21 @@ def get_trade_insights(
     t = ticker.upper()
     response, _snapshot_id, _input_hash = _build_and_persist_trade_insights(t, repo)
     repo.conn.commit()
+    return response
+
+
+@router.get(
+    "/stock/{ticker}/trade-insights/preview",
+    response_model=TradeInsightsResponse,
+)
+def get_trade_insights_preview(
+    ticker: str, repo: Repository = Depends(get_repo)
+) -> TradeInsightsResponse:
+    """Read-only twin of GET /stock/{ticker}/trade-insights for the agent MCP:
+    same assembled body, but never upserts a snapshot, never replaces
+    candidates, never commits."""
+    t = ticker.upper()
+    response, _payload, _run_id = _build_trade_insights(t, repo)
     return response
 
 

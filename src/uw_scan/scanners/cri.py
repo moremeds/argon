@@ -17,7 +17,7 @@ from __future__ import annotations
 import logging
 from collections.abc import Mapping
 from datetime import date as _date
-from datetime import timedelta
+from datetime import datetime, timedelta
 
 import numpy as np
 from psycopg import Connection
@@ -31,6 +31,7 @@ from uw_scan.scanners.live_quotes import (
     splice_session_value,
 )
 from uw_scan.storage.cri_snapshot_repository import CriSnapshotRepository
+from uw_scan.storage.mcp_events import emit_on_change
 from uw_scan.storage.repository import Repository
 from uw_scan.storage.vol_index_repository import VolIndexRepository
 
@@ -108,6 +109,33 @@ def _align(
     return aligned, [d.isoformat() for d in sorted_dates]
 
 
+def _latest_eod_level(
+    conn: Connection, schema: str
+) -> tuple[str | None, datetime | None]:
+    """Level + ``scanned_at`` of the newest EOD snapshot by DATA DATE, then
+    scanned_at — ``(None, None)`` when the table is empty.
+
+    ``fetch_latest`` orders by scanned_at, which would surface a gap-healed
+    backfill (old data_date, fresh scanned_at) as ``snapshot_prev`` — that
+    would look like a missed transition to emit_on_change. The EOD event
+    stream tracks the newest data date, so the snapshot anchor must too.
+    ``scanned_at`` rides along as ``snapshot_prev_at``: the write timestamp
+    that lets emit_on_change tell a missed transition apart from a racing
+    caller's stale pre-write read.
+    """
+    sql = f"""
+        SELECT payload->'cri'->>'level', scanned_at
+          FROM {schema}.cri_snapshots
+         WHERE basis = 'eod' AND data_date IS NOT NULL
+         ORDER BY data_date DESC, scanned_at DESC
+         LIMIT 1
+    """
+    with conn.cursor() as cur:
+        cur.execute(sql)
+        row = cur.fetchone()
+    return (row[0], row[1]) if row is not None else (None, None)
+
+
 def run(
     conn: Connection,
     schema: str = "uw_scan",
@@ -179,8 +207,38 @@ def run(
     payload = cri_scoring.run_analysis(aligned, common_dates)
 
     snap_repo = CriSnapshotRepository(conn, schema=schema)
+    # `snapshot_prev` is the previous persisted level (+ its write time), read
+    # BEFORE insert_snapshot — which self-commits, so a read afterwards would
+    # compare the new row to itself and never emit. emit_on_change resolves
+    # the anchor (the last EMITTED level) itself, under the advisory lock.
+    # Gap-recovery runs (as_of set) never emit.
+    snapshot_prev: str | None = None
+    snapshot_prev_at: datetime | None = None
+    if as_of is None:
+        snapshot_prev, snapshot_prev_at = _latest_eod_level(conn, schema)
     data_date = _date.fromisoformat(payload["date"])
     row_id = snap_repo.insert_snapshot(payload=payload, data_date=data_date)
+    if as_of is None:
+        try:
+            # The snapshot is already committed; the emit must never make the
+            # scan raise. Its own tx: failure rolls back only the event row.
+            with conn.transaction():
+                emit_on_change(
+                    conn,
+                    kind="cri_regime",
+                    subject="CRI",
+                    basis="eod",
+                    snapshot_prev=snapshot_prev,
+                    snapshot_prev_at=snapshot_prev_at,
+                    new=payload["cri"]["level"],
+                    payload={
+                        "data_date": data_date.isoformat(),
+                        "score": payload["cri"]["score"],
+                    },
+                )
+        except Exception as exc:  # noqa: BLE001
+            log.warning("cri_regime event emit failed: %s", repr(exc))
+        conn.commit()
     log.info(
         "cri_scan_persisted row_id=%d data_date=%s score=%.1f level=%s fired=%s",
         row_id,
@@ -272,9 +330,36 @@ def run_live(
     if persist:
         slim = {k: v for k, v in payload.items() if k not in ("history", "spy_closes")}
         snap_repo = CriSnapshotRepository(conn, schema=schema)
+        # snapshot_prev still reads before the self-committing insert (same
+        # rule as run()). The anchor itself is emit_on_change's job.
+        prev = snap_repo.fetch_latest(basis="live")
+        snapshot_prev = ((prev or {}).get("cri") or {}).get("level")
         row_id = snap_repo.insert_snapshot(
             payload=slim, data_date=session_date, basis="live"
         )
+        try:
+            with conn.transaction():
+                # The cooldown passes through unchanged, but is benign on
+                # suppression: the anchor stays at the last emitted level, so
+                # a cooldown-suppressed flip re-attempts each tick and emits
+                # once the window passes if the state still differs —
+                # intended, the flip is delayed rather than dropped.
+                emit_on_change(
+                    conn,
+                    kind="cri_regime",
+                    subject="CRI",
+                    basis="live",
+                    snapshot_prev=snapshot_prev,
+                    new=payload["cri"]["level"],
+                    payload={
+                        "session": session_date.isoformat(),
+                        "score": payload["cri"]["score"],
+                    },
+                    cooldown=timedelta(hours=1),
+                )
+        except Exception as exc:  # noqa: BLE001
+            log.warning("cri_regime live event emit failed: %s", repr(exc))
+        conn.commit()
         log.info(
             "cri_live_persisted row_id=%d session=%s live=%s carried=%s score=%.1f",
             row_id,

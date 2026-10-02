@@ -2,6 +2,7 @@
 
 import type { components } from "../types";
 import { regimeApi } from "./api";
+import { quoteIsFreshAt } from "./derive/gex";
 import { useSyncHook, type UseSyncReturn } from "./useSyncHook";
 
 export type RegimeQuotesResponse =
@@ -16,8 +17,8 @@ export function quoteIsFresh(
   quotedAt: string | null | undefined,
   freshWithinSeconds: number = DEFAULT_FRESH_SECONDS,
 ): boolean {
-  if (!quotedAt) return false;
-  return Date.now() - new Date(quotedAt).getTime() < freshWithinSeconds * 1000;
+  // One implementation, shared with the MCP regime_state tool (injectable now).
+  return quoteIsFreshAt(quotedAt, freshWithinSeconds);
 }
 
 export function useRegimeQuotes(): UseSyncReturn<RegimeQuotesResponse> {
