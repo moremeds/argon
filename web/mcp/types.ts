@@ -25,8 +25,14 @@ export type Columnar = {
   rows: unknown[][];
 };
 
-/** SSE fan-out hook: server.ts calls it once per open subscription; return an unsubscribe fn. */
+/**
+ * SSE fan-out hook: server.ts calls it once per open subscription; return an unsubscribe fn.
+ * On an unrecoverable error (e.g. pg client error) the hook releases its resources and calls
+ * `close()`; server.ts then ends the SSE stream and the client reconnects. Missed events stay
+ * readable via `get_events` (SSE never advances the cursor).
+ */
 export type EventStreamHook = (
   ctx: ToolCtx,
   send: (event: unknown) => void,
+  close: () => void,
 ) => Promise<() => void>;
