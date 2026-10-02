@@ -302,6 +302,8 @@ export type HandlerOptions = {
   sessionIdleMs?: number;
   sessionSweepMs?: number;
   subscribeEvents?: EventStreamHook;
+  /** Test hook: observe sessions/sweep directly. */
+  sessions?: SessionStore;
 };
 
 function writeJson(res: ServerResponse, status: number, body: unknown): void {
@@ -328,7 +330,8 @@ function isInitialize(body: unknown): boolean {
 
 export function makeRequestHandler(deps: HandlerDeps, opts: HandlerOptions = {}) {
   const now = opts.now ?? Date.now;
-  const store = new SessionStore(now, opts.sessionIdleMs ?? SESSION_IDLE_MS);
+  const store =
+    opts.sessions ?? new SessionStore(now, opts.sessionIdleMs ?? SESSION_IDLE_MS);
   const sweeper = setInterval(
     () => store.sweep(),
     opts.sessionSweepMs ?? SESSION_SWEEP_MS,
@@ -409,6 +412,12 @@ export function makeRequestHandler(deps: HandlerDeps, opts: HandlerOptions = {})
           writeJson(res, 400, { error: "missing session" });
           return;
         }
+        // One standalone SSE stream per session — same rule the SDK applies;
+        // checked here so a second GET never opens a phantom subscription.
+        if (session.sseStreams > 0) {
+          writeJson(res, 409, { error: "a standalone event stream is already open" });
+          return;
+        }
         // Standalone SSE stream: events fan-out + keepalive. send() delivers a
         // JSON-RPC notification to this stream; close() ends it so the client
         // reconnects (f74bfb6d). Missed events stay in mcp_event via get_events.
@@ -444,7 +453,7 @@ export function makeRequestHandler(deps: HandlerDeps, opts: HandlerOptions = {})
             clearInterval(keepalive);
           }
         }, SSE_KEEPALIVE_MS);
-        let counted = false; // stream actually opened (200) — see sseStreams
+        let counted = false; // incremented below, decremented exactly once here
         res.on("close", () => {
           resClosed = true;
           if (counted) {
@@ -469,14 +478,15 @@ export function makeRequestHandler(deps: HandlerDeps, opts: HandlerOptions = {})
           if (!resClosed) writeJson(res, 503, { error: "event stream unavailable" });
           return;
         }
-        if (resClosed) unsubscribe?.(); // client left during subscribe — tear down now
-        await session.transport.handleRequest(req, res);
-        // Count only a stream that actually opened (a second GET gets a 409
-        // from the SDK and must not decrement stream 1's exemption on close).
-        if (!resClosed && res.statusCode === 200) {
+        if (resClosed) {
+          unsubscribe?.(); // client left during subscribe — tear down now
+        } else {
+          // handleRequest's promise stays pending for the whole stream life —
+          // the exemption MUST be set before it, not after.
           session.sseStreams += 1;
           counted = true;
         }
+        await session.transport.handleRequest(req, res);
         return;
       }
 
