@@ -58,7 +58,9 @@ def vrp_macro_signal_refresh(
     config = asdict(cfg)
     persisted = 0
     failed: list[str] = []
-    changes: list[tuple[str, str | None, datetime | None, MacroSignal]] = []
+    changes: list[
+        tuple[str, str | None, datetime | None, dict[str, Any], MacroSignal]
+    ] = []
     for name in names:
         try:
             loaded = load_index_vol(repo, name)
@@ -74,6 +76,17 @@ def vrp_macro_signal_refresh(
             prev_rows = repo.fetch_latest_vrp_macro_signals([name], basis="eod")
             snapshot_prev = prev_rows[0]["action"] if prev_rows else None
             snapshot_prev_at = prev_rows[0]["created_at"] if prev_rows else None
+            # The prev row's own context, for a recovered event (None dropped).
+            prev = prev_rows[0] if prev_rows else {}
+            snapshot_prev_payload = {
+                "as_of": prev["as_of"].isoformat() if prev.get("as_of") else None,
+                "vrp_z": float(prev["vrp_z"])
+                if prev.get("vrp_z") is not None
+                else None,
+                "weight": float(prev["weight"])
+                if prev.get("weight") is not None
+                else None,
+            }
             repo.upsert_vrp_macro_signal(
                 name=name,
                 snapshot_date=snapshot_date,
@@ -105,7 +118,9 @@ def vrp_macro_signal_refresh(
                 strike_grid_date=sig.strike_grid_date,
                 expiry=sig.expiry,
             )
-            changes.append((name, snapshot_prev, snapshot_prev_at, sig))
+            changes.append(
+                (name, snapshot_prev, snapshot_prev_at, snapshot_prev_payload, sig)
+            )
             persisted += 1
             log.info(
                 "vrp_macro_signal %s: as_of=%s action=%s weight=%.3f sharpe=%s",
@@ -118,7 +133,7 @@ def vrp_macro_signal_refresh(
         except Exception as exc:  # noqa: BLE001 - per-name isolation; log and continue
             failed.append(name)
             log.warning("vrp_macro_signal %s: skipped — %s", name, repr(exc))
-    for name, snapshot_prev, snapshot_prev_at, sig in changes:
+    for name, snapshot_prev, snapshot_prev_at, snapshot_prev_payload, sig in changes:
         # Each emit rides a SAVEPOINT inside the pending tx: a failed emit
         # rolls back only the event row — it can never cost the upserts
         # already staged, nor the commit below.
@@ -131,6 +146,7 @@ def vrp_macro_signal_refresh(
                     basis="eod",
                     snapshot_prev=snapshot_prev,
                     snapshot_prev_at=snapshot_prev_at,
+                    snapshot_prev_payload=snapshot_prev_payload,
                     new=sig.action,
                     payload={
                         "as_of": sig.as_of.isoformat() if sig.as_of else None,

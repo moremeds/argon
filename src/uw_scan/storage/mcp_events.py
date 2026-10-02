@@ -81,6 +81,7 @@ def emit_on_change(
     payload: Mapping[str, Any],
     cooldown: timedelta | None = None,
     snapshot_prev_at: datetime | None = None,
+    snapshot_prev_payload: Mapping[str, Any] | None = None,
 ) -> list[int]:
     """Emit on a real state change; return the ids of the rows written.
 
@@ -110,6 +111,11 @@ def emit_on_change(
     the cooldown is what kept it off the stream — so a recovered emit there
     would carry no cooldown and bypass the window; live callers keep the
     anchor-compare alone and pass no ``snapshot_prev_at``.
+
+    ``snapshot_prev_payload`` is the context the normal event carries (e.g.
+    ``data_date``, ``score``), read from the SAME previous snapshot row as
+    ``snapshot_prev``; the recovered event carries it so a consumer can place
+    the missed step. ``None`` values are dropped — never fabricated.
 
     A first-ever state (no anchor and no snapshot_prev) is not a change, and
     a degraded scan yielding ``new is None`` must not emit a flip to null —
@@ -147,7 +153,16 @@ def emit_on_change(
             kind=kind,
             subject=subject,
             basis=basis,
-            payload={"from": anchor, "to": snapshot_prev, "recovered": True},
+            payload={
+                **{
+                    k: v
+                    for k, v in (snapshot_prev_payload or {}).items()
+                    if v is not None
+                },
+                "from": anchor,
+                "to": snapshot_prev,
+                "recovered": True,
+            },
         )
         if recovered_id is not None:
             ids.append(recovered_id)
