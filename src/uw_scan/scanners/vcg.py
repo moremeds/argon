@@ -30,6 +30,7 @@ from uw_scan.scanners.live_quotes import (
     quotes_payload,
     splice_session_value,
 )
+from uw_scan.storage.mcp_events import emit_on_change
 from uw_scan.storage.vcg_snapshot_repository import VcgSnapshotRepository
 from uw_scan.storage.vol_index_repository import VolIndexRepository
 
@@ -141,8 +142,35 @@ def run(
 
     payload = vcg_scoring.run_analysis(aligned, common_dates, proxy=proxy)
     snap_repo = VcgSnapshotRepository(conn, schema=schema)
+    # Read the previous persisted regime BEFORE insert_snapshot — it
+    # self-commits, so a read afterwards would compare the new row to itself
+    # and never emit. Gap-recovery runs (as_of set) never emit.
+    prev_regime = None
+    if as_of is None:
+        prev = snap_repo.fetch_latest(proxy=proxy, basis="eod")
+        prev_regime = ((prev or {}).get("signal") or {}).get("regime")
     data_date = _date.fromisoformat(payload["date"])
     row_id = snap_repo.insert_snapshot(payload=payload, data_date=data_date)
+    if as_of is None:
+        try:
+            # The snapshot is already committed; the emit must never make the
+            # scan raise. Its own tx: failure rolls back only the event row.
+            with conn.transaction():
+                emit_on_change(
+                    conn,
+                    kind="vcg_regime",
+                    subject=proxy,
+                    basis="eod",
+                    prev=prev_regime,
+                    new=payload["signal"]["regime"],
+                    payload={
+                        "data_date": data_date.isoformat(),
+                        "interpretation": payload["signal"].get("interpretation"),
+                    },
+                )
+        except Exception as exc:  # noqa: BLE001
+            log.warning("vcg_regime event emit failed: %s", repr(exc))
+        conn.commit()
     sig = payload["signal"]
     log.info(
         "vcg_scan_persisted row_id=%d data_date=%s proxy=%s vcg=%s interp=%s ro=%d edr=%d",
@@ -214,9 +242,30 @@ def run_live(
     if persist:
         slim = {k: v for k, v in payload.items() if k != "history"}
         snap_repo = VcgSnapshotRepository(conn, schema=schema)
+        # Prev read before the self-committing insert (same rule as run()).
+        prev = snap_repo.fetch_latest(proxy=proxy, basis="live")
+        prev_regime = ((prev or {}).get("signal") or {}).get("regime")
         row_id = snap_repo.insert_snapshot(
             payload=slim, data_date=session_date, basis="live"
         )
+        try:
+            with conn.transaction():
+                emit_on_change(
+                    conn,
+                    kind="vcg_regime",
+                    subject=proxy,
+                    basis="live",
+                    prev=prev_regime,
+                    new=payload["signal"]["regime"],
+                    payload={
+                        "session": session_date.isoformat(),
+                        "interpretation": payload["signal"].get("interpretation"),
+                    },
+                    cooldown=timedelta(hours=1),
+                )
+        except Exception as exc:  # noqa: BLE001
+            log.warning("vcg_regime live event emit failed: %s", repr(exc))
+        conn.commit()
         log.info(
             "vcg_live_persisted row_id=%d session=%s proxy=%s vcg=%s",
             row_id,
