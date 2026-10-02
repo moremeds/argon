@@ -7,6 +7,10 @@ version in lockstep (enforced by `scripts/release/version_sync_check.py`).
 
 ## [Unreleased]
 
+### Added
+
+- **Sector RS breadth probe: FAIL** (`docs/research/2026-10-02-sector-rs-breadth/`). The probe ran on the mini against the backfilled `sector_rs_daily` (76,813 gics rows, 1998-12-22 → 2026-09-30, Silver rev 88). The primary `breadth_1m` gate fails: pooled OOS diff is -0.003, CI [-0.179, +0.166], and Communication Services (-0.463) and Real Estate (-0.587) fall below the per-group floor. The pre-registered secondary `breadth_3m` also fails (+0.040, CI [-0.045, +0.124]). Four sectors have no in-sample period, because survivorship from today's membership leaves early breadth `degraded` (`breadth_by_year.txt`). Per spec §6, no breadth UI ships. The table and its nightly job stay on as research data. The ETF-leg gate passed: `rs_12m` is filled on ≥ 99.89% of gics rows in every sector.
+
 ## [0.13.13] — 2026-10-01
 
 
