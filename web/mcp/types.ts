@@ -18,6 +18,14 @@ export type McpTool<S extends z.ZodRawShape = z.ZodRawShape> = {
   handler: (args: z.infer<z.ZodObject<S>>, ctx: ToolCtx) => Promise<unknown>;
 };
 
+/**
+ * Registry element type. A tool with REQUIRED args is McpTool<typeof shape>; it is not
+ * assignable to the default McpTool (handler params are contravariant), so the registry
+ * erases the shape here instead of forcing every arg to be optional.
+ */
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+export type AnyMcpTool = McpTool<any>;
+
 /** Bulk-tool response shape. */
 export type Columnar = {
   as_of: { eod: string | null; live: string | null };
