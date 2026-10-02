@@ -30,6 +30,7 @@ from pathlib import Path
 import psycopg
 
 from uw_scan.config import Settings, _enforce_db_isolation
+from uw_scan.control_argon_mcp import cmd_mcp_token
 from uw_scan.control_stack import (
     WORKER_LAG_MAX,
     argon_procs,
@@ -719,6 +720,20 @@ def build_parser() -> argparse.ArgumentParser:
     shot.add_argument("--settle-ms", type=int, default=1500)
     shot.add_argument("--full-page", action="store_true")
     shot.set_defaults(func=cmd_screenshot)
+
+    m = sub.add_parser(
+        "mcp-token", help="agent-MCP bearer tokens (create prints it once)"
+    )
+    msub = m.add_subparsers(dest="mcp_action", required=True)
+    for name, helptext in (
+        ("create", "mint a token for <label>"),
+        ("revoke", "set revoked_at on <label> (idempotent)"),
+        ("list", "labels + created/revoked, never hashes"),
+    ):
+        sp = msub.add_parser(name, help=helptext)
+        if name != "list":
+            sp.add_argument("label")
+        sp.set_defaults(func=cmd_mcp_token)
     return p
 
 
