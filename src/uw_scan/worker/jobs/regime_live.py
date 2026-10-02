@@ -18,7 +18,7 @@ from uw_scan.reports.vrp_macro_signal import WINNER, current_macro_signal_live
 from uw_scan.scanners import cri as cri_scanner
 from uw_scan.scanners import vcg as vcg_scanner
 from uw_scan.scanners.live_quotes import load_live_quotes
-from uw_scan.storage.mcp_events import emit_on_change, last_emitted_state
+from uw_scan.storage.mcp_events import emit_on_change
 from uw_scan.storage.repository import Repository
 
 logger = logging.getLogger(__name__)
@@ -75,18 +75,12 @@ def regime_live_scan_once(
                 live_spot=float(spx_q.price),
                 live_iv=float(vix_q.price) / 100.0,
             )
-            # Prev anchors on the last emitted live action (the event's
-            # "from") — a failed emit re-attempts on the next tick instead of
-            # comparing the freshly upserted row to itself. Only when the
-            # triple has never emitted fall back to the previous persisted
-            # action, still read BEFORE the upsert; the existing commit below
-            # covers both rows in one tx.
-            prev_action = last_emitted_state(
-                repo.conn, kind="vrp_macro_signal", subject="SPX", basis="live"
-            )
-            if prev_action is None:
-                prev_rows = repo.fetch_latest_vrp_macro_signals(["SPX"], basis="live")
-                prev_action = prev_rows[0]["action"] if prev_rows else None
+            # `snapshot_prev` is the previous persisted live action, still
+            # read BEFORE the upsert; emit_on_change resolves the anchor (the
+            # last EMITTED action) itself, under the advisory lock. The
+            # existing commit below covers both rows in one tx.
+            prev_rows = repo.fetch_latest_vrp_macro_signals(["SPX"], basis="live")
+            snapshot_prev = prev_rows[0]["action"] if prev_rows else None
             repo.upsert_vrp_macro_signal(
                 name="SPX",
                 snapshot_date=datetime.now(ZoneInfo(settings.rth_tz)).date(),
@@ -122,7 +116,7 @@ def regime_live_scan_once(
             # Emit in a SAVEPOINT inside this tx: a failed emit rolls back
             # only the event row — it must not cost the live upsert or flip
             # the leg to "failed". The cooldown passes through unchanged, but
-            # is now benign on suppression: `prev` stays at the last emitted
+            # is benign on suppression: the anchor stays at the last emitted
             # action, so a cooldown-suppressed flip re-attempts each tick and
             # emits once the window passes if the state still differs —
             # intended, the flip is delayed rather than dropped.
@@ -133,7 +127,7 @@ def regime_live_scan_once(
                         kind="vrp_macro_signal",
                         subject="SPX",
                         basis="live",
-                        prev=prev_action,
+                        snapshot_prev=snapshot_prev,
                         new=sig.action,
                         payload={
                             "as_of": sig.as_of.isoformat() if sig.as_of else None,
