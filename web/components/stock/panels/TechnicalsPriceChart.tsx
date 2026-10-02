@@ -14,46 +14,36 @@ import {
   type IChartApi,
   type ISeriesApi,
   type ISeriesMarkersPluginApi,
+  type LineData,
   type MouseEventParams,
   type SeriesMarker,
   type Time,
+  type WhitespaceData,
 } from "lightweight-charts";
 import { api, type TechnicalsResponse } from "@/lib/api";
 import { fmtDecimal } from "@/lib/formatters";
 import { anchoredVwap } from "@/lib/vwap";
 import {
   hasOhlcv,
-  toAtrBandData,
-  toBollingerBandData,
   toCandleData,
   toCloseLineData,
-  toEmaLineData,
   toSmaLineData,
   toVolumeData,
-  toVolumeMaData,
   type SeriesRow,
 } from "@/lib/priceChartData";
+import { fmtVolCompact } from "@/lib/indicators";
 import {
-  fmtVolCompact,
-  highVolMarkers,
-  lowVolMarkers,
-  volumeMa,
-} from "@/lib/indicators";
-import { BandsIndicator } from "@/lib/lwc/bandsIndicator";
+  technicalsOverlays,
+  VOL_MA_PERIOD,
+  VP_LOOKBACK,
+} from "@/lib/technicals/overlays";
+import type { Timeframe } from "@/lib/technicals/series";
+import { BandsIndicator, type BandPoint } from "@/lib/lwc/bandsIndicator";
 import { ChanlunZhongshu } from "@/lib/lwc/chanlunZhongshu";
-import {
-  VolumeProfileIndicator,
-  type VolumeProfileStats,
-} from "@/lib/lwc/volumeProfile";
-import { findFairValueGaps } from "@/lib/fvg";
+import { VolumeProfileIndicator } from "@/lib/lwc/volumeProfile";
+import type { VolumeProfileStats } from "@/lib/volumeProfile";
 import { VolumeProfileStatsPanel } from "./VolumeProfileStatsPanel";
-import {
-  computeChanlunFull,
-  divergenceTrend,
-  type BuySellPoint,
-  type ChanlunBar,
-  type Zhongshu,
-} from "@/lib/chanlun";
+import { type BuySellPoint, type Zhongshu } from "@/lib/chanlun";
 import { AnalyticalSeriesPanel } from "./AnalyticalSeriesPanel";
 
 const H = 460;
@@ -66,12 +56,6 @@ const OVERLAY_MODE_KEY = "technicals:priceOverlayMode";
 const CHANLUN_KEY = "technicals:chanlun";
 const VOLUME_PROFILE_KEY = "technicals:volumeProfile";
 const FVG_KEY = "technicals:fvg";
-// Sessions the volume profile covers, counted back from the newest bar. Fixed,
-// not the visible range — panning a visible-range profile moved the POC by a
-// median of 11.6 ATR. 360 keeps the levels within ~10-20% of spot; longer
-// windows are steadier but anchor to prices the market has left behind.
-// docs/research/2026-07-20-volume-profile-window-study.md
-const VP_LOOKBACK = 360;
 
 // ReorderableList.tsx pattern: lazy init + try/catch; client-only component
 // so no hydration mismatch.
@@ -153,10 +137,8 @@ export function macdSignal(
   return { text, color };
 }
 
-// MarketSmith knobs — constants, not UI (trim candidates after live review).
-const VOL_MA_PERIOD = 50;
-const LOW_VOL_THRESHOLD_PCT = -25;
-const TRUNCATE_VOLUME_AT_2X_MA = false; // MarketSmith display style; readout shows true vol
+// MarketSmith display style; the hover readout still shows true vol.
+const TRUNCATE_VOLUME_AT_2X_MA = false;
 
 // One readout line for both hover and the default last-bar state: OHLC (or
 // close) + volume buzz (V + ×MA50 when an MA value exists for the bar).
@@ -195,6 +177,42 @@ function anchorFromServer(
     anchorDate: va.anchor_date,
     series: (va.series ?? []).map((p) => ({ time: p.as_of, value: p.vwap })),
   };
+}
+
+// Zip a full-length indicator array (index-aligned to `rows`) onto the bars'
+// times; null → a whitespace point, so a warm-up or data hole is an explicit
+// gap, not an omission. Same emit rule as the old to*LineData mappers.
+function alignedLineData(
+  rows: readonly SeriesRow[],
+  values: readonly (number | null)[],
+): (LineData<Time> | WhitespaceData<Time>)[] {
+  return rows.map((r, i) => {
+    const v = values[i];
+    return v == null
+      ? { time: r.as_of as Time }
+      : { time: r.as_of as Time, value: v };
+  });
+}
+
+// Same for an upper/lower band. `requireSpread` replicates the Bollinger
+// mapper's `u > l` gap rule; the ATR band already emits null unless sma20 and
+// a positive ATR both exist, so it passes false.
+function alignedBandData(
+  rows: readonly SeriesRow[],
+  band: {
+    upper: readonly (number | null)[];
+    lower: readonly (number | null)[];
+  },
+  requireSpread: boolean,
+): BandPoint[] {
+  return rows.map((r, i) => {
+    const u = band.upper[i];
+    const l = band.lower[i];
+    const t = r.as_of as Time;
+    return u != null && l != null && (!requireSpread || u > l)
+      ? { time: t, upper: u, lower: l }
+      : { time: t };
+  });
 }
 
 type ChartHandles = {
@@ -255,16 +273,25 @@ export function TechnicalsPriceChart({
   data,
   fullRows,
   control,
+  timeframe,
 }: {
   data: TechnicalsResponse;
   fullRows?: SeriesRow[];
   control?: ReactNode;
+  timeframe: Timeframe;
 }) {
   const rows = useMemo(() => (data.series ?? []) as SeriesRow[], [data.series]);
   // Unwindowed history for client-side indicators (EMA/BB/vol-MA/markers need
   // pre-window warmup); the caller passes the full series, defaulting to the
   // visible rows for back-compat.
   const full = useMemo(() => fullRows ?? rows, [fullRows, rows]);
+  // Every browser-computed overlay value, from ONE pure function shared with
+  // the Node MCP tool (lib/technicals/overlays.ts — same inputs + same function
+  // = same rendered number). The toggles below only choose what is DRAWN.
+  const overlays = useMemo(
+    () => technicalsOverlays({ ...data, series: full }, timeframe),
+    [data, full, timeframe],
+  );
   const ticker = data.ticker;
   const candleMode = hasOhlcv(rows);
   const [mode, setMode] = useState<OverlayMode>(loadOverlayMode);
@@ -306,22 +333,6 @@ export function TechnicalsPriceChart({
   // Pushed up from the VP primitive whenever the visible range changes, so the
   // readout and the signal marks always describe the bars actually drawn.
   const [vpStats, setVpStats] = useState<VolumeProfileStats | null>(null);
-  // Chanlun geometry over the FULL history (window-cut in the data pass, like
-  // the other client-side indicators). Pure + deterministic, so memo on rows.
-  // Chanlun bars over FULL history (window-cut in the data pass), hoisted so the
-  // marker effect can compute divergence trend without rebuilding them.
-  const clBars = useMemo<ChanlunBar[] | null>(() => {
-    if (!chanlunOn || !candleMode) return null;
-    return full.flatMap((r) =>
-      r.as_of != null && r.high != null && r.low != null && r.close != null
-        ? [{ time: r.as_of, high: r.high, low: r.low, close: r.close }]
-        : [],
-    );
-  }, [full, chanlunOn, candleMode]);
-  const chanlunGeo = useMemo(
-    () => (clBars ? computeChanlunFull(clBars) : null),
-    [clBars],
-  );
 
   const containerRef = useRef<HTMLDivElement>(null);
   const readoutRef = useRef<HTMLDivElement>(null);
@@ -783,17 +794,14 @@ export function TechnicalsPriceChart({
     if (!h) return;
     const positive = cssVar("--positive");
     const negative = cssVar("--negative");
-    const firstAsOf = rows[0]?.as_of ?? "";
+    const firstAsOf = overlays.firstAsOf;
     // Indicators are computed over `full` (converged warmup) then sliced to the
     // visible window's left edge.
     const cut = <T extends { time: Time }>(a: T[]): T[] =>
       a.filter((p) => String(p.time) >= firstAsOf);
     if (candleMode) {
       (h.price as ISeriesApi<"Candlestick">).setData(toCandleData(rows));
-      const volMaFull = volumeMa(
-        full.map((r) => r.volume),
-        VOL_MA_PERIOD,
-      );
+      const volMaFull = overlays.volMa50;
       h.volume?.setData(
         cut(
           toVolumeData(full, positive, negative, {
@@ -807,25 +815,29 @@ export function TechnicalsPriceChart({
           }),
         ),
       );
-      h.volMa?.setData(cut(toVolumeMaData(full, VOL_MA_PERIOD)));
+      h.volMa?.setData(cut(alignedLineData(full, volMaFull)));
       if (h.volMarkers) {
         // HVE/HV1 stay pinned; the low-vol −NN% labels move to a by-time map so
         // onMove can reveal just the hovered bar's (they overlap illegibly when
         // all shown at once).
-        const base = highVolMarkers(full, { color: cssVar("--text-secondary") })
+        const base = overlays.markers.highVol
           .filter((m) => m.time >= firstAsOf)
           .sort((a, b) => (a.time < b.time ? -1 : a.time > b.time ? 1 : 0))
-          .map((m) => ({ ...m, time: m.time as Time }));
+          .map((m) => ({
+            ...m,
+            color: cssVar("--text-secondary"),
+            time: m.time as Time,
+          }));
         baseVolMarkersRef.current = base;
         lowVolByTimeRef.current = new Map(
-          lowVolMarkers(full, volMaFull, {
-            thresholdPct: LOW_VOL_THRESHOLD_PCT,
+          overlays.markers.lowVol
+            .filter((m) => m.time >= firstAsOf)
             // Bright text — this label is revealed one-at-a-time on hover, so it
             // must read clearly; --text-muted was invisible on the dark pane.
-            color: cssVar("--text-primary"),
-          })
-            .filter((m) => m.time >= firstAsOf)
-            .map((m) => [m.time, { ...m, time: m.time as Time }]),
+            .map((m) => [
+              m.time,
+              { ...m, color: cssVar("--text-primary"), time: m.time as Time },
+            ]),
         );
         h.volMarkers.setMarkers(base);
       }
@@ -844,12 +856,12 @@ export function TechnicalsPriceChart({
       h.mas.mid.setData(toSmaLineData(rows, "sma50"));
       h.mas.slow.setData(toSmaLineData(rows, "sma200"));
       // ATR needs a 14-bar warm-up, so compute on full history and cut.
-      h.bands.setBandData(cut(toAtrBandData(full)));
+      h.bands.setBandData(cut(alignedBandData(full, overlays.atrBand, false)));
     } else {
-      h.mas.fast.setData(cut(toEmaLineData(full, 5)));
-      h.mas.mid.setData(cut(toEmaLineData(full, 20)));
-      h.mas.slow.setData(cut(toEmaLineData(full, 50)));
-      h.bands.setBandData(cut(toBollingerBandData(full)));
+      h.mas.fast.setData(cut(alignedLineData(full, overlays.ema5)));
+      h.mas.mid.setData(cut(alignedLineData(full, overlays.ema20)));
+      h.mas.slow.setData(cut(alignedLineData(full, overlays.ema50)));
+      h.bands.setBandData(cut(alignedBandData(full, overlays.bollinger, true)));
     }
     const visVwap = anchor
       ? anchor.series.filter((p) => p.time >= firstAsOf)
@@ -889,10 +901,11 @@ export function TechnicalsPriceChart({
       });
     h.macdFastLine.setData(macdLine("fast_macd_line_atr"));
     h.macdFastSignal.setData(macdLine("fast_macd_signal_atr"));
-    // Chanlun overlay: geometry precomputed over `full`, cut to the window
-    // here. The dashed tail restarts at the last confirmed vertex so the two
-    // polylines connect.
-    if (chanlunGeo) {
+    // Chanlun overlay: geometry precomputed over `full` (in `overlays`), cut to
+    // the window here. The dashed tail restarts at the last confirmed vertex so
+    // the two polylines connect.
+    if (chanlunOn && candleMode) {
+      const geo = overlays.chanlun.result;
       const polyline = (
         vs: { time: string; price: number; confirmed: boolean }[],
         solidSeries: ISeriesApi<"Line">,
@@ -910,12 +923,12 @@ export function TechnicalsPriceChart({
         );
       };
       polyline(
-        chanlunGeo.vertices.filter((v) => v.time >= firstAsOf),
+        geo.vertices.filter((v) => v.time >= firstAsOf),
         h.biSolid,
         h.biDashed,
       );
       polyline(
-        chanlunGeo.segVertices.filter((v) => v.time >= firstAsOf),
+        geo.segVertices.filter((v) => v.time >= firstAsOf),
         h.segSolid,
         h.segDashed,
       );
@@ -929,8 +942,8 @@ export function TechnicalsPriceChart({
             zd: z.zd,
             confirmed: z.confirmed,
           }));
-      h.clZs.setRects(rects(chanlunGeo.zhongshus));
-      h.segZs.setRects(rects(chanlunGeo.segZhongshus));
+      h.clZs.setRects(rects(geo.zhongshus));
+      h.segZs.setRects(rects(geo.segZhongshus));
       const marker = (
         p: BuySellPoint,
         prefix: string,
@@ -952,17 +965,17 @@ export function TechnicalsPriceChart({
       const divBase = cssVar("--accent-warm");
       const divColorFor = (t: boolean | null | undefined) =>
         t === true ? divBase : t === false ? `${divBase}59` : `${divBase}99`; // full / ~35% / ~60%
-      // Index-aligned to chanlunGeo.divergences — zip before the firstAsOf filter.
-      const divFlags = divergenceTrend(clBars!, chanlunGeo.divergences);
+      // Index-aligned to geo.divergences — zip before the firstAsOf filter.
+      const divFlags = overlays.chanlun.divergenceTrend;
       h.clMarkers.setMarkers(
         [
-          ...chanlunGeo.points
+          ...geo.points
             .filter((p) => p.time >= firstAsOf)
             .map((p) => marker(p, "", 1, true)),
-          ...chanlunGeo.segPoints
+          ...geo.segPoints
             .filter((p) => p.time >= firstAsOf)
             .map((p) => marker(p, "段", 2, false)),
-          ...chanlunGeo.divergences
+          ...geo.divergences
             .map((mark, i) => ({ mark, trend: divFlags[i] }))
             .filter((x) => x.mark.time >= firstAsOf)
             .map((x) => ({
@@ -993,39 +1006,14 @@ export function TechnicalsPriceChart({
     // of the timeframe selector, so the levels stay put when you switch 3M/1Y/
     // FULL. Feeding the windowed rows would silently shrink the profile to ~63
     // bars on 3M — back in the noisy, high-churn regime the study rejected.
-    h.vp.setBars(
-      vpOn && candleMode
-        ? full.flatMap((r) =>
-            r.as_of != null &&
-            r.open != null &&
-            r.high != null &&
-            r.low != null &&
-            r.close != null &&
-            r.volume != null
-              ? [
-                  {
-                    time: r.as_of as Time,
-                    open: r.open,
-                    high: r.high,
-                    low: r.low,
-                    close: r.close,
-                    volume: r.volume,
-                  },
-                ]
-              : [],
-          )
-        : [],
-    );
+    // vp.bars is the same filtered full-history list the primitive slices and
+    // bins, so its onStats callback reports exactly overlays.vp.stats.
+    h.vp.setBars(vpOn && candleMode ? overlays.vp.bars : []);
     // Unfilled fair value gaps, drawn from the gap bar to the right edge.
     const lastTime = rows[rows.length - 1]?.as_of;
     if (fvgOn && candleMode && lastTime) {
-      const fvgBars = rows.flatMap((r) =>
-        r.as_of != null && r.high != null && r.low != null
-          ? [{ time: r.as_of, high: r.high, low: r.low }]
-          : [],
-      );
       h.fvg.setRects(
-        findFairValueGaps(fvgBars).map((g) => ({
+        overlays.fvg.gaps.map((g) => ({
           start: g.time as Time,
           end: lastTime as Time,
           zg: g.top,
@@ -1066,8 +1054,8 @@ export function TechnicalsPriceChart({
     candleMode,
     anchor,
     mode,
-    chanlunGeo,
-    clBars,
+    overlays,
+    chanlunOn,
     vpOn,
     fvgOn,
   ]);
