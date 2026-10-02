@@ -10,7 +10,7 @@ import InfoTooltip from "./InfoTooltip";
 import { CriHistoryTable } from "./cri/CriHistoryTable";
 import { GuidancePanel } from "./GuidancePanel";
 import { MeanReversionTiles } from "./MeanReversionTiles";
-import { ComponentBar, type ComponentSlot } from "./primitives/ComponentBar";
+import { ComponentBar } from "./primitives/ComponentBar";
 import {
   DayChange,
   LiveBadge,
@@ -28,67 +28,24 @@ import CardSparkline from "./primitives/CardSparkline";
 import { type CriBlock } from "@/lib/regime/useCri";
 import { useCriLive, type CriLiveResponse } from "@/lib/regime/useCriLive";
 import { useCriDaily, type CriDailyEntry } from "@/lib/regime/useCriSeries";
+import {
+  criDailySeries,
+  criPrevCloses,
+  priorComponentScore,
+  priorHistoryRow,
+  spxMedianFiltered,
+  vixDelta3dSeries,
+  vvixVixRatio as vvixVixRatioDerive,
+} from "@/lib/regime/derive/cri";
 import { DispersionTiles } from "./DispersionTiles";
 import { useDispersion, type DispersionData } from "@/lib/regime/useDispersion";
 
 type CriLevel = "LOW" | "ELEVATED" | "HIGH" | "CRITICAL";
 
-// Mirror the Python scoring math from src/uw_scan/cards/cri_scorers.py so we
-// can draw the prior-day dot on each ComponentBar. Floors/ceilings MUST match
-// cri-methodology.md §3.
-//
-// v3 (2026-05-20): VIX floor 13 + RoC denom 40; VVIX floor 80; momentum
-// reshaped into structural (0-15) + tactical (0-10) sub-scores.
-//
-// Exported for unit testing — see web/tests/unit/CriSubTab.priorScore.test.tsx.
-export function priorComponentScore(
-  prior: CriHistoryEntry | undefined,
-  slot: ComponentSlot,
-): number | null {
-  if (!prior) return null;
-  const clip = (x: number, lo: number, hi: number) =>
-    Math.max(lo, Math.min(hi, x));
-  const round1 = (x: number) => Math.round(x * 10) / 10;
-  if (slot === "vix") {
-    // v3: floor 13, RoC denom 40 (was 15 / 60)
-    if (prior.vix == null || prior.vix_5d_roc == null) return null;
-    const lvl = clip(((prior.vix - 13) / 27) * 15, 0, 15);
-    const roc = clip((Math.max(prior.vix_5d_roc, 0) / 40) * 10, 0, 10);
-    return round1(lvl + roc);
-  }
-  if (slot === "vvix") {
-    // v3: level floor 80 (was 85); ratio band 5-8 and RoC denom 25 unchanged
-    if (prior.vvix == null || prior.vix == null || prior.vix <= 0) return null;
-    const ratio = prior.vvix / prior.vix;
-    const lvl = clip(((prior.vvix - 80) / 50) * 12, 0, 12);
-    const r = clip(((ratio - 5) / 3) * 7, 0, 7);
-    // vvix_5d_roc was added in v2 — historical snapshots may not have it.
-    const rocRaw = prior.vvix_5d_roc ?? 0;
-    const roc = clip((Math.max(rocRaw, 0) / 25) * 6, 0, 6);
-    return round1(lvl + r + roc);
-  }
-  if (slot === "correlation") {
-    // Unchanged across versions
-    if (prior.cor1m == null) return null;
-    const lvl = clip(((prior.cor1m - 25) / 45) * 17, 0, 17);
-    const chg = prior.cor1m_5d_change ?? 0;
-    const spike = clip((Math.max(chg, 0) / 20) * 8, 0, 8);
-    return round1(lvl + spike);
-  }
-  if (slot === "momentum") {
-    // v3: structural (0-15, vs 100d MA) + tactical (0-10, vs 20d high, sat -4%)
-    if (prior.spx_vs_ma_pct == null) return null;
-    const d = prior.spx_vs_ma_pct;
-    const structural = d >= 0 ? 0 : clip((Math.abs(d) / 10) * 15, 0, 15);
-    // pullback_20d_pct is a v3 history-entry field. Historical (pre-v3) rows
-    // won't have it; default to 0 (tactical sub-score doesn't fire).
-    const pullback = prior.pullback_20d_pct ?? 0;
-    const tactical =
-      pullback >= 0 ? 0 : clip((Math.abs(pullback) / 4) * 10, 0, 10);
-    return round1(clip(structural + tactical, 0, 25));
-  }
-  return null;
-}
+// priorComponentScore moved to @/lib/regime/derive/cri (verbatim — its
+// constants must keep matching src/uw_scan/cards/cri_scorers.py); re-exported
+// here so existing imports keep working.
+export { priorComponentScore };
 
 const SECTION_TOOLTIPS: Record<string, string> = {
   "CRI COMPONENTS":
@@ -139,17 +96,8 @@ function TriggerRow({
   );
 }
 
-// Pull prior-day values for DayChange from the history array (snapshot stored
-// the trailing 20 sessions including today). Today's close lives in the snapshot
-// scalars; "previous close" is history[history.length - 2][key].
-function prevClose(
-  history: CriHistoryEntry[] | undefined,
-  key: keyof CriHistoryEntry,
-): number | null {
-  if (!history || history.length < 2) return null;
-  const v = history[history.length - 2][key];
-  return typeof v === "number" && Number.isFinite(v) ? v : null;
-}
+// prevClose / criPrevCloses / vvixVixRatio / the daily-series helpers moved
+// verbatim to @/lib/regime/derive/cri.
 
 const VIX_VVIX_LEFT: ChartSeries = {
   key: "vix",
@@ -261,15 +209,11 @@ export function CriSubTabView({
   const cor1m = data.cor1m ?? null;
   const realizedVol = data.realized_vol ?? null;
 
-  const vixClose = prevClose(history, "vix");
-  const vvixClose = prevClose(history, "vvix");
-  const spyClose = prevClose(history, "spy");
-  const cor1mPrevClose =
-    data.cor1m_previous_close ?? prevClose(history, "cor1m");
+  const { vixClose, vvixClose, spyClose, cor1mPrevClose } =
+    criPrevCloses(data);
 
   const corr5dChange = data.cor1m_5d_change ?? null;
-  const vvixVixRatio =
-    data.vvix_vix_ratio ?? (vix && vix > 0 && vvix != null ? vvix / vix : null);
+  const vvixVixRatio = vvixVixRatioDerive(data);
   const spxDistPct = data.spx_distance_pct ?? null;
   const ma = data.spx_100d_ma ?? null;
   const trigger = data.crash_trigger;
@@ -291,40 +235,15 @@ export function CriSubTabView({
   // History payload is the 20-session window (oldest → newest).
   const liveValues = {};
   // Second-to-last row drives the prior-day dot on each ComponentBar.
-  const priorHistory =
-    history.length >= 2 ? history[history.length - 2] : undefined;
+  const priorHistory = priorHistoryRow(data);
 
   // 90d daily series for in-card sparklines (oldest → newest).
   const dailyRows = daily ?? [];
   const dseries = (k: keyof CriDailyEntry): (number | null)[] =>
-    dailyRows.map((r) => {
-      const v = r[k];
-      return typeof v === "number" && Number.isFinite(v) ? v : null;
-    });
+    criDailySeries(dailyRows, k);
   const vixDaily = dseries("vix");
-  // VIX Δ (3d) has no daily column — derive it from the VIX series, matching
-  // the tile's definition (absolute change over the last 3 sessions).
-  const vixDelta3dDaily = vixDaily.map((v, i) => {
-    const base = i >= 3 ? vixDaily[i - 3] : null;
-    return v != null && base != null ? v - base : null;
-  });
-  // Historical rows can mix SPX- and SPY-scale values when a snapshot
-  // captured the SPY fallback (observed in dev: 739.17 amid ~7400). Drop
-  // points outside a 2× band around the median — the index can't halve or
-  // double inside the 90d window, so only cross-scale points are removed.
-  const spxDailyRaw = dseries("spx");
-  const spxSorted = spxDailyRaw
-    .filter((v): v is number => v != null)
-    .sort((a, b) => a - b);
-  const spxMedian = spxSorted.length
-    ? spxSorted[Math.floor(spxSorted.length / 2)]
-    : null;
-  const spxDaily =
-    spxMedian == null
-      ? spxDailyRaw
-      : spxDailyRaw.map((v) =>
-          v != null && (v < spxMedian / 2 || v > spxMedian * 2) ? null : v,
-        );
+  const vixDelta3dDaily = vixDelta3dSeries(dailyRows);
+  const spxDaily = spxMedianFiltered(dailyRows).series;
 
   return (
     <div className="section gex-panel" data-testid="cri-subtab">
