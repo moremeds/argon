@@ -77,3 +77,56 @@ export function tileDomain(
   const pad = (hi - lo) * 0.1 || Math.abs(hi) * 0.1 || 1;
   return { lo: lo - pad, hi: hi + pad };
 }
+
+/** Volume bars get a shorter window — 90 bars at tile width are 1px slivers. */
+const VOL_TILE_BARS = 34;
+
+export type VolumeTile = {
+  /** Last VOL_TILE_BARS candles as {volume, up} bars — the tile's chart input. */
+  bars: { volume: Num; up: boolean }[];
+  /** SMA20 of volume aligned to `bars` (leading nulls until it fills). */
+  ma: (number | null)[];
+  lastVol: number | null;
+  lastVolMa: number | null;
+  /** lastVol / lastVolMa — null when either is missing or the MA is 0. */
+  ratio: number | null;
+};
+
+// The volume tile's inputs, from the magnets candles (NOT technicals.series —
+// the two sources sit on different as_of dates, and the bars must line up with
+// the chart directly above them). SMA20 runs over ALL candles then slices to
+// the tile window, so the MA is converged at the window's left edge.
+export function volumeTile(
+  candles: readonly { volume: Num; open: number; close: number }[],
+): VolumeTile {
+  const bars = candles.slice(-VOL_TILE_BARS).map((c) => ({
+    volume: c.volume,
+    up: c.close >= c.open,
+  }));
+  const ma = sma(
+    candles.map((c) => c.volume),
+    20,
+  ).slice(-VOL_TILE_BARS);
+  const lastVol = candles.at(-1)?.volume ?? null;
+  const lastVolMa = ma.at(-1) ?? null;
+  const ratio = lastVol != null && lastVolMa ? lastVol / lastVolMa : null;
+  return { bars, ma, lastVol, lastVolMa, ratio };
+}
+
+export type KinematicsLeg = {
+  /** Compound %/session over the last leg. */
+  v: number | null;
+  /** Change in velocity per session across the last two legs. */
+  accel: number | null;
+};
+
+// Kinematics, spec §1.1 layer 6: 1st and 2nd derivative of price — the last
+// KIN sessions' velocity vs the leg before it. Descriptive only — no threshold
+// is applied and no ACCEL/DECEL verdict is printed, because picking those
+// cut-offs would be inventing a signal the reference never validated either.
+export function kinematicsLeg(closes: number[], leg = 5): KinematicsLeg {
+  const n = closes.length;
+  const v = velocity(closes, n - 1 - leg, n - 1);
+  const vPrev = velocity(closes, n - 1 - 2 * leg, n - 1 - leg);
+  return { v, accel: v != null && vPrev != null ? (v - vPrev) / leg : null };
+}

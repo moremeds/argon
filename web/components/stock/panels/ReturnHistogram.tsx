@@ -1,66 +1,20 @@
 import { linearScale } from "@/lib/svgChart";
 import type { TechnicalsResponse } from "@/lib/api";
+import { returnDistribution } from "@/lib/technicals/returnDistribution";
 import { AnalyticalSeriesPanel } from "./AnalyticalSeriesPanel";
+
+// Moved to lib/technicals/returnDistribution.ts (pure, Node-usable);
+// re-exported so existing importers keep working.
+export { returnBins, type Bins } from "@/lib/technicals/returnDistribution";
 
 const CW = 900;
 const H = 190;
 const PAD = { l: 34, r: 16, t: 12, b: 26 };
-const WINDOW = 60; // trailing daily returns
-const NBINS = 21;
-
-export type Bins = {
-  edges: number[];
-  counts: number[];
-  mean: number;
-  sd: number;
-};
-
-// Pure: bin `returns` into `nbins` over [mean-3.5σ, mean+3.5σ] (outliers clamp
-// to the edge bins), returning bin edges, counts, and the sample moments.
-export function returnBins(returns: number[], nbins = NBINS): Bins {
-  const empty: Bins = {
-    edges: Array.from({ length: nbins + 1 }, (_, i) => i),
-    counts: Array(nbins).fill(0),
-    mean: 0,
-    sd: 0,
-  };
-  const n = returns.length;
-  if (n < 2) return empty;
-  const mean = returns.reduce((a, c) => a + c, 0) / n;
-  const variance = returns.reduce((a, c) => a + (c - mean) ** 2, 0) / (n - 1);
-  const sd = Math.sqrt(variance);
-  if (!(sd > 0)) return { ...empty, mean };
-  const lo = mean - 3.5 * sd;
-  const hi = mean + 3.5 * sd;
-  const w = (hi - lo) / nbins;
-  const edges = Array.from({ length: nbins + 1 }, (_, i) => lo + i * w);
-  const counts = Array(nbins).fill(0);
-  for (const r of returns) {
-    let idx = Math.floor((r - lo) / w);
-    if (idx < 0) idx = 0;
-    if (idx >= nbins) idx = nbins - 1;
-    counts[idx] += 1;
-  }
-  return { edges, counts, mean, sd };
-}
-
-function normPdf(x: number, mean: number, sd: number): number {
-  const z = (x - mean) / sd;
-  return Math.exp(-0.5 * z * z) / (sd * Math.sqrt(2 * Math.PI));
-}
 
 export function ReturnHistogram({ data }: { data: TechnicalsResponse }) {
-  const closes = (data.series ?? [])
-    .map((r) => r.close)
-    .filter((v): v is number => v != null);
-  const rets: number[] = [];
-  for (let i = 1; i < closes.length; i++) {
-    const p = closes[i - 1];
-    if (p) rets.push(closes[i] / p - 1);
-  }
-  const window = rets.slice(-WINDOW);
-  const { edges, counts, mean, sd } = returnBins(window, NBINS);
-  const n = window.length;
+  const dist = returnDistribution(data.series ?? []);
+  const { n, mean, sd } = dist;
+  const { edges, counts } = dist.bins;
 
   if (n < 20 || !(sd > 0)) {
     return (
@@ -71,24 +25,23 @@ export function ReturnHistogram({ data }: { data: TechnicalsResponse }) {
       </AnalyticalSeriesPanel>
     );
   }
-
-  const skew =
-    (n / ((n - 1) * (n - 2))) *
-    window.reduce((a, c) => a + ((c - mean) / sd) ** 3, 0);
+  // Under the gate above, skew and the normal overlay are always present —
+  // their own computation gates on the same n >= 20 && sd > 0 predicate.
+  const skew = dist.skew!;
+  const normal = dist.normal!;
 
   const lo = edges[0];
   const hi = edges[edges.length - 1];
   const x = linearScale([lo, hi], [PAD.l, CW - PAD.r]);
-  const w = (hi - lo) / NBINS;
   const maxCount = Math.max(1, ...counts);
   const y = linearScale([0, maxCount * 1.12], [H - PAD.b, PAD.t]);
 
-  // Normal overlay in count units: expected count per bin = n * binWidth * pdf.
-  const curve: string = Array.from({ length: 121 }, (_, i) => {
-    const xv = lo + ((hi - lo) * i) / 120;
-    const c = n * w * normPdf(xv, mean, sd);
-    return `${i === 0 ? "M" : "L"}${x(xv).toFixed(1)},${y(c).toFixed(1)}`;
-  }).join(" ");
+  const curve: string = normal
+    .map(
+      (p, i) =>
+        `${i === 0 ? "M" : "L"}${x(p.x).toFixed(1)},${y(p.count).toFixed(1)}`,
+    )
+    .join(" ");
 
   const sigTicks = [-3, -2, -1, 0, 1, 2, 3];
 

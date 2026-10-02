@@ -21,7 +21,6 @@ import {
   type WhitespaceData,
 } from "lightweight-charts";
 import { api, type TechnicalsResponse } from "@/lib/api";
-import { fmtDecimal } from "@/lib/formatters";
 import { anchoredVwap } from "@/lib/vwap";
 import {
   hasOhlcv,
@@ -38,6 +37,10 @@ import {
   VP_LOOKBACK,
 } from "@/lib/technicals/overlays";
 import type { Timeframe } from "@/lib/technicals/series";
+import {
+  macdSignalText,
+  type DualMacdDetail,
+} from "@/lib/technicals/verdicts";
 import { BandsIndicator, type BandPoint } from "@/lib/lwc/bandsIndicator";
 import { ChanlunZhongshu } from "@/lib/lwc/chanlunZhongshu";
 import { VolumeProfileIndicator } from "@/lib/lwc/volumeProfile";
@@ -105,26 +108,17 @@ function cssVar(name: string): string {
 // green/red; the two transitional states color by their structure sign but at a
 // dimmed shade — DETERIORATING = bull cooling (dim green), IMPROVING = bear
 // recovering (dim red) — so "in transition" reads distinctly from a clean trend.
-type DualMacdDetail = {
-  trend_state?: string;
-  tactical_signal?: string;
-  confidence?: number | null;
-};
 // ponytail: color-mix dims a token toward muted — no per-shade CSS var needed.
 const dim = (token: string) =>
   `color-mix(in srgb, ${token} 55%, var(--text-muted))`;
 export function macdSignal(
   dm: DualMacdDetail | undefined,
 ): { text: string; color: string } | null {
-  if (!dm) return null;
-  const hasTactical = !!dm.tactical_signal && dm.tactical_signal !== "NONE";
-  const text = hasTactical
-    ? `${dm.tactical_signal} · conf ${fmtDecimal(dm.confidence, 2)}`
-    : dm.trend_state;
-  if (!text) return null;
-  const key = (
-    hasTactical ? dm.tactical_signal! : dm.trend_state!
-  ).toUpperCase();
+  // Text + the signal key come from lib/technicals/verdicts; the color mapping
+  // below is the pane's drawing choice.
+  const sig = macdSignalText(dm);
+  if (!sig) return null;
+  const key = sig.key.toUpperCase();
   const color = /DETERIORATING/.test(key)
     ? dim("var(--positive)") // bull structure, weakening
     : /IMPROVING/.test(key)
@@ -134,7 +128,7 @@ export function macdSignal(
         : /BEAR|RALLY_SELL|DOWN|SHORT/.test(key)
           ? "var(--negative)"
           : "var(--text-muted)";
-  return { text, color };
+  return { text: sig.text, color };
 }
 
 // MarketSmith display style; the hover readout still shows true vol.
