@@ -12,6 +12,10 @@ Captured 2026-10-02T09:31Z from the argon FastAPI (main @ 18e25964) over the loc
 - `*_magnets.json`, `*_stock.json`, `*_trade_insights.json`: the matching stock-page endpoints.
 - `spy_cockpit_{vrp,dealer,state}.json`: `GET /cockpit/SPY/{vrp,dealer,state}`.
 - `regime_*.json`: `GET /regime/{gex?ticker=SPX,quotes,vol-backdrop,cri/live,cri/history?days=90}`.
+- `regime.json`, `regime_vcg.json`, `regime_vcg_live.json`, `regime_vrp_macro_signal.json`,
+  `regime_vrp_macro_signal_live.json`: `GET /regime`, `/regime/vcg`, `/regime/vcg/live`,
+  `/regime/vrp-macro-signal`, `/regime/vrp-macro-signal/live`. These were added in the same session
+  (2026-10-02, same API and DB).
 - `watchlist.json`, `watchlist_chains.json`: `GET /watchlist`, `GET /watchlist/chains`.
 
 Do not hand-edit values. To refresh, re-capture all of them together.
