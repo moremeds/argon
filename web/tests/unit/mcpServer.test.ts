@@ -135,7 +135,7 @@ describe("SessionStore.sweep", () => {
   }
 
   it("closes + drops sessions idle past the limit, keeps live ones", () => {
-    let now = 1_000_000;
+    const now = 1_000_000;
     const store = new SessionStore(() => now, 30 * 60_000);
     const old = fakeSession(now - 31 * 60_000);
     const fresh = fakeSession(now - 60_000);

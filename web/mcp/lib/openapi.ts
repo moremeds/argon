@@ -3,7 +3,6 @@
 // openapi_url), not under the /api router prefix — so ToolCtx.apiGet, which
 // prepends "/api", cannot reach it. This is the only other fetch in web/mcp;
 // it is GET-only like apiGet.
-import { URL } from "node:url";
 
 export function resolveApiBase(): string {
   return process.env.ARGON_API_URL ?? "http://api:8400";
