@@ -6,7 +6,7 @@ from decimal import Decimal
 import psycopg
 from fastapi.testclient import TestClient
 
-from tests.test_trade_insights_ai import _sample_outcome_for
+from tests.unit.test_trade_insights_ai import _sample_outcome_for
 from uw_scan.api.deps import get_repo, get_settings
 from uw_scan.api.server import create_app
 from uw_scan.config import Settings
