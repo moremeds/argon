@@ -7,6 +7,10 @@ version in lockstep (enforced by `scripts/release/version_sync_check.py`).
 
 ## [Unreleased]
 
+### Changed
+
+- **Web: shared formatters and one stat Tile (I-105, batch 1-2; no visual change).** `fmtGexUsd` and `formatLabel(value, fallback = "-")` now live in `web/lib/formatters.ts`; the identical `fmtGex` copies in `components/shared/GexCurvatureChart.tsx` and `components/regime/gex/format.ts` (kept as a re-export) and the four cockpit-tab `formatLabel` copies use them (the dealer tab passes its `"—"` fallback). `VolMetricsCard` and `GexLevelTiles` share `components/shared/Tile.tsx`. `web/tests/unit/sharedFormattersTile.test.tsx` holds markup snapshots written before the move; they are unchanged after it.
+
 ## [0.13.19] — 2026-10-04
 
 
