@@ -69,7 +69,7 @@ def _fail_analysis(
     *,
     raw_outcome: dict[str, Any] | None = None,
     provider_metadata: dict[str, Any] | None = None,
-    claim_token: Any = None,
+    claim_token: Any,
 ) -> None:
     repo = _repo(settings)
     try:
@@ -163,11 +163,15 @@ def trade_insights_ai_tick(
             stale_running_before=stale_running_before,
             provider=provider_filter,
         )
+        # Commit the claim on its own: from here on the claim_token is durable,
+        # so every later write -- including the fail after a prepare error --
+        # is fenced. (It used to commit together with prepare; a prepare error
+        # then rolled the claim back and needed an unfenced fail-by-id.)
+        repo.conn.commit()
         if row is None:
-            repo.conn.commit()
             return False
         analysis_id = str(row["analysis_id"])
-        claim_token = row.get("claim_token")
+        claim_token = row["claim_token"]
         row_provider = row.get("provider") or "codex"
         # Lane routing: blast rows use the trade_blast prompt/schema/validator;
         # insights rows use the production v5.3 card lane (unchanged behavior).
@@ -221,11 +225,12 @@ def trade_insights_ai_tick(
     except Exception as exc:
         repo.conn.rollback()
         if analysis_id is not None:
-            # Unfenced on purpose: the rollback above undid the claim, so its
-            # claim_token never committed and a fenced write would match 0
-            # rows, leaving the row queued to fail again on every tick.
-            _fail_analysis(settings, analysis_id, repr(exc))
+            # The claim is committed, so the fenced fail matches: the row ends
+            # 'failed' instead of being reclaimed to fail again every tick.
+            _fail_analysis(settings, analysis_id, repr(exc), claim_token=claim_token)
             return True
+        # Nothing was claimed (the error came before the claim committed):
+        # there is no row to fail.
         raise
     finally:
         repo.conn.close()
