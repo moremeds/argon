@@ -1548,15 +1548,28 @@ def main() -> int:
                             "regime_gex_scan skipped: research UW budget exhausted"
                         )
                         return
+                    # Unit = one ticker. gex_scanner.run commits each ticker's
+                    # snapshot and scan_run on its own, so a bad ticker never
+                    # costs the others; only a run where EVERY ticker failed
+                    # raises, so the job listener records it.
+                    succeeded = 0
+                    last_exc: Exception | None = None
                     for ticker in settings.gex_scan_tickers:
                         try:
                             gex_scanner.run(uw, repo, ticker=ticker)
+                            succeeded += 1
                         except Exception as exc:
                             logger.warning(
                                 "regime_gex_scan_failed ticker=%s err=%s",
                                 ticker,
                                 repr(exc),
                             )
+                            last_exc = exc
+                    if succeeded == 0 and last_exc is not None:
+                        raise RuntimeError(
+                            f"regime_gex_scan: all {len(settings.gex_scan_tickers)}"
+                            f" tickers failed; last err={last_exc!r}"
+                        ) from last_exc
 
     def _regime_market_tide_scan() -> None:
         # Weekday gate — UW market-tide is only published during sessions.
@@ -1644,12 +1657,16 @@ def main() -> int:
                 settings, telemetry_recorder=recorder, job_name="regime_grg_scan"
             ) as uw:
                 with _repo(settings) as repo:
+                    # One unit (one SPY/TLT snapshot): the scanner commits its
+                    # scan_run as 'error' and re-raises; re-raise here too so the
+                    # job listener records the failure.
                     try:
                         row_id = grg_scanner.run(uw, repo, schema=settings.db_schema)
                         logger.info("regime_grg_scan_tick row_id=%s", row_id)
                     except Exception as exc:
                         logger.warning("regime_grg_scan_failed err=%s", repr(exc))
                         repo.conn.rollback()
+                        raise
 
     def _discovery_scan() -> None:
         # Market-wide discovery — UW-bound (flow alerts + per-ticker dark pool),
@@ -1668,8 +1685,11 @@ def main() -> int:
                         )
                         logger.info("discovery_scan_tick %s", summary)
                     except Exception as exc:  # noqa: BLE001
-                        logger.exception("discovery_scan_failed err=%r", exc)
+                        # discovery_scan_once already committed its scan_run as
+                        # 'fail'; re-raise so the job listener records it.
+                        logger.warning("discovery_scan_failed err=%s", repr(exc))
                         repo.conn.rollback()
+                        raise
 
     def _gold_fred_ingest() -> None:
         gold_fred_ingest_job(dsn=settings.db_dsn())

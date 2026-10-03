@@ -10,6 +10,7 @@ version in lockstep (enforced by `scripts/release/version_sync_check.py`).
 ### Fixed
 
 - **Market-tide job failures now reach the job-failure streak.** `regime_market_tide_scan` and `market_tide_sentiment_eod` caught every exception, logged it, rolled back and returned, so APScheduler recorded a success: `job_failures` never counted the failure and the 3/10-consecutive alerts never fired. Both closures in `worker/scheduler.py` now log, roll back as before, then re-raise. Each job is one unit (one UW call; one session), so any exception fails the run; zero bars or zero sessions is still a normal return.
+- **GEX, GRG and discovery job failures now reach the job-failure streak.** All three caught their errors and returned, so APScheduler recorded a success. `regime_gex_scan` is multi-unit (one unit per ticker): each ticker still commits on its own, a bad ticker is logged and skipped, and the run raises only when every ticker failed. `regime_grg_scan` is one unit (the SPY/TLT snapshot); it re-raises after the scanner commits its `scan_run` as `error`. `discovery_scan` is one unit (alerts fetch + snapshot write): `discovery_scan_once` now commits the `scan_run` as `fail`, releases its lock and re-raises instead of returning `{"status": "error"}`; a per-ticker dark-pool miss still only degrades that candidate.
 
 ## [0.13.17] — 2026-10-03
 
