@@ -24,8 +24,9 @@ ENDPOINTS_TS = REPO_ROOT / "web" / "mcp" / "lib" / "endpoints.ts"
 # commit inline). Kept deliberately short — signature detection covers the
 # BackgroundTasks family; anything else must be named here AND in the
 # TypeScript denylist.
+# trade-insights left this set when its GET stopped writing (I-21; the write
+# moved to POST /stock/{ticker}/trade-insights/refresh).
 KNOWN_WRITING_GETS = {
-    "/stock/{ticker}/trade-insights",
     # Upserts a 'queued' volatility_backfill_status row the uw-0 worker turns
     # into UW spend (was a BackgroundTasks backfill before I-22).
     "/stock/{ticker}/volatility/series",
