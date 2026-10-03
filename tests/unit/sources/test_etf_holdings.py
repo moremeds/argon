@@ -1,4 +1,4 @@
-"""ETF holdings provider — GLD CSV, IAU JSON, PHYS JSON."""
+"""ETF holdings provider — SPDR historical archive (GLD, GLDM), CSV or XLSX."""
 
 from __future__ import annotations
 
@@ -22,15 +22,15 @@ def _fake_csv_response(text: str) -> httpx.Response:
     return httpx.Response(
         200,
         text=text,
-        request=httpx.Request("GET", EtfHoldingsProvider.GLD_URL),
+        request=httpx.Request("GET", EtfHoldingsProvider.SPDR_ARCHIVE_URL),
     )
 
 
-def _fake_xlsx_response() -> httpx.Response:
+def _fake_xlsx_response(ticker: str = "GLD") -> httpx.Response:
     wb = Workbook()
     disclaimer = wb.active
     disclaimer.title = "Disclaimer"
-    sheet = wb.create_sheet("US GLD Historical Archive")
+    sheet = wb.create_sheet(f"US {ticker} Historical Archive")
     sheet.append(
         [
             "Date",
@@ -39,7 +39,7 @@ def _fake_xlsx_response() -> httpx.Response:
             "NAV/Share at 10:30am NYT",
             "Indicative Price per Share at 4:15pm NYT",
             "Mid point of bid/ask spread at 4:15pm NYT",
-            "Premium/Discount of GLD Mid Point vs Indicative Value of GLD at 4:15pm NYT",
+            f"Premium/Discount of {ticker} Mid Point vs Indicative Value of {ticker} at 4:15pm NYT",
             "Daily Share Volume",
             "Total Ounces of Gold in the Trust",
             "Tonnes of Gold",
@@ -81,15 +81,7 @@ def _fake_xlsx_response() -> httpx.Response:
     return httpx.Response(
         200,
         content=buf.getvalue(),
-        request=httpx.Request("GET", EtfHoldingsProvider.GLD_URL),
-    )
-
-
-def _fake_json_response(payload: dict, url: str) -> httpx.Response:
-    return httpx.Response(
-        200,
-        json=payload,
-        request=httpx.Request("GET", url),
+        request=httpx.Request("GET", EtfHoldingsProvider.SPDR_ARCHIVE_URL),
     )
 
 
@@ -131,44 +123,14 @@ def test_etf_provider_parses_spdr_historical_archive_xlsx():
     ]
 
 
-def test_etf_provider_iau_uses_blackrock_endpoint():
-    iau_json = {
-        "data": [
-            {
-                "asOfDate": "2026-05-12",
-                "totalAssets": 12345.6,
-                "navPerShare": 47.50,
-                "physicalGoldOunces": 8500000.0,
-            },
-        ]
-    }
+def test_etf_provider_gldm_reads_the_same_spdr_archive():
+    # The old historical-data-gldm/ page 404s; GLDM is product=gldm on the GLD API.
     with patch.object(EtfHoldingsProvider, "_get_with_telemetry") as mock_get:
-        mock_get.return_value = _fake_json_response(
-            iau_json, EtfHoldingsProvider.IAU_URL
-        )
+        mock_get.return_value = _fake_xlsx_response("GLDM")
         with EtfHoldingsProvider() as p:
-            rows = p.fetch_iau(start=date(2026, 5, 12))
-    assert rows[0].ticker == "IAU"
-    assert rows[0].holdings_oz == Decimal("8500000.0")
-    assert rows[0].nav_per_share == Decimal("47.5")
-
-
-def test_etf_provider_phys_captures_premium():
-    phys_json = {
-        "data": [
-            {
-                "date": "2026-05-13",
-                "nav": 18.21,
-                "goldOunces": 1654321.5,
-                "premiumDiscountPct": -1.42,
-            }
-        ]
-    }
-    with patch.object(EtfHoldingsProvider, "_get_with_telemetry") as mock_get:
-        mock_get.return_value = _fake_json_response(
-            phys_json, EtfHoldingsProvider.PHYS_URL
-        )
-        with EtfHoldingsProvider() as p:
-            rows = p.fetch_phys(start=date(2026, 5, 13))
-    assert rows[0].ticker == "PHYS"
-    assert rows[0].premium_pct == Decimal("-1.42")
+            rows = p.fetch_gldm(start=date(2026, 5, 12))
+    assert mock_get.call_args.args[1]["product"] == "gldm"
+    assert mock_get.call_args.kwargs["endpoint_key"] == "spdr_gldm_archive"
+    assert [(r.ticker, r.holdings_oz, r.premium_pct) for r in rows] == [
+        ("GLDM", Decimal("28063540.00"), Decimal("0.04"))
+    ]

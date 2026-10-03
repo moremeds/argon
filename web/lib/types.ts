@@ -5479,7 +5479,7 @@ export interface components {
              * @default ok
              * @enum {string}
              */
-            status: "ok" | "missing";
+            status: "ok" | "stale" | "missing";
         };
         /**
          * GoldDecompositionRow

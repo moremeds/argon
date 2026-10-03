@@ -90,6 +90,25 @@ def _spot_from_gold_rows(gold_rows: list[dict[str, Any]]) -> dict[str, Any] | No
     }
 
 
+#: Ingest age (``as_of``) past which a source reads "stale" rather than "ok". Daily feeds get
+#: a long weekend of slack; COT is weekly; WGC is a manual quarterly import, so one quarter
+#: plus slack. COMEX has no threshold: it has no rows and reads "missing".
+FRESHNESS_MAX_AGE: dict[str, timedelta] = {
+    "FRED": timedelta(days=4),
+    "GPR": timedelta(days=4),
+    "ETF": timedelta(days=4),
+    "COT": timedelta(days=10),
+    "WGC": timedelta(days=100),
+}
+
+
+def _freshness_status(source: str, as_of: datetime | None, now: datetime) -> str:
+    if as_of is None:
+        return "missing"
+    limit = FRESHNESS_MAX_AGE.get(source)
+    return "stale" if limit is not None and now - as_of > limit else "ok"
+
+
 def _stale_seconds(as_of: datetime, now: datetime) -> int:
     return int((now - as_of).total_seconds())
 
@@ -399,7 +418,7 @@ def compute_and_persist_gold_posture(
             "id": sid,
             "last_as_of": ts.isoformat() if ts is not None else None,
             "stale_seconds": _stale_seconds(ts, now) if ts is not None else None,
-            "status": "ok" if ts is not None else "missing",
+            "status": _freshness_status(sid, ts, now),
         }
         for sid, ts in data_freshness_inputs.items()
     ]
