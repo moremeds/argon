@@ -22,7 +22,7 @@ Lenses share variance — they are complementary, **not orthogonal**. Position s
 
 | Lens | Sub-document | Code path | Status |
 |---|---|---|---|
-| 1 | `05-structural-flow-factors.md` | `sources/etf_holdings.py`, `sources/comex.py`, `sources/lbma.py`, `sources/cftc_cot.py`, `sources/wgc_etf.py`, `sources/uw_gold_options.py` | Mostly live (Phase A1); `wgc_cb.py` job registered (`gold_wgc_cb_ingest`, monthly `0 17 10 * *`) but self-skips without `WGC_CB_RESERVES_WORKBOOK_PATH`/`WGC_GOLDHUB_COOKIE` |
+| 1 | `05-structural-flow-factors.md` | `sources/etf_holdings.py`, `sources/lbma.py`, `sources/cftc_cot.py`, `sources/wgc_etf.py`, `sources/uw_gold_options.py` | Mostly live (Phase A1); `wgc_cb.py` job registered (`gold_wgc_cb_ingest`, monthly `0 17 10 * *`) but self-skips without `WGC_CB_RESERVES_WORKBOOK_PATH`/`WGC_GOLDHUB_COOKIE` |
 | 2 | `06-cyclical-factors.md` | `sources/fred.py`, `sources/gpr.py` | Live (FRED + GPR) |
 | 3 | `07-valuation-overlay.md` | computed in `worker/jobs/gold_jobs.py::gold_posture_compute_job` | Live |
 

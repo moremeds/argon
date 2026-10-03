@@ -356,3 +356,37 @@ def _seed_upstream_state(
     state_id = repo.insert_macro_domain_state(state, computed_at=as_of)
     conn.commit()
     return int(state_id)
+
+
+class _DeadFlowProvider(_FlowProvider):
+    def fetch_gld_payload(self, *, start: date | None = None):
+        raise RuntimeError("404 Not Found")
+
+
+def test_a_dead_feed_keeps_the_live_one_records_status_and_raises(
+    seeded_db_empty_cards,
+):
+    """The swallow used to make a dead vendor a clean run that job_failures never saw."""
+    settings = _settings()
+    with pytest.raises(RuntimeError, match=r"1 of 2 feeds failed: gold_flow: "):
+        macro_gold_ingest_job(
+            dsn=settings.db_dsn(),
+            massive_api_key="unused-by-the-stub",
+            price_provider_factory=_PriceProvider,
+            flow_provider_factory=_DeadFlowProvider,
+        )
+
+    with psycopg.connect(settings.db_dsn()) as conn, conn.cursor() as cur:
+        cur.execute(
+            "SELECT count(*) FROM uw_scan.macro_observations WHERE series_id = %s",
+            (GOLD_PRICE_SERIES,),
+        )
+        assert cur.fetchone()[0] > 0
+        cur.execute(
+            "SELECT source, status, consecutive_failures FROM uw_scan.macro_source_status"
+            " WHERE source IN ('massive.com', 'spdrgoldshares') ORDER BY source"
+        )
+        assert cur.fetchall() == [
+            ("massive.com", "ok", 0),
+            ("spdrgoldshares", "degraded", 1),
+        ]

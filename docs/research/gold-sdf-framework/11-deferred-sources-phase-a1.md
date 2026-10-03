@@ -73,7 +73,7 @@
 
 **Designed source:** CME Group's daily Issues & Stops report (anonymous CSV).
 
-**Phase A1 status:** **CME returns 403 to anonymous scrapers as of 2026-05-17.** Bumping the timeout to 60s and adding a browser UA did not help. The fetcher in `src/uw_scan/sources/comex.py` is intact and logs a warning when the 403 lands.
+**Phase A1 status:** **CME returns 403 to anonymous scrapers as of 2026-05-17.** Bumping the timeout to 60s and adding a browser UA did not help. The fetcher in `src/uw_scan/sources/comex.py` logged a warning on each 403 and never wrote a row; it was deleted in 2026-10 (still 403 from prod).
 
 **2026-05-18 verification:** `exchange_inventory_daily` has LBMA rows but no COMEX rows. A live probe against the CME page still returns 403. Until calibration proves COMEX is material, do not let this optional source keep Lens 1 permanently degraded.
 

@@ -2,13 +2,12 @@
 
 WGC's old anonymous monthly CSV retired in May 2026. The current Goldhub page
 publishes authenticated XLSX downloads sourced from IMF IFS plus WGC
-adjustments. This provider keeps the old CSV parser for historical fixtures
-and adds the authenticated/local quarterly workbook path used by Goldhub.
+adjustments. This provider reads only that authenticated/local quarterly
+workbook; the anonymous CSV path and its parser were deleted 2026-10.
 """
 
 from __future__ import annotations
 
-import csv
 import io
 import logging
 import re
@@ -86,10 +85,9 @@ RecordHook = Callable[["WgcCbProvider", ExternalApiRequestEvent], None]
 
 
 class WgcCbProvider:
-    URL = "https://www.gold.org/goldhub/data/monthly-central-bank-statistics.csv"
+    # The anonymous monthly CSV (monthly-central-bank-statistics.csv) 404s since
+    # 2026-05; only the authenticated quarterly workbook remains.
     RESERVES_PAGE_URL = "https://www.gold.org/goldhub/data/gold-reserves-by-country"
-    ENDPOINT_PATH = "/goldhub/data/monthly-central-bank-statistics.csv"
-    ENDPOINT_KEY = "wgc_cb_monthly_csv"
     QUARTERLY_ENDPOINT_KEY = "wgc_cb_quarterly_xlsx"
     PROVIDER = "wgc_cb"
 
@@ -123,9 +121,9 @@ class WgcCbProvider:
             return self.parse_quarterly_workbook(
                 io.BytesIO(workbook_bytes), start=start, source_url=source_url
             )
-        response = self._get_with_telemetry(self.URL, {})
-        response.raise_for_status()
-        return self.parse_monthly_csv(response.text, start=start)
+        raise RuntimeError(
+            "WGC CB needs WGC_CB_RESERVES_WORKBOOK_PATH or WGC_GOLDHUB_COOKIE"
+        )
 
     def fetch_quarterly_workbook(self) -> tuple[bytes, str]:
         page = self._get_with_telemetry(
@@ -151,55 +149,6 @@ class WgcCbProvider:
         )
         response.raise_for_status()
         return response.content, url
-
-    @classmethod
-    def parse_monthly_csv(
-        cls, text: str, *, start: date | None = None
-    ) -> list[CbReserveRow]:
-        out: list[CbReserveRow] = []
-        reader = csv.DictReader(io.StringIO(text))
-        for row in reader:
-            country = (row.get("Country") or "").strip().lower()
-            iso3 = COUNTRY_ISO3.get(country)
-            if iso3 is None:
-                logger.debug("wgc_cb: unknown country %r, skipping", country)
-                continue
-            month_raw = (row.get("Month") or "").strip()
-            tonnes_raw = (row.get("Tonnes") or "").strip()
-            try:
-                if len(month_raw) == 7:
-                    obs_month = date.fromisoformat(month_raw + "-01")
-                else:
-                    obs_month = date.fromisoformat(month_raw)
-                reserves_t = (
-                    Decimal(tonnes_raw.replace(",", "")) if tonnes_raw else None
-                )
-            except (ValueError, InvalidOperation) as exc:
-                logger.debug("wgc cb row parse skipped: %s", repr(exc))
-                continue
-            if start and obs_month < start:
-                continue
-            is_reported = (row.get("Reported") or "").strip().lower() in (
-                "true",
-                "1",
-                "yes",
-            )
-            is_estimated = (row.get("Estimated") or "").strip().lower() in (
-                "true",
-                "1",
-                "yes",
-            )
-            out.append(
-                CbReserveRow(
-                    country_iso3=iso3,
-                    obs_month=obs_month,
-                    reserves_t=reserves_t,
-                    bucket=classify_bucket(iso3),
-                    is_reported=is_reported,
-                    is_estimated=is_estimated,
-                )
-            )
-        return out
 
     @classmethod
     def parse_quarterly_workbook(
@@ -254,8 +203,8 @@ class WgcCbProvider:
         url: str,
         params: dict[str, Any],
         *,
-        endpoint_key: str | None = None,
-        endpoint_path: str | None = None,
+        endpoint_key: str,
+        endpoint_path: str,
     ) -> httpx.Response:
         started_at = datetime.now(UTC)
         try:
@@ -302,15 +251,15 @@ class WgcCbProvider:
         finished_at: datetime,
         params: dict[str, Any],
         *,
-        endpoint_key: str | None = None,
-        endpoint_path: str | None = None,
+        endpoint_key: str,
+        endpoint_path: str,
         status_code: int | None,
         error_message: str | None,
     ) -> ExternalApiRequestEvent:
-        path = endpoint_path or self.ENDPOINT_PATH
+        path = endpoint_path
         return ExternalApiRequestEvent(
             provider=self.PROVIDER,
-            endpoint_key=endpoint_key or self.ENDPOINT_KEY,
+            endpoint_key=endpoint_key,
             method="GET",
             path=path,
             path_template=path,

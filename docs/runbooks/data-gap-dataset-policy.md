@@ -72,7 +72,7 @@ uv run python -c "from uw_scan.reports.data_gap_healer import render_dataset_pol
 | etf_aum_cache | freshness_only | none | none |  | equity_session | EXTERNAL-PROVIDER BLOCK, not a healer gap: the source requires an interactive auth cookie and exposes no historical API, so there is nothing for an adapter to call. Re-probe if a credential is ever provisioned. | 2026-08-16 |
 | etf_flows_daily | freshness_only | none | none |  | equity_session | EXTERNAL-PROVIDER BLOCK, not a healer gap: the source requires an interactive auth cookie and exposes no historical API, so there is nothing for an adapter to call. Re-probe if a credential is ever provisioned. | 2026-08-16 |
 | etf_holdings_daily | freshness_only | none | none |  | equity_session | EXTERNAL-PROVIDER BLOCK, not a healer gap: the source requires an interactive auth cookie and exposes no historical API, so there is nothing for an adapter to call. Re-probe if a credential is ever provisioned. | 2026-08-16 |
-| exchange_inventory_daily | freshness_only | external | run_once | gold_comex | monthly |  |  |
+| exchange_inventory_daily | freshness_only | external | run_once | gold_lbma | monthly |  |  |
 | gold_posture_daily | freshness_only | db | run_once | gold_posture | equity_session |  |  |
 | macro_series_daily | freshness_only | external | run_once_lookback | macro_fred | daily |  |  |
 | macro_series_monthly | freshness_only | external | run_once_lookback | macro_fred | monthly |  |  |

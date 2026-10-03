@@ -43,7 +43,6 @@ from uw_scan.worker.jobs.full_scan_hot import full_scan_hot_once
 from uw_scan.worker.jobs.fundamentals_jobs import fundamentals_refresh_once
 from uw_scan.worker.jobs.gold_jobs import (
     gold_cftc_cot_ingest_job,
-    gold_comex_vault_ingest_job,
     gold_etf_holdings_ingest_job,
     gold_fred_ingest_job,
     gold_gpr_ingest_job,
@@ -1700,9 +1699,6 @@ def main() -> int:
             rth_tz=settings.rth_tz,
         )
 
-    def _gold_comex_vault_ingest() -> None:
-        gold_comex_vault_ingest_job(dsn=settings.db_dsn())
-
     def _gold_uw_options_ingest() -> None:
         gold_uw_options_ingest_job(
             dsn=settings.db_dsn(),
@@ -2775,12 +2771,6 @@ def main() -> int:
             CronTrigger.from_crontab("15 17 * * 0-4", timezone=settings.rth_tz),
             id="gold_uw_options_ingest",
             name="Gold: UW options snapshot (GLD/GDX/IAU)",
-        )
-        sched.add_job(
-            _gold_comex_vault_ingest,
-            CronTrigger.from_crontab("30 17 * * 0-4", timezone=settings.rth_tz),
-            id="gold_comex_vault_ingest",
-            name="Gold: COMEX vault daily",
         )
         sched.add_job(
             _gold_etf_holdings_ingest,

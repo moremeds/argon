@@ -19,7 +19,6 @@ from datetime import date
 from uw_scan.config import Settings
 from uw_scan.worker.jobs.gold_jobs import (
     gold_cftc_cot_ingest_job,
-    gold_comex_vault_ingest_job,
     gold_etf_holdings_ingest_job,
     gold_fred_ingest_job,
     gold_gpr_ingest_job,
@@ -95,7 +94,6 @@ def main() -> int:
                 holdings_lookback_days=ETF_HOLDINGS_FULL_HISTORY_DAYS,
             ),
         ),
-        ("COMEX vault daily", lambda: gold_comex_vault_ingest_job(dsn=dsn)),
         ("CFTC COT weekly", lambda: gold_cftc_cot_ingest_job(dsn=dsn)),
         ("LBMA vault monthly", lambda: gold_lbma_vault_ingest_job(dsn=dsn)),
         (

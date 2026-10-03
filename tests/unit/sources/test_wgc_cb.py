@@ -5,42 +5,18 @@ from __future__ import annotations
 from datetime import date
 from decimal import Decimal
 from pathlib import Path
-from unittest.mock import patch
 
-import httpx
+import pytest
 from openpyxl import Workbook
 
 from uw_scan.cards.cb_buckets import classify_bucket
 from uw_scan.sources.wgc_cb import WgcCbProvider
 
-SAMPLE = """Country,Month,Tonnes,Reported,Estimated
-China,2026-04,2235.0,true,false
-India,2026-04,876.4,true,false
-Russia,2026-04,2330.5,false,true
-Poland,2026-04,420.3,true,false
-"""
 
-
-def _fake_response() -> httpx.Response:
-    return httpx.Response(
-        200,
-        text=SAMPLE,
-        request=httpx.Request("GET", WgcCbProvider.URL),
-    )
-
-
-def test_wgc_parses_monthly_csv():
-    with patch.object(WgcCbProvider, "_get_with_telemetry") as mock_get:
-        mock_get.return_value = _fake_response()
-        with WgcCbProvider() as p:
-            rows = p.fetch_monthly(start=date(2026, 4, 1))
-    by_country = {r.country_iso3: r for r in rows}
-    assert by_country["CHN"].reserves_t == Decimal("2235.0")
-    assert by_country["CHN"].obs_month == date(2026, 4, 1)
-    assert by_country["RUS"].is_reported is False
-    assert by_country["RUS"].is_estimated is True
-    assert by_country["POL"].bucket == "reserve_diversifier"
-    assert by_country["CHN"].bucket == "strategic_accumulator"
+def test_wgc_unconfigured_fetch_raises_instead_of_hitting_the_dead_csv():
+    # The anonymous monthly CSV 404s since 2026-05; there is no anonymous path left.
+    with WgcCbProvider() as p, pytest.raises(RuntimeError, match="WORKBOOK_PATH"):
+        p.fetch_monthly(start=date(2026, 4, 1))
 
 
 def test_wgc_parses_quarterly_workbook(tmp_path: Path):
@@ -60,9 +36,7 @@ def test_wgc_parses_quarterly_workbook(tmp_path: Path):
     ws.cell(row=4, column=4, value=534.851285)
     wb.save(workbook_path)
 
-    rows = WgcCbProvider.parse_quarterly_workbook(
-        workbook_path, start=date(2026, 1, 1)
-    )
+    rows = WgcCbProvider.parse_quarterly_workbook(workbook_path, start=date(2026, 1, 1))
 
     by_country = {r.country_iso3: r for r in rows}
     assert by_country["CHN"].obs_month == date(2026, 3, 31)
