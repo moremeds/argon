@@ -7,6 +7,10 @@ version in lockstep (enforced by `scripts/release/version_sync_check.py`).
 
 ## [Unreleased]
 
+### Changed
+
+- **The five legacy top-level tests now run in CI.** CI runs only `tests/unit/` and `tests/integration/`, so `tests/test_{smile_trim,trade_insights,trade_insights_ai,vol_series,volatility_models}.py` never ran there. None touch the DB; all moved to `tests/unit/`. Two `test_trade_insights_ai.py` tests had been failing unseen: `assemble_volatility_series` now reads `list_daily_ohlc` for split-safe closes, and the test's `_FakeVolRepo` lacked it. The fake now returns no OHLC rows; production code is unchanged.
+
 ### Fixed
 
 - **A slow AI provider's live run is no longer reclaimed early.** The AI queue treated a `running` row as abandoned after the *Codex* timeout + 60 s for every provider, so a Claude or DeepSeek run configured with a longer timeout could be stolen and run twice while the first was still live. Each provider-pinned worker now uses its own provider's timeout + 60 s; the legacy any-provider pool waits out the longest one.

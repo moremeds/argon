@@ -5,7 +5,7 @@ from datetime import datetime, timedelta, timezone
 import psycopg
 import pytest
 
-from tests.test_trade_insights_ai import _analysis_input, _sample_outcome_for
+from tests.unit.test_trade_insights_ai import _analysis_input, _sample_outcome_for
 from uw_scan.config import Settings
 from uw_scan.reports.trade_insights_ai import PROMPT_VERSION
 from uw_scan.storage.repository import Repository

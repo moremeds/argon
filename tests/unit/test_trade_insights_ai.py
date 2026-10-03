@@ -1867,6 +1867,9 @@ class _FakeVolRepo:
     def fetch_index_ohlc_series(self, ticker):
         return []
 
+    def list_daily_ohlc(self, ticker, *, limit=30):
+        return []
+
     def fetch_realized_vol_latest(self, ticker):
         return {"price": "101"} if self.rv_rows else {}
 
