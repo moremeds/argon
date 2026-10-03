@@ -1,3 +1,4 @@
+import { apiFetch as _fetch, query } from "./apiClient";
 import type { components, paths } from "./types";
 
 export type RadarResponse = components["schemas"]["RadarResponse"];
@@ -46,22 +47,6 @@ type VrpPaperResponse = components["schemas"]["VrpPaperResponse"];
 type VrpMacroPositionsResponse =
   components["schemas"]["VrpMacroPositionsResponse"];
 type VrpMacroPositionDetail = components["schemas"]["VrpMacroPositionDetail"];
-
-// URL-agnostic base. In the browser, use a relative URL so requests go back
-// through whatever origin served the page (Tailnet IP, MagicDNS, Cloudflare
-// Tunnel, etc.) and get proxied to FastAPI by the Next.js rewrite at
-// `/api/:path*`. On the server (RSC fetches), hit FastAPI directly because
-// relative URLs have no base in a Node fetch context.
-// Browser: "" → relative `/api/*`, routed through the next.config.mjs rewrite.
-// Server (RSC): needs an absolute URL. Read NEXT_INTERNAL_API_BASE — a *runtime*
-// (non-NEXT_PUBLIC, so not build-inlined) env, the SAME var the rewrite proxy
-// uses. Under launchd it's unset → localhost fallback; in Docker it's
-// `http://api:8400` (the compose service), never `127.0.0.1` = the container
-// itself. See docker-migration spec code change #7.
-const API =
-  typeof window !== "undefined"
-    ? ""
-    : (process.env.NEXT_INTERNAL_API_BASE ?? "http://127.0.0.1:8400");
 
 type Json<
   P extends keyof paths,
@@ -192,33 +177,11 @@ export function _rawSlash(value: string): string {
   return encodeURIComponent(value).replace(/%2F/g, "/");
 }
 
-async function _fetch<T>(
-  path: string,
-  init?: RequestInit,
-  options: { allow404?: boolean } = {},
-): Promise<T> {
-  const r = await fetch(`${API}${path}`, {
-    ...init,
-    headers: { "Content-Type": "application/json", ...(init?.headers ?? {}) },
-    cache: "no-store",
-  });
-  if (options.allow404 && r.status === 404) return null as T;
-  if (!r.ok) {
-    throw new Error(`API ${r.status} for ${path}: ${await r.text()}`);
-  }
-  // FastAPI returns 204 No Content with an empty body for DELETE; calling
-  // r.json() on an empty body throws SyntaxError. Special-case empty.
-  if (r.status === 204) return undefined as unknown as T;
-  const text = await r.text();
-  if (!text) return undefined as unknown as T;
-  return JSON.parse(text) as T;
-}
-
 /** `?as_of=YYYY-MM-DD`, or nothing at all when live. The empty string is deliberately
  *  NOT sent: FastAPI would reject `as_of=` as an unparseable date, turning "show me now"
  *  into a 422 the desk would have to explain. */
 function asOfQuery(asOf?: string): string {
-  return asOf ? `?as_of=${encodeURIComponent(asOf)}` : "";
+  return query({ as_of: asOf });
 }
 
 export const api = {
@@ -282,9 +245,8 @@ export const api = {
     ticker: string,
     asof?: string,
   ): Promise<CockpitStateResponse | null> => {
-    const q = asof ? `?asof=${encodeURIComponent(asof)}` : "";
     return _fetch<CockpitStateResponse | null>(
-      `/api/cockpit/${ticker}/state${q}`,
+      `/api/cockpit/${ticker}/state${query({ asof })}`,
       undefined,
       { allow404: true },
     );
@@ -293,9 +255,8 @@ export const api = {
     ticker: string,
     asof?: string,
   ): Promise<CockpitDealerResponse | null> => {
-    const q = asof ? `?asof=${encodeURIComponent(asof)}` : "";
     return _fetch<CockpitDealerResponse | null>(
-      `/api/cockpit/${ticker}/dealer${q}`,
+      `/api/cockpit/${ticker}/dealer${query({ asof })}`,
       undefined,
       { allow404: true },
     );
@@ -304,9 +265,8 @@ export const api = {
     ticker: string,
     asof?: string,
   ): Promise<CockpitSurfaceResponse | null> => {
-    const q = asof ? `?asof=${encodeURIComponent(asof)}` : "";
     return _fetch<CockpitSurfaceResponse | null>(
-      `/api/cockpit/${ticker}/surface${q}`,
+      `/api/cockpit/${ticker}/surface${query({ asof })}`,
       undefined,
       { allow404: true },
     );
@@ -315,9 +275,8 @@ export const api = {
     ticker: string,
     asof?: string,
   ): Promise<CockpitFlowImResponse | null> => {
-    const q = asof ? `?asof=${encodeURIComponent(asof)}` : "";
     return _fetch<CockpitFlowImResponse | null>(
-      `/api/cockpit/${ticker}/flow-im${q}`,
+      `/api/cockpit/${ticker}/flow-im${query({ asof })}`,
       undefined,
       { allow404: true },
     );
@@ -326,9 +285,8 @@ export const api = {
     ticker: string,
     asof?: string,
   ): Promise<CockpitVrpResponse | null> => {
-    const q = asof ? `?asof=${encodeURIComponent(asof)}` : "";
     return _fetch<CockpitVrpResponse | null>(
-      `/api/cockpit/${ticker}/vrp${q}`,
+      `/api/cockpit/${ticker}/vrp${query({ asof })}`,
       undefined,
       { allow404: true },
     );
@@ -485,11 +443,11 @@ export const api = {
     seriesId: string,
     range?: { from?: string; to?: string; asOf?: string },
   ): Promise<GoldInputSeriesResponse | null> => {
-    const qs = new URLSearchParams();
-    if (range?.from) qs.set("from", range.from);
-    if (range?.to) qs.set("to", range.to);
-    if (range?.asOf) qs.set("as_of", range.asOf);
-    const suffix = qs.toString() ? `?${qs}` : "";
+    const suffix = query({
+      from: range?.from,
+      to: range?.to,
+      as_of: range?.asOf,
+    });
     return _fetch<GoldInputSeriesResponse | null>(
       `/api/gold/inputs/${encodeURIComponent(seriesId)}${suffix}`,
       undefined,
@@ -505,40 +463,25 @@ export const api = {
     limit?: number;
     min_dimensions?: number;
   }): Promise<RadarResponse> => {
-    const q = new URLSearchParams();
-    if (params?.tier) q.set("tier", params.tier);
-    if (params?.engine_version) q.set("engine_version", params.engine_version);
-    if (params?.limit != null) q.set("limit", String(params.limit));
-    if (params?.min_dimensions != null)
-      q.set("min_dimensions", String(params.min_dimensions));
-    const qs = q.toString();
-    return _fetch<RadarResponse>(`/api/scanner/radar${qs ? `?${qs}` : ""}`);
+    return _fetch<RadarResponse>(
+      `/api/scanner/radar${query({ tier: params?.tier, engine_version: params?.engine_version, limit: params?.limit, min_dimensions: params?.min_dimensions })}`,
+    );
   },
   chainMatrix: (params?: {
     taxonomy_version?: string;
     engine_version?: string;
     domain?: string;
   }): Promise<ChainMatrixResponse> => {
-    const q = new URLSearchParams();
-    if (params?.taxonomy_version)
-      q.set("taxonomy_version", params.taxonomy_version);
-    if (params?.engine_version) q.set("engine_version", params.engine_version);
-    if (params?.domain) q.set("domain", params.domain);
-    const qs = q.toString();
     return _fetch<ChainMatrixResponse>(
-      `/api/research/chains/matrix${qs ? `?${qs}` : ""}`,
+      `/api/research/chains/matrix${query({ taxonomy_version: params?.taxonomy_version, engine_version: params?.engine_version, domain: params?.domain })}`,
     );
   },
   chainMembers: (
     chain: string,
     params?: { layer?: string; engine_version?: string },
   ): Promise<ChainDrilldownResponse> => {
-    const q = new URLSearchParams();
-    if (params?.layer) q.set("layer", params.layer);
-    if (params?.engine_version) q.set("engine_version", params.engine_version);
-    const qs = q.toString();
     return _fetch<ChainDrilldownResponse>(
-      `/api/research/chains/${encodeURIComponent(chain)}${qs ? `?${qs}` : ""}`,
+      `/api/research/chains/${encodeURIComponent(chain)}${query({ layer: params?.layer, engine_version: params?.engine_version })}`,
     );
   },
   // --- Fundamentals industry desk (Task 13's read-only surface) -------------
@@ -575,8 +518,7 @@ export const api = {
     ),
   deskDelta: (section: string, since?: string): Promise<DeltaRailResponse> =>
     _fetch<DeltaRailResponse>(
-      `/api/fundamentals/${section}/delta` +
-        (since == null ? "" : `?since=${since}`),
+      `/api/fundamentals/${section}/delta` + query({ since }),
     ),
   deskMatrix: (section: string): Promise<DeskMatrixResponse> =>
     _fetch<DeskMatrixResponse>(`/api/fundamentals/${section}/matrix`),
@@ -610,8 +552,7 @@ export const api = {
     asOf?: string,
   ): Promise<ReportResponse> =>
     _fetch<ReportResponse>(
-      `/api/research/reports/${reportType}/${_rawSlash(key)}` +
-        (asOf ? `?as_of=${asOf}` : ""),
+      `/api/research/reports/${reportType}/${_rawSlash(key)}` + asOfQuery(asOf),
       { method: "POST" },
     ),
   companyDimensions: (
@@ -619,11 +560,7 @@ export const api = {
     engineVersion?: string,
   ): Promise<CompanyDimensionsResponse> =>
     _fetch<CompanyDimensionsResponse>(
-      `/api/stock/${ticker}/fundamentals/dimensions${
-        engineVersion
-          ? `?engine_version=${encodeURIComponent(engineVersion)}`
-          : ""
-      }`,
+      `/api/stock/${ticker}/fundamentals/dimensions${query({ engine_version: engineVersion })}`,
     ),
   tradeInsights: (ticker: string): Promise<TradeInsightsResponse> =>
     _fetch<TradeInsightsResponse>(`/api/stock/${ticker}/trade-insights`),
@@ -669,14 +606,12 @@ export const api = {
     options: HealthOptions = {},
     init?: RequestInit,
   ): Promise<HealthResponse> => {
-    const params = new URLSearchParams({ source: source ?? "uw" });
-    if (options.recordWindowHours != null) {
-      params.set("record_window_hours", String(options.recordWindowHours));
-    }
-    if (options.recordMinCoverage != null) {
-      params.set("record_min_coverage", String(options.recordMinCoverage));
-    }
-    return _fetch<HealthResponse>(`/api/health?${params.toString()}`, init);
+    const q = query({
+      source: source ?? "uw",
+      record_window_hours: options.recordWindowHours,
+      record_min_coverage: options.recordMinCoverage,
+    });
+    return _fetch<HealthResponse>(`/api/health${q}`, init);
   },
   healthBenchmarkCurrent: (): Promise<BenchmarkCurrentResponse> =>
     _fetch<BenchmarkCurrentResponse>("/api/health/benchmark/current"),
@@ -709,20 +644,16 @@ export const api = {
       body: JSON.stringify(body),
     }),
   regimeGex: (ticker: string): Promise<RegimeGexResponse> =>
-    _fetch<RegimeGexResponse>(
-      `/api/regime/gex?ticker=${encodeURIComponent(ticker)}`,
-    ),
+    _fetch<RegimeGexResponse>(`/api/regime/gex${query({ ticker })}`),
   regimeDealer: (ticker: string): Promise<RegimeDealerResponse> =>
-    _fetch<RegimeDealerResponse>(
-      `/api/regime/dealer?ticker=${encodeURIComponent(ticker)}`,
-    ),
+    _fetch<RegimeDealerResponse>(`/api/regime/dealer${query({ ticker })}`),
   regimeVcg: (): Promise<RegimeVcgResponse> =>
     _fetch<RegimeVcgResponse>(`/api/regime/vcg`),
   vrpCandidates: (): Promise<VrpCandidatesResponse> =>
     _fetch<VrpCandidatesResponse>(`/api/vrp/candidates`),
   vrpBacktest: (holdDays?: number): Promise<VrpBacktestResponse> =>
     _fetch<VrpBacktestResponse>(
-      `/api/vrp/backtest${holdDays != null ? `?hold_days=${holdDays}` : ""}`,
+      `/api/vrp/backtest${query({ hold_days: holdDays })}`,
     ),
   vrpPaper: (): Promise<VrpPaperResponse> =>
     _fetch<VrpPaperResponse>(`/api/vrp/paper`),
@@ -742,15 +673,14 @@ export const api = {
     limit = 52,
   ): Promise<AgentRunWeekListResponse> =>
     _fetch<AgentRunWeekListResponse>(
-      `/api/agent-runs/weeks?tenant=${encodeURIComponent(tenant)}&limit=${limit}`,
+      `/api/agent-runs/weeks${query({ tenant, limit })}`,
     ),
   agentRunWeek: (
     tenant: string,
     weekKey: string,
   ): Promise<AgentRunWeekResponse> =>
     _fetch<AgentRunWeekResponse>(
-      `/api/agent-runs/week/${encodeURIComponent(weekKey)}` +
-        `?tenant=${encodeURIComponent(tenant)}`,
+      `/api/agent-runs/week/${encodeURIComponent(weekKey)}${query({ tenant })}`,
     ),
   /** `null` on 404 — an absent run is an empty state, never an error page. */
   agentRun: (
@@ -761,8 +691,7 @@ export const api = {
   ): Promise<AgentRunResponse | null> =>
     _fetch<AgentRunResponse | null>(
       `/api/agent-runs/run/${encodeURIComponent(kind)}/${encodeURIComponent(day)}` +
-        `?tenant=${encodeURIComponent(tenant)}` +
-        (version == null ? "" : `&version=${version}`),
+        query({ tenant, version }),
       undefined,
       { allow404: true },
     ),
@@ -771,8 +700,7 @@ export const api = {
     kind?: string,
   ): Promise<AgentRunResponse | null> =>
     _fetch<AgentRunResponse | null>(
-      `/api/agent-runs/latest?tenant=${encodeURIComponent(tenant)}` +
-        (kind == null ? "" : `&kind=${encodeURIComponent(kind)}`),
+      `/api/agent-runs/latest${query({ tenant, kind })}`,
       undefined,
       { allow404: true },
     ),

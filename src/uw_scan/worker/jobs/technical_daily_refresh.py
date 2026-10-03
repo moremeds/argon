@@ -13,6 +13,7 @@ from uw_scan.cards.technicals import (
 )
 from uw_scan.config import Settings
 from uw_scan.sources.apex import fetch_daily_bars
+from uw_scan.sources.source_errors import SourceUnavailable
 from uw_scan.storage.repository import Repository
 from uw_scan.storage.technicals_repository import TechnicalsRepository, series_records
 
@@ -54,32 +55,33 @@ def technical_daily_refresh(
         watch = sorted({c.ticker.upper() for c in repo.list_watchlist_cards()})
     tickers = sorted(set(watch) | {"SPY"})  # SPY = RS benchmark, always refreshed
     # SPY reconciled once: it is both a displayed ticker and the RS benchmark, so
-    # the ratio's two legs share the same corrected close series.
-    spy_apex = fetch_daily_bars("SPY")
+    # the ratio's two legs share the same corrected close series. Apex down for
+    # SPY raises SourceUnavailable out of the job: every other ticker's RS
+    # columns would be computed against an empty benchmark.
+    apex_url = settings.apex_api_url
+    spy_apex = fetch_daily_bars("SPY", base_url=apex_url)
     spy_bars = overlay_recent_ohlc(spy_apex, _recent_ohlc(repo, "SPY"))
-    ok = skipped_thin = source_unavailable = failed = 0
+    ok = skipped_thin = no_data = source_unavailable = failed = 0
+    last_unavailable: SourceUnavailable | None = None
     for t in tickers:
         try:
             if t == "SPY":
                 apex_bars, bars = spy_apex, spy_bars
                 bench = None
             else:
-                apex_bars = fetch_daily_bars(t)
+                apex_bars = fetch_daily_bars(t, base_url=apex_url)
                 bars = overlay_recent_ohlc(apex_bars, _recent_ohlc(repo, t))
                 bench = spy_bars
             series = build_technical_series(bars, bench)
             snap = build_technical_snapshot(bars, bench, series=series)
             if snap is None:
                 if not apex_bars:
-                    # apex served nothing (503 adjusted_unavailable, 404, or a
-                    # transport failure — fetch_daily_bars never raises, so the
-                    # reason is in ITS log line). The ~60-session daily_ohlc
-                    # overlay alone is under the 210-bar floor, so this looks
-                    # exactly like thin history and used to be charged to it.
-                    # That mislabel is why MSTR froze at 2026-07-15 for 26
-                    # sessions with only an INFO line: a name with 2006 rows of
-                    # history does not have "thin history", it has no source.
-                    source_unavailable += 1
+                    # apex answered 2xx with no bars. (A refused read -- 503
+                    # adjusted_unavailable, 404, transport -- raises
+                    # SourceUnavailable and is counted below.) The ~60-session
+                    # daily_ohlc overlay alone is under the 210-bar floor, so do
+                    # not charge this to thin history either.
+                    no_data += 1
                     log.warning(
                         "technical_daily_refresh: %s apex returned no bars — "
                         "series will freeze at its last good date",
@@ -116,6 +118,21 @@ def technical_daily_refresh(
                 forward_returns=snap["forward_returns"],
             )
             ok += 1
+        except SourceUnavailable as exc:
+            # A missing livewire artifact (503 adjusted_unavailable) is why MSTR
+            # froze at 2026-07-15 for 26 sessions with only an INFO line: a name
+            # with 2006 rows of history does not have "thin history", it has no
+            # source. One ticker's outage does not fail the run.
+            # No rollback: the fetch raised before this ticker wrote anything,
+            # and a rollback here would also drop an uncommitted search_path.
+            source_unavailable += 1
+            last_unavailable = exc
+            log.warning(
+                "technical_daily_refresh: %s source unavailable — series will "
+                "freeze at its last good date: %s",
+                t,
+                repr(exc),
+            )
         except Exception as exc:
             failed += 1
             # Clear any aborted transaction so the next ticker (and, for the
@@ -126,9 +143,18 @@ def technical_daily_refresh(
     summary = {
         "ok": ok,
         "skipped_thin": skipped_thin,
+        "no_data": no_data,
         "source_unavailable": source_unavailable,
         "failed": failed,
         "tickers": len(tickers),
     }
     log.info("technical_daily_refresh: %s", summary)
+    # Unit = one ticker: an outage on SOME tickers is a partial run; an outage
+    # on every attempted ticker (none succeeded) is a failed run (I-15).
+    if ok == 0 and last_unavailable is not None:
+        raise SourceUnavailable(
+            "apex",
+            f"technical_daily_refresh: {source_unavailable}/{len(tickers)} tickers "
+            f"source-unavailable, none succeeded; last: {last_unavailable.detail}",
+        ) from last_unavailable
     return summary

@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import logging
 import os
 import threading
 import time
@@ -43,9 +44,11 @@ from uw_scan.reports.magnet_data import (
 from uw_scan.reports.single_stock import assemble_single_stock_report
 from uw_scan.reports.stock_history import build_stock_history_response
 from uw_scan.reports.technicals import assemble_technicals
+from uw_scan.sources.source_errors import SourceUnavailable
 from uw_scan.storage.repository import Repository
 
 router = APIRouter()
+logger = logging.getLogger(__name__)
 
 # Response cache for the two polled stock-page endpoints. Keyed on
 # (ticker, run_id); a new scan mints a new run_id so old keys age out on their
@@ -256,7 +259,15 @@ def refresh_stock_technicals(
     if not acquired:
         return assemble_technicals(t, repo, schema=settings.db_schema)
     try:
-        technical_daily_refresh(repo=repo, settings=settings, ticker_filter=[t])
+        try:
+            technical_daily_refresh(repo=repo, settings=settings, ticker_filter=[t])
+        except SourceUnavailable as exc:
+            # apex could not answer (down, or no Silver for this name). The
+            # route's documented surface is 200 + the current state, which is
+            # backfill_status='empty' when nothing is stored -- the same answer
+            # it gave before the client raised. Never a bare 500.
+            repo.conn.rollback()
+            logger.warning("technicals refresh for %s: %s", t, repr(exc))
         return assemble_technicals(t, repo, schema=settings.db_schema)
     finally:
         with repo.conn.cursor() as cur:
