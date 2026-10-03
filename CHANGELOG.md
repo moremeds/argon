@@ -7,6 +7,10 @@ version in lockstep (enforced by `scripts/release/version_sync_check.py`).
 
 ## [Unreleased]
 
+### Changed
+
+- **The five legacy top-level tests now run in CI.** CI runs only `tests/unit/` and `tests/integration/`, so `tests/test_{smile_trim,trade_insights,trade_insights_ai,vol_series,volatility_models}.py` never ran there. None touch the DB; all moved to `tests/unit/`. Two `test_trade_insights_ai.py` tests had been failing unseen: `assemble_volatility_series` now reads `list_daily_ohlc` for split-safe closes, and the test's `_FakeVolRepo` lacked it. The fake now returns no OHLC rows; production code is unchanged.
+
 ### Fixed
 
 - **Market-tide job failures now reach the job-failure streak.** `regime_market_tide_scan` and `market_tide_sentiment_eod` caught every exception, logged it, rolled back and returned, so APScheduler recorded a success: `job_failures` never counted the failure and the 3/10-consecutive alerts never fired. Both closures in `worker/scheduler.py` now log, roll back as before, then re-raise. Each job is one unit (one UW call; one session), so any exception fails the run; zero bars or zero sessions is still a normal return.
