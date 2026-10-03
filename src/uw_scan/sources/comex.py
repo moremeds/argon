@@ -52,7 +52,7 @@ class ComexProvider:
         record_request: RecordHook | None = None,
     ):
         self._client = httpx.Client(
-            timeout=timeout_s, headers={"User-Agent": self.BROWSER_UA}
+            timeout=timeout_s, headers={"User-Agent": self.BROWSER_UA}, trust_env=False
         )
         self._record_request_fn = record_request
 

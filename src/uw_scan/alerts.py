@@ -63,7 +63,10 @@ def send_alert(title: str, message: str) -> bool:
         if not url:
             return False
         resp = httpx.post(
-            url, json={"content": f"**[argon] {title}**\n{message}"}, timeout=5.0
+            url,
+            json={"content": f"**[argon] {title}**\n{message}"},
+            timeout=5.0,
+            trust_env=False,
         )
         return 200 <= resp.status_code < 300
     except Exception as exc:  # alerting must never take down the caller

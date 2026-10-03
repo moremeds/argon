@@ -43,7 +43,7 @@ def test_send_alert_posts_when_configured(monkeypatch):
     class _Resp:
         status_code = 200
 
-    def _fake_post(url, json, timeout):
+    def _fake_post(url, json, timeout, trust_env=True):
         posted["url"] = url
         return _Resp()
 

@@ -39,7 +39,7 @@ def fetch_ib_option_iv(
         "right": right.upper(),
     }
     own = client is None
-    c = client or httpx.Client(timeout=timeout_s)
+    c = client or httpx.Client(timeout=timeout_s, trust_env=False)
     try:
         resp = c.get(f"{base_url}/options/greeks", params=params, headers=headers)
         resp.raise_for_status()
@@ -96,7 +96,7 @@ def fetch_ib_option_quote(
         "right": right.upper(),
     }
     own = client is None
-    c = client or httpx.Client(timeout=timeout_s)
+    c = client or httpx.Client(timeout=timeout_s, trust_env=False)
     try:
         resp = c.get(f"{base_url}/options/greeks", params=params, headers=headers)
         resp.raise_for_status()

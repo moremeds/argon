@@ -64,7 +64,7 @@ class UwClient:
         self.base_url = base_url.rstrip("/")
         self.timeout = timeout
         self.max_retries = max_retries
-        self._client = httpx.Client(timeout=timeout)
+        self._client = httpx.Client(timeout=timeout, trust_env=False)
         self.rate_limit = RateLimitState()
         self._telemetry_recorder = telemetry_recorder
         self._job_name = job_name

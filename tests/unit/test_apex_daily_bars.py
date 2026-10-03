@@ -23,7 +23,7 @@ class _Resp:
 def test_fetch_daily_bars_happy_path(monkeypatch):
     captured = {}
 
-    def fake_get(url, params=None, timeout=None):
+    def fake_get(url, params=None, timeout=None, trust_env=True):
         captured["url"] = url
         captured["params"] = params
         return _Resp(
@@ -45,7 +45,7 @@ def test_fetch_daily_bars_happy_path(monkeypatch):
 
 
 def test_fetch_daily_bars_never_raises(monkeypatch):
-    def fake_get(url, params=None, timeout=None):
+    def fake_get(url, params=None, timeout=None, trust_env=True):
         raise httpx.ConnectError("down")
 
     monkeypatch.setattr(apex.httpx, "get", fake_get)
@@ -66,7 +66,7 @@ def test_fetch_daily_bars_uses_v1_equity_route_and_requests_adjusted(monkeypatch
     changes argon's price basis mid-series."""
     captured = {}
 
-    def fake_get(url, params=None, timeout=None):
+    def fake_get(url, params=None, timeout=None, trust_env=True):
         captured["url"] = url
         captured["params"] = params
         return _Resp({"symbol": "SPY", "bars": []})
@@ -82,7 +82,7 @@ def test_fetch_daily_bars_volatility_class_omits_price_mode(monkeypatch):
     sending price_mode=adjusted there is a 400 adjusted_not_supported."""
     captured = {}
 
-    def fake_get(url, params=None, timeout=None):
+    def fake_get(url, params=None, timeout=None, trust_env=True):
         captured["url"] = url
         captured["params"] = params
         return _Resp({"symbol": "SPX", "bars": []})
@@ -98,7 +98,7 @@ def test_fetch_daily_bars_logs_apex_error_code(monkeypatch, caplog):
     at this boundary; the typed code is the only thing that tells them apart,
     so it must reach the log."""
 
-    def fake_get(url, params=None, timeout=None):
+    def fake_get(url, params=None, timeout=None, trust_env=True):
         request = httpx.Request("GET", url)
         response = httpx.Response(
             503,

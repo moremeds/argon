@@ -127,6 +127,7 @@ def _fetch_xenon_closes(
                 "use_rth": True,
             },
             timeout=timeout,
+            trust_env=False,
         )
         resp.raise_for_status()
         bars = resp.json().get("bars", [])
@@ -174,7 +175,10 @@ def _fetch_apex_closes(
     )
     try:
         resp = httpx.get(
-            _bars_url(ticker, _DEFAULT_ASSET_CLASS), params=params, timeout=timeout
+            _bars_url(ticker, _DEFAULT_ASSET_CLASS),
+            params=params,
+            timeout=timeout,
+            trust_env=False,
         )
         resp.raise_for_status()
         bars = resp.json().get("bars", [])
@@ -260,7 +264,9 @@ def fetch_daily_bars(
     """
     params = _with_price_mode({"timeframe": "1d", "limit": 1650}, asset_class)
     try:
-        resp = httpx.get(_bars_url(ticker, asset_class), params=params, timeout=timeout)
+        resp = httpx.get(
+            _bars_url(ticker, asset_class), params=params, timeout=timeout, trust_env=False
+        )
         resp.raise_for_status()
         bars = resp.json().get("bars", [])
     except Exception as exc:
@@ -324,7 +330,7 @@ def fetch_bars(
     if end is not None:
         params["end"] = _iso(end)
     own = client is None
-    c = client or httpx.Client(timeout=timeout)
+    c = client or httpx.Client(timeout=timeout, trust_env=False)
     try:
         resp = c.get(_bars_url(ticker, asset_class), params=params)
         resp.raise_for_status()
@@ -410,7 +416,7 @@ def fetch_bulk_daily_closes(
     if not wanted:
         return out
     own = client is None
-    c = client or httpx.Client(timeout=timeout)
+    c = client or httpx.Client(timeout=timeout, trust_env=False)
     missing_total = 0
     try:
         for i in range(0, len(wanted), BULK_MAX_SYMBOLS):

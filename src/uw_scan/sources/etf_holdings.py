@@ -62,6 +62,7 @@ class EtfHoldingsProvider:
         self._client = httpx.Client(
             timeout=timeout_s if timeout_s is not None else self.DEFAULT_TIMEOUT_S,
             headers={"User-Agent": self.BROWSER_UA},
+            trust_env=False,
         )
         self._max_retries = max_retries if max_retries is not None else self.MAX_RETRIES
         self._record_request_fn = record_request
