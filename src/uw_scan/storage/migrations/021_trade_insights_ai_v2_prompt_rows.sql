@@ -1,23 +1,12 @@
 -- Keep active Trade Insights AI rows aligned with the v2 prompt contract.
 -- Old active rows were created with a v1 prompt version and can otherwise be
 -- claimed by a newer worker, producing schema_version mismatch failures.
-
-SET search_path TO uw_scan, public;
-
-UPDATE uw_scan.trade_insight_ai_analyses
-SET
-    status = 'failed',
-    error_message = 'Superseded by trade-insights-ai-v2 prompt version',
-    finished_at = COALESCE(finished_at, now())
-WHERE prompt_version <> 'trade-insights-ai-v2'
-  AND status IN ('queued', 'running');
-
-UPDATE uw_scan.trade_insight_ai_analyses
-SET analysis_input_jsonb = jsonb_set(
-    analysis_input_jsonb,
-    '{prompt_version}',
-    '"trade-insights-ai-v2"'::jsonb,
-    true
-)
-WHERE prompt_version = 'trade-insights-ai-v2'
-  AND COALESCE(analysis_input_jsonb->>'prompt_version', '') <> 'trade-insights-ai-v2';
+--
+-- REPLAYED DML REMOVED (2026-10-03). This file used to (1) fail every queued/
+-- running analysis whose prompt_version <> 'trade-insights-ai-v2' and (2) stamp
+-- analysis_input_jsonb.prompt_version on v2 rows. The API self-migrates on every
+-- boot, so (1) re-ran on every deploy against the CURRENT prompt version (v5.3):
+-- each deploy failed every in-flight analysis. The one-time effect was already
+-- applied: on prod 2026-10-03 both predicates matched 0 rows. A fresh install has
+-- no rows, so it needs nothing. Data DML in a migration must be insert-only --
+-- enforced by tests/unit/storage/test_migration_dml_allowlist.py.
