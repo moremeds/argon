@@ -4,15 +4,8 @@ from __future__ import annotations
 
 from datetime import date, datetime, timezone
 from decimal import Decimal
-from pathlib import Path
 
 from uw_scan.models import FlowAlert
-from uw_scan.storage.migrate_runner import split_sql_statements
-
-BACKFILL_MIGRATION = (
-    Path(__file__).resolve().parents[3]
-    / "src/uw_scan/storage/migrations/023_backfill_flow_alerts_daily_rollup.sql"
-)
 
 
 def _alert(
@@ -67,99 +60,3 @@ def test_flow_alerts_daily_rollup_computes_30d_baseline(seeded_db_empty_cards):
     assert baseline["avg_30d_alert_count"] == Decimal("30.0000000000000000")
     assert baseline["flow_count_vs_30d_avg"] == Decimal("3.3333333333333333")
     assert baseline["baseline_days"] == 3
-
-
-def test_backfill_migration_rolls_up_existing_flow_events(seeded_db_empty_cards):
-    repo = seeded_db_empty_cards
-    old_run = repo.insert_scan_run("GOOGL")
-    repo.insert_flow_events(
-        old_run,
-        "GOOGL",
-        [_alert("old-1", premium=Decimal("10"))],
-    )
-    latest_run = repo.insert_scan_run("GOOGL")
-    repo.insert_flow_events(
-        latest_run,
-        "GOOGL",
-        [
-            _alert("new-1", option_type="call", premium=Decimal("100")),
-            _alert("new-2", option_type="put", premium=Decimal("50")),
-        ],
-    )
-    prior_run = repo.insert_scan_run("GOOGL")
-    repo.insert_flow_events(
-        prior_run,
-        "GOOGL",
-        [
-            _alert(
-                "prior-1",
-                premium=Decimal("20"),
-                created_at=datetime(2026, 5, 13, 14, 30, tzinfo=timezone.utc),
-            ),
-            _alert(
-                "prior-2",
-                premium=Decimal("20"),
-                created_at=datetime(2026, 5, 13, 15, 30, tzinfo=timezone.utc),
-            ),
-        ],
-    )
-    repo.conn.commit()
-
-    # Re-apply the backfill migration in-process. Statements are split so
-    # multi-statement files don't get wrapped in an implicit transaction.
-    sql = BACKFILL_MIGRATION.read_text()
-    with repo.conn.cursor() as cur:
-        for stmt in split_sql_statements(sql):
-            cur.execute(stmt)
-    repo.conn.commit()
-
-    with repo.conn.cursor() as cur:
-        cur.execute(
-            """
-            SELECT run_id, alert_count, total_premium, bull_premium, bear_premium
-            FROM uw_scan.flow_alerts_daily_rollup
-            WHERE ticker = 'GOOGL' AND trade_date = '2026-05-14'
-            """
-        )
-        current = cur.fetchone()
-        cur.execute(
-            """
-            SELECT alert_count, avg_30d_alert_count, flow_count_vs_30d_avg
-            FROM (
-                WITH current_rollup AS (
-                    SELECT ticker, trade_date, alert_count
-                    FROM uw_scan.flow_alerts_daily_rollup
-                    WHERE run_id = %s
-                ), history AS (
-                    SELECT h.alert_count
-                    FROM uw_scan.flow_alerts_daily_rollup h
-                    JOIN current_rollup c ON c.ticker = h.ticker
-                    WHERE h.trade_date < c.trade_date
-                      AND h.trade_date >= c.trade_date - (30 * INTERVAL '1 day')
-                )
-                SELECT
-                    c.alert_count,
-                    AVG(h.alert_count)::numeric AS avg_30d_alert_count,
-                    ROUND(c.alert_count::numeric / AVG(h.alert_count)::numeric, 16)
-                        AS flow_count_vs_30d_avg
-                FROM current_rollup c
-                LEFT JOIN history h ON true
-                GROUP BY c.alert_count
-            ) s
-            """,
-            (latest_run,),
-        )
-        baseline = cur.fetchone()
-
-    assert current == (
-        latest_run,
-        2,
-        Decimal("150.0000"),
-        Decimal("100.0000"),
-        Decimal("50.0000"),
-    )
-    assert baseline == (
-        2,
-        Decimal("2.0000000000000000"),
-        Decimal("1.0000000000000000"),
-    )

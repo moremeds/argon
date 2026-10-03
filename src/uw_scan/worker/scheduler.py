@@ -88,6 +88,7 @@ from uw_scan.worker.jobs.rates_jobs import rates_fred_ingest_job
 from uw_scan.worker.jobs.record_health_snapshot import record_health_snapshot_job
 from uw_scan.worker.jobs.regime_jobs import regime_fred_ingest_job
 from uw_scan.worker.jobs.rescan_loop import rescan_tick
+from uw_scan.worker.jobs.volatility_backfill import volatility_backfill_tick
 from uw_scan.worker.jobs.skew_analytics import (
     nightly_skew_analytics_rollup,
     skew_markout_refresh,
@@ -292,6 +293,19 @@ def _rescan_worker_concurrency(settings: Settings) -> int:
 
 def _is_primary_worker(settings: Settings) -> bool:
     return settings.worker_role.lower() == "all" or settings.worker_index == 0
+
+
+def _owns_global_daily_jobs(settings: Settings) -> bool:
+    """Exactly one process owns the role-agnostic daily jobs (gold, regime
+    EOD scans, vol/credit lake syncs, macro).
+
+    These used to sit under `_is_primary_worker`, which is true for index-0 of
+    EVERY role, so the prod stack (uw-0, massive-0, ai-deepseek-0) ran each of
+    them three times: tripled UW spend for the gold options ingest and three
+    gold_posture rows per night. Pin to massive-0, the macro-evidence owner.
+    """
+    role = settings.worker_role.lower()
+    return role == "all" or (role == "massive" and settings.worker_index == 0)
 
 
 def _should_schedule_rates_fred_ingest(settings: Settings) -> bool:
@@ -734,6 +748,7 @@ _TICK_JOB_IDS = frozenset(
     {
         "worker_heartbeat",
         "rescan_tick",
+        "volatility_backfill_tick",
         "trade_insights_ai_tick",
         "trade_insights_ai_tick_codex",
         "trade_insights_ai_tick_claude",
@@ -1163,6 +1178,16 @@ def main() -> int:
                 logger.info("corporate_actions_refresh ingested %d tickers", n)
         finally:
             provider.close()
+
+    def _volatility_backfill_tick() -> None:
+        # Durable queue for the GET /volatility/series backfill (I-22): research
+        # UW pool, so an exhausted budget leaves rows 'queued' for a later tick.
+        with _repo(settings) as repo:
+            volatility_backfill_tick(
+                repo=repo,
+                settings=settings,
+                budget_ok=lambda: _research_budget_ok(settings, repo),
+            )
 
     def _vrp_research_refresh() -> None:
         with _repo(settings) as repo:
@@ -2106,6 +2131,17 @@ def main() -> int:
             name="Ad-hoc rescan poll",
             max_instances=_rescan_worker_concurrency(settings),
         )
+        if _is_primary_worker(settings):
+            # On-demand volatility backfill queue (GET /volatility/series
+            # enqueues). uw-0 only: one UW-spending claimer is enough.
+            sched.add_job(
+                _volatility_backfill_tick,
+                IntervalTrigger(seconds=10),
+                id="volatility_backfill_tick",
+                name="On-demand volatility backfill queue",
+                max_instances=1,
+                coalesce=True,
+            )
         sched.add_job(
             _flow_data_refresh,
             CronTrigger.from_crontab("15 18 * * 0-4", timezone=settings.rth_tz),
@@ -2722,7 +2758,19 @@ def main() -> int:
             coalesce=True,
         )
 
-    if _is_primary_worker(settings):
+    # Rates FRED is pinned to uw-0 by its own gate, so it lives outside the
+    # single-owner block below.
+    if _should_schedule_rates_fred_ingest(settings):
+        sched.add_job(
+            _rates_fred_ingest,
+            CronTrigger.from_crontab("45 18 * * 0-4", timezone=settings.rth_tz),
+            id="rates_fred_ingest",
+            name="Rates: FRED curve and macro refresh",
+            max_instances=1,
+            coalesce=True,
+        )
+
+    if _owns_global_daily_jobs(settings):
         # Vol-complex parquet lake sync — nightly, 03:15 ET. Local I/O only,
         # no provider role required. Idempotent (UPSERT) so safe to re-run.
         sched.add_job(
@@ -2814,15 +2862,6 @@ def main() -> int:
             id="gold_etf_holdings_ingest",
             name="Gold: ETF holdings daily (GLD/IAU/GLDM/PHYS)",
         )
-        if _should_schedule_rates_fred_ingest(settings):
-            sched.add_job(
-                _rates_fred_ingest,
-                CronTrigger.from_crontab("45 18 * * 0-4", timezone=settings.rth_tz),
-                id="rates_fred_ingest",
-                name="Rates: FRED curve and macro refresh",
-                max_instances=1,
-                coalesce=True,
-            )
         if _should_schedule_macro_policy_ingest(settings):
             if settings.macro_fomc_ingest_enabled:
                 sched.add_job(
