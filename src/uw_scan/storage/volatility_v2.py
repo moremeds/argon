@@ -4,11 +4,10 @@ from __future__ import annotations
 
 from collections.abc import Iterable
 from datetime import date as _date
-from datetime import datetime
+from datetime import datetime, timedelta
 from typing import Any
 
 import psycopg
-
 
 
 class _VolatilityV2Mixin:
@@ -289,6 +288,67 @@ class _VolatilityV2Mixin:
                 sql,
                 (ticker, status, started_at, finished_at, error_message),
             )
+
+    # Durable backfill queue (migration 157). The GET enqueues, the uw-0
+    # worker's volatility_backfill_tick claims. The ticker PK is the dedup key.
+
+    def enqueue_volatility_backfill(self, ticker: str) -> None:
+        """Queue a backfill unless one is already queued or running."""
+        sql = (
+            f"INSERT INTO {self._schema}.volatility_backfill_status (ticker, status) "
+            "VALUES (%s, 'queued') "
+            "ON CONFLICT (ticker) DO UPDATE SET status = 'queued', "
+            "started_at = NULL, finished_at = NULL, error_message = NULL "
+            f"WHERE {self._schema}.volatility_backfill_status.status "
+            "NOT IN ('queued', 'running')"
+        )
+        with self._conn.cursor() as cur:
+            cur.execute(sql, (ticker,))
+        self._conn.commit()
+
+    def has_queued_volatility_backfill(self) -> bool:
+        with self._conn.cursor() as cur:
+            cur.execute(
+                f"SELECT EXISTS (SELECT 1 FROM {self._schema}.volatility_backfill_status "
+                "WHERE status = 'queued')"
+            )
+            row = cur.fetchone()
+        return bool(row and row[0])
+
+    def claim_volatility_backfill(self) -> str | None:
+        """Flip one queued row to running (started_at = now) and return its
+        ticker. SKIP LOCKED so concurrent claimers never take the same row."""
+        # ponytail: ordered by ticker, not FIFO -- no requested_at column, and
+        # the queue only ever holds the handful of tickers opened on the page.
+        sql = (
+            f"UPDATE {self._schema}.volatility_backfill_status "
+            "SET status = 'running', started_at = NOW(), finished_at = NULL, "
+            "error_message = NULL "
+            "WHERE ticker = ("
+            f"  SELECT ticker FROM {self._schema}.volatility_backfill_status "
+            "  WHERE status = 'queued' ORDER BY ticker "
+            "  FOR UPDATE SKIP LOCKED LIMIT 1"
+            ") RETURNING ticker"
+        )
+        with self._conn.cursor() as cur:
+            cur.execute(sql)
+            row = cur.fetchone()
+        self._conn.commit()
+        return row[0] if row else None
+
+    def requeue_stale_volatility_backfills(self, older_than: timedelta) -> int:
+        """Put 'running' rows whose started_at is older than ``older_than`` back
+        to 'queued' (their worker died, e.g. a restart mid-backfill)."""
+        sql = (
+            f"UPDATE {self._schema}.volatility_backfill_status "
+            "SET status = 'queued', started_at = NULL "
+            "WHERE status = 'running' AND started_at < NOW() - %s"
+        )
+        with self._conn.cursor() as cur:
+            cur.execute(sql, (older_than,))
+            n = cur.rowcount
+        self._conn.commit()
+        return n
 
     # ------------------------------------------------------------------
     # Regime / GEX (ported from xenon 2026-05-16)

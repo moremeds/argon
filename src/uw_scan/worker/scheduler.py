@@ -88,6 +88,7 @@ from uw_scan.worker.jobs.positioning_jobs import positioning_refresh_once
 from uw_scan.worker.jobs.rates_jobs import rates_fred_ingest_job
 from uw_scan.worker.jobs.record_health_snapshot import record_health_snapshot_job
 from uw_scan.worker.jobs.rescan_loop import rescan_tick
+from uw_scan.worker.jobs.volatility_backfill import volatility_backfill_tick
 from uw_scan.worker.jobs.skew_analytics import (
     nightly_skew_analytics_rollup,
     skew_markout_refresh,
@@ -734,6 +735,7 @@ _TICK_JOB_IDS = frozenset(
     {
         "worker_heartbeat",
         "rescan_tick",
+        "volatility_backfill_tick",
         "trade_insights_ai_tick",
         "trade_insights_ai_tick_codex",
         "trade_insights_ai_tick_claude",
@@ -1155,6 +1157,16 @@ def main() -> int:
                 logger.info("corporate_actions_refresh ingested %d tickers", n)
         finally:
             provider.close()
+
+    def _volatility_backfill_tick() -> None:
+        # Durable queue for the GET /volatility/series backfill (I-22): research
+        # UW pool, so an exhausted budget leaves rows 'queued' for a later tick.
+        with _repo(settings) as repo:
+            volatility_backfill_tick(
+                repo=repo,
+                settings=settings,
+                budget_ok=lambda: _research_budget_ok(settings, repo),
+            )
 
     def _vrp_research_refresh() -> None:
         with _repo(settings) as repo:
@@ -2074,6 +2086,17 @@ def main() -> int:
             name="Ad-hoc rescan poll",
             max_instances=_rescan_worker_concurrency(settings),
         )
+        if _is_primary_worker(settings):
+            # On-demand volatility backfill queue (GET /volatility/series
+            # enqueues). uw-0 only: one UW-spending claimer is enough.
+            sched.add_job(
+                _volatility_backfill_tick,
+                IntervalTrigger(seconds=10),
+                id="volatility_backfill_tick",
+                name="On-demand volatility backfill queue",
+                max_instances=1,
+                coalesce=True,
+            )
         sched.add_job(
             _flow_data_refresh,
             CronTrigger.from_crontab("15 18 * * 0-4", timezone=settings.rth_tz),
