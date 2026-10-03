@@ -2,6 +2,8 @@
 
 import { useEffect, useState } from "react";
 
+import { apiFetch } from "@/lib/apiClient";
+
 import { regimeApi } from "./api";
 
 /** Descriptive correlation/dispersion context (EOD, slow-moving). NOT a signal. */
@@ -24,9 +26,7 @@ export function useDispersion(): DispersionData | null {
     let alive = true;
     const load = async () => {
       try {
-        const res = await fetch(regimeApi.dispersion());
-        if (!res.ok) return;
-        const json = (await res.json()) as DispersionData;
+        const json = await apiFetch<DispersionData>(regimeApi.dispersion());
         if (alive) setData(json);
       } catch {
         // never-raise: leave the tile row absent rather than break the page

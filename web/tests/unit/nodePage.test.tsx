@@ -1,6 +1,8 @@
 import { render, screen, within } from "@testing-library/react";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 
+import { ApiError } from "@/lib/apiClient";
+
 import { NodeAliasQuestions } from "@/components/fundamentals/NodeAliasQuestions";
 import { NodeCalendarStrip } from "@/components/fundamentals/NodeCalendarStrip";
 import { NodeLimits } from "@/components/fundamentals/NodeLimits";
@@ -289,16 +291,14 @@ function reportOkWithoutExposureBlock(): ReportResponse {
 
 describe("chainFromSegments", () => {
   it("rejoins a slash-bearing chain name from its catch-all segments", async () => {
-    const { chainFromSegments } =
-      await import("@/lib/fundamentalsSection");
+    const { chainFromSegments } = await import("@/lib/fundamentalsSection");
     expect(chainFromSegments(["Networking", "Optical"])).toBe(
       "Networking/Optical",
     );
   });
 
   it("resolves a slash-free chain, which arrives as a one-element array", async () => {
-    const { chainFromSegments } =
-      await import("@/lib/fundamentalsSection");
+    const { chainFromSegments } = await import("@/lib/fundamentalsSection");
     expect(chainFromSegments(["Sector-ETF"])).toBe("Sector-ETF");
   });
 });
@@ -668,7 +668,7 @@ describe("the node page", () => {
     // component-level test injects `error` directly, which pins only the
     // component's own rendering, not the page's wiring of it.
     deskCalendar.mockRejectedValue(
-      new Error("API 503 for /fundamentals/ai-semi/node/calendar: down"),
+      new ApiError(503, "/fundamentals/ai-semi/node/calendar", "down"),
     );
     await renderPage();
     expect(screen.getByRole("alert").textContent).toMatch(/503/);
@@ -677,7 +677,7 @@ describe("the node page", () => {
 
   it("names a failed underwriting request as a failure, not as an empty node", async () => {
     nodeUnderwriting.mockRejectedValue(
-      new Error("API 500 for /fundamentals/ai-semi/node/underwriting: down"),
+      new ApiError(500, "/fundamentals/ai-semi/node/underwriting", "down"),
     );
     await renderPage();
     expect(screen.getByRole("alert").textContent).toMatch(/500/);
@@ -705,9 +705,7 @@ describe("the node page", () => {
     // Starlette routes, so the reports route answers 404. That is not evidence
     // about whether a report exists.
     researchReport.mockRejectedValue(
-      new Error(
-        "API 404 for /api/research/reports/chain/Networking%2FOptical: ",
-      ),
+      new ApiError(404, "/api/research/reports/chain/Networking%2FOptical", ""),
     );
     await renderPage();
     const note =
@@ -719,7 +717,7 @@ describe("the node page", () => {
 
   it("names a failed report request as a failure, not as an absence", async () => {
     researchReport.mockRejectedValue(
-      new Error("API 503 for /api/research: down"),
+      new ApiError(503, "/api/research", "down"),
     );
     await renderPage();
     expect(screen.getByTestId("node-report-absent").textContent).toMatch(
