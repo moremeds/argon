@@ -812,13 +812,22 @@ class _GoldMixin:
             )
 
     def fetch_gold_posture_latest(self) -> dict[str, Any] | None:
+        """The canonical row of the newest obs_date: its FIRST active computation.
+
+        Every posture reader picks the same row per obs_date -- the first active one.
+        That row is what the 19:40 macro gold state read; a later recompute (the
+        healer's, a manual rerun) did not exist at that instant, so preferring it would
+        make the live page disagree with every replay of the same day. A row that must
+        not stand is superseded by invalidating it (``row_status``), never by writing a
+        newer one.
+        """
         with self._conn.cursor() as cur:
             cur.execute(
                 """
                 SELECT *
                 FROM uw_scan.gold_posture_daily
                 WHERE row_status = 'active'
-                ORDER BY obs_date DESC, computed_at DESC
+                ORDER BY obs_date DESC, computed_at ASC
                 LIMIT 1
                 """,
             )
@@ -870,8 +879,8 @@ class _GoldMixin:
         """The newest active posture row for a date AT OR BEFORE ``as_of``.
 
         Neither existing reader answers this. ``fetch_gold_posture_latest`` returns the
-        newest row regardless of the instant being answered for -- fine for the live page,
-        lookahead for a replay -- and ``fetch_gold_posture_for_obs_date`` needs an exact
+        newest obs_date regardless of the instant being answered for -- fine for the live
+        page, lookahead for a replay -- and ``fetch_gold_posture_for_obs_date`` needs an exact
         date, so a state computed on a day the orchestrator did not run would find
         nothing and report UNKNOWN rather than reading the gauge that WAS in force.
 

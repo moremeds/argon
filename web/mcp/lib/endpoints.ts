@@ -21,8 +21,8 @@ export type EndpointInfo = {
  *    to POST .../refresh), but agents already use the identical
  *    /stock/{ticker}/trade-insights/preview; denying this one keeps a single
  *    agent route instead of two.
- *  - /stock/{ticker}/volatility/series: a GET that schedules _kick_backfill
- *    via BackgroundTasks (routers/volatility.py) → DB writes + UW spend.
+ *  - /stock/{ticker}/volatility/series: a GET that enqueues a volatility
+ *    backfill row (routers/volatility.py) → the uw-0 worker spends UW on it.
  *  Guard test: tests/unit/api/test_mcp_get_side_effects.py fails if a new
  *  side-effecting GET is added without being denylisted here. */
 export const DENYLIST: ReadonlySet<string> = new Set<string>([
