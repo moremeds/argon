@@ -9,6 +9,7 @@ version in lockstep (enforced by `scripts/release/version_sync_check.py`).
 
 ### Fixed
 
+- **NFCI / ANFCI / USREC refresh again; they were frozen at 2026-05-26.** `regime_fred_ingest_job` (`worker/jobs/regime_jobs.py`) was added in f9b64354 but never scheduled, so the three regime-gate series in `macro_series_daily` stopped at the last hand run (as_of 2026-05-26, NFCI obs 2026-05-15) while FRED kept publishing. The regime label gates and Trade Insights read stale credit-stress and recession inputs for four months. It now runs daily at 19:22 ET on the macro-evidence owner (massive-0, or `all`), and raises when every series fails, so the job-failure streak sees a dead feed. A one-off run after deploy backfills the gap (default lookback 45 days does not reach May: run `python -m uw_scan.worker.jobs.regime_jobs --start 2026-05-01`).
 - **Market-tide job failures now reach the job-failure streak.** `regime_market_tide_scan` and `market_tide_sentiment_eod` caught every exception, logged it, rolled back and returned, so APScheduler recorded a success: `job_failures` never counted the failure and the 3/10-consecutive alerts never fired. Both closures in `worker/scheduler.py` now log, roll back as before, then re-raise. Each job is one unit (one UW call; one session), so any exception fails the run; zero bars or zero sessions is still a normal return.
 
 ## [0.13.17] — 2026-10-03
