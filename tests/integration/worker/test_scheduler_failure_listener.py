@@ -62,3 +62,96 @@ def test_alert_fires_only_on_third_consecutive_failure(
     joined = " ".join(str(x) for x in (*args, *kwargs.values()))
     assert "full_scan" in joined
     assert "3" in joined
+
+
+def test_market_tide_sentiment_failure_streak_then_success_clears(
+    repo, _migrated_settings, monkeypatch
+):
+    """The real `market_tide_sentiment_eod` closure, run against the test DB,
+    must feed the listener: two failed runs -> streak 2; one good run -> cleared.
+
+    Before the fix the closure swallowed the error, so APScheduler saw a
+    success and the streak never moved.
+    """
+    from contextlib import contextmanager
+
+    import uw_scan.worker.jobs.market_tide_sentiment as sentiment_mod
+
+    job_id = "market_tide_sentiment_eod"
+    dsn = _migrated_settings.db_dsn()
+    monkeypatch.setattr(
+        scheduler, "_ops_conn", lambda: psycopg.connect(dsn, autocommit=True)
+    )
+
+    @contextmanager
+    def test_repo(_settings):
+        yield repo
+
+    captured: dict[str, object] = {}
+
+    class _StopStart(Exception):
+        pass
+
+    class _FakeSched:
+        def __init__(self, *_a, **_k) -> None:
+            pass
+
+        def add_listener(self, *_a, **_k) -> None:
+            pass
+
+        def add_job(self, *args, **kwargs) -> None:
+            if kwargs.get("id") == job_id and args:
+                captured["func"] = args[0]
+
+        def start(self) -> None:
+            raise _StopStart
+
+    class _FakeSignal:
+        SIGTERM = 15
+        SIGINT = 2
+
+        def signal(self, *_a, **_k) -> None:
+            return None
+
+    monkeypatch.setattr(scheduler, "BlockingScheduler", _FakeSched)
+    monkeypatch.setattr(scheduler, "signal", _FakeSignal())
+    monkeypatch.setattr(scheduler, "_repo", test_repo)
+    monkeypatch.setenv("UW_SCAN_WORKER_ROLE", "uw")
+    monkeypatch.setenv("UW_SCAN_WORKER_INDEX", "0")
+    monkeypatch.setenv("UW_SCAN_WORKER_COUNT", "1")
+    monkeypatch.setenv("MARKET_TIDE_CAPTURE_ENABLED", "true")
+    with pytest.raises(_StopStart):
+        scheduler.main()
+    job = captured["func"]
+
+    def run_and_report() -> None:
+        # What APScheduler does: run the job, emit EVENT_JOB_ERROR with the
+        # exception or EVENT_JOB_EXECUTED without one.
+        try:
+            job()
+        except Exception as exc:
+            scheduler._handle_job_event(SimpleNamespace(job_id=job_id, exception=exc))
+        else:
+            scheduler._handle_job_event(SimpleNamespace(job_id=job_id, exception=None))
+
+    real_refresh = sentiment_mod.refresh_eod_sentiment
+
+    def boom(*_a, **_k):
+        raise RuntimeError("sentiment boom")
+
+    monkeypatch.setattr(sentiment_mod, "refresh_eod_sentiment", boom)
+    run_and_report()
+    run_and_report()
+
+    streaks = {s.job_name: s for s in JobFailuresRepository(repo.conn).list_streaks()}
+    assert streaks[job_id].consecutive == 2
+    assert "sentiment boom" in streaks[job_id].last_error
+
+    # The real job on an empty tide table persists nothing and returns 0: a
+    # normal outcome, so the listener records success and clears the streak.
+    monkeypatch.setattr(sentiment_mod, "refresh_eod_sentiment", real_refresh)
+    run_and_report()
+
+    assert job_id not in {
+        s.job_name for s in JobFailuresRepository(repo.conn).list_streaks()
+    }
