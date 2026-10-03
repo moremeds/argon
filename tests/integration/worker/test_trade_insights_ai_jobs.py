@@ -1,8 +1,9 @@
 from __future__ import annotations
 
-from datetime import datetime, timezone
+from datetime import datetime, timedelta, timezone
 
 import psycopg
+import pytest
 
 from tests.test_trade_insights_ai import _analysis_input, _sample_outcome_for
 from uw_scan.config import Settings
@@ -218,6 +219,56 @@ def test_trade_insights_ai_tick_claims_prepares_releases_and_completes(
     assert observed["prompt_has_stored_payload"] is True
     assert observed["schema"]["title"] == "TradeInsightAiOutcome"
     assert observed["model"] == ""
+
+
+@pytest.mark.parametrize("runner_raises", [False, True])
+def test_trade_insights_ai_tick_late_write_is_fenced_after_reclaim(
+    seeded_db_empty_cards,
+    monkeypatch,
+    caplog,
+    runner_raises,
+):
+    """Worker A's runner overruns; worker B reclaims the stale row. A's late
+    complete (or late fail) must change nothing, log 'fenced', and leave B's
+    claim intact."""
+    repo = seeded_db_empty_cards
+    settings = _settings_for_repo(repo)
+    analysis_id, analysis_input = _enqueue_analysis(repo)
+    reclaimed = {}
+
+    def fake_runner(prompt, schema, *, model, timeout_seconds, max_output_bytes):
+        with psycopg.connect(settings.db_dsn()) as conn:
+            other = Repository(conn, schema=settings.db_schema)
+            row = other.get_trade_insight_ai_analysis(analysis_id)
+            produced_at = row["produced_at"]
+            with conn.cursor() as cur:
+                cur.execute(
+                    f"UPDATE {settings.db_schema}.trade_insight_ai_analyses "
+                    "SET started_at = %s WHERE analysis_id = %s",
+                    (datetime.now(timezone.utc) - timedelta(hours=1), analysis_id),
+                )
+            claim_b = other.claim_next_trade_insight_ai_analysis(
+                stale_running_before=datetime.now(timezone.utc) - timedelta(minutes=5)
+            )
+            conn.commit()
+            reclaimed["token"] = claim_b["claim_token"]
+        if runner_raises:
+            raise TradeInsightsAiRunnerError("A overran")
+        outcome = _sample_outcome_for(analysis_input)
+        outcome["analysis_produced_at"] = produced_at.isoformat().replace("+00:00", "Z")
+        return outcome
+
+    monkeypatch.setitem(RUNNERS, "codex", _FakeCodexRunner(fake_runner))
+
+    with caplog.at_level("WARNING", logger="uw_scan.worker.jobs.trade_insights_ai"):
+        assert trade_insights_ai_tick(settings) is True
+
+    row = repo.get_trade_insight_ai_analysis(analysis_id, ticker="TSLA")
+    assert row["status"] == "running"
+    assert row["outcome_jsonb"] is None
+    assert row["error_message"] is None
+    assert row["claim_token"] == reclaimed["token"]
+    assert any("fenced" in r.getMessage() for r in caplog.records)
 
 
 def test_trade_insights_ai_tick_marks_invalid_output_failed(

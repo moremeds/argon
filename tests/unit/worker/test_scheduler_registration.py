@@ -693,3 +693,33 @@ def test_mcp_event_retention_absent_off_massive_0(monkeypatch):
             UW_SCAN_WORKER_COUNT=count,
         )
         assert "mcp_event_retention" not in ids, (role, index)
+
+
+def test_regime_fred_ingest_registered_daily_on_macro_owner(monkeypatch):
+    # NFCI/ANFCI/USREC sat frozen at 2026-05-26 because nothing scheduled this.
+    for role, index, count in (("massive", "0", "2"), ("all", "0", "1")):
+        jobs = _registered_jobs(
+            monkeypatch,
+            UW_SCAN_WORKER_ROLE=role,
+            UW_SCAN_WORKER_INDEX=index,
+            UW_SCAN_WORKER_COUNT=count,
+        )
+        assert "regime_fred_ingest" in jobs, role
+        trig = str(jobs["regime_fred_ingest"])
+        assert "hour='19'" in trig and "minute='22'" in trig
+        assert "day_of_week='*'" in trig  # daily, not weekday-only
+
+
+def test_regime_fred_ingest_has_exactly_one_owner(monkeypatch):
+    for role, index, count in (
+        ("massive", "1", "2"),
+        ("uw", "0", "1"),
+        ("ai", "0", "1"),
+    ):
+        ids = _registered_job_ids(
+            monkeypatch,
+            UW_SCAN_WORKER_ROLE=role,
+            UW_SCAN_WORKER_INDEX=index,
+            UW_SCAN_WORKER_COUNT=count,
+        )
+        assert "regime_fred_ingest" not in ids, (role, index)
