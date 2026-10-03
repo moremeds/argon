@@ -315,6 +315,82 @@ def test_claim_reclaims_stale_running_analysis(seeded_db_empty_cards):
     assert claimed["started_at"] > stale_started_at
 
 
+def test_claim_token_fences_late_writes_from_a_reclaimed_worker(
+    seeded_db_empty_cards,
+):
+    """Migration 156: worker A overruns, worker B reclaims the stale row with a
+    fresh claim_token, then A's late complete AND late fail change 0 rows and
+    B's result is what reads return."""
+    repo = seeded_db_empty_cards
+    run_id, snapshot_id = _create_snapshot(repo)
+    analysis_id = _enqueue(repo, snapshot_id=snapshot_id, run_id=run_id)
+
+    claim_a = repo.claim_next_trade_insight_ai_analysis()
+    assert claim_a is not None
+    token_a = claim_a["claim_token"]
+    assert token_a is not None
+
+    # A overruns: force its claim past the stale window.
+    with repo.conn.cursor() as cur:
+        cur.execute(
+            f"UPDATE {repo._schema}.trade_insight_ai_analyses "
+            "SET started_at = %s WHERE analysis_id = %s",
+            (datetime.now(timezone.utc) - timedelta(minutes=10), analysis_id),
+        )
+    claim_b = repo.claim_next_trade_insight_ai_analysis(
+        stale_running_before=datetime.now(timezone.utc) - timedelta(minutes=5)
+    )
+    assert claim_b is not None
+    assert str(claim_b["analysis_id"]) == analysis_id
+    token_b = claim_b["claim_token"]
+    assert token_b is not None and token_b != token_a
+
+    assert (
+        repo.complete_trade_insight_ai_analysis(
+            analysis_id,
+            outcome={"by": "A"},
+            markdown="A",
+            claim_token=token_a,
+        )
+        is False
+    )
+    assert (
+        repo.fail_trade_insight_ai_analysis(
+            analysis_id, "A timed out", claim_token=token_a
+        )
+        is False
+    )
+    row = repo.get_trade_insight_ai_analysis(analysis_id)
+    assert row["status"] == "running"
+    assert row["outcome_jsonb"] is None
+    assert row["error_message"] is None
+
+    assert (
+        repo.complete_trade_insight_ai_analysis(
+            analysis_id,
+            outcome={"by": "B"},
+            markdown="B",
+            claim_token=token_b,
+        )
+        is True
+    )
+    # A's fail arriving after B finished must not flip B's success either.
+    assert (
+        repo.fail_trade_insight_ai_analysis(
+            analysis_id, "A timed out", claim_token=token_a
+        )
+        is False
+    )
+    repo.conn.commit()
+
+    row = repo.get_trade_insight_ai_analysis(analysis_id)
+    assert row["status"] == "succeeded"
+    assert row["outcome_jsonb"] == {"by": "B"}
+    assert row["markdown"] == "B"
+    assert row["error_message"] is None
+    assert row["claim_token"] == token_b
+
+
 def test_two_concurrent_claimers_get_distinct_rows(seeded_db_empty_cards):
     """Two `ai` workers on separate connections must not double-process.
 
