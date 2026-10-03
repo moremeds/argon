@@ -23,9 +23,9 @@ ENDPOINTS_TS = REPO_ROOT / "web" / "mcp" / "lib" / "endpoints.ts"
 # commit inline). Kept deliberately short — signature detection covers the
 # BackgroundTasks family; anything else must be named here AND in the
 # TypeScript denylist.
-KNOWN_WRITING_GETS = {
-    "/stock/{ticker}/trade-insights",
-}
+# Empty since GET /stock/{ticker}/trade-insights stopped writing (I-21); its
+# write moved to POST /stock/{ticker}/trade-insights/refresh.
+KNOWN_WRITING_GETS: set[str] = set()
 
 
 def _mcp_denylist() -> set[str]:

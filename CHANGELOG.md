@@ -7,6 +7,10 @@ version in lockstep (enforced by `scripts/release/version_sync_check.py`).
 
 ## [Unreleased]
 
+### Changed
+
+- **API contract (declared, operator-approved D2): GET trade-insights no longer writes; GEX scan answers 200.** `GET /api/stock/{ticker}/trade-insights` persisted a snapshot and committed on every read; it now only assembles (the full scan already persists a snapshot per run), and the write is the new `POST /api/stock/{ticker}/trade-insights/refresh`. `POST /api/regime/gex/scan` ran the scan synchronously yet answered `202 {"status":"queued"}`; it now answers `200` with a typed `GexScanResponse` (`status: "ok"`, `ticker`, `row_id`). The regime GEX/GRG scans take their UW client from `deps.get_uw_client`, which now carries the configured base URL and timeout. OpenAPI snapshot and `web/lib/types.ts` updated; no web caller used either response shape.
+
 ## [0.13.18] — 2026-10-04
 
 

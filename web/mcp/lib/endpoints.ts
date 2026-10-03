@@ -17,10 +17,10 @@ export type EndpointInfo = {
 };
 
 /** Operator denylist: exact (post-/api-strip) path templates to exclude.
- *  - /stock/{ticker}/trade-insights: its GET handler BUILDS and persists a
- *    snapshot (repo.conn.commit(), routers/trade_insights.py) — a GET that
- *    writes, so it cannot stay on a read-only allowlist. Agents use the
- *    read-only twin /stock/{ticker}/trade-insights/preview instead.
+ *  - /stock/{ticker}/trade-insights: read-only since I-21 (its write moved
+ *    to POST .../refresh), but agents already use the identical
+ *    /stock/{ticker}/trade-insights/preview; denying this one keeps a single
+ *    agent route instead of two.
  *  - /stock/{ticker}/volatility/series: a GET that schedules _kick_backfill
  *    via BackgroundTasks (routers/volatility.py) → DB writes + UW spend.
  *  Guard test: tests/unit/api/test_mcp_get_side_effects.py fails if a new
