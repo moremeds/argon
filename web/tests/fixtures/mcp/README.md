@@ -19,3 +19,4 @@ Captured 2026-10-02T09:31Z from the argon FastAPI (main @ 18e25964) over the loc
 - `watchlist.json`, `watchlist_chains.json`: `GET /watchlist`, `GET /watchlist/chains`.
 
 Do not hand-edit values. To refresh, re-capture all of them together.
+- `grg.json`: `GET /regime/grg`, read from prod through the argon MCP `read` tool on 2026-10-04 (`data_date` 2026-10-02). Trimmed: `history` keeps the last 5 of 190 rows and `events.bottoms` the first 2 of 5 (`events.stats` still describes all 5). Every kept row is unmodified.
