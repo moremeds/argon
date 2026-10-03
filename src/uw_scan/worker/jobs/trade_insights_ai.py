@@ -6,6 +6,7 @@ Orchestration only — runners live in `trade_insights_codex_runner.py` and
 
 from __future__ import annotations
 
+import logging
 from datetime import datetime, timedelta, timezone
 from typing import Any
 
@@ -47,6 +48,8 @@ from uw_scan.worker.jobs.trade_insights_claude_runner import ClaudeRunner
 from uw_scan.worker.jobs.trade_insights_codex_runner import CodexRunner
 from uw_scan.worker.jobs.trade_insights_deepseek_runner import DeepSeekRunner
 
+logger = logging.getLogger(__name__)
+
 RUNNERS: dict[str, AiProviderRunner] = {
     "codex": CodexRunner(),
     "claude": ClaudeRunner(),
@@ -66,18 +69,33 @@ def _fail_analysis(
     *,
     raw_outcome: dict[str, Any] | None = None,
     provider_metadata: dict[str, Any] | None = None,
+    claim_token: Any = None,
 ) -> None:
     repo = _repo(settings)
     try:
-        repo.fail_trade_insight_ai_analysis(
+        updated = repo.fail_trade_insight_ai_analysis(
             analysis_id,
             error_message,
             raw_outcome=raw_outcome,
             provider_metadata=provider_metadata,
+            claim_token=claim_token,
         )
         repo.conn.commit()
     finally:
         repo.conn.close()
+    if not updated:
+        _log_fenced("fail", analysis_id)
+
+
+def _log_fenced(action: str, analysis_id: str) -> None:
+    # A 0-row fenced write means another worker reclaimed this row after our
+    # claim went stale; its result wins. Not an error — do not re-fail.
+    logger.warning(
+        "trade_insights_ai %s fenced for analysis_id=%s "
+        "(claim_token mismatch; row was reclaimed by another worker)",
+        action,
+        analysis_id,
+    )
 
 
 def _heartbeat_key(provider_filter: str | None) -> str:
@@ -119,6 +137,7 @@ def trade_insights_ai_tick(
 
     repo = _repo(settings)
     analysis_id: str | None = None
+    claim_token: Any = None
     produced_at: datetime | None = None
     prompt_payload: dict[str, Any] | None = None
     row_provider: str | None = None
@@ -136,6 +155,7 @@ def trade_insights_ai_tick(
             repo.conn.commit()
             return False
         analysis_id = str(row["analysis_id"])
+        claim_token = row.get("claim_token")
         row_provider = row.get("provider") or "codex"
         # Lane routing: blast rows use the trade_blast prompt/schema/validator;
         # insights rows use the production v5.3 card lane (unchanged behavior).
@@ -154,6 +174,7 @@ def trade_insights_ai_tick(
             repo.fail_trade_insight_ai_analysis(
                 analysis_id,
                 f"obsolete prompt_version {row['prompt_version']} superseded by {expected_version}",
+                claim_token=claim_token,
             )
             repo.conn.commit()
             return True
@@ -161,6 +182,7 @@ def trade_insights_ai_tick(
             repo.fail_trade_insight_ai_analysis(
                 analysis_id,
                 f"unknown provider {row_provider!r}",
+                claim_token=claim_token,
             )
             repo.conn.commit()
             return True
@@ -187,6 +209,9 @@ def trade_insights_ai_tick(
     except Exception as exc:
         repo.conn.rollback()
         if analysis_id is not None:
+            # Unfenced on purpose: the rollback above undid the claim, so its
+            # claim_token never committed and a fenced write would match 0
+            # rows, leaving the row queued to fail again on every tick.
             _fail_analysis(settings, analysis_id, repr(exc))
             return True
         raise
@@ -250,16 +275,19 @@ def trade_insights_ai_tick(
             markdown = render_trade_insights_ai_markdown(outcome)
         repo = _repo(settings)
         try:
-            repo.complete_trade_insight_ai_analysis(
+            completed = repo.complete_trade_insight_ai_analysis(
                 analysis_id,
                 outcome=outcome.model_dump(mode="json"),
                 markdown=markdown,
                 resolved_model=result.resolved_model,
                 provider_metadata=provider_metadata,
+                claim_token=claim_token,
             )
             repo.conn.commit()
         finally:
             repo.conn.close()
+        if not completed:
+            _log_fenced("complete", analysis_id)
     except Exception as exc:
         _fail_analysis(
             settings,
@@ -267,6 +295,7 @@ def trade_insights_ai_tick(
             str(exc) or repr(exc),
             raw_outcome=raw_outcome,
             provider_metadata=provider_metadata,
+            claim_token=claim_token,
         )
     return True
 

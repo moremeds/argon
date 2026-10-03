@@ -15,11 +15,11 @@
 -- Soft-delete: set removed_at instead of DELETE. The watchlist_card table
 -- has a FK on watchlist.ticker, and list_watchlist_cards already filters
 -- WHERE removed_at IS NULL, so this is the existing remove pattern.
-
-BEGIN;
-
-UPDATE uw_scan.watchlist
-   SET removed_at = NOW()
- WHERE ticker = 'SPX' AND removed_at IS NULL;
-
-COMMIT;
+--
+-- WATCHLIST DML REMOVED (2026-10-03). This file used to soft-delete SPX via
+-- UPDATE ... SET removed_at = NOW(). The API self-migrates on every boot, so
+-- that DML re-ran on every deploy and undid operator edits to the watchlist.
+-- Its fresh-install effect now lives in the insert-only final-state seed in
+-- 006_seed_watchlist.sql (ON CONFLICT DO NOTHING); existing databases already
+-- carry it. Data DML in a migration must be insert-only -- enforced by
+-- tests/unit/storage/test_migration_dml_allowlist.py.
