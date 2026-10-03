@@ -723,3 +723,40 @@ def test_regime_fred_ingest_has_exactly_one_owner(monkeypatch):
             UW_SCAN_WORKER_COUNT=count,
         )
         assert "regime_fred_ingest" not in ids, (role, index)
+
+
+# The prod worker fleet (/opt/argon/compose.yml): two uw, two massive and two
+# ai-deepseek processes.
+_PROD_FLEET = [
+    ("uw", "0"),
+    ("uw", "1"),
+    ("massive", "0"),
+    ("massive", "1"),
+    ("ai-deepseek", "0"),
+    ("ai-deepseek", "1"),
+]
+
+
+def test_no_job_runs_on_two_roles_in_the_prod_fleet(monkeypatch):
+    """Shards of one role may share a job id (full_scan_N, ohlc_pull, ...); two
+    ROLES never may. `_is_primary_worker` is true for index-0 of every role, and
+    the global daily block once used it, so uw-0, massive-0 and ai-deepseek-0
+    each ran every gold/regime/lake job: three gold_posture rows per night and
+    tripled UW spend. The heartbeat is the one deliberately per-process job."""
+    roles_by_job: dict[str, set[str]] = {}
+    for role, index in _PROD_FLEET:
+        ids = _registered_job_ids(
+            monkeypatch,
+            UW_SCAN_WORKER_ROLE=role,
+            UW_SCAN_WORKER_INDEX=index,
+            UW_SCAN_WORKER_COUNT="2",
+        )
+        for job_id in ids:
+            roles_by_job.setdefault(job_id, set()).add(role)
+    shared = {
+        job_id: sorted(roles)
+        for job_id, roles in roles_by_job.items()
+        if len(roles) > 1 and job_id != "worker_heartbeat"
+    }
+    assert shared == {}
+    assert "gold_posture_compute" in roles_by_job

@@ -7,6 +7,10 @@ version in lockstep (enforced by `scripts/release/version_sync_check.py`).
 
 ## [Unreleased]
 
+### Fixed
+
+- **The role-agnostic daily jobs run once, not three times.** The block holding the gold ingests and posture compute, the regime CRI/VCG/canary EOD scans, the VRP macro signal, the vol/credit lake syncs and the macro ingests was gated by `_is_primary_worker`, which is true for worker 0 of *every* role, so on the prod fleet uw-0, massive-0 and ai-deepseek-0 each ran all of it: three `gold_posture_daily` rows per night written within ~15 ms (prod 2026-10-01/02), three times the gold UW options calls, and racing writers. The block is now owned by massive-0 (or `all`) alone; `rates_fred_ingest`, which is pinned to uw-0, moves out of it unchanged. `test_no_job_runs_on_two_roles_in_the_prod_fleet` fails if any job id is ever scheduled on two roles again (the heartbeat excepted).
+
 ## [0.13.18] — 2026-10-04
 
 
