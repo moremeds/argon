@@ -295,6 +295,19 @@ def _is_primary_worker(settings: Settings) -> bool:
     return settings.worker_role.lower() == "all" or settings.worker_index == 0
 
 
+def _owns_global_daily_jobs(settings: Settings) -> bool:
+    """Exactly one process owns the role-agnostic daily jobs (gold, regime
+    EOD scans, vol/credit lake syncs, macro).
+
+    These used to sit under `_is_primary_worker`, which is true for index-0 of
+    EVERY role, so the prod stack (uw-0, massive-0, ai-deepseek-0) ran each of
+    them three times: tripled UW spend for the gold options ingest and three
+    gold_posture rows per night. Pin to massive-0, the macro-evidence owner.
+    """
+    role = settings.worker_role.lower()
+    return role == "all" or (role == "massive" and settings.worker_index == 0)
+
+
 def _should_schedule_rates_fred_ingest(settings: Settings) -> bool:
     role = settings.worker_role.lower()
     return role == "all" or (role == "uw" and settings.worker_index == 0)
@@ -2737,7 +2750,19 @@ def main() -> int:
             coalesce=True,
         )
 
-    if _is_primary_worker(settings):
+    # Rates FRED is pinned to uw-0 by its own gate, so it lives outside the
+    # single-owner block below.
+    if _should_schedule_rates_fred_ingest(settings):
+        sched.add_job(
+            _rates_fred_ingest,
+            CronTrigger.from_crontab("45 18 * * 0-4", timezone=settings.rth_tz),
+            id="rates_fred_ingest",
+            name="Rates: FRED curve and macro refresh",
+            max_instances=1,
+            coalesce=True,
+        )
+
+    if _owns_global_daily_jobs(settings):
         # Vol-complex parquet lake sync — nightly, 03:15 ET. Local I/O only,
         # no provider role required. Idempotent (UPSERT) so safe to re-run.
         sched.add_job(
@@ -2829,15 +2854,6 @@ def main() -> int:
             id="gold_etf_holdings_ingest",
             name="Gold: ETF holdings daily (GLD/IAU/GLDM/PHYS)",
         )
-        if _should_schedule_rates_fred_ingest(settings):
-            sched.add_job(
-                _rates_fred_ingest,
-                CronTrigger.from_crontab("45 18 * * 0-4", timezone=settings.rth_tz),
-                id="rates_fred_ingest",
-                name="Rates: FRED curve and macro refresh",
-                max_instances=1,
-                coalesce=True,
-            )
         if _should_schedule_macro_policy_ingest(settings):
             if settings.macro_fomc_ingest_enabled:
                 sched.add_job(
