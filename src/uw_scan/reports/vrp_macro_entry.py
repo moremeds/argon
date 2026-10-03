@@ -10,13 +10,17 @@ UW-fallback with IB-native-or-BS greeks.
 
 from __future__ import annotations
 
+import logging
 from dataclasses import dataclass
 from datetime import datetime
 from typing import Any
 from zoneinfo import ZoneInfo
 
+from ..sources.source_errors import SourceUnavailable
 from ..sources.xenon_query import fetch_ib_option_quote
 from .vrp_structure import bs_delta, bs_gamma, bs_theta, bs_vega, strike_for_delta
+
+log = logging.getLogger(__name__)
 
 _ET = ZoneInfo("America/New_York")
 
@@ -185,20 +189,23 @@ def quote_leg(
 
     # try_xenon=False is the per-mark-budget escape: once a mark overruns its
     # wall-clock budget, remaining legs quote UW-only (skip the slow IB snapshot).
-    xq = (
-        fetch_ib_option_quote(
-            base_url=settings.xenon_query_api_url,
-            api_key=api_key,
-            symbol="SPX",
-            expiry=expiry,
-            strike=float(strike),
-            right="P",
-            timeout_s=timeout_s,
-            client=xenon_client,
-        )
-        if try_xenon
-        else None
-    )
+    xq = None
+    if try_xenon:
+        try:
+            xq = fetch_ib_option_quote(
+                base_url=settings.xenon_query_api_url,
+                api_key=api_key,
+                symbol="SPX",
+                expiry=expiry,
+                strike=float(strike),
+                right="P",
+                timeout_s=timeout_s,
+                client=xenon_client,
+            )
+        except SourceUnavailable as exc:
+            # xenon/IB could not answer: fall through to the UW row, exactly as
+            # an IB answer with no NBBO does.
+            log.warning("vrp_macro_entry quote_leg: %s; UW fallback", repr(exc))
     if xq is not None and (xq.get("bid") is not None or xq.get("ask") is not None):
         source = "xenon_ib"
         nbbo_bid, nbbo_ask = xq.get("bid"), xq.get("ask")

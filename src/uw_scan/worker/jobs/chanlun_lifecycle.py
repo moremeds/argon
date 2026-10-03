@@ -23,6 +23,7 @@ from __future__ import annotations
 
 import logging
 from datetime import date, datetime, timedelta, timezone
+from functools import partial
 from typing import Any
 from zoneinfo import ZoneInfo
 
@@ -42,6 +43,7 @@ from uw_scan.chanlun.lifecycle import (
 from uw_scan.chanlun.types import ChanlunBar
 from uw_scan.config import Settings
 from uw_scan.sources import apex
+from uw_scan.sources.source_errors import SourceUnavailable
 from uw_scan.storage.chanlun_signal_repository import ChanlunSignalRepository
 from uw_scan.storage.repository import Repository
 
@@ -87,8 +89,12 @@ def chanlun_lifecycle_scan(
         else sorted({c.ticker.upper() for c in repo.list_watchlist_cards()})
     )
 
-    fetch = fetch_bars or apex.fetch_bars
+    fetch = fetch_bars or partial(apex.fetch_bars, base_url=settings.apex_api_url)
     cs_repo = ChanlunSignalRepository(repo.conn, schema=settings.db_schema)
+    # Commit the repository's SET search_path now, and each ticker's
+    # transitions as it finishes (below): a per-ticker rollback on failure then
+    # discards only that ticker, not the earlier tickers' work or the path.
+    repo.conn.commit()
     promotable = frozenset(
         t.strip()
         for t in settings.chanlun_promotable_categories.split(",")
@@ -97,6 +103,8 @@ def chanlun_lifecycle_scan(
 
     ok = 0
     skipped_no_bars = 0
+    source_unavailable = 0
+    last_unavailable: SourceUnavailable | None = None
     failed = 0
     transitions = 0
 
@@ -211,7 +219,17 @@ def chanlun_lifecycle_scan(
                 ):
                     transitions += 1
 
+            repo.conn.commit()
             ok += 1
+        except SourceUnavailable as exc:
+            # apex could not answer for this ticker (daily or 30m fetch).
+            # Unit = one ticker: counted, and the run goes on.
+            repo.conn.rollback()
+            source_unavailable += 1
+            last_unavailable = exc
+            log.warning(
+                "chanlun_lifecycle_scan: %s source unavailable: %s", t, repr(exc)
+            )
         except Exception:
             repo.conn.rollback()
             failed += 1
@@ -220,9 +238,16 @@ def chanlun_lifecycle_scan(
     summary = {
         "ok": ok,
         "skipped_no_bars": skipped_no_bars,
+        "source_unavailable": source_unavailable,
         "failed": failed,
         "transitions": transitions,
         "tickers": len(tickers),
     }
     log.info("chanlun_lifecycle_scan: %s", summary)
+    if ok == 0 and last_unavailable is not None:
+        raise SourceUnavailable(
+            "apex",
+            f"chanlun_lifecycle_scan: {source_unavailable}/{len(tickers)} tickers "
+            f"source-unavailable, none succeeded; last: {last_unavailable.detail}",
+        ) from last_unavailable
     return summary
