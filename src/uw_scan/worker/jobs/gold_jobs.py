@@ -1,12 +1,11 @@
 """Phase A1 (Gold) — APScheduler job functions.
 
-9 jobs total:
+8 jobs total:
 
 - Daily (Tasks 23):
     gold_fred_ingest_job          — FRED CSV refresh, daily + monthly series
     gold_gpr_ingest_job           — Caldara-Iacoviello GPRD daily
-    gold_etf_holdings_ingest_job  — GLD / IAU / GLDM / PHYS daily holdings
-    gold_comex_vault_ingest_job   — COMEX gold-stocks daily
+    gold_etf_holdings_ingest_job  — GLD / GLDM daily holdings (+ WGC monthly)
     gold_uw_options_ingest_job    — GLD / GDX / IAU snapshot (Task 9)
 
 - Weekly + monthly (Task 24):
@@ -17,9 +16,12 @@
 - Orchestrator (Task 25):
     gold_posture_compute_job      — daily posture row writer
 
-Each job opens its own connection, swallows per-source exceptions so a
-partial outage doesn't break the rest of the day's ingest, and commits at
-end of work. Functions are testable directly: pass `dsn=...` and the job
+Each job opens its own connection, catches per-source exceptions so one dead
+source does not stop the others, commits what succeeded, and THEN raises
+naming every source that failed. Swallowing was the old contract: a dead
+source returned normally, the scheduler recorded a success, and
+``job_failures`` never saw it (COMEX and three ETF feeds were dead for months
+with an empty failure table). Functions are testable directly: pass `dsn=...` and the job
 runs against that database, no scheduler required.
 """
 
@@ -37,7 +39,6 @@ from uw_scan.api.client import UwClient
 from uw_scan.reports.gold_posture import compute_and_persist_gold_posture
 from uw_scan.sources import uw as uw_sources
 from uw_scan.sources.cftc_cot import CftcCotProvider
-from uw_scan.sources.comex import ComexProvider
 from uw_scan.sources.etf_holdings import EtfHoldingsProvider
 from uw_scan.sources.fred import FredProvider
 from uw_scan.sources.gpr import GprProvider
@@ -82,6 +83,14 @@ GOLD_SPOT_TICKER = "GLD"
 GOLD_SPOT_SERIES_ID = "GLD_CLOSE"
 
 
+def _raise_if_failed(job: str, failures: list[str]) -> None:
+    """Raise AFTER the caller committed, so the sources that worked stay persisted."""
+    if failures:
+        raise RuntimeError(
+            f"{job}: {len(failures)} source(s) failed: " + "; ".join(failures)
+        )
+
+
 # --- Daily jobs ---------------------------------------------------------------
 
 
@@ -100,6 +109,7 @@ def gold_fred_ingest_job(
     ids = series_ids or FRED_SERIES_DAILY
     monthly_ids = FRED_SERIES_MONTHLY
     now = datetime.now(UTC)
+    failures: list[str] = []
     with psycopg.connect(dsn) as conn, FredProvider() as fred:
         repo = Repository(conn, schema="uw_scan")
         for sid in ids:
@@ -120,6 +130,7 @@ def gold_fred_ingest_job(
                 repo.insert_macro_series_daily_rows(rows, as_of=now, source="FRED")
             except Exception as exc:
                 logger.exception("gold_fred_ingest: series=%s failed: %r", sid, exc)
+                failures.append(f"{sid}: {repr(exc)[:200]}")
         for sid in monthly_ids:
             try:
                 rows = [
@@ -139,7 +150,9 @@ def gold_fred_ingest_job(
                 logger.exception(
                     "gold_fred_ingest: monthly series=%s failed: %r", sid, exc
                 )
+                failures.append(f"{sid}: {repr(exc)[:200]}")
         conn.commit()
+    _raise_if_failed("gold_fred_ingest", failures)
 
 
 def gold_gpr_ingest_job(*, dsn: str, lookback_days: int = 45) -> None:
@@ -148,6 +161,7 @@ def gold_gpr_ingest_job(*, dsn: str, lookback_days: int = 45) -> None:
     Warmup CLI overrides lookback_days for the initial backfill. Idempotent
     via ON CONFLICT."""
     now = datetime.now(UTC)
+    failures: list[str] = []
     with psycopg.connect(dsn) as conn, GprProvider() as gpr:
         repo = Repository(conn, schema="uw_scan")
         try:
@@ -166,7 +180,9 @@ def gold_gpr_ingest_job(*, dsn: str, lookback_days: int = 45) -> None:
             repo.insert_macro_series_daily_rows(rows, as_of=now, source="GPR")
         except Exception as exc:
             logger.exception("gold_gpr_ingest failed: %r", exc)
+            failures.append(f"GPRD: {repr(exc)[:200]}")
         conn.commit()
+    _raise_if_failed("gold_gpr_ingest", failures)
 
 
 def gold_etf_holdings_ingest_job(
@@ -181,21 +197,21 @@ def gold_etf_holdings_ingest_job(
 ) -> None:
     """Daily ETF refresh (GLD/IAU/GLDM/PHYS). Schedule: 18:30 ET.
 
-    GLD uses SPDR's daily historical archive workbook. WGC Goldhub monthly
+    GLD and GLDM use SPDR's daily historical archive workbook. WGC Goldhub monthly
     files backfill GLD/IAU/GLDM/PHYS when an authenticated cookie or exported
-    workbook path is provided. UW ETF in/outflow stays on a shorter lookback
+    workbook path is provided; a configured WGC run that yields zero rows is a
+    failure, not a quiet success. UW ETF in/outflow stays on a shorter lookback
     because current entitlement only exposes recent history.
     """
     now = datetime.now(UTC)
     today_et = datetime.now(ZoneInfo(rth_tz)).date()
     holdings_start = today_et - timedelta(days=holdings_lookback_days)
+    failures: list[str] = []
     with psycopg.connect(dsn) as conn, EtfHoldingsProvider() as etf:
         repo = Repository(conn, schema="uw_scan")
         for ticker, fetch_fn, source in [
             ("GLD", etf.fetch_gld, "SPDR"),
-            ("IAU", etf.fetch_iau, "iShares"),
             ("GLDM", etf.fetch_gldm, "SPDR"),
-            ("PHYS", etf.fetch_phys, "Sprott"),
         ]:
             try:
                 rows = [
@@ -216,6 +232,7 @@ def gold_etf_holdings_ingest_job(
                     ticker,
                     repr(exc)[:200],
                 )
+                failures.append(f"{ticker}: {repr(exc)[:200]}")
         if wgc_goldhub_cookie or wgc_workbook_path:
             try:
                 with WgcEtfProvider(cookie_header=wgc_goldhub_cookie) as wgc:
@@ -232,6 +249,8 @@ def gold_etf_holdings_ingest_job(
                             )
                     else:
                         monthly_rows = wgc.fetch_monthly_rows(start=holdings_start)
+                    if not monthly_rows:
+                        raise RuntimeError("WGC configured but returned 0 rows")
                     corpus_rows = 0
                     for chunk in _chunks([asdict(row) for row in monthly_rows], 5000):
                         corpus_rows += repo.insert_wgc_etf_monthly_rows(
@@ -266,6 +285,7 @@ def gold_etf_holdings_ingest_job(
                     )
             except Exception as exc:
                 logger.warning("gold_etf_holdings_ingest: WGC skipped (%s)", repr(exc))
+                failures.append(f"WGC: {repr(exc)[:200]}")
         else:
             logger.info("WGC Goldhub auth/export not provided; skipping WGC ETF ingest")
         if uw_api_key:
@@ -307,9 +327,11 @@ def gold_etf_holdings_ingest_job(
                             ticker,
                             repr(exc)[:200],
                         )
+                        failures.append(f"UW {ticker} flow: {repr(exc)[:200]}")
         else:
             logger.info("UW API key not provided; skipping gold ETF in/outflow ingest")
         conn.commit()
+    _raise_if_failed("gold_etf_holdings_ingest", failures)
 
 
 def _wgc_workbook_paths(raw_path: str) -> list[Path]:
@@ -343,6 +365,7 @@ def gold_spot_ingest_job(
     now = datetime.now(UTC)
     end = date.today()
     start = end - timedelta(days=lookback_days)
+    failures: list[str] = []
     with (
         psycopg.connect(dsn) as conn,
         MassiveOhlcProvider(api_key=api_key, base_url=base_url, timeout=60.0) as ohlc,
@@ -371,39 +394,9 @@ def gold_spot_ingest_job(
             )
         except Exception as exc:
             logger.exception("gold_spot_ingest failed: %r", exc)
+            failures.append(f"{ticker}: {repr(exc)[:200]}")
         conn.commit()
-
-
-def gold_comex_vault_ingest_job(*, dsn: str) -> None:
-    """Daily COMEX vault. Schedule: 17:30 ET.
-
-    Best-effort: CME blocks anonymous scraping of
-    cmegroup.com/markets/metals/precious/gold-stocks.html (returns 403
-    as of 2026-05-17). Job runs with browser headers but falls through
-    if blocked. Re-wire via CME DataMine or another aggregator when one
-    is licensed — structural lens's comex_registered_oz stays null
-    until then.
-    """
-    now = datetime.now(UTC)
-    with psycopg.connect(dsn) as conn, ComexProvider() as comex:
-        repo = Repository(conn, schema="uw_scan")
-        try:
-            for row in comex.fetch_vault(start=date.today() - timedelta(days=45)):
-                repo.insert_exchange_inventory_daily(
-                    exchange="COMEX",
-                    obs_date=row.obs_date,
-                    registered_oz=row.registered_oz,
-                    eligible_oz=row.eligible_oz,
-                    vault_oz=None,
-                    as_of=now,
-                    source_url=ComexProvider.URL,
-                )
-        except Exception as exc:
-            logger.warning(
-                "gold_comex_vault_ingest skipped (CME blocks scraping): %s",
-                repr(exc)[:200],
-            )
-        conn.commit()
+    _raise_if_failed("gold_spot_ingest", failures)
 
 
 def gold_uw_options_ingest_job(
@@ -419,10 +412,11 @@ def gold_uw_options_ingest_job(
     Composes existing UW fetchers (interpolated_iv, oi_per_strike,
     option_contracts, skew). One scan_run row groups the per-snapshot
     audit rows; per-ticker exceptions are caught so a single failure
-    doesn't kill the batch.
+    doesn't kill the batch, then the job raises naming the failed tickers.
     """
     now = datetime.now(UTC)
     obs_date = date.today()
+    failures: list[str] = []
     with (
         psycopg.connect(dsn) as conn,
         UwClient(
@@ -462,8 +456,10 @@ def gold_uw_options_ingest_job(
                 logger.exception(
                     "gold_uw_options_ingest: ticker=%s failed: %r", ticker, exc
                 )
-        repo.finish_scan_run(run_id, status="ok")
+                failures.append(f"{ticker}: {repr(exc)[:200]}")
+        repo.finish_scan_run(run_id, status="error" if failures else "ok")
         conn.commit()
+    _raise_if_failed("gold_uw_options_ingest", failures)
 
 
 # --- Weekly + monthly jobs ----------------------------------------------------
@@ -472,6 +468,7 @@ def gold_uw_options_ingest_job(
 def gold_cftc_cot_ingest_job(*, dsn: str) -> None:
     """Weekly CFTC COT (Friday after release)."""
     now = datetime.now(UTC)
+    failures: list[str] = []
     with psycopg.connect(dsn) as conn, CftcCotProvider() as cot:
         repo = Repository(conn, schema="uw_scan")
         try:
@@ -491,12 +488,15 @@ def gold_cftc_cot_ingest_job(*, dsn: str) -> None:
                 )
         except Exception as exc:
             logger.exception("gold_cftc_cot_ingest failed: %r", exc)
+            failures.append(f"COT: {repr(exc)[:200]}")
         conn.commit()
+    _raise_if_failed("gold_cftc_cot_ingest", failures)
 
 
 def gold_lbma_vault_ingest_job(*, dsn: str) -> None:
     """Monthly LBMA vault (6th business day of month)."""
     now = datetime.now(UTC)
+    failures: list[str] = []
     with psycopg.connect(dsn) as conn, LbmaProvider() as lbma:
         repo = Repository(conn, schema="uw_scan")
         try:
@@ -512,7 +512,9 @@ def gold_lbma_vault_ingest_job(*, dsn: str) -> None:
                 )
         except Exception as exc:
             logger.exception("gold_lbma_vault_ingest failed: %r", exc)
+            failures.append(f"LBMA: {repr(exc)[:200]}")
         conn.commit()
+    _raise_if_failed("gold_lbma_vault_ingest", failures)
 
 
 def gold_wgc_cb_ingest_job(
@@ -526,7 +528,9 @@ def gold_wgc_cb_ingest_job(
 
     WGC retired the anonymous CSV endpoint (2026-05-17). Use either
     WGC_CB_RESERVES_WORKBOOK_PATH for a local authenticated export or
-    WGC_GOLDHUB_COOKIE for an authenticated Goldhub download.
+    WGC_GOLDHUB_COOKIE for an authenticated Goldhub download. Unconfigured is
+    a quiet skip (the data is a manual quarterly import); a CONFIGURED run that
+    yields zero rows raises.
     """
     if not wgc_goldhub_cookie and not wgc_workbook_path:
         logger.info(
@@ -536,6 +540,7 @@ def gold_wgc_cb_ingest_job(
         return
 
     now = datetime.now(UTC)
+    failures: list[str] = []
     with (
         psycopg.connect(dsn) as conn,
         WgcCbProvider(
@@ -548,7 +553,10 @@ def gold_wgc_cb_ingest_job(
             start = (
                 date.today() - timedelta(days=lookback_days) if lookback_days else None
             )
-            for row in wgc.fetch_monthly(start=start):
+            rows = wgc.fetch_monthly(start=start)
+            if not rows:
+                raise RuntimeError("WGC configured but returned 0 rows")
+            for row in rows:
                 repo.insert_cb_gold_reserves_monthly(
                     country_iso3=row.country_iso3,
                     obs_month=row.obs_month,
@@ -566,7 +574,9 @@ def gold_wgc_cb_ingest_job(
                 )
         except Exception as exc:
             logger.exception("gold_wgc_cb_ingest failed: %r", exc)
+            failures.append(f"WGC CB: {repr(exc)[:200]}")
         conn.commit()
+    _raise_if_failed("gold_wgc_cb_ingest", failures)
 
 
 # --- Orchestrator job ---------------------------------------------------------
@@ -588,6 +598,7 @@ def gold_posture_compute_job(*, dsn: str, as_of: date | None = None) -> None:
         except Exception as exc:
             logger.exception("gold_posture_compute failed: %r", exc)
             conn.rollback()
+            raise
 
 
 def _latest_gold_market_date(repo: Repository) -> date:

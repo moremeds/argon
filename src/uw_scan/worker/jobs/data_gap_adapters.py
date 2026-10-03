@@ -378,10 +378,10 @@ def _run_gold_posture(ctx: HealContext) -> int:
     return 0
 
 
-def _run_gold_comex(ctx: HealContext) -> int:
-    from uw_scan.worker.jobs.gold_jobs import gold_comex_vault_ingest_job
+def _run_gold_lbma(ctx: HealContext) -> int:
+    from uw_scan.worker.jobs.gold_jobs import gold_lbma_vault_ingest_job
 
-    gold_comex_vault_ingest_job(dsn=ctx.settings.db_dsn())
+    gold_lbma_vault_ingest_job(dsn=ctx.settings.db_dsn())
     return 0
 
 
@@ -821,8 +821,8 @@ HEAL_SPECS: dict[str, HealSpec] = {
     "gold_posture": HealSpec(
         "gold_posture", "db", "run_once", _run_gold_posture, est_per_item=0
     ),
-    "gold_comex": HealSpec(
-        "gold_comex", "external", "run_once", _run_gold_comex, est_per_item=0
+    "gold_lbma": HealSpec(
+        "gold_lbma", "external", "run_once", _run_gold_lbma, est_per_item=0
     ),
     "gold_cot": HealSpec(
         "gold_cot", "external", "run_once", _run_gold_cot, est_per_item=0

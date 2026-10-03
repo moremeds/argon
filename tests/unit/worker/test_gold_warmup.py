@@ -27,9 +27,6 @@ def test_gold_warmup_uses_full_history_etf_holdings_lookback(monkeypatch) -> Non
     monkeypatch.setattr(gold_warmup, "gold_fred_ingest_job", lambda **_kwargs: None)
     monkeypatch.setattr(gold_warmup, "gold_gpr_ingest_job", lambda **_kwargs: None)
     monkeypatch.setattr(gold_warmup, "gold_spot_ingest_job", lambda **_kwargs: None)
-    monkeypatch.setattr(
-        gold_warmup, "gold_comex_vault_ingest_job", lambda **_kwargs: None
-    )
     monkeypatch.setattr(gold_warmup, "gold_cftc_cot_ingest_job", lambda **_kwargs: None)
     monkeypatch.setattr(
         gold_warmup, "gold_lbma_vault_ingest_job", lambda **_kwargs: None

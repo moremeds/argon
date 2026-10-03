@@ -122,7 +122,6 @@ def test_the_posture_waits_for_the_whole_daily_ingest_cascade(triggers) -> None:
         "gold_fred_ingest",  # DFII10, T5YIFR, DTWEXBGS, CPIAUCSL, M2SL
         "gold_spot_ingest",  # GLD_CLOSE
         "gold_uw_options_ingest",
-        "gold_comex_vault_ingest",
         "gold_etf_holdings_ingest",
         "gold_gpr_ingest",  # GPRD
     )

@@ -1,7 +1,11 @@
 """Daily ETF holdings for the gold complex.
 
-Targets: GLD (SPDR), IAU (BlackRock), GLDM (SPDR), PHYS (Sprott).
-Each fund has its own endpoint and payload shape; we normalise to EtfHoldingRow.
+Targets: GLD and GLDM, both from SPDR's historical archive API (one endpoint,
+``product=<ticker>``); normalised to EtfHoldingRow.
+
+IAU (iShares) and PHYS (Sprott) were removed 2026-10: the iShares history
+download needs a sign-in and Sprott's API answers 403 to non-browser clients.
+Neither ever wrote a row on prod. WGC monthly files still cover both funds.
 """
 
 from __future__ import annotations
@@ -38,11 +42,7 @@ RecordHook = Callable[["EtfHoldingsProvider", ExternalApiRequestEvent], None]
 
 
 class EtfHoldingsProvider:
-    GLD_URL = "https://api.spdrgoldshares.com/api/v1/historical-archive"
-    GLD_PARAMS = {"product": "gld", "exchange": "NYSE", "lang": "en"}
-    GLDM_URL = "https://www.spdrgoldshares.com/usa/historical-data-gldm/"
-    IAU_URL = "https://www.ishares.com/us/products/239561/iau-holdings.ajax"
-    PHYS_URL = "https://sprott.com/api/v1/funds/phys/nav-history"
+    SPDR_ARCHIVE_URL = "https://api.spdrgoldshares.com/api/v1/historical-archive"
     PROVIDER = "etf_holdings"
 
     DEFAULT_TIMEOUT_S = 60.0
@@ -89,8 +89,18 @@ class EtfHoldingsProvider:
         SPDR serves this same archive as CSV or XLSX depending on the day, and an
         artifact mislabelled ``text/csv`` is one a replay cannot re-parse.
         """
+        return self._fetch_spdr_archive("GLD", start)
+
+    def fetch_gldm(self, *, start: date | None = None) -> list[EtfHoldingRow]:
+        return self._fetch_spdr_archive("GLDM", start)[3]
+
+    def _fetch_spdr_archive(
+        self, ticker: str, start: date | None
+    ) -> tuple[bytes, str, str, list[EtfHoldingRow]]:
         response = self._get_with_telemetry(
-            self.GLD_URL, self.GLD_PARAMS, endpoint_key="spdr_gld_archive"
+            self.SPDR_ARCHIVE_URL,
+            {"product": ticker.lower(), "exchange": "NYSE", "lang": "en"},
+            endpoint_key=f"spdr_{ticker.lower()}_archive",
         )
         response.raise_for_status()
         source_url = str(response.request.url)
@@ -99,65 +109,14 @@ class EtfHoldingsProvider:
                 response.content,
                 "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
                 source_url,
-                self._parse_spdr_archive_xlsx("GLD", response.content, start),
+                self._parse_spdr_archive_xlsx(ticker, response.content, start),
             )
         return (
             response.content,
             "text/csv",
             source_url,
-            self._parse_spdr_csv("GLD", response.text, start),
+            self._parse_spdr_csv(ticker, response.text, start),
         )
-
-    def fetch_gldm(self, *, start: date | None = None) -> list[EtfHoldingRow]:
-        response = self._get_with_telemetry(
-            self.GLDM_URL, {}, endpoint_key="spdr_gldm_csv"
-        )
-        response.raise_for_status()
-        return self._parse_spdr_csv("GLDM", response.text, start)
-
-    def fetch_iau(self, *, start: date | None = None) -> list[EtfHoldingRow]:
-        response = self._get_with_telemetry(
-            self.IAU_URL, {}, endpoint_key="blackrock_iau"
-        )
-        response.raise_for_status()
-        out: list[EtfHoldingRow] = []
-        for row in (response.json() or {}).get("data", []):
-            d = _parse_date(row.get("asOfDate"))
-            if d is None or (start and d < start):
-                continue
-            out.append(
-                EtfHoldingRow(
-                    ticker="IAU",
-                    obs_date=d,
-                    holdings_oz=_dec(row.get("physicalGoldOunces")),
-                    shares_out=None,
-                    nav_per_share=_dec(row.get("navPerShare")),
-                    premium_pct=None,
-                )
-            )
-        return out
-
-    def fetch_phys(self, *, start: date | None = None) -> list[EtfHoldingRow]:
-        response = self._get_with_telemetry(
-            self.PHYS_URL, {}, endpoint_key="sprott_phys"
-        )
-        response.raise_for_status()
-        out: list[EtfHoldingRow] = []
-        for row in (response.json() or {}).get("data", []):
-            d = _parse_date(row.get("date"))
-            if d is None or (start and d < start):
-                continue
-            out.append(
-                EtfHoldingRow(
-                    ticker="PHYS",
-                    obs_date=d,
-                    holdings_oz=_dec(row.get("goldOunces")),
-                    shares_out=None,
-                    nav_per_share=_dec(row.get("nav")),
-                    premium_pct=_dec(row.get("premiumDiscountPct")),
-                )
-            )
-        return out
 
     def _parse_spdr_csv(
         self, ticker: str, text: str, start: date | None
@@ -214,7 +173,8 @@ class EtfHoldingsProvider:
                         _cell(
                             row,
                             columns,
-                            "Premium/Discount of GLD Mid Point vs Indicative Value of GLD at 4:15pm NYT",
+                            f"Premium/Discount of {ticker} Mid Point vs Indicative "
+                            f"Value of {ticker} at 4:15pm NYT",
                         )
                     ),
                 )
