@@ -63,7 +63,17 @@ def main() -> int:
             return 0
 
         for d in dates:
-            closes = apex.fetch_intraday_closes(d, ticker=args.ticker)
+            closes = apex.fetch_intraday_closes(
+                d,
+                ticker=args.ticker,
+                apex_base_url=settings.apex_api_url,
+                xenon_base_url=settings.xenon_query_api_url,
+                xenon_api_key=(
+                    settings.xenon_query_api_key.get_secret_value()
+                    if settings.xenon_query_api_key
+                    else None
+                ),
+            )
             if not closes:
                 logger.info("no apex bars for %s — leaving spot NULL", d)
                 continue

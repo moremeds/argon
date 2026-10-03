@@ -7,6 +7,12 @@ version in lockstep (enforced by `scripts/release/version_sync_check.py`).
 
 ## [Unreleased]
 
+### Changed
+
+- **The apex client now says when apex could not answer (I-15, I-17, I-59).** `sources/apex.py` used to return `[]`/`{}` for every failure, so an apex outage and "no bars" looked identical, and its `except Exception` also swallowed programming errors. Now a 2xx returns the normal shape (empty means only "apex answered with no data"), and a transport error, non-2xx (apex's typed code, e.g. `adjusted_unavailable`, is kept), undecodable body or wrong-shaped body raises the new `sources/source_errors.SourceUnavailable`. Nothing else is caught, so a `TypeError` propagates. The module no longer reads `os.environ`: the base URL comes from the new `Settings.apex_api_url` (env `APEX_API_URL`, same default — no deploy env change needed; the mini already sets it) and the xenon URL/key from the existing `xenon_query_*` settings.
+- **Callers apply one rule: interchangeable units fail the run only when none succeeded.** `technical_daily_refresh` counts a per-ticker outage as `source_unavailable` (a 2xx with no bars is now the separate `no_data`), and an unavailable SPY benchmark fails the run instead of writing RS columns against an empty series. `chanlun_lifecycle_scan` counts per-ticker outages and now commits each ticker as it finishes, so a later failure no longer rolls back earlier tickers' transitions. Both raise when every ticker was source-unavailable. `POST /stock/{t}/technicals/refresh` keeps its documented `200` (`backfill_status='empty'`) on an apex outage — never a bare 500.
+- **Behavior change: sector RS fails on any failed apex chunk.** `fetch_bulk_daily_closes` used to skip a failed chunk, silently dropping up to 200 symbols from the breadth denominator; it now raises, so `sector_rs_daily` fails that night and its trailing-week recompute heals on the next run.
+
 ## [0.13.18] — 2026-10-04
 
 
