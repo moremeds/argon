@@ -1550,10 +1550,10 @@ REGISTRY.extend(
             "freshness_only",
             provider="external",
             granularity="run_once",
-            healer_adapter="gold_comex",
-            source_system="comex",
-            # COMEX leg is intended daily but blocked (CME 403); LBMA leg is
-            # the only realistic contributor, on an ~monthly cadence.
+            healer_adapter="gold_lbma",
+            source_system="lbma",
+            # LBMA is the only writer: the COMEX scraper (CME 403, never wrote a
+            # row) was deleted 2026-10.
             expected_frequency="monthly",
         ),
         DatasetRegistryEntry(

@@ -21,6 +21,8 @@ from datetime import UTC, date, datetime, timedelta
 import psycopg
 
 from uw_scan.macro.gold_ingest import (
+    GOLD_FLOW_SOURCE,
+    GOLD_PRICE_SOURCE,
     flow_observations,
     gold_flow_artifact,
     gold_price_artifact,
@@ -63,6 +65,10 @@ def macro_gold_ingest_job(
 ) -> MacroGoldIngestResult:
     """Fetch, store and parse both gold-owned feeds. One failing feed does not stop the other.
 
+    Each feed's outcome lands in ``macro_source_status`` (like the other macro ingests),
+    and the job raises AFTER both feeds ran and committed when either failed, so the
+    scheduler's ``job_failures`` streak sees it instead of a clean run.
+
     The provider factories exist so a test can drive the REAL job -- artifact write,
     commit, parse, upsert -- against frozen payloads instead of the network. A test that
     called the parsing helpers directly would prove the parsers work and nothing about
@@ -76,6 +82,10 @@ def macro_gold_ingest_job(
     with psycopg.connect(dsn) as conn:
         repo = Repository(conn, schema=schema)
         _run_feed(
+            repo,
+            conn,
+            GOLD_PRICE_SOURCE,
+            retrieved_at,
             "gold_price",
             lambda: _price_feed(
                 repo,
@@ -89,6 +99,10 @@ def macro_gold_ingest_job(
             result,
         )
         _run_feed(
+            repo,
+            conn,
+            GOLD_FLOW_SOURCE,
+            retrieved_at,
             "gold_flow",
             lambda: _flow_feed(
                 repo,
@@ -99,19 +113,43 @@ def macro_gold_ingest_job(
             ),
             result,
         )
+    if result.errors:
+        raise RuntimeError(
+            f"macro_gold_ingest: {len(result.errors)} of {result.feeds_attempted} "
+            f"feeds failed: " + "; ".join(result.errors)
+        )
     return result
 
 
-def _run_feed(name, call, result: MacroGoldIngestResult) -> None:
+def _run_feed(
+    repo: Repository,
+    conn: psycopg.Connection,
+    source: str,
+    attempted_at: datetime,
+    name,
+    call,
+    result: MacroGoldIngestResult,
+) -> None:
     result.feeds_attempted += 1
     try:
         artifacts, created, unchanged = call()
     except Exception as exc:
-        # Logged and recorded, never raised: a dead vendor must not stop the other feed,
-        # and the state job's own abstention already reports the consequence honestly.
+        # Caught so a dead vendor does not stop the other feed; the job raises once
+        # both have run (see macro_gold_ingest_job).
         logger.warning("macro gold ingest feed %s failed: %s", name, repr(exc))
+        conn.rollback()
         result.errors.append(f"{name}: {repr(exc)[:400]}")
+        repo.upsert_macro_source_status(
+            source,
+            status="degraded",
+            attempted_at=attempted_at,
+            error_type=type(exc).__name__,
+            error_message=repr(exc),
+        )
+        conn.commit()
         return
+    repo.upsert_macro_source_status(source, status="ok", attempted_at=attempted_at)
+    conn.commit()
     result.feeds_succeeded += 1
     result.artifacts_seen += artifacts
     result.observations_created += created

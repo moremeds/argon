@@ -1,4 +1,4 @@
-"""Worker jobs — gold daily ingestion (FRED / GPR / ETF / COMEX)."""
+"""Worker jobs — gold daily ingestion (FRED / GPR / ETF)."""
 
 from __future__ import annotations
 
@@ -15,13 +15,11 @@ from openpyxl import Workbook
 
 from uw_scan.config import Settings
 from uw_scan.models import EtfInOutflowRow
-from uw_scan.sources.comex import ComexProvider, ComexVaultRow
 from uw_scan.sources.etf_holdings import EtfHoldingRow
 from uw_scan.sources.fred import FredObservation
 from uw_scan.sources.gpr import GprObservation
 from uw_scan.storage.repository import Repository
 from uw_scan.worker.jobs.gold_jobs import (
-    gold_comex_vault_ingest_job,
     gold_etf_holdings_ingest_job,
     gold_fred_ingest_job,
     gold_gpr_ingest_job,
@@ -164,7 +162,7 @@ def test_gold_gpr_ingest_writes_macro_series_daily(fresh_db: Settings) -> None:
     assert rows[0]["value"] == Decimal("118.4")
 
 
-def test_gold_etf_holdings_ingest_writes_all_four_funds(
+def test_gold_etf_holdings_ingest_writes_both_spdr_funds(
     fresh_db: Settings,
 ) -> None:
     one = lambda ticker: [  # noqa: E731
@@ -180,17 +178,58 @@ def test_gold_etf_holdings_ingest_writes_all_four_funds(
     with patch("uw_scan.worker.jobs.gold_jobs.EtfHoldingsProvider") as MockProvider:
         instance = MockProvider.return_value.__enter__.return_value
         instance.fetch_gld.return_value = one("GLD")
-        instance.fetch_iau.return_value = one("IAU")
         instance.fetch_gldm.return_value = one("GLDM")
-        instance.fetch_phys.return_value = one("PHYS")
         with patch("uw_scan.worker.jobs.gold_jobs.datetime", _FixedDatetime):
             gold_etf_holdings_ingest_job(dsn=fresh_db.db_dsn())
             gold_etf_holdings_ingest_job(dsn=fresh_db.db_dsn())
 
     with psycopg.connect(fresh_db.db_dsn()) as conn:
         repo = Repository(conn, schema=fresh_db.db_schema)
-        for t in ("GLD", "IAU", "GLDM", "PHYS"):
+        for t in ("GLD", "GLDM"):
             assert len(repo.fetch_etf_holdings_daily(t)) == 1
+
+
+def test_gold_etf_holdings_ingest_persists_survivors_then_raises(
+    fresh_db: Settings,
+) -> None:
+    # A dead source used to be a logged warning and a clean return, so
+    # job_failures never saw it. Now the live source is committed FIRST, then
+    # the job raises naming the dead one.
+    row = EtfHoldingRow(
+        ticker="GLDM",
+        obs_date=date(2026, 5, 14),
+        holdings_oz=Decimal("100"),
+        shares_out=None,
+        nav_per_share=None,
+        premium_pct=None,
+    )
+    with patch("uw_scan.worker.jobs.gold_jobs.EtfHoldingsProvider") as MockProvider:
+        instance = MockProvider.return_value.__enter__.return_value
+        instance.fetch_gld.side_effect = RuntimeError("404 Not Found")
+        instance.fetch_gldm.return_value = [row]
+        with pytest.raises(RuntimeError, match=r"1 source\(s\) failed: GLD: "):
+            gold_etf_holdings_ingest_job(dsn=fresh_db.db_dsn())
+
+    with psycopg.connect(fresh_db.db_dsn()) as conn:
+        repo = Repository(conn, schema=fresh_db.db_schema)
+        assert len(repo.fetch_etf_holdings_daily("GLDM")) == 1
+
+
+def test_gold_etf_holdings_ingest_raises_when_configured_wgc_yields_nothing(
+    fresh_db: Settings,
+) -> None:
+    with (
+        patch("uw_scan.worker.jobs.gold_jobs.EtfHoldingsProvider") as MockProvider,
+        patch("uw_scan.worker.jobs.gold_jobs.WgcEtfProvider") as MockWgc,
+    ):
+        instance = MockProvider.return_value.__enter__.return_value
+        instance.fetch_gld.return_value = []
+        instance.fetch_gldm.return_value = []
+        MockWgc.return_value.__enter__.return_value.fetch_monthly_rows.return_value = []
+        with pytest.raises(RuntimeError, match="WGC configured but returned 0 rows"):
+            gold_etf_holdings_ingest_job(
+                dsn=fresh_db.db_dsn(), wgc_goldhub_cookie="session=x"
+            )
 
 
 def test_gold_etf_holdings_ingest_uses_deep_holdings_lookback(
@@ -199,9 +238,7 @@ def test_gold_etf_holdings_ingest_uses_deep_holdings_lookback(
     with patch("uw_scan.worker.jobs.gold_jobs.EtfHoldingsProvider") as MockProvider:
         instance = MockProvider.return_value.__enter__.return_value
         instance.fetch_gld.return_value = []
-        instance.fetch_iau.return_value = []
         instance.fetch_gldm.return_value = []
-        instance.fetch_phys.return_value = []
 
         gold_etf_holdings_ingest_job(dsn=fresh_db.db_dsn())
 
@@ -219,9 +256,7 @@ def test_gold_etf_holdings_ingest_reads_wgc_monthly_workbook(
     with patch("uw_scan.worker.jobs.gold_jobs.EtfHoldingsProvider") as MockProvider:
         instance = MockProvider.return_value.__enter__.return_value
         instance.fetch_gld.return_value = []
-        instance.fetch_iau.return_value = []
         instance.fetch_gldm.return_value = []
-        instance.fetch_phys.return_value = []
 
         with patch("uw_scan.worker.jobs.gold_jobs.datetime", _FixedDatetime):
             gold_etf_holdings_ingest_job(
@@ -272,9 +307,7 @@ def test_gold_etf_holdings_ingest_writes_uw_etf_flows(
     ):
         instance = MockProvider.return_value.__enter__.return_value
         instance.fetch_gld.return_value = []
-        instance.fetch_iau.return_value = []
         instance.fetch_gldm.return_value = []
-        instance.fetch_phys.return_value = []
 
         with patch("uw_scan.worker.jobs.gold_jobs.datetime", _FixedDatetime):
             gold_etf_holdings_ingest_job(
@@ -334,9 +367,7 @@ def test_gold_etf_holdings_ingest_uses_et_date_not_host_clock(
     ):
         instance = MockProvider.return_value.__enter__.return_value
         instance.fetch_gld.return_value = []
-        instance.fetch_iau.return_value = []
         instance.fetch_gldm.return_value = []
-        instance.fetch_phys.return_value = []
 
         with patch("uw_scan.worker.jobs.gold_jobs.datetime", _TzAwareDatetime):
             gold_etf_holdings_ingest_job(
@@ -348,25 +379,3 @@ def test_gold_etf_holdings_ingest_uses_et_date_not_host_clock(
 
     assert mock_fetch.call_args.kwargs["end_date"] == "2026-05-19"
     assert mock_fetch.call_args.kwargs["start_date"] == "2026-04-04"
-
-
-def test_gold_comex_vault_ingest_writes_inventory(fresh_db: Settings) -> None:
-    sample = [
-        ComexVaultRow(
-            obs_date=date(2026, 5, 15),
-            registered_oz=Decimal("17500100"),
-            eligible_oz=Decimal("10820200"),
-            total_oz=Decimal("28320300"),
-        )
-    ]
-    with patch("uw_scan.worker.jobs.gold_jobs.ComexProvider") as MockProvider:
-        MockProvider.URL = ComexProvider.URL
-        instance = MockProvider.return_value.__enter__.return_value
-        instance.fetch_vault.return_value = sample
-        gold_comex_vault_ingest_job(dsn=fresh_db.db_dsn())
-
-    with psycopg.connect(fresh_db.db_dsn()) as conn:
-        repo = Repository(conn, schema=fresh_db.db_schema)
-        rows = repo.fetch_exchange_inventory_daily("COMEX")
-    assert len(rows) == 1
-    assert rows[0]["registered_oz"] == Decimal("17500100")

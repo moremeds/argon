@@ -109,7 +109,8 @@ def discovery_scan_once(
     settings: Settings,
     now: datetime | None = None,
 ) -> dict:
-    """One discovery scan. Returns a summary dict."""
+    """One discovery scan. Returns a summary dict; on failure commits the
+    scan_run as 'fail' and re-raises."""
     if not repo.try_advisory_lock(DISCOVERY_SCAN_LOCK):
         logger.info("discovery_scan: lock held; skipping this tick")
         return {"status": "skipped_locked"}
@@ -123,16 +124,9 @@ def discovery_scan_once(
     run_id = repo.insert_scan_run("_DISCOVER", notes="discovery_scan")
 
     try:
-        try:
-            alerts = fetch_market_flow_alerts(
-                client, repo, run_id, limit=settings.scanner_discover_alerts_limit
-            )
-        except Exception as exc:  # noqa: BLE001
-            logger.exception("discovery_scan: alerts fetch failed: %r", exc)
-            repo.conn.rollback()
-            repo.finish_scan_run(run_id, status="fail")
-            repo.conn.commit()
-            return {"status": "fetch_failed"}
+        alerts = fetch_market_flow_alerts(
+            client, repo, run_id, limit=settings.scanner_discover_alerts_limit
+        )
 
         watchlist = {r.ticker.upper() for r in repo.list_active_watchlist()}
         by_ticker, earnings_dropped = _group_alerts(
@@ -294,6 +288,9 @@ def discovery_scan_once(
         repo.conn.rollback()
         repo.finish_scan_run(run_id, status="fail")
         repo.conn.commit()
-        return {"status": "error"}
+        # One unit (the scan: alerts fetch + snapshot write). Persist the 'fail'
+        # row above, then raise so the job listener records the failure. A
+        # per-ticker DP miss is not a unit failure: it degrades that candidate.
+        raise
     finally:
         repo.release_advisory_lock(DISCOVERY_SCAN_LOCK)

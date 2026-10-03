@@ -6,7 +6,8 @@ These series were not part of the original gold FRED registry; this job
 keeps them isolated from the gold pipeline so an outage in one domain
 does not break the other.
 
-Schedule: weekly (NFCI publishes Wednesdays for the prior Friday).
+Schedule: daily 19:22 ET on the macro-evidence owner (scheduler.py); NFCI
+publishes Wednesdays for the prior Friday, so most runs are no-ops.
 Backfill: run `uv run python -m uw_scan.worker.jobs.regime_jobs --backfill
 --start 2007-01-01` for the full historical window.
 """
@@ -43,11 +44,15 @@ def regime_fred_ingest_job(
 
     For initial backfill, pass lookback_days large enough to cover history
     (e.g., 7000 for 2007→present).
+
+    Raises when no series succeeds, so the scheduler's
+    job_failures streak sees a dead feed instead of a clean run.
     """
     ids = series_ids or REGIME_FRED_SERIES_DAILY
     now = datetime.now(UTC)
     start = date.today() - timedelta(days=lookback_days)
     inserted: dict[str, int] = {}
+    succeeded: list[str] = []
     with (
         psycopg.connect(dsn) as conn,
         FredProvider(job_name="regime_fred_ingest") as fred,
@@ -68,11 +73,14 @@ def regime_fred_ingest_job(
                 ]
                 n = repo.insert_macro_series_daily_rows(rows, as_of=now, source="FRED")
                 inserted[sid] = n
+                succeeded.append(sid)
                 logger.info("regime_fred_ingest: series=%s inserted=%d", sid, n)
             except Exception as exc:
                 inserted[sid] = 0
                 logger.exception("regime_fred_ingest: series=%s failed: %r", sid, exc)
         conn.commit()
+    if not succeeded:
+        raise RuntimeError(f"regime_fred_ingest: all {len(ids)} series failed")
     return inserted
 
 
