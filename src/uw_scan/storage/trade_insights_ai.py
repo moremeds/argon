@@ -53,6 +53,13 @@ def _trade_insight_candidate_params(
     ]
 
 
+def _require_claim_token(claim_token: Any) -> None:
+    # A None token would turn the fence into `claim_token = NULL`, which
+    # matches nothing and silently drops the result. Fail loudly instead.
+    if claim_token is None:
+        raise ValueError("claim_token is required to complete or fail an analysis")
+
+
 class _TradeInsightsAiMixin:
     _conn: psycopg.Connection
     _schema: str
@@ -482,7 +489,7 @@ class _TradeInsightsAiMixin:
         markdown: str,
         resolved_model: str | None = None,
         provider_metadata: dict[str, Any] | None = None,
-        claim_token: Any = None,
+        claim_token: Any,
     ) -> bool:
         """Mark a row as succeeded; optionally overwrite `model` with the
         provider's post-hoc canonical model id (e.g. 'opus' alias resolves to
@@ -493,14 +500,15 @@ class _TradeInsightsAiMixin:
         (DeepSeek: reasoning_content + output_channel + byte sizes; Codex /
         Claude: typically None). Schemaless by design — readers must guard.
 
-        `claim_token` fences the write: pass the token returned by
+        `claim_token` (required) fences the write: pass the token returned by
         `claim_next_trade_insight_ai_analysis` and the UPDATE matches only
         while the row still carries it. A worker that overran past the stale
-        window and lost the row to a reclaim then changes 0 rows. None means
-        no fence (update by analysis_id alone, the pre-156 behaviour) — used
-        when the caller never committed a claim. Returns True when a row was
-        updated.
+        window and lost the row to a reclaim then changes 0 rows. There is no
+        unfenced path: a legacy pre-156 'running' row with a NULL token is
+        reclaimed (and stamped) by the claim like any stale row. Returns True
+        when a row was updated.
         """
+        _require_claim_token(claim_token)
         sets = [
             "status = 'succeeded'",
             "outcome_jsonb = %s",
@@ -515,11 +523,8 @@ class _TradeInsightsAiMixin:
         if provider_metadata is not None:
             sets.append("provider_metadata_jsonb = %s")
             params.append(Jsonb(provider_metadata))
-        params.append(analysis_id)
-        where = "WHERE analysis_id = %s"
-        if claim_token is not None:
-            where += " AND claim_token = %s"
-            params.append(claim_token)
+        params.extend([analysis_id, claim_token])
+        where = "WHERE analysis_id = %s AND claim_token = %s"
         sql = (
             f"UPDATE {self._schema}.trade_insight_ai_analyses "
             f"SET {', '.join(sets)} "
@@ -536,9 +541,9 @@ class _TradeInsightsAiMixin:
         *,
         raw_outcome: dict[str, Any] | None = None,
         provider_metadata: dict[str, Any] | None = None,
-        claim_token: Any = None,
+        claim_token: Any,
     ) -> bool:
-        # `claim_token` fences the write exactly as in
+        # `claim_token` (required) fences the write exactly as in
         # complete_trade_insight_ai_analysis; returns True when a row changed.
         # Persist the runner's raw output when validation rejected it; NULL
         # otherwise (subprocess crash, timeout, non-JSON, pre-runner error).
@@ -546,6 +551,7 @@ class _TradeInsightsAiMixin:
         # provider_metadata mirrors raw_outcome — on a validation failure we
         # want the reasoning trace too so we can see how the model arrived at
         # the rejected output.
+        _require_claim_token(claim_token)
         sets = [
             "status = 'failed'",
             "error_message = %s",
@@ -558,11 +564,8 @@ class _TradeInsightsAiMixin:
         if provider_metadata is not None:
             sets.append("provider_metadata_jsonb = %s")
             params.append(Jsonb(provider_metadata))
-        params.append(analysis_id)
-        where = "WHERE analysis_id = %s"
-        if claim_token is not None:
-            where += " AND claim_token = %s"
-            params.append(claim_token)
+        params.extend([analysis_id, claim_token])
+        where = "WHERE analysis_id = %s AND claim_token = %s"
         sql = (
             f"UPDATE {self._schema}.trade_insight_ai_analyses "
             f"SET {', '.join(sets)} "

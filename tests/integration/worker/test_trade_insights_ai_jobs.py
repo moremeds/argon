@@ -379,3 +379,66 @@ def test_trade_insights_ai_tick_marks_runner_timeout_failed(
     row = repo.get_trade_insight_ai_analysis(analysis_id, ticker="TSLA")
     assert row["status"] == "failed"
     assert "timed out" in row["error_message"]
+
+
+def test_prepare_error_fails_the_row_fenced_and_does_not_retry(
+    seeded_db_empty_cards, monkeypatch
+):
+    """I-06: the claim commits on its own, so a prepare-phase error fails the
+    row through the claim_token fence (no unfenced fail-by-id). The row ends
+    'failed' and is not reclaimed to fail again on the next tick."""
+    import uw_scan.worker.jobs.trade_insights_ai as job_mod
+
+    repo = seeded_db_empty_cards
+    settings = _settings_for_repo(repo)
+    analysis_id, _ = _enqueue_analysis(repo)
+
+    def bad_payload(*_a, **_k):
+        raise ValueError("bad analysis input")
+
+    monkeypatch.setattr(job_mod, "build_trade_insights_ai_prompt_payload", bad_payload)
+
+    assert trade_insights_ai_tick(settings) is True
+    row = repo.get_trade_insight_ai_analysis(analysis_id, ticker="TSLA")
+    assert row["status"] == "failed"
+    assert "bad analysis input" in row["error_message"]
+    assert row["claim_token"] is not None
+    repo.conn.commit()
+
+    assert trade_insights_ai_tick(settings) is False  # nothing left to claim
+
+
+def test_legacy_null_token_running_row_is_reclaimed_and_finished(
+    seeded_db_empty_cards, monkeypatch
+):
+    """A pre-156 worker left a 'running' row with claim_token NULL. The claim
+    reclaims it once stale, stamps a token, and the fenced complete lands."""
+    repo = seeded_db_empty_cards
+    settings = _settings_for_repo(repo)
+    analysis_id, analysis_input = _enqueue_analysis(repo)
+    with repo.conn.cursor() as cur:
+        cur.execute(
+            f"UPDATE {settings.db_schema}.trade_insight_ai_analyses "
+            "SET status = 'running', claim_token = NULL, started_at = %s "
+            "WHERE analysis_id = %s",
+            (datetime.now(timezone.utc) - timedelta(hours=1), analysis_id),
+        )
+    repo.conn.commit()
+
+    def fake_runner(prompt, schema, *, model, timeout_seconds, max_output_bytes):
+        with psycopg.connect(settings.db_dsn()) as conn:
+            row = Repository(
+                conn, schema=settings.db_schema
+            ).get_trade_insight_ai_analysis(analysis_id)
+        outcome = _sample_outcome_for(analysis_input)
+        outcome["analysis_produced_at"] = (
+            row["produced_at"].isoformat().replace("+00:00", "Z")
+        )
+        return outcome
+
+    monkeypatch.setitem(RUNNERS, "codex", _FakeCodexRunner(fake_runner))
+
+    assert trade_insights_ai_tick(settings) is True
+    row = repo.get_trade_insight_ai_analysis(analysis_id, ticker="TSLA")
+    assert row["status"] == "succeeded"
+    assert row["claim_token"] is not None

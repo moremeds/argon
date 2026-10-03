@@ -5,6 +5,19 @@ from __future__ import annotations
 from uw_scan.storage.repository import Repository
 
 
+def _claim(repo, analysis_id):
+    """Stamp a claim on one row (as the worker's claim does) and return the
+    token -- complete/fail require it (I-06)."""
+    with repo.conn.cursor() as cur:
+        cur.execute(
+            "UPDATE uw_scan.trade_insight_ai_analyses SET status = 'running', "
+            "started_at = now(), claim_token = gen_random_uuid() "
+            "WHERE analysis_id = %s RETURNING claim_token",
+            (analysis_id,),
+        )
+        return cur.fetchone()[0]
+
+
 def _seed_snapshot(repo: Repository) -> tuple[int, int]:
     """Insert a minimal scan_run + trade_insight_snapshot; return (run_id, snapshot_id)."""
     with repo.conn.cursor() as cur:
@@ -162,6 +175,7 @@ def test_latest_pair_returns_keyed_dict_per_provider(
         outcome={"x": 1},
         markdown="md",
         resolved_model="codex-default",
+        claim_token=_claim(repo, codex_id),
     )
     repo.conn.commit()
     pair = repo.find_latest_trade_insight_ai_analyses_per_provider(
@@ -197,6 +211,7 @@ def test_latest_pair_returns_failed_row_when_no_succeeded_exists(
     repo.fail_trade_insight_ai_analysis(
         claude_id,
         "claude --print timed out after 300.0s",
+        claim_token=_claim(repo, claude_id),
     )
     repo.conn.commit()
     pair = repo.find_latest_trade_insight_ai_analyses_per_provider(
@@ -233,6 +248,7 @@ def test_latest_pair_prefers_succeeded_over_failed_at_same_finish_time(
         outcome={"x": 1},
         markdown="md",
         resolved_model="codex-default",
+        claim_token=_claim(repo, succeeded_id),
     )
     failed_id = repo.enqueue_trade_insight_ai_analysis(
         snapshot_id=snapshot_id,
@@ -245,7 +261,9 @@ def test_latest_pair_prefers_succeeded_over_failed_at_same_finish_time(
         model="m",
         provider="codex",
     )
-    repo.fail_trade_insight_ai_analysis(failed_id, "boom")
+    repo.fail_trade_insight_ai_analysis(
+        failed_id, "boom", claim_token=_claim(repo, failed_id)
+    )
     # Force identical finished_at on both rows.
     with repo.conn.cursor() as cur:
         cur.execute(
@@ -285,6 +303,7 @@ def test_complete_persists_resolved_model_overriding_initial(
         outcome={"x": 1},
         markdown="md",
         resolved_model="claude-opus-4-7",
+        claim_token=_claim(repo, aid),
     )
     repo.conn.commit()
     row = repo.get_trade_insight_ai_analysis(aid)
@@ -314,6 +333,7 @@ def test_find_reusable_filters_by_provider(
         outcome={"x": 1},
         markdown="md",
         resolved_model="m",
+        claim_token=_claim(repo, codex_id),
     )
     repo.conn.commit()
     # Same key for claude should NOT find the codex row.

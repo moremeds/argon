@@ -13,6 +13,19 @@ from uw_scan.storage.trade_insight_outcomes_repository import (
 )
 
 
+def _claim(repo, analysis_id):
+    """Stamp a claim on one row (as the worker's claim does) and return the
+    token -- complete/fail require it (I-06)."""
+    with repo.conn.cursor() as cur:
+        cur.execute(
+            "UPDATE uw_scan.trade_insight_ai_analyses SET status = 'running', "
+            "started_at = now(), claim_token = gen_random_uuid() "
+            "WHERE analysis_id = %s RETURNING claim_token",
+            (analysis_id,),
+        )
+        return cur.fetchone()[0]
+
+
 def _test_db_dsn() -> str:
     """Rebuild the test DSN from Settings (mirrors conftest._test_settings).
 
@@ -180,6 +193,7 @@ def test_find_latest_trade_insight_ai_analysis_prefers_active_progress(
         succeeded_id,
         outcome={"schema_version": "trade-insights-ai-v1"},
         markdown="done",
+        claim_token=_claim(repo, succeeded_id),
     )
     queued_id = _enqueue(
         repo,
@@ -209,6 +223,7 @@ def test_fetch_pending_with_analysis_returns_joined_pending_rows(
         analysis_id,
         outcome={"schema_version": "trade-insights-ai-v1"},
         markdown="done",
+        claim_token=_claim(repo, analysis_id),
     )
     outcome_repo = TradeInsightOutcomeRepository(repo.conn)
     outcome_repo.upsert(
@@ -242,6 +257,7 @@ def test_changed_analysis_input_hash_does_not_reuse_completed_row(
         analysis_id,
         outcome={"schema_version": "trade-insights-ai-v1"},
         markdown="done",
+        claim_token=_claim(repo, analysis_id),
     )
 
     found = repo.find_completed_trade_insight_ai_analysis(
@@ -269,7 +285,9 @@ def test_failed_analysis_can_enqueue_new_row_for_same_hash(seeded_db_empty_cards
     run_id, snapshot_id = _create_snapshot(repo)
 
     first_id = _enqueue(repo, snapshot_id=snapshot_id, run_id=run_id)
-    repo.fail_trade_insight_ai_analysis(first_id, "codex failed")
+    repo.fail_trade_insight_ai_analysis(
+        first_id, "codex failed", claim_token=_claim(repo, first_id)
+    )
     second_id = _enqueue(repo, snapshot_id=snapshot_id, run_id=run_id)
 
     assert first_id != second_id
@@ -473,6 +491,7 @@ def test_complete_stores_outcome_markdown_and_preserves_produced_at(
         analysis_id,
         outcome={"schema_version": "trade-insights-ai-v1"},
         markdown="markdown",
+        claim_token=_claim(repo, analysis_id),
     )
 
     row = repo.get_trade_insight_ai_analysis(analysis_id)
@@ -488,7 +507,9 @@ def test_fail_stores_error_and_fetch_scopes_by_ticker(seeded_db_empty_cards):
     run_id, snapshot_id = _create_snapshot(repo)
     analysis_id = _enqueue(repo, snapshot_id=snapshot_id, run_id=run_id)
 
-    repo.fail_trade_insight_ai_analysis(analysis_id, "codex timed out")
+    repo.fail_trade_insight_ai_analysis(
+        analysis_id, "codex timed out", claim_token=_claim(repo, analysis_id)
+    )
 
     row = repo.get_trade_insight_ai_analysis(analysis_id, ticker="TSLA")
     assert row["status"] == "failed"
@@ -516,6 +537,7 @@ def test_fail_persists_raw_outcome_when_validation_rejected(seeded_db_empty_card
         analysis_id,
         "status_observed changed for idea_id F",
         raw_outcome=rejected,
+        claim_token=_claim(repo, analysis_id),
     )
 
     row = repo.get_trade_insight_ai_analysis(analysis_id, ticker="TSLA")
@@ -542,6 +564,7 @@ def test_complete_persists_provider_metadata_jsonb(seeded_db_empty_cards):
         outcome={"schema_version": "trade-insights-ai-v1"},
         markdown="done",
         provider_metadata=metadata,
+        claim_token=_claim(repo, analysis_id),
     )
 
     row = repo.get_trade_insight_ai_analysis(analysis_id, ticker="TSLA")
@@ -563,6 +586,7 @@ def test_complete_leaves_provider_metadata_null_when_not_passed(
         analysis_id,
         outcome={"schema_version": "trade-insights-ai-v1"},
         markdown="done",
+        claim_token=_claim(repo, analysis_id),
     )
 
     row = repo.get_trade_insight_ai_analysis(analysis_id, ticker="TSLA")
@@ -592,9 +616,29 @@ def test_fail_persists_provider_metadata_for_validation_failures(
         "validator rejected unknown field 'junk'",
         raw_outcome=rejected,
         provider_metadata=metadata,
+        claim_token=_claim(repo, analysis_id),
     )
 
     row = repo.get_trade_insight_ai_analysis(analysis_id, ticker="TSLA")
     assert row["status"] == "failed"
     assert row["raw_outcome_jsonb"] == rejected
     assert row["provider_metadata_jsonb"] == metadata
+
+
+def test_complete_and_fail_require_a_claim_token(seeded_db_empty_cards):
+    """I-06: no unfenced path. A None token would match nothing via
+    `claim_token = NULL`; it must raise instead of silently dropping."""
+    import pytest
+
+    repo = seeded_db_empty_cards
+    with pytest.raises(ValueError, match="claim_token is required"):
+        repo.complete_trade_insight_ai_analysis(
+            "00000000-0000-0000-0000-000000000000",
+            outcome={},
+            markdown="",
+            claim_token=None,
+        )
+    with pytest.raises(ValueError, match="claim_token is required"):
+        repo.fail_trade_insight_ai_analysis(
+            "00000000-0000-0000-0000-000000000000", "boom", claim_token=None
+        )
