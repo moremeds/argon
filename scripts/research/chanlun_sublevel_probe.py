@@ -16,6 +16,7 @@ Reproduce: uv run python scripts/research/chanlun_sublevel_probe.py
 from __future__ import annotations
 
 import csv
+import os
 import statistics
 import sys
 from dataclasses import dataclass, field
@@ -37,7 +38,10 @@ from uw_scan.chanlun.lifecycle import (
     session_et_date,
 )
 from uw_scan.chanlun.types import ChanlunBar
+from uw_scan.config import DEFAULT_APEX_API_URL
 from uw_scan.sources.apex import fetch_bars
+
+_APEX_URL = os.environ.get("APEX_API_URL", DEFAULT_APEX_API_URL)
 
 TICKERS = ["AAPL", "NVDA", "MSFT", "AMZN", "META", "GOOGL", "TSLA", "AMD", "SPY", "QQQ"]
 HALF_A = TICKERS[:5]  # ticker-half split for the AC-F4-style catastrophic gate
@@ -140,8 +144,8 @@ def _load_bars(ticker: str):
     """Full-history 1d + 30m from apex with an EXPLICIT start (default-window
     gotcha). Returns None when either series is empty — never fabricate bars."""
     start = date.today() - timedelta(days=int(5.3 * 365))
-    daily_raw = fetch_bars(ticker, "1d", start, limit=0)
-    raw_30m = fetch_bars(ticker, "30m", start, limit=0)
+    daily_raw = fetch_bars(ticker, "1d", start, base_url=_APEX_URL, limit=0)
+    raw_30m = fetch_bars(ticker, "30m", start, base_url=_APEX_URL, limit=0)
     if not daily_raw or not raw_30m:
         return None
     daily = [

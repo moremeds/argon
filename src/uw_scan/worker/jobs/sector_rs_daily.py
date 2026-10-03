@@ -50,7 +50,6 @@ from uw_scan.reports.sector_rs import (
     SectorRsRow,
     compute_group_rows,
 )
-from uw_scan.sources.apex import fetch_bulk_daily_closes
 from uw_scan.sources.sp500_members import Sp500ListInvalid, sp500_members
 from uw_scan.storage.company_sector import CompanySectorRepository
 from uw_scan.storage.repository import Repository
@@ -133,7 +132,7 @@ def load_closes(
     *,
     start: date,
     end: date,
-    fetch_closes: ClosesFetcher = fetch_bulk_daily_closes,
+    fetch_closes: ClosesFetcher,
     today: date | None = None,
 ) -> tuple[Closes, set[str]]:
     """Ascending closes per symbol, plus the set that came from daily_ohlc.
@@ -180,7 +179,7 @@ def run_sector_rs(
     schema: str,
     dates: Sequence[date],
     group_kinds: Sequence[str] = GROUP_KINDS,
-    fetch_closes: ClosesFetcher = fetch_bulk_daily_closes,
+    fetch_closes: ClosesFetcher,
 ) -> dict[str, int]:
     """Compute and upsert sector_rs_daily for each requested date. Returns counters."""
     counters = dict.fromkeys(
@@ -293,13 +292,15 @@ def sector_rs_daily(
     repo: Repository,
     schema: str,
     as_of: date,
-    fetch_closes: ClosesFetcher = fetch_bulk_daily_closes,
+    fetch_closes: ClosesFetcher,
 ) -> dict[str, int]:
     """Nightly entry point: the last week's sessions, both group kinds.
 
     Recomputing a trailing week (not just as_of) means a night on which apex has
-    not yet published today's bar, or a chunk failed, heals on the next run; the
-    upsert converges and the table is excluded from the gap healer.
+    not yet published today's bar, or on which apex could not answer (any failed
+    chunk raises SourceUnavailable and fails the run, rather than silently
+    dropping up to 200 symbols from breadth), heals on the next run; the upsert
+    converges and the table is excluded from the gap healer.
     """
     return run_sector_rs(
         repo=repo,
