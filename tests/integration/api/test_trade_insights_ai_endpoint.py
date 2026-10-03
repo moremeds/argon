@@ -28,6 +28,19 @@ from uw_scan.reports.trade_insights_ai import PROMPT_VERSION
 from uw_scan.storage.repository import Repository
 
 
+def _claim(repo, analysis_id):
+    """Stamp a claim on one row (as the worker's claim does) and return the
+    token -- complete/fail require it (I-06)."""
+    with repo.conn.cursor() as cur:
+        cur.execute(
+            "UPDATE uw_scan.trade_insight_ai_analyses SET status = 'running', "
+            "started_at = now(), claim_token = gen_random_uuid() "
+            "WHERE analysis_id = %s RETURNING claim_token",
+            (analysis_id,),
+        )
+        return cur.fetchone()[0]
+
+
 def _settings_for_repo(
     repo: Repository,
     *,
@@ -263,6 +276,7 @@ def test_trade_insights_ai_latest_resumes_active_progress(
         first_codex["analysis_id"],
         outcome=_sample_outcome_for(row["analysis_input_jsonb"]),
         markdown="done",
+        claim_token=_claim(repo, first_codex["analysis_id"]),
     )
     repo.conn.commit()
 
@@ -344,6 +358,7 @@ def test_trade_insights_ai_post_reuses_success_and_force_rerun_creates_new(
         first_codex["analysis_id"],
         outcome=_sample_outcome_for(row["analysis_input_jsonb"]),
         markdown="done",
+        claim_token=_claim(repo, first_codex["analysis_id"]),
     )
     repo.conn.commit()
 
@@ -487,6 +502,7 @@ def test_trade_insights_ai_latest_with_one_provider_succeeded(
         codex["analysis_id"],
         outcome=_sample_outcome_for(row["analysis_input_jsonb"]),
         markdown="codex-done",
+        claim_token=_claim(repo, codex["analysis_id"]),
     )
     repo.conn.commit()
 
@@ -582,13 +598,9 @@ def test_trade_insights_preview_is_read_only(
 
     def _counts() -> tuple[int, int]:
         with repo.conn.cursor() as cur:
-            cur.execute(
-                f"SELECT count(*) FROM {repo._schema}.trade_insight_snapshots"
-            )
+            cur.execute(f"SELECT count(*) FROM {repo._schema}.trade_insight_snapshots")
             snaps = int(cur.fetchone()[0])
-            cur.execute(
-                f"SELECT count(*) FROM {repo._schema}.trade_insight_candidates"
-            )
+            cur.execute(f"SELECT count(*) FROM {repo._schema}.trade_insight_candidates")
             cands = int(cur.fetchone()[0])
         return snaps, cands
 

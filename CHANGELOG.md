@@ -7,6 +7,10 @@ version in lockstep (enforced by `scripts/release/version_sync_check.py`).
 
 ## [Unreleased]
 
+### Fixed
+
+- **Trade Insights AI results are always written under the claim fence.** v0.13.18 stamps a `claim_token` on every claim; `complete_`/`fail_trade_insight_ai_analysis` now require it (a `None` token raises instead of matching nothing) and the unfenced update-by-id path is gone. The worker used to commit the claim together with the prompt prepare, so a prepare error rolled the claim back and needed an unfenced fail; it now commits the claim first, so that fail is fenced too and the row still ends `failed` rather than being retried every tick. A legacy `running` row with no token is reclaimed (and stamped) by the normal stale-row claim.
+
 ## [0.13.18] — 2026-10-04
 
 
