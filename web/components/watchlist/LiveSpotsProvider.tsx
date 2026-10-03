@@ -1,13 +1,8 @@
 "use client";
-import {
-  createContext,
-  useContext,
-  useEffect,
-  useState,
-  type ReactNode,
-} from "react";
+import { createContext, useContext, type ReactNode } from "react";
 import type { components } from "@/lib/types";
 import { api } from "@/lib/api";
+import { usePolledResource } from "@/lib/usePolledResource";
 
 type WatchlistSpot = components["schemas"]["WatchlistSpot"];
 
@@ -29,36 +24,20 @@ const POLL_MS = 2500; // matches QueueProgress's active cadence; WS flushes ~1s
  * rewrites watchlist_card.spot ~1/s; /api/watchlist/spots is the lightweight
  * projection of just (ticker, spot, quoted_at, source). */
 export function LiveSpotsProvider({ children }: { children: ReactNode }) {
-  const [spots, setSpots] = useState<LiveSpotsMap | null>(null);
-
-  useEffect(() => {
-    let cancelled = false;
-    // ponytail: one request at a time; a fetch that never settles parks polling
-    // until reload — add AbortSignal.timeout on the client if that ever bites.
-    let inFlight = false;
-    const fetchOnce = async () => {
-      // Skip while the tab is hidden — no point hammering the API for a
-      // page nobody is looking at; resumes on the next visible tick.
-      if (document.hidden || inFlight) return;
-      inFlight = true;
-      try {
-        const res = await api.watchlistSpots();
-        if (cancelled) return;
-        setSpots(new Map((res.spots ?? []).map((s) => [s.ticker, s])));
-      } catch {
-        // Transient fetch failure: keep the last map (or the server-rendered
-        // values); the next tick retries.
-      } finally {
-        inFlight = false;
-      }
-    };
-    fetchOnce();
-    const t = setInterval(fetchOnce, POLL_MS);
-    return () => {
-      cancelled = true;
-      clearInterval(t);
-    };
-  }, []);
+  // Skip while the tab is hidden (nobody is looking) and while a request is
+  // still pending; a failed tick keeps the last map (or the server-rendered
+  // values) and the next tick retries.
+  // ponytail: a fetch that never settles parks polling until reload — add
+  // AbortSignal.timeout on the client if that ever bites.
+  const spots = usePolledResource<LiveSpotsMap>(
+    async () => {
+      const res = await api.watchlistSpots();
+      return new Map((res.spots ?? []).map((s) => [s.ticker, s]));
+    },
+    POLL_MS,
+    [],
+    { skipWhenHidden: true, singleFlight: true },
+  );
 
   return (
     <LiveSpotsContext.Provider value={spots}>

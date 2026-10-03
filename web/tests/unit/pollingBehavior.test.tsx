@@ -164,3 +164,22 @@ describe("TechnicalsTab live head", () => {
     expect(technicalsLive).toHaveBeenCalledTimes(4);
   });
 });
+
+describe("usePolledResource onError", () => {
+  it("'clear' resets to null on a failed tick (the TechnicalsTab live head)", async () => {
+    const { usePolledResource } = await import("@/lib/usePolledResource");
+    let fail = false;
+    const fetcher = vi.fn(async () => {
+      if (fail) throw new Error("down");
+      return "ok";
+    });
+    const { result } = renderHook(() =>
+      usePolledResource(fetcher, 1000, [], { onError: "clear" }),
+    );
+    await flush();
+    expect(result.current).toBe("ok");
+    fail = true;
+    await tick(1000);
+    expect(result.current).toBeNull();
+  });
+});
