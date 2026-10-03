@@ -55,10 +55,9 @@ def test_watchlist_seeded(fresh_schema):
         row = cur.fetchone()
         assert row is not None
         count = row[0]
-    # 006 seeds 54 base; 008 +36; 009 +4 (Optical); 010 +1 (OKLO); 011 +1 (BE);
-    # 012 +1 (IREN) = 97 active pre-069. 069 soft-deletes 15 (Defense, Telecom-
-    # Media, Airlines + ARKK/ES/SMCI/ZS/DDOG/ABBV/MRK) and inserts 10 (ISRG,
-    # HYG, JNK, SLV, AMAT, LRCX, KLAC, SNPS, CDNS, TER) → 92 active.
+    # 006 now seeds the final state of the old 006→069 chain: 107 rows, 92
+    # active + 15 soft-deleted. Full-row parity with that chain is pinned by
+    # test_watchlist_migration_replay.py.
     assert count == 92
 
 

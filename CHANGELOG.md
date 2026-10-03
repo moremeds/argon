@@ -7,6 +7,10 @@ version in lockstep (enforced by `scripts/release/version_sync_check.py`).
 
 ## [Unreleased]
 
+### Fixed
+
+- **Deploys no longer undo watchlist edits.** The API re-runs every migration on each boot, and the old watchlist seed migrations (009, 010, 011, 012, 033, 034, 069) `UPDATE`d, soft-deleted or `ON CONFLICT DO UPDATE`d the watchlist each time: an operator removal of OKLO came back on restart, a re-add of DIS (or any of 069's 15 removed names) was removed again, and sector edits to ORCL/IREN/the 069 reclass names were reverted. Their DML is now one insert-only final-state seed in `006_seed_watchlist.sql` (`ON CONFLICT (ticker) DO NOTHING`); 008–069 keep only a comment. A fresh install produces the same 107 rows as before (92 active, 15 soft-deleted; checked against a golden captured from the old chain), and an existing database sees no change. New `tests/unit/storage/test_migration_dml_allowlist.py` fails on any migration `UPDATE` / `DELETE` / `TRUNCATE` / `ON CONFLICT DO UPDATE` not in a reviewed list. That list also records four existing files whose replay can still overwrite runtime data (021, 023, 047, 048); they are not fixed in this change.
+
 ## [0.13.17] — 2026-10-03
 
 
