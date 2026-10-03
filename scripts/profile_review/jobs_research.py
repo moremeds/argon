@@ -75,7 +75,7 @@ def actual_job_count(ticker, bars, spy) -> dict:
         count += 1
         return original(*args, **kwargs)
 
-    def captured(t):
+    def captured(t, **_kw):
         assert t in {ticker, "SPY"}
         return spy if t == "SPY" else bars
 
@@ -83,7 +83,7 @@ def actual_job_count(ticker, bars, spy) -> dict:
          patch.object(daily, "TechnicalsRepository") as storage, \
          patch.object(daily, "build_technical_series", side_effect=counted), \
          patch.object(technicals, "build_technical_series", side_effect=counted):
-        result = daily.technical_daily_refresh(repo=repo, settings=SimpleNamespace(db_schema="mock_only"), ticker_filter=[ticker])
+        result = daily.technical_daily_refresh(repo=repo, settings=SimpleNamespace(db_schema="mock_only", apex_api_url="http://apex"), ticker_filter=[ticker])
         writes = storage.return_value.upsert_series.call_args_list
     expected = 1 if ticker == "SPY" else 2
     assert result["ok"] == expected and result["failed"] == 0
