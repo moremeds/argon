@@ -7,10 +7,12 @@ version in lockstep (enforced by `scripts/release/version_sync_check.py`).
 
 ## [Unreleased]
 
+## [0.13.17] — 2026-10-03
+
+
 ### Fixed
 
 - **Every HTTP client now ignores ambient proxy settings.** httpx reads the macOS *system* proxy even when no `*_PROXY` env var is set; `sources/fred.py` documented an SSL-EOF outage from exactly this and claimed every other source already opted out — 19 call sites in 14 modules did not, including the UW client (`api/client.py`), massive OHLC/fundamentals, apex, xenon query, the gold/official-data sources, the DeepSeek runner and the Discord alert. All now pass `trust_env=False`. No effect on the mini (no container carries a proxy variable); on a desk Mac with a system proxy, calls now go direct — verified reachable for every host. `tests/unit/test_httpx_trust_env.py` fails on any new `httpx` client in `src/` that omits it.
-
 ## [0.13.16] — 2026-10-03
 
 
