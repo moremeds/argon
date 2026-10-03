@@ -122,6 +122,23 @@ def test_quote_refuses_to_exceed_the_ib_line_budget(client, seeded_candidates):
     assert "8" in r.json()["detail"]
 
 
+def test_quote_counts_an_unreachable_xenon_leg_as_failed(
+    client, seeded_candidates, monkeypatch
+):
+    """View-only: xenon down raises SourceUnavailable inside the client; the
+    handler counts the candidate as failed and answers 200, never a 500."""
+    import uw_scan.sources.xenon_query as xq
+    from uw_scan.sources.source_errors import SourceUnavailable
+
+    def down(**_k):
+        raise SourceUnavailable("xenon_query", "ConnectError('down')")
+
+    monkeypatch.setattr(xq, "fetch_ib_option_quote", down)
+    r = client.post("/api/scanner/theta-harvester/quote", json={"limit": 1})
+    assert r.status_code == 200
+    assert r.json() == {"quoted": 0, "failed": 1}
+
+
 def test_rescan_returns_409_while_another_scan_holds_the_lock(
     client, seeded_candidates
 ):

@@ -77,7 +77,7 @@ def test_preflight_aborts_naming_the_funds_silver_has_not_published():
         del published[s]
     client, seen = _client(published)
     with pytest.raises(SystemExit, match="for XLB XLE XLK XLU XLY"):
-        bf.preflight_etf_history(client=client)
+        bf.preflight_etf_history("http://apex", client=client)
     assert [r.url.path for r in seen] == [
         f"/v1/equity/{s}/bars" for s in bf._FUNDS_1998
     ]
@@ -89,4 +89,4 @@ def test_preflight_aborts_naming_the_funds_silver_has_not_published():
 
 def test_preflight_passes_when_all_nine_have_bars():
     client, _ = _client(_ALL_NINE)
-    assert bf.preflight_etf_history(client=client) is None
+    assert bf.preflight_etf_history("http://apex", client=client) is None
