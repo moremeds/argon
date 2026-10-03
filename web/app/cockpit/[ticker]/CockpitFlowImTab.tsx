@@ -6,6 +6,7 @@ import {
   fmtDecimal,
   fmtMoney,
   toNum,
+  formatLabel,
 } from "@/lib/formatters";
 import {
   MultiLineChart,
@@ -174,10 +175,6 @@ export function CockpitFlowImTab({
       </section>
     </div>
   );
-}
-
-function formatLabel(value: string | null | undefined): string {
-  return value ? value.replaceAll("_", " ").toUpperCase() : "-";
 }
 
 function formatFlowFlags(

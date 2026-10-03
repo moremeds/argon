@@ -13,6 +13,7 @@ import GexCurvatureChart from "@/components/shared/GexCurvatureChart";
 import { GexLevelTiles } from "@/components/stock/panels/GexLevelTiles";
 import { VolMetricsCard } from "@/components/stock/panels/VolMetricsCard";
 import type { CockpitDealerResponse, CockpitStateResponse } from "@/lib/api";
+import { fmtGexUsd, formatLabel } from "@/lib/formatters";
 import type { components } from "@/lib/types";
 import aapl from "@/tests/fixtures/mcp/aapl_stock.json";
 import spyDealer from "@/tests/fixtures/mcp/spy_cockpit_dealer.json";
@@ -159,5 +160,19 @@ describe("I-105 markup snapshots", () => {
         />,
       ),
     ).toMatchSnapshot();
+  });
+});
+
+describe("shared formatters", () => {
+  it("fmtGexUsd keeps every branch of the old fmtGex (sign after the $ for negatives, as before)", () => {
+    expect(
+      [null, 6_200_000, -2_500_000, -3_000, 400, -12].map(fmtGexUsd),
+    ).toEqual(["---", "+$6.2M", "$-2.5M", "$-3.0K", "+$400", "$-12"]);
+  });
+
+  it("formatLabel keeps the per-caller fallback", () => {
+    expect(formatLabel("grind_up")).toBe("GRIND UP");
+    expect(formatLabel(null)).toBe("-");
+    expect(formatLabel("", "—")).toBe("—");
   });
 });

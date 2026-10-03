@@ -1,7 +1,7 @@
 import type { CockpitDealerResponse } from "@/lib/api";
 import { useMemo } from "react";
 import type React from "react";
-import { fmtDecimal, fmtMoney, fmtSigned, toNum } from "@/lib/formatters";
+import { fmtDecimal, fmtMoney, fmtSigned, toNum, formatLabel } from "@/lib/formatters";
 import {
   exposureValue,
   groupByExpiry,
@@ -301,11 +301,11 @@ function SignalGrid({
       />
       <Metric
         label="Vanna reading"
-        value={formatLabel(metrics.vanna_conditional_reading)}
+        value={formatLabel(metrics.vanna_conditional_reading, "—")}
       />
       <Metric
         label="Vanna OI bias"
-        value={formatLabel(metrics.vanna_oi_change_bias)}
+        value={formatLabel(metrics.vanna_oi_change_bias, "—")}
       />
       <Metric label="Net gamma" value={fmtSigned(toNum(metrics.net_gamma), 0)} />
       <Metric
@@ -316,7 +316,7 @@ function SignalGrid({
         label="Gamma regime"
         value={formatGammaRegime(metrics.gamma_regime)}
       />
-      <Metric label="Charm regime" value={formatLabel(metrics.charm_regime)} />
+      <Metric label="Charm regime" value={formatLabel(metrics.charm_regime, "—")} />
       <Metric
         label="Charm stress"
         value={
@@ -415,10 +415,6 @@ function formatGammaSign(value: DealerMetrics["net_gamma_sign"]): string {
 function formatGammaRegime(value: DealerMetrics["gamma_regime"]): string {
   if (!value) return "—";
   return value.replace("_", " ").toUpperCase();
-}
-
-function formatLabel(value: string | null | undefined): string {
-  return value ? value.replaceAll("_", " ").toUpperCase() : "—";
 }
 
 function EmptyPanel({ ticker }: { ticker: string }) {
