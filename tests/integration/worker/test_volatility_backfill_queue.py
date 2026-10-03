@@ -89,7 +89,9 @@ def test_tick_claims_one_row_and_marks_it_ready(repo, _migrated_settings, monkey
     assert _row(repo, "BBB")[0] == "queued"  # one per tick
 
 
-def test_stale_running_row_is_requeued_and_rerun(repo, _migrated_settings, monkeypatch):
+def test_stale_running_row_is_reclaimed_and_rerun(
+    repo, _migrated_settings, monkeypatch
+):
     calls: list[str] = []
     _ok_backfill(monkeypatch, calls)
     now = datetime.now(timezone.utc)
@@ -160,3 +162,54 @@ def test_migration_157_reruns_cleanly(repo):
         repo.conn.commit()
     repo.enqueue_volatility_backfill("AAA")
     assert _row(repo, "AAA")[0] == "queued"
+
+
+_CHECK = "volatility_backfill_status_status_check"
+
+
+def _set_check(repo, statuses: str) -> None:
+    with repo.conn.cursor() as cur:
+        cur.execute(
+            f"ALTER TABLE uw_scan.volatility_backfill_status DROP CONSTRAINT {_CHECK}"
+        )
+        cur.execute(
+            f"ALTER TABLE uw_scan.volatility_backfill_status ADD CONSTRAINT {_CHECK} "
+            f"CHECK (status IN ({statuses}))"
+        )
+    repo.conn.commit()
+
+
+def test_worker_never_writes_queued_so_a_pre_157_check_holds(
+    repo, _migrated_settings, monkeypatch
+):
+    """Deploy-order safety: the worker container can start before the api has
+    applied 157. Under the OLD check (no 'queued'), a stale 'running' row must
+    still be reclaimed and finished without a CheckViolation, and a failed run
+    must still record 'failed'."""
+    calls: list[str] = []
+    _ok_backfill(monkeypatch, calls)
+    now = datetime.now(timezone.utc)
+    repo.upsert_volatility_backfill_status(
+        ticker="DEAD", status="running", started_at=now - timedelta(hours=2)
+    )
+    repo.conn.commit()
+    _set_check(repo, "'running', 'ready', 'failed'")
+    try:
+        assert _tick(repo, _migrated_settings) == "DEAD"
+        assert _row(repo, "DEAD")[0] == "ready"
+
+        def boom(**_k):
+            raise RuntimeError("uw 500")
+
+        monkeypatch.setattr(job_mod, "run_volatility_backfill", boom)
+        repo.upsert_volatility_backfill_status(
+            ticker="DEAD", status="running", started_at=now - timedelta(hours=2)
+        )
+        repo.conn.commit()
+        with pytest.raises(RuntimeError, match="uw 500"):
+            _tick(repo, _migrated_settings)
+        assert _row(repo, "DEAD")[0] == "failed"
+    finally:
+        repo.conn.rollback()
+        _set_check(repo, "'queued', 'running', 'ready', 'failed'")
+    assert calls == ["DEAD"]

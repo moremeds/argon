@@ -5,8 +5,12 @@ an API restart lost the work and its UW spend ran outside the budget governor.
 The GET now only enqueues (``volatility_backfill_status.status = 'queued'``);
 this tick, on the uw-0 worker, claims one queued ticker and runs it.
 
-Order per tick: requeue stale 'running' rows -> nothing queued? stop -> research
-budget exhausted? stop, rows stay 'queued' -> claim one -> run it.
+Order per tick: nothing claimable? stop -> research budget exhausted? stop,
+rows stay as they are -> claim one -> run it. Claimable = 'queued', or
+'running' past STALE_RUNNING_AFTER (its worker died). The reclaim keeps the row
+'running' and bumps started_at in the same UPDATE as the claim: the worker never
+writes 'queued', so it cannot violate a pre-157 CHECK during a deploy where the
+worker container starts before the api container has migrated.
 """
 
 from __future__ import annotations
@@ -27,7 +31,7 @@ log = logging.getLogger(__name__)
 
 # Measured on option_wizard_local (100 runs, 2026-10-03): p50 19 s, max 808 s
 # (~13.5 min, 340 UW calls). A row 'running' for longer than this lost its
-# worker (restart / crash) and goes back to 'queued'.
+# worker (restart / crash) and is reclaimed by the next tick.
 STALE_RUNNING_AFTER = timedelta(minutes=60)
 
 _LOCK_KEY_SQL = "('x' || substr(md5('vol_backfill:' || %s), 1, 16))::bit(64)::bigint"
@@ -126,10 +130,7 @@ def volatility_backfill_tick(
     *, repo: Repository, settings: Settings, budget_ok: Callable[[], bool]
 ) -> str | None:
     """One tick: run at most one queued backfill. Returns the ticker run."""
-    requeued = repo.requeue_stale_volatility_backfills(STALE_RUNNING_AFTER)
-    if requeued:
-        log.warning("volatility_backfill_tick requeued %d stale running rows", requeued)
-    if not repo.has_queued_volatility_backfill():
+    if not repo.has_claimable_volatility_backfill(STALE_RUNNING_AFTER):
         return None
     if not budget_ok():
         log.info(
@@ -137,7 +138,7 @@ def volatility_backfill_tick(
             "queued backfills wait"
         )
         return None
-    ticker = repo.claim_volatility_backfill()
+    ticker = repo.claim_volatility_backfill(STALE_RUNNING_AFTER)
     if ticker is None:
         return None
     run_claimed_backfill(ticker, repo=repo, settings=settings)
