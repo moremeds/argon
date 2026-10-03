@@ -7,6 +7,10 @@ version in lockstep (enforced by `scripts/release/version_sync_check.py`).
 
 ## [Unreleased]
 
+### Changed
+
+- **API contract (declared, operator-approved D2): GET trade-insights no longer writes; GEX scan answers 200.** `GET /api/stock/{ticker}/trade-insights` persisted a snapshot and committed on every read; it now only assembles (the full scan already persists a snapshot per run), and the write is the new `POST /api/stock/{ticker}/trade-insights/refresh`. `POST /api/regime/gex/scan` ran the scan synchronously yet answered `202 {"status":"queued"}`; it now answers `200` with a typed `GexScanResponse` (`status: "ok"`, `ticker`, `row_id`). The regime GEX/GRG scans take their UW client from `deps.get_uw_client`, which now carries the configured base URL and timeout. OpenAPI snapshot and `web/lib/types.ts` updated; no web caller used either response shape.
+
 ### Fixed
 
 - **Trade Insights AI results are always written under the claim fence.** v0.13.18 stamps a `claim_token` on every claim; `complete_`/`fail_trade_insight_ai_analysis` now require it (a `None` token raises instead of matching nothing) and the unfenced update-by-id path is gone. The worker used to commit the claim together with the prompt prepare, so a prepare error rolled the claim back and needed an unfenced fail; it now commits the claim first, so that fail is fenced too and the row still ends `failed` rather than being retried every tick. A legacy `running` row with no token is reclaimed (and stamped) by the normal stale-row claim.

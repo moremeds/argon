@@ -11,7 +11,7 @@ from zoneinfo import ZoneInfo
 from fastapi import APIRouter, Depends, HTTPException, Query
 
 from uw_scan.api.client import UwClient
-from uw_scan.api.deps import get_repo, get_settings
+from uw_scan.api.deps import get_repo, get_settings, get_uw_client
 from uw_scan.api.models.canary import (
     CanaryHistoryResponse,
     CanaryHistoryRow,
@@ -46,6 +46,7 @@ from uw_scan.api.schemas import (
     GexIntradaySession,
     GexResponse,
     GrgResponse,
+    GexScanResponse,
     GrgScanResponse,
     MarketTideResponse,
     MarketTideSentiment,
@@ -281,28 +282,19 @@ def get_top_net_impact(
     )
 
 
-@router.post("/gex/scan", status_code=202)
+@router.post("/gex/scan", response_model=GexScanResponse)
 def trigger_gex_scan(
     repo: Annotated[Repository, Depends(get_repo)],
-    settings: Annotated[Settings, Depends(get_settings)],
+    uw_client: Annotated[UwClient, Depends(get_uw_client)],
     ticker: str = Query("SPX"),
-) -> dict:
-    """Run a GEX scan synchronously against UW and persist."""
-    uw_client = UwClient(
-        api_key=settings.api_key.get_secret_value(),
-        base_url=settings.base_url,
-        timeout=settings.request_timeout_seconds,
-    )
-    try:
-        row_id = gex_scanner.run(uw_client, repo, ticker=ticker.upper())
-    finally:
-        uw_client.close()
-    return {
-        "status": "queued",
-        "scanner": "gex",
-        "ticker": ticker.upper(),
-        "row_id": row_id,
-    }
+) -> GexScanResponse:
+    """Run a GEX scan synchronously against UW, persist it, and return the row.
+
+    200, not 202: the scan has finished and been written when this returns.
+    """
+    t = ticker.upper()
+    row_id = gex_scanner.run(uw_client, repo, ticker=t)
+    return GexScanResponse(ticker=t, row_id=row_id)
 
 
 # ─── Vol backdrop ────────────────────────────────────────────────
@@ -952,18 +944,10 @@ def get_grg(
 @router.post("/grg/scan", status_code=202, response_model=GrgScanResponse)
 def trigger_grg_scan(
     repo: Annotated[Repository, Depends(get_repo)],
-    settings: Annotated[Settings, Depends(get_settings)],
+    uw_client: Annotated[UwClient, Depends(get_uw_client)],
 ) -> GrgScanResponse:
     """Run a GRG scan synchronously against UW and persist a snapshot."""
-    uw_client = UwClient(
-        api_key=settings.api_key.get_secret_value(),
-        base_url=settings.base_url,
-        timeout=settings.request_timeout_seconds,
-    )
-    try:
-        row_id = grg_scanner.run(uw_client, repo, schema=repo._schema)
-    finally:
-        uw_client.close()
+    row_id = grg_scanner.run(uw_client, repo, schema=repo._schema)
     if row_id is None:
         return GrgScanResponse(status="skipped", reason="thin_data")
     return GrgScanResponse(status="ok", row_id=row_id)

@@ -584,13 +584,12 @@ def test_trade_insights_ai_post_providers_empty_list_falls_back_to_all_enabled(
     assert providers == {"codex", "claude"}
 
 
-def test_trade_insights_preview_is_read_only(
+def test_trade_insights_get_writes_nothing_and_refresh_persists(
     seeded_db_empty_cards,
     monkeypatch,
 ):
-    """GET /preview returns the same body as the persisting GET but writes
-    nothing — no trade_insight_snapshots / trade_insight_candidates rows, no
-    commit."""
+    """I-21: GET /trade-insights (and /preview) write 0 rows; the snapshot write
+    lives on POST /trade-insights/refresh. All three return the same body."""
     repo = seeded_db_empty_cards
     _seed_run(repo)
     _patch_api_sources(monkeypatch)
@@ -605,15 +604,15 @@ def test_trade_insights_preview_is_read_only(
         return snaps, cands
 
     before = _counts()
+    got = client.get("/api/stock/TSLA/trade-insights")
     preview = client.get("/api/stock/TSLA/trade-insights/preview")
-    assert preview.status_code == 200
-    assert _counts() == before  # preview wrote nothing
+    assert got.status_code == preview.status_code == 200
+    assert _counts() == before  # neither GET wrote
 
-    persisted = client.get("/api/stock/TSLA/trade-insights")
-    assert persisted.status_code == 200
-    assert preview.json() == persisted.json()  # same assembled body
-    snaps_after, _cands_after = _counts()
-    assert snaps_after == before[0] + 1  # the persisting GET DID write
+    refreshed = client.post("/api/stock/TSLA/trade-insights/refresh")
+    assert refreshed.status_code == 200
+    assert got.json() == preview.json() == refreshed.json()
+    assert _counts()[0] == before[0] + 1  # the explicit POST did write
 
 
 def test_trade_insights_preview_404_without_runs(
