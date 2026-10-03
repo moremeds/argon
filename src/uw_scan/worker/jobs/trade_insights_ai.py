@@ -123,6 +123,18 @@ def _provider_model_and_timeout(settings: Settings, provider: str) -> tuple[str,
     raise TradeInsightsAiRunnerError(f"unknown provider {provider!r}")
 
 
+def _reclaim_after_seconds(settings: Settings, provider_filter: str | None) -> float:
+    """A 'running' row is reclaimable once its provider's timeout + 60 s passes.
+
+    The legacy any-provider pool can claim any row, so it waits out the
+    longest provider timeout; otherwise a slow provider's live run is stolen.
+    """
+    providers = (
+        (provider_filter,) if provider_filter else ("codex", "claude", "deepseek")
+    )
+    return max(_provider_model_and_timeout(settings, p)[1] for p in providers) + 60
+
+
 def trade_insights_ai_tick(
     settings: Settings,
     *,
@@ -145,7 +157,7 @@ def trade_insights_ai_tick(
     try:
         repo.upsert_heartbeat(_heartbeat_key(provider_filter))
         stale_running_before = datetime.now(timezone.utc) - timedelta(
-            seconds=settings.trade_insights_ai_timeout_seconds + 60
+            seconds=_reclaim_after_seconds(settings, provider_filter)
         )
         row = repo.claim_next_trade_insight_ai_analysis(
             stale_running_before=stale_running_before,
