@@ -124,7 +124,7 @@ A support cluster backs the two PDF/HTML-scraping sources above: `fed_sep_provid
 
 - **Audit-first.** Persist the raw payload + audit row BEFORE returning. Crashes mid-pipeline must still leave a trace.
 - **Raise `NormalizationError`** on malformed payloads. Never silently skip rows — the scanner depends on knowing if UW changed shape.
-- **One fetcher per endpoint.** No generic "call this slug" helper — explicit functions surface signature drift at import time.
+- **One public fetcher per endpoint use.** Uniform fetchers are rows in `uw.py`'s factory table, keyed by public function name; anything non-uniform stays an explicit function. Never call a slug generically from outside `uw.py`. Signature drift is caught by `tests/unit/sources/test_uw_fetcher_surface.py`, which pins every public signature and request shape.
 - **Massive can be absent.** If `MASSIVE_API_KEY` is missing the worker uses `_NoOhlc` (null object). Don't crash the scheduler on a missing key.
 - **No retry logic here.** Backoff/retry lives in `api/client.py` (UW) — sources stay thin.
 - **Never add a Yahoo Finance source.** Project-wide rule — yfinance is for radon/other projects, not this one.
