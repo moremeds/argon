@@ -2,7 +2,7 @@
 
 from __future__ import annotations
 
-from datetime import UTC, date, datetime
+from datetime import UTC, date, datetime, timedelta
 from decimal import Decimal
 import pytest
 
@@ -219,3 +219,36 @@ def test_replay_skips_invalidated_rows(repo: Repository) -> None:
     assert row is not None
     assert row["gauge_state"] == "partial"
     assert row["row_status"] == "active"
+
+
+def test_every_reader_returns_the_same_row_per_obs_date(repo: Repository) -> None:
+    """I-112: two rows a day (the 19:10 job, then the healer's 20:05 recompute).
+
+    The live page read the LAST row while replay, the macro gold state and gauge
+    history read the FIRST, so live and replay could show different inputs for the
+    same day. Every reader now takes the first active row.
+    """
+    days = (date(2026, 9, 29), date(2026, 9, 30))
+    for day in days:
+        for hour, state in ((23, "first"), (24, "healer")):
+            repo.insert_gold_posture_daily(
+                **_kwargs_for_posture(
+                    obs_date=day,
+                    computed_at=datetime(day.year, day.month, day.day, tzinfo=UTC)
+                    + timedelta(hours=hour, minutes=10),
+                    gauge_state=state,
+                    gauge_corr_60d=Decimal("0.1" if state == "first" else "0.9"),
+                )
+            )
+
+    newest = days[-1]
+    picks = {
+        "latest": repo.fetch_gold_posture_latest(),
+        "as_of": repo.fetch_gold_posture_as_of(newest),
+        "for_obs_date": repo.fetch_gold_posture_for_obs_date(newest),
+    }
+    assert {k: (r["obs_date"], r["gauge_state"]) for k, r in picks.items()} == {
+        k: (newest, "first") for k in picks
+    }
+    history = repo.fetch_gold_gauge_history(from_date=days[0], to_date=newest)
+    assert [h["gauge_corr_60d"] for h in history] == [Decimal("0.1")] * len(days)

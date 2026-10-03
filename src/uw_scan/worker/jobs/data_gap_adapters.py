@@ -372,9 +372,17 @@ def _run_rates_fred(ctx: HealContext, lookback_days: int) -> int:
 
 
 def _run_gold_posture(ctx: HealContext) -> int:
-    from uw_scan.worker.jobs.gold_jobs import gold_posture_compute_job
+    from uw_scan.worker.jobs.gold_jobs import (
+        _latest_gold_market_date,
+        gold_posture_compute_job,
+    )
 
-    gold_posture_compute_job(dsn=ctx.settings.db_dsn())
+    # Fill a missing day only. Readers take the FIRST active row per obs_date, so a
+    # recompute beside an existing row is never read -- it only made a 4th row a day.
+    target = _latest_gold_market_date(ctx.repo)
+    if ctx.repo.fetch_gold_posture_for_obs_date(target) is not None:
+        return 0
+    gold_posture_compute_job(dsn=ctx.settings.db_dsn(), as_of=target)
     return 0
 
 
