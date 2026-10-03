@@ -7,6 +7,9 @@ version in lockstep (enforced by `scripts/release/version_sync_check.py`).
 
 ## [Unreleased]
 
+## [0.13.18] — 2026-10-04
+
+
 ### Changed
 
 - **The five legacy top-level tests now run in CI.** CI runs only `tests/unit/` and `tests/integration/`, so `tests/test_{smile_trim,trade_insights,trade_insights_ai,vol_series,volatility_models}.py` never ran there. None touch the DB; all moved to `tests/unit/`. Two `test_trade_insights_ai.py` tests had been failing unseen: `assemble_volatility_series` now reads `list_daily_ohlc` for split-safe closes, and the test's `_FakeVolRepo` lacked it. The fake now returns no OHLC rows; production code is unchanged.
@@ -23,7 +26,6 @@ version in lockstep (enforced by `scripts/release/version_sync_check.py`).
 - **VRP research job failures now reach the job-failure streak.** `vrp_research_refresh` caught each failing axis, stored `{"error": ...}` in its return value and returned, so the scheduler recorded a success. Unit = one research axis (RV validation, sector, multi-horizon, directional, ΔVRP), and each axis commits its own table. Every axis still runs and the ones that succeed stay persisted; the job then raises if any axis failed, naming the failed axes. The five axes write five different tables, so one broken axis is a real failure, not a skippable ticker.
 - **GEX, GRG and discovery job failures now reach the job-failure streak.** All three caught their errors and returned, so APScheduler recorded a success. `regime_gex_scan` is multi-unit (one unit per ticker): each ticker still commits on its own, a bad ticker is logged and skipped, and the run raises only when every ticker failed. `regime_grg_scan` is one unit (the SPY/TLT snapshot); it re-raises after the scanner commits its `scan_run` as `error`. `discovery_scan` is one unit (alerts fetch + snapshot write): `discovery_scan_once` now commits the `scan_run` as `fail`, releases its lock and re-raises instead of returning `{"status": "error"}`; a per-ticker dark-pool miss still only degrades that candidate.
 - **Top-net-impact job failures now reach the job-failure streak.** `regime_top_net_impact_scan` had the same swallow: the scanner committed its `scan_runs` row as `error` and re-raised, but the closure caught the exception and returned, so the listener recorded a success and the stored outcome and the streak disagreed. The closure now re-raises after its rollback. The job is one unit (one UW call), so any exception fails the run; zero rows is still a normal return.
-
 ## [0.13.17] — 2026-10-03
 
 
