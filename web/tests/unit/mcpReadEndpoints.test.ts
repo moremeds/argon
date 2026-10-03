@@ -68,7 +68,7 @@ describe("parseOpenApiEndpoints", () => {
     expect(parsed.find((e) => e.path === "/no-get")).toBeUndefined();
   });
 
-  it("excludes DENYLIST entries (trade-insights GET writes to the DB)", () => {
+  it("excludes DENYLIST entries (agents use trade-insights/preview)", () => {
     const parsed = parseOpenApiEndpoints({
       paths: {
         "/api/stock/{ticker}/trade-insights": { get: { summary: "x" } },

@@ -28,6 +28,19 @@ from uw_scan.reports.trade_insights_ai import PROMPT_VERSION
 from uw_scan.storage.repository import Repository
 
 
+def _claim(repo, analysis_id):
+    """Stamp a claim on one row (as the worker's claim does) and return the
+    token -- complete/fail require it (I-06)."""
+    with repo.conn.cursor() as cur:
+        cur.execute(
+            "UPDATE uw_scan.trade_insight_ai_analyses SET status = 'running', "
+            "started_at = now(), claim_token = gen_random_uuid() "
+            "WHERE analysis_id = %s RETURNING claim_token",
+            (analysis_id,),
+        )
+        return cur.fetchone()[0]
+
+
 def _settings_for_repo(
     repo: Repository,
     *,
@@ -263,6 +276,7 @@ def test_trade_insights_ai_latest_resumes_active_progress(
         first_codex["analysis_id"],
         outcome=_sample_outcome_for(row["analysis_input_jsonb"]),
         markdown="done",
+        claim_token=_claim(repo, first_codex["analysis_id"]),
     )
     repo.conn.commit()
 
@@ -344,6 +358,7 @@ def test_trade_insights_ai_post_reuses_success_and_force_rerun_creates_new(
         first_codex["analysis_id"],
         outcome=_sample_outcome_for(row["analysis_input_jsonb"]),
         markdown="done",
+        claim_token=_claim(repo, first_codex["analysis_id"]),
     )
     repo.conn.commit()
 
@@ -487,6 +502,7 @@ def test_trade_insights_ai_latest_with_one_provider_succeeded(
         codex["analysis_id"],
         outcome=_sample_outcome_for(row["analysis_input_jsonb"]),
         markdown="codex-done",
+        claim_token=_claim(repo, codex["analysis_id"]),
     )
     repo.conn.commit()
 
@@ -568,13 +584,12 @@ def test_trade_insights_ai_post_providers_empty_list_falls_back_to_all_enabled(
     assert providers == {"codex", "claude"}
 
 
-def test_trade_insights_preview_is_read_only(
+def test_trade_insights_get_writes_nothing_and_refresh_persists(
     seeded_db_empty_cards,
     monkeypatch,
 ):
-    """GET /preview returns the same body as the persisting GET but writes
-    nothing — no trade_insight_snapshots / trade_insight_candidates rows, no
-    commit."""
+    """I-21: GET /trade-insights (and /preview) write 0 rows; the snapshot write
+    lives on POST /trade-insights/refresh. All three return the same body."""
     repo = seeded_db_empty_cards
     _seed_run(repo)
     _patch_api_sources(monkeypatch)
@@ -582,26 +597,22 @@ def test_trade_insights_preview_is_read_only(
 
     def _counts() -> tuple[int, int]:
         with repo.conn.cursor() as cur:
-            cur.execute(
-                f"SELECT count(*) FROM {repo._schema}.trade_insight_snapshots"
-            )
+            cur.execute(f"SELECT count(*) FROM {repo._schema}.trade_insight_snapshots")
             snaps = int(cur.fetchone()[0])
-            cur.execute(
-                f"SELECT count(*) FROM {repo._schema}.trade_insight_candidates"
-            )
+            cur.execute(f"SELECT count(*) FROM {repo._schema}.trade_insight_candidates")
             cands = int(cur.fetchone()[0])
         return snaps, cands
 
     before = _counts()
+    got = client.get("/api/stock/TSLA/trade-insights")
     preview = client.get("/api/stock/TSLA/trade-insights/preview")
-    assert preview.status_code == 200
-    assert _counts() == before  # preview wrote nothing
+    assert got.status_code == preview.status_code == 200
+    assert _counts() == before  # neither GET wrote
 
-    persisted = client.get("/api/stock/TSLA/trade-insights")
-    assert persisted.status_code == 200
-    assert preview.json() == persisted.json()  # same assembled body
-    snaps_after, _cands_after = _counts()
-    assert snaps_after == before[0] + 1  # the persisting GET DID write
+    refreshed = client.post("/api/stock/TSLA/trade-insights/refresh")
+    assert refreshed.status_code == 200
+    assert got.json() == preview.json() == refreshed.json()
+    assert _counts()[0] == before[0] + 1  # the explicit POST did write
 
 
 def test_trade_insights_preview_404_without_runs(

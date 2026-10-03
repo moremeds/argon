@@ -760,10 +760,35 @@ export interface paths {
             path?: never;
             cookie?: never;
         };
-        /** Get Trade Insights */
+        /**
+         * Get Trade Insights
+         * @description Assemble and return; never writes. The full scan already persists a snapshot
+         *     for every run (``pipeline._persist_trade_insights_for_run``); an explicit
+         *     persist from the API is ``POST .../trade-insights/refresh``.
+         */
         get: operations["get_trade_insights_api_stock__ticker__trade_insights_get"];
         put?: never;
         post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/stock/{ticker}/trade-insights/refresh": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Refresh Trade Insights
+         * @description Assemble, persist the snapshot + candidates for the latest run, and commit.
+         */
+        post: operations["refresh_trade_insights_api_stock__ticker__trade_insights_refresh_post"];
         delete?: never;
         options?: never;
         head?: never;
@@ -779,9 +804,9 @@ export interface paths {
         };
         /**
          * Get Trade Insights Preview
-         * @description Read-only twin of GET /stock/{ticker}/trade-insights for the agent MCP:
-         *     same assembled body, but never upserts a snapshot, never replaces
-         *     candidates, never commits.
+         * @description The agent MCP's route; same body as GET /stock/{ticker}/trade-insights.
+         *
+         *     Both are read-only now; this one stays because the MCP and its tests pin it.
          */
         get: operations["get_trade_insights_preview_api_stock__ticker__trade_insights_preview_get"];
         put?: never;
@@ -996,7 +1021,9 @@ export interface paths {
         put?: never;
         /**
          * Trigger Gex Scan
-         * @description Run a GEX scan synchronously against UW and persist.
+         * @description Run a GEX scan synchronously against UW, persist it, and return the row.
+         *
+         *     200, not 202: the scan has finished and been written when this returns.
          */
         post: operations["trigger_gex_scan_api_regime_gex_scan_post"];
         delete?: never;
@@ -5352,6 +5379,30 @@ export interface components {
             iv?: components["schemas"]["GexIvData"] | null;
             mq?: components["schemas"]["GexMqLevels"] | null;
             source_delta?: components["schemas"]["GexSourceDelta"] | null;
+        };
+        /**
+         * GexScanResponse
+         * @description Response body for POST /api/regime/gex/scan.
+         *
+         *     The scan runs synchronously and has persisted ``row_id`` when this returns.
+         */
+        GexScanResponse: {
+            /**
+             * Status
+             * @default ok
+             * @constant
+             */
+            status: "ok";
+            /**
+             * Scanner
+             * @default gex
+             * @constant
+             */
+            scanner: "gex";
+            /** Ticker */
+            ticker: string;
+            /** Row Id */
+            row_id: number;
         };
         /** GexSourceDelta */
         GexSourceDelta: {
@@ -14556,6 +14607,37 @@ export interface operations {
             };
         };
     };
+    refresh_trade_insights_api_stock__ticker__trade_insights_refresh_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                ticker: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["TradeInsightsResponse"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
     get_trade_insights_preview_api_stock__ticker__trade_insights_preview_get: {
         parameters: {
             query?: never;
@@ -14863,14 +14945,12 @@ export interface operations {
         requestBody?: never;
         responses: {
             /** @description Successful Response */
-            202: {
+            200: {
                 headers: {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": {
-                        [key: string]: unknown;
-                    };
+                    "application/json": components["schemas"]["GexScanResponse"];
                 };
             };
             /** @description Validation Error */

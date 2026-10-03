@@ -7963,6 +7963,37 @@
         "title": "GexResponse",
         "type": "object"
       },
+      "GexScanResponse": {
+        "description": "Response body for POST /api/regime/gex/scan.\n\nThe scan runs synchronously and has persisted ``row_id`` when this returns.",
+        "properties": {
+          "row_id": {
+            "title": "Row Id",
+            "type": "integer"
+          },
+          "scanner": {
+            "const": "gex",
+            "default": "gex",
+            "title": "Scanner",
+            "type": "string"
+          },
+          "status": {
+            "const": "ok",
+            "default": "ok",
+            "title": "Status",
+            "type": "string"
+          },
+          "ticker": {
+            "title": "Ticker",
+            "type": "string"
+          }
+        },
+        "required": [
+          "ticker",
+          "row_id"
+        ],
+        "title": "GexScanResponse",
+        "type": "object"
+      },
       "GexSourceDelta": {
         "properties": {
           "call_wall_vs_resistance_0dte": {
@@ -33189,7 +33220,7 @@
     },
     "/api/regime/gex/scan": {
       "post": {
-        "description": "Run a GEX scan synchronously against UW and persist.",
+        "description": "Run a GEX scan synchronously against UW, persist it, and return the row.\n\n200, not 202: the scan has finished and been written when this returns.",
         "operationId": "trigger_gex_scan_api_regime_gex_scan_post",
         "parameters": [
           {
@@ -33204,13 +33235,11 @@
           }
         ],
         "responses": {
-          "202": {
+          "200": {
             "content": {
               "application/json": {
                 "schema": {
-                  "additionalProperties": true,
-                  "title": "Response Trigger Gex Scan Api Regime Gex Scan Post",
-                  "type": "object"
+                  "$ref": "#/components/schemas/GexScanResponse"
                 }
               }
             },
@@ -35533,6 +35562,7 @@
     },
     "/api/stock/{ticker}/trade-insights": {
       "get": {
+        "description": "Assemble and return; never writes. The full scan already persists a snapshot\nfor every run (``pipeline._persist_trade_insights_for_run``); an explicit\npersist from the API is ``POST .../trade-insights/refresh``.",
         "operationId": "get_trade_insights_api_stock__ticker__trade_insights_get",
         "parameters": [
           {
@@ -35573,9 +35603,52 @@
         ]
       }
     },
+    "/api/stock/{ticker}/trade-insights/refresh": {
+      "post": {
+        "description": "Assemble, persist the snapshot + candidates for the latest run, and commit.",
+        "operationId": "refresh_trade_insights_api_stock__ticker__trade_insights_refresh_post",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "ticker",
+            "required": true,
+            "schema": {
+              "title": "Ticker",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/TradeInsightsResponse"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Refresh Trade Insights",
+        "tags": [
+          "trade-insights"
+        ]
+      }
+    },
     "/api/stock/{ticker}/trade-insights/preview": {
       "get": {
-        "description": "Read-only twin of GET /stock/{ticker}/trade-insights for the agent MCP:\nsame assembled body, but never upserts a snapshot, never replaces\ncandidates, never commits.",
+        "description": "The agent MCP's route; same body as GET /stock/{ticker}/trade-insights.\n\nBoth are read-only now; this one stays because the MCP and its tests pin it.",
         "operationId": "get_trade_insights_preview_api_stock__ticker__trade_insights_preview_get",
         "parameters": [
           {

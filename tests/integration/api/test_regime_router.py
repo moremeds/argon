@@ -233,8 +233,9 @@ def test_post_gex_scan_runs_scanner(client: TestClient, monkeypatch) -> None:
 
     monkeypatch.setattr("uw_scan.scanners.gex.run", _stub_run)
     r = client.post("/api/regime/gex/scan?ticker=spy")
-    assert r.status_code == 202
+    assert r.status_code == 200  # synchronous: finished and persisted (I-20)
     body = r.json()
+    assert body["status"] == "ok"
     assert body["scanner"] == "gex"
     assert body["ticker"] == "SPY"
     assert body["row_id"] == 42

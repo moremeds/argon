@@ -880,6 +880,18 @@ class GrgResponse(BaseModel):
 EMPTY_GRG_RESPONSE = GrgResponse()
 
 
+class GexScanResponse(BaseModel):
+    """Response body for POST /api/regime/gex/scan.
+
+    The scan runs synchronously and has persisted ``row_id`` when this returns.
+    """
+
+    status: Literal["ok"] = "ok"
+    scanner: Literal["gex"] = "gex"
+    ticker: str
+    row_id: int
+
+
 class GrgScanResponse(BaseModel):
     """Response body for POST /api/regime/grg/scan."""
 
