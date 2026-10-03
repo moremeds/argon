@@ -43,7 +43,6 @@ from uw_scan.worker.jobs.full_scan_hot import full_scan_hot_once
 from uw_scan.worker.jobs.fundamentals_jobs import fundamentals_refresh_once
 from uw_scan.worker.jobs.gold_jobs import (
     gold_cftc_cot_ingest_job,
-    gold_comex_vault_ingest_job,
     gold_etf_holdings_ingest_job,
     gold_fred_ingest_job,
     gold_gpr_ingest_job,
@@ -87,7 +86,9 @@ from uw_scan.worker.jobs.pipeline_benchmark import pipeline_benchmark_snapshot_j
 from uw_scan.worker.jobs.positioning_jobs import positioning_refresh_once
 from uw_scan.worker.jobs.rates_jobs import rates_fred_ingest_job
 from uw_scan.worker.jobs.record_health_snapshot import record_health_snapshot_job
+from uw_scan.worker.jobs.regime_jobs import regime_fred_ingest_job
 from uw_scan.worker.jobs.rescan_loop import rescan_tick
+from uw_scan.worker.jobs.volatility_backfill import volatility_backfill_tick
 from uw_scan.worker.jobs.skew_analytics import (
     nightly_skew_analytics_rollup,
     skew_markout_refresh,
@@ -292,6 +293,19 @@ def _rescan_worker_concurrency(settings: Settings) -> int:
 
 def _is_primary_worker(settings: Settings) -> bool:
     return settings.worker_role.lower() == "all" or settings.worker_index == 0
+
+
+def _owns_global_daily_jobs(settings: Settings) -> bool:
+    """Exactly one process owns the role-agnostic daily jobs (gold, regime
+    EOD scans, vol/credit lake syncs, macro).
+
+    These used to sit under `_is_primary_worker`, which is true for index-0 of
+    EVERY role, so the prod stack (uw-0, massive-0, ai-deepseek-0) ran each of
+    them three times: tripled UW spend for the gold options ingest and three
+    gold_posture rows per night. Pin to massive-0, the macro-evidence owner.
+    """
+    role = settings.worker_role.lower()
+    return role == "all" or (role == "massive" and settings.worker_index == 0)
 
 
 def _should_schedule_rates_fred_ingest(settings: Settings) -> bool:
@@ -734,6 +748,7 @@ _TICK_JOB_IDS = frozenset(
     {
         "worker_heartbeat",
         "rescan_tick",
+        "volatility_backfill_tick",
         "trade_insights_ai_tick",
         "trade_insights_ai_tick_codex",
         "trade_insights_ai_tick_claude",
@@ -1156,6 +1171,16 @@ def main() -> int:
         finally:
             provider.close()
 
+    def _volatility_backfill_tick() -> None:
+        # Durable queue for the GET /volatility/series backfill (I-22): research
+        # UW pool, so an exhausted budget leaves rows 'queued' for a later tick.
+        with _repo(settings) as repo:
+            volatility_backfill_tick(
+                repo=repo,
+                settings=settings,
+                budget_ok=lambda: _research_budget_ok(settings, repo),
+            )
+
     def _vrp_research_refresh() -> None:
         with _repo(settings) as repo:
             vrp_research_refresh(repo=repo)
@@ -1548,15 +1573,28 @@ def main() -> int:
                             "regime_gex_scan skipped: research UW budget exhausted"
                         )
                         return
+                    # Unit = one ticker. gex_scanner.run commits each ticker's
+                    # snapshot and scan_run on its own, so a bad ticker never
+                    # costs the others; only a run where EVERY ticker failed
+                    # raises, so the job listener records it.
+                    succeeded = 0
+                    last_exc: Exception | None = None
                     for ticker in settings.gex_scan_tickers:
                         try:
                             gex_scanner.run(uw, repo, ticker=ticker)
+                            succeeded += 1
                         except Exception as exc:
                             logger.warning(
                                 "regime_gex_scan_failed ticker=%s err=%s",
                                 ticker,
                                 repr(exc),
                             )
+                            last_exc = exc
+                    if succeeded == 0 and last_exc is not None:
+                        raise RuntimeError(
+                            f"regime_gex_scan: all {len(settings.gex_scan_tickers)}"
+                            f" tickers failed; last err={last_exc!r}"
+                        ) from last_exc
 
     def _regime_market_tide_scan() -> None:
         # Weekday gate — UW market-tide is only published during sessions.
@@ -1607,6 +1645,9 @@ def main() -> int:
                 job_name="regime_top_net_impact_scan",
             ) as uw:
                 with _repo(settings) as repo:
+                    # One unit (one UW call): the scanner commits its scan_run as
+                    # 'error' and re-raises; re-raise here too so the job
+                    # listener records the failure. 0 rows is a normal outcome.
                     try:
                         n = top_net_impact_scanner.run(uw, repo)
                         logger.info("regime_top_net_impact_scan_tick rows=%s", n)
@@ -1615,6 +1656,7 @@ def main() -> int:
                             "regime_top_net_impact_scan_failed err=%s", repr(exc)
                         )
                         repo.conn.rollback()
+                        raise
 
     def _market_tide_sentiment_eod() -> None:
         # EOD slope/sentiment for the latest session — pure DB→DB reshape of
@@ -1644,12 +1686,16 @@ def main() -> int:
                 settings, telemetry_recorder=recorder, job_name="regime_grg_scan"
             ) as uw:
                 with _repo(settings) as repo:
+                    # One unit (one SPY/TLT snapshot): the scanner commits its
+                    # scan_run as 'error' and re-raises; re-raise here too so the
+                    # job listener records the failure.
                     try:
                         row_id = grg_scanner.run(uw, repo, schema=settings.db_schema)
                         logger.info("regime_grg_scan_tick row_id=%s", row_id)
                     except Exception as exc:
                         logger.warning("regime_grg_scan_failed err=%s", repr(exc))
                         repo.conn.rollback()
+                        raise
 
     def _discovery_scan() -> None:
         # Market-wide discovery — UW-bound (flow alerts + per-ticker dark pool),
@@ -1668,8 +1714,11 @@ def main() -> int:
                         )
                         logger.info("discovery_scan_tick %s", summary)
                     except Exception as exc:  # noqa: BLE001
-                        logger.exception("discovery_scan_failed err=%r", exc)
+                        # discovery_scan_once already committed its scan_run as
+                        # 'fail'; re-raise so the job listener records it.
+                        logger.warning("discovery_scan_failed err=%s", repr(exc))
                         repo.conn.rollback()
+                        raise
 
     def _gold_fred_ingest() -> None:
         gold_fred_ingest_job(dsn=settings.db_dsn())
@@ -1699,9 +1748,6 @@ def main() -> int:
             wgc_workbook_path=settings.wgc_etf_flows_workbook_path or None,
             rth_tz=settings.rth_tz,
         )
-
-    def _gold_comex_vault_ingest() -> None:
-        gold_comex_vault_ingest_job(dsn=settings.db_dsn())
 
     def _gold_uw_options_ingest() -> None:
         gold_uw_options_ingest_job(
@@ -1733,6 +1779,9 @@ def main() -> int:
 
     def _rates_fred_ingest() -> None:
         _run_rates_fred_ingest(settings)
+
+    def _regime_fred_ingest() -> None:
+        regime_fred_ingest_job(dsn=settings.db_dsn(), schema=settings.db_schema)
 
     def _macro_fomc_ingest() -> None:
         macro_fomc_statement_ingest_job(dsn=settings.db_dsn())
@@ -2074,6 +2123,17 @@ def main() -> int:
             name="Ad-hoc rescan poll",
             max_instances=_rescan_worker_concurrency(settings),
         )
+        if _is_primary_worker(settings):
+            # On-demand volatility backfill queue (GET /volatility/series
+            # enqueues). uw-0 only: one UW-spending claimer is enough.
+            sched.add_job(
+                _volatility_backfill_tick,
+                IntervalTrigger(seconds=10),
+                id="volatility_backfill_tick",
+                name="On-demand volatility backfill queue",
+                max_instances=1,
+                coalesce=True,
+            )
         sched.add_job(
             _flow_data_refresh,
             CronTrigger.from_crontab("15 18 * * 0-4", timezone=settings.rth_tz),
@@ -2690,7 +2750,19 @@ def main() -> int:
             coalesce=True,
         )
 
-    if _is_primary_worker(settings):
+    # Rates FRED is pinned to uw-0 by its own gate, so it lives outside the
+    # single-owner block below.
+    if _should_schedule_rates_fred_ingest(settings):
+        sched.add_job(
+            _rates_fred_ingest,
+            CronTrigger.from_crontab("45 18 * * 0-4", timezone=settings.rth_tz),
+            id="rates_fred_ingest",
+            name="Rates: FRED curve and macro refresh",
+            max_instances=1,
+            coalesce=True,
+        )
+
+    if _owns_global_daily_jobs(settings):
         # Vol-complex parquet lake sync — nightly, 03:15 ET. Local I/O only,
         # no provider role required. Idempotent (UPSERT) so safe to re-run.
         sched.add_job(
@@ -2777,26 +2849,11 @@ def main() -> int:
             name="Gold: UW options snapshot (GLD/GDX/IAU)",
         )
         sched.add_job(
-            _gold_comex_vault_ingest,
-            CronTrigger.from_crontab("30 17 * * 0-4", timezone=settings.rth_tz),
-            id="gold_comex_vault_ingest",
-            name="Gold: COMEX vault daily",
-        )
-        sched.add_job(
             _gold_etf_holdings_ingest,
             CronTrigger.from_crontab("30 18 * * 0-4", timezone=settings.rth_tz),
             id="gold_etf_holdings_ingest",
             name="Gold: ETF holdings daily (GLD/IAU/GLDM/PHYS)",
         )
-        if _should_schedule_rates_fred_ingest(settings):
-            sched.add_job(
-                _rates_fred_ingest,
-                CronTrigger.from_crontab("45 18 * * 0-4", timezone=settings.rth_tz),
-                id="rates_fred_ingest",
-                name="Rates: FRED curve and macro refresh",
-                max_instances=1,
-                coalesce=True,
-            )
         if _should_schedule_macro_policy_ingest(settings):
             if settings.macro_fomc_ingest_enabled:
                 sched.add_job(
@@ -2881,6 +2938,18 @@ def main() -> int:
                     max_instances=1,
                     coalesce=True,
                 )
+        # NFCI / ANFCI / USREC for the regime label gates and trade insights. Same
+        # single owner as the official macro evidence polling (massive-0 or 'all').
+        # Unscheduled until 2026-10: the series sat frozen at 2026-05-26.
+        if _should_schedule_macro_policy_ingest(settings):
+            sched.add_job(
+                _regime_fred_ingest,
+                CronTrigger.from_crontab("22 19 * * *", timezone=settings.rth_tz),
+                id="regime_fred_ingest",
+                name="Regime: FRED NFCI/ANFCI/USREC refresh",
+                max_instances=1,
+                coalesce=True,
+            )
         # 18:35, moved up from 20:00. The posture below must land before the
         # 19:40 macro state compute, and GPRD is the only daily input that was
         # scheduled after 18:30. Nothing is lost by fetching earlier: the

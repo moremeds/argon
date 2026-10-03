@@ -23,7 +23,7 @@ Don't conflate them.
 
 - **Routers are read-only.** Long-running work (rescan, full-scan kickoff, vol backfill) goes through `routers/jobs.py` and the worker.
 - **No business logic in routers** — call into `reports/*` or `cards/*`. A router method should be a thin wrapper that resolves params → calls assembler → returns the model.
-- **Mutations use `pg_try_advisory_lock`** for single-flight (see `routers/{stock,scanner,volatility}.py`); `routers/jobs.py` instead enqueues a DB row via `repo.enqueue_rescan_job` for the worker to pick up.
+- **Mutations use `pg_try_advisory_lock`** for single-flight (see `routers/{stock,scanner}.py`); `routers/jobs.py` instead enqueues a DB row via `repo.enqueue_rescan_job` for the worker to pick up, and `routers/volatility.py` enqueues a `volatility_backfill_status` row (`queued`) for the uw-0 `volatility_backfill_tick`.
 - **CORS** is permissive by design (`allow_origin_regex=r".*"` in `server.py`) — the real trust boundary is the network layer (the private Tailnet), not the origin string.
 - **`openapi.json` is the API contract.** After any model/router change run `cd web && npm run gen:types` to regenerate `web/lib/types.ts`.
 

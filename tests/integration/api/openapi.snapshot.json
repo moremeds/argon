@@ -8372,6 +8372,7 @@
             "default": "ok",
             "enum": [
               "ok",
+              "stale",
               "missing"
             ],
             "title": "Status",

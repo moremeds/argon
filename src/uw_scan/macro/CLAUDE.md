@@ -79,7 +79,7 @@ Specs `docs/superpowers/archive/specs/2026-08-18-inflation-rates-state-design.md
 
 ### Gold Compass — code
 
-`api/routers/gold.py` + `storage/gold_etf.py` + `worker/jobs/gold_jobs.py` + `sources/{fred,gpr,lbma,comex,etf_holdings,uw_gold_options,cftc_cot,wgc_etf,wgc_cb}.py` + `web/app/macro/[tab]/goldTab.tsx` (macro desk tab 05; `/gold` 308s there and `web/app/gold/page.tsx` is gone) + `web/app/gold/replay/[date]/` (kept) + `web/components/gold/*`
+`api/routers/gold.py` + `storage/gold_etf.py` + `worker/jobs/gold_jobs.py` + `sources/{fred,gpr,lbma,etf_holdings,uw_gold_options,cftc_cot,wgc_etf,wgc_cb}.py` + `web/app/macro/[tab]/goldTab.tsx` (macro desk tab 05; `/gold` 308s there and `web/app/gold/page.tsx` is gone) + `web/app/gold/replay/[date]/` (kept) + `web/components/gold/*`
 
 ### Gold Compass — research / sources docs
 

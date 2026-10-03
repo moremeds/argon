@@ -42,7 +42,10 @@ from uw_scan.reports.trade_insights_ai import (
     build_trade_insights_ai_analysis_input,
     hash_trade_insights_ai_analysis_input,
 )
-from uw_scan.reports.volatility_series import assemble_volatility_series
+from uw_scan.reports.volatility_series import (
+    assemble_volatility_series,
+    public_backfill_status,
+)
 from uw_scan.storage.repository import Repository
 
 router = APIRouter()
@@ -314,9 +317,9 @@ def post_trade_insights_ai_analysis(
     )
     stock_report = assemble_single_stock_report(t, run_id, repo)
     stock_history = build_stock_history_response(t, repo)
-    backfill_status = (repo.get_volatility_backfill_status(t) or {}).get(
-        "status"
-    ) or "ready"
+    backfill_status = public_backfill_status(
+        (repo.get_volatility_backfill_status(t) or {}).get("status")
+    )
     volatility = assemble_volatility_series(
         ticker=t,
         repo=repo,

@@ -342,6 +342,15 @@ def _build_smile(repo: Repository, ticker: str) -> list[SmileExpiryCurve]:
 # ----------------------------- entry points ---------------------------------
 
 
+def public_backfill_status(persisted: str | None) -> str:
+    """Map a stored volatility_backfill_status.status to the response's
+    ``backfill_status``. 'queued' (migration 157) reads as "running", so the
+    response keeps its pre-157 value set: ready | running | failed."""
+    if persisted is None:
+        return "ready"
+    return "running" if persisted == "queued" else persisted
+
+
 def assemble_volatility_series(
     *,
     ticker: str,
