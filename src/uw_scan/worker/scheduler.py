@@ -1607,6 +1607,9 @@ def main() -> int:
                 job_name="regime_top_net_impact_scan",
             ) as uw:
                 with _repo(settings) as repo:
+                    # One unit (one UW call): the scanner commits its scan_run as
+                    # 'error' and re-raises; re-raise here too so the job
+                    # listener records the failure. 0 rows is a normal outcome.
                     try:
                         n = top_net_impact_scanner.run(uw, repo)
                         logger.info("regime_top_net_impact_scan_tick rows=%s", n)
@@ -1615,6 +1618,7 @@ def main() -> int:
                             "regime_top_net_impact_scan_failed err=%s", repr(exc)
                         )
                         repo.conn.rollback()
+                        raise
 
     def _market_tide_sentiment_eod() -> None:
         # EOD slope/sentiment for the latest session — pure DB→DB reshape of
