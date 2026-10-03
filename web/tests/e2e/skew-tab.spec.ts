@@ -1,13 +1,14 @@
 // Skew tab — end-to-end smoke. Requires the local dev DB (option_wizard_local)
 // backfilled via the real worker path (worker/jobs/skew_analytics.skew_analytics_backfill
-// + reports/skew_markout.run_skew_markout). AAPL has skew history locally and a
-// non-NEUTRAL lean, so this also exercises the colored lean badge.
+// + reports/skew_markout.run_skew_markout). AAPL has skew history locally.
+// The panel is a positioning descriptor (no directional forecast) — see
+// docs/research/skew-directional/README.md.
 import { expect, test } from "@playwright/test";
 
 // Ticker known to have skew history locally (verify with the G1/Step-3 query).
 const TICKER = "AAPL";
 
-test("Skew tab renders the signal-detail card, lean, and the spectrum", async ({
+test("Skew tab renders the descriptor read card and the spectrum", async ({
   page,
 }) => {
   const consoleErrors: string[] = [];
@@ -26,35 +27,27 @@ test("Skew tab renders the signal-detail card, lean, and the spectrum", async ({
     timeout: 30_000,
   });
 
-  // Merged Signal Detail card: deviation/drive/relative-value rows + evidence.
-  await expect(page.getByText("Signal Detail")).toBeVisible();
+  // Skew Read card: deviation/drive/relative-value rows + factual context.
+  await expect(page.getByText("Skew Read")).toBeVisible();
   await expect(page.getByText("Deviation")).toBeVisible();
   await expect(page.getByText("Relative value")).toBeVisible();
-  await expect(page.getByText("Evidence")).toBeVisible();
+  await expect(page.getByText("Context")).toBeVisible();
 
-  // Lean surfaces as one of the three states (header pill + evidence column).
-  const lean = page.locator("text=/^(BULLISH|BEARISH|NEUTRAL)$/").first();
-  await expect(lean).toBeVisible();
+  // No directional forecast: no BULLISH/BEARISH/NEUTRAL verdict word, no
+  // "validated" stamp, no forward-return %, no suggested structure block.
+  await expect(page.locator("text=/^(BULLISH|BEARISH|NEUTRAL)$/")).toHaveCount(
+    0,
+  );
+  await expect(page.getByTestId("skew-structure-detail")).toHaveCount(0);
+  const body = await page.locator("body").innerText();
+  expect(body).not.toMatch(/validated/i);
+  expect(body).not.toMatch(/\/20d/);
 
   // Secondary panels render.
   await expect(page.getByText("FRONT vs BACK")).toBeVisible(); // skew-term panel
   await expect(page.getByText("WHERE IT SITS")).toBeVisible(); // asset-class spectrum
 
-  // Structure detail (Phase-2): a NEUTRAL name (the ~72% default) shows no block.
-  // A non-neutral lean shows the block ONLY when a swing chain exists — a valid
-  // no_chain state (or a DB where the swing-greeks refresh hasn't run yet) shows
-  // none. So tolerate absence, but if present it must be a 2-leg defined-risk spread.
-  const leanText = ((await lean.textContent()) ?? "").trim();
-  const structure = page.getByTestId("skew-structure-detail");
-  if (leanText === "NEUTRAL") {
-    await expect(structure).toHaveCount(0);
-  } else if ((await structure.count()) > 0) {
-    await expect(structure).toContainText(/-spread/);
-    await expect(structure.getByText(/^(BUY|SELL) (PUT|CALL)$/)).toHaveCount(2);
-  }
-
   // No NaN leaks anywhere on the page.
-  const body = await page.locator("body").innerText();
   expect(body).not.toMatch(/NaN/);
 
   // Evidence artifact for the PR (playwright runs from web/, so escape to root).
