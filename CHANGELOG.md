@@ -7,6 +7,10 @@ version in lockstep (enforced by `scripts/release/version_sync_check.py`).
 
 ## [Unreleased]
 
+### Fixed
+
+- **Cockpit dealer/state no longer time out behind the web proxy.** `/api/cockpit/{SPY,QQQ}/dealer` took ~47 s on prod, so the Next.js `/api` rewrite proxy (30 s) returned HTTP 500. Cause: the latest-source-date lookup, the flow-colour lookback and the OI-change read each seq-scanned a 3–7 GB table. Migration 155 adds six `(ticker, date)` btree indexes (`greeks_by_expiry_strike`, `exposures_by_expiry_strike`, `iv_term_snapshots`, `interpolated_iv_snapshots`, `flow_events`, `oi_change_events`), built `CONCURRENTLY`. The source-date lookup now takes one `max()` per table and the flow lookback walks the index day by day, so both read a handful of index entries. Measured on prod: dealer 47 s → 0.4 s, `stock/{T}/magnets` 8.6 s → 0.8 s, cockpit state 3–14 s → 0.02 s.
+
 ## [0.13.15] — 2026-10-03
 
 

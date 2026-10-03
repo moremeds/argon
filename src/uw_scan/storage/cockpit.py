@@ -196,8 +196,6 @@ def _oi_change_bias(rows: list[dict[str, Any]]) -> str | None:
     return "mixed"
 
 
-
-
 class _CockpitMixin:
     _conn: psycopg.Connection
     _schema: str
@@ -682,26 +680,48 @@ class _CockpitMixin:
     def _flow_color_lookback(
         self, *, ticker: str, market_date: _date, days: int = 3
     ) -> dict[str, Any]:
+        if days < 0:
+            raise ValueError(f"days must be >= 0, got {days}")
+        # Loose index scan on (ticker, created_at) (migration 155): each step of
+        # the recursion is one backward probe for the latest event before the
+        # previous day, so it touches about `days` days of index entries instead
+        # of every flow event of the ticker (21 s on prod).
+        # Day membership is always decided by ``created_at::date`` (session
+        # TimeZone), exactly as before. The timestamptz bounds only narrow the
+        # index range and are padded by a full day, because ``date::timestamptz``
+        # can land an hour off the real start of a day where midnight repeats or
+        # is skipped by a DST change.
+        fe = f"{self._schema}.flow_events"
         sql = (
-            "WITH lookback_dates AS ("
-            "  SELECT DISTINCT created_at::date AS event_date "
-            f"  FROM {self._schema}.flow_events "
-            "  WHERE ticker = %s "
-            "    AND created_at::date <= %s "
-            "  ORDER BY event_date DESC "
-            "  LIMIT %s"
+            "WITH RECURSIVE lookback_dates(event_date, n) AS ("
+            f"  SELECT (SELECT max(created_at) FROM {fe} "
+            "           WHERE ticker = %(t)s "
+            "             AND created_at < (%(d)s::date + 2)::timestamptz "
+            "             AND created_at::date <= %(d)s::date)::date, 1 "
+            "  UNION ALL "
+            f"  SELECT (SELECT max(created_at) FROM {fe} "
+            "           WHERE ticker = %(t)s "
+            "             AND created_at < (l.event_date + 1)::timestamptz "
+            "             AND created_at::date < l.event_date)::date, l.n + 1 "
+            "  FROM lookback_dates l "
+            "  WHERE l.event_date IS NOT NULL AND l.n < %(days)s"
+            "), days AS ("
+            "  SELECT event_date FROM lookback_dates "
+            "  WHERE event_date IS NOT NULL AND n <= %(days)s"
             ") "
             "SELECT option_type, "
             "COALESCE(sum(total_premium), 0), "
             "COALESCE(sum(total_ask_side_prem), 0), "
             "COALESCE(sum(total_bid_side_prem), 0) "
-            f"FROM {self._schema}.flow_events "
-            "WHERE ticker = %s "
-            "  AND created_at::date IN (SELECT event_date FROM lookback_dates) "
+            f"FROM {fe} "
+            "WHERE ticker = %(t)s "
+            "  AND created_at >= ((SELECT min(event_date) FROM days) - 1)::timestamptz "
+            "  AND created_at < (%(d)s::date + 2)::timestamptz "
+            "  AND created_at::date IN (SELECT event_date FROM days) "
             "GROUP BY option_type"
         )
         with self._conn.cursor() as cur:
-            cur.execute(sql, (ticker.upper(), market_date, days, ticker.upper()))
+            cur.execute(sql, {"t": ticker.upper(), "d": market_date, "days": days})
             rows = cur.fetchall()
         call_premium = Decimal(0)
         put_premium = Decimal(0)

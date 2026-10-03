@@ -522,38 +522,30 @@ class _MatrixStateMixin:
         )
 
     def fetch_latest_cockpit_source_market_date(self, *, ticker: str) -> _date | None:
+        # One max() per table, not max() over a UNION ALL: each branch is then a
+        # single backward probe of that table's (ticker, market_date) index
+        # (migration 155). The UNION form read every row of the ticker — 18 s
+        # on prod. GREATEST ignores NULLs, so a table with no rows drops out.
+        tables = (
+            "greeks_by_expiry_strike",
+            "exposures_by_expiry_strike",
+            "risk_reversal_skew_history",
+            "iv_term_snapshots",
+            "interpolated_iv_snapshots",
+            "realized_volatility_history",
+            "vanna_signals",
+            "charm_signals",
+        )
         sql = (
-            "SELECT max(market_date) FROM ("
-            f"  SELECT market_date FROM {self._schema}.greeks_by_expiry_strike "
-            "  WHERE ticker = %s "
-            "  UNION ALL "
-            f"  SELECT market_date FROM {self._schema}.exposures_by_expiry_strike "
-            "  WHERE ticker = %s "
-            "  UNION ALL "
-            f"  SELECT market_date FROM {self._schema}.risk_reversal_skew_history "
-            "  WHERE ticker = %s "
-            "  UNION ALL "
-            f"  SELECT market_date FROM {self._schema}.iv_term_snapshots "
-            "  WHERE ticker = %s "
-            "  UNION ALL "
-            f"  SELECT market_date FROM {self._schema}.interpolated_iv_snapshots "
-            "  WHERE ticker = %s "
-            "  UNION ALL "
-            f"  SELECT market_date FROM {self._schema}.realized_volatility_history "
-            "  WHERE ticker = %s "
-            "  UNION ALL "
-            f"  SELECT market_date FROM {self._schema}.vanna_signals "
-            "  WHERE ticker = %s "
-            "  UNION ALL "
-            f"  SELECT market_date FROM {self._schema}.charm_signals "
-            "  WHERE ticker = %s"
-            ") source_dates"
+            "SELECT GREATEST("
+            + ", ".join(
+                f"(SELECT max(market_date) FROM {self._schema}.{t} WHERE ticker = %(t)s)"
+                for t in tables
+            )
+            + ")"
         )
         with self._conn.cursor() as cur:
-            cur.execute(
-                sql,
-                (ticker, ticker, ticker, ticker, ticker, ticker, ticker, ticker),
-            )
+            cur.execute(sql, {"t": ticker})
             row = cur.fetchone()
             return row[0] if row else None
 
