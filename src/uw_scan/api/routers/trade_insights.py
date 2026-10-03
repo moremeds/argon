@@ -239,6 +239,22 @@ def _enqueue_one_provider(
 def get_trade_insights(
     ticker: str, repo: Repository = Depends(get_repo)
 ) -> TradeInsightsResponse:
+    """Assemble and return; never writes. The full scan already persists a snapshot
+    for every run (``pipeline._persist_trade_insights_for_run``); an explicit
+    persist from the API is ``POST .../trade-insights/refresh``."""
+    t = ticker.upper()
+    response, _payload, _run_id = _build_trade_insights(t, repo)
+    return response
+
+
+@router.post(
+    "/stock/{ticker}/trade-insights/refresh",
+    response_model=TradeInsightsResponse,
+)
+def refresh_trade_insights(
+    ticker: str, repo: Repository = Depends(get_repo)
+) -> TradeInsightsResponse:
+    """Assemble, persist the snapshot + candidates for the latest run, and commit."""
     t = ticker.upper()
     response, _snapshot_id, _input_hash = _build_and_persist_trade_insights(t, repo)
     repo.conn.commit()
@@ -252,9 +268,9 @@ def get_trade_insights(
 def get_trade_insights_preview(
     ticker: str, repo: Repository = Depends(get_repo)
 ) -> TradeInsightsResponse:
-    """Read-only twin of GET /stock/{ticker}/trade-insights for the agent MCP:
-    same assembled body, but never upserts a snapshot, never replaces
-    candidates, never commits."""
+    """The agent MCP's route; same body as GET /stock/{ticker}/trade-insights.
+
+    Both are read-only now; this one stays because the MCP and its tests pin it."""
     t = ticker.upper()
     response, _payload, _run_id = _build_trade_insights(t, repo)
     return response

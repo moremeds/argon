@@ -50,7 +50,11 @@ def get_repo() -> Generator[Repository, None, None]:
 def get_uw_client() -> Generator[UwClient, None, None]:
     """Per-request UW client. Cheap to construct (httpx.Client init)."""
     settings = get_settings()
-    client = UwClient(api_key=settings.api_key.get_secret_value())
+    client = UwClient(
+        api_key=settings.api_key.get_secret_value(),
+        base_url=settings.base_url,
+        timeout=settings.request_timeout_seconds,
+    )
     try:
         yield client
     finally:
