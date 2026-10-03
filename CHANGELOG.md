@@ -7,6 +7,9 @@ version in lockstep (enforced by `scripts/release/version_sync_check.py`).
 
 ## [Unreleased]
 
+### Fixed
+
+- **Every gold-posture reader now returns the same row per day.** The live page (`fetch_gold_posture_latest`) took a day's NEWEST row while replay, the macro gold state and gauge history took the FIRST, and the nightly healer added a second row at ~20:05 ET, so live and replay could show different inputs for the same day. All readers now take the first active row (the one the 19:40 macro state read; a later row would be lookahead for any replay of it), and the healer's `gold_posture` refresh only fills a day that has no active row.
 ## [0.13.18] — 2026-10-04
 
 
