@@ -417,7 +417,8 @@ class _TradeInsightsAiMixin:
         provider_clause = " AND provider = %s" if provider is not None else ""
         sql = (
             f"UPDATE {self._schema}.trade_insight_ai_analyses "
-            "SET status = 'running', started_at = now(), finished_at = NULL, error_message = NULL "
+            "SET status = 'running', started_at = now(), finished_at = NULL, error_message = NULL, "
+            "claim_token = gen_random_uuid() "
             "WHERE analysis_id = ("
             f"  SELECT analysis_id FROM {self._schema}.trade_insight_ai_analyses "
             "  WHERE (status = 'queued' "
@@ -481,7 +482,8 @@ class _TradeInsightsAiMixin:
         markdown: str,
         resolved_model: str | None = None,
         provider_metadata: dict[str, Any] | None = None,
-    ) -> None:
+        claim_token: Any = None,
+    ) -> bool:
         """Mark a row as succeeded; optionally overwrite `model` with the
         provider's post-hoc canonical model id (e.g. 'opus' alias resolves to
         'claude-opus-4-7'). Resolved_model keeps the cache key correct on
@@ -490,6 +492,14 @@ class _TradeInsightsAiMixin:
         `provider_metadata` carries provider-specific runtime fields
         (DeepSeek: reasoning_content + output_channel + byte sizes; Codex /
         Claude: typically None). Schemaless by design — readers must guard.
+
+        `claim_token` fences the write: pass the token returned by
+        `claim_next_trade_insight_ai_analysis` and the UPDATE matches only
+        while the row still carries it. A worker that overran past the stale
+        window and lost the row to a reclaim then changes 0 rows. None means
+        no fence (update by analysis_id alone, the pre-156 behaviour) — used
+        when the caller never committed a claim. Returns True when a row was
+        updated.
         """
         sets = [
             "status = 'succeeded'",
@@ -506,13 +516,18 @@ class _TradeInsightsAiMixin:
             sets.append("provider_metadata_jsonb = %s")
             params.append(Jsonb(provider_metadata))
         params.append(analysis_id)
+        where = "WHERE analysis_id = %s"
+        if claim_token is not None:
+            where += " AND claim_token = %s"
+            params.append(claim_token)
         sql = (
             f"UPDATE {self._schema}.trade_insight_ai_analyses "
             f"SET {', '.join(sets)} "
-            "WHERE analysis_id = %s"
+            f"{where}"
         )
         with self._conn.cursor() as cur:
             cur.execute(sql, tuple(params))
+            return cur.rowcount > 0
 
     def fail_trade_insight_ai_analysis(
         self,
@@ -521,7 +536,10 @@ class _TradeInsightsAiMixin:
         *,
         raw_outcome: dict[str, Any] | None = None,
         provider_metadata: dict[str, Any] | None = None,
-    ) -> None:
+        claim_token: Any = None,
+    ) -> bool:
+        # `claim_token` fences the write exactly as in
+        # complete_trade_insight_ai_analysis; returns True when a row changed.
         # Persist the runner's raw output when validation rejected it; NULL
         # otherwise (subprocess crash, timeout, non-JSON, pre-runner error).
         # Lets us diagnose validator rejections without re-running. The
@@ -541,13 +559,18 @@ class _TradeInsightsAiMixin:
             sets.append("provider_metadata_jsonb = %s")
             params.append(Jsonb(provider_metadata))
         params.append(analysis_id)
+        where = "WHERE analysis_id = %s"
+        if claim_token is not None:
+            where += " AND claim_token = %s"
+            params.append(claim_token)
         sql = (
             f"UPDATE {self._schema}.trade_insight_ai_analyses "
             f"SET {', '.join(sets)} "
-            "WHERE analysis_id = %s"
+            f"{where}"
         )
         with self._conn.cursor() as cur:
             cur.execute(sql, tuple(params))
+            return cur.rowcount > 0
 
     def get_trade_insight_ai_analysis(
         self,

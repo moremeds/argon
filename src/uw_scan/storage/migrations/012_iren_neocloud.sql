@@ -3,12 +3,11 @@
 -- Move IREN (Iris Energy) from Crypto to NeoCloud. IREN is a former bitcoin
 -- miner that has pivoted its compute footprint toward GPU/AI hosting, so it
 -- belongs with the other AI-infra names (NBIS, CRWV, ORCL).
-
-BEGIN;
-
-UPDATE uw_scan.watchlist
-   SET sector    = 'NeoCloud',
-       sort_rank = 604
- WHERE ticker = 'IREN';
-
-COMMIT;
+--
+-- WATCHLIST DML REMOVED (2026-10-03). This file used to UPDATE IREN's sector to
+-- NeoCloud. The API self-migrates on every boot, so that DML re-ran on every
+-- deploy and undid operator edits to the watchlist. Its fresh-install effect
+-- now lives in the insert-only final-state seed in 006_seed_watchlist.sql (ON
+-- CONFLICT DO NOTHING); existing databases already carry it. Data DML in a
+-- migration must be insert-only -- enforced by
+-- tests/unit/storage/test_migration_dml_allowlist.py.

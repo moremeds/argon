@@ -6,15 +6,11 @@
 -- COCKPIT_TICKERS, but cockpit_daily_snapshot only persists greeks/skew/IV/RV;
 -- the per-strike chain and flow events come through the watchlist-driven
 -- workers and were silently skipped because SPX was missing from this table.
-
-BEGIN;
-
-INSERT INTO uw_scan.watchlist (ticker, sector, sort_rank, pinned, notes)
-VALUES ('SPX', 'Index', 100, FALSE,
-        'S&P 500 cash index — weekly options listed as SPXW. Cockpit ticker.')
-ON CONFLICT (ticker) DO UPDATE
-  SET sector     = EXCLUDED.sector,
-      sort_rank  = EXCLUDED.sort_rank,
-      removed_at = NULL;
-
-COMMIT;
+--
+-- WATCHLIST DML REMOVED (2026-10-03). This file used to add SPX with ON
+-- CONFLICT DO UPDATE ... removed_at = NULL. The API self-migrates on every
+-- boot, so that DML re-ran on every deploy and undid operator edits to the
+-- watchlist. Its fresh-install effect now lives in the insert-only final-state
+-- seed in 006_seed_watchlist.sql (ON CONFLICT DO NOTHING); existing databases
+-- already carry it. Data DML in a migration must be insert-only -- enforced by
+-- tests/unit/storage/test_migration_dml_allowlist.py.
