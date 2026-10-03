@@ -1,0 +1,965 @@
+[
+ {
+  "hot": false,
+  "notes": "Applied Optoelectronics — 800G transceivers",
+  "pinned": false,
+  "sector": "DC-Connect",
+  "sort_rank": 0,
+  "ticker": "AAOI",
+  "removed": false
+ },
+ {
+  "hot": false,
+  "notes": "M7",
+  "pinned": false,
+  "sector": "M7",
+  "sort_rank": 201,
+  "ticker": "AAPL",
+  "removed": false
+ },
+ {
+  "hot": false,
+  "notes": "Industrials / value — pharma",
+  "pinned": false,
+  "sector": "Healthcare",
+  "sort_rank": 1305,
+  "ticker": "ABBV",
+  "removed": true
+ },
+ {
+  "hot": false,
+  "notes": "Astera Labs — PCIe / silicon photonics",
+  "pinned": false,
+  "sector": "DC-Connect",
+  "sort_rank": 0,
+  "ticker": "ALAB",
+  "removed": false
+ },
+ {
+  "hot": false,
+  "notes": null,
+  "pinned": false,
+  "sector": "Semi-Cap",
+  "sort_rank": 0,
+  "ticker": "AMAT",
+  "removed": false
+ },
+ {
+  "hot": false,
+  "notes": "Semiconductor",
+  "pinned": false,
+  "sector": "Semi-Logic",
+  "sort_rank": 0,
+  "ticker": "AMD",
+  "removed": false
+ },
+ {
+  "hot": false,
+  "notes": "M7",
+  "pinned": false,
+  "sector": "M7",
+  "sort_rank": 204,
+  "ticker": "AMZN",
+  "removed": false
+ },
+ {
+  "hot": false,
+  "notes": "Semiconductor — data-center networking",
+  "pinned": false,
+  "sector": "DC-Connect",
+  "sort_rank": 0,
+  "ticker": "ANET",
+  "removed": false
+ },
+ {
+  "hot": false,
+  "notes": "ARK Innovation ETF",
+  "pinned": false,
+  "sector": "ETF",
+  "sort_rank": 110,
+  "ticker": "ARKK",
+  "removed": true
+ },
+ {
+  "hot": false,
+  "notes": "Semiconductor — IP licensing",
+  "pinned": false,
+  "sector": "Semi-Logic",
+  "sort_rank": 0,
+  "ticker": "ARM",
+  "removed": false
+ },
+ {
+  "hot": false,
+  "notes": "Semiconductor — lithography",
+  "pinned": false,
+  "sector": "Semi-Cap",
+  "sort_rank": 0,
+  "ticker": "ASML",
+  "removed": false
+ },
+ {
+  "hot": false,
+  "notes": "Growth / tech — satellite",
+  "pinned": false,
+  "sector": "Space",
+  "sort_rank": 1102,
+  "ticker": "ASTS",
+  "removed": false
+ },
+ {
+  "hot": false,
+  "notes": "Semiconductor",
+  "pinned": false,
+  "sector": "Semi-Logic",
+  "sort_rank": 0,
+  "ticker": "AVGO",
+  "removed": false
+ },
+ {
+  "hot": false,
+  "notes": "Industrials / value — aerospace",
+  "pinned": false,
+  "sector": "Defense",
+  "sort_rank": 1203,
+  "ticker": "BA",
+  "removed": true
+ },
+ {
+  "hot": false,
+  "notes": "Industrials / value — bank",
+  "pinned": false,
+  "sector": "Banks",
+  "sort_rank": 1502,
+  "ticker": "BAC",
+  "removed": false
+ },
+ {
+  "hot": false,
+  "notes": "Bloom Energy — fuel cells for AI data center power",
+  "pinned": false,
+  "sector": "Power",
+  "sort_rank": 652,
+  "ticker": "BE",
+  "removed": false
+ },
+ {
+  "hot": false,
+  "notes": "Growth / tech — geospatial",
+  "pinned": false,
+  "sector": "Space",
+  "sort_rank": 1104,
+  "ticker": "BKSY",
+  "removed": false
+ },
+ {
+  "hot": false,
+  "notes": "Industrials / value — asset manager",
+  "pinned": false,
+  "sector": "Banks",
+  "sort_rank": 1506,
+  "ticker": "BLK",
+  "removed": false
+ },
+ {
+  "hot": false,
+  "notes": null,
+  "pinned": false,
+  "sector": "Semi-Cap",
+  "sort_rank": 0,
+  "ticker": "CDNS",
+  "removed": false
+ },
+ {
+  "hot": false,
+  "notes": "Coherent — lasers, optical comms",
+  "pinned": false,
+  "sector": "DC-Connect",
+  "sort_rank": 0,
+  "ticker": "COHR",
+  "removed": false
+ },
+ {
+  "hot": false,
+  "notes": "Crypto proxy",
+  "pinned": false,
+  "sector": "Crypto",
+  "sort_rank": 901,
+  "ticker": "COIN",
+  "removed": false
+ },
+ {
+  "hot": false,
+  "notes": "Industrials / value — retail",
+  "pinned": false,
+  "sector": "Consumer",
+  "sort_rank": 1605,
+  "ticker": "COST",
+  "removed": false
+ },
+ {
+  "hot": false,
+  "notes": "Crypto proxy — USDC issuer",
+  "pinned": false,
+  "sector": "Crypto",
+  "sort_rank": 906,
+  "ticker": "CRCL",
+  "removed": false
+ },
+ {
+  "hot": false,
+  "notes": "Semiconductor — connectivity",
+  "pinned": false,
+  "sector": "DC-Connect",
+  "sort_rank": 0,
+  "ticker": "CRDO",
+  "removed": false
+ },
+ {
+  "hot": false,
+  "notes": "Mega-cap — SaaS / CRM",
+  "pinned": false,
+  "sector": "SaaS",
+  "sort_rank": 703,
+  "ticker": "CRM",
+  "removed": false
+ },
+ {
+  "hot": false,
+  "notes": "Industrials / value — specialty alloys",
+  "pinned": false,
+  "sector": "Defense",
+  "sort_rank": 1204,
+  "ticker": "CRS",
+  "removed": true
+ },
+ {
+  "hot": false,
+  "notes": "Growth / tech — cybersecurity",
+  "pinned": false,
+  "sector": "SaaS",
+  "sort_rank": 707,
+  "ticker": "CRWD",
+  "removed": false
+ },
+ {
+  "hot": false,
+  "notes": "Semiconductor — AI inference",
+  "pinned": false,
+  "sector": "NeoCloud",
+  "sort_rank": 602,
+  "ticker": "CRWV",
+  "removed": false
+ },
+ {
+  "hot": false,
+  "notes": "Industrials / value — energy",
+  "pinned": false,
+  "sector": "Energy",
+  "sort_rank": 1402,
+  "ticker": "CVX",
+  "removed": false
+ },
+ {
+  "hot": false,
+  "notes": "Industrials / value — airline",
+  "pinned": false,
+  "sector": "Airlines",
+  "sort_rank": 1801,
+  "ticker": "DAL",
+  "removed": true
+ },
+ {
+  "hot": false,
+  "notes": "Growth / tech — observability",
+  "pinned": false,
+  "sector": "SaaS",
+  "sort_rank": 705,
+  "ticker": "DDOG",
+  "removed": true
+ },
+ {
+  "hot": false,
+  "notes": "Dow Jones ETF",
+  "pinned": false,
+  "sector": "Beta",
+  "sort_rank": 0,
+  "ticker": "DIA",
+  "removed": false
+ },
+ {
+  "hot": false,
+  "notes": "Industrials / value — media",
+  "pinned": false,
+  "sector": "Telecom-Media",
+  "sort_rank": 1703,
+  "ticker": "DIS",
+  "removed": true
+ },
+ {
+  "hot": false,
+  "notes": "Industrials / value — aircraft leasing",
+  "pinned": false,
+  "sector": "Space",
+  "sort_rank": 1105,
+  "ticker": "FLY",
+  "removed": false
+ },
+ {
+  "hot": false,
+  "notes": "Fabrinet — contract optical manufacturing",
+  "pinned": false,
+  "sector": "DC-Connect",
+  "sort_rank": 0,
+  "ticker": "FN",
+  "removed": false
+ },
+ {
+  "hot": false,
+  "notes": "Gold ETF",
+  "pinned": false,
+  "sector": "Macro",
+  "sort_rank": 0,
+  "ticker": "GLD",
+  "removed": false
+ },
+ {
+  "hot": false,
+  "notes": "Semiconductor — optical fiber",
+  "pinned": false,
+  "sector": "DC-Connect",
+  "sort_rank": 0,
+  "ticker": "GLW",
+  "removed": false
+ },
+ {
+  "hot": false,
+  "notes": "M7",
+  "pinned": false,
+  "sector": "M7",
+  "sort_rank": 203,
+  "ticker": "GOOGL",
+  "removed": false
+ },
+ {
+  "hot": false,
+  "notes": "Industrials / value — bank",
+  "pinned": false,
+  "sector": "Banks",
+  "sort_rank": 1505,
+  "ticker": "GS",
+  "removed": false
+ },
+ {
+  "hot": false,
+  "notes": "Industrials / value — retail",
+  "pinned": false,
+  "sector": "Consumer",
+  "sort_rank": 1601,
+  "ticker": "HD",
+  "removed": false
+ },
+ {
+  "hot": false,
+  "notes": "Growth / tech — telehealth",
+  "pinned": false,
+  "sector": "Healthcare",
+  "sort_rank": 1306,
+  "ticker": "HIMS",
+  "removed": false
+ },
+ {
+  "hot": false,
+  "notes": "Growth / tech — fintech",
+  "pinned": false,
+  "sector": "Fintech",
+  "sort_rank": 1002,
+  "ticker": "HOOD",
+  "removed": false
+ },
+ {
+  "hot": false,
+  "notes": null,
+  "pinned": false,
+  "sector": "Credit",
+  "sort_rank": 0,
+  "ticker": "HYG",
+  "removed": false
+ },
+ {
+  "hot": false,
+  "notes": "Semiconductor",
+  "pinned": false,
+  "sector": "Foundry",
+  "sort_rank": 0,
+  "ticker": "INTC",
+  "removed": false
+ },
+ {
+  "hot": false,
+  "notes": "Semiconductor — data center / mining",
+  "pinned": false,
+  "sector": "NeoCloud",
+  "sort_rank": 604,
+  "ticker": "IREN",
+  "removed": false
+ },
+ {
+  "hot": false,
+  "notes": null,
+  "pinned": false,
+  "sector": "Healthcare",
+  "sort_rank": 0,
+  "ticker": "ISRG",
+  "removed": false
+ },
+ {
+  "hot": false,
+  "notes": "Russell 2000 ETF",
+  "pinned": false,
+  "sector": "Beta",
+  "sort_rank": 0,
+  "ticker": "IWM",
+  "removed": false
+ },
+ {
+  "hot": false,
+  "notes": "Industrials / value — pharma",
+  "pinned": false,
+  "sector": "Healthcare",
+  "sort_rank": 1302,
+  "ticker": "JNJ",
+  "removed": false
+ },
+ {
+  "hot": false,
+  "notes": null,
+  "pinned": false,
+  "sector": "Credit",
+  "sort_rank": 0,
+  "ticker": "JNK",
+  "removed": false
+ },
+ {
+  "hot": false,
+  "notes": "Industrials / value — bank",
+  "pinned": false,
+  "sector": "Banks",
+  "sort_rank": 1501,
+  "ticker": "JPM",
+  "removed": false
+ },
+ {
+  "hot": false,
+  "notes": null,
+  "pinned": false,
+  "sector": "Semi-Cap",
+  "sort_rank": 0,
+  "ticker": "KLAC",
+  "removed": false
+ },
+ {
+  "hot": false,
+  "notes": "Industrials / value",
+  "pinned": false,
+  "sector": "Consumer",
+  "sort_rank": 1606,
+  "ticker": "KO",
+  "removed": false
+ },
+ {
+  "hot": false,
+  "notes": "Semiconductor — photonics",
+  "pinned": false,
+  "sector": "DC-Connect",
+  "sort_rank": 0,
+  "ticker": "LITE",
+  "removed": false
+ },
+ {
+  "hot": false,
+  "notes": "Industrials / value — pharma",
+  "pinned": false,
+  "sector": "Healthcare",
+  "sort_rank": 1301,
+  "ticker": "LLY",
+  "removed": false
+ },
+ {
+  "hot": false,
+  "notes": "Industrials / value — defense",
+  "pinned": false,
+  "sector": "Defense",
+  "sort_rank": 1201,
+  "ticker": "LMT",
+  "removed": true
+ },
+ {
+  "hot": false,
+  "notes": null,
+  "pinned": false,
+  "sector": "Semi-Cap",
+  "sort_rank": 0,
+  "ticker": "LRCX",
+  "removed": false
+ },
+ {
+  "hot": false,
+  "notes": "Crypto proxy — BTC mining",
+  "pinned": false,
+  "sector": "Crypto",
+  "sort_rank": 903,
+  "ticker": "MARA",
+  "removed": false
+ },
+ {
+  "hot": false,
+  "notes": "Industrials / value",
+  "pinned": false,
+  "sector": "Consumer",
+  "sort_rank": 1604,
+  "ticker": "MCD",
+  "removed": false
+ },
+ {
+  "hot": false,
+  "notes": "M7",
+  "pinned": false,
+  "sector": "M7",
+  "sort_rank": 205,
+  "ticker": "META",
+  "removed": false
+ },
+ {
+  "hot": false,
+  "notes": "Industrials / value — pharma",
+  "pinned": false,
+  "sector": "Healthcare",
+  "sort_rank": 1303,
+  "ticker": "MRK",
+  "removed": true
+ },
+ {
+  "hot": false,
+  "notes": "Semiconductor — custom silicon",
+  "pinned": false,
+  "sector": "DC-Connect",
+  "sort_rank": 0,
+  "ticker": "MRVL",
+  "removed": false
+ },
+ {
+  "hot": false,
+  "notes": "Industrials / value — bank",
+  "pinned": false,
+  "sector": "Banks",
+  "sort_rank": 1504,
+  "ticker": "MS",
+  "removed": false
+ },
+ {
+  "hot": false,
+  "notes": "M7",
+  "pinned": false,
+  "sector": "M7",
+  "sort_rank": 202,
+  "ticker": "MSFT",
+  "removed": false
+ },
+ {
+  "hot": false,
+  "notes": "Crypto proxy — BTC treasury",
+  "pinned": false,
+  "sector": "Crypto",
+  "sort_rank": 902,
+  "ticker": "MSTR",
+  "removed": false
+ },
+ {
+  "hot": false,
+  "notes": "Semiconductor — memory",
+  "pinned": false,
+  "sector": "Memory",
+  "sort_rank": 401,
+  "ticker": "MU",
+  "removed": false
+ },
+ {
+  "hot": false,
+  "notes": "Semiconductor — data center",
+  "pinned": false,
+  "sector": "NeoCloud",
+  "sort_rank": 601,
+  "ticker": "NBIS",
+  "removed": false
+ },
+ {
+  "hot": false,
+  "notes": "Growth / tech — cloud infra",
+  "pinned": false,
+  "sector": "SaaS",
+  "sort_rank": 706,
+  "ticker": "NET",
+  "removed": false
+ },
+ {
+  "hot": false,
+  "notes": "Industrials / value — apparel",
+  "pinned": false,
+  "sector": "Consumer",
+  "sort_rank": 1602,
+  "ticker": "NKE",
+  "removed": false
+ },
+ {
+  "hot": false,
+  "notes": "Semiconductor — telecom infra",
+  "pinned": false,
+  "sector": "DC-Connect",
+  "sort_rank": 0,
+  "ticker": "NOK",
+  "removed": false
+ },
+ {
+  "hot": false,
+  "notes": "M7",
+  "pinned": false,
+  "sector": "M7",
+  "sort_rank": 207,
+  "ticker": "NVDA",
+  "removed": false
+ },
+ {
+  "hot": false,
+  "notes": "Small modular reactors — AI data center power",
+  "pinned": false,
+  "sector": "Power",
+  "sort_rank": 651,
+  "ticker": "OKLO",
+  "removed": false
+ },
+ {
+  "hot": false,
+  "notes": "Mega-cap — enterprise / cloud",
+  "pinned": false,
+  "sector": "NeoCloud",
+  "sort_rank": 603,
+  "ticker": "ORCL",
+  "removed": false
+ },
+ {
+  "hot": false,
+  "notes": "Industrials / value — energy",
+  "pinned": false,
+  "sector": "Energy",
+  "sort_rank": 1403,
+  "ticker": "OXY",
+  "removed": false
+ },
+ {
+  "hot": false,
+  "notes": "Growth / tech — cybersecurity",
+  "pinned": false,
+  "sector": "SaaS",
+  "sort_rank": 709,
+  "ticker": "PANW",
+  "removed": false
+ },
+ {
+  "hot": false,
+  "notes": "Industrials / value — pharma",
+  "pinned": false,
+  "sector": "Healthcare",
+  "sort_rank": 1304,
+  "ticker": "PFE",
+  "removed": false
+ },
+ {
+  "hot": false,
+  "notes": "Industrials / value — satellite imaging",
+  "pinned": false,
+  "sector": "Space",
+  "sort_rank": 1103,
+  "ticker": "PL",
+  "removed": false
+ },
+ {
+  "hot": false,
+  "notes": "Growth / tech — data analytics",
+  "pinned": false,
+  "sector": "SaaS",
+  "sort_rank": 701,
+  "ticker": "PLTR",
+  "removed": false
+ },
+ {
+  "hot": false,
+  "notes": "Semiconductor — mobile",
+  "pinned": false,
+  "sector": "Semi-Logic",
+  "sort_rank": 0,
+  "ticker": "QCOM",
+  "removed": false
+ },
+ {
+  "hot": false,
+  "notes": "Nasdaq 100 ETF",
+  "pinned": false,
+  "sector": "Beta",
+  "sort_rank": 0,
+  "ticker": "QQQ",
+  "removed": false
+ },
+ {
+  "hot": false,
+  "notes": "Crypto proxy — BTC mining",
+  "pinned": false,
+  "sector": "Crypto",
+  "sort_rank": 904,
+  "ticker": "RIOT",
+  "removed": false
+ },
+ {
+  "hot": false,
+  "notes": "Growth / tech — space",
+  "pinned": false,
+  "sector": "Space",
+  "sort_rank": 1101,
+  "ticker": "RKLB",
+  "removed": false
+ },
+ {
+  "hot": false,
+  "notes": "Industrials / value — defense",
+  "pinned": false,
+  "sector": "Defense",
+  "sort_rank": 1202,
+  "ticker": "RTX",
+  "removed": true
+ },
+ {
+  "hot": false,
+  "notes": "Industrials / value — retail",
+  "pinned": false,
+  "sector": "Consumer",
+  "sort_rank": 1603,
+  "ticker": "SBUX",
+  "removed": false
+ },
+ {
+  "hot": false,
+  "notes": null,
+  "pinned": false,
+  "sector": "Macro",
+  "sort_rank": 0,
+  "ticker": "SLV",
+  "removed": false
+ },
+ {
+  "hot": false,
+  "notes": "Semiconductor — AI servers",
+  "pinned": false,
+  "sector": "Semiconductor",
+  "sort_rank": 309,
+  "ticker": "SMCI",
+  "removed": true
+ },
+ {
+  "hot": false,
+  "notes": "Semiconductor ETF",
+  "pinned": false,
+  "sector": "Sector-ETF",
+  "sort_rank": 0,
+  "ticker": "SMH",
+  "removed": false
+ },
+ {
+  "hot": false,
+  "notes": "Semiconductor — storage",
+  "pinned": false,
+  "sector": "Memory",
+  "sort_rank": 402,
+  "ticker": "SNDK",
+  "removed": false
+ },
+ {
+  "hot": false,
+  "notes": "Growth / tech — data cloud",
+  "pinned": false,
+  "sector": "SaaS",
+  "sort_rank": 704,
+  "ticker": "SNOW",
+  "removed": false
+ },
+ {
+  "hot": false,
+  "notes": null,
+  "pinned": false,
+  "sector": "Semi-Cap",
+  "sort_rank": 0,
+  "ticker": "SNPS",
+  "removed": false
+ },
+ {
+  "hot": false,
+  "notes": "Growth / tech — fintech",
+  "pinned": false,
+  "sector": "Fintech",
+  "sort_rank": 1001,
+  "ticker": "SOFI",
+  "removed": false
+ },
+ {
+  "hot": false,
+  "notes": "S&P 500 cash index — weekly options listed as SPXW. Cockpit ticker.",
+  "pinned": false,
+  "sector": "Index",
+  "sort_rank": 100,
+  "ticker": "SPX",
+  "removed": true
+ },
+ {
+  "hot": false,
+  "notes": "Broad market ETF",
+  "pinned": false,
+  "sector": "Beta",
+  "sort_rank": 0,
+  "ticker": "SPY",
+  "removed": false
+ },
+ {
+  "hot": false,
+  "notes": "Industrials / value — telco",
+  "pinned": false,
+  "sector": "Telecom-Media",
+  "sort_rank": 1701,
+  "ticker": "T",
+  "removed": true
+ },
+ {
+  "hot": false,
+  "notes": null,
+  "pinned": false,
+  "sector": "Semi-Cap",
+  "sort_rank": 0,
+  "ticker": "TER",
+  "removed": false
+ },
+ {
+  "hot": false,
+  "notes": "Industrials / value — retail",
+  "pinned": false,
+  "sector": "Consumer",
+  "sort_rank": 1607,
+  "ticker": "TGT",
+  "removed": false
+ },
+ {
+  "hot": false,
+  "notes": "20Y+ Treasury ETF",
+  "pinned": false,
+  "sector": "Macro",
+  "sort_rank": 0,
+  "ticker": "TLT",
+  "removed": false
+ },
+ {
+  "hot": false,
+  "notes": "Semiconductor — foundry",
+  "pinned": false,
+  "sector": "Foundry",
+  "sort_rank": 0,
+  "ticker": "TSEM",
+  "removed": false
+ },
+ {
+  "hot": false,
+  "notes": "M7",
+  "pinned": false,
+  "sector": "M7",
+  "sort_rank": 206,
+  "ticker": "TSLA",
+  "removed": false
+ },
+ {
+  "hot": false,
+  "notes": "Semiconductor — foundry",
+  "pinned": false,
+  "sector": "Foundry",
+  "sort_rank": 0,
+  "ticker": "TSM",
+  "removed": false
+ },
+ {
+  "hot": false,
+  "notes": "Semiconductor — analog",
+  "pinned": false,
+  "sector": "Semi-Logic",
+  "sort_rank": 0,
+  "ticker": "TXN",
+  "removed": false
+ },
+ {
+  "hot": false,
+  "notes": "Industrials / value — telco",
+  "pinned": false,
+  "sector": "Telecom-Media",
+  "sort_rank": 1702,
+  "ticker": "VZ",
+  "removed": true
+ },
+ {
+  "hot": false,
+  "notes": "Industrials / value — bank",
+  "pinned": false,
+  "sector": "Banks",
+  "sort_rank": 1503,
+  "ticker": "WFC",
+  "removed": false
+ },
+ {
+  "hot": false,
+  "notes": "Industrials / value — retail",
+  "pinned": false,
+  "sector": "Consumer",
+  "sort_rank": 1608,
+  "ticker": "WMT",
+  "removed": false
+ },
+ {
+  "hot": false,
+  "notes": "Energy sector ETF",
+  "pinned": false,
+  "sector": "Sector-ETF",
+  "sort_rank": 0,
+  "ticker": "XLE",
+  "removed": false
+ },
+ {
+  "hot": false,
+  "notes": "Financial sector ETF",
+  "pinned": false,
+  "sector": "Sector-ETF",
+  "sort_rank": 0,
+  "ticker": "XLF",
+  "removed": false
+ },
+ {
+  "hot": false,
+  "notes": "Industrials / value — energy",
+  "pinned": false,
+  "sector": "Energy",
+  "sort_rank": 1401,
+  "ticker": "XOM",
+  "removed": false
+ },
+ {
+  "hot": false,
+  "notes": "Growth / tech — cybersecurity",
+  "pinned": false,
+  "sector": "SaaS",
+  "sort_rank": 708,
+  "ticker": "ZS",
+  "removed": true
+ }
+]
