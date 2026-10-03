@@ -5,6 +5,11 @@ drilldown, multi-horizon harvest, directional, ΔVRP-reversion. Pure compute
 (no external calls); idempotent (each run is full-rewrite). Each sub-run is
 isolated in try/except + rollback so one failing axis does not sink the rest or
 leak a partial transaction into the next run.
+
+Unit = one axis. Each axis commits its own table, so every axis runs and the
+ones that succeed stay persisted; then the job raises if ANY axis failed. The
+axes are five different tables, not interchangeable tickers: a single broken
+axis left silent would go stale forever with no failure-streak alert.
 """
 
 from __future__ import annotations
@@ -35,6 +40,8 @@ def vrp_research_refresh(*, repo: Repository) -> dict[str, Any]:
         ("directional", run_vrp_directional),
         ("dvrp_reversion", run_vrp_dvrp_reversion),
     ]
+    failed: list[str] = []
+    last_exc: Exception | None = None
     for name, fn in runs:
         try:
             results[name] = fn(repo=repo)
@@ -42,5 +49,12 @@ def vrp_research_refresh(*, repo: Repository) -> dict[str, Any]:
             repo.conn.rollback()  # discard the failed run's partial txn
             log.exception("vrp_research_refresh: %s failed: %s", name, repr(exc))
             results[name] = {"error": repr(exc)}
+            failed.append(name)
+            last_exc = exc
     log.info("vrp_research_refresh done: %s", results)
+    if failed:
+        raise RuntimeError(
+            f"vrp_research_refresh: {len(failed)}/{len(runs)} axes failed "
+            f"({', '.join(failed)}); last err={last_exc!r}"
+        ) from last_exc
     return results
