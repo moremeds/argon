@@ -7,6 +7,10 @@ version in lockstep (enforced by `scripts/release/version_sync_check.py`).
 
 ## [Unreleased]
 
+### Fixed
+
+- **A slow Trade Insights AI worker can no longer overwrite the result of the worker that reclaimed its row.** The AI queue reclaims a `running` row older than timeout + 60 s, but complete and fail updated by `analysis_id` alone, so a worker that overran past that window could replace the reclaiming worker's success or failure with its own. Migration 156 adds a nullable `trade_insight_ai_analyses.claim_token` (the `jobs` table's pattern from migration 025); each claim stamps a fresh `gen_random_uuid()`, and the worker's complete/fail match on it. A fenced write changes 0 rows and logs a `fenced` WARNING; it is not treated as an error and does not re-fail the row. Callers that pass no token keep the old by-id update — the worker uses that only when its claim transaction rolled back (so no token was ever committed). **Mixed-version rollout:** an old worker still running during a Watchtower deploy claims without touching `claim_token` and completes by id, so for that one release window an old worker's late write is not fenced, and an old worker reclaiming a new worker's row leaves the new worker's token in place. Follow-up after one release: make the token required and drop the unfenced path.
+
 ## [0.13.17] — 2026-10-03
 
 
