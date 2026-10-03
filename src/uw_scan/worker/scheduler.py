@@ -1578,6 +1578,9 @@ def main() -> int:
                     # it behind the account-wide total_guard froze the whole
                     # Market Tide tab whenever the shared UW key crossed 105k
                     # mid-session; the ~78 calls it saves aren't worth that.
+                    # One unit (one UW call): an exception is a failed run and
+                    # re-raises so the job listener records it; 0 bars is a
+                    # normal outcome (pre-open tick), not a failure.
                     try:
                         n = market_tide_scanner.run(
                             uw, repo, spot_ticker=settings.market_tide_spot_ticker
@@ -1588,6 +1591,7 @@ def main() -> int:
                             "regime_market_tide_scan_failed err=%s", repr(exc)
                         )
                         repo.conn.rollback()
+                        raise
 
     def _regime_top_net_impact_scan() -> None:
         # Weekday gate — UW top-net-impact is only published during sessions.
@@ -1618,6 +1622,8 @@ def main() -> int:
         # for the backtest history.
         from uw_scan.worker.jobs.market_tide_sentiment import refresh_eod_sentiment
 
+        # One unit (sessions=1): an exception is a failed run and re-raises so
+        # the job listener records it; 0 sessions (no tide bars yet) is normal.
         with _repo(settings) as repo:
             try:
                 n = refresh_eod_sentiment(repo, sessions=1)
@@ -1625,6 +1631,7 @@ def main() -> int:
             except Exception as exc:
                 logger.warning("market_tide_sentiment_eod_failed err=%s", repr(exc))
                 repo.conn.rollback()
+                raise
 
     def _regime_grg_scan() -> None:
         # Gamma Rotation Gap. UW-bound: fetches SPY/TLT greek-exposure history,
