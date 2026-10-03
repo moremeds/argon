@@ -335,3 +335,43 @@ def test_grg_and_discovery_failures_match_scan_runs(
 
     assert _scan_run_statuses(repo, "discovery_scan") == ["fail", "ok"]
     assert not set(jobs) & set(_streaks(repo))
+
+
+def test_top_net_impact_failure_streak_matches_scan_runs_then_success_clears(
+    repo, _migrated_settings, monkeypatch
+):
+    """The real `regime_top_net_impact_scan` closure and scanner, run against
+    the test DB: two failed UW fetches -> two 'error' scan_runs and streak 2;
+    one good fetch -> an 'ok' scan_run and the streak cleared.
+
+    Before the fix the closure swallowed the error, so the scan_run said
+    'error' while the listener recorded a success.
+    """
+    import uw_scan.sources.uw as uw_source
+
+    dsn = _migrated_settings.db_dsn()
+    monkeypatch.setattr(
+        scheduler, "_ops_conn", lambda: psycopg.connect(dsn, autocommit=True)
+    )
+    job_id = "regime_top_net_impact_scan"
+    job = _capture_uw0_jobs(
+        monkeypatch, repo, {job_id}, {"TOP_NET_IMPACT_CAPTURE_ENABLED": "true"}
+    )[job_id]
+
+    def boom(*_a, **_k):
+        raise RuntimeError("tni boom")
+
+    monkeypatch.setattr(uw_source, "fetch_top_net_impact", boom)
+    _run_and_report(job_id, job)
+    _run_and_report(job_id, job)
+
+    assert _scan_run_statuses(repo, job_id) == ["error", "error"]
+    assert _streaks(repo)[job_id].consecutive == 2
+    assert "tni boom" in _streaks(repo)[job_id].last_error
+
+    # Zero rows published is a normal outcome: an 'ok' run, streak cleared.
+    monkeypatch.setattr(uw_source, "fetch_top_net_impact", lambda *a, **k: [])
+    _run_and_report(job_id, job)
+
+    assert _scan_run_statuses(repo, job_id) == ["error", "error", "ok"]
+    assert job_id not in _streaks(repo)
