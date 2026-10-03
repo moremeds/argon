@@ -185,6 +185,7 @@ Worker roles: `ai-codex`, `ai-claude`, and `ai-deepseek` (provider-pinned, recom
 - **No naked shorts** in any strategy/trade-plan code — defined-risk only
 - **Data source priority** (live quotes/greeks): IB (via xenon) → UW → massive. UW stays the primary source for scan/options/flow data and massive for daily OHLC (see "What this is"). Yahoo is banned — enforced by `scripts/check_no_yahoo.py` in CI
 - **Massive WS bypasses system proxies** — `MassiveWsClient` passes `proxy=None` to `websockets.connect`; the market-data stream must never inherit macOS SOCKS/HTTP proxy settings (`python-socks` is not installed, so an inherited proxy kills every connect). The configured feed is ~15-min delayed, so WS-consumer health keys on `last_flush_at` (is the consumer alive?), not tick event time
+- **HTTP clients ignore ambient proxies** — every `httpx` client/call in `src/` passes `trust_env=False` (httpx reads the macOS system proxy even with no `*_PROXY` env set; FRED stalled on SSL-EOF this way). Enforced by `tests/unit/test_httpx_trust_env.py`
 - **No secrets to local Codex subprocesses** — do not pass UW/Massive keys, DB credentials, or unrelated app secrets to `codex exec`
 - **Never commit without an explicit user request.** Draft first, wait
 - **Big projects use milestone commits** — when the user has explicitly requested commits for a large project/task, commit each closed milestone after its relevant verification before continuing

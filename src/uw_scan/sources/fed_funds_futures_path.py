@@ -132,7 +132,9 @@ class FedFundsFuturesPathProvider:
         job_name: str | None = None,
     ):
         self._base_url = base_url.rstrip("/")
-        self._client = httpx.Client(timeout=timeout_s, follow_redirects=True)
+        self._client = httpx.Client(
+            timeout=timeout_s, follow_redirects=True, trust_env=False
+        )
         self._record_request_fn = record_request
         self._job_name = job_name
 

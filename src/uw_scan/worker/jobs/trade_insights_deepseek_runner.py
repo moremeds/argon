@@ -174,7 +174,7 @@ class DeepSeekRunner:
         total_output_bytes = 0
 
         try:
-            with httpx.Client() as client:
+            with httpx.Client(trust_env=False) as client:
                 with client.stream(
                     "POST",
                     DEEPSEEK_CHAT_COMPLETIONS_URL,

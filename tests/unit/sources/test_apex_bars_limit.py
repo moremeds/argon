@@ -6,7 +6,7 @@ from uw_scan.sources import apex
 def test_fetch_daily_bars_requests_deep_history(monkeypatch):
     seen = {}
 
-    def fake_get(url, params=None, timeout=None):
+    def fake_get(url, params=None, timeout=None, trust_env=True):
         seen["params"] = params
         req = httpx.Request("GET", url)
         return httpx.Response(200, json={"bars": []}, request=req)

@@ -81,6 +81,7 @@ class MassiveFundamentalsProvider:
             base_url=base_url,
             headers={"Authorization": f"Bearer {api_key}"},
             timeout=timeout,
+            trust_env=False,
         )
 
     def close(self) -> None:

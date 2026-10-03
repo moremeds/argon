@@ -87,6 +87,7 @@ class WgcEtfProvider:
             timeout=timeout_s if timeout_s is not None else self.DEFAULT_TIMEOUT_S,
             headers=headers,
             follow_redirects=True,
+            trust_env=False,
         )
         self._record_request_fn = record_request
 

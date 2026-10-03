@@ -102,7 +102,7 @@ class WgcCbProvider:
         record_request: RecordHook | None = None,
     ):
         headers = {"Cookie": cookie_header} if cookie_header else None
-        self._client = httpx.Client(timeout=timeout_s, headers=headers)
+        self._client = httpx.Client(timeout=timeout_s, headers=headers, trust_env=False)
         self._workbook_path = Path(workbook_path) if workbook_path else None
         self._record_request_fn = record_request
 

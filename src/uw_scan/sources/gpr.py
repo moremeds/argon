@@ -50,7 +50,7 @@ class GprProvider:
         record_request: RecordHook | None = None,
     ):
         self._url = url or self.DEFAULT_URL
-        self._client = httpx.Client(timeout=timeout_s)
+        self._client = httpx.Client(timeout=timeout_s, trust_env=False)
         self._record_request_fn = record_request
 
     def close(self) -> None:

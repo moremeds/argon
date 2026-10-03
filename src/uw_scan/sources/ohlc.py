@@ -59,6 +59,7 @@ class MassiveOhlcProvider:
             base_url=base_url,
             headers={"Authorization": f"Bearer {api_key}"},
             timeout=timeout,
+            trust_env=False,
         )
         self._telemetry_recorder = telemetry_recorder
         self._job_name = job_name
