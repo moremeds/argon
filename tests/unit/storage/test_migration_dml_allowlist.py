@@ -69,28 +69,9 @@ REPLAY_HARMLESS: dict[str, str] = {
     ),
 }
 
-# Replay CAN clobber data written after the migration ran. Not fixed here (tracked
-# follow-up); listed so the test stays green without hiding them.
-KNOWN_HARMFUL_UNFIXED: dict[str, str] = {
-    "021_trade_insights_ai_v2_prompt_rows.sql": (
-        "fails every queued/running AI analysis whose prompt_version <> "
-        "'trade-insights-ai-v2'; the live PROMPT_VERSION is v5.3, so each boot "
-        "kills all in-flight analyses"
-    ),
-    "023_backfill_flow_alerts_daily_rollup.sql": (
-        "recomputes every flow_alerts_daily_rollup row from all flow_events and "
-        "DO UPDATEs over the runtime writer's values (hardcoded 100 limit vs "
-        "alert_limit, per-event vs per-run trade_date)"
-    ),
-    "047_gold_posture_row_status.sql": (
-        "invalidates active posture rows dated after the latest GLD_CLOSE and "
-        "earlier same-day rows lacking GLD history; changes point-in-time reads"
-    ),
-    "048_gold_cb_flow_replay_invalidation.sql": (
-        "invalidates earlier same-day active posture rows lacking CB fields; "
-        "fetch_gold_posture_as_of picks the earliest active row, so PIT reads change"
-    ),
-}
+# Replay CAN clobber data written after the migration ran. Must stay empty: the
+# last four (021, 023, 047, 048) were neutralized 2026-10-03.
+KNOWN_HARMFUL_UNFIXED: dict[str, str] = {}
 
 _DML = re.compile(r"\b(UPDATE|DELETE\s+FROM|TRUNCATE)\b", re.IGNORECASE)
 # Definitions (bodies not executed at migration time) and privilege grants.
