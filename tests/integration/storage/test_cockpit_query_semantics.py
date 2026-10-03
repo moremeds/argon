@@ -6,6 +6,8 @@ from __future__ import annotations
 from datetime import date, datetime, timezone
 from decimal import Decimal
 
+import pytest
+
 from uw_scan.models import FlowAlert, GreekExposureRow, GreeksRow, InterpolatedIvRow
 
 
@@ -96,3 +98,51 @@ def test_latest_source_market_date_is_max_across_tables(seeded_db_empty_cards) -
         2026, 5, 14
     )
     assert repo.fetch_latest_cockpit_source_market_date(ticker="IWM") is None
+
+
+def test_flow_lookback_day_window_survives_a_repeated_midnight(
+    seeded_db_empty_cards,
+) -> None:
+    """Cuba leaves DST at 01:00 on 2026-11-01, so 00:00-01:00 local happens twice
+    (04:00-05:00Z, then 05:00-06:00Z). ``date::timestamptz`` resolves to the
+    later midnight; the lookback must still see both hours as 1 Nov."""
+    repo = seeded_db_empty_cards
+    run_id = repo.insert_scan_run("SPY", notes="flow lookback dst")
+    utc = timezone.utc
+    repo.insert_flow_events(
+        run_id,
+        "SPY",
+        [
+            FlowAlert(
+                id=i, ticker="SPY", type="call", total_premium=Decimal(p), created_at=t
+            )
+            for i, p, t in [
+                ("oct30", 1, datetime(2026, 10, 30, 16, tzinfo=utc)),
+                ("oct31", 2, datetime(2026, 10, 31, 16, tzinfo=utc)),
+                ("nov1-first", 4, datetime(2026, 11, 1, 4, 30, tzinfo=utc)),
+                ("nov1-second", 8, datetime(2026, 11, 1, 5, 30, tzinfo=utc)),
+            ]
+        ],
+    )
+    repo.conn.commit()
+    with repo.conn.cursor() as cur:
+        cur.execute("SET TIME ZONE 'America/Havana'")
+    try:
+        got = repo._flow_color_lookback(ticker="SPY", market_date=date(2026, 11, 1))
+    finally:
+        with repo.conn.cursor() as cur:
+            cur.execute("RESET TIME ZONE")
+    assert got["call_premium"] == Decimal(1 + 2 + 4 + 8)
+
+
+def test_flow_lookback_rejects_negative_days(seeded_db_empty_cards) -> None:
+    with pytest.raises(ValueError):
+        seeded_db_empty_cards._flow_color_lookback(
+            ticker="SPY", market_date=date(2026, 5, 15), days=-1
+        )
+    assert (
+        seeded_db_empty_cards._flow_color_lookback(
+            ticker="SPY", market_date=date(2026, 5, 15), days=0
+        )["color"]
+        is None
+    )
