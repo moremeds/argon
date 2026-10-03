@@ -130,7 +130,7 @@ class GoldDataFreshnessSource(BaseModel):
     id: str
     last_as_of: datetime | None = None
     stale_seconds: int | None = None
-    status: Literal["ok", "missing"] = "ok"
+    status: Literal["ok", "stale", "missing"] = "ok"
 
 
 class GoldDecompositionRow(BaseModel):
