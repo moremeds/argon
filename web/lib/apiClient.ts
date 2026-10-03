@@ -85,3 +85,16 @@ export function apiErrorMessage(e: unknown): string {
   }
   return e instanceof Error ? e.message : String(e);
 }
+
+/** `?k=v&…` for the params that are set, or "" when none is (I-104). Skips
+ *  undefined, null and "" (FastAPI rejects an empty date as a 422); keeps 0
+ *  and false. Values are `encodeURIComponent`-escaped; keys go in as written,
+ *  in order, so each endpoint keeps its own name (cockpit `asof` vs `as_of`). */
+export function query(
+  params: Record<string, string | number | boolean | null | undefined>,
+): string {
+  const parts = Object.entries(params)
+    .filter(([, v]) => v != null && v !== "")
+    .map(([k, v]) => `${k}=${encodeURIComponent(String(v))}`);
+  return parts.length ? `?${parts.join("&")}` : "";
+}
