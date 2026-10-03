@@ -7,6 +7,10 @@ version in lockstep (enforced by `scripts/release/version_sync_check.py`).
 
 ## [Unreleased]
 
+### Fixed
+
+- **Market-tide job failures now reach the job-failure streak.** `regime_market_tide_scan` and `market_tide_sentiment_eod` caught every exception, logged it, rolled back and returned, so APScheduler recorded a success: `job_failures` never counted the failure and the 3/10-consecutive alerts never fired. Both closures in `worker/scheduler.py` now log, roll back as before, then re-raise. Each job is one unit (one UW call; one session), so any exception fails the run; zero bars or zero sessions is still a normal return.
+
 ## [0.13.17] — 2026-10-03
 
 
