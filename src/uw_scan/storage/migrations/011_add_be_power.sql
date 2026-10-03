@@ -3,20 +3,12 @@
 -- Add BE (Bloom Energy — fuel cells, AI data-center power) to the same group
 -- as OKLO, and rename the group from "Nuclear/Power" to plain "Power" so it
 -- reads cleanly with both nuclear and fuel-cell names.
-
-BEGIN;
-
--- 1. Rename existing OKLO entry.
-UPDATE uw_scan.watchlist
-   SET sector = 'Power'
- WHERE sector = 'Nuclear/Power';
-
--- 2. Insert BE alongside OKLO (sort_rank 652 = right after OKLO=651).
-INSERT INTO uw_scan.watchlist (ticker, sector, sort_rank, pinned, notes)
-VALUES ('BE', 'Power', 652, FALSE, 'Bloom Energy — fuel cells for AI data center power')
-ON CONFLICT (ticker) DO UPDATE
-  SET sector     = EXCLUDED.sector,
-      sort_rank  = EXCLUDED.sort_rank,
-      removed_at = NULL;
-
-COMMIT;
+--
+-- WATCHLIST DML REMOVED (2026-10-03). This file used to rename 'Nuclear/Power'
+-- to 'Power' via UPDATE and add BE with ON CONFLICT DO UPDATE ... removed_at =
+-- NULL. The API self-migrates on every boot, so that DML re-ran on every deploy
+-- and undid operator edits to the watchlist. Its fresh-install effect now lives
+-- in the insert-only final-state seed in 006_seed_watchlist.sql (ON CONFLICT DO
+-- NOTHING); existing databases already carry it. Data DML in a migration must
+-- be insert-only -- enforced by
+-- tests/unit/storage/test_migration_dml_allowlist.py.

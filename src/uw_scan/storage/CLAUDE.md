@@ -52,6 +52,7 @@ Conventions for the mixin pattern:
   - `CREATE TABLE IF NOT EXISTS` / `CREATE INDEX IF NOT EXISTS`
   - `ALTER TABLE ... ADD COLUMN IF NOT EXISTS`
   - `ON CONFLICT DO NOTHING` for seeds
+  - **No `UPDATE` / `DELETE` / `ON CONFLICT DO UPDATE` of data** — every file re-runs on every API boot, so such DML re-applies over later operator/runtime writes. Exceptions need a reviewed entry in `tests/unit/storage/test_migration_dml_allowlist.py`
 - **Header every file** with `SET search_path TO uw_scan, public;`
 - **Re-running on a migrated DB is a no-op.** Test this locally before committing.
 - New migration → next number after the highest in `storage/migrations/`. Don't renumber existing files.
