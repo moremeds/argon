@@ -138,13 +138,13 @@ def _assemble_history(repo: Repository, ticker: str, days: int = 90) -> list[dic
     here would draw time right-to-left. The history table sorts
     client-side and defaults to date DESC.
     """
-    g = GreekExposureDailyRepository(repo.conn, schema=repo._schema)
+    g = GreekExposureDailyRepository(repo.conn, schema=repo.schema)
     gex_rows = g.fetch_history(ticker, days=days)
     if not gex_rows:
         return []
 
     if ticker in _SPOT_FROM_LAKE:
-        v = VolIndexRepository(repo.conn, schema=repo._schema)
+        v = VolIndexRepository(repo.conn, schema=repo.schema)
         spot_rows = v.fetch_history(ticker, days=days)
         spot_by_date = {r["trade_date"]: r["close"] for r in spot_rows}
     else:
@@ -231,7 +231,7 @@ def get_market_tide(
         MarketTideSnapshotRepository,
     )
 
-    tide_repo = MarketTideSnapshotRepository(repo.conn, schema=repo._schema)
+    tide_repo = MarketTideSnapshotRepository(repo.conn, schema=repo.schema)
     raw = tide_repo.fetch_sessions(sessions=sessions)
     payload_sessions = [MarketTideSession.model_validate(s) for s in raw]
     last_ts = None
@@ -274,7 +274,7 @@ def get_top_net_impact(
         except ValueError as exc:
             raise HTTPException(status_code=422, detail="bad date") from exc
 
-    tni_repo = TopNetImpactRepository(repo.conn, schema=repo._schema)
+    tni_repo = TopNetImpactRepository(repo.conn, schema=repo.schema)
     resolved, rows = tni_repo.fetch_latest(data_date=parsed, limit=limit)
     return TopNetImpactResponse(
         rows=[TopNetImpactRow.model_validate(r) for r in rows],
@@ -307,7 +307,7 @@ def get_vol_backdrop(
     repo: Annotated[Repository, Depends(get_repo)],
     days: int = Query(90, ge=5, le=365),
 ) -> VolBackdropResponse:
-    v = VolIndexRepository(repo.conn, schema=repo._schema)
+    v = VolIndexRepository(repo.conn, schema=repo.schema)
     multi = v.fetch_multi_history(_VOL_BACKDROP_SYMBOLS, days=days)
 
     series = {
@@ -342,7 +342,7 @@ def get_dispersion(
     COR1M 20yr percentile + VIX/COR1M ratio and its trailing-252 z-score. See
     docs/research/2026-07-19-dispersion-signals-eval.md — low correlation is NOT
     a warning; this is regime context only."""
-    v = VolIndexRepository(repo.conn, schema=repo._schema)
+    v = VolIndexRepository(repo.conn, schema=repo.schema)
     return DispersionResponse(**v.fetch_dispersion_context())
 
 
@@ -414,7 +414,7 @@ def get_spx_density(
 ) -> SpxDensityLatestResponse:
     """Latest issued SPX density cone (display-only, v13 PASS). Renders the most recent
     row with its as_of — never interpolates a missing day."""
-    sdr = SpxDensityRepository(repo.conn, schema=repo._schema)
+    sdr = SpxDensityRepository(repo.conn, schema=repo.schema)
     as_of = sdr.latest_as_of()
     if as_of is None:
         return SpxDensityLatestResponse()
@@ -451,7 +451,7 @@ def get_spx_density_issued(
 ) -> SpxDensityIssuedResponse:
     """The previously-issued cones (strip) + the cumulative 80%-band hit-rate tally,
     split prospective vs reconstructed (the latter is in-sample by construction)."""
-    sdr = SpxDensityRepository(repo.conn, schema=repo._schema)
+    sdr = SpxDensityRepository(repo.conn, schema=repo.schema)
     as_ofs = sdr.fetch_recent_as_ofs(limit + 1)[1:]  # skip the latest — headline panel
     return SpxDensityIssuedResponse(
         forecasts=[
@@ -737,7 +737,7 @@ def post_vrp_macro_entry_capture(
 def get_regime(
     repo: Annotated[Repository, Depends(get_repo)],
 ) -> CriResponse:
-    snap_repo = CriSnapshotRepository(repo.conn, schema=repo._schema)
+    snap_repo = CriSnapshotRepository(repo.conn, schema=repo.schema)
     latest = snap_repo.fetch_latest()
     if latest is None:
         return EMPTY_CRI_RESPONSE.model_copy(deep=True)
@@ -749,7 +749,7 @@ def trigger_cri_scan(
     repo: Annotated[Repository, Depends(get_repo)],
 ) -> CriScanResponse:
     """Run a CRI scan synchronously off the warm store; persist a snapshot."""
-    row_id = cri_scanner.run(repo.conn, schema=repo._schema)
+    row_id = cri_scanner.run(repo.conn, schema=repo.schema)
     if row_id is None:
         return CriScanResponse(status="skipped", reason="thin_data")
     return CriScanResponse(status="ok", row_id=row_id)
@@ -763,7 +763,7 @@ def get_vcg(
     repo: Annotated[Repository, Depends(get_repo)],
     proxy: str = Query("HYG"),
 ) -> VcgResponse:
-    snap_repo = VcgSnapshotRepository(repo.conn, schema=repo._schema)
+    snap_repo = VcgSnapshotRepository(repo.conn, schema=repo.schema)
     latest = snap_repo.fetch_latest(proxy=proxy.upper())
     if latest is None:
         empty = EMPTY_VCG_RESPONSE.model_copy(deep=True)
@@ -779,7 +779,7 @@ def trigger_vcg_scan(
 ) -> VcgScanResponse:
     """Run a VCG scan synchronously off the warm store; persist a snapshot."""
     proxy_upper = proxy.upper()
-    row_id = vcg_scanner.run(repo.conn, proxy=proxy_upper, schema=repo._schema)
+    row_id = vcg_scanner.run(repo.conn, proxy=proxy_upper, schema=repo.schema)
     if row_id is None:
         return VcgScanResponse(status="skipped", proxy=proxy_upper, reason="thin_data")
     return VcgScanResponse(status="ok", proxy=proxy_upper, row_id=row_id)
@@ -808,9 +808,9 @@ def get_cri_live(
     )
     payload = None
     if quotes:
-        payload = cri_scanner.run_live(repo.conn, schema=repo._schema, quotes=quotes)
+        payload = cri_scanner.run_live(repo.conn, schema=repo.schema, quotes=quotes)
     if payload is None:
-        snap_repo = CriSnapshotRepository(repo.conn, schema=repo._schema)
+        snap_repo = CriSnapshotRepository(repo.conn, schema=repo.schema)
         latest = snap_repo.fetch_latest()
         if latest is None:
             return CriLiveResponse(basis="eod")
@@ -833,7 +833,7 @@ def get_cri_intraday(
     sessions: int = Query(5, ge=1, le=20),
     rth_only: bool = Query(True),
 ) -> CriIntradayResponse:
-    snap_repo = CriSnapshotRepository(repo.conn, schema=repo._schema)
+    snap_repo = CriSnapshotRepository(repo.conn, schema=repo.schema)
     raw = snap_repo.fetch_intraday_sessions(sessions=sessions, rth_only=rth_only)
     payload_sessions = [CriIntradaySession.model_validate(s) for s in raw]
     last_ts = None
@@ -847,7 +847,7 @@ def get_cri_history(
     repo: Annotated[Repository, Depends(get_repo)],
     days: int = Query(90, ge=5, le=365),
 ) -> CriDailyHistoryResponse:
-    snap_repo = CriSnapshotRepository(repo.conn, schema=repo._schema)
+    snap_repo = CriSnapshotRepository(repo.conn, schema=repo.schema)
     rows = snap_repo.fetch_daily_history(days=days)
     return CriDailyHistoryResponse(rows=[CriDailyEntry.model_validate(r) for r in rows])
 
@@ -867,10 +867,10 @@ def get_vcg_live(
     payload = None
     if quotes:
         payload = vcg_scanner.run_live(
-            repo.conn, schema=repo._schema, quotes=quotes, proxy=proxy_upper
+            repo.conn, schema=repo.schema, quotes=quotes, proxy=proxy_upper
         )
     if payload is None:
-        snap_repo = VcgSnapshotRepository(repo.conn, schema=repo._schema)
+        snap_repo = VcgSnapshotRepository(repo.conn, schema=repo.schema)
         latest = snap_repo.fetch_latest(proxy=proxy_upper)
         if latest is None:
             empty = VcgLiveResponse(basis="eod")
@@ -896,7 +896,7 @@ def get_vcg_intraday(
     sessions: int = Query(5, ge=1, le=20),
     rth_only: bool = Query(True),
 ) -> VcgIntradayResponse:
-    snap_repo = VcgSnapshotRepository(repo.conn, schema=repo._schema)
+    snap_repo = VcgSnapshotRepository(repo.conn, schema=repo.schema)
     raw = snap_repo.fetch_intraday_sessions(
         proxy=proxy.upper(), sessions=sessions, rth_only=rth_only
     )
@@ -915,7 +915,7 @@ def get_vcg_history(
     proxy: str = Query("HYG"),
     days: int = Query(90, ge=5, le=365),
 ) -> VcgDailyHistoryResponse:
-    snap_repo = VcgSnapshotRepository(repo.conn, schema=repo._schema)
+    snap_repo = VcgSnapshotRepository(repo.conn, schema=repo.schema)
     rows = snap_repo.fetch_daily_history(proxy=proxy.upper(), days=days)
     return VcgDailyHistoryResponse(
         credit_proxy=proxy.upper(),
@@ -934,7 +934,7 @@ def get_grg(
 
     GRG is EOD/periodic-rescan — the worker owns UW fetches; this read is
     cheap (one snapshot row). No per-request UW spend."""
-    snap_repo = GrgSnapshotRepository(repo.conn, schema=repo._schema)
+    snap_repo = GrgSnapshotRepository(repo.conn, schema=repo.schema)
     latest = snap_repo.fetch_latest()
     if latest is None:
         return EMPTY_GRG_RESPONSE.model_copy(deep=True)
@@ -947,7 +947,7 @@ def trigger_grg_scan(
     uw_client: Annotated[UwClient, Depends(get_uw_client)],
 ) -> GrgScanResponse:
     """Run a GRG scan synchronously against UW and persist a snapshot."""
-    row_id = grg_scanner.run(uw_client, repo, schema=repo._schema)
+    row_id = grg_scanner.run(uw_client, repo, schema=repo.schema)
     if row_id is None:
         return GrgScanResponse(status="skipped", reason="thin_data")
     return GrgScanResponse(status="ok", row_id=row_id)
@@ -1056,7 +1056,7 @@ def get_dealer_regime(
 def get_canary_latest(
     repo: Annotated[Repository, Depends(get_repo)],
 ) -> CanaryLatestResponse:
-    snap_repo = CanarySnapshotRepository(repo.conn, schema=repo._schema)
+    snap_repo = CanarySnapshotRepository(repo.conn, schema=repo.schema)
     row = snap_repo.fetch_latest(composite_version=CANARY_COMPOSITE_VERSION)
     if row is None:
         raise HTTPException(
@@ -1083,7 +1083,7 @@ def get_canary_history(
     repo: Annotated[Repository, Depends(get_repo)],
     days: int = Query(30, ge=1, le=365),
 ) -> CanaryHistoryResponse:
-    snap_repo = CanarySnapshotRepository(repo.conn, schema=repo._schema)
+    snap_repo = CanarySnapshotRepository(repo.conn, schema=repo.schema)
     rows = snap_repo.fetch_history(
         composite_version=CANARY_COMPOSITE_VERSION, days=days
     )
@@ -1155,7 +1155,7 @@ def get_canary_validation(
     filters on `completed_at IS NOT NULL`) and post-filter for the winning
     form in summary JSON. composite_version is stringified at the DB boundary.
     """
-    bt_repo = RegimeBacktestRepository(repo.conn, schema=repo._schema)
+    bt_repo = RegimeBacktestRepository(repo.conn, schema=repo.schema)
     row = bt_repo.find_latest_run(
         indicator="canary",
         composite_version=str(CANARY_COMPOSITE_VERSION),

@@ -201,7 +201,7 @@ def _select_rule(
 def get_guidance(
     repo: Annotated[Repository, Depends(get_repo)],
 ) -> GuidanceResponse:
-    snap_repo = CriSnapshotRepository(repo.conn, schema=repo._schema)
+    snap_repo = CriSnapshotRepository(repo.conn, schema=repo.schema)
     snap = snap_repo.fetch_latest()
     if snap is None:
         raise HTTPException(404, "no CRI snapshot — run the scanner first")
@@ -233,7 +233,7 @@ def get_validation(
     cri_scorers.COMPOSITE_VERSION, returns 503 — operators should run
     scripts/backtest_cri.py to seed the table.
     """
-    rb = RegimeBacktestRepository(repo.conn, schema=repo._schema)
+    rb = RegimeBacktestRepository(repo.conn, schema=repo.schema)
     # No composite_version arg -> RegimeBacktestRepository defaults to
     # str(cri_scorers.COMPOSITE_VERSION). Experimental runs at other versions
     # are query-only via SQL and do NOT leak into the API surface.
@@ -269,7 +269,7 @@ def get_vcg_validation(
         beta2, sign_ok, interpretation, vix. Event labels live in
         NAMED_CRASH_DATES, not the persisted JSON.
     """
-    rb = RegimeBacktestRepository(repo.conn, schema=repo._schema)
+    rb = RegimeBacktestRepository(repo.conn, schema=repo.schema)
     run = rb.find_latest_run("vcg")
     if run is None:
         raise HTTPException(
@@ -335,7 +335,7 @@ def get_vcg_validation(
     stress_history_summary: VcgStressHistorySummary | None = None
     if stress_history:
         # 9000-day window covers the full 18.5yr backtest with headroom.
-        vix_repo = VolIndexRepository(repo.conn, schema=repo._schema)
+        vix_repo = VolIndexRepository(repo.conn, schema=repo.schema)
         spx_rows = vix_repo.fetch_multi_history(["SPX"], 9000).get("SPX", [])
         spx_series = [(r["trade_date"], r["close"]) for r in spx_rows]
 

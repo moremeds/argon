@@ -54,7 +54,7 @@ def macro_releases(
     ),
     repo: Repository = Depends(get_repo),
 ) -> MacroReleaseCalendarResponse:
-    releases_repo = MacroReleaseCalendarRepository(repo.conn, schema=repo._schema)
+    releases_repo = MacroReleaseCalendarRepository(repo.conn, schema=repo.schema)
     return week_releases(releases_repo, week or datetime.now(UTC).date())
 
 
