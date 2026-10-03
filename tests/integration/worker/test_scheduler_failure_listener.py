@@ -155,3 +155,223 @@ def test_market_tide_sentiment_failure_streak_then_success_clears(
     assert job_id not in {
         s.job_name for s in JobFailuresRepository(repo.conn).list_streaks()
     }
+
+
+def _capture_uw0_jobs(monkeypatch, repo, job_ids, env):
+    """Run `scheduler.main()` with a fake APScheduler and return the real
+    closures for `job_ids`, all bound to the test-DB `repo`."""
+    from contextlib import contextmanager
+    from datetime import datetime as real_datetime
+
+    @contextmanager
+    def test_repo(_settings):
+        yield repo
+
+    @contextmanager
+    def no_recorder(_settings):
+        yield None
+
+    class _NoUw:
+        def __enter__(self):
+            return self
+
+        def __exit__(self, *exc_info):
+            return False
+
+    class _Thursday(real_datetime):
+        @classmethod
+        def now(cls, tz=None):
+            return real_datetime(2026, 10, 1, 11, 0, tzinfo=tz)
+
+    captured: dict[str, object] = {}
+
+    class _StopStart(Exception):
+        pass
+
+    class _FakeSched:
+        def __init__(self, *_a, **_k) -> None:
+            pass
+
+        def add_listener(self, *_a, **_k) -> None:
+            pass
+
+        def add_job(self, *args, **kwargs) -> None:
+            if kwargs.get("id") in job_ids and args:
+                captured[kwargs["id"]] = args[0]
+
+        def start(self) -> None:
+            raise _StopStart
+
+    class _FakeSignal:
+        SIGTERM = 15
+        SIGINT = 2
+
+        def signal(self, *_a, **_k) -> None:
+            return None
+
+    monkeypatch.setattr(scheduler, "BlockingScheduler", _FakeSched)
+    monkeypatch.setattr(scheduler, "signal", _FakeSignal())
+    monkeypatch.setattr(scheduler, "datetime", _Thursday)
+    monkeypatch.setattr(scheduler, "_repo", test_repo)
+    monkeypatch.setattr(scheduler, "_external_api_recorder", no_recorder)
+    monkeypatch.setattr(scheduler, "_uw_client", lambda *a, **k: _NoUw())
+    monkeypatch.setattr(scheduler, "_research_budget_ok", lambda *a, **k: True)
+    for k, v in {
+        "UW_SCAN_WORKER_ROLE": "uw",
+        "UW_SCAN_WORKER_INDEX": "0",
+        "UW_SCAN_WORKER_COUNT": "1",
+        **env,
+    }.items():
+        monkeypatch.setenv(k, v)
+    with pytest.raises(_StopStart):
+        scheduler.main()
+    assert set(captured) == set(job_ids)
+    return captured
+
+
+def _run_and_report(job_id, job) -> None:
+    # What APScheduler does: run the job, emit EVENT_JOB_ERROR with the
+    # exception or EVENT_JOB_EXECUTED without one.
+    try:
+        job()
+    except Exception as exc:
+        scheduler._handle_job_event(SimpleNamespace(job_id=job_id, exception=exc))
+    else:
+        scheduler._handle_job_event(SimpleNamespace(job_id=job_id, exception=None))
+
+
+def _scan_run_statuses(repo, notes_like: str) -> list[str]:
+    with repo.conn.cursor() as cur:
+        cur.execute(
+            "SELECT status FROM uw_scan.scan_runs WHERE notes LIKE %s ORDER BY run_id",
+            (notes_like,),
+        )
+        return [r[0] for r in cur.fetchall()]
+
+
+def _streaks(repo) -> dict:
+    return {s.job_name: s for s in JobFailuresRepository(repo.conn).list_streaks()}
+
+
+def test_gex_streak_only_when_every_ticker_fails(repo, _migrated_settings, monkeypatch):
+    """Unit = one ticker. Every ticker failing (real scanner, failed UW fetch)
+    -> one failed run whose scan_runs are all 'error'; a run where one ticker
+    fails and the others succeed is a success and clears the streak."""
+    import uw_scan.scanners.gex as gex_scanner
+
+    dsn = _migrated_settings.db_dsn()
+    monkeypatch.setattr(
+        scheduler, "_ops_conn", lambda: psycopg.connect(dsn, autocommit=True)
+    )
+    job_id = "regime_gex_scan"
+    job = _capture_uw0_jobs(
+        monkeypatch, repo, {job_id}, {"GEX_SCAN_TICKERS": "SPY,QQQ"}
+    )[job_id]
+
+    real_run = gex_scanner.run
+
+    def boom(*_a, **_k):
+        raise RuntimeError("iv-rank 500")
+
+    monkeypatch.setattr(gex_scanner, "fetch_iv_rank_rows", boom)
+    _run_and_report(job_id, job)
+
+    assert _scan_run_statuses(repo, "gex_scan_%") == ["error", "error"]
+    assert _streaks(repo)[job_id].consecutive == 1
+    assert "all 2 tickers failed" in _streaks(repo)[job_id].last_error
+
+    # QQQ still fails in the real scanner; SPY succeeds -> the run succeeds.
+    monkeypatch.setattr(
+        gex_scanner,
+        "run",
+        lambda uw, r, ticker: 1 if ticker == "SPY" else real_run(uw, r, ticker=ticker),
+    )
+    _run_and_report(job_id, job)
+
+    assert _scan_run_statuses(repo, "gex_scan_%") == ["error", "error", "error"]
+    assert job_id not in _streaks(repo)
+
+
+def test_grg_and_discovery_failures_match_scan_runs(
+    repo, _migrated_settings, monkeypatch
+):
+    """One unit each. A failed UW fetch inside the real scanner/job persists an
+    'error'/'fail' scan_run AND reaches the streak; a later success clears it."""
+    import uw_scan.scanners.grg as grg_scanner
+    import uw_scan.sources.uw as uw_source
+    import uw_scan.worker.jobs.discovery_scan as discovery_mod
+
+    dsn = _migrated_settings.db_dsn()
+    monkeypatch.setattr(
+        scheduler, "_ops_conn", lambda: psycopg.connect(dsn, autocommit=True)
+    )
+    jobs = _capture_uw0_jobs(
+        monkeypatch,
+        repo,
+        {"regime_grg_scan", "discovery_scan"},
+        {"SCANNER_DISCOVER_SCAN_ENABLED": "true"},
+    )
+
+    def boom(*_a, **_k):
+        raise RuntimeError("uw 500")
+
+    monkeypatch.setattr(uw_source, "fetch_greek_exposure_history", boom)
+    monkeypatch.setattr(discovery_mod, "fetch_market_flow_alerts", boom)
+    for job_id, job in jobs.items():
+        _run_and_report(job_id, job)
+
+    assert _scan_run_statuses(repo, "grg_scan") == ["error"]
+    assert _scan_run_statuses(repo, "discovery_scan") == ["fail"]
+    for job_id in jobs:
+        assert _streaks(repo)[job_id].consecutive == 1
+        assert "uw 500" in _streaks(repo)[job_id].last_error
+
+    # Success clears each streak: GRG via a stubbed snapshot, discovery via the
+    # real job on an empty alert feed (an 'ok' run with zero candidates).
+    monkeypatch.setattr(grg_scanner, "run", lambda *a, **k: None)
+    monkeypatch.setattr(discovery_mod, "fetch_market_flow_alerts", lambda *a, **k: [])
+    for job_id, job in jobs.items():
+        _run_and_report(job_id, job)
+
+    assert _scan_run_statuses(repo, "discovery_scan") == ["fail", "ok"]
+    assert not set(jobs) & set(_streaks(repo))
+
+
+def test_top_net_impact_failure_streak_matches_scan_runs_then_success_clears(
+    repo, _migrated_settings, monkeypatch
+):
+    """The real `regime_top_net_impact_scan` closure and scanner, run against
+    the test DB: two failed UW fetches -> two 'error' scan_runs and streak 2;
+    one good fetch -> an 'ok' scan_run and the streak cleared.
+
+    Before the fix the closure swallowed the error, so the scan_run said
+    'error' while the listener recorded a success.
+    """
+    import uw_scan.sources.uw as uw_source
+
+    dsn = _migrated_settings.db_dsn()
+    monkeypatch.setattr(
+        scheduler, "_ops_conn", lambda: psycopg.connect(dsn, autocommit=True)
+    )
+    job_id = "regime_top_net_impact_scan"
+    job = _capture_uw0_jobs(
+        monkeypatch, repo, {job_id}, {"TOP_NET_IMPACT_CAPTURE_ENABLED": "true"}
+    )[job_id]
+
+    def boom(*_a, **_k):
+        raise RuntimeError("tni boom")
+
+    monkeypatch.setattr(uw_source, "fetch_top_net_impact", boom)
+    _run_and_report(job_id, job)
+    _run_and_report(job_id, job)
+
+    assert _scan_run_statuses(repo, job_id) == ["error", "error"]
+    assert _streaks(repo)[job_id].consecutive == 2
+    assert "tni boom" in _streaks(repo)[job_id].last_error
+
+    # Zero rows published is a normal outcome: an 'ok' run, streak cleared.
+    monkeypatch.setattr(uw_source, "fetch_top_net_impact", lambda *a, **k: [])
+    _run_and_report(job_id, job)
+
+    assert _scan_run_statuses(repo, job_id) == ["error", "error", "ok"]
+    assert job_id not in _streaks(repo)

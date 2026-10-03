@@ -10,21 +10,12 @@
 -- Using a fractional-style integer key (sort_rank in the 650 band) lets us
 -- slot Nuclear/Power between NeoCloud (600s) and SaaS (700s) without
 -- renumbering everything.
-
-BEGIN;
-
--- 1. Add OKLO to the watchlist as Nuclear/Power.
-INSERT INTO uw_scan.watchlist (ticker, sector, sort_rank, pinned, notes)
-VALUES ('OKLO', 'Nuclear/Power', 651, FALSE, 'Small modular reactors — AI data center power')
-ON CONFLICT (ticker) DO UPDATE
-  SET sector     = EXCLUDED.sector,
-      sort_rank  = EXCLUDED.sort_rank,
-      removed_at = NULL;
-
--- 2. Move ORCL into NeoCloud at rank 603 (after NBIS=601, CRWV=602).
-UPDATE uw_scan.watchlist
-   SET sector    = 'NeoCloud',
-       sort_rank = 603
- WHERE ticker = 'ORCL';
-
-COMMIT;
+--
+-- WATCHLIST DML REMOVED (2026-10-03). This file used to add OKLO with ON
+-- CONFLICT DO UPDATE ... removed_at = NULL (un-removing an operator removal)
+-- and UPDATE ORCL's sector. The API self-migrates on every boot, so that DML
+-- re-ran on every deploy and undid operator edits to the watchlist. Its fresh-
+-- install effect now lives in the insert-only final-state seed in
+-- 006_seed_watchlist.sql (ON CONFLICT DO NOTHING); existing databases already
+-- carry it. Data DML in a migration must be insert-only -- enforced by
+-- tests/unit/storage/test_migration_dml_allowlist.py.

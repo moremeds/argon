@@ -149,3 +149,35 @@ def test_discovery_scan_empty_feed(seeded_db_empty_cards, monkeypatch):
     sigs = SignalsRepository(repo.conn, schema="uw_scan")
     snap = sigs.fetch_latest_discovery_snapshot(limit=20)
     assert snap["candidates"] == []
+
+
+def test_discovery_scan_alerts_failure_persists_fail_then_raises(
+    seeded_db_empty_cards, monkeypatch
+):
+    """A failed alerts fetch commits the scan_run as 'fail', releases the
+    single-flight lock, and re-raises so the job listener records the failure."""
+    import pytest
+
+    from uw_scan.config import Settings
+    from uw_scan.worker.jobs.discovery_scan import DISCOVERY_SCAN_LOCK
+
+    repo: Repository = seeded_db_empty_cards
+    settings = Settings.from_env()
+
+    def boom(client, r, run_id, limit=200):
+        raise RuntimeError("UW flow-alerts 500")
+
+    monkeypatch.setattr(
+        "uw_scan.worker.jobs.discovery_scan.fetch_market_flow_alerts", boom
+    )
+
+    with pytest.raises(RuntimeError, match="flow-alerts 500"):
+        discovery_scan_once(repo=repo, client=_FakeUw(), settings=settings)
+
+    with repo.conn.cursor() as cur:
+        cur.execute(
+            "SELECT status FROM uw_scan.scan_runs WHERE notes = 'discovery_scan'"
+        )
+        assert [r[0] for r in cur.fetchall()] == ["fail"]
+    assert repo.try_advisory_lock(DISCOVERY_SCAN_LOCK)
+    repo.release_advisory_lock(DISCOVERY_SCAN_LOCK)
