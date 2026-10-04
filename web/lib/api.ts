@@ -1,3 +1,4 @@
+import { apiFetch as _fetch } from "./apiClient";
 import type { components, paths } from "./types";
 
 export type RadarResponse = components["schemas"]["RadarResponse"];
@@ -46,22 +47,6 @@ type VrpPaperResponse = components["schemas"]["VrpPaperResponse"];
 type VrpMacroPositionsResponse =
   components["schemas"]["VrpMacroPositionsResponse"];
 type VrpMacroPositionDetail = components["schemas"]["VrpMacroPositionDetail"];
-
-// URL-agnostic base. In the browser, use a relative URL so requests go back
-// through whatever origin served the page (Tailnet IP, MagicDNS, Cloudflare
-// Tunnel, etc.) and get proxied to FastAPI by the Next.js rewrite at
-// `/api/:path*`. On the server (RSC fetches), hit FastAPI directly because
-// relative URLs have no base in a Node fetch context.
-// Browser: "" → relative `/api/*`, routed through the next.config.mjs rewrite.
-// Server (RSC): needs an absolute URL. Read NEXT_INTERNAL_API_BASE — a *runtime*
-// (non-NEXT_PUBLIC, so not build-inlined) env, the SAME var the rewrite proxy
-// uses. Under launchd it's unset → localhost fallback; in Docker it's
-// `http://api:8400` (the compose service), never `127.0.0.1` = the container
-// itself. See docker-migration spec code change #7.
-const API =
-  typeof window !== "undefined"
-    ? ""
-    : (process.env.NEXT_INTERNAL_API_BASE ?? "http://127.0.0.1:8400");
 
 type Json<
   P extends keyof paths,
@@ -190,28 +175,6 @@ type PositioningScreenerResponse = Json<"/api/positioning/screener", "get">;
  */
 export function _rawSlash(value: string): string {
   return encodeURIComponent(value).replace(/%2F/g, "/");
-}
-
-async function _fetch<T>(
-  path: string,
-  init?: RequestInit,
-  options: { allow404?: boolean } = {},
-): Promise<T> {
-  const r = await fetch(`${API}${path}`, {
-    ...init,
-    headers: { "Content-Type": "application/json", ...(init?.headers ?? {}) },
-    cache: "no-store",
-  });
-  if (options.allow404 && r.status === 404) return null as T;
-  if (!r.ok) {
-    throw new Error(`API ${r.status} for ${path}: ${await r.text()}`);
-  }
-  // FastAPI returns 204 No Content with an empty body for DELETE; calling
-  // r.json() on an empty body throws SyntaxError. Special-case empty.
-  if (r.status === 204) return undefined as unknown as T;
-  const text = await r.text();
-  if (!text) return undefined as unknown as T;
-  return JSON.parse(text) as T;
 }
 
 /** `?as_of=YYYY-MM-DD`, or nothing at all when live. The empty string is deliberately

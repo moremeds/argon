@@ -2,19 +2,14 @@
 
 import { useEffect, useState } from "react";
 
+import { apiFetch } from "@/lib/apiClient";
+import type { components } from "@/lib/types";
+
 import { regimeApi } from "./api";
 
-/** Descriptive correlation/dispersion context (EOD, slow-moving). NOT a signal. */
-export interface DispersionData {
-  as_of: string | null;
-  cor1m: number | null;
-  cor1m_percentile: number | null; // 0–1
-  vix: number | null;
-  vix_cor1m_ratio: number | null;
-  vix_cor1m_ratio_z: number | null; // trailing-252
-  history_start: string | null;
-  n_obs: number;
-}
+/** Descriptive correlation/dispersion context (EOD, slow-moving). NOT a signal.
+ *  Generated from the API's DispersionResponse (I-103). */
+export type DispersionData = components["schemas"]["DispersionResponse"];
 
 /** Fetch once on mount, then refresh every 5 min (data updates once/day). */
 export function useDispersion(): DispersionData | null {
@@ -24,9 +19,7 @@ export function useDispersion(): DispersionData | null {
     let alive = true;
     const load = async () => {
       try {
-        const res = await fetch(regimeApi.dispersion());
-        if (!res.ok) return;
-        const json = (await res.json()) as DispersionData;
+        const json = await apiFetch<DispersionData>(regimeApi.dispersion());
         if (alive) setData(json);
       } catch {
         // never-raise: leave the tile row absent rather than break the page
