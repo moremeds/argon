@@ -2,7 +2,11 @@
 
 from __future__ import annotations
 
+from typing import Literal
+
 from uw_scan.config import Settings
+
+WorkerGroup = Literal["uw", "massive", "ai", "ai-codex", "ai-claude", "ai-deepseek"]
 
 
 def _pinned(settings: Settings, role: str) -> bool:
@@ -22,3 +26,30 @@ def _owns_global_daily_jobs(settings: Settings) -> bool:
     gold_posture rows per night. Pin to massive-0, the macro-evidence owner.
     """
     return _pinned(settings, "massive")
+
+
+def _worker_groups(settings: Settings) -> set[WorkerGroup]:
+    role = settings.worker_role.lower()
+    if role == "all":
+        return {"uw", "massive", "ai"}
+    if role == "uw":
+        return {"uw"}
+    if role == "massive":
+        return {"massive"}
+    if role == "ai":
+        return {"ai"}
+    if role == "ai-codex":
+        return {"ai-codex"}
+    if role == "ai-claude":
+        return {"ai-claude"}
+    if role == "ai-deepseek":
+        return {"ai-deepseek"}
+    raise RuntimeError(
+        "UW_SCAN_WORKER_ROLE must be one of: all, uw, massive, ai, "
+        "ai-codex, ai-claude "
+        f"(got {settings.worker_role!r})"
+    )
+
+
+def _is_primary_worker(settings: Settings) -> bool:
+    return settings.worker_role.lower() == "all" or settings.worker_index == 0

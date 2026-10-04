@@ -6,6 +6,7 @@ import pytest
 from uw_scan.storage.ops_health import JobFailuresRepository
 from uw_scan.storage.repository import Repository
 from uw_scan.worker import scheduler
+from uw_scan.worker.schedule import regime
 
 
 @pytest.fixture
@@ -118,6 +119,7 @@ def test_market_tide_sentiment_failure_streak_then_success_clears(
     monkeypatch.setattr(scheduler, "wait_for_schema", lambda *_a, **_k: "skipped")
     monkeypatch.setattr(scheduler, "signal", _FakeSignal())
     monkeypatch.setattr(scheduler, "_repo", test_repo)
+    monkeypatch.setattr(regime, "_repo", test_repo)
     monkeypatch.setenv("UW_SCAN_WORKER_ROLE", "uw")
     monkeypatch.setenv("UW_SCAN_WORKER_INDEX", "0")
     monkeypatch.setenv("UW_SCAN_WORKER_COUNT", "1")
@@ -216,10 +218,15 @@ def _capture_uw0_jobs(monkeypatch, repo, job_ids, env):
     monkeypatch.setattr(scheduler, "wait_for_schema", lambda *_a, **_k: "skipped")
     monkeypatch.setattr(scheduler, "signal", _FakeSignal())
     monkeypatch.setattr(scheduler, "datetime", _Thursday)
+    monkeypatch.setattr(regime, "datetime", _Thursday)
     monkeypatch.setattr(scheduler, "_repo", test_repo)
+    monkeypatch.setattr(regime, "_repo", test_repo)
     monkeypatch.setattr(scheduler, "_external_api_recorder", no_recorder)
+    monkeypatch.setattr(regime, "_external_api_recorder", no_recorder)
     monkeypatch.setattr(scheduler, "_uw_client", lambda *a, **k: _NoUw())
+    monkeypatch.setattr(regime, "_uw_client", lambda *a, **k: _NoUw())
     monkeypatch.setattr(scheduler, "_research_budget_ok", lambda *a, **k: True)
+    monkeypatch.setattr(regime, "_research_budget_ok", lambda *a, **k: True)
     for k, v in {
         "UW_SCAN_WORKER_ROLE": "uw",
         "UW_SCAN_WORKER_INDEX": "0",

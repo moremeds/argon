@@ -15,6 +15,7 @@ import pytest
 
 import uw_scan.scanners.market_tide as market_tide_scanner
 import uw_scan.worker.jobs.market_tide_sentiment as sentiment_mod
+import uw_scan.worker.schedule.regime as regime
 import uw_scan.worker.scheduler as scheduler
 
 _JOB_IDS = ("regime_market_tide_scan", "market_tide_sentiment_eod")
@@ -97,9 +98,13 @@ def tide_jobs(monkeypatch):
     monkeypatch.setattr(scheduler, "BlockingScheduler", _FakeSched)
     monkeypatch.setattr(scheduler, "signal", _FakeSignal())
     monkeypatch.setattr(scheduler, "datetime", _WeekdayDatetime)
+    monkeypatch.setattr(regime, "datetime", _WeekdayDatetime)
     monkeypatch.setattr(scheduler, "_repo", fake_repo)
+    monkeypatch.setattr(regime, "_repo", fake_repo)
     monkeypatch.setattr(scheduler, "_external_api_recorder", fake_recorder)
+    monkeypatch.setattr(regime, "_external_api_recorder", fake_recorder)
     monkeypatch.setattr(scheduler, "_uw_client", lambda *a, **k: _FakeUwClient())
+    monkeypatch.setattr(regime, "_uw_client", lambda *a, **k: _FakeUwClient())
     monkeypatch.setenv("UW_SCAN_WORKER_ROLE", "uw")
     monkeypatch.setenv("UW_SCAN_WORKER_INDEX", "0")
     monkeypatch.setenv("UW_SCAN_WORKER_COUNT", "1")
