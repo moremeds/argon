@@ -25,7 +25,8 @@ from uw_scan.api.schemas import (
     WatchlistSpotsResponse,
 )
 from uw_scan.config import Settings
-from uw_scan.storage.repository import Repository, WatchlistCardRow
+from uw_scan.storage.repository import Repository
+from uw_scan.storage.rows import WatchlistCardRow
 from uw_scan.storage.watchlist_chain import WatchlistChainRepository
 from uw_scan.watchlist_taxonomy import LAYERS, layer_chains_for, layer_for_chain
 

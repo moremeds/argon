@@ -7,7 +7,8 @@ from fastapi import APIRouter, Depends, Query
 from pydantic import BaseModel
 
 from uw_scan.api.deps import get_repo
-from uw_scan.storage.repository import Repository, provider_day_bounds
+from uw_scan.storage._helpers import provider_day_bounds
+from uw_scan.storage.repository import Repository
 
 router = APIRouter()
 

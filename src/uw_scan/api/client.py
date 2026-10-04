@@ -14,10 +14,9 @@ from datetime import UTC, datetime
 
 import httpx
 
-from uw_scan.storage.provider_usage import ExternalApiRequestEvent
-from uw_scan.storage.repository import redact_params, status_family_for
-
 from uw_scan.sources.uw_endpoints import REGISTRY, Endpoint, EndpointSlug, build_path
+from uw_scan.storage._helpers import redact_params, status_family_for
+from uw_scan.storage.provider_usage import ExternalApiRequestEvent
 
 logger = logging.getLogger(__name__)
 

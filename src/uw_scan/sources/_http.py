@@ -21,8 +21,8 @@ from typing import Any
 
 import httpx
 
+from uw_scan.storage._helpers import redact_params, status_family_for
 from uw_scan.storage.provider_usage import ExternalApiRequestEvent
-from uw_scan.storage.repository import redact_params, status_family_for
 
 logger = logging.getLogger(__name__)
 

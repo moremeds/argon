@@ -2,7 +2,7 @@ from __future__ import annotations
 
 from datetime import UTC, datetime
 
-from uw_scan.storage.repository import (
+from uw_scan.storage._helpers import (
     provider_day_bounds,
     redact_params,
     status_family_for,

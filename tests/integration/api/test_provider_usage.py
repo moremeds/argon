@@ -2,7 +2,7 @@ from __future__ import annotations
 
 from datetime import UTC
 
-from uw_scan.storage.repository import provider_day_bounds
+from uw_scan.storage._helpers import provider_day_bounds
 
 
 def _seed_provider_usage(repo):

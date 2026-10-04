@@ -11,7 +11,7 @@ from __future__ import annotations
 
 import pytest
 
-from uw_scan.storage.repository import WatchlistCardRow
+from uw_scan.storage.rows import WatchlistCardRow
 
 
 class _StubCol:
