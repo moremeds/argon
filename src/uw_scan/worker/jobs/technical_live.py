@@ -20,6 +20,7 @@ from uw_scan.cards.technicals import (
 )
 from uw_scan.config import Settings
 from uw_scan.sources.ohlc import MassiveOhlcProvider, OhlcProvider
+from uw_scan.storage.provider_usage import ExternalApiRequestRecorder
 from uw_scan.storage.repository import Repository
 from uw_scan.storage.technical_live_repository import TechnicalLiveRepository
 from uw_scan.storage.technicals_repository import TechnicalsRepository
@@ -35,7 +36,9 @@ _MASSIVE_CHECK_INTERVAL = timedelta(minutes=15)
 _MASSIVE_RANGE_TOL_BPS = 50.0
 
 
-def _make_massive(settings: Settings) -> MassiveOhlcProvider | None:
+def _make_massive(
+    settings: Settings, telemetry_recorder: ExternalApiRequestRecorder | None = None
+) -> MassiveOhlcProvider | None:
     """Massive REST client for the forming-candle cross-check, None if no key."""
     if settings.massive_api_key is None:
         return None
@@ -43,6 +46,7 @@ def _make_massive(settings: Settings) -> MassiveOhlcProvider | None:
         api_key=settings.massive_api_key.get_secret_value(),
         base_url=settings.massive_base_url,
         timeout=settings.request_timeout_seconds,
+        telemetry_recorder=telemetry_recorder,
         job_name="technical_live_scan",
     )
 
@@ -96,6 +100,7 @@ def technical_live_scan(
     *,
     ticker_filter: list[str] | None = None,
     now: datetime | None = None,
+    telemetry_recorder: ExternalApiRequestRecorder | None = None,
 ) -> dict[str, Any]:
     now = now or datetime.now(timezone.utc)
     max_age = settings.technical_live_quote_max_age_seconds
@@ -109,7 +114,9 @@ def technical_live_scan(
         tickers = sorted({c.ticker.upper() for c in repo.list_watchlist_cards()})
 
     quotes = {q.ticker: q for q in repo.get_intraday_quotes(tickers)}
-    massive = _make_massive(settings)  # None if no MASSIVE_API_KEY
+    massive = _make_massive(
+        settings, telemetry_recorder=telemetry_recorder
+    )  # None if no MASSIVE_API_KEY
     ok = skipped_stale = skipped_thin = failed = healed = 0
     for t in tickers:
         try:
