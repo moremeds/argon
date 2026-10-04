@@ -133,7 +133,7 @@ but it has two implications operators should know:
    rather than converting back to a global lock — the speedup is the point.
 
 2. **OHLC pulls are owned by dedicated jobs, not by `full_scan`/`rescan`.**
-   `_full_scan` and `_rescan` in `scheduler.py` pass `_NoOhlc()` (a no-op
+   `_full_scan` and `_rescan` in `schedule/scan_core.py` pass `_NoOhlc()` (a no-op
    provider) to `full_scan_once` / `rescan_tick`. Daily OHLC fetches happen
    only in `_ohlc_pull` (massive REST). Intraday spot now flows through
    the standalone `massive_ws_consumer` process — not the scheduler at all.

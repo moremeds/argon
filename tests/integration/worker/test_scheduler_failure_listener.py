@@ -6,7 +6,7 @@ import pytest
 from uw_scan.storage.ops_health import JobFailuresRepository
 from uw_scan.storage.repository import Repository
 from uw_scan.worker import scheduler
-from uw_scan.worker.schedule import regime
+from uw_scan.worker.schedule import regime, scan_core
 
 
 @pytest.fixture
@@ -216,15 +216,13 @@ def _capture_uw0_jobs(monkeypatch, repo, job_ids, env):
     # main() waits for the schema marker first; this DB is not the one it reads.
     monkeypatch.setattr(scheduler, "wait_for_schema", lambda *_a, **_k: "skipped")
     monkeypatch.setattr(scheduler, "signal", _FakeSignal())
-    monkeypatch.setattr(scheduler, "datetime", _Thursday)
     monkeypatch.setattr(regime, "datetime", _Thursday)
-    monkeypatch.setattr(scheduler, "_repo", test_repo)
+    monkeypatch.setattr(scan_core, "_repo", test_repo)
     monkeypatch.setattr(regime, "_repo", test_repo)
-    monkeypatch.setattr(scheduler, "_external_api_recorder", no_recorder)
+    monkeypatch.setattr(scan_core, "_external_api_recorder", no_recorder)
     monkeypatch.setattr(regime, "_external_api_recorder", no_recorder)
-    monkeypatch.setattr(scheduler, "_uw_client", lambda *a, **k: _NoUw())
+    monkeypatch.setattr(scan_core, "_uw_client", lambda *a, **k: _NoUw())
     monkeypatch.setattr(regime, "_uw_client", lambda *a, **k: _NoUw())
-    monkeypatch.setattr(scheduler, "_research_budget_ok", lambda *a, **k: True)
     monkeypatch.setattr(regime, "_research_budget_ok", lambda *a, **k: True)
     for k, v in {
         "UW_SCAN_WORKER_ROLE": "uw",
