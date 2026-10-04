@@ -41,8 +41,8 @@ web/
 - **Hand-rolled SVG.** Helpers live in `lib/svgChart.ts` (`linearScale`, `finiteDomain`, `pathFromPoints`). Don't pull in `recharts` / `d3` / `visx`. **Two documented exceptions**, both using `lightweight-charts` + `lib/lwc/` primitives: (1) _2026-07-10_ the Technicals **price pane** (`components/stock/panels/TechnicalsPriceChart.tsx`); (2) _2026-08-02_ the **SPX density cone** on /regime (`components/regime/DensityConeChart.tsx`) — it needs a real dated x-axis, candlesticks, and pan/zoom, none of which the SVG helpers provide. Every other chart stays hand-rolled SVG.
 - **Don't render a lightweight-charts component in vitest.** `fancy-canvas` calls `window.matchMedia`, which jsdom lacks — it surfaces as unhandled rejections while tests still "pass". Mock the chart component (`vi.mock("@/components/…Chart")`) and cover the canvas in a Playwright e2e spec instead.
 - **Inline styles + CSS variables** (`var(--bg-panel)`, `var(--text-muted)`, etc.) — no styled-components, no CSS-in-JS lib. Tailwind utilities ARE used in the newer surfaces (`components/{fundamentals,radar,reports}/`, `app/chains`, `app/reports`); `components/{macro,rates,gold}/` instead use bespoke global CSS classes (`app/macro/board.css`, CSS modules) and older panels stay on inline styles + CSS variables.
-- **Mono label style:** 10px, letter-spacing 1.5, uppercase, `var(--text-muted)`. Value: 22px bold mono, primary color. See the `Tile` component in `components/stock/panels/VolMetricsCard.tsx` for the canonical pattern.
-- **Formatters** (`lib/formatters.ts`): `fmtPct`, `fmtSigned`, `fmtDecimal`, `toNum`. Use these — they handle null/string/number uniformly.
+- **Mono label style:** 10px, letter-spacing 1.5, uppercase, `var(--text-muted)`. Value: 22px bold mono, primary color. See `components/shared/Tile.tsx` for the canonical pattern.
+- **Formatters** (`lib/formatters.ts`): `fmtPct`, `fmtSigned`, `fmtDecimal`, `toNum`, `fmtGexUsd`, `formatLabel`. Use these — they handle null/string/number uniformly.
 - **Never trust scale.** UW returns `iv_rank` 0–100 but `percentile` 0–1. Re-check the contract when wiring a new tile.
 
 ## Commands

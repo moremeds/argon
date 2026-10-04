@@ -55,6 +55,25 @@ def test_refresh_endpoint_computes_empty_to_ready(
     }
 
 
+def test_refresh_endpoint_apex_outage_is_documented_200_empty(
+    client, seeded_db_empty_cards, monkeypatch
+):
+    """apex down -> technical_daily_refresh raises SourceUnavailable. The route
+    documents only 200/422, so it must answer 200 with the current state
+    (backfill_status='empty' here), exactly what it answered before the client
+    started raising -- never a bare 500."""
+    from uw_scan.sources.source_errors import SourceUnavailable
+
+    def down(t, **k):
+        raise SourceUnavailable("apex", "ConnectError('down')")
+
+    monkeypatch.setattr(tdr_mod, "fetch_daily_bars", down)
+    resp = client.post("/api/stock/IWM/technicals/refresh")
+
+    assert resp.status_code == 200
+    assert resp.json()["backfill_status"] == "empty"
+
+
 def test_refresh_endpoint_thin_history_stays_empty(
     client, seeded_db_empty_cards, monkeypatch
 ):

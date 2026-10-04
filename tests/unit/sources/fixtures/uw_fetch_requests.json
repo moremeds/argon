@@ -1,0 +1,1108 @@
+{
+ "fetch_analyst_ratings": [
+  [
+   {
+    "call": "get",
+    "option_symbol": null,
+    "params": {
+     "ticker": "AAPL"
+    },
+    "run_id": 1,
+    "slug": "analyst_ratings",
+    "ticker": null
+   }
+  ]
+ ],
+ "fetch_bulk_screener": [
+  [
+   {
+    "call": "get",
+    "option_symbol": null,
+    "params": {
+     "is_s_p_500": "true",
+     "limit": 100
+    },
+    "run_id": 1,
+    "slug": "bulk_screener_stocks",
+    "ticker": null
+   }
+  ],
+  [
+   {
+    "call": "get",
+    "option_symbol": null,
+    "params": {
+     "is_s_p_500": "false",
+     "limit": 5,
+     "sector": "Technology"
+    },
+    "run_id": 1,
+    "slug": "bulk_screener_stocks",
+    "ticker": null
+   }
+  ]
+ ],
+ "fetch_bulk_screener_ticker": [
+  [
+   {
+    "call": "get",
+    "option_symbol": null,
+    "params": {
+     "limit": 1,
+     "ticker": "AAPL"
+    },
+    "run_id": 1,
+    "slug": "bulk_screener_stocks",
+    "ticker": null
+   }
+  ],
+  [
+   {
+    "call": "get",
+    "option_symbol": null,
+    "params": {
+     "date": "2026-09-01",
+     "limit": 1,
+     "ticker": "AAPL"
+    },
+    "run_id": 1,
+    "slug": "bulk_screener_stocks",
+    "ticker": null
+   }
+  ]
+ ],
+ "fetch_darkpool_prints": [
+  [
+   {
+    "call": "get",
+    "option_symbol": null,
+    "params": {
+     "limit": 500
+    },
+    "run_id": 1,
+    "slug": "darkpool_ticker",
+    "ticker": "AAPL"
+   }
+  ],
+  [
+   {
+    "call": "get",
+    "option_symbol": null,
+    "params": {
+     "date": "2026-09-01",
+     "limit": 20
+    },
+    "run_id": 1,
+    "slug": "darkpool_ticker",
+    "ticker": "AAPL"
+   }
+  ]
+ ],
+ "fetch_darkpool_ticker": [
+  [
+   {
+    "call": "get",
+    "option_symbol": null,
+    "params": null,
+    "run_id": 1,
+    "slug": "darkpool_ticker",
+    "ticker": "AAPL"
+   }
+  ],
+  [
+   {
+    "call": "get",
+    "option_symbol": null,
+    "params": {
+     "date": "2026-09-01"
+    },
+    "run_id": 1,
+    "slug": "darkpool_ticker",
+    "ticker": "AAPL"
+   }
+  ]
+ ],
+ "fetch_earnings_history": [
+  [
+   {
+    "call": "get",
+    "option_symbol": null,
+    "params": null,
+    "run_id": 1,
+    "slug": "earnings",
+    "ticker": "AAPL"
+   }
+  ]
+ ],
+ "fetch_economic_calendar": [
+  [
+   {
+    "call": "get",
+    "option_symbol": null,
+    "params": null,
+    "run_id": 1,
+    "slug": "economic_calendar",
+    "ticker": null
+   }
+  ]
+ ],
+ "fetch_etf_in_outflow": [
+  [
+   {
+    "call": "get",
+    "option_symbol": null,
+    "params": {
+     "end_date": "2026-08-31",
+     "start_date": "2026-08-01"
+    },
+    "run_id": 1,
+    "slug": "etf_in_outflow",
+    "ticker": "SPY"
+   }
+  ]
+ ],
+ "fetch_etf_info": [
+  [
+   {
+    "call": "get",
+    "option_symbol": null,
+    "params": null,
+    "run_id": 1,
+    "slug": "etf_info",
+    "ticker": "SPY"
+   }
+  ]
+ ],
+ "fetch_flow_alerts": [
+  [
+   {
+    "call": "get",
+    "option_symbol": null,
+    "params": {
+     "limit": 100,
+     "ticker_symbol": "AAPL"
+    },
+    "run_id": 1,
+    "slug": "flow_alerts",
+    "ticker": null
+   }
+  ],
+  [
+   {
+    "call": "get",
+    "option_symbol": null,
+    "params": {
+     "limit": 7,
+     "ticker_symbol": "AAPL"
+    },
+    "run_id": 1,
+    "slug": "flow_alerts",
+    "ticker": null
+   }
+  ]
+ ],
+ "fetch_ftds": [
+  [
+   {
+    "call": "get",
+    "option_symbol": null,
+    "params": null,
+    "run_id": 1,
+    "slug": "ftds",
+    "ticker": "AAPL"
+   }
+  ]
+ ],
+ "fetch_gex_levels": [
+  [
+   {
+    "call": "get",
+    "option_symbol": null,
+    "params": null,
+    "run_id": 1,
+    "slug": "gex_levels",
+    "ticker": "AAPL"
+   }
+  ],
+  [
+   {
+    "call": "get",
+    "option_symbol": null,
+    "params": {
+     "date": "2026-09-01"
+    },
+    "run_id": 1,
+    "slug": "gex_levels",
+    "ticker": "AAPL"
+   }
+  ]
+ ],
+ "fetch_greek_exposure": [
+  [
+   {
+    "call": "get",
+    "option_symbol": null,
+    "params": {
+     "expiry": "2026-11-20"
+    },
+    "run_id": 1,
+    "slug": "greek_exposure",
+    "ticker": "AAPL"
+   }
+  ],
+  [
+   {
+    "call": "get",
+    "option_symbol": null,
+    "params": {
+     "date": "2026-09-01",
+     "expiry": "2026-11-20"
+    },
+    "run_id": 1,
+    "slug": "greek_exposure",
+    "ticker": "AAPL"
+   }
+  ]
+ ],
+ "fetch_greek_exposure_by_expiry": [
+  [
+   {
+    "call": "memo_init",
+    "schema": "uw_scan"
+   },
+   {
+    "call": "memo_get",
+    "label": "greek_exposure_by_expiry",
+    "ticker": "AAPL"
+   },
+   {
+    "call": "get",
+    "option_symbol": null,
+    "params": null,
+    "run_id": 1,
+    "slug": "greek_exposure_by_expiry",
+    "ticker": "AAPL"
+   },
+   {
+    "call": "memo_put",
+    "label": "greek_exposure_by_expiry",
+    "ticker": "AAPL"
+   }
+  ],
+  [
+   {
+    "call": "get",
+    "option_symbol": null,
+    "params": {
+     "date": "2026-08-31"
+    },
+    "run_id": 1,
+    "slug": "greek_exposure_by_expiry",
+    "ticker": "AAPL"
+   }
+  ],
+  [
+   {
+    "call": "get",
+    "option_symbol": null,
+    "params": {
+     "date": "2026-09-01"
+    },
+    "run_id": 1,
+    "slug": "greek_exposure_by_expiry",
+    "ticker": "AAPL"
+   }
+  ],
+  [
+   {
+    "call": "memo_init",
+    "schema": "uw_scan"
+   },
+   {
+    "call": "get",
+    "option_symbol": null,
+    "params": null,
+    "run_id": 1,
+    "slug": "greek_exposure_by_expiry",
+    "ticker": "AAPL"
+   },
+   {
+    "call": "memo_put",
+    "label": "greek_exposure_by_expiry",
+    "ticker": "AAPL"
+   }
+  ]
+ ],
+ "fetch_greek_exposure_by_strike": [
+  [
+   {
+    "call": "get",
+    "option_symbol": null,
+    "params": null,
+    "run_id": 1,
+    "slug": "greek_exposure_by_strike",
+    "ticker": "AAPL"
+   }
+  ]
+ ],
+ "fetch_greek_exposure_history": [
+  [
+   {
+    "call": "get",
+    "option_symbol": null,
+    "params": null,
+    "run_id": 1,
+    "slug": "greek_exposure_history",
+    "ticker": "AAPL"
+   }
+  ],
+  [
+   {
+    "call": "get",
+    "option_symbol": null,
+    "params": {
+     "timeframe": "1Y"
+    },
+    "run_id": 1,
+    "slug": "greek_exposure_history",
+    "ticker": "AAPL"
+   }
+  ]
+ ],
+ "fetch_greek_flow": [
+  [
+   {
+    "call": "get",
+    "option_symbol": null,
+    "params": null,
+    "run_id": 1,
+    "slug": "greek_flow",
+    "ticker": "AAPL"
+   }
+  ],
+  [
+   {
+    "call": "get",
+    "option_symbol": null,
+    "params": {
+     "date": "2026-09-01"
+    },
+    "run_id": 1,
+    "slug": "greek_flow",
+    "ticker": "AAPL"
+   }
+  ]
+ ],
+ "fetch_greeks": [
+  [
+   {
+    "call": "get",
+    "option_symbol": null,
+    "params": {
+     "expiry": "2026-11-20"
+    },
+    "run_id": 1,
+    "slug": "greeks",
+    "ticker": "AAPL"
+   }
+  ],
+  [
+   {
+    "call": "get",
+    "option_symbol": null,
+    "params": {
+     "date": "2026-08-31",
+     "expiry": "2026-11-20"
+    },
+    "run_id": 1,
+    "slug": "greeks",
+    "ticker": "AAPL"
+   }
+  ]
+ ],
+ "fetch_insider_ticker_flow": [
+  [
+   {
+    "call": "get",
+    "option_symbol": null,
+    "params": null,
+    "run_id": 1,
+    "slug": "insider_ticker_flow",
+    "ticker": "AAPL"
+   }
+  ]
+ ],
+ "fetch_institution_ownership": [
+  [
+   {
+    "call": "get",
+    "option_symbol": null,
+    "params": null,
+    "run_id": 1,
+    "slug": "institution_ownership",
+    "ticker": "AAPL"
+   }
+  ]
+ ],
+ "fetch_interpolated_iv": [
+  [
+   {
+    "call": "get",
+    "option_symbol": null,
+    "params": null,
+    "run_id": 1,
+    "slug": "interpolated_iv",
+    "ticker": "AAPL"
+   }
+  ],
+  [
+   {
+    "call": "get",
+    "option_symbol": null,
+    "params": {
+     "date": "2026-09-01"
+    },
+    "run_id": 1,
+    "slug": "interpolated_iv",
+    "ticker": "AAPL"
+   }
+  ]
+ ],
+ "fetch_iv_rank": [
+  [
+   {
+    "call": "get",
+    "option_symbol": null,
+    "params": null,
+    "run_id": 1,
+    "slug": "iv_rank",
+    "ticker": "AAPL"
+   }
+  ],
+  [
+   {
+    "call": "get",
+    "option_symbol": null,
+    "params": {
+     "date": "2026-09-01"
+    },
+    "run_id": 1,
+    "slug": "iv_rank",
+    "ticker": "AAPL"
+   }
+  ]
+ ],
+ "fetch_lit_flow": [
+  [
+   {
+    "call": "get",
+    "option_symbol": null,
+    "params": {
+     "limit": 500
+    },
+    "run_id": 1,
+    "slug": "lit_flow",
+    "ticker": "AAPL"
+   }
+  ],
+  [
+   {
+    "call": "get",
+    "option_symbol": null,
+    "params": {
+     "date": "2026-09-01",
+     "limit": 20
+    },
+    "run_id": 1,
+    "slug": "lit_flow",
+    "ticker": "AAPL"
+   }
+  ]
+ ],
+ "fetch_market_flow_alerts": [
+  [
+   {
+    "call": "get",
+    "option_symbol": null,
+    "params": {
+     "limit": 200
+    },
+    "run_id": 1,
+    "slug": "flow_alerts",
+    "ticker": null
+   }
+  ],
+  [
+   {
+    "call": "get",
+    "option_symbol": null,
+    "params": {
+     "limit": 9
+    },
+    "run_id": 1,
+    "slug": "flow_alerts",
+    "ticker": null
+   }
+  ]
+ ],
+ "fetch_market_tide": [
+  [
+   {
+    "call": "get",
+    "option_symbol": null,
+    "params": null,
+    "run_id": 1,
+    "slug": "market_tide",
+    "ticker": null
+   }
+  ],
+  [
+   {
+    "call": "get",
+    "option_symbol": null,
+    "params": {
+     "date": "2026-09-01"
+    },
+    "run_id": 1,
+    "slug": "market_tide",
+    "ticker": null
+   }
+  ]
+ ],
+ "fetch_max_pain": [
+  [
+   {
+    "call": "get",
+    "option_symbol": null,
+    "params": null,
+    "run_id": 1,
+    "slug": "max_pain",
+    "ticker": "AAPL"
+   }
+  ],
+  [
+   {
+    "call": "get",
+    "option_symbol": null,
+    "params": {
+     "date": "2026-09-01"
+    },
+    "run_id": 1,
+    "slug": "max_pain",
+    "ticker": "AAPL"
+   }
+  ]
+ ],
+ "fetch_net_prem_ticks": [
+  [
+   {
+    "call": "get",
+    "option_symbol": null,
+    "params": {
+     "limit": 500
+    },
+    "run_id": 1,
+    "slug": "net_prem_ticks",
+    "ticker": "AAPL"
+   }
+  ],
+  [
+   {
+    "call": "get",
+    "option_symbol": null,
+    "params": {
+     "date": "2026-09-01",
+     "limit": 20
+    },
+    "run_id": 1,
+    "slug": "net_prem_ticks",
+    "ticker": "AAPL"
+   }
+  ]
+ ],
+ "fetch_oi_change": [
+  [
+   {
+    "call": "get",
+    "option_symbol": null,
+    "params": null,
+    "run_id": 1,
+    "slug": "oi_change",
+    "ticker": "AAPL"
+   }
+  ],
+  [
+   {
+    "call": "get",
+    "option_symbol": null,
+    "params": {
+     "date": "2026-09-01"
+    },
+    "run_id": 1,
+    "slug": "oi_change",
+    "ticker": "AAPL"
+   }
+  ]
+ ],
+ "fetch_oi_per_strike": [
+  [
+   {
+    "call": "get",
+    "option_symbol": null,
+    "params": null,
+    "run_id": 1,
+    "slug": "oi_per_strike",
+    "ticker": "AAPL"
+   }
+  ],
+  [
+   {
+    "call": "get",
+    "option_symbol": null,
+    "params": {
+     "date": "2026-09-01"
+    },
+    "run_id": 1,
+    "slug": "oi_per_strike",
+    "ticker": "AAPL"
+   }
+  ]
+ ],
+ "fetch_option_contract_intraday": [
+  [
+   {
+    "call": "get",
+    "option_symbol": "AAPL261120C00200000",
+    "params": {
+     "date": "2026-08-31"
+    },
+    "run_id": 1,
+    "slug": "option_contract_intraday",
+    "ticker": null
+   }
+  ]
+ ],
+ "fetch_option_contracts": [
+  [
+   {
+    "call": "memo_init",
+    "schema": "uw_scan"
+   },
+   {
+    "call": "memo_get",
+    "label": "option_contracts",
+    "ticker": "AAPL"
+   },
+   {
+    "call": "get",
+    "option_symbol": null,
+    "params": {
+     "limit": 500
+    },
+    "run_id": 1,
+    "slug": "option_contracts",
+    "ticker": "AAPL"
+   },
+   {
+    "call": "memo_put",
+    "label": "option_contracts",
+    "ticker": "AAPL"
+   }
+  ],
+  [
+   {
+    "call": "memo_init",
+    "schema": "uw_scan"
+   },
+   {
+    "call": "memo_get",
+    "label": "option_contracts",
+    "ticker": "AAPL"
+   },
+   {
+    "call": "get",
+    "option_symbol": null,
+    "params": {
+     "limit": 50
+    },
+    "run_id": 1,
+    "slug": "option_contracts",
+    "ticker": "AAPL"
+   },
+   {
+    "call": "memo_put",
+    "label": "option_contracts",
+    "ticker": "AAPL"
+   }
+  ],
+  [
+   {
+    "call": "get",
+    "option_symbol": null,
+    "params": {
+     "date": "2026-09-01",
+     "limit": 500
+    },
+    "run_id": 1,
+    "slug": "option_contracts",
+    "ticker": "AAPL"
+   }
+  ],
+  [
+   {
+    "call": "memo_init",
+    "schema": "uw_scan"
+   },
+   {
+    "call": "get",
+    "option_symbol": null,
+    "params": {
+     "limit": 500
+    },
+    "run_id": 1,
+    "slug": "option_contracts",
+    "ticker": "AAPL"
+   },
+   {
+    "call": "memo_put",
+    "label": "option_contracts",
+    "ticker": "AAPL"
+   }
+  ]
+ ],
+ "fetch_option_contracts_by_expiry": [
+  [
+   {
+    "call": "get",
+    "option_symbol": null,
+    "params": {
+     "expiry": "2026-11-20"
+    },
+    "run_id": 1,
+    "slug": "option_contracts",
+    "ticker": "AAPL"
+   }
+  ]
+ ],
+ "fetch_option_contracts_by_symbol": [
+  [
+   {
+    "call": "get",
+    "option_symbol": null,
+    "params": {
+     "option_symbol[]": [
+      "AAPL261120C00200000",
+      "AAPL261120P00180000"
+     ]
+    },
+    "run_id": 1,
+    "slug": "option_contracts_by_symbol",
+    "ticker": "AAPL"
+   }
+  ]
+ ],
+ "fetch_options_volume_daily": [
+  [
+   {
+    "call": "get",
+    "option_symbol": null,
+    "params": {
+     "limit": 200
+    },
+    "run_id": 1,
+    "slug": "options_volume_daily",
+    "ticker": "AAPL"
+   }
+  ],
+  [
+   {
+    "call": "get",
+    "option_symbol": null,
+    "params": {
+     "limit": 5
+    },
+    "run_id": 1,
+    "slug": "options_volume_daily",
+    "ticker": "AAPL"
+   }
+  ]
+ ],
+ "fetch_realized_volatility": [
+  [
+   {
+    "call": "get",
+    "option_symbol": null,
+    "params": null,
+    "run_id": 1,
+    "slug": "realized_volatility",
+    "ticker": "AAPL"
+   }
+  ]
+ ],
+ "fetch_short_data": [
+  [
+   {
+    "call": "get",
+    "option_symbol": null,
+    "params": null,
+    "run_id": 1,
+    "slug": "short_data",
+    "ticker": "AAPL"
+   }
+  ]
+ ],
+ "fetch_short_interest_float": [
+  [
+   {
+    "call": "get",
+    "option_symbol": null,
+    "params": null,
+    "run_id": 1,
+    "slug": "short_interest_float",
+    "ticker": "AAPL"
+   }
+  ]
+ ],
+ "fetch_short_interest_history": [
+  [
+   {
+    "call": "get",
+    "option_symbol": null,
+    "params": null,
+    "run_id": 1,
+    "slug": "short_interest_float",
+    "ticker": "AAPL"
+   }
+  ]
+ ],
+ "fetch_skew": [
+  [
+   {
+    "call": "get",
+    "option_symbol": null,
+    "params": {
+     "delta": 25,
+     "expiry": "2026-11-20"
+    },
+    "run_id": 1,
+    "slug": "skew",
+    "ticker": "AAPL"
+   }
+  ],
+  [
+   {
+    "call": "get",
+    "option_symbol": null,
+    "params": {
+     "delta": 10,
+     "expiry": "2026-11-20"
+    },
+    "run_id": 1,
+    "slug": "skew",
+    "ticker": "AAPL"
+   }
+  ]
+ ],
+ "fetch_spot_exposures": [
+  [
+   {
+    "call": "get",
+    "option_symbol": null,
+    "params": {
+     "expirations[]": [
+      "2026-11-20"
+     ]
+    },
+    "run_id": 1,
+    "slug": "spot_exposures",
+    "ticker": "AAPL"
+   }
+  ],
+  [
+   {
+    "call": "get",
+    "option_symbol": null,
+    "params": {
+     "date": "2026-09-01",
+     "expirations[]": [
+      "2026-11-20"
+     ]
+    },
+    "run_id": 1,
+    "slug": "spot_exposures",
+    "ticker": "AAPL"
+   }
+  ]
+ ],
+ "fetch_stock_state": [
+  [
+   {
+    "call": "get",
+    "option_symbol": null,
+    "params": null,
+    "run_id": 1,
+    "slug": "stock_state",
+    "ticker": "AAPL"
+   }
+  ]
+ ],
+ "fetch_term_structure": [
+  [
+   {
+    "call": "get",
+    "option_symbol": null,
+    "params": null,
+    "run_id": 1,
+    "slug": "term_structure",
+    "ticker": "AAPL"
+   }
+  ],
+  [
+   {
+    "call": "get",
+    "option_symbol": null,
+    "params": {
+     "date": "2026-09-01"
+    },
+    "run_id": 1,
+    "slug": "term_structure",
+    "ticker": "AAPL"
+   }
+  ]
+ ],
+ "fetch_top_net_impact": [
+  [
+   {
+    "call": "get",
+    "option_symbol": null,
+    "params": {
+     "limit": 40
+    },
+    "run_id": 1,
+    "slug": "top_net_impact",
+    "ticker": null
+   }
+  ],
+  [
+   {
+    "call": "get",
+    "option_symbol": null,
+    "params": {
+     "date": "2026-09-01",
+     "limit": 10
+    },
+    "run_id": 1,
+    "slug": "top_net_impact",
+    "ticker": null
+   }
+  ]
+ ],
+ "fetch_volatility_anomaly": [
+  [
+   {
+    "call": "get",
+    "option_symbol": null,
+    "params": null,
+    "run_id": 1,
+    "slug": "volatility_anomaly",
+    "ticker": "AAPL"
+   }
+  ],
+  [
+   {
+    "call": "get",
+    "option_symbol": null,
+    "params": {
+     "date": "2026-09-01"
+    },
+    "run_id": 1,
+    "slug": "volatility_anomaly",
+    "ticker": "AAPL"
+   }
+  ]
+ ],
+ "fetch_volatility_character": [
+  [
+   {
+    "call": "get",
+    "option_symbol": null,
+    "params": null,
+    "run_id": 1,
+    "slug": "volatility_character",
+    "ticker": "AAPL"
+   }
+  ],
+  [
+   {
+    "call": "get",
+    "option_symbol": null,
+    "params": {
+     "date": "2026-09-01"
+    },
+    "run_id": 1,
+    "slug": "volatility_character",
+    "ticker": "AAPL"
+   }
+  ]
+ ],
+ "fetch_volatility_stats": [
+  [
+   {
+    "call": "get",
+    "option_symbol": null,
+    "params": null,
+    "run_id": 1,
+    "slug": "volatility_stats",
+    "ticker": "AAPL"
+   }
+  ],
+  [
+   {
+    "call": "get",
+    "option_symbol": null,
+    "params": {
+     "date": "2026-09-01"
+    },
+    "run_id": 1,
+    "slug": "volatility_stats",
+    "ticker": "AAPL"
+   }
+  ]
+ ],
+ "fetch_volatility_vrp": [
+  [
+   {
+    "call": "get",
+    "option_symbol": null,
+    "params": null,
+    "run_id": 1,
+    "slug": "volatility_vrp",
+    "ticker": "AAPL"
+   }
+  ],
+  [
+   {
+    "call": "get",
+    "option_symbol": null,
+    "params": {
+     "date": "2026-09-01"
+    },
+    "run_id": 1,
+    "slug": "volatility_vrp",
+    "ticker": "AAPL"
+   }
+  ]
+ ],
+ "fetch_volumes_by_exchange": [
+  [
+   {
+    "call": "get",
+    "option_symbol": null,
+    "params": null,
+    "run_id": 1,
+    "slug": "volumes_by_exchange",
+    "ticker": "AAPL"
+   }
+  ]
+ ]
+}

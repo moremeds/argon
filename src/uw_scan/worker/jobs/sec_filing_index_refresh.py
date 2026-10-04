@@ -24,6 +24,7 @@ from uw_scan.sources.sec_submissions import (
     fetch_filings,
     sec_client,
 )
+from uw_scan.sources.source_errors import SourceUnavailable
 from uw_scan.storage.fundamental_obs import FundamentalObsRepository
 from uw_scan.storage.sec_filing_index import SecFilingIndexRepository
 
@@ -47,7 +48,14 @@ def sec_filing_index_refresh(
     only_missing: bool = False,
     client: Any | None = None,
 ) -> dict[str, int]:
-    """Fetch and persist SEC filings. Returns counters; never raises on network."""
+    """Fetch and persist SEC filings. Returns counters.
+
+    Unit = one issuer; each issuer's filings commit as they land. The CIK map is
+    the one shared input, so SEC failing to serve it raises SourceUnavailable.
+    An issuer SEC cannot answer for is counted (`unavailable`, separate from
+    `no_filings`) and the run goes on; the run raises when no issuer could be
+    fetched at all.
+    """
     obs = FundamentalObsRepository(conn, schema)
     repo = SecFilingIndexRepository(conn, schema)
 
@@ -57,6 +65,7 @@ def sec_filing_index_refresh(
         "filings_inserted": 0,
         "no_cik": 0,
         "no_filings": 0,
+        "unavailable": 0,
         "skipped_present": 0,
         "failed": 0,
     }
@@ -66,16 +75,17 @@ def sec_filing_index_refresh(
     owns_client = client is None
     client = client or sec_client(user_agent)
     try:
+        # SourceUnavailable here aborts the run: every per-issuer call needs a
+        # CIK, so continuing would just log 400 identical "no_cik" lines and
+        # look like a universe problem.
         cik_map = fetch_cik_map(client)
-        if cik_map:
-            repo.upsert_cik_map(cik_map)
-        else:
-            # The map fetch failing is the one error worth aborting on: every
-            # per-issuer call needs a CIK, so continuing would just log 400
-            # identical "no_cik" lines and look like a universe problem.
+        if not cik_map:
             logger.warning("sec cik map empty; aborting refresh")
             counters["failed"] = len(names)
             return counters
+        repo.upsert_cik_map(cik_map)
+        fetched = 0
+        last_unavailable: SourceUnavailable | None = None
 
         present = repo.indexed_tickers() if only_missing else set()
 
@@ -88,16 +98,29 @@ def sec_filing_index_refresh(
             if not cik:
                 counters["no_cik"] += 1
                 continue
-            filings = fetch_filings(client, cik)
+            try:
+                filings = fetch_filings(client, cik)
+            except SourceUnavailable as exc:
+                counters["unavailable"] += 1
+                last_unavailable = exc
+                logger.warning("sec filings %s: %s", ticker, repr(exc))
+                time.sleep(_SLEEP_SECONDS)
+                continue
+            fetched += 1
             if not filings:
                 counters["no_filings"] += 1
                 time.sleep(_SLEEP_SECONDS)
                 continue
             counters["filings_inserted"] += repo.record_filings(cik, ticker, filings)
             time.sleep(_SLEEP_SECONDS)
+        logger.info("sec_filing_index_refresh: %s", counters)
+        if fetched == 0 and last_unavailable is not None:
+            raise SourceUnavailable(
+                "sec",
+                f"sec_filing_index_refresh: {counters['unavailable']} issuers "
+                f"unavailable, none fetched; last: {last_unavailable.detail}",
+            ) from last_unavailable
     finally:
         if owns_client:
             client.close()
-
-    logger.info("sec_filing_index_refresh: %s", counters)
     return counters

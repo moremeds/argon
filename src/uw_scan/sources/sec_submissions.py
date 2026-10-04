@@ -32,6 +32,8 @@ from typing import Any
 
 import httpx
 
+from uw_scan.sources.source_errors import SourceUnavailable
+
 logger = logging.getLogger(__name__)
 
 SEC_TICKERS_URL = "https://www.sec.gov/files/company_tickers.json"
@@ -151,25 +153,28 @@ def sec_client(user_agent: str, timeout: float = 30.0) -> httpx.Client:
     )
 
 
-def _get_json(client: httpx.Client, url: str) -> Any | None:
-    """Never-raise GET. A caller distinguishes "no data" from "failed" by count."""
+def _get_json(client: httpx.Client, url: str) -> dict:
+    """GET one SEC JSON object. A transport error, a non-2xx, an undecodable
+    body or a non-object body raises SourceUnavailable (I-15); nothing else is
+    caught, so a programming error propagates (I-17)."""
     try:
         resp = client.get(url)
         resp.raise_for_status()
-        return resp.json()
-    except Exception as exc:  # noqa: BLE001 - never-raise client boundary
-        logger.warning("sec fetch failed url=%s err=%s", url, repr(exc))
-        return None
+        body = resp.json()
+    except (httpx.HTTPError, ValueError) as exc:
+        raise SourceUnavailable("sec", f"{url}: {exc!r}") from exc
+    if not isinstance(body, dict):
+        raise SourceUnavailable("sec", f"{url}: body is {type(body).__name__}")
+    return body
 
 
 def fetch_cik_map(client: httpx.Client) -> dict[str, str]:
-    """ticker -> 10-digit zero-padded CIK. Empty dict on failure, never raises.
+    """ticker -> 10-digit zero-padded CIK. Raises SourceUnavailable when SEC
+    cannot answer.
 
     The zero-padding is load-bearing: `data.sec.gov` 404s on an unpadded CIK.
     """
     payload = _get_json(client, SEC_TICKERS_URL)
-    if not isinstance(payload, dict):
-        return {}
     out: dict[str, str] = {}
     for entry in payload.values():
         if not isinstance(entry, dict):
@@ -178,25 +183,25 @@ def fetch_cik_map(client: httpx.Client) -> dict[str, str]:
         cik = entry.get("cik_str")
         if not ticker or cik is None:
             continue
-        out[ticker] = str(int(cik)).zfill(10)
+        try:
+            out[ticker] = str(int(cik)).zfill(10)
+        except (ValueError, TypeError) as exc:  # one malformed entry, not the map
+            logger.debug("sec cik map skip %s: %s", ticker, repr(exc))
     return out
 
 
 def fetch_filings(client: httpx.Client, cik: str) -> list[SecFiling]:
-    """Every periodic filing for one CIK, archives included. Never raises.
+    """Every periodic filing for one CIK, archives included.
 
-    Returns a deduplicated, chronologically sorted list. An empty list means
-    either "no periodic filings" or "the fetch failed" — the refresh job
-    separates those by counting `None` payloads, not by list length here.
+    Returns a deduplicated, chronologically sorted list; an empty list means
+    only "SEC answered and lists no periodic filings". If the submissions
+    document OR any archive page cannot be fetched, raises SourceUnavailable:
+    a list missing an archive page would under-report this issuer's filings.
     """
     payload = _get_json(client, SEC_SUBMISSIONS_URL.format(cik=cik))
-    if payload is None:
-        return []
     seen: set[SecFiling] = set(parse_submissions(payload))
     for name in archive_names(payload):
-        archive = _get_json(client, SEC_ARCHIVE_URL.format(name=name))
-        if archive is not None:
-            seen.update(parse_archive(archive))
+        seen.update(parse_archive(_get_json(client, SEC_ARCHIVE_URL.format(name=name))))
     return sorted(seen, key=lambda f: (f.report_date, f.filing_date, f.accession))
 
 
