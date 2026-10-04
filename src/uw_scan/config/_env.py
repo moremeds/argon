@@ -41,6 +41,15 @@ def _true_only(raw: str) -> bool:
     return raw.lower() == "true"
 
 
+def _true_1_yes(raw: str) -> bool:
+    """Legacy bool parse: "1"/"true"/"yes" (any case, unstripped) are true; "on" is false.
+
+    Kept on purpose for the five kill switches that used it (D6 must not change
+    behaviour); unifying them on ``_env_bool`` is a separate, approved change.
+    """
+    return raw.lower() in ("1", "true", "yes")
+
+
 def _rstrip_slash(raw: str) -> str:
     return raw.rstrip("/")
 
