@@ -23,7 +23,7 @@ def test_disabled_ai_provider_expects_zero_workers(seeded_db_empty_cards):
     """
     from datetime import UTC, datetime, timedelta
 
-    from uw_scan.api.routers.health import _provider_ai_health
+    from uw_scan.reports.health_blocks import _provider_ai_health
 
     common = {
         "repo": seeded_db_empty_cards,
