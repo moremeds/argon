@@ -7,6 +7,9 @@ version in lockstep (enforced by `scripts/release/version_sync_check.py`).
 
 ## [Unreleased]
 
+## [0.13.24] — 2026-10-04
+
+
 ### Added
 
 - **Settings golden (D6 batch 0, I-70).** `tests/unit/test_settings_golden.py` with `tests/unit/fixtures/settings_golden.json` freezes all 181 `Settings` fields. For each field it records the env names `from_env` reads (derived from the source by AST, including the lake roots' `MARKET_WAREHOUSE_LAKE` fallback), the type, the class default (bare `Settings()`), the `from_env` default, and the parsed value or exception type for a fixed set of input strings per type. Among other quirks, the probes record that `XENON_WS_ENABLED=1` parses as false. A behavioural check sets each env name and asserts that its field changes or is rejected, so a name that appears only in the source cannot pass. The run is hermetic: every known env name is removed and an empty env file is loaded. Regenerate on purpose with `UPDATE_SETTINGS_GOLDEN=1`. Tests only; no runtime behaviour changes. The config refactor batches that follow must leave this golden byte-identical.
@@ -16,7 +19,6 @@ version in lockstep (enforced by `scripts/release/version_sync_check.py`).
 - **CFTC positioning no longer reads degraded five days a week.** `macro_market_layer_ingest` requested the TFF report from `today - 120 days`, so the request URL changed every night while the payload changed only on Thursday and Friday. `macro_source_artifacts` keeps `source_url` immutable per content hash, so Saturday to Wednesday re-fetched the same bytes under a new URL, raised `artifact identity collision`, and set `macro_source_status.cftc` to degraded. No data was lost. The scheduled start is now floored to a Tuesday (`positioning_window_start`), so the URL moves only on the day a report leaves the window. An explicit `positioning_start` (backfill) is unchanged, and the immutability check is untouched.
 
 - **VRP macro entry quotes no longer store a fake underlying spot.** When a mark had no live SPX spot and IB returned no `undPrice`, `worker/jobs/vrp_macro_entry.py` substituted the cohort's `spot_at_birth` and wrote it to `vrp_macro_entry_quote.und_spot`. `quote_leg` also computed BS greeks from that substituted spot. Now `und_spot` is NULL in that case and BS greeks are skipped (`greeks_source='none'`); the real NBBO and IV are still stored. No migration (the column was already nullable), no OpenAPI change, and no existing row is changed. Historical rows that carry the substituted spot match this read-only predicate: `vrp_macro_entry_quote q JOIN vrp_macro_entry e USING (entry_id) WHERE q.source = 'uw' AND q.und_spot = e.spot_at_birth` (8428 rows on prod on 2026-10-04: 8399 auto, 29 button; 7444 of them have `greeks_source='bs'`). The predicate is an upper bound: 65 of the rows are on a cohort's first mark, where a live spot can equal the birth spot.
-
 ## [0.13.23] — 2026-10-04
 
 
