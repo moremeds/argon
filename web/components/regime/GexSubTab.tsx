@@ -246,7 +246,7 @@ export default function GexSubTab({ marketState }: GexSubTabProps) {
   const biasDirection = bias?.direction ?? null;
   // No day count → no badge (never "AT", never 0).
   const daysAbove = bias?.days_above_flip ?? null;
-  const daysCount = daysAbove == null ? 0 : Math.abs(daysAbove);
+  const daysCount = daysAbove == null ? null : Math.abs(daysAbove);
   const daysSide =
     daysAbove == null
       ? null
@@ -307,7 +307,7 @@ export default function GexSubTab({ marketState }: GexSubTabProps) {
             flexWrap: "wrap",
           }}
         >
-          {daysAbove != null && daysCount > 0 && (
+          {daysAbove != null && daysCount != null && daysCount > 0 && (
             <span
               className="gex-day-badge"
               style={{
