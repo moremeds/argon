@@ -7,8 +7,11 @@ version in lockstep (enforced by `scripts/release/version_sync_check.py`).
 
 ## [Unreleased]
 
-## [0.13.21] — 2026-10-04
+### Changed
 
+- **The trade-blast AI lane shares the Trade Insights AI implementation instead of a copy (I-80); no behaviour change.** `reports/trade_blast/` was ~80% a copy of `reports/trade_insights_ai/`. `trade_insights_ai` now owns the analysis-input builder, hash, prompt assembly, output schema, lenient coercer and validator once, with keyword hooks for what blast changes (prompt version, extra hash exclusions, embedded reference and framework directive, the scenario wording, extra structural checks, the soft-mode autocorrect and the framework coercer). The base prompt is split into named fragments that blast composes with its worked example and qualitative scenario table. `trade_blast` keeps only its deltas: the M6 framework payload sections, the framework KB, the framework validator rules and coercion (~1,850 fewer lines). Both lanes stay live and both packages export the same names. Proof: `tests/unit/reports/test_trade_ai_lanes_golden.py`, recorded on the pre-refactor code, pins each lane's prompt version, analysis input and hash, prompt payload, full prompt text, output schema, and the validated outcome + Markdown for every validator mode the worker uses; it is byte-identical after the change.
+
+## [0.13.21] — 2026-10-04
 
 ### Fixed
 
@@ -23,8 +26,8 @@ version in lockstep (enforced by `scripts/release/version_sync_check.py`).
 - **Job entries in the fundamentals family take keyword-only arguments (I-52); no behaviour change.** `derive_change_events`, `earnings_reactions_compute`, `implied_move_snapshot` and `fundamentals_desk_rollup` take `(*, conn, ...)`; `fundamentals_refresh_once` takes `(*, repo, provider, ...)` and keeps `repo` for the same transaction-ownership reason as the macro jobs. The healer registry's quoted call shape and the generated `docs/runbooks/data-gap-dataset-policy.md` row follow.
 - **Job entries in the regime family take keyword-only arguments (I-52); no behaviour change.** `refresh_eod_sentiment`, `regime_live_scan_once` and `validate_live_close_vs_lake` take `(*, repo, ...)`; the vol-index and credit-ETF lake syncs take `(*, conn, root, ...)`, keeping the raw connection their lake writes use.
 - **Job entries in the scan-core family take keyword-only arguments (I-52); no behaviour change.** `full_scan_once`, `full_scan_hot_once` and `rescan_tick` take `(*, repo, client, ohlc_provider, ...)` (the `uw_client` parameter is now `client`, matching `positioning_refresh_once` and the other UW jobs); `ohlc_pull_once` takes `(*, repo, provider, lookback_days=40, ...)` and `positioning_refresh_once` `(*, repo, client, ...)`. Every job entry in the macro, fundamentals, regime and scan-core families is now keyword-only; the jobs still in `scheduler.py` and the AI family are not yet.
-## [0.13.20] — 2026-10-04
 
+## [0.13.20] — 2026-10-04
 
 ### Fixed
 
@@ -64,8 +67,8 @@ version in lockstep (enforced by `scripts/release/version_sync_check.py`).
 ### Fixed
 
 - **Web: missing GEX values render as missing, never as 0 or a crash (13 pre-existing display bugs from I-103b).** A null `bias.direction` no longer crashes the GEX tab, and null MQ source deltas no longer crash the MQ panel; the curvature chart drops buckets with a null strike or net GEX instead of plotting them at 0 (which drew a GEX value the API never sent and stretched the axis to strike 0), and a null spot no longer throws; a null net GEX/DEX shows "---" in a neutral colour instead of green; absent `bias`/`levels`/`expected_range` render their missing state; `retagProfileForSpot` never picks a null-strike bucket as nearest and gives it `pct_from_spot: null` instead of -100. Real-payload snapshots are unchanged; `web/tests/unit/regimeNullRendering.test.tsx` (written first, 18 of its 21 cases failed on the old code) covers each case. The MQ fallback on the GEX tab no longer relies on type casts (`mq`, `source_delta`, `hvl`); a missing HVL or MQ level renders as the dash.
-## [0.13.19] — 2026-10-04
 
+## [0.13.19] — 2026-10-04
 
 ### Changed
 
@@ -77,9 +80,9 @@ version in lockstep (enforced by `scripts/release/version_sync_check.py`).
 - **Every gold-posture reader now returns the same row per day.** The live page (`fetch_gold_posture_latest`) took a day's NEWEST row while replay, the macro gold state and gauge history took the FIRST, and the nightly healer added a second row at ~20:05 ET, so live and replay could show different inputs for the same day. All readers now take the first active row (the one the 19:40 macro state read; a later row would be lookahead for any replay of it), and the healer's `gold_posture` refresh only fills a day that has no active row.
 - **Deploys no longer rewrite AI analyses, flow rollups or gold-posture rows.** The API re-runs every migration on every boot, and four still carried UPDATEs: `021` failed every queued/running Trade Insights AI analysis not on the v2 prompt (live is v5.3, so each deploy killed in-flight analyses); `023` recomputed every `flow_alerts_daily_rollup` row from all of `flow_events` (full scan) and overwrote the runtime writer's values with a hard-coded 100-alert limit; `047`/`048` invalidated gold-posture rows, changing which row `fetch_gold_posture_as_of` returns (the "after latest GLD close" rule invalidated 6 rows on deploys through 2026-08-16). The DML is removed and the DDL kept. Each one-time effect was verified on prod first: all nine predicates match 0 rows on 2026-10-03, and the rollup already spans the first `flow_events` day. `KNOWN_HARMFUL_UNFIXED` in `test_migration_dml_allowlist.py` is now empty; `tests/integration/storage/test_dml_migration_replay.py` seeds one row per old predicate and proves two replays leave all three tables byte-identical (it fails against the original files).
 - **The volatility-tab UW backfill is now a durable, budget-gated queue.** `GET /stock/{t}/volatility/series` started the backfill as a FastAPI `BackgroundTask`: an API restart lost it, and its UW calls ran outside the budget governor. The GET now upserts a `queued` row in `volatility_backfill_status` (migration 157 widens its status CHECK; the ticker key keeps concurrent GETs to one row), and a new uw-0 `volatility_backfill_tick` (every 10 s) claims one row with `FOR UPDATE SKIP LOCKED` and runs it under the research UW budget — over budget, rows stay `queued`. A `running` row older than 60 min (measured max run ~13.5 min) is reclaimed in the same `UPDATE` as the claim; the worker never writes `queued`, so a worker that starts before the api has migrated cannot violate the old CHECK. The response is unchanged: a `queued` row reports `backfill_status: "running"`, as does the Trade Insights volatility block.
-- **The role-agnostic daily jobs run once, not three times.** The block holding the gold ingests and posture compute, the regime CRI/VCG/canary EOD scans, the VRP macro signal, the vol/credit lake syncs and the macro ingests was gated by `_is_primary_worker`, which is true for worker 0 of *every* role, so on the prod fleet uw-0, massive-0 and ai-deepseek-0 each ran all of it: three `gold_posture_daily` rows per night written within ~15 ms (prod 2026-10-01/02), three times the gold UW options calls, and racing writers. The block is now owned by massive-0 (or `all`) alone; `rates_fred_ingest`, which is pinned to uw-0, moves out of it unchanged. `test_no_job_runs_on_two_roles_in_the_prod_fleet` fails if any job id is ever scheduled on two roles again (the heartbeat excepted).
-## [0.13.18] — 2026-10-04
+- **The role-agnostic daily jobs run once, not three times.** The block holding the gold ingests and posture compute, the regime CRI/VCG/canary EOD scans, the VRP macro signal, the vol/credit lake syncs and the macro ingests was gated by `_is_primary_worker`, which is true for worker 0 of _every_ role, so on the prod fleet uw-0, massive-0 and ai-deepseek-0 each ran all of it: three `gold_posture_daily` rows per night written within ~15 ms (prod 2026-10-01/02), three times the gold UW options calls, and racing writers. The block is now owned by massive-0 (or `all`) alone; `rates_fred_ingest`, which is pinned to uw-0, moves out of it unchanged. `test_no_job_runs_on_two_roles_in_the_prod_fleet` fails if any job id is ever scheduled on two roles again (the heartbeat excepted).
 
+## [0.13.18] — 2026-10-04
 
 ### Changed
 
@@ -89,7 +92,7 @@ version in lockstep (enforced by `scripts/release/version_sync_check.py`).
 
 - **Gold freshness labels reflect real age (approved additive contract change).** `data_freshness` marked a source `ok` whenever any row existed, so WGC read `ok` at 137 days old. Each source now reads `stale` past a per-source ingest-age limit (FRED/GPR/ETF 4 days, COT 10, WGC 100 — one quarter plus slack for the manual import). `GoldDataFreshnessSource.status` gains the value `stale` (OpenAPI snapshot and `web/lib/types.ts` updated); the gold chip already counts any non-`ok` status as a warning.
 - **Gold ingest failures now reach the job-failure streak, and the dead sources are gone.** Every gold job (`worker/jobs/gold_jobs.py`) caught each source's exception, logged it and returned, so APScheduler recorded a success: prod `job_failures` was empty while COMEX (403 since 2026-05-17), iShares IAU (404), Sprott PHYS (403) and the SPDR GLDM page (404) had never written a row. The jobs now commit what succeeded, then raise naming each failed source; `gold_posture_compute` re-raises after its rollback; `macro_gold_ingest` raises once both feeds have run and writes `macro_source_status` rows for `massive.com` and `spdrgoldshares` like the other macro ingests. GLDM is fixed: it reads the same SPDR archive API as GLD (`?product=gldm`, history from 2018). The COMEX scraper and job (`sources/comex.py`, `gold_comex_vault_ingest`) and the IAU/PHYS fetchers are deleted, not stubbed: IAU's history needs a sign-in and Sprott blocks non-browser clients; WGC monthly files still cover IAU and PHYS. `comex_registered_oz` stays NULL and its freshness entry stays `missing`. The `exchange_inventory_daily` healer adapter is now `gold_lbma` (LBMA is its only writer). WGC: the dead anonymous CB CSV path and its parser are removed; an unconfigured WGC job is still a quiet skip (manual quarterly data), while a configured run (cookie or workbook) that yields zero rows raises.
-- **A slow AI provider's live run is no longer reclaimed early.** The AI queue treated a `running` row as abandoned after the *Codex* timeout + 60 s for every provider, so a Claude or DeepSeek run configured with a longer timeout could be stolen and run twice while the first was still live. Each provider-pinned worker now uses its own provider's timeout + 60 s; the legacy any-provider pool waits out the longest one.
+- **A slow AI provider's live run is no longer reclaimed early.** The AI queue treated a `running` row as abandoned after the _Codex_ timeout + 60 s for every provider, so a Claude or DeepSeek run configured with a longer timeout could be stolen and run twice while the first was still live. Each provider-pinned worker now uses its own provider's timeout + 60 s; the legacy any-provider pool waits out the longest one.
 - **NFCI / ANFCI / USREC refresh again; they were frozen at 2026-05-26.** `regime_fred_ingest_job` (`worker/jobs/regime_jobs.py`) was added in f9b64354 but never scheduled, so the three regime-gate series in `macro_series_daily` stopped at the last hand run (as_of 2026-05-26, NFCI obs 2026-05-15) while FRED kept publishing. The regime label gates and Trade Insights read stale credit-stress and recession inputs for four months. It now runs daily at 19:22 ET on the macro-evidence owner (massive-0, or `all`), and raises when every series fails, so the job-failure streak sees a dead feed. A one-off run after deploy backfills the gap (default lookback 45 days does not reach May: run `python -m uw_scan.worker.jobs.regime_jobs --start 2026-05-01`).
 - **Deploys no longer undo watchlist edits.** The API re-runs every migration on each boot, and the old watchlist seed migrations (009, 010, 011, 012, 033, 034, 069) `UPDATE`d, soft-deleted or `ON CONFLICT DO UPDATE`d the watchlist each time: an operator removal of OKLO came back on restart, a re-add of DIS (or any of 069's 15 removed names) was removed again, and sector edits to ORCL/IREN/the 069 reclass names were reverted. Their DML is now one insert-only final-state seed in `006_seed_watchlist.sql` (`ON CONFLICT (ticker) DO NOTHING`); 008–069 keep only a comment. A fresh install produces the same 107 rows as before (92 active, 15 soft-deleted; checked against a golden captured from the old chain), and an existing database sees no change. New `tests/unit/storage/test_migration_dml_allowlist.py` fails on any migration `UPDATE` / `DELETE` / `TRUNCATE` / `ON CONFLICT DO UPDATE` not in a reviewed list. That list also records four existing files whose replay can still overwrite runtime data (021, 023, 047, 048); they are not fixed in this change.
 - **A slow Trade Insights AI worker can no longer overwrite the result of the worker that reclaimed its row.** The AI queue reclaims a `running` row older than timeout + 60 s, but complete and fail updated by `analysis_id` alone, so a worker that overran past that window could replace the reclaiming worker's success or failure with its own. Migration 156 adds a nullable `trade_insight_ai_analyses.claim_token` (the `jobs` table's pattern from migration 025); each claim stamps a fresh `gen_random_uuid()`, and the worker's complete/fail match on it. A fenced write changes 0 rows and logs a `fenced` WARNING; it is not treated as an error and does not re-fail the row. Callers that pass no token keep the old by-id update — the worker uses that only when its claim transaction rolled back (so no token was ever committed). **Mixed-version rollout:** an old worker still running during a Watchtower deploy claims without touching `claim_token` and completes by id, so for that one release window an old worker's late write is not fenced, and an old worker reclaiming a new worker's row leaves the new worker's token in place. Follow-up after one release: make the token required and drop the unfenced path.
@@ -97,20 +100,20 @@ version in lockstep (enforced by `scripts/release/version_sync_check.py`).
 - **VRP research job failures now reach the job-failure streak.** `vrp_research_refresh` caught each failing axis, stored `{"error": ...}` in its return value and returned, so the scheduler recorded a success. Unit = one research axis (RV validation, sector, multi-horizon, directional, ΔVRP), and each axis commits its own table. Every axis still runs and the ones that succeed stay persisted; the job then raises if any axis failed, naming the failed axes. The five axes write five different tables, so one broken axis is a real failure, not a skippable ticker.
 - **GEX, GRG and discovery job failures now reach the job-failure streak.** All three caught their errors and returned, so APScheduler recorded a success. `regime_gex_scan` is multi-unit (one unit per ticker): each ticker still commits on its own, a bad ticker is logged and skipped, and the run raises only when every ticker failed. `regime_grg_scan` is one unit (the SPY/TLT snapshot); it re-raises after the scanner commits its `scan_run` as `error`. `discovery_scan` is one unit (alerts fetch + snapshot write): `discovery_scan_once` now commits the `scan_run` as `fail`, releases its lock and re-raises instead of returning `{"status": "error"}`; a per-ticker dark-pool miss still only degrades that candidate.
 - **Top-net-impact job failures now reach the job-failure streak.** `regime_top_net_impact_scan` had the same swallow: the scanner committed its `scan_runs` row as `error` and re-raised, but the closure caught the exception and returned, so the listener recorded a success and the stored outcome and the streak disagreed. The closure now re-raises after its rollback. The job is one unit (one UW call), so any exception fails the run; zero rows is still a normal return.
-## [0.13.17] — 2026-10-03
 
+## [0.13.17] — 2026-10-03
 
 ### Fixed
 
-- **Every HTTP client now ignores ambient proxy settings.** httpx reads the macOS *system* proxy even when no `*_PROXY` env var is set; `sources/fred.py` documented an SSL-EOF outage from exactly this and claimed every other source already opted out — 19 call sites in 14 modules did not, including the UW client (`api/client.py`), massive OHLC/fundamentals, apex, xenon query, the gold/official-data sources, the DeepSeek runner and the Discord alert. All now pass `trust_env=False`. No effect on the mini (no container carries a proxy variable); on a desk Mac with a system proxy, calls now go direct — verified reachable for every host. `tests/unit/test_httpx_trust_env.py` fails on any new `httpx` client in `src/` that omits it.
-## [0.13.16] — 2026-10-03
+- **Every HTTP client now ignores ambient proxy settings.** httpx reads the macOS _system_ proxy even when no `*_PROXY` env var is set; `sources/fred.py` documented an SSL-EOF outage from exactly this and claimed every other source already opted out — 19 call sites in 14 modules did not, including the UW client (`api/client.py`), massive OHLC/fundamentals, apex, xenon query, the gold/official-data sources, the DeepSeek runner and the Discord alert. All now pass `trust_env=False`. No effect on the mini (no container carries a proxy variable); on a desk Mac with a system proxy, calls now go direct — verified reachable for every host. `tests/unit/test_httpx_trust_env.py` fails on any new `httpx` client in `src/` that omits it.
 
+## [0.13.16] — 2026-10-03
 
 ### Fixed
 
 - **Cockpit dealer/state no longer time out behind the web proxy.** `/api/cockpit/{SPY,QQQ}/dealer` took ~47 s on prod, so the Next.js `/api` rewrite proxy (30 s) returned HTTP 500. Cause: the latest-source-date lookup, the flow-colour lookback and the OI-change read each seq-scanned a 3–7 GB table. Migration 155 adds six `(ticker, date)` btree indexes (`greeks_by_expiry_strike`, `exposures_by_expiry_strike`, `iv_term_snapshots`, `interpolated_iv_snapshots`, `flow_events`, `oi_change_events`), built `CONCURRENTLY`. The source-date lookup now takes one `max()` per table and the flow lookback walks the index day by day, so both read a handful of index entries. Measured on prod: dealer 47 s → 0.4 s, `stock/{T}/magnets` 8.6 s → 0.8 s, cockpit state 3–14 s → 0.02 s.
-## [0.13.15] — 2026-10-03
 
+## [0.13.15] — 2026-10-03
 
 ### Added
 
@@ -124,8 +127,8 @@ version in lockstep (enforced by `scripts/release/version_sync_check.py`).
 
 - **Pipeline benchmark snapshots no longer drop on a clock race.** `ws_tick_age_seconds`, `last_full_scan_age_seconds` and `oldest_queue_age_seconds` went negative when a tick, a finished full scan or a queued job was stamped a moment after the collector's `now_utc`, which violated the `>= 0` CHECKs and lost the whole snapshot. They now clamp to `max(0, …)`, the same fix `scheduler_heartbeat_lag_seconds` already had.
 - **Recovered MCP events carry the previous snapshot's context.** A transition recovered from history (`recovered: true`) now also carries the fields of the snapshot it was recovered from: CRI `data_date` + `score`, VCG `data_date` + `interpretation`, VRP macro `as_of` + `vrp_z` + `weight`. An agent can now tell which session a missed transition belongs to.
-## [0.13.14] — 2026-10-02
 
+## [0.13.14] — 2026-10-02
 
 ### Security
 
@@ -138,8 +141,8 @@ version in lockstep (enforced by `scripts/release/version_sync_check.py`).
 ### Changed
 
 - **Technicals, regime and stock-panel derivations moved from components into `web/lib/{technicals,snapshot,regime/derive,watchlist}`** so the MCP tools and the pages share one implementation. Rendered output is unchanged (old-vs-new text identical on 48 page/tab views); the price chart now computes chanlun, volume profile and FVG even when their toggles are off.
-## [0.13.13] — 2026-10-01
 
+## [0.13.13] — 2026-10-01
 
 ### Added
 
@@ -158,6 +161,7 @@ version in lockstep (enforced by `scripts/release/version_sync_check.py`).
 - Nightly `technical_daily_refresh` builds each ticker's series once (was twice: once inside the snapshot, once for the upsert).
 - Single-stock report assembly passes the strike-GEX curve, exposures summary, realized-vol and exposures aggregate it already read into the dealer-regime overlay, removing four duplicate SELECTs per report when the report's run is the latest run; the overlay still resolves its own latest run, so a historical `/stock/{ticker}/runs/{run_id}` report keeps the latest dealer overlay.
 - Stock page tabs render with `prefetch={false}`; a first visit no longer prefetches seven unvisited tab routes. Re-measured in the production-build fixture: 16 backend requests incl. 5 full report reads → 7 requests incl. 1 report read.
+
 ## [0.13.12] — 2026-09-26
 
 ### Changed
