@@ -216,8 +216,8 @@ def _run_daily_ohlc(ctx: HealContext, ticker: str, lo: date, hi: date) -> int:
     provider = ctx.massive_provider()
     lookback = max(1, (ctx.today - lo).days + 2)
     return ohlc_pull_once(
-        ctx.repo,
-        provider,
+        repo=ctx.repo,
+        provider=provider,
         lookback_days=lookback,
         ticker_filter=lambda t: t.upper() == ticker.upper(),
     )

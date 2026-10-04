@@ -58,7 +58,7 @@ def test_full_scan_writes_card_for_active_tickers(seeded_db_empty_cards):
         "uw_scan.worker.jobs.full_scan.run_single_stock",
         side_effect=lambda ticker, *_a, **_k: _stub_report(ticker, run_id=real_run_id),
     ):
-        n = full_scan_once(repo, fake_uw, fake_ohlc)
+        n = full_scan_once(repo=repo, client=fake_uw, ohlc_provider=fake_ohlc)
     assert n >= 1
     card = repo.get_watchlist_card("TSLA")
     assert card is not None
@@ -82,9 +82,9 @@ def test_full_scan_skips_tickers_with_fresh_persisted_data(seeded_db_with_cards)
         side_effect=fake_report,
     ):
         full_scan_once(
-            repo,
-            MagicMock(),
-            MagicMock(),
+            repo=repo,
+            client=MagicMock(),
+            ohlc_provider=MagicMock(),
             now=datetime.now(timezone.utc),
             stale_after=timedelta(hours=8),
         )
@@ -124,9 +124,9 @@ def test_full_scan_refreshes_tickers_with_stale_persisted_data(
         side_effect=fake_report,
     ):
         full_scan_once(
-            repo,
-            MagicMock(),
-            MagicMock(),
+            repo=repo,
+            client=MagicMock(),
+            ohlc_provider=MagicMock(),
             now=now,
             stale_after=timedelta(hours=8),
         )
@@ -154,7 +154,7 @@ def test_ohlc_pull_writes_daily_rows(seeded_db_empty_cards):
         )
         for i in range(30)
     ]
-    n = ohlc_pull_once(seeded_db_empty_cards, fake, lookback_days=30)
+    n = ohlc_pull_once(repo=seeded_db_empty_cards, provider=fake, lookback_days=30)
     assert n >= 1
     rows = seeded_db_empty_cards.list_daily_ohlc("TSLA", limit=10)
     assert len(rows) >= 1
@@ -166,7 +166,12 @@ def test_ohlc_pull_writes_daily_rows(seeded_db_empty_cards):
 def test_rescan_tick_returns_false_when_queue_empty(seeded_db_with_cards):
     from uw_scan.worker.jobs.rescan_loop import rescan_tick
 
-    assert rescan_tick(seeded_db_with_cards, MagicMock(), MagicMock()) is False
+    assert (
+        rescan_tick(
+            repo=seeded_db_with_cards, client=MagicMock(), ohlc_provider=MagicMock()
+        )
+        is False
+    )
 
 
 def test_rescan_tick_claims_and_marks_done(seeded_db_with_cards):
@@ -181,7 +186,7 @@ def test_rescan_tick_claims_and_marks_done(seeded_db_with_cards):
         "uw_scan.worker.jobs.rescan_loop.run_single_stock",
         side_effect=lambda ticker, *_a, **_k: _stub_report(ticker, run_id=new_run_id),
     ):
-        worked = rescan_tick(repo, MagicMock(), MagicMock())
+        worked = rescan_tick(repo=repo, client=MagicMock(), ohlc_provider=MagicMock())
     assert worked is True
     job = repo.get_job(job_id)
     assert job is not None
@@ -212,7 +217,7 @@ def test_rescan_tick_recovers_stale_running_job(seeded_db_with_cards):
         "uw_scan.worker.jobs.rescan_loop.run_single_stock",
         side_effect=lambda ticker, *_a, **_k: _stub_report(ticker, run_id=new_run_id),
     ):
-        worked = rescan_tick(repo, MagicMock(), MagicMock())
+        worked = rescan_tick(repo=repo, client=MagicMock(), ohlc_provider=MagicMock())
 
     assert worked is True
     job = repo.get_job(job_id)
@@ -229,7 +234,9 @@ def test_rescan_tick_marks_failed_on_exception(seeded_db_with_cards):
         "uw_scan.worker.jobs.rescan_loop.run_single_stock",
         side_effect=RuntimeError("boom"),
     ):
-        worked = rescan_tick(seeded_db_with_cards, MagicMock(), MagicMock())
+        worked = rescan_tick(
+            repo=seeded_db_with_cards, client=MagicMock(), ohlc_provider=MagicMock()
+        )
     assert worked is True
     job = seeded_db_with_cards.get_job(job_id)
     assert job is not None

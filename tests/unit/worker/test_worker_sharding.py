@@ -57,7 +57,9 @@ def test_ohlc_pull_respects_ticker_filter() -> None:
     provider = MagicMock()
     provider.fetch_daily.return_value = []
 
-    ohlc_pull_once(repo, provider, ticker_filter=lambda ticker: ticker == "MSFT")
+    ohlc_pull_once(
+        repo=repo, provider=provider, ticker_filter=lambda ticker: ticker == "MSFT"
+    )
 
     assert provider.fetch_daily.call_count == 1
     assert provider.fetch_daily.call_args.args[0] == "MSFT"
@@ -75,9 +77,9 @@ def test_full_scan_respects_ticker_filter() -> None:
         side_effect=RuntimeError("stop after ownership check"),
     ) as run_single_stock:
         completed = full_scan_once(
-            repo,
-            MagicMock(),
-            MagicMock(),
+            repo=repo,
+            client=MagicMock(),
+            ohlc_provider=MagicMock(),
             ticker_filter=lambda ticker: ticker == "MSFT",
         )
 
@@ -104,7 +106,9 @@ def test_full_scan_max_tickers_caps_the_cold_tail() -> None:
         "uw_scan.worker.jobs.full_scan.run_single_stock",
         side_effect=RuntimeError("counted then swallowed"),
     ) as run_single_stock:
-        full_scan_once(repo, MagicMock(), MagicMock(), max_tickers=2)
+        full_scan_once(
+            repo=repo, client=MagicMock(), ohlc_provider=MagicMock(), max_tickers=2
+        )
 
     # first two (AAPL, MSFT) scanned; NVDA/TSLA cold tail dropped.
     assert run_single_stock.call_count == 2
@@ -119,7 +123,9 @@ def test_full_scan_max_tickers_none_means_no_cap() -> None:
         "uw_scan.worker.jobs.full_scan.run_single_stock",
         side_effect=RuntimeError("counted then swallowed"),
     ) as run_single_stock:
-        full_scan_once(repo, MagicMock(), MagicMock(), max_tickers=None)
+        full_scan_once(
+            repo=repo, client=MagicMock(), ohlc_provider=MagicMock(), max_tickers=None
+        )
 
     assert run_single_stock.call_count == 4
 
@@ -132,6 +138,8 @@ def test_full_scan_max_tickers_zero_scans_nothing() -> None:
         "uw_scan.worker.jobs.full_scan.run_single_stock",
         side_effect=RuntimeError("should never be called"),
     ) as run_single_stock:
-        full_scan_once(repo, MagicMock(), MagicMock(), max_tickers=0)
+        full_scan_once(
+            repo=repo, client=MagicMock(), ohlc_provider=MagicMock(), max_tickers=0
+        )
 
     run_single_stock.assert_not_called()
