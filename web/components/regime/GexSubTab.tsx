@@ -2,14 +2,7 @@
 
 import { Activity, TrendingUp, TrendingDown } from "lucide-react";
 import { useMemo } from "react";
-import {
-  useGex,
-  type GexBucket,
-  type GexData,
-  type GexLevel,
-  type MqLevels,
-  type SourceDelta,
-} from "@/lib/regime/useGex";
+import { useGex, type GexBucket, type GexLevel } from "@/lib/regime/useGex";
 import { useGexIntraday } from "@/lib/regime/useGexIntraday";
 import { MarketState } from "@/lib/regime/useMarketHours";
 import { useRegimeQuotes } from "@/lib/regime/useRegimeQuotes";
@@ -241,12 +234,21 @@ export default function GexSubTab({ marketState }: GexSubTabProps) {
     );
   }
 
-  // Type-only: the API always sends bias/levels (default_factory).
-  const { bias, levels } = data as GexData &
-    Required<Pick<GexData, "bias" | "levels">>;
-  const daysAbove = bias.days_above_flip as number;
-  const daysSide = daysAbove > 0 ? "ABOVE" : daysAbove < 0 ? "BELOW" : "AT";
-  const daysCount = Math.abs(daysAbove);
+  // bias/levels are optional in the contract: a missing one renders its
+  // cards as missing, never a crash.
+  const { bias, levels } = data;
+  const biasDirection = bias?.direction ?? null;
+  // No day count → no badge (never "AT", never 0).
+  const daysAbove = bias?.days_above_flip ?? null;
+  const daysCount = daysAbove == null ? null : Math.abs(daysAbove);
+  const daysSide =
+    daysAbove == null
+      ? null
+      : daysAbove > 0
+        ? "ABOVE"
+        : daysAbove < 0
+          ? "BELOW"
+          : "AT";
   // Freshness pill anchor: when the live splice is active, anchor on the
   // quotes response's as_of (refreshes every quote poll) — the GEX scan
   // timestamp goes stale between scans and would mislabel an aging quote
@@ -267,10 +269,16 @@ export default function GexSubTab({ marketState }: GexSubTabProps) {
     liveSpot,
   );
 
-  const netGexColor =
-    data.net_gex! >= 0 ? "var(--signal-core)" : "var(--fault)";
-  const netDexColor =
-    data.net_dex! >= 0 ? "var(--signal-core)" : "var(--fault)";
+  // A missing value reads "---" in the muted colour, never green/red.
+  const signColor = (v: number | null | undefined) =>
+    v == null
+      ? "var(--text-muted)"
+      : v >= 0
+        ? "var(--signal-core)"
+        : "var(--fault)";
+  const netGexColor = signColor(data.net_gex);
+  const netDexColor = signColor(data.net_dex);
+  const ivSource = data.iv?.source;
 
   return (
     <div className="section gex-panel">
@@ -293,7 +301,7 @@ export default function GexSubTab({ marketState }: GexSubTabProps) {
             flexWrap: "wrap",
           }}
         >
-          {daysCount > 0 && (
+          {daysAbove != null && daysCount != null && daysCount > 0 && (
             <span
               className="gex-day-badge"
               style={{
@@ -356,14 +364,14 @@ export default function GexSubTab({ marketState }: GexSubTabProps) {
             label="GEX FLIP"
             tooltip="The strike where net GEX crosses from negative (destabilizing) to positive (stabilizing). Spot above flip = dealers long gamma; below = short gamma. MQ HVL shown when UW flip uncomputable."
             value={
-              levels.gex_flip
+              levels?.gex_flip
                 ? fmtPrice(levels.gex_flip.strike)
                 : data.mq?.hvl
-                  ? fmtPrice(data.mq.hvl as number)
+                  ? fmtPrice(data.mq.hvl)
                   : "---"
             }
             sub={
-              levels.gex_flip
+              levels?.gex_flip
                 ? `${formatPercent(levels.gex_flip.distance_pct)} from spot`
                 : data.mq?.hvl
                   ? "MQ HVL"
@@ -371,7 +379,7 @@ export default function GexSubTab({ marketState }: GexSubTabProps) {
             }
             color="var(--warning)"
             badge={
-              levels.gex_flip ? (
+              levels?.gex_flip ? (
                 <SourceBadge source="uw" />
               ) : data.mq?.hvl ? (
                 <SourceBadge source="mq" />
@@ -408,13 +416,13 @@ export default function GexSubTab({ marketState }: GexSubTabProps) {
             sub={
               data.iv?.iv_rank != null
                 ? `rank ${data.iv.iv_rank.toFixed(0)}%${data.iv.hv30 != null ? `  HV ${(data.iv.hv30 * 100).toFixed(1)}%` : ""}`
-                : data.expected_range!.iv_1d != null
-                  ? `±${data.expected_range!.iv_1d.toFixed(2)}% 1d`
+                : data.expected_range?.iv_1d != null
+                  ? `±${data.expected_range.iv_1d.toFixed(2)}% 1d`
                   : undefined
             }
             badge={
-              data.iv?.source ? (
-                <SourceBadge source={data.iv.source as "uw" | "mq" | "both"} />
+              ivSource === "uw" || ivSource === "mq" || ivSource === "both" ? (
+                <SourceBadge source={ivSource} />
               ) : undefined
             }
           />
@@ -434,37 +442,34 @@ export default function GexSubTab({ marketState }: GexSubTabProps) {
         <div className="gex-levels-row">
           <LevelCard
             label="GEX FLIP (SUPPORT)"
-            level={levels.gex_flip}
+            level={levels?.gex_flip}
             labelColor="var(--warning)"
           />
           <LevelCard
             label="MAX MAGNET"
-            level={levels.max_magnet}
+            level={levels?.max_magnet}
             labelColor="var(--signal-core)"
           />
           <LevelCard
             label="2ND MAGNET"
-            level={levels.second_magnet}
+            level={levels?.second_magnet}
             labelColor="var(--signal-core)"
           />
           <LevelCard
             label="MAX ACCEL (BELOW FLIP)"
-            level={levels.max_accelerator}
+            level={levels?.max_accelerator}
             labelColor="var(--fault)"
           />
           <LevelCard
             label="PUT WALL"
-            level={levels.put_wall}
+            level={levels?.put_wall}
             labelColor="var(--fault)"
           />
         </div>
 
         {/* ── MenthorQ Levels + Delta ── */}
         {data.mq && (
-          <MqLevelsPanel
-            mq={data.mq as MqLevels}
-            sourceDelta={data.source_delta as SourceDelta | null}
-          />
+          <MqLevelsPanel mq={data.mq} sourceDelta={data.source_delta ?? null} />
         )}
 
         {/* ── Row: Expected Range (wider) + Bias + Macro Short-Vol action ── */}
@@ -477,26 +482,26 @@ export default function GexSubTab({ marketState }: GexSubTabProps) {
             <div className="gex-bias-title">DIRECTIONAL BIAS</div>
             <div
               className="gex-bias-direction"
-              style={{ color: biasColor(bias.direction) }}
+              style={{ color: biasColor(biasDirection) }}
             >
-              {biasLabel(bias.direction!)}
-              {bias.direction!.includes("BULL") ? (
+              {biasDirection == null ? "---" : biasLabel(biasDirection)}
+              {biasDirection == null ? null : biasDirection.includes("BULL") ? (
                 <TrendingUp size={24} style={{ marginLeft: 8 }} />
-              ) : bias.direction!.includes("BEAR") ? (
+              ) : biasDirection.includes("BEAR") ? (
                 <TrendingDown size={24} style={{ marginLeft: 8 }} />
               ) : null}
             </div>
             <div className="gex-bias-reasons">
-              {(bias.reasons ?? []).map((r, i) => (
+              {(bias?.reasons ?? []).map((r, i) => (
                 <div key={i} className="gex-bias-reason">
                   {r}
                 </div>
               ))}
             </div>
-            {(bias.flip_migration ?? []).length > 1 && (
+            {(bias?.flip_migration ?? []).length > 1 && (
               <div className="gex-flip-migration">
                 Flip migration:{" "}
-                {(bias.flip_migration ?? [])
+                {(bias?.flip_migration ?? [])
                   .map((f) => fmtPrice(f.flip))
                   .join(" → ")}
               </div>
@@ -509,7 +514,7 @@ export default function GexSubTab({ marketState }: GexSubTabProps) {
         <MacroShortVolEntryGuidance />
 
         {/* ── GEX Profile Chart ── */}
-        <GexCurvatureChart profile={liveProfile} spot={displaySpot!} />
+        <GexCurvatureChart profile={liveProfile} spot={displaySpot ?? null} />
 
         {/* ── 5-Session Intraday Chart (spot / flip / net_gex / iv30d) ── */}
         <GexIntradayChart data={intraday} ticker={data.ticker} />
