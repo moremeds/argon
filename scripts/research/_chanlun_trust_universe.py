@@ -14,10 +14,14 @@ Reproduce: uv run python scripts/research/_chanlun_trust_universe.py
 
 from __future__ import annotations
 
+import os
 from datetime import date, timedelta
 from pathlib import Path
 
+from uw_scan.config import DEFAULT_APEX_API_URL
 from uw_scan.sources.apex import fetch_bars
+
+_APEX_URL = os.environ.get("APEX_API_URL", DEFAULT_APEX_API_URL)
 
 # Top ~250 by market cap from the UW screener (as_of 2026-07-18).
 CANDIDATES = [
@@ -282,7 +286,7 @@ START = date.today() - timedelta(days=int(3.2 * 365))
 def main() -> None:
     kept: list[str] = []
     for t in CANDIDATES:
-        bars = fetch_bars(t, "1d", START, limit=0)
+        bars = fetch_bars(t, "1d", START, base_url=_APEX_URL, limit=0)
         if len(bars) >= MIN_BARS:
             kept.append(t)
         else:
