@@ -47,12 +47,13 @@ from __future__ import annotations
 import argparse
 import logging
 from datetime import date, datetime, timezone
+from functools import partial
 
 import httpx
 import psycopg
 
 from uw_scan.config import Settings
-from uw_scan.sources.apex import fetch_bars
+from uw_scan.sources.apex import fetch_bars, fetch_bulk_daily_closes
 from uw_scan.storage.repository import Repository
 from uw_scan.storage.sector_rs import SectorRsRepository
 from uw_scan.worker.jobs.sector_rs_daily import (
@@ -98,7 +99,7 @@ def chunked(items: list[date], size: int) -> list[list[date]]:
     return [items[i : i + size] for i in range(0, len(items), size)]
 
 
-def preflight_etf_history(client: httpx.Client | None = None) -> None:
+def preflight_etf_history(base_url: str, client: httpx.Client | None = None) -> None:
     """Abort unless apex serves ADJUSTED bars for the first week of 1999 for
     every 1998 fund.
 
@@ -106,13 +107,20 @@ def preflight_etf_history(client: httpx.Client | None = None) -> None:
     2021-06-11 on its first #157 rebuild (spec §4). Before the fix lands, a
     backfill would write about 5,600 gics sessions with NULL rs and
     degraded=true for those sectors, and they would look like data. fetch_bars
-    sends price_mode=adjusted for equity and never raises ([] on any failure),
-    so an apex outage also aborts here.
+    sends price_mode=adjusted for equity. An apex outage raises
+    SourceUnavailable out of here, so it aborts too.
     """
     missing = [
         s
         for s in _FUNDS_1998
-        if not fetch_bars(s, "1d", _PREFLIGHT_START, end=_PREFLIGHT_END, client=client)
+        if not fetch_bars(
+            s,
+            "1d",
+            _PREFLIGHT_START,
+            base_url=base_url,
+            end=_PREFLIGHT_END,
+            client=client,
+        )
     ]
     if missing:
         raise SystemExit(
@@ -134,13 +142,20 @@ def main() -> int:
     args = p.parse_args()
     kinds = tuple(args.kinds or GROUP_KINDS)
 
-    if "gics" in kinds and args.start < PRE_157_SEED:
-        preflight_etf_history()
-
     settings = Settings.from_env()
+    if "gics" in kinds and args.start < PRE_157_SEED:
+        preflight_etf_history(settings.apex_api_url)
+
+    fetch_closes = partial(fetch_bulk_daily_closes, base_url=settings.apex_api_url)
     with psycopg.connect(settings.db_dsn()) as conn:
         repo = Repository(conn, schema=settings.db_schema)
-        spy, _ = load_closes(repo, [BENCHMARK], start=args.start, end=args.end)
+        spy, _ = load_closes(
+            repo,
+            [BENCHMARK],
+            start=args.start,
+            end=args.end,
+            fetch_closes=fetch_closes,
+        )
         sessions = [d for d, _ in spy.get(BENCHMARK, []) if args.start <= d <= args.end]
         if not sessions:
             log.error(
@@ -162,6 +177,7 @@ def main() -> int:
                     schema=settings.db_schema,
                     dates=chunk,
                     group_kinds=(kind,),
+                    fetch_closes=fetch_closes,
                 )
                 log.info("%s %s..%s %s", kind, chunk[0], chunk[-1], counters)
     return 0

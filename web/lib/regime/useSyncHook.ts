@@ -2,8 +2,19 @@
 
 import { useCallback, useEffect, useRef, useState } from "react";
 
+import { ApiError, apiFetch } from "@/lib/apiClient";
+
 const DEFAULT_INTERVAL_MS = 5 * 60 * 1000; // 5 minutes
 type RetryMethod = "GET" | "POST";
+
+/** The message this hook has always shown for a failed request: the API's
+ *  `{error}` field when it sent one, else `<fallback> (<status>)`. Errors that
+ *  are not an HTTP answer (network, parse) keep their own message. */
+function syncError(err: unknown, fallback: string): unknown {
+  if (!(err instanceof ApiError)) return err;
+  const body = err.json as { error?: string } | null;
+  return new Error(body?.error ?? `${fallback} (${err.status})`);
+}
 
 // Module-level per-endpoint cache. Survives unmount/remount of any
 // component that uses this hook within the same browser session, so
@@ -97,12 +108,11 @@ export function useSyncHook<T>(
       const myId = ++latestRequestIdRef.current;
       try {
         const url = method === "POST" ? resolvedPostEndpoint : endpoint;
-        const res = await fetch(url, { method });
-        if (!res.ok) {
-          const body = await res.json().catch(() => ({}));
-          throw new Error(
-            (body as { error?: string }).error ?? `Sync failed (${res.status})`,
-          );
+        let first: T;
+        try {
+          first = await apiFetch<T>(url, { method });
+        } catch (e) {
+          throw syncError(e, "Sync failed");
         }
         // When the POST target differs from the GET endpoint, the POST
         // response is a scan-status payload (e.g. {status, row_id}) — NOT the
@@ -110,14 +120,16 @@ export function useSyncHook<T>(
         // instead so the UI always renders against the persisted snapshot.
         let json: T;
         if (method === "POST" && resolvedPostEndpoint !== endpoint) {
-          await res.json().catch(() => ({}));
-          const refresh = await fetch(endpoint, { method: "GET" });
-          if (!refresh.ok) {
-            throw new Error(`Refresh after scan failed (${refresh.status})`);
+          try {
+            json = await apiFetch<T>(endpoint, { method: "GET" });
+          } catch (e) {
+            if (e instanceof ApiError) {
+              throw new Error(`Refresh after scan failed (${e.status})`);
+            }
+            throw e;
           }
-          json = (await refresh.json()) as T;
         } else {
-          json = (await res.json()) as T;
+          json = first;
         }
         // Drop the result if a newer request has already started — prevents
         // a slow background tick from clobbering a fresher manual sync.
@@ -181,9 +193,13 @@ export function useSyncHook<T>(
 
     const init = async () => {
       try {
-        const res = await fetch(endpoint, { method: "GET" });
-        if (!res.ok) throw new Error("Failed to fetch cached data");
-        const json = (await res.json()) as T;
+        let json: T;
+        try {
+          json = await apiFetch<T>(endpoint, { method: "GET" });
+        } catch (e) {
+          if (e instanceof ApiError) throw new Error("Failed to fetch cached data");
+          throw e;
+        }
         const stamp = extractTimestamp ? extractTimestamp(json) : null;
         setData(json);
         setLastSync(stamp);

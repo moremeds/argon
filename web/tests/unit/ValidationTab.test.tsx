@@ -28,7 +28,7 @@ const FAKE = {
 beforeEach(() => {
   vi.stubGlobal(
     "fetch",
-    vi.fn(async () => ({ ok: true, json: async () => FAKE })),
+    vi.fn(async () => new Response(JSON.stringify(FAKE), { status: 200 })),
   );
 });
 

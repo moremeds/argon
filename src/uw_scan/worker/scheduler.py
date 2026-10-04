@@ -1118,12 +1118,20 @@ def main() -> int:
         from datetime import datetime as _dt
         from zoneinfo import ZoneInfo
 
+        from functools import partial
+
+        from uw_scan.sources.apex import fetch_bulk_daily_closes
         from uw_scan.worker.jobs.sector_rs_daily import sector_rs_daily
 
         as_of = _dt.now(ZoneInfo(settings.rth_tz)).date()
         with _repo(settings) as repo:
             counters = sector_rs_daily(
-                repo=repo, schema=settings.db_schema, as_of=as_of
+                repo=repo,
+                schema=settings.db_schema,
+                as_of=as_of,
+                fetch_closes=partial(
+                    fetch_bulk_daily_closes, base_url=settings.apex_api_url
+                ),
             )
         logger.info("sector_rs_daily %s", counters)
 

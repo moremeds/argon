@@ -8,7 +8,6 @@ from __future__ import annotations
 
 import logging
 from datetime import UTC, date, datetime
-from decimal import Decimal, InvalidOperation
 from typing import Any
 from zoneinfo import ZoneInfo
 
@@ -17,36 +16,17 @@ from ..api.client import UwClient, UwHTTPError
 from ..api.endpoints import EndpointSlug, build_path
 from ..models import (
     BulkScreenerRow,
-    DarkLitPrint,
-    DarkPoolPrint,
-    EtfInfo,
     EtfInOutflowRow,
     FlowAlert,
-    FtdRow,
     GexLevelsRow,
     GreekExposureByExpiryRow,
     GreekExposureRow,
-    GreekFlowRow,
     GreeksRow,
-    InterpolatedIvRow,
-    IvRankRow,
-    MaxPainRow,
-    NetPremTickRow,
-    OiChangeRow,
-    OiPerStrikeRow,
     OptionContractIntradayBucket,
     OptionContractRow,
     OptionsDailyRow,
-    RealizedVolRow,
-    ShortDataRow,
     SkewRow,
     SpotExposureRow,
-    TermStructureRow,
-    VolAnomalyRow,
-    VolCharacterRow,
-    VolStatsRow,
-    VolumesByExchangeRow,
-    VolVrpRow,
 )
 from ..storage.repository import Repository
 from ..storage.uw_fetch_memo import UwFetchMemoRepository
@@ -85,7 +65,7 @@ def _memoized_fetch_json(
     `force_refresh=True` bypasses the read but still refreshes the stored row.
     """
     as_of = datetime.now(_ET).date()
-    memo = UwFetchMemoRepository(repo.conn, schema=repo._schema)
+    memo = UwFetchMemoRepository(repo.conn, schema=repo.schema)
     if not force_refresh:
         cached = memo.get(ticker, endpoint_label, as_of)
         if cached is not None:
@@ -168,7 +148,162 @@ def _fetch_json(
 
 
 # ---------------------------------------------------------------------------
-# Fetchers — one per endpoint slug
+# Uniform fetchers: a table keyed by public function name (I-57). The slug is a
+# column, not the key: several slugs back two fetchers (DARKPOOL_TICKER feeds
+# fetch_darkpool_ticker and fetch_darkpool_prints). Each family builds the same
+# request every old wrapper built by hand; a fetcher that does anything else
+# (extra params, memo, a 400/422 policy, a normalizer needing more than the
+# body) stays an explicit function below. Return annotations are strings so
+# inspect.signature matches the hand-written originals exactly.
+# ---------------------------------------------------------------------------
+def _date_params(market_date: date | None, **extra: Any) -> dict[str, Any] | None:
+    params: dict[str, Any] = dict(extra)
+    if market_date is not None:
+        params["date"] = market_date.isoformat()
+    return params or None
+
+
+def _raw(body: dict) -> dict:
+    return body
+
+
+def _named(fn: Any, name: str, returns: str, doc: str | None) -> Any:
+    fn.__name__ = fn.__qualname__ = name
+    fn.__annotations__["return"] = returns
+    fn.__doc__ = doc
+    return fn
+
+
+def _ticker_fetcher(
+    name: str, slug: EndpointSlug, normalizer: Any, returns: str, doc: str | None = None
+) -> Any:
+    """(client, repo, run_id, ticker) -> normalizer(body). No params."""
+
+    def fetcher(client: UwClient, repo: Repository, run_id: int, ticker: str):
+        return normalizer(_fetch_json(client, repo, run_id, slug, ticker))
+
+    return _named(fetcher, name, returns, doc)
+
+
+def _ticker_date_fetcher(
+    name: str, slug: EndpointSlug, normalizer: Any, returns: str
+) -> Any:
+    """+ market_date: sends ?date= only when replaying a past session."""
+
+    def fetcher(
+        client: UwClient,
+        repo: Repository,
+        run_id: int,
+        ticker: str,
+        market_date: date | None = None,
+    ):
+        body = _fetch_json(
+            client, repo, run_id, slug, ticker, params=_date_params(market_date)
+        )
+        return normalizer(body)
+
+    return _named(fetcher, name, returns, None)
+
+
+def _ticker_date_limit_fetcher(
+    name: str, slug: EndpointSlug, normalizer: Any, returns: str
+) -> Any:
+    """+ market_date + limit (default 500)."""
+
+    def fetcher(
+        client: UwClient,
+        repo: Repository,
+        run_id: int,
+        ticker: str,
+        market_date: date | None = None,
+        limit: int = 500,
+    ):
+        body = _fetch_json(
+            client,
+            repo,
+            run_id,
+            slug,
+            ticker,
+            params=_date_params(market_date, limit=limit),
+        )
+        return normalizer(body)
+
+    return _named(fetcher, name, returns, None)
+
+
+# fmt: off
+_S = EndpointSlug
+_N = normalize
+
+# ?date= replays a past session; measured to be honoured 2026-08-16
+# (docs/research/2026-08-16-replay-endpoint-matrix.md). No date = live path.
+# /volatility/stats returns the stats AS OF that session (one row).
+fetch_iv_rank = _ticker_date_fetcher("fetch_iv_rank", _S.IV_RANK, _N.normalize_iv_rank, "list[IvRankRow]")
+fetch_volatility_stats = _ticker_date_fetcher("fetch_volatility_stats", _S.VOLATILITY_STATS, _N.normalize_volatility_stats, "list[VolStatsRow]")
+fetch_term_structure = _ticker_date_fetcher("fetch_term_structure", _S.TERM_STRUCTURE, _N.normalize_term_structure, "list[TermStructureRow]")
+fetch_interpolated_iv = _ticker_date_fetcher("fetch_interpolated_iv", _S.INTERPOLATED_IV, _N.normalize_interpolated_iv, "list[InterpolatedIvRow]")
+fetch_oi_per_strike = _ticker_date_fetcher("fetch_oi_per_strike", _S.OI_PER_STRIKE, _N.normalize_oi_per_strike, "list[OiPerStrikeRow]")
+fetch_oi_change = _ticker_date_fetcher("fetch_oi_change", _S.OI_CHANGE, _N.normalize_oi_change, "list[OiChangeRow]")
+fetch_max_pain = _ticker_date_fetcher("fetch_max_pain", _S.MAX_PAIN, _N.normalize_max_pain, "list[MaxPainRow]")
+fetch_darkpool_ticker = _ticker_date_fetcher("fetch_darkpool_ticker", _S.DARKPOOL_TICKER, _N.normalize_darkpool_ticker, "list[DarkPoolPrint]")
+# UW historical-alpha: gex-levels / volatility / net-prem / greek-flow honor
+# ?date= (as-of). Not memoized: past-date history is not a same-day snapshot.
+fetch_volatility_anomaly = _ticker_date_fetcher("fetch_volatility_anomaly", _S.VOLATILITY_ANOMALY, _N.normalize_vol_anomaly, "list[VolAnomalyRow]")
+fetch_volatility_character = _ticker_date_fetcher("fetch_volatility_character", _S.VOLATILITY_CHARACTER, _N.normalize_vol_character, "list[VolCharacterRow]")
+fetch_volatility_vrp = _ticker_date_fetcher("fetch_volatility_vrp", _S.VOLATILITY_VRP, _N.normalize_vol_vrp, "list[VolVrpRow]")
+fetch_greek_flow = _ticker_date_fetcher("fetch_greek_flow", _S.GREEK_FLOW, _N.normalize_greek_flow, "list[GreekFlowRow]")
+fetch_net_prem_ticks = _ticker_date_limit_fetcher("fetch_net_prem_ticks", _S.NET_PREM_TICKS, _N.normalize_net_prem_ticks, "list[NetPremTickRow]")
+fetch_lit_flow = _ticker_date_limit_fetcher("fetch_lit_flow", _S.LIT_FLOW, _N.normalize_dark_lit, "list[DarkLitPrint]")
+# Same DARKPOOL_TICKER slug as fetch_darkpool_ticker, plus date + limit
+# selectors so it can backfill history.
+fetch_darkpool_prints = _ticker_date_limit_fetcher("fetch_darkpool_prints", _S.DARKPOOL_TICKER, _N.normalize_dark_lit, "list[DarkLitPrint]")
+
+fetch_realized_volatility = _ticker_fetcher("fetch_realized_volatility", _S.REALIZED_VOLATILITY, _N.normalize_realized_volatility, "list[RealizedVolRow]")
+fetch_short_data = _ticker_fetcher("fetch_short_data", _S.SHORT_DATA, _N.normalize_short_data, "list[ShortDataRow]")
+fetch_etf_info = _ticker_fetcher("fetch_etf_info", _S.ETF_INFO, _N.normalize_etf_info, "EtfInfo")
+# Positioning (M4 trade-framework): each returns an aggregated dict keyed to
+# uw_positioning columns. See normalize.py + storage/positioning.py.
+fetch_short_interest_float = _ticker_fetcher("fetch_short_interest_float", _S.SHORT_INTEREST_FLOAT, _N.normalize_short_interest_float, "dict")
+fetch_institution_ownership = _ticker_fetcher("fetch_institution_ownership", _S.INSTITUTION_OWNERSHIP, _N.normalize_institution_ownership, "dict")
+fetch_insider_ticker_flow = _ticker_fetcher("fetch_insider_ticker_flow", _S.INSIDER_TICKER_FLOW, _N.normalize_insider_ticker_flow, "dict")
+fetch_earnings_history = _ticker_fetcher("fetch_earnings_history", _S.EARNINGS, _N.normalize_earnings_history, "dict")
+# ?date= is ignored by these two: FTDs return full history, volumes-by-exchange
+# a rolling window. The capture layer selects / aggregates the as-of rows.
+fetch_ftds = _ticker_fetcher("fetch_ftds", _S.FTDS, _N.normalize_ftds, "list[FtdRow]")
+fetch_volumes_by_exchange = _ticker_fetcher("fetch_volumes_by_exchange", _S.VOLUMES_BY_EXCHANGE, _N.normalize_volumes_by_exchange, "list[VolumesByExchangeRow]")
+# fmt: on
+fetch_greek_exposure_by_strike = _ticker_fetcher(
+    "fetch_greek_exposure_by_strike",
+    _S.GREEK_EXPOSURE_BY_STRIKE,
+    _raw,
+    "dict",
+    doc="""Fetch /api/stock/{ticker}/greek-exposure/strike — aggregated per-strike GEX.
+
+    Returns the raw body; scanner consumes ``body["data"]`` as a list of rows
+    with string-valued ``strike``, ``call_gex``, ``put_gex``, ``call_delta``,
+    ``put_delta`` fields (caller does ``float()`` casting).
+    """,
+)
+fetch_stock_state = _ticker_fetcher(
+    "fetch_stock_state",
+    _S.STOCK_STATE,
+    _raw,
+    "dict",
+    doc="""Fetch /api/stock/{ticker}/stock-state — last trade snapshot.
+
+    Returns the body envelope; ``body["data"]`` carries
+    ``close, prev_close, open, high, low, volume, total_volume, market_time, tape_time``.
+
+    Works uniformly for indices (SPX) and ETFs (SPY/QQQ/IWM). For SPX,
+    ``volume`` and ``total_volume`` are 0 by design (indices don't trade), and
+    ``market_time`` stays "regular" past 16:00 ET because SPX has no postmarket
+    — use ``tape_time`` to judge freshness, not ``market_time``.
+    """,
+)
+
+
+# ---------------------------------------------------------------------------
+# Fetchers — explicit (non-uniform)
 # ---------------------------------------------------------------------------
 def fetch_flow_alerts(
     client: UwClient, repo: Repository, run_id: int, ticker: str, limit: int = 100
@@ -202,78 +337,6 @@ def fetch_market_flow_alerts(
         params={"limit": limit},
     )
     return normalize.normalize_flow_alerts(body)
-
-
-def fetch_iv_rank(
-    client: UwClient,
-    repo: Repository,
-    run_id: int,
-    ticker: str,
-    market_date: date | None = None,
-) -> list[IvRankRow]:
-    # market_date replays a past session; measured to be honoured 2026-08-16
-    # (docs/research/2026-08-16-replay-endpoint-matrix.md). None = live path.
-    params = {"date": market_date.isoformat()} if market_date is not None else None
-    body = _fetch_json(
-        client, repo, run_id, EndpointSlug.IV_RANK, ticker, params=params
-    )
-    return normalize.normalize_iv_rank(body)
-
-
-def fetch_volatility_stats(
-    client: UwClient,
-    repo: Repository,
-    run_id: int,
-    ticker: str,
-    market_date: date | None = None,
-) -> list[VolStatsRow]:
-    # /volatility/stats is a historical-selector: ?date=YYYY-MM-DD returns the
-    # stats AS OF that session (one row). Omitting it returns the current row
-    # (the nightly path). The gap healer passes market_date to backfill history.
-    params = {"date": market_date.isoformat()} if market_date is not None else None
-    body = _fetch_json(
-        client, repo, run_id, EndpointSlug.VOLATILITY_STATS, ticker, params=params
-    )
-    return normalize.normalize_volatility_stats(body)
-
-
-def fetch_realized_volatility(
-    client: UwClient, repo: Repository, run_id: int, ticker: str
-) -> list[RealizedVolRow]:
-    body = _fetch_json(client, repo, run_id, EndpointSlug.REALIZED_VOLATILITY, ticker)
-    return normalize.normalize_realized_volatility(body)
-
-
-def fetch_term_structure(
-    client: UwClient,
-    repo: Repository,
-    run_id: int,
-    ticker: str,
-    market_date: date | None = None,
-) -> list[TermStructureRow]:
-    # market_date replays a past session; measured to be honoured 2026-08-16
-    # (docs/research/2026-08-16-replay-endpoint-matrix.md). None = live path.
-    params = {"date": market_date.isoformat()} if market_date is not None else None
-    body = _fetch_json(
-        client, repo, run_id, EndpointSlug.TERM_STRUCTURE, ticker, params=params
-    )
-    return normalize.normalize_term_structure(body)
-
-
-def fetch_interpolated_iv(
-    client: UwClient,
-    repo: Repository,
-    run_id: int,
-    ticker: str,
-    market_date: date | None = None,
-) -> list[InterpolatedIvRow]:
-    # market_date replays a past session; measured to be honoured 2026-08-16
-    # (docs/research/2026-08-16-replay-endpoint-matrix.md). None = live path.
-    params = {"date": market_date.isoformat()} if market_date is not None else None
-    body = _fetch_json(
-        client, repo, run_id, EndpointSlug.INTERPOLATED_IV, ticker, params=params
-    )
-    return normalize.normalize_interpolated_iv(body)
 
 
 def fetch_skew(
@@ -380,27 +443,6 @@ def fetch_greek_exposure_by_expiry(
     return normalize.normalize_greek_exposure_by_expiry(body)
 
 
-def fetch_greek_exposure_by_strike(
-    client: UwClient,
-    repo: Repository,
-    run_id: int,
-    ticker: str,
-) -> dict:
-    """Fetch /api/stock/{ticker}/greek-exposure/strike — aggregated per-strike GEX.
-
-    Returns the raw body; scanner consumes ``body["data"]`` as a list of rows
-    with string-valued ``strike``, ``call_gex``, ``put_gex``, ``call_delta``,
-    ``put_delta`` fields (caller does ``float()`` casting).
-    """
-    return _fetch_json(
-        client,
-        repo,
-        run_id,
-        EndpointSlug.GREEK_EXPOSURE_BY_STRIKE,
-        ticker,
-    )
-
-
 def fetch_greek_exposure_history(
     client: UwClient,
     repo: Repository,
@@ -426,31 +468,6 @@ def fetch_greek_exposure_history(
         EndpointSlug.GREEK_EXPOSURE_HISTORY,
         ticker,
         params=params,
-    )
-
-
-def fetch_stock_state(
-    client: UwClient,
-    repo: Repository,
-    run_id: int,
-    ticker: str,
-) -> dict:
-    """Fetch /api/stock/{ticker}/stock-state — last trade snapshot.
-
-    Returns the body envelope; ``body["data"]`` carries
-    ``close, prev_close, open, high, low, volume, total_volume, market_time, tape_time``.
-
-    Works uniformly for indices (SPX) and ETFs (SPY/QQQ/IWM). For SPX,
-    ``volume`` and ``total_volume`` are 0 by design (indices don't trade), and
-    ``market_time`` stays "regular" past 16:00 ET because SPX has no postmarket
-    — use ``tape_time`` to judge freshness, not ``market_time``.
-    """
-    return _fetch_json(
-        client,
-        repo,
-        run_id,
-        EndpointSlug.STOCK_STATE,
-        ticker,
     )
 
 
@@ -491,54 +508,6 @@ def fetch_greeks(
         params["date"] = date
     body = _fetch_json(client, repo, run_id, EndpointSlug.GREEKS, ticker, params=params)
     return normalize.normalize_greeks(body)
-
-
-def fetch_oi_per_strike(
-    client: UwClient,
-    repo: Repository,
-    run_id: int,
-    ticker: str,
-    market_date: date | None = None,
-) -> list[OiPerStrikeRow]:
-    # market_date replays a past session; measured to be honoured 2026-08-16
-    # (docs/research/2026-08-16-replay-endpoint-matrix.md). None = live path.
-    params = {"date": market_date.isoformat()} if market_date is not None else None
-    body = _fetch_json(
-        client, repo, run_id, EndpointSlug.OI_PER_STRIKE, ticker, params=params
-    )
-    return normalize.normalize_oi_per_strike(body)
-
-
-def fetch_oi_change(
-    client: UwClient,
-    repo: Repository,
-    run_id: int,
-    ticker: str,
-    market_date: date | None = None,
-) -> list[OiChangeRow]:
-    # market_date replays a past session; measured to be honoured 2026-08-16
-    # (docs/research/2026-08-16-replay-endpoint-matrix.md). None = live path.
-    params = {"date": market_date.isoformat()} if market_date is not None else None
-    body = _fetch_json(
-        client, repo, run_id, EndpointSlug.OI_CHANGE, ticker, params=params
-    )
-    return normalize.normalize_oi_change(body)
-
-
-def fetch_max_pain(
-    client: UwClient,
-    repo: Repository,
-    run_id: int,
-    ticker: str,
-    market_date: date | None = None,
-) -> list[MaxPainRow]:
-    # market_date replays a past session; measured to be honoured 2026-08-16
-    # (docs/research/2026-08-16-replay-endpoint-matrix.md). None = live path.
-    params = {"date": market_date.isoformat()} if market_date is not None else None
-    body = _fetch_json(
-        client, repo, run_id, EndpointSlug.MAX_PAIN, ticker, params=params
-    )
-    return normalize.normalize_max_pain(body)
 
 
 def fetch_option_contracts(
@@ -669,29 +638,6 @@ def fetch_options_volume_daily(
     return normalize.normalize_options_volume_daily(body)
 
 
-def fetch_darkpool_ticker(
-    client: UwClient,
-    repo: Repository,
-    run_id: int,
-    ticker: str,
-    market_date: date | None = None,
-) -> list[DarkPoolPrint]:
-    # market_date replays a past session; measured to be honoured 2026-08-16
-    # (docs/research/2026-08-16-replay-endpoint-matrix.md). None = live path.
-    params = {"date": market_date.isoformat()} if market_date is not None else None
-    body = _fetch_json(
-        client, repo, run_id, EndpointSlug.DARKPOOL_TICKER, ticker, params=params
-    )
-    return normalize.normalize_darkpool_ticker(body)
-
-
-def fetch_short_data(
-    client: UwClient, repo: Repository, run_id: int, ticker: str
-) -> list[ShortDataRow]:
-    body = _fetch_json(client, repo, run_id, EndpointSlug.SHORT_DATA, ticker)
-    return normalize.normalize_short_data(body)
-
-
 def fetch_bulk_screener(
     client: UwClient,
     repo: Repository,
@@ -751,16 +697,6 @@ def fetch_bulk_screener_ticker(
     return rows[0] if rows else None
 
 
-def fetch_etf_info(
-    client: UwClient,
-    repo: Repository,
-    run_id: int,
-    ticker: str,
-) -> EtfInfo:
-    body = _fetch_json(client, repo, run_id, EndpointSlug.ETF_INFO, ticker)
-    return normalize.normalize_etf_info(body)
-
-
 def fetch_etf_in_outflow(
     client: UwClient,
     repo: Repository,
@@ -785,11 +721,6 @@ def fetch_etf_in_outflow(
 # Positioning fetchers (M4 trade-framework) — each returns an aggregated dict
 # keyed to uw_positioning columns. See normalize.py + storage/positioning.py.
 # ---------------------------------------------------------------------------
-def fetch_short_interest_float(
-    client: UwClient, repo: Repository, run_id: int, ticker: str
-) -> dict:
-    body = _fetch_json(client, repo, run_id, EndpointSlug.SHORT_INTEREST_FLOAT, ticker)
-    return normalize.normalize_short_interest_float(body)
 
 
 def fetch_analyst_ratings(
@@ -804,27 +735,6 @@ def fetch_analyst_ratings(
         params={"ticker": ticker},
     )
     return normalize.normalize_analyst_ratings(body)
-
-
-def fetch_institution_ownership(
-    client: UwClient, repo: Repository, run_id: int, ticker: str
-) -> dict:
-    body = _fetch_json(client, repo, run_id, EndpointSlug.INSTITUTION_OWNERSHIP, ticker)
-    return normalize.normalize_institution_ownership(body)
-
-
-def fetch_insider_ticker_flow(
-    client: UwClient, repo: Repository, run_id: int, ticker: str
-) -> dict:
-    body = _fetch_json(client, repo, run_id, EndpointSlug.INSIDER_TICKER_FLOW, ticker)
-    return normalize.normalize_insider_ticker_flow(body)
-
-
-def fetch_earnings_history(
-    client: UwClient, repo: Repository, run_id: int, ticker: str
-) -> dict:
-    body = _fetch_json(client, repo, run_id, EndpointSlug.EARNINGS, ticker)
-    return normalize.normalize_earnings_history(body)
 
 
 def fetch_market_tide(
@@ -859,32 +769,7 @@ def fetch_market_tide(
             )
             return []
         raise
-    rows = body.get("data") if isinstance(body, dict) else None
-    if not isinstance(rows, list):
-        raise normalize.NormalizationError(
-            f"market-tide: expected 'data' list, got {type(rows).__name__}"
-        )
-    out: list[dict] = []
-    for r in rows:
-        try:
-            out.append(
-                {
-                    "ts": datetime.fromisoformat(r["timestamp"]),
-                    "data_date": date.fromisoformat(r["date"]),
-                    "net_call_premium": Decimal(str(r["net_call_premium"])),
-                    "net_put_premium": Decimal(str(r["net_put_premium"])),
-                    "net_volume": (
-                        int(r["net_volume"])
-                        if r.get("net_volume") is not None
-                        else None
-                    ),
-                }
-            )
-        except (KeyError, ValueError, TypeError, InvalidOperation) as exc:
-            raise normalize.NormalizationError(
-                f"market-tide: malformed bar {r!r}"
-            ) from exc
-    return out
+    return normalize.normalize_market_tide(body)
 
 
 def fetch_top_net_impact(
@@ -916,25 +801,7 @@ def fetch_top_net_impact(
             )
             return []
         raise
-    rows = body.get("data") if isinstance(body, dict) else None
-    if not isinstance(rows, list):
-        raise normalize.NormalizationError(
-            f"top-net-impact: expected 'data' list, got {type(rows).__name__}"
-        )
-    out: list[dict] = []
-    for r in rows:
-        try:
-            out.append(
-                {
-                    "ticker": str(r["ticker"]).upper(),
-                    "net_premium": Decimal(str(r["net_premium"])),
-                }
-            )
-        except (KeyError, ValueError, TypeError, InvalidOperation) as exc:
-            raise normalize.NormalizationError(
-                f"top-net-impact: malformed row {r!r}"
-            ) from exc
-    return out
+    return normalize.normalize_top_net_impact(body)
 
 
 def fetch_economic_calendar(
@@ -951,35 +818,7 @@ def fetch_economic_calendar(
     body = _fetch_json(
         client, repo, run_id, EndpointSlug.ECONOMIC_CALENDAR, None, params=None
     )
-    rows = body.get("data") if isinstance(body, dict) else None
-    if not isinstance(rows, list):
-        raise normalize.NormalizationError(
-            f"economic-calendar: expected 'data' list, got {type(rows).__name__}"
-        )
-    out: list[dict] = []
-    for r in rows:
-        try:
-            out.append(
-                {
-                    "event": str(r["event"]),
-                    "type": str(r["type"]),
-                    "reported_period": str(r["reported_period"]),
-                    "scheduled_at": datetime.fromisoformat(
-                        str(r["time"]).replace("Z", "+00:00")
-                    ),
-                    "forecast": (str(r["forecast"]).strip() or None)
-                    if r.get("forecast") is not None
-                    else None,
-                    "prior": (str(r["prev"]).strip() or None)
-                    if r.get("prev") is not None
-                    else None,
-                }
-            )
-        except (KeyError, ValueError, TypeError) as exc:
-            raise normalize.NormalizationError(
-                f"economic-calendar: malformed row {r!r}"
-            ) from exc
-    return out
+    return normalize.normalize_economic_calendar(body)
 
 
 # --------------------------------------------------------------------------- #
@@ -988,11 +827,6 @@ def fetch_economic_calendar(
 # return full/rolling history (the capture layer selects the as-of row). Not
 # memoized — past-date history is not a slow-moving same-day snapshot.
 # --------------------------------------------------------------------------- #
-def _date_params(market_date: date | None, **extra: Any) -> dict[str, Any] | None:
-    params: dict[str, Any] = dict(extra)
-    if market_date is not None:
-        params["date"] = market_date.isoformat()
-    return params or None
 
 
 def fetch_gex_levels(
@@ -1012,160 +846,6 @@ def fetch_gex_levels(
     )
     md = market_date or datetime.now(_ET).date()
     return normalize.normalize_gex_levels(body, ticker, md)
-
-
-def fetch_volatility_anomaly(
-    client: UwClient,
-    repo: Repository,
-    run_id: int,
-    ticker: str,
-    market_date: date | None = None,
-) -> list[VolAnomalyRow]:
-    body = _fetch_json(
-        client,
-        repo,
-        run_id,
-        EndpointSlug.VOLATILITY_ANOMALY,
-        ticker,
-        params=_date_params(market_date),
-    )
-    return normalize.normalize_vol_anomaly(body)
-
-
-def fetch_volatility_character(
-    client: UwClient,
-    repo: Repository,
-    run_id: int,
-    ticker: str,
-    market_date: date | None = None,
-) -> list[VolCharacterRow]:
-    body = _fetch_json(
-        client,
-        repo,
-        run_id,
-        EndpointSlug.VOLATILITY_CHARACTER,
-        ticker,
-        params=_date_params(market_date),
-    )
-    return normalize.normalize_vol_character(body)
-
-
-def fetch_volatility_vrp(
-    client: UwClient,
-    repo: Repository,
-    run_id: int,
-    ticker: str,
-    market_date: date | None = None,
-) -> list[VolVrpRow]:
-    body = _fetch_json(
-        client,
-        repo,
-        run_id,
-        EndpointSlug.VOLATILITY_VRP,
-        ticker,
-        params=_date_params(market_date),
-    )
-    return normalize.normalize_vol_vrp(body)
-
-
-def fetch_net_prem_ticks(
-    client: UwClient,
-    repo: Repository,
-    run_id: int,
-    ticker: str,
-    market_date: date | None = None,
-    limit: int = 500,
-) -> list[NetPremTickRow]:
-    body = _fetch_json(
-        client,
-        repo,
-        run_id,
-        EndpointSlug.NET_PREM_TICKS,
-        ticker,
-        params=_date_params(market_date, limit=limit),
-    )
-    return normalize.normalize_net_prem_ticks(body)
-
-
-def fetch_greek_flow(
-    client: UwClient,
-    repo: Repository,
-    run_id: int,
-    ticker: str,
-    market_date: date | None = None,
-) -> list[GreekFlowRow]:
-    body = _fetch_json(
-        client,
-        repo,
-        run_id,
-        EndpointSlug.GREEK_FLOW,
-        ticker,
-        params=_date_params(market_date),
-    )
-    return normalize.normalize_greek_flow(body)
-
-
-def fetch_lit_flow(
-    client: UwClient,
-    repo: Repository,
-    run_id: int,
-    ticker: str,
-    market_date: date | None = None,
-    limit: int = 500,
-) -> list[DarkLitPrint]:
-    body = _fetch_json(
-        client,
-        repo,
-        run_id,
-        EndpointSlug.LIT_FLOW,
-        ticker,
-        params=_date_params(market_date, limit=limit),
-    )
-    return normalize.normalize_dark_lit(body)
-
-
-def fetch_darkpool_prints(
-    client: UwClient,
-    repo: Repository,
-    run_id: int,
-    ticker: str,
-    market_date: date | None = None,
-    limit: int = 500,
-) -> list[DarkLitPrint]:
-    # New fetcher: the existing fetch_darkpool_ticker sends neither date nor limit,
-    # so it can't backfill history. Same DARKPOOL_TICKER slug, with selectors.
-    body = _fetch_json(
-        client,
-        repo,
-        run_id,
-        EndpointSlug.DARKPOOL_TICKER,
-        ticker,
-        params=_date_params(market_date, limit=limit),
-    )
-    return normalize.normalize_dark_lit(body)
-
-
-def fetch_ftds(
-    client: UwClient,
-    repo: Repository,
-    run_id: int,
-    ticker: str,
-) -> list[FtdRow]:
-    # ?date= is ignored; returns full FTD history. The capture selects the row.
-    body = _fetch_json(client, repo, run_id, EndpointSlug.FTDS, ticker)
-    return normalize.normalize_ftds(body)
-
-
-def fetch_volumes_by_exchange(
-    client: UwClient,
-    repo: Repository,
-    run_id: int,
-    ticker: str,
-) -> list[VolumesByExchangeRow]:
-    # ?date= is ignored; returns a rolling per-exchange window. The capture
-    # aggregates the rows for the target date.
-    body = _fetch_json(client, repo, run_id, EndpointSlug.VOLUMES_BY_EXCHANGE, ticker)
-    return normalize.normalize_volumes_by_exchange(body)
 
 
 def fetch_short_interest_history(

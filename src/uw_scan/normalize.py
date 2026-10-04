@@ -6,7 +6,7 @@ Field names mirror docs/uw-samples/*.json.
 
 from __future__ import annotations
 
-from datetime import date
+from datetime import date, datetime
 from decimal import Decimal, InvalidOperation
 from typing import Any
 
@@ -534,3 +534,88 @@ def normalize_ftds(payload: dict) -> list[FtdRow]:
 def normalize_volumes_by_exchange(payload: dict) -> list[VolumesByExchangeRow]:
     # One row per exchange; per-date aggregation happens in the capture layer.
     return [VolumesByExchangeRow(**r) for r in _data_list(payload) if r.get("date")]
+
+
+# --------------------------------------------------------------------------- #
+# Market-wide dict normalizers, moved verbatim out of sources/uw.py (I-57).
+# --------------------------------------------------------------------------- #
+def normalize_market_tide(body: Any) -> list[dict]:
+    """5-min market-tide bars -> dicts. Raises on a missing field rather than
+    skipping a bar (the chart/backfill must know if UW changed shape)."""
+    rows = body.get("data") if isinstance(body, dict) else None
+    if not isinstance(rows, list):
+        raise NormalizationError(
+            f"market-tide: expected 'data' list, got {type(rows).__name__}"
+        )
+    out: list[dict] = []
+    for r in rows:
+        try:
+            out.append(
+                {
+                    "ts": datetime.fromisoformat(r["timestamp"]),
+                    "data_date": date.fromisoformat(r["date"]),
+                    "net_call_premium": Decimal(str(r["net_call_premium"])),
+                    "net_put_premium": Decimal(str(r["net_put_premium"])),
+                    "net_volume": (
+                        int(r["net_volume"])
+                        if r.get("net_volume") is not None
+                        else None
+                    ),
+                }
+            )
+        except (KeyError, ValueError, TypeError, InvalidOperation) as exc:
+            raise NormalizationError(f"market-tide: malformed bar {r!r}") from exc
+    return out
+
+
+def normalize_top_net_impact(body: Any) -> list[dict]:
+    """Top-net-impact rows -> {ticker, net_premium}. Raises on a missing field."""
+    rows = body.get("data") if isinstance(body, dict) else None
+    if not isinstance(rows, list):
+        raise NormalizationError(
+            f"top-net-impact: expected 'data' list, got {type(rows).__name__}"
+        )
+    out: list[dict] = []
+    for r in rows:
+        try:
+            out.append(
+                {
+                    "ticker": str(r["ticker"]).upper(),
+                    "net_premium": Decimal(str(r["net_premium"])),
+                }
+            )
+        except (KeyError, ValueError, TypeError, InvalidOperation) as exc:
+            raise NormalizationError(f"top-net-impact: malformed row {r!r}") from exc
+    return out
+
+
+def normalize_economic_calendar(body: Any) -> list[dict]:
+    """Economic-calendar rows. `forecast`/`prev` stay UW's free text (may carry
+    '%', 'K', or be blank); parsing/units live in the reports layer only."""
+    rows = body.get("data") if isinstance(body, dict) else None
+    if not isinstance(rows, list):
+        raise NormalizationError(
+            f"economic-calendar: expected 'data' list, got {type(rows).__name__}"
+        )
+    out: list[dict] = []
+    for r in rows:
+        try:
+            out.append(
+                {
+                    "event": str(r["event"]),
+                    "type": str(r["type"]),
+                    "reported_period": str(r["reported_period"]),
+                    "scheduled_at": datetime.fromisoformat(
+                        str(r["time"]).replace("Z", "+00:00")
+                    ),
+                    "forecast": (str(r["forecast"]).strip() or None)
+                    if r.get("forecast") is not None
+                    else None,
+                    "prior": (str(r["prev"]).strip() or None)
+                    if r.get("prev") is not None
+                    else None,
+                }
+            )
+        except (KeyError, ValueError, TypeError) as exc:
+            raise NormalizationError(f"economic-calendar: malformed row {r!r}") from exc
+    return out

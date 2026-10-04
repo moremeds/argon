@@ -1,3 +1,4 @@
+import { Tile } from "@/components/shared/Tile";
 import { fmtDecimal, fmtPct, fmtSigned, toNum } from "@/lib/formatters";
 
 export type VolHeader = {
@@ -16,61 +17,6 @@ export type VolHeader = {
   vrp_signal?: string;
   vrp_note?: string;
 };
-
-const tileStyle: React.CSSProperties = {
-  background: "var(--bg-panel)",
-  border: "1px solid var(--border-dim)",
-  borderRadius: 4,
-  padding: "12px 14px",
-  display: "flex",
-  flexDirection: "column",
-  gap: 6,
-  minWidth: 0,
-};
-
-const labelStyle: React.CSSProperties = {
-  fontFamily: "var(--font-mono)",
-  fontSize: 10,
-  letterSpacing: 1.5,
-  textTransform: "uppercase",
-  color: "var(--text-muted)",
-};
-
-const valueStyle: React.CSSProperties = {
-  fontFamily: "var(--font-mono)",
-  fontWeight: 700,
-  fontSize: 22,
-  color: "var(--text-primary)",
-  lineHeight: 1,
-};
-
-const subStyle: React.CSSProperties = {
-  fontFamily: "var(--font-mono)",
-  fontSize: 11,
-  color: "var(--text-muted)",
-};
-
-function Tile({
-  label,
-  value,
-  sub,
-  valueColor,
-}: {
-  label: string;
-  value: string;
-  sub?: string;
-  valueColor?: string;
-}) {
-  return (
-    <div style={tileStyle}>
-      <div style={labelStyle}>{label}</div>
-      <div style={{ ...valueStyle, color: valueColor ?? valueStyle.color }}>
-        {value}
-      </div>
-      <div style={subStyle}>{sub ?? " "}</div>
-    </div>
-  );
-}
 
 function vrpColor(v: number | null): string {
   if (v == null) return "var(--text-muted)";

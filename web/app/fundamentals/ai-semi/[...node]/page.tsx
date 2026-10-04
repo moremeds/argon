@@ -7,6 +7,7 @@ import { NodeLimits } from "@/components/fundamentals/NodeLimits";
 import { NodeUnderwritingPanel } from "@/components/fundamentals/NodeUnderwritingPanel";
 import { ReportView } from "@/components/reports/ReportView";
 import { api } from "@/lib/api";
+import { ApiError } from "@/lib/apiClient";
 import { SECTION, chainFromSegments } from "@/lib/fundamentalsSection";
 import type {
   DeskCalendarResponse,
@@ -18,11 +19,10 @@ export const dynamic = "force-dynamic";
 
 
 
-/** `_fetch` throws `API <status> for <path>: <body>` and exposes nothing else.
- *  A 404 from the reports route is structurally different from a missing
- *  report — see the report slot below — so the status has to be recovered. */
+/** A 404 from the reports route is structurally different from a missing
+ *  report — see the report slot below — so the status matters. */
 function isNotFound(error: unknown): boolean {
-  return error instanceof Error && /^API 404 /.test(error.message);
+  return error instanceof ApiError && error.status === 404;
 }
 
 function message(error: unknown): string {

@@ -6,7 +6,9 @@ import logging
 from contextlib import contextmanager
 
 import pandas as pd
+import pytest
 
+from uw_scan.sources.source_errors import SourceUnavailable
 from uw_scan.storage.technicals_repository import TechnicalsRepository
 from uw_scan.worker.jobs.technical_daily_refresh import technical_daily_refresh
 
@@ -133,16 +135,20 @@ def test_refresh_persists_ohlcv(seeded_db_empty_cards, monkeypatch):
 def test_apex_refusal_is_not_reported_as_thin_history(
     seeded_db_empty_cards, monkeypatch
 ):
-    """apex 503 adjusted_unavailable -> fetch_daily_bars returns [] (never-raise)
-    -> the ~60-session massive overlay alone is under the 210-bar floor -> the
-    job used to charge this to skipped_thin and log INFO. That is the exact
-    chain that froze MSTR's technical_daily at 2026-07-15 for 26 sessions with
-    nothing warning. An empty apex response is a SOURCE failure, not thin
-    history: it gets its own counter and a WARNING."""
+    """apex 503 adjusted_unavailable -> fetch_daily_bars raises
+    SourceUnavailable -> counted as source_unavailable with a WARNING, never as
+    thin history (that mislabel froze MSTR's technical_daily at 2026-07-15 for
+    26 sessions with nothing warning). One ticker's outage does not fail the
+    run: SPY still refreshes."""
     repo = seeded_db_empty_cards
+
+    def fetch(t, **kw):
+        if t == "MSTR":
+            raise SourceUnavailable("apex", "503 (apex code=adjusted_unavailable)")
+        return _fake_bars(400)
+
     monkeypatch.setattr(
-        "uw_scan.worker.jobs.technical_daily_refresh.fetch_daily_bars",
-        lambda t, **kw: [] if t == "MSTR" else _fake_bars(400),
+        "uw_scan.worker.jobs.technical_daily_refresh.fetch_daily_bars", fetch
     )
     with caplog_at_warning() as records:
         result = technical_daily_refresh(
@@ -152,6 +158,41 @@ def test_apex_refusal_is_not_reported_as_thin_history(
     assert result["skipped_thin"] == 0  # NOT charged to thin history
     assert result["ok"] == 1  # SPY still refreshed
     assert any("MSTR" in r.getMessage() for r in records)
+
+
+def test_empty_2xx_from_apex_is_no_data_not_thin_or_unavailable(
+    seeded_db_empty_cards, monkeypatch
+):
+    """[] now means only "apex answered with no bars"."""
+    repo = seeded_db_empty_cards
+    monkeypatch.setattr(
+        "uw_scan.worker.jobs.technical_daily_refresh.fetch_daily_bars",
+        lambda t, **kw: [] if t == "MSTR" else _fake_bars(400),
+    )
+    result = technical_daily_refresh(
+        repo=repo, settings=_settings(), ticker_filter=["MSTR"]
+    )
+    assert result["no_data"] == 1
+    assert result["source_unavailable"] == 0
+    assert result["skipped_thin"] == 0
+    assert result["ok"] == 1
+
+
+def test_spy_benchmark_unavailable_fails_the_run(seeded_db_empty_cards, monkeypatch):
+    """No benchmark means every other ticker's RS columns would be computed
+    against an empty series, so the job raises instead of writing them."""
+    repo = seeded_db_empty_cards
+
+    def fetch(t, **kw):
+        if t == "SPY":
+            raise SourceUnavailable("apex", "ConnectError('down')")
+        return _fake_bars(400)
+
+    monkeypatch.setattr(
+        "uw_scan.worker.jobs.technical_daily_refresh.fetch_daily_bars", fetch
+    )
+    with pytest.raises(SourceUnavailable, match="down"):
+        technical_daily_refresh(repo=repo, settings=_settings(), ticker_filter=["NVDA"])
 
 
 def test_thin_history_still_counts_as_thin(seeded_db_empty_cards, monkeypatch):

@@ -14,6 +14,7 @@ from datetime import date as _date
 from decimal import Decimal
 from statistics import median as _median
 
+from uw_scan.sources.source_errors import SourceUnavailable
 from uw_scan.sources.xenon_query import fetch_ib_option_iv
 from uw_scan.storage.repository import Repository
 
@@ -45,6 +46,8 @@ def option_surface_iv_canary(
         else None
     )
     diffs: list[Decimal] = []
+    attempted = unavailable = 0
+    last_unavailable: SourceUnavailable | None = None
     for card in repo.list_watchlist_cards():
         ticker, spot = card.ticker, card.spot
         if spot is None:
@@ -53,14 +56,23 @@ def option_surface_iv_canary(
             atm = repo.fetch_option_surface_atm_strike(ticker, today, expiry, spot)
             if atm is None:
                 continue
-            ib_iv = fetch_ib_option_iv(
-                base_url=settings.xenon_query_api_url,
-                api_key=api_key,
-                symbol=ticker,
-                expiry=expiry.strftime("%Y%m%d"),
-                strike=float(atm["strike"]),
-                right="C",
-            )
+            attempted += 1
+            try:
+                ib_iv = fetch_ib_option_iv(
+                    base_url=settings.xenon_query_api_url,
+                    api_key=api_key,
+                    symbol=ticker,
+                    expiry=expiry.strftime("%Y%m%d"),
+                    strike=float(atm["strike"]),
+                    right="C",
+                )
+            except SourceUnavailable as exc:
+                # Unit = one contract leg: record the UW side with no IB value
+                # (as before) and keep going.
+                unavailable += 1
+                last_unavailable = exc
+                log.warning("option_surface_iv_canary: %s", repr(exc))
+                ib_iv = None
             uw_iv = atm.get("call_iv")
             repo.upsert_iv_source_validation(
                 ticker, today, expiry, atm["strike"], "C", uw_iv, ib_iv
@@ -68,6 +80,15 @@ def option_surface_iv_canary(
             if uw_iv is not None and ib_iv is not None:
                 diffs.append(abs(uw_iv - ib_iv))
         repo.conn.commit()
+
+    # Every attempted leg unavailable = xenon down or the API key missing/wrong
+    # (a 401). That used to read as "no comparisons available" at INFO.
+    if attempted and unavailable == attempted and last_unavailable is not None:
+        raise SourceUnavailable(
+            "xenon_query",
+            f"option_surface_iv_canary: all {attempted} legs unavailable; "
+            f"last: {last_unavailable.detail}",
+        ) from last_unavailable
 
     if not diffs:
         log.info("option_surface_iv_canary: no comparisons available")
