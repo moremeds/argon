@@ -10,14 +10,13 @@ from __future__ import annotations
 
 import logging
 from dataclasses import dataclass
-from datetime import UTC, date, datetime, timezone
+from datetime import date, datetime, timezone
 from decimal import Decimal
 from typing import Any, Protocol
 
 import httpx
 
-from uw_scan.storage.provider_usage import ExternalApiRequestEvent
-from uw_scan.storage.repository import redact_params, status_family_for
+from uw_scan.sources._http import RequestOutcome, get_with_telemetry, request_event
 
 logger = logging.getLogger(__name__)
 
@@ -129,81 +128,43 @@ class MassiveOhlcProvider:
         ticker: str,
         params: dict[str, object] | None = None,
     ) -> httpx.Response:
-        started_at = datetime.now(UTC)
-        try:
-            response = self._client.get(path, params=params)
-        except httpx.HTTPError as exc:
-            finished_at = datetime.now(UTC)
-            self._record_request(
+        def record(outcome: RequestOutcome) -> None:
+            if self._telemetry_recorder is None:
+                return
+            event = request_event(
+                outcome,
+                provider="massive",
                 endpoint_key=endpoint_key,
-                path_template=path_template,
                 path=path,
-                ticker=ticker,
+                path_template=path_template,
                 params=params,
-                status_code=None,
-                started_at=started_at,
-                finished_at=finished_at,
-                provider_request_id=None,
-                error_message=str(exc),
+                job_name=self._job_name,
+                ticker=ticker.upper(),
+                provider_request_id=(
+                    self._extract_request_id(outcome.response)
+                    if outcome.response is not None
+                    else None
+                ),
             )
-            raise
-        finished_at = datetime.now(UTC)
-        provider_request_id = self._extract_request_id(response)
-        self._record_request(
-            endpoint_key=endpoint_key,
-            path_template=path_template,
-            path=path,
-            ticker=ticker,
-            params=params,
-            status_code=response.status_code,
-            started_at=started_at,
-            finished_at=finished_at,
-            provider_request_id=provider_request_id,
-            error_message=response.text if response.status_code >= 400 else None,
-        )
-        return response
+            try:
+                self._telemetry_recorder.record(event)  # type: ignore[attr-defined]
+            except Exception as exc:
+                logger.exception(
+                    "failed to emit Massive request telemetry for %s: %s",
+                    endpoint_key,
+                    repr(exc),
+                )
 
-    def _record_request(
-        self,
-        *,
-        endpoint_key: str,
-        path_template: str,
-        path: str,
-        ticker: str,
-        params: dict[str, object] | None,
-        status_code: int | None,
-        started_at: datetime,
-        finished_at: datetime,
-        provider_request_id: str | None,
-        error_message: str | None,
-    ) -> None:
-        if self._telemetry_recorder is None:
-            return
-        event = ExternalApiRequestEvent(
-            provider="massive",
-            endpoint_key=endpoint_key,
-            method="GET",
-            path_template=path_template,
-            path=path,
-            ticker=ticker.upper(),
-            params=redact_params(params),
-            status_code=status_code,
-            status_family=status_family_for(status_code),
-            started_at=started_at,
-            finished_at=finished_at,
-            latency_ms=max(0, int((finished_at - started_at).total_seconds() * 1000)),
-            job_name=self._job_name,
-            provider_request_id=provider_request_id,
-            error_message=error_message[:1000] if error_message else None,
+        return get_with_telemetry(
+            self._client,
+            path,
+            params=params,
+            record=record,
+            transport_error_text=lambda exc: str(exc)[:1000] or None,
+            error_body_text=lambda r: (
+                (r.text[:1000] or None) if r.status_code >= 400 else None
+            ),
         )
-        try:
-            self._telemetry_recorder.record(event)  # type: ignore[attr-defined]
-        except Exception as exc:
-            logger.exception(
-                "failed to emit Massive request telemetry for %s: %s",
-                endpoint_key,
-                repr(exc),
-            )
 
     def _extract_request_id(self, response: httpx.Response) -> str | None:
         try:

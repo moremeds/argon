@@ -7,14 +7,19 @@ import logging
 import re
 from collections.abc import Callable
 from dataclasses import dataclass
-from datetime import UTC, date, datetime
+from datetime import date
 from decimal import Decimal, InvalidOperation
 from typing import Any
 
 import httpx
 
+from uw_scan.sources._http import (
+    RequestOutcome,
+    get_with_telemetry,
+    record_or_log,
+    request_event,
+)
 from uw_scan.storage.provider_usage import ExternalApiRequestEvent
-from uw_scan.storage.repository import redact_params, status_family_for
 
 logger = logging.getLogger(__name__)
 
@@ -147,71 +152,18 @@ class TreasurySupplyProvider:
         return _debt_from_mapping(data[0])
 
     def _get_with_telemetry(self, url: str, params: dict[str, Any]) -> httpx.Response:
-        started_at = datetime.now(UTC)
-        try:
-            response = self._client.get(url, params=params)
-        except httpx.HTTPError as exc:
-            finished_at = datetime.now(UTC)
-            self._record_request(
-                self._build_event(
-                    url,
-                    started_at,
-                    finished_at,
-                    params,
-                    status_code=None,
-                    error_message=repr(exc)[:1000],
-                )
+        def record(outcome: RequestOutcome) -> None:
+            event = request_event(
+                outcome,
+                provider=self.PROVIDER,
+                endpoint_key=_endpoint_key_for_url(url),
+                path=_path_for_url(url),
+                params=params,
+                job_name=self._job_name,
             )
-            raise
-        finished_at = datetime.now(UTC)
-        self._record_request(
-            self._build_event(
-                url,
-                started_at,
-                finished_at,
-                params,
-                status_code=response.status_code,
-                error_message=(
-                    response.text[:1000] if response.status_code >= 400 else None
-                ),
-            )
-        )
-        return response
+            record_or_log(self._record_request_fn, self, event, "treasury_supply")
 
-    def _record_request(self, event: ExternalApiRequestEvent) -> None:
-        if self._record_request_fn is not None:
-            self._record_request_fn(self, event)
-        else:
-            logger.debug("treasury_supply telemetry %r", event)
-
-    def _build_event(
-        self,
-        url: str,
-        started_at: datetime,
-        finished_at: datetime,
-        params: dict[str, Any],
-        *,
-        status_code: int | None,
-        error_message: str | None,
-    ) -> ExternalApiRequestEvent:
-        path = _path_for_url(url)
-        return ExternalApiRequestEvent(
-            provider=self.PROVIDER,
-            endpoint_key=_endpoint_key_for_url(url),
-            method="GET",
-            path=path,
-            path_template=path,
-            params=redact_params(params),
-            status_code=status_code,
-            status_family=status_family_for(
-                status_code, transport_error=status_code is None
-            ),
-            started_at=started_at,
-            finished_at=finished_at,
-            latency_ms=max(0, int((finished_at - started_at).total_seconds() * 1000)),
-            error_message=error_message,
-            job_name=self._job_name,
-        )
+        return get_with_telemetry(self._client, url, params=params, record=record)
 
 
 def parse_auctions(raw_bytes: bytes) -> list[TreasuryAuctionRow]:

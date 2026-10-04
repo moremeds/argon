@@ -22,8 +22,13 @@ import httpx
 from uw_scan.macro_evidence import macro_artifact_content_identity
 from uw_scan.models.macro import MacroSourceArtifact
 from uw_scan.normalize import NormalizationError
+from uw_scan.sources._http import (
+    RequestOutcome,
+    get_with_telemetry,
+    record_or_log,
+    request_event,
+)
 from uw_scan.storage.provider_usage import ExternalApiRequestEvent
-from uw_scan.storage.repository import status_family_for
 
 logger = logging.getLogger(__name__)
 
@@ -169,65 +174,28 @@ class FedFundsFuturesPathProvider:
         )
 
     def _get(self) -> httpx.Response:
-        started_at = datetime.now(UTC)
         path = self.PATH
-        try:
-            response = self._client.get(f"{self._base_url}{path}")
-        except httpx.HTTPError as exc:
-            finished_at = datetime.now(UTC)
-            self._record_request(
-                self._event(
-                    path,
-                    started_at,
-                    finished_at,
-                    status_code=None,
-                    error_message=str(exc),
-                )
-            )
-            raise
-        finished_at = datetime.now(UTC)
-        self._record_request(
-            self._event(
-                path,
-                started_at,
-                finished_at,
-                status_code=response.status_code,
-                error_message=None,
-            )
-        )
-        return response
 
-    def _record_request(self, event: ExternalApiRequestEvent) -> None:
-        if self._record_request_fn is not None:
-            self._record_request_fn(self, event)
-        else:
-            logger.debug("fed funds futures path telemetry %r", event)
+        def record(outcome: RequestOutcome) -> None:
+            event = request_event(
+                outcome,
+                provider=self.PROVIDER,
+                endpoint_key=self.ENDPOINT_KEY,
+                path=path,
+                params=None,
+                job_name=self._job_name,
+            )
+            record_or_log(
+                self._record_request_fn, self, event, "fed funds futures path"
+            )
 
-    def _event(
-        self,
-        path: str,
-        started_at: datetime,
-        finished_at: datetime,
-        *,
-        status_code: int | None,
-        error_message: str | None,
-    ) -> ExternalApiRequestEvent:
-        return ExternalApiRequestEvent(
-            provider=self.PROVIDER,
-            endpoint_key=self.ENDPOINT_KEY,
-            method="GET",
-            path=path,
-            path_template=path,
-            params={},
-            status_code=status_code,
-            status_family=status_family_for(
-                status_code, transport_error=status_code is None
-            ),
-            latency_ms=max((finished_at - started_at).total_seconds() * 1000, 0),
-            error_message=error_message,
-            started_at=started_at,
-            finished_at=finished_at,
-            job_name=self._job_name,
+        return get_with_telemetry(
+            self._client,
+            f"{self._base_url}{path}",
+            params=None,
+            record=record,
+            transport_error_text=str,
+            error_body_text=lambda _response: None,
         )
 
 
@@ -401,7 +369,7 @@ def _parse_decimal(raw: object) -> Decimal | None:
 
 
 def _best_probability_bucket(
-    probabilities: dict[str, Decimal]
+    probabilities: dict[str, Decimal],
 ) -> tuple[str, Decimal] | None:
     if not probabilities:
         return None
