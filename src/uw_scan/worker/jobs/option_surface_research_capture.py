@@ -34,7 +34,7 @@ from datetime import date as _date
 from uw_scan.api.client import UwClient
 from uw_scan.storage.repository import Repository
 from uw_scan.storage.research_universe import ResearchUniverseRepository
-from uw_scan.worker.jobs.option_surface_capture import _build_ticker_rows
+from uw_scan.worker.jobs.option_surface_capture import build_ticker_rows
 
 log = logging.getLogger(__name__)
 
@@ -71,7 +71,7 @@ def option_surface_research_capture(
             run_id = repo.insert_scan_run(
                 ticker, notes="option_surface_research_capture"
             )
-            rows = _build_ticker_rows(
+            rows = build_ticker_rows(
                 client=client,
                 repo=repo,
                 run_id=run_id,

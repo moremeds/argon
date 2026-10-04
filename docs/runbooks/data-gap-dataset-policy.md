@@ -1,6 +1,6 @@
 # Data gap dataset policy
 
-Generated from `REGISTRY` in `src/uw_scan/reports/data_gap_healer.py` (one source of truth). Regenerate with:
+Generated from `REGISTRY` in `src/uw_scan/reports/data_gap_registry/` (one source of truth). Regenerate with:
 
 ```bash
 uv run python -c "from uw_scan.reports.data_gap_healer import render_dataset_policy_markdown as r; open('docs/runbooks/data-gap-dataset-policy.md','w').write(r())"

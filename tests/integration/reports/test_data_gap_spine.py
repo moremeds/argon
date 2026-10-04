@@ -9,7 +9,7 @@ from __future__ import annotations
 
 from datetime import date
 
-from uw_scan.reports.data_gap_healer import _calendar_dates, spine_health
+from uw_scan.reports.data_gap_healer import calendar_dates, spine_health
 
 SESSIONS = [date(2026, 8, 10), date(2026, 8, 11), date(2026, 8, 12)]
 
@@ -41,7 +41,7 @@ def test_spine_survives_a_truncated_reference(seeded_db_empty_cards) -> None:
     # The outage shape: the reference lost Aug 11-12, massive still has them.
     _seed(repo, ref_dates=SESSIONS[:1], spy_dates=SESSIONS)
 
-    cal = _calendar_dates(repo.conn, repo._schema, SESSIONS[0], SESSIONS[-1])
+    cal = calendar_dates(repo.conn, repo._schema, SESSIONS[0], SESSIONS[-1])
     assert cal == SESSIONS, "witness must restore the sessions the reference lost"
 
 

@@ -23,7 +23,7 @@ from uw_scan.storage.repository import Repository
 log = logging.getLogger(__name__)
 
 
-def _build_ticker_rows(
+def build_ticker_rows(
     *,
     client: UwClient,
     repo: Repository,
@@ -99,7 +99,7 @@ def option_surface_capture(
         run_id = None
         try:
             run_id = repo.insert_scan_run(ticker, notes="option_surface_capture")
-            rows = _build_ticker_rows(
+            rows = build_ticker_rows(
                 client=client,
                 repo=repo,
                 run_id=run_id,
@@ -194,7 +194,7 @@ def option_surface_backfill(
             run_id = None
             try:
                 run_id = repo.insert_scan_run(ticker, notes="option_surface_backfill")
-                rows = _build_ticker_rows(
+                rows = build_ticker_rows(
                     client=client,
                     repo=repo,
                     run_id=run_id,

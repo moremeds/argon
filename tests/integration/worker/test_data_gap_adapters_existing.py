@@ -100,9 +100,10 @@ def test_market_tide_backfill_does_not_stamp_a_live_spot(
 def test_the_calendar_reference_is_healable(seeded_db_empty_cards) -> None:
     """The audit's own spine reference must have a heal path, or an outage that
     truncates it can never be repaired unattended."""
-    from uw_scan.reports.data_gap_healer import _REFERENCE_CALENDAR, REGISTRY
+    from uw_scan.reports.data_gap_healer import REFERENCE_CALENDAR
+    from uw_scan.reports.data_gap_registry import REGISTRY
 
-    ref = _REFERENCE_CALENDAR[0]  # market_tide_sentiment_daily
+    ref = REFERENCE_CALENDAR[0]  # market_tide_sentiment_daily
     by_name = {e.table_name: e for e in REGISTRY}
     assert by_name[ref].healer_adapter, f"{ref} (the spine) has no heal path"
     # ...and so must the dataset IT derives from.

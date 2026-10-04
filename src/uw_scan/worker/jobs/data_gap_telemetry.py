@@ -107,14 +107,16 @@ class HealHeartbeat:
         return {
             "items_beaten": self.items_done,
             "heartbeat_write_failures": self.write_failures,
-            "telemetry_write_failures": int(getattr(self._recorder, "failures", 0) or 0),
+            "telemetry_write_failures": int(
+                getattr(self._recorder, "failures", 0) or 0
+            ),
         }
 
     def _persist(self, beat: dict) -> None:
         try:
             with self._gap._conn.cursor() as cur:  # noqa: SLF001
                 cur.execute(
-                    "UPDATE data_gap_runs "
+                    f"UPDATE {self._gap._schema}.data_gap_runs "  # noqa: SLF001
                     "SET summary_jsonb = summary_jsonb || %s::jsonb WHERE id = %s",
                     (json.dumps({"heartbeat": beat}, default=str), self._run_id),
                 )

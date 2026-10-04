@@ -58,7 +58,7 @@ def _run(done: list[str], cards: list[str]) -> list[str]:
         return [{"row": 1}]
 
     client = SimpleNamespace(rate_limit=SimpleNamespace(daily_count=0))
-    with patch.object(mod, "_build_ticker_rows", side_effect=fake_rows):
+    with patch.object(mod, "build_ticker_rows", side_effect=fake_rows):
         mod.option_surface_backfill(
             repo=_Repo(done, cards),
             client=client,

@@ -2,11 +2,9 @@ from __future__ import annotations
 
 from datetime import date
 
-from uw_scan.reports.data_gap_healer import (
-    REGISTRY,
-    GapItem,
-    registered_table_names,
-)
+from uw_scan.reports.data_gap_healer import registered_table_names
+from uw_scan.reports.data_gap_registry import REGISTRY
+from uw_scan.reports.data_gap_types import GapItem
 from uw_scan.storage.data_gap_healer_repository import DataGapHealerRepository
 
 

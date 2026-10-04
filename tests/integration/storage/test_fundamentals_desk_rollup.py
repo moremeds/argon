@@ -157,7 +157,7 @@ def test_a_fallback_knowledge_date_is_stored_as_a_fallback(seeded_db_empty_cards
 
     The fallback errs EARLY for late filers, which manufactures look-ahead --
     measured cost is composite IC 0.059 with it against 0.039 without (see
-    `fundamental_scoring._knowledge_date`). Stored in the same column, in the
+    `fundamental_scoring.knowledge_date`). Stored in the same column, in the
     same shape, as a real filing date, the two are indistinguishable and the
     distinction is destroyed at write time -- no later reader can recover it.
     `knowledge_date_known` is what lets a leak-free consumer filter the

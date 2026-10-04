@@ -8,7 +8,7 @@ _DATE_COL_PREFERENCE, so the override is mandatory.
 """
 
 from uw_scan.reports.data_freshness import MONITORED_TABLES
-from uw_scan.reports.data_gap_healer import REGISTRY
+from uw_scan.reports.data_gap_registry import REGISTRY
 
 
 def test_sector_rs_daily_is_monitored():

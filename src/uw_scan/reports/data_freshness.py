@@ -15,8 +15,8 @@ from datetime import date, timedelta
 from psycopg import Connection
 from psycopg import sql as psql
 
-from uw_scan.reports.data_gap_healer import REGISTRY as _GAP_HEALER_REGISTRY
-from uw_scan.reports.data_gap_healer import _calendar_dates
+from uw_scan.reports.data_gap_healer import calendar_dates
+from uw_scan.reports.data_gap_registry import REGISTRY as _GAP_HEALER_REGISTRY
 
 # Preference order for the data-date column, most specific first. The monitor
 # auto-detects which one a table actually has (avoids hardcoding a wrong name).
@@ -344,7 +344,7 @@ def compute_freshness(
     active = {t.upper() for t in active_tickers}
     # Expected sessions, resolved ONCE for the whole run (identical per table);
     # 3x the window in calendar days so weekends/holidays still yield 5 sessions.
-    calendar_recent = _calendar_dates(
+    calendar_recent = calendar_dates(
         conn, schema, today - timedelta(days=_COVERAGE_SESSIONS * 3), today
     )[-_COVERAGE_SESSIONS:]
     for mt in monitored:
