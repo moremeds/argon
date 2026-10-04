@@ -23,3 +23,9 @@ def test_db_tripwire_runs_before_field_parsing(
     monkeypatch.setenv("UW_SCAN_DB_PORT", "not-a-port")
     with pytest.raises(RuntimeError, match="Refusing to start"):
         Settings.from_env(env_path=empty)
+
+
+def test_edge_quality_check_runs_before_vrp_check() -> None:
+    """Both validators moved into mixins (D6 batch 5); the old raise order holds."""
+    with pytest.raises(ValueError, match="edge-quality weights must sum to 100"):
+        Settings(api_key="k", scanner_edge_quality_weight_sweeps=1, vrp_hold_days=0)
