@@ -6,7 +6,7 @@ Generated from `REGISTRY` in `src/uw_scan/reports/data_gap_healer.py` (one sourc
 uv run python -c "from uw_scan.reports.data_gap_healer import render_dataset_policy_markdown as r; open('docs/runbooks/data-gap-dataset-policy.md','w').write(r())"
 ```
 
-**183 datasets** across 11 groups.
+**184 datasets** across 11 groups.
 
 ## core_watchlist
 
@@ -127,6 +127,7 @@ uv run python -c "from uw_scan.reports.data_gap_healer import render_dataset_pol
 | record_health_snapshot | excluded | none | none |  | none | latest per-table record-health counts, overwritten every 15 min by the record_health_snapshot job; no history to backfill/heal |  |
 | research_universe | excluded | none | none |  | none | cohort membership, not a time series; selected_on is a point-in-time tag, not a cadence |  |
 | scan_runs | provenance | none | none |  | none |  |  |
+| schema_version | excluded | none | none |  | none | one-row schema-ready marker written by migrate_runner after a full apply; nothing to backfill/heal |  |
 | uw_fetch_memo | excluded | none | none |  | none | ephemeral same-day fetch dedupe cache; pruned daily, nothing to backfill/heal |  |
 | volatility_backfill_status | provenance | none | none |  | none |  |  |
 | watchlist_chain | excluded | none | none |  | none | chain membership, not a time series; added_at is a seed stamp, not a cadence |  |

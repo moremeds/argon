@@ -1,33 +1,10 @@
 import { redirect } from "next/navigation";
 
 import { api } from "@/lib/api";
-import {
-  DAY_KINDS,
-  FLASH_TENANT,
-  isDayKind,
-  isoWeekOf,
-  todayEt,
-} from "@/lib/flash/kinds";
+import { lastWeekday, pickDoorwayDay } from "@/lib/flash/doorway";
+import { DAY_KINDS, FLASH_TENANT, isoWeekOf, todayEt } from "@/lib/flash/kinds";
 
 export const dynamic = "force-dynamic";
-
-/**
- * The most recent Mon–Fri on or before `day`.
- *
- * There is NO holiday calendar here, deliberately: argon does not know which
- * sessions the exchange closed, and inventing one would move the doorway to a
- * day that never traded. This only skips the weekend, which is the one thing
- * about the calendar that is certain. It is a fallback for a week with no
- * recorded daily run at all — the day page then says so itself.
- */
-function lastWeekday(day: string): string {
-  const [y, m, d] = day.split("-").map(Number);
-  const date = new Date(Date.UTC(y, (m ?? 1) - 1, d ?? 1));
-  while (date.getUTCDay() === 0 || date.getUTCDay() === 6) {
-    date.setUTCDate(date.getUTCDate() - 1);
-  }
-  return date.toISOString().slice(0, 10);
-}
 
 /**
  * `/flash` is a doorway, not a page.
@@ -57,22 +34,7 @@ export default async function FlashIndexPage() {
 
     if (weekKey) {
       const index = await api.agentRunWeek(FLASH_TENANT, weekKey);
-      const daily = index.runs.filter(
-        (r) => isDayKind(r.kind) && String(r.run_day) <= today,
-      );
-      for (const run of daily) {
-        const runDay = String(run.run_day);
-        if (day === null || runDay > day) day = runDay;
-      }
-      if (day !== null) {
-        // The latest phase recorded that day, in the day's own order. A close
-        // run is the day's last word; opening on premarket after it exists
-        // would show the reader the oldest view of a finished day.
-        const onDay = daily.filter((r) => String(r.run_day) === day);
-        for (const kind of DAY_KINDS) {
-          if (onDay.some((r) => r.kind === kind)) phase = kind;
-        }
-      }
+      ({ day, phase } = pickDoorwayDay(index.runs, today));
     }
   } catch {
     // The week page renders the API-unreachable state; a redirect loop here

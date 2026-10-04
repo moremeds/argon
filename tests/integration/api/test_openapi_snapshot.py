@@ -24,3 +24,18 @@ def test_openapi_paths_match_snapshot(client):
         "OpenAPI schemas changed — regenerate tests/integration/api/openapi.snapshot.json "
         "if the change is intentional."
     )
+
+
+_SPLIT_PREFIXES = ("/api/regime", "/api/macro", "/api/gold", "/api/rates")
+
+
+def test_regime_macro_operations_match_snapshot_exactly(client):
+    """I-37/I-40: the regime router split and the resolve_instant move must
+    keep every operation byte-identical (operationId, params, responses,
+    tags, docs), not only the path set."""
+    current = client.get("/openapi.json").json()["paths"]
+    expected = json.loads(SNAP.read_text())["paths"]
+    touched = sorted(p for p in expected if p.startswith(_SPLIT_PREFIXES))
+    assert touched == sorted(p for p in current if p.startswith(_SPLIT_PREFIXES))
+    for path in touched:
+        assert current[path] == expected[path], f"OpenAPI operation changed: {path}"
