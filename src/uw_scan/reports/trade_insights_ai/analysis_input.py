@@ -11,6 +11,7 @@ from __future__ import annotations
 
 import hashlib
 import json
+from collections.abc import Iterable
 from datetime import datetime
 from decimal import Decimal
 from typing import Any
@@ -192,15 +193,17 @@ def _prune_strike_exposures(
     return pruned
 
 
-def _strip_volatile_for_hash(value: Any) -> Any:
+def _strip_volatile_for_hash(
+    value: Any, volatile_keys: set[str] | frozenset[str] = _VOLATILE_HASH_KEYS
+) -> Any:
     if isinstance(value, dict):
         return {
-            key: _strip_volatile_for_hash(item)
+            key: _strip_volatile_for_hash(item, volatile_keys)
             for key, item in value.items()
-            if key not in _VOLATILE_HASH_KEYS
+            if key not in volatile_keys
         }
     if isinstance(value, list):
-        return [_strip_volatile_for_hash(item) for item in value]
+        return [_strip_volatile_for_hash(item, volatile_keys) for item in value]
     return value
 
 
@@ -218,6 +221,7 @@ def build_trade_insights_ai_analysis_input(
     stock_report_payload: dict[str, Any],
     stock_history_payload: dict[str, Any],
     volatility_series_payload: dict[str, Any],
+    prompt_version: str = PROMPT_VERSION,
 ) -> dict[str, Any]:
     """Build the bounded deterministic payload captured at POST time."""
 
@@ -294,7 +298,7 @@ def build_trade_insights_ai_analysis_input(
         missing_data.append("tabs.positioning.next_earnings_date is empty")
 
     analysis_input: dict[str, Any] = {
-        "prompt_version": PROMPT_VERSION,
+        "prompt_version": prompt_version,
         "ticker": ticker.upper(),
         "run_id": run_id,
         "trade_insights_input_hash": trade_insights_input_hash,
@@ -479,30 +483,50 @@ def _build_data_freshness(
     return items
 
 
-def hash_trade_insights_ai_analysis_input(analysis_input: dict[str, Any]) -> str:
+def hash_trade_insights_ai_analysis_input(
+    analysis_input: dict[str, Any], *, extra_volatile_keys: Iterable[str] = ()
+) -> str:
     """Stable hash over deterministic input, excluding execution metadata."""
-
-    return _canonical_hash(_strip_volatile_for_hash(analysis_input))
+    volatile_keys = _VOLATILE_HASH_KEYS | frozenset(extra_volatile_keys)
+    return _canonical_hash(_strip_volatile_for_hash(analysis_input, volatile_keys))
 
 
 def build_trade_insights_ai_prompt_payload(
     analysis_input: dict[str, Any],
     *,
     produced_at: datetime,
+    extra_volatile_keys: Iterable[str] = (),
 ) -> dict[str, Any]:
     payload = dict(analysis_input)
     payload["analysis_input_hash"] = hash_trade_insights_ai_analysis_input(
-        analysis_input
+        analysis_input, extra_volatile_keys=extra_volatile_keys
     )
     payload["analysis_produced_at"] = _iso_z(produced_at)
     return payload
 
 
-def build_trade_insights_ai_prompt(prompt_payload: dict[str, Any]) -> str:
+# The scenario_cards clause of the "Outcome field mapping" integration note —
+# a named fragment because the trade_blast lane substitutes its qualitative
+# likelihood-bucket wording here.
+_SCENARIO_CARDS_MAPPING = "(exactly 3, probabilities sum to 100)"
+
+
+def build_trade_insights_ai_prompt(
+    prompt_payload: dict[str, Any],
+    *,
+    prompt_version: str = PROMPT_VERSION,
+    market_intelligence: str = MARKET_INTELLIGENCE_PROMPT,
+    embedded_reference: str = "",
+    scenario_mapping: str = _SCENARIO_CARDS_MAPPING,
+    framework_directive: str = "",
+) -> str:
     payload_json = json.dumps(prompt_payload, sort_keys=True, indent=2, default=str)
+    reference_block = f"{embedded_reference}\n\n" if embedded_reference else ""
+    directive_block = f"\n{framework_directive}\n\n" if framework_directive else ""
     return (
-        f"{MARKET_INTELLIGENCE_PROMPT}\n\n"
+        f"{market_intelligence}\n\n"
         f"{CONTRACT_PROMPT}\n\n"
+        f"{reference_block}"
         "Integration notes for this local JSON runner:\n"
         "Analyze only the supplied combined deterministic prompt payload below.\n"
         "Do not fetch outside data. Do not use tools. Do not invent unavailable fields.\n"
@@ -515,7 +539,7 @@ def build_trade_insights_ai_prompt(prompt_payload: dict[str, Any]) -> str:
         "volatility <- tabs.volatility (including tabs.volatility.dealer_regime_header); "
         "flow <- tabs.flow; positioning <- tabs.positioning.\n"
         "Use analysis_produced_at exactly as supplied; do not invent a different production time.\n"
-        f"schema_version MUST be exactly the string {PROMPT_VERSION!r} (do not abbreviate or "
+        f"schema_version MUST be exactly the string {prompt_version!r} (do not abbreviate or "
         "reformat). This is also stamped as a JSON-schema const.\n"
         "Source-path rule (HARD): every source_path in the outcome must resolve to a key path "
         "that exists in the payload. Do not cite synthetic paths such as "
@@ -629,8 +653,8 @@ def build_trade_insights_ai_prompt(prompt_payload: dict[str, Any]) -> str:
         "trade_intent, underlying_path, dte_band, stance, conviction, score) + "
         "dominant_read <- Call section; section_cards <- Why paragraph (one card "
         "per pillar — market_structure, volatility, flow_positioning); conflicts "
-        "<- Conflicts table (cap 2); scenario_cards <- Scenarios table (exactly "
-        "3, probabilities sum to 100); preferred_expression + best_expressions "
+        "<- Conflicts table (cap 2); scenario_cards <- Scenarios table "
+        f"{scenario_mapping}; preferred_expression + best_expressions "
         "<- Call.preferred_structure / Expiry Selection; required_checks <- "
         "Required Checks table (cap 2); rejected_ideas <- Rejected Ideas table "
         "(min 3, max 5); rendering.disclaimer/final <- research-only framing only.\n"
@@ -664,6 +688,7 @@ def build_trade_insights_ai_prompt(prompt_payload: dict[str, Any]) -> str:
         "Do not repeat any table. Do not list more than 2 required_checks or more than 2 "
         "conflicts. Do not emit a Strategy Selection 12-row grid — only rejected_ideas "
         "(min 3, max 5).\n"
+        f"{directive_block}"
         "Emit only JSON conforming to the TradeInsightAiOutcome schema.\n\n"
         "Payload:\n"
         f"{payload_json}\n"
@@ -717,6 +742,7 @@ def trade_insights_ai_output_schema(
     *,
     strict: bool = True,
     strip_lookaround_regex: bool | None = None,
+    prompt_version: str = PROMPT_VERSION,
 ) -> dict[str, Any]:
     """Produce the JSON schema for TradeInsightAiOutcome.
 
@@ -742,7 +768,7 @@ def trade_insights_ai_output_schema(
     schema = _coerce_strict_schema(raw) if strict else raw
     if strip_lookaround_regex:
         schema = _strip_openai_unsupported_patterns(schema)
-    schema["properties"]["schema_version"]["const"] = PROMPT_VERSION
+    schema["properties"]["schema_version"]["const"] = prompt_version
     schema["$defs"]["TradeInsightAiHeadline"]["properties"]["conviction"]["enum"] = (
         list(FINAL_RATING_VALUES)
     )
