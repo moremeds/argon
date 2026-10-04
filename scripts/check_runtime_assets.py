@@ -5,7 +5,7 @@ The 2026-07-08 Docker cutover silently broke two runtime code paths because
 docker/app.Dockerfile does not COPY docs/. Nothing caught it: every test runs
 from a checkout, where docs/ exists. This guard encodes the rules that would.
 
-Rule 1 — no `Path.home()` in src/ outside config.py. Path defaults belong in
+Rule 1 — no `Path.home()` in src/ outside config/settings.py. Path defaults belong in
          Settings, which is env-overridable and documented. A home-dir default
          resolves to /root inside the container, where nothing is mounted.
 Rule 2 — no docs/ path construction in src/. docs/ is not in the image.
@@ -49,9 +49,9 @@ RUNTIME_ASSETS = (
     "guidance.md",
 )
 
-# config.py is the ONE place a home-dir default is allowed: it is the single
+# config/settings.py is the ONE place a home-dir default is allowed: it is the single
 # env-overridable source of path configuration for the whole app.
-HOME_ALLOWLIST = {SRC / "uw_scan" / "config.py"}
+HOME_ALLOWLIST = {SRC / "uw_scan" / "config" / "settings.py"}
 
 # data_gap_healer embeds its own regeneration command as help text, which
 # WRITES docs/runbooks/... It never reads a doc at runtime.
@@ -88,7 +88,7 @@ def main() -> int:
         for lineno, line in enumerate(text.splitlines(), 1):
             if HOME_DEFAULT.search(line) and path not in HOME_ALLOWLIST:
                 violations.append(
-                    f"  {rel}:{lineno}: Path.home() outside config.py — "
+                    f"  {rel}:{lineno}: Path.home() outside config/settings.py — "
                     f"put the default in Settings: {line.strip()[:100]}"
                 )
             if DOCS_PATH.search(line) and path not in DOCS_ALLOWLIST:

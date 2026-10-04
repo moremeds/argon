@@ -7,6 +7,10 @@ version in lockstep (enforced by `scripts/release/version_sync_check.py`).
 
 ## [Unreleased]
 
+### Changed
+
+- **`config.py` is now the `uw_scan.config` package (D6 batch 1, I-70).** `Settings` moved verbatim to `config/settings.py`, the env helpers and `.env` loader to `config/_env.py`, and the host/DB tripwire to `config/db_isolation.py`. `config/__init__.py` re-exports every name the flat module exposed, private helpers included, so every `from uw_scan.config import X` still works. The only code change is the repo-root lookup in `from_env` (`parents[2]` to `parents[3]`), which keeps it at the same directory. The logger name stays `uw_scan.config`. `settings_golden.json` and the scheduler golden are byte-identical. `scripts/check_runtime_assets.py` now allows `Path.home()` in `config/settings.py`, its new location. No runtime behaviour changes.
+
 ## [0.13.24] — 2026-10-04
 
 

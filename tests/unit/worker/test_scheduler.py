@@ -295,7 +295,7 @@ def test_scheduler_cron_literals_do_not_use_apscheduler_tuesday_to_saturday_rang
 ):
     repo_root = Path(__file__).resolve().parents[3]
     production_sources = (
-        repo_root / "src/uw_scan/config.py",
+        *sorted((repo_root / "src/uw_scan/config").glob("*.py")),
         repo_root / "src/uw_scan/worker/scheduler.py",
         *sorted((repo_root / "src/uw_scan/worker/schedule").glob("*.py")),
     )

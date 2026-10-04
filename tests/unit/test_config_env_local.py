@@ -53,10 +53,10 @@ def test_env_local_overrides_env(
 
     # Re-root from_env at the temp dir by patching the file's resolution.
     monkeypatch.setattr(
-        "uw_scan.config.__file__",
-        str(tmp_path / "src" / "uw_scan" / "config.py"),
+        "uw_scan.config.settings.__file__",
+        str(tmp_path / "src" / "uw_scan" / "config" / "settings.py"),
     )
-    (tmp_path / "src" / "uw_scan").mkdir(parents=True, exist_ok=True)
+    (tmp_path / "src" / "uw_scan" / "config").mkdir(parents=True, exist_ok=True)
 
     s = Settings.from_env()
 
@@ -76,10 +76,10 @@ def test_env_only_when_no_local(
     )
 
     monkeypatch.setattr(
-        "uw_scan.config.__file__",
-        str(tmp_path / "src" / "uw_scan" / "config.py"),
+        "uw_scan.config.settings.__file__",
+        str(tmp_path / "src" / "uw_scan" / "config" / "settings.py"),
     )
-    (tmp_path / "src" / "uw_scan").mkdir(parents=True, exist_ok=True)
+    (tmp_path / "src" / "uw_scan" / "config").mkdir(parents=True, exist_ok=True)
 
     s = Settings.from_env()
     assert s.db_host == "127.0.0.1"
@@ -103,10 +103,10 @@ def test_existing_environ_wins_over_both(
     )
 
     monkeypatch.setattr(
-        "uw_scan.config.__file__",
-        str(tmp_path / "src" / "uw_scan" / "config.py"),
+        "uw_scan.config.settings.__file__",
+        str(tmp_path / "src" / "uw_scan" / "config" / "settings.py"),
     )
-    (tmp_path / "src" / "uw_scan").mkdir(parents=True, exist_ok=True)
+    (tmp_path / "src" / "uw_scan" / "config").mkdir(parents=True, exist_ok=True)
 
     s = Settings.from_env()
     assert s.db_host == "from-shell"
