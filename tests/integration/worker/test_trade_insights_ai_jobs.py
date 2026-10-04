@@ -17,25 +17,22 @@ from uw_scan.worker.jobs.trade_insights_ai import (
 from uw_scan.worker.jobs.trade_insights_ai_runners import RunnerResult
 
 
-class _FakeCodexRunner:
+class _FakeDeepseekRunner:
     """Adapter that lets tests pass a plain `fake(...)` callable returning an
     outcome dict (or raising) while the worker tick sees a Protocol-conforming
     runner returning a RunnerResult.
 
-    Replaces the legacy module-level `run_codex_trade_insights_analysis`
-    monkeypatch target after the Protocol-based RUNNERS registry refactor.
-
-    Mirrors the real CodexRunner class attrs (`schema_strict=True`,
+    Mirrors the real DeepSeekRunner class attrs (`schema_strict=True`,
     `strip_lookaround_regex=True`, `requires_lenient_validation=False`) so the
     orchestrator can thread runner-declared flags without branching on name.
     """
 
-    name = "codex"
+    name = "deepseek"
     schema_strict = True
     strip_lookaround_regex = True
     requires_lenient_validation = False
 
-    def __init__(self, side_effect, *, resolved_model: str = "codex-default"):
+    def __init__(self, side_effect, *, resolved_model: str = "deepseek-default"):
         self._side_effect = side_effect
         self._resolved_model = resolved_model
 
@@ -55,9 +52,9 @@ def _settings_for_repo(repo: Repository) -> Settings:
         update={
             "db_name": repo.conn.info.dbname,
             "db_schema": repo._schema,
-            "trade_insights_ai_enabled": True,
-            "trade_insights_ai_model": "",
-            "trade_insights_ai_timeout_seconds": 1.0,
+            "trade_insights_ai_deepseek_enabled": True,
+            "trade_insights_ai_deepseek_model": "",
+            "trade_insights_ai_deepseek_timeout_seconds": 1.0,
             "trade_insights_ai_max_output_bytes": 262144,
             "trade_insights_ai_poll_seconds": 3,
         }
@@ -87,6 +84,7 @@ def _enqueue_analysis(
     repo: Repository,
     *,
     prompt_version: str = PROMPT_VERSION,
+    provider: str = "deepseek",
 ) -> tuple[str, dict]:
     run_id, snapshot_id = _create_snapshot(repo)
     analysis_input = _analysis_input()
@@ -99,7 +97,8 @@ def _enqueue_analysis(
         analysis_input_hash=analysis_input["analysis_input_hash"],
         analysis_input=analysis_input,
         prompt_version=prompt_version,
-        model="codex-default",
+        model=f"{provider}-default",
+        provider=provider,
     )
     repo.conn.commit()
     return analysis_id, analysis_input
@@ -111,8 +110,8 @@ def test_orchestrator_threads_runner_flags_not_provider_name(
 ):
     """Pin the contract: orchestrator reads schema/validator flags from
     `runner.schema_strict / strip_lookaround_regex / requires_lenient_validation`,
-    NOT from `row_provider == "claude"` / `"codex"`. Adding a third provider
-    must not require an orchestrator change."""
+    NOT from the row's provider name. Adding another provider must not
+    require an orchestrator change."""
     import uw_scan.worker.jobs.trade_insights_ai as orchestrator_module
 
     repo = seeded_db_empty_cards
@@ -151,23 +150,42 @@ def test_orchestrator_threads_runner_flags_not_provider_name(
         outcome["analysis_produced_at"] = produced_at.isoformat().replace("+00:00", "Z")
         return outcome
 
-    # Use the codex slot with the real CodexRunner flag values
+    # Use the deepseek slot with the real DeepSeekRunner flag values
     # (schema_strict=True, strip_lookaround_regex=True, lenient=False).
-    monkeypatch.setitem(RUNNERS, "codex", _FakeCodexRunner(fake_runner))
+    monkeypatch.setitem(RUNNERS, "deepseek", _FakeDeepseekRunner(fake_runner))
 
     assert trade_insights_ai_tick(settings) is True
 
     # Schema generator was called twice (prepare phase + dispatch phase) with
-    # the codex runner's flags both times — not via row_provider lookup.
+    # the deepseek runner's flags both times — not via row_provider lookup.
     assert len(captured_schema_calls) == 2
     for call in captured_schema_calls:
         assert call == {"strict": True, "strip_lookaround_regex": True}, (
             f"schema kwargs must come from runner attrs, got {call}"
         )
 
-    # Validator was called once with lenient=False (codex flag), not
-    # lenient=(row_provider == "claude").
+    # Validator was called once with lenient=False — the value comes from
+    # runner.requires_lenient_validation, not from the row's provider name.
     assert captured_validator_calls == [{"lenient": False}]
+
+
+def test_trade_insights_ai_tick_fails_row_with_removed_provider(
+    seeded_db_empty_cards,
+):
+    """A queued provider='codex' row claimed by the legacy any-provider pool
+    (provider_filter=None) is failed with 'unknown provider'. Historical rows
+    from removed providers drain as failures — RUNNERS only holds deepseek."""
+    repo = seeded_db_empty_cards
+    settings = _settings_for_repo(repo)
+    analysis_id, _analysis_input_payload = _enqueue_analysis(
+        repo, provider="codex"
+    )
+
+    assert trade_insights_ai_tick(settings) is True
+
+    row = repo.get_trade_insight_ai_analysis(analysis_id, ticker="TSLA")
+    assert row["status"] == "failed"
+    assert "unknown provider 'codex'" in row["error_message"]
 
 
 def test_trade_insights_ai_tick_returns_false_when_queue_empty(seeded_db_empty_cards):
@@ -206,7 +224,7 @@ def test_trade_insights_ai_tick_claims_prepares_releases_and_completes(
         outcome["analysis_produced_at"] = produced_at.isoformat().replace("+00:00", "Z")
         return outcome
 
-    monkeypatch.setitem(RUNNERS, "codex", _FakeCodexRunner(fake_runner))
+    monkeypatch.setitem(RUNNERS, "deepseek", _FakeDeepseekRunner(fake_runner))
 
     assert trade_insights_ai_tick(settings) is True
 
@@ -258,7 +276,7 @@ def test_trade_insights_ai_tick_late_write_is_fenced_after_reclaim(
         outcome["analysis_produced_at"] = produced_at.isoformat().replace("+00:00", "Z")
         return outcome
 
-    monkeypatch.setitem(RUNNERS, "codex", _FakeCodexRunner(fake_runner))
+    monkeypatch.setitem(RUNNERS, "deepseek", _FakeDeepseekRunner(fake_runner))
 
     with caplog.at_level("WARNING", logger="uw_scan.worker.jobs.trade_insights_ai"):
         assert trade_insights_ai_tick(settings) is True
@@ -281,8 +299,8 @@ def test_trade_insights_ai_tick_marks_invalid_output_failed(
 
     monkeypatch.setitem(
         RUNNERS,
-        "codex",
-        _FakeCodexRunner(lambda *a, **k: {"not": "valid"}),
+        "deepseek",
+        _FakeDeepseekRunner(lambda *a, **k: {"not": "valid"}),
     )
 
     assert trade_insights_ai_tick(settings) is True
@@ -305,9 +323,9 @@ def test_trade_insights_ai_tick_raw_outcome_is_null_when_runner_errored(
     analysis_id, _analysis_input_payload = _enqueue_analysis(repo)
 
     def fake_runner(*_args, **_kwargs):
-        raise TradeInsightsAiRunnerError("codex exec timed out")
+        raise TradeInsightsAiRunnerError("deepseek exec timed out")
 
-    monkeypatch.setitem(RUNNERS, "codex", _FakeCodexRunner(fake_runner))
+    monkeypatch.setitem(RUNNERS, "deepseek", _FakeDeepseekRunner(fake_runner))
 
     assert trade_insights_ai_tick(settings) is True
     row = repo.get_trade_insight_ai_analysis(analysis_id, ticker="TSLA")
@@ -332,7 +350,7 @@ def test_trade_insights_ai_tick_marks_obsolete_prompt_version_failed(
         runner_called = True
         return {}
 
-    monkeypatch.setitem(RUNNERS, "codex", _FakeCodexRunner(fake_runner))
+    monkeypatch.setitem(RUNNERS, "deepseek", _FakeDeepseekRunner(fake_runner))
 
     assert trade_insights_ai_tick(settings) is True
     row = repo.get_trade_insight_ai_analysis(analysis_id, ticker="TSLA")
@@ -354,7 +372,7 @@ def test_trade_insights_ai_tick_marks_mismatched_produced_at_failed(
         outcome["analysis_produced_at"] = "2026-03-24T20:19:42Z"
         return outcome
 
-    monkeypatch.setitem(RUNNERS, "codex", _FakeCodexRunner(fake_runner))
+    monkeypatch.setitem(RUNNERS, "deepseek", _FakeDeepseekRunner(fake_runner))
 
     assert trade_insights_ai_tick(settings) is True
     row = repo.get_trade_insight_ai_analysis(analysis_id, ticker="TSLA")
@@ -371,9 +389,9 @@ def test_trade_insights_ai_tick_marks_runner_timeout_failed(
     analysis_id, _analysis_input_payload = _enqueue_analysis(repo)
 
     def fake_runner(*_args, **_kwargs):
-        raise TradeInsightsAiRunnerError("codex exec timed out")
+        raise TradeInsightsAiRunnerError("deepseek exec timed out")
 
-    monkeypatch.setitem(RUNNERS, "codex", _FakeCodexRunner(fake_runner))
+    monkeypatch.setitem(RUNNERS, "deepseek", _FakeDeepseekRunner(fake_runner))
 
     assert trade_insights_ai_tick(settings) is True
     row = repo.get_trade_insight_ai_analysis(analysis_id, ticker="TSLA")
@@ -436,7 +454,7 @@ def test_legacy_null_token_running_row_is_reclaimed_and_finished(
         )
         return outcome
 
-    monkeypatch.setitem(RUNNERS, "codex", _FakeCodexRunner(fake_runner))
+    monkeypatch.setitem(RUNNERS, "deepseek", _FakeDeepseekRunner(fake_runner))
 
     assert trade_insights_ai_tick(settings) is True
     row = repo.get_trade_insight_ai_analysis(analysis_id, ticker="TSLA")

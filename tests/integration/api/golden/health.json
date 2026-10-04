@@ -57,7 +57,7 @@
      "codex": {
       "last_beat_at": null,
       "queued_depth": 0,
-      "workers_expected": 2,
+      "workers_expected": 0,
       "workers_healthy": 0
      },
      "deepseek": {
@@ -177,7 +177,7 @@
      "codex": {
       "last_beat_at": null,
       "queued_depth": 0,
-      "workers_expected": 2,
+      "workers_expected": 0,
       "workers_healthy": 0
      },
      "deepseek": {
@@ -297,7 +297,7 @@
      "codex": {
       "last_beat_at": null,
       "queued_depth": 0,
-      "workers_expected": 2,
+      "workers_expected": 0,
       "workers_healthy": 0
      },
      "deepseek": {
@@ -417,7 +417,7 @@
      "codex": {
       "last_beat_at": null,
       "queued_depth": 0,
-      "workers_expected": 2,
+      "workers_expected": 0,
       "workers_healthy": 0
      },
      "deepseek": {
@@ -537,7 +537,7 @@
      "codex": {
       "last_beat_at": null,
       "queued_depth": 0,
-      "workers_expected": 2,
+      "workers_expected": 0,
       "workers_healthy": 0
      },
      "deepseek": {
@@ -657,7 +657,7 @@
      "codex": {
       "last_beat_at": null,
       "queued_depth": 0,
-      "workers_expected": 2,
+      "workers_expected": 0,
       "workers_healthy": 0
      },
      "deepseek": {
@@ -777,7 +777,7 @@
      "codex": {
       "last_beat_at": null,
       "queued_depth": 0,
-      "workers_expected": 2,
+      "workers_expected": 0,
       "workers_healthy": 0
      },
      "deepseek": {
@@ -897,7 +897,7 @@
      "codex": {
       "last_beat_at": null,
       "queued_depth": 0,
-      "workers_expected": 2,
+      "workers_expected": 0,
       "workers_healthy": 0
      },
      "deepseek": {
@@ -1017,7 +1017,7 @@
      "codex": {
       "last_beat_at": null,
       "queued_depth": 0,
-      "workers_expected": 2,
+      "workers_expected": 0,
       "workers_healthy": 0
      },
      "deepseek": {
@@ -1211,8 +1211,8 @@
      "codex": {
       "last_beat_at": "2026-05-15T14:59:40Z",
       "queued_depth": 2,
-      "workers_expected": 2,
-      "workers_healthy": 2
+      "workers_expected": 0,
+      "workers_healthy": 0
      },
      "deepseek": {
       "last_beat_at": "2026-05-15T14:56:40Z",
@@ -1403,8 +1403,8 @@
      "codex": {
       "last_beat_at": "2026-05-15T14:59:40Z",
       "queued_depth": 2,
-      "workers_expected": 2,
-      "workers_healthy": 2
+      "workers_expected": 0,
+      "workers_healthy": 0
      },
      "deepseek": {
       "last_beat_at": "2026-05-15T14:56:40Z",
@@ -1595,8 +1595,8 @@
      "codex": {
       "last_beat_at": "2026-05-15T14:59:40Z",
       "queued_depth": 2,
-      "workers_expected": 2,
-      "workers_healthy": 2
+      "workers_expected": 0,
+      "workers_healthy": 0
      },
      "deepseek": {
       "last_beat_at": "2026-05-15T14:56:40Z",
@@ -1787,8 +1787,8 @@
      "codex": {
       "last_beat_at": "2026-05-15T14:59:40Z",
       "queued_depth": 2,
-      "workers_expected": 2,
-      "workers_healthy": 2
+      "workers_expected": 0,
+      "workers_healthy": 0
      },
      "deepseek": {
       "last_beat_at": "2026-05-15T14:56:40Z",
@@ -1979,8 +1979,8 @@
      "codex": {
       "last_beat_at": "2026-05-15T14:59:40Z",
       "queued_depth": 2,
-      "workers_expected": 2,
-      "workers_healthy": 2
+      "workers_expected": 0,
+      "workers_healthy": 0
      },
      "deepseek": {
       "last_beat_at": "2026-05-15T14:56:40Z",
@@ -2171,8 +2171,8 @@
      "codex": {
       "last_beat_at": "2026-05-15T14:59:40Z",
       "queued_depth": 2,
-      "workers_expected": 2,
-      "workers_healthy": 2
+      "workers_expected": 0,
+      "workers_healthy": 0
      },
      "deepseek": {
       "last_beat_at": "2026-05-15T14:56:40Z",
@@ -2363,8 +2363,8 @@
      "codex": {
       "last_beat_at": "2026-05-15T14:59:40Z",
       "queued_depth": 2,
-      "workers_expected": 2,
-      "workers_healthy": 2
+      "workers_expected": 0,
+      "workers_healthy": 0
      },
      "deepseek": {
       "last_beat_at": "2026-05-15T14:56:40Z",
@@ -2555,8 +2555,8 @@
      "codex": {
       "last_beat_at": "2026-05-15T14:59:40Z",
       "queued_depth": 2,
-      "workers_expected": 2,
-      "workers_healthy": 2
+      "workers_expected": 0,
+      "workers_healthy": 0
      },
      "deepseek": {
       "last_beat_at": "2026-05-15T14:56:40Z",
@@ -2755,8 +2755,8 @@
      "codex": {
       "last_beat_at": "2026-05-15T14:59:40Z",
       "queued_depth": 2,
-      "workers_expected": 2,
-      "workers_healthy": 2
+      "workers_expected": 0,
+      "workers_healthy": 0
      },
      "deepseek": {
       "last_beat_at": "2026-05-15T14:56:40Z",
@@ -2947,8 +2947,8 @@
      "codex": {
       "last_beat_at": "2026-05-15T14:59:40Z",
       "queued_depth": 2,
-      "workers_expected": 2,
-      "workers_healthy": 2
+      "workers_expected": 0,
+      "workers_healthy": 0
      },
      "deepseek": {
       "last_beat_at": "2026-05-15T14:56:40Z",
@@ -3139,8 +3139,8 @@
      "codex": {
       "last_beat_at": "2026-05-15T14:59:40Z",
       "queued_depth": 2,
-      "workers_expected": 2,
-      "workers_healthy": 2
+      "workers_expected": 0,
+      "workers_healthy": 0
      },
      "deepseek": {
       "last_beat_at": "2026-05-15T14:56:40Z",
@@ -3331,8 +3331,8 @@
      "codex": {
       "last_beat_at": "2026-05-15T14:59:40Z",
       "queued_depth": 2,
-      "workers_expected": 2,
-      "workers_healthy": 2
+      "workers_expected": 0,
+      "workers_healthy": 0
      },
      "deepseek": {
       "last_beat_at": "2026-05-15T14:56:40Z",
@@ -3546,8 +3546,8 @@
      "codex": {
       "last_beat_at": "2026-05-15T14:59:40Z",
       "queued_depth": 2,
-      "workers_expected": 2,
-      "workers_healthy": 2
+      "workers_expected": 0,
+      "workers_healthy": 0
      },
      "deepseek": {
       "last_beat_at": "2026-05-15T14:56:40Z",
@@ -3761,8 +3761,8 @@
      "codex": {
       "last_beat_at": "2026-05-15T14:59:40Z",
       "queued_depth": 2,
-      "workers_expected": 2,
-      "workers_healthy": 2
+      "workers_expected": 0,
+      "workers_healthy": 0
      },
      "deepseek": {
       "last_beat_at": "2026-05-15T14:56:40Z",
@@ -3976,8 +3976,8 @@
      "codex": {
       "last_beat_at": "2026-05-15T14:59:40Z",
       "queued_depth": 2,
-      "workers_expected": 2,
-      "workers_healthy": 2
+      "workers_expected": 0,
+      "workers_healthy": 0
      },
      "deepseek": {
       "last_beat_at": "2026-05-15T14:56:40Z",
@@ -4180,8 +4180,8 @@
      "codex": {
       "last_beat_at": "2026-05-15T14:59:40Z",
       "queued_depth": 2,
-      "workers_expected": 2,
-      "workers_healthy": 2
+      "workers_expected": 0,
+      "workers_healthy": 0
      },
      "deepseek": {
       "last_beat_at": "2026-05-15T14:56:40Z",
@@ -4380,7 +4380,7 @@
      "codex": {
       "last_beat_at": "2026-05-15T14:59:40Z",
       "queued_depth": 2,
-      "workers_expected": 2,
+      "workers_expected": 0,
       "workers_healthy": 0
      },
      "deepseek": {
@@ -4572,7 +4572,7 @@
      "codex": {
       "last_beat_at": "2026-05-15T14:59:40Z",
       "queued_depth": 2,
-      "workers_expected": 2,
+      "workers_expected": 0,
       "workers_healthy": 0
      },
      "deepseek": {
@@ -4764,7 +4764,7 @@
      "codex": {
       "last_beat_at": "2026-05-15T14:59:40Z",
       "queued_depth": 2,
-      "workers_expected": 2,
+      "workers_expected": 0,
       "workers_healthy": 0
      },
      "deepseek": {
@@ -4956,7 +4956,7 @@
      "codex": {
       "last_beat_at": "2026-05-15T14:59:40Z",
       "queued_depth": 2,
-      "workers_expected": 2,
+      "workers_expected": 0,
       "workers_healthy": 0
      },
      "deepseek": {
@@ -5148,7 +5148,7 @@
      "codex": {
       "last_beat_at": "2026-05-15T14:59:40Z",
       "queued_depth": 2,
-      "workers_expected": 2,
+      "workers_expected": 0,
       "workers_healthy": 0
      },
      "deepseek": {
@@ -5340,7 +5340,7 @@
      "codex": {
       "last_beat_at": "2026-05-15T14:59:40Z",
       "queued_depth": 2,
-      "workers_expected": 2,
+      "workers_expected": 0,
       "workers_healthy": 0
      },
      "deepseek": {
@@ -5532,7 +5532,7 @@
      "codex": {
       "last_beat_at": "2026-05-15T14:59:40Z",
       "queued_depth": 2,
-      "workers_expected": 2,
+      "workers_expected": 0,
       "workers_healthy": 0
      },
      "deepseek": {
@@ -5724,7 +5724,7 @@
      "codex": {
       "last_beat_at": "2026-05-15T14:59:40Z",
       "queued_depth": 2,
-      "workers_expected": 2,
+      "workers_expected": 0,
       "workers_healthy": 0
      },
      "deepseek": {
@@ -5916,7 +5916,7 @@
      "codex": {
       "last_beat_at": "2026-05-15T14:59:40Z",
       "queued_depth": 2,
-      "workers_expected": 2,
+      "workers_expected": 0,
       "workers_healthy": 0
      },
      "deepseek": {
@@ -6110,8 +6110,8 @@
      "codex": {
       "last_beat_at": "2026-05-15T14:59:40Z",
       "queued_depth": 2,
-      "workers_expected": 2,
-      "workers_healthy": 2
+      "workers_expected": 0,
+      "workers_healthy": 0
      },
      "deepseek": {
       "last_beat_at": "2026-05-15T14:56:40Z",
@@ -6302,8 +6302,8 @@
      "codex": {
       "last_beat_at": "2026-05-15T14:59:40Z",
       "queued_depth": 2,
-      "workers_expected": 2,
-      "workers_healthy": 2
+      "workers_expected": 0,
+      "workers_healthy": 0
      },
      "deepseek": {
       "last_beat_at": "2026-05-15T14:56:40Z",
@@ -6494,8 +6494,8 @@
      "codex": {
       "last_beat_at": "2026-05-15T14:59:40Z",
       "queued_depth": 2,
-      "workers_expected": 2,
-      "workers_healthy": 2
+      "workers_expected": 0,
+      "workers_healthy": 0
      },
      "deepseek": {
       "last_beat_at": "2026-05-15T14:56:40Z",
@@ -6686,8 +6686,8 @@
      "codex": {
       "last_beat_at": "2026-05-15T14:59:40Z",
       "queued_depth": 2,
-      "workers_expected": 2,
-      "workers_healthy": 2
+      "workers_expected": 0,
+      "workers_healthy": 0
      },
      "deepseek": {
       "last_beat_at": "2026-05-15T14:56:40Z",
@@ -6878,8 +6878,8 @@
      "codex": {
       "last_beat_at": "2026-05-15T14:59:40Z",
       "queued_depth": 2,
-      "workers_expected": 2,
-      "workers_healthy": 2
+      "workers_expected": 0,
+      "workers_healthy": 0
      },
      "deepseek": {
       "last_beat_at": "2026-05-15T14:56:40Z",
@@ -7070,8 +7070,8 @@
      "codex": {
       "last_beat_at": "2026-05-15T14:59:40Z",
       "queued_depth": 2,
-      "workers_expected": 2,
-      "workers_healthy": 2
+      "workers_expected": 0,
+      "workers_healthy": 0
      },
      "deepseek": {
       "last_beat_at": "2026-05-15T14:56:40Z",
@@ -7262,8 +7262,8 @@
      "codex": {
       "last_beat_at": "2026-05-15T14:59:40Z",
       "queued_depth": 2,
-      "workers_expected": 2,
-      "workers_healthy": 2
+      "workers_expected": 0,
+      "workers_healthy": 0
      },
      "deepseek": {
       "last_beat_at": "2026-05-15T14:56:40Z",
@@ -7454,8 +7454,8 @@
      "codex": {
       "last_beat_at": "2026-05-15T14:59:40Z",
       "queued_depth": 2,
-      "workers_expected": 2,
-      "workers_healthy": 2
+      "workers_expected": 0,
+      "workers_healthy": 0
      },
      "deepseek": {
       "last_beat_at": "2026-05-15T14:56:40Z",
