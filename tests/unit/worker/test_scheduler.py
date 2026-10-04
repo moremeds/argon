@@ -238,7 +238,9 @@ def test_skew_swing_greeks_schedules_only_on_all_or_primary_uw_worker() -> None:
         Settings(api_key="uw", worker_role="massive", worker_index=0, worker_count=1)
     )
     assert not _should_schedule_skew_swing_greeks(
-        Settings(api_key="uw", worker_role="ai-codex", worker_index=0, worker_count=1)
+        Settings(
+            api_key="uw", worker_role="ai-deepseek", worker_index=0, worker_count=1
+        )
     )
 
 
@@ -256,10 +258,12 @@ def test_pipeline_benchmark_schedules_only_on_all_or_primary_uw_worker() -> None
         Settings(api_key="uw", worker_role="massive", worker_index=0, worker_count=1)
     )
     assert not _should_schedule_pipeline_benchmark(
-        Settings(api_key="uw", worker_role="ai-codex", worker_index=0, worker_count=1)
+        Settings(
+            api_key="uw", worker_role="ai-deepseek", worker_index=0, worker_count=1
+        )
     )
     assert not _should_schedule_pipeline_benchmark(
-        Settings(api_key="uw", worker_role="ai-claude", worker_index=0, worker_count=1)
+        Settings(api_key="uw", worker_role="ai", worker_index=0, worker_count=1)
     )
 
 

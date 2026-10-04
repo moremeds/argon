@@ -204,8 +204,6 @@ _TICK_JOB_IDS = frozenset(
         "rescan_tick",
         "volatility_backfill_tick",
         "trade_insights_ai_tick",
-        "trade_insights_ai_tick_codex",
-        "trade_insights_ai_tick_claude",
         "trade_insights_ai_tick_deepseek",
     }
 )

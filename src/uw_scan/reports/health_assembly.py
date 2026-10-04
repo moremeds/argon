@@ -243,6 +243,8 @@ def build_health(
 
     # Per-provider AI worker health (Phase B). Pool is healthy if its
     # provider-pinned heartbeat key has beaten within 2 × poll + 60s.
+    # codex/claude are retired providers: reported disabled with zero expected
+    # workers; queued_depth still surfaces any leftover rows.
     ai_fresh_window = timedelta(
         seconds=2 * settings.trade_insights_ai_poll_seconds + 60
     )
@@ -251,16 +253,16 @@ def build_health(
             repo=repo,
             now_utc=now_utc,
             provider="codex",
-            enabled=settings.trade_insights_ai_enabled,
-            expected_count=settings.trade_insights_ai_codex_worker_count,
+            enabled=False,
+            expected_count=0,
             fresh_window=ai_fresh_window,
         ),
         claude=_provider_ai_health(
             repo=repo,
             now_utc=now_utc,
             provider="claude",
-            enabled=settings.trade_insights_ai_claude_enabled,
-            expected_count=settings.trade_insights_ai_claude_worker_count,
+            enabled=False,
+            expected_count=0,
             fresh_window=ai_fresh_window,
         ),
         deepseek=_provider_ai_health(
