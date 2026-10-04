@@ -4,7 +4,10 @@ import datetime as dt
 import json
 from pathlib import Path
 
+import pytest
+
 from uw_scan.config import Settings
+from uw_scan.sources.source_errors import SourceUnavailable
 from uw_scan.storage.chanlun_signal_repository import ChanlunSignalRepository
 from uw_scan.worker.jobs.chanlun_lifecycle import chanlun_lifecycle_scan
 
@@ -72,7 +75,7 @@ def test_scan_is_idempotent(seeded_db_empty_cards):
     assert second["transitions"] == 0  # re-run over same bars is a no-op
 
 
-def test_scan_counts_apex_outage(seeded_db_empty_cards):
+def test_scan_counts_empty_2xx_as_no_bars(seeded_db_empty_cards):
     repo = seeded_db_empty_cards
     now = dt.datetime(2026, 7, 13, 7, 10, tzinfo=dt.timezone.utc)
     summary = chanlun_lifecycle_scan(
@@ -80,10 +83,52 @@ def test_scan_counts_apex_outage(seeded_db_empty_cards):
         Settings.from_env(),
         ticker_filter=["AAPL"],
         fetch_bars=lambda *a, **k: [],
-        now=now,  # apex down -> [] for everything
+        now=now,  # apex answered with no bars (an outage raises instead)
     )
     assert summary["skipped_no_bars"] == 1
     assert summary["ok"] == 0
+
+
+def _down(*_a, **_k):
+    raise SourceUnavailable("apex", "ConnectError('down')")
+
+
+def test_one_ticker_outage_is_counted_and_others_persist(seeded_db_empty_cards):
+    """Unit = one ticker. ZZZZ's outage after AAPL succeeded must not undo
+    AAPL's committed transitions, and the run does not raise."""
+    repo = seeded_db_empty_cards
+    now = dt.datetime(2026, 7, 13, 7, 10, tzinfo=dt.timezone.utc)
+
+    def fetch(ticker, *a, **k):
+        return _down() if ticker == "ZZZZ" else _stub_fetch(ticker, *a, **k)
+
+    summary = chanlun_lifecycle_scan(
+        repo,
+        Settings.from_env(),
+        ticker_filter=["AAPL", "ZZZZ"],
+        fetch_bars=fetch,
+        now=now,
+    )
+    assert summary["ok"] == 1
+    assert summary["source_unavailable"] == 1
+    repo.conn.rollback()  # only committed work is visible after this
+    states = ChanlunSignalRepository(repo.conn, schema=repo._schema).current_states(
+        "AAPL"
+    )
+    assert len(states) > 0
+
+
+def test_every_ticker_unavailable_fails_the_run(seeded_db_empty_cards):
+    repo = seeded_db_empty_cards
+    now = dt.datetime(2026, 7, 13, 7, 10, tzinfo=dt.timezone.utc)
+    with pytest.raises(SourceUnavailable, match="2/2 tickers"):
+        chanlun_lifecycle_scan(
+            repo,
+            Settings.from_env(),
+            ticker_filter=["AAPL", "MSFT"],
+            fetch_bars=_down,
+            now=now,
+        )
 
 
 def test_scan_sweeps_superseded_mark_to_invalidated(seeded_db_empty_cards):

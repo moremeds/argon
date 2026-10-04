@@ -3,6 +3,7 @@
 import { useEffect, useState } from "react";
 
 import type { components } from "@/lib/types";
+import { apiFetch } from "@/lib/apiClient";
 import { regimeApi } from "@/lib/regime/api";
 
 type GuidanceResponse = components["schemas"]["GuidanceResponse"];
@@ -28,10 +29,7 @@ export function GuidancePanel() {
 
   useEffect(() => {
     let cancelled = false;
-    fetch(regimeApi.guidance())
-      .then((r) =>
-        r.ok ? r.json() : Promise.reject(new Error(`HTTP ${r.status}`)),
-      )
+    apiFetch<GuidanceResponse>(regimeApi.guidance())
       .then((data) => {
         if (!cancelled) setGuidance(data);
       })

@@ -37,10 +37,12 @@ const FIXTURE = {
 };
 
 beforeEach(() => {
-  globalThis.fetch = vi.fn().mockResolvedValue({
-    ok: true,
-    json: async () => FIXTURE,
-  } as Response);
+  globalThis.fetch = vi
+    .fn()
+    .mockImplementation(
+      async () =>
+        new Response(JSON.stringify(FIXTURE), { status: 200 }) as Response,
+    );
 });
 
 describe("VcgStressHistorySection summary line", () => {

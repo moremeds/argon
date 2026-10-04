@@ -1,6 +1,7 @@
 "use client";
 import Link from "next/link";
 import { useEffect, useRef, useState } from "react";
+import { apiFetch } from "@/lib/apiClient";
 import type { components } from "@/lib/types";
 import { StockNotReadyDialog } from "@/components/stock/StockNotReadyDialog";
 import { SetupBadge } from "./SetupBadge";
@@ -92,14 +93,11 @@ export function TickerCard({ card, sparkline = [] }: Props) {
   useEffect(() => {
     if (!visible || closes.length > 0 || !card.scanned_at) return;
     const ac = new AbortController();
-    fetch(`/api/ohlc/${card.ticker}?days=30`, {
-      cache: "no-store",
-      signal: ac.signal,
-    })
-      .then((r) =>
-        r.ok ? r.json() : Promise.reject(new Error(`status ${r.status}`)),
-      )
-      .then((bars: Array<{ close: string | number | null }>) => {
+    apiFetch<Array<{ close: string | number | null }>>(
+      `/api/ohlc/${card.ticker}?days=30`,
+      { signal: ac.signal },
+    )
+      .then((bars) => {
         if (ac.signal.aborted) return;
         setCloses(bars.map((b) => Number(b.close)).reverse());
       })

@@ -1,14 +1,11 @@
+import { apiFetch } from "@/lib/apiClient";
 import type { components } from "@/lib/types";
 
 type HealthResponse = components["schemas"]["HealthResponse"];
 
 async function fetchHealth(): Promise<HealthResponse> {
-  // RSC fetch — needs an absolute URL. Read the runtime NEXT_INTERNAL_API_BASE
-  // (non-public, not build-inlined; `http://api:8400` in Docker, unset →
-  // localhost under launchd). See docker spec code change #7.
-  const base = process.env.NEXT_INTERNAL_API_BASE ?? "http://127.0.0.1:8400";
-  const r = await fetch(`${base}/api/health`, { cache: "no-store" });
-  return r.json();
+  // RSC fetch: apiFetch resolves the server-side base (NEXT_INTERNAL_API_BASE).
+  return apiFetch<HealthResponse>("/api/health");
 }
 
 export default async function AdminPage() {
