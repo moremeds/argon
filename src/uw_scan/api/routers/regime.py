@@ -94,7 +94,7 @@ from uw_scan.scanners import cri as cri_scanner
 from uw_scan.scanners import gex as gex_scanner
 from uw_scan.scanners import grg as grg_scanner
 from uw_scan.scanners import vcg as vcg_scanner
-from uw_scan.scanners.live_quotes import load_live_quotes
+from uw_scan.scanners.live_quotes import LiveQuote, live_or_eod
 from uw_scan.storage.canary_snapshot_repository import CanarySnapshotRepository
 from uw_scan.storage.cri_snapshot_repository import CriSnapshotRepository
 from uw_scan.storage.greek_exposure_repository import GreekExposureDailyRepository
@@ -482,13 +482,11 @@ def get_vrp_macro_signal_live(
     today_et = datetime.now(
         ZoneInfo(settings.rth_tz)
     ).date()  # match the worker's ET date
-    quotes = load_live_quotes(
-        repo,
-        settings.regime_ws_symbols,
-        max_age_seconds=settings.regime_live_quote_max_age_seconds,
-    )
-    spx_q, vix_q = quotes.get("SPX"), quotes.get("VIX")
-    if spx_q is not None and vix_q is not None:
+
+    def live(quotes: dict[str, LiveQuote]) -> VrpMacroSignalLiveResponse | None:
+        spx_q, vix_q = quotes.get("SPX"), quotes.get("VIX")
+        if spx_q is None or vix_q is None:
+            return None
         try:
             sig = current_macro_signal_live(
                 repo,
@@ -502,61 +500,66 @@ def get_vrp_macro_signal_live(
             logger.debug(
                 "vrp live recompute failed; falling back to EOD: %s", repr(exc)
             )
-            sig = None
-        if sig is not None:
-            # merge the static backtest headline from the latest EOD row, if present
-            eod_rows = repo.fetch_latest_vrp_macro_signals(["SPX"], basis="eod")
-            bt = eod_rows[0] if eod_rows else {}
-            row = VrpMacroSignalRow(
-                name=sig.name,
-                snapshot_date=today_et,
-                as_of=sig.as_of,
-                spot=sig.spot,
-                iv=sig.iv,
-                rv20=sig.rv20,
-                vrp=sig.vrp,
-                vrp_z=sig.vrp_z,
-                weight=sig.weight,
-                action=sig.action,
-                short_put=sig.short_put,
-                long_put=sig.long_put,
-                put_width=sig.put_width,
-                credit=sig.credit,
-                max_loss=sig.max_loss,
-                hold_days=sig.hold_days,
-                short_delta=sig.short_delta,
-                wing_delta=sig.wing_delta,
-                bt_n=bt.get("bt_n"),
-                bt_sharpe=bt.get("bt_sharpe"),
-                bt_maxdd=bt.get("bt_maxdd"),
-                bt_annror=bt.get("bt_annror"),
-                bt_calmar=bt.get("bt_calmar"),
-                short_put_delta=sig.short_put_delta,
-                long_put_delta=sig.long_put_delta,
-                strike_basis=sig.strike_basis,
-                strike_grid_date=sig.strike_grid_date,
-                expiry=sig.expiry,
-            )
-            return VrpMacroSignalLiveResponse(
-                basis="live",
-                signal=row,
-                live_quotes={
-                    s: RegimeLiveQuote(
-                        price=float(q.price), quoted_at=q.quoted_at, source=q.source
-                    )
-                    for s, q in (("SPX", spx_q), ("VIX", vix_q))
-                },
-                active_source=_active_ws_source(repo),
-            )
-    eod_rows = repo.fetch_latest_vrp_macro_signals(["SPX"], basis="eod")
-    if not eod_rows:
-        return VrpMacroSignalLiveResponse(basis="eod", signal=None)
-    return VrpMacroSignalLiveResponse(
-        basis="eod",
-        signal=VrpMacroSignalRow(
-            **{k: eod_rows[0].get(k) for k in VrpMacroSignalRow.model_fields}
-        ),
-    )
+            return None
+        if sig is None:
+            return None
+        # merge the static backtest headline from the latest EOD row, if present
+        eod_rows = repo.fetch_latest_vrp_macro_signals(["SPX"], basis="eod")
+        bt = eod_rows[0] if eod_rows else {}
+        row = VrpMacroSignalRow(
+            name=sig.name,
+            snapshot_date=today_et,
+            as_of=sig.as_of,
+            spot=sig.spot,
+            iv=sig.iv,
+            rv20=sig.rv20,
+            vrp=sig.vrp,
+            vrp_z=sig.vrp_z,
+            weight=sig.weight,
+            action=sig.action,
+            short_put=sig.short_put,
+            long_put=sig.long_put,
+            put_width=sig.put_width,
+            credit=sig.credit,
+            max_loss=sig.max_loss,
+            hold_days=sig.hold_days,
+            short_delta=sig.short_delta,
+            wing_delta=sig.wing_delta,
+            bt_n=bt.get("bt_n"),
+            bt_sharpe=bt.get("bt_sharpe"),
+            bt_maxdd=bt.get("bt_maxdd"),
+            bt_annror=bt.get("bt_annror"),
+            bt_calmar=bt.get("bt_calmar"),
+            short_put_delta=sig.short_put_delta,
+            long_put_delta=sig.long_put_delta,
+            strike_basis=sig.strike_basis,
+            strike_grid_date=sig.strike_grid_date,
+            expiry=sig.expiry,
+        )
+        return VrpMacroSignalLiveResponse(
+            basis="live",
+            signal=row,
+            live_quotes={
+                s: RegimeLiveQuote(
+                    price=float(q.price), quoted_at=q.quoted_at, source=q.source
+                )
+                for s, q in (("SPX", spx_q), ("VIX", vix_q))
+            },
+            active_source=_active_ws_source(repo),
+        )
+
+    def eod() -> VrpMacroSignalLiveResponse:
+        eod_rows = repo.fetch_latest_vrp_macro_signals(["SPX"], basis="eod")
+        if not eod_rows:
+            return VrpMacroSignalLiveResponse(basis="eod", signal=None)
+        return VrpMacroSignalLiveResponse(
+            basis="eod",
+            signal=VrpMacroSignalRow(
+                **{k: eod_rows[0].get(k) for k in VrpMacroSignalRow.model_fields}
+            ),
+        )
+
+    return live_or_eod(repo, settings, live, eod)
 
 
 # ─── VRP macro entry-capture preview + capture ───────────────────
@@ -572,13 +575,11 @@ def _live_or_eod_macro_signal(repo: Repository, settings: Settings):
     """Live SPX macro signal if SPX+VIX quotes are fresh, else the EOD signal,
     else None. Reads DB only — ZERO UW, ZERO IB, ZERO writes (preview is
     browser-polled; a fetcher call would write an audit row per poll)."""
-    quotes = load_live_quotes(
-        repo,
-        settings.regime_ws_symbols,
-        max_age_seconds=settings.regime_live_quote_max_age_seconds,
-    )
-    spx, vix = quotes.get("SPX"), quotes.get("VIX")
-    if spx is not None and vix is not None:
+
+    def live(quotes: dict[str, LiveQuote]):
+        spx, vix = quotes.get("SPX"), quotes.get("VIX")
+        if spx is None or vix is None:
+            return None
         try:
             return current_macro_signal_live(
                 repo,
@@ -590,11 +591,16 @@ def _live_or_eod_macro_signal(repo: Repository, settings: Settings):
             )
         except ValueError as exc:
             logger.debug("vrp preview live signal failed: %s", repr(exc))
-    try:
-        return current_macro_signal(repo, settings, "SPX")
-    except ValueError as exc:
-        logger.debug("vrp preview eod signal failed: %s", repr(exc))
-        return None
+            return None
+
+    def eod():
+        try:
+            return current_macro_signal(repo, settings, "SPX")
+        except ValueError as exc:
+            logger.debug("vrp preview eod signal failed: %s", repr(exc))
+            return None
+
+    return live_or_eod(repo, settings, live, eod)
 
 
 def _persisted_preview_legs(quotes: list[dict]) -> list[VrpMacroEntryLeg]:
@@ -801,15 +807,23 @@ def get_cri_live(
     """Request-time CRI with live quotes spliced as today's provisional
     close. Does NOT persist (the 5-min regime_live_scan job owns writes).
     Falls back to the latest basis='eod' snapshot when quotes are stale."""
-    quotes = load_live_quotes(
-        repo,
-        settings.regime_ws_symbols,
-        max_age_seconds=settings.regime_live_quote_max_age_seconds,
-    )
-    payload = None
-    if quotes:
+
+    def live(quotes: dict[str, LiveQuote]) -> CriLiveResponse | None:
+        if not quotes:
+            return None
         payload = cri_scanner.run_live(repo.conn, schema=repo.schema, quotes=quotes)
-    if payload is None:
+        if payload is None:
+            return None
+        return CriLiveResponse.model_validate(
+            {
+                "status": "ok",
+                "scan_time": datetime.now(timezone.utc).isoformat(),
+                "active_source": _active_ws_source(repo),
+                **payload,
+            }
+        )
+
+    def eod() -> CriLiveResponse:
         snap_repo = CriSnapshotRepository(repo.conn, schema=repo.schema)
         latest = snap_repo.fetch_latest()
         if latest is None:
@@ -817,14 +831,8 @@ def get_cri_live(
         return CriLiveResponse.model_validate(
             {"status": "ok", "basis": "eod", **latest}
         )
-    return CriLiveResponse.model_validate(
-        {
-            "status": "ok",
-            "scan_time": datetime.now(timezone.utc).isoformat(),
-            "active_source": _active_ws_source(repo),
-            **payload,
-        }
-    )
+
+    return live_or_eod(repo, settings, live, eod)
 
 
 @router.get("/cri/intraday", response_model=CriIntradayResponse)
@@ -859,17 +867,25 @@ def get_vcg_live(
     proxy: str = Query("HYG"),
 ) -> VcgLiveResponse:
     proxy_upper = proxy.upper()
-    quotes = load_live_quotes(
-        repo,
-        settings.regime_ws_symbols,
-        max_age_seconds=settings.regime_live_quote_max_age_seconds,
-    )
-    payload = None
-    if quotes:
+
+    def live(quotes: dict[str, LiveQuote]) -> VcgLiveResponse | None:
+        if not quotes:
+            return None
         payload = vcg_scanner.run_live(
             repo.conn, schema=repo.schema, quotes=quotes, proxy=proxy_upper
         )
-    if payload is None:
+        if payload is None:
+            return None
+        return VcgLiveResponse.model_validate(
+            {
+                "status": "ok",
+                "scan_time": datetime.now(timezone.utc).isoformat(),
+                "active_source": _active_ws_source(repo),
+                **payload,
+            }
+        )
+
+    def eod() -> VcgLiveResponse:
         snap_repo = VcgSnapshotRepository(repo.conn, schema=repo.schema)
         latest = snap_repo.fetch_latest(proxy=proxy_upper)
         if latest is None:
@@ -879,14 +895,8 @@ def get_vcg_live(
         return VcgLiveResponse.model_validate(
             {"status": "ok", "basis": "eod", **latest}
         )
-    return VcgLiveResponse.model_validate(
-        {
-            "status": "ok",
-            "scan_time": datetime.now(timezone.utc).isoformat(),
-            "active_source": _active_ws_source(repo),
-            **payload,
-        }
-    )
+
+    return live_or_eod(repo, settings, live, eod)
 
 
 @router.get("/vcg/intraday", response_model=VcgIntradayResponse)
