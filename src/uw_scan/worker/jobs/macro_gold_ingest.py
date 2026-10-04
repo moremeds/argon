@@ -29,8 +29,10 @@ from uw_scan.macro.gold_ingest import (
     observation_row,
     price_observations,
 )
+from uw_scan.sources._http import RecordHook
 from uw_scan.sources.etf_holdings import EtfHoldingsProvider
 from uw_scan.sources.ohlc import MassiveOhlcProvider
+from uw_scan.storage.provider_usage import ExternalApiRequestRecorder
 from uw_scan.storage.repository import Repository
 
 logger = logging.getLogger(__name__)
@@ -62,6 +64,7 @@ def macro_gold_ingest_job(
     lookback_days: int = DEFAULT_LOOKBACK_DAYS,
     price_provider_factory: Callable[[], object] | None = None,
     flow_provider_factory: Callable[[], object] | None = None,
+    telemetry_recorder: ExternalApiRequestRecorder | None = None,
 ) -> MacroGoldIngestResult:
     """Fetch, store and parse both gold-owned feeds. One failing feed does not stop the other.
 
@@ -97,6 +100,7 @@ def macro_gold_ingest_job(
                 end=end,
                 retrieved_at=retrieved_at,
                 provider_factory=price_provider_factory,
+                telemetry_recorder=telemetry_recorder,
             ),
             result,
         )
@@ -112,6 +116,11 @@ def macro_gold_ingest_job(
                 start=start,
                 retrieved_at=retrieved_at,
                 provider_factory=flow_provider_factory,
+                record_request=(
+                    (lambda _provider, event: telemetry_recorder.record(event))
+                    if telemetry_recorder is not None
+                    else None
+                ),
             ),
             result,
         )
@@ -167,9 +176,15 @@ def _price_feed(
     end: date,
     retrieved_at: datetime,
     provider_factory: Callable[[], object] | None = None,
+    telemetry_recorder: ExternalApiRequestRecorder | None = None,
 ) -> tuple[int, int, int]:
     factory = provider_factory or (
-        lambda: MassiveOhlcProvider(api_key=api_key, timeout=60.0)
+        lambda: MassiveOhlcProvider(
+            api_key=api_key,
+            timeout=60.0,
+            telemetry_recorder=telemetry_recorder,
+            job_name="macro_gold_ingest",
+        )
     )
     with factory() as provider:
         raw_bytes, source_url, bars = provider.fetch_daily_payload(
@@ -194,8 +209,11 @@ def _flow_feed(
     start: date,
     retrieved_at: datetime,
     provider_factory: Callable[[], object] | None = None,
+    record_request: RecordHook | None = None,
 ) -> tuple[int, int, int]:
-    factory = provider_factory or EtfHoldingsProvider
+    factory = provider_factory or (
+        lambda: EtfHoldingsProvider(record_request=record_request)
+    )
     with factory() as provider:
         raw_bytes, media_type, source_url, rows = provider.fetch_gld_payload(
             start=start

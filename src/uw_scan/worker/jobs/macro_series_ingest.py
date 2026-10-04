@@ -35,7 +35,7 @@ from uw_scan.macro.evidence_store import (
     USD_EVIDENCE,
 )
 from uw_scan.models.macro import MacroSourceArtifact
-from uw_scan.sources.fred import FredProvider
+from uw_scan.sources.fred import FredProvider, RecordHook
 from uw_scan.sources.fred_macro import (
     SERIES_CONTRACT,
     FredSeriesBundle,
@@ -129,6 +129,7 @@ def macro_fred_series_ingest_job(
     max_attempts: int = 3,
     backoff_base_seconds: float = 1.0,
     sleep_fn: Callable[[float], None] = time.sleep,
+    record_request: RecordHook | None = None,
 ) -> MacroSeriesIngestResult:
     """Fetch each series' full vintage history and persist it as evidence.
 
@@ -140,7 +141,13 @@ def macro_fred_series_ingest_job(
     if not series:
         raise ValueError("macro series ingest requires at least one series")
     seen_at = observed_at or datetime.now(UTC)
-    factory = provider_factory or (lambda: FredProvider(api_key=api_key))
+    factory = provider_factory or (
+        lambda: FredProvider(
+            api_key=api_key,
+            record_request=record_request,
+            job_name="macro_fred_series_ingest",
+        )
+    )
 
     artifacts = 0
     created = 0

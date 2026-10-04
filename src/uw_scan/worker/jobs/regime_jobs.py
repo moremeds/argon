@@ -20,7 +20,7 @@ from datetime import UTC, date, datetime, timedelta
 
 import psycopg
 
-from uw_scan.sources.fred import FredProvider
+from uw_scan.sources.fred import FredProvider, RecordHook
 from uw_scan.storage.repository import Repository
 
 logger = logging.getLogger(__name__)
@@ -35,6 +35,7 @@ def regime_fred_ingest_job(
     series_ids: tuple[str, ...] | None = None,
     lookback_days: int = 45,
     schema: str = "uw_scan",
+    record_request: RecordHook | None = None,
 ) -> dict[str, int]:
     """Refresh NFCI / ANFCI / USREC into macro_series_daily.
 
@@ -55,7 +56,9 @@ def regime_fred_ingest_job(
     succeeded: list[str] = []
     with (
         psycopg.connect(dsn) as conn,
-        FredProvider(job_name="regime_fred_ingest") as fred,
+        FredProvider(
+            job_name="regime_fred_ingest", record_request=record_request
+        ) as fred,
     ):
         repo = Repository(conn, schema=schema)
         for sid in ids:

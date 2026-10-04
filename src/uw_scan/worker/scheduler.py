@@ -444,7 +444,12 @@ def main() -> int:
                 job_name="macro_release_calendar_capture",
             ) as uw:
                 with _repo(settings) as repo:
-                    summary = macro_release_calendar_capture(repo, uw, fred_key)
+                    summary = macro_release_calendar_capture(
+                        repo,
+                        uw,
+                        fred_key,
+                        record_request=lambda _p, e: recorder.record(e),
+                    )
         logger.info("macro_release_calendar_capture %s", summary)
 
     def _make_uw_alpha_capture(wrapper, job_name: str):
@@ -596,8 +601,11 @@ def main() -> int:
             return
         from uw_scan.worker.jobs.technical_live import technical_live_scan
 
-        with _repo(settings) as repo:
-            summary = technical_live_scan(repo, settings)
+        with _external_api_recorder(settings) as recorder:
+            with _repo(settings) as repo:
+                summary = technical_live_scan(
+                    repo, settings, telemetry_recorder=recorder
+                )
         logger.info("technical_live_scan_tick %s", summary)
 
     def _chanlun_lifecycle_scan() -> None:
