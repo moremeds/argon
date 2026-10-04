@@ -23,3 +23,7 @@ class _BaseMixin:
     @property
     def conn(self) -> psycopg.Connection:
         return self._conn
+
+    @property
+    def schema(self) -> str:
+        return self._schema
