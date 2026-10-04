@@ -13,7 +13,7 @@ from __future__ import annotations
 import math
 from datetime import date as _date
 
-from uw_scan.backtest.gates import quarter_gate, walkforward_gate
+from uw_scan.backtest.gates import walkforward_gate
 
 ANNUALIZATION = math.sqrt(252.0)
 HOLDOUT_FRAC = 0.40
@@ -105,12 +105,6 @@ def forward_realized_vol(
     mean = sum(rets) / len(rets)
     var = sum((r - mean) ** 2 for r in rets) / (len(rets) - 1)
     return math.sqrt(var) * ANNUALIZATION
-
-
-def survives_quarter_gate(obs: list[dict], overall_mean: float, value_key: str) -> bool:
-    """Per-calendar-quarter catastrophic-degradation gate (standing rule).
-    Canonical implementation: uw_scan.backtest.gates.quarter_gate."""
-    return quarter_gate(obs, overall_mean, value_key)
 
 
 def walkforward(

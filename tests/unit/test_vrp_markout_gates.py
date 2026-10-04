@@ -2,6 +2,7 @@ from __future__ import annotations
 
 from datetime import date, timedelta
 
+from uw_scan.backtest.gates import quarter_gate
 from uw_scan.reports import vrp_markout as vm
 
 
@@ -15,7 +16,7 @@ def _obs(values, start=date(2026, 1, 1)):
 
 def test_quarter_gate_passes_when_all_quarters_agree():
     obs = _obs([0.05] * 30)
-    assert vm._survives_quarter_gate(obs, 0.05) is True
+    assert quarter_gate(obs, 0.05, value_key="realized_vrp") is True
 
 
 def test_quarter_gate_fails_on_larger_opposite_quarter():
@@ -26,11 +27,11 @@ def test_quarter_gate_fails_on_larger_opposite_quarter():
     obs = q1 + q2
     overall = sum(o["realized_vrp"] for o in obs) / len(obs)
     assert overall > 0  # aggregate positive (the gate must still fail)
-    assert vm._survives_quarter_gate(obs, overall) is False
+    assert quarter_gate(obs, overall, value_key="realized_vrp") is False
 
 
 def test_quarter_gate_fails_on_near_zero_aggregate():
-    assert vm._survives_quarter_gate(_obs([0.0] * 10), 0.0) is False
+    assert quarter_gate(_obs([0.0] * 10), 0.0, value_key="realized_vrp") is False
 
 
 def test_walkforward_below_min_n_still_reports_descriptive_mean():

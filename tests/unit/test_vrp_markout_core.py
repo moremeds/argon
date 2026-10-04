@@ -4,10 +4,10 @@ import math
 from datetime import date, timedelta
 from decimal import Decimal
 
+from uw_scan.backtest.gates import quarter_gate
 from uw_scan.reports.vrp_markout_core import (
     apply_split_adjustment,
     forward_realized_vol,
-    survives_quarter_gate,
     walkforward,
 )
 
@@ -76,7 +76,7 @@ def test_walkforward_positive_harvest_passes_gates():
     obs = [{"market_date": date(2025, 1, 1), "value": 0.05} for _ in range(30)]
     res = walkforward(obs, min_n=20, threshold=0.02, holdout_threshold=0.01)
     assert res["survives_walkforward"] is True
-    assert survives_quarter_gate(obs, res["mean"], "value") is True
+    assert quarter_gate(obs, res["mean"], value_key="value") is True
 
 
 def test_walkforward_below_min_n_no_gate_but_descriptive_mean():
@@ -107,4 +107,4 @@ def test_quarter_gate_fails_on_sign_reversal():
     obs += [{"market_date": date(2025, 4, 10), "value": 0.10} for _ in range(20)]
     overall = sum(o["value"] for o in obs) / len(obs)
     assert overall > 0
-    assert survives_quarter_gate(obs, overall, "value") is False
+    assert quarter_gate(obs, overall, value_key="value") is False
