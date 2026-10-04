@@ -444,29 +444,6 @@ def test_deepseek_runner_declares_strict_contract_flags() -> None:
     assert runner.requires_lenient_validation is False
 
 
-def test_deepseek_api_key_is_not_in_subprocess_child_env_allowlist(
-    monkeypatch,
-) -> None:
-    """Regression guard: the _runner_child_env allow-list forwards a fixed set
-    of neutral env vars to Codex/Claude subprocesses. Adding DEEPSEEK_API_KEY
-    to that allow-list would leak the key to subprocesses that don't need it
-    (codex exec, claude --print), violating the standing rule "no secrets to
-    local Codex subprocesses".
-
-    The DeepSeek runner is in-process HTTP and reads DEEPSEEK_API_KEY from
-    os.environ directly — it does NOT go through _runner_child_env. This test
-    pins that separation."""
-    from uw_scan.worker.jobs.trade_insights_ai_runners import _runner_child_env
-
-    monkeypatch.setenv("DEEPSEEK_API_KEY", "sk-should-not-leak-here")
-    child_env = _runner_child_env()
-    assert "DEEPSEEK_API_KEY" not in child_env, (
-        "DEEPSEEK_API_KEY leaked into subprocess child env — would expose "
-        "the DeepSeek key to Codex/Claude CLI subprocesses. Remove it from "
-        "the _runner_child_env allow-list."
-    )
-
-
 def test_extract_json_from_text_stops_at_first_object_with_trailing_prose():
     # Live regression: a thinking model appends prose after the JSON object, and
     # the object's string values contain stray braces. A naive brace-depth

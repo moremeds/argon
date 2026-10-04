@@ -12,7 +12,7 @@
 
 ## Worker roles
 
-Set `UW_SCAN_WORKER_ROLE=uw|massive|ai|ai-codex|ai-claude|ai-deepseek|all`,
+Set `UW_SCAN_WORKER_ROLE=uw|massive|ai|ai-deepseek|all`,
 `UW_SCAN_WORKER_INDEX`, and `UW_SCAN_WORKER_COUNT` to split provider work
 across processes.
 
@@ -24,13 +24,12 @@ across processes.
   OHLC/rollup jobs. (`spot_refresh` was deleted in Phase 7 — the WS consumer
   is the sole intraday spot writer.)
 - `ai` workers run only `trade_insights_ai_tick` (the legacy single-pool
-  tick, gated on ANY of `TRADE_INSIGHTS_AI_ENABLED` /
-  `TRADE_INSIGHTS_AI_CLAUDE_ENABLED` / `TRADE_INSIGHTS_AI_DEEPSEEK_ENABLED`
-  being true). The tick claims rows via `FOR UPDATE SKIP LOCKED`, so multiple
+  tick, gated on `TRADE_INSIGHTS_AI_DEEPSEEK_ENABLED` being true). The tick
+  claims rows via `FOR UPDATE SKIP LOCKED`, so multiple
   `ai` workers safely process distinct tickers in parallel —
   `UW_SCAN_WORKER_COUNT=2` doubles throughput when the analysis queue has
   multiple tickers. Without an `ai` (or `all`) worker, and without a
-  provider-pinned `ai-codex` / `ai-claude` / `ai-deepseek` worker draining its
+  provider-pinned `ai-deepseek` worker draining its
   own queue, Trade Insights AI rows stay `queued` forever. Also export
   `UW_SCAN_AI_WORKER_COUNT=N` to the API process so the health panel can
   enumerate the AI worker heartbeats.

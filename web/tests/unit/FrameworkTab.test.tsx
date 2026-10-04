@@ -23,7 +23,7 @@ const hookReturn = {
 vi.mock(
   "@/components/stock/panels/tradeInsightsAi/useAiAnalysisPolling",
   () => ({
-    PROVIDERS: ["codex", "claude", "deepseek"] as const,
+    PROVIDERS: ["deepseek"] as const,
     useAiAnalysisPolling: () => hookReturn,
   }),
 );
@@ -137,9 +137,9 @@ function succeeded(
 describe("FrameworkTab", () => {
   beforeEach(() => {
     hookReturn.latestForTicker = {
-      codex: succeeded(framework()),
-      claude: { status: "failed", outcome: null, error_message: "boom" },
-      deepseek: null,
+      codex: null,
+      claude: null,
+      deepseek: succeeded(framework()),
     };
     hookReturn.pendingIdsForTicker = {
       codex: null,
@@ -148,14 +148,12 @@ describe("FrameworkTab", () => {
     };
   });
 
-  it("renders a 3-provider toggle with state badges", () => {
+  it("renders a single-provider toggle with a state badge", () => {
     render(<FrameworkTab ticker="NVDA" />);
-    expect(screen.getByText("Codex")).toBeTruthy();
-    expect(screen.getByText("Claude")).toBeTruthy();
     expect(screen.getByText("DeepSeek")).toBeTruthy();
     expect(screen.getByText("ready")).toBeTruthy();
-    expect(screen.getByText("failed")).toBeTruthy();
-    expect(screen.getByText("not run")).toBeTruthy();
+    expect(screen.queryByText("Codex")).toBeNull();
+    expect(screen.queryByText("Claude")).toBeNull();
   });
 
   it("renders the active provider's decision stack ending in best_setup", () => {
@@ -172,21 +170,6 @@ describe("FrameworkTab", () => {
     expect(screen.getAllByText("na").length).toBeGreaterThan(0);
   });
 
-  it("shows single-provider consensus banner when <2 frameworks", () => {
-    render(<FrameworkTab ticker="NVDA" />);
-    expect(screen.getByText(/single provider/i)).toBeTruthy();
-  });
-
-  it("shows cross-model consensus when >=2 frameworks agree", () => {
-    hookReturn.latestForTicker = {
-      codex: succeeded(framework()),
-      claude: succeeded(framework()),
-      deepseek: null,
-    };
-    render(<FrameworkTab ticker="NVDA" />);
-    expect(screen.getByText(/consensus: swing/i)).toBeTruthy();
-  });
-
   // v2 spec §5.6 MUST-1: no_conflict renders visibly differently from stand_aside.
   it("renders no_conflict catalyst with the friendly label", () => {
     const fw = framework({
@@ -199,9 +182,9 @@ describe("FrameworkTab", () => {
       },
     });
     hookReturn.latestForTicker = {
-      codex: succeeded(fw),
+      codex: null,
       claude: null,
-      deepseek: null,
+      deepseek: succeeded(fw),
     };
     render(<FrameworkTab ticker="NVDA" />);
     // friendly label, not the raw enum string
@@ -213,14 +196,14 @@ describe("FrameworkTab", () => {
   it("surfaces an auto-correct note adjacent to entry_state", () => {
     const fw = framework();
     hookReturn.latestForTicker = {
-      codex: succeeded(fw, {
+      codex: null,
+      claude: null,
+      deepseek: succeeded(fw, {
         entryState: "CONDITIONAL",
         missingData: [
           "auto-correct: headline.entry_state: 'ACTIVE' -> 'CONDITIONAL' (thesis_fired=True, entry_fired=False, invalidation_fired=False). v5.3 ENTRY_STATE is mechanical when the truth table is unambiguous.",
         ],
       }),
-      claude: null,
-      deepseek: null,
     };
     render(<FrameworkTab ticker="NVDA" />);
     // The strip label + the correction badge both render.
@@ -232,9 +215,9 @@ describe("FrameworkTab", () => {
   it("hides auto-correct affordance when no correction fired", () => {
     const fw = framework();
     hookReturn.latestForTicker = {
-      codex: succeeded(fw, { entryState: "ACTIVE", missingData: [] }),
+      codex: null,
       claude: null,
-      deepseek: null,
+      deepseek: succeeded(fw, { entryState: "ACTIVE", missingData: [] }),
     };
     render(<FrameworkTab ticker="NVDA" />);
     expect(screen.queryByText("State corrected")).toBeNull();

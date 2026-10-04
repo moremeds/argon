@@ -1,7 +1,7 @@
 """Worker job for operator-triggered Trade Insights AI analysis.
 
-Orchestration only — runners live in `trade_insights_codex_runner.py` and
-`trade_insights_claude_runner.py`. Dispatch goes via the RUNNERS registry.
+Orchestration only — the runner lives in `trade_insights_deepseek_runner.py`.
+Dispatch goes via the RUNNERS registry.
 """
 
 from __future__ import annotations
@@ -44,15 +44,11 @@ from uw_scan.worker.jobs.trade_insights_ai_runners import (
     AiProviderRunner,
     TradeInsightsAiRunnerError,
 )
-from uw_scan.worker.jobs.trade_insights_claude_runner import ClaudeRunner
-from uw_scan.worker.jobs.trade_insights_codex_runner import CodexRunner
 from uw_scan.worker.jobs.trade_insights_deepseek_runner import DeepSeekRunner
 
 logger = logging.getLogger(__name__)
 
 RUNNERS: dict[str, AiProviderRunner] = {
-    "codex": CodexRunner(),
-    "claude": ClaudeRunner(),
     "deepseek": DeepSeekRunner(),
 }
 
@@ -105,16 +101,6 @@ def _heartbeat_key(provider_filter: str | None) -> str:
 
 
 def _provider_model_and_timeout(settings: Settings, provider: str) -> tuple[str, float]:
-    if provider == "codex":
-        return (
-            settings.trade_insights_ai_model.strip(),
-            settings.trade_insights_ai_timeout_seconds,
-        )
-    if provider == "claude":
-        return (
-            settings.trade_insights_ai_claude_model.strip(),
-            settings.trade_insights_ai_claude_timeout_seconds,
-        )
     if provider == "deepseek":
         return (
             settings.trade_insights_ai_deepseek_model.strip(),
@@ -129,9 +115,7 @@ def _reclaim_after_seconds(settings: Settings, provider_filter: str | None) -> f
     The legacy any-provider pool can claim any row, so it waits out the
     longest provider timeout; otherwise a slow provider's live run is stolen.
     """
-    providers = (
-        (provider_filter,) if provider_filter else ("codex", "claude", "deepseek")
-    )
+    providers = (provider_filter,) if provider_filter else ("deepseek",)
     return max(_provider_model_and_timeout(settings, p)[1] for p in providers) + 60
 
 
@@ -143,7 +127,7 @@ def trade_insights_ai_tick(
     """Claim and execute one queued Trade Insights AI analysis, if present.
 
     `provider_filter` pins this tick to a single provider's queue — used by
-    provider-pinned worker roles (`ai-codex`, `ai-claude`). When None, the
+    the provider-pinned worker role (`ai-deepseek`). When None, the
     legacy single-pool behavior claims any provider's row.
     """
 
@@ -320,8 +304,8 @@ def trade_insights_ai_tick(
 def _build_provider_metadata(result: Any) -> dict[str, Any] | None:
     """Assemble the provider_metadata_jsonb payload from a RunnerResult.
 
-    Returns None when the runner emitted no metadata (codex/claude today) so
-    callers can pass it through transparently; otherwise returns a dict with
+    Returns None when the runner emitted no metadata so callers can pass it
+    through transparently; otherwise returns a dict with
     only the populated fields. Schemaless by design — see migration 064.
     """
     if result.reasoning_content is None and result.output_channel is None:

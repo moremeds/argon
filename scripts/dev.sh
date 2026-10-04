@@ -75,22 +75,20 @@ fi
 # health panel. AI workers use FOR UPDATE SKIP LOCKED on the analysis queue,
 # so 2 instances safely process distinct tickers in parallel.
 #
-# Footprint: the FULL stack is 13 concurrent processes — next dev (webpack,
+# Footprint: the FULL stack is 9 concurrent processes — next dev (webpack,
 # explicit --webpack flag required: Next.js 16.2+ defaults to Turbopack which
 # spawns 20+ parallel PostCSS workers on first CSS compilation and saturates
 # all CPU cores, crashing WindowServer via WATCHDOG starvation),
-# uvicorn --reload, 2x uw, 2x massive, 6x ai, and the WS consumer. The 6 AI
-# workers idle on an empty local analysis queue, yet each can spawn a
-# 200-500 MB AI-CLI subprocess the instant a row is queued; combined with
-# the APScheduler log flood (~26 lines/sec), that startup spike can thrash
-# a loaded laptop.
+# uvicorn --reload, 2x uw, 2x massive, 2x ai-deepseek, and the WS consumer.
+# The AI workers idle on an empty local analysis queue; combined with the
+# APScheduler log flood (~26 lines/sec), that still costs a loaded laptop.
 # So the AI workers are OFF by default for local dev (they're pure waste unless
 # you're exercising Trade Insights AI). Set DEV_FULL=1 to run the full stack.
 DEV_FULL="${DEV_FULL:-0}"
 if [[ "$DEV_FULL" == "1" ]]; then
-  AI_COUNTS="UW_SCAN_AI_WORKER_COUNT=2 TRADE_INSIGHTS_AI_CODEX_WORKER_COUNT=2 TRADE_INSIGHTS_AI_CLAUDE_WORKER_COUNT=2"
+  AI_COUNTS="UW_SCAN_AI_WORKER_COUNT=2 TRADE_INSIGHTS_AI_DEEPSEEK_WORKER_COUNT=2"
 else
-  AI_COUNTS="UW_SCAN_AI_WORKER_COUNT=0 TRADE_INSIGHTS_AI_CODEX_WORKER_COUNT=0 TRADE_INSIGHTS_AI_CLAUDE_WORKER_COUNT=0"
+  AI_COUNTS="UW_SCAN_AI_WORKER_COUNT=0 TRADE_INSIGHTS_AI_DEEPSEEK_WORKER_COUNT=0"
 fi
 COUNTS="UW_SCAN_UW_WORKER_COUNT=2 UW_SCAN_MASSIVE_WORKER_COUNT=2 $AI_COUNTS"
 # Single source of truth for WS-pipeline mode. Exported to API + every worker
@@ -123,13 +121,9 @@ cmds=(
 
 # AI workers (opt-in via DEV_FULL=1).
 if [[ "$DEV_FULL" == "1" ]]; then
-  names+=(ai-codex-0 ai-codex-1 ai-claude-0 ai-claude-1 ai-deepseek-0 ai-deepseek-1)
-  colors+=(red red gray gray brightMagenta brightMagenta)
+  names+=(ai-deepseek-0 ai-deepseek-1)
+  colors+=(brightMagenta brightMagenta)
   cmds+=(
-    "$COUNTS $WS UW_SCAN_WORKER_ROLE=ai-codex    UW_SCAN_WORKER_INDEX=0 UW_SCAN_WORKER_COUNT=2 uv run python -m uw_scan.worker.scheduler"
-    "$COUNTS $WS UW_SCAN_WORKER_ROLE=ai-codex    UW_SCAN_WORKER_INDEX=1 UW_SCAN_WORKER_COUNT=2 uv run python -m uw_scan.worker.scheduler"
-    "$COUNTS $WS UW_SCAN_WORKER_ROLE=ai-claude   UW_SCAN_WORKER_INDEX=0 UW_SCAN_WORKER_COUNT=2 uv run python -m uw_scan.worker.scheduler"
-    "$COUNTS $WS UW_SCAN_WORKER_ROLE=ai-claude   UW_SCAN_WORKER_INDEX=1 UW_SCAN_WORKER_COUNT=2 uv run python -m uw_scan.worker.scheduler"
     "$COUNTS $WS UW_SCAN_WORKER_ROLE=ai-deepseek UW_SCAN_WORKER_INDEX=0 UW_SCAN_WORKER_COUNT=2 uv run python -m uw_scan.worker.scheduler"
     "$COUNTS $WS UW_SCAN_WORKER_ROLE=ai-deepseek UW_SCAN_WORKER_INDEX=1 UW_SCAN_WORKER_COUNT=2 uv run python -m uw_scan.worker.scheduler"
   )

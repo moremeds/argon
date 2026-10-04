@@ -11,11 +11,7 @@ import {
 export const AI_ANALYSIS_POLL_MAX_MS = 10 * 60 * 1000;
 
 export type Provider = "codex" | "claude" | "deepseek";
-export const PROVIDERS: readonly Provider[] = [
-  "codex",
-  "claude",
-  "deepseek",
-] as const;
+export const PROVIDERS: readonly Provider[] = ["deepseek"] as const;
 
 export type ProviderAnalysisPair = {
   codex: TradeInsightsAiAnalysisResponse | null;
@@ -28,10 +24,6 @@ export type ProviderPendingPair = {
   claude: string | null;
   deepseek: string | null;
 };
-
-export type ProviderConsensus = NonNullable<
-  TradeInsightsAiLatestPair["provider_consensus"]
->;
 
 export type PromptMetadata = Pick<
   TradeInsightsAiLatestPair,
@@ -84,7 +76,6 @@ export function useAiAnalysisPolling(
   kind: AnalysisKind = "insights",
 ) {
   const [latest, setLatest] = useState<ProviderAnalysisPair>(EMPTY_LATEST);
-  const [consensus, setConsensus] = useState<ProviderConsensus | null>(null);
   const [promptMetadata, setPromptMetadata] = useState<PromptMetadata>(
     EMPTY_PROMPT_METADATA,
   );
@@ -133,7 +124,6 @@ export function useAiAnalysisPolling(
         const pair = await api.tradeInsightsAiAnalysisLatest(ticker, kind);
         if (!isCurrentPoll()) return;
         setLatest(latestFromPair(pair));
-        setConsensus(pair.provider_consensus ?? null);
         setPromptMetadata(promptMetadataFromPair(pair));
       } catch {
         if (isCurrentPoll()) {
@@ -157,7 +147,6 @@ export function useAiAnalysisPolling(
         if (!cancelled && requestTokenRef.current === token) {
           setLoadedTicker(ticker);
           setLatest(latestFromPair(pair));
-          setConsensus(pair.provider_consensus ?? null);
           setPromptMetadata(promptMetadataFromPair(pair));
           pollTokenRef.current = EMPTY_PENDING;
           setPendingIds(EMPTY_PENDING);
@@ -168,7 +157,6 @@ export function useAiAnalysisPolling(
         if (!cancelled && requestTokenRef.current === token) {
           setLoadedTicker(ticker);
           setLatest(EMPTY_LATEST);
-          setConsensus(null);
           setPromptMetadata(EMPTY_PROMPT_METADATA);
           pollTokenRef.current = EMPTY_PENDING;
           setPendingIds(EMPTY_PENDING);
@@ -188,7 +176,6 @@ export function useAiAnalysisPolling(
 
   const isLoadedTicker = loadedTicker === ticker;
   const latestForTicker = isLoadedTicker ? latest : EMPTY_LATEST;
-  const consensusForTicker = isLoadedTicker ? consensus : null;
   const promptMetadataForTicker = isLoadedTicker
     ? promptMetadata
     : EMPTY_PROMPT_METADATA;
@@ -228,7 +215,6 @@ export function useAiAnalysisPolling(
         const pair = await api.tradeInsightsAiAnalysisLatest(ticker, kind);
         if (isCurrentRequest()) {
           setLatest(latestFromPair(pair));
-          setConsensus(pair.provider_consensus ?? null);
           setPromptMetadata(promptMetadataFromPair(pair));
         }
       } catch {
@@ -279,7 +265,6 @@ export function useAiAnalysisPolling(
     actionLabel,
     allPending,
     canRun,
-    consensusForTicker,
     forceRun,
     latestForTicker,
     loadingForTicker,
