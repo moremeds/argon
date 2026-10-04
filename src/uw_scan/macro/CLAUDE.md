@@ -34,6 +34,7 @@ and the API in `api/routers/macro.py`. The web surface is `web/components/macro/
 | `policy_report.py`     | Point-in-time policy comparison assembly from immutable observations               |
 | `snapshot.py`          | The macro context snapshot: four domain answers held as ONE answer                 |
 | `snapshot_assembly.py` | Decide whether four domain answers are one coherent chain                          |
+| `replay.py`            | Replaying a stored domain state at a requested instant: `resolve_instant`, `state_summary_fields`, `STATE_STALE_AFTER`; shared by the macro, rates and gold routers |
 
 ---
 

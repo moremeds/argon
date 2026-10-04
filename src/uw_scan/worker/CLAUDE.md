@@ -2,7 +2,8 @@
 
 ## Files
 
-- `scheduler.py` — `BlockingScheduler` entrypoint (`python -m uw_scan.worker.scheduler`). **The authoritative job wiring** — `jobs/` has ~73 modules; read `scheduler.py` for what actually runs, when, and on which worker role.
+- `scheduler.py` — `BlockingScheduler` entrypoint (`python -m uw_scan.worker.scheduler`). **The authoritative job wiring**, together with `schedule/*.py` — `jobs/` has ~73 modules; read `scheduler.py` plus the family modules for what actually runs, when, and on which worker role.
+- `schedule/{gold,macro,regime,fundamentals,scan_core,ai}.py` — one job family each, registered from `scheduler.main()` via `register(sched, settings[, *, ticker_filter])`; each block keeps its role guard. `schedule/roles.py` holds the role/shard predicates and `db.py` the shared `repo_session` / `external_api_recorder` / `uw_client` / `research_budget_ok`. A family module never imports `scheduler` (circular import); the golden `tests/unit/worker/test_scheduler_jobs_golden.py` pins every role's job list.
 - `jobs/full_scan.py` / `jobs/ohlc_pull.py` / `jobs/rescan_loop.py` — the core scan/OHLC/rescan trio; the rest of `jobs/` is per-feature (gold, rates, regime, skew, `vrp_*`, `option_surface_*`, data_freshness/gap, `trade_insights_ai*`, …)
 - `volatility_jobs.py` — `daily_spy_ohlc_refresh`, `nightly_vol_analytics_rollup` (Volatility tab v2)
 - `massive_ws_consumer.py` + `ws_tick_buffer.py` + `ws_db_writer.py` — the standalone spot WS consumer process (see below)
@@ -18,7 +19,7 @@ across processes.
 - `uw` workers run `full_scan`, `rescan_tick`, and `flow_data_refresh`, plus
   ~20 more jobs gated to run on `uw-0` only (option-surface capture/canary,
   fundamentals ingest, the data gap healer, uw-alpha capture, regime scans,
-  discovery) — see `scheduler.py`'s `if "uw" in groups:` block.
+  discovery) — see the `if "uw" in groups:` blocks in `scheduler.py` and `schedule/*.py`.
 - `massive` workers run `ohlc_pull` and primary-worker-only volatility
   OHLC/rollup jobs. (`spot_refresh` was deleted in Phase 7 — the WS consumer
   is the sole intraday spot writer.)
@@ -115,7 +116,7 @@ its own process by `scripts/dev.sh`). Toggle via `MASSIVE_WS_ENABLED`
 - **UW flow refresh window is weekdays 5:00am-7:59pm ET.** Flow-tab refresh skips outside that window.
 - **UW daily-budget governor.** The shared 120k account counter (resets 20:00 ET / 00:00 UTC) is split into a `live` pool (`full_scan`, `full_scan_hot`, `rescan_tick`) and a `research` pool (everything else incl. `*_backfill`). `_live_max_tickers` caps `full_scan`/`full_scan_hot` at the remaining live budget (hot-first, ÷worker_count for shards); `_research_budget_ok` gates research jobs. The account-wide `official_daily_count` header is the hard `total_guard`. Tune via `UW_{LIVE,RESEARCH}_DAILY_CEILING` / `UW_TOTAL_DAILY_GUARD`; disable with `UW_BUDGET_GOVERNOR_ENABLED=false`. See `sources/uw_budget.py`.
 - **Idempotent.** A job that runs twice in a minute (e.g., after a restart) must produce the same DB state.
-- **No business logic in `scheduler.py`** — it just wires triggers to functions. Heavy lifting lives in `jobs/*.py` and `volatility_jobs.py`.
+- **No business logic in `scheduler.py` or `schedule/*.py`** — they just wire triggers to functions. Heavy lifting lives in `jobs/*.py` and `volatility_jobs.py`.
 - **Signals: SIGTERM/SIGINT** trigger `sched.shutdown(wait=False)` then `sys.exit(0)`. Don't introduce blocking cleanup.
 - **Workers don't hot-reload.** uvicorn `--reload` refreshes only the API process; APScheduler workers keep running the module they imported at fork. If an edit "doesn't take effect", run `uv run control-argon down && uv run control-argon up` — `down` stops the whole stack (workers included; a port-scoped kill leaves them running) and `up` blocks until a worker heartbeat written *after* the relaunch appears, which is the only evidence that your edit is the code now executing. `uv run control-argon doctor` lists the running processes with ages and checkouts; two `dev.sh` supervisors means two competing dev stacks — `down --all` clears every checkout's. Same applies to env rotation (`DEEPSEEK_API_KEY`, `XENON_*`, …): env is frozen at fork.
 
