@@ -26,7 +26,13 @@ def test_openapi_paths_match_snapshot(client):
     )
 
 
-_SPLIT_PREFIXES = ("/api/regime", "/api/macro", "/api/gold", "/api/rates")
+_SPLIT_PREFIXES = (
+    "/api/regime",
+    "/api/macro",
+    "/api/gold",
+    "/api/rates",
+    "/api/health",
+)
 
 
 def test_regime_macro_operations_match_snapshot_exactly(client):
