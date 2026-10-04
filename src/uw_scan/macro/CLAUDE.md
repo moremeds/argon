@@ -7,7 +7,7 @@ every replay. A snapshot assembler decides afterwards whether the four answers a
 chain; there is **no composite, ever**.
 
 Code lives in `src/uw_scan/macro/` (pure engines + assembly), with ingestion in
-`sources/{fred_macro,bis_eer,cftc_tff,treasury_supply}.py` and the FOMC/SEP source family,
+`sources/{fred_macro,cftc_tff,treasury_supply}.py` and the FOMC/SEP source family,
 persistence in `storage/{macro_context,macro_domain_state}.py`, jobs in
 `worker/jobs/{macro_series_ingest,macro_market_layer_ingest,macro_state_jobs,macro_policy_jobs,rates_jobs}.py`,
 and the API in `api/routers/macro.py`. The web surface is `web/components/macro/` +
@@ -42,7 +42,7 @@ and the API in `api/routers/macro.py`. The web surface is `web/components/macro/
 
 ### Point-in-time macro states (MC0–MC3: inflation / rates / USD)
 
-`src/uw_scan/macro/` (`contracts`, `confidence`, `evidence_store`, `inflation`, `rates`, `rates_market`, `rates_sub_states`, `usd`, `gold`) + `sources/{fred_macro,bis_eer,cftc_tff,treasury_supply}.py` + `storage/{macro_context,macro_domain_state}.py` + migrations `115`–`131` + `worker/jobs/{macro_series_ingest,macro_market_layer_ingest,macro_state_jobs}.py` + `api/routers/macro.py` (`/inflation`, `/rates`, `/usd`, `/gold`).
+`src/uw_scan/macro/` (`contracts`, `confidence`, `evidence_store`, `inflation`, `rates`, `rates_market`, `rates_sub_states`, `usd`, `gold`) + `sources/{fred_macro,cftc_tff,treasury_supply}.py` + `storage/{macro_context,macro_domain_state}.py` + migrations `115`–`131` + `worker/jobs/{macro_series_ingest,macro_market_layer_ingest,macro_state_jobs}.py` + `api/routers/macro.py` (`/inflation`, `/rates`, `/usd`, `/gold`).
 
 **Five things that will bite:**
 
