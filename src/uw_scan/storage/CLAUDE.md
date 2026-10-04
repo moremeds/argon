@@ -2,7 +2,7 @@
 
 ## Files
 
-- `repository.py` — assembled `Repository` class. Composes per-domain mixins (see "Mixin pattern" below). It should remain a thin import/re-export shell.
+- `repository.py` — assembled `Repository` class. Composes per-domain mixins (see "Mixin pattern" below). It exports only `Repository`; import every other name from its own module.
 - `_base.py` — `_BaseMixin` (Repository `__init__` + `conn` property). MUST be LAST in MRO.
 - `_helpers.py` — pure utility functions (`_d`, `_nullable_int/float`, `provider_day_bounds`, `redact_params`, `status_family_for`).
 - `rows.py` — frozen `@dataclass` row types + `WatchlistCardRow`.
@@ -32,8 +32,8 @@ Conventions for the mixin pattern:
 - **No `__init__` on domain mixins.** Only `_BaseMixin` defines it; Python's MRO calls only the leftmost class's `__init__`, so any other mixin defining one would break construction.
 - **Type hints for `self._conn` and `self._schema`** as class-level annotations (`_conn: psycopg.Connection`). Values are set by `_BaseMixin.__init__` at runtime.
 - **Adding a new domain** → prefer a **standalone** `storage/<domain>_repository.py` class from method one (standing feedback rule — never grow `repository.py`). Only add a `_<Domain>Mixin` when existing `Repository` callers genuinely need the methods on the shared instance; then add it to `repository.py`'s import block and inheritance list (above `_BaseMixin`).
-- **Adding a new row dataclass** → goes in `rows.py`; re-export from `repository.py`'s `from .rows import (...)` block and `__all__`.
-- **Adding a new pure helper** → goes in `_helpers.py`; if externally importable, also re-export from `repository.py`.
+- **Adding a new row dataclass** → goes in `rows.py`; callers import it from `uw_scan.storage.rows`.
+- **Adding a new pure helper** → goes in `_helpers.py` (or the domain module that owns it); callers import it from there, never through `repository.py`.
 - **Backward compat**: callers' `from uw_scan.storage.repository import X` paths MUST keep working — all moved names are explicitly re-exported.
 
 ## Repository conventions
@@ -42,7 +42,7 @@ Conventions for the mixin pattern:
 - **`Jsonb(payload)` for jsonb columns** — psycopg won't auto-encode dicts.
 - **`Decimal` round-trips natively.** Pass `Decimal`, get `Decimal` back. Don't `float()` at the boundary.
 - **No ORM.** Cursor + parameterized SQL. Never f-string a value into a query.
-- **Schema is `uw_scan`** — `Repository(conn, schema=...)` sets `search_path` at construction; queries use unqualified names.
+- **Schema is `uw_scan`** — every query names it: `{self._schema}.table`. No storage module runs `SET search_path` on the caller's connection (it silently changes session state for later users of a shared or pooled conn); enforced by `tests/unit/storage/test_no_set_search_path.py`. Migrations set their own path by design.
 - **Advisory locks** — `pg_try_advisory_lock(<key>)` for single-flight backfills and full-scan kickoffs. Release in `finally`.
 
 ## Migrations
