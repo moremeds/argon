@@ -12,7 +12,7 @@ from zoneinfo import ZoneInfo
 
 from bs4 import BeautifulSoup
 
-from uw_scan.normalize import NormalizationError
+from uw_scan.errors import NormalizationError
 
 logger = logging.getLogger(__name__)
 

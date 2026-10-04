@@ -14,7 +14,7 @@ from typing import Any
 
 import httpx
 
-from uw_scan.api.endpoints import EndpointSlug
+from uw_scan.sources.uw_endpoints import EndpointSlug
 from uw_scan.sources.uw import (
     fetch_greek_exposure_by_expiry,
     fetch_option_contracts,
