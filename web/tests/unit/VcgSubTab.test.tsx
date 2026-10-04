@@ -219,3 +219,17 @@ describe("VcgSubTabView", () => {
     expect(table.querySelectorAll("tbody tr").length).toBe(2);
   });
 });
+
+// I-108 no-visual-change proof: markup written before VcgSubTab was split.
+describe("VcgSubTabView markup snapshot", () => {
+  it.each([
+    ["null", null],
+    ["NORMAL", NORMAL],
+    ["RISK_OFF", RISK_OFF],
+    ["BOUNCE", BOUNCE],
+    ["PANIC_ADJUSTED", PANIC_ADJUSTED],
+  ])("%s", (_name, data) => {
+    const { container } = render(<VcgSubTabView data={data} />);
+    expect(container.innerHTML).toMatchSnapshot();
+  });
+});

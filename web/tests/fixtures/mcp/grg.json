@@ -1,0 +1,212 @@
+{
+  "status": "ok",
+  "scan_time": "2026-10-02T22:45:00.639523Z",
+  "market_open": false,
+  "data_date": "2026-10-02",
+  "source": "Unusual Whales",
+  "lookback_days": 251,
+  "z_window": 63,
+  "basis": "eod",
+  "signal": {
+    "state": "DUAL_CUSHION",
+    "state_label": "Dual cushion",
+    "interpretation": "CUSHION",
+    "tier": null,
+    "top_watch": false,
+    "bottom_watch": false,
+    "top_score": 1,
+    "bottom_score": 1,
+    "grg_z": -0.3331,
+    "raw_spread": -0.3631,
+    "spy_gamma_z": 0.6129,
+    "tlt_gamma_z": 0.976,
+    "spy_3d_gamma_change": 1484490.8972,
+    "tlt_3d_gamma_change": 3609666.8311,
+    "summary": "Both SPY and TLT are positive gamma. Dealer hedging is dampening both equity and duration moves."
+  },
+  "assets": {
+    "SPY": {
+      "ticker": "SPY",
+      "spot": 769.1086,
+      "data_date": "2026-10-02",
+      "net_gamma": 113627.8322,
+      "net_gex": 113627.8322,
+      "gamma_z": 0.6129,
+      "gamma_1d_change": 1554723.9911,
+      "gamma_3d_change": 1484490.8972,
+      "state": "CUSHION",
+      "flip": 770,
+      "spot_vs_flip_pct": -0.1159
+    },
+    "TLT": {
+      "ticker": "TLT",
+      "spot": 77.5384,
+      "data_date": "2026-10-02",
+      "net_gamma": 6026744.7808,
+      "net_gex": 6026744.7808,
+      "gamma_z": 0.976,
+      "gamma_1d_change": 5788874.7633,
+      "gamma_3d_change": 3609666.8311,
+      "state": "CUSHION",
+      "flip": 78,
+      "spot_vs_flip_pct": -0.5953
+    }
+  },
+  "gates": [
+    {
+      "id": "polarity",
+      "label": "Polarity",
+      "status": "WATCH",
+      "copy": "SPY positive and TLT negative identifies the clean risk-on divergence."
+    },
+    {
+      "id": "magnitude",
+      "label": "Magnitude",
+      "status": "WATCH",
+      "copy": "Absolute GRG above 2σ means the cross-asset gamma spread is statistically stretched."
+    },
+    {
+      "id": "spy_cushion",
+      "label": "SPY cushion",
+      "status": "PASS",
+      "copy": "Positive SPY gamma means dealer hedging is mechanically dampening equity moves."
+    },
+    {
+      "id": "duration_whip",
+      "label": "TLT whip",
+      "status": "WATCH",
+      "copy": "Negative TLT gamma means duration moves are mechanically amplified."
+    },
+    {
+      "id": "decay",
+      "label": "Decay",
+      "status": "WATCH",
+      "copy": "A negative 3-session SPY gamma slope marks possible equity cushion decay."
+    },
+    {
+      "id": "flip",
+      "label": "Flip",
+      "status": "WATCH",
+      "copy": "Spot above the SPY gamma flip keeps the equity cushion valid."
+    }
+  ],
+  "history": [
+    {
+      "date": "2026-09-28",
+      "spy_price": 765.61,
+      "spy_net_gamma": -1180258.6168,
+      "tlt_net_gamma": -940089.0815,
+      "spy_gamma_z": -0.3121,
+      "tlt_gamma_z": -0.0916,
+      "grg_z": -0.2911,
+      "raw_spread": -0.2205,
+      "state": "DUAL_WHIP"
+    },
+    {
+      "date": "2026-09-29",
+      "spy_price": 764.2,
+      "spy_net_gamma": -1370863.065,
+      "tlt_net_gamma": 2417077.9497,
+      "spy_gamma_z": -0.4348,
+      "tlt_gamma_z": 0.4669,
+      "grg_z": -0.7747,
+      "raw_spread": -0.9017,
+      "state": "RISK_OFF_DIVERGENCE"
+    },
+    {
+      "date": "2026-09-30",
+      "spy_price": 762.63,
+      "spy_net_gamma": -752579.4942,
+      "tlt_net_gamma": 6897114.2624,
+      "spy_gamma_z": -0.0103,
+      "tlt_gamma_z": 1.1391,
+      "grg_z": -0.9193,
+      "raw_spread": -1.1494,
+      "state": "RISK_OFF_DIVERGENCE"
+    },
+    {
+      "date": "2026-10-01",
+      "spy_price": 763.99,
+      "spy_net_gamma": -1441096.1589,
+      "tlt_net_gamma": 237870.0175,
+      "spy_gamma_z": -0.458,
+      "tlt_gamma_z": 0.0891,
+      "grg_z": -0.4778,
+      "raw_spread": -0.5471,
+      "state": "RISK_OFF_DIVERGENCE"
+    },
+    {
+      "date": "2026-10-02",
+      "spy_price": 769.64,
+      "spy_net_gamma": 113627.8322,
+      "tlt_net_gamma": 6026744.7808,
+      "spy_gamma_z": 0.6129,
+      "tlt_gamma_z": 0.976,
+      "grg_z": -0.3331,
+      "raw_spread": -0.3631,
+      "state": "DUAL_CUSHION"
+    }
+  ],
+  "events": {
+    "tops": [
+      {
+        "date": "2026-05-13",
+        "grg_z": 2.0576,
+        "pair_state": "RISK_ON_DIVERGENCE",
+        "tier": 3,
+        "spy_net_gamma": 437858.8625,
+        "tlt_net_gamma": -9894491.9277,
+        "fwd_20d_pct": -0.613,
+        "lead_sessions": 13,
+        "extreme_gap_pct": 2.3252
+      }
+    ],
+    "bottoms": [
+      {
+        "date": "2026-06-26",
+        "grg_z": -2.5794,
+        "pair_state": "RISK_OFF_DIVERGENCE",
+        "tier": 1,
+        "spy_net_gamma": -2734904.5216,
+        "tlt_net_gamma": 22059423.957,
+        "fwd_20d_pct": 1.3855,
+        "lead_sessions": 22,
+        "extreme_gap_pct": 0.0645
+      },
+      {
+        "date": "2026-02-20",
+        "grg_z": -2.5917,
+        "pair_state": "RISK_OFF_DIVERGENCE",
+        "tier": 2,
+        "spy_net_gamma": -2495996.4119,
+        "tlt_net_gamma": 24012906.5797,
+        "fwd_20d_pct": -5.9266,
+        "lead_sessions": 26,
+        "extreme_gap_pct": -8.3344
+      }
+    ],
+    "stats": {
+      "fwd_window": 30,
+      "tops": {
+        "n": 1,
+        "median_lead_sessions": 13,
+        "median_extreme_gap_pct": 2.3252
+      },
+      "bottoms": {
+        "n": 5,
+        "median_lead_sessions": 27,
+        "median_extreme_gap_pct": -7.4511
+      }
+    }
+  },
+  "top_bottom": {
+    "top": {
+      "active": false,
+      "copy": "Potential top: stretched positive GRG, positive SPY gamma, equity cushion decay, and duration gamma stress."
+    },
+    "bottom": {
+      "active": false,
+      "copy": "Potential bottom: stretched negative GRG, SPY gamma repair, and recapture of the SPY gamma flip after stress."
+    }
+  }
+}

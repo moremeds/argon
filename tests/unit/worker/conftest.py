@@ -32,3 +32,13 @@ _R2_KEYS = (
 def _neutralise_retired_r2(monkeypatch: pytest.MonkeyPatch) -> None:
     for key in _R2_KEYS:
         monkeypatch.setenv(key, "")
+
+
+@pytest.fixture(autouse=True)
+def _skip_schema_gate(monkeypatch: pytest.MonkeyPatch) -> None:
+    """``main()`` waits for the DB schema marker before building its scheduler
+    (worker/schema_gate.py). These wiring tests have no DB; the gate has its own
+    tests in tests/integration/worker/test_schema_gate.py."""
+    monkeypatch.setattr(
+        "uw_scan.worker.scheduler.wait_for_schema", lambda *_a, **_k: "skipped"
+    )
