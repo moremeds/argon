@@ -105,22 +105,13 @@ def _heartbeat_key(provider_filter: str | None) -> str:
 
 
 def _provider_model_and_timeout(settings: Settings, provider: str) -> tuple[str, float]:
-    if provider == "codex":
-        return (
-            settings.trade_insights_ai_model.strip(),
-            settings.trade_insights_ai_timeout_seconds,
-        )
-    if provider == "claude":
-        return (
-            settings.trade_insights_ai_claude_model.strip(),
-            settings.trade_insights_ai_claude_timeout_seconds,
-        )
-    if provider == "deepseek":
-        return (
-            settings.trade_insights_ai_deepseek_model.strip(),
-            settings.trade_insights_ai_deepseek_timeout_seconds,
-        )
-    raise TradeInsightsAiRunnerError(f"unknown provider {provider!r}")
+    runner = RUNNERS.get(provider)
+    if runner is None:
+        raise TradeInsightsAiRunnerError(f"unknown provider {provider!r}")
+    return (
+        getattr(settings, runner.model_setting).strip(),
+        getattr(settings, runner.timeout_setting),
+    )
 
 
 def _reclaim_after_seconds(settings: Settings, provider_filter: str | None) -> float:
@@ -129,9 +120,7 @@ def _reclaim_after_seconds(settings: Settings, provider_filter: str | None) -> f
     The legacy any-provider pool can claim any row, so it waits out the
     longest provider timeout; otherwise a slow provider's live run is stolen.
     """
-    providers = (
-        (provider_filter,) if provider_filter else ("codex", "claude", "deepseek")
-    )
+    providers = (provider_filter,) if provider_filter else tuple(RUNNERS)
     return max(_provider_model_and_timeout(settings, p)[1] for p in providers) + 60
 
 
