@@ -80,7 +80,6 @@ def test_fred_telemetry_records_request():
         captured.append(event)
 
     with (
-        patch.object(FredProvider, "_record_request", fake_record),
         patch("uw_scan.sources.fred.httpx.Client.get") as mock_get,
     ):
         mock_get.return_value = httpx.Response(
@@ -90,7 +89,7 @@ def test_fred_telemetry_records_request():
                 "GET", "https://fred.stlouisfed.org/graph/fredgraph.csv"
             ),
         )
-        with FredProvider() as p:
+        with FredProvider(record_request=fake_record) as p:
             p.fetch_series("DFII10", start=date(2026, 5, 12))
 
     assert len(captured) == 1
@@ -112,7 +111,6 @@ def test_fred_json_observations_use_official_api_and_skip_missing_values():
         captured.append(event)
 
     with (
-        patch.object(FredProvider, "_record_request", fake_record),
         patch("uw_scan.sources.fred.httpx.Client.get") as mock_get,
     ):
         mock_get.return_value = httpx.Response(
@@ -123,7 +121,7 @@ def test_fred_json_observations_use_official_api_and_skip_missing_values():
                 "https://api.stlouisfed.org/fred/series/observations",
             ),
         )
-        with FredProvider(api_key="fred-secret") as p:
+        with FredProvider(api_key="fred-secret", record_request=fake_record) as p:
             rows = p.fetch_observations(
                 "DGS10",
                 start=date(2026, 5, 18),
