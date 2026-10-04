@@ -40,6 +40,7 @@ from pydantic import SecretStr
 
 from uw_scan.config import Settings
 from uw_scan.config._env import EnvVar
+from uw_scan.config.lake import LAKE_ROOT_FALLBACK
 
 GOLDEN = Path(__file__).parent / "fixtures" / "settings_golden.json"
 
@@ -123,8 +124,12 @@ def _env_map() -> dict[str, tuple[list[str], list[str]]]:
         for spec in info.metadata
         if isinstance(spec, EnvVar)
     }
+    # Lake roots fall back under market_warehouse_lake_root's env var when unset.
+    warehouse_env = result["market_warehouse_lake_root"][0]
+    for name in LAKE_ROOT_FALLBACK:
+        result[name] = (result[name][0], warehouse_env)
     for kw in call.keywords:
-        if kw.arg is None:  # **read_env_fields(cls): covered above
+        if kw.arg is None:  # **env (the env table): covered above
             continue
         direct = list(dict.fromkeys(reads(kw.value)))
         indirect = list(dict.fromkeys(via_locals(kw.value)))

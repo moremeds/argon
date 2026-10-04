@@ -12,7 +12,8 @@ from uw_scan.config._env import (
     _parse_int_csv_env,
 )
 from uw_scan.config.db_isolation import _HOST_DB_RULES, _enforce_db_isolation
-from uw_scan.config.settings import DEFAULT_APEX_API_URL, Settings
+from uw_scan.config.apex import DEFAULT_APEX_API_URL
+from uw_scan.config.settings import Settings
 
 __all__ = [
     "DEFAULT_APEX_API_URL",
