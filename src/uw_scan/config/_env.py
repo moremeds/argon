@@ -6,6 +6,7 @@ import logging
 import os
 from collections.abc import Callable
 from dataclasses import dataclass
+from decimal import Decimal
 from pathlib import Path
 from typing import Any, get_args
 
@@ -16,11 +17,15 @@ from pydantic.fields import FieldInfo
 logger = logging.getLogger("uw_scan.config")
 
 
+def _parse_bool(raw: str) -> bool:
+    return raw.strip().lower() in {"1", "true", "yes", "on"}
+
+
 def _env_bool(name: str, default: bool = False) -> bool:
     raw = os.environ.get(name)
     if raw is None:
         return default
-    return raw.strip().lower() in {"1", "true", "yes", "on"}
+    return _parse_bool(raw)
 
 
 def _split_upper(raw: str) -> list[str]:
@@ -51,6 +56,10 @@ def _parse_int_csv_env(name: str, *, default: list[int]) -> list[int]:
     raw = os.environ.get(name)
     if raw is None or not raw.strip():
         return list(default)
+    return _split_int(raw)
+
+
+def _split_int(raw: str) -> list[int]:
     return [int(item.strip()) for item in raw.split(",") if item.strip()]
 
 
@@ -98,6 +107,8 @@ _PARSERS: dict[object, Callable[[str], Any]] = {
     str: str,
     int: int,
     float: float,
+    bool: _parse_bool,
+    Decimal: Decimal,
     Path: Path,
     SecretStr: SecretStr,
 }
