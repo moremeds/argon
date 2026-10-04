@@ -6,14 +6,17 @@ import os
 from decimal import Decimal
 from pathlib import Path
 
-from pydantic import BaseModel, Field, SecretStr, model_validator
+from pydantic import Field, SecretStr, model_validator
 
 from uw_scan.config._env import (
     _env_bool,
     _load_dotenv,
     _parse_csv_env,
     _parse_int_csv_env,
+    env_raw,
+    read_env_fields,
 )
+from uw_scan.config.db import DbSettings
 from uw_scan.config.db_isolation import _enforce_db_isolation
 
 
@@ -21,16 +24,10 @@ from uw_scan.config.db_isolation import _enforce_db_isolation
 DEFAULT_APEX_API_URL = "http://100.66.147.98:8322"
 
 
-class Settings(BaseModel):
+class Settings(DbSettings):
     """Strongly-typed configuration. Raises on missing required fields."""
 
     api_key: SecretStr = Field(...)
-    db_host: str = "127.0.0.1"
-    db_port: int = 5432
-    db_name: str = "option_wizard_local"
-    db_schema: str = "uw_scan"
-    db_user: str = "argon_app"
-    db_password: SecretStr = SecretStr("")
     max_requests_per_minute: int = 110
     request_timeout_seconds: float = 30.0
     base_url: str = "https://api.unusualwhales.com"
@@ -576,9 +573,9 @@ class Settings(BaseModel):
                 "UW_SCAN_API_KEY is not set. Add it to .env or export it before running."
             )
 
-        db_host = os.environ.get("UW_SCAN_DB_HOST", "127.0.0.1")
-        db_name = os.environ.get("UW_SCAN_DB_NAME", "option_wizard_local")
-        _enforce_db_isolation(db_host, db_name)
+        # Before any field is parsed, as before the env table: a wrong-tier pair is
+        # refused even when another value would also fail to parse.
+        _enforce_db_isolation(env_raw(cls, "db_host"), env_raw(cls, "db_name"))
 
         # Every lake root falls back UNDER the warehouse root, never under $HOME.
         # In a container $HOME is /root and no lake lives there, so a root with no
@@ -597,12 +594,7 @@ class Settings(BaseModel):
 
         return cls(
             api_key=SecretStr(api_key),
-            db_host=db_host,
-            db_port=int(os.environ.get("UW_SCAN_DB_PORT", "5432")),
-            db_name=db_name,
-            db_schema=os.environ.get("UW_SCAN_DB_SCHEMA", "uw_scan"),
-            db_user=os.environ.get("UW_SCAN_DB_USER", "") or "argon_app",
-            db_password=SecretStr(os.environ.get("UW_SCAN_DB_PASSWORD", "")),
+            **read_env_fields(cls),
             max_requests_per_minute=int(
                 os.environ.get("UW_SCAN_MAX_REQUESTS_PER_MINUTE", "110")
             ),
@@ -1119,13 +1111,4 @@ class Settings(BaseModel):
             vrp_macro_entry_mark_budget_s=float(
                 os.environ.get("UW_SCAN_VRP_MACRO_ENTRY_MARK_BUDGET_S", "600.0")
             ),
-        )
-
-    def db_dsn(self) -> str:
-        """Return a libpq-style DSN. Password omitted when blank (peer/trust auth)."""
-        pw = self.db_password.get_secret_value()
-        password_clause = f" password={pw}" if pw else ""
-        return (
-            f"host={self.db_host} port={self.db_port} dbname={self.db_name} "
-            f"user={self.db_user}{password_clause}"
         )
