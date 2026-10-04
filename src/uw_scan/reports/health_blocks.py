@@ -11,6 +11,7 @@ from typing import Literal
 
 from uw_scan.config import Settings
 from uw_scan.models.health import (
+    JobDegraded,
     RecordHealthCheck,
     TradeInsightsAiProviderHealth,
     WorkerHealth,
@@ -215,3 +216,63 @@ def _worker_health_rows(
             )
         )
     return rows
+
+
+def _job_degraded(repo: Repository) -> list[JobDegraded]:
+    """The 'succeeded but degraded' block: jobs whose latest run returned
+    normally with part of its work missing.
+
+    INFORMATIONAL ONLY — an entry here never flips ``ok``, never sets
+    ``reason`` and never alerts. It also self-clears: a scan-run entry reads
+    only the LATEST run, so the next clean run removes it, and a macro entry
+    clears when the source's next successful upsert writes ``ok``.
+
+    No new writes are made: every entry is read from a record the job already
+    persists — ``scan_runs`` for the sentinel-ticker side-channel jobs
+    (GRG thin data → ``status='degraded'``; discovery partial-DP → an 'ok'
+    run whose run meta counts enriched candidates) and
+    ``macro_source_status`` for the macro ingests.
+    """
+    out: list[JobDegraded] = []
+
+    grg = repo.latest_scan_run_state("GRG")
+    if grg is not None and grg["status"] == "degraded":
+        out.append(
+            JobDegraded(
+                job_name="regime_grg_scan",
+                record="scan_run",
+                since=grg["finished_at"],
+            )
+        )
+
+    discovery = repo.latest_scan_run_state("_DISCOVER")
+    if discovery is not None and discovery["status"] == "ok":
+        meta = (discovery["aggregates"] or {}).get("discovery") or {}
+        candidates = meta.get("candidates_found") or 0
+        enriched = meta.get("dp_enriched")
+        # candidates_found counts post-top_n candidates, the same list the
+        # enrichment loop attempts — enriched < candidates means at least one
+        # DP fetch raised (a 'no_data' fetch still counts as enriched).
+        if candidates and enriched is not None and enriched < candidates:
+            out.append(
+                JobDegraded(
+                    job_name="discovery_scan",
+                    record="scan_run",
+                    since=discovery["finished_at"],
+                    detail=f"dp {enriched}/{candidates} enriched",
+                )
+            )
+
+    for row in repo.list_degraded_macro_sources():
+        err = row["error_type"] or "degraded"
+        msg = row["error_message"]
+        out.append(
+            JobDegraded(
+                job_name=row["source"],
+                record="macro_source",
+                since=row["last_attempt_at"] or row["updated_at"],
+                detail=err if not msg else f"{err}: {msg[:200]}",
+                consecutive=row["consecutive_failures"],
+            )
+        )
+    return out

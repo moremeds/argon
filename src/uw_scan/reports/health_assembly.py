@@ -23,6 +23,7 @@ from uw_scan.models.health import (
 )
 from uw_scan.reports.health_blocks import (
     ExpectedFires,
+    _job_degraded,
     _parse_record_tables,
     _provider_ai_health,
     _record_window_scans_expected,
@@ -153,6 +154,12 @@ def build_health(
         )
         for s in _streaks
     ]
+
+    # Degraded block — jobs whose latest run succeeded with part of its work
+    # missing (thin data, a failed unit among interchangeable ones). Read-side
+    # only, built from records the jobs already persist; informational only,
+    # never flips ok, never alerts.
+    job_degraded = _job_degraded(repo)
 
     # Sidebar fields — always populated when DB is up so the panel renders
     # correctly even before the first full scan has fired.
@@ -323,6 +330,7 @@ def build_health(
             freshness=freshness,
             gap_healer=gap_healer,
             job_failures=job_failures,
+            job_degraded=job_degraded,
         )
 
     lag = (now_utc - last_scan).total_seconds()
@@ -349,6 +357,7 @@ def build_health(
             freshness=freshness,
             gap_healer=gap_healer,
             job_failures=job_failures,
+            job_degraded=job_degraded,
         )
 
     if record_reason is not None:
@@ -365,6 +374,7 @@ def build_health(
             freshness=freshness,
             gap_healer=gap_healer,
             job_failures=job_failures,
+            job_degraded=job_degraded,
         )
 
     return HealthResponse(
@@ -380,4 +390,5 @@ def build_health(
         freshness=freshness,
         gap_healer=gap_healer,
         job_failures=job_failures,
+        job_degraded=job_degraded,
     )
