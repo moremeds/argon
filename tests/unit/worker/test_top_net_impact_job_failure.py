@@ -96,13 +96,9 @@ def tni_job(monkeypatch):
 
     monkeypatch.setattr(scheduler, "BlockingScheduler", _FakeSched)
     monkeypatch.setattr(scheduler, "signal", _FakeSignal())
-    monkeypatch.setattr(scheduler, "datetime", _WeekdayDatetime)
     monkeypatch.setattr(regime, "datetime", _WeekdayDatetime)
-    monkeypatch.setattr(scheduler, "_repo", fake_repo)
     monkeypatch.setattr(regime, "_repo", fake_repo)
-    monkeypatch.setattr(scheduler, "_external_api_recorder", fake_recorder)
     monkeypatch.setattr(regime, "_external_api_recorder", fake_recorder)
-    monkeypatch.setattr(scheduler, "_uw_client", lambda *a, **k: _FakeUwClient())
     monkeypatch.setattr(regime, "_uw_client", lambda *a, **k: _FakeUwClient())
     monkeypatch.setenv("UW_SCAN_WORKER_ROLE", "uw")
     monkeypatch.setenv("UW_SCAN_WORKER_INDEX", "0")
