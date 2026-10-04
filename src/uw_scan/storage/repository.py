@@ -9,7 +9,7 @@ from ._base import _BaseMixin
 
 # Pure helpers live in _helpers.py since the PR-1 split. provider_day_bounds,
 # status_family_for, and redact_params are imported from this module by
-# sources/ohlc.py, api/client.py, api/routers/health.py, api/routers/provider_usage.py,
+# sources/ohlc.py, api/client.py, reports/health_assembly.py, api/routers/provider_usage.py,
 # and tests — keep them re-exported.
 from ._helpers import provider_day_bounds, redact_params, status_family_for
 from .audit import _AuditMixin

@@ -14,6 +14,7 @@ from datetime import date
 from decimal import Decimal
 from typing import Literal
 
+from uw_scan.cards.cockpit_dealer import oi_change_bias, vanna_conditional_reading
 from uw_scan.models import MatrixDirection, MatrixState
 from uw_scan.storage.repository import Repository
 
@@ -376,10 +377,10 @@ def _read_inputs(
         vrp_sign_flip_status=sign_flip_status,
         vrp_sign_flip_aligned_days=aligned_days,
         directional_imbalance_3d=dealer_metrics.directional_imbalance_3d,
-        vanna_oi_change_bias=_oi_change_bias(
+        vanna_oi_change_bias=oi_change_bias(
             repo.fetch_matrix_oi_change_rows(ticker=ticker, market_date=market_date)
         ),
-        vanna_conditional_reading=_vanna_conditional_reading(
+        vanna_conditional_reading=vanna_conditional_reading(
             iv_30d_delta_5d=dealer_metrics.iv_30d_delta_5d,
             directional_imbalance_3d=dealer_metrics.directional_imbalance_3d,
             flow_color=dealer_metrics.flow_color_lookback_3d,
@@ -812,48 +813,3 @@ def _implied_move_expected_abs(
     if not ordered:
         return None
     return Decimal(str(ordered[0]["implied_move_perc"])) * EXPECTED_ABS_MOVE_FACTOR
-
-
-def _vanna_conditional_reading(
-    *,
-    iv_30d_delta_5d: Decimal | None,
-    directional_imbalance_3d: Decimal | None,
-    flow_color: str | None,
-    net_gamma_sign: str | None,
-) -> Literal["grind_up", "reverse_selloff", "reflexive_sell_pressure", "weak_noise"]:
-    if iv_30d_delta_5d is None or net_gamma_sign is None:
-        return "weak_noise"
-    flow_is_put = flow_color == "put_heavy" or (
-        directional_imbalance_3d is not None and directional_imbalance_3d < 0
-    )
-    flow_is_call = flow_color == "call_heavy" or (
-        directional_imbalance_3d is not None and directional_imbalance_3d > 0
-    )
-    if iv_30d_delta_5d < 0 and flow_is_put and net_gamma_sign == "positive":
-        return "grind_up"
-    if iv_30d_delta_5d < 0 and flow_is_call and net_gamma_sign == "positive":
-        return "reverse_selloff"
-    if iv_30d_delta_5d > 0 and flow_is_put and net_gamma_sign == "negative":
-        return "reflexive_sell_pressure"
-    return "weak_noise"
-
-
-def _oi_change_bias(
-    rows: list[dict],
-) -> Literal["call_oi_build", "put_oi_build", "mixed"] | None:
-    call_oi = Decimal(0)
-    put_oi = Decimal(0)
-    for row in rows:
-        symbol = str(row.get("option_symbol") or "")
-        diff = Decimal(row.get("oi_diff_plain") or 0)
-        if "C" in symbol[-9:]:
-            call_oi += diff
-        elif "P" in symbol[-9:]:
-            put_oi += diff
-    if call_oi == 0 and put_oi == 0:
-        return None
-    if call_oi > put_oi:
-        return "call_oi_build"
-    if put_oi > call_oi:
-        return "put_oi_build"
-    return "mixed"
