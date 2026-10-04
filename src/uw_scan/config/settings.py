@@ -9,7 +9,8 @@ from pathlib import Path
 
 from pydantic import BaseModel, Field, SecretStr, model_validator
 
-logger = logging.getLogger(__name__)
+# ponytail: logger name kept from the old flat module, so log routing is unchanged.
+logger = logging.getLogger("uw_scan.config")
 
 
 def _env_bool(name: str, default: bool = False) -> bool:
@@ -658,7 +659,7 @@ class Settings(BaseModel):
         if env_path is not None:
             _load_dotenv(env_path)
         else:
-            repo_root = Path(__file__).resolve().parents[2]
+            repo_root = Path(__file__).resolve().parents[3]
             _load_dotenv(repo_root / ".env.local")
             _load_dotenv(repo_root / ".env")
 

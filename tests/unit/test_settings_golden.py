@@ -31,13 +31,13 @@ import inspect
 import json
 import os
 import re
+import textwrap
 from decimal import Decimal
 from pathlib import Path
 
 import pytest
 from pydantic import SecretStr
 
-import uw_scan.config as config
 from uw_scan.config import Settings
 
 GOLDEN = Path(__file__).parent / "fixtures" / "settings_golden.json"
@@ -70,7 +70,8 @@ _FIELD_PROBES: dict[str, tuple[str, ...]] = {
 
 def _env_map() -> dict[str, tuple[list[str], list[str]]]:
     """field -> (env names read directly, env names reached through a local)."""
-    src = inspect.getsource(config)
+    # Follows from_env to whichever module defines it.
+    src = textwrap.dedent(inspect.getsource(Settings.from_env))
     tree = ast.parse(src)
     fn = next(
         n
