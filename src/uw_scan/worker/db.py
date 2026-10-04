@@ -13,6 +13,7 @@ from contextlib import contextmanager
 import psycopg
 
 from uw_scan.config import Settings
+from uw_scan.storage.provider_usage import ExternalApiRequestRecorder
 from uw_scan.storage.repository import Repository
 
 
@@ -39,3 +40,12 @@ def repo_session(settings: Settings) -> Iterator[Repository]:
     """
     with psycopg.connect(settings.db_dsn()) as conn:
         yield Repository(conn, schema=settings.db_schema)
+
+
+@contextmanager
+def external_api_recorder(settings: Settings) -> Iterator[ExternalApiRequestRecorder]:
+    recorder = ExternalApiRequestRecorder(settings.db_dsn(), schema=settings.db_schema)
+    try:
+        yield recorder
+    finally:
+        recorder.close()

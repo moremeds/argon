@@ -10,6 +10,7 @@ version in lockstep (enforced by `scripts/release/version_sync_check.py`).
 ### Changed
 
 - **Gold jobs move to `worker/schedule/gold.py` (Phase 6a-2, I-50); no schedule change.** The nine gold closures and their `add_job` calls leave `scheduler.main()` for one `register(sched, settings)`, called from the same single-owner block. The scheduler job golden is byte-identical.
+- **Macro and rates jobs move to `worker/schedule/macro.py` (Phase 6a-3, I-50); no schedule change.** The ten macro/rates/regime-FRED closures, their two predicates and `_run_rates_fred_ingest` leave `scheduler.py` for one `register(sched, settings)`. The rates block keeps its uw-0 guard; the macro blocks keep the global-daily-owner guard inside `register`. `_pinned` / `_owns_global_daily_jobs` move to `worker/schedule/roles.py` and the external-API recorder to `worker/db.py`, so family modules never import `scheduler`. The scheduler job golden is byte-identical.
 - **Scheduler job golden + one role-pin predicate (Phase 6a-1, I-50/I-51); no schedule change.** `tests/unit/worker/test_scheduler_jobs_golden.py` boots the real `scheduler.main()` hermetically for every process shape (uw-0/1, massive-0/1, ai-deepseek/codex/claude/ai-0/1, all) under two profiles (code defaults; every `*_enabled` flag on) and freezes each registered job's id, wrapper name, trigger and `add_job` options; every later job-family move must leave it byte-identical. The 23 copies of "`all`, or this role at index 0" become `_pinned(settings, role)`; the golden is unchanged.
 
 ### Fixed
