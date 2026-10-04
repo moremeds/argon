@@ -14,7 +14,7 @@ from typing import Any
 
 import httpx
 
-from uw_scan.api.endpoints import EndpointSlug
+from uw_scan.sources.uw_endpoints import EndpointSlug
 from uw_scan.worker.jobs.positioning_jobs import positioning_refresh_once
 
 _PAYLOADS: dict[EndpointSlug, dict[str, Any]] = {
