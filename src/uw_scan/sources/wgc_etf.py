@@ -6,7 +6,7 @@ import io
 import logging
 from collections.abc import Iterable
 from dataclasses import dataclass
-from datetime import UTC, date, datetime
+from datetime import date, datetime
 from decimal import Decimal, InvalidOperation
 from pathlib import Path
 from typing import Any
@@ -16,9 +16,14 @@ import httpx
 from bs4 import BeautifulSoup
 from openpyxl import load_workbook
 
+from uw_scan.sources._http import (
+    BROWSER_UA,
+    RequestOutcome,
+    get_with_telemetry,
+    record_or_log,
+    request_event,
+)
 from uw_scan.sources.etf_holdings import EtfHoldingRow
-from uw_scan.storage.provider_usage import ExternalApiRequestEvent
-from uw_scan.storage.repository import redact_params, status_family_for
 
 logger = logging.getLogger(__name__)
 
@@ -62,10 +67,6 @@ class WgcEtfProvider:
     PROVIDER = "wgc_etf"
     ENDPOINT_KEY = "wgc_etf_flows_xlsx"
     DEFAULT_TIMEOUT_S = 60.0
-    BROWSER_UA = (
-        "Mozilla/5.0 (Macintosh; Intel Mac OS X 13_0) "
-        "AppleWebKit/537.36 (KHTML, like Gecko) Chrome/124.0.0.0 Safari/537.36"
-    )
     DEFAULT_TICKERS = {
         "gld us equity": "GLD",
         "iau us equity": "IAU",
@@ -80,7 +81,7 @@ class WgcEtfProvider:
         timeout_s: float | None = None,
         record_request: Any | None = None,
     ) -> None:
-        headers = {"User-Agent": self.BROWSER_UA}
+        headers = {"User-Agent": BROWSER_UA}
         if cookie_header:
             headers["Cookie"] = cookie_header
         self._client = httpx.Client(
@@ -104,7 +105,11 @@ class WgcEtfProvider:
         downloads: list[WgcEtfDownload] = []
         seen: set[str] = set()
         for page in range(max_pages):
-            url = self.ETF_FLOWS_PAGE if page == 0 else f"{self.ETF_FLOWS_PAGE}?page={page}"
+            url = (
+                self.ETF_FLOWS_PAGE
+                if page == 0
+                else f"{self.ETF_FLOWS_PAGE}?page={page}"
+            )
             page_downloads = self._fetch_downloads_page(url)
             if not page_downloads:
                 break
@@ -171,7 +176,9 @@ class WgcEtfProvider:
             response.content.startswith(b"PK\x03\x04")
             or "spreadsheetml.sheet" in content_type
         ):
-            raise ValueError(f"WGC ETF response is not an XLSX workbook: {content_type}")
+            raise ValueError(
+                f"WGC ETF response is not an XLSX workbook: {content_type}"
+            )
         return response.content
 
     def parse_holdings(
@@ -183,7 +190,9 @@ class WgcEtfProvider:
     ) -> list[EtfHoldingRow]:
         wanted = {t.upper() for t in tickers} if tickers is not None else None
         workbook = load_workbook(io.BytesIO(content), read_only=True, data_only=True)
-        sheet = _sheet_by_names(workbook, ["Holdings by month", "All holdings by month"])
+        sheet = _sheet_by_names(
+            workbook, ["Holdings by month", "All holdings by month"]
+        )
         if sheet is None:
             logger.warning("WGC ETF workbook missing Holdings by month sheet")
             return []
@@ -315,69 +324,17 @@ class WgcEtfProvider:
         return out
 
     def _get(self, url: str, *, endpoint_key: str) -> httpx.Response:
-        started_at = datetime.now(UTC)
-        try:
-            response = self._client.get(url)
-        except httpx.HTTPError as exc:
-            finished_at = datetime.now(UTC)
-            self._record_request(
-                self._build_event(
-                    url,
-                    endpoint_key,
-                    started_at,
-                    finished_at,
-                    status_code=None,
-                    error_message=repr(exc)[:1000],
-                )
+        def record(outcome: RequestOutcome) -> None:
+            event = request_event(
+                outcome,
+                provider=self.PROVIDER,
+                endpoint_key=endpoint_key,
+                path=url,
+                params=None,
             )
-            raise
-        finished_at = datetime.now(UTC)
-        self._record_request(
-            self._build_event(
-                url,
-                endpoint_key,
-                started_at,
-                finished_at,
-                status_code=response.status_code,
-                error_message=(
-                    response.text[:1000] if response.status_code >= 400 else None
-                ),
-            )
-        )
-        return response
+            record_or_log(self._record_request_fn, self, event, "wgc_etf")
 
-    def _record_request(self, event: ExternalApiRequestEvent) -> None:
-        if self._record_request_fn is not None:
-            self._record_request_fn(self, event)
-        else:
-            logger.debug("wgc_etf telemetry %r", event)
-
-    def _build_event(
-        self,
-        url: str,
-        endpoint_key: str,
-        started_at: datetime,
-        finished_at: datetime,
-        *,
-        status_code: int | None,
-        error_message: str | None,
-    ) -> ExternalApiRequestEvent:
-        return ExternalApiRequestEvent(
-            provider=self.PROVIDER,
-            endpoint_key=endpoint_key,
-            method="GET",
-            path=url,
-            path_template=url,
-            params=redact_params({}),
-            status_code=status_code,
-            status_family=status_family_for(
-                status_code, transport_error=status_code is None
-            ),
-            started_at=started_at,
-            finished_at=finished_at,
-            latency_ms=max(0, int((finished_at - started_at).total_seconds() * 1000)),
-            error_message=error_message,
-        )
+        return get_with_telemetry(self._client, url, params=None, record=record)
 
 
 def _cell(row: tuple[Any, ...], idx: int) -> Any:
@@ -414,7 +371,9 @@ def _monthly_columns(rows: list[tuple[Any, ...]]) -> dict[int, dict[str, str | N
     return columns
 
 
-def _monthly_values_by_date(rows: list[tuple[Any, ...]]) -> dict[date, dict[int, Decimal]]:
+def _monthly_values_by_date(
+    rows: list[tuple[Any, ...]],
+) -> dict[date, dict[int, Decimal]]:
     out: dict[date, dict[int, Decimal]] = {}
     for row in rows[6:]:
         obs_date = _parse_excel_date(_cell(row, 0))

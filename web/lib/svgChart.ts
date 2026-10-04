@@ -184,3 +184,39 @@ export function pathFromBand(upper: Point[], lower: Point[]): string {
     .join(" ");
   return `${fwd} ${back} Z`;
 }
+
+export type Margin = {
+  top: number;
+  right: number;
+  bottom: number;
+  left: number;
+};
+
+/** The scaffold the small analytical SVG charts share (I-106): a W×H viewBox,
+ *  a plot box inset by `M`, an x scale across the box and a y scale up it. */
+export type SvgFrame = {
+  W: number;
+  H: number;
+  M: Margin;
+  /** Maps `domain` onto [M.left, W - M.right]. */
+  x: (domain: [number, number]) => (v: number) => number;
+  /** Maps `domain` onto [H - M.bottom, M.top] (larger values higher). */
+  y: (domain: [number, number]) => (v: number) => number;
+  /** Spread onto the chart's <svg>. */
+  svg: { viewBox: string; width: string; height: number; role: "img" };
+};
+
+export function chartFrame(
+  W = 400,
+  H = 220,
+  M: Margin = { top: 8, right: 16, bottom: 24, left: 36 },
+): SvgFrame {
+  return {
+    W,
+    H,
+    M,
+    x: (domain) => linearScale(domain, [M.left, W - M.right]),
+    y: (domain) => linearScale(domain, [H - M.bottom, M.top]),
+    svg: { viewBox: `0 0 ${W} ${H}`, width: "100%", height: H, role: "img" },
+  };
+}

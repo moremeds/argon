@@ -7,7 +7,7 @@ import io
 import logging
 from collections.abc import Callable
 from dataclasses import dataclass
-from datetime import UTC, date, datetime
+from datetime import date
 from decimal import Decimal, InvalidOperation
 from typing import Any
 
@@ -19,8 +19,13 @@ from uw_scan.rates.series import (
     CLEVE_MODEL_REAL_YIELD_10Y,
     CLEVE_REAL_RISK_PREMIUM_10Y,
 )
+from uw_scan.sources._http import (
+    RequestOutcome,
+    get_with_telemetry,
+    record_or_log,
+    request_event,
+)
 from uw_scan.storage.provider_usage import ExternalApiRequestEvent
-from uw_scan.storage.repository import status_family_for
 
 logger = logging.getLogger(__name__)
 
@@ -132,9 +137,7 @@ class ClevelandFedInflationProvider:
                     obs_date=obs_date,
                     expected_inflation_10y=risk_row["expected_inflation_10y"],
                     real_risk_premium_10y=risk_row["real_risk_premium_10y"],
-                    inflation_risk_premium_10y=risk_row[
-                        "inflation_risk_premium_10y"
-                    ],
+                    inflation_risk_premium_10y=risk_row["inflation_risk_premium_10y"],
                     model_real_yield_10y=model_real,
                 )
             )
@@ -171,67 +174,23 @@ class ClevelandFedInflationProvider:
                 logger.warning("cleveland_fed: skip chart2 row %r (%s)", row, repr(exc))
         return out
 
-    def _get_with_telemetry(
-        self, path: str, params: dict[str, Any]
-    ) -> httpx.Response:
-        started_at = datetime.now(UTC)
-        url = f"{self._base_url}{path}"
-        try:
-            response = self._client.get(url, params=params)
-        except httpx.HTTPError as exc:
-            finished_at = datetime.now(UTC)
-            self._record_request(
-                self._event(
-                    path,
-                    params,
-                    started_at,
-                    finished_at,
-                    status_code=None,
-                    error_message=str(exc),
-                )
+    def _get_with_telemetry(self, path: str, params: dict[str, Any]) -> httpx.Response:
+        def record(outcome: RequestOutcome) -> None:
+            event = request_event(
+                outcome,
+                provider=self.PROVIDER,
+                endpoint_key="inflation_expectations_csv",
+                path=path,
+                params=params,
+                job_name=self._job_name,
             )
-            raise
-        finished_at = datetime.now(UTC)
-        self._record_request(
-            self._event(
-                path,
-                params,
-                started_at,
-                finished_at,
-                status_code=response.status_code,
-                error_message=None,
-            )
-        )
-        return response
+            record_or_log(self._record_request_fn, self, event, "cleveland_fed")
 
-    def _record_request(self, event: ExternalApiRequestEvent) -> None:
-        if self._record_request_fn is not None:
-            self._record_request_fn(self, event)
-        else:
-            logger.debug("cleveland_fed telemetry %r", event)
-
-    def _event(
-        self,
-        path: str,
-        params: dict[str, Any],
-        started_at: datetime,
-        finished_at: datetime,
-        *,
-        status_code: int | None,
-        error_message: str | None,
-    ) -> ExternalApiRequestEvent:
-        return ExternalApiRequestEvent(
-            provider=self.PROVIDER,
-            endpoint_key="inflation_expectations_csv",
-            method="GET",
-            path=path,
-            path_template=path,
+        return get_with_telemetry(
+            self._client,
+            f"{self._base_url}{path}",
             params=params,
-            status_code=status_code,
-            status_family=status_family_for(status_code),
-            latency_ms=max((finished_at - started_at).total_seconds() * 1000, 0),
-            error_message=error_message,
-            started_at=started_at,
-            finished_at=finished_at,
-            job_name=self._job_name,
+            record=record,
+            transport_error_text=str,
+            error_body_text=lambda _response: None,
         )

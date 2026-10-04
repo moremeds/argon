@@ -83,12 +83,11 @@ def test_gpr_telemetry_records() -> None:
         captured.append(event)
 
     with (
-        patch.object(GprProvider, "_record_request", fake_record),
         patch("uw_scan.sources.gpr.httpx.Client.get") as mock_get,
         patch("uw_scan.sources.gpr.xlrd.open_workbook", return_value=wb),
     ):
         mock_get.return_value = _fake_response()
-        with GprProvider() as p:
+        with GprProvider(record_request=fake_record) as p:
             p.fetch_daily(start=date(2026, 5, 12))
 
     assert len(captured) == 1

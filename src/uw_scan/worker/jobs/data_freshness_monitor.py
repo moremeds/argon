@@ -26,6 +26,7 @@ from uw_scan.reports.data_freshness import (
     FreshnessRow,
     compute_freshness,
 )
+from uw_scan.storage.advisory_locks import single_flight
 from uw_scan.storage.data_freshness_repository import DataFreshnessRepository
 from uw_scan.storage.data_gap_healer_repository import DataGapHealerRepository
 from uw_scan.storage.repository import Repository
@@ -74,18 +75,15 @@ def _autoheal_frozen_tables(
     # callers could both proceed and double-spend the same provider budget
     # in the same window. Taking the lock here makes the two mutually
     # exclusive the same way two nightly-job invocations already are.
-    with repo.conn.cursor() as cur:
-        cur.execute("SELECT pg_try_advisory_lock(%s)", (_GAP_HEALER_LOCK_KEY,))
-        got_lock = cur.fetchone()[0]
-    if not got_lock:
-        logger.info("data_freshness autoheal: gap-healer lock held; skipping")
-        return {
-            "healed": healed,
-            "circuit_broken": circuit_broken,
-            "skipped_no_adapter": [r.table_name for r in frozen_rows],
-        }
+    with single_flight(repo.conn, _GAP_HEALER_LOCK_KEY) as got_lock:
+        if not got_lock:
+            logger.info("data_freshness autoheal: gap-healer lock held; skipping")
+            return {
+                "healed": healed,
+                "circuit_broken": circuit_broken,
+                "skipped_no_adapter": [r.table_name for r in frozen_rows],
+            }
 
-    try:
         if _another_run_active(gap):
             logger.info("data_freshness autoheal: a gap-healer run is active; skipping")
             return {
@@ -160,9 +158,6 @@ def _autoheal_frozen_tables(
                 outcome,
                 budget_spent,
             )
-    finally:
-        with repo.conn.cursor() as cur:
-            cur.execute("SELECT pg_advisory_unlock(%s)", (_GAP_HEALER_LOCK_KEY,))
 
     result: dict[str, Any] = {
         "healed": healed,

@@ -33,6 +33,7 @@ from uw_scan.sources.uw import (
     fetch_volatility_vrp,
     fetch_volumes_by_exchange,
 )
+from uw_scan.storage.advisory_locks import fixed_key, single_flight
 from uw_scan.storage.repository import Repository
 from uw_scan.storage.uw_historical_alpha_repository import UwHistoricalAlphaRepository
 
@@ -43,11 +44,11 @@ _EXPIRY_SENTINEL = date(
 )  # matches migration-108 default for non-per-expiry bars
 _PRINT_LIMIT = 500  # matches the fetcher default; capture logs when a response hits it
 
-GEX_LEVELS_CAPTURE_LOCK = 10801  # migration 108 + slot 01
-VOLATILITY_CAPTURE_LOCK = 10802
-SHORT_PRESSURE_CAPTURE_LOCK = 10803
-INTRADAY_FLOW_CAPTURE_LOCK = 10804
-DARK_LIT_CAPTURE_LOCK = 10805
+GEX_LEVELS_CAPTURE_LOCK = fixed_key("uw_alpha_gex_levels")
+VOLATILITY_CAPTURE_LOCK = fixed_key("uw_alpha_volatility")
+SHORT_PRESSURE_CAPTURE_LOCK = fixed_key("uw_alpha_short_pressure")
+INTRADAY_FLOW_CAPTURE_LOCK = fixed_key("uw_alpha_intraday_flow")
+DARK_LIT_CAPTURE_LOCK = fixed_key("uw_alpha_dark_lit")
 
 
 def _pick_asof(rows: Sequence, target: date, attr: str = "date"):
@@ -348,14 +349,14 @@ def _run_capture(
     market_date: date | None = None,
     extra_tickers: Sequence[str] = (),
 ) -> dict[str, int]:
-    if not repo.try_advisory_lock(lock_key):
-        logger.info("%s: lock held; skipping this tick", name)
-        return {"tickers": 0, "rows": 0, "errors": 0}
-    alpha = UwHistoricalAlphaRepository(repo.conn, schema=settings.db_schema)
-    if market_date is None:
-        market_date = datetime.now(ZoneInfo(settings.rth_tz)).date()
-    tickers_done = rows_written = errors = 0
-    try:
+    with single_flight(repo.conn, lock_key) as acquired:
+        if not acquired:
+            logger.info("%s: lock held; skipping this tick", name)
+            return {"tickers": 0, "rows": 0, "errors": 0}
+        alpha = UwHistoricalAlphaRepository(repo.conn, schema=settings.db_schema)
+        if market_date is None:
+            market_date = datetime.now(ZoneInfo(settings.rth_tz)).date()
+        tickers_done = rows_written = errors = 0
         for ticker in _sweep_tickers(repo, extra_tickers):
             if ticker_filter is not None and not ticker_filter(ticker):
                 continue
@@ -370,8 +371,6 @@ def _run_capture(
                 repo.conn.rollback()
                 errors += 1
                 logger.warning("%s %s failed: %s", name, ticker, repr(exc))
-    finally:
-        repo.release_advisory_lock(lock_key)
     summary = {"tickers": tickers_done, "rows": rows_written, "errors": errors}
     logger.info("%s complete %s", name, summary)
     return summary
