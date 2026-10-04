@@ -466,7 +466,7 @@ export interface paths {
          *     becomes a pivot, and the response grows to one entry per bar.
          *
          *     Uses `repo.conn` + `settings.db_schema`, the pattern this codebase already
-         *     uses when a router needs a raw connection (see `routers/health.py:387`);
+         *     uses when a router needs a raw connection (see `reports/health_assembly.build_health`);
          *     the magnet_data loaders take a connection, not a Repository.
          */
         get: operations["get_magnets_api_stock__ticker__magnets_get"];
@@ -1253,6 +1253,8 @@ export interface paths {
         /**
          * Trigger Cri Scan
          * @description Run a CRI scan synchronously off the warm store; persist a snapshot.
+         *
+         *     200, not 202: the scan has finished and been written when this returns.
          */
         post: operations["trigger_cri_scan_api_regime_scan_post"];
         delete?: never;
@@ -1290,6 +1292,8 @@ export interface paths {
         /**
          * Trigger Vcg Scan
          * @description Run a VCG scan synchronously off the warm store; persist a snapshot.
+         *
+         *     200, not 202: the scan has finished and been written when this returns.
          */
         post: operations["trigger_vcg_scan_api_regime_vcg_scan_post"];
         delete?: never;
@@ -1440,6 +1444,8 @@ export interface paths {
         /**
          * Trigger Grg Scan
          * @description Run a GRG scan synchronously against UW and persist a snapshot.
+         *
+         *     200, not 202: the scan has finished and been written when this returns.
          */
         post: operations["trigger_grg_scan_api_regime_grg_scan_post"];
         delete?: never;
@@ -15196,7 +15202,7 @@ export interface operations {
         requestBody?: never;
         responses: {
             /** @description Successful Response */
-            202: {
+            200: {
                 headers: {
                     [name: string]: unknown;
                 };
@@ -15249,7 +15255,7 @@ export interface operations {
         requestBody?: never;
         responses: {
             /** @description Successful Response */
-            202: {
+            200: {
                 headers: {
                     [name: string]: unknown;
                 };
@@ -15477,7 +15483,7 @@ export interface operations {
         requestBody?: never;
         responses: {
             /** @description Successful Response */
-            202: {
+            200: {
                 headers: {
                     [name: string]: unknown;
                 };

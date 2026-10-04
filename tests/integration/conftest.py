@@ -522,7 +522,7 @@ def seeded_db_with_aapl_magnets(
     ]
     # `Repository` exposes `.conn` (a property on _BaseMixin) but NOT `.schema` —
     # only the private `_schema`. Take it from settings, the same way
-    # `routers/health.py:387` does.
+    # `reports/health_assembly.py` (`build_health`) does.
     schema = _migrated_settings.db_schema
     with repo.conn.cursor() as cur:
         for expiry, strike, civ, piv in grid:

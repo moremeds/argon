@@ -33286,10 +33286,10 @@
     },
     "/api/regime/grg/scan": {
       "post": {
-        "description": "Run a GRG scan synchronously against UW and persist a snapshot.",
+        "description": "Run a GRG scan synchronously against UW and persist a snapshot.\n\n200, not 202: the scan has finished and been written when this returns.",
         "operationId": "trigger_grg_scan_api_regime_grg_scan_post",
         "responses": {
-          "202": {
+          "200": {
             "content": {
               "application/json": {
                 "schema": {
@@ -33397,10 +33397,10 @@
     },
     "/api/regime/scan": {
       "post": {
-        "description": "Run a CRI scan synchronously off the warm store; persist a snapshot.",
+        "description": "Run a CRI scan synchronously off the warm store; persist a snapshot.\n\n200, not 202: the scan has finished and been written when this returns.",
         "operationId": "trigger_cri_scan_api_regime_scan_post",
         "responses": {
-          "202": {
+          "200": {
             "content": {
               "application/json": {
                 "schema": {
@@ -33801,7 +33801,7 @@
     },
     "/api/regime/vcg/scan": {
       "post": {
-        "description": "Run a VCG scan synchronously off the warm store; persist a snapshot.",
+        "description": "Run a VCG scan synchronously off the warm store; persist a snapshot.\n\n200, not 202: the scan has finished and been written when this returns.",
         "operationId": "trigger_vcg_scan_api_regime_vcg_scan_post",
         "parameters": [
           {
@@ -33816,7 +33816,7 @@
           }
         ],
         "responses": {
-          "202": {
+          "200": {
             "content": {
               "application/json": {
                 "schema": {
@@ -35165,7 +35165,7 @@
     },
     "/api/stock/{ticker}/magnets": {
       "get": {
-        "description": "Magnet levels + options-implied cone. Read-only.\n\nk_atr defaults to 3.0 only because that is the existing last_pivot_index\ndefault \u2014 G1 failed, so no threshold was selected on merit. It stays a query\nparam so the sweep's other rungs stay inspectable from the UI without a\nredeploy; nothing writes it. It is BOUNDED because it is user input at a\ntrust boundary: k_atr <= 0 makes the reversal threshold zero, every bar\nbecomes a pivot, and the response grows to one entry per bar.\n\nUses `repo.conn` + `settings.db_schema`, the pattern this codebase already\nuses when a router needs a raw connection (see `routers/health.py:387`);\nthe magnet_data loaders take a connection, not a Repository.",
+        "description": "Magnet levels + options-implied cone. Read-only.\n\nk_atr defaults to 3.0 only because that is the existing last_pivot_index\ndefault \u2014 G1 failed, so no threshold was selected on merit. It stays a query\nparam so the sweep's other rungs stay inspectable from the UI without a\nredeploy; nothing writes it. It is BOUNDED because it is user input at a\ntrust boundary: k_atr <= 0 makes the reversal threshold zero, every bar\nbecomes a pivot, and the response grows to one entry per bar.\n\nUses `repo.conn` + `settings.db_schema`, the pattern this codebase already\nuses when a router needs a raw connection (see `reports/health_assembly.build_health`);\nthe magnet_data loaders take a connection, not a Repository.",
         "operationId": "get_magnets_api_stock__ticker__magnets_get",
         "parameters": [
           {
