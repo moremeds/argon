@@ -54,8 +54,8 @@ log = logging.getLogger(__name__)
 
 
 def earnings_reactions_compute(
-    conn: psycopg.Connection,
     *,
+    conn: psycopg.Connection,
     as_of: date,
     lookback_days: int = 10,
     schema: str = "uw_scan",

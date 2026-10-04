@@ -18,10 +18,10 @@ logger = logging.getLogger(__name__)
 
 
 def full_scan_hot_once(
-    repo,
-    uw_client,
-    ohlc_provider: OhlcProvider,
     *,
+    repo,
+    client,
+    ohlc_provider: OhlcProvider,
     stale_minutes: int,
     preserve_spot: bool = False,
     max_tickers: int | None = None,
@@ -34,9 +34,9 @@ def full_scan_hot_once(
         logger.info("full_scan_hot: live budget exhausted; skipping this pass")
         return 0
     n = full_scan_once(
-        repo,
-        uw_client,
-        ohlc_provider,
+        repo=repo,
+        client=client,
+        ohlc_provider=ohlc_provider,
         stale_after=timedelta(minutes=stale_minutes),
         ticker_filter=lambda t: t in hot,
         preserve_spot=preserve_spot,

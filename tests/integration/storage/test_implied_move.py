@@ -305,7 +305,7 @@ def test_avgo_covering_expiry_skips_multiple_too_early_candidates(conn):
         {"ticker": "AVGO", "report_date": date(2026, 9, 2), "session": "afterhours"},
     )
 
-    result = implied_move_snapshot(conn, as_of=_MARKET_DATE, schema="uw_scan")
+    result = implied_move_snapshot(conn=conn, as_of=_MARKET_DATE, schema="uw_scan")
     assert result == {
         "prints_upcoming": 1,
         "covered": 1,
@@ -334,7 +334,7 @@ def test_adbe_afterhours_reaction_day_is_exact_expiry_boundary(conn):
         {"ticker": "ADBE", "report_date": date(2026, 9, 10), "session": "afterhours"},
     )
 
-    result = implied_move_snapshot(conn, as_of=_MARKET_DATE, schema="uw_scan")
+    result = implied_move_snapshot(conn=conn, as_of=_MARKET_DATE, schema="uw_scan")
     assert result == {
         "prints_upcoming": 1,
         "covered": 1,
@@ -362,7 +362,7 @@ def test_one_sided_put_iv_null_uses_call_only_basis(conn):
         conn, {"ticker": "CRWV", "report_date": date(2026, 9, 5), "session": None}
     )
 
-    result = implied_move_snapshot(conn, as_of=_MARKET_DATE, schema="uw_scan")
+    result = implied_move_snapshot(conn=conn, as_of=_MARKET_DATE, schema="uw_scan")
     assert result == {
         "prints_upcoming": 1,
         "covered": 1,
@@ -392,7 +392,7 @@ def test_avgo_afterhours_wiring_excludes_the_day_of_report_expiry(conn):
         {"ticker": "AVGO", "report_date": date(2026, 9, 2), "session": "afterhours"},
     )
 
-    result = implied_move_snapshot(conn, as_of=_MARKET_DATE, schema="uw_scan")
+    result = implied_move_snapshot(conn=conn, as_of=_MARKET_DATE, schema="uw_scan")
     assert result == {
         "prints_upcoming": 1,
         "covered": 1,
@@ -429,7 +429,7 @@ def test_null_session_wiring_excludes_the_day_of_report_expiry(conn):
         conn, {"ticker": "CRWV", "report_date": date(2026, 9, 4), "session": None}
     )
 
-    result = implied_move_snapshot(conn, as_of=_MARKET_DATE, schema="uw_scan")
+    result = implied_move_snapshot(conn=conn, as_of=_MARKET_DATE, schema="uw_scan")
     assert result == {
         "prints_upcoming": 1,
         "covered": 1,
@@ -469,7 +469,7 @@ def test_premarket_end_to_end_covering_expiry_is_report_date_itself(conn):
         {"ticker": "CRM", "report_date": date(2026, 8, 28), "session": "premarket"},
     )
 
-    result = implied_move_snapshot(conn, as_of=_MARKET_DATE, schema="uw_scan")
+    result = implied_move_snapshot(conn=conn, as_of=_MARKET_DATE, schema="uw_scan")
     assert result == {
         "prints_upcoming": 1,
         "covered": 1,
@@ -501,7 +501,7 @@ def test_exact_strike_tie_breaks_ascending(conn):
         {"ticker": "CRDO", "report_date": date(2026, 9, 1), "session": "afterhours"},
     )
 
-    result = implied_move_snapshot(conn, as_of=_MARKET_DATE, schema="uw_scan")
+    result = implied_move_snapshot(conn=conn, as_of=_MARKET_DATE, schema="uw_scan")
     assert result == {
         "prints_upcoming": 1,
         "covered": 1,
@@ -530,7 +530,7 @@ def test_zero_dte_covering_expiry_is_not_covered_never_a_zero(conn):
         {"ticker": "AVGO", "report_date": _MARKET_DATE, "session": "premarket"},
     )
 
-    result = implied_move_snapshot(conn, as_of=_MARKET_DATE, schema="uw_scan")
+    result = implied_move_snapshot(conn=conn, as_of=_MARKET_DATE, schema="uw_scan")
     assert result == {
         "prints_upcoming": 1,
         "covered": 0,
@@ -570,7 +570,7 @@ def test_missing_spot_at_nearest_strike_is_not_covered(conn):
         conn, {"ticker": "TSLA", "report_date": date(2026, 3, 4), "session": None}
     )
 
-    result = implied_move_snapshot(conn, as_of=as_of, schema="uw_scan")
+    result = implied_move_snapshot(conn=conn, as_of=as_of, schema="uw_scan")
     assert result == {
         "prints_upcoming": 1,
         "covered": 0,
@@ -592,7 +592,7 @@ def test_ticker_with_calendar_row_but_no_surface_rows_writes_nothing(conn):
     )
     as_of = date(2026, 10, 20)  # within 21 days of the real 2026-11-04 report
 
-    result = implied_move_snapshot(conn, as_of=as_of, schema="uw_scan")
+    result = implied_move_snapshot(conn=conn, as_of=as_of, schema="uw_scan")
     assert result == {
         "prints_upcoming": 1,
         "covered": 0,
@@ -618,7 +618,7 @@ def test_multi_ticker_snapshot_aggregates_counters_honestly(conn):
         {"ticker": "ORCL", "report_date": date(2026, 9, 8), "session": None},
     )
 
-    result = implied_move_snapshot(conn, as_of=_MARKET_DATE, schema="uw_scan")
+    result = implied_move_snapshot(conn=conn, as_of=_MARKET_DATE, schema="uw_scan")
     assert result == {
         "prints_upcoming": 3,
         "covered": 2,
@@ -639,7 +639,7 @@ def test_rerun_same_night_is_idempotent_new_rows_zero_on_replay(conn):
         {"ticker": "AVGO", "report_date": date(2026, 9, 2), "session": "afterhours"},
     )
 
-    implied_move_snapshot(conn, as_of=_MARKET_DATE, schema="uw_scan")
+    implied_move_snapshot(conn=conn, as_of=_MARKET_DATE, schema="uw_scan")
     repo = ImpliedMoveRepository(conn, schema="uw_scan")
     row = repo.latest_for(["AVGO"])["AVGO"]
     # A direct upsert_rows replay of the exact same row reports 0 genuinely new.
@@ -675,10 +675,10 @@ def test_history_returns_every_nightly_snapshot_for_one_report_date_oldest_first
     )
 
     _seed_avgo_grid(conn, market_date=date(2026, 8, 25))
-    implied_move_snapshot(conn, as_of=date(2026, 8, 25), schema="uw_scan")
+    implied_move_snapshot(conn=conn, as_of=date(2026, 8, 25), schema="uw_scan")
 
     _seed_avgo_grid(conn, market_date=date(2026, 8, 26))
-    implied_move_snapshot(conn, as_of=date(2026, 8, 26), schema="uw_scan")
+    implied_move_snapshot(conn=conn, as_of=date(2026, 8, 26), schema="uw_scan")
 
     history = ImpliedMoveRepository(conn, schema="uw_scan").history(
         "AVGO", date(2026, 9, 2)
@@ -727,7 +727,7 @@ def test_statement_obs_rows_are_excluded_never_derived_against(conn):
         ]
     )
 
-    result = implied_move_snapshot(conn, as_of=_MARKET_DATE, schema="uw_scan")
+    result = implied_move_snapshot(conn=conn, as_of=_MARKET_DATE, schema="uw_scan")
     assert result == {
         "prints_upcoming": 0,
         "covered": 0,
@@ -758,7 +758,7 @@ def test_a_print_beyond_the_lookahead_horizon_is_excluded(conn):
         ]
     )
 
-    result = implied_move_snapshot(conn, as_of=_MARKET_DATE, schema="uw_scan")
+    result = implied_move_snapshot(conn=conn, as_of=_MARKET_DATE, schema="uw_scan")
     assert result == {
         "prints_upcoming": 0,
         "covered": 0,

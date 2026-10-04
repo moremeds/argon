@@ -109,7 +109,7 @@ def test_rollup_matches_build_features_on_real_figures(seeded_db_empty_cards):
     oracle = _oracle_features(seeded_db_empty_cards)
 
     result = fundamentals_desk_rollup(
-        seeded_db_empty_cards.conn, schema=seeded_db_empty_cards._schema
+        conn=seeded_db_empty_cards.conn, schema=seeded_db_empty_cards._schema
     )
     assert result["tickers"] == 1
     assert result["rows"] == len(_INC)
@@ -165,7 +165,7 @@ def test_a_fallback_knowledge_date_is_stored_as_a_fallback(seeded_db_empty_cards
     """
     _seed_nvda(seeded_db_empty_cards)
     fundamentals_desk_rollup(
-        seeded_db_empty_cards.conn, schema=seeded_db_empty_cards._schema
+        conn=seeded_db_empty_cards.conn, schema=seeded_db_empty_cards._schema
     )
 
     desk = _desk_repo(seeded_db_empty_cards)
@@ -209,7 +209,7 @@ def test_a_late_filing_date_flips_the_knowledge_date_marker_on_replay(
     """
     _seed_nvda(seeded_db_empty_cards)
     fundamentals_desk_rollup(
-        seeded_db_empty_cards.conn, schema=seeded_db_empty_cards._schema
+        conn=seeded_db_empty_cards.conn, schema=seeded_db_empty_cards._schema
     )
 
     desk = _desk_repo(seeded_db_empty_cards)
@@ -238,7 +238,7 @@ def test_a_late_filing_date_flips_the_knowledge_date_marker_on_replay(
     assert touched == 1
 
     fundamentals_desk_rollup(
-        seeded_db_empty_cards.conn, schema=seeded_db_empty_cards._schema
+        conn=seeded_db_empty_cards.conn, schema=seeded_db_empty_cards._schema
     )
 
     after = {
@@ -257,7 +257,7 @@ def test_a_violated_field_nulls_only_its_own_metric(seeded_db_empty_cards):
     oracle = _oracle_features(seeded_db_empty_cards)
 
     result = fundamentals_desk_rollup(
-        seeded_db_empty_cards.conn, schema=seeded_db_empty_cards._schema
+        conn=seeded_db_empty_cards.conn, schema=seeded_db_empty_cards._schema
     )
     assert result["rows"] == len(_INC)
 
@@ -292,12 +292,12 @@ def test_a_replay_overwrites_rather_than_duplicates(seeded_db_empty_cards):
     and must not leave a second row per (ticker, period_end)."""
     _seed_nvda(seeded_db_empty_cards)
     first = fundamentals_desk_rollup(
-        seeded_db_empty_cards.conn, schema=seeded_db_empty_cards._schema
+        conn=seeded_db_empty_cards.conn, schema=seeded_db_empty_cards._schema
     )
     assert first["written"] == len(_INC)
 
     second = fundamentals_desk_rollup(
-        seeded_db_empty_cards.conn, schema=seeded_db_empty_cards._schema
+        conn=seeded_db_empty_cards.conn, schema=seeded_db_empty_cards._schema
     )
     assert second["rows"] == len(_INC)
     assert second["written"] == 0
@@ -309,7 +309,9 @@ def test_a_replay_overwrites_rather_than_duplicates(seeded_db_empty_cards):
 def test_dry_run_computes_without_persisting(seeded_db_empty_cards):
     _seed_nvda(seeded_db_empty_cards)
     result = fundamentals_desk_rollup(
-        seeded_db_empty_cards.conn, schema=seeded_db_empty_cards._schema, dry_run=True
+        conn=seeded_db_empty_cards.conn,
+        schema=seeded_db_empty_cards._schema,
+        dry_run=True,
     )
     assert result["rows"] == len(_INC)
     assert result["written"] == 0

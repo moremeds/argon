@@ -167,7 +167,7 @@ def register(sched: BaseScheduler, settings: Settings) -> None:
                 macro_usd_state_job,
                 macro_gold_state_job,
             ):
-                result = job(repo, as_of=instant)
+                result = job(repo=repo, as_of=instant)
                 logger.info(
                     "macro state %s: %s state=%s confidence=%s evidence=%d",
                     result.domain,
@@ -182,7 +182,7 @@ def register(sched: BaseScheduler, settings: Settings) -> None:
             # rather than anything this pass holds in memory, so tonight's assembly and a
             # replay of a past instant run the identical code.
             macro_context_snapshot_job(
-                repo, as_of=instant, assembled_at=datetime.now(UTC)
+                repo=repo, as_of=instant, assembled_at=datetime.now(UTC)
             )
 
     # Rates FRED is pinned to uw-0 by its own gate, so it lives outside the

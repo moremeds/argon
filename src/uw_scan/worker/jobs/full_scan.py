@@ -30,10 +30,10 @@ def _is_missing_or_stale(
 
 
 def full_scan_once(
-    repo,
-    uw_client,
-    ohlc_provider: OhlcProvider,
     *,
+    repo,
+    client,
+    ohlc_provider: OhlcProvider,
     now: datetime | None = None,
     stale_after: timedelta = DEFAULT_STALE_AFTER,
     ticker_filter: Callable[[str], bool] | None = None,
@@ -74,7 +74,7 @@ def full_scan_once(
             break
         scanned += 1
         try:
-            report = run_single_stock(w.ticker, uw_client, repo)
+            report = run_single_stock(w.ticker, client, repo)
             history = repo.list_daily_ohlc(w.ticker, limit=40)
             intraday = repo.get_intraday_quote(w.ticker)
             prior_pcr = repo.get_pcr_history_30d_ago(

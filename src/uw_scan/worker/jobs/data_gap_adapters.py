@@ -229,8 +229,8 @@ def _run_daily_ohlc(ctx: HealContext, ticker: str, lo: date, hi: date) -> int:
     provider = ctx.massive_provider()
     lookback = max(1, (ctx.today - lo).days + 2)
     return ohlc_pull_once(
-        ctx.repo,
-        provider,
+        repo=ctx.repo,
+        provider=provider,
         lookback_days=lookback,
         ticker_filter=lambda t: t.upper() == ticker.upper(),
     )
@@ -356,7 +356,7 @@ def _run_volatility_stats(ctx: HealContext, ticker: str, market_date: date) -> i
 def _run_sentiment(ctx: HealContext, lookback_days: int) -> int:
     from uw_scan.worker.jobs.market_tide_sentiment import refresh_eod_sentiment
 
-    return refresh_eod_sentiment(ctx.repo, sessions=max(1, lookback_days))
+    return refresh_eod_sentiment(repo=ctx.repo, sessions=max(1, lookback_days))
 
 
 # macro/FRED/rates/gold: re-run an idempotent ingest over a lookback window.
@@ -518,7 +518,7 @@ def _run_corporate_actions(ctx: HealContext, lookback_days: int) -> int:
 def _run_massive_fundamentals(ctx: HealContext, lookback_days: int) -> int:
     from uw_scan.worker.jobs.fundamentals_jobs import fundamentals_refresh_once
 
-    return fundamentals_refresh_once(ctx.repo, ctx.massive_provider())
+    return fundamentals_refresh_once(repo=ctx.repo, provider=ctx.massive_provider())
 
 
 def _run_grg(ctx: HealContext, ticker: str | None, market_date: date) -> int:
@@ -552,11 +552,11 @@ def _run_vol_index_lake(ctx: HealContext, lookback_days: int) -> int:
     from uw_scan.worker.jobs import credit_etf_lake_sync, vol_index_lake_sync
 
     vol = vol_index_lake_sync.run_vol_index_lake_sync(
-        ctx.repo.conn,
+        conn=ctx.repo.conn,
         root=resolve_lake_root(ctx.settings, asset_class="volatility"),
     )
     credit = credit_etf_lake_sync.run_credit_etf_lake_sync(
-        ctx.repo.conn,
+        conn=ctx.repo.conn,
         root=resolve_lake_root(ctx.settings, asset_class="equity"),
         symbols=ctx.settings.credit_etf_symbols,
     )

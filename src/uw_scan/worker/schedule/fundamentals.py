@@ -123,7 +123,7 @@ def register(
         try:
             with _repo(settings) as repo:
                 n = fundamentals_refresh_once(
-                    repo, provider, ticker_filter=ticker_filter
+                    repo=repo, provider=provider, ticker_filter=ticker_filter
                 )
                 logger.info("fundamentals_refresh refreshed %d tickers", n)
         finally:
@@ -138,7 +138,7 @@ def register(
         as_of = _dt.now(ZoneInfo(settings.rth_tz)).date()
         with _repo(settings) as repo:
             result = earnings_reactions_compute(
-                repo.conn, as_of=as_of, schema=settings.db_schema
+                conn=repo.conn, as_of=as_of, schema=settings.db_schema
             )
         logger.info("earnings_reactions_compute %s", result)
 
@@ -151,7 +151,7 @@ def register(
         as_of = _dt.now(ZoneInfo(settings.rth_tz)).date()
         with _repo(settings) as repo:
             result = implied_move_snapshot(
-                repo.conn, as_of=as_of, schema=settings.db_schema
+                conn=repo.conn, as_of=as_of, schema=settings.db_schema
             )
         logger.info("implied_move_snapshot %s", result)
 
@@ -166,7 +166,7 @@ def register(
         as_of = _dt.now(ZoneInfo(settings.rth_tz)).date()
         with _repo(settings) as repo:
             result = derive_change_events(
-                repo.conn, as_of=as_of, schema=settings.db_schema
+                conn=repo.conn, as_of=as_of, schema=settings.db_schema
             )
         logger.info("fundamental_change_events %s", result)
 
@@ -176,7 +176,7 @@ def register(
         )
 
         with _repo(settings) as repo:
-            result = fundamentals_desk_rollup(repo.conn, schema=settings.db_schema)
+            result = fundamentals_desk_rollup(conn=repo.conn, schema=settings.db_schema)
         logger.info("fundamentals_desk_rollup %s", result)
 
     def _fundamental_refresh() -> None:

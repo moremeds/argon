@@ -114,7 +114,9 @@ def main() -> int:
 
         if not args.skip_positioning:
             with _build_uw_client(settings) as uw:
-                n = positioning_refresh_once(repo, uw, ticker_filter=ticker_filter)
+                n = positioning_refresh_once(
+                    repo=repo, client=uw, ticker_filter=ticker_filter
+                )
                 logger.info("positioning_refresh: refreshed %d tickers", n)
         else:
             logger.info("positioning_refresh: skipped (--skip-positioning)")
@@ -126,7 +128,7 @@ def main() -> int:
             else:
                 try:
                     n = fundamentals_refresh_once(
-                        repo, provider, ticker_filter=ticker_filter
+                        repo=repo, provider=provider, ticker_filter=ticker_filter
                     )
                     logger.info("fundamentals_refresh: refreshed %d tickers", n)
                 finally:

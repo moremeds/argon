@@ -42,9 +42,9 @@ def _share_count_delta(
 
 
 def fundamentals_refresh_once(
+    *,
     repo,
     provider,
-    *,
     ticker_filter: Callable[[str], bool] | None = None,
 ) -> int:
     if provider is None:

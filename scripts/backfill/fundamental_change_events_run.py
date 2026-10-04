@@ -145,7 +145,7 @@ def main() -> int:
     with psycopg.connect(settings.db_dsn()) as conn:
         if args.execute:
             result = derive_change_events(
-                conn, as_of=args.as_of, schema=settings.db_schema
+                conn=conn, as_of=args.as_of, schema=settings.db_schema
             )
             mode = "executed"
         else:

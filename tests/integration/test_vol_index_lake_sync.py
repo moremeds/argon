@@ -47,7 +47,7 @@ def test_run_sync_inserts_all_symbols(tmp_path: Path, seeded_db_empty_cards) -> 
             },
         ],
     )
-    summary = run_vol_index_lake_sync(pg_conn, root=tmp_path)
+    summary = run_vol_index_lake_sync(conn=pg_conn, root=tmp_path)
     assert summary["symbols"] == 2
     assert summary["rows"] == 2
     repo = VolIndexRepository(pg_conn, schema="uw_scan")
@@ -78,7 +78,7 @@ def test_run_sync_incremental_refreshes_tail(
             },
         ],
     )
-    run_vol_index_lake_sync(pg_conn, root=tmp_path)
+    run_vol_index_lake_sync(conn=pg_conn, root=tmp_path)
     # Append a newer row plus same-day refresh
     _seed(
         tmp_path,
@@ -104,7 +104,7 @@ def test_run_sync_incremental_refreshes_tail(
             },
         ],
     )
-    summary = run_vol_index_lake_sync(pg_conn, root=tmp_path)
+    summary = run_vol_index_lake_sync(conn=pg_conn, root=tmp_path)
     assert summary["rows"] == 2  # latest re-upsert + new row
     repo = VolIndexRepository(pg_conn, schema="uw_scan")
     rows = repo.fetch_history("VIX", days=5)
@@ -122,7 +122,7 @@ def test_run_sync_empty_root_raises(tmp_path: Path, seeded_db_empty_cards) -> No
     """
     with pytest.raises(RuntimeError, match="mounted but empty"):
         run_vol_index_lake_sync(
-            seeded_db_empty_cards.conn,
+            conn=seeded_db_empty_cards.conn,
             root=tmp_path,
         )
 
@@ -197,7 +197,7 @@ def test_run_sync_fills_middle_gap(tmp_path: Path, seeded_db_empty_cards) -> Non
         ],
     )
 
-    summary = run_vol_index_lake_sync(pg_conn, root=tmp_path)
+    summary = run_vol_index_lake_sync(conn=pg_conn, root=tmp_path)
 
     # Expect 1 gap filled (05-14) plus latest re-upsert (05-15) → 2 rows.
     assert summary["gaps_filled"] == 1

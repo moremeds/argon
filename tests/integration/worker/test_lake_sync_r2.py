@@ -81,7 +81,7 @@ def test_vol_index_lake_sync_pulls_from_r2(seeded_db_empty_cards) -> None:
     root = resolve_lake_root(settings, asset_class="volatility")
     assert root.kind == "s3", "resolver did not pick R2 despite full env"
 
-    summary = run_vol_index_lake_sync(seeded_db_empty_cards.conn, root=root)
+    summary = run_vol_index_lake_sync(conn=seeded_db_empty_cards.conn, root=root)
     assert summary["symbols"] > 0, "expected R2 volatility lake to have symbols"
     assert summary["rows"] > 0, "expected R2 volatility lake to yield rows"
 
@@ -95,7 +95,7 @@ def test_vol_index_lake_sync_pulls_from_r2(seeded_db_empty_cards) -> None:
     # pyarrow→pandas coerces date32 to Timestamp on some future upstream
     # schema change). Without this assertion the bug is silent (Postgres
     # absorbs duplicate upserts; cost inflates ~history-size× per run).
-    second = run_vol_index_lake_sync(seeded_db_empty_cards.conn, root=root)
+    second = run_vol_index_lake_sync(conn=seeded_db_empty_cards.conn, root=root)
     assert second["gaps_filled"] == 0, (
         f"second run reported gaps_filled={second['gaps_filled']} — "
         f"date-type drift between R2 (pyarrow) and DB (psycopg) is likely; "
@@ -114,7 +114,7 @@ def test_credit_etf_lake_sync_pulls_from_r2(seeded_db_empty_cards) -> None:
     assert root.kind == "s3"
 
     summary = run_credit_etf_lake_sync(
-        seeded_db_empty_cards.conn,
+        conn=seeded_db_empty_cards.conn,
         root=root,
         symbols=["HYG", "JNK", "LQD"],
     )

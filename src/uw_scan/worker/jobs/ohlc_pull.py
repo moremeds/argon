@@ -31,10 +31,10 @@ def _restated(repo, ticker: str, bars) -> bool:
 
 
 def ohlc_pull_once(
+    *,
     repo,
     provider: OhlcProvider,
     lookback_days: int = 40,
-    *,
     ticker_filter: Callable[[str], bool] | None = None,
 ) -> int:
     completed = 0

@@ -159,4 +159,4 @@ def test_sync_raises_on_present_but_empty_lake(tmp_path: Path) -> None:
     from uw_scan.worker.jobs.vol_index_lake_sync import run_vol_index_lake_sync
 
     with pytest.raises(RuntimeError, match="mounted but empty"):
-        run_vol_index_lake_sync(None, root=tmp_path)
+        run_vol_index_lake_sync(conn=None, root=tmp_path)

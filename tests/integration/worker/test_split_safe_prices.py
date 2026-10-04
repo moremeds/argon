@@ -83,7 +83,7 @@ def test_ohlc_pull_repulls_full_history_after_split(seeded_db_empty_cards):
         window_from=_DATES.index(date(2026, 6, 8))
     )  # window spans the split
 
-    ohlc_pull_once(repo, prov, ticker_filter=lambda t: t == "KLAC")
+    ohlc_pull_once(repo=repo, provider=prov, ticker_filter=lambda t: t == "KLAC")
 
     assert len(prov.calls) == 2
     assert prov.calls[1] == _DATES[0]  # re-pulled from the earliest stored date
@@ -96,7 +96,7 @@ def test_ohlc_pull_single_call_when_history_unchanged(seeded_db_empty_cards):
     _seed_ohlc(repo, _ADJ)
     prov = _provider(window_from=20)
 
-    ohlc_pull_once(repo, prov, ticker_filter=lambda t: t == "KLAC")
+    ohlc_pull_once(repo=repo, provider=prov, ticker_filter=lambda t: t == "KLAC")
 
     assert len(prov.calls) == 1
     assert _stored(repo) == _ADJ

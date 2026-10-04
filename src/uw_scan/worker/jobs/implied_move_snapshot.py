@@ -111,7 +111,7 @@ def prints_within_lookahead(
 
 
 def implied_move_snapshot(
-    conn: psycopg.Connection, *, as_of: date, schema: str = "uw_scan"
+    *, conn: psycopg.Connection, as_of: date, schema: str = "uw_scan"
 ) -> dict[str, int]:
     cal = EarningsCalendarRepository(conn, schema=schema)
     repo = ImpliedMoveRepository(conn, schema=schema)

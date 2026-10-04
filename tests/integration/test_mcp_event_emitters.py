@@ -912,14 +912,14 @@ def test_regime_live_vrp_leg_emits_on_action_change(seeded_db_empty_cards) -> No
     settings = Settings.from_env()
 
     summary = regime_live_scan_once(
-        repo, settings, now=_LIVE_QUOTED + timedelta(minutes=1)
+        repo=repo, settings=settings, now=_LIVE_QUOTED + timedelta(minutes=1)
     )
     assert summary["vrp"] == "ok"
     assert _events(repo.conn) == []  # first-ever live row is not a change
 
     prev = _flip_stored_action(repo, basis="live")
     summary = regime_live_scan_once(
-        repo, settings, now=_LIVE_QUOTED + timedelta(minutes=2)
+        repo=repo, settings=settings, now=_LIVE_QUOTED + timedelta(minutes=2)
     )
     assert summary["vrp"] == "ok"
 
@@ -947,7 +947,7 @@ def test_regime_live_vrp_leg_same_action_emits_nothing(
 
     for minute in (1, 2):
         summary = regime_live_scan_once(
-            repo, settings, now=_LIVE_QUOTED + timedelta(minutes=minute)
+            repo=repo, settings=settings, now=_LIVE_QUOTED + timedelta(minutes=minute)
         )
         assert summary["vrp"] == "ok"
     assert _events(repo.conn) == []

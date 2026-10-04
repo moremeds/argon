@@ -155,9 +155,9 @@ def register(
                         logger.info("full_scan skipped: live UW budget exhausted")
                         return
                     n = full_scan_once(
-                        repo,
-                        uw,
-                        _NoOhlc(),
+                        repo=repo,
+                        client=uw,
+                        ohlc_provider=_NoOhlc(),
                         ticker_filter=ticker_filter,
                         stale_after=timedelta(
                             hours=settings.full_scan_stale_after_hours
@@ -185,9 +185,9 @@ def register(
                         hot_max if budget_cap is None else min(budget_cap, hot_max)
                     )
                     full_scan_hot_once(
-                        repo,
-                        uw,
-                        _NoOhlc(),
+                        repo=repo,
+                        client=uw,
+                        ohlc_provider=_NoOhlc(),
                         stale_minutes=settings.full_scan_hot_stale_minutes,
                         preserve_spot=settings.ws_spot_enabled,
                         max_tickers=max_tickers,
@@ -199,7 +199,9 @@ def register(
                 settings, telemetry_recorder=recorder, job_name="positioning_refresh"
             ) as uw:
                 with _repo(settings) as repo:
-                    n = positioning_refresh_once(repo, uw, ticker_filter=ticker_filter)
+                    n = positioning_refresh_once(
+                        repo=repo, client=uw, ticker_filter=ticker_filter
+                    )
                     logger.info("positioning_refresh refreshed %d tickers", n)
 
     def _ohlc_pull() -> None:
@@ -211,7 +213,9 @@ def register(
                 return
             try:
                 with _repo(settings) as repo:
-                    n = ohlc_pull_once(repo, provider, ticker_filter=ticker_filter)
+                    n = ohlc_pull_once(
+                        repo=repo, provider=provider, ticker_filter=ticker_filter
+                    )
                     logger.info("ohlc_pull refreshed %d tickers", n)
             finally:
                 provider.close()
@@ -227,9 +231,9 @@ def register(
                     # (uw_scan.worker.massive_ws_consumer). See worker/CLAUDE.md
                     # "Provider concurrency model".
                     rescan_tick(
-                        repo,
-                        uw,
-                        _NoOhlc(),
+                        repo=repo,
+                        client=uw,
+                        ohlc_provider=_NoOhlc(),
                         preserve_spot=settings.ws_spot_enabled,
                     )
 

@@ -195,7 +195,7 @@ def test_post_vcg_scan_runs_scanner(client: TestClient, monkeypatch) -> None:
 
     monkeypatch.setattr("uw_scan.scanners.vcg.run", _stub_run)
     r = client.post("/api/regime/vcg/scan?proxy=jnk")
-    assert r.status_code == 202
+    assert r.status_code == 200  # synchronous: finished and persisted
     body = r.json()
     assert body["status"] == "ok"
     assert body["scanner"] == "vcg"
@@ -213,7 +213,7 @@ def test_post_vcg_scan_returns_skipped_on_thin_data(
         lambda conn, *, proxy="HYG", schema="uw_scan": None,
     )
     r = client.post("/api/regime/vcg/scan")
-    assert r.status_code == 202
+    assert r.status_code == 200  # synchronous: finished and persisted
     body = r.json()
     assert body["status"] == "skipped"
     assert body["reason"] == "thin_data"
@@ -252,7 +252,7 @@ def test_post_cri_scan_runs_scanner(client: TestClient, monkeypatch) -> None:
 
     monkeypatch.setattr("uw_scan.scanners.cri.run", _stub_run)
     r = client.post("/api/regime/scan")
-    assert r.status_code == 202
+    assert r.status_code == 200  # synchronous: finished and persisted
     body = r.json()
     assert body["status"] == "ok"
     assert body["scanner"] == "cri"
@@ -265,7 +265,7 @@ def test_post_cri_scan_returns_skipped_on_thin_data(
 ) -> None:
     monkeypatch.setattr("uw_scan.scanners.cri.run", lambda conn, schema="uw_scan": None)
     r = client.post("/api/regime/scan")
-    assert r.status_code == 202
+    assert r.status_code == 200  # synchronous: finished and persisted
     body = r.json()
     assert body["status"] == "skipped"
     assert body["reason"] == "thin_data"

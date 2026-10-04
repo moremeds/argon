@@ -165,7 +165,7 @@ Measured: 0 → 73,994 `true_pit` claims over 396/401 tickers, 2003-12-31 → 20
 
 ### Research Radar + chain matrix (surfaces)
 
-`models/radar.py` (six-state `FundamentalResultState`) + `api/routers/radar.py` + `web/app/radar/page.tsx` + `components/radar/RadarTable.tsx`; the chain index folded into the desk — `web/app/chains/page.tsx` now redirects to `/fundamentals/ai-semi` and `ChainMatrix.tsx` is deleted, so only `web/app/chains/[chain]/page.tsx` survives.
+`models/radar.py` (six-state `FundamentalResultState`) + `api/routers/radar.py` + `storage/radar.py` (`ResearchRadarRepository`, the router's read queries) + `web/app/radar/page.tsx` + `components/radar/RadarTable.tsx`; the chain index folded into the desk — `web/app/chains/page.tsx` now redirects to `/fundamentals/ai-semi` and `ChainMatrix.tsx` is deleted, so only `web/app/chains/[chain]/page.tsx` survives.
 
 **`no_compatible_run` is not `no_coverage`** — collapsing them is how "the job never ran" gets read as "this company has no fundamentals", a statement about a real business Argon is not entitled to make
 

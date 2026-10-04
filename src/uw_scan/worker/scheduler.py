@@ -47,7 +47,6 @@ from uw_scan.worker.jobs.theta_harvester import (
 from uw_scan.worker.jobs.trade_insight_outcome_backfill import (
     trade_insight_outcome_backfill_once,
 )
-from uw_scan.worker.jobs.trade_insights_ai import trade_insights_ai_tick
 from uw_scan.worker.jobs.volatility_backfill import volatility_backfill_tick
 from uw_scan.worker.jobs.vrp_macro_entry import (
     vrp_macro_entry_grid_refresh,
@@ -67,6 +66,7 @@ from uw_scan.worker.schedule.macro import register as register_macro_jobs
 from uw_scan.worker.schedule.regime import _should_schedule_regime_live
 from uw_scan.worker.schedule.regime import register as register_regime_jobs
 from uw_scan.worker.schedule.scan_core import register as register_scan_core_jobs
+from uw_scan.worker.schedule.ai import register as register_ai_jobs
 from uw_scan.worker.schedule.fundamentals import register as register_fundamentals_jobs
 from uw_scan.worker.schedule.roles import (
     _is_primary_worker,
@@ -577,17 +577,6 @@ def main() -> int:
                 with _repo(settings) as repo:
                     skew_swing_greeks_refresh(repo=repo, client=uw, today=market_date)
 
-    def _trade_insights_ai_tick_any() -> None:
-        trade_insights_ai_tick(settings, provider_filter=None)
-
-    def _trade_insights_ai_tick_codex() -> None:
-        trade_insights_ai_tick(settings, provider_filter="codex")
-
-    def _trade_insights_ai_tick_claude() -> None:
-        trade_insights_ai_tick(settings, provider_filter="claude")
-
-    def _trade_insights_ai_tick_deepseek() -> None:
-        trade_insights_ai_tick(settings, provider_filter="deepseek")
 
     def _trade_insight_outcome_backfill() -> None:
         """Nightly outcome scorer — runs at 17:00 ET (after the daily
@@ -1063,55 +1052,6 @@ def main() -> int:
         )
 
 
-    # Legacy single-pool role (claims any provider's row).
-    if "ai" in groups and (
-        settings.trade_insights_ai_enabled
-        or settings.trade_insights_ai_claude_enabled
-        or settings.trade_insights_ai_deepseek_enabled
-    ):
-        sched.add_job(
-            _trade_insights_ai_tick_any,
-            IntervalTrigger(seconds=settings.trade_insights_ai_poll_seconds),
-            id="trade_insights_ai_tick",
-            name="Trade Insights AI analysis poll (any provider)",
-            max_instances=1,
-            coalesce=True,
-            misfire_grace_time=max(30, settings.trade_insights_ai_poll_seconds * 5),
-        )
-    # Provider-pinned codex pool.
-    if "ai-codex" in groups and settings.trade_insights_ai_enabled:
-        sched.add_job(
-            _trade_insights_ai_tick_codex,
-            IntervalTrigger(seconds=settings.trade_insights_ai_poll_seconds),
-            id="trade_insights_ai_tick_codex",
-            name="Trade Insights AI analysis poll (codex)",
-            max_instances=1,
-            coalesce=True,
-            misfire_grace_time=max(30, settings.trade_insights_ai_poll_seconds * 5),
-        )
-    # Provider-pinned claude pool.
-    if "ai-claude" in groups and settings.trade_insights_ai_claude_enabled:
-        sched.add_job(
-            _trade_insights_ai_tick_claude,
-            IntervalTrigger(seconds=settings.trade_insights_ai_poll_seconds),
-            id="trade_insights_ai_tick_claude",
-            name="Trade Insights AI analysis poll (claude)",
-            max_instances=1,
-            coalesce=True,
-            misfire_grace_time=max(30, settings.trade_insights_ai_poll_seconds * 5),
-        )
-    # Provider-pinned deepseek pool.
-    if "ai-deepseek" in groups and settings.trade_insights_ai_deepseek_enabled:
-        sched.add_job(
-            _trade_insights_ai_tick_deepseek,
-            IntervalTrigger(seconds=settings.trade_insights_ai_poll_seconds),
-            id="trade_insights_ai_tick_deepseek",
-            name="Trade Insights AI analysis poll (deepseek)",
-            max_instances=1,
-            coalesce=True,
-            misfire_grace_time=max(30, settings.trade_insights_ai_poll_seconds * 5),
-        )
-
     if _should_schedule_vrp_macro_entry(settings):
         # VRP macro forward entry-capture: 8 marks/day (10:00-15:00 hourly RTH +
         # 15:55 EOD + 16:10 post-close ET). RTH/EOD marks birth today's auto cohort
@@ -1161,6 +1101,7 @@ def main() -> int:
     register_regime_jobs(sched, settings)
     register_fundamentals_jobs(sched, settings, ticker_filter=ticker_filter)
     register_scan_core_jobs(sched, settings, ticker_filter=ticker_filter)
+    register_ai_jobs(sched, settings)
 
     if _owns_global_daily_jobs(settings):
         # VRP macro short-vol signal at 03:45 ET — AFTER vol_index_lake_sync
