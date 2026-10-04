@@ -21,7 +21,7 @@ def _settings() -> Settings:
 def test_skips_when_no_fresh_quotes(seeded_db_empty_cards):
     repo = seeded_db_empty_cards
     _seed(repo.conn)
-    summary = regime_live_scan_once(repo, _settings())
+    summary = regime_live_scan_once(repo=repo, settings=_settings())
     assert summary["status"] == "skipped_no_fresh_quotes"
     assert CriSnapshotRepository(repo.conn).fetch_latest(basis="live") is None
 
@@ -40,7 +40,7 @@ def test_persists_live_cri_and_vcg_rows(seeded_db_empty_cards):
     )
     repo.conn.commit()
     summary = regime_live_scan_once(
-        repo, _settings(), now=quoted + timedelta(minutes=1)
+        repo=repo, settings=_settings(), now=quoted + timedelta(minutes=1)
     )
     assert summary["status"] == "ok"
     assert summary["cri"] is True and summary["vcg"] is True

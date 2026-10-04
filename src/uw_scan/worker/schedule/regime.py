@@ -169,7 +169,7 @@ def register(sched: BaseScheduler, settings: Settings) -> None:
         # Primary worker runs it to avoid duplicate upserts.
         root = resolve_lake_root(settings, asset_class="volatility")
         with _repo(settings) as repo:
-            run_vol_index_lake_sync(repo.conn, root=root)
+            run_vol_index_lake_sync(conn=repo.conn, root=root)
 
     def _credit_etf_lake_sync() -> None:
         # Equity asset_class lake → vol_index_daily for the VCG credit proxies
@@ -179,7 +179,7 @@ def register(sched: BaseScheduler, settings: Settings) -> None:
         root = resolve_lake_root(settings, asset_class="equity")
         with _repo(settings) as repo:
             run_credit_etf_lake_sync(
-                repo.conn,
+                conn=repo.conn,
                 root=root,
                 symbols=settings.credit_etf_symbols,
             )
@@ -234,14 +234,14 @@ def register(sched: BaseScheduler, settings: Settings) -> None:
         from uw_scan.worker.jobs.regime_live import regime_live_scan_once
 
         with _repo(settings) as repo:
-            summary = regime_live_scan_once(repo, settings)
+            summary = regime_live_scan_once(repo=repo, settings=settings)
         logger.info("regime_live_scan_tick %s", summary)
 
     def _regime_live_validation() -> None:
         from uw_scan.worker.jobs.regime_live import validate_live_close_vs_lake
 
         with _repo(settings) as repo:
-            rows = validate_live_close_vs_lake(repo, settings)
+            rows = validate_live_close_vs_lake(repo=repo, settings=settings)
         logger.info("regime_live_validation_done symbols=%d", len(rows))
 
     def _regime_canary_scan() -> None:
@@ -376,7 +376,7 @@ def register(sched: BaseScheduler, settings: Settings) -> None:
         # the job listener records it; 0 sessions (no tide bars yet) is normal.
         with _repo(settings) as repo:
             try:
-                n = refresh_eod_sentiment(repo, sessions=1)
+                n = refresh_eod_sentiment(repo=repo, sessions=1)
                 logger.info("market_tide_sentiment_eod_tick sessions=%s", n)
             except Exception as exc:
                 logger.warning("market_tide_sentiment_eod_failed err=%s", repr(exc))

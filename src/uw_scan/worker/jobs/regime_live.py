@@ -27,7 +27,7 @@ DIVERGENCE_THRESHOLD_PCT = 0.5
 
 
 def regime_live_scan_once(
-    repo: Repository, settings: Settings, *, now: datetime | None = None
+    *, repo: Repository, settings: Settings, now: datetime | None = None
 ) -> dict:
     """One live tick: load fresh quotes → run CRI + VCG live → persist."""
     quotes = load_live_quotes(
@@ -157,9 +157,9 @@ def regime_live_scan_once(
 
 
 def validate_live_close_vs_lake(
+    *,
     repo: Repository,
     settings: Settings,
-    *,
     threshold_pct: float = DIVERGENCE_THRESHOLD_PCT,
 ) -> list[dict]:
     """Per symbol: lake close vs the price the last live snapshot of that

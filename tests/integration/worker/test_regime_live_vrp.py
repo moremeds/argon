@@ -35,7 +35,7 @@ def test_regime_live_persists_vrp_live_spx(seeded_db_empty_cards) -> None:
     repo.conn.commit()  # commit seed + quotes before the scan (survive a cri/vcg rollback)
 
     summary = regime_live_scan_once(
-        repo, _settings(), now=_QUOTED + timedelta(minutes=1)
+        repo=repo, settings=_settings(), now=_QUOTED + timedelta(minutes=1)
     )
     assert summary["status"] == "ok"
     assert summary["vrp"] == "ok"
@@ -54,7 +54,7 @@ def test_regime_live_vrp_skips_without_spx_or_vix_quote(seeded_db_empty_cards) -
     repo.conn.commit()
 
     summary = regime_live_scan_once(
-        repo, _settings(), now=_QUOTED + timedelta(minutes=1)
+        repo=repo, settings=_settings(), now=_QUOTED + timedelta(minutes=1)
     )
     assert summary["vrp"] == "skipped"
     assert repo.fetch_latest_vrp_macro_signals(["SPX"], basis="live") == []

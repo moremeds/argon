@@ -47,7 +47,7 @@ def main(argv: list[str] | None = None) -> int:
                 return 0
         # Cover the full stored corpus (YTD ≈ 121 sessions); sessions with no
         # bars are skipped inside the job.
-        n = refresh_eod_sentiment(repo, sessions=300)
+        n = refresh_eod_sentiment(repo=repo, sessions=300)
         logger.info("backfill complete: %d session(s) persisted", n)
         return 0
     finally:

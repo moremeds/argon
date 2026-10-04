@@ -343,7 +343,7 @@ def _run_volatility_stats(ctx: HealContext, ticker: str, market_date: date) -> i
 def _run_sentiment(ctx: HealContext, lookback_days: int) -> int:
     from uw_scan.worker.jobs.market_tide_sentiment import refresh_eod_sentiment
 
-    return refresh_eod_sentiment(ctx.repo, sessions=max(1, lookback_days))
+    return refresh_eod_sentiment(repo=ctx.repo, sessions=max(1, lookback_days))
 
 
 # macro/FRED/rates/gold: re-run an idempotent ingest over a lookback window.
@@ -528,11 +528,11 @@ def _run_vol_index_lake(ctx: HealContext, lookback_days: int) -> int:
     from uw_scan.worker.jobs import credit_etf_lake_sync, vol_index_lake_sync
 
     vol = vol_index_lake_sync.run_vol_index_lake_sync(
-        ctx.repo.conn,
+        conn=ctx.repo.conn,
         root=resolve_lake_root(ctx.settings, asset_class="volatility"),
     )
     credit = credit_etf_lake_sync.run_credit_etf_lake_sync(
-        ctx.repo.conn,
+        conn=ctx.repo.conn,
         root=resolve_lake_root(ctx.settings, asset_class="equity"),
         symbols=ctx.settings.credit_etf_symbols,
     )

@@ -17,7 +17,7 @@ from ...storage.repository import Repository
 log = logging.getLogger(__name__)
 
 
-def refresh_eod_sentiment(repo: Repository, *, sessions: int = 1) -> int:
+def refresh_eod_sentiment(*, repo: Repository, sessions: int = 1) -> int:
     """Compute + upsert sentiment for the latest `sessions` sessions. Returns
     the count persisted."""
     tide = MarketTideSnapshotRepository(repo.conn, schema=repo._schema)
