@@ -7,7 +7,7 @@ import os
 from collections.abc import Callable
 from dataclasses import dataclass
 from pathlib import Path
-from typing import Any
+from typing import Any, get_args
 
 from pydantic import BaseModel, SecretStr
 from pydantic.fields import FieldInfo
@@ -23,11 +23,28 @@ def _env_bool(name: str, default: bool = False) -> bool:
     return raw.strip().lower() in {"1", "true", "yes", "on"}
 
 
+def _split_upper(raw: str) -> list[str]:
+    return [item.strip().upper() for item in raw.split(",") if item.strip()]
+
+
+def _true_only(raw: str) -> bool:
+    """Legacy bool parse: only "true" (any case) is true; "1"/"yes"/"on" are false.
+
+    Kept on purpose for MASSIVE_WS_ENABLED / XENON_WS_ENABLED (D6 must not change
+    behaviour); unifying them on ``_env_bool`` is a separate, approved change.
+    """
+    return raw.lower() == "true"
+
+
+def _rstrip_slash(raw: str) -> str:
+    return raw.rstrip("/")
+
+
 def _parse_csv_env(name: str, *, default: list[str]) -> list[str]:
     raw = os.environ.get(name)
     if raw is None or not raw.strip():
         return list(default)
-    return [item.strip().upper() for item in raw.split(",") if item.strip()]
+    return _split_upper(raw)
 
 
 def _parse_int_csv_env(name: str, *, default: list[int]) -> list[int]:
@@ -66,19 +83,32 @@ class EnvVar:
 
     Declared next to the field as ``Annotated[int, EnvVar("UW_SCAN_DB_PORT")]``. Unset
     means the field's own default, so the class default and the env default are one
-    value. ``blank_is_default`` also maps an empty string to the default.
+    value. ``strip`` strips the raw string first; ``blank_is_default`` then maps an
+    empty string to the default; ``parse`` overrides the parse-by-annotation.
     """
 
     name: str
     blank_is_default: bool = False
+    strip: bool = False
+    parse: Callable[[str], Any] | None = None
 
 
 #: Parse an env string by the field's annotation. Extended as field groups move here.
 _PARSERS: dict[object, Callable[[str], Any]] = {
     str: str,
     int: int,
+    float: float,
+    Path: Path,
     SecretStr: SecretStr,
 }
+
+
+def _base_type(annotation: object) -> object:
+    """``X | None`` -> ``X``; anything else unchanged."""
+    args = get_args(annotation)
+    if type(None) in args and len(args) == 2:
+        return next(a for a in args if a is not type(None))
+    return annotation
 
 
 def _env_var(info: FieldInfo) -> EnvVar | None:
@@ -101,7 +131,11 @@ def read_env_fields(model: type[BaseModel]) -> dict[str, Any]:
         if spec is None:
             continue
         raw = os.environ.get(spec.name)
-        if raw is None or (spec.blank_is_default and not raw):
+        if raw is None:
             continue
-        out[name] = _PARSERS[info.annotation](raw)
+        if spec.strip:
+            raw = raw.strip()
+        if spec.blank_is_default and not raw:
+            continue
+        out[name] = (spec.parse or _PARSERS[_base_type(info.annotation)])(raw)
     return out

@@ -6,7 +6,7 @@ import os
 from decimal import Decimal
 from pathlib import Path
 
-from pydantic import Field, SecretStr, model_validator
+from pydantic import SecretStr, model_validator
 
 from uw_scan.config._env import (
     _env_bool,
@@ -16,96 +16,31 @@ from uw_scan.config._env import (
     env_raw,
     read_env_fields,
 )
+from uw_scan.config.apex import ApexSettings
 from uw_scan.config.db import DbSettings
 from uw_scan.config.db_isolation import _enforce_db_isolation
+from uw_scan.config.health import HealthSettings
+from uw_scan.config.lake import LAKE_ROOT_FALLBACK, LakeSettings
+from uw_scan.config.massive import MassiveSettings
+from uw_scan.config.regime import RegimeSettings
+from uw_scan.config.uw_api import UwApiSettings
+from uw_scan.config.worker import WorkerSettings
+from uw_scan.config.xenon import XenonSettings
 
 
-#: apex REST default (Tailscale); the mini sets APEX_API_URL=http://127.0.0.1:8322.
-DEFAULT_APEX_API_URL = "http://100.66.147.98:8322"
-
-
-class Settings(DbSettings):
+class Settings(
+    UwApiSettings,
+    DbSettings,
+    WorkerSettings,
+    HealthSettings,
+    MassiveSettings,
+    XenonSettings,
+    ApexSettings,
+    RegimeSettings,
+    LakeSettings,
+):
     """Strongly-typed configuration. Raises on missing required fields."""
 
-    api_key: SecretStr = Field(...)
-    max_requests_per_minute: int = 110
-    request_timeout_seconds: float = 30.0
-    base_url: str = "https://api.unusualwhales.com"
-    # Scheduler — consumed by uw_scan.worker.scheduler and uw_scan.reports.health_blocks.
-    # (spot_refresh_seconds removed in Phase 7 — WS consumer is the spot writer now.)
-    # Multiple crons so we hit: 04:00 ET premarket warm-up, 09:30 open,
-    # every :00 and :30 during RTH active hours, and the 16:00 + 16:30
-    # close-of-day batches. UW option data only updates during RTH, so
-    # outside-RTH fires are intentionally sparse. The freshness gate below
-    # still skips tickers that were refreshed within the last N hours.
-    full_scan_crons: list[str] = [
-        "0 4 * * 0-4",  # premarket warm-up
-        "30 9 * * 0-4",  # market open
-        "0,30 10-15 * * 0-4",  # every :00 and :30 during RTH active
-        "0 16 * * 0-4",  # 4pm close
-        "30 16 * * 0-4",  # 4:30pm last scan
-    ]
-    # Skip tickers refreshed within this many hours during full_scan (full
-    # watchlist pass). Fractional allowed: 0.33 ≈ 20-min freshness. With the
-    # 30-min crons over RTH, 0.33h means each cron fires a real full-watchlist
-    # refresh (~1,757 UW calls) — the fresh-cards "70k" setting. The budget
-    # governor caps total spend, so an aggressive value degrades gracefully
-    # (cold tickers skipped) rather than 429-storming. Hot tickers get a much
-    # tighter cadence via the separate hot-subset job below.
-    full_scan_stale_after_hours: float = 0.33
-    # Grace period for the health "expected full scans missed" liveness alarm.
-    # Decoupled from card freshness on purpose: the budget governor may
-    # deliberately throttle/skip full_scan under UW-budget pressure, which ages
-    # last_scan without meaning the scheduler is dead. Keep this loose (~1h) so
-    # the alarm signals a genuinely stuck worker, not a governed skip.
-    health_full_scan_missed_grace_hours: float = 1.0
-    # Sliding-window for the per-table coverage check on tables that only
-    # update once per day (cockpit + nightly vol rollup). Anything below
-    # 24h would always alert on those tables; 26h gives a small grace gap.
-    record_health_daily_window_hours: int = 26
-    # Sliding window the record_health_snapshot job counts over for every other
-    # record-health table. Matches web HealthPanel RECORD_WINDOW_HOURS (8); the
-    # API's record_window_hours now only gates "were scans expected", the counts
-    # come from the snapshot computed with this window.
-    record_health_window_hours: float = 8.0
-    ohlc_pull_cron: str = "30 17 * * 0-4"
-    positioning_refresh_cron: str = "0 6 * * 0-4"
-    fundamentals_refresh_cron: str = "0 19 * * 0-4"
-    rth_tz: str = "America/New_York"
-    worker_role: str = "all"
-    worker_index: int = 0
-    worker_count: int = 1
-    uw_worker_count: int = 0
-    massive_worker_count: int = 0
-    ai_worker_count: int = 0
-    # OHLC provider (massive.com)
-    massive_api_key: SecretStr | None = None
-    massive_base_url: str = "https://api.massive.com"
-    # massive.com WebSocket consumer (replaces REST per-ticker spot polling).
-    # Default URL points at the DELAYED tier (matches the dev plan and the
-    # current massive subscription). Real-time tier upgrade: set
-    # MASSIVE_WS_URL=wss://socket.massive.com/stocks in the environment.
-    massive_ws_enabled: bool = False
-    massive_ws_url: str = "wss://delayed.massive.com/stocks"
-    massive_ws_channel: str = "A"  # A=per-second, AM=per-minute, T=trades
-    massive_ws_flush_interval_seconds: float = 1.0
-    massive_ws_watchlist_poll_interval_seconds: float = 30.0
-    massive_ws_reconnect_backoff_initial_seconds: float = 1.0
-    massive_ws_reconnect_backoff_max_seconds: float = 60.0
-    massive_ws_heartbeat_stale_after_seconds: float = 120.0
-    # xenon IB realtime WS (primary live spot feed when enabled; the massive
-    # WS above becomes the automatic fallback). Served by the sibling xenon
-    # project's ib_realtime_server.js — streams 24h whenever IB Gateway is
-    # connected, not just the massive 04:00-20:00 ET window. Port may drift
-    # if 8765 is taken — the server writes the actual port to
-    # xenon_ws_port_file; discovery only applies when the URL host is local.
-    xenon_ws_enabled: bool = False
-    xenon_ws_url: str = "ws://127.0.0.1:8765"
-    xenon_ws_port_file: str = "/tmp/xenon-ib-realtime.json"
-    # After a xenon failure, stay on massive for this long before re-probing.
-    xenon_ws_retry_primary_seconds: float = 300.0
-    # In-session silence threshold before failing over (0 disables watchdog).
-    xenon_ws_quiet_failover_seconds: float = 120.0
     # FRED official API. Required by the US rates mirror ingest path.
     fred_api_key: SecretStr | None = None
     # Free/delayed fed funds futures path source used by the rates dashboard.
@@ -142,9 +77,6 @@ class Settings(DbSettings):
     # Trade Insights AI shared runner knobs (DeepSeek is the only provider)
     trade_insights_ai_max_output_bytes: int = 262144
     trade_insights_ai_poll_seconds: int = 3
-    # Ops alert sink — one webhook (Discord/Pushover-compatible JSON POST).
-    # Empty = no-op (send_alert returns False without a call).
-    ops_alert_webhook_url: str = ""
     # Trade Insights AI DeepSeek provider
     trade_insights_ai_deepseek_enabled: bool = True
     trade_insights_ai_deepseek_model: str = ""
@@ -249,72 +181,6 @@ class Settings(DbSettings):
     # Top-net-impact capture (UW /market/top-net-impact, ~32 calls/day at
     # 15-min RTH). Kill switch for the market-wide net-premium ranking.
     top_net_impact_capture_enabled: bool = True
-    # Regime live feed — symbols the WS consumer always subscribes IN ADDITION
-    # to the watchlist (indexes route via XENON_INDEX_SYMBOLS → CBOE; HYG is a
-    # plain ETF symbol). Drives the live CRI/VCG compute + 5-min snapshots.
-    regime_ws_symbols: list[str] = ["VIX", "VVIX", "VIX3M", "COR1M", "SPX", "HYG"]
-    # Cadence of the regime_live_scan job (basis='live' snapshot writes).
-    regime_live_scan_interval_minutes: int = 5
-    # Quotes older than this are ignored by the live compute (stale feed →
-    # the live endpoints fall back to the latest basis='eod' snapshot).
-    regime_live_quote_max_age_seconds: int = 900
-    # Parquet lake root for CBOE vol indices and SPX daily OHLC.
-    # Maintained by the peer ``market-data-warehouse`` project. Symbol subdirs
-    # are named ``symbol=<TICKER>`` with a ``1d.parquet`` payload inside.
-    lake_vol_index_root: Path = Field(
-        default=Path.home()
-        / "market-warehouse/data-lake/bronze/asset_class=volatility",
-        description=(
-            "Local parquet lake root for CBOE vol indices and SPX daily OHLC. "
-            "Symbol subdirs are named symbol=<TICKER>."
-        ),
-    )
-    # Parquet lake root for equity-asset credit-proxy ETFs (HYG, JNK, LQD),
-    # used by the VCG scanner. Same layout as the vol-index lake.
-    lake_credit_etf_root: Path = Field(
-        default=Path.home() / "market-warehouse/data-lake/bronze/asset_class=equity",
-        description=(
-            "Local parquet lake root for credit-proxy ETF daily OHLC "
-            "(HYG/JNK/LQD). Symbol subdirs are named symbol=<TICKER>."
-        ),
-    )
-    # Parquet lake root for FX dailies. Same layout as the vol-index lake;
-    # `USD<CCY>` holds <CCY> per one USD. Used to translate foreign filers'
-    # statements before any valuation anchor is computed — see
-    # `fundamentals/fx.py` for why an unconverted band is worse than no band.
-    lake_fx_root: Path = Field(
-        default=Path.home() / "market-warehouse/data-lake/bronze/asset_class=fx",
-        description=(
-            "Local parquet lake root for FX daily rates. Symbol subdirs are "
-            "named symbol=USD<CCY> and hold <CCY> per one USD."
-        ),
-    )
-    # Root of the whole market-warehouse lake (parent of bronze/silver/gold).
-    # Distinct from the two asset-class roots above, which point at specific
-    # bronze partitions. Read by reports/vrp_macro_drawdown.py.
-    market_warehouse_lake_root: Path = Field(
-        default=Path.home() / "market-warehouse" / "data-lake",
-        description=(
-            "Root of the market-warehouse parquet lake (contains bronze/). "
-            "Set MARKET_WAREHOUSE_LAKE=/lake in containers."
-        ),
-    )
-    # Credit-proxy ETFs synced from the equity lake into vol_index_daily.
-    # The VCG scanner reads from this list; the first entry is the default
-    # proxy unless overridden by the API caller.
-    credit_etf_symbols: list[str] = ["HYG", "JNK", "LQD"]
-    # Cloudflare R2 parquet lake — primary source for EOD/backfill reads per
-    # the 2026-05-25 standing rule (see docs/research/regime/closure-2026-05-24.md
-    # §4 and the [[feedback-r2-primary-for-eod-backfill]] memory). All four core
-    # fields must be set for R2 reads to engage; if any is None, the resolver
-    # falls back to the local mirror at lake_vol_index_root / lake_credit_etf_root.
-    # R2_ENDPOINT_OVERRIDE is optional — defaults to
-    # https://<R2_ACCOUNT_ID>.r2.cloudflarestorage.com.
-    r2_account_id: str | None = None
-    r2_access_key_id: SecretStr | None = None
-    r2_secret_access_key: SecretStr | None = None
-    r2_bucket: str | None = None
-    r2_endpoint_override: str | None = None
     # Option surface capture (durable full-chain IV/greeks grid) + IB-vs-UW IV canary
     option_surface_capture_enabled: bool = True
     option_surface_backfill_days: int = 4
@@ -479,19 +345,6 @@ class Settings(DbSettings):
     data_freshness_autoheal_enabled: bool = False
     data_freshness_autoheal_circuit_breaker_nights: int = 3
     data_freshness_autoheal_max_uw_calls: int = 500
-    # xenon read-only query API (IB option greeks via GET /options/greeks).
-    # Default = the mini's authenticated localhost port (verified listening 2026-06-24;
-    # the old :8421 was dead → the surface canary silently no-op'd). Key REQUIRED even
-    # on localhost. MacBook dev points over Tailscale: http://100.66.147.98:8321.
-    xenon_query_api_url: str = "http://127.0.0.1:8321"
-    xenon_query_api_key: SecretStr | None = None
-    # apex REST API (bars / bulk closes). Same env name and default the client
-    # used to read from os.environ itself; the mini sets APEX_API_URL.
-    apex_api_url: str = DEFAULT_APEX_API_URL
-    #: Shared bearer token for POST /api/agent-runs. UNSET MEANS DISABLED
-    #: (503), never open — the one write surface whose failure mode is a
-    #: document a person reads as a briefing.
-    agent_ingest_token: SecretStr | None = None
 
     # --- VRP tradable iron-condor + backtest (plan 2026-06-22) ----------------
     # hold is in TRADING days to stay unit-consistent with the harvest measurement
@@ -577,107 +430,18 @@ class Settings(DbSettings):
         # refused even when another value would also fail to parse.
         _enforce_db_isolation(env_raw(cls, "db_host"), env_raw(cls, "db_name"))
 
-        # Every lake root falls back UNDER the warehouse root, never under $HOME.
-        # In a container $HOME is /root and no lake lives there, so a root with no
-        # env var of its own silently resolves to a path that does not exist. That
-        # is exactly what happened to `lake_fx_root`: it was added after the
-        # container migration, never got a `LAKE_FX_ROOT` case here, and resolved
-        # to /root/market-warehouse/... in production — so 12 foreign filers were
-        # refused for want of an FX series the lake was carrying the whole time.
-        # Deriving the fallback means the next root added is correct by default.
-        _mw_lake = os.environ.get("MARKET_WAREHOUSE_LAKE", "").strip()
-        mw_lake_root = (
-            Path(_mw_lake)
-            if _mw_lake
-            else Path.home() / "market-warehouse" / "data-lake"
+        env = read_env_fields(cls)
+        # Lake roots without their own env var fall back under the warehouse root
+        # (LAKE_ROOT_FALLBACK), resolved here at call time as before the env table.
+        mw_lake_root = env.setdefault(
+            "market_warehouse_lake_root", Path.home() / "market-warehouse" / "data-lake"
         )
+        for field, sub in LAKE_ROOT_FALLBACK.items():
+            env.setdefault(field, mw_lake_root / sub)
 
         return cls(
             api_key=SecretStr(api_key),
-            **read_env_fields(cls),
-            max_requests_per_minute=int(
-                os.environ.get("UW_SCAN_MAX_REQUESTS_PER_MINUTE", "110")
-            ),
-            request_timeout_seconds=float(
-                os.environ.get("UW_SCAN_REQUEST_TIMEOUT_SECONDS", "30")
-            ),
-            base_url=os.environ.get(
-                "UW_SCAN_BASE_URL", "https://api.unusualwhales.com"
-            ),
-            ops_alert_webhook_url=os.environ.get("UW_SCAN_OPS_ALERT_WEBHOOK_URL", ""),
-            # full_scan_crons stays as the Pydantic default; not env-driven
-            # because cron expressions contain spaces (CSV parsing is fragile).
-            # Override by editing the Settings default if you need a different
-            # schedule.
-            full_scan_stale_after_hours=float(
-                os.environ.get("UW_SCAN_FULL_SCAN_STALE_HOURS", "0.33")
-            ),
-            health_full_scan_missed_grace_hours=float(
-                os.environ.get("UW_SCAN_HEALTH_FULL_SCAN_MISSED_GRACE_HOURS", "1.0")
-            ),
-            record_health_window_hours=float(
-                os.environ.get("RECORD_HEALTH_WINDOW_HOURS", "8")
-            ),
-            ohlc_pull_cron=os.environ.get("UW_SCAN_OHLC_PULL_CRON", "30 17 * * 0-4"),
-            positioning_refresh_cron=os.environ.get(
-                "UW_SCAN_POSITIONING_REFRESH_CRON", "0 6 * * 0-4"
-            ),
-            fundamentals_refresh_cron=os.environ.get(
-                "UW_SCAN_FUNDAMENTALS_REFRESH_CRON", "0 19 * * 0-4"
-            ),
-            rth_tz=os.environ.get("UW_SCAN_RTH_TZ", "America/New_York"),
-            worker_role=os.environ.get("UW_SCAN_WORKER_ROLE", "all"),
-            worker_index=int(os.environ.get("UW_SCAN_WORKER_INDEX", "0")),
-            worker_count=int(os.environ.get("UW_SCAN_WORKER_COUNT", "1")),
-            uw_worker_count=int(os.environ.get("UW_SCAN_UW_WORKER_COUNT", "0")),
-            massive_worker_count=int(
-                os.environ.get("UW_SCAN_MASSIVE_WORKER_COUNT", "0")
-            ),
-            ai_worker_count=int(os.environ.get("UW_SCAN_AI_WORKER_COUNT", "0")),
-            # SecretStr("") is truthy and not None — would silently allow the
-            # scheduler to instantiate a Massive client with a blank bearer and
-            # generate a stream of 401s. Coerce blank to None before wrapping.
-            massive_api_key=(
-                SecretStr(_mkey)
-                if (_mkey := os.environ.get("MASSIVE_API_KEY", "").strip())
-                else None
-            ),
-            massive_base_url=os.environ.get(
-                "MASSIVE_BASE_URL", "https://api.massive.com"
-            ),
-            massive_ws_enabled=os.environ.get("MASSIVE_WS_ENABLED", "false").lower()
-            == "true",
-            massive_ws_url=os.environ.get(
-                "MASSIVE_WS_URL", "wss://delayed.massive.com/stocks"
-            ),
-            massive_ws_channel=os.environ.get("MASSIVE_WS_CHANNEL", "A"),
-            massive_ws_flush_interval_seconds=float(
-                os.environ.get("MASSIVE_WS_FLUSH_INTERVAL_SECONDS", "1.0")
-            ),
-            massive_ws_watchlist_poll_interval_seconds=float(
-                os.environ.get("MASSIVE_WS_WATCHLIST_POLL_INTERVAL_SECONDS", "30.0")
-            ),
-            massive_ws_reconnect_backoff_initial_seconds=float(
-                os.environ.get("MASSIVE_WS_RECONNECT_BACKOFF_INITIAL_SECONDS", "1.0")
-            ),
-            massive_ws_reconnect_backoff_max_seconds=float(
-                os.environ.get("MASSIVE_WS_RECONNECT_BACKOFF_MAX_SECONDS", "60.0")
-            ),
-            massive_ws_heartbeat_stale_after_seconds=float(
-                os.environ.get("MASSIVE_WS_HEARTBEAT_STALE_AFTER_SECONDS", "120.0")
-            ),
-            xenon_ws_enabled=os.environ.get("XENON_WS_ENABLED", "false").lower()
-            == "true",
-            xenon_ws_url=os.environ.get("XENON_WS_URL", "ws://127.0.0.1:8765"),
-            xenon_ws_port_file=os.environ.get(
-                "XENON_WS_PORT_FILE", "/tmp/xenon-ib-realtime.json"
-            ),
-            xenon_ws_retry_primary_seconds=float(
-                os.environ.get("XENON_WS_RETRY_PRIMARY_SECONDS", "300")
-            ),
-            xenon_ws_quiet_failover_seconds=float(
-                os.environ.get("XENON_WS_QUIET_FAILOVER_SECONDS", "120")
-            ),
+            **env,
             fred_api_key=(
                 SecretStr(_fred_key)
                 if (_fred_key := os.environ.get("FRED_API_KEY", "").strip())
@@ -894,63 +658,6 @@ class Settings(DbSettings):
                 "TOP_NET_IMPACT_CAPTURE_ENABLED", "true"
             ).lower()
             in ("1", "true", "yes"),
-            regime_ws_symbols=_parse_csv_env(
-                "REGIME_WS_SYMBOLS",
-                default=["VIX", "VVIX", "VIX3M", "COR1M", "SPX", "HYG"],
-            ),
-            regime_live_scan_interval_minutes=int(
-                os.environ.get("REGIME_LIVE_SCAN_INTERVAL_MINUTES", "5")
-            ),
-            regime_live_quote_max_age_seconds=int(
-                os.environ.get("REGIME_LIVE_QUOTE_MAX_AGE_SECONDS", "900")
-            ),
-            # Parquet-lake roots are env-overridable so deployments without
-            # the user's home-dir layout (containers, CI) can point at their
-            # own mount. Blank/unset → fall back to the field-level defaults.
-            lake_vol_index_root=(
-                Path(_lake_vol)
-                if (_lake_vol := os.environ.get("LAKE_VOL_INDEX_ROOT", "").strip())
-                else mw_lake_root / "bronze/asset_class=volatility"
-            ),
-            lake_credit_etf_root=(
-                Path(_lake_credit)
-                if (_lake_credit := os.environ.get("LAKE_CREDIT_ETF_ROOT", "").strip())
-                else mw_lake_root / "bronze/asset_class=equity"
-            ),
-            lake_fx_root=(
-                Path(_lake_fx)
-                if (_lake_fx := os.environ.get("LAKE_FX_ROOT", "").strip())
-                else mw_lake_root / "bronze/asset_class=fx"
-            ),
-            market_warehouse_lake_root=mw_lake_root,
-            credit_etf_symbols=_parse_csv_env(
-                "CREDIT_ETF_SYMBOLS", default=["HYG", "JNK", "LQD"]
-            ),
-            r2_account_id=(
-                _r2_acc
-                if (_r2_acc := os.environ.get("R2_ACCOUNT_ID", "").strip())
-                else None
-            ),
-            r2_access_key_id=(
-                SecretStr(_r2_key)
-                if (_r2_key := os.environ.get("R2_ACCESS_KEY_ID", "").strip())
-                else None
-            ),
-            r2_secret_access_key=(
-                SecretStr(_r2_sec)
-                if (_r2_sec := os.environ.get("R2_SECRET_ACCESS_KEY", "").strip())
-                else None
-            ),
-            r2_bucket=(
-                _r2_bkt
-                if (_r2_bkt := os.environ.get("R2_BUCKET", "").strip())
-                else None
-            ),
-            r2_endpoint_override=(
-                _r2_ep
-                if (_r2_ep := os.environ.get("R2_ENDPOINT_OVERRIDE", "").strip())
-                else None
-            ),
             option_surface_capture_enabled=_env_bool(
                 "OPTION_SURFACE_CAPTURE_ENABLED", True
             ),
@@ -1068,22 +775,6 @@ class Settings(DbSettings):
             ),
             data_freshness_autoheal_max_uw_calls=int(
                 os.environ.get("DATA_FRESHNESS_AUTOHEAL_MAX_UW_CALLS", "500")
-            ),
-            xenon_query_api_url=os.environ.get(
-                "XENON_QUERY_API_URL", "http://127.0.0.1:8321"
-            ),
-            apex_api_url=os.environ.get("APEX_API_URL", DEFAULT_APEX_API_URL).rstrip(
-                "/"
-            ),
-            xenon_query_api_key=(
-                SecretStr(v)
-                if (v := os.environ.get("XENON_QUERY_API_KEY", "").strip())
-                else None
-            ),
-            agent_ingest_token=(
-                SecretStr(v)
-                if (v := os.environ.get("UW_SCAN_AGENT_INGEST_TOKEN", "").strip())
-                else None
             ),
             vrp_hold_days=int(os.environ.get("UW_SCAN_VRP_HOLD_DAYS", "20")),
             vrp_short_delta=float(os.environ.get("UW_SCAN_VRP_SHORT_DELTA", "0.16")),
