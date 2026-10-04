@@ -7,6 +7,10 @@ version in lockstep (enforced by `scripts/release/version_sync_check.py`).
 
 ## [Unreleased]
 
+### Changed
+
+- **Scheduler job golden + one role-pin predicate (Phase 6a-1, I-50/I-51); no schedule change.** `tests/unit/worker/test_scheduler_jobs_golden.py` boots the real `scheduler.main()` hermetically for every process shape (uw-0/1, massive-0/1, ai-deepseek/codex/claude/ai-0/1, all) under two profiles (code defaults; every `*_enabled` flag on) and freezes each registered job's id, wrapper name, trigger and `add_job` options; every later job-family move must leave it byte-identical. The 23 copies of "`all`, or this role at index 0" become `_pinned(settings, role)`; the golden is unchanged.
+
 ### Fixed
 
 - **Workers wait for the schema their code needs (schema change: migration 158).** Watchtower ignores `depends_on`, so on a deploy a worker could start new code before the api had migrated and fail its first job against a missing column. Migration `158_schema_version` adds a one-row `uw_scan.schema_version` table (idempotent `CREATE TABLE IF NOT EXISTS`); `migrate_runner` records the last file applied after every full apply and never moves it backwards (a rolled-back image proceeds). `scheduler.main()` now waits before building any job until that marker is at least the newest migration file in its own image, logging at INFO at most once a minute (WARNING after 10 minutes: "migration may have failed; check api logs"); nothing is scheduled meanwhile, so nothing reaches `job_failures`. `scripts/dev.sh` now applies migrations before it starts anything (skipped when pointed at the mini) and exits non-zero with the migrate error, so `control-argon up` fails with the cause instead of a heartbeat timeout.
