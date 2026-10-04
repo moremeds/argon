@@ -17,7 +17,8 @@ from uw_scan.benchmark.pipeline import (
     build_benchmark_result,
 )
 from uw_scan.config import Settings
-from uw_scan.storage.repository import PipelineBenchmarkSnapshotRow, Repository
+from uw_scan.storage.repository import Repository
+from uw_scan.storage.rows import PipelineBenchmarkSnapshotRow
 
 router = APIRouter()
 

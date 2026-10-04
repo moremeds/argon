@@ -17,7 +17,7 @@ from uw_scan.models import (
     VRPAssessment,
 )
 from uw_scan.sources.ohlc import OhlcBar
-from uw_scan.storage.repository import IntradayQuoteRow, PcrHistoryRow
+from uw_scan.storage.rows import IntradayQuoteRow, PcrHistoryRow
 
 
 def _make_report() -> SingleStockReport:

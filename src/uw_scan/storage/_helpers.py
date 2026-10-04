@@ -1,8 +1,7 @@
 """Pure-utility helpers used by Repository methods.
 
-Three of these are externally importable from `uw_scan.storage.repository`
-(provider_day_bounds, status_family_for, redact_params) and stay re-exported
-there for backward compat with callers in sources/, api/, and tests/.
+Three of these are imported by callers in sources/, api/, reports/ and tests/
+(provider_day_bounds, status_family_for, redact_params); import them from here.
 Internal-only helpers (_d, _nullable_int, _nullable_float) live here too for
 cohesion.
 

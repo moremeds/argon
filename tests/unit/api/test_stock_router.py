@@ -12,7 +12,7 @@ from uw_scan.models import (
     VolatilityProfile,
     VRPAssessment,
 )
-from uw_scan.storage.repository import IntradayQuoteRow
+from uw_scan.storage.rows import IntradayQuoteRow
 
 
 def _report() -> SingleStockReport:

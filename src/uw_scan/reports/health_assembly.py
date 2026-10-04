@@ -30,7 +30,8 @@ from uw_scan.reports.health_blocks import (
     _snapshot_record_health,
     _worker_health_rows,
 )
-from uw_scan.storage.repository import Repository, provider_day_bounds
+from uw_scan.storage._helpers import provider_day_bounds
+from uw_scan.storage.repository import Repository
 from uw_scan.version import app_version
 
 HealthSource = Literal["uw", "massive"]

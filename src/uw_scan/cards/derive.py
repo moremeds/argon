@@ -13,7 +13,7 @@ from uw_scan.cards.pcr import compute_pcr_delta_30d
 from uw_scan.cards.returns import compute_returns
 from uw_scan.models import SingleStockReport
 from uw_scan.sources.ohlc import OhlcBar
-from uw_scan.storage.repository import IntradayQuoteRow, PcrHistoryRow
+from uw_scan.storage.rows import IntradayQuoteRow, PcrHistoryRow
 
 
 def compute_watchlist_card_row(

@@ -48,7 +48,7 @@ KNOWN: dict[tuple[str, str], str] = {
     ("cards/dealer_regime.py", "uw_scan.storage.greek_exposure_repository"): (
         "I-32: frozen; fix when the file is next touched"
     ),
-    ("cards/derive.py", "uw_scan.storage.repository"): (
+    ("cards/derive.py", "uw_scan.storage.rows"): (
         "I-32: frozen; fix when the file is next touched"
     ),
     ("cards/matrix_state.py", "uw_scan.storage.repository"): (

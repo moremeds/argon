@@ -18,7 +18,7 @@ import psycopg
 
 from uw_scan.config import Settings
 from uw_scan.models import FlowAlert
-from uw_scan.storage.repository import (
+from uw_scan.storage.flow import (
     _aggressor_label_confidence,
     _flow_footprint_label,
 )
