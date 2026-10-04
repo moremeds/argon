@@ -47,12 +47,15 @@ def get_grg(
     return GrgResponse.model_validate({"status": "ok", **latest})
 
 
-@router.post("/grg/scan", status_code=202, response_model=GrgScanResponse)
+@router.post("/grg/scan", response_model=GrgScanResponse)
 def trigger_grg_scan(
     repo: Annotated[Repository, Depends(get_repo)],
     uw_client: Annotated[UwClient, Depends(get_uw_client)],
 ) -> GrgScanResponse:
-    """Run a GRG scan synchronously against UW and persist a snapshot."""
+    """Run a GRG scan synchronously against UW and persist a snapshot.
+
+    200, not 202: the scan has finished and been written when this returns.
+    """
     row_id = grg_scanner.run(uw_client, repo, schema=repo.schema)
     if row_id is None:
         return GrgScanResponse(status="skipped", reason="thin_data")

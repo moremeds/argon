@@ -33286,10 +33286,10 @@
     },
     "/api/regime/grg/scan": {
       "post": {
-        "description": "Run a GRG scan synchronously against UW and persist a snapshot.",
+        "description": "Run a GRG scan synchronously against UW and persist a snapshot.\n\n200, not 202: the scan has finished and been written when this returns.",
         "operationId": "trigger_grg_scan_api_regime_grg_scan_post",
         "responses": {
-          "202": {
+          "200": {
             "content": {
               "application/json": {
                 "schema": {
@@ -33397,10 +33397,10 @@
     },
     "/api/regime/scan": {
       "post": {
-        "description": "Run a CRI scan synchronously off the warm store; persist a snapshot.",
+        "description": "Run a CRI scan synchronously off the warm store; persist a snapshot.\n\n200, not 202: the scan has finished and been written when this returns.",
         "operationId": "trigger_cri_scan_api_regime_scan_post",
         "responses": {
-          "202": {
+          "200": {
             "content": {
               "application/json": {
                 "schema": {
@@ -33801,7 +33801,7 @@
     },
     "/api/regime/vcg/scan": {
       "post": {
-        "description": "Run a VCG scan synchronously off the warm store; persist a snapshot.",
+        "description": "Run a VCG scan synchronously off the warm store; persist a snapshot.\n\n200, not 202: the scan has finished and been written when this returns.",
         "operationId": "trigger_vcg_scan_api_regime_vcg_scan_post",
         "parameters": [
           {
@@ -33816,7 +33816,7 @@
           }
         ],
         "responses": {
-          "202": {
+          "200": {
             "content": {
               "application/json": {
                 "schema": {

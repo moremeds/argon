@@ -51,11 +51,14 @@ def get_regime(
     return CriResponse.model_validate({"status": "ok", **latest})
 
 
-@router.post("/scan", status_code=202, response_model=CriScanResponse)
+@router.post("/scan", response_model=CriScanResponse)
 def trigger_cri_scan(
     repo: Annotated[Repository, Depends(get_repo)],
 ) -> CriScanResponse:
-    """Run a CRI scan synchronously off the warm store; persist a snapshot."""
+    """Run a CRI scan synchronously off the warm store; persist a snapshot.
+
+    200, not 202: the scan has finished and been written when this returns.
+    """
     row_id = cri_scanner.run(repo.conn, schema=repo.schema)
     if row_id is None:
         return CriScanResponse(status="skipped", reason="thin_data")
@@ -79,12 +82,15 @@ def get_vcg(
     return VcgResponse.model_validate({"status": "ok", **latest})
 
 
-@router.post("/vcg/scan", status_code=202, response_model=VcgScanResponse)
+@router.post("/vcg/scan", response_model=VcgScanResponse)
 def trigger_vcg_scan(
     repo: Annotated[Repository, Depends(get_repo)],
     proxy: str = Query("HYG"),
 ) -> VcgScanResponse:
-    """Run a VCG scan synchronously off the warm store; persist a snapshot."""
+    """Run a VCG scan synchronously off the warm store; persist a snapshot.
+
+    200, not 202: the scan has finished and been written when this returns.
+    """
     proxy_upper = proxy.upper()
     row_id = vcg_scanner.run(repo.conn, proxy=proxy_upper, schema=repo.schema)
     if row_id is None:
