@@ -126,7 +126,7 @@ def main() -> int:
             else:
                 try:
                     n = fundamentals_refresh_once(
-                        repo, provider, ticker_filter=ticker_filter
+                        repo=repo, provider=provider, ticker_filter=ticker_filter
                     )
                     logger.info("fundamentals_refresh: refreshed %d tickers", n)
                 finally:

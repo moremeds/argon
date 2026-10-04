@@ -60,7 +60,7 @@ def _maybe_ingest(repo: Repository, settings: Settings) -> None:
 
     provider = MassiveFundamentalsProvider(settings.massive_api_key.get_secret_value())
     try:
-        nf = fundamentals_refresh_once(repo, provider)
+        nf = fundamentals_refresh_once(repo=repo, provider=provider)
         nc = corporate_actions_refresh_once(repo, provider)
         print(f"Ingest: fundamentals={nf} tickers, corporate-actions={nc} tickers.")
     finally:

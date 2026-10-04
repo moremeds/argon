@@ -84,7 +84,9 @@ def main() -> int:
     with psycopg.connect(settings.db_dsn()) as conn:
         for d in _dates(args.start, args.end):
             if args.execute:
-                result = implied_move_snapshot(conn, as_of=d, schema=settings.db_schema)
+                result = implied_move_snapshot(
+                    conn=conn, as_of=d, schema=settings.db_schema
+                )
                 suffix = (
                     f"covered={result['covered']:3d}  "
                     f"not_covered={result['not_covered']:3d}"

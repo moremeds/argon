@@ -494,7 +494,7 @@ def _run_corporate_actions(ctx: HealContext, lookback_days: int) -> int:
 def _run_massive_fundamentals(ctx: HealContext, lookback_days: int) -> int:
     from uw_scan.worker.jobs.fundamentals_jobs import fundamentals_refresh_once
 
-    return fundamentals_refresh_once(ctx.repo, ctx.massive_provider())
+    return fundamentals_refresh_once(repo=ctx.repo, provider=ctx.massive_provider())
 
 
 def _run_grg(ctx: HealContext, ticker: str | None, market_date: date) -> int:

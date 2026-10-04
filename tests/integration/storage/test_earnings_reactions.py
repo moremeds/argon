@@ -151,7 +151,7 @@ def test_afterhours_reaction_written_with_exact_pct_move(conn):
     _seed_ohlc(conn, "NVDA", [("2026-05-20", 223.47), ("2026-05-21", 219.51)])
     _seed_calendar(conn, NVDA_MAY)
 
-    result = earnings_reactions_compute(conn, as_of=date(2026, 5, 25))
+    result = earnings_reactions_compute(conn=conn, as_of=date(2026, 5, 25))
     assert result == {
         "prints": 1,
         "written": 1,
@@ -178,7 +178,7 @@ def test_premarket_reaction_before_strictly_prior_after_includes_report_day(conn
     _seed_ohlc(conn, "JPM", [("2026-07-13", 334.53), ("2026-07-14", 342.89)])
     _seed_calendar(conn, JPM_JUL)
 
-    result = earnings_reactions_compute(conn, as_of=date(2026, 7, 20))
+    result = earnings_reactions_compute(conn=conn, as_of=date(2026, 7, 20))
     assert result == {
         "prints": 1,
         "written": 1,
@@ -215,7 +215,7 @@ def test_null_session_reaction_uses_the_widest_window(conn):
     )
     _seed_calendar(conn, ISRG_JUL)
 
-    result = earnings_reactions_compute(conn, as_of=date(2026, 7, 22))
+    result = earnings_reactions_compute(conn=conn, as_of=date(2026, 7, 22))
     assert result == {
         "prints": 1,
         "written": 1,
@@ -241,7 +241,7 @@ def test_missing_after_close_is_skipped_and_counted_and_retryable(conn):
     _seed_ohlc(conn, "NVDA", [("2026-08-26", 209.66)])
     _seed_calendar(conn, NVDA_AUG_PENDING)
 
-    first = earnings_reactions_compute(conn, as_of=date(2026, 8, 28))
+    first = earnings_reactions_compute(conn=conn, as_of=date(2026, 8, 28))
     assert first == {
         "prints": 1,
         "written": 0,
@@ -255,7 +255,7 @@ def test_missing_after_close_is_skipped_and_counted_and_retryable(conn):
 
     # The missing close lands (simulating the next OHLC pull) -> retry resolves it.
     _seed_ohlc(conn, "NVDA", [("2026-08-27", 205.00)])
-    second = earnings_reactions_compute(conn, as_of=date(2026, 8, 28))
+    second = earnings_reactions_compute(conn=conn, as_of=date(2026, 8, 28))
     assert second == {
         "prints": 1,
         "written": 1,
@@ -285,7 +285,7 @@ def test_last_reactions_returns_newest_first(conn):
     _seed_calendar(conn, NVDA_FEB, NVDA_MAY)
 
     result = earnings_reactions_compute(
-        conn, as_of=date(2026, 5, 25), lookback_days=120
+        conn=conn, as_of=date(2026, 5, 25), lookback_days=120
     )
     assert result == {
         "prints": 2,
@@ -307,9 +307,9 @@ def test_rerun_is_idempotent_written_zero_on_replay(conn):
     _seed_ohlc(conn, "NVDA", [("2026-05-20", 223.47), ("2026-05-21", 219.51)])
     _seed_calendar(conn, NVDA_MAY)
 
-    first = earnings_reactions_compute(conn, as_of=date(2026, 5, 25))
+    first = earnings_reactions_compute(conn=conn, as_of=date(2026, 5, 25))
     assert first["written"] == 1
-    second = earnings_reactions_compute(conn, as_of=date(2026, 5, 25))
+    second = earnings_reactions_compute(conn=conn, as_of=date(2026, 5, 25))
     assert second == {
         "prints": 1,
         "written": 0,
@@ -322,7 +322,7 @@ def test_reactions_for_groups_by_ticker_newest_first(conn):
     _seed_ohlc(conn, "NVDA", [("2026-05-20", 223.47), ("2026-05-21", 219.51)])
     _seed_ohlc(conn, "JPM", [("2026-07-13", 334.53), ("2026-07-14", 342.89)])
     _seed_calendar(conn, NVDA_MAY, JPM_JUL)
-    earnings_reactions_compute(conn, as_of=date(2026, 7, 20), lookback_days=120)
+    earnings_reactions_compute(conn=conn, as_of=date(2026, 7, 20), lookback_days=120)
 
     grouped = EarningsReactionsRepository(conn, schema="uw_scan").reactions_for(
         ["NVDA", "JPM", "AAPL"]
@@ -362,7 +362,7 @@ def test_statement_obs_rows_are_excluded_never_computed_as_a_reaction(conn):
         [("2026-07-20", 400.00), ("2026-07-22", 410.00)],
     )
 
-    result = earnings_reactions_compute(conn, as_of=date(2026, 7, 25))
+    result = earnings_reactions_compute(conn=conn, as_of=date(2026, 7, 25))
     assert result == {
         "prints": 1,
         "written": 0,
