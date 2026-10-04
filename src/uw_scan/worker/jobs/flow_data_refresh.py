@@ -25,17 +25,20 @@ from uw_scan.api.client import UwClient
 from uw_scan.cards.option_chain import aggregate_chain_per_strike
 from uw_scan.config import Settings
 from uw_scan.sources.uw import fetch_option_contracts, fetch_options_volume_daily
+from uw_scan.storage.advisory_locks import single_flight, worker_key
 from uw_scan.storage.repository import Repository
 
 logger = logging.getLogger(__name__)
 
-FLOW_REFRESH_LOCK = 91501  # mnemonic: migration 015 + slot 01
+FLOW_REFRESH_LOCK = worker_key("flow_data_refresh", 0)
 MAX_PCT_FROM_SPOT = Decimal("0.60")
 MAX_DTE_DAYS = 365
 OPTIONS_VOLUME_LOOKBACK = 200
 
 
-def historical_close(repo: Repository, ticker: str, market_date: date) -> Decimal | None:
+def historical_close(
+    repo: Repository, ticker: str, market_date: date
+) -> Decimal | None:
     """That session's close, for replays. None when the lake never captured it.
 
     The chain snapshot filters strikes to +/-MAX_PCT_FROM_SPOT of spot, so a
@@ -45,8 +48,7 @@ def historical_close(repo: Repository, ticker: str, market_date: date) -> Decima
     """
     with repo.conn.cursor() as cur:
         cur.execute(
-            f"SELECT close FROM {repo._schema}.daily_ohlc "
-            "WHERE ticker=%s AND date=%s",
+            f"SELECT close FROM {repo._schema}.daily_ohlc WHERE ticker=%s AND date=%s",
             (ticker, market_date),
         )
         row = cur.fetchone()
@@ -109,11 +111,11 @@ def flow_data_refresh(
 ) -> None:
     """Refresh Flow-tab tables for every watchlist ticker."""
 
-    if not repo.try_advisory_lock(lock_key):
-        logger.info("flow_data_refresh: lock held; skipping this tick")
-        return
+    with single_flight(repo.conn, lock_key) as acquired:
+        if not acquired:
+            logger.info("flow_data_refresh: lock held; skipping this tick")
+            return
 
-    try:
         # ET market date, not host date — host may be HKT/UTC.
         market_date = datetime.now(ZoneInfo(settings.rth_tz)).date()
 
@@ -152,5 +154,3 @@ def flow_data_refresh(
                 # unfinished so failures are visible in scan_runs.
                 repo.conn.rollback()
                 logger.exception("flow_data_refresh: %s failed: %r", ticker, exc)
-    finally:
-        repo.release_advisory_lock(lock_key)

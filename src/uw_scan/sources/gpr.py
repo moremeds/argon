@@ -12,15 +12,20 @@ from __future__ import annotations
 import logging
 from collections.abc import Callable
 from dataclasses import dataclass
-from datetime import UTC, date, datetime
+from datetime import date
 from decimal import Decimal, InvalidOperation
 from typing import Any
 
 import httpx
 import xlrd
 
+from uw_scan.sources._http import (
+    RequestOutcome,
+    get_with_telemetry,
+    record_or_log,
+    request_event,
+)
 from uw_scan.storage.provider_usage import ExternalApiRequestEvent
-from uw_scan.storage.repository import redact_params, status_family_for
 
 logger = logging.getLogger(__name__)
 
@@ -90,66 +95,17 @@ class GprProvider:
         return rows
 
     def _get_with_telemetry(self, url: str, params: dict[str, Any]) -> httpx.Response:
-        started_at = datetime.now(UTC)
-        try:
-            response = self._client.get(url, params=params)
-        except httpx.HTTPError as exc:
-            finished_at = datetime.now(UTC)
-            self._record_request(
-                self._build_event(
-                    started_at,
-                    finished_at,
-                    params,
-                    status_code=None,
-                    error_message=repr(exc)[:1000],
-                )
+        def record(outcome: RequestOutcome) -> None:
+            event = request_event(
+                outcome,
+                provider=self.PROVIDER,
+                endpoint_key=self.ENDPOINT_KEY,
+                path=self.ENDPOINT_PATH,
+                params=params,
             )
-            raise
-        finished_at = datetime.now(UTC)
-        self._record_request(
-            self._build_event(
-                started_at,
-                finished_at,
-                params,
-                status_code=response.status_code,
-                error_message=(
-                    response.text[:1000] if response.status_code >= 400 else None
-                ),
-            )
-        )
-        return response
+            record_or_log(self._record_request_fn, self, event, "gpr")
 
-    def _record_request(self, event: ExternalApiRequestEvent) -> None:
-        if self._record_request_fn is not None:
-            self._record_request_fn(self, event)
-        else:
-            logger.debug("gpr telemetry %r", event)
-
-    def _build_event(
-        self,
-        started_at: datetime,
-        finished_at: datetime,
-        params: dict[str, Any],
-        *,
-        status_code: int | None,
-        error_message: str | None,
-    ) -> ExternalApiRequestEvent:
-        return ExternalApiRequestEvent(
-            provider=self.PROVIDER,
-            endpoint_key=self.ENDPOINT_KEY,
-            method="GET",
-            path=self.ENDPOINT_PATH,
-            path_template=self.ENDPOINT_PATH,
-            params=redact_params(params),
-            status_code=status_code,
-            status_family=status_family_for(
-                status_code, transport_error=status_code is None
-            ),
-            started_at=started_at,
-            finished_at=finished_at,
-            latency_ms=max(0, int((finished_at - started_at).total_seconds() * 1000)),
-            error_message=error_message,
-        )
+        return get_with_telemetry(self._client, url, params=params, record=record)
 
 
 def _parse_day(raw: object) -> date | None:

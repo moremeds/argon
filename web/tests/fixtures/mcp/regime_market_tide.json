@@ -1,0 +1,2333 @@
+{
+ "sessions": [
+  {
+   "date": "2026-09-15",
+   "points": [
+    {
+     "ts": "2026-09-15T21:30:00+08:00",
+     "net_call_premium": 407886.0,
+     "net_put_premium": -2746727.0,
+     "net_volume": -42086,
+     "spot": 760.51
+    },
+    {
+     "ts": "2026-09-15T21:35:00+08:00",
+     "net_call_premium": 3112254.0,
+     "net_put_premium": -2469262.0,
+     "net_volume": -19027,
+     "spot": 760.71
+    },
+    {
+     "ts": "2026-09-15T21:40:00+08:00",
+     "net_call_premium": 669318.0,
+     "net_put_premium": 555686.0,
+     "net_volume": 11361,
+     "spot": 760.2
+    },
+    {
+     "ts": "2026-09-15T21:45:00+08:00",
+     "net_call_premium": 970945.0,
+     "net_put_premium": 8639485.0,
+     "net_volume": -17852,
+     "spot": 758.975
+    },
+    {
+     "ts": "2026-09-15T21:50:00+08:00",
+     "net_call_premium": -134881.0,
+     "net_put_premium": 8236265.0,
+     "net_volume": -71163,
+     "spot": 759.82
+    },
+    {
+     "ts": "2026-09-15T21:55:00+08:00",
+     "net_call_premium": -5753427.0,
+     "net_put_premium": -6635268.0,
+     "net_volume": -32122,
+     "spot": null
+    },
+    {
+     "ts": "2026-09-15T22:00:00+08:00",
+     "net_call_premium": -2767522.0,
+     "net_put_premium": -6343988.0,
+     "net_volume": -109842,
+     "spot": 759.36
+    },
+    {
+     "ts": "2026-09-15T22:05:00+08:00",
+     "net_call_premium": -11995656.0,
+     "net_put_premium": 10448578.0,
+     "net_volume": -204500,
+     "spot": 759.69
+    },
+    {
+     "ts": "2026-09-15T22:10:00+08:00",
+     "net_call_premium": -33232005.0,
+     "net_put_premium": 22835378.0,
+     "net_volume": -316372,
+     "spot": 759.55
+    },
+    {
+     "ts": "2026-09-15T22:15:00+08:00",
+     "net_call_premium": -26622330.0,
+     "net_put_premium": 12772742.0,
+     "net_volume": -236377,
+     "spot": 758.8799
+    },
+    {
+     "ts": "2026-09-15T22:20:00+08:00",
+     "net_call_premium": -39517685.0,
+     "net_put_premium": 14242761.0,
+     "net_volume": -318504,
+     "spot": 758.5
+    },
+    {
+     "ts": "2026-09-15T22:25:00+08:00",
+     "net_call_premium": -39491525.0,
+     "net_put_premium": 17499679.0,
+     "net_volume": -322064,
+     "spot": 757.955
+    },
+    {
+     "ts": "2026-09-15T22:30:00+08:00",
+     "net_call_premium": -51591322.0,
+     "net_put_premium": 21647582.0,
+     "net_volume": -374013,
+     "spot": 758.18
+    },
+    {
+     "ts": "2026-09-15T22:35:00+08:00",
+     "net_call_premium": -63083114.0,
+     "net_put_premium": 23037180.0,
+     "net_volume": -440702,
+     "spot": 757.575
+    },
+    {
+     "ts": "2026-09-15T22:40:00+08:00",
+     "net_call_premium": -73814237.0,
+     "net_put_premium": 29302148.0,
+     "net_volume": -509221,
+     "spot": 757.535
+    },
+    {
+     "ts": "2026-09-15T22:45:00+08:00",
+     "net_call_premium": -80861542.0,
+     "net_put_premium": 26852953.0,
+     "net_volume": -549386,
+     "spot": 757.32
+    },
+    {
+     "ts": "2026-09-15T22:50:00+08:00",
+     "net_call_premium": -100758386.0,
+     "net_put_premium": 35876097.0,
+     "net_volume": -660285,
+     "spot": 757.17
+    },
+    {
+     "ts": "2026-09-15T22:55:00+08:00",
+     "net_call_premium": -103254307.0,
+     "net_put_premium": 33646315.0,
+     "net_volume": -668801,
+     "spot": 757.16
+    },
+    {
+     "ts": "2026-09-15T23:00:00+08:00",
+     "net_call_premium": -103714070.0,
+     "net_put_premium": 22248485.0,
+     "net_volume": -602755,
+     "spot": 756.94
+    },
+    {
+     "ts": "2026-09-15T23:05:00+08:00",
+     "net_call_premium": -109675998.0,
+     "net_put_premium": 24338036.0,
+     "net_volume": -624633,
+     "spot": 756.55
+    },
+    {
+     "ts": "2026-09-15T23:10:00+08:00",
+     "net_call_premium": -115202789.0,
+     "net_put_premium": 28060288.0,
+     "net_volume": -636636,
+     "spot": 756.4399
+    },
+    {
+     "ts": "2026-09-15T23:15:00+08:00",
+     "net_call_premium": -112199521.0,
+     "net_put_premium": 22661935.0,
+     "net_volume": -584814,
+     "spot": 757.15
+    },
+    {
+     "ts": "2026-09-15T23:20:00+08:00",
+     "net_call_premium": -109857642.0,
+     "net_put_premium": 15568937.0,
+     "net_volume": -543763,
+     "spot": 756.87
+    },
+    {
+     "ts": "2026-09-15T23:25:00+08:00",
+     "net_call_premium": -112807769.0,
+     "net_put_premium": 12569687.0,
+     "net_volume": -523827,
+     "spot": 757.03
+    },
+    {
+     "ts": "2026-09-15T23:30:00+08:00",
+     "net_call_premium": -123987058.0,
+     "net_put_premium": 15998395.0,
+     "net_volume": -526644,
+     "spot": 757.27
+    },
+    {
+     "ts": "2026-09-15T23:35:00+08:00",
+     "net_call_premium": -130908660.0,
+     "net_put_premium": 14345562.0,
+     "net_volume": -506954,
+     "spot": 757.45
+    },
+    {
+     "ts": "2026-09-15T23:40:00+08:00",
+     "net_call_premium": -140249306.0,
+     "net_put_premium": 9647201.0,
+     "net_volume": -441664,
+     "spot": 757.42
+    },
+    {
+     "ts": "2026-09-15T23:45:00+08:00",
+     "net_call_premium": -146394226.0,
+     "net_put_premium": 11007734.0,
+     "net_volume": -477661,
+     "spot": 757.32
+    },
+    {
+     "ts": "2026-09-15T23:50:00+08:00",
+     "net_call_premium": -142694800.0,
+     "net_put_premium": -82233.0,
+     "net_volume": -458160,
+     "spot": 757.295
+    },
+    {
+     "ts": "2026-09-15T23:55:00+08:00",
+     "net_call_premium": -138287914.0,
+     "net_put_premium": -15338255.0,
+     "net_volume": -441354,
+     "spot": 757.5375
+    },
+    {
+     "ts": "2026-09-16T00:00:00+08:00",
+     "net_call_premium": -136533925.0,
+     "net_put_premium": -29727384.0,
+     "net_volume": -386911,
+     "spot": 756.98
+    },
+    {
+     "ts": "2026-09-16T00:05:00+08:00",
+     "net_call_premium": -152391305.0,
+     "net_put_premium": -31693120.0,
+     "net_volume": -452293,
+     "spot": 757.13
+    },
+    {
+     "ts": "2026-09-16T00:10:00+08:00",
+     "net_call_premium": -166013311.0,
+     "net_put_premium": -35363052.0,
+     "net_volume": -495656,
+     "spot": 757.12
+    },
+    {
+     "ts": "2026-09-16T00:15:00+08:00",
+     "net_call_premium": -163638380.0,
+     "net_put_premium": -46632511.0,
+     "net_volume": -466421,
+     "spot": 757.34
+    },
+    {
+     "ts": "2026-09-16T00:20:00+08:00",
+     "net_call_premium": -162524055.0,
+     "net_put_premium": -51013596.0,
+     "net_volume": -391506,
+     "spot": 756.74
+    },
+    {
+     "ts": "2026-09-16T00:25:00+08:00",
+     "net_call_premium": -162709232.0,
+     "net_put_premium": -48175210.0,
+     "net_volume": -399586,
+     "spot": 756.775
+    },
+    {
+     "ts": "2026-09-16T00:30:00+08:00",
+     "net_call_premium": -160865940.0,
+     "net_put_premium": -49452928.0,
+     "net_volume": -383162,
+     "spot": 757.07
+    },
+    {
+     "ts": "2026-09-16T00:35:00+08:00",
+     "net_call_premium": -166250867.0,
+     "net_put_premium": -56050471.0,
+     "net_volume": -401858,
+     "spot": 757.655
+    },
+    {
+     "ts": "2026-09-16T00:40:00+08:00",
+     "net_call_premium": -166874267.0,
+     "net_put_premium": -56076767.0,
+     "net_volume": -422163,
+     "spot": 757.56
+    },
+    {
+     "ts": "2026-09-16T00:45:00+08:00",
+     "net_call_premium": -172944497.0,
+     "net_put_premium": -57586891.0,
+     "net_volume": -446059,
+     "spot": 757.67
+    },
+    {
+     "ts": "2026-09-16T00:50:00+08:00",
+     "net_call_premium": -165620200.0,
+     "net_put_premium": -61623127.0,
+     "net_volume": -388895,
+     "spot": 757.55
+    },
+    {
+     "ts": "2026-09-16T00:55:00+08:00",
+     "net_call_premium": -165628367.0,
+     "net_put_premium": -62649124.0,
+     "net_volume": -403017,
+     "spot": 757.61
+    },
+    {
+     "ts": "2026-09-16T01:00:00+08:00",
+     "net_call_premium": -172652549.0,
+     "net_put_premium": -58583278.0,
+     "net_volume": -471840,
+     "spot": 757.4596
+    },
+    {
+     "ts": "2026-09-16T01:05:00+08:00",
+     "net_call_premium": -180952700.0,
+     "net_put_premium": -63826655.0,
+     "net_volume": -510052,
+     "spot": 757.98
+    },
+    {
+     "ts": "2026-09-16T01:10:00+08:00",
+     "net_call_premium": -186033760.0,
+     "net_put_premium": -71945746.0,
+     "net_volume": -515665,
+     "spot": 757.71
+    },
+    {
+     "ts": "2026-09-16T01:15:00+08:00",
+     "net_call_premium": -191019900.0,
+     "net_put_premium": -75718217.0,
+     "net_volume": -525564,
+     "spot": 757.23
+    },
+    {
+     "ts": "2026-09-16T01:20:00+08:00",
+     "net_call_premium": -194448014.0,
+     "net_put_premium": -67723202.0,
+     "net_volume": -589015,
+     "spot": 757.26
+    },
+    {
+     "ts": "2026-09-16T01:25:00+08:00",
+     "net_call_premium": -194550789.0,
+     "net_put_premium": -69199656.0,
+     "net_volume": -587123,
+     "spot": 757.111
+    },
+    {
+     "ts": "2026-09-16T01:30:00+08:00",
+     "net_call_premium": -198692019.0,
+     "net_put_premium": -75743132.0,
+     "net_volume": -557786,
+     "spot": 757.02
+    },
+    {
+     "ts": "2026-09-16T01:35:00+08:00",
+     "net_call_premium": -204105122.0,
+     "net_put_premium": -82194391.0,
+     "net_volume": -547822,
+     "spot": 756.72
+    },
+    {
+     "ts": "2026-09-16T01:40:00+08:00",
+     "net_call_premium": -212585658.0,
+     "net_put_premium": -86115592.0,
+     "net_volume": -570012,
+     "spot": 756.86
+    },
+    {
+     "ts": "2026-09-16T01:45:00+08:00",
+     "net_call_premium": -217226169.0,
+     "net_put_premium": -84768495.0,
+     "net_volume": -589692,
+     "spot": 757.04
+    },
+    {
+     "ts": "2026-09-16T01:50:00+08:00",
+     "net_call_premium": -218025256.0,
+     "net_put_premium": -79408386.0,
+     "net_volume": -576960,
+     "spot": 757.06
+    },
+    {
+     "ts": "2026-09-16T01:55:00+08:00",
+     "net_call_premium": -228864330.0,
+     "net_put_premium": -80392495.0,
+     "net_volume": -559719,
+     "spot": 757.13
+    },
+    {
+     "ts": "2026-09-16T02:00:00+08:00",
+     "net_call_premium": -236462993.0,
+     "net_put_premium": -79853588.0,
+     "net_volume": -552159,
+     "spot": 756.96
+    },
+    {
+     "ts": "2026-09-16T02:05:00+08:00",
+     "net_call_premium": -240028172.0,
+     "net_put_premium": -82691615.0,
+     "net_volume": -532404,
+     "spot": 757.19
+    },
+    {
+     "ts": "2026-09-16T02:10:00+08:00",
+     "net_call_premium": -239348893.0,
+     "net_put_premium": -80181057.0,
+     "net_volume": -526095,
+     "spot": 757.27
+    },
+    {
+     "ts": "2026-09-16T02:15:00+08:00",
+     "net_call_premium": -239217616.0,
+     "net_put_premium": -72932885.0,
+     "net_volume": -572314,
+     "spot": 757.5
+    },
+    {
+     "ts": "2026-09-16T02:20:00+08:00",
+     "net_call_premium": -243638269.0,
+     "net_put_premium": -73147614.0,
+     "net_volume": -603337,
+     "spot": 757.6893
+    },
+    {
+     "ts": "2026-09-16T02:25:00+08:00",
+     "net_call_premium": -241563884.0,
+     "net_put_premium": -74622252.0,
+     "net_volume": -597417,
+     "spot": 757.755
+    },
+    {
+     "ts": "2026-09-16T02:30:00+08:00",
+     "net_call_premium": -238652432.0,
+     "net_put_premium": -69224545.0,
+     "net_volume": -624122,
+     "spot": 757.54
+    },
+    {
+     "ts": "2026-09-16T02:35:00+08:00",
+     "net_call_premium": -238885890.0,
+     "net_put_premium": -66144540.0,
+     "net_volume": -652708,
+     "spot": 757.45
+    },
+    {
+     "ts": "2026-09-16T02:40:00+08:00",
+     "net_call_premium": -250624871.0,
+     "net_put_premium": -57863011.0,
+     "net_volume": -704859,
+     "spot": 757.64
+    },
+    {
+     "ts": "2026-09-16T02:45:00+08:00",
+     "net_call_premium": -273189321.0,
+     "net_put_premium": -48635359.0,
+     "net_volume": -867590,
+     "spot": 757.21
+    },
+    {
+     "ts": "2026-09-16T02:50:00+08:00",
+     "net_call_premium": -279136879.0,
+     "net_put_premium": -54815615.0,
+     "net_volume": -831516,
+     "spot": 757.29
+    },
+    {
+     "ts": "2026-09-16T02:55:00+08:00",
+     "net_call_premium": -280840418.0,
+     "net_put_premium": -71929159.0,
+     "net_volume": -798650,
+     "spot": 757.2
+    },
+    {
+     "ts": "2026-09-16T03:00:00+08:00",
+     "net_call_premium": -295869719.0,
+     "net_put_premium": -73525842.0,
+     "net_volume": -817485,
+     "spot": 756.86
+    },
+    {
+     "ts": "2026-09-16T03:05:00+08:00",
+     "net_call_premium": -321253572.0,
+     "net_put_premium": -72899475.0,
+     "net_volume": -828956,
+     "spot": 757.08
+    },
+    {
+     "ts": "2026-09-16T03:10:00+08:00",
+     "net_call_premium": -332211929.0,
+     "net_put_premium": -75931623.0,
+     "net_volume": -849723,
+     "spot": 757.48
+    },
+    {
+     "ts": "2026-09-16T03:15:00+08:00",
+     "net_call_premium": -334988129.0,
+     "net_put_premium": -85528192.0,
+     "net_volume": -854984,
+     "spot": 757.34
+    },
+    {
+     "ts": "2026-09-16T03:20:00+08:00",
+     "net_call_premium": -339972343.0,
+     "net_put_premium": -87117810.0,
+     "net_volume": -905517,
+     "spot": 757.33
+    },
+    {
+     "ts": "2026-09-16T03:25:00+08:00",
+     "net_call_premium": -339055391.0,
+     "net_put_premium": -94918674.0,
+     "net_volume": -932402,
+     "spot": 757.16
+    },
+    {
+     "ts": "2026-09-16T03:30:00+08:00",
+     "net_call_premium": -337800756.0,
+     "net_put_premium": -91950612.0,
+     "net_volume": -977330,
+     "spot": 757.2001
+    },
+    {
+     "ts": "2026-09-16T03:35:00+08:00",
+     "net_call_premium": -346528065.0,
+     "net_put_premium": -100029131.0,
+     "net_volume": -1023288,
+     "spot": 757.11
+    },
+    {
+     "ts": "2026-09-16T03:40:00+08:00",
+     "net_call_premium": -349093346.0,
+     "net_put_premium": -107971966.0,
+     "net_volume": -1033135,
+     "spot": 757.02
+    },
+    {
+     "ts": "2026-09-16T03:45:00+08:00",
+     "net_call_premium": -344619944.0,
+     "net_put_premium": -106847270.0,
+     "net_volume": -1035830,
+     "spot": 756.94
+    },
+    {
+     "ts": "2026-09-16T03:50:00+08:00",
+     "net_call_premium": -340075808.0,
+     "net_put_premium": -112403612.0,
+     "net_volume": -1021377,
+     "spot": 756.645
+    },
+    {
+     "ts": "2026-09-16T03:55:00+08:00",
+     "net_call_premium": -335053392.0,
+     "net_put_premium": -113760194.0,
+     "net_volume": -1022664,
+     "spot": 756.98
+    }
+   ]
+  },
+  {
+   "date": "2026-09-16",
+   "points": [
+    {
+     "ts": "2026-09-16T21:30:00+08:00",
+     "net_call_premium": 20833890.0,
+     "net_put_premium": 1236414.0,
+     "net_volume": -9862,
+     "spot": 759.5746
+    },
+    {
+     "ts": "2026-09-16T21:35:00+08:00",
+     "net_call_premium": 28393495.0,
+     "net_put_premium": 4033751.0,
+     "net_volume": -65408,
+     "spot": 758.76
+    },
+    {
+     "ts": "2026-09-16T21:40:00+08:00",
+     "net_call_premium": 41961727.0,
+     "net_put_premium": 2342082.0,
+     "net_volume": -37986,
+     "spot": null
+    },
+    {
+     "ts": "2026-09-16T21:45:00+08:00",
+     "net_call_premium": 75928332.0,
+     "net_put_premium": -4281896.0,
+     "net_volume": 59955,
+     "spot": 758.84
+    },
+    {
+     "ts": "2026-09-16T21:50:00+08:00",
+     "net_call_premium": 94229599.0,
+     "net_put_premium": -5492387.0,
+     "net_volume": 153482,
+     "spot": null
+    },
+    {
+     "ts": "2026-09-16T21:55:00+08:00",
+     "net_call_premium": 102256819.0,
+     "net_put_premium": -4928923.0,
+     "net_volume": 128223,
+     "spot": null
+    },
+    {
+     "ts": "2026-09-16T22:00:00+08:00",
+     "net_call_premium": 99036329.0,
+     "net_put_premium": 7911799.0,
+     "net_volume": 83120,
+     "spot": 759.9101
+    },
+    {
+     "ts": "2026-09-16T22:05:00+08:00",
+     "net_call_premium": 106276424.0,
+     "net_put_premium": 8069216.0,
+     "net_volume": 77015,
+     "spot": 760.23
+    },
+    {
+     "ts": "2026-09-16T22:10:00+08:00",
+     "net_call_premium": 122586330.0,
+     "net_put_premium": 6248779.0,
+     "net_volume": 77208,
+     "spot": 760.21
+    },
+    {
+     "ts": "2026-09-16T22:15:00+08:00",
+     "net_call_premium": 128613491.0,
+     "net_put_premium": 499533.0,
+     "net_volume": 88632,
+     "spot": 759.68
+    },
+    {
+     "ts": "2026-09-16T22:20:00+08:00",
+     "net_call_premium": 134476652.0,
+     "net_put_premium": -251352.0,
+     "net_volume": 84513,
+     "spot": 759.69
+    },
+    {
+     "ts": "2026-09-16T22:25:00+08:00",
+     "net_call_premium": 134073587.0,
+     "net_put_premium": -3785136.0,
+     "net_volume": 114356,
+     "spot": 759.51
+    },
+    {
+     "ts": "2026-09-16T22:30:00+08:00",
+     "net_call_premium": 136747682.0,
+     "net_put_premium": 2795302.0,
+     "net_volume": 71162,
+     "spot": 759.26
+    },
+    {
+     "ts": "2026-09-16T22:35:00+08:00",
+     "net_call_premium": 132222624.0,
+     "net_put_premium": 1639472.0,
+     "net_volume": 52542,
+     "spot": 758.9401
+    },
+    {
+     "ts": "2026-09-16T22:40:00+08:00",
+     "net_call_premium": 141428323.0,
+     "net_put_premium": -3532326.0,
+     "net_volume": 313298,
+     "spot": 758.99
+    },
+    {
+     "ts": "2026-09-16T22:45:00+08:00",
+     "net_call_premium": 141203141.0,
+     "net_put_premium": 4086787.0,
+     "net_volume": 281414,
+     "spot": 759.161
+    },
+    {
+     "ts": "2026-09-16T22:50:00+08:00",
+     "net_call_premium": 134245985.0,
+     "net_put_premium": -8645237.0,
+     "net_volume": 312397,
+     "spot": 759.3793
+    },
+    {
+     "ts": "2026-09-16T22:55:00+08:00",
+     "net_call_premium": 144206981.0,
+     "net_put_premium": -15764526.0,
+     "net_volume": 347000,
+     "spot": 759.845
+    },
+    {
+     "ts": "2026-09-16T23:00:00+08:00",
+     "net_call_premium": 148398792.0,
+     "net_put_premium": -12769193.0,
+     "net_volume": 317128,
+     "spot": 759.64
+    },
+    {
+     "ts": "2026-09-16T23:05:00+08:00",
+     "net_call_premium": 159198720.0,
+     "net_put_premium": -10824142.0,
+     "net_volume": 377076,
+     "spot": 759.6707
+    },
+    {
+     "ts": "2026-09-16T23:10:00+08:00",
+     "net_call_premium": 159894394.0,
+     "net_put_premium": -7333385.0,
+     "net_volume": 377741,
+     "spot": 760.2124
+    },
+    {
+     "ts": "2026-09-16T23:15:00+08:00",
+     "net_call_premium": 157385160.0,
+     "net_put_premium": -8651265.0,
+     "net_volume": 360748,
+     "spot": 760.58
+    },
+    {
+     "ts": "2026-09-16T23:20:00+08:00",
+     "net_call_premium": 162109988.0,
+     "net_put_premium": -11332421.0,
+     "net_volume": 361559,
+     "spot": 760.93
+    },
+    {
+     "ts": "2026-09-16T23:25:00+08:00",
+     "net_call_premium": 160296804.0,
+     "net_put_premium": -13182794.0,
+     "net_volume": 348686,
+     "spot": 760.7599
+    },
+    {
+     "ts": "2026-09-16T23:30:00+08:00",
+     "net_call_premium": 151747794.0,
+     "net_put_premium": -10394796.0,
+     "net_volume": 389270,
+     "spot": 760.63
+    },
+    {
+     "ts": "2026-09-16T23:35:00+08:00",
+     "net_call_premium": 148426487.0,
+     "net_put_premium": -15034398.0,
+     "net_volume": 407947,
+     "spot": 760.56
+    },
+    {
+     "ts": "2026-09-16T23:40:00+08:00",
+     "net_call_premium": 154030113.0,
+     "net_put_premium": -15013297.0,
+     "net_volume": 447307,
+     "spot": 760.35
+    },
+    {
+     "ts": "2026-09-16T23:45:00+08:00",
+     "net_call_premium": 170763377.0,
+     "net_put_premium": -20600473.0,
+     "net_volume": 484527,
+     "spot": 760.19
+    },
+    {
+     "ts": "2026-09-16T23:50:00+08:00",
+     "net_call_premium": 160286411.0,
+     "net_put_premium": -18896304.0,
+     "net_volume": 430839,
+     "spot": 760.4
+    },
+    {
+     "ts": "2026-09-16T23:55:00+08:00",
+     "net_call_premium": 150853713.0,
+     "net_put_premium": -18538534.0,
+     "net_volume": 403435,
+     "spot": 760.56
+    },
+    {
+     "ts": "2026-09-17T00:00:00+08:00",
+     "net_call_premium": 147818133.0,
+     "net_put_premium": -14766156.0,
+     "net_volume": 360896,
+     "spot": 761.005
+    },
+    {
+     "ts": "2026-09-17T00:05:00+08:00",
+     "net_call_premium": 145317834.0,
+     "net_put_premium": -13613524.0,
+     "net_volume": 388148,
+     "spot": 760.83
+    },
+    {
+     "ts": "2026-09-17T00:10:00+08:00",
+     "net_call_premium": 147472660.0,
+     "net_put_premium": -10353746.0,
+     "net_volume": 373801,
+     "spot": 760.66
+    },
+    {
+     "ts": "2026-09-17T00:15:00+08:00",
+     "net_call_premium": 147054281.0,
+     "net_put_premium": -12772867.0,
+     "net_volume": 381610,
+     "spot": 760.345
+    },
+    {
+     "ts": "2026-09-17T00:20:00+08:00",
+     "net_call_premium": 139260441.0,
+     "net_put_premium": -4797405.0,
+     "net_volume": 377218,
+     "spot": 760.48
+    },
+    {
+     "ts": "2026-09-17T00:25:00+08:00",
+     "net_call_premium": 141386408.0,
+     "net_put_premium": -5228915.0,
+     "net_volume": 377642,
+     "spot": 760.35
+    },
+    {
+     "ts": "2026-09-17T00:30:00+08:00",
+     "net_call_premium": 135594498.0,
+     "net_put_premium": -3211399.0,
+     "net_volume": 372654,
+     "spot": 760.34
+    },
+    {
+     "ts": "2026-09-17T00:35:00+08:00",
+     "net_call_premium": 137577387.0,
+     "net_put_premium": -4287437.0,
+     "net_volume": 392038,
+     "spot": 759.9901
+    },
+    {
+     "ts": "2026-09-17T00:40:00+08:00",
+     "net_call_premium": 141832405.0,
+     "net_put_premium": -7550351.0,
+     "net_volume": 349572,
+     "spot": 760.15
+    },
+    {
+     "ts": "2026-09-17T00:45:00+08:00",
+     "net_call_premium": 145530774.0,
+     "net_put_premium": -12137687.0,
+     "net_volume": 362555,
+     "spot": 759.6935
+    },
+    {
+     "ts": "2026-09-17T00:50:00+08:00",
+     "net_call_premium": 134110905.0,
+     "net_put_premium": -20439107.0,
+     "net_volume": 333185,
+     "spot": 759.93
+    },
+    {
+     "ts": "2026-09-17T00:55:00+08:00",
+     "net_call_premium": 131591301.0,
+     "net_put_premium": -16246005.0,
+     "net_volume": 331480,
+     "spot": 759.9
+    },
+    {
+     "ts": "2026-09-17T01:00:00+08:00",
+     "net_call_premium": 124606365.0,
+     "net_put_premium": -18190468.0,
+     "net_volume": 290077,
+     "spot": 760.125
+    },
+    {
+     "ts": "2026-09-17T01:05:00+08:00",
+     "net_call_premium": 122866657.0,
+     "net_put_premium": -19704166.0,
+     "net_volume": 280224,
+     "spot": 759.89
+    },
+    {
+     "ts": "2026-09-17T01:10:00+08:00",
+     "net_call_premium": 114141727.0,
+     "net_put_premium": -22588274.0,
+     "net_volume": 290980,
+     "spot": 759.775
+    },
+    {
+     "ts": "2026-09-17T01:15:00+08:00",
+     "net_call_premium": 103705031.0,
+     "net_put_premium": -17358124.0,
+     "net_volume": 269099,
+     "spot": 759.4101
+    },
+    {
+     "ts": "2026-09-17T01:20:00+08:00",
+     "net_call_premium": 98509769.0,
+     "net_put_premium": -20142629.0,
+     "net_volume": 254025,
+     "spot": 759.57
+    },
+    {
+     "ts": "2026-09-17T01:25:00+08:00",
+     "net_call_premium": 102001807.0,
+     "net_put_premium": -29498893.0,
+     "net_volume": 276477,
+     "spot": 759.73
+    },
+    {
+     "ts": "2026-09-17T01:30:00+08:00",
+     "net_call_premium": 99692952.0,
+     "net_put_premium": -32192274.0,
+     "net_volume": 263516,
+     "spot": 759.76
+    },
+    {
+     "ts": "2026-09-17T01:35:00+08:00",
+     "net_call_premium": 97905510.0,
+     "net_put_premium": -33755370.0,
+     "net_volume": 241356,
+     "spot": 759.62
+    },
+    {
+     "ts": "2026-09-17T01:40:00+08:00",
+     "net_call_premium": 91795688.0,
+     "net_put_premium": -26134817.0,
+     "net_volume": 205195,
+     "spot": 759.93
+    },
+    {
+     "ts": "2026-09-17T01:45:00+08:00",
+     "net_call_premium": 87906938.0,
+     "net_put_premium": -41761295.0,
+     "net_volume": 205683,
+     "spot": 759.8
+    },
+    {
+     "ts": "2026-09-17T01:50:00+08:00",
+     "net_call_premium": 93351963.0,
+     "net_put_premium": -40543257.0,
+     "net_volume": 234627,
+     "spot": 759.635
+    },
+    {
+     "ts": "2026-09-17T01:55:00+08:00",
+     "net_call_premium": 103252839.0,
+     "net_put_premium": -48248033.0,
+     "net_volume": 237232,
+     "spot": 759.315
+    },
+    {
+     "ts": "2026-09-17T02:00:00+08:00",
+     "net_call_premium": 93848520.0,
+     "net_put_premium": -52924401.0,
+     "net_volume": 180091,
+     "spot": 759.56
+    },
+    {
+     "ts": "2026-09-17T02:05:00+08:00",
+     "net_call_premium": 114442081.0,
+     "net_put_premium": -54949194.0,
+     "net_volume": 254723,
+     "spot": 759.765
+    },
+    {
+     "ts": "2026-09-17T02:10:00+08:00",
+     "net_call_premium": 99612846.0,
+     "net_put_premium": -48254099.0,
+     "net_volume": 178164,
+     "spot": 760.23
+    },
+    {
+     "ts": "2026-09-17T02:15:00+08:00",
+     "net_call_premium": 89345620.0,
+     "net_put_premium": -45473061.0,
+     "net_volume": 137635,
+     "spot": 760.1785
+    },
+    {
+     "ts": "2026-09-17T02:20:00+08:00",
+     "net_call_premium": 88477945.0,
+     "net_put_premium": -37673024.0,
+     "net_volume": 127907,
+     "spot": 760.6847
+    },
+    {
+     "ts": "2026-09-17T02:25:00+08:00",
+     "net_call_premium": 81103049.0,
+     "net_put_premium": -45254764.0,
+     "net_volume": 84639,
+     "spot": 759.94
+    },
+    {
+     "ts": "2026-09-17T02:30:00+08:00",
+     "net_call_premium": 56377545.0,
+     "net_put_premium": -34171531.0,
+     "net_volume": -46033,
+     "spot": 759.96
+    },
+    {
+     "ts": "2026-09-17T02:35:00+08:00",
+     "net_call_premium": 32608932.0,
+     "net_put_premium": -17255263.0,
+     "net_volume": -151240,
+     "spot": 759.87
+    },
+    {
+     "ts": "2026-09-17T02:40:00+08:00",
+     "net_call_premium": 44002805.0,
+     "net_put_premium": -24796463.0,
+     "net_volume": -21163,
+     "spot": 759.73
+    },
+    {
+     "ts": "2026-09-17T02:45:00+08:00",
+     "net_call_premium": 34894345.0,
+     "net_put_premium": -17275119.0,
+     "net_volume": -76182,
+     "spot": 757.76
+    },
+    {
+     "ts": "2026-09-17T02:50:00+08:00",
+     "net_call_premium": 17555512.0,
+     "net_put_premium": 18490.0,
+     "net_volume": -249010,
+     "spot": 757.74
+    },
+    {
+     "ts": "2026-09-17T02:55:00+08:00",
+     "net_call_premium": -13594081.0,
+     "net_put_premium": 15052222.0,
+     "net_volume": -400017,
+     "spot": 758.98
+    },
+    {
+     "ts": "2026-09-17T03:00:00+08:00",
+     "net_call_premium": -14881289.0,
+     "net_put_premium": 1629666.0,
+     "net_volume": -361415,
+     "spot": 757.6
+    },
+    {
+     "ts": "2026-09-17T03:05:00+08:00",
+     "net_call_premium": -27629684.0,
+     "net_put_premium": 23537226.0,
+     "net_volume": -501878,
+     "spot": 755.245
+    },
+    {
+     "ts": "2026-09-17T03:10:00+08:00",
+     "net_call_premium": -52628602.0,
+     "net_put_premium": 39603243.0,
+     "net_volume": -729263,
+     "spot": 753.82
+    },
+    {
+     "ts": "2026-09-17T03:15:00+08:00",
+     "net_call_premium": -67999589.0,
+     "net_put_premium": 70731934.0,
+     "net_volume": -839572,
+     "spot": 754.73
+    },
+    {
+     "ts": "2026-09-17T03:20:00+08:00",
+     "net_call_premium": -77263306.0,
+     "net_put_premium": 82722839.0,
+     "net_volume": -903276,
+     "spot": 753.2473
+    },
+    {
+     "ts": "2026-09-17T03:25:00+08:00",
+     "net_call_premium": -81208252.0,
+     "net_put_premium": 87675027.0,
+     "net_volume": -955943,
+     "spot": 751.29
+    },
+    {
+     "ts": "2026-09-17T03:30:00+08:00",
+     "net_call_premium": -80696331.0,
+     "net_put_premium": 65883899.0,
+     "net_volume": -909800,
+     "spot": 750.78
+    },
+    {
+     "ts": "2026-09-17T03:35:00+08:00",
+     "net_call_premium": -88573344.0,
+     "net_put_premium": 67259692.0,
+     "net_volume": -870236,
+     "spot": 750.6693
+    },
+    {
+     "ts": "2026-09-17T03:40:00+08:00",
+     "net_call_premium": -102809098.0,
+     "net_put_premium": 58239767.0,
+     "net_volume": -884040,
+     "spot": 751.295
+    },
+    {
+     "ts": "2026-09-17T03:45:00+08:00",
+     "net_call_premium": -95993453.0,
+     "net_put_premium": 48619138.0,
+     "net_volume": -867786,
+     "spot": 752.5701
+    },
+    {
+     "ts": "2026-09-17T03:50:00+08:00",
+     "net_call_premium": -89524840.0,
+     "net_put_premium": 39919862.0,
+     "net_volume": -751089,
+     "spot": 752.41
+    },
+    {
+     "ts": "2026-09-17T03:55:00+08:00",
+     "net_call_premium": -83190868.0,
+     "net_put_premium": 20414187.0,
+     "net_volume": -640723,
+     "spot": 752.24
+    },
+    {
+     "ts": "2026-09-17T04:00:00+08:00",
+     "net_call_premium": -78040228.0,
+     "net_put_premium": 19883043.0,
+     "net_volume": -609890,
+     "spot": 753.46
+    },
+    {
+     "ts": "2026-09-17T04:05:00+08:00",
+     "net_call_premium": -76771995.0,
+     "net_put_premium": 20332367.0,
+     "net_volume": -593569,
+     "spot": 754.1
+    }
+   ]
+  },
+  {
+   "date": "2026-09-17",
+   "points": [
+    {
+     "ts": "2026-09-17T21:30:00+08:00",
+     "net_call_premium": 47092579.0,
+     "net_put_premium": -3173596.0,
+     "net_volume": 59206,
+     "spot": 763.45
+    },
+    {
+     "ts": "2026-09-17T21:35:00+08:00",
+     "net_call_premium": 59646582.0,
+     "net_put_premium": -10126494.0,
+     "net_volume": 29094,
+     "spot": 763.2
+    },
+    {
+     "ts": "2026-09-17T21:40:00+08:00",
+     "net_call_premium": 66964912.0,
+     "net_put_premium": -20326278.0,
+     "net_volume": 60458,
+     "spot": 763.09
+    },
+    {
+     "ts": "2026-09-17T21:45:00+08:00",
+     "net_call_premium": 90044349.0,
+     "net_put_premium": -33527088.0,
+     "net_volume": 158766,
+     "spot": 761.48
+    },
+    {
+     "ts": "2026-09-17T21:50:00+08:00",
+     "net_call_premium": 115234047.0,
+     "net_put_premium": -42196695.0,
+     "net_volume": 257583,
+     "spot": 761.11
+    },
+    {
+     "ts": "2026-09-17T21:55:00+08:00",
+     "net_call_premium": 119433358.0,
+     "net_put_premium": -39700843.0,
+     "net_volume": 259954,
+     "spot": 760.935
+    },
+    {
+     "ts": "2026-09-17T22:00:00+08:00",
+     "net_call_premium": 105737838.0,
+     "net_put_premium": -30804570.0,
+     "net_volume": 248347,
+     "spot": 761.35
+    },
+    {
+     "ts": "2026-09-17T22:05:00+08:00",
+     "net_call_premium": 121475094.0,
+     "net_put_premium": -29596032.0,
+     "net_volume": 321644,
+     "spot": 761.14
+    },
+    {
+     "ts": "2026-09-17T22:10:00+08:00",
+     "net_call_premium": 140272054.0,
+     "net_put_premium": -33416192.0,
+     "net_volume": 469461,
+     "spot": 761.23
+    },
+    {
+     "ts": "2026-09-17T22:15:00+08:00",
+     "net_call_premium": 145577794.0,
+     "net_put_premium": -41039434.0,
+     "net_volume": 537812,
+     "spot": 760.611
+    },
+    {
+     "ts": "2026-09-17T22:20:00+08:00",
+     "net_call_premium": 157668774.0,
+     "net_put_premium": -49345522.0,
+     "net_volume": 671425,
+     "spot": null
+    },
+    {
+     "ts": "2026-09-17T22:25:00+08:00",
+     "net_call_premium": 159188297.0,
+     "net_put_premium": -41066945.0,
+     "net_volume": 707390,
+     "spot": null
+    },
+    {
+     "ts": "2026-09-17T22:30:00+08:00",
+     "net_call_premium": 163745792.0,
+     "net_put_premium": -35278170.0,
+     "net_volume": 761915,
+     "spot": 761.42
+    },
+    {
+     "ts": "2026-09-17T22:35:00+08:00",
+     "net_call_premium": 165834298.0,
+     "net_put_premium": -36869922.0,
+     "net_volume": 748655,
+     "spot": 761.9076
+    },
+    {
+     "ts": "2026-09-17T22:40:00+08:00",
+     "net_call_premium": 158503741.0,
+     "net_put_premium": -36817764.0,
+     "net_volume": 765524,
+     "spot": 761.69
+    },
+    {
+     "ts": "2026-09-17T22:45:00+08:00",
+     "net_call_premium": 154880283.0,
+     "net_put_premium": -37191544.0,
+     "net_volume": 737697,
+     "spot": 761.9803
+    },
+    {
+     "ts": "2026-09-17T22:50:00+08:00",
+     "net_call_premium": 144538992.0,
+     "net_put_premium": -33474255.0,
+     "net_volume": 673745,
+     "spot": 761.665
+    },
+    {
+     "ts": "2026-09-17T22:55:00+08:00",
+     "net_call_premium": 144672916.0,
+     "net_put_premium": -29849117.0,
+     "net_volume": 699506,
+     "spot": 761.94
+    },
+    {
+     "ts": "2026-09-17T23:00:00+08:00",
+     "net_call_premium": 138324108.0,
+     "net_put_premium": -22657974.0,
+     "net_volume": 692223,
+     "spot": 761.26
+    },
+    {
+     "ts": "2026-09-17T23:05:00+08:00",
+     "net_call_premium": 133955740.0,
+     "net_put_premium": -16675923.0,
+     "net_volume": 643766,
+     "spot": 760.76
+    },
+    {
+     "ts": "2026-09-17T23:10:00+08:00",
+     "net_call_premium": 123196082.0,
+     "net_put_premium": -13563784.0,
+     "net_volume": 589448,
+     "spot": 761.14
+    },
+    {
+     "ts": "2026-09-17T23:15:00+08:00",
+     "net_call_premium": 117834614.0,
+     "net_put_premium": -24843994.0,
+     "net_volume": 646466,
+     "spot": 761.445
+    },
+    {
+     "ts": "2026-09-17T23:20:00+08:00",
+     "net_call_premium": 112015147.0,
+     "net_put_premium": -27582978.0,
+     "net_volume": 649558,
+     "spot": 761.29
+    },
+    {
+     "ts": "2026-09-17T23:25:00+08:00",
+     "net_call_premium": 121482448.0,
+     "net_put_premium": -31675614.0,
+     "net_volume": 739272,
+     "spot": 761.58
+    },
+    {
+     "ts": "2026-09-17T23:30:00+08:00",
+     "net_call_premium": 117130598.0,
+     "net_put_premium": -34237733.0,
+     "net_volume": 762357,
+     "spot": 761.71
+    },
+    {
+     "ts": "2026-09-17T23:35:00+08:00",
+     "net_call_premium": 117103875.0,
+     "net_put_premium": -39006014.0,
+     "net_volume": 812579,
+     "spot": 762.0199
+    },
+    {
+     "ts": "2026-09-17T23:40:00+08:00",
+     "net_call_premium": 126143057.0,
+     "net_put_premium": -41388839.0,
+     "net_volume": 881705,
+     "spot": 762.25
+    },
+    {
+     "ts": "2026-09-17T23:45:00+08:00",
+     "net_call_premium": 118118680.0,
+     "net_put_premium": -43027929.0,
+     "net_volume": 890514,
+     "spot": 762.335
+    },
+    {
+     "ts": "2026-09-17T23:50:00+08:00",
+     "net_call_premium": 117097460.0,
+     "net_put_premium": -30058070.0,
+     "net_volume": 879807,
+     "spot": 762.38
+    },
+    {
+     "ts": "2026-09-17T23:55:00+08:00",
+     "net_call_premium": 115622064.0,
+     "net_put_premium": -36221828.0,
+     "net_volume": 883642,
+     "spot": 762.5299
+    },
+    {
+     "ts": "2026-09-18T00:00:00+08:00",
+     "net_call_premium": 117545108.0,
+     "net_put_premium": -32049453.0,
+     "net_volume": 915219,
+     "spot": 762.37
+    },
+    {
+     "ts": "2026-09-18T00:05:00+08:00",
+     "net_call_premium": 112315419.0,
+     "net_put_premium": -39633435.0,
+     "net_volume": 936089,
+     "spot": 762.5
+    },
+    {
+     "ts": "2026-09-18T00:10:00+08:00",
+     "net_call_premium": 96567322.0,
+     "net_put_premium": -44430192.0,
+     "net_volume": 922306,
+     "spot": 762.3
+    },
+    {
+     "ts": "2026-09-18T00:15:00+08:00",
+     "net_call_premium": 86115052.0,
+     "net_put_premium": -47859701.0,
+     "net_volume": 940829,
+     "spot": 762.3279
+    },
+    {
+     "ts": "2026-09-18T00:20:00+08:00",
+     "net_call_premium": 86550487.0,
+     "net_put_premium": -48712859.0,
+     "net_volume": 993703,
+     "spot": 762.49
+    },
+    {
+     "ts": "2026-09-18T00:25:00+08:00",
+     "net_call_premium": 88568507.0,
+     "net_put_premium": -53270032.0,
+     "net_volume": 988147,
+     "spot": 762.53
+    },
+    {
+     "ts": "2026-09-18T00:30:00+08:00",
+     "net_call_premium": 80575806.0,
+     "net_put_premium": -48446248.0,
+     "net_volume": 940480,
+     "spot": 762.05
+    },
+    {
+     "ts": "2026-09-18T00:35:00+08:00",
+     "net_call_premium": 79041567.0,
+     "net_put_premium": -45914184.0,
+     "net_volume": 929200,
+     "spot": 762.2
+    },
+    {
+     "ts": "2026-09-18T00:40:00+08:00",
+     "net_call_premium": 77976288.0,
+     "net_put_premium": -50943969.0,
+     "net_volume": 993929,
+     "spot": 762.615
+    },
+    {
+     "ts": "2026-09-18T00:45:00+08:00",
+     "net_call_premium": 75250792.0,
+     "net_put_premium": -52567376.0,
+     "net_volume": 998541,
+     "spot": 762.44
+    },
+    {
+     "ts": "2026-09-18T00:50:00+08:00",
+     "net_call_premium": 75232532.0,
+     "net_put_premium": -54192241.0,
+     "net_volume": 1040610,
+     "spot": 762.4
+    },
+    {
+     "ts": "2026-09-18T00:55:00+08:00",
+     "net_call_premium": 63563694.0,
+     "net_put_premium": -43386486.0,
+     "net_volume": 991172,
+     "spot": 762.455
+    },
+    {
+     "ts": "2026-09-18T01:00:00+08:00",
+     "net_call_premium": 68763672.0,
+     "net_put_premium": -47711194.0,
+     "net_volume": 1018333,
+     "spot": 762.545
+    },
+    {
+     "ts": "2026-09-18T01:05:00+08:00",
+     "net_call_premium": 71280602.0,
+     "net_put_premium": -44104456.0,
+     "net_volume": 1007004,
+     "spot": 762.39
+    },
+    {
+     "ts": "2026-09-18T01:10:00+08:00",
+     "net_call_premium": 70667685.0,
+     "net_put_premium": -46858043.0,
+     "net_volume": 1024775,
+     "spot": 762.245
+    },
+    {
+     "ts": "2026-09-18T01:15:00+08:00",
+     "net_call_premium": 70153492.0,
+     "net_put_premium": -42997417.0,
+     "net_volume": 1029771,
+     "spot": 762.26
+    },
+    {
+     "ts": "2026-09-18T01:20:00+08:00",
+     "net_call_premium": 62270080.0,
+     "net_put_premium": -39375795.0,
+     "net_volume": 982936,
+     "spot": 761.91
+    },
+    {
+     "ts": "2026-09-18T01:25:00+08:00",
+     "net_call_premium": 66700878.0,
+     "net_put_premium": -44336728.0,
+     "net_volume": 980691,
+     "spot": 762.035
+    },
+    {
+     "ts": "2026-09-18T01:30:00+08:00",
+     "net_call_premium": 57176773.0,
+     "net_put_premium": -54641945.0,
+     "net_volume": 1041090,
+     "spot": 762.26
+    },
+    {
+     "ts": "2026-09-18T01:35:00+08:00",
+     "net_call_premium": 47271303.0,
+     "net_put_premium": -64956938.0,
+     "net_volume": 1023541,
+     "spot": 762.22
+    },
+    {
+     "ts": "2026-09-18T01:40:00+08:00",
+     "net_call_premium": 47672404.0,
+     "net_put_premium": -72290664.0,
+     "net_volume": 1090493,
+     "spot": 762.04
+    },
+    {
+     "ts": "2026-09-18T01:45:00+08:00",
+     "net_call_premium": 45586311.0,
+     "net_put_premium": -74070944.0,
+     "net_volume": 1095820,
+     "spot": 762.48
+    },
+    {
+     "ts": "2026-09-18T01:50:00+08:00",
+     "net_call_premium": 42772865.0,
+     "net_put_premium": -74918961.0,
+     "net_volume": 1060608,
+     "spot": 762.36
+    },
+    {
+     "ts": "2026-09-18T01:55:00+08:00",
+     "net_call_premium": 41983345.0,
+     "net_put_premium": -78605561.0,
+     "net_volume": 1080659,
+     "spot": 762.63
+    },
+    {
+     "ts": "2026-09-18T02:00:00+08:00",
+     "net_call_premium": 38702228.0,
+     "net_put_premium": -79997461.0,
+     "net_volume": 1107982,
+     "spot": 762.81
+    },
+    {
+     "ts": "2026-09-18T02:05:00+08:00",
+     "net_call_premium": 37947874.0,
+     "net_put_premium": -77404378.0,
+     "net_volume": 1086765,
+     "spot": 762.495
+    },
+    {
+     "ts": "2026-09-18T02:10:00+08:00",
+     "net_call_premium": 38296861.0,
+     "net_put_premium": -73816427.0,
+     "net_volume": 1087945,
+     "spot": 762.73
+    },
+    {
+     "ts": "2026-09-18T02:15:00+08:00",
+     "net_call_premium": 31188166.0,
+     "net_put_premium": -71773049.0,
+     "net_volume": 1084941,
+     "spot": 762.84
+    },
+    {
+     "ts": "2026-09-18T02:20:00+08:00",
+     "net_call_premium": 27396448.0,
+     "net_put_premium": -74097317.0,
+     "net_volume": 1067174,
+     "spot": 762.58
+    },
+    {
+     "ts": "2026-09-18T02:25:00+08:00",
+     "net_call_premium": 26860364.0,
+     "net_put_premium": -41727018.0,
+     "net_volume": 1095687,
+     "spot": 762.73
+    },
+    {
+     "ts": "2026-09-18T02:30:00+08:00",
+     "net_call_premium": 31043889.0,
+     "net_put_premium": -7359130.0,
+     "net_volume": 956347,
+     "spot": 762.48
+    },
+    {
+     "ts": "2026-09-18T02:35:00+08:00",
+     "net_call_premium": 27433639.0,
+     "net_put_premium": -31452948.0,
+     "net_volume": 932454,
+     "spot": 762.21
+    },
+    {
+     "ts": "2026-09-18T02:40:00+08:00",
+     "net_call_premium": 25697008.0,
+     "net_put_premium": -53490909.0,
+     "net_volume": 952131,
+     "spot": 762.35
+    },
+    {
+     "ts": "2026-09-18T02:45:00+08:00",
+     "net_call_premium": 27618593.0,
+     "net_put_premium": -57490114.0,
+     "net_volume": 978376,
+     "spot": 762.465
+    },
+    {
+     "ts": "2026-09-18T02:50:00+08:00",
+     "net_call_premium": 25289680.0,
+     "net_put_premium": -46700476.0,
+     "net_volume": 999299,
+     "spot": 762.32
+    },
+    {
+     "ts": "2026-09-18T02:55:00+08:00",
+     "net_call_premium": 23048660.0,
+     "net_put_premium": -53874314.0,
+     "net_volume": 1027947,
+     "spot": 762.44
+    },
+    {
+     "ts": "2026-09-18T03:00:00+08:00",
+     "net_call_premium": 30581036.0,
+     "net_put_premium": -53203354.0,
+     "net_volume": 1074003,
+     "spot": 762.86
+    },
+    {
+     "ts": "2026-09-18T03:05:00+08:00",
+     "net_call_premium": 28871774.0,
+     "net_put_premium": -57066177.0,
+     "net_volume": 1091843,
+     "spot": 762.785
+    },
+    {
+     "ts": "2026-09-18T03:10:00+08:00",
+     "net_call_premium": 27001748.0,
+     "net_put_premium": -57782531.0,
+     "net_volume": 1095533,
+     "spot": 762.765
+    },
+    {
+     "ts": "2026-09-18T03:15:00+08:00",
+     "net_call_premium": 33056838.0,
+     "net_put_premium": -63714163.0,
+     "net_volume": 1073631,
+     "spot": 762.9099
+    },
+    {
+     "ts": "2026-09-18T03:20:00+08:00",
+     "net_call_premium": 30996546.0,
+     "net_put_premium": -58727445.0,
+     "net_volume": 1044934,
+     "spot": 762.64
+    },
+    {
+     "ts": "2026-09-18T03:25:00+08:00",
+     "net_call_premium": 38363840.0,
+     "net_put_premium": -56637491.0,
+     "net_volume": 1051679,
+     "spot": 762.61
+    },
+    {
+     "ts": "2026-09-18T03:30:00+08:00",
+     "net_call_premium": 45667946.0,
+     "net_put_premium": -58265100.0,
+     "net_volume": 1117827,
+     "spot": 762.83
+    },
+    {
+     "ts": "2026-09-18T03:35:00+08:00",
+     "net_call_premium": 44417568.0,
+     "net_put_premium": -60586944.0,
+     "net_volume": 1167657,
+     "spot": 762.98
+    },
+    {
+     "ts": "2026-09-18T03:40:00+08:00",
+     "net_call_premium": 46986832.0,
+     "net_put_premium": -70065641.0,
+     "net_volume": 1195885,
+     "spot": 763.12
+    },
+    {
+     "ts": "2026-09-18T03:45:00+08:00",
+     "net_call_premium": 47201883.0,
+     "net_put_premium": -69688372.0,
+     "net_volume": 1177111,
+     "spot": 762.8
+    },
+    {
+     "ts": "2026-09-18T03:50:00+08:00",
+     "net_call_premium": 70516383.0,
+     "net_put_premium": -73668519.0,
+     "net_volume": 1248176,
+     "spot": 763.13
+    },
+    {
+     "ts": "2026-09-18T03:55:00+08:00",
+     "net_call_premium": 52031238.0,
+     "net_put_premium": -60023582.0,
+     "net_volume": 1221306,
+     "spot": 762.48
+    },
+    {
+     "ts": "2026-09-18T04:00:00+08:00",
+     "net_call_premium": 2205804.0,
+     "net_put_premium": -56058582.0,
+     "net_volume": 1188403,
+     "spot": null
+    },
+    {
+     "ts": "2026-09-18T04:05:00+08:00",
+     "net_call_premium": 1846247.0,
+     "net_put_premium": -56733118.0,
+     "net_volume": 1199426,
+     "spot": 762.68
+    }
+   ]
+  },
+  {
+   "date": "2026-09-18",
+   "points": [
+    {
+     "ts": "2026-09-18T21:30:00+08:00",
+     "net_call_premium": 32321589.0,
+     "net_put_premium": -11210195.0,
+     "net_volume": 41461,
+     "spot": 760.56
+    },
+    {
+     "ts": "2026-09-18T21:35:00+08:00",
+     "net_call_premium": 37170145.0,
+     "net_put_premium": -12005478.0,
+     "net_volume": 30011,
+     "spot": 760.17
+    },
+    {
+     "ts": "2026-09-18T21:40:00+08:00",
+     "net_call_premium": 33578363.0,
+     "net_put_premium": -14229193.0,
+     "net_volume": 89587,
+     "spot": 761.18
+    },
+    {
+     "ts": "2026-09-18T21:45:00+08:00",
+     "net_call_premium": 32931691.0,
+     "net_put_premium": -13444527.0,
+     "net_volume": 81379,
+     "spot": 761.1
+    },
+    {
+     "ts": "2026-09-18T21:50:00+08:00",
+     "net_call_premium": 32369653.0,
+     "net_put_premium": -8019726.0,
+     "net_volume": 86752,
+     "spot": 760.92
+    },
+    {
+     "ts": "2026-09-18T21:55:00+08:00",
+     "net_call_premium": 29511528.0,
+     "net_put_premium": -7971860.0,
+     "net_volume": 73750,
+     "spot": null
+    },
+    {
+     "ts": "2026-09-18T22:00:00+08:00",
+     "net_call_premium": 20664838.0,
+     "net_put_premium": 6514785.0,
+     "net_volume": -2800,
+     "spot": null
+    },
+    {
+     "ts": "2026-09-18T22:05:00+08:00",
+     "net_call_premium": 10798871.0,
+     "net_put_premium": -2822365.0,
+     "net_volume": 51053,
+     "spot": null
+    },
+    {
+     "ts": "2026-09-18T22:10:00+08:00",
+     "net_call_premium": 12411982.0,
+     "net_put_premium": -5076777.0,
+     "net_volume": 83240,
+     "spot": 759.71
+    },
+    {
+     "ts": "2026-09-18T22:15:00+08:00",
+     "net_call_premium": 10603010.0,
+     "net_put_premium": -1654596.0,
+     "net_volume": 88783,
+     "spot": 759.07
+    },
+    {
+     "ts": "2026-09-18T22:20:00+08:00",
+     "net_call_premium": 21355098.0,
+     "net_put_premium": -2700731.0,
+     "net_volume": 187800,
+     "spot": 759.39
+    },
+    {
+     "ts": "2026-09-18T22:25:00+08:00",
+     "net_call_premium": 8255072.0,
+     "net_put_premium": -1887675.0,
+     "net_volume": 202337,
+     "spot": 759.24
+    },
+    {
+     "ts": "2026-09-18T22:30:00+08:00",
+     "net_call_premium": -2534539.0,
+     "net_put_premium": -1302315.0,
+     "net_volume": 139367,
+     "spot": null
+    },
+    {
+     "ts": "2026-09-18T22:35:00+08:00",
+     "net_call_premium": 3115831.0,
+     "net_put_premium": -3101214.0,
+     "net_volume": 211741,
+     "spot": 759.36
+    },
+    {
+     "ts": "2026-09-18T22:40:00+08:00",
+     "net_call_premium": -7220204.0,
+     "net_put_premium": 2940705.0,
+     "net_volume": 173189,
+     "spot": 759.175
+    },
+    {
+     "ts": "2026-09-18T22:45:00+08:00",
+     "net_call_premium": -7864429.5,
+     "net_put_premium": -4009506.0,
+     "net_volume": 243611,
+     "spot": 759.36
+    },
+    {
+     "ts": "2026-09-18T22:50:00+08:00",
+     "net_call_premium": 269788.5,
+     "net_put_premium": -13970902.0,
+     "net_volume": 287930,
+     "spot": 759.22
+    },
+    {
+     "ts": "2026-09-18T22:55:00+08:00",
+     "net_call_premium": 391618.5,
+     "net_put_premium": -15346483.0,
+     "net_volume": 277509,
+     "spot": 759.485
+    },
+    {
+     "ts": "2026-09-18T23:00:00+08:00",
+     "net_call_premium": -2168962.5,
+     "net_put_premium": -24313826.0,
+     "net_volume": 291095,
+     "spot": 758.99
+    },
+    {
+     "ts": "2026-09-18T23:05:00+08:00",
+     "net_call_premium": 3106366.5,
+     "net_put_premium": -27067326.0,
+     "net_volume": 276043,
+     "spot": 759.421
+    },
+    {
+     "ts": "2026-09-18T23:10:00+08:00",
+     "net_call_premium": -6347246.5,
+     "net_put_premium": -26968766.0,
+     "net_volume": 195120,
+     "spot": 759.851
+    },
+    {
+     "ts": "2026-09-18T23:15:00+08:00",
+     "net_call_premium": -7322296.5,
+     "net_put_premium": -21988644.0,
+     "net_volume": 204259,
+     "spot": 759.95
+    },
+    {
+     "ts": "2026-09-18T23:20:00+08:00",
+     "net_call_premium": -9042392.5,
+     "net_put_premium": -24606173.0,
+     "net_volume": 220780,
+     "spot": 759.68
+    },
+    {
+     "ts": "2026-09-18T23:25:00+08:00",
+     "net_call_premium": -13451487.5,
+     "net_put_premium": -26473694.0,
+     "net_volume": 234891,
+     "spot": 759.78
+    },
+    {
+     "ts": "2026-09-18T23:30:00+08:00",
+     "net_call_premium": -26159134.5,
+     "net_put_premium": -28636041.0,
+     "net_volume": 147275,
+     "spot": 759.58
+    },
+    {
+     "ts": "2026-09-18T23:35:00+08:00",
+     "net_call_premium": -37522866.5,
+     "net_put_premium": -22218988.0,
+     "net_volume": 60658,
+     "spot": 759.74
+    },
+    {
+     "ts": "2026-09-18T23:40:00+08:00",
+     "net_call_premium": -49654286.5,
+     "net_put_premium": -18034962.0,
+     "net_volume": 14528,
+     "spot": 759.8
+    },
+    {
+     "ts": "2026-09-18T23:45:00+08:00",
+     "net_call_premium": -55975486.5,
+     "net_put_premium": -26758930.0,
+     "net_volume": 23562,
+     "spot": 760.01
+    },
+    {
+     "ts": "2026-09-18T23:50:00+08:00",
+     "net_call_premium": -62191683.5,
+     "net_put_premium": -31983443.0,
+     "net_volume": -1767,
+     "spot": 759.78
+    },
+    {
+     "ts": "2026-09-18T23:55:00+08:00",
+     "net_call_premium": -65611525.5,
+     "net_put_premium": -37143937.0,
+     "net_volume": 26660,
+     "spot": 759.27
+    },
+    {
+     "ts": "2026-09-19T00:00:00+08:00",
+     "net_call_premium": -80199494.5,
+     "net_put_premium": -37455414.0,
+     "net_volume": -25470,
+     "spot": 759.335
+    },
+    {
+     "ts": "2026-09-19T00:05:00+08:00",
+     "net_call_premium": -80413498.5,
+     "net_put_premium": -35430245.0,
+     "net_volume": -7310,
+     "spot": 759.15
+    },
+    {
+     "ts": "2026-09-19T00:10:00+08:00",
+     "net_call_premium": -80955968.5,
+     "net_put_premium": -38593579.0,
+     "net_volume": -39413,
+     "spot": 758.95
+    },
+    {
+     "ts": "2026-09-19T00:15:00+08:00",
+     "net_call_premium": -80330887.5,
+     "net_put_premium": -40595486.0,
+     "net_volume": -47447,
+     "spot": 759.0
+    },
+    {
+     "ts": "2026-09-19T00:20:00+08:00",
+     "net_call_premium": -90210509.5,
+     "net_put_premium": -28637864.0,
+     "net_volume": -155068,
+     "spot": 758.84
+    },
+    {
+     "ts": "2026-09-19T00:25:00+08:00",
+     "net_call_premium": -80432135.5,
+     "net_put_premium": -23189121.0,
+     "net_volume": -160964,
+     "spot": 759.16
+    },
+    {
+     "ts": "2026-09-19T00:30:00+08:00",
+     "net_call_premium": -86626199.5,
+     "net_put_premium": -28326589.0,
+     "net_volume": -142284,
+     "spot": 759.04
+    },
+    {
+     "ts": "2026-09-19T00:35:00+08:00",
+     "net_call_premium": -91343106.5,
+     "net_put_premium": -24061152.0,
+     "net_volume": -140465,
+     "spot": 759.09
+    },
+    {
+     "ts": "2026-09-19T00:40:00+08:00",
+     "net_call_premium": -91823751.5,
+     "net_put_premium": -24765443.0,
+     "net_volume": -141801,
+     "spot": 758.24
+    },
+    {
+     "ts": "2026-09-19T00:45:00+08:00",
+     "net_call_premium": -93824098.5,
+     "net_put_premium": -27447017.0,
+     "net_volume": -133848,
+     "spot": 758.745
+    },
+    {
+     "ts": "2026-09-19T00:50:00+08:00",
+     "net_call_premium": -90804358.5,
+     "net_put_premium": -34437675.0,
+     "net_volume": -107760,
+     "spot": 759.155
+    },
+    {
+     "ts": "2026-09-19T00:55:00+08:00",
+     "net_call_premium": -95625484.5,
+     "net_put_premium": -41601143.0,
+     "net_volume": -127540,
+     "spot": 758.96
+    },
+    {
+     "ts": "2026-09-19T01:00:00+08:00",
+     "net_call_premium": -91718834.5,
+     "net_put_premium": -41640620.0,
+     "net_volume": -118626,
+     "spot": 759.11
+    },
+    {
+     "ts": "2026-09-19T01:05:00+08:00",
+     "net_call_premium": -89587000.5,
+     "net_put_premium": -45998373.0,
+     "net_volume": -103054,
+     "spot": 759.16
+    },
+    {
+     "ts": "2026-09-19T01:10:00+08:00",
+     "net_call_premium": -95498216.5,
+     "net_put_premium": -47004407.0,
+     "net_volume": -141036,
+     "spot": 759.47
+    },
+    {
+     "ts": "2026-09-19T01:15:00+08:00",
+     "net_call_premium": -97216049.5,
+     "net_put_premium": -49581448.0,
+     "net_volume": -136291,
+     "spot": 759.35
+    },
+    {
+     "ts": "2026-09-19T01:20:00+08:00",
+     "net_call_premium": -101675097.5,
+     "net_put_premium": -50717949.0,
+     "net_volume": -126335,
+     "spot": 759.34
+    },
+    {
+     "ts": "2026-09-19T01:25:00+08:00",
+     "net_call_premium": -102287889.5,
+     "net_put_premium": -57578216.0,
+     "net_volume": -119167,
+     "spot": 759.33
+    },
+    {
+     "ts": "2026-09-19T01:30:00+08:00",
+     "net_call_premium": -109942813.5,
+     "net_put_premium": -67875107.0,
+     "net_volume": -111488,
+     "spot": 759.33
+    },
+    {
+     "ts": "2026-09-19T01:35:00+08:00",
+     "net_call_premium": -118731871.5,
+     "net_put_premium": -82378995.0,
+     "net_volume": -96183,
+     "spot": 759.491
+    },
+    {
+     "ts": "2026-09-19T01:40:00+08:00",
+     "net_call_premium": -116358783.5,
+     "net_put_premium": -87557616.0,
+     "net_volume": -71179,
+     "spot": 759.4
+    },
+    {
+     "ts": "2026-09-19T01:45:00+08:00",
+     "net_call_premium": -118420718.5,
+     "net_put_premium": -92370820.0,
+     "net_volume": -82251,
+     "spot": 759.43
+    },
+    {
+     "ts": "2026-09-19T01:50:00+08:00",
+     "net_call_premium": -120599632.5,
+     "net_put_premium": -95000071.0,
+     "net_volume": -62104,
+     "spot": 759.71
+    },
+    {
+     "ts": "2026-09-19T01:55:00+08:00",
+     "net_call_premium": -114029469.5,
+     "net_put_premium": -101485647.0,
+     "net_volume": -51048,
+     "spot": 759.761
+    },
+    {
+     "ts": "2026-09-19T02:00:00+08:00",
+     "net_call_premium": -113686983.5,
+     "net_put_premium": -103708285.0,
+     "net_volume": -39592,
+     "spot": null
+    },
+    {
+     "ts": "2026-09-19T02:05:00+08:00",
+     "net_call_premium": -115816982.5,
+     "net_put_premium": -103785251.0,
+     "net_volume": -51837,
+     "spot": 759.79
+    },
+    {
+     "ts": "2026-09-19T02:10:00+08:00",
+     "net_call_premium": -120644208.5,
+     "net_put_premium": -106386119.0,
+     "net_volume": -65478,
+     "spot": 759.84
+    },
+    {
+     "ts": "2026-09-19T02:15:00+08:00",
+     "net_call_premium": -120142864.5,
+     "net_put_premium": -102369877.0,
+     "net_volume": -59624,
+     "spot": 759.909
+    },
+    {
+     "ts": "2026-09-19T02:20:00+08:00",
+     "net_call_premium": -119505710.5,
+     "net_put_premium": -107389098.0,
+     "net_volume": -30510,
+     "spot": 759.78
+    },
+    {
+     "ts": "2026-09-19T02:25:00+08:00",
+     "net_call_premium": -127455176.5,
+     "net_put_premium": -105997089.0,
+     "net_volume": -24723,
+     "spot": 759.8132
+    },
+    {
+     "ts": "2026-09-19T02:30:00+08:00",
+     "net_call_premium": -129395143.5,
+     "net_put_premium": -104732529.0,
+     "net_volume": -87683,
+     "spot": 759.79
+    },
+    {
+     "ts": "2026-09-19T02:35:00+08:00",
+     "net_call_premium": -154093291.5,
+     "net_put_premium": -105799961.0,
+     "net_volume": -93289,
+     "spot": 760.325
+    },
+    {
+     "ts": "2026-09-19T02:40:00+08:00",
+     "net_call_premium": -150557249.5,
+     "net_put_premium": -105847912.0,
+     "net_volume": -103179,
+     "spot": 760.47
+    },
+    {
+     "ts": "2026-09-19T02:45:00+08:00",
+     "net_call_premium": -150486007.5,
+     "net_put_premium": -112868614.0,
+     "net_volume": -54161,
+     "spot": 760.5
+    },
+    {
+     "ts": "2026-09-19T02:50:00+08:00",
+     "net_call_premium": -146982640.5,
+     "net_put_premium": -113583039.0,
+     "net_volume": -3567,
+     "spot": 760.38
+    },
+    {
+     "ts": "2026-09-19T02:55:00+08:00",
+     "net_call_premium": -159751282.5,
+     "net_put_premium": -118696797.0,
+     "net_volume": -50692,
+     "spot": 760.5411
+    },
+    {
+     "ts": "2026-09-19T03:00:00+08:00",
+     "net_call_premium": -158136100.5,
+     "net_put_premium": -119006822.0,
+     "net_volume": -34417,
+     "spot": 761.3
+    },
+    {
+     "ts": "2026-09-19T03:05:00+08:00",
+     "net_call_premium": -157334165.5,
+     "net_put_premium": -126974029.0,
+     "net_volume": -34836,
+     "spot": 761.5
+    },
+    {
+     "ts": "2026-09-19T03:10:00+08:00",
+     "net_call_premium": -152988615.5,
+     "net_put_premium": -129177543.0,
+     "net_volume": -26087,
+     "spot": 761.22
+    },
+    {
+     "ts": "2026-09-19T03:15:00+08:00",
+     "net_call_premium": -147903884.5,
+     "net_put_premium": -131385178.0,
+     "net_volume": -23117,
+     "spot": 761.39
+    },
+    {
+     "ts": "2026-09-19T03:20:00+08:00",
+     "net_call_premium": -139944495.5,
+     "net_put_premium": -133010574.0,
+     "net_volume": -29637,
+     "spot": 761.215
+    },
+    {
+     "ts": "2026-09-19T03:25:00+08:00",
+     "net_call_premium": -140579921.5,
+     "net_put_premium": -137400078.0,
+     "net_volume": -44033,
+     "spot": 761.185
+    },
+    {
+     "ts": "2026-09-19T03:30:00+08:00",
+     "net_call_premium": -148921489.5,
+     "net_put_premium": -131525024.0,
+     "net_volume": -84349,
+     "spot": 761.17
+    },
+    {
+     "ts": "2026-09-19T03:35:00+08:00",
+     "net_call_premium": -140473912.5,
+     "net_put_premium": -131449595.0,
+     "net_volume": -37908,
+     "spot": 761.0197
+    },
+    {
+     "ts": "2026-09-19T03:40:00+08:00",
+     "net_call_premium": -129823656.5,
+     "net_put_premium": -133585362.0,
+     "net_volume": 48847,
+     "spot": 760.88
+    },
+    {
+     "ts": "2026-09-19T03:45:00+08:00",
+     "net_call_premium": -122501968.5,
+     "net_put_premium": -134853434.0,
+     "net_volume": 55505,
+     "spot": 760.6988
+    },
+    {
+     "ts": "2026-09-19T03:50:00+08:00",
+     "net_call_premium": -110499723.5,
+     "net_put_premium": -136362806.0,
+     "net_volume": 75129,
+     "spot": 761.16
+    },
+    {
+     "ts": "2026-09-19T03:55:00+08:00",
+     "net_call_premium": -97763972.5,
+     "net_put_premium": -148029010.0,
+     "net_volume": 133455,
+     "spot": 761.4
+    }
+   ]
+  },
+  {
+   "date": "2026-09-23",
+   "points": [
+    {
+     "ts": "2026-09-23T21:30:00+08:00",
+     "net_call_premium": -13129869.0,
+     "net_put_premium": 16251780.0,
+     "net_volume": -83161,
+     "spot": 772.62
+    },
+    {
+     "ts": "2026-09-23T21:35:00+08:00",
+     "net_call_premium": -30410497.0,
+     "net_put_premium": 22664861.0,
+     "net_volume": -132555,
+     "spot": 772.5015
+    },
+    {
+     "ts": "2026-09-23T21:40:00+08:00",
+     "net_call_premium": -37544413.0,
+     "net_put_premium": 21225547.0,
+     "net_volume": -97481,
+     "spot": 772.85
+    },
+    {
+     "ts": "2026-09-23T21:45:00+08:00",
+     "net_call_premium": -55159919.0,
+     "net_put_premium": 24378265.0,
+     "net_volume": -166811,
+     "spot": 772.53
+    },
+    {
+     "ts": "2026-09-23T21:50:00+08:00",
+     "net_call_premium": -87598779.0,
+     "net_put_premium": 23787706.0,
+     "net_volume": -268555,
+     "spot": 772.164
+    },
+    {
+     "ts": "2026-09-23T21:55:00+08:00",
+     "net_call_premium": -103037958.0,
+     "net_put_premium": 26019511.0,
+     "net_volume": -251052,
+     "spot": 771.93
+    },
+    {
+     "ts": "2026-09-23T22:00:00+08:00",
+     "net_call_premium": -113458471.0,
+     "net_put_premium": 23762087.0,
+     "net_volume": -305293,
+     "spot": 771.15
+    },
+    {
+     "ts": "2026-09-23T22:05:00+08:00",
+     "net_call_premium": -156468022.0,
+     "net_put_premium": 40633137.0,
+     "net_volume": -464235,
+     "spot": 770.75
+    },
+    {
+     "ts": "2026-09-23T22:10:00+08:00",
+     "net_call_premium": -192837462.0,
+     "net_put_premium": 53751465.0,
+     "net_volume": -583273,
+     "spot": 770.6901
+    },
+    {
+     "ts": "2026-09-23T22:15:00+08:00",
+     "net_call_premium": -228309153.0,
+     "net_put_premium": 74351659.0,
+     "net_volume": -737678,
+     "spot": 770.52
+    },
+    {
+     "ts": "2026-09-23T22:20:00+08:00",
+     "net_call_premium": -236987369.0,
+     "net_put_premium": 86633393.0,
+     "net_volume": -850344,
+     "spot": 770.02
+    }
+   ]
+  }
+ ],
+ "spot_ticker": "SPY",
+ "as_of": "2026-09-23T22:20:00+08:00",
+ "market_open": false,
+ "sentiment": {
+  "state": "BEARISH",
+  "magnitude": "STRONG",
+  "driver": "call selling",
+  "momentum": "accelerating",
+  "spread": -323620762.0,
+  "session_slope": -359340469.6363636,
+  "recent_slope": -520671426.8571429,
+  "trend_strength": 1.0,
+  "volume_confirms": true,
+  "bars": 11
+ }
+}

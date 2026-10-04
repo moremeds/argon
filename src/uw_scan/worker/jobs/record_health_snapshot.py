@@ -10,14 +10,11 @@ coverage thresholds at request time.
 from __future__ import annotations
 
 import logging
-from collections.abc import Iterator
-from contextlib import contextmanager
 from datetime import UTC, datetime, timedelta
-
-import psycopg
 
 from uw_scan.config import Settings
 from uw_scan.storage.repository import Repository
+from uw_scan.worker.db import repo_session as _repo
 
 logger = logging.getLogger(__name__)
 
@@ -37,14 +34,6 @@ def refresh_record_health_snapshot(
         daily_since=now_utc - timedelta(hours=daily_window_hours),
     )
     return repo.upsert_record_health_snapshot(rows)
-
-
-@contextmanager
-def _repo(settings: Settings) -> Iterator[Repository]:
-    # `with psycopg.connect(...)` commits on clean exit; closing a bare
-    # connection would discard (see worker/scheduler._repo).
-    with psycopg.connect(settings.db_dsn()) as conn:
-        yield Repository(conn, schema=settings.db_schema)
 
 
 def record_health_snapshot_job(settings: Settings) -> int:
