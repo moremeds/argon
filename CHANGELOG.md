@@ -7,13 +7,13 @@ version in lockstep (enforced by `scripts/release/version_sync_check.py`).
 
 ## [Unreleased]
 
-### Changed
-
-- **`config.py` is now the `uw_scan.config` package (D6 batch 1, I-70).** `Settings` moved verbatim to `config/settings.py`, the env helpers and `.env` loader to `config/_env.py`, and the host/DB tripwire to `config/db_isolation.py`. `config/__init__.py` re-exports every name the flat module exposed, private helpers included, so every `from uw_scan.config import X` still works. The only code change is the repo-root lookup in `from_env` (`parents[2]` to `parents[3]`), which keeps it at the same directory. The logger name stays `uw_scan.config`. `settings_golden.json` and the scheduler golden are byte-identical. `scripts/check_runtime_assets.py` now allows `Path.home()` in `config/settings.py`, its new location. No runtime behaviour changes.
-
 ### Added
 
 - **Settings golden (D6 batch 0, I-70).** `tests/unit/test_settings_golden.py` with `tests/unit/fixtures/settings_golden.json` freezes all 181 `Settings` fields. For each field it records the env names `from_env` reads (derived from the source by AST, including the lake roots' `MARKET_WAREHOUSE_LAKE` fallback), the type, the class default (bare `Settings()`), the `from_env` default, and the parsed value or exception type for a fixed set of input strings per type. Among other quirks, the probes record that `XENON_WS_ENABLED=1` parses as false. A behavioural check sets each env name and asserts that its field changes or is rejected, so a name that appears only in the source cannot pass. The run is hermetic: every known env name is removed and an empty env file is loaded. Regenerate on purpose with `UPDATE_SETTINGS_GOLDEN=1`. Tests only; no runtime behaviour changes. The config refactor batches that follow must leave this golden byte-identical.
+
+### Changed
+
+- **`config.py` is now the `uw_scan.config` package (D6 batch 1, I-70).** `Settings` moved verbatim to `config/settings.py`, the env helpers and `.env` loader to `config/_env.py`, and the host/DB tripwire to `config/db_isolation.py`. `config/__init__.py` re-exports every name the flat module exposed, private helpers included, so every `from uw_scan.config import X` still works. The only code change is the repo-root lookup in `from_env` (`parents[2]` to `parents[3]`), which keeps it at the same directory. The logger name stays `uw_scan.config`. `settings_golden.json` and the scheduler golden are byte-identical. `scripts/check_runtime_assets.py` now allows `Path.home()` in `config/settings.py`, its new location. No runtime behaviour changes.
 
 ### Fixed
 
