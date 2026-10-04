@@ -87,7 +87,10 @@ def wait_for_schema(
         now = clock()
         if last_log is None or now - last_log >= LOG_EVERY_SECONDS:
             logger.info(
-                "schema gate: waiting for migrations; %s, code needs %s", why, want
+                "schema gate: waiting for migrations; %s, code needs %s "
+                "(the api migrates on boot; locally run scripts/migrate.sh)",
+                why,
+                want,
             )
             last_log = now
         sleep(poll_seconds)

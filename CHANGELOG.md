@@ -7,6 +7,10 @@ version in lockstep (enforced by `scripts/release/version_sync_check.py`).
 
 ## [Unreleased]
 
+### Fixed
+
+- **Workers wait for the schema their code needs (schema change: migration 158).** Watchtower ignores `depends_on`, so on a deploy a worker could start new code before the api had migrated and fail its first job against a missing column. Migration `158_schema_version` adds a one-row `uw_scan.schema_version` table (idempotent `CREATE TABLE IF NOT EXISTS`); `migrate_runner` records the last file applied after every full apply and never moves it backwards (a rolled-back image proceeds). `scheduler.main()` now waits before building any job until that marker is at least the newest migration file in its own image, logging at INFO at most once a minute; nothing is scheduled meanwhile, so nothing reaches `job_failures`. Locally the api does not self-migrate: run `scripts/migrate.sh` after pulling new migrations.
+
 ## [0.13.19] — 2026-10-04
 
 
