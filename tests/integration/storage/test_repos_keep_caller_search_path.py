@@ -16,6 +16,7 @@ from uw_scan.storage.backtest_repository import BacktestRepository
 from uw_scan.storage.chanlun_signal_repository import ChanlunSignalRepository
 from uw_scan.storage.cri_snapshot_repository import CriSnapshotRepository
 from uw_scan.storage.data_freshness_repository import DataFreshnessRepository
+from uw_scan.storage.data_gap_healer_repository import DataGapHealerRepository
 from uw_scan.storage.greek_exposure_repository import GreekExposureDailyRepository
 from uw_scan.storage.grg_snapshot_repository import GrgSnapshotRepository
 from uw_scan.storage.market_tide_sentiment_repository import (
@@ -50,13 +51,12 @@ pytestmark = pytest.mark.integration
 # One cheap call that hits each repository's own table on an empty schema.
 # UwHistoricalAlphaRepository is write-only, so its entry is the smallest
 # legal upsert row (uncommitted; the per-test fixture resets regardless).
-# DataGapHealerRepository is excluded — it keeps its SET search_path for now
-# (removed after the healer split qualifies its callers).
 _CASES = [
     (BacktestRepository, "fetch_run_results", (0,), {}),
     (ChanlunSignalRepository, "list_non_terminal", ("ZZZZ",), {}),
     (CriSnapshotRepository, "fetch_latest", (), {}),
     (DataFreshnessRepository, "latest_snapshot", (), {}),
+    (DataGapHealerRepository, "list_dataset_registry", (), {}),
     (GreekExposureDailyRepository, "fetch_history", ("ZZZZ", 5), {}),
     (GrgSnapshotRepository, "fetch_latest", (), {}),
     (MarketTideSentimentRepository, "fetch_history", (), {"days": 5}),
