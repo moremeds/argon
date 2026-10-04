@@ -184,16 +184,17 @@ class TestRawEvidenceSurvivesAParseFailure:
         settings = _settings()
         raw = self._broken_payload()
 
-        result = macro_fred_series_ingest_job(
-            dsn=settings.db_dsn(),
-            api_key="unused-by-the-stub",
-            series=("CPIAUCSL",),
-            observed_at=CPI_FIXTURE_AS_OF,
-            provider_factory=lambda: _PayloadProvider({"CPIAUCSL": raw}),
-        )
-
-        assert result.failed_series == ("CPIAUCSL",)
-        assert result.observations_created == 0
+        # The only series fails to parse, so every unit failed and the job raises
+        # (I-116 rule) -- but only after the artifact and status commits, which is
+        # what this test pins.
+        with pytest.raises(RuntimeError, match=r"1 of 1 series failed: CPIAUCSL"):
+            macro_fred_series_ingest_job(
+                dsn=settings.db_dsn(),
+                api_key="unused-by-the-stub",
+                series=("CPIAUCSL",),
+                observed_at=CPI_FIXTURE_AS_OF,
+                provider_factory=lambda: _PayloadProvider({"CPIAUCSL": raw}),
+            )
 
         expected_hash, expected_length = macro_artifact_content_identity(raw_bytes=raw)
         with psycopg.connect(settings.db_dsn()) as conn:
