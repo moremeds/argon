@@ -18,7 +18,10 @@ type Mark = {
  * that distributed text evenly and never lined up with the ticks.
  */
 export function ExpectedRangeBar({ data }: { data: GexData }) {
-  const { expected_range, levels, spot } = data;
+  // Type-only: the API always sends both (default_factory); if one were
+  // missing this would throw, exactly as before the generated types.
+  const { expected_range, levels, spot } = data as GexData &
+    Required<Pick<GexData, "expected_range" | "levels">>;
   if (expected_range.low == null || expected_range.high == null) return null;
 
   const low = expected_range.low;

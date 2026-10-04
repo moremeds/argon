@@ -58,10 +58,10 @@ function fmtM(v: number): string {
 
 type Flat = {
   x: number;
-  call: number | null;
-  put: number | null;
-  spot: number | null;
-  vol: number | null;
+  call: number | null | undefined;
+  put: number | null | undefined;
+  spot: number | null | undefined;
+  vol: number | null | undefined;
 };
 
 function flatten(sessions: MarketTideSession[]): {
@@ -81,9 +81,9 @@ function flatten(sessions: MarketTideSession[]): {
     points: MarketTidePoint[];
   }[] = [];
   for (const s of sessions) {
-    if (!s.points.length) continue;
+    if (!(s.points ?? []).length) continue;
     const start = flat.length;
-    for (const p of s.points) {
+    for (const p of s.points ?? []) {
       flat.push({
         x: flat.length,
         call: p.net_call_premium,
@@ -96,7 +96,7 @@ function flatten(sessions: MarketTideSession[]): {
       date: s.date,
       start,
       end: flat.length - 1,
-      points: s.points,
+      points: s.points ?? [],
     });
   }
   return { flat, sessionRanges: ranges };
@@ -172,7 +172,7 @@ function EmptyCard({ msg, testid }: { msg: string; testid: string }) {
 }
 
 export function MarketTideChart({ data }: { data: MarketTideData | null }) {
-  if (!data || !data.sessions.length) {
+  if (!data || !(data.sessions ?? []).length) {
     return (
       <EmptyCard
         msg="No market-tide snapshots available."
@@ -181,7 +181,7 @@ export function MarketTideChart({ data }: { data: MarketTideData | null }) {
     );
   }
 
-  const { flat, sessionRanges } = flatten(data.sessions);
+  const { flat, sessionRanges } = flatten(data.sessions ?? []);
   if (flat.length < 2) {
     return (
       <EmptyCard
@@ -215,7 +215,7 @@ export function MarketTideChart({ data }: { data: MarketTideData | null }) {
   /** Per-session sub-paths concatenated so a line never crosses the overnight
    *  gap (mirrors GexIntradayChart.pathFor). */
   function pathFor(
-    accessor: (p: Flat) => number | null,
+    accessor: (p: Flat) => number | null | undefined,
     scale: ((v: number) => number) | null,
   ): string {
     if (scale == null) return "";

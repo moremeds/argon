@@ -53,15 +53,15 @@ export function retagProfileForSpot(
   let nearest: number | null = null;
   let minDist = Infinity;
   for (const b of profile) {
-    const d = Math.abs(b.strike - liveSpot);
+    const d = Math.abs(b.strike! - liveSpot);
     if (d < minDist) {
       minDist = d;
-      nearest = b.strike;
+      nearest = b.strike!;
     }
   }
   const tagMap = new Map<number, string>();
   if (nearest != null) tagMap.set(nearest, "SPOT");
-  if (levels?.gex_flip) tagMap.set(levels.gex_flip.strike, "GEX FLIP");
+  if (levels?.gex_flip) tagMap.set(levels.gex_flip.strike!, "GEX FLIP");
   const labelled: [GexLevel, string][] = [
     [levels?.max_magnet ?? null, "MAX MAGNET"],
     [levels?.second_magnet ?? null, "SECOND MAGNET"],
@@ -70,12 +70,12 @@ export function retagProfileForSpot(
     [levels?.call_wall ?? null, "CALL WALL"],
   ];
   for (const [level, label] of labelled) {
-    if (level && !tagMap.has(level.strike)) tagMap.set(level.strike, label);
+    if (level && !tagMap.has(level.strike!)) tagMap.set(level.strike!, label);
   }
   return profile.map((b) => ({
     ...b,
-    pct_from_spot: ((b.strike - liveSpot) / liveSpot) * 100,
-    tag: tagMap.get(b.strike) ?? null,
+    pct_from_spot: ((b.strike! - liveSpot) / liveSpot) * 100,
+    tag: tagMap.get(b.strike!) ?? null,
   }));
 }
 
@@ -128,10 +128,10 @@ export function gexSpotRead(
   >,
   liveSpot: number | null,
 ): {
-  displaySpot: number;
+  displaySpot: number | null | undefined;
   prevClose: number | null;
-  dayChange: number | null;
-  dayChangePct: number | null;
+  dayChange: number | null | undefined;
+  dayChangePct: number | null | undefined;
 } {
   const displaySpot = liveSpot ?? data.spot;
   // prev_close of 0 means "missing", not a real reference price.

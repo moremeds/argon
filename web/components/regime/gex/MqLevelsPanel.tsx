@@ -19,25 +19,27 @@ export function MqLevelsPanel({
 }) {
   const [expanded, setExpanded] = useState(false);
 
-  function deltaStyle(d: number | undefined): CSSProperties {
+  function deltaStyle(d: number | null | undefined): CSSProperties {
     if (d == null) return {};
     if (Math.abs(d) <= 2) return { color: "var(--signal-core)" };
     if (Math.abs(d) <= 10) return { color: "var(--warning)" };
     return { color: "var(--fault)" };
   }
 
-  function fmtDelta(e: SourceDeltaEntry | undefined): ReactNode {
+  function fmtDelta(e: SourceDeltaEntry | null | undefined): ReactNode {
     if (!e) return <span style={{ color: "var(--text-muted)" }}>—</span>;
-    const sign = e.delta > 0 ? "+" : "";
+    const sign = e.delta! > 0 ? "+" : "";
     return (
       <span style={deltaStyle(e.delta)}>
         {sign}
-        {e.delta.toFixed(1)} &nbsp;
+        {e.delta!.toFixed(1)} &nbsp;
         <span style={{ color: "var(--signal-core)", fontSize: 9 }}>
-          {e.uw.toFixed(0)}
+          {e.uw!.toFixed(0)}
         </span>
         <span style={{ color: "var(--text-muted)", fontSize: 9 }}> vs </span>
-        <span style={{ color: "#85b7eb", fontSize: 9 }}>{e.mq.toFixed(0)}</span>
+        <span style={{ color: "#85b7eb", fontSize: 9 }}>
+          {e.mq!.toFixed(0)}
+        </span>
       </span>
     );
   }
@@ -108,7 +110,7 @@ export function MqLevelsPanel({
                 </span>
               </div>
             ))}
-            {mq.top_gex_strikes.length > 0 && (
+            {(mq.top_gex_strikes ?? []).length > 0 && (
               <div style={{ marginTop: 8 }}>
                 <div
                   style={{
@@ -120,7 +122,7 @@ export function MqLevelsPanel({
                   Top GEX Strikes
                 </div>
                 <div style={{ display: "flex", gap: 6, flexWrap: "wrap" }}>
-                  {mq.top_gex_strikes.map((s) => (
+                  {(mq.top_gex_strikes ?? []).map((s) => (
                     <span
                       key={s}
                       style={{

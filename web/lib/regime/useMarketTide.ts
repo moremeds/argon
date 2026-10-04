@@ -1,46 +1,20 @@
 "use client";
 
+import type { components } from "@/lib/types";
+
 import { regimeApi } from "./api";
 import { MarketState } from "./useMarketHours";
 import { useSyncHook, type UseSyncReturn } from "./useSyncHook";
 
-export type MarketTidePoint = {
-  ts: string;
-  net_call_premium: number | null;
-  net_put_premium: number | null;
-  net_volume: number | null;
-  spot: number | null;
-};
-
-export type MarketTideSession = {
-  date: string;
-  points: MarketTidePoint[];
-};
-
-export type MarketTideSentiment = {
-  state: string; // BULLISH | BEARISH | BALANCED | WARMING_UP
-  magnitude: string; // FLAT | LEANING | STRONG
-  driver: string;
-  momentum: string;
-  spread: number | null;
-  session_slope: number | null; // $/hr
-  recent_slope: number | null; // $/hr
-  trend_strength: number | null;
-  volume_confirms: boolean | null;
-  bars: number;
-};
-
-export type MarketTideData = {
-  sessions: MarketTideSession[];
-  spot_ticker: string | null;
-  as_of: string | null;
-  market_open: boolean;
-  sentiment: MarketTideSentiment | null;
-};
+// Generated from the API's MarketTideResponse (I-103b); the names stay.
+export type MarketTidePoint = components["schemas"]["MarketTidePoint"];
+export type MarketTideSession = components["schemas"]["MarketTideSession"];
+export type MarketTideSentiment = components["schemas"]["MarketTideSentiment"];
+export type MarketTideData = components["schemas"]["MarketTideResponse"];
 
 // Stable refs — defined once so useSyncHook's executeRequest useCallback does
 // not invalidate (and reset the poll interval) on every parent render.
-const _extractTs = (d: MarketTideData) => d.as_of;
+const _extractTs = (d: MarketTideData) => d.as_of as string | null;
 const _noRetry = () => false;
 
 export function useMarketTide(

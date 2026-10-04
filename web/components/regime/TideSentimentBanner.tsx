@@ -2,14 +2,14 @@
 
 import type { MarketTideSentiment } from "@/lib/regime/useMarketTide";
 
-function fmtHr(v: number | null): string {
+function fmtHr(v: number | null | undefined): string {
   if (v == null) return "—";
   const m = v / 1_000_000;
   if (Math.abs(m) >= 1000) return `${(m / 1000).toFixed(1)}B/hr`;
   return `${m >= 0 ? "+" : ""}${m.toFixed(0)}M/hr`;
 }
 
-function fmtM(v: number | null): string {
+function fmtM(v: number | null | undefined): string {
   if (v == null) return "—";
   const m = v / 1_000_000;
   if (Math.abs(m) >= 1000)
