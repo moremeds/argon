@@ -7,6 +7,10 @@ version in lockstep (enforced by `scripts/release/version_sync_check.py`).
 
 ## [Unreleased]
 
+### Fixed
+
+- **CFTC positioning no longer reads degraded five days a week.** `macro_market_layer_ingest` requested the TFF report from `today - 120 days`, so the request URL changed every night while the payload changed only on Thursday and Friday. `macro_source_artifacts` keeps `source_url` immutable per content hash, so Saturday to Wednesday re-fetched the same bytes under a new URL, raised `artifact identity collision`, and set `macro_source_status.cftc` to degraded. No data was lost. The scheduled start is now floored to a Tuesday (`positioning_window_start`), so the URL moves only on the day a report leaves the window. An explicit `positioning_start` (backfill) is unchanged, and the immutability check is untouched.
+
 ## [0.13.23] — 2026-10-04
 
 
