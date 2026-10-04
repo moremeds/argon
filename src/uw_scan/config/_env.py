@@ -4,7 +4,13 @@ from __future__ import annotations
 
 import logging
 import os
+from collections.abc import Callable
+from dataclasses import dataclass
 from pathlib import Path
+from typing import Any
+
+from pydantic import BaseModel, SecretStr
+from pydantic.fields import FieldInfo
 
 # ponytail: logger name kept from the old flat module, so log routing is unchanged.
 logger = logging.getLogger("uw_scan.config")
@@ -52,3 +58,50 @@ def _load_dotenv(env_path: Path) -> None:
                 os.environ[key] = value
     except OSError as exc:
         logger.exception("failed to read .env file %s: %s", env_path, repr(exc))
+
+
+@dataclass(frozen=True)
+class EnvVar:
+    """Field metadata: the env var ``Settings.from_env`` reads for this field.
+
+    Declared next to the field as ``Annotated[int, EnvVar("UW_SCAN_DB_PORT")]``. Unset
+    means the field's own default, so the class default and the env default are one
+    value. ``blank_is_default`` also maps an empty string to the default.
+    """
+
+    name: str
+    blank_is_default: bool = False
+
+
+#: Parse an env string by the field's annotation. Extended as field groups move here.
+_PARSERS: dict[object, Callable[[str], Any]] = {
+    str: str,
+    int: int,
+    SecretStr: SecretStr,
+}
+
+
+def _env_var(info: FieldInfo) -> EnvVar | None:
+    return next((m for m in info.metadata if isinstance(m, EnvVar)), None)
+
+
+def env_raw(model: type[BaseModel], field: str) -> str:
+    """The raw env string for one declared field, or its default when unset."""
+    info = model.model_fields[field]
+    spec = _env_var(info)
+    assert spec is not None, field
+    return os.environ.get(spec.name, info.default)
+
+
+def read_env_fields(model: type[BaseModel]) -> dict[str, Any]:
+    """Parsed values for every ``EnvVar`` field whose env var is set (not defaulted)."""
+    out: dict[str, Any] = {}
+    for name, info in model.model_fields.items():
+        spec = _env_var(info)
+        if spec is None:
+            continue
+        raw = os.environ.get(spec.name)
+        if raw is None or (spec.blank_is_default and not raw):
+            continue
+        out[name] = _PARSERS[info.annotation](raw)
+    return out

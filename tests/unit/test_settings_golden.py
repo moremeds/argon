@@ -39,6 +39,7 @@ import pytest
 from pydantic import SecretStr
 
 from uw_scan.config import Settings
+from uw_scan.config._env import EnvVar
 
 GOLDEN = Path(__file__).parent / "fixtures" / "settings_golden.json"
 
@@ -115,8 +116,16 @@ def _env_map() -> dict[str, tuple[list[str], list[str]]]:
         and isinstance(n.value, ast.Call)
         and getattr(n.value.func, "id", None) == "cls"
     ).value
-    result = {}
+    # Fields moved to the env table declare their name as EnvVar metadata.
+    result = {
+        name: ([spec.name], [])
+        for name, info in Settings.model_fields.items()
+        for spec in info.metadata
+        if isinstance(spec, EnvVar)
+    }
     for kw in call.keywords:
+        if kw.arg is None:  # **read_env_fields(cls): covered above
+            continue
         direct = list(dict.fromkeys(reads(kw.value)))
         indirect = list(dict.fromkeys(via_locals(kw.value)))
         result[kw.arg] = (direct, indirect) if direct else (indirect, [])
