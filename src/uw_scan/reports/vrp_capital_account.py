@@ -26,6 +26,7 @@ from datetime import date as _date
 from math import sqrt
 from statistics import fmean, pstdev
 
+from uw_scan.backtest.metrics import zero_filled_monthly as _contiguous_monthly
 from uw_scan.reports.vrp_macro_drawdown import _Loaded
 from uw_scan.reports.vrp_macro_harvest import _settle
 from uw_scan.reports.vrp_macro_signal import WINNER, MacroSignalConfig, size_weight
@@ -317,22 +318,6 @@ def simulate_account(
         contracts_filled_total=filled_tot,
         span=span,
     )
-
-
-def _contiguous_monthly(monthly: dict[tuple[int, int], float]) -> list[float]:
-    """Zero-fill the contiguous (year, month) span — matches vrp_macro_signal._sharpe_maxdd."""
-    if not monthly:
-        return []
-    yms = sorted(monthly)
-    (y0, m0), (y1, m1) = yms[0], yms[-1]
-    series: list[float] = []
-    y, m = y0, m0
-    while (y, m) <= (y1, m1):
-        series.append(monthly.get((y, m), 0.0))
-        m += 1
-        if m == 13:
-            y, m = y + 1, 1
-    return series
 
 
 def account_metrics(res: AccountResult, capcfg: CapitalConfig, rf: float) -> dict:
