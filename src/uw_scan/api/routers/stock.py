@@ -45,6 +45,7 @@ from uw_scan.reports.single_stock import assemble_single_stock_report
 from uw_scan.reports.stock_history import build_stock_history_response
 from uw_scan.reports.technicals import assemble_technicals
 from uw_scan.sources.source_errors import SourceUnavailable
+from uw_scan.storage.advisory_locks import single_flight, ticker_key
 from uw_scan.storage.repository import Repository
 
 router = APIRouter()
@@ -225,9 +226,6 @@ def get_stock_technicals_live(
 
 
 # Session-scoped single-flight key, matching routers/volatility.py's convention.
-_TECHNICALS_REFRESH_LOCK_SQL = (
-    "('x' || substr(md5('technicals_refresh:' || %s), 1, 16))::bit(64)::bigint"
-)
 
 
 @router.post("/stock/{ticker}/technicals/refresh", response_model=TechnicalsResponse)
@@ -251,14 +249,9 @@ def refresh_stock_technicals(
     from uw_scan.worker.jobs.technical_daily_refresh import technical_daily_refresh
 
     t = ticker.upper()
-    with repo.conn.cursor() as cur:
-        cur.execute(
-            f"SELECT pg_try_advisory_lock({_TECHNICALS_REFRESH_LOCK_SQL})", (t,)
-        )
-        acquired = bool(cur.fetchone()[0])
-    if not acquired:
-        return assemble_technicals(t, repo, schema=settings.db_schema)
-    try:
+    with single_flight(repo.conn, ticker_key("technicals_refresh:", t)) as acquired:
+        if not acquired:
+            return assemble_technicals(t, repo, schema=settings.db_schema)
         try:
             technical_daily_refresh(repo=repo, settings=settings, ticker_filter=[t])
         except SourceUnavailable as exc:
@@ -269,11 +262,6 @@ def refresh_stock_technicals(
             repo.conn.rollback()
             logger.warning("technicals refresh for %s: %s", t, repr(exc))
         return assemble_technicals(t, repo, schema=settings.db_schema)
-    finally:
-        with repo.conn.cursor() as cur:
-            cur.execute(
-                f"SELECT pg_advisory_unlock({_TECHNICALS_REFRESH_LOCK_SQL})", (t,)
-            )
 
 
 @router.post("/stock/{ticker}/vwap-anchor", response_model=TechnicalsVwapAnchor)

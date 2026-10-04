@@ -23,13 +23,14 @@ from datetime import date
 from uw_scan.api.client import UwClient
 from uw_scan.config import Settings
 from uw_scan.sources.uw import fetch_option_contract_intraday
+from uw_scan.storage.advisory_locks import fixed_key, single_flight
 from uw_scan.storage.option_intraday_repository import OptionIntradayBucketRepository
 from uw_scan.storage.repository import Repository
 
 logger = logging.getLogger(__name__)
 
-INTRADAY_REFRESH_LOCK = 91502  # mnemonic: migration 049 + slot 02
-INTRADAY_BACKFILL_LOCK = 91504  # operator historical sweep; distinct from daily 91502
+INTRADAY_REFRESH_LOCK = fixed_key("intraday_refresh")
+INTRADAY_BACKFILL_LOCK = fixed_key("intraday_backfill")
 DEFAULT_TOP_N = 10
 
 
@@ -47,20 +48,22 @@ def refresh_intraday_for_top_oi_movers(
     Returns a small summary dict for logging:
     ``{"tickers": ..., "contracts": ..., "buckets": ...}``.
     """
-    if not repo.try_advisory_lock(lock_key):
-        logger.info("intraday_refresh: lock held; skipping this tick")
-        return {"tickers": 0, "contracts": 0, "buckets": 0}
+    with single_flight(repo.conn, lock_key) as acquired:
+        if not acquired:
+            logger.info("intraday_refresh: lock held; skipping this tick")
+            return {"tickers": 0, "contracts": 0, "buckets": 0}
 
-    intraday_repo = OptionIntradayBucketRepository(repo.conn, schema=settings.db_schema)
-    tickers_seen = 0
-    contracts_done = 0
-    buckets_written = 0
-    skipped_no_run = 0
-    skipped_no_movers = 0
-    contracts_empty = 0
-    contracts_error = 0
+        intraday_repo = OptionIntradayBucketRepository(
+            repo.conn, schema=settings.db_schema
+        )
+        tickers_seen = 0
+        contracts_done = 0
+        buckets_written = 0
+        skipped_no_run = 0
+        skipped_no_movers = 0
+        contracts_empty = 0
+        contracts_error = 0
 
-    try:
         cards = repo.list_watchlist_cards()
         for card in cards:
             ticker = card.ticker
@@ -123,8 +126,6 @@ def refresh_intraday_for_top_oi_movers(
                 repo.conn.rollback()
                 contracts_error += 1
                 logger.exception("intraday_refresh: %s failed: %s", ticker, repr(exc))
-    finally:
-        repo.release_advisory_lock(lock_key)
 
     summary = {
         "tickers": tickers_seen,
@@ -171,19 +172,27 @@ def backfill_intraday_history(
     Idempotent (upsert). Uses a distinct advisory lock so it never blocks the
     daily job.
     """
-    if not repo.try_advisory_lock(lock_key):
-        logger.info("intraday_backfill: lock held; skipping")
-        return {"tickers": 0, "sessions": 0, "contracts": 0, "buckets": 0, "errors": 0}
+    with single_flight(repo.conn, lock_key) as acquired:
+        if not acquired:
+            logger.info("intraday_backfill: lock held; skipping")
+            return {
+                "tickers": 0,
+                "sessions": 0,
+                "contracts": 0,
+                "buckets": 0,
+                "errors": 0,
+            }
 
-    intraday_repo = OptionIntradayBucketRepository(repo.conn, schema=settings.db_schema)
-    schema = settings.db_schema
-    tickers_done = 0
-    sessions_done = 0
-    contracts_done = 0
-    buckets_written = 0
-    errors = 0
+        intraday_repo = OptionIntradayBucketRepository(
+            repo.conn, schema=settings.db_schema
+        )
+        schema = settings.db_schema
+        tickers_done = 0
+        sessions_done = 0
+        contracts_done = 0
+        buckets_written = 0
+        errors = 0
 
-    try:
         for ticker in sorted({t.strip().upper() for t in tickers if t.strip()}):
             with repo.conn.cursor() as cur:
                 cur.execute(
@@ -231,8 +240,6 @@ def backfill_intraday_history(
                     logger.warning(
                         "intraday_backfill: %s %s failed: %s", ticker, sess, repr(exc)
                     )
-    finally:
-        repo.release_advisory_lock(lock_key)
 
     summary = {
         "tickers": tickers_done,

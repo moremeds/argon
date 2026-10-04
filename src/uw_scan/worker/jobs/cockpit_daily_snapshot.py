@@ -41,11 +41,12 @@ from uw_scan.sources.uw import (
     fetch_skew,
     fetch_term_structure,
 )
+from uw_scan.storage.advisory_locks import fixed_key, single_flight
 from uw_scan.storage.repository import Repository
 
 logger = logging.getLogger(__name__)
 
-COCKPIT_SNAPSHOT_LOCK = 92201
+COCKPIT_SNAPSHOT_LOCK = fixed_key("cockpit_snapshot")
 OPTION_CONTRACTS_LIMIT = 500
 
 
@@ -54,11 +55,11 @@ def cockpit_daily_snapshot(
 ) -> None:
     """Snapshot greeks/exposures/skew/IV/RV for every Cockpit ticker."""
 
-    if not repo.try_advisory_lock(COCKPIT_SNAPSHOT_LOCK):
-        logger.info("cockpit_daily_snapshot: lock held; skipping this tick")
-        return
+    with single_flight(repo.conn, COCKPIT_SNAPSHOT_LOCK) as acquired:
+        if not acquired:
+            logger.info("cockpit_daily_snapshot: lock held; skipping this tick")
+            return
 
-    try:
         market_date = datetime.now(ZoneInfo(settings.rth_tz)).date()
         tickers = list(settings.cockpit_tickers)
         target_dtes = list(settings.cockpit_target_dtes)
@@ -104,8 +105,6 @@ def cockpit_daily_snapshot(
             except Exception as exc:  # noqa: BLE001
                 repo.conn.rollback()
                 logger.exception("cockpit_daily_snapshot: %s failed: %r", ticker, exc)
-    finally:
-        repo.release_advisory_lock(COCKPIT_SNAPSHOT_LOCK)
 
 
 def _snapshot_ticker(
