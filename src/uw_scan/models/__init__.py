@@ -106,6 +106,18 @@ from .gold import (
     GoldValuationPostureModel,
     PostureChipState,
 )
+from .health import (
+    HealthFreshness,
+    HealthFreshnessRow,
+    HealthGapHealer,
+    HealthResponse,
+    JobFailureStreak,
+    RecordHealthCheck,
+    TradeInsightsAiHealth,
+    TradeInsightsAiProviderHealth,
+    WorkerHealth,
+    WsConsumerHealth,
+)
 from .greeks import (
     GreekExposureByExpiryRow,
     GreekExposureRow,
@@ -750,4 +762,15 @@ __all__ = [
     "CaseStage",
     "DeskCase",
     "ScopeGroup",
+    # /api/health
+    "HealthFreshness",
+    "HealthFreshnessRow",
+    "HealthGapHealer",
+    "HealthResponse",
+    "JobFailureStreak",
+    "RecordHealthCheck",
+    "TradeInsightsAiHealth",
+    "TradeInsightsAiProviderHealth",
+    "WorkerHealth",
+    "WsConsumerHealth",
 ]

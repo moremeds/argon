@@ -466,7 +466,7 @@ export interface paths {
          *     becomes a pivot, and the response grows to one entry per bar.
          *
          *     Uses `repo.conn` + `settings.db_schema`, the pattern this codebase already
-         *     uses when a router needs a raw connection (see `routers/health.py:387`);
+         *     uses when a router needs a raw connection (see `reports/health_assembly.build_health`);
          *     the magnet_data loaders take a connection, not a Repository.
          */
         get: operations["get_magnets_api_stock__ticker__magnets_get"];

@@ -1,0 +1,3241 @@
+{
+ "empty": [
+  {
+   "body": {
+    "dimensions": [],
+    "evidence_coverage": null,
+    "reason": "no active method version is seeded; nothing can be computed under any contract",
+    "run": null,
+    "state": "unsupported_capability",
+    "ticker": "AAA"
+   },
+   "params": {},
+   "path": "/api/stock/AAA/fundamentals/dimensions",
+   "status": 200
+  },
+  {
+   "body": {
+    "dimensions": [],
+    "evidence_coverage": null,
+    "reason": "no active method version is seeded; nothing can be computed under any contract",
+    "run": null,
+    "state": "unsupported_capability",
+    "ticker": "AAA"
+   },
+   "params": {},
+   "path": "/api/stock/aaa/fundamentals/dimensions",
+   "status": 200
+  },
+  {
+   "body": {
+    "dimensions": [],
+    "evidence_coverage": null,
+    "reason": "no active method version is seeded; nothing can be computed under any contract",
+    "run": null,
+    "state": "unsupported_capability",
+    "ticker": "EEE"
+   },
+   "params": {},
+   "path": "/api/stock/EEE/fundamentals/dimensions",
+   "status": 200
+  },
+  {
+   "body": {
+    "dimensions": [],
+    "evidence_coverage": null,
+    "reason": "no active method version is seeded; nothing can be computed under any contract",
+    "run": null,
+    "state": "unsupported_capability",
+    "ticker": "STM"
+   },
+   "params": {},
+   "path": "/api/stock/STM/fundamentals/dimensions",
+   "status": 200
+  },
+  {
+   "body": {
+    "dimensions": [],
+    "evidence_coverage": null,
+    "reason": "no active method version is seeded; nothing can be computed under any contract",
+    "run": null,
+    "state": "unsupported_capability",
+    "ticker": "XYZ"
+   },
+   "params": {},
+   "path": "/api/stock/XYZ/fundamentals/dimensions",
+   "status": 200
+  },
+  {
+   "body": {
+    "dimensions": [],
+    "evidence_coverage": null,
+    "reason": "Argon holds no statement observations for AAA",
+    "run": null,
+    "state": "no_coverage",
+    "ticker": "AAA"
+   },
+   "params": {
+    "engine_version": "golden-eng-b"
+   },
+   "path": "/api/stock/AAA/fundamentals/dimensions",
+   "status": 200
+  },
+  {
+   "body": {
+    "dimensions": [],
+    "evidence_coverage": null,
+    "reason": "Argon holds no statement observations for AAA",
+    "run": null,
+    "state": "no_coverage",
+    "ticker": "AAA"
+   },
+   "params": {
+    "engine_version": "golden-eng-none"
+   },
+   "path": "/api/stock/AAA/fundamentals/dimensions",
+   "status": 200
+  },
+  {
+   "body": {
+    "ordering": "composite",
+    "ordering_authority": "research_priority",
+    "prohibited": [
+     "expected return \u2014 measured gross alpha is zero",
+     "risk score \u2014 the top decile is riskier than the middle",
+     "a per-name forecast \u2014 the within-ticker test is a POWERED null (IC -0.0000, all 16 tests fail BH)"
+    ],
+    "reason": "no active method version is seeded",
+    "rows": [],
+    "scope": {
+     "as_of": null,
+     "engine_version": null,
+     "evidence_policy": "current_vintage",
+     "names": 0,
+     "names_without_result": 0,
+     "tier": "ranked",
+     "universe": "fundamental_universe"
+    },
+    "state": "unsupported_capability"
+   },
+   "params": {},
+   "path": "/api/scanner/radar",
+   "status": 200
+  },
+  {
+   "body": {
+    "ordering": "composite",
+    "ordering_authority": "research_priority",
+    "prohibited": [
+     "expected return \u2014 measured gross alpha is zero",
+     "risk score \u2014 the top decile is riskier than the middle",
+     "a per-name forecast \u2014 the within-ticker test is a POWERED null (IC -0.0000, all 16 tests fail BH)"
+    ],
+    "reason": "no active method version is seeded",
+    "rows": [],
+    "scope": {
+     "as_of": null,
+     "engine_version": null,
+     "evidence_policy": "current_vintage",
+     "names": 0,
+     "names_without_result": 0,
+     "tier": "ranked",
+     "universe": "fundamental_universe"
+    },
+    "state": "unsupported_capability"
+   },
+   "params": {
+    "tier": "ranked"
+   },
+   "path": "/api/scanner/radar",
+   "status": 200
+  },
+  {
+   "body": {
+    "ordering": "composite",
+    "ordering_authority": "research_priority",
+    "prohibited": [
+     "expected return \u2014 measured gross alpha is zero",
+     "risk score \u2014 the top decile is riskier than the middle",
+     "a per-name forecast \u2014 the within-ticker test is a POWERED null (IC -0.0000, all 16 tests fail BH)"
+    ],
+    "reason": "no active method version is seeded",
+    "rows": [],
+    "scope": {
+     "as_of": null,
+     "engine_version": null,
+     "evidence_policy": "current_vintage",
+     "names": 0,
+     "names_without_result": 0,
+     "tier": "watch",
+     "universe": "fundamental_universe"
+    },
+    "state": "unsupported_capability"
+   },
+   "params": {
+    "tier": "watch"
+   },
+   "path": "/api/scanner/radar",
+   "status": 200
+  },
+  {
+   "body": {
+    "ordering": "composite",
+    "ordering_authority": "research_priority",
+    "prohibited": [
+     "expected return \u2014 measured gross alpha is zero",
+     "risk score \u2014 the top decile is riskier than the middle",
+     "a per-name forecast \u2014 the within-ticker test is a POWERED null (IC -0.0000, all 16 tests fail BH)"
+    ],
+    "reason": "no active method version is seeded",
+    "rows": [],
+    "scope": {
+     "as_of": null,
+     "engine_version": null,
+     "evidence_policy": "current_vintage",
+     "names": 0,
+     "names_without_result": 0,
+     "tier": "dormant",
+     "universe": "fundamental_universe"
+    },
+    "state": "unsupported_capability"
+   },
+   "params": {
+    "tier": "dormant"
+   },
+   "path": "/api/scanner/radar",
+   "status": 200
+  },
+  {
+   "body": {
+    "ordering": "composite",
+    "ordering_authority": "research_priority",
+    "prohibited": [
+     "expected return \u2014 measured gross alpha is zero",
+     "risk score \u2014 the top decile is riskier than the middle",
+     "a per-name forecast \u2014 the within-ticker test is a POWERED null (IC -0.0000, all 16 tests fail BH)"
+    ],
+    "reason": "no active method version is seeded",
+    "rows": [],
+    "scope": {
+     "as_of": null,
+     "engine_version": null,
+     "evidence_policy": "current_vintage",
+     "names": 0,
+     "names_without_result": 0,
+     "tier": "no-such-tier",
+     "universe": "fundamental_universe"
+    },
+    "state": "unsupported_capability"
+   },
+   "params": {
+    "tier": "no-such-tier"
+   },
+   "path": "/api/scanner/radar",
+   "status": 200
+  },
+  {
+   "body": {
+    "ordering": "composite",
+    "ordering_authority": "research_priority",
+    "prohibited": [
+     "expected return \u2014 measured gross alpha is zero",
+     "risk score \u2014 the top decile is riskier than the middle",
+     "a per-name forecast \u2014 the within-ticker test is a POWERED null (IC -0.0000, all 16 tests fail BH)"
+    ],
+    "reason": null,
+    "rows": [],
+    "scope": {
+     "as_of": null,
+     "engine_version": "golden-eng-b",
+     "evidence_policy": "current_vintage",
+     "names": 0,
+     "names_without_result": 0,
+     "tier": "ranked",
+     "universe": "fundamental_universe"
+    },
+    "state": "ok"
+   },
+   "params": {
+    "engine_version": "golden-eng-b"
+   },
+   "path": "/api/scanner/radar",
+   "status": 200
+  },
+  {
+   "body": {
+    "ordering": "composite",
+    "ordering_authority": "research_priority",
+    "prohibited": [
+     "expected return \u2014 measured gross alpha is zero",
+     "risk score \u2014 the top decile is riskier than the middle",
+     "a per-name forecast \u2014 the within-ticker test is a POWERED null (IC -0.0000, all 16 tests fail BH)"
+    ],
+    "reason": null,
+    "rows": [],
+    "scope": {
+     "as_of": null,
+     "engine_version": "golden-eng-none",
+     "evidence_policy": "current_vintage",
+     "names": 0,
+     "names_without_result": 0,
+     "tier": "ranked",
+     "universe": "fundamental_universe"
+    },
+    "state": "ok"
+   },
+   "params": {
+    "engine_version": "golden-eng-none"
+   },
+   "path": "/api/scanner/radar",
+   "status": 200
+  },
+  {
+   "body": {
+    "ordering": "composite",
+    "ordering_authority": "research_priority",
+    "prohibited": [
+     "expected return \u2014 measured gross alpha is zero",
+     "risk score \u2014 the top decile is riskier than the middle",
+     "a per-name forecast \u2014 the within-ticker test is a POWERED null (IC -0.0000, all 16 tests fail BH)"
+    ],
+    "reason": "no active method version is seeded",
+    "rows": [],
+    "scope": {
+     "as_of": null,
+     "engine_version": null,
+     "evidence_policy": "current_vintage",
+     "names": 0,
+     "names_without_result": 0,
+     "tier": "ranked",
+     "universe": "fundamental_universe"
+    },
+    "state": "unsupported_capability"
+   },
+   "params": {
+    "limit": 2
+   },
+   "path": "/api/scanner/radar",
+   "status": 200
+  },
+  {
+   "body": {
+    "detail": [
+     {
+      "ctx": {
+       "ge": 1
+      },
+      "input": "0",
+      "loc": [
+       "query",
+       "limit"
+      ],
+      "msg": "Input should be greater than or equal to 1",
+      "type": "greater_than_equal"
+     }
+    ]
+   },
+   "params": {
+    "limit": 0
+   },
+   "path": "/api/scanner/radar",
+   "status": 422
+  },
+  {
+   "body": {
+    "ordering": "composite",
+    "ordering_authority": "research_priority",
+    "prohibited": [
+     "expected return \u2014 measured gross alpha is zero",
+     "risk score \u2014 the top decile is riskier than the middle",
+     "a per-name forecast \u2014 the within-ticker test is a POWERED null (IC -0.0000, all 16 tests fail BH)"
+    ],
+    "reason": "no active method version is seeded",
+    "rows": [],
+    "scope": {
+     "as_of": null,
+     "engine_version": null,
+     "evidence_policy": "current_vintage",
+     "names": 0,
+     "names_without_result": 0,
+     "tier": "ranked",
+     "universe": "fundamental_universe"
+    },
+    "state": "unsupported_capability"
+   },
+   "params": {
+    "min_dimensions": 0
+   },
+   "path": "/api/scanner/radar",
+   "status": 200
+  },
+  {
+   "body": {
+    "ordering": "composite",
+    "ordering_authority": "research_priority",
+    "prohibited": [
+     "expected return \u2014 measured gross alpha is zero",
+     "risk score \u2014 the top decile is riskier than the middle",
+     "a per-name forecast \u2014 the within-ticker test is a POWERED null (IC -0.0000, all 16 tests fail BH)"
+    ],
+    "reason": "no active method version is seeded",
+    "rows": [],
+    "scope": {
+     "as_of": null,
+     "engine_version": null,
+     "evidence_policy": "current_vintage",
+     "names": 0,
+     "names_without_result": 0,
+     "tier": "ranked",
+     "universe": "fundamental_universe"
+    },
+    "state": "unsupported_capability"
+   },
+   "params": {
+    "min_dimensions": 4
+   },
+   "path": "/api/scanner/radar",
+   "status": 200
+  },
+  {
+   "body": {
+    "detail": [
+     {
+      "ctx": {
+       "le": 4
+      },
+      "input": "5",
+      "loc": [
+       "query",
+       "min_dimensions"
+      ],
+      "msg": "Input should be less than or equal to 4",
+      "type": "less_than_equal"
+     }
+    ]
+   },
+   "params": {
+    "min_dimensions": 5
+   },
+   "path": "/api/scanner/radar",
+   "status": 422
+  },
+  {
+   "body": {
+    "ordering": "composite",
+    "ordering_authority": "research_priority",
+    "prohibited": [
+     "expected return \u2014 measured gross alpha is zero",
+     "risk score \u2014 the top decile is riskier than the middle",
+     "a per-name forecast \u2014 the within-ticker test is a POWERED null (IC -0.0000, all 16 tests fail BH)"
+    ],
+    "reason": null,
+    "rows": [],
+    "scope": {
+     "as_of": null,
+     "engine_version": "golden-eng-b",
+     "evidence_policy": "current_vintage",
+     "names": 0,
+     "names_without_result": 0,
+     "tier": "watch",
+     "universe": "fundamental_universe"
+    },
+    "state": "ok"
+   },
+   "params": {
+    "engine_version": "golden-eng-b",
+    "limit": 1,
+    "tier": "watch"
+   },
+   "path": "/api/scanner/radar",
+   "status": 200
+  },
+  {
+   "body": {
+    "cells": [],
+    "coverage": {},
+    "engine_version": null,
+    "prohibited": [
+     "a causal claim \u2014 no edge in this taxonomy has demonstrated forward information, so nothing propagates from one layer to another",
+     "a supplier/customer relationship \u2014 membership is semantic, and a named counterparty requires a named source",
+     "an economic exposure, unless the row carries a disclosed magnitude (measured at 4 of 316 members)"
+    ],
+    "reason": "no active taxonomy version is published",
+    "state": "unsupported_capability",
+    "taxonomy_version": ""
+   },
+   "params": {},
+   "path": "/api/research/chains/matrix",
+   "status": 200
+  },
+  {
+   "body": {
+    "cells": [],
+    "coverage": {},
+    "engine_version": null,
+    "prohibited": [
+     "a causal claim \u2014 no edge in this taxonomy has demonstrated forward information, so nothing propagates from one layer to another",
+     "a supplier/customer relationship \u2014 membership is semantic, and a named counterparty requires a named source",
+     "an economic exposure, unless the row carries a disclosed magnitude (measured at 4 of 316 members)"
+    ],
+    "reason": null,
+    "state": "ok",
+    "taxonomy_version": "golden-tax-v0"
+   },
+   "params": {
+    "taxonomy_version": "golden-tax-v0"
+   },
+   "path": "/api/research/chains/matrix",
+   "status": 200
+  },
+  {
+   "body": {
+    "cells": [],
+    "coverage": {},
+    "engine_version": null,
+    "prohibited": [
+     "a causal claim \u2014 no edge in this taxonomy has demonstrated forward information, so nothing propagates from one layer to another",
+     "a supplier/customer relationship \u2014 membership is semantic, and a named counterparty requires a named source",
+     "an economic exposure, unless the row carries a disclosed magnitude (measured at 4 of 316 members)"
+    ],
+    "reason": null,
+    "state": "ok",
+    "taxonomy_version": "golden-tax-none"
+   },
+   "params": {
+    "taxonomy_version": "golden-tax-none"
+   },
+   "path": "/api/research/chains/matrix",
+   "status": 200
+  },
+  {
+   "body": {
+    "cells": [],
+    "coverage": {},
+    "engine_version": "golden-eng-b",
+    "prohibited": [
+     "a causal claim \u2014 no edge in this taxonomy has demonstrated forward information, so nothing propagates from one layer to another",
+     "a supplier/customer relationship \u2014 membership is semantic, and a named counterparty requires a named source",
+     "an economic exposure, unless the row carries a disclosed magnitude (measured at 4 of 316 members)"
+    ],
+    "reason": "no active taxonomy version is published",
+    "state": "unsupported_capability",
+    "taxonomy_version": ""
+   },
+   "params": {
+    "engine_version": "golden-eng-b"
+   },
+   "path": "/api/research/chains/matrix",
+   "status": 200
+  },
+  {
+   "body": {
+    "cells": [],
+    "coverage": {},
+    "engine_version": null,
+    "prohibited": [
+     "a causal claim \u2014 no edge in this taxonomy has demonstrated forward information, so nothing propagates from one layer to another",
+     "a supplier/customer relationship \u2014 membership is semantic, and a named counterparty requires a named source",
+     "an economic exposure, unless the row carries a disclosed magnitude (measured at 4 of 316 members)"
+    ],
+    "reason": "no active taxonomy version is published",
+    "state": "unsupported_capability",
+    "taxonomy_version": ""
+   },
+   "params": {
+    "domain": "ai"
+   },
+   "path": "/api/research/chains/matrix",
+   "status": 200
+  },
+  {
+   "body": {
+    "cells": [],
+    "coverage": {},
+    "engine_version": null,
+    "prohibited": [
+     "a causal claim \u2014 no edge in this taxonomy has demonstrated forward information, so nothing propagates from one layer to another",
+     "a supplier/customer relationship \u2014 membership is semantic, and a named counterparty requires a named source",
+     "an economic exposure, unless the row carries a disclosed magnitude (measured at 4 of 316 members)"
+    ],
+    "reason": "no active taxonomy version is published",
+    "state": "unsupported_capability",
+    "taxonomy_version": ""
+   },
+   "params": {
+    "domain": "energy"
+   },
+   "path": "/api/research/chains/matrix",
+   "status": 200
+  },
+  {
+   "body": {
+    "cells": [],
+    "coverage": {},
+    "engine_version": null,
+    "prohibited": [
+     "a causal claim \u2014 no edge in this taxonomy has demonstrated forward information, so nothing propagates from one layer to another",
+     "a supplier/customer relationship \u2014 membership is semantic, and a named counterparty requires a named source",
+     "an economic exposure, unless the row carries a disclosed magnitude (measured at 4 of 316 members)"
+    ],
+    "reason": "no active taxonomy version is published",
+    "state": "unsupported_capability",
+    "taxonomy_version": ""
+   },
+   "params": {
+    "domain": "no-such-domain"
+   },
+   "path": "/api/research/chains/matrix",
+   "status": 200
+  },
+  {
+   "body": {
+    "chain": "Optical",
+    "layer": null,
+    "members": [],
+    "reason": "no active taxonomy version is published",
+    "state": "unsupported_capability",
+    "taxonomy_version": ""
+   },
+   "params": {},
+   "path": "/api/research/chains/Optical",
+   "status": 200
+  },
+  {
+   "body": {
+    "chain": "Optical",
+    "layer": "Module",
+    "members": [],
+    "reason": "no active taxonomy version is published",
+    "state": "unsupported_capability",
+    "taxonomy_version": ""
+   },
+   "params": {
+    "layer": "Module"
+   },
+   "path": "/api/research/chains/Optical",
+   "status": 200
+  },
+  {
+   "body": {
+    "chain": "Optical",
+    "layer": "Systems",
+    "members": [],
+    "reason": "no active taxonomy version is published",
+    "state": "unsupported_capability",
+    "taxonomy_version": ""
+   },
+   "params": {
+    "layer": "Systems"
+   },
+   "path": "/api/research/chains/Optical",
+   "status": 200
+  },
+  {
+   "body": {
+    "chain": "Compute",
+    "layer": null,
+    "members": [],
+    "reason": "no active taxonomy version is published",
+    "state": "unsupported_capability",
+    "taxonomy_version": ""
+   },
+   "params": {},
+   "path": "/api/research/chains/Compute",
+   "status": 200
+  },
+  {
+   "body": {
+    "chain": "Compute",
+    "layer": null,
+    "members": [],
+    "reason": "no active taxonomy version is published",
+    "state": "unsupported_capability",
+    "taxonomy_version": ""
+   },
+   "params": {
+    "engine_version": "golden-eng-b"
+   },
+   "path": "/api/research/chains/Compute",
+   "status": 200
+  },
+  {
+   "body": {
+    "chain": "Power",
+    "layer": null,
+    "members": [],
+    "reason": "no active taxonomy version is published",
+    "state": "unsupported_capability",
+    "taxonomy_version": ""
+   },
+   "params": {},
+   "path": "/api/research/chains/Power",
+   "status": 200
+  },
+  {
+   "body": {
+    "chain": "NoSuchChain",
+    "layer": null,
+    "members": [],
+    "reason": "no active taxonomy version is published",
+    "state": "unsupported_capability",
+    "taxonomy_version": ""
+   },
+   "params": {},
+   "path": "/api/research/chains/NoSuchChain",
+   "status": 200
+  },
+  {
+   "body": {
+    "chain": "Optical",
+    "layer": null,
+    "members": [],
+    "reason": "no members in 'Optical' under golden-tax-v0",
+    "state": "no_coverage",
+    "taxonomy_version": "golden-tax-v0"
+   },
+   "params": {
+    "taxonomy_version": "golden-tax-v0"
+   },
+   "path": "/api/research/chains/Optical",
+   "status": 200
+  }
+ ],
+ "seeded": [
+  {
+   "body": {
+    "dimensions": [
+     {
+      "authority": "research_priority",
+      "detail": {},
+      "dimension": "balance_sheet",
+      "inputs_expected": 1,
+      "inputs_present": 1,
+      "value": 0.75
+     },
+     {
+      "authority": "research_priority",
+      "detail": {},
+      "dimension": "capital_efficiency",
+      "inputs_expected": 2,
+      "inputs_present": 2,
+      "value": 0.2
+     },
+     {
+      "authority": "research_priority",
+      "detail": {},
+      "dimension": "cash_conversion",
+      "inputs_expected": 1,
+      "inputs_present": 1,
+      "value": -0.4
+     },
+     {
+      "authority": "descriptive",
+      "detail": {},
+      "dimension": "evidence_quality",
+      "inputs_expected": 5,
+      "inputs_present": 4,
+      "value": 0.8
+     },
+     {
+      "authority": "research_priority",
+      "detail": {
+       "features": {
+        "rev_growth": 12.3
+       }
+      },
+      "dimension": "growth",
+      "inputs_expected": 1,
+      "inputs_present": 1,
+      "value": 12.3
+     },
+     {
+      "authority": "descriptive",
+      "detail": {},
+      "dimension": "operating_quality",
+      "inputs_expected": 2,
+      "inputs_present": 2,
+      "value": -0.25
+     },
+     {
+      "authority": "research_priority",
+      "detail": {
+       "note": "four of four"
+      },
+      "dimension": "priority",
+      "inputs_expected": 4,
+      "inputs_present": 4,
+      "value": 1.5
+     },
+     {
+      "authority": "directional_monitor",
+      "detail": {},
+      "dimension": "valuation",
+      "inputs_expected": 1,
+      "inputs_present": 1,
+      "value": -11.0
+     }
+    ],
+    "evidence_coverage": 0.8,
+    "reason": null,
+    "run": {
+     "as_of": "2026-06-15",
+     "as_of_cutoff": null,
+     "computed_at": null,
+     "engine_version": "golden-eng-a",
+     "evidence_policy": "current_vintage",
+     "run_id": null,
+     "status": "succeeded"
+    },
+    "state": "ok",
+    "ticker": "AAA"
+   },
+   "params": {},
+   "path": "/api/stock/AAA/fundamentals/dimensions",
+   "status": 200
+  },
+  {
+   "body": {
+    "dimensions": [
+     {
+      "authority": "research_priority",
+      "detail": {},
+      "dimension": "balance_sheet",
+      "inputs_expected": 1,
+      "inputs_present": 1,
+      "value": 0.75
+     },
+     {
+      "authority": "research_priority",
+      "detail": {},
+      "dimension": "capital_efficiency",
+      "inputs_expected": 2,
+      "inputs_present": 2,
+      "value": 0.2
+     },
+     {
+      "authority": "research_priority",
+      "detail": {},
+      "dimension": "cash_conversion",
+      "inputs_expected": 1,
+      "inputs_present": 1,
+      "value": -0.4
+     },
+     {
+      "authority": "descriptive",
+      "detail": {},
+      "dimension": "evidence_quality",
+      "inputs_expected": 5,
+      "inputs_present": 4,
+      "value": 0.8
+     },
+     {
+      "authority": "research_priority",
+      "detail": {
+       "features": {
+        "rev_growth": 12.3
+       }
+      },
+      "dimension": "growth",
+      "inputs_expected": 1,
+      "inputs_present": 1,
+      "value": 12.3
+     },
+     {
+      "authority": "descriptive",
+      "detail": {},
+      "dimension": "operating_quality",
+      "inputs_expected": 2,
+      "inputs_present": 2,
+      "value": -0.25
+     },
+     {
+      "authority": "research_priority",
+      "detail": {
+       "note": "four of four"
+      },
+      "dimension": "priority",
+      "inputs_expected": 4,
+      "inputs_present": 4,
+      "value": 1.5
+     },
+     {
+      "authority": "directional_monitor",
+      "detail": {},
+      "dimension": "valuation",
+      "inputs_expected": 1,
+      "inputs_present": 1,
+      "value": -11.0
+     }
+    ],
+    "evidence_coverage": 0.8,
+    "reason": null,
+    "run": {
+     "as_of": "2026-06-15",
+     "as_of_cutoff": null,
+     "computed_at": null,
+     "engine_version": "golden-eng-a",
+     "evidence_policy": "current_vintage",
+     "run_id": null,
+     "status": "succeeded"
+    },
+    "state": "ok",
+    "ticker": "AAA"
+   },
+   "params": {},
+   "path": "/api/stock/aaa/fundamentals/dimensions",
+   "status": 200
+  },
+  {
+   "body": {
+    "dimensions": [
+     {
+      "authority": "research_priority",
+      "detail": {},
+      "dimension": "capital_efficiency",
+      "inputs_expected": 2,
+      "inputs_present": 2,
+      "value": 0.7
+     },
+     {
+      "authority": "research_priority",
+      "detail": {},
+      "dimension": "growth",
+      "inputs_expected": 1,
+      "inputs_present": 1,
+      "value": -0.3
+     },
+     {
+      "authority": "research_priority",
+      "detail": {},
+      "dimension": "priority",
+      "inputs_expected": 4,
+      "inputs_present": 2,
+      "value": 0.4
+     }
+    ],
+    "evidence_coverage": null,
+    "reason": "newest compatible result is 166 days old (>45)",
+    "run": {
+     "as_of": "2026-01-15",
+     "as_of_cutoff": null,
+     "computed_at": null,
+     "engine_version": "golden-eng-a",
+     "evidence_policy": "current_vintage",
+     "run_id": null,
+     "status": "succeeded"
+    },
+    "state": "stale_run",
+    "ticker": "EEE"
+   },
+   "params": {},
+   "path": "/api/stock/EEE/fundamentals/dimensions",
+   "status": 200
+  },
+  {
+   "body": {
+    "dimensions": [],
+    "evidence_coverage": null,
+    "reason": "statements exist for STM but nothing has been computed under engine golden-eng-a",
+    "run": null,
+    "state": "no_compatible_run",
+    "ticker": "STM"
+   },
+   "params": {},
+   "path": "/api/stock/STM/fundamentals/dimensions",
+   "status": 200
+  },
+  {
+   "body": {
+    "dimensions": [],
+    "evidence_coverage": null,
+    "reason": "Argon holds no statement observations for XYZ",
+    "run": null,
+    "state": "no_coverage",
+    "ticker": "XYZ"
+   },
+   "params": {},
+   "path": "/api/stock/XYZ/fundamentals/dimensions",
+   "status": 200
+  },
+  {
+   "body": {
+    "dimensions": [
+     {
+      "authority": "research_priority",
+      "detail": {},
+      "dimension": "balance_sheet",
+      "inputs_expected": 1,
+      "inputs_present": 1,
+      "value": -0.3
+     },
+     {
+      "authority": "research_priority",
+      "detail": {},
+      "dimension": "cash_conversion",
+      "inputs_expected": 1,
+      "inputs_present": 1,
+      "value": -0.2
+     },
+     {
+      "authority": "research_priority",
+      "detail": {},
+      "dimension": "growth",
+      "inputs_expected": 1,
+      "inputs_present": 1,
+      "value": -0.1
+     },
+     {
+      "authority": "research_priority",
+      "detail": {},
+      "dimension": "priority",
+      "inputs_expected": 4,
+      "inputs_present": 3,
+      "value": -0.2
+     }
+    ],
+    "evidence_coverage": null,
+    "reason": null,
+    "run": {
+     "as_of": "2026-06-15",
+     "as_of_cutoff": null,
+     "computed_at": null,
+     "engine_version": "golden-eng-b",
+     "evidence_policy": "current_vintage",
+     "run_id": null,
+     "status": "succeeded"
+    },
+    "state": "ok",
+    "ticker": "AAA"
+   },
+   "params": {
+    "engine_version": "golden-eng-b"
+   },
+   "path": "/api/stock/AAA/fundamentals/dimensions",
+   "status": 200
+  },
+  {
+   "body": {
+    "dimensions": [],
+    "evidence_coverage": null,
+    "reason": "statements exist for AAA but nothing has been computed under engine golden-eng-none",
+    "run": null,
+    "state": "no_compatible_run",
+    "ticker": "AAA"
+   },
+   "params": {
+    "engine_version": "golden-eng-none"
+   },
+   "path": "/api/stock/AAA/fundamentals/dimensions",
+   "status": 200
+  },
+  {
+   "body": {
+    "ordering": "composite",
+    "ordering_authority": "research_priority",
+    "prohibited": [
+     "expected return \u2014 measured gross alpha is zero",
+     "risk score \u2014 the top decile is riskier than the middle",
+     "a per-name forecast \u2014 the within-ticker test is a POWERED null (IC -0.0000, all 16 tests fail BH)"
+    ],
+    "reason": null,
+    "rows": [
+     {
+      "as_of": "2026-06-15",
+      "company_type": "compounder",
+      "dimensions": [
+       {
+        "authority": "research_priority",
+        "detail": {},
+        "dimension": "balance_sheet",
+        "inputs_expected": 1,
+        "inputs_present": 1,
+        "value": 0.75
+       },
+       {
+        "authority": "research_priority",
+        "detail": {},
+        "dimension": "capital_efficiency",
+        "inputs_expected": 2,
+        "inputs_present": 2,
+        "value": 0.2
+       },
+       {
+        "authority": "research_priority",
+        "detail": {},
+        "dimension": "cash_conversion",
+        "inputs_expected": 1,
+        "inputs_present": 1,
+        "value": -0.4
+       },
+       {
+        "authority": "descriptive",
+        "detail": {},
+        "dimension": "evidence_quality",
+        "inputs_expected": 5,
+        "inputs_present": 4,
+        "value": 0.8
+       },
+       {
+        "authority": "research_priority",
+        "detail": {
+         "features": {
+          "rev_growth": 12.3
+         }
+        },
+        "dimension": "growth",
+        "inputs_expected": 1,
+        "inputs_present": 1,
+        "value": 12.3
+       },
+       {
+        "authority": "descriptive",
+        "detail": {},
+        "dimension": "operating_quality",
+        "inputs_expected": 2,
+        "inputs_present": 2,
+        "value": -0.25
+       },
+       {
+        "authority": "directional_monitor",
+        "detail": {},
+        "dimension": "valuation",
+        "inputs_expected": 1,
+        "inputs_present": 1,
+        "value": -11.0
+       }
+      ],
+      "dimensions_expected": 4,
+      "dimensions_present": 4,
+      "evidence_coverage": 0.8,
+      "extreme_dimensions": [
+       "growth",
+       "valuation"
+      ],
+      "missing_dimensions": [],
+      "priority": 1.5,
+      "priority_authority": "research_priority",
+      "priority_change": null,
+      "ticker": "AAA"
+     },
+     {
+      "as_of": "2026-06-15",
+      "company_type": "cyclical",
+      "dimensions": [
+       {
+        "authority": "research_priority",
+        "detail": {},
+        "dimension": "balance_sheet",
+        "inputs_expected": 1,
+        "inputs_present": 1,
+        "value": 0.2
+       },
+       {
+        "authority": "research_priority",
+        "detail": {},
+        "dimension": "cash_conversion",
+        "inputs_expected": 1,
+        "inputs_present": 0,
+        "value": null
+       },
+       {
+        "authority": "descriptive",
+        "detail": {},
+        "dimension": "evidence_quality",
+        "inputs_expected": 5,
+        "inputs_present": 0,
+        "value": null
+       },
+       {
+        "authority": "research_priority",
+        "detail": {},
+        "dimension": "growth",
+        "inputs_expected": 1,
+        "inputs_present": 1,
+        "value": 0.6
+       }
+      ],
+      "dimensions_expected": 4,
+      "dimensions_present": 2,
+      "evidence_coverage": null,
+      "extreme_dimensions": [],
+      "missing_dimensions": [
+       "cash_conversion",
+       "capital_efficiency"
+      ],
+      "priority": 0.4,
+      "priority_authority": "research_priority",
+      "priority_change": null,
+      "ticker": "BBB"
+     },
+     {
+      "as_of": "2026-01-15",
+      "company_type": null,
+      "dimensions": [
+       {
+        "authority": "research_priority",
+        "detail": {},
+        "dimension": "capital_efficiency",
+        "inputs_expected": 2,
+        "inputs_present": 2,
+        "value": 0.7
+       },
+       {
+        "authority": "research_priority",
+        "detail": {},
+        "dimension": "growth",
+        "inputs_expected": 1,
+        "inputs_present": 1,
+        "value": -0.3
+       }
+      ],
+      "dimensions_expected": 4,
+      "dimensions_present": 2,
+      "evidence_coverage": null,
+      "extreme_dimensions": [],
+      "missing_dimensions": [
+       "balance_sheet",
+       "cash_conversion"
+      ],
+      "priority": 0.4,
+      "priority_authority": "research_priority",
+      "priority_change": null,
+      "ticker": "EEE"
+     },
+     {
+      "as_of": "2026-06-15",
+      "company_type": null,
+      "dimensions": [
+       {
+        "authority": "research_priority",
+        "detail": {},
+        "dimension": "capital_efficiency",
+        "inputs_expected": 2,
+        "inputs_present": 2,
+        "value": 0.9
+       },
+       {
+        "authority": "research_priority",
+        "detail": {},
+        "dimension": "cash_conversion",
+        "inputs_expected": 1,
+        "inputs_present": 1,
+        "value": 0.3
+       },
+       {
+        "authority": "research_priority",
+        "detail": {},
+        "dimension": "growth",
+        "inputs_expected": 1,
+        "inputs_present": 1,
+        "value": -1.2
+       }
+      ],
+      "dimensions_expected": 4,
+      "dimensions_present": 3,
+      "evidence_coverage": null,
+      "extreme_dimensions": [],
+      "missing_dimensions": [
+       "balance_sheet"
+      ],
+      "priority": null,
+      "priority_authority": "research_priority",
+      "priority_change": null,
+      "ticker": "CCC"
+     }
+    ],
+    "scope": {
+     "as_of": null,
+     "engine_version": "golden-eng-a",
+     "evidence_policy": "current_vintage",
+     "names": 6,
+     "names_without_result": 1,
+     "tier": "ranked",
+     "universe": "fundamental_universe"
+    },
+    "state": "ok"
+   },
+   "params": {},
+   "path": "/api/scanner/radar",
+   "status": 200
+  },
+  {
+   "body": {
+    "ordering": "composite",
+    "ordering_authority": "research_priority",
+    "prohibited": [
+     "expected return \u2014 measured gross alpha is zero",
+     "risk score \u2014 the top decile is riskier than the middle",
+     "a per-name forecast \u2014 the within-ticker test is a POWERED null (IC -0.0000, all 16 tests fail BH)"
+    ],
+    "reason": null,
+    "rows": [
+     {
+      "as_of": "2026-06-15",
+      "company_type": "compounder",
+      "dimensions": [
+       {
+        "authority": "research_priority",
+        "detail": {},
+        "dimension": "balance_sheet",
+        "inputs_expected": 1,
+        "inputs_present": 1,
+        "value": 0.75
+       },
+       {
+        "authority": "research_priority",
+        "detail": {},
+        "dimension": "capital_efficiency",
+        "inputs_expected": 2,
+        "inputs_present": 2,
+        "value": 0.2
+       },
+       {
+        "authority": "research_priority",
+        "detail": {},
+        "dimension": "cash_conversion",
+        "inputs_expected": 1,
+        "inputs_present": 1,
+        "value": -0.4
+       },
+       {
+        "authority": "descriptive",
+        "detail": {},
+        "dimension": "evidence_quality",
+        "inputs_expected": 5,
+        "inputs_present": 4,
+        "value": 0.8
+       },
+       {
+        "authority": "research_priority",
+        "detail": {
+         "features": {
+          "rev_growth": 12.3
+         }
+        },
+        "dimension": "growth",
+        "inputs_expected": 1,
+        "inputs_present": 1,
+        "value": 12.3
+       },
+       {
+        "authority": "descriptive",
+        "detail": {},
+        "dimension": "operating_quality",
+        "inputs_expected": 2,
+        "inputs_present": 2,
+        "value": -0.25
+       },
+       {
+        "authority": "directional_monitor",
+        "detail": {},
+        "dimension": "valuation",
+        "inputs_expected": 1,
+        "inputs_present": 1,
+        "value": -11.0
+       }
+      ],
+      "dimensions_expected": 4,
+      "dimensions_present": 4,
+      "evidence_coverage": 0.8,
+      "extreme_dimensions": [
+       "growth",
+       "valuation"
+      ],
+      "missing_dimensions": [],
+      "priority": 1.5,
+      "priority_authority": "research_priority",
+      "priority_change": null,
+      "ticker": "AAA"
+     },
+     {
+      "as_of": "2026-06-15",
+      "company_type": "cyclical",
+      "dimensions": [
+       {
+        "authority": "research_priority",
+        "detail": {},
+        "dimension": "balance_sheet",
+        "inputs_expected": 1,
+        "inputs_present": 1,
+        "value": 0.2
+       },
+       {
+        "authority": "research_priority",
+        "detail": {},
+        "dimension": "cash_conversion",
+        "inputs_expected": 1,
+        "inputs_present": 0,
+        "value": null
+       },
+       {
+        "authority": "descriptive",
+        "detail": {},
+        "dimension": "evidence_quality",
+        "inputs_expected": 5,
+        "inputs_present": 0,
+        "value": null
+       },
+       {
+        "authority": "research_priority",
+        "detail": {},
+        "dimension": "growth",
+        "inputs_expected": 1,
+        "inputs_present": 1,
+        "value": 0.6
+       }
+      ],
+      "dimensions_expected": 4,
+      "dimensions_present": 2,
+      "evidence_coverage": null,
+      "extreme_dimensions": [],
+      "missing_dimensions": [
+       "cash_conversion",
+       "capital_efficiency"
+      ],
+      "priority": 0.4,
+      "priority_authority": "research_priority",
+      "priority_change": null,
+      "ticker": "BBB"
+     },
+     {
+      "as_of": "2026-01-15",
+      "company_type": null,
+      "dimensions": [
+       {
+        "authority": "research_priority",
+        "detail": {},
+        "dimension": "capital_efficiency",
+        "inputs_expected": 2,
+        "inputs_present": 2,
+        "value": 0.7
+       },
+       {
+        "authority": "research_priority",
+        "detail": {},
+        "dimension": "growth",
+        "inputs_expected": 1,
+        "inputs_present": 1,
+        "value": -0.3
+       }
+      ],
+      "dimensions_expected": 4,
+      "dimensions_present": 2,
+      "evidence_coverage": null,
+      "extreme_dimensions": [],
+      "missing_dimensions": [
+       "balance_sheet",
+       "cash_conversion"
+      ],
+      "priority": 0.4,
+      "priority_authority": "research_priority",
+      "priority_change": null,
+      "ticker": "EEE"
+     },
+     {
+      "as_of": "2026-06-15",
+      "company_type": null,
+      "dimensions": [
+       {
+        "authority": "research_priority",
+        "detail": {},
+        "dimension": "capital_efficiency",
+        "inputs_expected": 2,
+        "inputs_present": 2,
+        "value": 0.9
+       },
+       {
+        "authority": "research_priority",
+        "detail": {},
+        "dimension": "cash_conversion",
+        "inputs_expected": 1,
+        "inputs_present": 1,
+        "value": 0.3
+       },
+       {
+        "authority": "research_priority",
+        "detail": {},
+        "dimension": "growth",
+        "inputs_expected": 1,
+        "inputs_present": 1,
+        "value": -1.2
+       }
+      ],
+      "dimensions_expected": 4,
+      "dimensions_present": 3,
+      "evidence_coverage": null,
+      "extreme_dimensions": [],
+      "missing_dimensions": [
+       "balance_sheet"
+      ],
+      "priority": null,
+      "priority_authority": "research_priority",
+      "priority_change": null,
+      "ticker": "CCC"
+     }
+    ],
+    "scope": {
+     "as_of": null,
+     "engine_version": "golden-eng-a",
+     "evidence_policy": "current_vintage",
+     "names": 6,
+     "names_without_result": 1,
+     "tier": "ranked",
+     "universe": "fundamental_universe"
+    },
+    "state": "ok"
+   },
+   "params": {
+    "tier": "ranked"
+   },
+   "path": "/api/scanner/radar",
+   "status": 200
+  },
+  {
+   "body": {
+    "ordering": "composite",
+    "ordering_authority": "research_priority",
+    "prohibited": [
+     "expected return \u2014 measured gross alpha is zero",
+     "risk score \u2014 the top decile is riskier than the middle",
+     "a per-name forecast \u2014 the within-ticker test is a POWERED null (IC -0.0000, all 16 tests fail BH)"
+    ],
+    "reason": null,
+    "rows": [
+     {
+      "as_of": "2026-06-15",
+      "company_type": null,
+      "dimensions": [
+       {
+        "authority": "research_priority",
+        "detail": {},
+        "dimension": "balance_sheet",
+        "inputs_expected": 1,
+        "inputs_present": 1,
+        "value": 3.2
+       },
+       {
+        "authority": "research_priority",
+        "detail": {},
+        "dimension": "growth",
+        "inputs_expected": 1,
+        "inputs_present": 1,
+        "value": 3.0
+       }
+      ],
+      "dimensions_expected": 4,
+      "dimensions_present": 2,
+      "evidence_coverage": null,
+      "extreme_dimensions": [],
+      "missing_dimensions": [
+       "cash_conversion",
+       "capital_efficiency"
+      ],
+      "priority": 3.1,
+      "priority_authority": "research_priority",
+      "priority_change": null,
+      "ticker": "GGG"
+     },
+     {
+      "as_of": "2026-06-15",
+      "company_type": "compounder",
+      "dimensions": [
+       {
+        "authority": "research_priority",
+        "detail": {},
+        "dimension": "balance_sheet",
+        "inputs_expected": 1,
+        "inputs_present": 1,
+        "value": 0.75
+       },
+       {
+        "authority": "research_priority",
+        "detail": {},
+        "dimension": "capital_efficiency",
+        "inputs_expected": 2,
+        "inputs_present": 2,
+        "value": 0.2
+       },
+       {
+        "authority": "research_priority",
+        "detail": {},
+        "dimension": "cash_conversion",
+        "inputs_expected": 1,
+        "inputs_present": 1,
+        "value": -0.4
+       },
+       {
+        "authority": "descriptive",
+        "detail": {},
+        "dimension": "evidence_quality",
+        "inputs_expected": 5,
+        "inputs_present": 4,
+        "value": 0.8
+       },
+       {
+        "authority": "research_priority",
+        "detail": {
+         "features": {
+          "rev_growth": 12.3
+         }
+        },
+        "dimension": "growth",
+        "inputs_expected": 1,
+        "inputs_present": 1,
+        "value": 12.3
+       },
+       {
+        "authority": "descriptive",
+        "detail": {},
+        "dimension": "operating_quality",
+        "inputs_expected": 2,
+        "inputs_present": 2,
+        "value": -0.25
+       },
+       {
+        "authority": "directional_monitor",
+        "detail": {},
+        "dimension": "valuation",
+        "inputs_expected": 1,
+        "inputs_present": 1,
+        "value": -11.0
+       }
+      ],
+      "dimensions_expected": 4,
+      "dimensions_present": 4,
+      "evidence_coverage": 0.8,
+      "extreme_dimensions": [
+       "growth",
+       "valuation"
+      ],
+      "missing_dimensions": [],
+      "priority": 1.5,
+      "priority_authority": "research_priority",
+      "priority_change": null,
+      "ticker": "AAA"
+     },
+     {
+      "as_of": "2026-06-15",
+      "company_type": "financials",
+      "dimensions": [
+       {
+        "authority": "research_priority",
+        "detail": {},
+        "dimension": "balance_sheet",
+        "inputs_expected": 1,
+        "inputs_present": 1,
+        "value": -0.6
+       },
+       {
+        "authority": "research_priority",
+        "detail": {},
+        "dimension": "growth",
+        "inputs_expected": 1,
+        "inputs_present": 1,
+        "value": -0.6
+       }
+      ],
+      "dimensions_expected": 4,
+      "dimensions_present": 2,
+      "evidence_coverage": null,
+      "extreme_dimensions": [],
+      "missing_dimensions": [
+       "cash_conversion",
+       "capital_efficiency"
+      ],
+      "priority": -0.6,
+      "priority_authority": "research_priority",
+      "priority_change": null,
+      "ticker": "FFF"
+     }
+    ],
+    "scope": {
+     "as_of": null,
+     "engine_version": "golden-eng-a",
+     "evidence_policy": "current_vintage",
+     "names": 3,
+     "names_without_result": 0,
+     "tier": "watch",
+     "universe": "fundamental_universe"
+    },
+    "state": "ok"
+   },
+   "params": {
+    "tier": "watch"
+   },
+   "path": "/api/scanner/radar",
+   "status": 200
+  },
+  {
+   "body": {
+    "ordering": "composite",
+    "ordering_authority": "research_priority",
+    "prohibited": [
+     "expected return \u2014 measured gross alpha is zero",
+     "risk score \u2014 the top decile is riskier than the middle",
+     "a per-name forecast \u2014 the within-ticker test is a POWERED null (IC -0.0000, all 16 tests fail BH)"
+    ],
+    "reason": "1 names in tier 'dormant' but no dimensions computed under engine golden-eng-a \u2014 run the scoring job under an engine whose validity policy emits dimensions",
+    "rows": [],
+    "scope": {
+     "as_of": null,
+     "engine_version": "golden-eng-a",
+     "evidence_policy": "current_vintage",
+     "names": 1,
+     "names_without_result": 1,
+     "tier": "dormant",
+     "universe": "fundamental_universe"
+    },
+    "state": "no_compatible_run"
+   },
+   "params": {
+    "tier": "dormant"
+   },
+   "path": "/api/scanner/radar",
+   "status": 200
+  },
+  {
+   "body": {
+    "ordering": "composite",
+    "ordering_authority": "research_priority",
+    "prohibited": [
+     "expected return \u2014 measured gross alpha is zero",
+     "risk score \u2014 the top decile is riskier than the middle",
+     "a per-name forecast \u2014 the within-ticker test is a POWERED null (IC -0.0000, all 16 tests fail BH)"
+    ],
+    "reason": null,
+    "rows": [],
+    "scope": {
+     "as_of": null,
+     "engine_version": "golden-eng-a",
+     "evidence_policy": "current_vintage",
+     "names": 0,
+     "names_without_result": 0,
+     "tier": "no-such-tier",
+     "universe": "fundamental_universe"
+    },
+    "state": "ok"
+   },
+   "params": {
+    "tier": "no-such-tier"
+   },
+   "path": "/api/scanner/radar",
+   "status": 200
+  },
+  {
+   "body": {
+    "ordering": "composite",
+    "ordering_authority": "research_priority",
+    "prohibited": [
+     "expected return \u2014 measured gross alpha is zero",
+     "risk score \u2014 the top decile is riskier than the middle",
+     "a per-name forecast \u2014 the within-ticker test is a POWERED null (IC -0.0000, all 16 tests fail BH)"
+    ],
+    "reason": null,
+    "rows": [
+     {
+      "as_of": "2026-06-15",
+      "company_type": "compounder",
+      "dimensions": [
+       {
+        "authority": "research_priority",
+        "detail": {},
+        "dimension": "balance_sheet",
+        "inputs_expected": 1,
+        "inputs_present": 1,
+        "value": -0.3
+       },
+       {
+        "authority": "research_priority",
+        "detail": {},
+        "dimension": "cash_conversion",
+        "inputs_expected": 1,
+        "inputs_present": 1,
+        "value": -0.2
+       },
+       {
+        "authority": "research_priority",
+        "detail": {},
+        "dimension": "growth",
+        "inputs_expected": 1,
+        "inputs_present": 1,
+        "value": -0.1
+       }
+      ],
+      "dimensions_expected": 4,
+      "dimensions_present": 3,
+      "evidence_coverage": null,
+      "extreme_dimensions": [],
+      "missing_dimensions": [
+       "capital_efficiency"
+      ],
+      "priority": -0.2,
+      "priority_authority": "research_priority",
+      "priority_change": null,
+      "ticker": "AAA"
+     }
+    ],
+    "scope": {
+     "as_of": null,
+     "engine_version": "golden-eng-b",
+     "evidence_policy": "current_vintage",
+     "names": 6,
+     "names_without_result": 5,
+     "tier": "ranked",
+     "universe": "fundamental_universe"
+    },
+    "state": "ok"
+   },
+   "params": {
+    "engine_version": "golden-eng-b"
+   },
+   "path": "/api/scanner/radar",
+   "status": 200
+  },
+  {
+   "body": {
+    "ordering": "composite",
+    "ordering_authority": "research_priority",
+    "prohibited": [
+     "expected return \u2014 measured gross alpha is zero",
+     "risk score \u2014 the top decile is riskier than the middle",
+     "a per-name forecast \u2014 the within-ticker test is a POWERED null (IC -0.0000, all 16 tests fail BH)"
+    ],
+    "reason": "6 names in tier 'ranked' but no dimensions computed under engine golden-eng-none \u2014 run the scoring job under an engine whose validity policy emits dimensions",
+    "rows": [],
+    "scope": {
+     "as_of": null,
+     "engine_version": "golden-eng-none",
+     "evidence_policy": "current_vintage",
+     "names": 6,
+     "names_without_result": 6,
+     "tier": "ranked",
+     "universe": "fundamental_universe"
+    },
+    "state": "no_compatible_run"
+   },
+   "params": {
+    "engine_version": "golden-eng-none"
+   },
+   "path": "/api/scanner/radar",
+   "status": 200
+  },
+  {
+   "body": {
+    "ordering": "composite",
+    "ordering_authority": "research_priority",
+    "prohibited": [
+     "expected return \u2014 measured gross alpha is zero",
+     "risk score \u2014 the top decile is riskier than the middle",
+     "a per-name forecast \u2014 the within-ticker test is a POWERED null (IC -0.0000, all 16 tests fail BH)"
+    ],
+    "reason": null,
+    "rows": [
+     {
+      "as_of": "2026-06-15",
+      "company_type": "compounder",
+      "dimensions": [
+       {
+        "authority": "research_priority",
+        "detail": {},
+        "dimension": "balance_sheet",
+        "inputs_expected": 1,
+        "inputs_present": 1,
+        "value": 0.75
+       },
+       {
+        "authority": "research_priority",
+        "detail": {},
+        "dimension": "capital_efficiency",
+        "inputs_expected": 2,
+        "inputs_present": 2,
+        "value": 0.2
+       },
+       {
+        "authority": "research_priority",
+        "detail": {},
+        "dimension": "cash_conversion",
+        "inputs_expected": 1,
+        "inputs_present": 1,
+        "value": -0.4
+       },
+       {
+        "authority": "descriptive",
+        "detail": {},
+        "dimension": "evidence_quality",
+        "inputs_expected": 5,
+        "inputs_present": 4,
+        "value": 0.8
+       },
+       {
+        "authority": "research_priority",
+        "detail": {
+         "features": {
+          "rev_growth": 12.3
+         }
+        },
+        "dimension": "growth",
+        "inputs_expected": 1,
+        "inputs_present": 1,
+        "value": 12.3
+       },
+       {
+        "authority": "descriptive",
+        "detail": {},
+        "dimension": "operating_quality",
+        "inputs_expected": 2,
+        "inputs_present": 2,
+        "value": -0.25
+       },
+       {
+        "authority": "directional_monitor",
+        "detail": {},
+        "dimension": "valuation",
+        "inputs_expected": 1,
+        "inputs_present": 1,
+        "value": -11.0
+       }
+      ],
+      "dimensions_expected": 4,
+      "dimensions_present": 4,
+      "evidence_coverage": 0.8,
+      "extreme_dimensions": [
+       "growth",
+       "valuation"
+      ],
+      "missing_dimensions": [],
+      "priority": 1.5,
+      "priority_authority": "research_priority",
+      "priority_change": null,
+      "ticker": "AAA"
+     },
+     {
+      "as_of": "2026-06-15",
+      "company_type": "cyclical",
+      "dimensions": [
+       {
+        "authority": "research_priority",
+        "detail": {},
+        "dimension": "balance_sheet",
+        "inputs_expected": 1,
+        "inputs_present": 1,
+        "value": 0.2
+       },
+       {
+        "authority": "research_priority",
+        "detail": {},
+        "dimension": "cash_conversion",
+        "inputs_expected": 1,
+        "inputs_present": 0,
+        "value": null
+       },
+       {
+        "authority": "descriptive",
+        "detail": {},
+        "dimension": "evidence_quality",
+        "inputs_expected": 5,
+        "inputs_present": 0,
+        "value": null
+       },
+       {
+        "authority": "research_priority",
+        "detail": {},
+        "dimension": "growth",
+        "inputs_expected": 1,
+        "inputs_present": 1,
+        "value": 0.6
+       }
+      ],
+      "dimensions_expected": 4,
+      "dimensions_present": 2,
+      "evidence_coverage": null,
+      "extreme_dimensions": [],
+      "missing_dimensions": [
+       "cash_conversion",
+       "capital_efficiency"
+      ],
+      "priority": 0.4,
+      "priority_authority": "research_priority",
+      "priority_change": null,
+      "ticker": "BBB"
+     }
+    ],
+    "scope": {
+     "as_of": null,
+     "engine_version": "golden-eng-a",
+     "evidence_policy": "current_vintage",
+     "names": 6,
+     "names_without_result": 1,
+     "tier": "ranked",
+     "universe": "fundamental_universe"
+    },
+    "state": "ok"
+   },
+   "params": {
+    "limit": 2
+   },
+   "path": "/api/scanner/radar",
+   "status": 200
+  },
+  {
+   "body": {
+    "detail": [
+     {
+      "ctx": {
+       "ge": 1
+      },
+      "input": "0",
+      "loc": [
+       "query",
+       "limit"
+      ],
+      "msg": "Input should be greater than or equal to 1",
+      "type": "greater_than_equal"
+     }
+    ]
+   },
+   "params": {
+    "limit": 0
+   },
+   "path": "/api/scanner/radar",
+   "status": 422
+  },
+  {
+   "body": {
+    "ordering": "composite",
+    "ordering_authority": "research_priority",
+    "prohibited": [
+     "expected return \u2014 measured gross alpha is zero",
+     "risk score \u2014 the top decile is riskier than the middle",
+     "a per-name forecast \u2014 the within-ticker test is a POWERED null (IC -0.0000, all 16 tests fail BH)"
+    ],
+    "reason": null,
+    "rows": [
+     {
+      "as_of": "2026-06-15",
+      "company_type": "compounder",
+      "dimensions": [
+       {
+        "authority": "research_priority",
+        "detail": {},
+        "dimension": "balance_sheet",
+        "inputs_expected": 1,
+        "inputs_present": 1,
+        "value": 0.75
+       },
+       {
+        "authority": "research_priority",
+        "detail": {},
+        "dimension": "capital_efficiency",
+        "inputs_expected": 2,
+        "inputs_present": 2,
+        "value": 0.2
+       },
+       {
+        "authority": "research_priority",
+        "detail": {},
+        "dimension": "cash_conversion",
+        "inputs_expected": 1,
+        "inputs_present": 1,
+        "value": -0.4
+       },
+       {
+        "authority": "descriptive",
+        "detail": {},
+        "dimension": "evidence_quality",
+        "inputs_expected": 5,
+        "inputs_present": 4,
+        "value": 0.8
+       },
+       {
+        "authority": "research_priority",
+        "detail": {
+         "features": {
+          "rev_growth": 12.3
+         }
+        },
+        "dimension": "growth",
+        "inputs_expected": 1,
+        "inputs_present": 1,
+        "value": 12.3
+       },
+       {
+        "authority": "descriptive",
+        "detail": {},
+        "dimension": "operating_quality",
+        "inputs_expected": 2,
+        "inputs_present": 2,
+        "value": -0.25
+       },
+       {
+        "authority": "directional_monitor",
+        "detail": {},
+        "dimension": "valuation",
+        "inputs_expected": 1,
+        "inputs_present": 1,
+        "value": -11.0
+       }
+      ],
+      "dimensions_expected": 4,
+      "dimensions_present": 4,
+      "evidence_coverage": 0.8,
+      "extreme_dimensions": [
+       "growth",
+       "valuation"
+      ],
+      "missing_dimensions": [],
+      "priority": 1.5,
+      "priority_authority": "research_priority",
+      "priority_change": null,
+      "ticker": "AAA"
+     },
+     {
+      "as_of": "2026-06-15",
+      "company_type": "cyclical",
+      "dimensions": [
+       {
+        "authority": "research_priority",
+        "detail": {},
+        "dimension": "balance_sheet",
+        "inputs_expected": 1,
+        "inputs_present": 1,
+        "value": 0.2
+       },
+       {
+        "authority": "research_priority",
+        "detail": {},
+        "dimension": "cash_conversion",
+        "inputs_expected": 1,
+        "inputs_present": 0,
+        "value": null
+       },
+       {
+        "authority": "descriptive",
+        "detail": {},
+        "dimension": "evidence_quality",
+        "inputs_expected": 5,
+        "inputs_present": 0,
+        "value": null
+       },
+       {
+        "authority": "research_priority",
+        "detail": {},
+        "dimension": "growth",
+        "inputs_expected": 1,
+        "inputs_present": 1,
+        "value": 0.6
+       }
+      ],
+      "dimensions_expected": 4,
+      "dimensions_present": 2,
+      "evidence_coverage": null,
+      "extreme_dimensions": [],
+      "missing_dimensions": [
+       "cash_conversion",
+       "capital_efficiency"
+      ],
+      "priority": 0.4,
+      "priority_authority": "research_priority",
+      "priority_change": null,
+      "ticker": "BBB"
+     },
+     {
+      "as_of": "2026-01-15",
+      "company_type": null,
+      "dimensions": [
+       {
+        "authority": "research_priority",
+        "detail": {},
+        "dimension": "capital_efficiency",
+        "inputs_expected": 2,
+        "inputs_present": 2,
+        "value": 0.7
+       },
+       {
+        "authority": "research_priority",
+        "detail": {},
+        "dimension": "growth",
+        "inputs_expected": 1,
+        "inputs_present": 1,
+        "value": -0.3
+       }
+      ],
+      "dimensions_expected": 4,
+      "dimensions_present": 2,
+      "evidence_coverage": null,
+      "extreme_dimensions": [],
+      "missing_dimensions": [
+       "balance_sheet",
+       "cash_conversion"
+      ],
+      "priority": 0.4,
+      "priority_authority": "research_priority",
+      "priority_change": null,
+      "ticker": "EEE"
+     },
+     {
+      "as_of": "2026-06-15",
+      "company_type": null,
+      "dimensions": [
+       {
+        "authority": "research_priority",
+        "detail": {},
+        "dimension": "capital_efficiency",
+        "inputs_expected": 2,
+        "inputs_present": 2,
+        "value": 0.9
+       },
+       {
+        "authority": "research_priority",
+        "detail": {},
+        "dimension": "cash_conversion",
+        "inputs_expected": 1,
+        "inputs_present": 1,
+        "value": 0.3
+       },
+       {
+        "authority": "research_priority",
+        "detail": {},
+        "dimension": "growth",
+        "inputs_expected": 1,
+        "inputs_present": 1,
+        "value": -1.2
+       }
+      ],
+      "dimensions_expected": 4,
+      "dimensions_present": 3,
+      "evidence_coverage": null,
+      "extreme_dimensions": [],
+      "missing_dimensions": [
+       "balance_sheet"
+      ],
+      "priority": null,
+      "priority_authority": "research_priority",
+      "priority_change": null,
+      "ticker": "CCC"
+     },
+     {
+      "as_of": "2026-06-15",
+      "company_type": null,
+      "dimensions": [
+       {
+        "authority": "research_priority",
+        "detail": {},
+        "dimension": "growth",
+        "inputs_expected": 1,
+        "inputs_present": 1,
+        "value": 0.05
+       }
+      ],
+      "dimensions_expected": 4,
+      "dimensions_present": 1,
+      "evidence_coverage": null,
+      "extreme_dimensions": [],
+      "missing_dimensions": [
+       "balance_sheet",
+       "cash_conversion",
+       "capital_efficiency"
+      ],
+      "priority": null,
+      "priority_authority": "descriptive",
+      "priority_change": null,
+      "ticker": "DDD"
+     }
+    ],
+    "scope": {
+     "as_of": null,
+     "engine_version": "golden-eng-a",
+     "evidence_policy": "current_vintage",
+     "names": 6,
+     "names_without_result": 1,
+     "tier": "ranked",
+     "universe": "fundamental_universe"
+    },
+    "state": "ok"
+   },
+   "params": {
+    "min_dimensions": 0
+   },
+   "path": "/api/scanner/radar",
+   "status": 200
+  },
+  {
+   "body": {
+    "ordering": "composite",
+    "ordering_authority": "research_priority",
+    "prohibited": [
+     "expected return \u2014 measured gross alpha is zero",
+     "risk score \u2014 the top decile is riskier than the middle",
+     "a per-name forecast \u2014 the within-ticker test is a POWERED null (IC -0.0000, all 16 tests fail BH)"
+    ],
+    "reason": null,
+    "rows": [
+     {
+      "as_of": "2026-06-15",
+      "company_type": "compounder",
+      "dimensions": [
+       {
+        "authority": "research_priority",
+        "detail": {},
+        "dimension": "balance_sheet",
+        "inputs_expected": 1,
+        "inputs_present": 1,
+        "value": 0.75
+       },
+       {
+        "authority": "research_priority",
+        "detail": {},
+        "dimension": "capital_efficiency",
+        "inputs_expected": 2,
+        "inputs_present": 2,
+        "value": 0.2
+       },
+       {
+        "authority": "research_priority",
+        "detail": {},
+        "dimension": "cash_conversion",
+        "inputs_expected": 1,
+        "inputs_present": 1,
+        "value": -0.4
+       },
+       {
+        "authority": "descriptive",
+        "detail": {},
+        "dimension": "evidence_quality",
+        "inputs_expected": 5,
+        "inputs_present": 4,
+        "value": 0.8
+       },
+       {
+        "authority": "research_priority",
+        "detail": {
+         "features": {
+          "rev_growth": 12.3
+         }
+        },
+        "dimension": "growth",
+        "inputs_expected": 1,
+        "inputs_present": 1,
+        "value": 12.3
+       },
+       {
+        "authority": "descriptive",
+        "detail": {},
+        "dimension": "operating_quality",
+        "inputs_expected": 2,
+        "inputs_present": 2,
+        "value": -0.25
+       },
+       {
+        "authority": "directional_monitor",
+        "detail": {},
+        "dimension": "valuation",
+        "inputs_expected": 1,
+        "inputs_present": 1,
+        "value": -11.0
+       }
+      ],
+      "dimensions_expected": 4,
+      "dimensions_present": 4,
+      "evidence_coverage": 0.8,
+      "extreme_dimensions": [
+       "growth",
+       "valuation"
+      ],
+      "missing_dimensions": [],
+      "priority": 1.5,
+      "priority_authority": "research_priority",
+      "priority_change": null,
+      "ticker": "AAA"
+     }
+    ],
+    "scope": {
+     "as_of": null,
+     "engine_version": "golden-eng-a",
+     "evidence_policy": "current_vintage",
+     "names": 6,
+     "names_without_result": 1,
+     "tier": "ranked",
+     "universe": "fundamental_universe"
+    },
+    "state": "ok"
+   },
+   "params": {
+    "min_dimensions": 4
+   },
+   "path": "/api/scanner/radar",
+   "status": 200
+  },
+  {
+   "body": {
+    "detail": [
+     {
+      "ctx": {
+       "le": 4
+      },
+      "input": "5",
+      "loc": [
+       "query",
+       "min_dimensions"
+      ],
+      "msg": "Input should be less than or equal to 4",
+      "type": "less_than_equal"
+     }
+    ]
+   },
+   "params": {
+    "min_dimensions": 5
+   },
+   "path": "/api/scanner/radar",
+   "status": 422
+  },
+  {
+   "body": {
+    "ordering": "composite",
+    "ordering_authority": "research_priority",
+    "prohibited": [
+     "expected return \u2014 measured gross alpha is zero",
+     "risk score \u2014 the top decile is riskier than the middle",
+     "a per-name forecast \u2014 the within-ticker test is a POWERED null (IC -0.0000, all 16 tests fail BH)"
+    ],
+    "reason": null,
+    "rows": [
+     {
+      "as_of": "2026-06-15",
+      "company_type": "financials",
+      "dimensions": [
+       {
+        "authority": "research_priority",
+        "detail": {},
+        "dimension": "capital_efficiency",
+        "inputs_expected": 2,
+        "inputs_present": 2,
+        "value": 1.2
+       },
+       {
+        "authority": "research_priority",
+        "detail": {},
+        "dimension": "growth",
+        "inputs_expected": 1,
+        "inputs_present": 1,
+        "value": 1.0
+       }
+      ],
+      "dimensions_expected": 4,
+      "dimensions_present": 2,
+      "evidence_coverage": null,
+      "extreme_dimensions": [],
+      "missing_dimensions": [
+       "balance_sheet",
+       "cash_conversion"
+      ],
+      "priority": 1.1,
+      "priority_authority": "research_priority",
+      "priority_change": null,
+      "ticker": "FFF"
+     }
+    ],
+    "scope": {
+     "as_of": null,
+     "engine_version": "golden-eng-b",
+     "evidence_policy": "current_vintage",
+     "names": 3,
+     "names_without_result": 1,
+     "tier": "watch",
+     "universe": "fundamental_universe"
+    },
+    "state": "ok"
+   },
+   "params": {
+    "engine_version": "golden-eng-b",
+    "limit": 1,
+    "tier": "watch"
+   },
+   "path": "/api/scanner/radar",
+   "status": 200
+  },
+  {
+   "body": {
+    "cells": [
+     {
+      "abstain_reason": null,
+      "chain": "Compute",
+      "domain": "ai",
+      "layer": "Accelerator",
+      "layer_rank": 10,
+      "members": 4,
+      "priority_mean": 1.1,
+      "with_magnitude": 1,
+      "with_result": 4
+     },
+     {
+      "abstain_reason": "no members in this cell",
+      "chain": "Optical",
+      "domain": "ai",
+      "layer": "Laser",
+      "layer_rank": 20,
+      "members": 0,
+      "priority_mean": null,
+      "with_magnitude": 0,
+      "with_result": 0
+     },
+     {
+      "abstain_reason": null,
+      "chain": "Optical",
+      "domain": "ai",
+      "layer": "Module",
+      "layer_rank": 30,
+      "members": 4,
+      "priority_mean": 0.766666667,
+      "with_magnitude": 1,
+      "with_result": 4
+     },
+     {
+      "abstain_reason": "only 1 of 2 members carry a compatible result (3 required)",
+      "chain": "Optical",
+      "domain": "ai",
+      "layer": "Systems",
+      "layer_rank": 40,
+      "members": 2,
+      "priority_mean": null,
+      "with_magnitude": 0,
+      "with_result": 1
+     },
+     {
+      "abstain_reason": "no members in this cell",
+      "chain": "Power",
+      "domain": "energy",
+      "layer": "Grid",
+      "layer_rank": 10,
+      "members": 0,
+      "priority_mean": null,
+      "with_magnitude": 0,
+      "with_result": 0
+     }
+    ],
+    "coverage": {
+     "Compute": {
+      "members": 4,
+      "with_exposure": 1,
+      "with_magnitude": 1
+     },
+     "Optical": {
+      "members": 6,
+      "with_exposure": 2,
+      "with_magnitude": 1
+     }
+    },
+    "engine_version": "golden-eng-a",
+    "prohibited": [
+     "a causal claim \u2014 no edge in this taxonomy has demonstrated forward information, so nothing propagates from one layer to another",
+     "a supplier/customer relationship \u2014 membership is semantic, and a named counterparty requires a named source",
+     "an economic exposure, unless the row carries a disclosed magnitude (measured at 4 of 316 members)"
+    ],
+    "reason": null,
+    "state": "ok",
+    "taxonomy_version": "golden-tax-v1"
+   },
+   "params": {},
+   "path": "/api/research/chains/matrix",
+   "status": 200
+  },
+  {
+   "body": {
+    "cells": [
+     {
+      "abstain_reason": "only 1 of 2 members carry a compatible result (3 required)",
+      "chain": "Optical",
+      "domain": "ai",
+      "layer": "Module",
+      "layer_rank": 30,
+      "members": 2,
+      "priority_mean": null,
+      "with_magnitude": 0,
+      "with_result": 1
+     }
+    ],
+    "coverage": {
+     "Optical": {
+      "members": 2,
+      "with_exposure": 0,
+      "with_magnitude": 0
+     }
+    },
+    "engine_version": "golden-eng-a",
+    "prohibited": [
+     "a causal claim \u2014 no edge in this taxonomy has demonstrated forward information, so nothing propagates from one layer to another",
+     "a supplier/customer relationship \u2014 membership is semantic, and a named counterparty requires a named source",
+     "an economic exposure, unless the row carries a disclosed magnitude (measured at 4 of 316 members)"
+    ],
+    "reason": null,
+    "state": "ok",
+    "taxonomy_version": "golden-tax-v0"
+   },
+   "params": {
+    "taxonomy_version": "golden-tax-v0"
+   },
+   "path": "/api/research/chains/matrix",
+   "status": 200
+  },
+  {
+   "body": {
+    "cells": [],
+    "coverage": {},
+    "engine_version": "golden-eng-a",
+    "prohibited": [
+     "a causal claim \u2014 no edge in this taxonomy has demonstrated forward information, so nothing propagates from one layer to another",
+     "a supplier/customer relationship \u2014 membership is semantic, and a named counterparty requires a named source",
+     "an economic exposure, unless the row carries a disclosed magnitude (measured at 4 of 316 members)"
+    ],
+    "reason": null,
+    "state": "ok",
+    "taxonomy_version": "golden-tax-none"
+   },
+   "params": {
+    "taxonomy_version": "golden-tax-none"
+   },
+   "path": "/api/research/chains/matrix",
+   "status": 200
+  },
+  {
+   "body": {
+    "cells": [
+     {
+      "abstain_reason": "only 2 of 4 members carry a compatible result (3 required)",
+      "chain": "Compute",
+      "domain": "ai",
+      "layer": "Accelerator",
+      "layer_rank": 10,
+      "members": 4,
+      "priority_mean": null,
+      "with_magnitude": 1,
+      "with_result": 2
+     },
+     {
+      "abstain_reason": "no members in this cell",
+      "chain": "Optical",
+      "domain": "ai",
+      "layer": "Laser",
+      "layer_rank": 20,
+      "members": 0,
+      "priority_mean": null,
+      "with_magnitude": 0,
+      "with_result": 0
+     },
+     {
+      "abstain_reason": "only 1 of 4 members carry a compatible result (3 required)",
+      "chain": "Optical",
+      "domain": "ai",
+      "layer": "Module",
+      "layer_rank": 30,
+      "members": 4,
+      "priority_mean": null,
+      "with_magnitude": 1,
+      "with_result": 1
+     },
+     {
+      "abstain_reason": "only 1 of 2 members carry a compatible result (3 required)",
+      "chain": "Optical",
+      "domain": "ai",
+      "layer": "Systems",
+      "layer_rank": 40,
+      "members": 2,
+      "priority_mean": null,
+      "with_magnitude": 0,
+      "with_result": 1
+     },
+     {
+      "abstain_reason": "no members in this cell",
+      "chain": "Power",
+      "domain": "energy",
+      "layer": "Grid",
+      "layer_rank": 10,
+      "members": 0,
+      "priority_mean": null,
+      "with_magnitude": 0,
+      "with_result": 0
+     }
+    ],
+    "coverage": {
+     "Compute": {
+      "members": 4,
+      "with_exposure": 1,
+      "with_magnitude": 1
+     },
+     "Optical": {
+      "members": 6,
+      "with_exposure": 2,
+      "with_magnitude": 1
+     }
+    },
+    "engine_version": "golden-eng-b",
+    "prohibited": [
+     "a causal claim \u2014 no edge in this taxonomy has demonstrated forward information, so nothing propagates from one layer to another",
+     "a supplier/customer relationship \u2014 membership is semantic, and a named counterparty requires a named source",
+     "an economic exposure, unless the row carries a disclosed magnitude (measured at 4 of 316 members)"
+    ],
+    "reason": null,
+    "state": "ok",
+    "taxonomy_version": "golden-tax-v1"
+   },
+   "params": {
+    "engine_version": "golden-eng-b"
+   },
+   "path": "/api/research/chains/matrix",
+   "status": 200
+  },
+  {
+   "body": {
+    "cells": [
+     {
+      "abstain_reason": null,
+      "chain": "Compute",
+      "domain": "ai",
+      "layer": "Accelerator",
+      "layer_rank": 10,
+      "members": 4,
+      "priority_mean": 1.1,
+      "with_magnitude": 1,
+      "with_result": 4
+     },
+     {
+      "abstain_reason": "no members in this cell",
+      "chain": "Optical",
+      "domain": "ai",
+      "layer": "Laser",
+      "layer_rank": 20,
+      "members": 0,
+      "priority_mean": null,
+      "with_magnitude": 0,
+      "with_result": 0
+     },
+     {
+      "abstain_reason": null,
+      "chain": "Optical",
+      "domain": "ai",
+      "layer": "Module",
+      "layer_rank": 30,
+      "members": 4,
+      "priority_mean": 0.766666667,
+      "with_magnitude": 1,
+      "with_result": 4
+     },
+     {
+      "abstain_reason": "only 1 of 2 members carry a compatible result (3 required)",
+      "chain": "Optical",
+      "domain": "ai",
+      "layer": "Systems",
+      "layer_rank": 40,
+      "members": 2,
+      "priority_mean": null,
+      "with_magnitude": 0,
+      "with_result": 1
+     }
+    ],
+    "coverage": {
+     "Compute": {
+      "members": 4,
+      "with_exposure": 1,
+      "with_magnitude": 1
+     },
+     "Optical": {
+      "members": 6,
+      "with_exposure": 2,
+      "with_magnitude": 1
+     }
+    },
+    "engine_version": "golden-eng-a",
+    "prohibited": [
+     "a causal claim \u2014 no edge in this taxonomy has demonstrated forward information, so nothing propagates from one layer to another",
+     "a supplier/customer relationship \u2014 membership is semantic, and a named counterparty requires a named source",
+     "an economic exposure, unless the row carries a disclosed magnitude (measured at 4 of 316 members)"
+    ],
+    "reason": null,
+    "state": "ok",
+    "taxonomy_version": "golden-tax-v1"
+   },
+   "params": {
+    "domain": "ai"
+   },
+   "path": "/api/research/chains/matrix",
+   "status": 200
+  },
+  {
+   "body": {
+    "cells": [
+     {
+      "abstain_reason": "no members in this cell",
+      "chain": "Power",
+      "domain": "energy",
+      "layer": "Grid",
+      "layer_rank": 10,
+      "members": 0,
+      "priority_mean": null,
+      "with_magnitude": 0,
+      "with_result": 0
+     }
+    ],
+    "coverage": {
+     "Compute": {
+      "members": 4,
+      "with_exposure": 1,
+      "with_magnitude": 1
+     },
+     "Optical": {
+      "members": 6,
+      "with_exposure": 2,
+      "with_magnitude": 1
+     }
+    },
+    "engine_version": "golden-eng-a",
+    "prohibited": [
+     "a causal claim \u2014 no edge in this taxonomy has demonstrated forward information, so nothing propagates from one layer to another",
+     "a supplier/customer relationship \u2014 membership is semantic, and a named counterparty requires a named source",
+     "an economic exposure, unless the row carries a disclosed magnitude (measured at 4 of 316 members)"
+    ],
+    "reason": null,
+    "state": "ok",
+    "taxonomy_version": "golden-tax-v1"
+   },
+   "params": {
+    "domain": "energy"
+   },
+   "path": "/api/research/chains/matrix",
+   "status": 200
+  },
+  {
+   "body": {
+    "cells": [],
+    "coverage": {
+     "Compute": {
+      "members": 4,
+      "with_exposure": 1,
+      "with_magnitude": 1
+     },
+     "Optical": {
+      "members": 6,
+      "with_exposure": 2,
+      "with_magnitude": 1
+     }
+    },
+    "engine_version": "golden-eng-a",
+    "prohibited": [
+     "a causal claim \u2014 no edge in this taxonomy has demonstrated forward information, so nothing propagates from one layer to another",
+     "a supplier/customer relationship \u2014 membership is semantic, and a named counterparty requires a named source",
+     "an economic exposure, unless the row carries a disclosed magnitude (measured at 4 of 316 members)"
+    ],
+    "reason": null,
+    "state": "ok",
+    "taxonomy_version": "golden-tax-v1"
+   },
+   "params": {
+    "domain": "no-such-domain"
+   },
+   "path": "/api/research/chains/matrix",
+   "status": 200
+  },
+  {
+   "body": {
+    "chain": "Optical",
+    "layer": null,
+    "members": [
+     {
+      "approved_by": "golden-operator",
+      "direction": "upstream",
+      "evidence_class": "disclosed",
+      "exposure_status": "disclosed",
+      "layer": "Module",
+      "magnitude": 0.4,
+      "magnitude_basis": "segment_share",
+      "priority": 1.5,
+      "role": "component",
+      "source_ref": "aaa:OpticsMember",
+      "ticker": "AAA"
+     },
+     {
+      "approved_by": "golden-operator",
+      "direction": null,
+      "evidence_class": "analyst",
+      "exposure_status": "asserted",
+      "layer": "Module",
+      "magnitude": null,
+      "magnitude_basis": "qualitative",
+      "priority": 0.4,
+      "role": "supplier",
+      "source_ref": null,
+      "ticker": "BBB"
+     },
+     {
+      "approved_by": "golden-operator",
+      "direction": null,
+      "evidence_class": "inferred",
+      "exposure_status": null,
+      "layer": "Module",
+      "magnitude": null,
+      "magnitude_basis": null,
+      "priority": null,
+      "role": null,
+      "source_ref": null,
+      "ticker": "CCC"
+     },
+     {
+      "approved_by": "golden-operator",
+      "direction": null,
+      "evidence_class": "mirrored",
+      "exposure_status": null,
+      "layer": "Module",
+      "magnitude": null,
+      "magnitude_basis": null,
+      "priority": 0.4,
+      "role": null,
+      "source_ref": null,
+      "ticker": "EEE"
+     },
+     {
+      "approved_by": "golden-operator",
+      "direction": null,
+      "evidence_class": "analyst",
+      "exposure_status": null,
+      "layer": "Systems",
+      "magnitude": null,
+      "magnitude_basis": null,
+      "priority": null,
+      "role": null,
+      "source_ref": null,
+      "ticker": "DDD"
+     },
+     {
+      "approved_by": "golden-operator",
+      "direction": null,
+      "evidence_class": "analyst",
+      "exposure_status": null,
+      "layer": "Systems",
+      "magnitude": null,
+      "magnitude_basis": null,
+      "priority": -0.6,
+      "role": null,
+      "source_ref": null,
+      "ticker": "FFF"
+     }
+    ],
+    "reason": null,
+    "state": "ok",
+    "taxonomy_version": "golden-tax-v1"
+   },
+   "params": {},
+   "path": "/api/research/chains/Optical",
+   "status": 200
+  },
+  {
+   "body": {
+    "chain": "Optical",
+    "layer": "Module",
+    "members": [
+     {
+      "approved_by": "golden-operator",
+      "direction": "upstream",
+      "evidence_class": "disclosed",
+      "exposure_status": "disclosed",
+      "layer": "Module",
+      "magnitude": 0.4,
+      "magnitude_basis": "segment_share",
+      "priority": 1.5,
+      "role": "component",
+      "source_ref": "aaa:OpticsMember",
+      "ticker": "AAA"
+     },
+     {
+      "approved_by": "golden-operator",
+      "direction": null,
+      "evidence_class": "analyst",
+      "exposure_status": "asserted",
+      "layer": "Module",
+      "magnitude": null,
+      "magnitude_basis": "qualitative",
+      "priority": 0.4,
+      "role": "supplier",
+      "source_ref": null,
+      "ticker": "BBB"
+     },
+     {
+      "approved_by": "golden-operator",
+      "direction": null,
+      "evidence_class": "inferred",
+      "exposure_status": null,
+      "layer": "Module",
+      "magnitude": null,
+      "magnitude_basis": null,
+      "priority": null,
+      "role": null,
+      "source_ref": null,
+      "ticker": "CCC"
+     },
+     {
+      "approved_by": "golden-operator",
+      "direction": null,
+      "evidence_class": "mirrored",
+      "exposure_status": null,
+      "layer": "Module",
+      "magnitude": null,
+      "magnitude_basis": null,
+      "priority": 0.4,
+      "role": null,
+      "source_ref": null,
+      "ticker": "EEE"
+     }
+    ],
+    "reason": null,
+    "state": "ok",
+    "taxonomy_version": "golden-tax-v1"
+   },
+   "params": {
+    "layer": "Module"
+   },
+   "path": "/api/research/chains/Optical",
+   "status": 200
+  },
+  {
+   "body": {
+    "chain": "Optical",
+    "layer": "Systems",
+    "members": [
+     {
+      "approved_by": "golden-operator",
+      "direction": null,
+      "evidence_class": "analyst",
+      "exposure_status": null,
+      "layer": "Systems",
+      "magnitude": null,
+      "magnitude_basis": null,
+      "priority": null,
+      "role": null,
+      "source_ref": null,
+      "ticker": "DDD"
+     },
+     {
+      "approved_by": "golden-operator",
+      "direction": null,
+      "evidence_class": "analyst",
+      "exposure_status": null,
+      "layer": "Systems",
+      "magnitude": null,
+      "magnitude_basis": null,
+      "priority": -0.6,
+      "role": null,
+      "source_ref": null,
+      "ticker": "FFF"
+     }
+    ],
+    "reason": null,
+    "state": "ok",
+    "taxonomy_version": "golden-tax-v1"
+   },
+   "params": {
+    "layer": "Systems"
+   },
+   "path": "/api/research/chains/Optical",
+   "status": 200
+  },
+  {
+   "body": {
+    "chain": "Compute",
+    "layer": null,
+    "members": [
+     {
+      "approved_by": "golden-operator",
+      "direction": null,
+      "evidence_class": "disclosed",
+      "exposure_status": null,
+      "layer": "Accelerator",
+      "magnitude": null,
+      "magnitude_basis": null,
+      "priority": 1.5,
+      "role": null,
+      "source_ref": null,
+      "ticker": "AAA"
+     },
+     {
+      "approved_by": "golden-operator",
+      "direction": null,
+      "evidence_class": "analyst",
+      "exposure_status": null,
+      "layer": "Accelerator",
+      "magnitude": null,
+      "magnitude_basis": null,
+      "priority": 0.4,
+      "role": null,
+      "source_ref": null,
+      "ticker": "BBB"
+     },
+     {
+      "approved_by": "golden-operator",
+      "direction": "downstream",
+      "evidence_class": "disclosed",
+      "exposure_status": "disclosed",
+      "layer": "Accelerator",
+      "magnitude": 0.25,
+      "magnitude_basis": "customer_concentration",
+      "priority": -0.6,
+      "role": "customer",
+      "source_ref": "fff:10-K",
+      "ticker": "FFF"
+     },
+     {
+      "approved_by": "golden-operator",
+      "direction": null,
+      "evidence_class": "inferred",
+      "exposure_status": null,
+      "layer": "Accelerator",
+      "magnitude": null,
+      "magnitude_basis": null,
+      "priority": 3.1,
+      "role": null,
+      "source_ref": null,
+      "ticker": "GGG"
+     }
+    ],
+    "reason": null,
+    "state": "ok",
+    "taxonomy_version": "golden-tax-v1"
+   },
+   "params": {},
+   "path": "/api/research/chains/Compute",
+   "status": 200
+  },
+  {
+   "body": {
+    "chain": "Compute",
+    "layer": null,
+    "members": [
+     {
+      "approved_by": "golden-operator",
+      "direction": null,
+      "evidence_class": "disclosed",
+      "exposure_status": null,
+      "layer": "Accelerator",
+      "magnitude": null,
+      "magnitude_basis": null,
+      "priority": -0.2,
+      "role": null,
+      "source_ref": null,
+      "ticker": "AAA"
+     },
+     {
+      "approved_by": "golden-operator",
+      "direction": null,
+      "evidence_class": "analyst",
+      "exposure_status": null,
+      "layer": "Accelerator",
+      "magnitude": null,
+      "magnitude_basis": null,
+      "priority": null,
+      "role": null,
+      "source_ref": null,
+      "ticker": "BBB"
+     },
+     {
+      "approved_by": "golden-operator",
+      "direction": "downstream",
+      "evidence_class": "disclosed",
+      "exposure_status": "disclosed",
+      "layer": "Accelerator",
+      "magnitude": 0.25,
+      "magnitude_basis": "customer_concentration",
+      "priority": 1.1,
+      "role": "customer",
+      "source_ref": "fff:10-K",
+      "ticker": "FFF"
+     },
+     {
+      "approved_by": "golden-operator",
+      "direction": null,
+      "evidence_class": "inferred",
+      "exposure_status": null,
+      "layer": "Accelerator",
+      "magnitude": null,
+      "magnitude_basis": null,
+      "priority": null,
+      "role": null,
+      "source_ref": null,
+      "ticker": "GGG"
+     }
+    ],
+    "reason": null,
+    "state": "ok",
+    "taxonomy_version": "golden-tax-v1"
+   },
+   "params": {
+    "engine_version": "golden-eng-b"
+   },
+   "path": "/api/research/chains/Compute",
+   "status": 200
+  },
+  {
+   "body": {
+    "chain": "Power",
+    "layer": null,
+    "members": [],
+    "reason": "no members in 'Power' under golden-tax-v1",
+    "state": "no_coverage",
+    "taxonomy_version": "golden-tax-v1"
+   },
+   "params": {},
+   "path": "/api/research/chains/Power",
+   "status": 200
+  },
+  {
+   "body": {
+    "chain": "NoSuchChain",
+    "layer": null,
+    "members": [],
+    "reason": "no members in 'NoSuchChain' under golden-tax-v1",
+    "state": "no_coverage",
+    "taxonomy_version": "golden-tax-v1"
+   },
+   "params": {},
+   "path": "/api/research/chains/NoSuchChain",
+   "status": 200
+  },
+  {
+   "body": {
+    "chain": "Optical",
+    "layer": null,
+    "members": [
+     {
+      "approved_by": "golden-operator",
+      "direction": null,
+      "evidence_class": "inferred",
+      "exposure_status": null,
+      "layer": "Module",
+      "magnitude": null,
+      "magnitude_basis": null,
+      "priority": 1.5,
+      "role": null,
+      "source_ref": null,
+      "ticker": "AAA"
+     },
+     {
+      "approved_by": "golden-operator",
+      "direction": null,
+      "evidence_class": "inferred",
+      "exposure_status": null,
+      "layer": "Module",
+      "magnitude": null,
+      "magnitude_basis": null,
+      "priority": null,
+      "role": null,
+      "source_ref": null,
+      "ticker": "ZZZ"
+     }
+    ],
+    "reason": null,
+    "state": "ok",
+    "taxonomy_version": "golden-tax-v0"
+   },
+   "params": {
+    "taxonomy_version": "golden-tax-v0"
+   },
+   "path": "/api/research/chains/Optical",
+   "status": 200
+  }
+ ]
+}
