@@ -2,7 +2,7 @@
 
 from __future__ import annotations
 
-from uw_scan.api.models.regime_validation import (
+from uw_scan.models.regime_validation import (
     VcgStressHistoryEntry,
     VcgStressHistorySummaryRow,
     VcgValidationResponse,

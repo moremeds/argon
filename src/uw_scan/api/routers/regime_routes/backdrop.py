@@ -7,7 +7,7 @@ from typing import Annotated
 from fastapi import APIRouter, Depends, Query
 
 from uw_scan.api.deps import get_repo
-from uw_scan.api.schemas import (
+from uw_scan.models.regime_backdrop import (
     DispersionResponse,
     VolBackdropResponse,
     VrpHarvestResponse,

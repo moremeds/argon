@@ -179,27 +179,5 @@ class WatchlistSpotsResponse(BaseModel):
     spots: list[WatchlistSpot] = Field(default_factory=list)
 
 
-def _preserve_api_module(*classes: type[BaseModel]) -> None:
-    for cls in classes:
-        cls.__module__ = "uw_scan.api.schemas"
-
-
-_preserve_api_module(
-    SetupBlock,
-    ReturnsBlock,
-    GammaBlock,
-    SkewBlock,
-    PositioningBlock,
-    QueueStatus,
-    WatchlistCard,
-    WatchlistChainInfo,
-    WatchlistChainsResponse,
-    QueueSummary,
-    WatchlistResponse,
-    WatchlistMutation,
-    WatchlistPatch,
-    JobStatus,
-    OhlcRow,
-    WatchlistSpot,
-    WatchlistSpotsResponse,
-)
+class RescanAllRequest(BaseModel):
+    confirmed: bool = False

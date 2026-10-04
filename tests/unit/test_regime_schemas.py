@@ -1,4 +1,4 @@
-from uw_scan.api.schemas import EMPTY_GEX_RESPONSE, GexResponse
+from uw_scan.models.regime_gex import EMPTY_GEX_RESPONSE, GexResponse
 
 
 def test_empty_gex_response_uses_profile_not_buckets():

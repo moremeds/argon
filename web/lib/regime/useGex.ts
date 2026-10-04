@@ -9,7 +9,7 @@ import { useSyncHook, type UseSyncReturn } from "./useSyncHook";
 /* ─── GEX types (mirror xenon's gex_scan.py JSON output) ─────── */
 
 // Generated from the API's GexResponse (I-103b); the names stay.
-export type GexLevel = components["schemas"]["uw_scan__api__schemas__GexLevel"] | null;
+export type GexLevel = components["schemas"]["RegimeGexLevel"] | null;
 export type GexBucket = components["schemas"]["GexBucket"];
 export type GexBias = components["schemas"]["GexBias"];
 export type GexHistoryEntry = components["schemas"]["GexHistoryEntry"];

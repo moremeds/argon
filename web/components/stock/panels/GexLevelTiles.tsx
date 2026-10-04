@@ -5,7 +5,7 @@ import { Tile } from "@/components/shared/Tile";
 import { useLiveSpot } from "@/components/watchlist/LiveSpotsProvider";
 
 type Report = components["schemas"]["SingleStockReport"];
-type Level = components["schemas"]["uw_scan__models__GexLevel"];
+type Level = components["schemas"]["GexLevel"];
 
 function signedColor(v: number | null): string {
   if (v == null) return "var(--text-primary)";
