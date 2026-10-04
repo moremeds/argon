@@ -15,13 +15,15 @@ from uw_scan.worker.schedule.macro import (
     _should_schedule_macro_policy_ingest,
     _should_schedule_rates_fred_ingest,
 )
-from uw_scan.worker.scheduler import (
+from uw_scan.worker.schedule.scan_core import (
     RESCAN_WORKER_CONCURRENCY,
     _ohlc_provider,
+    _uw_auto_request_allowed,
+)
+from uw_scan.worker.scheduler import (
     _record_worker_heartbeat,
     _should_schedule_pipeline_benchmark,
     _should_schedule_skew_swing_greeks,
-    _uw_auto_request_allowed,
     _worker_heartbeat_name,
 )
 
@@ -131,7 +133,7 @@ def test_ohlc_provider_uses_configured_request_timeout(monkeypatch) -> None:
         def __init__(self, **kwargs) -> None:
             captured.update(kwargs)
 
-    monkeypatch.setattr("uw_scan.worker.scheduler.MassiveOhlcProvider", FakeProvider)
+    monkeypatch.setattr("uw_scan.worker.schedule.scan_core.MassiveOhlcProvider", FakeProvider)
 
     settings = Settings(
         api_key="uw",
@@ -291,6 +293,7 @@ def test_scheduler_cron_literals_do_not_use_apscheduler_tuesday_to_saturday_rang
     production_sources = (
         repo_root / "src/uw_scan/config.py",
         repo_root / "src/uw_scan/worker/scheduler.py",
+        *sorted((repo_root / "src/uw_scan/worker/schedule").glob("*.py")),
     )
 
     offenders = [
@@ -384,7 +387,11 @@ def test_job_listener_records_every_non_tick_success(monkeypatch) -> None:
 def test_tick_job_ids_match_registered_interval_jobs() -> None:
     import uw_scan.worker.scheduler as scheduler
 
-    source = Path(scheduler.__file__).read_text()
+    worker = Path(scheduler.__file__).parent
+    source = "".join(
+        p.read_text()
+        for p in [worker / "scheduler.py", *sorted((worker / "schedule").glob("*.py"))]
+    )
     for job_id in scheduler._TICK_JOB_IDS:
         assert f'id="{job_id}"' in source, job_id
 
