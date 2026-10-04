@@ -25,6 +25,7 @@ import pytest
 
 import uw_scan.storage.earnings_calendar as calendar_storage
 import uw_scan.worker.jobs.fundamental_ingest as ingest_mod
+import uw_scan.worker.schedule.fundamentals as fundamentals
 import uw_scan.worker.scheduler as scheduler
 
 # Real-shaped fixture ticker, absent from both classified calendar slots — the exact
@@ -151,9 +152,9 @@ def test_the_monthly_sweep_lands_statement_obs_for_a_calendar_invisible_name(
         def __exit__(self, *exc_info):
             return False
 
-    monkeypatch.setattr(scheduler, "_repo", fake_repo)
-    monkeypatch.setattr(scheduler, "_external_api_recorder", fake_recorder)
-    monkeypatch.setattr(scheduler, "_uw_client", lambda *a, **k: _FakeUwClient())
+    monkeypatch.setattr(fundamentals, "_repo", fake_repo)
+    monkeypatch.setattr(fundamentals, "_external_api_recorder", fake_recorder)
+    monkeypatch.setattr(fundamentals, "_uw_client", lambda *a, **k: _FakeUwClient())
 
     func = _capture_fundamental_ingest_func(
         monkeypatch,

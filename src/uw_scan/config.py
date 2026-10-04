@@ -515,7 +515,7 @@ class Settings(BaseModel):
     #: hour clear of the 03:20/03:45/03:50 weekday jobs.
     company_sector_refresh_cron: str = "40 4 * * *"
     # Per-print earnings reaction history (spec §5-ii): calendar x daily_ohlc,
-    # zero UW/IB spend, pinned to massive-0 at 19:40 ET daily (see scheduler
+    # zero UW/IB spend, pinned to massive-0 at 19:40 ET daily (see schedule/fundamentals.py
     # `_should_schedule_earnings_reactions`). Default ON — same rationale as
     # the accrual jobs above: a night not computed is a print whose reaction
     # a future read can no longer distinguish from "not yet known" once the
@@ -526,7 +526,7 @@ class Settings(BaseModel):
     # with a known print in the next 21 calendar days. Zero UW/IB spend,
     # pinned to massive-0 at 20:45 ET weekdays -- after the 19:00/19:30
     # surface-capture jobs so tonight's grid is already written (see
-    # scheduler `_should_schedule_implied_move`). Default ON, same rationale
+    # schedule/fundamentals.py `_should_schedule_implied_move`). Default ON, same rationale
     # as earnings_reactions_enabled above: a night not snapshotted is a
     # forward-looking read the desk can never reconstruct after the fact.
     implied_move_snapshot_enabled: bool = True
@@ -534,7 +534,7 @@ class Settings(BaseModel):
     # implied_move_shift, coverage_change, bucket_flip through the discovery
     # gate. Zero UW/IB spend, pinned to massive-0 at 21:15 ET weekdays --
     # after implied_move_snapshot and fundamental_refresh so every source
-    # table it reads is tonight's, not last night's (see scheduler
+    # table it reads is tonight's, not last night's (see schedule/fundamentals.py
     # `_should_schedule_fundamental_change_events`). Default ON, same
     # rationale as its siblings above: a night not derived is a change the
     # desk never learns of once the underlying row is superseded.
@@ -544,7 +544,7 @@ class Settings(BaseModel):
     # period_end), so the chain x metric matrix reads it at request time with
     # zero recompute. Zero UW/IB spend, pinned to massive-0 at 21:30 ET daily
     # -- after fundamental_change_events (21:15) so this block's jobs stay
-    # ordered even though they read unrelated tables (see scheduler
+    # ordered even though they read unrelated tables (see schedule/fundamentals.py
     # `_should_schedule_fundamentals_desk_rollup`). Default ON, same
     # rationale as its siblings above: a night not rolled up is a period the
     # matrix cannot show until the next run recomputes it.
